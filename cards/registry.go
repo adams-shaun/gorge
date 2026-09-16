@@ -90,8 +90,10 @@ type cacheFile struct {
 // 3 adds keyword expansion at link time (Face.expandKeywords, keywords.go):
 // a v2 cache was compiled before Faces carried the triggers, replacements
 // and abilities that expansion adds, so its Primitives() would undercount
-// exactly the way a v1-vs-Tokens cache would.
-const cacheVersion = 3
+// exactly the way a v1-vs-Tokens cache would. Version 4 carries Card's
+// AlternateMode, which name-characteristic matching needs to distinguish a
+// split card from a transforming double-faced card away from the battlefield.
+const cacheVersion = 4
 
 func (r *Registry) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

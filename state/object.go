@@ -16,6 +16,17 @@ type Target struct {
 	IsPlayer bool
 }
 
+// GoadEffect is one independently-lived CR 701.38 goad relationship.
+// Source and Duration preserve the condition Forge attached to the effect;
+// Controller is the target creature's controller when an AsLongAsControl
+// relationship began. All fields are reconstructed by events.Apply.
+type GoadEffect struct {
+	Player     PlayerID
+	Source     ObjID
+	Controller PlayerID
+	Duration   string
+}
+
 // SacrificedInfo is the last-known-information snapshot of an object at the
 // instant it was sacrificed, captured before the sacrifice's zone change
 // (CR 608.2g "last known information"): the object is in the graveyard by
@@ -41,6 +52,13 @@ const (
 	FlagSurged
 	FlagFlashback
 	FlagMiracle
+	// Appended below the four original bits, following the enum's own
+	// append-only precedent: these mark alternative-cost casts (CR 601.2b
+	// records how a spell was cast) read by the ETB/keyword machinery.
+	FlagEvoked     // evoke: paid the evoke cost (CR 702)
+	FlagDashed     // dash: paid the dash cost (CR 702)
+	FlagOverloaded // overload cast (CR 702)
+	FlagWarped     // warp cast: exile at next end step, may recast from exile (CR 702)
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -75,10 +93,17 @@ type Object struct {
 	PreStackEntryFrom     Zone
 	HasPreStackEntry      bool
 
+	// Incarnation advances whenever an object crosses the battlefield
+	// boundary. ObjID is stable for the match, but a permanent that leaves and
+	// returns is a new object under CR 400.7; delayed and keyword-triggered
+	// actions snapshot this value when tied to that permanent incarnation.
+	Incarnation uint32
+
 	// Stack-only.
-	Ability *cards.SA
-	Source  ObjID
-	Targets []Target
+	Ability           *cards.SA
+	Source            ObjID
+	SourceIncarnation uint32
+	Targets           []Target
 	// Remembered carries a triggered ability's Ctx.Remembered from the
 	// moment it was queued (rules.checkTriggers) through to resolution. An
 	// ability object has no Face (Ruling F3) and therefore no card-script
@@ -91,6 +116,15 @@ type Object struct {
 	IsAttacking bool
 	Attacking   PlayerID
 	BlockedBy   []ObjID
+	// EncoreAttackTurn/Defender record "attacks that opponent this turn if
+	// able" on an encore token. Zero Turn means no requirement; turns begin
+	// at 1, so the zero value is unambiguous.
+	EncoreAttackTurn     int32
+	EncoreAttackDefender PlayerID
+
+	// Goads holds CR 701.38 attack requirements. Relationships can have the
+	// default next-turn lifetime, be permanent, or depend on source/control.
+	Goads []GoadEffect
 
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.
@@ -130,6 +164,11 @@ type Object struct {
 	// battlefield (events.Move) -- an Aura or Equipment cannot stay
 	// "attached" once it isn't a permanent.
 	AttachedTo ObjID
+
+	// ExiledWith is the object whose effect most recently put this card into
+	// exile. events.Apply derives it from a MoveZone event's existing IDs
+	// carrier, so Card.ExiledWithSource filters replay without ambient state.
+	ExiledWith ObjID
 
 	// IsToken and IsCopy mark an object that only ever exists on the stack
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
@@ -185,7 +224,7 @@ func (o *Object) AddCounter(kind string, n int32) {
 }
 
 // CloneDeep returns a value copy of o whose slice fields (Counters, Targets,
-// Remembered, BlockedBy, Chosen, ChosenModes) are independently backed, so mutating
+// Remembered, BlockedBy, Chosen, Goads, ChosenModes) are independently backed, so mutating
 // the copy's slices can never alias o's -- everything else (Card, a shared
 // pointer into the immutable compiled corpus, plus every scalar field) is
 // correct as a plain value copy. This is the one definition of "deep-copy an
@@ -202,6 +241,7 @@ func (o *Object) CloneDeep() Object {
 	c.Remembered = append([]Target(nil), o.Remembered...)
 	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
 	c.Chosen = append([]Target(nil), o.Chosen...)
+	c.Goads = append([]GoadEffect(nil), o.Goads...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	return c
 }

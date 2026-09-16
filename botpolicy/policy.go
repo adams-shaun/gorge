@@ -404,15 +404,36 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			in.Choices = b.chooseDiscard(d)
 		case "exile", "sacrifice":
 			in.Choices = b.chooseWorst(d)
-		case "dig":
-			// A Dig look-and-take: take the first Max options in offered
-			// (library) order -- the exact mirror of effDig's no-ask stand-in
-			// (R-9), so a bot-answered Dig emits the same MoveZone events the
-			// silent build did and no golden game moves for the ask alone.
-			// An Optional$ Min-0 ask still takes the full Max: the stand-in
-			// it mirrors plays "you may" as "do", deterministically.
+		case "dig", "hand_move":
+			// A Dig look-and-take or a "choose N matching cards from hand"
+			// ChangeZone (handmove1): take the first Max options in offered
+			// (zone) order -- the exact mirror of effDig's / effChangeZoneHand's
+			// no-ask stand-in (R-9), so a bot-answered ask emits the same
+			// MoveZone events the silent build did and no golden game moves for
+			// the ask alone. An Optional$ Min-0 ask still takes the full Max:
+			// the stand-in it mirrors plays "you may" as "do", deterministically.
 			for j := 0; j < len(d.Options) && j < d.Max; j++ {
 				in.Choices = append(in.Choices, d.Options[j].Index)
+			}
+		case "pay_life", "pay_W", "pay_U", "pay_B", "pay_R", "pay_G":
+			// A mana pip's payment alternatives (manaAsk): hybrid colours plus
+			// a phyrexian pip's "Pay 2 life". The first offer is a POOL colour,
+			// and taking it can strand the cost's generic remainder -- measured
+			// (commander bench, seed 1295, Solphim's {1}{R/P}{R/P} ability):
+			// the bot paid the only R into a pip, the generic {1} went unpaid,
+			// and the activation aborted with no progress -- every window,
+			// forever, until the intent cap fired. Pool mana is the scarcer
+			// resource (it is the ONLY thing that can pay a generic pip; life
+			// pays only these alternatives), so prefer the life payment when
+			// it is offered and the seat has life to spare; otherwise take the
+			// first offer (the old behaviour). The 6 threshold leaves two pips'
+			// worth of buffer, so a two-pip cost never lands the seat at 0.
+			in.Choices = []int{d.Options[0].Index}
+			for _, o := range d.Options {
+				if o.Kind == "pay_life" && b.Life[d.Player] >= 6 {
+					in.Choices = []int{o.Index}
+					break
+				}
 			}
 		default: // yes/no (yes is first), name, type, number: the first offer
 			in.Choices = []int{d.Options[0].Index}

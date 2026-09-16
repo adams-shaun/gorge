@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>HandFan geometry fixture</title>
+    <style>
+      /* The board-stage equivalent: a fixed-size, position:relative,
+         overflow:hidden box — the same clipping contract Table.svelte's
+         .board gives the real fan (fb-20260916T024357Z-9005ad6a). It is the
+         ONLY box on the page; HandFan's .handtrack anchors to it (absolute,
+         bottom: 0) and the stage's overflow is what clips the fan's lowered
+         half. Fixed 600x420 so the stage is smaller than every supported test
+         viewport (1440x900, 1000x900, 650x700) and the geometry measured is
+         the stage's, not the viewport's. */
+      body {
+        margin: 0;
+      }
+      #stage {
+        position: relative;
+        overflow: hidden;
+        width: 600px;
+        height: 420px;
+        background: #233;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <script type="module" src="/src/components/HandFan.geometry.ts"></script>
+  </body>
+</html>

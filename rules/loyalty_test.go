@@ -203,13 +203,15 @@ func TestLightningBoltKillsAThreeLoyaltyJace(t *testing.T) {
 		t.Fatalf("3-loyalty Jace survived a bolt in %s (the reported defect)", e.G.Obj(jace).Zone)
 	}
 	if o := e.G.Obj(jace); o.Damage != 0 {
-		t.Fatalf("walker marked %d damage; spell damage must remove loyalty (CR 306.8)", o.Damage)
+		t.Fatalf("pure walker marked %d damage; spell damage must remove loyalty (CR 306.8/120.3c)", o.Damage)
 	}
-	// The exchange is visible in the log: one LOYALTY -3 CounterChange and the
-	// zero-loyalty SBA move, and no Damage event against the walker object.
+	// The exchange is visible in the log: one Damage event against the walker
+	// object (so protection, prevention and DamageDone triggers see it), the
+	// CR 306.8 loyalty conversion folded into events.Apply (no separate
+	// CounterChange), and the zero-loyalty SBA move.
 	sawLoyalty, sawSBA, sawDamage := false, false, false
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" && ev.Amount == -3 {
+		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" {
 			sawLoyalty = true
 		}
 		if ev.Kind == events.MoveZone && ev.Obj == jace && ev.To == state.ZGraveyard && ev.Text == "zero loyalty" {
@@ -219,8 +221,8 @@ func TestLightningBoltKillsAThreeLoyaltyJace(t *testing.T) {
 			sawDamage = true
 		}
 	}
-	if !sawLoyalty || !sawSBA || sawDamage {
-		t.Fatalf("log exchange wrong: loyalty removal %v, zero-loyalty SBA %v, Damage event %v", sawLoyalty, sawSBA, sawDamage)
+	if sawLoyalty || !sawSBA || !sawDamage {
+		t.Fatalf("log exchange wrong: folded loyalty conversion (CounterChange event must NOT appear) %v, zero-loyalty SBA %v, Damage event %v", sawLoyalty, sawSBA, sawDamage)
 	}
 	replayCheck(t, e, cfg)
 }
@@ -269,16 +271,16 @@ func TestJacePlusTwoCostsNoMana(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly: after one activation the
-// SAME ability index is not re-offered this turn (CR 606.3), a DIFFERENT
-// index still is, and off the controller's own turn no loyalty ability is
-// offered at all; the next own turn re-offers the first index.
+// TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly: after one activation NO
+// loyalty ability of that walker is re-offered this turn -- the gate is per
+// PERMANENT (CR 606.3), not per ability index -- and off the controller's own
+// turn no loyalty ability is offered at all; the next own turn re-offers.
 func TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
 	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
 	bear := mustCorpusCard(t, reg, "Grizzly Bears")
-	e, _, jace := walkerBoard(t, reg, "Jace, the Mind Sculptor", bear)
+	e, cfg, jace := walkerBoard(t, reg, "Jace, the Mind Sculptor", bear)
 	e.Advance()
 	if !loyaltyAbilityOffered(e, 0, jace, plusTwo) {
 		t.Fatal("[+2] not offered on the controller's own turn")
@@ -288,10 +290,10 @@ func TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly(t *testing.T) {
 	targetPlayer(t, e, 1)
 	passUntilStackEmpty(t, e, 20)
 	if loyaltyAbilityOffered(e, 0, jace, plusTwo) {
-		t.Fatal("[+2] re-offered in the same turn (CR 606.3 once-per-ability-per-turn)")
+		t.Fatal("[+2] re-offered in the same turn (CR 606.3 once-per-turn)")
 	}
-	if !loyaltyAbilityOffered(e, 0, jace, 1) {
-		t.Fatal("the [0] draw-three index wrongly withheld alongside the spent [+2]")
+	if loyaltyAbilityOffered(e, 0, jace, 1) {
+		t.Fatal("the [0] draw-three index still offered after [+2] (CR 606.3 is per PERMANENT, not per ability index)")
 	}
 	// Off-turn: hand the turn to seat 1 and re-ask seat 0's options.
 	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: 3})
@@ -306,6 +308,249 @@ func TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly(t *testing.T) {
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepMain1})
 	if !loyaltyAbilityOffered(e, 0, jace, plusTwo) {
 		t.Fatal("[+2] not re-offered on the next turn")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestWalkerLeaveAndReturnMayActivateAgain (CR 400.7): a permanent that
+// leaves the battlefield and returns is a NEW object, so the old stint's
+// activation does not block the returned permanent's loyalty abilities this
+// turn. The re-entry also re-grants starting loyalty (CR 306.5b), so the
+// cost is payable again.
+func TestWalkerLeaveAndReturnMayActivateAgain(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
+	bear := mustCorpusCard(t, reg, "Grizzly Bears")
+	e, cfg, jace := walkerBoard(t, reg, "Jace, the Mind Sculptor", bear)
+	e.Advance()
+	opt := abilityOption(t, e, jace, plusTwo)
+	submitChoices(t, e, opt.Index)
+	targetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 20)
+	if loyaltyAbilityOffered(e, 0, jace, plusTwo) {
+		t.Fatal("[+2] re-offered in the same turn (the once gate should hold)")
+	}
+	// Exile and return the same turn, through logged MoveZone events.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: jace, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: jace, From: state.ZExile, To: state.ZBattlefield})
+	// The priority decision captured before the moves is stale; re-drive the
+	// offer loop the way the live Submit loop would (attach_test.go's
+	// e.pending = nil pattern).
+	e.pending = nil
+	e.Advance()
+	if got := e.G.Obj(jace).Counter("LOYALTY"); got != 3 {
+		t.Fatalf("returned walker loyalty = %d, want the 3 the re-entry re-grants (CR 306.5b)", got)
+	}
+	if !loyaltyAbilityOffered(e, 0, jace, plusTwo) {
+		t.Fatal("returned walker's [+2] withheld (CR 400.7: the returned permanent is a new object)")
+	}
+	// And the new stint's own once-per-turn gate holds from zero.
+	opt = abilityOption(t, e, jace, plusTwo)
+	submitChoices(t, e, opt.Index)
+	targetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 20)
+	if loyaltyAbilityOffered(e, 0, jace, plusTwo) {
+		t.Fatal("[+2] re-offered after the new stint's first activation")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// recordLoyaltyPush records a real AbilityPush without resolving its effect,
+// then removes its transient stack object so legal-action generation again has
+// an empty-stack sorcery window. It is deliberately used only for log-folding
+// probes: normal activation flow is covered by the end-to-end Jace tests.
+func recordLoyaltyPush(e *Engine, walker state.ObjID, ability int) {
+	e.emit(events.Event{Kind: events.AbilityPush, Obj: walker, Player: 0, Amount: int32(ability)})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: e.G.NextID - 1, From: state.ZStack, To: state.ZExile})
+}
+
+// TestLoyaltyActivationUsesFaceAtPush proves the CR 606.3 scan classifies an
+// AbilityPush by the source face active WHEN it was pushed, not the source's
+// current face. The back face deliberately places its loyalty ability at a
+// different index, the shape a current-face lookup would lose after FlipFace.
+func TestLoyaltyActivationUsesFaceAtPush(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor")
+	e.G.Obj(walker).Card = &cards.Card{Faces: []*cards.Face{
+		{Name: "front", Types: []string{"Planeswalker"}, Loyalty: "3", Abilities: []*cards.SA{
+			{Kind: "AB", API: "Draw", Params: map[string]string{"Planeswalker": "True"}},
+		}},
+		{Name: "back", Types: []string{"Planeswalker"}, Loyalty: "3", Abilities: []*cards.SA{
+			{Kind: "AB", API: "Draw", Params: map[string]string{}},
+			{Kind: "AB", API: "Draw", Params: map[string]string{"Planeswalker": "True"}},
+		}},
+	}}
+	recordLoyaltyPush(e, walker, 0)
+	e.emit(events.Event{Kind: events.FlipFace, Obj: walker, Amount: 1})
+	if got := e.loyaltyActivationsThisTurn(walker); got != 1 {
+		t.Fatalf("loyalty activations after front-face push and flip = %d, want 1", got)
+	}
+	if loyaltyAbilityOffered(e, 0, walker, 1) {
+		t.Fatal("back-face loyalty ability offered after a front-face activation")
+	}
+}
+
+// TestLoyaltyStintUsesFoldedZoneHistory makes the MoveZone From fields lie in
+// both directions. events.Move uses the object's actual zone, so the loyalty
+// stint fold must too: a same-zone battlefield re-append cannot reset the
+// gate, while a real leave/re-entry must reset it even when both From fields
+// claim the opposite.
+func TestLoyaltyStintUsesFoldedZoneHistory(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
+
+	t.Run("stale entry on battlefield reappend does not reset", func(t *testing.T) {
+		e, cfg, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor")
+		recordLoyaltyPush(e, walker, plusTwo)
+		// Actual battlefield -> battlefield, despite From claiming exile.
+		e.emit(events.Event{Kind: events.MoveZone, Obj: walker, From: state.ZExile, To: state.ZBattlefield})
+		if got := e.loyaltyActivationsThisTurn(walker); got != 1 {
+			t.Fatalf("activations after same-zone reappend = %d, want 1", got)
+		}
+		if loyaltyAbilityOffered(e, 0, walker, plusTwo) {
+			t.Fatal("same-zone reappend reset the loyalty gate")
+		}
+		replayCheck(t, e, cfg)
+	})
+
+	t.Run("stale exit and entry still reset on real reentry", func(t *testing.T) {
+		e, cfg, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor")
+		recordLoyaltyPush(e, walker, plusTwo)
+		// Actual battlefield -> exile, then exile -> battlefield. Both From
+		// values are stale, so an Event.From-based scan misses both crossings.
+		e.emit(events.Event{Kind: events.MoveZone, Obj: walker, From: state.ZExile, To: state.ZExile})
+		e.emit(events.Event{Kind: events.MoveZone, Obj: walker, From: state.ZBattlefield, To: state.ZBattlefield})
+		if got := e.loyaltyActivationsThisTurn(walker); got != 0 {
+			t.Fatalf("activations after real leave/re-entry = %d, want 0", got)
+		}
+		if !loyaltyAbilityOffered(e, 0, walker, plusTwo) {
+			t.Fatal("real leave/re-entry did not reset the loyalty gate")
+		}
+		replayCheck(t, e, cfg)
+	})
+}
+
+// TestLoyaltyGateIgnoresRejectedNegativeAbilityPush exercises option building
+// after a hostile logged AbilityPush. Apply rejects a negative ability index;
+// the historical gate must also bounds-check it rather than panicking.
+func TestLoyaltyGateIgnoresRejectedNegativeAbilityPush(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
+	e, cfg, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor")
+	e.emit(events.Event{Kind: events.AbilityPush, Obj: walker, Player: 0, Amount: -1})
+	if !loyaltyAbilityOffered(e, 0, walker, plusTwo) {
+		t.Fatal("rejected negative AbilityPush withheld a legal loyalty ability")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestRejectedTurnChangeDoesNotResetLoyaltyGate proves the historical CR
+// 606.3 fold rejects the same malformed TurnChange as events.Apply. Logging an
+// out-of-range player must not create a new activation window while the real
+// turn and active player remain unchanged.
+func TestRejectedTurnChangeDoesNotResetLoyaltyGate(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
+	e, cfg, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor")
+	recordLoyaltyPush(e, walker, plusTwo)
+	turn, active := e.G.Turn, e.G.Active
+	e.emit(events.Event{Kind: events.TurnChange, Player: state.PlayerID(255), Amount: turn + 1})
+	if e.G.Turn != turn || e.G.Active != active {
+		t.Fatalf("rejected TurnChange mutated turn/active: got %d/%d, want %d/%d", e.G.Turn, e.G.Active, turn, active)
+	}
+	if got := e.loyaltyActivationsThisTurn(walker); got != 1 {
+		t.Fatalf("activations after rejected TurnChange = %d, want 1", got)
+	}
+	if loyaltyAbilityOffered(e, 0, walker, plusTwo) {
+		t.Fatal("rejected TurnChange reset the loyalty activation gate")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestOathOfTeferiGrantsASecondLoyaltyActivation: the S:Mode$ NumLoyaltyAct
+// static (Twice$ True, ValidCard$ Planeswalker.YouCtrl) raises the
+// per-permanent limit from 1 to 2 for planeswalkers the enchantment's
+// controller controls, so the walker may activate twice this turn -- including
+// the same ability twice (Urza, Lord Protector's reminder text is explicit
+// that this is allowed) -- and a third activation is withheld.
+func TestOathOfTeferiGrantsASecondLoyaltyActivation(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	oathCard := mustCorpusCard(t, reg, "Oath of Teferi")
+	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
+	bear := mustCorpusCard(t, reg, "Grizzly Bears")
+	mtn := mountainDeck(t, 1) // a harmless "another permanent" target for Oath's ETB
+	e, cfg, jace := walkerBoard(t, reg, "Jace, the Mind Sculptor", oathCard, bear, mtn[0])
+	var mtnID state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner == 0 && o.Card == mtn[0] && o.Zone == state.ZBattlefield {
+			mtnID = o.ID
+		}
+	}
+	e.Advance()
+	// Oath's ETB exile trigger is pending before priority; answer it with the
+	// mountain and let the trigger resolve off the stack -- a loyalty ability
+	// needs the empty-stack sorcery window, so it cannot be offered while the
+	// trigger waits.
+	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
+		targetObject(t, e, mtnID)
+		passUntilStackEmpty(t, e, 20)
+		e.Advance()
+	}
+	opt := abilityOption(t, e, jace, plusTwo)
+	submitChoices(t, e, opt.Index)
+	targetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 20)
+	if !loyaltyAbilityOffered(e, 0, jace, plusTwo) {
+		t.Fatal("[+2] not offered a second time under Oath of Teferi (limit should be 2)")
+	}
+	opt = abilityOption(t, e, jace, plusTwo)
+	submitChoices(t, e, opt.Index)
+	targetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 20)
+	if loyaltyAbilityOffered(e, 0, jace, plusTwo) {
+		t.Fatal("[+2] offered a third time (Oath grants exactly two activations)")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestLoyaltyAbilityLimitCombinesGrantsIndependentOfOrder pins the structural
+// combination rule for NumLoyaltyAct: Twice raises the base to two and
+// Additional adds on top, regardless of deterministic battlefield scan order.
+func TestLoyaltyAbilityLimitCombinesGrantsIndependentOfOrder(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	grant := func(name string, params map[string]string) *cards.Card {
+		return &cards.Card{Faces: []*cards.Face{{
+			Name: name, Types: []string{"Enchantment"},
+			Statics: []cards.Static{{Mode: "NumLoyaltyAct", Params: params}},
+		}}}
+	}
+	twice := grant("Twice grant", map[string]string{
+		"ValidCard": "Planeswalker.YouCtrl",
+		"Twice":     "True",
+	})
+	additional := grant("Additional grant", map[string]string{
+		"ValidCard":  "Planeswalker.YouCtrl",
+		"Additional": "1",
+	})
+	for _, tc := range []struct {
+		name   string
+		grants []*cards.Card
+	}{
+		{name: "additional before twice", grants: []*cards.Card{additional, twice}},
+		{name: "twice before additional", grants: []*cards.Card{twice, additional}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, _, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor", tc.grants...)
+			if got := e.loyaltyAbilityLimit(walker); got != 3 {
+				t.Fatalf("combined loyalty activation limit = %d, want 3", got)
+			}
+		})
 	}
 }
 
@@ -377,15 +622,15 @@ func TestBrotherhoodsEndDamageAllRemovesWalkerLoyalty(t *testing.T) {
 	}
 	sawWalkerLoyalty, sawWalkerDamage := false, false
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" && ev.Amount == -3 {
+		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" {
 			sawWalkerLoyalty = true
 		}
 		if ev.Kind == events.Damage && ev.Obj == jace {
 			sawWalkerDamage = true
 		}
 	}
-	if !sawWalkerLoyalty || sawWalkerDamage {
-		t.Fatalf("sweep exchange wrong: loyalty removal %v, Damage event %v", sawWalkerLoyalty, sawWalkerDamage)
+	if sawWalkerLoyalty || !sawWalkerDamage {
+		t.Fatalf("sweep exchange wrong: folded loyalty conversion (CounterChange event must NOT appear) %v, Damage event %v", sawWalkerLoyalty, sawWalkerDamage)
 	}
 	replayCheck(t, e, cfg)
 }

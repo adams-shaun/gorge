@@ -184,14 +184,14 @@ func TestDealDamageIgnoresObjectsOffTheBattlefield(t *testing.T) {
 func TestDamageAllHitsMatchingCreaturesOnly(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ DamageAll | NumDmg$ 1"))
+	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ DamageAll | ValidCards$ Creature | NumDmg$ 1"))
 	for _, name := range []string{"myBear", "myFlier", "theirBig"} {
 		if got := g.Obj(ids[name]).Damage; got != 1 {
 			t.Errorf("%s damage = %d, want 1", name, got)
 		}
 	}
 	if g.Obj(ids["myLand"]).Damage != 0 {
-		t.Error("DamageAll's default ValidCards$ Creature must not hit a land")
+		t.Error("DamageAll's explicit ValidCards$ Creature must not hit a land")
 	}
 }
 

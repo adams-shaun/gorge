@@ -47,6 +47,11 @@ func ParseBytes(path string, src []byte) (*Card, []Diag) {
 			continue
 		}
 		switch key {
+		case "AlternateMode":
+			// This is a card-level layout marker even though Forge writes it
+			// among the front face's fields. Retain it for rules that distinguish
+			// split-card characteristics from transforming DFC characteristics.
+			c.AlternateMode = val
 		case "Name":
 			cur.Name = val
 		case "ManaCost":

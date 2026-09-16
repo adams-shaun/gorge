@@ -29,6 +29,14 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " becomes the monarch"
 	case events.ControlChange:
 		return player(g, ev.Player) + " gains control of " + obj(g, ev.Obj)
+	case events.Goad:
+		return obj(g, ev.Obj) + " is goaded by " + player(g, ev.Player)
+	case events.PlayerCounterChange:
+		verb, n := "gets", ev.Amount
+		if n < 0 {
+			verb, n = "loses", -n
+		}
+		return player(g, ev.Player) + " " + verb + " " + itoa(int64(n)) + " " + strings.ToLower(ev.Counter) + " counter(s)"
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:
@@ -130,6 +138,16 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " " + lookClause(g, ev)
 		}
 		if ev.Text != "" {
+			// The genesis toss Note is the second event: GameStart is always
+			// sequence zero and rules.New emits the toss before any deal event.
+			// Match that event position AND its complete, seat-bound deck-identity
+			// text, rather than a loose phrase: a later card-effect Note is allowed
+			// to say the same words and must remain verbatim. The transcript renders
+			// this one subject through player(), so PlayerName remains visible
+			// without entering the event chain.
+			if ev.Seq == 1 && g != nil && ev.Text == tossNoteText(g, ev.Player) {
+				return player(g, ev.Player) + " won the toss"
+			}
 			return ev.Text
 		}
 		if ev.Secret {
@@ -221,6 +239,11 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " creates a " + name + " token"
 		}
 		return player(g, ev.Player) + " creates a token"
+	case events.CardToken:
+		// A battlefield token that is a copy of the CARD object Obj names
+		// (encore). The minted copy's own id is assigned inside Apply, so
+		// the line names the original it duplicates -- the StackCopy shape.
+		return player(g, ev.Player) + " creates a token copy of " + obj(g, ev.Obj)
 	case events.StackCopy:
 		// A copy of the stack object Obj, controlled by Player (CR
 		// 707.10a), placed on top of the stack. The copy itself gets a new
@@ -289,6 +312,8 @@ func Describe(g *state.Game, ev events.Event) string {
 		// stack. Obj is the minted stack object; its source name is what a
 		// reader recognises, so prefer it and fall back to the minted id.
 		return obj(g, ev.Obj) + " triggers (delayed)"
+	case events.KeywordTriggerPush:
+		return obj(g, ev.Obj) + " triggers (" + strings.TrimPrefix(ev.Counter, "__kw") + ")"
 	}
 	return "unknown event"
 }
@@ -378,6 +403,22 @@ func player(g *state.Game, p state.PlayerID) string {
 		}
 	}
 	return "seat " + strconv.Itoa(int(p))
+}
+
+// tossNoteText is the deterministic chain text rules.New emits for its
+// genesis toss Note. It deliberately follows player()'s deck-name fallback
+// but excludes PlayerName, which is display-only and must not reach the hash
+// chain. Keeping the fallback here makes an empty deck identity render through
+// PlayerName rather than leaking the raw "seat N" chain text to the transcript.
+func tossNoteText(g *state.Game, p state.PlayerID) string {
+	name := ""
+	if g != nil && int(p) < len(g.Players) {
+		name = g.Players[p].Name
+	}
+	if name == "" {
+		name = "seat " + strconv.Itoa(int(p))
+	}
+	return name + " won the toss"
 }
 
 // life is the seat's life total as of g, or "?" when unresolvable.

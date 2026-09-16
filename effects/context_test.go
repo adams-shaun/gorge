@@ -25,6 +25,8 @@ type fakeHost struct {
 	continuous []state.ContinuousEffect
 	controls   []ControlGrant
 	n          int
+	dmgSrc     state.ObjID
+	batch      []state.ObjID
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -87,6 +89,24 @@ func (h *fakeHost) HasKeyword(id state.ObjID, kw string) bool {
 	o := h.g.Obj(id)
 	return o != nil && o.Face() != nil && o.Face().HasKeyword(kw)
 }
+func (h *fakeHost) Power(id state.ObjID) int32 {
+	o := h.g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	return int32(o.Face().Power()) + o.Counter("P1P1") - o.Counter("M1M1")
+}
+func (h *fakeHost) Toughness(id state.ObjID) int32 {
+	o := h.g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	return int32(o.Face().Toughness()) + o.Counter("P1P1") - o.Counter("M1M1")
+}
+func (h *fakeHost) IsCreature(id state.ObjID) bool {
+	o := h.g.Obj(id)
+	return o != nil && o.Face() != nil && o.Face().IsCreature()
+}
 
 // Ask reports false: an effects-package test double has no engine to drive,
 // so a mid-resolution ask falls back to the primitive's deterministic
@@ -111,6 +131,22 @@ func (h *fakeHost) SuspendContinuation(*cards.SA) {}
 
 // SuspendRepeat is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
+
+// SetDamageSource records the published damage source on the double (the
+// last value wins) and returns the previous one, mirroring the engine's
+// set-and-restore contract so an emitter's restore is observable.
+func (h *fakeHost) SetDamageSource(id state.ObjID) state.ObjID {
+	prev := h.dmgSrc
+	h.dmgSrc = id
+	return prev
+}
+
+// BatchDepartures is a no-op snapshot: an effects-package double has no
+// engine-side departure capture to feed, so it keeps only the fact a batch
+// was declared (never asserted on today; the rules package owns the
+// behaviour this method exists for).
+func (h *fakeHost) BatchDepartures(ids []state.ObjID) { h.batch = ids }
+func (h *fakeHost) EndBatchDepartures()               { h.batch = nil }
 
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()

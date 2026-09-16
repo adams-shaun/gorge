@@ -110,10 +110,59 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 					ra.RemoveAbilities = true
 					out = append(out, ra)
 				}
+				// A may-play-from-zone grant (M2d?): the "You may play lands from
+				// your graveyard" static (Conduit of Worlds, Crucible of Worlds,
+				// Ramunap Excavator, ...). It changes no characteristic, so it is
+				// NOT a layer effect and is carried as a rules-mod on the effect
+				// itself (MayPlay + AffectedZone) rather than as a layer mark;
+				// rules/legal.go's mayPlayLandIds consults it. Only the
+				// unconditional MayPlay$ True shape is implemented; the
+				// mayPlayUnconditional guard rejects a richer grant (MayPlayLimit$
+				// once-per-turn/per-type, Condition$/ValidAfterStack$/Secondary$
+				// qualifiers, any other MayPlay* family key) so it fails closed
+				// (MayPlay stays false) rather than being silently over-applied
+				// against the ordinary LandsPlayed limit. Expiry is the ordinary
+				// source-leaves rule (CR 611.3b) via active()'s battlefield scan.
+				if mayPlayUnconditional(st) {
+					mp := base
+					mp.MayPlay = true
+					mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+					out = append(out, mp)
+				}
 			}
 		}
 	}
 	return out
+}
+
+// mayPlayUnconditional reports whether a Mode$ Continuous static carries the
+// single unconditional "you may play <cards> from <zone>" grant this package
+// implements: MayPlay$ True, an Affects (Affected$) spec and an AffectedZone,
+// plus only display/placement metadata. A richer grant is out of scope and
+// must fail closed (MayPlay stays false) so it is never silently over-applied
+// -- in particular a MayPlayLimit$ once-per-turn/per-type grant (Muldrotha's
+// MayPlayLimit$ 1 + MayPlayText$) must NOT share the ordinary LandsPlayed
+// limit, and a Condition$/CheckSVar$/ValidAfterStack$/Secondary$ qualifier
+// changes the semantics beyond the unconditional shape. The explicit
+// whitelist, rather than a blacklist of currently-known gating keys, means a
+// newly encountered semantic parameter also fails closed. Iterating st.Params
+// only yields a boolean, so map order never reaches an event/option/view --
+// determinism is preserved.
+func mayPlayUnconditional(st cards.Static) bool {
+	v, ok := st.Params["MayPlay"]
+	if !ok || !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return false
+	}
+	for key := range st.Params {
+		switch key {
+		case "Mode", "MayPlay", "Affected", "AffectedZone", "Description", "EffectZone":
+			// The keys the unconditional land grant (and only it) carries
+			// besides MayPlay itself.
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // hasStat reports whether a static line carries the named parameter.
@@ -148,9 +197,11 @@ func statKeywords(st cards.Static) []string {
 func statList(st cards.Static, key string) []string {
 	var out []string
 	for _, v := range strings.Split(st.Params[key], ",") {
-		v = strings.TrimSpace(v)
-		if v != "" {
-			out = append(out, v)
+		for _, part := range strings.Split(strings.TrimSpace(v), " & ") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				out = append(out, part)
+			}
 		}
 	}
 	return out
@@ -535,6 +586,18 @@ func (e *Engine) Toughness(id state.ObjID) int32 {
 func (e *Engine) HasKeyword(id state.ObjID, kw string) bool {
 	for _, k := range e.Derived(id).Keywords {
 		if strings.EqualFold(cardsKeywordHead(k), kw) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsCreature reads the current layer-derived type list. In particular, a
+// planeswalker animated by a layer-4 effect is a creature for damage marking,
+// even though its printed face is not.
+func (e *Engine) IsCreature(id state.ObjID) bool {
+	for _, typ := range e.Derived(id).Types {
+		if typ == "Creature" {
 			return true
 		}
 	}

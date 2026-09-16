@@ -370,9 +370,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		}
 		ctx.Remembered = o.Remembered
 		ctx.Captured = o.Remembered
+		if lki, ok := e.triggerLKI[rp.obj]; ok {
+			ctx.LKI = lki.object
+			ctx.LKIPower, ctx.LKIToughness, ctx.LKIPTValid =
+				lki.power, lki.toughness, lki.ptValid
+		}
 		if link, ok := e.sourceLifelinkLKI[rp.obj]; ok {
 			ctx.SourceLifelinkLKI = link
 			ctx.SourceLifelinkLKIValid = true
+		}
+		if controller, ok := e.sourceControllerLKI[rp.obj]; ok {
+			ctx.SourceControllerLKI = controller
+			ctx.SourceControllerLKIValid = true
+		}
+		if lki := e.damageSourceLKI[rp.obj]; lki != nil {
+			ctx.DamageSourceLKI = cloneDamageSourceLKI(lki)
 		}
 		// CR 603.3c: keep the placement-announced mode choice across the
 		// suspension, so the resumed resolution of a modal trigger runs
@@ -423,6 +435,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
 	}
+	// A mid-resolution picker may have built a Remembered fetch list before
+	// it suspended. The stack object only carries trigger-time remembered
+	// entries, so restore the asking effect's snapshot after rebuilding this
+	// fresh context; otherwise Card.IsRemembered and Defined$ Remembered in a
+	// chained hidden-origin ChangeZone see an empty list on re-entry.
+	if rp.remembered != nil {
+		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
+	}
 	effects.SetSVars(ctx, svars)
 	if rp.sa != nil {
 		switch rp.kind {
@@ -434,6 +454,25 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					Last: cur.last, HasLast: cur.hasLast}
 			}
 		case "unless_pay":
+			// Ward has non-mana payment forms (sacrifice, discard, tap and
+			// several keyword-specific costs). Its payment handler owns those
+			// choices; ordinary unless-pay effects retain the shared mana path.
+			if rp.sa.API == "Ward" {
+				if len(chosen) > 0 && chosen[0].Index == 0 {
+					paid, asked := e.beginWardPayment(rp, ctx)
+					if asked {
+						return
+					}
+					if paid {
+						ctx.UnlessPay = "pay"
+					} else {
+						ctx.UnlessPay = "decline"
+					}
+				} else {
+					ctx.UnlessPay = "decline"
+				}
+				break
+			}
 			// The payer agreed to pay (option 0 is "Pay … — make a copy") or
 			// not. Payment happens HERE, in rules, because payMana owns the
 			// cost grammar and emits the ManaAdd events — so a replay
@@ -467,6 +506,34 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				} else {
 					ctx.UnlessPay = "decline"
 				}
+			} else {
+				ctx.UnlessPay = "decline"
+			}
+		case "ward_mana":
+			if e.answerWardMana(rp, chosen, ctx) {
+				return
+			}
+		case "ward_alt":
+			// The Discard<...>:<mana> Ward alternative can choose its mana
+			// half even when it is not already floating; it receives the same
+			// CR 702.21a activation window as an ordinary numeric Ward.
+			if len(chosen) == 1 && chosen[0].Kind == "ward_mana" {
+				_, manaRaw, _ := strings.Cut(rp.sa.Params["UnlessCost"], ">:")
+				cost := ParseCost(manaRaw)
+				if e.payMana(chosen[0].Player, cost) {
+					ctx.UnlessPay = "pay"
+				} else if cost.hasManaPayment() && e.hasUntappedManaSource(chosen[0].Player) {
+					e.askWardMana(rp, chosen[0].Player, cost)
+					return
+				} else {
+					ctx.UnlessPay = "decline"
+				}
+				break
+			}
+			fallthrough
+		case "ward_blight", "ward_evidence", "ward_waterbend", "ward_tap", "ward_sac", "ward_discard":
+			if e.settleWardPayment(rp.kind, rp.sa, ctx, chosen) {
+				ctx.UnlessPay = "pay"
 			} else {
 				ctx.UnlessPay = "decline"
 			}
@@ -504,6 +571,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.ChoiceDone = true
+		case "sacrifice":
+			ctx.Sacrifice = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.Sacrifice = append(ctx.Sacrifice, o.Obj)
+				}
+			}
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate
@@ -535,6 +609,29 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.DigDone = true
 			ctx.DigTarget = rp.target
+		case "hand_move":
+			// A "choose N cards matching ChangeType$ from Origin$ Hand" pick was
+			// answered (handmove1): the hand's owner chose which of the
+			// ChangeType$-eligible cards to move to Destination$. The chosen
+			// options carry the object in Obj (the same shape the "search",
+			// "discard" and "dig" arms read), so the id list is read straight
+			// off them, in the player's answer order. HandMoveDone distinguishes
+			// "answered, possibly with no cards" from the first pass.
+			// effChangeZoneHand consumes and clears both at the top of its own
+			// walk (the fx42 scoping discipline), so a nested hand move cannot
+			// inherit the outer answer.
+			ctx.HandMove = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.HandMove = append(ctx.HandMove, o.Obj)
+				}
+			}
+			ctx.HandMoveDone = true
+			// The owner-selected shape (rv2b r2) chains one ask per hand owner:
+			// the answer belongs to the exact owner that asked, and the
+			// re-entered walk skips owners before the cursor and continues with
+			// the owners after it (the same continuation DigTarget carries).
+			ctx.HandMoveTarget = rp.target
 		case "arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling
@@ -543,6 +640,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// event, not on Ctx, so this is a done-marker rather than an
 			// answer the effect re-reads.
 			ctx.Arrange = true
+		case "defined_library_optional":
+			// An Optional$ object-valued Defined$ library fetch list (Kenessos's
+			// DBBottom): option zero accepts the whole direct move; every other
+			// answer declines it. The effect consumes this marker before any
+			// nested optional fetch can see it.
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.DefinedLibraryMove = "yes"
+			} else {
+				ctx.DefinedLibraryMove = "no"
+			}
 		case "reveal_optional":
 			// Task fb-3f1cc033 (Delver of Secrets): the peeking player's
 			// RevealOptional$ yes/no was answered. Option 0 is "yes"; anything
@@ -743,32 +850,28 @@ func chosenModeLabels(chosen []decision.Option) []string {
 }
 
 // modeDecision builds the shared KModes option vocabulary used by spell
-// announcement and triggered-ability placement. charmNum is already resolved
-// by the caller: casting has an effects context available, while placement
-// deliberately accepts only the trigger path's literal/default count.
-func modeDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, charmNum int) *decision.Decision {
+// announcement and triggered-ability placement. min and max are resolved by
+// effects.CharmModeBounds against the caller's complete effects context.
+func modeDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, min, max int) *decision.Decision {
 	choices := strings.Split(sa.Params["Choices"], ",")
 	for i := range choices {
 		choices[i] = strings.TrimSpace(choices[i])
 	}
-	return modeDecisionForChoices(p, source, sa, svars, choices, charmNum)
+	return modeDecisionForChoices(p, source, sa, svars, choices, min, max)
 }
 
 // modeDecisionForChoices is modeDecision over an explicit eligible subset.
 // Casting uses it to omit modes whose mandatory targets cannot be chosen;
 // ResumeModes preserves the SVar vocabulary server-side while Index stays
 // dense for the wire.
-func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, charmNum int) *decision.Decision {
-	if charmNum < 1 {
-		charmNum = 1
+func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, min, max int) *decision.Decision {
+	if max > len(choices) {
+		max = len(choices)
 	}
-	if charmNum > len(choices) {
-		charmNum = len(choices)
-	}
-	d := &decision.Decision{Player: p, Kind: decision.KModes, Min: charmNum, Max: charmNum,
+	d := &decision.Decision{Player: p, Kind: decision.KModes, Min: min, Max: max,
 		Source: source, ResumeKind: "modes", ResumeSA: sa,
 		ResumeModes: append([]string(nil), choices...),
-		Prompt:      "Choose " + strconv.Itoa(charmNum) + " mode(s)"}
+		Prompt:      "Choose " + strconv.Itoa(min) + " to " + strconv.Itoa(max) + " mode(s)"}
 	for i, name := range choices {
 		label := name
 		if sub := cards.ResolveSVar(svars, name); sub != nil {

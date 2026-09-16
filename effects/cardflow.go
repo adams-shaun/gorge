@@ -169,11 +169,14 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				ResumeKind: "discard", ResumeSA: sa,
 				Prompt:  "Choose " + strconv.Itoa(int(n)) + " card(s) to discard",
 				Options: opts}
-			if h.Ask(d) {
+			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters with Ctx.Discard set.
 			}
 			// Fuzz/no-engine host: the deterministic front-card stand-in
 			// (R-9), with the Note that records why the richer path did not run.
+			// AskEmpty never reaches here by construction (len(eligible) == 0
+			// continues above and Min is n >= 1), but the shared helper owns the
+			// guard either way.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "discards its first card (no engine host to ask)"})
 			if len(hand) > 0 {
@@ -236,12 +239,15 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				ResumeKind: "discard", ResumeSA: sa,
 				Prompt:  "Choose " + strconv.Itoa(int(n)) + " card(s) to discard",
 				Options: opts}
-			if h.Ask(d) {
+			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters with Ctx.Discard set.
 			}
 			// Fuzz/no-engine host: the deterministic front-of-ELIGIBLE-hand
 			// stand-in (R-9) for the discarding player, with the Note that
-			// records why the richer path did not run.
+			// records why the richer path did not run. AskEmpty is
+			// unreachable here by construction (eligible nonempty and strictly
+			// greater than n above, Min == Max == n >= 1), but the shared
+			// helper owns the guard either way.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "discards its first card (no engine host to ask)"})
 			for i := int32(0); i < n; i++ {
@@ -426,8 +432,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				if !containsID(top, id) {
 					continue
 				}
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-					From: state.ZLibrary, To: dest, Player: p, Secret: true})
+				ev := moveZoneEvent(c, id, state.ZLibrary, dest)
+				ev.Player, ev.Secret = p, true
+				h.Emit(ev)
 			}
 			continue
 		}
@@ -464,18 +471,21 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 					Kind: "dig", Label: name, Obj: id, Player: p})
 			}
-			if h.Ask(d) {
+			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters with Ctx.Dig set.
 			}
 			// Fuzz/no-engine host: the deterministic stand-in (R-9) keeps
 			// today's behaviour -- the first ChangeNum eligible cards in zone
 			// order -- with the Note that records why the richer path did
-			// not run.
+			// not run. AskEmpty is unreachable here by construction (the ask
+			// gate requires changeNum > 0 and strictly more eligible cards,
+			// so options >= 1), but the shared helper owns the guard either way.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
 				Text: "takes the first matching card(s) (no engine host to ask)", Secret: true})
 			for i := int32(0); i < changeNum && i < int32(len(eligible)); i++ {
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: eligible[i],
-					From: state.ZLibrary, To: dest, Player: p, Secret: true})
+				ev := moveZoneEvent(c, eligible[i], state.ZLibrary, dest)
+				ev.Player, ev.Secret = p, true
+				h.Emit(ev)
 			}
 			continue
 		}
@@ -490,8 +500,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				continue
 			}
-			h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-				From: state.ZLibrary, To: dest, Player: p, Secret: true})
+			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
+			ev.Player, ev.Secret = p, true
+			h.Emit(ev)
 			moved++
 		}
 	}
@@ -665,11 +676,14 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 				ResumeKind: "reveal_optional", ResumeSA: sa, Source: c.Source,
 				Prompt:  prompt,
 				Options: options}
-			if h.Ask(d) {
+			if Ask(h, d) == AskAsked {
 				return
 			}
-			// h.Ask false — no host to ask (R-9): fall through to the
-			// mandatory reveal below, deterministic run to run.
+			// No host to ask (R-9), or the ask was skipped: fall through to the
+			// mandatory reveal below, deterministic run to run. (A
+			// reveal_optional decision is Min == Max == 1 over two options, so
+			// AskEmpty is unreachable by construction; the shared helper owns
+			// the guard either way.)
 		}
 		if optional && answer == "no" {
 			// Declined: no Note, and RememberRevealed$ finds nothing —
@@ -778,7 +792,13 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 			d.Options = append(d.Options, decision.Option{Index: int(i),
 				Kind: "bottom", Label: name, Obj: lib[i], Player: p})
 		}
-		if h.Ask(d) {
+		// The shared ask boundary (effects.Ask) refuses to post a KArrange
+		// whose only legal answer is the empty one: with an empty library (or
+		// NumCards$ 0) k is 0, Min == Max == 0 and there are no options -- the
+		// exact wedge shape. AskEmpty (and AskNoHost alike) resolves through
+		// the stand-in below: the order is (re)set unchanged and the
+		// resolution completes.
+		if Ask(h, d) == AskAsked {
 			return // resolution suspended; the answer re-enters with Ctx.Arrange set.
 		}
 		// Fuzz/no-engine host: the deterministic stand-in keeps the existing
@@ -864,7 +884,13 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, numKey, kind, verb string) 
 			d.Options = append(d.Options, decision.Option{Index: int(i),
 				Kind: kind, Label: name, Obj: lib[i], Player: p})
 		}
-		if h.Ask(d) {
+		// The shared ask boundary (effects.Ask) refuses to post a KArrange
+		// whose only legal answer is the empty one: with an empty library (or
+		// ScryNum$/SurveilNum$ 0) k is 0, Min 0 / Max 0 and there are no
+		// options -- the exact wedge shape. AskEmpty (and AskNoHost alike)
+		// resolves through the stand-in below: every zero cards keep their
+		// place and the resolution completes.
+		if Ask(h, d) == AskAsked {
 			return // resolution suspended; the answer re-enters with Ctx.Arrange set.
 		}
 		// Fuzz/no-engine host: the deterministic stand-in keeps every card

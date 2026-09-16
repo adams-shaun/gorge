@@ -315,7 +315,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if d.Prompt == "" {
 			d.Prompt = "Choose card"
 		}
-		if Ask(h, d) {
+		if Ask(h, d) == AskAsked {
 			return
 		}
 		choiceRecord(h, c, sa, choices[:min])
@@ -400,7 +400,7 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 		if d.Prompt == "" {
 			d.Prompt = "Choose player"
 		}
-		if Ask(h, d) {
+		if Ask(h, d) == AskAsked {
 			return
 		}
 		choiceRecord(h, c, sa, choices[:min])
@@ -731,7 +731,7 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 		}
 		d.Options = append(d.Options, o)
 	}
-	if Ask(h, d) {
+	if Ask(h, d) == AskAsked {
 		return
 	}
 	// A no-ask host (or a redirect with no legal new target) takes the

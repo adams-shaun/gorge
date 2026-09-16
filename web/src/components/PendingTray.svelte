@@ -1,11 +1,23 @@
 <script lang="ts">
   import type { PendingView } from '../protocol';
 
-  /** PendingTray lists the triggers/replacement effects waiting on a decision, each labelled and, when optional, saying who decides. */
-  let { pending }: { pending: PendingView[] } = $props();
+  /**
+   * PendingTray lists the triggers/replacement effects waiting on a decision, each labelled and, when optional, saying who decides.
+   *
+   * `stuck` is the empty-answer safety net (the Squadron Hawk fail-to-find
+   * soft-lock): a pending decision for this seat that carries NO options is
+   * one no picker can render, so without this entry the tray would read
+   * "Nothing waiting" while the game is blocked on an invisible question.
+   * When it is present the tray names the decision and — when the minimum
+   * legal answer is the empty one (Min 0) — offers a Continue that submits
+   * it, so the seat can always answer something the engine will accept.
+   * The engine resolves every such shape silently since the empty-choose
+   * fix, so this is belt-and-braces against a server that holds one anyway.
+   */
+  let { pending, stuck = null, onContinue = null }: { pending: PendingView[]; stuck?: { prompt: string; answerable: boolean } | null; onContinue?: (() => void) | null } = $props();
 </script>
 
-{#if pending.length === 0}
+{#if pending.length === 0 && !stuck}
   <p class="empty">Nothing waiting</p>
 {:else}
   <ul class="pending">
@@ -17,6 +29,16 @@
         {/if}
       </li>
     {/each}
+    {#if stuck}
+      <li class="stuck" data-stuck>
+        <span class="label">{stuck.prompt}</span>
+        {#if stuck.answerable && onContinue}
+          <button class="continue" type="button" data-continue onclick={onContinue}>Continue</button>
+        {:else}
+          <span class="who">This decision offers no choices</span>
+        {/if}
+      </li>
+    {/if}
   </ul>
 {/if}
 
@@ -67,5 +89,23 @@
     margin: 0;
     font-size: var(--t-12);
     color: var(--ink-faint);
+  }
+  /* The stuck entry is an anomaly, not a queued trigger: it says so in its
+     own words and carries the one control that unblocks the seat. */
+  .pending li.stuck {
+    border-left-color: var(--offered);
+  }
+  .continue {
+    margin-top: 4px;
+    font-size: 0.6875rem;
+    padding: 2px 10px;
+    border: 1px solid var(--edge-inst);
+    border-radius: var(--radius);
+    background: var(--instrument-raised);
+    color: var(--ink-inst);
+    cursor: pointer;
+  }
+  .continue:hover {
+    border-color: var(--initiative);
   }
 </style>

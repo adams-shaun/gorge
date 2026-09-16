@@ -108,6 +108,16 @@ func targetMin(sa *cards.SA) int {
 // minor 4), but the battlefield default applies only when NEITHER source
 // named a zone -- a typo'd TgtZone$ on a TargetType$ Spell card must not
 // silently widen a stack target back to the battlefield.
+//
+// fb-20260916T024739Z-b89aea46: the remaining default is wrong for one more
+// shape -- the Wrenn and Six ability (`AB$ ChangeZone | Origin$ Graveyard |
+// Destination$ Hand | TargetMin$ 0 | TargetMax$ 1 | ValidTgts$ Land.YouOwn`,
+// no TgtZone$). Its census searched the battlefield, offered a land already
+// in play, and omitted the eligible graveyard card the prompt names -- and
+// the offered battlefield land could never pass effChangeZone's own Origin$
+// Graveyard resolution guard, so the ability could not do what it promises.
+// For that one unambiguous shape the Origin$ implies the target zone; see
+// originImpliedTargetZone for the four gates that admit it.
 func targetZones(sa *cards.SA) []state.Zone {
 	var zones []state.Zone
 	for _, z := range strings.Split(sa.Params["TgtZone"], ",") {
@@ -131,9 +141,54 @@ func targetZones(sa *cards.SA) []state.Zone {
 		zones = appendUniqueZone(zones, state.ZStack)
 	}
 	if len(zones) == 0 {
-		zones = []state.Zone{state.ZBattlefield}
+		if z, ok := originImpliedTargetZone(sa); ok {
+			zones = []state.Zone{z}
+		} else {
+			zones = []state.Zone{state.ZBattlefield}
+		}
 	}
 	return zones
+}
+
+// originImpliedTargetZone reports the implicit target zone for a ChangeZone
+// whose Origin$ names exactly one concrete zone. Deliberately narrow -- this
+// is established ONLY for the unambiguous public-graveyard object-targeted
+// shape and must not grow into a general origin grammar (Origin$ Hand/
+// Library/Exile carry hidden-information, chooser and mixed-zone semantics
+// this does not establish; Origin$ Hand's mixed multi-zone handling lives in
+// effects/zone.go). It admits an SA when ALL of these hold:
+//
+//  1. it is API$ ChangeZone;
+//  2. it has no explicit TgtZone$ (explicit TgtZone$ stays authoritative;
+//     this helper only runs from targetZones' empty fallback, but a TgtZone$
+//     whose tokens were all unknown must not silently fall through to Origin$
+//     either) and no stack-targeting TargetType$;
+//  3. effects.ParseZones parses its Origin$ as exactly the one concrete
+//     state.ZGraveyard -- not Any/All, not an unknown token, not a multi-zone
+//     origin (ParseZones' ok=false on an unknown token fails closed);
+//  4. its ValidTgts$ is object-only under the existing targetsPlayers
+//     classifier, so a player-targeted ChangeZone keeps its existing
+//     player-target route untouched.
+//
+// The zone feeds both legalTargetCandidates (offer time) and legalTargets
+// (the CR 608.2b resolution recheck) through their shared targetZones calls,
+// and effChangeZone's own Origin$ guard -- unchanged -- then accepts the
+// chosen graveyard object at resolution.
+func originImpliedTargetZone(sa *cards.SA) (state.Zone, bool) {
+	if sa.API != "ChangeZone" {
+		return 0, false
+	}
+	if sa.Params["TgtZone"] != "" || targetsStackObjects(sa.Params["TargetType"]) {
+		return 0, false
+	}
+	if targetsPlayers(sa.Params["ValidTgts"]) {
+		return 0, false
+	}
+	zones, all, ok := effects.ParseZones(sa.Params["Origin"])
+	if !ok || all || len(zones) != 1 || zones[0] != state.ZGraveyard {
+		return 0, false
+	}
+	return state.ZGraveyard, true
 }
 
 // appendUniqueZone appends z to zones when it is not already present,
@@ -312,6 +367,18 @@ type targetCandidate struct {
 // ability object is not on the stack yet). Callers set excludeSelf == 0 to
 // disable the rule.
 func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA) []targetCandidate {
+	return e.candidatesFor(p, source, excludeSelf, sa, true)
+}
+
+// affectedCandidates is the Overload counterpart of legalTargetCandidates.
+// It applies the script's object/player filter and zone/type restrictions but
+// deliberately omits every rule that exists only because something is a
+// target: protection, hexproof/CantTarget, and becomes-target bookkeeping.
+func (e *Engine) affectedCandidates(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA) []targetCandidate {
+	return e.candidatesFor(p, source, excludeSelf, sa, false)
+}
+
+func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA, targeting bool) []targetCandidate {
 	spec := sa.Params["ValidTgts"]
 	sc := e.targetSpecContext(source, excludeSelf, p)
 	zones := targetZones(sa)
@@ -383,8 +450,8 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 				// gate as protection above. CR 115.5 excludes the source.
 				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) &&
 					effects.MatchesSpecCtx(e.G, spec, oid, sc) &&
-					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) &&
-					!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p)) {
+					(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
+					(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
 				}
 			}
@@ -638,6 +705,18 @@ func (e *Engine) resolveTop() {
 	defer func() { e.resolvingObj = savedResolving }()
 
 	if o.Ability != nil {
+		// A keyword trigger that refers to one particular permanent incarnation
+		// (Evoke's "sacrifice it") loses track when that permanent changes
+		// zones. The ability still resolves and leaves the stack, but does
+		// nothing to the new object now sharing its stable ObjID (CR 400.7).
+		if o.SourceIncarnation != 0 {
+			src := e.G.Obj(o.Source)
+			if src == nil || src.Incarnation != o.SourceIncarnation {
+				e.emit(events.Event{Kind: events.Resolve, Obj: id})
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
+				return
+			}
+		}
 		// A triggered or activated ability with no printed card: Ruling
 		// T14-c / F3 -- Face() returns nil for these, so this branch must
 		// run before anything below touches it. Task 20 is what actually
@@ -704,6 +783,17 @@ func (e *Engine) resolveTop() {
 		// moving to a card zone. This build has no "ceases to exist" zone,
 		// so it is parked in exile as the closest existing approximation.
 		e.emit(events.Event{Kind: events.Resolve, Obj: id})
+		// CR 702.35b: the mandatory, respondable madness trigger makes its
+		// cast-or-graveyard choice only as it resolves. Stifle reaches this
+		// object before this branch; if the exiled card has moved meanwhile,
+		// the ability simply finishes with no choice.
+		if o.Ability.API == "MadnessCast" {
+			if e.askMadnessCast(o) {
+				return
+			}
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
+			return
+		}
 		// CR 603.5: an optional triggered ability goes on the stack regardless
 		// (putTriggersOnStack pushes it unconditionally), and its controller
 		// -- or whatever seat its OptionalDecider$ names -- chooses whether to
@@ -758,6 +848,11 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id]}
+		if lki, ok := e.triggerLKI[id]; ok {
+			ctx.LKI = lki.object
+			ctx.LKIPower, ctx.LKIToughness, ctx.LKIPTValid =
+				lki.power, lki.toughness, lki.ptValid
+		}
 		// CR 107.3i: X is the value the activator chose for a Cost$ carrying
 		// {X} (recorded on the ability stack object by commitCast's CastInfo,
 		// emitted right after the AbilityPush). Zero for a trigger, which was
@@ -777,6 +872,13 @@ func (e *Engine) resolveTop() {
 		if link, ok := e.sourceLifelinkLKI[id]; ok {
 			ctx.SourceLifelinkLKI = link
 			ctx.SourceLifelinkLKIValid = true
+		}
+		if controller, ok := e.sourceControllerLKI[id]; ok {
+			ctx.SourceControllerLKI = controller
+			ctx.SourceControllerLKIValid = true
+		}
+		if lki := e.damageSourceLKI[id]; lki != nil {
+			ctx.DamageSourceLKI = cloneDamageSourceLKI(lki)
 		}
 		effects.SetSVars(ctx, svars)
 		// CR 603.3c: the mode choice was announced at placement (pushTrigger
@@ -814,7 +916,26 @@ func (e *Engine) resolveTop() {
 	f := o.Face()
 	sa := f.SpellAbility()
 	targets := o.Targets
-	if sa != nil {
+	// An overloaded spell affects the matching set as it resolves, never as
+	// targets chosen during announcement. This fresh non-target census means
+	// protection/hexproof do not apply and objects entering or changing
+	// controller in response are included correctly. Effect primitives keep
+	// their generic Ctx.Targets recipient API; only the source of that list is
+	// different.
+	overloaded := o.CastFlags&state.FlagOverloaded != 0
+	if overloaded && sa != nil {
+		targetSA := modalTargetSA(f, sa, o.ChosenModes)
+		if targetSA != nil {
+			for _, cand := range e.affectedCandidates(o.Controller, id, id, targetSA) {
+				if cand.kind == "player" {
+					targets = append(targets, state.Target{Player: cand.player, IsPlayer: true})
+				} else {
+					targets = append(targets, state.Target{Obj: cand.obj})
+				}
+			}
+		}
+	}
+	if sa != nil && !overloaded {
 		// A modal spell's target declaration lives on its announced mode SVar,
 		// not the outer Charm SA. Use the same selected declaration targetAsk
 		// used during CR 601.2c, so its targets receive the ordinary CR 608.2b

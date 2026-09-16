@@ -159,12 +159,20 @@ func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (Feedba
 
 	m.mu.RLock()
 	l := m.e.L.Clone()
-	// Reconcile the copy to the consistent prefix a replay can rebuild
-	// (persist.go's reconcileLog): a no-op for a healthy match — every burst
-	// is complete under the lock — but it also trims a crashed match's
-	// orphan tail and poison intent (D15), so a report filed at a crashed
-	// table still snapshots a log that replays.
-	reconcileLog(l)
+	// reconcileLog's trim is for crash-cut FILES, and this clone is not one:
+	// under the read lock no Submit is in flight (the match loop holds the
+	// write lock across Submit and its bookkeeping), so every event in the
+	// cloned log — including the tail past the last DecisionAsk a burst's
+	// own post-ask continuation emitted (fb-20260915T094418Z) — belongs to
+	// a completed burst. Trimming it here cut REAL events, desynced
+	// log.json's head (taken over the full chain) from its event list, and
+	// lost the seat view (headSeq named a seq the trimmed copy does not
+	// carry — the "view unavailable: seq beyond head" reports). Only a
+	// crashed match's log can carry an orphan tail and poison intent (D15),
+	// and only that shape still gets the trim.
+	if m.state == protocol.MatchCrashed {
+		reconcileLog(l)
+	}
 	sc := m.sidecar()
 	deckCards := make([][]string, len(m.cfg.Decks))
 	for i, d := range m.cfg.Decks {
@@ -196,7 +204,16 @@ func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (Feedba
 	}
 	snaps := append([]snapshot(nil), m.snaps...)
 	cfg := m.cfg
+	// headSeq comes from the copy the view below is projected from, not
+	// from the live log: the two agree for every non-crashed match (the
+	// clone is not trimmed), but a crashed match's reconciled copy is
+	// shorter than the live log, and a head past the copy's own end would
+	// fail the projection with a beyond-head error before the replay even
+	// ran (the defect fb-20260915T094418Z measured on the captured view).
 	headSeq := head(m)
+	if n := uint64(len(l.Events)); n > 0 && headSeq >= n {
+		headSeq = n - 1
+	}
 	m.mu.RUnlock()
 
 	// The token scripts are read back outside the lock: cfg.Tokens is the

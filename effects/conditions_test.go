@@ -110,7 +110,7 @@ func TestConditionGateUnresolvedShapesRunUnconditionally(t *testing.T) {
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, notPresent)); resolved {
 		t.Fatal("ConditionNotPresent$ resolved — out of the scoped shape")
 	}
-	unknownPred := "DB$ Pump | ConditionDefined$ Remembered | ConditionPresent$ Card.ExiledWithSource"
+	unknownPred := "DB$ Pump | ConditionDefined$ Remembered | ConditionPresent$ Card.IsImprinted"
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, unknownPred)); resolved {
 		t.Fatal("an unknown predicate in Present resolved — would count a false zero")
 	}
@@ -124,26 +124,61 @@ func TestConditionGateUnresolvedShapesRunUnconditionally(t *testing.T) {
 	}
 }
 
-// TestConditionGatePresentWithoutDefinedIsUnresolved pins the scope line
-// round 2 drew: a ConditionPresent$ (or bare Compare$) WITHOUT a
-// ConditionDefined$ group is UNRESOLVED — its default group is the
-// battlefield, a corpus-wide grammar (408 raw lines, re-measured) round 1
-// built without authorization, so round 2 removed it and the sub runs
-// unconditionally again (the pre-gate behaviour, documented in the
-// report's Issues section).
-func TestConditionGatePresentWithoutDefinedIsUnresolved(t *testing.T) {
-	h, _ := conditionBoard(t)
-	for _, line := range []string{
-		// Dominaria's Judgment's five-condition chain shape.
-		"DB$ PumpAll | ValidCards$ Creature.YouCtrl | KW$ Protection from white | ConditionPresent$ Plains.YouCtrl | ConditionCompare$ GE1",
-		// Bare Present, no Compare.
-		"DB$ Pump | ConditionPresent$ Creature",
-		// Bare Compare, no Present, no Defined.
-		"DB$ Pump | ConditionCompare$ GE1",
-	} {
-		if _, resolved := conditionMet(h, &Ctx{Controller: 0, Source: 4}, sa(t, line)); resolved {
-			t.Fatalf("a Present-without-Defined gate resolved — battlefield-scan scope, removed in round 2: %s", line)
-		}
+// TestConditionGatePresentWithoutDefinedResolvesBattlefield pins the
+// task fb-9d2338cc scope: a ConditionPresent$ WITHOUT a ConditionDefined$
+// now resolves against Forge's default group, the whole battlefield. The
+// entering/replaced object (c.Replaced) is excluded, so a fast land's
+// GT2-on-Land.YouCtrl counts OTHER lands — the oracle's "two or fewer other
+// lands" — not the land itself (which for the Updated replacement shape is
+// already on the battlefield when the gate runs). Out-of-scope shapes stay
+// unresolved: a bare ConditionCompare$ with no Present/no Defined names no
+// count group, and an unknown predicate still fails closed rather than
+// counting a false zero.
+func TestConditionGatePresentWithoutDefinedResolvesBattlefield(t *testing.T) {
+	h, ids := conditionBoard(t)
+	// conditionBoard lands all four objects in the library (AddObject's
+	// default zone); move them to the battlefield so the group counts them.
+	for _, id := range ids {
+		h.g.Obj(id).Zone = state.ZBattlefield
+	}
+
+	// ids[2] is the Mountain (a Land), ids[3] the Fixture (a Creature).
+	// No replaced object: one Land on the battlefield, EQ1 -> met.
+	gate := sa(t, "DB$ Tap | Defined$ Self | ETB$ True | ConditionPresent$ Land | ConditionCompare$ EQ1")
+	if met, resolved := conditionMet(h, &Ctx{Controller: 0, Source: ids[3]}, gate); !met || !resolved {
+		t.Fatalf("Land EQ1, one Land on battlefield: met=%v resolved=%v, want true true", met, resolved)
+	}
+
+	// The same gate with the Mountain as the replaced (entering) object: the
+	// exclusion drops it from the count, so EQ1 is unmet but RESOLVED.
+	if met, resolved := conditionMet(h, &Ctx{Controller: 0, Source: ids[3], Replaced: ids[2]}, gate); met || !resolved {
+		t.Fatalf("Land EQ1 with the Land itself replaced: met=%v resolved=%v, want false true (self-exclusion)", met, resolved)
+	}
+
+	// Presence (no Compare key): at least one Creature matches.
+	gate = sa(t, "DB$ Tap | Defined$ Self | ETB$ True | ConditionPresent$ Creature")
+	if met, resolved := conditionMet(h, &Ctx{Controller: 0, Source: ids[3]}, gate); !met || !resolved {
+		t.Fatalf("Creature presence, one Creature on battlefield: met=%v resolved=%v, want true true", met, resolved)
+	}
+
+	// YouCtrl scopes to the gate's controller, not some other seat's lands.
+	cond := h.g.Obj(ids[2]).Controller
+	if cond != 0 {
+		t.Fatalf("Mountain controller = %d, want 0", cond)
+	}
+
+	// Out of scope: bare Compare with no Present / no Defined names no group.
+	bareCmp := sa(t, "DB$ Pump | ConditionCompare$ GE1")
+	if _, resolved := conditionMet(h, &Ctx{Controller: 0, Source: 4}, bareCmp); resolved {
+		t.Fatal("a bare ConditionCompare$ (no Present, no Defined) resolved — it names no count group")
+	}
+
+	// Out of scope: an unknown predicate in Present fails closed (would count
+	// a false zero). IsRemembered is resolution-local and implemented; use
+	// IsImprinted, which remains unknown here.
+	unknown := sa(t, "DB$ Pump | ConditionPresent$ Card.IsImprinted")
+	if _, resolved := conditionMet(h, &Ctx{Controller: 0, Source: 4}, unknown); resolved {
+		t.Fatal("an unknown predicate in Present resolved — would count a false zero")
 	}
 }
 

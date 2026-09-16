@@ -224,6 +224,53 @@ describe('stackIdentical', () => {
     expect(stackFaces(g, false).map((c) => c.id)).toEqual([2]);
     expect(stackFaces(g, true).map((c) => c.id)).toEqual([2, 5, 9]);
   });
+
+  // The render key (fb-20260915T182335Z): the keyed-each identity Quadrant
+  // mounts a CardStack under. It must be the visible lead object's stable
+  // identity — NOT the equivalence string — so a kept tile handed a newer
+  // CardView for the same object survives the update with its local hover
+  // state intact.
+  it('the render key survives a state mutation that changes the equivalence key (same lead object)', () => {
+    const before = stackIdentical([zombie(7)])[0];
+    const after = stackIdentical([zombie(7, { tapped: true })])[0];
+    expect(after.key).not.toBe(before.key); // the equivalence string moved: that is the grouping working
+    expect(after.render).toBe(before.render); // the lifecycle key did not: the tile is kept
+  });
+
+  it('the render key is unique within a row across merged and individual groups', () => {
+    const groups = stackIdentical([
+      zombie(4), zombie(2), zombie(9, { tapped: true }),
+      zombie(6, { attached_to: 5 }), // individual by attachment
+    ]);
+    const renders = groups.map((g) => g.render);
+    expect(new Set(renders).size).toBe(renders.length);
+    // groups come back ordered by their lowest member id: the {2,4} pile, then 6, then 9
+    expect(renders).toEqual(['r2', 'r6', 'r9']); // each lead object's own id, prefix-isolated from g.key
+  });
+
+  it('the render key moves when a pile\'s visible lead changes (the old lead stops fronting that pile)', () => {
+    // Two identical tokens, lead 2. Card 2 gains a counter: the pile
+    // reshapes — 2 becomes its own individual tile and 3 leads what
+    // remains. The render key set moves with it: the pile the reader sees is
+    // now fronted by 3, and the tile the reader hovered is still on the
+    // battlefield but under its own key.
+    const before = stackIdentical([zombie(2), zombie(3), zombie(4)])[0];
+    expect(before.render).toBe('r2');
+    const after = stackIdentical([zombie(2, { counters: { p1p1: 1 } }), zombie(3), zombie(4)]);
+    expect(after.map((g) => g.render)).toEqual(['r2', 'r3']);
+    expect(after.find((g) => g.cards.length > 1)?.render).toBe('r3');
+    expect(after.find((g) => g.cards.length > 1)?.cards.map((c) => c.id)).toEqual([3, 4]);
+  });
+
+  it('the render key disappears with its object: a mid-pile member surfacing as lead re-keys the pile', () => {
+    // Pile {3, 4} fronts 3. Card 3 is destroyed: 4 surfaces as the new lead.
+    // The old key 'r3' must leave the row (unmounting the tile the reader
+    // hovered — the object is gone) and the pile re-keys to 'r4'.
+    const before = stackIdentical([zombie(3), zombie(4)])[0];
+    expect(before.render).toBe('r3');
+    const after = stackIdentical([zombie(4)]);
+    expect(after.map((g) => g.render)).toEqual(['r4']);
+  });
 });
 
 describe('everyVisibleCard — the public-spectator null zones', () => {
