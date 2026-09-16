@@ -448,6 +448,10 @@ func TestArtCacheUsesTheMatchedFaceForABackFaceName(t *testing.T) {
 			},
 		})
 	})
+	mux.HandleFunc("/img/front.jpg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		_, _ = w.Write([]byte("front"))
+	})
 	mux.HandleFunc("/img/back.jpg", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
 		_, _ = w.Write([]byte("back"))

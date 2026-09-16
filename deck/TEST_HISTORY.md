@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/deck
 
-budget_s: 5
+budget_s: 10
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -21,3 +21,17 @@ budget_s: 5
 | 2026-09-07T02:12Z | b22c3d2+ | 0.0 | 17 | sadams |
 | 2026-09-10T20:04Z | fa4da46+ | 0.0 | 17 | 0 | sadams |
 | 2026-09-14T16:02Z | 9d9bb63+ | 0.0 | 18 | 0 | sadams |
+| 2026-09-14T20:09Z | 8c7335e+ | 0.0 | 22 | 0 | sadams |
+| 2026-09-14T23:18Z | cc576db+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-15T10:02Z | 5bece96+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-15T10:05Z | 5bece96+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-15T10:07Z | 5bece96+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-15T10:09Z | 5bece96+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-15T10:53Z | 6fe3f77+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-15T10:56Z | 6fe3f77+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-15T10:58Z | 6fe3f77+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-16T00:16Z | 420e6b9+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-16T00:25Z | 420e6b9+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-16T00:29Z | 420e6b9+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-16T02:23Z | 420e6b9+ | 0.0 | 24 | 0 | sadams |
+| 2026-09-16T08:50Z | 1b80b99+ | 0.0 | 24 | 0 | sadams |

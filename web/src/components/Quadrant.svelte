@@ -6,7 +6,9 @@
   import CardStack from './CardStack.svelte';
   import CommandArea from './CommandArea.svelte';
 
-  /** Quadrant shows one player's battlefield, split into the three rows board.ts groups it into. It has no rules knowledge: grouping and ordering come entirely from groupBattlefield; stackIdentical then collapses interchangeable permanents within a row into one tile with a count (CardStack renders the group). Attachments still come from attachedTo for a group of one — a stacked group has none by the stacking rule. The seat's command zone (CommandArea) draws directly into the creatures row, at creature scale, alongside the CardStacks — not into a private area of its own (CZ2); it draws nothing at all for a seat with no commander roster. `stack` is passed through to it alone: a commander mid-cast is a spell on the stack, not in any zone list. `options` (the pending decision's card-indexed offers, or null) is forwarded to every CardStack, and from there to each tile, and to CommandArea, which looks a commander's own options up by its object id the same way. */
+  /** Quadrant shows one player's battlefield, split into the three rows board.ts groups it into. It has no rules knowledge: grouping and ordering come entirely from groupBattlefield; stackIdentical then collapses interchangeable permanents within a row into one tile with a count (CardStack renders the group). Attachments still come from attachedTo for a group of one — a stacked group has none by the stacking rule. The seat's command zone (CommandArea) draws directly into the creatures row, at creature scale, alongside the CardStacks — not into a private area of its own (CZ2); it draws nothing at all for a seat with no commander roster. `stack` is passed through to it alone: a commander mid-cast is a spell on the stack, not in any zone list. `options` (the pending decision's card-indexed offers, or null) is forwarded to every CardStack, and from there to each tile, and to CommandArea, which looks a commander's own options up by its object id the same way.
+   *
+   * The keyed-each key is the group's RENDER key (g.render — the visible lead object's id), not the mutable stacking-equivalence string (g.render): `key` changes whenever any visible state changes — that is the grouping working — but a DOM key that changes unmounts CardStack and its CardTile, destroying the tile's local hover state, so an inspector the reader had open closed the moment the same permanent untapped or stopped attacking (fb-20260915T182335Z). Keyed by the lead object's id, a kept tile handed a newer CardView for the same object keeps its open inspector and renders the fresh state (CardTile's superviseRendering guard still closes it when the id itself changes or the object stops being rendered). */
   let { player, colour, corner = 'bl', stack = [], options = null }: { player: PlayerView; colour: string; corner?: SeatCorner; stack?: StackView[]; options?: CardOptions | null } = $props();
 
   const battlefieldGroups = $derived(groupBattlefield(player.battlefield));
@@ -43,17 +45,17 @@
        rim. Nothing is drawn here for a seat with no commander roster. -->
   <div class="row creatures">
     <CommandArea {player} {stack} {options} />
-    {#each stacks.creatures as g (g.key)}
+    {#each stacks.creatures as g (g.render)}
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} {options} />
     {/each}
   </div>
   <div class="row others">
-    {#each stacks.others as g (g.key)}
+    {#each stacks.others as g (g.render)}
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} {options} />
     {/each}
   </div>
   <div class="row lands">
-    {#each stacks.lands as g (g.key)}
+    {#each stacks.lands as g (g.render)}
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} {options} />
     {/each}
   </div>

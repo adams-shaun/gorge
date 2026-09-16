@@ -77,7 +77,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			decks = []string{bot, human}
 		}
 		id := host.NextGameID(r)
-		tok, err := gate.mint(0)
+		tok, err := gate.mint(id, 0)
 		if err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
