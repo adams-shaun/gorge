@@ -36,7 +36,7 @@ var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
 func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 	before := e.G.Players[p].Pool
 	after, lifeSpent, ok := cost.resolveManaWith(before, e.G.Players[p].Life,
-		e.payerGrantsPayLifeInsteadOfB(p))
+		e.payerGrantsPayLifeInsteadOfB(p), false)
 	if !ok {
 		return false
 	}
@@ -49,6 +49,30 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 	// through the ordinary LifeChange event so a replay learns them.
 	if lifeSpent != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
+	}
+	return true
+}
+
+// payManaCast is payMana for a spell's cost payment, with the cast's
+// recorded may-play ignore-colour rider applied (CR 401.5's "spend mana as
+// though it were mana of any color to cast it"). The rider was proved by the
+// offer gate while the card still sat in the granted zone; the payment keeps
+// it via pc.mayPlayIgnore because after the push (CR 601.2a) the card is on
+// the stack and a zone re-derivation would wrongly drop the grant.
+func (e *Engine) payManaCast(pc *pendingCast, cost Cost) bool {
+	before := e.G.Players[pc.player].Pool
+	after, lifeSpent, ok := cost.resolveManaWith(before,
+		e.G.Players[pc.player].Life, e.payerGrantsPayLifeInsteadOfB(pc.player), pc.mayPlayIgnore)
+	if !ok {
+		return false
+	}
+	for i, letter := range manaLetters {
+		if spent := before[i] - after[i]; spent != 0 {
+			e.emit(events.Event{Kind: events.ManaAdd, Player: pc.player, Counter: letter, Amount: -spent})
+		}
+	}
+	if lifeSpent != 0 {
+		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -lifeSpent})
 	}
 	return true
 }

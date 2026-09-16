@@ -944,15 +944,20 @@ func (c Cost) costPips(bLifeOK bool) []pip {
 // The generic requirement is paid last from whatever the pips left, so
 // coloured mana is never spent on generic while a pip still needs it.
 func (c Cost) resolveMana(pool state.Mana, life int32) (state.Mana, int32, bool) {
-	return c.resolveManaWith(pool, life, false)
+	return c.resolveManaWith(pool, life, false, false)
 }
 
-// resolveManaWith is resolveMana with the payer-side PayLifeInsteadOf:B grant
-// applied: when bLifeOK is set, every plain {B} pip additionally accepts 2
-// life (K'rrik, Son of Yawgmoth's "For each {B} in a cost, you may pay 2 life
-// rather than pay that mana"), under exactly the same deterministic
-// prefer-mana-then-life assignment the printed Phyrexian pips use.
-func (c Cost) resolveManaWith(pool state.Mana, life int32, bLifeOK bool) (state.Mana, int32, bool) {
+// resolveManaWith is resolveMana with the two payer-side grants applied:
+// when bLifeOK is set, every plain {B} pip additionally accepts 2 life
+// (K'rrik, Son of Yawgmoth's "For each {B} in a cost, you may pay 2 life
+// rather than pay that mana"); when anyColor is set, every coloured pip
+// (plain, hybrid or Phyrexian) is payable by ANY colour in the pool -- the
+// may-play grant's MayPlayIgnoreColor$ rider, "you may spend mana as though
+// it were mana of any color to cast it" (CR 401.5). A {C} pip stays
+// colourless-only under anyColor: CR 107.4c's "any color" never includes
+// colourless. Both grants use the same deterministic prefer-mana-then-life
+// assignment and try colours in WUBRG order.
+func (c Cost) resolveManaWith(pool state.Mana, life int32, bLifeOK, anyColor bool) (state.Mana, int32, bool) {
 	if life < c.Life {
 		return pool, 0, false
 	}
@@ -968,7 +973,13 @@ func (c Cost) resolveManaWith(pool state.Mana, life int32, bLifeOK bool) (state.
 		p := pips[i]
 		// Try each acceptable colour, in the order given. For a hybrid this
 		// prefers A over B; for a single-colour pip A==B so it is just once.
-		for _, col := range p.colors {
+		// Under the ignore-colour rider every non-{C} pip accepts any colour,
+		// tried in fixed WUBRG order so the assignment stays deterministic.
+		cols := p.colors[:]
+		if anyColor && p.colors[0] != 'C' {
+			cols = []byte{'W', 'U', 'B', 'R', 'G'}
+		}
+		for _, col := range cols {
 			di := state.ManaIndex(col)
 			if rem[di] > 0 {
 				rem[di]--
@@ -1066,6 +1077,76 @@ func (e *Engine) payerGrantsPayLifeInsteadOfB(p state.PlayerID) bool {
 // way everywhere.
 func (e *Engine) payerPayable(p state.PlayerID, c Cost) bool {
 	_, _, ok := c.resolveManaWith(e.G.Players[p].Pool, e.G.Players[p].Life,
-		e.payerGrantsPayLifeInsteadOfB(p))
+		e.payerGrantsPayLifeInsteadOfB(p), false)
 	return ok
+}
+
+// payerPayableGrant is payerPayable with the may-play ignore-colour rider
+// passed explicitly, so the payment sites that know the cast's recorded
+// rider (a pendingCast's mayPlayIgnore, kept from the offer gate that proved
+// it) keep the grant after the card has moved to the stack -- at payment
+// time the card is no longer in the granted zone, so re-deriving from the
+// zone would wrongly drop it.
+func (e *Engine) payerPayableGrant(p state.PlayerID, c Cost, anyColor bool) bool {
+	_, _, ok := c.resolveManaWith(e.G.Players[p].Pool, e.G.Players[p].Life,
+		e.payerGrantsPayLifeInsteadOfB(p), anyColor)
+	return ok
+}
+
+// payerPayableFor is payerPayable with the may-play ignore-colour grant
+// consulted for the card id being cast (the offer-gate form: the card is
+// still in the granted zone, so the zone check inside
+// payerGrantsIgnoreColor holds).
+func (e *Engine) payerPayableFor(p state.PlayerID, c Cost, id state.ObjID) bool {
+	return e.payerPayableGrant(p, c, e.payerGrantsIgnoreColor(p, id))
+}
+
+// payerGrantsIgnoreColor reports whether an active may-play grant of p's
+// carrying MayPlayIgnoreColor$ True selects the card id being cast: the
+// grant is p's, its AffectedZone names the card's CURRENT zone (so a card
+// being cast the ordinary way from hand never inherits an exile grant), and
+// the Affected$ spec matches the card. The IsRemembered predicate inside a
+// grant's spec is matched against the CONTINUOUS EFFECT's Remembered set
+// (the cards the delivering Effect captured), through the SpecContext the
+// ordinary filter grammar already carries -- the same direct-list reading
+// restrictionApplies uses for Effect-delivered CantTarget/CantRegenerate.
+func (e *Engine) payerGrantsIgnoreColor(p state.PlayerID, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil {
+		return false
+	}
+	for _, ce := range e.active() {
+		if !ce.MayPlay || !ce.MayPlayIgnoreColor || ce.Controller != p {
+			continue
+		}
+		if ce.MayPlayPlayerTurn && e.G.Active != p {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if !ok && !all {
+			continue
+		}
+		if !all && !slices.Contains(zones, o.Zone) {
+			continue
+		}
+		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
+			Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+		if effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+			return true
+		}
+	}
+	return false
+}
+
+// rememberedTargets lifts a ContinuousEffect's Remembered object ids into
+// the []state.Target shape the filter grammar's SpecContext carries.
+func rememberedTargets(ids []state.ObjID) []state.Target {
+	if len(ids) == 0 {
+		return nil
+	}
+	out := make([]state.Target, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, state.Target{Obj: id})
+	}
+	return out
 }

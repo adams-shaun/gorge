@@ -118,18 +118,21 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 				// Ramunap Excavator, ...). It changes no characteristic, so it is
 				// NOT a layer effect and is carried as a rules-mod on the effect
 				// itself (MayPlay + AffectedZone) rather than as a layer mark;
-				// rules/legal.go's mayPlayLandIds consults it. Only the
-				// unconditional MayPlay$ True shape is implemented; the
-				// mayPlayUnconditional guard rejects a richer grant (MayPlayLimit$
-				// once-per-turn/per-type, Condition$/ValidAfterStack$/Secondary$
-				// qualifiers, any other MayPlay* family key) so it fails closed
+				// rules/legal.go's may-play walks consult it. The implemented
+				// shape is the unconditional MayPlay$ True grant plus its two
+				// readable riders (MayPlayIgnoreColor$ -- mana as any colour --
+				// and MayPlayLimit$ 1, the once-per-turn cap); the
+				// mayPlayShape guard rejects a richer grant (MayPlayIgnoreType$/
+				// MayPlayWithoutManaCost$/MayPlayText$, Condition$/
+				// ValidAfterStack$/Secondary$ qualifiers) so it fails closed
 				// (MayPlay stays false) rather than being silently over-applied
 				// against the ordinary LandsPlayed limit. Expiry is the ordinary
 				// source-leaves rule (CR 611.3b) via active()'s battlefield scan.
-				if mayPlayUnconditional(st) {
+				if mayPlayGrant(st) {
 					mp := base
 					mp.MayPlay = true
 					mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+					mp.MayPlayIgnoreColor, mp.MayPlayLimit, mp.MayPlayPlayerTurn, _ = effects.MayPlayStaticParams(st.Params)
 					out = append(out, mp)
 				}
 			}
@@ -138,34 +141,22 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 	return out
 }
 
-// mayPlayUnconditional reports whether a Mode$ Continuous static carries the
-// single unconditional "you may play <cards> from <zone>" grant this package
-// implements: MayPlay$ True, an Affects (Affected$) spec and an AffectedZone,
-// plus only display/placement metadata. A richer grant is out of scope and
-// must fail closed (MayPlay stays false) so it is never silently over-applied
-// -- in particular a MayPlayLimit$ once-per-turn/per-type grant (Muldrotha's
-// MayPlayLimit$ 1 + MayPlayText$) must NOT share the ordinary LandsPlayed
-// limit, and a Condition$/CheckSVar$/ValidAfterStack$/Secondary$ qualifier
-// changes the semantics beyond the unconditional shape. The explicit
-// whitelist, rather than a blacklist of currently-known gating keys, means a
-// newly encountered semantic parameter also fails closed. Iterating st.Params
-// only yields a boolean, so map order never reaches an event/option/view --
-// determinism is preserved.
-func mayPlayUnconditional(st cards.Static) bool {
-	v, ok := st.Params["MayPlay"]
-	if !ok || !strings.EqualFold(strings.TrimSpace(v), "True") {
-		return false
-	}
-	for key := range st.Params {
-		switch key {
-		case "Mode", "MayPlay", "Affected", "AffectedZone", "Description", "EffectZone":
-			// The keys the unconditional land grant (and only it) carries
-			// besides MayPlay itself.
-		default:
-			return false
-		}
-	}
-	return true
+// mayPlayGrant reports whether a Mode$ Continuous static carries the
+// may-play grant this package implements: MayPlay$ True, an Affects
+// (Affected$) spec and an AffectedZone, plus only display/placement metadata
+// and the two riders it reads (MayPlayIgnoreColor$, MayPlayLimit$). A richer
+// grant is out of scope and must fail closed (MayPlay stays false) so it is
+// never silently over-applied -- in particular a MayPlayIgnoreType$
+// (cast-without-type-restriction) or MayPlayWithoutManaCost$ (free cast)
+// static changes what the cast IS, not just where it may come from, and a
+// Condition$/CheckSVar$/ValidAfterStack$/Secondary$ qualifier changes when
+// the grant lives. The explicit whitelist, rather than a blacklist of
+// currently-known gating keys, means a newly encountered semantic parameter
+// also fails closed. Iterating st.Params only yields a boolean, so map order
+// never reaches an event/option/view -- determinism is preserved.
+func mayPlayGrant(st cards.Static) bool {
+	_, _, _, ok := effects.MayPlayStaticParams(st.Params)
+	return ok
 }
 
 // hasStat reports whether a static line carries the named parameter.

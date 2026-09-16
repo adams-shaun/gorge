@@ -131,6 +131,11 @@ func init() {
 	// StrictlyOther is Forge's other spelling of the same "not the source"
 	// test Other already implements.
 	predicates["StrictlyOther"] = predicates["Other"]
+	// ExiledWithEffectSource is the Effect-delivered spelling of the same
+	// exiled-by-this-source provenance: the effect's source card is what
+	// exiled the candidate (Opposition Agent/Valki-style MayPlay grants name
+	// it), the same tracked ExiledWith field ExiledWithSource reads.
+	predicates["ExiledWithEffectSource"] = predicates["ExiledWithSource"]
 	// EquippedBy / EnchantedBy / AttachedBy: the candidate is the permanent
 	// source is attached to (attachedBy below). Task 14 wires all three to the
 	// same predicate -- Forge spells "attached to" three ways depending on

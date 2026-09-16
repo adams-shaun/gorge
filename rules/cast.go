@@ -46,6 +46,13 @@ type pendingCast struct {
 
 	cost Cost
 
+	// mayPlayIgnore is the may-play grant's MayPlayIgnoreColor$ rider,
+	// recorded at beginCast from the offer gate that proved it (the card was
+	// still in the granted zone); the mana window and the payment keep the
+	// grant through it, since after the push (CR 601.2a) the card is on the
+	// stack and a zone re-derivation would wrongly drop the grant.
+	mayPlayIgnore bool
+
 	x     int32
 	xDone bool
 	// suspendTimeX makes the chosen cast X also set the number of TIME
@@ -468,7 +475,7 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !e.payerPayable(p, mana) {
+	if !e.payerPayableFor(p, mana, id) {
 		return false
 	}
 	reserved := map[state.ObjID]bool{}
@@ -854,7 +861,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// re-added mana part would double charge. Only a plain cast reaches this
 	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
 	// no SP Cost$ contributes nothing.
-	if opt.AltCostIndex == 0 && opt.Mode == "" {
+	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -870,7 +877,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// one part is payable (legal.go); the ask narrows it to exactly one.
 	tax := e.commanderTaxAmount(p, id)
 	raise, reduce := e.costModifiers(p, id, "Spell")
-	if opt.AltCostIndex == 0 && opt.Mode == "" {
+	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay") {
 		pcAlt := altAddCostParts(f)
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
 			cost: cost, raise: raise, reduce: reduce, taxGeneric: tax, altAddParts: pcAlt}
@@ -896,6 +903,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if sc, ok := suspendCost(f); ok && sc.timeX {
 			e.cast.suspendTimeX, e.cast.suspendMinX = true, sc.minTime
 		}
+	}
+	// CR 401.5's MayPlayIgnoreColor$ rider: "you may spend mana as though it
+	// were mana of any color to cast it". Recorded from the grant the offer
+	// gate consulted while the card was still in the granted zone.
+	if opt.Mode == "mayplay" {
+		e.cast.mayPlayIgnore = e.payerGrantsIgnoreColor(p, id)
 	}
 	e.collectETBChoices(p)
 	e.continueCast()
@@ -1444,7 +1457,7 @@ func (e *Engine) xAsk() bool {
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !e.payerPayable(pc.player, wx) {
+		if !e.payerPayableGrant(pc.player, wx, pc.mayPlayIgnore) {
 			break
 		}
 		maxOld = x
@@ -2416,6 +2429,8 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagWarped)
 	case "buyback":
 		return events.FlagsString(state.FlagBuyback)
+	case "mayplay":
+		return events.FlagsString(state.FlagMayPlay)
 	case "harmonize":
 		return events.FlagsString(state.FlagHarmonize)
 	case "suspend":
@@ -2486,7 +2501,7 @@ func (e *Engine) targetAsk() bool {
 			mana.Generic = 0
 		}
 	}
-	if !e.payerPayable(pc.player, mana) && !e.hasUntappedManaSource(pc.player) {
+	if !e.payerPayableGrant(pc.player, mana, pc.mayPlayIgnore) && !e.hasUntappedManaSource(pc.player) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
 	}
@@ -2692,7 +2707,7 @@ func (e *Engine) manaWindowAsk() bool {
 	}
 	// A pool that already pays the total cost needs no window (nothing to
 	// gain by activating more mana abilities here).
-	if e.payerPayable(pc.player, mana) {
+	if e.payerPayableGrant(pc.player, mana, pc.mayPlayIgnore) {
 		return false
 	}
 	var sources []state.ObjID
@@ -2960,7 +2975,7 @@ func (e *Engine) payCast() {
 	if mana.Generic < 0 {
 		mana.Generic = 0
 	}
-	if !e.payMana(pc.player, mana) {
+	if !e.payManaCast(pc, mana) {
 		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
 		// than the shortfall needs, so the cast aborts with no state change

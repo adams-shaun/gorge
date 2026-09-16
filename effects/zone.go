@@ -321,6 +321,14 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 			Text: "Tapped$ True on a hand ChangeZone is not implemented; the card enters untapped"})
 	}
 	ev := moveZoneEvent(c, id, from, to)
+	if to == state.ZExile && len(ev.IDs) == 0 && faceStaticsNameExiledWithSource(h, c.Source) {
+		// The S: static spelling of the same provenance need: a source whose
+		// own Static lines name ExiledWithSource (Intellect Devourer's
+		// MayPlay+ExiledWithSource grant) tracks its exiles exactly like the
+		// SVar shapes exileProvenanceNeeded covers. Extra IDs on an exile
+		// move are inert for every consumer that never reads them.
+		ev.IDs = []state.ObjID{c.Source}
+	}
 	if hasPlayer {
 		ev.Player = player
 	}

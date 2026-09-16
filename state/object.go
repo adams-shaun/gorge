@@ -69,6 +69,11 @@ const (
 	// escaped" ETB family and the escape-with-counters replacements read it
 	// through the Card.Self+escaped spec.
 	FlagEscaped
+	// FlagMayPlay marks a cast made through a may-play-from-zone grant
+	// (CR 401.5); the MayPlayLimit$ once-per-turn cap reads it from the log
+	// (rules' mayPlaysThisTurn), the same CastInfo provenance marker the
+	// Suspend flag is.
+	FlagMayPlay
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the

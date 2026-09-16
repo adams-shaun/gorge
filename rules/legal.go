@@ -46,8 +46,15 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 	}
 	var out []state.ObjID
 	var seen []offered
+	limited := e.mayPlaysThisTurn(p)
 	for _, ce := range e.active() {
 		if !ce.MayPlay || ce.Controller != p {
+			continue
+		}
+		if ce.MayPlayPlayerTurn && e.G.Active != p {
+			continue
+		}
+		if ce.MayPlayLimit > 0 && int32(limited) >= ce.MayPlayLimit {
 			continue
 		}
 		zones, all, ok := effects.ParseZones(ce.AffectedZone)
@@ -86,6 +93,155 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 		} else {
 			for _, z := range zones {
 				consider(z)
+			}
+		}
+	}
+	return out
+}
+
+// mayPlaysThisTurn counts the card plays this turn that went through a
+// may-play-from-zone grant, in deterministic log order since the last
+// TurnChange: CastInfo events carrying the mayplay flag (attributed by the
+// card's OWNER -- CastInfo predates a Player field on the kind and setting
+// one now would re-shape every replayed log's encoding, so the owner, which
+// never changes, stands in; a control-steal corner may mis-attribute and
+// then the cap can only undercount, never wedge), plus land plays whose
+// MoveZone came from a granted (never hand) zone. Only a MayPlayLimit$ cap
+// consults it; an unlimited grant ignores the count.
+func (e *Engine) mayPlaysThisTurn(p state.PlayerID) int {
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		switch ev.Kind {
+		case events.CastInfo:
+			if !strings.Contains(ev.Counter, "mayplay") {
+				continue
+			}
+			if o := e.G.Obj(ev.Obj); o != nil && o.Owner == p {
+				n++
+			}
+		case events.MoveZone:
+			if ev.From != state.ZGraveyard && ev.From != state.ZExile {
+				continue
+			}
+			if ev.To != state.ZBattlefield {
+				continue
+			}
+			if o := e.G.Obj(ev.Obj); o != nil && o.Owner == p && o.Face() != nil && o.Face().IsLand() {
+				n++
+			}
+		}
+	}
+	return n
+}
+
+// mayPlaySpellIds returns the ids of NON-LAND cards in player p's zones that
+// an active may-play-from-zone grant lets p CAST this turn, in deterministic
+// order (e.active(), then each effect's parsed AffectedZone order, then the
+// zone slice order). A card is offered once even when several grants cover
+// it (per (zone,id) dedupe). Only zones a spell can meaningfully be cast
+// from (graveyard, exile) are walked; hand is the ordinary walk and library
+// is hidden. Each candidate must match the granting effect's Affects filter
+// through MatchesSpecCtx with the grant's Remembered set loaded as the
+// SpecContext's Remembered, so the dominant Affected$ Card.IsRemembered
+// grant (227 corpus files) selects exactly the cards its delivering Effect
+// captured -- the same direct-list reading restrictionApplies uses for
+// Effect-delivered CantTarget/CantRegenerate. A MayPlayLimit$ grant whose
+// cap is already reached does not offer through itself; another grant
+// covering the same card still may.
+func (e *Engine) mayPlaySpellIds(p state.PlayerID) []state.ObjID {
+	type offered struct {
+		zone state.Zone
+		id   state.ObjID
+	}
+	var out []state.ObjID
+	var seen []offered
+	limited := e.mayPlaysThisTurn(p)
+	consider := func(z state.Zone, id state.ObjID) bool {
+		for _, s := range seen {
+			if s.zone == z && s.id == id {
+				return false
+			}
+		}
+		seen = append(seen, offered{z, id})
+		out = append(out, id)
+		return true
+	}
+	// A card in exile may grant its own may-play through EffectZone$ Exile
+	// (Misthollow Griffin / Eternal Scourge's "You may cast CARDNAME from
+	// exile"): staticEffects never reads a non-battlefield source, so this
+	// narrow self-grant scan covers exactly that shape -- the exiled card's
+	// own S: static carrying Affected$ Card.Self and an AffectedZone naming
+	// Exile. The Affects match is the card itself, so nothing else can ride
+	// the scan.
+	for _, q := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZExile, q) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil || o.Face().IsLand() || o.Owner != p {
+				continue
+			}
+			self := false
+			for _, st := range o.Face().Statics {
+				if st.Mode != "Continuous" || !mayPlayGrant(st) {
+					continue
+				}
+				if !strings.EqualFold(strings.TrimSpace(st.Params["Affected"]), "Card.Self") {
+					continue
+				}
+				zones, all, ok := effects.ParseZones(st.Params["AffectedZone"])
+				if (!ok && !all) || (!all && !slices.Contains(zones, state.ZExile)) {
+					continue
+				}
+				self = true
+				break
+			}
+			if self {
+				consider(state.ZExile, id)
+			}
+		}
+	}
+	for _, ce := range e.active() {
+		if !ce.MayPlay || ce.Controller != p {
+			continue
+		}
+		if ce.MayPlayLimit > 0 && int32(limited) >= ce.MayPlayLimit {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if !ok && !all {
+			continue
+		}
+		// Exile and graveyard are public zones keyed by the card's OWNER, and
+		// a grant's cards can sit in another seat's slice (Intellect
+		// Devourer exiles an OPPONENT's hand card, then lets its controller
+		// play it), so every seat's slice is walked in deterministic seat
+		// order -- never a map. The Affects match decides ownership claims;
+		// walking the slices only enumerates candidates.
+		for _, q := range e.G.AliveFrom(0) {
+			for _, z := range func() []state.Zone {
+				if all {
+					return []state.Zone{state.ZGraveyard, state.ZExile}
+				}
+				return zones
+			}() {
+				if z != state.ZGraveyard && z != state.ZExile {
+					continue
+				}
+				for _, id := range e.G.Zone(z, q) {
+					o := e.G.Obj(id)
+					if o == nil || o.Face() == nil || o.Face().IsLand() {
+						continue
+					}
+					sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
+						Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+						continue
+					}
+					consider(z, id)
+				}
 			}
 		}
 	}
@@ -540,6 +696,38 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		add("play_land", "Play "+o.Face().Name, id)
+	}
+
+	// A may-play-from-zone grant also makes NON-LAND cards in a granted zone
+	// castable this turn (CR 401.5; Atsushi's "you may play those cards",
+	// Opposition Agent's MayPlay+IgnoreColor static). This is a THIRD cast
+	// source alongside the hand and command-zone walks, never a replacement;
+	// the cast pays the card's PRINTED cost (the grant changes where it may
+	// come from, not what it costs), with the grant's MayPlayIgnoreColor$
+	// rider payable-as-any-colour consulted by castable (the card is still
+	// in the granted zone here) and recorded on the pendingCast at beginCast
+	// for the window and the payment to keep. A MayPlayLimit$ grant whose cap
+	// is reached offers nothing through itself (mayPlaySpellIds). The offer
+	// gate folds the card's own SpellAbility additional costs exactly like
+	// the hand walk does, so an offered may-play cast and the cost beginCast
+	// charges structurally cannot disagree.
+	for _, id := range e.mayPlaySpellIds(p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || f.IsLand() || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !e.spellTimingOK(p, id, f, sorcery) {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		cost := withSpellAbilityExtras(f, e.offerCostFor(p, id, e.rawBaseCost(p, id), false))
+		if e.castable(p, id, cost, false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name, Obj: id, Mode: "mayplay"})
+		}
 	}
 
 	// Command zone (CR 903.8, Commander format): a player may cast a
