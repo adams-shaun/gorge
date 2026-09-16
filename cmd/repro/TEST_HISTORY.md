@@ -1,6 +1,5 @@
 # Test history — github.com/adams-shaun/gorge/cmd/repro
 
-budget_s: 12
 budget_s: 11
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |

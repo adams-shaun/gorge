@@ -80,8 +80,10 @@ import (
 // distinct cards in the pinned corpus; entries retire only when their
 // primitives are implemented. The untap/mana wave (api:Untap, api:ManaReflected,
 // stat:ManaConvert, stat:UntapOtherPlayer and kw:Cumulative upkeep)
-// retired Fabled Passage, Exotic Orchard and Chromatic Orrery outright and
-// shrank Baloth Prime and Horizon Explorer to their remaining trig: gaps.
+// retired Fabled Passage, Exotic Orchard, Baloth Prime, Horizon Explorer and
+// Chromatic Orrery outright (every entry's primitives are implemented). The
+// one recorded remainder for Horizon Explorer is the param-level gap
+// `param:api:Untap.ETB` in paramcensus_test.go's knownUnsupportedParams.
 //
 // Task altcosts (the alternative-cost keyword family) retired the one entry
 // the merged decks carried: kw:Dash (Ragavan, Nimble Pilferer), implemented
