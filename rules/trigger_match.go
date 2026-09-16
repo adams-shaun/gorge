@@ -66,7 +66,14 @@ type pendingTrigger struct {
 	Delayed   bool
 	DelayedID uint32
 	Execute   string
-	Ctx       effects.Ctx
+	// Ward is a GRANTED ward keyword (a layer-6 AddKeyword$ Ward:<cost>, e.g.
+	// Hexing Squelcher's "Other creatures you control have 'Ward—Pay 2
+	// life.'"): the trigger exists only in the layer system, never on the
+	// face, so the queue carries the ward COST text and the drain pushes a
+	// KeywordTriggerPush whose __kwWard: payload events.Apply rebuilds the
+	// same DB$ Ward ability from. Idx and SA are unset for it.
+	Ward string
+	Ctx  effects.Ctx
 }
 
 // triggerKey identifies one T: line: the object that carries it, plus that
@@ -587,6 +594,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				},
 			})
 		}
+		e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -1908,4 +1916,59 @@ func init() {
 		// semantics now that api:CopySpellAbility is implemented.
 		"kw:Storm", "kw:Ward", "kw:Annihilator",
 	)
+}
+
+func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
+	if e.finishingLifeLossBatch || e.lifeLossBatchDepth > 0 {
+		return
+	}
+	printed := map[string]bool{}
+	for _, k := range f.Keywords {
+		printed[strings.ToLower(k)] = true
+	}
+	for _, k := range observer.Derived(id).Keywords {
+		if printed[strings.ToLower(k)] {
+			continue
+		}
+		param := ""
+		if head := cards.KeywordHead(k); !strings.EqualFold(head, "Ward") {
+			continue
+		} else if j := strings.IndexByte(k, ':'); j >= 0 {
+			param = strings.TrimSpace(k[j+1:])
+		}
+		if param == "" {
+			continue
+		}
+		t := cards.Trigger{Mode: "BecomesTarget",
+			Params: map[string]string{"ValidTarget": "Card.Self", "Ward": "True", "TriggerDescription": "Ward"},
+			Effect: &cards.SA{Kind: "DB", API: "Ward",
+				Params: map[string]string{"UnlessCost": param, "TriggerDescription": "Ward"}}}
+		if !observer.triggerMatches(t, id, ev, objLKI) {
+			continue
+		}
+		key := triggerKey{Source: id, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] >= maxTriggerFires {
+			continue
+		}
+		e.triggerFireCount[key]++
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     id,
+			Controller: o.Controller,
+			Ward:       param,
+			Ctx: effects.Ctx{
+				Source:         id,
+				Controller:     o.Controller,
+				Remembered:     triggerRemembered(ev, id),
+				Captured:       triggerRemembered(ev, id),
+				LKI:            objLKI,
+				LKIPower:       lkiPower,
+				LKIToughness:   lkiToughness,
+				LKIPTValid:     objLKI != nil && lkiPTValid,
+				TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+			},
+		})
+	}
 }

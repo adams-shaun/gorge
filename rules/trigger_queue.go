@@ -271,6 +271,31 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A granted ward (CR 702.21a via a layer-6 AddKeyword$ Ward:<cost> -- the
+	// printed K:Ward expansion is a face trigger and never lands here). The
+	// ward ability is mandatory: its Counter payload is the cost text, which
+	// events.Apply rebuilds into the same DB$ Ward ability a printed trigger
+	// would have carried. The targeted spell is named by the ward Ctx the
+	// walk captured (TriggeredStack roles), exactly as the printed path does.
+	if pt.Ward != "" {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwWard:" + pt.Ward, Text: "ward ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			// effWard reads the targeting spell off TriggerStack at resolution,
+			// the same role the printed ward's stack object carries.
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// Task 18: a Miracle offer is placed by casting the card for its miracle
 	// cost, not by minting a triggered-ability stack object. castMiracle
 	// verifies the card is still in the owner's hand, emits the reveal Note,
@@ -739,6 +764,15 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 	// and it is what askTriggerOptional shows inside its offer prompt.
 	// Madness and Evoke are mandatory keyword-triggered abilities; their labels
 	// may appear in an ordering ask beside ordinary simultaneous triggers.
+	if pt.Ward != "" {
+		name := "a permanent"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		return name + ": ward (" + pt.Ward + ")"
+	}
 	if pt.Miracle || pt.Madness || pt.Evoke {
 		name := "it"
 		if o := e.G.Obj(pt.Source); o != nil {
