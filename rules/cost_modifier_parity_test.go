@@ -898,6 +898,32 @@ func TestConditionPlayerTurnGatesTheReduction(t *testing.T) {
 	}
 }
 
+// TestExactPipAnnouncementScope keeps the new whole-cost payment search
+// confined to syntax or modifiers whose face can change the price. Existing
+// plain Phyrexian and hybrid cards retain their established local resource
+// menus, so adding cost parity does not rewrite unrelated acceptance games.
+func TestExactPipAnnouncementScope(t *testing.T) {
+	legacy := pendingCast{cost: ParseCost("1 BP BP")}
+	if legacy.requiresExactPipAnnouncement() {
+		t.Fatal("plain Phyrexian pips without a face-sensitive modifier must keep their legacy menu")
+	}
+	for _, c := range []Cost{ParseCost("2/W"), ParseCost("G/W/P")} {
+		pc := pendingCast{cost: c}
+		if !pc.requiresExactPipAnnouncement() {
+			t.Fatalf("new flexible cost %+v must use whole-cost payment feasibility", c)
+		}
+	}
+	for _, mods := range []costMods{
+		{reduces: []costMod{{hasColor: true}}},
+		{setFloor: 3},
+	} {
+		pc := pendingCast{cost: ParseCost("W/U"), mods: mods}
+		if !pc.requiresExactPipAnnouncement() {
+			t.Fatalf("face-sensitive modifier %+v must use whole-cost payment feasibility", mods)
+		}
+	}
+}
+
 // TestRaiseCostManaShapeAddsPips pins the RaiseCost Cost\$ raise (Andradite
 // Leech's real line): the additional cost is whole mana — the raised spell
 // owes the extra {B} pip, and a non-black spell is untouched.

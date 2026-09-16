@@ -1342,6 +1342,17 @@ func (e *Engine) announceFeasible(pc *pendingCast, payIdx int, alt pipAlt, payCo
 	return c.payable(pool, snow, life)
 }
 
+// requiresExactPipAnnouncement selects the payment menus that must prove a
+// complete final cost before exposing a face. The new twobrid and
+// hybrid-Phyrexian grammar has alternatives the legacy menu cannot price
+// locally (a 2-generic or life face); Color$ and cost floors likewise make a
+// colour face free or change its final price. Plain two-colour/Phyrexian
+// symbols with only generic raises/reductions retain their historical local
+// resource menus, avoiding unrelated deterministic-bot transcript changes.
+func (pc *pendingCast) requiresExactPipAnnouncement() bool {
+	return len(pc.cost.Twobrid) > 0 || len(pc.cost.HybridPhyrexian) > 0 || pc.mods.hasFloor()
+}
+
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
 // Phyrexian pip of the cost (CR 601.2b), one decision per pip. Only payment
 // alternatives that are legal right now -- a hybrid half with pool mana of
@@ -1386,11 +1397,23 @@ func (e *Engine) manaAsk() bool {
 				Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
 		}
 	}
-	// One option per DISTINCT colour alternative (A then B; a single-colour
-	// Phyrexian pip carries the same colour twice, so the seen set keeps one
-	// option for it), then a monocolour hybrid's generic face, then life. The
-	// shared full-cost feasibility check is the only resource gate, so it also
-	// covers reductions that make a face free.
+	// A whole-cost feasibility walk is required when this task introduced a
+	// new flexible-pip face (twobrid/hybrid-Phyrexian), or when a face-sensitive
+	// modifier (Color$/MinMana$/SetCost) can change which face is payable. For
+	// the pre-existing ordinary hybrid/Phyrexian shapes under a generic-only
+	// modifier, retain their established local resource menu: that modifier
+	// does not select a face, and changing the bot's historical choice there
+	// would rewrite acceptance games unrelated to this cost-parity work.
+	//
+	// Both paths are structural rather than card-specific. A future twobrid,
+	// hybrid-Phyrexian, Color$ or floor static takes the exact path without a
+	// new exception, while every legacy plain-pip game keeps its prior menu.
+	exact := pc.requiresExactPipAnnouncement()
+	rem := pool
+	for i := range rem {
+		rem[i] -= pc.payColor[i]
+	}
+	life := fullLife - pc.cost.Life - pc.payLife
 	seen := map[byte]bool{}
 	seenGeneric := false
 	for _, alt := range alts {
@@ -1400,7 +1423,8 @@ func (e *Engine) manaAsk() bool {
 				continue
 			}
 			seen[alt.color] = true
-			if e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+			if (exact && e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife)) ||
+				(!exact && rem[state.ManaIndex(alt.color)] > 0) {
 				addPip(alt)
 			}
 		case alt.generic > 0:
@@ -1408,11 +1432,12 @@ func (e *Engine) manaAsk() bool {
 				continue
 			}
 			seenGeneric = true
-			if e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+			if exact && e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
 				addPip(alt)
 			}
 		case alt.life > 0:
-			if e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+			if (exact && e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife)) ||
+				(!exact && life >= alt.life) {
 				addPip(alt)
 			}
 		}
