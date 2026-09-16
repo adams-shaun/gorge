@@ -888,7 +888,24 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	6: "3989bf5e11a95729",
+	// 6 seats moved to 6ffd29493be18d92 with task inbox-engine-gap-rakdos-params:
+	// the Return cost grammar (Return<N/Spec> — return a permanent to hand as
+	// a cost) is now real, which reprices Daze's AlternativeCost static
+	// (Cost$ Return<1/Island>) from the degraded {1} generic the unmodelled
+	// token used to parse to. In the 6-seat golden game the dimir-tempo seat's
+	// first divergence vs the old golden is at event 1350: Ponder on the
+	// stack, the pool empty, and the alt-cost Daze cast now payable (the cost
+	// has no mana part — the Island return IS the payment) where {1} from an
+	// empty pool was not, so the option appears and the bot later casts it at
+	// event 1639 (target Ponder, Underground Sea returned as the cost, the
+	// unless-pay ask served). Winners and turn counts are measured unchanged;
+	// the 2-, 4- and 8-seat heads are byte-identical. Measured by dumping both
+	// complete 6-seat logs and diffing them.
+	// Auto-accepted: the deck acceptance games replay byte-identically and
+	// `make sim` 20/20 replay OK, the same proxy this repo has used by hand
+	// for every head move — neither check is sensitive to bot-choice quality,
+	// only engine correctness.
+	6: "6ffd29493be18d92",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,

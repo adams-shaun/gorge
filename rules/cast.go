@@ -46,6 +46,13 @@ type pendingCast struct {
 
 	cost Cost
 
+	// mayPlayIgnore is the may-play grant's MayPlayIgnoreColor$ rider,
+	// recorded at beginCast from the offer gate that proved it (the card was
+	// still in the granted zone); the mana window and the payment keep the
+	// grant through it, since after the push (CR 601.2a) the card is on the
+	// stack and a zone re-derivation would wrongly drop the grant.
+	mayPlayIgnore bool
+
 	x     int32
 	xDone bool
 	// suspendTimeX makes the chosen cast X also set the number of TIME
@@ -187,6 +194,12 @@ type pendingCast struct {
 	exiles    []state.ObjID
 	exilePart int
 
+	// returns / returnPart carry the Return cost parts (Return<N/Spec>
+	// tokens: a permanent matching Spec returned to its OWNER's hand) through
+	// the same ask stage / commit shape the exile parts use.
+	returns    []state.ObjID
+	returnPart int
+
 	reveals, beholds, taps, blights             []state.ObjID
 	revealPart, beholdPart, tapPart, blightPart int
 	forageDone                                  bool
@@ -323,6 +336,22 @@ type convokePayment struct {
 	power int32
 }
 
+// hasCastConvoke reports whether the spell being cast carries Convoke once
+// it is on the stack: the printed keyword, or a layer-6 grant (Chief
+// Engineer's "Artifact spells you cast have convoke") whose AffectedZone$
+// scope reaches the cast spell. The announcement (CR 601.2b) runs while the
+// announced spell is still in hand, so the evaluation pretends the zone is
+// the stack (derivedWith's override); a wasCast Affected$ predicate already
+// matches because it keys on the object being a cast spell, which it is.
+func (e *Engine) hasCastConvoke(id state.ObjID) bool {
+	for _, k := range e.derivedWith(id, state.ZStack).Keywords {
+		if strings.EqualFold(cardsKeywordHead(k), "Convoke") {
+			return true
+		}
+	}
+	return false
+}
+
 // suspendCost parses Forge's Suspend:<time>:<cost> keyword form. X-time
 // scripts put their lower bound in the leading XMin<N> cost token; the same
 // announced X pays the cost and becomes the number of TIME counters.
@@ -331,7 +360,7 @@ type convokePayment struct {
 // It returns the reduced cost and exactly the creatures that must be tapped.
 func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []state.ObjID) {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil || !e.HasKeyword(id, "Convoke") {
+	if o == nil || o.Face() == nil || !e.hasCastConvoke(id) {
 		return c, nil
 	}
 	var tapped []state.ObjID
@@ -545,6 +574,46 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 		len(e.costCandidates(p, id, state.ZBattlefield, "Food.YouCtrl", false, false)) == 0 {
 		return false
 	}
+	// Energy cost parts (PayEnergy<N>): the payer's energy counter total
+	// covers a fixed part (Forge CostPayEnergy.canPay reads the same total).
+	// The dynamic X form is bounded by that total at the X ask, so the offer
+	// gate needs no assumption about the not-yet-chosen value.
+	for _, part := range cost.Energy {
+		if part.Spec == "X" {
+			continue
+		}
+		if e.G.Players[p].Counter("ENERGY") < part.N {
+			return false
+		}
+	}
+	// Return cost parts (Return<N/Spec>): the source itself (Spec CARDNAME,
+	// Forge's payCostFromSource) must be in play; otherwise the payer controls
+	// at least N distinct matching permanents, reserved against the Sac and
+	// Exile reservations above so two parts cannot claim one permanent.
+	for _, part := range cost.Return {
+		spec := sacrificeMatchSpec(part.Spec)
+		if strings.EqualFold(spec, "CARDNAME") {
+			if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+				return false
+			}
+			continue
+		}
+		var avail []state.ObjID
+		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
+			if reserved[oid] {
+				continue
+			}
+			if effects.MatchesSpecFrom(e.G, spec, oid, p, id) {
+				avail = append(avail, oid)
+			}
+		}
+		if int32(len(avail)) < part.N {
+			return false
+		}
+		for i := int32(0); i < part.N; i++ {
+			reserved[avail[i]] = true
+		}
+	}
 	if o := e.G.Obj(id); o != nil {
 		for _, part := range cost.SubCounter {
 			if o.Counter(part.Spec) < part.N {
@@ -709,6 +778,12 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	if len(extra.Blight) > 0 {
 		cost.Blight = append(append([]CostPart(nil), cost.Blight...), extra.Blight...)
 	}
+	if len(extra.Energy) > 0 {
+		cost.Energy = append(append([]CostPart(nil), cost.Energy...), extra.Energy...)
+	}
+	if len(extra.Return) > 0 {
+		cost.Return = append(append([]CostPart(nil), cost.Return...), extra.Return...)
+	}
 	cost.Forage = cost.Forage || extra.Forage
 	cost.Tap = cost.Tap || extra.Tap
 	return cost
@@ -794,6 +869,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
+	case "escape":
+		if ec, ok := e.escapeCost(id); ok {
+			cost = ec
+		} else {
+			cost = Cost{}
+		}
 	case "evoked", "dashed", "overloaded", "warped", "madness":
 		// The alternative-cost keyword family (altcosts): each mode's cost is
 		// the printed keyword parameter in place of the mana cost, exactly the
@@ -819,7 +900,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// re-added mana part would double charge. Only a plain cast reaches this
 	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
 	// no SP Cost$ contributes nothing.
-	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "room_alt") {
+	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -862,6 +943,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 			e.cast.suspendTimeX, e.cast.suspendMinX = true, sc.minTime
 		}
 	}
+	// CR 401.5's MayPlayIgnoreColor$ rider: "you may spend mana as though it
+	// were mana of any color to cast it". Recorded from the grant the offer
+	// gate consulted while the card was still in the granted zone.
+	if opt.Mode == "mayplay" {
+		e.cast.mayPlayIgnore = e.payerGrantsIgnoreColor(p, id)
+	}
 	e.collectETBChoices(p)
 	e.continueCast()
 }
@@ -902,6 +989,9 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.exAsk() {
+		return
+	}
+	if e.returnAsk() {
 		return
 	}
 	if e.etbAsk() {
@@ -1191,6 +1281,60 @@ func (e *Engine) exAsk() bool {
 	return false
 }
 
+// returnAsk offers the next unsettled Return cost part (Return<N/Spec>:
+// a permanent matching Spec returned to its OWNER's hand -- Forge
+// CostReturn.doPayment's moveToHand), walking pc.cost.Return in order
+// (pc.returnPart) the way exAsk walks pc.cost.Exile. A Spec of CARDNAME is
+// Forge's payCostFromSource: the resolving permanent itself is the sole
+// candidate (Chthonian Nightmare's "Return Chthonian Nightmare to its
+// owner's hand"), so no decision is posed. Any other Spec walks the payer's
+// battlefield. The settle is payCast's: the chosen objects move to their
+// owner's hand beside the other cost payments, so an abort cannot leave a
+// partially paid return on the board.
+func (e *Engine) returnAsk() bool {
+	pc := e.cast
+	for pc.returnPart < len(pc.cost.Return) {
+		part := pc.cost.Return[pc.returnPart]
+		spec := sacrificeMatchSpec(part.Spec)
+		var candidates []state.ObjID
+		if strings.EqualFold(spec, "CARDNAME") {
+			if o := e.G.Obj(pc.card); o != nil && o.Zone == state.ZBattlefield {
+				candidates = append(candidates, pc.card)
+			}
+		} else {
+			candidates = e.costCandidates(pc.player, pc.card, state.ZBattlefield, spec, false, false)
+		}
+		n := int(part.N)
+		if n <= 0 || n > len(candidates) {
+			e.abortCast(pc, "return cost no longer payable; cast/activation aborted", true)
+			return true
+		}
+		// A singleton self-reference has no player choice, mirroring
+		// sacAsk/exAsk's CARDNAME singleton rule.
+		if part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card &&
+			strings.EqualFold(spec, "CARDNAME") {
+			pc.returns = append(pc.returns, pc.card)
+			pc.returnPart++
+			continue
+		}
+		verb := "cast " + e.targetName(pc.card)
+		if pc.ability >= 0 {
+			verb = "activate"
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
+			Prompt: "Return " + strconv.Itoa(n) + " permanent(s) to their owner's hand to " + verb,
+			Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "returncost",
+				Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
 // castModeAsk poses CR 601.2b's mode announcement for a modal spell. It uses
 // KModes like the placement and resolution paths, but ResumeKind distinguishes
 // this cast-transaction continuation from both: handleModes records the answer
@@ -1270,7 +1414,23 @@ func (e *Engine) xAsk() bool {
 		return false
 	}
 	pc.xDone = true
-	if pc.cost.X <= 0 {
+	// A PayEnergy<X> part announces the same X the cast pays with (CR
+	// 107.3i's ability X), so its presence triggers this ask exactly like a
+	// printed {X} mana symbol does. A Sac<X/Spec> part announces the count of
+	// permanents to sacrifice the same way.
+	energyX := false
+	for _, part := range pc.cost.Energy {
+		if part.Spec == "X" {
+			energyX = true
+		}
+	}
+	sacX := false
+	for _, part := range pc.cost.Sac {
+		if part.Announced {
+			sacX = true
+		}
+	}
+	if pc.cost.X <= 0 && !energyX && !sacX {
 		return false
 	}
 	min := int32(0)
@@ -1293,12 +1453,50 @@ func (e *Engine) xAsk() bool {
 		}
 	}
 	bound := pool.Total() + gy + credit + 1
+	// A PayEnergy<X> cost part pays the SAME announced X in energy counters
+	// (Forge CostPayEnergy.getMaxAmountX bounds a dynamic PayEnergy by the
+	// payer's energy total). When the energy part is the ONLY X the cost
+	// carries, the mana bound is irrelevant and the bound is exactly that
+	// total; when a printed {X} also exists, the energy total still caps it
+	// from above -- an X beyond it could be announced but never paid, and
+	// CR 601.2b's announcement must be one the payment can settle.
+	for _, part := range pc.cost.Energy {
+		if part.Spec == "X" {
+			energy := e.G.Players[pc.player].Counter("ENERGY")
+			if pc.cost.X == 0 {
+				bound = energy
+			} else if energy < bound {
+				bound = energy
+			}
+		}
+	}
+	// A Sac<X/Spec> part's bound is the number of matching permanents the
+	// payer could sacrifice -- announcing a count beyond it could never be
+	// settled (CR 601.2b's announcement must be one the payment can settle).
+	// When the sac count is the ONLY announced X it IS the bound; when a
+	// mana/energy X also exists the candidate count caps it from above.
+	for _, part := range pc.cost.Sac {
+		if part.Announced {
+			matchSpec := sacrificeMatchSpec(part.Spec)
+			avail := int32(0)
+			for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
+				if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
+					avail++
+				}
+			}
+			if pc.cost.X == 0 && !energyX && bound > avail {
+				bound = avail
+			} else if avail < bound {
+				bound = avail
+			}
+		}
+	}
 	var legal []int32
 	maxOld := int32(0)
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !e.costPayable(pc.player, pc.card, pc.ability >= 0, wx) {
+		if !e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, wx, pc.mayPlayIgnore) {
 			break
 		}
 		maxOld = x
@@ -1441,6 +1639,17 @@ func (e *Engine) sacAsk() bool {
 			}
 		}
 		n := int(part.N)
+		if part.Announced {
+			// Sac<X/Spec>: the announced count (0 = sacrifice nothing -- Dargo's
+			// "you MAY sacrifice any number"), already bounded by xAsk to the
+			// candidates available then; no priority passes mid-flow, so the
+			// board cannot shrink between announcement and this settle.
+			n = int(pc.x)
+			if n == 0 {
+				pc.sacPart++
+				continue
+			}
+		}
 		if n <= 0 || n > len(candidates) {
 			// A cost that can no longer be fully paid must not commit half
 			// paid (fix round 1, reviewer Important 1). Abort the whole
@@ -1824,7 +2033,7 @@ func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
 	if pc.ability < 0 {
 		delve = int32(len(pc.delve))
 	}
-	return e.manaFeasible(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve)
+	return e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve, pc.mayPlayIgnore)
 }
 
 // pendingCastScope returns the exact spell or ability scope whose modifiers
@@ -1888,7 +2097,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// resolvedMana carries no live pip, so manaFeasible (the shared
 		// primitive) here degenerates to the composed payable check — the same
 		// composition payCast will charge for this candidate's repricing.
-		if e.manaFeasible(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve) ||
+		if e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve, pc.mayPlayIgnore) ||
 			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
 			out = append(out, candidate)
 		}
@@ -1902,8 +2111,27 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 // caller's concern (targetAsk/payCast subtract pc.delve from Generic).
 func (e *Engine) manaToPay(pc *pendingCast) Cost {
 	m := pc.mods.apply(pc.resolvedMana())
+	if costAnnouncesSacX(pc.cost) {
+		// The announced sacrifice count re-prices the ReduceCost statics that
+		// read the paid X (Dargo's {2}-less-per-sacrifice): the offer-time
+		// pc.mods snapshot was bound to X=0.
+		if scope, ok := e.pendingCastScope(pc); ok {
+			m = e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.targets, pc.x).apply(pc.resolvedMana())
+		}
+	}
 	m.Generic += pc.taxGeneric
 	return m
+}
+
+// costAnnouncesSacX reports whether the cost carries a Sac<X/Spec> part whose
+// count the cast announces (the Dargo shape).
+func costAnnouncesSacX(c Cost) bool {
+	for _, part := range c.Sac {
+		if part.Announced {
+			return true
+		}
+	}
+	return false
 }
 
 // manaToPayX is manaToPay with {X} folded to an explicit value.
@@ -2033,7 +2261,7 @@ func (e *Engine) convokeAsk() bool {
 		return false
 	}
 	pc.convokeDone = true
-	isConvoke := e.HasKeyword(pc.card, "Convoke")
+	isConvoke := e.hasCastConvoke(pc.card)
 	isHarmonize := pc.mode == "harmonize"
 	if !isConvoke && !isHarmonize {
 		return false
@@ -2102,6 +2330,14 @@ func (e *Engine) convokeAsk() bool {
 
 func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {
 	m := pc.mods.apply(pc.resolvedManaX(x))
+	if costAnnouncesSacX(pc.cost) {
+		// The announced sacrifice count re-prices the ReduceCost statics that
+		// read the paid X (Dargo's {2}-less-per-sacrifice): the offer-time
+		// pc.mods snapshot was bound to X=0.
+		if scope, ok := e.pendingCastScope(pc); ok {
+			m = e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.targets, x).apply(pc.resolvedManaX(x))
+		}
+	}
 	m.Generic += pc.taxGeneric
 	return m
 }
@@ -2198,7 +2434,7 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// above), so their slots leave the cost; the pips after payIdx stay live
 	// for the shared primitive to enumerate.
 	c = c.dropAnnouncePrefix(pc.payIdx + 1)
-	return e.manaFeasible(pc.player, pc.card, pc.ability >= 0, c, pc.mods, pc.taxGeneric, delve)
+	return e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, c, pc.mods, pc.taxGeneric, delve, pc.mayPlayIgnore)
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
@@ -2406,6 +2642,11 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.blights = append(pc.blights, o.Obj)
 		}
 		pc.blightPart++
+	case "returncost":
+		for _, o := range chosen {
+			pc.returns = append(pc.returns, o.Obj)
+		}
+		pc.returnPart++
 	case "forage_exile":
 		pc.cost.Exile = append(pc.cost.Exile, CostPart{N: 3, Spec: "Card", Zone: state.ZGraveyard})
 	case "forage_food":
@@ -2468,6 +2709,8 @@ func modeFlags(mode string) string {
 	// The alternative-cost keyword family: the flag is what the ETB machinery
 	// (evoke's sacrifice trigger, dash's haste + delayed return, warp's
 	// delayed exile) and the warp recast offer read.
+	case "escape":
+		return events.FlagsString(state.FlagEscaped)
 	case "evoked":
 		return events.FlagsString(state.FlagEvoked)
 	case "dashed":
@@ -2478,6 +2721,8 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagWarped)
 	case "buyback":
 		return events.FlagsString(state.FlagBuyback)
+	case "mayplay":
+		return events.FlagsString(state.FlagMayPlay)
 	case "harmonize":
 		return events.FlagsString(state.FlagHarmonize)
 	case "suspend":
@@ -2556,7 +2801,7 @@ func (e *Engine) targetAsk() bool {
 	// conversion-aware equivalent: the SAME resolveMana payManaConvFor will
 	// run, including RestrictValid$ provenance. The
 	// targetDependentCostMayPay arm keeps the ValidTarget$ reducer exception.
-	if !e.costPayable(pc.player, pc.card, pc.ability >= 0, mana) &&
+	if !e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, mana, pc.mayPlayIgnore) &&
 		!e.hasUntappedManaSource(pc.player) && !e.targetDependentCostMayPay(pc) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
@@ -2776,7 +3021,7 @@ func (e *Engine) manaWindowAsk() bool {
 	}
 	// A pool that already pays the total cost needs no window (nothing to
 	// gain by activating more mana abilities here).
-	if e.costPayable(pc.player, pc.card, pc.ability >= 0, mana) {
+	if e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, mana, pc.mayPlayIgnore) {
 		return false
 	}
 	var sources []state.ObjID
@@ -2942,6 +3187,27 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
 			}
 		}
+		// Energy cost parts (PayEnergy<N>/<X>): the announced amount leaves
+		// the payer's energy pool as one PlayerCounterChange (a player
+		// counter, not an object's -- CR 118.2d). The X form spends exactly
+		// the announced value (xAsk bounded it by this same total).
+		for _, part := range pc.cost.Energy {
+			amt := part.N
+			if part.Spec == "X" {
+				amt = pc.x
+			}
+			if amt > 0 {
+				e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
+					Counter: "ENERGY", Amount: -amt})
+			}
+		}
+		// Return cost parts: each chosen object moves to its OWNER's hand
+		// (Forge CostReturn.doPayment's moveToHand) beside the other payments.
+		for _, id := range pc.returns {
+			if o := e.G.Obj(id); o != nil {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
+			}
+		}
 		e.emitChoiceCosts(pc)
 		if pc.cost.Tap {
 			// The {T} cost's payer taps the permanent (Forge CostTap).
@@ -3023,7 +3289,7 @@ func (e *Engine) payCast() {
 	if mana.Generic < 0 {
 		mana.Generic = 0
 	}
-	if !e.payManaConvFor(pc.player, pc.card, false, mana, e.paymentConv(pc.player, pc.card, false)) {
+	if !e.payManaCast(pc, mana) {
 		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
 		// than the shortfall needs, so the cast aborts with no state change
@@ -3054,6 +3320,23 @@ func (e *Engine) payCast() {
 	for _, id := range pc.exiles {
 		if o := e.G.Obj(id); o != nil {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
+		}
+	}
+	// Energy cost parts (see the ability branch above for the why).
+	for _, part := range pc.cost.Energy {
+		amt := part.N
+		if part.Spec == "X" {
+			amt = pc.x
+		}
+		if amt > 0 {
+			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
+				Counter: "ENERGY", Amount: -amt})
+		}
+	}
+	// Return cost parts (see the ability branch above for the why).
+	for _, id := range pc.returns {
+		if o := e.G.Obj(id); o != nil {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
 		}
 	}
 	e.emitChoiceCosts(pc)

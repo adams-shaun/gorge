@@ -23,6 +23,16 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
+			// A player target takes a PLAYER counter (energy's "you get {E}{E}{E}",
+			// poison's "gets a poison counter"): the same instruction an object
+			// target takes, but on the PlayerCounterChange event the engine's
+			// player-counter state folds through. Skipping these (the pre-fix
+			// behaviour) silently dropped the whole instruction -- the corpus
+			// carries 156 player-targeted PutCounter lines.
+			if p := PlayerOf(h, c, t); int(p) >= 0 && int(p) < len(h.Game().Players) {
+				h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+					Counter: kind, Amount: n})
+			}
 			continue
 		}
 		o := h.Game().Obj(t.Obj)

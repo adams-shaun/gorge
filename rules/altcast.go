@@ -91,6 +91,39 @@ func (e *Engine) altCostEnter(ev events.Event) {
 	}
 }
 
+// escapeCost is id's Escape cost (CR 702.42a): the printed K:Escape
+// parameter, or the keyword a continuous-effect grant delivered (Underworld
+// Breach's "each nonland card in your graveyard has escape" AddKeyword$
+// grant). The granted text names the card's own mana cost with the
+// CardManaCost placeholder token (Forge's CardManaCost property in the grant
+// line); the printed text spells the mana symbols out. Both end in
+// ExileFromGrave<N/Spec> parts ParseCost already models. A cost this parse
+// cannot price (the X-exile form ExileFromGrave<X/Card.Other+withTypesGE4>,
+// one corpus line) is never offered rather than charged wrong.
+func (e *Engine) escapeCost(id state.ObjID) (Cost, bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return Cost{}, false
+	}
+	raw, ok := e.derivedKeywordParam(id, "Escape")
+	if !ok {
+		return Cost{}, false
+	}
+	var toks []string
+	for _, tok := range strings.Fields(raw) {
+		if strings.EqualFold(tok, "CardManaCost") {
+			toks = append(toks, strings.Fields(o.Face().ManaCost)...)
+			continue
+		}
+		toks = append(toks, tok)
+	}
+	c := ParseCost(strings.Join(toks, " "))
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
 func (e *Engine) madnessReplacementApplies(ev events.Event) bool {
 	if ev.To != state.ZGraveyard || !events.IsDiscard(ev) {
 		return false

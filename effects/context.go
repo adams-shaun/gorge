@@ -416,6 +416,31 @@ func exileProvenanceNeeded(c *Ctx) bool {
 	return false
 }
 
+// faceStaticsNameExiledWithSource reports whether the source CARD's own
+// Static lines name ExiledWithSource -- the S: static spelling of the same
+// provenance need the SVar scan in exileProvenanceNeeded covers (Intellect
+// Devourer's MayPlay grant, the shared-fate family). Iterating the param map
+// only feeds a boolean OR, so map order never reaches an event.
+func faceStaticsNameExiledWithSource(h Host, src state.ObjID) bool {
+	o := h.Game().Obj(src)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	for _, st := range o.Face().Statics {
+		for k, v := range st.Params {
+			switch k {
+			case "Affected", "AffectedZone", "Description":
+				// The keys a static names its card filters and text by; the
+				// ExiledWithSource provenance claim lives in one of these.
+				if strings.Contains(v, "ExiledWithSource") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // PlayerOf resolves a target to a player: an explicit player target, or the
 // controller of a targeted object.
 func PlayerOf(h Host, c *Ctx, t state.Target) state.PlayerID {

@@ -782,6 +782,13 @@ func applyCountOp(n int32, op string) int32 {
 	return int32(v)
 }
 
+// ApplyCountOp is applyCountOp's exported form, for callers outside effects
+// (rules' cost-modifier amount read) that must apply the same /Op suffix the
+// count grammar uses -- one shared arithmetic, so the two cannot drift.
+func ApplyCountOp(n int32, op string) int32 {
+	return applyCountOp(n, op)
+}
+
 // SetSVars binds a copy of the SVar table to a context. A nil input leaves
 // c.SVars nil, preserving the defensive-copy convention established by
 // copyTargets in context.go.

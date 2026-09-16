@@ -94,6 +94,13 @@ var predicates = map[string]predFn{
 	"ExiledWithSourceLKI": func(_ *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		return src != 0 && o.ExiledWith == src
 	},
+	// escaped is the CastFlags provenance of an escape cast (CR 702.42a): the
+	// "sacrifice it unless it escaped" ETB family reads it through
+	// Card.Self+escaped (Kroxa, Uro, Phlage), as do the escape-with-counters
+	// replacement ValidCard$ specs. A card never escape-cast never matches.
+	"escaped": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagEscaped != 0
+	},
 }
 
 // colorLetter maps a colour's English name to its WUBRG letter -- note Blue
@@ -124,6 +131,11 @@ func init() {
 	// StrictlyOther is Forge's other spelling of the same "not the source"
 	// test Other already implements.
 	predicates["StrictlyOther"] = predicates["Other"]
+	// ExiledWithEffectSource is the Effect-delivered spelling of the same
+	// exiled-by-this-source provenance: the effect's source card is what
+	// exiled the candidate (Opposition Agent/Valki-style MayPlay grants name
+	// it), the same tracked ExiledWith field ExiledWithSource reads.
+	predicates["ExiledWithEffectSource"] = predicates["ExiledWithSource"]
 	// EquippedBy / EnchantedBy / AttachedBy: the candidate is the permanent
 	// source is attached to (attachedBy below). Task 14 wires all three to the
 	// same predicate -- Forge spells "attached to" three ways depending on
@@ -238,6 +250,11 @@ const (
 	wordNamed
 	wordNotnamed
 	wordSameName
+	// wasCast is Forge's Card.wasCast: the object is a SPELL currently on
+	// the stack -- announced, not yet resolved. The AffectedZone$ Stack
+	// convoke/cascade grants key on it (Chief Engineer). An ability object
+	// (Card == nil) was never cast.
+	wordWasCast
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -283,6 +300,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordMultiColor, ""
 	case "inZoneStack":
 		return wordInZoneStack, ""
+	case "wasCast":
+		return wordWasCast, ""
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
 	case "HasCounters":
@@ -340,6 +359,12 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return ColorsOf(o) == ""
 	case wordMultiColor:
 		return len(ColorsOf(o)) > 1
+	case wordWasCast:
+		// Forge's wasCast: a spell (Card != nil) currently on the stack. An
+		// ability object was activated, never cast. The AsStack override
+		// (rules.derivedWith) admits the spell a cast is announcing, which is
+		// still in hand at CR 601.2b but IS the spell being cast.
+		return (o.Zone == state.ZStack || sc.AsStack) && o.Card != nil
 	case wordInZoneStack:
 		// Forge's inZoneStack: the object is a spell or ability currently on
 		// the stack (a spell carries its card face; an ability object has
@@ -951,6 +976,13 @@ type SpecContext struct {
 	// its own targets have been chosen. Resolving distinguishes a real empty
 	// target list from no resolving object at all.
 	ResolutionTargets []state.Target
+	// AsStack is a DERIVED-CHARACTERISTICS override, not a resolution fact:
+	// rules.derivedWith sets it while evaluating an AffectedZone$ Stack grant
+	// for the spell a cast is announcing (CR 601.2b runs while the announced
+	// spell is still in hand). It makes the wasCast predicate treat the
+	// announced spell as the cast spell it is; nothing else reads it, and it
+	// is absent from every resolution- and target-time evaluation.
+	AsStack bool
 	// Remembered is the resolving spell or ability's Remembered set (a
 	// RepeatEach iteration binds its subject here). Like ResolutionTargets it
 	// is meaningful only while Resolving. It is also the Remembered.* base

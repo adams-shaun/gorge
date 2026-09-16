@@ -65,15 +65,20 @@ func ManaReflectedCandidates(h Host, c *Ctx, sa *cards.SA) []string {
 	}
 	var objs []state.ObjID
 	if rest, ok := strings.CutPrefix(spec, "Defined."); ok {
-		// A "Defined.<name>" spec: resolve <name> through the ordinary
-		// Defined resolver against this resolution's own context. The scan
-		// copy carries only the Defined$ param, so the resolver cannot read
-		// anything else off the script line.
-		scan := *sa
-		scan.Params = map[string]string{"Defined": strings.TrimSpace(rest)}
-		for _, t := range Defined(h, c, &scan) {
-			if !t.IsPlayer {
-				objs = append(objs, t.Obj)
+		sel := strings.TrimSpace(rest)
+		if extras, handled := reflectedDefinedExtras(h, c, sel); handled {
+			objs = extras
+		} else {
+			// A "Defined.<name>" spec: resolve <name> through the ordinary
+			// Defined resolver against this resolution's own context. The scan
+			// copy carries only the Defined$ param, so the resolver cannot read
+			// anything else off the script line.
+			scan := *sa
+			scan.Params = map[string]string{"Defined": sel}
+			for _, t := range Defined(h, c, &scan) {
+				if !t.IsPlayer {
+					objs = append(objs, t.Obj)
+				}
 			}
 		}
 	} else {
@@ -158,6 +163,67 @@ func producibleSymbols(o *state.Object) string {
 		}
 	}
 	return b.String()
+}
+
+// reflectedDefinedExtras resolves the "Defined.<selector>" shapes the
+// ordinary Defined resolver does not carry, for the reflected-mana family
+// only; handled=false hands every other selector to the ordinary resolver
+// (Self, Imprinted, Remembered, the rest), so the two cannot disagree about
+// who answers a selector both know. "ValidGraveyard <spec>" scans every
+// alive seat's graveyard in AliveFrom(0) order (Urborg's "a color among cards
+// in your graveyard"; the optional trailing spec narrows the scan);
+// "Sacrificed" reads the resolution's Remembered list (the land the
+// Sac<1/Land> cost paid -- Squandered Resources); "Untapped" scans the
+// controller's untapped battlefield permanents (Benthic Explorers); and
+// "ExiledWith" scans exile for cards whose ExiledWith provenance names the
+// source (Pit of Offerings' imprint family).
+func reflectedDefinedExtras(h Host, c *Ctx, sel string) ([]state.ObjID, bool) {
+	g := h.Game()
+	spec := ""
+	if i := strings.IndexByte(sel, ' '); i >= 0 {
+		spec = strings.TrimSpace(sel[i+1:])
+		sel = strings.TrimSpace(sel[:i])
+	}
+	switch sel {
+	case "ValidGraveyard":
+		var out []state.ObjID
+		for _, q := range g.AliveFrom(0) {
+			for _, id := range g.Zone(state.ZGraveyard, q) {
+				if spec != "" && !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					continue
+				}
+				out = append(out, id)
+			}
+		}
+		return out, true
+	case "Sacrificed":
+		var out []state.ObjID
+		for _, t := range c.Remembered {
+			out = append(out, t.Obj)
+		}
+		return out, true
+	case "Untapped":
+		var out []state.ObjID
+		for _, q := range g.AliveFrom(0) {
+			for _, id := range g.Zone(state.ZBattlefield, q) {
+				if o := g.Obj(id); o != nil && o.Controller == c.Controller && !o.Tapped {
+					out = append(out, id)
+				}
+			}
+		}
+		return out, true
+	case "ExiledWith":
+		var out []state.ObjID
+		for _, q := range g.AliveFrom(0) {
+			for _, id := range g.Zone(state.ZExile, q) {
+				if o := g.Obj(id); o != nil && o.ExiledWith == c.Source {
+					out = append(out, id)
+				}
+			}
+		}
+		return out, true
+	}
+	return nil, false
 }
 
 // effManaReflected implements "AB$ ManaReflected": add Amount$ (default one)

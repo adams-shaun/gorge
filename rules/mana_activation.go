@@ -438,7 +438,7 @@ func (e *Engine) commitManaDiscard() {
 	}
 	e.manaDiscardActivation = nil
 	e.choosing = chooseNone
-	e.resolveManaEffect(md.player, md.source, md.ability, md.cast, md.cumulative, manaTriggers)
+	e.resolveManaEffect(md.player, md.source, md.ability, md.cast, md.cumulative, manaTriggers, md.sacs)
 	if md.cumulative && e.choosing == chooseNone {
 		e.paymentWindowAsk()
 	}
@@ -654,10 +654,14 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 	for _, id := range sacs {
 		e.emit(events.Sacrifice(id))
 	}
-	e.resolveManaEffect(p, source, ma, cast, payment, manaTriggers)
+	e.resolveManaEffect(p, source, ma, cast, payment, manaTriggers, sacs)
 }
 
-func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger) {
+// resolveManaEffect resolves the mana a paid ability produces. sacs carries
+// the permanents the ability's Sac<...> cost sacrificed, so a ManaReflected
+// Valid$ "Defined.Sacrificed" selector (Squandered Resources) can read them
+// through the resolution context's Remembered list.
+func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, sacs []state.ObjID) {
 	produced := strings.TrimSpace(ma.Params["Produced"])
 	if ma.API == "ManaReflected" {
 		ctx := &effects.Ctx{Source: source, Controller: p,
@@ -667,6 +671,9 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 				}
 				return nil
 			}()}
+		for _, id := range sacs {
+			ctx.Remembered = append(ctx.Remembered, state.Target{Obj: id})
+		}
 		cols := effects.ManaReflectedCandidates(e, ctx, ma)
 		switch len(cols) {
 		case 0:
