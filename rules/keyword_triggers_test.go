@@ -654,9 +654,9 @@ func TestDredgeUsesRealCorpusCard(t *testing.T) {
 	}
 }
 
-// TestSoulbondUsesRealCorpusCard drives Tandem Lookout's real script from the
-// commander deck. Its K:Soulbond entry trigger must pair it reciprocally with
-// another unpaired creature its controller controls.
+// TestDredgeCannotReplaceDrawWithInsufficientLibrary proves a Dredge
+// replacement cannot offer a choice the library cannot pay for: with three
+// cards left, Dredge 4 is not offered and the draw stays ordinary.
 func TestDredgeCannotReplaceDrawWithInsufficientLibrary(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	thug, ok := reg.Lookup("Golgari Thug")
@@ -690,9 +690,6 @@ func TestDredgeCannotReplaceDrawWithInsufficientLibrary(t *testing.T) {
 	}
 }
 
-// TestSoulbondUsesRealCorpusCard drives Tandem Lookout's real script from the
-// commander deck. Its K:Soulbond entry trigger must pair it reciprocally with
-// another unpaired creature its controller controls.
 // TestDredgeResumesEveryDrawAndContinuation proves an actual Golgari Thug
 // replacement cannot abandon a surrounding Draw 2 or its SubAbility$. Both
 // choices are exercised: dredging the first draw, and declining both offered

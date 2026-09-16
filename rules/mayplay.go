@@ -100,6 +100,40 @@ var mayPlayUnreadGates = [...]string{
 	"RaiseCost", "MayPlayAltManaCost",
 }
 
+// mayPlayGateRejected reports whether a MayPlay$ static carries one of the
+// gates this build cannot evaluate -- the mayPlayUnreadGates family plus
+// CheckSVar$ (a condition the grant is gated on, e.g. Windbrisk Heights'
+// attacker count on its own AB) and MayPlayPlayer$ (a beneficiary other than
+// the static's controller: ActivePlayer, CardOwner, Exiler, Player). The
+// static is withheld whole -- withholding the offer is the conservative
+// direction; both families are named in the AGENTS.md audit.
+//
+// The literal per-key reads keep the parameter scan classifiable, but they
+// are a RECOGNITION, not a consumption: the static never grants, so the key
+// stays unread in the parameter census's sense. The census scopes these
+// reads away from every card-side label (apiSpecificRulesStat in
+// paramcensus_test.go names the functions it excludes), so a MayPlay static
+// carrying one of these keys keeps its unread-param label instead of the
+// recognition masking it -- Evendo Brushrazer's CheckSVar$, for example, is
+// still reported unread because its may-play is withheld entirely, while its
+// Condition$ PlayerTurn (which mayPlayStatic genuinely evaluates on the
+// family) is not.
+func mayPlayGateRejected(params map[string]string) bool {
+	if strings.TrimSpace(params["ValidAfterStack"]) != "" ||
+		strings.TrimSpace(params["SVarCompare"]) != "" ||
+		strings.TrimSpace(params["CheckSecondSVar"]) != "" ||
+		strings.TrimSpace(params["CheckThirdSVar"]) != "" ||
+		strings.TrimSpace(params["PresentCompare"]) != "" ||
+		strings.TrimSpace(params["ValidSA"]) != "" ||
+		strings.TrimSpace(params["ActivationZone"]) != "" ||
+		strings.TrimSpace(params["CharacteristicDefining"]) != "" ||
+		strings.TrimSpace(params["RaiseCost"]) != "" ||
+		strings.TrimSpace(params["MayPlayAltManaCost"]) != "" {
+		return true
+	}
+	return strings.TrimSpace(params["CheckSVar"]) != "" || strings.TrimSpace(params["MayPlayPlayer"]) != ""
+}
+
 // mayPlayStatic evaluates one MayPlay$ static's parameters against the card
 // id (in its current zone), with `you` the player whose YouOwn/YouCtrl the
 // spec's qualifiers resolve against and `source` the static's source object.
@@ -117,30 +151,10 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 		// implements the plain permission, nothing else.
 		return false, false, false
 	}
-	// Fail closed on gates this build cannot evaluate:
-	//
-	//   - CheckSVar$ (a condition the grant is gated on, e.g. Windbrisk
-	//     Heights' attacker count on its own AB -- a battlefield static
-	//     carrying one is 11 corpus lines) and MayPlayPlayer$ (a beneficiary
-	//     other than the static's controller: ActivePlayer, CardOwner,
-	//     Exiler, Player). Withholding the offer is the conservative
-	//     direction; both families are named in the AGENTS.md audit.
-	//   - the mayPlayUnreadGates family (see its doc), spelled out as one
-	//     literal read per gate so the parameter census attributes each key
-	//     (a loop over the slice would be a dynamic key it cannot classify).
-	if strings.TrimSpace(params["ValidAfterStack"]) != "" ||
-		strings.TrimSpace(params["SVarCompare"]) != "" ||
-		strings.TrimSpace(params["CheckSecondSVar"]) != "" ||
-		strings.TrimSpace(params["CheckThirdSVar"]) != "" ||
-		strings.TrimSpace(params["PresentCompare"]) != "" ||
-		strings.TrimSpace(params["ValidSA"]) != "" ||
-		strings.TrimSpace(params["ActivationZone"]) != "" ||
-		strings.TrimSpace(params["CharacteristicDefining"]) != "" ||
-		strings.TrimSpace(params["RaiseCost"]) != "" ||
-		strings.TrimSpace(params["MayPlayAltManaCost"]) != "" {
-		return false, false, false
-	}
-	if strings.TrimSpace(params["CheckSVar"]) != "" || strings.TrimSpace(params["MayPlayPlayer"]) != "" {
+	// Fail closed on gates this build cannot evaluate: the
+	// mayPlayUnreadGates family plus CheckSVar$/MayPlayPlayer$ (see
+	// mayPlayGateRejected's doc -- a recognition, not a consumption).
+	if mayPlayGateRejected(params) {
 		return false, false, false
 	}
 	// Condition$ PlayerTurn ("during each of your turns", Kess, Dissident
