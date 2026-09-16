@@ -46,6 +46,20 @@
   );
   const memberIds = $derived(group.cards.map((c) => c.id).join(','));
 
+  // fb-20260916T201423Z: the lands row merges tapped and untapped members
+  // into one pile (Quadrant passes ignoreTapped), so the readiness the split
+  // used to carry moves onto the tab: a collapsed pile whose members MIX
+  // tapped states shows the untapped count as a second mini-plate above the
+  // count. Derived from the group itself, not from a flag — a creature (or
+  // others-row) group can never mix, because its stack key still includes
+  // tapped, so this plate fires only where the merge happens. Uniform piles
+  // — all untapped or all tapped — keep the shipped xN tab alone. Members
+  // stay id-sorted, so a tap/untap never moves the lead and never churns the
+  // render key (fb-20260915T182335Z).
+  const tappedCount = $derived(group.cards.filter((c) => c.tapped).length);
+  const mixedTapped = $derived(tappedCount > 0 && tappedCount < group.cards.length);
+  const readyCount = $derived(group.cards.length - tappedCount);
+
   // One tile's options depends on the pending decision offered THIS object
   // (per member when expanded, or the whole pile when collapsed — stack
   // members are interchangeable, so the pile's options are the union).
@@ -83,6 +97,9 @@
       <CardTile card={c} {size} tileOptions={expanded ? memberOptions(c.id) : collapsedOptions} />
     {/each}
     <span class="count" data-stack-count aria-hidden="true">x{group.cards.length}</span>
+    {#if !expanded && mixedTapped}
+      <span class="count ready" data-stack-ready aria-hidden="true">{readyCount} ready</span>
+    {/if}
   </button>
 {/if}
 
@@ -179,5 +196,14 @@
   .stacked:focus-visible .count {
     border-color: var(--initiative);
     color: var(--initiative);
+  }
+  /* The readiness plate (fb-20260916T201423Z): the second mini-plate on a
+     mixed pile, stacked directly above the count tab with the same hang and
+     right-edge alignment. The offset is the count tab's own height (~1.8em
+     at --t-11/1.4 plus the 2px edges) plus a small gap. It only ever exists
+     on a collapsed pile, so the expanded repositioning below cannot reach
+     it. */
+  .count.ready {
+    bottom: calc(var(--sp-2) + 2.1em);
   }
 </style>

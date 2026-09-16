@@ -32,8 +32,16 @@
   }
 
   const battlefieldGroups = $derived(groupBattlefield(player.battlefield));
+  // fb-20260916T201423Z: the lands row ignores tapped state when it stacks — a
+  // pile of Forests is a pile of Forests whether some of its members are
+  // tapped for mana or not (the report's Swamp x2 tapped + x1 untapped
+  // renders as ONE pile), and the readiness a tapped split used to carry is
+  // shown on the pile's tab instead (CardStack's readiness plate). Creatures
+  // and the others row keep the strict key: there a tapped member really
+  // cannot do what an untapped one can (attack/block), and the split IS the
+  // gameplay information.
   const stacks = $derived({
-    lands: stackIdentical(battlefieldGroups.lands),
+    lands: stackIdentical(battlefieldGroups.lands, { ignoreTapped: true }),
     creatures: stackIdentical(battlefieldGroups.creatures),
     others: stackIdentical(battlefieldGroups.others),
   });
