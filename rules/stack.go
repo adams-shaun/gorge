@@ -108,6 +108,16 @@ func targetMin(sa *cards.SA) int {
 // minor 4), but the battlefield default applies only when NEITHER source
 // named a zone -- a typo'd TgtZone$ on a TargetType$ Spell card must not
 // silently widen a stack target back to the battlefield.
+//
+// fb-20260916T024739Z-b89aea46: the remaining default is wrong for one more
+// shape -- the Wrenn and Six ability (`AB$ ChangeZone | Origin$ Graveyard |
+// Destination$ Hand | TargetMin$ 0 | TargetMax$ 1 | ValidTgts$ Land.YouOwn`,
+// no TgtZone$). Its census searched the battlefield, offered a land already
+// in play, and omitted the eligible graveyard card the prompt names -- and
+// the offered battlefield land could never pass effChangeZone's own Origin$
+// Graveyard resolution guard, so the ability could not do what it promises.
+// For that one unambiguous shape the Origin$ implies the target zone; see
+// originImpliedTargetZone for the four gates that admit it.
 func targetZones(sa *cards.SA) []state.Zone {
 	var zones []state.Zone
 	for _, z := range strings.Split(sa.Params["TgtZone"], ",") {
@@ -131,9 +141,54 @@ func targetZones(sa *cards.SA) []state.Zone {
 		zones = appendUniqueZone(zones, state.ZStack)
 	}
 	if len(zones) == 0 {
-		zones = []state.Zone{state.ZBattlefield}
+		if z, ok := originImpliedTargetZone(sa); ok {
+			zones = []state.Zone{z}
+		} else {
+			zones = []state.Zone{state.ZBattlefield}
+		}
 	}
 	return zones
+}
+
+// originImpliedTargetZone reports the implicit target zone for a ChangeZone
+// whose Origin$ names exactly one concrete zone. Deliberately narrow -- this
+// is established ONLY for the unambiguous public-graveyard object-targeted
+// shape and must not grow into a general origin grammar (Origin$ Hand/
+// Library/Exile carry hidden-information, chooser and mixed-zone semantics
+// this does not establish; Origin$ Hand's mixed multi-zone handling lives in
+// effects/zone.go). It admits an SA when ALL of these hold:
+//
+//  1. it is API$ ChangeZone;
+//  2. it has no explicit TgtZone$ (explicit TgtZone$ stays authoritative;
+//     this helper only runs from targetZones' empty fallback, but a TgtZone$
+//     whose tokens were all unknown must not silently fall through to Origin$
+//     either) and no stack-targeting TargetType$;
+//  3. effects.ParseZones parses its Origin$ as exactly the one concrete
+//     state.ZGraveyard -- not Any/All, not an unknown token, not a multi-zone
+//     origin (ParseZones' ok=false on an unknown token fails closed);
+//  4. its ValidTgts$ is object-only under the existing targetsPlayers
+//     classifier, so a player-targeted ChangeZone keeps its existing
+//     player-target route untouched.
+//
+// The zone feeds both legalTargetCandidates (offer time) and legalTargets
+// (the CR 608.2b resolution recheck) through their shared targetZones calls,
+// and effChangeZone's own Origin$ guard -- unchanged -- then accepts the
+// chosen graveyard object at resolution.
+func originImpliedTargetZone(sa *cards.SA) (state.Zone, bool) {
+	if sa.API != "ChangeZone" {
+		return 0, false
+	}
+	if sa.Params["TgtZone"] != "" || targetsStackObjects(sa.Params["TargetType"]) {
+		return 0, false
+	}
+	if targetsPlayers(sa.Params["ValidTgts"]) {
+		return 0, false
+	}
+	zones, all, ok := effects.ParseZones(sa.Params["Origin"])
+	if !ok || all || len(zones) != 1 || zones[0] != state.ZGraveyard {
+		return 0, false
+	}
+	return state.ZGraveyard, true
 }
 
 // appendUniqueZone appends z to zones when it is not already present,

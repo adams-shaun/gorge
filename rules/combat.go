@@ -196,6 +196,19 @@ func (e *Engine) askAttackers() {
 			defenders = append(defenders, q)
 		}
 	}
+	// The CR 508.1d requirements are told to the seat on the options: an
+	// attacker the declaration MUST include (a goaded creature, CR 701.38,
+	// or one under an unconditional MustAttack static) carries
+	// Option.Required, so a rules-ignorant client can build a legal
+	// declaration without re-deriving goad state from the log. The engine
+	// rejects an omission (validateAttackDeclaration), so an unmarked list
+	// is a trap the seat cannot reason its way out of.
+	mustAtt := make(map[state.ObjID]bool, len(attackers))
+	for _, id := range attackers {
+		if e.mustAttackRequired(id) {
+			mustAtt[id] = true
+		}
+	}
 	var opts []decision.Option
 	for _, d := range defenders {
 		for _, id := range attackers {
@@ -207,10 +220,20 @@ func (e *Engine) askAttackers() {
 			}
 			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
 				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + e.G.Players[d].Name,
-				Obj:   id, Player: d})
+				Obj:   id, Player: d, Required: mustAtt[id]})
 		}
 	}
-	e.ask(&decision.Decision{Player: p, Kind: decision.KAttackers, Min: 0, Max: len(opts),
+	// A MaxAttackers$ ceiling (CR 508.1j, Silent Arbiter's shape) bounds the
+	// WHOLE declaration, so the decision's Max is the honest ceiling, not the
+	// option count: a client capped at Max can never assemble a declaration
+	// the engine would reject for size. Without a ceiling in force
+	// maxAttackers returns the int maximum and the clamp is inert
+	// (Max == len(opts), today's value).
+	maxOpts := len(opts)
+	if ceil := e.maxAttackers(); ceil < maxOpts {
+		maxOpts = ceil
+	}
+	e.ask(&decision.Decision{Player: p, Kind: decision.KAttackers, Min: 0, Max: maxOpts,
 		Prompt: fmt.Sprintf("turn %d — declare attackers", e.G.Turn), Options: opts})
 }
 
@@ -1141,6 +1164,11 @@ func (e *Engine) damageStep(firstStrike bool) {
 			}
 		}
 	}
+	// CR 510.2 makes every assignment in this pass one simultaneous damage
+	// event. Besides computing assignments before emission, keep that boundary
+	// while triggers are queued so LifeLostAll observes the group once.
+	e.BeginLifeLossBatch()
+	defer e.EndLifeLossBatch()
 	for _, x := range as {
 		// e.damaging names the dealing creature for the whole of this
 		// assignment so emit's protection check (Task 15) can prevent the

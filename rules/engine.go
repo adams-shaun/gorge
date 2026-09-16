@@ -213,6 +213,12 @@ type Engine struct {
 	// triggerBefore is the immutable pre-departure board for an SBA death
 	// batch. Scoped to its emission/resumption, never carried as live state.
 	triggerBefore *triggerSnapshot
+	// lifeLossBatch holds the events in one simultaneous life-loss operation.
+	// It is scoped to one synchronous effect/combat pass, so it is always nil
+	// at an intent boundary and does not need log encoding or Clone state.
+	lifeLossBatch          []events.Event
+	lifeLossBatchDepth     int
+	finishingLifeLossBatch bool
 	// Per-stack-instance trigger provenance, derived while queuing/placing
 	// triggers, cloned at intent boundaries and removed when the stack object
 	// leaves. Never encoded in events or inferred from a resolving source.
@@ -638,6 +644,21 @@ func New(cfg Config) *Engine {
 	if len(cfg.Names) > 0 {
 		toss = e.rng.IntN(len(cfg.Names))
 	}
+	// CR 103.1 precedes 103.2-103.4: the public toss announcement is emitted
+	// HERE -- before the first shuffle and the opening hand (Forge's
+	// GameAction and manabrew's game loop announce the toss before their deal
+	// too), so the keep/mulligan decisions are made with the toss already
+	// public. The Note names the seat the rng handed the toss to -- the true
+	// CR 103.1 winner -- even if the deal below then eliminates them; who
+	// actually takes the first turn is resolved after the deal has fixed the
+	// survivors. The text carries the deck identity, never the display
+	// PlayerName (F3 keeps display names out of the chain); view/describe.go
+	// renders this one Note through player(), so a seated human still reads
+	// their own name.
+	if toss >= 0 {
+		e.emit(events.Event{Kind: events.Note, Player: state.PlayerID(toss),
+			Text: tossName(e.G, state.PlayerID(toss)) + " won the toss"})
+	}
 	// Match-wide dense commander indexing for Player.CmdDamage (assigned at
 	// genesis): a commander's dense index is the sum of (valid commanders in
 	// seats before its owner) + (its own position within its owner's
@@ -726,12 +747,12 @@ func New(cfg Config) *Engine {
 					e.emit(events.Event{Kind: events.PlayerLost, Player: state.PlayerID(next), Text: "drew from an empty library"})
 				}
 			}
-			if e.finishTerminalGenesis(toss, len(cfg.Names)) {
+			if e.finishTerminalGenesis() {
 				return e
 			}
 		}
 	}
-	if e.finishTerminalGenesis(toss, len(cfg.Names)) {
+	if e.finishTerminalGenesis() {
 		return e
 	}
 	e.deferGameOver = false
@@ -749,18 +770,19 @@ func New(cfg Config) *Engine {
 	// with seat 0 eliminated maps two of the three toss outcomes onto one
 	// survivor (measured 395/205 over 600 seeds on the pre-fix code).
 	start, _ := e.resolveToss(toss, alive, len(cfg.Names))
-	// Ruling T22-f: begin with the first seat still alive, not always seat
-	// 0 -- an early seat that decked out during its own opening draw (Over
-	// still false, since other seats remain, but that seat's own Lost is
-	// true) must not receive turn 1. A player already out of the game is
-	// simply skipped in turn order everywhere else (NextAlive, priority);
-	// this is genesis's own equivalent for the very first turn.
+	// The starting seat is the toss winner resolved over the survivors --
+	// never seat 0 (the pre-toss assumption Ruling T22-f removed) and never a
+	// seat the deal eliminated: an early seat that decked out during its own
+	// opening draw (Over still false, since other seats remain, but that
+	// seat's own Lost is true) must not receive turn 1. A player already out
+	// of the game is simply skipped in turn order everywhere else (NextAlive,
+	// priority); resolveToss is genesis's own equivalent for the very first
+	// turn.
 	if !e.G.Over {
-		// CR 103.1: record the toss publicly -- one Note naming the winner,
-		// rendered verbatim by view/describe.go, so it lands in every seat's
-		// transcript and on the web client with no UI work. Emitted exactly
-		// once per game, before the mulligan round / turn 1 begins.
-		e.recordToss(start, true)
+		// CR 103.1's resolution, now that the deal has fixed the survivors:
+		// beginTurn records start in its ordinary TurnChange. During a London
+		// mulligan, Engine.PregameStarter exposes the same resolved seat to the
+		// view without adding another hash-chained event to genesis.
 		if cfg.Mulligans > 0 {
 			// Ruling R-8.4: the London mulligan round lives between the deal
 			// and turn 1. e.pregame makes step() dispatch to stepPregame
@@ -785,29 +807,17 @@ func New(cfg Config) *Engine {
 	return e
 }
 
-// finishTerminalGenesis records and finalizes a game whose opening deal left
-// at most one survivor. The toss Note deliberately precedes checkGameOver:
-// host.boundsOf recognizes a complete terminal burst only when GameOver is its
-// final event. With one survivor, rejection sampling maps the toss uniformly
-// onto that survivor. With none, there is no possible starting player, so the
-// Note truthfully names the original randomly determined seat and says no first
-// turn began. A malformed zero-seat Config drew no toss and has nobody to name.
-func (e *Engine) finishTerminalGenesis(toss, seats int) bool {
-	alive := e.G.AliveFrom(0)
-	if len(alive) > 1 {
+// finishTerminalGenesis finalizes a game whose opening deal left at most one
+// survivor. The toss was already announced before the first shuffle (the
+// pre-deal Note in New); terminal genesis therefore needs no additional Note.
+// Ruling T22-e: nobody survived genesis is CR 104.4a's draw; one survivor is
+// CR 104.2a's winner. GameOver remains the final genesis event for the host's
+// persistence/replay burst boundaries.
+func (e *Engine) finishTerminalGenesis() bool {
+	if e.G.AliveCount() > 1 {
 		return false
 	}
 	e.deferGameOver = false
-	if toss >= 0 {
-		winner := state.PlayerID(toss)
-		if len(alive) == 1 {
-			winner, _ = e.resolveToss(toss, alive, seats)
-		}
-		e.recordToss(winner, false)
-	}
-	// Ruling T22-e: nobody survived genesis is CR 104.4a's draw; one
-	// survivor is CR 104.2a's winner. This MUST remain the final genesis
-	// event for persistence/replay burst boundaries.
 	e.checkGameOver()
 	return true
 }
@@ -829,19 +839,6 @@ func (e *Engine) resolveToss(toss int, alive []state.PlayerID, seats int) (state
 		}
 		candidate = state.PlayerID(e.rng.IntN(seats))
 	}
-}
-
-// recordToss emits the one public record of the random determination. A game
-// that ended during its opening deal still records a winner, but it must not
-// claim that the first turn began.
-func (e *Engine) recordToss(winner state.PlayerID, takesFirstTurn bool) {
-	text := tossName(e.G, winner) + " won the toss"
-	if takesFirstTurn {
-		text += " and takes the first turn"
-	} else {
-		text += "; the game ended before the first turn"
-	}
-	e.emit(events.Event{Kind: events.Note, Player: winner, Text: text})
 }
 
 // tossName is the identity the toss Note's text carries: the deck-identity
@@ -994,6 +991,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		cp, lp := stored, lki
 		e.deferredPush, e.deferredPushLKI = &cp, lp
 	} else {
+		if _, _, loss := lifeLoss(stored); loss && e.lifeLossBatchDepth > 0 {
+			e.lifeLossBatch = append(e.lifeLossBatch, stored)
+		}
 		e.checkTriggers(stored, lki, lkiPower, lkiToughness, lkiPTValid)
 	}
 	if ev.Kind == events.Tap && !e.tapIsEntryState(ev) {

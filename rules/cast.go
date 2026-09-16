@@ -2278,7 +2278,19 @@ func (e *Engine) targetAsk() bool {
 		// the pushed object returns to where it was, nothing is paid and no
 		// cast trigger fires. No library was shuffled during the proposal, so
 		// the 733.1 library exception does not apply.
-		e.abortCast(pc, "cast aborted: no legal target", false)
+		//
+		// suppress=true engages the F05-2 (CR 733.2) no-progress discipline
+		// like every other abort site: the FIRST identical abort of this card
+		// in the window leaves the option offered (a player may still make a
+		// play that creates a legal target -- cast a creature, then Shelter),
+		// the SECOND holds it out of the window. Without it a seat whose
+		// policy keeps re-picking the same castable-but-targetless spell
+		// livelocks inside one priority window forever (measured: the bot
+		// bench replayed "cast Shelter -> abort" 20000 times, engine note
+		// "cast aborted: no legal target", zero state change). Any genuine
+		// state change clears the count and the held-out set, so a target
+		// created later re-offers the cast normally.
+		e.abortCast(pc, "cast aborted: no legal target", true)
 		return true
 	}
 	if min == 0 && len(candidates) == 0 {
@@ -2403,7 +2415,13 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 		sc.HasManaValue = true
 		sc.ManaValue = mv
 		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], pc.card, sc) {
-			e.abortCast(pc, "cast aborted: proposed spell is illegal (CR 601.2e)", false)
+			// suppress=true, not false: an illegal-proposal abort is a
+			// no-progress reversal (CR 733.1) exactly like every other abort
+			// site, so it rides the same F05-2 (CR 733.2) discipline -- first
+			// identical abort retryable, second holds the option out of the
+			// window. With false, a seat that re-picks the same X (the only
+			// value it knows) re-announces the same illegal spell forever.
+			e.abortCast(pc, "cast aborted: proposed spell is illegal (CR 601.2e)", true)
 			return true
 		}
 	}
