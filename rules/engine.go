@@ -480,13 +480,6 @@ func commanderCardLegal(c *cards.Card) bool {
 	if f.IsCreature() && f.IsLegendary() {
 		return true
 	}
-	// Spacecraft use a printed power/toughness and become artifact creatures
-	// through Station. Commander deck import treats a legendary Spacecraft as
-	// its commander even before its Station threshold is met (Hearthhull's
-	// repository deck is the live shape); retain that format convention here.
-	if f.IsLegendary() && f.IsSpacecraft() {
-		return true
-	}
 	for _, k := range f.Keywords {
 		if strings.EqualFold(cards.KeywordHead(k), "CARDNAME can be your commander.") {
 			return true

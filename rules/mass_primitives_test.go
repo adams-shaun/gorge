@@ -49,6 +49,28 @@ func corpusEngine(t *testing.T, reg *cards.Registry, extras0, extras1 []*cards.C
 	return e
 }
 
+// corpusEngineThree is corpusEngine's three-seat variant for multiplayer
+// rules that must distinguish the active player from the other opponents.
+func corpusEngineThree(t *testing.T, reg *cards.Registry, extras0, extras1, extras2 []*cards.Card) *Engine {
+	t.Helper()
+	m, ok := reg.Lookup("Mountain")
+	if !ok {
+		t.Fatal("corpus fixture: Mountain missing")
+	}
+	fill := func(extras []*cards.Card) []*cards.Card {
+		deck := append([]*cards.Card{}, extras...)
+		for len(deck) < 40 {
+			deck = append(deck, m)
+		}
+		return deck
+	}
+	e := New(seatZeroStart(Config{Seed: 42, Names: []string{"a", "b", "c"}, Tokens: reg.Tokens,
+		Decks: [][]*cards.Card{fill(extras0), fill(extras1), fill(extras2)}}))
+	e.Advance()
+	toMain1(t, e)
+	return e
+}
+
 // corpusEngineCfg is corpusEngine with the Config returned, for replayCheck.
 func corpusEngineCfg(t *testing.T, reg *cards.Registry, extras0, extras1 []*cards.Card) (*Engine, Config) {
 	t.Helper()
@@ -929,46 +951,53 @@ func TestUrzasSagaChaptersAndLoreCounters(t *testing.T) {
 
 // TestStartYourEnginesSpeedLifecycle is kw:Start your engines' leaf (real
 // corpus Amonkhet Raceway): entry starts a speed-less controller at 1 (CR
-// 702.163a); an opponent losing life on the controller's turn takes the
-// turn's ONE increase (163b), never more, and never on another seat's turn;
-// max speed 4 turns the "Max speed —" static's granted ability on (163c),
-// and activating it gives the target haste.
+// 702.163a); an opponent losing life takes the turn's ONE increase (163b),
+// including on another seat's turn and for every eligible player in a
+// multiplayer game; max speed 4 turns the "Max speed —" static's granted
+// ability on (163c), and activating it gives the target haste.
 func TestStartYourEnginesSpeedLifecycle(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	bear := card(t, bearSrc)
-	e := corpusEngine(t, reg,
+	e := corpusEngineThree(t, reg,
 		[]*cards.Card{lookup(t, reg, "Amonkhet Raceway"), bear},
-		[]*cards.Card{})
+		[]*cards.Card{lookup(t, reg, "Amonkhet Raceway")},
+		nil)
 	moveByName(t, e, 0, "Amonkhet Raceway", state.ZBattlefield)
+	moveByName(t, e, 1, "Amonkhet Raceway", state.ZBattlefield)
 	bearID := moveByName(t, e, 0, "Bear", state.ZBattlefield)
 	if got := e.G.Players[0].Speed; got != 1 {
-		t.Fatalf("speed after the raceway entered: %d, want 1", got)
+		t.Fatalf("seat 0 speed after its raceway entered: %d, want 1", got)
+	}
+	if got := e.G.Players[1].Speed; got != 1 {
+		t.Fatalf("seat 1 speed after its raceway entered: %d, want 1", got)
 	}
 	// The turn's increase: one opponent loss, once.
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
 	if got := e.G.Players[0].Speed; got != 2 {
-		t.Fatalf("speed after an opponent lost life on the controller's turn: %d, want 2", got)
+		t.Fatalf("speed after an opponent lost life: %d, want 2", got)
 	}
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
 	if got := e.G.Players[0].Speed; got != 2 {
 		t.Fatalf("a second loss the same turn raised speed to %d, want 2 (once per turn)", got)
 	}
-	// Another seat's turn: no increase.
+	// On seat 1's turn, seat 2 is an opponent of BOTH speed-holding seats.
+	// CR 702.163b has no active-player restriction: both must gain.
 	for driveToTurn(t, e, 2, 1) {
 	}
-	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -1})
-	if got := e.G.Players[0].Speed; got != 2 {
-		t.Fatalf("speed rose on another seat's turn: %d, want 2", got)
+	e.emit(events.Event{Kind: events.LifeChange, Player: 2, Amount: -1})
+	if got := e.G.Players[0].Speed; got != 3 {
+		t.Fatalf("non-active seat 0 speed after seat 2 lost life: %d, want 3", got)
 	}
-	// Two more own turns reach max speed 4.
-	for driveToTurn(t, e, 3, 0) {
+	if got := e.G.Players[1].Speed; got != 2 {
+		t.Fatalf("active seat 1 speed after seat 2 lost life: %d, want 2", got)
 	}
-	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
-	for driveToTurn(t, e, 5, 0) {
+	// A later opponent loss reaches max speed 4 for seat 0. Its next turn
+	// also clears summoning sickness from Raceway before activating Max speed.
+	for driveToTurn(t, e, 4, 0) {
 	}
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
 	if got := e.G.Players[0].Speed; got != 4 {
-		t.Fatalf("speed at turn 5: %d, want 4 (max speed)", got)
+		t.Fatalf("speed at max: %d, want 4", got)
 	}
 	// The max-speed static's granted ability is offered; activating it gives
 	// the Bear haste.
@@ -1170,6 +1199,24 @@ func TestIllegalCommanderConfigurationIsRejected(t *testing.T) {
 				t.Fatalf("no CR 903 rejection Note on the log for %q", tc.name)
 			}
 		})
+	}
+}
+
+// TestLegendaryNoncreatureSpacecraftIsNotCommander ensures Station's later
+// creature state never widens Commander deck construction: a legendary
+// Spacecraft without the printed commander permission remains illegal under
+// CR 903.3/903.4. This is an authored fixture because the assertion is about
+// the absent permission, not a corpus card's script.
+func TestLegendaryNoncreatureSpacecraftIsNotCommander(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	craft := card(t, "Name:Legendary Test Craft\nTypes:Legendary Artifact Spacecraft\nPT:4/4\n")
+	if commanderCardLegal(craft) {
+		t.Fatal("a legendary noncreature Spacecraft without commander permission is legal")
+	}
+	e := New(commanderConfig(t, reg, []*cards.Card{craft}, []int{0}))
+	e.Advance()
+	if got := e.G.Players[0].Commanders; len(got) != 0 {
+		t.Fatalf("legendary noncreature Spacecraft seated %d commander(s), want 0", len(got))
 	}
 }
 

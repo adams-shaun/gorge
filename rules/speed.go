@@ -17,11 +17,12 @@ import (
 //     engines!", if they have no speed (0), it becomes 1. Emitted from the
 //     one emit path when such a permanent ENTERS the battlefield under them
 //     (checkSpeedStart, called from Engine.emit's MoveZone fold).
-//   - CR 702.163b: a player's speed increases once on each of their own
-//     turns when an opponent loses life, up to max speed. A player with NO
-//     speed (0 -- no Start your engines! permanent yet) does not gain: the
-//     increase rule is speed's own, and it applies to players who have
-//     speed. Emitted after the folded LifeChange loss (checkSpeedGain).
+//   - CR 702.163b: a player's speed increases once each turn when an
+//     opponent loses life, up to max speed -- including another player's
+//     turn. A player with NO speed (0 -- no Start your engines! permanent
+//     yet) does not gain: the increase rule is speed's own, and it applies
+//     to players who have speed. Emitted after the folded LifeChange loss
+//     (checkSpeedGain).
 //
 // The once-per-turn gate is derived from the event log (the SpeedChange
 // events already emitted this turn), never from a live counter, so a replay
@@ -36,24 +37,18 @@ const maxSpeed = 4
 // event (combat and spell/ability damage fold straight to the life total,
 // and a Damage event that reaches emit has already been through prevention
 // -- a prevented hit is a Note, never a Damage -- so a positive player-arm
-// Damage event IS a landed loss). Every living player WITH speed whose turn
-// it is gains one speed when an opponent of theirs lost the life (any other
-// seat -- CR 800.4k: in a free-for-all every other player is an opponent);
-// at most one gain per turn, and never past max speed. In practice exactly
-// one seat can qualify per event (only the active seat's turn is running),
-// so the scan is the general rule, not a fan-out. The gain itself is an
-// ordinary event (re-entrant emit: a SpeedChange triggers nothing).
+// Damage event IS a landed loss). Every living player WITH speed gains one
+// speed when an opponent of theirs lost the life (any other seat -- CR
+// 800.4k: in a free-for-all every other player is an opponent); at most one
+// gain per turn, and never past max speed. More than one player may qualify
+// for the same loss on another player's turn. The gain itself is an ordinary
+// event (re-entrant emit: a SpeedChange triggers nothing).
 func (e *Engine) checkSpeedGain(ev events.Event) {
 	if e.G.Over {
 		return
 	}
 	loser := ev.Player
 	for _, p := range e.G.AliveFrom(0) {
-		if p != e.G.Active {
-			// The increase runs "on each of your turns" -- only the active
-			// seat's turn is running, so only it can gain.
-			continue
-		}
 		if p == loser {
 			// The active player losing their own life is not "an opponent
 			// loses life".
