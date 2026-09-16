@@ -83,6 +83,19 @@ const ajaniSleeperSrc = "Name:Ajani Sleeper Agent\nManaCost:1 G GWP W\nTypes:Leg
 
 const colorlessHybridSrc = "Name:Colourless Hybrid\nManaCost:C/W\nTypes:Artifact\nOracle:x\n"
 
+const twinVeilSrc = "Name:Twin Veil\nManaCost:W/U W/U\nTypes:Instant\n" +
+	"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ +1 | NumDef$ +1\nOracle:x\n"
+
+const targetSrc = "Name:Target\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+
+// whiteReducerSrc mirrors Davriel, Soul Broker's real cost-reduction line
+// (SVar:CostBLess in .cards/cardsfolder/d/davriel_soul_broker.txt) with the
+// colour set to W, so the {W/U}{W/U} announcement shape has a reducer whose
+// pip it can legally assign to either of its pips.
+const whiteReducerSrc = "Name:White Reducer\nManaCost:1 W\nTypes:Creature Human Cleric\nPT:1/2\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Card | Type$ Spell | Activator$ You | Amount$ 1 | Color$ W | Description$ Spells you cast cost {W} less to cast.\n" +
+	"Oracle:x\n"
+
 const testBearSrc = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 
 // castByName returns seat p's cast option for the named card.
@@ -902,27 +915,165 @@ func TestConditionPlayerTurnGatesTheReduction(t *testing.T) {
 // for a completely unmodified ordinary hybrid/Phyrexian cost. Every modifier
 // composition requires whole-cost feasibility: generic modifiers change the
 // shared remainder just as Color$/floor modifiers do.
-func TestExactPipAnnouncementScope(t *testing.T) {
-	legacy := pendingCast{cost: ParseCost("1 BP BP")}
-	if legacy.requiresExactPipAnnouncement() {
-		t.Fatal("unmodified plain Phyrexian pips must keep their legacy menu")
+// TestColorReductionAssignedToLaterHybridPip pins the CR 601.2f/601.2b rule
+// the controller ruling names (instance 2): a Color$ reduction is legally
+// assignable to a LATER pip, so the announcement menus must evaluate the
+// whole cost over full assignments, never each pip against the modifiers in
+// announcement order. {W/U}{W/U} under a {W} reduction with only {U} in the
+// pool: announcing U first and W second reduces the W half and charges {U}.
+// The per-pip composition this replaces (the reduction applied while the
+// second pip was still unresolved) saw no W pip, spilled the reduction to
+// generic and starved the strict {U} slot against the live pip — rejecting
+// the legal U-first sequence from the menu. No card-specific code: the same
+// shared primitive (costMods.feasibleAny) that gates the offer enumerates
+// every announcement menu.
+func TestColorReductionAssignedToLaterHybridPip(t *testing.T) {
+	e, cfg, spell := newFixtureDeck(t, 801, twinVeilSrc, whiteReducerSrc)
+	putCreature(t, e, 0, whiteReducerSrc)
+	target := putToken(t, e, 1, targetSrc, state.ZBattlefield)
+	addMana(t, e, 0, "U")
+
+	// OFFER side: U-then-reduced-W is a legal full assignment, so the cast
+	// must be offered even though the pool carries no white at all.
+	opt := castByName(t, e, 0, "Twin Veil")
+	if opt == nil {
+		t.Fatal("{W/U}{W/U} under a {W} reduction with {U} must be castable: U then the reduced W is a legal assignment")
 	}
-	for _, c := range []Cost{ParseCost("2/W"), ParseCost("G/W/P")} {
-		pc := pendingCast{cost: c}
-		if !pc.requiresExactPipAnnouncement() {
-			t.Fatalf("new flexible cost %+v must use whole-cost payment feasibility", c)
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("first hybrid payment decision = %+v", d)
+	}
+	firstW, firstU := -1, -1
+	for _, choice := range d.Options {
+		switch choice.Kind {
+		case "pay_W":
+			firstW = choice.Index
+		case "pay_U":
+			firstU = choice.Index
 		}
 	}
-	for _, mods := range []costMods{
-		{raises: []int32{1}},
-		{reduces: []costMod{{hasColor: true}}},
-		{setFloor: 3},
-	} {
-		pc := pendingCast{cost: ParseCost("W/U"), mods: mods}
-		if !pc.requiresExactPipAnnouncement() {
-			t.Fatalf("modifier composition %+v must use whole-cost payment feasibility", mods)
+	if firstW < 0 || firstU < 0 {
+		t.Fatalf("both faces of the first {W/U} pip must be offered (each has a completing assignment): %+v", d.Options)
+	}
+	// Choose the formerly-rejected U-first face.
+	submitChoices(t, e, firstU)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("second hybrid payment decision = %+v", d)
+	}
+	secondW := -1
+	for _, choice := range d.Options {
+		if choice.Kind == "pay_W" {
+			secondW = choice.Index
+		}
+		if choice.Kind == "pay_U" {
+			t.Fatalf("the second {U} face strands {U}{U} and must not be offered: %+v", d.Options)
 		}
 	}
+	if secondW < 0 {
+		t.Fatalf("the second pip's reduced W face must be offered: %+v", d.Options)
+	}
+	submitChoices(t, e, secondW)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("target decision after the U-then-W announcement = %+v", d)
+	}
+	targetIndex := -1
+	for _, choice := range d.Options {
+		if choice.Obj == target {
+			targetIndex = choice.Index
+		}
+	}
+	if targetIndex < 0 {
+		t.Fatalf("target must remain available after the legal announcement: %+v", d.Options)
+	}
+	submitChoices(t, e, targetIndex)
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("Twin Veil after the legal announcement is in %s, want stack", e.G.Obj(spell).Zone)
+	}
+	// The composed total was {U}{W} minus the {W} reduction = {U}: the single
+	// blue unit pays it and nothing else moves.
+	if e.G.Players[0].Pool.Total() != 0 || e.G.Players[0].Pool[state.MU] != 0 {
+		t.Fatalf("pool after paying the reduced total = %v, want empty", e.G.Players[0].Pool)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestUnmodifiedPhyrexianWholeCostMenu pins that unifying every announcement
+// menu on the one shared feasibility primitive (no more shape-gated legacy
+// local menu) keeps the unmodified ordinary-Phyrexian menu legal end to end:
+// with only {B} and ample life, committing the black face strands the {1}
+// generic (the old locally-affordable menu offered it and then aborted at
+// payCast), so both pips must be announced through the life face and the
+// cast completes as {B} + 4 life.
+func TestUnmodifiedPhyrexianWholeCostMenu(t *testing.T) {
+	dismemberSrc := "Name:Dismember\nManaCost:1 BP BP\nTypes:Instant\n" +
+		"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ -5 | NumDef$ -5\nOracle:x\n"
+	e, cfg, spell := newFixtureDeck(t, 802, dismemberSrc, targetSrc)
+	target := putToken(t, e, 1, targetSrc, state.ZBattlefield)
+	addMana(t, e, 0, "B")
+
+	opt := castByName(t, e, 0, "Dismember")
+	if opt == nil {
+		t.Fatal("unmodified Dismember with {B} and ample life must be castable")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("first Phyrexian payment decision = %+v", d)
+	}
+	// Only the life face completes ({B} committed strands the generic {1});
+	// the locally-affordable black face must not be on the menu.
+	for _, choice := range d.Options {
+		if choice.Kind == "pay_B" {
+			t.Fatalf("committing black for the first pip strands the generic {1} and must not be offered: %+v", d.Options)
+		}
+		if choice.Kind != "pay_life" {
+			t.Fatalf("unexpected option %+v", choice)
+		}
+	}
+	if len(d.Options) != 1 {
+		t.Fatalf("first menu = %+v, want only the life face", d.Options)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("second Phyrexian payment decision = %+v", d)
+	}
+	for _, choice := range d.Options {
+		if choice.Kind == "pay_B" {
+			t.Fatalf("the second black face also strands the generic {1} and must not be offered: %+v", d.Options)
+		}
+		if choice.Kind != "pay_life" {
+			t.Fatalf("unexpected option %+v", choice)
+		}
+	}
+	if len(d.Options) != 1 {
+		t.Fatalf("second menu = %+v, want only the life face", d.Options)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("target decision after legal payment announcement = %+v", d)
+	}
+	targetIndex := -1
+	for _, choice := range d.Options {
+		if choice.Obj == target {
+			targetIndex = choice.Index
+		}
+	}
+	if targetIndex < 0 {
+		t.Fatalf("target must remain available: %+v", d.Options)
+	}
+	submitChoices(t, e, targetIndex)
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("Dismember after completing payment is in %s, want stack", e.G.Obj(spell).Zone)
+	}
+	if e.G.Players[0].Pool.Total() != 0 || e.G.Players[0].Life != 16 {
+		t.Fatalf("payment pool=%v life=%d, want empty pool and 16 life", e.G.Players[0].Pool, e.G.Players[0].Life)
+	}
+	replayCheck(t, e, cfg)
 }
 
 // TestThaliaPhyrexianAnnouncementFiltersUnpayableFace proves the actual
@@ -934,7 +1085,6 @@ func TestExactPipAnnouncementScope(t *testing.T) {
 func TestThaliaPhyrexianAnnouncementFiltersUnpayableFace(t *testing.T) {
 	dismemberSrc := "Name:Dismember\nManaCost:1 BP BP\nTypes:Instant\n" +
 		"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ -5 | NumDef$ -5\nOracle:x\n"
-	targetSrc := "Name:Target\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 	e, cfg, spell := newFixtureDeck(t, 791, dismemberSrc, thaliaRv2cSrc, targetSrc)
 	putCreature(t, e, 0, thaliaRv2cSrc)
 	target := putToken(t, e, 1, targetSrc, state.ZBattlefield)

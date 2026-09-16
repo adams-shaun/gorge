@@ -424,15 +424,23 @@ func (m costMods) hasFloor() bool {
 	return false
 }
 
-// feasibleAny answers the offer-side CR 601.2b question for a cost whose
-// flexible pips are still unresolved: is there SOME legal face assignment of
-// the announcement pips (two-colour hybrid, monocolour hybrid, Phyrexian,
-// hybrid-Phyrexian) that, with m composed onto the RESOLVED faces exactly as
-// the announcement's announceCost composes them and taxGeneric added after
-// (an additional cost is never reduced), is payable from pool/snow/life?
+// feasibleAny is THE one shared mana-feasibility primitive of the cast flow.
+// It answers the CR 601.2b/601.2f question for a cost whose flexible pips may
+// still be unresolved — at the offer gate (offerCastable), at each CR 601.2b
+// announcement menu (announceFeasible, with the pips already announced folded
+// in as their final resolved faces) and at the target-repricing gates (a cost
+// with no live pip, where it degenerates to the composed payable check): is
+// there SOME legal face assignment of the remaining announcement pips
+// (two-colour hybrid, monocolour hybrid, Phyrexian, hybrid-Phyrexian) that,
+// with m composed onto the RESOLVED faces at the leaf of the walk and
+// taxGeneric added after (an additional cost is never reduced), is payable
+// from pool/snow/life? Because the offer gate, every announcement menu and
+// the charge (manaToPay/payMana) compose the same modifiers through this one
+// primitive, an offered cast, an offered announcement face and the charged
+// total can never disagree.
 // delve is the payer's Delve graveyard credit pool (0 without Delve): the
-// credit is taken off each assignment's generic after the composition, the
-// same place castable takes it off the composed cost.
+// credit is taken off each assignment's generic after the composition and
+// tax — the same place the payment (payCast) takes it off manaToPay.
 //
 // A cost with no announcement pip, or a composition with no face-sensitive
 // modifier, composes identically for every face and degrades to the single
@@ -482,6 +490,18 @@ func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, d
 		return false
 	}
 	return walk(c)
+}
+
+// manaFeasible is the engine-facing form of the shared primitive: it reads
+// the payer's pool, snow tally and life and hands them to
+// costMods.feasibleAny. Every mana-feasibility gate of the cast flow goes
+// through it — the offer gate (offerCastable), each CR 601.2b announcement
+// menu (announceFeasible, over the partially announced cost) and the
+// target-repricing gates — so no site re-derives its own "payable so far"
+// answer.
+func (e *Engine) manaFeasible(p state.PlayerID, c Cost, mods costMods, taxGeneric, delve int32) bool {
+	pl := e.G.Players[p]
+	return mods.feasibleAny(c, pl.Pool, pl.Snow, pl.Life, taxGeneric, delve)
 }
 
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies

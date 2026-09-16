@@ -1148,16 +1148,11 @@ func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
 		return false
 	}
 	mods := e.costModifiersForPotentialTargets(pc.player, pc.card, scope, e.costPotentialTargets(pc.player, pc.card, scope))
-	m := mods.apply(pc.resolvedMana())
-	m.Generic = addClampedGeneric(m.Generic, int64(pc.taxGeneric))
+	delve := int32(0)
 	if pc.ability < 0 {
-		m.Generic -= int32(len(pc.delve))
-		if m.Generic < 0 {
-			m.Generic = 0
-		}
+		delve = int32(len(pc.delve))
 	}
-	pl := e.G.Players[pc.player]
-	return m.payable(pl.Pool, pl.Snow, pl.Life)
+	return e.manaFeasible(pc.player, pc.resolvedMana(), mods, pc.taxGeneric, delve)
 }
 
 // pendingCastScope returns the exact spell or ability scope whose modifiers
@@ -1189,6 +1184,11 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 	if !ok {
 		return nil
 	}
+	delve := int32(0)
+	if pc.ability < 0 {
+		delve = int32(len(pc.delve))
+	}
+	pl := e.G.Players[pc.player]
 	out := make([]targetCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
 		target := state.Target{Obj: candidate.obj}
@@ -1210,11 +1210,13 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		if !e.nonManaCastable(pc.player, pc.card, cost, pc.ability >= 0) {
 			continue
 		}
-		pl := e.G.Players[pc.player]
 		if cost.Life > pl.Life {
 			continue
 		}
-		if cost.payable(pl.Pool, pl.Snow, pl.Life) ||
+		// resolvedMana carries no live pip, so manaFeasible (the shared
+		// primitive) here degenerates to the composed payable check — the same
+		// composition payCast will charge for this candidate's repricing.
+		if e.manaFeasible(pc.player, pc.resolvedMana(), mods, pc.taxGeneric, delve) ||
 			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
 			out = append(out, candidate)
 		}
@@ -1248,8 +1250,9 @@ func (c Cost) hasManaPayment() bool {
 // dropAnnouncePrefix removes the first n announcement pips (in announcePip
 // order: two-colour hybrids, then monocolour hybrids, then Phyrexian, then
 // hybrid-Phyrexian) from the cost, leaving the rest as the cost's live
-// choices. It is how announceCost keeps the pips a manaAsk has not yet
-// settled, so a feasibility check never sees a pip the flow already decided.
+// choices. It is how feasibleAny's per-level walk consumes one announcement
+// pip at a time after folding that pip's resolved face into the cost, so a
+// leaf never sees a pip slot twice.
 func (c Cost) dropAnnouncePrefix(n int) Cost {
 	drop := n
 	if drop < len(c.Hybrid) {
@@ -1287,20 +1290,33 @@ func (c Cost) dropAnnouncePrefix(n int) Cost {
 	return c
 }
 
-// announceCost reconstructs the cost for checking feasibility of offering
-// alternative alt at the payIdx-th announcement pip: X folded, the pips
-// already committed (payColor/payLife/payGeneric, the aggregate of pips 0..
-// payIdx-1) and the candidate alt baked into Colored/Generic/Life, the pips
-// after payIdx kept live, and (for a spell) the Delve credit the payment
-// subtracts taken off the generic. It is exactly the cost manaAsk's decision
-// would commit to if it offered alt, with the still-unsettled pips free.
-func (e *Engine) announceCost(pc *pendingCast, payIdx int, alt pipAlt, payColor state.Mana, payLife, payGeneric int32) Cost {
+// announceCost is gone: its per-pip composition (mods applied to a cost that
+// still carried the unannounced pips, so a Color$ reduction saw no W pip it
+// could legally take and a floor priced an unresolved pip at its generic
+// face) answered a different feasibility question than the offer gate and
+// the charge, and could reject the only legal announcement (a reduction that
+// is legally assigned to a LATER pip). announceFeasible below folds the
+// already-announced pips into the cost as their final resolved faces and
+// hands the remainder to the one shared primitive, costMods.feasibleAny.
+// announceFeasible reports whether offering alternative alt for the pip the
+// flow is announcing still leaves the whole cost payable: the pips already
+// committed (payColor/payLife/payGeneric on pc) and the candidate alt are
+// folded into the cost as their FINAL resolved faces, and the still-
+// unannounced pips are enumerated by the shared primitive with the CR 601.2f
+// modifiers composed onto each fully-resolved assignment, the CR 903.8
+// commander tax added after and (for a spell) the Delve credit taken off the
+// generic — exactly the composition manaToPay/payCast will charge once every
+// pip is settled. It is the CR 601.2b legality question: an announced payment
+// is offered only if SOME legal assignment of the remaining pips makes the
+// total cost payable, so a player is never offered a payment that can only
+// strand the cast in an unpayable remainder (and an abort at payCast).
+func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.Mana, life int32) bool {
 	c := pc.cost.WithX(pc.x)
 	for i := range c.Colored {
-		c.Colored[i] += payColor[i]
+		c.Colored[i] += pc.payColor[i]
 	}
-	c.Generic = addClampedGeneric(c.Generic, int64(payGeneric))
-	c.Life = addClampedGeneric(c.Life, int64(payLife))
+	c.Generic = addClampedGeneric(c.Generic, int64(pc.payGeneric))
+	c.Life = addClampedGeneric(c.Life, int64(pc.payLife))
 	switch {
 	case alt.color != 0:
 		c.Colored[state.ManaIndex(alt.color)]++
@@ -1309,67 +1325,38 @@ func (e *Engine) announceCost(pc *pendingCast, payIdx int, alt pipAlt, payColor 
 	case alt.life > 0:
 		c.Life = addClampedGeneric(c.Life, int64(alt.life))
 	}
-	if pc.ability < 0 && len(pc.delve) > 0 {
-		// A Delve spell pays its generic from the graveyard (CR 702.65), so
-		// the eligibility same as the offer/payment gates (castable, payCast)
-		// subtract the credit before measuring the generic shortfall.
-		if c.Generic > int32(len(pc.delve)) {
-			c.Generic -= int32(len(pc.delve))
-		} else {
-			c.Generic = 0
-		}
+	delve := int32(0)
+	if pc.ability < 0 {
+		delve = int32(len(pc.delve))
 	}
-	// Use the same total-cost composition that manaToPay charges after every
-	// flexible pip is announced. A RaiseCost (or SetCost) can make a twobrid
-	// generic face infeasible even if the base cost was payable; commander tax
-	// is an additional cost applied after reductions.
-	c = pc.mods.apply(c.dropAnnouncePrefix(payIdx + 1))
-	c.Generic = addClampedGeneric(c.Generic, int64(pc.taxGeneric))
-	return c
-}
-
-// announceFeasible reports whether offering alternative alt at the payIdx-th
-// announcement pip still leaves the whole cost payable from pool/snow/life,
-// given the pips already committed (payColor/payLife/payGeneric) and the
-// payer's current resources. It is the CR 601.2b legality question: an
-// announced payment is offered only if SOME legal assignment of the still-
-// unsettled pips makes the cost payable, so a player is never offered a
-// payment that can only strand the cast in an unpayable remainder (and an
-// abort at targetAsk). It uses the same resolveMana the payment stage
-// charges, so the offered set and the charged cost can never disagree.
-func (e *Engine) announceFeasible(pc *pendingCast, payIdx int, alt pipAlt, payColor state.Mana, payLife, payGeneric int32, pool state.Mana, snow state.Mana, life int32) bool {
-	c := e.announceCost(pc, payIdx, alt, payColor, payLife, payGeneric)
-	return c.payable(pool, snow, life)
-}
-
-// requiresExactPipAnnouncement selects the payment menus that must prove a
-// complete final cost before exposing a face. Any composed modifier can make
-// a locally affordable hybrid/Phyrexian face strand the final payment: a
-// generic Thalia raise, for example, makes choosing both black faces of
-// Dismember unaffordable despite each face independently seeing black mana.
-// The new twobrid and hybrid-Phyrexian grammar also has alternatives the
-// legacy menu cannot price locally (a 2-generic or life face). Leave only a
-// completely unmodified ordinary hybrid/Phyrexian cost on the legacy local
-// menu, preserving its established transcript.
-func (pc *pendingCast) requiresExactPipAnnouncement() bool {
-	return len(pc.cost.Twobrid) > 0 || len(pc.cost.HybridPhyrexian) > 0 || !pc.mods.empty()
+	// The pips 0..payIdx have been announced (their faces are folded in
+	// above), so their slots leave the cost; the pips after payIdx stay live
+	// for the shared primitive to enumerate.
+	c = c.dropAnnouncePrefix(pc.payIdx + 1)
+	return e.manaFeasible(pc.player, c, pc.mods, pc.taxGeneric, delve)
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
-// Phyrexian pip of the cost (CR 601.2b), one decision per pip. Only payment
-// alternatives that are legal right now -- a hybrid half with pool mana of
-// that colour left, or a Phyrexian pip's colour or two life if the payer has
-// both -- are offered, and each ONLY if some legal assignment of the still-
-// unsettled pips makes the whole cost payable (announceFeasible), so a
-// payment a player can actually complete is the only thing on the menu: a
-// twobrid {2/W} generic face with not enough mana (or too little left for the
-// pips after it) is not offered, because choosing it can only abandon the
-// cast. The valid one comes first, so the deterministic bot fallback (index
-// 0) always picks a legal payment and a no-answer host never wedges. The
-// offer gate (castable) already proved at least one alternative is feasible,
-// so the decision is never empty. It returns true once it has asked (and
-// therefore suspended); payCast applies the accumulated payColor / payLife
-// when every pip is settled.
+// Phyrexian pip of the cost (CR 601.2b), one decision per pip. EVERY face is
+// gated on the ONE shared feasibility primitive (announceFeasible →
+// costMods.feasibleAny): with the pips already announced and the candidate
+// folded in as its final resolved face, some legal assignment of the
+// remaining pips must make the composed total (modifiers on final faces,
+// commander tax, Delve credit) payable. Any composed modifier can make a
+// locally affordable face strand the final payment — a generic Thalia raise
+// (Dismember's black faces), a Color$ reduction that is only legally
+// assignable to a later pip ({W/U}{W/U} under Color$ W), a SetCost floor on
+// an unresolved twobrid — and only the whole-cost search sees that, so a
+// player is never offered a payment a complete assignment cannot pay. The
+// valid options keep their announcePip order, so the deterministic bot
+// fallback (index 0) always picks a legal payment and a no-answer host never
+// wedges. The offer gate (offerCastable) proved at least one full assignment
+// feasible over the same primitive, so the decision is never empty for a
+// state the gate measured; an empty menu is still possible after the offer
+// (the {X} choice or a repricing changed the composition) and the defensive
+// arm below preserves the flow's behaviour for it. It returns true once it
+// has asked (and therefore suspended); payCast applies the accumulated
+// payColor / payLife / payGeneric when every pip is settled.
 func (e *Engine) manaAsk() bool {
 	pc := e.cast
 	if pc == nil || pc.payIdx >= pc.cost.annPipCount() {
@@ -1377,10 +1364,11 @@ func (e *Engine) manaAsk() bool {
 	}
 	alts := pc.cost.announcePip(pc.payIdx)
 	// announceFeasible receives the full pool and life total because the
-	// commitments already made (and this candidate face) are baked into the
-	// reconstructed cost it evaluates. Do not pre-filter a colour face merely
-	// because the current pool lacks that colour: a Color$ reduction can make
-	// the announced face free (for example {W/U} under Color$ W).
+	// commitments already made (and this candidate face) are folded into the
+	// cost it evaluates; nothing has been paid yet. Do not pre-filter a colour
+	// face merely because the current pool lacks that colour: a Color$
+	// reduction can make the announced face free (for example {W/U} under
+	// Color$ W).
 	pool, snow := e.G.Players[pc.player].Pool, e.G.Players[pc.player].Snow
 	fullLife := e.G.Players[pc.player].Life
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
@@ -1399,20 +1387,6 @@ func (e *Engine) manaAsk() bool {
 				Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
 		}
 	}
-	// A whole-cost feasibility walk is required when this task introduced a
-	// new flexible-pip face (twobrid/hybrid-Phyrexian) OR when any modifier is
-	// composed. Even a generic-only raise changes the shared remainder after a
-	// face choice, so a local colour check can offer a face sequence which
-	// cannot pay the resulting total (Thalia plus Dismember is the regression).
-	// Both paths are structural rather than card-specific: every modified cost
-	// takes the exact path, while an unmodified legacy plain-pip game keeps its
-	// prior menu and transcript.
-	exact := pc.requiresExactPipAnnouncement()
-	rem := pool
-	for i := range rem {
-		rem[i] -= pc.payColor[i]
-	}
-	life := fullLife - pc.cost.Life - pc.payLife
 	seen := map[byte]bool{}
 	seenGeneric := false
 	for _, alt := range alts {
@@ -1422,8 +1396,7 @@ func (e *Engine) manaAsk() bool {
 				continue
 			}
 			seen[alt.color] = true
-			if (exact && e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife)) ||
-				(!exact && rem[state.ManaIndex(alt.color)] > 0) {
+			if e.announceFeasible(pc, alt, pool, snow, fullLife) {
 				addPip(alt)
 			}
 		case alt.generic > 0:
@@ -1431,12 +1404,11 @@ func (e *Engine) manaAsk() bool {
 				continue
 			}
 			seenGeneric = true
-			if exact && e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+			if e.announceFeasible(pc, alt, pool, snow, fullLife) {
 				addPip(alt)
 			}
 		case alt.life > 0:
-			if (exact && e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife)) ||
-				(!exact && life >= alt.life) {
+			if e.announceFeasible(pc, alt, pool, snow, fullLife) {
 				addPip(alt)
 			}
 		}
@@ -1444,11 +1416,10 @@ func (e *Engine) manaAsk() bool {
 	if len(d.Options) == 0 {
 		// Defensive: the offer gate proved at least one pip alternative
 		// completes the cost, so a feasible option is always present for a
-		// gated cast; this arm only guards a logic bug. Rather than offer an
-		// infeasible payment, offer the first alternative (index 0, the
-		// deterministic best) so the decision is never empty -- the abort path
-		// that alternatives-only filtering can otherwise leave unreachable is
-		// never chosen by a gated cast that somehow reached an empty menu.
+		// gated cast measured at the gate; this arm only guards the state
+		// having shifted since (the {X} choice, a repricing, a shorter pool).
+		// Rather than offer an infeasible payment, offer the first alternative
+		// (index 0, the deterministic best) so the decision is never empty.
 		addPip(alts[0])
 	}
 	e.choosing = chooseCast
@@ -1636,14 +1607,13 @@ func (e *Engine) targetAsk() bool {
 	// and then the window. Resolved means X is fixed, the CR 601.2f modifiers
 	// are applied and Delve credit is subtracted, all settled by the stages
 	// above.
-	mana := e.manaToPay(pc)
+	delve := int32(0)
 	if pc.ability < 0 {
-		mana.Generic -= int32(len(pc.delve))
-		if mana.Generic < 0 {
-			mana.Generic = 0
-		}
+		delve = int32(len(pc.delve))
 	}
-	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Snow, e.G.Players[pc.player].Life) &&
+	// resolvedMana carries no live pip, so manaFeasible (the shared primitive)
+	// here degenerates to the composed payable check manaToPay charges.
+	if !e.manaFeasible(pc.player, pc.resolvedMana(), pc.mods, pc.taxGeneric, delve) &&
 		!e.hasUntappedManaSource(pc.player) && !e.targetDependentCostMayPay(pc) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true

@@ -568,15 +568,14 @@ func (e *Engine) offerCastable(p state.PlayerID, id state.ObjID, base Cost, scop
 	if e.HasKeyword(id, "Delve") {
 		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
 	}
-	pl := e.G.Players[p]
-	if !mods.feasibleAny(base, pl.Pool, pl.Snow, pl.Life, tax, delve) {
+	if !e.manaFeasible(p, base, mods, tax, delve) {
 		// A target-dependent reducer cannot be in the ordinary pre-target
 		// snapshot, but it may make one legal target choice payable. Retry with
 		// exactly those potential reductions; target-dependent raises/floors
 		// remain absent until the actual target is known (see the helper's
 		// contract).
 		potential := e.costModifiersForPotentialTargets(p, id, scope, e.costPotentialTargets(p, id, scope))
-		if !potential.feasibleAny(base, pl.Pool, pl.Snow, pl.Life, tax, delve) {
+		if !e.manaFeasible(p, base, potential, tax, delve) {
 			return false
 		}
 		mods = potential
