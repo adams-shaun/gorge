@@ -150,14 +150,14 @@ func TestNeverwinterHydraPublishesTheTotalOfXRolls(t *testing.T) {
 	}
 }
 
-// TestLuckBobbleheadRollsMoreThanTwentyDiceAndPublishesCounts is the
-// computed-Amount$ leaf (real corpus Luck Bobblehead): X = the number of
-// Bobbleheads you control is 25 here — past the old cap of 20, which
-// truncated the roll — so exactly 25 dice are rolled, and the
-// MaxRollsResults$/EvenOddResults$ counts (7 sixes, 9 ones, 9 twos →
-// MaxRolls 7, EvenResults 16, OddResults 9) are published and drive the
-// chained Treasure creation through SVar$EvenResults.
-func TestLuckBobbleheadRollsMoreThanTwentyDiceAndPublishesCounts(t *testing.T) {
+// TestLuckBobbleheadRollsEveryControlledBobblehead is the computed-Amount$
+// leaf (real corpus Luck Bobblehead): X is the number of Bobbleheads you
+// control, so this 257-object battlefield rolls all 257 dice. In particular,
+// Amount$ has no semantic cap: token/copy effects can create more objects than
+// a deck's card count. Every scripted die is a six, making MaxRolls and
+// EvenResults both 257 and driving 257 Treasure creations through the real
+// SVar$EvenResults sub-ability.
+func TestLuckBobbleheadRollsEveryControlledBobblehead(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	lb, ok := reg.Lookup("Luck Bobblehead")
 	if !ok {
@@ -168,7 +168,7 @@ func TestLuckBobbleheadRollsMoreThanTwentyDiceAndPublishesCounts(t *testing.T) {
 	h := &scriptedRollHost{}
 	h.g = g
 	var ids []state.ObjID
-	for i := 0; i < 25; i++ {
+	for i := 0; i < 257; i++ {
 		ids = append(ids, g.AddObject(lb, 0).ID)
 	}
 	g.SetZone(state.ZBattlefield, 0, ids)
@@ -183,28 +183,26 @@ func TestLuckBobbleheadRollsMoreThanTwentyDiceAndPublishesCounts(t *testing.T) {
 	if saRoll == nil {
 		t.Fatal("corpus fixture: Luck Bobblehead has no RollDice ability")
 	}
-	// Scripted draws: seven 6s, then nine 1/2 pairs.
-	seq := make([]int, 0, 25)
-	for i := 0; i < 7; i++ {
-		seq = append(seq, 5)
-	}
-	for i := 0; i < 18; i++ {
-		seq = append(seq, i%2) // dice 1, 2 alternating
+	// Script every die to six. A truncated roll loop would lower every
+	// published count and the card's own Treasure total.
+	seq := make([]int, 257)
+	for i := range seq {
+		seq[i] = 5
 	}
 	h.seq = seq
 	ctx := &Ctx{Controller: 0, Source: ids[0], SVars: face.SVars}
 	Resolve(h, ctx, saRoll)
-	if rolls := rollResults(t, h); len(rolls) != 25 {
-		t.Fatalf("only %d dice rolled: a computed Amount$ past 20 must not be truncated", len(rolls))
+	if rolls := rollResults(t, h); len(rolls) != 257 {
+		t.Fatalf("only %d dice rolled: a computed Amount$ must not be truncated", len(rolls))
 	}
-	if v, ok := rollPublished(ctx, "MaxRolls"); !ok || v != 7 {
-		t.Fatalf("MaxRolls publication = %d/%v, want 7", v, ok)
+	if v, ok := rollPublished(ctx, "MaxRolls"); !ok || v != 257 {
+		t.Fatalf("MaxRolls publication = %d/%v, want 257", v, ok)
 	}
-	if v, ok := rollPublished(ctx, "EvenResults"); !ok || v != 16 {
-		t.Fatalf("EvenResults publication = %d/%v, want 16 (seven 6s + nine 2s)", v, ok)
+	if v, ok := rollPublished(ctx, "EvenResults"); !ok || v != 257 {
+		t.Fatalf("EvenResults publication = %d/%v, want 257", v, ok)
 	}
-	if v, ok := rollPublished(ctx, "OddResults"); !ok || v != 9 {
-		t.Fatalf("OddResults publication = %d/%v, want 9", v, ok)
+	if v, ok := rollPublished(ctx, "OddResults"); !ok || v != 0 {
+		t.Fatalf("OddResults publication = %d/%v, want 0", v, ok)
 	}
 	treasures := 0
 	for _, id := range g.Zone(state.ZBattlefield, 0) {
@@ -213,8 +211,8 @@ func TestLuckBobbleheadRollsMoreThanTwentyDiceAndPublishesCounts(t *testing.T) {
 			treasures++
 		}
 	}
-	if treasures != 16 {
-		t.Fatalf("%d Treasure tokens created, want 16 (one per even result, read through TokenAmount$ Y = SVar$EvenResults)", treasures)
+	if treasures != 257 {
+		t.Fatalf("%d Treasure tokens created, want 257 (one per even result, read through TokenAmount$ Y = SVar$EvenResults)", treasures)
 	}
 }
 

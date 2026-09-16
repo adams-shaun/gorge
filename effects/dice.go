@@ -126,7 +126,8 @@ func parseDieRanges(v string) []dieRange {
 	return out
 }
 
-// effRollDice implements DB$ RollDice (110 corpus files): roll a die with
+// effRollDice implements DB$ RollDice (131 corpus files, measured with
+// /usr/bin/grep -rlE over .cards/cardsfolder): roll a die with
 // Sides$ sides (default 6, the corpus's unmarked "roll a die"), through the
 // engine's seeded generator -- the one randomness channel a replay can
 // reproduce. The result is recorded as a Note (the transcript's die roll) and
@@ -176,16 +177,6 @@ func parseDieRanges(v string) []dieRange {
 // that reads Sides$ and Amount$ (Wyll's Reversal and Danse Macabre's Y, Song
 // of Inspiration's X); the modified result is what ranges match and what
 // every publication totals. The unmodified die remains the only random draw.
-//
-// maxDiceRolls bounds a computed Amount$: the roll loop is O(rolls) (one
-// seeded draw, one Note, one range match per die) and every real population
-// is far below the bound (max literal 5; Luck Bobblehead's computed
-// Count$Valid Card.Bobblehead+YouCtrl is bounded by the board), so 256 --
-// twice the 100-card deck maximum, headroom for a token board -- can never
-// truncate a reachable game state. The old cap of 20 DID truncate exactly
-// that card (the r2 review's finding); it is gone.
-const maxDiceRolls = 256
-
 func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	// fx42 scoping: capture and clear the answered choose-one-result BEFORE
 	// anything else, so a nested RollDice below this walk poses its own ask
@@ -202,9 +193,6 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	amount := Num(h, c, sa, "Amount", 1)
 	if amount < 1 {
 		amount = 1
-	}
-	if amount > maxDiceRolls {
-		amount = maxDiceRolls
 	}
 	modifier := Num(h, c, sa, "Modifier", 0)
 	chosenName := strings.TrimSpace(sa.Params["ChosenSVar"])
