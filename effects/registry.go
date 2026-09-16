@@ -181,6 +181,11 @@ type Ctx struct {
 	// -- it drives the replacement's own resolution but is never itself persisted
 	// to the event log.
 	Replaced state.ObjID
+	// ReplacedPlayer is the player a replaced DRAW event was about — the
+	// draw-er (Breathstealer's Crypt draws/reveals/discards "that player",
+	// Zur's Weirding's other players pay relative to them). Set only on a
+	// Draw replacement's own context, like Replaced; zero outside one.
+	ReplacedPlayer state.Target
 	// LKI is the object a zone-change trigger fired for, as it was just
 	// before the move (CR 603.10 "look back in time"): Move resets counters,
 	// tapped state and damage on the way out, so a "dies" condition such as

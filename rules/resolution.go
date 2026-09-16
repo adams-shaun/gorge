@@ -102,6 +102,9 @@ type resumePoint struct {
 	// replSource is the host of the replacement whose body asked (the
 	// ReplaceWith$ body's own Ctx.Source); zero outside a replacement.
 	replSource state.ObjID
+	// replacedPlayer is the draw-er of the replaced Draw event the frame
+	// resumes inside (Ctx.ReplacedPlayer); zero outside a Draw replacement.
+	replacedPlayer state.Target
 	// loopBound frames resume inside a RepeatEach iteration (or at the
 	// RepeatEach itself, kind "repeat"): Ctx.Remembered is rebuilt from
 	// loopRemembered rather than from the stack object, because the loop
@@ -199,6 +202,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	}
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
+		replacedPlayer: e.replReplacedPlayer,
 		before: e.triggerBefore, target: d.ResumeTarget, choices: append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...)}
 	return true
@@ -432,8 +436,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// MoveToBattlefield) targets nothing and the object never leaves the
 		// stack.
 		ctx.Replaced = rp.replaced
-		ctx.Remembered = []state.Target{{Obj: rp.replaced}}
-		ctx.Captured = ctx.Remembered
+		ctx.ReplacedPlayer = rp.replacedPlayer
+		if rp.replacedPlayer.IsPlayer {
+			// A Draw replacement body: the draw-er's binding is the whole
+			// seed, and the body's own RememberDrawn$ records what it draws —
+			// a MoveZone-shaped Remembered seed would pollute the reveal and
+			// the discard condition with a stale would-be-drawn entry.
+			ctx.Remembered, ctx.Captured = nil, nil
+		} else {
+			ctx.Remembered = []state.Target{{Obj: rp.replaced}}
+			ctx.Captured = ctx.Remembered
+		}
 		if rp.remembered != nil {
 			ctx.Remembered = append([]state.Target(nil), rp.remembered...)
 		}
@@ -678,9 +691,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// ensureLeftTheStack and applyReplacements already practise.
 		savedReplacement := e.applyingReplacement
 		e.applyingReplacement = rp.replacement
-		e.replReplaced, e.replAction = rp.replaced, rp.action
+		e.replReplaced, e.replAction, e.replReplacedPlayer = rp.replaced, rp.action, rp.replacedPlayer
 		effects.Resolve(e, ctx, rp.sa)
-		e.replReplaced, e.replAction = 0, ""
+		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
 		e.applyingReplacement = savedReplacement
 		e.damaging = 0
 		if e.resume != nil {
@@ -772,7 +785,8 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		// replaced/id carried by this frame comes from the engine's active
 		// replacement context).
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
-			replaced: e.replReplaced, action: e.replAction, before: e.triggerBefore,
+			replaced: e.replReplaced, action: e.replAction, replacedPlayer: e.replReplacedPlayer,
+			before: e.triggerBefore,
 			loopBound: cf.bound, loopRemembered: cf.remembered, repeatSubject: cf.repeatSubject}
 		if cf.repeat != nil {
 			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat

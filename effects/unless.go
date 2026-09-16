@@ -166,6 +166,12 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 	d := &decision.Decision{Player: payer, Kind: decision.KModes,
 		Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
 		ResumeSA: sa, ResumeTarget: i, Prompt: prompt,
+		// The asking SA's Remembered rides the decision (the same channel the
+		// choice asks use): a replacement body's unless ask — Breathstealer's
+		// Crypt's discard — must re-enter with the Remembered it had at ask
+		// time (the RememberDrawn$ cards), or the replacement-arm reseed
+		// loses them and the body's condition gates read an empty set.
+		ResumeRemembered: append([]state.Target(nil), c.Remembered...),
 		Options: []decision.Option{
 			{Index: 0, Kind: "mode", Label: payLabel, Obj: c.Source, Player: payer},
 			{Index: 1, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},
@@ -245,6 +251,22 @@ func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 		// Attachments to players are not represented by state.Object (its
 		// AttachedTo is an ObjID), so there is no honest binding to use.
 		return nil, false
+	case "ReplacedPlayer", "NonReplacedPlayer":
+		// The draw-er of a replaced Draw event, and its complement (Zur's
+		// Weirding's "any other player may pay 2 life"). Set only on a Draw
+		// replacement's own context — fail closed outside one.
+		if !c.ReplacedPlayer.IsPlayer {
+			return nil, false
+		}
+		if spec == "ReplacedPlayer" {
+			add(c.ReplacedPlayer.Player)
+			break
+		}
+		for _, p := range g.AliveFrom(0) {
+			if p != c.ReplacedPlayer.Player {
+				add(p)
+			}
+		}
 	case "Imprinted", "ImprintedController":
 		// Forge's UseImprinted$ binds the RepeatEach iteration's current
 		// subject as "Imprinted" (Heroism's attacking red creature, Stench

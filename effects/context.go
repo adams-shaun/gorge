@@ -94,6 +94,27 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 			return []state.Target{{Obj: c.RepeatSubject.Obj}}
 		}
 		return nil
+	case "ReplacedPlayer":
+		// The draw-er of the replaced Draw event (Breathstealer's Crypt draws
+		// and reveals for "that player"). Set only on a Draw replacement's
+		// own context; nil outside one.
+		if c.ReplacedPlayer.IsPlayer {
+			return []state.Target{{Player: c.ReplacedPlayer.Player, IsPlayer: true}}
+		}
+		return nil
+	case "NonReplacedPlayer":
+		// Every OTHER player (Zur's Weirding: "any other player may pay 2
+		// life"), in AliveFrom order, excluding the draw-er.
+		if !c.ReplacedPlayer.IsPlayer {
+			return nil
+		}
+		var out []state.Target
+		for _, p := range g.AliveFrom(0) {
+			if p != c.ReplacedPlayer.Player {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out
 	case "ReplacedCard":
 		// The card a replacement is acting on (Rest in Peace shape: the R: line
 		// intercepts a "would go to the graveyard" Move, ReplaceWith$ needs to

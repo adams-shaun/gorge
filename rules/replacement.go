@@ -44,29 +44,37 @@ import (
 // the same object forever (see Task 26's report and the resolveTop guard
 // below for the other half of this fix).
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
-	if ev.Kind != events.MoveZone {
+	switch ev.Kind {
+	case events.MoveZone:
+		// CR 903.9 (Task m32): a commander about to be put into its owner's
+		// graveyard, hand or library from anywhere, or exiled from anywhere, may
+		// instead be put into the command zone by its OWNER. This is a
+		// replacement effect exactly like the R: lines below -- it applies before
+		// the object would change zones, so the commander never touches the
+		// destination -- but it is a construct rule, not a card line, so it is
+		// matched first (before any card-text replacement the same move might
+		// also match, which per CR 616.1 would then apply to whichever zone
+		// change actually happens). Matching parks the event: the owner is asked
+		// (decision.KCommanderZone) and the parked move is emitted for real only
+		// when the answer arrives -- to the command zone on an accept, verbatim
+		// on a decline -- so the log always carries the zone change that actually
+		// happened and a log-only replay reproduces it. The choice itself is a
+		// player decision recorded as an Intent plus the DecisionAsk/DecisionMade
+		// events every ask produces. Returning handled discards the original
+		// event, which is exactly right: nothing has happened yet, and whatever
+		// happens is the owner's answer, not this park.
+		if e.commanderZoneReplacementApplies(ev) {
+			e.parkCommanderZoneMove(ev)
+			return ev, true
+		}
+	case events.Draw:
+		// R:Event$ Draw replacements (Breathstealer's Crypt, Zur's Weirding,
+		// the Words family) replace a card's draw the same way R:Event$ Moved
+		// replaces a zone change: the original Draw event is discarded and
+		// the ReplaceWith$ body runs instead, with ReplacedPlayer bound to
+		// the draw-er.
+	default:
 		return ev, false
-	}
-	// CR 903.9 (Task m32): a commander about to be put into its owner's
-	// graveyard, hand or library from anywhere, or exiled from anywhere, may
-	// instead be put into the command zone by its OWNER. This is a
-	// replacement effect exactly like the R: lines below -- it applies before
-	// the object would change zones, so the commander never touches the
-	// destination -- but it is a construct rule, not a card line, so it is
-	// matched first (before any card-text replacement the same move might
-	// also match, which per CR 616.1 would then apply to whichever zone
-	// change actually happens). Matching parks the event: the owner is asked
-	// (decision.KCommanderZone) and the parked move is emitted for real only
-	// when the answer arrives -- to the command zone on an accept, verbatim
-	// on a decline -- so the log always carries the zone change that actually
-	// happened and a log-only replay reproduces it. The choice itself is a
-	// player decision recorded as an Intent plus the DecisionAsk/DecisionMade
-	// events every ask produces. Returning handled discards the original
-	// event, which is exactly right: nothing has happened yet, and whatever
-	// happens is the owner's answer, not this park.
-	if e.commanderZoneReplacementApplies(ev) {
-		e.parkCommanderZoneMove(ev)
-		return ev, true
 	}
 	// Collect EVERY replacement effect this MoveZone event matches, in
 	// forEachObject's deterministic scan order, rather than the single first
@@ -172,7 +180,9 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// chose. Move preserves X from the stack onto the permanent (events/
 		// apply.go, the "hand/stack -> battlefield must NOT reset them"
 		// comment), so o.X is the cast-time value here.
-		X:          o.X,
+		X: o.X,
+		// Remembered/Captured seed the moving object for the MoveZone body's
+		// Defined$ ReplacedCard / Remembered$Amount reads.
 		Remembered: []state.Target{{Obj: ev.Obj}},
 		Captured:   []state.Target{{Obj: ev.Obj}},
 		// Replaced names the object the replaced event (ev) was about, so a
@@ -181,6 +191,17 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// act on exactly the card being kept out of the graveyard -- not the
 		// source that owns the replacement.
 		Replaced: ev.Obj}
+	if ev.Kind == events.Draw {
+		// A replaced DRAW names the draw-er, not (only) the card: the body's
+		// ReplacedPlayer selectors (UnlessPayer$, Defined$) resolve against
+		// this, and its own DB$ Draw re-does the draw the original event
+		// would have done, so the Remembered/Captured seed above is dropped
+		// for draws — the body's own RememberDrawn$ records what it actually
+		// drew (a seeded stale entry would double the reveal's and the
+		// discard condition's population).
+		ctx.ReplacedPlayer = state.Target{Player: ev.Player, IsPlayer: true}
+		ctx.Remembered, ctx.Captured = nil, nil
+	}
 	if f := o.Face(); f != nil {
 		effects.SetSVars(ctx, f.SVars)
 	}
@@ -197,11 +218,11 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 // original event still happens (ReplacementResult$ Updated): the body's own
 // move of the replaced object then carries it (events.CarryAction).
 func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, action string, with *cards.SA) {
-	savedRepl, savedAction := e.replReplaced, e.replAction
+	savedRepl, savedAction, savedPlayer := e.replReplaced, e.replAction, e.replReplacedPlayer
 	e.applyingReplacement = true
-	e.replReplaced, e.replAction = replaced, action
+	e.replReplaced, e.replAction, e.replReplacedPlayer = replaced, action, ctx.ReplacedPlayer
 	e.resolveReplacementWith(ctx, with)
-	e.replReplaced, e.replAction = savedRepl, savedAction
+	e.replReplaced, e.replAction, e.replReplacedPlayer = savedRepl, savedAction, savedPlayer
 	e.applyingReplacement = false
 }
 
@@ -286,13 +307,48 @@ func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
 	e.damaging = saved
 }
 
-// replacementMatches implements R:Event$ Moved's own Origin$/Destination$/
+// replacementMatches routes a replacement's R: line to its event-kind
+// matcher: R:Event$ Moved's Origin$/Destination$/ValidCard$/ValidLKI$
+// grammar (movedReplacementMatches), and R:Event$ Draw's ActiveZones$/
+// ValidPlayer$ grammar. Any other event kind collects no replacement --
+// the same silence the single-event build had.
+func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
+	switch r.Event {
+	case "Moved":
+		if ev.Kind != events.MoveZone {
+			return false
+		}
+		return e.movedReplacementMatches(r, source, ev)
+	case "Draw":
+		if ev.Kind != events.Draw {
+			return false
+		}
+		// CR 611.3b: the static applies only from its declared active zones;
+		// a Draw replacement's source is already on the battlefield (there is
+		// no entering case — a card cannot replace the draw of the event that
+		// would put it into play).
+		if active, ok := r.Params["ActiveZones"]; ok {
+			o := e.G.Obj(source)
+			if o == nil || !zoneSpecContains(active, o.Zone) {
+				return false
+			}
+		}
+		if v, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, v, ev.Player, e.controllerOf(source)) {
+			return false
+		}
+		return true
+	}
+	// R:Event$ kinds beyond the two above (BeginPhase, Scry, ...) have no
+	// matcher: no replacement is collected for them, the same silence the
+	// single-event build had.
+	return false
+}
+
+// movedReplacementMatches implements R:Event$ Moved's own Origin$/Destination$/
 // ValidCard$/ValidLKI$ parameters -- the same shape as zoneChangeMatches, for
 // a replacement instead of a trigger.
-func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
-	if r.Event != "Moved" || ev.Kind != events.MoveZone {
-		return false
-	}
+func (e *Engine) movedReplacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
 	// CR 611.3b/614.4: a static replacement only applies from one of its
 	// declared active zones. Accept the comma-separated list grammar used by
 	// other Forge zone parameters; the pinned corpus currently uses only
@@ -384,11 +440,14 @@ type replChoice struct {
 // only when no other decision is already pending (the caller has already
 // ruled out a departed controller, which makes no choices under CR 800.4a).
 func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
-	o := e.G.Obj(ev.Obj)
-	if o == nil {
-		return
+	p := ev.Player
+	if ev.Kind != events.Draw {
+		o := e.G.Obj(ev.Obj)
+		if o == nil {
+			return
+		}
+		p = o.Controller
 	}
-	p := o.Controller
 	if int(p) >= len(e.G.Players) {
 		return
 	}
@@ -459,8 +518,15 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
 	e.triggerBefore = before
 	if len(e.replChoices) > 0 && e.pending == nil {
-		if o := e.G.Obj(e.replChoices[0].ev.Obj); o != nil && int(o.Controller) < len(e.G.Players) {
-			e.askReplacementChoice(o.Controller)
+		next := e.replChoices[0].ev
+		p := next.Player
+		if next.Kind != events.Draw {
+			if o := e.G.Obj(next.Obj); o != nil {
+				p = o.Controller
+			}
+		}
+		if int(p) < len(e.G.Players) {
+			e.askReplacementChoice(p)
 		}
 	}
 }
