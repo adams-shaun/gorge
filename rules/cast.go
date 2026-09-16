@@ -1343,14 +1343,16 @@ func (e *Engine) announceFeasible(pc *pendingCast, payIdx int, alt pipAlt, payCo
 }
 
 // requiresExactPipAnnouncement selects the payment menus that must prove a
-// complete final cost before exposing a face. The new twobrid and
-// hybrid-Phyrexian grammar has alternatives the legacy menu cannot price
-// locally (a 2-generic or life face); Color$ and cost floors likewise make a
-// colour face free or change its final price. Plain two-colour/Phyrexian
-// symbols with only generic raises/reductions retain their historical local
-// resource menus, avoiding unrelated deterministic-bot transcript changes.
+// complete final cost before exposing a face. Any composed modifier can make
+// a locally affordable hybrid/Phyrexian face strand the final payment: a
+// generic Thalia raise, for example, makes choosing both black faces of
+// Dismember unaffordable despite each face independently seeing black mana.
+// The new twobrid and hybrid-Phyrexian grammar also has alternatives the
+// legacy menu cannot price locally (a 2-generic or life face). Leave only a
+// completely unmodified ordinary hybrid/Phyrexian cost on the legacy local
+// menu, preserving its established transcript.
 func (pc *pendingCast) requiresExactPipAnnouncement() bool {
-	return len(pc.cost.Twobrid) > 0 || len(pc.cost.HybridPhyrexian) > 0 || pc.mods.hasFloor()
+	return len(pc.cost.Twobrid) > 0 || len(pc.cost.HybridPhyrexian) > 0 || !pc.mods.empty()
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
@@ -1398,16 +1400,13 @@ func (e *Engine) manaAsk() bool {
 		}
 	}
 	// A whole-cost feasibility walk is required when this task introduced a
-	// new flexible-pip face (twobrid/hybrid-Phyrexian), or when a face-sensitive
-	// modifier (Color$/MinMana$/SetCost) can change which face is payable. For
-	// the pre-existing ordinary hybrid/Phyrexian shapes under a generic-only
-	// modifier, retain their established local resource menu: that modifier
-	// does not select a face, and changing the bot's historical choice there
-	// would rewrite acceptance games unrelated to this cost-parity work.
-	//
-	// Both paths are structural rather than card-specific. A future twobrid,
-	// hybrid-Phyrexian, Color$ or floor static takes the exact path without a
-	// new exception, while every legacy plain-pip game keeps its prior menu.
+	// new flexible-pip face (twobrid/hybrid-Phyrexian) OR when any modifier is
+	// composed. Even a generic-only raise changes the shared remainder after a
+	// face choice, so a local colour check can offer a face sequence which
+	// cannot pay the resulting total (Thalia plus Dismember is the regression).
+	// Both paths are structural rather than card-specific: every modified cost
+	// takes the exact path, while an unmodified legacy plain-pip game keeps its
+	// prior menu and transcript.
 	exact := pc.requiresExactPipAnnouncement()
 	rem := pool
 	for i := range rem {

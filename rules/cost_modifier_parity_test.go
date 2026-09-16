@@ -898,14 +898,14 @@ func TestConditionPlayerTurnGatesTheReduction(t *testing.T) {
 	}
 }
 
-// TestExactPipAnnouncementScope keeps the new whole-cost payment search
-// confined to syntax or modifiers whose face can change the price. Existing
-// plain Phyrexian and hybrid cards retain their established local resource
-// menus, so adding cost parity does not rewrite unrelated acceptance games.
+// TestExactPipAnnouncementScope keeps the legacy local resource menus only
+// for a completely unmodified ordinary hybrid/Phyrexian cost. Every modifier
+// composition requires whole-cost feasibility: generic modifiers change the
+// shared remainder just as Color$/floor modifiers do.
 func TestExactPipAnnouncementScope(t *testing.T) {
 	legacy := pendingCast{cost: ParseCost("1 BP BP")}
 	if legacy.requiresExactPipAnnouncement() {
-		t.Fatal("plain Phyrexian pips without a face-sensitive modifier must keep their legacy menu")
+		t.Fatal("unmodified plain Phyrexian pips must keep their legacy menu")
 	}
 	for _, c := range []Cost{ParseCost("2/W"), ParseCost("G/W/P")} {
 		pc := pendingCast{cost: c}
@@ -914,14 +914,90 @@ func TestExactPipAnnouncementScope(t *testing.T) {
 		}
 	}
 	for _, mods := range []costMods{
+		{raises: []int32{1}},
 		{reduces: []costMod{{hasColor: true}}},
 		{setFloor: 3},
 	} {
 		pc := pendingCast{cost: ParseCost("W/U"), mods: mods}
 		if !pc.requiresExactPipAnnouncement() {
-			t.Fatalf("face-sensitive modifier %+v must use whole-cost payment feasibility", mods)
+			t.Fatalf("modifier composition %+v must use whole-cost payment feasibility", mods)
 		}
 	}
+}
+
+// TestThaliaPhyrexianAnnouncementFiltersUnpayableFace proves the actual
+// manaAsk menus, not just their selection predicate. Thalia raises Dismember
+// from {1}{B/P}{B/P} to {2}{B/P}{B/P}; with {B}{B}{B} and ample life, choosing
+// black for the first pip remains legal only because the second must be paid
+// with life. The second menu must therefore withhold its locally-affordable
+// black face and the remaining legal sequence must complete payment.
+func TestThaliaPhyrexianAnnouncementFiltersUnpayableFace(t *testing.T) {
+	dismemberSrc := "Name:Dismember\nManaCost:1 BP BP\nTypes:Instant\n" +
+		"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ -5 | NumDef$ -5\nOracle:x\n"
+	targetSrc := "Name:Target\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	e, cfg, spell := newFixtureDeck(t, 791, dismemberSrc, thaliaRv2cSrc, targetSrc)
+	putCreature(t, e, 0, thaliaRv2cSrc)
+	target := putToken(t, e, 1, targetSrc, state.ZBattlefield)
+	addMana(t, e, 0, "BBB")
+
+	opt := castByName(t, e, 0, "Dismember")
+	if opt == nil {
+		t.Fatal("Dismember raised by Thalia must remain castable with BBB and two life")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("first Phyrexian payment decision = %+v", d)
+	}
+	firstBlack := -1
+	for _, choice := range d.Options {
+		if choice.Kind == "pay_B" {
+			firstBlack = choice.Index
+		}
+	}
+	if firstBlack < 0 {
+		t.Fatalf("first payment must allow black before taking the legal life face: %+v", d.Options)
+	}
+	submitChoices(t, e, firstBlack)
+
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("second Phyrexian payment decision = %+v", d)
+	}
+	life := -1
+	for _, choice := range d.Options {
+		if choice.Kind == "pay_B" {
+			t.Fatalf("second black face strands Thalia-raised Dismember and must not be offered: %+v", d.Options)
+		}
+		if choice.Kind == "pay_life" {
+			life = choice.Index
+		}
+	}
+	if life < 0 {
+		t.Fatalf("second payment must retain the completing life face: %+v", d.Options)
+	}
+	submitChoices(t, e, life)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("target decision after legal payment announcement = %+v", d)
+	}
+	targetIndex := -1
+	for _, choice := range d.Options {
+		if choice.Obj == target {
+			targetIndex = choice.Index
+		}
+	}
+	if targetIndex < 0 {
+		t.Fatalf("target must remain available after legal payment announcement: %+v", d.Options)
+	}
+	submitChoices(t, e, targetIndex)
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("Dismember after completing payment is in %s, want stack", e.G.Obj(spell).Zone)
+	}
+	if e.G.Players[0].Pool.Total() != 0 || e.G.Players[0].Life != 18 {
+		t.Fatalf("Dismember payment pool=%v life=%d, want empty pool and 18 life", e.G.Players[0].Pool, e.G.Players[0].Life)
+	}
+	replayCheck(t, e, cfg)
 }
 
 // TestRaiseCostManaShapeAddsPips pins the RaiseCost Cost\$ raise (Andradite
