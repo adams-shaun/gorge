@@ -28,9 +28,37 @@ func (e *Engine) beginTurn(active state.PlayerID) {
 // without drawing. Untap is special: after its action the turn enters upkeep
 // before priority; a replacement may park either entry, in which case the
 // eventual answer resumes this helper again.
+// chooseSuspendCast is the chooseFor for CR 702.62a's may-cast ask, posed by
+// startSuspendedCast when a suspended card's last TIME counter is removed.
+// iota+11 is pairwise distinct from the shared package set (cast=1/etb=2/
+// miracle=3, cleanup=4, division=5, mana=6..9, opening=10); the exact numbers
+// only need to differ.
+const chooseSuspendCast chooseFor = iota + 11
+
 func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepUntap && !e.finishUntapStep(0) {
 		return
+	}
+	if e.G.Step == state.StepUpkeep {
+		// CR 702.62: only a card that entered exile through the Suspend action
+		// loses TIME counters. The final-counter trigger then casts it if able;
+		// it is not an optional priority action and arbitrary exiled Suspend
+		// cards never acquire that permission. Gated on the step actually
+		// entered, so a BeginPhase replacement that skipped the upkeep step
+		// (landing directly on the draw) does not decrement.
+		for _, id := range e.G.Zone(state.ZExile, e.G.Active) {
+			o := e.G.Obj(id)
+			if o == nil || o.CastFlags&state.FlagSuspend == 0 || o.Counter("TIME") <= 0 {
+				continue
+			}
+			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
+			if o.Counter("TIME") == 0 {
+				e.suspendedCasts = append(e.suspendedCasts, id)
+			}
+		}
+		if e.startSuspendedCast() {
+			return
+		}
 	}
 	// An upkeep skip can land the turn directly on the draw step, whose
 	// turn-based action must still run (CR 504.1 -- the skip took the upkeep
@@ -138,6 +166,73 @@ func (e *Engine) drawStepTurnAction() bool {
 	return e.G.Over
 }
 
+// startSuspendedCast consumes the next final-counter trigger before anyone
+// gets priority. A targetless/un-castable card is simply left in exile, the
+// "if able" part of CR 702.62; a legal one is offered to its controller: CR
+// 702.62a's cast is OPTIONAL ("you may cast it without paying its mana cost
+// if able"), so the controller answers a real yes/no decision and a decline
+// leaves the card in exile. A yes enters the ordinary no-cost cast flow and
+// can still ask for targets.
+func (e *Engine) startSuspendedCast() bool {
+	for len(e.suspendedCasts) > 0 {
+		id := e.suspendedCasts[0]
+		e.suspendedCasts = e.suspendedCasts[1:]
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0 || o.Face() == nil {
+			continue
+		}
+		// "If able" includes every restriction that makes casting illegal,
+		// not merely whether the spell can find a target. In particular a
+		// CantBeCast static remains effective when Suspend supplies the mana
+		// cost; beginning the cast and discovering the restriction afterwards
+		// would incorrectly put the spell on the stack. An uncastable card is
+		// never offered: there is nothing to choose (CR 702.62a casts "if
+		// able"), so no decision is posed for it.
+		if e.castRestricted(o.Owner, id) || !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
+			continue
+		}
+		name := "it"
+		if f := o.Face(); f != nil && f.Name != "" {
+			name = f.Name
+		}
+		e.choosing = chooseSuspendCast
+		e.ask(decision.New(o.Owner, decision.KChoose, "Cast "+name+" without paying its mana cost?", 1, 1,
+			[]decision.Option{{Index: 0, Kind: "suspend_cast_yes", Obj: id, Label: "Cast it"},
+				{Index: 1, Kind: "suspend_cast_no", Obj: id, Label: "Leave it in exile"}}))
+		return true
+	}
+	return false
+}
+
+// suspendCastAnswer applies CR 702.62a's may-cast answer. The offered card
+// was popped from suspendedCasts when its ask was posed, so the answer's
+// object is the only provenance this needs. A yes enters the ordinary cast
+// flow (suspend_cast mode, no mana cost); a decline — or a card that left
+// exile, changed hands or lost its Suspend provenance while the ask was
+// outstanding — leaves the card in exile, which is exactly what CR 702.62a
+// says a card whose cast was not made does. Remaining suspended casts, if
+// any, are offered next; when none are, the caller's Advance loop resumes
+// the step it was in (the same route the forced cast used after resolution).
+func (e *Engine) suspendCastAnswer(chosen []decision.Option) {
+	if len(chosen) == 0 {
+		return
+	}
+	id := chosen[0].Obj
+	o := e.G.Obj(id)
+	if chosen[0].Kind == "suspend_cast_yes" && o != nil && o.Zone == state.ZExile &&
+		o.CastFlags&state.FlagSuspend != 0 && o.Face() != nil {
+		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "suspend_cast"})
+		return
+	}
+	if e.pending == nil {
+		// Declined (or the card is no longer a castable suspended card): the
+		// offer is over, so the chooseFor it installed must not leak into the
+		// next KChoose a different flow asks.
+		e.choosing = chooseNone
+		e.startSuspendedCast()
+	}
+}
+
 func (e *Engine) setStep(s state.Step) {
 	leaving := e.G.Step
 	previous := e.stepLeaving
@@ -176,6 +271,9 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
 // step performs the smallest unit of automatic engine work.
 func (e *Engine) step() {
 	e.checkStateBased()
+	if e.startSuspendedCast() {
+		return
+	}
 	if e.G.Over {
 		return
 	}
@@ -586,6 +684,16 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			e.resumeTriggerDrain()
 			return
 		}
+	case chooseOpening:
+		e.handleOpening(d, in)
+	case chooseSuspendCast:
+		// CR 702.62a: the may-cast offer on a suspended card's last TIME
+		// counter was answered. suspendCastAnswer either enters the ordinary
+		// cast flow (a yes) or leaves the card in exile and offers the next
+		// suspended cast, if any (a decline). There is no trigger drain to
+		// resume: the offer comes from the turn structure, never from inside
+		// one, so e.drainAwaitsTarget is necessarily false here.
+		e.suspendCastAnswer(chosen)
 	case chooseETB:
 		// Task 12: an "as this enters" choice was answered. Record it on the
 		// card (etbAnswer, via a Choose event), then continue the flow -- the

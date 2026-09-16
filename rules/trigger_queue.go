@@ -312,9 +312,23 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			}
 			ids = append(ids, tgt.Obj)
 		}
+		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller,
 			Obj: pt.Source, Amount: int32(pt.DelayedID), Counter: pt.Execute,
 			IDs: ids, Text: "delayed trigger"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			// An event-matched registration's fired ability carries the same
+			// event provenance a face trigger's stack object does (Chancellor
+			// of the Annex's counter reads the triggering spell's roles). A
+			// Mode$ Phase registration's context is the zero value, so storing
+			// it is behaviourally the absence every Phase delayed trigger
+			// read before.
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}

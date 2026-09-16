@@ -127,6 +127,11 @@ type Engine struct {
 	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
 	// it like cast/choosing.
 	mulligan mulliganRound
+	// opening is the optional opening-hand effects round, after the London
+	// mulligan round (a Gemstone Caverns may not be used from a hand its owner
+	// later mulliganed away) and before turn one. It holds only object IDs and parsed SVar names, so replay and
+	// Clone reproduce the same pregame choices without ambient state.
+	opening openingRound
 	// blockerRound is the declare-blockers step's per-defender cursor
 	// (rules/combat.go, Task m34): an attack may be split across several
 	// defending players, and each declares its own blocks, one KBlockers
@@ -359,6 +364,11 @@ type Engine struct {
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
+	// suspendedCasts is the mandatory "cast it if able" trigger created when
+	// a real suspended card loses its final TIME counter. IDs are appended in
+	// exile order and consumed before priority; it is plain replayable engine
+	// continuation state, not an inference from arbitrary exile cards.
+	suspendedCasts []state.ObjID
 	// manaActivation is non-nil while a source with several available mana
 	// abilities waits for its controller to select one. manaColorActivation
 	// similarly holds an already-paid Produced$ Any ability, and
@@ -801,6 +811,11 @@ func New(cfg Config) *Engine {
 			e.pregame = true
 			e.mulligan = newMulliganRound(e.G.AliveFrom(start), cfg.Mulligans)
 		} else {
+			e.opening = e.newOpeningRound(start, 0)
+			if len(e.opening.effects) > 0 {
+				e.stepOpening()
+				return e
+			}
 			e.beginTurn(start)
 		}
 	}
@@ -1221,6 +1236,19 @@ func (e *Engine) Submit(in decision.Intent) error {
 		// (blocker, attacker) pair. Reject choosing the same ordinary blocker
 		// against multiple attackers while preserving the pending decision.
 		if err := e.validateBlockers(d, in); err != nil {
+			return err
+		}
+	}
+	if d.Kind == decision.KChoose {
+		// The cast flow's Convoke/Harmonize announcement (convokeAsk): the
+		// static option list cannot express "only while the outstanding
+		// cost can still absorb the contribution", so an over-selection
+		// (two white creatures for one {W}) passes Validate's per-index and
+		// group checks. Reject it here, before the intent is recorded and
+		// the pending decision consumed, so a legal subset can be
+		// resubmitted -- the same preserve-and-reject shape as
+		// validateAttackers above.
+		if err := e.validateCastContributions(d, in); err != nil {
 			return err
 		}
 	}

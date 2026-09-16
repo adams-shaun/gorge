@@ -281,6 +281,9 @@ func (e *Engine) controllerOf(id state.ObjID) state.PlayerID {
 func (e *Engine) checkDelayedTriggers(ev events.Event) {
 	for i := range e.G.Delayed {
 		dt := &e.G.Delayed[i]
+		if dt.EventMode != "" {
+			continue // an event-matched registration fires on its event, never a step
+		}
 		if dt.Phase != ev.Step {
 			continue
 		}
@@ -316,6 +319,107 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 	}
 }
 
+// checkEventDelayedTriggers queues a pending trigger for every event-matched
+// delayed registration (state.Game.Delayed entries with EventMode set) that
+// the event just folded satisfies. A Mode$ Phase registration fires on the
+// step it names (checkDelayedTriggers, above); the opening-hand Effect shape
+// (Chancellor of the Annex) registers Mode$ SpellCast one-off triggers, which
+// fire on a spell's PutOnStack exactly like a face SpellCast trigger. The
+// registration's STORED trigger body (dt.Trigger) is re-parsed at fire time
+// so its validity clauses are evaluated against the actual cast -- the
+// registration is the game state a replay rebuilds, the body is not.
+//
+// "You" inside that body is the REGISTRATION's controller -- the effect owner
+// the registration was minted for, not the source card's controller: the
+// Chancellor's Effect is EffectOwner$ Opponent, so each per-opponent
+// registration fires on that opponent's first cast, which is the oracle's
+// "when each opponent casts their first spell". TriggerZones$ is deliberately
+// not consulted: Forge parks the trigger on a command-zone Effect, while the
+// engine's registration itself is that presence -- the source Chancellor card
+// stays in its hand.
+func (e *Engine) checkEventDelayedTriggers(ev events.Event) {
+	for i := range e.G.Delayed {
+		dt := &e.G.Delayed[i]
+		if dt.EventMode != "SpellCast" {
+			continue
+		}
+		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
+			continue
+		}
+		src := e.G.Obj(dt.Source)
+		if src == nil || src.Face() == nil || dt.Trigger == "" {
+			continue
+		}
+		t, ok := cards.ParseTriggerLine(src.Face().SVars[dt.Trigger])
+		if !ok || t.Mode != "SpellCast" {
+			continue
+		}
+		if !e.eventDelayedSpellCastMatches(t, dt, ev) {
+			continue
+		}
+		if !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
+			continue
+		}
+		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
+		if sa == nil {
+			continue
+		}
+		remembered := triggerRemembered(ev, dt.Source)
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     dt.Source,
+			Controller: dt.Controller,
+			Delayed:    true,
+			DelayedID:  dt.ID,
+			Execute:    dt.Execute,
+			SA:         sa,
+			Ctx: effects.Ctx{
+				Source:     dt.Source,
+				Controller: dt.Controller,
+				Remembered: remembered,
+				Captured:   remembered,
+				// The same event-provenance capture the ordinary face
+				// SpellCast path takes (triggerReferents' SpellCast case),
+				// so the fired ability resolves TriggeredActivator/
+				// TriggeredSource exactly as a face trigger would.
+				TriggerContext: e.triggerReferents(t, dt.Source, ev, nil),
+			},
+		})
+	}
+}
+
+// eventDelayedSpellCastMatches is the event-matched registration's validity
+// evaluation, mirroring spellCastMatches' clause grammar (ValidCard$,
+// ValidActivatingPlayer$, PlayerTurn$) with one deliberate difference: the
+// "you" every player clause is measured against is dt.Controller, the
+// registration's effect owner, not the source card's controller (see
+// checkEventDelayedTriggers above).
+func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.DelayedTrigger, ev events.Event) bool {
+	if ev.Kind != events.PutOnStack {
+		return false
+	}
+	// Casting a spell means an actual card entering the stack (Ruling F3,
+	// the same guard spellCastMatches carries).
+	obj := e.G.Obj(ev.Obj)
+	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	if actionTriggerModes[t.Mode] && strings.EqualFold(t.Params["PlayerTurn"], "True") &&
+		e.G.Active != dt.Controller {
+		return false
+	}
+	if v, ok := t.Params["ValidCard"]; ok {
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
+		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, dt.Controller) {
+			return false
+		}
+	}
+	return true
+}
+
 // triggerSnapshot is immutable look-back state. Parked replacement choices
 // may retain it across intent/Clone boundaries; each matching walk constructs
 // its own Engine scratch caches, never mutating or sharing the snapshot's.
@@ -346,6 +450,9 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
 	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
+	if ev.Kind == events.PutOnStack {
+		e.checkEventDelayedTriggers(ev)
+	}
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)
 	}
@@ -1731,10 +1838,19 @@ func abilityCastValidSA(ab *cards.SA, validSA string) bool {
 // fire, never that an unreadable life/creature count is presumed large
 // enough to let a win or counter trigger slip through.
 func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool {
+	return e.triggerConditionHoldsAs(t, source, e.controllerOf(source))
+}
+
+// triggerConditionHoldsAs is triggerConditionHolds with "you" supplied
+// explicitly rather than derived from source's controller. An event-matched
+// delayed trigger's "you" is the registration's effect owner (dt.Controller),
+// which can differ from the source card's own controller -- see
+// checkEventDelayedTriggers.
+func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID) bool {
 	// LifeLost's LifeAmount$ is matched against the causing loss by
 	// lifeLostMatches, rather than against a player's current life total.
 	if v, ok := t.Params["LifeAmount"]; ok && t.Mode != "LifeLost" && t.Mode != "LifeLostAll" {
-		if !e.lifeConditionHolds(t, source, v) {
+		if !e.lifeConditionHoldsAs(t, you, v) {
 			return false
 		}
 	}
@@ -1743,12 +1859,12 @@ func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool
 		if !ok {
 			return false
 		}
-		if !e.presentConditionHolds(t, source, spec, cmp) {
+		if !e.presentConditionHoldsAs(t, source, you, spec, cmp) {
 			return false
 		}
 	}
 	if spec, ok := t.Params["CheckDefinedPlayer"]; ok {
-		holds, supported := e.checkDefinedPlayerHolds(spec, e.controllerOf(source))
+		holds, supported := e.checkDefinedPlayerHolds(spec, you)
 		// A supported predicate is evaluated for every mode. An unsupported
 		// one fails closed only for actionTriggerModes; other modes keep
 		// firing as they did before the predicate was read at all.
@@ -1789,11 +1905,13 @@ func (e *Engine) checkDefinedPlayerHolds(spec string, you state.PlayerID) (holds
 	return false, false
 }
 
-// lifeConditionHolds evaluates the LifeTotal$/LifeAmount$ intervening-if.
-// The "you" for a You-qualified LifeTotal$ is the trigger's controller
-// (source's controller), matching how every other trigger param resolves it.
-func (e *Engine) lifeConditionHolds(t cards.Trigger, source state.ObjID, amount string) bool {
-	who := e.controllerOf(source)
+// lifeConditionHoldsAs evaluates the LifeTotal$/LifeAmount$ intervening-if.
+// The "you" for a You-qualified LifeTotal$ is the caller's chosen player --
+// normally the source's controller, but an event-matched delayed trigger
+// passes its registration's effect owner instead (see
+// checkEventDelayedTriggers).
+func (e *Engine) lifeConditionHoldsAs(t cards.Trigger, you state.PlayerID, amount string) bool {
+	who := you
 	if v, ok := t.Params["LifeTotal"]; ok {
 		v = strings.TrimSpace(v)
 		switch v {
@@ -1811,11 +1929,12 @@ func (e *Engine) lifeConditionHolds(t cards.Trigger, source state.ObjID, amount 
 	return compareLife(e.G.Players[who].Life, amount)
 }
 
-// presentConditionHolds evaluates the IsPresent$/PresentCompare$ intervening-
-// if by counting the objects on the battlefield that match the spec (relative
-// to the trigger's source and its controller) and comparing that count.
-func (e *Engine) presentConditionHolds(t cards.Trigger, source state.ObjID, spec, cmp string) bool {
-	n := e.countPresent(spec, source, e.controllerOf(source))
+// presentConditionHoldsAs evaluates the IsPresent$/PresentCompare$
+// intervening-if by counting the objects on the battlefield that match the
+// spec (relative to the trigger's source and the caller's chosen "you") and
+// comparing that count.
+func (e *Engine) presentConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID, spec, cmp string) bool {
+	n := e.countPresent(spec, source, you)
 	return comparePresent(n, cmp)
 }
 

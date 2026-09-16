@@ -48,7 +48,7 @@ type SacrificedInfo struct {
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
 const (
-	FlagKicked uint8 = 1 << iota // CR 601.2b: paid an optional additional cost
+	FlagKicked uint16 = 1 << iota // CR 601.2b: paid an optional additional cost
 	FlagSurged
 	FlagFlashback
 	FlagMiracle
@@ -59,6 +59,11 @@ const (
 	FlagDashed     // dash: paid the dash cost (CR 702)
 	FlagOverloaded // overload cast (CR 702)
 	FlagWarped     // warp cast: exile at next end step, may recast from exile (CR 702)
+	// FlagBuyback returns the resolving spell to its owner's hand.
+	FlagBuyback
+	// FlagHarmonize and FlagSuspend exile the spell after it resolves.
+	FlagHarmonize
+	FlagSuspend
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -136,7 +141,7 @@ type Object struct {
 	// permanent) -- events.Move resets both when the object leaves the
 	// battlefield.
 	X         int32
-	CastFlags uint8
+	CastFlags uint16
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number. Reset alongside X/

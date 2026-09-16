@@ -1112,10 +1112,24 @@ var apiSpecificRulesSA = map[string][]string{
 	// reaches these (resumeResolution dispatches on rp.sa.API == "Ward"),
 	// so their UnlessCost$ reads belong to api:Ward alone -- left in the
 	// generic union they would mask every other API's unread UnlessCost$
-	// (measured: api:Tap on Blood Crypt/Hallowed Fountain, api:Sacrifice on
-	// Vexing Devil, api:LoseLife on Torment of Hailfire's shape).
+	// (measured: api:Tap on Blood Crypt/Hallowed Fountain; api:Sacrifice's
+	// UnlessCost$ read moved to the registered effSacrifice gate (vexdev),
+	// so the resume's generic read no longer masks any api:Sacrifice gap).
 	"Engine.beginWardPayment":  {"Ward"},
 	"Engine.settleWardPayment": {"Ward"},
+	// The opening-hand pregame actions: applyOpeningEffect, its delayed-
+	// trigger registration and the answer handler run ONLY on the expanded
+	// opening-action SVar of a MayEffectFromOpeningHand keyword (Chancellor
+	// of the Tangle, Gemstone Caverns, Impatient Iguana), so their
+	// Origin$/Destination$/BecomeStartingPlayer$/Triggers$/SubAbility$
+	// reads belong to the APIs such an action carries (ChangeZone for the
+	// put-onto-battlefield shape, PutCounter for the counter rider, Effect
+	// for the delayed-trigger shape) -- left in the generic union they
+	// would mask every other API's unread Destination$ (measured:
+	// api:Counter on Force of Will and Remand).
+	"Engine.applyOpeningEffect":            {"ChangeZone", "PutCounter", "Effect"},
+	"Engine.registerOpeningEffectTriggers": {"ChangeZone", "PutCounter", "Effect"},
+	"Engine.handleOpening":                 {"ChangeZone", "PutCounter", "Effect"},
 }
 
 // handRoots declares ATTRIBUTION (which function to read for a primitive) for
@@ -1153,7 +1167,13 @@ var handRoots = struct {
 	// top.
 	trig: []string{"Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
 		"Engine.resolveTop", "Engine.isTriggeredManaAbility", "Engine.triggerReferents",
-		"Engine.StackOptional", "Engine.optionalDecider"},
+		"Engine.StackOptional", "Engine.optionalDecider",
+		// The event-matched delayed registrations (Chancellor of the Annex's
+		// opening-hand Mode$ SpellCast shape): the registration re-parses the
+		// stored trigger body, and the firing walker re-evaluates its
+		// ValidCard$/ValidActivatingPlayer$/PlayerTurn$ clauses at fire time,
+		// outside triggerMatches' dispatch walk.
+		"Engine.registerOpeningEffectTriggers", "Engine.checkEventDelayedTriggers"},
 	// applyReplacements is the replacement pipeline's root beside
 	// replacementMatches, whose `r.Event != "Moved"` early return scopes every
 	// r.Params read in it to repl:Moved. collectETBChoices reads the
@@ -1822,7 +1842,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Celestial Colonnade":         {"param:api:Animate.Colors", "param:api:Animate.Keywords", "param:api:Animate.OverwriteColors"},
 	"Chain Lightning":             {"param:api:CopySpellAbility.Controller"},
 	"Chalice of the Void":         {"param:api:PutCounter.ETB"},
-	"Chandra, Awakened Inferno":   {"cost:SubCounter", "param:api:Cleanup.ClearRemembered", "param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate", "param:api:Effect.EffectOwner", "param:api:Effect.Name"},
+	"Chandra, Awakened Inferno":   {"cost:SubCounter", "param:api:Cleanup.ClearRemembered", "param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate", "param:api:Effect.Name"},
 	"Chaos Warp":                  {"param:api:Dig.DestinationZone2", "param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
 	"Conduit of Worlds":           {"param:api:Cleanup.ClearRemembered"},
 	"Council's Judgment":          {"param:api:Vote.VoteCard", "param:api:Vote.VoteSubAbility"},
@@ -1888,7 +1908,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Ojer Axonil, Deepest Might":  {"param:api:ChangeZone.Transformed", "param:api:SetState.CheckSVar", "param:api:SetState.SVarCompare"},
 	"Oracle of Mul Daya":          {"param:stat:Continuous.AdjustLandPlays", "param:stat:Continuous.MayLookAt"},
 	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
-	"Palace Jailer":               {"param:api:Effect.EffectOwner", "param:api:Effect.ForgetOnMoved"},
+	"Palace Jailer":               {"param:api:Effect.ForgetOnMoved"},
 	"Path to Exile":               {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Phyrexian Obliterator":       {"param:api:Sacrifice.Amount"},
 	"Planar Engineering":          {"param:api:Sacrifice.Amount"},
@@ -1944,7 +1964,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Valkyrie Harbinger":          {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Vampire Lacerator":           {"param:api:LoseLife.ConditionCheckSVar", "param:api:LoseLife.ConditionSVarCompare"},
 	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.ETB", "param:api:PutCounter.MinChoiceAmount"},
-	"Vexing Devil":                {"cost:DamageYou", "param:api:Sacrifice.UnlessCost", "param:api:Sacrifice.UnlessPayer", "param:api:Sacrifice.UnlessSwitched"},
+	"Vexing Devil":                {"cost:DamageYou"},
 	"Vial Smasher the Fierce":     {"param:api:Cleanup.ClearChosenPlayer", "param:trig:SpellCast.ActivatorThisTurnCast"},
 	"Victimize":                   {"param:api:ChangeZone.ConditionCheckSVar", "param:api:ChangeZone.ConditionSVarCompare", "param:api:Cleanup.ClearRemembered"},
 	"Vines of Vastwood":           {"param:api:Effect.ExileOnMoved"},
@@ -2256,7 +2276,7 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 		}
 	}
 	for _, wrong := range []struct{ api, key string }{
-		{"Sacrifice", "Amount"}, {"Sacrifice", "UnlessCost"}, {"Sacrifice", "Produced"},
+		{"Sacrifice", "Amount"}, {"Sacrifice", "Produced"},
 		{"DealDamage", "CharmNum"}, {"DealDamage", "Produced"}, {"ChangeZone", "Amount"},
 	} {
 		if d.api[wrong.api][wrong.key] {
@@ -2264,15 +2284,16 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 		}
 	}
 	// The census-level effect on the real repo decks: every Sacrifice ability
-	// carrying an Amount$ or UnlessCost$ its implementation never reads is now
-	// labelled (previously masked by the Mana/Counter reads).
+	// carrying an Amount$ its implementation never reads is now
+	// labelled (previously masked by the Mana/Counter reads). Vexing Devil's
+	// UnlessCost$/UnlessPayer$/UnlessSwitched$ retired with the vexdev gate,
+	// leaving only the unmodelled DamageYou cost token.
 	for card, label := range map[string]string{
 		"Braids, Arisen Nightmare": "param:api:Sacrifice.Amount",
 		"Phyrexian Obliterator":    "param:api:Sacrifice.Amount",
 		"Planar Engineering":       "param:api:Sacrifice.Amount",
 		"Scapeshift":               "param:api:Sacrifice.Amount",
 		"Meathook Massacre II":     "param:api:Sacrifice.Amount",
-		"Vexing Devil":             "param:api:Sacrifice.UnlessCost",
 	} {
 		found := false
 		for _, l := range res.labels[card] {

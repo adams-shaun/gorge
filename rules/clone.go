@@ -59,6 +59,7 @@ func (e *Engine) Clone() *Engine {
 		// the blockerRound class above.
 		pregame:  e.pregame,
 		mulligan: cloneMulligan(e.mulligan),
+		opening:  cloneOpening(e.opening),
 		// E2 held-out cast suppression (cast.go): the set of card ids whose
 		// cast option is held out of the current window after an unpayable
 		// decline. A clone taken at any intent boundary carries it forward so
@@ -73,7 +74,8 @@ func (e *Engine) Clone() *Engine {
 		// live engine does, or a clone would offer (or hold out) a cast the
 		// original would not. Same map-of-scalars class, so re-allocated, not
 		// shared.
-		castAborts: cloneAbortCounts(e.castAborts),
+		castAborts:     cloneAbortCounts(e.castAborts),
+		suspendedCasts: append([]state.ObjID(nil), e.suspendedCasts...),
 	}
 	if e.pending != nil {
 		d := *e.pending
