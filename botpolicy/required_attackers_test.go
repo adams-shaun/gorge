@@ -86,6 +86,48 @@ func TestChooseAttackersRespectsTheWireMax(t *testing.T) {
 	}
 }
 
+// TestChooseAttackersKeepsRequiredUnderTheCeilingWhenRequiredIsSecond pins
+// the ceiling cut against the OTHER option order: the decision's options
+// follow the engine's (attacker, defender) enumeration, not the requirement
+// list, so the REQUIRED attacker can be the LATER option. chosen accumulates
+// in option first-seen order, so the cut must stably reorder required-first
+// before truncating -- a plain cut kept the non-required attacker and dropped
+// the required one, and validateAttackDeclaration rejected the whole
+// declaration ("must attack with as many required creatures as possible":
+// the seed-1283 run-abort class, reached through a MaxAttackers$ static
+// coexisting with a goaded/MustAttack creature). Vigilance on both keeps
+// AR4's hold-back from rescuing the cut.
+func TestChooseAttackersKeepsRequiredUnderTheCeilingWhenRequiredIsSecond(t *testing.T) {
+	b := boardOf(atk(1, 2, 2, "Vigilance"), atk(2, 3, 3, "Vigilance"), def(1, 2, 2))
+	b.Life[1] = 20
+	got := requiredDecision(t, b, map[int]bool{2: true}, 1, 1, 2)
+	if len(got) != 1 || got[0] != state.ObjID(102) {
+		t.Fatalf("the ceiling cut dropped the required attacker (it was the later option): chose %v", got)
+	}
+}
+
+// TestRequiredAttackerSkipsAVetoedDefenderForAScoreableOne pins AR3's scan
+// half for a required attacker: a vetoed option must not END the option
+// scan -- the remaining offered defenders are still scored, and only a
+// requirement whose EVERY option is vetoed falls back to the first offered
+// one. The old shape broke on the first vetoed option, so a goaded creature
+// offered [a lethal seat-1 defender, a safe seat-2 chump] swung at the
+// lethal defender and threw the safe swing away.
+func TestRequiredAttackerSkipsAVetoedDefenderForAScoreableOne(t *testing.T) {
+	b := boardOf(atk(1, 2, 2, "Vigilance"), def(1, 2, 1), defN(2, 1, 0, 4))
+	b.Life[1] = 20
+	b.Life[2] = 20
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Min: 0, Max: 1,
+		Options: []decision.Option{
+			{Index: 0, Kind: "attacker", Obj: state.ObjID(101), Player: 1, Required: true},
+			{Index: 1, Kind: "attacker", Obj: state.ObjID(101), Player: 2},
+		}}
+	got := Decide(b, &d, rng(1)).Choices
+	if len(got) != 1 || d.Options[got[0]].Player != 2 {
+		t.Fatalf("the required attacker swung at the vetoed defender: chose options %v", got)
+	}
+}
+
 // TestPhyrexianPipPrefersTheLifePayment pins the KChoose mana-payment arm:
 // for a phyrexian pip (and any pip ask carrying a life alternative), prefer
 // "Pay 2 life" while the seat has life to spare -- pool mana is the scarcer

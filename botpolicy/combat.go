@@ -604,16 +604,15 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 		var bestLife int32
 		for _, oi := range at.opts {
 			t, ok := score(at, oi)
-			if !ok && !required[at.id] {
-				continue // AR3 vetoes only a creature it is free to leave home
-			}
-			// A required attacker with every defender vetoed still swings at
-			// its first offered option (deterministic), so the requirement is
-			// always answered by an offered option.
 			if !ok {
-				best = at.opts[0]
-				bestTier, bestLife = -1, b.Life[d.Options[at.opts[0]].Player]
-				break
+				// AR3 vetoes this defender outright. A creature it is free to
+				// leave home obeys the veto; a REQUIRED attacker keeps scanning
+				// the rest of its options, because a later offered defender may
+				// be scoreable -- attacking the first offered option just
+				// because it was offered first would throw a legal, better
+				// swing away (multiplayer goad combats offer one option per
+				// defending seat).
+				continue
 			}
 			// At equal combat risk, pressure the opponent closest to dying
 			// rather than the lowest seat. Life is public on both adapters.
@@ -622,6 +621,15 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 			if t > bestTier || (t == bestTier && life < bestLife) {
 				best, bestTier, bestLife = oi, t, life
 			}
+		}
+		if best < 0 {
+			if !required[at.id] {
+				continue // every defender vetoed and the creature is free to stay home
+			}
+			// A required attacker with every defender vetoed still swings at
+			// its first offered option (deterministic), so the requirement is
+			// always answered by an offered option.
+			best = at.opts[0]
 		}
 		if best >= 0 {
 			chosen = append(chosen, best)
@@ -707,11 +715,26 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 		}
 	}
 	// A MaxAttackers$ ceiling (CR 508.1j) bounds the whole declaration and
-	// the engine exposes it as the decision's Max; the required attackers
-	// were added first, so truncating keeps exactly the required ones when
-	// the ceiling forces a choice between requirements.
+	// the engine exposes it as the decision's Max. chosen is in option
+	// first-seen order (the attackers' iteration order), NOT required-first,
+	// so when the ceiling forces a choice between requirements the slice is
+	// stably reordered to put the required attackers first before
+	// truncating -- a plain cut could drop a required attacker whose option
+	// was seen later and keep a non-required one, and validateAttackDeclaration
+	// would then reject the whole declaration (the seed-1283 run-abort class).
 	if d.Max < len(chosen) && d.Max >= 0 {
-		chosen = chosen[:d.Max]
+		ordered := make([]int, 0, len(chosen))
+		for _, oi := range chosen {
+			if required[d.Options[oi].Obj] {
+				ordered = append(ordered, oi)
+			}
+		}
+		for _, oi := range chosen {
+			if !required[d.Options[oi].Obj] {
+				ordered = append(ordered, oi)
+			}
+		}
+		chosen = ordered[:d.Max]
 	}
 	return chosen
 }
