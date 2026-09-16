@@ -436,6 +436,17 @@ export interface Option {
    */
   attacker?: number;
   /**
+   * Required marks an attacker option whose creature MUST attack this
+   * combat (CR 508.1d): a goaded creature (CR 701.38) or one under an
+   * unconditional MustAttack static. A rules-ignorant client needs the
+   * flag because the engine REJECTS a declaration that omits a required
+   * creature it could have included (validateAttackDeclaration) -- an
+   * omission that looks legal on the wire otherwise. omitempty: a
+   * non-required option emits no field, so every existing option list
+   * serialises byte-identically.
+   */
+  required?: boolean;
+  /**
    * Group is an exclusivity marker: two options carrying the SAME non-empty
    * Group are mutually exclusive, and at most one of them may be selected
    * in a single answer. The whole contract is that sentence -- it says
@@ -487,6 +498,16 @@ export interface Option {
    * index 0 (the first ability), the one value that omits.
    */
   ability?: number;
+  /**
+   * SVar anchors a "granted" option (rules/speed.go, the kw:Start your
+   * engines max-speed static's AddAbility$): the SVar name on the source
+   * face whose AB the activation resolves through. A granted ability is
+   * not a Face().Abilities index (the ordinary "ability" anchor), so it
+   * carries the name instead; beginGrantedActivation re-resolves it, so a
+   * stale name degrades to a no-op. omitempty: only granted options carry
+   * it.
+   */
+  svar?: string;
 }
 
   /**

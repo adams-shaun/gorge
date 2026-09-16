@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/internal/testutil
 
-budget_s: 5
+budget_s: 10
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -17,3 +17,9 @@ budget_s: 5
 | 2026-09-14T16:02Z | 9d9bb63+ | 0.5 | 15 | 0 | sadams |
 | 2026-09-14T16:01Z | 9d9bb63+ | 0.5 | 15 | 0 | sadams |
 | 2026-09-14T16:19Z | a89576f+ | 0.6 | 15 | 0 | sadams |
+| 2026-09-16T16:50Z | 0fcb713+ | 0.9 | 15 | 0 | sadams |
+| 2026-09-16T16:50Z | 0fcb713+ | 0.9 | 15 | 0 | sadams |
+| 2026-09-16T18:23Z | 7afccef+ | 0.9 | 15 | 0 | sadams |
+| 2026-09-16T18:29Z | 7afccef+ | 0.9 | 15 | 0 | sadams |
+| 2026-09-16T18:34Z | 7afccef+ | 0.9 | 15 | 0 | sadams |
+| 2026-09-16T18:40Z | 7afccef+ | 1.0 | 15 | 0 | sadams |

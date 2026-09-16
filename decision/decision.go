@@ -26,8 +26,9 @@ const (
 	// hand card -- exactly the distinct-index shape Validate already enforces
 	// for KTriggerOrder, so no new wire format is needed (Ruling U2).
 	KMulligan Kind = "mulligan"
-	// KModes is a modal pick: Min == Max == CharmNum$ (default 1) over one
-	// "mode" option per Choices$ sub-ability, in Choices$ order. Spell modes
+	// KModes is a modal pick: MinCharmNum$ (default CharmNum$) through
+	// CharmNum$ (default 1) over one "mode" option per Choices$ sub-ability,
+	// in Choices$ order. Spell modes
 	// are announced during casting (CR 601.2b), trigger modes at placement
 	// (CR 603.3c), while nested Charm and unless-pay asks may suspend
 	// resolution. handleModes records ModeChosen; ResumeKind and the trigger
@@ -81,15 +82,17 @@ const (
 	// The wire shape is the same as every other decision; only the vocabulary
 	// of Option.Kind is new.
 	KChoose Kind = "choose"
-	// KReplacement is CR 616.1's order choice: two or more replacement effects
-	// are trying to modify the way one event affects an object, and the
-	// affected player (the controller of the affected object) chooses the
-	// order in which they apply. Min == Max == 1 over one option per
-	// competing replacement, in the deterministic scan order the engine
-	// found them in; each option's Kind is "replacement" and its Obj is the
-	// source permanent that owns that replacement. Posed BEFORE anything
-	// relocates (the modified event is parked), so answering never sees the
-	// object already moved.
+	// KReplacement is a choice about applying a replacement effect. For CR
+	// 616.1 competition it is Min == Max == 1 over the currently applicable
+	// replacements, in deterministic scan order; the affected player chooses
+	// which applies next, each option has Kind "replacement", and Obj names
+	// its source permanent. The event is parked, and applicability is checked
+	// again after each rewrite. A choice-valued mana replacement then uses five
+	// Kind "mana" options labelled Add W/U/B/R/G while that ManaAdd remains
+	// parked. BeginPhase competition uses the same replacement options; after
+	// an Optional$ effect is selected, options "apply" and "decline" ask
+	// whether it gets its opportunity. A decline continues through every
+	// remaining applicable phase replacement before the StepChange is logged.
 	KReplacement Kind = "replacement"
 	// KArrange is the ordered-subset ask a library-arranging effect poses
 	// (Ruling J0): the engine offers N cards, and the answer is an ordered
@@ -139,6 +142,15 @@ type Option struct {
 	// mirrors Obj: an ObjID of 0 means "no object", so an option that has
 	// no attacker (any non-block option) emits no field.
 	Attacker state.ObjID `json:"attacker,omitempty"`
+	// Required marks an attacker option whose creature MUST attack this
+	// combat (CR 508.1d): a goaded creature (CR 701.38) or one under an
+	// unconditional MustAttack static. A rules-ignorant client needs the
+	// flag because the engine REJECTS a declaration that omits a required
+	// creature it could have included (validateAttackDeclaration) -- an
+	// omission that looks legal on the wire otherwise. omitempty: a
+	// non-required option emits no field, so every existing option list
+	// serialises byte-identically.
+	Required bool `json:"required,omitempty"`
 	// Group is an exclusivity marker: two options carrying the SAME non-empty
 	// Group are mutually exclusive, and at most one of them may be selected
 	// in a single answer. The whole contract is that sentence -- it says
@@ -181,6 +193,14 @@ type Option struct {
 	// options carry no field, and on an ability option a missing field is
 	// index 0 (the first ability), the one value that omits.
 	Ability int `json:"ability,omitempty"`
+	// SVar anchors a "granted" option (rules/speed.go, the kw:Start your
+	// engines max-speed static's AddAbility$): the SVar name on the source
+	// face whose AB the activation resolves through. A granted ability is
+	// not a Face().Abilities index (the ordinary "ability" anchor), so it
+	// carries the name instead; beginGrantedActivation re-resolves it, so a
+	// stale name degrades to a no-op. omitempty: only granted options carry
+	// it.
+	SVar string `json:"svar,omitempty"`
 	// Grant is server-side only (json:"-") and present only on an "ability"
 	// option whose whole activation is a PURE, IDEMPOTENT keyword grant (the
 	// ability adds one or more keywords and nothing additive -- no
@@ -264,7 +284,8 @@ type Decision struct {
 	// TargetEffect is host-independent targeting context. It is absent on
 	// other decision kinds and on older servers; absent means unknown.
 	TargetEffect *TargetEffect `json:"target_effect,omitempty"`
-	// ResumeKind, ResumeSA, ResumeModes and ResumeTarget are server-side only.
+	// ResumeKind, ResumeSA, ResumeModes, ResumeTarget, ResumeChoices and
+	// ResumeRemembered are server-side only.
 	// ResumeKind selects a cast/placement/resolution continuation ("cast_modes",
 	// "modes", "unless_pay", "discard", "arrange", "search", "dig"); ResumeSA
 	// names the exact sub-ability involved. ResumeModes maps a filtered cast-time
@@ -279,6 +300,21 @@ type Decision struct {
 	ResumeSA     *cards.SA `json:"-"`
 	ResumeModes  []string  `json:"-"`
 	ResumeTarget int       `json:"-"`
+	// Rolls is engine-internal context for the one KChoose that asks a
+	// player to choose among ALREADY-ROLLED dice (effects/dice.go's
+	// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the per-die results
+	// the asking first pass rolled, in roll order, so a rules-side resume
+	// point can carry them across the suspension and publish chosen/other
+	// without re-rolling (a re-roll would both re-draw the seeded generator
+	// and make the choice answer a different question). Each "roll" option's
+	// Index names a slot in this slice. Server-side only (json:"-"): a
+	// replay re-derives the same rolls from the same seeded draws.
+	Rolls []int32 `json:"-"`
+	// ResumeChoices carries selections completed by earlier per-player choice
+	// asks. It is runtime continuation state, never client input.
+	ResumeChoices     []state.Target `json:"-"`
+	ResumeChosenValid bool           `json:"-"`
+	ResumeRemembered  []state.Target `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,

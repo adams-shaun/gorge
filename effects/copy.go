@@ -94,6 +94,10 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 				if len(c.Targets) > 0 {
 					payer = PlayerOf(h, c, c.Targets[0])
 				}
+			case "TriggeredCardController":
+				if p, ok := TriggeredCardController(h.Game(), c.TriggerContext, c.Remembered); ok {
+					payer = p
+				}
 			}
 			cost := strings.TrimSpace(sa.Params["UnlessCost"])
 			var prompt, payLabel, declineLabel string
@@ -114,12 +118,14 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 					{Index: 0, Kind: "mode", Label: payLabel, Obj: c.Source, Player: payer},
 					{Index: 1, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},
 				}}
-			if h.Ask(d) {
+			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters this effect.
 			}
 			// Fuzz/no-engine host: the deterministic decline (R-9). A
 			// SWITCHED shape declines to nothing; an UNSWITCHED shape's
 			// deterministic decline is the copy path, so it falls through.
+			// (AskEmpty is unreachable by construction -- Min == Max == 1 over
+			// two options -- but the shared helper owns the guard either way.)
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "may pay declined (UnlessCost not asked on this host)"})
 			if switched {

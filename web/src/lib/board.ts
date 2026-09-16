@@ -67,6 +67,8 @@ export function attachedTo(cards: CardView[], host: number): CardView[] {
 /** A stack is one group of interchangeable permanents: everything a player would act on matches, so one tile with a count stands in for all of them. `key` is the deterministic identity the group was built from; cards are the members, id-sorted. A group of one is still a group — the caller renders it exactly like a single permanent. */
 export interface CardStackGroup {
   key: string;
+  /** render is the keyed-each LIFECYCLE key for the group's tile — the stable identity of the group's visible lead object (its first member, cards[0]) — deliberately distinct from `key`, the stacking-equivalence string. Two names on purpose: `key` must change whenever any visible state changes (that is how unlike permanents stay in separate piles), but a DOM key that changes unmounts the tile and destroys its local hover state, so a permanent that merely untapped or stopped attacking lost its open inspector (fb-20260915T182335Z). Object ids are unique across a battlefield, so the lead id is unique within its row; it changes exactly when the described object stops being rendered (it leaves the battlefield, hides behind a new pile lead, or is replaced), which is where closing the inspector is correct. */
+  render: string;
   cards: CardView[];
 }
 
@@ -120,13 +122,13 @@ export function stackIdentical(cards: CardView[]): CardStackGroup[] {
   const groups: CardStackGroup[] = [];
   for (const [key, cs] of byKey) {
     cs.sort((a, b) => a.id - b.id);
-    groups.push({ key, cards: cs });
+    groups.push({ key, render: 'r' + cs[0].id, cards: cs });
   }
   // A permanent that may not merge stays its own group of one, keyed by its
   // id so it can never collide with an identity key.
   for (const c of cards) {
     if (mergeable(c)) continue;
-    groups.push({ key: '#' + c.id, cards: [c] });
+    groups.push({ key: '#' + c.id, render: 'r' + c.id, cards: [c] });
   }
   groups.sort((a, b) => a.cards[0].id - b.cards[0].id);
   return groups;

@@ -55,6 +55,15 @@ type ContinuousEffect struct {
 	HasSet                 bool
 	AddKeywords            []string
 	AddTypes               []string
+	// AddAbilities is a layer-6 ability GRANT (CR 613.1f): the SVar names --
+	// on the SOURCE object's own face -- of the AB$ activated abilities the
+	// affected object gains for the effect's lifetime. Written only by the
+	// continuous-effect primitives (effects' Animate Abilities$), read only
+	// by rules' offer/activation paths (legal.go's grantedAbilities), never
+	// by the CR 613 layer sorter itself: the grant contributes no
+	// characteristic, it contributes an activation surface. Empty on every
+	// effect that grants none.
+	AddAbilities []string
 
 	// Restriction carries an Effect-created S: mode (CantTarget,
 	// CantRegenerate) rather than a layer change. When non-empty the effect is
@@ -89,11 +98,35 @@ type ContinuousEffect struct {
 	// source-leaves rule. Set only by the continuous-effect primitives that
 	// build a lasting one-shot (effects/combatfx.go).
 	Permanent bool
+	// ReplacementEvent/ReplacementParams/ReplacementBody describe an Effect-created
+	// replacement (for example Blood of the Martyr). They are deliberately plain
+	// data rather than cards types: state sits below cards' parsed SA graph.
+	// Rules reconstructs the body at application time under the original source's
+	// SVar context. An empty ReplacementEvent is not a replacement effect.
+	ReplacementEvent  string
+	ReplacementParams map[string]string
+	ReplacementBody   string
 	// RemoveAbilities is a layer-6 ability-removing effect (CR 613.1f/613.4b,
 	// e.g. Humility's RemoveAllAbilities$ True): when an applicable effect
 	// carries it, Derived clears the object's printed (and any earlier-granted)
 	// keywords/abilities before later layer-6 grants re-add any.
 	RemoveAbilities bool
+	// MayPlay marks a may-play-from-zone grant (CR 401.5: "you may play
+	// cards of a certain kind from a zone other than the one they would
+	// normally be played from", e.g. Conduit of Worlds' "You may play lands
+	// from your graveyard."). Registered from an S:Mode$ Continuous static
+	// that carries MayPlay$ True, alongside the Affects filter (the Affected$
+	// spec, the effect's ordinary filter field) and AffectedZone. When set
+	// the effect is a rules-mod consulted by the land-play offer (rules'
+	// mayPlayLandIds), never a CR 613 layer change -- no layer fields are
+	// read for it -- and it expires with its source permanent (CR 611.3b)
+	// through the ordinary source-on-battlefield check in active().
+	MayPlay bool
+	// AffectedZone is the may-play grant's AffectedZone$ value (a single
+	// zone, a comma-separated list, or "All"), interpreted with
+	// effects.ParseZones. Meaningful only when MayPlay is set.
+	AffectedZone string
+
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn
 	// (UntilYourNextTurn, UntilTheEndOfYourNextTurn). Computed at

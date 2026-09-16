@@ -97,6 +97,18 @@ func (m *match) snapshotGenesis() {
 // (viewat_test pins that) and lets a finished match served from files
 // answer ViewAt without persisting bounds.
 //
+// EXCEPT at a burst's own tail (fb-20260915T094418Z): a Submit whose
+// post-ask continuation — the SBA pass and step handler a mid-burst ask
+// does not stop — emits events leaves the recording carrying events past
+// its last DecisionAsk that belong to the SAME burst. Those tail events
+// get no boundary of their own: bounds keeps marking the ask boundaries,
+// and the readers that walk past the last boundary serve the tail from the
+// replayed engine's own overshoot state (viewat.go's got > bounds[j]
+// branch, which verifies the tail against the recording) rather than from
+// a boundary. On the file path readLog's reconcileLog still trims the tail
+// at load (the crash-cut protection) and matchForLog re-admits a
+// chain-verified one.
+//
 // A tail past the last DecisionAsk is a real, complete final boundary only
 // when it ends in GameOver: Advance stops asking once the game is over, so
 // a naturally finished log's last burst has no trailing ask (fix round 1,

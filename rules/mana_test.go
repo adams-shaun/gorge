@@ -267,15 +267,15 @@ func TestNumericTokenValidation(t *testing.T) {
 
 func TestParseCostNonManaParts(t *testing.T) {
 	c := ParseCost("2 C Sac<1/Land>")
-	if c.Generic != 2 || c.Colored[state.MC] != 1 || len(c.Sac) != 1 || c.Sac[0] != (CostPart{1, "Land"}) {
+	if c.Generic != 2 || c.Colored[state.MC] != 1 || len(c.Sac) != 1 || c.Sac[0] != (CostPart{N: 1, Spec: "Land"}) {
 		t.Fatalf("%+v", c)
 	}
 	c = ParseCost("SubCounter<2/P1P1>")
-	if c.CMC() != 0 || len(c.SubCounter) != 1 || c.SubCounter[0] != (CostPart{2, "P1P1"}) || !c.HasNonMana() {
+	if c.CMC() != 0 || len(c.SubCounter) != 1 || c.SubCounter[0] != (CostPart{N: 2, Spec: "P1P1"}) || !c.HasNonMana() {
 		t.Fatalf("%+v", c)
 	}
 	c = ParseCost("Sac<1/CARDNAME> Discard<0/Hand> Discard<2/Card.nonLand/nonland cards>")
-	if c.Generic != 0 || len(c.Discard) != 2 || c.Discard[0] != (CostPart{0, "Hand"}) || c.Discard[1] != (CostPart{2, "Card.nonLand"}) || !c.HasNonMana() {
+	if c.Generic != 0 || len(c.Discard) != 2 || c.Discard[0] != (CostPart{N: 0, Spec: "Hand"}) || c.Discard[1] != (CostPart{N: 2, Spec: "Card.nonLand"}) || !c.HasNonMana() {
 		t.Fatalf("discard cost parsed as %+v", c)
 	}
 	c = ParseCost("T")

@@ -15,14 +15,23 @@ import (
 // active player, a damage recipient and a damage source are not interchangeable.
 // Unsupported/ambiguous event roles stay absent rather than guessing.
 type TriggerContext struct {
-	TriggerTarget    state.Target
-	TriggerSource    state.ObjID
+	TriggerTarget state.Target
+	TriggerSource state.ObjID
+	// TriggerStack is the actual spell/ability object that caused a targeting
+	// event. Unlike TriggerSource it is not unwrapped to its source permanent,
+	// because Ward must counter that stack object itself.
+	TriggerStack     state.ObjID
 	DefendingPlayer  state.Target
 	TriggerPlayer    state.Target
 	TriggerCard      state.ObjID
 	AttackingPlayer  state.Target
 	AttackedTarget   state.Target
 	TriggerActivator state.Target
+	// TriggerCardController is the controller the triggering card had as it
+	// LEFT the battlefield (CR 603.10a), recorded when the trigger fires and
+	// carried with the ability onto the stack. It is absent for every other
+	// event: an entering or cast card's controller is its current one.
+	TriggerCardController state.Target
 	// TriggerAmount is the magnitude the causing event carried -- the Damage
 	// event's dealt-damage amount for a DamageDone/DamageDealtOnce trigger,
 	// etc. It is what the TriggerCount$ heads (DamageAmount, LifeAmount,
@@ -31,6 +40,38 @@ type TriggerContext struct {
 	// and survives to resolution through the per-stack-instance
 	// triggerContexts map. Zero when the causing event carried no amount.
 	TriggerAmount int32
+	// TriggerPaidX snapshots the paid X of TriggerCard when this trigger
+	// matched. CR 107.3m binds that value at trigger time: it must survive if
+	// the card later leaves the stack or battlefield before the ability
+	// resolves. Zero is both a valid paid value and the value for a triggering
+	// card with no paid X.
+	TriggerPaidX int32
+}
+
+// TriggeredCardController is the one resolver for "that card's controller"
+// in a trigger -- Defined$, OptionalDecider$, UnlessPayer$ and the targeting
+// restriction all read it here. A card that left the battlefield is referred
+// to as it last existed there (CR 603.10a): a stolen creature that dies is its
+// taker's, although the move has already returned it to its owner. Otherwise
+// it is the triggering card's current controller, the card being TriggerCard
+// or, for a mode that records none, the first object the trigger remembered.
+func TriggeredCardController(g *state.Game, tc TriggerContext, remembered []state.Target) (state.PlayerID, bool) {
+	if tc.TriggerCardController.IsPlayer {
+		return tc.TriggerCardController.Player, true
+	}
+	card := tc.TriggerCard
+	if card == 0 {
+		for _, t := range remembered {
+			if !t.IsPlayer {
+				card = t.Obj
+				break
+			}
+		}
+	}
+	if o := g.Obj(card); o != nil {
+		return o.Controller, true
+	}
+	return 0, false
 }
 
 // controlReferent is the single classifier for the two-token ownership and
@@ -44,7 +85,8 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	}
 	switch ref {
 	case "TriggeredTarget", "TriggeredDefendingPlayer", "TriggeredPlayer", "TriggeredCard",
-		"Targeted", "TargetedPlayer", "ThisTargetedPlayer", "TargetedController", "TargetedOrController":
+		"Targeted", "TargetedPlayer", "ThisTargetedPlayer", "TargetedController", "TargetedOrController",
+		"Remembered":
 		return op, ref, true
 	}
 	return "", "", false
@@ -73,12 +115,31 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 	case "TriggeredPlayer":
 		targets = []state.Target{sc.TriggerPlayer}
 	case "TriggeredCard":
+		// "Controlled by the triggering card's controller": the card's
+		// last-known controller when it left the battlefield (CR 603.10a).
+		if op == "ControlledBy" && sc.TriggerCardController.IsPlayer {
+			targets = []state.Target{sc.TriggerCardController}
+			break
+		}
 		targets = []state.Target{{Obj: sc.TriggerCard}}
 	case "Targeted", "TargetedPlayer", "ThisTargetedPlayer", "TargetedController", "TargetedOrController":
 		if !sc.Resolving {
 			return nil, false
 		}
 		targets = sc.ResolutionTargets
+	case "Remembered", "RememberedPlayer":
+		// Resolution-only, like Targeted*: the objects/players this
+		// resolution remembers -- a RepeatEach loop's current subject.
+		// RememberedPlayer (RememberedPlayerCtrl's referent) admits only
+		// player entries.
+		if !sc.Resolving {
+			return nil, false
+		}
+		for _, t := range sc.Remembered {
+			if t.IsPlayer || ref == "Remembered" {
+				targets = append(targets, t)
+			}
+		}
 	default:
 		return nil, false
 	}
@@ -164,6 +225,28 @@ func matchTargetedPlayerCtrl(g *state.Game, o *state.Object, sc SpecContext) (bo
 // that the old MatchesSpecFrom call sites did not have. That grammar is
 // independent of trigger provenance.
 func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
-	return SpecContext{You: you, Source: c.Source, TriggerContext: c.TriggerContext,
-		ResolutionTargets: c.Targets, Resolving: true}
+	sc := SpecContext{You: you, Source: c.Source, TriggerContext: c.TriggerContext,
+		ResolutionTargets: c.Targets, Remembered: c.Remembered, Chosen: c.Chosen, ChosenValid: c.ChosenValid, Resolving: true}
+	// A DB$ RollDice publication of this same resolution (effects/dice.go) is
+	// the one numeric RHS a resolving filter spec can name that has no static
+	// expression: Valiant Endeavor's Creature.powerGEX (destroy each creature
+	// with power greater than or equal to the CHOSEN roll) and Arcane
+	// Endeavor's Instant.cmcLEY (cast for free up to the OTHER roll) read the
+	// published roll through here. Wired only when a roll published
+	// something, so no card without a roll in its resolution changes filter
+	// behaviour; inside a roll resolution the {X} a publication set and every
+	// published name resolve, everything else stays unresolvable (the
+	// recognised-shape-never-matches contract).
+	if c.LastRollName != "" || len(c.RollPubs) > 0 {
+		sc.Resolve = func(name string) (int32, bool) {
+			if v, ok := rollPublished(c, name); ok {
+				return v, true
+			}
+			if name == "X" {
+				return c.X, true
+			}
+			return 0, false
+		}
+	}
+	return sc
 }

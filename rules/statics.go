@@ -12,6 +12,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -237,6 +238,153 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 		return Cost{}
 	}
 	return e.costModifiers(p, id, spellScope("")).apply(ParseCost(o.Face().ManaCost))
+}
+
+// castWithFlash reports whether an active CastWithFlash static gives p
+// permission to cast id at instant speed. It is intentionally shared by every
+// zone that can cast a spell; a Vedalken Orrery must not stop working when a
+// later alternative permits casting from another zone.
+func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
+	for _, sv := range e.activeStatics("CastWithFlash") {
+		if !e.actorMatches(sv, "Caster", p) || !e.staticTimingGate(sv) {
+			continue
+		}
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil || !spellMatchesValidSA(o.Face(), sv.Params["ValidSA"]) {
+			continue
+		}
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+			return true
+		}
+	}
+	return false
+}
+
+// presentGate evaluates one IsPresent spec against PresentCompare (default
+// GE1); staticTimingGate fails closed when either present gate does not hold.
+func (e *Engine) presentGate(sv staticView, spec string) bool {
+	n := e.countStaticPresent(sv, spec)
+	cmp := sv.Params["PresentCompare"]
+	if cmp == "" {
+		cmp = "GE1"
+	}
+	return comparePresent(n, cmp)
+}
+
+// staticTimingGate evaluates the static conditions that can decide whether a
+// CastWithFlash permission exists before a spell is announced. An unknown
+// gate fails closed: granting instant timing without proving the script's
+// condition would permit an illegal cast.
+func (e *Engine) staticTimingGate(sv staticView) bool {
+	if spec, ok := sv.Params["IsPresent"]; ok && !e.presentGate(sv, spec) {
+		return false
+	}
+	if spec, ok := sv.Params["IsPresent2"]; ok && !e.presentGate(sv, spec) {
+		return false
+	}
+	if name, ok := sv.Params["CheckSVar"]; ok {
+		o := e.G.Obj(sv.Source)
+		if o == nil || o.Face() == nil {
+			return false
+		}
+		body, ok := o.Face().SVars[name]
+		if !ok {
+			return false
+		}
+		cmp := sv.Params["SVarCompare"]
+		if cmp == "" || !comparePresent(int(effects.EvalCount(e, &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: o.Face().SVars}, body)), cmp) {
+			return false
+		}
+	}
+	switch strings.TrimSpace(sv.Params["Condition"]) {
+	case "", "PlayerTurn":
+		if sv.Params["Condition"] == "PlayerTurn" && e.G.Active != sv.Controller {
+			return false
+		}
+	case "Ferocious":
+		found := false
+		for _, id := range e.G.Zone(state.ZBattlefield, sv.Controller) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsCreature() && e.Derived(id).Power >= 4 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	default:
+		return false
+	}
+	if phase := strings.TrimSpace(sv.Params["Phases"]); phase != "" && !(strings.Contains(phase, "End of Turn") && e.G.Step == state.StepEnd) {
+		return false
+	}
+	if turn := strings.TrimSpace(sv.Params["PlayerTurn"]); turn != "" {
+		switch turn {
+		case "Opponent":
+			if e.G.Active == sv.Controller {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func (e *Engine) countStaticPresent(sv staticView, spec string) int {
+	zone := strings.TrimSpace(sv.Params["PresentZone"])
+	if zone == "" || zone == "Battlefield" {
+		return e.countPresent(spec, sv.Source, sv.Controller)
+	}
+	var want state.Zone
+	switch zone {
+	case "Graveyard":
+		want = state.ZGraveyard
+	default:
+		return 0
+	}
+	n := 0
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o != nil && o.Zone == want && effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			n++
+		}
+	})
+	return n
+}
+
+// spellMatchesValidSA checks the spell-side subset of Forge's ValidSA grammar.
+// Activated-only or target/X-dependent constraints are not knowable before
+// announcing a spell and therefore do not accidentally grant flash timing.
+func spellMatchesValidSA(f *cards.Face, raw string) bool {
+	if strings.TrimSpace(raw) == "" {
+		return true
+	}
+	for _, alt := range strings.Split(raw, ",") {
+		kind, constraint, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		switch kind {
+		case "Spell":
+			if constraint == "" {
+				return true
+			}
+		case "Instant":
+			if constraint == "" && f.IsInstant() {
+				return true
+			}
+		case "Sorcery":
+			if constraint == "" && f.IsSorcery() {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// spellTimingOK is the one timing predicate for every zone which offers a
+// spell cast. CastWithFlash is a permission, not a hand-only property: it
+// also applies to Flashback, Harmonize, and command-zone casts.
+func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, sorcery bool) bool {
+	return sorcery || (f != nil && (f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)))
 }
 
 // alternativeCosts lists extra ways to cast id, each becoming its own
@@ -1160,9 +1308,9 @@ func parseAmount(s string, def int32) int32 {
 }
 
 func init() {
-	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost",
+	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost", "stat:CastWithFlash",
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:CantBlock", "stat:CantBlockBy",
-		"stat:Continuous")
+		"stat:CantGainLife", "stat:Continuous", "stat:NumLoyaltyAct")
 }
 
 // altCostLabel names the nth (0-indexed) alternative-cost option for a
@@ -1173,4 +1321,196 @@ func altCostLabel(name string, i int) string {
 		return "Cast " + name + " (alternative cost)"
 	}
 	return fmt.Sprintf("Cast %s (alternative cost %d)", name, i+1)
+}
+
+// panharmoniconEchoes reports how many ADDITIONAL trigger placements the
+// battlefield's stat:Panharmonicon statics demand for the trigger the EVENT
+// ev just caused on source object src (CR 702.109: "that ability triggers an
+// additional time"). One echo per matching static, in activeStatics'
+// deterministic scan order (which never matters here -- the echoes are summed
+// -- but keeps the call off any map range).
+//
+// A static must match the triggering CAUSE, not just the triggering
+// permanent, before it doubles anything. The gate reads the corpus's own
+// parameter set, each optional, every one present needing to match:
+//
+//   - ValidMode$: the comma-separated Forge event-mode family the causing
+//     event belongs to (panharmoniconModes); a static naming modes the event
+//     is not in contributes nothing.
+//   - ValidCause$: the event's causing OBJECT -- the moved/cast card for a
+//     zone change or cast, the single attacker of a one-attacker declare
+//     (a multi-attacker event has no singular cause and fails closed, the
+//     same convention triggerReferents' Attacks case applies) -- matched as
+//     a filter spec. Origin$/Destination$ scope a ChangesZone cause to the
+//     move's own zones exactly as the trigger grammar does.
+//   - ValidSource$: the in-flight damage source (e.damaging -- combat
+//     damage's dealing creature; absent for any other event), a filter spec.
+//   - ValidTarget$: the event's target -- the damage recipient (object or
+//     player, whichever the event carries) or the BecomesTarget-ed object
+//     (the trigger's own source), a filter spec or player spec.
+//   - ValidActivator$: the cast's player, a player spec.
+//   - ValidPlayer$: the event's player (the life gainer, the drawing
+//     player), a player spec.
+//   - CombatDamage$ True: the in-flight damage must be the combat damage
+//     step's own assignment (the combatDamaging flag); False is the default
+//     and matches either.
+//
+// ValidZone$ (Echoes of Eternity's "Battlefield,Stack") is honoured as a
+// filter on the triggering object's own zone; a static naming zones the
+// object is not in contributes nothing. A static with no ValidCard$
+// contributes nothing rather than matching everything -- a Panharmonicon
+// static that does not say WHAT it doubles is a script defect this build
+// will not paper over by doubling every trigger on the board. Params this
+// build cannot evaluate (IsPresent/PresentCompare, Condition, ValidTurned --
+// there is no TurnFaceUp event) fail closed: the static does not double,
+// never over-applies.
+func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.Event) int {
+	o := g.Obj(src)
+	if o == nil {
+		return 0
+	}
+	modes := panharmoniconModes(ev)
+	n := 0
+	for _, sv := range e.activeStatics("Panharmonicon") {
+		if vm := sv.Params["ValidMode"]; vm != "" {
+			ok := false
+			for _, want := range strings.Split(vm, ",") {
+				want = strings.TrimSpace(want)
+				for _, have := range modes {
+					if want == have {
+						ok = true
+						break
+					}
+				}
+				if ok {
+					break
+				}
+			}
+			if !ok {
+				continue
+			}
+		}
+		if vz := sv.Params["ValidZone"]; vz != "" {
+			zones, all, valid := effects.ParseZones(vz)
+			ok := false
+			if valid || all {
+				for _, z := range zones {
+					if z == o.Zone {
+						ok = true
+						break
+					}
+				}
+			}
+			if !ok {
+				continue
+			}
+		}
+		// ValidCause$: the causing object per event family. A zone change or
+		// cast's cause is the moved/cast card; an attack's is the single
+		// declared attacker (a multi-attacker event has no singular cause);
+		// a damage event's cause is not modelled -- fail closed.
+		if spec := sv.Params["ValidCause"]; spec != "" {
+			cause := state.ObjID(0)
+			switch ev.Kind {
+			case events.MoveZone, events.Draw, events.PutOnStack:
+				cause = ev.Obj
+			case events.DeclareAttackers:
+				if len(ev.IDs) == 1 {
+					cause = ev.IDs[0]
+				}
+			}
+			if cause == 0 || !effects.MatchesSpecFrom(g, spec, cause, sv.Controller, sv.Source) {
+				continue
+			}
+		}
+		if sv.Params["Origin"] != "" && effects.ParseZone(sv.Params["Origin"]) != ev.From {
+			continue
+		}
+		if sv.Params["Destination"] != "" && effects.ParseZone(sv.Params["Destination"]) != ev.To {
+			continue
+		}
+		if spec := sv.Params["ValidSource"]; spec != "" {
+			if ev.Kind != events.Damage || e.damaging == 0 ||
+				!effects.MatchesSpecFrom(g, spec, e.damaging, sv.Controller, sv.Source) {
+				continue
+			}
+		}
+		if spec := sv.Params["ValidTarget"]; spec != "" {
+			switch {
+			case ev.Kind == events.Damage && ev.Obj != 0:
+				if !effects.MatchesSpecFrom(g, spec, ev.Obj, sv.Controller, sv.Source) {
+					continue
+				}
+			case ev.Kind == events.Damage:
+				if !effects.MatchesPlayerSpec(g, spec, ev.Player, sv.Controller) {
+					continue
+				}
+			case ev.Kind == events.TargetsChosen:
+				// The BecomesTarget-ed object is the trigger's own source.
+				if !effects.MatchesSpecFrom(g, spec, src, sv.Controller, sv.Source) {
+					continue
+				}
+			default:
+				continue
+			}
+		}
+		if spec := sv.Params["ValidActivator"]; spec != "" {
+			if ev.Kind != events.PutOnStack || !effects.MatchesPlayerSpec(g, spec, ev.Player, sv.Controller) {
+				continue
+			}
+		}
+		if spec := sv.Params["ValidPlayer"]; spec != "" {
+			if (ev.Kind != events.LifeChange && ev.Kind != events.Draw) ||
+				!effects.MatchesPlayerSpec(g, spec, ev.Player, sv.Controller) {
+				continue
+			}
+		}
+		if sv.Params["CombatDamage"] == "True" && !(ev.Kind == events.Damage && e.combatDamaging) {
+			continue
+		}
+		spec := sv.Params["ValidCard"]
+		if spec == "" {
+			continue
+		}
+		if effects.MatchesSpecFrom(g, spec, src, sv.Controller, sv.Source) {
+			n++
+		}
+	}
+	return n
+}
+
+// panharmoniconModes maps the folded causing event to the Forge trigger-mode
+// family it can serve as a triggering event for -- the same event-to-mode
+// correspondence trigger_match.go's per-mode matchers test one mode at a
+// time, stated once here for a ValidMode$ list to check against. A MoveZone
+// with the card played from hand also serves LandPlayed (landPlayedMatches
+// matches the same event), the way the corpus spells multi-family statics.
+func panharmoniconModes(ev events.Event) []string {
+	switch ev.Kind {
+	case events.MoveZone:
+		out := []string{"ChangesZone", "ChangesZoneAll"}
+		if ev.From == state.ZHand && ev.To == state.ZBattlefield {
+			out = append(out, "LandPlayed")
+		}
+		return out
+	case events.Draw:
+		return []string{"Drawn"}
+	case events.PutOnStack:
+		return []string{"SpellCast", "SpellCastOrCopy"}
+	case events.StackCopy:
+		return []string{"SpellCopy", "SpellCastOrCopy"}
+	case events.DeclareAttackers:
+		return []string{"Attacks", "AttackersDeclared", "AttackersDeclaredOneTarget"}
+	case events.Damage:
+		return []string{"DamageDone", "DamageDealtOnce", "DamageDoneOnce", "DamageAll"}
+	case events.TargetsChosen:
+		return []string{"BecomesTarget", "BecomesTargetOnce"}
+	case events.LifeChange:
+		if ev.Amount > 0 {
+			return []string{"LifeGained"}
+		}
+		return []string{"LifeLost"}
+	default:
+		return nil
+	}
 }

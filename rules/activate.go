@@ -27,6 +27,13 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	if o == nil {
 		return
 	}
+	if opt.SVar != "" {
+		// A granted ability (rules/legal.go's AddAbilities offer) anchors on
+		// the SVar name, never a face index -- the same anchor the max-speed
+		// "granted" option carries, resolved through the same flow.
+		e.beginGrantedActivation(p, opt)
+		return
+	}
 	f := o.Face()
 	if f == nil || opt.Ability < 0 || opt.Ability >= len(f.Abilities) {
 		return
