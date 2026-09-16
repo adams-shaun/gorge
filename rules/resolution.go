@@ -473,6 +473,35 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 				break
 			}
+			// Sacrifice's damage-payment offer (Vexing Devil's UnlessCost$
+			// DamageYou<4>, UnlessPayer$ Opponent, UnlessSwitched$ True):
+			// "paying" is TAKING THE DAMAGE, which the mana path below cannot
+			// express — ParseCost silently substitutes an unknown spelling for
+			// a flat {1} and would charge one floating mana for four damage.
+			// Payment happens HERE, in rules (the same split that owns
+			// payMana's events): the accepting opponent's Damage event is
+			// emitted from the offering permanent, and the answered
+			// UnlessPay re-enters effSacrifice, which then sacrifices (the
+			// switched orientation: paying CAUSES the sacrifice). The resume
+			// point's target cursor travels with the answer so the effect can
+			// offer the next opponent after a decline.
+			if rp.sa.API == "Sacrifice" {
+				if n, dmg := effects.ParseDamageUnlessCost(rp.sa.Params["UnlessCost"]); dmg {
+					if len(chosen) > 0 && chosen[0].Index == 0 {
+						e.payUnlessDamageCost(ctx, chosen[0].Player, n)
+						ctx.UnlessPay = "pay"
+					} else {
+						ctx.UnlessPay = "decline"
+					}
+					ctx.UnlessPayTarget = rp.target
+					break
+				}
+				// A plain-mana UnlessCost$ (the echo / cumulative-upkeep
+				// family) falls through to the shared mana path below, exactly
+				// like a Counter's: paid spares the permanent, decline
+				// sacrifices it. The unimplemented non-mana shapes never
+				// reach the ask, so they never reach this arm.
+			}
 			// The payer agreed to pay (option 0 is "Pay … — make a copy") or
 			// not. Payment happens HERE, in rules, because payMana owns the
 			// cost grammar and emits the ManaAdd events — so a replay
@@ -948,6 +977,39 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 	e.ensureLeftTheStack(id, rest, "a replacement fully discarded this resolved "+
 		"spell's own move off the stack without relocating it anywhere; sent to its "+
 		"resting zone instead of re-resolving forever")
+}
+
+// payUnlessDamageCost lands the damage an accepting opponent chose to take
+// from Sacrifice's damage-payment offer (Vexing Devil's "any opponent may
+// have it deal 4 damage to them"). rules owns payment events, so the Damage
+// event is emitted here — never in effects — exactly the split payMana's
+// ManaAdd events already follow. The source is the offering permanent (the
+// resolving ability object unwrapped to its source, the same rule
+// effects.resolveSourceObject applies), published through SetDamageSource so
+// the emit-side protection check (CR 702.16d) and DamageDone trigger
+// matching see the real source, and the lifelink rider (CR 702.15a) is paid
+// for its controller when the hit actually landed (a prevention or other
+// replacement that substituted the event pays no life, the same gate
+// rules/combat.go's rider uses).
+func (e *Engine) payUnlessDamageCost(ctx *effects.Ctx, payer state.PlayerID, n int) {
+	if n <= 0 {
+		return
+	}
+	source := ctx.Source
+	if o := e.G.Obj(source); o != nil && o.Ability != nil && o.Source != 0 {
+		source = o.Source
+	}
+	prev := e.SetDamageSource(source)
+	ev := e.emit(events.Event{Kind: events.Damage, Player: payer, Amount: int32(n)})
+	e.SetDamageSource(prev)
+	if ev.Kind != events.Damage || !e.HasKeyword(source, "Lifelink") {
+		return
+	}
+	controller := ctx.Controller
+	if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+		controller = o.Controller
+	}
+	e.emit(events.Event{Kind: events.LifeChange, Player: controller, Amount: int32(n)})
 }
 
 // bindLoopFrames binds the pending ask and every continuation frame recorded

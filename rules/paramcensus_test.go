@@ -1112,8 +1112,9 @@ var apiSpecificRulesSA = map[string][]string{
 	// reaches these (resumeResolution dispatches on rp.sa.API == "Ward"),
 	// so their UnlessCost$ reads belong to api:Ward alone -- left in the
 	// generic union they would mask every other API's unread UnlessCost$
-	// (measured: api:Tap on Blood Crypt/Hallowed Fountain, api:Sacrifice on
-	// Vexing Devil, api:LoseLife on Torment of Hailfire's shape).
+	// (measured: api:Tap on Blood Crypt/Hallowed Fountain; api:Sacrifice's
+	// UnlessCost$ read moved to the registered effSacrifice gate (vexdev),
+	// so the resume's generic read no longer masks any api:Sacrifice gap).
 	"Engine.beginWardPayment":  {"Ward"},
 	"Engine.settleWardPayment": {"Ward"},
 	// The opening-hand pregame actions: applyOpeningEffect, its delayed-
@@ -1963,7 +1964,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Valkyrie Harbinger":          {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Vampire Lacerator":           {"param:api:LoseLife.ConditionCheckSVar", "param:api:LoseLife.ConditionSVarCompare"},
 	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.ETB", "param:api:PutCounter.MinChoiceAmount"},
-	"Vexing Devil":                {"cost:DamageYou", "param:api:Sacrifice.UnlessCost", "param:api:Sacrifice.UnlessPayer", "param:api:Sacrifice.UnlessSwitched"},
+	"Vexing Devil":                {"cost:DamageYou"},
 	"Vial Smasher the Fierce":     {"param:api:Cleanup.ClearChosenPlayer", "param:trig:SpellCast.ActivatorThisTurnCast"},
 	"Victimize":                   {"param:api:ChangeZone.ConditionCheckSVar", "param:api:ChangeZone.ConditionSVarCompare", "param:api:Cleanup.ClearRemembered"},
 	"Vines of Vastwood":           {"param:api:Effect.ExileOnMoved"},
@@ -2275,7 +2276,7 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 		}
 	}
 	for _, wrong := range []struct{ api, key string }{
-		{"Sacrifice", "Amount"}, {"Sacrifice", "UnlessCost"}, {"Sacrifice", "Produced"},
+		{"Sacrifice", "Amount"}, {"Sacrifice", "Produced"},
 		{"DealDamage", "CharmNum"}, {"DealDamage", "Produced"}, {"ChangeZone", "Amount"},
 	} {
 		if d.api[wrong.api][wrong.key] {
@@ -2283,15 +2284,16 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 		}
 	}
 	// The census-level effect on the real repo decks: every Sacrifice ability
-	// carrying an Amount$ or UnlessCost$ its implementation never reads is now
-	// labelled (previously masked by the Mana/Counter reads).
+	// carrying an Amount$ its implementation never reads is now
+	// labelled (previously masked by the Mana/Counter reads). Vexing Devil's
+	// UnlessCost$/UnlessPayer$/UnlessSwitched$ retired with the vexdev gate,
+	// leaving only the unmodelled DamageYou cost token.
 	for card, label := range map[string]string{
 		"Braids, Arisen Nightmare": "param:api:Sacrifice.Amount",
 		"Phyrexian Obliterator":    "param:api:Sacrifice.Amount",
 		"Planar Engineering":       "param:api:Sacrifice.Amount",
 		"Scapeshift":               "param:api:Sacrifice.Amount",
 		"Meathook Massacre II":     "param:api:Sacrifice.Amount",
-		"Vexing Devil":             "param:api:Sacrifice.UnlessCost",
 	} {
 		found := false
 		for _, l := range res.labels[card] {
