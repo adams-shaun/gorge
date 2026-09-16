@@ -56,7 +56,7 @@ async function geometry(width: number, height: number, seats: number): Promise<G
     // Reading --phase-card-clearance here would mutate the oracle when that
     // implementation token is accidentally set to zero.
     const probe = document.createElement('i');
-    probe.style.cssText = 'position:fixed;width:var(--sp-6);height:0';
+    probe.style.cssText = 'position:fixed;width:var(--sp-1);height:0';
     document.body.append(probe);
     const minimum = probe.getBoundingClientRect().width;
     probe.remove();
@@ -85,6 +85,15 @@ async function geometry(width: number, height: number, seats: number): Promise<G
 }
 
 describe('BoardStage — the phase band is a reserved lane', () => {
+  // The visible row-to-bar gap is the clearance token plus Quadrant's own
+  // content padding (--sp-3, 12px) and the 1px cell padding. It measured
+  // 37px per side at every acceptance viewport and seat count before
+  // fb-20260916T200757Z; the player asked for half of that, so the band may
+  // not regrow past half the measured baseline plus a 3px tolerance
+  // (18.5 + 3 = 21.5px). The lower bound stays the design-system minimum:
+  // the bar must never overlap a card or its clickable area.
+  const HALF_GAP_MAX = 21.5;
+
   it('keeps the named clearance from command-card rows in two- and four-seat layouts at every acceptance viewport', async () => {
     const results: Geometry[] = [];
     for (const [width, height] of [[1440, 900], [1000, 900], [650, 700]]) {
@@ -97,8 +106,10 @@ describe('BoardStage — the phase band is a reserved lane', () => {
       expect.soft(result.band.top + result.band.height / 2, `${result.viewport}, ${result.seats} seats: centred`).toBe(result.stage.top + result.stage.height / 2);
       expect.soft(result.clock.bottom, `${result.viewport}, ${result.seats} seats: tabs attach to clock`).toBe(result.strip.top);
       expect.soft(result.band.height, `${result.viewport}, ${result.seats} seats: reservation includes clock and tabs`).toBe(result.clock.height + result.strip.height);
-      expect.soft(result.clearanceAbove, `${result.viewport}, ${result.seats} seats: above`).toBeGreaterThanOrEqual(result.minimum);
-      expect.soft(result.clearanceBelow, `${result.viewport}, ${result.seats} seats: below`).toBeGreaterThanOrEqual(result.minimum);
+      expect.soft(result.clearanceAbove, `${result.viewport}, ${result.seats} seats: above, at least the spacing floor`).toBeGreaterThanOrEqual(result.minimum);
+      expect.soft(result.clearanceBelow, `${result.viewport}, ${result.seats} seats: below, at least the spacing floor`).toBeGreaterThanOrEqual(result.minimum);
+      expect.soft(result.clearanceAbove, `${result.viewport}, ${result.seats} seats: above, at most half the measured 37px gap`).toBeLessThanOrEqual(HALF_GAP_MAX);
+      expect.soft(result.clearanceBelow, `${result.viewport}, ${result.seats} seats: below, at most half the measured 37px gap`).toBeLessThanOrEqual(HALF_GAP_MAX);
     }
   });
 
