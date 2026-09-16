@@ -1,5 +1,5 @@
 import type { Decision, View } from '../protocol';
-import { castableAfterTap, respondableAfterTap } from './castable';
+import { castablesAfterTap, respondableAfterTap } from './castable';
 import type { OpponentObjectRule, OpponentTriggerRule, PlaySettings, StoppableStep } from './playsettings';
 import { stackYieldKey } from './yields';
 
@@ -109,6 +109,22 @@ export function isActionKind(kind: string): boolean {
 }
 
 /**
+ * actionables is actionable()'s descriptive twin (fb-20260916T225211Z): the
+ * SAME scan, returned as the human labels of what made the window actionable
+ * — an action-kind option's own wire label ("Cast Deadly Rollick (alternative
+ * cost)"), else castablesAfterTap's labels for the float-then-cast shape
+ * ("Cast Lava Spike (after tapping)"). actionable() below is this list's
+ * emptiness test, so a smart step stop and the note that explains it read ONE
+ * predicate by construction: whatever made the stop fire is named here,
+ * verbatim. The two arms are actionable()'s two arms, in the same order.
+ */
+export function actionables(view: View, seat: number, decision: Decision): string[] {
+  const labels = decision.options.filter((o) => isActionKind(o.kind)).map((o) => o.label);
+  if (labels.length > 0) return labels;
+  return castablesAfterTap(view, seat, decision);
+}
+
+/**
  * actionable reports whether a priority decision offers the player a real
  * action. The kind test covers the obvious shapes: an option that is neither
  * pass, concede nor activate (cast, ability, play_land, ...) — isActionKind
@@ -136,14 +152,7 @@ export function isActionKind(kind: string): boolean {
  * wherever the caller's own step rules consult it.
  */
 export function actionable(decision: Decision, view: View, seat: number): boolean {
-  if (decision.options.some((o) => isActionKind(o.kind))) return true;
-  // Mana-only (or pass/concede-only) window: stop-worthy when tapping would
-  // make a hand card castable. A pass/concede-only window never gains
-  // anything here in practice -- if Available were non-zero the engine would
-  // have offered the taps -- but the predicate is a pure read of the view and
-  // costs one hand scan, so one shared test covers both callers without
-  // restating the shape.
-  return castableAfterTap(view, seat, decision);
+  return actionables(view, seat, decision).length > 0;
 }
 
 /**

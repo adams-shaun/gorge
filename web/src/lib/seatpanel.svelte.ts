@@ -1,7 +1,7 @@
 import type { Decision, Intent, Option, View } from '../protocol';
 import { fetchPending, postIntent, ApiError } from './api';
 import type { SeatCtx } from './seat';
-import { STOPPABLE_STEPS, decide, emptyPriorityWindow, isActionKind, type StopReason, type Stops, type TurnSide } from './autopilot';
+import { STOPPABLE_STEPS, actionables, decide, emptyPriorityWindow, isActionKind, type StopReason, type Stops, type TurnSide } from './autopilot';
 import {
   applyPreset,
   defaultSettings,
@@ -224,7 +224,14 @@ export type AutoNote =
   | { kind: 'skipped'; count: number }
   | { kind: 'armed' }
   | { kind: 'passing'; count: number }
-  | { kind: 'waiting'; reason: StopReason }
+  /**
+   * detail (fb-20260916T225211Z) carries the actionable option labels that
+   * made a stop-set window stop-worthy — autoNoteText folds it into the
+   * note text, so the player reads WHAT the window offered, not just that a
+   * stop they set fired. Absent (or empty) for every other reason and for a
+   * 'forced' stop with nothing to do — the base wording is complete there.
+   */
+  | { kind: 'waiting'; reason: StopReason; detail?: string }
   | { kind: 'stopped'; reason: AutoOffReason }
   | { kind: 'end-turn-armed' }
   | { kind: 'end-turn-passing'; count: number }
@@ -289,6 +296,17 @@ export function autoNoteText(note: AutoNote): string {
         ? 'Auto passed 1 priority window.'
         : `Auto passed ${note.count} priority windows.`;
     case 'waiting':
+      // stop-set with actionable labels (fb-20260916T225211Z): the base line
+      // alone read "you set a stop" without saying WHY the window was worth
+      // stopping at — the exact gap the Deadly Rollick free-cast report is
+      // about. The labels come from actionables(), the same predicate the
+      // smart step rule consulted, so the note cannot name something the
+      // stop did not actually stop for. Derived from the base string (the
+      // trailing full stop is dropped, the clause spliced in) so the wording
+      // stays in one place.
+      if (note.reason === 'stop-set' && note.detail) {
+        return `${WAITING_TEXT[note.reason].replace(/\.$/, '')} and you can act — ${note.detail}.`;
+      }
       return WAITING_TEXT[note.reason];
     case 'stopped':
       return OFF_TEXT[note.reason];
@@ -1137,7 +1155,15 @@ export class SeatPanelState {
         this.autoActedSeq = null;
         this.note = runStopNote(mode, verdict.reason);
       } else {
-        this.note = { kind: 'waiting', reason: verdict.reason };
+        // The stop-set note names the actionable option(s) (fb-20260916T225211Z):
+        // a smart step stop fired because this window offered a real play —
+        // say what the play is, so "why did it pause on my own priority" is
+        // answered on the panel. A 'forced' stop with nothing to do, and every
+        // other reason, carry no detail and keep the base wording.
+        const labels = verdict.reason === 'stop-set' ? actionables(view, this.ctx.seat, d) : [];
+        this.note = labels.length > 0
+          ? { kind: 'waiting', reason: verdict.reason, detail: labels.join(', ') }
+          : { kind: 'waiting', reason: verdict.reason };
       }
       return;
     }
