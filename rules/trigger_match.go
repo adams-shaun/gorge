@@ -255,6 +255,9 @@ func (e *Engine) controllerOf(id state.ObjID) state.PlayerID {
 func (e *Engine) checkDelayedTriggers(ev events.Event) {
 	for i := range e.G.Delayed {
 		dt := &e.G.Delayed[i]
+		if dt.EventMode != "" {
+			continue // an event-matched registration fires on its event, never a step
+		}
 		if dt.Phase != ev.Step {
 			continue
 		}
@@ -290,6 +293,107 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 	}
 }
 
+// checkEventDelayedTriggers queues a pending trigger for every event-matched
+// delayed registration (state.Game.Delayed entries with EventMode set) that
+// the event just folded satisfies. A Mode$ Phase registration fires on the
+// step it names (checkDelayedTriggers, above); the opening-hand Effect shape
+// (Chancellor of the Annex) registers Mode$ SpellCast one-off triggers, which
+// fire on a spell's PutOnStack exactly like a face SpellCast trigger. The
+// registration's STORED trigger body (dt.Trigger) is re-parsed at fire time
+// so its validity clauses are evaluated against the actual cast -- the
+// registration is the game state a replay rebuilds, the body is not.
+//
+// "You" inside that body is the REGISTRATION's controller -- the effect owner
+// the registration was minted for, not the source card's controller: the
+// Chancellor's Effect is EffectOwner$ Opponent, so each per-opponent
+// registration fires on that opponent's first cast, which is the oracle's
+// "when each opponent casts their first spell". TriggerZones$ is deliberately
+// not consulted: Forge parks the trigger on a command-zone Effect, while the
+// engine's registration itself is that presence -- the source Chancellor card
+// stays in its hand.
+func (e *Engine) checkEventDelayedTriggers(ev events.Event) {
+	for i := range e.G.Delayed {
+		dt := &e.G.Delayed[i]
+		if dt.EventMode != "SpellCast" {
+			continue
+		}
+		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
+			continue
+		}
+		src := e.G.Obj(dt.Source)
+		if src == nil || src.Face() == nil || dt.Trigger == "" {
+			continue
+		}
+		t, ok := cards.ParseTriggerLine(src.Face().SVars[dt.Trigger])
+		if !ok || t.Mode != "SpellCast" {
+			continue
+		}
+		if !e.eventDelayedSpellCastMatches(t, dt, ev) {
+			continue
+		}
+		if !e.triggerConditionHolds(t, dt.Source) {
+			continue
+		}
+		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
+		if sa == nil {
+			continue
+		}
+		remembered := triggerRemembered(ev, dt.Source)
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     dt.Source,
+			Controller: dt.Controller,
+			Delayed:    true,
+			DelayedID:  dt.ID,
+			Execute:    dt.Execute,
+			SA:         sa,
+			Ctx: effects.Ctx{
+				Source:     dt.Source,
+				Controller: dt.Controller,
+				Remembered: remembered,
+				Captured:   remembered,
+				// The same event-provenance capture the ordinary face
+				// SpellCast path takes (triggerReferents' SpellCast case),
+				// so the fired ability resolves TriggeredActivator/
+				// TriggeredSource exactly as a face trigger would.
+				TriggerContext: e.triggerReferents(t, dt.Source, ev, nil),
+			},
+		})
+	}
+}
+
+// eventDelayedSpellCastMatches is the event-matched registration's validity
+// evaluation, mirroring spellCastMatches' clause grammar (ValidCard$,
+// ValidActivatingPlayer$, PlayerTurn$) with one deliberate difference: the
+// "you" every player clause is measured against is dt.Controller, the
+// registration's effect owner, not the source card's controller (see
+// checkEventDelayedTriggers above).
+func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.DelayedTrigger, ev events.Event) bool {
+	if ev.Kind != events.PutOnStack {
+		return false
+	}
+	// Casting a spell means an actual card entering the stack (Ruling F3,
+	// the same guard spellCastMatches carries).
+	obj := e.G.Obj(ev.Obj)
+	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	if actionTriggerModes[t.Mode] && strings.EqualFold(t.Params["PlayerTurn"], "True") &&
+		e.G.Active != dt.Controller {
+		return false
+	}
+	if v, ok := t.Params["ValidCard"]; ok {
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
+		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, dt.Controller) {
+			return false
+		}
+	}
+	return true
+}
+
 // triggerSnapshot is immutable look-back state. Parked replacement choices
 // may retain it across intent/Clone boundaries; each matching walk constructs
 // its own Engine scratch caches, never mutating or sharing the snapshot's.
@@ -320,6 +424,9 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
 	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
+	if ev.Kind == events.PutOnStack {
+		e.checkEventDelayedTriggers(ev)
+	}
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)
 	}

@@ -94,8 +94,9 @@ type Game struct {
 	// Forge script stem; set at genesis, never mutated, so Clone shares it.
 	Tokens map[string]*cards.Card
 
-	// Delayed holds delayed-trigger registrations (CR 603.7, Mode$ Phase)
-	// that have not yet fired. It is game state -- a delayed trigger is
+	// Delayed holds delayed-trigger registrations (CR 603.7: Mode$ Phase, or
+	// the event-matched shape a DelayedTrigger.EventMode names) that have not
+	// yet fired. It is game state -- a delayed trigger is
 	// registered during one resolution and fires later, in general a
 	// different turn, so the registration has to survive the event log to
 	// survive replay, and only events.Apply may write it. Each entry records
@@ -113,7 +114,8 @@ type Game struct {
 }
 
 // DelayedTrigger is one registered delayed triggered ability awaiting its
-// phase. It is reconstructed from the event log by events.Apply's
+// phase -- or, for an event-matched registration (EventMode set), awaiting its
+// triggering event. It is reconstructed from the event log by events.Apply's
 // DelayedRegister case, so a replay that folds the logged registrations
 // arrives at the same set. Firing (events.Apply's DelayedPush case) removes
 // the entry, which is what keeps a delayed trigger one-shot.
@@ -124,6 +126,17 @@ type DelayedTrigger struct {
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
 	Remembered []Target
+	// EventMode and Trigger extend the registration to the non-phase
+	// (event-matched) shape: EventMode is the trigger Mode$ the registration
+	// fires on ("SpellCast" -- the first spell cast whose event satisfies the
+	// body's validity clauses) and Trigger is the SVar name on the source's
+	// face holding that trigger body, re-parsed at fire time so ValidCard$/
+	// ValidActivatingPlayer$ are evaluated against the actual cast. Both are
+	// empty for a Mode$ Phase registration, so every already-registered shape
+	// is unchanged; the pair travels inside the DelayedRegister event's Text
+	// field ("<Mode>:<Trigger>") because the event gains no fields.
+	EventMode string
+	Trigger   string
 	// SourceIncarnation is captured for keyword promises whose effect applies
 	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
 	// including Encore's group cleanup, intentionally leave TrackSource false:

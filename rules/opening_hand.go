@@ -136,36 +136,6 @@ func (e *Engine) stepOpening() {
 // opening hand to the battlefield, then apply its immediate PutCounter sub.
 // A following mandatory hand-to-exile ChangeZone is represented by a real
 // KChoose continuation (Gemstone Caverns), rather than a deterministic card.
-// openingTrigger is one parsed T: SVar body: the handful of keys the
-// opening-hand delayed-trigger registration reads. A T: line held in SVars is
-// not a cards.Trigger (the parser links only printed T: lines), so the pipe
-// grammar is parsed here; named fields keep the reads on a struct rather than
-// a bare map[string]string, which the parameter census cannot attribute.
-type openingTrigger struct {
-	mode, oneOff, phase, execute string
-}
-
-func parseOpeningTrigger(body string) openingTrigger {
-	var t openingTrigger
-	for _, part := range strings.Split(body, "|") {
-		key, value, ok := strings.Cut(strings.TrimSpace(part), "$")
-		if !ok {
-			continue
-		}
-		switch strings.TrimSpace(key) {
-		case "Mode":
-			t.mode = strings.TrimSpace(value)
-		case "OneOff":
-			t.oneOff = strings.TrimSpace(value)
-		case "Phase":
-			t.phase = strings.TrimSpace(value)
-		case "Execute":
-			t.execute = strings.TrimSpace(value)
-		}
-	}
-	return t
-}
-
 func (e *Engine) applyOpeningEffect(ef openingEffect) {
 	o := e.G.Obj(ef.card)
 	if o == nil || o.Face() == nil {
@@ -238,13 +208,19 @@ func (e *Engine) handleOpening(d *decision.Decision, in decision.Intent) {
 	e.stepOpening()
 }
 
-// registerOpeningEffectTriggers turns an opening Effect's one-off phase
-// child into the ordinary event-backed delayed-trigger mechanism. The source
-// may remain in hand: delayed triggers intentionally survive their source
-// moving zones, and DelayedPush resolves the named SVar with the same normal
-// stack/resume machinery as any other trigger. Non-phase opening children
-// need general Effect-trigger registration and are left unregistered rather
-// than silently pretending to work.
+// registerOpeningEffectTriggers turns an opening Effect's one-off trigger
+// children into the ordinary delayed-trigger mechanism. The source may remain
+// in hand: delayed triggers intentionally survive their source moving zones,
+// and the firing resolves the named SVar with the same normal stack/resume
+// machinery as any other trigger. Phase children fire on the registered step
+// (rules.checkDelayedTriggers); SpellCast children fire on the first matching
+// spell cast (rules.checkEventDelayedTriggers), one registration per player
+// the Effect's EffectOwner$ selector names -- Chancellor of the Annex's
+// `EffectOwner$ Opponent` with `ValidActivatingPlayer$ You` is per opponent,
+// exactly the oracle's "when each opponent casts their first spell". Any
+// other trigger mode, a non-one-off body, an OptionalDecider$ ask (the
+// DelayedPush path never poses one) or an unresolvable Execute$ fails closed:
+// nothing is registered rather than silently pretending to work.
 func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA) {
 	for sa := first; sa != nil; {
 		if sa.API == "Effect" {
@@ -253,25 +229,37 @@ func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA
 				if o == nil || o.Face() == nil {
 					return
 				}
-				tg := parseOpeningTrigger(o.Face().SVars[name])
-				if tg.mode != "Phase" || tg.oneOff != "True" {
+				t, ok := cards.ParseTriggerLine(o.Face().SVars[name])
+				if !ok || t.Params["OneOff"] != "True" || t.Params["OptionalDecider"] != "" {
 					continue
 				}
-				var step state.Step
-				switch strings.TrimSpace(tg.phase) {
-				case "Upkeep":
-					step = state.StepUpkeep
-				case "Main1":
-					step = state.StepMain1
-				default:
-					continue
-				}
-				exec := tg.execute
+				exec := t.Params["Execute"]
 				if exec == "" || cards.ResolveSVar(o.Face().SVars, exec) == nil {
 					continue
 				}
-				e.emit(events.Event{Kind: events.DelayedRegister, Obj: ef.card, Player: ef.player,
-					Step: step, Counter: exec, Text: "opening hand delayed trigger"})
+				switch t.Mode {
+				case "Phase":
+					var step state.Step
+					switch strings.TrimSpace(t.Params["Phase"]) {
+					case "Upkeep":
+						step = state.StepUpkeep
+					case "Main1":
+						step = state.StepMain1
+					default:
+						continue
+					}
+					e.emit(events.Event{Kind: events.DelayedRegister, Obj: ef.card, Player: ef.player,
+						Step: step, Counter: exec, Text: t.Params["Phase"]})
+				case "SpellCast":
+					// Step carries the registration's decoding guard only
+					// (events.Apply requires a valid Step); an event-matched
+					// registration never fires on a step --
+					// checkDelayedTriggers skips it.
+					for _, p := range e.openingEffectOwners(sa, ef.player) {
+						e.emit(events.Event{Kind: events.DelayedRegister, Obj: ef.card, Player: p,
+							Step: e.G.Step, Counter: exec, Text: "SpellCast:" + name})
+					}
+				}
 			}
 		}
 		next := sa.Sub
@@ -281,6 +269,30 @@ func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA
 			}
 		}
 		sa = next
+	}
+}
+
+// openingEffectOwners resolves an opening Effect's EffectOwner$ player
+// selector to the players the effect (and its trigger) belongs to. The
+// empty/You selector keeps the revealer; Opponent/Other fans out to every
+// other surviving seat, which is what makes Chancellor of the Annex tax EACH
+// opponent's first spell while the trigger body's own "You" resolves, per
+// registration, to that opponent. Unrecognized selectors fail closed (an
+// empty list registers nothing) rather than guessing a player set.
+func (e *Engine) openingEffectOwners(sa *cards.SA, you state.PlayerID) []state.PlayerID {
+	switch strings.TrimSpace(sa.Params["EffectOwner"]) {
+	case "", "You":
+		return []state.PlayerID{you}
+	case "Opponent", "Other":
+		out := []state.PlayerID{}
+		for _, p := range e.G.AliveFrom(0) {
+			if p != you {
+				out = append(out, p)
+			}
+		}
+		return out
+	default:
+		return nil
 	}
 }
 

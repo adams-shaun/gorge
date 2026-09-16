@@ -623,6 +623,17 @@ func Apply(g *state.Game, e Event) {
 		// changes zones and returns as a new incarnation.
 		track := strings.HasPrefix(e.Counter, "__kwDash") ||
 			strings.HasPrefix(e.Counter, "__kwWarp")
+		// Event-matched (non-phase) registrations encode
+		// "<Mode$ value>:<trigger SVar name>" in Text. The DelayedRegister
+		// event gains no field of its own (Ruling T20-a's field-reuse
+		// precedent); a Mode$ Phase registration's Text is the Forge Phase$
+		// string, which never contains a colon, and the decode only splits on
+		// the modes rules.registerOpeningEffectTriggers emits, so every
+		// already-logged registration decodes as a phase one.
+		mode, trigger := "", ""
+		if i := strings.Index(e.Text, ":"); i > 0 && e.Text[:i] == "SpellCast" {
+			mode, trigger = "SpellCast", e.Text[i+1:]
+		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
 			ID:                g.DelayedNext,
 			Phase:             e.Step,
@@ -632,6 +643,8 @@ func Apply(g *state.Game, e Event) {
 			Remembered:        rememberedFrom(e.IDs),
 			SourceIncarnation: src.Incarnation,
 			TrackSource:       track,
+			EventMode:         mode,
+			Trigger:           trigger,
 		})
 		g.DelayedNext++
 

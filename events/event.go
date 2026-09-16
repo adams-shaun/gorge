@@ -185,7 +185,10 @@ const (
 	// the Execute$ ability), Player the controller, Step the phase to fire
 	// in, Counter the Execute$ SVar name, IDs the Remembered object(s)
 	// captured at registration (PlayerRef-encoded, as TriggerPush does), and
-	// Text the Forge Phase$ string for description. Appended here, after
+	// Text the Forge Phase$ string for description -- or, for an event-matched
+	// (non-phase) registration, "<Mode$ value>:<trigger SVar name>", the
+	// encoding events.Apply's DelayedRegister case decodes into
+	// state.DelayedTrigger's EventMode/Trigger pair. Appended here, after
 	// CmdDamage, following every prior Kind's own append-only precedent, so
 	// no earlier ordinal, hash chain or golden replay is affected.
 	DelayedRegister
