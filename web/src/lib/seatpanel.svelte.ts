@@ -144,14 +144,25 @@ export function toneOf(d: Decision | null): Tone {
 }
 
 /**
+ * triggerOrderPermutation is the SHAPE contract every auto-order path shares
+ * (fb-trigorder1 generalised the prio6 check): a trigger_order decision whose
+ * min == max == options.length (the engine's permutation contract, Ruling U2)
+ * with at least two options — a one-trigger ask is never posed. The check is
+ * grounded in the real wire shape, measured on a live decision
+ * (rules/trigger_queue.go's askTriggerOrder): each option is `kind: "trigger"`
+ * with `label: "<source name>: <TriggerDescription>"`.
+ */
+export function triggerOrderPermutation(d: Decision): boolean {
+  if (d.kind !== 'trigger_order') return false;
+  if (d.min !== d.max || d.max !== d.options.length) return false;
+  return d.options.length >= 2;
+}
+
+/**
  * identicalTriggerOrder reports whether a trigger_order decision's EVERY
  * option describes the same trigger — the same source name and the same
- * text (prio6). The check is grounded in the real wire shape, measured on a
- * live decision (rules/trigger_queue.go's askTriggerOrder): each option is
- * `kind: "trigger"` with `label: "<source name>: <TriggerDescription>"`, so
- * equal labels is exactly "same source name and same text". min == max ==
- * len(options) (the engine's permutation contract, Ruling U2) and at least
- * two options are required — a one-trigger ask is never posed.
+ * text (prio6) — on top of the shared triggerOrderPermutation shape
+ * contract.
  *
  * Caveat, measured rather than assumed away: the label carries no target
  * information, so two identical-name/text triggers aimed at DIFFERENT
@@ -161,9 +172,7 @@ export function toneOf(d: Decision | null): Tone {
  * target-aware one.
  */
 export function identicalTriggerOrder(d: Decision): boolean {
-  if (d.kind !== 'trigger_order') return false;
-  if (d.min !== d.max || d.max !== d.options.length) return false;
-  if (d.options.length < 2) return false;
+  if (!triggerOrderPermutation(d)) return false;
   const first = d.options[0].label;
   return d.options.every((o) => o.label === first);
 }
@@ -1181,38 +1190,60 @@ export class SeatPanelState {
   }
 
   /**
-   * maybeAutoOrderTriggers is the prio6 identical-trigger auto-order. When
-   * the pending decision is a trigger_order whose EVERY option describes
-   * the same trigger (identicalTriggerOrder — equal labels, measured wire
-   * shape) and settings.autoOrderIdenticalTriggers is on, the DEFAULT order
-   * — the options in offered order, exactly what the manual UI's untouched
-   * answer would submit — is posted automatically, a log note is added
-   * ("Ordered N identical triggers automatically"), and the return is true.
-   * Any difference between options, the setting off, a busy/posted state:
-   * false, and the decision stays manual as today. A live one-shot run is
-   * cancelled first: a non-priority decision ends a run, and the submit is
-   * the run's stop, not the run's continuation. The autoOrderedSeq guard
-   * means a server-rejected auto-order is never retried forever.
+   * maybeAutoOrderTriggers is the trigger_order auto-order. The prio6 path
+   * answers an identical pair — every option the same trigger
+   * (identicalTriggerOrder) — when settings.autoOrderIdenticalTriggers is
+   * on, with the note "Ordered N identical triggers automatically".
+   * fb-trigorder1 adds the broader path: when settings.autoOrderAllTriggers
+   * is on, ANY trigger_order satisfying the same shape contract
+   * (triggerOrderPermutation) is auto-answered too, with the distinct note
+   * "Ordered N triggers automatically" — auto-ordering DIFFERENT triggers is
+   * a real game choice made on the player's behalf, and the note is what
+   * makes it visible in the log. The submitted answer stays the OFFERED
+   * order (d.options.map((o) => o.index)), exactly what the manual UI's
+   * untouched answer submits, in both paths.
+   *
+   * Precedence: an identical pair answers through the identical path when
+   * that setting is on, so the pinned prio6 note is unchanged for casual
+   * (which turns both on); the broader path covers everything else.
+   * Any other decision kind, a busy/posted state, the setting(s) off: false,
+   * and the decision stays manual. A live one-shot run is cancelled first:
+   * a non-priority decision ends a run, and the submit is the run's stop,
+   * not the run's continuation. The autoOrderedSeq guard means a
+   * server-rejected auto-order is never retried forever. The undo pause (and
+   * the runaway brake — same brake, same reason) silences the auto-order
+   * too: a restored trigger_order ask must sit pending for the player, not
+   * be submitted by the machine the player just stopped. adopt() reaches
+   * here before any considerAuto.
    */
   private maybeAutoOrderTriggers(): boolean {
     const d = this.pending;
     if (d === null || this.busy || d.seq === this.postedSeq) return false;
     if (this.autoOrderedSeq !== null && d.seq === this.autoOrderedSeq) return false;
     // The undo pause (and the runaway brake — same brake, same reason)
-    // silences the auto-order too: a restored identical trigger_order ask
-    // must sit pending for the player, not be submitted by the machine the
-    // player just stopped. adopt() reaches here before any considerAuto.
+    // silences the auto-order too: a restored trigger_order ask must sit
+    // pending for the player, not be submitted by the machine the player
+    // just stopped. adopt() reaches here before any considerAuto.
     if (this.machinePaused) return false;
-    if (!this.settings.autoOrderIdenticalTriggers || !identicalTriggerOrder(d)) return false;
+    if (!triggerOrderPermutation(d)) return false;
+    const identical = identicalTriggerOrder(d);
+    if (identical && this.settings.autoOrderIdenticalTriggers) {
+      this.postTriggerOrder(d, `Ordered ${d.options.length} identical triggers automatically`);
+      return true;
+    }
+    if (this.settings.autoOrderAllTriggers) {
+      this.postTriggerOrder(d, `Ordered ${d.options.length} triggers automatically`);
+      return true;
+    }
+    return false;
+  }
+
+  /** postTriggerOrder is the shared submit of both auto-order paths: cancel any live one-shot run (a non-priority decision ends a run), set the retry guard, log the note, post the offered order. */
+  private postTriggerOrder(d: Decision, note: string) {
     if (this.oneShot !== 'none') this.cancelRun(); // the run's stop, noted in its own register
     this.autoOrderedSeq = d.seq;
-    this.autoLog = pushAutoPassLog(
-      this.autoLog,
-      `Ordered ${d.options.length} identical triggers automatically`,
-      this.currentView?.turn ?? 0,
-    );
+    this.autoLog = pushAutoPassLog(this.autoLog, note, this.currentView?.turn ?? 0);
     void this.post(d.options.map((o) => o.index));
-    return true;
   }
 
   /**

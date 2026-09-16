@@ -289,6 +289,17 @@
     >
       <span>Auto-order identical triggers</span><span class="state" aria-hidden="true">{s.autoOrderIdenticalTriggers ? 'On' : 'Off'}</span>
     </button>
+    <button
+      type="button"
+      role="switch"
+      class="row"
+      class:on={s.autoOrderAllTriggers}
+      aria-checked={s.autoOrderAllTriggers}
+      data-toggle="auto-order-all-triggers"
+      onclick={() => state.editSettings({ autoOrderAllTriggers: !s.autoOrderAllTriggers })}
+    >
+      <span>Auto-order all triggers</span><span class="state" aria-hidden="true">{s.autoOrderAllTriggers ? 'On' : 'Off'}</span>
+    </button>
     <div class="row sel">
       <span id="pacing-label">Pause between auto-passes</span>
       <div class="segments" role="group" aria-labelledby="pacing-label" data-pacing-picker>
