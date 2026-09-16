@@ -13,30 +13,272 @@ func (e *Engine) beginTurn(active state.PlayerID, skipUntap ...bool) {
 	// CR 500.7 riders apply to the particular queued extra turn, not every
 	// later turn of its controller. The variadic form keeps ordinary callers
 	// explicit-free while advanceStep supplies the pending grant's SkipUntap.
-	skip := len(skipUntap) > 0 && skipUntap[0]
-	if !skip {
-		e.setStep(state.StepUntap)
-		for _, id := range e.G.Zone(state.ZBattlefield, active) {
-			if e.G.Obj(id).Tapped {
-				e.emit(events.Event{Kind: events.Untap, Obj: id})
+	// A skipped untap step never emits an Untap event for anything, and the
+	// turn structure jumps straight to upkeep, so its turn-based actions
+	// (Suspend's TIME decrement, ...) still run on schedule.
+	step := state.StepUntap
+	if len(skipUntap) > 0 && skipUntap[0] {
+		step = state.StepUpkeep
+	}
+	prior := e.pending
+	e.setStep(step)
+	if e.pending != nil && e.pending != prior {
+		// An Optional$ BeginPhase replacement parked the entry. Its answer
+		// calls finishEnteredStep after entering or skipping the step.
+		return
+	}
+	e.finishEnteredStep()
+}
+
+// finishEnteredStep performs the turn-based action owed by the step that a
+// StepChange just entered (or by the landing step of one or more skipped
+// steps), then grants priority. Both ordinary transitions and an answered
+// Optional$ BeginPhase replacement use this one continuation, so declining
+// Fasting enters and draws exactly once while accepting it lands in main1
+// without drawing. Untap is special: after its action the turn enters upkeep
+// before priority; a replacement may park either entry, in which case the
+// eventual answer resumes this helper again.
+// chooseSuspendCast is the chooseFor for CR 702.62a's may-cast ask, posed by
+// startSuspendedCast when a suspended card's last TIME counter is removed.
+// iota+11 is pairwise distinct from the shared package set (cast=1/etb=2/
+// miracle=3, cleanup=4, division=5, mana=6..9, opening=10); the exact numbers
+// only need to differ.
+const chooseSuspendCast chooseFor = iota + 11
+
+func (e *Engine) finishEnteredStep() {
+	if e.G.Step == state.StepUntap && !e.finishUntapStep(0) {
+		return
+	}
+	if e.G.Step == state.StepUpkeep {
+		// CR 702.62: only a card that entered exile through the Suspend action
+		// loses TIME counters. The final-counter trigger then casts it if able;
+		// it is not an optional priority action and arbitrary exiled Suspend
+		// cards never acquire that permission. Gated on the step actually
+		// entered, so a BeginPhase replacement that skipped the upkeep step
+		// (landing directly on the draw) does not decrement.
+		for _, id := range e.G.Zone(state.ZExile, e.G.Active) {
+			o := e.G.Obj(id)
+			if o == nil || o.CastFlags&state.FlagSuspend == 0 || o.Counter("TIME") <= 0 {
+				continue
+			}
+			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
+			if o.Counter("TIME") == 0 {
+				e.suspendedCasts = append(e.suspendedCasts, id)
 			}
 		}
+		if e.startSuspendedCast() {
+			return
+		}
+	}
+	// An upkeep skip can land the turn directly on the draw step, whose
+	// turn-based action must still run (CR 504.1 -- the skip took the upkeep
+	// step, never the draw's draw). drawStepTurnAction is the one entry to
+	// that action, shared with advanceStep's ordinary path.
+	if e.G.Step == state.StepDraw && e.drawStepTurnAction() {
+		return
+	}
+	// Entry resets the pass count along with the active holder.
+	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+}
+
+// untapStep is the remaining deterministic battlefield scan after a
+// replacement-order decision parks one Untap event. It belongs to the queued
+// replacement choice, not Game state: the final selected replacement is what
+// the log records, and replay reaches the same turn-based scan naturally.
+type untapStep struct {
+	next int
+}
+
+// finishUntapStep performs the untap turn-based action from next onward. An
+// Untap replacement competition can suspend on one permanent; its answered
+// choice resumes at the following permanent, rather than advancing to upkeep
+// while the choice is pending or re-processing the already replaced event.
+func (e *Engine) finishUntapStep(next int) bool {
+	ids := e.G.Zone(state.ZBattlefield, e.G.Active)
+	for i := next; i < len(ids); i++ {
+		o := e.G.Obj(ids[i])
+		if o == nil || !o.Tapped {
+			continue
+		}
+		e.untapResume = &untapStep{next: i + 1}
+		prior := e.pending
+		e.emit(events.Event{Kind: events.Untap, Obj: ids[i]})
+		if e.pending != nil && e.pending != prior {
+			// poseUntapReplacementChoice transferred this continuation to its
+			// queue entry. Do not enter upkeep until its answer finishes this
+			// scan, and do not retain transient state across the pending intent.
+			e.untapResume = nil
+			return false
+		}
+		e.untapResume = nil
 	}
 	e.setStep(state.StepUpkeep)
-	// Start of turn resets the pass count along with the holder.
-	e.emit(events.Event{Kind: events.Priority, Player: active})
+	return e.pending == nil
+}
+
+// drawStepTurnAction runs the draw step's turn-based action (CR 504.1) when
+// the engine has just entered StepDraw -- from advanceStep's ordinary step
+// advance, or from beginTurn after a BeginPhase replacement skipped the
+// upkeep step -- and reports whether the game ended with it (an
+// empty-library draw is a loss), telling the caller not to emit a further
+// Priority event. Exactly the pre-refactor advanceStep gate, stated once so
+// both entries cannot drift:
+//
+//	CR 504.1: the draw step's draw is a TURN-BASED ACTION -- it happens
+//	once, automatically, at the beginning of the step, before any player
+//	receives priority, full stop. It is not conditioned on priority state
+//	in any way.
+//
+//	Ruling T23-x: before this, the draw lived in priorityRound, gated on
+//	`Passes == 0 && Priority == Active` -- a PROXY for "the step just
+//	began" that Task 23's own test author measured is also exactly the
+//	state resolveTop's callers restore after every resolution (CR 117.3b --
+//	Priority{Player: e.G.Active, Amount: 0}; see the T14-e comments in
+//	stack.go / legal.go). So a mandatory "whenever you draw a card" trigger
+//	that resolved during the draw step made the proxy true again, drew a
+//	SECOND card, queued a second trigger, and so on until the library ran
+//	out: one seat drawing 20 cards inside what the log still called one
+//	step, the other seat never getting a turn. Keying the draw on the step
+//	being ENTERED, instead of on ambient Passes/Priority state that anything
+//	resolving later in the step can also produce, makes it run exactly once
+//	no matter what resolves afterward.
+//
+//	Ruling F45: CR 103.8a skips the starting player's first draw only in a
+//	two-player game. Multiplayer free-for-all games take that draw normally
+//	(CR 800.7). len(e.G.Players) is the constructed seat count; eliminated
+//	players remain in the slice, so the rule cannot change as players lose.
+//	e.G.Turn > 1 preserves the draw on every later turn. !Lost keeps an
+//	eliminated active player from drawing.
+//
+//	Ruling T28-b (fix round 1): the Lost guard is REACHABLE in ordinary
+//	play, not a defensive leftover -- an earlier draft of this comment
+//	called it "unreachable today" on the theory that an empty-library draw
+//	was the only way to become Lost before this point, and Task 22 already
+//	falsified that: any state-based action can eliminate the active player
+//	during their OWN turn, before their OWN draw step, for a reason that
+//	has nothing to do with drawing at all (CR 704.5a life loss is the
+//	common case). Measured: an upkeep self-drain (`Mode$ Phase | Phase$
+//	Upkeep`) trigger (this repo's own drainerSrc fuzz fixture) eliminates
+//	its controller during that seat's turn-2 upkeep with their library
+//	still full, and turn 2's draw step is then entered with the eliminated
+//	seat still Active. The turn structure does not skip steps for an
+//	eliminated active player, only priority -- so their draw step is still
+//	entered, and this is what stops it from drawing on their behalf. A
+//	reader who trusts "unreachable" here is invited to delete this guard,
+//	and deleting it is exactly the mutant that draws for an eliminated
+//	player.
+//
+// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters and after your draw
+// step, add a lore counter." The ETB half is granted in events.Move (the
+// same every-entry-site convention the planeswalker starting loyalty uses);
+// advanceSagas here is the after-your-draw-step half -- one lore counter per
+// Saga the ACTIVE player controls, once per turn, after the draw. The
+// chapter triggers queue off the CounterChange events it emits (rules' chapter
+// check). Skipped when the draw itself ended the game (e.G.Over), mirroring
+// every other post-state-change guard in this file.
+func (e *Engine) drawStepTurnAction() bool {
+	if e.G.Step != state.StepDraw || (len(e.G.Players) == 2 && e.G.Turn <= 1) ||
+		e.G.Players[e.G.Active].Lost {
+		return false
+	}
+	e.drawCard(e.G.Active)
+	if e.G.Over {
+		return true
+	}
+	e.advanceSagas(e.G.Active)
+	return false
+}
+
+// startSuspendedCast consumes the next final-counter trigger before anyone
+// gets priority. A targetless/un-castable card is simply left in exile, the
+// "if able" part of CR 702.62; a legal one is offered to its controller: CR
+// 702.62a's cast is OPTIONAL ("you may cast it without paying its mana cost
+// if able"), so the controller answers a real yes/no decision and a decline
+// leaves the card in exile. A yes enters the ordinary no-cost cast flow and
+// can still ask for targets.
+func (e *Engine) startSuspendedCast() bool {
+	for len(e.suspendedCasts) > 0 {
+		id := e.suspendedCasts[0]
+		e.suspendedCasts = e.suspendedCasts[1:]
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0 || o.Face() == nil {
+			continue
+		}
+		// "If able" includes every restriction that makes casting illegal,
+		// not merely whether the spell can find a target. In particular a
+		// CantBeCast static remains effective when Suspend supplies the mana
+		// cost; beginning the cast and discovering the restriction afterwards
+		// would incorrectly put the spell on the stack. An uncastable card is
+		// never offered: there is nothing to choose (CR 702.62a casts "if
+		// able"), so no decision is posed for it.
+		if e.castRestricted(o.Owner, id) || !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
+			continue
+		}
+		name := "it"
+		if f := o.Face(); f != nil && f.Name != "" {
+			name = f.Name
+		}
+		e.choosing = chooseSuspendCast
+		e.ask(decision.New(o.Owner, decision.KChoose, "Cast "+name+" without paying its mana cost?", 1, 1,
+			[]decision.Option{{Index: 0, Kind: "suspend_cast_yes", Obj: id, Label: "Cast it"},
+				{Index: 1, Kind: "suspend_cast_no", Obj: id, Label: "Leave it in exile"}}))
+		return true
+	}
+	return false
+}
+
+// suspendCastAnswer applies CR 702.62a's may-cast answer. The offered card
+// was popped from suspendedCasts when its ask was posed, so the answer's
+// object is the only provenance this needs. A yes enters the ordinary cast
+// flow (suspend_cast mode, no mana cost); a decline — or a card that left
+// exile, changed hands or lost its Suspend provenance while the ask was
+// outstanding — leaves the card in exile, which is exactly what CR 702.62a
+// says a card whose cast was not made does. Remaining suspended casts, if
+// any, are offered next; when none are, the caller's Advance loop resumes
+// the step it was in (the same route the forced cast used after resolution).
+func (e *Engine) suspendCastAnswer(chosen []decision.Option) {
+	if len(chosen) == 0 {
+		return
+	}
+	id := chosen[0].Obj
+	o := e.G.Obj(id)
+	if chosen[0].Kind == "suspend_cast_yes" && o != nil && o.Zone == state.ZExile &&
+		o.CastFlags&state.FlagSuspend != 0 && o.Face() != nil {
+		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "suspend_cast"})
+		return
+	}
+	if e.pending == nil {
+		// Declined (or the card is no longer a castable suspended card): the
+		// offer is over, so the chooseFor it installed must not leak into the
+		// next KChoose a different flow asks.
+		e.choosing = chooseNone
+		e.startSuspendedCast()
+	}
 }
 
 func (e *Engine) setStep(s state.Step) {
 	leaving := e.G.Step
+	previous := e.stepLeaving
+	e.stepLeaving = &leaving
 	e.emit(events.Event{Kind: events.StepChange, Step: s})
+	e.stepLeaving = previous
+	if e.pending != nil {
+		// Optional BeginPhase parked the transition. Boundary cleanup belongs
+		// after that choice and is resumed by handleReplacement; emitting it
+		// after DecisionAsk would mutate the game while a decision is pending.
+		return
+	}
+	e.finishStepBoundary(leaving, s)
+}
+
+func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
 	// Mana pools empty as each step ends (CR 500.4).
 	for i := range e.G.Players {
 		if e.G.Players[i].Pool.Total() > 0 {
 			e.emit(events.Event{Kind: events.ManaClear, Player: state.PlayerID(i)})
 		}
 	}
-	if leaving == state.StepEndCombat && s != leaving {
+	if leaving == state.StepEndCombat && entering != leaving {
 		// CR 511.3 removes creatures and planeswalkers from combat as the end
 		// of combat step ends, not when it begins. Keeping the leaving-step
 		// boundary here covers every transition made through setStep exactly
@@ -44,12 +286,17 @@ func (e *Engine) setStep(s state.Step) {
 		// Ruling T21-e keeps the reset event-sourced so a log-only replay also
 		// learns that IsAttacking and BlockedBy were cleared.
 		e.emit(events.Event{Kind: events.EndCombatReset})
+		// CR 511.3: "until end of combat" control effects end with the step.
+		e.expireControl(controlAtEndOfCombat)
 	}
 }
 
 // step performs the smallest unit of automatic engine work.
 func (e *Engine) step() {
 	e.checkStateBased()
+	if e.startSuspendedCast() {
+		return
+	}
 	if e.G.Over {
 		return
 	}
@@ -377,71 +624,10 @@ func (e *Engine) advanceStep() {
 		return
 	}
 	e.setStep(e.G.Step + 1)
-	if e.G.Step == state.StepDraw && (len(e.G.Players) != 2 || e.G.Turn > 1) && !e.G.Players[e.G.Active].Lost {
-		// CR 504.1: the draw step's draw is a TURN-BASED ACTION -- it happens
-		// once, automatically, at the beginning of the step, before any
-		// player receives priority, full stop. It is not conditioned on
-		// priority state in any way.
-		//
-		// Ruling T23-x: before this, the draw lived in priorityRound, gated
-		// on `Passes == 0 && Priority == Active` -- a PROXY for "the step
-		// just began" that Task 23's own test author measured is also
-		// exactly the state resolveTop's callers restore after every
-		// resolution (CR 117.3b -- Priority{Player: e.G.Active, Amount: 0};
-		// see the T14-e comments in stack.go / legal.go). So a mandatory
-		// "whenever you draw a card" trigger that resolved during the draw
-		// step made the proxy true again, drew a SECOND card, queued a
-		// second trigger, and so on until the library ran out: one seat
-		// drawing 20 cards inside what the log still called one step, the
-		// other seat never getting a turn. Keying the draw on the step
-		// being ENTERED, instead of on ambient Passes/Priority state that
-		// anything resolving later in the step can also produce, makes it
-		// run exactly once no matter what resolves afterward.
-		//
-		// Ruling F45: CR 103.8a skips the starting player's first draw only
-		// in a two-player game. Multiplayer free-for-all games take that draw
-		// normally (CR 800.7). len(e.G.Players) is the constructed seat count;
-		// eliminated players remain in the slice, so the rule cannot change as
-		// players lose. e.G.Turn > 1 preserves the draw on every later turn.
-		// !Lost keeps an eliminated active player from drawing.
-		//
-		// Ruling T28-b (fix round 1): this guard is REACHABLE in ordinary
-		// play, not a defensive leftover -- an earlier draft of this comment
-		// called it "unreachable today" on the theory that an empty-library
-		// draw was the only way to become Lost before this point, and Task
-		// 22 already falsified that: any state-based action can eliminate
-		// the active player during their OWN turn, before their OWN draw
-		// step, for a reason that has nothing to do with drawing at all (CR
-		// 704.5a life loss is the common case). Measured: an upkeep
-		// self-drain (`Mode$ Phase | Phase$ Upkeep`) trigger (this repo's
-		// own drainerSrc fuzz fixture) eliminates its controller during
-		// that seat's turn-2 upkeep with their library still full, and turn
-		// 2's draw step is then entered with the eliminated seat still
-		// Active. The turn structure does not skip steps for an eliminated
-		// active player, only priority -- so
-		// their draw step is still entered, and this is what stops it from
-		// drawing on their behalf. A reader who trusts "unreachable" here is
-		// invited to delete this guard, and deleting it is exactly the
-		// mutant that draws for an eliminated player.
-		e.drawCard(e.G.Active)
-		// The draw above runs checkStateBased (drawCard's own tail): an
-		// empty-library draw is itself a loss (CR 704.5c), and that can end
-		// the game outright. A finished game must not emit a further
-		// Priority event or hand out a decision (mirrors priorityRound's own
-		// pre-Task-27 "if e.G.Over { return }" after a state-changing call).
-		if e.G.Over {
-			return
-		}
-		// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters and after
-		// your draw step, add a lore counter." The ETB half is granted in
-		// events.Move (the same every-entry-site convention the planeswalker
-		// starting loyalty uses); this is the after-your-draw-step half --
-		// one lore counter per Saga the ACTIVE player controls, once per
-		// turn, after the draw. The chapter triggers queue off the
-		// CounterChange events this emits (rules' chapter check).
-		e.advanceSagas(e.G.Active)
+	if e.pending != nil {
+		return
 	}
-	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+	e.finishEnteredStep()
 }
 
 // handle dispatches a validated intent to the code that owns that decision
@@ -516,19 +702,20 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	// flows; an empty chosen slice is the legitimate "fail to find" /
 	// Optional-decline answer (for "roll" a malformed empty answer falls
 	// back to the first die inside the effect).
-	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "roll") {
+	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "roll" || e.resume.kind == "choice" || e.resume.kind == "hand_move" || e.resume.kind == "sacrifice" ||
+		e.resume.kind == "ward_mana" || e.resume.kind == "ward_alt" || e.resume.kind == "ward_blight" || e.resume.kind == "ward_evidence" ||
+		e.resume.kind == "ward_waterbend" || e.resume.kind == "ward_tap" || e.resume.kind == "ward_sac" || e.resume.kind == "ward_discard") {
 		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, chosen)
 		return
 	}
-	// A RevealOptional$ yes/no (task fb-3f1cc033, the Delver of Secrets
-	// peek) is a mid-resolution effect ask wearing KChoose's ordinary wire
-	// shape, exactly like "search" above: route it to the suspended
-	// resolution before the cast/cleanup flows get a look in. A yes/no
-	// answer is one option; the reveal_optional arm of resumeResolution maps
-	// it onto ctx.RevealOpt.
-	if e.resume != nil && e.resume.kind == "reveal_optional" {
+	// RevealOptional$ and Optional$ direct-library-fetch yes/no decisions are
+	// mid-resolution effect asks wearing KChoose's ordinary wire shape,
+	// exactly like "search" above: route them to the suspended resolution
+	// before the cast/cleanup flows get a look in. Their resume arms map the
+	// one chosen option onto the asking effect's scoped context field.
+	if e.resume != nil && (e.resume.kind == "reveal_optional" || e.resume.kind == "defined_library_optional") {
 		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, chosen)
@@ -539,7 +726,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.castAnswer(d, chosen)
 		// A mana ability selection or Produced$ Any colour choice installed
 		// its own decision; only a fully resolved singleton may continue.
-		if e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard {
+		if e.pending != nil || e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard || e.choosing == chooseManaExile {
 			return
 		}
 		e.continueCast()
@@ -558,6 +745,16 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			e.resumeTriggerDrain()
 			return
 		}
+	case chooseOpening:
+		e.handleOpening(d, in)
+	case chooseSuspendCast:
+		// CR 702.62a: the may-cast offer on a suspended card's last TIME
+		// counter was answered. suspendCastAnswer either enters the ordinary
+		// cast flow (a yes) or leaves the card in exile and offers the next
+		// suspended cast, if any (a decline). There is no trigger drain to
+		// resume: the offer comes from the turn structure, never from inside
+		// one, so e.drainAwaitsTarget is necessarily false here.
+		e.suspendCastAnswer(chosen)
 	case chooseETB:
 		// Task 12: an "as this enters" choice was answered. Record it on the
 		// card (etbAnswer, via a Choose event), then continue the flow -- the
@@ -592,18 +789,46 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.handleDamageDivision(chosen)
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
-		// window resumes its cast after the selected ability resolves; an
-		// ordinary activation falls through to Advance's priority round.
-		if e.answerManaActivation(chosen) && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
-			e.continueCast()
+		// window resumes its cast after the selected ability resolves; Ward's
+		// mid-resolution payment window reopens instead. An ordinary
+		// activation falls through to Advance's priority round.
+		cast := e.answerManaActivation(chosen)
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+			if e.wardMana != nil {
+				e.continueWardMana()
+			} else if cast {
+				e.continueCast()
+			}
 		}
 	case chooseManaDiscard:
-		if e.answerManaDiscard(chosen) && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
-			e.continueCast()
+		cast := e.answerManaDiscard(chosen)
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+			if e.wardMana != nil {
+				e.continueWardMana()
+			} else if cast {
+				e.continueCast()
+			}
+		}
+	case chooseManaExile:
+		cast := e.answerManaExile(chosen)
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+			if e.wardMana != nil {
+				e.continueWardMana()
+			} else if cast {
+				e.continueCast()
+			}
 		}
 	case chooseManaColor:
-		if e.answerManaColor(chosen) {
-			e.continueCast()
+		// A CR 605.3b triggered mana ability may pose its own colour choice
+		// after this one; the cast (or Ward's payment window) resumes only
+		// once none is pending.
+		cast := e.answerManaColor(chosen)
+		if e.pending == nil && e.choosing != chooseManaColor {
+			if e.wardMana != nil {
+				e.continueWardMana()
+			} else if cast {
+				e.continueCast()
+			}
 		}
 	// Tasks 12, 18 add their cases here; Task D1 adds chooseCleanup.
 	default:

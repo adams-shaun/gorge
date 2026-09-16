@@ -79,54 +79,31 @@ import (
 // decks. The Hearthhull and Valgavoth imports add 54 measured gaps across 579
 // distinct cards in the pinned corpus; entries retire only when their
 // primitives are implemented.
+//
+// Task altcosts (the alternative-cost keyword family) retired the one entry
+// the merged decks carried: kw:Dash (Ragavan, Nimble Pilferer), implemented
+// to CR 702's dash shape in rules/altcast.go with a named proof test in
+// rules/altcast_test.go. kw:Evoke, kw:Encore, kw:Overload, kw:Warp,
+// kw:Madness and kw:AlternateAdditionalCost registered in the same task are
+// needed only by the three held commander decks (Rakdos Scam.exe, Vivi
+// cEDH, Ulalek Eldrazi), whose entries land in this table when they are
+// imported.
 var knownUnsupported = map[string][]string{
-	"Archfiend of Despair":         {"api:RepeatEach", "stat:CantGainLife"},
-	"Baloth Prime":                 {"api:Untap", "trig:Sacrificed"},
-	"Bloodletter of Aclazotz":      {"api:ReplaceEffect", "repl:LifeReduced"},
-	"Braids, Arisen Nightmare":     {"api:RepeatEach"},
-	"Chandra, Awakened Inferno":    {"repl:Counter"},
-	"Chromatic Orrery":             {"stat:ManaConvert"},
-	"Conduit of Worlds":            {"api:Play"},
-	"Constant Mists":               {"kw:Buyback"},
-	"Crypt Ghast":                  {"kw:Extort", "trig:TapsForMana"},
-	"Dauthi Voidwalker":            {"api:ChooseCard", "kw:Shadow"},
-	"Deflecting Swat":              {"api:ChangeTargets"},
-	"Evendo Brushrazer":            {"trig:Sacrificed"},
-	"Exotic Orchard":               {"api:ManaReflected"},
-	"Fabled Passage":               {"api:Untap"},
-	"Fate Unraveler":               {"trig:Drawn"},
-	"Fiery Emancipation":           {"api:ReplaceEffect", "repl:DamageDone"},
-	"Horizon Explorer":             {"api:Untap", "trig:AttackersDeclaredOneTarget"},
-	"Karazikar, the Eye Tyrant":    {"api:Goad", "trig:AttackersDeclaredOneTarget"},
-	"Kederekt Parasite":            {"trig:Drawn"},
-	"Last One Standing":            {"api:ChooseCard"},
-	"Manabarbs":                    {"trig:TapsForMana"},
-	"Mayhem Devil":                 {"trig:Sacrificed"},
-	"Necrodominance":               {"repl:BeginPhase"},
-	"Necropotence":                 {"repl:BeginPhase", "trig:Discarded"},
-	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
-	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
-	"Planetary Annihilation":       {"api:ChooseCard"},
-	"Price of Progress":            {"api:RepeatEach"},
-	"Profane Tutor":                {"kw:Suspend"},
-	"Ragavan, Nimble Pilferer":     {"kw:Dash"},
-	"Razorkin Needlehead":          {"trig:Drawn"},
-	"Sheoldred, the Apocalypse":    {"trig:Drawn"},
-	"Solphim, Mayhem Dominus":      {"api:ReplaceEffect", "repl:DamageDone"},
-	"Sower of Discord":             {"api:ChoosePlayer"},
-	"Spiked Corridor":              {"api:ReplaceEffect", "repl:DamageDone"},
-	"Spinerock Knoll":              {"api:Play", "kw:Hideaway"},
-	"Sulfuric Vortex":              {"repl:GainLife"},
-	"Szarel, Genesis Shepherd":     {"trig:Sacrificed"},
-	"The Lord of Pain":             {"stat:CantGainLife"},
-	"Uncivil Unrest":               {"api:ReplaceEffect", "repl:DamageDone"},
-	"Underworld Dreams":            {"trig:Drawn"},
-	"Unholy Annex":                 {"api:Branch"},
-	"Valgavoth, Harrower of Souls": {"kw:Ward", "trig:LifeLost"},
-	"Vein Ripper":                  {"kw:Ward"},
-	"Vial Smasher the Fierce":      {"api:ChoosePlayer"},
-	"Virtue of Strength":           {"api:ReplaceMana", "repl:ProduceMana"},
-	"Ziatora's Proving Ground":     {"kw:Cycling"},
+	"Baloth Prime":               {"api:Untap"},
+	"Bloodletter of Aclazotz":    {"api:ReplaceEffect"},
+	"Chandra, Awakened Inferno":  {"repl:Counter"},
+	"Chromatic Orrery":           {"stat:ManaConvert"},
+	"Conduit of Worlds":          {"api:Play"},
+	"Crypt Ghast":                {"kw:Extort"},
+	"Exotic Orchard":             {"api:ManaReflected"},
+	"Fabled Passage":             {"api:Untap"},
+	"Fiery Emancipation":         {"api:ReplaceEffect", "repl:DamageDone"},
+	"Horizon Explorer":           {"api:Untap"},
+	"Ojer Axonil, Deepest Might": {"api:ReplaceEffect", "repl:DamageDone"},
+	"Solphim, Mayhem Dominus":    {"api:ReplaceEffect", "repl:DamageDone"},
+	"Spiked Corridor":            {"api:ReplaceEffect", "repl:DamageDone"},
+	"Spinerock Knoll":            {"api:Play", "kw:Hideaway"},
+	"Uncivil Unrest":             {"api:ReplaceEffect", "repl:DamageDone"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

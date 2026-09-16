@@ -51,6 +51,16 @@ func TestNonAPIPrimitivesAreRegistered(t *testing.T) {
 	}
 }
 
+// TestNumLoyaltyActPrimitiveIsRegistered pins the exact support declaration
+// used by cards.Registry.Unsupported and deck validation. The rules engine
+// implements this static in loyaltyAbilityLimit; omitting it here would still
+// reject Oath of Teferi as missing stat:NumLoyaltyAct.
+func TestNumLoyaltyActPrimitiveIsRegistered(t *testing.T) {
+	if !effects.Supported()["stat:NumLoyaltyAct"] {
+		t.Fatal(`effects.Supported() is missing "stat:NumLoyaltyAct"`)
+	}
+}
+
 // TestForgecBinaryImportsRules is the second assertion path: a static check,
 // independent of anything already loaded into this test binary, that
 // cmd/forgec's own dependency graph includes package rules. `go list -deps`

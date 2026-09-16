@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
-	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -16,7 +15,21 @@ func init() {
 	Register("Protection", effProtection)
 }
 
+// effTap taps each Defined$ permanent. The tapper is the resolving ability's
+// controller unless Tapper$ names a player (Forge TapEffect). ETB$ True is the
+// "enters tapped" replacement body (804 corpus files, every ETBTapped land):
+// the permanent is given its entry state and does not become tapped (CR
+// 603.2e), so EmitTap marks it and no Taps trigger runs.
 func effTap(h Host, c *Ctx, sa *cards.SA) {
+	tapper := c.Controller
+	if spec := strings.TrimSpace(sa.Params["Tapper"]); spec != "" {
+		sub := *sa
+		sub.Params = map[string]string{"Defined": spec}
+		if ps := Defined(h, c, &sub); len(ps) > 0 {
+			tapper = PlayerOf(h, c, ps[0])
+		}
+	}
+	entering := strings.EqualFold(sa.Params["ETB"], "True")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -25,7 +38,7 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield || o.Tapped {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.Tap, Obj: o.ID})
+		h.EmitTap(o.ID, tapper, entering)
 	}
 }
 
@@ -48,7 +61,6 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 func effPump(h Host, c *Ctx, sa *cards.SA) {
 	att := Num(h, c, sa, "NumAtt", 0)
 	def := Num(h, c, sa, "NumDef", 0)
-	kws := splitKeywords(sa.Params["KW"])
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -57,7 +69,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		registerPumpEffects(h, c, o.ID, att, def, kws, sa.Params["Duration"])
+		registerPumpEffects(h, c, o.ID, att, def, sa)
 	}
 }
 
@@ -72,7 +84,6 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	att := Num(h, c, sa, "NumAtt", 0)
 	def := Num(h, c, sa, "NumDef", 0)
-	kws := splitKeywords(sa.Params["KW"])
 	spec := sa.Params["ValidCards"]
 	if spec == "" {
 		spec = "Creature"
@@ -81,7 +92,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				registerPumpEffects(h, c, id, att, def, kws, sa.Params["Duration"])
+				registerPumpEffects(h, c, id, att, def, sa)
 			}
 		}
 	}
@@ -106,49 +117,31 @@ func durationTiming(dur string) (permanent bool, untilEOT bool) {
 	}
 }
 
-// registerPumpEffects is Pump and PumpAll's shared per-object registration:
-// a layer-7c modification for a nonzero stat change, and a separate layer-6
-// grant for any keywords, since Derived applies each layer independently.
-// Skipping a zero/empty half avoids polluting Engine.continuous with an
-// effect that would never do anything (a keyword-only Pump has no stat
-// change to register, and vice versa).
-func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, kws []string, dur string) {
-	permanent, untilEOT := durationTiming(dur)
+// registerPumpEffects is Pump and PumpAll's sole per-object registration
+// path. It also owns their sole KW$ read, so neither effect can reimplement
+// Forge's keyword-list grammar: both always use cards.SplitKeywordList. It
+// creates a layer-7c modification for a nonzero stat change and a separate
+// layer-6 grant for any keywords, since Derived applies each layer
+// independently. Skipping a zero/empty half avoids polluting
+// Engine.continuous with an effect that would never do anything.
+func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *cards.SA) {
+	kws := cards.SplitKeywordList(sa.Params["KW"])
+	permanent, untilEOT := durationTiming(sa.Params["Duration"])
 	if att != 0 || def != 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LPT, Sub: state.SubModify,
 			AddPower: att, AddToughness: def,
-			Duration: dur, Permanent: permanent, UntilEOT: untilEOT,
+			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
 		})
 	}
 	if len(kws) > 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: kws,
-			Duration: dur, Permanent: permanent, UntilEOT: untilEOT,
+			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
 		})
 	}
-}
-
-// splitKeywords parses a KW$ parameter's "&"-joined keyword list -- the same
-// separator Forge's own AddKeyword$ (an S:Mode$ Continuous static's
-// parameter, e.g. Sword of Fire and Ice's "Protection from red & Protection
-// from blue") uses for the same purpose. A single keyword has no "&" and
-// comes back as a one-element slice.
-func splitKeywords(kw string) []string {
-	kw = strings.TrimSpace(kw)
-	if kw == "" {
-		return nil
-	}
-	parts := strings.Split(kw, "&")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
 }
 
 // effAnimate does not require the target to already be on the battlefield --

@@ -103,6 +103,22 @@ type ContinuousEffect struct {
 	// carries it, Derived clears the object's printed (and any earlier-granted)
 	// keywords/abilities before later layer-6 grants re-add any.
 	RemoveAbilities bool
+	// MayPlay marks a may-play-from-zone grant (CR 401.5: "you may play
+	// cards of a certain kind from a zone other than the one they would
+	// normally be played from", e.g. Conduit of Worlds' "You may play lands
+	// from your graveyard."). Registered from an S:Mode$ Continuous static
+	// that carries MayPlay$ True, alongside the Affects filter (the Affected$
+	// spec, the effect's ordinary filter field) and AffectedZone. When set
+	// the effect is a rules-mod consulted by the land-play offer (rules'
+	// mayPlayLandIds), never a CR 613 layer change -- no layer fields are
+	// read for it -- and it expires with its source permanent (CR 611.3b)
+	// through the ordinary source-on-battlefield check in active().
+	MayPlay bool
+	// AffectedZone is the may-play grant's AffectedZone$ value (a single
+	// zone, a comma-separated list, or "All"), interpreted with
+	// effects.ParseZones. Meaningful only when MayPlay is set.
+	AffectedZone string
+
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn
 	// (UntilYourNextTurn, UntilTheEndOfYourNextTurn). Computed at

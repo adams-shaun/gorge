@@ -19,9 +19,12 @@ package rules
 // effect's business.
 
 import (
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -67,14 +70,17 @@ func (e *Engine) protectedFrom(target, source state.ObjID) bool {
 // stray trailing token) yields nothing.
 func protectionQuality(kw string) (string, bool) {
 	const prefix = "Protection from "
-	if len(kw) < len(prefix) || !strings.EqualFold(kw[:len(prefix)], prefix) {
-		return "", false
+	if len(kw) >= len(prefix) && strings.EqualFold(kw[:len(prefix)], prefix) {
+		q := strings.TrimSpace(kw[len(prefix):])
+		return q, q != ""
 	}
-	q := strings.TrimSpace(kw[len(prefix):])
-	if q == "" {
-		return "", false
+	// Forge's general spelling is K:Protection:<Spec>:<display text>.
+	// Keep only the spec; the following field is reminder text, not syntax.
+	if len(kw) >= len("Protection:") && strings.EqualFold(kw[:len("Protection:")], "Protection:") {
+		q, _, _ := strings.Cut(strings.TrimSpace(kw[len("Protection:"):]), ":")
+		return q, q != ""
 	}
-	return q, true
+	return "", false
 }
 
 // sourceHasQuality reports whether the object source carries the given
@@ -86,12 +92,56 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if strings.EqualFold(q, "everything") {
 		return true
 	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return false
+	}
+	// A card object on the stack is a spell. An ability source is represented
+	// by its source permanent for protection checks, so it is not a spell.
+	if strings.EqualFold(q, "Spell") {
+		return o.Zone == state.ZStack && o.Face() != nil
+	}
+	if strings.EqualFold(q, "Permanent.ThisTurnCast") {
+		return o.Zone == state.ZBattlefield && e.permanentCastThisTurn(o.ID)
+	}
+	// Forge's remaining printed parameterised K:Protection qualities include
+	// mana-value bounds, counters and "coloured spells". They cannot be sent
+	// through MatchesSpec unchanged: cmc/counters are value predicates and
+	// nonColorless is a colour-identity predicate, none of which the generic
+	// object filter can safely guess.
+	if m := protectionCMC.FindStringSubmatch(q); m != nil {
+		n, _ := strconv.Atoi(m[2])
+		cmc := o.Face().Cmc()
+		return (m[1] == "GE" && cmc >= int32(n)) || (m[1] == "LE" && cmc <= int32(n))
+	}
+	if m := protectionCounter.FindStringSubmatch(q); m != nil {
+		n, _ := strconv.Atoi(m[1])
+		return o.Zone == state.ZBattlefield && o.Counter(m[2]) >= int32(n)
+	}
+	if strings.EqualFold(q, "Spell.nonColorless") {
+		return o.Zone == state.ZStack && o.Face() != nil && effects.ColorsOf(o) != ""
+	}
+	// MonoColor and EnemyColor are Forge's colour-class predicates, rather
+	// than type predicates. They occur on Guardian/Frenemy of the Guildpact;
+	// keep them here with the other source-quality tests so generic
+	// kw:Protection registration covers every live K:Protection form.
+	switch strings.ToLower(q) {
+	case "card.monocolor":
+		return isMonoColor(effects.ColorsOf(o))
+	case "card.enemycolor":
+		return hasEnemyColorPair(effects.ColorsOf(o))
+	}
+	// Parameterised protection qualities are Forge object specs (Artifact,
+	// Creature.God, Card.MultiColor, and so on). Reuse the filter grammar so
+	// every supported type/colour predicate has identical meaning here.
+	if effects.MatchesSpec(e.G, q, source, e.controllerOf(source)) {
+		return true
+	}
 	if c := protecColourLetter(q); c != 0 {
 		col := effects.ColorsOf(e.G.Obj(source))
 		return col != "" && strings.ContainsRune(col, c)
 	}
-	o := e.G.Obj(source)
-	if o == nil || o.Face() == nil {
+	if o.Face() == nil {
 		return false
 	}
 	f := o.Face()
@@ -106,6 +156,28 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 		return f.IsInstant()
 	case "sorceries":
 		return f.IsSorcery()
+	}
+	return false
+}
+
+// isMonoColor reports the CR colour-class meaning: exactly one colour, not
+// colourless. ColorsOf has already applied Devoid before this point.
+var (
+	protectionCMC     = regexp.MustCompile(`^Card\.cmc(GE|LE)([0-9]+)$`)
+	protectionCounter = regexp.MustCompile(`^Permanent\.counters_GE([0-9]+)_([^_]+)$`)
+)
+
+func isMonoColor(colors string) bool { return len(colors) == 1 }
+
+// hasEnemyColorPair reports whether a multicoloured object includes an enemy
+// pair. The five enemy pairs are the non-adjacent pairs on the WUBRG colour
+// wheel; a three- or five-colour object matches when it contains any one of
+// them, as "enemy-colored multicolored" requires.
+func hasEnemyColorPair(colors string) bool {
+	for _, pair := range [...]string{"WB", "WR", "UR", "UG", "BG"} {
+		if strings.ContainsRune(colors, rune(pair[0])) && strings.ContainsRune(colors, rune(pair[1])) {
+			return true
+		}
 	}
 	return false
 }
@@ -128,26 +200,52 @@ func protecColourLetter(q string) rune {
 	return 0
 }
 
-// Registered here: the five single-colour "Protection from" keywords, the
-// exact shape Goblin Piledriver and Knight of Infamy (the last two ratchet
-// entries) carry and the only protection keywords the M2r ratchet schedule
-// files a registration for — and, honestly, the ONLY protection syntax
-// protectionQuality parses. The corpus's dominant form is actually the
-// K:Protection:<Spec> syntax (K:Protection:Creature, K:Protection:Instant:
-// instants, K:Protection:Card.MultiColor, ... — 40+ distinct shapes across
-// .cards/cardsfolder), none of which protectionQuality parses: it matches
-// only "Protection from <colour>" plus the general words in sourceHasQuality's
-// switch, which five do not cover what the corpus actually spells. The plural
-// type words (artifacts/creatures/enchantments/instants/sorceries) the switch
-// handles never appear in Forge keyword syntax at all — the corpus writes
-// K:Protection:Creature, not "Protection from creatures" — and a
-// K:Protection from each color parses to a quality matching nothing.
-// Registering the type/everything protections would grow the "supported" set
-// without a card test to prove it (Ruling W2), and protectedFrom does NOT in
-// fact handle the corpus's other forms correctly: parsing and registering
-// them is real future work, and until a card test retires a ratchet entry
-// for one they will not be reported as supported.
+// kw:Protection covers Forge's parameterised K:Protection:<Spec> spelling,
+// including every parameterised quality printed on a K:Protection line in
+// the corpus. The older colour-specific registrations remain for Forge's
+// separate natural-language "Protection from <colour>" keyword spelling.
 func init() {
-	effects.RegisterNonAPI("kw:Protection from white", "kw:Protection from blue",
+	effects.RegisterNonAPI("kw:Protection", "kw:Protection from white", "kw:Protection from blue",
 		"kw:Protection from black", "kw:Protection from red", "kw:Protection from green")
+}
+
+// permanentCastThisTurn reports whether the permanent id became a permanent by
+// resolving as a spell cast this turn (Forge's Permanent.ThisTurnCast, CR
+// 601.2). EnteredThisTurn is not enough: a token, a reanimated card or a
+// flickered permanent also entered this turn without being cast. The answer
+// is derived from the event log, like spellsCastThisTurn, so a replay agrees:
+// walking back to the last TurnChange, the object's most recent battlefield
+// entry must be its stack->battlefield resolution, and the most recent zone
+// event before that must be the PutOnStack a cast emits. A copy of a spell
+// (StackCopy) or an ability never emits a PutOnStack for its object, so it
+// does not qualify.
+func (e *Engine) permanentCastThisTurn(id state.ObjID) bool {
+	entered := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return false
+		}
+		if ev.Obj != id {
+			continue
+		}
+		switch ev.Kind {
+		case events.PutOnStack:
+			return entered
+		case events.MoveZone, events.Draw:
+			if entered {
+				// Some other zone move sits between the resolution and the
+				// cast: the object reached the stack without being cast.
+				return false
+			}
+			if ev.To != state.ZBattlefield {
+				continue
+			}
+			if ev.From != state.ZStack {
+				return false
+			}
+			entered = true
+		}
+	}
+	return false
 }

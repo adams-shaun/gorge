@@ -29,15 +29,20 @@ import (
 // mid-resolution (no resolution is running), and the answer handler is the
 // flow's whole continuation.
 
-// chooseStation is the chooseFor for the Station tap pick.
-const chooseStation chooseFor = iota + 9
+// chooseStation is the chooseFor for the Station tap pick. iota+12 is
+// pairwise distinct from the shared package set as of the mass-turn/
+// new-mechanics merge: cast=1/etb=2/miracle=3 (cast.go), cleanup=4/
+// damageDivision=5 (combat.go), mana=6/manaColor=7/manaDiscard=8/
+// manaExile=9 (mana_activation.go), opening=10 (opening_hand.go),
+// suspendCast=11 (turn.go) -- the exact numbers only need to differ.
+const chooseStation chooseFor = iota + 12
 
 // chooseUnlock is a marker for the room-unlock flow (no second decision is
 // ever asked -- the unlock pays its cost directly on the option answer) -- but
 // keeping the name reserved here documents that handlePriority's "unlock"
 // case never routes through handleChoose. The zero-value flow that reads it
 // is the cast flow's; no handler exists, by design.
-const chooseUnlock chooseFor = iota + 10
+const chooseUnlock chooseFor = iota + 13
 
 func hasCreatureType(types []string) bool {
 	for _, typ := range types {

@@ -257,6 +257,153 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 	return c
 }
 
+// castWithFlash reports whether an active CastWithFlash static gives p
+// permission to cast id at instant speed. It is intentionally shared by every
+// zone that can cast a spell; a Vedalken Orrery must not stop working when a
+// later alternative permits casting from another zone.
+func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
+	for _, sv := range e.activeStatics("CastWithFlash") {
+		if !e.actorMatches(sv, "Caster", p) || !e.staticTimingGate(sv) {
+			continue
+		}
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil || !spellMatchesValidSA(o.Face(), sv.Params["ValidSA"]) {
+			continue
+		}
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+			return true
+		}
+	}
+	return false
+}
+
+// presentGate evaluates one IsPresent spec against PresentCompare (default
+// GE1); staticTimingGate fails closed when either present gate does not hold.
+func (e *Engine) presentGate(sv staticView, spec string) bool {
+	n := e.countStaticPresent(sv, spec)
+	cmp := sv.Params["PresentCompare"]
+	if cmp == "" {
+		cmp = "GE1"
+	}
+	return comparePresent(n, cmp)
+}
+
+// staticTimingGate evaluates the static conditions that can decide whether a
+// CastWithFlash permission exists before a spell is announced. An unknown
+// gate fails closed: granting instant timing without proving the script's
+// condition would permit an illegal cast.
+func (e *Engine) staticTimingGate(sv staticView) bool {
+	if spec, ok := sv.Params["IsPresent"]; ok && !e.presentGate(sv, spec) {
+		return false
+	}
+	if spec, ok := sv.Params["IsPresent2"]; ok && !e.presentGate(sv, spec) {
+		return false
+	}
+	if name, ok := sv.Params["CheckSVar"]; ok {
+		o := e.G.Obj(sv.Source)
+		if o == nil || o.Face() == nil {
+			return false
+		}
+		body, ok := o.Face().SVars[name]
+		if !ok {
+			return false
+		}
+		cmp := sv.Params["SVarCompare"]
+		if cmp == "" || !comparePresent(int(effects.EvalCount(e, &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: o.Face().SVars}, body)), cmp) {
+			return false
+		}
+	}
+	switch strings.TrimSpace(sv.Params["Condition"]) {
+	case "", "PlayerTurn":
+		if sv.Params["Condition"] == "PlayerTurn" && e.G.Active != sv.Controller {
+			return false
+		}
+	case "Ferocious":
+		found := false
+		for _, id := range e.G.Zone(state.ZBattlefield, sv.Controller) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsCreature() && e.Derived(id).Power >= 4 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	default:
+		return false
+	}
+	if phase := strings.TrimSpace(sv.Params["Phases"]); phase != "" && !(strings.Contains(phase, "End of Turn") && e.G.Step == state.StepEnd) {
+		return false
+	}
+	if turn := strings.TrimSpace(sv.Params["PlayerTurn"]); turn != "" {
+		switch turn {
+		case "Opponent":
+			if e.G.Active == sv.Controller {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func (e *Engine) countStaticPresent(sv staticView, spec string) int {
+	zone := strings.TrimSpace(sv.Params["PresentZone"])
+	if zone == "" || zone == "Battlefield" {
+		return e.countPresent(spec, sv.Source, sv.Controller)
+	}
+	var want state.Zone
+	switch zone {
+	case "Graveyard":
+		want = state.ZGraveyard
+	default:
+		return 0
+	}
+	n := 0
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o != nil && o.Zone == want && effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			n++
+		}
+	})
+	return n
+}
+
+// spellMatchesValidSA checks the spell-side subset of Forge's ValidSA grammar.
+// Activated-only or target/X-dependent constraints are not knowable before
+// announcing a spell and therefore do not accidentally grant flash timing.
+func spellMatchesValidSA(f *cards.Face, raw string) bool {
+	if strings.TrimSpace(raw) == "" {
+		return true
+	}
+	for _, alt := range strings.Split(raw, ",") {
+		kind, constraint, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		switch kind {
+		case "Spell":
+			if constraint == "" {
+				return true
+			}
+		case "Instant":
+			if constraint == "" && f.IsInstant() {
+				return true
+			}
+		case "Sorcery":
+			if constraint == "" && f.IsSorcery() {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// spellTimingOK is the one timing predicate for every zone which offers a
+// spell cast. CastWithFlash is a permission, not a hand-only property: it
+// also applies to Flashback, Harmonize, and command-zone casts.
+func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, sorcery bool) bool {
+	return sorcery || (f != nil && (f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)))
+}
+
 // alternativeCosts lists extra ways to cast id, each becoming its own
 // "cast" option in legalActions so the client can present the choice
 // without knowing any rules. Two sources: another permanent's static
@@ -339,9 +486,9 @@ func parseAmount(s string, def int32) int32 {
 }
 
 func init() {
-	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost",
+	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost", "stat:CastWithFlash",
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:CantBlock", "stat:CantBlockBy",
-		"stat:Continuous")
+		"stat:CantGainLife", "stat:Continuous", "stat:NumLoyaltyAct")
 }
 
 // altCostLabel names the nth (0-indexed) alternative-cost option for a

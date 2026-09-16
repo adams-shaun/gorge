@@ -16,8 +16,7 @@
 // the moment of the failed draw, which checkStateBased's own permanent-
 // removal pass below picks up on its next run regardless of how a player
 // came to be Lost); this build has no poison-counter mechanic, so CR
-// 704.5b/704.5h(poison) is not modelled and not a gap this task needs to
-// close.
+// 704.5b's poison loss is checked with life and commander damage below.
 package rules
 
 import (
@@ -240,6 +239,9 @@ func (e *Engine) checkStateBased() {
 		sagas:   map[state.ObjID]bool{},
 		alive:   e.G.AliveCount(),
 	}
+	// Safety net for a duration-ending change folded outside Engine.emit
+	// (the Updated replacement paths call events.Emit directly).
+	e.expireControl(controlOnEvent)
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		changed := e.checkLoseConditions(tried)
 		if e.annihilateOppositeCounters() {
@@ -375,6 +377,16 @@ func (e *Engine) checkLoseConditions(tried *sbaAttempts) bool {
 		p := &e.G.Players[i]
 		if !p.Lost && p.Life <= 0 {
 			e.emit(events.Event{Kind: events.PlayerLost, Player: p.ID, Text: "life total is 0 or less"})
+			changed = true
+		}
+	}
+	// CR 704.5b: a player with ten or more poison counters loses. Ward's
+	// AddCounterYou<N/POISON> cost emits PlayerCounterChange, so this belongs
+	// in the shared SBA pass rather than in Ward's payment implementation.
+	for i := range e.G.Players {
+		p := &e.G.Players[i]
+		if !p.Lost && p.Counter("POISON") >= 10 {
+			e.emit(events.Event{Kind: events.PlayerLost, Player: p.ID, Text: "ten or more poison counters"})
 			changed = true
 		}
 	}

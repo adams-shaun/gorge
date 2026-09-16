@@ -913,7 +913,7 @@ func TestUrzasSagaChaptersAndLoreCounters(t *testing.T) {
 	d = e.Pending()
 	mana := false
 	for _, o := range d.Options {
-		if o.Kind == "activate" && o.Obj == saga && o.Label == "Tap Urza's Saga for mana" {
+		if o.Kind == "activate" && o.Obj == saga && o.Label == "Activate Urza's Saga for mana" {
 			mana = true
 		}
 	}

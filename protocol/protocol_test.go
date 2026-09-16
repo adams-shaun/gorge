@@ -130,6 +130,10 @@ func TestEventFromNamesKindsZonesAndSteps(t *testing.T) {
 	if len(bl.Pairs) != 1 || bl.Pairs[0] != [2]uint32{3, 4} {
 		t.Fatalf("%+v", bl)
 	}
+	kw := EventFrom(events.Event{Kind: events.KeywordTriggerPush})
+	if kw.Kind != "keyword_trigger_push" {
+		t.Fatalf("keyword trigger kind on wire = %q", kw.Kind)
+	}
 	if EventFrom(events.Event{Kind: 250}).Kind != "unknown" {
 		t.Fatal("unknown kind not named unknown")
 	}

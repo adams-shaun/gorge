@@ -169,6 +169,9 @@ func TestRoundOfFoldsEliminationWithoutJump(t *testing.T) {
 // before any turn has been taken": no TurnChange seen yet folds to round 1,
 // and the very first TurnChange must not itself open a round 2.
 func TestRoundOfFirstRoundHandlesNoTurn(t *testing.T) {
+	if got := RoundOf(nil, nil); got != 1 {
+		t.Fatalf("nil game: RoundOf = %d, want 1", got)
+	}
 	if got := RoundOf(roundTestGame(4, 20), nil); got != 1 {
 		t.Fatalf("empty log: RoundOf = %d, want 1", got)
 	}
@@ -249,5 +252,95 @@ func TestRoundOfMatchesApproximationBeforeElimination(t *testing.T) {
 		if got, want := RoundOf(g, evs), roundOf(g); got != want {
 			t.Fatalf("turn %d: exact %d != approximation %d", turn, got, want)
 		}
+	}
+}
+
+// ---- rv2a: the round anchor is the game's starting player, not seat 0 ----
+//
+// Before the CR 103.1 toss the first TurnChange always reached seat 0, so
+// "first still-living seat" and "lowest index" coincided. Since the toss the
+// starting seat is drawn, and a fold still anchored at seat 0 ran one round
+// ahead all game for every game whose toss started another seat (measured on
+// the pre-fix code: seats=2 seed=4 start=1, turn=2, active=0: RoundOf=2,
+// want 1). These tests pin the anchored rule at the seat counts the brief
+// names, with streams that begin at seats the old rule could not handle.
+
+// startLog builds a TurnChange stream for a table of n seats whose turn
+// order cycles beginning at `start` -- the shape the engine's NextAlive
+// actually produces for a game whose toss started `start`.
+func startLog(n, start, turns int) []events.Event {
+	evs := make([]events.Event, 0, turns)
+	for i := 0; i < turns; i++ {
+		evs = append(evs, events.Event{Kind: events.TurnChange, Player: state.PlayerID((start + i) % n)})
+	}
+	return evs
+}
+
+// TestRoundOfAnchorsOnTheStartingSeat: a stream whose first TurnChange is
+// seat 1 (2 seats) and seat 3 (4 seats) counts its rounds from THAT seat's
+// returns, and the fold agrees with the engine-shaped turn order.
+func TestRoundOfAnchorsOnTheStartingSeat(t *testing.T) {
+	// 2 seats, starting at 1: turns 1,0,1,0,1 -- round 2 opens when the
+	// turn returns to seat 1 (turn 3), round 3 at turn 5.
+	if got, want := RoundOf(roundTestGame(2, 20), startLog(2, 1, 5)), int32(3); got != want {
+		t.Fatalf("2 seats starting at 1, 5 turns: RoundOf = %d, want %d", got, want)
+	}
+	// The brief's probe shape: seats=2, start=1, turn=2 (active=0, the
+	// second seat's turn) is still round 1 -- the old seat-0 anchor counted
+	// the turn's RETURN to seat 0 as a boundary and read 2.
+	if got, want := RoundOf(roundTestGame(2, 20), startLog(2, 1, 2)), int32(1); got != want {
+		t.Fatalf("2 seats starting at 1, turn 2: RoundOf = %d, want %d", got, want)
+	}
+	// 4 seats, starting at 3: turns 3,0,1,2,3 -- round 2 opens at turn 5's
+	// return to seat 3; turns 1-4 are all round 1.
+	if got, want := RoundOf(roundTestGame(4, 20), startLog(4, 3, 4)), int32(1); got != want {
+		t.Fatalf("4 seats starting at 3, turn 4: RoundOf = %d, want %d", got, want)
+	}
+	if got, want := RoundOf(roundTestGame(4, 20), startLog(4, 3, 5)), int32(2); got != want {
+		t.Fatalf("4 seats starting at 3, turn 5: RoundOf = %d, want %d", got, want)
+	}
+	if got, want := RoundOf(roundTestGame(4, 20), startLog(4, 3, 9)), int32(3); got != want {
+		t.Fatalf("4 seats starting at 3, turn 9: RoundOf = %d, want %d", got, want)
+	}
+}
+
+// TestRoundOfStarterEliminatedMovesTheAnchor: the starting player loses
+// during their own first turn; the anchor moves to the next living seat in
+// turn order from the starter, and the next return to THAT seat opens the
+// round -- the same carry-on the seat-0 case pinned, exercised from a
+// non-zero starter.
+func TestRoundOfStarterEliminatedMovesTheAnchor(t *testing.T) {
+	// 2 seats, starter seat 1: turn 1 seat 1, seat 1 dies, turn 2 seat 0 --
+	// the new anchor -- opens round 2; with one survivor every later turn
+	// also hands the turn to seat 0, so each opens a round: turn 3 -> 3,
+	// turn 4 -> 4.
+	evs := []events.Event{
+		{Kind: events.TurnChange, Player: 1}, // turn 1: the starter
+		{Kind: events.PlayerLost, Player: 1},
+		{Kind: events.TurnChange, Player: 0}, // turn 2: new anchor, round 2
+		{Kind: events.TurnChange, Player: 0}, // turn 3: round 3
+		{Kind: events.TurnChange, Player: 0}, // turn 4: round 4
+	}
+	if got, want := RoundOf(roundTestGame(2, 20), evs), int32(4); got != want {
+		t.Fatalf("starter eliminated (2 seats): RoundOf = %d, want %d", got, want)
+	}
+	// 4 seats, starter seat 3: seat 3 dies on turn 1; the cycle becomes
+	// 0,1,2 (turn order from the dead starter's seat wraps to 0), so turn 2
+	// already returns to the new anchor and opens round 2 -- the old
+	// lowest-index anchor counted that the same way, but turn 5's and
+	// turn 8's returns make rounds 3 and 4.
+	evs4 := []events.Event{
+		{Kind: events.TurnChange, Player: 3}, // turn 1: the starter dies on it
+		{Kind: events.PlayerLost, Player: 3},
+		{Kind: events.TurnChange, Player: 0}, // turn 2: new anchor, round 2
+		{Kind: events.TurnChange, Player: 1}, // turn 3
+		{Kind: events.TurnChange, Player: 2}, // turn 4
+		{Kind: events.TurnChange, Player: 0}, // turn 5: round 3 opens
+		{Kind: events.TurnChange, Player: 1}, // turn 6
+		{Kind: events.TurnChange, Player: 2}, // turn 7
+		{Kind: events.TurnChange, Player: 0}, // turn 8: round 4 opens
+	}
+	if got, want := RoundOf(roundTestGame(4, 20), evs4), int32(4); got != want {
+		t.Fatalf("starter eliminated (4 seats): RoundOf = %d, want %d", got, want)
 	}
 }

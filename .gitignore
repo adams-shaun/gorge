@@ -2,6 +2,13 @@ bin/
 # Fetched Forge corpus and the IR compiled from it. Never committed: the
 # scripts are GPL-3.0 and mtgcore is Apache-2.0.
 .cards/
+
+# Exact token script text that cmd/repro -emit-test and the fixture
+# generator strip out of committed match.json files. GPL-3.0; gorge is
+# Apache-2.0. Keyed by fixture id; written under cmd/repro/testdata/.tokens
+# so a local checkout can still replay a fixture with its exact historical
+# token scripts.
+cmd/repro/testdata/.tokens/
 coverage.out
 coverage.html
 

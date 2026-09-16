@@ -227,10 +227,10 @@ func TestIronMastiffUsesOnlyItsHighestRoll(t *testing.T) {
 	}
 	svars["NbAttackedPlayers"] = "2"
 	life0, life1, life2 := g.Players[0].Life, g.Players[1].Life, g.Players[2].Life
-	// Defined$ Player.Opponent is not yet a context selector, so carry the
-	// attacked opponent in the trigger's target slot -- the normal fallback
-	// for this unresolved Defined$ shape -- to make the real damage ranges
-	// observable.
+	// Defined$ Player.Opponent now resolves for real (context.go's "Opponent"/
+	// "Player.Opponent" case): every living seat but the controller, which for
+	// the 20 range's "deals damage ... to each opponent" is both seat 1 and
+	// seat 2 here, not merely whichever seat the trigger happened to target.
 	Resolve(h, &Ctx{Controller: 0, Source: src.ID, SVars: svars,
 		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, saRoll)
 	if rolls := rollResults(t, h); len(rolls) != 2 || rolls[0] != 20 || rolls[1] != 1 {
@@ -242,8 +242,8 @@ func TestIronMastiffUsesOnlyItsHighestRoll(t *testing.T) {
 	if got := life1 - g.Players[1].Life; got != 4 {
 		t.Fatalf("seat 1 took %d damage, want 4 from the retained 20 range", got)
 	}
-	if got := life2 - g.Players[2].Life; got != 0 {
-		t.Fatalf("seat 2 took %d damage, want 0: the trigger supplied only seat 1 as attacked", got)
+	if got := life2 - g.Players[2].Life; got != 4 {
+		t.Fatalf("seat 2 took %d damage, want 4: the 20 range hits every opponent, not just the attacked one", got)
 	}
 }
 

@@ -9,5 +9,9 @@ export default defineConfig({
   // their own scratch directory rather than writing through that symlink.
   cacheDir: process.env.VITE_CACHE_DIR,
   server: { proxy: { '/api': { target: 'http://localhost:8080', changeOrigin: true } } },
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+    globalSetup: './src/test/browser.global.ts',
+  },
 });

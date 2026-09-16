@@ -173,37 +173,43 @@ func TestRevealOptionalNoHostKeepsTheMandatoryReveal(t *testing.T) {
 	}
 }
 
-// TestRevealOptionalIsOnlyThePeekShape pins the scope boundary:
-// RevealOptional$ on the non-peek shapes poses no ask (mandatory reveal,
-// today's behaviour), and a plain PeekAndReveal without RevealOptional$
-// never asks either.
-func TestRevealOptionalIsOnlyThePeekShape(t *testing.T) {
+// TestMayRevealAskKeysOnTheFlagNotTheAPI pins the widened scope boundary
+// (round-2 review, the Gitaxian Probe Look$ task): the may-reveal ask keys
+// on the FLAG — RevealOptional$ on the peek shape (Delver), Optional$ on the
+// Reveal/RevealHand hand shapes (Liar's Pendulum) — and either flag asks on
+// any of the three APIs, since both mean "you may reveal". A peek/reveal
+// with NEITHER flag never asks.
+func TestMayRevealAskKeysOnTheFlagNotTheAPI(t *testing.T) {
 	h, ids := revealBoard(t)
 	// Reveal$/RevealHand look at the HAND, not the library: give seat 0 a
 	// hand card to reveal (hand-of-bear, id 4).
 	bear := h.g.AddObject(mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n"), 0)
 	bear.Zone = state.ZHand
 	h.g.SetZone(state.ZHand, 0, []state.ObjID{bear.ID})
-	sh := &suspendHost{fakeHost: *h}
-	ctx := &Ctx{Controller: 0, Source: ids[2]}
-	Resolve(sh, ctx, sa(t, "SP$ Reveal | Defined$ You | NumCards$ 1 | RevealOptional$ True"))
-	if sh.asked != nil {
-		t.Fatal("Reveal$ posed a RevealOptional$ ask — out of scope shape")
-	}
-	found := false
-	for _, e := range sh.log {
-		if e.Kind == events.Note && len(e.IDs) == 1 && e.IDs[0] == bear.ID {
-			found = true
+
+	for _, line := range []string{
+		"SP$ Reveal | Defined$ You | NumCards$ 1 | Optional$ True",
+		"SP$ RevealHand | Defined$ You | NumCards$ 1 | Optional$ True",
+		"SP$ Reveal | Defined$ You | NumCards$ 1 | RevealOptional$ True",
+		"SP$ PeekAndReveal | Defined$ You | NumCards$ 1 | RevealOptional$ True",
+	} {
+		sh := &suspendHost{fakeHost: *h}
+		Resolve(sh, &Ctx{Controller: 0, Source: ids[2]}, sa(t, line))
+		if sh.asked == nil {
+			t.Fatalf("%s posed no may-reveal ask", line)
 		}
-	}
-	if !found {
-		t.Fatal("Reveal$ did not reveal")
+		if d := sh.asked; d.Player != 0 || d.ResumeKind != "reveal_optional" || len(d.Options) != 2 || d.Options[0].Kind != "yes" {
+			t.Fatalf("%s asked %+v, want a reveal_optional yes/no for the hand's owner", line, d)
+		}
+		if len(sh.log) != 0 {
+			t.Fatalf("%s emitted %v before its answer", line, sh.log)
+		}
 	}
 
 	sh2 := &suspendHost{fakeHost: *h}
 	Resolve(sh2, &Ctx{Controller: 0, Source: ids[2]},
 		sa(t, "SP$ PeekAndReveal | Defined$ You | NumCards$ 1"))
 	if sh2.asked != nil {
-		t.Fatal("a PeekAndReveal without RevealOptional$ posed an ask")
+		t.Fatal("a PeekAndReveal without a may-reveal flag posed an ask")
 	}
 }

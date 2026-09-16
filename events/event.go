@@ -185,7 +185,10 @@ const (
 	// the Execute$ ability), Player the controller, Step the phase to fire
 	// in, Counter the Execute$ SVar name, IDs the Remembered object(s)
 	// captured at registration (PlayerRef-encoded, as TriggerPush does), and
-	// Text the Forge Phase$ string for description. Appended here, after
+	// Text the Forge Phase$ string for description -- or, for an event-matched
+	// (non-phase) registration, "<Mode$ value>:<trigger SVar name>", the
+	// encoding events.Apply's DelayedRegister case decodes into
+	// state.DelayedTrigger's EventMode/Trigger pair. Appended here, after
 	// CmdDamage, following every prior Kind's own append-only precedent, so
 	// no earlier ordinal, hash chain or golden replay is affected.
 	DelayedRegister
@@ -254,6 +257,28 @@ const (
 	// state.Player.Speed here, so a reconstruction rebuilds it. Appended
 	// after DoorUnlock, same append-only precedent.
 	SpeedChange
+	// MonarchChange gives the designation to Player. It is a state transition,
+	// not a Note, so conditional "if you're the monarch" triggers replay from
+	// the same state as the live match. Appended after LibraryOrder to preserve
+	// every prior event ordinal.
+	MonarchChange
+	// ControlChange transfers control of a permanent or a stack object. Obj is
+	// the controlled object and Player its new controller. It is deliberately a
+	// distinct event: control is neither ownership nor a zone change, and a
+	// replay must retain it when the object later moves.
+	ControlChange
+	// CardToken mints a battlefield token that is a copy of the card object Obj
+	// names. Appending after main's existing events preserves their ordinals.
+	CardToken
+	// KeywordTriggerPush mints a mandatory keyword-provided triggered ability.
+	KeywordTriggerPush
+	// Goad applies CR 701.38's attack requirement to Obj. Player is the
+	// goading player, Text its Forge duration, IDs[0] its source, and Amount
+	// the target's controller plus one. Amount -1 removes every relationship.
+	Goad
+	// PlayerCounterChange changes a counter on Player. Counter names the kind
+	// and Amount the delta; Ward's AddCounterYou<.../POISON> is its first use.
+	PlayerCounterChange
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -264,7 +289,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(SpeedChange) + 1
+	NumKinds = int(PlayerCounterChange) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -278,7 +303,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change"}
+	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
+	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -362,20 +388,31 @@ func appendStr(dst []byte, s string) []byte {
 // iteration).
 var flagNames = [...]struct {
 	name string
-	bit  uint8
+	bit  uint16
 }{
 	{"kicked", state.FlagKicked},
 	{"surged", state.FlagSurged},
 	{"flashback", state.FlagFlashback},
 	{"miracle", state.FlagMiracle},
+	// Appended at the end, keeping the historic four first: a flag list is
+	// canonicalised in THIS table order, so appending new flags after the
+	// old ones keeps FlagsString(FlagsFrom(s)) stable for every name the
+	// original table already knew.
+	{"evoked", state.FlagEvoked},
+	{"dashed", state.FlagDashed},
+	{"overloaded", state.FlagOverloaded},
+	{"warped", state.FlagWarped},
+	{"buyback", state.FlagBuyback},
+	{"harmonize", state.FlagHarmonize},
+	{"suspend", state.FlagSuspend},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
 // into a CastFlags byte. Unrecognized names are silently ignored, the same
 // totality stance as everywhere else in this package: a stray or future
 // flag name in an untrusted log must not make this panic.
-func FlagsFrom(s string) uint8 {
-	var f uint8
+func FlagsFrom(s string) uint16 {
+	var f uint16
 	for _, part := range strings.Split(s, ",") {
 		for _, fn := range flagNames {
 			if strings.TrimSpace(part) == fn.name {
@@ -388,7 +425,7 @@ func FlagsFrom(s string) uint8 {
 
 // FlagsString is FlagsFrom's inverse: a canonical, fixed-order csv of the
 // flag names set in f.
-func FlagsString(f uint8) string {
+func FlagsString(f uint16) string {
 	var parts []string
 	for _, fn := range flagNames {
 		if f&fn.bit != 0 {

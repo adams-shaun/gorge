@@ -26,6 +26,10 @@ LANE_RULES = REPO / ".ds4" / "lane-rules.txt"
 ORCH_STATE_DIR = REPO / ".ds4" / "orchestrator"
 LOG_FILE = ORCH_STATE_DIR / "daemon.log"
 PAUSE_FILE = ORCH_STATE_DIR / "pause"
+# Present while the paid provider refuses work (usage limit reached). Every
+# paid slot reads as full, so paid rounds and reviews wait instead of failing.
+# The daemon creates it on detection; delete it by hand once the plan resets.
+PAID_OFF_FILE = ORCH_STATE_DIR / "paid-off"
 PID_FILE = ORCH_STATE_DIR / "daemon.pid"
 
 PI_AGENT_BIN = Path.home() / "projects" / "ds4-harness" / "bin" / "pi-agent"
@@ -42,13 +46,14 @@ LOCAL_PROVIDER = "bm-llms-glm"
 LOCAL_MODEL = "glm-5.3-flash"
 LOCAL_THINKING = "medium"
 
-# The two GPT-class codex seats this workflow names explicitly: SOL
-# implements on escalation, TERRA reviews every round (local or escalated).
+# The GPT-class codex seats this workflow names explicitly: SOL implements on
+# escalation and reviews every round (local or escalated). User-set
+# 2026-09-14: reviews run on sol at medium or high, never astra.
 IMPLEMENTER_ESCALATED_PROVIDER = "openai-codex"
 IMPLEMENTER_ESCALATED_MODEL = "gpt-5.6-sol"
 
 REVIEWER_PROVIDER = "openai-codex"
-REVIEWER_MODEL = "gpt-5.6-terra"
+REVIEWER_MODEL = "gpt-5.6-sol"
 REVIEWER_THINKING = "high"
 
 MAX_MINUTES = 75
@@ -59,7 +64,7 @@ POLL_SECONDS = 60
 # Concurrency caps, counted from live pi-agent processes across every repo on
 # the box. Local (glm) seats share one SGLang server: 2026-09-14 ten
 # concurrent seats left it 3 running / 7 queued at 33 tok/s. Paid seats
-# (sol implementer + terra reviewer) share the ChatGPT plan. User-set
+# (sol implementer and reviewer, terra overflow) share the ChatGPT plan. User-set
 # 2026-09-14: local 2, paid 4. A launch with no free slot waits: new work
 # stays in new/briefed, an in-flight ticket parks in `waiting` with its
 # findings, and a finished implementer waits in `dispatched` for a reviewer.
