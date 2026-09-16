@@ -20,10 +20,13 @@ import (
 //
 // Any reports that at least one mana ability's Produced$ was not a plain
 // colour string: "Any"/"Combo Any", a listed "Combo X Y" choice, or a
-// "Chosen"/"Special" word. Such a source is conditional in the card script,
-// so a policy must not treat it as a dependable colour fixer. Colour still
-// mirrors every rune effMana emits: its unrecognised runes become colourless
-// through state.ManaIndex, including the words in Combo and Chosen.
+// "Chosen"/"Special" word (any token the symbol grammar cannot read). Such a
+// source is conditional in the card script, so a policy must not treat it as
+// a dependable colour fixer. Colour carries only what a plain token names:
+// the colour letters the token lists (one each for "R G", two for "RR"),
+// never a phantom count for the words themselves -- an unrecognised token
+// such as "Chosen" or "ColorIdentity" claims no mana at all (ProducedCounts),
+// matching effMana's fail-closed executor convention.
 type ManaProduction struct {
 	Colour [6]int32 `json:"colour"`
 	Any    bool     `json:"any"`
@@ -49,12 +52,6 @@ type ManaProduction struct {
 	// stays for the two adapters and the policy that reads it.
 	Indeterminate bool `json:"-"`
 }
-
-// manaProductionForm normalises Produced$ exactly as effMana does. Like
-// botpolicy's braceForm, it is package-scoped: strings.Replacer is immutable
-// and safe for concurrent use, while building its trie in this hot collector
-// once per mana ability creates needless garbage on every projected board.
-var manaProductionForm = strings.NewReplacer("{", "", "}", "", " ", "")
 
 // manaAbilityAmount is the Amount$ a mana ability produces. It returns the
 // amount and whether the amount is known at projection time:
@@ -86,12 +83,107 @@ func manaAbilityAmount(a *SA) (int32, bool) {
 	return 0, false
 }
 
+// manaSymbols is the set of single-letter mana symbols a Produced$ token may
+// consist of: the five colours plus colourless. A token whose runes all lie
+// in this set is a plain literal (each rune one unit of its slot); a token
+// carrying any other rune names a script-level choice ("Chosen",
+// "ColorIdentity", a "Special ..." word) and must not be walked at all.
+const manaSymbols = "WUBRGC"
+
+// ManaSymbol is the single-letter mana symbol that occupies slot i of a
+// ManaProduction.Colour vector (0 W, 1 U, 2 B, 3 R, 4 G, 5 colourless).
+// cards cannot import state, so a caller that also owns a state.Mana
+// translates the letter with state.ManaIndex -- the two slot layouts are
+// the same by convention.
+func ManaSymbol(i int) byte {
+	if i < 0 || i >= len(manaSymbols) {
+		return 0
+	}
+	return manaSymbols[i]
+}
+
+// ProducedCounts parses one mana ability's Produced$ value into the
+// per-symbol mana counts (indexed W, U, B, R, G, colourless -- the same
+// layout state.Mana uses) that its plain tokens state, plus the any flag for
+// a production whose colour is a script-level choice. It is THE one Produced$
+// parse the projection collectors share: cards.ManaProduction.add (the
+// per-face capability summary that rides CardView.produces) and rules'
+// addAvailable (the engine's available-by-tapping aggregate) both fold
+// through it, so the two cannot drift the way the pre-fb-windgrace rune walk
+// let them (walking "Combo B R" one rune at a time counted the letters of
+// the word "Combo" as five phantom colourless).
+//
+// The grammar, deliberately narrow and fail-closed (the effMana convention):
+//
+//   - blank, exactly "Any", or exactly "Combo Any" is one colourless plus
+//     any (the executor's own resolution for those shapes);
+//   - braces are stripped, the value is split on whitespace, and a leading
+//     literal "Combo" token is dropped (it names a choice, not a symbol);
+//     a Combo-prefixed value is a script-level CHOICE among its tokens, so
+//     it is flagged any however well-formed its tokens are -- this keeps
+//     Any's documented meaning ("not a plain colour string"), so
+//     DistinctColours and every consumer built on the flag keep the exact
+//     values they had before the phantom-count fix;
+//   - every remaining token either consists solely of the symbols WUBRGC
+//     -- each of its runes then adds one unit of its slot, so "RR" is two
+//     red and "R G" is one red and one green -- or it names a script-level
+//     choice ("Chosen", "ColorIdentity", a "Special ..." word) and claims
+//     NO mana at all while setting any. A token is rejected whole: a word
+//     that merely CONTAINS a symbol letter ("ColorIdentity" contains "C")
+//     is not a symbol and must not be walked, or the phantom is back.
+//
+// The caller multiplies the counts by the ability's Amount$ (or applies its
+// own default); the flag is independent of the amount -- an unpriceable
+// Amount$ still sets any, because the colour choice is unmodelled even when
+// the count is not the collector's problem.
+func ProducedCounts(produced string) (counts [6]int32, any bool) {
+	raw := strings.TrimSpace(produced)
+	if raw == "" || raw == "Any" || raw == "Combo Any" {
+		counts[5] = 1
+		return counts, true
+	}
+	tokens := strings.Fields(strings.NewReplacer("{", "", "}", "").Replace(raw))
+	if len(tokens) > 0 && tokens[0] == "Combo" {
+		tokens = tokens[1:]
+		any = true // a Combo choice is never a plain colour string
+	}
+	if len(tokens) == 0 {
+		// A bare "Combo" (or a value that is only braces): a choice-shaped
+		// production that names no symbol at all. Nothing is claimed.
+		return counts, true
+	}
+	for _, tok := range tokens {
+		if strings.Trim(tok, manaSymbols) != "" {
+			any = true
+			continue
+		}
+		for _, r := range tok {
+			switch r {
+			case 'W':
+				counts[0]++
+			case 'U':
+				counts[1]++
+			case 'B':
+				counts[2]++
+			case 'R':
+				counts[3]++
+			case 'G':
+				counts[4]++
+			default:
+				counts[5]++
+			}
+		}
+	}
+	return counts, any
+}
+
 // add folds one mana ability's production into the collector. It mirrors
-// effMana exactly: blank / "Any" / "Combo Any" become one C; otherwise every
-// brace/space-stripped rune adds its matching WUBRG colour, or colourless for
-// an unrecognised rune. Non-plain productions remain flagged Any because
-// their script-level choice is not modelled, even where effMana's degenerate
-// rune walk happens to emit a listed colour.
+// effMana's honest conventions: blank / "Any" / "Combo Any" become one C,
+// a plain symbol token adds its listed colours, and an unrecognised token
+// ("Chosen", "ColorIdentity", a "Special ..." word) claims no mana at all
+// while flagging Any, because its script-level choice is not modelled. The
+// counts come from ProducedCounts, the one parse the available-mana
+// projection in rules reuses.
 func (mp *ManaProduction) add(a *SA) {
 	amt, known := manaAbilityAmount(a)
 	if !known {
@@ -102,30 +194,12 @@ func (mp *ManaProduction) add(a *SA) {
 		// source must never make ProducesColour true.
 		mp.Indeterminate = true
 	}
-	raw := strings.TrimSpace(a.Params["Produced"])
-	if raw == "" || raw == "Any" || raw == "Combo Any" {
-		raw = "C"
+	counts, any := ProducedCounts(a.Params["Produced"])
+	if any {
 		mp.Any = true
 	}
-	s := manaProductionForm.Replace(raw)
-	for _, r := range s {
-		switch r {
-		case 'W':
-			mp.Colour[0] += amt // amt is 0 for an indeterminate amount
-		case 'U':
-			mp.Colour[1] += amt
-		case 'B':
-			mp.Colour[2] += amt
-		case 'R':
-			mp.Colour[3] += amt
-		case 'G':
-			mp.Colour[4] += amt
-		default:
-			mp.Colour[5] += amt
-		}
-	}
-	if s != "" && strings.Trim(s, "WUBRGC") != "" {
-		mp.Any = true
+	for i := range counts {
+		mp.Colour[i] += counts[i] * amt // amt is 0 for an indeterminate amount
 	}
 }
 
