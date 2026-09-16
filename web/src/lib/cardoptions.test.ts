@@ -12,6 +12,7 @@ import {
   playerOptions,
   postSingleAction,
   postTileOption,
+  resolveCardFollowUp,
   singleActionIcon,
   scenarioIconOf,
   actionAccessibleLabel,
@@ -339,11 +340,11 @@ describe('single-action card affordance', () => {
       pickedOrder: [], tone: 'offered', post,
     });
 
-    it('postTileOption carries the modifier as post\'s third argument, expectFollowUp false', () => {
+    it('postTileOption arms the follow-up and carries the modifier as post\'s third argument (fb-e079def5)', () => {
       postTileOption(tile(), tile().list[0]);
-      expect(post).toHaveBeenLastCalledWith(3, false, false);
+      expect(post).toHaveBeenLastCalledWith(3, true, false);
       postTileOption(tile(), tile().list[1], true);
-      expect(post).toHaveBeenLastCalledWith(8, false, true);
+      expect(post).toHaveBeenLastCalledWith(8, true, true);
     });
 
     it('postSingleAction carries it too, keeping its expectFollowUp argument', () => {
@@ -356,6 +357,50 @@ describe('single-action card affordance', () => {
       expect(post).toHaveBeenLastCalledWith(17, false, true);
       postSingleAction(single());
       expect(post).toHaveBeenLastCalledWith(17, false, false);
+    });
+  });
+
+  // fb-e079def5: the stage-2 colour wheel never opened after a wheel-answered
+  // stage-1 (a Talisman's ability pick), because only the single-action badge
+  // path armed the follow-up expectation. resolveCardFollowUp is the ONE
+  // decoder Table.svelte's $effect runs; these pin its contract.
+  describe('resolveCardFollowUp — the one decoder of the armed card-follow-up expectation', () => {
+    const expected = { seq: 9, obj: 83 };
+    const decision = (seq: number, options: Option[]): Decision => ({
+      seq, player: 0, kind: 'choose', prompt: 'Choose a colour of mana', min: 1, max: 1, options,
+    });
+
+    it('a same-object follow-up with 2-6 options re-opens that card\'s picker', () => {
+      const d = decision(10, [
+        opt(0, 83, 'mana', 'Add B'),
+        opt(1, 83, 'mana', 'Add R'),
+      ]);
+      expect(resolveCardFollowUp(expected, d)).toEqual({ seq: 10, obj: 83 });
+      expect(resolveCardFollowUp(expected, decision(11, [
+        opt(0, 83, 'mana', 'Add W'), opt(1, 83, 'mana', 'Add U'), opt(2, 83, 'mana', 'Add B'),
+        opt(3, 83, 'mana', 'Add R'), opt(4, 83, 'mana', 'Add G'), opt(5, 83, 'mana', 'Add C'),
+      ]))).toEqual({ seq: 11, obj: 83 }); // six is still a wheel
+    });
+
+    it('arms nothing when the follow-up carries no options on the object — a tapped-out source, a target ask on other objects', () => {
+      expect(resolveCardFollowUp(expected, decision(10, [
+        opt(0, undefined, 'pass', 'Pass priority'),
+        opt(1, 41, 'activate', 'Tap Island for mana'),
+      ]))).toBeNull();
+      // one option on the object is a direct-action badge, not a picker
+      expect(resolveCardFollowUp(expected, decision(10, [opt(0, 83, 'mana', 'Add B')]))).toBeNull();
+    });
+
+    it('arms nothing for a >6-option follow-up (the list menu keeps its own shape)', () => {
+      const d = decision(10, Array.from({ length: 7 }, (_, i) => opt(i, 83, 'mana', `Add ${i}`)));
+      expect(resolveCardFollowUp(expected, d)).toBeNull();
+    });
+
+    it('an unarmed post (expected null) and a same-seq decision decode to nothing', () => {
+      const d = decision(10, [opt(0, 83, 'mana', 'Add B'), opt(1, 83, 'mana', 'Add R')]);
+      expect(resolveCardFollowUp(null, d)).toBeNull();
+      expect(resolveCardFollowUp(expected, decision(9, [opt(0, 83, 'mana', 'Add B'), opt(1, 83, 'mana', 'Add R')]))).toBeNull();
+      expect(resolveCardFollowUp(expected, null)).toBeNull();
     });
   });
 });

@@ -37,12 +37,15 @@ describe('Ctrl held on a card-menu cast holds priority (the tile post thread)', 
     await wheel.locator('button[data-wire-index="3"]').waitFor();
 
     await wheel.locator('button[data-wire-index="3"]').click();
-    expect(await posted(page)).toEqual([[3, false, false]]);
+    // fb-e079def5: every picker post arms the card-follow-up expectation
+    // (the Talisman stage-1 → stage-2 colour wheel), so expectFollowUp is
+    // true for radial clicks too, not just the single-action badge.
+    expect(await posted(page)).toEqual([[3, true, false]]);
 
     await page.locator('#radial .badge').click();
     await wheel.locator('button[data-wire-index="8"]').waitFor();
     await wheel.locator('button[data-wire-index="8"]').click({ modifiers: ['Control'] });
-    expect(await posted(page)).toEqual([[3, false, false], [8, false, true]]);
+    expect(await posted(page)).toEqual([[3, true, false], [8, true, true]]);
     await page.close();
   });
 
@@ -55,6 +58,29 @@ describe('Ctrl held on a card-menu cast holds priority (the tile post thread)', 
 
     await page.locator('#single [data-single-action]').click();
     expect(await posted(page)).toEqual([[21, true, true], [21, true, false]]);
+    await page.close();
+  });
+
+  // fb-e079def5: the reported Talisman of Indulgence flow — stage 1 answered
+  // through the radial wheel must arm the follow-up, and the stage-2 colour
+  // wheel must re-open at the card instead of falling back to the seat
+  // panel's generic option list.
+  it('a picker-answered stage-1 arms the follow-up and the stage-2 colour wheel opens at the card', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/CardMenu.fixture.html`);
+    await page.locator('#followup .badge').click();
+    const wheel = page.locator('body > [data-radial-picker]');
+    await wheel.locator('button[data-wire-index="6"]').waitFor(); // the Add B or R option
+    await wheel.locator('button[data-wire-index="6"]').click();
+
+    // Stage 2 arrives on the next "frame" (a macrotask here): the colour
+    // wheel must re-open at the card, pip-tinted (both options match the
+    // Add <C> shape), never only the panel's generic list.
+    const stageTwoWheel = page.locator('body > [data-radial-picker]');
+    await stageTwoWheel.locator('button[data-wire-index="0"]').waitFor();
+    await stageTwoWheel.locator('button[data-wire-index="1"]').waitFor();
+    expect(await stageTwoWheel.locator('button[data-mana-option]').all()).toHaveLength(2);
+    expect(await posted(page)).toEqual([[6, true, false]]);
     await page.close();
   });
 });
