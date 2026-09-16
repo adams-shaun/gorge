@@ -1143,8 +1143,7 @@ func (e *Engine) phaseMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 	if ev.Kind != events.StepChange {
 		return false
 	}
-	want := strings.ToLower(t.Params["Phase"])
-	if want != "" && !strings.Contains(ev.Step.String(), want) {
+	if want := t.Params["Phase"]; want != "" && !phaseNamesStep(want, ev.Step) {
 		return false
 	}
 	if v, ok := t.Params["ValidPlayer"]; ok {
@@ -1155,6 +1154,66 @@ func (e *Engine) phaseMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 		}
 	}
 	return true
+}
+
+// phaseNamesStep reports whether a Phase$ value names the step that just
+// began. The corpus spells one step several ways — "End" and "End of Turn"
+// are the same step, commas join several ("Main1,Main2"), and Forge's arrow
+// idiom ("Upkeep->") marks a repeating registration this engine does not
+// model — so the value is matched by canonical token, not by substring. The
+// old substring test only ever admitted spellings that happened to be
+// substrings of the hyphenated step names, so "End of Turn" (927 trigger
+// lines across 921 files), "BeginCombat" (382), "EndCombat" (145),
+// "Main1,Main2" (16), "Declare Attackers" (7) and the two arrow forms (10)
+// never fired their triggers at all. An unknown spelling still matches
+// nothing — fail closed, the same direction as every other unrecognised
+// spec word — and an arrow-marked value fires ONCE per occurrence of its
+// step (the repeat semantics stay a documented approximation).
+func phaseNamesStep(phase string, step state.Step) bool {
+	for _, part := range strings.Split(phase, ",") {
+		norm := strings.Map(func(r rune) rune {
+			switch r {
+			case ' ', '\t', '-', '>', '_':
+				return -1
+			}
+			return r
+		}, strings.ToLower(strings.TrimSpace(part)))
+		matched := false
+		switch norm {
+		case "":
+			continue
+		case "untap":
+			matched = step == state.StepUntap
+		case "upkeep":
+			matched = step == state.StepUpkeep
+		case "draw":
+			matched = step == state.StepDraw
+		case "main":
+			matched = step == state.StepMain1 || step == state.StepMain2
+		case "main1":
+			matched = step == state.StepMain1
+		case "main2":
+			matched = step == state.StepMain2
+		case "begincombat":
+			matched = step == state.StepBeginCombat
+		case "combat", "combatdamage":
+			matched = step == state.StepCombatDamage
+		case "declareattackers":
+			matched = step == state.StepDeclareAttackers
+		case "declareblockers":
+			matched = step == state.StepDeclareBlockers
+		case "endcombat":
+			matched = step == state.StepEndCombat
+		case "end", "endofturn", "endstep":
+			matched = step == state.StepEnd
+		case "cleanup":
+			matched = step == state.StepCleanup
+		}
+		if matched {
+			return true
+		}
+	}
+	return false
 }
 
 // abilityCastMatches implements Mode$ AbilityCast and Mode$ SpellAbilityCast
