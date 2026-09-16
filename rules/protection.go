@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -200,13 +201,72 @@ func protecColourLetter(q string) rune {
 	return 0
 }
 
+// cantPreventDamage implements stat:CantPreventDamage. It intentionally
+// scans both ordinary battlefield statics and an EffectZone$ Stack source,
+// since Banefire's self-static exists while its spell is resolving; the
+// source/Combat gates are evaluated against the damage currently in flight.
+func (e *Engine) cantPreventDamage(damageSource, target state.ObjID) bool {
+	// Effect-created restrictions (Skullcrack, Call In a Professional, and
+	// the rest of the StaticAbilities$ family) live in the same registry as
+	// CantTarget/CantRegenerate. A restriction with no Affected$ is global;
+	// an IsRemembered restriction applies only to the captured target.
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantPreventDamage" {
+			continue
+		}
+		spec := ce.RestrictParams["Affected"]
+		if spec == "" {
+			return true
+		}
+		if strings.Contains(spec, "IsRemembered") {
+			for _, id := range ce.Remembered {
+				if id == target {
+					return true
+				}
+			}
+		}
+	}
+
+	forbidden := false
+	e.forEachObject(func(id state.ObjID) {
+		if forbidden {
+			return
+		}
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			return
+		}
+		for _, st := range o.Face().Statics {
+			if st.Mode != "CantPreventDamage" ||
+				(o.Zone != state.ZBattlefield && !(st.Params["EffectZone"] == "Stack" && o.Zone == state.ZStack)) {
+				continue
+			}
+			if v := st.Params["ValidSource"]; v != "" &&
+				(damageSource == 0 || !effects.MatchesSpecFrom(e.G, v, damageSource, o.Controller, id)) {
+				continue
+			}
+			if combat := st.Params["IsCombat"]; (strings.EqualFold(combat, "True") && !e.combatDamaging) ||
+				(strings.EqualFold(combat, "False") && e.combatDamaging) {
+				continue
+			}
+			if !e.replacementConditionHolds(cards.Repl{Params: st.Params}, id, o.Controller) {
+				continue
+			}
+			forbidden = true
+			return
+		}
+	})
+	return forbidden
+}
+
 // kw:Protection covers Forge's parameterised K:Protection:<Spec> spelling,
 // including every parameterised quality printed on a K:Protection line in
 // the corpus. The older colour-specific registrations remain for Forge's
 // separate natural-language "Protection from <colour>" keyword spelling.
 func init() {
 	effects.RegisterNonAPI("kw:Protection", "kw:Protection from white", "kw:Protection from blue",
-		"kw:Protection from black", "kw:Protection from red", "kw:Protection from green")
+		"kw:Protection from black", "kw:Protection from red", "kw:Protection from green",
+		"stat:CantPreventDamage")
 }
 
 // permanentCastThisTurn reports whether the permanent id became a permanent by

@@ -17,16 +17,36 @@ import (
 // the failure mode is "the card did nothing" rather than "the card did
 // something arbitrary".
 func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
+	if n, ok := NumResolved(h, c, sa, key, def); ok {
+		return n
+	}
+	if _, present := sa.Params[key]; present {
+		return 0 // present but unresolvable degrades to zero, not to def
+	}
+	return def
+}
+
+// NumResolved is Num plus a resolvability verdict: it answers whether the
+// parameter RESOLVED under the same grammar Num reads -- a signed literal, an
+// SVar name present in the context's table, a recognised inline expression
+// prefix (Count$/Sacrificed$/Remembered$/TriggerCount$/ReplaceCount$), or the
+// bare X. Num itself degrades an unresolvable value to zero ("the card did
+// nothing"); NumResolved exists for a caller that must not confuse that
+// degrade-to-zero with a LEGITIMATE zero -- rules' replacement matcher gates
+// a DB$ ReplaceDamage prevention body on its Amount$ and fails closed on a
+// value this build cannot price, so an unmodelled ShieldAmount frame cannot
+// silently erase the damage it was supposed to partially prevent.
+func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bool) {
 	if c == nil {
 		c = &Ctx{}
 	}
 	raw, ok := sa.Params[key]
 	if !ok {
-		return def
+		return def, false
 	}
 	raw = strings.TrimSpace(raw)
 	if n, err := strconv.Atoi(raw); err == nil {
-		return int32(n) // a signed literal ("+2"/"-2") lands here: Atoi eats the sign
+		return int32(n), true // a signed literal ("+2"/"-2") lands here: Atoi eats the sign
 	}
 	// Forge writes a stat direction as a sign on the value ("NumAtt$ +X" --
 	// Goblin Piledriver), so a signed non-literal is not a reference NAMED
@@ -43,7 +63,7 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	}
 	if c.SVars != nil {
 		if body, ok := c.SVars[raw]; ok {
-			return sign * EvalCount(h, c, body)
+			return sign * EvalCount(h, c, body), true
 		}
 	}
 	// A DB$ RollDice publication of this same resolution (effects/dice.go):
@@ -54,7 +74,7 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	// body. Checked after the card's own SVar table so a real SVar of the
 	// same name keeps winning.
 	if v, ok := rollPublished(c, raw); ok {
-		return sign * v
+		return sign * v, true
 	}
 	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
 	// Minus1, Task 17) is a body in its own right, not an SVar name -- a
@@ -63,18 +83,18 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	// zero, silencing the whole SpellCopy/amount the expression was meant to
 	// size). The SVar-indirection form above stays authoritative for names.
 	if strings.HasPrefix(raw, "Count$") {
-		return sign * EvalCount(h, c, raw)
+		return sign * EvalCount(h, c, raw), true
 	}
 	if strings.HasPrefix(raw, "Sacrificed$") {
-		return sign * EvalCount(h, c, raw)
+		return sign * EvalCount(h, c, raw), true
 	}
-	if strings.HasPrefix(raw, "TriggerCount$") {
-		return sign * EvalCount(h, c, raw)
+	if strings.HasPrefix(raw, "TriggerCount$") || strings.HasPrefix(raw, "ReplaceCount$") {
+		return sign * EvalCount(h, c, raw), true
 	}
 	if raw == "X" {
-		return sign * c.X
+		return sign * c.X, true
 	}
-	return 0
+	return 0, false
 }
 
 // EvalCount evaluates a "Count$..." expression. The grammar in the corpus is a
@@ -160,6 +180,22 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 		if v, ok := rollPublished(c, strings.TrimSpace(body)); ok {
 			n = v
 		}
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
+	}
+	// ReplaceCount$ reads the event currently being replaced. Damage
+	// replacement bodies use both the bare DamageAmount form (Vigor, Purity,
+	// Hostility) and arithmetic suffixes (Fiery Emancipation, Angel of
+	// Suffering). Rules carries the amount in Ctx so every supported body API,
+	// not only ReplaceEffect itself, sees the same in-flight value.
+	if body, ok := strings.CutPrefix(expr, "ReplaceCount$"); ok {
+		field, op, hasOp := strings.Cut(strings.TrimSpace(body), "/")
+		if field != "DamageAmount" && field != "Amount" {
+			return 0
+		}
+		n := c.ReplacementAmount
 		if hasOp {
 			n = applyCountOp(n, op)
 		}

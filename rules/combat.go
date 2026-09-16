@@ -691,6 +691,11 @@ type combatRound struct {
 	// askOptions is parallel to the pending division Decision's Options:
 	// askOptions[i] is the per-blocker damage split the i-th option selects.
 	askOptions [][]int32
+	// assignments and damageNext preserve a combat pass when a replacement
+	// order decision parks one assignment. The remaining simultaneous pass
+	// cannot run (nor can its SBA/regular pass) until that event settles.
+	assignments []assignment
+	damageNext  int
 }
 
 // divChoice records one answered damage division: which attacker divided its
@@ -864,6 +869,16 @@ func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
 func (e *Engine) finishCombatPass() {
 	pass := e.combatRound.pass
 	e.dealDamagePass(pass)
+	if e.combatRound.assignments != nil {
+		return // a replacement-order decision parked this pass
+	}
+	e.completeCombatPass(pass)
+}
+
+// completeCombatPass performs the post-damage SBA and phase progression only
+// after every assignment in the pass has landed. It is also called by the
+// replacement-order resumption path.
+func (e *Engine) completeCombatPass(pass bool) {
 	e.combatRound.queue = nil
 	e.combatRound.done = nil
 	e.combatRound.askAttacker = 0
@@ -1061,6 +1076,12 @@ func (e *Engine) tallyCmdDamage(p state.PlayerID, from state.ObjID, amount int32
 // actsThisDamageStep, which is the only thing CR 510.4 actually conditions
 // it on.
 func (e *Engine) damageStep(firstStrike bool) {
+	// A KReplacement answer resumes the already-computed simultaneous pass;
+	// never rebuild assignments from post-replacement state.
+	if e.combatRound.assignments != nil {
+		e.runCombatAssignments()
+		return
+	}
 	// api:Fog (CR 701.14a, effects/fog.go): a Fog-registered continuous
 	// effect prevents ALL combat damage this turn. The check sits here, at
 	// the top of each damage pass, rather than per-assignment: "combat
@@ -1179,11 +1200,24 @@ func (e *Engine) damageStep(firstStrike bool) {
 		}
 	}
 	// CR 510.2 makes every assignment in this pass one simultaneous damage
-	// event. Besides computing assignments before emission, keep that boundary
-	// while triggers are queued so LifeLostAll observes the group once.
+	// event. Begun here (the fresh, not-yet-parked path) rather than with a
+	// defer inside runCombatAssignments, because a parked replacement-order
+	// choice returns out of that function early and re-enters it later
+	// (damageStep's e.combatRound.assignments != nil branch): the batch must
+	// stay open across that suspension and close only once the whole
+	// simultaneous pass has actually finished, in runCombatAssignments below.
 	e.BeginLifeLossBatch()
-	defer e.EndLifeLossBatch()
-	for _, x := range as {
+	e.combatRound.assignments = as
+	e.combatRound.damageNext = 0
+	e.runCombatAssignments()
+}
+
+// runCombatAssignments applies the preserved pass from its first unfinished
+// assignment. A replacement-order ask returns immediately, keeping the next
+// index and every later assignment parked until handleReplacement resumes it.
+func (e *Engine) runCombatAssignments() {
+	for i := e.combatRound.damageNext; i < len(e.combatRound.assignments); i++ {
+		x := e.combatRound.assignments[i]
 		// e.damaging names the dealing creature for the whole of this
 		// assignment so emit's protection check (Task 15) can prevent the
 		// damage when the recipient is protected from it (CR 702.16d); reset
@@ -1195,6 +1229,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 		// substituted for the Damage event) never reaches it.
 		e.combatDamaging = true
 		var prevented bool
+		dealt := x.amount
 		if x.toObj != 0 {
 			// Task 15 fix round 1 (Critical C1): the return value of the
 			// Damage emit is read here. emit swallows a protected permanent's
@@ -1211,8 +1246,11 @@ func (e *Engine) damageStep(firstStrike bool) {
 			// did NOT land -- skips both riders for a prevented assignment.
 			ev := e.emit(events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount})
 			prevented = ev.Kind != events.Damage
-			if x.deathtouch && !prevented {
-				e.emit(events.Event{Kind: events.CounterChange, Obj: x.toObj,
+			if !prevented {
+				dealt = ev.Amount
+			}
+			if x.deathtouch && !prevented && ev.Obj != 0 {
+				e.emit(events.Event{Kind: events.CounterChange, Obj: ev.Obj,
 					Counter: "Deathtouched", Amount: 1})
 			}
 		} else {
@@ -1229,22 +1267,28 @@ func (e *Engine) damageStep(firstStrike bool) {
 			// player-hit, consistent with the Obj branch. Non-Commander games
 			// take the original single-emit path untouched, so this task
 			// changes nothing about them.
-			if e.format == FormatCommander {
-				ev := e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
-				prevented = ev.Kind != events.Damage
-				if !prevented {
-					e.tallyCmdDamage(x.toPlayer, x.from, x.amount)
+			ev := e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
+			prevented = ev.Kind != events.Damage
+			if !prevented {
+				dealt = ev.Amount
+				if e.format == FormatCommander && ev.Obj == 0 {
+					e.tallyCmdDamage(ev.Player, x.from, dealt)
 				}
-			} else {
-				e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
 			}
 		}
 		if x.hasLink && !prevented {
-			e.emit(events.Event{Kind: events.LifeChange, Player: x.lifelink, Amount: x.amount})
+			e.emit(events.Event{Kind: events.LifeChange, Player: x.lifelink, Amount: dealt})
 		}
 		e.damaging = 0
 		e.combatDamaging = false
+		if e.pending != nil && e.pending.Kind == decision.KReplacement {
+			e.combatRound.damageNext = i + 1
+			return
+		}
 	}
+	e.combatRound.assignments = nil
+	e.combatRound.damageNext = 0
+	e.EndLifeLossBatch()
 }
 
 // maxHandSize is CR 514.1: at the beginning of a player's cleanup step, if

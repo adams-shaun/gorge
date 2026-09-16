@@ -5,6 +5,7 @@
 package rules
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
@@ -44,13 +45,41 @@ import (
 // the same object forever (see Task 26's report and the resolveTop guard
 // below for the other half of this fix).
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
-	// Positive LifeChange is a gain; negative LifeChange and player Damage
-	// are life loss. Both route to the life replacement machinery below,
-	// ahead of the Moved/Untap/BeginPhase/Transform/ProduceMana mapping,
-	// which does not cover life events.
-	if ev.Kind == events.LifeChange || (ev.Kind == events.Damage && ev.Obj == 0) {
+	// Positive LifeChange is a gain; it never carries a repl:DamageDone
+	// match (that class names a Damage event only), so it routes straight
+	// to the life replacement machinery.
+	if ev.Kind == events.LifeChange {
 		return e.applyLifeReplacements(ev)
 	}
+	if ev.Kind == events.Damage && ev.Obj == 0 {
+		// Player-targeted damage is CR 616-eligible for TWO competing
+		// classes: repl:DamageDone (Battletide Alchemist's own damage-
+		// specific prevention) and the general repl:LifeReduced life-loss
+		// machinery (CR 615's "the next time a player would lose life" —
+		// damage-caused loss counts). DamageDone is the more specific class
+		// and is tried first through the ordinary dispatch below; only when
+		// nothing there applies (or a DamageDone ReplaceEffect body rewrote
+		// the amount in place without fully replacing the event) does the
+		// event fall through to applyLifeReplacements, which also
+		// recognises damage-caused loss (lifeLoss/trigger_match.go). A card
+		// with both classes active competing for the SAME event is not in
+		// the corpus this build measures against; that composition is left
+		// for whichever ticket first needs it.
+		replaced, handled := e.applyReplacementsDispatch(ev)
+		if handled {
+			return replaced, true
+		}
+		return e.applyLifeReplacements(replaced)
+	}
+	return e.applyReplacementsDispatch(ev)
+}
+
+// applyReplacementsDispatch is applyReplacements' common match-collection
+// and per-event dispatch, shared by every replacement-eligible event kind
+// (Moved/Untap/BeginPhase/Transform/ProduceMana/DamageDone). Factored out so
+// applyReplacements can wrap a player-targeted Damage event with the
+// repl:LifeReduced fallback above without duplicating this body.
+func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool) {
 	event, ok := replacementEvent(ev)
 	if !ok {
 		return ev, false
@@ -87,6 +116,23 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	// forEachObject's deterministic scan order, rather than the single first
 	// match the M1 build took.
 	var matches, manaCandidates []replMatch
+	// Effect-created replacements (Blood of the Martyr and the broader
+	// ReplacementEffects$ family) are active independently of their source's
+	// current zone. active() enforces the Effect duration; reconstruct the
+	// Forge R: body into the same replMatch path used by printed replacements
+	// so filters, ordering and replacement context cannot drift.
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent == "" || ce.ReplacementBody == "" || ce.ReplacementEvent != event {
+			continue
+		}
+		if with := replacementBodySA(ce.ReplacementBody); with != nil {
+			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
+			if e.replacementMatches(*r, ce.Source, ev) {
+				matches = append(matches, replMatch{id: ce.Source, repl: r,
+					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+			}
+		}
+	}
 	e.forEachReplacementSource(func(id state.ObjID) {
 		for _, f := range e.replacementFaces(id, ev) {
 			for i := range f.Repls {
@@ -120,6 +166,19 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		return e.continuePhaseReplacements(ev, matches, nil)
 	case events.FlipFace:
 		return e.applyTransformReplacement(ev, matches)
+	case events.Damage:
+		matches = e.applicableDamageReplacements(ev, matches)
+		if len(matches) == 0 {
+			return ev, false
+		}
+		if len(matches) > 1 || hasOptionalReplacement(matches) {
+			if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
+				e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p))
+				return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+					Text: "damage awaiting replacement-order choice"}, true
+			}
+		}
+		return e.applyNonMoveReplacements(ev, matches)
 	}
 
 	// CR 616.1: if two or more replacement effects would modify the way this
@@ -175,6 +234,99 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	return ev, false
 }
 
+// applyNonMoveReplacements applies a lone damage replacement, or the
+// deterministic fallback used when the affected player has left the game.
+// Competing replacements for a live affected player are parked and ordered by
+// KReplacement instead.
+func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	for _, m := range matches {
+		// CR 616.1e: after each modification, applicability is checked again
+		// against the changed event (not the original amount).
+		if !e.replacementMatches(*m.repl, m.id, ev) {
+			continue
+		}
+		if ev.Kind == events.Damage && damageReplacementPrevents(*m.repl) {
+			if e.cantPreventDamage(e.damaging, ev.Obj) {
+				// Neither a Prevent$ True line nor a DB$ ReplaceDamage body
+				// may touch damage that cannot be prevented (Spider-Punk).
+				continue
+			}
+			if m.repl.Params["Prevent"] == "True" {
+				return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+					Text: "damage prevented by replacement effect"}, true
+			}
+			// a ReplaceDamage body falls through to its subtracting arm below
+		}
+		if m.repl.With == nil {
+			// Counter's Layer$ CantHappen shape has no ReplaceWith$: stopping
+			// the event is its complete replacement.
+			return ev, true
+		}
+		if m.repl.With.API == "ReplaceDamage" {
+			// Handled here, not through runReplaceWith/effects.Resolve: the
+			// body subtracts its Amount from the held event and reports
+			// terminal when fully prevented (its prevention Note is the log's
+			// record, exactly as a Prevent$ True match's) or leaves the
+			// reduced event standing for the next modifier. Its SubAbility$
+			// chain is deliberately not run (see applyReplaceDamageBody).
+			if e.applyReplaceDamageBody(&ev, m) {
+				return ev, true
+			}
+			continue
+		}
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, &ev)
+		if m.repl.With.API == "ReplaceEffect" {
+			// The body rewrote the held amount (changed) or could not resolve
+			// its value and left it alone; either way the event stands and the
+			// next modifier applies to the result.
+			continue
+		}
+		// A body of another API (DB$ DealDamage, DB$ RemoveCounters, ...)
+		// supplied its own outcome; its emissions replace the original event.
+		return ev, true
+	}
+	return ev, false
+}
+
+// damageReplacementPrevents reports whether this replacement is a
+// PREVENTION body: either the legacy Prevent$ True shape or a DB$
+// ReplaceDamage body, which subtracts its Amount from the held damage event
+// and prevents exactly that much (the Thunderstaff/Battletide shield
+// family). stat:CantPreventDamage must exclude BOTH shapes, so every
+// damage-replacement selection and application path classifies prevention
+// through this one predicate and cannot drift apart.
+func damageReplacementPrevents(r cards.Repl) bool {
+	if r.Params["Prevent"] == "True" {
+		return true
+	}
+	return r.With != nil && r.With.API == "ReplaceDamage"
+}
+
+func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMatch) []replMatch {
+	out := matches[:0]
+	for _, m := range matches {
+		if !e.replacementMatches(*m.repl, m.id, ev) {
+			continue
+		}
+		if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.damaging, ev.Obj) {
+			continue
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+func (e *Engine) damageAffectedPlayer(ev events.Event) (state.PlayerID, bool) {
+	if ev.Obj == 0 {
+		return ev.Player, int(ev.Player) < len(e.G.Players)
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || int(o.Controller) >= len(e.G.Players) {
+		return 0, false
+	}
+	return o.Controller, true
+}
+
 // replMatch is one replacement effect the engine found applicable to an
 // event: its owning source permanent and the R: line on that permanent's
 // face. A plain value, cloned by copy.
@@ -182,6 +334,125 @@ type replMatch struct {
 	id   state.ObjID
 	face *cards.Face // prospective face for an "as this transforms" replacement
 	repl *cards.Repl
+	// key identifies an Effect-created replacement across active() rebuilds.
+	// Printed replacement pointers are immutable face entries and need no key.
+	key string
+}
+
+func hasOptionalReplacement(matches []replMatch) bool {
+	for _, m := range matches {
+		if strings.EqualFold(m.repl.Params["Optional"], "True") {
+			return true
+		}
+	}
+	return false
+}
+
+// replacementOptionalDecider resolves the controller an Optional$ True
+// replacement's "may" belongs to, from Forge's OptionalDecider$ -- named in
+// the replacement source's frame. The corpus's two Optional$ DamageDone lines
+// (Blood of the Martyr, Battletide Alchemist) both say "You": the source's
+// controller, not the damaged player. An ABSENT parameter resolves to nobody
+// (the caller keeps its historical default); a present spec this build does
+// not resolve also resolves to nobody, and the match gate above excluded the
+// replacement already, so this is only reachable for "You".
+func (e *Engine) replacementOptionalDecider(r cards.Repl, source state.ObjID) (state.PlayerID, bool) {
+	if strings.TrimSpace(r.Params["OptionalDecider"]) != "You" {
+		return 0, false
+	}
+	ctrl := e.controllerOf(source)
+	if ctrl < 0 || int(ctrl) >= len(e.G.Players) {
+		return 0, false
+	}
+	return ctrl, true
+}
+
+// replacementAskPlayer picks who answers a damage replacement competition.
+// The CR 616.1 order choice belongs to the affected player -- except that a
+// competition of exactly ONE Optional$ True replacement belongs to that
+// replacement's OptionalDecider$ (Blood of the Martyr and Battletide
+// Alchemist both name "You": their own controller), because then the only
+// question posed is the optional replacement's own "may", not an order.
+// A decider who has lost or left makes no choices (CR 800.4a), so the
+// affected player answers instead.
+func (e *Engine) replacementAskPlayer(matches []replMatch, affected state.PlayerID) state.PlayerID {
+	if len(matches) == 1 && strings.EqualFold(matches[0].repl.Params["Optional"], "True") {
+		if dp, ok := e.replacementOptionalDecider(*matches[0].repl, matches[0].id); ok &&
+			!e.G.Players[dp].Lost {
+			return dp
+		}
+	}
+	return affected
+}
+
+// replaceDamageAmount resolves a DB$ ReplaceDamage body's Amount$ in the
+// replacement source's context: the corpus's prevention-shield family prices
+// it with a literal (Thunderstaff's 1), an SVar (Battletide Alchemist's
+// AlchemicX, the card-defined ShieldAmount of Forcefield's "prevent all but
+// 1") or an inline expression. The bool distinguishes an unresolvable value
+// frame (Power Leak's PaidAmount) -- which the match gate turns into a
+// non-match -- from a resolvable amount of zero, which legitimately prevents
+// nothing.
+func (e *Engine) replaceDamageAmount(ev events.Event, m replMatch) (int32, bool) {
+	if m.repl.With == nil || m.repl.With.API != "ReplaceDamage" {
+		return 0, false
+	}
+	return effects.NumResolved(e, e.replCtx(m, ev), m.repl.With, "Amount", 0)
+}
+
+// applyReplaceDamageBody applies a DB$ ReplaceDamage body to the held damage
+// event: it subtracts the body's Amount from the event's remaining amount and
+// reports whether the event is TERMINAL (fully prevented -- the prevention
+// Note this records is the log's witness, and no reduced Damage event is
+// emitted) or still stands with its reduced amount for the next modifier in
+// the chain (CR 616.1e: each later opportunity reads the changed event). A
+// resolvable amount of zero prevents nothing and leaves the event standing.
+// The body's SubAbility$ chain is deliberately NOT run here: every corpus
+// body that carries one (Divine Deflection's counter-deal, Forcefield's
+// self-exile) is an Effect-shield shape whose sub reads bindings this
+// per-event application does not have, and running them would fire a
+// wrong-outcome rider -- the prevention itself is the correct core.
+func (e *Engine) applyReplaceDamageBody(ev *events.Event, m replMatch) bool {
+	n, ok := e.replaceDamageAmount(*ev, m)
+	if !ok || n <= 0 {
+		return false
+	}
+	prevented := n
+	if prevented > ev.Amount {
+		prevented = ev.Amount
+	}
+	ev.Amount -= prevented
+	who := "a replacement effect"
+	if o := e.G.Obj(m.id); o != nil && o.Face() != nil && o.Face().Name != "" {
+		who = o.Face().Name
+	}
+	e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+		Text: who + " prevented " + strconv.Itoa(int(prevented)) + " of the damage"})
+	return ev.Amount <= 0
+}
+
+// replacementBodySA turns the body retained by an Effect-created replacement
+// into the same immutable SA shape cards.Parse builds for a printed R: line.
+// It deliberately shares the ordinary `Kind$ API | Key$ Value` grammar rather
+// than recognizing Blood of the Martyr by name.
+func replacementBodySA(body string) *cards.SA {
+	parts := strings.Split(body, "|")
+	if len(parts) == 0 {
+		return nil
+	}
+	head := strings.TrimSpace(parts[0])
+	kind, api, ok := strings.Cut(head, "$")
+	if !ok || strings.TrimSpace(api) == "" {
+		return nil
+	}
+	sa := &cards.SA{Kind: strings.TrimSpace(kind), API: strings.TrimSpace(api), Params: make(map[string]string)}
+	for _, part := range parts[1:] {
+		key, value, ok := strings.Cut(strings.TrimSpace(part), "$")
+		if ok && strings.TrimSpace(key) != "" {
+			sa.Params[strings.TrimSpace(key)] = strings.TrimSpace(value)
+		}
+	}
+	return sa
 }
 
 // forEachReplacementSource extends the ordinary battlefield/game-zone scan
@@ -217,6 +488,8 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "Transform", true
 	case events.ManaAdd:
 		return "ProduceMana", true
+	case events.Damage:
+		return "DamageDone", true
 	default:
 		return "", false
 	}
@@ -266,7 +539,7 @@ func (e *Engine) continueUntapReplacements(ev events.Event, matches []replMatch)
 // untap step and consequently does not match ValidStepTurnToController$.
 func (e *Engine) applySimpleReplacement(ev events.Event, m replMatch) (events.Event, bool) {
 	if m.repl.With != nil {
-		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, "", m.repl.With)
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
 	}
 	return ev, true
 }
@@ -282,7 +555,7 @@ func (e *Engine) applySimpleReplacement(ev events.Event, m replMatch) (events.Ev
 // exactly the steps that actually happened.
 func (e *Engine) applyBeginPhaseReplacement(ev events.Event, m replMatch) (events.Event, bool) {
 	if m.repl.With != nil {
-		e.runReplaceWith(e.replCtx(m, ev), 0, "", m.repl.With)
+		e.runReplaceWith(e.replCtx(m, ev), 0, m.repl.With, nil)
 	}
 	// Cleanup is never skipped: the turn's 514.1/514.2 work is what makes the
 	// next turn begin correctly, and no corpus line names it. Bounding the
@@ -385,7 +658,7 @@ func (e *Engine) resumeParkedPhase(rc replChoice) {
 func (e *Engine) applyTransformReplacement(ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
 		if m.repl.With != nil {
-			e.runReplaceWith(e.replCtx(m, ev), ev.Obj, "", m.repl.With)
+			e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
 		}
 	}
 	return ev, false
@@ -463,7 +736,7 @@ func (e *Engine) applyOneManaReplacement(ev events.Event, m replMatch, color str
 	}
 	// The producer is contextual (not ManaAdd.Obj), but ReplaceWith$ still
 	// resolves against that object for Defined$/Remembered$ references.
-	e.runReplaceWith(ctx, e.manaProducer, "", m.repl.With)
+	e.runReplaceWith(ctx, e.manaProducer, m.repl.With, nil)
 	ev.Amount, ev.Counter = ctx.ManaAmount, ctx.ManaType
 	return ev
 }
@@ -507,10 +780,17 @@ func manaReplacementNeedsColor(m replMatch) bool {
 // paths reuse it.
 func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	o := e.G.Obj(m.id)
+	target := state.Target{Obj: ev.Obj}
+	if ev.Kind == events.Damage && ev.Obj == 0 {
+		target = state.Target{Player: ev.Player, IsPlayer: true}
+	}
 	if o == nil {
-		return &effects.Ctx{Source: m.id}
+		return &effects.Ctx{Source: m.id, ReplacementTarget: target,
+			ReplacementSource: e.protectionSource(e.damaging), ReplacementAmount: ev.Amount}
 	}
 	ctx := &effects.Ctx{Source: m.id, Controller: o.Controller,
+		ReplacementTarget: target, ReplacementSource: e.protectionSource(e.damaging),
+		ReplacementAmount: ev.Amount,
 		// X is the {X} paid for the moving object, so an ETB replacement that
 		// reads it (etbCounter's CounterNum$ X, e.g. Endless One / Walking
 		// Ballista / Chalice of the Void) sees the value the player actually
@@ -541,12 +821,28 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 // replaced object for the body's Defined$/Remembered$ reads and restoring
 // both the guard and that record afterward so an outer replacement keeps its
 // own state.
-func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, action string, with *cards.SA) {
-	savedRepl, savedAction := e.replReplaced, e.replAction
+// runReplaceWith resolves one ReplaceWith$ body inside the applyingReplacement
+// guard, recording both the state a nested emit needs: replReplaced/replAction
+// (Engine.emit's events.CarryAction, so a body's own move of replReplaced
+// carries the replaced event's action marker) and replacingEvent/
+// replacingSource (ReplaceEvent's target -- a DB$ ReplaceDamage body reaching
+// back to rewrite the live Damage event's Amount/Affected fields). ev is nil
+// wherever the original event was already logged (the "Updated" shape) or has
+// no action marker worth carrying (mana/ETB replacements); passing it derives
+// the action automatically rather than making every caller compute it.
+func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *cards.SA, ev *events.Event) {
+	savedRepl, savedEvent, savedSource, savedAction :=
+		e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction
 	e.applyingReplacement = true
-	e.replReplaced, e.replAction = replaced, action
+	action := ""
+	if ev != nil {
+		action = events.ActionMarker(*ev)
+	}
+	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction =
+		replaced, ev, ctx.Source, action
 	e.resolveReplacementWith(ctx, with)
-	e.replReplaced, e.replAction = savedRepl, savedAction
+	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction =
+		savedRepl, savedEvent, savedSource, savedAction
 	e.applyingReplacement = false
 }
 
@@ -576,10 +872,10 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		stored := events.Emit(e.G, e.L, ev)
 		e.checkTriggers(stored, nil, 0, 0, false)
 		e.finishSourceLifelinkLKI(ev, departing, link, controller)
-		e.runReplaceWith(ctx, ev.Obj, "", m.repl.With)
+		e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
 		return stored, true
 	}
-	e.runReplaceWith(ctx, ev.Obj, events.ActionMarker(ev), m.repl.With)
+	e.runReplaceWith(ctx, ev.Obj, m.repl.With, &ev)
 	return ev, true
 }
 
@@ -600,7 +896,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 		if m.repl.With == nil {
 			continue
 		}
-		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, "", m.repl.With)
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
 	}
 	return stored, true
 }
@@ -622,6 +918,14 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 // damaging is saved and restored (never zeroed) so an outer in-flight
 // assignment keeps its own attribution once the replacement returns.
 func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
+	// ReplaceEffect rewrites the held event and must retain e.damaging as the
+	// ORIGINAL damage source (Affected$ ReplacedSourceController needs it).
+	// A body that emits its own damage still attributes that new event to the
+	// permanent owning the replacement.
+	if with.API == "ReplaceEffect" {
+		effects.Resolve(e, ctx, with)
+		return
+	}
 	saved := e.damaging
 	e.damaging = ctx.Source
 	effects.Resolve(e, ctx, with)
@@ -781,6 +1085,15 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
+	case "DamageDone":
+		if ev.Kind != events.Damage || !e.damageReplacementMatches(r, source, ev) {
+			return false
+		}
+		if v, ok := r.Params["ValidCard"]; ok &&
+			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
 	case "ProduceMana":
 		// Only genuine production replaces: a ManaAdd without a producing
 		// source (a test seed, a spend) and a negative Amount (spending, not
@@ -854,24 +1167,548 @@ func (e *Engine) replacementConditionHolds(r cards.Repl, source state.ObjID, you
 		if cmp == "" {
 			cmp = "GE1"
 		}
-		if !comparePresent(e.countPresent(spec, source, you), cmp) {
+		var n int
+		if _, hasZone := r.Params["PresentZone"]; hasZone || r.Params["PresentDefined"] != "" {
+			// A damage/counter/CantPreventDamage line's IsPresent$ can name a
+			// non-battlefield zone (PresentZone$) or a defined subject
+			// (PresentDefined$ Self, "is this exact permanent still present");
+			// countPresentInZone generalises past countPresent's fixed
+			// battlefield scan for exactly those two params.
+			zone := state.ZBattlefield
+			if z := r.Params["PresentZone"]; z != "" {
+				zone = effects.ParseZone(z)
+			}
+			n = e.countPresentInZone(spec, source, you, zone, r.Params["PresentDefined"])
+		} else {
+			n = e.countPresent(spec, source, you)
+		}
+		if !comparePresent(n, cmp) {
 			return false
 		}
 	}
-	if name, ok := r.Params["CheckSVar"]; ok {
-		op, n, parsed := splitCompare(r.Params["SVarCompare"])
-		if !parsed {
-			return false
-		}
-		ctx := &effects.Ctx{Source: source, Controller: you}
-		if o := e.G.Obj(source); o != nil && o.Face() != nil {
-			effects.SetSVars(ctx, o.Face().SVars)
-		}
-		if !applyCompare(int(effects.EvalCount(e, ctx, ctx.SVars[name])), op, n) {
+	// PlayerTurn$/Hellbent$/Revolt$/Delirium$/CheckDefinedPlayer$ are the
+	// remaining condition gates shared by damage, counter and
+	// CantPreventDamage text (the Moved/Untap/BeginPhase/Transform/
+	// ProduceMana cases above never carry them in the corpus, so folding them
+	// in here rather than duplicating the switch costs those cases nothing).
+	if strings.EqualFold(r.Params["PlayerTurn"], "True") && e.G.Active != you {
+		return false
+	}
+	if strings.EqualFold(r.Params["Hellbent"], "True") && len(e.G.Zone(state.ZHand, you)) != 0 {
+		return false
+	}
+	if strings.EqualFold(r.Params["Revolt"], "True") && !e.revoltThisTurn(you) {
+		return false
+	}
+	if strings.EqualFold(r.Params["Delirium"], "True") && e.graveyardCardTypeCount(you) < 4 {
+		return false
+	}
+	if _, ok := r.Params["CheckDefinedPlayer"]; ok {
+		// The only corpus shape is You.isMonarch. Monarch state is not yet
+		// represented, so fail closed instead of preventing damage always.
+		return false
+	}
+	if check, ok := r.Params["CheckSVar"]; ok {
+		n := e.replacementCheckValue(source, check)
+		if cmp := r.Params["SVarCompare"]; cmp != "" {
+			op, rhs, valid := splitCompare(strings.TrimSpace(cmp))
+			if !valid || !applyCompare(int(n), op, rhs) {
+				return false
+			}
+		} else if n == 0 {
 			return false
 		}
 	}
 	return true
+}
+
+// damageReplacementMatches applies the damage-specific R: filters before the
+// common active-zone gate: source and target are the actual damage source and
+// recipient, and IsCombat$/DamageAmount$ describe this in-flight event.
+func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
+	ctrl := e.controllerOf(source)
+	if v := r.Params["ValidCause"]; v != "" && !e.replacementCauseMatches(v, source, e.damaging) {
+		return false
+	}
+	// A DB$ ReplaceDamage body must RESOLVE its Amount$ before this
+	// replacement may match: the body is Forge's "prevent N of that damage"
+	// idiom, and a match this build cannot price would previously be applied
+	// as a silent FULL prevention (the body's emissions were supposed to
+	// replace the event, so the engine discarded it -- and the body emitted
+	// nothing). Amount$ values resolvable through the shared numeric grammar
+	// (a literal; an SVar such as Battletide's AlchemicX or a card-defined
+	// ShieldAmount; an inline Count$/ReplaceCount$ expression) match; an
+	// unmodelled value frame (Power Leak's PaidAmount, an undefined name)
+	// fails closed and leaves the damage untouched, per CR 616.1's "only
+	// applicable replacements apply".
+	if r.With != nil && r.With.API == "ReplaceDamage" {
+		if _, ok := e.replaceDamageAmount(ev, replMatch{id: source, repl: &r}); !ok {
+			return false
+		}
+	}
+	// An Optional$ True damage replacement whose OptionalDecider$ names a
+	// frame this build does not resolve also fails closed: asking the damaged
+	// player would answer a "may" that belongs to somebody else (the
+	// Battletide Alchemist round-2 finding). An ABSENT parameter keeps the
+	// historical default, where the affected player answers.
+	if strings.EqualFold(r.Params["Optional"], "True") {
+		if v := strings.TrimSpace(r.Params["OptionalDecider"]); v != "" && v != "You" {
+			return false
+		}
+	}
+	if v := r.Params["ValidSource"]; v != "" &&
+		(e.damaging == 0 || !effects.MatchesSpecFrom(e.G, v, e.damaging, ctrl, source)) {
+		return false
+	}
+	if v := r.Params["ValidTarget"]; v != "" {
+		if ev.Obj != 0 {
+			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, ctrl, source) {
+				return false
+			}
+		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+			return false
+		}
+	}
+	if combat := strings.TrimSpace(r.Params["IsCombat"]); combat != "" &&
+		((strings.EqualFold(combat, "True") && !e.combatDamaging) ||
+			(strings.EqualFold(combat, "False") && e.combatDamaging)) {
+		return false
+	}
+	return e.replacementAmountMatches(r.Params["DamageAmount"], ev.Amount, e.replCtx(replMatch{id: source, repl: &r}, ev))
+}
+
+// replacementAmountMatches understands Forge's comparison shorthand such as
+// LTX (Ojer Axonil). Its RHS is resolved in the replacement source's context.
+func (e *Engine) replacementAmountMatches(spec string, amount int32, c *effects.Ctx) bool {
+	if spec == "" {
+		return true
+	}
+	for _, op := range []string{"GE", "GT", "LE", "LT", "EQ"} {
+		if rhs, ok := strings.CutPrefix(spec, op); ok {
+			v := effects.Num(e, c, &cards.SA{Params: map[string]string{"N": rhs}}, "N", 0)
+			switch op {
+			case "GE":
+				return amount >= v
+			case "GT":
+				return amount > v
+			case "LE":
+				return amount <= v
+			case "LT":
+				return amount < v
+			case "EQ":
+				return amount == v
+			}
+		}
+	}
+	return false
+}
+
+// ReplaceEvent implements effects.Host. It rewrites the amount of the Damage
+// event currently being replaced -- the one held in e.replacingEvent -- from
+// either a resolved numeric value (a literal, or a Count$/SVar expression
+// effects.Num already evaluated in the replacement source's context) or a
+// ReplaceCount$ body, whose base is the HELD event's own amount and which
+// only the host reading the in-flight event can resolve. Anything else -- an
+// unresolvable value, an unknown field, a non-Damage event -- leaves the held
+// event untouched: an amount replacement that cannot be computed is closer to
+// the card than one that erases the damage or discards the event.
+func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
+	ev := e.replacingEvent
+	if ev == nil || ev.Kind != events.Damage {
+		return
+	}
+	if body, ok := strings.CutPrefix(raw, "ReplaceCount$"); ok {
+		field, op, hasOp := strings.Cut(body, "/")
+		if (field != "DamageAmount" && field != "Amount") || !hasOp {
+			return
+		}
+		ev.Amount = replCountOp(ev.Amount, op)
+		return
+	}
+	if (name == "DamageAmount" || name == "Amount") && resolved > 0 {
+		ev.Amount = resolved
+		return
+	}
+	if name != "Affected" {
+		return
+	}
+	switch raw {
+	case "You":
+		ev.Obj, ev.Player = 0, e.controllerOf(e.replacingSource)
+	case "Self":
+		ev.Obj, ev.Player = e.replacingSource, 0
+	case "Enchanted", "Equipped":
+		if source := e.G.Obj(e.replacingSource); source != nil && source.AttachedTo != 0 {
+			ev.Obj, ev.Player = source.AttachedTo, 0
+		}
+	case "ReplacedSourceController":
+		if source := e.G.Obj(e.damaging); source != nil {
+			ev.Obj, ev.Player = 0, source.Controller
+		}
+	case "ReplacedTargetController":
+		if target := e.G.Obj(ev.Obj); target != nil {
+			ev.Obj, ev.Player = 0, target.Controller
+		}
+	}
+}
+
+// replCountOp applies Forge's ReplaceCount$ arithmetic to a base amount: the
+// corpus carries Twice (Bloodletter of Aclazotz), Thrice (Fiery Emancipation)
+// and Plus.N (Torture Pit), with the rest of applyCountOp's op vocabulary
+// implemented for the class rather than only the seen three. An op this
+// builder does not parse returns the base unchanged.
+func replCountOp(base int32, op string) int32 {
+	v := int64(base)
+	switch {
+	case strings.HasPrefix(op, "Plus."):
+		if x, err := strconv.Atoi(strings.TrimPrefix(op, "Plus.")); err == nil {
+			v += int64(x)
+		}
+	case strings.HasPrefix(op, "Minus."):
+		if x, err := strconv.Atoi(strings.TrimPrefix(op, "Minus.")); err == nil {
+			v -= int64(x)
+		}
+	case strings.HasPrefix(op, "Times."):
+		if x, err := strconv.Atoi(strings.TrimPrefix(op, "Times.")); err == nil {
+			v *= int64(x)
+		}
+	case op == "Twice":
+		v *= 2
+	case op == "Thrice":
+		v *= 3
+	case op == "HalfDown":
+		v /= 2
+	case op == "HalfUp":
+		v = (v + 1) / 2
+	}
+	if v > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if v < 0 {
+		return 0
+	}
+	return int32(v)
+}
+
+func (e *Engine) replacementCheckValue(source state.ObjID, check string) int32 {
+	o := e.G.Obj(source)
+	if o == nil {
+		return 0
+	}
+	ctx := e.replCtx(replMatch{id: source}, events.Event{})
+	if check == "X" {
+		return o.X
+	}
+	body := check
+	if ctx.SVars != nil {
+		if v, ok := ctx.SVars[check]; ok {
+			body = v
+		}
+	}
+	switch body {
+	case "Count$Party":
+		roles := map[string]bool{}
+		for _, id := range e.G.Zone(state.ZBattlefield, o.Controller) {
+			if f := e.G.Obj(id).Face(); f != nil {
+				for _, typ := range f.Types {
+					switch typ {
+					case "Cleric", "Rogue", "Warrior", "Wizard":
+						roles[typ] = true
+					}
+				}
+			}
+		}
+		return int32(len(roles))
+	case "Count$Valid Permanent.YouCtrl$Colors":
+		colors := ""
+		for _, id := range e.G.Zone(state.ZBattlefield, o.Controller) {
+			colors += effects.ColorsOf(e.G.Obj(id))
+		}
+		var n int32
+		for _, c := range "WUBRG" {
+			if strings.ContainsRune(colors, c) {
+				n++
+			}
+		}
+		return n
+	case "Count$Presence_Dragon.1.0":
+		for _, id := range e.G.Zone(state.ZBattlefield, o.Controller) {
+			if faceHasType(e.G.Obj(id), "Dragon") {
+				return 1
+			}
+		}
+		return 0
+	}
+	return effects.EvalCount(e, ctx, body)
+}
+
+func (e *Engine) countPresentInZone(spec string, source state.ObjID, you state.PlayerID, zone state.Zone, defined string) int {
+	if defined == "Self" {
+		o := e.G.Obj(source)
+		if o == nil || o.Zone != zone {
+			return 0
+		}
+		if spec == "Card.equipping" {
+			if o.AttachedTo != 0 {
+				return 1
+			}
+			return 0
+		}
+		if effects.MatchesSpecFrom(e.G, spec, source, you, source) {
+			return 1
+		}
+		return 0
+	}
+	n := 0
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o != nil && o.Zone == zone && effects.MatchesSpecFrom(e.G, spec, id, you, source) {
+			n++
+		}
+	})
+	return n
+}
+
+func (e *Engine) revoltThisTurn(controller state.PlayerID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield {
+			// Move preserves the object's pre-move controller outside the
+			// battlefield, so this is the controller at the moment it left —
+			// exactly Revolt's "a permanent you controlled" test (not owner).
+			if o := e.G.Obj(ev.Obj); o != nil && o.Controller == controller {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {
+	seen := map[string]bool{}
+	for _, id := range e.G.Zone(state.ZGraveyard, controller) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil {
+			for _, typ := range o.Face().Types {
+				switch typ {
+				case "Artifact", "Battle", "Creature", "Enchantment", "Instant", "Kindred", "Land", "Planeswalker", "Sorcery":
+					seen[typ] = true
+				}
+			}
+		}
+	}
+	return len(seen)
+}
+
+func faceHasType(o *state.Object, typ string) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	for _, got := range o.Face().Types {
+		if got == typ {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Engine) replacementCauseMatches(spec string, replacementSource, cause state.ObjID) bool {
+	o := e.G.Obj(cause)
+	if o == nil {
+		return false
+	}
+	kind, quals, _ := strings.Cut(strings.TrimSpace(spec), ".")
+	switch kind {
+	case "Spell":
+		if o.Ability != nil {
+			return false
+		}
+	case "SpellAbility":
+		// Both spell cards and minted ability objects qualify.
+	default:
+		return false
+	}
+	if quals == "" {
+		return true
+	}
+	if strings.HasPrefix(quals, "IsTargeting Self") {
+		for _, t := range o.Targets {
+			if !t.IsPlayer && t.Obj == replacementSource {
+				return true
+			}
+		}
+		return false
+	}
+	switch quals {
+	case "YouCtrl":
+		return o.Controller == e.controllerOf(replacementSource)
+	case "OppCtrl", "YouDontCtrl":
+		return o.Controller != e.controllerOf(replacementSource)
+	}
+	return false
+}
+
+// CounterAllowed implements effects.Host. A Counter event is the attempted
+// removal of a stack object, not a CounterChange event, so it is checked at
+// Counter's sole stack-removal path before the MoveZone is emitted.
+func (e *Engine) CounterAllowed(target, cause state.ObjID) bool {
+	matches := e.counterReplacementMatchesAll(target, cause)
+	switch len(matches) {
+	case 0:
+		return true
+	case 1:
+		e.applyCounterReplacement(target, matches[0])
+		return false
+	default:
+		t := e.G.Obj(target)
+		if t == nil || int(t.Controller) >= len(e.G.Players) || e.G.Players[t.Controller].Lost {
+			e.applyCounterReplacement(target, matches[0])
+			return false
+		}
+		e.replChoices = append(e.replChoices, replChoice{
+			kind: replChoiceCounter,
+			ev:   events.Event{Obj: target}, cands: matches, before: e.triggerBefore,
+			player: t.Controller, cause: cause,
+		})
+		if e.pending == nil {
+			e.askReplacementChoice(t.Controller)
+		}
+		return false
+	}
+}
+
+func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replMatch {
+	var matches []replMatch
+	e.forEachObject(func(source state.ObjID) {
+		o := e.G.Obj(source)
+		if o == nil || o.Face() == nil {
+			return
+		}
+		for i := range o.Face().Repls {
+			r := &o.Face().Repls[i]
+			if r.Event == "Counter" && e.counterReplacementMatches(*r, source, target, cause) {
+				matches = append(matches, replMatch{id: source, repl: r})
+			}
+		}
+	})
+	return matches
+}
+
+func (e *Engine) applyCounterReplacement(target state.ObjID, m replMatch) {
+	if m.repl.With != nil {
+		e.runReplaceWith(e.replCtx(m, events.Event{Obj: target}), target, m.repl.With, nil)
+	}
+}
+
+func (e *Engine) applyChosenCounterReplacement(rc replChoice, selected int) {
+	m := rc.cands[selected]
+	// CR 616.1e: applicability is checked against the event as it exists when
+	// the answer is applied. No state can normally change while the choice is
+	// pending, but recomputing keeps this path correct for released/departed
+	// decisions and mirrors damage replacement ordering.
+	if !e.counterReplacementMatches(*m.repl, m.id, rc.ev.Obj, rc.cause) {
+		matches := e.counterReplacementMatchesAll(rc.ev.Obj, rc.cause)
+		if len(matches) == 0 {
+			return
+		}
+		m = matches[0]
+	}
+	e.applyCounterReplacement(rc.ev.Obj, m)
+}
+
+func (e *Engine) counterReplacementMatches(r cards.Repl, source, target, cause state.ObjID) bool {
+	o := e.G.Obj(source)
+	t := e.G.Obj(target)
+	if o == nil || t == nil || t.Zone != state.ZStack {
+		return false
+	}
+	if active := r.Params["ActiveZones"]; active != "" && !zoneSpecContains(active, o.Zone) {
+		return false
+	}
+	if v := r.Params["ValidCard"]; v != "" &&
+		!effects.MatchesSpecFrom(e.G, v, target, o.Controller, source) {
+		return false
+	}
+	if v := r.Params["ValidCause"]; v != "" && !e.replacementCauseMatches(v, source, cause) {
+		return false
+	}
+	if !e.replacementConditionHolds(r, source, o.Controller) {
+		return false
+	}
+	return counterValidSA(e.G, t, r.Params["ValidSA"], o.Controller, source)
+}
+
+// counterValidSA is the Spell/Activated/Triggered subset used by R:Event$
+// Counter. A qualifier scopes the stack object's controller relative to the
+// replacement source; an unrecognised qualifier fails closed.
+func counterValidSA(g *state.Game, target *state.Object, spec string, you state.PlayerID, source state.ObjID) bool {
+	if spec == "" {
+		return true
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		kind, quals, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		isKind := (kind == "Spell" && target.Ability == nil) ||
+			(kind == "SpellAbility") ||
+			(kind == "Activated" && target.Ability != nil && !isTriggered(g, target)) ||
+			(kind == "Triggered" && target.Ability != nil && isTriggered(g, target))
+		if !isKind {
+			continue
+		}
+		if quals == "" {
+			return true
+		}
+		// Spell qualifiers are card characteristics plus controller-relative
+		// predicates. Reuse the ordinary object-filter grammar rather than a
+		// hand-maintained qualifier allowlist, so Creature/Instant/colour/P/T
+		// and future recognised predicates cannot drift from targeting.
+		if target.Ability == nil && counterSpellQualifiers(g, target, quals, you, source) {
+			return true
+		}
+		// Ability objects have no card face; their corpus qualifiers are the
+		// controller-relative forms, evaluated explicitly against the wrapper.
+		if target.Ability != nil {
+			switch quals {
+			case "YouCtrl":
+				if target.Controller == you {
+					return true
+				}
+			case "OppCtrl", "YouDontCtrl":
+				if target.Controller != you {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func counterSpellQualifiers(g *state.Game, target *state.Object, quals string, you state.PlayerID, source state.ObjID) bool {
+	var ordinary []string
+	for _, q := range strings.Split(quals, "+") {
+		switch q {
+		case "hasKeywordFlash":
+			if target.Face() == nil || !target.Face().HasKeyword("Flash") {
+				return false
+			}
+		case "wasCastByYou":
+			if target.Controller != you {
+				return false
+			}
+		default:
+			ordinary = append(ordinary, q)
+		}
+	}
+	if len(ordinary) == 0 {
+		return true
+	}
+	return effects.MatchesSpecFrom(g, "Card."+strings.Join(ordinary, "+"), target.ID, you, source)
+}
+
+func isTriggered(g *state.Game, o *state.Object) bool {
+	_, ok := state.TriggerOf(g, o)
+	return ok
 }
 
 // replChoice is one CR 616.1 order-selection suspension: the MoveZone event
@@ -893,6 +1730,17 @@ const (
 	// replChoiceUntap parks competing effects that would replace one Untap.
 	// It is appended so existing in-memory enum values remain unchanged.
 	replChoiceUntap
+	// replChoiceDamage parks a CR 616.1 order competition for an object
+	// Damage event (repl:DamageDone): two or more applicable damage
+	// replacements (a Prevent$ True shield, a DB$ ReplaceDamage subtraction,
+	// a DB$ ReplaceEffect amount rewrite) and the affected player orders
+	// them. Recomputed every cycle (CR 616.1e) rather than driven by
+	// applied/applicable like the mana/phase kinds, because a redirect or
+	// amount rewrite can change which of the ORIGINAL candidates still apply.
+	replChoiceDamage
+	// replChoiceCounter parks CR 616.1's order competition when two or more
+	// repl:Counter replacements would stop the same spell/ability.
+	replChoiceCounter
 )
 
 type replChoice struct {
@@ -921,6 +1769,30 @@ type replChoice struct {
 	damaging       state.ObjID
 	combatDamaging bool
 	dmgSrcOverride state.ObjID
+	// used is kind == replChoiceDamage's own applied-set: the matches already
+	// settled this CR 616.1e recomputation cycle for an object Damage event
+	// (repl:DamageDone), tracked by value rather than applied's per-candidate
+	// bool index because remainingDamageReplacements recomputes the candidate
+	// set itself after every rewrite instead of indexing a fixed cands slice.
+	// player is the resolved asking player (replacementAskPlayer's result,
+	// which may differ from the CR 616.1e affected player recomputed fresh
+	// into damageAffectedPlayer at every cycle) for kind == replChoiceDamage
+	// or replChoiceCounter.
+	used   []replMatch
+	player state.PlayerID
+	// combat marks a damage competition parked from the combat-damage step's
+	// own assignment loop (rules/combat.go): the chosen replacement's
+	// lifelink/deathtouch riders and commander-damage tally pay the way
+	// ordinary combat damage does, and finishChosenDamage resumes
+	// runCombatAssignments once this batch's parked choices all settle.
+	// lifelink/deadly cache the damage source's keywords at park time (Task
+	// 15's provenance-freezing discipline), and cause is the Counter
+	// replacement's cause object (counterReplacementMatches' third argument),
+	// set only when kind == replChoiceCounter.
+	combat   bool
+	lifelink bool
+	deadly   bool
+	cause    state.ObjID
 }
 
 // replacementChoicePlayer is the affected player a parked competition asks:
@@ -935,6 +1807,13 @@ func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
 		return rc.ev.Player, int(rc.ev.Player) < len(e.G.Players)
 	case replChoicePhaseOrder, replChoicePhaseOptional:
 		return e.G.Active, int(e.G.Active) < len(e.G.Players)
+	case replChoiceDamage, replChoiceCounter:
+		// Already resolved by poseDamageReplacementChoice/the recomputation
+		// cycle (replacementAskPlayer over the freshly recomputed CR 616.1e
+		// affected player), never re-derived from rc.ev.Obj's controller here
+		// -- a redirect or an OptionalDecider$ can make the asking player
+		// differ from that.
+		return rc.player, int(rc.player) < len(e.G.Players)
 	default:
 		o := e.G.Obj(rc.ev.Obj)
 		if o == nil || int(o.Controller) >= len(e.G.Players) {
@@ -944,12 +1823,6 @@ func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
 	}
 }
 
-// poseReplacementChoice starts a CR 616.1 order-selection suspension: the
-// competing event is parked and the affected controller -- the controller of
-// the moving object, CR 616.1's "affected player" -- is asked which
-// replacement applies first. Mirrors commander-zone parking: the ask is posed
-// only when no other decision is already pending (the caller has already
-// ruled out a departed controller, which makes no choices under CR 800.4a).
 // poseUntapReplacementChoice starts the CR 616.1 choice between effects
 // replacing one Untap. The affected player is the untapped object's
 // controller, not either replacement source's controller.
@@ -969,6 +1842,12 @@ func (e *Engine) poseUntapReplacementChoice(ev events.Event, matches []replMatch
 	}
 }
 
+// poseReplacementChoice starts a CR 616.1 order-selection suspension: the
+// competing event is parked and the affected controller -- the controller of
+// the moving object, CR 616.1's "affected player" -- is asked which
+// replacement applies first. Mirrors commander-zone parking: the ask is posed
+// only when no other decision is already pending (the caller has already
+// ruled out a departed controller, which makes no choices under CR 800.4a).
 func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 	o := e.G.Obj(ev.Obj)
 	if o == nil {
@@ -1059,15 +1938,31 @@ func (e *Engine) posePhaseOptionalChoice(ev events.Event, candidates []replMatch
 // iteration). Only the front of the queue is ever asked -- see
 // handleReplacement's resumption for how the queue hands from one choice to
 // the next.
+func (e *Engine) poseDamageReplacementChoice(ev events.Event, matches []replMatch, p state.PlayerID) {
+	source := e.protectionSource(e.damaging)
+	e.replChoices = append(e.replChoices, replChoice{
+		kind: replChoiceDamage, ev: ev, cands: matches, before: e.triggerBefore, player: p,
+		damaging: source, combat: e.combatDamaging,
+		lifelink: e.HasKeyword(source, "Lifelink"), deadly: e.HasKeyword(source, "Deathtouch"),
+	})
+	if e.pending == nil {
+		e.askReplacementChoice(p)
+	}
+}
+
 func (e *Engine) askReplacementChoice(p state.PlayerID) {
 	rc := e.replChoices[0]
 	d := &decision.Decision{Player: p, Kind: decision.KReplacement, Min: 1, Max: 1,
-		Source: rc.ev.Obj}
+		Source: rc.ev.Obj, ResumeKind: "replacement"}
 	indices := make([]int, len(rc.cands))
 	for i := range indices {
 		indices[i] = i
 	}
 	switch rc.kind {
+	case replChoiceDamage:
+		d.Prompt = "Several replacement effects would modify damage: choose which applies next."
+	case replChoiceCounter:
+		d.Prompt = "Several replacement effects would modify this counter event: choose which applies."
 	case replChoiceMana:
 		d.Prompt = "Several replacement effects would change mana production: choose which applies next."
 		indices = rc.applicable
@@ -1126,7 +2021,29 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "replacement", Obj: c.id, Label: label})
 	}
-	e.ask(d)
+	if rc.ev.Kind == events.Damage && hasOptionalReplacement(rc.cands) {
+		d.Options = append(d.Options, decision.Option{Index: len(rc.cands), Kind: "skip_replacement",
+			Label: "Do not apply an optional replacement"})
+		// A single-optional competition asked of its OptionalDecider$ is the
+		// replacement's own "may", not an order among several: pose it as
+		// one (Battletide Alchemist round-2 finding).
+		if len(rc.cands) == 1 && strings.EqualFold(rc.cands[0].repl.Params["Optional"], "True") {
+			label := "Apply the replacement"
+			if o := e.G.Obj(rc.cands[0].id); o != nil && o.Face() != nil && o.Face().Name != "" {
+				label = "Apply " + o.Face().Name + "'s replacement"
+			}
+			d.Prompt = label + " to this damage?"
+		}
+	}
+	// A replacement-order choice can arise in the middle of an effect's Emit.
+	// Enter through Host.Ask so effects.Resolve sees Suspended and records the
+	// remaining SA chain. A recomputation ask already owns that resume point;
+	// pose it directly without overwriting the original continuation.
+	if e.resume == nil {
+		e.Ask(d)
+	} else {
+		e.ask(d)
+	}
 }
 
 // handleReplacement applies an answered CR 616.1 order choice: the front
@@ -1155,14 +2072,89 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	}
 	rc := e.replChoices[0]
 	e.replChoices = e.replChoices[1:]
+	rp := e.resume
 	chosen := d.Chosen(in)
-	if len(chosen) == 0 {
+	damageKind := rc.kind == replChoiceDamage || rc.kind == replChoiceCounter
+	if len(chosen) == 0 || (damageKind && (chosen[0].Index < 0 || chosen[0].Index > len(rc.cands) ||
+		(chosen[0].Index == len(rc.cands) && !(rc.kind == replChoiceDamage && hasOptionalReplacement(rc.cands))))) {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player,
 			Text: "replacement answer had no choice"})
 		return
 	}
 	before := e.triggerBefore
 	e.triggerBefore = rc.before
+	if damageKind {
+		completed := true
+		switch rc.kind {
+		case replChoiceCounter:
+			e.applyChosenCounterReplacement(rc, chosen[0].Index)
+		case replChoiceDamage:
+			completed = e.handleDamageReplacementChoice(rc, chosen[0].Index)
+		}
+		e.triggerBefore = before
+		if completed && len(e.replChoices) > 0 {
+			// The same parked resolution produced more than one replacement
+			// choice: a multi-recipient DealDamage/DamageAll parks one per
+			// recipient event before its enclosing chain suspends. The original
+			// resume point must stay parked until the LAST of them is answered --
+			// resuming after the first would run the remaining SA chain (and move
+			// the spell off the stack) while a later recipient's damage is still
+			// awaiting its CR 616.1 order choice, and the chained riders would
+			// fire before the effect's own damage settled. If the application
+			// itself posed a nested ask (e.resume no longer rp), chain this
+			// frame's continuation behind the new one so nothing is dropped.
+			if rp != nil && e.resume != rp {
+				e.resume.outer = &resumePoint{kind: rp.kind, obj: rp.obj, outer: rp.outer}
+			}
+			for len(e.replChoices) > 0 {
+				next := e.replChoices[0]
+				// CR 616.1e: the affected player is recomputed from the parked
+				// event at ask time, so a competition whose recipient changed
+				// while parked asks the NEW affected player -- except that a
+				// single-optional competition's "may" still belongs to its
+				// OptionalDecider$ (replacementAskPlayer).
+				if p, ok := e.damageAffectedPlayer(next.ev); ok && !e.G.Players[p].Lost {
+					e.replChoices[0].player = e.replacementAskPlayer(next.cands, p)
+					if e.pending == nil {
+						e.askReplacementChoice(e.replChoices[0].player)
+					}
+					return
+				}
+				// CR 800.4a: an affected player who has left the game or lost
+				// makes no choices. Its candidates apply in deterministic scan
+				// order and the queue drains on.
+				e.replChoices = e.replChoices[1:]
+				switch {
+				case next.kind == replChoiceCounter:
+					e.applyChosenCounterReplacement(next, 0)
+				case next.kind == replChoiceDamage:
+					completed = e.handleDamageReplacementChoice(next, 0)
+				default:
+					e.applyReplacement(next.ev, next.cands[0])
+				}
+				if !completed {
+					return
+				}
+			}
+		}
+		if completed && rc.combat && e.combatRound.assignments != nil {
+			// A combat damage pass was parked at this assignment. Finish the
+			// remaining precomputed assignments before running SBAs or the
+			// regular pass; a newly parked replacement simply returns again.
+			e.damageStep(false)
+			if e.pending == nil && e.combatRound.assignments == nil && e.combatRound.active {
+				e.completeCombatPass(e.combatRound.pass)
+			}
+		}
+		if completed && rp != nil && e.resume == rp {
+			// The parked event and its riders are complete. Resume only the
+			// chain after the effect that proposed it; the effect itself must
+			// not emit the same damage/counter event a second time.
+			e.resume = nil
+			e.resumeResolution(rp, nil)
+		}
+		return
+	}
 	if rc.life {
 		// Apply the chosen replacement, then re-evaluate what still applies
 		// to the modified event (CR 616.1e); a further non-commuting
@@ -1292,6 +2284,170 @@ func (e *Engine) askNextReplacementChoice() {
 		if o := e.G.Obj(e.madnessChoices[0].Obj); o != nil && int(o.Owner) < len(e.G.Players) {
 			e.askMadnessReplacement(o.Owner)
 		}
+	}
+}
+
+// handleDamageReplacementChoice returns false only when recomputation leaves
+// another genuine order choice pending; true means the parked damage event is
+// fully prevented/replaced or has landed with all riders.
+func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) bool {
+	savedDamaging, savedCombat := e.damaging, e.combatDamaging
+	e.damaging, e.combatDamaging = rc.damaging, rc.combat
+	defer func() { e.damaging, e.combatDamaging = savedDamaging, savedCombat }()
+	var m replMatch
+	if selected == len(rc.cands) {
+		// This is the explicit "do not apply" answer for an Optional$ True
+		// replacement. Mark every currently applicable optional replacement as
+		// used so recomputation cannot immediately pose the same question again;
+		// non-optional replacements remain eligible and still apply.
+		for _, m := range rc.cands {
+			if strings.EqualFold(m.repl.Params["Optional"], "True") {
+				rc.used = append(rc.used, m)
+			}
+		}
+	} else {
+		m := rc.cands[selected]
+		rc.used = append(rc.used, m)
+		if e.applyChosenDamageReplacement(&rc.ev, m) {
+			return true
+		}
+	}
+	for {
+		rc.cands = e.remainingDamageReplacements(rc.ev, rc.used)
+		switch len(rc.cands) {
+		case 0:
+			e.finishChosenDamage(rc)
+			return true
+		case 1:
+			m = rc.cands[0]
+			rc.used = append(rc.used, m)
+			if e.applyChosenDamageReplacement(&rc.ev, m) {
+				return true
+			}
+		default:
+			// The first modification can leave several effects applicable. Ask
+			// again over exactly that recomputed set (CR 616.1e), preserving
+			// the already-modified amount and the original damage rider
+			// metadata. CR 616.1e also recomputes the AFFECTED player: after a
+			// redirection the choice belongs to the new recipient's controller,
+			// never the original one, so re-derive it from the modified event.
+			if p, ok := e.damageAffectedPlayer(rc.ev); ok && !e.G.Players[p].Lost {
+				rc.player = p
+				e.replChoices = append([]replChoice{rc}, e.replChoices...)
+				if e.pending == nil {
+					e.askReplacementChoice(p)
+				}
+				return false
+			}
+			// CR 800.4a: the recomputed affected player is lost or gone and
+			// makes no choices, so the remaining candidates apply in
+			// deterministic scan order -- the same fallback the initial pose
+			// takes -- and the parked event settles here.
+			for {
+				if len(rc.cands) == 0 {
+					e.finishChosenDamage(rc)
+					return true
+				}
+				m = rc.cands[0]
+				rc.used = append(rc.used, m)
+				if e.applyChosenDamageReplacement(&rc.ev, m) {
+					return true
+				}
+				rc.cands = e.remainingDamageReplacements(rc.ev, rc.used)
+			}
+		}
+	}
+}
+
+func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) []replMatch {
+	var out []replMatch
+	alreadyUsed := func(m replMatch) bool {
+		for _, u := range used {
+			if u.id == m.id && (u.repl == m.repl || (m.key != "" && u.key == m.key)) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent == "" || ce.ReplacementBody == "" {
+			continue
+		}
+		if with := replacementBodySA(ce.ReplacementBody); with != nil {
+			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
+			m := replMatch{id: ce.Source, repl: r,
+				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+			if !alreadyUsed(m) && e.replacementMatches(*r, ce.Source, ev) &&
+				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
+				out = append(out, m)
+			}
+		}
+	}
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			return
+		}
+		for i := range o.Face().Repls {
+			r := &o.Face().Repls[i]
+			if alreadyUsed(replMatch{id: id, repl: r}) || !e.replacementMatches(*r, id, ev) {
+				continue
+			}
+			if damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj) {
+				continue
+			}
+			out = append(out, replMatch{id: id, repl: r})
+		}
+	})
+	return out
+}
+
+// applyChosenDamageReplacement modifies ev in place. It reports terminal when
+// the chosen effect prevented/replaced the damage entirely; ReplaceEffect is
+// nonterminal and lets applicability be recomputed against its new amount.
+func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) bool {
+	// Defense in depth: both candidate-producing paths already filter
+	// prevention bodies out under CantPreventDamage, but the application
+	// point re-checks so a future selection path cannot reintroduce the
+	// leak. A skipped body is nonterminal, so the caller recomputes the
+	// remaining candidates against the still-standing event (m is in
+	// rc.used, so it cannot be picked twice).
+	if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.damaging, ev.Obj) {
+		return false
+	}
+	if m.repl.Params["Prevent"] == "True" {
+		return true
+	}
+	if m.repl.With == nil {
+		return true
+	}
+	if m.repl.With.API == "ReplaceDamage" {
+		// The body subtracts its Amount from the held event; a fully
+		// prevented event is terminal, a reduced one stands for the
+		// recomputation below (CR 616.1e).
+		return e.applyReplaceDamageBody(ev, m)
+	}
+	e.runReplaceWith(e.replCtx(m, *ev), ev.Obj, m.repl.With, ev)
+	return m.repl.With.API != "ReplaceEffect"
+}
+
+func (e *Engine) finishChosenDamage(rc replChoice) {
+	savedDamaging, savedCombat, savedApplying := e.damaging, e.combatDamaging, e.applyingReplacement
+	e.damaging, e.combatDamaging, e.applyingReplacement = rc.damaging, rc.combat, true
+	applied := e.emit(rc.ev)
+	e.damaging, e.combatDamaging, e.applyingReplacement = savedDamaging, savedCombat, savedApplying
+	if applied.Kind != events.Damage || applied.Amount <= 0 {
+		return
+	}
+	if rc.deadly && applied.Obj != 0 {
+		e.emit(events.Event{Kind: events.CounterChange, Obj: applied.Obj,
+			Counter: "Deathtouched", Amount: 1})
+	}
+	if rc.lifelink {
+		e.emit(events.Event{Kind: events.LifeChange, Player: e.controllerOf(rc.damaging), Amount: applied.Amount})
+	}
+	if rc.combat && applied.Obj == 0 && e.format == FormatCommander {
+		e.tallyCmdDamage(applied.Player, rc.damaging, applied.Amount)
 	}
 }
 
@@ -1517,7 +2673,7 @@ func (e *Engine) applyLifeReplacement(ev events.Event, m replMatch) (events.Even
 		// left): its replacement has nothing left to perform.
 		return ev, false
 	}
-	e.runReplaceWith(&effects.Ctx{Source: m.id, Controller: o.Controller, SVars: o.Face().SVars}, 0, "", r.With)
+	e.runReplaceWith(&effects.Ctx{Source: m.id, Controller: o.Controller, SVars: o.Face().SVars}, 0, r.With, nil)
 	return ev, true
 }
 
@@ -1664,10 +2820,12 @@ func init() {
 	// The life classes register too: repl:GainLife (the Prevent$ GainLife
 	// shape plus the CantGainLife static's replacement arm) and
 	// repl:LifeReduced (the ReplaceCount$Amount/Twice shape), both applied by
-	// applyLifeReplacements.
+	// applyLifeReplacements. repl:DamageDone and repl:Counter are this
+	// ticket's own additions, matched by replacementMatches's DamageDone case
+	// and CounterAllowed respectively.
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
-		"repl:GainLife", "repl:LifeReduced")
+		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

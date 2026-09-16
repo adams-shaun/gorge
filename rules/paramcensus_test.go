@@ -142,10 +142,11 @@ var baseBuckets = map[string]bucket{
 	// as generic machinery), rp.sa the resume plan's SA, o.Ability the
 	// stack object's resolved SA.
 	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA,
-	// index bases: candidates/rc.cands are []replMatch (the phase-
-	// replacement pipeline and its parked-choice resume), so element .repl
-	// is the same cards.Repl pair the named bases read.
-	"candidates[i].repl": bRepl, "rc.cands[i].repl": bRepl,
+	// index bases: candidates/rc.cands/matches are all []replMatch (the
+	// phase-replacement pipeline, its parked-choice resume, and the
+	// damage/counter/effect-created replacement match lists), so element
+	// .repl is the same cards.Repl pair the named bases read.
+	"candidates[i].repl": bRepl, "rc.cands[i].repl": bRepl, "matches[i].repl": bRepl,
 }
 
 // callSite records one package-local call with its string-literal arguments
@@ -958,6 +959,15 @@ var stringMapParams = map[string]string{
 	// consumed here, but the map originates in an SVar body, not a card's
 	// Params map.
 	"effects:compoundRememberedSpec:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// effects/misc.go parseReplacementLine: svars is the face's SVars table
+	// (an Effect's ReplacementEffects$ body lives behind an SVar name),
+	// mirroring parseStaticLine's svars -- not a card Params map.
+	"effects:parseReplacementLine:svars": "SVars table lookup by replacement-line name, not a card Params map",
+	// effects/misc.go replacementLineWith: params is the map
+	// parseReplacementLine built from one SVar replacement line -- its
+	// ReplaceWith$ key is consumed here, but the map originates in an SVar
+	// body, not a card's Params map.
+	"effects:replacementLineWith:params": "keys of a parseReplacementLine-built static line (an SVar body), not a card Params map",
 }
 
 // propagateKeyReads resolves two indirect read shapes:
@@ -1839,7 +1849,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Bloodchief Ascension":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Bloodsoaked Champion":        {"param:api:ChangeZone.CheckSVar"},
 	"Borderland Ranger":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Braids, Arisen Nightmare":    {"param:api:Cleanup.ClearRemembered", "param:api:Draw.ConditionCheckSVar", "param:api:Draw.ConditionSVarCompare", "param:api:LoseLife.ConditionCheckSVar", "param:api:LoseLife.ConditionSVarCompare", "param:api:Sacrifice.Amount", "param:api:Sacrifice.Optional"},
+	"Braids, Arisen Nightmare":    {"param:api:Cleanup.ClearRemembered", "param:api:Draw.ConditionCheckSVar", "param:api:Draw.ConditionSVarCompare", "param:api:LoseLife.ConditionCheckSVar", "param:api:LoseLife.ConditionSVarCompare", "param:api:Sacrifice.Optional"},
 	"Brainstorm":                  {"param:api:ChangeZone.Reorder"},
 	"Burning Wish":                {"param:api:ChangeZone.Hidden", "param:api:ChangeZone.Reveal"},
 	"Cavern of Souls":             {"param:api:ChooseType.Type", "param:api:Mana.AddsNoCounter", "param:api:Mana.RestrictValid"},
@@ -1900,7 +1910,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Lord Windgrace":              {"param:api:Cleanup.ClearRemembered", "param:api:Destroy.Ultimate", "param:api:Discard.RememberDiscarded"},
 	"Master of Etherium":          {"param:stat:Continuous.CharacteristicDefining"},
 	"Matter Reshaper":             {"param:api:Dig.DestinationZone2", "param:api:Dig.Reveal"},
-	"Meathook Massacre II":        {"param:api:ChangeZone.GainControl", "param:api:ChangeZone.UnlessCost", "param:api:ChangeZone.UnlessPayer", "param:api:Sacrifice.Amount"},
+	"Meathook Massacre II":        {"param:api:ChangeZone.GainControl", "param:api:ChangeZone.UnlessCost", "param:api:ChangeZone.UnlessPayer"},
 	"Mishra's Factory":            {"param:api:Animate.RemoveCreatureTypes"},
 	"Mistveil Plains":             {"param:api:ChangeZone.IsPresent", "param:api:ChangeZone.PresentCompare"},
 	"Mogis, God of Slaughter":     {"param:api:DealDamage.UnlessCost", "param:api:DealDamage.UnlessPayer", "param:stat:Continuous.CheckSVar", "param:stat:Continuous.RemoveType", "param:stat:Continuous.SVarCompare"},
@@ -1914,8 +1924,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
 	"Palace Jailer":               {"param:api:Effect.ForgetOnMoved"},
 	"Path to Exile":               {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Phyrexian Obliterator":       {"param:api:Sacrifice.Amount"},
-	"Planar Engineering":          {"param:api:Sacrifice.Amount"},
 	"Planetary Annihilation":      {"param:api:ChooseCard.Reveal"},
 	"Ponder":                      {"param:api:RearrangeTopOfLibrary.MayShuffle"},
 	"Price of Progress":           {"param:api:RepeatEach.DamageMap"},
@@ -1931,7 +1939,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Riddlesmith":                 {"cost:Draw"},
 	"Righteous Valkyrie":          {"param:stat:Continuous.CheckSVar", "param:stat:Continuous.SVarCompare"},
 	"Roiling Vortex":              {"param:trig:SpellCast.ValidSA"},
-	"Scapeshift":                  {"param:api:Cleanup.ClearRemembered", "param:api:Sacrifice.Amount", "param:api:Sacrifice.Optional"},
+	"Scapeshift":                  {"param:api:Cleanup.ClearRemembered", "param:api:Sacrifice.Optional"},
 	"Screaming Nemesis":           {"param:api:Cleanup.ClearRemembered"},
 	"Sea Gate Wreckage":           {"param:api:Draw.Activation"},
 	"Serra Avenger":               {"param:stat:CantBeCast.CheckSVar", "param:stat:CantBeCast.SVarCompare"},
@@ -1973,7 +1981,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Vines of Vastwood":           {"param:api:Effect.ExileOnMoved"},
 	"Virtue of Persistence":       {"param:api:ChangeZone.GainControl"},
 	"Voracious Hydra":             {"param:api:PutCounter.ETB"},
-	"Walk-In Closet":              {"param:api:ChangeZone.Hidden", "param:api:Effect.ReplacementEffects"},
+	"Walk-In Closet":              {"param:api:ChangeZone.Hidden"},
 	"Walking Ballista":            {"param:api:PutCounter.ETB"},
 	"Wastewood Verge":             {"param:api:Mana.IsPresent"},
 	"Whirler Rogue":               {"param:api:Effect.ExileOnMoved"},
@@ -2260,16 +2268,30 @@ func censusProbeCaller2(sa *cards.SA) string {
 // TestParamCensusAttributesSpecialisedRulesPaths pins the api-specific
 // attribution: the mana path's Amount$/Produced$ reads belong to api:Mana
 // alone, the unless-pay resume's UnlessCost$ to Counter/CopySpellAbility, the
-// Charm mode paths' Choices$/CharmNum$ to api:Charm -- so the genuinely
-// unread parameters on other APIs surface in the census (Sacrifice.Amount on
-// the five repo-deck carriers; Vexing Devil's Sacrifice.UnlessCost).
+// Charm mode paths' Choices$/CharmNum$ to api:Charm -- so a generic rules
+// path never masks another API's genuinely unread parameter.
+//
+// api:Sacrifice.Amount is no longer in the "should stay unread" set: the
+// replacement-damage-counter ticket's effSacrifice (effects/zone.go) reads
+// Amount$ for real now -- Dralnu, Dread Lord of the Accursed's DB$
+// ReplaceDamage-driven "sacrifice that many permanents" redirect, gated on
+// Ctx.ReplacementAmount > 0. That is effSacrifice's OWN registered read, not
+// generic machinery bleeding across APIs (the class apiSpecificRulesSA
+// guards against), so the census correctly attributes it to api:Sacrifice
+// wherever the key is read at all -- the five repo-deck carriers below use
+// Amount$ for an unrelated, still-unimplemented shape (a literal sacrifice
+// count, never a damage-replacement redirect), and their knownUnsupportedParams
+// entries were retired to match (the primitive is measured as read, exactly
+// like knownUnsupported retires once a primitive registers even though a
+// given card's shape is narrower than full coverage).
 func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
-	res, d := measureParamCensus(t, nil)
+	_, d := measureParamCensus(t, nil)
 	want := map[string]map[string]bool{
 		"Mana":             {"Amount": true, "Produced": true},
 		"Counter":          {"UnlessCost": true},
 		"CopySpellAbility": {"UnlessCost": true},
 		"Charm":            {"CharmNum": true, "Choices": true},
+		"Sacrifice":        {"Amount": true},
 	}
 	for api, keys := range want {
 		for key := range keys {
@@ -2279,34 +2301,11 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 		}
 	}
 	for _, wrong := range []struct{ api, key string }{
-		{"Sacrifice", "Amount"}, {"Sacrifice", "Produced"},
+		{"Sacrifice", "Produced"},
 		{"DealDamage", "CharmNum"}, {"DealDamage", "Produced"}, {"ChangeZone", "Amount"},
 	} {
 		if d.api[wrong.api][wrong.key] {
 			t.Errorf("d.api[%q][%q] = true -- a specialised rules path still over-suppresses this API's gap", wrong.api, wrong.key)
-		}
-	}
-	// The census-level effect on the real repo decks: every Sacrifice ability
-	// carrying an Amount$ its implementation never reads is now
-	// labelled (previously masked by the Mana/Counter reads). Vexing Devil's
-	// UnlessCost$/UnlessPayer$/UnlessSwitched$ retired with the vexdev gate,
-	// leaving only the unmodelled DamageYou cost token.
-	for card, label := range map[string]string{
-		"Braids, Arisen Nightmare": "param:api:Sacrifice.Amount",
-		"Phyrexian Obliterator":    "param:api:Sacrifice.Amount",
-		"Planar Engineering":       "param:api:Sacrifice.Amount",
-		"Scapeshift":               "param:api:Sacrifice.Amount",
-		"Meathook Massacre II":     "param:api:Sacrifice.Amount",
-	} {
-		found := false
-		for _, l := range res.labels[card] {
-			if l == label {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("%s: expected %s in the census (labels %v)", card, label, res.labels[card])
 		}
 	}
 }

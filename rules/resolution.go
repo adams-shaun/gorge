@@ -84,6 +84,15 @@ type resumePoint struct {
 	// subject after the suspension (fx44, Mox Diamond). Zero for an ordinary
 	// (non-replacement) ask.
 	replaced state.ObjID
+	// replacementTarget/replacementSource/replacementAmount are the in-flight
+	// Damage event's own target/source/amount (e.replacingEvent), captured so
+	// a DB$ ReplaceEffect body that asks mid-resolution can rebuild the same
+	// ReplacementTarget/ReplacementSource/ReplacementAmount Ctx fields on
+	// resume that Defined$ ReplacedTarget/ReplacedSource and friends read.
+	// Zero/empty outside a Damage replacement's body.
+	replacementTarget state.Target
+	replacementSource state.ObjID
+	replacementAmount int32
 	// action is the replaced event's action marker (Engine.replAction),
 	// captured with replaced so a body that suspends before its move still
 	// labels that move a sacrifice or discard on the resume.
@@ -159,11 +168,21 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		kind = "modes"
 	}
 	e.ask(d)
+	var replacementTarget state.Target
+	var replacementAmount int32
+	if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
+		replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
+		if e.replacingEvent.Obj == 0 {
+			replacementTarget = state.Target{Player: e.replacingEvent.Player, IsPlayer: true}
+		}
+		replacementAmount = e.replacingEvent.Amount
+	}
 	// Capture whether the ask is being posed from inside a replacement
 	// effect's ReplaceWith$ body (fx44). e.applyingReplacement is true for
 	// the whole of that body's resolution, so an ask posed from within it
 	// must resume still under the flag — see the resumePoint field's
 	// comment and resumeResolution's restore of it.
+	//
 	// A replacement body resumes from the object whose resolution it
 	// interrupted -- normally still on top of the stack (a sorcery that
 	// reanimates Mox Diamond), so the rest of that spell's chain and its
@@ -184,8 +203,10 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	}
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
-		before: e.triggerBefore, target: d.ResumeTarget, rolls: d.Rolls,
-		choices: append([]state.Target(nil), d.ResumeChoices...),
+		replacementTarget: replacementTarget, replacementSource: e.protectionSource(e.damaging),
+		replacementAmount: replacementAmount,
+		before:            e.triggerBefore, target: d.ResumeTarget, rolls: d.Rolls,
+		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...)}
 	return true
 }
@@ -366,7 +387,26 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// resolveTop's ability branch does it: the trigger object was never
 	// paid an X, so the causing event's card supplies the value.
 	ctx.X = o.X
-	if ctx.X == 0 {
+	if rp.replacement {
+		// fx44: this suspended frame is a ReplaceWith$ body, so restore the
+		// replacement context applyReplacements seeded for it. Ctx.Replaced is
+		// the object the replaced event was about (ev.Obj, threaded via
+		// rp.replaced) and Ctx.Remembered is the single-element list seeded
+		// from that same object, so a Defined$ ReplacedCard resolution and an
+		// SVar:X Remembered$Amount gate find their subject after the
+		// suspension. Without these the completed move (Mox Diamond's
+		// MoveToBattlefield) targets nothing and the object never leaves the
+		// stack. The replacement arm has no other X to restore, so
+		// triggerPaidX's fallback below is skipped for it.
+		ctx.Replaced = rp.replaced
+		ctx.ReplacementTarget = rp.replacementTarget
+		ctx.ReplacementSource = rp.replacementSource
+		ctx.ReplacementAmount = rp.replacementAmount
+		ctx.Remembered = []state.Target{rp.replacementTarget}
+		if rp.replacementTarget.Obj == 0 && !rp.replacementTarget.IsPlayer {
+			ctx.Remembered = []state.Target{{Obj: rp.replaced}}
+		}
+	} else if ctx.X == 0 {
 		ctx.X = e.triggerPaidX(rp.obj, o)
 	}
 	var svars map[string]string
@@ -782,12 +822,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
 			return
 		}
-	} else {
-		// A resume with no sub-ability recorded: only reachable from a
-		// hand-built Ask (every real asking primitive sets ResumeSA). The
-		// resolution still finishes — the object leaves the stack with no
-		// effect, the same degrade-to-nothing stance as an unrecognised
-		// choice, rather than stalling the match forever.
+	} else if rp.kind != "replacement" {
+		// A resume with no sub-ability recorded is normally reachable only from
+		// a hand-built Ask. Replacement-order decisions are the deliberate
+		// exception: the intercepted event has already completed, and the
+		// continuation begins at rp.outer rather than re-running the effect that
+		// proposed it.
 		e.emit(events.Event{Kind: events.Note, Obj: rp.obj,
 			Text: "mid-resolution answer resumed with no sub-ability recorded"})
 	}
@@ -855,6 +895,14 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
 			replaced: e.replReplaced, action: e.replAction, before: e.triggerBefore,
 			loopBound: cf.bound, loopRemembered: cf.remembered}
+		if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
+			f.replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
+			if e.replacingEvent.Obj == 0 {
+				f.replacementTarget = state.Target{Player: e.replacingEvent.Player, IsPlayer: true}
+			}
+			f.replacementAmount = e.replacingEvent.Amount
+			f.replacementSource = e.protectionSource(e.damaging)
+		}
 		if cf.repeat != nil {
 			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat
 			f.choices, f.chosenValid = cf.choices, cf.chosenValid

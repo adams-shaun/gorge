@@ -89,21 +89,14 @@ import (
 // cEDH, Ulalek Eldrazi), whose entries land in this table when they are
 // imported.
 var knownUnsupported = map[string][]string{
-	"Baloth Prime":               {"api:Untap"},
-	"Bloodletter of Aclazotz":    {"api:ReplaceEffect"},
-	"Chandra, Awakened Inferno":  {"repl:Counter"},
-	"Chromatic Orrery":           {"stat:ManaConvert"},
-	"Conduit of Worlds":          {"api:Play"},
-	"Crypt Ghast":                {"kw:Extort"},
-	"Exotic Orchard":             {"api:ManaReflected"},
-	"Fabled Passage":             {"api:Untap"},
-	"Fiery Emancipation":         {"api:ReplaceEffect", "repl:DamageDone"},
-	"Horizon Explorer":           {"api:Untap"},
-	"Ojer Axonil, Deepest Might": {"api:ReplaceEffect", "repl:DamageDone"},
-	"Solphim, Mayhem Dominus":    {"api:ReplaceEffect", "repl:DamageDone"},
-	"Spiked Corridor":            {"api:ReplaceEffect", "repl:DamageDone"},
-	"Spinerock Knoll":            {"api:Play", "kw:Hideaway"},
-	"Uncivil Unrest":             {"api:ReplaceEffect", "repl:DamageDone"},
+	"Baloth Prime":      {"api:Untap"},
+	"Chromatic Orrery":  {"stat:ManaConvert"},
+	"Conduit of Worlds": {"api:Play"},
+	"Crypt Ghast":       {"kw:Extort"},
+	"Exotic Orchard":    {"api:ManaReflected"},
+	"Fabled Passage":    {"api:Untap"},
+	"Horizon Explorer":  {"api:Untap"},
+	"Spinerock Knoll":   {"api:Play", "kw:Hideaway"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
