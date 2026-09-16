@@ -23,6 +23,12 @@ type Host interface {
 	// log a complete description of the match.
 	Game() *state.Game
 	Emit(events.Event)
+	// EmitDamage emits a Damage event and returns the event that actually
+	// landed after replacement effects. A prevention returns a non-Damage
+	// result; an amount-changing replacement returns Damage with the applied
+	// amount. Damage riders (lifelink/deathtouch/commander damage) must consume
+	// this result rather than the proposed event.
+	EmitDamage(events.Event) events.Event
 	// EmitTap taps the permanent obj with the synchronous provenance a Taps
 	// trigger reads but the replayed Tap event does not carry: tapper is the
 	// player who tapped it (Forge Card.tap's tapper -- the resolving
@@ -106,6 +112,14 @@ type Host interface {
 	// already walks sa.Sub. A host that never suspends (an effects-package
 	// double, where Ask returns false) never sees this call.
 	SuspendContinuation(sa *cards.SA)
+	// ReplaceEvent applies a ReplaceEffect body's requested change to the
+	// event currently being replaced. It is inert outside replacement
+	// resolution; rules owns the event and records the resulting delta.
+	ReplaceEvent(name, value string, resolved int32)
+	// CounterAllowed reports whether a spell or ability may be countered.
+	// Counter replacement effects are rules, not a MoveZone replacement: they
+	// stop Counter before it emits the move off the stack.
+	CounterAllowed(target, cause state.ObjID) bool
 	// SuspendRepeat reports that one iteration of a RepeatEach loop suspended
 	// at a mid-resolution ask. The host must bind the suspended iteration's
 	// Remembered to the pending ask (and to the iteration's own continuation
@@ -221,12 +235,15 @@ type Ctx struct {
 	X     int32
 	// Replaced is the object the replaced event was about (Defined$ ReplacedCard):
 	// the card a "would go to the graveyard from anywhere, exile it instead"
-	// replacement is acting ON. Set by rules/replacement.go on the context it
-	// builds for a matching ReplaceWith$; zero outside a replacement, and nil for
-	// a zero (or gone) object when Defined resolves it. It is context, not state
-	// -- it drives the replacement's own resolution but is never itself persisted
-	// to the event log.
-	Replaced state.ObjID
+	// replacement is acting ON. ReplacementTarget, ReplacementSource and
+	// ReplacementAmount carry the corresponding roles of an in-flight damage
+	// event. They are resolution context, never persisted state; rules seeds
+	// them before resolving ReplaceWith$ so ReplacedTarget/ReplacedSource and
+	// ReplaceCount$DamageAmount are available to every replacement body API.
+	Replaced          state.ObjID
+	ReplacementTarget state.Target
+	ReplacementSource state.ObjID
+	ReplacementAmount int32
 	// LKI is the object a zone-change trigger fired for, as it was just
 	// before the move (CR 603.10 "look back in time"): Move resets counters,
 	// tapped state and damage on the way out, so a "dies" condition such as

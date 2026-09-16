@@ -89,6 +89,14 @@ type ContinuousEffect struct {
 	// source-leaves rule. Set only by the continuous-effect primitives that
 	// build a lasting one-shot (effects/combatfx.go).
 	Permanent bool
+	// ReplacementEvent/ReplacementParams/ReplacementBody describe an Effect-created
+	// replacement (for example Blood of the Martyr). They are deliberately plain
+	// data rather than cards types: state sits below cards' parsed SA graph.
+	// Rules reconstructs the body at application time under the original source's
+	// SVar context. An empty ReplacementEvent is not a replacement effect.
+	ReplacementEvent  string
+	ReplacementParams map[string]string
+	ReplacementBody   string
 	// RemoveAbilities is a layer-6 ability-removing effect (CR 613.1f/613.4b,
 	// e.g. Humility's RemoveAllAbilities$ True): when an applicable effect
 	// carries it, Derived clears the object's printed (and any earlier-granted)

@@ -1194,9 +1194,10 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 // (layers.go) and Ask (resolution.go) round out the interface -- HasKeyword
 // already existed for the layer system's own callers before effects.Host
 // grew a method of the same name, and needed no change to satisfy it.
-func (e *Engine) Game() *state.Game    { return e.G }
-func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
-func (e *Engine) Rand(n int) int       { return e.rng.IntN(n) }
+func (e *Engine) Game() *state.Game                       { return e.G }
+func (e *Engine) Emit(ev events.Event)                    { e.emit(ev) }
+func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
+func (e *Engine) Rand(n int) int                          { return e.rng.IntN(n) }
 
 // EmitTap satisfies effects.Host's EmitTap: see emitTap.
 func (e *Engine) EmitTap(obj state.ObjID, tapper state.PlayerID, entering bool) {

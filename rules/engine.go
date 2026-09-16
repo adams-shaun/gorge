@@ -284,6 +284,12 @@ type Engine struct {
 	// completed move never happens (fx44, Mox Diamond). Zero whenever no
 	// replacement is in flight.
 	replReplaced state.ObjID
+	// replacingEvent is the in-flight Damage event a DB$ ReplaceEffect body's
+	// ReplaceEvent call may rewrite (Amount/Affected). It exists only during
+	// emit, before the event is logged, so it is never part of
+	// cloned/replayed engine state.
+	replacingEvent  *events.Event
+	replacingSource state.ObjID
 	// replAction is the action marker (events.ActionMarker) of the event the
 	// in-flight destination-changing replacement discarded: "sacrificed",
 	// "discarded" or "discarded as a cost". emit re-labels the replacement
@@ -879,9 +885,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// source recorded) never suppresses a Damage event. A planeswalker's
 	// Damage event is protected exactly like any other now -- its CR 306.8
 	// loyalty conversion happens one fold later, in events.Apply, so a
-	// prevented hit converts nothing.
+	// prevented hit converts nothing. stat:CantPreventDamage (Spider-Punk)
+	// overrides protection's own damage-prevention arm exactly like every
+	// other prevention path, so the same cantPreventDamage gate applies here.
 	if ev.Kind == events.Damage && ev.Obj != 0 {
-		if src := e.inFlightDamageSource(); src != 0 && e.protectedFrom(ev.Obj, src) {
+		if src := e.inFlightDamageSource(); src != 0 && e.protectedFrom(ev.Obj, src) &&
+			!e.cantPreventDamage(src, ev.Obj) {
 			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "prevented: protection"})
 		}
 	}
@@ -907,10 +916,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if e.applyingReplacement {
 		ev = events.CarryAction(e.replAction, e.replReplaced, ev)
 	} else {
-		if replaced, handled := e.applyReplacements(ev); handled {
+		replaced, handled := e.applyReplacements(ev)
+		if handled {
 			return replaced
 		}
+		// Not replaced, but possibly REWRITTEN in place (a DamageDone
+		// ReplaceEffect body changed the amount): the returned event is what
+		// gets logged, not the emit caller's copy.
+		ev = replaced
 	}
+	// CR 306.8's planeswalker loyalty exchange (and CR 120.3e's exception for
+	// a permanent that is also a creature) is folded directly into this
+	// Damage event by events.Apply below -- AddCounter("LOYALTY", ...) runs
+	// in the same Apply call that would otherwise mark damage, so replay
+	// derives it from the one logged Damage event and no separate
+	// CounterChange is ever emitted for it.
 	// LKI (CR 603.10 "look back in time") is captured HERE, before
 	// events.Emit runs Apply and mutates the object -- a zone-change trigger
 	// needs the object exactly as it was a moment ago (its counters, tapped

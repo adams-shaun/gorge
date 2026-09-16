@@ -1588,6 +1588,18 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	// this package (the sacrifice_audit test only counts its occurrence), so
 	// the absence is the conservative same-as-before no-op, not a regression.
 	remember := sa.Params["RememberSacrificed"] != ""
+	// Damage-replacement bodies carry the amount of the event they replace.
+	// The sole corpus Sacrifice body in that class is Dralnu's "sacrifice that
+	// many permanents"; consume Amount$ there without changing the broader
+	// primitive's documented one-per-player stand-in outside replacement
+	// resolution.
+	amount := int32(1)
+	if c.ReplacementAmount > 0 && sa.Params["Amount"] != "" {
+		amount = Num(h, c, sa, "Amount", 1)
+		if amount < 0 {
+			amount = 0
+		}
+	}
 	// rememberLKICapture captures the sacrificed object's LKI (before the
 	// MoveZone resets its counters) into c.Sacrificed, when the flag asks it
 	// to. Idempotent per call site; called exactly once per sacrificed object.
@@ -1629,13 +1641,15 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			if int(t.Player) >= len(g.Players) {
 				continue
 			}
-			// This ticket's multi-permanent amount and chooser belong only to the
-			// Annihilator expansion, whose generated SA carries the count in its
-			// Annihilator$ marker (cards/keywords.go) so that Amount$ stays a
-			// genuinely unread parameter for ordinary Sacrifice lines. Ordinary
-			// player-targeted Sacrifice retains its established one-permanent
-			// behavior until that broader primitive is implemented as its own task.
-			n := 1
+			// The multi-permanent count defaults to `amount` -- 1 for an
+			// ordinary Sacrifice line, or the damage-replacement Amount$
+			// resolved above (Dralnu, Lich Lord's "sacrifice that many
+			// permanents" DB$ ReplaceDamage body) when this call is a damage
+			// replacement's redirect. The Annihilator expansion's generated
+			// SA carries its own count in its Annihilator$ marker
+			// (cards/keywords.go) and overrides it; the two contexts never
+			// coincide in the corpus.
+			n := int(amount)
 			if ann := sa.Params["Annihilator"]; ann != "" {
 				if v, err := strconv.Atoi(ann); err == nil && v >= 0 {
 					n = v
