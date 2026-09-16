@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionable, decide, emptyPriorityWindow, respondable, respondableFor, STEPS, STOPPABLE_STEPS, turnSide } from './autopilot';
+import { actionable, actionables, decide, emptyPriorityWindow, respondable, respondableFor, STEPS, STOPPABLE_STEPS, turnSide } from './autopilot';
 import { applyPreset, defaultSettings, type PlaySettings, type StoppableStep, type StepStop } from './playsettings';
 import type { CardView, Decision, Option, PlayerView, View } from '../protocol';
 
@@ -720,5 +720,50 @@ describe('decide', () => {
     const stopped = withSteps('yours', { draw: 'forced' });
     expect(decide({ decision: d, view: view(0, 'draw', [artist]), seat: 0, settings: stopped, baselineStack: new Set([9]) }))
       .toEqual({ act: 'stop', reason: 'stop-set' });
+  });
+});
+
+describe('actionables — the labels behind actionable() (fb-20260916T225211Z)', () => {
+  // The Deadly Rollick window: one real cast the smart step rule stopped for,
+  // and the note had to be able to name it.
+  it('names each action-kind option by its wire label, and actionable is its emptiness test', () => {
+    const d = priority([
+      { index: 0, kind: 'cast', label: 'Cast Deadly Rollick (alternative cost)', player: 0 },
+      opt('pass', 1),
+      opt('concede', 2),
+      opt('activate', 3),
+    ]);
+    // The mana tap is offered but is not a play: only the cast is named.
+    expect(actionables(view(0, 'main1'), 0, d)).toEqual(['Cast Deadly Rollick (alternative cost)']);
+    expect(actionable(d, view(0, 'main1'), 0)).toBe(true);
+  });
+
+  it('on a mana-only window it names the castable-after-tap card; a dead hand is empty and not actionable', () => {
+    const d = priority(ONLY_MANA);
+    const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ id: 7, name: 'Lava Spike', mana_cost: 'R' })], available: { R: 1 } });
+    expect(actionables(v, 0, d)).toEqual(['Cast Lava Spike (after tapping)']);
+    expect(actionable(d, v, 0)).toBe(true);
+
+    const dead = withHand(view(0, 'main1'), 0, { hand: [handCard({ id: 7, name: 'Lava Spike', mana_cost: '4 U U' })], available: { R: 1 } });
+    expect(actionables(dead, 0, d)).toEqual([]);
+    expect(actionable(d, dead, 0)).toBe(false);
+  });
+
+  it('names a payable battlefield activation behind the tap when the hand is dead', () => {
+    // The same working shape the stop-side test above uses: an untapped
+    // source the decision's activate offer joins, and a projected '1 T'
+    // activation on another card.
+    const d = priority([{ ...opt('activate', 0), obj: 7 }, opt('pass', 1), opt('concede', 2)]);
+    const source = handCard({ id: 7, name: 'Rock', types: 'Artifact', produces: { colour: [0, 0, 0, 0, 0, 1], any: false } });
+    const ability = handCard({ id: 8, name: 'Ability Rock', types: 'Artifact', ability_costs: ['1 T'] } as unknown as Partial<CardView>);
+    const v = withHand(view(0, 'main1'), 0, { hand: [], pool: {}, battlefield: [source, ability] });
+    expect(actionables(v, 0, d)).toEqual(['Activate Ability Rock (after tapping)']);
+    expect(actionable(d, v, 0)).toBe(true);
+
+    // A cost this projection cannot price (a sacrifice component) names
+    // nothing and leaves the window not actionable — the fail-closed arm.
+    const sacrifice = withHand(view(0, 'main1'), 0, { hand: [], pool: {}, battlefield: [source, handCard({ id: 8, name: 'Sac Rock', ability_costs: ['1 T Sac<1/Artifact>'] } as unknown as Partial<CardView>)] });
+    expect(actionables(sacrifice, 0, d)).toEqual([]);
+    expect(actionable(d, sacrifice, 0)).toBe(false);
   });
 });
