@@ -63,6 +63,12 @@
 //     iteration, so a matrix is byte-identical run to run and allows an
 //     exact -out json diff between two builds.
 //
+// -profiles: -cpuprofile and -memprofile capture the run for `go tool
+// pprof` without touching the report: -cpuprofile streams a CPU profile
+// over the whole run, -memprofile writes one heap profile after the last
+// game (pprof reads both alloc_space and inuse_space from that file). A
+// profiled run's report is byte-identical to an unprofiled one.
+//
 // The report is a per-pair table (pair, A/B wins, A win rate with its 95%
 // CI, the seat split with its CI, mean turns) plus a pooled line over all
 // pairs with its own CI and the count of pairs whose A-win interval
@@ -1658,13 +1664,44 @@ func main() {
 	maxIntents := flag.Int("max-intents", 20000, "maximum intents per game before it ends as a stall (not a win, not a draw); catches a game whose turn count never advances but that keeps submitting intents; 0 = no cap")
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
+	cpuprofile := flag.String("cpuprofile", "", "write a CPU profile to this pprof file over the whole run (empty = off)")
+	memprofile := flag.String("memprofile", "", "write a heap profile to this pprof file after the last game finishes (pprof reads both alloc_space and inuse_space from it; empty = off)")
 	flag.Parse()
 	decisionStatsEnabled = *decisionStats
 
-	commander, err := parseGameFormat(*format)
-	if err != nil {
+	os.Exit(mainExit(*a, *b, *games, *seed, *seats, *rotate, *pairs, *format, *out, *workers,
+		*maxTurns, *maxIntents, *dir, *decisionStats, *cpuprofile, *memprofile))
+}
+
+// mainExit is main's body with the exit code as its return, so the profiler
+// (a defer) runs on EVERY exit path -- including a failed run, whose partial
+// profile is still readable evidence -- instead of being skipped by the
+// os.Exit calls a flag-error path used to make.
+func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pairs, format, out string, workers,
+	maxTurns, maxIntents int, dir string, decisionStats bool, cpuprofile, memprofile string) int {
+	fail := func(err error) int {
 		fmt.Fprintln(os.Stderr, "botbench:", err)
-		os.Exit(1)
+		return 1
+	}
+
+	prof := &profiler{cpuPath: cpuprofile, memPath: memprofile}
+	if err := prof.start(); err != nil {
+		return fail(err)
+	}
+	// finish runs on every return below; a run that returns an error still
+	// leaves its partial profiles on disk. A write failure is reported but
+	// never masks the run's own error.
+	defer func() {
+		if err := prof.finish(); err != nil {
+			fmt.Fprintln(os.Stderr, "botbench:", err)
+		}
+	}()
+
+	decisionStatsEnabled = decisionStats
+
+	commander, err := parseGameFormat(format)
+	if err != nil {
+		return fail(err)
 	}
 
 	// The deck pool is the format's: a Commander run seats only commander
@@ -1674,58 +1711,49 @@ func main() {
 	if commander {
 		deckPool, err = commanderDeckNames()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "botbench:", err)
-			os.Exit(1)
+			return fail(err)
 		}
 	} else {
 		deckPool = testutil.RepoDeckNames()
 	}
 
-	if *pairs != "" {
-		if *rotate != 0 {
-			fmt.Fprintln(os.Stderr, "botbench: -rotate applies to the single-run bench only, not -pairs (a 2-seat pair already plays both seatings)")
-			os.Exit(1)
+	if pairs != "" {
+		if rotate != 0 {
+			return fail(fmt.Errorf("-rotate applies to the single-run bench only, not -pairs (a 2-seat pair already plays both seatings)"))
 		}
 		var coverage *coveragePlan
 		var ps []pairDef
-		if *pairs == "coverage" {
-			if *out != "text" {
-				fmt.Fprintln(os.Stderr, "botbench: -pairs coverage requires -out text so its static coverage metric is present")
-				os.Exit(1)
+		if pairs == "coverage" {
+			if out != "text" {
+				return fail(fmt.Errorf("-pairs coverage requires -out text so its static coverage metric is present"))
 			}
-			reg, err := testutil.OpenCorpusRegistry(*dir)
+			reg, err := testutil.OpenCorpusRegistry(dir)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "botbench: opening corpus:", err)
-				os.Exit(1)
+				return fail(fmt.Errorf("opening corpus: %w", err))
 			}
 			plan, err := coverageDeckPlan(reg, deckPool)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "botbench:", err)
-				os.Exit(1)
+				return fail(err)
 			}
 			plan.Baseline, err = deckPrimitiveCoverage(reg, deckPool[:2])
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "botbench:", err)
-				os.Exit(1)
+				return fail(err)
 			}
 			coverage = &plan
 			ps = fullPairs(plan.Names)
 		} else {
-			var err error
-			ps, err = parsePairsForMode(*pairs, deckPool, commander)
+			ps, err = parsePairsForMode(pairs, deckPool, commander)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "botbench:", err)
-				os.Exit(1)
+				return fail(err)
 			}
 		}
-		if err := runMatrix(*seed, *games, *seats, *a, *b, *dir, *out, ps, *workers, *maxTurns, *maxIntents, commander, coverage, os.Stdout, os.Stderr); err != nil {
-			fmt.Fprintln(os.Stderr, "botbench:", err)
-			os.Exit(1)
+		if err := runMatrix(seed, games, seats, aName, bName, dir, out, ps, workers, maxTurns, maxIntents, commander, coverage, os.Stdout, os.Stderr); err != nil {
+			return fail(err)
 		}
-		return
+		return 0
 	}
-	if err := run(*seed, *games, *seats, *rotate, *workers, *a, *b, *dir, *maxTurns, *maxIntents, commander, os.Stdout); err != nil {
-		fmt.Fprintln(os.Stderr, "botbench:", err)
-		os.Exit(1)
+	if err := run(seed, games, seats, rotate, workers, aName, bName, dir, maxTurns, maxIntents, commander, os.Stdout); err != nil {
+		return fail(err)
 	}
+	return 0
 }
