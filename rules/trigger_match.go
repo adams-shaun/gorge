@@ -71,11 +71,37 @@ type pendingTrigger struct {
 
 // triggerKey identifies one T: line: the object that carries it, plus that
 // object's own Triggers index (a card can have more than one). Used both for
-// the cascade bound and for DamageDealtOnce/DamageDoneOnce's once-per-turn
+// the cascade bound and for DamageDealtOnce/DamageDoneOnce's once-per-batch
 // gate.
 type triggerKey struct {
 	Source state.ObjID
 	Idx    int
+}
+
+// damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce trigger's
+// referent within one damage batch. DamageDealtOnce latches per DEALING
+// source (Forge GameAction.triggerDamageDoneOnce's dealt half: one trigger per
+// source per batch, its referent amount the total that source dealt in the
+// batch); DamageDoneOnce latches per DAMAGED object (the done half: one
+// trigger per target, its referent amount the total that target took). The
+// embedded triggerKey keeps two T: lines of one card -- and the same line on
+// two cards -- independent.
+type damageBatchKey struct {
+	triggerKey
+	dealt  bool           // true: referent is the dealing source (DamageDealtOnce)
+	obj    state.ObjID    // the referent object (dealing source, or damaged object)
+	player state.PlayerID // the referent player when the damage went to a player
+}
+
+// damageBatchEntry records one (trigger, referent) pair already queued inside
+// the open damage batch: the pendingTriggers index it queued at (the queue is
+// append-only while a batch is open, so the index is stable until batch close)
+// and the batch amount accumulated so far, which closeDamageBatch patches into
+// the queued trigger's TriggerAmount referent.
+type damageBatchEntry struct {
+	key    damageBatchKey
+	idx    int
+	amount int32
 }
 
 // turnFires is one T: line's trigger count within the turn it last
@@ -535,6 +561,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			if !observer.triggerMatches(t, id, ev, objLKI) {
 				continue
 			}
+			if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
+				continue
+			}
 			key := triggerKey{Source: id, Idx: ti}
 			if e.triggerFireCount == nil {
 				e.triggerFireCount = map[triggerKey]int32{}
@@ -546,13 +575,65 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				continue // ActivationLimit$: already triggered enough this turn.
 			}
 			if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
-				if e.damageOnceFired == nil {
-					e.damageOnceFired = map[triggerKey]int32{}
+				// The "Once" gate latches once per DAMAGE BATCH, not per turn
+				// (CR 510.4; Forge PhaseHandler.dealAssignedDamage fires
+				// triggerDamageDoneOnce once per damage step, and one
+				// dealDamage call's damage per batch): a double striker's
+				// bearer triggers Jitte twice (two damage steps), and two
+				// separate damage events in one turn trigger an Enrage creature
+				// twice -- while two blockers hitting back at the same creature
+				// in ONE batch trigger it once, with the referent carrying the
+				// batch's accumulated total. Within an open batch the entry
+				// below IS the latch (a second matching event accumulates into
+				// it); no batch open means every Damage event is its own batch,
+				// so there is nothing to latch across and the trigger fires per
+				// event with its own event amount already the batch total.
+				// Non-positive amounts (the negative-amount Damage events the
+				// cleanup/regeneration repair paths emit to clear marked
+				// damage) are not damage and never latch or queue a Once
+				// trigger.
+				if ev.Amount > 0 {
+					bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce"}
+					if bk.dealt {
+						// Combat identifies the actual attacker/blocker in damaging;
+						// an effect batch's shared source is its published override
+						// or its resolving stack object otherwise. A watcher can
+						// match several sources in one batch, so never collapse
+						// non-combat sources onto ObjID zero. Same priority order as
+						// the ValidSource$ match above: an explicit override always
+						// wins, e.damaging is combat-only, damageSource is the
+						// non-combat fallback.
+						bk.obj = e.dmgSrcOverride
+						if bk.obj == 0 {
+							if e.combatDamaging {
+								bk.obj = e.damaging
+							} else {
+								bk.obj = e.damageSource()
+							}
+						}
+					} else if ev.Obj != 0 {
+						bk.obj = ev.Obj
+					} else {
+						bk.player = ev.Player
+					}
+					if e.damageBatchOpen {
+						if e.damageBatchIdx == nil {
+							e.damageBatchIdx = map[damageBatchKey]int{}
+						}
+						if entIdx, ok := e.damageBatchIdx[bk]; ok {
+							e.damageBatchLog[entIdx].amount += ev.Amount
+							continue // already queued once for this batch and referent.
+						}
+						e.damageBatchIdx[bk] = len(e.damageBatchLog)
+						e.damageBatchLog = append(e.damageBatchLog, damageBatchEntry{
+							key: bk, idx: len(e.pendingTriggers), amount: ev.Amount,
+						})
+						// Fall through: the trigger queues now, at the same point
+						// in the stream it queued at before this gate was
+						// batch-scoped; closeDamageBatch patches its referent
+						// amount to the batch total.
+					}
 				}
-				if e.damageOnceFired[key] == e.G.Turn {
-					continue // already fired this turn.
-				}
-				e.damageOnceFired[key] = e.G.Turn
 			}
 			e.triggerFireCount[key]++
 			if t.Effect == nil {
@@ -593,6 +674,60 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			Text: "Phase$ " + n.spec + " names no engine step; the trigger never fires"})
 	}
 }
+
+// openDamageBatch opens a damage batch: the Damage events emitted until the
+// matching closeDamageBatch are one simultaneous batch for the
+// DamageDealtOnce/DamageDoneOnce latch (CR 510.4; Forge dealAssignedDamage).
+// Reentrant brackets belong to the same simultaneous batch: depth makes an
+// inner close consume only its own begin, so it cannot close the outer batch
+// early.
+func (e *Engine) openDamageBatch() {
+	if e.damageBatchDepth == 0 {
+		e.damageBatchOpen = true
+		e.damageBatchIdx = nil
+		e.damageBatchLog = nil
+	}
+	e.damageBatchDepth++
+}
+
+// closeDamageBatch closes the open damage batch: every entry's queued trigger
+// gets its referent patched to the batch's accumulated total (two blockers
+// hitting one Enrage creature is ONE trigger whose amount is the sum), then
+// the batch bookkeeping is dropped. The Once latch lives entirely inside the
+// open batch -- entries are the latch, and closing clears them -- so nothing
+// persists between batches and no per-turn latch remains. The pendingTriggers
+// index recorded at queue time is re-checked against the trigger it was
+// recorded for before patching; a mismatch (impossible today -- the queue is
+// append-only while a batch is open, and nothing drains mid-batch) falls back
+// to the first event's amount rather than patching a stranger.
+func (e *Engine) closeDamageBatch() {
+	if e.damageBatchDepth == 0 {
+		return
+	}
+	e.damageBatchDepth--
+	if e.damageBatchDepth != 0 {
+		return
+	}
+	e.damageBatchOpen = false
+	for _, ent := range e.damageBatchLog {
+		if ent.idx >= len(e.pendingTriggers) {
+			continue
+		}
+		pt := &e.pendingTriggers[ent.idx]
+		if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+			continue
+		}
+		pt.Ctx.TriggerContext.TriggerAmount = ent.amount
+	}
+	e.damageBatchIdx = nil
+	e.damageBatchLog = nil
+}
+
+// BeginDamageBatch/EndDamageBatch are effects.Host's damage-batch bracket
+// (effects/damage.go calls them around each dealDamage-style call); they are
+// openDamageBatch/closeDamageBatch on the engine. See there.
+func (e *Engine) BeginDamageBatch() { e.openDamageBatch() }
+func (e *Engine) EndDamageBatch()   { e.closeDamageBatch() }
 
 // triggerRemembered is what a matched trigger's Ctx.Remembered holds: the
 // object the triggering event was actually about (the card that changed
@@ -1456,9 +1591,9 @@ func (e *Engine) firstLifeLossThisTurn(p state.PlayerID) bool {
 }
 
 // damageMatches implements Mode$ DamageDone, DamageDealtOnce and
-// DamageDoneOnce (the once-per-turn gate itself lives in checkTriggers,
-// alongside the cascade bound; this is purely the per-event parameter match,
-// shared by all three modes).
+// DamageDoneOnce (the once-per-damage-batch gate itself lives in
+// checkTriggers, alongside the cascade bound; this is purely the per-event
+// parameter match, shared by all three modes).
 func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.Damage {
 		return false
@@ -1484,16 +1619,31 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidSource"]; ok {
-		// The damage's source: the resolving spell or ability while it is the
-		// stack top (damageSource), or the dealing creature during combat's
-		// assignment loop (e.damaging, set alongside combatDamaging). During
-		// combat the stack is empty, so damageSource alone would return zero
-		// and every ValidSource$ CombatDamage$ trigger -- Umezawa's Jitte's
-		// ValidSource$ Creature.EquippedBy among them -- would stay dead even
-		// with the flag in place.
-		src := e.damageSource()
-		if src == 0 && e.combatDamaging {
-			src = e.damaging
+		// The damage's source, in priority order:
+		//  1. an explicit published override (rules.Engine.SetDamageSource --
+		//     DamageSource$ names the PERMANENT that dealt it, never the
+		//     ability wrapper resolving it) -- authoritative whenever an
+		//     emitter set one, combat included.
+		//  2. during combat's assignment loop, e.damaging (the actual
+		//     attacker/blocker dealing this hit). The stack is USUALLY empty
+		//     during combat, but not always -- the between-passes priority
+		//     round (CR 510.3/4) can leave a first-strike trigger on the
+		//     stack while the regular pass deals (measured:
+		//     TestUmezawasJitteGainsChargeCountersPerDamageStep's bearer
+		//     deals in both passes with the first pass's trigger unresolved
+		//     on the stack) -- so combat damage must prefer e.damaging over
+		//     the stack top, or every ValidSource$ CombatDamage$ trigger
+		//     (Umezawa's Jitte's ValidSource$ Creature.EquippedBy among them)
+		//     goes dead for the second pass.
+		//  3. otherwise, the resolving spell or ability while it is the
+		//     stack top (damageSource).
+		src := e.dmgSrcOverride
+		if src == 0 {
+			if e.combatDamaging {
+				src = e.damaging
+			} else {
+				src = e.damageSource()
+			}
 		}
 		if src == 0 || !effects.MatchesSpecCtx(e.G, v, src, e.specCtx(source, ctrl)) {
 			return false

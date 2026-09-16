@@ -251,7 +251,14 @@ func seedInternalQueues(t *testing.T, e *Engine) state.ObjID {
 		},
 	})
 	e.triggerFireCount = map[triggerKey]int32{{Source: src, Idx: 0}: 1}
-	e.damageOnceFired = map[triggerKey]int32{{Source: 1, Idx: 0}: e.G.Turn}
+	// An OPEN damage batch with one latched (trigger, referent) entry, whose
+	// recorded pendingTriggers index names the entry seeded above (index 0),
+	// so Clone's copies of all three batch fields have something to prove.
+	onceKey := damageBatchKey{triggerKey: triggerKey{Source: 1, Idx: 0}, dealt: true, obj: src}
+	e.damageBatchOpen = true
+	e.damageBatchDepth = 1
+	e.damageBatchIdx = map[damageBatchKey]int{onceKey: 0}
+	e.damageBatchLog = []damageBatchEntry{{key: onceKey, idx: 0, amount: 3}}
 	e.sourceLifelinkLKI = map[state.ObjID]bool{src: true}
 
 	// A pending cast (Task 9), with its own non-empty slices -- delve/sacs
@@ -271,7 +278,7 @@ func seedInternalQueues(t *testing.T, e *Engine) state.ObjID {
 	}
 
 	if len(e.continuous) == 0 || len(e.pendingTriggers) == 0 ||
-		len(e.triggerFireCount) == 0 || len(e.damageOnceFired) == 0 ||
+		len(e.triggerFireCount) == 0 || len(e.damageBatchLog) == 0 ||
 		len(e.sourceLifelinkLKI) == 0 || e.cast == nil {
 		t.Fatal("fixture seeding left an internal collection empty")
 	}
@@ -293,12 +300,12 @@ func TestCloneStaysIndependentAndReplaysInLockstep(t *testing.T) {
 	// the omission here rather than after both sides have independently
 	// drained the same seeded queue back down to empty.
 	if len(c.continuous) != len(e.continuous) || len(c.pendingTriggers) != len(e.pendingTriggers) ||
-		len(c.triggerFireCount) != len(e.triggerFireCount) || len(c.damageOnceFired) != len(e.damageOnceFired) ||
-		len(c.sourceLifelinkLKI) != len(e.sourceLifelinkLKI) || c.cast == nil {
-		t.Fatalf("clone did not copy the seeded internal state: continuous %d/%d, triggers %d/%d, fireCount %d/%d, onceFired %d/%d, sourceLKI %d/%d, cast nil=%v",
+		len(c.triggerFireCount) != len(e.triggerFireCount) || len(c.damageBatchLog) != len(e.damageBatchLog) ||
+		c.damageBatchDepth != e.damageBatchDepth || len(c.sourceLifelinkLKI) != len(e.sourceLifelinkLKI) || c.cast == nil {
+		t.Fatalf("clone did not copy the seeded internal state: continuous %d/%d, triggers %d/%d, fireCount %d/%d, batchLog %d/%d, batchDepth %d/%d, sourceLKI %d/%d, cast nil=%v",
 			len(c.continuous), len(e.continuous), len(c.pendingTriggers), len(e.pendingTriggers),
-			len(c.triggerFireCount), len(e.triggerFireCount), len(c.damageOnceFired), len(e.damageOnceFired),
-			len(c.sourceLifelinkLKI), len(e.sourceLifelinkLKI), c.cast == nil)
+			len(c.triggerFireCount), len(e.triggerFireCount), len(c.damageBatchLog), len(e.damageBatchLog),
+			c.damageBatchDepth, e.damageBatchDepth, len(c.sourceLifelinkLKI), len(e.sourceLifelinkLKI), c.cast == nil)
 	}
 	headBefore, drawsBefore, eventsBefore := e.L.Head(), e.RNGDraws(), len(e.L.Events)
 	if got := diffGames(e.G, c.G); got != "" {
@@ -391,7 +398,11 @@ func TestCloneSharesNoMutableStateWithTheOriginal(t *testing.T) {
 	}
 	c.pendingTriggers[0].Ctx.LKI.AddCounter("P1P1", 5)
 	c.triggerFireCount[triggerKey{Source: src, Idx: 0}] = 99
-	c.damageOnceFired[triggerKey{Source: 1, Idx: 0}] = 99
+	// The same referent key seedInternalQueues latched; re-derived here
+	// because the two sites sit in different functions.
+	batchKey := damageBatchKey{triggerKey: triggerKey{Source: 1, Idx: 0}, dealt: true, obj: src}
+	c.damageBatchLog[0].amount = 99
+	c.damageBatchIdx[batchKey] = 7
 	c.sourceLifelinkLKI[src] = false
 	c.cast.delve[0] = 9999
 	c.cast.sacs[0] = 9999
@@ -427,8 +438,8 @@ func TestCloneSharesNoMutableStateWithTheOriginal(t *testing.T) {
 	if e.triggerFireCount[triggerKey{Source: src, Idx: 0}] == 99 {
 		t.Fatal("clone shares triggerFireCount")
 	}
-	if e.damageOnceFired[triggerKey{Source: 1, Idx: 0}] == 99 {
-		t.Fatal("clone shares damageOnceFired")
+	if e.damageBatchLog[0].amount == 99 || e.damageBatchIdx[damageBatchKey{triggerKey: triggerKey{Source: 1, Idx: 0}, dealt: true, obj: src}] == 7 {
+		t.Fatal("clone shares the damage-batch bookkeeping")
 	}
 	if !e.sourceLifelinkLKI[src] {
 		t.Fatal("clone shares sourceLifelinkLKI")

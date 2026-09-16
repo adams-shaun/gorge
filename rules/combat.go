@@ -1185,6 +1185,14 @@ func (e *Engine) damageStep(firstStrike bool) {
 			}
 		}
 	}
+	// One damage pass is ONE damage batch (CR 510.4): every Damage event the
+	// emit loop below produces latches the DamageDealtOnce/DamageDoneOnce
+	// triggers together and accumulates their referent amounts, closed (and
+	// the referent totals patched) when the pass finishes dealing. The
+	// first-strike pass and the regular pass are separate calls of this
+	// function, hence separate batches -- a double striker triggers a bearer's
+	// Jitte once per step, twice for the attack.
+	e.openDamageBatch()
 	// CR 510.2 makes every assignment in this pass one simultaneous damage
 	// event. Begun here (the fresh, not-yet-parked path) rather than with a
 	// defer inside runCombatAssignments, because a parked replacement-order
@@ -1272,6 +1280,7 @@ func (e *Engine) runCombatAssignments() {
 			return
 		}
 	}
+	e.closeDamageBatch()
 	e.combatRound.assignments = nil
 	e.combatRound.damageNext = 0
 	e.EndLifeLossBatch()
