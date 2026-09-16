@@ -1,6 +1,7 @@
 import type { DecisionBody, Frame, MatchStart, SeatInfo, Snapshot, View, EventBody, TableHaltedBody } from '../protocol';
 import { dvrReducer, initialDvr, type DvrAction, type DvrState } from './dvr';
-import { fetchEvents, fetchMatches, fetchView } from './api';
+import { ApiError, fetchEvents, fetchMatches, fetchView } from './api';
+import { withBase } from './basepath';
 import { ViewCache } from './viewcache';
 import { turnStartsFrom } from './turns';
 import type { SeatCtx } from './seat';
@@ -162,6 +163,13 @@ export class MatchState {
     return this.seat ? fetchEvents(this.table, k, since, this.seat) : fetchEvents(this.table, k, since);
   }
 
+  // Seat claims are process-local and table-bound. A redeploy deliberately
+  // rejects an old join token; leave the stale table instead of swallowing
+  // that 401/403 forever and presenting a page that can never refresh.
+  private leaveRejectedSeatClaim(e: unknown) {
+    if (this.seat && typeof location !== 'undefined' && e instanceof ApiError && (e.status === 401 || e.status === 403)) location.assign(withBase('/'));
+  }
+
   /** refreshLive is PL-16: one GET per burst, coalesced. */
   async refreshLive() {
     if (this.match === null) return;
@@ -172,7 +180,7 @@ export class MatchState {
     try {
       const v = await this.fetchViewAt(seq);
       if (this.dvr.live && epoch === this.liveEpoch) this.setRenderedView(v, seq);
-    } catch { /* a 409 while the head moved: the next burst refetches */ }
+    } catch (e) { this.leaveRejectedSeatClaim(e); /* a 409 while the head moved: the next burst refetches */ }
     finally {
       this.inflight = false;
       if (this.again) { this.again = false; void this.refreshLive(); }
@@ -189,7 +197,7 @@ export class MatchState {
       if (epoch !== this.liveEpoch) return;
       this.dispatch({ type: 'backfill', events: all.filter((b) => b.event.seq <= head) });
       this.seatSince = head;
-    } catch { /* next boundary retries */ }
+    } catch (e) { this.leaveRejectedSeatClaim(e); /* next boundary retries */ }
   }
 
   /** showCursor renders the view at the cursor (paused) and backfills the transcript when the cursor precedes the known events. */

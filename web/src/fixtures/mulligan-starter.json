@@ -1,0 +1,446 @@
+{
+  "seats": [
+    {
+      "name": "Alice",
+      "deck": "a",
+      "colour": "#e5484d",
+      "human": true
+    },
+    {
+      "name": "Bob",
+      "deck": "a",
+      "colour": "#3b82f6",
+      "human": true
+    }
+  ],
+  "first_ask": {
+    "viewer": 1,
+    "visibility": "seat",
+    "turn": 0,
+    "round": 1,
+    "step": "untap",
+    "phase": "beginning",
+    "active": 1,
+    "priority": 0,
+    "over": false,
+    "draw": false,
+    "winner": null,
+    "players": [
+      {
+        "seat": 0,
+        "name": "Alice",
+        "life": 20,
+        "lost": false,
+        "library_size": 33,
+        "hand_size": 7,
+        "graveyard_size": 0,
+        "hand": null,
+        "battlefield": [],
+        "graveyard": [],
+        "exile": [],
+        "pool": {},
+        "command": [],
+        "commanders": [],
+        "commander_casts": []
+      },
+      {
+        "seat": 1,
+        "name": "Bob",
+        "life": 20,
+        "lost": false,
+        "library_size": 33,
+        "hand_size": 7,
+        "graveyard_size": 0,
+        "hand": [
+          {
+            "id": 68,
+            "name": "Mountain Bolt 0",
+            "types": "Instant",
+            "mana_cost": "R",
+            "spell_api": "DealDamage",
+            "printing": {
+              "name": "Mountain Bolt 0"
+            },
+            "token": "#68",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          },
+          {
+            "id": 75,
+            "name": "Mountain Warden 0",
+            "types": "Enchantment",
+            "mana_cost": "R",
+            "printing": {
+              "name": "Mountain Warden 0"
+            },
+            "token": "#75",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          },
+          {
+            "id": 61,
+            "name": "Mountain Whelp 0",
+            "types": "Creature Whelp",
+            "mana_cost": "R",
+            "printing": {
+              "name": "Mountain Whelp 0"
+            },
+            "token": "#61",
+            "tapped": false,
+            "power": 2,
+            "toughness": 2,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          },
+          {
+            "id": 70,
+            "name": "Mountain Growth 0",
+            "types": "Instant",
+            "mana_cost": "R",
+            "spell_api": "Pump",
+            "printing": {
+              "name": "Mountain Growth 0"
+            },
+            "token": "#70",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          },
+          {
+            "id": 67,
+            "name": "Mountain Bolt 0",
+            "types": "Instant",
+            "mana_cost": "R",
+            "spell_api": "DealDamage",
+            "printing": {
+              "name": "Mountain Bolt 0"
+            },
+            "token": "#67",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          },
+          {
+            "id": 56,
+            "name": "Mountain",
+            "types": "Basic Land Mountain",
+            "printing": {
+              "name": "Mountain"
+            },
+            "token": "#56",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false,
+            "produces": {
+              "colour": [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0
+              ],
+              "any": false
+            }
+          },
+          {
+            "id": 65,
+            "name": "Mountain Bolt 0",
+            "types": "Instant",
+            "mana_cost": "R",
+            "spell_api": "DealDamage",
+            "printing": {
+              "name": "Mountain Bolt 0"
+            },
+            "token": "#65",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          }
+        ],
+        "battlefield": [],
+        "graveyard": [],
+        "exile": [],
+        "pool": {},
+        "command": [],
+        "commanders": [],
+        "commander_casts": []
+      }
+    ],
+    "stack": [],
+    "pending": [],
+    "decision": {
+      "seq": 18,
+      "player": 1,
+      "kind": "mulligan",
+      "prompt": "Bob plays first. Keep your hand (put 0 cards on the bottom of your library) or take a mulligan?",
+      "min": 1,
+      "max": 1,
+      "options": [
+        {
+          "index": 0,
+          "kind": "keep",
+          "label": "keep",
+          "player": 0
+        },
+        {
+          "index": 1,
+          "kind": "mulligan",
+          "label": "mulligan",
+          "player": 0
+        }
+      ]
+    }
+  },
+  "spent_ask": {
+    "viewer": 1,
+    "visibility": "seat",
+    "turn": 0,
+    "round": 1,
+    "step": "untap",
+    "phase": "beginning",
+    "active": 1,
+    "priority": 0,
+    "over": false,
+    "draw": false,
+    "winner": null,
+    "players": [
+      {
+        "seat": 0,
+        "name": "Alice",
+        "life": 20,
+        "lost": false,
+        "library_size": 33,
+        "hand_size": 7,
+        "graveyard_size": 0,
+        "hand": null,
+        "battlefield": [],
+        "graveyard": [],
+        "exile": [],
+        "pool": {},
+        "command": [],
+        "commanders": [],
+        "commander_casts": []
+      },
+      {
+        "seat": 1,
+        "name": "Bob",
+        "life": 20,
+        "lost": false,
+        "library_size": 33,
+        "hand_size": 7,
+        "graveyard_size": 0,
+        "hand": [
+          {
+            "id": 67,
+            "name": "Mountain Bolt 0",
+            "types": "Instant",
+            "mana_cost": "R",
+            "spell_api": "DealDamage",
+            "printing": {
+              "name": "Mountain Bolt 0"
+            },
+            "token": "#67",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          },
+          {
+            "id": 63,
+            "name": "Mountain Whelp 0",
+            "types": "Creature Whelp",
+            "mana_cost": "R",
+            "printing": {
+              "name": "Mountain Whelp 0"
+            },
+            "token": "#63",
+            "tapped": false,
+            "power": 2,
+            "toughness": 2,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          },
+          {
+            "id": 45,
+            "name": "Mountain",
+            "types": "Basic Land Mountain",
+            "printing": {
+              "name": "Mountain"
+            },
+            "token": "#45",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false,
+            "produces": {
+              "colour": [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0
+              ],
+              "any": false
+            }
+          },
+          {
+            "id": 58,
+            "name": "Mountain Whelp 0",
+            "types": "Creature Whelp",
+            "mana_cost": "R",
+            "printing": {
+              "name": "Mountain Whelp 0"
+            },
+            "token": "#58",
+            "tapped": false,
+            "power": 2,
+            "toughness": 2,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          },
+          {
+            "id": 76,
+            "name": "Mountain Warden 0",
+            "types": "Enchantment",
+            "mana_cost": "R",
+            "printing": {
+              "name": "Mountain Warden 0"
+            },
+            "token": "#76",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          },
+          {
+            "id": 71,
+            "name": "Mountain Growth 0",
+            "types": "Instant",
+            "mana_cost": "R",
+            "spell_api": "Pump",
+            "printing": {
+              "name": "Mountain Growth 0"
+            },
+            "token": "#71",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false
+          },
+          {
+            "id": 55,
+            "name": "Mountain",
+            "types": "Basic Land Mountain",
+            "printing": {
+              "name": "Mountain"
+            },
+            "token": "#55",
+            "tapped": false,
+            "power": 0,
+            "toughness": 0,
+            "damage": 0,
+            "attacking": false,
+            "controller": 1,
+            "owner": 1,
+            "summon_sick": false,
+            "produces": {
+              "colour": [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0
+              ],
+              "any": false
+            }
+          }
+        ],
+        "battlefield": [],
+        "graveyard": [],
+        "exile": [],
+        "pool": {},
+        "command": [],
+        "commanders": [],
+        "commander_casts": []
+      }
+    ],
+    "stack": [],
+    "pending": [],
+    "decision": {
+      "seq": 35,
+      "player": 1,
+      "kind": "mulligan",
+      "prompt": "Bob plays first. Keep your hand (put 1 card on the bottom of your library)",
+      "min": 1,
+      "max": 1,
+      "options": [
+        {
+          "index": 0,
+          "kind": "keep",
+          "label": "keep",
+          "player": 0
+        }
+      ]
+    }
+  }
+}

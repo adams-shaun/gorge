@@ -61,7 +61,6 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 func effPump(h Host, c *Ctx, sa *cards.SA) {
 	att := Num(h, c, sa, "NumAtt", 0)
 	def := Num(h, c, sa, "NumDef", 0)
-	kws := splitKeywords(sa.Params["KW"])
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -70,7 +69,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		registerPumpEffects(h, c, o.ID, att, def, kws, sa.Params["Duration"])
+		registerPumpEffects(h, c, o.ID, att, def, sa)
 	}
 }
 
@@ -85,7 +84,6 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	att := Num(h, c, sa, "NumAtt", 0)
 	def := Num(h, c, sa, "NumDef", 0)
-	kws := splitKeywords(sa.Params["KW"])
 	spec := sa.Params["ValidCards"]
 	if spec == "" {
 		spec = "Creature"
@@ -94,7 +92,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				registerPumpEffects(h, c, id, att, def, kws, sa.Params["Duration"])
+				registerPumpEffects(h, c, id, att, def, sa)
 			}
 		}
 	}
@@ -119,49 +117,31 @@ func durationTiming(dur string) (permanent bool, untilEOT bool) {
 	}
 }
 
-// registerPumpEffects is Pump and PumpAll's shared per-object registration:
-// a layer-7c modification for a nonzero stat change, and a separate layer-6
-// grant for any keywords, since Derived applies each layer independently.
-// Skipping a zero/empty half avoids polluting Engine.continuous with an
-// effect that would never do anything (a keyword-only Pump has no stat
-// change to register, and vice versa).
-func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, kws []string, dur string) {
-	permanent, untilEOT := durationTiming(dur)
+// registerPumpEffects is Pump and PumpAll's sole per-object registration
+// path. It also owns their sole KW$ read, so neither effect can reimplement
+// Forge's keyword-list grammar: both always use cards.SplitKeywordList. It
+// creates a layer-7c modification for a nonzero stat change and a separate
+// layer-6 grant for any keywords, since Derived applies each layer
+// independently. Skipping a zero/empty half avoids polluting
+// Engine.continuous with an effect that would never do anything.
+func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *cards.SA) {
+	kws := cards.SplitKeywordList(sa.Params["KW"])
+	permanent, untilEOT := durationTiming(sa.Params["Duration"])
 	if att != 0 || def != 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LPT, Sub: state.SubModify,
 			AddPower: att, AddToughness: def,
-			Duration: dur, Permanent: permanent, UntilEOT: untilEOT,
+			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
 		})
 	}
 	if len(kws) > 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: kws,
-			Duration: dur, Permanent: permanent, UntilEOT: untilEOT,
+			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
 		})
 	}
-}
-
-// splitKeywords parses a KW$ parameter's "&"-joined keyword list -- the same
-// separator Forge's own AddKeyword$ (an S:Mode$ Continuous static's
-// parameter, e.g. Sword of Fire and Ice's "Protection from red & Protection
-// from blue") uses for the same purpose. A single keyword has no "&" and
-// comes back as a one-element slice.
-func splitKeywords(kw string) []string {
-	kw = strings.TrimSpace(kw)
-	if kw == "" {
-		return nil
-	}
-	parts := strings.Split(kw, "&")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
 }
 
 // effAnimate does not require the target to already be on the battlefield --
@@ -185,6 +165,23 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 	pw := Num(h, c, sa, "Power", 0)
 	tf := Num(h, c, sa, "Toughness", 0)
 	types := strings.Fields(sa.Params["Types"])
+	// Abilities$ names the SVar bodies (comma-separated, on THIS face's table)
+	// the animated object gains -- Urza's Saga's chapters ("CARDNAME gains
+	// '{T}: Add {C}'.") are the corpus's flagship shape. The grant is a
+	// layer-6 ability grant (CR 613.1f): rules' grantedAbilities resolves the
+	// names back through the SOURCE face's SVar table, so the name travels,
+	// never a parsed copy. Duration$ Permanent makes the grant last while the
+	// object is on the battlefield (the source-presence lifetime, which is
+	// also what the object's own text obeys); any other Duration -- the
+	// corpus's animate-a-land-for-a-turn lines -- keeps the ordinary
+	// until-end-of-turn lifetime.
+	var abilities []string
+	for _, nm := range strings.Split(sa.Params["Abilities"], ",") {
+		if nm = strings.TrimSpace(nm); nm != "" {
+			abilities = append(abilities, nm)
+		}
+	}
+	permanent := strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -204,6 +201,13 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
 				Layer: state.LType, AddTypes: types, UntilEOT: true,
+			})
+		}
+		if len(abilities) > 0 {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
+				Layer: state.LAbilities, AddAbilities: abilities,
+				UntilEOT: !permanent,
 			})
 		}
 	}

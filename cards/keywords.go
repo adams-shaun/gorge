@@ -102,6 +102,22 @@ func (f *Face) expandKeywords() {
 		case "Prowess":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.nonCreature | ValidActivatingPlayer$ You | TriggerDescription$ Prowess",
 				"DB$ Pump | Defined$ Self | NumAtt$ +1 | NumDef$ +1", has)
+		case "Annihilator":
+			// CR 702.86: each time this creature attacks, its defending
+			// player sacrifices the stated number of permanents. The count
+			// rides the Annihilator$ marker itself rather than Amount$: the
+			// generated trigger is this repo's own shape (no raw corpus card
+			// carries an Annihilator$ param), and keeping Amount$ off the
+			// expansion leaves api:Sacrifice.Amount genuinely unread for the
+			// ordinary Sacrifice lines the parameter census still labels.
+			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | TriggerDescription$ Annihilator",
+				"DB$ Sacrifice | Defined$ TriggeredDefendingPlayer | SacValid$ Permanent | Annihilator$ "+param, has)
+		case "Ward":
+			// Ward is a becomes-target trigger. Ward$ lets the matcher exclude
+			// the permanent's controller; the effect counters the targeting
+			// spell or ability unless that player pays the printed cost.
+			f.addKeywordTrigger(head, k, "Mode$ BecomesTarget | ValidTarget$ Card.Self | Ward$ True | TriggerDescription$ Ward",
+				"DB$ Ward | UnlessCost$ "+param, has)
 		case "Storm":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Storm",
 				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnCast/Minus1 | MayChooseTarget$ True", has)
@@ -112,6 +128,16 @@ func (f *Face) expandKeywords() {
 			f.setSVar("__kwLWAttach", "DB$ Attach | Defined$ Remembered | Object$ Self")
 			f.addKeywordTrigger(head, k, "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | TriggerDescription$ Living weapon",
 				"DB$ Token | TokenScript$ b_0_0_phyrexian_germ | TokenOwner$ You | RememberTokens$ True | SubAbility$ __kwLWAttach", has)
+		case "Cumulative upkeep":
+			// CR 702.46a is a triggered ability, not an upkeep turn action.
+			// Expanding it into the ordinary Phase-trigger pipeline gives it
+			// normal APNAP ordering, stack interaction and response windows.
+			// param may include Forge's trailing display text after a colon;
+			// only the first field is the actual upkeep cost.
+			cost, _, _ := strings.Cut(param, ":")
+			f.addKeywordTrigger(head, k,
+				"Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | TriggerDescription$ Cumulative upkeep",
+				"DB$ CumulativeUpkeep | Cost$ "+cost, has)
 		case "Equip":
 			if has("A", k) {
 				continue
@@ -130,6 +156,28 @@ func (f *Face) expandKeywords() {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)
 			}
+		case "Transmute":
+			if has("A", k) {
+				continue
+			}
+			// CR 702.53: transmute is a sorcery-speed hand activation. The
+			// searched card has the source card's printed mana value.
+			cost := strings.TrimSpace(param)
+			sa, _ := parseSA("", "AB$ ChangeZone | Cost$ "+cost+" Discard<1/CARDNAME> | ActivationZone$ Hand | SorcerySpeed$ True | Origin$ Library | Destination$ Hand | ChangeType$ Card.cmcEQ"+strconv.Itoa(int(f.Cmc()))+" | ChangeNum$ 1 | Keyword$ Transmute | SpellDescription$ Transmute "+cost)
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
+		case "Cycling":
+			if has("A", k) {
+				continue
+			}
+			cost := strings.TrimSpace(param)
+			sa, _ := parseSA("", "AB$ Draw | Cost$ "+cost+" Discard<1/CARDNAME> | ActivationZone$ Hand | NumCards$ 1 | Keyword$ Cycling | SpellDescription$ Cycling "+cost)
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
 		case "Enchant":
 			if has("A", k) || f.SpellAbility() != nil {
 				continue
@@ -144,6 +192,30 @@ func (f *Face) expandKeywords() {
 				prompt = strings.ToLower(spec)
 			}
 			sa, _ := parseSA("", "SP$ Attach | ValidTgts$ "+spec+" | TgtPrompt$ Select target "+prompt+" | Object$ Self | Keyword$ Enchant")
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
+		case "Encore":
+			if has("A", k) {
+				continue
+			}
+			// param is "<cost>" ("3 R"), occasionally followed by further
+			// colon-separated fields no corpus line carries; the first field is
+			// the cost. The expansion mirrors the C21 oracle shape ("Encore
+			// <cost> (<cost>, Exile this card from your graveyard: For each
+			// opponent, create a token copy that attacks that opponent this turn
+			// if able. They gain haste. Sacrifice them at the beginning of the
+			// next end step. Activate only as a sorcery.)"): one AB$ ability in
+			// the graveyard whose cost is the printed cost plus exiling the card
+			// itself (ExileFromGrave<1/CARDNAME>), resolved by effects.Encore
+			// (encore.go): one CardToken copy per opponent, haste granted, and
+			// one end-step delayed sacrifice per copy. The tokens' "attacks that
+			// opponent this turn if able" is NOT enforced -- this build has no
+			// attack-requirement machinery for it (recorded in the ticket
+			// report's Issues), the copy is otherwise exact.
+			cost, _, _ := strings.Cut(param, ":")
+			sa, _ := parseSA("", "AB$ Encore | Cost$ "+cost+" ExileFromGrave<1/CARDNAME> | ActivationZone$ Graveyard | SorcerySpeed$ True | Keyword$ Encore | SpellDescription$ Encore "+cost)
 			if sa != nil {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)

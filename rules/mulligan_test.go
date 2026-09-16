@@ -172,7 +172,7 @@ func TestMultiplayerSecondMulliganBottomsOne(t *testing.T) {
 	}
 	playPregame(t, e, decide)
 
-	if want := "Keep your hand (keep all seven cards) or take a mulligan?"; freeKeepPrompt != want {
+	if want := "a plays first. Keep your hand (keep all seven cards) or take a mulligan?"; freeKeepPrompt != want {
 		t.Errorf("first multiplayer mulligan keep prompt = %q, want %q", freeKeepPrompt, want)
 	}
 	if bottomAsk == nil {

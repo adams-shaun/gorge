@@ -19,6 +19,35 @@ func Emit(g *state.Game, l *Log, e Event) Event {
 
 // Apply folds one event into state. It must stay a pure function of (g, e):
 // no randomness, no clock, no reads outside g.
+// resolveSVarAcrossFaces resolves an Execute$ SVar name against the source
+// object's card, trying the ACTIVE face's table first and then every face in
+// index order. A one-face card behaves exactly as before (the active face
+// IS the first hit). The multi-face case is why this helper exists: an
+// Enchantment Room's alternate-face trigger (an unlocked room's "When you
+// unlock this door", CR 309.5) names an SVar that lives on Face[1]'s table,
+// which src.Face() -- the active face -- does not carry. First face whose
+// table defines the name wins: deterministic, and a name defined on several
+// faces resolves to the lowest index consistently on live play and replay.
+func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
+	if name == "" {
+		return nil
+	}
+	if f := src.Face(); f != nil {
+		if sa := cards.ResolveSVar(f.SVars, name); sa != nil {
+			return sa
+		}
+	}
+	if src.Card == nil {
+		return nil
+	}
+	for _, cf := range src.Card.Faces {
+		if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
+			return sa
+		}
+	}
+	return nil
+}
+
 func Apply(g *state.Game, e Event) {
 	switch e.Kind {
 	case GameStart, DecisionAsk, DecisionMade, Note, Resolve, ModeChosen:
@@ -42,6 +71,10 @@ func Apply(g *state.Game, e Event) {
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {
 				changeControl(g, o, e.Player)
+				// An AsLongAsControl goad ends the moment its controller
+				// condition fails; pruning here keeps a later return of
+				// control from reviving it.
+				pruneGoads(g)
 			}
 		}
 
@@ -57,6 +90,97 @@ func Apply(g *state.Game, e Event) {
 		// Player is a no-op, never a panic.
 		if validPlayer(g, e.Player) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
+		}
+
+	case ExtraTurn:
+		// One grant or consumption of an extra turn (CR 500.7). The count and
+		// the ordered pending queue are game state folded here so a log-only
+		// reconstruction holds the same pending extras the live game did; the
+		// turn structure's own consumption is the -1 form, emitted by rules'
+		// advanceStep at the exact boundary it repeats the seat instead of
+		// moving on. The queue is the ORDER the rule takes them in: grants
+		// append in creation order, the -1 consumption removes the seat's LAST
+		// entry (most recently created first, CR 500.7), so the total counts and
+		// the queue agree by construction.
+		if validPlayer(g, e.Player) && e.Amount != 0 {
+			if g.ExtraTurns == nil {
+				g.ExtraTurns = map[state.PlayerID]int{}
+			}
+			g.ExtraTurns[e.Player] += int(e.Amount)
+			if g.ExtraTurns[e.Player] < 0 {
+				g.ExtraTurns[e.Player] = 0
+			}
+			if e.Amount > 0 {
+				// Amount is a number of distinct grants, not merely the
+				// aggregate counter. Keep one queue entry per granted turn so
+				// NumTurns$ 2 (Time Stretch) is consumed twice. Text is an
+				// already encoded Event field; this canonical marker carries the
+				// Forge SkipUntap$ rider without changing Event's hash-chain
+				// schema.
+				skipUntap := e.Text == ExtraTurnSkipUntapText
+				for n := int32(0); n < e.Amount; n++ {
+					g.ExtraTurnQueue = append(g.ExtraTurnQueue, state.ExtraTurn{Player: e.Player, SkipUntap: skipUntap})
+				}
+			} else {
+				for i := len(g.ExtraTurnQueue) - 1; i >= 0; i-- {
+					if g.ExtraTurnQueue[i].Player == e.Player {
+						g.ExtraTurnQueue = append(g.ExtraTurnQueue[:i], g.ExtraTurnQueue[i+1:]...)
+						break
+					}
+				}
+			}
+		}
+		// Forge's ExtraTurnDelayedTrigger$ (Final Fortune: "At the beginning
+		// of that turn's end step, you lose the game") registers the delayed
+		// trigger HERE, at CONSUMPTION time, with the consumed turn's number
+		// as its MinTurn -- so the ordinary Mode$ Phase delayed firing skips
+		// the granting turn's own end step and fires exactly once, in the
+		// granted turn. Registration must ride the consumption, not the grant:
+		// with several extra turns pending (CR 500.7 takes them most recently
+		// created first) the turn a grant PRODUCES is not known at grant time
+		// -- it is exactly the turn about to begin when the -1 fires. Only the
+		// -1 form registers; the +grant carries no Counter at consumption. A
+		// consumption with no source object, no Execute$ name, or a source
+		// whose face lacks the SVar degrades to no registration rather than
+		// panicking (the same totality stance DelayedRegister applies).
+		if e.Amount < 0 && e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
+			f := g.Obj(e.Obj).Face()
+			if f != nil && cards.ResolveSVar(f.SVars, e.Counter) != nil {
+				g.Delayed = append(g.Delayed, state.DelayedTrigger{
+					ID:         g.DelayedNext,
+					Phase:      state.StepEnd,
+					Source:     e.Obj,
+					Controller: e.Player,
+					Execute:    e.Counter,
+					MinTurn:    g.Turn + 1,
+				})
+				g.DelayedNext++
+			}
+		}
+
+	case DoorUnlock:
+		// CR 309.5: the unlock activation paid the locked half's mana cost as
+		// a sorcery. The flag is what makes the alternate face's rules text
+		// live (rules' trigger/static/ability scans) and what a Mode$
+		// UnlockDoor trigger matches against. Totality: an unknown object, or
+		// one already unlocked, is a no-op.
+		if o := g.Obj(e.Obj); o != nil && !o.Unlocked {
+			o.Unlocked = true
+		}
+
+	case SpeedChange:
+		// One speed increment (CR 702.163). The cap and the once-per-turn
+		// gate are the EMITTER's (rules' emit-side speed check) responsibility,
+		// so Apply folds the delta plainly; a negative or oversized delta is
+		// still clamped to [0, 4] defensively.
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].Speed += e.Amount
+			if g.Players[e.Player].Speed < 0 {
+				g.Players[e.Player].Speed = 0
+			}
+			if g.Players[e.Player].Speed > 4 {
+				g.Players[e.Player].Speed = 4
+			}
 		}
 
 	case MoveZone, Draw, PutOnStack:
@@ -75,6 +199,14 @@ func Apply(g *state.Game, e Event) {
 		}
 		Move(g, e.Obj, e.From, e.To)
 		if o := g.Obj(e.Obj); o != nil {
+			// MoveZone reserves its otherwise-unused IDs payload for the source
+			// when an effect exiles a card. This provenance is event-derived,
+			// hence survives replay, and clears as soon as the card leaves exile.
+			if e.To == state.ZExile && len(e.IDs) > 0 {
+				o.ExiledWith = e.IDs[0]
+			} else if e.To != state.ZExile {
+				o.ExiledWith = 0
+			}
 			if e.Text == "reversed" && o.HasPreStackEntry {
 				o.EnteredThisTurn = o.PreStackEntryThisTurn
 				o.EnteredFrom = o.PreStackEntryFrom
@@ -87,6 +219,8 @@ func Apply(g *state.Game, e Event) {
 				o.HasPreStackEntry = false
 			}
 		}
+		// Source-dependent goads end as soon as their source leaves play.
+		pruneGoads(g)
 
 	case LifeChange:
 		if validPlayer(g, e.Player) {
@@ -95,9 +229,40 @@ func Apply(g *state.Game, e Event) {
 
 	case Damage:
 		if o := g.Obj(e.Obj); o != nil {
-			o.Damage += e.Amount
-			if o.Damage < 0 {
-				o.Damage = 0
+			// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent
+			// removes that many loyalty counters instead of being marked as
+			// damage. The conversion lives here, on the one fold every
+			// Damage event goes through, so spell/ability damage (effects/
+			// damage.go), future combat damage and any emitter this build
+			// gains later all convert the same way and a replay derives the
+			// same loyalty from the same log. A planeswalker that is ALSO a
+			// creature still takes marked damage (CR 120.3e -- the exchange
+			// is not exclusive), and either way a positive amount records
+			// that the object was dealt damage this turn. Prevention (CR
+			// 702.16d) and protection replace or note the Damage event
+			// before it reaches this fold, so a prevented hit converts
+			// nothing -- which is why the walker exchange no longer needs
+			// the bypass it used to travel by.
+			walker := false
+			if f := o.Face(); f != nil && f.IsPlaneswalker() {
+				walker = true
+				// Cleanup represents removal of marked damage with a negative
+				// Damage event. It must never restore loyalty; only positive
+				// damage has the CR 120.3c loyalty conversion.
+				if e.Amount > 0 {
+					o.AddCounter("LOYALTY", -e.Amount)
+				}
+			}
+			// Counter is Damage's existing, encoded characteristic carrier:
+			// effects/rules set it to creature from the current layer result.
+			// The printed-face fallback retains direct-event callers and normal
+			// printed creature behavior.
+			creature := e.Counter == "creature" || (o.Face() != nil && o.Face().IsCreature())
+			if !walker || creature {
+				o.Damage += e.Amount
+				if o.Damage < 0 {
+					o.Damage = 0
+				}
 			}
 			// A positive Damage event records that the object was dealt damage
 			// this turn even if a later prevention/healing event clears its
@@ -146,7 +311,45 @@ func Apply(g *state.Game, e Event) {
 			for i := range g.Objs {
 				g.Objs[i].EnteredThisTurn = false
 				g.Objs[i].WasDealtDamageThisTurn = false
+				// Only default-duration goads expire at the goader's next turn.
+				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
+		}
+
+	case Goad:
+		if o := g.Obj(e.Obj); o != nil {
+			if e.Amount == -1 {
+				o.Goads = nil
+				break
+			}
+			if !validPlayer(g, e.Player) {
+				break
+			}
+			duration := e.Text
+			if duration == "" {
+				duration = "UntilYourNextTurn"
+			}
+			var source state.ObjID
+			if len(e.IDs) > 0 {
+				source = e.IDs[0]
+			}
+			controller := o.Controller
+			if e.Amount > 0 && int(e.Amount-1) < len(g.Players) {
+				controller = state.PlayerID(e.Amount - 1)
+			}
+			ge := state.GoadEffect{Player: e.Player, Source: source, Controller: controller, Duration: duration}
+			for _, existing := range o.Goads {
+				if existing == ge {
+					return
+				}
+			}
+			o.Goads = append(o.Goads, ge)
+			pruneGoads(g)
+		}
+
+	case PlayerCounterChange:
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].AddCounter(e.Counter, e.Amount)
 		}
 
 	case Priority:
@@ -161,21 +364,70 @@ func Apply(g *state.Game, e Event) {
 
 	case ManaAdd:
 		if validPlayer(g, e.Player) {
+			// "S<colour>" (e.g. "SW") is a SNOW mana unit (CR 107.4h): it lands
+			// in the colour's pool slot and is tallied in Player.Snow so a {S}
+			// pip can be paid only from it. One event moves both counters, so
+			// the snow tally can never drift from the pool it parallels.
+			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
+				idx := state.ManaIndex(e.Counter[1])
+				g.Players[e.Player].Pool[idx] += e.Amount
+				g.Players[e.Player].Snow[idx] += e.Amount
+				break
+			}
 			idx := state.MC
 			if e.Counter != "" {
 				idx = state.ManaIndex(e.Counter[0])
 			}
-			g.Players[e.Player].Pool[idx] += e.Amount
+			player := &g.Players[e.Player]
+			player.Pool[idx] += e.Amount
+			if valid, restricted := ManaRestrictionFromText(e.Text); restricted {
+				if e.Amount > 0 {
+					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
+						Color: e.Counter, Amount: e.Amount, Valid: valid,
+					})
+				} else if e.Amount < 0 {
+					// A restricted spend event names exactly the restriction batch it
+					// consumes. Walk insertion order so two matching additions replay
+					// identically, and tolerate a malformed historical event that
+					// over-spends its batch without making Pool negative here.
+					need := -e.Amount
+					for i := 0; i < len(player.RestrictedMana) && need > 0; {
+						r := &player.RestrictedMana[i]
+						if r.Color != e.Counter || r.Valid != valid {
+							i++
+							continue
+						}
+						used := r.Amount
+						if used > need {
+							used = need
+						}
+						r.Amount -= used
+						need -= used
+						if r.Amount == 0 {
+							player.RestrictedMana = append(player.RestrictedMana[:i], player.RestrictedMana[i+1:]...)
+							continue
+						}
+						i++
+					}
+				}
+			}
 		}
 
 	case ManaClear:
 		if validPlayer(g, e.Player) {
 			g.Players[e.Player].Pool = state.Mana{}
+			g.Players[e.Player].RestrictedMana = nil
+			g.Players[e.Player].Snow = state.Mana{}
 		}
 
 	case CounterChange:
 		if o := g.Obj(e.Obj); o != nil {
 			o.AddCounter(e.Counter, e.Amount)
+		}
+
+	case Imprint:
+		if o := g.Obj(e.Obj); o != nil {
+			o.Imprinted = append([]state.ObjID(nil), e.IDs...)
 		}
 
 	case DeclareAttackers:
@@ -404,6 +656,56 @@ func Apply(g *state.Game, e Event) {
 		o.IsToken = true
 		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
 
+	case CardToken:
+		// A battlefield token that is a copy of the CARD object Obj names
+		// (encore's "create a token copy" per opponent). Mirrors StackCopy's
+		// snapshot discipline: every read from src is taken into a local
+		// BEFORE AddObject, because AddObject may reallocate g.Objs and a
+		// src pointer read after it would read the old backing array.
+		// Totality like every case: a missing source (already ceased to
+		// exist) or an invalid player mints nothing.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil || src.Card == nil {
+			break
+		}
+		card, faceIdx := src.Card, src.FaceIdx
+		o := g.AddObject(card, e.Player)
+		o.IsToken = true
+		o.FaceIdx = faceIdx
+		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+		// Encore encodes its required defender as seat+1; zero remains the
+		// ordinary CardToken shape. The current turn is folded here so replay
+		// reconstructs the same one-turn attack requirement.
+		if e.Amount > 0 {
+			defender := state.PlayerID(e.Amount - 1)
+			if validPlayer(g, defender) {
+				o.EncoreAttackTurn = g.Turn
+				o.EncoreAttackDefender = defender
+			}
+		}
+
+	case KeywordTriggerPush:
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil || src.Face() == nil {
+			break
+		}
+		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
+		if sa == nil {
+			break
+		}
+		incarnation := src.Incarnation
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
+		o.SourceIncarnation = incarnation
+
 	case StackCopy:
 		if !validPlayer(g, e.Player) {
 			break
@@ -482,13 +784,37 @@ func Apply(g *state.Game, e Event) {
 		if g.Obj(e.Obj) == nil || !e.Step.Valid() {
 			break
 		}
+		src := g.Obj(e.Obj)
+		// Dash and Warp refer to the exact permanent that received their
+		// keyword promise. Encore's grouped delayed trigger does not: CR
+		// 603.7 leaves it independent of the card that created it, and it
+		// must sacrifice its remembered token group even if that card later
+		// changes zones and returns as a new incarnation.
+		track := strings.HasPrefix(e.Counter, "__kwDash") ||
+			strings.HasPrefix(e.Counter, "__kwWarp")
+		// Event-matched (non-phase) registrations encode
+		// "<Mode$ value>:<trigger SVar name>" in Text. The DelayedRegister
+		// event gains no field of its own (Ruling T20-a's field-reuse
+		// precedent); a Mode$ Phase registration's Text is the Forge Phase$
+		// string, which never contains a colon, and the decode only splits on
+		// the modes rules.registerOpeningEffectTriggers emits, so every
+		// already-logged registration decodes as a phase one.
+		mode, trigger := "", ""
+		if i := strings.Index(e.Text, ":"); i > 0 && e.Text[:i] == "SpellCast" {
+			mode, trigger = "SpellCast", e.Text[i+1:]
+		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
-			ID:         g.DelayedNext,
-			Phase:      e.Step,
-			Source:     e.Obj,
-			Controller: e.Player,
-			Execute:    e.Counter,
-			Remembered: rememberedFrom(e.IDs),
+			ID:                g.DelayedNext,
+			Phase:             e.Step,
+			Source:            e.Obj,
+			Controller:        e.Player,
+			Execute:           e.Counter,
+			Remembered:        rememberedFrom(e.IDs),
+			MinTurn:           e.Amount,
+			SourceIncarnation: src.Incarnation,
+			TrackSource:       track,
+			EventMode:         mode,
+			Trigger:           trigger,
 		})
 		g.DelayedNext++
 
@@ -505,15 +831,32 @@ func Apply(g *state.Game, e Event) {
 		if !validPlayer(g, e.Player) {
 			break
 		}
+		// Consume the registration first, even when its tracked permanent has
+		// changed incarnation. A stale dash/warp promise expires once; it must
+		// neither act on the returned object nor be retried forever. Ordinary
+		// delayed triggers, including Encore's group cleanup, are independent
+		// of their source and still resolve.
+		var registration *state.DelayedTrigger
+		for i := range g.Delayed {
+			if g.Delayed[i].ID == uint32(e.Amount) {
+				dt := g.Delayed[i]
+				registration = &dt
+				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+				break
+			}
+		}
 		src := g.Obj(e.Obj)
 		if src == nil {
 			break
 		}
-		f := src.Face()
-		if f == nil {
+		if registration != nil && registration.TrackSource &&
+			src.Incarnation != registration.SourceIncarnation {
 			break
 		}
-		sa := cards.ResolveSVar(f.SVars, e.Counter)
+		if src.Face() == nil {
+			break
+		}
+		sa := resolveSVarAcrossFaces(src, e.Counter)
 		if sa == nil {
 			break
 		}
@@ -521,13 +864,10 @@ func Apply(g *state.Game, e Event) {
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
 		o.Source = e.Obj
-		o.Remembered = rememberedFrom(e.IDs)
-		for i := range g.Delayed {
-			if g.Delayed[i].ID == uint32(e.Amount) {
-				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
-				break
-			}
+		if registration != nil && registration.TrackSource {
+			o.SourceIncarnation = src.Incarnation
 		}
+		o.Remembered = rememberedFrom(e.IDs)
 
 	case CmdDamage:
 		// Commander combat damage to a player (CR 903.10, Task m33): fold
@@ -643,12 +983,26 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		}
 	}
 	remove(g, id, o.Zone, zoneOwner(o, o.Zone))
+	// CR 400.7: leaving the battlefield makes the object a new object in
+	// its next zone, so control-changing effects do not follow it. Reset
+	// before choosing the destination's zone owner: a later graveyard/hand
+	// re-entry must be placed under its owner, not its former controller.
+	if wasBattlefield && to != state.ZBattlefield {
+		o.Controller = o.Owner
+	}
 	if to != state.ZCeased {
 		dst := zoneOwner(o, to)
 		g.SetZone(to, dst, append(g.Zone(to, dst), id))
 	}
 
 	o.Zone = to
+	// The incarnation stamp is used by promises tied to a particular
+	// permanent (evoke/dash/warp), so only crossing the battlefield
+	// boundary advances it. A provisional hand->stack->hand CR 733 reversal
+	// must restore byte-identical state and is not a permanent incarnation.
+	if enteredFrom != to && (enteredFrom == state.ZBattlefield || to == state.ZBattlefield) {
+		o.Incarnation++
+	}
 	// A new object in a new zone has its owner's default control. The old
 	// controller is needed above to remove it from the battlefield/stack, so
 	// reset only after removal and placement have used that zone ownership.
@@ -690,6 +1044,14 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 					o.AddCounter("LOYALTY", int32(n))
 				}
 			}
+			// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters ... add a
+			// lore counter" -- the same every-entry-site grant the loyalty
+			// half above is. The chapter-I trigger queues rules-side off this
+			// Move event (rules' chapter check reads the live counter, which
+			// by then includes this grant).
+			if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
+				o.AddCounter("LORE", 1)
+			}
 		}
 	default:
 		// Leaving the battlefield or the stack resets everything that only
@@ -701,6 +1063,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Counters = nil
 		o.Targets = nil
 		o.Remembered = nil
+		if wasBattlefield {
+			o.Imprinted = nil
+		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an
 		// ETB "if it was kicked" trigger needs to read X/CastFlags off the
@@ -714,6 +1079,19 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.X, o.CastFlags = 0, 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
 			o.Chosen = nil
+		}
+		// CR 107.3m: the paid X belongs to the spell on the stack and to the
+		// permanent the spell becomes, and to nothing else. An object leaving
+		// the stack for a zone OTHER than the battlefield -- a countered or
+		// fizzled spell into the graveyard, a resolving instant/sorcery -- is
+		// a card in a non-battlefield zone, where X in its text is 0. Without
+		// this the stale paid X rides along: a countered Genesis Hydra
+		// reanimated later would resolve its ETB trigger with the dead cast's
+		// X instead of 0. (A stack->battlefield move keeps X/CastFlags -- the
+		// battlefield case above deliberately does not reset them, which is
+		// what lets an ETB trigger read them off the permanent.)
+		if wasStack {
+			o.X, o.CastFlags = 0, 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).
@@ -769,6 +1147,47 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 // validPlayer reports whether p indexes an existing seat.
 func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
+}
+
+// expireTurnGoads drops only default-duration relationships made by p.
+func expireTurnGoads(in []state.GoadEffect, p state.PlayerID) []state.GoadEffect {
+	out := in[:0]
+	for _, ge := range in {
+		if ge.Player == p && (ge.Duration == "" || ge.Duration == "UntilYourNextTurn") {
+			continue
+		}
+		out = append(out, ge)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// pruneGoads enforces source/control conditions from replayable state.
+func pruneGoads(g *state.Game) {
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		out := o.Goads[:0]
+		for _, ge := range o.Goads {
+			active := o.Zone == state.ZBattlefield
+			switch ge.Duration {
+			case "AsLongAsInPlay":
+				src := g.Obj(ge.Source)
+				active = active && src != nil && src.Zone == state.ZBattlefield
+			case "AsLongAsControl":
+				active = o.Zone == state.ZBattlefield && o.Controller == ge.Controller
+			}
+			if active {
+				out = append(out, ge)
+			}
+		}
+		if len(out) == 0 {
+			o.Goads = nil
+		} else {
+			o.Goads = out
+		}
+	}
 }
 
 // zoneOwner picks whose zone list an object belongs to: the battlefield and the

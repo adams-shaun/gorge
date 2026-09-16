@@ -167,10 +167,11 @@ func TestBrionStoutarmThrowGainsLife(t *testing.T) {
 }
 
 // TestBrionStoutarmThrowAtPlaneswalkerGainsLife pins the planeswalker arm:
-// the same throw at a planeswalker removes loyalty counters (CR 306.8, the
-// damage is never marked as card damage) and the lifelink rider still pays.
-// Teferi, Hero of Dominaria enters at 4 loyalty (per its corpus script), so
-// the 3-power throw leaves it alive at 1.
+// the same throw at a planeswalker reaches the walker as a real Damage event
+// whose CR 306.8 conversion (folded in events.Apply) removes loyalty counters
+// (a pure walker is never damage-marked, CR 120.3c) and the lifelink rider
+// still pays. Teferi, Hero of Dominaria enters at 4 loyalty (per its corpus
+// script), so the 3-power throw leaves it alive at 1.
 func TestBrionStoutarmThrowAtPlaneswalkerGainsLife(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, cfg := linkBoard(t, reg, []string{"Brion Stoutarm", "Hill Giant"},
@@ -206,9 +207,18 @@ func TestBrionStoutarmThrowAtPlaneswalkerGainsLife(t *testing.T) {
 		t.Fatalf("walker loyalty = %d, want 1 (4 - 3)", got)
 	}
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.Damage && ev.Obj == walker {
-			t.Fatalf("walker damage was marked as card damage: %+v", ev)
+		if ev.Kind == events.CounterChange && ev.Obj == walker && ev.Counter == "LOYALTY" {
+			t.Fatalf("walker loyalty conversion emitted a CounterChange; it must fold into the Damage event (events.Apply): %+v", ev)
 		}
+	}
+	sawDamage := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Damage && ev.Obj == walker && ev.Amount == 3 {
+			sawDamage = true
+		}
+	}
+	if !sawDamage {
+		t.Fatalf("no Damage event against the walker; protection, prevention and DamageDone triggers cannot see walker damage")
 	}
 	if got := e.G.Players[0].Life; got != 23 {
 		t.Fatalf("Brion's controller life = %d, want 23 (20 + 3 lifelink off the walker hit)", got)

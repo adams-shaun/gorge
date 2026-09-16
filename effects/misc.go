@@ -13,6 +13,7 @@ import (
 
 func init() {
 	Register("Mana", effMana)
+	Register("ReplaceMana", effReplaceMana)
 	Register("Effect", effEffect)
 	Register("Cleanup", effCleanup)
 	Register("SetState", effSetState)
@@ -23,6 +24,59 @@ func init() {
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
 	Register("RestartGame", effRestartGame)
+	Register("Goad", effGoad)
+	Register("Ward", effWard)
+}
+
+// effGoad records each independently-lived goad relationship. Duration and
+// source are event payload so replay can expire conditional goads identically.
+func effGoad(h Host, c *Ctx, sa *cards.SA) {
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			if strings.EqualFold(sa.Params["NoLonger"], "True") {
+				h.Emit(events.Event{Kind: events.Goad, Obj: o.ID, Amount: -1})
+				continue
+			}
+			duration := sa.Params["Duration"]
+			if duration == "" {
+				duration = "UntilYourNextTurn"
+			}
+			h.Emit(events.Event{Kind: events.Goad, Obj: o.ID, Player: c.Controller,
+				Text: duration, IDs: []state.ObjID{c.Source}, Amount: int32(o.Controller) + 1})
+		}
+	}
+}
+
+// effWard is the resolution half of the Ward keyword trigger. The triggering
+// spell/ability is held in TriggerSource; after a declined payment it is
+// countered and an ability is parked in exile (CR 608.2m).
+func effWard(h Host, c *Ctx, sa *cards.SA) {
+	cause := c.TriggerStack
+	o := h.Game().Obj(cause)
+	if o == nil || o.Zone != state.ZStack {
+		return
+	}
+	if c.UnlessPay == "" {
+		cost := sa.Params["UnlessCost"]
+		d := &decision.Decision{Player: o.Controller, Kind: decision.KModes, Min: 1, Max: 1,
+			Prompt: "Pay " + cost + " for ward?", ResumeKind: "unless_pay", ResumeSA: sa,
+			Options: []decision.Option{{Index: 0, Kind: "mode", Label: "Pay " + cost, Player: o.Controller}, {Index: 1, Kind: "mode", Label: "Don't pay", Player: o.Controller}}}
+		h.Ask(d)
+		return
+	}
+	paid := c.UnlessPay == "pay"
+	c.UnlessPay = ""
+	if paid {
+		return
+	}
+	to := state.ZGraveyard
+	if o.Face() == nil {
+		to = state.ZExile
+	}
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: cause, From: state.ZStack, To: to, Text: "countered by ward"})
 }
 
 // CopySpellAbility is NOT registered. It needs to create a brand new game
@@ -68,10 +122,36 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	what := strings.TrimSpace(sa.Params["StaticAbilities"] + " " + sa.Params["Triggers"])
 	remembered := effectRemembered(h, c, sa)
 	registered := false
-	for _, name := range strings.Fields(sa.Params["StaticAbilities"]) {
+	// Effect can also create a replacement rather than a layer restriction.
+	// Forge stores its R: body behind an SVar name in ReplacementEffects$.
+	// Keep the parsed event data in state (which cannot import cards) and the
+	// body text for rules to resolve under this Effect's source context.
+	for _, name := range strings.FieldsFunc(sa.Params["ReplacementEffects"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
+		event, params := parseReplacementLine(c.SVars, name)
+		body := ""
+		if with := replacementLineWith(params); with != "" {
+			body = c.SVars[with]
+		}
+		if event == "DamageDone" && body != "" {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: c.Source, Controller: c.Controller,
+				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
+			})
+			registered = true
+		} else if name != "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "continuous replacement unimplemented (" + name + ")"})
+		}
+	}
+	for _, name := range strings.FieldsFunc(sa.Params["StaticAbilities"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
 		mode, params := parseStaticLine(c.SVars, name)
 		switch mode {
-		case "CantTarget", "CantRegenerate":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage":
 			// A compound IsRemembered spec (Card.IsRemembered+Creature) cannot
 			// be resolved by the remembered-set match alone -- the extra
 			// predicate would be silently dropped, over-applying the
@@ -125,6 +205,24 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 // the S: line's own grammar (cards/parse.go's "S" case). An empty or
 // malformed body degrades to "" mode and a nil map, which the switch in
 // effEffect treats as unimplemented rather than as a registration.
+// parseReplacementLine parses an Effect's SVar replacement body ("Event$
+// DamageDone | ...") using the same key/value grammar as parseStaticLine.
+func parseReplacementLine(svars map[string]string, name string) (string, map[string]string) {
+	body := strings.TrimSpace(svars[name])
+	if body == "" {
+		return "", nil
+	}
+	params := make(map[string]string)
+	for _, seg := range strings.Split(body, "|") {
+		key, val, ok := strings.Cut(strings.TrimSpace(seg), "$")
+		if !ok {
+			continue
+		}
+		params[strings.TrimSpace(key)] = strings.TrimSpace(val)
+	}
+	return params["Event"], params
+}
+
 func parseStaticLine(svars map[string]string, name string) (string, map[string]string) {
 	body := strings.TrimSpace(svars[name])
 	if body == "" {
@@ -234,6 +332,15 @@ func compoundRememberedSpec(params map[string]string) bool {
 	return strings.Contains(spec, "IsRemembered") && strings.ContainsAny(spec, "+,")
 }
 
+// replacementLineWith reads ReplaceWith$ off a parseReplacementLine-built
+// static line -- the SVar name of the R: body's own ReplaceWith$ body, not a
+// card Params map. Factored into its own function (mirroring
+// compoundRememberedSpec) so the paramcensus rot guard can classify the read
+// through a tracked helper parameter rather than an unclassified local.
+func replacementLineWith(params map[string]string) string {
+	return params["ReplaceWith"]
+}
+
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
 // (instant/sorcery) source, or an explicit this-turn Duration$, is UntilEOT
 // and is dropped at end-of-turn cleanup (rules' EndOfTurnCleanup); anything
@@ -307,36 +414,21 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // same way), so the destination is chosen the same way spellRestZone does.
 //
 // UnlessCost$ (Mana Leak, Spell Pierce, Daze, Rust Tick, Runeboggle) is the
-// "counter target spell unless its controller pays {N}" shape -- a real
-// mid-resolution ask since M2d-2 closed R-8. On the first pass the
-// CONTROLLER OF THE COUNTERED SPELL (the object in c.Targets[0], per CR
-// 119) is offered a KModes pay/decline decision and the resolution suspends;
-// the answer re-enters this effect with Ctx.UnlessPay set, rules'
-// resumeResolution (rules/resolution.go) having already paid the cost via
-// payMana on an affordable "pay". "pay" therefore means the spell is NOT
-// countered; "decline" -- including an affordable-looking "pay" that
-// payMana reports it could not cover -- counters it.
+// "counter target spell unless its controller pays {N}" shape. It rides the
+// ONE shared unless gate (effects.Resolve's unlessProceed dispatch, shared
+// by every API): the payer comes from UnlessPayer$ (effects.UnlessPayers
+// resolves every corpus selector form; a named selector whose binding is
+// unavailable declines rather than asking an unrelated player), and the
+// unqualified default — the first target's controller per CR 119 — is
+// exactly what the corpus's 12 targeted Counter lines name (Targeted
+// Controller x9, ThisTargetedController x3). The pay/decline labels for a
+// Counter's ask live in poseUnlessAsk's Counter arm. "pay" means the spell
+// is NOT countered; "decline" — including an affordable-looking "pay" the
+// payment path could not cover — counters it.
 //
-// Unlike effCopySpellAbility, the default payer is the first target's
-// controller. UnlessPayer$ is NOT read here. All 12 of the corpus's targeted
-// Counter lines carrying it name TargetedController (9) or
-// ThisTargetedController (3), matching that default; the other 22 lines are
-// untargeted and fall back to c.Controller, which is the right player for
-// only the 3 that say You. The remaining 19 name someone else -- 14
-// Triggered* selectors (TriggeredSourceSAController x7, TriggeredActivator
-// x4, TriggeredSpellAbilityController, TriggeredCardController,
-// NonTriggeredCardController), Player x4 and RememberedController x1 -- and
-// general payer selection is NOT implemented, so those ask the wrong player.
-// Reality Smasher (eldrazi-stompy) is one of them. Counts are raw
-// .cards/cardsfolder lines from GNU grep; see AGENTS.md for the commands and
-// for the unsupported cost, switched and multi-target shapes.
-//
-// UnlessSwitched$ True inverts the whole ask -- paying CAUSES the counter --
-// and is now real switched semantics through the shared unlessProceed gate
-// (effects/resolve dispatch): paying counters, declining lets the spell
-// resolve. The gate lives in effects.Resolve so every API shares it; the
-// pay/decline labels for a Counter's ask live in poseUnlessAsk's
-// Counter arm.
+// UnlessSwitched$ True inverts the whole ask — paying CAUSES the counter —
+// and is real switched semantics through the same gate; the orientation is
+// read from the SA, not hardcoded here.
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCountered"]), "True") ||
 		strings.EqualFold(strings.TrimSpace(sa.Params["RememberCounteredSA"]), "True")
@@ -346,6 +438,13 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 		o := h.Game().Obj(t.Obj)
 		if o == nil || o.Zone != state.ZStack {
+			continue
+		}
+		if !h.CounterAllowed(o.ID, c.Source) {
+			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "counter prevented"})
+			if h.Suspended() {
+				return // replacement order must settle before any later target/SA
+			}
 			continue
 		}
 		if o.Ability != nil {
@@ -403,10 +502,23 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 			Text: "registers a delayed trigger at " + mode + " (not implemented)"})
 		return
 	}
-	phase, ok := delayedPhaseStep(sa.Params["Phase"])
-	if !ok {
+	set, unknown := state.ParsePhases(sa.Params["Phase"])
+	if len(unknown) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "registers a delayed trigger at unrecognized phase " + sa.Params["Phase"]})
+		return
+	}
+	// One one-shot registration for the FIRST member of the set the game will
+	// still reach (state.EarliestAfter): Forge's delayed trigger is removed
+	// from TriggerHandler.delayedTriggers the moment it fires, so even a
+	// multi-step Phase$ value (`Main1,Main2`, the open `Upkeep->` range) fires
+	// exactly once, at the first listed phase still ahead -- and a single-step
+	// value maps to the very step a registration used to carry, so every
+	// already-working shape is unchanged.
+	step, ok := state.EarliestAfter(set, h.Game().Step)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "registers a delayed trigger with no Phase"})
 		return
 	}
 	exec := sa.Params["Execute"]
@@ -416,50 +528,8 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-		Player: c.Controller, Step: phase, Counter: exec,
+		Player: c.Controller, Step: step, Counter: exec,
 		IDs: encodeRemembered(c.Remembered), Text: sa.Params["Phase"]})
-}
-
-// delayedPhaseStep maps a Forge Phase$ value to the state.Step whose entry
-// fires the delayed trigger. The matching is by substring against the step
-// names and the Forge spellings, the same loose tolerance phaseMatches uses
-// for a T: line's Phase$; an unrecognized value returns ok=false and the
-// caller records a Note rather than firing at the wrong phase. A delayed
-// trigger fires on entering the mapped step, which for the common
-// "beginning of the next end step" / "beginning of the next upkeep" shapes
-// is exactly the first such step after the trigger is registered; the
-// one-shot removal in events.Apply's DelayedPush case keeps it from firing
-// again on later occurrences.
-func delayedPhaseStep(phase string) (state.Step, bool) {
-	p := strings.ToLower(phase)
-	switch {
-	case strings.Contains(p, "upkeep"):
-		return state.StepUpkeep, true
-	case strings.Contains(p, "draw"):
-		return state.StepDraw, true
-	case strings.Contains(p, "end combat"), strings.Contains(p, "endcombat"):
-		return state.StepEndCombat, true
-	case strings.Contains(p, "begin combat"), strings.Contains(p, "begincombat"):
-		return state.StepBeginCombat, true
-	case strings.Contains(p, "declare attackers"), p == "attackers":
-		return state.StepDeclareAttackers, true
-	case strings.Contains(p, "declare blockers"), p == "blockers":
-		return state.StepDeclareBlockers, true
-	case strings.Contains(p, "combat damage"), strings.Contains(p, "damage"):
-		return state.StepCombatDamage, true
-	case strings.Contains(p, "main 2"), strings.Contains(p, "main2"):
-		return state.StepMain2, true
-	case strings.Contains(p, "main 1"), strings.Contains(p, "main1"), strings.Contains(p, "main"):
-		return state.StepMain1, true
-	case strings.Contains(p, "end of turn"), strings.Contains(p, "endstep"), p == "end",
-		strings.Contains(p, "end step"):
-		return state.StepEnd, true
-	case strings.Contains(p, "cleanup"):
-		return state.StepCleanup, true
-	case strings.Contains(p, "untap"):
-		return state.StepUntap, true
-	}
-	return 0, false
 }
 
 // encodeRemembered turns a Remembered target list into the []ObjID an event
@@ -509,7 +579,29 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effCharm runs CharmNum$ of the Choices$ sub-abilities in chosen order.
+// CharmModeBounds resolves a Charm's selectable range. Forge defaults
+// MinCharmNum$ to CharmNum$, but an explicit MinCharmNum$ permits choosing
+// fewer modes. Both values use Num so literal, SVar, and inline Count$ forms
+// share the same evaluation in spell, trigger, and resolution paths.
+func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
+	max = int(Num(h, c, sa, "CharmNum", 1))
+	if max < 1 {
+		max = 1
+	}
+	min = max
+	if _, ok := sa.Params["MinCharmNum"]; ok {
+		min = int(Num(h, c, sa, "MinCharmNum", int32(min)))
+	}
+	if max > choices {
+		max = choices
+	}
+	if min < 0 {
+		min = 0
+	}
+	return min, max
+}
+
+// effCharm runs the selected Choices$ sub-abilities in chosen order.
 // Cast spells (CR 601.2b) and triggered abilities (CR 603.3c) arrive with
 // Ctx.Modes pre-seeded from their earlier announcement. A Charm reached only
 // during resolution still poses KModes and suspends until resumeResolution
@@ -557,17 +649,16 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	for i, name := range choices {
 		subs[i] = cards.ResolveSVar(c.SVars, name)
 	}
-	charmNum := Num(h, c, sa, "CharmNum", 1)
-	if charmNum < 1 {
-		charmNum = 1
-	}
-	if int(charmNum) > len(choices) {
-		charmNum = int32(len(choices))
+	min, max := CharmModeBounds(h, c, sa, len(choices))
+	if min > len(choices) {
+		// Forge declines a Charm whose required minimum exceeds its available
+		// modes. A no-engine host must likewise make no arbitrary choice.
+		return
 	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
-		Min: int(charmNum), Max: int(charmNum), Source: c.Source,
+		Min: min, Max: max, Source: c.Source,
 		ResumeKind: "modes", ResumeSA: sa,
-		Prompt: "Choose " + strconv.Itoa(int(charmNum)) + " mode(s)"}
+		Prompt: "Choose " + strconv.Itoa(min) + " to " + strconv.Itoa(max) + " mode(s)"}
 	for i, name := range choices {
 		label := name
 		if subs[i] != nil {
@@ -578,11 +669,14 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		d.Options = append(d.Options, decision.Option{
 			Index: i, Kind: "mode", Label: label, Obj: c.Source, Player: c.Controller})
 	}
-	if h.Ask(d) {
+	if Ask(h, d) == AskAsked {
 		return // resolution suspended; the answer re-enters this effect with Ctx.Modes set.
 	}
 	// Fuzz/no-engine host: the deterministic first-mode default (R-9), with
-	// the Note that records why the richer path did not run.
+	// the Note that records why the richer path did not run. (AskEmpty is
+	// unreachable by construction -- charmNum is clamped to >= 1 and
+	// strings.Split never yields fewer than one choice -- but the shared
+	// helper owns the guard either way.)
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 		Text: "chose its first mode (no engine host to ask)"})
 	if subs[0] != nil {
@@ -660,6 +754,59 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 // unrecognised Produced$ value therefore emits nothing and records a Note
 // naming it, following this repo's fail-closed convention (an unknown token
 // never invents a value).
+// effReplaceMana rewrites one in-flight ManaAdd event for a ProduceMana
+// replacement. The surrounding rules code supplies the amount and colour in
+// Ctx, then logs the rewritten ManaAdd; this effect itself has no game-state
+// mutation to emit. ReplaceAmount multiplies the whole production.
+// ReplaceType/ReplaceColor preserve its amount and replace only its colour;
+// ReplaceMana is Forge's "one mana instead of any other type and amount"
+// form (Damping Sphere, Contamination), so it sets the amount to exactly one
+// as well as replacing the colour. For a choice-valued replacement
+// (Any/Chosen), rules parks the ManaAdd and supplies the player's W/U/B/R/G
+// answer in Ctx.ManaChoice; without a valid answer this pure effect fails
+// closed rather than inventing colourless mana.
+func effReplaceMana(_ Host, c *Ctx, sa *cards.SA) {
+	if c == nil {
+		return
+	}
+	if only := strings.TrimSpace(sa.Params["ReplaceOnly"]); only != "" && only != c.ManaType {
+		return
+	}
+	if n := Num(nil, c, sa, "ReplaceAmount", 1); n > 0 {
+		c.ManaAmount *= n
+	}
+	kind := strings.TrimSpace(sa.Params["ReplaceMana"])
+	if kind != "" {
+		c.ManaAmount = 1
+	}
+	if kind == "" {
+		kind = strings.TrimSpace(sa.Params["ReplaceType"])
+	}
+	if kind == "" {
+		kind = strings.TrimSpace(sa.Params["ReplaceColor"])
+	}
+	if kind == "" {
+		return
+	}
+	switch strings.ToLower(kind) {
+	case "white":
+		kind = "W"
+	case "blue":
+		kind = "U"
+	case "black":
+		kind = "B"
+	case "red":
+		kind = "R"
+	case "green":
+		kind = "G"
+	case "any", "chosen":
+		kind = c.ManaChoice
+	}
+	if len(kind) == 1 && strings.ContainsRune(ManaSymbols, rune(kind[0])) {
+		c.ManaType = kind
+	}
+}
+
 func effMana(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
 	if produced == "" || produced == "Any" || produced == "Combo Any" {
@@ -681,10 +828,28 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	if amt < 0 {
 		amt = 0
 	}
+	// CR 107.4h: mana produced by a SNOW permanent is snow mana. A snow unit
+	// is tagged in the pool event itself — Counter "S<colour>" — so the pool
+	// slot and the parallel snow tally move through one event and a replay
+	// derives both identically. The {S} pips a cost may carry are paid only
+	// from that tally (rules/mana.go's resolveMana).
+	snow := false
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		for _, t := range o.Face().Types {
+			if t == "Snow" {
+				snow = true
+				break
+			}
+		}
+	}
 	for _, p := range ManaRecipients(h, c, sa) {
 		for _, r := range runes {
+			counter := string(r)
+			if snow {
+				counter = "S" + counter
+			}
 			h.Emit(events.Event{Kind: events.ManaAdd, Player: p,
-				Counter: string(r), Amount: amt})
+				Counter: counter, Amount: amt})
 		}
 	}
 }

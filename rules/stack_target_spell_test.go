@@ -249,3 +249,130 @@ func TestTgtZoneGraveyardTargetOfferedAndResolves(t *testing.T) {
 		t.Fatalf("graveyard target ended in %s, want hand (spell fizzled at resolution?)", z)
 	}
 }
+
+// wrennShapeSrc is the brief's inline minimal fixture, shaped like Wrenn and
+// Six's [+1] targeting parameters (exact Origin$ Graveyard, Destination$
+// Hand, TargetMin$ 0, TargetMax$ 1, ValidTgts$ Land.YouOwn, NO TgtZone$) on
+// an ordinary activated ability -- no planeswalker/loyalty machinery needed
+// to exercise the shared target census. Nothing is copied from any Forge
+// script file.
+const wrennShapeSrc = "Name:Wrenn Shape\nManaCost:1 G\nTypes:Creature\nPT:1/1\n" +
+	"A:AB$ ChangeZone | Cost$ G | Origin$ Graveyard | Destination$ Hand | TargetMin$ 0 | TargetMax$ 1 | " +
+	"ValidTgts$ Land.YouOwn | TgtPrompt$ Select target land card in your graveyard | " +
+	"SpellDescription$ Return up to one target land card from your graveyard to your hand.\nOracle:x\n"
+
+// hillSrc is the land both the graveyard and the battlefield sides of the
+// fixture use; both are seat 0's, so both satisfy Land.YouOwn and only the
+// zone census can tell them apart.
+const hillSrc = "Name:Hill\nTypes:Land\nOracle:x\n"
+
+// TestOriginGraveyardAbilityTargetsGraveyardLand is the Wrenn and Six [+1]
+// regression: an object-targeted ChangeZone with an exact Origin$ Graveyard
+// and no TgtZone$ must offer the eligible graveyard land -- NOT the matching
+// owned land already on the battlefield (which effChangeZone's own Origin$
+// guard would refuse at resolution anyway) -- and choosing the graveyard
+// option must resolve the ability and put that land in hand. It fails on the
+// tree before the origin-derived targetZones fallback (the census searched
+// the battlefield) and fails again if the fallback is removed.
+func TestOriginGraveyardAbilityTargetsGraveyardLand(t *testing.T) {
+	e := handEngine(t, card(t, wrennShapeSrc))
+	grave := e.G.AddObject(card(t, hillSrc), 0)
+	grave.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZGraveyard, 0, []state.ObjID{grave.ID})
+	play := e.G.AddObject(card(t, hillSrc), 0)
+	play.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{play.ID})
+
+	var src state.ObjID
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		if e.G.Obj(id).Face().Name == "Wrenn Shape" {
+			src = id
+		}
+	}
+	if src == 0 {
+		t.Fatalf("fixture ability source not in hand")
+	}
+	// The source must be a permanent for its activated ability to be
+	// offered (same direct SetZone fixture move targetSpellFixture uses).
+	var rest []state.ObjID
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		if id != src {
+			rest = append(rest, id)
+		}
+	}
+	e.G.SetZone(state.ZHand, 0, rest)
+	e.G.Obj(src).Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, append([]state.ObjID{src}, play.ID))
+
+	e.G.Players[0].Pool[state.MG] = 2
+	e.askPriority(0)
+	opt, ok := findAbilityOption(e, src, 0)
+	if !ok {
+		t.Fatalf("ability option not offered: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, opt.Index)
+
+	// The real target-offer path: the ability's KTarget decision.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision, got %+v", d)
+	}
+	graveIdx, playIdx := -1, -1
+	for _, o := range d.Options {
+		switch o.Obj {
+		case grave.ID:
+			graveIdx = o.Index
+		case play.ID:
+			playIdx = o.Index
+		}
+	}
+	if playIdx >= 0 {
+		t.Fatalf("battlefield land %d offered for the Origin$ Graveyard ability: %+v", play.ID, d.Options)
+	}
+	if graveIdx < 0 {
+		t.Fatalf("graveyard land %d not offered among %+v", grave.ID, d.Options)
+	}
+	submitChoices(t, e, graveIdx)
+
+	passUntilStackEmpty(t, e, 8)
+	if z := e.G.Obj(grave.ID).Zone; z != state.ZHand {
+		t.Fatalf("chosen graveyard land ended in %s, want hand", z)
+	}
+	if z := e.G.Obj(play.ID).Zone; z != state.ZBattlefield {
+		t.Fatalf("battlefield land moved to %s", z)
+	}
+}
+
+// TestTargetZonesChangeZoneOriginTable pins the origin-derived fallback's
+// exact boundaries at the targetZones unit level: the Wrenn shape derives
+// the graveyard, an explicit TgtZone$ stays authoritative over Origin$, and
+// every shape the fix deliberately does NOT establish (Any/All, unknown or
+// multi-zone origins, a player-targeted spec, a non-ChangeZone API) keeps
+// the existing battlefield default -- including the player-targeted
+// ChangeZone route this task must not turn into an object-target decision.
+func TestTargetZonesChangeZoneOriginTable(t *testing.T) {
+	cases := []struct {
+		name string
+		sa   string
+		want []state.Zone
+	}{
+		{"wrenn-shaped origin-only graveyard", "A:AB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | TargetMin$ 0 | TargetMax$ 1 | ValidTgts$ Land.YouOwn", []state.Zone{state.ZGraveyard}},
+		{"explicit TgtZone$ Graveyard stays authoritative", "A:AB$ ChangeZone | TgtZone$ Graveyard | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZGraveyard}},
+		{"explicit TgtZone$ Battlefield wins over Origin$ Graveyard", "A:AB$ ChangeZone | TgtZone$ Battlefield | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZBattlefield}},
+		{"player-targeted keeps the existing player-target route", "A:AB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Player", []state.Zone{state.ZBattlefield}},
+		{"You-targeted likewise", "A:AB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | ValidTgts$ You", []state.Zone{state.ZBattlefield}},
+		{"Any-targeted likewise", "A:AB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Any", []state.Zone{state.ZBattlefield}},
+		{"origin Any", "A:AB$ ChangeZone | Origin$ Any | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZBattlefield}},
+		{"origin All", "A:AB$ ChangeZone | Origin$ All | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZBattlefield}},
+		{"multi-zone origin", "A:AB$ ChangeZone | Origin$ Graveyard,Hand | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZBattlefield}},
+		{"unknown origin token", "A:AB$ ChangeZone | Origin$ Somewhere | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZBattlefield}},
+		{"non-ChangeZone API", "A:AB$ Destroy | Origin$ Graveyard | ValidTgts$ Card", []state.Zone{state.ZBattlefield}},
+	}
+	for _, tc := range cases {
+		c := card(t, "Name:T\nTypes:Creature\n"+tc.sa+"\nOracle:x\n")
+		got := targetZones(c.Faces[0].Abilities[0])
+		if len(got) != len(tc.want) || got[0] != tc.want[0] {
+			t.Errorf("%s: targetZones = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}

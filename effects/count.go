@@ -17,16 +17,36 @@ import (
 // the failure mode is "the card did nothing" rather than "the card did
 // something arbitrary".
 func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
+	if n, ok := NumResolved(h, c, sa, key, def); ok {
+		return n
+	}
+	if _, present := sa.Params[key]; present {
+		return 0 // present but unresolvable degrades to zero, not to def
+	}
+	return def
+}
+
+// NumResolved is Num plus a resolvability verdict: it answers whether the
+// parameter RESOLVED under the same grammar Num reads -- a signed literal, an
+// SVar name present in the context's table, a recognised inline expression
+// prefix (Count$/Sacrificed$/Remembered$/TriggerCount$/ReplaceCount$), or the
+// bare X. Num itself degrades an unresolvable value to zero ("the card did
+// nothing"); NumResolved exists for a caller that must not confuse that
+// degrade-to-zero with a LEGITIMATE zero -- rules' replacement matcher gates
+// a DB$ ReplaceDamage prevention body on its Amount$ and fails closed on a
+// value this build cannot price, so an unmodelled ShieldAmount frame cannot
+// silently erase the damage it was supposed to partially prevent.
+func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bool) {
 	if c == nil {
 		c = &Ctx{}
 	}
 	raw, ok := sa.Params[key]
 	if !ok {
-		return def
+		return def, false
 	}
 	raw = strings.TrimSpace(raw)
 	if n, err := strconv.Atoi(raw); err == nil {
-		return int32(n) // a signed literal ("+2"/"-2") lands here: Atoi eats the sign
+		return int32(n), true // a signed literal ("+2"/"-2") lands here: Atoi eats the sign
 	}
 	// Forge writes a stat direction as a sign on the value ("NumAtt$ +X" --
 	// Goblin Piledriver), so a signed non-literal is not a reference NAMED
@@ -43,8 +63,18 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	}
 	if c.SVars != nil {
 		if body, ok := c.SVars[raw]; ok {
-			return sign * EvalCount(h, c, body)
+			return sign * EvalCount(h, c, body), true
 		}
+	}
+	// A DB$ RollDice publication of this same resolution (effects/dice.go):
+	// a sub's numeric parameter naming the roll -- Boomflinger's NumDmg$
+	// Result, Grave Endeavor's LifeAmount$ Y, Neverwinter Hydra's
+	// CounterNum$ Result -- reads the published value through the bare name,
+	// exactly as the SVar$ indirection resolves the same name in an SVar
+	// body. Checked after the card's own SVar table so a real SVar of the
+	// same name keeps winning.
+	if v, ok := rollPublished(c, raw); ok {
+		return sign * v, true
 	}
 	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
 	// Minus1, Task 17) is a body in its own right, not an SVar name -- a
@@ -53,18 +83,18 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	// zero, silencing the whole SpellCopy/amount the expression was meant to
 	// size). The SVar-indirection form above stays authoritative for names.
 	if strings.HasPrefix(raw, "Count$") {
-		return sign * EvalCount(h, c, raw)
+		return sign * EvalCount(h, c, raw), true
 	}
 	if strings.HasPrefix(raw, "Sacrificed$") {
-		return sign * EvalCount(h, c, raw)
+		return sign * EvalCount(h, c, raw), true
 	}
-	if strings.HasPrefix(raw, "TriggerCount$") {
-		return sign * EvalCount(h, c, raw)
+	if strings.HasPrefix(raw, "TriggerCount$") || strings.HasPrefix(raw, "ReplaceCount$") {
+		return sign * EvalCount(h, c, raw), true
 	}
 	if raw == "X" {
-		return sign * c.X
+		return sign * c.X, true
 	}
-	return 0
+	return 0, false
 }
 
 // EvalCount evaluates a "Count$..." expression. The grammar in the corpus is a
@@ -91,6 +121,18 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 		return 0
 	}
 	expr = strings.TrimSpace(expr)
+	// A <Ref>$<Property> body answers a numeric question about the objects a
+	// target reference names: Targeted$CardPower (Vein Drinker's "deals
+	// damage equal to its power", Kiku's Shadow), ParentTargeted$CardPower,
+	// TriggeredCard$CardPower, and their Toughness/ManaCost/CardCounters/
+	// Valid siblings -- heads that used to evaluate to zero and made exactly
+	// the damage amounts they sized collapse. A ref or property outside the
+	// modelled family returns false and falls through to the heads below
+	// (evalRemembered still owns Remembered$Amount), so every shape that was
+	// zero before stays zero.
+	if n, ok := evalRefProperty(h, c, expr); ok {
+		return n
+	}
 	// A Sacrificed$... expression answers "the sacrificed object's" head (CR
 	// 608.2g last-known-information): power, toughness, mana value, or the
 	// number of objects sacrificed. It reads the LKI snapshot captured at the
@@ -125,10 +167,57 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	if body, ok := strings.CutPrefix(expr, "TriggerCount$"); ok {
 		return evalTriggerCount(c, strings.TrimSpace(body))
 	}
+	// A SVar$<name>[/Op] indirection resolves another SVar on the same face
+	// and applies the suffix (Herald of War-adjacent shapes:
+	// SVar:Z:SVar$Y/Times.2 chains two reductions' amounts). It also resolves
+	// the RollDice publications (effects/dice.go's ResultSVar$ names -> the
+	// die result/total/difference, plus the chosen/other and
+	// MaxRolls/EvenResults counts): a roll's value lives in the resolution's
+	// publication record, not in a static SVar table, so it is consulted
+	// only when the name is not an SVar of this face. An unknown name
+	// degrades to zero -- the conservative no-op every unmodelled head
+	// applies. The /Op suffix is applied exactly as applyCountOp does.
+	if rest, ok := strings.CutPrefix(expr, "SVar$"); ok {
+		name, op, hasOp := strings.Cut(rest, "/")
+		var n int32
+		if body, ok2 := c.SVars[strings.TrimSpace(name)]; ok2 {
+			n = evalCountExpr(h, c, body, depth+1)
+		} else if v, ok2 := rollPublished(c, strings.TrimSpace(name)); ok2 {
+			n = v
+		}
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
+	}
+	// ReplaceCount$ reads the event currently being replaced. Damage
+	// replacement bodies use both the bare DamageAmount form (Vigor, Purity,
+	// Hostility) and arithmetic suffixes (Fiery Emancipation, Angel of
+	// Suffering). Rules carries the amount in Ctx so every supported body API,
+	// not only ReplaceEffect itself, sees the same in-flight value.
+	if body, ok := strings.CutPrefix(expr, "ReplaceCount$"); ok {
+		field, op, hasOp := strings.Cut(strings.TrimSpace(body), "/")
+		if field != "DamageAmount" && field != "Amount" {
+			return 0
+		}
+		n := c.ReplacementAmount
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
+	}
 	body, ok := strings.CutPrefix(expr, "Count$")
 	if !ok {
 		if n, err := strconv.Atoi(expr); err == nil {
 			return int32(n)
+		}
+		// A bare SVar-name body (Spark Fiend's StoreSVar Expression$ Result)
+		// resolves a DB$ RollDice publication of this same resolution -- the
+		// same name the SVar$ indirection resolves above, in the one shape a
+		// corpus body carries a bare runtime name. Anything else still
+		// degrades to zero.
+		if v, ok := rollPublished(c, strings.TrimSpace(expr)); ok {
+			return v
 		}
 		return 0
 	}
@@ -219,42 +308,141 @@ func sacrificedNumeric(c *Ctx, f func(state.SacrificedInfo) int32) int32 {
 
 func evalRemembered(h Host, c *Ctx, body string) int32 {
 	body, op, hasOp := strings.Cut(body, "/")
-	var n int32
 	switch strings.TrimSpace(body) {
 	case "Amount":
-		n = int32(len(c.Remembered))
+		n := int32(len(c.Remembered))
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
+	}
+	// A Remembered$CardPower / CardToughness / CardManaCost / CardCounters.
+	// / Valid body is the shared <Ref>$<Property> family (evalRefProperty);
+	// evalCountExpr routes it here first only because the Remembered$
+	// prefix cut wins. An unmodelled property still degrades to zero, the
+	// same conservative no-op evalSacrificed's default takes.
+	if n, ok := evalRefProperty(h, c, "Remembered$"+body); ok {
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
+	}
+	return 0
+}
+
+// evalRefProperty resolves one "<Ref>$<Property>[...][/Op]" count body over
+// the objects a target reference names. Refs: Targeted/ParentTarget/
+// ThisTargetedCard name the resolving ability's chosen targets;
+// TriggeredCard (and its LKI spellings) and TriggeredAttacker name the
+// objects the firing trigger remembered; Remembered is the plain form. A
+// property this build does not model (or a body with no $ at all -- every
+// other head in this evaluator) returns false, and the caller degrades to
+// zero exactly as before this evaluator existed.
+//
+// The per-object answers mirror evalCountBody's own source-anchored heads:
+// CardPower/CardToughness read the face plus marked P1P1 counters
+// ( battlefield layer output for a battlefield object; a graveyard object's
+// face), CardManaCost the face's converted cost, CardCounters.<KIND> one
+// counter kind, Valid the count of referenced objects matching a card spec
+// (unknown predicates fail closed inside the matcher, so an unreadable
+// filter counts zero, never everything). Several references sum -- Forge's
+// Count$ reads the same way -- and the /Op suffix applies through
+// applyCountOp like every other head.
+func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
+	ref, prop, found := strings.Cut(expr, "$")
+	if !found || h == nil {
+		return 0, false
+	}
+	prop, op, hasOp := strings.Cut(prop, "/")
+	prop = strings.TrimSpace(prop)
+	var ts []state.Target
+	switch ref {
+	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
+		ts = c.Targets
+	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
+		"TriggeredSpellAbility", "TriggeredAttacker", "TriggeredAttackerLKICopy",
+		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
+		"DelayTriggerRememberedLKI", "RememberedLKI":
+		ts = c.Remembered
+	case "Remembered":
+		ts = c.Remembered
 	default:
-		// Remembered$Valid <spec> — the count of remembered entries matching
-		// an ordinary card spec (Braids, Arisen Nightmare's
-		// SVar:X:Remembered$Valid Card.RememberedPlayerCtrl, which answers
-		// "how many remembered cards are controlled by a remembered player",
-		// i.e. "did any remembered opponent sacrifice this way"). Every
-		// remembered entry — cards AND players — is offered to the matcher;
-		// a player entry matches only a player-typed base. Evaluated with
-		// the resolution's own bindings (Remembered itself, so a compound
-		// spec like Card.RememberedPlayerCtrl sees the remembered players).
-		if spec, ok := strings.CutPrefix(strings.TrimSpace(body), "Valid "); ok && h != nil {
-			n = 0
-			g := h.Game()
-			for _, t := range c.Remembered {
-				if t.IsPlayer {
-					continue
-				}
-				sc := c.SpecContext(c.Controller)
-				if MatchesSpecCtx(g, strings.TrimSpace(spec), t.Obj, sc) {
-					n++
+		return 0, false
+	}
+	g := h.Game()
+	var n int32
+	for _, t := range ts {
+		if t.IsPlayer {
+			continue
+		}
+		o := g.Obj(t.Obj)
+		lki := c.LKI != nil && c.LKI.ID == t.Obj
+		if lki {
+			// A zone-change trigger must read the causing object's snapshot,
+			// not the same id after Move has cleared its counters and removed
+			// battlefield layers. triggerLKI carries this value through the
+			// TriggerPush wrapper to both initial and resumed resolution.
+			o = c.LKI
+		}
+		if o == nil {
+			continue
+		}
+		f := o.Face()
+		switch {
+		case prop == "CardPower":
+			if f != nil {
+				if lki && c.LKIPTValid {
+					n += c.LKIPower
+				} else {
+					n += refPower(h, o, lki)
 				}
 			}
-		} else {
-			// An out-of-scope head degrades to zero, the same conservative
-			// no-op evalSacrificed's default takes.
-			return 0
+		case prop == "CardToughness":
+			if f != nil {
+				if lki && c.LKIPTValid {
+					n += c.LKIToughness
+				} else {
+					n += refToughness(h, o, lki)
+				}
+			}
+		case prop == "CardManaCost":
+			if f != nil {
+				n += f.Cmc()
+			}
+		case strings.HasPrefix(prop, "CardCounters."):
+			n += o.Counter(strings.TrimPrefix(prop, "CardCounters."))
+		case prop == "Valid" || strings.HasPrefix(prop, "Valid "):
+			spec := strings.TrimSpace(strings.TrimPrefix(prop, "Valid"))
+			if (lki && MatchesObjectCtx(g, spec, o, c.SpecContext(c.Controller))) ||
+				(!lki && MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(c.Controller))) {
+				n++
+			}
+		default:
+			return 0, false
 		}
 	}
 	if hasOp {
 		n = applyCountOp(n, op)
 	}
-	return n
+	return n, true
+}
+
+// refPower/refToughness use rules' derived characteristics while a referenced
+// object is a battlefield permanent. A referred-to object that already left
+// keeps the LKI-compatible printed-plus-counters fallback: no live layer
+// applies in a graveyard, and asking Host for it would read a different state.
+func refPower(h Host, o *state.Object, snapshot bool) int32 {
+	if !snapshot && o.Zone == state.ZBattlefield {
+		return h.Power(o.ID)
+	}
+	return int32(o.Face().Power()) + o.Counter("P1P1") - o.Counter("M1M1")
+}
+
+func refToughness(h Host, o *state.Object, snapshot bool) int32 {
+	if !snapshot && o.Zone == state.ZBattlefield {
+		return h.Toughness(o.ID)
+	}
+	return int32(o.Face().Toughness()) + o.Counter("P1P1") - o.Counter("M1M1")
 }
 
 func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
@@ -296,16 +484,38 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		return int32(h.CastThisTurn())
 	case "RememberedSize":
 		return int32(len(c.Remembered))
+	case "LifeOppsLostThisTurn":
+		// The total life the controller's OPPONENTS have lost this turn
+		// (Rakdos, Lord of Riots). Each opponent's loss comes from the Host's
+		// log-derived LifeLostThisTurn, so the count is replay-derivable.
+		if c.Controller < 0 {
+			return 0
+		}
+		var n int32
+		for _, p := range g.AliveFrom(0) {
+			if p != c.Controller {
+				n += h.LifeLostThisTurn(p)
+			}
+		}
+		return n
 	case "CardPower":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-			return int32(o.Face().Power()) + o.Counter("P1P1")
+			return refPower(h, o, false)
 		}
 		return 0
 	case "CardToughness":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-			return int32(o.Face().Toughness()) + o.Counter("P1P1")
+			return refToughness(h, o, false)
 		}
 		return 0
+	}
+
+	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
+	// spec (Count$ThisTurnCast_Card.YouCtrl — the "first/second spell you
+	// cast" family): the caster scope is the controller when the spec carries
+	// a You* qualifier, everyone otherwise.
+	if rest, ok := strings.CutPrefix(head, "ThisTurnCast_"); ok {
+		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest))
 	}
 
 	// CardCounters.<KIND> counts a counter kind on the source.
@@ -338,16 +548,48 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 	}
 
 	// Valid / ValidZone forms count objects in a zone matching a filter.
+	// A "$<Property>" suffix (Count$Valid Creature.YouCtrl$CardPower —
+	// Ghalta, Primal Hunger) aggregates the named numeric property over the
+	// matching objects instead of counting them: CardPower/CardToughness
+	// sum the face value plus P1P1 counters, CardManaCost sums mana value.
+	// Without the suffix this stays the plain count. A property this build
+	// cannot evaluate degrades to the plain count (the value the suffix
+	// never influenced), never a hard error.
 	if zone, ok := countZone(head); ok {
+		spec, prop, hasProp := strings.Cut(arg, "$")
 		var n int32
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(zone, p) {
-				if MatchesSpecCtx(g, arg, id, c.SpecContext(c.Controller)) {
-					n++
+				if matchesZoneSpecCtx(g, spec, id, c.SpecContext(c.Controller), zone) {
+					if !hasProp {
+						n++
+						continue
+					}
+					n += objectProperty(g, id, prop)
 				}
 			}
 		}
 		return n
+	}
+	return 0
+}
+
+// objectProperty reads one Count$Valid-spec "$Property" aggregate term over
+// a single object: its face value plus +1/+1 counters for power/toughness,
+// the mana value for CardManaCost. An unknown property reads 0 — the same
+// conservative no-op every unmodelled head here takes.
+func objectProperty(g *state.Game, id state.ObjID, prop string) int32 {
+	o := g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	switch strings.TrimSpace(prop) {
+	case "CardPower":
+		return int32(o.Face().Power()) + o.Counter("P1P1")
+	case "CardToughness":
+		return int32(o.Face().Toughness()) + o.Counter("P1P1")
+	case "CardManaCost":
+		return o.Face().ManaValue()
 	}
 	return 0
 }

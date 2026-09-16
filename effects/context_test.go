@@ -23,7 +23,10 @@ type fakeHost struct {
 	g          *state.Game
 	log        []events.Event
 	continuous []state.ContinuousEffect
+	controls   []ControlGrant
 	n          int
+	dmgSrc     state.ObjID
+	batch      []state.ObjID
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -41,7 +44,9 @@ func (h *fakeHost) Rand(n int) int { h.n++; return 0 }
 func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
 }
-func (h *fakeHost) RegisterControl(ControlGrant) {}
+func (h *fakeHost) RegisterControl(gr ControlGrant) {
+	h.controls = append(h.controls, gr)
+}
 func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
 	var out []state.Target
 	spec := sa.Params["ValidTgts"]
@@ -68,9 +73,21 @@ func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *
 // rather than inventing a registry it cannot answer for.
 func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 
+// The damage-batch bracket has nothing to latch here (no trigger machinery),
+// so the double reports no-ops; the dealDamage loops' bracketing still runs.
+func (h *fakeHost) BeginDamageBatch() {}
+func (h *fakeHost) EndDamageBatch()   {}
+
 // CastThisTurn has no real turn log to count here (Task 17); the effects
 // package tests set up their own boards, so the double reports zero.
 func (h *fakeHost) CastThisTurn() int { return 0 }
+
+// LifeLostThisTurn has no event log here; the double reports zero (the same
+// conservative no-op as CastThisTurn).
+func (h *fakeHost) LifeLostThisTurn(_ state.PlayerID) int32 { return 0 }
+
+// SpellsCastThisTurnMatching has no event log here; the double reports zero.
+func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }
 
 // HasKeyword has no layer system to consult here (see the type doc comment),
 // so it reads the printed face directly -- enough for the effects-package
@@ -78,6 +95,24 @@ func (h *fakeHost) CastThisTurn() int { return 0 }
 func (h *fakeHost) HasKeyword(id state.ObjID, kw string) bool {
 	o := h.g.Obj(id)
 	return o != nil && o.Face() != nil && o.Face().HasKeyword(kw)
+}
+func (h *fakeHost) Power(id state.ObjID) int32 {
+	o := h.g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	return int32(o.Face().Power()) + o.Counter("P1P1") - o.Counter("M1M1")
+}
+func (h *fakeHost) Toughness(id state.ObjID) int32 {
+	o := h.g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	return int32(o.Face().Toughness()) + o.Counter("P1P1") - o.Counter("M1M1")
+}
+func (h *fakeHost) IsCreature(id state.ObjID) bool {
+	o := h.g.Obj(id)
+	return o != nil && o.Face() != nil && o.Face().IsCreature()
 }
 
 // Ask reports false: an effects-package test double has no engine to drive,
@@ -101,8 +136,32 @@ func (h *fakeHost) Suspended() bool { return false }
 // suspended branch that would call it. Kept to satisfy the Host interface.
 func (h *fakeHost) SuspendContinuation(*cards.SA) {}
 
+func (h *fakeHost) ReplaceEvent(string, string, int32) {}
+
+func (h *fakeHost) EmitDamage(e events.Event) events.Event {
+	h.Emit(e)
+	return e
+}
+func (h *fakeHost) CounterAllowed(state.ObjID, state.ObjID) bool { return true }
+
 // SuspendRepeat is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
+
+// SetDamageSource records the published damage source on the double (the
+// last value wins) and returns the previous one, mirroring the engine's
+// set-and-restore contract so an emitter's restore is observable.
+func (h *fakeHost) SetDamageSource(id state.ObjID) state.ObjID {
+	prev := h.dmgSrc
+	h.dmgSrc = id
+	return prev
+}
+
+// BatchDepartures is a no-op snapshot: an effects-package double has no
+// engine-side departure capture to feed, so it keeps only the fact a batch
+// was declared (never asserted on today; the rules package owns the
+// behaviour this method exists for).
+func (h *fakeHost) BatchDepartures(ids []state.ObjID) { h.batch = ids }
+func (h *fakeHost) EndBatchDepartures()               { h.batch = nil }
 
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()

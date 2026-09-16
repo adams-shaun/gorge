@@ -47,6 +47,11 @@ func ParseBytes(path string, src []byte) (*Card, []Diag) {
 			continue
 		}
 		switch key {
+		case "AlternateMode":
+			// This is a card-level layout marker even though Forge writes it
+			// among the front face's fields. Retain it for rules that distinguish
+			// split-card characteristics from transforming DFC characteristics.
+			c.AlternateMode = val
 		case "Name":
 			cur.Name = val
 		case "ManaCost":
@@ -116,6 +121,23 @@ func parseSA(path, val string) (*SA, []Diag) {
 		}
 	}
 	return nil, []Diag{{path, "ability with no SP$/AB$/DB$/ST$ head: " + val}}
+}
+
+// ParseTriggerLine parses one trigger body — a T: line's text, or a T:-shaped
+// SVar body ("Mode$ SpellCast | ValidCard$ Card | ...") — into a Trigger. The
+// face parser links only printed T: lines (parse.go's "T" case); a trigger
+// held in an SVar and executed by some other machinery (the opening-hand
+// Effect registration, rules.registerOpeningEffectTriggers) needs this to get
+// the SAME shape — one shared pipe grammar, so the two readers cannot drift.
+// ok is false only for a body with no Mode$ at all (an ability body or a
+// Count$ expression an SVar walk handed in by mistake).
+func ParseTriggerLine(body string) (Trigger, bool) {
+	p := parseParams(body)
+	mode := strings.TrimSpace(p["Mode"])
+	if mode == "" {
+		return Trigger{}, false
+	}
+	return Trigger{Mode: mode, Params: p}, true
 }
 
 // parseParams splits a "| Key$ value" chain. Values routinely contain "$" and

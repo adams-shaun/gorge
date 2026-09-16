@@ -27,14 +27,14 @@ func init() {
 // approximations list — switching the copy's targets is a later task), so
 // the copies keep their targets and each records a Note saying so.
 //
-// UnlessCost$ (Chain Lightning, String of Disappearances) is a real
-// mid-resolution ask since M2d-2 closed R-8: on the first pass the target's
-// controller is offered a KModes pay/decline decision and the resolution
-// suspends; the answer re-enters this effect with Ctx.UnlessPay set, rules'
-// resumeResolution having already paid the cost (payMana) when the payer
-// said yes — so the copy loop below runs, or not, exactly once. A host that
-// cannot ask (an effects-package test double) keeps the deterministic
-// decline with a Note.
+// UnlessCost$ (Chain Lightning, String of Disappearances) rides the ONE
+// shared unless gate (effects.Resolve's unlessProceed dispatch, shared by
+// every API): the payer is UnlessPayer$'s resolved target (default the
+// target's controller), the pay/decline labels live in poseUnlessAsk's
+// CopySpellAbility arm, and the copy loop below runs, or not, exactly once
+// per the gate's orientation (rules' unless_pay resume arm charged the cost
+// on an affordable "pay"). A host that cannot ask (an effects-package test
+// double) keeps the deterministic decline.
 func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	// Resolve which spell to copy. For a trigger the remembered entry is the

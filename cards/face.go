@@ -27,8 +27,10 @@ func (f *Face) IsInstant() bool      { return f.hasType("Instant") }
 func (f *Face) IsSorcery() bool      { return f.hasType("Sorcery") }
 func (f *Face) IsArtifact() bool     { return f.hasType("Artifact") }
 func (f *Face) IsSpacecraft() bool   { return f.hasType("Spacecraft") }
+func (f *Face) IsVehicle() bool      { return f.hasType("Vehicle") }
 func (f *Face) IsEnchantment() bool  { return f.hasType("Enchantment") }
 func (f *Face) IsPlaneswalker() bool { return f.hasType("Planeswalker") }
+func (f *Face) IsRoom() bool         { return f.hasType("Room") }
 
 // IsPermanent reports whether resolving this face puts it onto the battlefield.
 func (f *Face) IsPermanent() bool { return !f.IsInstant() && !f.IsSorcery() }
@@ -40,6 +42,27 @@ func KeywordHead(k string) string {
 		k = k[:i]
 	}
 	return strings.TrimSpace(k)
+}
+
+// SplitKeywordList parses Forge's ampersand-joined keyword-list grammar.
+// StaticAbilityContinuous.java splits AddKeyword$ on " & ", and Pump's KW$
+// uses the same form: "Vigilance & Lifelink" is two keywords. A comma is NOT
+// a list separator. Keyword parameters use commas themselves, for example
+// "Protection:Spell.Instant,Spell.Sorcery:..." and
+// "OnlyUntapChosen:Artifact,Creature,Land", and must stay one member.
+//
+// Whitespace around each member is trimmed, empty members are dropped, and an
+// absent or empty list yields nil. Every implemented keyword-list reader uses
+// this function; type-list parsing is deliberately separate because it has a
+// different Forge grammar.
+func SplitKeywordList(list string) []string {
+	var out []string
+	for _, part := range strings.Split(list, "&") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }
 
 func (f *Face) HasKeyword(k string) bool {
@@ -94,7 +117,8 @@ func (f *Face) Toughness() int { return int(f.toughness) }
 // printed ManaCost string. It mirrors botpolicy.CmcOf's arithmetic exactly
 // (cards cannot import botpolicy or rules, so the few lines are duplicated
 // here by design) so a face read the same way anywhere agrees. {X} counts as
-// 0 off the stack, a hybrid/Phyrexian/colourless symbol as one generic.
+// 0 off the stack; ordinary hybrid/Phyrexian/colourless symbols count one,
+// while a monocolour hybrid such as {2/W} counts its generic face (two).
 func (f *Face) Cmc() int32 { return f.cmc }
 
 // CharacteristicDefining reports whether the face's printed P/T is a
@@ -142,57 +166,118 @@ func (f *Face) derive() {
 	f.colourIdentity = f.deriveColourIdentity()
 }
 
-// deriveColourIdentity computes the face's colour identity from its printed
-// text. It is the CR 903.5 definition: every colour in the mana cost, plus
-// the colour indicator (Forge's Colors:, present only on the cards whose
-// colour a viewer cannot otherwise infer — Dryad Arbor is green but casts for
-// no cost), plus every colour-contributing mana symbol anywhere in its rules
-// text — an activated ability's Cost$ (Ghoulcaller Gisa's {B}), a Produced$
-// value, a trigger, a static or a replacement (Charm/Thopterist-class cards
-// whose identity lives in an ability, not the cost). Reminder text is not
-// scanned at all: it lives in Oracle, which is deliberately excluded, so the
-// overarching "({T}: Add {R}.)" of a basic land contributes nothing (a basic
-// land has empty identity, by design).
+// deriveColourIdentity computes the face's colour identity the way CR 903.4
+// does and Forge's own algorithm with it: the colours of the mana symbols in
+// the mana cost, plus the colour indicator (Forge's Colors:, present only on
+// the cards whose colour a viewer cannot otherwise infer — Dryad Arbor is
+// green but casts for no cost), plus every brace-delimited mana symbol in the
+// Oracle rules text, plus the colour a characteristic-defining ability sets
+// (SetColor$ All on Transguild Courier's "CARDNAME is all colors").
 //
-// The fields that carry rules text are: ManaCost, Colors, every ability's
-// raw Line (which includes its Cost$/Produced$/SpellDescription$ and
-// SubAbility references), the params of every trigger/static/replacement, and
-// every SVar value. Not scanned, deliberately: Keywords (a Kicker:{X} style
-// optional cost is not a mana cost or a rules-text pip and following it would
-// invent identity from optional extra costs) and Oracle (reminder text).
+// Everything else is deliberately NOT scanned, and this is the point of the
+// derivation: CR 903.4 reads the printed mana cost and the printed rules text
+// and nothing else, so the sources are exactly Oracle (which carries that
+// rules text, keyword costs included — Lingering Souls' "Flashback {1}{B}")
+// and the two structured colour fields. Raw ability/param/SVar tokens are not
+// rules text: scanning them invented identity from SVar names and SVar
+// parameters that merely happen to spell a colour letter (Pox's
+// "Amount$ G" ⇒ green; First Family's WUBRG SVar names ⇒ five colours) and
+// from reminder text quoted in Description$ params (Trinisphere's "a spell
+// that would cost {1}{B}" ⇒ black), three classes CR 903.4c excludes with the
+// reminder text.
+//
+// Parenthesised Oracle text is skipped: it is where reminder text lives
+// (CR 207.2/903.4c), so a basic land's overarching "({T}: Add {R}.)" — a
+// basic land has empty identity by design, its deck legality coming instead
+// from the CR 903.5d could-produce rule the deck validator enforces — and
+// Trinisphere's example text contribute nothing. Measured across the corpus,
+// the only real rules text the skip drops is carried by the mana-ability
+// blocks of typed lands (duals, snow duals, Dryad Arbor: every one has a
+// basic land type, so 903.5d covers its colours in deck construction) and by
+// quoted token/ability costs whose colours the card's own mana cost or colour
+// indicator already carries (Zhao, Disa, Gobland); Jasconian Isle — whose
+// parenthesised CDA text says "it's blue" but whose script colours it
+// colourless — is the one known residual and is named in the derive report.
 func (f *Face) deriveColourIdentity() uint8 {
 	var m uint8
 	m |= manaColours(f.ManaCost)   // the printed mana cost
 	m |= colourIndicator(f.Colors) // the colour indicator
-	for _, a := range f.Abilities {
-		// Intrinsic granted basic-land mana abilities are not printed rules
-		// text (a Mountain has no "{T}: Add {R}" in its oracle) and must not
-		// contribute identity; they are also added after derive on the
-		// ParseBytes route but present before it on the gob route, so skipping
-		// them keeps the two construction routes identical.
-		if strings.HasPrefix(a.Line, "intrinsic:") {
+	m |= oracleColours(f.Oracle)   // brace-delimited mana symbols in rules text, reminder text skipped
+	m |= cdaSetColours(f.Statics)  // a characteristic-defining ability's own SetColor$ ("CARDNAME is all colors")
+	return m
+}
+
+// cdaSetColours folds in the SetColor$ of every characteristic-defining
+// continuous ability that affects the face itself: Transguild Courier and
+// Sphinx of the Guildpact's "CARDNAME is all colors" (SetColor$ All) is the
+// CR 903.4 "colors defined by its characteristic-defining abilities" class
+// with no mana symbol anywhere to scan, so without it both cards would read
+// colourless and be legal in every commander deck. "All" is the five colours;
+// a named colour contributes itself; "Colorless" and a commander-only
+// "ChosenColor" (CR 903.4b's before-the-game choice — Faceless One,
+// The Prismatic Piper) contribute nothing here. A static that merely affects
+// OTHER permanents (Leyline of the Guildpact makes your permanents all
+// colours but is itself green) or that is not characteristic-defining
+// (Fallaji Wayfarer's "doesn't affect its color identity") is not the card's
+// identity and must be ignored.
+func cdaSetColours(sts []Static) uint8 {
+	var m uint8
+	for _, s := range sts {
+		if s.Mode != "Continuous" || s.Params["CharacteristicDefining"] != "True" {
 			continue
 		}
-		m |= manaColours(a.Line)
-	}
-	for _, t := range f.Triggers {
-		m |= manaColours(t.Mode)
-		for _, v := range t.Params {
-			m |= manaColours(v)
+		if !strings.Contains(s.Params["Affected"], "Self") {
+			continue
+		}
+		switch strings.ToLower(s.Params["SetColor"]) {
+		case "all":
+			m |= ColourWhite | ColourBlue | ColourBlack | ColourRed | ColourGreen
+		case "white":
+			m |= ColourWhite
+		case "blue":
+			m |= ColourBlue
+		case "black":
+			m |= ColourBlack
+		case "red":
+			m |= ColourRed
+		case "green":
+			m |= ColourGreen
 		}
 	}
-	for _, s := range f.Statics {
-		for _, v := range s.Params {
-			m |= manaColours(v)
+	return m
+}
+
+// oracleColours scans Oracle rules text for brace-delimited mana symbols and
+// returns their colour bitmask. Only brace content counts — prose whose words
+// carry an uppercase colour initial ("a White Spirit token") is not a mana
+// symbol — and parenthesised text is skipped outright, because that is where
+// reminder text lives (CR 207.2) and CR 903.4c ignores it. Within a brace
+// token every colour letter contributes, so hybrid ({W/U}), Phyrexian ({B/P})
+// and monocolour-hybrid ({2/B}) forms all land their colour letters exactly
+// as manaColours would read them off a printed cost.
+func oracleColours(oracle string) uint8 {
+	var m uint8
+	depth := 0
+	start := -1 // index of the '{' of the brace token being collected, -1 if none
+	for i := 0; i < len(oracle); i++ {
+		switch oracle[i] {
+		case '(': // reminder text (and any other parenthesised asides) starts
+			depth++
+			start = -1
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+		case '{':
+			if depth == 0 { // a brace token's content, not reminder text
+				start = i + 1
+			}
+		case '}':
+			if depth == 0 && start >= 0 {
+				m |= manaColours(oracle[start:i])
+				start = -1
+			}
 		}
-	}
-	for _, r := range f.Repls {
-		for _, v := range r.Params {
-			m |= manaColours(v)
-		}
-	}
-	for _, v := range f.SVars {
-		m |= manaColours(v)
 	}
 	return m
 }
@@ -320,6 +405,8 @@ func parsePT(pt string) (pow, tgh int32, cd bool) {
 // converted mana cost, an exact mirror of botpolicy.CmcOf. It deliberately
 // re-derives rules/mana.go's ParseCost.CMC() by hand here because cards can
 // import neither botpolicy nor rules.
+func (f *Face) ManaValue() int32 { return cmcFromManaCost(f.ManaCost) }
+
 func cmcFromManaCost(mc string) int32 {
 	mc = manaBraceForm.Replace(mc)
 	mc = strings.TrimSpace(mc)
@@ -339,8 +426,43 @@ func cmcFromManaCost(mc string) int32 {
 			n += int32(v)
 			continue
 		}
+		if v, ok := twobridManaValue(sym); ok {
+			// CR 202.4b: a monocolour hybrid's mana value is its generic
+			// face. {2/W} is mana value 2, whether it is eventually paid
+			// with two mana or one white mana.
+			n += v
+			continue
+		}
 		// Hybrid ("W/U"), Phyrexian ("UP"), and any other symbol: one generic.
 		n++
 	}
 	return n
+}
+
+// twobridManaValue recognises Forge's concatenated ("2W") and slash
+// ("2/W") monocolour-hybrid spellings. It returns the generic face, which is
+// the symbol's mana value. This mirrors rules.ParseCost's twobrid parser
+// without importing rules (cards sits to its left in the dependency graph).
+func twobridManaValue(sym string) (int32, bool) {
+	generic, col := "", ""
+	if left, right, ok := strings.Cut(sym, "/"); ok {
+		generic, col = left, right
+	} else {
+		i := 0
+		for i < len(sym) && sym[i] >= '0' && sym[i] <= '9' {
+			i++
+		}
+		if i == 0 {
+			return 0, false
+		}
+		generic, col = sym[:i], sym[i:]
+	}
+	if len(col) != 1 || !strings.ContainsRune("WUBRGC", rune(col[0])) {
+		return 0, false
+	}
+	v, err := strconv.ParseInt(generic, 10, 32)
+	if err != nil || v < 0 {
+		return 0, false
+	}
+	return int32(v), true
 }

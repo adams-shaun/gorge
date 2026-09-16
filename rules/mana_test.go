@@ -94,10 +94,10 @@ func TestCMCCountsColoredAndGeneric(t *testing.T) {
 
 func TestLifeCostPayability(t *testing.T) {
 	c := ParseCost("PayLife<1>")
-	if !c.payable(state.Mana{}, 1) {
+	if !c.payable(state.Mana{}, state.Mana{}, 1) {
 		t.Fatal("one life should pay PayLife<1> without mana")
 	}
-	if c.payable(state.Mana{}, 0) {
+	if c.payable(state.Mana{}, state.Mana{}, 0) {
 		t.Fatal("zero life must not pay PayLife<1>")
 	}
 	if c.CanPay(state.Mana{}) {
@@ -181,12 +181,19 @@ func TestHybridAndPhyrexianAlternativePayments(t *testing.T) {
 		t.Error("GW cost must not be payable by CC alone")
 	}
 
-	// Forge spells monocolour hybrid as "2B" (Beseech the Queen). The
-	// two-colour parser does not widen to a generic-or-colour hybrid, so "2B"
-	// still degrades to one generic (unchanged, and outside the 107.4e leaves).
+	// Forge spells monocolour hybrid as "2B" (Beseech the Queen). It is a
+	// REAL alternative payment since the rv2c cost-modifier task removed the
+	// flatten-to-generic stand-in: one pip, payable by two generic mana or by
+	// one black (CR 107.4e).
 	monoCost := ParseCost("2B")
-	if monoCost.Generic != 1 || monoCost.Colored.Total() != 0 {
-		t.Errorf("ParseCost(\"2B\") = %+v, want generic=1, colored=0", monoCost)
+	if len(monoCost.Twobrid) != 1 || monoCost.Twobrid[0] != (Twobrid{Generic: 2, Col: 'B'}) || monoCost.Generic != 0 {
+		t.Errorf("ParseCost(\"2B\") = %+v, want one 2/B monocolour hybrid", monoCost)
+	}
+	if !monoCost.CanPay(pool(0, 0, 2, 0, 0, 0)) {
+		t.Error("2B should be payable by BB")
+	}
+	if !monoCost.payable(pool(0, 0, 0, 0, 0, 2), state.Mana{}, 0) {
+		t.Error("2B should be payable by two generic mana")
 	}
 
 	// Forge rarely spells hybrid as "W/U" (one card out of 33,669).
@@ -211,7 +218,7 @@ func TestHybridAndPhyrexianAlternativePayments(t *testing.T) {
 		t.Error("Dismember must not be pool-payable by RRR without life")
 	}
 	// With life offered, RRR plus four life pays Dismember (CR 107.4f).
-	if !dismemberCost.payable(pool(0, 0, 0, 3, 0, 0), 20) {
+	if !dismemberCost.payable(pool(0, 0, 0, 3, 0, 0), state.Mana{}, 20) {
 		t.Error("Dismember should be payable by RRR with life")
 	}
 
@@ -223,7 +230,7 @@ func TestHybridAndPhyrexianAlternativePayments(t *testing.T) {
 	if probeCost.CanPay(pool(0, 0, 0, 0, 1, 0)) {
 		t.Error("Gitaxian Probe must not be pool-payable by G alone without life")
 	}
-	if !probeCost.payable(pool(0, 0, 0, 0, 1, 0), 20) {
+	if !probeCost.payable(pool(0, 0, 0, 0, 1, 0), state.Mana{}, 20) {
 		t.Error("Gitaxian Probe should be payable by G with life")
 	}
 }
@@ -260,15 +267,15 @@ func TestNumericTokenValidation(t *testing.T) {
 
 func TestParseCostNonManaParts(t *testing.T) {
 	c := ParseCost("2 C Sac<1/Land>")
-	if c.Generic != 2 || c.Colored[state.MC] != 1 || len(c.Sac) != 1 || c.Sac[0] != (CostPart{1, "Land"}) {
+	if c.Generic != 2 || c.Colored[state.MC] != 1 || len(c.Sac) != 1 || c.Sac[0] != (CostPart{N: 1, Spec: "Land"}) {
 		t.Fatalf("%+v", c)
 	}
 	c = ParseCost("SubCounter<2/P1P1>")
-	if c.CMC() != 0 || len(c.SubCounter) != 1 || c.SubCounter[0] != (CostPart{2, "P1P1"}) || !c.HasNonMana() {
+	if c.CMC() != 0 || len(c.SubCounter) != 1 || c.SubCounter[0] != (CostPart{N: 2, Spec: "P1P1"}) || !c.HasNonMana() {
 		t.Fatalf("%+v", c)
 	}
 	c = ParseCost("Sac<1/CARDNAME> Discard<0/Hand> Discard<2/Card.nonLand/nonland cards>")
-	if c.Generic != 0 || len(c.Discard) != 2 || c.Discard[0] != (CostPart{0, "Hand"}) || c.Discard[1] != (CostPart{2, "Card.nonLand"}) || !c.HasNonMana() {
+	if c.Generic != 0 || len(c.Discard) != 2 || c.Discard[0] != (CostPart{N: 0, Spec: "Hand"}) || c.Discard[1] != (CostPart{N: 2, Spec: "Card.nonLand"}) || !c.HasNonMana() {
 		t.Fatalf("discard cost parsed as %+v", c)
 	}
 	c = ParseCost("T")

@@ -78,53 +78,25 @@ import (
 // the ratchet became EMPTY for the original Legacy and interim Commander
 // decks. The Hearthhull and Valgavoth imports add 54 measured gaps across 579
 // distinct cards in the pinned corpus; entries retire only when their
-// primitives are implemented.
+// primitives are implemented. The untap/mana wave (api:Untap, api:ManaReflected,
+// stat:ManaConvert, stat:UntapOtherPlayer and kw:Cumulative upkeep)
+// retired Fabled Passage, Exotic Orchard, Baloth Prime, Horizon Explorer and
+// Chromatic Orrery outright (every entry's primitives are implemented). The
+// one recorded remainder for Horizon Explorer is the param-level gap
+// `param:api:Untap.ETB` in paramcensus_test.go's knownUnsupportedParams.
+//
+// Task altcosts (the alternative-cost keyword family) retired the one entry
+// the merged decks carried: kw:Dash (Ragavan, Nimble Pilferer), implemented
+// to CR 702's dash shape in rules/altcast.go with a named proof test in
+// rules/altcast_test.go. kw:Evoke, kw:Encore, kw:Overload, kw:Warp,
+// kw:Madness and kw:AlternateAdditionalCost registered in the same task are
+// needed only by the three held commander decks (Rakdos Scam.exe, Vivi
+// cEDH, Ulalek Eldrazi), whose entries land in this table when they are
+// imported.
 var knownUnsupported = map[string][]string{
-	"Archfiend of Despair":         {"stat:CantGainLife"},
-	"Baloth Prime":                 {"api:Untap"},
-	"Bloodletter of Aclazotz":      {"api:ReplaceEffect", "repl:LifeReduced"},
-	"Chandra, Awakened Inferno":    {"repl:Counter"},
-	"Chromatic Orrery":             {"stat:ManaConvert"},
-	"Conduit of Worlds":            {"api:Play"},
-	"Constant Mists":               {"api:Fog", "kw:Buyback"},
-	"Crypt Ghast":                  {"kw:Extort"},
-	"Dauthi Voidwalker":            {"kw:Shadow"},
-	"Exotic Orchard":               {"api:ManaReflected"},
-	"Exploration Broodship":        {"kw:Station"},
-	"Fabled Passage":               {"api:Untap"},
-	"Fate Unraveler":               {"trig:Drawn"},
-	"Fiery Emancipation":           {"api:ReplaceEffect", "repl:DamageDone"},
-	"Fog":                          {"api:Fog"},
-	"Gamble":                       {"api:Shuffle"},
-	"Hearthhull, the Worldseed":    {"kw:Station"},
-	"Horizon Explorer":             {"api:Untap"},
-	"Karazikar, the Eye Tyrant":    {"api:Goad"},
-	"Kederekt Parasite":            {"trig:Drawn"},
-	"Lord Windgrace":               {"kw:CARDNAME can be your commander."},
-	"Necrodominance":               {"repl:BeginPhase"},
-	"Necropotence":                 {"repl:BeginPhase"},
-	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
-	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
-	"Planetary Annihilation":       {"api:SacrificeAll"},
-	"Profane Tutor":                {"kw:Suspend"},
-	"Ragavan, Nimble Pilferer":     {"kw:Dash"},
-	"Razorkin Needlehead":          {"trig:Drawn"},
-	"Sheoldred, the Apocalypse":    {"trig:Drawn"},
-	"Solphim, Mayhem Dominus":      {"api:ReplaceEffect", "repl:DamageDone"},
-	"Spiked Corridor":              {"api:ReplaceEffect", "repl:DamageDone", "trig:UnlockDoor"},
-	"Spinerock Knoll":              {"api:Play", "kw:Hideaway"},
-	"Sulfuric Vortex":              {"repl:GainLife"},
-	"The Lord of Pain":             {"stat:CantGainLife"},
-	"Through the Forest Gate":      {"api:Shuffle"},
-	"Uncivil Unrest":               {"api:ReplaceEffect", "repl:DamageDone"},
-	"Underworld Dreams":            {"trig:Drawn"},
-	"Unholy Annex":                 {"trig:UnlockDoor"},
-	"Valgavoth, Harrower of Souls": {"kw:Ward", "trig:LifeLost"},
-	"Vein Ripper":                  {"kw:Ward"},
-	"Vial Smasher the Fierce":      {"kw:Partner"},
-	"Virtue of Strength":           {"api:ReplaceMana", "repl:ProduceMana"},
-	"Walk-In Closet":               {"trig:UnlockDoor"},
-	"Ziatora's Proving Ground":     {"kw:Cycling"},
+	"Conduit of Worlds": {"api:Play"},
+	"Crypt Ghast":       {"kw:Extort"},
+	"Spinerock Knoll":   {"api:Play", "kw:Hideaway"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

@@ -15,5 +15,18 @@ export default ts.config(
   // the first to add such a file (session.svelte.ts, tables.svelte.ts).
   { files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'], languageOptions: { parserOptions: { parser: ts.parser } } },
   { rules: { '@typescript-eslint/no-explicit-any': 'error' } },
+  // Browser tests must attach to the global setup fixture. This prevents a
+  // copied test from silently adding another Vite server or Chromium process.
+  {
+    files: ['src/**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [
+          { name: 'vite', importNames: ['createServer'], message: 'use the shared browser test fixture' },
+          { name: 'playwright', importNames: ['chromium'], message: 'use sharedBrowser from src/test/browser' },
+        ],
+      }],
+    },
+  },
   { ignores: ['dist/', 'node_modules/', '../cmd/gorged/webdist/', 'src/protocol.ts'] },
 );

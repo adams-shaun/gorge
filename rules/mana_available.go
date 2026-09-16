@@ -88,27 +88,29 @@ func (e *Engine) AvailableMana(p state.PlayerID) state.Mana {
 // not free and must not be counted as available-by-tapping.
 func manaFreeCost(c Cost) bool {
 	return len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
-		c.Generic == 0 && c.Life == 0 && c.Colored == (state.Mana{}) && c.X == 0
+		len(c.AddCounter) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 &&
+		len(c.Behold) == 0 && len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
+		c.Generic == 0 && c.Life == 0 && c.Colored == (state.Mana{}) && c.X == 0 &&
+		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
 // addAvailable folds one free-to-tap mana ability into an available-mana
-// accumulator, using exactly the rune rules cards.ManaiProduction.add uses
-// so the aggregate agrees with the per-face projection for the pure-tap case:
-// blank / "Any" / "Combo Any" Produced$ becomes one colourless (the executor's
-// effMana resolution), every other brace/space-stripped rune adds its WUBRG
-// colour (or colourless for an unrecognised rune). The amount comes from
-// Amount$ with the executor's default of 1 and the T14-f negative clamp; an
-// Indeterminate amount ("X", "Y", a Count$, "Sacrificed$...") resolves to
-// zero, contributing nothing.
+// accumulator through cards.ProducedCounts -- the ONE Produced$ parse the
+// per-face projection (cards.ManaiProduction.add) and this aggregate share,
+// so the two agree by construction: blank / "Any" / "Combo Any" becomes one
+// colourless (the executor's effMana resolution), a plain symbol token adds
+// its listed colours ("Combo B R" one B and one R, "RR" two red), and an
+// unrecognised token ("Chosen", "ColorIdentity", a "Special ..." word)
+// claims no mana at all -- never the phantom colourless a rune walk of the
+// word itself used to count. The amount comes from Amount$ with the
+// executor's default of 1 and the T14-f negative clamp; an Indeterminate
+// amount ("X", "Y", a Count$, "Sacrificed$...") resolves to zero,
+// contributing nothing.
 func addAvailable(m *state.Mana, ma *cards.SA) {
-	raw := strings.TrimSpace(ma.Params["Produced"])
-	if raw == "" || raw == "Any" || raw == "Combo Any" {
-		raw = "C"
-	}
-	s := strings.NewReplacer("{", "", "}", "", " ", "").Replace(raw)
+	counts, _ := cards.ProducedCounts(ma.Params["Produced"])
 	amt := availableAmount(ma)
-	for _, r := range s {
-		m[state.ManaIndex(byte(r))] += amt
+	for i, n := range counts {
+		m[state.ManaIndex(cards.ManaSymbol(i))] += n * amt
 	}
 }
 

@@ -1,0 +1,10 @@
+{
+  "received": "2026-09-15T09:44:18Z",
+  "text": "g3/m/1 crash",
+  "url": "https://goforge-demo.codeburro2.net/t/g3/m/1",
+  "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+  "table": "g3",
+  "seat": "0",
+  "client": "client.json",
+  "snapshot": "partial: view unavailable: host: seq beyond head 1323 (captured: match.json log.json)"
+}

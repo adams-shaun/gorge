@@ -71,10 +71,12 @@ func TestBenchIsDeterministic(t *testing.T) {
 
 // TestSeatAssignmentAlternates pins the M1 invariant: over an even N, A
 // holds each seat in exactly half the games. With the (game+seat) rule A
-// holds seat 0 on even games and seat 1 on odd games, so a seating
-// advantage (the first turn is seat 0's, and each seat keeps its own deck
-// list for the whole run) is spread equally across the policies instead of
-// masquerading as one of them being better.
+// holds seat 0 on even games and seat 1 on odd games, so a deck-list
+// advantage (each seat keeps its own deck list for the whole run) is spread
+// equally across the policies instead of masquerading as one of them being
+// better -- the FIRST TURN is not part of this any more, since the CR 103.1
+// toss draws the starting seat per game (the report's starting-player split
+// is the play/draw measurement now).
 func TestSeatAssignmentAlternates(t *testing.T) {
 	const games, seats = 8, 2
 	held := make([]int, seats)
@@ -604,7 +606,7 @@ func TestMatrixEndToEnd(t *testing.T) {
 		t.Fatalf("parsePairs: %v", err)
 	}
 	var b1, b2 bytes.Buffer
-	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, 200, 0, false, &b1, io.Discard); err != nil {
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, 200, 0, false, nil, &b1, io.Discard); err != nil {
 		t.Fatalf("runMatrix: %v", err)
 	}
 	out := b1.String()
@@ -617,7 +619,7 @@ func TestMatrixEndToEnd(t *testing.T) {
 		t.Errorf("report must state games-per-pair:\n%s", out)
 	}
 	// Deterministic: a second identical run is byte-identical.
-	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, 200, 0, false, &b2, io.Discard); err != nil {
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, 200, 0, false, nil, &b2, io.Discard); err != nil {
 		t.Fatalf("runMatrix(second): %v", err)
 	}
 	if b1.String() != b2.String() {
@@ -663,19 +665,17 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	if m == nil {
 		t.Fatalf("summary block missing:\n%s", buf.String())
 	}
-	// seat 0 wins: 14, seat 1 wins: 6 -- the split at this seed (groups 8, 9)
-	// on the current main plus ba1 plus the CR 103.1 toss. bl1's colour-aware
-	// land drop moved the historical 14/6 to 15/5; the ba1 B2 mana reserve
-	// (chooseCast's C7 prefers a cast that keeps the pool at or above the
-	// cheapest instant-speed card in hand) then moved it on to 13/7, bisected
-	// by building the B1-only commit (B1 alone holds 15/5, so B2 owns the
-	// whole 15/5 → 13/7 move). The CR 103.1 toss (rules.New draws the starting
-	// seat) then moved it on to 14/6: each game's toss shifts that game's rng
-	// stream (shuffles) and, when seat 0 loses, its turn order -- a game-shape
-	// change with no card behaviour behind it, same cause class as the
-	// TestHeads movement. Any change to the default bench makes these move.
-	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 14 || seat1 != 6 {
-		t.Errorf("constructed default split = %d/%d, want 14/6", seat0, seat1)
+	// Seat 0 wins: 16, seat 1 wins: 4 at this fixed seed. This is a command
+	// golden, not a claim about policy strength: it catches a change to the
+	// default constructed bench's deck order, seed use, or bot path. The prior
+	// 14/6 expectation was stale after the current engine's RNG/gameplay
+	// changes; the measured 15/5 was then moved to 16/4 by
+	// inbox-botbench-stability-run's bot fix: the KChoose mana-payment arm now
+	// prefers a phyrexian pip's life payment over its pool colour while the
+	// seat has life to spare (measured by reverting the arm: the old 15/5
+	// returns), which changes dimir-tempo's Dismember ({1}{B/P}{B/P}) pip answers in this run.
+	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 16 || seat1 != 4 {
+		t.Errorf("constructed default split = %d/%d, want 16/4", seat0, seat1)
 	}
 	if strings.Contains(buf.String(), "STALLED") {
 		t.Errorf("constructed default (no stalls) must not print a stall line")
@@ -846,17 +846,19 @@ func TestCommanderRunRotateSeatsTheRotatedOrder(t *testing.T) {
 }
 
 // TestCommanderAllExpandsToCommanderDecks pins Part A's deck selection: in
-// commander mode -pairs all expands over ONLY the commander decks (the five
-// foundations-*), giving 5 choose 2 = 10 unordered pairs, and never names a
-// constructed deck -- dealing a 100-card Commander list as a constructed
-// pile is the defect the whole task exists to end.
+// commander mode -pairs all expands over ONLY the Commander decks, giving
+// N choose 2 unordered pairs for the current Commander pool, and never names
+// a constructed deck -- dealing a 100-card Commander list as a constructed
+// pile is the defect the whole task exists to end. The pool deliberately
+// grows with deck fixtures, so this test derives N rather than pinning an
+// obsolete file count.
 func TestCommanderAllExpandsToCommanderDecks(t *testing.T) {
 	cmd, err := commanderDeckNames()
 	if err != nil {
 		t.Fatalf("commanderDeckNames: %v", err)
 	}
-	if len(cmd) != 5 {
-		t.Errorf("commander deck count = %d, want 5, got %v", len(cmd), cmd)
+	if len(cmd) < 2 {
+		t.Fatalf("need at least two Commander decks, got %v", cmd)
 	}
 	set := commanderSet{}
 	for _, n := range cmd {
@@ -866,8 +868,8 @@ func TestCommanderAllExpandsToCommanderDecks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parsePairsForMode(all, commander): %v", err)
 	}
-	if len(ps) != 10 {
-		t.Errorf("commander -pairs all = %d pairs, want 10 (5 choose 2)", len(ps))
+	if want := len(cmd) * (len(cmd) - 1) / 2; len(ps) != want {
+		t.Errorf("commander -pairs all = %d pairs, want %d (%d choose 2)", len(ps), want, len(cmd))
 	}
 	for _, p := range ps {
 		if !set.has(p.a) || !set.has(p.b) {
@@ -966,13 +968,13 @@ func TestCommanderMatrixJSONReproducible(t *testing.T) {
 		t.Fatalf("parsePairsForMode: %v", err)
 	}
 	var b1, b2 bytes.Buffer
-	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "json", pairs, 2, 200, 0, true, &b1, io.Discard); err != nil {
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "json", pairs, 2, 200, 0, true, nil, &b1, io.Discard); err != nil {
 		t.Fatalf("runMatrix(json): %v", err)
 	}
 	if b1.String() == "" || !strings.Contains(b1.String(), `"format": "commander"`) {
 		t.Fatalf("commander JSON must carry the format:\n%s", b1.String())
 	}
-	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "json", pairs, 2, 200, 0, true, &b2, io.Discard); err != nil {
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "json", pairs, 2, 200, 0, true, nil, &b2, io.Discard); err != nil {
 		t.Fatalf("runMatrix(json, second): %v", err)
 	}
 	if b1.String() != b2.String() {
@@ -1120,5 +1122,66 @@ func TestAllStalledReportsNoRate(t *testing.T) {
 	}
 	if !strings.Contains(out, "no rate") {
 		t.Errorf("all-stalled run must say the rate is unavailable, not 0:\n%s", out)
+	}
+}
+
+// TestTheSummaryReportsTheStartingPlayerSplit (rv2a): since the CR 103.1
+// toss the seat that plays first is drawn per game -- the seat-index split
+// no longer measures play/draw, so the summary carries a starting-player
+// split taken from each game's first TurnChange instead. The synthetic
+// schedule: game 0 starts at seat 0 and seat 0 wins it; game 1 starts at
+// seat 1 and seat 1 wins it; game 2 starts at seat 1 and draws. The line
+// must read 1/1 and 2/1 -- starts and wins-when-starting, not seat wins.
+func TestTheSummaryReportsTheStartingPlayerSplit(t *testing.T) {
+	var buf bytes.Buffer
+	starters := []int{0, 1, 1}
+	winners := []int{0, 1, -1} // -1: a draw
+	if err := bench(0, 3, 2, "bot", "bot", func(g uint64, _ []string) (gameOutcome, error) {
+		o := gameOutcome{turns: 10, intents: 50, starter: starters[g], starterSet: true}
+		if winners[g] >= 0 {
+			o.winner, o.winnerSeat = "bot", winners[g]
+		}
+		return o, nil
+	}, &buf); err != nil {
+		t.Fatalf("bench: %v", err)
+	}
+	out := buf.String()
+	startRe := regexp.MustCompile(`(?m)^starting player: seat 0 started (\d+) and won (\d+)  seat 1 started (\d+) and won (\d+)$`)
+	m := startRe.FindStringSubmatch(out)
+	if m == nil {
+		t.Fatalf("starting-player line missing from the summary:\n%s", out)
+	}
+	if s0, w0, s1, w1 := atoi(m[1]), atoi(m[2]), atoi(m[3]), atoi(m[4]); s0 != 1 || w0 != 1 || s1 != 2 || w1 != 1 {
+		t.Errorf("starting split = seat 0 %d/%d, seat 1 %d/%d, want 1/1 and 2/1", s0, w0, s1, w1)
+	}
+}
+
+// TestTheStartingPlayerLineIsSuppressedWithoutStarters (rv2a): an outcome
+// source that records no starter (a synthetic player predating the field)
+// must not grow a zeroed line -- the report stays byte-identical to the
+// pre-rv2a shape for every caller that does not carry starters.
+func TestTheStartingPlayerLineIsSuppressedWithoutStarters(t *testing.T) {
+	var buf bytes.Buffer
+	if err := bench(0, 3, 2, "bot", "bot", func(_ uint64, _ []string) (gameOutcome, error) {
+		// starterSet stays false: a hand-built outcome that leaves the field
+		// at its zero value must not invent a seat-0 start.
+		return gameOutcome{winner: "bot", winnerSeat: 0, turns: 10, intents: 50}, nil
+	}, &buf); err != nil {
+		t.Fatalf("bench: %v", err)
+	}
+	if strings.Contains(buf.String(), "starting player:") {
+		t.Errorf("starting-player line printed with no starters recorded:\n%s", buf.String())
+	}
+}
+
+// TestStartingPlayerRejectsAnInvalidRecordedSeat keeps the fold defensive:
+// only a present, in-range first TurnChange can index the per-seat split.
+func TestStartingPlayerRejectsAnInvalidRecordedSeat(t *testing.T) {
+	var buf bytes.Buffer
+	err := bench(0, 1, 2, "bot", "bot", func(_ uint64, _ []string) (gameOutcome, error) {
+		return gameOutcome{turns: 1, starter: 2, starterSet: true}, nil
+	}, &buf)
+	if err == nil || !strings.Contains(err.Error(), "starter seat 2 out of range [0,2)") {
+		t.Fatalf("bench invalid starter error = %v, want range error", err)
 	}
 }
