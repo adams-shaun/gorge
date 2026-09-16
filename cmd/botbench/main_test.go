@@ -665,13 +665,17 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	if m == nil {
 		t.Fatalf("summary block missing:\n%s", buf.String())
 	}
-	// Seat 0 wins: 15, seat 1 wins: 5 at this fixed seed. This is a command
+	// Seat 0 wins: 16, seat 1 wins: 4 at this fixed seed. This is a command
 	// golden, not a claim about policy strength: it catches a change to the
 	// default constructed bench's deck order, seed use, or bot path. The prior
 	// 14/6 expectation was stale after the current engine's RNG/gameplay
-	// changes; the measured current default is 15/5.
-	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 15 || seat1 != 5 {
-		t.Errorf("constructed default split = %d/%d, want 15/5", seat0, seat1)
+	// changes; the measured 15/5 was then moved to 16/4 by
+	// inbox-botbench-stability-run's bot fix: the KChoose mana-payment arm now
+	// prefers a phyrexian pip's life payment over its pool colour while the
+	// seat has life to spare (measured by reverting the arm: the old 15/5
+	// returns), which changes dimir-tempo's Dismember ({1}{B/P}{B/P}) pip answers in this run.
+	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 16 || seat1 != 4 {
+		t.Errorf("constructed default split = %d/%d, want 16/4", seat0, seat1)
 	}
 	if strings.Contains(buf.String(), "STALLED") {
 		t.Errorf("constructed default (no stalls) must not print a stall line")

@@ -540,6 +540,19 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 	}
 	var attackers []*atk
 	byID := make(map[state.ObjID]*atk, len(d.Options))
+	// CR 508.1d requirements travel on the options (Option.Required, the
+	// engine marks goaded creatures and MustAttack statics): a required
+	// attacker is declared no matter what the value tiers say, because the
+	// engine REJECTS a declaration that omits one it could have included --
+	// an unmarked bot once declared around a goaded Knight and the whole
+	// run aborted on "must attack with as many required creatures as
+	// possible" (seed 1283, commander bench 2026-09-15).
+	required := make(map[state.ObjID]bool, len(d.Options))
+	for i := range d.Options {
+		if d.Options[i].Required {
+			required[d.Options[i].Obj] = true
+		}
+	}
 	for i := range d.Options {
 		o := &d.Options[i]
 		at, ok := byID[o.Obj]
@@ -583,16 +596,24 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 
 	var chosen []int
 	for _, at := range attackers {
-		if at.a.Power <= 0 {
-			continue // AR1
+		if at.a.Power <= 0 && !required[at.id] {
+			continue // AR1 (a required 0-power creature still attacks: the requirement is not a value judgement)
 		}
 		best := -1
 		bestTier := -1
 		var bestLife int32
 		for _, oi := range at.opts {
 			t, ok := score(at, oi)
+			if !ok && !required[at.id] {
+				continue // AR3 vetoes only a creature it is free to leave home
+			}
+			// A required attacker with every defender vetoed still swings at
+			// its first offered option (deterministic), so the requirement is
+			// always answered by an offered option.
 			if !ok {
-				continue
+				best = at.opts[0]
+				bestTier, bestLife = -1, b.Life[d.Options[at.opts[0]].Player]
+				break
 			}
 			// At equal combat risk, pressure the opponent closest to dying
 			// rather than the lowest seat. Life is public on both adapters.
@@ -667,6 +688,11 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 			if !blockable {
 				continue
 			}
+			// A required attacker is never the one held back: cutting it
+			// makes the whole declaration illegal (CR 508.1d).
+			if required[d.Options[oi].Obj] {
+				continue
+			}
 			// AR5: a commander whose swing closes its target's clock is
 			// never held back -- the attack's game-ending piece.
 			if b.closesClock(d.Options[oi].Player, d.Options[oi].Obj, a) {
@@ -679,6 +705,13 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 		if hold >= 0 {
 			chosen = append(chosen[:hold:hold], chosen[hold+1:]...)
 		}
+	}
+	// A MaxAttackers$ ceiling (CR 508.1j) bounds the whole declaration and
+	// the engine exposes it as the decision's Max; the required attackers
+	// were added first, so truncating keeps exactly the required ones when
+	// the ceiling forces a choice between requirements.
+	if d.Max < len(chosen) && d.Max >= 0 {
+		chosen = chosen[:d.Max]
 	}
 	return chosen
 }
