@@ -30,6 +30,16 @@ func effLoseLife(h Host, c *Ctx, sa *cards.SA) {
 	if n < 0 {
 		n = 0
 	}
+	// A single "each opponent loses life" instruction is simultaneous even
+	// though its per-player LifeChange events are serialized in the log. Keep
+	// the whole operation in the shared boundary so LifeLostAll sees one group.
+	if b, ok := h.(interface {
+		BeginLifeLossBatch()
+		EndLifeLossBatch()
+	}); ok {
+		b.BeginLifeLossBatch()
+		defer b.EndLifeLossBatch()
+	}
 	for _, t := range Defined(h, c, sa) {
 		h.Emit(events.Event{Kind: events.LifeChange, Player: PlayerOf(h, c, t), Amount: -n})
 	}

@@ -1141,6 +1141,11 @@ func (e *Engine) damageStep(firstStrike bool) {
 			}
 		}
 	}
+	// CR 510.2 makes every assignment in this pass one simultaneous damage
+	// event. Besides computing assignments before emission, keep that boundary
+	// while triggers are queued so LifeLostAll observes the group once.
+	e.BeginLifeLossBatch()
+	defer e.EndLifeLossBatch()
 	for _, x := range as {
 		// e.damaging names the dealing creature for the whole of this
 		// assignment so emit's protection check (Task 15) can prevent the
