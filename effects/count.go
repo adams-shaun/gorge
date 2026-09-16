@@ -506,6 +506,20 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest))
 	}
 
+	// StartingPlayer.<yes>.<no> is Forge's two-branch opening designation
+	// count. Desert Cenote's StartingPlayer.0.1 feeds LT1, so only the
+	// starting player gets its tapped-entry replacement; the other corpus
+	// cards use different numeric branches. Parse the grammar rather than a
+	// card-specific literal so every branch pair follows the current, replayed
+	// designation (including an opening effect that changes it).
+	if branches, ok := strings.CutPrefix(head, "StartingPlayer."); ok {
+		yes, no := splitDot(branches)
+		if g.IsStartingPlayer(c.Controller) {
+			return yes
+		}
+		return no
+	}
+
 	// CardCounters.<KIND> counts a counter kind on the source.
 	if kind, ok := strings.CutPrefix(head, "CardCounters."); ok {
 		if o := g.Obj(c.Source); o != nil {

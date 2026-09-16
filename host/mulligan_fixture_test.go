@@ -104,15 +104,22 @@ func TestTheMulliganStarterFixtureIsTheEngineSOwnWireBytes(t *testing.T) {
 	}
 	firstView := r.seatViewAtHead(t, "t1", 1, 1)
 
-	// Take the mulligan: the seat stays un-kept (it must decide again on a
-	// full re-drawn seven) and, with the allowance spent, the re-ask offers
-	// only "keep" — the second shape the web panel must render. Capturing
-	// both asks as wire bytes covers the two prompts the round can pose a
-	// seat (rules/mulligan.go's keepMulliganPrompt branches on taken < limit).
+	// Take the mulligan. CR 103.5 completes this declaration pass by asking
+	// Alice before Bob's spent-allowance re-ask begins the next pass. The web
+	// fixture still captures Bob's two shapes, but drives that intervening
+	// keep through the real host rather than preserving the old repeat-seat
+	// bug in a fixture.
 	if err := r.SubmitIntent("t1", 1, 1, decision.Intent{Seq: d1.Seq, Player: 1, Choices: []int{1}}); err != nil {
 		t.Fatalf("SubmitIntent(mulligan): %v", err)
 	}
-	d2 := waitNextPending(t, r, "t1", 1, 1, d1.Seq)
+	intervening := waitPending(t, r, "t1", 1, 0)
+	if intervening.Kind != decision.KMulligan || intervening.Player != 0 {
+		t.Fatalf("after Bob's mulligan, pending = %+v, want Alice's same-pass declaration", intervening)
+	}
+	if err := r.SubmitIntent("t1", 1, 0, decision.Intent{Seq: intervening.Seq, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("SubmitIntent(Alice keep): %v", err)
+	}
+	d2 := waitNextPending(t, r, "t1", 1, 1, intervening.Seq)
 	if d2.Kind != decision.KMulligan || len(d2.Options) != 1 || d2.Options[0].Kind != "keep" {
 		t.Fatalf("after the mulligan, pending = %+v, want the spent-allowance keep-only re-ask", d2)
 	}

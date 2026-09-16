@@ -132,6 +132,10 @@ type Engine struct {
 	// mulligan round (a Gemstone Caverns may not be used from a hand its owner
 	// later mulliganed away) and before turn one. It holds only object IDs and parsed SVar names, so replay and
 	// Clone reproduce the same pregame choices without ambient state.
+	// Impatient Iguana's accepted BecomeStartingPlayer$ Reveal resolves here
+	// and folds the designation into state.Game through events.StartingPlayer
+	// Change (effects/cardflow.go), so Count$StartingPlayer and the view's
+	// pregame projection read it before turn one.
 	opening openingRound
 	// blockerRound is the declare-blockers step's per-defender cursor
 	// (rules/combat.go, Task m34): an attack may be split across several
@@ -948,6 +952,12 @@ func New(cfg Config) *Engine {
 	// with seat 0 eliminated maps two of the three toss outcomes onto one
 	// survivor (measured 395/205 over 600 seeds on the pre-fix code).
 	start, _ := e.resolveToss(toss, alive, len(cfg.Names))
+	// The resolved toss is authoritative genesis state, not merely a Note or
+	// the later TurnChange: opening-hand effects and Count$StartingPlayer run
+	// before turn one. Fold it through events.Apply without appending a new
+	// event: genesis is replayed from Config (including its seeded toss), and
+	// preserving the historic event stream keeps recorded matches replayable.
+	events.Apply(e.G, events.Event{Kind: events.StartingPlayerChange, Player: start})
 	// The starting seat is the toss winner resolved over the survivors --
 	// never seat 0 (the pre-toss assumption Ruling T22-f removed) and never a
 	// seat the deal eliminated: an early seat that decked out during its own
@@ -958,9 +968,12 @@ func New(cfg Config) *Engine {
 	// turn.
 	if !e.G.Over {
 		// CR 103.1's resolution, now that the deal has fixed the survivors:
-		// beginTurn records start in its ordinary TurnChange. During a London
-		// mulligan, Engine.PregameStarter exposes the same resolved seat to the
-		// view without adding another hash-chained event to genesis.
+		// beginTurn records start in its ordinary TurnChange. The resolved seat
+		// is also state.Game.StartingPlayer now (folded above without a new
+		// event: genesis is replayed from Config, including its seeded toss, so
+		// preserving the historic event stream keeps recorded matches
+		// replayable), which is what view's pregame projection and the
+		// Count$StartingPlayer head read.
 		if cfg.Mulligans > 0 {
 			// Ruling R-8.4: the London mulligan round lives between the deal
 			// and turn 1. e.pregame makes step() dispatch to stepPregame
@@ -969,17 +982,21 @@ func New(cfg Config) *Engine {
 			// per-seat deck-out guard above returned early) -- a game that
 			// ended during the deal never starts a round.
 			// CR 103.5: the starting player declares first, then each other
-			// player in turn order -- AliveFrom(start) is that order, which
-			// is also beginTurn's seat at the round's end.
+			// player in turn order -- AliveFrom(e.G.StartingPlayer) is that
+			// order, which is also beginTurn's seat at the round's end. The
+			// opening-hand effects round runs after this round (a Gemstone
+			// Caverns may not be used from a hand its owner later mulliganed
+			// away), and an accepted Impatient Iguana there replaces the
+			// recorded designation before turn one.
 			e.pregame = true
-			e.mulligan = newMulliganRound(e.G.AliveFrom(start), cfg.Mulligans)
+			e.mulligan = newMulliganRound(e.G.AliveFrom(e.G.StartingPlayer), cfg.Mulligans)
 		} else {
-			e.opening = e.newOpeningRound(start, 0)
+			e.opening = e.newOpeningRound(e.G.StartingPlayer, 0)
 			if len(e.opening.effects) > 0 {
 				e.stepOpening()
 				return e
 			}
-			e.beginTurn(start)
+			e.beginTurn(e.G.StartingPlayer)
 		}
 	}
 	return e

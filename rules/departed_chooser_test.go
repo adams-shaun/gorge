@@ -197,7 +197,9 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	// holds unchanged, which is what says the added grant is all that moved.
 	// Regenerated for rv2a: the sole stream change is moving the existing
 	// toss Note before the first Shuffle (CR 103.1 precedes 103.2-103.4).
-	// No event kind, field, text, or card behaviour changed.
+	// rv2a starting-player state is genesis-derived through events.Apply, so
+	// it preserves this recorded stream while a replay of Config derives the
+	// same designation before folding it.
 	if got := e.L.Head(); got != "17b98ee3668c4c1b" {
 		t.Fatalf("chain head = %s, want 17b98ee3668c4c1b", got)
 	}

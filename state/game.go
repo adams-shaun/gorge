@@ -91,10 +91,17 @@ type Game struct {
 	Turn     int32
 	Active   PlayerID
 	Priority PlayerID
-	Step     Step
-	Passes   int32
-	Over     bool
-	Winner   PlayerID
+	// StartingPlayer is the seat that takes the first turn. HasStartingPlayer
+	// keeps seat zero distinct from a game whose opening determination has not
+	// completed (for example terminal genesis with no survivors). It is folded
+	// only by events.StartingPlayerChange, so replay, Clone and snapshots retain
+	// opening-hand effects that replace the toss result.
+	StartingPlayer    PlayerID
+	HasStartingPlayer bool
+	Step              Step
+	Passes            int32
+	Over              bool
+	Winner            PlayerID
 	// Draw marks a game that ended with no surviving seats (CR 104.4a).
 	// Winner's zero value is PlayerID(0), a real seat, so Over alone cannot
 	// distinguish "seat 0 won" from "nobody did" -- Draw is what does.
@@ -326,6 +333,12 @@ func (g *Game) AliveCount() int { return len(g.AliveFrom(0)) }
 
 // IsMonarch reports whether p currently holds the monarch designation.
 func (g *Game) IsMonarch(p PlayerID) bool { return g.HasMonarch && g.Monarch == p }
+
+// IsStartingPlayer reports whether p currently holds the CR 103.1 first-turn
+// designation. The presence bit makes the zero seat unambiguous.
+func (g *Game) IsStartingPlayer(p PlayerID) bool {
+	return g.HasStartingPlayer && g.StartingPlayer == p
+}
 
 // NextAlive returns the next surviving seat after p, or p itself if none is.
 func (g *Game) NextAlive(p PlayerID) PlayerID {
