@@ -973,7 +973,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	e.finishSourceLifelinkLKI(ev, departingSource, departingSourceLifelink)
 	// CR 702.163 ("Start your engines!", rules/speed.go): a loss may raise
-	// the active player's speed (if they have any), and a Start your
+	// every eligible opponent's speed (if they have any), and a Start your
 	// engines! permanent's battlefield entry starts a speed-less
 	// controller's speed at 1. Checked on the FOLDED event, after
 	// checkTriggers, so the gain event follows everything the loss itself
