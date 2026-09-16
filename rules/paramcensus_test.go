@@ -1116,6 +1116,19 @@ var apiSpecificRulesSA = map[string][]string{
 	// Vexing Devil, api:LoseLife on Torment of Hailfire's shape).
 	"Engine.beginWardPayment":  {"Ward"},
 	"Engine.settleWardPayment": {"Ward"},
+	// The opening-hand pregame actions: applyOpeningEffect, its delayed-
+	// trigger registration and the answer handler run ONLY on the expanded
+	// opening-action SVar of a MayEffectFromOpeningHand keyword (Chancellor
+	// of the Tangle, Gemstone Caverns, Impatient Iguana), so their
+	// Origin$/Destination$/BecomeStartingPlayer$/Triggers$/SubAbility$
+	// reads belong to the APIs such an action carries (ChangeZone for the
+	// put-onto-battlefield shape, PutCounter for the counter rider, Effect
+	// for the delayed-trigger shape) -- left in the generic union they
+	// would mask every other API's unread Destination$ (measured:
+	// api:Counter on Force of Will and Remand).
+	"Engine.applyOpeningEffect":            {"ChangeZone", "PutCounter", "Effect"},
+	"Engine.registerOpeningEffectTriggers": {"ChangeZone", "PutCounter", "Effect"},
+	"Engine.handleOpening":                 {"ChangeZone", "PutCounter", "Effect"},
 }
 
 // handRoots declares ATTRIBUTION (which function to read for a primitive) for
@@ -1153,7 +1166,13 @@ var handRoots = struct {
 	// top.
 	trig: []string{"Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
 		"Engine.resolveTop", "Engine.isTriggeredManaAbility", "Engine.triggerReferents",
-		"Engine.StackOptional", "Engine.optionalDecider"},
+		"Engine.StackOptional", "Engine.optionalDecider",
+		// The event-matched delayed registrations (Chancellor of the Annex's
+		// opening-hand Mode$ SpellCast shape): the registration re-parses the
+		// stored trigger body, and the firing walker re-evaluates its
+		// ValidCard$/ValidActivatingPlayer$/PlayerTurn$ clauses at fire time,
+		// outside triggerMatches' dispatch walk.
+		"Engine.registerOpeningEffectTriggers", "Engine.checkEventDelayedTriggers"},
 	// applyReplacements is the replacement pipeline's root beside
 	// replacementMatches, whose `r.Event != "Moved"` early return scopes every
 	// r.Params read in it to repl:Moved. collectETBChoices reads the
@@ -1822,7 +1841,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Celestial Colonnade":         {"param:api:Animate.Colors", "param:api:Animate.Keywords", "param:api:Animate.OverwriteColors"},
 	"Chain Lightning":             {"param:api:CopySpellAbility.Controller"},
 	"Chalice of the Void":         {"param:api:PutCounter.ETB"},
-	"Chandra, Awakened Inferno":   {"cost:SubCounter", "param:api:Cleanup.ClearRemembered", "param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate", "param:api:Effect.EffectOwner", "param:api:Effect.Name"},
+	"Chandra, Awakened Inferno":   {"cost:SubCounter", "param:api:Cleanup.ClearRemembered", "param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate", "param:api:Effect.Name"},
 	"Chaos Warp":                  {"param:api:Dig.DestinationZone2", "param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
 	"Conduit of Worlds":           {"param:api:Cleanup.ClearRemembered"},
 	"Council's Judgment":          {"param:api:Vote.VoteCard", "param:api:Vote.VoteSubAbility"},
@@ -1888,7 +1907,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Ojer Axonil, Deepest Might":  {"param:api:ChangeZone.Transformed", "param:api:SetState.CheckSVar", "param:api:SetState.SVarCompare"},
 	"Oracle of Mul Daya":          {"param:stat:Continuous.AdjustLandPlays", "param:stat:Continuous.MayLookAt"},
 	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
-	"Palace Jailer":               {"param:api:Effect.EffectOwner", "param:api:Effect.ForgetOnMoved"},
+	"Palace Jailer":               {"param:api:Effect.ForgetOnMoved"},
 	"Path to Exile":               {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Phyrexian Obliterator":       {"param:api:Sacrifice.Amount"},
 	"Planar Engineering":          {"param:api:Sacrifice.Amount"},

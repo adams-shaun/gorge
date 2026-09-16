@@ -185,7 +185,10 @@ const (
 	// the Execute$ ability), Player the controller, Step the phase to fire
 	// in, Counter the Execute$ SVar name, IDs the Remembered object(s)
 	// captured at registration (PlayerRef-encoded, as TriggerPush does), and
-	// Text the Forge Phase$ string for description. Appended here, after
+	// Text the Forge Phase$ string for description -- or, for an event-matched
+	// (non-phase) registration, "<Mode$ value>:<trigger SVar name>", the
+	// encoding events.Apply's DelayedRegister case decodes into
+	// state.DelayedTrigger's EventMode/Trigger pair. Appended here, after
 	// CmdDamage, following every prior Kind's own append-only precedent, so
 	// no earlier ordinal, hash chain or golden replay is affected.
 	DelayedRegister
@@ -344,7 +347,7 @@ func appendStr(dst []byte, s string) []byte {
 // iteration).
 var flagNames = [...]struct {
 	name string
-	bit  uint8
+	bit  uint16
 }{
 	{"kicked", state.FlagKicked},
 	{"surged", state.FlagSurged},
@@ -358,14 +361,17 @@ var flagNames = [...]struct {
 	{"dashed", state.FlagDashed},
 	{"overloaded", state.FlagOverloaded},
 	{"warped", state.FlagWarped},
+	{"buyback", state.FlagBuyback},
+	{"harmonize", state.FlagHarmonize},
+	{"suspend", state.FlagSuspend},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
 // into a CastFlags byte. Unrecognized names are silently ignored, the same
 // totality stance as everywhere else in this package: a stray or future
 // flag name in an untrusted log must not make this panic.
-func FlagsFrom(s string) uint8 {
-	var f uint8
+func FlagsFrom(s string) uint16 {
+	var f uint16
 	for _, part := range strings.Split(s, ",") {
 		for _, fn := range flagNames {
 			if strings.TrimSpace(part) == fn.name {
@@ -378,7 +384,7 @@ func FlagsFrom(s string) uint8 {
 
 // FlagsString is FlagsFrom's inverse: a canonical, fixed-order csv of the
 // flag names set in f.
-func FlagsString(f uint8) string {
+func FlagsString(f uint16) string {
 	var parts []string
 	for _, fn := range flagNames {
 		if f&fn.bit != 0 {

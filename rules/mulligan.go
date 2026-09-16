@@ -87,11 +87,18 @@ func (e *Engine) stepPregame() {
 			e.askBottoming(i)
 			return
 		}
-		// Every seat that had something to bottom has bottomed: the round is
-		// over and the round's first seat -- m.seats[0], the toss winner the
-		// round was built from, not always seat 0 since the CR 103.1 toss --
-		// begins turn 1, exactly as before.
+		// Every seat has kept and bottomed. Opening-hand effects now inspect
+		// these FINAL hands: a Gemstone Caverns may not be used from a hand its
+		// owner later mulliganed away. They remain before turn one, and may
+		// still replace the starting player -- the round's first seat,
+		// m.seats[0] (the toss winner, not always seat 0 since the CR 103.1
+		// toss), begins turn 1, exactly as before.
 		e.pregame = false
+		e.opening = e.newOpeningRound(m.seats[0], 0)
+		if len(e.opening.effects) > 0 {
+			e.stepOpening()
+			return
+		}
 		e.beginTurn(m.seats[0])
 		return
 	}

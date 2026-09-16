@@ -48,6 +48,10 @@ type pendingCast struct {
 
 	x     int32
 	xDone bool
+	// suspendTimeX makes the chosen cast X also set the number of TIME
+	// counters; suspendMinX is Forge's XMin<N> lower bound.
+	suspendTimeX bool
+	suspendMinX  int32
 
 	delve     []state.ObjID
 	delveDone bool
@@ -57,6 +61,14 @@ type pendingCast struct {
 
 	discards    []state.ObjID
 	discardPart int
+
+	// convoke is the announced set of creatures paying Convoke or Harmonize.
+	// It is chosen after the complete mana cost exists and before the mana
+	// ability window; a committed creature is therefore unavailable to make
+	// mana as well as being tapped when payment is settled.
+	convoke          []convokePayment
+	convokeDone      bool
+	suspendCastClear bool
 
 	// payIdx / payColor / payLife carry the hybrid and Phyrexian payment
 	// announcement (CR 601.2b/107.4e-f). manaAsk walks the cost's combined
@@ -208,6 +220,14 @@ func keywordAltCost(f *cards.Face, head string) (Cost, bool) {
 	return ParseCost(s), true
 }
 
+func buybackCost(f *cards.Face) (Cost, bool) {
+	s, ok := f.KeywordParam("Buyback")
+	if !ok {
+		return Cost{}, false
+	}
+	return ParseCost(s), true
+}
+
 // altAddCostParts splits a face's AlternateAdditionalCost keyword into its
 // alternative parts: the parameter is the parts joined by ":" (e.g. Bone
 // Shards' "Sac<1/Creature>:Discard<1/Card>", Redirect Lightning's
@@ -230,6 +250,137 @@ func altAddCostParts(f *cards.Face) []string {
 		}
 	}
 	return out
+}
+
+func harmonizeCost(f *cards.Face) (Cost, bool) {
+	s, ok := f.KeywordParam("Harmonize")
+	if !ok {
+		return Cost{}, false
+	}
+	return ParseCost(s), true
+}
+
+// harmonizePayment applies the keyword's creature-power reduction in stable
+// battlefield order and returns the creatures that pay it by becoming tapped.
+func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cost, []state.ObjID) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil || !o.Face().HasKeyword("Harmonize") {
+		return c, nil
+	}
+	var tapped []state.ObjID
+	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
+		if c.Generic == 0 {
+			break
+		}
+		co := e.G.Obj(cid)
+		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() {
+			continue
+		}
+		// The reduction is the creature's ACTUAL power (CR 702.46a: "reduce
+		// that spell's generic cost by its power"): layer-7 effects and
+		// P1P1/M1M1 counters apply, not the printed face. harmonizePayment
+		// and convokeAsk's offer must read the same number or the offer
+		// gate and the payment disagree on what the creature funds.
+		reduce := e.Derived(cid).Power
+		if reduce <= 0 {
+			continue
+		}
+		if reduce > c.Generic {
+			reduce = c.Generic
+		}
+		c.Generic -= reduce
+		tapped = append(tapped, cid)
+	}
+	return c, tapped
+}
+
+type suspendInfo struct {
+	time    int32
+	timeX   bool
+	minTime int32
+	cost    Cost
+}
+
+// convokePayment is one announced non-mana payment. color is zero for a
+// generic Convoke contribution or Harmonize; power is zero for Convoke and
+// is the amount a Harmonize creature reduces the generic total by.
+type convokePayment struct {
+	id    state.ObjID
+	color byte
+	power int32
+}
+
+// suspendCost parses Forge's Suspend:<time>:<cost> keyword form. X-time
+// scripts put their lower bound in the leading XMin<N> cost token; the same
+// announced X pays the cost and becomes the number of TIME counters.
+// convokeCost commits untapped creatures in battlefield order, consuming a
+// needed colour when that creature has one and otherwise one generic mana.
+// It returns the reduced cost and exactly the creatures that must be tapped.
+func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []state.ObjID) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil || !e.HasKeyword(id, "Convoke") {
+		return c, nil
+	}
+	var tapped []state.ObjID
+	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
+		co := e.G.Obj(cid)
+		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() {
+			continue
+		}
+		used := false
+		for _, col := range []byte{'W', 'U', 'B', 'R', 'G'} {
+			i := state.ManaIndex(col)
+			if c.Colored[i] > 0 && strings.Contains(effects.ColorsOf(co), string(col)) {
+				c.Colored[i]--
+				used = true
+				break
+			}
+		}
+		if !used && c.Generic > 0 {
+			c.Generic--
+			used = true
+		}
+		if used {
+			tapped = append(tapped, cid)
+		}
+	}
+	return c, tapped
+}
+
+func suspendCost(f *cards.Face) (suspendInfo, bool) {
+	raw, ok := f.KeywordParam("Suspend")
+	if !ok {
+		return suspendInfo{}, false
+	}
+	n, rest, ok := strings.Cut(raw, ":")
+	if !ok {
+		return suspendInfo{}, false
+	}
+	if strings.TrimSpace(n) == "X" {
+		fields := strings.Fields(rest)
+		info := suspendInfo{timeX: true}
+		if len(fields) > 0 && strings.HasPrefix(fields[0], "XMin") {
+			min, err := strconv.ParseInt(strings.TrimPrefix(fields[0], "XMin"), 10, 32)
+			if err != nil || min < 0 {
+				return suspendInfo{}, false
+			}
+			info.minTime = int32(min)
+			fields = fields[1:]
+		}
+		info.cost = ParseCost(strings.Join(fields, " "))
+		// The corpus's X-time Suspend form charges that same X. Without a
+		// cost X there is no finite legal option range to announce, so do not
+		// offer a made-up bound.
+		if info.cost.X == 0 {
+			return suspendInfo{}, false
+		}
+		return info, true
+	}
+	time, err := strconv.ParseInt(strings.TrimSpace(n), 10, 32)
+	if err != nil || time < 0 {
+		return suspendInfo{}, false
+	}
+	return suspendInfo{time: int32(time), cost: ParseCost(rest)}, true
 }
 
 // flashbackCost is id's Flashback cost: the printed parameter if this face
@@ -577,6 +728,20 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if sc, ok := surgeCost(f); ok {
 			cost = sc
 		}
+	case "buyback":
+		if bc, ok := buybackCost(f); ok {
+			cost = cost.Plus(bc)
+		}
+	case "harmonize":
+		if hc, ok := harmonizeCost(f); ok {
+			cost = hc
+		}
+	case "suspend":
+		if sc, ok := suspendCost(f); ok {
+			cost = sc.cost
+		}
+	case "suspend_cast":
+		cost = Cost{}
 	case "flashback":
 		cost = e.flashbackCost(id)
 	case "miracle":
@@ -618,6 +783,10 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		cost = withSpellAbilityExtras(f, cost)
 	}
+	// Convoke and Harmonize are announced only after X/mode/pip choices have
+	// formed the total cost (convokeAsk). Do not preselect creatures here:
+	// doing so let one of those creatures activate a mana ability before its
+	// delayed Tap payment.
 	// The either-or additional cost (AlternateAdditionalCost) is a CHOICE,
 	// not a fixed component, so the parts are only captured here and the ask
 	// (altAddAsk) folds the chosen part into cost before any other cost stage
@@ -649,12 +818,18 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// The tax is captured as a separate generic amount (taxGeneric) rather
 	// than folded into cost, so manaToPay adds it AFTER the 601.2f modifiers
 	// and never lets those spill onto it.
+	if opt.Mode == "suspend" {
+		if sc, ok := suspendCost(f); ok && sc.timeX {
+			e.cast.suspendTimeX, e.cast.suspendMinX = true, sc.minTime
+		}
+	}
 	e.collectETBChoices(p)
 	e.continueCast()
 }
 
-// continueCast runs the cast flow's stages in order -- X, Delve, each Sac
-// and Discard part -- stopping (and returning) the instant a stage asks a KChoose;
+// continueCast runs the cast flow's stages in order -- announced
+// Convoke/Harmonize contributions, X, Delve, each Sac and Discard part --
+// stopping (and returning) the instant a stage asks a KChoose;
 // commitCast runs once every stage has settled. A nil e.cast (a chooseCast
 // answer arriving with no flow in progress, only reachable from a
 // hand-built decision) is dropped rather than panicked on, mirroring
@@ -667,6 +842,12 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.forageAsk() || e.revealCostAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
+		return
+	}
+	// CR 601.2b announces Convoke/Harmonize before X: an announced creature
+	// contribution is part of the available payment for X, and cannot be used
+	// as a mana source in the later mana window.
+	if e.convokeAsk() {
 		return
 	}
 	if e.xAsk() {
@@ -687,11 +868,25 @@ func (e *Engine) continueCast() {
 	if e.etbAsk() {
 		return
 	}
+	// Suspend does not put a spell on the stack: its alternate action pays
+	// the keyword cost and exiles the card with time counters. Targets are
+	// chosen only when its later free cast is announced.
+	if e.cast.mode == "suspend" {
+		e.payCast()
+		return
+	}
 	// CR 601.2a: the object reaches the stack before the target choice
 	// (601.2c) and payment (601.2h). For a spell the cast trigger (601.2i)
 	// is held back until payCast; an ability's AbilityPush fires no trigger.
 	if e.pushCast() {
 		return
+	}
+	// FlagSuspend is exile provenance, not cast-time state. Clear it when the
+	// mandatory free cast starts so a later unrelated exile move cannot revive
+	// an old suspension.
+	if e.cast.mode == "suspend_cast" && !e.cast.suspendCastClear {
+		e.emit(events.Event{Kind: events.CastInfo, Obj: e.cast.card})
+		e.cast.suspendCastClear = true
 	}
 	// CR 601.2b: a modal spell announces its modes after reaching the stack
 	// and before targets are chosen or costs are paid. The answer is cached on
@@ -1039,24 +1234,66 @@ func (e *Engine) xAsk() bool {
 	if pc.cost.X <= 0 {
 		return false
 	}
+	min := int32(0)
+	if pc.suspendTimeX {
+		min = pc.suspendMinX
+	}
 	pool := e.G.Players[pc.player].Pool
 	gy := int32(len(e.G.Zone(state.ZGraveyard, pc.player)))
-	// Bound: past this many mana no further X is ever payable, since a
-	// bigger X strictly grows Generic (X > 0 here) while both the pool and
-	// the best possible Delve credit are fixed at this instant.
-	bound := pool.Total() + gy + 1
-	var max int32
-	for x := int32(0); x <= bound; x++ {
-		wx := e.manaToPayX(pc, x)
+	// Bound: past this many mana no further X is ever payable. In addition to
+	// the pool and possible Delve, the already-announced Convoke/Harmonize
+	// payments can cover X's generic requirement. Their exact application
+	// below handles coloured costs before generic reductions; this bound need
+	// only be a safe finite ceiling.
+	credit := int32(0)
+	for _, pay := range pc.convoke {
+		if pay.power > 0 {
+			credit += pay.power
+		} else {
+			credit++
+		}
+	}
+	bound := pool.Total() + gy + credit + 1
+	var legal []int32
+	maxOld := int32(0)
+	for x := min; x <= bound; x++ {
+		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
 		if !wx.payable(pool, e.G.Players[pc.player].Life) {
 			break
 		}
-		max = x
+		maxOld = x
+		// Every announced contribution must actually reduce this X's cost
+		// (convokeAbsorbs against the PRE-contribution total manaToPayX --
+		// paymentManaX has already applied them): an announcement
+		// over-selected for the generic total cannot be made legal by
+		// choosing a small X, so that X is not offered and the larger X
+		// that absorbs every creature is. The payable check breaks at the
+		// first unpayable X -- generic only grows with x, so everything
+		// past it is unpayable too -- while a no-op X is skipped without
+		// breaking: absorption improves monotonically with x. Without
+		// announced contributions the absorb check is vacuously true, so
+		// the offer is exactly the old payable range.
+		if !e.convokeAbsorbs(pc, e.manaToPayX(pc, x), pc.convoke, false) {
+			continue
+		}
+		legal = append(legal, x)
+	}
+	vals := legal
+	if len(vals) == 0 {
+		// Either the whole range was unpayable (a proposal the offer gate
+		// would have priced differently, or one made directly -- the CR 733
+		// audit does exactly that), or every payable X left an announced
+		// contribution a no-op. In both, the OLD offer stands and payCast's
+		// own payable check aborts as it always did (CR 733.2), rather
+		// than this ask wedging or moving the abort site.
+		for x := min; x <= maxOld; x++ {
+			vals = append(vals, x)
+		}
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose a value for X", Source: pc.card}
-	for x := int32(0); x <= max; x++ {
+	for _, x := range vals {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "x",
 			Label: fmt.Sprintf("X = %d", x), Amount: int(x)})
 	}
@@ -1503,6 +1740,199 @@ func (e *Engine) manaToPay(pc *pendingCast) Cost {
 }
 
 // manaToPayX is manaToPay with {X} folded to an explicit value.
+// paymentMana applies announced Convoke/Harmonize contributions to the
+// already-formed total. A stale answer can never make a requirement negative.
+func (e *Engine) paymentMana(pc *pendingCast) Cost {
+	return e.applyConvoke(pc, e.manaToPay(pc))
+}
+
+// paymentManaX applies the same announced creature contributions after X is
+// folded into the total. xAsk uses it so an X value funded by Convoke or
+// Harmonize is actually offered, not rejected before the payment is known.
+func (e *Engine) paymentManaX(pc *pendingCast, x int32) Cost {
+	return e.applyConvoke(pc, e.manaToPayX(pc, x))
+}
+
+func (e *Engine) applyConvoke(pc *pendingCast, m Cost) Cost {
+	for _, pay := range pc.convoke {
+		if pay.color != 0 {
+			i := state.ManaIndex(pay.color)
+			if m.Colored[i] > 0 {
+				m.Colored[i]--
+			}
+			continue
+		}
+		if pay.power > 0 {
+			m.Generic -= pay.power
+		} else {
+			m.Generic--
+		}
+		if m.Generic < 0 {
+			m.Generic = 0
+		}
+	}
+	return m
+}
+
+// convokeAbsorbs reports whether every announced Convoke/Harmonize payment
+// actually reduces the outstanding mana requirement m when applied in
+// announcement order. A colour contribution whose pip is already covered,
+// or a generic/power contribution against a generic total already at {0},
+// pays nothing -- CR 601.2b/702.51a let a creature be tapped only for a
+// reduction the total cost still needs -- and payCast taps every announced
+// creature, so an announcement containing such a no-op is an illegal
+// over-payment that must be rejected, not silently tapped.
+//
+// With an unfixed {X} the generic requirement is not yet known when the
+// announcement is answered (CR 601.2b announces Convoke before X), so a
+// generic/power contribution against {0} generic is tentatively allowed
+// there (xOpen) and xAsk prices the announcement against every candidate X
+// with xOpen false, m already X-folded.
+func (e *Engine) convokeAbsorbs(pc *pendingCast, m Cost, pays []convokePayment, xOpen bool) bool {
+	for _, pay := range pays {
+		if pay.color != 0 {
+			i := state.ManaIndex(pay.color)
+			if m.Colored[i] <= 0 {
+				return false
+			}
+			m.Colored[i]--
+			continue
+		}
+		if m.Generic <= 0 {
+			if xOpen {
+				continue
+			}
+			return false
+		}
+		reduce := pay.power
+		if reduce <= 0 {
+			reduce = 1
+		}
+		m.Generic -= reduce
+		if m.Generic < 0 {
+			m.Generic = 0
+		}
+	}
+	return true
+}
+
+// validateCastContributions is the Submit-time gate for the cast flow's
+// Convoke/Harmonize announcement decision (convokeAsk). The decision's
+// static Validate sees only the offered option list -- two white creatures
+// each carry a convoke_W option for a {W} spell, in distinct groups -- so
+// an over-selection passes it; this gate rejects any answer containing a
+// contribution that reduces nothing (convokeAbsorbs), before the intent is
+// recorded and the pending decision is consumed, exactly like
+// validateAttackers. The client then resubmits a legal subset. Any other
+// KChoose decision, and an out-of-range choice (Validate's own error), is
+// passed through untouched.
+func (e *Engine) validateCastContributions(d *decision.Decision, in decision.Intent) error {
+	pc := e.cast
+	if pc == nil || len(in.Choices) == 0 {
+		return nil
+	}
+	var pays []convokePayment
+	for _, c := range in.Choices {
+		if c < 0 || c >= len(d.Options) {
+			return nil
+		}
+		o := d.Options[c]
+		switch {
+		case o.Kind == "harmonize":
+			pays = append(pays, convokePayment{id: o.Obj, power: int32(o.Amount)})
+		case strings.HasPrefix(o.Kind, "convoke_"):
+			color := byte(0)
+			if o.Kind != "convoke_generic" {
+				color = o.Kind[len("convoke_")]
+			}
+			pays = append(pays, convokePayment{id: o.Obj, color: color})
+		default:
+			return nil // a different cast-flow ask, not the convoke announcement
+		}
+	}
+	all := append(append([]convokePayment(nil), pc.convoke...), pays...)
+	if !e.convokeAbsorbs(pc, e.manaToPay(pc), all, pc.cost.X > 0) {
+		return fmt.Errorf("announcement reduces nothing: the outstanding cost cannot absorb every chosen contribution")
+	}
+	return nil
+}
+
+// convokeAsk announces every creature used for Convoke or Harmonize. It is
+// deliberately before manaWindowAsk: tapping is part of paying, so a chosen
+// creature cannot first be used as a mana source.
+func (e *Engine) convokeAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.convokeDone || pc.ability >= 0 {
+		return false
+	}
+	pc.convokeDone = true
+	isConvoke := e.HasKeyword(pc.card, "Convoke")
+	isHarmonize := pc.mode == "harmonize"
+	if !isConvoke && !isHarmonize {
+		return false
+	}
+	mana := e.manaToPay(pc)
+	// Before X is announced, its generic requirement is not folded into
+	// mana. It nevertheless makes every creature a possible generic payment;
+	// the subsequent xAsk prices the selected contributions against the real
+	// X total.
+	hasX := pc.cost.X > 0
+	if !mana.hasManaPayment() && !hasX {
+		return false
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 0,
+		Prompt: "Choose creatures to help pay for " + e.G.Obj(pc.card).Face().Name, Source: pc.card}
+	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
+		o := e.G.Obj(id)
+		if o == nil || o.Tapped || o.Face() == nil || !o.Face().IsCreature() {
+			continue
+		}
+		group := fmt.Sprintf("payment:%d", id)
+		if isHarmonize && (mana.Generic > 0 || hasX) {
+			// The reduction offered is the creature's ACTUAL power (CR
+			// 702.46a), the same number harmonizePayment credits: a printed
+			// 1/1 currently boosted to 4 funds four generic, and a printed
+			// 4/4 reduced to 1 funds only one.
+			if p := e.Derived(id).Power; p > 0 {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "harmonize", Obj: id,
+					Group: group, Amount: int(p), Label: "Tap " + o.Face().Name + " (reduce by " + strconv.Itoa(int(p)) + ")"})
+			}
+		}
+		if !isConvoke {
+			continue
+		}
+		for _, color := range []byte{'W', 'U', 'B', 'R', 'G'} {
+			if mana.Colored[state.ManaIndex(color)] > 0 && strings.Contains(effects.ColorsOf(o), string(color)) {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_" + string(color), Obj: id,
+					Group: group, Label: "Tap " + o.Face().Name + " for " + string(color)})
+			}
+		}
+		if mana.Generic > 0 || hasX {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_generic", Obj: id,
+				Group: group, Label: "Tap " + o.Face().Name + " for 1"})
+		}
+	}
+	if len(d.Options) == 0 {
+		return false
+	}
+	// The announcement cannot tap more creatures than the cost can absorb:
+	// each chosen contribution reduces exactly one outstanding slot (a
+	// colour pip or one generic), so Max is the outstanding slot count.
+	// With an unfixed {X} the generic requirement is not yet known (CR
+	// 601.2b announces Convoke before X), so the bound is left open and
+	// xAsk prices the announcement against every candidate X instead;
+	// convokeAbsorbs's answer gate plus that pricing close the rest.
+	d.Max = len(d.Options)
+	if !hasX {
+		if slots := int(mana.Colored.Total() + mana.Generic); slots < d.Max {
+			d.Max = slots
+		}
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
 func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {
 	m := pc.resolvedManaX(x)
 	m.Generic += pc.raise
@@ -1700,6 +2130,18 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		// A Phyrexian pip paid with two life.
 		pc.payLife += 2
 		pc.payIdx++
+	case "convoke_W", "convoke_U", "convoke_B", "convoke_R", "convoke_G", "convoke_generic":
+		for _, choice := range chosen {
+			color := byte(0)
+			if choice.Kind != "convoke_generic" {
+				color = choice.Kind[len("convoke_")]
+			}
+			pc.convoke = append(pc.convoke, convokePayment{id: choice.Obj, color: color})
+		}
+	case "harmonize":
+		for _, choice := range chosen {
+			pc.convoke = append(pc.convoke, convokePayment{id: choice.Obj, power: int32(choice.Amount)})
+		}
 	case "activate":
 		// CR 601.2g: a source's mana abilities are distinct activations that
 		// share its tap cost. activateMana resolves a singleton immediately or
@@ -1736,6 +2178,12 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagOverloaded)
 	case "warped":
 		return events.FlagsString(state.FlagWarped)
+	case "buyback":
+		return events.FlagsString(state.FlagBuyback)
+	case "harmonize":
+		return events.FlagsString(state.FlagHarmonize)
+	case "suspend":
+		return events.FlagsString(state.FlagSuspend)
 	}
 	return ""
 }
@@ -1795,7 +2243,7 @@ func (e *Engine) targetAsk() bool {
 	// and then the window. Resolved means X is fixed, the CR 601.2f modifiers
 	// are applied and Delve credit is subtracted, all settled by the stages
 	// above.
-	mana := e.manaToPay(pc)
+	mana := e.paymentMana(pc)
 	if pc.ability < 0 {
 		mana.Generic -= int32(len(pc.delve))
 		if mana.Generic < 0 {
@@ -1895,7 +2343,7 @@ func (e *Engine) targetAsk() bool {
 // no reversal is owed.
 func (e *Engine) pushCast() bool {
 	pc := e.cast
-	if pc == nil || pc.mode == "land" || pc.ability >= 0 {
+	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.ability >= 0 {
 		return false
 	}
 	if pc.pushed {
@@ -1996,7 +2444,7 @@ func (e *Engine) manaWindowAsk() bool {
 	if pc == nil || pc.windowDone {
 		return false
 	}
-	mana := e.manaToPay(pc)
+	mana := e.paymentMana(pc)
 	if pc.ability < 0 {
 		mana.Generic -= int32(len(pc.delve))
 		if mana.Generic < 0 {
@@ -2014,7 +2462,7 @@ func (e *Engine) manaWindowAsk() bool {
 	var sources []state.ObjID
 	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
 		for _, id := range e.G.Zone(z, pc.player) {
-			if e.untappedManaSource(pc.player, id) {
+			if !e.convokeCommitted(pc, id) && e.untappedManaSource(pc.player, id) {
 				sources = append(sources, id)
 			}
 		}
@@ -2037,6 +2485,15 @@ func (e *Engine) manaWindowAsk() bool {
 
 // untappedManaSource reports whether id is an untapped permanent under the
 // player p's control with at least one unrestricted mana ability.
+func (e *Engine) convokeCommitted(pc *pendingCast, id state.ObjID) bool {
+	for _, pay := range pc.convoke {
+		if pay.id == id {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) untappedManaSource(p state.PlayerID, id state.ObjID) bool {
 	return len(e.availableManaAbilities(p, id)) > 0
 }
@@ -2241,7 +2698,7 @@ func (e *Engine) payCast() {
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
-	mana := e.manaToPay(pc)
+	mana := e.paymentMana(pc)
 	mana.Generic -= int32(len(pc.delve))
 	if mana.Generic < 0 {
 		mana.Generic = 0
@@ -2264,6 +2721,9 @@ func (e *Engine) payCast() {
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
 	}
+	for _, pay := range pc.convoke {
+		e.emit(events.Event{Kind: events.Tap, Obj: pay.id})
+	}
 	for _, id := range pc.delve {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 	}
@@ -2285,6 +2745,24 @@ func (e *Engine) payCast() {
 	}
 	for _, id := range pc.sacs {
 		e.emit(events.Sacrifice(id))
+	}
+	if pc.mode == "suspend" {
+		info, _ := suspendCost(e.G.Obj(pc.card).Face())
+		time := info.time
+		if info.timeX {
+			time = pc.x
+		}
+		// CastInfo is the replayable provenance marker: only this action sets
+		// FlagSuspend, so an arbitrary exiled Suspend card is never treated as
+		// having been suspended. Its Amount retains X while the card is exiled:
+		// counter-removal triggers on X-time Suspend cards read xPaid there.
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.x, Counter: events.FlagsString(state.FlagSuspend)})
+		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZExile, Text: "suspended"})
+		if time > 0 {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: "TIME", Amount: time})
+		}
+		e.cast, e.choosing = nil, chooseNone
+		return
 	}
 	if e.sacrificedLKI == nil {
 		e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
@@ -2476,5 +2954,6 @@ func init() {
 		// minting attacking token copies), and kw:AlternateAdditionalCost
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
-		"kw:Encore", "kw:AlternateAdditionalCost")
+		"kw:Encore", "kw:AlternateAdditionalCost",
+		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling")
 }

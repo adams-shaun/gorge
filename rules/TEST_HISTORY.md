@@ -1,6 +1,11 @@
 # Test history — github.com/adams-shaun/gorge/rules
 
 budget_s: 300
+budget_s: 45
+budget_s: 124
+budget_s: 124
+budget_s: 53
+budget_s: 151
 
 <!--
 A row far below the others is very likely VACUOUS, not fast. MEASURED
@@ -443,6 +448,20 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-15T10:46Z | 65be547+ | 62.0 | 780 | 1 | sadams |
 | 2026-09-15T10:47Z | 92c6430+ | 63.9 | 780 | 1 | sadams |
 | 2026-09-15T22:42Z | f840f32+ | 117.0 | 813 | 1 | sadams |
+| 2026-09-14T16:43Z | c9c2c65+ | 42.2 | 637 | 1 | sadams |
+| 2026-09-15T00:45Z | 1bf71fe+ | 50.8 | 642 | 1 | sadams |
+| 2026-09-15T00:46Z | 1bf71fe+ | 48.1 | 642 | 1 | sadams |
+| 2026-09-15T02:16Z | 2a845c1+ | 51.0 | 644 | 1 | sadams |
+| 2026-09-15T09:18Z | b486e24+ | 46.1 | 645 | 1 | sadams |
+| 2026-09-15T10:34Z | 324fcac+ | 50.2 | 652 | 1 | sadams |
+| 2026-09-15T20:36Z | f5af29b+ | 122.3 | 807 | 1 | sadams |
+| 2026-09-15T22:20Z | a3c8b27+ | 130.5 | 809 | 1 | sadams |
+| 2026-09-15T22:24Z | bdd62a5+ | 129.1 | 809 | 1 | sadams |
+| 2026-09-15T23:34Z | 1797815+ | 122.7 | 813 | 1 | sadams |
+| 2026-09-16T00:25Z | cebea6e+ | 147.3 | 836 | 1 | sadams |
+| 2026-09-16T02:41Z | b7846aa+ | 131.3 | 839 | 1 | sadams |
+| 2026-09-16T06:54Z | 567c26c+ | 119.1 | 840 | 1 | sadams |
+| 2026-09-16T06:56Z | 567c26c+ | 118.8 | 840 | 1 | sadams |
 | 2026-09-16T00:16Z | 420e6b9+ | 117.7 | 815 | 1 | sadams |
 | 2026-09-16T00:25Z | 420e6b9+ | 135.1 | 815 | 1 | sadams |
 | 2026-09-16T00:29Z | 420e6b9+ | 113.1 | 815 | 1 | sadams |
@@ -461,3 +480,5 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-16T02:45Z | a775140+ | 124.9 | 837 | 1 | sadams |
 | 2026-09-16T03:43Z | fe1c2ae+ | 125.9 | 839 | 1 | sadams |
 | 2026-09-16T04:05Z | 5ab219e+ | 120.0 | 840 | 1 | sadams |
+| 2026-09-16T07:09Z | 151c357+ | 133.5 | 869 | 1 | sadams |
+| 2026-09-16T07:13Z | 151c357+ | 137.1 | 869 | 1 | sadams |
