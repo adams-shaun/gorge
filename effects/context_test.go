@@ -129,6 +129,14 @@ func (h *fakeHost) Suspended() bool { return false }
 // suspended branch that would call it. Kept to satisfy the Host interface.
 func (h *fakeHost) SuspendContinuation(*cards.SA) {}
 
+func (h *fakeHost) ReplaceEvent(string, string, int32) {}
+
+func (h *fakeHost) EmitDamage(e events.Event) events.Event {
+	h.Emit(e)
+	return e
+}
+func (h *fakeHost) CounterAllowed(state.ObjID, state.ObjID) bool { return true }
+
 // SuspendRepeat is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
 

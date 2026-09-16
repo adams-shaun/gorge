@@ -122,10 +122,36 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	what := strings.TrimSpace(sa.Params["StaticAbilities"] + " " + sa.Params["Triggers"])
 	remembered := effectRemembered(h, c, sa)
 	registered := false
-	for _, name := range strings.Fields(sa.Params["StaticAbilities"]) {
+	// Effect can also create a replacement rather than a layer restriction.
+	// Forge stores its R: body behind an SVar name in ReplacementEffects$.
+	// Keep the parsed event data in state (which cannot import cards) and the
+	// body text for rules to resolve under this Effect's source context.
+	for _, name := range strings.FieldsFunc(sa.Params["ReplacementEffects"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
+		event, params := parseReplacementLine(c.SVars, name)
+		body := ""
+		if with := replacementLineWith(params); with != "" {
+			body = c.SVars[with]
+		}
+		if event == "DamageDone" && body != "" {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: c.Source, Controller: c.Controller,
+				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
+			})
+			registered = true
+		} else if name != "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "continuous replacement unimplemented (" + name + ")"})
+		}
+	}
+	for _, name := range strings.FieldsFunc(sa.Params["StaticAbilities"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
 		mode, params := parseStaticLine(c.SVars, name)
 		switch mode {
-		case "CantTarget", "CantRegenerate":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage":
 			// A compound IsRemembered spec (Card.IsRemembered+Creature) cannot
 			// be resolved by the remembered-set match alone -- the extra
 			// predicate would be silently dropped, over-applying the
@@ -179,6 +205,24 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 // the S: line's own grammar (cards/parse.go's "S" case). An empty or
 // malformed body degrades to "" mode and a nil map, which the switch in
 // effEffect treats as unimplemented rather than as a registration.
+// parseReplacementLine parses an Effect's SVar replacement body ("Event$
+// DamageDone | ...") using the same key/value grammar as parseStaticLine.
+func parseReplacementLine(svars map[string]string, name string) (string, map[string]string) {
+	body := strings.TrimSpace(svars[name])
+	if body == "" {
+		return "", nil
+	}
+	params := make(map[string]string)
+	for _, seg := range strings.Split(body, "|") {
+		key, val, ok := strings.Cut(strings.TrimSpace(seg), "$")
+		if !ok {
+			continue
+		}
+		params[strings.TrimSpace(key)] = strings.TrimSpace(val)
+	}
+	return params["Event"], params
+}
+
 func parseStaticLine(svars map[string]string, name string) (string, map[string]string) {
 	body := strings.TrimSpace(svars[name])
 	if body == "" {
@@ -286,6 +330,15 @@ func compoundRememberedSpec(params map[string]string) bool {
 		spec = params["ValidTarget"]
 	}
 	return strings.Contains(spec, "IsRemembered") && strings.ContainsAny(spec, "+,")
+}
+
+// replacementLineWith reads ReplaceWith$ off a parseReplacementLine-built
+// static line -- the SVar name of the R: body's own ReplaceWith$ body, not a
+// card Params map. Factored into its own function (mirroring
+// compoundRememberedSpec) so the paramcensus rot guard can classify the read
+// through a tracked helper parameter rather than an unclassified local.
+func replacementLineWith(params map[string]string) string {
+	return params["ReplaceWith"]
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
@@ -462,6 +515,13 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 		o := h.Game().Obj(t.Obj)
 		if o == nil || o.Zone != state.ZStack {
+			continue
+		}
+		if !h.CounterAllowed(o.ID, c.Source) {
+			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "counter prevented"})
+			if h.Suspended() {
+				return // replacement order must settle before any later target/SA
+			}
 			continue
 		}
 		if o.Ability != nil {
