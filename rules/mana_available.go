@@ -88,7 +88,10 @@ func (e *Engine) AvailableMana(p state.PlayerID) state.Mana {
 // not free and must not be counted as available-by-tapping.
 func manaFreeCost(c Cost) bool {
 	return len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
-		c.Generic == 0 && c.Life == 0 && c.Colored == (state.Mana{}) && c.X == 0
+		len(c.AddCounter) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 &&
+		len(c.Behold) == 0 && len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
+		c.Generic == 0 && c.Life == 0 && c.Colored == (state.Mana{}) && c.X == 0 &&
+		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
 // addAvailable folds one free-to-tap mana ability into an available-mana

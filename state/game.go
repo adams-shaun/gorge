@@ -10,6 +10,8 @@ type Player struct {
 	Lost        bool
 	LandsPlayed int32
 	Pool        Mana
+	// Counters records player counters (currently poison, used by Ward costs).
+	Counters []Counter
 
 	// Commanders lists this seat's commanders, in Config order, sized at
 	// genesis and never grown. CmdCasts runs parallel to it: entry k counts
@@ -23,6 +25,32 @@ type Player struct {
 	Commanders []ObjID
 	CmdCasts   []int32
 	CmdDamage  []int32
+}
+
+// Counter returns this player's count of kind.
+func (p *Player) Counter(kind string) int32 {
+	for _, c := range p.Counters {
+		if c.Kind == kind {
+			return c.N
+		}
+	}
+	return 0
+}
+
+// AddCounter changes one player-counter kind, clamping at zero.
+func (p *Player) AddCounter(kind string, n int32) {
+	for i := range p.Counters {
+		if p.Counters[i].Kind == kind {
+			p.Counters[i].N += n
+			if p.Counters[i].N < 0 {
+				p.Counters[i].N = 0
+			}
+			return
+		}
+	}
+	if n > 0 {
+		p.Counters = append(p.Counters, Counter{Kind: kind, N: n})
+	}
 }
 
 // Game is the complete authoritative state. Everything a client sees is a
@@ -43,6 +71,10 @@ type Game struct {
 	// Winner's zero value is PlayerID(0), a real seat, so Over alone cannot
 	// distinguish "seat 0 won" from "nobody did" -- Draw is what does.
 	Draw bool
+	// Monarch is the current monarch when HasMonarch is true. The presence bit
+	// keeps seat zero distinct from no monarch.
+	Monarch    PlayerID
+	HasMonarch bool
 	// NextID hands out object ids one at a time, starting at 1 (see NewGame)
 	// and incrementing by exactly one per AddObject call below -- it can
 	// never reach playerRefBit (1<<31, ids.go): a single match would need
@@ -92,6 +124,12 @@ type DelayedTrigger struct {
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
 	Remembered []Target
+	// SourceIncarnation is captured for keyword promises whose effect applies
+	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
+	// including Encore's group cleanup, intentionally leave TrackSource false:
+	// they exist independently of their source after registration.
+	SourceIncarnation uint32
+	TrackSource       bool
 }
 
 const startingLife = 20
@@ -167,6 +205,7 @@ func (g *Game) Clone() *Game {
 	c.Players = make([]Player, len(g.Players))
 	for i := range g.Players {
 		c.Players[i] = g.Players[i]
+		c.Players[i].Counters = append([]Counter(nil), g.Players[i].Counters...)
 		c.Players[i].Commanders = append([]ObjID(nil), g.Players[i].Commanders...)
 		c.Players[i].CmdCasts = append([]int32(nil), g.Players[i].CmdCasts...)
 		c.Players[i].CmdDamage = append([]int32(nil), g.Players[i].CmdDamage...)
@@ -212,6 +251,9 @@ func (g *Game) AliveFrom(start PlayerID) []PlayerID {
 }
 
 func (g *Game) AliveCount() int { return len(g.AliveFrom(0)) }
+
+// IsMonarch reports whether p currently holds the monarch designation.
+func (g *Game) IsMonarch(p PlayerID) bool { return g.HasMonarch && g.Monarch == p }
 
 // NextAlive returns the next surviving seat after p, or p itself if none is.
 func (g *Game) NextAlive(p PlayerID) PlayerID {

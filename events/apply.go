@@ -41,11 +41,22 @@ func Apply(g *state.Game, e Event) {
 	case MyriadCopy:
 		// CR 702.109: a Myriad attacker token. Mint a copy of the source
 		// attack-creature (same face/power/toughness, marked IsToken and
-		// IsCopy), put it directly onto the battlefield tapped and attacking
-		// the opponent named by Player. If the source is gone the copy still
-		// enters (from its last-known characteristics: we clone the object
-		// as it is now, which is the best available LKI for a transient
-		// copy).
+		// IsCopy) tapped and attacking the opponent named by Player. If the
+		// source is gone the copy still enters (from its last-known
+		// characteristics: we clone the object as it is now, which is the
+		// best available LKI for a transient copy).
+		//
+		// This event only MINTS the object (in the untracked ZLibrary state
+		// AddObject leaves it in); it deliberately does NOT move it onto the
+		// battlefield. The caller (effects/myriad.go) follows this event with
+		// a genuine MoveZone event for the mint's ID, so the token's entry is
+		// an ordinary ChangesZone-matchable event and existing
+		// enters-the-battlefield triggers (the token's own ETBs, and any
+		// other permanent's "creature enters" trigger) see it exactly as they
+		// would a cast or reanimated creature. A direct Move() here, as
+		// TokenCreate/CardToken use, would leave the entry invisible to
+		// zoneChangeMatches (Mode$ ChangesZone requires ev.Kind ==
+		// events.MoveZone).
 		src := g.Obj(e.Obj)
 		if validPlayer(g, e.Player) && src != nil && src.Face() != nil {
 			o := g.AddObject(src.Card, e.Player)
@@ -53,7 +64,6 @@ func Apply(g *state.Game, e Event) {
 			o.IsToken = true
 			o.IsCopy = true
 			o.IsMyriad = true
-			Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
 			o.Tapped = true
 			o.IsAttacking = true
 			if len(e.IDs) > 0 {
@@ -75,6 +85,22 @@ func Apply(g *state.Game, e Event) {
 	case Shuffle:
 		if validPlayer(g, e.Player) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
+		}
+
+	case MonarchChange:
+		if validPlayer(g, e.Player) {
+			g.Monarch, g.HasMonarch = e.Player, true
+		}
+
+	case ControlChange:
+		if validPlayer(g, e.Player) {
+			if o := g.Obj(e.Obj); o != nil {
+				changeControl(g, o, e.Player)
+				// An AsLongAsControl goad ends the moment its controller
+				// condition fails; pruning here keeps a later return of
+				// control from reviving it.
+				pruneGoads(g)
+			}
 		}
 
 	case LibraryOrder:
@@ -110,13 +136,24 @@ func Apply(g *state.Game, e Event) {
 			if e.To == state.ZExile {
 				switch e.Counter {
 				case "exiled_with_face_down":
+					// Hideaway's face-down exile (CR 702.75): the exiling source
+					// rides in Amount, and FaceDown is state so a later projection
+					// knows not to reveal the card.
 					o.ExiledWith = state.ObjID(e.Amount)
 					o.FaceDown = true
 				case "exiled_with":
 					o.ExiledWith = state.ObjID(e.Amount)
 					o.FaceDown = false
 				default:
-					o.ExiledWith = 0
+					// MoveZone reserves its otherwise-unused IDs payload for the
+					// source when an effect exiles a card (moveZoneEvent). This
+					// provenance is event-derived, hence survives replay, and
+					// clears as soon as the card leaves exile.
+					if len(e.IDs) > 0 {
+						o.ExiledWith = e.IDs[0]
+					} else {
+						o.ExiledWith = 0
+					}
 					o.FaceDown = false
 				}
 			} else {
@@ -135,6 +172,8 @@ func Apply(g *state.Game, e Event) {
 				o.HasPreStackEntry = false
 			}
 		}
+		// Source-dependent goads end as soon as their source leaves play.
+		pruneGoads(g)
 
 	case LifeChange:
 		if validPlayer(g, e.Player) {
@@ -143,9 +182,40 @@ func Apply(g *state.Game, e Event) {
 
 	case Damage:
 		if o := g.Obj(e.Obj); o != nil {
-			o.Damage += e.Amount
-			if o.Damage < 0 {
-				o.Damage = 0
+			// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent
+			// removes that many loyalty counters instead of being marked as
+			// damage. The conversion lives here, on the one fold every
+			// Damage event goes through, so spell/ability damage (effects/
+			// damage.go), future combat damage and any emitter this build
+			// gains later all convert the same way and a replay derives the
+			// same loyalty from the same log. A planeswalker that is ALSO a
+			// creature still takes marked damage (CR 120.3e -- the exchange
+			// is not exclusive), and either way a positive amount records
+			// that the object was dealt damage this turn. Prevention (CR
+			// 702.16d) and protection replace or note the Damage event
+			// before it reaches this fold, so a prevented hit converts
+			// nothing -- which is why the walker exchange no longer needs
+			// the bypass it used to travel by.
+			walker := false
+			if f := o.Face(); f != nil && f.IsPlaneswalker() {
+				walker = true
+				// Cleanup represents removal of marked damage with a negative
+				// Damage event. It must never restore loyalty; only positive
+				// damage has the CR 120.3c loyalty conversion.
+				if e.Amount > 0 {
+					o.AddCounter("LOYALTY", -e.Amount)
+				}
+			}
+			// Counter is Damage's existing, encoded characteristic carrier:
+			// effects/rules set it to creature from the current layer result.
+			// The printed-face fallback retains direct-event callers and normal
+			// printed creature behavior.
+			creature := e.Counter == "creature" || (o.Face() != nil && o.Face().IsCreature())
+			if !walker || creature {
+				o.Damage += e.Amount
+				if o.Damage < 0 {
+					o.Damage = 0
+				}
 			}
 			// A positive Damage event records that the object was dealt damage
 			// this turn even if a later prevention/healing event clears its
@@ -194,7 +264,45 @@ func Apply(g *state.Game, e Event) {
 			for i := range g.Objs {
 				g.Objs[i].EnteredThisTurn = false
 				g.Objs[i].WasDealtDamageThisTurn = false
+				// Only default-duration goads expire at the goader's next turn.
+				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
+		}
+
+	case Goad:
+		if o := g.Obj(e.Obj); o != nil {
+			if e.Amount == -1 {
+				o.Goads = nil
+				break
+			}
+			if !validPlayer(g, e.Player) {
+				break
+			}
+			duration := e.Text
+			if duration == "" {
+				duration = "UntilYourNextTurn"
+			}
+			var source state.ObjID
+			if len(e.IDs) > 0 {
+				source = e.IDs[0]
+			}
+			controller := o.Controller
+			if e.Amount > 0 && int(e.Amount-1) < len(g.Players) {
+				controller = state.PlayerID(e.Amount - 1)
+			}
+			ge := state.GoadEffect{Player: e.Player, Source: source, Controller: controller, Duration: duration}
+			for _, existing := range o.Goads {
+				if existing == ge {
+					return
+				}
+			}
+			o.Goads = append(o.Goads, ge)
+			pruneGoads(g)
+		}
+
+	case PlayerCounterChange:
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].AddCounter(e.Counter, e.Amount)
 		}
 
 	case Priority:
@@ -444,6 +552,10 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenNumber = e.Amount
 			case "riot":
 				o.RiotChoice = e.Text
+			case "chosen":
+				o.Chosen = rememberedFrom(e.IDs)
+			case "remembered":
+				o.Remembered = append(o.Remembered, rememberedFrom(e.IDs)...)
 			}
 		}
 
@@ -458,6 +570,56 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(def, e.Player)
 		o.IsToken = true
 		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+
+	case CardToken:
+		// A battlefield token that is a copy of the CARD object Obj names
+		// (encore's "create a token copy" per opponent). Mirrors StackCopy's
+		// snapshot discipline: every read from src is taken into a local
+		// BEFORE AddObject, because AddObject may reallocate g.Objs and a
+		// src pointer read after it would read the old backing array.
+		// Totality like every case: a missing source (already ceased to
+		// exist) or an invalid player mints nothing.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil || src.Card == nil {
+			break
+		}
+		card, faceIdx := src.Card, src.FaceIdx
+		o := g.AddObject(card, e.Player)
+		o.IsToken = true
+		o.FaceIdx = faceIdx
+		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+		// Encore encodes its required defender as seat+1; zero remains the
+		// ordinary CardToken shape. The current turn is folded here so replay
+		// reconstructs the same one-turn attack requirement.
+		if e.Amount > 0 {
+			defender := state.PlayerID(e.Amount - 1)
+			if validPlayer(g, defender) {
+				o.EncoreAttackTurn = g.Turn
+				o.EncoreAttackDefender = defender
+			}
+		}
+
+	case KeywordTriggerPush:
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil || src.Face() == nil {
+			break
+		}
+		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
+		if sa == nil {
+			break
+		}
+		incarnation := src.Incarnation
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
+		o.SourceIncarnation = incarnation
 
 	case StackCopy:
 		if !validPlayer(g, e.Player) {
@@ -537,13 +699,23 @@ func Apply(g *state.Game, e Event) {
 		if g.Obj(e.Obj) == nil || !e.Step.Valid() {
 			break
 		}
+		src := g.Obj(e.Obj)
+		// Dash and Warp refer to the exact permanent that received their
+		// keyword promise. Encore's grouped delayed trigger does not: CR
+		// 603.7 leaves it independent of the card that created it, and it
+		// must sacrifice its remembered token group even if that card later
+		// changes zones and returns as a new incarnation.
+		track := strings.HasPrefix(e.Counter, "__kwDash") ||
+			strings.HasPrefix(e.Counter, "__kwWarp")
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
-			ID:         g.DelayedNext,
-			Phase:      e.Step,
-			Source:     e.Obj,
-			Controller: e.Player,
-			Execute:    e.Counter,
-			Remembered: rememberedFrom(e.IDs),
+			ID:                g.DelayedNext,
+			Phase:             e.Step,
+			Source:            e.Obj,
+			Controller:        e.Player,
+			Execute:           e.Counter,
+			Remembered:        rememberedFrom(e.IDs),
+			SourceIncarnation: src.Incarnation,
+			TrackSource:       track,
 		})
 		g.DelayedNext++
 
@@ -560,8 +732,26 @@ func Apply(g *state.Game, e Event) {
 		if !validPlayer(g, e.Player) {
 			break
 		}
+		// Consume the registration first, even when its tracked permanent has
+		// changed incarnation. A stale dash/warp promise expires once; it must
+		// neither act on the returned object nor be retried forever. Ordinary
+		// delayed triggers, including Encore's group cleanup, are independent
+		// of their source and still resolve.
+		var registration *state.DelayedTrigger
+		for i := range g.Delayed {
+			if g.Delayed[i].ID == uint32(e.Amount) {
+				dt := g.Delayed[i]
+				registration = &dt
+				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+				break
+			}
+		}
 		src := g.Obj(e.Obj)
 		if src == nil {
+			break
+		}
+		if registration != nil && registration.TrackSource &&
+			src.Incarnation != registration.SourceIncarnation {
 			break
 		}
 		f := src.Face()
@@ -576,13 +766,10 @@ func Apply(g *state.Game, e Event) {
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
 		o.Source = e.Obj
-		o.Remembered = rememberedFrom(e.IDs)
-		for i := range g.Delayed {
-			if g.Delayed[i].ID == uint32(e.Amount) {
-				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
-				break
-			}
+		if registration != nil && registration.TrackSource {
+			o.SourceIncarnation = src.Incarnation
 		}
+		o.Remembered = rememberedFrom(e.IDs)
 
 	case CmdDamage:
 		// Commander combat damage to a player (CR 903.10, Task m33): fold
@@ -704,6 +891,19 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	}
 
 	o.Zone = to
+	// The incarnation stamp is used by promises tied to a particular
+	// permanent (evoke/dash/warp), so only crossing the battlefield
+	// boundary advances it. A provisional hand->stack->hand CR 733 reversal
+	// must restore byte-identical state and is not a permanent incarnation.
+	if enteredFrom != to && (enteredFrom == state.ZBattlefield || to == state.ZBattlefield) {
+		o.Incarnation++
+	}
+	// A new object in a new zone has its owner's default control. The old
+	// controller is needed above to remove it from the battlefield/stack, so
+	// reset only after removal and placement have used that zone ownership.
+	if to != state.ZBattlefield && to != state.ZStack {
+		o.Controller = o.Owner
+	}
 	// A zone change is the single source of zone-entry provenance. Capture
 	// the actual old zone (not Event.From, which Move deliberately treats as
 	// advisory) so replay and a live game derive identical ThisTurnEntered*
@@ -786,6 +986,20 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
+			o.Chosen = nil
+		}
+		// CR 107.3m: the paid X belongs to the spell on the stack and to the
+		// permanent the spell becomes, and to nothing else. An object leaving
+		// the stack for a zone OTHER than the battlefield -- a countered or
+		// fizzled spell into the graveyard, a resolving instant/sorcery -- is
+		// a card in a non-battlefield zone, where X in its text is 0. Without
+		// this the stale paid X rides along: a countered Genesis Hydra
+		// reanimated later would resolve its ETB trigger with the dead cast's
+		// X instead of 0. (A stack->battlefield move keeps X/CastFlags -- the
+		// battlefield case above deliberately does not reset them, which is
+		// what lets an ETB trigger read them off the permanent.)
+		if wasStack {
+			o.X, o.CastFlags = 0, 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).
@@ -799,9 +1013,89 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	}
 }
 
+// changeControl gives o to controller p. The battlefield is keyed by
+// controller (zoneOwner), so a permanent moves from its old controller's list
+// to the new one's, the way Forge's controllerChangeZoneCorrection does;
+// every per-controller reader (untap step, attackers, blockers, mana and
+// activation offers, statics, projections) then sees it under its controller.
+// The stack is one shared list, so a spell only changes its Controller.
+//
+// On the battlefield a control change also:
+//   - removes the permanent from combat (CR 506.4): it stops attacking, loses
+//     its blockers, and attackers it blocked keep a zero tombstone so they stay
+//     blocked (CR 509.1h), exactly as a departing blocker does in Move;
+//   - makes it summoning sick (CR 302.6): its new controller has not controlled
+//     it continuously since their most recent turn began. TurnChange clears it
+//     from the active player's list, i.e. at its new controller's next turn.
+func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
+	if o.Controller == p {
+		return
+	}
+	if o.Zone == state.ZBattlefield {
+		remove(g, o.ID, state.ZBattlefield, o.Controller)
+		g.SetZone(state.ZBattlefield, p, append(g.Zone(state.ZBattlefield, p), o.ID))
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.ID == o.ID {
+				continue
+			}
+			for j, blocker := range other.BlockedBy {
+				if blocker == o.ID {
+					other.BlockedBy[j] = 0
+				}
+			}
+		}
+		o.IsAttacking = false
+		o.BlockedBy = nil
+		o.SummonSick = true
+	}
+	o.Controller = p
+}
+
 // validPlayer reports whether p indexes an existing seat.
 func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
+}
+
+// expireTurnGoads drops only default-duration relationships made by p.
+func expireTurnGoads(in []state.GoadEffect, p state.PlayerID) []state.GoadEffect {
+	out := in[:0]
+	for _, ge := range in {
+		if ge.Player == p && (ge.Duration == "" || ge.Duration == "UntilYourNextTurn") {
+			continue
+		}
+		out = append(out, ge)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// pruneGoads enforces source/control conditions from replayable state.
+func pruneGoads(g *state.Game) {
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		out := o.Goads[:0]
+		for _, ge := range o.Goads {
+			active := o.Zone == state.ZBattlefield
+			switch ge.Duration {
+			case "AsLongAsInPlay":
+				src := g.Obj(ge.Source)
+				active = active && src != nil && src.Zone == state.ZBattlefield
+			case "AsLongAsControl":
+				active = o.Zone == state.ZBattlefield && o.Controller == ge.Controller
+			}
+			if active {
+				out = append(out, ge)
+			}
+		}
+		if len(out) == 0 {
+			o.Goads = nil
+		} else {
+			o.Goads = out
+		}
+	}
 }
 
 // zoneOwner picks whose zone list an object belongs to: the battlefield and the

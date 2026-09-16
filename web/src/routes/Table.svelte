@@ -20,6 +20,7 @@
     toneOf,
   } from '../lib/seatpanel.svelte';
   import { optionsByObj, optionsByPlayer, type CardOptions } from '../lib/cardoptions';
+  import { stuckDecision } from '../lib/prompt';
   import { loadLogShown, saveLogShown, safeStorage, type LogScope } from '../lib/logshown';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
@@ -110,6 +111,20 @@
   );
   const mulligan = $derived(panel ? mulliganPhase(panel.active) : null);
   const concede = $derived(panel?.concedeOption ?? null);
+  // The empty-answer safety net (the Squadron Hawk fail-to-find soft-lock):
+  // a decision for THIS seat that carries no options is one no picker can
+  // render, so the Pending tray names it — and, when the empty answer is
+  // legal (Min 0), carries a Continue that submits it through the seat
+  // panel's ordinary posting path (SeatPanelState.continueEmpty). The engine
+  // resolves every such shape silently since the empty-choose fix, so a live
+  // server should never hold one; the tray entry is belt-and-braces (an older
+  // server, a new engine shape) so a pending decision for this seat is never
+  // invisible. A spectator has no seat and no answerable decision: the rail's
+  // own decision line already names who is being asked.
+  const stuck = $derived(seated ? stuckDecision(m.view?.decision ?? null) : null);
+  const onContinue = $derived(
+    panel !== null && stuck !== null && stuck.answerable ? () => panel.continueEmpty() : null,
+  );
   // A direct card action can hand the server a first-stage choice and receive
   // a second decision for the same object (Underground Sea's activate -> Add
   // U / Add B flow). Remember only that one network continuation: the picker
@@ -296,6 +311,8 @@
           view={m.view}
           seats={m.seats}
           decision={seated ? null : m.decision}
+          {stuck}
+          {onContinue}
           emphasizeTop={seated}
           events={m.dvr.events}
           showLog={showLog}

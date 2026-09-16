@@ -26,8 +26,9 @@ const (
 	// hand card -- exactly the distinct-index shape Validate already enforces
 	// for KTriggerOrder, so no new wire format is needed (Ruling U2).
 	KMulligan Kind = "mulligan"
-	// KModes is a modal pick: Min == Max == CharmNum$ (default 1) over one
-	// "mode" option per Choices$ sub-ability, in Choices$ order. Spell modes
+	// KModes is a modal pick: MinCharmNum$ (default CharmNum$) through
+	// CharmNum$ (default 1) over one "mode" option per Choices$ sub-ability,
+	// in Choices$ order. Spell modes
 	// are announced during casting (CR 601.2b), trigger modes at placement
 	// (CR 603.3c), while nested Charm and unless-pay asks may suspend
 	// resolution. handleModes records ModeChosen; ResumeKind and the trigger
@@ -81,15 +82,17 @@ const (
 	// The wire shape is the same as every other decision; only the vocabulary
 	// of Option.Kind is new.
 	KChoose Kind = "choose"
-	// KReplacement is CR 616.1's order choice: two or more replacement effects
-	// are trying to modify the way one event affects an object, and the
-	// affected player (the controller of the affected object) chooses the
-	// order in which they apply. Min == Max == 1 over one option per
-	// competing replacement, in the deterministic scan order the engine
-	// found them in; each option's Kind is "replacement" and its Obj is the
-	// source permanent that owns that replacement. Posed BEFORE anything
-	// relocates (the modified event is parked), so answering never sees the
-	// object already moved.
+	// KReplacement is a choice about applying a replacement effect. For CR
+	// 616.1 competition it is Min == Max == 1 over the currently applicable
+	// replacements, in deterministic scan order; the affected player chooses
+	// which applies next, each option has Kind "replacement", and Obj names
+	// its source permanent. The event is parked, and applicability is checked
+	// again after each rewrite. A choice-valued mana replacement then uses five
+	// Kind "mana" options labelled Add W/U/B/R/G while that ManaAdd remains
+	// parked. BeginPhase competition uses the same replacement options; after
+	// an Optional$ effect is selected, options "apply" and "decline" ask
+	// whether it gets its opportunity. A decline continues through every
+	// remaining applicable phase replacement before the StepChange is logged.
 	KReplacement Kind = "replacement"
 	// KArrange is the ordered-subset ask a library-arranging effect poses
 	// (Ruling J0): the engine offers N cards, and the answer is an ordered
@@ -264,7 +267,8 @@ type Decision struct {
 	// TargetEffect is host-independent targeting context. It is absent on
 	// other decision kinds and on older servers; absent means unknown.
 	TargetEffect *TargetEffect `json:"target_effect,omitempty"`
-	// ResumeKind, ResumeSA, ResumeModes and ResumeTarget are server-side only.
+	// ResumeKind, ResumeSA, ResumeModes, ResumeTarget, ResumeChoices and
+	// ResumeRemembered are server-side only.
 	// ResumeKind selects a cast/placement/resolution continuation ("cast_modes",
 	// "modes", "unless_pay", "discard", "arrange", "search", "dig"); ResumeSA
 	// names the exact sub-ability involved. ResumeModes maps a filtered cast-time
@@ -279,6 +283,11 @@ type Decision struct {
 	ResumeSA     *cards.SA `json:"-"`
 	ResumeModes  []string  `json:"-"`
 	ResumeTarget int       `json:"-"`
+	// ResumeChoices carries selections completed by earlier per-player choice
+	// asks. It is runtime continuation state, never client input.
+	ResumeChoices     []state.Target `json:"-"`
+	ResumeChosenValid bool           `json:"-"`
+	ResumeRemembered  []state.Target `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,

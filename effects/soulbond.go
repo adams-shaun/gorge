@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
@@ -30,8 +32,34 @@ func effPair(h Host, c *Ctx, sa *cards.SA) {
 		}
 		return
 	}
+	// RestrictToRemembered$ True (the "another creature enters" half of
+	// Soulbond's expansion, cards/keywords.go's k+"#other" trigger) narrows
+	// the candidate scan to the specific creature that triggered THIS
+	// resolution -- CR 702.103a's "you may pair this creature with that
+	// creature", not any other unpaired creature the controller happens to
+	// have on the battlefield. Ctx.Remembered already carries the triggering
+	// entrant (checkTriggers' triggerRemembered, threaded through every
+	// ChangesZone trigger). The keyword's own first-entry trigger (#self)
+	// carries no such restriction and keeps the broad scan.
+	var restrictTo state.ObjID
+	if strings.EqualFold(sa.Params["RestrictToRemembered"], "True") {
+		for _, t := range c.Remembered {
+			if !t.IsPlayer && t.Obj != 0 {
+				restrictTo = t.Obj
+				break
+			}
+		}
+		if restrictTo == 0 {
+			// No remembered entrant to restrict to: nothing to offer, rather
+			// than falling back to the broad (wrong) scan.
+			return
+		}
+	}
 	options := make([]decision.Option, 0)
 	for _, id := range g.Zone(state.ZBattlefield, c.Controller) {
+		if restrictTo != 0 && id != restrictTo {
+			continue
+		}
 		o := g.Obj(id)
 		if !soulbondPartner(src, o, c.Controller) {
 			continue

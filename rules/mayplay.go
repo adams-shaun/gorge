@@ -125,11 +125,20 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	//     other than the static's controller: ActivePlayer, CardOwner,
 	//     Exiler, Player). Withholding the offer is the conservative
 	//     direction; both families are named in the AGENTS.md audit.
-	//   - the mayPlayUnreadGates family (see its doc).
-	for _, gate := range mayPlayUnreadGates {
-		if strings.TrimSpace(params[gate]) != "" {
-			return false, false, false
-		}
+	//   - the mayPlayUnreadGates family (see its doc), spelled out as one
+	//     literal read per gate so the parameter census attributes each key
+	//     (a loop over the slice would be a dynamic key it cannot classify).
+	if strings.TrimSpace(params["ValidAfterStack"]) != "" ||
+		strings.TrimSpace(params["SVarCompare"]) != "" ||
+		strings.TrimSpace(params["CheckSecondSVar"]) != "" ||
+		strings.TrimSpace(params["CheckThirdSVar"]) != "" ||
+		strings.TrimSpace(params["PresentCompare"]) != "" ||
+		strings.TrimSpace(params["ValidSA"]) != "" ||
+		strings.TrimSpace(params["ActivationZone"]) != "" ||
+		strings.TrimSpace(params["CharacteristicDefining"]) != "" ||
+		strings.TrimSpace(params["RaiseCost"]) != "" ||
+		strings.TrimSpace(params["MayPlayAltManaCost"]) != "" {
+		return false, false, false
 	}
 	if strings.TrimSpace(params["CheckSVar"]) != "" || strings.TrimSpace(params["MayPlayPlayer"]) != "" {
 		return false, false, false

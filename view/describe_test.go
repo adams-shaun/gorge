@@ -132,6 +132,7 @@ func TestDescribeTemplates(t *testing.T) {
 		{"unless pay", events.Event{Kind: events.ModeChosen, Player: 1, Text: "Don't pay"}, "Bob chooses Don't pay"},
 		{"commander damage", events.Event{Kind: events.CmdDamage, Player: 1, Obj: bear, Amount: 2}, "Bear #1 deals 2 commander damage to Bob (6 total; 21 is lethal)"},
 		{"commander damage unknown clock", events.Event{Kind: events.CmdDamage, Player: 1, Amount: 2}, "a card deals 2 commander damage to Bob"},
+		{"monarch", events.Event{Kind: events.MonarchChange, Player: 1}, "Bob becomes the monarch"},
 		{"unknown kind", events.Event{Kind: 250}, "unknown event"},
 		{"unknown seat", events.Event{Kind: events.Priority, Player: 9}, "seat 9 has priority"},
 		{"unknown object", events.Event{Kind: events.Tap, Obj: 77}, "#77 taps"},

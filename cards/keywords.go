@@ -134,10 +134,21 @@ func (f *Face) expandKeywords() {
 			// enters, and another unpaired creature its controller controls
 			// enters. The two synthetic KeywordLine suffixes retain idempotency
 			// for both expansions while Keyword remains the printed keyword.
+			//
+			// The second case's partner choice must be restricted to the
+			// SPECIFIC creature that triggered it (CR 702.103a: "you may pair
+			// this creature with that creature"), not any unpaired creature
+			// the controller happens to have -- a bystander unpaired creature
+			// must never be offered just because a third, unrelated creature
+			// entered. RestrictToRemembered$ True tells effPair (Ctx.Remembered
+			// already carries the triggering entrant, via triggerRemembered) to
+			// narrow its candidate scan to that one object; the #self trigger
+			// omits it and keeps the broad "any unpaired creature I control"
+			// scan CR 702.103a's other half calls for.
 			f.addKeywordTrigger(head, k+"#self", "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.Self | TriggerDescription$ Soulbond",
 				"DB$ Pair", has)
 			f.addKeywordTrigger(head, k+"#other", "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.YouCtrl+Other | TriggerDescription$ Soulbond",
-				"DB$ Pair", has)
+				"DB$ Pair | RestrictToRemembered$ True", has)
 		case "Myriad":
 			// CR 702.109: "Whenever this creature attacks, for each opponent other
 			// than the defending player, you may create a token that's a copy of
@@ -148,6 +159,22 @@ func (f *Face) expandKeywords() {
 			// opponent).
 			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | Myriad$ True | TriggerDescription$ Myriad",
 				"DB$ Myriad", has)
+		case "Annihilator":
+			// CR 702.86: each time this creature attacks, its defending
+			// player sacrifices the stated number of permanents. The count
+			// rides the Annihilator$ marker itself rather than Amount$: the
+			// generated trigger is this repo's own shape (no raw corpus card
+			// carries an Annihilator$ param), and keeping Amount$ off the
+			// expansion leaves api:Sacrifice.Amount genuinely unread for the
+			// ordinary Sacrifice lines the parameter census still labels.
+			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | TriggerDescription$ Annihilator",
+				"DB$ Sacrifice | Defined$ TriggeredDefendingPlayer | SacValid$ Permanent | Annihilator$ "+param, has)
+		case "Ward":
+			// Ward is a becomes-target trigger. Ward$ lets the matcher exclude
+			// the permanent's controller; the effect counters the targeting
+			// spell or ability unless that player pays the printed cost.
+			f.addKeywordTrigger(head, k, "Mode$ BecomesTarget | ValidTarget$ Card.Self | Ward$ True | TriggerDescription$ Ward",
+				"DB$ Ward | UnlessCost$ "+param, has)
 		case "Storm":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Storm",
 				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnCast/Minus1 | MayChooseTarget$ True", has)
@@ -194,19 +221,48 @@ func (f *Face) expandKeywords() {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)
 			}
+		case "Encore":
+			if has("A", k) {
+				continue
+			}
+			// param is "<cost>" ("3 R"), occasionally followed by further
+			// colon-separated fields no corpus line carries; the first field is
+			// the cost. The expansion mirrors the C21 oracle shape ("Encore
+			// <cost> (<cost>, Exile this card from your graveyard: For each
+			// opponent, create a token copy that attacks that opponent this turn
+			// if able. They gain haste. Sacrifice them at the beginning of the
+			// next end step. Activate only as a sorcery.)"): one AB$ ability in
+			// the graveyard whose cost is the printed cost plus exiling the card
+			// itself (ExileFromGrave<1/CARDNAME>), resolved by effects.Encore
+			// (encore.go): one CardToken copy per opponent, haste granted, and
+			// one end-step delayed sacrifice per copy. The tokens' "attacks that
+			// opponent this turn if able" is NOT enforced -- this build has no
+			// attack-requirement machinery for it (recorded in the ticket
+			// report's Issues), the copy is otherwise exact.
+			cost, _, _ := strings.Cut(param, ":")
+			sa, _ := parseSA("", "AB$ Encore | Cost$ "+cost+" ExileFromGrave<1/CARDNAME> | ActivationZone$ Graveyard | SorcerySpeed$ True | Keyword$ Encore | SpellDescription$ Encore "+cost)
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
 		}
 	}
 }
 
 // addKeywordTrigger appends one tagged T: line whose Execute$ is an SVar
 // this function creates, unless the exact keyword line was already
-// expanded (kw is the head, used for the Keyword$ tag and the __kw SVar
-// name; line is the full keyword text, used only for idempotency).
+// expanded (kw is the head, used only for the Keyword$ tag; line is the full
+// keyword text, used both for idempotency and -- since it, unlike kw, is
+// unique per call -- for the __kw SVar name. Soulbond calls this twice with
+// the same kw ("Soulbond") but two different lines ("Soulbond#self" and
+// "Soulbond#other"): keying the SVar name on kw alone would collide the two
+// calls onto one shared SVar, silently letting the second call's effect body
+// overwrite the first's).
 func (f *Face) addKeywordTrigger(kw, line, trigger, effect string, has func(kind, line string) bool) {
 	if has("T", line) {
 		return
 	}
-	sv := "__kw" + strings.ReplaceAll(kw, " ", "")
+	sv := "__kw" + strings.ReplaceAll(line, " ", "")
 	f.setSVar(sv, effect)
 	p := parseParams(trigger + " | Execute$ " + sv + " | Keyword$ " + kw)
 	p["KeywordLine"] = line

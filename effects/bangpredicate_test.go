@@ -56,19 +56,22 @@ func TestBangPredicateNegation(t *testing.T) {
 		t.Errorf("Creature.!IsCommander must not match a commander")
 	}
 
-	// Leaf 2: !<X> on an UNRECOGNISED <X> matches nothing and is still
-	// reported by UnknownPredicates. IsRemembered is a family pc2 deliberately
-	// left unknown; its negation must fail closed too -- "not known" is not
-	// "yes".
-	if MatchesObjectCtx(g, "Creature.!IsRemembered", plain, SpecContext{You: 0}) {
-		t.Errorf("Creature.!IsRemembered must match nothing (IsRemembered is unrecognised)")
+	// Leaf 2: IsRemembered is a resolution-local predicate. Its leading !
+	// negation sees the same Ctx list: a non-remembered creature matches, and
+	// the one object in that list does not. Neither spelling is unknown.
+	if !MatchesObjectCtx(g, "Creature.!IsRemembered", plain, SpecContext{You: 0}) {
+		t.Errorf("Creature.!IsRemembered must match a non-remembered creature")
 	}
-	if un := UnknownPredicates("Creature.!IsRemembered"); len(un) != 1 || un[0] != "!IsRemembered" {
-		t.Errorf("UnknownPredicates(Creature.!IsRemembered) = %v, want [!IsRemembered]", un)
+	if MatchesObjectCtx(g, "Creature.!IsRemembered", plain, SpecContext{You: 0, Remembered: []state.Target{{Obj: plain.ID}}}) {
+		t.Errorf("Creature.!IsRemembered must not match a remembered creature")
 	}
-	// The bare unknown form is still reported exactly the same way.
-	if un := UnknownPredicates("Creature.IsRemembered"); len(un) != 1 || un[0] != "IsRemembered" {
-		t.Errorf("UnknownPredicates(Creature.IsRemembered) = %v, want [IsRemembered]", un)
+	if !MatchesObjectCtx(g, "Creature.IsRemembered", plain, SpecContext{You: 0, Remembered: []state.Target{{Obj: plain.ID}}}) {
+		t.Errorf("Creature.IsRemembered must match the resolution's remembered object")
+	}
+	for _, spec := range []string{"Creature.!IsRemembered", "Creature.IsRemembered"} {
+		if un := UnknownPredicates(spec); len(un) != 0 {
+			t.Errorf("UnknownPredicates(%q) = %v, want empty", spec, un)
+		}
 	}
 
 	// Leaf 4: ! and non<X> compose without one path shadowing the other.

@@ -98,8 +98,13 @@ def _unmet_dependency(text: str) -> str | None:
 
 
 def _slot_free(issue: issues.Issue, paid: bool, what: str) -> bool:
+    if paid and config.PAID_OFF_FILE.exists():
+        log.debug("issue %s: %s held, paid provider marked off (%s)", issue.id, what, config.PAID_OFF_FILE)
+        return False
+    if not paid and not _local_endpoint_up():
+        return False
     if paid:
-        running = pi.running_names(config.IMPLEMENTER_ESCALATED_MODEL, config.REVIEWER_MODEL)
+        running = pi.running_names(config.IMPLEMENTER_ESCALATED_MODEL, config.REVIEWER_MODEL, config.OVERFLOW_MODEL)
         cap = config.MAX_PAID_SEATS
     else:
         running = pi.running_names(config.LOCAL_MODEL)
@@ -127,6 +132,112 @@ def _local_tier_seat(issue: issues.Issue, what: str) -> str | None:
 
 # --- per-status advancement --------------------------------------------------
 
+ENDPOINT_DOWN_RE = None  # compiled lazily below
+
+
+def _endpoint_failed(st: dict | None) -> bool:
+    """True when a seat ended because its model endpoint was unreachable (a
+    pod still loading after a reboot, a gateway 503) rather than because the
+    model failed the task. Only the agent harness's own errorMessage fields
+    count, so a seat's test output that happens to say "Connection refused"
+    does not."""
+    global ENDPOINT_DOWN_RE
+    import re
+    if ENDPOINT_DOWN_RE is None:
+        ENDPOINT_DOWN_RE = re.compile(
+            r'"errorMessage":"[^"]*(upstream connect error|Connection refused|no healthy upstream|503 Service Unavailable)')
+    if not st:
+        return False
+    for key in ("transcript", "events"):
+        p = st.get(key)
+        if not p:
+            continue
+        try:
+            text = Path(p).read_text(errors="replace")
+        except OSError:
+            continue
+        if ENDPOINT_DOWN_RE.search(text):
+            return True
+    return False
+
+
+_local_probe: tuple[float, bool] = (0.0, True)
+
+
+def _local_endpoint_up() -> bool:
+    """Probe the local model endpoint (cached 30s). Any HTTP answer below 500
+    with the seat credential means the upstream is serving; a connection error
+    or a 5xx means it is down or still loading, so no local seat is launched
+    into it."""
+    global _local_probe
+    now = time.time()
+    if now - _local_probe[0] < 30:
+        return _local_probe[1]
+    import os
+    import urllib.error
+    import urllib.request
+    up = True
+    try:
+        models = json.loads(Path.home().joinpath(".pi/agent/models.json").read_text())
+        base = models.get("providers", models)[config.LOCAL_PROVIDER]["baseUrl"].rstrip("/")
+        req = urllib.request.Request(base + "/models")
+        key = os.environ.get("BM_LLMS_API_KEY")
+        if key:
+            req.add_header("Authorization", "Bearer " + key)
+        try:
+            with urllib.request.urlopen(req, timeout=5) as r:
+                up = r.status < 500
+        except urllib.error.HTTPError as e:
+            up = e.code < 500
+    except (urllib.error.URLError, OSError, KeyError, ValueError):
+        up = False
+    if up != _local_probe[1]:
+        log.warning("local model endpoint %s", "back up" if up else "DOWN; local seats held")
+    _local_probe = (now, up)
+    return up
+
+
+SEAT_START_GRACE_S = 180
+
+
+def _all_seat_models() -> tuple[str, ...]:
+    return (config.LOCAL_MODEL, config.OVERFLOW_MODEL, config.IMPLEMENTER_ESCALATED_MODEL, config.REVIEWER_MODEL)
+
+
+def _seat_dead(name: str, st: dict | None) -> bool:
+    """A seat that was launched, never wrote a terminal status, and has no
+    live process -- killed by a reboot or an OOM. Without this the issue waits
+    forever on a status that will never arrive. The launch log's age gives a
+    starting seat time to appear in /proc."""
+    if pi.is_terminal(st) or not pi.already_launched(name):
+        return False
+    if name in pi.running_names(*_all_seat_models()):
+        return False
+    try:
+        age = time.time() - pi.launch_log_path(name).stat().st_mtime
+    except OSError:
+        return False
+    return age > SEAT_START_GRACE_S
+
+
+def _relaunch_implementer_round(issue: issues.Issue, wt: Path, tag: str, why: str) -> None:
+    """Re-run the CURRENT round under the same tag, uncounted: the seat died
+    (or never started) without a result. Its uncommitted work and the round's
+    findings stay in the worktree."""
+    kind = issue.seat_kind
+    paid = kind in ("escalated", "overflow")
+    if not _slot_free(issue, paid, f"rerun {tag}"):
+        return
+    findings_path = wt / ".ds4" / f"findings-{tag}.md"
+    prior = findings_path.read_text() if findings_path.exists() else ""
+    note = (f"NOTE: an earlier run of round {tag} was lost ({why}) before it reported. Any uncommitted work "
+            "it left is still in the worktree: check `git status`, keep what is sound, and finish the brief.\n\n")
+    seats.launch_implementer(issue.id, wt, tag, issue.brief, escalated=(kind == "escalated"),
+                             findings_text=note + prior, overflow=(kind == "overflow"))
+    issue.log(f"implementer {tag} relaunched ({why}); round not counted")
+    issue.save()
+
+
 def advance_new(issue: issues.Issue) -> None:
     if issue.source == "inbox" and "## Done means" in issue.report:
         # A hand-authored ticket that is already a full brief (it carries a
@@ -148,6 +259,13 @@ def advance_new(issue: issues.Issue) -> None:
         issue.save()
         return
     st = pi.read_status(status_path)
+    if _seat_dead(name, st):
+        _set_aside(pi.launch_log_path(name))
+        _set_aside(status_path)
+        git_ops.remove_triage_worktree(issue.id)
+        issue.log("triage seat died without a result; relaunch queued")
+        issue.save()
+        return
     if not pi.is_terminal(st):
         return
     state_dir = config.ORCH_STATE_DIR / "triage" / issue.id
@@ -168,6 +286,10 @@ def advance_new(issue: issues.Issue) -> None:
         else:
             issue.status = "human_needed"
             issue.log("triage claimed DONE but wrote no brief.md")
+    elif _endpoint_failed(st):
+        _set_aside(pi.launch_log_path(name))
+        _set_aside(status_path)
+        issue.log("triage failed on an unreachable model endpoint; relaunch queued")
     else:
         issue.status = "human_needed"
         issue.log(f"triage ended {st.get('status')}: {st.get('final_text', '')[:300]}")
@@ -254,6 +376,15 @@ def advance_dispatched(issue: issues.Issue) -> None:
     tag = seats.round_tag(issue)
     status_path = seats.implementer_status_path(wt, tag)
     st = pi.read_status(status_path)
+    name = seats.implementer_name(issue.id, tag)
+    if _seat_dead(name, st):
+        _set_aside(pi.launch_log_path(name))
+        _set_aside(status_path)
+        issue.log(f"implementer {tag} seat died without a result")
+        issue.save()
+    if not pi.is_terminal(st) and not pi.already_launched(name):
+        _relaunch_implementer_round(issue, wt, tag, "seat died or never started")
+        return
     if not pi.is_terminal(st):
         return
     outcome = st.get("status")
@@ -290,6 +421,31 @@ def advance_dispatched(issue: issues.Issue) -> None:
         issue.status = "human_needed"
         issue.log(f"implementer needs context: {st.get('final_text', '')[:400]}")
         issue.save()
+    elif _endpoint_failed(st):
+        # The model endpoint was unreachable: not the seat's failure. Set the
+        # round aside; the next tick relaunches the same round, uncounted, once
+        # a slot (and, for local seats, a healthy endpoint) is available.
+        _set_aside(status_path)
+        _set_aside(pi.launch_log_path(name))
+        issue.log(f"implementer {tag} failed on an unreachable model endpoint; round not counted, rerun queued")
+        issue.save()
+    elif _provider_cut_off(st):
+        # The provider stopped the seat mid-round. Re-run the SAME round once
+        # a paid slot opens: set the round's status and launch record aside so
+        # the tag and name can be reused, and undo the round count the
+        # redispatch is about to add back. The seat's uncommitted work stays in
+        # the worktree for the rerun to continue.
+        _mark_paid_off(issue, f"implementer {tag}")
+        _set_aside(status_path)
+        _set_aside(pi.launch_log_path(seats.implementer_name(issue.id, tag)))
+        if issue.seat_kind == "escalated":
+            issue.escalated_rounds -= 1
+        else:
+            issue.local_rounds -= 1
+        issue.log(f"implementer {tag} cut off by the provider usage limit; round not counted, rerun queued")
+        _redispatch_implementer(issue, f"Round {tag} was cut off by the provider's usage limit, not by a failure. "
+                                "Your uncommitted work from that round is still in the worktree: review it, "
+                                "continue from where it stopped, and finish the brief.")
     else:  # BLOCKED, CAPPED, UNKNOWN -- a failed round, not a question
         if _escalation_exhausted(issue):
             issue.status = "human_needed"
@@ -297,6 +453,40 @@ def advance_dispatched(issue: issues.Issue) -> None:
             issue.save()
         else:
             _redispatch_implementer(issue, f"Previous round ({tag}) ended {outcome} with no usable result. Try a different approach.")
+
+
+PROVIDER_LIMIT_MARKERS = ("usage limit has been reached",)
+
+
+def _provider_cut_off(st: dict | None) -> bool:
+    """True when a seat ended because the paid provider refused more work
+    (plan usage limit), not because the model failed the task. Such a round
+    must not count against the ticket's escalation ladder."""
+    if not st:
+        return False
+    for key in ("transcript", "events"):
+        p = st.get(key)
+        if not p:
+            continue
+        try:
+            text = Path(p).read_text(errors="replace")
+        except OSError:
+            continue
+        if any(m in text for m in PROVIDER_LIMIT_MARKERS):
+            return True
+    return False
+
+
+def _mark_paid_off(issue: issues.Issue, what: str) -> None:
+    if not config.PAID_OFF_FILE.exists():
+        config.PAID_OFF_FILE.write_text(f"{issues._now()} {issue.id} {what}: provider usage limit reached\n")
+        log.warning("paid provider usage limit reached (%s %s); paid seats off until %s is removed",
+                    issue.id, what, config.PAID_OFF_FILE)
+
+
+def _set_aside(path: Path) -> None:
+    if path.exists():
+        path.rename(path.with_name(path.stem + ".cutoff" + path.suffix))
 
 
 def _escalation_exhausted(issue: issues.Issue) -> bool:
@@ -310,7 +500,23 @@ def advance_review(issue: issues.Issue) -> None:
     tag = seats.round_tag(issue)
     status_path = seats.review_status_path(wt, tag)
     st = pi.read_status(status_path)
+    rname = seats.review_name(issue.id, tag)
+    if _seat_dead(rname, st) or (not pi.is_terminal(st) and not pi.already_launched(rname)):
+        _set_aside(pi.launch_log_path(rname))
+        _set_aside(status_path)
+        issue.status = "dispatched"  # advance_dispatched relaunches the review when a paid slot opens
+        issue.log(f"review {tag} seat died without a verdict; review requeued")
+        issue.save()
+        return
     if not pi.is_terminal(st):
+        return
+    if st.get("status") != "DONE" and _provider_cut_off(st):
+        _mark_paid_off(issue, f"review {tag}")
+        _set_aside(status_path)
+        _set_aside(pi.launch_log_path(seats.review_name(issue.id, tag)))
+        issue.status = "dispatched"  # advance_dispatched relaunches the review when a paid slot opens
+        issue.log(f"review {tag} cut off by the provider usage limit; review requeued")
+        issue.save()
         return
     if st.get("status") != "DONE":
         # A reviewer that itself failed is treated as REQUEST_CHANGES, never

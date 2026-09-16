@@ -73,6 +73,12 @@ type Config struct {
 	Tokens map[string]*cards.Card
 }
 
+type triggerObjectLKI struct {
+	object           *state.Object
+	power, toughness int32
+	ptValid          bool
+}
+
 type Engine struct {
 	G *state.Game
 	L *events.Log
@@ -103,6 +109,13 @@ type Engine struct {
 	// continuous holds every registered continuous effect, live or expired.
 	// The layer system (layers.go) is the only reader and writer.
 	continuous []ContinuousEffect
+	// controlGrants holds the GainControl effects that can still end (see
+	// rules/control.go). It is engine continuation state only; every take and
+	// return is a ControlChange event, so the log alone rebuilds Game state.
+	controlGrants []controlGrant
+	// expiringControl guards expireControl against re-entry through the
+	// ControlChange events it emits.
+	expiringControl bool
 
 	// pregame is true while the London mulligan round runs, between the
 	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
@@ -195,10 +208,21 @@ type Engine struct {
 	// triggerBefore is the immutable pre-departure board for an SBA death
 	// batch. Scoped to its emission/resumption, never carried as live state.
 	triggerBefore *triggerSnapshot
+	// lifeLossBatch holds the events in one simultaneous life-loss operation.
+	// It is scoped to one synchronous effect/combat pass, so it is always nil
+	// at an intent boundary and does not need log encoding or Clone state.
+	lifeLossBatch          []events.Event
+	lifeLossBatchDepth     int
+	finishingLifeLossBatch bool
 	// Per-stack-instance trigger provenance, derived while queuing/placing
 	// triggers, cloned at intent boundaries and removed when the stack object
 	// leaves. Never encoded in events or inferred from a resolving source.
 	triggerContexts map[state.ObjID]effects.TriggerContext
+	// triggerLKI preserves the causing event's object snapshot from trigger
+	// match through placement and resolution. TriggerPush can log Remembered
+	// ids but not the pre-move object value (whose counters Move clears), so
+	// this replay-derived map is the LKI analogue of triggerContexts.
+	triggerLKI map[state.ObjID]triggerObjectLKI
 	// sacrificedLKI maps a stack object id to the last-known-information
 	// snapshot of every permanent that object sacrificed (as a cost), captured
 	// at the instant of the sacrifice (Task sac1). It is engine-only, never
@@ -218,6 +242,15 @@ type Engine struct {
 	// boundaries, and removed with the stack object. Resolution copies it into
 	// effects.Ctx; effects uses it only when the source is no longer live.
 	sourceLifelinkLKI map[state.ObjID]bool
+	// sourceControllerLKI is the matching pre-departure controller snapshot.
+	// It is separate from sourceLifelinkLKI because false lifelink is still a
+	// valid snapshot, and a controller may be seat zero.
+	sourceControllerLKI map[state.ObjID]state.PlayerID
+	// damageSourceLKI carries snapshots keyed first by the waiting stack
+	// object and then by a departed named DamageSource$ object. Unlike the
+	// own-source maps above, every waiting resolution receives departures: the
+	// named source can be TriggeredCard, Targeted, or Remembered.
+	damageSourceLKI map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -246,11 +279,25 @@ type Engine struct {
 	// completed move never happens (fx44, Mox Diamond). Zero whenever no
 	// replacement is in flight.
 	replReplaced state.ObjID
+	// replAction is the action marker (events.ActionMarker) of the event the
+	// in-flight destination-changing replacement discarded: "sacrificed",
+	// "discarded" or "discarded as a cost". emit re-labels the replacement
+	// body's move of replReplaced with it (events.CarryAction), so a
+	// sacrifice or discard redirected by a replacement is still seen as that
+	// action by Sacrificed/Discarded triggers. Empty whenever no such
+	// replacement is in flight; threaded across a suspension by resumePoint.
+	replAction string
 	// triggerFireCount and damageOnceFired are trigger_match.go's own
 	// bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
 	// once-per-turn gate); see there.
 	triggerFireCount map[triggerKey]int32
 	damageOnceFired  map[triggerKey]int32
+	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
+	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
+	// reporting), so one spec emits exactly one Note per game no matter how
+	// often its trigger is walked. Cloned like the other bookkeeping maps so
+	// a branch that becomes live cannot re-emit the same Note.
+	phaseUnknownNoted map[string]bool
 
 	// choosing says which flow is waiting on the current KChoose decision
 	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling
@@ -283,7 +330,16 @@ type Engine struct {
 	// re-entry, drained into the resume chain as soon as that re-entry
 	// suspends again, and nil whenever no re-entry is in flight — so a Clone
 	// need not carry it (the same resolution re-derives the same chain).
-	contChain []*cards.SA
+	contChain []contFrame
+	// resolvingObj is the stack object whose resolution is running (resolveTop
+	// or a resumed resolution), kept through its final move off the stack so
+	// an entry replacement that asks can tell whether it interrupted that
+	// resolution's own move. Zero outside a resolution.
+	resolvingObj state.ObjID
+	// repeatReported is the RepeatEach SA whose loop frame SuspendRepeat
+	// just recorded, so the enclosing Resolve loop's report of the same SA
+	// is not recorded a second time as a plain continuation.
+	repeatReported *cards.SA
 
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
@@ -300,6 +356,9 @@ type Engine struct {
 	manaActivation        *manaActivation
 	manaColorActivation   *manaColorActivation
 	manaDiscardActivation *manaDiscardActivation
+	// wardMana holds a CR 702.21a mana-payment window while a Ward trigger
+	// is resolving. It is plain data so Clone preserves the suspended choice.
+	wardMana *wardManaPayment
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to
@@ -315,14 +374,21 @@ type Engine struct {
 	// clone taken with a decision outstanding carries the same queue. It is
 	// always empty in a non-Commander game: nothing ever parks there.
 	cmdZone []cmdZoneMove
-	// replChoices is the queue of parked CR 616.1 order-selection choices (see
-	// replChoice / poseReplacementChoice / handleReplacement rules/replacement.go):
-	// a MoveZone event more than one replacement would modify, deferred until
-	// the affected controller chooses the order. Mirrors cmdZone -- a queue of
-	// plain value entries cloned by one slice copy -- so a clone taken while a
-	// KReplacement decision is outstanding carries the same parked
-	// competitions the original does.
+	// replChoices is the queue of parked replacement choices (see replChoice /
+	// handleReplacement in replacement.go): CR 616.1 ordering for MoveZone,
+	// Untap, ProduceMana and BeginPhase, replacement-time mana-colour choices,
+	// and an Optional$ BeginPhase yes/no. Plain value entries are deep-copied by
+	// Clone, so every in-flight event survives an intent boundary.
 	replChoices []replChoice
+	// untapResume is set only around one Untap emission from finishUntapStep.
+	// If that event parks an Untap replacement choice, it moves into the queue.
+	untapResume *untapStep
+	// madnessChoices parks discard moves while the card's owner decides whether
+	// to apply Madness's optional hand-to-exile replacement.
+	madnessChoices []events.Event
+	// applyingMadnessChoice suppresses only the Madness interposition while an
+	// answered choice emits its selected destination.
+	applyingMadnessChoice bool
 
 	// suppressedCast holds the card object ids whose cast option is held out
 	// of the current priority window because their cast attempt aborted
@@ -438,6 +504,25 @@ type Engine struct {
 	// always zero at a clone boundary.
 	combatDamaging bool
 
+	// manaFromTap and manaProducer identify the mana ability currently
+	// resolving. They are synchronous context rather than ManaAdd fields.
+	manaFromTap  bool
+	manaProducer state.ObjID
+	// stepLeaving is the step transition currently offered to BeginPhase
+	// replacements; parked choices own a value copy.
+	stepLeaving *state.Step
+
+	// Tapping and damage provenance are likewise synchronous event context.
+	tappingForMana      state.ObjID
+	tappingManaProduced string
+	tapObj              state.ObjID
+	tapPlayer           state.PlayerID
+	tapEntering         bool
+	tappedTurn          map[state.ObjID]int32
+	triggerTurnFires    map[triggerKey]turnFires
+	dmgSrcOverride      state.ObjID
+	batchLifelink       map[state.ObjID]bool
+
 	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
 	// buffer. forEachObject copies each zone into it before walking it -- fn
 	// may move objects between zones (a trigger match putting something on
@@ -454,6 +539,45 @@ type Engine struct {
 	foreachBuf   []state.ObjID
 	foreachDepth int
 }
+
+// inFlightDamageSource is the one reader for Damage-event provenance: the
+// published override when a damage emitter set one, else the resolution/combat
+// source e.damaging carries. Zero when neither is set (a Damage event with no
+// recorded source -- emit's protection check treats zero as "never prevent",
+// and damageMatches fails the ValidSource$ match).
+func (e *Engine) inFlightDamageSource() state.ObjID {
+	if e.dmgSrcOverride != 0 {
+		return e.dmgSrcOverride
+	}
+	return e.damaging
+}
+
+// SetDamageSource implements effects.Host: publish the damage source for the
+// Damage events the calling emitter is about to emit, returning the previous
+// value so the emitter restores it. See dmgSrcOverride's field doc for the
+// replay/clone discipline.
+func (e *Engine) SetDamageSource(id state.ObjID) state.ObjID {
+	prev := e.dmgSrcOverride
+	e.dmgSrcOverride = id
+	return prev
+}
+
+// BatchDepartures implements effects.Host: snapshot the derived lifelink
+// state of every object the caller is about to move in one destruction
+// batch, so each member's departure capture reads the pre-batch state no
+// matter where it sits in battlefield order. See batchLifelink's field doc
+// for the consumption discipline.
+func (e *Engine) BatchDepartures(ids []state.ObjID) {
+	e.batchLifelink = make(map[state.ObjID]bool, len(ids))
+	for _, id := range ids {
+		e.batchLifelink[id] = e.HasKeyword(id, "Lifelink")
+	}
+}
+
+// EndBatchDepartures closes a destruction/sacrifice batch even if one of its
+// proposed moves was prevented or replaced. Without this explicit boundary,
+// that survivor's pre-batch LKI could be consumed by an unrelated later move.
+func (e *Engine) EndBatchDepartures() { e.batchLifelink = nil }
 
 // chooseFor names the flow a pending KChoose decision belongs to. Task 9
 // declares chooseCast (rules/cast.go); Tasks 12 and 18 add the "as this
@@ -748,11 +872,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// replacement substitution: prevention is unconditional and must not be
 	// handed to card text as if it had actually happened (and the recursive
 	// emit for the Note re-enters cleanly because a Note matches neither
-	// clause). e.damaging is the source of in-flight damage; a zero damaging
-	// (no source recorded) never suppresses a Damage event.
-	if ev.Kind == events.Damage && ev.Obj != 0 && e.damaging != 0 &&
-		e.protectedFrom(ev.Obj, e.damaging) {
-		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "prevented: protection"})
+	// clause). The damage source is the published override when a
+	// DamageSource$ emitter set one, else e.damaging; a zero source (no
+	// source recorded) never suppresses a Damage event. A planeswalker's
+	// Damage event is protected exactly like any other now -- its CR 306.8
+	// loyalty conversion happens one fold later, in events.Apply, so a
+	// prevented hit converts nothing.
+	if ev.Kind == events.Damage && ev.Obj != 0 {
+		if src := e.inFlightDamageSource(); src != 0 && e.protectedFrom(ev.Obj, src) {
+			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "prevented: protection"})
+		}
 	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 &&
 		e.protectedFrom(ev.IDs[0], ev.Obj) {
@@ -773,7 +902,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// a game state reaches it.
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
 	}
-	if !e.applyingReplacement {
+	if e.applyingReplacement {
+		ev = events.CarryAction(e.replAction, e.replReplaced, ev)
+	} else {
 		if replaced, handled := e.applyReplacements(ev); handled {
 			return replaced
 		}
@@ -784,14 +915,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// state, damage, controller, zone), not the reset state Move leaves it
 	// in. See effects.Ctx.LKI.
 	var lki *state.Object
+	var lkiPower, lkiToughness int32
+	var lkiPTValid bool
 	switch ev.Kind {
 	case events.MoveZone, events.Draw, events.PutOnStack:
 		if o := e.G.Obj(ev.Obj); o != nil {
 			cp := o.CloneDeep()
 			lki = &cp
+			if o.Zone == state.ZBattlefield && o.Face() != nil {
+				lkiPower, lkiToughness = e.Power(o.ID), e.Toughness(o.ID)
+				lkiPTValid = true
+			}
 		}
 	}
-	departingSource, departingSourceLifelink := e.captureSourceLifelinkLKI(ev)
+	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
@@ -799,17 +936,47 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {
 			e.triggerContexts[copyID] = tc
 		}
+		if lki, ok := e.triggerLKI[ev.Obj]; ok {
+			if e.triggerLKI == nil {
+				e.triggerLKI = make(map[state.ObjID]triggerObjectLKI)
+			}
+			if lki.object != nil {
+				cp := lki.object.CloneDeep()
+				lki.object = &cp
+			}
+			e.triggerLKI[copyID] = lki
+		}
 		if link, ok := e.sourceLifelinkLKI[ev.Obj]; ok {
 			if e.sourceLifelinkLKI == nil {
 				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
 			}
 			e.sourceLifelinkLKI[copyID] = link
 		}
+		if controller, ok := e.sourceControllerLKI[ev.Obj]; ok {
+			if e.sourceControllerLKI == nil {
+				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
+			}
+			e.sourceControllerLKI[copyID] = controller
+		}
+		if lki := e.damageSourceLKI[ev.Obj]; lki != nil {
+			if e.damageSourceLKI == nil {
+				e.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI)
+			}
+			e.damageSourceLKI[copyID] = cloneDamageSourceLKI(lki)
+		}
+	}
+	if ev.Kind == events.MoveZone {
+		// CR 400.7: an object that changes zones is a new object with no
+		// memory of having become tapped this turn.
+		delete(e.tappedTurn, ev.Obj)
 	}
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
+		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.sourceLifelinkLKI, ev.Obj)
+		delete(e.sourceControllerLKI, ev.Obj)
+		delete(e.damageSourceLKI, ev.Obj)
 	}
 	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
 		// CR 601.2i: the cast trigger must not fire at the up-front push
@@ -822,9 +989,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		cp, lp := stored, lki
 		e.deferredPush, e.deferredPushLKI = &cp, lp
 	} else {
-		e.checkTriggers(stored, lki)
+		if _, _, loss := lifeLoss(stored); loss && e.lifeLossBatchDepth > 0 {
+			e.lifeLossBatch = append(e.lifeLossBatch, stored)
+		}
+		e.checkTriggers(stored, lki, lkiPower, lkiToughness, lkiPTValid)
 	}
-	e.finishSourceLifelinkLKI(ev, departingSource, departingSourceLifelink)
+	if ev.Kind == events.Tap && !e.tapIsEntryState(ev) {
+		// Recorded after the triggers above were matched, so a FirstTime$
+		// trigger sees whether an EARLIER tap happened this turn.
+		if e.tappedTurn == nil {
+			e.tappedTurn = make(map[state.ObjID]int32)
+		}
+		e.tappedTurn[ev.Obj] = e.G.Turn
+	}
+	e.finishSourceLifelinkLKI(ev, departingSource, departingSourceLifelink, departingSourceController)
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
 	// see engine.go): a declined card's option comes back the moment the
@@ -839,6 +1017,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		ev.Kind != events.DecisionMade && ev.Kind != events.Note {
 		e.suppressedCast = nil
 		e.castAborts = nil
+		// CR 611.2b: a "for as long as" control effect ends the moment its
+		// condition stops holding, not at the next state-based check.
+		e.expireControl(controlOnEvent)
 	}
 	return stored
 }
@@ -852,33 +1033,55 @@ func (e *Engine) emit(ev events.Event) events.Event {
 // slices rather than a map keeps this bookkeeping incapable of changing event
 // order. A self-sacrifice activation is not minted until after its departure;
 // payCast captures that one sibling before paying the cost.
-func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool) {
+func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool, state.PlayerID) {
 	if ev.Kind != events.MoveZone || ev.From != state.ZBattlefield ||
 		ev.To == state.ZBattlefield {
-		return false, false
+		return false, false, 0
 	}
-	link := e.HasKeyword(ev.Obj, "Lifelink")
+	// A destruction batch's own pre-state wins (rules.Engine.BatchDepartures,
+	// effects.Host): a later batch member must read the lifelink state from
+	// immediately before the FIRST departure (CR 603.10a/702.15c -- the
+	// destroy-all over a lifelink-granting Equipment and its bearer), not
+	// the live layers an earlier member's departure already stripped. The
+	// entry is consumed here; BatchDepartures rebuilds the map on its next
+	// call, so a straggler for an object that never left cannot outlive one
+	// effect call.
+	link, batched := e.batchLifelink[ev.Obj]
+	if batched {
+		delete(e.batchLifelink, ev.Obj)
+	} else {
+		link = e.HasKeyword(ev.Obj, "Lifelink")
+	}
+	controller := e.G.Obj(ev.Obj).Controller
 	for _, id := range e.G.Stack {
 		if o := e.G.Obj(id); o != nil && o.Ability != nil && o.Source == ev.Obj {
 			if e.sourceLifelinkLKI == nil {
 				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
 			}
+			if e.sourceControllerLKI == nil {
+				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
+			}
 			e.sourceLifelinkLKI[id] = link
+			e.sourceControllerLKI[id] = controller
 		}
+		e.captureNamedDamageSourceLKI(id, ev.Obj, link, controller)
 	}
 	for i := range e.pendingTriggers {
 		if e.pendingTriggers[i].Source == ev.Obj {
 			e.pendingTriggers[i].Ctx.SourceLifelinkLKI = link
 			e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
+			e.pendingTriggers[i].Ctx.SourceControllerLKI = controller
+			e.pendingTriggers[i].Ctx.SourceControllerLKIValid = true
 		}
+		e.capturePendingNamedDamageSourceLKI(&e.pendingTriggers[i].Ctx, ev.Obj, link, controller)
 	}
-	return true, link
+	return true, link, controller
 }
 
 // finishSourceLifelinkLKI attaches the same pre-departure snapshot to a
 // dies/leaves trigger that the event itself just queued. Such a trigger did not
 // exist during captureSourceLifelinkLKI's pre-event walk.
-func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing, link bool) {
+func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing, link bool, controller state.PlayerID) {
 	if !departing {
 		return
 	}
@@ -886,13 +1089,57 @@ func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing, link bool) 
 		if e.pendingTriggers[i].Source == ev.Obj {
 			e.pendingTriggers[i].Ctx.SourceLifelinkLKI = link
 			e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
+			e.pendingTriggers[i].Ctx.SourceControllerLKI = controller
+			e.pendingTriggers[i].Ctx.SourceControllerLKIValid = true
 		}
+		e.capturePendingNamedDamageSourceLKI(&e.pendingTriggers[i].Ctx, ev.Obj, link, controller)
 	}
+}
+
+func (e *Engine) captureNamedDamageSourceLKI(stack, source state.ObjID, link bool, controller state.PlayerID) {
+	if e.damageSourceLKI == nil {
+		e.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI)
+	}
+	if e.damageSourceLKI[stack] == nil {
+		e.damageSourceLKI[stack] = make(map[state.ObjID]effects.DamageSourceLKI)
+	}
+	e.damageSourceLKI[stack][source] = effects.DamageSourceLKI{Lifelink: link, Controller: controller}
+}
+
+func (e *Engine) capturePendingNamedDamageSourceLKI(ctx *effects.Ctx, source state.ObjID, link bool, controller state.PlayerID) {
+	if ctx.DamageSourceLKI == nil {
+		ctx.DamageSourceLKI = make(map[state.ObjID]effects.DamageSourceLKI)
+	}
+	ctx.DamageSourceLKI[source] = effects.DamageSourceLKI{Lifelink: link, Controller: controller}
+}
+
+func cloneDamageSourceLKI(in map[state.ObjID]effects.DamageSourceLKI) map[state.ObjID]effects.DamageSourceLKI {
+	out := make(map[state.ObjID]effects.DamageSourceLKI, len(in))
+	for id, lki := range in {
+		out[id] = lki
+	}
+	return out
 }
 
 func (e *Engine) Pending() *decision.Decision { return e.pending }
 
 func (e *Engine) ask(d *decision.Decision) {
+	// Empty-answer-only tripwire (the class the Squadron Hawk fail-to-find
+	// search wedged): a decision whose ONLY legal answer is the empty one
+	// (Min 0 with Max 0, or no options at all) can never be answered
+	// differently by any seat, so posing it strands the game on an ask a
+	// client has no control to send. Every asking primitive in effects goes
+	// through effects.Ask, which refuses to post the shape and resolves it
+	// silently instead; this boundary guard is what fails a test loudly if
+	// any construction site -- here or a future one -- ever posts one
+	// anyway. Panic rather than quietly fixing: by the time a decision
+	// reaches ask the asking caller has already chosen its resolution path,
+	// and silently swallowing it here would leave the caller's suspended
+	// half-resolution dangling.
+	if effects.OnlyEmptyAnswer(d) {
+		panic(fmt.Sprintf("rules: decision %s for seat %d posed with only the empty answer legal (Min %d Max %d, %d options) -- asking primitives must resolve this shape silently (effects.Ask), never post it",
+			d.Kind, d.Player, d.Min, d.Max, len(d.Options)))
+	}
 	// Option.Index/position identity (finding bi). Every decision that can
 	// reach a seat flows through ask -- ask is what sets d.Seq and e.pending,
 	// so a decision that skipped it is not pending and no seat can answer it

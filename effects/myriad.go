@@ -37,8 +37,22 @@ func effMyriad(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if c.MyriadCreate {
 			// Player is the token's controller (the attacking player) and IDs[0]
-			// is the opponent it attacks.
+			// is the opponent it attacks. want is the ID the new copy will get
+			// (state.Game.AddObject assigns g.NextID then increments it, the
+			// same prediction effects/token.go's TokenCreate loop relies on),
+			// captured before the mint so the follow-up MoveZone below names
+			// the right object. MyriadCopy only mints the token (in the
+			// untracked ZLibrary state AddObject leaves it in); the MoveZone
+			// that actually seats it on the battlefield is a genuine
+			// ChangesZone-matchable event, so the token's own ETB triggers
+			// and every other "a creature enters" trigger observe its entry
+			// exactly like an ordinary cast or reanimation (CR 702.109 grants
+			// no special exemption from that).
+			want := g.NextID
 			h.Emit(events.Event{Kind: events.MyriadCopy, Obj: c.Source, Player: c.Controller, IDs: []state.ObjID{state.ObjID(eligible[c.MyriadTarget])}})
+			if g.Obj(want) != nil {
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: want, From: state.ZLibrary, To: state.ZBattlefield})
+			}
 		}
 		start = c.MyriadTarget + 1
 		// Consume the answer before posing a later choice. A nested myriad (or

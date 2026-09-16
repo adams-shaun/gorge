@@ -851,6 +851,54 @@ func TestSoulbondTriggersWhenAnotherCreatureEnters(t *testing.T) {
 	}
 }
 
+// TestSoulbondOtherEntryOffersOnlyItsOwnTriggeringCreature is the three-
+// creature regression: TWO already-unpaired creatures sit on the battlefield
+// alongside Tandem Lookout (also unpaired) when a THIRD creature enters.
+// CR 702.103a's second trigger case ("another unpaired creature enters")
+// pairs Lookout with THAT entrant specifically -- Ctx.Remembered, not a
+// battlefield-wide scan -- so neither bystander unpaired creature may ever be
+// offered, even though effPair's soulbondPartner predicate alone would admit
+// them (unpaired, controlled, a creature). This is what the two-candidate
+// TestSoulbondTriggersWhenAnotherCreatureEnters case above cannot catch: with
+// only one eligible creature on the board, a broad scan and a Remembered-
+// restricted scan produce the same single-option offer either way.
+func TestSoulbondOtherEntryOffersOnlyItsOwnTriggeringCreature(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	lookout, ok := reg.Lookup("Tandem Lookout")
+	if !ok {
+		t.Fatal("Tandem Lookout missing from corpus")
+	}
+	bearSrc := func(n string) *cards.Card {
+		return card(t, "Name:"+n+"\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	}
+	e, _, _ := newFixtureDeck(t, 196, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	lo := e.G.AddObject(lookout, 0)
+	lo.Zone = state.ZBattlefield
+	bystander1 := e.G.AddObject(bearSrc("Bystander One"), 0)
+	bystander1.Zone = state.ZBattlefield
+	bystander2 := e.G.AddObject(bearSrc("Bystander Two"), 0)
+	bystander2.Zone = state.ZBattlefield
+	entrant := e.G.AddObject(bearSrc("Entrant"), 0)
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{lo.ID, bystander1.ID, bystander2.ID})
+	e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{entrant.ID}, e.G.Zone(state.ZLibrary, 0)...))
+	e.emit(events.Event{Kind: events.MoveZone, Obj: entrant.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	e.priorityRound()
+	d := passToDecision(t, e, 8)
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Obj != entrant.ID {
+		t.Fatalf("Soulbond second-entry choices = %+v, want exactly the entering creature (neither bystander)", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("submit second-entry Soulbond: %v", err)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if lo.Paired != entrant.ID || entrant.Paired != lo.ID {
+		t.Fatalf("pairing = lookout:%d entrant:%d, want reciprocal", lo.Paired, entrant.Paired)
+	}
+	if bystander1.Paired != 0 || bystander2.Paired != 0 {
+		t.Fatalf("a bystander unpaired creature was paired instead: b1=%d b2=%d", bystander1.Paired, bystander2.Paired)
+	}
+}
+
 // TestMyriadUsesRealCorpusCard drives Chittering Dispatcher's real script:
 // a K:Myriad creature, when it attacks, creates a tapped attacking token
 // copy for each opponent other than the defending player.
@@ -896,6 +944,12 @@ func TestMyriadUsesRealCorpusCard(t *testing.T) {
 		t.Fatalf("Myriad created %d attacker tokens, want 1", tokens)
 	}
 	// CR 702.109a exiles Myriad tokens as the end-of-combat step ends.
+	// passUntilStackEmpty leaves the end-of-combat priority ask outstanding;
+	// the merged engine defers finishStepBoundary while a decision is pending
+	// (main's BeginPhase-replacement guard), so clear it the same way main's
+	// own TestLeavingEndCombatRemovesAttackerBeforePostcombatMain does before
+	// driving the transition by hand.
+	e.pending = nil
 	e.setStep(state.StepEndCombat)
 	e.advanceStep()
 	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
@@ -913,6 +967,43 @@ func TestMyriadUsesRealCorpusCard(t *testing.T) {
 		t.Fatal("Myriad token was not exiled at end of combat")
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestMyriadTokenEntryFiresOtherCreatureETBTriggers proves the Myriad copy's
+// battlefield entry is a genuine ChangesZone-matchable event (Mode$
+// ChangesZone requires ev.Kind == events.MoveZone), not merely a synthetic
+// MyriadCopy event no trigger can see. A watcher permanent with an ordinary
+// "whenever another creature enters" trigger sits on the controller's
+// battlefield before Chittering Dispatcher's Myriad token is created; the
+// watcher's life-gain must fire off the token's own entry exactly as it
+// would for a cast or reanimated creature.
+func TestMyriadTokenEntryFiresOtherCreatureETBTriggers(t *testing.T) {
+	e, cfg, _ := myriadCombat(t, 3)
+	watcher := card(t, "Name:Watcher\nManaCost:1 G\nTypes:Creature Elf\nPT:1/1\n"+
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature.Other | Execute$ Trig | TriggerDescription$ watch\n"+
+		"SVar:Trig:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n")
+	wo := e.G.AddObject(watcher, 0)
+	wo.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), wo.ID))
+	life := e.G.Players[0].Life
+
+	d := passToDecision(t, e, 8)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "myriad" || d.Player != 0 {
+		t.Fatalf("Myriad choice = %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("create Myriad copy: %v", err)
+	}
+	// The token's own MoveZone queues the watcher's trigger but does not
+	// itself place it on the stack; priorityRound is CR 117.5's "put queued
+	// triggers on the stack before priority" step.
+	e.priorityRound()
+	passUntilStackEmpty(t, e, 20)
+	if e.G.Players[0].Life != life+1 {
+		t.Fatalf("watcher life after Myriad token entry = %d, want %d (its ChangesZone trigger must fire on the token's real MoveZone entry)",
+			e.G.Players[0].Life, life+1)
+	}
+	_ = cfg // the watcher is added out-of-band (not through the event log), so this test does not replayCheck.
 }
 
 // myriadCombat uses Chittering Dispatcher's actual corpus keyword expansion
