@@ -341,6 +341,48 @@ func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *c
 	return e.targetsAvailable(p, id, 0, ab)
 }
 
+// grantedAbility is one ability a continuous ability grant (CR 613.1f,
+// state.ContinuousEffect.AddAbilities -- a Saga chapter's Animate) gives an
+// object right now: the parsed AB and the SVar name on the granting face's
+// table that re-resolves it.
+type grantedAbility struct {
+	sa   *cards.SA
+	svar string
+}
+
+// grantedAbilities collects the activated abilities the battlefield's
+// AddAbilities grants give id right now. Each entry is gated on the granting
+// effect actually applying to id (its Affects spec, "You" bound to the
+// effect's own controller) and re-resolved against the granting source's
+// face SVar table -- the name travels, never a parsed copy, so a replay
+// re-executing the grant reads the identical body. Only AB$ lines grant;
+// a name whose body is missing or is not an AB degrades to no grant (the
+// same totality stance every SVar resolution takes). Order: active()'s own
+// stable layer/timestamp sort, names in the grant's own order.
+func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbility {
+	var out []grantedAbility
+	for _, ce := range e.active() {
+		if len(ce.AddAbilities) == 0 {
+			continue
+		}
+		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+			continue
+		}
+		src := e.G.Obj(ce.Source)
+		if src == nil || src.Face() == nil {
+			continue
+		}
+		for _, nm := range ce.AddAbilities {
+			ab := cards.ResolveSVar(src.Face().SVars, nm)
+			if ab == nil || ab.Kind != "AB" {
+				continue
+			}
+			out = append(out, grantedAbility{sa: ab, svar: nm})
+		}
+	}
+	return out
+}
+
 // legalActions enumerates everything p may legally do with priority. The
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
@@ -406,6 +448,21 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				}
 			} else if e.castable(p, id, withSpellAbilityExtras(f, convokeBase), false) {
 				add("cast", "Cast "+f.Name, id)
+			}
+		}
+		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
+		// consumed by beginCast, which records a FlipFace before the ordinary
+		// cast transaction; from then on every cost/target/resolution reader
+		// sees the selected face. This is structural over every two-door Room,
+		// not a card-name exception (Spiked Corridor is the front-trigger case).
+		if rf := roomAlternateCastFace(o); rf != nil {
+			instant := rf.IsInstant() || e.HasKeyword(id, "Flash")
+			if (instant || sorcery) && e.castTargetsAvailable(p, id, rf.SpellAbility()) {
+				cost := e.offerCostFor(p, id, ParseCost(rf.ManaCost), false)
+				if e.castable(p, id, withSpellAbilityExtras(rf, cost), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
+				}
 			}
 		}
 		for i, alt := range e.alternativeCosts(p, id) {
@@ -754,6 +811,115 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
+	// Granted activated abilities (CR 613.1f, rules/legal.go's
+	// grantedAbilities): the abilities an AddAbilities continuous grant -- a
+	// Saga chapter's Animate, "CARDNAME gains '{T}: Add {C}'." -- gives a
+	// permanent. Non-mana ones are offered here with the SVar anchor
+	// beginActivation resolves (the same anchor the max-speed "granted"
+	// option carries); mana ones flow through availableManaAbilities below so
+	// the "Tap for mana" priority action and the payment window share one
+	// member set. Gates mirror the printed loop above minus the two index-
+	// anchored gates (loyalty, ActivationLimit$): a grant is never a loyalty
+	// ability, and no corpus granted ability carries a limit -- if one ever
+	// does, the limit is unenforced on it, which this comment is the pin of.
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o.Face() == nil {
+			continue
+		}
+		for _, ga := range e.grantedAbilities(p, id) {
+			ab := ga.sa
+			if ab.API == "Mana" {
+				continue
+			}
+			if ab.Params["SorcerySpeed"] == "True" && !sorcery {
+				continue
+			}
+			if e.abilityRestricted(p, id, ab) {
+				continue
+			}
+			cost := ParseCost(ab.Params["Cost"])
+			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
+				continue
+			}
+			if !e.castable(p, id, e.offerCostFor(p, id, cost, true), true) {
+				continue
+			}
+			if !e.abilityTargetsAvailable(p, id, ab) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "ability",
+				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar})
+		}
+	}
+
+	// kw:Station (CR 702.150, rules/station.go): each Spacecraft the player
+	// controls may be stationed as a sorcery by tapping another creature.
+	// The offer is gated on the sorcery window (Station only as a sorcery)
+	// and on a legal tap candidate existing, so an unpayable station is
+	// never offered; the tap candidate itself is the KChoose askStation
+	// poses after the option is chosen.
+	if sorcery {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil || !e.HasKeyword(id, "Station") {
+				continue
+			}
+			if len(e.stationCandidates(p, id)) == 0 {
+				continue
+			}
+			add("station", "Station "+o.Face().Name, id)
+		}
+		// Room unlock (CR 309.5, rules/rooms.go): a room whose second door is
+		// still locked may be unlocked as a sorcery by paying that half's own
+		// mana cost. The gate is the same castable total the cast options
+		// use, so an unpayable unlock is never offered (and the payment on
+		// the answer cannot disagree with the offer).
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			cost, ok := e.unlockRoomCost(o)
+			if !ok {
+				continue
+			}
+			if e.castable(p, id, e.offerCostFor(p, id, cost, true), true) {
+				add("unlock", "Unlock "+roomLockedFace(o).Name, id)
+			}
+		}
+	}
+
+	// kw:Start your engines (CR 702.163c, rules/speed.go): a max-speed
+	// static grants its AddAbility$ while its controller has speed 4, and
+	// the granted ability is offered through the same cost/target gates
+	// every other activation uses. NOT sorcery-gated: the grant is an
+	// ordinary activated ability (Amonkhet Raceway's {T}: pump) whose timing
+	// is its own cost's -- it needs a priority window, not a main phase, so
+	// the offer sits outside the sorcery block with the other activation
+	// offers.
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		for _, ab := range e.maxSpeedAbilities(p, id) {
+			if e.abilityRestricted(p, id, ab) {
+				continue
+			}
+			cost := ParseCost(ab.Params["Cost"])
+			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
+				continue
+			}
+			if !e.castable(p, id, e.offerCostFor(p, id, cost, false), false) {
+				continue
+			}
+			if !e.abilityTargetsAvailable(p, id, ab) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "granted",
+				Label: o.Face().Name + ": " + ab.Params["SpellDescription"],
+				Obj:   id, SVar: abSVarName(o.Face(), ab)})
+		}
+	}
+
 	// Pass is second-to-last. A client that wants to do nothing must choose
 	// it explicitly: from M2d-3 the FINAL option is "concede" (R-M3, always
 	// last), and a client defaulting to the final option would concede on
@@ -863,6 +1029,38 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// everywhere (grantPriority, NextAlive, beginTurn).
 		e.emit(events.Event{Kind: events.PlayerLost, Player: in.Player, Text: "conceded"})
 		e.checkStateBased()
+
+	case "station":
+		// kw:Station (CR 702.150, rules/station.go): the spacecraft is
+		// stationed by tapping another creature the KChoose below names. The
+		// pass-count reset matches every other non-pass action.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		e.askStation(in.Player, opt)
+
+	case "unlock":
+		// Room unlock (CR 309.5, rules/rooms.go): pay the locked half's mana
+		// cost and emit the DoorUnlock event. The offer gated on castable,
+		// so the payment here cannot disagree with the offer; a stale option
+		// (the room left play or was unlocked between offer and answer -- the
+		// same seat's answer, so the board cannot have moved) degrades to a
+		// no-op through unlockRoomCost's nil face.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		o := e.G.Obj(opt.Obj)
+		cost, ok := e.unlockRoomCost(o)
+		if !ok {
+			return
+		}
+		if !e.payMana(in.Player, cost) {
+			return
+		}
+		e.emit(events.Event{Kind: events.DoorUnlock, Obj: opt.Obj})
+
+	case "granted":
+		// kw:Start your engines (CR 702.163c, rules/speed.go): a max-speed
+		// static's granted ability, activated through the ordinary cost
+		// payment and the delayed-shape ability mint.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		e.beginGrantedActivation(in.Player, opt)
 
 	case "cast":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})

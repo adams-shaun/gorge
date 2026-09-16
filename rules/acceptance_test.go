@@ -89,26 +89,14 @@ import (
 // cEDH, Ulalek Eldrazi), whose entries land in this table when they are
 // imported.
 var knownUnsupported = map[string][]string{
-	"Baloth Prime":              {"api:Untap"},
-	"Chromatic Orrery":          {"stat:ManaConvert"},
-	"Conduit of Worlds":         {"api:Play"},
-	"Constant Mists":            {"api:Fog"},
-	"Crypt Ghast":               {"kw:Extort"},
-	"Exotic Orchard":            {"api:ManaReflected"},
-	"Exploration Broodship":     {"kw:Station"},
-	"Fabled Passage":            {"api:Untap"},
-	"Fog":                       {"api:Fog"},
-	"Gamble":                    {"api:Shuffle"},
-	"Hearthhull, the Worldseed": {"kw:Station"},
-	"Horizon Explorer":          {"api:Untap"},
-	"Lord Windgrace":            {"kw:CARDNAME can be your commander."},
-	"Planetary Annihilation":    {"api:SacrificeAll"},
-	"Spiked Corridor":           {"trig:UnlockDoor"},
-	"Spinerock Knoll":           {"api:Play", "kw:Hideaway"},
-	"Through the Forest Gate":   {"api:Shuffle"},
-	"Unholy Annex":              {"trig:UnlockDoor"},
-	"Vial Smasher the Fierce":   {"kw:Partner"},
-	"Walk-In Closet":            {"trig:UnlockDoor"},
+	"Baloth Prime":      {"api:Untap"},
+	"Chromatic Orrery":  {"stat:ManaConvert"},
+	"Conduit of Worlds": {"api:Play"},
+	"Crypt Ghast":       {"kw:Extort"},
+	"Exotic Orchard":    {"api:ManaReflected"},
+	"Fabled Passage":    {"api:Untap"},
+	"Horizon Explorer":  {"api:Untap"},
+	"Spinerock Knoll":   {"api:Play", "kw:Hideaway"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

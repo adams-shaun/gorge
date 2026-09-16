@@ -393,6 +393,52 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
+	// resolution just made (effects/dice.go), under the SVar name its
+	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's
+	// SVar$ head resolves a body of the form "SVar$<name>" against them, so
+	// a chained sub's own SVar body (Velukan Dragon's
+	// "SVar:X:SVar$Result/Minus.1") and a ConditionCheckSVar$ can read the
+	// roll. Zero/"" on any resolution that did not roll, and the values are
+	// never persisted -- a roll that suspends and resumes loses them, the
+	// same per-resolution lifetime every other Ctx field has. RollPubs is
+	// the general form of the same publication (both are read through
+	// effects.dice.go's rollPublished, and this slot stays the primary
+	// result's mirror for the existing readers).
+	LastRoll     int32
+	LastRollName string
+	// RollPub is one name→value publication a DB$ RollDice of this
+	// resolution made, beyond the primary ResultSVar$ slot above:
+	// ChosenSVar$/OtherSVar$ (the Endeavor cycle's choose-one-result), and
+	// the MaxRollsResults$/EvenOddResults$ counts ("MaxRolls",
+	// "EvenResults", "OddResults" -- Luck Bobblehead). Read by Name's
+	// bare-name fallback and evalCountExpr's SVar$ head through
+	// rollPublished, and by Ctx.SpecContext's numeric-RHS resolver, so a
+	// chained sub's filter spec (Valiant Endeavor's Creature.powerGEX,
+	// Arcane Endeavor's Instant.cmcLEY) reads the roll too. Never persisted
+	// across a suspension -- the chosen/other publications are rebuilt from
+	// the answered decision on the roll resume (Ctx.RollResults/RollPick),
+	// the same per-resolution lifetime as LastRoll.
+	RollPubs []RollPub
+	// RollResults/RollPick/RollDone carry the ANSWERED choose-one-result ask
+	// on a re-entered mid-resolution RollDice (rules/resolution.go's "roll"
+	// arm): RollResults is the per-die results the asking first pass rolled
+	// (carried verbatim on the decision and the resume point), RollPick the
+	// dice the player picked (each entry a roll Option's Index), RollDone
+	// the answered marker. The re-entered effRollDice publishes
+	// ChosenSVar$ = the sum of the picked dice's results and OtherSVar$ =
+	// the sum of the rest, then lets Resolve chain the SubAbility$; it
+	// consumes and clears all three at its top (the fx42 scoping
+	// discipline), so a nested RollDice below this walk poses its own ask.
+	RollResults []int32
+	RollPick    []int
+	RollDone    bool
+}
+
+// RollPub is one name→value publication (see Ctx.RollPubs).
+type RollPub struct {
+	Name  string
+	Value int32
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)

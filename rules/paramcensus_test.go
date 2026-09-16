@@ -1158,11 +1158,15 @@ var handRoots = struct {
 		"RaiseCost":  {"Engine.adjustedCost", "Engine.costModifiers"},
 		"ReduceCost": {"Engine.adjustedCost", "Engine.costModifiers"},
 		// staticEffects filters on st.Mode != "Continuous" before reading.
-		"Continuous": {"Engine.staticEffects", "warpGraveyardAllowed"},
+		"Continuous": {"Engine.staticEffects", "warpGraveyardAllowed", "Engine.maxSpeedAbilities"},
 		// warpGraveyardAllowed scans Continuous MayPlay statics directly
 		// over the face's Statics slice (Timeline Culler's explicit
 		// graveyard-Warp permission), with no activeStatics call -- the
 		// same direct-scan shape mustAttackRequired has.
+		// maxSpeedAbilities scans Continuous AddAbility$/Condition$MaxSpeed
+		// statics directly over the face's Statics slice (CR 702.163c's
+		// max-speed grant), with no activeStatics call -- the same
+		// direct-scan shape.
 		// mustAttackRequired scans MustAttack statics directly, with no
 		// activeStatics call; its Params reads are the whitelist switch.
 		"MustAttack": {"Engine.mustAttackRequired"},
@@ -1868,7 +1872,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Electrostatic Bolt":          {"param:api:DealDamage.ConditionCheckSVar", "param:api:DealDamage.ConditionSVarCompare"},
 	"Endless One":                 {"param:api:PutCounter.ETB"},
 	"Escape Tunnel":               {"param:api:Effect.ExileOnMoved"},
-	"Evendo Brushrazer":           {"param:stat:Continuous.CheckSVar", "param:stat:Continuous.Condition"},
+	"Evendo Brushrazer":           {"param:stat:Continuous.CheckSVar"},
 	"Exploration Broodship":       {"param:stat:Continuous.AddStaticAbility"},
 	"Fabled Passage":              {"param:api:Cleanup.ClearRemembered"},
 	"Flickerwisp":                 {"param:api:Cleanup.ClearRemembered", "param:api:DelayedTrigger.RememberObjects"},
@@ -1885,7 +1889,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Gravecrawler":                {"param:stat:Continuous.IsPresent"},
 	"Hallowed Fountain":           {"param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
 	"Hangarback Walker":           {"param:api:PutCounter.ETB"},
-	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddAbility", "param:stat:Continuous.AddTrigger"},
+	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
 	"Icetill Explorer":            {"param:stat:Continuous.AdjustLandPlays"},
 	"Impulse":                     {"param:api:Dig.NoReveal"},
 	"Incinerate":                  {"param:api:Cleanup.ClearRemembered", "param:api:Effect.ForgetOnMoved"},
@@ -1895,7 +1899,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Jeska's Will":                {"param:api:Cleanup.ClearRemembered", "param:api:Dig.RememberChanged", "param:api:Effect.ForgetOnMoved"},
 	"Journey to Nowhere":          {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
 	"Karn Liberated":              {"param:api:ChangeZone.Hidden", "param:api:ChangeZoneAll.GainControl", "param:api:RestartGame.RestrictFromValid", "param:api:RestartGame.RestrictFromZone", "param:api:RestartGame.Ultimate"},
-	"Karn, the Great Creator":     {"param:api:Animate.Duration", "param:api:ChangeZone.Hidden", "param:api:ChangeZone.Reveal", "param:stat:CantBeActivated.AffectedZone"},
+	"Karn, the Great Creator":     {"param:api:ChangeZone.Hidden", "param:api:ChangeZone.Reveal", "param:stat:CantBeActivated.AffectedZone"},
 	"Knight of the White Orchid":  {"param:api:ChangeZone.ShuffleNonMandatory", "param:trig:ChangesZone.CheckSVar", "param:trig:ChangesZone.SVarCompare"},
 	"Kodama's Reach":              {"param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal", "param:api:Cleanup.ClearRemembered"},
 	"Kor Skyfisher":               {"param:api:ChangeZone.Hidden"},
@@ -1926,7 +1930,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Purphoros, God of the Forge": {"param:stat:Continuous.CheckSVar", "param:stat:Continuous.RemoveType", "param:stat:Continuous.SVarCompare"},
 	"Ragavan, Nimble Pilferer":    {"param:api:Cleanup.ClearRemembered", "param:api:Dig.RememberChanged", "param:api:Effect.ForgetOnMoved"},
 	"Rakdos, Lord of Riots":       {"param:stat:CantBeCast.CheckSVar", "param:stat:CantBeCast.SVarCompare"},
-	"Razorkin Needlehead":         {"param:stat:Continuous.Condition"},
 	"Reality Smasher":             {"param:trig:BecomesTarget.ValidSource"},
 	"Realms Uncharted":            {"param:api:ChangeZone.DifferentNames", "param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal", "param:api:Cleanup.ClearRemembered"},
 	"Relic of Progenitus":         {"cost:Exile", "param:api:ChangeZone.Hidden"},

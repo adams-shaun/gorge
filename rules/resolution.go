@@ -104,6 +104,16 @@ type resumePoint struct {
 	choices     []state.Target
 	chosenValid bool
 	remembered  []state.Target
+	// rolls is the per-die results of the RollDice ask whose answer this
+	// point resumes (effects/dice.go's ChosenSVar$/OtherSVar$ choose-one-
+	// result shape, the Endeavor cycle): the asking first pass carried them
+	// on the decision (decision.Decision.Rolls), Ask copies them here, and
+	// the "roll" arm hands them to the re-entered effect, which publishes
+	// the chosen/other sums WITHOUT re-rolling -- a re-roll would both
+	// re-draw the seeded generator and answer a different question. Plain
+	// value data, cloned with the point; a replay re-derives the same rolls
+	// from the same seeded draws. Nil for every other ask.
+	rolls []int32
 	// replSource is the host of the replacement whose body asked (the
 	// ReplaceWith$ body's own Ctx.Source); zero outside a replacement.
 	replSource state.ObjID
@@ -195,7 +205,8 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
 		replacementTarget: replacementTarget, replacementSource: e.protectionSource(e.damaging),
 		replacementAmount: replacementAmount,
-		before:            e.triggerBefore, target: d.ResumeTarget, choices: append([]state.Target(nil), d.ResumeChoices...),
+		before:            e.triggerBefore, target: d.ResumeTarget, rolls: d.Rolls,
+		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...)}
 	return true
 }
@@ -678,6 +689,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.DigDone = true
 			ctx.DigTarget = rp.target
+		case "roll":
+			// A RollDice choose-one-result answer (effects/dice.go's
+			// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the chosen
+			// options' Index values name the dice (into the ask's own per-die
+			// results, rp.rolls) the player picked. The re-entered effRollDice
+			// publishes ChosenSVar$ = the sum of the picked dice's results,
+			// OtherSVar$ = the sum of the rest, and consumes and clears all
+			// three Ctx fields at its top (the fx42 scoping discipline).
+			ctx.RollResults = rp.rolls
+			pick := make([]int, 0, len(chosen))
+			for _, o := range chosen {
+				pick = append(pick, o.Index)
+			}
+			ctx.RollPick = pick
+			ctx.RollDone = true
 		case "hand_move":
 			// A "choose N cards matching ChangeType$ from Origin$ Hand" pick was
 			// answered (handmove1): the hand's owner chose which of the

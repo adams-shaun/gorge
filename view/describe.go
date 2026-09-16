@@ -25,6 +25,26 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " shuffles their library"
 	case events.LibraryOrder:
 		return player(g, ev.Player) + " rearranges the top of their library"
+	case events.ExtraTurn:
+		if ev.Amount < 0 {
+			return ""
+		}
+		if ev.Amount == 1 {
+			return player(g, ev.Player) + " takes an extra turn"
+		}
+		return player(g, ev.Player) + " takes " + itoa(int64(ev.Amount)) + " extra turns"
+	case events.DoorUnlock:
+		return obj(g, ev.Obj) + "'s locked door is unlocked"
+	case events.SpeedChange:
+		verb, n := "gains", ev.Amount
+		if n < 0 {
+			verb, n = "loses", -n
+		}
+		speed := int32(0)
+		if g != nil && int(ev.Player) < len(g.Players) {
+			speed = g.Players[ev.Player].Speed
+		}
+		return player(g, ev.Player) + " " + verb + " " + itoa(int64(n)) + " speed (speed " + itoa(int64(speed)) + ")"
 	case events.MonarchChange:
 		return player(g, ev.Player) + " becomes the monarch"
 	case events.ControlChange:

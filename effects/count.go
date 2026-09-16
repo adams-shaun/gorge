@@ -66,6 +66,16 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 			return sign * EvalCount(h, c, body), true
 		}
 	}
+	// A DB$ RollDice publication of this same resolution (effects/dice.go):
+	// a sub's numeric parameter naming the roll -- Boomflinger's NumDmg$
+	// Result, Grave Endeavor's LifeAmount$ Y, Neverwinter Hydra's
+	// CounterNum$ Result -- reads the published value through the bare name,
+	// exactly as the SVar$ indirection resolves the same name in an SVar
+	// body. Checked after the card's own SVar table so a real SVar of the
+	// same name keeps winning.
+	if v, ok := rollPublished(c, raw); ok {
+		return sign * v, true
+	}
 	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
 	// Minus1, Task 17) is a body in its own right, not an SVar name -- a
 	// param value of "Count$..." evaluates directly rather than being
@@ -157,6 +167,24 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	if body, ok := strings.CutPrefix(expr, "TriggerCount$"); ok {
 		return evalTriggerCount(c, strings.TrimSpace(body))
 	}
+	// A "SVar$<name>[/Op]" body references the value another SVar of this
+	// resolution holds -- today only effects/dice.go's RollDice publications
+	// (the roll's ResultSVar$ name -> the die result/total/difference, plus
+	// the chosen/other and MaxRolls/EvenResults counts). An unknown name, or
+	// no roll this resolution, degrades to zero (the conservative
+	// same-as-before no-op every unmodelled head applies). The /Op suffix is
+	// applied exactly as applyCountOp does.
+	if body, ok := strings.CutPrefix(expr, "SVar$"); ok {
+		body, op, hasOp := strings.Cut(body, "/")
+		n := int32(0)
+		if v, ok := rollPublished(c, strings.TrimSpace(body)); ok {
+			n = v
+		}
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
+	}
 	// ReplaceCount$ reads the event currently being replaced. Damage
 	// replacement bodies use both the bare DamageAmount form (Vigor, Purity,
 	// Hostility) and arithmetic suffixes (Fiery Emancipation, Angel of
@@ -177,6 +205,14 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	if !ok {
 		if n, err := strconv.Atoi(expr); err == nil {
 			return int32(n)
+		}
+		// A bare SVar-name body (Spark Fiend's StoreSVar Expression$ Result)
+		// resolves a DB$ RollDice publication of this same resolution -- the
+		// same name the SVar$ indirection resolves above, in the one shape a
+		// corpus body carries a bare runtime name. Anything else still
+		// degrades to zero.
+		if v, ok := rollPublished(c, strings.TrimSpace(expr)); ok {
+			return v
 		}
 		return 0
 	}

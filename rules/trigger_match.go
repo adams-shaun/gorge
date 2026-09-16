@@ -76,6 +76,12 @@ type pendingTrigger struct {
 type triggerKey struct {
 	Source state.ObjID
 	Idx    int
+	// Face distinguishes a Room's two faces (rules/rooms.go): an unlocked
+	// room's ALTERNATE face (index 1) carries its own triggers whose
+	// fire-count and once-per-turn memory must never share an entry with
+	// the cast face's same-index trigger. Zero for every ordinary read --
+	// the zero value keeps the field invisible to every existing key build.
+	Face uint8
 }
 
 // damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce trigger's
@@ -287,6 +293,15 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		if dt.Phase != ev.Step {
 			continue
 		}
+		// CR 603.7 + CR 500.7 (rules/saga.go, events.ExtraTurn): a delayed
+		// trigger an extra-turn grant registered carries the granted turn's
+		// number as MinTurn, so the granting turn's own occurrence of the
+		// phase (Final Fortune's end step) does not consume the one-shot
+		// registration -- the trigger fires exactly once, in the granted
+		// turn, and the registration stays pending until then.
+		if dt.MinTurn > 0 && e.G.Turn < dt.MinTurn {
+			continue
+		}
 		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
 			continue
 		}
@@ -453,6 +468,11 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	if ev.Kind == events.PutOnStack {
 		e.checkEventDelayedTriggers(ev)
 	}
+	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the
+	// two events that place lore counters -- the battlefield-entry Move
+	// (whose own grant is already folded into the live counter the check
+	// reads) and a LORE CounterChange (the draw-step half).
+	e.checkChapterTriggers(ev)
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)
 	}
@@ -468,6 +488,13 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	}
 	if ev.Kind == events.StepChange {
 		e.checkDelayedTriggers(ev)
+	}
+	// Rooms (CR 309.5): the unlocked half's "When you unlock this door"
+	// trigger queues off the DoorUnlock event itself -- its face is the
+	// alternate face (FaceIdx 1), which the ordinary face scan above does
+	// not walk.
+	if ev.Kind == events.DoorUnlock {
+		e.checkUnlockTriggers(ev)
 	}
 }
 
@@ -508,171 +535,226 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		if lki != nil && lki.ID == ev.Obj {
 			objLKI = lki
 		}
-		for ti, t := range f.Triggers {
-			// LifeLostAll is evaluated once at the end of a simultaneous
-			// life-loss batch. Do not queue it once per serialized Damage/
-			// LifeChange event, and do not let the finishing pass re-check
-			// unrelated trigger modes.
-			if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
-				continue
-			}
-			if e.finishingLifeLossBatch && t.Mode != "LifeLostAll" {
-				continue
-			}
-			if !leaving {
-				// Phase$ is a common Forge trigger gate, not a Mode$ Phase
-				// parameter: ChangesZone, SpellCast, and every other supported
-				// trigger mode may carry it. Report an unresolvable value once
-				// per engine per spec, while triggerMatches rejects it on every
-				// event. Keeping reporting outside the scratch look-back walk
-				// means a Note is a real event, never an observer side effect.
-				spec := t.Params["Phase"]
-				if strings.TrimSpace(spec) != "" {
-					if _, unknown := state.ParsePhases(spec); len(unknown) > 0 {
-						if e.phaseUnknownNoted == nil {
-							e.phaseUnknownNoted = map[string]bool{}
-						}
-						if !e.phaseUnknownNoted[spec] {
-							e.phaseUnknownNoted[spec] = true
-							phaseNotes = append(phaseNotes, phaseNote{id: id, spec: spec})
-						}
-					}
+		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
+		// face is live too, so its triggers walk in the same scan. The face
+		// index rides the triggerKey (Face field) so the alternate face's
+		// fire-count and once-per-turn memory never share an entry with the
+		// cast face's same-index trigger. roomTriggerFaces returns the faces
+		// to walk, cast face first.
+		for _, fc := range roomTriggerFaces(o, f) {
+			for ti, t := range fc.face.Triggers {
+				// LifeLostAll is evaluated once at the end of a simultaneous
+				// life-loss batch. Do not queue it once per serialized Damage/
+				// LifeChange event, and do not let the finishing pass re-check
+				// unrelated trigger modes.
+				if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
+					continue
 				}
-			}
-			// A "from anywhere" graveyard trigger is NOT a leaves-the-
-			// battlefield trigger (CR 603.6c), even when this particular
-			// move happens to leave the battlefield. Only the explicit
-			// battlefield-origin shape looks back; destination triggers
-			// still use the post-event source/zone in the live walk.
-			looksBack := t.Mode == "ChangesZone" && t.Params["Origin"] == "Battlefield"
-			if split && looksBack != leaving {
-				continue
-			}
-			// CR 603.8 state trigger: its condition is checked against the
-			// current state, not against the event under test, and it fires
-			// at most once per outstanding instance. A trigger that already
-			// has an instance queued or on the stack does not re-fire, so a
-			// condition that stays true cannot enqueue an unbounded run
-			// (the concise standing caveat against naively re-firing Always
-			// on every bookkeeping event).
-			if t.Mode == "Always" && e.stateTriggerOutstanding(id, ti) {
-				continue
-			}
-			if !observer.triggerMatches(t, id, ev, objLKI) {
-				continue
-			}
-			if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
-				continue
-			}
-			key := triggerKey{Source: id, Idx: ti}
-			if e.triggerFireCount == nil {
-				e.triggerFireCount = map[triggerKey]int32{}
-			}
-			if e.triggerFireCount[key] >= maxTriggerFires {
-				continue // cascade bound: see maxTriggerFires.
-			}
-			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
-				continue // ActivationLimit$: already triggered enough this turn.
-			}
-			if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
-				// The "Once" gate latches once per DAMAGE BATCH, not per turn
-				// (CR 510.4; Forge PhaseHandler.dealAssignedDamage fires
-				// triggerDamageDoneOnce once per damage step, and one
-				// dealDamage call's damage per batch): a double striker's
-				// bearer triggers Jitte twice (two damage steps), and two
-				// separate damage events in one turn trigger an Enrage creature
-				// twice -- while two blockers hitting back at the same creature
-				// in ONE batch trigger it once, with the referent carrying the
-				// batch's accumulated total. Within an open batch the entry
-				// below IS the latch (a second matching event accumulates into
-				// it); no batch open means every Damage event is its own batch,
-				// so there is nothing to latch across and the trigger fires per
-				// event with its own event amount already the batch total.
-				// Non-positive amounts (the negative-amount Damage events the
-				// cleanup/regeneration repair paths emit to clear marked
-				// damage) are not damage and never latch or queue a Once
-				// trigger.
-				if ev.Amount > 0 {
-					bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce"}
-					if bk.dealt {
-						// Combat identifies the actual attacker/blocker in damaging;
-						// an effect batch's shared source is its published override
-						// or its resolving stack object otherwise. A watcher can
-						// match several sources in one batch, so never collapse
-						// non-combat sources onto ObjID zero. Same priority order as
-						// the ValidSource$ match above: an explicit override always
-						// wins, e.damaging is combat-only, damageSource is the
-						// non-combat fallback.
-						bk.obj = e.dmgSrcOverride
-						if bk.obj == 0 {
-							if e.combatDamaging {
-								bk.obj = e.damaging
-							} else {
-								bk.obj = e.damageSource()
+				if e.finishingLifeLossBatch && t.Mode != "LifeLostAll" {
+					continue
+				}
+				if !leaving {
+					// Phase$ is a common Forge trigger gate, not a Mode$ Phase
+					// parameter: ChangesZone, SpellCast, and every other supported
+					// trigger mode may carry it. Report an unresolvable value once
+					// per engine per spec, while triggerMatches rejects it on every
+					// event. Keeping reporting outside the scratch look-back walk
+					// means a Note is a real event, never an observer side effect.
+					spec := t.Params["Phase"]
+					if strings.TrimSpace(spec) != "" {
+						if _, unknown := state.ParsePhases(spec); len(unknown) > 0 {
+							if e.phaseUnknownNoted == nil {
+								e.phaseUnknownNoted = map[string]bool{}
+							}
+							if !e.phaseUnknownNoted[spec] {
+								e.phaseUnknownNoted[spec] = true
+								phaseNotes = append(phaseNotes, phaseNote{id: id, spec: spec})
 							}
 						}
-					} else if ev.Obj != 0 {
-						bk.obj = ev.Obj
-					} else {
-						bk.player = ev.Player
-					}
-					if e.damageBatchOpen {
-						if e.damageBatchIdx == nil {
-							e.damageBatchIdx = map[damageBatchKey]int{}
-						}
-						if entIdx, ok := e.damageBatchIdx[bk]; ok {
-							e.damageBatchLog[entIdx].amount += ev.Amount
-							continue // already queued once for this batch and referent.
-						}
-						e.damageBatchIdx[bk] = len(e.damageBatchLog)
-						e.damageBatchLog = append(e.damageBatchLog, damageBatchEntry{
-							key: bk, idx: len(e.pendingTriggers), amount: ev.Amount,
-						})
-						// Fall through: the trigger queues now, at the same point
-						// in the stream it queued at before this gate was
-						// batch-scoped; closeDamageBatch patches its referent
-						// amount to the batch total.
 					}
 				}
+					// A "from anywhere" graveyard trigger is NOT a leaves-the-
+					// battlefield trigger (CR 603.6c), even when this particular
+					// move happens to leave the battlefield. Only the explicit
+					// battlefield-origin shape looks back; destination triggers
+					// still use the post-event source/zone in the live walk.
+					looksBack := t.Mode == "ChangesZone" && t.Params["Origin"] == "Battlefield"
+					if split && looksBack != leaving {
+						continue
+					}
+					// CR 603.8 state trigger: its condition is checked against the
+					// current state, not against the event under test, and it fires
+					// at most once per outstanding instance. A trigger that already
+					// has an instance queued or on the stack does not re-fire, so a
+					// condition that stays true cannot enqueue an unbounded run
+					// (the concise standing caveat against naively re-firing Always
+					// on every bookkeeping event).
+					if t.Mode == "Always" && e.stateTriggerOutstanding(id, ti) {
+						continue
+					}
+					if !observer.triggerMatches(t, id, ev, objLKI) {
+						continue
+					}
+					if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
+						continue
+					}
+					key := triggerKey{Source: id, Idx: ti, Face: fc.faceIdx}
+					if e.triggerFireCount == nil {
+						e.triggerFireCount = map[triggerKey]int32{}
+					}
+					if e.triggerFireCount[key] >= maxTriggerFires {
+						continue // cascade bound: see maxTriggerFires.
+					}
+					if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+						continue // ActivationLimit$: already triggered enough this turn.
+					}
+					if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
+						// The "Once" gate latches once per DAMAGE BATCH, not per turn
+						// (CR 510.4; Forge PhaseHandler.dealAssignedDamage fires
+						// triggerDamageDoneOnce once per damage step, and one
+						// dealDamage call's damage per batch): a double striker's
+						// bearer triggers Jitte twice (two damage steps), and two
+						// separate damage events in one turn trigger an Enrage creature
+						// twice -- while two blockers hitting back at the same creature
+						// in ONE batch trigger it once, with the referent carrying the
+						// batch's accumulated total. Within an open batch the entry
+						// below IS the latch (a second matching event accumulates into
+						// it); no batch open means every Damage event is its own batch,
+						// so there is nothing to latch across and the trigger fires per
+						// event with its own event amount already the batch total.
+						// Non-positive amounts (the negative-amount Damage events the
+						// cleanup/regeneration repair paths emit to clear marked
+						// damage) are not damage and never latch or queue a Once
+						// trigger.
+						if ev.Amount > 0 {
+							bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce"}
+							if bk.dealt {
+								// Combat identifies the actual attacker/blocker in damaging;
+								// an effect batch's shared source is its published override
+								// or its resolving stack object otherwise. A watcher can
+								// match several sources in one batch, so never collapse
+								// non-combat sources onto ObjID zero. Same priority order as
+								// the ValidSource$ match above: an explicit override always
+								// wins, e.damaging is combat-only, damageSource is the
+								// non-combat fallback.
+								bk.obj = e.dmgSrcOverride
+								if bk.obj == 0 {
+									if e.combatDamaging {
+										bk.obj = e.damaging
+									} else {
+										bk.obj = e.damageSource()
+									}
+								}
+							} else if ev.Obj != 0 {
+								bk.obj = ev.Obj
+							} else {
+								bk.player = ev.Player
+							}
+							if e.damageBatchOpen {
+								if e.damageBatchIdx == nil {
+									e.damageBatchIdx = map[damageBatchKey]int{}
+								}
+								if entIdx, ok := e.damageBatchIdx[bk]; ok {
+									e.damageBatchLog[entIdx].amount += ev.Amount
+									continue // already queued once for this batch and referent.
+								}
+								e.damageBatchIdx[bk] = len(e.damageBatchLog)
+								e.damageBatchLog = append(e.damageBatchLog, damageBatchEntry{
+									key: bk, idx: len(e.pendingTriggers), amount: ev.Amount,
+								})
+								// Fall through: the trigger queues now, at the same point
+								// in the stream it queued at before this gate was
+								// batch-scoped; closeDamageBatch patches its referent
+								// amount to the batch total.
+							}
+						}
+					}
+					e.triggerFireCount[key]++
+					if t.Effect == nil {
+						// Execute$ named an SVar this face never defined (or one
+						// that failed to parse): the trigger matched, but there is
+						// nothing to run.
+						continue
+					}
+					// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
+					// is controlled by whoever controlled it as it left, not by the
+					// owner the move has since reset it to (a stolen creature's own
+					// dies trigger belongs to the player who stole it).
+					controller := o.Controller
+					if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
+						controller = objLKI.Controller
+					}
+					// The non-active face of an unlocked Room must be minted through
+					// the delayed-shape push: TriggerPush re-derives an ability from
+					// the object's active Face(), while the delayed push resolves the
+					// other face's Execute$ SVar directly. This is independent of
+					// whether CR 309.4b cast face 0 or face 1.
+					alt := !fc.active
+					pt := pendingTrigger{
+						Source:     id,
+						Controller: controller,
+						Idx:        ti,
+						SA:         t.Effect,
+						Ctx: effects.Ctx{
+							Source:         id,
+							Controller:     controller,
+							Remembered:     triggerRemembered(ev, id),
+							Captured:       triggerRemembered(ev, id),
+							LKI:            objLKI,
+							LKIPower:       lkiPower,
+							LKIToughness:   lkiToughness,
+							LKIPTValid:     objLKI != nil && lkiPTValid,
+							TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+						},
+					}
+					if alt {
+						pt.Delayed = true
+						pt.DelayedID = ^uint32(0)
+						pt.Execute = t.Params["Execute"]
+					}
+					e.pendingTriggers = append(e.pendingTriggers, pt)
+					// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
+					// ... permanent you control triggers, that ability triggers an
+					// additional time." Each battlefield Panharmonicon-shaped static
+					// whose ValidCard$ matches the triggering object appends ONE extra
+					// copy of this trigger immediately after the original, in scan
+					// order -- deterministic, and the extra copy is an ordinary queue
+					// entry that resolves like any other (the doubling does not fire on
+					// the copy again: the copy is not an event). Panharmonicon's own
+					// trigger is excluded by the spec's Other predicate, which is
+					// relative to the Panharmonicon permanent itself.
+					for k := 0; k < e.panharmoniconEchoes(observer.G, id, ev); k++ {
+						e.pendingTriggers = append(e.pendingTriggers, pt)
+					}
 			}
-			e.triggerFireCount[key]++
-			if t.Effect == nil {
-				// Execute$ named an SVar this face never defined (or one
-				// that failed to parse): the trigger matched, but there is
-				// nothing to run.
-				continue
-			}
-			// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
-			// is controlled by whoever controlled it as it left, not by the
-			// owner the move has since reset it to (a stolen creature's own
-			// dies trigger belongs to the player who stole it).
-			controller := o.Controller
-			if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
-				controller = objLKI.Controller
-			}
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-				Source:     id,
-				Controller: controller,
-				Idx:        ti,
-				SA:         t.Effect,
-				Ctx: effects.Ctx{
-					Source:         id,
-					Controller:     controller,
-					Remembered:     triggerRemembered(ev, id),
-					Captured:       triggerRemembered(ev, id),
-					LKI:            objLKI,
-					LKIPower:       lkiPower,
-					LKIToughness:   lkiToughness,
-					LKIPTValid:     objLKI != nil && lkiPTValid,
-					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
-				},
-			})
 		}
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
 			Text: "Phase$ " + n.spec + " names no engine step; the trigger never fires"})
 	}
+}
+
+// triggerFace is one face's trigger walk: its printed index keys fire-count
+// memory, and active says whether TriggerPush can re-derive it through the
+// object's current Face() (the other unlocked Room face must use a delayed
+// shape because Apply cannot select it).
+type triggerFace struct {
+	face    *cards.Face
+	faceIdx uint8
+	active  bool
+}
+
+// roomTriggerFaces returns the faces whose Triggers a scan walks for object
+// o: its cast face always, plus the other face once unlocked (CR 309.6).
+// FaceIdx need not be zero: CR 309.4b permits casting either Room door.
+func roomTriggerFaces(o *state.Object, active *cards.Face) []triggerFace {
+	out := []triggerFace{{face: active, faceIdx: o.FaceIdx, active: true}}
+	if o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
+		other := uint8(1 - int(o.FaceIdx))
+		out = append(out, triggerFace{face: o.Card.Faces[other], faceIdx: other})
+	}
+	return out
 }
 
 // openDamageBatch opens a damage batch: the Damage events emitted until the
@@ -2057,5 +2139,21 @@ func init() {
 		// since Task 11; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
 		"kw:Storm", "kw:Ward", "kw:Annihilator",
+		// Mass effects, extra turns and new-set mechanics (the
+		// inbox-engine-gap-mass-turn-new-mechanics ticket):
+		//   - trig:UnlockDoor: a Room's unlock trigger (rules/rooms.go),
+		//     queued off the DoorUnlock event the unlock activation emits.
+		//   - kw:Station: the Spacecraft station activation (rules/station.go).
+		//   - kw:Chapter: the Saga mechanic (rules/saga.go).
+		//   - kw:Start your engines: the speed mechanic (rules/speed.go).
+		//   - stat:Panharmonicon: the trigger-doubling static (rules'
+		//     panharmoniconEchoes, consulted in checkFaceTriggers).
+		//   - kw:Partner and "kw:CARDNAME can be your commander." are
+		//     DECK-CONSTRUCTION keywords (CR 90.3a/702.129): the engine
+		//     already seats and casts commanders per Config, and nothing in
+		//     play reads them, so the registrations assert the corpus shape
+		//     is understood, not that play rules exist for it.
+		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
+		"stat:Panharmonicon", "kw:Partner", "kw:CARDNAME can be your commander.",
 	)
 }

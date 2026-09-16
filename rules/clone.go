@@ -39,6 +39,9 @@ func (e *Engine) Clone() *Engine {
 		// the same reference-sharing Clone already practises for
 		// orderedTriggers.
 		blockerRound: e.blockerRound,
+		// stationing (station.go): the plain-value spacecraft a pending
+		// Station tap pick belongs to; zero whenever none is outstanding.
+		stationing: e.stationing,
 		// combatRound (combat.go, Task jj-cmb): the combat damage step's
 		// pass/division continuation state. The queue, answered divisions
 		// and the pending ask's option-split table are all written in place

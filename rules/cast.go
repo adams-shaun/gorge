@@ -124,6 +124,11 @@ type pendingCast struct {
 	// flight (an ability, or a spell aborted before the push).
 	preSuppress map[state.ObjID]bool
 
+	// faceBefore is non-nil only for a CR 309.4b alternate Room cast. The
+	// proposal begins with an event-sourced FlipFace so all ordinary cast
+	// stages read the chosen door; an aborted proposal flips it back.
+	faceBefore *uint8
+
 	// preAborts is the castAborts no-progress count map (engine.go) as it was
 	// just before pushCast's PutOnStack, captured and restored for exactly the
 	// reason preSuppress is: the push is a state-changing event that emit
@@ -697,8 +702,23 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	id := opt.Obj
 	o := e.G.Obj(id)
-	f := o.Face()
+	if o == nil {
+		return
+	}
 	from := o.Zone
+	var faceBefore *uint8
+	if opt.Mode == "room_alt" {
+		if roomAlternateCastFace(o) == nil {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	}
+	f := o.Face()
+	if f == nil {
+		return
+	}
 
 	// Which cost this pays is opt.AltCostIndex, not always adjustedCost
 	// (Ruling T19b-b): legalActions gates each "cast" option on that
@@ -780,7 +800,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// re-added mana part would double charge. Only a plain cast reaches this
 	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
 	// no SP Cost$ contributes nothing.
-	if opt.AltCostIndex == 0 && opt.Mode == "" {
+	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "room_alt") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -799,10 +819,10 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		pcAlt := altAddCostParts(f)
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, raise: raise, reduce: reduce, taxGeneric: tax, altAddParts: pcAlt}
+			cost: cost, faceBefore: faceBefore, raise: raise, reduce: reduce, taxGeneric: tax, altAddParts: pcAlt}
 	} else {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, raise: raise, reduce: reduce, taxGeneric: tax}
+			cost: cost, faceBefore: faceBefore, raise: raise, reduce: reduce, taxGeneric: tax}
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
@@ -2843,6 +2863,11 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.stackObj, From: state.ZStack, To: state.ZExile, Text: "reversed"})
 		} else {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.stackObj, From: state.ZStack, To: pc.from, Text: "reversed"})
+		}
+	}
+	if pc.faceBefore != nil {
+		if o := e.G.Obj(pc.card); o != nil && o.FaceIdx != *pc.faceBefore {
+			e.emit(events.Event{Kind: events.FlipFace, Obj: pc.card, Amount: int32(*pc.faceBefore)})
 		}
 	}
 	// CR 733.1: the game returns to the moment before the spell or ability was
