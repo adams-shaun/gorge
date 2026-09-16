@@ -170,8 +170,8 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 	if ab == nil || ab.Kind != "AB" {
 		return
 	}
-	cost := e.offerCostFor(p, opt.Obj, ParseCost(ab.Params["Cost"]), true)
-	if !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Life) {
+	cost := e.offerCostFor(p, opt.Obj, ParseCost(ab.Params["Cost"]), costScope{kind: "Ability"})
+	if !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].Life) {
 		return
 	}
 	if !e.payMana(p, cost) {

@@ -947,10 +947,28 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	if amt < 0 {
 		amt = 0
 	}
+	// CR 107.4h: mana produced by a SNOW permanent is snow mana. A snow unit
+	// is tagged in the pool event itself — Counter "S<colour>" — so the pool
+	// slot and the parallel snow tally move through one event and a replay
+	// derives both identically. The {S} pips a cost may carry are paid only
+	// from that tally (rules/mana.go's resolveMana).
+	snow := false
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		for _, t := range o.Face().Types {
+			if t == "Snow" {
+				snow = true
+				break
+			}
+		}
+	}
 	for _, p := range ManaRecipients(h, c, sa) {
 		for _, r := range runes {
+			counter := string(r)
+			if snow {
+				counter = "S" + counter
+			}
 			h.Emit(events.Event{Kind: events.ManaAdd, Player: p,
-				Counter: string(r), Amount: amt})
+				Counter: counter, Amount: amt})
 		}
 	}
 }

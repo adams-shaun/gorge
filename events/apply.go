@@ -364,6 +364,16 @@ func Apply(g *state.Game, e Event) {
 
 	case ManaAdd:
 		if validPlayer(g, e.Player) {
+			// "S<colour>" (e.g. "SW") is a SNOW mana unit (CR 107.4h): it lands
+			// in the colour's pool slot and is tallied in Player.Snow so a {S}
+			// pip can be paid only from it. One event moves both counters, so
+			// the snow tally can never drift from the pool it parallels.
+			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
+				idx := state.ManaIndex(e.Counter[1])
+				g.Players[e.Player].Pool[idx] += e.Amount
+				g.Players[e.Player].Snow[idx] += e.Amount
+				break
+			}
 			idx := state.MC
 			if e.Counter != "" {
 				idx = state.ManaIndex(e.Counter[0])
@@ -374,6 +384,7 @@ func Apply(g *state.Game, e Event) {
 	case ManaClear:
 		if validPlayer(g, e.Player) {
 			g.Players[e.Player].Pool = state.Mana{}
+			g.Players[e.Player].Snow = state.Mana{}
 		}
 
 	case CounterChange:

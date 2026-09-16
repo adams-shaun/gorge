@@ -167,17 +167,22 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	if body, ok := strings.CutPrefix(expr, "TriggerCount$"); ok {
 		return evalTriggerCount(c, strings.TrimSpace(body))
 	}
-	// A "SVar$<name>[/Op]" body references the value another SVar of this
-	// resolution holds -- today only effects/dice.go's RollDice publications
-	// (the roll's ResultSVar$ name -> the die result/total/difference, plus
-	// the chosen/other and MaxRolls/EvenResults counts). An unknown name, or
-	// no roll this resolution, degrades to zero (the conservative
-	// same-as-before no-op every unmodelled head applies). The /Op suffix is
-	// applied exactly as applyCountOp does.
-	if body, ok := strings.CutPrefix(expr, "SVar$"); ok {
-		body, op, hasOp := strings.Cut(body, "/")
-		n := int32(0)
-		if v, ok := rollPublished(c, strings.TrimSpace(body)); ok {
+	// A SVar$<name>[/Op] indirection resolves another SVar on the same face
+	// and applies the suffix (Herald of War-adjacent shapes:
+	// SVar:Z:SVar$Y/Times.2 chains two reductions' amounts). It also resolves
+	// the RollDice publications (effects/dice.go's ResultSVar$ names -> the
+	// die result/total/difference, plus the chosen/other and
+	// MaxRolls/EvenResults counts): a roll's value lives in the resolution's
+	// publication record, not in a static SVar table, so it is consulted
+	// only when the name is not an SVar of this face. An unknown name
+	// degrades to zero -- the conservative no-op every unmodelled head
+	// applies. The /Op suffix is applied exactly as applyCountOp does.
+	if rest, ok := strings.CutPrefix(expr, "SVar$"); ok {
+		name, op, hasOp := strings.Cut(rest, "/")
+		var n int32
+		if body, ok2 := c.SVars[strings.TrimSpace(name)]; ok2 {
+			n = evalCountExpr(h, c, body, depth+1)
+		} else if v, ok2 := rollPublished(c, strings.TrimSpace(name)); ok2 {
 			n = v
 		}
 		if hasOp {
@@ -467,6 +472,20 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		return int32(h.CastThisTurn())
 	case "RememberedSize":
 		return int32(len(c.Remembered))
+	case "LifeOppsLostThisTurn":
+		// The total life the controller's OPPONENTS have lost this turn
+		// (Rakdos, Lord of Riots). Each opponent's loss comes from the Host's
+		// log-derived LifeLostThisTurn, so the count is replay-derivable.
+		if c.Controller < 0 {
+			return 0
+		}
+		var n int32
+		for _, p := range g.AliveFrom(0) {
+			if p != c.Controller {
+				n += h.LifeLostThisTurn(p)
+			}
+		}
+		return n
 	case "CardPower":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
 			return refPower(h, o, false)
@@ -477,6 +496,14 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 			return refToughness(h, o, false)
 		}
 		return 0
+	}
+
+	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
+	// spec (Count$ThisTurnCast_Card.YouCtrl — the "first/second spell you
+	// cast" family): the caster scope is the controller when the spec carries
+	// a You* qualifier, everyone otherwise.
+	if rest, ok := strings.CutPrefix(head, "ThisTurnCast_"); ok {
+		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest))
 	}
 
 	// CardCounters.<KIND> counts a counter kind on the source.
@@ -509,16 +536,48 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 	}
 
 	// Valid / ValidZone forms count objects in a zone matching a filter.
+	// A "$<Property>" suffix (Count$Valid Creature.YouCtrl$CardPower —
+	// Ghalta, Primal Hunger) aggregates the named numeric property over the
+	// matching objects instead of counting them: CardPower/CardToughness
+	// sum the face value plus P1P1 counters, CardManaCost sums mana value.
+	// Without the suffix this stays the plain count. A property this build
+	// cannot evaluate degrades to the plain count (the value the suffix
+	// never influenced), never a hard error.
 	if zone, ok := countZone(head); ok {
+		spec, prop, hasProp := strings.Cut(arg, "$")
 		var n int32
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(zone, p) {
-				if matchesZoneSpecCtx(g, arg, id, c.SpecContext(c.Controller), zone) {
-					n++
+				if matchesZoneSpecCtx(g, spec, id, c.SpecContext(c.Controller), zone) {
+					if !hasProp {
+						n++
+						continue
+					}
+					n += objectProperty(g, id, prop)
 				}
 			}
 		}
 		return n
+	}
+	return 0
+}
+
+// objectProperty reads one Count$Valid-spec "$Property" aggregate term over
+// a single object: its face value plus +1/+1 counters for power/toughness,
+// the mana value for CardManaCost. An unknown property reads 0 — the same
+// conservative no-op every unmodelled head here takes.
+func objectProperty(g *state.Game, id state.ObjID, prop string) int32 {
+	o := g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	switch strings.TrimSpace(prop) {
+	case "CardPower":
+		return int32(o.Face().Power()) + o.Counter("P1P1")
+	case "CardToughness":
+		return int32(o.Face().Toughness()) + o.Counter("P1P1")
+	case "CardManaCost":
+		return o.Face().ManaValue()
 	}
 	return 0
 }

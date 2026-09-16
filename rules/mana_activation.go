@@ -130,7 +130,8 @@ func (e *Engine) manaAbilityPayable(p state.PlayerID, source state.ObjID, ma *ca
 	}
 	cost := ParseCost(ma.Params["Cost"])
 	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.Behold) > 0 || len(cost.TapPermanent) > 0 ||
-		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Life) {
+		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) ||
+		!cost.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].Life) {
 		return false
 	}
 	for _, part := range cost.SubCounter {

@@ -13,6 +13,14 @@ type Player struct {
 	// Counters records player counters (currently poison, used by Ward costs).
 	Counters []Counter
 
+	// Snow parallels Pool slot for slot: Snow[i] counts how many of the
+	// Pool[i] mana units were produced by a Snow permanent (CR 107.4h — a
+	// snow unit can pay a {S} pip as well as anything else one mana pays).
+	// It is written only by the ManaAdd event's "S<colour>" Counter form and
+	// cleared with the pool by ManaClear, so Snow[i] <= Pool[i] always holds
+	// and a replay derives both identically.
+	Snow Mana
+
 	// Commanders lists this seat's commanders, in Config order, sized at
 	// genesis and never grown. CmdCasts runs parallel to it: entry k counts
 	// how many times Commanders[k] has been cast from the command zone.

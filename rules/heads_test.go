@@ -851,7 +851,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "65ee3da5473a2c5a",
+	// 4 seats moved to 7012c79608844da6 (autonomous orchestrator): resolving inbox-rv2c-cost-modifiers-forge-parity (Engine cost modifiers diverge from Forge (Steelshaper, Rakdos, Ghalta, Color$) a)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	4: "7012c79608844da6",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -880,7 +884,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	6: "59f6f1476c8a7f2d",
+	// 6 seats moved to 3989bf5e11a95729 (autonomous orchestrator): resolving inbox-rv2c-cost-modifiers-forge-parity (Engine cost modifiers diverge from Forge (Steelshaper, Rakdos, Ghalta, Color$) a)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	6: "3989bf5e11a95729",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -955,7 +963,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "0122b7ae46b57cb4",
+	// 8 seats moved to cc24946a41837da8 (autonomous orchestrator): resolving inbox-rv2c-cost-modifiers-forge-parity (Engine cost modifiers diverge from Forge (Steelshaper, Rakdos, Ghalta, Color$) a)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "cc24946a41837da8",
 }
 
 func TestHeads(t *testing.T) {
