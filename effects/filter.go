@@ -1119,7 +1119,8 @@ func MatchesSpec(g *state.Game, spec string, id state.ObjID, you state.PlayerID)
 }
 
 // MatchesPlayerSpec is the player-side filter: You, Opponent, Player.
-// Unknown qualifiers fail closed so restrictions and triggers are not widened.
+// It recognizes the state-local Active and life comparison qualifiers used by
+// life triggers/replacements; every other qualifier still fails closed.
 func MatchesPlayerSpec(g *state.Game, spec string, p, you state.PlayerID) bool {
 	return MatchesPlayerSpecFrom(g, spec, p, you, 0)
 }
@@ -1147,30 +1148,75 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 			}
 			continue
 		}
+		matchesBase := false
 		switch base {
 		case "Player", "Any":
-			if !qualified {
-				return true
-			}
-			switch qualifier {
-			case "You":
-				if p == you {
-					return true
-				}
-			case "Opponent", "Other":
-				if p != you {
-					return true
-				}
-			}
+			matchesBase = true
 		case "You":
-			if !qualified && p == you {
+			matchesBase = p == you
+		case "Opponent", "Other":
+			matchesBase = p != you
+		}
+		if !matchesBase {
+			continue
+		}
+		if !qualified {
+			return true
+		}
+		switch qualifier {
+		case "You":
+			if p == you {
 				return true
 			}
 		case "Opponent", "Other":
-			if !qualified && p != you {
+			if p != you {
 				return true
 			}
+		case "Active":
+			if p == g.Active {
+				return true
+			}
+		default:
+			if int(p) < len(g.Players) {
+				op, n, ok := splitPlayerCompare(qualifier)
+				if ok && playerCompare(g.Players[p].Life, op, n) {
+					return true
+				}
+			}
 		}
+	}
+	return false
+}
+
+// splitPlayerCompare accepts Forge's lifeGE1/lifeLT7 player qualifiers.
+func splitPlayerCompare(s string) (string, int32, bool) {
+	if !strings.HasPrefix(s, "life") || len(s) < len("lifeGE0") {
+		return "", 0, false
+	}
+	op := s[4:6]
+	n, err := strconv.ParseInt(s[6:], 10, 32)
+	if err != nil {
+		return "", 0, false
+	}
+	switch op {
+	case "GE", "GT", "EQ", "LE", "LT":
+		return op, int32(n), true
+	}
+	return "", 0, false
+}
+
+func playerCompare(have int32, op string, want int32) bool {
+	switch op {
+	case "GE":
+		return have >= want
+	case "GT":
+		return have > want
+	case "EQ":
+		return have == want
+	case "LE":
+		return have <= want
+	case "LT":
+		return have < want
 	}
 	return false
 }

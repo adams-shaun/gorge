@@ -627,6 +627,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.HandMoveDone = true
+			// The owner-selected shape (rv2b r2) chains one ask per hand owner:
+			// the answer belongs to the exact owner that asked, and the
+			// re-entered walk skips owners before the cursor and continues with
+			// the owners after it (the same continuation DigTarget carries).
+			ctx.HandMoveTarget = rp.target
 		case "arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling

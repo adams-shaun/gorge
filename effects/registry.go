@@ -327,6 +327,15 @@ type Ctx struct {
 	// HandMove is the answered Origin$ Hand ChangeZone selection.
 	HandMove     []state.ObjID
 	HandMoveDone bool
+	// HandMoveTarget is the index of the per-owner hidden-hand chooser whose
+	// ask was answered (rv2b r2: an owner-SELECTED Origin$ Hand ChangeZone --
+	// DefinedPlayer$/ValidTgts$ naming the hands -- asks each hand owner in
+	// turn). It keeps a resumed answer attached to the exact owner that
+	// asked, so owners before the cursor (already answered on earlier
+	// passes) are skipped and owners after it continue the chain, the same
+	// continuation effDig's DigTarget carries. Consumed and cleared at the
+	// top of the walk with HandMove/HandMoveDone (fx42 scoping).
+	HandMoveTarget int
 	// DefinedLibraryMove is the answered Optional$ True choice for an
 	// object-valued Defined$ fetch list from Origin$ Library. "yes" moves the
 	// list; "no" leaves it in place. It is consumed by

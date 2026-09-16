@@ -376,6 +376,16 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			objLKI = lki
 		}
 		for ti, t := range f.Triggers {
+			// LifeLostAll is evaluated once at the end of a simultaneous
+			// life-loss batch. Do not queue it once per serialized Damage/
+			// LifeChange event, and do not let the finishing pass re-check
+			// unrelated trigger modes.
+			if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
+				continue
+			}
+			if e.finishingLifeLossBatch && t.Mode != "LifeLostAll" {
+				continue
+			}
 			if !leaving {
 				// Phase$ is a common Forge trigger gate, not a Mode$ Phase
 				// parameter: ChangesZone, SpellCast, and every other supported
@@ -569,6 +579,10 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.tapsMatches(t, source, ev, true)
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
 		matched = e.damageMatches(t, source, ev)
+	case "Drawn":
+		matched = e.drawnMatches(t, source, ev)
+	case "LifeLost", "LifeLostAll":
+		matched = e.lifeLostMatches(t, source, ev)
 	case "BecomesTarget":
 		matched = e.becomesTargetMatches(t, source, ev)
 	case "LandPlayed":
@@ -1125,6 +1139,215 @@ func (e *Engine) damageSource() state.ObjID {
 	return e.G.Stack[len(e.G.Stack)-1]
 }
 
+// drawnMatches implements Mode$ Drawn. A Draw event moves exactly one card
+// from a library to its controller's hand, so ValidCard$ is tested against the
+// drawn object and TriggeredPlayer is that event's Player. FirstCardInDrawStep$
+// is derived from the ordered log after the event has landed: only the first
+// Draw between entry to the draw step and its next StepChange qualifies.
+func (e *Engine) drawnMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Draw {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidCard"]; ok && !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v := t.Params["Number"]; v != "" {
+		want, err := strconv.Atoi(v)
+		if err != nil || e.drawNumberThisTurn(ev.Player) != want {
+			return false
+		}
+	}
+	// PlayerTurn$ is the trigger controller's turn, not the drawing player's:
+	// Keranos's "on each of your turns" must reject an opponent's first draw.
+	if strings.EqualFold(t.Params["PlayerTurn"], "True") && e.G.Active != ctrl {
+		return false
+	}
+	if v, ok := t.Params["FirstCardInDrawStep"]; ok {
+		first := e.firstCardInDrawStep(ev.Player)
+		if (strings.EqualFold(v, "True") && !first) || (strings.EqualFold(v, "False") && first) {
+			return false
+		}
+	}
+	return true
+}
+
+// drawNumberThisTurn counts p's draws in the current turn, including the Draw
+// event currently being matched. The log is the replay-stable source of this
+// per-turn fact; each player has its own ordinal because "their second card"
+// must not count another seat's draw.
+func (e *Engine) drawNumberThisTurn(p state.PlayerID) int {
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.Draw && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
+// firstCardInDrawStep reports whether the most recently emitted Draw for p is
+// the first draw since this turn entered its draw step. The log, rather than a
+// mutable counter, is the source of this ephemeral fact so cloning and replay
+// rebuild it without an event-schema change.
+func (e *Engine) firstCardInDrawStep(p state.PlayerID) bool {
+	if e.G.Step != state.StepDraw {
+		return false
+	}
+	draws := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.Draw && ev.Player == p {
+			draws++
+		}
+		if ev.Kind == events.StepChange {
+			return ev.Step == state.StepDraw && draws == 1
+		}
+	}
+	return false
+}
+
+// lifeLoss names the player and positive magnitude of an event that lowers a
+// player's life total. Damage to a player and a negative LifeChange are both
+// loss of life; damage to an object is not.
+func lifeLoss(ev events.Event) (state.PlayerID, int32, bool) {
+	switch ev.Kind {
+	case events.Damage:
+		if ev.Obj == 0 && ev.Amount > 0 {
+			return ev.Player, ev.Amount, true
+		}
+	case events.LifeChange:
+		if ev.Amount < 0 {
+			return ev.Player, -ev.Amount, true
+		}
+	}
+	return 0, 0, false
+}
+
+// lifeLostMatches implements Mode$ LifeLost and LifeLostAll. LifeLost sees
+// each losing player. LifeLostAll is deferred by Begin/EndLifeLossBatch and
+// matches exactly once after adding every serialized loss for each player in
+// the simultaneous group. A combat assignment may serialize two one-damage
+// hits to one player, but that player lost two life in the one event.
+func (e *Engine) lifeLostMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	ctrl := e.controllerOf(source)
+	if t.Mode == "LifeLostAll" && e.finishingLifeLossBatch {
+		amounts := make([]int32, len(e.G.Players))
+		for _, be := range e.lifeLossBatch {
+			p, amount, ok := lifeLoss(be)
+			if ok && int(p) < len(amounts) {
+				amounts[p] += amount
+			}
+		}
+		matched := false
+		for p, amount := range amounts {
+			if amount == 0 {
+				continue
+			}
+			player := state.PlayerID(p)
+			if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, player, ctrl) {
+				continue
+			}
+			if v := t.Params["ValidAmountEach"]; v != "" && !compareLife(amount, v) {
+				return false
+			}
+			matched = true
+		}
+		return matched
+	}
+	p, amount, ok := lifeLoss(ev)
+	if !ok {
+		return false
+	}
+	if v, ok := t.Params["ValidPlayer"]; ok && !effects.MatchesPlayerSpec(e.G, v, p, ctrl) {
+		return false
+	}
+	if v, ok := t.Params["ValidAmountEach"]; ok && !compareLife(amount, v) {
+		return false
+	}
+	// On LifeLost, LifeAmount$ describes the amount just lost, not the
+	// LifeTotal$ intervening-if grammar used by other trigger modes.
+	if v := t.Params["LifeAmount"]; v != "" && !compareLife(amount, v) {
+		return false
+	}
+	if strings.EqualFold(t.Params["PlayerTurn"], "True") && e.G.Active != ctrl {
+		return false
+	}
+	if v := t.Params["ValidCause"]; v != "" && !e.lifeLossCauseMatches(v, ctrl) {
+		return false
+	}
+	if strings.EqualFold(t.Params["FirstTime"], "True") && !e.firstLifeLossThisTurn(p) {
+		return false
+	}
+	return true
+}
+
+// lifeLossCauseMatches recognizes the spell/ability cause grammar carried by
+// LifeLost triggers. Events intentionally do not encode an extra source field,
+// so a synchronous trigger read uses the Engine's in-flight resolving source;
+// it is set around every stack resolution and cleared afterward, and thus
+// replay derives the same answer. Combat damage is a creature cause, not a
+// SpellAbility cause.
+func (e *Engine) lifeLossCauseMatches(spec string, you state.PlayerID) bool {
+	if e.combatDamaging || e.damaging == 0 {
+		return false
+	}
+	cause := e.G.Obj(e.damaging)
+	if cause == nil {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
+		if base != "SpellAbility" {
+			continue
+		}
+		if !qualified || qualifier == "" {
+			return true
+		}
+		switch qualifier {
+		case "YouCtrl":
+			if cause.Controller == you {
+				return true
+			}
+		case "OppCtrl":
+			if cause.Controller != you {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// firstLifeLossThisTurn is true only for the newest life-loss event of p in
+// the current turn. TurnChange is the logged reset boundary for every other
+// per-turn fact, so scanning back to it is replay-stable and cannot leak a
+// mutable counter across Clone.
+func (e *Engine) firstLifeLossThisTurn(p state.PlayerID) bool {
+	seenCurrent := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		q, _, ok := lifeLoss(ev)
+		if !ok || q != p {
+			continue
+		}
+		if seenCurrent {
+			return false
+		}
+		seenCurrent = true
+	}
+	return seenCurrent
+}
+
 // damageMatches implements Mode$ DamageDone, DamageDealtOnce and
 // DamageDoneOnce (the once-per-turn gate itself lives in checkTriggers,
 // alongside the cascade bound; this is purely the per-event parameter match,
@@ -1358,7 +1581,9 @@ func abilityCastValidSA(ab *cards.SA, validSA string) bool {
 // fire, never that an unreadable life/creature count is presumed large
 // enough to let a win or counter trigger slip through.
 func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool {
-	if v, ok := t.Params["LifeAmount"]; ok {
+	// LifeLost's LifeAmount$ is matched against the causing loss by
+	// lifeLostMatches, rather than against a player's current life total.
+	if v, ok := t.Params["LifeAmount"]; ok && t.Mode != "LifeLost" && t.Mode != "LifeLostAll" {
 		if !e.lifeConditionHolds(t, source, v) {
 			return false
 		}
@@ -1549,7 +1774,8 @@ func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
-		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:BecomesTarget", "trig:LandPlayed", "trig:Phase",
+		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
+		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
