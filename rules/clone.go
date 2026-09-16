@@ -4,6 +4,7 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -120,6 +121,16 @@ func (e *Engine) Clone() *Engine {
 			c.triggerContexts[id] = tc
 		}
 	}
+	if e.triggerLKI != nil {
+		c.triggerLKI = make(map[state.ObjID]triggerObjectLKI, len(e.triggerLKI))
+		for id, lki := range e.triggerLKI {
+			if lki.object != nil {
+				cp := lki.object.CloneDeep()
+				lki.object = &cp
+			}
+			c.triggerLKI[id] = lki
+		}
+	}
 	if e.sacrificedLKI != nil {
 		c.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo, len(e.sacrificedLKI))
 		for id, info := range e.sacrificedLKI {
@@ -130,6 +141,18 @@ func (e *Engine) Clone() *Engine {
 		c.sourceLifelinkLKI = make(map[state.ObjID]bool, len(e.sourceLifelinkLKI))
 		for id, link := range e.sourceLifelinkLKI {
 			c.sourceLifelinkLKI[id] = link
+		}
+	}
+	if e.sourceControllerLKI != nil {
+		c.sourceControllerLKI = make(map[state.ObjID]state.PlayerID, len(e.sourceControllerLKI))
+		for id, controller := range e.sourceControllerLKI {
+			c.sourceControllerLKI[id] = controller
+		}
+	}
+	if e.damageSourceLKI != nil {
+		c.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI, len(e.damageSourceLKI))
+		for stack, lki := range e.damageSourceLKI {
+			c.damageSourceLKI[stack] = cloneDamageSourceLKI(lki)
 		}
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
@@ -202,20 +225,40 @@ func (e *Engine) Clone() *Engine {
 		ma.cost.Sac = append([]CostPart(nil), e.manaDiscardActivation.cost.Sac...)
 		ma.cost.Discard = append([]CostPart(nil), e.manaDiscardActivation.cost.Discard...)
 		ma.cost.SubCounter = append([]CostPart(nil), e.manaDiscardActivation.cost.SubCounter...)
+		ma.cost.Exile = append([]CostPart(nil), e.manaDiscardActivation.cost.Exile...)
+		ma.cost.Reveal = append([]CostPart(nil), e.manaDiscardActivation.cost.Reveal...)
+		ma.cost.Behold = append([]CostPart(nil), e.manaDiscardActivation.cost.Behold...)
+		ma.cost.TapPermanent = append([]CostPart(nil), e.manaDiscardActivation.cost.TapPermanent...)
+		ma.cost.Blight = append([]CostPart(nil), e.manaDiscardActivation.cost.Blight...)
 		ma.sacs = append([]state.ObjID(nil), e.manaDiscardActivation.sacs...)
 		ma.discards = append([]state.ObjID(nil), e.manaDiscardActivation.discards...)
+		ma.exiles = append([]state.ObjID(nil), e.manaDiscardActivation.exiles...)
 		c.manaDiscardActivation = &ma
+	}
+	if e.wardMana != nil {
+		wm := *e.wardMana
+		c.wardMana = &wm
 	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
 		pc.cost.Discard = append([]CostPart(nil), e.cast.cost.Discard...)
 		pc.cost.SubCounter = append([]CostPart(nil), e.cast.cost.SubCounter...)
+		pc.cost.Exile = append([]CostPart(nil), e.cast.cost.Exile...)
+		pc.cost.Reveal = append([]CostPart(nil), e.cast.cost.Reveal...)
+		pc.cost.Behold = append([]CostPart(nil), e.cast.cost.Behold...)
+		pc.cost.TapPermanent = append([]CostPart(nil), e.cast.cost.TapPermanent...)
+		pc.cost.Blight = append([]CostPart(nil), e.cast.cost.Blight...)
 		pc.cost.Hybrid = append([]ManaPair(nil), e.cast.cost.Hybrid...)
 		pc.cost.Phyrexian = append([]byte(nil), e.cast.cost.Phyrexian...)
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
+		pc.exiles = append([]state.ObjID(nil), e.cast.exiles...)
+		pc.reveals = append([]state.ObjID(nil), e.cast.reveals...)
+		pc.beholds = append([]state.ObjID(nil), e.cast.beholds...)
+		pc.taps = append([]state.ObjID(nil), e.cast.taps...)
+		pc.blights = append([]state.ObjID(nil), e.cast.blights...)
 		pc.preModes = append([]string(nil), e.cast.preModes...)
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
@@ -242,17 +285,24 @@ func (e *Engine) Clone() *Engine {
 		c.cmdZone = append([]cmdZoneMove(nil), e.cmdZone...)
 	}
 	if e.replChoices != nil {
-		// The parked CR 616.1 replacement-order choices: same class as
-		// cmdZone. Plain value entries (an events.Event plus a []replMatch
-		// whose *cards.Repl pointers are shared corpus data), so one slice
-		// copy is a faithful clone; the candidate slice is re-allocated so
-		// the clone owns its own.
+		// Parked replacement choices (MoveZone/ProduceMana/BeginPhase order,
+		// replacement mana colour and optional phase apply/decline): same class
+		// as cmdZone. Event/scalar data copies by value;
+		// candidate pointers share immutable corpus data, while every mutable
+		// bookkeeping slice is re-allocated for the clone.
 		c.replChoices = make([]replChoice, len(e.replChoices))
 		for i, rc := range e.replChoices {
 			rc.cands = append([]replMatch(nil), rc.cands...)
+			rc.applied = append([]bool(nil), rc.applied...)
+			rc.applicable = append([]int(nil), rc.applicable...)
+			if rc.untap != nil {
+				resume := *rc.untap
+				rc.untap = &resume
+			}
 			c.replChoices[i] = rc
 		}
 	}
+	c.madnessChoices = append([]events.Event(nil), e.madnessChoices...)
 	return c
 }
 

@@ -196,3 +196,45 @@ describe('Table.svelte — the prompt/action split (fb prompts)', () => {
     initSeatContext('');
   });
 });
+
+describe('Table.svelte — the empty-answer safety net reaches the seated Pending tray', () => {
+  // The live soft-lock's wire decision (demo game g4, seat 0): Min 0 / Max 0
+  // with NO options — nothing a picker can render.
+  const emptyChoose: Decision = {
+    seq: 846, player: 0, kind: 'choose', prompt: 'Search a library: choose up to 0 card(s)', min: 0, max: 0, options: [],
+  };
+
+  it('seated: the option-less Min-0 decision is named in the Pending tray with a Continue, not "Nothing waiting"', () => {
+    initSeatContext('?seat=0&token=t');
+    fakeMatch.shared.view = view({ decision: emptyChoose });
+    fakeMatch.shared.seats = seats;
+
+    const { html } = render(Table, { props: { table: 't1' } });
+
+    const pendingAt = html.search(/<h3[^>]*>Pending<\/h3>/);
+    expect(pendingAt, 'the rail renders its Pending section').toBeGreaterThan(-1);
+    const tray = html.slice(pendingAt);
+    expect(tray).toContain('data-stuck');
+    expect(tray).toContain('Search a library: choose up to 0 card(s)');
+    // The Continue renders only when Table wired an onContinue, which it
+    // does only for a seated panel whose decision is answerable empty.
+    expect(tray).toContain('data-continue');
+    expect(tray.slice(0, tray.indexOf('</section>'))).not.toContain('Nothing waiting');
+    initSeatContext('');
+  });
+
+  it('spectator: the same server-held decision is not theirs to answer — the tray stays "Nothing waiting"', () => {
+    initSeatContext('');
+    fakeMatch.shared.view = view({ decision: emptyChoose });
+    fakeMatch.shared.seats = seats;
+
+    const { html } = render(Table, { props: { table: 't1' } });
+
+    const pendingAt = html.search(/<h3[^>]*>Pending<\/h3>/);
+    expect(pendingAt, 'the rail renders its Pending section').toBeGreaterThan(-1);
+    const tray = html.slice(pendingAt);
+    expect(tray).not.toContain('data-stuck');
+    expect(tray).not.toContain('data-continue');
+    expect(tray).toContain('Nothing waiting');
+  });
+});

@@ -27,14 +27,21 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// the causing spell chose several targets. ev.Obj is that spell/ability.
 		c.TriggerTarget = state.Target{Obj: source}
 		c.TriggerSource = e.protectionSource(ev.Obj)
+		c.TriggerStack = ev.Obj
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
-		c.TriggerSource = e.damaging
+		// The damage source the causing event names: the published override
+		// when a DamageSource$ emitter set one (Kediss' DamageAll with
+		// DamageSource$ TriggeredSource resolves its own execute through
+		// exactly this role), else the resolution/combat source. The
+		// defending-player read below is combat-shaped by construction: an
+		// override is never published during combat's assignment loop.
+		c.TriggerSource = e.inFlightDamageSource()
 		c.TriggerAmount = ev.Amount
 		c.TriggerTarget = state.Target{Obj: ev.Obj}
 		if ev.Obj == 0 {
 			c.TriggerTarget = player(ev.Player)
 		}
-		if o := e.G.Obj(e.damaging); o != nil && o.IsAttacking {
+		if o := e.G.Obj(e.inFlightDamageSource()); o != nil && o.IsAttacking {
 			c.DefendingPlayer = player(o.Attacking)
 		}
 	case "Attacks", "AttackersDeclaredOneTarget":
@@ -71,6 +78,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerActivator = player(ev.Player)
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
+	}
+	// CR 107.3m binds X when the trigger fires, not when it resolves. In
+	// particular, an ETB trigger may remain on the stack after its permanent
+	// dies, at which point Move has correctly cleared the object's live X.
+	// Keep the event's card value with the rest of the trigger provenance.
+	if card := e.G.Obj(c.TriggerCard); card != nil {
+		c.TriggerPaidX = card.X
 	}
 	return c
 }

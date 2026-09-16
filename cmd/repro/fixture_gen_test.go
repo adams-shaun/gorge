@@ -1,0 +1,301 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/host"
+	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/internal/testutil/feedback"
+	"github.com/adams-shaun/gorge/replay"
+	"github.com/adams-shaun/gorge/seat"
+	"github.com/adams-shaun/gorge/state"
+	"github.com/adams-shaun/gorge/view"
+)
+
+// The committed fixture under testdata/feedback/<fixtureID>/ is a real
+// snapshot produced by the feedback capture's own code (host's
+// SnapshotForFeedback, task fbrepro1), not hand-written JSON: the
+// REPRO_REGEN_FIXTURE=1 run below builds a live registry, parks the match
+// on a gated seat, captures the snapshot and verifies it replays before
+// writing the four files. Regenerate it after a corpus pin bump (FORGE_REF)
+// — an old fixture replays against the corpus as it was when captured, so a
+// moved pin shows up as cmd/repro DIVERGED on exactly the fixture, which is
+// the designed behaviour, not a bug.
+const fixtureID = "20260914T120000Z-fb01"
+
+const fixtureDeckA = "death-n-taxes"
+const fixtureDeckB = "dimir-tempo"
+
+// gateSeat is seat 0's bot behind a test gate: every decision is signalled
+// to the test, which releases it one at a time, so the match can be held at
+// a known point. Same shape as cmd/gorged's feedback tests use.
+type gateSeat struct {
+	bot     seat.Seat
+	reached chan struct{}
+	release chan struct{}
+}
+
+func (g *gateSeat) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
+	select {
+	case g.reached <- struct{}{}:
+	case <-ctx.Done():
+		return decision.Intent{}, ctx.Err()
+	}
+	select {
+	case <-g.release:
+	case <-ctx.Done():
+		return decision.Intent{}, ctx.Err()
+	}
+	return g.bot.Decide(ctx, v, d)
+}
+
+// gatedFixtureRegistry builds a two-seat registry over two repo decks whose
+// seat 0 is gated, starts the match, and returns the advance helper and the
+// registry (for SnapshotForFeedback).
+func gatedFixtureRegistry(t *testing.T) (func(int), *host.Registry) {
+	t.Helper()
+	// The capture reads each token card's source back off its recorded path,
+	// which is relative to the repo root (".cards/tokenscripts/...") — the
+	// same shape every live server runs with — so everything that captures
+	// or regenerates a snapshot runs from the root or the snapshot records
+	// hundreds of unread tokens.
+	root, err := feedback.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(root)
+	reg := testutil.CorpusRegistry(t)
+	by := map[string][]*cards.Card{
+		fixtureDeckA: testutil.RepoDeck(t, reg, fixtureDeckA),
+		fixtureDeckB: testutil.RepoDeck(t, reg, fixtureDeckB),
+	}
+	load := func(name string) (host.Deck, error) {
+		cs, ok := by[name]
+		if !ok {
+			return host.Deck{}, host.ErrNotFound
+		}
+		return host.Deck{Name: name, Cards: cs}, nil
+	}
+	gate := &gateSeat{bot: seat.NewBot(1), reached: make(chan struct{}), release: make(chan struct{})}
+	r, err := host.New(host.Options{
+		LoadDeck: load,
+		Tokens:   reg.Tokens,
+		Seats: func(seatNames []string, seed uint64) []seat.Seat {
+			return []seat.Seat{gate, seat.NewBot(seed ^ 2)}
+		},
+		Sleep: func(time.Duration, <-chan struct{}) {},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	if err := r.AddTable(host.TableConfig{ID: "t1", Name: "Table t1", Seats: 2,
+		Decks: []string{fixtureDeckA, fixtureDeckB}, Seed: 42, Spectator: view.Public}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	return func(times int) {
+		for i := 0; i < times; i++ {
+			select {
+			case <-gate.reached:
+			case <-time.After(30 * time.Second):
+				t.Fatalf("seat 0 never reached decision %d", i+1)
+			}
+			gate.release <- struct{}{}
+		}
+	}, r
+}
+
+// captureSnapshotFiles captures the table's current match the way the
+// capture writes it — SnapshotForFeedback, marshalled with the same
+// indent-and-newline shape captureSnapshot uses — into dir, and writes a
+// report.json beside it in gorged's report shape.
+func captureSnapshotFiles(t *testing.T, r *host.Registry, dir string) {
+	t.Helper()
+	seat0 := state.PlayerID(0)
+	snap, err := r.SnapshotForFeedback("t1", &seat0)
+	if err != nil {
+		t.Fatalf("SnapshotForFeedback: %v", err)
+	}
+	matchRaw, err := json.MarshalIndent(snap.Match, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	logRaw, err := json.MarshalIndent(snap.Log, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	viewRaw, err := json.MarshalIndent(snap.View, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []struct {
+		name string
+		body []byte
+	}{
+		{"match.json", matchRaw}, {"log.json", logRaw}, {"view.json", viewRaw},
+	} {
+		if err := os.WriteFile(filepath.Join(dir, f.name), append(f.body, '\n'), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rep := reportShape{
+		Received:  fixtureTimestamp(),
+		Text:      "fixture: report filed at a gated two-seat match (generated by REPRO_REGEN_FIXTURE)",
+		URL:       "http://localhost:8080/t/t1?seat=0",
+		UserAgent: "repro-fixture-generator",
+		Snapshot:  "captured: match.json log.json view.json",
+	}
+	raw, err := json.MarshalIndent(rep, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "report.json"), append(raw, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// reportShape mirrors cmd/gorged's (unexported) report schema so a
+// regenerated fixture writes report.json exactly as a live server writes
+// it — same json tags, same omitempty semantics — rather than a hand-rolled
+// map whose key spellings can drift (the field gorged emits is `user_agent`,
+// and an earlier generator wrote `useragent`). The fixture is a committed
+// golden, so this must correspond to the real schema byte for byte.
+// Keep the two in lockstep when cmd/gorged's report grows a field.
+type reportShape struct {
+	Received   string `json:"received"`
+	Text       string `json:"text"`
+	URL        string `json:"url,omitempty"`
+	UserAgent  string `json:"user_agent,omitempty"`
+	Screenshot string `json:"screenshot,omitempty"`
+	Snapshot   string `json:"snapshot,omitempty"`
+}
+
+// fixtureTimestamp renders the fixture id's own timestamp prefix as the
+// RFC3339 `received` stamp report.json carries. It is deliberately NOT
+// time.Now: a regeneration must stay byte-identical (the fixture is a
+// committed golden), and the id already names the instant the fixture
+// represents — parsing it back out keeps report.json provable from the id
+// instead of pinning the moment the generator ran.
+func fixtureTimestamp() string {
+	prefix, _, ok := strings.Cut(fixtureID, "-")
+	if !ok {
+		prefix = fixtureID
+	}
+	t, err := time.Parse("20060102T150405Z", prefix)
+	if err != nil {
+		panic("fixture id " + fixtureID + " does not carry a parsable timestamp prefix: " + err.Error())
+	}
+	return t.UTC().Format(time.RFC3339)
+}
+
+// committedFixtureDir is the only destination used by the opt-in fixture
+// generator. fixtureRel is relative to this package's test cwd, while root is
+// the repository root, so the package path must be explicit here.
+func committedFixtureDir(root string) string {
+	return filepath.Join(root, "cmd", "repro", filepath.FromSlash(fixtureRel))
+}
+
+// TestCommittedFixtureDir pins the generator's destination to the fixture the
+// package tests and AGENTS.md document, rather than a similarly named root-level
+// testdata tree.
+func TestCommittedFixtureDir(t *testing.T) {
+	root := filepath.Join(string(filepath.Separator), "repo")
+	got := committedFixtureDir(root)
+	want := filepath.Join(root, "cmd", "repro", "testdata", "feedback", fixtureID)
+	if got != want {
+		t.Fatalf("committedFixtureDir(%q) = %q, want %q", root, got, want)
+	}
+}
+
+// TestGenerateCommittedFixture regenerates the fixture. Skipped unless
+// REPRO_REGEN_FIXTURE=1; run it, then commit the files it wrote.
+func TestGenerateCommittedFixture(t *testing.T) {
+	if os.Getenv("REPRO_REGEN_FIXTURE") == "" {
+		t.Skip("set REPRO_REGEN_FIXTURE=1 to regenerate testdata/feedback/" + fixtureID)
+	}
+	// The capture reads each token card's source back off its recorded path,
+	// which is relative to the repo root (".cards/tokenscripts/...") — the
+	// same shape every live server runs with — so the generator must run from
+	// the root or the snapshot records hundreds of unread tokens.
+	root, err := feedback.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(root)
+	advance, r := gatedFixtureRegistry(t)
+	advance(12) // a real mid-match prefix, not genesis
+	dir := t.TempDir()
+	captureSnapshotFiles(t, r, dir)
+
+	// Verify before writing: the fixture must replay to its own recorded
+	// head through the ordinary load path, or it is not a fixture. This is
+	// the live-capture path (match.json still carries its token script
+	// text), before that text is stripped for the committed copy below.
+	l, cfg, meta, err := feedback.Load(dir)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	e, err := replay.Replay(l, cfg)
+	if err != nil {
+		t.Fatalf("replay: %v", err)
+	}
+	if got := e.L.Head(); got != meta.Head {
+		t.Fatalf("replayed head %q, recorded %q", got, meta.Head)
+	}
+	dst := committedFixtureDir(root)
+	if err := os.MkdirAll(dst, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []string{"report.json", "match.json", "log.json", "view.json"} {
+		raw, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The committed match.json must not carry the token script text
+		// (Forge scripts are GPL-3.0; gorge is Apache-2.0). writeCommittedMatch
+		// strips `tokens`/`tokens_unread` and syncs the exact text into the
+		// gitignored token directory keyed by the fixture id, so the fixture
+		// still replays locally with the exact historical scripts.
+		if f == "match.json" {
+			raw, err = writeCommittedMatch(raw, fixtureID)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := os.WriteFile(filepath.Join(dst, f), raw, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Round-trip check: the committed copy has its token text stripped, so
+	// re-loading it must resolve those tokens through the gitignored sync
+	// directory and still replay to the same head. This is what keeps the
+	// sync path honest — a generator that wrote a stripped match.json the
+	// loader could not rebuild would fail here, not at the next `go test`.
+	l2, cfg2, meta2, err := feedback.Load(dst)
+	if err != nil {
+		t.Fatalf("load committed fixture: %v", err)
+	}
+	e2, err := replay.Replay(l2, cfg2)
+	if err != nil {
+		t.Fatalf("replay committed fixture: %v", err)
+	}
+	if got := e2.L.Head(); got != meta2.Head {
+		t.Fatalf("committed fixture replayed head %q, recorded %q", got, meta2.Head)
+	}
+	if meta2.Head != meta.Head {
+		t.Fatalf("stripped fixture head %q differs from capture head %q", meta2.Head, meta.Head)
+	}
+	t.Logf("fixture written to %s", dst)
+}

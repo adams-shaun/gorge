@@ -13,6 +13,7 @@ import (
 
 func init() {
 	Register("Mana", effMana)
+	Register("ReplaceMana", effReplaceMana)
 	Register("Effect", effEffect)
 	Register("Cleanup", effCleanup)
 	Register("SetState", effSetState)
@@ -23,6 +24,59 @@ func init() {
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
 	Register("RestartGame", effRestartGame)
+	Register("Goad", effGoad)
+	Register("Ward", effWard)
+}
+
+// effGoad records each independently-lived goad relationship. Duration and
+// source are event payload so replay can expire conditional goads identically.
+func effGoad(h Host, c *Ctx, sa *cards.SA) {
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			if strings.EqualFold(sa.Params["NoLonger"], "True") {
+				h.Emit(events.Event{Kind: events.Goad, Obj: o.ID, Amount: -1})
+				continue
+			}
+			duration := sa.Params["Duration"]
+			if duration == "" {
+				duration = "UntilYourNextTurn"
+			}
+			h.Emit(events.Event{Kind: events.Goad, Obj: o.ID, Player: c.Controller,
+				Text: duration, IDs: []state.ObjID{c.Source}, Amount: int32(o.Controller) + 1})
+		}
+	}
+}
+
+// effWard is the resolution half of the Ward keyword trigger. The triggering
+// spell/ability is held in TriggerSource; after a declined payment it is
+// countered and an ability is parked in exile (CR 608.2m).
+func effWard(h Host, c *Ctx, sa *cards.SA) {
+	cause := c.TriggerStack
+	o := h.Game().Obj(cause)
+	if o == nil || o.Zone != state.ZStack {
+		return
+	}
+	if c.UnlessPay == "" {
+		cost := sa.Params["UnlessCost"]
+		d := &decision.Decision{Player: o.Controller, Kind: decision.KModes, Min: 1, Max: 1,
+			Prompt: "Pay " + cost + " for ward?", ResumeKind: "unless_pay", ResumeSA: sa,
+			Options: []decision.Option{{Index: 0, Kind: "mode", Label: "Pay " + cost, Player: o.Controller}, {Index: 1, Kind: "mode", Label: "Don't pay", Player: o.Controller}}}
+		h.Ask(d)
+		return
+	}
+	paid := c.UnlessPay == "pay"
+	c.UnlessPay = ""
+	if paid {
+		return
+	}
+	to := state.ZGraveyard
+	if o.Face() == nil {
+		to = state.ZExile
+	}
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: cause, From: state.ZStack, To: to, Text: "countered by ward"})
 }
 
 // CopySpellAbility is NOT registered. It needs to create a brand new game
@@ -388,11 +442,13 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 					{Index: 0, Kind: "mode", Label: "Pay " + shown + " — don't counter", Obj: c.Source, Player: payer},
 					{Index: 1, Kind: "mode", Label: "Don't pay", Obj: c.Source, Player: payer},
 				}}
-			if h.Ask(d) {
+			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters this effect.
 			}
 			// Fuzz/no-engine host: the deterministic decline (R-9). The pay
 			// was never posed, so resolve as if the player declined: counter.
+			// (AskEmpty is unreachable by construction -- Min == Max == 1 over
+			// two options -- but the shared helper owns the guard either way.)
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "may pay declined (UnlessCost not asked on this host)"})
 		}
@@ -567,7 +623,29 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effCharm runs CharmNum$ of the Choices$ sub-abilities in chosen order.
+// CharmModeBounds resolves a Charm's selectable range. Forge defaults
+// MinCharmNum$ to CharmNum$, but an explicit MinCharmNum$ permits choosing
+// fewer modes. Both values use Num so literal, SVar, and inline Count$ forms
+// share the same evaluation in spell, trigger, and resolution paths.
+func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
+	max = int(Num(h, c, sa, "CharmNum", 1))
+	if max < 1 {
+		max = 1
+	}
+	min = max
+	if _, ok := sa.Params["MinCharmNum"]; ok {
+		min = int(Num(h, c, sa, "MinCharmNum", int32(min)))
+	}
+	if max > choices {
+		max = choices
+	}
+	if min < 0 {
+		min = 0
+	}
+	return min, max
+}
+
+// effCharm runs the selected Choices$ sub-abilities in chosen order.
 // Cast spells (CR 601.2b) and triggered abilities (CR 603.3c) arrive with
 // Ctx.Modes pre-seeded from their earlier announcement. A Charm reached only
 // during resolution still poses KModes and suspends until resumeResolution
@@ -615,17 +693,16 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	for i, name := range choices {
 		subs[i] = cards.ResolveSVar(c.SVars, name)
 	}
-	charmNum := Num(h, c, sa, "CharmNum", 1)
-	if charmNum < 1 {
-		charmNum = 1
-	}
-	if int(charmNum) > len(choices) {
-		charmNum = int32(len(choices))
+	min, max := CharmModeBounds(h, c, sa, len(choices))
+	if min > len(choices) {
+		// Forge declines a Charm whose required minimum exceeds its available
+		// modes. A no-engine host must likewise make no arbitrary choice.
+		return
 	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
-		Min: int(charmNum), Max: int(charmNum), Source: c.Source,
+		Min: min, Max: max, Source: c.Source,
 		ResumeKind: "modes", ResumeSA: sa,
-		Prompt: "Choose " + strconv.Itoa(int(charmNum)) + " mode(s)"}
+		Prompt: "Choose " + strconv.Itoa(min) + " to " + strconv.Itoa(max) + " mode(s)"}
 	for i, name := range choices {
 		label := name
 		if subs[i] != nil {
@@ -636,11 +713,14 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		d.Options = append(d.Options, decision.Option{
 			Index: i, Kind: "mode", Label: label, Obj: c.Source, Player: c.Controller})
 	}
-	if h.Ask(d) {
+	if Ask(h, d) == AskAsked {
 		return // resolution suspended; the answer re-enters this effect with Ctx.Modes set.
 	}
 	// Fuzz/no-engine host: the deterministic first-mode default (R-9), with
-	// the Note that records why the richer path did not run.
+	// the Note that records why the richer path did not run. (AskEmpty is
+	// unreachable by construction -- charmNum is clamped to >= 1 and
+	// strings.Split never yields fewer than one choice -- but the shared
+	// helper owns the guard either way.)
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 		Text: "chose its first mode (no engine host to ask)"})
 	if subs[0] != nil {
@@ -718,6 +798,59 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 // unrecognised Produced$ value therefore emits nothing and records a Note
 // naming it, following this repo's fail-closed convention (an unknown token
 // never invents a value).
+// effReplaceMana rewrites one in-flight ManaAdd event for a ProduceMana
+// replacement. The surrounding rules code supplies the amount and colour in
+// Ctx, then logs the rewritten ManaAdd; this effect itself has no game-state
+// mutation to emit. ReplaceAmount multiplies the whole production.
+// ReplaceType/ReplaceColor preserve its amount and replace only its colour;
+// ReplaceMana is Forge's "one mana instead of any other type and amount"
+// form (Damping Sphere, Contamination), so it sets the amount to exactly one
+// as well as replacing the colour. For a choice-valued replacement
+// (Any/Chosen), rules parks the ManaAdd and supplies the player's W/U/B/R/G
+// answer in Ctx.ManaChoice; without a valid answer this pure effect fails
+// closed rather than inventing colourless mana.
+func effReplaceMana(_ Host, c *Ctx, sa *cards.SA) {
+	if c == nil {
+		return
+	}
+	if only := strings.TrimSpace(sa.Params["ReplaceOnly"]); only != "" && only != c.ManaType {
+		return
+	}
+	if n := Num(nil, c, sa, "ReplaceAmount", 1); n > 0 {
+		c.ManaAmount *= n
+	}
+	kind := strings.TrimSpace(sa.Params["ReplaceMana"])
+	if kind != "" {
+		c.ManaAmount = 1
+	}
+	if kind == "" {
+		kind = strings.TrimSpace(sa.Params["ReplaceType"])
+	}
+	if kind == "" {
+		kind = strings.TrimSpace(sa.Params["ReplaceColor"])
+	}
+	if kind == "" {
+		return
+	}
+	switch strings.ToLower(kind) {
+	case "white":
+		kind = "W"
+	case "blue":
+		kind = "U"
+	case "black":
+		kind = "B"
+	case "red":
+		kind = "R"
+	case "green":
+		kind = "G"
+	case "any", "chosen":
+		kind = c.ManaChoice
+	}
+	if len(kind) == 1 && strings.ContainsRune(ManaSymbols, rune(kind[0])) {
+		c.ManaType = kind
+	}
+}
+
 func effMana(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
 	if produced == "" || produced == "Any" || produced == "Combo Any" {

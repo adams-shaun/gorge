@@ -15,8 +15,12 @@ import (
 // active player, a damage recipient and a damage source are not interchangeable.
 // Unsupported/ambiguous event roles stay absent rather than guessing.
 type TriggerContext struct {
-	TriggerTarget    state.Target
-	TriggerSource    state.ObjID
+	TriggerTarget state.Target
+	TriggerSource state.ObjID
+	// TriggerStack is the actual spell/ability object that caused a targeting
+	// event. Unlike TriggerSource it is not unwrapped to its source permanent,
+	// because Ward must counter that stack object itself.
+	TriggerStack     state.ObjID
 	DefendingPlayer  state.Target
 	TriggerPlayer    state.Target
 	TriggerCard      state.ObjID
@@ -36,6 +40,12 @@ type TriggerContext struct {
 	// and survives to resolution through the per-stack-instance
 	// triggerContexts map. Zero when the causing event carried no amount.
 	TriggerAmount int32
+	// TriggerPaidX snapshots the paid X of TriggerCard when this trigger
+	// matched. CR 107.3m binds that value at trigger time: it must survive if
+	// the card later leaves the stack or battlefield before the ability
+	// resolves. Zero is both a valid paid value and the value for a triggering
+	// card with no paid X.
+	TriggerPaidX int32
 }
 
 // TriggeredCardController is the one resolver for "that card's controller"

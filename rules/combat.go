@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
@@ -60,6 +61,19 @@ func (e *Engine) canAttack(id state.ObjID) bool {
 	return true
 }
 
+// encoreAttackDefender reports the opponent an encore token must attack this
+// turn if able. The requirement expires by turn number and becomes impossible
+// (therefore nonbinding) if that opponent has left the game.
+func (e *Engine) encoreAttackDefender(id state.ObjID) (state.PlayerID, bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.EncoreAttackTurn == 0 || o.EncoreAttackTurn != e.G.Turn ||
+		int(o.EncoreAttackDefender) >= len(e.G.Players) || e.G.Players[o.EncoreAttackDefender].Lost ||
+		!e.canAttack(id) {
+		return 0, false
+	}
+	return o.EncoreAttackDefender, true
+}
+
 // canBlock reports whether blocker may be declared against attacker (CR
 // 509.1a): an untapped creature controlled by the defending player, gated by
 // Flying/Reach (CR 702.9b) and by any CantBlock/CantBlockBy static
@@ -82,6 +96,15 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	// CR 509.1a / 702.16j: a creature that the attacker is protected from
 	// cannot block it.
 	if e.protectedFrom(attacker, blocker) {
+		return false
+	}
+	// CR 702.27/702.28: Shadow creatures can block only Shadow creatures,
+	// and a Shadow creature is blockable only by one. Fear permits only an
+	// artifact or black creature to block it.
+	if e.HasKeyword(attacker, "Shadow") != e.HasKeyword(blocker, "Shadow") {
+		return false
+	}
+	if e.HasKeyword(attacker, "Fear") && !bf.IsArtifact() && !strings.ContainsRune(effects.ColorsOf(b), 'B') {
 		return false
 	}
 	if e.HasKeyword(attacker, "Flying") && !e.HasKeyword(blocker, "Flying") && !e.HasKeyword(blocker, "Reach") {
@@ -176,6 +199,12 @@ func (e *Engine) askAttackers() {
 	var opts []decision.Option
 	for _, d := range defenders {
 		for _, id := range attackers {
+			if required, ok := e.encoreAttackDefender(id); ok && d != required {
+				continue
+			}
+			if !e.goadMayAttack(id, d) {
+				continue
+			}
 			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
 				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + e.G.Players[d].Name,
 				Obj:   id, Player: d})
@@ -257,6 +286,9 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
 		}
+		if required, ok := e.encoreAttackDefender(o.Obj); ok && o.Player != required {
+			return fmt.Errorf("encore attacker %d must attack player %d", o.Obj, required)
+		}
 		seen[o.Obj] = true
 	}
 	return e.validateAttackDeclaration(d, in)
@@ -279,6 +311,12 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	f := o.Face()
 	if f == nil || !e.canAttack(id) {
 		return false
+	}
+	if _, ok := e.encoreAttackDefender(id); ok {
+		return true
+	}
+	if e.hasActiveGoad(o) {
+		return true
 	}
 	for _, st := range f.Statics {
 		if st.Mode != "MustAttack" {
@@ -310,6 +348,57 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 // a per-defender ValidDefender$ scoping is treated as global for the sake of
 // this bounded solver, which is only ever consulted when a MustAttack
 // requirement or an AttackRestrict static is actually present.
+// goadMayAttack implements the defender half of CR 701.38b. Every goad is
+// a separate requirement: a goaded creature attacks a player other than EACH
+// player who goaded it if one is available. If all possible defenders are
+// goaders, no declaration can satisfy every requirement, so each remains
+// legal and the creature still has to attack if able.
+func (e *Engine) goadMayAttack(id state.ObjID, defender state.PlayerID) bool {
+	o := e.G.Obj(id)
+	if o == nil || !e.goadedBy(o, defender) {
+		return true
+	}
+	for _, p := range e.G.AliveFrom(0) {
+		if p != o.Controller && !e.goadedBy(o, p) {
+			return false
+		}
+	}
+	return true
+}
+
+func (e *Engine) hasActiveGoad(o *state.Object) bool {
+	for _, ge := range o.Goads {
+		if e.activeGoad(o, ge) {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Engine) goadedBy(o *state.Object, p state.PlayerID) bool {
+	for _, ge := range o.Goads {
+		if ge.Player == p && e.activeGoad(o, ge) {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Engine) activeGoad(o *state.Object, ge state.GoadEffect) bool {
+	if o.Zone != state.ZBattlefield {
+		return false
+	}
+	switch ge.Duration {
+	case "AsLongAsInPlay":
+		src := e.G.Obj(ge.Source)
+		return src != nil && src.Zone == state.ZBattlefield
+	case "AsLongAsControl":
+		return o.Controller == ge.Controller
+	default:
+		return true
+	}
+}
+
 func (e *Engine) maxAttackers() int {
 	const huge = int(^uint(0) >> 1)
 	maxAllowed := huge
@@ -1187,7 +1276,11 @@ func (e *Engine) cleanupBody() {
 				continue
 			}
 			if o.Damage > 0 {
-				e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage})
+				ev := events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage}
+				if f := o.Face(); e.IsCreature(id) && f != nil && f.IsPlaneswalker() && !f.IsCreature() {
+					ev.Counter = "creature"
+				}
+				e.emit(ev)
 			}
 			if n := o.Counter("Shield"); n > 0 {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: id,
@@ -1268,6 +1361,7 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 // as unsupported.
 func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
-		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike",
-		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace")
+		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike", "kw:Double Strike",
+		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
+		"kw:Fear", "kw:Shadow")
 }

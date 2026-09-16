@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/botpolicy
 
-budget_s: 5
+budget_s: 10
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -44,3 +44,11 @@ budget_s: 5
 | 2026-09-14T01:56Z | a32fb04+ | 0.0 | 112 | 3 | sadams |
 | 2026-09-14T04:52Z | caaf664+ | 0.0 | 112 | 3 | sadams |
 | 2026-09-14T04:47Z | d0618c0+ | 0.0 | 108 | 3 | sadams |
+| 2026-09-15T09:45Z | 6064b42+ | 0.0 | 112 | 3 | sadams |
+| 2026-09-15T10:53Z | 6fe3f77+ | 0.0 | 112 | 3 | sadams |
+| 2026-09-15T10:56Z | 6fe3f77+ | 0.0 | 112 | 3 | sadams |
+| 2026-09-15T10:58Z | 6fe3f77+ | 0.0 | 112 | 3 | sadams |
+| 2026-09-16T00:16Z | 420e6b9+ | 0.0 | 112 | 3 | sadams |
+| 2026-09-16T00:25Z | 420e6b9+ | 0.0 | 112 | 3 | sadams |
+| 2026-09-16T00:29Z | 420e6b9+ | 0.0 | 112 | 3 | sadams |
+| 2026-09-16T02:23Z | 420e6b9+ | 0.0 | 112 | 3 | sadams |

@@ -79,6 +79,15 @@ import (
 // decks. The Hearthhull and Valgavoth imports add 54 measured gaps across 579
 // distinct cards in the pinned corpus; entries retire only when their
 // primitives are implemented.
+//
+// Task altcosts (the alternative-cost keyword family) retired the one entry
+// the merged decks carried: kw:Dash (Ragavan, Nimble Pilferer), implemented
+// to CR 702's dash shape in rules/altcast.go with a named proof test in
+// rules/altcast_test.go. kw:Evoke, kw:Encore, kw:Overload, kw:Warp,
+// kw:Madness and kw:AlternateAdditionalCost registered in the same task are
+// needed only by the three held commander decks (Rakdos Scam.exe, Vivi
+// cEDH, Ulalek Eldrazi), whose entries land in this table when they are
+// imported.
 var knownUnsupported = map[string][]string{
 	"Archfiend of Despair":         {"stat:CantGainLife"},
 	"Baloth Prime":                 {"api:Untap"},
@@ -88,7 +97,6 @@ var knownUnsupported = map[string][]string{
 	"Conduit of Worlds":            {"api:Play"},
 	"Constant Mists":               {"api:Fog", "kw:Buyback"},
 	"Crypt Ghast":                  {"kw:Extort"},
-	"Dauthi Voidwalker":            {"kw:Shadow"},
 	"Exotic Orchard":               {"api:ManaReflected"},
 	"Exploration Broodship":        {"kw:Station"},
 	"Fabled Passage":               {"api:Untap"},
@@ -98,16 +106,12 @@ var knownUnsupported = map[string][]string{
 	"Gamble":                       {"api:Shuffle"},
 	"Hearthhull, the Worldseed":    {"kw:Station"},
 	"Horizon Explorer":             {"api:Untap"},
-	"Karazikar, the Eye Tyrant":    {"api:Goad"},
 	"Kederekt Parasite":            {"trig:Drawn"},
 	"Lord Windgrace":               {"kw:CARDNAME can be your commander."},
-	"Necrodominance":               {"repl:BeginPhase"},
-	"Necropotence":                 {"repl:BeginPhase"},
 	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
 	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
 	"Planetary Annihilation":       {"api:SacrificeAll"},
 	"Profane Tutor":                {"kw:Suspend"},
-	"Ragavan, Nimble Pilferer":     {"kw:Dash"},
 	"Razorkin Needlehead":          {"trig:Drawn"},
 	"Sheoldred, the Apocalypse":    {"trig:Drawn"},
 	"Solphim, Mayhem Dominus":      {"api:ReplaceEffect", "repl:DamageDone"},
@@ -119,10 +123,8 @@ var knownUnsupported = map[string][]string{
 	"Uncivil Unrest":               {"api:ReplaceEffect", "repl:DamageDone"},
 	"Underworld Dreams":            {"trig:Drawn"},
 	"Unholy Annex":                 {"trig:UnlockDoor"},
-	"Valgavoth, Harrower of Souls": {"kw:Ward", "trig:LifeLost"},
-	"Vein Ripper":                  {"kw:Ward"},
+	"Valgavoth, Harrower of Souls": {"trig:LifeLost"},
 	"Vial Smasher the Fierce":      {"kw:Partner"},
-	"Virtue of Strength":           {"api:ReplaceMana", "repl:ProduceMana"},
 	"Walk-In Closet":               {"trig:UnlockDoor"},
 	"Ziatora's Proving Ground":     {"kw:Cycling"},
 }

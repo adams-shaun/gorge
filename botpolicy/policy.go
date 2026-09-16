@@ -404,13 +404,14 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			in.Choices = b.chooseDiscard(d)
 		case "exile", "sacrifice":
 			in.Choices = b.chooseWorst(d)
-		case "dig":
-			// A Dig look-and-take: take the first Max options in offered
-			// (library) order -- the exact mirror of effDig's no-ask stand-in
-			// (R-9), so a bot-answered Dig emits the same MoveZone events the
-			// silent build did and no golden game moves for the ask alone.
-			// An Optional$ Min-0 ask still takes the full Max: the stand-in
-			// it mirrors plays "you may" as "do", deterministically.
+		case "dig", "hand_move":
+			// A Dig look-and-take or a "choose N matching cards from hand"
+			// ChangeZone (handmove1): take the first Max options in offered
+			// (zone) order -- the exact mirror of effDig's / effChangeZoneHand's
+			// no-ask stand-in (R-9), so a bot-answered ask emits the same
+			// MoveZone events the silent build did and no golden game moves for
+			// the ask alone. An Optional$ Min-0 ask still takes the full Max:
+			// the stand-in it mirrors plays "you may" as "do", deterministically.
 			for j := 0; j < len(d.Options) && j < d.Max; j++ {
 				in.Choices = append(in.Choices, d.Options[j].Index)
 			}

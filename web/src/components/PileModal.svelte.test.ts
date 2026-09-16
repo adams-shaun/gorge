@@ -1,21 +1,13 @@
-import { chromium, type Page } from 'playwright';
-import { createServer } from 'vite';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { type Browser, type Page } from 'playwright';
+import { browserURL, sharedBrowser } from '../test/browser';
+import { beforeAll, describe, expect, it } from 'vitest';
 
-let server: Awaited<ReturnType<typeof createServer>>;
-let browser: Awaited<ReturnType<typeof chromium.launch>>;
+let browser: Browser;
 let url = '';
 
 beforeAll(async () => {
-  server = await createServer({ root: process.cwd(), configLoader: 'runner', server: { port: 0 } });
-  await server.listen();
-  url = server.resolvedUrls!.local[0];
-  browser = await chromium.launch();
-});
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+  url = browserURL;
+  browser = await sharedBrowser();
 });
 
 describe('PileModal', () => {

@@ -44,7 +44,16 @@ type pendingTrigger struct {
 	// optional trigger whose decider is the owner and routes a yes through
 	// castMiracle (miracle.go) instead of minting a triggered-ability stack
 	// object. optionalDecider, triggerLabel and pushTrigger all special-case it.
+	// Madness marks the mandatory triggered ability created after its owner
+	// accepts the optional discard-to-exile replacement (CR 702.35a-b). Unlike
+	// Miracle it is pushed unconditionally and asks whether to cast only when
+	// the respondable ability resolves.
 	Miracle bool
+	Madness bool
+	// Evoke marks the CR 702.79a mandatory sacrifice follow-up queued by
+	// altCostEnter. It has no yes/no choice; pushTrigger mints a real
+	// respondable keyword-triggered ability on the stack.
+	Evoke bool
 	// Delayed marks a Mode$ Phase delayed trigger registration (CR 603.7)
 	// rather than a matched T: line. It is queued by checkDelayedTriggers when
 	// the registered phase is entered, and pushTrigger routes it to a
@@ -293,18 +302,36 @@ func (e *Engine) snapshotTriggerBoard() *triggerSnapshot {
 	return &triggerSnapshot{game: e.G.Clone(), continuous: append([]ContinuousEffect(nil), e.continuous...)}
 }
 
-func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
+func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
+	lkiPower, lkiToughness int32, lkiPTValid bool) {
 	batch := e.triggerBefore != nil && ev.Kind == events.MoveZone &&
 		ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
 	if batch {
 		// Only leaves-the-battlefield triggers look back. Always and other
 		// event modes continue to read the live board, not an obsolete state.
-		observer := &Engine{G: e.triggerBefore.game, continuous: e.triggerBefore.continuous}
-		e.checkFaceTriggers(observer, ev, observer.G.Obj(ev.Obj), true, true)
+		observer := &Engine{G: e.triggerBefore.game, L: e.L,
+			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion}
+		obj := observer.G.Obj(ev.Obj)
+		var power, toughness int32
+		valid := obj != nil && obj.Zone == state.ZBattlefield && obj.Face() != nil
+		if valid {
+			power, toughness = observer.Power(ev.Obj), observer.Toughness(ev.Obj)
+		}
+		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
-	e.checkFaceTriggers(e, ev, lki, batch, false)
+	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)
+	}
+	// The alternative-cost keyword family's event hooks (altcast.go): a
+	// battlefield entry is where an evoked creature queues its pay-or-sacrifice
+	// follow-up and a dashed/warped creature registers its end-step delayed
+	// trigger; a discard that exiled a madness card queues its cast offer.
+	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
+		e.altCostEnter(ev)
+	}
+	if ev.Kind == events.MoveZone && ev.From == state.ZHand && ev.To == state.ZExile {
+		e.offerMadness(ev)
 	}
 	if ev.Kind == events.StepChange {
 		e.checkDelayedTriggers(ev)
@@ -314,7 +341,8 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 // checkFaceTriggers separates the read-only matching board from the live
 // queue and firing limits. Both walks use deterministic seat/zone/slice order;
 // the ordinary APNAP drain still asks each controller to order their triggers.
-func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state.Object, split, leaving bool) {
+func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state.Object,
+	lkiPower, lkiToughness int32, lkiPTValid, split, leaving bool) {
 	// phaseNotes collects the unresolvable Phase$ specs this walk encountered
 	// (live walks only -- the leaves-the-battlefield look-back observer is a
 	// scratch Engine that must never emit), each with the source that carries
@@ -435,6 +463,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					Remembered:     triggerRemembered(ev, id),
 					Captured:       triggerRemembered(ev, id),
 					LKI:            objLKI,
+					LKIPower:       lkiPower,
+					LKIToughness:   lkiToughness,
+					LKIPTValid:     objLKI != nil && lkiPTValid,
 					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 				},
 			})
@@ -595,6 +626,17 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		return false
 	}
 	spec := t.Params["TriggerZones"]
+	if spec == "" && ev.Kind == events.PutOnStack && source == ev.Obj && t.Mode == "SpellCast" {
+		// CR 601.2i: the spell's OWN cast trigger fires while the source is
+		// the spell sitting on the stack -- exactly the event being walked.
+		// The battlefield default would gate it out (the source is in ZStack,
+		// and the PutOnStack look-back zone below is the zone it came FROM,
+		// the hand), so every bare "When you cast this spell" script --
+		// Hydroid Krasis, Genesis Hydra, Ulamog, World Breaker -- would
+		// never fire at all. An EXPLICIT TriggerZones$ stays authoritative:
+		// a script naming one knows where its trigger lives.
+		return true
+	}
 	if spec == "" {
 		// "When you discard this card" (Orvar, Bartered Cow, Titanbones: 14
 		// of the corpus's Mode$ Discarded lines) declares no TriggerZones$,
@@ -1065,10 +1107,18 @@ func (e *Engine) eventCardAndPlayerMatch(t cards.Trigger, source, card state.Obj
 // called only from resolveTop while the resolving spell or ability is still
 // the top of the stack (resolveTop pops it only after Resolve returns), so
 // the current stack top is that source for every code path this build has
-// today. A future combat-damage implementation, or any Damage emission
-// outside ability resolution, would need Event to carry an explicit source
+// today. Two overrides win over the stack top, both rebuilt by replay
+// because replay re-executes the same setter: the published damage-source
+// override (rules.Engine.SetDamageSource -- DamageSource$ and the unwrapped
+// ability source, so a ValidSource$ trigger matches the PERMANENT that dealt
+// it, never the ability wrapper the stack top names) and the dealing
+// creature during combat's assignment loop (e.damaging). Any Damage emission
+// outside ability resolution would need Event to carry an explicit source
 // instead of relying on this.
 func (e *Engine) damageSource() state.ObjID {
+	if e.dmgSrcOverride != 0 {
+		return e.dmgSrcOverride
+	}
 	if len(e.G.Stack) == 0 {
 		return 0
 	}
@@ -1147,6 +1197,15 @@ func (e *Engine) becomesTargetMatches(t cards.Trigger, source state.ObjID, ev ev
 	}
 	if !targeted {
 		return false
+	}
+	if t.Params["Ward"] == "True" {
+		// CR 702.21a compares the Ward permanent's controller with the
+		// controller of the targeting spell or ability ON THE STACK. For an
+		// ability, protectionSource would unwrap ev.Obj to its source
+		// permanent, whose controller may have changed since activation.
+		if ev.Obj == 0 || e.controllerOf(ev.Obj) == e.controllerOf(source) {
+			return false
+		}
 	}
 	if v, ok := t.Params["ValidTarget"]; ok {
 		return effects.MatchesSpecCtx(e.G, v, source, e.specCtx(source, e.controllerOf(source)))
@@ -1502,6 +1561,6 @@ func init() {
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
-		"kw:Storm",
+		"kw:Storm", "kw:Ward", "kw:Annihilator",
 	)
 }
