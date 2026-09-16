@@ -96,7 +96,6 @@ var knownUnsupported = map[string][]string{
 	"Conduit of Worlds":          {"api:Play"},
 	"Constant Mists":             {"api:Fog"},
 	"Crypt Ghast":                {"kw:Extort"},
-	"Exotic Orchard":             {"api:ManaReflected"},
 	"Exploration Broodship":      {"kw:Station"},
 	"Fabled Passage":             {"api:Untap"},
 	"Fiery Emancipation":         {"api:ReplaceEffect", "repl:DamageDone"},
