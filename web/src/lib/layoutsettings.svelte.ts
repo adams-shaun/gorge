@@ -6,6 +6,7 @@ import {
   withAlign,
   withHandPeek,
   withScale,
+  withSteppers,
   type HandPeek,
   type LayoutSettings,
   type LayoutZone,
@@ -74,6 +75,11 @@ export class LayoutStore {
     return this.settings.handPeek;
   }
 
+  /** steppersOnBoard is whether the on-board − / + size steppers are shown (fb-20260916T200925Z). */
+  get steppersOnBoard(): boolean {
+    return this.settings.steppersOnBoard;
+  }
+
   /**
    * bump moves one zone's scale by delta (step grid, clamped), persists, and
    * pulses the dotted outline on that zone.
@@ -94,6 +100,16 @@ export class LayoutStore {
   /** setHandPeek sets the hand's peek mode and persists (no pulse: nothing geometric changed size-wise the outline needs to point at). */
   setHandPeek(peek: HandPeek): void {
     this.settings = withHandPeek(this.settings, peek);
+    this.save();
+  }
+
+  /**
+   * setSteppersOnBoard shows (true) or hides (false) the on-board − / + size
+   * steppers and persists (no pulse: hiding a control changes no zone's
+   * geometry the dotted outline would point at).
+   */
+  setSteppersOnBoard(on: boolean): void {
+    this.settings = withSteppers(this.settings, on);
     this.save();
   }
 

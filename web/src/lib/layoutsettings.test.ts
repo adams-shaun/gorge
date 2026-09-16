@@ -12,6 +12,7 @@ import {
   withAlign,
   withHandPeek,
   withScale,
+  withSteppers,
   type LayoutSettings,
 } from './layoutsettings';
 
@@ -39,6 +40,7 @@ describe('defaults', () => {
     expect(d.scale).toEqual({ creatures: 1, others: 1, lands: 1, hand: 1 });
     expect(d.align).toEqual({ creatures: 'left', others: 'left', lands: 'left', hand: 'center' });
     expect(d.handPeek).toBe('hover');
+    expect(d.steppersOnBoard).toBe(true);
   });
 
   it('covers exactly the four zones the brief scopes (stacks + hand)', () => {
@@ -46,7 +48,8 @@ describe('defaults', () => {
   });
 });
 
-describe('withScale / withAlign / withHandPeek', () => {
+/** withScale / withAlign / withHandPeek / withSteppers */
+describe('withScale / withAlign / withHandPeek / withSteppers', () => {
   it('returns fresh objects and touches only the named zone', () => {
     const d = defaultLayout();
     const s = withScale(d, 'creatures', 1.3);
@@ -64,6 +67,12 @@ describe('withScale / withAlign / withHandPeek', () => {
     const p = withHandPeek(a, 'always');
     expect(p.handPeek).toBe('always');
     expect(p.align).toEqual(a.align);
+
+    const t = withSteppers(p, false);
+    expect(t.steppersOnBoard).toBe(false);
+    expect(t.handPeek).toBe('always');
+    expect(t.scale).toEqual(p.scale);
+    expect(p.steppersOnBoard).toBe(true); // the original untouched
   });
 
   it('clamps an out-of-range scale instead of storing it', () => {
@@ -144,6 +153,31 @@ describe('persistence', () => {
     st.setItem(LAYOUT_KEY, JSON.stringify({ ...defaultLayout(), align: { ...defaultLayout().align, hand: 'middle' } }));
     expect(loadLayout(st)).toEqual(defaultLayout());
     st.setItem(LAYOUT_KEY, JSON.stringify({ ...defaultLayout(), handPeek: 'sometimes' }));
+    expect(loadLayout(st)).toEqual(defaultLayout());
+  });
+
+  it('a saved pre-toggle v1 blob (no steppersOnBoard key) loads with the field defaulting to true (fb-20260916T200925Z lenient add)', () => {
+    // The exact blob the PRE-TOGGLE client saved: version 1, scale/align/
+    // handPeek, no steppersOnBoard key. validate treats the field as
+    // OPTIONAL so every existing player's saved sizes/alignments/peek
+    // survive this deploy — the field defaults to the shipped behaviour
+    // (steppers on the board), never a wipe-to-all-defaults.
+    const st = memStorage();
+    const preToggle = {
+      version: 1,
+      scale: { creatures: 1.2, others: 0.8, lands: 1.1, hand: 0.9 },
+      align: { creatures: 'center', others: 'right', lands: 'left', hand: 'left' },
+      handPeek: 'always',
+    };
+    st.setItem(LAYOUT_KEY, JSON.stringify(preToggle));
+    expect(loadLayout(st)).toEqual({ ...preToggle, steppersOnBoard: true });
+  });
+
+  it('a present-but-non-boolean steppersOnBoard is still corrupt (falls back to ALL defaults)', () => {
+    const st = memStorage();
+    st.setItem(LAYOUT_KEY, JSON.stringify({ ...defaultLayout(), steppersOnBoard: 'yes' }));
+    expect(loadLayout(st)).toEqual(defaultLayout());
+    st.setItem(LAYOUT_KEY, JSON.stringify({ ...defaultLayout(), steppersOnBoard: 1 }));
     expect(loadLayout(st)).toEqual(defaultLayout());
   });
 

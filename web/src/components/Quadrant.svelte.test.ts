@@ -114,6 +114,34 @@ describe('Quadrant — layout settings (fb-20260916T182801Z)', () => {
     expect(own).not.toContain('data-zone-stepper="hand"');
   });
 
+  it('the Game Options show/hide toggle hides EVERY on-board stepper, and showing it restores exactly the previous mounts (fb-20260916T200925Z)', () => {
+    const p = player({ battlefield: [card(2, 'Grizzly Bears')] });
+    const props = { props: { player: p, colour: '#e5484d', own: true } };
+    try {
+      // The toggle is the layout store's steppersOnBoard; this is the exact
+      // call the panel's switch onclick makes.
+      layoutStore.setSteppersOnBoard(false);
+      const hidden = render(Quadrant, props).html;
+      // conditional render, not display:none: no stepper markup anywhere
+      expect(hidden).not.toContain('data-zone-stepper');
+      // the rows themselves stay (scale/align/outline are untouched)
+      for (const zone of ['creatures', 'others', 'lands'] as const) {
+        const row = elem(hidden, `data-zone-row="${zone}"`);
+        expect(row).not.toBe('');
+        expect(row).toContain('--row-scale');
+      }
+
+      layoutStore.setSteppersOnBoard(true);
+      const shown = render(Quadrant, props).html;
+      expect(shown).toContain('data-zone-stepper="creatures"');
+      expect(shown).toContain('data-zone-stepper="others"');
+      expect(shown).toContain('data-zone-stepper="lands"');
+    } finally {
+      layoutStore.reset();
+      layoutStore.dispose();
+    }
+  });
+
   it('the dotted outline is up on every quadrant\'s row while the store pulses that zone, and down once the flash clears', () => {
     const p = player({ battlefield: [card(2, 'Grizzly Bears')] });
     // The store is the module singleton components read; bumping from a

@@ -273,7 +273,9 @@
       </div>
     {/each}
   </div>
-  <ZoneStepper zone="hand" label="hand" onhover={(h) => (handHover = h)} />
+  {#if layoutStore.steppersOnBoard}
+    <ZoneStepper zone="hand" label="hand" onhover={(h) => (handHover = h)} />
+  {/if}
   </div>
 {/if}
 

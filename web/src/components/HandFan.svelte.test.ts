@@ -214,4 +214,25 @@ describe('HandFan — layout settings (fb-20260916T182801Z)', () => {
     layoutStore.reset();
     layoutStore.dispose();
   });
+
+  it('the Game Options show/hide toggle mounts the hand stepper when shown and none when hidden (fb-20260916T200925Z)', () => {
+    const props = { props: { player: player(hand(2)), width: BOARD_W } };
+    try {
+      // shown (the shipped default): the on-board stepper is on the track
+      const shown = render(HandFan, props).html;
+      expect(shown).toContain('data-zone-stepper="hand"');
+
+      // hidden: the exact call the panel's toggle onclick makes — conditional
+      // render, so no stepper markup anywhere in the rendered HTML
+      layoutStore.setSteppersOnBoard(false);
+      const hidden = render(HandFan, props).html;
+      expect(hidden).not.toContain('data-zone-stepper');
+      // the fan itself stays (peek/align/scale are untouched by the toggle)
+      const fan = hidden.match(/<div class="handfan[^"]*"[^>]*>/)?.[0] ?? '';
+      expect(fan).toContain('data-peek="hover"');
+    } finally {
+      layoutStore.reset();
+      layoutStore.dispose();
+    }
+  });
 });

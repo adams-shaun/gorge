@@ -336,6 +336,27 @@
        on-board − / + steppers on the viewer's own rows edit the same store. -->
   <section class="sec" data-layout-section>
     <h3>Layout</h3>
+    <!-- fb-20260916T200925Z: the show/hide toggle for the ON-BOARD − / +
+         steppers (Quadrant rows + HandFan). Same role="switch" row pattern
+         as the auto-pass toggles, writing through the layout store, not
+         state.editSettings — it is a layout preference. Default on = the
+         shipped board; a pre-toggle saved blob also loads as on (the field
+         is optional in lib/layoutsettings.ts' validate). -->
+    <button
+      type="button"
+      role="switch"
+      class="row"
+      class:on={layoutStore.steppersOnBoard}
+      aria-checked={layoutStore.steppersOnBoard}
+      data-toggle="steppers-on-board"
+      data-layout-steppers-toggle
+      onclick={() => layoutStore.setSteppersOnBoard(!layoutStore.steppersOnBoard)}
+    >
+      <span>−/+ size controls on the board</span><span class="state" aria-hidden="true">{layoutStore.steppersOnBoard ? 'Shown' : 'Hidden'}</span>
+    </button>
+    <!-- The panel's own per-zone steppers stay mounted regardless of the
+         toggle: they are already "in options" and are the only way back to
+         the board steppers once it is off. -->
     {#each LAYOUT_ZONES as z (z)}
       <div class="row sel" data-layout-zone={z}>
         <span>{ZONE_LABELS[z]}</span>
@@ -372,7 +393,7 @@
         {/each}
       </div>
     </div>
-    <p class="legend">Card size and alignment save in this browser and apply to your board. The − / + marks on your own battlefield rows are the same controls.</p>
+    <p class="legend">Card size and alignment save in this browser and apply to your board. The − / + marks on your own battlefield rows are the same controls — while “−/+ size controls on the board” above is Shown.</p>
     <button type="button" class="reset" data-layout-reset onclick={() => layoutStore.reset()}>Reset layout</button>
   </section>
 

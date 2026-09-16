@@ -75,7 +75,12 @@
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} {options} />
     {/each}
     {#if own}
-      <ZoneStepper zone="creatures" label="creature" onhover={(h) => hoverRow('creatures', h)} />
+      <!-- fb-20260916T200925Z: the on-board steppers are gated on the player's
+           show/hide toggle in Game Options (Layout section); conditional
+           render, not display:none, so the DOM and the a11y tree stay clean. -->
+      {#if layoutStore.steppersOnBoard}
+        <ZoneStepper zone="creatures" label="creature" onhover={(h) => hoverRow('creatures', h)} />
+      {/if}
     {/if}
   </div>
   <div
@@ -89,7 +94,9 @@
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} {options} />
     {/each}
     {#if own}
-      <ZoneStepper zone="others" label="non-creature" onhover={(h) => hoverRow('others', h)} />
+      {#if layoutStore.steppersOnBoard}
+        <ZoneStepper zone="others" label="non-creature" onhover={(h) => hoverRow('others', h)} />
+      {/if}
     {/if}
   </div>
   <div
@@ -103,7 +110,9 @@
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} {options} />
     {/each}
     {#if own}
-      <ZoneStepper zone="lands" label="land" onhover={(h) => hoverRow('lands', h)} />
+      {#if layoutStore.steppersOnBoard}
+        <ZoneStepper zone="lands" label="land" onhover={(h) => hoverRow('lands', h)} />
+      {/if}
     {/if}
   </div>
 </div>
