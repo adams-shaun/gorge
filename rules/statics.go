@@ -404,6 +404,86 @@ func totalMana(c Cost) int32 {
 	return c.CMC()
 }
 
+// hasFloor reports whether the composition carries any MinMana$ or SetCost
+// floor. A floor raises the cost's total mana (Cost.CMC) to a minimum, and
+// CR 202.4b prices a monocolour-hybrid pip at its generic face — the highest
+// of its faces — so an unresolved pip overprices every cheaper face the
+// announcement may resolve it to. That is the one part of the composition
+// whose result depends on the not-yet-announced pip faces; raises and
+// reductions are face-independent, so only a composition with a floor needs
+// the per-face enumeration feasibleAny performs.
+func (m costMods) hasFloor() bool {
+	if m.setFloor > 0 {
+		return true
+	}
+	for _, red := range m.reduces {
+		if red.floor > 0 || red.hasColor {
+			return true
+		}
+	}
+	return false
+}
+
+// feasibleAny answers the offer-side CR 601.2b question for a cost whose
+// flexible pips are still unresolved: is there SOME legal face assignment of
+// the announcement pips (two-colour hybrid, monocolour hybrid, Phyrexian,
+// hybrid-Phyrexian) that, with m composed onto the RESOLVED faces exactly as
+// the announcement's announceCost composes them and taxGeneric added after
+// (an additional cost is never reduced), is payable from pool/snow/life?
+// delve is the payer's Delve graveyard credit pool (0 without Delve): the
+// credit is taken off each assignment's generic after the composition, the
+// same place castable takes it off the composed cost.
+//
+// A cost with no announcement pip, or a composition with no face-sensitive
+// modifier, composes identically for every face and degrades to the single
+// composed payable check. Without the enumeration an offer priced under a
+// floor with an unresolved twobrid pip could be offered although NEITHER of
+// its announced faces completes the raised cost — Trinisphere over an
+// unresolved {2/W} composes {2/W}+{1} (payable from {W}{W} by its white face
+// plus one generic), while the white face announces to {W}+{2} and the
+// generic face to {3}, neither payable from {W}{W}. Color$ needs the same
+// ordering: a W reduction must see an announced W half of {W/U}. The walk
+// resolves one pip per level in announcePip order and stops at the first
+// payable assignment, so a payable cost is found without visiting the whole
+// tree.
+func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, delve int32) bool {
+	composed := func(c Cost) bool {
+		cc := m.apply(c)
+		cc.Generic = addClampedGeneric(cc.Generic, int64(taxGeneric))
+		if cc.Generic > delve {
+			cc.Generic -= delve
+		} else {
+			cc.Generic = 0
+		}
+		return cc.payable(pool, snow, life)
+	}
+	if !m.hasFloor() || c.annPipCount() == 0 {
+		return composed(c)
+	}
+	var walk func(c Cost) bool
+	walk = func(c Cost) bool {
+		if c.annPipCount() == 0 {
+			return composed(c)
+		}
+		for _, alt := range c.announcePip(0) {
+			r := c
+			switch {
+			case alt.color != 0:
+				r.Colored[state.ManaIndex(alt.color)]++
+			case alt.generic > 0:
+				r.Generic = addClampedGeneric(r.Generic, int64(alt.generic))
+			case alt.life > 0:
+				r.Life = addClampedGeneric(r.Life, int64(alt.life))
+			}
+			if walk(r.dropAnnouncePrefix(1)) {
+				return true
+			}
+		}
+		return false
+	}
+	return walk(c)
+}
+
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies
 // while its source sits in zone z. Forge's default is the battlefield, and
 // the corpus names zones with Forge's comma-separated All/Battlefield/Stack/
@@ -574,17 +654,47 @@ func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
 // CostAdjustment. A static applies only when every gate it carries holds:
 // Type$ (the other kind is skipped, neither means both), Activator$/Caster$
 // (whose action), ValidCard$ (what is being paid for), ValidSpell$ (which
-// spell or ability — Auriok Steelshaper's Activated.Equip), AffectedZone$
-// for an ability modifier (which zone its source sits in) and IsPresent$
+// spell or ability — Auriok Steelshaper's Activated.Equip), ValidTarget$
+// (the announced target, repriced before payment), AffectedZone$ for an
+// ability modifier (which zone its source sits in) and IsPresent$
 // (an intervening-if, e.g. Trinisphere's untapped self). Amount$ is
 // evaluated through the SVar/Count$ machinery, and the modifiers are
 // returned in Forge's application order (increases, reductions in static
 // order, SetCost floor).
 func (e *Engine) costModifiers(p state.PlayerID, id state.ObjID, scope costScope) costMods {
+	return e.costModifiersWithTargets(p, id, scope, nil, false)
+}
+
+// costModifiersForTargets is costModifiers with the chosen cast-time targets
+// supplied. A nil target slice is the pre-announcement offer phase, where a
+// ValidTarget$ static cannot yet apply; target choice re-enters this helper
+// before payment with the actual targets.
+func (e *Engine) costModifiersForTargets(p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target) costMods {
+	return e.costModifiersWithTargets(p, id, scope, targets, false)
+}
+
+// costModifiersForPotentialTargets is the offer-side counterpart for a
+// target-conditional REDUCTION. It admits a spell whose base cost is
+// unaffordable only when at least one legal target can make the reduction
+// apply. Target-conditional raises and SetCost floors are intentionally not
+// assumed: they can only make an otherwise legal offer more expensive, so
+// charging them speculatively would incorrectly withhold a nonmatching
+// target choice. The selected target is always repriced by
+// costModifiersForTargets before payment.
+func (e *Engine) costModifiersForPotentialTargets(p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target) costMods {
+	return e.costModifiersWithTargets(p, id, scope, targets, true)
+}
+
+func (e *Engine) costModifiersWithTargets(p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool) costMods {
 	var mods costMods
 	for _, mode := range []string{"RaiseCost", "ReduceCost"} {
 		for _, sv := range e.costStatics(mode) {
-			if !e.costStaticApplies(sv, mode, p, id, scope) {
+			if potential && mode == "RaiseCost" {
+				if _, targetConditional := sv.Params["ValidTarget"]; targetConditional {
+					continue
+				}
+			}
+			if !e.costStaticApplies(sv, mode, p, id, scope, targets) {
 				continue
 			}
 			if mode == "RaiseCost" {
@@ -647,7 +757,12 @@ func (e *Engine) costModifiers(p state.PlayerID, id state.ObjID, scope costScope
 		}
 	}
 	for _, sv := range e.costStatics("SetCost") {
-		if !e.costStaticApplies(sv, "SetCost", p, id, scope) {
+		if potential {
+			if _, targetConditional := sv.Params["ValidTarget"]; targetConditional {
+				continue
+			}
+		}
+		if !e.costStaticApplies(sv, "SetCost", p, id, scope, targets) {
 			continue
 		}
 		if n := e.modAmount(sv); n > mods.setFloor {
@@ -664,14 +779,14 @@ func (e *Engine) costModifiers(p state.PlayerID, id state.ObjID, scope costScope
 // modifier is skipped; ValidSpell$ shapes this build cannot evaluate fail
 // closed; a SetCost without RaiseTo$ True is not the shape this build
 // implements.
-func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope) bool {
+func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target) bool {
 	if ty, ok := sv.Params["Type"]; ok && ty != "" && ty != scope.kind {
 		return false
 	}
 	if !e.costActorMatches(sv, p) {
 		return false
 	}
-	if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, p)) {
+	if spec, ok := sv.Params["ValidCard"]; ok && !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, p)) {
 		return false
 	}
 	if vs, ok := sv.Params["ValidSpell"]; ok && !e.validSpellMatches(scope, p, id, vs) {
@@ -695,12 +810,7 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 	if !e.checkSVarHolds(sv) {
 		return false
 	}
-	if _, ok := sv.Params["ValidTarget"]; ok {
-		// Target-conditional cost modifiers ("spells that target a creature
-		// cost {2} more") need the chosen targets, which no offer-time
-		// composition has. Skipping is the conservative direction for a
-		// raise (never overcharge) and keeps the reduction twin honest for
-		// the same reason. Measured population reported in the audit.
+	if spec, ok := sv.Params["ValidTarget"]; ok && !e.costTargetsMatch(sv, spec, targets) {
 		return false
 	}
 	if mode == "SetCost" && sv.Params["RaiseTo"] != "True" {
@@ -723,6 +833,33 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 		return false
 	}
 	return true
+}
+
+// costTargetsMatch reports whether at least one chosen target satisfies a
+// ValidTarget$ cost-modifier requirement. Forge's "spells that target a
+// creature" grammar is an any-target condition: selecting one matching
+// target is sufficient, including in a multi-target spell. Object targets use
+// the static source context so Card.Self/NICKNAME bind to the permanent that
+// supplied the modifier; player targets use the same controller-relative
+// player-spec matcher as the other static gates. A nil target slice is the
+// pre-announcement offer phase and deliberately cannot satisfy the condition.
+func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Target) bool {
+	if len(targets) == 0 {
+		return false
+	}
+	ctx := e.specCtx(sv.Source, sv.Controller)
+	for _, target := range targets {
+		if target.IsPlayer {
+			if effects.MatchesPlayerSpec(e.G, spec, target.Player, sv.Controller) {
+				return true
+			}
+			continue
+		}
+		if effects.MatchesSpecCtx(e.G, spec, target.Obj, ctx) {
+			return true
+		}
+	}
+	return false
 }
 
 // costConditionHolds evaluates Condition$ on a cost-modifier static. The

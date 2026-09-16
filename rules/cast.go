@@ -96,6 +96,12 @@ type pendingCast struct {
 	// re-entry) does not re-ask for targets.
 	passedTarget bool
 
+	// targets are the chosen cast-time targets while this proposal is live.
+	// They are copied from the target decision before payment so a ValidTarget$
+	// cost modifier can be recomputed after CR 601.2c and before 601.2h, even
+	// for an activated ability whose stack object is not minted until payment.
+	targets []state.Target
+
 	// stackObj is the id of the object pushCast placed on the stack (the
 	// spell card itself, or an activated ability's AbilityPush-minted
 	// object). Zero until pushCast runs; handleTarget records the chosen
@@ -241,6 +247,17 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 	if !mana.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].Life) {
 		return false
 	}
+	return e.nonManaCastable(p, id, cost, ability)
+}
+
+// nonManaCastable is castable's payment-independent tail. Cost-modifier
+// offer checks use it after their flexible-pip walk has established a payable
+// resolved mana face: applying Color$ before that walk would otherwise see a
+// hybrid pip as neither of its colours and withhold a cast that the eventual
+// announced face can legally make free. Keeping all non-mana checks in this
+// one helper means that specialized offer logic cannot bypass Sac/Discard/
+// counter/tap legality.
+func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
 	reserved := map[state.ObjID]bool{}
 	for _, part := range cost.Sac {
 		var avail []state.ObjID
@@ -1098,13 +1115,62 @@ func (pc *pendingCast) resolvedManaX(x int32) Cost {
 	return m
 }
 
+// repriceForTargets refreshes the modifier snapshot after CR 601.2c chooses
+// targets and before CR 601.2h pays. ValidTarget$ is necessarily unavailable
+// at the initial offer, but it is a cost requirement rather than a
+// resolution-time condition, so this is the one point every spell and
+// activation can apply it. It deliberately preserves taxGeneric: commander
+// tax is independent of the chosen target and is captured at proposal start.
+func (e *Engine) repriceForTargets(pc *pendingCast) {
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil {
+		return
+	}
+	scope := spellScope(pc.mode)
+	if pc.ability >= 0 {
+		if pc.ability >= len(o.Face().Abilities) {
+			return
+		}
+		scope = abilityScope(o.Face().Abilities[pc.ability])
+	}
+	pc.mods = e.costModifiersForTargets(pc.player, pc.card, scope, pc.targets)
+}
+
+// targetDependentCostMayPay is targetAsk's pre-payment exception: before a
+// target is selected, the ordinary modifier snapshot intentionally excludes
+// ValidTarget$ statics. Do not abort the proposal merely because that base
+// snapshot is unaffordable when some legal target can make a reduction apply;
+// repriceForTargets will replace the potential snapshot with the actual one
+// as soon as the target answer arrives.
+func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	scope := spellScope(pc.mode)
+	if pc.ability >= 0 {
+		if pc.ability >= len(o.Face().Abilities) {
+			return false
+		}
+		scope = abilityScope(o.Face().Abilities[pc.ability])
+	}
+	mods := e.costModifiersForPotentialTargets(pc.player, pc.card, scope, e.costPotentialTargets(pc.player, pc.card, scope))
+	m := mods.apply(pc.resolvedMana())
+	m.Generic = addClampedGeneric(m.Generic, int64(pc.taxGeneric))
+	if pc.ability < 0 {
+		m.Generic -= int32(len(pc.delve))
+		if m.Generic < 0 {
+			m.Generic = 0
+		}
+	}
+	pl := e.G.Players[pc.player]
+	return m.payable(pl.Pool, pl.Snow, pl.Life)
+}
+
 // manaToPay is the CR 601.2f total-cost composition for pc: resolvedMana
-// ({X} folded, hybrid/Phyrexian announcement recorded), then cost increases
-// and reductions applied to Generic in the 601.2f order (increases before
-// reductions, Generic never below {0}), then the CR 903.8 commander tax
-// added last because an additional cost is never reduced. Delve credit is
-// the caller's concern (targetAsk/payCast subtract pc.delve from Generic
-// before the payable/payment check, exactly as before).
+// ({X} folded and flexible-pip announcement recorded), then cost increases
+// and reductions, then the CR 903.8 commander tax. Delve credit is the
+// caller's concern (targetAsk/payCast subtract pc.delve from Generic).
 func (e *Engine) manaToPay(pc *pendingCast) Cost {
 	m := pc.mods.apply(pc.resolvedMana())
 	m.Generic += pc.taxGeneric
@@ -1242,18 +1308,13 @@ func (e *Engine) manaAsk() bool {
 		return false
 	}
 	alts := pc.cost.announcePip(pc.payIdx)
-	// remaining pool = the payer's pool minus what earlier announced pips
-	// (payColor) have already reserved, and the life already committed. The
-	// feasibility check gets the FULL pool/life (the commitments are baked into
-	// the cost it evaluates); rem/life here are only the quick per-colour
-	// pre-filter.
+	// announceFeasible receives the full pool and life total because the
+	// commitments already made (and this candidate face) are baked into the
+	// reconstructed cost it evaluates. Do not pre-filter a colour face merely
+	// because the current pool lacks that colour: a Color$ reduction can make
+	// the announced face free (for example {W/U} under Color$ W).
 	pool, snow := e.G.Players[pc.player].Pool, e.G.Players[pc.player].Snow
 	fullLife := e.G.Players[pc.player].Life
-	rem := pool
-	for i := range rem {
-		rem[i] -= pc.payColor[i]
-	}
-	life := fullLife - pc.cost.Life - pc.payLife
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose how to pay a mana symbol of " + e.G.Obj(pc.card).Face().Name,
 		Source: pc.card}
@@ -1270,11 +1331,11 @@ func (e *Engine) manaAsk() bool {
 				Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
 		}
 	}
-	// One option per DISTINCT colour alternative with pool mana left (A then
-	// B; a single-colour Phyrexian pip carries the same colour twice, so the
-	// seen set keeps one option for it), then a monocolour hybrid's generic
-	// face, then life -- each gated on announceFeasible AND the quick resource
-	// pre-check.
+	// One option per DISTINCT colour alternative (A then B; a single-colour
+	// Phyrexian pip carries the same colour twice, so the seen set keeps one
+	// option for it), then a monocolour hybrid's generic face, then life. The
+	// shared full-cost feasibility check is the only resource gate, so it also
+	// covers reductions that make a face free.
 	seen := map[byte]bool{}
 	seenGeneric := false
 	for _, alt := range alts {
@@ -1284,8 +1345,7 @@ func (e *Engine) manaAsk() bool {
 				continue
 			}
 			seen[alt.color] = true
-			if rem[state.ManaIndex(alt.color)] > 0 &&
-				e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+			if e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
 				addPip(alt)
 			}
 		case alt.generic > 0:
@@ -1297,8 +1357,7 @@ func (e *Engine) manaAsk() bool {
 				addPip(alt)
 			}
 		case alt.life > 0:
-			if life >= 2 &&
-				e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+			if e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
 				addPip(alt)
 			}
 		}
@@ -1505,7 +1564,8 @@ func (e *Engine) targetAsk() bool {
 			mana.Generic = 0
 		}
 	}
-	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Snow, e.G.Players[pc.player].Life) && !e.hasUntappedManaSource(pc.player) {
+	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Snow, e.G.Players[pc.player].Life) &&
+		!e.hasUntappedManaSource(pc.player) && !e.targetDependentCostMayPay(pc) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
 	}

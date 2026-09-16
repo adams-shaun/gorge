@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -527,11 +528,97 @@ func (e *Engine) rawBaseCost(p state.PlayerID, id state.ObjID) Cost {
 // unpayable) while the actual charge (manaToPay) applies the modifiers after
 // X is folded -- the two never disagree on a card with no {X} in its cost.
 func (e *Engine) offerCostFor(p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost {
-	c := e.costModifiers(p, id, scope).apply(base)
+	return e.composedOfferCost(p, id, base, e.costModifiers(p, id, scope), scope)
+}
+
+// composedOfferCost is offerCostFor with the modifier collection factored
+// out, so offerCastable can evaluate the composition once and reuse it for
+// both the per-face enumeration and the composed castable check.
+func (e *Engine) composedOfferCost(p state.PlayerID, id state.ObjID, base Cost, mods costMods, scope costScope) Cost {
+	c := mods.apply(base)
 	if scope.kind != "Ability" {
 		c = e.commanderTaxFor(p, id, c)
 	}
 	return c
+}
+
+// offerCastable is THE offer-side gate every cast/activation option is gated
+// on. base is the RAW (pre-modifier) cost beginCast stores in pendingCast
+// for this exact option and scope the costScope its modifiers are collected
+// with, so the gate composes the very charge the payment will make: the
+// scope's CR 601.2f modifiers over base, then (for a spell) the CR 903.8
+// commander tax, never reduced by either.
+//
+// The mana feasibility question is posed over the still-unresolved flexible
+// pip faces (costMods.feasibleAny): with a SetCost/MinMana floor in the
+// composition, CR 202.4b's generic-face mana value of an unresolved twobrid
+// pip can overprice the cheaper face the announcement resolves it to, and a
+// composed-payable offer would then have no legal announcement. castable on
+// the composed cost runs on top, supplying the non-mana parts (Sac/Discard/
+// SubCounter/Tap) the enumeration does not model; composed and per-face
+// feasibility are conjunctive, and the stricter composed answer can only
+// withhold a legal offer (the safe direction), never offer an illegal one.
+func (e *Engine) offerCastable(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
+	mods := e.costModifiers(p, id, scope)
+	tax := int32(0)
+	if scope.kind != "Ability" {
+		tax = e.commanderTaxAmount(p, id)
+	}
+	delve := int32(0)
+	if e.HasKeyword(id, "Delve") {
+		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
+	}
+	pl := e.G.Players[p]
+	if !mods.feasibleAny(base, pl.Pool, pl.Snow, pl.Life, tax, delve) {
+		// A target-dependent reducer cannot be in the ordinary pre-target
+		// snapshot, but it may make one legal target choice payable. Retry with
+		// exactly those potential reductions; target-dependent raises/floors
+		// remain absent until the actual target is known (see the helper's
+		// contract).
+		potential := e.costModifiersForPotentialTargets(p, id, scope, e.costPotentialTargets(p, id, scope))
+		if !potential.feasibleAny(base, pl.Pool, pl.Snow, pl.Life, tax, delve) {
+			return false
+		}
+		mods = potential
+	}
+	// feasibleAny has established the mana half for a specific announced face
+	// when a floor or Color$ reduction is face-sensitive. Do not re-check
+	// that result against the unresolved Cost: Color$ W can make the W half
+	// of {W/U} free, while applying it before that half is chosen sees no W
+	// pip at all. The remaining cost parts are face-independent, so this
+	// shared tail preserves every Sac/Discard/counter/tap legality check.
+	return e.nonManaCastable(p, id, e.composedOfferCost(p, id, base, mods, scope), ability)
+}
+
+// costPotentialTargets returns the legal target candidates that can make a
+// target-conditional reduction available at offer time. The final selection
+// is still repriced before payment; this is only the "does SOME legal
+// announcement exist" half of CR 601.2. Modal spells have no selected mode
+// yet and therefore conservatively contribute no potential discount.
+func (e *Engine) costPotentialTargets(p state.PlayerID, id state.ObjID, scope costScope) []state.Target {
+	var sa *cards.SA
+	if scope.kind == "Ability" {
+		sa = scope.ab
+	} else if o := e.G.Obj(id); o != nil && o.Face() != nil {
+		sa = o.Face().SpellAbility()
+	}
+	if sa == nil || sa.Params["ValidTgts"] == "" || sa.Params["Choices"] != "" {
+		return nil
+	}
+	var excludeSelf state.ObjID
+	if scope.kind != "Ability" {
+		excludeSelf = id
+	}
+	candidates := e.legalTargetCandidates(p, id, excludeSelf, sa)
+	out := make([]state.Target, 0, len(candidates))
+	for _, candidate := range candidates {
+		if candidate.kind == "player" {
+			out = append(out, state.Target{Player: candidate.player, IsPlayer: true})
+		} else {
+			out = append(out, state.Target{Obj: candidate.obj})
+		}
+	}
+	return out
 }
 
 // AbilityCosts returns id's non-mana activated-ability costs after the same

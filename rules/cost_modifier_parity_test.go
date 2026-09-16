@@ -346,6 +346,40 @@ func TestTrinisphereSetCostDoesNotRaiseTwobridGenericFace(t *testing.T) {
 			e.G.Obj(prowler).Zone, e.G.Players[0].Pool)
 	}
 	replayCheck(t, e, cfg)
+
+	// CR 601.2b on the OFFER side: with {W}{W} neither announced face
+	// completes the raised cost — the white face announces to {W}+{2} and
+	// the generic face to {3} — so the cast must not be offered at all. The
+	// composed unresolved cost ({2/W}+{1}, CR 202.4b's generic-face mana
+	// value) IS payable from {W}{W} by its white face plus one generic,
+	// which is exactly why the offer gate must enumerate the pip faces.
+	e2, _, _ := newFixtureDeck(t, 682, prowlerSrc, trinisphereSrc)
+	putCreature(t, e2, 0, trinisphereSrc)
+	addMana(t, e2, 0, "WW")
+	if castByName(t, e2, 0, "Prowler") != nil {
+		t.Fatal("{2/W} under an untapped Trinisphere with only {W}{W} has no completing announcement; the cast must not be offered")
+	}
+
+	// With {W}{W}{W} both faces complete, so the cast IS offered and the
+	// white face announced first still finishes the raised {W}+{2}.
+	e3, cfg3, prowler3 := newFixtureDeck(t, 683, prowlerSrc, trinisphereSrc)
+	putCreature(t, e3, 0, trinisphereSrc)
+	addMana(t, e3, 0, "WWW")
+	opt3 := castByName(t, e3, 0, "Prowler")
+	if opt3 == nil {
+		t.Fatal("{2/W} under an untapped Trinisphere with {W}{W}{W} must be castable by either face")
+	}
+	submitChoices(t, e3, opt3.Index)
+	d3 := e3.Pending()
+	if d3 == nil || d3.Kind != decision.KChoose || len(d3.Options) != 2 || d3.Options[0].Kind != "pay_W" || d3.Options[1].Kind != "pay_generic" {
+		t.Fatalf("{2/W} pip under Trinisphere with WWW: %+v, want both faces (each completes the raised cost)", d3)
+	}
+	submitChoices(t, e3, d3.Options[0].Index)
+	if e3.G.Obj(prowler3).Zone != state.ZStack || e3.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("after {W}+{2} payment: zone=%s pool=%v, want stack and empty pool",
+			e3.G.Obj(prowler3).Zone, e3.G.Players[0].Pool)
+	}
+	replayCheck(t, e3, cfg3)
 }
 
 // TestSpectralProcessionTwobridPayments pins the monocolour hybrid: each
@@ -612,6 +646,75 @@ func TestColorlessHybridCostsParseAndPay(t *testing.T) {
 	submitChoices(t, e, d.Options[0].Index)
 	if e.G.Obj(card).Zone != state.ZStack || e.G.Players[0].Pool.Total() != 0 {
 		t.Fatalf("after C payment: zone=%s pool=%v, want stack and empty pool", e.G.Obj(card).Zone, e.G.Players[0].Pool)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestColorReductionSeesTheAnnouncedHybridFace ensures Color$ is applied to
+// the resolved face, not to an opaque hybrid symbol. The {W/U} spell is free
+// by its white half under the real reduction, while its blue half remains
+// unaffordable from an empty pool.
+func TestColorReductionSeesTheAnnouncedHybridFace(t *testing.T) {
+	spellSrc := "Name:Hybrid Spell\nManaCost:W/U\nTypes:Sorcery\nOracle:x\n"
+	reducerSrc := "Name:White Reducer\nManaCost:2\nTypes:Artifact\n" +
+		"S:Mode$ ReduceCost | ValidCard$ Card | Type$ Spell | Color$ W | Amount$ 1 | Description$ White spells cost {W} less.\nOracle:x\n"
+	e, cfg, spell := newFixtureDeck(t, 84, spellSrc, reducerSrc)
+	putCreature(t, e, 0, reducerSrc)
+	e.priorityRound()
+	opt := castByName(t, e, 0, "Hybrid Spell")
+	if opt == nil {
+		t.Fatal("the W face of {W/U} reduced by Color$ W must be castable for no mana")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "pay_W" {
+		t.Fatalf("hybrid face decision = %+v, want only the reduced white face", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("reduced hybrid spell on %s, want stack", e.G.Obj(spell).Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestValidTargetModifierRepricesBeforePayment covers the target-dependent
+// half of CostAdjustment: the spell is announced at its printed {1}{G}, then
+// targeting the reducer's source applies its ValidTarget$ reduction before
+// mana is paid. Keeping C in the pool proves the cost was recomputed after
+// CR 601.2c rather than merely admitted by the offer gate.
+func TestValidTargetModifierRepricesBeforePayment(t *testing.T) {
+	spellSrc := "Name:Targeted Growth\nManaCost:1 G\nTypes:Sorcery\n" +
+		"A:SP$ Pump | ValidTgts$ Permanent | NumAtt$ +1 | NumDef$ +1\nOracle:x\n"
+	reducerSrc := "Name:Target Discount\nManaCost:2\nTypes:Artifact\n" +
+		"S:Mode$ ReduceCost | ValidTarget$ Card.Self | Activator$ You | Type$ Spell | Amount$ 1 | Description$ Spells you cast that target CARDNAME cost {1} less.\nOracle:x\n"
+	e, cfg, spell := newFixtureDeck(t, 85, spellSrc, reducerSrc)
+	reducer := putCreature(t, e, 0, reducerSrc)
+	addMana(t, e, 0, "G")
+	e.priorityRound()
+	opt := castByName(t, e, 0, "Targeted Growth")
+	if opt == nil {
+		t.Fatal("a legal target that earns the discount must make {1}{G} offerable with only {G}")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("target decision = %+v", d)
+	}
+	idx := -1
+	for _, target := range d.Options {
+		if target.Obj == reducer {
+			idx = target.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("the reducer was not targetable: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("targeted spell on %s, want stack", e.G.Obj(spell).Zone)
+	}
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("pool after target discount = %v, want empty", e.G.Players[0].Pool)
 	}
 	replayCheck(t, e, cfg)
 }

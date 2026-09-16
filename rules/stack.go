@@ -556,6 +556,8 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	// clears them.
 	if e.cast != nil {
 		pc := e.cast
+		pc.targets = targetOptions(chosen)
+		e.repriceForTargets(pc)
 		if pc.ability < 0 {
 			if pc.stackObj != 0 {
 				e.recordChosenTargets(pc.stackObj, chosen)
@@ -602,6 +604,23 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	// Ruling T14-e: the submitting player, not e.G.Active -- CR 117.3c, the
 	// player who chose the target (the caster) keeps priority.
 	e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+}
+
+// targetOptions converts a target decision's selected options to the
+// proposal-local target representation used while its cost is still being
+// assembled. Events remain the source of truth once the stack object exists;
+// this short-lived copy is only what lets an activated ability evaluate a
+// ValidTarget$ cost modifier before its AbilityPush object is minted.
+func targetOptions(chosen []decision.Option) []state.Target {
+	out := make([]state.Target, 0, len(chosen))
+	for _, opt := range chosen {
+		if opt.Kind == "player" {
+			out = append(out, state.Target{Player: opt.Player, IsPlayer: true})
+		} else {
+			out = append(out, state.Target{Obj: opt.Obj})
+		}
+	}
+	return out
 }
 
 // recordChosenTargets emits the TargetsChosen events for a set of chosen
