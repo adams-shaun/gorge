@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LayoutStore, layoutStore } from './layoutsettings.svelte';
-import { defaultLayout, LAYOUT_KEY, SCALE_MAX, SCALE_MIN, withHandPeek, withScale } from './layoutsettings';
+import { defaultLayout, LAYOUT_KEY, SCALE_MAX, SCALE_MIN, withHandPeek, withScale, withSteppers } from './layoutsettings';
 
 /**
  * The reactive shell (layoutsettings.svelte.ts) is tested with its timers
@@ -115,6 +115,27 @@ describe('LayoutStore — writes', () => {
     expect(store.peek).toBe('never');
     expect(JSON.parse(storage.getItem(LAYOUT_KEY) ?? '{}')).toEqual(store.settings);
     store.dispose();
+  });
+
+  it('setSteppersOnBoard persists (no pulse: hiding a stepper changes no zone geometry)', () => {
+    const { storage, t, store } = mkStore();
+    expect(store.steppersOnBoard).toBe(true); // the shipped default
+    store.setSteppersOnBoard(false);
+    expect(store.steppersOnBoard).toBe(false);
+    expect(JSON.parse(storage.getItem(LAYOUT_KEY) ?? '{}')).toEqual(store.settings);
+    // no dotted-outline pulse was scheduled by the toggle
+    expect(t.count()).toBe(0);
+    store.setSteppersOnBoard(true);
+    expect(store.steppersOnBoard).toBe(true);
+    t.fireAll();
+    store.dispose();
+  });
+
+  it('a store built on a saved pre-toggle v1 blob reads steppersOnBoard as true (the lenient add)', () => {
+    const st = memStorage();
+    st.setItem(LAYOUT_KEY, JSON.stringify({ ...withScale(defaultLayout(), 'creatures', 1.3), steppersOnBoard: undefined }));
+    // JSON.stringify drops the undefined key — exactly the pre-toggle blob shape
+    expect(new LayoutStore({ storage: st }).steppersOnBoard).toBe(true);
   });
 
   it('reset returns every zone to the shipped layout and persists it', () => {

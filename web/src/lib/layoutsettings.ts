@@ -29,6 +29,15 @@
  * shipped peek — half-clipped, rises on hover/focus), always (full cards,
  * never clipped) and never (no slide-up at all; the hover inspector still
  * reads a card, and keyboard focus still raises it for accessibility).
+ *
+ * steppersOnBoard (fb-20260916T200925Z) gates the ON-BOARD − / + size
+ * steppers (ZoneStepper mounts in Quadrant and HandFan): the player asked
+ * for a show/hide toggle in the Game Options panel, so the board can carry
+ * nothing but cards when it is off. The panel's OWN per-zone steppers are
+ * NOT gated by it — they already live in options. Default true = the shipped
+ * board. The field is OPTIONAL in validate (missing → true) so every saved
+ * pre-toggle v1 blob still loads with its scale/align/handPeek intact;
+ * a present-but-non-boolean value still corrupts the whole blob to defaults.
  */
 
 export type LayoutZone = 'creatures' | 'others' | 'lands' | 'hand';
@@ -75,6 +84,8 @@ export interface LayoutSettings {
   align: Record<LayoutZone, ZoneAlign>;
   /** how the seated player's own hand presents (HandFan) */
   handPeek: HandPeek;
+  /** the on-board − / + size steppers (Quadrant rows + HandFan) are shown */
+  steppersOnBoard: boolean;
 }
 
 /** defaultLayout is the shipped board: every zone at 100%, left-packed, hover peek. */
@@ -84,6 +95,7 @@ export function defaultLayout(): LayoutSettings {
     scale: { creatures: 1, others: 1, lands: 1, hand: 1 },
     align: { creatures: 'left', others: 'left', lands: 'left', hand: 'center' },
     handPeek: 'hover',
+    steppersOnBoard: true,
   };
 }
 
@@ -118,9 +130,14 @@ export function withHandPeek(s: LayoutSettings, peek: HandPeek): LayoutSettings 
   return { ...s, handPeek: peek };
 }
 
+/** withSteppers returns a fresh layout with the on-board steppers shown (true) or hidden (false). */
+export function withSteppers(s: LayoutSettings, on: boolean): LayoutSettings {
+  return { ...s, steppersOnBoard: on };
+}
+
 /** cloneLayout deep-copies a layout (the storage-free write paths return fresh objects; this guards the record fields). */
 function cloneLayout(s: LayoutSettings): LayoutSettings {
-  return { version: 1, scale: { ...s.scale }, align: { ...s.align }, handPeek: s.handPeek };
+  return { version: 1, scale: { ...s.scale }, align: { ...s.align }, handPeek: s.handPeek, steppersOnBoard: s.steppersOnBoard };
 }
 
 /**
@@ -142,6 +159,14 @@ function isScale(v: unknown): v is number {
  * outside the legal range, an unknown zone/align/peek word. Corrupt means
  * defaults, not a partial merge — a half-understood layout blob should not
  * half-apply (same rule as playsettings.validate).
+ *
+ * steppersOnBoard is the ONE deliberate exception to "missing field means
+ * corrupt": the toggle shipped AFTER the blob's first version, so blobs
+ * saved by the pre-toggle client have no such key. A missing field loads as
+ * true (the behaviour those players shipped with — the steppers were always
+ * on the board), so their saved scale/align/handPeek survive the deploy
+ * instead of being wiped by a failed validate. Anything PRESENT that is not
+ * a boolean is still corrupt (same strictness as every other field).
  */
 function validate(v: unknown): LayoutSettings | null {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
@@ -160,7 +185,9 @@ function validate(v: unknown): LayoutSettings | null {
     align[z] = (o.align as Record<string, ZoneAlign>)[z];
   }
   if (!isOneOf(o.handPeek, HAND_PEEKS)) return null;
-  return cloneLayout({ version: 1, scale, align, handPeek: o.handPeek });
+  const steppersOnBoard = o.steppersOnBoard === undefined ? true : o.steppersOnBoard;
+  if (typeof steppersOnBoard !== 'boolean') return null;
+  return cloneLayout({ version: 1, scale, align, handPeek: o.handPeek, steppersOnBoard });
 }
 
 /**
