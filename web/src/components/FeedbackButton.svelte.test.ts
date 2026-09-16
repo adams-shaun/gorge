@@ -32,4 +32,33 @@ describe('FeedbackButton breadcrumbs', () => {
       }),
     ]));
   });
+
+  it('asks the browser to include and prefer the current tab when capturing a screenshot', async () => {
+    const page: Page = await browser.newPage();
+    // Installed before the fixture loads: replaces getDisplayMedia with a
+    // recorder that captures the exact constraints object and rejects, so the
+    // request is proven without any real screen grant or browser chrome. The
+    // component treats the rejection as a cancelled capture.
+    await page.addInitScript(() => {
+      const w = window as unknown as { __displayMediaArgs?: unknown };
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        get: () => ({
+          getDisplayMedia: (constraints: unknown) => {
+            w.__displayMediaArgs = constraints;
+            return Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
+          },
+        }),
+      });
+    });
+    await page.goto(`${url}src/components/FeedbackButton.fixture.html`);
+    await page.getByRole('button', { name: 'Feedback' }).click();
+    await page.getByRole('button', { name: 'Attach a screenshot' }).click();
+    const args = await page.evaluate(
+      () => (window as unknown as { __displayMediaArgs?: unknown }).__displayMediaArgs,
+    );
+    await page.close();
+
+    expect(args).toEqual({ video: true, preferCurrentTab: true, selfBrowserSurface: 'include' });
+  });
 });
