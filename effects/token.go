@@ -57,6 +57,27 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			Text: "unrecognized TokenOwner " + v + ", defaulting to the controller"})
 	}
 	remember := sa.Params["RememberTokens"] == "True"
+	// AttachedTo$ names the permanent the token enters attached to (the Wicked
+	// Role of Charming Scoundrel's ETB, 50+ corpus lines): the value is a
+	// Defined$-grammar selector, resolved with the ordinary resolver against
+	// a shallow SA that carries it in Defined$, so every corpus spelling
+	// (Targeted, Self, Remembered, ChosenCard, ...) works without a second
+	// resolver. Each minted token is attached to the FIRST resolved object
+	// target; an object that has left play by resolution time attaches
+	// nothing (the token simply enters unattached, the Aura's unattached
+	// state).
+	attachedTo := strings.TrimSpace(sa.Params["AttachedTo"])
+	var attachTo state.ObjID
+	if attachedTo != "" {
+		sub := *sa
+		sub.Params = map[string]string{"Defined": attachedTo}
+		for _, t := range Defined(h, c, &sub) {
+			if !t.IsPlayer {
+				attachTo = t.Obj
+				break
+			}
+		}
+	}
 
 	for _, key := range strings.Split(sa.Params["TokenScript"], ",") {
 		key = strings.TrimSpace(key)
@@ -78,6 +99,9 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			if remember && g.Obj(want) != nil {
 				c.Remembered = append(c.Remembered, state.Target{Obj: want})
 				eventRemember(h, c, want)
+			}
+			if attachTo != 0 && g.Obj(want) != nil && g.Obj(attachTo) != nil {
+				h.Emit(events.Event{Kind: events.Attach, Obj: want, IDs: []state.ObjID{attachTo}})
 			}
 		}
 	}

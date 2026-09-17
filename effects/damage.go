@@ -65,6 +65,23 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// is per-resolution context, not game state, and replay re-derives it by
 	// re-running the same resolution (Task ce1).
 	remember := strings.TrimSpace(sa.Params["RememberDamaged"]) != ""
+	// DividedAsYouChoose$ N (Fury's "deals 4 damage divided as you choose
+	// among any number of target creatures and/or planeswalkers", Forked
+	// Bolt): the NAMED TOTAL is divided among the chosen targets, not dealt
+	// to each. The player's own division choice is an outcome-modelling ask
+	// this build does not pose; the deterministic stand-in distributes one
+	// damage at a time, round-robin in the chosen-target order, so the last
+	// targets of an over-chosen list take nothing and the batch total is
+	// exactly N. Targets beyond N take nothing, as an unchosen target would.
+	divided := false
+	var total int32
+	if raw, ok := sa.Params["DividedAsYouChoose"]; ok && strings.TrimSpace(raw) != "" {
+		divided = true
+		total = Num(h, c, sa, "DividedAsYouChoose", 0)
+		if total < 0 {
+			total = 0
+		}
+	}
 	// One DealDamage call is ONE damage batch (Forge dealDamage): the events
 	// this loop emits latch the DamageDealtOnce/DamageDoneOnce triggers
 	// together, so a multi-target hit triggers the source's DealtOnce ability
@@ -73,6 +90,46 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// one for a Damage event that arrives with none open, so a call this
 	// primitive never brackets (none today) still latches per event.
 	h.BeginDamageBatch()
+	if divided {
+		type divTarget struct {
+			obj    state.ObjID
+			player state.PlayerID
+		}
+		var ts []divTarget
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer {
+				ts = append(ts, divTarget{player: t.Player})
+				continue
+			}
+			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+				ts = append(ts, divTarget{obj: t.Obj})
+			}
+		}
+		dealt := make(map[divTarget]int32, len(ts))
+		for i := int32(0); i < total && len(ts) > 0; i++ {
+			t := ts[i%int32(len(ts))]
+			dealt[t]++
+		}
+		for _, t := range ts {
+			amt := dealt[t]
+			if amt <= 0 {
+				continue
+			}
+			r := rider
+			r.amount = amt
+			if t.obj != 0 {
+				emitObjectDamage(r, t.obj)
+				if remember {
+					c.Remembered = append(c.Remembered, state.Target{Obj: t.obj})
+					eventRemember(h, c, t.obj)
+				}
+				continue
+			}
+			emitPlayerDamage(r, t.player)
+		}
+		h.EndDamageBatch()
+		return
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			emitPlayerDamage(rider, t.Player)

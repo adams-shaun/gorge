@@ -995,6 +995,15 @@ type pipAlt struct {
 	snow    bool  // one snow mana unit
 }
 
+// pipRider carries the payer-side may-play riders a cost's pip alternatives
+// expand under: anyColor is MayPlayIgnoreColor$ ("mana of any color",
+// CR 401.5), anyType is MayPlayIgnoreType$ ("mana of any type", Rakdos, the
+// Muscle). The zero value is the plain exact-colour payment.
+type pipRider struct {
+	anyColor bool
+	anyType  bool
+}
+
 // costPips expands a cost's mana part into a flat pip list, in a fixed order
 // (exact colours first — colourless included — then two-colour hybrids, then
 // monocolour hybrids, then Phyrexians, then hybrid-Phyrexians, then snow).
@@ -1007,12 +1016,16 @@ type pipAlt struct {
 // Two payer-side grants widen the alternatives: when bLifeOK is set, every
 // plain {B} pip additionally accepts 2 life (K'rrik, Son of Yawgmoth's "For
 // each {B} in a cost, you may pay 2 life rather than pay that mana"); when
-// anyColor is set, every coloured pip (plain, hybrid, twobrid, Phyrexian or
-// hybrid-Phyrexian) is payable by ANY colour in the pool — the may-play
-// grant's MayPlayIgnoreColor$ rider, "you may spend mana as though it were
-// mana of any color to cast it" (CR 401.5). A {C} pip stays colourless-only
-// under anyColor: CR 107.4c's "any color" never includes colourless.
-func (c Cost) costPips(bLifeOK, anyColor bool) []pip {
+// rider.anyColor is set, every coloured pip (plain, hybrid, twobrid,
+// Phyrexian or hybrid-Phyrexian) is payable by ANY colour in the pool — the
+// may-play grant's MayPlayIgnoreColor$ rider, "you may spend mana as though
+// it were mana of any color to cast it" (CR 401.5). A {C} pip stays
+// colourless-only under anyColor: CR 107.4c's "any color" never includes
+// colourless. rider.anyType (MayPlayIgnoreType$, Rakdos, the Muscle's "mana
+// of any type can be spent to cast those spells") is the wider reading: under
+// it EVERY pip — coloured and {C} alike — accepts all six mana types
+// (anyTypeAlts), since "any type" is every mana type, colourless included.
+func (c Cost) costPips(bLifeOK bool, rider pipRider) []pip {
 	var out []pip
 	// The coloured slots including the colourless one: a plain {C} pip is a
 	// strict colourless requirement generic must not satisfy by stealing the
@@ -1020,7 +1033,9 @@ func (c Cost) costPips(bLifeOK, anyColor bool) []pip {
 	for _, letter := range []byte{'W', 'U', 'B', 'R', 'G', 'C'} {
 		for n := c.Colored[state.ManaIndex(letter)]; n > 0; n-- {
 			alts := []pipAlt{{color: letter}}
-			if anyColor && letter != 'C' {
+			if rider.anyType {
+				alts = anyTypeAlts()
+			} else if rider.anyColor && letter != 'C' {
 				alts = anyColorAlts()
 			}
 			if bLifeOK && letter == 'B' {
@@ -1031,16 +1046,21 @@ func (c Cost) costPips(bLifeOK, anyColor bool) []pip {
 	}
 	for _, pair := range c.Hybrid {
 		alts := []pipAlt{{color: pair.A}, {color: pair.B}}
-		if anyColor {
+		if rider.anyType {
+			alts = anyTypeAlts()
+		} else if rider.anyColor {
 			alts = anyColorAlts()
 		}
 		out = append(out, pip{alts: alts})
 	}
 	for _, t := range c.Twobrid {
 		var alts []pipAlt
-		if anyColor {
+		switch {
+		case rider.anyType:
+			alts = anyTypeAlts()
+		case rider.anyColor:
 			alts = anyColorAlts()
-		} else {
+		default:
 			alts = []pipAlt{{color: t.Col}}
 		}
 		if t.Generic > 0 {
@@ -1050,14 +1070,18 @@ func (c Cost) costPips(bLifeOK, anyColor bool) []pip {
 	}
 	for _, letter := range c.Phyrexian {
 		alts := []pipAlt{{color: letter}, {life: 2}}
-		if anyColor {
+		if rider.anyType {
+			alts = append(anyTypeAlts(), pipAlt{life: 2})
+		} else if rider.anyColor {
 			alts = append(anyColorAlts(), pipAlt{life: 2})
 		}
 		out = append(out, pip{alts: alts})
 	}
 	for _, hp := range c.HybridPhyrexian {
 		alts := []pipAlt{{color: hp.A}, {color: hp.B}, {life: 2}}
-		if anyColor {
+		if rider.anyType {
+			alts = append(anyTypeAlts(), pipAlt{life: 2})
+		} else if rider.anyColor {
 			alts = append(anyColorAlts(), pipAlt{life: 2})
 		}
 		out = append(out, pip{alts: alts})
@@ -1074,6 +1098,16 @@ func (c Cost) costPips(bLifeOK, anyColor bool) []pip {
 // helper: CR 107.4c's "any color" never includes colourless.
 func anyColorAlts() []pipAlt {
 	return []pipAlt{{color: 'W'}, {color: 'U'}, {color: 'B'}, {color: 'R'}, {color: 'G'}}
+}
+
+// anyTypeAlts is the MayPlayIgnoreType$ alternative set: ALL six mana types
+// (Rakdos, the Muscle's "mana of any type can be spent to cast those spells"
+// — "any type" is every mana type, colourless included, unlike "any color"
+// which CR 107.4c keeps away from {C}). Used for every pip kind under the
+// anyType rider; coloured pips, {C} pips, hybrids and Phyrexians all widen
+// to it.
+func anyTypeAlts() []pipAlt {
+	return []pipAlt{{color: 'W'}, {color: 'U'}, {color: 'B'}, {color: 'R'}, {color: 'G'}, {color: 'C'}}
 }
 
 // manaPayment is what resolveMana found: the pool and snow tally after every
@@ -1118,7 +1152,7 @@ func takeUnit(rem, sn *state.Mana, i int) {
 // match every pre-existing caller keeps, so games with no ManaConvert static
 // on the battlefield resolve byte-identically.
 func (c Cost) resolveMana(pool, snow state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
-	return c.resolveManaWith(pool, snow, life, false, false, conv)
+	return c.resolveManaWith(pool, snow, life, false, pipRider{}, conv)
 }
 
 // resolveManaWith is resolveMana with the two payer-side grants applied:
@@ -1132,11 +1166,11 @@ func (c Cost) resolveMana(pool, snow state.Mana, life int32, conv *manaConv) (ma
 // never includes colourless. Both grants keep main search's deterministic
 // first-alternative preference; the expanded alternatives are tried in fixed
 // WUBRG order (see anyColorAlts).
-func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK, anyColor bool, conv *manaConv) (manaPayment, bool) {
+func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
 	if life < c.Life {
 		return manaPayment{}, false
 	}
-	pips := c.costPips(bLifeOK, anyColor)
+	pips := c.costPips(bLifeOK, rider)
 	rem := pool
 	sn := snow
 	life -= c.Life
@@ -1429,12 +1463,27 @@ func (e *Engine) payerGrantsPayLifeInsteadOfB(p state.PlayerID) bool {
 // ordinary filter grammar already carries -- the same direct-list reading
 // restrictionApplies uses for Effect-delivered CantTarget/CantRegenerate.
 func (e *Engine) payerGrantsIgnoreColor(p state.PlayerID, id state.ObjID) bool {
+	return e.payerGrantsMayPlayRider(p, id, func(ce ContinuousEffect) bool { return ce.MayPlayIgnoreColor })
+}
+
+// payerGrantsIgnoreType is payerGrantsIgnoreColor for the MayPlayIgnoreType$
+// rider (Rakdos, the Muscle's "mana of any type can be spent to cast those
+// spells"): the same zone/Affects/remembered-set reading, keyed on the wider
+// rider.
+func (e *Engine) payerGrantsIgnoreType(p state.PlayerID, id state.ObjID) bool {
+	return e.payerGrantsMayPlayRider(p, id, func(ce ContinuousEffect) bool { return ce.MayPlayIgnoreType })
+}
+
+// payerGrantsMayPlayRider is the shared body of the two may-play payment
+// riders: it walks the active may-play grants of p's and reports whether one
+// carrying the asked rider selects the card id being cast.
+func (e *Engine) payerGrantsMayPlayRider(p state.PlayerID, id state.ObjID, rider func(ContinuousEffect) bool) bool {
 	o := e.G.Obj(id)
 	if o == nil {
 		return false
 	}
 	for _, ce := range e.active() {
-		if !ce.MayPlay || !ce.MayPlayIgnoreColor || ce.Controller != p {
+		if !ce.MayPlay || !rider(ce) || ce.Controller != p {
 			continue
 		}
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
