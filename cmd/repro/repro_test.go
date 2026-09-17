@@ -313,8 +313,21 @@ func TestReproOnFreshSnapshot(t *testing.T) {
 	// 21 -> 24 (2026-09-17): main's sacrifice-asks-its-player and
 	// remembered/triggered-referents merges pose real asks this same opening
 	// sequence did not before, so the same advance(12) gate count now
-	// captures more total intents. Measured stable across repeated runs.
-	if !strings.Contains(out.String(), "replayed 24 of 24 recorded intents") {
+	// captures more total intents.
+	//
+	// 24 -> 25 (2026-09-17, later the same day): the capture point itself
+	// became deterministic. gatedFixtureRegistry's advance used to return
+	// after the last release WITHOUT waiting for that released decision's
+	// burst to be applied, so the snapshot raced the match goroutine and
+	// caught 24 or 25 recorded intents depending on scheduling (3/300 at
+	// default procs here; both replays verified every time — only this
+	// fixed-count assertion could tell). advance now waits for seat 0's
+	// NEXT decision to reach the gate — the match parked inside Decide with
+	// every earlier event emitted — and the count is stably 25 (150 events,
+	// head 775a4dcd17aaf606; 200/200 at GOMAXPROCS=2). The committed
+	// fixture stays at its own recorded 24; regenerate it and its
+	// assertions together if it is ever re-recorded (REPRO_REGEN_FIXTURE).
+	if !strings.Contains(out.String(), "replayed 25 of 25 recorded intents") {
 		t.Errorf("fresh snapshot summary unexpected:\n%s", out.String())
 	}
 	out.Reset()
