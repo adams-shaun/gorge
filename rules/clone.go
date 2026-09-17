@@ -185,6 +185,8 @@ func (e *Engine) Clone() *Engine {
 			c.phaseUnknownNoted[k] = v
 		}
 	}
+	// phaseSpecs and triggerEventMasks are pure syntax caches. Leave them
+	// empty: each branch owns its writable maps, unlike diagnostic history.
 	if e.triggerTurnFires != nil {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
 		for k, v := range e.triggerTurnFires {

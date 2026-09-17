@@ -543,6 +543,13 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		if lki != nil && lki.ID == ev.Obj {
 			objLKI = lki
 		}
+		// Ordinary cards need no face-walk setup when their printed triggers
+		// cannot observe this event. An unlocked Room may still have an
+		// eligible alternate face. Granted Ward is independent of both.
+		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
+			e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			return
+		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
 		// face is live too, so its triggers walk in the same scan. The face
 		// index rides the triggerKey (Face field) so the alternate face's
@@ -551,6 +558,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// to walk, cast face first.
 		faces, n := roomTriggerFaces(o, f)
 		for _, fc := range faces[:n] {
+			if o.Unlocked && !e.faceMayTrigger(fc.face, ev.Kind) {
+				continue
+			}
 			for ti, t := range fc.face.Triggers {
 				// LifeLostAll is evaluated once at the end of a simultaneous
 				// life-loss batch. Do not queue it once per serialized Damage/
@@ -889,6 +899,11 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 // Undying's counters_EQ0_P1P1 -- can see the object as it was before Move
 // reset it, not the live object already in the destination zone.
 func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	// The scanner has already run its diagnostic/batch gates. Reject an
+	// impossible event before consulting dynamic zone and phase predicates.
+	if !triggerModeEvents(t.Mode).allows(ev.Kind) {
+		return false
+	}
 	if !e.zoneGate(t, source, ev) || !e.phaseGate(t) {
 		return false
 	}

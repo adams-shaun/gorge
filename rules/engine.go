@@ -345,6 +345,9 @@ type Engine struct {
 	// phaseSpecs caches pure Phase$ parsing for both diagnostics and matching.
 	// It is scratch, not replay bookkeeping: clones start with an empty cache.
 	phaseSpecs map[string]parsedPhase
+	// triggerEventMasks caches only immutable face syntax, not live source
+	// membership. Like phaseSpecs, clones own fresh writable scratch.
+	triggerEventMasks map[*cards.Face]triggerEventMask
 
 	// choosing says which flow is waiting on the current KChoose decision
 	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling
