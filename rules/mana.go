@@ -184,6 +184,8 @@ var payEnergyCost = regexp.MustCompile(`^PayEnergy<([0-9]+|X)(?:/[^>]*)?>$`)
 // alternations fold to "," like every other non-mana head.
 var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
+var costBraces = strings.NewReplacer("{", " ", "}", " ")
+
 // ParseCost accepts both Forge's space-separated form ("2 U U") and the
 // bracketed oracle form ("{2}{U}{U}"). "no cost" and "" are free.
 func ParseCost(s string) Cost {
@@ -191,7 +193,7 @@ func ParseCost(s string) Cost {
 	if s == "" || strings.EqualFold(s, "no cost") {
 		return Cost{}
 	}
-	s = strings.NewReplacer("{", " ", "}", " ").Replace(s)
+	s = costBraces.Replace(s)
 	var c Cost
 	for _, sym := range splitCostTokens(s) {
 		switch {
@@ -749,7 +751,11 @@ func (e *Engine) rawBaseCost(p state.PlayerID, id state.ObjID) Cost {
 // unpayable) while the actual charge (manaToPay) applies the modifiers after
 // X is folded -- the two never disagree on a card with no {X} in its cost.
 func (e *Engine) offerCostFor(p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost {
-	return e.composedOfferCost(p, id, base, e.costModifiers(p, id, scope), scope)
+	return e.offerCostForUsing(e.collectCostStatics(), p, id, base, scope)
+}
+
+func (e *Engine) offerCostForUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost {
+	return e.composedOfferCost(p, id, base, e.costModifiersWithTargetsUsing(statics, p, id, scope, nil, false), scope)
 }
 
 // composedOfferCost is offerCostFor with the modifier collection factored
@@ -780,7 +786,11 @@ func (e *Engine) composedOfferCost(p state.PlayerID, id state.ObjID, base Cost, 
 // feasibility are conjunctive, and the stricter composed answer can only
 // withhold a legal offer (the safe direction), never offer an illegal one.
 func (e *Engine) offerCastable(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
-	mods := e.costModifiers(p, id, scope)
+	return e.offerCastableUsing(e.collectCostStatics(), p, id, base, scope, ability)
+}
+
+func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
+	mods := e.costModifiersWithTargetsUsing(statics, p, id, scope, nil, false)
 	tax := int32(0)
 	if scope.kind != "Ability" {
 		tax = e.commanderTaxAmount(p, id)
@@ -795,7 +805,7 @@ func (e *Engine) offerCastable(p state.PlayerID, id state.ObjID, base Cost, scop
 		// exactly those potential reductions; target-dependent raises/floors
 		// remain absent until the actual target is known (see the helper's
 		// contract).
-		potential := e.costModifiersForPotentialTargets(p, id, scope, e.costPotentialTargets(p, id, scope))
+		potential := e.costModifiersWithTargetsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), true)
 		if !e.manaFeasible(p, id, ability, base, potential, tax, delve) {
 			return false
 		}

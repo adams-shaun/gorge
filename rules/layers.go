@@ -46,8 +46,13 @@ import (
 // order -- nothing here ranges a map, so the resulting option/view/settle
 // order stays reproducible run to run (determinism requirement 3 of the
 // dispatch).
-func (e *Engine) staticEffects() []ContinuousEffect {
-	var out []ContinuousEffect
+//
+// dst is the caller-owned static memo's reusable outer storage, distinct from
+// activeBuf. This scan calls no callbacks and cannot re-enter; each nested
+// keyword/type slice is freshly parsed and remains read-only after active()
+// copies the effect values. Only the outer slots are overwritten here.
+func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
+	out := dst[:0]
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
@@ -174,6 +179,9 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 				}
 			}
 		}
+	}
+	if len(out) < len(dst) {
+		clear(dst[len(out):])
 	}
 	return out
 }
@@ -497,7 +505,7 @@ func (e *Engine) active() []ContinuousEffect {
 	// independently exactly as before.
 	if e.staticEpoch != len(e.L.Events) {
 		e.staticEpoch = len(e.L.Events)
-		e.staticContinuous = e.staticEffects()
+		e.staticContinuous = e.staticEffects(e.staticContinuous)
 	}
 	buf = append(buf, e.staticContinuous...)
 	sort.SliceStable(buf, func(i, j int) bool {
@@ -588,6 +596,14 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 // instead of clobbering the outer build's).
 func (e *Engine) Derived(id state.ObjID) Derived {
 	return e.derivedWith(id, 0)
+}
+
+// Characteristics returns the three derived facts botpolicy projects in one
+// pass. Keywords aliases Engine scratch storage exactly as Derived does; a
+// caller that keeps it across another characteristics query must copy it.
+func (e *Engine) Characteristics(id state.ObjID) (power, toughness int32, keywords []string) {
+	d := e.Derived(id)
+	return d.Power, d.Toughness, d.Keywords
 }
 
 // derivedWith is Derived with an optional ZONE OVERRIDE for the AffectedZone$

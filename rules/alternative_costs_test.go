@@ -129,6 +129,7 @@ func TestSuspendDeclinedCastStaysInExileAndTurnContinues(t *testing.T) {
 }
 
 func TestSuspendOrdinaryExiledCardNeverGetsTheOffer(t *testing.T) {
+	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Profane Tutor"))
 	// A different exiled copy with zero TIME is not a suspended card.
 	other := e.G.AddObject(corpusAlternativeCard(t, "Profane Tutor"), 0)
@@ -451,6 +452,7 @@ func TestHarmonizeReducedDerivedPowerPaysOnlyItsPower(t *testing.T) {
 }
 
 func TestTransmuteAndCyclingRealHandActivations(t *testing.T) {
+	t.Parallel()
 	t.Run("Dizzy Spell searches matching mana value", func(t *testing.T) {
 		e := handEngine(t, corpusAlternativeCard(t, "Dizzy Spell"))
 		// Transmute searches for a card with the source's PRINTED mana value
@@ -701,6 +703,7 @@ func TestImpatientIguanaBecomesStartingPlayer(t *testing.T) {
 }
 
 func TestOpeningHandRevealActionAndPlayFirstGate(t *testing.T) {
+	t.Parallel()
 	chancellor := corpusAlternativeCard(t, "Chancellor of the Tangle")
 	iguana := corpusAlternativeCard(t, "Impatient Iguana")
 	fill := card(t, "Name:Filler\nTypes:Basic Land\nOracle:x\n")

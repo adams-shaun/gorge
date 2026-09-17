@@ -21,6 +21,15 @@ type Chars interface {
 	Keywords(state.ObjID) []string
 }
 
+// combinedChars is an optional fast path for Chars implementations that can
+// derive power, toughness and keywords together. The returned keyword slice
+// may be scratch-backed, so callers must copy it only when retaining it across
+// the next Characteristics call. Implementations that provide only Chars keep
+// the legacy per-characteristic path unchanged.
+type combinedChars interface {
+	Characteristics(state.ObjID) (power, toughness int32, keywords []string)
+}
+
 // Creature is one battlefield creature's combat-relevant facts, in the
 // plain-data shape that keeps the adapter pair in step: the view-shaped
 // half (seat/bot.go's boardFromView) reads Power/Toughness/Keywords off the
@@ -121,6 +130,7 @@ func BoardFromGame(g *state.Game, ch Chars, me state.PlayerID) Board {
 // (pinned by TestBoardOwnership), which is what makes the host's
 // build-under-lock → Decide → reuse-next loop safe.
 func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Board {
+	combined, hasCombined := ch.(combinedChars)
 	clear(b.Creatures)
 	clear(b.Life)
 	clear(b.Cards)
@@ -152,11 +162,21 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			if o == nil || o.Face() == nil || o.Ephemeral() || !o.Face().IsCreature() {
 				continue
 			}
+			var power, toughness int32
+			var keywords []string
+			if hasCombined {
+				power, toughness, keywords = combined.Characteristics(id)
+				keywords = append([]string(nil), keywords...)
+			} else {
+				power = ch.Power(id)
+				toughness = ch.Toughness(id)
+				keywords = append([]string(nil), ch.Keywords(id)...)
+			}
 			b.Creatures[id] = Creature{
-				Power:      ch.Power(id),
-				Toughness:  ch.Toughness(id),
+				Power:      power,
+				Toughness:  toughness,
 				Damage:     o.Damage,
-				Keywords:   append([]string(nil), ch.Keywords(id)...),
+				Keywords:   keywords,
 				Tapped:     o.Tapped,
 				Controller: o.Controller,
 			}
@@ -228,17 +248,29 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			if f == nil {
 				continue
 			}
+			var power int32
+			var castable, instantSpeed bool
+			if hasCombined {
+				var keywords []string
+				power, _, keywords = combined.Characteristics(id)
+				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(keywords))
+				instantSpeed = hasTypeWord(f.Types, "Instant") || hasFlash(keywords)
+			} else {
+				power = ch.Power(id)
+				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id)))
+				instantSpeed = hasTypeWord(f.Types, "Instant") || hasFlash(ch.Keywords(id))
+			}
 			b.Cards[id] = Card{
 				Creature:      f.IsCreature(),
-				Power:         ch.Power(id),
+				Power:         power,
 				CMC:           CmcOf(f.ManaCost),
 				Basic:         hasTypeWord(f.Types, "Basic"),
 				AttachedTo:    o.AttachedTo,
 				ManaCost:      f.ManaCost,
-				Castable:      z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id))),
+				Castable:      castable,
 				OnBattlefield: z == state.ZBattlefield,
 				Produces:      f.ManaProduction(),
-				InstantSpeed:  hasTypeWord(f.Types, "Instant") || hasFlash(ch.Keywords(id)),
+				InstantSpeed:  instantSpeed,
 				Counter:       f.SpellAbility() != nil && f.SpellAbility().API == "Counter",
 			}
 		}

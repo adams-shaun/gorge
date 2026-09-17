@@ -28,6 +28,7 @@ var priorityHistSteps = []state.Step{
 // two mirrors on this exact defect would show up here even if it somehow
 // didn't in the seat package's own test.
 func TestTestBotOnlyActivatesInAMainPhase(t *testing.T) {
+	t.Parallel()
 	names, decks := testutil.SampleDecks(t, 4)
 	e := New(Config{Seed: 0, Names: names, Decks: decks})
 	e.Advance()

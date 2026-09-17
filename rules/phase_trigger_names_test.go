@@ -126,6 +126,7 @@ func TestCarpetOfFlowersListFiresAtBothMains(t *testing.T) {
 // matcher directly isolates the event/step contract from each effect's own
 // resolution tests.
 func TestPhaseGateAppliesToChangesZoneAndSpellCast(t *testing.T) {
+	t.Parallel()
 	t.Run("ChangesZone Moraug", func(t *testing.T) {
 		e, id := phaseCardEngine(t, "Moraug, Fury of Akoum")
 		tr := crTriggerFixture(t, e, id, "ChangesZone", "AddPhase")
