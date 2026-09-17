@@ -802,7 +802,17 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	2: "b80cb7ba6b93abc7",
+	// 2 seats moved to 0ff0aff481758d4b with task inbox-deck-ulalek-eldrazi
+	// (rebased onto main, re-measured): the tap gate's satisfiability filter
+	// (botpolicy/tap.go bestUnpayable) again -- the identical fix that moved
+	// these goldens pre-rebase, now measured against main's newer base. First
+	// divergence at event 958 (seat 1's untap-step tap ask at 957): the
+	// neutralised build (filter off) picks tap option 0 -- the colourless-only
+	// Wasteland toward a {B} pip no offered source produces -- the fixed build
+	// declines and taps option 3 instead; with the filter neutralised the
+	// stream is byte-identical to main's b80cb7ba6b93abc7 game (2426 events),
+	// so the filter is the sole cause at this seat count.
+	2: "0ff0aff481758d4b",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -898,7 +908,14 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "832ea9b373fde3ed",
+	// 4 seats moved to 22cf2bf04aeab3c7 with task inbox-deck-ulalek-eldrazi
+	// (rebased onto main, re-measured): the same tap-gate satisfiability
+	// filter as the 2-seat entry. First divergence at event 4105 (seat 1's
+	// tap ask at 4104, right after an Island tap produced U at 4102): the
+	// old gate taps option 0 toward a {B} card with only blue sources
+	// offered, the fixed gate declines; the neutralised stream reproduces
+	// main's 832ea9b373fde3ed byte-for-byte, so the filter is the sole cause.
+	4: "22cf2bf04aeab3c7",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -956,7 +973,14 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	6: "9de9ac3590cae377",
+	// 6 seats moved to 100db196f20a293a with task inbox-deck-ulalek-eldrazi
+	// (rebased onto main, re-measured): the same tap-gate satisfiability
+	// filter as the 2-seat entry. First divergence at event 6587 (seat 1's
+	// tap ask at 6586, right after a land drop): the old gate taps option 0
+	// toward the "6 B B" card's black pips with only blue sources offered,
+	// the fixed gate declines; the neutralised stream reproduces main's
+	// 9de9ac3590cae377 byte-for-byte, so the filter is the sole cause.
+	6: "100db196f20a293a",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1053,7 +1077,16 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "bcc3636853dbc777",
+	// 8 seats moved to 35522b0d8c5d2bf9 with task inbox-deck-ulalek-eldrazi
+	// (rebased onto main, re-measured): the same tap-gate satisfiability
+	// filter as the 2-seat entry. First divergence at event 2433 (seat 7's
+	// tap ask at 2432, the window after Lotus Petal resolved at 2428): the
+	// old gate taps Lotus Petal (an Any production, zero known colour slots)
+	// toward a {1}{B} card's black pip, the fixed gate falls through and
+	// pushes Lion's Eye Diamond at 2435 instead; the neutralised stream
+	// reproduces main's bcc3636853dbc777 byte-for-byte, so the filter is the
+	// sole cause.
+	8: "35522b0d8c5d2bf9",
 }
 
 func TestHeads(t *testing.T) {
