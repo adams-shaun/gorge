@@ -314,8 +314,19 @@ export function decide(args: {
    * only a NEW opponent object is subject to a stack stop rule.
    */
   baselineStack?: ReadonlySet<number>;
+  /**
+   * skipOwnTurnFloor marks a run the player explicitly consented to blow
+   * through their own turn (the one-shot runs: End Turn / Skip Turn /
+   * Resolve All — runSettings() already zeroes their step rules), so the
+   * own-turn main-phase floor below is bypassed for them. Persistent Auto
+   * and every other caller keep the default (false), and ffwd keeps it too:
+   * a fast-forward honours the floor — it is one press, the player is
+   * present, and the floor only fires where there is a real play
+   * (fb-20260917T231311Z-e392fcc0).
+   */
+  skipOwnTurnFloor?: boolean;
 }): AutoVerdict {
-  const { decision, view, seat, settings, ffwd = false, yields = null, baselineStack = null } = args;
+  const { decision, view, seat, settings, ffwd = false, yields = null, baselineStack = null, skipOwnTurnFloor = false } = args;
 
   // Safety first: auto NEVER answers anything but a plain single-pick
   // priority decision with exactly one pass option. Target, blockers,
@@ -370,6 +381,29 @@ export function decide(args: {
   const side = turnSide(view, seat);
   const stepRule = settings.steps[side][view.step as StoppableStep] ?? 'off';
   if (stepRule === 'forced' || (stepRule === 'smart' && actionable(decision, view, seat))) {
+    return { act: 'stop', reason: 'stop-set' };
+  }
+
+  // 3b. The own-turn main-phase floor (fb-20260917T231311Z-e392fcc0): with
+  // Auto on and the step rule 'off', a plain pass never consulted the
+  // potential-mana hand scan at all — on the player's own main phase that
+  // means the machine plays their turn even while they hold a castable
+  // card, and because passing priority on an empty stack in main1 advances
+  // the step (the engine's MTGO convention), the player's main phase is
+  // gone. So: on the ACTIVE seat's own main1/main2 (both sorcery-speed
+  // windows, where a castable-in-hand is real — upkeep/draw/begin-combat
+  // are NOT floored, where castableAfterTap's timing-blind scan would name
+  // sorceries the engine does not even offer), when the verdict would be a
+  // pass and the same oracle the smart rule reads (actionables(), one scan)
+  // is non-empty, stop instead — the window is surfaced with the same
+  // actionable-labels note the smart rule already produces. One-shot runs
+  // (skipOwnTurnFloor) and opponent turns pass through as before.
+  if (
+    !skipOwnTurnFloor &&
+    (view.step === 'main1' || view.step === 'main2') &&
+    turnSide(view, seat) === 'yours' &&
+    actionables(view, seat, decision).length > 0
+  ) {
     return { act: 'stop', reason: 'stop-set' };
   }
 

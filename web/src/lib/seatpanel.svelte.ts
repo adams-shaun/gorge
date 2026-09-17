@@ -1289,6 +1289,11 @@ export class SeatPanelState {
       settings: this.oneShot !== 'none' ? this.runSettings(this.oneShot) : this.settings,
       yields: this.yields,
       baselineStack: this.oneShot === 'resolve-all' ? (this.resolveAllIds ?? undefined) : undefined,
+      // The one-shot runs are the player's explicit machine-plays-my-turn
+      // consent (fb-20260917T231311Z-e392fcc0): they bypass the own-turn
+      // main-phase floor. Persistent Auto keeps the default (the floor
+      // applies); ffwd never reaches here.
+      skipOwnTurnFloor: this.oneShot !== 'none',
     });
     if (verdict.act === 'stop') return verdict;
     const kind: Exclude<AutoPassKind, 'act'> = this.oneShot === 'end-turn'

@@ -411,10 +411,14 @@ describe('decide', () => {
     expect(run(d, view(1, 'end'), s)).toEqual({ act: 'stop', reason: 'stop-set' });
   });
 
-  it('an off step falls through to a pass', () => {
-    const d = priority(RESPONDABLE);
+  it('an off step with a dead mana-only window falls through to a pass (the floor is quiet when nothing is playable)', () => {
+    // fb-20260917T231311Z-e392fcc0: the old leaf asserted a plain fall-through
+    // with a cast option on the window — but a cast option IS an action, so the
+    // own-turn main-phase floor stops that shape now. The fall-through survives
+    // for the mana-only window with an unreadable/dead hand.
+    const d = priority(ONLY_MANA);
     const s = withSteps('yours', { main1: 'off' });
-    expect(run(d, view(0, 'main1'), s)).toEqual({ act: 'pass', index: 0 });
+    expect(run(d, view(0, 'main1'), s)).toEqual({ act: 'pass', index: 1 });
   });
 
   it('a step rule on the wrong turn side does not apply', () => {
@@ -441,6 +445,96 @@ describe('decide', () => {
   it('full-control with ffwd still runs (ffwd outranks autoPass off) but a forced step stops it', () => {
     const s = applyPreset('full-control'); // all steps forced, autoPass false
     expect(runFfwd(priority(RESPONDABLE), view(0, 'main1'), s)).toEqual({ act: 'stop', reason: 'stop-set' });
+  });
+
+  // --- own-turn main-phase floor (fb-20260917T231311Z-e392fcc0) ---
+
+  const seqLand = (id: number, name: string, colour: [number, number, number, number, number, number]): CardView =>
+    ({ id, name, types: 'Land', mana_cost: '', controller: 0, owner: 0, produces: { colour, any: false } }) as CardView;
+  const SEQ_ISLAND = seqLand(6, 'Island', [0, 1, 0, 0, 0, 0]);
+  const SEQ_SWAMP = seqLand(1, 'Swamp', [0, 0, 1, 0, 0, 0]);
+  const SEQ_MOUNTAIN = seqLand(7, 'Mountain', [0, 0, 0, 1, 0, 0]);
+  const SEQ_VOLC = seqLand(3, 'Volcanic Island', [0, 1, 0, 1, 0, 0]);
+  const SEQ_BW_1 = handCard({ id: 33, name: 'Burning Wish', types: 'Sorcery', mana_cost: '1 R' });
+  const SEQ_BW_2 = handCard({ id: 34, name: 'Burning Wish', types: 'Sorcery', mana_cost: '1 R' });
+  const SEQ_AD_NAUSEAM = handCard({ id: 43, name: 'Ad Nauseam', types: 'Instant', mana_cost: '3 B B' });
+
+  /** seq1260Options is the incident decision's exact option list: four mana-tap activates, the pass at index 4. */
+  const seq1260Options: Option[] = [
+    { index: 0, kind: 'activate', label: 'Activate Island for mana', player: 0, obj: 6 },
+    { index: 1, kind: 'activate', label: 'Activate Swamp for mana', player: 0, obj: 1 },
+    { index: 2, kind: 'activate', label: 'Activate Mountain for mana', player: 0, obj: 7 },
+    { index: 3, kind: 'activate', label: 'Activate Volcanic Island for mana', player: 0, obj: 3 },
+    { index: 4, kind: 'pass', label: 'Pass priority', player: 0 },
+    { index: 5, kind: 'concede', label: 'Concede', player: 0 },
+  ];
+
+  /** seqView rebuilds the incident state (turn 11 main1, seat 0 active): four untapped lands, the reported hand, empty pool. */
+  const seqView = (step = 'main1', active = 0): View =>
+    withHand(view(active, step, [], [{ seat: 0, cards: [] }]), 0, {
+      hand: [SEQ_BW_1, SEQ_AD_NAUSEAM, SEQ_BW_2],
+      battlefield: [SEQ_ISLAND, SEQ_SWAMP, SEQ_MOUNTAIN, SEQ_VOLC],
+      pool: {},
+    });
+
+  /** seqOff is the incident settings: Auto on (default), the own-main steps off. */
+  const seqOff = () => withSteps('yours', { main1: 'off', main2: 'off' });
+
+  it('own-turn main1 off + a castable hand stops (the seq-1260 replica) and the oracle names both Burning Wishes', () => {
+    const s = seqOff();
+    const d = priority(seq1260Options);
+    expect(run(d, seqView(), s)).toEqual({ act: 'stop', reason: 'stop-set' });
+    expect(actionables(seqView(), 0, d)).toEqual([
+      'Cast Burning Wish (after tapping)',
+      'Cast Burning Wish (after tapping)',
+    ]);
+  });
+
+  it('own-turn main2 off + the same hand stops (both main phases are floored)', () => {
+    expect(run(priority(seq1260Options), seqView('main2'), seqOff())).toEqual({ act: 'stop', reason: 'stop-set' });
+  });
+
+  it('own-turn main1 off + a dead hand still passes (the seq-1053 shape: only Mountain untapped, {1}{R} and {3}{B}{B} unpayable)', () => {
+    const d = priority([
+      { index: 0, kind: 'activate', label: 'Activate Mountain for mana', player: 0, obj: 7 },
+      { index: 1, kind: 'pass', label: 'Pass priority', player: 0 },
+      { index: 2, kind: 'concede', label: 'Concede', player: 0 },
+    ]);
+    const v = withHand(view(0, 'main1', [], [{ seat: 0, cards: [] }]), 0, {
+      hand: [SEQ_BW_1, SEQ_AD_NAUSEAM, SEQ_BW_2],
+      battlefield: [SEQ_MOUNTAIN],
+      pool: {},
+    });
+    expect(run(d, v, seqOff())).toEqual({ act: 'pass', index: 1 });
+  });
+
+  it('opponent-turn main1 off + the castable hand still passes (the floor is own-turn scoped)', () => {
+    expect(run(priority(seq1260Options), seqView('main1', 1), seqOff())).toEqual({ act: 'pass', index: 4 });
+  });
+
+  it('own-turn main1 off + castable hand with skipOwnTurnFloor still passes (one-shot consent bypasses the floor)', () => {
+    const d = priority(seq1260Options);
+    expect(decide({ decision: d, view: seqView(), seat: 0, settings: seqOff(), skipOwnTurnFloor: true }))
+      .toEqual({ act: 'pass', index: 4 });
+  });
+
+  it('own-turn upkeep off + a castable sorcery still passes (the floor is main-phase scoped)', () => {
+    const d = priority([
+      { index: 0, kind: 'activate', label: 'Activate Island for mana', player: 0, obj: 6 },
+      { index: 1, kind: 'activate', label: 'Activate Mountain for mana', player: 0, obj: 7 },
+      { index: 2, kind: 'pass', label: 'Pass priority', player: 0 },
+      { index: 3, kind: 'concede', label: 'Concede', player: 0 },
+    ]);
+    // {1}{R} here IS payable (Mountain R + Island U, both offered), so this
+    // leaf isolates the step scoping: the hand IS castable and the upkeep
+    // pass must survive the floor anyway.
+    const vCastable = withHand(view(0, 'upkeep', [], [{ seat: 0, cards: [] }]), 0, {
+      hand: [SEQ_BW_1],
+      battlefield: [SEQ_MOUNTAIN, SEQ_ISLAND],
+      pool: {},
+    });
+    expect(run(d, vCastable, seqOff())).toEqual({ act: 'pass', index: 2 });
+    expect(actionables(vCastable, 0, d).length).toBeGreaterThan(0);
   });
 
   // --- structural invariant ---
