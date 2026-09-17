@@ -163,7 +163,7 @@
          as the stack's own history — the old RecentStrip board overlay is
          gone. Renders nothing when nothing has resolved within the event
          window. -->
-    <ResolvedCard {view} {events} />
+    <ResolvedCard {view} {events} {seats} />
     {#each topFirst as s, i (s.id)}
       <StackTile stack={s} {view} emphasized={emphasizeTop && i === 0} dimmed={emphasizeTop && i > 0} {yields} {onYield} {viewerSeat} />
     {/each}

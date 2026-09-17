@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import type { CardView, EventBody, PlayerView, View } from '../protocol';
+import type { CardView, EventBody, PlayerView, SeatInfo, View } from '../protocol';
 import ResolvedCard from './ResolvedCard.svelte';
+import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
+import { SEAT_COLOURS } from '../lib/colours';
 
 // SSR via svelte/server, the repo's component-test pattern (see
 // Rail.svelte.test.ts / CardTile.svelte.test.ts): no DOM, no $effect, no
@@ -75,5 +77,106 @@ describe('ResolvedCard — the resolved card lives in the stack frame (fb-202609
     const v = viewWithGraveyard(42, 'Stale Card');
     const { html } = render(ResolvedCard, { props: { view: v, events } });
     expect(html).not.toContain('data-resolved');
+  });
+});
+
+describe('ResolvedCard — the row names the card, is hoverable, and reads its owner (fb-20260917T131253Z-41d199c8)', () => {
+  const anchor: AnchorRect = { left: 10, top: 20, right: 66 };
+  const seats: SeatInfo[] = [
+    { name: 'Ari', deck: 'deck-a', colour: '#ff0000' },
+    { name: 'Bo', deck: 'deck-b', colour: '#00ff00' },
+  ];
+
+  it('renders the card name as TEXT, not only as the art alt text', () => {
+    const v = viewWithGraveyard(42, 'Grizzly Bears');
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)] },
+    });
+    expect(html).toContain('resolved__name'); // a dedicated name span, so the name survives the art failing to load
+    expect(html).toContain('Grizzly Bears');
+  });
+
+  it('colours the row border by the resolving seat — server-known colour wins', () => {
+    const v = baseView({ players: [spectatorPlayer(0, 'Ari'), spectatorPlayer(1, 'Bo', { graveyard: [card({ id: 5, name: 'Bolt', controller: 1, owner: 1 })] })] });
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 5)], seats },
+    });
+    expect(html).toContain('border-color: #00ff00'); // seat 1's colour from the seat list
+  });
+
+  it('falls back to the shared palette when seats is not passed', () => {
+    const v = baseView({ players: [spectatorPlayer(0, 'Ari'), spectatorPlayer(1, 'Bo', { graveyard: [card({ id: 5, name: 'Bolt', controller: 1, owner: 1 })] })] });
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 5)] },
+    });
+    expect(html).toContain(`border-color: ${SEAT_COLOURS[1]}`);
+  });
+
+  it('renders the CardDetail inspector while the hover state is open (dwell/focus), like every other card surface', () => {
+    const v = viewWithGraveyard(42, 'Grizzly Bears');
+    const hover = new HoverCard();
+    hover.open(42);
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)], hover, anchor },
+    });
+    expect(html).toContain('card-detail');
+    expect(html).toContain('aria-describedby="card-detail-42"');
+  });
+
+  it('renders no inspector while the hover state is closed', () => {
+    const v = viewWithGraveyard(42, 'Grizzly Bears');
+    const hover = new HoverCard();
+    hover.arm(42); // armed (dwell started), not opened — no panel yet
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)], hover, anchor },
+    });
+    expect(html).not.toContain('card-detail');
+  });
+
+  it('superviseRendering closes a live panel when a newer resolve replaces the one being rendered', () => {
+    const v = viewWithGraveyard(42, 'Old Resolve');
+    const hover = new HoverCard();
+    hover.open(42);
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)], hover, anchor },
+    });
+    expect(html).toContain('card-detail');
+    // The next view shows a different object: the row now renders id 43 with
+    // the pointer still over it (the panel's owner unmounted with the old
+    // row, so pointerleave never fires). In the browser ResolvedCard's
+    // $effect calls hover.superviseRendering(card.id) on that change — the
+    // same call applied here before the re-render, exactly the pattern
+    // CardTile.svelte.test.ts documents for superviseRendering.
+    expect(hover.superviseRendering(43)).toBe(true); // a live panel was closed
+    const replacedView = baseView({ players: [
+      spectatorPlayer(0, 'Ari', { graveyard: [card({ id: 43, name: 'New Resolve' })] }),
+      spectatorPlayer(1, 'Bo'),
+    ] });
+    const { html: replaced } = render(ResolvedCard, {
+      props: { view: replacedView, events: [ev(1, 'stack_resolve', 43)], hover, anchor },
+    });
+    expect(replaced).not.toContain('card-detail');
+    expect(replaced).toContain('data-resolved="43"'); // the row itself re-targeted cleanly
+  });
+
+  it('the null-card close arm clears a panel left open when the row unmounts (hidden landing / window expiry)', () => {
+    // The row's card goes to null while the panel is open (the resolve landed
+    // in a hidden hand, or the RECENT_RESOLVE_WINDOW expired on trailing
+    // taps): the {#if card} row unmounts, pointerleave never fires. In the
+    // browser the $effect's else arm calls hover.close() — the same call
+    // applied here; without it the panel would sit open on a stale anchor
+    // forever and re-appear open with the next resolve (CardTile's
+    // superviseRendering covers this by id change; a null card has no id to
+    // feed, so the explicit close is the guard).
+    const hover = new HoverCard();
+    hover.open(42);
+    expect(hover.show).toBe(true);
+    hover.close(); // exactly what the effect's null arm does
+    expect(hover.show).toBe(false);
+    const v = viewWithGraveyard(42, 'Old Resolve');
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)], hover, anchor },
+    });
+    expect(html).not.toContain('card-detail'); // the next render does not resurrect the stale panel
   });
 });
