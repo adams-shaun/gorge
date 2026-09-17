@@ -440,6 +440,19 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 			return false
 		}
 	}
+	// The same cast-condition clauses spellCastMatches evaluates, mirrored
+	// so a stored body carrying either stays fire-time-correct (the "you"
+	// the activator clauses measure is the event's caster either way).
+	if v, ok := t.Params["ActivatorThisTurnCast"]; ok {
+		if !compareIntCount(int32(e.spellsCastThisTurn(ev.Player)), v) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidSA"]; ok {
+		if !e.validSAMatches(dt.Source, ev, dt.Controller, v) {
+			return false
+		}
+	}
 	return true
 }
 
@@ -1203,7 +1216,12 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 }
 
 // spellCastMatches implements Mode$ SpellCast: ValidCard$ and
-// ValidActivatingPlayer$ against a PutOnStack event.
+// ValidActivatingPlayer$ against a PutOnStack event, plus the two cast-
+// condition clauses the measured cards carry -- ActivatorThisTurnCast$
+// (The Lord of Pain, Vial Smasher the Fierce: <OP><N> over the spells the
+// ACTIVATOR has cast this turn, the current cast included -- its PutOnStack
+// is already in the log when the deferred trigger fires) and ValidSA$
+// (Roiling Vortex: the Spell.ManaSpent <OP><value> comparison family).
 func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.PutOnStack {
 		return false
@@ -1231,7 +1249,86 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 			return false
 		}
 	}
+	if v, ok := t.Params["ActivatorThisTurnCast"]; ok {
+		if !compareIntCount(int32(e.spellsCastThisTurn(ev.Player)), v) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidSA"]; ok {
+		if !e.validSAMatches(source, ev, ctrl, v) {
+			return false
+		}
+	}
 	return true
+}
+
+// compareIntCount evaluates Forge's <OP><N> comparison grammar (EQ1, GT1,
+// EQ0, ...) against n. A value that is not a literal comparison (an X, a
+// bare word, an unknown operator) fails closed: a trigger condition the
+// engine cannot evaluate must stay silent, never fire wide.
+func compareIntCount(n int32, expr string) bool {
+	expr = strings.TrimSpace(expr)
+	for _, cand := range []struct {
+		op string
+		fn func(a, b int32) bool
+	}{{"EQ", func(a, b int32) bool { return a == b }},
+		{"NE", func(a, b int32) bool { return a != b }},
+		{"GE", func(a, b int32) bool { return a >= b }},
+		{"LE", func(a, b int32) bool { return a <= b }},
+		{"GT", func(a, b int32) bool { return a > b }},
+		{"LT", func(a, b int32) bool { return a < b }}} {
+		if rest := strings.TrimPrefix(expr, cand.op); rest != expr {
+			v, err := strconv.Atoi(strings.TrimSpace(rest))
+			if err != nil {
+				return false
+			}
+			return cand.fn(n, int32(v))
+		}
+	}
+	return false
+}
+
+// manaSpentForCast sums the mana the player spent casting the spell ev put
+// on the stack: every negative ManaAdd for that player since the spell's
+// own PutOnStack. Between CR 601.2a's push and the deferred cast trigger
+// the only mana leaving a pool is this cast's payment (a mana window adds
+// mana, it never spends), and the scan reads the log, so a replay derives
+// the identical number.
+func (e *Engine) manaSpentForCast(p state.PlayerID, id state.ObjID) int32 {
+	var spent int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == id && ev.Player == p {
+			return spent
+		}
+		if ev.Kind == events.ManaAdd && ev.Player == p && ev.Amount < 0 {
+			spent += -ev.Amount
+		}
+	}
+	return spent
+}
+
+// validSAMatches evaluates a SpellCast trigger's ValidSA$ clause. The
+// measured grammar is the mana comparison family, "Spell.ManaSpent <OP><N>"
+// (Roiling Vortex's EQ0 -- no mana was spent to cast that spell; Raggadragga
+// and the emperor's GE7/EQ0 shapes read the same head): the value is the
+// mana the ACTIVATOR paid for the cast, so GTX/other dynamic values fail
+// closed. A clause naming an unmodelled property (ManaSpentBy, MayPlaySource,
+// Self, YouCtrl) or carrying no comparison is evaluated as a plain spec
+// filter over the cast spell when it is a single field, and fails closed
+// otherwise.
+func (e *Engine) validSAMatches(source state.ObjID, ev events.Event, ctrl state.PlayerID, clause string) bool {
+	fields := strings.Fields(strings.TrimSpace(clause))
+	switch len(fields) {
+	case 1:
+		return effects.MatchesSpecCtx(e.G, fields[0], ev.Obj, e.specCtx(source, ctrl))
+	case 2:
+		if fields[0] == "Spell.ManaSpent" {
+			return compareIntCount(e.manaSpentForCast(ev.Player, ev.Obj), fields[1])
+		}
+		return false
+	}
+	return false
 }
 
 // attacksMatches implements Mode$ Attacks against a DeclareAttackers event.

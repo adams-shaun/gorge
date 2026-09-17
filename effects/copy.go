@@ -81,7 +81,20 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
+	// Controller$ (Chain Lightning's "If the player does, they may copy this
+	// spell" -- CR 707.10's copy-ownership half): the copy belongs to the
+	// player the parameter names, not the resolving controller. The target-
+	// derived family resolves against the copied spell's own targets (the
+	// shared c.Targets a Parent copy inherits); an unknown selector keeps
+	// the historical resolving-controller default rather than inventing a
+	// binding (measured corpus: only the TargetedOrController spelling
+	// reaches a registered copy on a measured path).
 	controller := c.Controller
+	if spec := strings.TrimSpace(sa.Params["Controller"]); spec != "" {
+		if p, ok := copyControllerFor(g, c, spec); ok {
+			controller = p
+		}
+	}
 	mayChoose := strings.EqualFold(strings.TrimSpace(sa.Params["MayChooseTarget"]), "True")
 	for n := Num(h, c, sa, "Amount", 1); n > 0; n-- {
 		h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: controller})
@@ -90,4 +103,37 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 				Text: "copy keeps its targets"})
 		}
 	}
+}
+
+// copyControllerFor resolves a CopySpellAbility Controller$ selector to the
+// player who receives the copy. Only the target-derived family is modelled:
+// TargetedOrController is the Forge spelling for "the target if it is a
+// player, else the target's controller" (Chain Lightning's cycle), and the
+// plain Targeted/TargetedController/TargetedPlayer forms read the same
+// binding. A missing target (a fizzled ask) fails to ok=false and the caller
+// keeps its controller.
+func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool) {
+	switch spec {
+	case "TargetedOrController", "Targeted", "TargetedController", "TargetedPlayer",
+		"ThisTargetedController", "ThisTargetedPlayer":
+		for _, t := range c.Targets {
+			if t.IsPlayer {
+				return t.Player, true
+			}
+			if o := g.Obj(t.Obj); o != nil {
+				return o.Controller, true
+			}
+		}
+		return 0, false
+	case "ChosenPlayer", "Player.Chosen":
+		for _, t := range c.Chosen {
+			if t.IsPlayer {
+				return t.Player, true
+			}
+		}
+		return 0, false
+	case "You":
+		return c.Controller, true
+	}
+	return 0, false
 }

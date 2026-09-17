@@ -639,8 +639,29 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 				From: state.ZStack, To: state.ZExile, Text: "countered"})
 			continue
 		}
+		// Destination$ (Remand's "into its owner's hand instead of into that
+		// player's graveyard", Force of Will's explicit Graveyard): the zone a
+		// countered CARD goes to instead of the default graveyard. Only the
+		// three plain hand-off zones are honoured -- Battlefield (Desertion's
+		// take-control), Library and the TopOfLibrary/BottomOfLibrary forms
+		// (Memory Lapse) need control/library-position machinery a plain move
+		// cannot express, so those record a Note and take the default rather
+		// than moving a spell somewhere the card text never asked for.
 		to := state.ZGraveyard
-		if o.CastFlags&state.FlagFlashback != 0 {
+		if dest := strings.TrimSpace(sa.Params["Destination"]); dest != "" {
+			switch dest {
+			case "Hand", "Graveyard", "Exile":
+				to, _ = parseZone(dest)
+			default:
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "counter destination " + dest + " is not a plain hand-off zone; the card goes to the graveyard"})
+			}
+		}
+		// CR 702.34a: a flashback spell is exiled instead of going anywhere
+		// else when it leaves the stack -- but an explicit non-graveyard
+		// destination (Remand's hand) is that anywhere-else, so the override
+		// applies only on the graveyard/default path.
+		if o.CastFlags&state.FlagFlashback != 0 && to == state.ZGraveyard {
 			to = state.ZExile
 		}
 		if remember {
@@ -863,18 +884,79 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effVote has each Defined$ player vote for the first Choices$ entry (M1's
-// simplification -- a real vote is a per-player choice, Task 20's territory)
-// and records one Note per vote rather than running any chosen mode: unlike
-// Charm, the brief's own spec for Vote is "Note per vote", not "whatever the
-// chosen mode emits".
+// effVote records one Note per voting player. Two shapes:
+//
+//   - the fixed-list shape (M1): Choices$ names entries, each player votes
+//     for the first, Notes record it, and nothing runs -- the stand-in this
+//     build keeps for every Vote that does not carry VoteCard$.
+//   - the card-ballot shape (Council's Judgment): VoteCard$ is a permanent
+//     filter, so the ballot is the battlefield permanents matching it
+//     (matched from the spell's controller: "a nonland permanent YOU don't
+//     control"), each Defined$ player votes, and every permanent with the
+//     most votes or tied for most lands in the resolution's Remembered set
+//     for VoteSubAbility$ (DBExile's ChangeZone Defined$ Remembered).
+//
+// The per-player vote CHOICE itself is still the deterministic no-ask
+// stand-in (every voter takes the ballot's first option, so the first
+// eligible permanent always wins unanimously): a real per-player vote ask
+// needs a resume arm of its own and stays in the approximations table.
+// Both VoteCard$ and VoteSubAbility$ are genuinely read on the ballot path.
 func effVote(h Host, c *Ctx, sa *cards.SA) {
+	if ballot := strings.TrimSpace(sa.Params["VoteCard"]); ballot != "" {
+		effCardVote(h, c, sa, ballot)
+		return
+	}
 	first := ""
 	if choices := sa.Params["Choices"]; choices != "" {
 		first = strings.TrimSpace(strings.SplitN(choices, ",", 2)[0])
 	}
 	for _, t := range Defined(h, c, sa) {
 		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + first})
+	}
+}
+
+// effCardVote is effVote's card-ballot half: the battlefield permanents
+// VoteCard$ admits are the options, each voting player takes the ballot's
+// first option (the deterministic stand-in), and the most-voted -- every
+// member of the tie -- is remembered for VoteSubAbility$, which runs once
+// at the end (Council's Judgment's "exile each permanent with the most
+// votes or tied for most votes").
+func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
+	g := h.Game()
+	var options []state.ObjID
+	for i := range g.Players {
+		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(i)) {
+			if o := g.Obj(id); o != nil && MatchesSpecFrom(g, ballot, id, c.Controller, c.Source) {
+				options = append(options, id)
+			}
+		}
+	}
+	counts := map[state.ObjID]int{}
+	max := 0
+	for _, t := range Defined(h, c, sa) {
+		label := "nothing"
+		if len(options) > 0 {
+			if o := g.Obj(options[0]); o != nil && o.Face() != nil {
+				label = o.Face().Name
+			}
+			counts[options[0]]++
+			if counts[options[0]] > max {
+				max = counts[options[0]]
+			}
+		}
+		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+	}
+	if max > 0 {
+		for _, id := range options {
+			if counts[id] == max {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			}
+		}
+	}
+	if sub := strings.TrimSpace(sa.Params["VoteSubAbility"]); sub != "" {
+		if resolved := cards.ResolveSVar(c.SVars, sub); resolved != nil {
+			Resolve(h, c, resolved)
+		}
 	}
 }
 
