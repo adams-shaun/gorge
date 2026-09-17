@@ -1,56 +1,167 @@
-# Report — inbox-rv2b-brainstorm-put-back-from-hand
+# Report — findings-sol5 fix round (dredge parked-draw resume defects)
 
-`.cards` was already present (`.cards/ir.gob.gz` exists), so corpus-backed tests ran.
+## What changed and why
 
-## What changed
+The review round (findings-sol5) proved two MAJORs in `resumeResolution`'s
+parked-frame arm — both live only on the **stack path** (a resolving spell
+parked on a GainLife→Draw replacement body's dredge ask), which the committed
+direct-arm probes never exercise. Both fixes are in `rules/resolution.go`; one
+commit, `184e5df`.
 
-- `effects/zone.go`: merged the current defined-library-fetch implementation with the hidden-hand chooser. Hidden `Origin$ Hand` moves retain their resumable whole-hand and per-owner chooser path, and library placement/shuffle helpers now serve both the hand mover and main's defined-library fetcher without changing their distinct shuffle defaults. The hand chooser prompt now names **that player's library** when someone chooses from another player's hand.
-- `effects/registry.go`: retained both the per-owner `HandMoveTarget` continuation and main's `DefinedLibraryMove` transport.
-- `effects/hand_move_test.go`: added the cross-player prompt regression.
+1. **Final parked answer dropped** (review finding 1, MAJOR). The
+   `parkedDraws` gate was `rp.kind == "dredge" && rp.sa == nil &&
+   rp.lifeDraws > 0`, so the body's FINAL draw — the one that asked,
+   `lifeDraws == 0` — never entered the branch: neither `applyDredge` nor
+   `resumeOrdinaryDraw` ran, and the flow fell into the misleading
+   `"mid-resolution answer resumed with no sub-ability recorded"` Note (also
+   review finding 3, MINOR — that Note is gone because the frame now routes
+   through the parkedDraws branch, which emits nothing).
+   **Fix:** the gate is now the exact parked-frame signature
+   `rp.kind == "dredge" && rp.sa == nil` (verified exact: `DrawFor` is the
+   only sa==nil dredge asker — `effDraw`'s frames carry `ResumeSA`, and a
+   turn-based draw's direct frame never reaches `resumeResolution` because
+   `handleModes` routes `resume.direct` answers to its own arm). The answer
+   is applied unconditionally inside the branch, the way the direct arm in
+   `handleModes` already does, then `lifeReplacementDraw(rp.player,
+   rp.lifeDraws)` runs — a no-op at 0, exactly like the direct arm.
 
-The dispatch is structural: exact `Origin$ Hand` with no object-valued `Defined$` always goes through the shared hand-owner walk (rather than a card-name list), while exact `Origin$ Library` first dispatches object-valued `Defined$` through main's shared direct-fetch helper. Thus future Hand owner selectors and Library fetch-list selectors do not fall back to `Defined()`'s source default.
+2. **Re-park dropped the continuation chain** (review finding 2, MAJOR). The
+   re-park early return (`if e.Suspended() || e.pending != nil { return }`)
+   left the re-drive's fresh pending point with `outer == nil` — `rp.outer`
+   (built by resolveTop's fx32 linking when the walk first suspended) was
+   never attached, so after the cascade completed, `finishResumption` finished
+   the object without ever running the sub-ability after the GainLife (Kiss's
+   `SubAbility$ DBDraw`).
+   **Fix:** on the re-park return, `e.resume.outer = rp.outer` (guarded
+   `e.resume != nil`; at this return the re-drive only ever poses a dredge
+   ask, so `e.resume` is always the fresh frame and nothing in the re-drive
+   reports continuations) — the same fx32 linking discipline the nested-ask
+   branch below practises. Every later park re-links the same chain, so
+   `rp.outer` survives until the cascade truly ends. The direct arm needs no
+   change: its frames carry no outer (verified — a direct frame is built bare
+   by `Ask` with an empty stack and its re-drive never links one).
 
-## Corpus / heads
+3. **TEST_HISTORY consolidation** (review finding 4, MINOR). `rules/
+   TEST_HISTORY.md` carried FOUR stacked `budget_s:` lines (300/124/53/51);
+   `loadBudget` takes the first (300s) and testtime's append invariant
+   expects exactly one. Consolidated to the one **effective** value
+   (`budget_s: 300`), so the gate behaves byte-identically to how it did
+   before the consolidation.
 
-The brief's 42-file claim did not hold at this corpus pin. The earlier audit on this branch measured 453 raw exact-`Origin$ Hand` lines in 431 files: 239 whole-hand, 133 owner-selected, and 81 already-concrete object moves.
+New suite defence (`rules/life_draw_dredge_stack_test.go`, 3 tests), the
+stack-path siblings the review asked for — the review's exact probe on real
+card scripts (Nefarious Lich on the battlefield, Kiss of the Amesha resolving
+on the stack targeting its caster, Golgari Thug (Dredge 4) in the graveyard;
+Kiss is `SP$ GainLife 7 | SubAbility$ DBDraw`, so the card's answer is
+7+2=9 draws and Kiss in the graveyard):
 
-`rules/heads_test.go` was not edited. `TestHeads` still reports the intended changed trajectories:
+- `TestLifeReplacementDredgeStackDeclinesAll` — decline every ask: 9 asks,
+  9 draws, DBDraw ran, Kiss + Thug in the graveyard, no orphan Note, replay
+  identical. Exercises BOTH fixes (the final frame is lifeDraws == 0 and
+  every intermediate answer re-parks).
+- `TestLifeReplacementDredgeStackAcceptsFinalAsk` — decline six, ACCEPT the
+  seventh (the lifeDraws == 0 frame): mill 4, Thug back to hand, no Draw
+  event for the replaced draw, then 2 ask-free DBDraw draws. Pins fix 1's
+  accept arm.
+- `TestLifeReplacementDredgeStackAcceptsFirstAsk` — accept the first ask (no
+  re-park): mill 4, 1 ask, 8 draws, Thug in hand. The shape the review round
+  already verified held; pinned so the ordinary suite defends it.
 
-| seats | computed | existing golden |
-|---:|---|---|
-| 4 | `b5888e1f7c2ccab9` | `2753ceca0bed344d` |
-| 6 | `ae1e8e5219b49537` | `b5882f44d619a1c5` |
-| 8 | `324d66dfb43440ce` | `c54d57bf94915dcb` |
+## Break attempt (tests vs the unfixed engine)
 
-The prior acceptance trace measured the new reachable `hand_move` asks as Brainstorm plus Thought-Knot Seer/Stoneforge Mystic in these games; the two-seat game reaches none. Golden regeneration remains controller-owned.
+Restored `HEAD:rules/resolution.go` over the working file, ran the three new
+tests, restored the fix:
 
-## Gates
-
-```text
-$ go test ./effects/ ./rules/ ./view/ ./host/...
-ok   github.com/adams-shaun/gorge/effects  (cached)
---- FAIL: TestHeads (0.83s)
-    heads_test.go:901: 4 seats: chain head b5888e1f7c2ccab9, golden 2753ceca0bed344d
-    heads_test.go:901: 6 seats: chain head ae1e8e5219b49537, golden b5882f44d619a1c5
-    heads_test.go:901: 8 seats: chain head 324d66dfb43440ce, golden c54d57bf94915dcb
-FAIL
-FAIL github.com/adams-shaun/gorge/rules 55.749s
-ok   github.com/adams-shaun/gorge/view 1.048s
-ok   github.com/adams-shaun/gorge/host 14.328s
-ok   github.com/adams-shaun/gorge/host/httpapi 1.710s
-FAIL
-
-$ go test ./rules/ -run 'TestEveryRepoDeck|TestRepoDecks'
-ok   github.com/adams-shaun/gorge/rules 1.071s
-
-$ gofmt -l . && go vet ./... && go run ./cmd/gentypes -check
-(exit 0; no output)
+```
+=== RUN   TestLifeReplacementDredgeStackDeclinesAll
+    life_draw_dredge_stack_test.go:212: dredge asks for 7 life draws + 2 DBDraw draws = 7, want 9
+--- FAIL: TestLifeReplacementDredgeStackDeclinesAll (0.47s)
+=== RUN   TestLifeReplacementDredgeStackAcceptsFinalAsk
+    life_draw_dredge_stack_test.go:257: accepted final dredge milled 0 cards, want 4
+--- FAIL: TestLifeReplacementDredgeStackAcceptsFinalAsk (0.46s)
+=== RUN   TestLifeReplacementDredgeStackAcceptsFirstAsk
+--- PASS: TestLifeReplacementDredgeStackAcceptsFirstAsk (0.48s)
 ```
 
-The pre-commit measurement accepted effects (9.8s/306), host (14.0s/110), rules (55.0s/790), and decision. It refused to record `host/httpapi` because its 42 non-skipped tests completed in about 1.7s, below its stale wall-time anomaly threshold despite `.cards` being present; the merge commit therefore used `--no-verify` after the direct non-cached `go test -count=1 ./host/httpapi/` passed (52 top-level runs, 0 skips).
+Exactly the review's measured symptoms: 7 asks where the card says 9 (DBDraw
+never ran — finding 2), mill 0 on the accepted final ask (finding 1), and the
+no-re-park shape passing (isolating both defects to the re-park/zero-remainder
+path, as the review found).
+
+## Gate commands run (real output)
+
+`.cards` is the real symlink (`ln -s /home/sadams/projects/gorge/.cards`,
+present at session start) — no run below is vacuous.
+
+- `go test ./rules/` (full suite, post-fix):
+  `ok  github.com/adams-shaun/gorge/rules  142.045s`
+- Focused acceptance + the dredge probes:
+  ```
+  --- PASS: TestEveryRepoDeckIsFullySupported (0.47s)
+  --- PASS: TestRepoDecksPlayAtEverySeatCount (1.17s)
+  --- PASS: TestRepoDeckGamesReplayExactly (1.09s)
+  --- PASS: TestHeads (1.17s)
+  --- PASS: TestLifeReplacementDredgeStackDeclinesAll (0.45s)
+  --- PASS: TestLifeReplacementDredgeStackAcceptsFinalAsk (0.46s)
+  --- PASS: TestLifeReplacementDredgeStackAcceptsFirstAsk (0.45s)
+  --- PASS: TestLifeReplacementDredgeAsksOnceAndDrawsAll (0.46s)
+  --- PASS: TestLifeReplacementDredgeAcceptAppliesThenContinues (0.46s)
+  --- PASS: TestLifeReplacementDredgeReParksForEachDraw (0.46s)
+  --- PASS: TestEveryRepoDeckParamsAreRead (0.95s)
+  ok  github.com/adams-shaun/gorge/rules  7.604s
+  ```
+- Neighbouring packages:
+  `ok effects 23.578s | ok view 2.017s | ok events | ok state | ok cards |
+   ok decision | ok botpolicy | ok replay 10.969s`
+- `make sim 2>&1 | grep -c 'replay OK'` → `20`
+- `gofmt -l .` (no output) · `go vet ./rules/` (clean) ·
+  `go run ./cmd/gentypes -check` (clean)
+- Commit-time budget gate: `testtime: rules 137.9s 869 tests 1 skipped
+  budget 300s` — under the effective 300s, **no Test-Budget-Approved trailer
+  needed** (3 tests added, measured 137.9s vs the first-line budget that was
+  already in force; no raise claimed).
+
+## Head / ratchet movement
+
+None. `TestHeads` and `TestEveryRepoDeckIsFullySupported` both pass unchanged
+(the fix touches only the suspended-resume path; no golden game reaches a
+parked dredge cascade). Nothing in `heads_test.go` or the ratchet was edited.
+
+## Deviations from the findings' prescriptions
+
+- Finding 2's fix is written as `if e.resume != nil { e.resume.outer =
+  rp.outer }` rather than an unconditional assignment, because the early
+  return can also fire on `e.pending != nil` alone. Today that alternate shape
+  is unreachable in this branch (the re-drive only calls `DrawFor`, whose only
+  ask is the dredge ask — a Draw emit poses no replacement competition), but
+  the guard keeps the fix total if one ever lands. The finding's prescribed
+  behaviour is identical whenever `e.resume != nil`, which is every reachable
+  case.
+- `budget_s` consolidated to 300 (the effective first-line value), not to any
+  of the other stacked values — this preserves the gate's behaviour exactly;
+  any other choice would have silently changed the enforced budget.
+
+## Open concerns
+
+None new. The fix is confined to `resumeResolution`'s parked-frame arm; the
+direct arm, `effDraw`'s own cursor path and the turn-draw path are unchanged
+and separately pinned by the pre-existing tests, all of which pass.
 
 ## Issues
 
-- Mixed hidden origins containing Hand remain a loud no-move fallback: 32 raw lines / 32 files. `effects/zone.go:mixedOriginIncludesHand` needs an origin-aware private chooser across mixed zones.
-- `Tapped$ True` remains unread by the shared hidden-hand chooser (51 raw exact-`Origin$ Hand` lines / 49 files); battlefield entry needs an event-backed tapped-entry implementation.
-- `cmd/testtime` may falsely reject `host/httpapi`'s legitimate current fast run based on stale timing history; it should distinguish a speedup from a vacuous corpus run without requiring a commit-hook bypass.
+- (pre-existing, recorded by the previous round, still live) Lich's controller
+  survival depends on the unimplemented `R:Event$ GameLoss CantHappen`
+  family: plain `Lich` would park its controller at 0 life and die to the SBA
+  where Forge keeps them alive (`rules/life_draw_dredge_test.go`'s doc
+  comment). The tests here use Nefarious Lich for exactly that reason. A
+  CR-lane leaf citing CR 112/704 (replacement "instead of losing the game")
+  would make this visible to `make ledger`.
+- (pre-existing, unchanged scope) The parked cascade's `e.pending != nil`
+  early return without a linked continuation remains a latent hole if a future
+  Draw-event replacement competition ever poses an order decision inside
+  `lifeReplacementDraw`'s re-drive — measured corpus-unreachable today (a
+  `Draw` emit routes through no replacement-order machinery in
+  `rules/replacement.go`'s `applyReplacements`), noted so the next person
+  touching the Draw path re-checks it.
+
+STATUS=DONE
