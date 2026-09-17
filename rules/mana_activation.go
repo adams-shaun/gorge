@@ -236,7 +236,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		if ga.sa.API != "Mana" || isLoyaltyAbility(ga.sa) {
 			continue
 		}
-		if !abilityZoneOK(ga.sa, o.Zone) || !abilityRestricted(ga.sa) || !e.manaAbilityPayable(p, id, ga.sa) ||
+		if !abilityZoneOK(ga.sa, o.Zone) || abilityRestricted(ga.sa) || !e.manaAbilityPayable(p, id, ga.sa) ||
 			!e.manaActivationGateHolds(p, id, ga.sa) {
 			continue
 		}
