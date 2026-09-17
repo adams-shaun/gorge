@@ -20,7 +20,7 @@
     mulliganPhase,
     toneOf,
   } from '../lib/seatpanel.svelte';
-  import { optionsByObj, optionsByPlayer, type CardOptions } from '../lib/cardoptions';
+  import { optionsByObj, optionsByPlayer, resolveCardFollowUp, type CardOptions } from '../lib/cardoptions';
   import { stuckDecision } from '../lib/prompt';
   import { loadLogShown, saveLogShown, safeStorage, type LogScope } from '../lib/logshown';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
@@ -128,9 +128,13 @@
   );
   // A direct card action can hand the server a first-stage choice and receive
   // a second decision for the same object (Underground Sea's activate -> Add
-  // U / Add B flow). Remember only that one network continuation: the picker
-  // itself is unmounted while the posted decision is hidden, so it cannot
-  // carry open state across the round trip.
+  // U / Add B flow; a multi-ability mana source's stage-1 ability pick -> its
+  // stage-2 colour wheel, fb-e079def5). Remember only that one network
+  // continuation: the picker itself is unmounted while the posted decision is
+  // hidden, so it cannot carry open state across the round trip. The effect
+  // is the one decoder of the expectation -- resolveCardFollowUp opens the
+  // picker only when the next decision really carries 2-6 options on the
+  // expected object, and disarms otherwise.
   let expectedCardFollowUp = $state<{ seq: number; obj: number } | null>(null);
   let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
   //
@@ -138,8 +142,7 @@
     const d = m.view?.decision ?? null;
     const expected = expectedCardFollowUp;
     if (d === null || expected === null || d.seq === expected.seq) return;
-    const count = d.options.filter((option) => option.obj === expected.obj).length;
-    autoOpenCardDecision = count >= 2 && count <= 6 ? { seq: d.seq, obj: expected.obj } : null;
+    autoOpenCardDecision = resolveCardFollowUp(expected, d);
     expectedCardFollowUp = null;
   });
 

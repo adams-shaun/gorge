@@ -208,11 +208,43 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 		Prompt: "Choose a mana ability of " + o.Face().Name, Source: source}
 	for i, ma := range abilities {
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: source,
-			Ability: i, Label: "Add " + strings.TrimSpace(ma.Params["Produced"])})
+			Ability: i, Label: manaAbilityLabel(ma)})
 	}
 	e.manaActivation = &manaActivation{player: p, source: source, abilities: abilities, cast: cast, cumulative: cumulative}
 	e.choosing = chooseMana
 	e.ask(d)
+}
+
+// manaAbilityLabel renders a mana ability's Produced$ value as the label the
+// stage-1 "choose a mana ability" wheel shows (task fb-e079def5). The raw
+// script token ("Combo B R", "Any") is engine jargon a player cannot read,
+// and it defeats the client's mana-pip styling for the whole wheel (the web
+// tints an option list only when EVERY label is a single "Add <C>"), so a
+// Talisman-of-Indulgence-shaped source rendered as plain grey text. The
+// sibling ask sites (askManaColor, askTriggeredManaColor, the replacement
+// colour ask in replacement.go) already emit resolved single colours -- this
+// was the one label site that leaked the raw Produced string. Combo
+// <colours> reads "Add B or R" (three or more: comma-separated, the last
+// joined with "or"); Any/Combo Any read "Add any color" (the oracle's own
+// wording, CR 107.4); Produced$ Chosen reads "Add chosen color"; anything
+// else -- a plain single colour or C (the shape the wheel tints), a doubled
+// "RR", a Special expression -- keeps the bare "Add <value>" shape.
+func manaAbilityLabel(ma *cards.SA) string {
+	produced := strings.TrimSpace(ma.Params["Produced"])
+	switch produced {
+	case "Any", "Combo Any":
+		return "Add any color"
+	case "Chosen":
+		return "Add chosen color"
+	}
+	if cols, ok := effects.ComboColours(produced); ok {
+		if len(cols) == 1 {
+			return "Add " + cols[0]
+		}
+		last := len(cols) - 1
+		return "Add " + strings.Join(cols[:last], ", ") + " or " + cols[last]
+	}
+	return "Add " + produced
 }
 
 // manaAbilityPayable is the mana-ability equivalent of the cast cost gate.
