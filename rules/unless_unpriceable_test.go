@@ -77,14 +77,18 @@ func unpriceableCounterCards(reg *cards.Registry) []string {
 // special case), and the set itself is a golden -- a corpus or grammar change
 // that adds or removes an unpriceable unless-cost here is a real scope change
 // that must be understood, not silently absorbed. Measured on the compiled
-// .cards/ir.gob.gz corpus at FORGE_REF: 28 distinct cards, of which 21 carry
+// .cards/ir.gob.gz corpus at FORGE_REF: 29 distinct cards, of which 21 carry
 // UnlessCost$ X (the I-5 population the issue names), 3 a Sac<...> part
 // (Blood Funnel, Brain Gorgers, Mana Vortex), 3 a Discard<...> part
-// (Perplex, Phantasmagorian, Reality Smasher), and 1 an ExileFromGrave part
+// (Perplex, Phantasmagorian, Reality Smasher), 1 an ExileFromGrave part
 // (Grip of Amnesia -- its UnlessCost$ ExileFromGrave<1/All> flattened to one
 // generic mana before the ExileFrom* cost grammar existed, so one floating
 // mana "paid" it; now it is a real Exile part, Priceable is false, and the
-// unless-pay ask hard-declines, the conservative correct direction).
+// unless-pay ask hard-declines, the conservative correct direction), and 1 a
+// DamageYou<4> part (Molten Influence -- the head was ParseCost-unmodelled
+// one-generic until the cost-token family work; ParseUnlessCost always
+// declined it, so the ask-posed-then-declined runtime behaviour is unchanged,
+// only the report now agrees).
 // Raw .cards/cardsfolder lines with UnlessCost$ X number the same 21.
 func TestUnlessCostUnpriceablePopulation(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
@@ -93,7 +97,7 @@ func TestUnlessCostUnpriceablePopulation(t *testing.T) {
 		"Blood Funnel", "Brain Gorgers", "Broken Ambitions", "Cephalid Shrine",
 		"Clash of Wills", "Condescend", "Dispelling Exhale", "In the Eye of Chaos",
 		"Invoke Prejudice", "Lilting Refrain", "Logic Knot", "Mana Vortex",
-		"Martyr of Frost", "Mausoleum Wanderer", "Mindswipe", "Overrule",
+		"Martyr of Frost", "Mausoleum Wanderer", "Mindswipe", "Molten Influence", "Overrule",
 		"Perplex", "Phantasmagorian", "Power Sink", "Reality Smasher", "Rethink", "Spectral Denial", "Spell Rupture",
 		"Swallowed by Leviathan", "Syncopate", "Thassa's Rebuff", "We Say Thee Nay!",
 		// Grip of Amnesia: UnlessCost$ ExileFromGrave<1/All> -- a real Exile
