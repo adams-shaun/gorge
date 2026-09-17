@@ -315,6 +315,19 @@ const (
 	// live play and log replay in lockstep without adding one delayed trigger
 	// per token.
 	MyriadCleanup
+	// GrantTriggerPush mints a static-grant's triggered ability (AddTrigger$
+	// on a Mode$ Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you
+	// sacrifice a land") and places it on the stack, in one event. It mirrors
+	// DelayedPush's shape -- the Ability is not a face Triggers index but the
+	// granted trigger's Execute$ SVar-named body, resolved here from the
+	// AFFECTED object's own SVar table (rules' queue gate establishes that
+	// this resolves to the exact body the granting face's table names, so a
+	// replay reproduces the same stack object) -- minus the registration
+	// bookkeeping: a granted trigger is consumed by nothing and lives exactly
+	// as long as its granting static. Appended after MyriadCleanup, following
+	// every prior Kind's append-only precedent, so no earlier ordinal, hash
+	// chain or golden replay is affected.
+	GrantTriggerPush
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -325,7 +338,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(MyriadCleanup) + 1
+	NumKinds = int(GrantTriggerPush) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -341,7 +354,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
-	"pair", "myriad_copy", "myriad_cleanup"}
+	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

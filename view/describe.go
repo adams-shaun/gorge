@@ -363,6 +363,12 @@ func Describe(g *state.Game, ev events.Event) string {
 		return obj(g, ev.Obj) + " triggers (delayed)"
 	case events.KeywordTriggerPush:
 		return obj(g, ev.Obj) + " triggers (" + strings.TrimPrefix(ev.Counter, "__kw") + ")"
+	case events.GrantTriggerPush:
+		// A static-grant's trigger went on the stack (AddTrigger$, the
+		// STATION 8+ shape): the same "triggers" phrasing DelayedPush uses --
+		// the granted body's own text is the resolving ability's line, not
+		// the push's, so saying what it will do twice would double-report it.
+		return obj(g, ev.Obj) + " triggers (granted)"
 	}
 	return "unknown event"
 }

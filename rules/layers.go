@@ -72,7 +72,22 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 				faces = append(faces, o.Card.Faces[1-int(o.FaceIdx)])
 			}
 			for _, fc := range faces {
+				// grantQueue is the AddStaticAbility$ work queue, REUSED across
+				// scans on the Engine's own buffer (staticQueueBuf): the face's
+				// own statics at depth 0, then every granted static appended with
+				// its depth, so a granted static's emission is the SAME body a
+				// printed one runs -- one grant grammar (task
+				// inbox-paramcensus-static-grant-misc). The depth-0 check below
+				// bounds the recursion; the warm-rescan allocation budget
+				// (static_effects_buffer_test) is why the buffer is reused,
+				// never re-made per face.
+				grantQueue := e.staticQueueBuf[:0]
 				for _, st := range fc.Statics {
+					grantQueue = append(grantQueue, staticWork{st: st})
+				}
+				for qi := 0; qi < len(grantQueue); qi++ {
+					w := grantQueue[qi]
+					st := w.st
 					if st.Mode != "Continuous" {
 						continue
 					}
@@ -146,13 +161,29 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 					// CR 613.1f / 613.4b (Humility): a base-setting static runs in
 					// layer 7b (SubSet), before the 7c modify a later Pump adds; and
 					// a RemoveAllAbilities static is a layer-6 ability removal.
+					// A P/T-setting characteristic-defining static (CharacteristicDefining$
+					// True) is NOT emitted from this scan: cdaSetPT reads it directly
+					// off the object's own face in derivedScalar, in EVERY zone
+					// (CR 604.3/208.2 -- the layer-7a base this battlefield-only walk
+					// cannot express), and emitting here too would apply the set
+					// twice. A CDA whose value this build cannot resolve keeps
+					// today's emission -- fail closed is the same degrade direction
+					// every static gate takes.
 					if hasStat(st, "SetPower") || hasStat(st, "SetToughness") {
-						set := base
-						set.Layer, set.Sub = LPT, SubSet
-						set.SetPower = statInt(st, "SetPower")
-						set.SetToughness = statInt(st, "SetToughness")
-						set.HasSet = true
-						out = append(out, set)
+						skip := false
+						if strings.TrimSpace(st.Params["CharacteristicDefining"]) != "" {
+							if _, _, hp, ht := e.cdaPTStatic(st, &effects.Ctx{Source: id, Controller: o.Controller, SVars: fc.SVars}); hp || ht {
+								skip = true
+							}
+						}
+						if !skip {
+							set := base
+							set.Layer, set.Sub = LPT, SubSet
+							set.SetPower = statInt(st, "SetPower")
+							set.SetToughness = statInt(st, "SetToughness")
+							set.HasSet = true
+							out = append(out, set)
+						}
 					}
 					if hasStat(st, "RemoveAllAbilities") {
 						ra := base
@@ -209,7 +240,86 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						al.AdjustLandPlays = n
 						out = append(out, al)
 					}
+					// --- the four static-grant kinds the parameter census named
+					// (task inbox-paramcensus-static-grant-misc). Each reads its
+					// own key and fails closed on a shape it cannot evaluate, like
+					// every grant branch above. ---
+
+					// A static-that-grants-a-static (Exploration Broodship's
+					// "STATION 3+"): AddStaticAbility$ names an SVar on the granting
+					// face whose body is itself a Mode$ Continuous static, granted
+					// for exactly as long as the OUTER static is live (its gate has
+					// already run above, and the inner static's own gate runs when
+					// its queue entry is emitted -- the same fail-closed rule). The
+					// grant's HOST is the object the OUTER Affected$ spec matches
+					// (the scan rebuilds per event, so the counters move, the grant
+					// follows); the inner static's own Affected$ scopes what IT
+					// affects, resolved against the host -- the Broodship's STATION
+					// 3+ grant is an AdjustLandPlays$ 1 to You, and You is the
+					// host's controller. cards.ParseStaticLine gives the body the
+					// same shape a printed S: line would have, so EVERY grant branch
+					// above applies to the inner static unchanged. A body this
+					// parser refuses, one whose mode is not Continuous, or a host
+					// the outer spec no longer matches, grants nothing.
+					if name := strings.TrimSpace(st.Params["AddStaticAbility"]); name != "" && w.depth == 0 {
+						if inner, ok := cards.ParseStaticLine(fc.SVars[name]); ok && inner.Mode == "Continuous" &&
+							effects.MatchesSpecFrom(e.G, affects, id, o.Controller, id) {
+							grantQueue = append(grantQueue, staticWork{st: inner, depth: w.depth + 1})
+						}
+					}
+					// A triggered-ability grant (Hearthhull's "STATION 8+ Whenever
+					// you sacrifice a land"): AddTrigger$ names an SVar on the
+					// granting face whose body is a T:-shaped trigger; the objects
+					// the static's Affected$ matches gain it while the static is
+					// live. cards.ParseTriggerLine gives the body the same shape a
+					// printed T: line would have; rules/trigger_match.go's granted-
+					// trigger walk (checkGrantedStaticTriggers, the granted-Ward/
+					// granted-Dethrone precedent) matches it like any other trigger
+					// and links its Execute$ from the AFFECTED object's own SVar
+					// table -- the table events.Apply's GrantTriggerPush resolves
+					// from, so the live queue and a replayed one mint the same stack
+					// object. A body that fails to parse grants nothing.
+					if name := strings.TrimSpace(st.Params["AddTrigger"]); name != "" {
+						if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
+							gt := base
+							gt.AddTrigger = &t
+							out = append(out, gt)
+						}
+					}
+					// A named-variable grant (Sword of Fire and Ice): AddSVar$ names an SVar
+					// on the granting face whose body is Forge's
+					// "SVar:<Name>:<Value>" grant shape -- the affected object GAINS
+					// that named variable while the static is live. The corpus's
+					// granted SVars are AI-evaluation hints (AE, AITap,
+					// MustBeBlocked) no rules consumer reads; the engine records the
+					// grant and resolves it through Engine.GrantedSVar, the lookup a
+					// later CheckSVar$-style consumer of the affected object's
+					// variables reads. A body in any other shape grants nothing.
+					if raw := strings.TrimSpace(st.Params["AddSVar"]); raw != "" {
+						if n, v, ok := parseSVarGrant(fc.SVars[raw]); ok {
+							gv := base
+							gv.AddSVars = map[string]string{n: v}
+							out = append(out, gv)
+						}
+					}
+					// A look-permission grant (Oracle of Mul Daya): MayLookAt$ says
+					// the affected player may look at the object the Affected$ spec
+					// matches -- in the corpus always the top card of the
+					// controller's own library (Affected$ Card.TopLibrary+YouCtrl,
+					// AffectedZone$ Library). The value names WHO may look:
+					// You/Player/True are all the static's controller in every
+					// corpus shape (73/34/1 raw lines at the pin); anything else
+					// fails closed. Consumed by Engine.MayLookAtLibraryTop, the
+					// view's reveal of that top card.
+					if raw := strings.TrimSpace(st.Params["MayLookAt"]); raw != "" {
+						if strings.EqualFold(raw, "You") || strings.EqualFold(raw, "Player") || strings.EqualFold(raw, "True") {
+							lv := base
+							lv.MayLookAt = true
+							out = append(out, lv)
+						}
+					}
 				}
+				e.staticQueueBuf = grantQueue
 			}
 		}
 	}
@@ -217,6 +327,171 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 		clear(dst[len(out):])
 	}
 	return out
+}
+
+// staticWork is one staticEffects queue entry: the static to emit and its
+// AddStaticAbility$ depth (0 = a printed static, 1 = a granted one).
+type staticWork struct {
+	st    cards.Static
+	depth int
+}
+
+// parseSVarGrant parses Forge's AddSVar$ value shape "SVar:<Name>:<Value>":
+// the named variable the affected object gains. ok is false for any other
+// shape.
+func parseSVarGrant(raw string) (name, value string, ok bool) {
+	rest, ok := strings.CutPrefix(raw, "SVar:")
+	if !ok {
+		return "", "", false
+	}
+	name, value, ok = strings.Cut(rest, ":")
+	if !ok || name == "" {
+		return "", "", false
+	}
+	return name, value, true
+}
+
+// cdaPTStatic resolves ONE static's characteristic-defining P/T claim
+// (CharacteristicDefining$ True), the layer-7a base cdaSetPT applies in
+// every zone (CR 613.4a, CR 604.3/208.2). A static carrying any parameter
+// beyond the implemented shape's whitelist fails closed (no claim -- the
+// explicit-whitelist rule adjustLandPlaysGrant documents), as does one
+// scoped to anything but the card itself, and one whose SetPower$/
+// SetToughness$ value is neither a literal nor an SVar/inline Count$
+// expression the evaluator resolves (EvalCountOK's verdict -- e.g.
+// LifePaidOnETB's paid-life shape). Iterating st.Params only yields the
+// whitelist boolean, so map order never reaches a value -- determinism is
+// preserved.
+func (e *Engine) cdaPTStatic(st cards.Static, ctx *effects.Ctx) (p, t int32, hasP, hasT bool) {
+	for key := range st.Params {
+		switch key {
+		case "Mode", "CharacteristicDefining", "SetPower", "SetToughness", "Affected", "Description":
+			// The keys the implemented CDA shape (and only it) carries.
+		default:
+			return 0, 0, false, false
+		}
+	}
+	if aff := strings.TrimSpace(st.Params["Affected"]); aff != "" && aff != "Card.Self" {
+		return 0, 0, false, false
+	}
+	if raw, ok := st.Params["SetPower"]; ok {
+		if n, ok := e.cdaValue(ctx, raw); ok {
+			p, hasP = n, true
+		}
+	}
+	if raw, ok := st.Params["SetToughness"]; ok {
+		if n, ok := e.cdaValue(ctx, raw); ok {
+			t, hasT = n, true
+		}
+	}
+	return p, t, hasP, hasT
+}
+
+// cdaValue resolves one CDA P/T value: a literal integer, else the SVar
+// named on the card's own face, else an inline Count$ expression -- each
+// through effects.EvalCountOK's resolvability verdict, so an unmodelled
+// count body fails closed (no claim) instead of degrading to a silent zero.
+func (e *Engine) cdaValue(ctx *effects.Ctx, raw string) (int32, bool) {
+	raw = strings.TrimSpace(raw)
+	if n, err := strconv.Atoi(raw); err == nil {
+		return int32(n), true
+	}
+	if strings.HasPrefix(raw, "Count$") {
+		return effects.EvalCountOK(e, ctx, raw)
+	}
+	if body, ok := ctx.SVars[raw]; ok {
+		return effects.EvalCountOK(e, ctx, body)
+	}
+	return 0, false
+}
+
+// cdaSetPT is the object's own layer-7a characteristic-defining P/T
+// (CR 613.4a): the first usable CDA static on the current face (script
+// order) resolves the base power and toughness cdaPTStatic's whitelist
+// admits. CR 604.3/208.2 put the ability in EVERY zone, which is exactly
+// why it is read directly off the face in derivedScalar rather than emitted
+// from the battlefield-only static scan. A face with no usable CDA degrades
+// to no claim (the printed P/T stands).
+func (e *Engine) cdaSetPT(o *state.Object) (p, t int32, hasP, hasT bool) {
+	f := o.Face()
+	if f == nil {
+		return 0, 0, false, false
+	}
+	ctx := &effects.Ctx{Source: o.ID, Controller: o.Controller, SVars: f.SVars}
+	for _, st := range f.Statics {
+		if st.Mode != "Continuous" || strings.TrimSpace(st.Params["CharacteristicDefining"]) == "" {
+			continue
+		}
+		if pp, tt, hp, ht := e.cdaPTStatic(st, ctx); hp || ht {
+			return pp, tt, hp, ht
+		}
+	}
+	return 0, 0, false, false
+}
+
+// GrantedSVar reports the named variable a live static grant (AddSVar$ on a
+// Mode$ Continuous static, e.g. Sword of Fire and Ice's MustBeBlocked on the
+// equipped creature) gives id: the value Forge's "SVar:<Name>:<Value>"
+// grant shape carries, or ok=false when no live grant gives id that name.
+// The lookup is a read over active()'s sorted slice (never a map range), so
+// the answer is deterministic; the map it reads is key-resolved, so map
+// order never reaches an event, option, view or file.
+func (e *Engine) GrantedSVar(id state.ObjID, name string) (string, bool) {
+	for _, ce := range e.active() {
+		if len(ce.AddSVars) == 0 {
+			continue
+		}
+		if v, ok := ce.AddSVars[name]; ok && effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+			return v, true
+		}
+	}
+	return "", false
+}
+
+// grantedSVarsFor merges every live AddSVar$ grant that affects id into one
+// map; nil when none applies (the common path allocates nothing). The
+// result is a FRESH map, never the face's own table: the caller layers it
+// under the printed table (a printed SVar of the same name wins, the same
+// precedence the roll-publication read documents) and must not mutate
+// immutable card data.
+func (e *Engine) grantedSVarsFor(id state.ObjID) map[string]string {
+	var merged map[string]string
+	for _, ce := range e.active() {
+		if len(ce.AddSVars) == 0 {
+			continue
+		}
+		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+			continue
+		}
+		if merged == nil {
+			merged = map[string]string{}
+		}
+		for n, v := range ce.AddSVars {
+			merged[n] = v
+		}
+	}
+	return merged
+}
+
+// MayLookAtLibraryTop reports whether p may look at the top card of p's own
+// library right now: a live Continuous MayLookAt grant (Oracle of Mul Daya)
+// whose Affected$ spec matches that top card -- the TopLibrary predicate in
+// the spec itself pins the object to the top of its owner's library, and
+// YouCtrl resolves against the granting static's controller, so a stolen
+// Oracle reveals to its controller, never to a library owner the grant does
+// not cover. A read over active()'s sorted slice; the answer is boolean, so
+// no order reaches anything ordered.
+func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
+	lib := e.G.Zone(state.ZLibrary, p)
+	if len(lib) == 0 {
+		return false
+	}
+	for _, ce := range e.active() {
+		if ce.MayLookAt && effects.MatchesSpecFrom(e.G, ce.Affects, lib[0], ce.Controller, ce.Source) {
+			return true
+		}
+	}
+	return false
 }
 
 // continuousGateHolds evaluates the "as long as" condition gates a Mode$
@@ -707,6 +982,21 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 	}
 	f := o.Face()
 	power, toughness = int32(f.Power()), int32(f.Toughness())
+	// Layer 7a (CR 613.4a): the object's own characteristic-defining ability
+	// (CharacteristicDefining$ True) sets the base P/T that every later
+	// layer applies on top of, in EVERY zone (CR 604.3/208.2 -- Master of
+	// Etherium is its artifact count in hand and graveyard too, which the
+	// battlefield-only static scan cannot express). Applied before the
+	// effect walk below, so a layer-7b set still overrides it and a 7c
+	// modify still stacks on it.
+	if p, tp, hp, ht := e.cdaSetPT(o); hp || ht {
+		if hp {
+			power = p
+		}
+		if ht {
+			toughness = tp
+		}
+	}
 	for _, ce := range e.active() {
 		if ce.Layer != LPT {
 			continue

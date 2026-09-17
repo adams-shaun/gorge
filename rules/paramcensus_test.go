@@ -1359,6 +1359,10 @@ var handRoots = struct {
 	trig: []string{"Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
 		"Engine.resolveTop", "Engine.isTriggeredManaAbility", "Engine.triggerReferents",
 		"Engine.StackOptional", "Engine.optionalDecider",
+		// The static-grant's trigger walk (AddTrigger$): mode-SHARED machinery
+		// like the drain above -- a granted trigger of ANY mode matches through
+		// triggerMatches' own dispatch.
+		"Engine.checkGrantedStaticTriggers",
 		// The event-matched delayed registrations (Chancellor of the Annex's
 		// opening-hand Mode$ SpellCast shape): the registration re-parses the
 		// stored trigger body, and the firing walker re-evaluates its
@@ -2193,16 +2197,11 @@ var knownUnsupportedParams = map[string][]string{
 	"Army of the Damned":          {"param:api:Token.TokenTapped"},
 	"Baloth Prime":                {"param:api:Token.TokenTapped"},
 	"Conduit of Worlds":           {"param:api:Play.RememberPlayed"},
-	"Exploration Broodship":       {"param:stat:Continuous.AddStaticAbility"},
-	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
-	"Master of Etherium":          {"param:stat:Continuous.CharacteristicDefining"},
 	"Mogis, God of Slaughter":     {"param:stat:Continuous.RemoveType"},
-	"Oracle of Mul Daya":          {"param:stat:Continuous.MayLookAt"},
 	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
 	"Purphoros, God of the Forge": {"param:stat:Continuous.RemoveType"},
 	"Skyclave Apparition":         {"param:api:Token.TokenPower", "param:api:Token.TokenToughness"},
 	"Splendid Reclamation":        {"param:api:ChangeZoneAll.Tapped"},
-	"Sword of Fire and Ice":       {"param:stat:Continuous.AddSVar"},
 	"World Shaper":                {"param:api:ChangeZoneAll.Tapped", "param:api:Mill.Optional"},
 	"Zombie Apocalypse":           {"param:api:ChangeZoneAll.Tapped"}}
 
@@ -2555,7 +2554,11 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// IsPresent$ is in the same position: rules/layers.go's
 	// continuousGateHolds genuinely evaluates it on every generic Continuous
 	// static (Angelic Overseer's Human check, Static Orb's untapped state).
-	for _, key := range []string{"CharacteristicDefining", "ValidAfterStack", "RaiseCost", "MayPlayPlayer"} {
+	// CharacteristicDefining$ is NOT in that list since the static-grant
+	// work (task inbox-paramcensus-static-grant-misc): rules/layers.go's
+	// CDA path genuinely consumes it (the layer-7a P/T base), so it is a
+	// real read on the generic bucket now.
+	for _, key := range []string{"ValidAfterStack", "RaiseCost", "MayPlayPlayer"} {
 		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
 			if d.stat[mode][key] {
 				t.Errorf("d.stat[%q][%q] = true -- the fail-closed recognition read still over-suppresses this key", mode, key)
@@ -2592,12 +2595,12 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// Angelic Overseer/Static Orb/Auriok Steelshaper's IsPresent$ labels are
 	// GONE since the continuous-gate wave -- the formerly-labelled trio the
 	// split was first pinned with; Mogis/Purphoros's RemoveType$ (a distinct,
-	// still-unread grant param) and Master of Etherium's
-	// CharacteristicDefining$ are the surviving generic-bucket evidence.
+	// still-unread grant param) is the surviving generic-bucket evidence,
+	// and Master of Etherium's CharacteristicDefining$ label is gone since
+	// the CDA work genuinely consumed it.
 	for card, label := range map[string]string{
 		"Mogis, God of Slaughter":     "param:stat:Continuous.RemoveType",
 		"Purphoros, God of the Forge": "param:stat:Continuous.RemoveType",
-		"Master of Etherium":          "param:stat:Continuous.CharacteristicDefining",
 	} {
 		found := false
 		for _, l := range res.labels[card] {
@@ -2611,8 +2614,9 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 		}
 	}
 	// The former IsPresent labels must STAY gone: the generic gate read
-	// (continuousGateHolds) retired all three.
-	for _, card := range []string{"Angelic Overseer", "Auriok Steelshaper", "Static Orb"} {
+	// (continuousGateHolds) retired all three -- and so must Master of
+	// Etherium's CharacteristicDefining$ label since the CDA work read it.
+	for _, card := range []string{"Angelic Overseer", "Auriok Steelshaper", "Static Orb", "Master of Etherium"} {
 		for _, l := range res.labels[card] {
 			t.Errorf("%s: census labels %s but the IsPresent gate is genuinely evaluated now -- the shrink regressed", card, l)
 		}

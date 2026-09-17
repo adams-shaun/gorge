@@ -20,6 +20,10 @@ func onBoardCard(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card) state
 	e.G.Clock++
 	o.Timestamp = e.G.Clock
 	e.G.SetZone(state.ZBattlefield, p, append(e.G.Zone(state.ZBattlefield, p), o.ID))
+	// Same eventless placement as onBoard: stale the derived memos the way
+	// an emitted event would (see onBoard's note).
+	e.staticEpoch = -1
+	e.activeEpoch = -1
 	return o.ID
 }
 
