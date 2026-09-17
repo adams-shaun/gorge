@@ -104,7 +104,7 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	if e.HasKeyword(attacker, "Shadow") != e.HasKeyword(blocker, "Shadow") {
 		return false
 	}
-	if e.HasKeyword(attacker, "Fear") && !bf.IsArtifact() && !strings.ContainsRune(effects.ColorsOf(b), 'B') {
+	if e.HasKeyword(attacker, "Fear") && !bf.IsArtifact() && !strings.ContainsRune(e.objColors(b), 'B') {
 		return false
 	}
 	if e.HasKeyword(attacker, "Flying") && !e.HasKeyword(blocker, "Flying") && !e.HasKeyword(blocker, "Reach") {

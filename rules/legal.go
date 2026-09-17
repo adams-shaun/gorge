@@ -269,6 +269,40 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 	return false
 }
 
+// sVarGateOK evaluates the ability's CheckSVar$/SVarCompare$ intervening-if
+// at OFFER time: Bloodsoaked Champion's Raid ("Activate only if you attacked
+// this turn", CheckSVar$ RaidTest = Count$AttackersDeclared) and Ojer
+// Axonil's transformed Temple of Power ("Activate only if red sources you
+// controlled dealt 4 or more noncombat damage this turn" — a count head this
+// build does not model, so its gate reads 0 and the transform stays
+// unoffered, the documented degrade-to-zero direction). The same evaluator
+// conditionMet (ConditionCheckSVar$, effects/conditions.go) and the statics'
+// checkSVarHolds delegate to: effects.CheckSVarHolds. Because the gate
+// applies to every non-mana activation, its reads are the census's generic
+// rules-side SA set, not any one api's.
+func (e *Engine) sVarGateOK(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	check, ok := ab.Params["CheckSVar"]
+	if !ok {
+		return true
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
+	holds, evaluated := effects.CheckSVarHolds(e, ctx, check, ab.Params["SVarCompare"])
+	if !evaluated {
+		// The gate's count body is not one the evaluator models: fail OPEN —
+		// the ability is still offered. A gate you cannot read must not
+		// silently remove a card's activation (Ojer Axonil's transformed
+		// Temple of Power counts noncombat damage by source this build does
+		// not track; suppressing the transform on that account would brick
+		// the card's mechanic on an unreadable gate).
+		return true
+	}
+	return holds
+}
+
 // isLoyaltyAbility reports whether ab is a planeswalker loyalty ability
 // (CR 606): it carries the Planeswalker$ parameter (case-insensitive -- three
 // corpus lines spell it "true"), or its parsed Cost$ contains an
@@ -1113,6 +1147,16 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					continue
 				}
 				if !e.abilityTargetsAvailable(p, id, ab) {
+					continue
+				}
+				// CR 603.2's intervening-if at activation: an ability whose
+				// CheckSVar$ fails is not offered (Bloodsoaked Champion's Raid —
+				// "Activate only if you attacked this turn"). Offer time, not
+				// resolve time: the resolution runs the effect's own
+				// Condition* gate (conditionMet) where the SA carries one; an
+				// offered-but-gated activation that resolves into nothing would
+				// be a paid no-op the offer loop could have withheld.
+				if !e.sVarGateOK(p, id, ab) {
 					continue
 				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",

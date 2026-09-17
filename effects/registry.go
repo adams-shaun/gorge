@@ -101,6 +101,13 @@ type Host interface {
 	// Derived from the event log like LifeLostThisTurn, so a replay derives
 	// the same number; a turn that begins is one TurnChange event naming p.
 	TurnsTaken(p state.PlayerID) int32
+	// AttackersThisTurn counts the attackers declared THIS turn — the sum of
+	// every DeclareAttackers event's attacker list since the last TurnChange,
+	// derived from the event log so a replay derives the same number. This is
+	// the Count$AttackersDeclared backing (the Raid family's "attacked this
+	// turn" read: Bloodsoaked Champion's CheckSVar$ activation gate and ten
+	// ConditionCheckSVar$ bodies).
+	AttackersThisTurn() int
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
