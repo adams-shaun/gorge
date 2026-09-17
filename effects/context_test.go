@@ -89,6 +89,10 @@ func (h *fakeHost) LifeLostThisTurn(_ state.PlayerID) int32 { return 0 }
 // SpellsCastThisTurnMatching has no event log here; the double reports zero.
 func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }
 
+// AttackersThisTurn has no combat log here; the double reports zero (the same
+// conservative no-op as CastThisTurn).
+func (h *fakeHost) AttackersThisTurn() int { return 0 }
+
 // HasKeyword has no layer system to consult here (see the type doc comment),
 // so it reads the printed face directly -- enough for the effects-package
 // tests, which set up Indestructible by mutating Card.Faces[0].Keywords.

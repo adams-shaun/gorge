@@ -255,3 +255,31 @@ func moveTo(g *state.Game, id state.ObjID, z state.Zone) {
 }
 
 var _ = cards.Card{}
+
+// TestPlayerCountExtremePropertiesFailUnresolvable pins the r2 review's
+// fail-direction fix on the PlayerCount wrapper: only the two life extremes
+// (LowestLifeTotal/HighestLifeTotal) are evaluated; ANY other property —
+// e.g. HighestCardsInHand — reports (0, false), so a gate over one fails
+// OPEN at its caller (the same verdict Count$Valid's UnknownPredicates
+// takes) instead of silently enforcing a fake zero.
+func TestPlayerCountExtremePropertiesFailUnresolvable(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	g.Players[0].Life = 13
+	g.Players[1].Life = 7
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$LowestLifeTotal"); !ok || got != 7 {
+		t.Fatalf("LowestLifeTotal = (%d, %v), want (7, true)", got, ok)
+	}
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountPlayers$HighestLifeTotal"); !ok || got != 13 {
+		t.Fatalf("HighestLifeTotal = (%d, %v), want (13, true)", got, ok)
+	}
+	for _, body := range []string{
+		"Count$PlayerCountOpponents$HighestCardsInHand",
+		"Count$PlayerCountPlayers$LowestCardsInHand",
+	} {
+		if got, ok := EvalCountOK(h, c, body); ok {
+			t.Fatalf("%s reported EVALUATED as %d -- an unmodelled property must fail unresolvable, not enforce a fake zero", body, got)
+		}
+	}
+}

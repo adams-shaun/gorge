@@ -773,12 +773,24 @@ func manaReplacementNeedsColor(m replMatch) bool {
 
 // replCtx builds the effects.Ctx a replacement's ReplaceWith$ resolves
 // under: source is the permanent whose R: line owns the replacement, X is
-// the {X} paid for the moving object, Remembered and Replaced both name the
-// object the replaced event was about (so a Defined$ ReplacedCard /
-// Remembered$Amount body finds its subject), and the SVar table comes from
-// the source's face. This is exactly the context the single-match path built
-// inline for M1; it is factored out so the composition and order-choice
-// paths reuse it.
+// the {X} paid for the moving object, Replaced names the object the replaced
+// event was about (so a Defined$ ReplacedCard body finds its subject), and
+// the SVar table comes from the source's face. This is exactly the context
+// the single-match path built inline for M1; it is factored out so the
+// composition and order-choice paths reuse it.
+//
+// Ctx.Remembered deliberately starts EMPTY. The replaced object is reached
+// through Replaced/Defined$ ReplacedCard, never through Remembered: every
+// corpus body that counts Remembered$Amount inside a replacement (the
+// pay-before-ETB family's ConditionCheckSVar$ X gates — Mox Diamond, Scorched
+// Ruins, Soldevi Excavations, the sac-lands — and the CounterNum$ reads)
+// rides its own Remember* rider (RememberDiscarded$/RememberSacrificed$/
+// RememberChanged$/RememberRevealed$), and seeding the replaced card here
+// made every one of those counts one too high (measured over the compiled
+// corpus: all nine gating bodies carry a rider; none reads the seed). The
+// seed was fx44's stand-in for the suspended-resolution case; the resume
+// thread carries the body's own Remembered instead (rules/resolution.go's
+// replacement branch).
 func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	o := e.G.Obj(m.id)
 	target := state.Target{Obj: ev.Obj}
@@ -798,11 +810,8 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// chose. Move preserves X from the stack onto the permanent (events/
 		// apply.go, the "hand/stack -> battlefield must NOT reset them"
 		// comment), so o.X is the cast-time value here.
-		X: o.X,
-		// Remembered/Captured seed the moving object for the MoveZone body's
-		// Defined$ ReplacedCard / Remembered$Amount reads.
-		Remembered: []state.Target{{Obj: ev.Obj}},
-		Captured:   []state.Target{{Obj: ev.Obj}},
+		X:        o.X,
+		Captured: []state.Target{{Obj: ev.Obj}},
 		// Replaced names the object the replaced event (ev) was about, so a
 		// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace /
 		// Dryad Militant / Leyline of the Void shape: "exile it instead") can

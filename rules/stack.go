@@ -1540,6 +1540,27 @@ func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
 	return n
 }
 
+// AttackersThisTurn satisfies effects.Host's AttackersThisTurn for
+// Count$AttackersDeclared (the Raid family's "attacked this turn" read): the
+// number of attackers declared this turn, summed from every DeclareAttackers
+// event's attacker list since the last TurnChange. Derived from the event log
+// like CastThisTurn, so a replay that rebuilds the game arrives at the same
+// number. A DeclareAttackers event carries its declared attackers in IDs (one
+// event per defender); an event with no IDs contributes nothing.
+func (e *Engine) AttackersThisTurn() int {
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.DeclareAttackers {
+			n += len(ev.IDs)
+		}
+	}
+	return n
+}
+
 // targetsPlayers and targetsPermanents read the coarse shape of a ValidTgts
 // spec. The per-object predicate work is effects.MatchesSpec.
 
