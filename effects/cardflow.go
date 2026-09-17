@@ -528,12 +528,11 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 // "Card") to DestinationZone$ (default "Hand"), and leave everything else
 // exactly where it already is -- on top of the library, in its existing
 // relative order (the remainder-ordering decision is a separate, still-open
-// ask; see the row's end). The brief's own spec names the remainder's
-// destination "LibraryPosition2$", but that parameter does not exist anywhere
-// in the fetched corpus (the real field there is "LibraryPosition$", also
-// left unhandled here); M1 keeps the existing order for the untaken cards
-// either way, the same simplification RearrangeTopOfLibrary makes for its own
-// remainder.
+// ask; see the row's end). The remainder's second destination DOES exist in
+// the corpus as "DestinationZone2$" (with "LibraryPosition2$" placing it in
+// a library) -- an earlier note here wrongly claimed the parameter does not
+// exist; it is read below. LibraryPosition$ (the PRIMARY move's position,
+// 96 corpus lines) is still unread.
 //
 // A real card can also write "ChangeNum$ All" (e.g. Goblin Guide's own Dig)
 // to mean every matching card within the DigNum look, with no cap short of
@@ -550,7 +549,14 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 // birthing_ritual, sanity_grinding, stomping_slabs) takes nothing, so the
 // ask gate also requires changeNum > 0 -- otherwise a zero cap with any
 // eligible card would pose a Min==Max==0 KChoose whose only legal answer is
-// the empty one, a decision nobody could answer differently by definition. The look is recorded first as a Secret Note carrying the
+// the empty one, a decision nobody could answer differently by definition.
+// ChangeNum$ Any is the third cap: Forge's any-number take (Jace, the Mind
+// Sculptor's "You may put that card on the bottom", Through the Forest
+// Gate's "put any number of land cards"), so it caps at the window and
+// lowers the ask's Min to 0 whenever an eligible card exists -- a real
+// choice, unlike what an earlier note here claimed take-all (measured: the
+// unresolvable-value Num read degraded Any to 0 and those digs took
+// NOTHING). The look is recorded first as a Secret Note carrying the
 // window's ids (only the library's owner may know what sat on top; the same
 // channel effRearrangeTopOfLibrary uses, with the ids added so the owner's
 // client can render what was seen -- view/redact.go rule (1) passes a Secret
@@ -573,21 +579,63 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 // no-choice path nothing new is emitted at all, so a game that never reaches a
 // strict-superset Dig replays byte-identically to the pre-dig1 engine.
 //
+// The variant params (task inbox-paramcensus-dig-variants), each read
+// below:
+//
+//   - Reveal$ True reveals the dug window to the whole table BEFORE any
+//     take -- a non-Secret Note carrying the window's ids, the same shape
+//     effReveal's public arm emits (Ad Nauseam "Reveal the top card", Chaos
+//     Warp, Goblin Guide, Matter Reshaper). It replaces the ask path's
+//     private look when a real choice follows the reveal.
+//   - NoReveal$ True suppresses that window reveal. A guard, not a
+//     behaviour change: the corpus's 84 NoReveal lines carry no Reveal$, and
+//     the dig's moves were already Secret before this task (Impulse).
+//   - ForceRevealToController$ True reveals each MOVED card publicly before
+//     its Secret move -- Ancient Stirrings' "you may reveal a colorless card
+//     from among them and put it into your hand" (the window itself stays
+//     private). Suppressed when the window was already revealed.
+//   - Tapped$ True taps a card the primary move sends to the battlefield,
+//     the same MoveZone-then-Tap pair effChangeZone's Tapped$ movers emit
+//     (Through the Forest Gate: "put any number of land cards ... onto the
+//     battlefield tapped").
+//   - DestinationZone2$ (with LibraryPosition2$) is the remainder's second
+//     destination: every window card the primary move did not take goes
+//     there (Chaos Warp and Goblin Guide's unmatched card back to the
+//     library, Matter Reshaper's unmatched card to the hand).
+//   - LibraryPosition2$ places a library DestinationZone2$: "0" = top,
+//     which is exactly the engine's stay-in-place default, so the placement
+//     emits nothing; "-1" = bottom, a real library-to-library move (the
+//     MoveZone append lands it at the bottom); anything else is named in a
+//     loud Note and the card stays (the corpus carries only "0" and "-1").
+//   - SkipReorder$ True is the engine's remainder contract itself -- the
+//     untaken cards never move, so they stay on top in their existing
+//     relative order -- and it also suppresses a DestinationZone2$
+//     remainder placement (the corpus never pairs the two; Through the
+//     Forest Gate carries it without one).
+//
 // Still unread here (each a real divergence, named in AGENTS.md's Dig row):
 // Optional$ on the NO-CHOICE path (eligible <= ChangeNum still takes all
 // eligible; ChangeNum$ 0 takes nothing silently, correctly), the remainder-ordering decision ("the rest on the bottom in any
-// order"; RestRandomOrder$), DestinationZone2$, LibraryPosition$, Reveal$,
-// ForceRevealToController$ (only the ask path records the look at all),
-// Choser$ (the opponent-chooses planeswalker shape) and ChangeNum$ Any
-// (the "Any" value falls into the take-all default, so it never asks).
+// order"; RestRandomOrder$), the primary LibraryPosition$ (96 corpus lines
+// put the PRIMARY take at a library position),
+// Choser$ (the opponent-chooses planeswalker shape) and the exotic
+// DestinationZone2 values (PlanarDeck).
 func effDig(h Host, c *Ctx, sa *cards.SA) {
 	digNum := Num(h, c, sa, "DigNum", 1)
 	if digNum < 0 {
 		digNum = 0
 	}
 	changeNum := digNum
+	anyNum := false
 	if raw := sa.Params["ChangeNum"]; raw != "" && raw != "All" {
-		changeNum = Num(h, c, sa, "ChangeNum", digNum)
+		if raw == "Any" {
+			// Forge's any-number cap: the take is uncapped within the window
+			// and the answer may be empty -- a real choice whenever any
+			// eligible card exists, which the ask gate and Min below read.
+			anyNum = true
+		} else {
+			changeNum = Num(h, c, sa, "ChangeNum", digNum)
+		}
 	}
 	if changeNum < 0 {
 		changeNum = 0
@@ -596,12 +644,22 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	if spec == "" {
 		spec = "Card"
 	}
+	spec = permanentCardSpec(spec)
 	destName := sa.Params["DestinationZone"]
 	if destName == "" {
 		destName = "Hand"
 	}
 	dest := ParseZone(destName)
 	optional := sa.Params["Optional"] == "True"
+	// The variant params (see the comment block above the function for what
+	// each means and which corpus card carries it).
+	revealWin := strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True") &&
+		!strings.EqualFold(strings.TrimSpace(sa.Params["NoReveal"]), "True")
+	forceReveal := strings.EqualFold(strings.TrimSpace(sa.Params["ForceRevealToController"]), "True")
+	skipReorder := strings.EqualFold(strings.TrimSpace(sa.Params["SkipReorder"]), "True")
+	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
+	dest2Name := strings.TrimSpace(sa.Params["DestinationZone2"])
+	pos2 := strings.TrimSpace(sa.Params["LibraryPosition2"])
 	// fx42 scoping: capture and clear the answered pick BEFORE the target
 	// loop. DigTarget identifies the exact target that asked: earlier targets
 	// completed before suspension and must be skipped, that target consumes
@@ -621,6 +679,61 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			n = int32(len(lib))
 		}
 		top := append([]state.ObjID(nil), lib[:n]...)
+		// take moves one window card to the primary destination, revealing
+		// it first when ForceRevealToController$ asks (a public Note naming
+		// the card, then the Secret move -- the same reveal-then-secret-move
+		// shape effChangeZone's Reveal$ fetch emits; suppressed when Reveal$
+		// already made the whole window public) and tapping it right after a
+		// Tapped$ True battlefield entry.
+		take := func(id state.ObjID) {
+			if forceReveal && !revealWin {
+				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: []state.ObjID{id}})
+			}
+			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
+			ev.Player, ev.Secret = p, true
+			h.Emit(ev)
+			digRemember(c, sa, id)
+			if tapped && dest == state.ZBattlefield {
+				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
+			}
+		}
+		// rest moves the window cards the primary move did not take to the
+		// second destination (DestinationZone2$, placed by LibraryPosition2$).
+		// With no DestinationZone2$ -- and with SkipReorder$ True -- the cards
+		// stay exactly where they are, so the no-variant games emit nothing
+		// and replay byte-identically.
+		rest := func(ids []state.ObjID) {
+			if dest2Name == "" || skipReorder {
+				return
+			}
+			dest2 := ParseZone(dest2Name)
+			for _, id := range ids {
+				if dest2 == state.ZLibrary {
+					// Library placement: "0" (top) is the engine's
+					// stay-in-place default -- the remaining window cards
+					// already sit on top in their existing relative order, so
+					// the placement is no event; "-1" (bottom) is a real
+					// library-to-library move (Move's zone append lands it at
+					// the bottom); anything else is named loudly and the card
+					// stays.
+					if pos2 == "-1" {
+						h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+							From: state.ZLibrary, To: state.ZLibrary, Player: p, Secret: true})
+					} else if pos2 != "" && pos2 != "0" {
+						h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+							Text: "LibraryPosition2$ " + pos2 + " is not implemented; the card stays on top"})
+					}
+					continue
+				}
+				if forceReveal && !revealWin {
+					h.Emit(events.Event{Kind: events.Note, Player: p, IDs: []state.ObjID{id}})
+				}
+				ev := moveZoneEvent(c, id, state.ZLibrary, dest2)
+				ev.Player, ev.Secret = p, true
+				h.Emit(ev)
+				digRemember(c, sa, id)
+			}
+		}
 		if digDone && targetIndex < digTarget {
 			// This target completed on the first pass before a later library
 			// suspended the effect. Re-running it could move a second batch (or
@@ -631,16 +744,25 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// Re-entry: move exactly the answered cards that still sit in the
 			// ASKING target's window (a per-window filter keeps a stray answer
 			// from moving an object that left the window meanwhile), in the
-			// player's answer order.
+			// player's answer order; the rest of the window goes to the
+			// second destination.
+			picked := make(map[state.ObjID]bool, len(digAns))
+			moved := make([]state.ObjID, 0, len(digAns))
 			for _, id := range digAns {
 				if !containsID(top, id) {
 					continue
 				}
-				ev := moveZoneEvent(c, id, state.ZLibrary, dest)
-				ev.Player, ev.Secret = p, true
-				h.Emit(ev)
-				digRemember(c, sa, id)
+				picked[id] = true
+				take(id)
+				moved = append(moved, id)
 			}
+			restIDs := make([]state.ObjID, 0, len(top))
+			for _, id := range top {
+				if !picked[id] {
+					restIDs = append(restIDs, id)
+				}
+			}
+			rest(restIDs)
 			continue
 		}
 		eligible := make([]state.ObjID, 0, len(top))
@@ -649,15 +771,22 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				eligible = append(eligible, id)
 			}
 		}
-		if !digDone && changeNum > 0 && int32(len(eligible)) > changeNum {
+		if !digDone && changeNum > 0 && (int32(len(eligible)) > changeNum || anyNum && len(eligible) > 0) {
 			// A real choice: record the look, then ask the library's owner.
-			emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, "looks at the top of the library")
+			// Reveal$ True makes the record a PUBLIC reveal of the window (the
+			// same non-Secret ids-Note shape effReveal's public arm emits);
+			// otherwise the look stays private to the library's owner.
+			if revealWin {
+				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
+			} else {
+				emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, "looks at the top of the library")
+			}
 			minv := int32(0)
-			if !optional {
+			if !optional && !anyNum {
 				minv = changeNum
 			}
 			verb := "you may put up to "
-			if !optional {
+			if !optional && !anyNum {
 				verb = "put "
 			}
 			d := &decision.Decision{Player: p, Kind: decision.KChoose,
@@ -687,31 +816,48 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// so options >= 1), but the shared helper owns the guard either way.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
 				Text: "takes the first matching card(s) (no engine host to ask)", Secret: true})
+			taken := make(map[state.ObjID]bool, changeNum)
 			for i := int32(0); i < changeNum && i < int32(len(eligible)); i++ {
-				ev := moveZoneEvent(c, eligible[i], state.ZLibrary, dest)
-				ev.Player, ev.Secret = p, true
-				h.Emit(ev)
-				digRemember(c, sa, eligible[i])
+				take(eligible[i])
+				taken[eligible[i]] = true
 			}
+			restIDs := make([]state.ObjID, 0, len(top))
+			for _, id := range top {
+				if !taken[id] {
+					restIDs = append(restIDs, id)
+				}
+			}
+			rest(restIDs)
 			continue
 		}
-		// No choice to ask about: M1's silent behaviour, unchanged, and no
-		// new event of any kind, so games that never reach a strict-superset
-		// Dig replay byte-identically to the pre-dig1 engine.
-		moved := int32(0)
+		// No choice to ask about: M1's silent behaviour for the no-variant
+		// cards -- only a Reveal$ window reveal, a Tapped$ Tap or a
+		// DestinationZone2$ remainder move can add an event, and only a card
+		// carrying those emits one. The first ChangeNum eligible cards move
+		// in window order; everything else in the window -- unmatched and
+		// beyond the cap alike -- goes to the second destination or stays
+		// exactly where it is.
+		if revealWin && len(top) > 0 {
+			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
+		}
+		taken := make(map[state.ObjID]bool, changeNum)
 		for _, id := range top {
-			if moved >= changeNum {
+			if int32(len(taken)) >= changeNum {
 				break
 			}
 			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				continue
 			}
-			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
-			ev.Player, ev.Secret = p, true
-			h.Emit(ev)
-			digRemember(c, sa, id)
-			moved++
+			take(id)
+			taken[id] = true
 		}
+		restIDs := make([]state.ObjID, 0, len(top))
+		for _, id := range top {
+			if !taken[id] {
+				restIDs = append(restIDs, id)
+			}
+		}
+		rest(restIDs)
 	}
 }
 
@@ -731,6 +877,38 @@ func digRemember(c *Ctx, sa *cards.SA, id state.ObjID) {
 // it is Dig's own phrasing (the picked card GOES to the destination, unlike
 // KArrange's Kind which names pile B's), kept separate from
 // destinationPhrase so the two vocabularies cannot drift into each other.
+// The library arm says the BOTTOM because that is where the take lands:
+// events.Move appends to the destination zone, so a library take is a
+// move to the bottom -- which is exactly the shape the corpus's
+// library-destination digs describe (Jace, the Mind Sculptor's "you may
+// put that card on the bottom", mesmeric_sliver's LibraryPosition$ -1).
+// A take at a DIFFERENT library position (the primary LibraryPosition$, e.g.
+// munda_ambush_leader's "0") is still unread -- the prompt describes what
+// the engine does, not what the card asks.
+
+// permanentCardSpec rewrites a leading `Permanent` base token to
+// `PermanentCard` -- the shared matcher's battlefield-object base -- so a
+// spec evaluated against cards AWAY from the battlefield reads the base as
+// Forge's "permanent card": a Dig's ChangeValid$ window is always the
+// library, where a bare Permanent must mean Chaos Warp's "If it's a
+// permanent card" and Matter Reshaper's "if it's a permanent card with
+// mana value 3 or less", never the on-the-battlefield reading
+// matchesBase gives the base. rules/stack.go's targetSpecForZone carries
+// the same rewrite for target specs; the two cannot share code (effects
+// must not import rules), only the rule, and only the leading token is
+// rewritten -- every qualifier rides along.
+func permanentCardSpec(spec string) string {
+	if spec == "Permanent" {
+		return "PermanentCard"
+	}
+	if len(spec) > len("Permanent") && spec[:len("Permanent")] == "Permanent" {
+		switch spec[len("Permanent")] {
+		case '.', '+', ',':
+			return "PermanentCard" + spec[len("Permanent"):]
+		}
+	}
+	return spec
+}
 func digDestPhrase(dest state.Zone) string {
 	switch dest {
 	case state.ZHand:
@@ -742,7 +920,7 @@ func digDestPhrase(dest state.Zone) string {
 	case state.ZBattlefield:
 		return "the battlefield"
 	case state.ZLibrary:
-		return "the top of your library"
+		return "the bottom of your library"
 	default:
 		return "its destination"
 	}

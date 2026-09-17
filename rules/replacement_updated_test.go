@@ -229,7 +229,24 @@ func passUntilStackEmpty(t *testing.T, e *Engine, limit int) int {
 	n := 0
 	for ; n < limit && !e.G.Over && len(e.G.Stack) > 0; n++ {
 		d := e.Pending()
-		if d == nil || d.Kind != decision.KPriority {
+		if d == nil {
+			t.Fatalf("no decision while draining the stack (stack depth %d)", len(e.G.Stack))
+		}
+		if d.Kind == decision.KChoose && d.ResumeKind == "dig" {
+			// A Dig look-and-take ask suspended mid-resolution (Jace, the
+			// Mind Sculptor's [+2] is the live shape: ChangeNum$ Any makes
+			// the take optional, so the engine now poses the ask it always
+			// should have). These drains were written around the pre-ask
+			// engine, whose dig was a silent no-op, so decline -- the empty
+			// answer Min 0 makes legal -- and keep exactly the board those
+			// assertions were written against. A test that wants the take
+			// answers the ask itself before draining (dig_variants_test.go).
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{}}); err != nil {
+				t.Fatalf("submit dig decline: %v", err)
+			}
+			continue
+		}
+		if d.Kind != decision.KPriority {
 			t.Fatalf("non-priority decision %+v while draining the stack", d)
 		}
 		idx := -1

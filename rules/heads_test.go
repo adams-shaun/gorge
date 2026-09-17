@@ -876,11 +876,25 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	// 4 seats moved to f5b40f9131bcafbd (autonomous orchestrator): resolving inbox-paramcensus-counterspell-and-spellcast-misc (param census: counterspell/spellcast-trigger misc (6 unrelated one-offs))
+	// 4 seats moved to 832ea9b373fde3ed (autonomous orchestrator): resolving
+	// inbox-paramcensus-dig-variants (Dig's Reveal$/ChangeValid$ Permanent/
+	// DestinationZone2$ reads, all three on ONE card in this game: seat 2
+	// resolves Matter Reshaper's death-trigger dig -- the ChangeValid$
+	// Permanent.cmcLE3 window now matches a LIBRARY card (permanentCardSpec),
+	// the dug window is publicly revealed (Reveal$) and the unmatched card
+	// goes to the hand (DestinationZone2$) instead of the dig silently moving
+	// nothing). Measured by four-way bisection of effDig's new reads against
+	// the golden: any three of the four neutralised still move the head
+	// (832ea9b3 / 5624b869 / 98f580d5 / 2afd4433 per variant), all four
+	// neutralised reproduce f5b40f9131bcafbd byte-for-byte; the ChangeNum$
+	// Any ask contributes nothing here (any on/off never changed the head --
+	// no Any-dig with eligible cards is reached in the golden games, and a
+	// bot-answered ask moves the same cards the silent path does). The
+	// 2/6/8-seat heads are unchanged.
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "f5b40f9131bcafbd",
+	4: "832ea9b373fde3ed",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
