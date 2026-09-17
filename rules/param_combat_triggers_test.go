@@ -196,11 +196,18 @@ func TestAttacksSecondaryFiresAlone(t *testing.T) {
 }
 
 // TestSecondaryYieldsToItsPairedPrimary pins the pairing gate itself on a
-// synthetic same-mode pair (the Sower of Discord / Wooden Stake shape: two
-// complementary halves of one card text, the second marked Secondary$ True,
-// distinct Execute$ SVars). One Damage event that matches BOTH halves queues
-// only the primary; the same secondary fires alone when the primary's spec
-// fails; and the same pair WITHOUT the Secondary$ marker queues both.
+// synthetic pair that shares its Execute$ SVar (the Grave Titan shape: the
+// two halves of one card text, the second marked Secondary$ True). One
+// Damage event that matches BOTH halves queues only the primary; the same
+// secondary fires alone when the primary's spec fails; and the same pair
+// WITHOUT the Secondary$ marker queues both.
+//
+// The pair deliberately shares Mode AND Execute$: with the two halves
+// sharing the one Execute$ SVar, the yield's pairing (strictly by shared
+// Execute$ since the r2 review) recognises them as one card text. A pair of
+// same-Mode triggers with DISTINCT Execute$ SVars is two card texts -- the
+// Zoraline shape -- and never yields; that contract is pinned on the real
+// corpus card below.
 func TestSecondaryYieldsToItsPairedPrimary(t *testing.T) {
 	pair := func(secondary bool) string {
 		mark := ""
@@ -208,10 +215,9 @@ func TestSecondaryYieldsToItsPairedPrimary(t *testing.T) {
 			mark = " | Secondary$ True"
 		}
 		return "Name:Paired\nManaCost:2 B\nTypes:Creature Horror\nPT:2/2\n" +
-			"T:Mode$ DamageDone | ValidTarget$ Opponent | Execute$ TrigGain | TriggerZones$ Battlefield | TriggerDescription$ primary\n" +
-			"T:Mode$ DamageDone | ValidTarget$ Player | Execute$ TrigLoss" + mark + " | TriggerZones$ Battlefield | TriggerDescription$ secondary\n" +
-			"SVar:TrigGain:DB$ GainLife | LifeAmount$ 2 | Defined$ You\n" +
-			"SVar:TrigLoss:DB$ LoseLife | LifeAmount$ 2 | Defined$ You\n" +
+			"T:Mode$ DamageDone | ValidTarget$ Player | Execute$ TrigLife" + mark + " | TriggerZones$ Battlefield | TriggerDescription$ primary\n" +
+			"T:Mode$ DamageDone | ValidTarget$ Opponent | Execute$ TrigLife | TriggerZones$ Battlefield | TriggerDescription$ secondary\n" +
+			"SVar:TrigLife:DB$ LoseLife | LifeAmount$ 2 | Defined$ You\n" +
 			"Oracle:x\n"
 	}
 
@@ -243,6 +249,29 @@ func TestSecondaryYieldsToItsPairedPrimary(t *testing.T) {
 	e3.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
 	if len(e3.pendingTriggers) != 2 {
 		t.Fatalf("unmarked pair should queue both halves: pending = %d", len(e3.pendingTriggers))
+	}
+}
+
+// TestSecondaryDoesNotSuppressAnIndependentCoFiringTrigger pins the r2
+// review's MAJOR finding on the real corpus card: Zoraline, Cosmos Caller
+// carries two Attacks triggers on ONE face -- her printed "Whenever a Bat
+// you control attacks, you gain 1 life" (Execute$ TrigGainLife) and the
+// Secondary$-marked "enters or attacks" half (Execute$ TrigImmediateTrig).
+// They are two card texts, not two halves of one: they share no Execute$
+// SVar, so the pairing gate must never treat the printed trigger as the
+// marked half's primary, and when Zoraline herself attacks (a Bat she
+// controls) BOTH must fire. A Mode-equality pairing fallback suppressed the
+// marked half here because the printed trigger matched the same event.
+func TestSecondaryDoesNotSuppressAnIndependentCoFiringTrigger(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	zoraline := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Zoraline, Cosmos Caller"))
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{zoraline}})
+	// Both halves of the SAME face fire for one DeclareAttackers, so no
+	// APNAP order ask is posed (one controller) -- the count is read off the
+	// queue exactly as the unmarked-pair case above does.
+	if len(e.pendingTriggers) != 2 {
+		t.Fatalf("pending = %d, want both of Zoraline's attack triggers", len(e.pendingTriggers))
 	}
 }
 

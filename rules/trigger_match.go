@@ -981,23 +981,39 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 // secondaryYields implements Forge's Secondary$ True (TriggerHandler,
 // Trigger.isSecondary): the marked trigger yields when the SAME event would
 // also fire its card's paired primary, so one card text never becomes two
-// triggers. The corpus pairs secondaries two ways and the pairing accepts
-// both: a primary sharing the secondary's Execute$ SVar across different
-// modes (the "enters or attacks" family -- Grave Titan, Sun Titan, Tome of
-// Legends, Kindred Discovery), and a primary sharing its Mode with
-// complementary Valid halves (Wooden Stake's blocks-or-is-blocked-by pair,
-// Sower of Discord's two DamageDoneOnce halves). A secondary whose paired
-// primary did not fire for this event still fires on its own -- Grave Titan's
-// Attacks half fires for the attack although its ETB half did not. gorge's
-// paired modes are distinct event kinds, so the cross-mode family is
-// currently unreachable here (measured: no MoveZone is a DeclareAttackers);
-// the same-mode complementary shape is the live one.
+// triggers. The pairing is strictly by shared Execute$ SVar: the corpus's
+// paired halves share the one SVar their two conditions resolve into (the
+// "enters or attacks" family -- Grave Titan, Sun Titan, Tome of Legends,
+// Kindred Discovery, Zoraline's "enters or attacks" half -- plus the
+// Eminence family's command-zone/battlefield halves, which the zone gate
+// keeps mutually exclusive anyway). A secondary whose paired primary did not
+// fire for this event still fires on its own -- Grave Titan's Attacks half
+// fires for the attack although its ETB half did not.
+//
+// A Mode-equality fallback was tried here and REMOVED (r2 review): pairing
+// any same-Mode sibling suppresses independent co-firing abilities, not just
+// complementary halves. Zoraline, Cosmos Caller carries two Attacks triggers
+// on one face -- her printed "Whenever a Bat you control attacks, gain 1
+// life" and the Secondary$-marked "enters or attacks" half -- and for one
+// DeclareAttackers event both match, so the fallback lost her printed
+// trigger (Vengeful Ancestor and Ashling, Rimebound were the suspected
+// trace-level victims of the same shape). The corpus-measured picture for
+// same-Mode pairs with distinct Execute$ SVars is exactly the two shapes the
+// fallback conflated: the genuinely-complementary halves it was built for
+// (Wooden Stake's blocks-or-is-blocked-by pair, Sower of Discord's two
+// DamageDoneOnce halves, the Clashed Won$ True/False pairs) have disjoint
+// Valid halves and never double-fire without a yield, while the pairs that
+// DO co-fire on one event -- Zoraline's two Attacks triggers, Sephiroth's
+// printed attack trigger beside its marked "enters or attacks" half,
+// Ashling, Rimebound's Main1 mana burst beside its transform offer -- are
+// independent card texts that SHOULD both fire. No distinct-Execute pair
+// needs a yield; none gets one.
 func (e *Engine) secondaryYields(observer *Engine, face *cards.Face, ti int, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 	for j, sib := range face.Triggers {
 		if j == ti || strings.EqualFold(sib.Params["Secondary"], "True") {
 			continue
 		}
-		if sib.Params["Execute"] != t.Params["Execute"] && sib.Mode != t.Mode {
+		if sib.Params["Execute"] != t.Params["Execute"] {
 			continue
 		}
 		if observer.triggerMatches(sib, source, ev, lki) {
@@ -1872,6 +1888,19 @@ func (e *Engine) becomesTargetMatches(t cards.Trigger, source state.ObjID, ev ev
 			targeted = true
 			break
 		}
+	}
+	if targeted && t.Params["Ward"] == "True" &&
+		(ev.Obj == 0 || e.controllerOf(ev.Obj) == e.controllerOf(source)) {
+		// The ValidTarget$ branch's ward gate, applied to the bare
+		// self-targeted fallback: a ward trigger never fires for its own
+		// controller's targeting (CR 702.21a compares the ward permanent's
+		// controller with the targeting spell or ability's, the same ev.Obj
+		// ValidSource$ reads above). Unreachable in the current corpus --
+		// every ward trigger is keyword-synthesized with ValidTarget$
+		// Card.Self (cards/keywords.go, 0 raw Ward$ True lines) -- kept so
+		// a future ward trigger without ValidTarget$ cannot fire for its
+		// own controller.
+		return false
 	}
 	return targeted
 }
