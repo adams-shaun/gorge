@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"math/big"
 	"math/rand/v2"
 	"reflect"
 	"runtime"
@@ -16,6 +17,155 @@ import (
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/state"
 )
+
+type sequenceProposalRandom struct {
+	values []uint64
+	at     int
+}
+
+func (r *sequenceProposalRandom) Uint64() uint64 {
+	value := r.values[r.at]
+	r.at++
+	return value
+}
+
+func TestLandIsolationUpperDeadlines(t *testing.T) {
+	tests := []struct {
+		name       string
+		epoch      epochConstraints
+		handCounts map[string]int
+		landNames  map[string]bool
+		want       []upperDeadlineConstraint
+		eligible   bool
+	}{
+		{
+			name:      "no supported facts",
+			landNames: map[string]bool{"A": true, "B": true},
+		},
+		{
+			name:      "different land excluded",
+			epoch:     epochConstraints{LandIsolation: []landIsolationConstraint{{Through: 7, Name: "A"}}},
+			landNames: map[string]bool{"B": true, "A": true},
+			want:      []upperDeadlineConstraint{{Through: 7, Name: "B", Count: 0}},
+			eligible:  true,
+		},
+		{
+			name: "prior exit permits one copy",
+			epoch: epochConstraints{LandIsolation: []landIsolationConstraint{{
+				Through: 7, Name: "A", PriorExits: []nameCount{{Name: "B", Count: 1}},
+			}}},
+			landNames: map[string]bool{"A": true, "B": true},
+			want:      []upperDeadlineConstraint{{Through: 7, Name: "B", Count: 1}},
+			eligible:  true,
+		},
+		{
+			name:       "boundary hand makes isolation empty",
+			epoch:      epochConstraints{LandIsolation: []landIsolationConstraint{{Through: 7, Name: "A"}}},
+			handCounts: map[string]int{"B": 1},
+			landNames:  map[string]bool{"A": true, "B": true},
+			want:       []upperDeadlineConstraint{{Through: 7, Name: "B", Count: -1}},
+			eligible:   true,
+		},
+		{
+			name: "successive plays",
+			epoch: epochConstraints{LandIsolation: []landIsolationConstraint{
+				{Through: 7, Name: "A"},
+				{Through: 8, Name: "B", PriorExits: []nameCount{{Name: "A", Count: 1}}},
+			}},
+			landNames: map[string]bool{"B": true, "A": true},
+			want: []upperDeadlineConstraint{
+				{Through: 7, Name: "B", Count: 0},
+				{Through: 8, Name: "A", Count: 1},
+			},
+			eligible: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, eligible := isolationUpperDeadlines(tc.epoch, tc.handCounts, tc.landNames)
+			if eligible != tc.eligible || !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("bounds=%+v eligible=%v, want %+v eligible=%v", got, eligible, tc.want, tc.eligible)
+			}
+		})
+	}
+}
+
+func TestPublicLandNamesUsesPlayableFrontFace(t *testing.T) {
+	land := syntheticCard(t, "Name:A\nTypes:Land\nOracle:Fixture.\nALTERNATE\nName:A Back\nTypes:Sorcery\nOracle:Fixture.\n")
+	backOnly := syntheticCard(t, "Name:Front Spell\nTypes:Sorcery\nOracle:Fixture.\nALTERNATE\nName:Back Land\nTypes:Land\nOracle:Fixture.\n")
+	setup := PublicGame{Decks: [][]*cards.Card{{land, land, backOnly}, {backOnly}}}
+	want := map[state.PlayerID]map[string]bool{0: {"A": true}, 1: {}}
+	if got := publicLandNames(setup); !reflect.DeepEqual(got, want) {
+		t.Fatalf("public land names = %#v, want %#v", got, want)
+	}
+}
+
+func TestLandIsolationMixturePreservesSupportAndExactWeights(t *testing.T) {
+	cards := []proposalCard{{ID: 1, Name: "A"}, {ID: 2, Name: "A"}, {ID: 3, Name: "B"}, {ID: 4, Name: "C"}}
+	upper := []upperDeadlineConstraint{{Through: 2, Name: "B", Count: 0}}
+	baseCount, isolatedCount := big.NewInt(24), big.NewInt(12)
+	baseOrders := make(map[string]bool)
+	baseReachedIsolation := false
+	for rank := uint64(0); rank < 24; rank++ {
+		rng := &sequenceProposalRandom{values: []uint64{0, rank}}
+		order, factor, compatible, selected, empty, err := sampleLandIsolationMixture(cards, nil, nil, upper, true, rng)
+		if err != nil || !compatible || selected || empty {
+			t.Fatalf("base rank %d: compatible=%v selected=%v empty=%v err=%v", rank, compatible, selected, empty, err)
+		}
+		inside := permutationSatisfies(order, cards, nil, nil, upper)
+		baseReachedIsolation = baseReachedIsolation || inside
+		want := mixtureLogTargetOverProposal(4, baseCount, isolatedCount, inside)
+		if math.Abs(factor-want) > 1e-12 {
+			t.Fatalf("base rank %d weight=%g want=%g", rank, factor, want)
+		}
+		baseOrders[keyIDs(order)] = true
+	}
+	if len(baseOrders) != 24 || !baseReachedIsolation {
+		t.Fatalf("base support=%d reached isolation=%v", len(baseOrders), baseReachedIsolation)
+	}
+	isolatedOrders := make(map[string]bool)
+	for rank := uint64(0); rank < 12; rank++ {
+		rng := &sequenceProposalRandom{values: []uint64{1, rank}}
+		order, factor, compatible, selected, empty, err := sampleLandIsolationMixture(cards, nil, nil, upper, true, rng)
+		if err != nil || !compatible || !selected || empty {
+			t.Fatalf("isolated rank %d: compatible=%v selected=%v empty=%v err=%v", rank, compatible, selected, empty, err)
+		}
+		if !permutationSatisfies(order, cards, nil, nil, upper) {
+			t.Fatalf("isolation component emitted %v outside L", order)
+		}
+		want := mixtureLogTargetOverProposal(4, baseCount, isolatedCount, true)
+		if math.Abs(factor-want) > 1e-12 {
+			t.Fatalf("isolated rank %d weight=%g want=%g", rank, factor, want)
+		}
+		isolatedOrders[keyIDs(order)] = true
+	}
+	if len(isolatedOrders) != 12 {
+		t.Fatalf("isolated support=%d, want 12 distinct physical orders", len(isolatedOrders))
+	}
+	for order := range isolatedOrders {
+		if !baseOrders[order] {
+			t.Fatalf("isolated order %s absent from base support", order)
+		}
+	}
+}
+
+func TestLandIsolationEmptySetConsumesNoSelectionAndKeepsPrior(t *testing.T) {
+	cards := []proposalCard{{ID: 1, Name: "A"}, {ID: 2, Name: "B"}, {ID: 3, Name: "C"}}
+	for _, upper := range [][]upperDeadlineConstraint{
+		{{Through: 3, Name: "B", Count: 0}},
+		{{Through: 1, Name: "B", Count: -1}},
+	} {
+		rng := &sequenceProposalRandom{values: []uint64{2}}
+		order, factor, compatible, selected, empty, err := sampleLandIsolationMixture(cards, nil, nil, upper, true, rng)
+		if err != nil || !compatible || selected || !empty || rng.at != 1 {
+			t.Fatalf("empty L: compatible=%v selected=%v empty=%v draws=%d err=%v", compatible, selected, empty, rng.at, err)
+		}
+		wantOrder, wantFactor, wantCompatible, err := sampleConstrainedPermutation(cards, nil, nil, nil, &rankRandom{value: 2})
+		if err != nil || !wantCompatible || !reflect.DeepEqual(order, wantOrder) || factor != wantFactor {
+			t.Fatalf("empty L changed prior: order=%v/%v factor=%g/%g err=%v", order, wantOrder, factor, wantFactor, err)
+		}
+	}
+}
 
 // A single playable land among nineteen uncastable spells is in an ordinary
 // opening hand only 7/20 of the time. The public play must guide that deadline.
@@ -34,6 +184,48 @@ func TestProposalGuidesOpponentPublicLand(t *testing.T) {
 	}
 	for _, w := range result.Worlds {
 		if err := VerifyWorld(w); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestLandIsolationKeepsFrozenOpponentPolicyAndReplays(t *testing.T) {
+	plains := syntheticCard(t, "Name:Plains\nTypes:Basic Land Plains\nOracle:Fixture.\n")
+	island := syntheticCard(t, "Name:Island\nTypes:Basic Land Island\nOracle:Fixture.\n")
+	blueNeed := syntheticCard(t, "Name:Blue Need\nManaCost:U\nTypes:Sorcery\nA:SP$ Draw | NumCards$ 1\nOracle:Fixture.\n")
+	filler := syntheticCard(t, "Name:Filler\nManaCost:99\nTypes:Sorcery\nA:SP$ Draw | NumCards$ 1\nOracle:Fixture.\n")
+	mountain := syntheticCard(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:Fixture.\n")
+	decks := [][]*cards.Card{repeatCard(mountain, 8), {plains, blueNeed, filler, filler, filler, filler, filler, island}}
+	setup, h := proposalHistory(t, decks, 1, func(e *rules.Engine) bool {
+		return len(e.G.Zone(state.ZBattlefield, 1)) == 1
+	})
+
+	outside := []string{"Plains", "Island", "Blue Need", "Filler", "Filler", "Filler", "Filler", "Filler"}
+	matched, got, want, _ := replayWithOpponentGenesisOrder(t, setup, h, outside)
+	if matched || rejectionBucket(len(h.Frames)-1, got, want).Shape != "hand_to_battlefield" {
+		t.Fatalf("competing-land base world did not reject at the land play: matched=%v got=%+v want=%+v", matched, got, want)
+	}
+	inside := []string{"Plains", "Blue Need", "Filler", "Filler", "Filler", "Filler", "Filler", "Island"}
+	matched, got, want, world := replayWithOpponentGenesisOrder(t, setup, h, inside)
+	if !matched {
+		t.Fatalf("isolated world failed the complete prefix: got=%+v want=%+v", got, want)
+	}
+	if err := VerifyWorld(world); err != nil {
+		t.Fatalf("isolated world did not replay without a planner: %v", err)
+	}
+
+	result, err := Sample(setup, h, SampleOptions{Seed: 137, Attempts: 32, Worlds: 4, MaxSubmits: 500})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.LandIsolationEligible != 32 || result.LandIsolationSelected == 0 || result.LandIsolationEmpty != 0 || result.LandIsolationUnsupported != 0 {
+		t.Fatalf("land mixture diagnostics = %+v", result)
+	}
+	if result.Accepted < result.LandIsolationSelected || result.PrefixRejected == 0 || len(result.Worlds) != 4 {
+		t.Fatalf("mixture did not retain isolated worlds and base rejection: accepted=%d selected=%d rejected=%d worlds=%d first=%s", result.Accepted, result.LandIsolationSelected, result.PrefixRejected, len(result.Worlds), result.FirstRejection)
+	}
+	for _, world := range result.Worlds {
+		if err := VerifyWorld(world); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -606,4 +798,86 @@ func proposalHistory(t *testing.T, decks [][]*cards.Card, toss int, stop func(*r
 	}
 	t.Fatal("fixture never reached root")
 	return setup, h
+}
+
+func replayWithOpponentGenesisOrder(t *testing.T, setup PublicGame, h History, names []string) (bool, Frame, Frame, World) {
+	t.Helper()
+	config := rules.Config{Seed: 1, Names: setup.Names, Decks: setup.Decks, Tokens: setup.Tokens, StartingLife: setup.StartingLife}
+	tape, _, err := publicToss(setup, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	planner := func(ctx rules.ShuffleContext) ([]state.ObjID, error) {
+		if ctx.Ordinal != 0 || ctx.Player != 1 {
+			out := make([]state.ObjID, len(ctx.Library))
+			for i, card := range ctx.Library {
+				out[i] = card.ID
+			}
+			return out, nil
+		}
+		used := make([]bool, len(ctx.Library))
+		out := make([]state.ObjID, 0, len(ctx.Library))
+		for _, name := range names {
+			found := -1
+			for i, card := range ctx.Library {
+				if !used[i] && card.Name == name {
+					found = i
+					break
+				}
+			}
+			if found < 0 {
+				return nil, errors.New("named genesis order is not a permutation")
+			}
+			used[found] = true
+			out = append(out, ctx.Library[found].ID)
+		}
+		for i, card := range ctx.Library {
+			if !used[i] {
+				out = append(out, card.ID)
+			}
+		}
+		return out, nil
+	}
+	e, err := rules.NewHypotheticalPlanned(config, tape, planner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.AdvanceHypothetical(); err != nil {
+		t.Fatal(err)
+	}
+	observer := NewCollector(h.Actor)
+	bot := rand.New(rand.NewPCG(4, 8))
+	pos := 0
+	for i, want := range h.Frames {
+		got, err := observer.Capture(e, e.L.Events[pos:])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(got, want) {
+			return false, got, want, World{}
+		}
+		if i == len(h.Frames)-1 {
+			e.ClearHypotheticalPlanner()
+			return true, Frame{}, Frame{}, World{Config: config, Engine: e, Observer: observer}
+		}
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("planned replay ended before the recorded prefix")
+		}
+		var in decision.Intent
+		if d.Player == h.Actor {
+			in, err = observer.Match(d, h.Answers[i])
+			if err != nil {
+				t.Fatal(err)
+			}
+		} else {
+			in = botpolicy.Decide(botpolicy.BoardFromGame(e.G, e, d.Player), d, bot)
+		}
+		pos = len(e.L.Events)
+		if err := e.SubmitHypothetical(in); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Fatal("empty history")
+	return false, Frame{}, Frame{}, World{}
 }

@@ -177,3 +177,134 @@ The preceding pre-final-review artifacts remain untouched at
 135 covered roots and 2,432 accepted proposals. The new final-code run adds
 three covered later-epoch roots and 41 positive proposals. This is a coverage
 change, not evidence of stronger play.
+
+---
+
+# Land-isolation proposal follow-up
+
+The exact 50/50 land-isolation mixture reduced the targeted opponent
+hand-to-battlefield rejection bucket and increased raw accepted proposals, but
+it did not improve the four-world/ESS coverage gate. **131/500 roots (26.2%)**
+were usable, down from 138/500. The result is therefore retained as bounded
+coverage/correctness evidence, not as promotion readiness or a strength claim.
+
+## Artifacts and commands
+
+The final optimized artifacts are:
+
+```text
+/tmp/gorge-searchprobe-land-isolation-opt-500-20260917.json
+/tmp/gorge-searchprobe-land-isolation-opt-125-20260917.json
+```
+
+They were produced with the same fixed protocol:
+
+```sh
+GOMAXPROCS=5 GOMEMLIMIT=5GiB go run ./cmd/searchprobe \
+  -games 500 -workers 5 -seed 10000 -sample-seed 54321 \
+  -attempts 64 -worlds 4 -max-submits 5000 \
+  -out /tmp/gorge-searchprobe-land-isolation-opt-500-20260917.json
+
+GOMAXPROCS=5 GOMEMLIMIT=5GiB go run ./cmd/searchprobe \
+  -games 125 -workers 1 -seed 10000 -sample-seed 54321 \
+  -attempts 64 -worlds 4 -max-submits 5000 \
+  -out /tmp/gorge-searchprobe-land-isolation-opt-125-20260917.json
+
+jq -e --slurp \
+  '(.[0].Results[:125] | map(del(.SampleNS, .SearchNS))) ==
+   (.[1].Results | map(del(.SampleNS, .SearchNS)))' \
+  /tmp/gorge-searchprobe-land-isolation-opt-500-20260917.json \
+  /tmp/gorge-searchprobe-land-isolation-opt-125-20260917.json
+```
+
+Both runs exited 0 with zero experiment errors. The 125-root run covered 26
+roots, and the `jq` comparison returned `true`. Every corresponding per-root
+field matched after removing only `SampleNS` and `SearchNS`.
+
+## Proposal and accounting
+
+For current constrained set `C` and nonempty land-isolated subset `L`, the
+implementation samples each component with probability one half and uses the
+exact physical-permutation density
+
+```text
+q(x) = 1/(2|C|) + I[x in L]/(2|L|).
+```
+
+An ineligible or empty `L` samples uniformly from `C`; the empty case consumes
+no component-selection draw. Opponent actions still come from
+`botpolicy.Decide`, and full-prefix validation remains the acceptance oracle.
+
+| Measurement | Total | Death-n-taxes actor | Dimir actor |
+|---|---:|---:|---:|
+| Roots retained | 500 | 250 | 250 |
+| Usable four-world roots | 131 | 39 | 92 |
+| Baseline fallbacks | 369 | 211 | 158 |
+| Accepted proposals / attempts | 3,155 / 32,000 | 667 / 16,000 | 2,488 / 16,000 |
+| Prefix rejections | 28,715 | 15,300 | 13,415 |
+| Incompatible proposals | 130 | 33 | 97 |
+| Submit-budget exhaustions | 0 | 0 | 0 |
+| Reconstruction submissions | 1,310,803 | 488,514 | 822,289 |
+| Sum of per-root ESS | 1,813.867 | 394.788 | 1,419.079 |
+| Duplicate selected entries | 94 | 42 | 52 |
+| Guided genesis shuffles | 63,936 | 32,000 | 31,936 |
+| Guided later shuffles | 133 | 65 | 68 |
+| Actor arrange-window uses | 3,012 | 0 | 3,012 |
+| Unguided-constraint occurrences | 34,434 | 20,226 | 14,208 |
+| Land-isolation eligible shuffles | 31,335 | 15,425 | 15,910 |
+| Isolation-component selections | 15,744 | 7,785 | 7,959 |
+| Empty-isolation fallbacks | 17 | 0 | 17 |
+| Unsupported land-isolation shapes | 119 | 118 | 1 |
+
+The attempt accounting closes exactly: 3,155 accepted + 28,715 prefix
+rejected + 130 incompatible + 0 budget exhausted = 32,000. Covered-root ESS
+ranged from 4 to 42.089. The one-world and four-world arms replayed 131 and
+524 selected entries. All 500 baseline replays and all 2,000 terminal outcome
+replays succeeded. Of 258 later-epoch roots, 35 were usable: zero of 122
+Death-n-taxes roots and 35 of 136 Dimir roots.
+
+## Rejections and comparison
+
+The 28,715 prefix rejections split into 25,547 identity and 3,168 event
+buckets. The leading normalized buckets were:
+
+| Component / shape | Count |
+|---|---:|
+| identities / hand_to_stack | 13,034 |
+| identities / hand_to_battlefield | 6,668 |
+| identities / other | 3,776 |
+| events / priority_to_stack_resolve | 2,281 |
+| identities / hand_to_exile | 2,017 |
+| events / choose_to_choose | 411 |
+| events / priority_to_priority | 253 |
+| events / stack_resolve_to_priority | 131 |
+| all remaining normalized buckets | 144 |
+
+| Checkpoint measurement | Previous | Land isolation | Change |
+|---|---:|---:|---:|
+| Accepted proposals | 2,473 | 3,155 | +682 |
+| Usable roots | 138 | 131 | -7 |
+| Death-n-taxes actor usable | 31 | 39 | +8 |
+| Dimir actor usable | 107 | 92 | -15 |
+| Usable later-epoch roots | 41 | 35 | -6 |
+| `hand_to_battlefield` rejections | 11,048 | 6,668 | -4,380 |
+| `hand_to_stack` rejections | 10,625 | 13,034 | +2,409 |
+| Total prefix rejections | 29,421 | 28,715 | -706 |
+| Total elapsed | 114.186 s | 125.395 s | +11.209 s |
+| Allocations after corpus load | 83,695,350,608 B | 101,631,260,040 B | +17,935,909,432 B |
+
+The target bucket fell 39.6%, but more proposals advanced far enough to reject
+at later hand-to-stack and event transitions. More importantly, the mixture's
+nonuniform exact weights reduced ESS enough to lose seven usable roots despite
+682 additional accepted attempts. This is why raw acceptance alone is not the
+success criterion.
+
+Cost after the counter-reuse/early-pruning refactor was 0.871 seconds corpus
+load and 125.395 seconds total. Per-root sampler elapsed under five-worker
+contention was 680.889 / 1,393.170 / 5,916.048 ms at p50/p95/max and summed to
+384.582 worker-seconds. Covered-root search elapsed was 51.873 / 83.406 /
+109.584 ms and summed to 7.302 worker-seconds. End HeapAlloc/HeapSys were
+4,528,064 / 234,323,968 bytes. A pre-refactor artifact at
+`/tmp/gorge-searchprobe-land-isolation-500-20260917.json` produced identical
+non-timing per-root results but took 327.833 seconds and allocated
+370,156,069,016 bytes; it is not the final calibration artifact.

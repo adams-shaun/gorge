@@ -40,6 +40,105 @@ func TestCompileEpochsCapturesActorPositionsAndOpponentDeadlines(t *testing.T) {
 	}
 }
 
+func TestCompileEpochsCapturesOpponentLandIsolationFacts(t *testing.T) {
+	h := History{Actor: 0, Frames: []Frame{
+		{Events: append([]ObservedEvent{{Kind: events.Shuffle, Player: 1}}, repeatedDraws(1, 7)...)},
+		{Identities: []Identity{{ID: 1, Name: "Plains", Owner: 1}}, Events: []ObservedEvent{
+			{Kind: events.MoveZone, Obj: 1, From: state.ZHand, To: state.ZBattlefield},
+			{Kind: events.LandPlayed, Player: 1},
+		}},
+		{Events: []ObservedEvent{{Kind: events.Draw, Player: 1}}},
+		{Identities: []Identity{{ID: 2, Name: "Island", Owner: 1}}, Events: []ObservedEvent{
+			{Kind: events.MoveZone, Obj: 2, From: state.ZHand, To: state.ZBattlefield},
+			{Kind: events.LandPlayed, Player: 1},
+		}},
+	}}
+	epochs, err := compileEpochs(h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []landIsolationConstraint{
+		{Through: 7, Name: "Plains"},
+		{Through: 8, Name: "Island", PriorExits: []nameCount{{Name: "Plains", Count: 1}}},
+	}
+	if got := epochs[epochKey{Player: 1}].LandIsolation; !reflect.DeepEqual(got, want) {
+		t.Fatalf("land isolation = %+v, want %+v", got, want)
+	}
+}
+
+func TestCompileEpochsRejectsUnsupportedLandIsolationShapes(t *testing.T) {
+	land := Identity{ID: 1, Name: "Plains", Owner: 1}
+	tests := []struct {
+		name        string
+		frames      []Frame
+		constraints int
+		unsupported int
+	}{
+		{
+			name: "hand move without land-play bookkeeping is not a candidate",
+			frames: []Frame{{Identities: []Identity{land}, Events: []ObservedEvent{
+				{Kind: events.MoveZone, Obj: 1, From: state.ZHand, To: state.ZBattlefield},
+			}}},
+		},
+		{
+			name: "ambiguous moves",
+			frames: []Frame{{Identities: []Identity{land, Identity{ID: 2, Name: "Island", Owner: 1}}, Events: []ObservedEvent{
+				{Kind: events.MoveZone, Obj: 1, From: state.ZHand, To: state.ZBattlefield},
+				{Kind: events.MoveZone, Obj: 2, From: state.ZHand, To: state.ZBattlefield},
+				{Kind: events.LandPlayed, Player: 1},
+			}}},
+			unsupported: 1,
+		},
+		{
+			name: "actor play",
+			frames: []Frame{{Identities: []Identity{{ID: 1, Name: "Plains", Owner: 0}}, Events: []ObservedEvent{
+				{Kind: events.MoveZone, Obj: 1, From: state.ZHand, To: state.ZBattlefield},
+				{Kind: events.LandPlayed, Player: 0},
+			}}},
+		},
+		{
+			name: "post-shuffle hand entry",
+			frames: []Frame{
+				{Identities: []Identity{{ID: 2, Name: "Known", Owner: 1}}, Events: []ObservedEvent{{Kind: events.MoveZone, Obj: 2, From: state.ZGraveyard, To: state.ZHand}}},
+				{Identities: []Identity{land}, Events: []ObservedEvent{{Kind: events.MoveZone, Obj: 1, From: state.ZHand, To: state.ZBattlefield}, {Kind: events.LandPlayed, Player: 1}}},
+			},
+			unsupported: 1,
+		},
+		{
+			name: "unnamed hand exit",
+			frames: []Frame{
+				{Events: []ObservedEvent{{Kind: events.MoveZone, Player: 1, From: state.ZHand, To: state.ZExile, Secret: true}}},
+				{Identities: []Identity{land}, Events: []ObservedEvent{{Kind: events.MoveZone, Obj: 1, From: state.ZHand, To: state.ZBattlefield}, {Kind: events.LandPlayed, Player: 1}}},
+			},
+			unsupported: 1,
+		},
+		{
+			name: "lost library reliability",
+			frames: []Frame{
+				{Events: []ObservedEvent{{Kind: events.MoveZone, Player: 1, From: state.ZLibrary, To: state.ZExile}}},
+				{Identities: []Identity{land}, Events: []ObservedEvent{{Kind: events.MoveZone, Obj: 1, From: state.ZHand, To: state.ZBattlefield}, {Kind: events.LandPlayed, Player: 1}}},
+			},
+			unsupported: 1,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			frames := append([]Frame{{Events: append([]ObservedEvent{{Kind: events.Shuffle, Player: 1}}, repeatedDraws(1, 7)...)}}, tc.frames...)
+			epochs, err := compileEpochs(History{Actor: 0, Frames: frames})
+			if err != nil {
+				t.Fatal(err)
+			}
+			ep := epochs[epochKey{Player: 1}]
+			if got := len(ep.LandIsolation); got != tc.constraints {
+				t.Fatalf("land isolation count = %d, want %d", got, tc.constraints)
+			}
+			if ep.LandIsolationUnsupported != tc.unsupported {
+				t.Fatalf("unsupported = %d, want %d", ep.LandIsolationUnsupported, tc.unsupported)
+			}
+		})
+	}
+}
+
 func TestCompileEpochsCapturesLaterShuffleAndArrangeWindow(t *testing.T) {
 	h := History{Actor: 0, Frames: []Frame{
 		{Events: []ObservedEvent{{Kind: events.Shuffle, Player: 0}}},

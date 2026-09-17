@@ -39,12 +39,13 @@ type World struct {
 	Observer *Collector
 }
 type SampleResult struct {
-	Worlds                                                                                 []World `json:"-"`
-	Attempts, Accepted, PrefixRejected, BudgetExhausted, Submits, Duplicates               int
-	ESS                                                                                    float64
-	FirstRejection                                                                         string
-	Rejections                                                                             []RejectionBucket
-	GuidedGenesis, GuidedLater, ArrangeWindows, UnguidedConstraints, IncompatibleProposals int
+	Worlds                                                                                     []World `json:"-"`
+	Attempts, Accepted, PrefixRejected, BudgetExhausted, Submits, Duplicates                   int
+	ESS                                                                                        float64
+	FirstRejection                                                                             string
+	Rejections                                                                                 []RejectionBucket
+	GuidedGenesis, GuidedLater, ArrangeWindows, UnguidedConstraints, IncompatibleProposals     int
+	LandIsolationEligible, LandIsolationSelected, LandIsolationEmpty, LandIsolationUnsupported int
 }
 type RejectionBucket struct {
 	Frame            int
@@ -71,7 +72,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 			return result, fail("unsupported", "undersized genesis deck")
 		}
 		for _, card := range deck {
-			if card == nil || len(card.Faces) == 0 {
+			if card == nil || len(card.Faces) == 0 || card.Faces[0] == nil {
 				return result, fmt.Errorf("invalid public card definition")
 			}
 		}
@@ -88,6 +89,10 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	if err := validateGenesis(setup, epochs); err != nil {
 		return result, err
 	}
+	landNames := publicLandNames(setup)
+	for _, epoch := range epochs {
+		result.LandIsolationUnsupported += epoch.LandIsolationUnsupported
+	}
 	tape, tossWeight, err := publicToss(setup, h)
 	if err != nil {
 		return result, err
@@ -99,7 +104,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		seed := taggedSeed(opts.Seed, digest, attempt, seedEngine)
 		cfg := rules.Config{Seed: seed[0], Names: setup.Names, Decks: setup.Decks, Tokens: setup.Tokens, StartingLife: setup.StartingLife}
 		observer := NewCollector(h.Actor)
-		proposal := &proposalState{epochs: epochs, logWeight: tossWeight, base: opts.Seed, history: digest, attempt: attempt, observer: observer, result: &result}
+		proposal := &proposalState{epochs: epochs, landNames: landNames, logWeight: tossWeight, base: opts.Seed, history: digest, attempt: attempt, observer: observer, result: &result}
 		e, err := rules.NewHypotheticalPlanned(cfg, tape, proposal.plan)
 		if errors.Is(err, errIncompatibleProposal) {
 			continue
