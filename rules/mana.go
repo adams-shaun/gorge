@@ -1045,7 +1045,16 @@ func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
 		if ab.Kind != "AB" || isManaAbilityAPI(ab.API) {
 			continue
 		}
-		out = append(out, formatCost(e.offerCostFor(p, id, ParseCost(ab.Params["Cost"]), abilityScope(ab))))
+		cost := ParseCost(ab.Params["Cost"])
+		// The ability's own ReduceCost$ (Otawara's Channel): the same
+		// composition the offer gate and beginActivation's charge apply, so
+		// the decision's displayed cost is the cost the payment will charge.
+		if n := e.ownReduceCost(p, id, ab); n > 0 && cost.Generic >= n {
+			cost.Generic -= n
+		} else if n > 0 {
+			cost.Generic = 0
+		}
+		out = append(out, formatCost(e.offerCostFor(p, id, cost, abilityScope(ab))))
 	}
 	return out
 }

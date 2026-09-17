@@ -86,6 +86,17 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) (bool, bool) {
 	c.UnlessPay = ""
 	idx := c.UnlessNext
 	c.UnlessNext = 0
+	// The body's own re-entry: this gate already resolved on the suspended
+	// pass and recorded its outcome through Host.SuspendUnless (the asking
+	// body-under-UnlessCost$ livelock fix) — consume the marker, never ask
+	// again. The recorded pay outcome feeds UnlessResolveSubs$ exactly as
+	// the original pass computed it.
+	if ans == "resolved-pay" {
+		return true, true
+	}
+	if ans == "resolved-decline" {
+		return true, false
+	}
 	// A paid answer is authoritative even if a re-entry fixture or nested
 	// continuation did not retain every transient payer binding from the ask.
 	if ans == "pay" {

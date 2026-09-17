@@ -999,7 +999,12 @@ var stringMapParams = map[string]string{
 	// parseReplacementLine built from one SVar replacement line -- its
 	// ReplaceWith$ key is consumed here, but the map originates in an SVar
 	// body, not a card's Params map.
-	"effects:replacementLineWith:params": "keys of a parseReplacementLine-built static line (an SVar body), not a card Params map"}
+	"effects:replacementLineWith:params": "keys of a parseReplacementLine-built static line (an SVar body), not a card Params map",
+	// effects/misc.go replacementLineCantHappen: params is the map
+	// parseReplacementLine built from one SVar replacement body -- the
+	// Layer$ CantHappen recognition of the bodyless form (Mistrise Village's
+	// AntiMagic) reads the same SVar body shape, not a card Params map.
+	"effects:replacementLineCantHappen:params": "keys of a parseReplacementLine-built replacement line (an SVar body), not a card Params map"}
 
 // propagateKeyReads resolves two indirect read shapes:
 //
@@ -1912,6 +1917,12 @@ var ignoredParamKeys = map[string]string{
 	// loyalty gating is the loyalty COST and the permanent's once-per-turn
 	// limit, both already enforced).
 	"Ultimate": "AI ranking + achievement marker; forge-ai/src/main/java/forge/ai/ComputerUtilAbility.java, forge-ai/src/main/java/forge/ai/ComputerUtilCard.java, forge-game/src/main/java/forge/game/player/AchievementTracker.java",
+	// UnlessAI is Forge's AI-side copy hint on a CopySpellAbility (Chain of
+	// Vapor's UnlessAI$ ChainOfVapor): CopySpellAbilityAi.java reads it (the
+	// aiLogic local) to rank WHEN the AI would pay the copy's unless cost. It
+	// gates no rules-side behaviour — the pay-or-decline ask the shared
+	// unless gate poses is the rules — so the census ignores it.
+	"UnlessAI": "AI copy-eligibility hint; forge-ai/src/main/java/forge/ai/ability/CopySpellAbilityAi.java",
 }
 
 // censusResult is one census run: per-card labels plus aggregate sets.
@@ -2192,7 +2203,7 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
 	"Ad Nauseam":                     {"param:api:Repeat.RepeatOptional"},
-	"Arcane Denial":                  {"param:api:Counter.RememberTargets", "param:api:DelayedTrigger.NextTurn", "param:api:Draw.Upto"},
+	"Arcane Denial":                  {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
 	"Avengers Quinjet":               {"param:api:ChangeZone.ValidTgtsDesc"},
 	"Captain Marvel, Apex Avenger":   {"param:api:PutCounter.Optional", "param:api:PutCounter.Placer", "param:api:PutCounter.TriggeredCounterMap"},
 	"Conduit of Worlds":              {"param:api:Play.RememberPlayed"},
@@ -2200,7 +2211,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Gift of Immortality":            {"param:api:ChangeZone.AttachedTo", "param:api:ChangeZone.ForgetOtherRemembered"},
 	"Hercules, Olympian Hero":        {"param:trig:DamageDoneOnce.FirstTime"},
 	"Heroic Return":                  {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Heroic Sacrifice":               {"param:api:DelayedTrigger.Destination", "param:api:DelayedTrigger.ThisTurn", "param:api:DelayedTrigger.ValidCard", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Heroic Sacrifice":               {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
 	"Iron Man, Armored Avenger":      {"param:api:PutCounter.ValidTgtsDesc"},
 	"Jocasta, Automaton Avenger":     {"param:api:ChangeZone.Attacking"},
 	"Love on the Battlefield":        {"param:trig:AttackersDeclared.NoResolvingCheck"},

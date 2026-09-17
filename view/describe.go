@@ -369,6 +369,10 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the granted body's own text is the resolving ability's line, not
 		// the push's, so saying what it will do twice would double-report it.
 		return obj(g, ev.Obj) + " triggers (granted)"
+	case events.ManaActivate:
+		// The ActivationLimit$ scan marker for a mana ability's activation
+		// (events.ManaActivate's own comment). Obj is the source permanent.
+		return obj(g, ev.Obj) + " is activated for mana"
 	}
 	return "unknown event"
 }

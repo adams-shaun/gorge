@@ -133,6 +133,15 @@ type Host interface {
 	// rules-internal context with no engine to drive — and the calling
 	// effect falls back to its deterministic stand-in (R-9). M2d-2.
 	Ask(d *decision.Decision) bool
+	// SuspendUnless records the unless-cost outcome of an SA whose BODY
+	// suspended on a mid-resolution ask of its own (the gate had already
+	// resolved when the body asked): rules re-enters that asking SA with a
+	// fresh Ctx, so without this record the gate would re-pose its pay ask
+	// and the body would run again from the top — a livelock for any asking
+	// body under an UnlessCost$ (Rhystic Study's pay-or-draw, a unless-gated
+	// Dig's search). paid is the outcome the suspended pass resolved; the
+	// re-entry pass consumes the recorded marker instead of asking again.
+	SuspendUnless(sa *cards.SA, paid bool)
 	// Suspended reports whether the resolution is currently suspended on a
 	// mid-resolution ask — Ask returned true and set the host's resume state,
 	// which has not yet been cleared by the answer arriving. effects.Resolve
@@ -575,6 +584,14 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// DrawOpt is the answered OptionalDecider$ yes/no on a re-entered
+	// mid-resolution Draw (Mystic Remora, Rhystic Study): "yes" draws and
+	// "no" declines, the same two-way answer the RevealOpt ask poses. ""
+	// on the first pass, where effDraw poses the ask (or, when the host
+	// cannot ask, keeps the pre-ask mandatory draw — the R-9 degradation).
+	// Consumed and cleared before the draw loop, so a nested optional draw
+	// in the same walk poses its own ask (fx42 scoping).
+	DrawOpt string
 	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
 	// resolution just made (effects/dice.go), under the SVar name its
 	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's
@@ -815,7 +832,6 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			// resume re-enters at THIS asking SA (rules' resumeResolution),
 			// which re-runs the asking effect to apply the answer and then
 			// continues walking sa.Sub exactly once.
-			//
 			// Report this loop's suspension point to the host so a NESTED ask
 			// (an ask posed from inside this loop's own effect, e.g. the mode
 			// a Charm runs) does not lose the chain this loop was still
@@ -823,6 +839,13 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			// outer continuations and drops this one when it is the asking
 			// loop's own level, which re-enters sa.Sub itself.
 			h.SuspendContinuation(sa)
+			// The gate had already resolved when the body asked: record the
+			// outcome so the answer's re-entry pass consumes it instead of
+			// re-posing the pay ask (the asking-body-under-UnlessCost$
+			// livelock — Rhystic Study's pay-or-draw was the live carrier).
+			if strings.TrimSpace(sa.Params["UnlessCost"]) != "" {
+				h.SuspendUnless(sa, paid)
+			}
 			return
 		}
 		// UnlessResolveSubs$ also gates the sub walk when the body RAN: Forge

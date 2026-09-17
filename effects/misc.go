@@ -147,6 +147,22 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// blinked target). Both ride the registrations below.
 	forgetOn := strings.TrimSpace(sa.Params["ForgetOnMoved"])
 	exileOn := strings.TrimSpace(sa.Params["ExileOnMoved"])
+	// RememberLKI$ (Quicksilver Elemental's "RememberLKI$ Targeted"): the
+	// effect remembers the TARGETED cards — "Targeted" (and Forge's bare
+	// "True", which is Targeted in the corpus's spelling) is exactly the
+	// set effectRemembered's default already captures, so the registered
+	// grants below see it either way; the read pins the flag's presence so
+	// the grant's Remembered does not depend on the RememberObjects$
+	// default. Any other value (an LKI grammar this build does not model —
+	// the LKI persistence a vanished card would need) is a loud Note.
+	if rl := strings.TrimSpace(sa.Params["RememberLKI"]); rl != "" {
+		switch rl {
+		case "Targeted", "True":
+		default:
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unmodelled Effect RememberLKI$ " + rl})
+		}
+	}
 	remembered := effectRemembered(h, c, sa)
 	registered := false
 	// Effect can also create a replacement rather than a layer restriction.
@@ -167,6 +183,23 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
 				Name:             effectName,
 				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
+			})
+			registered = true
+		} else if event != "" && body == "" && replacementLineCantHappen(params) {
+			// The bodyless CantHappen form (Mistrise Village's AntiMagic: the
+			// Event$ Counter | ValidCard$ Card.IsRemembered | Layer$ CantHappen
+			// R: the delayed Effect registers): stopping the event is the
+			// complete replacement, the same shape printed R: lines take —
+			// rules' effect-created scan matches it With-less. The remembered
+			// set (the cast spell the trigger captured) rides the registration,
+			// so the ValidCard$ IsRemembered gate scopes the promise to the
+			// exact spell.
+			h.AddContinuous(state.ContinuousEffect{
+				Source: c.Source, Controller: c.Controller,
+				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				Name:             effectName,
+				Remembered:       remembered,
+				ReplacementEvent: event, ReplacementParams: params,
 			})
 			registered = true
 		} else if name != "" {
@@ -412,6 +445,16 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 			if c.Replaced != 0 && h.Game().Obj(c.Replaced) != nil {
 				out = append(out, c.Replaced)
 			}
+		case "TriggeredCard":
+			// The card the firing trigger's event captured (Mistrise Village's
+			// Effect RememberObjects$ TriggeredCard: the spell the can't-be-
+			// countered promise covers). The SpellCast referent capture binds
+			// c.TriggerCard to the cast stack object; a stale id (the spell
+			// already resolved) remembers nothing, the same live-object
+			// discipline the cases above apply.
+			if c.TriggerCard != 0 && h.Game().Obj(c.TriggerCard) != nil {
+				out = append(out, c.TriggerCard)
+			}
 		case "ChosenCard":
 			// Dauthi Voidwalker and the wider ChooseCard -> Effect family do
 			// not set RememberChosen$: the chosen card lives in Ctx.Chosen, or
@@ -456,6 +499,16 @@ func IsNextTurnDuration(dur string) bool {
 // an unclassified local.
 func replacementLineWith(params map[string]string) string {
 	return params["ReplaceWith"]
+}
+
+// replacementLineCantHappen reports whether a parseReplacementLine-built
+// replacement body declares Layer$ CantHappen with no body of its own -- the
+// complete replacement is stopping the event (Mistrise Village's AntiMagic).
+// Factored into its own function so the paramcensus rot guard can classify
+// the read through a tracked helper parameter rather than an unclassified
+// local, the same shape replacementLineWith takes.
+func replacementLineCantHappen(params map[string]string) bool {
+	return strings.EqualFold(strings.TrimSpace(params["Layer"]), "CantHappen")
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
@@ -727,6 +780,10 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 // what it intended without pretending to have fired.
 func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	mode := sa.Params["Mode"]
+	if mode == "SpellCast" {
+		effDelayedTriggerSpellCast(h, c, sa)
+		return
+	}
 	if mode != "Phase" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "registers a delayed trigger at " + mode + " (not implemented)"})
@@ -787,6 +844,18 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 				Text: "unmodelled DelayedTrigger RememberObjects$ " + spec})
 		}
 	}
+	// NextTurn$ True (Mishra's/Urza's/Lodestone Bauble's slowtrip: "draw a
+	// card at the beginning of the NEXT turn's upkeep"): the one-shot fires
+	// in a LATER turn only. The decode folds Amount into the registration's
+	// MinTurn (the same bound the ExtraTurn grant's registration carries),
+	// so the first Upkeep still inside the current turn does not consume the
+	// registration — the exact defect a bauble activated during its own
+	// upkeep would otherwise hit. An absent flag keeps the unbounded fire
+	// every earlier registration had (Amount zero).
+	amount := int32(0)
+	if strings.EqualFold(strings.TrimSpace(sa.Params["NextTurn"]), "True") {
+		amount = int32(h.Game().Turn + 1)
+	}
 	// The registration's ValidPlayer$ rides the event's Text next to the
 	// phase: "<Phase>|VP=<value>". The rules-side delayed scan gates the
 	// fire on it at the phase occurrence (Necropotence's "YOUR next end
@@ -798,8 +867,68 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		text += "|VP=" + vp
 	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-		Player: c.Controller, Step: step, Counter: exec,
+		Player: c.Controller, Step: step, Counter: exec, Amount: amount,
 		IDs: encodeRemembered(c.Remembered), Text: text})
+}
+
+// effDelayedTriggerSpellCast registers the event-matched delayed shape: a
+// Mode$ SpellCast DelayedTrigger (Mistrise Village's "{U}, {T}: The next
+// spell you cast this turn can't be countered") fires on a spell's
+// PutOnStack exactly like checkEventDelayedTriggers' keyword-minted
+// registrations do. The registration is one-shot (the DelayedPush that
+// fires it removes it), so "the NEXT spell" is exactly one spell. The
+// SA's own trigger clauses (ValidCard$, ValidActivatingPlayer$) are stored
+// INLINE in the event's Text — a face Ability's DelayedTrigger has no SVar
+// name of its own for the decode to reference — and the fire-time matcher
+// re-parses them against the actual cast. ThisTurn$ True (Mistrise) bounds
+// the registration to the CURRENT turn ("...you cast THIS TURN"): the
+// expiry rides "|TT=<turn>" and folds into state.DelayedTrigger.MaxTurn;
+// a turn that ends with the registration unfired leaves it inert forever
+// (skipped, never removed — removal would need its own event). Static$
+// True (the corpus's only value, 8 raw DelayedTrigger lines) marks Forge's
+// static-style registration; every registration here is already
+// source-independent once created (CR 603.7), so the gate below documents
+// the carrier and a future non-True value gets the loud Note the
+// fail-closed convention takes.
+func effDelayedTriggerSpellCast(h Host, c *Ctx, sa *cards.SA) {
+	if st := strings.TrimSpace(sa.Params["Static"]); st != "" && !strings.EqualFold(st, "True") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unmodelled DelayedTrigger Static$ " + st})
+	}
+	exec := strings.TrimSpace(sa.Params["Execute"])
+	if exec == "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "registers a delayed SpellCast trigger with no Execute"})
+		return
+	}
+	body := "Mode$ SpellCast"
+	// Each clause unrolled over its explicit key: the census's rot guard
+	// refuses a dynamic Params key it cannot attribute, and four explicit
+	// reads cannot hide one. Static$ rides the body too — Forge's static
+	// delayed trigger resolves its Execute IMMEDIATELY at fire time (no
+	// stack push), which is what makes Mistrise's promise active before the
+	// opponent can respond.
+	if v := strings.TrimSpace(sa.Params["ValidCard"]); v != "" {
+		body += " | ValidCard$ " + v
+	}
+	if v := strings.TrimSpace(sa.Params["ValidActivatingPlayer"]); v != "" {
+		body += " | ValidActivatingPlayer$ " + v
+	}
+	if v := strings.TrimSpace(sa.Params["PlayerTurn"]); v != "" {
+		body += " | PlayerTurn$ " + v
+	}
+	if v := strings.TrimSpace(sa.Params["ValidSA"]); v != "" {
+		body += " | ValidSA$ " + v
+	}
+	if v := strings.TrimSpace(sa.Params["Static"]); v != "" {
+		body += " | Static$ " + v
+	}
+	text := "SpellCast:" + body
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ThisTurn"]), "True") {
+		text += "|TT=" + strconv.Itoa(int(h.Game().Turn))
+	}
+	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+		Player: c.Controller, Step: h.Game().Step, Counter: exec, Text: text})
 }
 
 // encodeRemembered turns a Remembered target list into the []ObjID an event
@@ -1191,6 +1320,26 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// it was: Burnt Offering's Produced$ Combo B R added NOTHING. Chosen/
 	// ComboChosen shapes (a remembered or chosen colour) still fail loudly --
 	// they have no degenerate reading.
+	// Special LastNotedType (Jeweled Amulet: "Add one mana of CARDNAME's
+	// last noted type"): the production resolves to the colour the source's
+	// last RememberCostMana$ activation paid with (events.Choose's
+	// "noted-mana" marker folded into state.Object.LastNotedMana). With no
+	// note yet the executor fails closed — the loud Note and no mana the
+	// unhandled-Produced arm emits — which for the Amulet is unreachable
+	// (its production cost removes the charge counter the noted activation
+	// created).
+	if strings.EqualFold(produced, "Special LastNotedType") {
+		noted := ""
+		if o := h.Game().Obj(c.Source); o != nil {
+			noted = strings.TrimSpace(o.LastNotedMana)
+		}
+		if noted == "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unhandled Produced$ Special LastNotedType: no mana noted yet"})
+			return
+		}
+		produced = noted
+	}
 	produced = strings.TrimSpace(strings.TrimPrefix(produced, "Combo "))
 	// Strip braces and spaces, then validate every remaining rune before any
 	// of them reaches the pool: ComboChosen/ChosenColor/Special ... values

@@ -652,9 +652,9 @@ func (e *Engine) advanceStep() {
 		for len(e.G.ExtraTurnQueue) > 0 {
 			grant := e.G.ExtraTurnQueue[len(e.G.ExtraTurnQueue)-1]
 			seat := grant.Player
-			obj, counter := e.latestUnconsumedGrant(seat)
+			obj, counter, phase := e.latestUnconsumedGrant(seat)
 			e.emit(events.Event{Kind: events.ExtraTurn, Player: seat, Amount: -1,
-				Obj: obj, Counter: counter})
+				Obj: obj, Counter: counter, IDs: []state.ObjID{phase}})
 			if !e.G.Players[seat].Lost {
 				// beginTurn resets the pass count along with the repeated
 				// holder; the ordinary rotation pointer does not advance.
@@ -978,12 +978,13 @@ func (e *Engine) rotationBase() state.PlayerID {
 // -1 consumption matches the most recent still-unconsumed +grant of the same
 // seat (the same latest-first order the turn structure consumes in), so the
 // first +grant reached with the running consumed-count at zero IS the grant
-// whose rider (Final Fortune's ExtraTurnDelayedTrigger$/Execute$ pair, carried
-// on the event's Obj/Counter) must ride the consumption that takes its turn.
+// whose rider (Final Fortune's ExtraTurnDelayedTrigger$/Execute$ pair,
+// carried on the event's Obj/Counter, plus the trigger's Phase$ in IDs[0])
+// must ride the consumption that takes its turn.
 // A seat with no grant event left (never happens while its queue entry is
 // pending; the fold guarantees the count) returns zeros -- the consumption
 // then carries no rider and events.Apply registers nothing.
-func (e *Engine) latestUnconsumedGrant(seat state.PlayerID) (state.ObjID, string) {
+func (e *Engine) latestUnconsumedGrant(seat state.PlayerID) (state.ObjID, string, state.ObjID) {
 	consumed := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
@@ -1002,7 +1003,11 @@ func (e *Engine) latestUnconsumedGrant(seat state.PlayerID) (state.ObjID, string
 			consumed -= int(ev.Amount)
 			continue
 		}
-		return ev.Obj, ev.Counter
+		phase := state.ObjID(state.StepEnd)
+		if len(ev.IDs) > 0 {
+			phase = ev.IDs[0]
+		}
+		return ev.Obj, ev.Counter, phase
 	}
-	return 0, ""
+	return 0, "", 0
 }

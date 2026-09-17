@@ -318,6 +318,13 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		if dt.MinTurn > 0 && e.G.Turn < dt.MinTurn {
 			continue
 		}
+		// The MaxTurn mirror (ThisTurn$ True, Mistrise Village): a
+		// registration whose expiry turn has passed never fires. The entry
+		// is skipped, not removed -- removal would need its own event for a
+		// replay to fold, and an expired one-shot is inert either way.
+		if dt.MaxTurn > 0 && e.G.Turn > dt.MaxTurn {
+			continue
+		}
 		// ValidPlayer$ (Necropotence's "at the beginning of YOUR next end
 		// step"): the registering DelayedTrigger SA's ValidPlayer$ filter,
 		// carried on the registration and evaluated at the phase occurrence
@@ -387,10 +394,33 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 // not consulted: Forge parks the trigger on a command-zone Effect, while the
 // engine's registration itself is that presence -- the source Chancellor card
 // stays in its hand.
+// delayedSpellCastFire is one event-matched SpellCast registration the scan
+// pass of checkEventDelayedTriggers collected, with everything its firing
+// pass needs. The scan is deliberately PURE — it must not emit — because the
+// static firing arm's synchronous DelayedPush consumes its registration via
+// events.Apply, which splices state.Game.Delayed mid-iteration: firing inside
+// the live-slice range skipped or crashed on the registrations after the
+// first matched one (two "the next spell you cast can't be countered"
+// promises live at once, so this is the ordinary shape, not an edge).
+type delayedSpellCastFire struct {
+	dt         state.DelayedTrigger
+	sa         *cards.SA
+	remembered []state.Target
+	referents  effects.TriggerContext
+	svars      map[string]string
+	static     bool
+}
+
 func (e *Engine) checkEventDelayedTriggers(ev events.Event) {
+	var fires []delayedSpellCastFire
 	for i := range e.G.Delayed {
 		dt := &e.G.Delayed[i]
 		if dt.EventMode != "SpellCast" {
+			continue
+		}
+		// The ThisTurn$ mirror: a registration whose expiry turn has passed
+		// never fires (see checkDelayedTriggers; skipped, never removed).
+		if dt.MaxTurn > 0 && e.G.Turn > dt.MaxTurn {
 			continue
 		}
 		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
@@ -400,7 +430,17 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event) {
 		if src == nil || src.Face() == nil || dt.Trigger == "" {
 			continue
 		}
-		t, ok := cards.ParseTriggerLine(src.Face().SVars[dt.Trigger])
+		// The stored trigger body: a SVar NAME (the keyword-expansion shape
+		// rules.registerOpeningEffectTriggers mints) resolves against the
+		// source's own table; an inline body (effDelayedTrigger's Mode$
+		// SpellCast branch, a face Ability's DelayedTrigger with no SVar name
+		// of its own — Mistrise Village) is stored raw and parses directly.
+		// The two carriers cannot collide: no SVar name starts "Mode$".
+		raw := dt.Trigger
+		if !strings.HasPrefix(raw, "Mode$") {
+			raw = src.Face().SVars[raw]
+		}
+		t, ok := cards.ParseTriggerLine(raw)
 		if !ok || t.Mode != "SpellCast" {
 			continue
 		}
@@ -414,24 +454,60 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event) {
 		if sa == nil {
 			continue
 		}
-		remembered := triggerRemembered(ev, dt.Source)
+		fires = append(fires, delayedSpellCastFire{
+			dt:         *dt,
+			sa:         sa,
+			remembered: triggerRemembered(ev, dt.Source),
+			referents:  e.triggerReferents(t, dt.Source, ev, nil),
+			svars:      src.Face().SVars,
+			static:     strings.TrimSpace(t.Params["Static"]) != "",
+		})
+	}
+	// The firing pass runs over the collected copies, never the live slice:
+	// a static fire's synchronous emit consumes its registration (splice) and
+	// the body's resolution may register or consume further registrations.
+	for i := range fires {
+		f := &fires[i]
+		dt := &f.dt
+		// Forge's STATIC delayed trigger (TriggerHandler's isStatic arm): the
+		// Execute body resolves IMMEDIATELY at fire time — never pushed on
+		// the stack — so the promise it creates (Mistrise Village's
+		// "the next spell you cast this turn can't be countered") is
+		// active before any player can respond to the cast. The static-
+		// marked DelayedPush consumes the one-shot registration without
+		// minting a stack object (events.Apply), then the body resolves
+		// inline; an ask the body poses parks through the ordinary direct
+		// resume machinery.
+		if f.static {
+			e.emit(events.Event{Kind: events.DelayedPush, Obj: dt.Source,
+				Player: dt.Controller, Amount: int32(dt.ID), Counter: dt.Execute,
+				Text: "static"})
+			ctx := effects.Ctx{Source: dt.Source, Controller: dt.Controller,
+				Remembered:     f.remembered,
+				Captured:       f.remembered,
+				SVars:          f.svars,
+				TriggerContext: f.referents,
+			}
+			effects.Resolve(e, &ctx, f.sa)
+			continue
+		}
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 			Source:     dt.Source,
 			Controller: dt.Controller,
 			Delayed:    true,
 			DelayedID:  dt.ID,
 			Execute:    dt.Execute,
-			SA:         sa,
+			SA:         f.sa,
 			Ctx: effects.Ctx{
 				Source:     dt.Source,
 				Controller: dt.Controller,
-				Remembered: remembered,
-				Captured:   remembered,
+				Remembered: f.remembered,
+				Captured:   f.remembered,
 				// The same event-provenance capture the ordinary face
 				// SpellCast path takes (triggerReferents' SpellCast case),
 				// so the fired ability resolves TriggeredActivator/
 				// TriggeredSource exactly as a face trigger would.
-				TriggerContext: e.triggerReferents(t, dt.Source, ev, nil),
+				TriggerContext: f.referents,
 			},
 		})
 	}

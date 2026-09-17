@@ -158,6 +158,9 @@ func (h *fakeHost) Suspended() bool { return false }
 // suspended branch that would call it. Kept to satisfy the Host interface.
 func (h *fakeHost) SuspendContinuation(*cards.SA) {}
 
+// SuspendUnless is a no-op for the same reason as SuspendContinuation.
+func (h *fakeHost) SuspendUnless(*cards.SA, bool) {}
+
 func (h *fakeHost) ReplaceEvent(string, string, int32) {}
 
 func (h *fakeHost) EmitDamage(e events.Event) events.Event {

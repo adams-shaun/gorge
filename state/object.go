@@ -193,6 +193,14 @@ type Object struct {
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string
+	// LastNotedMana is the mana type the object's last RememberCostMana$
+	// activation paid with (Jeweled Amulet: "note the type of mana spent to
+	// pay this activation cost") — the colour letter(s) of the mana the
+	// payment actually spent, in WUBRG order. Folded by events.Choose's
+	// "noted-mana" marker; read by effMana's Produced$ "Special
+	// LastNotedType". Empty when nothing has been noted (or the object left
+	// and returned — a move clears it with the rest of the per-copy state).
+	LastNotedMana string
 	// IntrinsicKeywords are keyword choices that become part of this
 	// permanent's characteristics (currently Riot's haste choice).
 	IntrinsicKeywords []string

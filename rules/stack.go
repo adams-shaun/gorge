@@ -61,12 +61,22 @@ func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, 
 // card is no longer in the granted zone, so re-deriving from the zone would
 // wrongly drop it.
 func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) bool {
+	ok, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
+	return ok
+}
+
+// payManaForSpent is payManaFor with the payment's actually-spent mana
+// returned: the per-colour delta the negative ManaAdd events record (zero on
+// a failed payment). The RememberCostMana$ payment site (Jeweled Amulet) is
+// the caller that needs it — every existing caller keeps the bool-only
+// wrapper, so no other payment site changes shape.
+func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana) {
 	before := e.manaAvailableFor(p, id, ability)
 	beforeSnow := e.G.Players[p].Snow
 	pay, ok := cost.resolveManaWith(before, beforeSnow, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 	if !ok {
-		return false
+		return false, state.Mana{}
 	}
 	after, afterSnow, lifeSpent := pay.pool, pay.snow, pay.lifeSpent
 	spent := state.Mana{}
@@ -98,7 +108,7 @@ func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost
 	if lifeSpent != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
-	return true
+	return true, spent
 }
 
 // payExtortPip charges the {W/B} hybrid pip (one mana of either W or B)

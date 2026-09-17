@@ -121,6 +121,13 @@ type resumePoint struct {
 	// completed. It prevents the resumed `unless_pay` arm from charging that
 	// payment a second time.
 	unlessPay string
+	// unlessResolved is the unless-cost outcome the suspended pass recorded
+	// through Host.SuspendUnless (effects.Resolve: the gate had resolved
+	// when the SA's own body posed the pending ask). "resolved-pay" and
+	// "resolved-decline" re-enter the gate as an already-resolved answer —
+	// the re-entry pass consumes the marker instead of re-posing the pay
+	// ask, the asking-body-under-UnlessCost$ livelock fix (Rhystic Study).
+	unlessResolved string
 	// rolls is the per-die results of the RollDice ask whose answer this
 	// point resumes (effects/dice.go's ChosenSVar$/OtherSVar$ choose-one-
 	// result shape, the Endeavor cycle): the asking first pass carried them
@@ -274,6 +281,23 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 // sets e.resume, and handleModes clears it the moment the answer lands, so
 // the resume pass re-enters the chain with nothing suspended and walks the
 // rest of it exactly once.
+// SuspendUnless implements effects.Host.SuspendUnless: the unless-cost
+// outcome of an SA whose BODY posed the pending ask (the gate had resolved
+// before the body suspended). The pending ask's resume point re-enters that
+// SA (resumeResolution's effects.Resolve(e, ctx, rp.sa)), so the recorded
+// marker rides exactly that resume point; a deeper frame's continuation
+// re-enters sa.Sub (buildContinuationChain), which bypasses the gate, so
+// those frames carry nothing.
+func (e *Engine) SuspendUnless(sa *cards.SA, paid bool) {
+	marker := "resolved-decline"
+	if paid {
+		marker = "resolved-pay"
+	}
+	if e.resume != nil && e.resume.sa == sa {
+		e.resume.unlessResolved = marker
+	}
+}
+
 func (e *Engine) Suspended() bool {
 	return e.resume != nil || e.unlessPayment != nil || e.cumulative != nil || e.triggerCost != nil
 }
@@ -1150,6 +1174,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.RevealOpt = "no"
 			}
+		case "draw_optional":
+			// OptionalDecider$ Draw (Mystic Remora, Rhystic Study): the
+			// decider's yes/no was answered. Option 0 is "yes" (draw the
+			// NumCards the unless arm did not price); anything else — option
+			// 1, an empty or malformed answer — is a decline, the same
+			// conservative read the reveal_optional arm takes. The re-entered
+			// effDraw consumes the answer before its draw loop (fx42), so a
+			// chained sub-Draw poses its own ask.
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.DrawOpt = "yes"
+			} else {
+				ctx.DrawOpt = "no"
+			}
 		case "play":
 			// A Play effect (Conduit of Worlds, Spinerock Knoll) was answered:
 			// each chosen option's Obj is a card to play from its current zone,
@@ -1260,6 +1297,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		savedReplacement := e.applyingReplacement
 		e.applyingReplacement = rp.replacement
 		e.replReplaced, e.replAction, e.replReplacedPlayer = rp.replaced, rp.action, rp.replacedPlayer
+		// The body's own re-entry (Host.SuspendUnless): the gate of THIS SA
+		// had already resolved when the body posed the pending ask, so the
+		// recorded marker re-enters it as an already-resolved answer — the
+		// unless gate consumes it and never re-poses the pay ask (the
+		// asking-body-under-UnlessCost$ livelock fix). A unless_pay resume
+		// point never carries the marker: that ask was posed by the gate
+		// itself, before any body ran. The arm's own authoritative answer
+		// (the Ward arm's beginWardPayment outcome, the generic arm's
+		// payUnlessCost outcome) wins over the marker — the gate-posed ask's
+		// own suspension also records a marker (the SA carries UnlessCost$),
+		// and letting it clobber the arm's answer counted a PAID ward as a
+		// decline (the Kitesail Larcenist regression).
+		if rp.unlessResolved != "" && ctx.UnlessPay == "" {
+			ctx.UnlessPay = rp.unlessResolved
+		}
 		effects.Resolve(e, ctx, rp.sa)
 		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
 		e.applyingReplacement = savedReplacement
