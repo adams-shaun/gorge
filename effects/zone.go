@@ -2256,9 +2256,13 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// LibraryPosition$ (Terminus' "put all creatures on the bottom of their
 	// owners' libraries") and Shuffle$ (Jace, the Mind Sculptor's [-12]
 	// "shuffles their hand into their library", Gomazoa's "put on top ... then
-	// those players shuffle") both act on the DESTINATION libraries, so the
-	// move loop records every owner that had a card moved, in the loop's own
-	// deterministic (zone-major, AliveFrom(0)-minor) order.
+	// those players shuffle") both act on the DESTINATION libraries, which are
+	// each object's OWNER's library — a battlefield creature controlled by
+	// another player (the Gomazoa / Vortex Elemental blocking shapes) still
+	// returns to its owner's library, because the MoveZone keeps its owner.
+	// The move loop therefore records every destination-library OWNER that had
+	// a card moved (read off the object, not the source-zone player), in the
+	// loop's own deterministic (zone-major, AliveFrom(0)-minor) order.
 	position := strings.TrimSpace(sa.Params["LibraryPosition"])
 	shuffle := strings.EqualFold(sa.Params["Shuffle"], "True")
 	type ownerMoved struct {
@@ -2295,7 +2299,11 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 						applyGainControl(h, c, sa, id)
 					}
 					if to == state.ZLibrary {
-						findOwnerMoved(p).ids = append(findOwnerMoved(p).ids, id)
+						owner := p
+						if o := g.Obj(id); o != nil {
+							owner = o.Owner
+						}
+						findOwnerMoved(owner).ids = append(findOwnerMoved(owner).ids, id)
 					}
 					// ChangeZoneAll's remembered movement is needed for the
 					// exiled-with-this-source cleanup/tally shape (Valakut
@@ -2323,7 +2331,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 		default:
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-				Text: "LibraryPosition$ " + position + " is not implemented; the cards go on top"})
+				Text: "LibraryPosition$ " + position + " is not implemented; the cards sit at the BOTTOM of their owners' libraries (the MoveZone append)"})
 		}
 		// Shuffle$ True shuffles each destination library that received a card,
 		// AFTER the placement (Gomazoa's "put on top ..., then those players

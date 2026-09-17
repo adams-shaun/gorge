@@ -127,12 +127,15 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	effectName := strings.TrimSpace(sa.Params["Name"])
 	// Stackable$ False (Wrenn and Six's emblem): the effect does not stack.
 	// Forge's EffectEffect.createEffect skips creating a second effect when an
-	// un-stackable one already exists; the corpus spellings are "True" and
-	// "False" ("False" on every emblem the repo decks carry), so an absent key
-	// — Forge's default — keeps the stacking behaviour. The dedup ask goes
-	// through Host.ContinuousNamed so the registry, not this resolution,
-	// decides whether the same named effect from this controller is active.
-	if !strings.EqualFold(strings.TrimSpace(sa.Params["Stackable"]), "True") &&
+	// un-stackable one already exists. Forge's default is STACKABLE — the
+	// corpus carries Stackable$ only as "False" (38 raw lines, no "True"), so
+	// the dedup gate fires ONLY on an explicit "False": an absent key keeps
+	// the stacking behaviour (en-Kor's "en-Kor Redirection" redirection
+	// stacking is the point of the card). The dedup ask goes through
+	// Host.ContinuousNamed so the registry, not this resolution, decides
+	// whether the same named effect from this controller is active.
+	if stackable, present := sa.Params["Stackable"]; present &&
+		strings.EqualFold(strings.TrimSpace(stackable), "False") &&
 		effectName != "" && h.ContinuousNamed(c.Controller, effectName) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "effect not stacked (" + effectName + ")"})

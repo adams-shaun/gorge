@@ -96,9 +96,51 @@ func TestEffectStackableFalseDoesNotStack(t *testing.T) {
 	}
 }
 
+// TestEffectStackableDefaultStacks: an AB$ Effect with Name$ and NO
+// Stackable$ is FORGE-DEFAULT STACKABLE — the corpus carries Stackable$ only
+// as "False" (38 raw lines, no "True"), so the dedup gate must fire only on
+// an explicit "False". Two activations of the same named effect stack TWO
+// registry instances and no not-stacked Note is emitted (the en-Kor
+// "en-Kor Redirection" shape, where stacking is the card's whole point).
+func TestEffectStackableDefaultStacks(t *testing.T) {
+	src := "Name:PicStackEffect\nManaCost:1\nTypes:Enchantment\n" +
+		"A:AB$ Effect | Cost$ R | Name$ PicStackEffect | StaticAbilities$ STpic | Duration$ Permanent | SpellDescription$ x\n" +
+		"SVar:STpic:Mode$ CantTarget | ValidTarget$ Creature | Description$ x\nOracle:x\n"
+	e, _, id := newFixtureDeck(t, 98, src)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	e.pending = nil
+	e.priorityRound()
+	for i := 0; i < 2; i++ {
+		addMana(t, e, 0, "R")
+		opt := abilityOption(t, e, id, 0)
+		submitChoices(t, e, opt.Index)
+		passUntilStackEmpty(t, e, 20)
+	}
+	n := 0
+	for _, ce := range e.continuous {
+		if ce.Name == "PicStackEffect" {
+			n++
+		}
+	}
+	if n != 2 {
+		t.Fatalf("absent Stackable$ registered %d PicStackEffect instances, want 2", n)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "effect not stacked") {
+			t.Fatalf("the stackable default was declined: %+v", ev)
+		}
+	}
+}
+
 // TestTerminusChangeZoneAllLibraryPositionBottom: Terminus' SP$ ChangeZoneAll
 // with LibraryPosition$ -1 puts every battlefield creature on the BOTTOM of
 // its owner's library, in the move order, with no extra placement event.
+// EVENT-NEUTRALITY PIN ONLY: "-1" is exactly the MoveZone bottom append the
+// mass move already produces, so this test stays green on a tree where the
+// LibraryPosition$ read is reverted — the READ itself is enforced by the
+// census ratchet (TestEveryRepoDeckParamsAreRead names Terminus); the
+// observable half of the read is pinned by
+// TestChangeZoneAllLibraryPositionZeroPinsTopOfOwnerLibrary below.
 func TestTerminusChangeZoneAllLibraryPositionBottom(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	terminus := mustCorpusCard(t, reg, "Terminus")
@@ -122,6 +164,54 @@ func TestTerminusChangeZoneAllLibraryPositionBottom(t *testing.T) {
 		if ev.Kind == events.Shuffle || ev.Kind == events.LibraryOrder {
 			t.Fatalf("Terminus emitted a placement/shuffle event: %+v", ev)
 		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestChangeZoneAllLibraryPositionZeroPinsTopOfOwnerLibrary: the OBSERVABLE
+// half of ChangeZoneAll's LibraryPosition$ read — "0" pins the moved cards on
+// TOP of their owners' libraries with one Secret LibraryOrder each. The
+// moved battlefield creature here is controlled by seat 0 but OWNED by seat
+// 1 (the Gomazoa / Vortex Elemental blocking shape), and the placement must
+// act on the OWNER's library the MoveZone actually landed the card in, not
+// the source-zone scan's controller.
+func TestChangeZoneAllLibraryPositionZeroPinsTopOfOwnerLibrary(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	pin := card(t, "Name:PicMassPin\nManaCost:2 U\nTypes:Sorcery\n"+
+		"A:SP$ ChangeZoneAll | ChangeType$ Creature | Origin$ Battlefield | Destination$ Library | LibraryPosition$ 0\nOracle:x\n")
+	bear := mustCorpusCard(t, reg, "Grizzly Bears")
+	e, cfg := censusEngine(t, 5353, []*cards.Card{pin, bear}, []*cards.Card{bear})
+	cardToHand(t, e, pin)
+	bear1 := moveOwnerCard(t, e, 1, bear, state.ZBattlefield)
+	// An opposing creature under seat 0's control: it scans out of seat 0's
+	// battlefield zone, but its library destination is still seat 1's.
+	e.emit(events.Event{Kind: events.ControlChange, Obj: bear1, Player: 0})
+	addMana(t, e, 0, "UUU")
+	base := len(e.L.Events)
+	castFirst(t, e, "cast")
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(bear1); o == nil || o.Zone != state.ZLibrary || o.Owner != 1 {
+		t.Fatalf("bear not in its owner's library: %+v", o)
+	}
+	lib1 := e.G.Zone(state.ZLibrary, 1)
+	if len(lib1) == 0 || lib1[0] != bear1 {
+		t.Fatalf("seat 1's bear not pinned on top of its owner's library: %v", lib1)
+	}
+	orders := 0
+	for _, ev := range e.L.Events[base:] {
+		if ev.Kind != events.LibraryOrder {
+			continue
+		}
+		orders++
+		if ev.Player != 1 {
+			t.Fatalf("LibraryOrder recorded under player %d, want the owner 1", ev.Player)
+		}
+		if len(ev.IDs) == 0 || ev.IDs[0] != bear1 {
+			t.Fatalf("LibraryOrder did not pin the bear on top: %v", ev.IDs)
+		}
+	}
+	if orders != 1 {
+		t.Fatalf("want exactly one Secret LibraryOrder placement, got %d", orders)
 	}
 	replayCheck(t, e, cfg)
 }
