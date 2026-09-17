@@ -559,13 +559,17 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// opponent has 10 or less life"). "Players" spans every living player,
 	// "Opponents" every living player but the resolving controller, the same
 	// groups the bare PlayerCountPlayers/PlayerCountOpponents heads count. A
-	// property other than the two life extremes degrades to zero, the
-	// unmodelled-head convention every other head here takes.
+	// property other than the two life extremes is NOT resolvable: (0, false)
+	// — the same verdict Count$Valid's UnknownPredicates takes — so a gate
+	// over one fails OPEN (the caller's documented direction) rather than
+	// enforcing a fake zero. An empty group also fails unresolvable
+	// (lifeExtreme reports no extreme), for the same reason: a threshold
+	// compared against an absent extreme is not readable either.
 	if rest, ok := strings.CutPrefix(head, "PlayerCountPlayers$"); ok {
 		if n, ok2 := lifeExtreme(g, g.AliveFrom(0), rest); ok2 {
 			return n, true
 		}
-		return 0, true
+		return 0, false
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
 		var opps []state.PlayerID
@@ -577,7 +581,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if n, ok2 := lifeExtreme(g, opps, rest); ok2 {
 			return n, true
 		}
-		return 0, true
+		return 0, false
 	}
 
 	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
@@ -802,9 +806,10 @@ func modeledProperty(prop string) bool {
 }
 
 // lifeExtreme answers PlayerCount...$LowestLifeTotal / $HighestLifeTotal:
-// the lowest/highest CURRENT life total among the given players. An empty
-// group has no extreme and answers (0, false) — the caller degrades to zero,
-// the unmodelled-head convention.
+// the lowest/highest CURRENT life total among the given players. Anything
+// else — another property, or an empty group (no extreme exists) — reports
+// (0, false): the caller degrades to unresolvable, so a gate over the shape
+// fails open rather than enforcing a fake zero.
 func lifeExtreme(g *state.Game, players []state.PlayerID, prop string) (int32, bool) {
 	prop = strings.TrimSpace(prop)
 	if prop != "LowestLifeTotal" && prop != "HighestLifeTotal" {

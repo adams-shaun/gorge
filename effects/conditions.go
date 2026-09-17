@@ -35,11 +35,11 @@ import (
 //     name). No SVarCompare$ means "nonzero", Forge's default truthiness
 //     read. The shared evaluator is CheckSVarHolds below — the same one the
 //     statics' CheckSVar$ (rules.Engine.checkSVarHolds) and the
-//     ability-offer gate (rules/legal.go sVarGateOK) delegate to. An
-//     unmodelled count body degrades to zero (the convention Num,
-//     EvalCount and the statics helper all take), so an unreadable gate
-//     fails its compare and the gated ability stays quiet — the card-did-
-//     nothing direction, not the arbitrary one.
+//     ability-offer gate (rules/legal.go sVarGateOK) delegate to. The FAIL
+//     DIRECTION on an unmodelled count body is the CALLER's, not this
+//     file's: CheckSVarHolds reports evaluated=false and each of the three
+//     call sites documents its own choice — conditionMet and the offer gate
+//     fail OPEN (run-anyway), the statics wrapper fails CLOSED.
 //  4. a bare `Condition$` whose value is `Kicked` — the source was cast
 //     with its Kicker paid (Into the Roil's "If this spell was kicked,
 //     draw a card", the corpus's dominant bare-Condition value at 54 SAs).
@@ -71,18 +71,8 @@ import (
 // gate — the ONE SVar-compare evaluator this build ships, shared by three
 // call sites: conditionMet's ConditionCheckSVar$ branch (this file),
 // rules.Engine.checkSVarHolds (the statics' CheckSVar$), and rules/legal.go's
-// ability-offer gate (an AB's CheckSVar$, Bloodsoaked Champion's Raid). The
-// named SVar (c.SVars first, then the source face's own table) or the raw
-// inline Count$-style expression is evaluated with EvalCount and compared
-// under cmp ("<op><threshold>", e.g. GE11 — the threshold may also be an
-// SVar name or an inline expression, resolved the same way). No cmp means
-// "nonzero" (Forge's default truthiness read); an unknown operator or a
-// threshold that resolves nowhere fails. An unmodelled count body degrades
-// to zero — the convention Num, EvalCount and the pre-existing statics
-// helper all take — so an unimplementable gate reads false and whatever it
-// gates stays quiet (the card-did-nothing direction), never arbitrary.
-// CheckSVarHolds evaluates Forge's CheckSVar$/SVarCompare$ intervening-if
-// gate and reports (holds, evaluated). holds is the compare's answer;
+// ability-offer gate (an AB's CheckSVar$, Bloodsoaked Champion's Raid). It
+// reports (holds, evaluated). holds is the compare's answer;
 // evaluated is false when the gate's count body is not one the evaluator
 // models (EvalCountOK's verdict) or the compare operator/threshold is
 // unreadable — the caller picks its own fail direction for that case, and

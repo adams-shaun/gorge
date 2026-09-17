@@ -1819,6 +1819,8 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	// SubAbility$ sees an unchanged Remembered (Braids's RepeatEach then
 	// iterates nobody and Cleanup clears). A host that cannot ask keeps the
 	// mandatory stand-in (R-9): eligible[:n], today's pre-Optional behaviour.
+	// The ask runs ONLY when exactly one player is targeted (see playerTargets
+	// below); a multi-player optional line keeps the mandatory stand-in.
 	optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
 	// Damage-replacement bodies carry the amount of the event they replace.
 	// The sole corpus Sacrifice body in that class is Dralnu's "sacrifice that
@@ -1855,6 +1857,22 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	if _, targeted := sa.Params["ValidTgts"]; !targeted && strings.TrimSpace(sa.Params["Defined"]) == "" {
 		if v := strings.TrimSpace(sa.Params["SacValid"]); v != "" && v != "Self" && v != "Card.Self" {
 			who = []state.Target{{Player: c.Controller, IsPlayer: true}}
+		}
+	}
+	// How many PLAYER targets the walk below carries. The Optional$ ask binds
+	// its answer through Ctx.Sacrifice, which names no target: a mid-loop
+	// suspension makes the shared "sacrifice" resume arm re-run this walk from
+	// the top, where target 1 consumes target 2's answer (and the controller
+	// revalidation discards it) and target 2 re-asks forever — measured as an
+	// infinite re-ask wedge on Desecration Demon with two opponents. The ask
+	// is therefore posed only when exactly ONE player is targeted — the
+	// corpus's live optional-player-target population (Braids, Scapeshift,
+	// Defined$ You) is all single-target — and a multi-player optional line
+	// keeps the mandatory stand-in, the documented R-9 degradation class.
+	playerTargets := 0
+	for _, t := range who {
+		if t.IsPlayer {
+			playerTargets++
 		}
 	}
 	// Pre-batch discipline (effDestroyAll's): the objects this effect will
@@ -1919,10 +1937,12 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			// different outcome from the stand-in's take-n. No ask when nothing
 			// is eligible (declining and taking are the same no-op), and the
 			// Annihilator window above wins should a line ever carry both (none
-			// does). The answer re-enters through the shared "sacrifice" resume
-			// arm (rules/resolution.go), which fills Ctx.Sacrifice — possibly
-			// empty — and re-runs this effect, which reads it below.
-			if chosen == nil && optional && n > 0 && len(eligible) > 0 && sa.Params["Annihilator"] == "" {
+			// does). The single-player-target gate is the wedge guard described
+			// at playerTargets above. The answer re-enters through the shared
+			// "sacrifice" resume arm (rules/resolution.go), which fills
+			// Ctx.Sacrifice — possibly empty — and re-runs this effect, which
+			// reads it below.
+			if chosen == nil && optional && n > 0 && len(eligible) > 0 && sa.Params["Annihilator"] == "" && playerTargets == 1 {
 				opts := make([]decision.Option, 0, len(eligible))
 				for _, id := range eligible {
 					opts = append(opts, decision.Option{Index: len(opts), Kind: "sacrifice", Obj: id, Label: g.Obj(id).Face().Name})

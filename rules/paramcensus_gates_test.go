@@ -15,6 +15,11 @@
 //   - Bloodsoaked Champion: an AB's CheckSVar$/SVarCompare$ activation gate
 //     read at OFFER time (rules/legal.go sVarGateOK) -- Count$AttackersDeclared
 //     zero means the legal-action walk does not offer the return.
+//   - Into the Roil: the bare Condition$ Kicked branch of conditionMet -- the
+//     draw leg fires only when the spell was actually cast kicked.
+//   - Desecration Demon: the Optional$ ask's single-player-target gate -- a
+//     multi-player optional sacrifice keeps the mandatory stand-in and the
+//     table does NOT wedge (the r2 review's measured infinite re-ask).
 //
 // Every fixture card is a REAL deck card (the corpus protagonist plus authored
 // extras) moved with logged MoveZone events, so each test's replayCheck holds
@@ -250,6 +255,11 @@ func TestBloodsoakedChampionRaidGateOffersOnlyAfterAttacking(t *testing.T) {
 func TestGateChainWiring(t *testing.T) {
 	e, _, id := gateFixture(t, 906, "Bloodsoaked Champion")
 	o := e.G.Obj(id)
+	// Face() hands out the registry-singleton card's face shared with every
+	// other holder of this card -- restore the original table when the test
+	// ends so no later test reads the polluted map (order-dependent rot).
+	origSVars := o.Face().SVars
+	t.Cleanup(func() { o.Face().SVars = origSVars })
 	o.Face().SVars = map[string]string{"X": "Count$xPaid"}
 	ctx := &effects.Ctx{Source: id, Controller: 0, SVars: o.Face().SVars, X: 3}
 	holds, evaluated := effects.CheckSVarHolds(e, ctx, "X", "GE3")
@@ -269,4 +279,135 @@ func TestGateChainWiring(t *testing.T) {
 	if !evaluated || !holds {
 		t.Fatalf("CheckSVarHolds(AttackersDeclared EQ0) = (%v, %v), want (true, true)", holds, evaluated)
 	}
+}
+
+const gateRaiderSrc = "Name:Raider\nTypes:Creature\nPT:1/1\nOracle:x\n"
+
+// TestIntoTheRoilKickedConditionDrawsOnlyWhenKicked drives the real corpus
+// card's bare `Condition$ Kicked` gate (effects/conditions.go): the chained
+// DB$ Draw leg runs only when the spell was cast with its Kicker paid (the
+// source's FlagKicked cast bit), not on the plain cast. Both casts return the
+// targeted permanent to its owner's hand either way; only the kicked cast
+// draws.
+func TestIntoTheRoilKickedConditionDrawsOnlyWhenKicked(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		kicked bool
+	}{
+		{"kicked", true},
+		{"unkicked", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, cfg, roil := gateFixture(t, 907, "Into the Roil", gateRaiderSrc)
+			raider := gateMoveFromLibrary(t, e, "Raider", state.ZBattlefield)
+			addMana(t, e, 0, "UUUU") // {1}{U} either way; the kicker wants two more
+			d := e.Pending()
+			if d == nil || d.Kind != decision.KPriority {
+				t.Fatalf("not at priority: %+v", d)
+			}
+			idx := -1
+			for _, o := range d.Options {
+				if o.Kind == "cast" && o.Obj == roil && o.Mode == map[bool]string{true: "kicked", false: ""}[tc.kicked] {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("no %s cast option: %+v", tc.name, d.Options)
+			}
+			handBefore := len(e.G.Zone(state.ZHand, 0))
+			libBefore := len(e.G.Zone(state.ZLibrary, 0))
+			submitChoices(t, e, idx)
+			d = e.Pending()
+			if d == nil || d.Kind != decision.KTarget {
+				t.Fatalf("target ask missing: %+v", d)
+			}
+			tIdx := -1
+			for _, o := range d.Options {
+				if o.Obj == raider {
+					tIdx = o.Index
+				}
+			}
+			if tIdx < 0 {
+				t.Fatalf("raider not offered as the target: %+v", d.Options)
+			}
+			submitChoices(t, e, tIdx)
+			passUntilStackEmpty(t, e, 20)
+			if z := e.G.Obj(roil).Zone; z != state.ZGraveyard {
+				t.Fatalf("Into the Roil zone %v, want the graveyard", z)
+			}
+			if z := e.G.Obj(raider).Zone; z != state.ZHand {
+				t.Fatalf("raider zone %v, want returned to hand", z)
+			}
+			// The leg under test: exactly one extra card drawn (hand +1, library
+			// -1) when kicked, none otherwise. The raider's return accounts for
+			// the -1/+1 of the spell leaving the hand and the raider entering it.
+			wantHand, wantLib := handBefore, libBefore
+			if tc.kicked {
+				wantHand, wantLib = handBefore+1, libBefore-1
+			}
+			if got := len(e.G.Zone(state.ZHand, 0)); got != wantHand {
+				t.Fatalf("hand = %d, want %d", got, wantHand)
+			}
+			if got := len(e.G.Zone(state.ZLibrary, 0)); got != wantLib {
+				t.Fatalf("library = %d, want %d", got, wantLib)
+			}
+			replayCheck(t, e, cfg)
+		})
+	}
+}
+
+// TestDesecrationDemonMultiTargetOptionalDoesNotWedge pins the Optional$ ask's
+// single-player-target gate on the real corpus card the r2 review wedged with:
+// with TWO opponents, Defined$ Opponent + Optional$ True + a real host made
+// the shared "sacrifice" resume arm re-run effSacrifice's target walk, target
+// 1 consumed target 2's answer, and seat 2 was re-asked forever (11
+// consecutive asks before the probe capped). With the gate, the multi-target
+// shape keeps the mandatory stand-in: no ask at all, each opponent
+// sacrifices their first eligible creature, and the RememberSacrificed$
+// chain (tap + P1P1 counter, gated on Remembered$Amount) fires.
+func TestDesecrationDemonMultiTargetOptionalDoesNotWedge(t *testing.T) {
+	victim := "Name:Victim\nTypes:Creature\nPT:1/1\nOracle:x\n"
+	fixture := choiceCorpusCard(t, "Desecration Demon")
+	cfg := seatZeroStart(Config{Seed: 908, Names: []string{"a", "b", "c"},
+		Decks: [][]*cards.Card{
+			append([]*cards.Card{fixture}, mountainDeck(t, 39)...),
+			append([]*cards.Card{card(t, victim)}, mountainDeck(t, 39)...),
+			append([]*cards.Card{card(t, victim)}, mountainDeck(t, 39)...),
+		},
+		Tokens: map[string]*cards.Card{},
+	})
+	e := New(cfg)
+	e.Advance()
+	demon := findInZones(t, e, 0, "Desecration Demon")
+	if demon == 0 {
+		t.Fatal("Desecration Demon not in seat 0's hand or library")
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: demon, From: state.ZHand, To: state.ZBattlefield})
+	var victims []state.ObjID
+	for _, p := range []state.PlayerID{1, 2} {
+		id := findInZones(t, e, p, "Victim")
+		if id == 0 {
+			t.Fatalf("Victim not in seat %d's hand or library", p)
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+		victims = append(victims, id)
+	}
+	e.emit(events.Event{Kind: events.TriggerPush, Obj: demon, Player: 0, Amount: 0})
+	e.resolveTop()
+	// The wedge guard itself: no ASK may be pending (multi-target keeps the
+	// mandatory stand-in), and resolution completed. A priority decision is
+	// the ordinary post-resolution game flow, not an ask.
+	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
+		t.Fatalf("an ask decision is still pending -- the multi-target optional ask ran: %+v", d)
+	}
+	for i, id := range victims {
+		if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+			t.Fatalf("victim %d zone %v, want sacrificed by the mandatory stand-in", i, z)
+		}
+	}
+	dm := e.G.Obj(demon)
+	if !dm.Tapped || dm.Counter("P1P1") != 1 {
+		t.Fatalf("demon tapped=%v P1P1=%d, want tapped +1 (a sacrifice happened)", dm.Tapped, dm.Counter("P1P1"))
+	}
+	replayCheck(t, e, cfg)
 }
