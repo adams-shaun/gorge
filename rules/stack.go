@@ -1655,6 +1655,29 @@ func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
 	return n
 }
 
+// LifeGainedThisTurn satisfies effects.Host's LifeGainedThisTurn for
+// Count$LifeYouGainedThisTurn (the "At the beginning of each end step, if you
+// gained 4 or more life this turn" family's CheckSVar$ gate — Angelic Accord,
+// Resplendent Angel, Valkyrie Harbinger): the total life p gained this turn,
+// summed from every LifeChange above zero since the last TurnChange. Derived
+// from the event log like LifeLostThisTurn, so a replay that rebuilds the
+// game arrives at the same number. Life LOST is not folded in — "gained
+// life" counts only positive LifeChanges (CR 118.3's distinction, the same
+// one-sided read LifeLostThisTurn takes in the other direction).
+func (e *Engine) LifeGainedThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount > 0 {
+			n += ev.Amount
+		}
+	}
+	return n
+}
+
 // TurnsTaken satisfies effects.Host's TurnsTaken for Count$YourTurns (Serra
 // Avenger's "your first, second, or third turns of the game"): the number of
 // turns that have BEGUN with p as the active player, current turn included.

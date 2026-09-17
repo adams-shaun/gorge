@@ -86,6 +86,10 @@ func (h *fakeHost) CastThisTurn() int { return 0 }
 // conservative no-op as CastThisTurn).
 func (h *fakeHost) LifeLostThisTurn(_ state.PlayerID) int32 { return 0 }
 
+// LifeGainedThisTurn has no event log here; the double reports zero (the
+// same conservative no-op as LifeLostThisTurn).
+func (h *fakeHost) LifeGainedThisTurn(_ state.PlayerID) int32 { return 0 }
+
 // TurnsTaken has no event log here; the double reports zero.
 func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
 

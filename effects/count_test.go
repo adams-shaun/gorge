@@ -283,11 +283,12 @@ func moveTo(g *state.Game, id state.ObjID, z state.Zone) {
 var _ = cards.Card{}
 
 // TestPlayerCountExtremePropertiesFailUnresolvable pins the r2 review's
-// fail-direction fix on the PlayerCount wrapper: only the two life extremes
-// (LowestLifeTotal/HighestLifeTotal) are evaluated; ANY other property —
-// e.g. HighestCardsInHand — reports (0, false), so a gate over one fails
-// OPEN at its caller (the same verdict Count$Valid's UnknownPredicates
-// takes) instead of silently enforcing a fake zero.
+// fail-direction fix on the PlayerCount wrapper: the two life extremes
+// (LowestLifeTotal/HighestLifeTotal) and the count/counted-quantity extremes
+// (HighestValid/LowestValid over any Count$ zone, plus the
+// HighestLifeLostThisTurn pair) are evaluated; ANY other property — e.g.
+// HighestCardsInHand — reports (0, false), so a gate over one fails per its
+// caller's documented direction instead of silently enforcing a fake zero.
 func TestPlayerCountExtremePropertiesFailUnresolvable(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}

@@ -94,6 +94,14 @@ type Host interface {
 	// Count$LifeOppsLostThisTurn backing (Rakdos, Lord of Riots' cost
 	// reduction): the Count$ head sums it over the controller's opponents.
 	LifeLostThisTurn(p state.PlayerID) int32
+	// LifeGainedThisTurn reports the total life player p GAINED this turn —
+	// the sum of every LifeChange above zero since the last TurnChange,
+	// derived from the event log so a replay derives the same number. This is
+	// the Count$LifeYouGainedThisTurn backing (the "At the beginning of each
+	// end step, if you gained 4 or more life this turn" family — Angelic
+	// Accord, Resplendent Angel, Valkyrie Harbinger — whose CheckSVar$ gate
+	// reads the count), the mirror of LifeLostThisTurn.
+	LifeGainedThisTurn(p state.PlayerID) int32
 	// TurnsTaken reports how many of the game's turns have begun with p as
 	// the active player, INCLUDING the turn in progress when it is p's —
 	// Forge's Player.getTurns backing (Serra Avenger's
