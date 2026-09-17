@@ -349,7 +349,13 @@ func Describe(g *state.Game, ev events.Event) string {
 		if ev.Text == "" {
 			return obj(g, ev.Obj) + " sets up a delayed trigger"
 		}
-		return obj(g, ev.Obj) + " sets up a delayed trigger for " + ev.Text
+		// A ValidPlayer$-gated registration's Text carries the "|VP=<value>"
+		// suffix the rules side decodes; the display keeps the phase only.
+		phase := ev.Text
+		if i := strings.Index(phase, "|VP="); i >= 0 {
+			phase = phase[:i]
+		}
+		return obj(g, ev.Obj) + " sets up a delayed trigger for " + phase
 	case events.DelayedPush:
 		// The registered phase arrived and the delayed ability went on the
 		// stack. Obj is the minted stack object; its source name is what a
