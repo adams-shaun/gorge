@@ -29,6 +29,15 @@ func ParseZone(s string) state.Zone {
 	return z
 }
 
+// ParseZoneWord is parseZone's exported form for callers that must react to
+// an UNKNOWN zone word (fail closed) rather than silently degrading to a
+// graveyard the way ParseZone does: the trigger-side PresentZone$ clause's
+// recognised-vocabulary check shares this one classification with every
+// other zone word so the two cannot disagree.
+func ParseZoneWord(s string) (state.Zone, bool) {
+	return parseZone(s)
+}
+
 func parseZone(s string) (state.Zone, bool) {
 	switch strings.TrimSpace(s) {
 	case "Hand":

@@ -46,7 +46,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if o := e.G.Obj(e.inFlightDamageSource()); o != nil && o.IsAttacking {
 			c.DefendingPlayer = player(o.Attacking)
 		}
-	case "Attacks", "AttackersDeclaredOneTarget":
+	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		c.DefendingPlayer = player(ev.Player)
 		c.AttackedTarget = player(ev.Player)
 		if len(ev.IDs) > 0 {
@@ -57,7 +57,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// several matching attackers caused this one queued trigger.
 		matches := 0
 		for _, id := range ev.IDs {
+			// Attacks reads ValidCard$; the AttackersDeclared family reads
+			// ValidAttackers$ -- the same per-attacker filter under its own
+			// name.
 			spec := t.Params["ValidCard"]
+			if spec == "" && t.Mode == "AttackersDeclared" {
+				spec = t.Params["ValidAttackers"]
+			}
 			if (spec == "" && id == source) || (spec != "" && effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, e.controllerOf(source)))) {
 				matches++
 				c.TriggerCard = id

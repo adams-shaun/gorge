@@ -924,6 +924,34 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// player there is no binding, so it fails closed even beneath '!'.
 		return matchControlReferent(g, o, sc, "ControlledBy", "RememberedPlayer")
 	}
+	if p == "blockingTriggeredAttacker" {
+		// Forge's Creature.blockingTriggeredAttacker (She-Hulk,
+		// Wallbreaker's blocker count): the candidate is a battlefield
+		// creature currently blocking the become-blocked trigger's blocked
+		// attacker -- the ctx TriggerCard the per-attacker queue entry
+		// carried. Resolution-only: with no TriggerCard binding (no trigger
+		// ctx, or a trigger whose batch matched none) it fails closed, even
+		// beneath '!'. BlockedBy lives on the ATTACKER (events.Apply's
+		// DeclareBlockers case appends the blocker to the attacked
+		// permanent), so the read is the triggered attacker's own list -- the
+		// same read isBlocking makes, scoped to one attacker instead of any.
+		if sc.TriggerCard == 0 {
+			return false, true
+		}
+		if o.Zone != state.ZBattlefield {
+			return false, true
+		}
+		a := g.Obj(sc.TriggerCard)
+		if a == nil || a.Zone != state.ZBattlefield {
+			return false, true
+		}
+		for _, b := range a.BlockedBy {
+			if b == o.ID {
+				return true, true
+			}
+		}
+		return false, true
+	}
 	if p == "IsRemembered" {
 		// Forge's IsRemembered (CardProperty "IsRemembered" ->
 		// source.isRemembered(card)): the candidate is in the remembered list
