@@ -106,7 +106,11 @@ type Object struct {
 	// It is never a second source of truth for a completed zone change.
 	PreStackEntryThisTurn bool
 	PreStackEntryFrom     Zone
-	HasPreStackEntry      bool
+	// PreStackEnteredLen is the entry-list boundary before a proposed cast.
+	// A CR 733.1 reverse restores that boundary, removing the proposal and
+	// every reversible cost move it made without touching earlier casts.
+	PreStackEnteredLen int
+	HasPreStackEntry   bool
 
 	// Incarnation advances whenever an object crosses the battlefield
 	// boundary. ObjID is stable for the match, but a permanent that leaves and
@@ -174,10 +178,20 @@ type Object struct {
 	// source of truth. Nil when no modal announcement has been made.
 	ChosenModes []string
 
-	// Imprinted is the ordered set of cards exiled by this permanent's
-	// Imprint$ effect. It is state because later abilities (Chrome Mox) refer
-	// to it after the originating resolution has ended.
+	// Imprinted holds cards ImprintCards$ explicitly associated with this
+	// object. It is distinct from ExiledCards: Forge's host card has separate
+	// imprintedCards and exiledCards collections, and their consumers must not
+	// make an ordinary exile satisfy an Imprinted selector. It is state
+	// because later abilities (Chrome Mox) refer to it after the originating
+	// resolution has ended.
 	Imprinted []ObjID
+	// ExiledCards holds cards this object exiled through ChangeZone (Forge's
+	// hostCard.exiledCards). The association exists only while the card
+	// remains in exile; events.Move removes it when the card leaves. It is
+	// what DefinedCards$ ExiledWith consumes, not the Imprinted list above,
+	// and it is distinct from the ExiledWith ObjID field below (that one is
+	// the reverse relationship: what exiled THIS card).
+	ExiledCards []ObjID
 
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
 	// means unattached. Reset whenever the object itself leaves the
@@ -272,6 +286,7 @@ func (o *Object) CloneDeep() Object {
 	c.Goads = append([]GoadEffect(nil), o.Goads...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
+	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	return c
 }
 

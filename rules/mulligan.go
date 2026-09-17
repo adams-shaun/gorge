@@ -184,24 +184,6 @@ func keepMulliganPrompt(starterName string, bottom, taken, limit, freeMulligans 
 	return starterName + " plays first. " + choice
 }
 
-// mulliganStarterName is the seat-facing identity for the pregame prompt.
-// PlayerName is supplied by the table and identifies a human even when two
-// players chose the same deck; Name is the deterministic fallback for bots or
-// callers without display names. The final fallback is defensive: mulligan
-// seats originate from AliveFrom, but malformed state must not panic while
-// constructing a client decision.
-func mulliganStarterName(g *state.Game, p state.PlayerID) string {
-	if g != nil && int(p) < len(g.Players) {
-		if name := g.Players[p].PlayerName; name != "" {
-			return name
-		}
-		if name := g.Players[p].Name; name != "" {
-			return name
-		}
-	}
-	return fmt.Sprintf("seat %d", p)
-}
-
 func (e *Engine) askKeepMulligan(i int) {
 	m := &e.mulligan
 	p := m.seats[i]
@@ -216,7 +198,7 @@ func (e *Engine) askKeepMulligan(i int) {
 	// the toss winner AliveFrom(start) begins with), so the decision is
 	// made knowing play/draw without opening the transcript.
 	e.ask(decision.New(p, decision.KMulligan,
-		keepMulliganPrompt(mulliganStarterName(e.G, m.seats[0]), m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
+		keepMulliganPrompt(seatFacingName(e.G, m.seats[0]), m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
 }
 
 // askBottoming offers seat i a bottoming decision over its kept hand: one

@@ -465,7 +465,9 @@ func (e *Engine) targetName(source state.ObjID) string {
 // one helper so an ability object can never reach a nil-Face dereference in
 // either.
 func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
-	label := e.G.Players[candidate.player].Name
+	// The controller's name is seat-facing (the seat that answers sees it),
+	// so it prefers the table's display name over the deck-identity slug.
+	label := seatFacingName(e.G, candidate.player)
 	if candidate.obj != 0 {
 		label = e.targetName(candidate.obj) + " (" + label + ")"
 	}
@@ -700,16 +702,50 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := targetBounds(sa)
+	candidates := e.legalTargetCandidates(p, source, source, sa)
+	oneEach := strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True")
+	groups := map[state.PlayerID]bool{}
+	if oneEach {
+		// Forge TargetRestrictions.setForEachPlayer limits the selected targets
+		// to one controlled by each player. Option.Group makes that restriction
+		// part of the generic decision contract, so every target API consumes
+		// the same enforcement rather than each effect maintaining a picker.
+		for _, candidate := range candidates {
+			owner := candidate.player
+			if candidate.kind != "player" {
+				if o := e.G.Obj(candidate.obj); o != nil {
+					owner = o.Controller
+				}
+			}
+			groups[owner] = true
+		}
+		if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
+			min = len(groups)
+		}
+		if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
+			max = len(groups)
+		}
+	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
-	for _, candidate := range e.legalTargetCandidates(p, source, source, sa) {
+	for _, candidate := range candidates {
 		// targetOptionLabel tolerates the Face-less ability object a
 		// TargetType$ Activated/Triggered spec now offers: targetName falls
 		// back to the source permanent's name.
 		label := e.targetOptionLabel(candidate)
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
-			Label: label, Obj: candidate.obj, Player: candidate.player})
+		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: label, Obj: candidate.obj, Player: candidate.player}
+		if oneEach {
+			owner := candidate.player
+			if candidate.kind != "player" {
+				if obj := e.G.Obj(candidate.obj); obj != nil {
+					owner = obj.Controller
+				}
+			}
+			o.Group = "target-controller-" + strconv.Itoa(int(owner))
+		}
+		d.Options = append(d.Options, o)
 	}
 	if min == 0 {
 		// Requirement N2 / totality: a target-hungry subject whose minimum
