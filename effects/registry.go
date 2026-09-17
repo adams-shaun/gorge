@@ -94,6 +94,13 @@ type Host interface {
 	// Count$LifeOppsLostThisTurn backing (Rakdos, Lord of Riots' cost
 	// reduction): the Count$ head sums it over the controller's opponents.
 	LifeLostThisTurn(p state.PlayerID) int32
+	// TurnsTaken reports how many of the game's turns have begun with p as
+	// the active player, INCLUDING the turn in progress when it is p's —
+	// Forge's Player.getTurns backing (Serra Avenger's
+	// Count$YourTurns: "your first, second, or third turns of the game").
+	// Derived from the event log like LifeLostThisTurn, so a replay derives
+	// the same number; a turn that begins is one TurnChange event naming p.
+	TurnsTaken(p state.PlayerID) int32
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the

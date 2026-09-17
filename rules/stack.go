@@ -1540,6 +1540,24 @@ func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
 	return n
 }
 
+// TurnsTaken satisfies effects.Host's TurnsTaken for Count$YourTurns (Serra
+// Avenger's "your first, second, or third turns of the game"): the number of
+// turns that have BEGUN with p as the active player, current turn included.
+// Derived from the event log like LifeLostThisTurn — every turn p begins
+// emits exactly one TurnChange naming p (events.Apply's TurnChange case),
+// extra turns included, so a replay that rebuilds the log arrives at the
+// same count. The whole-log walk (not a TurnChange-bounded scan) is the
+// point: the count spans the game, not one turn.
+func (e *Engine) TurnsTaken(p state.PlayerID) int32 {
+	var n int32
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TurnChange && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
 // targetsPlayers and targetsPermanents read the coarse shape of a ValidTgts
 // spec. The per-object predicate work is effects.MatchesSpec.
 

@@ -509,6 +509,12 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 			}
 		}
 		return n
+	case "YourTurns":
+		// How many of the game's turns have begun with the controller as the
+		// active player, current turn included (Serra Avenger's "your first,
+		// second, or third turns of the game"). Log-derived through the Host
+		// like LifeOppsLostThisTurn, so a replay derives the same number.
+		return h.TurnsTaken(c.Controller)
 	case "CardPower":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
 			return refPower(h, o, false)
