@@ -309,7 +309,7 @@ const (
 	// (for combat pairing), or the object's own zone/counters. They are
 	// classified here so the matcher and UnknownPredicates cannot disagree
 	// about whether a word is recognised, exactly as the type-word family is.
-	wordInZoneStack
+	wordInZone
 	wordActivePlayerCtrl
 	wordTopLibrary
 	wordHasCounters
@@ -391,13 +391,20 @@ func wordPredicate(p string) (wordKind, string) {
 	if p == "sameName" {
 		return wordSameName, ""
 	}
+	// Forge's inZone<Zone> property (CardProperty inZone<Zone>): the object
+	// sits in the named zone. The old specific inZoneStack spelling folds
+	// into the generic form (both mean Zone == ZStack); an unresolvable zone
+	// name falls through to wordUnknown and fails closed.
+	if z, ok := strings.CutPrefix(p, "inZone"); ok && z != "" {
+		if _, is := parseZone(z); is {
+			return wordInZone, z
+		}
+	}
 	switch p {
 	case "Colorless":
 		return wordColorless, ""
 	case "MultiColor":
 		return wordMultiColor, ""
-	case "inZoneStack":
-		return wordInZoneStack, ""
 	case "wasCast":
 		return wordWasCast, ""
 	case "ActivePlayerCtrl":
@@ -494,11 +501,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// (rules.derivedWith) admits the spell a cast is announcing, which is
 		// still in hand at CR 601.2b but IS the spell being cast.
 		return (o.Zone == state.ZStack || sc.AsStack) && o.Card != nil
-	case wordInZoneStack:
-		// Forge's inZoneStack: the object is a spell or ability currently on
-		// the stack (a spell carries its card face; an ability object has
-		// Card == nil, but both have Zone == ZStack).
-		return o.Zone == state.ZStack
+	case wordInZone:
+		// Forge's inZone<Zone>: the object is in that zone (measured at the
+		// corpus pin: inZoneBattlefield 272 raw occurrences, inZoneStack 30,
+		// inZoneGraveyard 20, inZoneHand 9, inZoneLibrary 4, inZoneExile 4 --
+		// InZones$ is a separate parameter key, not a predicate word).
+		z, ok := parseZone(key)
+		return ok && o.Zone == z
 	case wordActivePlayerCtrl:
 		// Forge's ActivePlayerCtrl: the object is controlled by the active
 		// player -- the seat whose turn it is, g.Active.
@@ -1210,6 +1219,15 @@ func matchesBase(g *state.Game, base string, o *state.Object) bool {
 		// it is not a permanent on the stack.
 		return o.Zone != state.ZStack && o.Face() != nil && o.Face().IsPermanent()
 	case "Spell":
+		return o.Zone == state.ZStack
+	case "SpellAbility":
+		// Forge's SpellAbility base (ValidSource$ SpellAbility.OppCtrl on the
+		// "becomes the target of a spell or ability" family -- Thunderbreak
+		// Regent and 51 more files): any spell or ability object on the stack.
+		// The shared filter draws the Spell/SpellAbility line by zone alone;
+		// the card-spell-only distinction TargetType$ Spell draws
+		// (rules/stack.go's stack kind tokens) is that machinery's own, not
+		// this one's.
 		return o.Zone == state.ZStack
 	}
 	return hasType(o, base)

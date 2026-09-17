@@ -353,11 +353,28 @@ func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 		} else {
 			return nil, false
 		}
-	case "TriggeredSourceSAController", "TriggeredSourceController", "TriggeredSpellAbilityController", "NonTriggeredCardController":
-		// These forms name the controller of the resolving/triggering source,
-		// not the target's controller. Ctx.Controller is bound from that source
-		// when the triggered ability is put on the stack and survives its source
-		// leaving play.
+	case "TriggeredSourceSAController", "TriggeredSourceController", "TriggeredSpellAbilityController":
+		// These forms name the controller of the source the triggering EVENT
+		// captured -- the targeting spell a BecomesTarget trigger holds in
+		// TriggerSource (Reality Smasher, Kira, the glasskite family: "unless
+		// its controller discards"), or the dealing source a DamageDone
+		// trigger captured -- not the resolving trigger's controller. The
+		// role is preferred when the firing trigger captured one, the same
+		// precedence effects/context.go's TriggeredSourceController defined-
+		// arm uses; Ctx.Controller (the trigger source's own controller,
+		// bound at pushTrigger) stays the fallback for contexts without the
+		// role.
+		if c.TriggerSource != 0 {
+			if o := g.Obj(c.TriggerSource); o != nil {
+				add(o.Controller)
+				return out, true
+			}
+		}
+		add(c.Controller)
+	case "NonTriggeredCardController":
+		// The controller of the (non-triggered) resolving card -- the caster
+		// the SpellCast trigger watched. Ctx.Controller is bound from that
+		// source when the ability is put on the stack.
 		add(c.Controller)
 	case "TriggeredTargetController":
 		if !c.TriggerTarget.IsPlayer && c.TriggerTarget.Obj == 0 {

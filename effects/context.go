@@ -200,9 +200,42 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return nil, true
 	case "Player.IsRemembered":
+		// Forge's Player.IsRemembered names the source permanent's persistent
+		// player-Remembered list -- the same set the filter spelling of the
+		// same name reads (MatchesPlayerSpecFrom). The resolution-time
+		// remember stays the fallback for a context with no source or an
+		// empty persistent list (Only Blood Ends Your Nightmares' RepeatEach
+		// remembers its current opponent only in the resolution; a mid-chain
+		// ChoosePlayer's RememberChosen$ answer is in both). Sower of
+		// Discord is why the persistent list wins: its DamageDoneOnce half
+		// reflects damage onto the card's remembered player, and the event
+		// role a Damage trigger captures (Ctx.Remembered = the damaged
+		// player) is not a remember at all.
+		if o := g.Obj(c.Source); o != nil {
+			if ps := playersOf(o.Remembered); len(ps) > 0 {
+				return ps, true
+			}
+		}
 		return playersOf(c.Remembered), true
 	case "Player.Chosen":
-		return playersOf(c.Chosen), true
+		// Forge's Player.Chosen names the most recent ChoosePlayer answer:
+		// the in-flight choice while this resolution holds one (the mid-chain
+		// family -- Booby Trap, Infernal Denizen, Cruel Entertainment -- and
+		// the current-resolution convention ChosenPlayer above keeps), else
+		// the source permanent's event-backed choice. Sower of Discord is why
+		// the persistent fallback matters: its DamageDoneOnce half reflects
+		// damage onto the card's chosen player from a trigger resolution
+		// that itself chose nothing.
+		if c.ChosenValid {
+			return playersOf(c.Chosen), true
+		}
+		if ps := playersOf(c.Chosen); len(ps) > 0 {
+			return ps, true
+		}
+		if o := g.Obj(c.Source); o != nil {
+			return playersOf(o.Chosen), true
+		}
+		return nil, true
 	case "RememberedController":
 		return controllersOf(g, c.Remembered), true
 	case "RememberedOwner":
@@ -214,12 +247,16 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
 		return copyTargets(c.Targets), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
-		"TriggeredSpellAbility", "TriggeredAttacker", "TriggeredAttackerLKICopy",
-		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
-		"DelayTriggerRememberedLKI", "RememberedLKI":
+		"TriggeredSpellAbility", "TriggeredSourceSA", "TriggeredAttacker",
+		"TriggeredAttackerLKICopy", "TriggeredTargetLKICopy",
+		"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
+		// TriggeredSourceSA is the targeting spell/ability a BecomesTarget
+		// trigger captured (Reality Smasher's counter, Kira's and the
+		// glasskite family's counters -- 18 corpus files); its Controller
+		// variant resolves in unlessPayerTargets, its object here.
 		return objectsOf(c.Remembered), true
 	case "TriggeredTarget":
 		// The object or player that received the triggering event. Spiteful

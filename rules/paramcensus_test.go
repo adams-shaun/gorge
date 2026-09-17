@@ -125,6 +125,7 @@ func (b bucket) String() string {
 // the census (the rot guard) rather than being guessed at:
 //
 //	t       cards.Trigger (trigger-match/queue function parameters)
+//	sib     cards.Trigger (a paired sibling trigger: secondaryYields' scan)
 //	s,st,sv cards.Static / staticView (static and restriction machinery)
 //	r, repl cards.Repl; m.repl the replMatch pair (replacement machinery)
 //	sa, ab  *cards.SA parameters; sub the SubAbility$ chain successor;
@@ -132,7 +133,10 @@ func (b bucket) String() string {
 //	pt.SA   the pendingTrigger's effect SA.
 var baseBuckets = map[string]bucket{
 	"t": bTrig,
-	"s": bStat, "st": bStat, "sv": bStat,
+	// sib is the paired sibling trigger secondaryYields (checkFaceTriggers'
+	// Secondary$ walk) scans the same face for: a cards.Trigger like t.
+	"sib": bTrig,
+	"s":   bStat, "st": bStat, "sv": bStat,
 	"r": bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	"targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
@@ -2068,7 +2072,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Ghost Quarter":               {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Giada, Font of Hope":         {"param:api:Mana.RestrictValid", "param:api:PutCounter.ETB"},
 	"Goblin Guide":                {"param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
-	"Grave Titan":                 {"param:trig:Attacks.Secondary"},
 	"Hangarback Walker":           {"param:api:PutCounter.ETB"},
 	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
 	"Horizon Explorer":            {"param:api:Untap.ETB"},
@@ -2101,7 +2104,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Price of Progress":           {"param:api:RepeatEach.DamageMap"},
 	"Purphoros, God of the Forge": {"param:stat:Continuous.RemoveType"},
 	"Ragavan, Nimble Pilferer":    {"param:api:Effect.ForgetOnMoved"},
-	"Reality Smasher":             {"param:trig:BecomesTarget.ValidSource"},
 	"Relic of Progenitus":         {"cost:Exile"},
 	"Remand":                      {"param:api:Counter.Destination"},
 	"Resplendent Angel":           {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
@@ -2110,14 +2112,12 @@ var knownUnsupportedParams = map[string][]string{
 	"Skyclave Apparition":         {"param:api:Token.TokenPower", "param:api:Token.TokenToughness"},
 	"Snapcaster Mage":             {"param:api:Pump.PumpZone"},
 	"Solemn Simulacrum":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Sower of Discord":            {"param:trig:DamageDoneOnce.ActiveZones", "param:trig:DamageDoneOnce.Secondary"},
 	"Splendid Reclamation":        {"param:api:ChangeZoneAll.Tapped"},
 	"Springbloom Druid":           {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Squadron Hawk":               {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Static Orb":                  {"param:stat:Continuous.IsPresent"},
 	"Steel Leaf Champion":         {"param:stat:CantBlockBy.ValidAttacker"},
 	"Stoneforge Mystic":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Sun Titan":                   {"param:trig:Attacks.Secondary"},
 	"Sword of Fire and Ice":       {"param:stat:Continuous.AddSVar"},
 	"Tainted Peak":                {"param:api:Mana.IsPresent"},
 	"Temple of the False God":     {"param:api:Mana.IsPresent", "param:api:Mana.PresentCompare"},
@@ -2126,8 +2126,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Thirst for Knowledge":        {"param:api:Discard.UnlessType"},
 	"Thornspire Verge":            {"param:api:Mana.IsPresent"},
 	"Through the Forest Gate":     {"param:api:Dig.SkipReorder", "param:api:Dig.Tapped"},
-	"Thunderbreak Regent":         {"param:trig:BecomesTarget.ValidSource"},
-	"Tome of Legends":             {"param:api:PutCounter.ETB", "param:trig:Attacks.Secondary"},
+	"Tome of Legends":             {"param:api:PutCounter.ETB"},
 	"Toxic Deluge":                {"cost:PayLife"},
 	"Trinket Mage":                {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Valakut Exploration":         {"param:api:Effect.ForgetOnMoved", "param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
@@ -2144,8 +2143,7 @@ var knownUnsupportedParams = map[string][]string{
 	"World Shaper":                {"param:api:ChangeZoneAll.Tapped", "param:api:Mill.Optional"},
 	"Wrenn and Six":               {"param:api:Effect.Name", "param:api:Effect.Stackable", "param:api:Effect.Ultimate"},
 	"Yavimaya Elder":              {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Zombie Apocalypse":           {"param:api:ChangeZoneAll.Tapped"},
-}
+	"Zombie Apocalypse":           {"param:api:ChangeZoneAll.Tapped"}}
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across
 // the repo decks carries only the unread parameters and unmodelled cost
