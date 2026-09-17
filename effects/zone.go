@@ -2419,6 +2419,14 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 					h.Emit(moveZoneEvent(c, id, z, to))
+					// Tapped$ True (Splendid Reclamation's "Return all land cards
+					// ... tapped"): a battlefield entry is followed by the same
+					// "entered tapped" Tap event every other Tapped$ zone-change
+					// path emits -- an entry state, not the CR 701.21a event of
+					// becoming tapped.
+					if to == state.ZBattlefield && strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True") {
+						h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
+					}
 					if to == state.ZExile {
 						recordExileReturn(h, c, sa, id, z, to)
 					}

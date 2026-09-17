@@ -33,6 +33,27 @@ func init() { Register("Token", effToken) }
 // script that names a stem outside Game.Tokens, but Resolve's own totality
 // stance (never panic on untrusted/unexpected input) applies here too.
 //
+// TokenTapped$ True makes every token this call creates enter tapped: the
+// ordinary Tap event with the "entered tapped" text the ChangeZone paths
+// emit for their own Tapped$ (an entry state, not the CR 701.21a event of
+// becoming tapped) lands right after each mint, so the token is on the
+// battlefield untapped for exactly one folded event and then tapped.
+// TokenAttacking$ (the Kari Zev / Kessig Cagebreakers attack rider) stays a
+// census-free gap outside this task.
+//
+// TokenPower$/TokenToughness$ set the token's P/T from a dynamic value
+// (Skyclave Apparition's X/X Illusion, SVar:X:Remembered$CardManaCost): the
+// value resolves through the ordinary Num grammar (a signed literal, an SVar
+// body, an inline Count$...), and the set is a PERMANENT layer-7b SubSet
+// continuous effect on the token itself -- the same registration shape
+// Amass uses for its type grant, so it is replay-rebuilt by re-execution
+// and dies with the token's battlefield presence. A side the script does
+// not name keeps the token script's printed value; a named side the Num
+// grammar cannot resolve is a loud Note and the whole set is skipped (the
+// token keeps its printed P/T, which for the corpus's */* scripts means a
+// 0/0 the zero-toughness SBA sweeps -- the honest degrade, never a silent
+// wrong value).
+//
 // RememberTokens$ True hands every object this call actually created to the
 // rest of the chain via Ctx.Remembered, which is how Living Weapon's own
 // keyword expansion (cards/keywords.go) attaches the Germ it just made: its
@@ -50,6 +71,22 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			if p != c.Controller {
 				owner = p
 				break
+			}
+		}
+	case "RememberedOwner":
+		// The owner of the first remembered OBJECT (Skyclave Apparition's
+		// "the exiled card's owner creates the token"). The same group the
+		// Remembered$ SVar head reads -- the source card's shared list first,
+		// the firing trigger's own referent capture excluded -- so the
+		// exiled card, not the leaving host, is the first candidate. No
+		// remembered object (the ability's own ConditionPresent$ gate should
+		// have kept this call from running at all) keeps the controller.
+		for _, t := range rememberedWithSource(h, c) {
+			if !t.IsPlayer {
+				if o := g.Obj(t.Obj); o != nil {
+					owner = o.Owner
+					break
+				}
 			}
 		}
 	default:
@@ -78,6 +115,35 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	// TokenPower$/TokenToughness$: resolve both dynamic sides once, before
+	// the mint loop. Absent side = the token script's printed value, read off
+	// each minted object's face below. A named-but-unresolvable side is loud
+	// (one Note for the whole call) and skips the set entirely.
+	var setPow, setTgh int32
+	var hasPow, hasTgh bool
+	dynBad := ""
+	if raw, ok := sa.Params["TokenPower"]; ok {
+		if v, resolved := NumResolved(h, c, sa, "TokenPower", 0); resolved {
+			setPow, hasPow = v, true
+		} else {
+			dynBad = "TokenPower$ " + raw
+		}
+	}
+	if raw, ok := sa.Params["TokenToughness"]; ok {
+		if v, resolved := NumResolved(h, c, sa, "TokenToughness", 0); resolved {
+			setTgh, hasTgh = v, true
+		} else {
+			if dynBad != "" {
+				dynBad += ", "
+			}
+			dynBad += "TokenToughness$ " + raw
+		}
+	}
+	if dynBad != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: dynBad + " is not implemented; the token keeps its script's printed P/T"})
+	}
+	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["TokenTapped"]), "True")
 
 	for _, key := range strings.Split(sa.Params["TokenScript"], ",") {
 		key = strings.TrimSpace(key)
@@ -99,6 +165,33 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			if remember && g.Obj(want) != nil {
 				c.Remembered = append(c.Remembered, state.Target{Obj: want})
 				eventRemember(h, c, want)
+			}
+			if tapped && g.Obj(want) != nil {
+				h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: owner, Text: "entered tapped"})
+			}
+			if (hasPow || hasTgh) && g.Obj(want) != nil && g.Obj(want).Face() != nil {
+				// The absent side keeps the token script's printed value. Every
+				// corpus script a dynamic side rides (u_x_x_illusion, ...) is a
+				// characteristic-defining */* whose printed read is 0, so both
+				// sides are effectively always named together.
+				pow, tgh := int32(g.Obj(want).Face().Power()), int32(g.Obj(want).Face().Toughness())
+				if hasPow {
+					pow = setPow
+				}
+				if hasTgh {
+					tgh = setTgh
+				}
+				h.AddContinuous(state.ContinuousEffect{
+					Source:       want,
+					Controller:   owner,
+					Affects:      "Card.Self",
+					Layer:        state.LPT,
+					Sub:          state.SubSet,
+					SetPower:     pow,
+					SetToughness: tgh,
+					HasSet:       true,
+					Permanent:    true,
+				})
 			}
 			if attachTo != 0 && g.Obj(want) != nil && g.Obj(attachTo) != nil {
 				h.Emit(events.Event{Kind: events.Attach, Obj: want, IDs: []state.ObjID{attachTo}})

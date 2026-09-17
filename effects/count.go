@@ -398,7 +398,10 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		"DelayTriggerRememberedLKI", "RememberedLKI":
 		ts = c.Remembered
 	case "Remembered":
-		ts = c.Remembered
+		// Forge's plain Remembered$ form reads the executing ability's shared
+		// host-card remembered list: the ctx walk's set UNIONED with the
+		// source's persistent event-backed list (rememberedWithSource).
+		ts = rememberedWithSource(h, c)
 	default:
 		return 0, false
 	}

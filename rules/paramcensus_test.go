@@ -2189,22 +2189,15 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 var knownUnsupportedParams = map[string][]string{
 	"Spinerock Knoll":             {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"Ad Nauseam":                  {"param:api:Repeat.RepeatOptional"},
-	"Aftermath Analyst":           {"param:api:ChangeZoneAll.Tapped"},
-	"Army of the Damned":          {"param:api:Token.TokenTapped"},
-	"Baloth Prime":                {"param:api:Token.TokenTapped"},
 	"Conduit of Worlds":           {"param:api:Play.RememberPlayed"},
 	"Exploration Broodship":       {"param:stat:Continuous.AddStaticAbility"},
 	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
 	"Master of Etherium":          {"param:stat:Continuous.CharacteristicDefining"},
 	"Mogis, God of Slaughter":     {"param:stat:Continuous.RemoveType"},
 	"Oracle of Mul Daya":          {"param:stat:Continuous.MayLookAt"},
-	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
 	"Purphoros, God of the Forge": {"param:stat:Continuous.RemoveType"},
-	"Skyclave Apparition":         {"param:api:Token.TokenPower", "param:api:Token.TokenToughness"},
-	"Splendid Reclamation":        {"param:api:ChangeZoneAll.Tapped"},
 	"Sword of Fire and Ice":       {"param:stat:Continuous.AddSVar"},
-	"World Shaper":                {"param:api:ChangeZoneAll.Tapped", "param:api:Mill.Optional"},
-	"Zombie Apocalypse":           {"param:api:ChangeZoneAll.Tapped"}}
+	"World Shaper":                {"param:api:Mill.Optional"}}
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across
 // the repo decks carries only the unread parameters and unmodelled cost
