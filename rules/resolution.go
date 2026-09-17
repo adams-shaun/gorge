@@ -616,7 +616,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					} else {
 						ctx.UnlessPay = "decline"
 					}
-					ctx.UnlessPayTarget = rp.target
+					// The answering payer's cursor travels in UnlessNext (the
+					// same field every other unless-pay answer uses): a decline
+					// re-entry resumes the offer at payers[idx+1], and the last
+					// decline ends the ask. (UnlessPayTarget was a vestigial
+					// second cursor nothing read — its one write is this line —
+					// so a second opponent's decline re-offered payers[1]
+					// forever.)
+					ctx.UnlessNext = rp.target
 					break
 				}
 				// A plain-mana UnlessCost$ (the echo / cumulative-upkeep

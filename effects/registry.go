@@ -442,16 +442,6 @@ type Ctx struct {
 	// list; "no" leaves it in place. It is consumed by
 	// moveDefinedLibraryObjects before a nested fetch list can inherit it.
 	DefinedLibraryMove string
-	// UnlessPayTarget is the index of the per-opponent damage offer the
-	// answered unless-pay belongs to (Sacrifice's UnlessCost$ DamageYou<N>
-	// switched shape — Vexing Devil's "any opponent may have it deal 4 damage
-	// to them"): opponents are offered the choice one at a time in turn
-	// order, so on re-entry the asking effect must know WHICH opponent's
-	// decline it is continuing after. rules' resume arm copies rp.target here
-	// the way the "dig" and "hand_move" arms do; effSacrifice consumes and
-	// clears it at the top of its own walk (the fx42 scoping discipline), so
-	// a nested sacrifice ask cannot inherit the outer answer.
-	UnlessPayTarget int
 	// RevealOpt is the answered RevealOptional$ yes/no on a re-entered
 	// mid-resolution reveal (task fb-3f1cc033, the Delver of Secrets
 	// PeekAndReveal shape): "yes" means the peeking player chose to reveal
