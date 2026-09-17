@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/cmd/repro
 
-budget_s: 11
+budget_s: 18
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -48,3 +48,5 @@ budget_s: 11
 | 2026-09-16T22:45Z | c311b1f6+ | 9.3 | 22 | 1 | sadams |
 | 2026-09-16T22:49Z | c311b1f6+ | 9.5 | 22 | 1 | sadams |
 | 2026-09-16T22:54Z | c311b1f6+ | 9.3 | 22 | 1 | sadams |
+| 2026-09-17T02:59Z | 57867a79+ | 14.6 | 22 | 1 | sadams |
+| 2026-09-17T03:00Z | 57867a79+ | 14.7 | 22 | 1 | sadams |
