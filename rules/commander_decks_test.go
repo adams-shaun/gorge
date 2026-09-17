@@ -56,6 +56,14 @@ var repoCommanderGames = []struct {
 	// that went stale against a correctness fix, not lost coverage; 1008
 	// casts once and replays).
 	{"hearthhull-worldseed-landfall", "foundations-wretched-ranks", 1006, 5006, []uint64{1006, 1008}},
+	// The Marvel Super Heroes Commander precon import (measured 2026-09-17):
+	// against the slowest of the Foundations precons (the same foe every
+	// other UR/WUR entry uses). A probe of [1000,1080) had every game reach
+	// a winner and replay, and 44 of the 80 seeds cast the commander; the
+	// declared set is three of the casting seeds (two with the deck winning),
+	// so the cast assert has margin the way the tramplesaurus entry does
+	// when a correctness fix shifts a game's course.
+	{"avengers-assemble", "foundations-wretched-ranks", 1002, 5007, []uint64{1002, 1026, 1043}},
 }
 
 // TestRepoCommanderDecksPlayAndCastTheirCommander is the m38 play evidence
