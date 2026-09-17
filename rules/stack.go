@@ -465,7 +465,9 @@ func (e *Engine) targetName(source state.ObjID) string {
 // one helper so an ability object can never reach a nil-Face dereference in
 // either.
 func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
-	label := e.G.Players[candidate.player].Name
+	// The controller's name is seat-facing (the seat that answers sees it),
+	// so it prefers the table's display name over the deck-identity slug.
+	label := seatFacingName(e.G, candidate.player)
 	if candidate.obj != 0 {
 		label = e.targetName(candidate.obj) + " (" + label + ")"
 	}

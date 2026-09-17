@@ -1371,6 +1371,29 @@ func cloneDamageSourceLKI(in map[state.ObjID]effects.DamageSourceLKI) map[state.
 
 func (e *Engine) Pending() *decision.Decision { return e.pending }
 
+// seatFacingName is the seat-facing identity for client-facing prompt and
+// option-label text (the priority prompt, the keep/mulligan prompt, the
+// attacker, cumulative-upkeep and target option labels). PlayerName is
+// supplied by the table and identifies a human even when two players chose
+// the same deck; Name is the deterministic fallback for bots or callers
+// without display names. Decision prompts and option labels are NOT chain
+// content (rules/engine.go's ask emits only DecisionAsk{Kind}), so
+// composing them from PlayerName moves no chain head — but event text must
+// stay on Name (the F3 invariant, rules/playername_test.go). The final
+// fallback is defensive: decision seats originate from AliveFrom, but
+// malformed state must not panic while constructing a client decision.
+func seatFacingName(g *state.Game, p state.PlayerID) string {
+	if g != nil && int(p) < len(g.Players) {
+		if name := g.Players[p].PlayerName; name != "" {
+			return name
+		}
+		if name := g.Players[p].Name; name != "" {
+			return name
+		}
+	}
+	return fmt.Sprintf("seat %d", p)
+}
+
 func (e *Engine) ask(d *decision.Decision) {
 	// Empty-answer-only tripwire (the class the Squadron Hawk fail-to-find
 	// search wedged): a decision whose ONLY legal answer is the empty one

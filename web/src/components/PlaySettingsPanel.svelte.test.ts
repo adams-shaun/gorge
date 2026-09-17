@@ -502,34 +502,34 @@ describe('PlaySettingsPanel — Layout section (fb-20260916T182801Z)', () => {
     expect(elem(calm, 'data-layout-scale="creatures"')).toContain('100%');
   });
 
-  it('the on-board steppers show/hide toggle reads Shown by default and flips the store (fb-20260916T200925Z)', () => {
+  it('the on-board steppers show/hide toggle reads Hidden by default and flips the store (fb-20260917T004304Z default flip)', () => {
     const store = layoutStore;
     try {
       const html = panel(new SeatPanelState('yt-toggle1', 1, ctx, null));
       expect(html).toContain('data-layout-steppers-toggle');
-      // a role="switch" row like the other toggles, on at the shipped default
+      // a role="switch" row like the other toggles, OFF at the shipped default
       expect(tag(html, 'data-toggle="steppers-on-board"')).toContain('role="switch"');
-      expect(tag(html, 'data-layout-steppers-toggle')).toContain('aria-checked="true"');
-      expect(elem(html, 'data-layout-steppers-toggle')).toContain('Shown');
+      expect(tag(html, 'data-layout-steppers-toggle')).toContain('aria-checked="false"');
+      expect(elem(html, 'data-layout-steppers-toggle')).toContain('Hidden');
 
       // the exact call the toggle's onclick makes; aria-checked follows
-      store.setSteppersOnBoard(false);
-      const off = panel(new SeatPanelState('yt-toggle2', 1, ctx, null));
-      expect(tag(off, 'data-layout-steppers-toggle')).toContain('aria-checked="false"');
-      expect(elem(off, 'data-layout-steppers-toggle')).toContain('Hidden');
+      store.setSteppersOnBoard(true);
+      const on = panel(new SeatPanelState('yt-toggle2', 1, ctx, null));
+      expect(tag(on, 'data-layout-steppers-toggle')).toContain('aria-checked="true"');
+      expect(elem(on, 'data-layout-steppers-toggle')).toContain('Shown');
 
       // ...and the panel's OWN per-zone steppers/alignment rows stay mounted
       // regardless of the toggle: they are the way back once the board marks
       // are hidden.
       for (const zone of ['creatures', 'others', 'lands', 'hand'] as const) {
-        const row = elem(off, `data-layout-zone="${zone}"`);
+        const row = elem(on, `data-layout-zone="${zone}"`);
         expect(row).not.toBe('');
         expect(row).toContain('data-layout-smaller');
         expect(row).toContain('data-layout-larger');
         expect(row).toContain('data-layout-align');
       }
-      expect(off).toContain('data-peek-picker');
-      expect(off).toContain('data-layout-reset');
+      expect(on).toContain('data-peek-picker');
+      expect(on).toContain('data-layout-reset');
     } finally {
       store.reset();
       store.dispose();
