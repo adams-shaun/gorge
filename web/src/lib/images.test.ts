@@ -119,6 +119,49 @@ describe('images', () => {
     tick(60_000);
     expect(im.offline()).toBe(false);
   });
+  it('aborts a lookup still in flight after the 10s timeout, resolves null, and never stores the miss', async () => {
+    // The production failure this pins (task fb-20260916T225456Z): gorged's
+    // /art/named proxy queues behind the art cache's pacing semaphore while
+    // the prewarm's Scryfall 429 backoff sleeps HOLD it (cmd/gorged/art.go),
+    // so a fetch can block for minutes — and every millisecond of it holds
+    // one of the browser's ~6 per-host connections, starving the page's own
+    // state channel (view/events/pending) while the SSE stream keeps
+    // arriving. The lookup must abort on the injectable clock instead.
+    let clock = 0;
+    const timers: { at: number; fn: () => void }[] = [];
+    const calls: string[] = [];
+    const signals: AbortSignal[] = [];
+    const store = new Map<string, string>();
+    const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) } as unknown as Storage;
+    const env = {
+      fetch: (async (url: string, init?: RequestInit) => {
+        calls.push(url);
+        signals.push(init?.signal ?? null as unknown as AbortSignal);
+        return new Promise<Response>((_, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        });
+      }) as unknown as typeof fetch,
+      now: () => clock,
+      setTimeout: (fn: () => void, ms: number) => void timers.push({ at: clock + ms, fn }),
+      storage,
+    };
+    const tick = (ms: number) => { clock += ms; for (const t of timers.splice(0)) if (t.at <= clock) t.fn(); else timers.push(t); };
+    const im = createImages(env);
+    const p = im.url('City of Traitors');
+    await Promise.resolve(); await Promise.resolve();
+    expect(calls.length).toBe(1);
+    expect(signals[0]).toBeInstanceOf(AbortSignal);
+    tick(9_999);
+    let settled: string | null | 'pending' = 'pending';
+    void p.then((v) => { settled = v; });
+    await Promise.resolve();
+    expect(settled).toBe('pending'); // a second before the timeout the lookup is still in flight
+    tick(1); // the 10s boundary arms the abort
+    expect(await p).toBeNull();
+    expect(signals[0].aborted).toBe(true);
+    expect(im.offline()).toBe(true); // the existing congestion response applies
+    expect([...store.keys()]).toEqual([]); // a timeout is a failure, never a stored known-miss
+  });
   it('works without storage', async () => {
     const { env } = fakeEnv({ A: { image_uris: { normal: 'a' } } });
     expect(await createImages({ ...env, storage: null }).url('A')).toBe('a');
