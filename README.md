@@ -40,7 +40,8 @@ must never import `rules`, the wire-facing packages (`view`, `protocol`,
 `internal/archtest`'s `TestDependencyOrderHolds`, which walks the module's
 import graph and fails when a forbidden edge (direct or transitive) appears;
 `internal/archtest` also pins the determinism rule that only `host`,
-`host/httpapi`, `cmd/gorged` and `cmd/testtime` may import `time`.
+`host/httpapi`, `cmd/gorged`, `cmd/testtime`, `cmd/botbench` and `cmd/ledger`
+may import `time`.
 
 `deck` sits off that chain: it imports `cards` and nothing else, and its
 consumers are the test fixtures and the match host. It is deliberately not a
@@ -72,6 +73,10 @@ link in the order above — no package in the chain may import it.
 - `internal/` — `archtest` (import-graph/determinism enforcement), `testutil`
   (fixtures shared by tests), `tsgen` (Go→TypeScript for the web client)
 
+`orchestrator/` is not part of the Go module: it is the Python daemon that
+watches for defects and drives each through triage, implementation, review
+and the deterministic gates to a merged fix (see `orchestrator/README.md`).
+
 `cmd/` holds the commands, each a `main.go` program:
 
 - `cmd/forgec` — fetches and compiles the Forge corpus, reports coverage
@@ -83,6 +88,10 @@ link in the order above — no package in the chain may import it.
 - `cmd/testtime` — measures package test wall time and enforces its budget
 - `cmd/gcgate` — budgets the CPU share a package's tests spend on GC
 - `cmd/allocgate` — budgets a package's total allocation and peak RSS
+- `cmd/deckimport` — converts a plain-text decklist into a repo deck JSON
+- `cmd/ledger` — rebuilds the CR-conformance issue ledger (`.ds4/ledger.json`)
+- `cmd/repro` — replays a player-submitted feedback snapshot and can emit a
+  failing test from it
 
 ## Licensing boundary
 
@@ -116,9 +125,10 @@ make gorged
 ```
 
 This builds and runs `bin/gorged`. `make gorged` starts 4 tables of 4 seats
-(constructed and Commander) on `:8080`; `gorged -h` lists the flags and their
-defaults (`-tables`, `-seats`, `-addr`, `-pace`, `-format`, `-spectator`,
-`-mulligans`, `-dir`, ...). Open `http://localhost:8080/` to watch. The
+(constructed and Commander) on `:8080`, armed for the landing page's
+play-vs-bot flow (`-vsbot`); `gorged -h` lists the flags and their defaults
+(`-tables`, `-seats`, `-addr`, `-pace`, `-format`, `-spectator`, `-mulligans`,
+`-dir`, ...). Open `http://localhost:8080/` to watch. The
 Svelte client it serves is built separately with `make web` (needs Node);
 until that build exists `webFS` serves nil for the client and the web root
 answers `503`, but the `/api/*` REST endpoints (e.g. `/api/tables`) work
@@ -126,8 +136,10 @@ regardless. Match files accumulate in `gorged-data/` (override with `-dir`).
 
 ## Status
 
-The engine now plays the repo's 19 bundled decks at every seat count and
-replays those games byte-identically, and `gorged` serves perpetual bot tables
+The engine fully supports every card across the repo's 23 bundled decks (14
+60-card constructed, 9 Commander — the coverage ratchet stands at 0 of 719
+distinct cards), the 12 pinned Legacy decks play golden games at every seat
+count and replay byte-identically, and `gorged` serves perpetual bot tables
 to a browser. But it is **not** ready for parity or production use.
 
 There is an opt-in, known-red Comprehensive Rules conformance lane:

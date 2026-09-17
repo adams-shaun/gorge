@@ -108,44 +108,55 @@ DIVERGED exactly as a stale report would.
 table in both directions (Ruling R-20): a card the build newly cannot fully
 support fails and is named together with the primitives it is missing, and a
 table entry the build now supports is stale and fails too. Measured
-2026-09-14 (pw1), the ratchet stands at **0 of 436** -- every one of the 436
-distinct cards across the 12 repo decks (`internal/testutil/decks/*.json`)
-is fully supported and plays. The 12 decks round-robin across 2/4/6/8 seats
+2026-09-17, the ratchet stands at **0 of 719** -- every one of the 719
+distinct cards across the repo deck files (`internal/testutil/decks/*.json`:
+14 60-card constructed decks plus 9 Commander decks) is fully supported and
+plays. The 12 pinned Legacy decks (`legacyDeckNames`) round-robin across
+2/4/6/8 seats
 (`TestRepoDecksPlayAtEverySeatCount`), replay byte-identically
 (`TestRepoDeckGamesReplayExactly`), and `TestHeads` pins the chain heads as
 goldens in `rules/heads_test.go`:
 
 | seats | 2 | 4 | 6 | 8 |
 |---|---|---|---|---|
-| chain head | `0876361619998e2a` | `d74b8a889f09be48` | `ea3d87a74c4c954d` | `5e573c76021a419f` |
+| chain head | `6085b337c4a4c0a1` | `22cf2bf04aeab3c7` | `100db196f20a293a` | `35522b0d8c5d2bf9` |
+
+`TestEveryRepoDeckParamsAreRead` (`rules/paramcensus_test.go`) is the
+companion ratchet over the same decks' parameters: measured at the same
+date, its `knownUnsupportedParams` table holds 13 repo-deck cards carrying
+an unread param or unmodelled cost token.
 
 `make sim` plays 20 verified 4-seat games from the same seed set, every one
 replaying byte-identically (20/20 `replay OK`).
 
 Measured at the corpus pin `master @
 95f04e8a04c8925fa97cb226fc3341cabcc90a53` (`FORGE_REF` in the Makefile):
-`make report` prints `cards: 33667  playable: 21108 (62.7%)` with `tokens:
-839` (re-measured 2026-09-14 after keeping repl:Untap out of scope; the pw1 figure
-20635/61.3% was measured before api:Untap, api:ManaReflected, stat:ManaConvert,
-stat:UntapOtherPlayer and kw:Cumulative upkeep registered. `repl:Untap` is
-out of scope and remains unsupported. The registered primitive set is
-measured by `make report`; every registered primitive is referenced by the
-corpus.
+`make report` prints `cards: 33667  playable: 24727 (73.4%)` with `tokens:
+839` (re-measured 2026-09-17; the jump from the 2026-09-14 figure of
+21108/62.7% is the parameter-read registrations merged since -- the
+param-census task wave -- and the pw1 figure 20635/61.3% predated api:Untap,
+api:ManaReflected, stat:ManaConvert, stat:UntapOtherPlayer and
+kw:Cumulative upkeep registering. `repl:Untap` is out of scope and remains
+unsupported. The registered primitive set is measured by `make report`.
 M1's 37/8/8/8/1 = 62 was the count before M2r registered the keyword,
-trigger, static and mid-game primitives the ratchet's card work needed.
+trigger, static and mid-game primitives the ratchet's card work needed.)
 
 A seat's clients must be able to answer every `decision.Kind`, and the set is
-now closed: the M1 kinds (`priority`, `target`, `attackers`, `blockers`,
+closed: the M1 kinds (`priority`, `target`, `attackers`, `blockers`,
 `trigger_order`, `trigger_optional`), M2r's `choose` (an {X} value, delve
 exiles, cost sacrifices, "as it enters" name/type/number, miracle-style
-yes/no), and the two M2d closures -- `mulligan`, the London keep/mulligan
+yes/no), the two M2d closures -- `mulligan`, the London keep/mulligan
 and bottoming round `Config.Mulligans` runs between the deal and turn 1, and
 `modes`, the modal pick and unless-pay ask a mid-resolution answer serves
-(the `ModeChosen` event carries the answer into the log). Concede (M2d-3) is
-not a kind: it is a `concede` option on every priority decision that emits
-the existing `PlayerLost` with Text "conceded". The engine-side defaults
-that still stand in for a choice the engine cannot yet ask are listed under
-**Known approximations** below.
+(the `ModeChosen` event carries the answer into the log) -- and the three
+kinds the later card work added: `commander_zone` (a commander's OWNER's
+CR 903.9 command-zone replacement choice), `replacement` (the CR 616.1
+order choice over competing replacement effects) and `arrange` (the ordered
+subset ask `Scry`/`Surveil`/`RearrangeTopOfLibrary` share, Ruling J0).
+Concede (M2d-3) is not a kind: it is a `concede` option on every priority
+decision that emits the existing `PlayerLost` with Text "conceded". The
+engine-side defaults that still stand in for a choice the engine cannot yet
+ask are listed under **Known approximations** below.
 
 Acceptance commands:
 
