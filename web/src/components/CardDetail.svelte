@@ -123,11 +123,16 @@
     return `Shown P/T is current; the printed card reads ${p}/${t}`;
   });
 
+  // The state chips print only what the object is actually subject to.
+  // Summoning sickness is a CREATURE fact (CR 302.6): a noncreature land's
+  // engine-side flag is invisible to every player action — a sick land still
+  // taps for mana — and printing the chip on one made a basic land read as
+  // unable to act (fb-20260917T004545Z).
   const states = $derived(
     [
       card.tapped ? 'tapped' : null,
       card.attacking ? 'attacking' : null,
-      card.summon_sick ? 'summoning sick' : null,
+      isCreature && card.summon_sick ? 'summoning sick' : null,
     ].filter((s): s is string => s !== null),
   );
 

@@ -35,3 +35,17 @@ describe('CardDetail loyalty ledger row', () => {
     expect(html).not.toContain('Loyalty</dt>');
   });
 });
+
+describe('CardDetail summoning sick state chip (fb-20260917T004545Z)', () => {
+  it('a noncreature land with summon_sick prints no summoning sick chip', () => {
+    // summoning sickness is a creature fact (CR 302.6): a sick land still taps
+    // for mana, so the chip made a basic land read as unable to act
+    const { html } = render(CardDetail, { props: { card: card({ types: 'Basic Land Island', summon_sick: true }), anchor } });
+    expect(html).not.toContain('summoning sick');
+  });
+
+  it('a sick creature still prints the chip', () => {
+    const { html } = render(CardDetail, { props: { card: card({ types: 'Creature Bear', summon_sick: true }), anchor } });
+    expect(html).toContain('summoning sick');
+  });
+});

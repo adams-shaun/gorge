@@ -60,6 +60,23 @@
   const mixedTapped = $derived(tappedCount > 0 && tappedCount < group.cards.length);
   const readyCount = $derived(group.cards.length - tappedCount);
 
+  // fb-20260917T004545Z: the collapsed face presents the PILE's readiness,
+  // not the lead member's rotation. A merged lands pile mixes tapped states
+  // (only the lands row merges tapped), and rendering the lead's own rotation
+  // made ONE member's tap rotate the whole pile's silhouette while the tap
+  // badge (the union: the next tap takes the next READY member) stayed up —
+  // "i clicked one and it rotated both cards, retaining a tap icon". So the
+  // collapsed face reads rotated only when EVERY member is tapped (the pile
+  // is then genuinely inert — the union offers nothing, so no badge shows);
+  // while any member is ready, the face presents ready and the ready plate
+  // carries the tapped/ready counts. For a uniform pile the value always
+  // equals the lead's own state, so every non-lands row (whose key still
+  // includes tapped, hence can never mix) is byte-identical to before.
+  // Deliberately the lead stays the face: the data-obj anchor (what arrows
+  // target) and the inspector's subject are untouched, and only the rotation
+  // is presentation — pinned in CardStack.test.ts.
+  const collapsedFaceTapped = $derived(readyCount === 0);
+
   // One tile's options depends on the pending decision offered THIS object
   // (per member when expanded, or the whole pile when collapsed — stack
   // members are interchangeable, so the pile's options are the union).
@@ -94,7 +111,7 @@
       <span class="ghost ghost--1" aria-hidden="true"></span>
     {/if}
     {#each faces as c (c.id)}
-      <CardTile card={c} {size} tileOptions={expanded ? memberOptions(c.id) : collapsedOptions} />
+      <CardTile card={c} {size} faceTapped={expanded ? undefined : collapsedFaceTapped} tileOptions={expanded ? memberOptions(c.id) : collapsedOptions} />
     {/each}
     <span class="count" data-stack-count aria-hidden="true">x{group.cards.length}</span>
     {#if !expanded && mixedTapped}
