@@ -327,6 +327,13 @@ type Decision struct {
 	ResumeChoices     []state.Target `json:"-"`
 	ResumeChosenValid bool           `json:"-"`
 	ResumeRemembered  []state.Target `json:"-"`
+	// ResumeMoved carries the objects a ShuffleNonMandatory$ search's first
+	// pass already moved (Path to Exile, Stoneforge Mystic): the may-shuffle
+	// confirm suspends after the moves, and the re-entry's LibraryPosition$
+	// placement needs the moved list the suspension lost. It is runtime
+	// continuation state, never client input, the same class as
+	// ResumeRemembered.
+	ResumeMoved []state.ObjID `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,

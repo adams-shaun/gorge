@@ -134,6 +134,11 @@ func TestSquadronHawkSearchFindsUpToThreeNamed(t *testing.T) {
 	}
 	start := len(e.L.Events)
 	submitChoices(t, e, 0, 1, 2)
+	// ShuffleNonMandatory$: the fetch's may-shuffle confirm (searchmay1) —
+	// accept it, so the pinned "shuffles once" below still counts the shuffle
+	// this test was written around.
+	msYes, _ := mayShuffleConfirm(t, e, 0)
+	submitChoices(t, e, msYes)
 	if got := hawkIn(e, state.ZHand); got != 3 {
 		t.Fatalf("hand hawks after search = %d, want 3 (the found ones)", got)
 	}
@@ -204,6 +209,11 @@ func TestSquadronHawkTwoHawksInLibrary(t *testing.T) {
 	}
 	start := len(e.L.Events)
 	submitChoices(t, e, d.Options[1].Index, d.Options[0].Index)
+	// ShuffleNonMandatory$: the fetch's may-shuffle confirm (searchmay1) —
+	// decline it, so the pinned move-order assertion below is unchanged and
+	// this pin also holds the decline branch on a second corpus shape.
+	_, msNo := mayShuffleConfirm(t, e, 0)
+	submitChoices(t, e, msNo)
 	want := []state.ObjID{d.Options[1].Obj, d.Options[0].Obj}
 	var moved []state.ObjID
 	for _, ev := range e.L.Events[start:] {

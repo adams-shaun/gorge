@@ -1306,6 +1306,16 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	g := h.Game()
 	lib := zoneOf(g, state.ZLibrary, owner)
 
+	// A ShuffleNonMandatory$ search's may-shuffle confirm was answered: the
+	// moves already happened in the first pass, so this pass is tail-only --
+	// the answered shuffle (or the kept order) and the LibraryPosition$
+	// placement. searchShuffleTail consumes and clears the pair before
+	// continuing (fx42 scoping), so a nested search poses its own confirm.
+	if c.SearchShuffle != "" {
+		searchShuffleTail(h, c, sa, owner, nil, to)
+		return
+	}
+
 	if c.SearchDone {
 		chosen := append([]state.ObjID(nil), c.Search...)
 		// Scope the answer to this primitive. Any asking primitive reached by
@@ -2134,29 +2144,87 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		h.Emit(events.Event{Kind: events.Note, Player: owner, IDs: moved})
 	}
 
-	shuffleLibrary(h, sa, owner)
-	placeLibraryObjects(h, sa, owner, moved, to)
+	if searchShuffleTail(h, c, sa, owner, moved, to) {
+		return // the may-shuffle confirm suspended the resolution
+	}
 }
 
 // shuffleLibrary applies the default hidden-library shuffle used by searches
-// and direct Defined$ fetches. A hand put-back is different: it shuffles only
-// when its own SA explicitly says Shuffle$ True, and uses
-// shuffleLibraryExplicit below.
+// and direct Defined$ fetches: the CR 701.23d shuffle, unless the SA opts out
+// (NoShuffle$ True / Shuffle$ False). A hand put-back is different: it
+// shuffles only when its own SA explicitly says Shuffle$ True, and uses
+// shuffleLibraryExplicit below. ShuffleNonMandatory$ True -- Forge's "Do you
+// want to shuffle the library?" confirm, an information-mercy so a player may
+// keep the library order a search just taught them -- is NOT read here: this
+// helper is the mandatory path (the fail-to-find shape included, whose
+// no-ask silence the AskEmpty pins hold), and the confirm belongs to the
+// search's own tail, searchShuffleTail below.
 func shuffleLibrary(h Host, sa *cards.SA, owner state.PlayerID) {
 	if strings.EqualFold(sa.Params["NoShuffle"], "True") || strings.EqualFold(sa.Params["Shuffle"], "False") {
 		return
 	}
-	// ShuffleNonMandatory$ True (Conduit of Ruin, Path to Exile, Solemn
-	// Simulacrum, ... -- 212 corpus files) is Forge's "Do you want to shuffle
-	// the library?" confirm, an information-mercy so a player may keep the
-	// knowledge a search gave them. Every corpus card carrying the flag has
-	// mandatory "then shuffle" oracle text, so the CR-mandatory reading this
-	// engine implements is the stricter and correct one: the shuffle always
-	// happens and no ask is posed -- a decision no legal answer could take
-	// differently under the printed text. The read documents that decision
-	// against the parameter census.
-	_ = strings.TrimSpace(sa.Params["ShuffleNonMandatory"])
 	shuffleLibraryOrder(h, owner)
+}
+
+// searchShuffleTail is a hidden-library search's shuffle-and-place tail, with
+// the ShuffleNonMandatory$ read (Path to Exile, Stoneforge Mystic, Squadron
+// Hawk, Boggart Harbinger -- 209 exact-Origin$ Library corpus lines carry the
+// flag). When the flag is set AND the search moved at least one card, the
+// searcher is offered Forge's may-shuffle confirm -- "Shuffle your
+// library?" -- instead of the unconditional shuffle: declining keeps the
+// library order the search's option list (offered in library order) just
+// taught them. A search that moved NOTHING -- the fail-to-find shape -- keeps
+// the mandatory shuffle and asks nothing: that shape's no-ask silence is the
+// AskEmpty contract's pinned resolution (Squadron Hawk's live soft-lock), and
+// nothing was taken from the order the confirm would protect.
+//
+// The confirm suspends the resolution after the moves: the answer re-enters
+// through the "search_mayshuffle" resume arm (rules' resumeResolution), which
+// restores the answer into Ctx.SearchShuffle and the moved list into
+// Ctx.SearchShuffleMoved (ridden on the ask via Decision.ResumeMoved, the
+// same runtime-continuation class as ResumeRemembered -- the re-entry's
+// LibraryPosition$ placement needs the list the suspension lost). The
+// re-entered effSearchLibrary consumes both at its top and finishes here:
+// "yes" emits the same Secret events.Shuffle every library shuffle emits,
+// "no" keeps the order, and either way placeLibraryObjects runs after the
+// shuffle point exactly as the unconditional path ordered it. A host that
+// cannot ask takes the deterministic no-host stand-in (R-9): decline, keep
+// the order -- the same stand-in the arrange_mayshuffle confirm falls back
+// to. Returns true when the confirm suspended the resolution (the caller
+// must stop; the re-entry owns the tail), false when the tail completed.
+func searchShuffleTail(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, moved []state.ObjID, to state.Zone) bool {
+	if c.SearchShuffle != "" {
+		// Re-entry after the answered confirm: the moves happened in the
+		// first pass, so this pass places only. Consume and clear before
+		// continuing (fx42 scoping), so a nested search poses its own confirm.
+		ans, placed := c.SearchShuffle, c.SearchShuffleMoved
+		c.SearchShuffle, c.SearchShuffleMoved = "", nil
+		if ans == "yes" {
+			shuffleLibraryOrder(h, owner)
+		}
+		placeLibraryObjects(h, sa, owner, placed, to)
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(sa.Params["ShuffleNonMandatory"]), "True") || len(moved) == 0 {
+		shuffleLibrary(h, sa, owner)
+		placeLibraryObjects(h, sa, owner, moved, to)
+		return false
+	}
+	d := &decision.Decision{Player: owner, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: c.Source, ResumeKind: "search_mayshuffle", ResumeSA: sa,
+		ResumeRemembered: copyTargets(c.Remembered),
+		ResumeMoved:      append([]state.ObjID(nil), moved...),
+		Prompt:           "Shuffle your library?",
+		Options: []decision.Option{
+			{Index: 0, Kind: "yes", Label: "Yes — shuffle", Player: owner},
+			{Index: 1, Kind: "no", Label: "No — keep the order", Player: owner},
+		}}
+	if Ask(h, d) == AskAsked {
+		return true // suspended; the answer re-enters with Ctx.SearchShuffle set.
+	}
+	// No-host stand-in (R-9): decline the shuffle, keep the order.
+	placeLibraryObjects(h, sa, owner, moved, to)
+	return false
 }
 
 func shuffleLibraryExplicit(h Host, sa *cards.SA, owner state.PlayerID) {

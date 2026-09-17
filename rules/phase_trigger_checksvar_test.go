@@ -136,6 +136,14 @@ func TestPhaseTriggerCheckSVarHighestValidGatesLandTax(t *testing.T) {
 		t.Fatalf("Land Tax: pending decision after accepting is %+v, want seat 0's library search", d)
 	}
 	crAbortAnswer(t, e, "Land Tax", 0)
+	// ShuffleNonMandatory$: the fetch's may-shuffle confirm (searchmay1) —
+	// accept it, matching the unconditional shuffle this test was written
+	// around.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search_mayshuffle" || d.Player != 0 {
+		t.Fatalf("Land Tax: pending decision after the search pick is %+v, want the may-shuffle confirm", d)
+	}
+	crAbortAnswer(t, e, "Land Tax", 0) // yes — shuffle
 	passUntilStackEmpty(t, e, 20)
 	if n := handBasics(e, 0); n <= before {
 		t.Fatalf("Land Tax: %d basic land(s) in hand after the search, want more than the %d before", n, before)
