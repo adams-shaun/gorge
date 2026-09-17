@@ -495,6 +495,13 @@ func TestControlEndsAtEndOfCombatAndWhenAuraUnattaches(t *testing.T) {
 	sa = cards.ResolveSVar(eriette.Face().SVars, "TrigGainControl")
 	ctx = &effects.Ctx{Source: eriette.ID, Controller: 0, Targets: []state.Target{{Obj: victim.ID}}, SVars: eriette.Face().SVars}
 	ctx.TriggerSource = aura.ID
+	// Eriette's script is `Defined$ TriggeredTarget`: the triggering
+	// permanent the Aura became attached to. The fixture supplies the
+	// binding a real Attached-trigger capture would carry (previously the
+	// unbound form fell back to the resolution's Targets; it now fails
+	// closed like every other known-but-absent referent, so the fixture
+	// must carry the referent itself).
+	ctx.TriggerTarget = state.Target{Obj: victim.ID}
 	effects.Resolve(e, ctx, sa)
 	if e.G.Obj(victim.ID).Controller != 0 {
 		t.Fatalf("Eriette did not gain control: controller %d", e.G.Obj(victim.ID).Controller)
@@ -816,8 +823,14 @@ func TestDeflectingSwatOffersTheSpellControllersLegalTargets(t *testing.T) {
 // real end-step trigger: its controller sacrifices a matching permanent (not
 // Braids itself -- SacValid$ without Defined$ is "you sacrifice"), the
 // sacrificed card is remembered, and each opponent's iteration still sees
-// that card beside the loop's player. The opponent cannot sacrifice here, so
-// they lose 2 life and Braids's controller draws.
+// that card beside the loop's player. The sacrifice is a REAL may-ask since
+// the paramcensus task taught effSacrifice Optional$ True, so the fixture
+// answers it by taking the relic (the KChoose's Max); the opponent cannot
+// sacrifice (no sharing-type permanent), so they lose 2 life and Braids's
+// controller draws -- the LoseLife/Draw legs' own ConditionCheckSVar$ X EQ0
+// gate (X = Remembered$Valid Card.RememberedPlayerCtrl: cards the resolution
+// remembers that the ITERATED opponent controls) holds because the relic is
+// seat 0's.
 func TestBraidsRepeatEachSeesTheSacrificedCard(t *testing.T) {
 	e := stealEngine(t, 737)
 	relic := onBoard(t, e, 0, "Name:Relic\nTypes:Artifact\nOracle:x\n")
@@ -825,6 +838,20 @@ func TestBraidsRepeatEachSeesTheSacrificedCard(t *testing.T) {
 	hand, life := len(e.G.Zone(state.ZHand, 0)), e.G.Players[1].Life
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: braids, Player: 0, Amount: 0})
 	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 {
+		t.Fatalf("Braids's optional sacrifice did not ask: %+v", d)
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Obj == relic {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("sacrifice ask did not offer the relic: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
 	if e.G.Obj(braids).Zone != state.ZBattlefield || e.G.Obj(relic).Zone != state.ZGraveyard {
 		t.Fatalf("Braids zone %v relic zone %v, want Braids kept and the relic sacrificed",
 			e.G.Obj(braids).Zone, e.G.Obj(relic).Zone)

@@ -172,7 +172,7 @@ func TestMultiplayerSecondMulliganBottomsOne(t *testing.T) {
 	}
 	playPregame(t, e, decide)
 
-	if want := "Keep your hand (keep all seven cards) or take a mulligan?"; freeKeepPrompt != want {
+	if want := "a plays first. Keep your hand (keep all seven cards) or take a mulligan?"; freeKeepPrompt != want {
 		t.Errorf("first multiplayer mulligan keep prompt = %q, want %q", freeKeepPrompt, want)
 	}
 	if bottomAsk == nil {
@@ -332,8 +332,18 @@ func TestLastMulliganThenOnlyKeepOffered(t *testing.T) {
 	if next == nil {
 		t.Fatal("no ask issued after the last allowed mulligan")
 	}
-	if next.Player != 0 {
-		t.Fatalf("post-mulligan ask is for seat %d, want the mulliganing seat 0", next.Player)
+	// CR 103.5 completes the current declaration pass before returning to
+	// the mulliganing seat. Seat 1 therefore gets its first declaration now;
+	// only the next pass reaches seat 0's forced keep.
+	if next.Player != 1 {
+		t.Fatalf("post-mulligan ask is for seat %d, want the other seat 1 in the same pass", next.Player)
+	}
+	if err := e.Submit(decision.Intent{Seq: next.Seq, Player: next.Player, Choices: []int{0}}); err != nil {
+		t.Fatalf("seat 1 keep: %v", err)
+	}
+	next = e.Pending()
+	if next == nil || next.Player != 0 {
+		t.Fatalf("next-pass ask = %+v, want the mulliganing seat 0", next)
 	}
 	if len(next.Options) != 1 {
 		t.Errorf("post-mulligan ask has %d options, want 1 (only keep)", len(next.Options))
@@ -343,7 +353,7 @@ func TestLastMulliganThenOnlyKeepOffered(t *testing.T) {
 	}
 
 	// The gate reached from a real game state, its answer still plays: the
-	// seat keeps, seat 1 keeps, seat 0 bottoms one, and the round completes.
+	// seat keeps, then seat 0 bottoms one, and the round completes.
 	playPregame(t, e, keepEverywhere)
 	if e.G.Turn != 1 {
 		t.Fatalf("round did not reach turn 1 after the last allowable mulligan, turn %d", e.G.Turn)

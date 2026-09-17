@@ -1,7 +1,7 @@
 import type { Decision, Intent, Option, View } from '../protocol';
 import { fetchPending, postIntent, ApiError } from './api';
 import type { SeatCtx } from './seat';
-import { STOPPABLE_STEPS, decide, emptyPriorityWindow, isActionKind, type StopReason, type Stops, type TurnSide } from './autopilot';
+import { STOPPABLE_STEPS, actionables, decide, emptyPriorityWindow, isActionKind, type StopReason, type Stops, type TurnSide } from './autopilot';
 import {
   applyPreset,
   defaultSettings,
@@ -144,14 +144,25 @@ export function toneOf(d: Decision | null): Tone {
 }
 
 /**
+ * triggerOrderPermutation is the SHAPE contract every auto-order path shares
+ * (fb-trigorder1 generalised the prio6 check): a trigger_order decision whose
+ * min == max == options.length (the engine's permutation contract, Ruling U2)
+ * with at least two options — a one-trigger ask is never posed. The check is
+ * grounded in the real wire shape, measured on a live decision
+ * (rules/trigger_queue.go's askTriggerOrder): each option is `kind: "trigger"`
+ * with `label: "<source name>: <TriggerDescription>"`.
+ */
+export function triggerOrderPermutation(d: Decision): boolean {
+  if (d.kind !== 'trigger_order') return false;
+  if (d.min !== d.max || d.max !== d.options.length) return false;
+  return d.options.length >= 2;
+}
+
+/**
  * identicalTriggerOrder reports whether a trigger_order decision's EVERY
  * option describes the same trigger — the same source name and the same
- * text (prio6). The check is grounded in the real wire shape, measured on a
- * live decision (rules/trigger_queue.go's askTriggerOrder): each option is
- * `kind: "trigger"` with `label: "<source name>: <TriggerDescription>"`, so
- * equal labels is exactly "same source name and same text". min == max ==
- * len(options) (the engine's permutation contract, Ruling U2) and at least
- * two options are required — a one-trigger ask is never posed.
+ * text (prio6) — on top of the shared triggerOrderPermutation shape
+ * contract.
  *
  * Caveat, measured rather than assumed away: the label carries no target
  * information, so two identical-name/text triggers aimed at DIFFERENT
@@ -161,9 +172,7 @@ export function toneOf(d: Decision | null): Tone {
  * target-aware one.
  */
 export function identicalTriggerOrder(d: Decision): boolean {
-  if (d.kind !== 'trigger_order') return false;
-  if (d.min !== d.max || d.max !== d.options.length) return false;
-  if (d.options.length < 2) return false;
+  if (!triggerOrderPermutation(d)) return false;
   const first = d.options[0].label;
   return d.options.every((o) => o.label === first);
 }
@@ -224,7 +233,14 @@ export type AutoNote =
   | { kind: 'skipped'; count: number }
   | { kind: 'armed' }
   | { kind: 'passing'; count: number }
-  | { kind: 'waiting'; reason: StopReason }
+  /**
+   * detail (fb-20260916T225211Z) carries the actionable option labels that
+   * made a stop-set window stop-worthy — autoNoteText folds it into the
+   * note text, so the player reads WHAT the window offered, not just that a
+   * stop they set fired. Absent (or empty) for every other reason and for a
+   * 'forced' stop with nothing to do — the base wording is complete there.
+   */
+  | { kind: 'waiting'; reason: StopReason; detail?: string }
   | { kind: 'stopped'; reason: AutoOffReason }
   | { kind: 'end-turn-armed' }
   | { kind: 'end-turn-passing'; count: number }
@@ -289,6 +305,17 @@ export function autoNoteText(note: AutoNote): string {
         ? 'Auto passed 1 priority window.'
         : `Auto passed ${note.count} priority windows.`;
     case 'waiting':
+      // stop-set with actionable labels (fb-20260916T225211Z): the base line
+      // alone read "you set a stop" without saying WHY the window was worth
+      // stopping at — the exact gap the Deadly Rollick free-cast report is
+      // about. The labels come from actionables(), the same predicate the
+      // smart step rule consulted, so the note cannot name something the
+      // stop did not actually stop for. Derived from the base string (the
+      // trailing full stop is dropped, the clause spliced in) so the wording
+      // stays in one place.
+      if (note.reason === 'stop-set' && note.detail) {
+        return `${WAITING_TEXT[note.reason].replace(/\.$/, '')} and you can act — ${note.detail}.`;
+      }
       return WAITING_TEXT[note.reason];
     case 'stopped':
       return OFF_TEXT[note.reason];
@@ -565,6 +592,19 @@ export class SeatPanelState {
    * different ask.
    */
   rememberChoice = $state(false);
+
+  /**
+   * searchFilter is the library-search picker's display-only filter text
+   * (fb-20260916T181754Z): a case-insensitive substring over the search
+   * options' card-name labels, consumed by lib/search.ts's searchOptions to
+   * build the DISPLAY list. It is deliberately not part of the answer: it
+   * never touches `picked`, the submit gate or the posted intent — the
+   * search answer is the picked wire indexes in click order regardless of
+   * what the list shows. Reset on every newly adopted decision, so a filter
+   * typed for one ask can never silently narrow the next, different ask's
+   * list (the same adopt-reset contract as rememberChoice).
+   */
+  searchFilter = $state('');
 
   /**
    * rememberedSeq is the seq the remembered-answer auto-reply last posted
@@ -1124,7 +1164,15 @@ export class SeatPanelState {
         this.autoActedSeq = null;
         this.note = runStopNote(mode, verdict.reason);
       } else {
-        this.note = { kind: 'waiting', reason: verdict.reason };
+        // The stop-set note names the actionable option(s) (fb-20260916T225211Z):
+        // a smart step stop fired because this window offered a real play —
+        // say what the play is, so "why did it pause on my own priority" is
+        // answered on the panel. A 'forced' stop with nothing to do, and every
+        // other reason, carry no detail and keep the base wording.
+        const labels = verdict.reason === 'stop-set' ? actionables(view, this.ctx.seat, d) : [];
+        this.note = labels.length > 0
+          ? { kind: 'waiting', reason: verdict.reason, detail: labels.join(', ') }
+          : { kind: 'waiting', reason: verdict.reason };
       }
       return;
     }
@@ -1142,38 +1190,60 @@ export class SeatPanelState {
   }
 
   /**
-   * maybeAutoOrderTriggers is the prio6 identical-trigger auto-order. When
-   * the pending decision is a trigger_order whose EVERY option describes
-   * the same trigger (identicalTriggerOrder — equal labels, measured wire
-   * shape) and settings.autoOrderIdenticalTriggers is on, the DEFAULT order
-   * — the options in offered order, exactly what the manual UI's untouched
-   * answer would submit — is posted automatically, a log note is added
-   * ("Ordered N identical triggers automatically"), and the return is true.
-   * Any difference between options, the setting off, a busy/posted state:
-   * false, and the decision stays manual as today. A live one-shot run is
-   * cancelled first: a non-priority decision ends a run, and the submit is
-   * the run's stop, not the run's continuation. The autoOrderedSeq guard
-   * means a server-rejected auto-order is never retried forever.
+   * maybeAutoOrderTriggers is the trigger_order auto-order. The prio6 path
+   * answers an identical pair — every option the same trigger
+   * (identicalTriggerOrder) — when settings.autoOrderIdenticalTriggers is
+   * on, with the note "Ordered N identical triggers automatically".
+   * fb-trigorder1 adds the broader path: when settings.autoOrderAllTriggers
+   * is on, ANY trigger_order satisfying the same shape contract
+   * (triggerOrderPermutation) is auto-answered too, with the distinct note
+   * "Ordered N triggers automatically" — auto-ordering DIFFERENT triggers is
+   * a real game choice made on the player's behalf, and the note is what
+   * makes it visible in the log. The submitted answer stays the OFFERED
+   * order (d.options.map((o) => o.index)), exactly what the manual UI's
+   * untouched answer submits, in both paths.
+   *
+   * Precedence: an identical pair answers through the identical path when
+   * that setting is on, so the pinned prio6 note is unchanged for casual
+   * (which turns both on); the broader path covers everything else.
+   * Any other decision kind, a busy/posted state, the setting(s) off: false,
+   * and the decision stays manual. A live one-shot run is cancelled first:
+   * a non-priority decision ends a run, and the submit is the run's stop,
+   * not the run's continuation. The autoOrderedSeq guard means a
+   * server-rejected auto-order is never retried forever. The undo pause (and
+   * the runaway brake — same brake, same reason) silences the auto-order
+   * too: a restored trigger_order ask must sit pending for the player, not
+   * be submitted by the machine the player just stopped. adopt() reaches
+   * here before any considerAuto.
    */
   private maybeAutoOrderTriggers(): boolean {
     const d = this.pending;
     if (d === null || this.busy || d.seq === this.postedSeq) return false;
     if (this.autoOrderedSeq !== null && d.seq === this.autoOrderedSeq) return false;
     // The undo pause (and the runaway brake — same brake, same reason)
-    // silences the auto-order too: a restored identical trigger_order ask
-    // must sit pending for the player, not be submitted by the machine the
-    // player just stopped. adopt() reaches here before any considerAuto.
+    // silences the auto-order too: a restored trigger_order ask must sit
+    // pending for the player, not be submitted by the machine the player
+    // just stopped. adopt() reaches here before any considerAuto.
     if (this.machinePaused) return false;
-    if (!this.settings.autoOrderIdenticalTriggers || !identicalTriggerOrder(d)) return false;
+    if (!triggerOrderPermutation(d)) return false;
+    const identical = identicalTriggerOrder(d);
+    if (identical && this.settings.autoOrderIdenticalTriggers) {
+      this.postTriggerOrder(d, `Ordered ${d.options.length} identical triggers automatically`);
+      return true;
+    }
+    if (this.settings.autoOrderAllTriggers) {
+      this.postTriggerOrder(d, `Ordered ${d.options.length} triggers automatically`);
+      return true;
+    }
+    return false;
+  }
+
+  /** postTriggerOrder is the shared submit of both auto-order paths: cancel any live one-shot run (a non-priority decision ends a run), set the retry guard, log the note, post the offered order. */
+  private postTriggerOrder(d: Decision, note: string) {
     if (this.oneShot !== 'none') this.cancelRun(); // the run's stop, noted in its own register
     this.autoOrderedSeq = d.seq;
-    this.autoLog = pushAutoPassLog(
-      this.autoLog,
-      `Ordered ${d.options.length} identical triggers automatically`,
-      this.currentView?.turn ?? 0,
-    );
+    this.autoLog = pushAutoPassLog(this.autoLog, note, this.currentView?.turn ?? 0);
     void this.post(d.options.map((o) => o.index));
-    return true;
   }
 
   /**
@@ -1547,6 +1617,11 @@ export class SeatPanelState {
     // checkbox is reset FIRST so a tick left on the previous ask can never
     // remember this, different ask.
     this.rememberChoice = false;
+    // The search filter belongs to the PREVIOUS ask just as much (the
+    // library-search picker's display filter): a new decision starts with an
+    // empty filter, so a narrowing typed for one library can never hide
+    // cards of the next one.
+    this.searchFilter = '';
     if (!this.maybeAutoOrderTriggers()) this.maybeRememberedTrigger();
   }
 

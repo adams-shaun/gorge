@@ -56,6 +56,38 @@ type ContinuousEffect struct {
 	AddKeywords            []string
 	AddTypes               []string
 
+	// AddColors is a layer-5 colour change (CR 613.1e): the WUBRG letters of
+	// the colours the affected object GAINS. Written by the continuous-effect
+	// primitives (effects' Animate Colors$ without OverwriteColors$), composed
+	// by rules' Derived in timestamp order. Empty on every effect that grants
+	// no colour. "All"/"Colorless" never reach this field: the registering
+	// primitive normalises them to "WUBRG" and the empty set respectively.
+	AddColors []string
+	// OverwriteColors marks a layer-5 colour SET (Forge's Animate
+	// OverwriteColors$ True with Colors$): while this effect applies, the
+	// affected object's colours are exactly AddColors -- replacing, never
+	// extending, the printed colours and every earlier layer-5 grant
+	// (CR 613.1e sets by timestamp order). With it false AddColors extends.
+	OverwriteColors bool
+	// RemoveCreatureTypes is Forge's Animate RemoveCreatureTypes$ True: while
+	// this effect applies, the affected object loses every creature-type
+	// SUBTYPE (its face's types that are neither card types nor supertypes)
+	// BEFORE this same effect's AddTypes apply -- so an animated creature's
+	// own new creature type lands on a stripped base, and the printed types
+	// return the moment the animation expires because Derived recomputes from
+	// the face. A printed planeswalker's name-subtype ("Sarkhan") is stripped
+	// with the rest while the walker is animated as a creature.
+	RemoveCreatureTypes bool
+	// AddAbilities is a layer-6 ability GRANT (CR 613.1f): the SVar names --
+	// on the SOURCE object's own face -- of the AB$ activated abilities the
+	// affected object gains for the effect's lifetime. Written only by the
+	// continuous-effect primitives (effects' Animate Abilities$), read only
+	// by rules' offer/activation paths (legal.go's grantedAbilities), never
+	// by the CR 613 layer sorter itself: the grant contributes no
+	// characteristic, it contributes an activation surface. Empty on every
+	// effect that grants none.
+	AddAbilities []string
+
 	// Restriction carries an Effect-created S: mode (CantTarget,
 	// CantRegenerate) rather than a layer change. When non-empty the effect is
 	// a rules-mod, consulted by the decision point the mode names (rules'
@@ -89,6 +121,14 @@ type ContinuousEffect struct {
 	// source-leaves rule. Set only by the continuous-effect primitives that
 	// build a lasting one-shot (effects/combatfx.go).
 	Permanent bool
+	// ReplacementEvent/ReplacementParams/ReplacementBody describe an Effect-created
+	// replacement (for example Blood of the Martyr). They are deliberately plain
+	// data rather than cards types: state sits below cards' parsed SA graph.
+	// Rules reconstructs the body at application time under the original source's
+	// SVar context. An empty ReplacementEvent is not a replacement effect.
+	ReplacementEvent  string
+	ReplacementParams map[string]string
+	ReplacementBody   string
 	// RemoveAbilities is a layer-6 ability-removing effect (CR 613.1f/613.4b,
 	// e.g. Humility's RemoveAllAbilities$ True): when an applicable effect
 	// carries it, Derived clears the object's printed (and any earlier-granted)
@@ -109,6 +149,42 @@ type ContinuousEffect struct {
 	// zone, a comma-separated list, or "All"), interpreted with
 	// effects.ParseZones. Meaningful only when MayPlay is set.
 	AffectedZone string
+
+	// MayPlayIgnoreColor marks the grant's MayPlayIgnoreColor$ True rider:
+	// "you may spend mana as though it were mana of any color to cast it"
+	// (Opposition Agent, Kotose, ...). While it holds, every coloured pip of
+	// the may-play cast's cost is payable by any colour of mana in the pool;
+	// the {C} pip stays colourless-only (CR 107.4c: "any color" never
+	// includes colourless). Set only together with MayPlay.
+	MayPlayIgnoreColor bool
+
+	// MayPlayLimit is the grant's MayPlayLimit$ once-per-turn cap (Kotose's
+	// and Evelyn's "once each turn"): the number of cards p may play through
+	// THIS KIND of grant in one turn. Zero means unlimited. The count is a
+	// log scan (rules' mayPlaysThisTurn), never a mutable field.
+	MayPlayLimit int32
+
+	// MayPlayPlayerTurn marks the grant's Condition$ PlayerTurn rider (the
+	// Kess/Karador "during each of your turns" family): the grant is live
+	// only while its controller is the ACTIVE player. The walks check the
+	// live turn, never a mutable field.
+	MayPlayPlayerTurn bool
+
+	// AdjustLandPlays marks an additional-land-drops grant (Azusa, Lost but
+	// Seeking's "You may play two additional lands on each of your turns",
+	// Oracle of Mul Daya, Exploration): the number of EXTRA land drops the
+	// affected player gets each turn, ON TOP of the one ordinary drop
+	// (CR 305.2a reads the printed sentence as a modifier on the one-drop
+	// normal, so grants from multiple permanents SUM -- Azusa plus
+	// Exploration is three drops, never the max). Registered from an
+	// S:Mode$ Continuous static carrying a plain integer AdjustLandPlays$,
+	// alongside the Affects player spec (Affected$ You/Player); the effect
+	// is a rules-mod consulted by rules' land-play offer gates, never a
+	// CR 613 layer change -- no layer fields are read for it -- and it
+	// expires with its source permanent (CR 611.3b) through the ordinary
+	// source-on-battlefield check in active(). Zero means the effect grants
+	// no additional drop.
+	AdjustLandPlays int32
 
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn

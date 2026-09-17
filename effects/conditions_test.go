@@ -106,9 +106,13 @@ func TestConditionGateUnresolvedShapesRunUnconditionally(t *testing.T) {
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, checkSVar)); resolved {
 		t.Fatal("ConditionCheckSVar$ resolved — out of the scoped shape")
 	}
-	notPresent := "DB$ Pump | ConditionDefined$ Remembered | ConditionNotPresent$ Card"
+	// ConditionNotPresent$ over the REMEMBERED group is resolved as of the
+	// Rakdos-params task (the Ajani/Ravenous/Fallaji "the remembered card is
+	// gone" shapes); the still-unresolved NOT-PRESENT shape is a defined
+	// group this build cannot enumerate (Targeted, lodestone_bauble's).
+	notPresent := "DB$ Pump | ConditionDefined$ Targeted | ConditionNotPresent$ Card"
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, notPresent)); resolved {
-		t.Fatal("ConditionNotPresent$ resolved — out of the scoped shape")
+		t.Fatal("ConditionNotPresent$ over Targeted resolved — out of the scoped shape")
 	}
 	unknownPred := "DB$ Pump | ConditionDefined$ Remembered | ConditionPresent$ Card.IsImprinted"
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, unknownPred)); resolved {

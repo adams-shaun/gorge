@@ -143,10 +143,13 @@ export interface Printing {
    *
    * Any reports that at least one mana ability's Produced$ was not a plain
    * colour string: "Any"/"Combo Any", a listed "Combo X Y" choice, or a
-   * "Chosen"/"Special" word. Such a source is conditional in the card script,
-   * so a policy must not treat it as a dependable colour fixer. Colour still
-   * mirrors every rune effMana emits: its unrecognised runes become colourless
-   * through state.ManaIndex, including the words in Combo and Chosen.
+   * "Chosen"/"Special" word (any token the symbol grammar cannot read). Such a
+   * source is conditional in the card script, so a policy must not treat it as
+   * a dependable colour fixer. Colour carries only what a plain token names:
+   * the colour letters the token lists (one each for "R G", two for "RR"),
+   * never a phantom count for the words themselves -- an unrecognised token
+   * such as "Chosen" or "ColorIdentity" claims no mana at all (ProducedCounts),
+   * matching effMana's fail-closed executor convention.
    */
 export interface ManaProduction {
   colour: [number, number, number, number, number, number];
@@ -437,6 +440,17 @@ export interface Option {
    */
   attacker?: number;
   /**
+   * Required marks an attacker option whose creature MUST attack this
+   * combat (CR 508.1d): a goaded creature (CR 701.38) or one under an
+   * unconditional MustAttack static. A rules-ignorant client needs the
+   * flag because the engine REJECTS a declaration that omits a required
+   * creature it could have included (validateAttackDeclaration) -- an
+   * omission that looks legal on the wire otherwise. omitempty: a
+   * non-required option emits no field, so every existing option list
+   * serialises byte-identically.
+   */
+  required?: boolean;
+  /**
    * Group is an exclusivity marker: two options carrying the SAME non-empty
    * Group are mutually exclusive, and at most one of them may be selected
    * in a single answer. The whole contract is that sentence -- it says
@@ -488,6 +502,16 @@ export interface Option {
    * index 0 (the first ability), the one value that omits.
    */
   ability?: number;
+  /**
+   * SVar anchors a "granted" option (rules/speed.go, the kw:Start your
+   * engines max-speed static's AddAbility$): the SVar name on the source
+   * face whose AB the activation resolves through. A granted ability is
+   * not a Face().Abilities index (the ordinary "ability" anchor), so it
+   * carries the name instead; beginGrantedActivation re-resolves it, so a
+   * stale name degrades to a no-op. omitempty: only granted options carry
+   * it.
+   */
+  svar?: string;
 }
 
   /**

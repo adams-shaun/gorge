@@ -35,6 +35,7 @@ func crCombatAt(e *Engine, s state.Step) {
 // creature must attack. Choosing only the companion satisfies the restriction
 // but not the maximum feasible requirements. Count EXAMINED fixtures, not bugs.
 func TestCR508CorpusRequirementsUnderAttackRestriction(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, c := range reg.Cards {

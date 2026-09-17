@@ -26,6 +26,25 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	// expression. knownDefinedTargets is deliberately stricter for callers
 	// that need a fail-closed fetch-list classification, not a new public
 	// contract for ordinary effects.
+	if sa.Params["Defined"] == "Imprinted" || sa.Params["Defined"] == "ImprintedLKI" {
+		// Ordinary (non-fetch-list) Imprinted resolution: the source's
+		// Imprinted association. knownDefinedTargets deliberately does NOT
+		// recognise this selector (TestImprintedDefinedLibraryFetchFailsClosed
+		// pins a hidden-library Imprinted fetch as a fail-closed no-op, since
+		// Imprinted has no persisted library-position context), so this stays
+		// scoped to Defined's own broader fallback contract.
+		g := h.Game()
+		if o := g.Obj(c.Source); o != nil {
+			out := make([]state.Target, 0, len(o.Imprinted))
+			for _, id := range o.Imprinted {
+				if g.Obj(id) != nil {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			return out
+		}
+		return nil
+	}
 	if strings.Contains(sa.Params["Defined"], " & ") {
 		var out []state.Target
 		for _, part := range strings.Split(sa.Params["Defined"], " & ") {
@@ -63,6 +82,21 @@ func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// parameter after one space ("ValidStack Spell.OppCtrl,...").
 	if stackSpec, ok := strings.CutPrefix(spec, "ValidStack"); ok {
 		return validStackTargets(g, strings.TrimSpace(stackSpec), c), true
+	}
+	// Defined$ Remembered.<spec>: the subset of the resolution's Remembered
+	// objects matching <spec>, evaluated as a Card filter (Regrowth-shaped
+	// "each card exiled this way" follow-ups that narrow Remembered by type
+	// or predicate rather than acting on the whole set).
+	if filterSpec, ok := strings.CutPrefix(spec, "Remembered."); ok {
+		var out []state.Target
+		for _, t := range c.Remembered {
+			if !t.IsPlayer {
+				if o := g.Obj(t.Obj); o != nil && MatchesObjectCtx(g, "Card."+filterSpec, o, c.SpecContext(c.Controller)) {
+					out = append(out, t)
+				}
+			}
+		}
+		return out, true
 	}
 	if ts, ok := definedSpec(h, c, spec); ok {
 		return ts, true
@@ -118,6 +152,40 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return []state.Target{{Obj: lib[i]}}, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
+	case "Imprinted", "ImprintedController":
+		// Two populations share the spelling. Inside a RepeatEach iteration
+		// (this build's own binding) Forge's UseImprinted$ names the loop's
+		// CURRENT SUBJECT: Heroism pumps it, Stench of Evil deals its damage
+		// to its controller — and ImprintedController is only ever that
+		// iteration's subject's controller. Outside a loop iteration the
+		// spelling is the source's persistent imprint pile (Mirrorworks'
+		// exiled-with-imprint list, CR 607.2a links only while the card stays
+		// in exile); no corpus RepeatEach body resolves against a source that
+		// also carries a persistent imprint, so the two never collide.
+		if c.RepeatSubject.IsPlayer {
+			return []state.Target{{Player: c.RepeatSubject.Player, IsPlayer: true}}, true
+		}
+		if o := g.Obj(c.RepeatSubject.Obj); o != nil {
+			if spec == "ImprintedController" {
+				return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+			}
+			return []state.Target{{Obj: c.RepeatSubject.Obj}}, true
+		}
+		if spec == "ImprintedController" {
+			return nil, true
+		}
+		if o := g.Obj(c.Source); o != nil {
+			out := make([]state.Target, 0, len(o.Imprinted))
+			for _, id := range o.Imprinted {
+				// Imprint links an exiled card only while the linked card remains
+				// in exile (CR 607.2a); its persistent ID cannot follow it later.
+				if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			return out, true
+		}
+		return nil, true
 	case "ChosenCard", "ChosenPlayer":
 		// ChooseCard/ChoosePlayer bind the current resolution's most recent
 		// choice here. This is deliberately distinct from Remembered: Forge
@@ -208,14 +276,41 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return nil, true
 	case "ReplacedCard":
-		// The card a replacement is acting on (Rest in Peace shape: the R: line
-		// intercepts a "would go to the graveyard" Move, ReplaceWith$ needs to
-		// name the object the replaced event was about). "Replaced" is set only
-		// on a replacement's own context, so outside a replacement -- and for a
-		// replaced object that has since ceased to exist -- Defined falls back to
-		// nil (nothing to act on) rather than the chosen targets.
+		// The card a zone-change replacement is acting on. Outside such a
+		// replacement (or after the object ceased to exist), resolve nothing.
 		if c.Replaced != 0 && g.Obj(c.Replaced) != nil {
 			return []state.Target{{Obj: c.Replaced}}, true
+		}
+		return nil, true
+	case "ReplacedTarget":
+		// Damage replacements may affect either an object or a player. Preserve
+		// that distinction rather than deriving a player through object zero.
+		if c.ReplacementTarget.IsPlayer {
+			if int(c.ReplacementTarget.Player) < len(g.Players) {
+				return []state.Target{c.ReplacementTarget}, true
+			}
+			return nil, true
+		}
+		if c.ReplacementTarget.Obj != 0 && g.Obj(c.ReplacementTarget.Obj) != nil {
+			return []state.Target{c.ReplacementTarget}, true
+		}
+		return nil, true
+	case "ReplacedSource":
+		if c.ReplacementSource != 0 && g.Obj(c.ReplacementSource) != nil {
+			return []state.Target{{Obj: c.ReplacementSource}}, true
+		}
+		return nil, true
+	case "ReplacedSourceController":
+		if o := g.Obj(c.ReplacementSource); o != nil && int(o.Controller) < len(g.Players) {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+		}
+		return nil, true
+	case "ReplacedTargetController":
+		if c.ReplacementTarget.IsPlayer {
+			return []state.Target{c.ReplacementTarget}, true
+		}
+		if o := g.Obj(c.ReplacementTarget.Obj); o != nil && int(o.Controller) < len(g.Players) {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
 		}
 		return nil, true
 	case "TriggeredDefendingPlayer":
@@ -268,6 +363,27 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		var out []state.Target
 		for _, p := range g.AliveFrom(c.Controller) {
 			if p != c.Controller {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out, true
+	case "ReplacedPlayer":
+		// The draw-er of the replaced Draw event (Breathstealer's Crypt draws
+		// and reveals for "that player"). Set only on a Draw replacement's
+		// own context; nil outside one.
+		if c.ReplacedPlayer.IsPlayer {
+			return []state.Target{{Player: c.ReplacedPlayer.Player, IsPlayer: true}}, true
+		}
+		return nil, true
+	case "NonReplacedPlayer":
+		// Every OTHER player (Zur's Weirding: "any other player may pay 2
+		// life"), in AliveFrom order, excluding the draw-er.
+		if !c.ReplacedPlayer.IsPlayer {
+			return nil, true
+		}
+		var out []state.Target
+		for _, p := range g.AliveFrom(0) {
+			if p != c.ReplacedPlayer.Player {
 				out = append(out, state.Target{Player: p, IsPlayer: true})
 			}
 		}
@@ -352,6 +468,58 @@ func relatedPlayers(g *state.Game, ts []state.Target, owner bool) []state.Target
 // backing array. A nil s yields nil, not an empty-but-non-nil slice, so
 // Defined's observable results are unchanged for every input — only the
 // aliasing is fixed.
+// eventRemember records one remembered card on the resolution's source with
+// the event-backed Choose entry Forge's host.addRemembered writes. The
+// ctx-level list a chained SubAbility reads is the caller's job; this is the
+// persistent half -- the source object's event-backed Remembered list, which
+// survives the resolution and is what Card.IsRemembered and
+// Count$RememberedSize read later (Forge's host card remembered list).
+func eventRemember(h Host, c *Ctx, id state.ObjID) {
+	if c.Source == 0 {
+		return
+	}
+	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered", IDs: []state.ObjID{id}})
+}
+
+// clearEventRemembered mirrors Forge host.clearRemembered.  Rider primitives
+// call it before replacing their ctx set, so Count$RememberedSize and a later
+// resolution observe exactly the same persistent set as the current chain.
+// imprint records Forge's host.addImprintedCards. TargetedSource names the
+// source card of a targeted stack ability when one exists; ordinary targets
+// are themselves cards. The one shared resolver is used by every API so a
+// future ImprintCards$ rider cannot be accidentally skipped by its primitive.
+func imprint(h Host, c *Ctx, sa *cards.SA) {
+	if c.Source == 0 || strings.TrimSpace(sa.Params["ImprintCards"]) == "" {
+		return
+	}
+	var ids []state.ObjID
+	for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": sa.Params["ImprintCards"]}}) {
+		if t.IsPlayer {
+			continue
+		}
+		id := t.Obj
+		if sa.Params["ImprintCards"] == "TargetedSource" {
+			if o := h.Game().Obj(id); o != nil && o.Source != 0 {
+				id = o.Source
+			}
+		}
+		if h.Game().Obj(id) != nil {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) > 0 {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids})
+	}
+}
+
+func clearEventRemembered(h Host, c *Ctx) {
+	if c.Source != 0 {
+		if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
+			h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
+		}
+	}
+}
+
 func copyTargets(s []state.Target) []state.Target {
 	return append([]state.Target(nil), s...)
 }
@@ -379,6 +547,31 @@ func exileProvenanceNeeded(c *Ctx) bool {
 	for _, body := range c.SVars {
 		if strings.Contains(body, "ExiledWithSource") {
 			return true
+		}
+	}
+	return false
+}
+
+// faceStaticsNameExiledWithSource reports whether the source CARD's own
+// Static lines name ExiledWithSource -- the S: static spelling of the same
+// provenance need the SVar scan in exileProvenanceNeeded covers (Intellect
+// Devourer's MayPlay grant, the shared-fate family). Iterating the param map
+// only feeds a boolean OR, so map order never reaches an event.
+func faceStaticsNameExiledWithSource(h Host, src state.ObjID) bool {
+	o := h.Game().Obj(src)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	for _, st := range o.Face().Statics {
+		for k, v := range st.Params {
+			switch k {
+			case "Affected", "AffectedZone", "Description":
+				// The keys a static names its card filters and text by; the
+				// ExiledWithSource provenance claim lives in one of these.
+				if strings.Contains(v, "ExiledWithSource") {
+					return true
+				}
+			}
 		}
 	}
 	return false

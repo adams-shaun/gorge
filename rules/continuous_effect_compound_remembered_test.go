@@ -8,14 +8,13 @@ import (
 
 // TestCompoundRememberedRestrictionDoesNotOverapply is fix F2: a restriction
 // whose valid-spec carries IsRemembered combined with an extra predicate
-// (Card.IsRemembered+Creature, a + AND or a , OR list) cannot be resolved by
-// the remembered-set match alone -- the extra predicate would be silently
-// dropped and the restriction would apply to a remembered object that fails
-// it. Measured, no corpus CantTarget/CantRegenerate static carries one (all
-// 18 are a bare Card.IsRemembered), so the code is given the right edge:
-// REJECT the compound spec and let the restriction not apply, rather than
-// silently over-apply. The test registers a restriction that remembers an
-// object that is NOT a creature and asserts the restriction does not bite it.
+// (Card.IsRemembered+Creature, a + AND or a , OR list) must never over-apply
+// to a remembered object that fails the extra predicate. The mechanism is now
+// the general filter's IsRemembered (the compound resolves faithfully through
+// the object matcher with the registered remembered set bound), but the
+// pinned behaviour is the same one F2 guarded: the remembered non-creature is
+// NOT blocked, and a bare IsRemembered spec still blocks a remembered object
+// of ANY type.
 func TestCompoundRememberedRestrictionDoesNotOverapply(t *testing.T) {
 	e := handEngine(t)
 	// A remembered permanent that fails the compound's extra "Creature"
@@ -32,8 +31,8 @@ func TestCompoundRememberedRestrictionDoesNotOverapply(t *testing.T) {
 		Duration:   "UntilTheEndOfYourNextTurn",
 	})
 	// The object is remembered, so a naive remembered-set match would return
-	// true (over-applying: it is not a creature). The compound rejection must
-	// make the restriction not apply.
+	// true (over-applying: it is not a creature). The compound's Creature half
+	// must exclude it.
 	if e.restrictionBlocksTarget(artifact, 1) {
 		t.Fatal("compound IsRemembered spec over-applied to a remembered non-creature")
 	}
@@ -51,12 +50,19 @@ func TestCompoundRememberedRestrictionDoesNotOverapply(t *testing.T) {
 	}
 }
 
-// TestCompoundRememberedEffectStaticFallsThroughToNote is the registration
-// side of F2: a DB$ Effect whose CantTarget static carries a compound
-// IsRemembered spec is treated as unsupported (a Note, no registration)
-// rather than registered as a restriction that would over-apply. No corpus
-// card reaches this, so it is purely a guard.
-func TestCompoundRememberedEffectStaticFallsThroughToNote(t *testing.T) {
+// TestCompoundRememberedEffectStaticRegistersAndDoesNotOverapply is the
+// registration side of the IsRemembered upgrade: a DB$ Effect whose CantTarget
+// static carries a compound IsRemembered spec used to fall through to the
+// honest Note (the remembered-set match could not resolve the extra
+// predicate); the general filter now implements IsRemembered, so the static
+// registers for real and applies exactly to the remembered objects that ALSO
+// satisfy the extra predicate -- here the remembered Elf, a creature. A
+// remembered object that FAILS the extra predicate is covered by
+// TestCompoundRememberedRestrictionDoesNotOverapply above (the restriction
+// that test registers directly cannot be produced by a corpus Pump target,
+// which is creature-only). No corpus card reaches this shape, so it is purely
+// a guard.
+func TestCompoundRememberedEffectStaticRegistersAndDoesNotOverapply(t *testing.T) {
 	guard := card(t, "Name:Guard\nManaCost:G\nTypes:Instant\n"+
 		"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ +2 | NumDef$ +2 | SubAbility$ DBEffect\n"+
 		"SVar:DBEffect:DB$ Effect | Defined$ Targeted | Duration$ UntilTheEndOfYourNextTurn | StaticAbilities$ Guard | RememberObjects$ Targeted\n"+
@@ -64,6 +70,7 @@ func TestCompoundRememberedEffectStaticFallsThroughToNote(t *testing.T) {
 	e := handEngine(t, guard)
 	e.G.Players[0].Pool[state.MG] = 1
 	creature := onBoard(t, e, 0, "Name:Elf\nManaCost:G\nTypes:Creature Elf\nPT:2/2\nOracle:x\n")
+	stranger := onBoard(t, e, 0, "Name:Stranger\nManaCost:G\nTypes:Creature Ape\nPT:2/2\nOracle:x\n")
 
 	e.askPriority(0)
 	castFirst(t, e, "cast")
@@ -76,11 +83,22 @@ func TestCompoundRememberedEffectStaticFallsThroughToNote(t *testing.T) {
 	}
 	submitChoices(t, e, idx)
 	passUntilStackEmpty(t, e, 8)
-	// The compound IsRemembered static must NOT have registered a
-	// restriction: it falls through to the honest Note instead.
-	for _, ce := range e.continuous {
-		if ce.Restriction == "CantTarget" {
-			t.Fatal("compound IsRemembered static was registered; it should have fallen through to the Note")
+	// The compound IsRemembered static now registers a real restriction.
+	var ce *ContinuousEffect
+	for i := range e.continuous {
+		if e.continuous[i].Restriction == "CantTarget" {
+			ce = &e.continuous[i]
 		}
+	}
+	if ce == nil {
+		t.Fatal("compound IsRemembered static did not register a restriction")
+	}
+	// It applies to the remembered creature that satisfies BOTH halves and
+	// never to a non-remembered creature.
+	if !e.restrictionApplies(*ce, creature) {
+		t.Fatal("compound must apply to the remembered creature (both halves hold)")
+	}
+	if e.restrictionApplies(*ce, stranger) {
+		t.Fatal("compound applied to a non-remembered creature")
 	}
 }

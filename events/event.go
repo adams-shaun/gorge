@@ -185,7 +185,10 @@ const (
 	// the Execute$ ability), Player the controller, Step the phase to fire
 	// in, Counter the Execute$ SVar name, IDs the Remembered object(s)
 	// captured at registration (PlayerRef-encoded, as TriggerPush does), and
-	// Text the Forge Phase$ string for description. Appended here, after
+	// Text the Forge Phase$ string for description -- or, for an event-matched
+	// (non-phase) registration, "<Mode$ value>:<trigger SVar name>", the
+	// encoding events.Apply's DelayedRegister case decodes into
+	// state.DelayedTrigger's EventMode/Trigger pair. Appended here, after
 	// CmdDamage, following every prior Kind's own append-only precedent, so
 	// no earlier ordinal, hash chain or golden replay is affected.
 	DelayedRegister
@@ -220,6 +223,40 @@ const (
 	// value, and therefore the hash chain and every golden replay already
 	// locked in, is unaffected.
 	LibraryOrder
+	// ExtraTurn records one grant or consumption of an extra turn (CR
+	// 500.7). Player is the seat the turn belongs to and Amount the delta:
+	// an api:AddTurn effect emits +NumTurns$, and the turn structure (rules
+	// advanceStep) emits -1 exactly when it hands that seat a repeat turn
+	// instead of moving to the next living seat. The state
+	// (state.Game.ExtraTurns) is folded here, so a log-only reconstruction
+	// arrives at the same pending counts the live game held. When the
+	// granting ability carries Forge's ExtraTurnDelayedTrigger$ (Final
+	// Fortune's "At the beginning of that turn's end step, you lose the
+	// game"), Counter names the Execute$ SVar and Obj the granting source,
+	// and this case ALSO registers the delayed trigger for the extra turn's
+	// end step: a delayed registration whose MinTurn is the extra turn's
+	// number (g.Turn+1 at grant time), so the ordinary delayed-trigger
+	// firing skips the CURRENT turn's end step and fires exactly once, in
+	// the granted turn. Appended here, after LibraryOrder, following every
+	// prior Kind's append-only precedent, so no earlier ordinal, hash chain
+	// or golden replay is affected.
+	ExtraTurn
+	// DoorUnlock records the unlock of an Enchantment Room's locked door
+	// (CR 309.5): the player paid the locked half's mana cost as a sorcery.
+	// Obj is the room permanent; Apply sets its Unlocked flag, which makes
+	// the alternate face's rules text live (rules' trigger/static/ability
+	// scans) and is what a Mode$ UnlockDoor trigger matches against. The
+	// unlock trigger itself is queued rules-side on this event (rules
+	// checkTriggers), so this event is the whole state delta. Appended
+	// after ExtraTurn, same append-only precedent.
+	DoorUnlock
+	// SpeedChange records one increment of a seat's speed (CR 702.163,
+	// "Start your engines!"). Player is the seat whose speed rises and
+	// Amount the delta (always +1 today; the engine caps the grant at max
+	// speed 4 and at once per turn before ever emitting). Folded into
+	// state.Player.Speed here, so a reconstruction rebuilds it. Appended
+	// after DoorUnlock, same append-only precedent.
+	SpeedChange
 	// MonarchChange gives the designation to Player. It is a state transition,
 	// not a Note, so conditional "if you're the monarch" triggers replay from
 	// the same state as the live match. Appended after LibraryOrder to preserve
@@ -242,12 +279,31 @@ const (
 	// PlayerCounterChange changes a counter on Player. Counter names the kind
 	// and Amount the delta; Ward's AddCounterYou<.../POISON> is its first use.
 	PlayerCounterChange
+	// Imprint updates one source-card association. Obj is the source and IDs
+	// are the cards to add: ordinary text is Forge's imprintedCards list,
+	// Text "exiled-with" is its distinct exiledCards list, Text
+	// "until-host-leaves" is ChangeZone's Duration$ UntilHostLeavesPlay
+	// association (Amount carries the zone the cards were exiled from, which
+	// their return moves them back to; rules sweepExileReturn consumes it),
+	// and Text "clear" clears only imprintedCards. Reusing Text avoids
+	// changing Event's layout.
+	// It is append-only so prior event ordinals and replay hashes stay stable.
+	Imprint
+	// StartingPlayerChange records CR 103.1's starting-player designation.
+	// It is emitted by genesis's toss resolution (folded without appending at
+	// genesis, since genesis is replayed from Config) and by an opening-hand
+	// effect such as Impatient Iguana, rather than being inferred from
+	// TurnChange, because Count$StartingPlayer must read its result before
+	// turn one. Appended after main's kinds so the merge preserves main's
+	// ordinals (log.json serializes kind numerically; a committed fixture's
+	// replay pins them).
+	StartingPlayerChange
 	// Pair records a Soulbond pairing (CR 702.103): Obj is the pairing
 	// permanent and IDs[0] is its chosen partner. Appended after
-	// PlayerCounterChange (the merge of the keyword work onto main kept
-	// main's kinds at their main ordinals), following the same append-only
-	// precedent, so all earlier Kinds keep their numeric values and the hash
-	// chain and golden replays are unaffected.
+	// StartingPlayerChange (the merge kept main's kinds at their main
+	// ordinals), following the same append-only precedent, so all earlier
+	// Kinds keep their numeric values and the hash chain and golden replays
+	// are unaffected.
 	Pair
 	// MyriadCopy records one Myriad (CR 702.109) attacker token: a copy of
 	// the attack-creature Obj that enters tapped and attacking the opponent
@@ -282,7 +338,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order", "monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter",
+	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
+	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup"}
 
 func (k Kind) String() string {
@@ -292,8 +349,30 @@ func (k Kind) String() string {
 	return "unknown"
 }
 
+// ExtraTurnSkipUntapText is the canonical Text marker on an ExtraTurn grant
+// whose Forge AddTurn source carries SkipUntap$ True. Text is already part of
+// Event's encoded union, so it preserves this turn-specific rider without a
+// schema change.
+const ExtraTurnSkipUntapText = "extra turn; skip untap"
+
 // Event is a state delta. The field set is a flat union so encoding stays
 // allocation-free and an external consumer needs no engine code to read it.
+// manaRestrictionPrefix marks a ManaAdd event whose added (or spent) mana is
+// governed by RestrictValid$. Text is otherwise unused by ManaAdd, so this
+// preserves the event wire shape while keeping the provenance replayable.
+const manaRestrictionPrefix = "mana-restriction:"
+
+// ManaRestrictionText encodes a RestrictValid$ constraint on a ManaAdd event.
+func ManaRestrictionText(valid string) string { return manaRestrictionPrefix + valid }
+
+// ManaRestrictionFromText returns the constraint carried by a restricted
+// ManaAdd event. It deliberately accepts no aliases: ordinary historical
+// ManaAdd events must remain unrestricted.
+func ManaRestrictionFromText(text string) (string, bool) {
+	valid, ok := strings.CutPrefix(text, manaRestrictionPrefix)
+	return valid, ok && valid != ""
+}
+
 type Event struct {
 	Seq     uint64           `json:"seq"`
 	Kind    Kind             `json:"kind"`
@@ -361,7 +440,7 @@ func appendStr(dst []byte, s string) []byte {
 // iteration).
 var flagNames = [...]struct {
 	name string
-	bit  uint8
+	bit  uint16
 }{
 	{"kicked", state.FlagKicked},
 	{"surged", state.FlagSurged},
@@ -375,14 +454,19 @@ var flagNames = [...]struct {
 	{"dashed", state.FlagDashed},
 	{"overloaded", state.FlagOverloaded},
 	{"warped", state.FlagWarped},
+	{"buyback", state.FlagBuyback},
+	{"harmonize", state.FlagHarmonize},
+	{"suspend", state.FlagSuspend},
+	{"escaped", state.FlagEscaped},
+	{"mayplay", state.FlagMayPlay},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
 // into a CastFlags byte. Unrecognized names are silently ignored, the same
 // totality stance as everywhere else in this package: a stray or future
 // flag name in an untrusted log must not make this panic.
-func FlagsFrom(s string) uint8 {
-	var f uint8
+func FlagsFrom(s string) uint16 {
+	var f uint16
 	for _, part := range strings.Split(s, ",") {
 		for _, fn := range flagNames {
 			if strings.TrimSpace(part) == fn.name {
@@ -395,7 +479,7 @@ func FlagsFrom(s string) uint8 {
 
 // FlagsString is FlagsFrom's inverse: a canonical, fixed-order csv of the
 // flag names set in f.
-func FlagsString(f uint8) string {
+func FlagsString(f uint16) string {
 	var parts []string
 	for _, fn := range flagNames {
 		if f&fn.bit != 0 {

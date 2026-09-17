@@ -174,3 +174,104 @@ describe('PileModal — the card list\'s shared hover inspector', () => {
     await page.close();
   });
 });
+
+describe('PileModal — the identity bar pile affordances (fb-20260916T225802Z)', () => {
+  // The ?case=identity fixture mounts IdentityBar for two seats plus the
+  // table's ONE shared PileHost, wired exactly as Table.svelte wires them,
+  // over a pending decision that touches Alice's graveyard (a flashback
+  // cast on card 1, two recasts on card 2), Alice's exile (nothing) and
+  // BOB's graveyard (a target option on card 300 — the not-gated-by-owner
+  // case). Tone is resolved through toneOf's register; the decision carries
+  // a pass, so the whole bundle reads offered. window.__pilePosted records
+  // the wire index every post carries (R-E4-1).
+  const openIdentity = async (): Promise<Page> => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PileModal.fixture.html?case=identity`);
+    await page.locator('[data-seat="0"]').waitFor({ state: 'visible' });
+    return page;
+  };
+
+  it('the identity bar renders graveyard/exile pile buttons with the rail label style, and opens the shared modal', async () => {
+    const page = await openIdentity();
+    const gy = page.locator('[data-seat="0"] [data-pile="graveyard"]');
+    const ex = page.locator('[data-seat="0"] [data-pile="exile"]');
+    expect(await gy.getAttribute('aria-label')).toBe("View Alice's graveyard (2 cards)");
+    expect(await ex.getAttribute('aria-label')).toBe("View Alice's exile (1 card)");
+    // the counts row still shows all four zones
+    expect(await page.locator('[data-seat="0"]').textContent()).toContain('library 40');
+    expect(await page.locator('[data-seat="0"]').textContent()).toContain('hand 1');
+
+    await gy.click();
+    const dialog = page.getByRole('dialog', { name: "Alice's graveyard" });
+    await dialog.waitFor({ state: 'visible' });
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'hidden' });
+    expect(await dialog.count()).toBe(0);
+    await page.close();
+  });
+
+  it('a pile icon glows exactly when the pending decision offers something to a card in that pile — same register as the tiles, any owner', async () => {
+    const page = await openIdentity();
+    // Alice's graveyard: cards 1 and 2 are in byObj → offered ring (the
+    // decision carries a pass, so toneOf reads offered)
+    expect(await page.locator('[data-seat="0"] [data-pile="graveyard"]').getAttribute('data-tone')).toBe('offered');
+    // Alice's exile: the decision touches nothing in it → no ring
+    expect(await page.locator('[data-seat="0"] [data-pile="exile"]').getAttribute('data-tone')).toBeNull();
+    // Bob's graveyard: card 300 is a target option's obj → glows too, NOT
+    // gated by pile owner
+    expect(await page.locator('[data-seat="1"] [data-pile="graveyard"]').getAttribute('data-tone')).toBe('offered');
+    await page.close();
+  });
+
+  it("pile cards wear the tone and post the option's own wire index (R-E4-1)", async () => {
+    const page = await openIdentity();
+    await page.locator('[data-seat="0"] [data-pile="graveyard"]').click();
+    const dialog = page.getByRole('dialog', { name: "Alice's graveyard" });
+    await dialog.waitFor({ state: 'visible' });
+
+    // card 1: ONE offer → a direct action icon labelled by the wire label
+    const one = page.locator('[data-obj="1"]');
+    expect(await one.locator('.pile-card').getAttribute('data-tone')).toBe('offered');
+    expect(await one.locator('[data-single-action]').getAttribute('aria-label')).toBe('Flashback Archive Card 1');
+
+    // card 2: two offers → a count badge opening a menu of wire labels
+    const two = page.locator('[data-obj="2"]');
+    expect(await two.locator('.pile-card').getAttribute('data-tone')).toBe('offered');
+    expect(await two.locator('[data-single-action]').count()).toBe(0);
+    await two.locator('[aria-haspopup="menu"]').click();
+    const menu = two.getByRole('menu');
+    expect(await menu.isVisible()).toBe(true);
+    await menu.getByRole('menuitem', { name: 'Recast B' }).click();
+    expect(await page.evaluate(() => (window as unknown as { __pilePosted?: number }).__pilePosted)).toBe(12);
+
+    // the direct icon posts its own index too
+    await one.locator('[data-single-action]').click();
+    expect(await page.evaluate(() => (window as unknown as { __pilePosted?: number }).__pilePosted)).toBe(7);
+    await page.close();
+  });
+
+  it('an untouched pile card carries no ring and no affordance; Escape peels the menu before the modal', async () => {
+    const page = await openIdentity();
+    await page.locator('[data-seat="0"] [data-pile="exile"]').click();
+    const dialog = page.getByRole('dialog', { name: "Alice's exile" });
+    await dialog.waitFor({ state: 'visible' });
+    const cardLi = page.locator('[data-obj="200"]');
+    expect(await cardLi.locator('.pile-card').getAttribute('data-tone')).toBe('');
+    expect(await cardLi.locator('.tile-actions').count()).toBe(0);
+
+    // the untouched pile is still the reading surface: Escape closes the
+    // modal exactly as it always did
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'hidden' });
+    expect(await dialog.count()).toBe(0);
+
+    // menu layering: Escape closes the open menu FIRST, the modal stays
+    await page.locator('[data-seat="0"] [data-pile="graveyard"]').click();
+    await page.locator('[data-obj="2"] [aria-haspopup="menu"]').click();
+    expect(await page.locator('[data-obj="2"] [role="menu"]').isVisible()).toBe(true);
+    await page.keyboard.press('Escape');
+    expect(await page.locator('[data-obj="2"] [role="menu"]').count()).toBe(0);
+    expect(await page.getByRole('dialog', { name: "Alice's graveyard" }).isVisible()).toBe(true);
+    await page.close();
+  });
+});

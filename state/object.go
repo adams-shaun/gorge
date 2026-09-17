@@ -48,7 +48,7 @@ type SacrificedInfo struct {
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
 const (
-	FlagKicked uint8 = 1 << iota // CR 601.2b: paid an optional additional cost
+	FlagKicked uint16 = 1 << iota // CR 601.2b: paid an optional additional cost
 	FlagSurged
 	FlagFlashback
 	FlagMiracle
@@ -59,6 +59,21 @@ const (
 	FlagDashed     // dash: paid the dash cost (CR 702)
 	FlagOverloaded // overload cast (CR 702)
 	FlagWarped     // warp cast: exile at next end step, may recast from exile (CR 702)
+	// FlagBuyback returns the resolving spell to its owner's hand.
+	FlagBuyback
+	// FlagHarmonize and FlagSuspend exile the spell after it resolves.
+	FlagHarmonize
+	FlagSuspend
+	// FlagEscaped marks a cast paid for with its Escape cost (CR 702.42a);
+	// it survives onto the permanent, where the "sacrifice it unless it
+	// escaped" ETB family and the escape-with-counters replacements read it
+	// through the Card.Self+escaped spec.
+	FlagEscaped
+	// FlagMayPlay marks a cast made through a may-play-from-zone grant
+	// (CR 401.5); the MayPlayLimit$ once-per-turn cap reads it from the log
+	// (rules' mayPlaysThisTurn), the same CastInfo provenance marker the
+	// Suspend flag is.
+	FlagMayPlay
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -91,7 +106,11 @@ type Object struct {
 	// It is never a second source of truth for a completed zone change.
 	PreStackEntryThisTurn bool
 	PreStackEntryFrom     Zone
-	HasPreStackEntry      bool
+	// PreStackEnteredLen is the entry-list boundary before a proposed cast.
+	// A CR 733.1 reverse restores that boundary, removing the proposal and
+	// every reversible cost move it made without touching earlier casts.
+	PreStackEnteredLen int
+	HasPreStackEntry   bool
 
 	// Incarnation advances whenever an object crosses the battlefield
 	// boundary. ObjID is stable for the match, but a permanent that leaves and
@@ -136,7 +155,7 @@ type Object struct {
 	// permanent) -- events.Move resets both when the object leaves the
 	// battlefield.
 	X         int32
-	CastFlags uint8
+	CastFlags uint16
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number. Reset alongside X/
@@ -164,6 +183,33 @@ type Object struct {
 	// same decision through the identical code path, so it is not a second
 	// source of truth. Nil when no modal announcement has been made.
 	ChosenModes []string
+
+	// Imprinted holds cards ImprintCards$ explicitly associated with this
+	// object. It is distinct from ExiledCards: Forge's host card has separate
+	// imprintedCards and exiledCards collections, and their consumers must not
+	// make an ordinary exile satisfy an Imprinted selector. It is state
+	// because later abilities (Chrome Mox) refer to it after the originating
+	// resolution has ended.
+	Imprinted []ObjID
+	// ExiledCards holds cards this object exiled through ChangeZone (Forge's
+	// hostCard.exiledCards). The association exists only while the card
+	// remains in exile; events.Move removes it when the card leaves. It is
+	// what DefinedCards$ ExiledWith consumes, not the Imprinted list above,
+	// and it is distinct from the ExiledWith ObjID field below (that one is
+	// the reverse relationship: what exiled THIS card).
+	ExiledCards []ObjID
+
+	// ExileReturn holds the cards this object exiled through ChangeZone's
+	// Duration$ UntilHostLeavesPlay (the Oblivion Ring / Banisher Priest
+	// pattern): each entry's From is the zone the card was exiled from, and
+	// when this object leaves the battlefield the rules sweep returns every
+	// entry whose object is still in exile to that zone under its owner's
+	// control. Like ExiledCards it is a zone relationship, not an imprint:
+	// events.Move prunes entries naming an object that left exile by any
+	// other path, so a sweep never returns a card whose exile was some other
+	// effect's business. Event-backed through the Imprint kind's
+	// "until-host-leaves" Text discriminator.
+	ExileReturn []ExileReturnEntry
 
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
 	// means unattached. Reset whenever the object itself leaves the
@@ -193,6 +239,23 @@ type Object struct {
 	IsToken  bool
 	IsCopy   bool
 	IsMyriad bool
+
+	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
+	// room was CAST as is unlocked from entry; DoorUnlock (the unlock
+	// activation) flips this when the OTHER half's door is paid for. A
+	// room's locked half's abilities are inactive; after the unlock both
+	// halves' rules text is live (rules-side scans consult this field). Only
+	// events.Apply writes it, so a replay rebuilds it.
+	Unlocked bool
+}
+
+// ExileReturnEntry is one ChangeZone Duration$ UntilHostLeavesPlay exile:
+// the exiled object and the zone it was exiled from (which the return moves
+// it back to; a battlefield-origin exile returns to the battlefield, a
+// hand-origin one to the hand).
+type ExileReturnEntry struct {
+	Obj  ObjID
+	From Zone
 }
 
 func (o *Object) Face() *cards.Face {
@@ -263,6 +326,9 @@ func (o *Object) CloneDeep() Object {
 	c.Goads = append([]GoadEffect(nil), o.Goads...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
+	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
+	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
+	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	return c
 }
 

@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -174,7 +173,7 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	// matches the spec. A spec nothing on the battlefield satisfies --
 	// including one whose predicate this build cannot evaluate (unknown
 	// predicates fail closed) -- withholds the static, never widens it.
-	if ip := strings.TrimSpace(params["IsPresent"]); ip != "" && !e.isPresent(ip, you, source) {
+	if ip := strings.TrimSpace(params["IsPresent"]); ip != "" && !e.mayPlayIsPresent(ip, you, source) {
 		return false, false, false
 	}
 	spec := strings.TrimSpace(params["Affected"])
@@ -226,7 +225,7 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 // The spec's controller-relative qualifiers resolve against `you`, Self and
 // CARDNAME against `source`, exactly like the Affected$ spec. AliveFrom(0)
 // keeps the scan deterministic and empty-safe.
-func (e *Engine) isPresent(spec string, you state.PlayerID, source state.ObjID) bool {
+func (e *Engine) mayPlayIsPresent(spec string, you state.PlayerID, source state.ObjID) bool {
 	for _, p := range e.G.AliveFrom(0) {
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
 			if effects.MatchesSpecFrom(e.G, spec, oid, you, source) {
@@ -262,74 +261,4 @@ func (e *Engine) mayPlayLimitReached(id state.ObjID, limit int) bool {
 		}
 	}
 	return used >= limit
-}
-
-// mayPlayGrantOffers walks the acting player's graveyard, exile and library
-// and adds a play/cast option for every card a MayPlay$ static grants. The
-// library walk is the TOP CARD ONLY: a card deeper in the library can never
-// be played, every library grant in the corpus scopes its Affected$ with the
-// TopLibrary predicate (Ka-Zar of the Savage Land, Korlessa Scale Singer,
-// Oracle of Mul Daya, and the Card.Self+TopLibrary self-grants), and walking
-// only the top card keeps a hidden library from leaking deeper card
-// identities into the chooser's own option list -- a MayPlay grant exposes
-// exactly the one card it lets you play, which playing it reveals anyway.
-// The graveyard/exile walk order and the zone order are deterministic
-// slices. The returned options carry Index 0 -- the caller appends them to
-// its list and reindexes (the same discipline the hand walk's add closure
-// practises).
-func (e *Engine) mayPlayGrantOffers(p state.PlayerID, sorcery bool) []decision.Option {
-	var out []decision.Option
-	offer := func(id state.ObjID) {
-		o := e.G.Obj(id)
-		if o == nil {
-			return
-		}
-		f := o.Face()
-		if f == nil {
-			return
-		}
-		free, ok := e.mayPlayGrant(p, id)
-		if !ok {
-			return
-		}
-		if f.IsLand() {
-			// A granted land play consumes the ordinary land drop
-			// (CR 118.3a: the permission is not an additional drop)
-			// and the ordinary sorcery timing. handlePriority's
-			// play_land path commits it from the card's current zone.
-			if !sorcery || e.G.Players[p].LandsPlayed >= 1 {
-				return
-			}
-			out = append(out, decision.Option{Index: 0, Kind: "play_land",
-				Label: "Play " + f.Name, Obj: id})
-			return
-		}
-		if e.castRestricted(p, id) || e.castSuppressed(p, id) {
-			return
-		}
-		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
-		if !instantSpeed && !sorcery {
-			return
-		}
-		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
-			return
-		}
-		cost := Cost{}
-		if !free {
-			cost = e.rawBaseCost(p, id)
-		}
-		if e.castable(p, id, e.offerCostFor(p, id, cost, false), false) {
-			out = append(out, decision.Option{Index: 0, Kind: "cast",
-				Label: "Cast " + f.Name, Obj: id, Mode: "mayplay"})
-		}
-	}
-	for _, zn := range []state.Zone{state.ZGraveyard, state.ZExile} {
-		for _, id := range e.G.Zone(zn, p) {
-			offer(id)
-		}
-	}
-	if lib := e.G.Zone(state.ZLibrary, p); len(lib) > 0 {
-		offer(lib[0])
-	}
-	return out
 }

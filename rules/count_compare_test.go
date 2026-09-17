@@ -14,11 +14,17 @@ import (
 // SVar:X:Count$Compare Y GE2.3.2) and the Will-of-the-X commander cycle's
 // inline CharmNum$ Count$Compare Y GE1.2.1.
 //
-// Nissa's full cast-path test below also guards the three continuation
-// contracts its search chain needs: Card.IsRemembered sees the resolution's
-// remembered list, that list survives a nested KChoose suspension, and an
-// object-valued Defined$ at Origin$ Library is a direct fetch list rather than
-// a new search over hidden cards.
+// Scope note: this task's fix is the Compare head in effects/count.go plus
+// the remembered-filter plumbing. The card-text MOVEMENT contract ("one
+// Forest onto the battlefield tapped, the rest into hand") is pinned in full
+// below: the `Card.IsRemembered` filter predicate (effects/filter.go) makes
+// DBBattlefield's sub-search offer the remembered Forests and the answer
+// moves one to the battlefield tapped, the mid-resolution Remembered set
+// survives the sub-search's suspension (effects/zone.go ResumeRemembered,
+// restored by rules/resolution.go's resume), and DBHand's object-valued
+// Defined$ Remembered is a direct fetch list (effects/zone.go
+// moveDefinedLibraryObjects) rather than a new search over hidden cards, so
+// the un-chosen Forests reach the hand without a further ask.
 
 func TestNissasPilgrimageSearchMaxFollowsSpellMastery(t *testing.T) {
 	reg := searchTestRegistry(t)

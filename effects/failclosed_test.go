@@ -11,12 +11,17 @@ import (
 // this build does NOT implement still matches NOTHING and is still reported by
 // UnknownPredicates -- it never silently becomes an always-true predicate that
 // widens a filter. The families chosen are deliberately the biggest remaining
-// ones from the census that this seat left unknown (they need per-effect
-// Remembered/Imprinted tracking this build does not carry), so a future seat
-// inherits an honest, measured boundary rather than a guessed one.
+// ones from the pc1 census that this seat left unknown (they need exile
+// provenance, zone-history lookups and imprint tracking this build does not
+// carry), so a future seat inherits an honest, measured boundary rather than
+// a guessed one.
 //
-// Resolution-local IsRemembered is implemented; the remaining families need
-// state this matcher does not carry and must continue to fail closed.
+// "DefenderCtrl" is one of the remaining still-unimplemented families
+// (IsRemembered, sameName and ExiledWithSource are now implemented --
+// IsRemembered's real semantics are asserted in bangpredicate_test.go's leaf
+// 2b). A card that uses e.g. `Card.DefenderCtrl` must fail closed: the
+// predicate matches nothing, so those clauses stay inert rather than firing
+// against every card.
 func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	g := state.NewGame([]string{"you", "them"})
@@ -25,6 +30,7 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	// The predicates a later seat still owes, largest first. Each must match
 	// nothing -- never become an always-true predicate.
 	for _, spec := range []string{
+		"Card.DefenderCtrl",
 		"Creature.wasDealtDamageThisTurn",
 		"Permanent.IsImprinted",
 		"Creature.HasCounters", // negative: this one IS implemented, so it breaks the loop below
@@ -39,7 +45,7 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	}
 
 	// And UnknownPredicates keeps reporting each unimplemented one.
-	for _, want := range []string{"wasDealtDamageThisTurn", "IsImprinted"} {
+	for _, want := range []string{"DefenderCtrl", "wasDealtDamageThisTurn", "IsImprinted"} {
 		found := false
 		for _, u := range UnknownPredicates("Card." + want) {
 			if u == want {

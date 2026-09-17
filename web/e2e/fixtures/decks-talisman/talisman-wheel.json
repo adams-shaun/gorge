@@ -1,0 +1,8 @@
+{
+  "name": "Talisman two-stage wheel fixture",
+  "format": "custom",
+  "cards": [
+    {"name": "Mountain", "count": 16},
+    {"name": "Talisman of Indulgence", "count": 14}
+  ]
+}

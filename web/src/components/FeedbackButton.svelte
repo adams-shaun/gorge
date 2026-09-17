@@ -41,7 +41,19 @@
   async function captureScreen(): Promise<void> {
     capturing = true;
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      // preferCurrentTab/selfBrowserSurface are user-agent hints, not a
+      // guarantee: they ask a supporting browser to include the current tab in
+      // its source chooser and to make the focused tab prominent, so the
+      // player can attach the very table they are reporting. Browsers that do
+      // not know these members ignore them and keep their native behaviour.
+      // Both hints are newer than the installed TypeScript DOM lib models
+      // (which still puts preferCurrentTab on MediaStreamConstraints only),
+      // so the literal is asserted; the browser receives it verbatim.
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        preferCurrentTab: true,
+        selfBrowserSurface: 'include',
+      } as DisplayMediaStreamOptions);
       const track = stream.getVideoTracks()[0];
       const bitmap = await new ImageCapture(track).grabFrame();
       track.stop();

@@ -1,11 +1,13 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { View, SeatInfo, DecisionBody } from '../protocol';
+  import type { CardOptions } from '../lib/cardoptions';
   import { focusSeat } from '../lib/seattable';
   import SeatTable from './SeatTable.svelte';
   import ManaPool from './ManaPool.svelte';
   import StackTile from './StackTile.svelte';
   import PendingTray from './PendingTray.svelte';
+  import ResolvedCard from './ResolvedCard.svelte';
 
   /**
    * The rail starts with ONE compact summary across seats, then the stack,
@@ -49,6 +51,7 @@
     yields = null,
     onYield = null,
     viewerSeat = null,
+    options = null,
   }: {
     view: View;
     seats: SeatInfo[];
@@ -57,8 +60,8 @@
     stuck?: { prompt: string; answerable: boolean } | null;
     onContinue?: (() => void) | null;
     emphasizeTop?: boolean;
-    /** the DVR's own event list, forwarded to SeatTable for the PlayerLost cause (Task: dead seats say why) and read by no one else here. Optional so every existing caller/test keeps rendering exactly as before with no cause shown. */
-    events?: { event: { kind: string; player: number; text?: string } }[];
+    /** the DVR's own event list, forwarded to SeatTable for the PlayerLost cause (Task: dead seats say why) and read by ResolvedCard in the stack section (fb-20260916T225456Z — the resolved card's home is this frame, not the board). The shape is structural: any object whose `event` names a kind/player/text (and, for ResolvedCard, an obj) works, so every existing caller and test keeps rendering exactly as before. Optional so those callers stay unchanged. */
+    events?: { event: { kind: string; player: number; text?: string; obj?: number } }[];
     /** showLog is whether the transcript is shown right now; the toggle below
      *  flips it. It is owned by Table.svelte (persisted per table and seat/
      *  spectator scope, the stops contract) and merely surfaced here next to
@@ -84,6 +87,12 @@
     onYield?: ((key: string) => void) | null;
     /** viewerSeat is the seat the stack is rendered for; an opponent-owned entry offers the always-yield menu. */
     viewerSeat?: number | null;
+    /** options is the table's card-options bundle (Table.svelte's
+     *  boardOptions), forwarded to SeatTable so its pile buttons wear the
+     *  same tone ring the identity bar's pile icons wear
+     *  (fb-20260916T225802Z). Optional and null by default so every
+     *  existing caller renders exactly as before. */
+    options?: CardOptions | null;
   } = $props();
 
   // The reader's explicit pick, or null to follow (focusSeat decides what
@@ -129,7 +138,7 @@
     {/if}
     {#if logbar}<span class="logbar__extra">{@render logbar()}</span>{/if}
   </div>
-  <SeatTable {view} {seats} {focus} {events} onFocus={(s) => (picked = picked === s ? null : s)} />
+  <SeatTable {view} {seats} {focus} {events} {options} onFocus={(s) => (picked = picked === s ? null : s)} />
 
   <section class="focus" data-focus-pane data-focus-seat={focused?.seat}>
     {#if focused}
@@ -149,6 +158,12 @@
        (design system, "Layout"); the transcript is the band under this rail. -->
   <section class="stack">
     <h3>Stack{#if topFirst.length > 0} <span class="count">{topFirst.length}</span>{/if}</h3>
+    <!-- The last resolved object's artwork (fb-20260916T225456Z): a card
+         popping OFF this stack shows at its top, labelled, where it reads
+         as the stack's own history — the old RecentStrip board overlay is
+         gone. Renders nothing when nothing has resolved within the event
+         window. -->
+    <ResolvedCard {view} {events} />
     {#each topFirst as s, i (s.id)}
       <StackTile stack={s} {view} emphasized={emphasizeTop && i === 0} dimmed={emphasizeTop && i > 0} {yields} {onYield} {viewerSeat} />
     {/each}

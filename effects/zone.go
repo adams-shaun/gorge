@@ -149,7 +149,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// to the old source-default no-op: it emits a Note and moves nothing.
 		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
 			sa.Params["Defined"] == "" &&
-			sa.Params["DefinedPlayer"] == "" && sa.Params["ValidTgts"] == "" {
+			sa.Params["DefinedPlayer"] == "" && sa.Params["ValidTgts"] == "" &&
+			!strings.EqualFold(sa.Params["Imprint"], "True") {
 			if _, supported := handMoveCountOf(h, c, sa); supported {
 				effChangeZoneHand(h, c, sa, to)
 				return
@@ -205,7 +206,46 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if to == state.ZBattlefield && withKind != "" {
 		withAmt = withCounterAmount(h, c, sa)
 	}
-	for _, t := range Defined(h, c, sa) {
+	targets := Defined(h, c, sa)
+	// Imprint effects such as Chrome Mox select eligible cards from their
+	// controller's hand. Keep them out of the generic hand mover so their
+	// successful exile can be recorded in the replayable Imprint event.
+	if len(targets) == 1 && targets[0].Obj == c.Source && !targets[0].IsPlayer &&
+		len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
+		strings.EqualFold(sa.Params["Imprint"], "True") {
+		targets = nil
+		if c.ImprintDone {
+			for _, id := range c.Imprint {
+				targets = append(targets, state.Target{Obj: id})
+			}
+			c.Imprint, c.ImprintDone = nil, false
+		} else {
+			spec := sa.Params["ChangeType"]
+			if spec == "" {
+				spec = "Card"
+			}
+			for _, id := range h.Game().Zone(state.ZHand, c.Controller) {
+				if o := h.Game().Obj(id); o != nil && MatchesSpecCtx(h.Game(), spec, id, c.SpecContext(c.Controller)) {
+					targets = append(targets, state.Target{Obj: id})
+				}
+			}
+			max := Num(h, c, sa, "ChangeNum", 1)
+			if int32(len(targets)) > max {
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: int(max), Max: int(max), Source: c.Source,
+					ResumeKind: "imprint", ResumeSA: sa, Prompt: "Choose a card to imprint"}
+				for _, target := range targets {
+					o := h.Game().Obj(target.Obj)
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "imprint", Obj: target.Obj, Label: o.Face().Name})
+				}
+				if h.Ask(d) {
+					return
+				}
+				targets = targets[:max]
+			}
+		}
+	}
+	var imprinted []state.ObjID
+	for _, t := range targets {
 		if t.IsPlayer {
 			continue
 		}
@@ -222,7 +262,64 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if _, present := sa.Params["Origin"]; present && !originAll && !zoneIn(originZones, o.Zone) {
 			continue
 		}
-		settleChangeZoneMove(h, c, sa, o.ID, o.Zone, to, withKind, withAmt)
+		// Inlined rather than routed through settleChangeZoneMove: this loop
+		// carries the exiled-with association and the RememberChanged$
+		// event-backed rider (eventRemember) in a specific order (MoveZone,
+		// exiled-with, RememberChanged, WithCounters) that predates the
+		// shared settle helper, and neither is shared with that helper's
+		// other callers (see settleChangeZoneMoveAs's doc comment). The
+		// MoveZone event itself still goes through moveZoneEvent (every exile
+		// mover shares that one constructor) plus the same Imprint$True/
+		// ExiledWithSource-static IDs augmentation settleChangeZoneMoveAs
+		// applies, so events.Apply's ExiledWith-scalar derivation (o.ExiledWith
+		// = e.IDs[0]) fires here exactly as it does on that path -- Chrome
+		// Mox's own DefinedCards$ ExiledWith read needs it, not just the
+		// distinct ExiledCards list exiledWithAssociation below maintains.
+		ev := moveZoneEvent(c, o.ID, o.Zone, to)
+		if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
+			ev.IDs = []state.ObjID{c.Source}
+		}
+		fromZone := o.Zone
+		h.Emit(ev)
+		exiledWithAssociation(h, c, o.ID, to)
+		if to == state.ZExile {
+			recordExileReturn(h, c, sa, o.ID, fromZone, to)
+		}
+		// RememberLKI$ True (Reanimate's "creature card" whose mana value the
+		// chained lose-life SVar reads, RememberedLKI$CardManaCost) joins the
+		// moved object to the ability's Remembered -- a resolution-local Ctx
+		// value, replayed identically because replay re-runs the same SA. The
+		// two flags stack; an object is not remembered twice.
+		if strings.EqualFold(sa.Params["RememberLKI"], "True") &&
+			!strings.EqualFold(sa.Params["RememberChanged"], "True") {
+			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+		}
+		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			eventRemember(h, c, o.ID)
+		}
+		if withKind != "" && to == state.ZBattlefield {
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
+		}
+		// GainControl$ hands the moved object to the named player (Reanimate:
+		// "return target creature card... to the battlefield under your
+		// control"). Only a battlefield entry can carry a control change (CR
+		// 701.22a controls permanents); a card moved to a hidden or public
+		// non-battlefield zone keeps its owner. Not part of the "inlined
+		// rather than settleChangeZoneMove" scoping above -- GainControl$ is
+		// unconditional on the move landing on the battlefield, the same as
+		// settleChangeZoneMoveAs's own tail call.
+		if to == state.ZBattlefield {
+			applyGainControl(h, c, sa, o.ID)
+		}
+		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
+			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
+				imprinted = append(imprinted, o.ID)
+			}
+		}
+	}
+	if len(imprinted) > 0 {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
 }
 
@@ -254,6 +351,72 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 // library paths, but not for a card entering from hand; before every such
 // move this common path makes the narrowing replay-visible rather than
 // silently entering the card untapped.
+//
+// The exiled-with association and the RememberChanged$ event-backed rider
+// (eventRemember) are NOT done here: they are scoped to the two ORIGINAL
+// ChangeZone movers that carried them before this helper existed (the
+// object-target loop in effChangeZone and applyLibrarySearch's hidden-search
+// mover), not to every caller of this now-shared settle path -- widening
+// their scope here would move acceptance-game replay hashes beyond the
+// reviewed change.
+
+// gainControlOf resolves a ChangeZone SA's GainControl$ parameter (Reanimate's
+// "onto the battlefield under your control", Control Magic-family Steal
+// effects' "under your control") and returns the player the moved object must
+// come under the control of. Forge's ChangeZoneEffect names the gain target
+// in that one parameter: "True" and "You" both mean the resolving
+// controller (the corpus's 287 True lines and 43 You lines); every other
+// value is a player selector resolved through the shared Defined grammar
+// (ChosenPlayer, Targeted, Player.IsRemembered, ParentTarget, ...), taking
+// the first resolved player deterministically. The third return reports
+// whether the parameter is PRESENT at all; the second whether the value
+// resolved. An unresolvable value (a spec whose resolution names no player,
+// or one the Defined grammar does not know) is false and the caller is loud
+// rather than silently keeping the owner -- the same fail-closed convention
+// every unread parameter here follows.
+func gainControlOf(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool, bool) {
+	raw, present := sa.Params["GainControl"]
+	if !present || strings.TrimSpace(raw) == "" {
+		return 0, false, true
+	}
+	if strings.EqualFold(raw, "True") || strings.EqualFold(raw, "You") {
+		return c.Controller, true, true
+	}
+	targets, known := definedSpec(h, c, raw)
+	if !known {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "unrecognised ChangeZone GainControl$ " + raw})
+		return 0, false, true
+	}
+	for _, t := range targets {
+		if t.IsPlayer {
+			return t.Player, true, true
+		}
+		if o := h.Game().Obj(t.Obj); o != nil {
+			return o.Controller, true, true
+		}
+	}
+	// The selector resolved (its grammar is known) but named no living
+	// player: nothing to hand control to, and no silent owner-keep either.
+	return 0, false, true
+}
+
+// applyGainControl emits the ControlChange that hands a just-moved object to
+// the GainControl$ player, after the Move has placed it. Order matters: the
+// move establishes the entry (controller = owner, CR 400.7), the control
+// change is the CR 701.22a "gains control" step on top, and replay folds the
+// two events in the same order live does.
+func applyGainControl(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
+	p, ok, present := gainControlOf(h, c, sa)
+	if !present || !ok {
+		return
+	}
+	if o := h.Game().Obj(id); o != nil && o.Controller != p {
+		h.Emit(events.Event{Kind: events.ControlChange, Obj: id, Player: p,
+			Text: "GainControl"})
+	}
+}
+
 func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool) {
 	if from == state.ZHand && to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 		notePlayer := c.Controller
@@ -264,16 +427,100 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 			Text: "Tapped$ True on a hand ChangeZone is not implemented; the card enters untapped"})
 	}
 	ev := moveZoneEvent(c, id, from, to)
+	if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
+		// The S: static spelling of the same provenance need: a source whose
+		// own Static lines name ExiledWithSource (Intellect Devourer's
+		// MayPlay+ExiledWithSource grant) tracks its exiles exactly like the
+		// SVar shapes exileProvenanceNeeded covers; Imprint$ True is the
+		// Chrome Mox spelling, feeding the Defined.Imprinted reflected-mana
+		// selector. Extra IDs on an exile move are inert for every consumer
+		// that never reads them.
+		ev.IDs = []state.ObjID{c.Source}
+	}
 	if hasPlayer {
 		ev.Player = player
 	}
 	h.Emit(ev)
+	if to == state.ZExile {
+		recordExileReturn(h, c, sa, id, from, to)
+	}
+	// RememberLKI$ True (the corpus's 77 ChangeZone lines -- Reanimate's
+	// "creature card" whose mana value the chained lose-life SVar reads,
+	// RememberedLKI$CardManaCost) joins the moved object to the ability's
+	// Remembered. Same Ctx binding RememberChanged$ uses: a resolution-local
+	// value, replayed identically because replay re-runs the same SA. The two
+	// flags stack; an object is not remembered twice. RememberLKI$
+	// Targeted (2 lines, a different capture point -- the CHOSEN target, not
+	// the moved object) is left to its own work and is not silently folded
+	// into this read.
+	if strings.EqualFold(sa.Params["RememberLKI"], "True") &&
+		!strings.EqualFold(sa.Params["RememberChanged"], "True") {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
+	}
 	if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 	}
 	if withKind != "" && to == state.ZBattlefield {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: withKind, Amount: withAmt})
 	}
+	// GainControl$ hands the moved object to the named player. Only a
+	// battlefield entry can carry a control change (CR 701.22a controls
+	// permanents); a card moved to a hidden or public non-battlefield zone
+	// keeps its owner.
+	if to == state.ZBattlefield {
+		applyGainControl(h, c, sa, id)
+	}
+}
+
+// exiledWithAssociation emits Forge's ChangeZoneEffect.handleExiledWith
+// association for a non-token card this effect just exiled: the host's
+// distinct exiledCards collection. It is deliberately NOT an ImprintCards$
+// association: DefinedCards$ ExiledWith consumes this list, while
+// ImprintedController only consumes explicit ImprintCards$ entries. Scoped to
+// the object-target loop and applyLibrarySearch, the two movers that carried
+// this association originally.
+func exiledWithAssociation(h Host, c *Ctx, id state.ObjID, to state.Zone) {
+	if to != state.ZExile || c.Source == 0 {
+		return
+	}
+	if o := h.Game().Obj(id); o != nil && !o.IsToken {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}, Text: "exiled-with"})
+	}
+}
+
+// recordExileReturn reads ChangeZone's Duration$ parameter. The corpus's
+// whole ChangeZone Duration$ population (118 raw .cards/cardsfolder lines:
+// 111 Origin$ Battlefield, 6 Hand, 1 Graveyard, plus 7 on ChangeZoneAll)
+// carries the single value UntilHostLeavesPlay -- the Oblivion Ring /
+// Banisher Priest pattern, "exile ... until CARDNAME leaves the battlefield".
+// For it, the exiled object joins the source's event-backed ExileReturn
+// association carrying the zone it was exiled from; when the source leaves
+// the battlefield the rules sweep (Engine.sweepExileReturn) returns every
+// object still in exile to that zone under its owner's control, which is
+// Forge's own return semantic for the duration (a battlefield-origin exile
+// comes back to the battlefield, a hand-origin one to the hand). A card is
+// only recorded when the move actually landed in exile, and a token is never
+// recorded: a token that left the battlefield has ceased to exist (CR 111.7)
+// and must not come back. Any other Duration$ value is loud (a Note) rather
+// than silently inert, the convention every unread parameter here follows.
+func recordExileReturn(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone) {
+	raw, present := sa.Params["Duration"]
+	if !present || strings.TrimSpace(raw) == "" {
+		return
+	}
+	if !strings.EqualFold(strings.TrimSpace(raw), "UntilHostLeavesPlay") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "unmodelled ChangeZone Duration$ " + strings.TrimSpace(raw)})
+		return
+	}
+	if to != state.ZExile || c.Source == 0 {
+		return
+	}
+	if o := h.Game().Obj(id); o == nil || o.Zone != state.ZExile || o.IsToken {
+		return
+	}
+	h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id},
+		Amount: int32(from), Text: "until-host-leaves"})
 }
 
 // handChangeNum reads the SA's ChangeNum$ as a plain integer literal
@@ -1044,11 +1291,17 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
-		// A nested hidden search resumes in the same resolution, not from a
-		// blank spell context. The fetch list built by a preceding search is
-		// therefore available to Card.IsRemembered and Defined$ Remembered in
-		// the rest of this chain.
-		ResumeRemembered: append([]state.Target(nil), c.Remembered...),
+		// The walk's Remembered rides the ask (rules restores it on the
+		// resume) so the re-entered eligibility recheck and the SubAbility$
+		// after this one still see the cards RememberChanged$ captured -- a
+		// cast spell's mid-resolution Remembered lives only in the resolving
+		// Ctx frame, and without the ride the answer's recheck (and Nissa's
+		// Pilgrimage's "one onto the battlefield" leg) would re-resolve
+		// IsRemembered against an empty set and move nothing. A nested hidden
+		// search resumes in the same resolution too, so the fetch list built
+		// by a preceding search stays available to Card.IsRemembered and
+		// Defined$ Remembered in the rest of this chain.
+		ResumeRemembered: copyTargets(c.Remembered),
 		Prompt:           prompt}
 	for _, id := range eligible {
 		name := "a card"
@@ -1318,13 +1571,25 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		ev := moveZoneEvent(c, id, state.ZLibrary, to)
 		ev.Player = owner
 		h.Emit(ev)
+		if to == state.ZExile && c.Source != 0 {
+			if o := g.Obj(id); o != nil && !o.IsToken {
+				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}, Text: "exiled-with"})
+			}
+		}
 		moved = append(moved, id)
 		if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
 				Counter: sa.Params["WithCountersType"], Amount: withCounterAmount(h, c, sa)})
 		}
+		// GainControl$ on a library search (Act on Impulse's "you may play
+		// those cards" family's put-onto-battlefield relatives): same settle
+		// order as every other mover -- move first, then the control change.
+		if to == state.ZBattlefield {
+			applyGainControl(h, c, sa, id)
+		}
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 			// This establishes the object's entry state; it is not the CR
@@ -1439,6 +1704,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 					h.Emit(moveZoneEvent(c, id, z, to))
+					if to == state.ZExile {
+						recordExileReturn(h, c, sa, id, z, to)
+					}
 					// ChangeZoneAll's remembered movement is needed for the
 					// exiled-with-this-source cleanup/tally shape (Valakut
 					// Exploration). Other ChangeZoneAll RememberChanged forms
@@ -1506,6 +1774,7 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		spec = "Permanent"
 	}
 	g := h.Game()
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDestroyed"]), "True")
 	// One pre-batch victim list across every player, then ONE departure
 	// snapshot, then the emit loop (CR 704.3 simultaneity, as far as the
 	// sequential emit model can express it): the CR 603.10a lifelink LKI a
@@ -1539,6 +1808,12 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+		if remember {
+			// Forge's RememberDestroyed$ adds each destroyed card to
+			// the host's remembered list (Stench of Evil's RepeatEach
+			// over DirectRemembered iterates exactly these).
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		}
 	}
 }
 
@@ -1547,7 +1822,27 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 // HasKeyword/Indestructible gate and no ReplaceDestruction/regeneration
 // consultation -- a regenerated creature does not survive being sacrificed.
 // Same CR 608.2b caveat as effDestroy: only existence-and-zone is rechecked.
+//
+// A sacrifice aimed at a PLAYER now asks that player (CR 701.21a: "its
+// controller chooses one") through a real KChoose over their matching
+// permanents: Amount$ (default 1) sizes the ask, Optional$ True makes it
+// "may sacrifice" (Min 0), and a hand of fewer eligible permanents than
+// Amount$ sacrifices everything it has without asking (there is no choice
+// to record, the effDiscard TgtChoose strict-supersets rule). The answer
+// re-enters this effect through ResumeKind "sacrifice" with Ctx.SacPicks
+// set, one suspension per Defined$ target (the cursor mirrors effDig's
+// per-library asks). An Optional$ ask whose no-host fallback runs takes the
+// first Amount$ eligible permanents — the same pick the pre-ask engine made
+// — so games that never reach a real player answer replay byte-identically
+// up to the pick the answer names.
 func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
+	// UnlessCost$ is handled by the shared unlessProceed gate in Resolve,
+	// exactly as it is for every other API — including the Vexing Devil
+	// damage-payment offer (UnlessCost$ DamageYou<N>, UnlessPayer$ Opponent,
+	// UnlessSwitched$ True), whose "pay" is taking the damage. When the gate
+	// consumed the resolution — an ask was posed (suspended), the answered
+	// choice spared the permanent, or every opponent declined the offer —
+	// this body does not run at all.
 	g := h.Game()
 	// SacValid$ narrows WHAT may be sacrificed ("Creature.nonToken",
 	// "Artifact"). With no SacValid$ at all the default is "Permanent" (any
@@ -1589,8 +1884,34 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			// what a following ConditionDefined$ Remembered, Remembered$Amount
 			// or RememberedCard reads (Braids, Scapeshift, Victimize).
 			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
 	}
+	// fx42 scoping: capture and clear the answered per-player pick BEFORE the
+	// target loop, so a nested sacrifice below this walk poses its own ask.
+	// SacTarget identifies the exact target that asked: earlier targets
+	// completed before suspension and must be skipped, that target consumes
+	// the answer, and later targets pose their own asks (Dig's per-library
+	// ask shape).
+	sacAns := c.SacPicks
+	sacDone := c.SacDone
+	sacTarget := c.SacTarget
+	c.SacPicks, c.SacDone, c.SacTarget = nil, false, 0
+	amount := sacrificeAmount(h, c, sa)
+	// An Amount$ of zero has no legal sacrifice and, crucially, no meaningful
+	// answer. Do not produce a 0..0 KChoose merely because eligible cards
+	// happen to exist (an Optional$ Amount$ X trigger with X=0 has this shape).
+	if amount <= 0 {
+		return
+	}
+	optional := sa.Params["Optional"] == "True"
+	strict := optional && sa.Params["StrictAmount"] == "True"
+	// Optional + StrictAmount is not a 0..Amount range: it is specifically
+	// "none, or exactly Amount". The KModes answer is consumed below before a
+	// possible exact-batch KChoose; keeping it separate prevents a partial
+	// sacrifice from taking the card's "if you do" continuation.
+	sacOptional, sacOptionalTarget := c.SacOptional, c.SacOptionalTarget
+	c.SacOptional, c.SacOptionalTarget = "", 0
 	who := Defined(h, c, sa)
 	// A Sacrifice that names neither Defined$ nor ValidTgts$ but a SacValid$
 	// other than itself is Forge's default Defined$ You: its controller
@@ -1603,13 +1924,54 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			who = []state.Target{{Player: c.Controller, IsPlayer: true}}
 		}
 	}
-	// Pre-batch discipline (effDestroyAll's): the objects this effect will
-	// move are chosen first, ONE departure snapshot covers them all, then
-	// the emit loop runs -- a sacrifice sweep over a lifelink-granting
-	// Equipment and its bearer must not make the bearer's lifelink LKI
-	// depend on battlefield order.
-	var victims []state.ObjID
-	for _, t := range who {
+	for targetIndex, t := range who {
+		if sacOptional != "" {
+			if targetIndex < sacOptionalTarget {
+				continue
+			}
+			if targetIndex == sacOptionalTarget && sacOptional == "decline" {
+				continue
+			}
+		}
+		if sacDone {
+			// Re-entry after some target's ask suspended: earlier targets
+			// completed on the first pass and must be skipped (re-running
+			// them would sacrifice a second batch); the asking target
+			// applies its answer; later targets fall through to the normal
+			// paths below and pose their own asks (Dig's per-library shape).
+			if targetIndex < sacTarget {
+				continue
+			}
+			if targetIndex == sacTarget {
+				if t.IsPlayer {
+					// Sacrifice exactly the answered cards that still sit on
+					// this player's battlefield (a zone check keeps a stray
+					// answer from moving an object that left meanwhile), in
+					// the player's answer order. One departure snapshot for
+					// the whole answered batch (BatchDepartures).
+					if len(sacAns) > 0 {
+						h.BatchDepartures(sacAns)
+						defer h.EndBatchDepartures()
+					}
+					for _, id := range sacAns {
+						if o := g.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+							continue
+						}
+						rememberLKICapture(id)
+						h.Emit(events.Sacrifice(id))
+					}
+				} else if len(sacAns) > 0 {
+					// The object-optional ask's sole option was answered
+					// "sacrifice it": the object was already zone-checked on
+					// the first pass, but re-check here in case it moved.
+					if o := g.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+						rememberLKICapture(o.ID)
+						h.Emit(events.Sacrifice(o.ID))
+					}
+				}
+				continue
+			}
+		}
 		if t.IsPlayer {
 			// Bounds guard: g.Zone indexes g.zones[zoneIndex(z, p)] and
 			// zoneIndex has no bounds check, so an out-of-range target-supplied
@@ -1620,16 +1982,15 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			if int(t.Player) >= len(g.Players) {
 				continue
 			}
-			// This ticket's multi-permanent amount and chooser belong only to the
-			// Annihilator expansion, whose generated SA carries the count in its
-			// Annihilator$ marker (cards/keywords.go) so that Amount$ stays a
-			// genuinely unread parameter for ordinary Sacrifice lines. Ordinary
-			// player-targeted Sacrifice retains its established one-permanent
-			// behavior until that broader primitive is implemented as its own task.
-			n := 1
+			// The multi-permanent count defaults to `amount` -- 1 for an
+			// ordinary Sacrifice line, or the Amount$ the primitive carries.
+			// The Annihilator expansion's generated SA carries its own count
+			// in its Annihilator$ marker (cards/keywords.go) and overrides it;
+			// the two contexts never coincide in the corpus.
+			n := amount
 			if ann := sa.Params["Annihilator"]; ann != "" {
 				if v, err := strconv.Atoi(ann); err == nil && v >= 0 {
-					n = v
+					n = int32(v)
 				}
 			}
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
@@ -1639,35 +2000,106 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 					eligible = append(eligible, id)
 				}
 			}
-			if n > len(eligible) {
-				n = len(eligible)
+			minv, maxv := int32(0), int32(0)
+			ask := false
+			// n is the deterministic/no-host batch. An optional strict batch
+			// with too few eligible permanents cannot be paid partially, so it
+			// starts at zero rather than falling through to the old first-N path.
+			if optional {
+				if strict {
+					switch {
+					case sacOptional == "sacrifice" && targetIndex == sacOptionalTarget:
+						// The player accepted the first yes/no step. If there is a
+						// genuine identity choice, ask for EXACTLY Amount; when every
+						// eligible permanent is required, there is nothing left to ask.
+						if int32(len(eligible)) > amount {
+							ask = true
+							minv, maxv = amount, amount
+						}
+					case int32(len(eligible)) >= amount:
+						// KChoose can express a range but not the disjoint set
+						// {0, Amount}, so ask yes/no first and only then (above)
+						// choose the exact batch.
+						d := &decision.Decision{Player: t.Player, Kind: decision.KModes,
+							Min: 1, Max: 1, Source: c.Source, ResumeKind: "sacrifice_optional",
+							ResumeSA: sa, ResumeTarget: targetIndex,
+							Prompt: "Sacrifice " + strconv.Itoa(int(amount)) + " permanent(s)?",
+							Options: []decision.Option{
+								{Index: 0, Kind: "mode", Label: "Sacrifice " + strconv.Itoa(int(amount)) + " permanent(s)", Obj: c.Source, Player: t.Player},
+								{Index: 1, Kind: "mode", Label: "Don't sacrifice", Obj: c.Source, Player: t.Player},
+							}}
+						if Ask(h, d) == AskAsked {
+							return
+						}
+						// R-9 no-host fallback: preserve the old deterministic pick,
+						// but only as a complete strict batch.
+						h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: t.Player,
+							Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
+					case int32(len(eligible)) < amount:
+						n = 0
+					}
+				} else if len(eligible) > 0 {
+					// A non-strict optional sacrifice permits any number through
+					// Amount$, including none.
+					ask = true
+					maxv = amount
+					if maxv > int32(len(eligible)) {
+						maxv = int32(len(eligible))
+					}
+				}
+			} else if int32(len(eligible)) > n {
+				// Mandatory with a choice: exactly the batch count of the
+				// eligible — Amount$, or the Annihilator$ marker's count when
+				// the generated expansion carries one.
+				ask = true
+				minv, maxv = n, n
 			}
-			chosen := c.Sacrifice
-			c.Sacrifice = nil
-			// Annihilator's one defending player makes this ask resumable without
-			// changing the established multi-player Sacrifice fallback.
-			if chosen == nil && sa.Params["Annihilator"] != "" && len(eligible) > n {
-				opts := make([]decision.Option, 0, len(eligible))
+			// (the remaining mandatory shape — eligible <= amount — sacrifices
+			// everything eligible without asking: no choice to record, the
+			// effDiscard TgtChoose strict-supersets rule.)
+			if ask {
+				d := &decision.Decision{Player: t.Player, Kind: decision.KChoose,
+					Min:          int(minv),
+					Max:          int(maxv),
+					Source:       c.Source,
+					ResumeKind:   "sacrifice",
+					ResumeSA:     sa,
+					ResumeTarget: targetIndex,
+					Prompt:       sacrificePrompt(optional && !strict, maxv)}
 				for _, id := range eligible {
-					opts = append(opts, decision.Option{Index: len(opts), Kind: "sacrifice", Obj: id, Label: g.Obj(id).Face().Name})
+					name := "a permanent"
+					if o := g.Obj(id); o != nil && o.Face() != nil {
+						name = o.Face().Name
+					}
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+						Kind: "sacrifice", Label: name, Obj: id, Player: t.Player})
 				}
-				if h.Ask(&decision.Decision{Player: t.Player, Kind: decision.KChoose, Min: n, Max: n,
-					Prompt: "Choose permanents to sacrifice", Options: opts, ResumeKind: "sacrifice", ResumeSA: sa}) {
-					return
+				if Ask(h, d) == AskAsked {
+					return // resolution suspended; the answer re-enters with Ctx.SacPicks set.
 				}
+				// Fuzz/no-engine host: the deterministic stand-in (R-9) keeps
+				// the pre-ask behaviour — the first Amount$ eligible permanents
+				// in zone order, so an Optional$ "may sacrifice" plays "do".
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: t.Player,
+					Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
+				n = maxv
 			}
-			if chosen == nil {
-				chosen = eligible[:n]
+			// One departure snapshot per emitted batch (BatchDepartures): a
+			// sacrifice sweep over a lifelink-granting Equipment and its bearer
+			// must not make the bearer's CR 603.10a lifelink LKI depend on
+			// battlefield order. Asks suspend before any emission, so every
+			// suspend-then-resume path still re-collects its batch here.
+			batch := make([]state.ObjID, 0, n)
+			for i := int32(0); i < n && int(i) < len(eligible); i++ {
+				batch = append(batch, eligible[i])
 			}
-			// The chosen permanents join the batched victims below, so the
-			// departure snapshot and LKI capture stay one batch (effDestroyAll's
-			// discipline) whatever the sacrifice count.
-			for _, id := range chosen {
-				o := g.Obj(id)
-				if o == nil || o.Zone != state.ZBattlefield || o.Controller != t.Player || !MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
-					continue
-				}
-				victims = append(victims, id)
+			if len(batch) > 0 {
+				h.BatchDepartures(batch)
+				defer h.EndBatchDepartures()
+			}
+			for _, id := range batch {
+				rememberLKICapture(id)
+				h.Emit(events.Sacrifice(id))
 			}
 			continue
 		}
@@ -1680,18 +2112,119 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		// "which one may be sacrificed" step does not re-filter a concrete
 		// object (and would misfire on the corpus's SacValid$ Self lines,
 		// where "Self" is not a type the filter grammar knows).
-		victims = append(victims, o.ID)
-	}
-	if len(victims) > 0 {
-		h.BatchDepartures(victims)
-		defer h.EndBatchDepartures()
-	}
-	for _, id := range victims {
-		if g.Obj(id) == nil || g.Obj(id).Zone != state.ZBattlefield {
-			continue
+		//
+		// Optional$ True on an object target is a real yes/no ("you may
+		// sacrifice this artifact"): a 0..1 ask over the object, answered
+		// through the same "sacrifice" resume. A host that cannot ask keeps
+		// the mandatory sacrifice (the pre-ask behaviour).
+		if optional {
+			// A concrete target cannot satisfy a strict batch greater than one:
+			// it may decline, but it must not sacrifice this one object as a
+			// partial payment.
+			if strict && amount != 1 {
+				continue
+			}
+			d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose,
+				Min: 0, Max: 1, Source: c.Source,
+				ResumeKind: "sacrifice", ResumeSA: sa, ResumeTarget: targetIndex,
+				Prompt: sacrificePrompt(true, 1)}
+			name := "a permanent"
+			if o.Face() != nil {
+				name = o.Face().Name
+			}
+			d.Options = append(d.Options, decision.Option{Index: 0,
+				Kind: "sacrifice", Label: name, Obj: o.ID, Player: o.Controller})
+			if Ask(h, d) == AskAsked {
+				return
+			}
+			// No-host stand-in: the mandatory sacrifice the pre-ask engine
+			// made, with the Note that records why the richer path did not run.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: o.Controller,
+				Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
 		}
-		rememberLKICapture(id)
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		rememberLKICapture(o.ID)
+		h.Emit(events.Sacrifice(o.ID))
 	}
+}
+
+// ParseDamageUnlessCost reports whether an UnlessCost$ value is the
+// damage-payment offer form "DamageYou<N>" and returns N. Recognised: the
+// exact spelling (case-insensitive) with a non-negative integer N; anything
+// else is not the offer (and falls to the shared gate's pricing).
+func ParseDamageUnlessCost(cost string) (int, bool) {
+	_, n, ok := strings.Cut(strings.TrimSpace(cost), "DamageYou<")
+	if !ok || !strings.HasSuffix(n, ">") {
+		return 0, false
+	}
+	n = strings.TrimSuffix(n, ">")
+	v, err := strconv.Atoi(n)
+	// N must be a POSITIVE literal: DamageYou<0> (no damage) is not an offer
+	// anyone could answer differently, so it fails closed to the ordinary
+	// pricing path like every other non-offer spelling.
+	if err != nil || v <= 0 {
+		return 0, false
+	}
+	return v, true
+}
+
+// sacrificePrompt renders the player-targeted sacrifice ask's prompt.
+func sacrificePrompt(optional bool, n int32) string {
+	if optional {
+		return "Choose up to " + strconv.Itoa(int(n)) + " permanent(s) to sacrifice, or none"
+	}
+	return "Choose " + strconv.Itoa(int(n)) + " permanent(s) to sacrifice"
+}
+
+// sacrificeAmount resolves Amount$ (default 1). Literals pass through; a
+// non-literal resolves through the count evaluator (an SVar name, an inline
+// Count$ expression, or {X}). The "X" shape deserves its own arm: on a
+// triggered ability Ctx.X is the ability object's own X -- zero, a trigger
+// was never paid an X -- so an Amount$ X on a permanent's trigger (Meathook
+// Massacre II's "each player sacrifices X creatures") must read the paid X
+// off the SOURCE permanent, which CastInfo carried out of the cast onto the
+// battlefield object. When that cast X is also zero but an SVar named X
+// exists, the evaluator resolves it: Dralnu, Lich Lord's replacement body
+// carries SVar:X:ReplaceCount$DamageAmount, naming the replaced event's own
+// amount rather than any paid X. An Amount$ that is none of literal, SVar,
+// Count$, Sacrificed$ or X is an unknown shape and keeps the
+// pre-Amount$-reading behaviour (1) rather than degrading to zero.
+func sacrificeAmount(h Host, c *Ctx, sa *cards.SA) int32 {
+	raw, ok := sa.Params["Amount"]
+	if !ok {
+		return 1
+	}
+	raw = strings.TrimSpace(raw)
+	if n, err := strconv.Atoi(raw); err == nil {
+		return int32(n)
+	}
+	if raw == "X" {
+		if c.X != 0 {
+			return c.X
+		}
+		if o := h.Game().Obj(c.Source); o != nil && o.X != 0 {
+			return o.X
+		}
+		if c.SVars != nil {
+			// Dralnu, Lich Lord: Amount$ X with SVar:X:ReplaceCount$DamageAmount
+			// — the damage-replacement body's count is the amount of the event
+			// being replaced, which main's replacement machinery carries in
+			// Ctx.ReplacementAmount and EvalCount's ReplaceCount$ head reads.
+			if body, has := c.SVars["X"]; has {
+				if v := EvalCount(h, c, body); v != 0 {
+					return v
+				}
+			}
+		}
+		return 0
+	}
+	known := strings.HasPrefix(raw, "Count$") || strings.HasPrefix(raw, "Sacrificed$") ||
+		strings.HasPrefix(raw, "TriggerCount$")
+	if !known && c.SVars != nil {
+		_, known = c.SVars[raw]
+	}
+	v := Num(h, c, sa, "Amount", 0)
+	if !known && v == 0 {
+		return 1 // unknown shape: today's fixed-one behaviour, not a silent zero
+	}
+	return v
 }

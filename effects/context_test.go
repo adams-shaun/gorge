@@ -73,9 +73,28 @@ func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *
 // rather than inventing a registry it cannot answer for.
 func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 
+// The damage-batch bracket has nothing to latch here (no trigger machinery),
+// so the double reports no-ops; the dealDamage loops' bracketing still runs.
+func (h *fakeHost) BeginDamageBatch() {}
+func (h *fakeHost) EndDamageBatch()   {}
+
 // CastThisTurn has no real turn log to count here (Task 17); the effects
 // package tests set up their own boards, so the double reports zero.
 func (h *fakeHost) CastThisTurn() int { return 0 }
+
+// LifeLostThisTurn has no event log here; the double reports zero (the same
+// conservative no-op as CastThisTurn).
+func (h *fakeHost) LifeLostThisTurn(_ state.PlayerID) int32 { return 0 }
+
+// TurnsTaken has no event log here; the double reports zero.
+func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
+
+// SpellsCastThisTurnMatching has no event log here; the double reports zero.
+func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }
+
+// AttackersThisTurn has no combat log here; the double reports zero (the same
+// conservative no-op as CastThisTurn).
+func (h *fakeHost) AttackersThisTurn() int { return 0 }
 
 // HasKeyword has no layer system to consult here (see the type doc comment),
 // so it reads the printed face directly -- enough for the effects-package
@@ -123,6 +142,14 @@ func (h *fakeHost) Suspended() bool { return false }
 // suspends (its Ask returns false), so effects.Resolve never reaches the
 // suspended branch that would call it. Kept to satisfy the Host interface.
 func (h *fakeHost) SuspendContinuation(*cards.SA) {}
+
+func (h *fakeHost) ReplaceEvent(string, string, int32) {}
+
+func (h *fakeHost) EmitDamage(e events.Event) events.Event {
+	h.Emit(e)
+	return e
+}
+func (h *fakeHost) CounterAllowed(state.ObjID, state.ObjID) bool { return true }
 
 // SuspendRepeat is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}

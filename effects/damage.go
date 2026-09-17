@@ -65,6 +65,14 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// is per-resolution context, not game state, and replay re-derives it by
 	// re-running the same resolution (Task ce1).
 	remember := strings.TrimSpace(sa.Params["RememberDamaged"]) != ""
+	// One DealDamage call is ONE damage batch (Forge dealDamage): the events
+	// this loop emits latch the DamageDealtOnce/DamageDoneOnce triggers
+	// together, so a multi-target hit triggers the source's DealtOnce ability
+	// once with the batch total and each target's DoneOnce ability once with
+	// what that target took. The host opens the batch; emit opens a batch of
+	// one for a Damage event that arrives with none open, so a call this
+	// primitive never brackets (none today) still latches per event.
+	h.BeginDamageBatch()
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			emitPlayerDamage(rider, t.Player)
@@ -74,9 +82,11 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			emitObjectDamage(rider, t.Obj)
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
+				eventRemember(h, c, t.Obj)
 			}
 		}
 	}
+	h.EndDamageBatch()
 }
 
 // damageRider bundles the facts every non-combat damage emit site shares: the
@@ -170,81 +180,62 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 // LifeChange rides the damage emit itself, so the gain is visible at the same
 // instant the damage is, with no stack, no trigger queue and no ask.
 //
-// landed must be false when the damage event did not land: prevention (CR
-// 702.16d, protection) replaces a Damage event with a Note, and a prevented
-// hit gains nothing. Every caller that can observe the replacement reports it
-// (emitObjectDamage's state-delta check); the player arm cannot be prevented
-// in this build (protection arms objects only, rules/engine.go's emit checks
-// ev.Obj != 0), so it reports landed for any positive amount.
-func payLifelinkRider(r damageRider, landed bool) {
-	if !landed || r.amount <= 0 || !r.hasLifelink {
+// dealt is the amount on the Damage event that actually landed after
+// replacement effects. It is zero for prevention, and may differ from the
+// proposed amount for a multiplier or other amount-changing replacement.
+func payLifelinkRider(r damageRider, dealt int32) {
+	if dealt <= 0 || !r.hasLifelink {
 		return
 	}
 	r.h.Emit(events.Event{Kind: events.LifeChange, Player: r.controller,
-		Amount: r.amount})
+		Amount: dealt})
 }
 
-// emitObjectDamage emits one non-combat Damage event against a battlefield
-// permanent and pays the lifelink rider for it. The event is the whole
-// walker exchange too (CR 306.8/120.3c): events.Apply's Damage case converts
-// a planeswalker's damage into loyalty loss -- and still marks a
-// creature-planeswalker's damage -- in the same fold every Damage event
-// takes, so protection, prevention and DamageDone triggers see walker damage
-// exactly like every other damage, and no emitter can forget the conversion.
+// emitObjectDamage marks the shared SBA witness only when EmitDamage returns
+// positive applied damage. The same returned result gates and prices lifelink,
+// so prevention pays neither rider and amount replacement prices both from the
+// event that actually landed.
 //
-// Host.Emit cannot expose a replacement event, so the state delta is the
-// effects-layer observation that protection or prevention did not replace
-// the Damage event -- the same observation gates the lifelink rider
-// (payLifelinkRider), so a prevented hit pays no deathtouch marker and no
-// life. A planeswalker's damage lands as loyalty counters (never marked
-// damage, CR 120.3c), so its delta is the walker's own loyalty counter; a
-// creature's is the marked-damage total; a creature-planeswalker moves both
-// and either delta reports the hit.
+// CR 306.8's planeswalker loyalty exchange happens in rules.Engine.emit,
+// after this proposed Damage has traversed the same prevention/replacement
+// pipeline as every other recipient. EmitDamage still returns the final
+// Damage shape so lifelink and deathtouch consume the replaced amount. A
+// creature-planeswalker still needs its Counter "creature" tag set on the
+// proposed event (events.Apply cannot import rules' layer engine, so it
+// cannot discover the animation itself) so it gets marked damage as well as
+// loyalty loss; printed creatures and plain planeswalkers are unaffected by
+// the tag.
 func emitObjectDamage(r damageRider, target state.ObjID) {
 	h := r.h
 	o := h.Game().Obj(target)
 	if o == nil {
 		return
 	}
-	walker := o.Face() != nil && o.Face().IsPlaneswalker()
-	var beforeDamage int32
-	var beforeLoyalty int32
-	if walker {
-		beforeLoyalty = o.Counter("LOYALTY")
-	} else {
-		beforeDamage = o.Damage
-	}
 	ev := events.Event{Kind: events.Damage, Obj: target, Amount: r.amount}
-	// events.Apply cannot import rules' layer engine. Carry the current
-	// creature result on the Damage event so an animated planeswalker gets
-	// marked damage as well as loyalty loss; printed creatures remain a
-	// backwards-compatible fallback for direct event users.
 	if h.IsCreature(target) && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
 		ev.Counter = "creature"
 	}
-	h.Emit(ev)
-	o = h.Game().Obj(target)
-	landed := false
-	if o != nil && r.amount > 0 {
-		if walker {
-			landed = o.Counter("LOYALTY") < beforeLoyalty
-		} else {
-			landed = o.Damage > beforeDamage
-		}
+	applied := h.EmitDamage(ev)
+	dealt := int32(0)
+	if applied.Kind == events.Damage {
+		dealt = applied.Amount
 	}
-	if landed && h.HasKeyword(r.source, "Deathtouch") {
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: target,
+	if dealt > 0 && applied.Obj != 0 && h.HasKeyword(r.source, "Deathtouch") {
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: applied.Obj,
 			Counter: "Deathtouched", Amount: 1})
 	}
-	payLifelinkRider(r, landed)
+	payLifelinkRider(r, dealt)
 }
 
 // emitPlayerDamage lands one non-combat Damage event on a player and pays the
-// lifelink rider for it. The player arm has no prevention path in this build
-// (see payLifelinkRider), so any positive amount landed.
+// lifelink rider from the amount that survived replacement effects.
 func emitPlayerDamage(r damageRider, target state.PlayerID) {
-	r.h.Emit(events.Event{Kind: events.Damage, Player: target, Amount: r.amount})
-	payLifelinkRider(r, r.amount > 0)
+	applied := r.h.EmitDamage(events.Event{Kind: events.Damage, Player: target, Amount: r.amount})
+	dealt := int32(0)
+	if applied.Kind == events.Damage {
+		dealt = applied.Amount
+	}
+	payLifelinkRider(r, dealt)
 }
 
 // effDamageAll is the sweep pattern: when ValidCards$ is present, iterate the
@@ -275,6 +266,10 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 	rider := newDamageRider(h, c, sa, n)
 	prev := h.SetDamageSource(rider.source)
 	defer h.SetDamageSource(prev)
+	// One DamageAll call is ONE damage batch, exactly like DealDamage's
+	// (see effDealDamage): every creature and player it hits latches
+	// together.
+	h.BeginDamageBatch()
 	if spec != "" {
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(state.ZBattlefield, p) {
@@ -287,6 +282,7 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 	for _, p := range validPlayers(h, c, sa.Params["ValidPlayers"]) {
 		emitPlayerDamage(rider, p)
 	}
+	h.EndDamageBatch()
 }
 
 // validPlayers resolves a DamageAll ValidPlayers$ spec to the players the

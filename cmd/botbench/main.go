@@ -7,9 +7,12 @@
 //   - game i is seeded from base+i, so no game in a run is a repeat of
 //     another (and a run of 500 at a base is a strict superset of a run of
 //     100 at the same base);
-//   - seat assignment alternates every game, so a seating advantage (the
-//     first turn, the deck list each seat holds) is spread equally over the
-//     run instead of masquerading as a policy advantage;
+//   - deck lists are spread equally over the run, so a deck-list advantage
+//     (which pile a seat holds) is spread equally over the seats instead of
+//     masquerading as a policy advantage; the FIRST TURN is not a seating
+//     fact at all since the CR 103.1 toss -- rules.New draws the starting
+//     seat per game, so play/draw is spread by the toss and the report's
+//     starting-player split (below) is what measures its advantage;
 //   - nothing outside those inputs reaches the output -- no wall clock, no
 //     map-range order, no global rand.
 //
@@ -20,14 +23,18 @@
 // that can split the run. The summary therefore always reports the wins per
 // seat (for the two-seat case, with a rate and confidence interval) beside
 // the A/B split, and marks the A/B line when both sides are the same policy:
-// that split is ~50% by construction, and the seat split is the number that
-// measures a play/draw advantage.
+// that split is ~50% by construction. The seat split no longer measures a
+// play/draw advantage (the toss decides who plays first, not the seat) -- it
+// is the deck-list control; the STARTING-PLAYER split below it, taken from
+// each game's first TurnChange, is the number that measures play/draw.
 //
-// `-a bot -b bot` is the same-policy baseline that measures seating bias:
+// `-a bot -b bot` is the same-policy baseline that measures harness bias:
 // seat.NewBot is the production policy, and pitting it against itself
-// shows how big a seat/play-order artifact is before any real comparison
-// is read (the split is ~50% by construction, and it moves with the seed
-// and game count, so no single figure is quoted here). The head-to-head
+// shows how big a run artifact is before any real comparison is read (the
+// split is ~50% by construction, and it moves with the seed
+// and game count, so no single figure is quoted here); since the toss the
+// play/draw figure to read beside it is the starting-player split, not the
+// seat split. The head-to-head
 // that credits a policy: -a bot -b legacy, where legacy is the pre-B2
 // fuzz-driver combat frozen in botpolicy.LegacyDecide. Registering a
 // third policy is one entry in the policies map. Same names on both sides
@@ -56,11 +63,41 @@
 //     iteration, so a matrix is byte-identical run to run and allows an
 //     exact -out json diff between two builds.
 //
+// -profiles: -cpuprofile and -memprofile capture the run for `go tool
+// pprof` without touching the report: -cpuprofile streams a CPU profile
+// over the whole run, -memprofile writes one heap profile after the last
+// game (pprof reads both alloc_space and inuse_space from that file). A
+// profiled run's report is byte-identical to an unprofiled one.
+//
+// -action-coverage: the completeness counterpart of -decision-stats --
+// which decision kinds and option rows were never asked, which offered
+// option shapes were never chosen, which cast shapes (kicked/surged/
+// flashback/miracle/{X}/plain), cards, ability slots and registered card
+// primitives were never exercised at runtime. It is derived from the same
+// Decision/Intent observations plus each finished game's event log (a
+// complete description of the match), so it changes no engine behaviour;
+// the report appends after the run and is deterministic. See
+// actioncoverage.go for the honest signal classes (execution / presence /
+// none).
+//
+// -grind: the throughput/profiling mode -- one repo deck pinned to one
+// goroutine playing itself until a wall-clock (-grind-seconds) or iteration
+// (-grind-iters) budget runs out; "all" grinds every deck in the format's
+// pool, one goroutine each. Deliberately NOT the -pairs worker-pool shape:
+// pool scheduling mixes every deck's work into one profile, while a pinned
+// goroutine per deck gives each deck its own measurement window (same
+// wall-clock budget, not the same iteration count -- a fixed iteration cap
+// gives a slow deck proportionally more profile samples). Every game's
+// outcome is still seed-pure; only the iteration count and iters/sec column
+// read the clock. See grind.go.
+//
 // The report is a per-pair table (pair, A/B wins, A win rate with its 95%
 // CI, the seat split with its CI, mean turns) plus a pooled line over all
 // pairs with its own CI and the count of pairs whose A-win interval
 // excludes 50% in each direction -- the honest summary a single pooled
-// percentage hides.
+// percentage hides. Both reports end with the starting-player split (each
+// seat's starts and wins when it played first, from the first TurnChange),
+// the play/draw measurement the seat split replaced.
 package main
 
 import (
@@ -82,6 +119,7 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
@@ -140,12 +178,20 @@ func gameSeed(base uint64, game int) uint64 { return base + uint64(game) }
 // thereafter.
 var decisionStatsEnabled bool
 
+// actionCoverageEnabled is switched on by the -action-coverage flag when
+// main starts a run, the same package-scope pattern as decisionStatsEnabled:
+// when disabled no collector is created, nothing is recorded and nothing is
+// appended, so the normal report is byte-identical to a pre-flag build.
+var actionCoverageEnabled bool
+
 // aPlaysSeat reports whether policy A (the -a side) holds seat s in game i.
 // A holds a seat when (game+seat) is even: with two seats the assignment
 // flips every game, and for any seat count a seat sees A in exactly half
 // the games of an even run -- the property TestSeatAssignmentAlternates
 // pins. Every (policy, seat) pair therefore plays the same number of games,
-// so a seating advantage cannot masquerade as a policy advantage regardless
+// so a deck-list advantage cannot masquerade as a policy advantage (the
+// first turn is no longer a seating fact -- the CR 103.1 toss draws it per
+// game, which is why the report carries the starting-player split) regardless
 // of how many seats the run uses. This function is the single source of
 // truth for both the seat assignment AND the win attribution: the tally
 // credits each win to the side aPlaysSeat says held the winning seat, so
@@ -185,6 +231,14 @@ type gameOutcome struct {
 	winnerSeat int    // the seat the winner sat in (valid when winner != "")
 	turns      int32
 	intents    int
+	// starter is the seat that took the first turn, from the game log's
+	// first TurnChange (the CR 103.1 toss winner, resolved over the
+	// survivors) -- the seat the starting-player split attributes by.
+	// starterSet distinguishes a real seat 0 from an outcome source (notably
+	// an older synthetic test player) that supplied no starter at all; an int
+	// zero value cannot do that because seat 0 is real.
+	starter    int
+	starterSet bool
 	// stallOn names the watchdog cap that ended the game before it could
 	// finish, distinguishing the two failure modes a reader must tell apart:
 	// "turns" (the turn watchdog fired at -max-turns -- the game ran long)
@@ -199,6 +253,30 @@ type gameOutcome struct {
 
 // isStalled reports whether the game was ended by either watchdog cap.
 func (o gameOutcome) isStalled() bool { return o.stallOn != "" }
+
+// firstTurnSeat reads the seat the game's first TurnChange handed the turn
+// to -- the CR 103.1 toss winner resolved over the survivors -- which is
+// what the report's starting-player split attributes wins by. The boolean is
+// false when the log holds no TurnChange (the game ended during its opening
+// deal).
+func firstTurnSeat(e *rules.Engine) (int, bool) {
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TurnChange {
+			return int(ev.Player), true
+		}
+	}
+	return 0, false
+}
+
+// recordStarter attaches the first-turn seat when the game reached turn 1.
+// Keeping presence separate from the integer makes an omitted synthetic field
+// suppress the optional split rather than inventing a seat-0 start.
+func recordStarter(o gameOutcome, e *rules.Engine) gameOutcome {
+	if starter, ok := firstTurnSeat(e); ok {
+		o.starter, o.starterSet = starter, true
+	}
+	return o
+}
 
 // playMatch plays one game between the given per-seat seats to completion, or
 // ends it as a stall at whichever watchdog cap fires first. pols is the
@@ -219,12 +297,29 @@ func (o gameOutcome) isStalled() bool { return o.stallOn != "" }
 // Reaching either cap is a stalled outcome, never an error: one hung game
 // records a stall and the rest of the run keeps going instead of aborting
 // the whole matrix.
-func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats) (gameOutcome, error) {
+func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage) (gameOutcome, error) {
 	if collect != nil {
 		collect.game()
 	}
+	if cov != nil {
+		cov.game()
+	}
+	o, e, err := playMatchOnce(cfg, pols, seats, maxTurns, maxIntents, collect, cov)
+	if err == nil && cov != nil {
+		// A finished game (win, draw OR stall) attributes its runtime
+		// exercise from the log; a game that ERRORED has no trustworthy log
+		// shape to walk, so it is skipped.
+		cov.walkGame(cfg, e)
+	}
+	return o, err
+}
+
+// playMatchOnce is playMatch's game loop; it returns the engine so the
+// action-coverage walk can read the finished log and state.
+func playMatchOnce(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage) (gameOutcome, *rules.Engine, error) {
 	e := rules.New(cfg)
 	e.Advance()
+	board := botpolicy.NewBoard(len(seats))
 	n := 0
 	for !e.G.Over && e.Pending() != nil && (maxIntents <= 0 || n < maxIntents) {
 		// The turn watchdog: a game whose turn count reaches the cap is
@@ -233,20 +328,32 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, max
 		// the turn number the engine already reports (state.Game.Turn) and
 		// caps nothing under rules/.
 		if maxTurns > 0 && e.G.Turn >= int32(maxTurns) {
-			return gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n}, nil
+			return recordStarter(gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n}, e), e, nil
 		}
 		d := e.Pending()
-		v := view.Project(e.G, e, d.Player, d)
-		v.Round = view.RoundOf(e.G, e.L.Events)
-		in, err := seats[d.Player].Decide(context.Background(), v, *d)
+		var in decision.Intent
+		var err error
+		if s, ok := seats[d.Player].(seat.BoardSeat); ok {
+			// Match the live host's reusable, seat-private Board path. Seats
+			// opting out (including legacy) still receive the full View.
+			b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
+			in, err = s.DecideBoard(context.Background(), b, *d)
+		} else {
+			v := view.Project(e.G, e, d.Player, d)
+			v.Round = view.RoundOf(e.G, e.L.Events)
+			in, err = seats[d.Player].Decide(context.Background(), v, *d)
+		}
 		if err != nil {
-			return gameOutcome{}, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)
+			return gameOutcome{}, e, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)
 		}
 		if collect != nil {
 			collect.record(d, in)
 		}
+		if cov != nil {
+			cov.record(d, in)
+		}
 		if err := e.Submit(in); err != nil {
-			return gameOutcome{}, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, err)
+			return gameOutcome{}, e, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, err)
 		}
 		n++
 	}
@@ -256,9 +363,9 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, max
 		// decision mid-game, itself a non-terminating stall). This is a
 		// stalled outcome -- NOT an error -- so the run records it and steps
 		// over the pair instead of killing the whole matrix.
-		return gameOutcome{stallOn: "intents", turns: e.G.Turn, intents: n}, nil
+		return recordStarter(gameOutcome{stallOn: "intents", turns: e.G.Turn, intents: n}, e), e, nil
 	}
-	return outcomeFrom(e, pols, n), nil
+	return outcomeFrom(e, pols, n), e, nil
 }
 
 // outcomeFrom reads a finished game's result. Ruling P14: Draw must be read
@@ -273,7 +380,7 @@ func outcomeFrom(e *rules.Engine, pols []string, intents int) gameOutcome {
 		o.winner = pols[e.G.Winner]
 		o.winnerSeat = int(e.G.Winner)
 	}
-	return o
+	return recordStarter(o, e)
 }
 
 // stallNotice is the loud, unmistakable summary line a run with any stalled
@@ -382,6 +489,8 @@ type outcomeKind struct {
 	winnerSeat int
 	aWin       bool
 	bWin       bool
+	starter    int
+	starterSet bool
 }
 
 // classifyOutcome splits one gameOutcome into the classification the singles
@@ -392,6 +501,12 @@ type outcomeKind struct {
 // exactly as they were before this helper existed.
 func classifyOutcome(g int, oc gameOutcome, seats int) (outcomeKind, error) {
 	var k outcomeKind
+	if oc.starterSet {
+		if oc.starter < 0 || oc.starter >= seats {
+			return outcomeKind{}, fmt.Errorf("starter seat %d out of range [0,%d)", oc.starter, seats)
+		}
+		k.starter, k.starterSet = oc.starter, true
+	}
 	switch {
 	case oc.isStalled():
 		k.stall = true
@@ -472,6 +587,9 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 
 	var aWins, bWins, draws, stallTurns, stallIntents int
 	seatWins := make([]int, seats)
+	starts := make([]int, seats)
+	startWins := make([]int, seats)
+	anyStarts := false
 	var totalTurns int64
 	for g, result := range slots {
 		if result.err != nil {
@@ -520,6 +638,17 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 				bWins++
 			}
 		}
+		// The starting-player tally, over every game that reached turn 1
+		// (stalled games with a starter still count as starts; a genesis
+		// stall and an older synthetic outcome leave starterSet false). A draw
+		// counts as a start with no win, like the seat tally.
+		if kind.starterSet {
+			anyStarts = true
+			starts[kind.starter]++
+			if kind.winnerSeat == kind.starter && !kind.stall && !kind.draw {
+				startWins[kind.starter]++
+			}
+		}
 		totalTurns += int64(oc.turns)
 	}
 
@@ -536,7 +665,7 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 		// name, so the A/B split is whichever side happened to hold the
 		// winning seat -- ~50% by construction, not a comparison. Say so
 		// openly; the seat split below is the informative number.
-		ab += fmt.Sprintf("  (same policy %q on both sides: the split is ~50%% by construction; read the seat split below)", aName)
+		ab += fmt.Sprintf("  (same policy %q on both sides: the split is ~50%% by construction; read the starting-player split below)", aName)
 	}
 	fmt.Fprintln(out, ab)
 	fmt.Fprintf(out, "A win rate: %s\n", rateFmt(aWins, eff, lo, hi, "(normal approximation to the binomial)"))
@@ -562,6 +691,19 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 		fmt.Fprintln(out, strings.Join(parts, "  "))
 	}
 	fmt.Fprintf(out, "mean turns per game: %.1f\n", float64(totalTurns)/float64(games))
+	if anyStarts {
+		// The play/draw measurement the seat split above replaced: since the
+		// CR 103.1 toss the seat that plays first is drawn per game, not the
+		// seat index, so the first-turn advantage lives here -- each seat's
+		// starts beside its wins when it played first. Suppressed when no
+		// game recorded a starter (a synthetic-player run), so the report is
+		// byte-identical to before for every caller that does not carry one.
+		parts := make([]string, seats)
+		for s := 0; s < seats; s++ {
+			parts[s] = fmt.Sprintf("seat %d started %d and won %d", s, starts[s], startWins[s])
+		}
+		fmt.Fprintf(out, "starting player: %s\n", strings.Join(parts, "  "))
+	}
 	if notice := stallNotice(stallTurns, stallIntents, eff); notice != "" {
 		// A run with any stalls must say so loudly -- a line that cannot be
 		// mistaken for a clean run. Nothing is printed when there are no
@@ -723,7 +865,13 @@ type pairResult struct {
 	stallTurns   int
 	stallIntents int
 	seatWins     [2]int
-	totalTurns   int64
+	// The play/draw tally, from each game's first TurnChange (the CR 103.1
+	// toss winner resolved over the survivors): starts[s] games where seat s
+	// played first, startWins[s] of them won by that seat. A draw counts as
+	// a start with no win; a genesis stall (no turn 1) counts as neither.
+	starts     [2]int
+	startWins  [2]int
+	totalTurns int64
 }
 
 // commanderIndex returns the command-zone index a deck names -- its File's
@@ -883,6 +1031,14 @@ func playOnePairWithPool(baseSeed uint64, pos, games int, aName, bName string, p
 				r.bWins++
 			}
 		}
+		// The starting-player tally: the play/draw measurement the seat
+		// split no longer provides, since the toss decides who plays first.
+		if kind.starterSet {
+			r.starts[kind.starter]++
+			if !kind.stall && !kind.draw && kind.winnerSeat == kind.starter {
+				r.startWins[kind.starter]++
+			}
+		}
 		r.totalTurns += int64(oc.turns)
 		if g > 0 && g%step == 0 {
 			prog.line("pair %d (%s): %d/%d games", pos+1, pd, g, games)
@@ -1018,6 +1174,8 @@ type mergedResult struct {
 	stallTurns   int
 	stallIntents int
 	seatWins     [2]int
+	starts       [2]int
+	startWins    [2]int
 	totalTurns   int64
 }
 
@@ -1034,6 +1192,10 @@ func mergeResults(results []pairResult) mergedResult {
 		m.stallIntents += r.stallIntents
 		m.seatWins[0] += r.seatWins[0]
 		m.seatWins[1] += r.seatWins[1]
+		m.starts[0] += r.starts[0]
+		m.starts[1] += r.starts[1]
+		m.startWins[0] += r.startWins[0]
+		m.startWins[1] += r.startWins[1]
 		m.totalTurns += r.totalTurns
 	}
 	return m
@@ -1112,6 +1274,13 @@ func writeMatrixText(out io.Writer, aName, bName string, baseSeed uint64, games 
 	fmt.Fprintf(out, "pooled seat 0 win rate: %s\n",
 		rateFmt(m.seatWins[0], mEff, sLo, sHi, "(normal approximation to the binomial)"))
 	fmt.Fprintf(out, "mean turns per game (pooled): %.1f\n", float64(m.totalTurns)/float64(m.games))
+	if m.starts[0]+m.starts[1] > 0 {
+		// The pooled play/draw measurement, same shape as the single-pair
+		// report's line: since the CR 103.1 toss the seat that plays first
+		// is drawn per game, not the seat index.
+		fmt.Fprintf(out, "pooled starting player: seat 0 started %d and won %d  seat 1 started %d and won %d\n",
+			m.starts[0], m.startWins[0], m.starts[1], m.startWins[1])
+	}
 	fmt.Fprintf(out, "pairs whose A-win interval excludes 50%%: A loses on %d, A wins on %d, undecided on %d\n", below, above, undecided)
 	if notice := stallNotice(m.stallTurns, m.stallIntents, mEff); notice != "" {
 		// A matrix with any stalls says so loudly, like the single-pair run.
@@ -1178,6 +1347,10 @@ type jsonPooled struct {
 	Seat0Rate    float64   `json:"seat0_rate"`
 	Seat0CI      []float64 `json:"seat0_ci"`
 	MeanTurns    float64   `json:"mean_turns"`
+	Seat0Starts  int       `json:"seat0_starts"`
+	Seat1Starts  int       `json:"seat1_starts"`
+	Seat0StartW  int       `json:"seat0_start_wins"`
+	Seat1StartW  int       `json:"seat1_start_wins"`
 	ExcludeBelow int       `json:"pairs_excluding_50_below"`
 	ExcludeAbove int       `json:"pairs_excluding_50_above"`
 	Undecided    int       `json:"pairs_undecided"`
@@ -1236,6 +1409,10 @@ func writeMatrixJSON(out io.Writer, aName, bName string, baseSeed uint64, games 
 		Seat0Rate:    winRateFrac(m.seatWins[0], mEff),
 		Seat0CI:      []float64{sLo, sHi},
 		MeanTurns:    float64(m.totalTurns) / float64(m.games),
+		Seat0Starts:  m.starts[0],
+		Seat1Starts:  m.starts[1],
+		Seat0StartW:  m.startWins[0],
+		Seat1StartW:  m.startWins[1],
 		ExcludeBelow: below,
 		ExcludeAbove: above,
 		Undecided:    undecided,
@@ -1262,7 +1439,7 @@ func winRateFrac(wins, eff int) float64 {
 // the text table+pooled line or the JSON document. It shares playMatch, the
 // policies table and ci95 with run(), so the seat-trades-policies and
 // seed-determinism properties are the same two seats a single-pair run has.
-func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format string, pairs []pairDef, workers, maxTurns, maxIntents int, commander bool, out, prog io.Writer) error {
+func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format string, pairs []pairDef, workers, maxTurns, maxIntents int, commander bool, coverage *coveragePlan, out, prog io.Writer) error {
 	if seats != 2 {
 		return fmt.Errorf("-pairs requires -seats 2 (a matrix pits one deck pair against another), got %d", seats)
 	}
@@ -1314,11 +1491,16 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		}
 	}
 
-	// collect is the -decision-stats histogram for this run; nil when the
-	// flag is off, so a default run records nothing and appends nothing.
+	// collect is the -decision-stats histogram and cov the -action-coverage
+	// collector for this run; both nil when their flags are off, so a default
+	// run records nothing and appends nothing.
 	var collect *decisionStats
 	if decisionStatsEnabled {
 		collect = newDecisionStats()
+	}
+	var cov *actionCoverage
+	if actionCoverageEnabled {
+		cov = newActionCoverage()
 	}
 
 	play := func(pos int, seed uint64, pols []string) (gameOutcome, error) {
@@ -1336,7 +1518,7 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		cfg := buildGameConfig(seed, []string{pd.a, pd.b},
 			[][]*cards.Card{deckByName[pd.a], deckByName[pd.b]}, commanders, commander)
 		cfg.Tokens = reg.Tokens
-		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect)
+		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
 	}
 
 	results, err := runPairs(baseSeed, games, aName, bName, pairs, play, workers, &progressWriter{w: prog})
@@ -1348,12 +1530,18 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 			return err
 		}
 		collect.write(out)
+		cov.write(out)
 		return nil
+	}
+	if coverage != nil {
+		fmt.Fprintf(out, "coverage selection (static registered primitive metric): decks %s; historical default %d/%d, selected %d/%d\n",
+			strings.Join(coverage.Names, ","), coverage.Baseline, coverage.Available, coverage.Covered, coverage.Available)
 	}
 	if err := writeMatrixText(out, aName, bName, baseSeed, games, results, commander); err != nil {
 		return err
 	}
 	collect.write(out)
+	cov.write(out)
 	return nil
 }
 
@@ -1461,11 +1649,16 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 	}
 	fmt.Fprintln(out, hdr)
 
-	// collect is the -decision-stats histogram for this run; nil when the
-	// flag is off, so a default run records nothing and appends nothing.
+	// collect is the -decision-stats histogram and cov the -action-coverage
+	// collector for this run; both nil when their flags are off, so a default
+	// run records nothing and appends nothing.
 	var collect *decisionStats
 	if decisionStatsEnabled {
 		collect = newDecisionStats()
+	}
+	var cov *actionCoverage
+	if actionCoverageEnabled {
+		cov = newActionCoverage()
 	}
 
 	play := func(s uint64, pols []string) (gameOutcome, error) {
@@ -1478,7 +1671,7 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 		}
 		cfg := buildGameConfig(s, seated, decks, commanders, commander)
 		cfg.Tokens = reg.Tokens
-		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect)
+		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
 	}
 	if workers <= 0 {
 		workers = runtime.NumCPU()
@@ -1489,6 +1682,7 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 		return err
 	}
 	collect.write(out)
+	cov.write(out)
 	return nil
 }
 
@@ -1524,7 +1718,7 @@ func main() {
 	seed := flag.Uint64("seed", 0, "base seed; game i plays at seed+i")
 	seats := flag.Int("seats", 2, "number of seats")
 	rotate := flag.Int("rotate", 0, "rotate the seat-to-deck assignment by N positions (seat s holds the (s+N)%%seats-th deck); 0 is today's fixed assignment")
-	pairs := flag.String("pairs", "", "deck-pair matrix: \"all\" for every unordered repo-deck pair, or a comma-separated \"a:b,c:d\" list; empty keeps today's single-pair behaviour")
+	pairs := flag.String("pairs", "", "deck-pair matrix: \"all\" for every unordered repo-deck pair, \"coverage\" for the deterministic primitive-covering deck subset, or a comma-separated \"a:b,c:d\" list; empty keeps today's single-pair behaviour")
 	format := flag.String("format", "constructed", "construction format: constructed or commander (commander deals commander decks into the command zone, starts at 40 life, and plays for -max-turns before a game is recorded as a stall)")
 	out := flag.String("out", "text", "matrix output format: text or json (json is machine-readable for diffing runs)")
 	workers := flag.Int("workers", 0, "parallelism budget for bench games, single-pair and matrix, across pairs and games; 0 = use all cores (result is deterministic regardless)")
@@ -1540,13 +1734,68 @@ func main() {
 	maxIntents := flag.Int("max-intents", 20000, "maximum intents per game before it ends as a stall (not a win, not a draw); catches a game whose turn count never advances but that keeps submitting intents; 0 = no cap")
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
+	actionCoverage := flag.Bool("action-coverage", false, "append the action-coverage completeness report (decision kinds / option rows never asked, offered-but-never-chosen shapes, cast shapes, cards and ability slots never fired, primitives never exercised) at the end of a run; default off so the normal report is unchanged")
+	grind := flag.String("grind", "", "grind mode: pin one repo deck to one goroutine and play it against itself as many games as the budget allows; a deck name, or \"all\" for every deck in the format's pool (one goroutine each); mutually exclusive with -pairs; -workers is ignored (the one-goroutine-per-deck shape IS the mode)")
+	grindSeconds := flag.Float64("grind-seconds", 0, "grind wall-clock budget in seconds (checked between games, so at least one game always plays); 0 with -grind-iters 0 means the 30s default")
+	grindIters := flag.Int("grind-iters", 0, "grind iteration cap per deck; 0 = wall-clock only")
+	cpuprofile := flag.String("cpuprofile", "", "write a CPU profile to this pprof file over the whole run (empty = off)")
+	memprofile := flag.String("memprofile", "", "write a heap profile to this pprof file after the last game finishes (pprof reads both alloc_space and inuse_space from it; empty = off)")
 	flag.Parse()
 	decisionStatsEnabled = *decisionStats
+	actionCoverageEnabled = *actionCoverage
 
-	commander, err := parseGameFormat(*format)
-	if err != nil {
+	os.Exit(mainExit(*a, *b, *games, *seed, *seats, *rotate, *pairs, *format, *out, *workers,
+		*maxTurns, *maxIntents, *dir, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile))
+}
+
+// mainExit is main's body with the exit code as its return, so the profiler
+// (a defer) runs on EVERY exit path -- including a failed run, whose partial
+// profile is still readable evidence -- instead of being skipped by the
+// os.Exit calls a flag-error path used to make.
+func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pairs, format, out string, workers,
+	maxTurns, maxIntents int, dir string, decisionStats, actionCoverage bool, grind string, grindSeconds float64, grindIters int, cpuprofile, memprofile string) int {
+	fail := func(err error) int {
 		fmt.Fprintln(os.Stderr, "botbench:", err)
-		os.Exit(1)
+		return 1
+	}
+
+	prof := &profiler{cpuPath: cpuprofile, memPath: memprofile}
+	if err := prof.start(); err != nil {
+		return fail(err)
+	}
+	// finish runs on every return below; a run that returns an error still
+	// leaves its partial profiles on disk. A write failure is reported but
+	// never masks the run's own error.
+	defer func() {
+		if err := prof.finish(); err != nil {
+			fmt.Fprintln(os.Stderr, "botbench:", err)
+		}
+	}()
+
+	decisionStatsEnabled = decisionStats
+	actionCoverageEnabled = actionCoverage
+
+	// Grind mode first: it is its own shape (one deck, one goroutine, budget
+	// driven) and refuses to mix with the pair matrix.
+	if grind != "" {
+		if pairs != "" {
+			return fail(fmt.Errorf("-grind and -pairs are mutually exclusive (grind pins one deck to one goroutine; the matrix fans pairs over the pool)"))
+		}
+		if workers != 0 {
+			// Say it loudly rather than silently swallowing the flag: the
+			// one-goroutine-per-deck shape IS the mode, and a profile that
+			// mixed pool-scheduled games would not be a grind profile.
+			fmt.Fprintln(os.Stderr, "botbench: -workers is ignored in -grind mode (one goroutine per deck is the point of the mode)")
+		}
+		if err := runGrind(seed, grind, grindSeconds, grindIters, dir, format, maxTurns, maxIntents, os.Stdout, os.Stderr); err != nil {
+			return fail(err)
+		}
+		return 0
+	}
+
+	commander, err := parseGameFormat(format)
+	if err != nil {
+		return fail(err)
 	}
 
 	// The deck pool is the format's: a Commander run seats only commander
@@ -1556,31 +1805,49 @@ func main() {
 	if commander {
 		deckPool, err = commanderDeckNames()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "botbench:", err)
-			os.Exit(1)
+			return fail(err)
 		}
 	} else {
 		deckPool = testutil.RepoDeckNames()
 	}
 
-	if *pairs != "" {
-		if *rotate != 0 {
-			fmt.Fprintln(os.Stderr, "botbench: -rotate applies to the single-run bench only, not -pairs (a 2-seat pair already plays both seatings)")
-			os.Exit(1)
+	if pairs != "" {
+		if rotate != 0 {
+			return fail(fmt.Errorf("-rotate applies to the single-run bench only, not -pairs (a 2-seat pair already plays both seatings)"))
 		}
-		ps, err := parsePairsForMode(*pairs, deckPool, commander)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "botbench:", err)
-			os.Exit(1)
+		var coverage *coveragePlan
+		var ps []pairDef
+		if pairs == "coverage" {
+			if out != "text" {
+				return fail(fmt.Errorf("-pairs coverage requires -out text so its static coverage metric is present"))
+			}
+			reg, err := testutil.OpenCorpusRegistry(dir)
+			if err != nil {
+				return fail(fmt.Errorf("opening corpus: %w", err))
+			}
+			plan, err := coverageDeckPlan(reg, deckPool)
+			if err != nil {
+				return fail(err)
+			}
+			plan.Baseline, err = deckPrimitiveCoverage(reg, deckPool[:2])
+			if err != nil {
+				return fail(err)
+			}
+			coverage = &plan
+			ps = fullPairs(plan.Names)
+		} else {
+			ps, err = parsePairsForMode(pairs, deckPool, commander)
+			if err != nil {
+				return fail(err)
+			}
 		}
-		if err := runMatrix(*seed, *games, *seats, *a, *b, *dir, *out, ps, *workers, *maxTurns, *maxIntents, commander, os.Stdout, os.Stderr); err != nil {
-			fmt.Fprintln(os.Stderr, "botbench:", err)
-			os.Exit(1)
+		if err := runMatrix(seed, games, seats, aName, bName, dir, out, ps, workers, maxTurns, maxIntents, commander, coverage, os.Stdout, os.Stderr); err != nil {
+			return fail(err)
 		}
-		return
+		return 0
 	}
-	if err := run(*seed, *games, *seats, *rotate, *workers, *a, *b, *dir, *maxTurns, *maxIntents, commander, os.Stdout); err != nil {
-		fmt.Fprintln(os.Stderr, "botbench:", err)
-		os.Exit(1)
+	if err := run(seed, games, seats, rotate, workers, aName, bName, dir, maxTurns, maxIntents, commander, os.Stdout); err != nil {
+		return fail(err)
 	}
+	return 0
 }

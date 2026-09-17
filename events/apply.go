@@ -19,6 +19,35 @@ func Emit(g *state.Game, l *Log, e Event) Event {
 
 // Apply folds one event into state. It must stay a pure function of (g, e):
 // no randomness, no clock, no reads outside g.
+// resolveSVarAcrossFaces resolves an Execute$ SVar name against the source
+// object's card, trying the ACTIVE face's table first and then every face in
+// index order. A one-face card behaves exactly as before (the active face
+// IS the first hit). The multi-face case is why this helper exists: an
+// Enchantment Room's alternate-face trigger (an unlocked room's "When you
+// unlock this door", CR 309.5) names an SVar that lives on Face[1]'s table,
+// which src.Face() -- the active face -- does not carry. First face whose
+// table defines the name wins: deterministic, and a name defined on several
+// faces resolves to the lowest index consistently on live play and replay.
+func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
+	if name == "" {
+		return nil
+	}
+	if f := src.Face(); f != nil {
+		if sa := cards.ResolveSVar(f.SVars, name); sa != nil {
+			return sa
+		}
+	}
+	if src.Card == nil {
+		return nil
+	}
+	for _, cf := range src.Card.Faces {
+		if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
+			return sa
+		}
+	}
+	return nil
+}
+
 func Apply(g *state.Game, e Event) {
 	switch e.Kind {
 	case GameStart, DecisionAsk, DecisionMade, Note, Resolve, ModeChosen:
@@ -92,6 +121,11 @@ func Apply(g *state.Game, e Event) {
 			g.Monarch, g.HasMonarch = e.Player, true
 		}
 
+	case StartingPlayerChange:
+		if validPlayer(g, e.Player) {
+			g.StartingPlayer, g.HasStartingPlayer = e.Player, true
+		}
+
 	case ControlChange:
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {
@@ -100,6 +134,53 @@ func Apply(g *state.Game, e Event) {
 				// condition fails; pruning here keeps a later return of
 				// control from reviving it.
 				pruneGoads(g)
+			}
+		}
+
+	case Imprint:
+		if o := g.Obj(e.Obj); o != nil {
+			if e.Text == "clear" {
+				o.Imprinted = nil
+			} else {
+				// Text is an in-kind discriminator, not a new Event field:
+				// ImprintCards$ records Forge's imprintedCards list while a
+				// ChangeZone-to-exile records the separate exiledCards list.
+				// Both associations survive replay, but only the latter is
+				// pruned when its card leaves exile (in Move below).
+				// Text "until-host-leaves" records ChangeZone's Duration$
+				// UntilHostLeavesPlay association on the SOURCE object: the
+				// exiled cards (IDs) come back to the zone carried in Amount
+				// when the source leaves the battlefield (rules sweepExileReturn).
+				if e.Text == "until-host-leaves" {
+					from := state.Zone(e.Amount)
+					if from.Valid() {
+						for _, id := range e.IDs {
+							if g.Obj(id) == nil {
+								continue
+							}
+							dupe := false
+							for _, en := range o.ExileReturn {
+								if en.Obj == id {
+									dupe = true
+									break
+								}
+							}
+							if !dupe {
+								o.ExileReturn = append(o.ExileReturn, state.ExileReturnEntry{Obj: id, From: from})
+							}
+						}
+					}
+				} else {
+					list := &o.Imprinted
+					if e.Text == "exiled-with" {
+						list = &o.ExiledCards
+					}
+					for _, id := range e.IDs {
+						if g.Obj(id) != nil {
+							*list = append(*list, id)
+						}
+					}
+				}
 			}
 		}
 
@@ -117,6 +198,97 @@ func Apply(g *state.Game, e Event) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
 		}
 
+	case ExtraTurn:
+		// One grant or consumption of an extra turn (CR 500.7). The count and
+		// the ordered pending queue are game state folded here so a log-only
+		// reconstruction holds the same pending extras the live game did; the
+		// turn structure's own consumption is the -1 form, emitted by rules'
+		// advanceStep at the exact boundary it repeats the seat instead of
+		// moving on. The queue is the ORDER the rule takes them in: grants
+		// append in creation order, the -1 consumption removes the seat's LAST
+		// entry (most recently created first, CR 500.7), so the total counts and
+		// the queue agree by construction.
+		if validPlayer(g, e.Player) && e.Amount != 0 {
+			if g.ExtraTurns == nil {
+				g.ExtraTurns = map[state.PlayerID]int{}
+			}
+			g.ExtraTurns[e.Player] += int(e.Amount)
+			if g.ExtraTurns[e.Player] < 0 {
+				g.ExtraTurns[e.Player] = 0
+			}
+			if e.Amount > 0 {
+				// Amount is a number of distinct grants, not merely the
+				// aggregate counter. Keep one queue entry per granted turn so
+				// NumTurns$ 2 (Time Stretch) is consumed twice. Text is an
+				// already encoded Event field; this canonical marker carries the
+				// Forge SkipUntap$ rider without changing Event's hash-chain
+				// schema.
+				skipUntap := e.Text == ExtraTurnSkipUntapText
+				for n := int32(0); n < e.Amount; n++ {
+					g.ExtraTurnQueue = append(g.ExtraTurnQueue, state.ExtraTurn{Player: e.Player, SkipUntap: skipUntap})
+				}
+			} else {
+				for i := len(g.ExtraTurnQueue) - 1; i >= 0; i-- {
+					if g.ExtraTurnQueue[i].Player == e.Player {
+						g.ExtraTurnQueue = append(g.ExtraTurnQueue[:i], g.ExtraTurnQueue[i+1:]...)
+						break
+					}
+				}
+			}
+		}
+		// Forge's ExtraTurnDelayedTrigger$ (Final Fortune: "At the beginning
+		// of that turn's end step, you lose the game") registers the delayed
+		// trigger HERE, at CONSUMPTION time, with the consumed turn's number
+		// as its MinTurn -- so the ordinary Mode$ Phase delayed firing skips
+		// the granting turn's own end step and fires exactly once, in the
+		// granted turn. Registration must ride the consumption, not the grant:
+		// with several extra turns pending (CR 500.7 takes them most recently
+		// created first) the turn a grant PRODUCES is not known at grant time
+		// -- it is exactly the turn about to begin when the -1 fires. Only the
+		// -1 form registers; the +grant carries no Counter at consumption. A
+		// consumption with no source object, no Execute$ name, or a source
+		// whose face lacks the SVar degrades to no registration rather than
+		// panicking (the same totality stance DelayedRegister applies).
+		if e.Amount < 0 && e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
+			f := g.Obj(e.Obj).Face()
+			if f != nil && cards.ResolveSVar(f.SVars, e.Counter) != nil {
+				g.Delayed = append(g.Delayed, state.DelayedTrigger{
+					ID:         g.DelayedNext,
+					Phase:      state.StepEnd,
+					Source:     e.Obj,
+					Controller: e.Player,
+					Execute:    e.Counter,
+					MinTurn:    g.Turn + 1,
+				})
+				g.DelayedNext++
+			}
+		}
+
+	case DoorUnlock:
+		// CR 309.5: the unlock activation paid the locked half's mana cost as
+		// a sorcery. The flag is what makes the alternate face's rules text
+		// live (rules' trigger/static/ability scans) and what a Mode$
+		// UnlockDoor trigger matches against. Totality: an unknown object, or
+		// one already unlocked, is a no-op.
+		if o := g.Obj(e.Obj); o != nil && !o.Unlocked {
+			o.Unlocked = true
+		}
+
+	case SpeedChange:
+		// One speed increment (CR 702.163). The cap and the once-per-turn
+		// gate are the EMITTER's (rules' emit-side speed check) responsibility,
+		// so Apply folds the delta plainly; a negative or oversized delta is
+		// still clamped to [0, 4] defensively.
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].Speed += e.Amount
+			if g.Players[e.Player].Speed < 0 {
+				g.Players[e.Player].Speed = 0
+			}
+			if g.Players[e.Player].Speed > 4 {
+				g.Players[e.Player].Speed = 4
+			}
+		}
+
 	case MoveZone, Draw, PutOnStack:
 		// CR 733.1 reverses a proposed cast with a real logged stack->origin
 		// move. Preserve the entry history that preceded its stack proposal in
@@ -128,6 +300,7 @@ func Apply(g *state.Game, e Event) {
 			if e.To == state.ZStack {
 				o.PreStackEntryThisTurn = o.EnteredThisTurn
 				o.PreStackEntryFrom = o.EnteredFrom
+				o.PreStackEnteredLen = len(g.Entered)
 				o.HasPreStackEntry = true
 			}
 		}
@@ -163,12 +336,17 @@ func Apply(g *state.Game, e Event) {
 			if e.Text == "reversed" && o.HasPreStackEntry {
 				o.EnteredThisTurn = o.PreStackEntryThisTurn
 				o.EnteredFrom = o.PreStackEntryFrom
+				if o.PreStackEnteredLen <= len(g.Entered) {
+					g.Entered = g.Entered[:o.PreStackEnteredLen]
+				}
 				o.PreStackEntryThisTurn = false
 				o.PreStackEntryFrom = state.ZLibrary
+				o.PreStackEnteredLen = 0
 				o.HasPreStackEntry = false
 			} else if wasStack && e.To != state.ZStack {
 				o.PreStackEntryThisTurn = false
 				o.PreStackEntryFrom = state.ZLibrary
+				o.PreStackEnteredLen = 0
 				o.HasPreStackEntry = false
 			}
 		}
@@ -267,6 +445,8 @@ func Apply(g *state.Game, e Event) {
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
+			// The per-add entry list is per-turn state too.
+			g.Entered = nil
 		}
 
 	case Goad:
@@ -317,16 +497,60 @@ func Apply(g *state.Game, e Event) {
 
 	case ManaAdd:
 		if validPlayer(g, e.Player) {
+			// "S<colour>" (e.g. "SW") is a SNOW mana unit (CR 107.4h): it lands
+			// in the colour's pool slot and is tallied in Player.Snow so a {S}
+			// pip can be paid only from it. One event moves both counters, so
+			// the snow tally can never drift from the pool it parallels.
+			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
+				idx := state.ManaIndex(e.Counter[1])
+				g.Players[e.Player].Pool[idx] += e.Amount
+				g.Players[e.Player].Snow[idx] += e.Amount
+				break
+			}
 			idx := state.MC
 			if e.Counter != "" {
 				idx = state.ManaIndex(e.Counter[0])
 			}
-			g.Players[e.Player].Pool[idx] += e.Amount
+			player := &g.Players[e.Player]
+			player.Pool[idx] += e.Amount
+			if valid, restricted := ManaRestrictionFromText(e.Text); restricted {
+				if e.Amount > 0 {
+					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
+						Color: e.Counter, Amount: e.Amount, Valid: valid,
+					})
+				} else if e.Amount < 0 {
+					// A restricted spend event names exactly the restriction batch it
+					// consumes. Walk insertion order so two matching additions replay
+					// identically, and tolerate a malformed historical event that
+					// over-spends its batch without making Pool negative here.
+					need := -e.Amount
+					for i := 0; i < len(player.RestrictedMana) && need > 0; {
+						r := &player.RestrictedMana[i]
+						if r.Color != e.Counter || r.Valid != valid {
+							i++
+							continue
+						}
+						used := r.Amount
+						if used > need {
+							used = need
+						}
+						r.Amount -= used
+						need -= used
+						if r.Amount == 0 {
+							player.RestrictedMana = append(player.RestrictedMana[:i], player.RestrictedMana[i+1:]...)
+							continue
+						}
+						i++
+					}
+				}
+			}
 		}
 
 	case ManaClear:
 		if validPlayer(g, e.Player) {
 			g.Players[e.Player].Pool = state.Mana{}
+			g.Players[e.Player].RestrictedMana = nil
+			g.Players[e.Player].Snow = state.Mana{}
 		}
 
 	case CounterChange:
@@ -556,6 +780,8 @@ func Apply(g *state.Game, e Event) {
 				o.Chosen = rememberedFrom(e.IDs)
 			case "remembered":
 				o.Remembered = append(o.Remembered, rememberedFrom(e.IDs)...)
+			case "clear-remembered":
+				o.Remembered = nil
 			}
 		}
 
@@ -611,6 +837,17 @@ func Apply(g *state.Game, e Event) {
 			break
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
+		if sa == nil {
+			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
+			// SVar to resolve: the ability is rebuilt structurally from the
+			// payload -- the same DB$ Ward | UnlessCost$ <cost> a printed
+			// K:Ward's compiled trigger carries -- so the live game and the
+			// replay mint identical objects from the event text alone.
+			if rest, ok := strings.CutPrefix(e.Counter, "__kwWard:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Ward",
+					Params: map[string]string{"UnlessCost": rest, "TriggerDescription": "Ward"}}
+			}
+		}
 		if sa == nil {
 			break
 		}
@@ -707,6 +944,17 @@ func Apply(g *state.Game, e Event) {
 		// changes zones and returns as a new incarnation.
 		track := strings.HasPrefix(e.Counter, "__kwDash") ||
 			strings.HasPrefix(e.Counter, "__kwWarp")
+		// Event-matched (non-phase) registrations encode
+		// "<Mode$ value>:<trigger SVar name>" in Text. The DelayedRegister
+		// event gains no field of its own (Ruling T20-a's field-reuse
+		// precedent); a Mode$ Phase registration's Text is the Forge Phase$
+		// string, which never contains a colon, and the decode only splits on
+		// the modes rules.registerOpeningEffectTriggers emits, so every
+		// already-logged registration decodes as a phase one.
+		mode, trigger := "", ""
+		if i := strings.Index(e.Text, ":"); i > 0 && e.Text[:i] == "SpellCast" {
+			mode, trigger = "SpellCast", e.Text[i+1:]
+		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
 			ID:                g.DelayedNext,
 			Phase:             e.Step,
@@ -714,8 +962,11 @@ func Apply(g *state.Game, e Event) {
 			Controller:        e.Player,
 			Execute:           e.Counter,
 			Remembered:        rememberedFrom(e.IDs),
+			MinTurn:           e.Amount,
 			SourceIncarnation: src.Incarnation,
 			TrackSource:       track,
+			EventMode:         mode,
+			Trigger:           trigger,
 		})
 		g.DelayedNext++
 
@@ -754,11 +1005,10 @@ func Apply(g *state.Game, e Event) {
 			src.Incarnation != registration.SourceIncarnation {
 			break
 		}
-		f := src.Face()
-		if f == nil {
+		if src.Face() == nil {
 			break
 		}
-		sa := cards.ResolveSVar(f.SVars, e.Counter)
+		sa := resolveSVarAcrossFaces(src, e.Counter)
 		if sa == nil {
 			break
 		}
@@ -865,6 +1115,19 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	enteredFrom := o.Zone
 	wasBattlefield := enteredFrom == state.ZBattlefield
 	wasStack := enteredFrom == state.ZStack
+	if enteredFrom == state.ZExile && to != state.ZExile {
+		// Forge's exiledCards association is a zone relationship, not an
+		// imprint. Once this object leaves exile it is a new object for that
+		// association, even if a later effect exiles the same engine ObjID.
+		// Do this inside Apply's Move fold so live play and log replay prune
+		// every source's list identically. The ExileReturn list (ChangeZone's
+		// Duration$ UntilHostLeavesPlay) prunes identically: a card that left
+		// exile by any other path is no longer its exiler's business to return.
+		for i := range g.Objs {
+			g.Objs[i].ExiledCards = withoutObjID(g.Objs[i].ExiledCards, id)
+			g.Objs[i].ExileReturn = withoutExileReturnObj(g.Objs[i].ExileReturn, id)
+		}
+	}
 	if wasBattlefield && to != state.ZBattlefield {
 		// Leaving combat removes this permanent as a blocker, but does not
 		// make creatures it blocked unblocked (CR 506.4, 509.1h). Preserve
@@ -885,6 +1148,13 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		}
 	}
 	remove(g, id, o.Zone, zoneOwner(o, o.Zone))
+	// CR 400.7: leaving the battlefield makes the object a new object in
+	// its next zone, so control-changing effects do not follow it. Reset
+	// before choosing the destination's zone owner: a later graveyard/hand
+	// re-entry must be placed under its owner, not its former controller.
+	if wasBattlefield && to != state.ZBattlefield {
+		o.Controller = o.Owner
+	}
 	if to != state.ZCeased {
 		dst := zoneOwner(o, to)
 		g.SetZone(to, dst, append(g.Zone(to, dst), id))
@@ -910,6 +1180,17 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	// state even from a malformed caller-supplied From.
 	o.EnteredThisTurn = true
 	o.EnteredFrom = enteredFrom
+	// Record the per-add entry the Count$ThisTurnEntered_* heads and the
+	// ThisTurnEntered* filter predicates read (Forge's per-zone
+	// getCardsAddedThisTurn lists, one append per add). Every Move routes
+	// through events.Apply, so this stays inside the Apply-only mutation
+	// discipline; the TurnChange case clears the list with the rest of the
+	// per-turn state. A reversed CR 733.1 cast proposal keeps its entries:
+	// the proposal's PutOnStack entry and the reverse move's entry both
+	// land, and no corpus head reads the zones that pair touches
+	// (Hand_from_Stack does, and the double entry it sees is the honest
+	// record of the two moves).
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom})
 	switch to {
 	case state.ZBattlefield:
 		o.SummonSick = true
@@ -948,6 +1229,14 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 				o.IntrinsicKeywords = append(o.IntrinsicKeywords, "Haste")
 			}
 			o.RiotChoice = ""
+			// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters ... add a
+			// lore counter" -- the same every-entry-site grant the loyalty
+			// half above is. The chapter-I trigger queues rules-side off this
+			// Move event (rules' chapter check reads the live counter, which
+			// by then includes this grant).
+			if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
+				o.AddCounter("LORE", 1)
+			}
 		}
 	default:
 		// CR 702.103: a Soulbond pair ends when either member leaves the
@@ -974,6 +1263,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Paired = 0
 		o.Targets = nil
 		o.Remembered = nil
+		if wasBattlefield {
+			o.Imprinted = nil
+		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an
 		// ETB "if it was kicked" trigger needs to read X/CastFlags off the
@@ -1027,6 +1319,45 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 //   - makes it summoning sick (CR 302.6): its new controller has not controlled
 //     it continuously since their most recent turn began. TurnChange clears it
 //     from the active player's list, i.e. at its new controller's next turn.
+//
+// withoutObjID returns ids without id, retaining its order and avoiding an
+// allocation when no entry matches. ExiledCards is a short insertion-ordered
+// relation, so an ordered slice preserves deterministic selector results.
+func withoutObjID(ids []state.ObjID, id state.ObjID) []state.ObjID {
+	for i, got := range ids {
+		if got != id {
+			continue
+		}
+		out := append([]state.ObjID(nil), ids[:i]...)
+		for _, got := range ids[i:] {
+			if got != id {
+				out = append(out, got)
+			}
+		}
+		return out
+	}
+	return ids
+}
+
+// withoutExileReturnObj drops every ExileReturn entry naming id, preserving
+// the order of the survivors (the same withoutObjID contract for the
+// entry-valued list).
+func withoutExileReturnObj(entries []state.ExileReturnEntry, id state.ObjID) []state.ExileReturnEntry {
+	for i, got := range entries {
+		if got.Obj != id {
+			continue
+		}
+		out := append([]state.ExileReturnEntry(nil), entries[:i]...)
+		for _, got := range entries[i:] {
+			if got.Obj != id {
+				out = append(out, got)
+			}
+		}
+		return out
+	}
+	return entries
+}
+
 func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 	if o.Controller == p {
 		return

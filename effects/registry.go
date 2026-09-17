@@ -4,6 +4,7 @@
 package effects
 
 import (
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -23,6 +24,12 @@ type Host interface {
 	// log a complete description of the match.
 	Game() *state.Game
 	Emit(events.Event)
+	// EmitDamage emits a Damage event and returns the event that actually
+	// landed after replacement effects. A prevention returns a non-Damage
+	// result; an amount-changing replacement returns Damage with the applied
+	// amount. Damage riders (lifelink/deathtouch/commander damage) must consume
+	// this result rather than the proposed event.
+	EmitDamage(events.Event) events.Event
 	// EmitTap taps the permanent obj with the synchronous provenance a Taps
 	// trigger reads but the replayed Tap event does not carry: tapper is the
 	// player who tapped it (Forge Card.tap's tapper -- the resolving
@@ -74,6 +81,33 @@ type Host interface {
 	// number (Task 17's Count$ThisTurnCast backing — a copy/Storm count
 	// must be replay-derivable, never a live-only engine counter).
 	CastThisTurn() int
+	// SpellsCastThisTurnMatching counts the spells put on the stack this turn
+	// whose caster is you (when the Forge spec carries a You* qualifier) or
+	// anyone, and whose object matches the spec. Derived from the event log
+	// like CastThisTurn, so a replay derives the same number. This is the
+	// Count$ThisTurnCast_<spec> backing (the "first/second spell you cast"
+	// cost modifiers and triggers).
+	SpellsCastThisTurnMatching(you state.PlayerID, spec string) int
+	// LifeLostThisTurn reports the total life player p lost THIS TURN — the
+	// sum of every LifeChange below zero since the last TurnChange, derived
+	// from the event log so a replay derives the same number. This is the
+	// Count$LifeOppsLostThisTurn backing (Rakdos, Lord of Riots' cost
+	// reduction): the Count$ head sums it over the controller's opponents.
+	LifeLostThisTurn(p state.PlayerID) int32
+	// TurnsTaken reports how many of the game's turns have begun with p as
+	// the active player, INCLUDING the turn in progress when it is p's —
+	// Forge's Player.getTurns backing (Serra Avenger's
+	// Count$YourTurns: "your first, second, or third turns of the game").
+	// Derived from the event log like LifeLostThisTurn, so a replay derives
+	// the same number; a turn that begins is one TurnChange event naming p.
+	TurnsTaken(p state.PlayerID) int32
+	// AttackersThisTurn counts the attackers declared THIS turn — the sum of
+	// every DeclareAttackers event's attacker list since the last TurnChange,
+	// derived from the event log so a replay derives the same number. This is
+	// the Count$AttackersDeclared backing (the Raid family's "attacked this
+	// turn" read: Bloodsoaked Champion's CheckSVar$ activation gate and ten
+	// ConditionCheckSVar$ bodies).
+	AttackersThisTurn() int
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
@@ -106,6 +140,25 @@ type Host interface {
 	// already walks sa.Sub. A host that never suspends (an effects-package
 	// double, where Ask returns false) never sees this call.
 	SuspendContinuation(sa *cards.SA)
+	// BeginDamageBatch/EndDamageBatch bracket the Damage events one
+	// dealDamage-style call deals simultaneously (Forge dealDamage, GameAction
+	// AddDamage/triggerDamageDoneOnce): within the bracket, the
+	// DamageDealtOnce/DamageDoneOnce triggers latch once per batch per
+	// referent (per dealing source / per damaged object) and the queued
+	// trigger's referent amount is the batch's accumulated total -- Fireball
+	// splitting among three creatures is ONE batch to a DamageDealtOnce
+	// trigger on the source, not three. rules.Engine implements both; the
+	// effects-package test double reports no-ops. Neither suspends.
+	BeginDamageBatch()
+	EndDamageBatch()
+	// ReplaceEvent applies a ReplaceEffect body's requested change to the
+	// event currently being replaced. It is inert outside replacement
+	// resolution; rules owns the event and records the resulting delta.
+	ReplaceEvent(name, value string, resolved int32)
+	// CounterAllowed reports whether a spell or ability may be countered.
+	// Counter replacement effects are rules, not a MoveZone replacement: they
+	// stop Counter before it emits the move off the stack.
+	CounterAllowed(target, cause state.ObjID) bool
 	// SuspendRepeat reports that one iteration of a RepeatEach loop suspended
 	// at a mid-resolution ask. The host must bind the suspended iteration's
 	// Remembered to the pending ask (and to the iteration's own continuation
@@ -155,11 +208,13 @@ type RepeatCursor struct {
 
 // RepeatSuspension is what effRepeatEach reports when an iteration asks.
 // Body is the suspended iteration's Remembered (the loop subject plus
-// anything the iteration remembered before asking); Outer and Chosen are the
-// RepeatEach resolution's own bindings, restored when the loop re-enters.
+// anything the iteration remembered before asking); Subject is that
+// iteration's current subject (the Imprinted binding); Outer and Chosen are
+// the RepeatEach resolution's own bindings, restored when the loop re-enters.
 type RepeatSuspension struct {
 	RepeatCursor
 	Body        []state.Target
+	Subject     state.Target
 	Outer       []state.Target
 	Chosen      []state.Target
 	ChosenValid bool
@@ -227,6 +282,20 @@ type Ctx struct {
 	// -- it drives the replacement's own resolution but is never itself persisted
 	// to the event log.
 	Replaced state.ObjID
+	// ReplacedPlayer is the player a replaced DRAW event was about — the
+	// draw-er (Breathstealer's Crypt draws/reveals/discards "that player",
+	// Zur's Weirding's other players pay relative to them). Set only on a
+	// Draw replacement's own context, like Replaced; zero outside one.
+	ReplacedPlayer state.Target
+	// ReplacementTarget, ReplacementSource and
+	// ReplacementAmount carry the corresponding roles of an in-flight damage
+	// ReplacementAmount carry the corresponding roles of an in-flight damage
+	// event. They are resolution context, never persisted state; rules seeds
+	// them before resolving ReplaceWith$ so ReplacedTarget/ReplacedSource and
+	// ReplaceCount$DamageAmount are available to every replacement body API.
+	ReplacementTarget state.Target
+	ReplacementSource state.ObjID
+	ReplacementAmount int32
 	// LKI is the object a zone-change trigger fired for, as it was just
 	// before the move (CR 603.10 "look back in time"): Move resets counters,
 	// tapped state and damage on the way out, so a "dies" condition such as
@@ -250,7 +319,10 @@ type Ctx struct {
 	// has already paid the UnlessCost$ from the payer's pool and the asking
 	// effect proceeds with its body; "decline" means it proceeds as if the
 	// player declined (no effect). "" on the first pass, where the effect
-	// poses the ask instead.
+	// poses the ask instead. For Sacrifice's damage-payment shape (Vexing
+	// Devil), "pay" additionally means the accepting opponent's Damage event
+	// has already been emitted by rules' resume arm — payment events belong
+	// to rules, never to the effects layer.
 	UnlessPay string
 	// Discard is the answered "Mode$ RevealYouChoose" discard choice on a
 	// re-entered mid-resolution resolution: the object(s) the caster named
@@ -279,6 +351,14 @@ type Ctx struct {
 	// Repeat is set only on the re-entry of a suspended RepeatEach loop; the
 	// RepeatEach whose SA it names consumes and clears it.
 	Repeat *RepeatCursor
+	// RepeatSubject is the RepeatEach iteration's current subject — what
+	// Forge's UseImprinted$ binds as "Imprinted" for the sub-ability the
+	// loop resolves (Heroism's attacking red creature, Stench of Evil's
+	// destroyed Plains). effRepeatEach sets it per iteration; the suspension
+	// machinery carries it through a resumed ask the way loopRemembered
+	// carries the iteration's Remembered. Zero outside a loop iteration, and
+	// the Imprinted/ImprintedController selectors fail closed on zero.
+	RepeatSubject state.Target
 	// Sacrifice is an Annihilator sacrifice answer on re-entry.
 	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered
@@ -308,6 +388,15 @@ type Ctx struct {
 	// cursor after applying the selected replacement so the enclosing Draw
 	// continues rather than restarting or abandoning its remaining cards.
 	DrawDone int32
+	// Imprint is the selected public-zone ChangeZone card. It is scoped to
+	// Imprint$ True so a nested ordinary ChangeZone cannot consume it.
+	Imprint     []state.ObjID
+	ImprintDone bool
+	// Untap is the answered UntapType$ selection. UntapDone distinguishes an
+	// answered empty "up to" choice from the first pass and scopes the answer
+	// to the Untap primitive that asked.
+	Untap     []state.ObjID
+	UntapDone bool
 	// Dig is the answered Dig look-and-take pick on a re-entered mid-resolution
 	// resolution: the object(s) the library's owner picked out of the top
 	// DigNum$ window to move to DestinationZone$, in the player's answer
@@ -324,6 +413,32 @@ type Ctx struct {
 	Dig       []state.ObjID
 	DigDone   bool
 	DigTarget int
+	// UnlessNext is the index of the UnlessPayer$ payer whose answered
+	// unless-pay choice this re-entry applies (0 on a first pass). The
+	// unlessProceed gate (Resolve) consumes and clears it; rules' resume
+	// arm copies it off the resume point, where Ask stored the asking
+	// decision's ResumeTarget. A decline moves the gate on to payer idx+1,
+	// so a multi-payer UnlessPayer$ asks each payer in turn.
+	UnlessNext int
+	// SacPicks is the answered per-player sacrifice choice on a re-entered
+	// Sacrifice resolution: the object(s) the sacrificing player chose to
+	// sacrifice, in the player's answer order. SacDone distinguishes
+	// "answered (possibly with nothing)" from the first pass and SacTarget
+	// identifies the Defined$ target index whose player posed that ask, so
+	// re-entry skips targets already processed before suspension and
+	// continues asking later targets. The asking effect consumes and clears
+	// all three at the top of its own walk (the fx42 scoping discipline), so
+	// a nested sacrifice below it poses its own ask instead of inheriting.
+	SacPicks  []state.ObjID
+	SacDone   bool
+	SacTarget int
+	// SacOptional is the answered first step of an Optional$ + StrictAmount$
+	// sacrifice: "sacrifice" means its player elected the exact batch and
+	// "decline" means they did not. It is separate from SacPicks because a
+	// KChoose represents a range, while this Forge shape permits only zero or
+	// exactly Amount$. SacOptionalTarget identifies that player's target slot.
+	SacOptional       string
+	SacOptionalTarget int
 	// Arrange is the answered KArrange decision on a re-entered
 	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
 	// has applied the answered arrangement and emitted the LibraryOrder
@@ -392,6 +507,52 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
+	// resolution just made (effects/dice.go), under the SVar name its
+	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's
+	// SVar$ head resolves a body of the form "SVar$<name>" against them, so
+	// a chained sub's own SVar body (Velukan Dragon's
+	// "SVar:X:SVar$Result/Minus.1") and a ConditionCheckSVar$ can read the
+	// roll. Zero/"" on any resolution that did not roll, and the values are
+	// never persisted -- a roll that suspends and resumes loses them, the
+	// same per-resolution lifetime every other Ctx field has. RollPubs is
+	// the general form of the same publication (both are read through
+	// effects.dice.go's rollPublished, and this slot stays the primary
+	// result's mirror for the existing readers).
+	LastRoll     int32
+	LastRollName string
+	// RollPub is one name→value publication a DB$ RollDice of this
+	// resolution made, beyond the primary ResultSVar$ slot above:
+	// ChosenSVar$/OtherSVar$ (the Endeavor cycle's choose-one-result), and
+	// the MaxRollsResults$/EvenOddResults$ counts ("MaxRolls",
+	// "EvenResults", "OddResults" -- Luck Bobblehead). Read by Name's
+	// bare-name fallback and evalCountExpr's SVar$ head through
+	// rollPublished, and by Ctx.SpecContext's numeric-RHS resolver, so a
+	// chained sub's filter spec (Valiant Endeavor's Creature.powerGEX,
+	// Arcane Endeavor's Instant.cmcLEY) reads the roll too. Never persisted
+	// across a suspension -- the chosen/other publications are rebuilt from
+	// the answered decision on the roll resume (Ctx.RollResults/RollPick),
+	// the same per-resolution lifetime as LastRoll.
+	RollPubs []RollPub
+	// RollResults/RollPick/RollDone carry the ANSWERED choose-one-result ask
+	// on a re-entered mid-resolution RollDice (rules/resolution.go's "roll"
+	// arm): RollResults is the per-die results the asking first pass rolled
+	// (carried verbatim on the decision and the resume point), RollPick the
+	// dice the player picked (each entry a roll Option's Index), RollDone
+	// the answered marker. The re-entered effRollDice publishes
+	// ChosenSVar$ = the sum of the picked dice's results and OtherSVar$ =
+	// the sum of the rest, then lets Resolve chain the SubAbility$; it
+	// consumes and clears all three at its top (the fx42 scoping
+	// discipline), so a nested RollDice below this walk poses its own ask.
+	RollResults []int32
+	RollPick    []int
+	RollDone    bool
+}
+
+// RollPub is one name→value publication (see Ctx.RollPubs).
+type RollPub struct {
+	Name  string
+	Value int32
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)
@@ -530,7 +691,51 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				Text: "unimplemented API " + sa.API})
 			continue
 		}
+		// UnlessCost$ gate: every API with an UnlessCost$ pays (or declines)
+		// before its body runs. This is the one shared unless-cost path —
+		// the gate poses the pay decision, rules' resume arm charges the
+		// cost, and the re-entry applies the orientation. UnlessResolveSubs$
+		// (Forge's AbilityUtils.handleUnlessCost) then gates the SubAbility$
+		// walk on the pay outcome: absent/'Always' resolves the subs either
+		// way, WhenPaid only when the cost was paid, WhenNotPaid only when it
+		// was not. A gate that skips BOTH the body and the subs ends this
+		// SA's chain entirely — Forge returns from handleUnlessCost without
+		// resolveSubAbilities, so the enclosing chain stops here too.
+		runBody, paid := true, false
+		// Suspended() is widened by the cumulative-upkeep/triggered-cost
+		// payment windows (rules' Suspended() counts e.cumulative and
+		// e.triggerCost): a mana ability resolving INSIDE one of those windows
+		// must still dispatch, so only a suspension the gate itself caused —
+		// the ask poseUnlessAsk posed — stops the loop here. Compare against
+		// the pre-gate state instead of the raw predicate.
+		wasSuspended := h.Suspended()
+		if strings.TrimSpace(sa.Params["UnlessCost"]) != "" {
+			runBody, paid = unlessProceed(h, c, sa)
+		}
+		if !wasSuspended && h.Suspended() {
+			// The gate posed the unless-pay ask and suspended the
+			// resolution: stop here exactly as an asking effect body
+			// would. The resume re-enters THIS SA (the ask's ResumeSA),
+			// where the gate consumes the answer and the loop walks
+			// sa.Sub — so this loop's own continuation is dropped, like
+			// any asking loop's (SuspendContinuation's innermost rule).
+			h.SuspendContinuation(sa)
+			return
+		}
+		if !runBody {
+			// The body is skipped (paid on an unswitched shape, or every
+			// payer declined on a switched one). The Sub chain walks only
+			// when UnlessResolveSubs$ says so for this pay outcome.
+			if !unlessSubsRun(sa, paid) {
+				return
+			}
+			continue
+		}
 		fn(h, c, sa)
+		imprint(h, c, sa)
+		if strings.EqualFold(sa.Params["ClearImprinted"], "True") && c.Source != 0 {
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
+		}
 		if h.Suspended() {
 			// A sub-ability in this chain posed a mid-resolution ask and
 			// suspended the resolution: do NOT descend into the rest of the
@@ -550,6 +755,13 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			// outer continuations and drops this one when it is the asking
 			// loop's own level, which re-enters sa.Sub itself.
 			h.SuspendContinuation(sa)
+			return
+		}
+		// UnlessResolveSubs$ also gates the sub walk when the body RAN: Forge
+		// resolves the subs iff (paid && WhenPaid-or-default) or
+		// (!paid && WhenNotPaid-or-default), independent of the orientation —
+		// a paid unswitched body both runs AND suppresses a WhenNotPaid chain.
+		if strings.TrimSpace(sa.Params["UnlessCost"]) != "" && !unlessSubsRun(sa, paid) {
 			return
 		}
 	}

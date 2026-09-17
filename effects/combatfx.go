@@ -4,15 +4,130 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
 func init() {
 	Register("Tap", effTap)
+	Register("TapAll", effTapAll)
+	Register("UntapAll", effUntapAll)
 	Register("Pump", effPump)
 	Register("PumpAll", effPumpAll)
 	Register("Animate", effAnimate)
 	Register("Protection", effProtection)
+}
+
+// effTapAll is Forge's TapAllEffect (78 raw corpus lines, 75 files): the
+// battlefield walk is the DEFINED players' when the script names one (or
+// targets), every living seat's otherwise; ValidCards$ filters it (default
+// "Permanent"). RememberTapped$ is Forge's clear-then-add contract, exactly
+// like SacrificeAll's RememberSacrificed$: the resolution's Remembered set
+// is REPLACED by the cards this primitive tapped (Forge clears the host
+// card's list before computing the victim list, then adds one entry per
+// card in it -- tapped or not, every listed card is remembered).
+// TapperController$ hands the tap provenance to each card's own controller
+// (Forge's per-card tapper), the resolving controller otherwise.
+func effTapAll(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	spec := sa.Params["ValidCards"]
+	if spec == "" {
+		spec = "Permanent"
+	}
+	remember := strings.EqualFold(sa.Params["RememberTapped"], "True")
+	if remember {
+		c.Remembered = nil
+		clearEventRemembered(h, c)
+	}
+	tapper := c.Controller
+	perCardTapper := strings.TrimSpace(sa.Params["TapperController"]) != ""
+	players := allPlayersFor(h, c, sa)
+	for _, p := range players {
+		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
+		for _, id := range ids {
+			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				continue
+			}
+			if remember {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
+			o := g.Obj(id)
+			if o == nil || o.Zone != state.ZBattlefield || o.Tapped {
+				continue
+			}
+			tap := tapper
+			if perCardTapper {
+				tap = o.Controller
+			}
+			h.EmitTap(id, tap, false)
+		}
+	}
+}
+
+// effUntapAll is Forge's UntapAllEffect (126 raw corpus lines, 125 files):
+// the same battlefield walk as effTapAll, filtered by ValidCards$ (Forge's
+// default is no filter at all -- the whole battlefield -- so "Permanent" is
+// the equivalent default here). RememberUntapped$ remembers ONLY the cards
+// that actually untapped (Forge adds inside the untapped branch), and the
+// resolution's Remembered set is extended, not replaced (UntapAll has no
+// clear-remembered step). ControllerUntaps$ hands the per-card controller
+// the untap provenance, the resolving controller otherwise.
+func effUntapAll(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	spec := sa.Params["ValidCards"]
+	if spec == "" {
+		spec = "Permanent"
+	}
+	remember := strings.EqualFold(sa.Params["RememberUntapped"], "True")
+	untapper := c.Controller
+	perCardUntapper := strings.TrimSpace(sa.Params["ControllerUntaps"]) != ""
+	players := allPlayersFor(h, c, sa)
+	for _, p := range players {
+		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
+		for _, id := range ids {
+			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				continue
+			}
+			o := g.Obj(id)
+			if o == nil || o.Zone != state.ZBattlefield || !o.Tapped {
+				continue
+			}
+			untap := untapper
+			if perCardUntapper {
+				untap = o.Controller
+			}
+			h.Emit(events.Event{Kind: events.Untap, Obj: id, Player: untap})
+			if remember {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
+		}
+	}
+}
+
+// allPlayersFor scopes an All primitive to its Defined$ players or (when it
+// has targets but no explicit Defined$) its chosen player targets.  Forge's
+// TargetRestrictions supplies ValidTgts$ as the latter form (Mana Short and
+// Early Harvest); falling back to every battlefield is only correct when the
+// SA has neither selector.
+func allPlayersFor(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	g := h.Game()
+	if strings.TrimSpace(sa.Params["Defined"]) == "" {
+		if _, targeted := sa.Params["ValidTgts"]; !targeted {
+			return g.AliveFrom(0)
+		}
+	}
+	seen := map[state.PlayerID]bool{}
+	var out []state.PlayerID
+	for _, t := range Defined(h, c, sa) {
+		p := PlayerOf(h, c, t)
+		if int(p) < len(g.Players) && !seen[p] {
+			seen[p] = true
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // effTap taps each Defined$ permanent. The tapper is the resolving ability's
@@ -164,7 +279,57 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 	_, hasToughness := sa.Params["Toughness"]
 	pw := Num(h, c, sa, "Power", 0)
 	tf := Num(h, c, sa, "Toughness", 0)
-	types := strings.Fields(sa.Params["Types"])
+	types := strings.Fields(strings.ReplaceAll(sa.Params["Types"], ",", " "))
+	// Colors$ names the colour set the animated object carries; with
+	// OverwriteColors$ True it REPLACES the object's colours (the manland
+	// family -- Celestial Colonnade's "white and blue" -- where the land's
+	// printed colourlessness must not survive), without it the colours are
+	// ADDED. Both are layer-5 grants, normalised to WUBRG letters here so
+	// "All" (every colour) and "Colorless" (an overwrite to the empty set)
+	// never leak their words downstream. A value colorLetters cannot fully
+	// parse (the corpus's "ChosenColor" family, which asks its controller for
+	// a colour) fails closed: colorsGrant is false, the grant is NOT
+	// registered and a Note says so, so the object keeps its printed colours
+	// instead of the parse's empty prefix being overwritten over them. For
+	// the same reason "Colorless" without OverwriteColors$ -- an add of the
+	// empty set, a no-op whose corpus lines (raging_spirit) intend "becomes
+	// colourless" -- is noted and skipped rather than silently registering a
+	// dead effect.
+	colorsRaw := strings.TrimSpace(sa.Params["Colors"])
+	colors, colorsOK := colorLetters(sa.Params["Colors"])
+	overwrite := colorsRaw != "" && strings.EqualFold(strings.TrimSpace(sa.Params["OverwriteColors"]), "True")
+	colorsGrant := colorsRaw != "" && colorsOK && (len(colors) > 0 || overwrite)
+	// Keywords$ is a "&"-separated keyword list (Celestial Colonnade's
+	// "Flying & Vigilance"), the same grammar Pump's KW$ uses.
+	kws := cards.SplitKeywordList(sa.Params["Keywords"])
+	// RemoveCreatureTypes$ True strips the object's creature-type subtypes
+	// (Mishra's Factory's land base carries none, but an animated creature or
+	// planeswalker face does) before this animation's own Types$ apply.
+	removeCreatureTypes := strings.EqualFold(strings.TrimSpace(sa.Params["RemoveCreatureTypes"]), "True")
+	// Abilities$ names the SVar bodies (comma-separated, on THIS face's table)
+	// the animated object gains -- Urza's Saga's chapters ("CARDNAME gains
+	// '{T}: Add {C}'.") are the corpus's flagship shape. The grant is a
+	// layer-6 ability grant (CR 613.1f): rules' grantedAbilities resolves the
+	// names back through the SOURCE face's SVar table, so the name travels,
+	// never a parsed copy. Duration$ Permanent makes the grant last while the
+	// object is on the battlefield (the source-presence lifetime, which is
+	// also what the object's own text obeys); any other Duration -- the
+	// corpus's animate-a-land-for-a-turn lines -- keeps the ordinary
+	// until-end-of-turn lifetime.
+	var abilities []string
+	for _, nm := range strings.Split(sa.Params["Abilities"], ",") {
+		if nm = strings.TrimSpace(nm); nm != "" {
+			abilities = append(abilities, nm)
+		}
+	}
+	permanent := strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
+	if colorsRaw != "" && !colorsOK {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "Animate Colors$ " + colorsRaw + " is not implemented; colours unchanged"})
+	} else if colorsRaw != "" && !colorsGrant {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "Animate Colors$ Colorless without OverwriteColors$ is not implemented; colours unchanged"})
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -180,10 +345,31 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 				SetPower: pw, SetToughness: tf, HasSet: true, UntilEOT: true,
 			})
 		}
-		if len(types) > 0 {
+		if len(types) > 0 || removeCreatureTypes {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
-				Layer: state.LType, AddTypes: types, UntilEOT: true,
+				Layer: state.LType, AddTypes: types, RemoveCreatureTypes: removeCreatureTypes, UntilEOT: true,
+			})
+		}
+		if colorsGrant {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
+				Layer: state.LColor, AddColors: colors, OverwriteColors: overwrite,
+				Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
+			})
+		}
+		if len(kws) > 0 {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
+				Layer: state.LAbilities, AddKeywords: kws,
+				Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
+			})
+		}
+		if len(abilities) > 0 {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
+				Layer: state.LAbilities, AddAbilities: abilities,
+				UntilEOT: !permanent,
 			})
 		}
 	}

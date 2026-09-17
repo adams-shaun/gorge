@@ -70,6 +70,133 @@ func TestChooseCardDauthiCarriesChosenCardIntoEffect(t *testing.T) {
 	}
 }
 
+func TestChooseCardExiledWithCorpusSA(t *testing.T) {
+	catalyst, sa := corpusSA(t, "Ore-Rich Stalactite", "")
+	if sa.API != "Mana" { // front face; Cosmium Catalyst is alternate face.
+		t.Fatalf("unexpected front ability %+v", sa)
+	}
+	var choose *cards.SA
+	for _, f := range catalyst.Faces {
+		for _, a := range f.Abilities {
+			if a.API == "ChooseCard" && a.Params["DefinedCards"] == "ExiledWith" {
+				choose = a
+			}
+		}
+	}
+	if choose == nil {
+		t.Fatal("Cosmium Catalyst's ExiledWith choice missing")
+	}
+	// Parallax Wave's real activation produces the ExiledWith association.
+	// It must not be simulated with an Imprint event: Forge maintains the
+	// exiledCards and imprintedCards collections separately.
+	wave, exile := corpusSA(t, "Parallax Wave", "")
+	if exile.API != "ChangeZone" || exile.Params["Destination"] != "Exile" {
+		t.Fatalf("Parallax Wave exile fixture changed: %+v", exile)
+	}
+	h := newHost(t, 2)
+	src := h.g.AddObject(wave, 0)
+	target := h.g.AddObject(mkCard(t, "Name:Exiled\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	other := h.g.AddObject(mkCard(t, "Name:Other\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	for _, o := range []*state.Object{src, target, other} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	}
+	effChangeZone(h, &Ctx{Source: src.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}}, exile)
+	liveSource, liveTarget := h.g.Obj(src.ID), h.g.Obj(target.ID)
+	if liveTarget.Zone != state.ZExile || len(liveSource.ExiledCards) != 1 || liveSource.ExiledCards[0] != target.ID {
+		t.Fatalf("Parallax Wave association = zone %v exiledWith %v, want exile [%d]", liveTarget.Zone, liveSource.ExiledCards, target.ID)
+	}
+	c := &Ctx{Source: src.ID, Controller: 0}
+	if got := cardChoices(h, c, choose, 0); len(got) != 1 || got[0].Obj != target.ID {
+		t.Fatalf("ExiledWith choice = %+v, want only Parallax Wave's target %d", got, target.ID)
+	}
+	if got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "Imprinted"}}); len(got) != 0 {
+		t.Fatalf("ordinary exile leaked into Defined Imprinted: %+v", got)
+	}
+
+	// Leaving exile dissolves the relation. Re-exiling the same engine object
+	// through an unrelated MoveZone must not revive Parallax Wave's link.
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: target.ID, From: state.ZExile, To: state.ZHand})
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: target.ID, From: state.ZHand, To: state.ZExile})
+	if got := cardChoices(h, c, choose, 0); len(got) != 0 || len(h.g.Obj(src.ID).ExiledCards) != 0 {
+		t.Fatalf("stale ExiledWith after leave/re-exile: choices=%+v relation=%v", got, h.g.Obj(src.ID).ExiledCards)
+	}
+}
+
+// TestChangeZoneRecordsExiledWithAndRemembered uses Flickerwisp's real exile
+// SA. Forge records both riders even though its delayed trigger only consumes
+// RememberChanged through DelayTriggerRememberedLKI: exiledCards and the host
+// card's remembered collection are persistent card state, not an optimization
+// based on a statically visible consumer.
+func TestChangeZoneRecordsExiledWithAndRemembered(t *testing.T) {
+	wisp, exile := corpusSA(t, "Flickerwisp", "TrigExile")
+	if exile.API != "ChangeZone" || exile.Params["Destination"] != "Exile" {
+		t.Fatalf("Flickerwisp exile fixture changed: %+v", exile)
+	}
+	h := newHost(t, 2)
+	src := h.g.AddObject(wisp, 0)
+	target := h.g.AddObject(mkCard(t, "Name:Target\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	for _, o := range []*state.Object{src, target} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	}
+	effChangeZone(h, &Ctx{Source: src.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}}, exile)
+	if got := h.g.Obj(src.ID).ExiledCards; len(got) != 1 || got[0] != target.ID {
+		t.Fatalf("Flickerwisp ExiledWith = %v, want [%d]", got, target.ID)
+	}
+	var exiledWith, remembered bool
+	for _, e := range h.log {
+		exiledWith = exiledWith || (e.Kind == events.Imprint && e.Obj == src.ID && e.Text == "exiled-with" && len(e.IDs) == 1 && e.IDs[0] == target.ID)
+		remembered = remembered || (e.Kind == events.Choose && e.Obj == src.ID && e.Counter == "remembered" && len(e.IDs) == 1 && e.IDs[0] == target.ID)
+	}
+	if !exiledWith || !remembered {
+		t.Fatalf("Flickerwisp rider events: exiled-with=%v remembered=%v, log=%+v", exiledWith, remembered, h.log)
+	}
+}
+
+func TestGainControlImprintedControllerSuddenSubstitution(t *testing.T) {
+	card, gain := corpusSA(t, "Sudden Substitution", "DBGainControl")
+	h := newHost(t, 2)
+	src := h.g.AddObject(card, 0)
+	target := h.g.AddObject(mkCard(t, "Name:Creature\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	imprinted := h.g.AddObject(mkCard(t, "Name:Spell\nTypes:Instant\nOracle:x\n"), 1)
+	for _, o := range []*state.Object{src, target, imprinted} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	}
+	h.Emit(events.Event{Kind: events.Imprint, Obj: src.ID, IDs: []state.ObjID{imprinted.ID}})
+	effGainControl(h, &Ctx{Source: src.ID, Controller: 0, Remembered: []state.Target{{Obj: target.ID}}}, gain)
+	if got := h.g.Obj(target.ID).Controller; got != 1 {
+		t.Fatalf("Sudden Substitution target controller = %d, want imprinted controller 1", got)
+	}
+}
+
+func TestChoosePlayerReplacesPlayerChoiceAndKeepsCards(t *testing.T) {
+	card, chooseCard := corpusSA(t, "Dauthi Voidwalker", "")
+	_, choosePlayer := corpusSA(t, "Sower of Discord", "ChooseP")
+	h := newHost(t, 3)
+	src := h.g.AddObject(card, 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	exiled := h.g.AddObject(mkCard(t, "Name:Exiled\nTypes:Sorcery\nOracle:x\n"), 1)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: exiled.ID, From: state.ZLibrary, To: state.ZExile})
+	h.Emit(events.Event{Kind: events.CounterChange, Obj: exiled.ID, Counter: "VOID", Amount: 1})
+	c := &Ctx{Source: src.ID, Controller: 0}
+	effChooseCard(h, c, chooseCard)
+	if len(c.Chosen) != 1 || c.Chosen[0].Obj != exiled.ID {
+		t.Fatalf("card choice = %+v, want exiled card", c.Chosen)
+	}
+	effChoosePlayer(h, c, choosePlayer)
+	effChoosePlayer(h, c, choosePlayer) // a second player choice replaces the first
+	cards, players := 0, 0
+	for _, chosen := range c.Chosen {
+		if chosen.IsPlayer {
+			players++
+		} else if chosen.Obj == exiled.ID {
+			cards++
+		}
+	}
+	if cards != 1 || players != 1 {
+		t.Fatalf("ChoosePlayer must retain cards and replace players, got %+v", c.Chosen)
+	}
+}
+
 func TestChooseCardLastOneStandingCorpusSA(t *testing.T) {
 	_, sa := corpusSA(t, "Last One Standing", "")
 	if sa.API != "ChooseCard" || sa.Params["AtRandom"] != "True" {

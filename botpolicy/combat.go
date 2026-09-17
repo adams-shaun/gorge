@@ -21,6 +21,15 @@ type Chars interface {
 	Keywords(state.ObjID) []string
 }
 
+// combinedChars is an optional fast path for Chars implementations that can
+// derive power, toughness and keywords together. The returned keyword slice
+// may be scratch-backed, so callers must copy it only when retaining it across
+// the next Characteristics call. Implementations that provide only Chars keep
+// the legacy per-characteristic path unchanged.
+type combinedChars interface {
+	Characteristics(state.ObjID) (power, toughness int32, keywords []string)
+}
+
 // Creature is one battlefield creature's combat-relevant facts, in the
 // plain-data shape that keeps the adapter pair in step: the view-shaped
 // half (seat/bot.go's boardFromView) reads Power/Toughness/Keywords off the
@@ -121,6 +130,7 @@ func BoardFromGame(g *state.Game, ch Chars, me state.PlayerID) Board {
 // (pinned by TestBoardOwnership), which is what makes the host's
 // build-under-lock → Decide → reuse-next loop safe.
 func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Board {
+	combined, hasCombined := ch.(combinedChars)
 	clear(b.Creatures)
 	clear(b.Life)
 	clear(b.Cards)
@@ -152,11 +162,21 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			if o == nil || o.Face() == nil || o.Ephemeral() || !o.Face().IsCreature() {
 				continue
 			}
+			var power, toughness int32
+			var keywords []string
+			if hasCombined {
+				power, toughness, keywords = combined.Characteristics(id)
+				keywords = append([]string(nil), keywords...)
+			} else {
+				power = ch.Power(id)
+				toughness = ch.Toughness(id)
+				keywords = append([]string(nil), ch.Keywords(id)...)
+			}
 			b.Creatures[id] = Creature{
-				Power:      ch.Power(id),
-				Toughness:  ch.Toughness(id),
+				Power:      power,
+				Toughness:  toughness,
 				Damage:     o.Damage,
-				Keywords:   append([]string(nil), ch.Keywords(id)...),
+				Keywords:   keywords,
 				Tapped:     o.Tapped,
 				Controller: o.Controller,
 			}
@@ -228,17 +248,29 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			if f == nil {
 				continue
 			}
+			var power int32
+			var castable, instantSpeed bool
+			if hasCombined {
+				var keywords []string
+				power, _, keywords = combined.Characteristics(id)
+				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(keywords))
+				instantSpeed = hasTypeWord(f.Types, "Instant") || hasFlash(keywords)
+			} else {
+				power = ch.Power(id)
+				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id)))
+				instantSpeed = hasTypeWord(f.Types, "Instant") || hasFlash(ch.Keywords(id))
+			}
 			b.Cards[id] = Card{
 				Creature:      f.IsCreature(),
-				Power:         ch.Power(id),
+				Power:         power,
 				CMC:           CmcOf(f.ManaCost),
 				Basic:         hasTypeWord(f.Types, "Basic"),
 				AttachedTo:    o.AttachedTo,
 				ManaCost:      f.ManaCost,
-				Castable:      z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id))),
+				Castable:      castable,
 				OnBattlefield: z == state.ZBattlefield,
 				Produces:      f.ManaProduction(),
-				InstantSpeed:  hasTypeWord(f.Types, "Instant") || hasFlash(ch.Keywords(id)),
+				InstantSpeed:  instantSpeed,
 				Counter:       f.SpellAbility() != nil && f.SpellAbility().API == "Counter",
 			}
 		}
@@ -540,6 +572,19 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 	}
 	var attackers []*atk
 	byID := make(map[state.ObjID]*atk, len(d.Options))
+	// CR 508.1d requirements travel on the options (Option.Required, the
+	// engine marks goaded creatures and MustAttack statics): a required
+	// attacker is declared no matter what the value tiers say, because the
+	// engine REJECTS a declaration that omits one it could have included --
+	// an unmarked bot once declared around a goaded Knight and the whole
+	// run aborted on "must attack with as many required creatures as
+	// possible" (seed 1283, commander bench 2026-09-15).
+	required := make(map[state.ObjID]bool, len(d.Options))
+	for i := range d.Options {
+		if d.Options[i].Required {
+			required[d.Options[i].Obj] = true
+		}
+	}
 	for i := range d.Options {
 		o := &d.Options[i]
 		at, ok := byID[o.Obj]
@@ -583,8 +628,8 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 
 	var chosen []int
 	for _, at := range attackers {
-		if at.a.Power <= 0 {
-			continue // AR1
+		if at.a.Power <= 0 && !required[at.id] {
+			continue // AR1 (a required 0-power creature still attacks: the requirement is not a value judgement)
 		}
 		best := -1
 		bestTier := -1
@@ -592,6 +637,13 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 		for _, oi := range at.opts {
 			t, ok := score(at, oi)
 			if !ok {
+				// AR3 vetoes this defender outright. A creature it is free to
+				// leave home obeys the veto; a REQUIRED attacker keeps scanning
+				// the rest of its options, because a later offered defender may
+				// be scoreable -- attacking the first offered option just
+				// because it was offered first would throw a legal, better
+				// swing away (multiplayer goad combats offer one option per
+				// defending seat).
 				continue
 			}
 			// At equal combat risk, pressure the opponent closest to dying
@@ -601,6 +653,15 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 			if t > bestTier || (t == bestTier && life < bestLife) {
 				best, bestTier, bestLife = oi, t, life
 			}
+		}
+		if best < 0 {
+			if !required[at.id] {
+				continue // every defender vetoed and the creature is free to stay home
+			}
+			// A required attacker with every defender vetoed still swings at
+			// its first offered option (deterministic), so the requirement is
+			// always answered by an offered option.
+			best = at.opts[0]
 		}
 		if best >= 0 {
 			chosen = append(chosen, best)
@@ -667,6 +728,11 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 			if !blockable {
 				continue
 			}
+			// A required attacker is never the one held back: cutting it
+			// makes the whole declaration illegal (CR 508.1d).
+			if required[d.Options[oi].Obj] {
+				continue
+			}
 			// AR5: a commander whose swing closes its target's clock is
 			// never held back -- the attack's game-ending piece.
 			if b.closesClock(d.Options[oi].Player, d.Options[oi].Obj, a) {
@@ -679,6 +745,28 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 		if hold >= 0 {
 			chosen = append(chosen[:hold:hold], chosen[hold+1:]...)
 		}
+	}
+	// A MaxAttackers$ ceiling (CR 508.1j) bounds the whole declaration and
+	// the engine exposes it as the decision's Max. chosen is in option
+	// first-seen order (the attackers' iteration order), NOT required-first,
+	// so when the ceiling forces a choice between requirements the slice is
+	// stably reordered to put the required attackers first before
+	// truncating -- a plain cut could drop a required attacker whose option
+	// was seen later and keep a non-required one, and validateAttackDeclaration
+	// would then reject the whole declaration (the seed-1283 run-abort class).
+	if d.Max < len(chosen) && d.Max >= 0 {
+		ordered := make([]int, 0, len(chosen))
+		for _, oi := range chosen {
+			if required[d.Options[oi].Obj] {
+				ordered = append(ordered, oi)
+			}
+		}
+		for _, oi := range chosen {
+			if !required[d.Options[oi].Obj] {
+				ordered = append(ordered, oi)
+			}
+		}
+		chosen = ordered[:d.Max]
 	}
 	return chosen
 }

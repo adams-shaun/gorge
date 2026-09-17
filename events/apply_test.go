@@ -109,6 +109,27 @@ func TestMoveKeepsExactlyOneZone(t *testing.T) {
 	}
 }
 
+func TestChangeControlResetsWhenPermanentLeavesBattlefield(t *testing.T) {
+	g, l := twoPlayer(t)
+	id := g.Zone(state.ZLibrary, 1)[0]
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+	Emit(g, l, Event{Kind: ControlChange, Obj: id, Player: 0})
+	if got := g.Obj(id).Controller; got != 0 {
+		t.Fatalf("stolen permanent controller = %d, want 0", got)
+	}
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	if got := g.Obj(id).Controller; got != 1 {
+		t.Fatalf("graveyard card controller = %d, want owner 1", got)
+	}
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZBattlefield})
+	if got := g.Obj(id).Controller; got != 1 {
+		t.Fatalf("re-entered permanent controller = %d, want owner 1", got)
+	}
+	if got := g.Zone(state.ZBattlefield, 1); len(got) != 1 || got[0] != id {
+		t.Fatalf("re-entered permanent battlefield zone = %v, want [%d]", got, id)
+	}
+}
+
 func TestMoveLeavingBattlefieldTombstonesBlockerReferences(t *testing.T) {
 	g, l := twoPlayer(t)
 	attackerID := g.Zone(state.ZLibrary, 0)[0]
@@ -1076,6 +1097,30 @@ func TestChooseRecordsNameTypeAndNumber(t *testing.T) {
 func TestChooseKindString(t *testing.T) {
 	if got, want := Choose.String(), "choose"; got != want {
 		t.Fatalf("Choose.String() = %q, want %q", got, want)
+	}
+}
+
+// TestImprintSeparatesExplicitAndExiledWith proves the two Forge host-card
+// collections cannot leak into one another, and that the zone-derived one
+// dies when its card leaves exile. Both state changes are folded by Apply,
+// so emitting the same events through a live log or replay has this result.
+func TestImprintSeparatesExplicitAndExiledWith(t *testing.T) {
+	g, source := gameWithOneCard(t)
+	card := g.AddObject(bearCard(), 1)
+	Apply(g, Event{Kind: MoveZone, Obj: card.ID, From: state.ZLibrary, To: state.ZExile})
+	Apply(g, Event{Kind: Imprint, Obj: source, IDs: []state.ObjID{card.ID}, Text: "exiled-with"})
+	Apply(g, Event{Kind: Imprint, Obj: source, IDs: []state.ObjID{card.ID}})
+	got := g.Obj(source)
+	if len(got.ExiledCards) != 1 || got.ExiledCards[0] != card.ID || len(got.Imprinted) != 1 || got.Imprinted[0] != card.ID {
+		t.Fatalf("associations = exiledWith %v imprinted %v, want both [%d]", got.ExiledCards, got.Imprinted, card.ID)
+	}
+	Apply(g, Event{Kind: MoveZone, Obj: card.ID, From: state.ZExile, To: state.ZHand})
+	if len(got.ExiledCards) != 0 || len(got.Imprinted) != 1 || got.Imprinted[0] != card.ID {
+		t.Fatalf("leaving exile = exiledWith %v imprinted %v, want [] [%d]", got.ExiledCards, got.Imprinted, card.ID)
+	}
+	Apply(g, Event{Kind: Imprint, Obj: source, Text: "clear"})
+	if len(got.Imprinted) != 0 {
+		t.Fatalf("clear imprint retained %v", got.Imprinted)
 	}
 }
 

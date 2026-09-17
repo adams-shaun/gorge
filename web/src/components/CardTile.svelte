@@ -48,7 +48,7 @@
   // no pointer events, no $effect) can drive the panel's lifecycle through
   // the same HoverCard the component owns; production renders never pass them
   // and the defaults are exactly what the component built for itself before.
-  let { card, size = 'tile', attachments = [], hover = new HoverCard(), anchor: anchorProp = null, tileOptions = null, open0 = false }: {
+  let { card, size = 'tile', attachments = [], hover = new HoverCard(), anchor: anchorProp = null, tileOptions = null, open0 = false, faceTapped = undefined }: {
     card: CardView;
     size?: 'tile' | 'large';
     attachments?: CardView[];
@@ -61,6 +61,16 @@
      *  'highlight valid targets', so a card that is a valid target and a card
      *  you may cast both get it — no kind is special-cased (R-E4-2). */
     tileOptions?: import('../lib/cardoptions').TileOptions | null;
+    /** faceTapped overrides the face's ROTATION presentation (and the slot
+     *  shape that follows it) regardless of card.tapped — undefined keeps the
+     *  card's own tapped state. CardStack's collapsed pile passes it: the pile
+     *  face is a representative of the whole pile, and a MIXED pile (some
+     *  members tapped, some ready — only ever a lands pile, since only the
+     *  lands row merges tapped) is definitionally NOT all tapped, so its face
+     *  presents ready and the ready plate carries the counts (fb-20260917T004545Z).
+     *  It is presentation only: the object's real state stays on card.tapped
+     *  and the inspector reads that, and the data-obj anchor stays the lead. */
+    faceTapped?: boolean;
     /** open0 seeds the menu's open/closed state, injectable for the repo's
      *  SSR test harness just as `hover`/`anchor` are: this environment has no
      *  DOM and no pointer events, so a test cannot click the badge to open
@@ -160,8 +170,8 @@
   data-tone={tileOptions?.tone ?? ''}
   data-options={tileOptions ? tileOptions.list.length : undefined}
   data-selected={tileOptions && tileOptions.pickedOrder.length > 0 ? tileOptions.pickedOrder.join(',') : undefined}
-  class:tapped={card.tapped}
-  class:sick={card.summon_sick}
+  class:tapped={faceTapped ?? card.tapped}
+  class:sick={isCreature && card.summon_sick}
   class:attacking={card.attacking}
   data-obj={card.id}
   bind:this={root}
@@ -299,7 +309,11 @@
     transform: translate(-50%, -50%) rotate(90deg);
   }
   /* Summoning sickness dims the card, not its numbers — the whole reason to
-     look at a sick creature is to check whether it can attack yet. */
+     look at a sick creature is to check whether it can attack yet. The dim is
+     for CREATURES only: a noncreature land is never affected by summoning
+     sickness (a sick land still taps for mana), and after the lands pile
+     merged sickness out of its identity (fb-20260917T004545Z) a dim on the
+     pile's fresh lead would make the pile look different from its mates. */
   .card-tile.sick .face {
     opacity: 0.78;
   }

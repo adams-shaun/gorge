@@ -34,15 +34,64 @@ var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
 // having paid nothing. Reporting failure explicitly is what lets castSpell
 // abort the cast instead.
 func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
-	before := e.G.Players[p].Pool
-	after, lifeSpent, ok := cost.resolveMana(before, e.G.Players[p].Life)
+	return e.payManaConvFor(p, 0, false, cost, nil)
+}
+
+// payManaConv is payMana under a stat:ManaConvert conversion set (or nil,
+// the plain exact-colour payment payMana always was). The conversion widens
+// (and the <-C restriction narrows) what the pool's mana may pay, never what
+// the cost demands.
+func (e *Engine) payManaConv(p state.PlayerID, cost Cost, conv *manaConv) bool {
+	return e.payManaConvFor(p, 0, false, cost, conv)
+}
+
+// payManaConvFor pays a specific spell or activated ability. RestrictValid$
+// mana remains distinct from ordinary floating mana until this point: it is
+// included only when its restriction admits this payment, then spent first
+// and marked on the negative ManaAdd event so events.Apply can reconstruct
+// the same provenance during replay.
+func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv) bool {
+	return e.payManaFor(p, id, ability, cost, conv, false)
+}
+
+// payManaFor is payManaConvFor with the may-play ignore-colour rider passed
+// explicitly, so the payment sites that know the cast's recorded rider (a
+// pendingCast's mayPlayIgnore, kept from the offer gate that proved it) keep
+// the grant after the card has moved to the stack -- at payment time the
+// card is no longer in the granted zone, so re-deriving from the zone would
+// wrongly drop it.
+func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, anyColor bool) bool {
+	before := e.manaAvailableFor(p, id, ability)
+	beforeSnow := e.G.Players[p].Snow
+	pay, ok := cost.resolveManaWith(before, beforeSnow, e.G.Players[p].Life,
+		e.payerGrantsPayLifeInsteadOfB(p), anyColor, conv)
 	if !ok {
 		return false
 	}
+	after, afterSnow, lifeSpent := pay.pool, pay.snow, pay.lifeSpent
+	spent := state.Mana{}
+	for i := range before {
+		spent[i] = before[i] - after[i]
+	}
+	e.emitRestrictedManaSpend(p, id, ability, &spent)
 	for i, letter := range manaLetters {
-		if spent := before[i] - after[i]; spent != 0 {
-			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent})
+		if spent[i] == 0 {
+			continue
 		}
+		// A slot whose snow units were spent (all or part) emits the
+		// "S<colour>" Counter form so the parallel snow tally moves with the
+		// pool through the same events the adds used. resolveMana consumes a
+		// non-snow unit before a snow one wherever a choice existed, so the
+		// snow split here is exactly what the payment search did.
+		snowSpent := beforeSnow[i] - afterSnow[i]
+		if snowSpent > 0 {
+			if plain := spent[i] - snowSpent; plain > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -plain})
+			}
+			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: "S" + letter, Amount: -snowSpent})
+			continue
+		}
+		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent[i]})
 	}
 	// Fixed life costs and any Phyrexian pips paid with life are deducted
 	// through the ordinary LifeChange event so a replay learns them.
@@ -67,6 +116,124 @@ func (e *Engine) payExtortPip(p state.PlayerID) bool {
 		}
 	}
 	return false
+}
+
+// payManaCast is the spell-cost payment: the shared payManaFor core with the
+// cast's recorded may-play ignore-colour rider (CR 401.5's "spend mana as
+// though it were mana of any color to cast it"). The rider was proved by the
+// offer gate while the card still sat in the granted zone; the payment keeps
+// it via pc.mayPlayIgnore because after the push (CR 601.2a) the card is on
+// the stack and a zone re-derivation would wrongly drop the grant.
+func (e *Engine) payManaCast(pc *pendingCast, cost Cost) bool {
+	return e.payManaFor(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false), pc.mayPlayIgnore)
+}
+
+// manaAvailableFor removes every restricted batch from the visible pool, then
+// restores exactly the batches valid for this payment. This means a cast or a
+// nonmatching activation can never borrow Tazri-style mana merely because it
+// shares a colour bucket with unrestricted mana.
+func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool) state.Mana {
+	available := e.G.Players[p].Pool
+	for _, r := range e.G.Players[p].RestrictedMana {
+		idx := state.ManaIndex(r.Color[0])
+		available[idx] -= r.Amount
+		if e.restrictValidMatches(p, id, ability, r.Valid) {
+			available[idx] += r.Amount
+		}
+	}
+	return available
+}
+
+// emitRestrictedManaSpend consumes matching restriction batches in insertion
+// order before ordinary mana. Every matching unit is interchangeable for the
+// current payment; using this fixed order keeps the log deterministic.
+func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana) {
+	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
+	// otherwise removing the first of two matching batches would make the
+	// live slice shift under this loop and could skip or double-spend one.
+	batches := append([]state.ManaRestriction(nil), e.G.Players[p].RestrictedMana...)
+	for _, r := range batches {
+		if r.Amount <= 0 || !e.restrictValidMatches(p, id, ability, r.Valid) {
+			continue
+		}
+		idx := state.ManaIndex(r.Color[0])
+		used := spent[idx]
+		if used > r.Amount {
+			used = r.Amount
+		}
+		if used == 0 {
+			continue
+		}
+		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
+			Text: events.ManaRestrictionText(r.Valid)})
+		spent[idx] -= used
+	}
+}
+
+// restrictValidMatches evaluates RestrictValid$'s payment class. Forge spells
+// it as <SA-kind>.<object filter>; the corpus shape is
+// Activated.Creature+inZoneBattlefield. The zone predicate is checked here
+// because it describes the ability's source, not the mana source that made
+// the restriction. Unknown classes fail closed so restricted mana is never
+// spent illegally.
+func (e *Engine) restrictValidMatches(p state.PlayerID, id state.ObjID, ability bool, valid string) bool {
+	kind, spec, ok := strings.Cut(strings.TrimSpace(valid), ".")
+	if !ok {
+		return false
+	}
+	switch kind {
+	case "Activated":
+		if !ability {
+			return false
+		}
+	case "Spell":
+		if ability {
+			return false
+		}
+	default:
+		return false
+	}
+	needsBattlefield := strings.Contains(spec, "inZoneBattlefield")
+	spec = strings.Trim(strings.ReplaceAll(spec, "+inZoneBattlefield", ""), "+")
+	o := e.G.Obj(id)
+	if o == nil || (needsBattlefield && o.Zone != state.ZBattlefield) {
+		return false
+	}
+	return spec == "" || effects.MatchesSpecFrom(e.G, spec, id, p, id)
+}
+
+// paymentConv is the conversion set for p paying id (ability selects the
+// ValidSA$ Spell/Activated scoping), or nil when no ManaConvert static would
+// change any pip match. Returning nil -- not a zero conv -- keeps the pure
+// resolveMana path (and every game without a converter on the board)
+// byte-identical.
+func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *manaConv {
+	conv := e.manaConversion(p, id, ability)
+	if conv.empty() {
+		return nil
+	}
+	return &conv
+}
+
+// costPayableGrant is costPayable with the may-play ignore-colour rider
+// passed explicitly, for the payment sites that know the cast's recorded
+// rider and cannot re-derive it from the card's zone.
+func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool, cost Cost, anyColor bool) bool {
+	_, ok := cost.resolveManaWith(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].Life,
+		e.payerGrantsPayLifeInsteadOfB(p), anyColor, e.paymentConv(p, id, ability))
+	return ok
+}
+
+// costPayable is the conversion-aware equivalent of Cost.payable at the
+// offering and window gates: the SAME resolveMana payMana will run, so an
+// offered cost and the cost actually charged can never disagree about what
+// the payer's converted mana may satisfy. The payer-side grants (a
+// PayLifeInsteadOf:B static under its controller; a may-play grant's
+// MayPlayIgnoreColor$ rider, derived from the card's current zone) are
+// applied here too, so an offered cost and the charged cost agree about a
+// K'rrik-shaped or may-play-shaped payment as well.
+func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cost Cost) bool {
+	return e.costPayableGrant(p, id, ability, cost, e.payerGrantsIgnoreColor(p, id))
 }
 
 // targetBounds resolves a targeting subject's TargetMin$/TargetMax$ to the
@@ -125,6 +292,16 @@ func targetMin(sa *cards.SA) int {
 // minor 4), but the battlefield default applies only when NEITHER source
 // named a zone -- a typo'd TgtZone$ on a TargetType$ Spell card must not
 // silently widen a stack target back to the battlefield.
+//
+// fb-20260916T024739Z-b89aea46: the remaining default is wrong for one more
+// shape -- the Wrenn and Six ability (`AB$ ChangeZone | Origin$ Graveyard |
+// Destination$ Hand | TargetMin$ 0 | TargetMax$ 1 | ValidTgts$ Land.YouOwn`,
+// no TgtZone$). Its census searched the battlefield, offered a land already
+// in play, and omitted the eligible graveyard card the prompt names -- and
+// the offered battlefield land could never pass effChangeZone's own Origin$
+// Graveyard resolution guard, so the ability could not do what it promises.
+// For that one unambiguous shape the Origin$ implies the target zone; see
+// originImpliedTargetZone for the four gates that admit it.
 func targetZones(sa *cards.SA) []state.Zone {
 	var zones []state.Zone
 	for _, z := range strings.Split(sa.Params["TgtZone"], ",") {
@@ -148,9 +325,54 @@ func targetZones(sa *cards.SA) []state.Zone {
 		zones = appendUniqueZone(zones, state.ZStack)
 	}
 	if len(zones) == 0 {
-		zones = []state.Zone{state.ZBattlefield}
+		if z, ok := originImpliedTargetZone(sa); ok {
+			zones = []state.Zone{z}
+		} else {
+			zones = []state.Zone{state.ZBattlefield}
+		}
 	}
 	return zones
+}
+
+// originImpliedTargetZone reports the implicit target zone for a ChangeZone
+// whose Origin$ names exactly one concrete zone. Deliberately narrow -- this
+// is established ONLY for the unambiguous public-graveyard object-targeted
+// shape and must not grow into a general origin grammar (Origin$ Hand/
+// Library/Exile carry hidden-information, chooser and mixed-zone semantics
+// this does not establish; Origin$ Hand's mixed multi-zone handling lives in
+// effects/zone.go). It admits an SA when ALL of these hold:
+//
+//  1. it is API$ ChangeZone;
+//  2. it has no explicit TgtZone$ (explicit TgtZone$ stays authoritative;
+//     this helper only runs from targetZones' empty fallback, but a TgtZone$
+//     whose tokens were all unknown must not silently fall through to Origin$
+//     either) and no stack-targeting TargetType$;
+//  3. effects.ParseZones parses its Origin$ as exactly the one concrete
+//     state.ZGraveyard -- not Any/All, not an unknown token, not a multi-zone
+//     origin (ParseZones' ok=false on an unknown token fails closed);
+//  4. its ValidTgts$ is object-only under the existing targetsPlayers
+//     classifier, so a player-targeted ChangeZone keeps its existing
+//     player-target route untouched.
+//
+// The zone feeds both legalTargetCandidates (offer time) and legalTargets
+// (the CR 608.2b resolution recheck) through their shared targetZones calls,
+// and effChangeZone's own Origin$ guard -- unchanged -- then accepts the
+// chosen graveyard object at resolution.
+func originImpliedTargetZone(sa *cards.SA) (state.Zone, bool) {
+	if sa.API != "ChangeZone" {
+		return 0, false
+	}
+	if sa.Params["TgtZone"] != "" || targetsStackObjects(sa.Params["TargetType"]) {
+		return 0, false
+	}
+	if targetsPlayers(sa.Params["ValidTgts"]) {
+		return 0, false
+	}
+	zones, all, ok := effects.ParseZones(sa.Params["Origin"])
+	if !ok || all || len(zones) != 1 || zones[0] != state.ZGraveyard {
+		return 0, false
+	}
+	return state.ZGraveyard, true
 }
 
 // appendUniqueZone appends z to zones when it is not already present,
@@ -260,7 +482,9 @@ func (e *Engine) targetName(source state.ObjID) string {
 // one helper so an ability object can never reach a nil-Face dereference in
 // either.
 func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
-	label := e.G.Players[candidate.player].Name
+	// The controller's name is seat-facing (the seat that answers sees it),
+	// so it prefers the table's display name over the deck-identity slug.
+	label := seatFacingName(e.G, candidate.player)
 	if candidate.obj != 0 {
 		label = e.targetName(candidate.obj) + " (" + label + ")"
 	}
@@ -495,16 +719,50 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := targetBounds(sa)
+	candidates := e.legalTargetCandidates(p, source, source, sa)
+	oneEach := strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True")
+	groups := map[state.PlayerID]bool{}
+	if oneEach {
+		// Forge TargetRestrictions.setForEachPlayer limits the selected targets
+		// to one controlled by each player. Option.Group makes that restriction
+		// part of the generic decision contract, so every target API consumes
+		// the same enforcement rather than each effect maintaining a picker.
+		for _, candidate := range candidates {
+			owner := candidate.player
+			if candidate.kind != "player" {
+				if o := e.G.Obj(candidate.obj); o != nil {
+					owner = o.Controller
+				}
+			}
+			groups[owner] = true
+		}
+		if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
+			min = len(groups)
+		}
+		if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
+			max = len(groups)
+		}
+	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
-	for _, candidate := range e.legalTargetCandidates(p, source, source, sa) {
+	for _, candidate := range candidates {
 		// targetOptionLabel tolerates the Face-less ability object a
 		// TargetType$ Activated/Triggered spec now offers: targetName falls
 		// back to the source permanent's name.
 		label := e.targetOptionLabel(candidate)
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
-			Label: label, Obj: candidate.obj, Player: candidate.player})
+		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: label, Obj: candidate.obj, Player: candidate.player}
+		if oneEach {
+			owner := candidate.player
+			if candidate.kind != "player" {
+				if obj := e.G.Obj(candidate.obj); obj != nil {
+					owner = obj.Controller
+				}
+			}
+			o.Group = "target-controller-" + strconv.Itoa(int(owner))
+		}
+		d.Options = append(d.Options, o)
 	}
 	if min == 0 {
 		// Requirement N2 / totality: a target-hungry subject whose minimum
@@ -521,7 +779,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		// Flashback cast, and for a triggered ability object -- which has no
 		// graveyard -- exile per CR 608.2m, same as every ability fizzle in
 		// resolveTop).
-		rest := spellRestZone(e.G.Obj(source))
+		rest := spellFizzleZone(e.G.Obj(source))
 		if o := e.G.Obj(source); o != nil && o.Ability != nil {
 			rest = state.ZExile
 		}
@@ -566,6 +824,8 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	// clears them.
 	if e.cast != nil {
 		pc := e.cast
+		pc.targets = targetOptions(chosen)
+		e.repriceForTargets(pc)
 		if pc.ability < 0 {
 			if pc.stackObj != 0 {
 				e.recordChosenTargets(pc.stackObj, chosen)
@@ -612,6 +872,23 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	// Ruling T14-e: the submitting player, not e.G.Active -- CR 117.3c, the
 	// player who chose the target (the caster) keeps priority.
 	e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+}
+
+// targetOptions converts a target decision's selected options to the
+// proposal-local target representation used while its cost is still being
+// assembled. Events remain the source of truth once the stack object exists;
+// this short-lived copy is only what lets an activated ability evaluate a
+// ValidTarget$ cost modifier before its AbilityPush object is minted.
+func targetOptions(chosen []decision.Option) []state.Target {
+	out := make([]state.Target, 0, len(chosen))
+	for _, opt := range chosen {
+		if opt.Kind == "player" {
+			out = append(out, state.Target{Player: opt.Player, IsPlayer: true})
+		} else {
+			out = append(out, state.Target{Obj: opt.Obj})
+		}
+	}
+	return out
 }
 
 // recordChosenTargets emits the TargetsChosen events for a set of chosen
@@ -783,6 +1060,20 @@ func (e *Engine) resolveTop() {
 				return
 			}
 		}
+		// Cumulative upkeep is an ordinary trigger through placement, but its
+		// age/payment resolution needs rules' cost machinery. Mana Vault's
+		// triggered Untap is the one ordinary effect shape authorized to use
+		// that window; unrelated Cost$-bearing trigger effects retain their
+		// established executor semantics.
+		if o.Ability.API == "CumulativeUpkeep" {
+			e.startCumulativeUpkeep(id, o.Source, o.Ability)
+			return
+		}
+		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
+			o.Ability.API == "Untap" && o.Ability.Params["Cost"] != "" {
+			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
+			return
+		}
 		// The ability object itself has no Face, so its SVar table (needed
 		// for Num's SVar indirection, e.g. Goblin Piledriver's "NumAtt$ +X")
 		// comes from the permanent that granted it (o.Source) instead.
@@ -929,7 +1220,7 @@ func (e *Engine) resolveTop() {
 				// that spell shape, and the resting zone is where it
 				// belongs) -- exile instead of the graveyard for one cast
 				// via Flashback (CR 702.32b).
-				rest := spellRestZone(o)
+				rest := spellFizzleZone(o)
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: rest, Text: "fizzled: no legal targets remain"})
 				e.ensureLeftTheStack(id, rest, "a replacement fully discarded this "+
@@ -980,13 +1271,24 @@ func (e *Engine) resolveTop() {
 	e.moveResolvedOffStack(o)
 }
 
-// spellRestZone is where a resolved (or fizzled) spell goes instead of the
-// graveyard: exile for one cast via Flashback (CR 702.32b), the graveyard
-// for everything else. o is read before the MoveZone that takes it off the
-// stack, so its CastFlags (set by commitCast's CastInfo, if any) still
-// reflect how it was cast.
+// spellRestZone is where a spell goes AFTER IT RESOLVES. Buyback is a
+// resolution replacement (CR 702.27a), not a replacement for being
+// countered, so only this resolved-spell helper may return it to hand.
 func spellRestZone(o *state.Object) state.Zone {
-	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.IsCopy) {
+	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy) {
+		return state.ZExile
+	}
+	if o != nil && o.CastFlags&state.FlagBuyback != 0 {
+		return state.ZHand
+	}
+	return state.ZGraveyard
+}
+
+// spellFizzleZone is the resting place when a spell never resolved. Flashback,
+// Harmonize and copies still use exile, but Buyback does not apply and the
+// card reaches its owner's graveyard.
+func spellFizzleZone(o *state.Object) state.Zone {
+	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy) {
 		return state.ZExile
 	}
 	return state.ZGraveyard
@@ -1167,9 +1469,10 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 // (layers.go) and Ask (resolution.go) round out the interface -- HasKeyword
 // already existed for the layer system's own callers before effects.Host
 // grew a method of the same name, and needed no change to satisfy it.
-func (e *Engine) Game() *state.Game    { return e.G }
-func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
-func (e *Engine) Rand(n int) int       { return e.rng.IntN(n) }
+func (e *Engine) Game() *state.Game                       { return e.G }
+func (e *Engine) Emit(ev events.Event)                    { e.emit(ev) }
+func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
+func (e *Engine) Rand(n int) int                          { return e.rng.IntN(n) }
 
 // EmitTap satisfies effects.Host's EmitTap: see emitTap.
 func (e *Engine) EmitTap(obj state.ObjID, tapper state.PlayerID, entering bool) {
@@ -1227,6 +1530,94 @@ func (e *Engine) CastThisTurn() int {
 	return n
 }
 
+// SpellsCastThisTurnMatching satisfies effects.Host's
+// SpellsCastThisTurnMatching for Count$ThisTurnCast_<spec> (the
+// "first/second spell you cast" cost modifiers and triggers): spells put on
+// the stack this turn whose object matches the Forge spec. When the spec
+// carries a You* qualifier the count scopes to YOU's casts; otherwise it
+// counts everyone's. Derived from the event log like CastThisTurn.
+func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int {
+	youScoped := strings.Contains(spec, "You")
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind != events.PutOnStack {
+			continue
+		}
+		if youScoped && ev.Player != you {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, spec, ev.Obj, you, ev.Obj) {
+			n++
+		}
+	}
+	return n
+}
+
+// LifeLostThisTurn satisfies effects.Host's LifeLostThisTurn for
+// Count$LifeOppsLostThisTurn (Rakdos, Lord of Riots' cost reduction): the
+// total life p lost this turn, summed from every LifeChange below zero since
+// the last TurnChange. Derived from the event log like CastThisTurn, so a
+// replay that rebuilds the game arrives at the same number. Life GAINED is
+// not folded in — "lost life" is a loss even if the player ended the turn
+// higher than they started (CR 118.3's distinction, and the reading Forge's
+// own head takes).
+func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount < 0 {
+			n += -ev.Amount
+		}
+	}
+	return n
+}
+
+// TurnsTaken satisfies effects.Host's TurnsTaken for Count$YourTurns (Serra
+// Avenger's "your first, second, or third turns of the game"): the number of
+// turns that have BEGUN with p as the active player, current turn included.
+// Derived from the event log like LifeLostThisTurn — every turn p begins
+// emits exactly one TurnChange naming p (events.Apply's TurnChange case),
+// extra turns included, so a replay that rebuilds the log arrives at the
+// same count. The whole-log walk (not a TurnChange-bounded scan) is the
+// point: the count spans the game, not one turn.
+func (e *Engine) TurnsTaken(p state.PlayerID) int32 {
+	var n int32
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TurnChange && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
+// AttackersThisTurn satisfies effects.Host's AttackersThisTurn for
+// Count$AttackersDeclared (the Raid family's "attacked this turn" read): the
+// number of attackers declared this turn, summed from every DeclareAttackers
+// event's attacker list since the last TurnChange. Derived from the event log
+// like CastThisTurn, so a replay that rebuilds the game arrives at the same
+// number. A DeclareAttackers event carries its declared attackers in IDs (one
+// event per defender); an event with no IDs contributes nothing.
+func (e *Engine) AttackersThisTurn() int {
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.DeclareAttackers {
+			n += len(ev.IDs)
+		}
+	}
+	return n
+}
+
 // targetsPlayers and targetsPermanents read the coarse shape of a ValidTgts
 // spec. The per-object predicate work is effects.MatchesSpec.
 
@@ -1257,4 +1648,112 @@ func targetsPermanents(spec string) bool {
 		}
 	}
 	return false
+}
+
+// payUnlessCost charges the non-choice subset of a mid-resolution
+// UnlessCost$ to payer p. Sacrifice and discard components are deliberately
+// refused here: beginUnlessPayment owns every such component and gathers the
+// payer's selected objects before it calls payMana. Keeping this guard makes
+// a future caller unable to silently revive the old first-in-zone-order
+// stand-in. Fixed mana/life, SubCounter and Draw components remain
+// synchronous: a Draw<N/Spec> pays by drawing N cards for the player(s) the
+// spec names (default the payer), resolved through the same Ctx roles the
+// UnlessPayer$ grammar reads.
+func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
+	if len(cost.Sac) != 0 || len(cost.Discard) != 0 {
+		return false
+	}
+	if int(p) < 0 || int(p) >= len(e.G.Players) {
+		return false
+	}
+	g := e.G
+	// The source the SubCounter parts drain is the activated ability's host
+	// when this is an ability object, otherwise the resolving source.
+	src := ctx.Source
+	if o := g.Obj(stackObj); o != nil && o.Ability != nil {
+		src = o.Source
+	}
+	type counterDrain struct {
+		obj  state.ObjID
+		kind string
+		n    int32
+	}
+	var drains []counterDrain
+	for _, part := range cost.SubCounter {
+		o := g.Obj(src)
+		if o == nil {
+			return false
+		}
+		have := int32(0)
+		for _, ct := range o.Counters {
+			if ct.Kind == part.Spec {
+				have += ct.N
+			}
+		}
+		if have < part.N {
+			return false
+		}
+		drains = append(drains, counterDrain{obj: o.ID, kind: part.Spec, n: part.N})
+	}
+	// Resolve every drawer before charging mana/life. A Draw component whose
+	// role is unavailable makes the entire cost unpayable; validating first
+	// avoids a partial payment followed by a silent omitted draw.
+	drawers := make([][]state.PlayerID, len(cost.Draw))
+	for i, part := range cost.Draw {
+		players, ok := unlessDrawPlayers(ctx, p, part.Spec)
+		if !ok {
+			return false
+		}
+		for _, dp := range players {
+			if int(dp) < 0 || int(dp) >= len(g.Players) {
+				return false
+			}
+		}
+		drawers[i] = players
+	}
+	// Everything is affordable: charge mana/life through ordinary events,
+	// then apply the synchronous counter components, then the draws.
+	if !e.payMana(p, cost) {
+		return false
+	}
+	for _, d := range drains {
+		e.emit(events.Event{Kind: events.CounterChange, Obj: d.obj, Counter: d.kind, Amount: -d.n})
+	}
+	for i, part := range cost.Draw {
+		for _, dp := range drawers[i] {
+			for n := int32(0); n < part.N; n++ {
+				effects.DrawFor(e, dp)
+			}
+		}
+	}
+	return true
+}
+
+// unlessDrawPlayers resolves a Draw<N/Spec> cost component's drawer(s). The
+// empty spec and "You" are the payer; every other spelling is one of the
+// player roles the unless-payment context carries, and an unresolvable or
+// unknown spec fails closed (the cost was not paid).
+func unlessDrawPlayers(ctx *effects.Ctx, payer state.PlayerID, spec string) ([]state.PlayerID, bool) {
+	one := func(t state.Target) ([]state.PlayerID, bool) {
+		if t.IsPlayer {
+			return []state.PlayerID{t.Player}, true
+		}
+		return nil, false
+	}
+	switch spec {
+	case "", "You", "Player", "Self":
+		return []state.PlayerID{payer}, true
+	case "Player.targetedBy", "Targeted", "TargetedPlayer":
+		if len(ctx.Targets) == 0 {
+			return nil, false
+		}
+		return one(ctx.Targets[0])
+	case "Player.Activator", "TriggeredActivator":
+		return one(ctx.TriggerActivator)
+	case "Player.TriggeredPlayer", "TriggeredPlayer":
+		return one(ctx.TriggerPlayer)
+	case "Player.TriggeredTarget", "TriggeredTarget":
+		return one(ctx.TriggerTarget)
+	}
+	return nil, false
 }

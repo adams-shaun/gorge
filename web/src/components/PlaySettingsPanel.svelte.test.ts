@@ -4,7 +4,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
 import { presetPatch, type StoppableStep } from '../lib/playsettings';
-import PlaySettingsPanel, { nextStop, stopPatch, stopWord } from './PlaySettingsPanel.svelte';
+import PlaySettingsPanel, { clampMs, nextStop, stopPatch, stopWord } from './PlaySettingsPanel.svelte';
+import { layoutStore } from '../lib/layoutsettings.svelte';
 
 // Two layers, because the editor has two halves to defend:
 //
@@ -249,7 +250,7 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
     expect(state.note.kind).toBe('off');
   });
 
-  it('the own-objects segments carry both rules and write through editSettings', () => {
+  it('the own-objects segments carry both rules, write through editSettings, and say step stops still apply', () => {
     const state = new SeatPanelState('t1', 1, ctx, null);
     const html = panel(state);
     expect(tag(html, 'data-own="never"')).toContain('aria-pressed="true"');
@@ -258,6 +259,13 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
     state.editSettings({ ownObjects: 'if-respondable' });
     const next = panel(state);
     expect(tag(next, 'data-own="if-respondable"')).toContain('aria-pressed="true"');
+    // fb-20260916T225211Z: the awareness gap the Deadly Rollick report is
+    // about — the knob governs only the own-object stack rule, and the panel
+    // must say the step-stop table below still stops every window it names,
+    // own object on the stack or not.
+    const legend = elem(next, 'data-own-legend');
+    expect(legend).toContain('step stops below still apply');
+    expect(legend).toContain('your own object on it');
   });
 
   it('the pacing picker matches an exact (step/resolve) pair and writes through editSettings', () => {
@@ -267,12 +275,83 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
     // The exact call the Short segment's onclick makes.
     state.editSettings({ pacing: { stepMs: 100, resolveMs: 200 } });
     expect(tag(panel(state), 'data-pacing="short"')).toContain('aria-pressed="true"');
-    // An unmatched pair presses nothing (no Off/Short/Normal).
+    // An unmatched pair (fb-20260917T004341Z): Custom now reads selected.
     state.editSettings({ pacing: { stepMs: 37, resolveMs: 91 } });
     const html = panel(state);
-    for (const id of ['off', 'short', 'normal']) {
+    for (const id of ['off', 'short', 'normal', 'slow']) {
       expect(tag(html, `data-pacing="${id}"`)).not.toContain('aria-pressed="true"');
     }
+    expect(tag(html, 'data-pacing="custom"')).toContain('aria-pressed="true"');
+  });
+
+  // fb-20260917T004341Z: the row is the reporter's "step delay", and the
+  // picker carries four canned pairs plus the Custom affordance.
+  describe('the step delay row (fb-20260917T004341Z)', () => {
+    it('is labelled with the reporter\'s term, keeping the old meaning in parentheses', () => {
+      const html = panel(new SeatPanelState('t1', 1, ctx, null));
+      expect(html).toContain('Step delay (pause between auto-passes)');
+      expect(html).not.toContain('Pause between auto-passes</span>');
+      expect(tag(html, 'data-pacing-picker')).toContain('aria-labelledby="pacing-label"');
+    });
+
+    it('carries four canned segments, and selecting Slow writes {stepMs: 500, resolveMs: 1000} through editSettings', () => {
+      const state = new SeatPanelState('t1', 1, ctx, null);
+      const html = panel(state);
+      for (const id of ['off', 'short', 'normal', 'slow', 'custom']) {
+        expect(tag(html, `data-pacing="${id}"`)).not.toBe('');
+      }
+      // The exact call the Slow segment's onclick makes.
+      state.editSettings({ pacing: { stepMs: 500, resolveMs: 1000 } });
+      const slow = panel(state);
+      expect(tag(slow, 'data-pacing="slow"')).toContain('aria-pressed="true"');
+      expect(state.settings.pacing).toEqual({ stepMs: 500, resolveMs: 1000 });
+      // Away from a canned pair the preset relabels to custom (withChange).
+      expect(state.settings.preset).toBe('custom');
+      expect(tag(slow, 'data-pacing="custom"')).not.toContain('aria-pressed="true"');
+      // A canned pair never reveals the inputs without the Custom click.
+      expect(slow).not.toContain('data-pacing-input');
+      // The legend lists every pair, Slow included.
+      expect(elem(slow, 'data-pacing-legend')).toContain('Slow = 500/1000');
+      expect(elem(slow, 'data-pacing-legend')).toContain('Off = 0/0');
+    });
+
+    it('an unmatched pair selects the Custom segment and reveals the inputs pre-filled with the current values', () => {
+      const state = new SeatPanelState('t1', 1, ctx, null);
+      state.editSettings({ pacing: { stepMs: 37, resolveMs: 91 } });
+      const html = panel(state);
+      expect(tag(html, 'data-pacing="custom"')).toContain('aria-pressed="true"');
+      expect(tag(html, 'data-pacing="custom"')).toContain('aria-expanded="true"');
+      const stepInput = tag(html, 'data-pacing-input="step"');
+      const resolveInput = tag(html, 'data-pacing-input="resolve"');
+      expect(stepInput).toContain('value="37"');
+      expect(resolveInput).toContain('value="91"');
+      expect(elem(html, 'data-pacing-custom')).toContain('Step ms');
+      expect(elem(html, 'data-pacing-custom')).toContain('Resolve ms');
+    });
+
+    it('a canned pair hides the inputs (Custom is opt-in; the browser test drives the real reveal)', () => {
+      const state = new SeatPanelState('t1', 1, ctx, null);
+      let html = panel(state);
+      expect(html).not.toContain('data-pacing-input'); // Normal 200/400: no inputs
+      // A canned pair keeps them hidden even after an unrelated re-render.
+      state.editSettings({ pacing: { stepMs: 100, resolveMs: 200 } });
+      html = panel(state);
+      expect(tag(html, 'data-pacing="short"')).toContain('aria-pressed="true"');
+      expect(html).not.toContain('data-pacing-input');
+    });
+
+    it('clampMs parses an integer clamped to [0, 10000]; non-numeric or empty means leave unchanged', () => {
+      expect(clampMs('750')).toBe(750);
+      expect(clampMs('0')).toBe(0);
+      expect(clampMs('9999')).toBe(9999);
+      expect(clampMs('10000')).toBe(10000);
+      expect(clampMs('20000')).toBe(10000);
+      expect(clampMs('-5')).toBe(0);
+      expect(clampMs('440px')).toBe(440); // Number.parseInt semantics
+      expect(clampMs('')).toBeNull();
+      expect(clampMs('abc')).toBeNull();
+      expect(clampMs('12.9')).toBe(12); // parseInt truncates
+    });
   });
 });
 
@@ -458,5 +537,158 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
     expect(labels).toEqual([]);
     await page.waitForSelector('[data-remembered-empty]');
     await page.close();
+  });
+
+  // fb-20260917T004341Z: the step delay row against the REAL state — Slow
+  // writes its pair, the Custom inputs write through on change (not per
+  // keystroke), out-of-range clamps / empty leaves the value, and a canned
+  // pair re-selected highlights its segment with the revealed inputs showing
+  // that pair.
+  it('clicking the Slow segment writes {stepMs: 500, resolveMs: 1000} through the state write path', async () => {
+    const page = await open();
+    await page.locator('[data-pacing="slow"]').click();
+    expect(await page.locator('[data-pacing="slow"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('[data-pacing="custom"]').getAttribute('aria-pressed')).toBe('false');
+    const pacing = await page.evaluate(() =>
+      (window as unknown as { playSettingsState: { settings: { pacing: { stepMs: number; resolveMs: number } } } }).playSettingsState.settings.pacing);
+    expect(pacing).toEqual({ stepMs: 500, resolveMs: 1000 });
+    // The inputs stay hidden for a canned pair (Custom was never clicked).
+    expect(await page.locator('[data-pacing-input]').count()).toBe(0);
+    await page.close();
+  });
+
+  it('the Custom segment reveals the inputs, and typing values writes them on change (not per keystroke)', async () => {
+    const page = await open();
+    await page.locator('[data-pacing="custom"]').click();
+    // Revealed pre-filled with the current (casual 200/400) pair.
+    expect(await page.locator('[data-pacing-input="step"]').inputValue()).toBe('200');
+    expect(await page.locator('[data-pacing-input="resolve"]').inputValue()).toBe('400');
+    // fill fires only `input`; the write is on `change`, which blur commits.
+    // Before any blur, nothing is written (not per keystroke / per input).
+    await page.locator('[data-pacing-input="step"]').fill('750');
+    let pacing = await page.evaluate(() =>
+      (window as unknown as { playSettingsState: { settings: { pacing: { stepMs: number; resolveMs: number } } } }).playSettingsState.settings.pacing);
+    expect(pacing).toEqual({ stepMs: 200, resolveMs: 400 }); // input event alone does not write
+    await page.locator('[data-pacing-input="step"]').blur();
+    await page.locator('[data-pacing-input="resolve"]').fill('1234');
+    await page.locator('[data-pacing-input="resolve"]').blur();
+    pacing = await page.evaluate(() =>
+      (window as unknown as { playSettingsState: { settings: { pacing: { stepMs: number; resolveMs: number } } } }).playSettingsState.settings.pacing);
+    expect(pacing).toEqual({ stepMs: 750, resolveMs: 1234 });
+    // Custom reads selected and the preset relabelled (withChange behaviour).
+    expect(await page.locator('[data-pacing="custom"]').getAttribute('aria-pressed')).toBe('true');
+    expect((await stateOf(page)).preset).toBe('custom');
+    await page.close();
+  });
+
+  it('an out-of-range input clamps to [0, 10000]; an empty or non-numeric one leaves the value unchanged', async () => {
+    const page = await open();
+    await page.locator('[data-pacing="custom"]').click();
+    const step = page.locator('[data-pacing-input="step"]');
+    const resolve = page.locator('[data-pacing-input="resolve"]');
+    /** pacing reads the fixture's live settings through the page. */
+    const pacing = () =>
+      page.evaluate(() =>
+        (window as unknown as { playSettingsState: { settings: { pacing: { stepMs: number; resolveMs: number } } } }).playSettingsState.settings.pacing);
+    await step.fill('20000');
+    await step.blur();
+    expect(await pacing()).toEqual({ stepMs: 10000, resolveMs: 400 });
+    expect(await step.inputValue()).toBe('10000'); // the clamp is visible
+    await resolve.fill('-5');
+    await resolve.blur();
+    expect(await pacing()).toEqual({ stepMs: 10000, resolveMs: 0 });
+    // A number input cannot even hold non-numeric text (the browser rejects
+    // the fill), so the reachable leave-unchanged case in the DOM is the
+    // empty string; the non-numeric guard itself is pinned on clampMs above.
+    await step.fill('');
+    await step.blur();
+    expect(await pacing()).toEqual({ stepMs: 10000, resolveMs: 0 }); // unchanged
+    await page.close();
+  });
+
+  it('re-selecting a canned pair highlights its segment, and the revealed inputs show that pair', async () => {
+    const page = await open();
+    await page.locator('[data-pacing="custom"]').click();
+    await page.locator('[data-pacing-input="step"]').fill('750');
+    await page.locator('[data-pacing-input="step"]').blur();
+    await page.locator('[data-pacing="short"]').click();
+    expect(await page.locator('[data-pacing="short"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('[data-pacing="custom"]').getAttribute('aria-pressed')).toBe('false');
+    const pacing = await page.evaluate(() =>
+      (window as unknown as { playSettingsState: { settings: { pacing: { stepMs: number; resolveMs: number } } } }).playSettingsState.settings.pacing);
+    expect(pacing).toEqual({ stepMs: 100, resolveMs: 200 });
+    // The inputs stay revealed (the Custom click opened them) and now show
+    // the canned pair.
+    expect(await page.locator('[data-pacing-input="step"]').inputValue()).toBe('100');
+    expect(await page.locator('[data-pacing-input="resolve"]').inputValue()).toBe('200');
+    await page.close();
+  });
+});
+
+describe('PlaySettingsPanel — Layout section (fb-20260916T182801Z)', () => {
+  it('renders a row per zone with a size stepper, a live readout and an alignment select', () => {
+    const html = panel(new SeatPanelState('yt-layout', 1, ctx, null));
+    expect(html).toContain('data-layout-section');
+    for (const zone of ['creatures', 'others', 'lands', 'hand'] as const) {
+      const row = elem(html, `data-layout-zone="${zone}"`);
+      expect(row).not.toBe('');
+      expect(row).toContain('data-layout-smaller');
+      expect(row).toContain('data-layout-larger');
+      expect(elem(html, `data-layout-scale="${zone}"`)).toContain('100%');
+      expect(row).toContain('<select');
+      expect(row).toContain('data-layout-align');
+    }
+    expect(html).toContain('data-peek-picker');
+    expect(html).toContain('data-layout-reset');
+    // the hand's peek segmented control marks the shipped default
+    expect(tag(html, 'data-peek="hover"')).toContain('aria-pressed="true"');
+  });
+
+  it('the size readout follows the shared layout store, and Reset returns it', () => {
+    // The layout section edits the SEPARATE layoutsettings store, not the
+    // seat state: bumping it here is exactly what the panel's + button does,
+    // and the readout must show the new number (and Reset restore it).
+    const store = layoutStore;
+    store.bump('creatures', 0.1);
+    const html = panel(new SeatPanelState('yt-layout2', 1, ctx, null));
+    expect(elem(html, 'data-layout-scale="creatures"')).toContain('110%');
+    store.reset();
+    store.dispose();
+    const calm = panel(new SeatPanelState('yt-layout3', 1, ctx, null));
+    expect(elem(calm, 'data-layout-scale="creatures"')).toContain('100%');
+  });
+
+  it('the on-board steppers show/hide toggle reads Hidden by default and flips the store (fb-20260917T004304Z default flip)', () => {
+    const store = layoutStore;
+    try {
+      const html = panel(new SeatPanelState('yt-toggle1', 1, ctx, null));
+      expect(html).toContain('data-layout-steppers-toggle');
+      // a role="switch" row like the other toggles, OFF at the shipped default
+      expect(tag(html, 'data-toggle="steppers-on-board"')).toContain('role="switch"');
+      expect(tag(html, 'data-layout-steppers-toggle')).toContain('aria-checked="false"');
+      expect(elem(html, 'data-layout-steppers-toggle')).toContain('Hidden');
+
+      // the exact call the toggle's onclick makes; aria-checked follows
+      store.setSteppersOnBoard(true);
+      const on = panel(new SeatPanelState('yt-toggle2', 1, ctx, null));
+      expect(tag(on, 'data-layout-steppers-toggle')).toContain('aria-checked="true"');
+      expect(elem(on, 'data-layout-steppers-toggle')).toContain('Shown');
+
+      // ...and the panel's OWN per-zone steppers/alignment rows stay mounted
+      // regardless of the toggle: they are the way back once the board marks
+      // are hidden.
+      for (const zone of ['creatures', 'others', 'lands', 'hand'] as const) {
+        const row = elem(on, `data-layout-zone="${zone}"`);
+        expect(row).not.toBe('');
+        expect(row).toContain('data-layout-smaller');
+        expect(row).toContain('data-layout-larger');
+        expect(row).toContain('data-layout-align');
+      }
+      expect(on).toContain('data-peek-picker');
+      expect(on).toContain('data-layout-reset');
+    } finally {
+      store.reset();
+      store.dispose();
+    }
   });
 });

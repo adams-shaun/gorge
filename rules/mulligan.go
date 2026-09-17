@@ -36,6 +36,17 @@ type mulliganRound struct {
 	cursor        int
 }
 
+// PregameStarter supplies the resolved CR 103.1 starting seat while the
+// London mulligan round is live. It deliberately lives outside state.Game:
+// the ordinary TurnChange will record Active at turn 1, and adding a separate
+// genesis event solely for this transient projection would alter every replay.
+func (e *Engine) PregameStarter() (state.PlayerID, bool) {
+	if e == nil || !e.pregame || len(e.mulligan.seats) == 0 {
+		return 0, false
+	}
+	return e.mulligan.seats[0], true
+}
+
 func newMulliganRound(seats []state.PlayerID, limit int) mulliganRound {
 	freeMulligans := 0
 	if len(seats) >= 3 {
@@ -76,9 +87,18 @@ func (e *Engine) stepPregame() {
 			e.askBottoming(i)
 			return
 		}
-		// Every seat that had something to bottom has bottomed: the round is
-		// over and the first alive seat begins turn 1, exactly as before.
+		// Every seat has kept and bottomed. Opening-hand effects now inspect
+		// these FINAL hands: a Gemstone Caverns may not be used from a hand its
+		// owner later mulliganed away. They remain before turn one, and may
+		// still replace the starting player -- the round's first seat,
+		// m.seats[0] (the toss winner, not always seat 0 since the CR 103.1
+		// toss), begins turn 1, exactly as before.
 		e.pregame = false
+		e.opening = e.newOpeningRound(m.seats[0], 0)
+		if len(e.opening.effects) > 0 {
+			e.stepOpening()
+			return
+		}
 		e.beginTurn(m.seats[0])
 		return
 	}
@@ -92,6 +112,17 @@ func (e *Engine) stepPregame() {
 		}
 		e.askKeepMulligan(i)
 		return
+	}
+	// CR 103.5 is ROUND-ROBIN: every un-kept player has declared once before
+	// any player who mulliganed declares again. If this pass has mulliganers,
+	// restart at its first seat; only a pass in which everybody keeps reaches
+	// London bottoming.
+	for _, kept := range m.kept {
+		if !kept {
+			m.cursor = 0
+			e.stepPregame()
+			return
+		}
 	}
 	// Every seat has kept: move to the bottoming phase.
 	m.bottom = true
@@ -127,19 +158,30 @@ func bottomingPrompt(bottom int) string {
 }
 
 // keepMulliganPrompt is the human-readable wording for a keep/mulligan ask.
-// It names the bottoming penalty a keep accepts, in the same real English as
-// bottomingPrompt (finding bh: the old "keeps 7 and bottoms 1, or mulligans"
-// was engine-speak). With a permitted mulligan remaining the seat has a choice;
-// once the allowance is spent London offers only a keep.
-func keepMulliganPrompt(bottom, taken, limit, freeMulligans int) string {
+// It names the starting player first (fix round rv2a: the ask is the one
+// always-visible surface a seat reads before deciding keep/mulligan -- the
+// transcript that carries the toss Note starts hidden for a seated player,
+// and CR 103.5 runs the round from the starter, so the seat being asked is
+// not always the one who plays first) and then the bottoming penalty a keep
+// accepts, in the same real English as bottomingPrompt (finding bh: the old
+// "keeps 7 and bottoms 1, or mulligans" was engine-speak). With a permitted
+// mulligan remaining the seat has a choice; once the allowance is spent
+// London offers only a keep. The prompt is chain-free wire text, so it names
+// the starter with their display PlayerName when present (falling back to the
+// deck identity); deck identities are not unique at a table and therefore
+// cannot tell a seated human who plays first.
+func keepMulliganPrompt(starterName string, bottom, taken, limit, freeMulligans int) string {
 	penalty := fmt.Sprintf("put %s on the bottom of your library", putCount(bottom))
 	if bottom == 0 && freeMulligans > 0 {
 		penalty = "keep all seven cards"
 	}
+	var choice string
 	if taken < limit {
-		return fmt.Sprintf("Keep your hand (%s) or take a mulligan?", penalty)
+		choice = fmt.Sprintf("Keep your hand (%s) or take a mulligan?", penalty)
+	} else {
+		choice = fmt.Sprintf("Keep your hand (%s)", penalty)
 	}
-	return fmt.Sprintf("Keep your hand (%s)", penalty)
+	return starterName + " plays first. " + choice
 }
 
 func (e *Engine) askKeepMulligan(i int) {
@@ -151,9 +193,12 @@ func (e *Engine) askKeepMulligan(i int) {
 	}
 	// CR 103.4: the seat re-drew a full openingHand on every mulligan, so
 	// while it is deciding it always holds seven and will bottom bottomCount
-	// cards if it keeps -- the bottoming is the entire penalty.
+	// cards if it keeps -- the bottoming is the entire penalty. The prompt
+	// names who plays first (m.seats[0], the round's own starting seat --
+	// the toss winner AliveFrom(start) begins with), so the decision is
+	// made knowing play/draw without opening the transcript.
 	e.ask(decision.New(p, decision.KMulligan,
-		keepMulliganPrompt(m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
+		keepMulliganPrompt(seatFacingName(e.G, m.seats[0]), m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
 }
 
 // askBottoming offers seat i a bottoming decision over its kept hand: one
@@ -207,10 +252,12 @@ func (e *Engine) handleMulligan(d *decision.Decision, in decision.Intent) {
 		e.mulligan.kept[i] = true
 		return
 	}
-	// A mulligan: the seat stays un-kept (it must decide again, on a full
-	// re-drawn seven), so cursor does not advance. taken increments first;
-	// once it reaches limit the only follow-up ask offers "keep".
+	// A mulligan: the seat stays un-kept (it must decide again on a later
+	// PASS, after every other un-kept seat declares once). Advance cursor now;
+	// stepPregame resets it only after the current round has completed. taken
+	// increments first; once it reaches limit the next-pass ask offers keep.
 	e.mulligan.taken[i]++
+	e.mulligan.cursor++
 	for _, id := range e.G.Zone(state.ZHand, p) {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
 			To: state.ZLibrary, Player: p, Text: "mulligan"})

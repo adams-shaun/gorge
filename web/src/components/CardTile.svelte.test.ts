@@ -117,7 +117,7 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).toContain('data-wire-index="3"');
     expect(html).toContain('data-wire-index="8"');
     postTileOption(t, t.list[1]);
-    expect(t.post).toHaveBeenCalledWith(8, false, false);
+    expect(t.post).toHaveBeenCalledWith(8, true, false); // fb-e079def5: every picker post arms the follow-up
   });
 
   it('more than six options retain the rectangular list menu', () => {
@@ -270,5 +270,35 @@ describe('CardTile loyalty (CR 306.5b/306.8)', () => {
     expect(html).not.toContain('stats__loyalty');
     expect(html).toContain('stats__dmg');
     expect(html).toContain('P1P1');
+  });
+});
+
+describe('CardTile summoning sickness (fb-20260917T004545Z)', () => {
+  it('a noncreature land with summon_sick shows no sick dim', () => {
+    // the engine carries the flag on every battlefield entry, but a sick land
+    // still taps for mana: the dim would be a lie about what the land can do
+    const { html } = render(CardTile, { props: { card: card({ types: 'Basic Land Island', summon_sick: true }) } });
+    expect(html).not.toContain('sick');
+  });
+
+  it('a sick creature still dims', () => {
+    const { html } = render(CardTile, { props: { card: card({ types: 'Creature Bear', summon_sick: true }) } });
+    expect(html).toMatch(/class="card-tile[^"']*sick/);
+  });
+});
+
+describe('CardTile faceTapped presentation override (fb-20260917T004545Z)', () => {
+  it('overrides the face rotation regardless of card.tapped', () => {
+    // a mixed collapsed pile presents ready even though its lead member is tapped
+    const readyFace = render(CardTile, { props: { card: card({ tapped: true }), faceTapped: false } });
+    expect(readyFace.html).not.toMatch(/class="card-tile[^"']*tapped/);
+    // and an all-tapped collapsed pile presents tapped even though the lead is tapped too (identity)
+    const tappedFace = render(CardTile, { props: { card: card(), faceTapped: true } });
+    expect(tappedFace.html).toMatch(/class="card-tile[^"']*tapped/);
+  });
+
+  it('without the prop the card\'s own tapped state rules (every existing caller unchanged)', () => {
+    expect(render(CardTile, { props: { card: card({ tapped: true }) } }).html).toMatch(/class="card-tile[^"']*tapped/);
+    expect(render(CardTile, { props: { card: card() } }).html).not.toMatch(/class="card-tile[^"']*tapped/);
   });
 });

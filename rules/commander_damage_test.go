@@ -43,7 +43,7 @@ func cmdCreature(pw int32) string {
 // about two commanders BOTH being on the battlefield.
 func cmdCreatureNamed(name string, pw int32) string {
 	return "Name:" + name + "\nManaCost:2 G\nTypes:Legendary Creature Bear\nPT:" +
-		strconv.Itoa(int(pw)) + "/99\nK:Trample\nOracle:x\n"
+		strconv.Itoa(int(pw)) + "/99\nK:Trample\nK:Partner\nOracle:x\n"
 }
 
 // commanderGame is the ONE shared Commander fixture: a two-seat game with

@@ -78,7 +78,12 @@ import (
 // the ratchet became EMPTY for the original Legacy and interim Commander
 // decks. The Hearthhull and Valgavoth imports add 54 measured gaps across 579
 // distinct cards in the pinned corpus; entries retire only when their
-// primitives are implemented.
+// primitives are implemented. The untap/mana wave (api:Untap, api:ManaReflected,
+// stat:ManaConvert, stat:UntapOtherPlayer and kw:Cumulative upkeep)
+// retired Fabled Passage, Exotic Orchard, Baloth Prime, Horizon Explorer and
+// Chromatic Orrery outright (every entry's primitives are implemented). The
+// one recorded remainder for Horizon Explorer is the param-level gap
+// `param:api:Untap.ETB` in paramcensus_test.go's knownUnsupportedParams.
 //
 // Task altcosts (the alternative-cost keyword family) retired the one entry
 // the merged decks carried: kw:Dash (Ragavan, Nimble Pilferer), implemented
@@ -88,33 +93,7 @@ import (
 // needed only by the three held commander decks (Rakdos Scam.exe, Vivi
 // cEDH, Ulalek Eldrazi), whose entries land in this table when they are
 // imported.
-var knownUnsupported = map[string][]string{
-	"Baloth Prime":               {"api:Untap"},
-	"Bloodletter of Aclazotz":    {"api:ReplaceEffect"},
-	"Chandra, Awakened Inferno":  {"repl:Counter"},
-	"Chromatic Orrery":           {"stat:ManaConvert"},
-	"Constant Mists":             {"api:Fog", "kw:Buyback"},
-	"Exotic Orchard":             {"api:ManaReflected"},
-	"Exploration Broodship":      {"kw:Station"},
-	"Fabled Passage":             {"api:Untap"},
-	"Fiery Emancipation":         {"api:ReplaceEffect", "repl:DamageDone"},
-	"Fog":                        {"api:Fog"},
-	"Gamble":                     {"api:Shuffle"},
-	"Hearthhull, the Worldseed":  {"kw:Station"},
-	"Horizon Explorer":           {"api:Untap"},
-	"Lord Windgrace":             {"kw:CARDNAME can be your commander."},
-	"Ojer Axonil, Deepest Might": {"api:ReplaceEffect", "repl:DamageDone"},
-	"Planetary Annihilation":     {"api:SacrificeAll"},
-	"Profane Tutor":              {"kw:Suspend"},
-	"Solphim, Mayhem Dominus":    {"api:ReplaceEffect", "repl:DamageDone"},
-	"Spiked Corridor":            {"api:ReplaceEffect", "repl:DamageDone", "trig:UnlockDoor"},
-	"Through the Forest Gate":    {"api:Shuffle"},
-	"Uncivil Unrest":             {"api:ReplaceEffect", "repl:DamageDone"},
-	"Unholy Annex":               {"trig:UnlockDoor"},
-	"Vial Smasher the Fierce":    {"kw:Partner"},
-	"Walk-In Closet":             {"trig:UnlockDoor"},
-	"Ziatora's Proving Ground":   {"kw:Cycling"},
-}
+var knownUnsupported = map[string][]string{}
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
 // across every deck file (the 12 Legacy decks and the m38 commander decks)
@@ -275,6 +254,7 @@ func acceptanceHead(t *testing.T, reg *cards.Registry, seats int) string {
 // data at scale, not about every card's fidelity, which is M4's separate
 // worklist).
 func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
 	}
@@ -310,6 +290,7 @@ func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
 // each re-run from its own recorded (Config, Log) through the package-local
 // replayFor helper, must reach the same chain Head as the original run.
 func TestRepoDeckGamesReplayExactly(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
 	}

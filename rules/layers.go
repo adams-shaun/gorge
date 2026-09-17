@@ -8,6 +8,7 @@
 package rules
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -45,8 +46,13 @@ import (
 // order -- nothing here ranges a map, so the resulting option/view/settle
 // order stays reproducible run to run (determinism requirement 3 of the
 // dispatch).
-func (e *Engine) staticEffects() []ContinuousEffect {
-	var out []ContinuousEffect
+//
+// dst is the caller-owned static memo's reusable outer storage, distinct from
+// activeBuf. This scan calls no callbacks and cannot re-enter; each nested
+// keyword/type slice is freshly parsed and remains read-only after active()
+// copies the effect values. Only the outer slots are overwritten here.
+func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
+	out := dst[:0]
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
@@ -57,116 +63,178 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 			if f == nil {
 				continue
 			}
-			for _, st := range f.Statics {
-				if st.Mode != "Continuous" {
-					continue
-				}
-				affects := st.Params["Affected"]
-				if affects == "" {
-					continue
-				}
-				base := ContinuousEffect{
-					Source:     id,
-					Timestamp:  o.Timestamp,
-					Controller: o.Controller,
-					Affects:    affects,
-				}
-				if hasStat(st, "AddPower") || hasStat(st, "AddToughness") {
-					pt := base
-					pt.Layer, pt.Sub = LPT, SubModify
-					pt.AddPower = statInt(st, "AddPower")
-					pt.AddToughness = statInt(st, "AddToughness")
-					out = append(out, pt)
-				}
-				if hasStat(st, "AddKeyword") {
-					kw := base
-					kw.Layer = LAbilities
-					kw.AddKeywords = statKeywords(st)
-					out = append(out, kw)
-				}
-				if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
-					ty := base
-					ty.Layer = LType
-					ty.AddTypes = statList(st, "AddTypes")
-					if len(ty.AddTypes) == 0 {
-						ty.AddTypes = statList(st, "AddType")
+			// Enchantment Rooms (rules/rooms.go): once the room's second door
+			// is unlocked, the ALTERNATE face's statics are live too -- a room
+			// permanent's rules text is both halves' combined after the
+			// unlock (CR 309.6), each face's Statics its own scan.
+			faces := []*cards.Face{f}
+			if o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
+				faces = append(faces, o.Card.Faces[1-int(o.FaceIdx)])
+			}
+			for _, fc := range faces {
+				for _, st := range fc.Statics {
+					if st.Mode != "Continuous" {
+						continue
 					}
-					out = append(out, ty)
-				}
-				// CR 613.1f / 613.4b (Humility): a base-setting static runs in
-				// layer 7b (SubSet), before the 7c modify a later Pump adds; and
-				// a RemoveAllAbilities static is a layer-6 ability removal.
-				if hasStat(st, "SetPower") || hasStat(st, "SetToughness") {
-					set := base
-					set.Layer, set.Sub = LPT, SubSet
-					set.SetPower = statInt(st, "SetPower")
-					set.SetToughness = statInt(st, "SetToughness")
-					set.HasSet = true
-					out = append(out, set)
-				}
-				if hasStat(st, "RemoveAllAbilities") {
-					ra := base
-					ra.Layer = LAbilities
-					ra.RemoveAbilities = true
-					out = append(out, ra)
-				}
-				// A may-play-from-zone grant (M2d?): the "You may play lands from
-				// your graveyard" static (Conduit of Worlds, Crucible of Worlds,
-				// Ramunap Excavator, ...). It changes no characteristic, so it is
-				// NOT a layer effect and is carried as a rules-mod on the effect
-				// itself (MayPlay + AffectedZone) rather than as a layer mark.
-				// The offer path that consults the static directly is rules/mayplay.go
-				// (the merged general implementation, which also implements the
-				// Condition$/IsPresent$/MayPlayLimit$ shapes); this rules-mod marking
-				// is retained because the parameter census attributes the static's
-				// keys through it. Only the
-				// unconditional MayPlay$ True shape is implemented; the
-				// mayPlayUnconditional guard rejects a richer grant (MayPlayLimit$
-				// once-per-turn/per-type, Condition$/ValidAfterStack$/Secondary$
-				// qualifiers, any other MayPlay* family key) so it fails closed
-				// (MayPlay stays false) rather than being silently over-applied
-				// against the ordinary LandsPlayed limit. Expiry is the ordinary
-				// source-leaves rule (CR 611.3b) via active()'s battlefield scan.
-				if mayPlayUnconditional(st) {
-					mp := base
-					mp.MayPlay = true
-					mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-					out = append(out, mp)
+					affects := st.Params["Affected"]
+					if affects == "" {
+						continue
+					}
+					base := ContinuousEffect{
+						Source:     id,
+						Timestamp:  o.Timestamp,
+						Controller: o.Controller,
+						Affects:    affects,
+					}
+					if hasStat(st, "AddPower") || hasStat(st, "AddToughness") {
+						pt := base
+						pt.Layer, pt.Sub = LPT, SubModify
+						pt.AddPower = statInt(st, "AddPower")
+						pt.AddToughness = statInt(st, "AddToughness")
+						out = append(out, pt)
+					}
+					if hasStat(st, "AddKeyword") {
+						kw := base
+						kw.Layer = LAbilities
+						kw.AddKeywords = statKeywords(st)
+						kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+						out = append(out, kw)
+					}
+					if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
+						ty := base
+						ty.Layer = LType
+						ty.AddTypes = statList(st, "AddTypes")
+						if len(ty.AddTypes) == 0 {
+							ty.AddTypes = statList(st, "AddType")
+						}
+						ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+						out = append(out, ty)
+					}
+					// CR 613.1f / 613.4b (Humility): a base-setting static runs in
+					// layer 7b (SubSet), before the 7c modify a later Pump adds; and
+					// a RemoveAllAbilities static is a layer-6 ability removal.
+					if hasStat(st, "SetPower") || hasStat(st, "SetToughness") {
+						set := base
+						set.Layer, set.Sub = LPT, SubSet
+						set.SetPower = statInt(st, "SetPower")
+						set.SetToughness = statInt(st, "SetToughness")
+						set.HasSet = true
+						out = append(out, set)
+					}
+					if hasStat(st, "RemoveAllAbilities") {
+						ra := base
+						ra.Layer = LAbilities
+						ra.RemoveAbilities = true
+						out = append(out, ra)
+					}
+					// A may-play-from-zone grant (M2d?): the "You may play lands from
+					// your graveyard" static (Conduit of Worlds, Crucible of Worlds,
+					// Ramunap Excavator, ...). It changes no characteristic, so it is
+					// NOT a layer effect and is carried as a rules-mod on the effect
+					// itself (MayPlay + AffectedZone) rather than as a layer mark;
+					// rules/legal.go's may-play walks consult it. The implemented
+					// shape is the unconditional MayPlay$ True grant plus its two
+					// readable riders (MayPlayIgnoreColor$ -- mana as any colour --
+					// and MayPlayLimit$ 1, the once-per-turn cap); the
+					// mayPlayShape guard rejects a richer grant (MayPlayIgnoreType$/
+					// MayPlayWithoutManaCost$/MayPlayText$, Condition$/
+					// ValidAfterStack$/Secondary$ qualifiers) so it fails closed
+					// (MayPlay stays false) rather than being silently over-applied
+					// against the ordinary LandsPlayed limit. Expiry is the ordinary
+					// source-leaves rule (CR 611.3b) via active()'s battlefield scan.
+					if mayPlayGrant(st) {
+						mp := base
+						mp.MayPlay = true
+						mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+						mp.MayPlayIgnoreColor, mp.MayPlayLimit, mp.MayPlayPlayerTurn, _ = effects.MayPlayStaticParams(st.Params)
+						out = append(out, mp)
+					}
+					// An additional-land-drops grant (Azusa, Lost but Seeking's "You
+					// may play two additional lands on each of your turns", Oracle of
+					// Mul Daya, Exploration, Icetill Explorer). Like the may-play
+					// grant it changes no characteristic, so it is NOT a layer effect
+					// and is carried as a rules-mod on the effect itself
+					// (AdjustLandPlays); rules/legal.go's land-play gates consult it
+					// through Engine.adjustLandPlays. The implemented shape is the
+					// plain one -- a literal positive integer value and only display
+					// metadata around it; the Affects spec is evaluated at the gate
+					// with MatchesPlayerSpecFrom, whose own fail-closed rule (an
+					// unhandled qualifier matches nobody) rejects the richer
+					// Affected$ forms. A richer VALUE or rider fails closed here: an
+					// AdjustLandPlays$ Unlimited/Z (Fastbond, an X-driven grant)
+					// must not silently become "one more", and an IsPresent$/
+					// Secondary$ qualifier changes when the grant lives. The explicit
+					// whitelist, rather than a blacklist of currently-known gating
+					// keys, means a newly encountered semantic parameter also fails
+					// closed. Expiry is the ordinary source-leaves rule (CR 611.3b)
+					// via active()'s battlefield scan; the turn scoping ("each of
+					// your turns") is the offer gate itself -- a play_land option is
+					// only offered to the active player in a main phase -- and the
+					// per-turn reset stays events' TurnChange LandsPlayed = 0.
+					if n, ok := adjustLandPlaysGrant(st.Params); ok {
+						al := base
+						al.AdjustLandPlays = n
+						out = append(out, al)
+					}
 				}
 			}
 		}
 	}
+	if len(out) < len(dst) {
+		clear(dst[len(out):])
+	}
 	return out
 }
 
-// mayPlayUnconditional reports whether a Mode$ Continuous static carries the
-// single unconditional "you may play <cards> from <zone>" grant this package
-// implements: MayPlay$ True, an Affects (Affected$) spec and an AffectedZone,
-// plus only display/placement metadata. A richer grant is out of scope and
-// must fail closed (MayPlay stays false) so it is never silently over-applied
-// -- in particular a MayPlayLimit$ once-per-turn/per-type grant (Muldrotha's
-// MayPlayLimit$ 1 + MayPlayText$) must NOT share the ordinary LandsPlayed
-// limit, and a Condition$/CheckSVar$/ValidAfterStack$/Secondary$ qualifier
-// changes the semantics beyond the unconditional shape. The explicit
-// whitelist, rather than a blacklist of currently-known gating keys, means a
-// newly encountered semantic parameter also fails closed. Iterating st.Params
-// only yields a boolean, so map order never reaches an event/option/view --
+// adjustLandPlaysGrant reports whether a Mode$ Continuous static carries the
+// additional-land-drops grant this package implements, and resolves its
+// value: a literal positive integer AdjustLandPlays$ plus only display
+// metadata (Description$), with the Affects player spec left to the gate's
+// own fail-closed evaluation. Anything else -- a non-literal value
+// (Unlimited, an SVar-driven Z), a rider that changes when the grant lives
+// (IsPresent$, Condition$, CheckSVar$, SVarCompare$, Secondary$,
+// EffectZone$) or any other semantic parameter -- fails closed so the grant
+// is never silently under- or over-applied. Iterating the params map only
+// yields a boolean, so map order never reaches an event/option/view --
 // determinism is preserved.
-func mayPlayUnconditional(st cards.Static) bool {
-	v, ok := st.Params["MayPlay"]
-	if !ok || !strings.EqualFold(strings.TrimSpace(v), "True") {
-		return false
+func adjustLandPlaysGrant(params map[string]string) (int32, bool) {
+	raw, ok := params["AdjustLandPlays"]
+	if !ok {
+		return 0, false
 	}
-	for key := range st.Params {
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n <= 0 {
+		// A value this build cannot price as a count (Unlimited, an SVar
+		// token) must not silently become a smaller grant.
+		return 0, false
+	}
+	for key := range params {
 		switch key {
-		case "Mode", "MayPlay", "Affected", "AffectedZone", "Description", "EffectZone":
-			// The keys the unconditional land grant (and only it) carries
-			// besides MayPlay itself.
+		case "Mode", "AdjustLandPlays", "Affected", "Description":
+			// The keys the implemented grant (and only it) carries.
 		default:
-			return false
+			return 0, false
 		}
 	}
-	return true
+	return int32(n), true
+}
+
+// mayPlayGrant reports whether a Mode$ Continuous static carries the
+// may-play grant this package implements: MayPlay$ True, an Affects
+// (Affected$) spec and an AffectedZone, plus only display/placement metadata
+// and the two riders it reads (MayPlayIgnoreColor$, MayPlayLimit$). A richer
+// grant is out of scope and must fail closed (MayPlay stays false) so it is
+// never silently over-applied -- in particular a MayPlayIgnoreType$
+// (cast-without-type-restriction) or MayPlayWithoutManaCost$ (free cast)
+// static changes what the cast IS, not just where it may come from, and a
+// Condition$/CheckSVar$/ValidAfterStack$/Secondary$ qualifier changes when
+// the grant lives. The explicit whitelist, rather than a blacklist of
+// currently-known gating keys, means a newly encountered semantic parameter
+// also fails closed. Iterating st.Params only yields a boolean, so map order
+// never reaches an event/option/view -- determinism is preserved.
+func mayPlayGrant(st cards.Static) bool {
+	_, _, _, ok := effects.MayPlayStaticParams(st.Params)
+	return ok
 }
 
 // hasStat reports whether a static line carries the named parameter.
@@ -250,6 +318,12 @@ type Derived struct {
 	Power, Toughness int32
 	Keywords         []string
 	Types            []string
+	// Colors is the object's current colour set as WUBRG letters (CR 613.1e):
+	// its face's colours (effects.ColorsOf, which already applies Devoid)
+	// then every applicable layer-5 effect in timestamp order -- an
+	// OverwriteColors grant replaces the set so far, a plain one extends it.
+	// "" is a colourless object, not "no read": a battlefield land reads "".
+	Colors string
 }
 
 // AddContinuous registers one continuous effect. A zero Timestamp is
@@ -437,7 +511,7 @@ func (e *Engine) active() []ContinuousEffect {
 	// independently exactly as before.
 	if e.staticEpoch != len(e.L.Events) {
 		e.staticEpoch = len(e.L.Events)
-		e.staticContinuous = e.staticEffects()
+		e.staticContinuous = e.staticEffects(e.staticContinuous)
 	}
 	buf = append(buf, e.staticContinuous...)
 	sort.SliceStable(buf, func(i, j int) bool {
@@ -527,12 +601,35 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 // guards its cache (a nested Derived mid-build gets private owned buffers
 // instead of clobbering the outer build's).
 func (e *Engine) Derived(id state.ObjID) Derived {
+	return e.derivedWith(id, 0)
+}
+
+// Characteristics returns the three derived facts botpolicy projects in one
+// pass. Keywords aliases Engine scratch storage exactly as Derived does; a
+// caller that keeps it across another characteristics query must copy it.
+func (e *Engine) Characteristics(id state.ObjID) (power, toughness int32, keywords []string) {
+	d := e.Derived(id)
+	return d.Power, d.Toughness, d.Keywords
+}
+
+// derivedWith is Derived with an optional ZONE OVERRIDE for the AffectedZone$
+// gate: atStack != 0 evaluates the grants against that zone instead of the
+// object's live one. The convoke announcement (CR 601.2b) happens while the
+// announced spell is still in hand -- the engine pushes it to the stack only
+// later in its own cast flow -- so convokeCost/hasCastConvoke evaluate an
+// AffectedZone$ Stack grant against ZStack via this override; everything
+// else reads the live zone.
+func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	power, toughness := e.derivedScalar(id)
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return Derived{Power: power, Toughness: toughness}
 	}
 	f := o.Face()
+	zone := o.Zone
+	if atStack != 0 {
+		zone = atStack
+	}
 	e.derivedDepth++
 	kw := e.derivedKW
 	ty := e.derivedTypes
@@ -548,9 +645,27 @@ func (e *Engine) Derived(id state.ObjID) Derived {
 	kw = append(kw[:0], f.Keywords...)
 	kw = append(kw, o.IntrinsicKeywords...)
 	ty = append(ty[:0], f.Types...)
+	// Layer 5's base is the face's colour set (the mana cost, an explicit
+	// Colors: line, Devoid-applied). The letters compose in a fixed [5]bool so
+	// the layer walk below never touches a map.
+	var col [5]bool
+	for _, r := range effects.ColorsOf(o) {
+		col[strings.IndexByte("WUBRG", byte(r))] = true
+	}
 	for _, ce := range e.active() {
-		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source, AsStack: atStack != 0}
+		if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
 			continue
+		}
+		// An AffectedZone$ qualifier on a characteristic grant narrows where
+		// the granted characteristics function (Chief Engineer's "Artifact
+		// spells you cast have convoke" carries AffectedZone$ Stack, so the
+		// grant reaches the spell while it is on the stack and never a copy
+		// of the same card sitting in hand). Parse failure stays closed.
+		if ce.AffectedZone != "" && !ce.MayPlay {
+			if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, zone)) {
+				continue
+			}
 		}
 		switch ce.Layer {
 		case LAbilities:
@@ -562,7 +677,47 @@ func (e *Engine) Derived(id state.ObjID) Derived {
 			}
 			kw = append(kw, ce.AddKeywords...)
 		case LType:
+			// Forge's Animate RemoveCreatureTypes$ True: the object loses its
+			// creature-type subtypes BEFORE this effect's own additions land,
+			// so the animation's new creature type is the only one it carries
+			// while animated. Filter in place -- ty is the scratch buffer, and
+			// the write index never overtakes the read index.
+			if ce.RemoveCreatureTypes {
+				kept := ty[:0]
+				for _, t := range ty {
+					if !isCreatureSubtype(t) {
+						kept = append(kept, t)
+					}
+				}
+				ty = kept
+			}
 			ty = append(ty, ce.AddTypes...)
+		case LColor:
+			// CR 613.1e: colour-set and colour-add effects apply in timestamp
+			// order; an OverwriteColors grant replaces everything so far (an
+			// empty set means an overwrite to colourless, the Animate
+			// Colors$ Colorless shape), a plain one extends it.
+			if ce.OverwriteColors {
+				col = [5]bool{}
+			}
+			// Letter elements are bounds-checked: state.ContinuousEffect is
+			// exported, so a malformed element (empty, or not a WUBRG letter)
+			// must be skipped, never an index panic -- a parse path in this
+			// walk never crashes the match goroutine.
+			for _, l := range ce.AddColors {
+				if len(l) == 0 {
+					continue
+				}
+				if i := strings.IndexByte("WUBRG", l[0]); i >= 0 {
+					col[i] = true
+				}
+			}
+		}
+	}
+	colors := ""
+	for i, c := range "WUBRG" {
+		if col[i] {
+			colors += string(c)
 		}
 	}
 	if e.derivedDepth <= 1 {
@@ -572,7 +727,7 @@ func (e *Engine) Derived(id state.ObjID) Derived {
 		e.derivedTypes = ty
 	}
 	e.derivedDepth--
-	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty}
+	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Colors: colors}
 }
 
 func (e *Engine) Power(id state.ObjID) int32 {
@@ -597,6 +752,22 @@ func (e *Engine) HasKeyword(id state.ObjID, kw string) bool {
 	return false
 }
 
+// derivedKeywordParam is Face.KeywordParam over the object's CURRENT derived
+// keyword list (printed plus layer-6 granted), so a keyword a continuous
+// effect delivered (Underworld Breach's AddKeyword$ Escape grant, Snapcaster
+// Mage's Flashback) is readable exactly where the printed one would be.
+func (e *Engine) derivedKeywordParam(id state.ObjID, head string) (string, bool) {
+	for _, k := range e.Derived(id).Keywords {
+		if strings.EqualFold(cardsKeywordHead(k), head) {
+			if i := strings.IndexByte(k, ':'); i >= 0 {
+				return strings.TrimSpace(k[i+1:]), true
+			}
+			return "", true
+		}
+	}
+	return "", false
+}
+
 // IsCreature reads the current layer-derived type list. In particular, a
 // planeswalker animated by a layer-4 effect is a creature for damage marking,
 // even though its printed face is not.
@@ -607,6 +778,53 @@ func (e *Engine) IsCreature(id state.ObjID) bool {
 		}
 	}
 	return false
+}
+
+// Colors is the object's current layer-5 colour set as WUBRG letters (see
+// Derived.Colors); "" is a colourless object. Every rules-side colour read
+// about a live object goes through this (objColors below for callers that
+// already hold the *state.Object) rather than effects.ColorsOf's face read,
+// so an animated manland's granted colours are real everywhere the engine
+// consults them -- protection qualities, Fear's black-blocker test, convoke's
+// colour contributions, the Count$...$Colors heads.
+func (e *Engine) Colors(id state.ObjID) string {
+	return e.Derived(id).Colors
+}
+
+// objColors is Colors for a caller holding the object rather than the id:
+// a battlefield permanent reads its derived (layer-5) colours; anything off
+// the battlefield has no continuous characteristics (CR 613.6 -- a spell on
+// the stack shows its face's colours) and falls back to the face read,
+// which also covers LKI snapshots keyed by an id that may no longer resolve.
+func (e *Engine) objColors(o *state.Object) string {
+	if o != nil && o.Zone == state.ZBattlefield {
+		return e.Colors(o.ID)
+	}
+	return effects.ColorsOf(o)
+}
+
+// cardTypeWords are the card types; supertypeWords the supertypes. Every
+// other type word on a face is a subtype, so RemoveCreatureTypes' strip is
+// "drop what is neither" -- the same split Forge's own type vocabulary makes.
+var (
+	cardTypeWords  = []string{"Artifact", "Battle", "Creature", "Enchantment", "Instant", "Land", "Planeswalker", "Sorcery", "Tribal"}
+	supertypeWords = []string{"Basic", "Legendary", "Ongoing", "Snow", "World"}
+)
+
+// isCreatureSubtype reports whether t is a subtype word (a creature type
+// under RemoveCreatureTypes' reading): not a card type and not a supertype.
+func isCreatureSubtype(t string) bool {
+	for _, w := range cardTypeWords {
+		if strings.EqualFold(w, t) {
+			return false
+		}
+	}
+	for _, w := range supertypeWords {
+		if strings.EqualFold(w, t) {
+			return false
+		}
+	}
+	return true
 }
 
 // RegenerationDisallowed implements effects.Host for the CantRegenerate
@@ -652,38 +870,26 @@ func (e *Engine) restrictionBlocksTarget(id state.ObjID, actor state.PlayerID) b
 }
 
 // restrictionApplies reports whether a registered restriction's ValidCard$/
-// ValidTarget$ spec selects the object id. The Forge filter grammar has no
-// IsRemembered predicate, so the remembered-object set the Effect captured is
-// matched directly (the dominant shape for Vines/Incinerate); any other spec
-// falls back to the ordinary spec matcher so a restriction that names a
-// quality (CantTarget with ValidCard$ Creature, say) still works.
+// ValidTarget$ spec selects the object id. A spec containing IsRemembered is
+// resolved through the ordinary object matcher with the effect's remembered
+// set bound to the SpecContext -- the general filter implements IsRemembered
+// (both bare and compound: Card.IsRemembered+Creature keeps both halves),
+// which is the dominant shape for Vines/Incinerate; any other spec falls back
+// to the same matcher so a restriction that names a quality (CantTarget with
+// ValidCard$ Creature, say) still works.
 func (e *Engine) restrictionApplies(ce ContinuousEffect, id state.ObjID) bool {
 	spec := ce.RestrictParams["ValidCard"]
 	if spec == "" {
 		spec = ce.RestrictParams["ValidTarget"]
 	}
-	if spec != "" && strings.Contains(spec, "IsRemembered") {
-		// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature, a + AND or
-		// a , OR list) cannot be resolved by the remembered-set match alone:
-		// the extra predicate would be silently dropped and the restriction
-		// would over-apply to a remembered object that fails it. No corpus
-		// restriction static carries one (measured; see AGENTS.md / report), so
-		// reject it here -- the restriction does not apply, the same
-		// "unsupported" fallback the Note path uses -- rather than mis-apply.
-		if strings.ContainsAny(spec, "+,") {
-			return false
-		}
-		for _, r := range ce.Remembered {
-			if r == id {
-				return true
-			}
-		}
-		return false
-	}
 	if spec == "" {
 		return len(ce.Remembered) > 0
 	}
-	return effects.MatchesSpecFrom(e.G, spec, id, ce.Controller, ce.Source)
+	sc := effects.SpecContext{You: ce.Controller, Source: ce.Source}
+	for _, r := range ce.Remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+	}
+	return effects.MatchesSpecCtx(e.G, spec, id, sc)
 }
 
 // restrictionActorMatches scopes a CantTarget restriction by Activator$:
@@ -706,3 +912,18 @@ func (e *Engine) restrictionActorMatches(ce ContinuousEffect, actor state.Player
 // remains the field other engine-internal code should read when it also
 // wants Power/Toughness/Types in the same call.
 func (e *Engine) Keywords(id state.ObjID) []string { return e.Derived(id).Keywords }
+
+// fogActive reports whether an api:Fog continuous effect (Restriction
+// "PreventCombatDamage", effects/fog.go) is currently active. Consulted by
+// the combat-damage step's damage passes (rules/combat.go): while it holds,
+// no combat damage is dealt that turn. The active() list already applies the
+// UntilEOT expiry, so a Fog cast on turn N contributes nothing from turn N+1
+// on.
+func (e *Engine) fogActive() bool {
+	for _, ce := range e.active() {
+		if ce.Restriction == "PreventCombatDamage" {
+			return true
+		}
+	}
+	return false
+}

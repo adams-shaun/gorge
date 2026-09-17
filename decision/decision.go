@@ -126,6 +126,17 @@ const (
 	KArrange Kind = "arrange"
 )
 
+// Kinds lists every decision Kind in declaration order. It is the static
+// universe a coverage report needs to say which kinds a run NEVER asked --
+// an engine ask cannot use a kind outside this slice, so universe and
+// observed cannot drift the way a hand-copied list in another package
+// would. Keep it in the same order as the constants above.
+var Kinds = []Kind{
+	KPriority, KTarget, KAttackers, KBlockers, KMulligan, KModes,
+	KTriggerOrder, KTriggerOptional, KCommanderZone, KChoose, KReplacement,
+	KArrange,
+}
+
 // Option is one legal choice. Obj and Player are echoed only so a client can
 // highlight the object; selection is by Index.
 type Option struct {
@@ -142,6 +153,15 @@ type Option struct {
 	// mirrors Obj: an ObjID of 0 means "no object", so an option that has
 	// no attacker (any non-block option) emits no field.
 	Attacker state.ObjID `json:"attacker,omitempty"`
+	// Required marks an attacker option whose creature MUST attack this
+	// combat (CR 508.1d): a goaded creature (CR 701.38) or one under an
+	// unconditional MustAttack static. A rules-ignorant client needs the
+	// flag because the engine REJECTS a declaration that omits a required
+	// creature it could have included (validateAttackDeclaration) -- an
+	// omission that looks legal on the wire otherwise. omitempty: a
+	// non-required option emits no field, so every existing option list
+	// serialises byte-identically.
+	Required bool `json:"required,omitempty"`
 	// Group is an exclusivity marker: two options carrying the SAME non-empty
 	// Group are mutually exclusive, and at most one of them may be selected
 	// in a single answer. The whole contract is that sentence -- it says
@@ -184,6 +204,14 @@ type Option struct {
 	// options carry no field, and on an ability option a missing field is
 	// index 0 (the first ability), the one value that omits.
 	Ability int `json:"ability,omitempty"`
+	// SVar anchors a "granted" option (rules/speed.go, the kw:Start your
+	// engines max-speed static's AddAbility$): the SVar name on the source
+	// face whose AB the activation resolves through. A granted ability is
+	// not a Face().Abilities index (the ordinary "ability" anchor), so it
+	// carries the name instead; beginGrantedActivation re-resolves it, so a
+	// stale name degrades to a no-op. omitempty: only granted options carry
+	// it.
+	SVar string `json:"svar,omitempty"`
 	// Grant is server-side only (json:"-") and present only on an "ability"
 	// option whose whole activation is a PURE, IDEMPOTENT keyword grant (the
 	// ability adds one or more keywords and nothing additive -- no
@@ -270,7 +298,8 @@ type Decision struct {
 	// ResumeKind, ResumeSA, ResumeModes, ResumeTarget, ResumeChoices and
 	// ResumeRemembered are server-side only.
 	// ResumeKind selects a cast/placement/resolution continuation ("cast_modes",
-	// "modes", "unless_pay", "discard", "arrange", "search", "dig"); ResumeSA
+	// "modes", "unless_pay", "discard", "arrange", "search", "imprint",
+	// "untap", "dig"); ResumeSA
 	// names the exact sub-ability involved. ResumeModes maps a filtered cast-time
 	// mode option back to its SVar name while keeping wire indices dense.
 	// ResumeTarget is Dig's index into the deterministic Defined$ target list:
@@ -283,6 +312,16 @@ type Decision struct {
 	ResumeSA     *cards.SA `json:"-"`
 	ResumeModes  []string  `json:"-"`
 	ResumeTarget int       `json:"-"`
+	// Rolls is engine-internal context for the one KChoose that asks a
+	// player to choose among ALREADY-ROLLED dice (effects/dice.go's
+	// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the per-die results
+	// the asking first pass rolled, in roll order, so a rules-side resume
+	// point can carry them across the suspension and publish chosen/other
+	// without re-rolling (a re-roll would both re-draw the seeded generator
+	// and make the choice answer a different question). Each "roll" option's
+	// Index names a slot in this slice. Server-side only (json:"-"): a
+	// replay re-derives the same rolls from the same seeded draws.
+	Rolls []int32 `json:"-"`
 	// ResumeChoices carries selections completed by earlier per-player choice
 	// asks. It is runtime continuation state, never client input.
 	ResumeChoices     []state.Target `json:"-"`

@@ -211,24 +211,23 @@ func TestConduitGraveyardLandEtbChoicePlaysFromGraveyard(t *testing.T) {
 	}
 }
 
-// TestMayPlayRichGrantFailsClosed pins the merged grant scope: the
-// once-per-turn MayPlayLimit$ and the Condition$ PlayerTurn gate are
-// IMPLEMENTED (rules/mayplay.go's mayPlayLimitReached and the
-// Condition$ PlayerTurn arm; TestKessGraveyardInstantCastsOnItsControllerTurn
-// and TestKessGraveyardInstantNotOfferedOnOpponentTurn pin both on Kess's
-// real compiled script), so a richer grant is not the fail-closed no-op the
-// pre-merge build pinned -- the subtests below pin the merged behaviour
-// instead. Still fail-closed is every gate this build cannot evaluate:
-// CheckSVar$ and the mayPlayUnreadGates family stay withheld (third
-// subtest), and a MayPlayLimit$ land grant consumes the ordinary land drop
-// (first subtest's second half).
+// TestMayPlayRichGrantFailsClosed pins the rich-grant boundary on Muldrotha's
+// real script shape: the once-per-turn MayPlayLimit$ and the Condition$
+// PlayerTurn gate are IMPLEMENTED (mayPlayLimitReached and the Condition$
+// PlayerTurn arm; TestKessGraveyardInstantCastsOnItsControllerTurn and
+// TestKessGraveyardInstantNotOfferedOnOpponentTurn pin both on Kess's real
+// compiled script), while the per-TYPE MayPlayText$ rider stays unread (the
+// grant still applies -- the kw-mayplay branch's reviewed stance) and an
+// unimplemented CheckSVar$ gate fails closed. A CheckSVar$ may-play grant's
+// withholding is a recognition, not a consumption.
 func TestMayPlayRichGrantFailsClosed(t *testing.T) {
 	t.Run("MayPlayLimit grants once and then withholds", func(t *testing.T) {
 		e := mayPlayBase(t)
-		// Muldrotha's real uncapped-per-type land grant: MayPlay$ True but
-		// once-per-turn (MayPlayLimit$ 1) and Condition$ PlayerTurn. The merged
-		// engine implements both gates, so the graveyard land IS offered this
-		// turn -- and after the land drop is spent it is not offered again.
+		// Muldrotha's real uncapped-per-type land grant: MayPlay$ True,
+		// once-per-turn (MayPlayLimit$ 1) and Condition$ PlayerTurn. The
+		// merged engine implements both gates, so the graveyard land IS
+		// offered this turn -- and after the land drop is spent it is not
+		// offered again.
 		muldrotha := "Name:Muldrotha, the Gravetide\nManaCost:1 G U B\nTypes:Legendary Creature\nPT:6/6\n" +
 			"S:Mode$ Continuous | Affected$ Land.YouOwn | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Land | EffectZone$ Battlefield | AffectedZone$ Graveyard | Description$ x\nOracle:x\n"
 		onBoardGrant(t, e, 0, muldrotha)

@@ -1,4 +1,4 @@
-import type { CardView, EventBody, PlayerView } from '../protocol';
+import type { CardView, PlayerView, View } from '../protocol';
 import { seatCorner, type SeatCorner } from './seattable';
 
 export type Group = 'lands' | 'creatures' | 'others';
@@ -67,6 +67,8 @@ export function attachedTo(cards: CardView[], host: number): CardView[] {
 /** A stack is one group of interchangeable permanents: everything a player would act on matches, so one tile with a count stands in for all of them. `key` is the deterministic identity the group was built from; cards are the members, id-sorted. A group of one is still a group — the caller renders it exactly like a single permanent. */
 export interface CardStackGroup {
   key: string;
+  /** render is the keyed-each LIFECYCLE key for the group's tile — the stable identity of the group's visible lead object (its first member, cards[0]) — deliberately distinct from `key`, the stacking-equivalence string. Two names on purpose: `key` must change whenever any visible state changes (that is how unlike permanents stay in separate piles), but a DOM key that changes unmounts the tile and destroys its local hover state, so a permanent that merely untapped or stopped attacking lost its open inspector (fb-20260915T182335Z). Object ids are unique across a battlefield, so the lead id is unique within its row; it changes exactly when the described object stops being rendered (it leaves the battlefield, hides behind a new pile lead, or is replaced), which is where closing the inspector is correct. */
+  render: string;
   cards: CardView[];
 }
 
@@ -75,8 +77,16 @@ function attachedToId(c: CardView): number | null {
   return c.attached_to !== undefined && c.attached_to !== 0 ? c.attached_to : null;
 }
 
-/** stackKey is the identity two permanents must share to be interchangeable. Everything a player could act on is included; power/toughness are DERIVED on the wire, so two cards under different anthems already differ here. The string is deterministic: counter keys and the keyword set are sorted before joining, and array/list fields never depend on wire order. */
-function stackKey(c: CardView): string {
+/** StackOptions tunes what leaves a group's identity. Today only lands use it: a pile of Forests is a pile of Forests whether some of its members tapped for mana or not (fb-20260916T201423Z) — the readiness a tapped split used to carry moves onto the pile's tab (CardStack) instead of sharding the pile. Creatures and every other row keep the strict key, because there a tapped member really cannot do what an untapped one can (attack, block), and the split IS the gameplay information. */
+export interface StackOptions {
+  /** ignoreTapped removes the tapped component from the stack identity, so same-printing permanents merge into one pile regardless of tapped state. Counters, damage, controller, keywords, attachment state and printing identity all still split. */
+  ignoreTapped?: boolean;
+  /** ignoreSummonSick removes the summoning-sickness component as well (fb-20260917T004545Z). The ENGINE sets SummonSick on EVERY battlefield entry, lands included, and clears it at the next turn boundary — so a land played this turn carries a key component its older name-mates lack until then and never joins its pile (the reported third Island). For a NONCREATURE land the flag is invisible to every player action: a sick land can still tap for mana (the engine's tap gate checks the CREATURE type explicitly), so two Islands differing only in summon_sick are interchangeable and merging them hides no gameplay information. LANDS-ONLY by contract — Quadrant passes this only for the lands row: a sick CREATURE genuinely cannot attack, and there the split is the gameplay information. */
+  ignoreSummonSick?: boolean;
+}
+
+/** stackKey is the identity two permanents must share to be interchangeable. Everything a player could act on is included; power/toughness are DERIVED on the wire, so two cards under different anthems already differ here. The string is deterministic: counter keys and the keyword set are sorted before joining, and array/list fields never depend on wire order. With ignoreTapped the 't=' component is omitted and nothing else changes — every other key field still separates. With ignoreSummonSick the 'ss=' component is omitted the same way; the two are the ONLY components any caller may drop. */
+function stackKey(c: CardView, ignoreTapped: boolean, ignoreSummonSick: boolean): string {
   const blocked = [...(c.blocked_by ?? [])].sort((a, b) => a - b);
   const counters = Object.entries(c.counters ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   const keywords = [...(c.keywords ?? [])].sort();
@@ -84,8 +94,13 @@ function stackKey(c: CardView): string {
     'p=' + c.printing.name,
     's=' + (c.printing.set ?? ''),
     'n=' + (c.printing.number ?? ''),
-    't=' + c.tapped,
-    'ss=' + c.summon_sick,
+    // tapped leaves the identity ONLY when the caller says so; member order
+    // stays id-sorted either way, so a tap/untap never moves the group's lead
+    // id and the render key below never churns on a tap (fb-20260915T182335Z).
+    ...(ignoreTapped ? [] : ['t=' + c.tapped]),
+    // summoning sickness leaves the identity ONLY when the caller says so
+    // (lands, fb-20260917T004545Z); for a creature the split is gameplay info.
+    ...(ignoreSummonSick ? [] : ['ss=' + c.summon_sick]),
     'a=' + c.attacking,
     'd=' + c.damage,
     'pw=' + c.power,
@@ -101,7 +116,9 @@ function stackKey(c: CardView): string {
 /**
  * stackIdentical merges same-printing permanents into one group per identity. Merging too aggressively silently hides state, so the merge key is deliberately strict and attachment state wins outright: a permanent that is itself attached, or that another permanent is attached to, is individual by definition — its tile shows riders a group could not compose. When in doubt, do not merge. Groups come back ordered by their lowest member id, members id-sorted, so the caller's layout is stable whatever order the wire delivered.
  */
-export function stackIdentical(cards: CardView[]): CardStackGroup[] {
+export function stackIdentical(cards: CardView[], opts?: StackOptions): CardStackGroup[] {
+  const ignoreTapped = opts?.ignoreTapped === true;
+  const ignoreSummonSick = opts?.ignoreSummonSick === true;
   const hosts = new Set<number>();
   for (const c of cards) {
     const host = attachedToId(c);
@@ -112,7 +129,7 @@ export function stackIdentical(cards: CardView[]): CardStackGroup[] {
   const byKey = new Map<string, CardView[]>();
   for (const c of cards) {
     if (!mergeable(c)) continue;
-    const key = stackKey(c);
+    const key = stackKey(c, ignoreTapped, ignoreSummonSick);
     const group = byKey.get(key);
     if (group === undefined) byKey.set(key, [c]);
     else group.push(c);
@@ -120,13 +137,13 @@ export function stackIdentical(cards: CardView[]): CardStackGroup[] {
   const groups: CardStackGroup[] = [];
   for (const [key, cs] of byKey) {
     cs.sort((a, b) => a.id - b.id);
-    groups.push({ key, cards: cs });
+    groups.push({ key, render: 'r' + cs[0].id, cards: cs });
   }
   // A permanent that may not merge stays its own group of one, keyed by its
   // id so it can never collide with an identity key.
   for (const c of cards) {
     if (mergeable(c)) continue;
-    groups.push({ key: '#' + c.id, cards: [c] });
+    groups.push({ key: '#' + c.id, render: 'r' + c.id, cards: [c] });
   }
   groups.sort((a, b) => a.cards[0].id - b.cards[0].id);
   return groups;
@@ -164,12 +181,31 @@ export function quadrantFor(seat: number, seats: number, viewer: number): SeatCo
  */
 export const RECENT_RESOLVE_WINDOW = 100;
 
-/** recentlyMattered is the object id of the most recent stack_resolve, for the strip, but only if that resolution sits inside the trailing RECENT_RESOLVE_WINDOW events. A resolve further back than the window returns null, so the strip clears itself instead of parking a stale card over the board's bottom centre indefinitely. */
-export function recentlyMattered(events: EventBody[]): number | null {
+/** recentlyMattered is the object id of the most recent stack_resolve, for the rail stack section's resolved-card display (the old board overlay's data path, kept), but only if that resolution sits inside the trailing RECENT_RESOLVE_WINDOW events. A resolve further back than the window returns null, so the display clears itself instead of lingering indefinitely. The parameter is structural — the display's caller (Rail) carries a widened event shape — so any object whose `event` names a kind (and optionally an obj) works. */
+export function recentlyMattered(events: { event: { kind: string; obj?: number } }[]): number | null {
   const lo = Math.max(0, events.length - RECENT_RESOLVE_WINDOW);
   for (let i = events.length - 1; i >= lo; i--) {
     const e = events[i].event;
     if (e.kind === 'stack_resolve' && e.obj) return e.obj;
   }
+  return null;
+}
+
+/** findCardAnywhere locates an object id across every visible zone of the
+ *  view: each seat's battlefield, graveyard, exile and visible hand, then
+ *  the stack. It exists for the resolved-card display — a resolved object
+ *  has already LEFT the stack by the time the view renders, so the id is
+ *  looked up where it landed. A card moved somewhere hidden (the library)
+ *  returns null, and the display simply shows nothing. Previously an
+ *  inline helper of the deleted RecentStrip; hoisted here so the display
+ *  and its tests share one implementation. */
+export function findCardAnywhere(v: View, obj: number): CardView | null {
+  for (const p of v.players) {
+    for (const list of [p.battlefield, p.graveyard, p.exile, visibleHand(p) ?? []]) {
+      const c = list.find((x) => x.id === obj);
+      if (c) return c;
+    }
+  }
+  for (const s of v.stack) if (s.card?.id === obj) return s.card;
   return null;
 }

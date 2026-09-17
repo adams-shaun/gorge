@@ -271,6 +271,31 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A granted ward (CR 702.21a via a layer-6 AddKeyword$ Ward:<cost> -- the
+	// printed K:Ward expansion is a face trigger and never lands here). The
+	// ward ability is mandatory: its Counter payload is the cost text, which
+	// events.Apply rebuilds into the same DB$ Ward ability a printed trigger
+	// would have carried. The targeted spell is named by the ward Ctx the
+	// walk captured (TriggeredStack roles), exactly as the printed path does.
+	if pt.Ward != "" {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwWard:" + pt.Ward, Text: "ward ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			// effWard reads the targeting spell off TriggerStack at resolution,
+			// the same role the printed ward's stack object carries.
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// Task 18: a Miracle offer is placed by casting the card for its miracle
 	// cost, not by minting a triggered-ability stack object. castMiracle
 	// verifies the card is still in the owner's hand, emits the reveal Note,
@@ -294,12 +319,12 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// Ability: TriggerPush re-derives it from a face Triggers index, while a
 	// delayed trigger's Effect is the Execute$ SVar-named sub-ability on the
 	// source's face, so the fired event carries the Execute$ name (Counter)
-	// for events.Apply to resolve. Everything else -- the controller guard
-	// below, the CR 800.4a check shared with the ordinary path, and the
-	// Remembered/PlayerRef encoding -- is the same. A delayed trigger's
-	// Execute in the Mode$ Phase shape this build implements declares no
-	// ValidTgts$ (Flickerwisp's TrigBounce re-derives its referent from
-	// Defined$ DelayTriggerRememberedLKI), so no target ask follows the push.
+	// for events.Apply to resolve. The ability has still been put on the
+	// stack, however: it must receive the same CR 603.3c mode/target-placement
+	// asks as a TriggerPush ability. Most Mode$ Phase delayed triggers do not
+	// target (Flickerwisp re-derives its referent from
+	// DelayTriggerRememberedLKI), but a Room's UnlockDoor trigger reaches its
+	// alternate-face Execute$ SVar through this path and may target.
 	if pt.Delayed {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
@@ -312,10 +337,30 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			}
 			ids = append(ids, tgt.Obj)
 		}
+		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller,
 			Obj: pt.Source, Amount: int32(pt.DelayedID), Counter: pt.Execute,
 			IDs: ids, Text: "delayed trigger"})
-		e.drainAwaitsTarget = e.Pending() != nil
+		if pt.SA != nil && len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			// An event-matched registration's fired ability carries the same
+			// event provenance a face trigger's stack object does (Chancellor
+			// of the Annex's counter reads the triggering spell's roles). A
+			// Mode$ Phase registration's context is the zero value, so storing
+			// it is behaviourally the absence every Phase delayed trigger
+			// read before.
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			if pt.SA.Params["Choices"] != "" {
+				e.askTriggerModes(pt.Controller, id, pt.SA)
+				e.drainAwaitsModes = true
+			} else if pt.SA.Params["ValidTgts"] != "" {
+				e.askTarget(pt.Controller, id, pt.SA)
+			}
+		}
+		e.drainAwaitsTarget = e.Pending() != nil && !e.drainAwaitsModes
 		return
 	}
 	// CR 800.4a / Ruling U6, fix round 2 (re-review N2): an ability
@@ -725,6 +770,15 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 	// and it is what askTriggerOptional shows inside its offer prompt.
 	// Madness and Evoke are mandatory keyword-triggered abilities; their labels
 	// may appear in an ordering ask beside ordinary simultaneous triggers.
+	if pt.Ward != "" {
+		name := "a permanent"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		return name + ": ward (" + pt.Ward + ")"
+	}
 	if pt.Miracle || pt.Madness || pt.Evoke {
 		name := "it"
 		if o := e.G.Obj(pt.Source); o != nil {
