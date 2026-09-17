@@ -279,11 +279,11 @@ const (
 	// PlayerCounterChange changes a counter on Player. Counter names the kind
 	// and Amount the delta; Ward's AddCounterYou<.../POISON> is its first use.
 	PlayerCounterChange
-	// Imprint records cards this permanent exiled with Imprint$ True. Obj is
-	// the imprinting permanent and IDs are the cards, in the effect's chosen
-	// order. It is append-only so replay rebuilds Defined.Imprinted. Appended
-	// AFTER main's kinds so the merge preserves main's ordinals (log.json
-	// serializes kind numerically; a committed fixture's replay pins them).
+	// Imprint updates one source-card association. Obj is the source and IDs
+	// are the cards to add: ordinary text is Forge's imprintedCards list,
+	// Text "exiled-with" is its distinct exiledCards list, and Text "clear"
+	// clears only imprintedCards. Reusing Text avoids changing Event's layout.
+	// It is append-only so prior event ordinals and replay hashes stay stable.
 	Imprint
 	// StartingPlayerChange records CR 103.1's starting-player designation.
 	// It is emitted by genesis's toss resolution (folded without appending at

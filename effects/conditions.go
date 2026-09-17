@@ -40,6 +40,15 @@ import (
 // ungated preserves every observable behaviour except the shapes the
 // supported set covers. Every unresolved key family is listed in the task
 // report's Issues section.
+//
+// The sacrifice chooser additionally needs one narrower bridge for a
+// post-sacrifice loop body: a `Defined$ Player.IsRemembered` effect — or its
+// `Defined$ You` continuation — whose SVar body is `Remembered$Valid
+// <known-spec>`. Braids uses it to distinguish an
+// opponent who took the optional sacrifice from one who declined. This is
+// deliberately not general ConditionCheckSVar grammar: it does not evaluate
+// PlayerCount, Count$, literals, or any other SVar head, all of which remain
+// unresolved and retain the prior unconditional walk.
 
 // conditionMet evaluates sa's Condition* gate against the resolving
 // context. It returns (met, resolved):
@@ -58,8 +67,12 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	present := strings.TrimSpace(sa.Params["ConditionPresent"])
 	notPresent := strings.TrimSpace(sa.Params["ConditionNotPresent"])
 	compare := strings.TrimSpace(sa.Params["ConditionCompare"])
-	if defined == "" && present == "" && notPresent == "" && compare == "" {
+	checkSVar := strings.TrimSpace(sa.Params["ConditionCheckSVar"])
+	if defined == "" && present == "" && notPresent == "" && compare == "" && checkSVar == "" {
 		return true, false // not gated
+	}
+	if checkSVar != "" {
+		return rememberedSacrificeCondition(h, c, sa, defined, present, notPresent, compare, checkSVar)
 	}
 	// Any other Condition* key (CheckSVar, SVarCompare, Zone, ManaSpent,
 	// PlayerTurn, ...) beside the supported four makes the shape
@@ -273,6 +286,63 @@ func evalConditionCount(count int, compare string) (met, resolved bool) {
 		return count > n, true
 	case "GE":
 		return count >= n, true
+	}
+	return false, false
+}
+
+// rememberedSacrificeCondition is the one ConditionCheckSVar shape required
+// by a Sacrifice loop's continuation. It deliberately accepts only the
+// `Defined$ Player.IsRemembered` effect (or its `Defined$ You`
+// continuation) and the Remembered$Valid SVar head, so unrelated conditions (notably Vampire Lacerator's
+// PlayerCountOpponents$LowestLifeTotal) keep their pre-task
+// unresolved/unconditional behaviour.
+func rememberedSacrificeCondition(h Host, c *Ctx, sa *cards.SA, defined, present, notPresent, compare, checkSVar string) (bool, bool) {
+	definedPlayer := strings.TrimSpace(sa.Params["Defined"])
+	if defined != "" || (definedPlayer != "Player.IsRemembered" && definedPlayer != "You") || present != "" || notPresent != "" || c.SVars == nil {
+		return false, false
+	}
+	for k := range sa.Params {
+		if !strings.HasPrefix(k, "Condition") || k == "ConditionDescription" {
+			continue
+		}
+		switch k {
+		case "ConditionCheckSVar", "ConditionSVarCompare":
+		default:
+			return false, false
+		}
+	}
+	body, ok := c.SVars[checkSVar]
+	body = strings.TrimSpace(body)
+	const head = "Remembered$Valid "
+	if !ok || !strings.HasPrefix(body, head) {
+		return false, false
+	}
+	spec := strings.TrimSpace(strings.TrimPrefix(body, head))
+	if spec == "" || len(UnknownPredicates(spec)) != 0 {
+		return false, false
+	}
+	op, n := "GE", 1
+	if raw := strings.TrimSpace(sa.Params["ConditionSVarCompare"]); raw != "" {
+		var valid bool
+		op, n, valid = parseConditionCompare(raw)
+		if !valid {
+			return false, false
+		}
+	}
+	value := EvalCount(h, c, body)
+	switch op {
+	case "EQ":
+		return value == int32(n), true
+	case "NE":
+		return value != int32(n), true
+	case "LT":
+		return value < int32(n), true
+	case "LE":
+		return value <= int32(n), true
+	case "GT":
+		return value > int32(n), true
+	case "GE":
+		return value >= int32(n), true
 	}
 	return false, false
 }

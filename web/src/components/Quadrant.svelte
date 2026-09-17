@@ -36,12 +36,18 @@
   // pile of Forests is a pile of Forests whether some of its members are
   // tapped for mana or not (the report's Swamp x2 tapped + x1 untapped
   // renders as ONE pile), and the readiness a tapped split used to carry is
-  // shown on the pile's tab instead (CardStack's readiness plate). Creatures
-  // and the others row keep the strict key: there a tapped member really
-  // cannot do what an untapped one can (attack/block), and the split IS the
-  // gameplay information.
+  // shown on the pile's tab instead (CardStack's readiness plate).
+  // fb-20260917T004545Z: the lands row ignores summoning sickness too — the
+  // engine sets SummonSick on every battlefield entry and clears it at the
+  // next turn boundary, so a land played THIS round carried a key component
+  // its older name-mates lacked and sat in its own pile until then (the
+  // reported third Island). A sick land can still tap for mana, so the two
+  // are interchangeable for every player action. Creatures and the others
+  // row keep the strict key: there a tapped or sick member really cannot do
+  // what a ready one can (attack/block), and the split IS the gameplay
+  // information.
   const stacks = $derived({
-    lands: stackIdentical(battlefieldGroups.lands, { ignoreTapped: true }),
+    lands: stackIdentical(battlefieldGroups.lands, { ignoreTapped: true, ignoreSummonSick: true }),
     creatures: stackIdentical(battlefieldGroups.creatures),
     others: stackIdentical(battlefieldGroups.others),
   });

@@ -218,7 +218,9 @@ describe('HandFan — layout settings (fb-20260916T182801Z)', () => {
   it('the Game Options show/hide toggle mounts the hand stepper when shown and none when hidden (fb-20260916T200925Z)', () => {
     const props = { props: { player: player(hand(2)), width: BOARD_W } };
     try {
-      // shown (the shipped default): the on-board stepper is on the track
+      // shown: the toggle flipped on explicitly (fb-20260917T004304Z made
+      // HIDDEN the shipped default) — the on-board stepper is on the track
+      layoutStore.setSteppersOnBoard(true);
       const shown = render(HandFan, props).html;
       expect(shown).toContain('data-zone-stepper="hand"');
 

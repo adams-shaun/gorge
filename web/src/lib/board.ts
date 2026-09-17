@@ -1,4 +1,4 @@
-import type { CardView, EventBody, PlayerView } from '../protocol';
+import type { CardView, PlayerView, View } from '../protocol';
 import { seatCorner, type SeatCorner } from './seattable';
 
 export type Group = 'lands' | 'creatures' | 'others';
@@ -79,12 +79,14 @@ function attachedToId(c: CardView): number | null {
 
 /** StackOptions tunes what leaves a group's identity. Today only lands use it: a pile of Forests is a pile of Forests whether some of its members tapped for mana or not (fb-20260916T201423Z) — the readiness a tapped split used to carry moves onto the pile's tab (CardStack) instead of sharding the pile. Creatures and every other row keep the strict key, because there a tapped member really cannot do what an untapped one can (attack, block), and the split IS the gameplay information. */
 export interface StackOptions {
-  /** ignoreTapped removes the tapped component from the stack identity, so same-printing permanents merge into one pile regardless of tapped state. It is the ONLY component this option drops — counters, damage, controller, keywords, attachment state and printing identity all still split. */
+  /** ignoreTapped removes the tapped component from the stack identity, so same-printing permanents merge into one pile regardless of tapped state. Counters, damage, controller, keywords, attachment state and printing identity all still split. */
   ignoreTapped?: boolean;
+  /** ignoreSummonSick removes the summoning-sickness component as well (fb-20260917T004545Z). The ENGINE sets SummonSick on EVERY battlefield entry, lands included, and clears it at the next turn boundary — so a land played this turn carries a key component its older name-mates lack until then and never joins its pile (the reported third Island). For a NONCREATURE land the flag is invisible to every player action: a sick land can still tap for mana (the engine's tap gate checks the CREATURE type explicitly), so two Islands differing only in summon_sick are interchangeable and merging them hides no gameplay information. LANDS-ONLY by contract — Quadrant passes this only for the lands row: a sick CREATURE genuinely cannot attack, and there the split is the gameplay information. */
+  ignoreSummonSick?: boolean;
 }
 
-/** stackKey is the identity two permanents must share to be interchangeable. Everything a player could act on is included; power/toughness are DERIVED on the wire, so two cards under different anthems already differ here. The string is deterministic: counter keys and the keyword set are sorted before joining, and array/list fields never depend on wire order. With ignoreTapped the 't=' component is omitted and nothing else changes — every other key field still separates. */
-function stackKey(c: CardView, ignoreTapped: boolean): string {
+/** stackKey is the identity two permanents must share to be interchangeable. Everything a player could act on is included; power/toughness are DERIVED on the wire, so two cards under different anthems already differ here. The string is deterministic: counter keys and the keyword set are sorted before joining, and array/list fields never depend on wire order. With ignoreTapped the 't=' component is omitted and nothing else changes — every other key field still separates. With ignoreSummonSick the 'ss=' component is omitted the same way; the two are the ONLY components any caller may drop. */
+function stackKey(c: CardView, ignoreTapped: boolean, ignoreSummonSick: boolean): string {
   const blocked = [...(c.blocked_by ?? [])].sort((a, b) => a - b);
   const counters = Object.entries(c.counters ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   const keywords = [...(c.keywords ?? [])].sort();
@@ -96,7 +98,9 @@ function stackKey(c: CardView, ignoreTapped: boolean): string {
     // stays id-sorted either way, so a tap/untap never moves the group's lead
     // id and the render key below never churns on a tap (fb-20260915T182335Z).
     ...(ignoreTapped ? [] : ['t=' + c.tapped]),
-    'ss=' + c.summon_sick,
+    // summoning sickness leaves the identity ONLY when the caller says so
+    // (lands, fb-20260917T004545Z); for a creature the split is gameplay info.
+    ...(ignoreSummonSick ? [] : ['ss=' + c.summon_sick]),
     'a=' + c.attacking,
     'd=' + c.damage,
     'pw=' + c.power,
@@ -114,6 +118,7 @@ function stackKey(c: CardView, ignoreTapped: boolean): string {
  */
 export function stackIdentical(cards: CardView[], opts?: StackOptions): CardStackGroup[] {
   const ignoreTapped = opts?.ignoreTapped === true;
+  const ignoreSummonSick = opts?.ignoreSummonSick === true;
   const hosts = new Set<number>();
   for (const c of cards) {
     const host = attachedToId(c);
@@ -124,7 +129,7 @@ export function stackIdentical(cards: CardView[], opts?: StackOptions): CardStac
   const byKey = new Map<string, CardView[]>();
   for (const c of cards) {
     if (!mergeable(c)) continue;
-    const key = stackKey(c, ignoreTapped);
+    const key = stackKey(c, ignoreTapped, ignoreSummonSick);
     const group = byKey.get(key);
     if (group === undefined) byKey.set(key, [c]);
     else group.push(c);
@@ -176,12 +181,31 @@ export function quadrantFor(seat: number, seats: number, viewer: number): SeatCo
  */
 export const RECENT_RESOLVE_WINDOW = 100;
 
-/** recentlyMattered is the object id of the most recent stack_resolve, for the strip, but only if that resolution sits inside the trailing RECENT_RESOLVE_WINDOW events. A resolve further back than the window returns null, so the strip clears itself instead of parking a stale card over the board's bottom centre indefinitely. */
-export function recentlyMattered(events: EventBody[]): number | null {
+/** recentlyMattered is the object id of the most recent stack_resolve, for the rail stack section's resolved-card display (the old board overlay's data path, kept), but only if that resolution sits inside the trailing RECENT_RESOLVE_WINDOW events. A resolve further back than the window returns null, so the display clears itself instead of lingering indefinitely. The parameter is structural — the display's caller (Rail) carries a widened event shape — so any object whose `event` names a kind (and optionally an obj) works. */
+export function recentlyMattered(events: { event: { kind: string; obj?: number } }[]): number | null {
   const lo = Math.max(0, events.length - RECENT_RESOLVE_WINDOW);
   for (let i = events.length - 1; i >= lo; i--) {
     const e = events[i].event;
     if (e.kind === 'stack_resolve' && e.obj) return e.obj;
   }
+  return null;
+}
+
+/** findCardAnywhere locates an object id across every visible zone of the
+ *  view: each seat's battlefield, graveyard, exile and visible hand, then
+ *  the stack. It exists for the resolved-card display — a resolved object
+ *  has already LEFT the stack by the time the view renders, so the id is
+ *  looked up where it landed. A card moved somewhere hidden (the library)
+ *  returns null, and the display simply shows nothing. Previously an
+ *  inline helper of the deleted RecentStrip; hoisted here so the display
+ *  and its tests share one implementation. */
+export function findCardAnywhere(v: View, obj: number): CardView | null {
+  for (const p of v.players) {
+    for (const list of [p.battlefield, p.graveyard, p.exile, visibleHand(p) ?? []]) {
+      const c = list.find((x) => x.id === obj);
+      if (c) return c;
+    }
+  }
+  for (const s of v.stack) if (s.card?.id === obj) return s.card;
   return null;
 }

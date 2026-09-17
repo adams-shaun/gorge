@@ -126,6 +126,17 @@ const (
 	KArrange Kind = "arrange"
 )
 
+// Kinds lists every decision Kind in declaration order. It is the static
+// universe a coverage report needs to say which kinds a run NEVER asked --
+// an engine ask cannot use a kind outside this slice, so universe and
+// observed cannot drift the way a hand-copied list in another package
+// would. Keep it in the same order as the constants above.
+var Kinds = []Kind{
+	KPriority, KTarget, KAttackers, KBlockers, KMulligan, KModes,
+	KTriggerOrder, KTriggerOptional, KCommanderZone, KChoose, KReplacement,
+	KArrange,
+}
+
 // Option is one legal choice. Obj and Player are echoed only so a client can
 // highlight the object; selection is by Index.
 type Option struct {

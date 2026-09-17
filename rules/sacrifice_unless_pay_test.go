@@ -105,6 +105,101 @@ func TestEngineVexingDevilAcceptanceDealsDamageAndSacrifices(t *testing.T) {
 	}
 }
 
+// devilToHand3 is devilToHand for a THREE-seat game: same hand-clearing
+// discipline, one deck per seat, the named card in seat 0's hand at Main1.
+// Used by the multi-payer decline regression below, whose bug only shows
+// with two alive opponents.
+func devilToHand3(t *testing.T, reg *cards.Registry, name string) (*Engine, state.ObjID) {
+	t.Helper()
+	e := New(Config{Seed: 1, Names: []string{"a", "b", "c"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}})
+	for p := state.PlayerID(0); p < 3; p++ {
+		e.G.SetZone(state.ZHand, p, nil)
+	}
+	o := e.G.AddObject(mustCorpusCard(t, reg, name), 0)
+	o.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, []state.ObjID{o.ID})
+	e.G.Step = state.StepMain1
+	e.G.Active, e.G.Priority = 0, 0
+	e.G.Turn = 1
+	return e, o.ID
+}
+
+// TestEngineVexingDevilEveryOpponentDeclineEndsTheOffer is the engine-level
+// pin the effects-level cursor test cannot be: it drives rules' REAL
+// unless_pay resume arm (which builds each re-entry's Ctx itself) through a
+// 3-seat game where BOTH opponents decline. A decline cursor that failed to
+// advance (the vestigial UnlessPayTarget write) re-offered payers[1] -- seat
+// 2 -- its own identical offer forever on the second decline; this test
+// asserts the second decline ends the ask and the game moves on.
+func TestEngineVexingDevilEveryOpponentDeclineEndsTheOffer(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, devil := devilToHand3(t, reg, "Vexing Devil")
+	e.G.Players[0].Pool = state.Mana{state.MR: 1}
+	e.askPriority(0)
+	submitChoices(t, e, passToCast(t, e, devil))
+
+	// First offer: seat 1 (turn order after the controller). Decline.
+	ask := drainUntilKModes(t, e, 60)
+	if ask == nil {
+		t.Fatal("no damage offer posed for the resolving Vexing Devil")
+	}
+	if ask.Player != 1 {
+		t.Fatalf("first offer player = seat %d, want seat 1", ask.Player)
+	}
+	submitsLeft := 60
+	declines := 0
+	for {
+		if ask.ResumeKind != "unless_pay" {
+			t.Fatalf("offer resume kind = %q, want unless_pay", ask.ResumeKind)
+		}
+		submitChoices(t, e, ask.Options[1].Index) // decline
+		declines++
+		if declines > 3 {
+			t.Fatalf("the offer was re-posed %d times: the decline cursor never advanced past the second payer", declines)
+		}
+		// Drive forward: the offer must move to the NEXT opponent, never
+		// re-ask the one that just declined, and the LAST decline must end
+		// the ask entirely (the game returns to priority).
+		submitsLeft -= 10
+		if submitsLeft <= 0 {
+			t.Fatal("game did not return to priority after every opponent declined")
+		}
+		var next *decision.Decision
+		for i := 0; i < 60 && e.Pending() != nil && !e.G.Over; i++ {
+			d := e.Pending()
+			if d.Kind == decision.KModes && d.ResumeKind == "unless_pay" {
+				next = d
+				break
+			}
+			if d.Kind != decision.KPriority {
+				t.Fatalf("unexpected %v between damage offers: %+v", d.Kind, d)
+			}
+			castFirst(t, e, "pass")
+		}
+		if next == nil {
+			break // every opponent declined; the game moved on
+		}
+		if next.Player == ask.Player {
+			t.Fatalf("seat %d was re-asked the identical damage offer after declining (decline cursor did not advance)", next.Player)
+		}
+		ask = next
+	}
+	if declines != 2 {
+		t.Fatalf("asked %d declines, want exactly one per opponent (seats 1 and 2)", declines)
+	}
+	// Nobody took the damage and the switched body (the sacrifice) never ran.
+	if n := countPlayerDamage(e, 1) + countPlayerDamage(e, 2); n != 0 {
+		t.Fatalf("opponents took %d damage, want none", n)
+	}
+	if z := e.G.Obj(devil).Zone; z != state.ZBattlefield {
+		t.Fatalf("every-opponent-declined Devil zone = %v, want battlefield", z)
+	}
+	if life := e.G.Players[1].Life + e.G.Players[2].Life; life != 40 {
+		t.Fatalf("opponents' life = %d, want 40 (no damage dealt)", life)
+	}
+}
+
 // TestEngineVexingDevilDeclineLeavesItInPlay pins the decline branch through
 // the engine: the opponent refuses and the 4/3 stays on the battlefield.
 func TestEngineVexingDevilDeclineLeavesItInPlay(t *testing.T) {

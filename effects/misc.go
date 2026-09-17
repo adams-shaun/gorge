@@ -173,20 +173,13 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage": // A compound IsRemembered spec (Card.IsRemembered+Creature) cannot
-			// be resolved by the remembered-set match alone -- the extra
-			// predicate would be silently dropped, over-applying the
-			// restriction. No corpus restriction static carries one (see the
-			// report / AGENTS.md), so treat it as unsupported here and keep
-			// the Note instead of registering something that over-applies.
-			if compoundRememberedSpec(params) {
-				if mode != "" {
-					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-						Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
-				}
-				registered = true
-				continue
-			}
+		case "CantTarget", "CantRegenerate", "CantPreventDamage":
+			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
+			// faithfully through the general filter now that it implements
+			// IsRemembered (rules/layers.go restrictionApplies consults the
+			// same matcher with the registered remembered set bound), so the
+			// old "reject compounds, keep the Note" guard is gone: the
+			// restriction registers for real.
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
@@ -405,25 +398,11 @@ func IsNextTurnDuration(dur string) bool {
 	return false
 }
 
-// compoundRememberedSpec reports whether a restriction static's valid-spec is
-// a COMPOUND expression containing IsRemembered (a + AND or a , OR list) --
-// a shape the remembered-set match cannot resolve faithfully. The corpus's
-// CantTarget/CantRegenerate statics all use a bare Card.IsRemembered, so this
-// is a defensive guard against silently over-applying a restriction whose
-// extra predicate would be dropped (see rules/layers.go restrictionApplies).
-func compoundRememberedSpec(params map[string]string) bool {
-	spec := params["ValidCard"]
-	if spec == "" {
-		spec = params["ValidTarget"]
-	}
-	return strings.Contains(spec, "IsRemembered") && strings.ContainsAny(spec, "+,")
-}
-
 // replacementLineWith reads ReplaceWith$ off a parseReplacementLine-built
 // static line -- the SVar name of the R: body's own ReplaceWith$ body, not a
-// card Params map. Factored into its own function (mirroring
-// compoundRememberedSpec) so the paramcensus rot guard can classify the read
-// through a tracked helper parameter rather than an unclassified local.
+// card Params map. Factored into its own function so the paramcensus rot
+// guard can classify the read through a tracked helper parameter rather than
+// an unclassified local.
 func replacementLineWith(params map[string]string) string {
 	return params["ReplaceWith"]
 }
@@ -460,18 +439,38 @@ func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
 // per-resolution parameter, not stored state), so there is nothing to
 // actually clear. The Note records that the step ran.
 func effCleanup(h Host, c *Ctx, sa *cards.SA) {
-	// ClearRemembered$ True empties the resolution's remembered list. Forge's
-	// Cleanup clears the (persisted) source remembered set after an earlier
-	// sub has handed the list off; here the list is Ctx-local, so the clear
-	// is invisible to the log but stops a later read in the same walk from
-	// re-counting a list the script already handed off -- Valakut's DBCleanup
-	// runs after DBEffect captured the dig's RememberChanged list into the
-	// registered Effect, so the end-step trigger's own X=Remembered$Amount
-	// must count only what IT moved. The Note stays exactly as it was (it is
-	// a logged event whose text existing games pin).
-	if strings.EqualFold(strings.TrimSpace(sa.Params["ClearRemembered"]), "True") {
+	// Forge's CleanUpEffect: ClearRemembered$ True clears the host card's
+	// remembered list (the persistent list the next resolution of this card
+	// reads -- without this an activated ability that remembers would
+	// accumulate across activations). The ctx-level list is cleared with it:
+	// every consumer downstream of this point in the chain (and the next
+	// resolution) must see an empty list, which is what Forge's host
+	// list clear produces. The clear is recorded as a real event ONLY when
+	// the source's list actually held entries -- clearing an empty list is
+	// a no-op, and emitting for it would move every chain head that carries
+	// a ClearRemembered$ cleanup for no observable change (measured: Delver
+	// of Secrets' DBCleanup in the 4/6/8-seat golden games runs its cleanup
+	// with an empty list).
+	if strings.EqualFold(sa.Params["ClearRemembered"], "True") {
 		c.Remembered = nil
+		if c.Source != 0 {
+			if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
+				// A real clear: the event is what a replay folds, so the next
+				// resolution of this card sees the empty list.
+				h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
+				return
+			}
+		}
 	}
+	// The cosmetic fallback (an empty-list clear, or a Cleanup with nothing
+	// to clear): the Note main has always emitted, byte-for-byte, so golden
+	// games whose cleanups run on empty lists replay identically. This also
+	// covers main's independent Valakut concern: Valakut's DBCleanup runs
+	// after DBEffect captured the dig's RememberChanged list into the
+	// registered Effect, so the end-step trigger's own X=Remembered$Amount
+	// must count only what IT moved -- c.Remembered is unconditionally
+	// cleared above regardless of whether the source object held a
+	// persisted list to clear too.
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "clears remembered/imprinted objects"})
 }
 
@@ -513,101 +512,24 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // same way), so the destination is chosen the same way spellRestZone does.
 //
 // UnlessCost$ (Mana Leak, Spell Pierce, Daze, Rust Tick, Runeboggle) is the
-// "counter target spell unless its controller pays {N}" shape -- a real
-// mid-resolution ask since M2d-2 closed R-8. On the first pass the
-// CONTROLLER OF THE COUNTERED SPELL (the object in c.Targets[0], per CR
-// 119) is offered a KModes pay/decline decision and the resolution suspends;
-// the answer re-enters this effect with Ctx.UnlessPay set, rules'
-// resumeResolution (rules/resolution.go) having already paid the cost via
-// payMana on an affordable "pay". "pay" therefore means the spell is NOT
-// countered; "decline" -- including an affordable-looking "pay" that
-// payMana reports it could not cover -- counters it.
+// "counter target spell unless its controller pays {N}" shape. It rides the
+// ONE shared unless gate (effects.Resolve's unlessProceed dispatch, shared
+// by every API): the payer comes from UnlessPayer$ (effects.UnlessPayers
+// resolves every corpus selector form; a named selector whose binding is
+// unavailable declines rather than asking an unrelated player), and the
+// unqualified default — the first target's controller per CR 119 — is
+// exactly what the corpus's 12 targeted Counter lines name (Targeted
+// Controller x9, ThisTargetedController x3). The pay/decline labels for a
+// Counter's ask live in poseUnlessAsk's Counter arm. "pay" means the spell
+// is NOT countered; "decline" — including an affordable-looking "pay" the
+// payment path could not cover — counters it.
 //
-// Unlike effCopySpellAbility, the default payer is the first target's
-// controller. UnlessPayer$ is NOT read here. All 12 of the corpus's targeted
-// Counter lines carrying it name TargetedController (9) or
-// ThisTargetedController (3), matching that default; the other 22 lines are
-// untargeted and fall back to c.Controller, which is the right player for
-// only the 3 that say You. The remaining 19 name someone else -- 14
-// Triggered* selectors (TriggeredSourceSAController x7, TriggeredActivator
-// x4, TriggeredSpellAbilityController, TriggeredCardController,
-// NonTriggeredCardController), Player x4 and RememberedController x1 -- and
-// general payer selection is NOT implemented, so those ask the wrong player.
-// Reality Smasher (eldrazi-stompy) is one of them. Counts are raw
-// .cards/cardsfolder lines from GNU grep; see AGENTS.md for the commands and
-// for the unsupported cost, switched and multi-target shapes.
-//
-// UnlessSwitched$ True inverts the whole ask -- paying CAUSES the counter --
-// and is not implemented. The ask is therefore SUPPRESSED on those five
-// corpus shapes rather than posed backwards, which keeps the unconditional
-// counter they had before this ask existed. See .superpowers/ISSUES.md I-4.
+// UnlessSwitched$ True inverts the whole ask — paying CAUSES the counter —
+// and is real switched semantics through the same gate; the orientation is
+// read from the SA, not hardcoded here.
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
-	skip := false
-	switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
-	// RememberCountered$ True / RememberCounteredSA$ True append every object
-	// this effect counters (spells AND ability objects) to Ctx.Remembered, in
-	// stack order, so a SubAbility$ chained after the counter can count them:
-	// Swift Silence's "Draw a card for each spell countered this way"
-	// (SVar:X:Remembered$Amount) and Glen Elendra's Answer's "Create a 1/1
-	// Faerie for each spell and ability countered this way"
-	// (SVar:X:Count$RememberedSize). Forge spells the flag two ways because
-	// its own Defined$ forms distinguish a remembered CARD from a remembered
-	// SA; every consumer this build has counts Remembered, so both flags
-	// append the countered object itself.
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCountered"]), "True") ||
 		strings.EqualFold(strings.TrimSpace(sa.Params["RememberCounteredSA"]), "True")
-	if cost := strings.TrimSpace(sa.Params["UnlessCost"]); cost != "" && !switched {
-		// fx42: take the answer into a local and clear c.UnlessPay BEFORE
-		// handling it, so a NESTED unless-pay consumer reached below this one
-		// in the same walk (a Counter or CopySpellAbility in this effect's Sub
-		// chain) does not inherit this consumer's answered value — it must
-		// pose its own ask. The only readers of Ctx.UnlessPay are this
-		// primitive's top and effCopySpellAbility's top, and neither reads it
-		// again afterwards, so clearing here confines the answer to the
-		// primitive that asked for it.
-		ans := c.UnlessPay
-		c.UnlessPay = ""
-		switch ans {
-		case "pay":
-			// Re-entry, paid: the spell resolves normally, so do NOT counter.
-			skip = true
-		case "decline":
-			// Re-entry, declined: counter it below.
-		default:
-			// First pass: pose the pay decision to the controller of the
-			// countered spell. Untargeted scripts fall back to c.Controller;
-			// their explicit UnlessPayer selectors are not implemented.
-			payer := c.Controller
-			if len(c.Targets) > 0 {
-				payer = PlayerOf(h, c, c.Targets[0])
-			}
-			if strings.TrimSpace(sa.Params["UnlessPayer"]) == "TriggeredCardController" {
-				if p, ok := TriggeredCardController(h.Game(), c.TriggerContext, c.Remembered); ok {
-					payer = p
-				}
-			}
-			shown := unlessCostLabel(cost)
-			d := &decision.Decision{Player: payer, Kind: decision.KModes,
-				Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
-				ResumeSA: sa, Prompt: "Pay " + shown + " to save the spell, or decline",
-				Options: []decision.Option{
-					{Index: 0, Kind: "mode", Label: "Pay " + shown + " — don't counter", Obj: c.Source, Player: payer},
-					{Index: 1, Kind: "mode", Label: "Don't pay", Obj: c.Source, Player: payer},
-				}}
-			if Ask(h, d) == AskAsked {
-				return // resolution suspended; the answer re-enters this effect.
-			}
-			// Fuzz/no-engine host: the deterministic decline (R-9). The pay
-			// was never posed, so resolve as if the player declined: counter.
-			// (AskEmpty is unreachable by construction -- Min == Max == 1 over
-			// two options -- but the shared helper owns the guard either way.)
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "may pay declined (UnlessCost not asked on this host)"})
-		}
-	}
-	if skip {
-		return
-	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -632,6 +554,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			// so a countered ability moves there, never to the graveyard.
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+				eventRemember(h, c, o.ID)
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 				From: state.ZStack, To: state.ZExile, Text: "countered"})
@@ -643,52 +566,11 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if remember {
 			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			eventRemember(h, c, o.ID)
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZStack, To: to, Text: "countered"})
 	}
-}
-
-// unlessCostLabel renders an UnlessCost$ value for the humans a
-// decision.Decision can reach. A plain mana cost ("1", "3", "2 U", "R R") is
-// already readable and comes back verbatim -- that is every repo-deck Counter
-// with an UnlessCost$ except Mausoleum Wanderer and Reality Smasher.
-// Everything else is raw Forge script: a bare SVar name (X, Y, Z, whose value
-// this engine does not read at all) or a bracket form (Discard<1/Hand>,
-// ExileFromGrave<1/All>, PayLife<5>). Those must not reach a player's screen,
-// so they render as "the cost". Display only: the amount actually charged is
-// still ParseCost(sa.Params["UnlessCost"]) in rules' resumeResolution, and
-// AGENTS.md records what that substitution really costs.
-func unlessCostLabel(cost string) string {
-	if isPlainManaCost(cost) {
-		return cost
-	}
-	return "the cost"
-}
-
-// isPlainManaCost reports whether every whitespace field of an UnlessCost$
-// value is a generic number or a colour/colourless symbol — the same census
-// unlessCostLabel renders verbatim. It is the effects-side gate for "this
-// UnlessCost$ is plain mana": rules' shared unless_pay resume arm re-checks
-// the real ParseCost(...).Priceable() when it settles the answer, and the two
-// agree on every spelling this gate admits (a plain-mana spelling parses to
-// Generic/Colored parts only, no X, no non-mana component), so the gate
-// never poses an ask the resume arm would have to decline.
-func isPlainManaCost(cost string) bool {
-	fields := strings.Fields(cost)
-	if len(fields) == 0 {
-		return false
-	}
-	for _, f := range fields {
-		if _, err := strconv.Atoi(f); err == nil {
-			continue // generic amount
-		}
-		if strings.Trim(f, "WUBRGC") == "" {
-			continue // colour/colourless symbols
-		}
-		return false
-	}
-	return true
 }
 
 // effDelayedTrigger implements Mode$ Phase delayed triggers -- the

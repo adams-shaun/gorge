@@ -87,7 +87,12 @@ type Cost struct {
 	TapPermanent    []CostPart
 	Blight          []CostPart
 	Forage          bool
-	Energy          []CostPart
+	// Draw carries Draw<N/Spec> components, which only ParseUnlessCost
+	// builds: paying one draws N cards for the player(s) the spec names
+	// (default the payer). payMana never charges it; the mid-resolution
+	// unless-pay path does.
+	Draw   []CostPart
+	Energy []CostPart
 	// Return carries Return<N/Spec> tokens: a permanent (usually the source
 	// itself, Spec CARDNAME) returned to its OWNER's hand as the payment
 	// (Forge CostReturn.moveToHand; CR 118.2a lists returning a permanent to
@@ -109,7 +114,8 @@ type Cost struct {
 	Unknown []string
 }
 
-// nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, and SubCounter<N/Kind> tokens. Forge
+// nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, SubCounter<N/Kind> and
+// Draw<N/Spec> tokens. Forge
 // appends a human-readable "/description" after the spec and separates OR
 // alternatives with ";"; the description may itself contain spaces (e.g.
 // "Sac<1/Artifact;Creature/artifact or creature>"), which is why
@@ -117,7 +123,7 @@ type Cost struct {
 // sees it. The captured group only runs up to the first "/", so the trailing
 // description is dropped right here; the ";" alternation is folded to ","
 // (MatchesSpec's own separator) at the parse site. Ruling FL-54.
-var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard|Draw)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // sacXCost matches the announced-count sacrifice form Sac<X/Spec> (Dargo, the
 // Shipwrecker's "sacrifice any number of artifacts and/or creatures"): the
@@ -956,9 +962,9 @@ func (c Cost) HasNonMana() bool {
 // before trusting the pool and life total.
 func (c Cost) Priceable() bool {
 	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
-		len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 && len(c.TapPermanent) == 0 &&
-		len(c.Blight) == 0 && !c.Forage && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 &&
-		len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
+		len(c.Draw) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 &&
+		len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
+		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
 		len(c.Energy) == 0 && len(c.Return) == 0
 }
 
@@ -1315,6 +1321,75 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 		return p, false
 	}
 	return pay.pool, true
+}
+
+// ParseUnlessCost strictly parses an UnlessCost$ value for the mid-resolution
+// unless-pay path. Unlike ParseCost — which degrades every token it does not
+// know to one generic mana, silently buying a dynamic or unmodelled cost for
+// {1} — this parser is total and strict: every token must be a mana symbol
+// (a WUBRGC letter or a numeric generic), a fixed PayLife<N>, or a
+// Sac<N/Spec>, Discard<N/Spec> or SubCounter<N/Kind> component. Anything
+// else — X, Y, Z (whose value is a cast choice or an SVar the unless-pay
+// answer does not carry), DamageYou<N>, PayEnergy<N>, Return<...>,
+// ExileFromGrave<...>, Reveal<...>, Draw<...>, LifeTotalHalfUp, DefinedCost_*,
+// CopyCost, or any prose — reports ok=false, and the unless-pay arm treats
+// that as a hard decline (the conservative read: a payer who "pays" a cost
+// the engine cannot price has not paid it).
+func ParseUnlessCost(s string) (Cost, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" || strings.EqualFold(s, "no cost") {
+		return Cost{}, true
+	}
+	s = strings.NewReplacer("{", " ", "}", " ").Replace(s)
+	var c Cost
+	for _, sym := range splitCostTokens(s) {
+		switch {
+		case sym == "T" || sym == "X":
+			// An unfolded X is never priceable here: payMana does not charge
+			// it, so a "pay" from an empty pool would satisfy it for free.
+			return Cost{}, false
+		case len(sym) == 1 && strings.ContainsAny(sym, "WUBRGC"):
+			c.Colored[state.ManaIndex(sym[0])]++
+		default:
+			if n, err := strconv.Atoi(sym); err == nil && n >= 0 {
+				c.Generic = addClampedGeneric(c.Generic, int64(n))
+				continue
+			}
+			if m := lifeCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					return Cost{}, false
+				}
+				c.Life = addClampedGeneric(c.Life, n)
+				continue
+			}
+			if m := nonManaCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[2], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					return Cost{}, false
+				}
+				// Fold Forge's ";" OR alternation into the "," MatchesSpec
+				// already uses, so "Artifact;Creature" matches either.
+				spec := strings.ReplaceAll(m[3], ";", ",")
+				part := CostPart{N: int32(n), Spec: spec}
+				switch m[1] {
+				case "Sac":
+					c.Sac = append(c.Sac, part)
+				case "Discard":
+					c.Discard = append(c.Discard, part)
+				case "Draw":
+					c.Draw = append(c.Draw, part)
+				default:
+					c.SubCounter = append(c.SubCounter, part)
+				}
+				continue
+			}
+			// Every other token — a dynamic amount, an unmodelled cost verb,
+			// or prose — makes the whole cost unpriceable.
+			return Cost{}, false
+		}
+	}
+	return c, true
 }
 
 // payerGrantsPayLifeInsteadOfB reports whether p's side of the battlefield

@@ -63,12 +63,20 @@ func set(s string) map[string]bool {
 // of the engine or the server: it stamps each TEST_HISTORY.md row with the
 // UTC time the measurement was taken. Nothing it produces reaches a game, an
 // event, a view or a replay, so D16's determinism argument does not apply.
+// cmd/botbench is exempt for the same class of reason: its grind mode reads
+// the wall clock only to bound its own run window (deadline) and report per-
+// deck elapsed time — how long the BENCH chose to run, not anything a game,
+// event, view or replay depends on. cmd/ledger is exempt likewise: it stamps
+// the ledger document's Generated: field for the dashboard, a docs tool
+// output, never engine state.
 func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	allowed := map[string]bool{
 		module + "/host":         true,
 		module + "/host/httpapi": true,
 		module + "/cmd/gorged":   true,
 		module + "/cmd/testtime": true,
+		module + "/cmd/botbench": true,
+		module + "/cmd/ledger":   true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {
@@ -320,6 +328,18 @@ func TestResumeStateOwnedOnlyByTheResolutionMachinery(t *testing.T) {
 	allowed := map[string]string{
 		"(*Engine).Ask":                                    "the asking primitive: records the resume point for the answer machine to re-enter (rules/resolution.go)",
 		"(*Engine).handleModes":                            "the KModes answer handler: clears the resume point then re-enters via resumeResolution (rules/resolution.go)",
+		"(*Engine).handleChoose":                           "the KChoose answer handler: clears the resume point then re-enters via resumeResolution (rules/turn.go)",
+		"(*Engine).handleTriggerOptional":                  "the trigger_optional answer handler: clears the resume point (resolution or madness shape) and re-enters, or answers the Miracle placement ask (rules/trigger_queue.go)",
+		"(*Engine).handleArrange":                          "the KArrange answer handler: clears the resume point then applies the answered piles (rules/arrange.go)",
+		"(*Engine).handleReplacement":                      "the replacement answer handler: re-links a parked frame's outer continuation when a nested ask replaced it, and clears then re-enters the parked event's chain on completion (rules/replacement.go)",
+		"(*Engine).askOptionalAtResolution":                "the CR 603.5 optional-resolution ask: installs the fresh resume point the yes/no answer re-enters, never stacked over an existing one (rules/trigger_queue.go)",
+		"(*Engine).askMadnessCast":                         "the madness cast offer: installs the fresh madness resume point the offer's answer re-enters (rules/altcast.go)",
+		"(*Engine).beginWardPayment":                       "the Ward CR 702.21a gate: after its payment ask, preserves the enclosing continuation on the Ask-installed resume point (rules/ward.go)",
+		"(*Engine).askWardObjects":                         "a Ward payment-window ask: preserves the enclosing continuation on the Ask-installed resume point (rules/ward.go)",
+		"(*Engine).askWardMana":                            "the Ward mana payment window: carries the prior Ward frame's continuation and replacement snapshot onto the fresh resume point so the window survives nested mana asks (rules/ward.go)",
+		"(*Engine).resolveTop":                             "resolution's first pass: when effects.Resolve suspends on a nested mid-resolution ask, preserves the enclosing SubAbility continuation chain on the fresh resume point (rules/stack.go)",
+		"(*Engine).SuspendRepeat":                          "the RepeatEach suspension hook (effects.Host): binds the pending ask and continuation frames to the iteration's Remembered and appends the loop's own cursor frame (rules/resolution.go)",
+		"(*Engine).bindLoopFrames":                         "binds the pending ask and every unbound continuation frame this pass to the loop's Remembered (rules/resolution.go)",
 		"(*Engine).Clone":                                  "a snapshot clone copies the resume point onto the freshly-cloned engine, not the live one (rules/clone.go)",
 		"(*Engine).resumeResolution":                       "the re-entry point: links the new pending point's outer continuation up to the frame it is re-entering (rules/resolution.go)",
 		"(*Engine).releasePendingDecisionOfDepartedPlayer": "CR 800.4f: a departed player's outstanding ask is released with an empty answer (rules/sba.go)",

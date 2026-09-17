@@ -104,6 +104,10 @@ type resumePoint struct {
 	choices     []state.Target
 	chosenValid bool
 	remembered  []state.Target
+	// unlessPay is set only after a nested non-mana unless-cost payment has
+	// completed. It prevents the resumed `unless_pay` arm from charging that
+	// payment a second time.
+	unlessPay string
 	// rolls is the per-die results of the RollDice ask whose answer this
 	// point resumes (effects/dice.go's ChosenSVar$/OtherSVar$ choose-one-
 	// result shape, the Endeavor cycle): the asking first pass carried them
@@ -117,12 +121,20 @@ type resumePoint struct {
 	// replSource is the host of the replacement whose body asked (the
 	// ReplaceWith$ body's own Ctx.Source); zero outside a replacement.
 	replSource state.ObjID
+	// replacedPlayer is the draw-er of the replaced Draw event the frame
+	// resumes inside (Ctx.ReplacedPlayer); zero outside a Draw replacement.
+	replacedPlayer state.Target
 	// loopBound frames resume inside a RepeatEach iteration (or at the
 	// RepeatEach itself, kind "repeat"): Ctx.Remembered is rebuilt from
 	// loopRemembered rather than from the stack object, because the loop
 	// binds its current subject there and the stack object never saw it.
 	loopBound      bool
 	loopRemembered []state.Target
+	// repeatSubject is the RepeatEach subject of the loop whose iteration
+	// this frame resumes inside (the Imprinted binding). It rides the frame
+	// so a resumed unless/dig/etc. ask re-enters with Ctx.RepeatSubject
+	// set; zero on frames outside any iteration.
+	repeatSubject state.Target
 	// repeat is a kind "repeat" frame's loop cursor.
 	repeat *repeatCursor
 }
@@ -141,12 +153,13 @@ type repeatCursor struct {
 // pass: a plain Resolve loop (resume at sa.Sub) or a RepeatEach loop
 // (repeat != nil; re-enter sa itself at the cursor).
 type contFrame struct {
-	sa          *cards.SA
-	repeat      *repeatCursor
-	bound       bool
-	remembered  []state.Target
-	choices     []state.Target
-	chosenValid bool
+	sa            *cards.SA
+	repeat        *repeatCursor
+	bound         bool
+	remembered    []state.Target
+	repeatSubject state.Target
+	choices       []state.Target
+	chosenValid   bool
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -195,14 +208,30 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	var replSource state.ObjID
 	if e.applyingReplacement && d.Source != 0 {
 		replSource = d.Source
-		if d.Source == e.resolvingObj {
-			if so := e.G.Obj(d.Source); so != nil && so.Zone != state.ZStack {
-				obj = d.Source
-			}
+		// The resume must rebuild from the replacement's host in exactly two
+		// shapes: a permanent spell whose own Updated entry replacement asks
+		// (Sower of Discord — d.Source IS e.resolvingObj but the move has
+		// already taken it off the stack, so the top of the stack is some
+		// unrelated object), and a permanent that entered by a replacement with
+		// NO stack resolution in flight at all (a land drop: Hallowed Fountain's
+		// "you may pay 2 life. If you don't, it enters tapped" — e.resolvingObj
+		// is 0, so the original d.Source == e.resolvingObj gate never fired and
+		// the answer degraded to a no-op). Every other shape — a replacement
+		// asking while a DIFFERENT spell is resolving (Mox Diamond reanimated by
+		// a sorcery: d.Source is the mox, already on the battlefield, but the
+		// spell whose chain the replacement interrupted is still the top of the
+		// stack and MUST own the resume) — keeps the ordinary top-of-stack
+		// resume. resolveTop keeps e.resolvingObj == the stack top for the whole
+		// of a spell's resolution, so "top of stack is the interrupted spell" is
+		// exactly "e.resolvingObj != 0 && d.Source != e.resolvingObj".
+		if so := e.G.Obj(d.Source); so != nil && so.Zone != state.ZStack &&
+			(e.resolvingObj == 0 || d.Source == e.resolvingObj) {
+			obj = d.Source
 		}
 	}
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
+		replacedPlayer:    e.replReplacedPlayer,
 		replacementTarget: replacementTarget, replacementSource: e.protectionSource(e.damaging),
 		replacementAmount: replacementAmount,
 		before:            e.triggerBefore, target: d.ResumeTarget, rolls: d.Rolls,
@@ -220,7 +249,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 // the resume pass re-enters the chain with nothing suspended and walks the
 // rest of it exactly once.
 func (e *Engine) Suspended() bool {
-	return e.resume != nil || e.cumulative != nil || e.triggerCost != nil
+	return e.resume != nil || e.unlessPayment != nil || e.cumulative != nil || e.triggerCost != nil
 }
 
 // SuspendContinuation implements effects.Host.SuspendContinuation: an
@@ -259,11 +288,11 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 	}
 	body := append([]state.Target(nil), s.Body...)
 	if !e.resume.loopBound {
-		e.resume.loopBound, e.resume.loopRemembered = true, body
+		e.resume.loopBound, e.resume.loopRemembered, e.resume.repeatSubject = true, body, s.Subject
 	}
 	for i := range e.contChain {
 		if !e.contChain[i].bound {
-			e.contChain[i].bound, e.contChain[i].remembered = true, body
+			e.contChain[i].bound, e.contChain[i].remembered, e.contChain[i].repeatSubject = true, body, s.Subject
 		}
 	}
 	e.contChain = append(e.contChain, contFrame{
@@ -284,6 +313,19 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 // first two also cache the chosen SVar names on the stack object so resolution
 // executes the announcement without asking again.
 func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
+	// An activated mana ability resolves outside the stack. Its UnlessCost$
+	// answer is therefore owned by the mana activation flow rather than an
+	// effects resume point, but is still recorded like every KModes answer.
+	if d.ResumeKind == "mana_unless" {
+		chosen := d.Chosen(in)
+		labels := chosenModeLabels(chosen)
+		e.emit(events.Event{Kind: events.ModeChosen, Obj: d.Source, Player: in.Player,
+			Text: strings.Join(labels, ",")})
+		e.choosing = chooseNone
+		e.answerManaUnless(chosen)
+		return
+	}
+
 	// CR 601.2b cast branch: the spell is already provisionally on the stack,
 	// but no targets have been selected and no cost has been paid. Record the
 	// answer on that spell, then resume the cast transaction at target choice.
@@ -465,8 +507,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// MoveToBattlefield) targets nothing and the object never leaves the
 		// stack.
 		ctx.Replaced = rp.replaced
-		ctx.Remembered = []state.Target{{Obj: rp.replaced}}
-		ctx.Captured = ctx.Remembered
+		ctx.ReplacedPlayer = rp.replacedPlayer
+		if rp.replacedPlayer.IsPlayer {
+			// A Draw replacement body: the draw-er's binding is the whole
+			// seed, and the body's own RememberDrawn$ records what it draws —
+			// a MoveZone-shaped Remembered seed would pollute the reveal and
+			// the discard condition with a stale would-be-drawn entry.
+			ctx.Remembered, ctx.Captured = nil, nil
+		} else {
+			ctx.Remembered = []state.Target{{Obj: rp.replaced}}
+			ctx.Captured = ctx.Remembered
+		}
 		if rp.remembered != nil {
 			ctx.Remembered = append([]state.Target(nil), rp.remembered...)
 		}
@@ -488,12 +539,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
 	}
-	// A mid-resolution picker may have built a Remembered fetch list before
-	// it suspended. The stack object only carries trigger-time remembered
-	// entries, so restore the asking effect's snapshot after rebuilding this
-	// fresh context; otherwise Card.IsRemembered and Defined$ Remembered in a
-	// chained hidden-origin ChangeZone see an empty list on re-entry.
-	if rp.remembered != nil {
+	// A mid-resolution ask that rode the walk's Remembered (the hidden-library
+	// search sets ResumeRemembered -- a cast spell's Remembered lives only in
+	// the resolving Ctx frame, so without the ride the resume rebuilds an
+	// empty set and the re-entered primitive's eligibility recheck and the
+	// chain's later sub-abilities see nothing, and Card.IsRemembered /
+	// Defined$ Remembered in a chained hidden-origin ChangeZone would see an
+	// empty list on re-entry too). The loop and replacement branches above
+	// are authoritative when they fire; this applies only to the ordinary
+	// frames, which never carry rp.remembered otherwise.
+	if rp.remembered != nil && !rp.replacement && !rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
 	}
 	effects.SetSVars(ctx, svars)
@@ -516,6 +571,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					Last: cur.last, HasLast: cur.hasLast}
 			}
 		case "unless_pay":
+			if rp.unlessPay != "" {
+				ctx.UnlessPay = rp.unlessPay
+				ctx.UnlessNext = rp.target
+				break
+			}
+			// The payer agreed to pay (option 0 is "Pay …") or not. Payment
+			// happens HERE, in rules, because payMana owns the cost grammar and
+			// emits the ManaAdd events — so a replay re-derives the identical
+			// payment. An answer to pay from a payer that cannot cover the cost
+			// is a decline: the effect's body runs (or not) per its orientation,
 			// Ward has non-mana payment forms (sacrifice, discard, tap and
 			// several keyword-specific costs). Its payment handler owns those
 			// choices; ordinary unless-pay effects retain the shared mana path.
@@ -555,7 +620,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					} else {
 						ctx.UnlessPay = "decline"
 					}
-					ctx.UnlessPayTarget = rp.target
+					// The answering payer's cursor travels in UnlessNext (the
+					// same field every other unless-pay answer uses): a decline
+					// re-entry resumes the offer at payers[idx+1], and the last
+					// decline ends the ask. (UnlessPayTarget was a vestigial
+					// second cursor nothing read — its one write is this line —
+					// so a second opponent's decline re-offered payers[1]
+					// forever.)
+					ctx.UnlessNext = rp.target
 					break
 				}
 				// A plain-mana UnlessCost$ (the echo / cumulative-upkeep
@@ -564,35 +636,40 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// sacrifices it. The unimplemented non-mana shapes never
 				// reach the ask, so they never reach this arm.
 			}
-			// The payer agreed to pay (option 0 is "Pay … — make a copy") or
-			// not. Payment happens HERE, in rules, because payMana owns the
-			// cost grammar and emits the ManaAdd events — so a replay
-			// re-derives the identical payment. An answer to pay from a pool
-			// that cannot cover it is a decline: the copy is not made,
 			// deterministically.
-			paid := ParseCost(rp.sa.Params["UnlessCost"])
-			if !paid.Priceable() {
+			paid, ok := ParseUnlessCost(rp.sa.Params["UnlessCost"])
+			if !ok {
 				// I-5: an unless-cost the payment API cannot price is a hard
 				// DECLINE. ParseCost("X") is {Generic:0, X:1}; payMana never
 				// charges the unfolded X, so an empty pool "pays" it for free
 				// and the counterspell stays inert. An unpriceable cost must
-				// counter, never resolve at zero. This is the conservative
+				// decline, never resolve at zero. This is the conservative
 				// correct behaviour: a cleared counter is closer to the card
 				// than a no-op. The real fix (M4) is cost-grammar work — a
 				// value for X from CastInfo/ModeChosen or an SVar folded into
-				// Generic via WithX before payment, and a payer that can
-				// actually tap-to-pay mid-resolution — and belongs in
-				// rules/mana.go's cost grammar, not here. Until then the
-				// ask is still posed to the payer (the answer is recorded by
-				// ModeChosen) but neither "pay" nor "decline" can save the
-				// spell, so every unpriceable unless-pay resolves to the
-				// counter. Declining here (rather than suppressing the ask in
-				// effects, which cannot import rules' cost type) keeps the
-				// decision on the wire for hosts to observe while never
-				// letting an empty pool satisfy it.
+				// Generic via WithX before payment. ParseUnlessCost is the
+				// strict parser: every token must be a mana symbol, a fixed
+				// PayLife<N>, or a Sac/Discard/SubCounter component; X, Y,
+				// DamageYou<N>, PayEnergy<N>, Return<...>, ExileFromGrave<...>,
+				// Reveal<...>, LifeTotalHalfUp, DefinedCost_* and every other
+				// dynamic or unmodelled token declines here rather than
+				// ParseCost's flat {1} substitution buying it for one generic.
+				// The ask is still posed to the payer (the answer is recorded by
+				// ModeChosen) but cannot succeed. Declining here (rather than
+				// suppressing the ask in effects, which cannot import rules'
+				// cost type) keeps the decision on the wire for hosts to observe
+				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
 			} else if len(chosen) > 0 && chosen[0].Index == 0 {
-				if e.payMana(chosen[0].Player, paid) {
+				if len(paid.Sac) > 0 || len(paid.Discard) > 0 {
+					// Sacrifice and discard are choice-bearing costs. Park this
+					// resume before any mutation and let the payer select every
+					// component; finishUnlessPayment re-enters with unlessPay
+					// set, so this arm never charges it twice.
+					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
+					return
+				}
+				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
 				} else {
 					ctx.UnlessPay = "decline"
@@ -600,6 +677,40 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.UnlessPay = "decline"
 			}
+			// The payer whose answer this is (the unlessProceed gate moves a
+			// decline on to the next UnlessPayer$ payer, and a pay ends the
+			// ask), threaded through the decision's ResumeTarget via the
+			// resume point — the same channel the "choice" and "dig" arms use.
+			ctx.UnlessNext = rp.target
+		case "sacrifice_optional":
+			// Optional$ + StrictAmount$ is a disjoint choice (decline, or
+			// exactly Amount) that KChoose cannot represent. Its first KModes
+			// answer records only the election; effSacrifice then asks an exact
+			// KChoose if several complete batches are available.
+			ctx.SacOptional = "decline"
+			if len(chosen) > 0 && chosen[0].Index == 0 {
+				ctx.SacOptional = "sacrifice"
+			}
+			ctx.SacOptionalTarget = rp.target
+		case "sacrifice":
+			// A player-targeted Sacrifice's KChoose (CR 701.21a: the
+			// sacrificing player chooses which of their permanents) was
+			// answered. The chosen options carry the object in Obj (the same
+			// shape the "discard" and "dig" arms read), so the id list goes
+			// straight to Ctx.SacPicks in the player's answer order; SacDone
+			// distinguishes "answered, possibly with nothing" (an Optional$
+			// decline) from the first pass, and SacTarget keeps the answer
+			// attached to the exact Defined$ target that asked. effSacrifice
+			// consumes and clears all three at the top of its own walk, so a
+			// nested sacrifice cannot inherit the outer answer.
+			ctx.SacPicks = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.SacPicks = append(ctx.SacPicks, o.Obj)
+				}
+			}
+			ctx.SacDone = true
+			ctx.SacTarget = rp.target
 		case "ward_mana":
 			if e.answerWardMana(rp, chosen, ctx) {
 				return
@@ -662,13 +773,6 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.ChoiceDone = true
-		case "sacrifice":
-			ctx.Sacrifice = make([]state.ObjID, 0, len(chosen))
-			for _, o := range chosen {
-				if o.Obj != 0 {
-					ctx.Sacrifice = append(ctx.Sacrifice, o.Obj)
-				}
-			}
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate
@@ -831,9 +935,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// ensureLeftTheStack and applyReplacements already practise.
 		savedReplacement := e.applyingReplacement
 		e.applyingReplacement = rp.replacement
-		e.replReplaced, e.replAction = rp.replaced, rp.action
+		e.replReplaced, e.replAction, e.replReplacedPlayer = rp.replaced, rp.action, rp.replacedPlayer
 		effects.Resolve(e, ctx, rp.sa)
-		e.replReplaced, e.replAction = 0, ""
+		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
 		e.applyingReplacement = savedReplacement
 		e.damaging = 0
 		if e.resume != nil {
@@ -925,8 +1029,9 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		// replaced/id carried by this frame comes from the engine's active
 		// replacement context).
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
-			replaced: e.replReplaced, action: e.replAction, before: e.triggerBefore,
-			loopBound: cf.bound, loopRemembered: cf.remembered}
+			replaced: e.replReplaced, action: e.replAction, replacedPlayer: e.replReplacedPlayer,
+			before:    e.triggerBefore,
+			loopBound: cf.bound, loopRemembered: cf.remembered, repeatSubject: cf.repeatSubject}
 		if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
 			f.replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
 			if e.replacingEvent.Obj == 0 {

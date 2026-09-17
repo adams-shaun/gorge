@@ -57,10 +57,19 @@ func DrawFor(h Host, p state.PlayerID) {
 
 func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumCards", 1)
-	for _, t := range Defined(h, c, sa) {
+	// RememberDrawn$ records every card actually drawn into the resolution's
+	// Remembered (Breathstealer's Crypt's reveal-and-maybe-discard chain acts
+	// on exactly the drawn card; a library that ran out mid-draw records only
+	// what moved). Unread before this — the whole sub-chain saw nothing.
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDrawn"]), "True")
+	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		for i := int32(0); i < n; i++ {
+			lib := zoneOf(h.Game(), state.ZLibrary, p)
 			DrawFor(h, p)
+			if remember && len(lib) > 0 {
+				c.Remembered = append(c.Remembered, state.Target{Obj: lib[0]})
+			}
 		}
 	}
 }
@@ -99,8 +108,91 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 // ChangeValid$). Its default is "Card". The chooser/target split is what keeps
 // Thoughtseize from letting the opponent pick their own discard, and what
 // keeps a Mind Rot target's own choice from being made by the caster.
+// discardRiders carries the two Discard riders Forge applies per discarded
+// card (DiscardEffect -> Player.discard): RememberDiscarded$ records the card
+// in the resolution's Remembered set -- the ctx-level set a chained
+// SubAbility reads for "the cards discarded this way" -- AND event-backed on
+// the source (Forge adds to the host card's remembered list, which persists
+// past the resolution and is what Card.IsRemembered matches later);
+// RememberDiscardingPlayers$ records the discarding player (Forge's
+// discardedMap.keySet(), one corpus line).
+type discardRiders struct {
+	rememberCards   bool
+	rememberPlayers bool
+}
+
+func discardRidersOf(sa *cards.SA) discardRiders {
+	return discardRiders{
+		rememberCards:   strings.EqualFold(sa.Params["RememberDiscarded"], "True"),
+		rememberPlayers: strings.EqualFold(sa.Params["RememberDiscardingPlayers"], "True"),
+	}
+}
+
+// actingPlayers resolves a PLAYER-acting SA's targets: the explicit
+// Defined$/targeted set when the script names one; otherwise Forge's
+// player-side default (SpellAbilityEffect.getPlayers reads
+// paramOrDefault("Defined", "You")) -- the resolving ability's OWN controller,
+// not the source object's CURRENT controller. The two agreed everywhere until
+// the mid-resolution control-change primitives (RememberControlled$) went
+// live: they diverge the moment a resolution steals its own source (Kain,
+// Traitorous Dragoon -- "that player gains control of Kain. If they do, you
+// draw that many cards" must draw for the original controller, not the
+// taker). Object-acting effects keep Defined()'s source-object default. The
+// corpus's no-Defined population for these primitives (Draw, Discard, Mill,
+// Scry/Surveil, RearrangeTopOfLibrary) is behaviour-identical under the
+// change (c.Controller == the source's controller unless a mid-resolution
+// control change moved it), so no golden game moves.
+func actingPlayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
+	if strings.TrimSpace(sa.Params["Defined"]) != "" {
+		return Defined(h, c, sa)
+	}
+	if _, targeted := sa.Params["ValidTgts"]; targeted {
+		return Defined(h, c, sa)
+	}
+	return []state.Target{{Player: c.Controller, IsPlayer: true}}
+}
+
+// discardAndRemember emits one discard with the riders bound above.
+func discardAndRemember(h Host, c *Ctx, r discardRiders, id state.ObjID, p state.PlayerID) {
+	h.Emit(events.Discard(id, p))
+	if r.rememberCards {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		eventRemember(h, c, id)
+	}
+	if r.rememberPlayers && !targetIn(c.Remembered, state.Target{Player: p, IsPlayer: true}) {
+		c.Remembered = append(c.Remembered, state.Target{Player: p, IsPlayer: true})
+	}
+}
+
+// discardBounds is the min/max Forge's DiscardEffect computes for its
+// chooseCardsToDiscardFrom call, shared by the asking arms: AnyNumber$ is
+// min 0 with no cap short of the eligible hand, Optional$ lowers min to 0,
+// and otherwise min == max == NumCards (capped at the eligible count).
+// AnyNumber$ is implemented for the two asking modes (RevealYouChoose and
+// TgtChoose); the measured corpus population is TgtChoose-only (22 lines,
+// every one also Optional$ True), but the bounds themselves are one Forge
+// code path for all modes.
+func discardBounds(h Host, c *Ctx, sa *cards.SA, eligible int) (int, int) {
+	if strings.EqualFold(sa.Params["AnyNumber"], "True") {
+		return 0, eligible
+	}
+	n := int(Num(h, c, sa, "NumCards", 1))
+	if n < 1 {
+		n = 1
+	}
+	if n > eligible {
+		n = eligible
+	}
+	min := n
+	if strings.EqualFold(sa.Params["Optional"], "True") {
+		min = 0
+	}
+	return min, n
+}
+
 func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
+	riders := discardRidersOf(sa)
 	// fx42: capture the answered discard choice into a local and clear
 	// c.Discard before the target loop. The answer must stay scoped to the
 	// discard primitive that asked: a DISCARD reached below this one in the
@@ -117,7 +209,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	if valid == "" {
 		valid = "Card"
 	}
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		hand := zoneOf(g, state.ZHand, p)
 
@@ -133,7 +225,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 					if !containsID(hand, id) {
 						continue
 					}
-					h.Emit(events.Discard(id, p))
+					discardAndRemember(h, c, riders, id, p)
 				}
 				continue
 			}
@@ -148,13 +240,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			if len(eligible) == 0 {
 				continue
 			}
-			n := Num(h, c, sa, "NumCards", 1)
-			if n < 1 {
-				n = 1
-			}
-			if int(n) > len(eligible) {
-				n = int32(len(eligible))
-			}
+			askMin, askMax := discardBounds(h, c, sa, len(eligible))
 			opts := make([]decision.Option, 0, len(eligible))
 			for _, id := range eligible {
 				name := "a card"
@@ -165,9 +251,9 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 					Label: "Discard " + name, Obj: id, Player: c.Controller})
 			}
 			d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
-				Min: int(n), Max: int(n), Source: c.Source,
+				Min: askMin, Max: askMax, Source: c.Source,
 				ResumeKind: "discard", ResumeSA: sa,
-				Prompt:  "Choose " + strconv.Itoa(int(n)) + " card(s) to discard",
+				Prompt:  "Choose " + strconv.Itoa(askMin) + ".." + strconv.Itoa(askMax) + " card(s) to discard",
 				Options: opts}
 			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters with Ctx.Discard set.
@@ -179,8 +265,10 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// guard either way.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "discards its first card (no engine host to ask)"})
+			// Kept exactly as it was (ONE card, front of the RAW hand) apart
+			// from the riders, so a no-host run replays as before.
 			if len(hand) > 0 {
-				h.Emit(events.Discard(hand[0], p))
+				discardAndRemember(h, c, riders, hand[0], p)
 			}
 
 		case "TgtChoose":
@@ -194,7 +282,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 					if !containsID(hand, id) {
 						continue
 					}
-					h.Emit(events.Discard(id, p))
+					discardAndRemember(h, c, riders, id, p)
 				}
 				continue
 			}
@@ -210,18 +298,21 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			if len(eligible) == 0 {
 				continue
 			}
-			n := Num(h, c, sa, "NumCards", 1)
-			if n < 1 {
-				n = 1
-			}
-			// Only a real choice when there are STRICTLY more eligible cards
-			// than must be discarded. A hand with NumCards$ eligible cards (or
-			// fewer) must drop all of them with no question: the player could
-			// not answer differently, so emitting a decision nobody can
-			// meaningfully resolve would just be noise (R-9 contract).
-			if int32(len(eligible)) <= n {
+			askMin, askMax := discardBounds(h, c, sa, len(eligible))
+			if strings.EqualFold(sa.Params["AnyNumber"], "True") {
+				// "discard any number of cards": any eligible count from zero
+				// up is a real choice the moment one eligible card exists, so
+				// the strict-supersets gate does not apply to it -- a hand with
+				// exactly one eligible card can still legitimately answer
+				// "discard it" or "discard nothing".
+			} else if askMin == askMax && askMin == len(eligible) {
+				// Only a real choice when there are STRICTLY more eligible cards
+				// than must be discarded. A hand with NumCards$ eligible cards (or
+				// fewer) must drop all of them with no question: the player could
+				// not answer differently, so emitting a decision nobody can
+				// meaningfully resolve would just be noise (R-9 contract).
 				for _, id := range eligible {
-					h.Emit(events.Discard(id, p))
+					discardAndRemember(h, c, riders, id, p)
 				}
 				continue
 			}
@@ -235,9 +326,9 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 					Label: "Discard " + name, Obj: id, Player: p})
 			}
 			d := &decision.Decision{Player: p, Kind: decision.KModes,
-				Min: int(n), Max: int(n), Source: c.Source,
+				Min: askMin, Max: askMax, Source: c.Source,
 				ResumeKind: "discard", ResumeSA: sa,
-				Prompt:  "Choose " + strconv.Itoa(int(n)) + " card(s) to discard",
+				Prompt:  "Choose " + strconv.Itoa(askMin) + ".." + strconv.Itoa(askMax) + " card(s) to discard",
 				Options: opts}
 			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters with Ctx.Discard set.
@@ -250,8 +341,8 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// helper owns the guard either way.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "discards its first card (no engine host to ask)"})
-			for i := int32(0); i < n; i++ {
-				h.Emit(events.Discard(eligible[i], p))
+			for i := 0; i < askMax; i++ {
+				discardAndRemember(h, c, riders, eligible[i], p)
 			}
 
 		case "RevealDiscardAll":
@@ -260,9 +351,31 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// NumCards$ says. No ask.
 			for _, id := range hand {
 				if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
-					h.Emit(events.Discard(id, p))
+					discardAndRemember(h, c, riders, id, p)
 				}
 			}
+
+		case "Defined":
+			// DefinedCards$ names the cards to discard (Breathstealer's
+			// Crypt: "that player discards it" — the Remembered drawn card).
+			// Only cards still in this target's hand move; everything else
+			// (already gone, or never theirs) is skipped. The old default arm
+			// ignored DefinedCards$ entirely and discarded the front of hand.
+			if dc := strings.TrimSpace(sa.Params["DefinedCards"]); dc != "" {
+				for _, t := range discardDefinedCards(h, c, dc) {
+					if t.IsPlayer {
+						continue
+					}
+					for _, id := range hand {
+						if id == t.Obj {
+							h.Emit(events.Discard(id, p))
+							break
+						}
+					}
+				}
+				break
+			}
+			fallthrough
 
 		default:
 			// Deterministic discard from the top of hand order. Real discard is
@@ -282,7 +395,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				if len(cur) == 0 {
 					break
 				}
-				h.Emit(events.Discard(cur[0], p))
+				discardAndRemember(h, c, riders, cur[0], p)
 			}
 		}
 	}
@@ -306,7 +419,7 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 		n = 0
 	}
 	g := h.Game()
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		for i := int32(0); i < n; i++ {
 			lib := zoneOf(g, state.ZLibrary, p)
@@ -810,7 +923,7 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 		n = 0
 	}
 	g := h.Game()
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		lib := zoneOf(g, state.ZLibrary, p)
 		k := n
@@ -902,7 +1015,7 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, numKey, kind, verb string) 
 		n = 0
 	}
 	g := h.Game()
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		lib := zoneOf(g, state.ZLibrary, p)
 		k := n
@@ -981,4 +1094,18 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "name", Text: name})
+}
+
+// discardDefinedCards resolves a Discard SA's DefinedCards$ parameter to the
+// concrete objects it names. Only the group spellings the corpus's Mode$
+// Defined discards actually use are wired (Remembered and its aliases, the
+// targets); any other spelling falls through the generic Defined resolver.
+func discardDefinedCards(h Host, c *Ctx, spec string) []state.Target {
+	switch strings.Split(spec, ".")[0] {
+	case "Remembered", "RememberedLKI", "RememberedCard", "DirectRemembered":
+		return objectsOf(c.Remembered)
+	case "Targeted":
+		return objectsOf(c.Targets)
+	}
+	return Defined(h, c, &cards.SA{Params: map[string]string{"Defined": spec}})
 }

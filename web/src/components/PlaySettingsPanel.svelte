@@ -440,9 +440,10 @@
     <!-- fb-20260916T200925Z: the show/hide toggle for the ON-BOARD − / +
          steppers (Quadrant rows + HandFan). Same role="switch" row pattern
          as the auto-pass toggles, writing through the layout store, not
-         logic.editSettings — it is a layout preference. Default on = the
-         shipped board; a pre-toggle saved blob also loads as on (the field
-         is optional in lib/layoutsettings.ts' validate). -->
+         state.editSettings — it is a layout preference. Default OFF since
+         fb-20260917T004304Z (the board carries nothing but cards out of the
+         box); a pre-toggle saved blob also loads as off (the field is
+         optional in lib/layoutsettings.ts' validate). -->
     <button
       type="button"
       role="switch"

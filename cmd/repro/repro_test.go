@@ -47,12 +47,12 @@ func TestReproFixtureSummaryExitsZero(t *testing.T) {
 	}
 	for _, want := range []string{
 		"== feedback report " + fixtureID,
-		"replayed 21 of 21 recorded intents", // the fixture's own counts; regenerate both together
+		"replayed 24 of 24 recorded intents", // the fixture's own counts; regenerate both together
 		"recorded head",
 		"turn 2, round 1",
-		"active: seat 1, priority: seat 0",
+		"active: seat 0, priority: seat 0",
 		"life 20",
-		"Underground Sea",
+		"Mother of Runes",
 		"stack (top last):", // absent on an empty stack? checked loosely below
 		"last log lines:",
 	} {
@@ -160,13 +160,13 @@ func TestReproFixtureListPrintsTimeline(t *testing.T) {
 		t.Fatalf("exit %d, output:\n%s", code, out.String())
 	}
 	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
-	if len(lines) != 21 { // one line per intent; this fixture is not game over
-		t.Fatalf("timeline has %d lines, want 21:\n%s", len(lines), out.String())
+	if len(lines) != 24 { // one line per intent; this fixture is not game over
+		t.Fatalf("timeline has %d lines, want 24:\n%s", len(lines), out.String())
 	}
-	if !strings.Contains(out.String(), "  0  seat 0  priority") {
+	if !strings.Contains(out.String(), "  0  seat 1  priority") {
 		t.Errorf("timeline missing intent 0:\n%s", out.String())
 	}
-	if !strings.Contains(out.String(), "Play Underground Sea") {
+	if !strings.Contains(out.String(), "Play Plains") {
 		t.Errorf("timeline missing a choice summary:\n%s", out.String())
 	}
 }
@@ -179,7 +179,7 @@ func TestReproFixtureAtReplaysToIntent(t *testing.T) {
 	if code := run([]string{"-at", "6", fixtureRel}, &out, io.Discard); code != 0 {
 		t.Fatalf("exit %d, output:\n%s", code, out.String())
 	}
-	for _, want := range []string{"replayed 6 of 21 recorded intents", "turn 1, round 1, main1", "pending: seat 0 choose"} {
+	for _, want := range []string{"replayed 6 of 24 recorded intents", "turn 1, round 1, main1", "pending: seat 1 priority"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("summary missing %q:\n%s", want, out.String())
 		}
@@ -214,7 +214,7 @@ func TestReproFixtureAtRejectsOutOfRange(t *testing.T) {
 	if code := run([]string{"-at", "999", fixtureRel}, io.Discard, &stderr); code != 2 {
 		t.Fatalf("exit %d, want usage exit 2; stderr:\n%s", code, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "between 0 and 21 (got 999)") {
+	if !strings.Contains(stderr.String(), "between 0 and 24 (got 999)") {
 		t.Errorf("range error missing actual bounds:\n%s", stderr.String())
 	}
 }
@@ -231,7 +231,7 @@ func TestReproFixtureIgnoresTamperedIntentCount(t *testing.T) {
 	if code := run([]string{dir}, &out, io.Discard); code != 0 {
 		t.Fatalf("exit %d, output:\n%s", code, out.String())
 	}
-	if !strings.Contains(out.String(), "replayed 21 of 21 recorded intents") {
+	if !strings.Contains(out.String(), "replayed 24 of 24 recorded intents") {
 		t.Errorf("summary trusted tampered intent_count:\n%s", out.String())
 	}
 }
@@ -310,7 +310,24 @@ func TestReproOnFreshSnapshot(t *testing.T) {
 	if code := run([]string{dir}, &out, io.Discard); code != 0 {
 		t.Fatalf("exit %d, output:\n%s", code, out.String())
 	}
-	if !strings.Contains(out.String(), "replayed 21 of 21 recorded intents") {
+	// 21 -> 24 (2026-09-17): main's sacrifice-asks-its-player and
+	// remembered/triggered-referents merges pose real asks this same opening
+	// sequence did not before, so the same advance(12) gate count now
+	// captures more total intents.
+	//
+	// 24 -> 25 (2026-09-17, later the same day): the capture point itself
+	// became deterministic. gatedFixtureRegistry's advance used to return
+	// after the last release WITHOUT waiting for that released decision's
+	// burst to be applied, so the snapshot raced the match goroutine and
+	// caught 24 or 25 recorded intents depending on scheduling (3/300 at
+	// default procs here; both replays verified every time — only this
+	// fixed-count assertion could tell). advance now waits for seat 0's
+	// NEXT decision to reach the gate — the match parked inside Decide with
+	// every earlier event emitted — and the count is stably 25 (150 events,
+	// head 775a4dcd17aaf606; 200/200 at GOMAXPROCS=2). The committed
+	// fixture stays at its own recorded 24; regenerate it and its
+	// assertions together if it is ever re-recorded (REPRO_REGEN_FIXTURE).
+	if !strings.Contains(out.String(), "replayed 25 of 25 recorded intents") {
 		t.Errorf("fresh snapshot summary unexpected:\n%s", out.String())
 	}
 	out.Reset()

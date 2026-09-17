@@ -495,6 +495,13 @@ func TestControlEndsAtEndOfCombatAndWhenAuraUnattaches(t *testing.T) {
 	sa = cards.ResolveSVar(eriette.Face().SVars, "TrigGainControl")
 	ctx = &effects.Ctx{Source: eriette.ID, Controller: 0, Targets: []state.Target{{Obj: victim.ID}}, SVars: eriette.Face().SVars}
 	ctx.TriggerSource = aura.ID
+	// Eriette's script is `Defined$ TriggeredTarget`: the triggering
+	// permanent the Aura became attached to. The fixture supplies the
+	// binding a real Attached-trigger capture would carry (previously the
+	// unbound form fell back to the resolution's Targets; it now fails
+	// closed like every other known-but-absent referent, so the fixture
+	// must carry the referent itself).
+	ctx.TriggerTarget = state.Target{Obj: victim.ID}
 	effects.Resolve(e, ctx, sa)
 	if e.G.Obj(victim.ID).Controller != 0 {
 		t.Fatalf("Eriette did not gain control: controller %d", e.G.Obj(victim.ID).Controller)
@@ -825,6 +832,15 @@ func TestBraidsRepeatEachSeesTheSacrificedCard(t *testing.T) {
 	hand, life := len(e.G.Zone(state.ZHand, 0)), e.G.Players[1].Life
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: braids, Player: 0, Amount: 0})
 	e.resolveTop()
+	// The controller's optional sacrifice is now a real KChoose (CR
+	// 701.21a): the relic and Braids itself are both eligible, offered in
+	// battlefield order. Answer with option 0 -- the relic, which is what
+	// the pre-ask engine deterministically took.
+	if d := e.Pending(); d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("pending decision = %+v, want the sacrifice KChoose", d)
+	} else {
+		submitChoices(t, e, 0)
+	}
 	if e.G.Obj(braids).Zone != state.ZBattlefield || e.G.Obj(relic).Zone != state.ZGraveyard {
 		t.Fatalf("Braids zone %v relic zone %v, want Braids kept and the relic sacrificed",
 			e.G.Obj(braids).Zone, e.G.Obj(relic).Zone)

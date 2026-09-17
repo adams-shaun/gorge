@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import type { PlayerView, View } from '../protocol';
 import Board from './Board.svelte';
+import { layoutStore } from '../lib/layoutsettings.svelte';
 
 /**
  * Board threads the layout settings' `own` flag (fb-20260916T182801Z): the
@@ -36,14 +37,23 @@ const view = (viewer: number, seats: number): View => ({
 
 describe('Board — the resize stepper mounts on the viewer\'s own quadrant only', () => {
   it('a 1v1 viewer sees one stepper set (their own quadrant), the opponent\'s has none', () => {
-    const { html } = render(Board, { props: { view: view(0, 2), seats: [] } });
-    const own = html.indexOf('data-seat="0"');
-    const theirs = html.indexOf('data-seat="1"');
-    expect(own).toBeGreaterThanOrEqual(0);
-    expect(theirs).toBeGreaterThan(own);
-    // the stepper markup appears only inside the own quadrant's span
-    expect(html.slice(own, theirs)).toContain('data-zone-stepper');
-    expect(html.slice(theirs)).not.toContain('data-zone-stepper');
+    // fb-20260917T004304Z: the shipped default is HIDDEN, so the shared
+    // store opts in for the mount assertions (the exact call the panel's
+    // toggle onclick makes).
+    layoutStore.setSteppersOnBoard(true);
+    try {
+      const { html } = render(Board, { props: { view: view(0, 2), seats: [] } });
+      const own = html.indexOf('data-seat="0"');
+      const theirs = html.indexOf('data-seat="1"');
+      expect(own).toBeGreaterThanOrEqual(0);
+      expect(theirs).toBeGreaterThan(own);
+      // the stepper markup appears only inside the own quadrant's span
+      expect(html.slice(own, theirs)).toContain('data-zone-stepper');
+      expect(html.slice(theirs)).not.toContain('data-zone-stepper');
+    } finally {
+      layoutStore.reset();
+      layoutStore.dispose();
+    }
   });
 
   it('a spectator (viewer -1) sees no stepper anywhere', () => {

@@ -189,6 +189,24 @@ func TestCR608CorpusOrdinaryBurnFinishesInGraveyard(t *testing.T) {
 			start := len(e.L.Events)
 			e.pending = nil
 			e.resolveTop()
+			// A burn SA may carry an UnlessCost$ (Blazing Salvo's "deals 3
+			// damage unless that creature's controller has CARDNAME deal 5
+			// damage to them"): the unless-pay ask suspends the resolution
+			// mid-way and the resting zone is only reached once it is
+			// answered. Answer every pending ask with its LAST option — the
+			// decline arm of the pay/decline KModes — the conservative answer
+			// that lets the effect's own body run and the spell rest. Nothing
+			// else in this population asks.
+			for i := 0; i < 4 && e.pending != nil; i++ {
+				d := e.pending
+				if d.Kind != decision.KModes || d.ResumeKind != "unless_pay" {
+					break // the resolution finished; what is pending is not this ask
+				}
+				if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player,
+					Choices: []int{d.Options[len(d.Options)-1].Index}}); err != nil {
+					t.Fatalf("CR 608.2b %s: answer the pending ask: %v", f.Name, err)
+				}
+			}
 			resolves, resolved, moved := 0, -1, -1
 			for _, ev := range e.L.Events[start:] {
 				if ev.Kind == events.Resolve && ev.Obj == id {

@@ -77,6 +77,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.TokenCreate, Player: owner, Text: key})
 			if remember && g.Obj(want) != nil {
 				c.Remembered = append(c.Remembered, state.Target{Obj: want})
+				eventRemember(h, c, want)
 			}
 		}
 	}

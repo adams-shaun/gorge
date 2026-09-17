@@ -465,7 +465,9 @@ func (e *Engine) targetName(source state.ObjID) string {
 // one helper so an ability object can never reach a nil-Face dereference in
 // either.
 func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
-	label := e.G.Players[candidate.player].Name
+	// The controller's name is seat-facing (the seat that answers sees it),
+	// so it prefers the table's display name over the deck-identity slug.
+	label := seatFacingName(e.G, candidate.player)
 	if candidate.obj != 0 {
 		label = e.targetName(candidate.obj) + " (" + label + ")"
 	}
@@ -700,16 +702,50 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := targetBounds(sa)
+	candidates := e.legalTargetCandidates(p, source, source, sa)
+	oneEach := strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True")
+	groups := map[state.PlayerID]bool{}
+	if oneEach {
+		// Forge TargetRestrictions.setForEachPlayer limits the selected targets
+		// to one controlled by each player. Option.Group makes that restriction
+		// part of the generic decision contract, so every target API consumes
+		// the same enforcement rather than each effect maintaining a picker.
+		for _, candidate := range candidates {
+			owner := candidate.player
+			if candidate.kind != "player" {
+				if o := e.G.Obj(candidate.obj); o != nil {
+					owner = o.Controller
+				}
+			}
+			groups[owner] = true
+		}
+		if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
+			min = len(groups)
+		}
+		if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
+			max = len(groups)
+		}
+	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
-	for _, candidate := range e.legalTargetCandidates(p, source, source, sa) {
+	for _, candidate := range candidates {
 		// targetOptionLabel tolerates the Face-less ability object a
 		// TargetType$ Activated/Triggered spec now offers: targetName falls
 		// back to the source permanent's name.
 		label := e.targetOptionLabel(candidate)
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
-			Label: label, Obj: candidate.obj, Player: candidate.player})
+		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: label, Obj: candidate.obj, Player: candidate.player}
+		if oneEach {
+			owner := candidate.player
+			if candidate.kind != "player" {
+				if obj := e.G.Obj(candidate.obj); obj != nil {
+					owner = obj.Controller
+				}
+			}
+			o.Group = "target-controller-" + strconv.Itoa(int(owner))
+		}
+		d.Options = append(d.Options, o)
 	}
 	if min == 0 {
 		// Requirement N2 / totality: a target-hungry subject whose minimum
@@ -1534,4 +1570,112 @@ func targetsPermanents(spec string) bool {
 		}
 	}
 	return false
+}
+
+// payUnlessCost charges the non-choice subset of a mid-resolution
+// UnlessCost$ to payer p. Sacrifice and discard components are deliberately
+// refused here: beginUnlessPayment owns every such component and gathers the
+// payer's selected objects before it calls payMana. Keeping this guard makes
+// a future caller unable to silently revive the old first-in-zone-order
+// stand-in. Fixed mana/life, SubCounter and Draw components remain
+// synchronous: a Draw<N/Spec> pays by drawing N cards for the player(s) the
+// spec names (default the payer), resolved through the same Ctx roles the
+// UnlessPayer$ grammar reads.
+func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
+	if len(cost.Sac) != 0 || len(cost.Discard) != 0 {
+		return false
+	}
+	if int(p) < 0 || int(p) >= len(e.G.Players) {
+		return false
+	}
+	g := e.G
+	// The source the SubCounter parts drain is the activated ability's host
+	// when this is an ability object, otherwise the resolving source.
+	src := ctx.Source
+	if o := g.Obj(stackObj); o != nil && o.Ability != nil {
+		src = o.Source
+	}
+	type counterDrain struct {
+		obj  state.ObjID
+		kind string
+		n    int32
+	}
+	var drains []counterDrain
+	for _, part := range cost.SubCounter {
+		o := g.Obj(src)
+		if o == nil {
+			return false
+		}
+		have := int32(0)
+		for _, ct := range o.Counters {
+			if ct.Kind == part.Spec {
+				have += ct.N
+			}
+		}
+		if have < part.N {
+			return false
+		}
+		drains = append(drains, counterDrain{obj: o.ID, kind: part.Spec, n: part.N})
+	}
+	// Resolve every drawer before charging mana/life. A Draw component whose
+	// role is unavailable makes the entire cost unpayable; validating first
+	// avoids a partial payment followed by a silent omitted draw.
+	drawers := make([][]state.PlayerID, len(cost.Draw))
+	for i, part := range cost.Draw {
+		players, ok := unlessDrawPlayers(ctx, p, part.Spec)
+		if !ok {
+			return false
+		}
+		for _, dp := range players {
+			if int(dp) < 0 || int(dp) >= len(g.Players) {
+				return false
+			}
+		}
+		drawers[i] = players
+	}
+	// Everything is affordable: charge mana/life through ordinary events,
+	// then apply the synchronous counter components, then the draws.
+	if !e.payMana(p, cost) {
+		return false
+	}
+	for _, d := range drains {
+		e.emit(events.Event{Kind: events.CounterChange, Obj: d.obj, Counter: d.kind, Amount: -d.n})
+	}
+	for i, part := range cost.Draw {
+		for _, dp := range drawers[i] {
+			for n := int32(0); n < part.N; n++ {
+				effects.DrawFor(e, dp)
+			}
+		}
+	}
+	return true
+}
+
+// unlessDrawPlayers resolves a Draw<N/Spec> cost component's drawer(s). The
+// empty spec and "You" are the payer; every other spelling is one of the
+// player roles the unless-payment context carries, and an unresolvable or
+// unknown spec fails closed (the cost was not paid).
+func unlessDrawPlayers(ctx *effects.Ctx, payer state.PlayerID, spec string) ([]state.PlayerID, bool) {
+	one := func(t state.Target) ([]state.PlayerID, bool) {
+		if t.IsPlayer {
+			return []state.PlayerID{t.Player}, true
+		}
+		return nil, false
+	}
+	switch spec {
+	case "", "You", "Player", "Self":
+		return []state.PlayerID{payer}, true
+	case "Player.targetedBy", "Targeted", "TargetedPlayer":
+		if len(ctx.Targets) == 0 {
+			return nil, false
+		}
+		return one(ctx.Targets[0])
+	case "Player.Activator", "TriggeredActivator":
+		return one(ctx.TriggerActivator)
+	case "Player.TriggeredPlayer", "TriggeredPlayer":
+		return one(ctx.TriggerPlayer)
+	case "Player.TriggeredTarget", "TriggeredTarget":
+		return one(ctx.TriggerTarget)
+	}
+	return nil, false
 }

@@ -8,7 +8,6 @@
   import Rail from '../components/Rail.svelte';
   import IdentityBar from '../components/IdentityBar.svelte';
   import PileHost from '../components/PileHost.svelte';
-  import RecentStrip from '../components/RecentStrip.svelte';
   import Transcript from '../components/Transcript.svelte';
   import DvrBar from '../components/DvrBar.svelte';
   import MatchList from '../components/MatchList.svelte';
@@ -271,7 +270,12 @@
             options={boardOptions}
           />
         {/each}
-        <RecentStrip view={m.view} events={m.dvr.events} />
+        <!-- The last resolved card's artwork lives in the rail's stack
+             section now (fb-20260916T225456Z): Rail renders ResolvedCard
+             from the same m.dvr.events it already receives, and the old
+             RecentStrip board overlay — absolutely positioned over the
+             board's bottom centre, a patchwork of two earlier complaints
+             about the same element — is deleted. -->
         <!-- `finished` is the /t/:table/m/:match route: loadFinished paints a
              FROZEN replay of an already-played match, with no stream and no
              session.focus, so view.decision is whatever was pending at that

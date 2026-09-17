@@ -219,7 +219,7 @@ func (e *Engine) askAttackers() {
 				continue
 			}
 			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
-				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + e.G.Players[d].Name,
+				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + seatFacingName(e.G, d),
 				Obj:   id, Player: d, Required: mustAtt[id]})
 		}
 	}

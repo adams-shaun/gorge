@@ -84,6 +84,19 @@ type artCache struct {
 	// stop function (production: time.AfterFunc). The fill's time budget is
 	// armed through it, so a test trips the budget on the fake clock.
 	afterFunc func(d time.Duration, f func()) (stop func() bool)
+	// waitBudget bounds how long one CLIENT route request (/art/named,
+	// /cards/named) may hold its browser connection waiting for the outbound
+	// Scryfall fetch to settle — see boundedWait. The outbound fetches are
+	// serialized by sem (one at a time) and each can burn the client's whole
+	// 15s timeout (or minutes of 429 backoff), so on a degraded network a
+	// cold-cache page's burst of art lookups can pin every one of the
+	// browser's per-origin connections and starve the page's OWN same-origin
+	// API traffic (pending/view/events) for the whole chain — measured in the
+	// fb-20260917T004304Z smoke gate, where a wedged page never answered its
+	// mulligan-keep follow-ups and the R-E4-1 driver timed out. The budget is
+	// a field, not a constant, for the same reason pace is: a test seam. 0 =
+	// unbounded (the pre-fix behaviour; nothing in production sets it).
+	waitBudget time.Duration
 	// logf, when non-nil, gets one line per 429 retry so an operator can see
 	// the limiter working in the demo log (nil → silent; the fill and serve
 	// set it).
@@ -119,6 +132,7 @@ func newArtCache(dir string) (*artCache, error) {
 		now:          time.Now,
 		sleep:        sleepCtx,
 		afterFunc:    func(d time.Duration, f func()) func() bool { return time.AfterFunc(d, f).Stop },
+		waitBudget:   artWaitBudget,
 		inflight:     map[string]chan struct{}{},
 	}, nil
 }
@@ -404,6 +418,59 @@ func (c *scryNamed) facts(name string) cardFacts {
 	return f
 }
 
+// artWaitBudget is the production wait budget for the client routes — see
+// artCache.waitBudget. A healthy Scryfall named lookup settles well inside it
+// (a cold-cache hit is one paced round trip, typically well under a second);
+// the budget only bites when the upstream is slow or unreachable, where the
+// alternative is holding the browser's connection for the whole serialized
+// fetch chain.
+const artWaitBudget = 2 * time.Second
+
+// errArtPending is boundedWait's answer when the budget expired while the
+// outbound fetch was still running. The client routes map it to 503 —
+// "retry shortly", not a known miss — and the fetch itself keeps running
+// detached, so a later request (the client's 60s offline-backoff retry, or a
+// fresh page) reads the settled entry from disk as a plain cache hit.
+var errArtPending = errors.New("scryfall fetch still in flight")
+
+// artResult is the buffered hand-off boundedWait's detached goroutine makes
+// when the fetch settles: the caller may already have left by then, so the
+// channel is buffered and the send simply lands in it.
+type artResult struct {
+	hit bool
+	err error
+}
+
+// boundedWait races run against the wait budget. The whole point is that the
+// outbound fetch is NOT cancelled when the budget expires — the caller's
+// connection is released with a 503 while the fetch keeps running detached
+// (context.WithoutCancel of the request's context, never cancelled) and
+// settles the cache on disk for whoever asks next. The budget timer is armed
+// through afterFunc, this cache's clock seam, so a fake-clock test gets a
+// fake budget too. run must be safe to keep running after boundedWait has
+// returned, which every singleFlight work closure here is: it only touches
+// the cache's own state and the disk.
+func (a *artCache) boundedWait(ctx context.Context, run func(context.Context) (bool, error)) (bool, error) {
+	if a.waitBudget <= 0 {
+		return run(ctx)
+	}
+	fetchCtx := context.WithoutCancel(ctx)
+	done := make(chan artResult, 1)
+	go func() {
+		hit, err := run(fetchCtx)
+		done <- artResult{hit, err}
+	}()
+	fired := make(chan struct{})
+	stop := a.afterFunc(a.waitBudget, func() { close(fired) })
+	defer stop()
+	select {
+	case r := <-done:
+		return r.hit, r.err
+	case <-fired:
+		return false, errArtPending
+	}
+}
+
 // named answers GET /art/named?exact=<name> with the same two fields the
 // client's image-resolution logic already reads out of a Scryfall response —
 // name and image_uris.normal — except normal now points at this server's own
@@ -417,7 +484,13 @@ func (a *artCache) named(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := artKey(name)
-	hit, err := a.ensure(r.Context(), key, name)
+	hit, err := a.boundedWait(r.Context(), func(c context.Context) (bool, error) {
+		return a.ensure(c, key, name)
+	})
+	if errors.Is(err, errArtPending) {
+		http.Error(w, "card art is still being fetched from the upstream catalog; retry shortly", http.StatusServiceUnavailable)
+		return
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
@@ -454,7 +527,13 @@ func (a *artCache) text(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := artKey(name)
-	hit, err := a.ensureText(r.Context(), key, name)
+	hit, err := a.boundedWait(r.Context(), func(c context.Context) (bool, error) {
+		return a.ensureText(c, key, name)
+	})
+	if errors.Is(err, errArtPending) {
+		http.Error(w, "card facts are still being fetched from the upstream catalog; retry shortly", http.StatusServiceUnavailable)
+		return
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
