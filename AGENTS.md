@@ -110,8 +110,9 @@ support fails and is named together with the primitives it is missing, and a
 table entry the build now supports is stale and fails too. Measured
 2026-09-17, the ratchet stands at **0 of 719** -- every one of the 719
 distinct cards across the repo deck files (`internal/testutil/decks/*.json`:
-12 60-card constructed decks plus 11 Commander decks) is fully supported and
-plays. The 12 Legacy decks round-robin across 2/4/6/8 seats
+14 60-card constructed decks plus 9 Commander decks) is fully supported and
+plays. The 12 pinned Legacy decks (`legacyDeckNames`) round-robin across
+2/4/6/8 seats
 (`TestRepoDecksPlayAtEverySeatCount`), replay byte-identically
 (`TestRepoDeckGamesReplayExactly`), and `TestHeads` pins the chain heads as
 goldens in `rules/heads_test.go`:

@@ -136,9 +136,9 @@ regardless. Match files accumulate in `gorged-data/` (override with `-dir`).
 
 ## Status
 
-The engine fully supports every card across the repo's 23 bundled decks (12
-60-card constructed, 11 Commander — the coverage ratchet stands at 0 of 719
-distinct cards), the 12 constructed decks play golden games at every seat
+The engine fully supports every card across the repo's 23 bundled decks (14
+60-card constructed, 9 Commander — the coverage ratchet stands at 0 of 719
+distinct cards), the 12 pinned Legacy decks play golden games at every seat
 count and replay byte-identically, and `gorged` serves perpetual bot tables
 to a browser. But it is **not** ready for parity or production use.
 
