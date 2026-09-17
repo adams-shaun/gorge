@@ -152,7 +152,11 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
 	var out []*cards.SA
 	for _, ma := range o.Face().ManaAbilities() {
-		if abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
+		// Activation$ (Mox Opal's "Activate only if you control three or more
+		// artifacts"): the same keyword-condition gate the printed-ability
+		// offer loop in rules/legal.go applies, so the priority action, the
+		// payment window and the chosen activation share one member set.
+		if abilityZoneOK(ma, o.Zone) && e.activationConditionOK(p, ma) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
 			out = append(out, ma)
 		}
 	}

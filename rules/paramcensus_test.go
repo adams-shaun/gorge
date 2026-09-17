@@ -1819,6 +1819,11 @@ var ignoredParamKeys = map[string]string{
 	"Description":    "UI/dialog description; forge-game/src/main/java/forge/game/card/CardFactory.java",
 	"SelectPrompt":   "search prompt message; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
 	"Image":          "effect-token image key; forge-game/src/main/java/forge/game/card/CardFactory.java",
+	// Ultimate$ marks a planeswalker's ultimate for the AI's ability ranking
+	// and the achievement tracker; it gates nothing rules-side (the CR 606.3
+	// loyalty gating is the loyalty COST and the permanent's once-per-turn
+	// limit, both already enforced).
+	"Ultimate": "AI ranking + achievement marker; forge-ai/src/main/java/forge/ai/ComputerUtilAbility.java, forge-ai/src/main/java/forge/ai/ComputerUtilCard.java, forge-game/src/main/java/forge/game/player/AchievementTracker.java",
 }
 
 // censusResult is one census run: per-card labels plus aggregate sets.
@@ -2098,7 +2103,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Blazemire Verge":             {"param:api:Mana.IsPresent"},
 	"Bloodchief Ascension":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Cavern of Souls":             {"param:api:ChooseType.Type", "param:api:Mana.AddsNoCounter"},
-	"Chandra, Awakened Inferno":   {"param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate"},
+	"Chandra, Awakened Inferno":   {"param:api:DealDamage.ReplaceDyingDefined"},
 	"Conduit of Worlds":           {"param:api:Play.RememberPlayed"},
 	"Dark Fortress":               {"param:api:Mana.IsPresent"},
 	"Deadly Rollick":              {"param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer"},
@@ -2108,15 +2113,13 @@ var knownUnsupportedParams = map[string][]string{
 	"Exploration Broodship":       {"param:stat:Continuous.AddStaticAbility"},
 	"Flickerwisp":                 {"param:api:DelayedTrigger.RememberObjects"},
 	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
-	"Horizon Explorer":            {"param:api:Untap.ETB"},
-	"Jace, the Mind Sculptor":     {"param:api:ChangeZoneAll.Shuffle", "param:api:ChangeZoneAll.Ultimate"},
+	"Jace, the Mind Sculptor":     {"param:api:ChangeZoneAll.Shuffle"},
 	"Journey to Nowhere":          {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
-	"Karn Liberated":              {"param:api:ChangeZoneAll.GainControl", "param:api:RestartGame.RestrictFromValid", "param:api:RestartGame.RestrictFromZone", "param:api:RestartGame.Ultimate"},
+	"Karn Liberated":              {"param:api:ChangeZoneAll.GainControl", "param:api:RestartGame.RestrictFromValid", "param:api:RestartGame.RestrictFromZone"},
 	"Knight of the White Orchid":  {"param:trig:ChangesZone.CheckSVar", "param:trig:ChangesZone.SVarCompare"},
 	"Land Tax":                    {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Leonin Relic-Warder":         {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
 	"Lion's Eye Diamond":          {"param:api:Mana.InstantSpeed"},
-	"Lord Windgrace":              {"param:api:Destroy.Ultimate"},
 	"Master of Etherium":          {"param:stat:Continuous.CharacteristicDefining"},
 	"Mistveil Plains":             {"param:api:ChangeZone.IsPresent", "param:api:ChangeZone.PresentCompare"},
 	"Mogis, God of Slaughter":     {"param:stat:Continuous.RemoveType"},
@@ -2127,11 +2130,8 @@ var knownUnsupportedParams = map[string][]string{
 	"Oracle of Mul Daya":          {"param:stat:Continuous.MayLookAt"},
 	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
 	"Planetary Annihilation":      {"param:api:ChooseCard.Reveal"},
-	"Ponder":                      {"param:api:RearrangeTopOfLibrary.MayShuffle"},
-	"Price of Progress":           {"param:api:RepeatEach.DamageMap"},
 	"Purphoros, God of the Forge": {"param:stat:Continuous.RemoveType"},
 	"Resplendent Angel":           {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
-	"Sea Gate Wreckage":           {"param:api:Draw.Activation"},
 	"Skyclave Apparition":         {"param:api:Token.TokenPower", "param:api:Token.TokenToughness"},
 	"Snapcaster Mage":             {"param:api:Pump.PumpZone"},
 	"Splendid Reclamation":        {"param:api:ChangeZoneAll.Tapped"},
@@ -2140,7 +2140,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Tainted Peak":                {"param:api:Mana.IsPresent"},
 	"Temple of the False God":     {"param:api:Mana.IsPresent", "param:api:Mana.PresentCompare"},
 	"Terminus":                    {"param:api:ChangeZoneAll.LibraryPosition"},
-	"Thirst for Knowledge":        {"param:api:Discard.UnlessType"},
 	"Thornspire Verge":            {"param:api:Mana.IsPresent"},
 	"Valakut Exploration":         {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Valkyrie Harbinger":          {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
@@ -2148,7 +2147,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Wastewood Verge":             {"param:api:Mana.IsPresent"},
 	"Whisperer of the Wilds":      {"param:api:Mana.IsPresent"},
 	"World Shaper":                {"param:api:ChangeZoneAll.Tapped", "param:api:Mill.Optional"},
-	"Wrenn and Six":               {"param:api:Effect.Stackable", "param:api:Effect.Ultimate"},
+	"Wrenn and Six":               {"param:api:Effect.Stackable"},
 	"Zombie Apocalypse":           {"param:api:ChangeZoneAll.Tapped"}}
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across

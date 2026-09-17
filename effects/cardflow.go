@@ -281,6 +281,23 @@ func discardBounds(h Host, c *Ctx, sa *cards.SA, eligible int) (int, int) {
 	return min, n
 }
 
+// unlessTypeEligible returns the hand cards matching any comma-separated
+// UnlessType$ spec, in hand order -- the unless alternative's candidate set
+// (Thirst for Knowledge's "discard an artifact card").
+func unlessTypeEligible(g *state.Game, c *Ctx, hand []state.ObjID, unless string) []state.ObjID {
+	var out []state.ObjID
+	for _, id := range hand {
+		for _, spec := range strings.Split(unless, ",") {
+			spec = strings.TrimSpace(spec)
+			if spec != "" && MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				out = append(out, id)
+				break
+			}
+		}
+	}
+	return out
+}
+
 func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	riders := discardRidersOf(sa)
@@ -387,6 +404,77 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 			if len(eligible) == 0 {
+				continue
+			}
+			// UnlessType$ (Thirst for Knowledge's "discard two cards unless
+			// you discard an artifact card"): the discarding player may instead
+			// discard ONE card of the named type. Forge's DiscardEffect reads
+			// the key only in its TgtChoose branch, swapping the ordinary
+			// numCards pick for chooseCardsToDiscardUnlessType, so that is the
+			// only mode this walk widens. The election is a real choice the
+			// moment one unless-eligible card is in hand -- discarding the
+			// artifact and discarding the full count are answers nobody else
+			// can make, and the strict-supersets no-ask rule below would
+			// otherwise silently drop the alternative. The election's answer
+			// re-enters through the "discard_unless" resume arm; the unless
+			// arm's own multi-candidate pick re-uses the ordinary "discard"
+			// arm (Min == Max == 1). fx42 scoping: the election is consumed and
+			// cleared before any further ask this walk poses.
+			elected := c.UnlessElected
+			c.UnlessElected = ""
+			unlessSpec := strings.TrimSpace(sa.Params["UnlessType"])
+			if elected == "unless" && unlessSpec != "" {
+				picks := unlessTypeEligible(g, c, hand, unlessSpec)
+				if len(picks) == 1 {
+					discardAndRemember(h, c, riders, picks[0], p)
+					continue
+				}
+				if len(picks) > 1 {
+					opts := make([]decision.Option, 0, len(picks))
+					for _, id := range picks {
+						name := "a card"
+						if o := g.Obj(id); o != nil && o.Face() != nil {
+							name = o.Face().Name
+						}
+						opts = append(opts, decision.Option{Index: len(opts), Kind: "discard",
+							Label: "Discard " + name + " instead", Obj: id, Player: p})
+					}
+					d := &decision.Decision{Player: p, Kind: decision.KModes,
+						Min: 1, Max: 1, Source: c.Source,
+						ResumeKind: "discard", ResumeSA: sa,
+						Prompt:  "Discard one " + unlessSpec + " card instead",
+						Options: opts}
+					if Ask(h, d) == AskAsked {
+						return // resolution suspended; the answer re-enters with Ctx.Discard set.
+					}
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+						Text: "discards its first " + unlessSpec + " card (no engine host to ask)"})
+					discardAndRemember(h, c, riders, picks[0], p)
+					continue
+				}
+				// The unless-eligible card left the hand meanwhile; fall through
+				// to the ordinary discard below.
+			} else if elected == "" && unlessSpec != "" && len(unlessTypeEligible(g, c, hand, unlessSpec)) > 0 {
+				nOrd := Num(h, c, sa, "NumCards", 1)
+				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+					Source: c.Source, ResumeKind: "discard_unless", ResumeSA: sa,
+					Prompt: "Discard one " + unlessSpec + " card instead of " + strconv.FormatInt(int64(nOrd), 10) + "?",
+					Options: []decision.Option{
+						{Index: 0, Kind: "unless", Label: "Yes — discard one " + unlessSpec, Player: p},
+						{Index: 1, Kind: "ordinary", Label: "No — discard normally", Player: p},
+					}}
+				if Ask(h, d) == AskAsked {
+					return // resolution suspended; the answer re-enters with Ctx.UnlessElected set.
+				}
+				// Fuzz/no-engine host: the deterministic stand-in takes the
+				// unless alternative's first card -- Forge's AI does the same
+				// thing (PlayerControllerAi.chooseCardsToDiscardUnlessType
+				// discards the min-CMC card of the type whenever one exists),
+				// with the Note that records why the richer path did not run.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "discards its first " + unlessSpec + " card instead (no engine host to ask)"})
+				picks := unlessTypeEligible(g, c, hand, unlessSpec)
+				discardAndRemember(h, c, riders, picks[0], p)
 				continue
 			}
 			askMin, askMax := discardBounds(h, c, sa, len(eligible))
@@ -1178,6 +1266,15 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 // unchanged). Decision.Player is p, the library's owner — the player who is
 // looking at and reordering their own top cards.
 func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
+	// MayShuffle$ True (Ponder's "You may shuffle."): after the arrange is
+	// applied, an optional shuffle. The ask is posed on the arrange RE-ENTRY
+	// pass only -- the arrangement has been applied by then, so the shuffle
+	// question asks about a settled library. The answer flows back through
+	// the "arrange_mayshuffle" resume arm, which emits the Shuffle event
+	// itself and re-enters this effect with both Arrange and MayShuffle set;
+	// the MayShuffle done-marker (consumed and cleared here, fx42 scoping)
+	// keeps that third pass from posing the ask again.
+	mayShuffle := strings.EqualFold(strings.TrimSpace(sa.Params["MayShuffle"]), "True")
 	// Re-entry after rules' handleArrange applied the answered KArrange and
 	// emitted the LibraryOrder event: this pass must only let the resolution
 	// continue (the chained SubAbility$ runs), not re-ask or re-emit. Clear
@@ -1185,6 +1282,26 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 	// an outer arrange's "done".
 	if c.Arrange {
 		c.Arrange = false
+		if mayShuffle && c.MayShuffle == "" {
+			for _, t := range actingPlayers(h, c, sa) {
+				p := PlayerOf(h, c, t)
+				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+					Source: c.Source, ResumeKind: "arrange_mayshuffle", ResumeSA: sa,
+					Prompt: "Shuffle your library?",
+					Options: []decision.Option{
+						{Index: 0, Kind: "yes", Label: "Yes — shuffle", Player: p},
+						{Index: 1, Kind: "no", Label: "No — keep the order", Player: p},
+					}}
+				if Ask(h, d) == AskAsked {
+					return // resolution suspended; the answer re-enters with Ctx.MayShuffle set.
+				}
+				// Fuzz/no-engine host: the deterministic stand-in keeps the
+				// order (declines the shuffle, R-9).
+			}
+		}
+		if mayShuffle {
+			c.MayShuffle = ""
+		}
 		return
 	}
 	n := Num(h, c, sa, "NumCards", 1)

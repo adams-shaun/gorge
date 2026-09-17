@@ -937,12 +937,39 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	}
 	var subjects []state.Target
 	start := 0
+	// DamageMap$ True (Price of Progress, Wing Storm, Baki's Curse -- 87
+	// corpus files): the loop's damage is ONE damage batch. Forge accumulates
+	// every iteration's dealDamage into a per-SA damage table and deals it
+	// once after the loop (RepeatEachEffect.resolve's DamageMap halves); in
+	// this build that is the existing damage-batch bracket -- opened around
+	// the whole loop, closed after the last iteration -- so the loop's
+	// DamageDealtOnce triggers latch once per batch instead of once per
+	// iteration's own batch-of-one. The deal sites stay inside the body (each
+	// DealDamage's own bracket nests inside this one; the batch is depth-
+	// counted), and the events themselves are unchanged -- same order, same
+	// amounts -- so a game without a batch-latched trigger replays exactly as
+	// before. Opened only on the first pass: a mid-loop suspension leaves the
+	// engine's open batch intact across the resume, and the re-entry pass
+	// closes it when the loop completes, so the bracket is balanced however
+	// many resumes interleave.
+	batched := strings.EqualFold(strings.TrimSpace(sa.Params["DamageMap"]), "True")
+	var batcher interface {
+		BeginDamageBatch()
+		EndDamageBatch()
+	}
+	if b, ok := h.(interface {
+		BeginDamageBatch()
+		EndDamageBatch()
+	}); ok {
+		batcher = b
+	}
+	firstPass := true
 	if cur := c.Repeat; cur != nil && cur.SA == sa {
 		// Re-entry after an iteration suspended: continue with the subjects
 		// the loop started with, after the one that asked, and keep what the
 		// completed iteration remembered.
 		c.Repeat = nil
-		subjects, start = cur.Subjects, cur.Next
+		subjects, start, firstPass = cur.Subjects, cur.Next, false
 		if cur.HasLast && start > 0 && start <= len(subjects) {
 			prev := subjects[start-1]
 			c.Remembered = rememberIteration(c.Remembered, cur.Last, iterationBase(c, prev), prev)
@@ -967,6 +994,9 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "RepeatEach selector unimplemented"})
 			return
 		}
+	}
+	if batched && firstPass && batcher != nil {
+		batcher.BeginDamageBatch()
 	}
 	for i := start; i < len(subjects); i++ {
 		t := subjects[i]
@@ -994,6 +1024,13 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 		c.Remembered = rememberIteration(c.Remembered, cc.Remembered, base, t)
+	}
+	if batched && batcher != nil {
+		// The loop completed: close the batch opened for it. A re-entry pass
+		// closes the batch the FIRST pass opened (same SA, same host, so the
+		// open/close conditions agree); every pass that suspends mid-loop
+		// returns before this line and leaves the bracket to a later pass.
+		batcher.EndDamageBatch()
 	}
 }
 

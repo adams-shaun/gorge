@@ -439,6 +439,14 @@ type Ctx struct {
 	// exactly Amount$. SacOptionalTarget identifies that player's target slot.
 	SacOptional       string
 	SacOptionalTarget int
+	// UnlessElected is the answered UnlessType$ election of a Discard carrying
+	// UnlessType$ (Thirst for Knowledge's "discard two cards unless you
+	// discard an artifact card"): "unless" means the player elected the
+	// one-card-of-the-type alternative, "ordinary" the NumCards$ discard. The
+	// re-entered effDiscard consumes and clears it (fx42 scoping discipline);
+	// it is separate from Discard because the unless arm's own follow-up ask
+	// re-uses the ordinary "discard" resume kind for its one-card pick.
+	UnlessElected string
 	// Arrange is the answered KArrange decision on a re-entered
 	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
 	// has applied the answered arrangement and emitted the LibraryOrder
@@ -449,6 +457,14 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// MayShuffle is the answered may-shuffle ask a RearrangeTopOfLibrary
+	// carrying MayShuffle$ True (Ponder's "You may shuffle.") poses after its
+	// KArrange was applied: "yes" means the player shuffled (rules'
+	// arrange_mayshuffle resume arm emitted the Shuffle event before
+	// re-entering the effect), "no" means they kept the order. Both values
+	// are done-markers: the re-entered pass must not pose the ask again. The
+	// field is consumed and cleared by the effect (fx42 scoping discipline).
+	MayShuffle string
 	// Hideaway holds the selected top-library card while the Hideaway
 	// replacement resumes to exile it; HideawayPicked distinguishes that
 	// selected answer from the first pass. HideawayArranged marks completion
