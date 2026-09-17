@@ -458,6 +458,47 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	return nil, false
 }
 
+// rememberedWithSource returns the remembered group a Forge SVAR/condition
+// named plain "Remembered" reads: the SOURCE object's persistent event-backed
+// Remembered list first (Forge's executing ability shares the HOST CARD's
+// remembered list, so a later trigger of the same card -- Skyclave
+// Apparition's leave trigger, whose X is the card the earlier ETB trigger
+// remembered -- reads what an earlier resolution of the same source
+// recorded), then every ctx entry that is neither already present nor the
+// source itself, deduplicated by object id. The ctx-except-self rule keeps
+// the walk's own remembers (some legs record only at ctx level) while
+// leaving out the trigger REFERENT capture: a trigger that fires on its own
+// source's movement carries that source in ctx.Remembered, Forge keeps the
+// referent in the separate Triggered* property family, and counting it as
+// card-level remembered would inflate every count (X would read the leaving
+// Skyclave's mana value next to the exiled bear's). Players in ctx pass
+// through after the objects. Deterministic (slices in order, no map range
+// reaches a caller's output) and allocation-only: it writes no state and
+// emits no event.
+func rememberedWithSource(h Host, c *Ctx) []state.Target {
+	out := make([]state.Target, 0, len(c.Remembered))
+	seen := make(map[state.ObjID]bool, len(c.Remembered))
+	if o := h.Game().Obj(c.Source); o != nil {
+		for _, t := range o.Remembered {
+			if !t.IsPlayer && !seen[t.Obj] {
+				seen[t.Obj] = true
+				out = append(out, t)
+			}
+		}
+	}
+	for _, t := range c.Remembered {
+		if t.IsPlayer {
+			out = append(out, t)
+			continue
+		}
+		if t.Obj != c.Source && !seen[t.Obj] {
+			seen[t.Obj] = true
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 // objectsOf returns Remembered's object entries (IsPlayer false) as a fresh
 // slice -- never aliasing Ctx.Remembered, for the reason copyTargets' own
 // doc comment gives.

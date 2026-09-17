@@ -644,15 +644,27 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 		if strings.EqualFold(sa.Params["Untap"], "True") {
 			h.Emit(events.Event{Kind: events.Untap, Obj: o.ID})
 		}
-		if strings.EqualFold(sa.Params["RememberControlled"], "True") && !targetIn(c.Remembered, state.Target{Obj: o.ID}) {
+		if strings.EqualFold(sa.Params["RememberControlled"], "True") {
 			// Forge (ControlGainEffect): source.addRemembered(tgtC) once per
 			// gained permanent -- the persistent host-card list a later
 			// Card.IsRemembered spec ("the permanents you gained control of
 			// this way", e.g. Ambition's Cost's follow-up or a broker deck's
 			// next trigger) matches. Recorded at ctx level for the same walk's
-			// SubAbility$ and event-backed on the source for later reads.
-			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
-			eventRemember(h, c, o.ID)
+			// SubAbility$ and event-backed on the source for later reads. The
+			// two dedupes are per level: the ctx append dedupes against the
+			// walk's set, the persistent event dedupes against the source's
+			// list ONLY -- a ctx entry that already names the gained object can
+			// be the trigger's REFERENT capture (Kain's GainControl of itself:
+			// ValidSource$ Card.Self put Kain in ctx.Remembered before this
+			// leg ran), which must not suppress the persistent write a later
+			// Remembered$ count/condition reads.
+			tgt := state.Target{Obj: o.ID}
+			if !targetIn(c.Remembered, tgt) {
+				c.Remembered = append(c.Remembered, tgt)
+			}
+			if src := h.Game().Obj(c.Source); src == nil || !targetIn(src.Remembered, tgt) {
+				eventRemember(h, c, o.ID)
+			}
 		}
 	}
 }

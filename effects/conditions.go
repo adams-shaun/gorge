@@ -293,7 +293,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	g := h.Game()
 	sc := c.SpecContext(c.Controller)
 	count := 0
-	for _, t := range c.Remembered {
+	for _, t := range rememberedWithSource(h, c) {
 		if t.IsPlayer {
 			// A Card spec never matches a player entry; skip rather than
 			// hand MatchesObjectCtx an object-less target.
@@ -398,7 +398,7 @@ func conditionNotPresentMet(h Host, c *Ctx, defined, spec string) (met, resolved
 			}
 		}
 	case "Remembered":
-		for _, t := range c.Remembered {
+		for _, t := range rememberedWithSource(h, c) {
 			if t.IsPlayer {
 				continue
 			}
