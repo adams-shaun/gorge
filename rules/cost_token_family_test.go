@@ -404,3 +404,265 @@ func TestDamageYouCostModelledAndPaid(t *testing.T) {
 		t.Fatalf("the devil after the accepted DamageYou payment: zone %s, want graveyard (sacrificed)", o.Zone)
 	}
 }
+
+// The r2-review fixes: the SVar-priced announced PayLife<X> faces (the free
+// announcement the r2 build gave every PayLife<X> face was fail-OPEN for the
+// four faces whose SVar:X fixes the value), and the plain Cost$ DamageYou<N>
+// settle branch, which the r2 round had covered only through Vexing Devil's
+// UnlessCost$ path.
+
+// TestSVarFixedPayLifeXPaysItsBody: Murderous Betrayal's
+// "SVar:X:Count$YourLifeTotal/HalfUp" FIXES the announced PayLife<X> part's
+// value -- the payer announces nothing (no X ask is ever posed), the settle
+// pays exactly half their life rounded up, and the body resolves. The
+// announcement menu the r2 build posed (an arbitrary 0..life X) is gone.
+func TestSVarFixedPayLifeXPaysItsBody(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	betrayalCard := mustCorpusCard(t, reg, "Murderous Betrayal")
+	bear := mustCorpusCard(t, reg, "Grizzly Bears")
+	e, cfg, _ := corpusDeckEngine(t, nil, []*cards.Card{betrayalCard, bear})
+	betrayal, bearID := state.ObjID(0), state.ObjID(0)
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		switch e.G.Obj(id).Face().Name {
+		case "Murderous Betrayal":
+			betrayal = id
+		case "Grizzly Bears":
+			bearID = id
+		}
+	}
+	if betrayal == 0 || bearID == 0 {
+		t.Fatalf("board not set up: betrayal %d bear %d", betrayal, bearID)
+	}
+	addMana(t, e, 0, "BB")
+	// Odd life so HalfUp is distinguishable from HalfDown: 17 -> 9.
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -3})
+	e.priorityRound()
+	opt, ok := findAbilityOption(e, betrayal, 0)
+	if !ok {
+		t.Fatal("Murderous Betrayal's destroy ability not offered with BB in the pool")
+	}
+	submitChoices(t, e, opt.Index)
+	// NO announcement ask: the SVar fixed the value, so the next decision is
+	// the ability's target ask -- a KChoose "x" menu here is the fail-open
+	// announcement the fix removed.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("want the destroy ability's target ask directly (no X ask), got %+v", d)
+	}
+	targetIdx := -1
+	for _, o := range d.Options {
+		if o.Obj == bearID && o.Kind != "player" {
+			targetIdx = o.Index
+		}
+	}
+	if targetIdx < 0 {
+		t.Fatalf("the bear not offered as the destroy target: %+v", d.Options)
+	}
+	submitChoices(t, e, targetIdx)
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(bearID); o.Zone != state.ZGraveyard {
+		t.Fatalf("the targeted bear after the destroy: zone %s, want graveyard", o.Zone)
+	}
+	// The fixed life settles at payCast (CR 601.2h, after 601.2c's target
+	// choice): 17 - 9 (HalfUp of 17).
+	if got := e.G.Players[0].Life; got != 8 {
+		t.Fatalf("life after the fixed PayLife<X> settle = %d, want 8 (HalfUp of 17)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestFixedLifeXSVarCountsCounters: Tornado's
+// "SVar:X:Count$CardCounters.VELOCITY/Times.3" shape on a fixture -- the
+// fixed value counts the source's own counters and scales, the life the
+// settle pays tracks it exactly, and a fixed value the payer cannot afford
+// (life below the fixed price) withholds the ability instead of offering a
+// cheaper announcement.
+func TestFixedLifeXSVarCountsCounters(t *testing.T) {
+	src := "Name:VelocityEngine\nTypes:Enchantment\n" +
+		"A:AB$ GainLife | Cost$ 2 G PayLife<X> | Defined$ You | LifeAmount$ 1\n" +
+		"SVar:X:Count$CardCounters.CHARGE/Times.3\nOracle:x\n"
+	engine := card(t, src)
+	e, cfg, _ := corpusDeckEngine(t, nil, []*cards.Card{engine})
+	id := e.G.Zone(state.ZBattlefield, 0)[0]
+	addMana(t, e, 0, "GGG")
+	e.priorityRound()
+	// Zero counters: the fixed value is 0 -- the ability activates for its
+	// mana alone and pays no life, with no announcement ask.
+	opt, ok := findAbilityOption(e, id, 0)
+	if !ok {
+		t.Fatal("the fixed-PayLife ability not offered at a zero fixed value")
+	}
+	life := e.G.Players[0].Life
+	submitChoices(t, e, opt.Index)
+	if d := e.Pending(); d != nil && d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind == "x" {
+		t.Fatalf("an X announcement menu was posed for a fixed PayLife<X>: %+v", d.Options)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Players[0].Life; got != life+1 {
+		t.Fatalf("life after the zero-fixed activation = %d, want %d (nothing paid, the body's +1)", got, life+1)
+	}
+	// One CHARGE counter: the fixed value is 3, paid exactly. The first
+	// activation spent the pool; refill it for the second offer.
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "CHARGE", Amount: 1})
+	addMana(t, e, 0, "GGG")
+	e.priorityRound()
+	opt, ok = findAbilityOption(e, id, 0)
+	if !ok {
+		t.Fatal("the fixed-PayLife ability not offered at a fixed value of 3")
+	}
+	life = e.G.Players[0].Life
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Players[0].Life; got != life-3+1 {
+		t.Fatalf("life after the fixed-3 activation = %d, want %d (-3 paid, +1 body)", got, life-3+1)
+	}
+	replayCheck(t, e, cfg)
+
+	// Unpayable fixed value: life below the price withholds the ability.
+	e2, _, _ := corpusDeckEngine(t, nil, []*cards.Card{engine})
+	id2 := e2.G.Zone(state.ZBattlefield, 0)[0]
+	e2.emit(events.Event{Kind: events.CounterChange, Obj: id2, Counter: "CHARGE", Amount: 3})
+	e2.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -19})
+	e2.priorityRound()
+	addMana(t, e2, 0, "GGG")
+	e2.priorityRound()
+	if _, ok := findAbilityOption(e2, id2, 0); ok {
+		t.Fatal("the fixed-PayLife ability offered with life below the fixed price")
+	}
+}
+
+// TestFixedLifeXUnresolvableWithheld: War Room's
+// "SVar:X:Count$ColorsColorIdentity" is a body this evaluator cannot resolve
+// (commander colour identity), so the ability is WITHHELD -- the fail-closed
+// direction -- instead of offered with an arbitrary announced X the payer
+// cannot be held to. The land's mana ability is unaffected.
+func TestFixedLifeXUnresolvableWithheld(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	warRoomCard := mustCorpusCard(t, reg, "War Room")
+	e, cfg, _ := corpusDeckEngine(t, nil, []*cards.Card{warRoomCard})
+	room := state.ObjID(0)
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if e.G.Obj(id).Face().Name == "War Room" {
+			room = id
+		}
+	}
+	if room == 0 {
+		t.Fatal("War Room not on the battlefield")
+	}
+	addMana(t, e, 0, "CCC")
+	e.priorityRound()
+	if _, ok := findAbilityOption(e, room, 1); ok {
+		t.Fatal("War Room's PayLife<X> draw ability offered on an unresolvable SVar:X body")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestFreePayLifeXSharedAnnouncementStands: the fix must not break the
+// Count$xPaid faces -- Krumar Initiate's "Cost$ X B T PayLife<X>" announces
+// ONE X that folds both the printed {X} into generic and the life part, so
+// the X ask is still posed and the settle pays exactly the chosen value of
+// both.
+func TestFreePayLifeXSharedAnnouncementStands(t *testing.T) {
+	src := "Name:LifeLedger\nTypes:Artifact Creature\nPT:1/1\n" +
+		"A:AB$ GainLife | Cost$ X B PayLife<X> | Defined$ You | LifeAmount$ 2\n" +
+		"SVar:X:Count$xPaid\nOracle:x\n"
+	engine := card(t, src)
+	e, cfg, _ := corpusDeckEngine(t, nil, []*cards.Card{engine})
+	id := e.G.Zone(state.ZBattlefield, 0)[0]
+	addMana(t, e, 0, "BBB")
+	e.priorityRound()
+	opt, ok := findAbilityOption(e, id, 0)
+	if !ok {
+		t.Fatal("the shared-announcement ability not offered")
+	}
+	submitChoices(t, e, opt.Index)
+	// The X ask IS posed for a Count$xPaid body: the payer chooses. The mana
+	// bound: pool BBB folds at most X=2 (2 generic + 1 B = 3 mana).
+	if m := maxXOf(xAskOptions(t, e)); m != 2 {
+		t.Fatalf("shared PayLife<X> options max = %d, want the mana bound 2 (pool BBB)", m)
+	}
+	chooseX(t, e, 2)
+	passUntilStackEmpty(t, e, 20)
+	// Settle: 2 generic + 1 B from BBB, plus 2 life, then the body's +2.
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("life after the shared announcement = %d, want 20 (-2 paid, +2 body)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestDamageYouCostPaidFromAbilityCost: the plain Cost$ DamageYou<N> settle
+// branch (the r2 round's engine half reached it only through Vexing Devil's
+// UnlessCost$ arm). A lifelink source's DamageYou<4> cost deals the payer 4
+// damage FROM the source and the lifelink gain reaches the source's
+// controller; with the source already exiled by an earlier Exile<CARDNAME>
+// part of the same cost, the controller fallback keeps the payment honest
+// instead of panicking on the gone source.
+func TestDamageYouCostPaidFromAbilityCost(t *testing.T) {
+	src := "Name:PainEngine\nTypes:Artifact Creature\nPT:1/1\nK:Lifelink\n" +
+		"A:AB$ GainLife | Cost$ DamageYou<4> | Defined$ You | LifeAmount$ 2\nOracle:x\n"
+	engine := card(t, src)
+	e, cfg, _ := corpusDeckEngine(t, nil, []*cards.Card{engine})
+	id := e.G.Zone(state.ZBattlefield, 0)[0]
+	e.askPriority(0)
+	// No mana component: the ability is offered from an empty pool.
+	opt, ok := findAbilityOption(e, id, 0)
+	if !ok {
+		t.Fatal("the DamageYou-cost ability not offered from an empty pool")
+	}
+	dmgBefore, lifeBefore := int32(0), e.G.Players[0].Life
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Damage && ev.Player == 0 {
+			dmgBefore += ev.Amount
+		}
+	}
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 20)
+	dmg := int32(0)
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Damage && ev.Player == 0 {
+			dmg += ev.Amount
+		}
+	}
+	if dmg != dmgBefore+4 {
+		t.Fatalf("Damage events on the payer = %d, want %d (the DamageYou<4> payment)", dmg, dmgBefore+4)
+	}
+	// Payer -4 (damage) +4 (the lifelink gain, controller == payer) +2 (body).
+	if got := e.G.Players[0].Life; got != lifeBefore+2 {
+		t.Fatalf("life after the DamageYou activation = %d, want %d (-4 damage, +4 lifelink, +2 body)", got, lifeBefore+2)
+	}
+	replayCheck(t, e, cfg)
+
+	// The source-left-battlefield fallback: an Exile<1/CARDNAME> part settles
+	// BEFORE the DamageYou part, so the source is in exile when the damage
+	// lands -- the controller fallback routes the lifelink gain to the payer
+	// and the payment completes.
+	src2 := "Name:PainPortal\nTypes:Artifact\nK:Lifelink\n" +
+		"A:AB$ GainLife | Cost$ Exile<1/CARDNAME> DamageYou<4> | Defined$ You | LifeAmount$ 2\nOracle:x\n"
+	portal := card(t, src2)
+	e2, cfg2, _ := corpusDeckEngine(t, nil, []*cards.Card{portal})
+	id2 := e2.G.Zone(state.ZBattlefield, 0)[0]
+	e2.askPriority(0)
+	opt2, ok := findAbilityOption(e2, id2, 0)
+	if !ok {
+		t.Fatal("the Exile+DamageYou ability not offered")
+	}
+	lifeBefore = e2.G.Players[0].Life
+	submitChoices(t, e2, opt2.Index)
+	passUntilStackEmpty(t, e2, 20)
+	if o := e2.G.Obj(id2); o.Zone != state.ZExile {
+		t.Fatalf("PainPortal after its own exile cost: zone %s, want exile", o.Zone)
+	}
+	dmg = int32(0)
+	for _, ev := range e2.L.Events {
+		if ev.Kind == events.Damage && ev.Player == 0 {
+			dmg += ev.Amount
+		}
+	}
+	if dmg != 4 {
+		t.Fatalf("Damage events on the payer after the source left = %d, want 4", dmg)
+	}
+	if got := e2.G.Players[0].Life; got != lifeBefore+2 {
+		t.Fatalf("life after the Exile+DamageYou activation = %d, want %d (-4 damage, +4 fallback lifelink, +2 body)", got, lifeBefore+2)
+	}
+	replayCheck(t, e2, cfg2)
+}

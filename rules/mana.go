@@ -888,7 +888,88 @@ func (e *Engine) offerCastable(p state.PlayerID, id state.ObjID, base Cost, scop
 	return e.offerCastableUsing(e.collectCostStatics(), p, id, base, scope, ability)
 }
 
+// fixLifeXCost resolves an announced PayLife<X> cost part whose source face
+// defines SVar:X with a body that is NOT Count$xPaid. Forge's SVar:X is the
+// definition that body gives the cost's X, and exactly two shapes exist in
+// the corpus:
+//
+//   - Count$xPaid (Toxic Deluge, Krumar Initiate's "Cost$ X B T PayLife<X>",
+//     every SP face carrying the token): "the announced X" -- the payer
+//     announces X freely (bounded by life, xAsk) and the life part settles at
+//     the same value the printed {X} folds at. The cost passes through
+//     unchanged.
+//   - any other resolvable body (Murderous Betrayal's
+//     SVar:X:Count$YourLifeTotal/HalfUp, Tornado's
+//     SVar:X:Count$CardCounters.VELOCITY/Times.3): the value is FIXED -- the
+//     payer announces nothing, and the settle pays exactly the evaluated
+//     amount. Each such part is folded into Cost.Life, the fixed additional
+//     cost both the payable gates (resolveManaWith's life check) and the
+//     settle (payMana's LifeChange) already price and charge -- the same
+//     place a RaiseCost's fixed life raise lands, so CR 601.2f's ordering
+//     treats it as an additional cost that no reduction ever touches.
+//
+// The verdict is three-way, and ok=false is WITHHOLD: the SVar:X body is
+// present, not Count$xPaid, and either unresolvable (War Room's commander
+// colour identity) or negative -- the ability is not offered at all (the
+// fail-closed direction ParseUnlessCost and manaAbilityPayable already take)
+// rather than offered with an arbitrary announcement the payer cannot be
+// held to. A cost pairing the non-xPaid body with a printed {X} or another
+// announced part sharing the X (Sac<X/Spec>, PayEnergy<X>,
+// SubCounter<X/Kind>) is also withheld: the corpus carries no such face, and
+// what the fixed body would mean for a shared announcement is undefined
+// here. The idempotence contract matters: offerCastable converts at the
+// gate, the payment sites convert again, and a converted cost (no LifeX
+// left) early-returns unchanged.
+func (e *Engine) fixLifeXCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, bool) {
+	if len(c.LifeX) == 0 {
+		return c, true
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return c, true
+	}
+	body, present := o.Face().SVars["X"]
+	if !present || strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+		return c, true
+	}
+	if c.X > 0 || costAnnouncesSacX(c) {
+		return c, false
+	}
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			return c, false
+		}
+	}
+	for _, part := range c.SubCounter {
+		if part.Announced {
+			return c, false
+		}
+	}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
+	n, resolvable := effects.EvalCountOK(e, ctx, body)
+	if !resolvable || n < 0 {
+		return c, false
+	}
+	out := c
+	out.LifeX = nil
+	for range len(c.LifeX) {
+		out.Life = addClampedGeneric(out.Life, int64(n))
+	}
+	return out, true
+}
+
 func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
+	// The SVar-fixed PayLife<X> conversion (fixLifeXCost) shapes the cost the
+	// gate prices into the exact cost the payment will store (beginCast and
+	// beginActivation convert through the same helper), so an offered cost and
+	// the charge can never disagree about the life part. A face whose SVar:X
+	// body is present but unresolvable is WITHHELD here -- the fail-closed
+	// direction the rest of the cost grammar takes -- rather than offered with
+	// an arbitrary announcement.
+	base, ok := e.fixLifeXCost(p, id, base)
+	if !ok {
+		return false
+	}
 	mods := e.costModifiersWithTargetsUsing(statics, p, id, scope, nil, false)
 	tax := int32(0)
 	if scope.kind != "Ability" {

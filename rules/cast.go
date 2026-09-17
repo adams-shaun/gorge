@@ -1007,6 +1007,17 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// one part is payable (legal.go); the ask narrows it to exactly one.
 	tax := e.commanderTaxAmount(p, id)
 	mods := e.costModifiers(p, id, spellScope(opt.Mode))
+	// The SVar-fixed PayLife<X> conversion (fixLifeXCost) -- the same helper
+	// offerCastable shaped the offered cost with, so the stored cost and the
+	// gated charge agree. A fixed face's value folds into Life here; the
+	// withheld (unresolvable-body) shape cannot reach this line through any
+	// offer gate, and a stale option that does degrades to a no-op before
+	// anything is pushed or charged.
+	converted, ok := e.fixLifeXCost(p, id, cost)
+	if !ok {
+		return
+	}
+	cost = converted
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		pcAlt := altAddCostParts(f)
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
@@ -1078,6 +1089,12 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	// modifiers folded): RaiseCost/ReduceCost ride pc.mods and manaToPay
 	// applies them after {X} is folded, the same shape beginCast stores.
 	cost = withSpellAbilityExtras(o.Face(), cost)
+	converted, ok := e.fixLifeXCost(p, id, cost)
+	if !ok {
+		// The offer gate withheld this cost; a stale Play degrades to a no-op.
+		return
+	}
+	cost = converted
 	mods := e.costModifiers(p, id, spellScope(""))
 	e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "play", ability: -1,
 		cost: cost, mods: mods}

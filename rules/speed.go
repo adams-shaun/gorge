@@ -171,6 +171,15 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 		return
 	}
 	cost := e.offerCostFor(p, opt.Obj, ParseCost(ab.Params["Cost"]), costScope{kind: "Ability"})
+	// The SVar-fixed PayLife<X> conversion (fixLifeXCost): this path pays its
+	// own cost outside the cast flow, so the conversion is both the gate (an
+	// unresolvable SVar:X body is never activated -- before the conversion an
+	// announced LifeX part here was never settled at all) and the settle (the
+	// fixed value folds into Life, charged below).
+	cost, ok := e.fixLifeXCost(p, opt.Obj, cost)
+	if !ok {
+		return
+	}
 	if !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].Life) {
 		return
 	}
