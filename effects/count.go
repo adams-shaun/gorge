@@ -545,6 +545,17 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			}
 		}
 		return n, true
+	case "LifeYouGainedThisTurn":
+		// The total life the controller GAINED this turn — the CheckSVar$ gate
+		// behind the "At the beginning of each end step, if you gained 4 or
+		// more life this turn" family (Angelic Accord, Resplendent Angel,
+		// Valkyrie Harbinger; 86 raw corpus Count$ lines). Folded from the log
+		// through the Host's LifeGainedThisTurn like LifeOppsLostThisTurn, so
+		// a replay derives the same count.
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return h.LifeGainedThisTurn(c.Controller), true
 	case "YourTurns":
 		// How many of the game's turns have begun with the controller as the
 		// active player, current turn included (Serra Avenger's "your first,
@@ -571,35 +582,44 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return int32(h.AttackersThisTurn()), true
 	}
 
-	// PlayerCount<Players|Opponents>$<Property> — the life-total extremes
-	// (Vampire Lacerator's ConditionCheckSVar$ OpponentSmallest:
-	// PlayerCountOpponents$LowestLifeTotal, GE11 — "you lose 1 life unless an
-	// opponent has 10 or less life"). "Players" spans every living player,
+	// PlayerCount<Players|Opponents|RegisteredOpponents>$<Property> — per-
+	// group extreme properties. "Players" spans every living player,
 	// "Opponents" every living player but the resolving controller, the same
-	// groups the bare PlayerCountPlayers/PlayerCountOpponents heads count. A
-	// property other than the two life extremes is NOT resolvable: (0, false)
-	// — the same verdict Count$Valid's UnknownPredicates takes — so a gate
-	// over one fails OPEN (the caller's documented direction) rather than
-	// enforcing a fake zero. An empty group also fails unresolvable
-	// (lifeExtreme reports no extreme), for the same reason: a threshold
-	// compared against an absent extreme is not readable either.
+	// groups the bare PlayerCountPlayers/PlayerCountOpponents heads count
+	// (RegisteredOpponents is Forge's game-start opponent set, read here as
+	// the same living-opponent group). Two property families are resolvable:
+	// the life-total extremes (Vampire Lacerator's ConditionCheckSVar$
+	// OpponentSmallest: PlayerCountOpponents$LowestLifeTotal, GE11 — "you
+	// lose 1 life unless an opponent has 10 or less life") and the
+	// count/counted-quantity extremes playerCountExtreme answers below. Any
+	// other property is NOT resolvable: (0, false) — the same verdict
+	// Count$Valid's UnknownPredicates takes — so a gate over one fails per
+	// its caller's documented direction rather than enforcing a fake zero.
+	// An empty group also fails unresolvable for a life extreme (lifeExtreme
+	// reports no extreme), for the same reason: a threshold compared against
+	// an absent extreme is not readable either.
 	if rest, ok := strings.CutPrefix(head, "PlayerCountPlayers$"); ok {
 		if n, ok2 := lifeExtreme(g, g.AliveFrom(0), rest); ok2 {
 			return n, true
 		}
-		return 0, false
+		return playerCountExtreme(h, g, c, g.AliveFrom(0), rest, arg)
 	}
-	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
-		var opps []state.PlayerID
-		for _, p := range g.AliveFrom(0) {
-			if p != c.Controller {
-				opps = append(opps, p)
-			}
-		}
-		if n, ok2 := lifeExtreme(g, opps, rest); ok2 {
+	if rest, ok := strings.CutPrefix(head, "PlayerCountRegisteredOpponents$"); ok {
+		// Forge's REGISTERED opponents — the opponents registered at game
+		// start (Bloodchief Ascension's "if an opponent lost 2 or more life
+		// this turn" gate). No registered-membership list survives a replay
+		// here, so the group reads as the same living-opponent set
+		// PlayerCountOpponents$ counts; the property dispatch below is shared.
+		if n, ok2 := lifeExtreme(g, opponentGroup(g, c), rest); ok2 {
 			return n, true
 		}
-		return 0, false
+		return playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
+	}
+	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
+		if n, ok2 := lifeExtreme(g, opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
+		return playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 
 	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
@@ -860,6 +880,99 @@ func lifeExtreme(g *state.Game, players []state.PlayerID, prop string) (int32, b
 		life := g.Players[p].Life
 		if !seen || (prop == "LowestLifeTotal" && life < best) || (prop == "HighestLifeTotal" && life > best) {
 			best, seen = life, true
+		}
+	}
+	if !seen {
+		return 0, false
+	}
+	return best, true
+}
+
+// opponentGroup returns the living players other than the resolving
+// controller — the group PlayerCountOpponents$ and (by the reading
+// documented at its dispatch site) PlayerCountRegisteredOpponents$ both
+// count over.
+func opponentGroup(g *state.Game, c *Ctx) []state.PlayerID {
+	var opps []state.PlayerID
+	for _, p := range g.AliveFrom(0) {
+		if p != c.Controller {
+			opps = append(opps, p)
+		}
+	}
+	return opps
+}
+
+// playerCountExtreme answers the PlayerCount<group>$<Property> properties
+// that are not a life total (lifeExtreme's pair is tried first at the
+// dispatch site). Two families, the corpus's measured population over these
+// heads:
+//
+//   - HighestValid/LowestValid <spec> and the zone-scoped spellings
+//     (HighestValidGraveyard, LowestValidHand, ...): the highest/lowest,
+//     over the group, of the count of objects the member has in the named
+//     zone that match the spec, each member counted from their OWN
+//     perspective — a YouCtrl qualifier in the spec names the counted
+//     member, not the resolving controller (Land Tax's "if an opponent
+//     controls more lands than you": SVar Y =
+//     PlayerCountOpponents$HighestValid Land.YouCtrl, SVarCompare$ GTX;
+//     Defense of the Heart's PlayerCountOpponents$HighestValid
+//     Creature.YouCtrl, GE3). An empty zone or an all-zero group is a
+//     readable extreme of 0, never unresolvable — a count always has one
+//     answer.
+//   - HighestLifeLostThisTurn/LowestLifeLostThisTurn: the extreme, over the
+//     group, of the Host's log-derived LifeLostThisTurn (Bloodchief
+//     Ascension's "if an opponent lost 2 or more life this turn" gate).
+//
+// An unknown property reports (0, false): unresolvable, so a gate over one
+// fails per its caller's documented direction rather than enforcing a fake
+// zero. Iterating the given group slice in order (never a map) keeps the
+// extreme deterministic; ties match, like lifeExtreme's.
+func playerCountExtreme(h Host, g *state.Game, c *Ctx, players []state.PlayerID, prop, spec string) (int32, bool) {
+	prop = strings.TrimSpace(prop)
+	highest := false
+	switch {
+	case strings.HasPrefix(prop, "Highest"):
+		highest = true
+		prop = prop[len("Highest"):]
+	case strings.HasPrefix(prop, "Lowest"):
+		highest = false
+		prop = prop[len("Lowest"):]
+	default:
+		return 0, false
+	}
+	if prop == "LifeLostThisTurn" {
+		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+			return 0, false
+		}
+		best, seen := int32(0), false
+		for _, p := range players {
+			v := h.LifeLostThisTurn(p)
+			if !seen || (highest && v > best) || (!highest && v < best) {
+				best, seen = v, true
+			}
+		}
+		if !seen {
+			return 0, false
+		}
+		return best, true
+	}
+	zone, ok := countZone(prop)
+	if !ok || strings.TrimSpace(spec) == "" {
+		return 0, false
+	}
+	best, seen := int32(0), false
+	for _, p := range players {
+		if int(p) < 0 || int(p) >= len(g.Players) {
+			continue
+		}
+		var n int32
+		for _, id := range g.Zone(zone, p) {
+			if matchesZoneSpecCtx(g, spec, id, c.SpecContext(p), zone) {
+				n++
+			}
+		}
+		if !seen || (highest && n > best) || (!highest && n < best) {
+			best, seen = n, true
 		}
 	}
 	if !seen {
