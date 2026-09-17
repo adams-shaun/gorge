@@ -1251,7 +1251,20 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				continue
 			}
 			for i, ab := range f.Abilities {
-				if ab.Kind != "AB" || isManaAbilityAPI(ab.API) {
+				if ab.Kind != "AB" {
+					continue
+				}
+				// CR 605.1b: a mana ability is never a loyalty ability, so a
+				// loyalty-marked AB$ Mana (Koth's [+1], Ugin, Eye of the
+				// Storms' [0]: Add {C}{C}{C}) is NOT exempted here: it is a
+				// loyalty ability, offered through this loop under the CR 606.3
+				// gates below -- sorcery timing, once per permanent per turn --
+				// exactly like every other [+N]/[-N]. The mana-ability path
+				// (availableManaAbilitiesUsing) excludes it symmetrically; the
+				// exclusion there is what closed the ulalek-eldrazi seed-1019
+				// livelock (an un-tapping, gate-free, zero-cost repeatable
+				// +3 colourless activation re-offered every priority window).
+				if isManaAbilityAPI(ab.API) && !isLoyaltyAbility(ab) {
 					continue
 				}
 				if !abilityZoneOK(ab, z) {

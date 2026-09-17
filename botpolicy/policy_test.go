@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -171,10 +172,15 @@ func TestEveryKind(t *testing.T) {
 		t.Errorf("priority (pool pays the hand) = %+v, want no tap -- the cast can already be made", in)
 	}
 	// The coloured-pip gate: {U}{U} against a pool of one blue still wants a
-	// tap (a colour-blind tap would stop here and never cast).
+	// tap (a colour-blind tap would stop here and never cast). The offered
+	// activate source carries a blue-production fact: the satisfiability
+	// filter (tap_satisfiable_test.go) keeps the card a tap target only when
+	// an offered source can close the unmet pip, and a source with no facts
+	// claims no colour (fail closed).
 	pipWant := Board{IsMain: true,
 		Cards: map[state.ObjID]Card{
 			3: {CMC: 2, ManaCost: "U U", Castable: true},
+			2: {Produces: cards.ManaProduction{Colour: [6]int32{0, 1, 0, 0, 0, 0}}},
 		},
 		Pool: state.Mana{state.MU: 1},
 	}

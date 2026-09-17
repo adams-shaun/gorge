@@ -152,6 +152,18 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
 	var out []*cards.SA
 	for _, ma := range o.Face().ManaAbilities() {
+		// CR 605.1b: an activated ability is a mana ability only when it is
+		// NOT a loyalty ability. A planeswalker's mana-producing loyalty
+		// ability (Koth's [+1], Ugin, Eye of the Storms' [0]: Add {C}{C}{C},
+		// 12+ corpus cards) must never enter this path: the mana path taps
+		// nothing, poses no CR 606.3 gate, and a zero-loyalty cost is free --
+		// the measured ulalek-eldrazi seed-1019 livelock re-tapped Ugin's
+		// [0] once per intent, +3 colourless per activation, forever. The
+		// ability offer (rules/legal.go) owns these abilities with the full
+		// CR 606.3 gates (sorcery timing, once per permanent per turn).
+		if isLoyaltyAbility(ma) {
+			continue
+		}
 		// Activation$ (Mox Opal's "Activate only if you control three or more
 		// artifacts"): the same keyword-condition gate the printed-ability
 		// offer loop in rules/legal.go applies, so the priority action, the
@@ -199,7 +211,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			considerReflected(ma)
 			continue
 		}
-		if ma.API == "Mana" && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
+		if ma.API == "Mana" && !isLoyaltyAbility(ma) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
 			e.manaActivationGateHolds(p, id, ma) {
 			out = append(out, ma)
 		}
@@ -215,7 +227,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			considerReflected(ga.sa)
 			continue
 		}
-		if ga.sa.API != "Mana" {
+		if ga.sa.API != "Mana" || isLoyaltyAbility(ga.sa) {
 			continue
 		}
 		if !abilityRestricted(ga.sa) && e.manaAbilityPayable(p, id, ga.sa) &&

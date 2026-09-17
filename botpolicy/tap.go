@@ -164,7 +164,29 @@ func (b Board) cardScore(c Card) int32 {
 // tap gate's "intended spell": the card that makes tapWants true, whose
 // colour need chooseTap targets. It consumes no rng and breaks ties on object
 // id, so map iteration order cannot reach the pick.
-func (b Board) bestUnpayable() (state.ObjID, Card, bool) {
+//
+// offered (the satisfiability filter) keeps a card as a tap target only when
+// THIS window's offered "activate" sources can actually close its gap: every
+// unmet coloured pip must be producible by some offered source. An unmet pip
+// no offered source can produce is a gap tapping can never close, and tapping
+// a generic source toward it floats mana the card still cannot spend -- the
+// measured seed-1003 ulalek-eldrazi livelock, where Ugin, Eye of the Storms'
+// repeatable [0] ({C}{C}{C}, a loyalty cost) was re-tapped once per intent
+// toward a green card's pip while the turn never advanced. A purely generic
+// shortfall always qualifies: a tier-1 tap adds to the pool total and the
+// progress is finite. A KNOWN empty production stays a non-producer (the bl1
+// honesty contract); an entry the Board carries no facts for claims NOTHING
+// (fail closed). The earlier fail-open read -- "unknown production, not
+// absent production" -- was written for the synthetic policy-test shapes and
+// presumed a real adapter never offers an activate option the Board lacks
+// facts for; that premise is false, measured: a battlefield COPY (Echoes of
+// Eternity's copy of a Dreamstone Hedron cast resolves onto the battlefield,
+// state.Object.Ephemeral's IsCopy half keeps it out of both adapters' Cards
+// tables) is a real offer with no facts, and the fail-open let the seed-1019
+// livelock's green-card tap target back in. Fail-closed errs toward passing:
+// the gate never taps a source it cannot price, the window falls through to
+// the land drop and the cast, and the game advances.
+func (b Board) bestUnpayable(offered [5]bool) (state.ObjID, Card, bool) {
 	bestID := state.ObjID(0)
 	var best Card
 	var bestScore int32 = -1
@@ -174,6 +196,20 @@ func (b Board) bestUnpayable() (state.ObjID, Card, bool) {
 			continue
 		}
 		if b.poolPays(id, c) {
+			continue
+		}
+		// The satisfiability filter: an unmet coloured pip the offered
+		// sources cannot produce excludes the card -- tapping toward it can
+		// never make it payable.
+		pips := colourPips(c.ManaCost)
+		closable := true
+		for i := 0; i < 5; i++ {
+			if pips[i] > b.Pool[i] && !offered[i] {
+				closable = false
+				break
+			}
+		}
+		if !closable {
 			continue
 		}
 		s := b.cardScore(c)
@@ -233,7 +269,29 @@ func (b Board) chooseTap(d *decision.Decision) int {
 	if !b.tapWants() {
 		return -1
 	}
-	_, c, ok := b.bestUnpayable()
+	// The union of what THIS window's offered sources demonstrably produce:
+	// the satisfiability filter bestUnpayable reads (see its doc).
+	var offered [5]bool
+	for _, o := range d.Options {
+		if o.Kind != "activate" {
+			continue
+		}
+		card, known := b.Cards[o.Obj]
+		if !known {
+			// Fail closed: an option the Board carries no facts for claims
+			// no colour (see bestUnpayable's doc for why the earlier
+			// fail-open read was wrong). The pick loop below already prices
+			// such an option as a tier-2 last resort, so the two reads
+			// agree.
+			continue
+		}
+		for i := 0; i < 5; i++ {
+			if card.Produces.Colour[i] > 0 {
+				offered[i] = true
+			}
+		}
+	}
+	_, c, ok := b.bestUnpayable(offered)
 	if !ok {
 		return -1
 	}
