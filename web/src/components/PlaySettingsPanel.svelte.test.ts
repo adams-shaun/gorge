@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
 import { presetPatch, type StoppableStep } from '../lib/playsettings';
-import PlaySettingsPanel, { nextStop, stopPatch, stopWord } from './PlaySettingsPanel.svelte';
+import PlaySettingsPanel, { clampMs, nextStop, stopPatch, stopWord } from './PlaySettingsPanel.svelte';
 import { layoutStore } from '../lib/layoutsettings.svelte';
 
 // Two layers, because the editor has two halves to defend:
@@ -275,12 +275,83 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
     // The exact call the Short segment's onclick makes.
     state.editSettings({ pacing: { stepMs: 100, resolveMs: 200 } });
     expect(tag(panel(state), 'data-pacing="short"')).toContain('aria-pressed="true"');
-    // An unmatched pair presses nothing (no Off/Short/Normal).
+    // An unmatched pair (fb-20260917T004341Z): Custom now reads selected.
     state.editSettings({ pacing: { stepMs: 37, resolveMs: 91 } });
     const html = panel(state);
-    for (const id of ['off', 'short', 'normal']) {
+    for (const id of ['off', 'short', 'normal', 'slow']) {
       expect(tag(html, `data-pacing="${id}"`)).not.toContain('aria-pressed="true"');
     }
+    expect(tag(html, 'data-pacing="custom"')).toContain('aria-pressed="true"');
+  });
+
+  // fb-20260917T004341Z: the row is the reporter's "step delay", and the
+  // picker carries four canned pairs plus the Custom affordance.
+  describe('the step delay row (fb-20260917T004341Z)', () => {
+    it('is labelled with the reporter\'s term, keeping the old meaning in parentheses', () => {
+      const html = panel(new SeatPanelState('t1', 1, ctx, null));
+      expect(html).toContain('Step delay (pause between auto-passes)');
+      expect(html).not.toContain('Pause between auto-passes</span>');
+      expect(tag(html, 'data-pacing-picker')).toContain('aria-labelledby="pacing-label"');
+    });
+
+    it('carries four canned segments, and selecting Slow writes {stepMs: 500, resolveMs: 1000} through editSettings', () => {
+      const state = new SeatPanelState('t1', 1, ctx, null);
+      const html = panel(state);
+      for (const id of ['off', 'short', 'normal', 'slow', 'custom']) {
+        expect(tag(html, `data-pacing="${id}"`)).not.toBe('');
+      }
+      // The exact call the Slow segment's onclick makes.
+      state.editSettings({ pacing: { stepMs: 500, resolveMs: 1000 } });
+      const slow = panel(state);
+      expect(tag(slow, 'data-pacing="slow"')).toContain('aria-pressed="true"');
+      expect(state.settings.pacing).toEqual({ stepMs: 500, resolveMs: 1000 });
+      // Away from a canned pair the preset relabels to custom (withChange).
+      expect(state.settings.preset).toBe('custom');
+      expect(tag(slow, 'data-pacing="custom"')).not.toContain('aria-pressed="true"');
+      // A canned pair never reveals the inputs without the Custom click.
+      expect(slow).not.toContain('data-pacing-input');
+      // The legend lists every pair, Slow included.
+      expect(elem(slow, 'data-pacing-legend')).toContain('Slow = 500/1000');
+      expect(elem(slow, 'data-pacing-legend')).toContain('Off = 0/0');
+    });
+
+    it('an unmatched pair selects the Custom segment and reveals the inputs pre-filled with the current values', () => {
+      const state = new SeatPanelState('t1', 1, ctx, null);
+      state.editSettings({ pacing: { stepMs: 37, resolveMs: 91 } });
+      const html = panel(state);
+      expect(tag(html, 'data-pacing="custom"')).toContain('aria-pressed="true"');
+      expect(tag(html, 'data-pacing="custom"')).toContain('aria-expanded="true"');
+      const stepInput = tag(html, 'data-pacing-input="step"');
+      const resolveInput = tag(html, 'data-pacing-input="resolve"');
+      expect(stepInput).toContain('value="37"');
+      expect(resolveInput).toContain('value="91"');
+      expect(elem(html, 'data-pacing-custom')).toContain('Step ms');
+      expect(elem(html, 'data-pacing-custom')).toContain('Resolve ms');
+    });
+
+    it('a canned pair hides the inputs (Custom is opt-in; the browser test drives the real reveal)', () => {
+      const state = new SeatPanelState('t1', 1, ctx, null);
+      let html = panel(state);
+      expect(html).not.toContain('data-pacing-input'); // Normal 200/400: no inputs
+      // A canned pair keeps them hidden even after an unrelated re-render.
+      state.editSettings({ pacing: { stepMs: 100, resolveMs: 200 } });
+      html = panel(state);
+      expect(tag(html, 'data-pacing="short"')).toContain('aria-pressed="true"');
+      expect(html).not.toContain('data-pacing-input');
+    });
+
+    it('clampMs parses an integer clamped to [0, 10000]; non-numeric or empty means leave unchanged', () => {
+      expect(clampMs('750')).toBe(750);
+      expect(clampMs('0')).toBe(0);
+      expect(clampMs('9999')).toBe(9999);
+      expect(clampMs('10000')).toBe(10000);
+      expect(clampMs('20000')).toBe(10000);
+      expect(clampMs('-5')).toBe(0);
+      expect(clampMs('440px')).toBe(440); // Number.parseInt semantics
+      expect(clampMs('')).toBeNull();
+      expect(clampMs('abc')).toBeNull();
+      expect(clampMs('12.9')).toBe(12); // parseInt truncates
+    });
   });
 });
 
@@ -465,6 +536,91 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
       (window as unknown as { playSettingsState: { remembered: { entries: { label: string }[] } } }).playSettingsState.remembered.entries.map((e) => e.label));
     expect(labels).toEqual([]);
     await page.waitForSelector('[data-remembered-empty]');
+    await page.close();
+  });
+
+  // fb-20260917T004341Z: the step delay row against the REAL state — Slow
+  // writes its pair, the Custom inputs write through on change (not per
+  // keystroke), out-of-range clamps / empty leaves the value, and a canned
+  // pair re-selected highlights its segment with the revealed inputs showing
+  // that pair.
+  it('clicking the Slow segment writes {stepMs: 500, resolveMs: 1000} through the state write path', async () => {
+    const page = await open();
+    await page.locator('[data-pacing="slow"]').click();
+    expect(await page.locator('[data-pacing="slow"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('[data-pacing="custom"]').getAttribute('aria-pressed')).toBe('false');
+    const pacing = await page.evaluate(() =>
+      (window as unknown as { playSettingsState: { settings: { pacing: { stepMs: number; resolveMs: number } } } }).playSettingsState.settings.pacing);
+    expect(pacing).toEqual({ stepMs: 500, resolveMs: 1000 });
+    // The inputs stay hidden for a canned pair (Custom was never clicked).
+    expect(await page.locator('[data-pacing-input]').count()).toBe(0);
+    await page.close();
+  });
+
+  it('the Custom segment reveals the inputs, and typing values writes them on change (not per keystroke)', async () => {
+    const page = await open();
+    await page.locator('[data-pacing="custom"]').click();
+    // Revealed pre-filled with the current (casual 200/400) pair.
+    expect(await page.locator('[data-pacing-input="step"]').inputValue()).toBe('200');
+    expect(await page.locator('[data-pacing-input="resolve"]').inputValue()).toBe('400');
+    // fill fires only `input`; the write is on `change`, which blur commits.
+    // Before any blur, nothing is written (not per keystroke / per input).
+    await page.locator('[data-pacing-input="step"]').fill('750');
+    let pacing = await page.evaluate(() =>
+      (window as unknown as { playSettingsState: { settings: { pacing: { stepMs: number; resolveMs: number } } } }).playSettingsState.settings.pacing);
+    expect(pacing).toEqual({ stepMs: 200, resolveMs: 400 }); // input event alone does not write
+    await page.locator('[data-pacing-input="step"]').blur();
+    await page.locator('[data-pacing-input="resolve"]').fill('1234');
+    await page.locator('[data-pacing-input="resolve"]').blur();
+    pacing = await page.evaluate(() =>
+      (window as unknown as { playSettingsState: { settings: { pacing: { stepMs: number; resolveMs: number } } } }).playSettingsState.settings.pacing);
+    expect(pacing).toEqual({ stepMs: 750, resolveMs: 1234 });
+    // Custom reads selected and the preset relabelled (withChange behaviour).
+    expect(await page.locator('[data-pacing="custom"]').getAttribute('aria-pressed')).toBe('true');
+    expect((await stateOf(page)).preset).toBe('custom');
+    await page.close();
+  });
+
+  it('an out-of-range input clamps to [0, 10000]; an empty or non-numeric one leaves the value unchanged', async () => {
+    const page = await open();
+    await page.locator('[data-pacing="custom"]').click();
+    const step = page.locator('[data-pacing-input="step"]');
+    const resolve = page.locator('[data-pacing-input="resolve"]');
+    /** pacing reads the fixture's live settings through the page. */
+    const pacing = () =>
+      page.evaluate(() =>
+        (window as unknown as { playSettingsState: { settings: { pacing: { stepMs: number; resolveMs: number } } } }).playSettingsState.settings.pacing);
+    await step.fill('20000');
+    await step.blur();
+    expect(await pacing()).toEqual({ stepMs: 10000, resolveMs: 400 });
+    expect(await step.inputValue()).toBe('10000'); // the clamp is visible
+    await resolve.fill('-5');
+    await resolve.blur();
+    expect(await pacing()).toEqual({ stepMs: 10000, resolveMs: 0 });
+    // A number input cannot even hold non-numeric text (the browser rejects
+    // the fill), so the reachable leave-unchanged case in the DOM is the
+    // empty string; the non-numeric guard itself is pinned on clampMs above.
+    await step.fill('');
+    await step.blur();
+    expect(await pacing()).toEqual({ stepMs: 10000, resolveMs: 0 }); // unchanged
+    await page.close();
+  });
+
+  it('re-selecting a canned pair highlights its segment, and the revealed inputs show that pair', async () => {
+    const page = await open();
+    await page.locator('[data-pacing="custom"]').click();
+    await page.locator('[data-pacing-input="step"]').fill('750');
+    await page.locator('[data-pacing-input="step"]').blur();
+    await page.locator('[data-pacing="short"]').click();
+    expect(await page.locator('[data-pacing="short"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('[data-pacing="custom"]').getAttribute('aria-pressed')).toBe('false');
+    const pacing = await page.evaluate(() =>
+      (window as unknown as { playSettingsState: { settings: { pacing: { stepMs: number; resolveMs: number } } } }).playSettingsState.settings.pacing);
+    expect(pacing).toEqual({ stepMs: 100, resolveMs: 200 });
+    // The inputs stay revealed (the Custom click opened them) and now show
+    // the canned pair.
+    expect(await page.locator('[data-pacing-input="step"]').inputValue()).toBe('100');
+    expect(await page.locator('[data-pacing-input="resolve"]').inputValue()).toBe('200');
     await page.close();
   });
 });

@@ -45,6 +45,19 @@
   export function stopGlyph(rule: StepStop): string {
     return rule === 'off' ? '·' : rule === 'smart' ? '◐' : '●';
   }
+
+  /**
+   * clampMs parses one pacing input as an integer clamped to [0, 10000]
+   * (fb-20260917T004341Z: 0 keeps the instant-post path; above 10s a
+   * wedged-looking client is a footgun we don't ship). Returns null for a
+   * non-numeric/empty input — the caller then leaves the current value
+   * unchanged. Exported for tests; the Custom inputs' change handlers use it.
+   */
+  export function clampMs(raw: string): number | null {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isNaN(n)) return null;
+    return Math.min(10000, Math.max(0, n));
+  }
 </script>
 
 <script lang="ts">
@@ -71,9 +84,9 @@
    * an armed pass), and applyNamedPreset for the preset picker and the
    * Reset button, which need the same re-arm effects setAuto carries.
    */
-  let { state }: { state: SeatPanelState } = $props();
+  let { state: logic }: { state: SeatPanelState } = $props();
 
-  const s = $derived(state.settings);
+  const s = $derived(logic.settings);
   const STEPPABLE = STOPPABLE_STEPS as readonly StoppableStep[];
 
   const OBJECT_OPTIONS: { value: OpponentObjectRule; label: string }[] = [
@@ -92,17 +105,30 @@
     { value: 'if-respondable', label: 'Stop if I can respond' },
   ];
 
-  /** PACING_OPTIONS is the pause between auto-passes: (step/resolve) ms pairs. */
+  /**
+   * PACING_OPTIONS is the step delay (pause between auto-passes):
+   * (step/resolve) ms pairs. fb-20260917T004341Z: 'slow' joined the canned
+   * pairs and the Custom segment below exposes an arbitrary user-set pair —
+   * the machine (paceMs) and the settings model already accept any numbers,
+   * so this is purely picker surface.
+   */
   const PACING_OPTIONS = [
     { id: 'off', label: 'Off', stepMs: 0, resolveMs: 0 },
     { id: 'short', label: 'Short', stepMs: 100, resolveMs: 200 },
     { id: 'normal', label: 'Normal', stepMs: 200, resolveMs: 400 },
+    { id: 'slow', label: 'Slow', stepMs: 500, resolveMs: 1000 },
   ] as const;
 
   const blurb = $derived(PRESET_LIST.find((p) => p.id === s.preset)?.blurb ?? null);
   const pacingId = $derived(
     PACING_OPTIONS.find((p) => p.stepMs === s.pacing.stepMs && p.resolveMs === s.pacing.resolveMs)?.id ?? null,
   );
+  // fb-20260917T004341Z: the Custom affordance. A pacing that matches no
+  // canned pair IS the custom pair, so its segment reads selected and the
+  // inputs show without a click; a canned pair hides them until the player
+  // opens them deliberately (customOpen).
+  let customOpen = $state(false);
+  const showCustomInputs = $derived(pacingId === null || customOpen);
   const rows = $derived(
     STEPPABLE.map((step) => ({
       step,
@@ -116,14 +142,29 @@
     // applyNamedPreset, not editSettings: a named preset that runs auto must
     // also clear the machine's runaway brake, or the panel would read
     // auto-pass on while the loop keeps refusing to act.
-    state.applyNamedPreset(id);
+    logic.applyNamedPreset(id);
   }
   function cycleCell(step: StoppableStep, side: TurnSide): void {
     const cur = s.steps[side][step] ?? 'off';
-    state.editSettings(stopPatch(step, side, nextStop(cur)));
+    logic.editSettings(stopPatch(step, side, nextStop(cur)));
   }
   function setOwn(v: OwnObjectRule): void {
-    state.editSettings({ ownObjects: v });
+    logic.editSettings({ ownObjects: v });
+  }
+
+  /** setStepMs is the Step ms input's change handler: the SAME editSettings
+   *  write path the segments use, the OTHER field taken from the current
+   *  settings so a player can widen only one pause. */
+  function setStepMs(raw: string): void {
+    const ms = clampMs(raw);
+    if (ms === null) return;
+    logic.editSettings({ pacing: { stepMs: ms, resolveMs: s.pacing.resolveMs } });
+  }
+  /** setResolveMs is the Resolve ms input's change handler (see setStepMs). */
+  function setResolveMs(raw: string): void {
+    const ms = clampMs(raw);
+    if (ms === null) return;
+    logic.editSettings({ pacing: { stepMs: s.pacing.stepMs, resolveMs: ms } });
   }
 </script>
 
@@ -158,9 +199,9 @@
       class:on={s.autoPass}
       aria-checked={s.autoPass}
       data-toggle="auto-pass"
-      onclick={() => state.pressAuto()}
+      onclick={() => logic.pressAuto()}
     >
-      <span>Auto pass</span><span class="state" aria-hidden="true">{state.machinePaused ? 'Paused' : s.autoPass ? 'On' : 'Off'}</span>
+      <span>Auto pass</span><span class="state" aria-hidden="true">{logic.machinePaused ? 'Paused' : s.autoPass ? 'On' : 'Off'}</span>
     </button>
   </section>
 
@@ -170,7 +211,7 @@
       <span>casts a spell</span>
       <select
         data-select="opponent-spell"
-        onchange={(e) => state.editSettings({ opponentSpell: e.currentTarget.value as OpponentObjectRule })}
+        onchange={(e) => logic.editSettings({ opponentSpell: e.currentTarget.value as OpponentObjectRule })}
       >
         {#each OBJECT_OPTIONS as o (o.value)}
           <option value={o.value} selected={s.opponentSpell === o.value}>{o.label}</option>
@@ -181,7 +222,7 @@
       <span>activates an ability</span>
       <select
         data-select="opponent-ability"
-        onchange={(e) => state.editSettings({ opponentAbility: e.currentTarget.value as OpponentObjectRule })}
+        onchange={(e) => logic.editSettings({ opponentAbility: e.currentTarget.value as OpponentObjectRule })}
       >
         {#each OBJECT_OPTIONS as o (o.value)}
           <option value={o.value} selected={s.opponentAbility === o.value}>{o.label}</option>
@@ -192,7 +233,7 @@
       <span>has a trigger</span>
       <select
         data-select="opponent-trigger"
-        onchange={(e) => state.editSettings({ opponentTrigger: e.currentTarget.value as OpponentTriggerRule })}
+        onchange={(e) => logic.editSettings({ opponentTrigger: e.currentTarget.value as OpponentTriggerRule })}
       >
         {#each TRIGGER_OPTIONS as o (o.value)}
           <option value={o.value} selected={s.opponentTrigger === o.value}>{o.label}</option>
@@ -274,7 +315,7 @@
       aria-checked={s.passAfterAct}
       data-toggle="pass-after-cast"
       data-actpass-toggle
-      onclick={() => state.setActPass(!s.passAfterAct)}
+      onclick={() => logic.setActPass(!s.passAfterAct)}
     >
       <span>Pass after I cast</span><span class="state" aria-hidden="true">{s.passAfterAct ? 'On' : 'Off'}</span>
     </button>
@@ -285,7 +326,7 @@
       class:on={s.autoOrderIdenticalTriggers}
       aria-checked={s.autoOrderIdenticalTriggers}
       data-toggle="auto-order-triggers"
-      onclick={() => state.editSettings({ autoOrderIdenticalTriggers: !s.autoOrderIdenticalTriggers })}
+      onclick={() => logic.editSettings({ autoOrderIdenticalTriggers: !s.autoOrderIdenticalTriggers })}
     >
       <span>Auto-order identical triggers</span><span class="state" aria-hidden="true">{s.autoOrderIdenticalTriggers ? 'On' : 'Off'}</span>
     </button>
@@ -296,12 +337,17 @@
       class:on={s.autoOrderAllTriggers}
       aria-checked={s.autoOrderAllTriggers}
       data-toggle="auto-order-all-triggers"
-      onclick={() => state.editSettings({ autoOrderAllTriggers: !s.autoOrderAllTriggers })}
+      onclick={() => logic.editSettings({ autoOrderAllTriggers: !s.autoOrderAllTriggers })}
     >
       <span>Auto-order all triggers</span><span class="state" aria-hidden="true">{s.autoOrderAllTriggers ? 'On' : 'Off'}</span>
     </button>
+    <!-- fb-20260917T004341Z: the reporter's own word, "step delay", leads the
+         label; the old meaning (pause between auto-passes) is kept. The four
+         canned segments post whole pairs through the ordinary editSettings
+         path, and the Custom segment reveals two numeric inputs for an
+         arbitrary pair — the same write path, on change (not per keystroke). -->
     <div class="row sel">
-      <span id="pacing-label">Pause between auto-passes</span>
+      <span id="pacing-label">Step delay (pause between auto-passes)</span>
       <div class="segments" role="group" aria-labelledby="pacing-label" data-pacing-picker>
         {#each PACING_OPTIONS as p (p.id)}
           <button
@@ -310,12 +356,49 @@
             class:on={pacingId === p.id}
             aria-pressed={pacingId === p.id}
             data-pacing={p.id}
-            onclick={() => state.editSettings({ pacing: { stepMs: p.stepMs, resolveMs: p.resolveMs } })}
+            onclick={() => logic.editSettings({ pacing: { stepMs: p.stepMs, resolveMs: p.resolveMs } })}
           >{p.label}</button>
         {/each}
+        <button
+          type="button"
+          class="seg"
+          class:on={pacingId === null}
+          aria-pressed={pacingId === null}
+          aria-expanded={showCustomInputs}
+          data-pacing="custom"
+          onclick={() => (customOpen = true)}
+        >Custom</button>
       </div>
     </div>
-    <p class="legend">Short = 100/200 ms, Normal = 200/400 ms between automatic passes (step/resolve).</p>
+    {#if showCustomInputs}
+      <div class="row sel pacing-inputs" data-pacing-custom>
+        <label class="pacing-input">
+          <span>Step ms</span>
+          <input
+            type="number"
+            min="0"
+            max="10000"
+            step="1"
+            value={s.pacing.stepMs}
+            data-pacing-input="step"
+            onchange={(e) => setStepMs(e.currentTarget.value)}
+          />
+        </label>
+        <label class="pacing-input">
+          <span>Resolve ms</span>
+          <input
+            type="number"
+            min="0"
+            max="10000"
+            step="1"
+            value={s.pacing.resolveMs}
+            data-pacing-input="resolve"
+            onchange={(e) => setResolveMs(e.currentTarget.value)}
+          />
+        </label>
+      </div>
+    {/if}
+    <p class="legend" data-pacing-legend>Off = 0/0, Short = 100/200, Normal = 200/400, Slow = 500/1000 ms between automatic passes (step/resolve). Custom pairs clamp to 0–10000 ms.</p>
     <button
       type="button"
       role="switch"
@@ -323,23 +406,23 @@
       class:on={s.logAutoPasses}
       aria-checked={s.logAutoPasses}
       data-toggle="log-auto-passes"
-      onclick={() => state.editSettings({ logAutoPasses: !s.logAutoPasses })}
+      onclick={() => logic.editSettings({ logAutoPasses: !s.logAutoPasses })}
     >
       <span>Log auto-passes</span><span class="state" aria-hidden="true">{s.logAutoPasses ? 'On' : 'Off'}</span>
     </button>
     <!-- Clear yields (prio6): the GAME OPTIONS action for the stack tile
          menus' "Always pass for …" set — game-scoped, per table, so this is
-         a state write (state.clearYields), not a settings edit. Disabled
+         a state write (logic.clearYields), not a settings edit. Disabled
          with nothing yielded, and the count says how much it would clear. -->
     <button
       type="button"
       class="row"
       data-clear-yields
-      disabled={state.yieldList.length === 0}
-      onclick={() => state.clearYields()}
+      disabled={logic.yieldList.length === 0}
+      onclick={() => logic.clearYields()}
     >
-      <span>Clear yields{state.yieldList.length > 0 ? ` (${state.yieldList.length})` : ''}</span>
-      <span class="state" aria-hidden="true">{state.yieldList.length > 0 ? 'Clear' : 'None'}</span>
+      <span>Clear yields{logic.yieldList.length > 0 ? ` (${logic.yieldList.length})` : ''}</span>
+      <span class="state" aria-hidden="true">{logic.yieldList.length > 0 ? 'Clear' : 'None'}</span>
     </button>
     <button type="button" class="reset" data-reset-settings onclick={() => applyPreset('casual')}>Reset to Casual</button>
   </section>
@@ -349,7 +432,7 @@
        "slide up" ask). These are deliberately NOT play settings: they go
        through the separate layoutsettings store — its own localStorage key,
        its own model (lib/layoutsettings.ts) — never through
-       state.editSettings, so the preset relabelling above is untouched and
+       logic.editSettings, so the preset relabelling above is untouched and
        a geometry change can never be mistaken for an auto-pass rule. The
        on-board − / + steppers on the viewer's own rows edit the same store. -->
   <section class="sec" data-layout-section>
@@ -357,7 +440,7 @@
     <!-- fb-20260916T200925Z: the show/hide toggle for the ON-BOARD − / +
          steppers (Quadrant rows + HandFan). Same role="switch" row pattern
          as the auto-pass toggles, writing through the layout store, not
-         state.editSettings — it is a layout preference. Default on = the
+         logic.editSettings — it is a layout preference. Default on = the
          shipped board; a pre-toggle saved blob also loads as on (the field
          is optional in lib/layoutsettings.ts' validate). -->
     <button
@@ -419,15 +502,15 @@
        management list for the remember checkbox on optional-trigger prompts.
        One row per remembered answer — the prompt's label (card + trigger
        text), the answer itself, and a Forget button — plus Forget all. This
-       is a state write (state.removeRemembered / state.clearRemembered), not
+       is a state write (logic.removeRemembered / logic.clearRemembered), not
        a settings edit, exactly like Clear yields. -->
   <section class="sec">
     <h3>Remembered trigger answers</h3>
-    {#if state.remembered.entries.length === 0}
+    {#if logic.remembered.entries.length === 0}
       <p class="legend" data-remembered-empty>None. Tick “Remember this answer” on an optional-trigger prompt to store one.</p>
     {:else}
       <ul class="remlist" data-remembered-list>
-        {#each state.remembered.entries as e, i (i)}
+        {#each logic.remembered.entries as e, i (i)}
           <li class="remrow" data-remembered-entry>
             <span class="remlabel" title={e.label}>{e.label}</span>
             <span class="remchoice" data-remembered-choice={e.choice}>{e.choice === 0 ? 'Yes' : 'No'}</span>
@@ -436,13 +519,13 @@
               class="remforget"
               data-remembered-delete={i}
               aria-label={`Forget ${e.label}`}
-              onclick={() => state.removeRemembered(state.remembered.entries[i]?.key ?? '')}
+              onclick={() => logic.removeRemembered(logic.remembered.entries[i]?.key ?? '')}
             >Forget</button>
           </li>
         {/each}
       </ul>
-      <button type="button" class="row" data-remembered-clear onclick={() => state.clearRemembered()}>
-        <span>Forget all remembered answers ({state.remembered.entries.length})</span>
+      <button type="button" class="row" data-remembered-clear onclick={() => logic.clearRemembered()}>
+        <span>Forget all remembered answers ({logic.remembered.entries.length})</span>
         <span class="state" aria-hidden="true">Clear</span>
       </button>
     {/if}
@@ -544,6 +627,31 @@
     background: var(--instrument-raised);
     color: var(--ink);
     font-family: var(--font-ui);
+    font-size: var(--t-11);
+  }
+  /* fb-20260917T004341Z: the Custom pair of numeric inputs sits under the
+     pacing segments row. */
+  .pacing-inputs {
+    gap: var(--sp-2);
+  }
+  .pacing-input {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-1);
+    flex: 1 1 0;
+    min-width: 0;
+    color: var(--ink-dim);
+    font-size: var(--t-10);
+  }
+  .pacing-input input {
+    width: 4.5em;
+    min-width: 0;
+    padding: var(--sp-1);
+    border: 1px solid var(--edge-inst);
+    background: var(--instrument-raised);
+    color: var(--ink);
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
     font-size: var(--t-11);
   }
   table.grid {
