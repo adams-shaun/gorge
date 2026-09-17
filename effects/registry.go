@@ -491,6 +491,20 @@ type Ctx struct {
 	// continuation effDig's DigTarget carries. Consumed and cleared at the
 	// top of the walk with HandMove/HandMoveDone (fx42 scoping).
 	HandMoveTarget int
+	// HiddenPick is the answered Hidden$ True public-origin pick (hiddenpick1):
+	// the chooser picked which of the ChangeType$-eligible cards in the
+	// origin zone(s) move to Destination$. HiddenPickDone distinguishes
+	// "answered, possibly with no cards" from the first pass; HiddenPick
+	// preserves the player's answer order. effHiddenPick consumes and
+	// clears both at the top of its walk (fx42 scoping), so a nested pick
+	// cannot inherit the outer answer.
+	HiddenPick     []state.ObjID
+	HiddenPickDone bool
+	// HiddenPickTarget is the index of the fetch player whose hidden-pick ask
+	// was answered, the same continuation HandMoveTarget carries: owners
+	// before the cursor are skipped on re-entry, owners after it continue
+	// the chain. Consumed and cleared with the pair above.
+	HiddenPickTarget int
 	// DefinedLibraryMove is the answered Optional$ True choice for an
 	// object-valued Defined$ fetch list from Origin$ Library. "yes" moves the
 	// list; "no" leaves it in place. It is consumed by

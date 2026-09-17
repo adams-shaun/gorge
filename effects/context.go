@@ -481,6 +481,30 @@ func eventRemember(h Host, c *Ctx, id state.ObjID) {
 	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered", IDs: []state.ObjID{id}})
 }
 
+// eventForgetChanged implements ForgetChanged$ True (Forge ChangeZoneEffect's
+// host.removeRemembered on each moved card): the moved object leaves BOTH
+// halves of the remembered state -- the resolution's Ctx.Remembered set and
+// the source object's persistent event-backed Remembered list, which
+// Card.IsRemembered and Count$RememberedSize read later. It self-gates on the
+// parameter (Forge reads the key unconditionally per moved card), so callers
+// pair it beside their RememberChanged$ handling without a second guard.
+func eventForgetChanged(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
+	if !strings.EqualFold(strings.TrimSpace(sa.Params["ForgetChanged"]), "True") {
+		return
+	}
+	next := make([]state.Target, 0, len(c.Remembered))
+	for _, t := range c.Remembered {
+		if !t.IsPlayer && t.Obj == id {
+			continue
+		}
+		next = append(next, t)
+	}
+	c.Remembered = next
+	if c.Source != 0 {
+		h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "forget-remembered", IDs: []state.ObjID{id}})
+	}
+}
+
 // clearEventRemembered mirrors Forge host.clearRemembered.  Rider primitives
 // call it before replacing their ctx set, so Count$RememberedSize and a later
 // resolution observe exactly the same persistent set as the current chain.
