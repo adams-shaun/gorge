@@ -9,6 +9,20 @@ export interface ImageSource {
 
 const SPACING = 100;
 const OFFLINE_FOR = 60_000;
+// REQUEST_TIMEOUT bounds one /art/named fetch. gorged's art proxy serialises
+// every uncached lookup behind a pacing semaphore whose 429 backoff sleeps
+// HOLD the semaphore (cmd/gorged/art.go), so under Scryfall rate limiting a
+// fetch can block for minutes — measured: 3 hand-card lookups at ~8.9s each
+// and 4 more that never completed in a whole smoke test. A browser holds one
+// of its ~6 per-host HTTP/1.1 connections for every such fetch, so unbounded
+// art lookups starve the page's own state channel (view/events/pending) and
+// the client wedges on "waiting for the game to advance" while the SSE
+// stream — exempt from that pool — keeps arriving (task
+// fb-20260916T225456Z, seated-smoke R-E4-1 timeout). Aborting after 10s
+// frees the socket; the catch path below takes its existing 60s offline
+// rest (nothing is stored, so the name re-resolves later) while the
+// server's prewarm warms the cache meanwhile.
+const REQUEST_TIMEOUT = 10_000;
 // Version the browser cache independently of the server's art blobs. Existing
 // browsers may hold a valid immutable URL whose bytes were selected by older
 // face-matching logic; changing this namespace makes them resolve the name
@@ -73,24 +87,35 @@ export function createImages(src: Partial<ImageSource> = {}) {
     // mirrors Scryfall's own /cards/named (name + image_uris.normal) on
     // purpose, so this parsing needs no change from when it read Scryfall
     // directly — only the request's base URL moved.
-    const res = await env.fetch(withBase(`/art/named?exact=${encodeURIComponent(name)}`), { headers: { Accept: 'application/json' } });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`art ${res.status}`);
-    const j = (await res.json()) as Scryfall;
-    // A multi-faced card (Delver of Secrets / Insectile Aberration) puts no
-    // top-level image_uris in the response and lists card_faces[0] = the
-    // FRONT face for either name — so the front-face-only fallback resolved
-    // a back-face name to the front art forever (task
-    // fb-20260914T033246Z-3f1cc033, defect 3). Pick the face whose printed
-    // name is the requested one; fall back to the front face, then to the
-    // top-level image (single-faced cards).
-    const face = j.card_faces?.find((f) => f.name === name);
-    const path =
-      j.image_uris?.normal ??
-      face?.image_uris?.normal ??
-      j.card_faces?.[0]?.image_uris?.normal ??
-      null;
-    return path ? withBase(path) : null;
+    // REQUEST_TIMEOUT (see the constant's comment) bounds the whole lookup —
+    // body read included — because every millisecond of it holds a browser
+    // connection. The abort is armed through env.setTimeout so the fake-clock
+    // tests drive it; aborting an already-settled controller is a no-op.
+    const abort = new AbortController();
+    let settled = false;
+    env.setTimeout(() => { if (!settled) abort.abort(); }, REQUEST_TIMEOUT);
+    try {
+      const res = await env.fetch(withBase(`/art/named?exact=${encodeURIComponent(name)}`), { headers: { Accept: 'application/json' }, signal: abort.signal });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`art ${res.status}`);
+      const j = (await res.json()) as Scryfall;
+      // A multi-faced card (Delver of Secrets / Insectile Aberration) puts no
+      // top-level image_uris in the response and lists card_faces[0] = the
+      // FRONT face for either name — so the front-face-only fallback resolved
+      // a back-face name to the front art forever (task
+      // fb-20260914T033246Z-3f1cc033, defect 3). Pick the face whose printed
+      // name is the requested one; fall back to the front face, then to the
+      // top-level image (single-faced cards).
+      const face = j.card_faces?.find((f) => f.name === name);
+      const path =
+        j.image_uris?.normal ??
+        face?.image_uris?.normal ??
+        j.card_faces?.[0]?.image_uris?.normal ??
+        null;
+      return path ? withBase(path) : null;
+    } finally {
+      settled = true;
+    }
   }
 
   function url(name: string): Promise<string | null> {

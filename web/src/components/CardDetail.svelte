@@ -269,7 +269,7 @@
   /* A floating read-only panel: instrument register (cool, dense — where the
      engine explains what it did), pointer-events none so no underlying
      interaction is ever blocked by it. It sits above the board's other
-     overlays (RecentStrip uses 4) AND above the seat panel (8). It used to
+     overlays AND above the seat panel (8). It used to
      sit below the seat panel on the grounds that the sheet is real clickable
      UI -- but this panel sets pointer-events: none, so stacking over the
      sheet cannot take a click from it, and the mulligan proved the cost: the

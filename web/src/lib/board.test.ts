@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { attachedTo, everyVisibleCard, groupBattlefield, quadrantFor, RECENT_RESOLVE_WINDOW, recentlyMattered, stackFaces, stackIdentical, visibleHand } from './board';
-import type { CardView, EventBody, PlayerView } from '../protocol';
+import { attachedTo, everyVisibleCard, findCardAnywhere, groupBattlefield, quadrantFor, RECENT_RESOLVE_WINDOW, recentlyMattered, stackFaces, stackIdentical, visibleHand } from './board';
+import type { CardView, EventBody, PlayerView, View } from '../protocol';
 
 const card = (id: number, types: string): CardView => ({ id, name: `c${id}`, types, tapped: false, power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false, printing: { name: `c${id}` }, token: `#${id}` });
 
@@ -14,6 +14,19 @@ const player = (hand: CardView[] | null): PlayerView => ({
 });
 
 describe('board', () => {
+  it('findCardAnywhere finds an id in each visible zone and the stack, and returns null for a hidden one', () => {
+    const v = {
+      viewer: 255, visibility: 'public', turn: 1, round: 1, step: 'main1', phase: 'main1', active: 0, priority: 0,
+      over: false, draw: false, winner: null, pending: [],
+      stack: [{ id: 900, kind: 'spell', name: 's', text: '', controller: 0, targets: [], card: card(900, 'Instant'), optional: false }],
+      players: [player([]), { ...player([]), seat: 1, battlefield: [card(11, 'Creature')], graveyard: [card(12, 'Instant')], exile: [card(13, 'Creature')] }],
+    } as unknown as View;
+    expect(findCardAnywhere(v, 11)?.id).toBe(11);
+    expect(findCardAnywhere(v, 12)?.id).toBe(12);
+    expect(findCardAnywhere(v, 13)?.id).toBe(13);
+    expect(findCardAnywhere(v, 900)?.id).toBe(900);
+    expect(findCardAnywhere(v, 777)).toBeNull(); // library / nowhere: hidden or gone
+  });
   it('groups lands, creatures and the rest, ordered by id', () => {
     const g = groupBattlefield([card(9, 'Creature Goblin'), card(3, 'Basic Land Mountain'), card(5, 'Artifact'), card(2, 'Creature Human'), card(7, 'Artifact Creature Golem')]);
     expect(g.lands.map((c) => c.id)).toEqual([3]);
