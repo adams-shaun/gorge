@@ -696,6 +696,24 @@ func Apply(g *state.Game, e Event) {
 				o.Chosen = rememberedFrom(e.IDs)
 			case "remembered":
 				o.Remembered = append(o.Remembered, rememberedFrom(e.IDs)...)
+			case "forget-remembered":
+				// ForgetChanged$ True (Forge ChangeZoneEffect's
+				// host.removeRemembered on the moved card): the named cards leave
+				// the source object's persistent Remembered list. Player entries
+				// and ids not named are kept, so a bad or partial payload degrades
+				// to a smaller forget, never a wider one.
+				drop := make(map[state.ObjID]bool, len(e.IDs))
+				for _, id := range e.IDs {
+					drop[id] = true
+				}
+				kept := make([]state.Target, 0, len(o.Remembered))
+				for _, t := range o.Remembered {
+					if !t.IsPlayer && drop[t.Obj] {
+						continue
+					}
+					kept = append(kept, t)
+				}
+				o.Remembered = kept
 			case "clear-remembered":
 				o.Remembered = nil
 			}
