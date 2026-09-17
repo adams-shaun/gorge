@@ -194,13 +194,19 @@ describe('the wait is cancellable', () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     const trigger = { ...stackView('Harmless trigger'), kind: 'trigger' };
-    const initial = view('main1', 0, 2, [trigger]);
+    // On the OPPONENT'S turn: since fb-20260917T231311Z the own-turn main-phase
+    // floor stops persistent Auto on the seat's own main1/main2 whenever the
+    // window carries a playable action (this `live` decision offers a cast),
+    // so an own-turn main1 shape is no longer a paced-pass window at all —
+    // the panel-level leaf below pins that. This leaf keeps testing the WAIT
+    // mechanics, so it runs them on a turn the floor does not own.
+    const initial = view('main1', 1, 2, [trigger]);
     initial.players = [{ seat: 1, life: 20 }] as unknown as View['players'];
     p.adoptView(live(1));
     p.considerAuto(initial);
     await vi.advanceTimersByTimeAsync(200);
 
-    const lifeChanged = view('main1', 0, 2, [trigger]);
+    const lifeChanged = view('main1', 1, 2, [trigger]);
     lifeChanged.players = [{ seat: 1, life: 19 }] as unknown as View['players'];
     p.considerAuto(lifeChanged);
     await vi.advanceTimersByTimeAsync(200); // the OLD 400 ms deadline
@@ -213,6 +219,26 @@ describe('the wait is cancellable', () => {
     expect(postIntentMock).toHaveBeenCalledTimes(1);
     expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]);
     expect(p.autoLog.map((n) => n.text)).toEqual(['Auto-passed: Harmless trigger resolving']);
+  });
+
+  it('the own-turn main-phase floor stops persistent Auto before any pacing while the window holds a playable action (fb-20260917T231311Z)', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    const trigger = { ...stackView('Harmless trigger'), kind: 'trigger' };
+    // The exact shape the old r3 leaf above used to pace-pass: the seat's own
+    // main1, an already-present opponent trigger, and a decision offering a
+    // cast. Since the floor (fb-20260917T231311Z) the verdict is a stop — the
+    // machine must never blow through the player's own main phase while a
+    // play exists — so no wait is armed, nothing posts, and the stop-set note
+    // names the play the smart rule's note already names.
+    const v = view('main1', 0, 2, [trigger]);
+    p.adoptView(live(1));
+    p.considerAuto(v);
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(postIntentMock).not.toHaveBeenCalled();
+    expect(p.postedSeq).toBeNull();
+    expect(autoNoteText(p.note)).toContain('Cast spell 0');
   });
 
   it('a steady stream of new views keeps cancelling the pass until the view settles', async () => {
