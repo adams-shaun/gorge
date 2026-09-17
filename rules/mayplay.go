@@ -89,14 +89,19 @@ func (e *Engine) mayPlayGrant(p state.PlayerID, id state.ObjID) (free, ok bool) 
 // that this build neither implements nor can safely ignore. Each one either
 // further conditions the permission (ValidAfterStack$, the SVar condition
 // family, ValidSA$, ActivationZone$) or changes what playing the card costs
-// (RaiseCost$, MayPlayAltManaCost$) -- and an uncharged surcharge is exactly
+// (RaiseCost$) -- and an uncharged surcharge is exactly
 // the widening this file refuses: an offer the engine prices incorrectly must
 // not exist at all. Any of these present fails the static closed, so the
-// card is simply not offered.
+// card is simply not offered. MayPlayAltManaCost$ is NOT in this list: it is
+// genuinely consumed, but on a different path -- mayPlayAltCosts delivers it
+// for the ordinary cast walk (alternativeCosts), while the ZONE-permission
+// grant below still refuses a cost-carrying static that would have the
+// may-play cast pay the printed or free cost (the altCostWithholding check
+// in mayPlayStatic).
 var mayPlayUnreadGates = [...]string{
 	"ValidAfterStack", "SVarCompare", "CheckSecondSVar", "CheckThirdSVar",
 	"PresentCompare", "ValidSA", "ActivationZone", "CharacteristicDefining",
-	"RaiseCost", "MayPlayAltManaCost",
+	"RaiseCost",
 }
 
 // mayPlayGateRejected reports whether a MayPlay$ static carries one of the
@@ -126,8 +131,7 @@ func mayPlayGateRejected(params map[string]string) bool {
 		strings.TrimSpace(params["ValidSA"]) != "" ||
 		strings.TrimSpace(params["ActivationZone"]) != "" ||
 		strings.TrimSpace(params["CharacteristicDefining"]) != "" ||
-		strings.TrimSpace(params["RaiseCost"]) != "" ||
-		strings.TrimSpace(params["MayPlayAltManaCost"]) != "" {
+		strings.TrimSpace(params["RaiseCost"]) != "" {
 		return true
 	}
 	return strings.TrimSpace(params["CheckSVar"]) != "" || strings.TrimSpace(params["MayPlayPlayer"]) != ""
@@ -154,6 +158,21 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	// mayPlayUnreadGates family plus CheckSVar$/MayPlayPlayer$ (see
 	// mayPlayGateRejected's doc -- a recognition, not a consumption).
 	if mayPlayGateRejected(params) {
+		return false, false, false
+	}
+	// altCostWithholding: a static that prices the play itself
+	// (MayPlayAltManaCost$) and still OPENS the zone permission would have
+	// the may-play cast pay the printed or free cost -- the widening this
+	// file refuses, because the may-play cast path cannot charge the
+	// alternative. The cost's real delivery is mayPlayAltCosts, which
+	// serves the ordinary cast walk (a hand cast pays the alt cost as its
+	// own cast option); the zone permission stays closed until that cast
+	// path can price it. A MayPlayDontGrantZonePermissions$ static (the
+	// corpus's dominant carrier, Darksteel Monolith) never granted here
+	// anyway, so this only formalises the boundary for a future
+	// grant-and-reprice static.
+	if _, alt := params["MayPlayAltManaCost"]; alt &&
+		!strings.EqualFold(params["MayPlayDontGrantZonePermissions"], "True") {
 		return false, false, false
 	}
 	// Condition$ PlayerTurn ("during each of your turns", Kess, Dissident
@@ -261,4 +280,114 @@ func (e *Engine) mayPlayLimitReached(id state.ObjID, limit int) bool {
 		}
 	}
 	return used >= limit
+}
+
+// mayPlayAltCosts delivers a MayPlay static's MayPlayAltManaCost$ as an
+// alternative cost for the ORDINARY cast walk (rules/statics.go's
+// alternativeCosts appends these after its AlternativeCost statics): "Once
+// each turn, you may pay {0} rather than pay the mana cost for a colorless
+// spell that you cast from your hand" (Darksteel Monolith's
+// MayPlayAltManaCost$ 0). The static's own gate chain decides whether the
+// affected card is offered the alternative at all, exactly like the zone
+// permission's gates decide whether the card may play from elsewhere --
+// same gates, different delivery.
+//
+// Sources are the same two the permission grant walks: battlefield
+// continuous statics (activeStatics, APNAP order) and the card's own face
+// statics (a self-referential S: line -- activeStatics alone never sees a
+// static on a card still in hand). Order is deterministic and STABLE
+// between the offer walk (legal.go's alternativeCosts loop) and beginCast's
+// re-resolution of the chosen AltCostIndex, because both call this function
+// over the same board.
+//
+// Fail-closed discipline, the family's own:
+//
+//   - MayPlay$ True is required (the corpus pairs every MayPlayAltManaCost$
+//     with MayPlay$ True, 27 of 27 carrier files at the corpus pin).
+//   - the remaining mayPlayUnreadGates plus CheckSVar$/MayPlayPlayer$
+//     withhold the static whole (mayPlayGateRejected).
+//   - Condition$, IsPresent$, Affected$, AffectedZone$ and MayPlayLimit$
+//     are evaluated exactly as mayPlayStatic evaluates them.
+//   - the value is priced through ParseCost; a token this build cannot
+//     model (Valgavoth, Terror Eater's dynamic PayLife<ConvertedManaCost>)
+//     leaves Cost.Unknown non-empty and the alternative is NOT offered --
+//     an unpriceable cost must never exist as an option.
+//
+// MayPlayLimit$ is enforced per AFFECTED CARD (mayPlayLimitReached's
+// per-card log walk), the same reading the zone-permission family applies:
+// a colorless spell already played this turn cannot use the discount again.
+// The Monolith's printed "Once each turn" is a per-STATIC limit, which this
+// per-card tracking under-enforces (two different colorless spells can each
+// use it once in one turn) -- the same under-enforcement Forge's per-card
+// MayPlayTurn carries; named in the deck import report's Issues.
+func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []Cost {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return nil
+	}
+	var out []Cost
+	// The two sources the permission grant walks, merged into one
+	// deterministic scan (battlefield statics first, then the card's own
+	// face statics): the copy keeps activeStatics' slice from being
+	// appended to in place.
+	statics := append([]staticView(nil), e.activeStatics("Continuous")...)
+	for _, st := range o.Face().Statics {
+		if st.Mode == "Continuous" {
+			statics = append(statics, staticView{Params: st.Params, Source: id, Controller: o.Controller})
+		}
+	}
+	for _, sv := range statics {
+		raw := strings.TrimSpace(sv.Params["MayPlayAltManaCost"])
+		if raw == "" || strings.TrimSpace(sv.Params["MayPlay"]) != "True" || mayPlayGateRejected(sv.Params) {
+			continue
+		}
+		// Condition$ PlayerTurn ("during each of your turns"): the static's
+		// controller's turn, the same switch mayPlayStatic runs. Any other
+		// value is an unimplemented gate and fails closed.
+		switch cond := strings.TrimSpace(sv.Params["Condition"]); cond {
+		case "":
+		case "PlayerTurn":
+			if e.G.Active != sv.Controller {
+				continue
+			}
+		default:
+			continue
+		}
+		if ip := strings.TrimSpace(sv.Params["IsPresent"]); ip != "" && !e.mayPlayIsPresent(ip, sv.Controller, sv.Source) {
+			continue
+		}
+		spec := strings.TrimSpace(sv.Params["Affected"])
+		if spec == "" {
+			continue
+		}
+		if az := strings.TrimSpace(sv.Params["AffectedZone"]); az != "" {
+			inZone := false
+			for _, part := range strings.Split(az, ",") {
+				if z, known := effects.ZoneFromString(strings.TrimSpace(part)); known && z == o.Zone {
+					inZone = true
+					break
+				}
+			}
+			if !inZone {
+				continue
+			}
+		}
+		if !effects.MatchesSpecFrom(e.G, spec, id, sv.Controller, sv.Source) {
+			continue
+		}
+		if rawLimit := strings.TrimSpace(sv.Params["MayPlayLimit"]); rawLimit != "" {
+			if n, err := strconv.Atoi(rawLimit); err == nil && n > 0 && e.mayPlayLimitReached(id, n) {
+				continue
+			}
+		}
+		alt := ParseCost(raw)
+		if len(alt.Unknown) > 0 {
+			// An unpriceable alternative (dynamic PayLife<ConvertedManaCost>,
+			// Waterbend<ConvertedManaCost>) is withheld, never offered at a
+			// wrong price.
+			continue
+		}
+		out = append(out, alt)
+	}
+	return out
 }

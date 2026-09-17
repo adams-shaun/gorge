@@ -481,6 +481,11 @@ var flagNames = [...]struct {
 	{"suspend", state.FlagSuspend},
 	{"escaped", state.FlagEscaped},
 	{"mayplay", state.FlagMayPlay},
+	// The and/or Kicker's index bits (Wastescape Battlemage's two
+	// independently optional kickers). Appended at the end per the table's
+	// own ordering rule.
+	{"kicked 1", state.FlagKicked1},
+	{"kicked 2", state.FlagKicked2},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

@@ -229,11 +229,45 @@ type etbChoice struct {
 // kickerCost and surgeCost resolve a face's own parameterised keyword to a
 // parsed Cost, reporting whether the keyword is printed at all.
 func kickerCost(f *cards.Face) (Cost, bool) {
+	if _, _, two := twoPartKickerCosts(f); two {
+		// The and/or two-part Kicker is its own option family (legal.go's
+		// kicked1/kicked2/kickedboth offers, one per independently payable
+		// part): the single "kicked" option must not also exist for such a
+		// face -- its whole-string parse would degrade the colon separator
+		// into a generic pip and charge the both-parts price for a
+		// single-part choice.
+		return Cost{}, false
+	}
 	s, ok := f.KeywordParam("Kicker")
 	if !ok {
 		return Cost{}, false
 	}
 	return ParseCost(s), true
+}
+
+// twoPartKickerCosts resolves the and/or Kicker ("Kicker {G} and/or {1}{U}",
+// Forge's colon-separated two-part Kicker:<a>:<b> keyword line -- 18 corpus
+// files at the pin, the Volver/Battlemage/Involver cycle family, Wastescape
+// Battlemage the repo-deck carrier) to its two independently payable parts:
+// each may be paid alone or both together (CR 601.2b's optional additional
+// costs, each declared separately). ok=false for the single-cost Kicker
+// (every colon-free param) and for a colon form whose parts do not parse
+// clean -- a part with an unmodelled token stays a labelled census gap
+// rather than being silently charged.
+func twoPartKickerCosts(f *cards.Face) (Cost, Cost, bool) {
+	s, ok := f.KeywordParam("Kicker")
+	if !ok {
+		return Cost{}, Cost{}, false
+	}
+	a, b, is := strings.Cut(s, ":")
+	if !is || strings.TrimSpace(a) == "" || strings.TrimSpace(b) == "" {
+		return Cost{}, Cost{}, false
+	}
+	ca, cb := ParseCost(a), ParseCost(b)
+	if len(ca.Unknown) > 0 || len(cb.Unknown) > 0 {
+		return Cost{}, Cost{}, false
+	}
+	return ca, cb, true
 }
 
 func surgeCost(f *cards.Face) (Cost, bool) {
@@ -922,6 +956,22 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	case "kicked":
 		if kc, ok := kickerCost(f); ok {
 			cost = cost.Plus(kc)
+		}
+	case "kicked1", "kicked2", "kickedboth":
+		// The and/or Kicker's per-part modes (legal.go offers one option per
+		// independently payable part): each mode adds exactly the parts its
+		// name promises. An out-of-range or unparseable form (a stale option
+		// or a face whose Kicker changed) falls back to the base cost --
+		// the same no-crash read the AltCostIndex fallback below takes.
+		if c1, c2, ok := twoPartKickerCosts(f); ok {
+			switch opt.Mode {
+			case "kicked1":
+				cost = cost.Plus(c1)
+			case "kicked2":
+				cost = cost.Plus(c2)
+			default:
+				cost = cost.Plus(c1).Plus(c2)
+			}
 		}
 	case "surged":
 		if sc, ok := surgeCost(f); ok {
@@ -2039,8 +2089,15 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 			continue
 		}
 		pc.etbs = append(pc.etbs, etbChoice{
-			kind:    kind,
-			options: e.etbOptions(you, pc.card, kind, r.With.Params["ValidCards"]),
+			kind: kind,
+			options: e.etbOptions(you, pc.card, kind,
+				r.With.Params["ValidCards"],
+				// Type$ (Herald's Horn, Urza's Incubator, Roaming Throne, Three
+				// Tree City) names the category the choice ranges over. The
+				// option list below builds it; a category this build cannot
+				// enumerate is recorded loudly at resolution time by
+				// effects.effChooseType, never silently.
+				r.With.Params["Type"]),
 		})
 	}
 }
@@ -2066,7 +2123,7 @@ func etbChoiceKind(api string) string {
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
-func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards string) []decision.Option {
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory string) []decision.Option {
 	switch kind {
 	case "name":
 		if validCards == "" {
@@ -2102,6 +2159,13 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case "type":
+		// Type$ Creature (the corpus's dominant value) is exactly this list;
+		// an absent Type$ keeps the creature-type default. Any other category
+		// has no option builder in this build: the list stays the creature
+		// fallback and effects.effChooseType records the gap loudly at
+		// resolution time, so the limitation is never silent. The switch's
+		// only act would be a non-creature option list this build cannot
+		// build, so no branch -- the comment is the read.
 		seen := map[string]bool{}
 		types := []string{}
 		for i := range e.G.Objs {
@@ -3024,6 +3088,16 @@ func modeFlags(mode string) string {
 	switch mode {
 	case "kicked":
 		return events.FlagsString(state.FlagKicked)
+	// The and/or Kicker's per-part modes: each index flag rides with the
+	// bare FlagKicked (every part paid IS a kicked cast -- the bare
+	// predicate and the Condition$ Kicked gate keep matching), so the
+	// CastInfo wire carries the part's identity and the generic read.
+	case "kicked1":
+		return events.FlagsString(state.FlagKicked | state.FlagKicked1)
+	case "kicked2":
+		return events.FlagsString(state.FlagKicked | state.FlagKicked2)
+	case "kickedboth":
+		return events.FlagsString(state.FlagKicked | state.FlagKicked1 | state.FlagKicked2)
 	case "surged":
 		return events.FlagsString(state.FlagSurged)
 	case "flashback":

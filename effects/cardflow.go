@@ -779,6 +779,16 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 			ev.Player, ev.Secret = p, true
+			// ExileFaceDown$ True with an exile destination (Ugin, the
+			// Ineffable's [+1]: "Exile the top card of your library face down
+			// and look at it") carries the same face-down exile payload
+			// Hideaway's move uses -- the exiling source rides in Amount --
+			// so a replay derives FaceDown identically and a projection
+			// withholds the card.
+			if strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True") && dest == state.ZExile {
+				ev.Counter = "exiled_with_face_down"
+				ev.Amount = int32(c.Source)
+			}
 			h.Emit(ev)
 			digRemember(c, sa, id)
 			if tapped && dest == state.ZBattlefield {
@@ -1053,6 +1063,18 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	zone := state.ZHand
 	if sa.API == "PeekAndReveal" {
 		zone = state.ZLibrary
+		// PeekAmount$ (Herald's Horn, the Kinship family): how many library
+		// cards the peek LOOKS at. The reveal below then covers the subset of
+		// that window RevealValid$ admits, so the amount and the valid-filter
+		// compose ("look at the top card; if it's a creature card of the
+		// chosen type, you may reveal it"). An unresolvable value degrades to
+		// zero through Num's present-but-unresolvable convention, which for
+		// a peek means an empty window and no reveal ask -- the correct
+		// reading of a count this build cannot compute.
+		amt = Num(h, c, sa, "PeekAmount", 1)
+		if amt < 0 {
+			amt = 0
+		}
 	}
 	// The may-reveal ask (task fb-3f1cc033, Delver of Secrets' peek; widened
 	// to Optional$ by the round-2 review's Look$ task): the deciding player
@@ -1063,8 +1085,11 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	// cannot ask (an effects-package double, fuzz) keeps the pre-ask
 	// behaviour: the mandatory reveal, as the deterministic fallback (the
 	// same R-9 degradation Scry/Surveil carry). Still unread here,
-	// deliberately: PeekAmount$, RevealValid$, NoReveal$/NoPeek$ and
-	// RememberRevealedPlayer$ — see the report's Issues section.
+	// deliberately: NoReveal$/NoPeek$ and RememberRevealedPlayer$ — see the
+	// report's Issues section. PeekAmount$ and RevealValid$ ARE read (the
+	// PeekAndReveal arm above takes the peek window from PeekAmount$; the
+	// RevealValid$ filter below narrows the may-reveal to the matching
+	// subset for every API in this row).
 	answer := c.RevealOpt
 	c.RevealOpt = "" // fx42 scoping: consumed once; a nested peek poses its own ask
 	look := strings.EqualFold(strings.TrimSpace(sa.Params["Look"]), "True")
@@ -1114,6 +1139,22 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			filtered := make([]state.ObjID, 0, len(pool))
 			for _, id := range pool {
 				if MatchesSpecCtx(g, revealType, id, c.SpecContext(c.Controller)) {
+					filtered = append(filtered, id)
+				}
+			}
+			pool = filtered
+		}
+		if rv := strings.TrimSpace(sa.Params["RevealValid"]); rv != "" {
+			// RevealValid$ (Herald's Horn's Creature.ChosenType, the Kinship
+			// family's Card.sharesCreatureTypeWith): the may-reveal covers
+			// only the pool's matching subset — "if it's a creature card of
+			// the chosen type, you may reveal it". With nothing matching there
+			// is no reveal and no RememberRevealed$ capture, so a chained
+			// ConditionDefined$ Remembered gate correctly skips; the same
+			// fail-closed convention RevealType$ applies above.
+			filtered := make([]state.ObjID, 0, len(pool))
+			for _, id := range pool {
+				if MatchesSpecCtx(g, rv, id, c.SpecContext(c.Controller)) {
 					filtered = append(filtered, id)
 				}
 			}
@@ -1365,7 +1406,13 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 // keeps every card on top in its existing order (pile B empty), which is
 // narrower than the card text but deterministic.
 func effScry(h Host, c *Ctx, sa *cards.SA) {
-	effLookAndArrange(h, c, sa, "ScryNum", "bottom", "Scry")
+	// ScryNum$ is read HERE, at the api:Scry implementation, not inside the
+	// shared KArrange body: the shared body takes the resolved count, so the
+	// parameter read is a literal-key read on this API's own SA (Kozilek's
+	// Command's `ScryNum$ X` Charm mode resolves the announced X through the
+	// same Num grammar a literal would take).
+	n := Num(h, c, sa, "ScryNum", 1)
+	effLookAndArrange(h, c, sa, n, "bottom", "Scry")
 }
 
 // effSurveil implements the Surveil prompt API (CR 701.42): look at the top
@@ -1379,16 +1426,17 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // helper): the stand-in puts nothing in the graveyard, which is narrower
 // than the card text but deterministic.
 func effSurveil(h Host, c *Ctx, sa *cards.SA) {
-	effLookAndArrange(h, c, sa, "Amount", "graveyard", "Surveil")
+	n := Num(h, c, sa, "Amount", 1)
+	effLookAndArrange(h, c, sa, n, "graveyard", "Surveil")
 }
 
 // effLookAndArrange is the shared KArrange body behind effScry and
-// effSurveil: read the count (ScryNum$ / Amount$, default 1) through Num,
-// resolve Defined$ (default = the ability's source, hence its controller),
+// effSurveil: the count (ScryNum$ / Amount$, default 1) is resolved by the
+// calling api implementation through Num; this body resolves Defined$ (default = the ability's source, hence its controller),
 // and pose one KArrange decision per target library over the top min(N,
 // len(lib)) cards. The unchosen pile B's destination is the shared Option.Kind
 // passed in; only that differs between the two primitives.
-func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, numKey, kind, verb string) {
+func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string) {
 	// Re-entry after rules' handleArrange applied the answered KArrange and
 	// emitted the LibraryOrder event: this pass must only let the resolution
 	// continue (the chained SubAbility$ runs), not re-ask or re-emit.
@@ -1396,7 +1444,6 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, numKey, kind, verb string) 
 		c.Arrange = false
 		return
 	}
-	n := Num(h, c, sa, numKey, 1)
 	if n < 0 {
 		n = 0
 	}

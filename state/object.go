@@ -74,6 +74,17 @@ const (
 	// (rules' mayPlaysThisTurn), the same CastInfo provenance marker the
 	// Suspend flag is.
 	FlagMayPlay
+	// FlagKicked1/FlagKicked2 mark the and/or Kicker's two independent
+	// optional costs ("Kicker {G} and/or {1}{U}", Forge's colon-separated
+	// two-part Kicker:<a>:<b> line -- the Volver/Battlemage cycle family,
+	// 18 corpus files): each records WHICH kicker was paid, so the
+	// "Card.Self+kicked 1" / "kicked 2" trigger/replacement specs read the
+	// specific part. Any part paid also sets FlagKicked, so every bare
+	// "kicked" reader (the Condition$ Kicked gate, the spellScope
+	// constraint) keeps meaning "some kicker was paid". Appended after the
+	// enum's own append-only precedent.
+	FlagKicked1
+	FlagKicked2
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -99,6 +110,15 @@ type Object struct {
 	EnteredThisTurn        bool
 	EnteredFrom            Zone
 	WasDealtDamageThisTurn bool
+	// ActivatedThisTurn counts the non-mana activated abilities whose
+	// activation minted an AbilityPush with this source this turn
+	// (events.Apply's AbilityPush case). Mana abilities never mint one (CR
+	// 605.3a: they are structurally off the stack), so the count is exactly
+	// the repeatable-ability churn a bot policy needs to bound its own
+	// loop-shaped activations (Basalt Monolith's "{3}: Untap this artifact"
+	// re-enabling its own tap forever) without ever misreading a human's
+	// legal unlimited activations -- the count is advice, never a gate.
+	ActivatedThisTurn int32
 
 	// preStackEntry* carries a card's entry history only while it is on the
 	// stack. events.Apply captures it before PutOnStack overwrites the public

@@ -174,6 +174,15 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 // own lord-effect tests already established (layers_test.go), rather than
 // inventing a new filter form.
 func effPump(h Host, c *Ctx, sa *cards.SA) {
+	// Secondary$ True (Amonkhet Raceway's max-speed AddAbility$ grant marks
+	// the granted pump with it): Forge CardFactoryUtil sets the key on
+	// machine-derived abilities, and Card.java's ability-text renderer skips
+	// secondary spell abilities -- a presentation and deck-tooling filter,
+	// never a rules tail. The engine delivers a granted pump through the
+	// AddAbility static grant structurally (the static is the grantor; the
+	// SA is not a printed line), so the recognition has no behavioural half
+	// here; the read keeps the parameter census honest.
+	_ = sa.Params["Secondary"]
 	att := Num(h, c, sa, "NumAtt", 0)
 	def := Num(h, c, sa, "NumDef", 0)
 	for _, t := range Defined(h, c, sa) {

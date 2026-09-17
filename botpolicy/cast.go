@@ -50,6 +50,15 @@ type Card struct {
 	// a non-zero AttachedTo; a hand or graveyard card reads 0 on both
 	// halves, which is what lets them stay a plain casting fact.
 	AttachedTo state.ObjID
+	// Activated is how many non-mana activated abilities this permanent was
+	// activated for this turn (state.Object.ActivatedThisTurn via the
+	// projected CardView.ActivatedThisTurn on the view half). A5's
+	// repeatable-ability budget reads it: a source already activated this
+	// many times is declined, which is what ends a tap-and-untap cycle
+	// (Basalt Monolith's "{3}: Untap this artifact" re-enabling its own tap
+	// forever) before the turn spins. Both halves fill it identically, so
+	// the parity tests keep judging it.
+	Activated int32
 	// ManaCost is the printed cost in Forge notation ("1 W", "U U",
 	// "X G") -- the same string both understanding halves already read for
 	// CMC (CmcOf) and the View carries as CardView.ManaCost. The tap gate
@@ -234,7 +243,9 @@ func hasTypeWord(words []string, want string) bool {
 func (b Board) castScore(o decision.Option) int32 {
 	s := b.cardWorth(o.Obj)
 	switch o.Mode {
-	case "kicked", "surged":
+	// The and/or Kicker's per-part modes are kicked casts too (each a
+	// net-upside optional additional cost the bot commits to when scored).
+	case "kicked", "kicked1", "kicked2", "kickedboth", "surged":
 		s += 6
 	case "flashback", "miracle":
 		s += 4

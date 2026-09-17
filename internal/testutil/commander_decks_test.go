@@ -23,6 +23,7 @@ var repoCommanderDecks = []struct {
 	{"hearthhull-worldseed-landfall", "Lord Windgrace"},
 	{"valgavoth-endless-punishment", "Valgavoth, Harrower of Souls"},
 	{"rakdos-muscle-scam-exe", "Rakdos, the Muscle"},
+	{"ulalek-eldrazi", "Ulalek, Fused Atrocity"},
 }
 
 // TestRepoCommanderDecksValidate is the m38 acceptance gate: every interim

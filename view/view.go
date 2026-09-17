@@ -292,6 +292,14 @@ type CardView struct {
 	// beneath the permanent it modifies -- could not tell what is attached
 	// to what at all.
 	AttachedTo state.ObjID `json:"attached_to,omitempty"`
+	// ActivatedThisTurn is how many non-mana activated abilities of this
+	// object were activated this turn (events.Apply's AbilityPush census on
+	// state.Object.ActivatedThisTurn). Public fact, like the tap state it
+	// rides beside; the bot policy's repeatable-ability budget (A5) reads
+	// it to bound its own loop-shaped activations (Basalt Monolith's untap
+	// re-enabling its own tap) without ever gating a human seat, for whom
+	// unlimited activations stay legal and offered.
+	ActivatedThisTurn int32 `json:"activated_this_turn,omitempty"`
 	// AbilityCosts is the current offer-time Forge-notation cost of each
 	// non-mana activated ability, in face ability order. Applicable
 	// RaiseCost/ReduceCost statics have already been composed exactly as the
@@ -763,7 +771,7 @@ func cardView(g *state.Game, ch Chars, id state.ObjID) CardView {
 	cv := CardView{
 		ID: id, Tapped: o.Tapped, Damage: o.Damage, Attacking: o.IsAttacking,
 		Controller: o.Controller, Owner: o.Owner, SummonSick: o.SummonSick,
-		AttachedTo: o.AttachedTo,
+		AttachedTo: o.AttachedTo, ActivatedThisTurn: o.ActivatedThisTurn,
 	}
 	cv.Token = "#" + strconv.FormatUint(uint64(id), 10)
 	if f := o.Face(); f != nil {

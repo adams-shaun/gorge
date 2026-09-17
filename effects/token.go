@@ -103,6 +103,23 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			if attachTo != 0 && g.Obj(want) != nil && g.Obj(attachTo) != nil {
 				h.Emit(events.Event{Kind: events.Attach, Obj: want, IDs: []state.ObjID{attachTo}})
 			}
+			if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintTokens"]), "True") && g.Obj(want) != nil {
+				// ImprintTokens$ True (Ugin, the Ineffable's [+1] spirit token):
+				// the created token is IMPRINTED with the cards the resolution
+				// remembered -- the face-down-exiled card the preceding Dig
+				// captured -- so Card.IsImprinted matches the token exactly as
+				// Forge's imprintedCards association would. An empty remembered
+				// set records nothing: an imprint of nothing is not an imprint.
+				ids := make([]state.ObjID, 0, len(c.Remembered))
+				for _, t := range c.Remembered {
+					if !t.IsPlayer && t.Obj != 0 {
+						ids = append(ids, t.Obj)
+					}
+				}
+				if len(ids) > 0 {
+					h.Emit(events.Event{Kind: events.Imprint, Obj: want, IDs: ids})
+				}
+			}
 		}
 	}
 }
