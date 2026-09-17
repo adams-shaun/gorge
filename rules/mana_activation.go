@@ -240,12 +240,12 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 
 // manaActivationGateHolds evaluates a plain AB$ Mana ability's IsPresent$/
 // PresentCompare$ existence gate (the same shape manaReflectedPresentHolds is
-// for a reflected ability); an Activation$ mechanic rides rules/legal.go's
-// shared activationConditionOK instead:
+// for a reflected ability):
 //
 //   - IsPresent$ <spec> with PresentCompare$ <op><n>: the count of objects
 //     matching <spec> (Shrine of the Forsaken Gods' "Activate only if you
 //     control seven or more lands"). PresentCompare$ absent means GE1.
+//
 // An Activation$ <mechanic> rides rules/legal.go's shared
 // activationConditionOK instead (main's vocabulary: Hellbent, Threshold,
 // Metalcraft, Delirium), so the two gates compose rather than duplicate.

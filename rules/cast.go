@@ -2163,11 +2163,9 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		// an absent Type$ keeps the creature-type default. Any other category
 		// has no option builder in this build: the list stays the creature
 		// fallback and effects.effChooseType records the gap loudly at
-		// resolution time, so the limitation is never silent.
-		switch strings.ToLower(strings.TrimSpace(typeCategory)) {
-		case "", "creature":
-		default:
-		}
+		// resolution time, so the limitation is never silent. The switch's
+		// only act would be a non-creature option list this build cannot
+		// build, so no branch -- the comment is the read.
 		seen := map[string]bool{}
 		types := []string{}
 		for i := range e.G.Objs {
