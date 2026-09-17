@@ -101,6 +101,11 @@ Each compiled corpus `Face` receives an unexported binding containing its
 not gob encoded. Synthetic faces and hand-built test fixtures remain unbound
 and continue to work through textual fallback behavior.
 
+Each linked `SA` likewise receives unexported derived fields for its
+`AbilityID`, `SAKind`, and `APICode`. Public read-only methods expose the codes
+needed by downstream packages. An on-demand `ResolveSVar` result is unbound and
+therefore uses existing textual dispatch.
+
 ### Deterministic identity
 
 The following internal integer types are introduced:
@@ -167,8 +172,7 @@ relationships use `uint32` start/count spans.
 - parsed power, toughness, and mana value
 - spans for type tokens, keywords, abilities, triggers, statics,
   replacements, and SVars
-- the conservative trigger-event mask already computed by
-  `triggerMaskForFace`
+- a conservative trigger-interest mask compiled from trigger modes
 
 `AbilityRow` contains the kind code, API code, parameter span, sub-ability ID,
 and source-line string ID. `TriggerRow`, `StaticRow`, and `ReplacementRow`
@@ -185,6 +189,15 @@ and permits later compiled filters without redesigning adjacency.
 
 All offsets and counts are range-checked while building. A corpus too large
 for `uint32` is rejected explicitly instead of wrapping.
+
+The trigger-interest mask uses cards-owned semantic bits such as zone change,
+stack insertion, ability push, attack declaration, target selection, tap,
+damage, draw, life change, and step change. It does not embed `events.Kind`
+ordinals: importing `events` from `cards` would create a dependency cycle, and
+duplicating replay ordinals would be fragile. `rules` maps an incoming
+`events.Kind` to the corresponding interest bit before testing the face mask.
+An unknown trigger mode sets the catch-all bit, preserving the current
+over-approximation.
 
 ## Closed and open domains
 
@@ -247,8 +260,9 @@ test oracle:
    `ManaAbilities` through compiled metadata when bound, retaining textual
    fallback for synthetic faces.
 3. Replace per-engine face-pointer trigger-mask caching with the catalog's
-   immutable face trigger mask. Object-local caching may remain temporarily
-   where it avoids repeated face lookup.
+   immutable face trigger-interest mask. `rules` owns the small mapping from
+   `events.Kind` to semantic interest; object-local caching may remain
+   temporarily where it avoids repeated face lookup.
 4. Add dense known-API dispatch while preserving string dispatch and plugin
    replacement semantics.
 5. Re-profile before choosing any additional consumer.
