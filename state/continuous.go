@@ -101,6 +101,13 @@ type ContinuousEffect struct {
 	// same logic the registered static carries. Map-only, never read by the
 	// layer sorter.
 	RestrictParams map[string]string
+	// Name is an Effect's Name$ (Wrenn and Six's "Emblem — Wrenn and Six",
+	// Sephiroth's emblem): the effect's own display name, carried so an Effect
+	// whose Stackable$ is False can ask the registry (rules'
+	// ContinuousNamed) whether a same-name effect from the same controller is
+	// already active and decline to stack a second one. Empty on every effect
+	// that carries no Name$.
+	Name string
 	// Remembered is the objects the Effect captured for its restriction
 	// (Vines of Vastwood's targeted creature, Incinerate's damaged creature),
 	// so a restriction whose ValidCard$/ValidTarget$ says "Card.IsRemembered"

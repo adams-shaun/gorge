@@ -44,6 +44,17 @@ func (h *fakeHost) Rand(n int) int { h.n++; return 0 }
 func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
 }
+
+// ContinuousNamed scans the double's own recorded slice: the effects tests
+// have no engine registry to ask.
+func (h *fakeHost) ContinuousNamed(controller state.PlayerID, name string) bool {
+	for _, ce := range h.continuous {
+		if ce.Controller == controller && ce.Name == name {
+			return true
+		}
+	}
+	return false
+}
 func (h *fakeHost) RegisterControl(gr ControlGrant) {
 	h.controls = append(h.controls, gr)
 }

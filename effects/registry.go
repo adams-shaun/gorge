@@ -49,6 +49,14 @@ type Host interface {
 	// and Protection reach the layer system without effects importing rules,
 	// which would be an import cycle (effects sits below rules). Task 19c.
 	AddContinuous(state.ContinuousEffect)
+	// ContinuousNamed reports whether an ACTIVE continuous effect registered
+	// by controller carries the given Name — the ask effEffect's Stackable$
+	// False dedup makes before it would register a second copy of the same
+	// named effect (Wrenn and Six's emblem: a second [-7] activation does not
+	// stack a second instance). Implemented by rules.Engine against its
+	// continuous-effect registry; the effects test double scans its own
+	// recorded slice.
+	ContinuousNamed(controller state.PlayerID, name string) bool
 	// RegisterControl records one GainControl effect with the lifetime its
 	// LoseControl$ names (CR 611.2b "for as long as", CR 514.2 end of turn),
 	// so the engine can end it through a ControlChange event the moment that

@@ -133,7 +133,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		}
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
-			if e.replacementMatches(*r, ce.Source, ev) {
+			if e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r,
 					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
@@ -345,6 +345,21 @@ type replMatch struct {
 	// key identifies an Effect-created replacement across active() rebuilds.
 	// Printed replacement pointers are immutable face entries and need no key.
 	key string
+}
+
+// rememberedSpecContext builds the match context a ValidCard$/ValidLKI$
+// spec on a Moved replacement evaluates under: the ordinary You/Source pair,
+// plus the remembered ids as targets when the caller carries any (the
+// Effect-created ReplaceDyingDefined$ family). Nil ids yield the plain
+// context every other caller already built.
+func (e *Engine) rememberedSpecContext(you state.PlayerID, source state.ObjID, remembered []state.ObjID) effects.SpecContext {
+	sc := effects.SpecContext{You: you, Source: source}
+	if len(remembered) > 0 {
+		for _, id := range remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: id})
+		}
+	}
+	return sc
 }
 
 func hasOptionalReplacement(matches []replMatch) bool {
@@ -1009,6 +1024,18 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 // value this build cannot evaluate, the same contract filter.go's matcher
 // gives card filters.
 func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
+	return e.replacementMatchesRemembered(r, source, ev, nil)
+}
+
+// replacementMatchesRemembered is replacementMatches with an optional
+// remembered set: the remembered ids an Effect-created replacement carries
+// (DealDamage's ReplaceDyingDefined$ registration) are what its ValidCard$/
+// ValidLKI$ Card.IsRemembered spec is matched against — the Effect captured
+// them when it resolved, and its continuous registry entry is the only place
+// that set still lives. Printed R: lines pass nil and never see a remembered
+// binding; a spec carrying IsRemembered against an empty set fails closed,
+// the matcher's standing contract.
+func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID) bool {
 	// The generic object walk historically excludes the command zone. Its
 	// replacement-only extension admits command-zone sources, but only when
 	// the script explicitly declares that zone; this keeps ordinary card text
@@ -1080,7 +1107,7 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 			}
 		}
 		if v, ok := r.Params["ValidCard"]; ok {
-			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
 				return false
 			}
 		}
@@ -1098,8 +1125,7 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 		// card must still finish in the graveyard.
 		if v, ok := r.Params["ValidLKI"]; ok {
 			mo := e.G.Obj(ev.Obj)
-			if mo == nil || !effects.MatchesObjectCtx(e.G, v, mo, effects.SpecContext{
-				You: you, Source: source}) {
+			if mo == nil || !effects.MatchesObjectCtx(e.G, v, mo, e.rememberedSpecContext(you, source, remembered)) {
 				return false
 			}
 		}
@@ -2478,7 +2504,7 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
 			m := replMatch{id: ce.Source, repl: r,
 				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
-			if !alreadyUsed(m) && e.replacementMatches(*r, ce.Source, ev) &&
+			if !alreadyUsed(m) && e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) &&
 				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
 				out = append(out, m)
 			}

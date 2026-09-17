@@ -122,8 +122,25 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	what := strings.TrimSpace(sa.Params["StaticAbilities"] + " " + sa.Params["Triggers"])
 	// Name$ is the effect's own display name (Sephiroth's emblem, Wrenn and
 	// Six's): the log names the effect after it wherever this function would
-	// otherwise print a bare mode list.
-	name := strings.TrimSpace(sa.Params["Name"])
+	// otherwise print a bare mode list, and the registrations below carry it
+	// into the continuous-effect registry so Stackable$ can dedup by it.
+	effectName := strings.TrimSpace(sa.Params["Name"])
+	// Stackable$ False (Wrenn and Six's emblem): the effect does not stack.
+	// Forge's EffectEffect.createEffect skips creating a second effect when an
+	// un-stackable one already exists. Forge's default is STACKABLE — the
+	// corpus carries Stackable$ only as "False" (38 raw lines, no "True"), so
+	// the dedup gate fires ONLY on an explicit "False": an absent key keeps
+	// the stacking behaviour (en-Kor's "en-Kor Redirection" redirection
+	// stacking is the point of the card). The dedup ask goes through
+	// Host.ContinuousNamed so the registry, not this resolution, decides
+	// whether the same named effect from this controller is active.
+	if stackable, present := sa.Params["Stackable"]; present &&
+		strings.EqualFold(strings.TrimSpace(stackable), "False") &&
+		effectName != "" && h.ContinuousNamed(c.Controller, effectName) {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "effect not stacked (" + effectName + ")"})
+		return
+	}
 	// The two move-driven lifetimes: ForgetOnMoved$ drops a remembered card
 	// from the registered effect's set when it moves to the named zone;
 	// ExileOnMoved$ ENDS the effect on such a move (Vines of Vastwood's
@@ -148,6 +165,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				Name:             effectName,
 				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
 			})
 			registered = true
@@ -173,6 +191,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if grant, ok := mayPlayGrantFromLine(params); ok {
 				grant.Source = c.Source
 				grant.Controller = c.Controller
+				grant.Name = effectName
 				grant.UntilEOT = effectUntilEOT(h, c.Source, dur)
 				grant.Remembered = remembered
 				grant.Duration = dur
@@ -195,6 +214,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
+				Name:           effectName,
 				UntilEOT:       effectUntilEOT(h, c.Source, dur),
 				Restriction:    mode,
 				RestrictParams: params,
@@ -222,9 +242,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// reason. The registry is the feature; a Note that names what was asked
 	// for is the honest stand-in until the mode is implemented.
 	if !registered {
-		if name != "" {
+		if effectName != "" {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "registers a continuous effect " + name + " (" + what + ") for " + dur})
+				Text: "registers a continuous effect " + effectName + " (" + what + ") for " + dur})
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "registers a continuous effect (" + what + ") for " + dur})
@@ -988,6 +1008,46 @@ func effBecomeMonarch(h Host, c *Ctx, sa *cards.SA) {
 // simply the one call site nobody had reason to re-examine once Amount
 // became meaningful.
 func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
+	// RestrictFromZone$/RestrictFromValid$ (Karn Liberated's [-14]): the
+	// objects the restart would KEEP. Forge's RestartGame discards everything
+	// in RestrictFromZone that matches RestrictFromValid and carries the rest
+	// into the restarted game — Karn keeps exactly the non-Aura permanents
+	// exiled with him (his ReturnFromExile sub-ability acts on that keep-set).
+	// A full restart needs game-loop machinery this engine does not have (see
+	// the draw degradation below), but the keep-set is real game state this
+	// build can name, so the log records it instead of leaving both keys
+	// silently inert.
+	if zonesRaw := strings.TrimSpace(sa.Params["RestrictFromZone"]); zonesRaw != "" {
+		if spec := strings.TrimSpace(sa.Params["RestrictFromValid"]); spec != "" {
+			zones, all, valid := ParseZones(zonesRaw)
+			g := h.Game()
+			if !valid {
+				all = true
+			}
+			if all {
+				zones = []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield,
+					state.ZGraveyard, state.ZExile, state.ZStack, state.ZCommand}
+			}
+			var kept []string
+			for _, z := range zones {
+				for _, p := range g.AliveFrom(0) {
+					for _, id := range append([]state.ObjID(nil), g.Zone(z, p)...) {
+						// RestrictFromValid$ names what the restart DISCARDS; the
+						// complement inside the named zone is what it keeps.
+						if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+							if o := g.Obj(id); o != nil && o.Face() != nil {
+								kept = append(kept, o.Face().Name)
+							}
+						}
+					}
+				}
+			}
+			if len(kept) > 0 {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "restart would keep in " + zonesRaw + ": " + strings.Join(kept, ", ")})
+			}
+		}
+	}
 	h.Emit(events.Event{Kind: events.GameOver, Amount: 1, Text: "game restarted: ended as a draw"})
 }
 
