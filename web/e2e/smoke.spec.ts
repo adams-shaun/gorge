@@ -325,10 +325,14 @@ function watch(page: Page, base: string): Issues {
     // refreshPending / postIntent). It is not a product failure.
     // 502 from the Scryfall-backed proxies (/art/... images, /cards/named
     // printed facts) is gorged reporting that the UPSTREAM failed
-    // (cmd/gorged/art.go answers StatusBadGateway only on an upstream error). A Scryfall outage (observed 2026-09-14: 503
+    // (cmd/gorged/art.go answers StatusBadGateway only on an upstream error); 503
+    // on the same routes is the wait budget's "the upstream fetch had not
+    // settled within artWaitBudget — the fetch is still running detached,
+    // retry shortly" (art.go's boundedWait, added after the fb-20260917T004304Z
+    // run showed a degraded upstream wedging the page). A Scryfall outage (observed 2026-09-14: 503
     // upstream) is not a gorge product failure and must not block every web
     // merge; any other status on those paths, and every other path's failure, still counts.
-    if (r.status() === 502 && sameOrigin(base, r.url()) && /^\/(art\/|cards\/named$)/.test(new URL(r.url()).pathname)) return;
+    if ((r.status() === 502 || r.status() === 503) && sameOrigin(base, r.url()) && /^\/(art\/|cards\/named$)/.test(new URL(r.url()).pathname)) return;
     if (sameOrigin(base, r.url()) && r.status() >= 400 && r.status() !== 409) {
       c.failed.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`);
     }
