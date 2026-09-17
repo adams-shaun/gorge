@@ -2037,11 +2037,9 @@ var knownUnsupportedParams = map[string][]string{
 	"Aftermath Analyst":           {"param:api:ChangeZoneAll.Tapped"},
 	"Ancient Stirrings":           {"param:api:Dig.ForceRevealToController"},
 	"Angelic Accord":              {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
-	"Angelic Overseer":            {"param:stat:Continuous.IsPresent"},
 	"Angelic Skirmisher":          {"param:api:Pump.KWChoice"},
 	"Army of the Damned":          {"param:api:Token.TokenTapped"},
 	"Assassin's Trophy":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Auriok Steelshaper":          {"param:stat:Continuous.IsPresent"},
 	"Baloth Prime":                {"param:api:PutCounter.ETB", "param:api:Token.TokenTapped"},
 	"Bile Blight":                 {"param:api:Pump.RememberTargets"},
 	"Blazemire Verge":             {"param:api:Mana.IsPresent"},
@@ -2115,7 +2113,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Splendid Reclamation":        {"param:api:ChangeZoneAll.Tapped"},
 	"Springbloom Druid":           {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Squadron Hawk":               {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Static Orb":                  {"param:stat:Continuous.IsPresent"},
 	"Steel Leaf Champion":         {"param:stat:CantBlockBy.ValidAttacker"},
 	"Stoneforge Mystic":           {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Sword of Fire and Ice":       {"param:stat:Continuous.AddSVar"},
@@ -2471,16 +2468,18 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 // TestParamCensusScopesTheMayPlayStaticFamily pins the stat-bucket family
 // split (apiSpecificRulesStat): mayPlayStatic/mayPlayGrant/warpGraveyardAllowed
 // read only MayPlay$ Continuous statics, so their keys must NOT sit in the
-// generic Continuous union -- Angelic Overseer's IsPresent$, Mogis/
-// Purphoros's CheckSVar$/SVarCompare$ and Master of Etherium's
-// CharacteristicDefining$ were all masked by that misattribution (review
-// round findings-sol1, MAJOR). Inside the family the genuinely evaluated
-// gates (Condition$ PlayerTurn, IsPresent$, MayPlayLimit$) must read, while
-// the fail-closed recognitions (mayPlayGateRejected's mayPlayUnreadGates
-// family plus CheckSVar$/MayPlayPlayer$, stringMapParams-whitelisted) must
-// stay unread: a withheld-whole MayPlay static's recognition key is a
-// RECOGNITION, never a consumption, and no census label misreads it as a
-// live gap the offer path would honour.
+// generic Continuous union -- Mogis/Purphoros's CheckSVar$/SVarCompare$ and
+// Master of Etherium's CharacteristicDefining$ were all masked by that
+// misattribution (review round findings-sol1, MAJOR; Angelic Overseer's
+// IsPresent$ was too, until the continuous-gate wave genuinely read it on
+// the generic bucket -- rules/layers.go's continuousGateHolds). Inside the
+// family the genuinely evaluated gates (Condition$ PlayerTurn, IsPresent$,
+// MayPlayLimit$) must read, while the fail-closed recognitions
+// (mayPlayGateRejected's mayPlayUnreadGates family plus CheckSVar$/
+// MayPlayPlayer$, stringMapParams-whitelisted) must stay unread: a
+// withheld-whole MayPlay static's recognition key is a RECOGNITION, never a
+// consumption, and no census label misreads it as a live gap the offer path
+// would honour.
 func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	res, d := measureParamCensus(t, nil)
 	// The MayPlay family's read set: the generic Continuous union PLUS the
@@ -2494,7 +2493,10 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// the generic union. CheckSVar$/SVarCompare$ are NOT in that list since
 	// the statics merge: rules/statics.go's own restriction/cost gates
 	// genuinely evaluate them (checkSVarHolds, fail closed), so both buckets
-	// legitimately carry those reads.
+	// legitimately carry those reads -- and since the continuous-gate wave
+	// IsPresent$ is in the same position: rules/layers.go's
+	// continuousGateHolds genuinely evaluates it on every generic Continuous
+	// static (Angelic Overseer's Human check, Static Orb's untapped state).
 	for _, key := range []string{"CharacteristicDefining", "ValidAfterStack", "RaiseCost", "MayPlayAltManaCost", "MayPlayPlayer"} {
 		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
 			if d.stat[mode][key] {
@@ -2505,20 +2507,33 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// ... and the family-scoped reads must be OUT of the generic union.
 	// Condition$ joined the generic bucket with the statics merge: the
 	// generic restriction/cost gates (restrictionGateHolds,
-	// costConditionHolds) genuinely read it on every Continuous static.
-	for _, key := range []string{"IsPresent", "MayPlayLimit"} {
+	// costConditionHolds) genuinely read it on every Continuous static, and
+	// since the continuous-gate wave IsPresent$ reads there too
+	// (continuousGateHolds) -- MayPlayLimit$ is the one read that must stay
+	// family-only.
+	for _, key := range []string{"Condition", "IsPresent"} {
+		if !d.stat["Continuous"][key] {
+			t.Errorf("d.stat[Continuous][%q] = false -- the generic Continuous reader lost a real gate read", key)
+		}
+	}
+	for _, key := range []string{"MayPlayLimit"} {
 		if d.stat["Continuous"][key] {
 			t.Errorf("d.stat[Continuous][%q] = true -- the MayPlay family reader still over-suppresses the generic Continuous bucket", key)
 		}
 	}
 	// The census-level effect on the real repo decks, both directions:
-	// a plain Continuous static's unread gate is labelled again, a MayPlay
+	// a plain Continuous static's unread gate is labelled, a MayPlay
 	// static's genuinely evaluated gate is not, and the withheld-whole
 	// MayPlay static's recognition key is labelled under the family.
+	// Angelic Overseer/Static Orb/Auriok Steelshaper's IsPresent$ labels are
+	// GONE since the continuous-gate wave -- the formerly-labelled trio the
+	// split was first pinned with; Mogis/Purphoros's RemoveType$ (a distinct,
+	// still-unread grant param) and Master of Etherium's
+	// CharacteristicDefining$ are the surviving generic-bucket evidence.
 	for card, label := range map[string]string{
-		"Angelic Overseer":   "param:stat:Continuous.IsPresent",
-		"Static Orb":         "param:stat:Continuous.IsPresent",
-		"Master of Etherium": "param:stat:Continuous.CharacteristicDefining",
+		"Mogis, God of Slaughter":     "param:stat:Continuous.RemoveType",
+		"Purphoros, God of the Forge": "param:stat:Continuous.RemoveType",
+		"Master of Etherium":          "param:stat:Continuous.CharacteristicDefining",
 	} {
 		found := false
 		for _, l := range res.labels[card] {
@@ -2529,6 +2544,13 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("%s: expected %s in the census (labels %v)", card, label, res.labels[card])
+		}
+	}
+	// The former IsPresent labels must STAY gone: the generic gate read
+	// (continuousGateHolds) retired all three.
+	for _, card := range []string{"Angelic Overseer", "Auriok Steelshaper", "Static Orb"} {
+		for _, l := range res.labels[card] {
+			t.Errorf("%s: census labels %s but the IsPresent gate is genuinely evaluated now -- the shrink regressed", card, l)
 		}
 	}
 	for card, banned := range map[string]string{

@@ -144,6 +144,21 @@ func init() {
 	predicates["EquippedBy"] = attachedBy
 	predicates["EnchantedBy"] = attachedBy
 	predicates["AttachedBy"] = attachedBy
+	// equipped / enchanted: the IS-side counterpart of the pair above -- the
+	// candidate itself carries the attachment. Auriok Steelshaper's IsPresent$
+	// Card.Self+equipped ("as long as CARDNAME is equipped") reads the first;
+	// the corpus also spells the Aura case +enchanted (21 files carrying a
+	// bare +enchanted, e.g. Krond the Dawn-Clad's IsPresent$
+	// Card.Self+enchanted). The state the attach path maintains: some
+	// battlefield permanent whose face carries the kind's type word names the
+	// candidate in its AttachedTo.
+	predicates["equipped"] = func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return hasAttachmentOfKind(g, o.ID, "Equipment")
+	}
+	predicates["enchanted"] = func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return hasAttachmentOfKind(g, o.ID, "Aura")
+	}
+	predicates["Enchanted"] = predicates["enchanted"]
 	// Soulbond's "PairedWith" and "Paired" predicates (CR 702.103): the
 	// Affected$ spec `Creature.PairedWith` names the creature a source is
 	// paired with, and `Creature.Self+Paired` names the source itself when it
@@ -167,6 +182,30 @@ func init() {
 func attachedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 	s := g.Obj(src)
 	return s != nil && s.AttachedTo == o.ID && s.Zone == state.ZBattlefield
+}
+
+// hasAttachmentOfKind reports whether any battlefield permanent whose face
+// carries the type word kind names id in its AttachedTo -- the state the
+// equip/attach path maintains (rules/attach_test.go pins the SBA that
+// detaches on death, so a dead Equipment never counts). The scan walks the
+// deterministic AliveFrom/zone slices, never a map, so it is replay-safe as
+// a filter predicate. A candidate itself off the battlefield (a graveyard
+// card a hidden search spec asks about) is still eligible as the attachment
+// TARGET read: AttachedTo only ever names the bearer, so the scan alone
+// decides.
+func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
+	for _, p := range g.AliveFrom(0) {
+		for _, sid := range g.Zone(state.ZBattlefield, p) {
+			s := g.Obj(sid)
+			if s == nil || s.AttachedTo != id {
+				continue
+			}
+			if s.Face() != nil && hasType(s, kind) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // sharesTypeArg splits the space-bearing two-token predicate
