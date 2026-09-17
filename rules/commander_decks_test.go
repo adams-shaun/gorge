@@ -47,7 +47,15 @@ var repoCommanderGames = []struct {
 	// and the "cast at least once" oracle is unchanged. 1018 casts twice,
 	// which makes it the least fragile of the ten.
 	{"foundations-tramplesaurus-rex", "foundations-wretched-ranks", 1005, 5005, []uint64{1005, 1015, 1009, 1018}},
-	{"hearthhull-worldseed-landfall", "foundations-wretched-ranks", 1006, 5006, nil},
+	// 1008 was added when ForgetChanged$ True became real (the
+	// ChangeZone hidden-origin/reveal param task): Troop of Ponies' second
+	// leg now correctly sees the post-forget remembered set, its
+	// ConditionDefined$ Remembered gate skips it, and the phantom shuffle the
+	// skipped-but-running leg used to emit disappears -- the 1006 game's
+	// course shifts, and it no longer ramps into its commander (a fixture
+	// that went stale against a correctness fix, not lost coverage; 1008
+	// casts once and replays).
+	{"hearthhull-worldseed-landfall", "foundations-wretched-ranks", 1006, 5006, []uint64{1006, 1008}},
 }
 
 // TestRepoCommanderDecksPlayAndCastTheirCommander is the m38 play evidence

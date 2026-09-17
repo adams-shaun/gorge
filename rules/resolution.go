@@ -869,6 +869,27 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// re-entered walk skips owners before the cursor and continues with
 			// the owners after it (the same continuation DigTarget carries).
 			ctx.HandMoveTarget = rp.target
+		case "hidden_pick":
+			// A Hidden$ True public-origin pick was answered (hiddenpick1): the
+			// chooser picked which of the ChangeType$-eligible cards in the
+			// origin zone(s) move to Destination$. The chosen options carry the
+			// object in Obj (the same shape the "search", "dig" and
+			// "hand_move" arms read), so the id list is read straight off them,
+			// in the player's answer order. HiddenPickDone distinguishes
+			// "answered, possibly with no cards" from the first pass, and the
+			// cursor keeps the answer attached to the exact fetch player that
+			// asked -- the same continuation HandMoveTarget carries.
+			// effHiddenPick consumes and clears all three at its top (the fx42
+			// scoping discipline), so a nested pick cannot inherit the outer
+			// answer.
+			ctx.HiddenPick = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.HiddenPick = append(ctx.HiddenPick, o.Obj)
+				}
+			}
+			ctx.HiddenPickDone = true
+			ctx.HiddenPickTarget = rp.target
 		case "arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling
