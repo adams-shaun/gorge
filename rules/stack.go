@@ -138,7 +138,10 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 	for _, r := range e.G.Players[p].RestrictedMana {
 		idx := state.ManaIndex(r.Color[0])
 		available[idx] -= r.Amount
-		if e.restrictValidMatches(p, id, ability, r.Valid, r.Source) {
+		// An empty Valid is an UNRESTRICTED batch that carries only its
+		// AddsNoCounter$ provenance (Boseiju's plain {C}): it pays anything,
+		// exactly like ordinary pool mana.
+		if r.Valid == "" || e.restrictValidMatches(p, id, ability, r.Valid, r.Source) {
 			available[idx] += r.Amount
 		}
 	}
@@ -147,14 +150,20 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 
 // emitRestrictedManaSpend consumes matching restriction batches in insertion
 // order before ordinary mana. Every matching unit is interchangeable for the
-// current payment; using this fixed order keeps the log deterministic.
+// current payment; using this fixed order keeps the log deterministic. When a
+// consumed batch carries AddsNoCounter$ provenance and this is a SPELL cast
+// payment (never an ability activation), the cast's id is captured in
+// e.noCounterSpend for payCast to fold state.FlagNoCounter into the pay-time
+// CastInfo — with the batch's own condition evaluated against the paying
+// spell's face (Boseiju's !Permanent).
 func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana) {
+	e.noCounterSpend = 0
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
 	// otherwise removing the first of two matching batches would make the
 	// live slice shift under this loop and could skip or double-spend one.
 	batches := append([]state.ManaRestriction(nil), e.G.Players[p].RestrictedMana...)
 	for _, r := range batches {
-		if r.Amount <= 0 || !e.restrictValidMatches(p, id, ability, r.Valid, r.Source) {
+		if r.Amount <= 0 || (r.Valid != "" && !e.restrictValidMatches(p, id, ability, r.Valid, r.Source)) {
 			continue
 		}
 		idx := state.ManaIndex(r.Color[0])
@@ -165,9 +174,29 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		if used == 0 {
 			continue
 		}
+		if r.NoCounter != "" && !ability && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, id, r.NoCounter) {
+			e.noCounterSpend = id
+		}
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
 			Text: events.ManaRestrictionText(r.Valid, r.Source)})
 		spent[idx] -= used
+	}
+}
+
+// addsNoCounterHolds evaluates a consumed batch's AddsNoCounter$ condition
+// against the spell being paid for: "True" (or the empty default) always
+// holds; "NotPermanent" (Forge's AddsNoCounter$ !Permanent, Boseiju's
+// instant-or-sorcery mana) holds when the paying spell is not a permanent
+// spell. An unrecognised condition fails closed — no protection.
+func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
+	switch cond {
+	case "", "True":
+		return true
+	case "NotPermanent":
+		o := g.Obj(id)
+		return o != nil && o.Face() != nil && !o.Face().IsPermanent()
+	default:
+		return false
 	}
 }
 

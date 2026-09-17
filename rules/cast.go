@@ -3834,12 +3834,24 @@ func (e *Engine) payCast() {
 		e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
 	}
 	e.sacrificedLKI[pc.stackObj] = sacrificedLKI
+	// AddsNoCounter$ mana (Cavern of Souls): if the payment just consumed a
+	// batch carrying the can't-be-countered provenance FOR THIS CAST, fold
+	// state.FlagNoCounter into the same pay-time CastInfo so a replay marks
+	// the spell exactly like every other cast flag. The capture is read once
+	// here and cleared — nothing can suspend between emitRestrictedManaSpend's
+	// set and this read (it emits, never asks).
+	noCounter := e.noCounterSpend == pc.stackObj
+	e.noCounterSpend = 0
 	// CR 601.2b: record how the spell was cast (the X value and mode flags).
 	// Deferred to payment rather than the up-front push so an aborted
 	// proposal leaves no cast-time trace on the card. A cast trigger that
 	// reads the mode (e.g. "cast a kicked spell") sees it, because the flag
 	// is applied before the trigger fires next.
-	if flags := modeFlags(pc.mode); pc.x != 0 || flags != "" {
+	flags := modeFlags(pc.mode)
+	if noCounter {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagNoCounter)
+	}
+	if pc.x != 0 || flags != "" {
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.x, Counter: flags})
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front

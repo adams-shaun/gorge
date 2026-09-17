@@ -1,12 +1,26 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
+
+// splitTrimList splits a comma-separated parameter value into trimmed,
+// non-empty entries — the shared shape of KWChoice$'s candidate list.
+func splitTrimList(s string) []string {
+	var out []string
+	for _, part := range strings.Split(s, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
 
 func init() {
 	Register("Tap", effTap)
@@ -183,14 +197,74 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	// SA is not a printed line), so the recognition has no behavioural half
 	// here; the read keeps the parameter census honest.
 	_ = sa.Params["Secondary"]
+	// KWChoice$ (30 corpus files: Angelic Skirmisher's "choose first strike,
+	// vigilance or lifelink" trigger, the equipment/ally "gains your choice
+	// of ..." family): the pump's keyword grant is not a fixed list but a
+	// player's choice from a fixed candidate list, chosen ONE per execution
+	// (every corpus line reads "your choice of X, Y or Z"). The ask is the
+	// same mid-resolution KModes vocabulary effCharm uses — ResumeKind
+	// "modes" with ResumeSA, the answer re-entering this effect through
+	// rules' resumeResolution with Ctx.Modes set to the chosen labels. The
+	// ask comes FIRST, before any registration, so a suspension never leaves
+	// a half-applied pump behind; on re-entry the whole effect re-runs with
+	// the answer in hand (the charm pattern).
+	var chosenKW []string
+	if kwList := strings.TrimSpace(sa.Params["KWChoice"]); kwList != "" {
+		if c.Modes != nil {
+			// fx42 scoping: consume the answer once; a nested KWChoice pump
+			// reached below poses its own ask.
+			chosenKW = c.Modes
+			c.Modes = nil
+		} else {
+			choices := splitTrimList(kwList)
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
+				Min: 1, Max: 1, Source: c.Source,
+				ResumeKind: "modes", ResumeSA: sa,
+				Prompt: "Choose a keyword"}
+			for i, name := range choices {
+				d.Options = append(d.Options, decision.Option{
+					Index: i, Kind: "mode", Label: name, Obj: c.Source, Player: c.Controller})
+			}
+			if Ask(h, d) == AskAsked {
+				return
+			}
+			// No engine host (R-9): the deterministic first candidate, with
+			// the Note that records why the richer path did not run.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "chose its first keyword (no engine host to ask)"})
+			chosenKW = choices[:1]
+		}
+	}
 	att := Num(h, c, sa, "NumAtt", 0)
 	def := Num(h, c, sa, "NumDef", 0)
+	zone := strings.TrimSpace(sa.Params["PumpZone"])
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
 		}
 		o := h.Game().Obj(t.Obj)
-		if o == nil || o.Zone != state.ZBattlefield {
+		if o == nil {
+			continue
+		}
+		// PumpZone$ (Snapcaster Mage's "Flashback until end of turn" grant
+		// lives in the GRAVEYARD): the pump applies only while the object is
+		// in the named zone(s) — ParseZones accepts a comma list and All —
+		// and the registered continuous effect carries the same AffectedZone
+		// scope, so Derived grants the keywords exactly there and nowhere
+		// else. Without the parameter the historic battlefield-only guard
+		// stands. P/T and keyword grants share one zone scope: a PumpZone$
+		// pump of a battlefield creature is unchanged behaviour.
+		if zone != "" {
+			zones, all, ok := ParseZones(zone)
+			if !ok {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "PumpZone$ " + zone + " is not a zone list this engine can ask; the pump is skipped"})
+				continue
+			}
+			if !all && !slices.Contains(zones, o.Zone) {
+				continue
+			}
+		} else if o.Zone != state.ZBattlefield {
 			continue
 		}
 		// RememberTargets$ True (Bile Blight): the CHOSEN TARGETS join the
@@ -204,7 +278,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 			c.Remembered = append(c.Remembered, t)
 			eventRemember(h, c, t.Obj)
 		}
-		registerPumpEffects(h, c, o.ID, att, def, sa)
+		registerPumpEffects(h, c, o.ID, att, def, sa, zone, chosenKW)
 	}
 	// ForgetImprinted$ names (in the Defined$ grammar) the imprinted card(s)
 	// to forget (Chrome Mox's DBForget: the exiled card left exile): each is
@@ -242,11 +316,42 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	if spec == "" {
 		spec = "Creature"
 	}
+	// PumpZone$ (PumpAll's graveyard-grant family, e.g. TrigFlashback's
+	// "each instant and sorcery card in your graveyard gains flashback"):
+	// the walk covers the named zones instead of the battlefield, and the
+	// registered effects carry the AffectedZone scope so the grant applies
+	// only while the card sits there.
+	zone := strings.TrimSpace(sa.Params["PumpZone"])
 	g := h.Game()
 	for _, p := range g.AliveFrom(0) {
+		if zone != "" {
+			zones, all, ok := ParseZones(zone)
+			if !ok {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "PumpZone$ " + zone + " is not a zone list this engine can ask; the pump is skipped"})
+				break
+			}
+			if all {
+				// "All": every public game zone plus the owner-private ones
+				// g.Zone covers; ZCeased has no membership list (see
+				// state/ids.go) so it is skipped. ZStack is included: a
+				// spell-object pump (the "PumpZone$ Stack" shape) is a real
+				// grant.
+				zones = []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield,
+					state.ZGraveyard, state.ZExile, state.ZStack, state.ZCommand}
+			}
+			for _, z := range zones {
+				for _, id := range g.Zone(z, p) {
+					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+						registerPumpEffects(h, c, id, att, def, sa, zone, nil)
+					}
+				}
+			}
+			continue
+		}
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				registerPumpEffects(h, c, id, att, def, sa)
+				registerPumpEffects(h, c, id, att, def, sa, "", nil)
 			}
 		}
 	}
@@ -277,9 +382,13 @@ func durationTiming(dur string) (permanent bool, untilEOT bool) {
 // creates a layer-7c modification for a nonzero stat change and a separate
 // layer-6 grant for any keywords, since Derived applies each layer
 // independently. Skipping a zero/empty half avoids polluting
-// Engine.continuous with an effect that would never do anything.
-func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *cards.SA) {
+// Engine.continuous with an effect that would never do anything. zone is the
+// caller's PumpZone$ value ("" for the default battlefield-only scope) and
+// chosenKW the answered KWChoice$ candidates — extra keyword grants riding
+// the same layer-6 registration.
+func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *cards.SA, zone string, chosenKW []string) {
 	kws := cards.SplitKeywordList(sa.Params["KW"])
+	kws = append(kws, chosenKW...)
 	permanent, untilEOT := durationTiming(sa.Params["Duration"])
 	if att != 0 || def != 0 {
 		h.AddContinuous(state.ContinuousEffect{
@@ -287,6 +396,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 			Layer: state.LPT, Sub: state.SubModify,
 			AddPower: att, AddToughness: def,
 			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
+			AffectedZone: zone,
 		})
 	}
 	if len(kws) > 0 {
@@ -294,6 +404,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: kws,
 			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
+			AffectedZone: zone,
 		})
 	}
 }

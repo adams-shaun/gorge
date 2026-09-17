@@ -637,6 +637,16 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZStack {
 			continue
 		}
+		// AddsNoCounter$ mana (Cavern of Souls): a spell paid with that mana
+		// carries state.FlagNoCounter and can't be countered — it stays on the
+		// stack and resolves (CR 608.2b's removal never happens). The spell is
+		// still a legal TARGET (CR: "can't be countered" does not stop
+		// targeting), so the record is one loud Note naming the object, and
+		// the Counter's remaining targets (and SubAbility$ chain) run on.
+		if o.CastFlags&state.FlagNoCounter != 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "can't be countered"})
+			continue
+		}
 		if !h.CounterAllowed(o.ID, c.Source) {
 			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "counter prevented"})
 			if h.Suspended() {
@@ -1210,6 +1220,28 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// it matches no payment, so the mana is never spendable, the
 	// fail-closed direction.
 	restriction := strings.TrimSpace(sa.Params["RestrictValid"])
+	// AddsNoCounter$ (Cavern of Souls' "that spell can't be countered",
+	// Boseiju, Delighted Halfling — 3 corpus files): the produced mana carries
+	// its can't-be-countered provenance on the same ManaAdd restriction batch
+	// the payment path already reads, so a cast that spends one of these units
+	// is marked can't-be-countered at payment time (rules/stack.go captures
+	// the consumption, rules/cast.go folds state.FlagNoCounter into the
+	// pay-time CastInfo). "True" is the plain flag; Forge's conditional
+	// "!Permanent" (Boseiju's instant-or-sorcery mana) is recognised as the
+	// NotPermanent condition, evaluated against the paying spell's face. Any
+	// other value is a loud Note and NO protection — an unrecognised condition
+	// must not silently promise something the engine cannot model.
+	noCounter := ""
+	switch strings.TrimSpace(sa.Params["AddsNoCounter"]) {
+	case "":
+	case "True":
+		noCounter = "True"
+	case "!Permanent":
+		noCounter = "NotPermanent"
+	default:
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unhandled AddsNoCounter$ " + strings.TrimSpace(sa.Params["AddsNoCounter"]) + "; the mana is ordinary"})
+	}
 	// CR 107.4h: mana produced by a SNOW permanent is snow mana. A snow unit
 	// is tagged in the pool event itself — Counter "S<colour>" — so the pool
 	// slot and the parallel snow tally move through one event and a replay
@@ -1232,7 +1264,9 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ev := events.Event{Kind: events.ManaAdd, Player: p,
 				Counter: counter, Amount: amt}
-			if restriction != "" {
+			if noCounter != "" {
+				ev.Text = events.ManaRestrictionTextNC(restriction, c.Source, noCounter)
+			} else if restriction != "" {
 				ev.Text = events.ManaRestrictionText(restriction, c.Source)
 			}
 			h.Emit(ev)

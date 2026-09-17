@@ -123,8 +123,25 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						if len(ty.AddTypes) == 0 {
 							ty.AddTypes = statList(st, "AddType")
 						}
+						// AddType$ ChosenType (22 corpus files: Adaptive Automaton's
+						// "CARDNAME is the chosen type in addition to its other
+						// types" and its siblings): the VALUE is the static's host
+						// object's own recorded "as this enters" choice, not a
+						// literal type word — resolve it against the host's
+						// ChosenType (staticContinuous re-runs once per event, so a
+						// later Choose event re-derives the grant live). A host with
+						// no recorded choice grants nothing: a chosen type this
+						// build cannot read must not leak a literal "ChosenType"
+						// type word onto the object.
+						if resolved, ok := resolveChosenTypes(ty.AddTypes, o); ok {
+							ty.AddTypes = resolved
+						} else {
+							ty.AddTypes = nil
+						}
 						ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-						out = append(out, ty)
+						if len(ty.AddTypes) > 0 {
+							out = append(out, ty)
+						}
 					}
 					// CR 613.1f / 613.4b (Humility): a base-setting static runs in
 					// layer 7b (SubSet), before the 7c modify a later Pump adds; and
@@ -315,6 +332,26 @@ func statList(st cards.Static, key string) []string {
 		}
 	}
 	return out
+}
+
+// resolveChosenTypes resolves the AddType$ value "ChosenType" against the
+// static host's own recorded ETB choice (state.Object.ChosenType, set by the
+// Choose event the cast/play-time ask emitted). Everything else passes
+// through unchanged. ok is false when a ChosenType entry names a host with no
+// recorded choice — the caller withholds the grant whole.
+func resolveChosenTypes(list []string, o *state.Object) ([]string, bool) {
+	out := make([]string, 0, len(list))
+	for _, t := range list {
+		if t != "ChosenType" {
+			out = append(out, t)
+			continue
+		}
+		if o == nil || o.ChosenType == "" {
+			return nil, false
+		}
+		out = append(out, o.ChosenType)
+	}
+	return out, true
 }
 
 // Layer, Sublayer and ContinuousEffect moved to state/continuous.go in Task

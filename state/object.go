@@ -85,6 +85,13 @@ const (
 	// enum's own append-only precedent.
 	FlagKicked1
 	FlagKicked2
+	// FlagNoCounter marks a spell whose payment spent mana produced by an
+	// AddsNoCounter$ mana ability (Cavern of Souls' creature-of-the-chosen
+	// type mana, Boseiju's instant-or-sorcery mana): "that spell can't be
+	// countered". It rides the pay-time CastInfo provenance marker (rules'
+	// payCast ORs it into the same event the X value and mode flags ride) and
+	// is read by the Counter primitive through the can't-be-countered gate.
+	FlagNoCounter
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the

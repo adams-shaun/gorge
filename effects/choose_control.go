@@ -296,10 +296,26 @@ func keepChosenCards(ts []state.Target) []state.Target {
 
 func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	choosers := choiceChoosers(h, c, sa)
+	// Reveal$ True (Planetary Annihilation's "each player chooses six lands
+	// they keep" is public knowledge — CR 701.x's open choice): each chooser's
+	// ANSWERED choice is revealed to every seat with the same ids-Note
+	// effReveal's public reveal emits (empty Text, view.Describe renders
+	// "player N reveals ...", RedactEvents passes it through unchanged). The
+	// reveal fires per chooser as their choice is recorded — both on the
+	// answered re-entry and on the no-host fallback below — so every seat
+	// learns the kept set before the next chooser picks. Player entries
+	// (a ChoosePlayer follow-up) reveal nothing: a player is not hidden.
+	reveal := strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True")
 	i := c.ChoiceTarget
 	if c.ChoiceDone {
+		answered := c.Choice
 		choiceRecord(h, c, sa, c.Choice, false)
 		c.ChoiceDone, c.Choice = false, nil
+		// c.ChoiceTarget is the asking chooser's index, so choosers[i] is who
+		// answered this.
+		if reveal && i < len(choosers) {
+			emitChosenReveal(h, choosers[i], answered)
+		}
 		i++
 	} else if i == 0 && c.Choice == nil {
 		// Fresh entry: Forge's ChooseCardEffect ends in host.setChosenCards(allChosen)
@@ -337,8 +353,29 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if Ask(h, d) == AskAsked {
 			return
 		}
-		choiceRecord(h, c, sa, choices[:min], false)
+		recorded := choices[:min]
+		choiceRecord(h, c, sa, recorded, false)
+		if reveal {
+			emitChosenReveal(h, choosers[i], recorded)
+		}
 	}
+}
+
+// emitChosenReveal is ChooseCard's Reveal$ True emission: one public ids-Note
+// naming the chosen CARDS (player entries are skipped — a chosen player is
+// not hidden information), the same payload shape effReveal's public reveal
+// uses so every seat's transcript reads "player N reveals ...".
+func emitChosenReveal(h Host, chooser state.PlayerID, picked []state.Target) {
+	var ids []state.ObjID
+	for _, t := range picked {
+		if !t.IsPlayer && t.Obj != 0 {
+			ids = append(ids, t.Obj)
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	h.Emit(events.Event{Kind: events.Note, Player: chooser, IDs: ids})
 }
 
 // choosePlayerSpec is the player restriction of a ChoosePlayer. Choices$ is
