@@ -622,8 +622,23 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			reserved[avail[i]] = true
 		}
 	}
+	for _, part := range cost.Draw {
+		// Draw cost parts (Draw<N/Spec>): the cast flow draws the PAYER; a
+		// spec naming a trigger-only role (Player.TriggeredPlayer and friends)
+		// has no binding here and is unpayable -- never offered -- rather than
+		// silently drawing nobody.
+		if _, ok := castFlowDrawPlayer(part.Spec, p); !ok {
+			return false
+		}
+	}
 	if o := e.G.Obj(id); o != nil {
 		for _, part := range cost.SubCounter {
+			// An announced SubCounter<X/Kind> part's count is the cast's X,
+			// bounded by the source's counter count at the X ask; the offer
+			// gate makes no assumption about the not-yet-chosen value.
+			if part.Announced {
+				continue
+			}
 			if o.Counter(part.Spec) < part.N {
 				return false
 			}
@@ -635,6 +650,55 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 		return false
 	}
 	return true
+}
+
+// castFlowDrawPlayer resolves a Draw cost part's spec inside the
+// cast/activation flow: the payer draws (spec "", You, Player, Self), and
+// Player.Activator too, because within an activation the activator IS the
+// payer. A trigger-only role has no binding here; nonManaCastable blocks
+// such a part so it is never offered.
+func castFlowDrawPlayer(spec string, payer state.PlayerID) (state.PlayerID, bool) {
+	switch spec {
+	case "", "You", "Player", "Self", "Player.Activator":
+		return payer, true
+	}
+	return 0, false
+}
+
+// drawCostCard emits the ordinary Draw event one card of a cost payment
+// draws: the library's top card moves to the payer's hand, and a draw from
+// an empty library is the loss the SBA checks (the same shape DrawFor's
+// no-replacement draw and resumeOrdinaryDraw emit).
+func (e *Engine) drawCostCard(p state.PlayerID) {
+	lib := e.G.Zone(state.ZLibrary, p)
+	if len(lib) == 0 {
+		e.emit(events.Event{Kind: events.PlayerLost, Player: p, Text: "drew from an empty library"})
+		return
+	}
+	e.emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
+		From: state.ZLibrary, To: state.ZHand, Secret: true})
+}
+
+// payDamageCost makes the payer take n damage from the source -- the
+// DamageYou<N> cost payment (Forge CostDamage). The event shape is the one
+// payUnlessDamageCost emits: the Damage event names the payer, the engine's
+// damage-source context names the source, and the same-source lifelink
+// gains the controller the damage (CR 702.16d).
+func (e *Engine) payDamageCost(payer state.PlayerID, n int32, source state.ObjID) {
+	if n <= 0 {
+		return
+	}
+	prev := e.SetDamageSource(source)
+	ev := e.emit(events.Event{Kind: events.Damage, Player: payer, Amount: n})
+	e.SetDamageSource(prev)
+	if ev.Kind != events.Damage || !e.HasKeyword(source, "Lifelink") {
+		return
+	}
+	controller := payer
+	if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+		controller = o.Controller
+	}
+	e.emit(events.Event{Kind: events.LifeChange, Player: controller, Amount: n})
 }
 
 func (e *Engine) costCandidates(p state.PlayerID, source state.ObjID, zone state.Zone, spec string, excludeSource, untapped bool) []state.ObjID {
@@ -791,6 +855,15 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	}
 	if len(extra.Return) > 0 {
 		cost.Return = append(append([]CostPart(nil), cost.Return...), extra.Return...)
+	}
+	if len(extra.Draw) > 0 {
+		cost.Draw = append(append([]CostPart(nil), cost.Draw...), extra.Draw...)
+	}
+	if len(extra.LifeX) > 0 {
+		cost.LifeX = append(append([]CostPart(nil), cost.LifeX...), extra.LifeX...)
+	}
+	if len(extra.DamageYou) > 0 {
+		cost.DamageYou = append(append([]CostPart(nil), cost.DamageYou...), extra.DamageYou...)
 	}
 	cost.Forage = cost.Forage || extra.Forage
 	cost.Tap = cost.Tap || extra.Tap
@@ -1368,8 +1441,11 @@ func (e *Engine) exAsk() bool {
 			continue
 		}
 		zoneName := "hand"
-		if zone == state.ZGraveyard {
+		switch zone {
+		case state.ZGraveyard:
 			zoneName = "graveyard"
+		case state.ZBattlefield:
+			zoneName = "battlefield"
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
 			Prompt: "Exile " + strconv.Itoa(n) + " card(s) from your " + zoneName +
@@ -1521,7 +1597,9 @@ func (e *Engine) xAsk() bool {
 	// A PayEnergy<X> part announces the same X the cast pays with (CR
 	// 107.3i's ability X), so its presence triggers this ask exactly like a
 	// printed {X} mana symbol does. A Sac<X/Spec> part announces the count of
-	// permanents to sacrifice the same way.
+	// permanents to sacrifice the same way; the announced PayLife<X> and
+	// SubCounter<X/Kind> parts announce the same X too (the life and the
+	// counter removal settle at exactly that value).
 	energyX := false
 	for _, part := range pc.cost.Energy {
 		if part.Spec == "X" {
@@ -1534,7 +1612,14 @@ func (e *Engine) xAsk() bool {
 			sacX = true
 		}
 	}
-	if pc.cost.X <= 0 && !energyX && !sacX {
+	subCounterX := false
+	for _, part := range pc.cost.SubCounter {
+		if part.Announced {
+			subCounterX = true
+		}
+	}
+	lifeXCount := len(pc.cost.LifeX)
+	if pc.cost.X <= 0 && !energyX && !sacX && !subCounterX && lifeXCount == 0 {
 		return false
 	}
 	min := int32(0)
@@ -1594,6 +1679,43 @@ func (e *Engine) xAsk() bool {
 				bound = avail
 			}
 		}
+	}
+	// An announced SubCounter<X/Kind> part's bound is the number of counters
+	// of that kind the source actually has (Chandra, Awakened Inferno's
+	// SubCounter<X/LOYALTY>: the loyalty the walker has to remove), and an
+	// announced PayLife<X> part's bound is the payer's life total divided
+	// across the parts (the payer cannot pay more life than they have;
+	// paying exactly all of it is legal -- the SBA owns the zero-life
+	// consequence). When an announced part is the ONLY X the cost carries it
+	// IS the bound -- the pool-based mana ceiling is meaningless without a
+	// mana X -- and when another announced X also exists each cap min-clamps
+	// the shared X (CR 601.2b's announcement must be one the payment can
+	// settle).
+	announcedOnly := pc.cost.X <= 0 && !energyX && !sacX
+	boundSet := false
+	applyCap := func(cap int32) {
+		if announcedOnly && !boundSet {
+			bound, boundSet = cap, true
+		} else if cap < bound {
+			bound = cap
+		}
+	}
+	for _, part := range pc.cost.SubCounter {
+		if !part.Announced {
+			continue
+		}
+		have := int32(0)
+		if o := e.G.Obj(pc.card); o != nil {
+			have = o.Counter(part.Spec)
+		}
+		applyCap(have)
+	}
+	if lifeXCount > 0 {
+		life := e.G.Players[pc.player].Life
+		if life < 0 {
+			life = 0
+		}
+		applyCap(life / int32(lifeXCount))
 	}
 	var legal []int32
 	maxOld := int32(0)
@@ -2227,7 +2349,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 // caller's concern (targetAsk/payCast subtract pc.delve from Generic).
 func (e *Engine) manaToPay(pc *pendingCast) Cost {
 	m := pc.mods.apply(pc.resolvedMana())
-	if costAnnouncesSacX(pc.cost) {
+	if costAnnouncesPaidX(pc.cost) {
 		// The announced sacrifice count re-prices the ReduceCost statics that
 		// read the paid X (Dargo's {2}-less-per-sacrifice): the offer-time
 		// pc.mods snapshot was bound to X=0.
@@ -2243,6 +2365,27 @@ func (e *Engine) manaToPay(pc *pendingCast) Cost {
 // count the cast announces (the Dargo shape).
 func costAnnouncesSacX(c Cost) bool {
 	for _, part := range c.Sac {
+		if part.Announced {
+			return true
+		}
+	}
+	return false
+}
+
+// costAnnouncesPaidX reports whether the cost carries ANY announced-count
+// part whose count the cast announces as X: the Sac<X/Spec> shape
+// (costAnnouncesSacX), the announced SubCounter<X/Kind> removal and the
+// announced PayLife<X> payment. The offer-time costModifiers snapshot was
+// bound to X=0, so a static reading the paid X must be re-priced once the
+// announcement is known -- the same reason Dargo's Sac<X> needed it.
+func costAnnouncesPaidX(c Cost) bool {
+	if costAnnouncesSacX(c) {
+		return true
+	}
+	if len(c.LifeX) > 0 {
+		return true
+	}
+	for _, part := range c.SubCounter {
 		if part.Announced {
 			return true
 		}
@@ -2446,7 +2589,7 @@ func (e *Engine) convokeAsk() bool {
 
 func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {
 	m := pc.mods.apply(pc.resolvedManaX(x))
-	if costAnnouncesSacX(pc.cost) {
+	if costAnnouncesPaidX(pc.cost) {
 		// The announced sacrifice count re-prices the ReduceCost statics that
 		// read the paid X (Dargo's {2}-less-per-sacrifice): the offer-time
 		// pc.mods snapshot was bound to X=0.
@@ -3326,6 +3469,32 @@ func (e *Engine) payCast() {
 					Counter: "ENERGY", Amount: -amt})
 			}
 		}
+		// Announced PayLife<X> parts (Toxic Deluge's "pay X life"): each pays
+		// the announced X as one LifeChange beside the fixed life payMana
+		// charged above (payLife). xAsk bounded the announcement by the payer's
+		// life, so the payment cannot drive the total below zero here.
+		for range pc.cost.LifeX {
+			if pc.x > 0 {
+				e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.x})
+			}
+		}
+		// DamageYou<N> cost parts: the payer takes N damage from the source
+		// (Forge CostDamage; the same event shape payUnlessDamageCost emits).
+		for _, part := range pc.cost.DamageYou {
+			e.payDamageCost(pc.player, part.N, pc.card)
+		}
+		// Draw cost parts (Draw<N/Spec>): the payer draws N, as one ordinary
+		// Draw event per card (an empty library's loss is the SBA's). The
+		// dredge replacement is NOT posed here -- the cast-flow payment stage
+		// cannot re-enter mid-payment -- and no corpus card reaches a Draw
+		// cost payment with a dredger in the graveyard.
+		for _, part := range pc.cost.Draw {
+			if p, ok := castFlowDrawPlayer(part.Spec, pc.player); ok {
+				for n := int32(0); n < part.N; n++ {
+					e.drawCostCard(p)
+				}
+			}
+		}
 		// Return cost parts: each chosen object moves to its OWNER's hand
 		// (Forge CostReturn.doPayment's moveToHand) beside the other payments.
 		for _, id := range pc.returns {
@@ -3339,7 +3508,13 @@ func (e *Engine) payCast() {
 			e.emitTap(pc.card, pc.player, false)
 		}
 		for _, part := range pc.cost.SubCounter {
-			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -part.N})
+			amt := part.N
+			if part.Announced {
+				amt = pc.x
+			}
+			if amt != 0 {
+				e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -amt})
+			}
 		}
 		// CR 606.3: a [+N] loyalty cost adds N loyalty counters to the walker
 		// as part of the activation's payment, settled beside the SubCounter
@@ -3456,6 +3631,23 @@ func (e *Engine) payCast() {
 		if amt > 0 {
 			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
 				Counter: "ENERGY", Amount: -amt})
+		}
+	}
+	// Announced PayLife<X>, DamageYou<N> and Draw<N/Spec> cost parts (see the
+	// ability branch above for the why).
+	for range pc.cost.LifeX {
+		if pc.x > 0 {
+			e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.x})
+		}
+	}
+	for _, part := range pc.cost.DamageYou {
+		e.payDamageCost(pc.player, part.N, pc.card)
+	}
+	for _, part := range pc.cost.Draw {
+		if p, ok := castFlowDrawPlayer(part.Spec, pc.player); ok {
+			for n := int32(0); n < part.N; n++ {
+				e.drawCostCard(p)
+			}
 		}
 	}
 	// Return cost parts (see the ability branch above for the why).

@@ -303,7 +303,16 @@ func (e *Engine) manaAbilityPayable(p state.PlayerID, source state.ObjID, ma *ca
 		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayable(p, source, true, cost) {
 		return false
 	}
+	// The mana-activation path has no X ask and no mid-payment suspension, so
+	// an announced PayLife<X> or SubCounter<X/Kind> component could never be
+	// settled here: the ability is not offered rather than paid for free.
+	if len(cost.LifeX) > 0 {
+		return false
+	}
 	for _, part := range cost.SubCounter {
+		if part.Announced {
+			return false
+		}
 		if o.Counter(part.Spec) < part.N {
 			return false
 		}

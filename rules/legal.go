@@ -574,12 +574,24 @@ func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID,
 // action on a bound whose value does not exist yet; the post-announcement
 // askTarget backstop evaluates it once the X is fixed (CR 601.2b before
 // 601.2c).
+// costAnnouncesX reports whether the cost announces an X the cast or
+// activation chooses (CR 601.2b/107.3i): a printed {X} mana symbol, a
+// PayEnergy<X> part, an announced PayLife<X> payment or an announced
+// SubCounter<X/Kind> removal.
 func costAnnouncesX(c Cost) bool {
 	if c.X > 0 {
 		return true
 	}
 	for _, part := range c.Energy {
 		if part.Spec == "X" {
+			return true
+		}
+	}
+	if len(c.LifeX) > 0 {
+		return true
+	}
+	for _, part := range c.SubCounter {
+		if part.Announced {
 			return true
 		}
 	}

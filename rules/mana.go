@@ -87,12 +87,27 @@ type Cost struct {
 	TapPermanent    []CostPart
 	Blight          []CostPart
 	Forage          bool
-	// Draw carries Draw<N/Spec> components, which only ParseUnlessCost
-	// builds: paying one draws N cards for the player(s) the spec names
-	// (default the payer). payMana never charges it; the mid-resolution
-	// unless-pay path does.
+	// Draw carries Draw<N/Spec> components: paying one draws N cards for the
+	// player(s) the spec names (default the payer). payMana never charges it;
+	// the mid-resolution unless-pay path pays it (payUnlessCost), and the
+	// cast/activation flow pays the payer's own parts beside the other
+	// non-mana components.
 	Draw   []CostPart
 	Energy []CostPart
+	// LifeX carries the announced PayLife<X> part (Toxic Deluge's "pay X
+	// life"): the cast announces X (CR 601.2b, bounded by the payer's life
+	// total) and the settle pays it as one LifeChange per part beside
+	// payMana's fixed Life charge. PayLife<N> is the fixed part and lives in
+	// Life above; a malformed PayLife<...> value still degrades to the
+	// reported one-generic fallback.
+	LifeX []CostPart
+	// DamageYou carries DamageYou<N> parts -- the payer takes N damage from
+	// the source. The corpus's only shape is an UnlessCost$ DamageYou<N>
+	// (the Vexing Devil family), which the unless-pay arm pays through
+	// effects.ParseDamageUnlessCost; the head is modelled here so ParseCost
+	// stops substituting generic mana for it, and a plain Cost$ part is
+	// settled by the cast flow like every other damage payment.
+	DamageYou []CostPart
 	// Return carries Return<N/Spec> tokens: a permanent (usually the source
 	// itself, Spec CARDNAME) returned to its OWNER's hand as the payment
 	// (Forge CostReturn.moveToHand; CR 118.2a lists returning a permanent to
@@ -183,6 +198,38 @@ var payEnergyCost = regexp.MustCompile(`^PayEnergy<([0-9]+|X)(?:/[^>]*)?>$`)
 // parsed one is 1). The trailing description is dropped, ";"
 // alternations fold to "," like every other non-mana head.
 var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// exileBattlefieldCost matches Forge's bare Exile<N/Spec> token -- exiling a
+// matching permanent from the BATTLEFIELD as the payment (Karn's Sylex's
+// "{X}, {T}, Exile Karn's Sylex", Mechtitan Core's "Exile CARDNAME and four
+// other artifact creatures", Zombie Assassin's "{T}, Exile two cards from
+// your graveyard and CARDNAME"). The zone-qualified forms are the separate
+// exileCost heads above (ExileFromHand/ExileFromGrave); the trailing
+// "/description" is dropped and ";" alternations fold to "," like every
+// other non-mana head.
+var exileBattlefieldCost = regexp.MustCompile(`^Exile<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// payLifeXCost matches Forge's announced life payment PayLife<X> (Toxic
+// Deluge's "pay X life", Necrodominance's end-step body): the cast announces
+// X like a printed {X} and the settle pays that much life, so the value is
+// bounded by the payer's life total at the X ask. The fixed form is the
+// lifeCost head above.
+var payLifeXCost = regexp.MustCompile(`^PayLife<X>$`)
+
+// subCounterXCost matches Forge's announced counter removal
+// SubCounter<X/Kind> (Chandra, Awakened Inferno's "remove X loyalty
+// counters"): the kind is read and the count is the cast's announced X,
+// bounded by the counters the source actually has. The fixed form is the
+// nonManaCost head above.
+var subCounterXCost = regexp.MustCompile(`^SubCounter<X/([^/>]+)(?:/[^>]*)?>$`)
+
+// damageYouCost matches Forge's DamageYou<N> token -- the payer takes N
+// damage from the source as the payment (Forge CostDamage). The corpus's
+// only shape is an UnlessCost$ (Vexing Devil's "have it deal 4 damage to
+// them"), which the unless-pay arm prices through
+// effects.ParseDamageUnlessCost; this head keeps a plain Cost$ spelling out
+// of Cost.Unknown.
+var damageYouCost = regexp.MustCompile(`^DamageYou<(\d+)(?:/[^>]*)?>$`)
 
 var costBraces = strings.NewReplacer("{", " ", "}", " ")
 
@@ -286,9 +333,52 @@ func ParseCost(s string) Cost {
 					c.Sac = append(c.Sac, part)
 				case "Discard":
 					c.Discard = append(c.Discard, part)
+				case "Draw":
+					c.Draw = append(c.Draw, part)
 				default:
 					c.SubCounter = append(c.SubCounter, part)
 				}
+				continue
+			}
+			if m := exileBattlefieldCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				spec := strings.ReplaceAll(m[2], ";", ",")
+				c.Exile = append(c.Exile, CostPart{N: int32(n), Spec: spec, Zone: state.ZBattlefield})
+				continue
+			}
+			if m := payLifeXCost.FindStringSubmatch(sym); m != nil {
+				// The announced form: the cast announces X (bounded by the
+				// payer's life at the X ask) and the settle pays that much life.
+				// No generic substitution, no Unknown entry.
+				c.LifeX = append(c.LifeX, CostPart{Spec: "X", Announced: true})
+				continue
+			}
+			if m := subCounterXCost.FindStringSubmatch(sym); m != nil {
+				// The announced form: the kind is read; the count is the cast's
+				// announced X (bounded by the source's counters at the X ask).
+				spec := strings.ReplaceAll(m[1], ";", ",")
+				c.SubCounter = append(c.SubCounter, CostPart{Spec: spec, Announced: true})
+				continue
+			}
+			if m := damageYouCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				c.DamageYou = append(c.DamageYou, CostPart{N: int32(n)})
 				continue
 			}
 			if m := exileCost.FindStringSubmatch(sym); m != nil {
@@ -671,6 +761,15 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Return) > 0 {
 		c.Return = append(append([]CostPart(nil), c.Return...), d.Return...)
 	}
+	if len(d.Draw) > 0 {
+		c.Draw = append(append([]CostPart(nil), c.Draw...), d.Draw...)
+	}
+	if len(d.LifeX) > 0 {
+		c.LifeX = append(append([]CostPart(nil), c.LifeX...), d.LifeX...)
+	}
+	if len(d.DamageYou) > 0 {
+		c.DamageYou = append(append([]CostPart(nil), c.DamageYou...), d.DamageYou...)
+	}
 	c.Forage = c.Forage || d.Forage
 	return c
 }
@@ -907,6 +1006,12 @@ func formatCost(c Cost) string {
 	if c.Life > 0 {
 		parts = append(parts, "PayLife<"+strconv.FormatInt(int64(c.Life), 10)+">")
 	}
+	for range c.LifeX {
+		parts = append(parts, "PayLife<X>")
+	}
+	for _, part := range c.DamageYou {
+		parts = append(parts, "DamageYou<"+strconv.FormatInt(int64(part.N), 10)+">")
+	}
 	if c.Tap {
 		parts = append(parts, "T")
 	}
@@ -924,14 +1029,20 @@ func formatCost(c Cost) string {
 	}
 	appendCostParts("Sac", c.Sac)
 	appendCostParts("Discard", c.Discard)
+	appendCostParts("Draw", c.Draw)
 	appendCostParts("SubCounter", c.SubCounter)
 	appendCostParts("AddCounter", c.AddCounter)
 	for _, part := range c.Exile {
-		from := "Hand"
-		if part.Zone == state.ZGraveyard {
-			from = "Grave"
+		var head string
+		switch part.Zone {
+		case state.ZBattlefield:
+			head = "Exile"
+		case state.ZGraveyard:
+			head = "ExileFromGrave"
+		default:
+			head = "ExileFromHand"
 		}
-		parts = append(parts, "ExileFrom"+from+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
+		parts = append(parts, head+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
 	}
 	appendCostParts("Reveal", c.Reveal)
 	appendCostParts("Behold", c.Behold)
@@ -953,7 +1064,7 @@ func formatCost(c Cost) string {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0
 }
 
 // Priceable reports whether payMana can actually charge every part of this
@@ -975,7 +1086,7 @@ func (c Cost) Priceable() bool {
 		len(c.Draw) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 &&
 		len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
-		len(c.Energy) == 0 && len(c.Return) == 0
+		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0
 }
 
 // pip is one flexible mana demand inside a cost's mana part, as a list of

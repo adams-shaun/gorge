@@ -2049,7 +2049,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Cavern of Souls":             {"param:api:ChooseType.Type", "param:api:Mana.AddsNoCounter", "param:api:Mana.RestrictValid"},
 	"Chain Lightning":             {"param:api:CopySpellAbility.Controller"},
 	"Chalice of the Void":         {"param:api:PutCounter.ETB"},
-	"Chandra, Awakened Inferno":   {"cost:SubCounter", "param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate", "param:api:Effect.Name"},
+	"Chandra, Awakened Inferno":   {"param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate", "param:api:Effect.Name"},
 	"Chaos Warp":                  {"param:api:Dig.DestinationZone2", "param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
 	"Conduit of Worlds":           {"param:api:Play.RememberPlayed"},
 	"Council's Judgment":          {"param:api:Vote.VoteCard", "param:api:Vote.VoteSubAbility"},
@@ -2089,7 +2089,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Mistveil Plains":             {"param:api:ChangeZone.IsPresent", "param:api:ChangeZone.PresentCompare"},
 	"Mogis, God of Slaughter":     {"param:stat:Continuous.RemoveType"},
 	"Myriad Landscape":            {"param:api:ChangeZone.ShareLandType"},
-	"Necrodominance":              {"cost:PayLife", "param:stat:Continuous.SetMaxHandSize"},
+	"Necrodominance":              {"param:stat:Continuous.SetMaxHandSize"},
 	"Necropotence":                {"param:api:ChangeZone.ExileFaceDown", "param:api:DelayedTrigger.RememberObjects", "param:api:DelayedTrigger.ValidPlayer"},
 	"Ob Nixilis, Captive Kingpin": {"param:api:Effect.ForgetOnMoved"},
 	"Ojer Axonil, Deepest Might":  {"param:api:ChangeZone.Transformed"},
@@ -2102,7 +2102,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Price of Progress":           {"param:api:RepeatEach.DamageMap"},
 	"Purphoros, God of the Forge": {"param:stat:Continuous.RemoveType"},
 	"Ragavan, Nimble Pilferer":    {"param:api:Effect.ForgetOnMoved"},
-	"Relic of Progenitus":         {"cost:Exile"},
 	"Remand":                      {"param:api:Counter.Destination"},
 	"Resplendent Angel":           {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Roiling Vortex":              {"param:trig:SpellCast.ValidSA"},
@@ -2124,12 +2123,10 @@ var knownUnsupportedParams = map[string][]string{
 	"Thornspire Verge":            {"param:api:Mana.IsPresent"},
 	"Through the Forest Gate":     {"param:api:Dig.SkipReorder", "param:api:Dig.Tapped"},
 	"Tome of Legends":             {"param:api:PutCounter.ETB"},
-	"Toxic Deluge":                {"cost:PayLife"},
 	"Trinket Mage":                {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Valakut Exploration":         {"param:api:Effect.ForgetOnMoved", "param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Valkyrie Harbinger":          {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.ETB", "param:api:PutCounter.MinChoiceAmount"},
-	"Vexing Devil":                {"cost:DamageYou"},
 	"Vial Smasher the Fierce":     {"param:api:Cleanup.ClearChosenPlayer", "param:trig:SpellCast.ActivatorThisTurnCast"},
 	"Vines of Vastwood":           {"param:api:Effect.ExileOnMoved"},
 	"Voracious Hydra":             {"param:api:PutCounter.ETB"},
@@ -2273,39 +2270,25 @@ func TestParamCensusDetectsADeletedConsumer(t *testing.T) {
 
 // TestParamCensusPinsTheImportReviewExamples pins the examples the task
 // brief was written from: Daze's Return<1/Island> alternative cost (ParseCost
-// silently substituting generic mana), Chandra's SubCounter<X/LOYALTY>, plus
+// silently substituting generic mana), Chandra's SubCounter<X/LOYALTY>,
 // Relic of Progenitus's bare Exile<1/Card.YouOwn> and Vexing Devil's
-// DamageYou<1> -- still unmodelled heads. Force of Will's
+// DamageYou<1> -- all unmodelled heads when the pin was written. The cost
+// token family work (announced PayLife<X>, bare Exile<N/Spec>, the Draw
+// bucket, SubCounter<X/Kind>, DamageYou<N> in ParseCost) now models every
+// one, so the pin asserts they are GONE -- cost: labels only ever shrink
+// when a real ParseCost model lands. Force of Will's
 // ExileFromHand<1/Card.Blue+Other> and Whirler Rogue's tapXType<2/Artifact>
-// were in the original pin but the alternative-cost work on main
-// (ExileFromHand/ExileFromGrave/Reveal/Behold/tapXType/Blight/Forage heads in
-// ParseCost) now models them, so the pin also asserts they are GONE --
-// cost: labels only ever shrink when a real ParseCost model lands.
+// retired earlier with the alternative-cost work (the
+// ExileFromHand/ExileFromGrave/Reveal/Behold/tapXType/Blight/Forage heads).
 // (The brief's other example, Reanimate's GainControl$ on api:ChangeZone, is
 // not in any repo deck; the same label appears in the baseline on Meathook
 // Massacre II and retires the moment the read is implemented.)
 func TestParamCensusPinsTheImportReviewExamples(t *testing.T) {
 	res, _ := measureParamCensus(t, nil)
-	want := map[string]string{
-		"Relic of Progenitus":       "cost:Exile",
-		"Chandra, Awakened Inferno": "cost:SubCounter",
-		"Vexing Devil":              "cost:DamageYou",
-	}
-	for card, label := range want {
-		found := false
-		for _, l := range res.labels[card] {
-			if l == label {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("%s: expected %s in the census (labels %v) -- the gap was fixed or the census went blind", card, label, res.labels[card])
-		}
-	}
-	// The two original cost examples retired with main's alternative-cost
-	// ParseCost heads; assert the shrink so a regression that reintroduces
-	// the silent substitution fails here.
+	// Every cost example this pin once demanded PRESENT has retired with a
+	// real ParseCost model; they joined the gone-side assertions below. The
+	// original pin's Daze/Force of Will/Whirler Rogue notes remain the
+	// comment above.
 	for card, label := range map[string]string{
 		"Force of Will": "cost:ExileFromHand",
 		"Whirler Rogue": "cost:tapXType",
@@ -2314,6 +2297,11 @@ func TestParamCensusPinsTheImportReviewExamples(t *testing.T) {
 		// matching battlefield permanent returned to its owner's hand), so the
 		// silent one-generic substitution is gone.
 		"Daze": "cost:Return",
+		// The cost token family work (announced PayLife<X>, bare
+		// Exile<N/Spec>, the Draw bucket, SubCounter<X/Kind>, DamageYou<N>).
+		"Relic of Progenitus":       "cost:Exile",
+		"Chandra, Awakened Inferno": "cost:SubCounter",
+		"Vexing Devil":              "cost:DamageYou",
 	} {
 		for _, l := range res.labels[card] {
 			if l == label {
@@ -2665,7 +2653,17 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		// fixture's own token: Waterbend, Kor Bladewhirl's ability cost).
 		{"Waterbend<X>", []string{"Waterbend"}},
 		{"PayLife<5>", nil},
-		{"PayLife<X>", []string{"PayLife"}},
+		// The announced PayLife<X> form is now MODELLED (the cast announces X,
+		// bounded by the payer's life; the settle pays it), so nothing is
+		// degraded. The malformed instance still reports the known head.
+		{"PayLife<X>", nil},
+		// The other cost-token-family heads, in their exact repo-deck shapes:
+		// bare Exile (battlefield), the Draw bucket (previously mis-modelled
+		// as a SubCounter removal), the announced SubCounter and DamageYou.
+		{"1 Exile<1/CARDNAME>", nil},
+		{"Draw<1/You>", nil},
+		{"SubCounter<X/LOYALTY>", nil},
+		{"DamageYou<4>", nil},
 		// Recognised heads whose INSTANCE is malformed or out of range: the
 		// head is known, the instance is not modelled -- reported too.
 		{"PayLife<99999999999999999999>", []string{"PayLife"}},
