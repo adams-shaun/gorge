@@ -298,6 +298,69 @@ func (e *Engine) mayPlaySpellIds(p state.PlayerID) []state.ObjID {
 	return out
 }
 
+// coreCardTypes is CardType.CoreType (forge-card's CardType.java) -- the
+// distinct-type census Delirium's gate counts. Kindred is included: modern
+// type lines spell it as a word and the engine's printed Types carry it.
+var coreCardTypes = []string{"Artifact", "Battle", "Creature", "Enchantment",
+	"Instant", "Kindred", "Land", "Planeswalker", "Sorcery"}
+
+// activationConditionOK evaluates an ability's Activation$ activation
+// condition -- the "Hellbent —", "Threshold —", "Metalcraft —",
+// "Delirium —" cost-prompt family (Sea Gate Wreckage's draw, Mox Opal's
+// mana). Forge's SpellAbilityCondition.areMet keyword half, on the
+// ACTIVATOR (the controller asking to activate), evaluated at OFFER time
+// like the CheckSVar$ gate below: an ability whose condition fails is not
+// offered, so a paid no-op activation is never reachable:
+//
+//   - Hellbent: the activator's hand is empty (Player.hasHellbent);
+//   - Threshold: the activator's graveyard holds 7+ cards;
+//   - Metalcraft: the activator controls 3+ artifacts;
+//   - Delirium: the activator's graveyard holds 4+ distinct core card types
+//     (AbilityUtils.countCardTypesFromList's non-permanent form).
+//
+// Solved (the Case permanents' solved flag) and Blessing (the city's
+// blessing) name state this build does not track, so their gate FAILS
+// CLOSED -- the conservative direction for an "only if" condition whose
+// meeting cannot be verified. No repo-deck card carries either (measured at
+// the current corpus pin: 3 raw lines each, none in the decks).
+func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
+	raw, ok := ab.Params["Activation"]
+	if !ok || strings.TrimSpace(raw) == "" {
+		return true
+	}
+	switch strings.TrimSpace(raw) {
+	case "Hellbent":
+		return len(e.G.Zone(state.ZHand, p)) == 0
+	case "Threshold":
+		return len(e.G.Zone(state.ZGraveyard, p)) >= 7
+	case "Metalcraft":
+		n := 0
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if o := e.G.Obj(id); o != nil && slices.Contains(e.Derived(id).Types, "Artifact") {
+				n++
+			}
+		}
+		return n >= 3
+	case "Delirium":
+		seen := map[string]bool{}
+		for _, id := range e.G.Zone(state.ZGraveyard, p) {
+			if o := e.G.Obj(id); o != nil {
+				for _, ty := range o.Face().Types {
+					seen[ty] = seen[ty] || slices.Contains(coreCardTypes, ty)
+				}
+			}
+		}
+		n := 0
+		for _, ty := range coreCardTypes {
+			if seen[ty] {
+				n++
+			}
+		}
+		return n >= 4
+	}
+	return false
+}
+
 // abilityZoneOK reports whether ability ab may be activated while the
 // source cardinal is in zone z (CR 602.1b): the printed ActivationZone$
 // when present, the battlefield by default. Battlefield, Hand and Graveyard
@@ -1200,6 +1263,13 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					}
 				}
 				if abilityRestricted(p, id, ab) {
+					continue
+				}
+				// Activation$ (Sea Gate Wreckage's "Activate only if you have
+				// no cards in hand"): the keyword activation condition at offer
+				// time, the same funnel the CheckSVar$ gate below applies --
+				// a gate you can read must not leave a paid no-op reachable.
+				if !e.activationConditionOK(p, ab) {
 					continue
 				}
 				// F05-2 (CR 733.2): a card whose activation aborted with no

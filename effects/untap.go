@@ -117,10 +117,37 @@ func effUntap(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	if sa.Params["UntapType"] == "" {
+		// ETB$ True is the "enters untapped" replacement body (Horizon
+		// Explorer's lands-enter-untapped, the mirror of effTap's 804
+		// enters-tapped bodies). The entry-tap/untap pair's real composition
+		// runs through the Updated move-replacement pipeline: the original move
+		// is applied first (composeUpdatedReplacements), then each With body in
+		// the deterministic scan order, so by the time this body runs the
+		// entering object is already on the battlefield and any earlier body's
+		// tap is live -- the plain Untap event below is exactly what undoes it
+		// (forEachObject's seat-local zone order scans the entering card's own
+		// zone -- hand or library -- before the battlefield, so the entered
+		// land's own enters-tapped body runs first and Horizon Explorer's untap
+		// composes after it). The one semantic difference from TryUntap is
+		// deliberate: the STUN-counter substitution (CR 122.1d) is a rule for
+		// untapping a permanent already in play; an entering one carries no
+		// counters, so the ETB untap is the plain event. Forge's own ETB read
+		// (UntapEffect.resolve) clears the tapped state directly and skips the
+		// UntapAll trigger, which this build cannot do without an event -- no
+		// corpus Mode$ Untaps trigger is reachable through an entry replacement
+		// (the mode itself is unregistered here), so the event fires nothing.
+		entering := strings.EqualFold(strings.TrimSpace(sa.Params["ETB"]), "True")
 		for _, t := range Defined(h, c, sa) {
-			if !t.IsPlayer {
-				TryUntap(h, t.Obj)
+			if t.IsPlayer {
+				continue
 			}
+			if entering {
+				if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield && o.Tapped {
+					h.Emit(events.Event{Kind: events.Untap, Obj: t.Obj})
+				}
+				continue
+			}
+			TryUntap(h, t.Obj)
 		}
 		return
 	}

@@ -1032,6 +1032,37 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// event, not on Ctx, so this is a done-marker rather than an
 			// answer the effect re-reads.
 			ctx.Arrange = true
+		case "arrange_mayshuffle":
+			// A RearrangeTopOfLibrary carrying MayShuffle$ True (Ponder) asked
+			// "you may shuffle?" on its arrange re-entry pass. The effect
+			// re-enters here third: the arrange itself was applied two passes
+			// ago, so ctx.Arrange stays the done-marker; ctx.MayShuffle carries
+			// the answer as the ask-again marker the effect consumes and
+			// clears. The shuffle itself is emitted HERE, before the
+			// re-entered walk continues to the chained SubAbility$ (Ponder's
+			// draw comes after the shuffle) -- the same Fisher-Yates over the
+			// engine rng and the same Secret events.Shuffle the genesis deal
+			// and every effects shuffle emit, with rp.player the library's
+			// owner (the arranging player the ask was posed to).
+			ctx.Arrange = true
+			ctx.MayShuffle = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.MayShuffle = "yes"
+				order := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, rp.player)...)
+				e.rng.Shuffle(order)
+				e.emit(events.Event{Kind: events.Shuffle, Player: rp.player, IDs: order, Secret: true})
+			}
+		case "discard_unless":
+			// A Discard carrying UnlessType$ (Thirst for Knowledge) asked its
+			// election: "discard one card of the type instead" vs "discard
+			// NumCards$". The re-entered effDiscard reads the election off
+			// ctx.UnlessElected (consumed and cleared there, fx42 scoping);
+			// an empty or malformed answer elects the ordinary discard, the
+			// conservative read of an ambiguous one.
+			ctx.UnlessElected = "ordinary"
+			if len(chosen) > 0 && chosen[0].Kind == "unless" {
+				ctx.UnlessElected = "unless"
+			}
 		case "hideaway_pick":
 			// Hideaway's first ask chooses exactly one of the looked-at cards.
 			// The effect validates it remains in the library before moving it,
