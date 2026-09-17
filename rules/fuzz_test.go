@@ -40,6 +40,7 @@ type seedResult struct {
 // gate again fails loudly here instead of silently passing 60 games of
 // nothing.
 func TestInvariantsUnderSeedFuzz(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
 	}

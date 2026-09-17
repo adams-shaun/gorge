@@ -2008,6 +2008,7 @@ var knownUnsupportedParams = map[string][]string{
 // tokens knownUnsupportedParams lists, and every entry in the table is still
 // measured. Same failure style as the primitive ratchet.
 func TestEveryRepoDeckParamsAreRead(t *testing.T) {
+	t.Parallel()
 	res, _ := measureParamCensus(t, nil)
 	t.Logf("param census: %d of %d distinct repo-deck cards carry at least one unread param or unmodelled cost token; %d distinct param labels, %d distinct cost labels",
 		len(res.labels), distinctRepoDeckCards(t), len(res.paramLabels), len(res.costLabels))
@@ -2044,6 +2045,7 @@ func TestParamCensusScanIsComplete(t *testing.T) {
 // reports param:api:Sacrifice.SacValid for exactly the repo-deck cards whose
 // Sacrifice abilities carry SacValid$ -- while the real baseline reports none.
 func TestParamCensusDetectsADeletedConsumer(t *testing.T) {
+	t.Parallel()
 	base, d := measureParamCensus(t, nil)
 	if !d.api["Sacrifice"]["SacValid"] {
 		t.Fatalf("scan no longer derives the SacValid$ read for api:Sacrifice -- the consumer was deleted for real; fix the census or re-seed")

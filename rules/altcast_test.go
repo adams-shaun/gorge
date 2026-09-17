@@ -965,6 +965,7 @@ func TestAlternateAdditionalCostGrammarIsNotGenericMana(t *testing.T) {
 }
 
 func TestAlternateAdditionalCostSpecialPayments(t *testing.T) {
+	t.Parallel()
 	chooseKind := func(t *testing.T, e *Engine, kind string) {
 		t.Helper()
 		d := e.Pending()
