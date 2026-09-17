@@ -859,7 +859,24 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "13ce7a60c8da708f",
+	// 4 seats moved to 7b994506b3e93874 with task
+	// inbox-paramcensus-action-condition-checksvar: Vampire Lacerator's upkeep
+	// trigger now ENFORCES its ConditionCheckSVar$/ConditionSVarCompare$ gate
+	// ("you lose 1 life unless an opponent has 10 or less life", the gate SVar
+	// PlayerCountOpponents$LowestLifeTotal GE11). Measured by diffing the
+	// complete event streams: the old and new 4-seat streams are identical for
+	// 2517 events and first differ at seq 2518, where the vanilla build emitted
+	// the `life` loss and this build does not -- seat 1 was at 7 and seat 2 at
+	// 6 life, both <=10, so the gate holds and the loss is correctly skipped
+	// (the old build ran the gated ability unconditionally, the documented
+	// fail-open stand-in this task closes). The 8-seat cause is the same card
+	// at seq 6724 (opponent at 3 life). The 2- and 6-seat games never hit a
+	// Lacerator upkeep whose gate verdict differs from run-anyway, so those
+	// heads stand byte-identical.
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	4: "7b994506b3e93874",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -996,7 +1013,17 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "c5487ff2d727e5d8",
+	// 8 seats moved to e558ffcaab15d987 with task
+	// inbox-paramcensus-action-condition-checksvar: the same Vampire Lacerator
+	// ConditionCheckSVar$ enforcement as the 4-seat entry above -- measured
+	// first divergence at seq 6724, the mono-black-aggro Lacerator trio's
+	// upkeep trigger resolving with an opponent (dimir-tempo) at 3 life, so
+	// the PlayerCountOpponents$LowestLifeTotal GE11 gate holds and the old
+	// build's unconditional `life` loss is correctly skipped.
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "e558ffcaab15d987",
 }
 
 func TestHeads(t *testing.T) {

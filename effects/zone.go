@@ -1811,6 +1811,15 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	// this package (the sacrifice_audit test only counts its occurrence), so
 	// the absence is the conservative same-as-before no-op, not a regression.
 	remember := sa.Params["RememberSacrificed"] != ""
+	// Optional$ True (Braids, Arisen Nightmare's "you may sacrifice an
+	// artifact, creature, enchantment, land, or planeswalker"; Scapeshift's
+	// "you may sacrifice any number of lands"): the sacrifice becomes a real
+	// may-choice. The ask (below, in the player-targeted branch) offers the
+	// eligible set with Min 0, so declining is the empty answer and a chained
+	// SubAbility$ sees an unchanged Remembered (Braids's RepeatEach then
+	// iterates nobody and Cleanup clears). A host that cannot ask keeps the
+	// mandatory stand-in (R-9): eligible[:n], today's pre-Optional behaviour.
+	optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
 	// Damage-replacement bodies carry the amount of the event they replace.
 	// The sole corpus Sacrifice body in that class is Dralnu's "sacrifice that
 	// many permanents"; consume Amount$ there without changing the broader
@@ -1900,6 +1909,26 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 				}
 				if h.Ask(&decision.Decision{Player: t.Player, Kind: decision.KChoose, Min: n, Max: n,
 					Prompt: "Choose permanents to sacrifice", Options: opts, ResumeKind: "sacrifice", ResumeSA: sa}) {
+					return
+				}
+			}
+			// Optional$ True: a real may-ask over the eligible set with Min 0 —
+			// the empty answer declines (Braids's "if you do" then sees an empty
+			// Remembered, Scapeshift's search sees Remembered$Amount 0). Posed
+			// whenever anything is eligible, because "take none" is always a
+			// different outcome from the stand-in's take-n. No ask when nothing
+			// is eligible (declining and taking are the same no-op), and the
+			// Annihilator window above wins should a line ever carry both (none
+			// does). The answer re-enters through the shared "sacrifice" resume
+			// arm (rules/resolution.go), which fills Ctx.Sacrifice — possibly
+			// empty — and re-runs this effect, which reads it below.
+			if chosen == nil && optional && n > 0 && len(eligible) > 0 && sa.Params["Annihilator"] == "" {
+				opts := make([]decision.Option, 0, len(eligible))
+				for _, id := range eligible {
+					opts = append(opts, decision.Option{Index: len(opts), Kind: "sacrifice", Obj: id, Label: g.Obj(id).Face().Name})
+				}
+				if h.Ask(&decision.Decision{Player: t.Player, Kind: decision.KChoose, Min: 0, Max: n,
+					Prompt: "You may sacrifice permanents (or none)", Options: opts, ResumeKind: "sacrifice", ResumeSA: sa}) {
 					return
 				}
 			}

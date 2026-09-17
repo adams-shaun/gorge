@@ -1,0 +1,272 @@
+// Task ds4 (paramcensus ConditionCheckSVar/CheckSVar + Sacrifice Optional):
+// corpus-carried behaviour tests for the gates the task taught the engine to
+// read. The cards are pulled from the real compiled corpus (choiceCorpusCard)
+// so the fixtures pin the cards' ACTUAL script shapes, not a paraphrase; the
+// per-test comment states which measured population each represents.
+//
+// The three families covered:
+//
+//   - Vampire Lacerator: a Phase trigger's ConditionCheckSVar$ /
+//     ConditionSVarCompare$ gate over Count$PlayerCountOpponents$ (GE11) --
+//     the LoseLife/Draw/ChangeZone/DealDamage/Reveal ConditionCheckSVar$
+//     cluster's dominant shape (the 54 bare-Kicked lines aside).
+//   - Scapeshift: effSacrifice's Optional$ True may-ask -- the sacrifice is
+//     declined or taken, and the chained search scales to Remembered$Amount.
+//   - Bloodsoaked Champion: an AB's CheckSVar$/SVarCompare$ activation gate
+//     read at OFFER time (rules/legal.go sVarGateOK) -- Count$AttackersDeclared
+//     zero means the legal-action walk does not offer the return.
+//
+// Every fixture card is a REAL deck card (the corpus protagonist plus authored
+// extras) moved with logged MoveZone events, so each test's replayCheck holds
+// -- the same discipline newFixtureDeck's doc records. Card scripts are never
+// copied from Forge's .cards/cardsfolder (GPL); the corpus cards here are
+// loaded from the gitignored corpus at test time.
+package rules
+
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// gateFixture builds a two-seat game at Main 1 of turn 1 (seat 0 starting)
+// whose seat-0 deck is the named CORPUS card first, then the authored extras,
+// then Mountains; the protagonist is bridged to seat 0's hand (the
+// newFixtureDeck discipline, replay-safe). The extras stay in the library so
+// a caller can move them with logged MoveZone events.
+func gateFixture(t *testing.T, seed uint64, name string, extras ...string) (*Engine, Config, state.ObjID) {
+	t.Helper()
+	fixture := choiceCorpusCard(t, name)
+	deck := []*cards.Card{fixture}
+	for _, extra := range extras {
+		deck = append(deck, card(t, extra))
+	}
+	cfg := seatZeroStart(Config{Seed: seed, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{
+			append(append([]*cards.Card{fixture}, deck[1:]...), mountainDeck(t, 40-len(deck))...),
+			mountainDeck(t, 40),
+		},
+		Tokens: map[string]*cards.Card{},
+	})
+	e := New(cfg)
+	e.Advance()
+	id := findInZones(t, e, 0, name)
+	if inZone(e, state.ZLibrary, 0, id) {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+		e.pending = nil
+		e.Advance()
+	}
+	toMain1(t, e)
+	return e, cfg, id
+}
+
+// gateMoveFromLibrary moves one of the extras (dealt to hand or still in the
+// library -- the opening hand takes the deck's top seven) to the given zone
+// with a logged event, returning its object id.
+func gateMoveFromLibrary(t *testing.T, e *Engine, name string, to state.Zone) state.ObjID {
+	t.Helper()
+	id := findInZones(t, e, 0, name)
+	from := state.ZLibrary
+	if inZone(e, state.ZHand, 0, id) {
+		from = state.ZHand
+	} else if !inZone(e, state.ZLibrary, 0, id) {
+		t.Fatalf("%q not in seat 0's hand or library", name)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to})
+	return id
+}
+
+// findInZones locates the object id whose face name matches in seat 0's
+// hand or library (nil otherwise); t.Fatals only when the caller asks it to.
+func findInZones(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
+	t.Helper()
+	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, cand := range e.G.Zone(z, p) {
+			if e.G.Obj(cand).Face().Name == name {
+				return cand
+			}
+		}
+	}
+	return 0
+}
+
+// TestVampireLaceratorUpkeepGateLosesOneLife drives the real corpus trigger:
+// with every opponent above 10 life the ConditionSVarCompare$ GE11 gate holds
+// and the controller loses 1 life at their upkeep.
+func TestVampireLaceratorUpkeepGateLosesOneLife(t *testing.T) {
+	e, cfg, lac := gateFixture(t, 901, "Vampire Lacerator")
+	e.emit(events.Event{Kind: events.MoveZone, Obj: lac, From: state.ZHand, To: state.ZBattlefield})
+	before := e.G.Players[0].Life
+	e.emit(events.Event{Kind: events.TriggerPush, Obj: lac, Player: 0, Amount: 0})
+	e.resolveTop()
+	if got := e.G.Players[0].Life; got != before-1 {
+		t.Fatalf("life = %d, want %d (gate holds at opponent life %d)",
+			got, before-1, e.G.Players[1].Life)
+	}
+	if e.G.Obj(lac).Zone != state.ZBattlefield {
+		t.Fatalf("Lacerator zone %v, want kept on the battlefield", e.G.Obj(lac).Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestVampireLaceratorUpkeepGateSparedUnderTen is the other side of the same
+// gate: an opponent at 10 or less makes PlayerCountOpponents$LowestLifeTotal
+// read 10, GE11 fails, and the upkeep loss does not happen.
+func TestVampireLaceratorUpkeepGateSparedUnderTen(t *testing.T) {
+	e, cfg, lac := gateFixture(t, 902, "Vampire Lacerator")
+	e.emit(events.Event{Kind: events.MoveZone, Obj: lac, From: state.ZHand, To: state.ZBattlefield})
+	// The single opponent at the spared threshold, set through a logged
+	// LifeChange so the replayCheck below reconstructs it.
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -10})
+	before := e.G.Players[0].Life
+	e.emit(events.Event{Kind: events.TriggerPush, Obj: lac, Player: 0, Amount: 0})
+	e.resolveTop()
+	if got := e.G.Players[0].Life; got != before {
+		t.Fatalf("life = %d, want unchanged %d (gate fails at opponent life 10)", got, before)
+	}
+	replayCheck(t, e, cfg)
+}
+
+const gateLandSrc = "Name:Gate Land\nTypes:Land\nOracle:x\n"
+
+// TestScapeshiftOptionalDeclineSacrificesNothing answers the may-ask with the
+// empty choice: no land is sacrificed, and the chained search sees
+// Remembered$Amount 0 -- it finds nothing (ChangeNum 0 completes the
+// fail-to-find directly) but still shuffles, and Cleanup clears Remembered.
+func TestScapeshiftOptionalDeclineSacrificesNothing(t *testing.T) {
+	e, cfg, sp := gateFixture(t, 903, "Scapeshift", gateLandSrc, gateLandSrc)
+	addMana(t, e, 0, "GGGG")
+	l1 := gateMoveFromLibrary(t, e, "Gate Land", state.ZBattlefield)
+	l2 := gateMoveFromLibrary(t, e, "Gate Land", state.ZBattlefield)
+	castFixture(t, e, sp, -1) // cast + resolve up to the sacrifice ask
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 {
+		t.Fatalf("optional sacrifice ask missing: %+v (Max 1 = the Amount$ SacX stand-in)", d)
+	}
+	for _, o := range d.Options {
+		if o.Obj != l1 && o.Obj != l2 {
+			t.Fatalf("ask offered a non-land option: %+v", o)
+		}
+	}
+	submitChoices(t, e) // the empty answer declines
+	if e.G.Obj(sp).Zone != state.ZGraveyard {
+		t.Fatalf("Scapeshift zone %v, want resolved to the graveyard", e.G.Obj(sp).Zone)
+	}
+	for i, l := range []state.ObjID{l1, l2} {
+		if e.G.Obj(l).Zone != state.ZBattlefield {
+			t.Fatalf("land %d zone %v, want kept (declined)", i, e.G.Obj(l).Zone)
+		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestScapeshiftOptionalAcceptSacrificesAndSearches takes one land from the
+// same ask: it dies to the graveyard, the chained library search asks for up
+// to one land (Remembered$Amount 1), and the chosen Mountain enters tapped.
+func TestScapeshiftOptionalAcceptSacrificesAndSearches(t *testing.T) {
+	e, cfg, sp := gateFixture(t, 904, "Scapeshift", gateLandSrc, gateLandSrc)
+	addMana(t, e, 0, "GGGG")
+	l1 := gateMoveFromLibrary(t, e, "Gate Land", state.ZBattlefield)
+	gateMoveFromLibrary(t, e, "Gate Land", state.ZBattlefield)
+	castFixture(t, e, sp, -1)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 {
+		t.Fatalf("optional sacrifice ask missing: %+v", d)
+	}
+	var landIdx int
+	for _, o := range d.Options {
+		if o.Obj == l1 {
+			landIdx = o.Index
+		}
+	}
+	submitChoices(t, e, landIdx)
+	if e.G.Obj(l1).Zone != state.ZGraveyard {
+		t.Fatalf("chosen land zone %v, want sacrificed to the graveyard", e.G.Obj(l1).Zone)
+	}
+	// The search: up to one land from the (Mountain) library -- the options
+	// list every eligible Mountain, Max caps the answer at one.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 || len(d.Options) == 0 {
+		t.Fatalf("search ask missing after the sacrifice: %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind != "search" {
+			t.Fatalf("search option kind %q: %+v", o.Kind, o)
+		}
+	}
+	mountain := d.Options[0].Obj
+	libBefore := len(e.G.Zone(state.ZLibrary, 0))
+	submitChoices(t, e, d.Options[0].Index)
+	if e.G.Obj(sp).Zone != state.ZGraveyard {
+		t.Fatalf("Scapeshift zone %v, want resolved", e.G.Obj(sp).Zone)
+	}
+	if mo := e.G.Obj(mountain); mo == nil || mo.Zone != state.ZBattlefield || !mo.Tapped {
+		t.Fatalf("found mountain = %+v, want on the battlefield tapped", mo)
+	}
+	if got := len(e.G.Zone(state.ZLibrary, 0)); got != libBefore-1 {
+		t.Fatalf("library size %d, want %d (one taken, shuffle preserves the count)", got, libBefore-1)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestBloodsoakedChampionRaidGateOffersOnlyAfterAttacking is the offer-time
+// CheckSVar$ read (rules/legal.go sVarGateOK): with zero attackers declared
+// this turn the Raid gate fails and the legal-action walk does not offer the
+// return; with one attacker it does.
+func TestBloodsoakedChampionRaidGateOffersOnlyAfterAttacking(t *testing.T) {
+	e, cfg, champ := gateFixture(t, 905, "Bloodsoaked Champion",
+		"Name:Raider\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	e.emit(events.Event{Kind: events.MoveZone, Obj: champ, From: state.ZHand, To: state.ZGraveyard})
+	addMana(t, e, 0, "BB")
+	raider := gateMoveFromLibrary(t, e, "Raider", state.ZBattlefield)
+	for _, o := range e.legalActions(0) {
+		if o.Obj == champ {
+			t.Fatalf("Raid gate did not withhold the return with zero attackers: %+v", o)
+		}
+	}
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0, IDs: []state.ObjID{raider}})
+	found := false
+	for _, o := range e.legalActions(0) {
+		if o.Obj == champ {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("Raid gate withheld the return despite one attacker: %+v", e.legalActions(0))
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestGateChainWiring pins the shared evaluator's wiring once: the AB offer
+// gate, the statics wrapper and conditionMet all resolve their gates through
+// effects.CheckSVarHolds's SVar-table lookup (ctx table first, then the
+// source face's), and the (holds, evaluated) verdict distinguishes a modelled
+// head that counts zero -- enforced -- from an unmodelled body -- not
+// evaluated, the fail-open contract the three call sites each document.
+func TestGateChainWiring(t *testing.T) {
+	e, _, id := gateFixture(t, 906, "Bloodsoaked Champion")
+	o := e.G.Obj(id)
+	o.Face().SVars = map[string]string{"X": "Count$xPaid"}
+	ctx := &effects.Ctx{Source: id, Controller: 0, SVars: o.Face().SVars, X: 3}
+	holds, evaluated := effects.CheckSVarHolds(e, ctx, "X", "GE3")
+	if !evaluated || !holds {
+		t.Fatalf("CheckSVarHolds(X, GE3) = (%v, %v), want (true, true)", holds, evaluated)
+	}
+	// An unmodelled body (Count$ResolvedThisTurn is not a modelled head) is
+	// NOT evaluated -- the verdict the three call sites fail open on.
+	ctx2 := &effects.Ctx{Source: id, Controller: 0, SVars: map[string]string{"Y": "Count$ResolvedThisTurn"}}
+	if _, evaluated := effects.CheckSVarHolds(e, ctx2, "Y", "EQ4"); evaluated {
+		t.Fatal("Count$ResolvedThisTurn reported evaluated -- the fail-open contract is rotting")
+	}
+	// A modelled head that counts zero is still evaluated (the distinction
+	// the whole verdict mechanism exists for).
+	ctx3 := &effects.Ctx{Source: id, Controller: 0, SVars: map[string]string{"Z": "Count$AttackersDeclared"}}
+	holds, evaluated = effects.CheckSVarHolds(e, ctx3, "Z", "EQ0")
+	if !evaluated || !holds {
+		t.Fatalf("CheckSVarHolds(AttackersDeclared EQ0) = (%v, %v), want (true, true)", holds, evaluated)
+	}
+}

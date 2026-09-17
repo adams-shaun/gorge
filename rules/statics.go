@@ -1207,10 +1207,22 @@ func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
 // machinery modAmount uses, and compared under SVarCompare$ ("<op><number>",
 // e.g. GE4 — the threshold may also be an SVar name, resolved the same way).
 // No SVarCompare$ means "nonzero" (Forge's default truthiness read).
+//
+// The grammar lives in effects.CheckSVarHolds, the ONE SVar-compare evaluator
+// this build ships: conditionMet's ConditionCheckSVar$ branch
+// (effects/conditions.go) and rules/legal.go's ability-offer gate delegate to
+// the same function. This wrapper only maps the staticView onto a Ctx — the
+// source face's SVar table, the static's controller as You.
 func (e *Engine) checkSVarHolds(sv staticView) bool {
 	raw, ok := sv.Params["CheckSVar"]
 	if !ok {
 		return true
+	}
+	if strings.TrimSpace(raw) == "" {
+		// Present-but-empty: the empty expression, EvalCount reads it 0 and
+		// the no-compare nonzero read fails it -- what the pre-delegation
+		// code did too (and no corpus static carries).
+		return false
 	}
 	o := e.G.Obj(sv.Source)
 	if o == nil || o.Face() == nil {
@@ -1218,41 +1230,17 @@ func (e *Engine) checkSVarHolds(sv staticView) bool {
 	}
 	f := o.Face()
 	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: f.SVars}
-	val := int32(0)
-	if body, ok := f.SVars[strings.TrimSpace(raw)]; ok {
-		val = effects.EvalCount(e, ctx, body)
-	} else {
-		val = effects.EvalCount(e, ctx, raw)
-	}
-	cmp := strings.TrimSpace(sv.Params["SVarCompare"])
-	if cmp == "" {
-		return val != 0
-	}
-	if len(cmp) < 3 {
+	holds, evaluated := effects.CheckSVarHolds(e, ctx, raw, sv.Params["SVarCompare"])
+	if !evaluated {
+		// The statics' shipped convention: an unreadable gate body (an
+		// unmodelled count head, an unparseable compare) degrades to zero and
+		// the static's gate fails — a continuous "as long as X" must not
+		// silently always-apply on a gate this build cannot read. The SA-level
+		// callers (conditionMet, the ability-offer gate) fail OPEN instead;
+		// each call site documents its own direction.
 		return false
 	}
-	op, rhs := cmp[:2], cmp[2:]
-	threshold := int32(0)
-	if n, err := strconv.ParseInt(rhs, 10, 64); err == nil {
-		threshold = int32(n)
-	} else if body, ok := f.SVars[rhs]; ok {
-		threshold = effects.EvalCount(e, ctx, body)
-	} else {
-		threshold = effects.EvalCount(e, ctx, rhs)
-	}
-	switch op {
-	case "EQ":
-		return val == threshold
-	case "GE":
-		return val >= threshold
-	case "GT":
-		return val > threshold
-	case "LE":
-		return val <= threshold
-	case "LT":
-		return val < threshold
-	}
-	return false
+	return holds
 }
 
 // isPresent evaluates the IsPresent$ intervening-if: an object matching the

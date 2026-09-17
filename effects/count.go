@@ -100,7 +100,23 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 // EvalCount evaluates a "Count$..." expression. The grammar in the corpus is a
 // head, an optional space-separated argument, and an optional "/Op" suffix.
 func EvalCount(h Host, c *Ctx, expr string) int32 {
-	return evalCountExpr(h, c, expr, 0)
+	n, _ := evalCountExprOK(h, c, expr, 0)
+	return n
+}
+
+// EvalCountOK is EvalCount plus a resolvability verdict: ok is false exactly
+// when the expression's head matched NOTHING the evaluator models (the
+// dispatch's fallthrough), so a caller can tell a legitimate zero (a modelled
+// head that counted zero things) from "this body was never understood". The
+// SVar-condition gates (effects.CheckSVarHolds) are the reason it exists: a
+// gate over an unmodelled count head must fail OPEN (run anyway, the
+// documented conditionMet convention) rather than enforce a meaningless zero,
+// and only the dispatch itself knows which heads are modelled -- deriving the
+// verdict here, at the dispatch, keeps it rot-proof: a head added to
+// evalCountBody's switch automatically becomes evaluated, one deleted
+// automatically stops being so.
+func EvalCountOK(h Host, c *Ctx, expr string) (int32, bool) {
+	return evalCountExprOK(h, c, expr, 0)
 }
 
 // maxCountDepth bounds the SVar recursion the Compare head introduces: a
@@ -114,11 +130,18 @@ const maxCountDepth = 8
 // evalCountExpr is EvalCount's body plus a recursion depth for the Compare
 // head's SVar-name resolution; the public entry point always starts at 0.
 func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
+	n, _ := evalCountExprOK(h, c, expr, depth)
+	return n
+}
+
+// evalCountExprOK is EvalCountOK's body plus the recursion depth; see the
+// EvalCountOK doc for the verdict's meaning.
+func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	if h == nil || c == nil {
-		return 0
+		return 0, false
 	}
 	if depth > maxCountDepth {
-		return 0
+		return 0, false
 	}
 	expr = strings.TrimSpace(expr)
 	// A <Ref>$<Property> body answers a numeric question about the objects a
@@ -131,7 +154,7 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	// (evalRemembered still owns Remembered$Amount), so every shape that was
 	// zero before stays zero.
 	if n, ok := evalRefProperty(h, c, expr); ok {
-		return n
+		return n, true
 	}
 	// A Sacrificed$... expression answers "the sacrificed object's" head (CR
 	// 608.2g last-known-information): power, toughness, mana value, or the
@@ -141,7 +164,7 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	// counters. The /Op suffix (e.g. Sacrificed$Amount/Plus.1) is applied the
 	// same way Count$ applies it.
 	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
-		return evalSacrificed(c, strings.TrimSpace(body))
+		return evalSacrificedOK(c, strings.TrimSpace(body))
 	}
 	// A Remembered$... expression answers a question about the objects this
 	// resolving spell/ability has remembered so far (Ctx.Remembered): the one
@@ -151,7 +174,7 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	// True appended every countered spell). The /Op suffix is applied the
 	// same way Count$ applies it. An unmodelled head degrades to zero.
 	if body, ok := strings.CutPrefix(expr, "Remembered$"); ok {
-		return evalRemembered(h, c, strings.TrimSpace(body))
+		return evalRememberedOK(h, c, strings.TrimSpace(body))
 	}
 	// A TriggerCount$... expression answers a question about the event that
 	// fired the trigger currently resolving -- "how much damage did that event
@@ -165,7 +188,7 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	// ScryBottom) degrades to zero, exactly as it did before TriggerCount$ was
 	// recognised at all.
 	if body, ok := strings.CutPrefix(expr, "TriggerCount$"); ok {
-		return evalTriggerCount(c, strings.TrimSpace(body))
+		return evalTriggerCountOK(c, strings.TrimSpace(body))
 	}
 	// A SVar$<name>[/Op] indirection resolves another SVar on the same face
 	// and applies the suffix (Herald of War-adjacent shapes:
@@ -179,16 +202,16 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	// applies. The /Op suffix is applied exactly as applyCountOp does.
 	if rest, ok := strings.CutPrefix(expr, "SVar$"); ok {
 		name, op, hasOp := strings.Cut(rest, "/")
-		var n int32
+		n, ok3 := int32(0), false
 		if body, ok2 := c.SVars[strings.TrimSpace(name)]; ok2 {
-			n = evalCountExpr(h, c, body, depth+1)
+			n, ok3 = evalCountExprOK(h, c, body, depth+1)
 		} else if v, ok2 := rollPublished(c, strings.TrimSpace(name)); ok2 {
-			n = v
+			n, ok3 = v, true
 		}
 		if hasOp {
 			n = applyCountOp(n, op)
 		}
-		return n
+		return n, ok3
 	}
 	// ReplaceCount$ reads the event currently being replaced. Damage
 	// replacement bodies use both the bare DamageAmount form (Vigor, Purity,
@@ -198,35 +221,43 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	if body, ok := strings.CutPrefix(expr, "ReplaceCount$"); ok {
 		field, op, hasOp := strings.Cut(strings.TrimSpace(body), "/")
 		if field != "DamageAmount" && field != "Amount" {
-			return 0
+			return 0, false
 		}
 		n := c.ReplacementAmount
 		if hasOp {
 			n = applyCountOp(n, op)
 		}
-		return n
+		return n, true
 	}
 	body, ok := strings.CutPrefix(expr, "Count$")
 	if !ok {
 		if n, err := strconv.Atoi(expr); err == nil {
-			return int32(n)
+			return int32(n), true
+		}
+		// Forge's PlayerCount SVar bodies omit the Count$ prefix
+		// (SVar:OpponentSmallest:PlayerCountOpponents$LowestLifeTotal --
+		// Vampire Lacerator's upkeep gate): run the head dispatch on the raw
+		// body before giving up. An unrecognised bare word still falls
+		// through, not evaluated.
+		if n, ok2 := evalCountBody(h, c, strings.TrimSpace(expr), depth); ok2 {
+			return n, true
 		}
 		// A bare SVar-name body (Spark Fiend's StoreSVar Expression$ Result)
 		// resolves a DB$ RollDice publication of this same resolution -- the
 		// same name the SVar$ indirection resolves above, in the one shape a
-		// corpus body carries a bare runtime name. Anything else still
-		// degrades to zero.
+		// corpus body carries a bare runtime name. Anything else is
+		// unrecognised: zero, and NOT evaluated.
 		if v, ok := rollPublished(c, strings.TrimSpace(expr)); ok {
-			return v
+			return v, true
 		}
-		return 0
+		return 0, false
 	}
 	body, op, hasOp := strings.Cut(body, "/")
-	n := evalCountBody(h, c, strings.TrimSpace(body), depth)
+	n, ok2 := evalCountBody(h, c, strings.TrimSpace(body), depth)
 	if hasOp {
 		n = applyCountOp(n, op)
 	}
-	return n
+	return n, ok2
 }
 
 // evalTriggerCount resolves a "TriggerCount$<Head>[/Op]" body against the
@@ -239,7 +270,7 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 // registered, so a LifeAmount head is unreachable today). The /Op suffix is
 // applied exactly as applyCountOp does for Count$ and Sacrificed$. An
 // unmodelled head (Result, ScryNum, ScryBottom) degrades to zero.
-func evalTriggerCount(c *Ctx, body string) int32 {
+func evalTriggerCountOK(c *Ctx, body string) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	var n int32
 	switch strings.TrimSpace(body) {
@@ -249,13 +280,13 @@ func evalTriggerCount(c *Ctx, body string) int32 {
 		// Result (die-roll/dice), ScryNum and ScryBottom (scry events) are
 		// heads whose triggering events this build does not raise, so they
 		// stay zero -- the same conservative no-op as before the prefix was
-		// recognised.
-		return 0
+		// recognised. NOT evaluated: a gate over one of these fails open.
+		return 0, false
 	}
 	if hasOp {
 		n = applyCountOp(n, op)
 	}
-	return n
+	return n, true
 }
 
 // evalSacrificed resolves a "Sacrificed$<Property>[/Op]" body against the
@@ -271,7 +302,7 @@ func evalTriggerCount(c *Ctx, body string) int32 {
 // "the card did nothing" totality convention of every other head here. The
 // /Op suffix (Plus/Minus/Times./Twice/HalfDown/HalfUp/Negative) is applied
 // after the base value, exactly as applyCountOp does for Count$.
-func evalSacrificed(c *Ctx, body string) int32 {
+func evalSacrificedOK(c *Ctx, body string) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	var n int32
 	switch strings.TrimSpace(body) {
@@ -286,13 +317,14 @@ func evalSacrificed(c *Ctx, body string) int32 {
 	default:
 		// An out-of-scope head (Valid, CardTypes, ChromaSource, CardNumColors,
 		// CardCounters) degrades to zero, exactly as before the fix -- the
-		// conservative same-as-before no-op the brief scopes out.
-		return 0
+		// conservative same-as-before no-op the brief scopes out. NOT
+		// evaluated: a gate over one of these fails open.
+		return 0, false
 	}
 	if hasOp {
 		n = applyCountOp(n, op)
 	}
-	return n
+	return n, true
 }
 
 // sacrificedNumeric folds a numeric property across every object this
@@ -306,7 +338,7 @@ func sacrificedNumeric(c *Ctx, f func(state.SacrificedInfo) int32) int32 {
 	return n
 }
 
-func evalRemembered(h Host, c *Ctx, body string) int32 {
+func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	switch strings.TrimSpace(body) {
 	case "Amount":
@@ -314,20 +346,21 @@ func evalRemembered(h Host, c *Ctx, body string) int32 {
 		if hasOp {
 			n = applyCountOp(n, op)
 		}
-		return n
+		return n, true
 	}
 	// A Remembered$CardPower / CardToughness / CardManaCost / CardCounters.
 	// / Valid body is the shared <Ref>$<Property> family (evalRefProperty);
 	// evalCountExpr routes it here first only because the Remembered$
 	// prefix cut wins. An unmodelled property still degrades to zero, the
-	// same conservative no-op evalSacrificed's default takes.
+	// same conservative no-op evalSacrificed's default takes, and the
+	// property verdict rides through: an unmodelled one is NOT evaluated.
 	if n, ok := evalRefProperty(h, c, "Remembered$"+body); ok {
 		if hasOp {
 			n = applyCountOp(n, op)
 		}
-		return n
+		return n, true
 	}
-	return 0
+	return 0, false
 }
 
 // evalRefProperty resolves one "<Ref>$<Property>[...][/Op]" count body over
@@ -445,31 +478,34 @@ func refToughness(h Host, o *state.Object, snapshot bool) int32 {
 	return int32(o.Face().Toughness()) + o.Counter("P1P1") - o.Counter("M1M1")
 }
 
-func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
+// evalCountBody is the Count$ head dispatch; ok is false only at the
+// fallthrough (the head matched nothing), never inside a modelled branch -- a
+// modelled head that legitimately counts zero still counts as evaluated.
+func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	g := h.Game()
 	head, arg, _ := strings.Cut(body, " ")
 	arg = strings.TrimSpace(arg)
 
 	switch head {
 	case "Compare":
-		return evalCompare(h, c, arg, depth)
+		return evalCompare(h, c, arg, depth), true
 	case "xPaid":
-		return c.X
+		return c.X, true
 	case "YourLifeTotal":
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
-			return 0
+			return 0, true
 		}
-		return g.Players[c.Controller].Life
+		return g.Players[c.Controller].Life, true
 	case "PlayerCountPlayers":
-		return int32(g.AliveCount())
+		return int32(g.AliveCount()), true
 	case "PlayerCountOpponents":
-		return int32(g.AliveCount() - 1)
+		return int32(g.AliveCount() - 1), true
 	case "ThisTurnCast":
 		// Task 17 (Storm): spells cast this turn by anyone, read off the
 		// log via h.CastThisTurn() so a replay derives the same count. The
 		// classic idiom is Count$ThisTurnCast/Minus1 (storm copies the spell
 		// once per spell cast before it, i.e. everyone's casts minus itself).
-		return int32(h.CastThisTurn())
+		return int32(h.CastThisTurn()), true
 	case "RememberedSize":
 		// Forge's RememberedSize is the HOST CARD's remembered list -- the
 		// persistent list riders (RememberDiscarded$/RememberCountered$/
@@ -480,15 +516,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		// Forge's host list (the same exclusion iterationBase applies). A
 		// resolution with no source object falls back to the ctx list.
 		if o := g.Obj(c.Source); o != nil {
-			return int32(len(o.Remembered))
+			return int32(len(o.Remembered)), true
 		}
-		return int32(len(c.Remembered))
+		return int32(len(c.Remembered)), true
 	case "LifeOppsLostThisTurn":
 		// The total life the controller's OPPONENTS have lost this turn
 		// (Rakdos, Lord of Riots). Each opponent's loss comes from the Host's
 		// log-derived LifeLostThisTurn, so the count is replay-derivable.
 		if c.Controller < 0 {
-			return 0
+			return 0, true
 		}
 		var n int32
 		for _, p := range g.AliveFrom(0) {
@@ -496,17 +532,52 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 				n += h.LifeLostThisTurn(p)
 			}
 		}
-		return n
+		return n, true
 	case "CardPower":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-			return refPower(h, o, false)
+			return refPower(h, o, false), true
 		}
-		return 0
+		return 0, true
 	case "CardToughness":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-			return refToughness(h, o, false)
+			return refToughness(h, o, false), true
 		}
-		return 0
+		return 0, true
+	case "AttackersDeclared":
+		// Count$AttackersDeclared: the attackers declared THIS turn — the Raid
+		// family's "attacked this turn" read (Bloodsoaked Champion's
+		// CheckSVar$ RaidTest activation gate plus 10 ConditionCheckSVar$
+		// bodies). Folded from the event log through the Host (rules'
+		// Engine.AttackersThisTurn) so a replay derives the identical number,
+		// the same discipline CastThisTurn takes.
+		return int32(h.AttackersThisTurn()), true
+	}
+
+	// PlayerCount<Players|Opponents>$<Property> — the life-total extremes
+	// (Vampire Lacerator's ConditionCheckSVar$ OpponentSmallest:
+	// PlayerCountOpponents$LowestLifeTotal, GE11 — "you lose 1 life unless an
+	// opponent has 10 or less life"). "Players" spans every living player,
+	// "Opponents" every living player but the resolving controller, the same
+	// groups the bare PlayerCountPlayers/PlayerCountOpponents heads count. A
+	// property other than the two life extremes degrades to zero, the
+	// unmodelled-head convention every other head here takes.
+	if rest, ok := strings.CutPrefix(head, "PlayerCountPlayers$"); ok {
+		if n, ok2 := lifeExtreme(g, g.AliveFrom(0), rest); ok2 {
+			return n, true
+		}
+		return 0, true
+	}
+	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
+		var opps []state.PlayerID
+		for _, p := range g.AliveFrom(0) {
+			if p != c.Controller {
+				opps = append(opps, p)
+			}
+		}
+		if n, ok2 := lifeExtreme(g, opps, rest); ok2 {
+			return n, true
+		}
+		return 0, true
 	}
 
 	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
@@ -514,7 +585,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 	// cast" family): the caster scope is the controller when the spec carries
 	// a You* qualifier, everyone otherwise.
 	if rest, ok := strings.CutPrefix(head, "ThisTurnCast_"); ok {
-		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest))
+		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest)), true
 	}
 
 	// StartingPlayer.<yes>.<no> is Forge's two-branch opening designation
@@ -526,25 +597,25 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 	if branches, ok := strings.CutPrefix(head, "StartingPlayer."); ok {
 		yes, no := splitDot(branches)
 		if g.IsStartingPlayer(c.Controller) {
-			return yes
+			return yes, true
 		}
-		return no
+		return no, true
 	}
 
 	// CardCounters.<KIND> counts a counter kind on the source.
 	if kind, ok := strings.CutPrefix(head, "CardCounters."); ok {
 		if o := g.Obj(c.Source); o != nil {
-			return o.Counter(kind)
+			return o.Counter(kind), true
 		}
-		return 0
+		return 0, true
 	}
 	// Kicked.<yes>.<no> is <yes> when the source was kicked, else <no>.
 	if rest, ok := strings.CutPrefix(head, "Kicked."); ok {
 		yes, no := splitDot(rest)
 		if o := g.Obj(c.Source); o != nil && o.CastFlags&state.FlagKicked != 0 {
-			return yes
+			return yes, true
 		}
-		return no
+		return no, true
 	}
 	// UrzaLands.<assembled>.<not assembled> is <assembled> when the controller
 	// controls at least one of each Urza land subtype on the battlefield
@@ -555,9 +626,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 	if rest, ok := strings.CutPrefix(head, "UrzaLands."); ok {
 		assembled, notAssembled := splitDot(rest)
 		if controlsAllUrzaLands(g, c.Controller) {
-			return assembled
+			return assembled, true
 		}
-		return notAssembled
+		return notAssembled, true
 	}
 
 	// Count$ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid> counts the cards
@@ -575,6 +646,42 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		return evalThisTurnEntered(g, c, rest[1:])
 	}
 
+	// Count$<Predicate>.<yes>.<no> — Forge's yes/no branch heads: the value
+	// is the first number when the predicate holds, the second when it does
+	// not (Count$Morbid.1.0 ×33 and Count$Monarch.1.0 ×10 are the corpus's
+	// dominant spellings; the exotic predicates — Delirium, Blessing, Void,
+	// Adamant_<n>.<colour> — stay unmodelled and degrade to zero). Morbid is
+	// CR 702.53's "a creature died this turn": a creature entered a graveyard
+	// FROM THE BATTLEFIELD this turn, folded off the same state.Entered list
+	// ThisTurnEntered_ reads (a battlefield→graveyard MoveZone is exactly a
+	// death, sacrifice included), so a replay derives the identical answer.
+	// Monarch is the resolving controller's current designation (the same
+	// state g.IsMonarch answers for a CheckDefinedPlayer$ .isMonarch spec).
+	if dot := strings.IndexByte(head, '.'); dot > 0 {
+		switch head[:dot] {
+		case "Morbid", "Monarch":
+			y, n := splitDot(head[dot+1:])
+			holds := false
+			if head[:dot] == "Monarch" {
+				holds = g.IsMonarch(c.Controller)
+			} else {
+				for _, en := range g.Entered {
+					if en.To != state.ZGraveyard || en.From != state.ZBattlefield {
+						continue
+					}
+					if o := g.Obj(en.Obj); o != nil && hasType(o, "Creature") {
+						holds = true
+						break
+					}
+				}
+			}
+			if holds {
+				return y, true
+			}
+			return n, true
+		}
+	}
+
 	// Valid / ValidZone forms count objects in a zone matching a filter.
 	// A "$<Property>" suffix (Count$Valid Creature.YouCtrl$CardPower —
 	// Ghalta, Primal Hunger) aggregates the named numeric property over the
@@ -585,6 +692,13 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 	// never influenced), never a hard error.
 	if zone, ok := countZone(head); ok {
 		spec, prop, hasProp := strings.Cut(arg, "$")
+		// A spec the predicate matcher cannot read (UnknownPredicates) must not
+		// enforce as a silent zero: an unknown predicate never matches, so a
+		// "has at least one" gate would read false forever. Unreadable —
+		// fail open, the same verdict the conditionMet group shapes take.
+		if len(UnknownPredicates(spec)) > 0 || (hasProp && !modeledProperty(prop)) {
+			return 0, false
+		}
 		var n int32
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(zone, p) {
@@ -597,9 +711,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 				}
 			}
 		}
-		return n
+		return n, true
 	}
-	return 0
+	return 0, false
 }
 
 // evalThisTurnEntered parses a ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid>
@@ -607,24 +721,24 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 // parts[0] here is <Dest>; at most five underscore parts, and a <Valid> tail
 // of more than one token is rejoined). An unknown destination zone or an
 // empty valid fails closed to zero rather than counting everything.
-func evalThisTurnEntered(g *state.Game, c *Ctx, rest string) int32 {
+func evalThisTurnEntered(g *state.Game, c *Ctx, rest string) (int32, bool) {
 	parts := strings.Split(strings.TrimSpace(rest), "_")
 	if len(parts) < 2 || len(parts) > 5 {
-		return 0
+		return 0, false
 	}
 	dest, ok := zoneWords[parts[0]]
 	if !ok {
-		return 0
+		return 0, false
 	}
 	hasFrom := len(parts) >= 3 && parts[1] == "from"
 	valid := ""
 	if hasFrom {
 		if len(parts) < 4 {
-			return 0
+			return 0, false
 		}
 		origin, known := zoneWords[parts[2]]
 		if !known {
-			return 0
+			return 0, false
 		}
 		valid = strings.Join(parts[3:], "_")
 		return countEntered(g, c, dest, &origin, valid)
@@ -636,9 +750,9 @@ func evalThisTurnEntered(g *state.Game, c *Ctx, rest string) int32 {
 // countEntered folds the per-add entry list over one destination zone (and
 // optionally one origin zone), counting the entries whose object matches
 // valid from the resolving controller's perspective.
-func countEntered(g *state.Game, c *Ctx, dest state.Zone, origin *state.Zone, valid string) int32 {
+func countEntered(g *state.Game, c *Ctx, dest state.Zone, origin *state.Zone, valid string) (int32, bool) {
 	if valid == "" {
-		return 0
+		return 0, false
 	}
 	var n int32
 	for _, e := range g.Entered {
@@ -652,7 +766,7 @@ func countEntered(g *state.Game, c *Ctx, dest state.Zone, origin *state.Zone, va
 			n++
 		}
 	}
-	return n
+	return n, true
 }
 
 // objectProperty reads one Count$Valid-spec "$Property" aggregate term over
@@ -673,6 +787,44 @@ func objectProperty(g *state.Game, id state.ObjID, prop string) int32 {
 		return o.Face().ManaValue()
 	}
 	return 0
+}
+
+// modeledProperty reports whether a Count$Valid-spec "$Property" aggregate
+// term is one objectProperty can evaluate; an unknown property read 0 — the
+// same conservative no-op every unmodelled head here takes — and a gate over
+// one must fail open rather than enforce that zero.
+func modeledProperty(prop string) bool {
+	switch strings.TrimSpace(prop) {
+	case "CardPower", "CardToughness", "CardManaCost":
+		return true
+	}
+	return false
+}
+
+// lifeExtreme answers PlayerCount...$LowestLifeTotal / $HighestLifeTotal:
+// the lowest/highest CURRENT life total among the given players. An empty
+// group has no extreme and answers (0, false) — the caller degrades to zero,
+// the unmodelled-head convention.
+func lifeExtreme(g *state.Game, players []state.PlayerID, prop string) (int32, bool) {
+	prop = strings.TrimSpace(prop)
+	if prop != "LowestLifeTotal" && prop != "HighestLifeTotal" {
+		return 0, false
+	}
+	best := int32(0)
+	seen := false
+	for _, p := range players {
+		if int(p) < 0 || int(p) >= len(g.Players) {
+			continue
+		}
+		life := g.Players[p].Life
+		if !seen || (prop == "LowestLifeTotal" && life < best) || (prop == "HighestLifeTotal" && life > best) {
+			best, seen = life, true
+		}
+	}
+	if !seen {
+		return 0, false
+	}
+	return best, true
 }
 
 // evalCompare resolves a "Compare <Name> <OP><threshold>.<ifTrue>.<ifFalse>"

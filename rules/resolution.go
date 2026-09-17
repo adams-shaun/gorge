@@ -393,21 +393,26 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// fx44: this suspended frame is a ReplaceWith$ body, so restore the
 		// replacement context applyReplacements seeded for it. Ctx.Replaced is
 		// the object the replaced event was about (ev.Obj, threaded via
-		// rp.replaced) and Ctx.Remembered is the single-element list seeded
-		// from that same object, so a Defined$ ReplacedCard resolution and an
-		// SVar:X Remembered$Amount gate find their subject after the
-		// suspension. Without these the completed move (Mox Diamond's
-		// MoveToBattlefield) targets nothing and the object never leaves the
-		// stack. The replacement arm has no other X to restore, so
+		// rp.replaced), so a Defined$ ReplacedCard resolution still finds its
+		// subject after the suspension. Without it the completed move (Mox
+		// Diamond's MoveToBattlefield) targets nothing and the object never
+		// leaves the stack. Ctx.Remembered is NOT re-seeded with the replaced
+		// object: Remembered$Amount inside a replacement body counts the
+		// body's own rider-remembered cards (Mox's discarded land, Scorched
+		// Ruins' sacrificed two), never the replaced card itself — the same
+		// empty-start rule replCtx (rules/replacement.go) documents. The
+		// body's own Remembered from before the ask rides rp.remembered. The replacement arm has no other X to restore, so
 		// triggerPaidX's fallback below is skipped for it.
 		ctx.Replaced = rp.replaced
 		ctx.ReplacementTarget = rp.replacementTarget
 		ctx.ReplacementSource = rp.replacementSource
 		ctx.ReplacementAmount = rp.replacementAmount
-		ctx.Remembered = []state.Target{rp.replacementTarget}
-		if rp.replacementTarget.Obj == 0 && !rp.replacementTarget.IsPlayer {
-			ctx.Remembered = []state.Target{{Obj: rp.replaced}}
-		}
+		// Remembered is NOT seeded with the replaced/damaged object: no corpus
+		// replacement body (Damage ones included — measured, zero use
+		// Remembered in a Damage body) reads it, and seeding it made every
+		// Remembered$Amount gate or count inside a replacement one too high
+		// (Mox Diamond's EQ0/EQ1 discard split broke). The body's own
+		// rider-remembered cards ride rp.remembered below.
 	} else if ctx.X == 0 {
 		ctx.X = e.triggerPaidX(rp.obj, o)
 	}
@@ -465,8 +470,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// MoveToBattlefield) targets nothing and the object never leaves the
 		// stack.
 		ctx.Replaced = rp.replaced
-		ctx.Remembered = []state.Target{{Obj: rp.replaced}}
-		ctx.Captured = ctx.Remembered
+		ctx.Captured = []state.Target{{Obj: rp.replaced}}
 		if rp.remembered != nil {
 			ctx.Remembered = append([]state.Target(nil), rp.remembered...)
 		}
