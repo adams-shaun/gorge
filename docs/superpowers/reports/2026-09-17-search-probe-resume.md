@@ -1,33 +1,38 @@
-# Resume prompt: reduce remaining history-conditioned prefix rejection
+# Resume prompt: diagnose land-mixture ESS loss and remaining rejection
 
 Paste the following into a fresh session with `/tmp/gorge` as the workspace.
 
-Implementation checkpoint: `ed50325` (`feat: condition search proposals on
-observed history`). This resume document is committed immediately after that
-checkpoint. Both commits were requested for the existing remote branch. Verify
-the remote tip before assuming publication; never force-push to repair a
-mismatch.
+Implementation checkpoint: `60a47bcfa9f27698ba6bf4fcf2ddf263875d8d0c`
+(`feat: add land-isolation search proposal`). This resume document is committed
+immediately after that checkpoint. Both commits were requested for the existing
+remote branch. Verify the remote tip before assuming publication; never
+force-push to repair a mismatch.
 
 ---
 
-Continue the runnable search-probe work on gorge. The exact
-history-conditioned proposal mechanism is complete. The next problem is the
-remaining full-prefix rejection tail, not another rewrite of the sampler, a
-perfect-information shortcut, a trainer, or production MCTS.
+Continue the runnable search-probe work on gorge. The exact land-isolation
+mixture is implemented and verified, but its fixed calibration is a mixed,
+non-promotable result: it reduces the targeted rejection and raises raw
+acceptance while lowering the four-world/ESS coverage gate. Start from that
+evidence. Do not describe the change as a coverage win, force recorded opponent
+choices, or jump to production search/training.
 
 ## Establish the checkpoint
 
 Read `AGENTS.md`, applicable skills, and these documents:
 
-1. `docs/superpowers/reports/2026-09-17-search-probe-running.md` — final
-   measured calibration and reproduction commands.
-2. `docs/superpowers/specs/2026-09-17-search-proposal-coverage-design.md` —
-   information boundary, proposal distribution, and shuffle-planner design.
-3. `docs/superpowers/plans/2026-09-17-search-proposal-coverage.md` — completed
-   implementation plan.
-4. `docs/superpowers/specs/2026-09-17-search-world-sampler-design.md` and
+1. `docs/superpowers/reports/2026-09-17-search-probe-running.md` — both fixed
+   calibrations, exact commands, costs, and the land-isolation comparison.
+2. `docs/superpowers/specs/2026-09-17-search-land-isolation-proposal-design.md`
+   — approved observable inputs, exact mixture, and fallback behavior.
+3. `docs/superpowers/plans/2026-09-17-search-land-isolation-proposal.md` —
+   completed test-first implementation plan.
+4. `docs/superpowers/specs/2026-09-17-search-proposal-coverage-design.md` and
+   `docs/superpowers/plans/2026-09-17-search-proposal-coverage.md` — underlying
+   history-conditioned proposal and shuffle-planner contract.
+5. `docs/superpowers/specs/2026-09-17-search-world-sampler-design.md` and
    `docs/superpowers/plans/2026-09-17-search-world-sampler.md` — original
-   sampler contract and completed prior plan.
+   sampler boundary and completed plan.
 
 Inspect git status, branch, HEAD, upstream, and remote before changing
 anything. Expected branch and upstream are
@@ -36,37 +41,41 @@ anything. Expected branch and upstream are
 `git@github.com:adams-shaun/gorge.git`. Do not assume temporary calibration
 artifacts still exist.
 
-The user authorized committing and pushing this checkpoint. That is not
-standing authorization to merge, rebase, force-push, create/edit a PR, deploy,
-run race tests, regenerate goldens, or publish later work. Preserve unrelated
-user changes.
+The user authorized committing and pushing this checkpoint and this resume
+handoff. That is not standing authorization to merge, rebase, force-push,
+create/edit a PR, deploy, run race tests, regenerate goldens, or publish later
+work. Preserve unrelated user changes.
 
 ## What is now implemented
 
-- Deterministic rejection histograms keyed by frame, component, and normalized
-  public shape. No card names or hypothetical hidden IDs enter diagnostics.
-- Exact constrained physical-card permutation counting and uniform unranking
-  with `math/big`, including duplicate names, exact objects, fixed positions,
-  cumulative deadlines, contradictions, and exact `|C| / n!` log weights.
-- Compilation of allowed observer history into per-player shuffle epochs:
-  actor draws, public opponent hand exits, later shuffles, exact known-object
-  redraws, and actor-visible `KArrange` windows. Supported actor arrange answers
-  preserve original-shuffle positions across the matching `LibraryOrder`;
-  unsupported or private ordering changes fall back to prior sampling.
-- An opt-in hypothetical `ShufflePlanner` used by genesis, mulligan, search,
-  and Shuffle effects. Planned permutations are validated, translated into the
-  canonical Fisher-Yates draws, advance PCG state, and are stored in the normal
-  replayable chance transcript. Planner state is absent from clones and is
-  cleared at accepted roots.
-- Multi-epoch proposal integration with separate deterministic streams for
-  engine randomness, proposal selection, opponent policies, and weighted
-  resampling. Later-shuffle opponent hand contents satisfy public name
-  requirements before any library deficit is imposed.
-- Attempt-local incompatible completions, typed public-contradiction baseline
-  fallback, full-prefix validation, ESS gating, independent duplicate worlds,
-  and Config + chance-transcript + intent replay all remain enforced.
-- Ordinary shuffle event bytes, chain heads, RNG counts, and clone behavior are
-  covered across genesis, mulligan, search, and Shuffle effects.
+- The exact physical-permutation solver supports cumulative upper deadlines,
+  including validation, exact counting, uniform unranking, membership tests,
+  fixed objects, duplicate names, and lower/upper intersections.
+- Upper bounds prune impossible prefixes before their deadline, and the chosen
+  component reuses its populated exact counter. This green refactor preserved
+  every non-timing calibration result while reducing the first implementation's
+  327.833 seconds / 370,156,069,016 allocated bytes to 125.395 seconds /
+  101,631,260,040 bytes.
+- Epoch compilation recognizes only unambiguous public opponent
+  Hand-to-Battlefield moves paired with `LandPlayed`. It records the draw
+  deadline, observed name, and a sorted snapshot of prior named hand exits.
+  Actor plays, ambiguous moves, post-shuffle hand entries, unnamed exits, and
+  lost library reliability remain unsupported and are counted without erasing
+  earlier supported facts.
+- Public front-face land names are classified from `PublicGame.Decks`. For a
+  supported observed land `y` at deadline `d`, every differently named public
+  land `x` receives `drawn(x,d) <= priorExit(x,d) - hand0(x)`.
+- With base set `C` and nonempty isolated subset `L`, the proposal chooses each
+  component with probability one half and uses the exact density
+  `q(x)=1/(2|C|)+I[x in L]/(2|L|)`. Empty or ineligible `L` samples `C` exactly
+  as before and consumes no component-selection draw.
+- The proposal never forces an opponent action. Reconstruction still calls
+  `botpolicy.Decide`, validates the complete observed prefix, clears the
+  planner at accepted roots, and replays from Config + complete chance
+  transcript + intents. Duplicate worlds remain independently mutable.
+- `SampleResult` now reports `LandIsolationEligible`,
+  `LandIsolationSelected`, `LandIsolationEmpty`, and
+  `LandIsolationUnsupported` without exposing card names or object IDs.
 
 Final verification on the implementation tree passed:
 
@@ -86,87 +95,103 @@ cast/ability/pass root, sampler seed 54321, 64 proposal attempts/root, four
 worlds, ESS gate >=4, 5,000 submits, five workers, `GOMAXPROCS=5`, and
 `GOMEMLIMIT=5GiB`.
 
-- 500/500 roots retained; zero experiment errors, invariant failures, budget
-  exhaustions, or nonterminal outcomes.
-- 2,473/32,000 proposals accepted; 29,421 prefix rejected; 106 incompatible.
-- 138/500 roots covered (27.6%); 362 explicit baseline fallbacks.
-- Death-n-taxes actor: 31/250 covered. Dimir actor: 107/250 covered.
-- Later-epoch roots: 41/258 covered, up from 6/258.
-- 500 baseline and 2,000 paired terminal outcome replays matched; selected
-  one-/four-world replay entries were 138/552.
-- Total elapsed 114.186 s; allocations after corpus load 83,695,350,608 bytes.
-- A one-worker 125-root run matched every corresponding five-worker per-game
-  field after removing only `SampleNS` and `SearchNS`.
-
-This improves the fixed checkpoint from 164 accepted proposals and 17/500
-covered roots to 2,473 and 138/500. It is coverage/correctness evidence only,
-not evidence of action quality, search strength, or promotion readiness.
+- 500/500 roots retained; zero errors or budget exhaustions.
+- 3,155/32,000 proposals accepted; 28,715 prefix rejected; 130 incompatible.
+- 131/500 roots covered (26.2%); 369 explicit baseline fallbacks.
+- Death-n-taxes actor: 39/250 covered. Dimir actor: 92/250 covered.
+- Later-epoch roots: 35/258 covered.
+- Land isolation: 31,335 eligible attempt-shuffles, 15,744 isolation-component
+  selections, 17 empty-isolation fallbacks, and 119 unsupported public shapes.
+- 500 baseline, 131 one-world, 524 four-world, and 2,000 terminal outcome
+  replays matched.
+- Total elapsed 125.395 seconds; allocations after corpus load
+  101,631,260,040 bytes.
+- The one-worker 125-root run covered 26 roots and matched every corresponding
+  five-worker per-game field after removing only `SampleNS` and `SearchNS`.
 
 Final artifacts:
+
+```text
+/tmp/gorge-searchprobe-land-isolation-opt-500-20260917.json
+/tmp/gorge-searchprobe-land-isolation-opt-125-20260917.json
+```
+
+The prior fixed checkpoint remains:
 
 ```text
 /tmp/gorge-searchprobe-finalwave-500-20260917.json
 /tmp/gorge-searchprobe-finalwave-125-20260917.json
 ```
 
-If absent, reproduce them using the exact commands in
+If absent, reproduce artifacts using the exact commands in
 `docs/superpowers/reports/2026-09-17-search-probe-running.md`; output creation
 is exclusive, so choose new paths.
 
+## Measured comparison
+
+Compared with the prior history-conditioned proposal:
+
+- accepted proposals rose 2,473 -> 3,155 (+682);
+- `identities/hand_to_battlefield` fell 11,048 -> 6,668 (-4,380, 39.6%);
+- total prefix rejection fell 29,421 -> 28,715 (-706);
+- usable roots fell 138 -> 131 (-7);
+- Death-n-taxes actor coverage rose 31 -> 39, while Dimir fell 107 -> 92;
+- later-epoch coverage fell 41 -> 35;
+- `identities/hand_to_stack` rose 10,625 -> 13,034 and is now the largest
+  rejection bucket;
+- total elapsed rose 114.186 -> 125.395 seconds, and allocations rose
+  83,695,350,608 -> 101,631,260,040 bytes.
+
+The exact nonuniform mixture weights reduce ESS enough to lose usable roots
+despite more accepted attempts. Raw acceptance is therefore not the objective
+for the next change.
+
 ## Next bounded work
 
-Start with diagnosis, not an implementation assumption. The 29,421 remaining
-prefix rejections comprise 26,967 identity and 2,454 event mismatches. Leading
-shapes are:
+Start with diagnosis, not another proposal assumption.
 
-- `identities/hand_to_battlefield`: 11,048
-- `identities/hand_to_stack`: 10,625
-- `identities/other`: 3,686
-- `events/priority_to_stack_resolve`: 1,679
-- `identities/hand_to_exile`: 1,583
+1. Compare the 369 fallback roots against the prior artifact and identify the
+   exact roots gained and lost. Separate failures due to fewer than four
+   accepted proposals from failures due only to ESS below four.
+2. Measure accepted-world log-weight distributions, component membership, and
+   effective sample contributions for those lost roots using deterministic,
+   aggregate diagnostics derived only from owned `Frame` data and proposal
+   state. Do not add names or hypothetical object IDs to serialized output.
+3. Inspect representative `hand_to_stack` failures for both actors and later
+   epochs. Determine whether the now-leading bucket is policy competition,
+   observer-reference novelty, missing public constraints, or unavoidable
+   information-consistent uncertainty.
+4. Before changing proposal probabilities or adding spell isolation, write a
+   narrow design with observable inputs, exact target/proposal density,
+   duplicate-copy treatment, ESS implications, and empty/ineligible fallback.
+   Preserve positive support. Do not tune on the 500-root checkpoint without a
+   separately justified evaluation protocol.
 
-Determine why hand-exit mismatches remain after the required card names are
-available by their public deadlines. Separate at least these hypotheses:
-
-1. the frozen opponent policy chooses a different legal play because the rest
-   of its sampled hand or board differs;
-2. observer-reference novelty for interchangeable same-name physical copies
-   causes avoidable rejection;
-3. a supported public constraint is missing or is assigned to the wrong epoch;
-4. the divergence is an unavoidable consequence of information-consistent
-   prior uncertainty and should remain rejection.
-
-Use bounded, deterministic diagnostics derived only from `Frame` values.
-Inspect representative failures for both actors and later epochs. Before any
-new proposal mechanism, write a narrow design that defines its observable
-inputs, exact target/proposal probability, duplicate-copy treatment, and
-fallback behavior. Do not force recorded opponent choices: they remain outputs
-of the frozen policy in each hypothetical information set unless a separately
-approved, correctly weighted history-likelihood model replaces that contract.
-
-Repeat the fixed 500-root calibration and one-worker deterministic prefix only
-after a test-first correctness change. Preserve all roots and compare against
-2,473/32,000 accepted, 138/500 covered, actor coverage 31/250 and 107/250, and
-41/258 later-epoch coverage. Do not make strength claims.
+Do not assume the fixed 50/50 land mixture should be promoted unchanged. It is
+a correct experiment with a negative coverage result; retain, revise, or revert
+it only on explicit measured reasoning.
 
 ## Non-negotiable boundaries
 
 - Never give sampling the actual engine, original seed, hidden zones/hash,
   opponent-private intent indices, or callbacks into the source game.
-- All state mutation goes through `events.Apply`; do not create artificial
-  present-day zone moves to manufacture a compatible history.
+- Never force a recorded opponent choice. Every opponent action remains the
+  output of `botpolicy.Decide` in the hypothetical information set.
+- All state mutation goes through `events.Apply`; do not manufacture compatible
+  history with artificial zone moves.
 - Exact proposal likelihoods are mandatory. Unknown shapes use the prior;
   impossible hypothetical completions reject only that attempt; public
   contradictions retain explicit baseline fallback.
 - Every selected world must replay without a planner from Config, the complete
   checked chance transcript, and intents. Duplicate selections must own
   independent mutable engines and observer maps.
-- No new core/card dependencies or cgo; never track Forge/token script text.
-- Preserve event ordinals/bytes/heads, ordinary RNG behavior, clone
-  independence, fixed work counts, and baseline fallback accounting.
+- Preserve fixed attempt counts, ESS gating, all-root accounting, ordinary
+  event bytes/ordinals/heads, RNG behavior, clone independence, and baseline
+  fallback.
+- No new core/card dependencies or cgo; never track Forge card/token scripts.
 - No merge, rebase, force-push, PR changes, deploy, race runs, golden changes,
   or further commit/push without fresh authorization.
 
-Start with a concise verified status and the single highest-value residual
-rejection mechanism. Do not reopen the completed exact-proposal design unless
-new evidence demonstrates a correctness defect.
+Start with a concise verified status and the single highest-value cause of the
+ESS-driven root losses. Do not reopen the completed exact-counting machinery
+unless new evidence demonstrates a correctness defect.
