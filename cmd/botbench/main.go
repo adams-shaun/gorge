@@ -69,6 +69,28 @@
 // game (pprof reads both alloc_space and inuse_space from that file). A
 // profiled run's report is byte-identical to an unprofiled one.
 //
+// -action-coverage: the completeness counterpart of -decision-stats --
+// which decision kinds and option rows were never asked, which offered
+// option shapes were never chosen, which cast shapes (kicked/surged/
+// flashback/miracle/{X}/plain), cards, ability slots and registered card
+// primitives were never exercised at runtime. It is derived from the same
+// Decision/Intent observations plus each finished game's event log (a
+// complete description of the match), so it changes no engine behaviour;
+// the report appends after the run and is deterministic. See
+// actioncoverage.go for the honest signal classes (execution / presence /
+// none).
+//
+// -grind: the throughput/profiling mode -- one repo deck pinned to one
+// goroutine playing itself until a wall-clock (-grind-seconds) or iteration
+// (-grind-iters) budget runs out; "all" grinds every deck in the format's
+// pool, one goroutine each. Deliberately NOT the -pairs worker-pool shape:
+// pool scheduling mixes every deck's work into one profile, while a pinned
+// goroutine per deck gives each deck its own measurement window (same
+// wall-clock budget, not the same iteration count -- a fixed iteration cap
+// gives a slow deck proportionally more profile samples). Every game's
+// outcome is still seed-pure; only the iteration count and iters/sec column
+// read the clock. See grind.go.
+//
 // The report is a per-pair table (pair, A/B wins, A win rate with its 95%
 // CI, the seat split with its CI, mean turns) plus a pooled line over all
 // pairs with its own CI and the count of pairs whose A-win interval
@@ -155,6 +177,12 @@ func gameSeed(base uint64, game int) uint64 { return base + uint64(game) }
 // byte-identical to a pre-flag build. main sets it once; it is read-only
 // thereafter.
 var decisionStatsEnabled bool
+
+// actionCoverageEnabled is switched on by the -action-coverage flag when
+// main starts a run, the same package-scope pattern as decisionStatsEnabled:
+// when disabled no collector is created, nothing is recorded and nothing is
+// appended, so the normal report is byte-identical to a pre-flag build.
+var actionCoverageEnabled bool
 
 // aPlaysSeat reports whether policy A (the -a side) holds seat s in game i.
 // A holds a seat when (game+seat) is even: with two seats the assignment
@@ -269,10 +297,26 @@ func recordStarter(o gameOutcome, e *rules.Engine) gameOutcome {
 // Reaching either cap is a stalled outcome, never an error: one hung game
 // records a stall and the rest of the run keeps going instead of aborting
 // the whole matrix.
-func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats) (gameOutcome, error) {
+func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage) (gameOutcome, error) {
 	if collect != nil {
 		collect.game()
 	}
+	if cov != nil {
+		cov.game()
+	}
+	o, e, err := playMatchOnce(cfg, pols, seats, maxTurns, maxIntents, collect, cov)
+	if err == nil && cov != nil {
+		// A finished game (win, draw OR stall) attributes its runtime
+		// exercise from the log; a game that ERRORED has no trustworthy log
+		// shape to walk, so it is skipped.
+		cov.walkGame(cfg, e)
+	}
+	return o, err
+}
+
+// playMatchOnce is playMatch's game loop; it returns the engine so the
+// action-coverage walk can read the finished log and state.
+func playMatchOnce(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage) (gameOutcome, *rules.Engine, error) {
 	e := rules.New(cfg)
 	e.Advance()
 	n := 0
@@ -283,20 +327,23 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, max
 		// the turn number the engine already reports (state.Game.Turn) and
 		// caps nothing under rules/.
 		if maxTurns > 0 && e.G.Turn >= int32(maxTurns) {
-			return recordStarter(gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n}, e), nil
+			return recordStarter(gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n}, e), e, nil
 		}
 		d := e.Pending()
 		v := view.Project(e.G, e, d.Player, d)
 		v.Round = view.RoundOf(e.G, e.L.Events)
 		in, err := seats[d.Player].Decide(context.Background(), v, *d)
 		if err != nil {
-			return gameOutcome{}, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)
+			return gameOutcome{}, e, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)
 		}
 		if collect != nil {
 			collect.record(d, in)
 		}
+		if cov != nil {
+			cov.record(d, in)
+		}
 		if err := e.Submit(in); err != nil {
-			return gameOutcome{}, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, err)
+			return gameOutcome{}, e, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, err)
 		}
 		n++
 	}
@@ -306,9 +353,9 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, max
 		// decision mid-game, itself a non-terminating stall). This is a
 		// stalled outcome -- NOT an error -- so the run records it and steps
 		// over the pair instead of killing the whole matrix.
-		return recordStarter(gameOutcome{stallOn: "intents", turns: e.G.Turn, intents: n}, e), nil
+		return recordStarter(gameOutcome{stallOn: "intents", turns: e.G.Turn, intents: n}, e), e, nil
 	}
-	return outcomeFrom(e, pols, n), nil
+	return outcomeFrom(e, pols, n), e, nil
 }
 
 // outcomeFrom reads a finished game's result. Ruling P14: Draw must be read
@@ -1434,11 +1481,16 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		}
 	}
 
-	// collect is the -decision-stats histogram for this run; nil when the
-	// flag is off, so a default run records nothing and appends nothing.
+	// collect is the -decision-stats histogram and cov the -action-coverage
+	// collector for this run; both nil when their flags are off, so a default
+	// run records nothing and appends nothing.
 	var collect *decisionStats
 	if decisionStatsEnabled {
 		collect = newDecisionStats()
+	}
+	var cov *actionCoverage
+	if actionCoverageEnabled {
+		cov = newActionCoverage()
 	}
 
 	play := func(pos int, seed uint64, pols []string) (gameOutcome, error) {
@@ -1456,7 +1508,7 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		cfg := buildGameConfig(seed, []string{pd.a, pd.b},
 			[][]*cards.Card{deckByName[pd.a], deckByName[pd.b]}, commanders, commander)
 		cfg.Tokens = reg.Tokens
-		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect)
+		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
 	}
 
 	results, err := runPairs(baseSeed, games, aName, bName, pairs, play, workers, &progressWriter{w: prog})
@@ -1468,6 +1520,7 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 			return err
 		}
 		collect.write(out)
+		cov.write(out)
 		return nil
 	}
 	if coverage != nil {
@@ -1478,6 +1531,7 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		return err
 	}
 	collect.write(out)
+	cov.write(out)
 	return nil
 }
 
@@ -1585,11 +1639,16 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 	}
 	fmt.Fprintln(out, hdr)
 
-	// collect is the -decision-stats histogram for this run; nil when the
-	// flag is off, so a default run records nothing and appends nothing.
+	// collect is the -decision-stats histogram and cov the -action-coverage
+	// collector for this run; both nil when their flags are off, so a default
+	// run records nothing and appends nothing.
 	var collect *decisionStats
 	if decisionStatsEnabled {
 		collect = newDecisionStats()
+	}
+	var cov *actionCoverage
+	if actionCoverageEnabled {
+		cov = newActionCoverage()
 	}
 
 	play := func(s uint64, pols []string) (gameOutcome, error) {
@@ -1602,7 +1661,7 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 		}
 		cfg := buildGameConfig(s, seated, decks, commanders, commander)
 		cfg.Tokens = reg.Tokens
-		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect)
+		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
 	}
 	if workers <= 0 {
 		workers = runtime.NumCPU()
@@ -1613,6 +1672,7 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 		return err
 	}
 	collect.write(out)
+	cov.write(out)
 	return nil
 }
 
@@ -1664,13 +1724,18 @@ func main() {
 	maxIntents := flag.Int("max-intents", 20000, "maximum intents per game before it ends as a stall (not a win, not a draw); catches a game whose turn count never advances but that keeps submitting intents; 0 = no cap")
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
+	actionCoverage := flag.Bool("action-coverage", false, "append the action-coverage completeness report (decision kinds / option rows never asked, offered-but-never-chosen shapes, cast shapes, cards and ability slots never fired, primitives never exercised) at the end of a run; default off so the normal report is unchanged")
+	grind := flag.String("grind", "", "grind mode: pin one repo deck to one goroutine and play it against itself as many games as the budget allows; a deck name, or \"all\" for every deck in the format's pool (one goroutine each); mutually exclusive with -pairs; -workers is ignored (the one-goroutine-per-deck shape IS the mode)")
+	grindSeconds := flag.Float64("grind-seconds", 0, "grind wall-clock budget in seconds (checked between games, so at least one game always plays); 0 with -grind-iters 0 means the 30s default")
+	grindIters := flag.Int("grind-iters", 0, "grind iteration cap per deck; 0 = wall-clock only")
 	cpuprofile := flag.String("cpuprofile", "", "write a CPU profile to this pprof file over the whole run (empty = off)")
 	memprofile := flag.String("memprofile", "", "write a heap profile to this pprof file after the last game finishes (pprof reads both alloc_space and inuse_space from it; empty = off)")
 	flag.Parse()
 	decisionStatsEnabled = *decisionStats
+	actionCoverageEnabled = *actionCoverage
 
 	os.Exit(mainExit(*a, *b, *games, *seed, *seats, *rotate, *pairs, *format, *out, *workers,
-		*maxTurns, *maxIntents, *dir, *decisionStats, *cpuprofile, *memprofile))
+		*maxTurns, *maxIntents, *dir, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile))
 }
 
 // mainExit is main's body with the exit code as its return, so the profiler
@@ -1678,7 +1743,7 @@ func main() {
 // profile is still readable evidence -- instead of being skipped by the
 // os.Exit calls a flag-error path used to make.
 func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pairs, format, out string, workers,
-	maxTurns, maxIntents int, dir string, decisionStats bool, cpuprofile, memprofile string) int {
+	maxTurns, maxIntents int, dir string, decisionStats, actionCoverage bool, grind string, grindSeconds float64, grindIters int, cpuprofile, memprofile string) int {
 	fail := func(err error) int {
 		fmt.Fprintln(os.Stderr, "botbench:", err)
 		return 1
@@ -1698,6 +1763,25 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 	}()
 
 	decisionStatsEnabled = decisionStats
+	actionCoverageEnabled = actionCoverage
+
+	// Grind mode first: it is its own shape (one deck, one goroutine, budget
+	// driven) and refuses to mix with the pair matrix.
+	if grind != "" {
+		if pairs != "" {
+			return fail(fmt.Errorf("-grind and -pairs are mutually exclusive (grind pins one deck to one goroutine; the matrix fans pairs over the pool)"))
+		}
+		if workers != 0 {
+			// Say it loudly rather than silently swallowing the flag: the
+			// one-goroutine-per-deck shape IS the mode, and a profile that
+			// mixed pool-scheduled games would not be a grind profile.
+			fmt.Fprintln(os.Stderr, "botbench: -workers is ignored in -grind mode (one goroutine per deck is the point of the mode)")
+		}
+		if err := runGrind(seed, grind, grindSeconds, grindIters, dir, format, maxTurns, maxIntents, os.Stdout, os.Stderr); err != nil {
+			return fail(err)
+		}
+		return 0
+	}
 
 	commander, err := parseGameFormat(format)
 	if err != nil {
