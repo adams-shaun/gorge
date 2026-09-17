@@ -1148,6 +1148,16 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 	if o, ok := t.Params["Origin"]; ok && o != "Any" && effects.ParseZone(o) != ev.From {
 		return false
 	}
+	// ExcludedOrigins$ ("Name Sticker" Goblin's "enters from anywhere other
+	// than a graveyard or exile"): a comma-separated list of zones the move
+	// must NOT originate in. Absent means unrestricted, exactly as before.
+	if excl, ok := t.Params["ExcludedOrigins"]; ok {
+		for _, z := range strings.Split(excl, ",") {
+			if zz := strings.TrimSpace(z); zz != "" && effects.ParseZone(zz) == ev.From {
+				return false
+			}
+		}
+	}
 	if d, ok := t.Params["Destination"]; ok && d != "Any" && effects.ParseZone(d) != ev.To {
 		return false
 	}
@@ -2103,12 +2113,43 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 		}
 	}
 	if spec, ok := t.Params["IsPresent"]; ok {
-		cmp, ok := t.Params["PresentCompare"]
-		if !ok {
+		cmp, hasCmp := t.Params["PresentCompare"]
+		// PresentDefined$ names the base set the IsPresent$ spec is counted
+		// over (Mana Vault's "if this artifact is tapped": PresentDefined$
+		// Self narrows the scan to the source itself, where the old whole-
+		// battlefield walk counted every tapped permanent). An absent
+		// PresentDefined keeps the historic whole-battlefield scan. A value
+		// that is not the source fails closed with the rest of the clause.
+		if pd := strings.TrimSpace(t.Params["PresentDefined"]); pd != "" && pd != "Self" {
 			return false
+		}
+		if !hasCmp {
+			// Forge's own reading of an IsPresent$ clause with no
+			// PresentCompare$ is "at least one match" (Mana Vault's draw-step
+			// damage): a present-condition with no comparison never meant
+			// "vacuously true", which is what the old hard return made it.
+			spec2 := strings.TrimSpace(t.Params["IsPresent2"])
+			if spec2 != "" {
+				return e.presentUnionCount(spec, spec2, source, you) > 0
+			}
+			return e.countPresent(spec, source, you) > 0
 		}
 		if !e.presentConditionHoldsAs(t, source, you, spec, cmp) {
 			return false
+		}
+		// IsPresent2$ names a SECOND present set whose objects count alongside
+		// IsPresent$'s, as one union ("Name Sticker" Goblin counts creatures
+		// named Name Sticker Goblin plus the entering one; the source itself
+		// sits in both sets, so a plain sum would count it twice and break the
+		// boundary the comparison guards). Deduplicating by object identity is
+		// the only reading that reproduces the card's "9 or fewer creatures
+		// named ..." at every count.
+		if spec2 := strings.TrimSpace(t.Params["IsPresent2"]); spec2 != "" {
+			op, n, ok := splitCompare(strings.TrimSpace(cmp))
+			if !ok {
+				return false
+			}
+			return applyCompare(e.presentUnionCount(spec, spec2, source, you), op, n)
 		}
 	}
 	if spec, ok := t.Params["CheckDefinedPlayer"]; ok {
@@ -2197,6 +2238,28 @@ func (e *Engine) countPresent(spec string, source state.ObjID, you state.PlayerI
 			return
 		}
 		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, you)) {
+			n++
+		}
+	})
+	return n
+}
+
+// presentUnionCount counts the DISTINCT battlefield objects matching either
+// spec — the IsPresent$+IsPresent2$ union a two-set present clause compares.
+func (e *Engine) presentUnionCount(spec, spec2 string, source state.ObjID, you state.PlayerID) int {
+	seen := map[state.ObjID]bool{}
+	n := 0
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield {
+			return
+		}
+		if seen[id] {
+			return
+		}
+		sc := e.specCtx(source, you)
+		if effects.MatchesSpecCtx(e.G, spec, id, sc) || effects.MatchesSpecCtx(e.G, spec2, id, sc) {
+			seen[id] = true
 			n++
 		}
 	})

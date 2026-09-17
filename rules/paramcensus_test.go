@@ -1014,6 +1014,30 @@ var stringMapParams = map[string]string{
 //     are SVar tables and parsed static lines, not card Params.
 func (s *scan) propagateKeyReads() {
 	s.mapAttributed = map[string]bool{}
+	// Key indirection is transitive (effScry passes "ScryNum" into
+	// effLookAndArrange's numKey, which forwards it into Num's key), so the
+	// walk runs to a fixpoint: each round attributes literals through the
+	// key-parameters recorded in earlier rounds. keyRds grows monotonically,
+	// so the rounds converge (32 is far above the longest call chain in
+	// effects/ or rules/).
+	for round := 0; round < 32; round++ {
+		if !s.propagateKeyReadsOnce() {
+			break
+		}
+	}
+}
+
+// propagateKeyReadsOnce runs one full pass over every call site, attributing
+// literal keys and recording key-indirection; it reports whether the pass
+// added anything (so the fixpoint loop above knows when to stop).
+func (s *scan) propagateKeyReadsOnce() bool {
+	added := false
+	count := func(fi *fnInfo, b bucket, set map[string]bool, k string) bool {
+		if set == nil {
+			return true
+		}
+		return !set[k]
+	}
 	for _, fi := range s.fns {
 		for _, cs := range fi.callSites {
 			target := s.fns[fi.pkg+":"+cs.callee]
@@ -1023,10 +1047,33 @@ func (s *scan) propagateKeyReads() {
 			for b, params := range target.keyRds {
 				for param := range params {
 					idx, ok := target.strParams[param]
-					if !ok || idx >= len(cs.args) || cs.args[idx] == "" {
+					if !ok || idx >= len(cs.args) {
 						continue
 					}
-					s.addRead(fi, b, cs.args[idx])
+					if cs.args[idx] != "" {
+						if count(fi, b, fi.reads[b], cs.args[idx]) {
+							added = true
+						}
+						s.addRead(fi, b, cs.args[idx])
+						continue
+					}
+					// Key indirection: the caller forwards one of its OWN
+					// string parameters as the callee's key parameter (the
+					// effLookAndArrange(h,c,sa,numKey,..) -> Num(,,key,..)
+					// chain behind Scry's ScryNum$ and Surveil's Amount$).
+					// Record the read against the caller's parameter so a
+					// still-outer caller passing a literal attributes through
+					// it; a non-identifier argument cannot be followed and
+					// stays unattributed, exactly as before.
+					if pname := cs.exprs[idx]; pname != "" {
+						if _, isParam := fi.strParams[pname]; isParam {
+							if count(fi, b, fi.keyRds[b], pname) {
+								added = true
+							}
+							s.addKeyRead(fi, b, pname)
+							continue
+						}
+					}
 				}
 			}
 			for param, keys := range target.mapIdxRds {
@@ -1061,11 +1108,15 @@ func (s *scan) propagateKeyReads() {
 							target.name, param, fi.name))
 						continue
 					}
+					if fi.reads[b] == nil || !fi.reads[b][key] {
+						added = true
+					}
 					s.addRead(fi, b, key)
 				}
 			}
 		}
 	}
+	return added
 }
 
 // closureReads unions fn's own reads with everything reachable through its
@@ -1758,11 +1809,16 @@ var ignoredParamKeys = map[string]string{
 	"TgtPrompt":             "target-prompt UI text; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"ChoiceTitle":           "choice-dialog title; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"AdditionalDescription": "extra UI rules-text fragment; forge-game/src/main/java/forge/game/ability/effects/CharmEffect.java",
-	"VoteMessage":           "vote-dialog message; forge-game/src/main/java/forge/game/ability/effects/VoteEffect.java",
-	"IsCurse":               "AI curse marker; forge-game/src/main/java/forge/game/spellability/SpellAbility.java",
-	"Description":           "UI/dialog description; forge-game/src/main/java/forge/game/card/CardFactory.java",
-	"SelectPrompt":          "search prompt message; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
-	"Image":                 "effect-token image key; forge-game/src/main/java/forge/game/card/CardFactory.java",
+	// AdditionalDesc is the same class of UI fragment one ability at a time:
+	// Forge reads it for the ability's rendered description only (the
+	// reminder text after a cost, e.g. Dargo's "This spell costs {2} less to
+	// cast for each permanent sacrificed this way"), never for its rules.
+	"AdditionalDesc": "ability UI description; forge-game/src/main/java/forge/game/spellability/SpellAbility.java (SaParam.AdditionalDesc)",
+	"VoteMessage":    "vote-dialog message; forge-game/src/main/java/forge/game/ability/effects/VoteEffect.java",
+	"IsCurse":        "AI curse marker; forge-game/src/main/java/forge/game/spellability/SpellAbility.java",
+	"Description":    "UI/dialog description; forge-game/src/main/java/forge/game/card/CardFactory.java",
+	"SelectPrompt":   "search prompt message; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
+	"Image":          "effect-token image key; forge-game/src/main/java/forge/game/card/CardFactory.java",
 }
 
 // censusResult is one census run: per-card labels plus aggregate sets.
@@ -2031,7 +2087,6 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
 	"Spinerock Knoll":             {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
-	"Abbot of Keral Keep":         {"param:api:Effect.ExileOnMoved"},
 	"Ad Nauseam":                  {"param:api:Dig.Reveal", "param:api:Repeat.RepeatOptional"},
 	"Adaptive Automaton":          {"param:api:ChooseType.Type"},
 	"Aftermath Analyst":           {"param:api:ChangeZoneAll.Tapped"},
@@ -2040,49 +2095,34 @@ var knownUnsupportedParams = map[string][]string{
 	"Angelic Overseer":            {"param:stat:Continuous.IsPresent"},
 	"Angelic Skirmisher":          {"param:api:Pump.KWChoice"},
 	"Army of the Damned":          {"param:api:Token.TokenTapped"},
-	"Assassin's Trophy":           {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Auriok Steelshaper":          {"param:stat:Continuous.IsPresent"},
-	"Baloth Prime":                {"param:api:PutCounter.ETB", "param:api:Token.TokenTapped"},
+	"Baloth Prime":                {"param:api:Token.TokenTapped"},
 	"Bile Blight":                 {"param:api:Pump.RememberTargets"},
 	"Blazemire Verge":             {"param:api:Mana.IsPresent"},
 	"Bloodchief Ascension":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
-	"Borderland Ranger":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Brainstorm":                  {"param:api:ChangeZone.Reorder"},
-	"Cavern of Souls":             {"param:api:ChooseType.Type", "param:api:Mana.AddsNoCounter", "param:api:Mana.RestrictValid"},
+	"Cavern of Souls":             {"param:api:ChooseType.Type", "param:api:Mana.AddsNoCounter"},
 	"Chain Lightning":             {"param:api:CopySpellAbility.Controller"},
-	"Chalice of the Void":         {"param:api:PutCounter.ETB"},
-	"Chandra, Awakened Inferno":   {"cost:SubCounter", "param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate", "param:api:Effect.Name"},
+	"Chandra, Awakened Inferno":   {"cost:SubCounter", "param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate"},
 	"Chaos Warp":                  {"param:api:Dig.DestinationZone2", "param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
 	"Conduit of Worlds":           {"param:api:Play.RememberPlayed"},
 	"Council's Judgment":          {"param:api:Vote.VoteCard", "param:api:Vote.VoteSubAbility"},
 	"Dark Fortress":               {"param:api:Mana.IsPresent"},
-	"Dauthi Voidwalker":           {"param:api:Effect.ForgetOnMoved"},
-	"Daze":                        {"param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
-	"Deadly Rollick":              {"param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer", "param:stat:AlternativeCost.ValidSA"},
+	"Deadly Rollick":              {"param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer"},
+	"Deflecting Swat":             {"param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer"},
 	"Defense of the Heart":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
-	"Deflecting Swat":             {"param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer", "param:stat:AlternativeCost.ValidSA"},
 	"Delver of Secrets":           {"param:api:PeekAndReveal.PeekAmount"},
-	"Eldrazi Temple":              {"param:api:Mana.RestrictValid"},
-	"Endless One":                 {"param:api:PutCounter.ETB"},
-	"Escape Tunnel":               {"param:api:Effect.ExileOnMoved"},
 	"Exploration Broodship":       {"param:stat:Continuous.AddStaticAbility"},
 	"Flickerwisp":                 {"param:api:DelayedTrigger.RememberObjects"},
-	"Force of Will":               {"param:api:Counter.Destination", "param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
-	"Forked Bolt":                 {"param:api:DealDamage.DividedAsYouChoose"},
-	"Ghost Quarter":               {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Giada, Font of Hope":         {"param:api:Mana.RestrictValid", "param:api:PutCounter.ETB"},
+	"Force of Will":               {"param:api:Counter.Destination"},
 	"Goblin Guide":                {"param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
-	"Hangarback Walker":           {"param:api:PutCounter.ETB"},
 	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
 	"Horizon Explorer":            {"param:api:Untap.ETB"},
 	"Impulse":                     {"param:api:Dig.NoReveal"},
-	"Incinerate":                  {"param:api:Effect.ForgetOnMoved"},
 	"Jace, the Mind Sculptor":     {"param:api:ChangeZoneAll.Shuffle", "param:api:ChangeZoneAll.Ultimate", "param:api:Dig.LibraryPosition2"},
-	"Jeska's Will":                {"param:api:Effect.ForgetOnMoved"},
 	"Journey to Nowhere":          {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
 	"Karn Liberated":              {"param:api:ChangeZoneAll.GainControl", "param:api:RestartGame.RestrictFromValid", "param:api:RestartGame.RestrictFromZone", "param:api:RestartGame.Ultimate"},
-	"Knight of the White Orchid":  {"param:api:ChangeZone.ShuffleNonMandatory", "param:trig:ChangesZone.CheckSVar", "param:trig:ChangesZone.SVarCompare"},
-	"Land Tax":                    {"param:api:ChangeZone.ShuffleNonMandatory", "param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
+	"Knight of the White Orchid":  {"param:trig:ChangesZone.CheckSVar", "param:trig:ChangesZone.SVarCompare"},
+	"Land Tax":                    {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Leonin Relic-Warder":         {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
 	"Lion's Eye Diamond":          {"param:api:Mana.InstantSpeed"},
 	"Lord Windgrace":              {"param:api:Destroy.Ultimate"},
@@ -2093,17 +2133,13 @@ var knownUnsupportedParams = map[string][]string{
 	"Myriad Landscape":            {"param:api:ChangeZone.ShareLandType"},
 	"Necrodominance":              {"cost:PayLife", "param:stat:Continuous.SetMaxHandSize"},
 	"Necropotence":                {"param:api:ChangeZone.ExileFaceDown", "param:api:DelayedTrigger.RememberObjects", "param:api:DelayedTrigger.ValidPlayer"},
-	"Ob Nixilis, Captive Kingpin": {"param:api:Effect.ForgetOnMoved"},
 	"Ojer Axonil, Deepest Might":  {"param:api:ChangeZone.Transformed"},
 	"Oracle of Mul Daya":          {"param:stat:Continuous.MayLookAt"},
 	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
-	"Palace Jailer":               {"param:api:Effect.ForgetOnMoved"},
-	"Path to Exile":               {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Planetary Annihilation":      {"param:api:ChooseCard.Reveal"},
 	"Ponder":                      {"param:api:RearrangeTopOfLibrary.MayShuffle"},
 	"Price of Progress":           {"param:api:RepeatEach.DamageMap"},
 	"Purphoros, God of the Forge": {"param:stat:Continuous.RemoveType"},
-	"Ragavan, Nimble Pilferer":    {"param:api:Effect.ForgetOnMoved"},
 	"Relic of Progenitus":         {"cost:Exile"},
 	"Remand":                      {"param:api:Counter.Destination"},
 	"Resplendent Angel":           {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
@@ -2111,13 +2147,9 @@ var knownUnsupportedParams = map[string][]string{
 	"Sea Gate Wreckage":           {"param:api:Draw.Activation"},
 	"Skyclave Apparition":         {"param:api:Token.TokenPower", "param:api:Token.TokenToughness"},
 	"Snapcaster Mage":             {"param:api:Pump.PumpZone"},
-	"Solemn Simulacrum":           {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Splendid Reclamation":        {"param:api:ChangeZoneAll.Tapped"},
-	"Springbloom Druid":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Squadron Hawk":               {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Static Orb":                  {"param:stat:Continuous.IsPresent"},
 	"Steel Leaf Champion":         {"param:stat:CantBlockBy.ValidAttacker"},
-	"Stoneforge Mystic":           {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Sword of Fire and Ice":       {"param:stat:Continuous.AddSVar"},
 	"Tainted Peak":                {"param:api:Mana.IsPresent"},
 	"Temple of the False God":     {"param:api:Mana.IsPresent", "param:api:Mana.PresentCompare"},
@@ -2126,23 +2158,16 @@ var knownUnsupportedParams = map[string][]string{
 	"Thirst for Knowledge":        {"param:api:Discard.UnlessType"},
 	"Thornspire Verge":            {"param:api:Mana.IsPresent"},
 	"Through the Forest Gate":     {"param:api:Dig.SkipReorder", "param:api:Dig.Tapped"},
-	"Tome of Legends":             {"param:api:PutCounter.ETB"},
 	"Toxic Deluge":                {"cost:PayLife"},
-	"Trinket Mage":                {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Valakut Exploration":         {"param:api:Effect.ForgetOnMoved", "param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
+	"Valakut Exploration":         {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Valkyrie Harbinger":          {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
-	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.ETB", "param:api:PutCounter.MinChoiceAmount"},
+	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.MinChoiceAmount"},
 	"Vexing Devil":                {"cost:DamageYou"},
-	"Vial Smasher the Fierce":     {"param:api:Cleanup.ClearChosenPlayer", "param:trig:SpellCast.ActivatorThisTurnCast"},
-	"Vines of Vastwood":           {"param:api:Effect.ExileOnMoved"},
-	"Voracious Hydra":             {"param:api:PutCounter.ETB"},
-	"Walking Ballista":            {"param:api:PutCounter.ETB"},
+	"Vial Smasher the Fierce":     {"param:trig:SpellCast.ActivatorThisTurnCast"},
 	"Wastewood Verge":             {"param:api:Mana.IsPresent"},
-	"Whirler Rogue":               {"param:api:Effect.ExileOnMoved"},
 	"Whisperer of the Wilds":      {"param:api:Mana.IsPresent"},
 	"World Shaper":                {"param:api:ChangeZoneAll.Tapped", "param:api:Mill.Optional"},
-	"Wrenn and Six":               {"param:api:Effect.Name", "param:api:Effect.Stackable", "param:api:Effect.Ultimate"},
-	"Yavimaya Elder":              {"param:api:ChangeZone.ShuffleNonMandatory"},
+	"Wrenn and Six":               {"param:api:Effect.Stackable", "param:api:Effect.Ultimate"},
 	"Zombie Apocalypse":           {"param:api:ChangeZoneAll.Tapped"}}
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across

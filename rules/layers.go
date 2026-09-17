@@ -146,7 +146,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						mp := base
 						mp.MayPlay = true
 						mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-						mp.MayPlayIgnoreColor, mp.MayPlayLimit, mp.MayPlayPlayerTurn, _ = effects.MayPlayStaticParams(st.Params)
+						mp.MayPlayIgnoreColor, mp.MayPlayIgnoreType, mp.MayPlayLimit, mp.MayPlayPlayerTurn, _ = effects.MayPlayStaticParams(st.Params)
 						out = append(out, mp)
 					}
 					// An additional-land-drops grant (Azusa, Lost but Seeking's "You
@@ -222,18 +222,18 @@ func adjustLandPlaysGrant(params map[string]string) (int32, bool) {
 // mayPlayGrant reports whether a Mode$ Continuous static carries the
 // may-play grant this package implements: MayPlay$ True, an Affects
 // (Affected$) spec and an AffectedZone, plus only display/placement metadata
-// and the two riders it reads (MayPlayIgnoreColor$, MayPlayLimit$). A richer
-// grant is out of scope and must fail closed (MayPlay stays false) so it is
-// never silently over-applied -- in particular a MayPlayIgnoreType$
-// (cast-without-type-restriction) or MayPlayWithoutManaCost$ (free cast)
-// static changes what the cast IS, not just where it may come from, and a
-// Condition$/CheckSVar$/ValidAfterStack$/Secondary$ qualifier changes when
-// the grant lives. The explicit whitelist, rather than a blacklist of
-// currently-known gating keys, means a newly encountered semantic parameter
-// also fails closed. Iterating st.Params only yields a boolean, so map order
-// never reaches an event/option/view -- determinism is preserved.
+// and the riders it reads (MayPlayIgnoreColor$, MayPlayIgnoreType$,
+// MayPlayLimit$). A richer grant is out of scope and must fail closed (MayPlay
+// stays false) so it is never silently over-applied -- in particular a
+// MayPlayWithoutManaCost$ (free cast) static changes what the cast IS, not
+// just where it may come from, and a Condition$/CheckSVar$/ValidAfterStack$/
+// Secondary$ qualifier changes when the grant lives. The explicit whitelist,
+// rather than a blacklist of currently-known gating keys, means a newly
+// encountered semantic parameter also fails closed. Iterating st.Params only
+// yields a boolean, so map order never reaches an event/option/view --
+// determinism is preserved.
 func mayPlayGrant(st cards.Static) bool {
-	_, _, _, ok := effects.MayPlayStaticParams(st.Params)
+	_, _, _, _, ok := effects.MayPlayStaticParams(st.Params)
 	return ok
 }
 
@@ -420,6 +420,73 @@ func (e *Engine) EndOfTurnCleanup() {
 	// expired UntilTurn effect. Without the bump, a stale active() cache
 	// would keep reporting a dead pump's P/T.
 	e.continuousVersion++
+}
+
+// effectMoveSweep is the move-driven lifetime of Effect-created continuous
+// effects, run from Engine.emit after every MoveZone has been applied:
+//
+//   - ForgetOnMoved$ <zone> (Atsushi's, Rakdos's, Opposition Agent's may-play
+//     effects, Incinerate's CantRegenerate): a remembered card that moved
+//     FROM that zone leaves the effect's Remembered set — "you may play
+//     those cards for as long as they remain exiled" ends the moment the
+//     played card leaves exile — so the grant's Affected$ Card.IsRemembered
+//     list follows what the effect actually holds.
+//   - ExileOnMoved$ <zone> (Vines of Vastwood's blinked target, Party
+//     Thrasher's chosen card): a remembered card that moved FROM that zone
+//     ENDS the whole effect — Forge's "the effect is exiled".
+//
+// Zone names parse through the shared effects.ParseZone; an unparseable name
+// can never match, so the effect simply never sweeps — the honest no-op for
+// a value this build cannot read. Like EndOfTurnCleanup this is an in-place
+// rewrite of e.continuous that emits no event and moves no log head; a
+// replay rebuilds it by re-executing the same registrations against the same
+// moves, so it reproduces byte-identically.
+func (e *Engine) effectMoveSweep(ev events.Event) {
+	if len(e.continuous) == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		forget, exile := ce.ForgetOnMoved, ce.ExileOnMoved
+		if forget != "" && effects.ParseZone(forget) == ev.From && objIDIn(ce.Remembered, ev.Obj) {
+			ce.Remembered = objIDWithout(ce.Remembered, ev.Obj)
+			changed = true
+		}
+		if exile != "" && effects.ParseZone(exile) == ev.From && objIDIn(ce.Remembered, ev.Obj) {
+			changed = true
+			continue // the effect ends: not kept
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousVersion++
+}
+
+// objIDIn reports whether ids holds id.
+func objIDIn(ids []state.ObjID, id state.ObjID) bool {
+	for _, x := range ids {
+		if x == id {
+			return true
+		}
+	}
+	return false
+}
+
+// objIDWithout returns ids without the first occurrence of id.
+func objIDWithout(ids []state.ObjID, id state.ObjID) []state.ObjID {
+	for i, x := range ids {
+		if x == id {
+			out := make([]state.ObjID, 0, len(ids)-1)
+			out = append(out, ids[:i]...)
+			out = append(out, ids[i+1:]...)
+			return out
+		}
+	}
+	return ids
 }
 
 // isCombatStep reports whether s is one of the combat phase's five steps

@@ -141,6 +141,22 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			if e.Text == "clear" {
 				o.Imprinted = nil
+			} else if e.Text == "forget" {
+				// ForgetImprinted$ (Pump's Chrome Mox body): remove exactly the
+				// named ids from the persistent Imprinted list, keeping the
+				// rest -- a bad or partial payload degrades to a smaller
+				// forget, never a wider one.
+				drop := make(map[state.ObjID]bool, len(e.IDs))
+				for _, id := range e.IDs {
+					drop[id] = true
+				}
+				kept := make([]state.ObjID, 0, len(o.Imprinted))
+				for _, id := range o.Imprinted {
+					if !drop[id] {
+						kept = append(kept, id)
+					}
+				}
+				o.Imprinted = kept
 			} else {
 				// Text is an in-kind discriminator, not a new Event field:
 				// ImprintCards$ records Forge's imprintedCards list while a
@@ -513,10 +529,10 @@ func Apply(g *state.Game, e Event) {
 			}
 			player := &g.Players[e.Player]
 			player.Pool[idx] += e.Amount
-			if valid, restricted := ManaRestrictionFromText(e.Text); restricted {
+			if valid, srcID, restricted := ManaRestrictionFromText(e.Text); restricted {
 				if e.Amount > 0 {
 					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
-						Color: e.Counter, Amount: e.Amount, Valid: valid,
+						Color: e.Counter, Amount: e.Amount, Valid: valid, Source: srcID,
 					})
 				} else if e.Amount < 0 {
 					// A restricted spend event names exactly the restriction batch it
@@ -800,6 +816,25 @@ func Apply(g *state.Game, e Event) {
 				o.Remembered = kept
 			case "clear-remembered":
 				o.Remembered = nil
+			case "clear-chosen-card":
+				// Forge's Cleanup ClearChosenCard$: the chosen-card half of the
+				// object's chosen list goes; chosen players stay.
+				kept := o.Chosen[:0]
+				for _, t := range o.Chosen {
+					if t.IsPlayer {
+						kept = append(kept, t)
+					}
+				}
+				o.Chosen = kept
+			case "clear-chosen-player":
+				// The chosen-PLAYER half goes; chosen cards stay.
+				keptCards := o.Chosen[:0]
+				for _, t := range o.Chosen {
+					if !t.IsPlayer {
+						keptCards = append(keptCards, t)
+					}
+				}
+				o.Chosen = keptCards
 			}
 		}
 

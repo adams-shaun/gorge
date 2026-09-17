@@ -49,8 +49,27 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 		}
-	default: // "Parent" and any unset/other name resolve to the source.
+	case "Parent":
+		// An explicit Parent copy copies the resolving spell itself.
 		spell = c.Source
+	default: // "Targeted" and any unset/other name
+		// An SA that names targets copies its TARGET: every corpus
+		// CopySpellAbility line without Defined$ (66, Flare of Duplication
+		// and the whole may-choose family) carries ValidTgts$, and Forge's
+		// own default define for CopySpellAbility is the targeted spell. The
+		// old unset default (the resolving spell itself) made such a spell
+		// copy ITSELF — Flare's copy is again a Flare whose copy is again a
+		// Flare — an unbounded self-copy loop no game could finish. With no
+		// object target recorded (a fizzled ask), the copy does nothing.
+		for _, t := range c.Targets {
+			if !t.IsPlayer && t.Obj != 0 {
+				spell = t.Obj
+				break
+			}
+		}
+		if spell == 0 {
+			return
+		}
 	}
 	if spell == 0 {
 		return

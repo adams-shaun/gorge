@@ -556,18 +556,71 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
+		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source) {
+			continue
+		}
 		out = append(out, ParseCost(sv.Params["Cost"]))
 	}
 	if o := e.G.Obj(id); o != nil {
 		if f := o.Face(); f != nil {
 			for _, st := range f.Statics {
-				if st.Mode == "AlternativeCost" {
-					out = append(out, ParseCost(st.Params["Cost"]))
+				if st.Mode != "AlternativeCost" {
+					continue
 				}
+				if !e.alternativeCostScopeOK(st.Params, id, id) {
+					continue
+				}
+				out = append(out, ParseCost(st.Params["Cost"]))
 			}
 		}
 	}
 	return out
+}
+
+// alternativeCostScopeOK reads an AlternativeCost static's scope riders:
+// ValidSA$ (which cast the alternative prices — Daze's, the Force cycle's and
+// the Flare cycle's "Spell.Self", the commander free-cast's bare "Spell") and
+// EffectZone$ (the zone the static's source must sit in — the self-carried
+// free-cast statics name "All" so the grant reaches the hand). An absent
+// rider is vacuously true; a ValidSA$ value whose Spell constraint this build
+// cannot evaluate denies, the same fail-closed direction ValidSpell$ takes —
+// a wrongly-granted free cast is an illegal game action, a wrongly-withheld
+// one merely an option lost.
+func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID state.ObjID) bool {
+	if vs := strings.TrimSpace(params["ValidSA"]); vs != "" {
+		ok := false
+		for _, alt := range strings.Split(vs, ",") {
+			alt = strings.TrimSpace(alt)
+			kind, constraint := alt, ""
+			if i := strings.IndexByte(alt, '.'); i >= 0 {
+				kind, constraint = alt[:i], alt[i+1:]
+			}
+			if kind != "Spell" {
+				// An Activated/Static kind scopes an ability or an unmodelled
+				// casting option; this list prices a spell cast only.
+				continue
+			}
+			switch strings.TrimSpace(constraint) {
+			case "":
+				ok = true // bare Spell: any cast
+			case "Self":
+				if id == srcID {
+					ok = true // the card's own cast (Daze, the Flares)
+				}
+			}
+			// An unevaluable Spell constraint (Spell.Samurai, ...): deny — a
+			// free cast wrongly granted is an illegal action.
+		}
+		if !ok {
+			return false
+		}
+	}
+	if ez := strings.TrimSpace(params["EffectZone"]); ez != "" {
+		if src := e.G.Obj(srcID); src != nil && !effectZoneOK(ez, src.Zone) {
+			return false
+		}
+	}
+	return true
 }
 
 // blockRestricted reports whether blocker is forbidden from blocking
@@ -752,7 +805,7 @@ func (m costMods) hasFloor() bool {
 // resolves one pip per level in announcePip order and stops at the first
 // payable assignment, so a payable cost is found without visiting the whole
 // tree.
-func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, delve int32, bLifeOK, anyColor bool, conv *manaConv) bool {
+func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider pipRider, conv *manaConv) bool {
 	composed := func(c Cost) bool {
 		cc := m.apply(c)
 		cc.Generic = addClampedGeneric(cc.Generic, int64(taxGeneric))
@@ -761,7 +814,7 @@ func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, d
 		} else {
 			cc.Generic = 0
 		}
-		_, ok := cc.resolveManaWith(pool, snow, life, bLifeOK, anyColor, conv)
+		_, ok := cc.resolveManaWith(pool, snow, life, bLifeOK, rider, conv)
 		return ok
 	}
 	if !m.hasFloor() || c.annPipCount() == 0 {
@@ -804,7 +857,8 @@ func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, d
 // mana-shaping primitives landed (paymentConv returns nil, manaAvailableFor
 // returns Pool verbatim), so every pre-existing game resolves byte-identically.
 func (e *Engine) manaFeasible(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32) bool {
-	return e.manaFeasibleGrant(p, id, ability, c, mods, taxGeneric, delve, e.payerGrantsIgnoreColor(p, id))
+	return e.manaFeasibleGrant(p, id, ability, c, mods, taxGeneric, delve,
+		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)})
 }
 
 // manaFeasibleGrant is manaFeasible with the may-play ignore-colour rider
@@ -814,10 +868,10 @@ func (e *Engine) manaFeasible(p state.PlayerID, id state.ObjID, ability bool, c 
 // payment (resolveManaWith) widens it, so an offered cast, an offered
 // announcement face and the charged total can never disagree on a
 // K'rrik-shaped or MayPlayIgnoreColor$-shaped cost either.
-func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, anyColor bool) bool {
+func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
 	pl := e.G.Players[p]
 	return mods.feasibleAny(c, e.manaAvailableFor(p, id, ability), pl.Snow, pl.Life, taxGeneric, delve,
-		e.payerGrantsPayLifeInsteadOfB(p), anyColor, e.paymentConv(p, id, ability))
+		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 }
 
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies

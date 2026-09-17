@@ -208,6 +208,17 @@ type Engine struct {
 	// because active() guards hits on version as well.
 	continuousVersion int
 
+	// searchingBy tracks the library search in flight, for the Opposition
+	// Agent class: repl:Moved's FoundSearchingLibrary$ matches only while a
+	// search's own moves are being emitted, and the search-control static
+	// redirects the search pick's decision. The depth counter keeps a nested
+	// search's flag alive until the outer search leaves applyLibrarySearch.
+	// Synchronous engine-runtime state (set and cleared around one
+	// synchronous applyLibrarySearch), never folded from an event and never
+	// read across a suspension.
+	searchingBy state.PlayerID
+	searchDepth int
+
 	// derivedKW / derivedTypes are Derived's scratch keyword and type buffers
 	// (rules/layers.go): the full Derived(struct) build rewrites them in place
 	// so repeated derived-characteristic reads do not allocate. They are pure
@@ -1230,6 +1241,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			e.sweepExileReturn(ev.Obj)
 		}
 	}
+	if ev.Kind == events.MoveZone {
+		// Effect-created continuous effects' move-driven lifetimes (the
+		// ForgetOnMoved$/ExileOnMoved$ sweep) run after the move is applied
+		// and before this event's triggers are checked, so a may-play grant's
+		// remembered set is already pruned when anything downstream reads it.
+		// EVERY move, not just a battlefield departure: the move the sweep
+		// exists for is a may-play cast's Exile→Stack move — which rides
+		// PutOnStack, the event kind a cast pushes with — and a remembered
+		// card can also leave the ForgetOnMoved$ zone from the graveyard or
+		// the hand.
+		e.effectMoveSweep(ev)
+	}
+	if ev.Kind == events.PutOnStack {
+		e.effectMoveSweep(ev)
+	}
 	// Damage batch (CR 510.4, Forge dealAssignedDamage): DamageDealtOnce/
 	// DamageDoneOnce latch once per damage BATCH. A Damage event arriving with
 	// no batch already open (combat's damageStep and effects' dealDamage calls
@@ -1459,7 +1485,56 @@ func seatFacingName(g *state.Game, p state.PlayerID) string {
 	return fmt.Sprintf("seat %d", p)
 }
 
+// BeginLibrarySearch marks the start of one library search's execution: the
+// searcher's repl:Moved FoundSearchingLibrary$ replacements apply to exactly
+// the moves the search emits.
+func (e *Engine) BeginLibrarySearch(owner state.PlayerID) {
+	e.searchDepth++
+	e.searchingBy = owner
+}
+
+// EndLibrarySearch closes the innermost search scope.
+func (e *Engine) EndLibrarySearch() {
+	if e.searchDepth > 0 {
+		e.searchDepth--
+	}
+	if e.searchDepth == 0 {
+		e.searchingBy = 0
+	}
+}
+
+// searchControlRedirect applies the ControlOpponentsSearchingLibrary$ static
+// family (Opposition Agent's "You control your opponents while they're
+// searching their libraries"): the search pick's decision is posed to the
+// static's controller instead of the searching player. Scope: the pick (and
+// any later ask the search flow poses) — the "control" of the searched
+// player's every action is the wider grant Forge models; this build
+// redirects the decisions the search itself asks, which is what a
+// resolution can observe. The first static in activeStatics' deterministic
+// APNAP order wins; an Affected$ spec that does not match the searching
+// player leaves the static inert.
+func (e *Engine) searchControlRedirect(d *decision.Decision) {
+	if d.ResumeKind != "search" {
+		return
+	}
+	for _, sv := range e.activeStatics("Continuous") {
+		if strings.TrimSpace(sv.Params["ControlOpponentsSearchingLibrary"]) != "You" {
+			continue
+		}
+		if sv.Controller == d.Player {
+			continue
+		}
+		if spec := sv.Params["Affected"]; spec != "" &&
+			!effects.MatchesPlayerSpec(e.G, spec, d.Player, sv.Controller) {
+			continue
+		}
+		d.Player = sv.Controller
+		return
+	}
+}
+
 func (e *Engine) ask(d *decision.Decision) {
+	e.searchControlRedirect(d)
 	// Empty-answer-only tripwire (the class the Squadron Hawk fail-to-find
 	// search wedged): a decision whose ONLY legal answer is the empty one
 	// (Min 0 with Max 0, or no options at all) can never be answered

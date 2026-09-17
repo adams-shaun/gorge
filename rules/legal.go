@@ -65,26 +65,37 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 			if z != state.ZGraveyard && z != state.ZExile {
 				return
 			}
-			for _, id := range e.G.Zone(z, p) {
-				o := e.G.Obj(id)
-				if o == nil || o.Face() == nil || !o.Face().IsLand() {
-					continue
-				}
-				if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
-					continue
-				}
-				dup := false
-				for _, s := range seen {
-					if s.zone == z && s.id == id {
-						dup = true
-						break
+			// Exile and graveyard are public zones keyed by the card's OWNER,
+			// and a grant's cards can sit in another seat's slice (Opposition
+			// Agent exiles a card from an OPPONENT's searching library, then
+			// lets its controller play it), so every seat's slice is walked in
+			// deterministic seat order -- the same shape mayPlaySpellIds'
+			// walk already is. The Affects match decides ownership claims;
+			// walking the slices only enumerates candidates.
+			for _, q := range e.G.AliveFrom(0) {
+				for _, id := range e.G.Zone(z, q) {
+					o := e.G.Obj(id)
+					if o == nil || o.Face() == nil || !o.Face().IsLand() {
+						continue
 					}
+					sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
+						Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+						continue
+					}
+					dup := false
+					for _, s := range seen {
+						if s.zone == z && s.id == id {
+							dup = true
+							break
+						}
+					}
+					if dup {
+						continue
+					}
+					seen = append(seen, offered{z, id})
+					out = append(out, id)
 				}
-				if dup {
-					continue
-				}
-				seen = append(seen, offered{z, id})
-				out = append(out, id)
 			}
 		}
 		if all {
@@ -1143,6 +1154,13 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					continue
 				}
 				if ab.Params["SorcerySpeed"] == "True" && !sorcery {
+					continue
+				}
+				// PlayerTurn$ True (Wishclaw Talisman's "Activate only during
+				// your turn"): the ability is offered only while its
+				// controller is the active player. CR 602.1b would otherwise
+				// offer it on any player's priority.
+				if ab.Params["PlayerTurn"] == "True" && e.G.Active != p {
 					continue
 				}
 				// CR 606.3: a planeswalker's loyalty ability may be activated

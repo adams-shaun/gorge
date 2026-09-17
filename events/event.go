@@ -5,6 +5,7 @@ package events
 
 import (
 	"encoding/binary"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/state"
@@ -363,14 +364,35 @@ const ExtraTurnSkipUntapText = "extra turn; skip untap"
 const manaRestrictionPrefix = "mana-restriction:"
 
 // ManaRestrictionText encodes a RestrictValid$ constraint on a ManaAdd event.
-func ManaRestrictionText(valid string) string { return manaRestrictionPrefix + valid }
+// The optional " @<source-id>" segment (appended only when the producing
+// source is known and nonzero, so every historical encoding stays
+// byte-identical) records WHICH permanent's ability produced the batch — the
+// source-relative predicates a Valid value may carry (Cavern of Souls'
+// ChosenType) are resolved against it, never against the card being paid for.
+func ManaRestrictionText(valid string, source state.ObjID) string {
+	if source == 0 {
+		return manaRestrictionPrefix + valid
+	}
+	return manaRestrictionPrefix + valid + " @" + strconv.FormatUint(uint64(source), 10)
+}
 
 // ManaRestrictionFromText returns the constraint carried by a restricted
-// ManaAdd event. It deliberately accepts no aliases: ordinary historical
+// ManaAdd event, with the producing source id when the encoding carries one
+// (0 otherwise). It deliberately accepts no aliases: ordinary historical
 // ManaAdd events must remain unrestricted.
-func ManaRestrictionFromText(text string) (string, bool) {
+func ManaRestrictionFromText(text string) (string, state.ObjID, bool) {
 	valid, ok := strings.CutPrefix(text, manaRestrictionPrefix)
-	return valid, ok && valid != ""
+	if !ok || valid == "" {
+		return "", 0, false
+	}
+	if _, tail, found := strings.Cut(valid, " @"); found {
+		head, _, _ := strings.Cut(valid, " @")
+		n, err := strconv.ParseUint(tail, 10, 64)
+		if err == nil {
+			return head, state.ObjID(n), true
+		}
+	}
+	return valid, 0, true
 }
 
 type Event struct {

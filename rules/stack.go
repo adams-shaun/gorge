@@ -51,7 +51,7 @@ func (e *Engine) payManaConv(p state.PlayerID, cost Cost, conv *manaConv) bool {
 // and marked on the negative ManaAdd event so events.Apply can reconstruct
 // the same provenance during replay.
 func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv) bool {
-	return e.payManaFor(p, id, ability, cost, conv, false)
+	return e.payManaFor(p, id, ability, cost, conv, pipRider{})
 }
 
 // payManaFor is payManaConvFor with the may-play ignore-colour rider passed
@@ -60,11 +60,11 @@ func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, 
 // the grant after the card has moved to the stack -- at payment time the
 // card is no longer in the granted zone, so re-deriving from the zone would
 // wrongly drop it.
-func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, anyColor bool) bool {
+func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) bool {
 	before := e.manaAvailableFor(p, id, ability)
 	beforeSnow := e.G.Players[p].Snow
 	pay, ok := cost.resolveManaWith(before, beforeSnow, e.G.Players[p].Life,
-		e.payerGrantsPayLifeInsteadOfB(p), anyColor, conv)
+		e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 	if !ok {
 		return false
 	}
@@ -125,7 +125,8 @@ func (e *Engine) payExtortPip(p state.PlayerID) bool {
 // it via pc.mayPlayIgnore because after the push (CR 601.2a) the card is on
 // the stack and a zone re-derivation would wrongly drop the grant.
 func (e *Engine) payManaCast(pc *pendingCast, cost Cost) bool {
-	return e.payManaFor(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false), pc.mayPlayIgnore)
+	return e.payManaFor(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
+		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // manaAvailableFor removes every restricted batch from the visible pool, then
@@ -137,7 +138,7 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 	for _, r := range e.G.Players[p].RestrictedMana {
 		idx := state.ManaIndex(r.Color[0])
 		available[idx] -= r.Amount
-		if e.restrictValidMatches(p, id, ability, r.Valid) {
+		if e.restrictValidMatches(p, id, ability, r.Valid, r.Source) {
 			available[idx] += r.Amount
 		}
 	}
@@ -153,7 +154,7 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 	// live slice shift under this loop and could skip or double-spend one.
 	batches := append([]state.ManaRestriction(nil), e.G.Players[p].RestrictedMana...)
 	for _, r := range batches {
-		if r.Amount <= 0 || !e.restrictValidMatches(p, id, ability, r.Valid) {
+		if r.Amount <= 0 || !e.restrictValidMatches(p, id, ability, r.Valid, r.Source) {
 			continue
 		}
 		idx := state.ManaIndex(r.Color[0])
@@ -165,19 +166,33 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 			continue
 		}
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
-			Text: events.ManaRestrictionText(r.Valid)})
+			Text: events.ManaRestrictionText(r.Valid, r.Source)})
 		spent[idx] -= used
 	}
 }
 
 // restrictValidMatches evaluates RestrictValid$'s payment class. Forge spells
-// it as <SA-kind>.<object filter>; the corpus shape is
-// Activated.Creature+inZoneBattlefield. The zone predicate is checked here
-// because it describes the ability's source, not the mana source that made
-// the restriction. Unknown classes fail closed so restricted mana is never
-// spent illegally.
-func (e *Engine) restrictValidMatches(p state.PlayerID, id state.ObjID, ability bool, valid string) bool {
-	kind, spec, ok := strings.Cut(strings.TrimSpace(valid), ".")
+// each term as <SA-kind>.<object filter> and a Valid$ value may name several
+// comma-separated terms with OR semantics (Eldrazi Temple's
+// "Spell.Eldrazi+Colorless,Activated.Eldrazi+Colorless+inZoneBattlefield",
+// Master of Dark Rites' "Spell.Demon,Spell.Cleric,Spell.Vampire"). The zone
+// predicate is checked here because it describes the ability's source, not
+// the mana source that made the restriction. Unknown classes fail closed so
+// restricted mana is never spent illegally. src is the producing permanent's
+// id when the batch's event recorded one, so source-relative filter
+// predicates (Cavern of Souls' ChosenType) resolve against the mana source;
+// source-less batches keep the historical paid-card reading.
+func (e *Engine) restrictValidMatches(p state.PlayerID, id state.ObjID, ability bool, valid string, src state.ObjID) bool {
+	for _, term := range strings.Split(strings.TrimSpace(valid), ",") {
+		if e.restrictValidTermMatches(p, id, ability, strings.TrimSpace(term), src) {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, ability bool, term string, src state.ObjID) bool {
+	kind, spec, ok := strings.Cut(term, ".")
 	if !ok {
 		return false
 	}
@@ -199,7 +214,13 @@ func (e *Engine) restrictValidMatches(p state.PlayerID, id state.ObjID, ability 
 	if o == nil || (needsBattlefield && o.Zone != state.ZBattlefield) {
 		return false
 	}
-	return spec == "" || effects.MatchesSpecFrom(e.G, spec, id, p, id)
+	if spec == "" {
+		return true
+	}
+	if src != 0 {
+		return effects.MatchesSpecFrom(e.G, spec, id, p, src)
+	}
+	return effects.MatchesSpecFrom(e.G, spec, id, p, id)
 }
 
 // paymentConv is the conversion set for p paying id (ability selects the
@@ -218,9 +239,9 @@ func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *ma
 // costPayableGrant is costPayable with the may-play ignore-colour rider
 // passed explicitly, for the payment sites that know the cast's recorded
 // rider and cannot re-derive it from the card's zone.
-func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool, cost Cost, anyColor bool) bool {
+func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool, cost Cost, rider pipRider) bool {
 	_, ok := cost.resolveManaWith(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].Life,
-		e.payerGrantsPayLifeInsteadOfB(p), anyColor, e.paymentConv(p, id, ability))
+		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 	return ok
 }
 
@@ -233,7 +254,8 @@ func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool
 // applied here too, so an offered cost and the charged cost agree about a
 // K'rrik-shaped or may-play-shaped payment as well.
 func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cost Cost) bool {
-	return e.costPayableGrant(p, id, ability, cost, e.payerGrantsIgnoreColor(p, id))
+	return e.costPayableGrant(p, id, ability, cost,
+		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)})
 }
 
 // targetBounds resolves a targeting subject's TargetMin$/TargetMax$ to the

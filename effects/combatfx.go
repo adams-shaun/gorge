@@ -186,6 +186,25 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		}
 		registerPumpEffects(h, c, o.ID, att, def, sa)
 	}
+	// ForgetImprinted$ names (in the Defined$ grammar) the imprinted card(s)
+	// to forget (Chrome Mox's DBForget: the exiled card left exile): each is
+	// removed from the source's persistent Imprinted list. Forge's
+	// forgetImprinted on Pump -- the o.Imprinted half is NOT auto-pruned on
+	// move (only exiledCards is), so without this read a returning Chrome
+	// Mox would read a stale imprint.
+	if spec := strings.TrimSpace(sa.Params["ForgetImprinted"]); spec != "" {
+		sub := *sa
+		sub.Params = map[string]string{"Defined": spec}
+		var ids []state.ObjID
+		for _, t := range Defined(h, c, &sub) {
+			if !t.IsPlayer {
+				ids = append(ids, t.Obj)
+			}
+		}
+		if len(ids) > 0 && c.Source != 0 {
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids, Text: "forget"})
+		}
+	}
 }
 
 // effPumpAll bakes in the affected set at resolution time (CR 611.2c: such an
