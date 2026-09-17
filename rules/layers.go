@@ -699,8 +699,17 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 			if ce.OverwriteColors {
 				col = [5]bool{}
 			}
+			// Letter elements are bounds-checked: state.ContinuousEffect is
+			// exported, so a malformed element (empty, or not a WUBRG letter)
+			// must be skipped, never an index panic -- a parse path in this
+			// walk never crashes the match goroutine.
 			for _, l := range ce.AddColors {
-				col[strings.IndexByte("WUBRG", l[0])] = true
+				if len(l) == 0 {
+					continue
+				}
+				if i := strings.IndexByte("WUBRG", l[0]); i >= 0 {
+					col[i] = true
+				}
 			}
 		}
 	}

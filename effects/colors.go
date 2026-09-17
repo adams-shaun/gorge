@@ -55,15 +55,27 @@ func ColorsOf(o *state.Object) string {
 // the "White,Blue" / "White" / "All" / "Colorless" vocabulary measured over
 // the corpus's AB$ Animate lines) into the WUBRG letters of the colour set it
 // names, in WUBRG order and deduplicated. "All" is every colour, "Colorless"
-// is the empty set; an unrecognised word contributes nothing rather than
-// guessing. The letters are what state.ContinuousEffect's colour fields
-// carry, so a caller never re-parses the words.
-func colorLetters(list string) []string {
+// is the empty set. The second return reports whether EVERY non-blank word
+// was recognised: a value this parser does not know (the corpus's
+// "ChosenColor" family, which asks its controller for a colour) is a fail
+// closed "ok=false" with whatever prefix parsed, never a guess -- the caller
+// gates the effect registration on it so an unparseable value keeps the
+// object's printed colours rather than silently overwriting them away. Blank
+// entries (an absent parameter splits to one) neither contribute nor spoil
+// ok. The letters are what state.ContinuousEffect's colour fields carry, so
+// a caller never re-parses the words.
+func colorLetters(list string) ([]string, bool) {
 	var set [5]bool
+	ok := true
 	for _, word := range strings.Split(list, ",") {
 		switch strings.ToLower(strings.TrimSpace(word)) {
+		case "":
 		case "all":
 			set = [5]bool{true, true, true, true, true}
+		case "colorless":
+			// The empty set; ok stays true. Whether that grant does anything
+			// (an overwrite to colourless) or nothing (an add of the empty
+			// set) is the CALLER's decision -- effAnimate notes the no-op arm.
 		case "white":
 			set[0] = true
 		case "blue":
@@ -74,6 +86,8 @@ func colorLetters(list string) []string {
 			set[3] = true
 		case "green":
 			set[4] = true
+		default:
+			ok = false
 		}
 	}
 	var out []string
@@ -82,5 +96,5 @@ func colorLetters(list string) []string {
 			out = append(out, string(c))
 		}
 	}
-	return out
+	return out, ok
 }

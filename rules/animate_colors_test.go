@@ -2,10 +2,12 @@ package rules
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -182,4 +184,48 @@ func animateAbilityOption(t *testing.T, e *Engine, id state.ObjID) decision.Opti
 		t.Fatalf("%s carries no AB$ Animate ability", o.Face().Name)
 	}
 	return abilityOption(t, e, id, idx)
+}
+
+// TestAnimateColorlessWithoutOverwriteKeepsColoursAndNotes pins the
+// raging_spirit shape end to end on the real corpus card: Colors$ Colorless
+// WITHOUT OverwriteColors$ is an add of the empty set -- a no-op this build
+// does not implement (the corpus line means "becomes colorless") -- so the
+// activation resolves, emits the unimplemented Note, and leaves the printed
+// colours alone. Before the fail-closed round this was a silent no-op.
+func TestAnimateColorlessWithoutOverwriteKeepsColoursAndNotes(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Raging Spirit")}, []*cards.Card{})
+	id := moveByName(t, e, 0, "Raging Spirit", state.ZBattlefield)
+	addMana(t, e, 0, "CC")
+	submitChoices(t, e, animateAbilityOption(t, e, id).Index)
+	settleActivation(t, e)
+
+	if got := e.Colors(id); got != "R" {
+		t.Fatalf("Raging Spirit colours after its Colors$-Colorless animation = %q, want \"R\" (printed colours kept)", got)
+	}
+	found := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "Colorless without OverwriteColors$") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("no Colorless-without-OverwriteColors Note in the log")
+	}
+}
+
+// TestDerivedColorsSkipsMalformedColourElements pins the layer-5 walk's
+// robustness leaf from review round 2: state.ContinuousEffect is exported,
+// so a malformed AddColors element (empty, or not a WUBRG letter) must be
+// skipped -- never an index panic. Valid elements in the same list still
+// land.
+func TestDerivedColorsSkipsMalformedColourElements(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Grizzly Bears")}, []*cards.Card{})
+	id := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	e.AddContinuous(state.ContinuousEffect{Source: id, Affects: "Card.Self", Layer: state.LColor,
+		AddColors: []string{"", "X", "U"}})
+	if got := e.Colors(id); got != "UG" {
+		t.Fatalf("colours with malformed elements = %q, want \"UG\" (invalid elements skipped, U landed)", got)
+	}
 }
