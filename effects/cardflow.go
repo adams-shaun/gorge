@@ -877,6 +877,14 @@ func digRemember(c *Ctx, sa *cards.SA, id state.ObjID) {
 // it is Dig's own phrasing (the picked card GOES to the destination, unlike
 // KArrange's Kind which names pile B's), kept separate from
 // destinationPhrase so the two vocabularies cannot drift into each other.
+// The library arm says the BOTTOM because that is where the take lands:
+// events.Move appends to the destination zone, so a library take is a
+// move to the bottom -- which is exactly the shape the corpus's
+// library-destination digs describe (Jace, the Mind Sculptor's "you may
+// put that card on the bottom", mesmeric_sliver's LibraryPosition$ -1).
+// A take at a DIFFERENT library position (the primary LibraryPosition$, e.g.
+// munda_ambush_leader's "0") is still unread -- the prompt describes what
+// the engine does, not what the card asks.
 
 // permanentCardSpec rewrites a leading `Permanent` base token to
 // `PermanentCard` -- the shared matcher's battlefield-object base -- so a
@@ -912,7 +920,7 @@ func digDestPhrase(dest state.Zone) string {
 	case state.ZBattlefield:
 		return "the battlefield"
 	case state.ZLibrary:
-		return "the top of your library"
+		return "the bottom of your library"
 	default:
 		return "its destination"
 	}
