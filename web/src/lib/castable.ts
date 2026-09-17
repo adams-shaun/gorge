@@ -41,13 +41,14 @@ function playerOf(view: View, seat: number): PlayerView | undefined {
 }
 
 /**
- * castableAfterTap reports whether ANY real play (a cast, ability, land drop
- * or any other kind the engine projects) is potential for this seat — i.e.
- * whether stopping would surface a window the seat could act in once its mana
- * floated. The kinds that are never a play — the mana tap ("activate", every
- * priority window offers one), pass and concede — are excluded with the same
- * rule autopilot.isActionKind applies to option kinds, so a projection can
- * never make a pure mana-tap window stop-worthy. It does NOT consult whose
+ * castableAfterTap reports whether ANY real play (a cast, ability or land
+ * drop) is potential for this seat — i.e. whether stopping would surface a
+ * window the seat could act in once its mana floated. The kinds that are
+ * never a play — the mana tap ("activate", every priority window offers
+ * one), pass and concede — are absent from the projection by construction,
+ * and isPotentialPlay whitelists the server's documented vocabulary, so an
+ * unknown kind can never make a pure mana-tap window stop-worthy. It does
+ * NOT consult whose
  * turn it is — the stop fires wherever the caller's own stop rules already
  * consult the step.
  */
@@ -56,9 +57,18 @@ export function castableAfterTap(view: View, seat: number): boolean {
   return !!p?.potential_actions?.some((a) => isPotentialPlay(a));
 }
 
-/** isPotentialPlay is the one kind test for "this projected action is a real play": not the mana tap, not pass, not concede. */
+/**
+ * isPotentialPlay is the one kind test for "this projected action is a real
+ * play": the whitelist of exactly the kinds the server's PotentialAction
+ * contract names (decision.PotentialAction: "cast", "ability", "play_land")
+ * — the mana tap ("activate"), pass and concede are absent from the
+ * projection by construction. A whitelist, not a blacklist of the three
+ * never-a-play kinds: an unknown or malformed kind must not be read as a
+ * play and make a window stop-worthy (rv2c review).
+ */
+const POTENTIAL_PLAY_KINDS: ReadonlySet<string> = new Set(['cast', 'ability', 'play_land']);
 function isPotentialPlay(a: { kind: string }): boolean {
-  return a.kind !== 'activate' && a.kind !== 'pass' && a.kind !== 'concede';
+  return POTENTIAL_PLAY_KINDS.has(a.kind);
 }
 
 /**
