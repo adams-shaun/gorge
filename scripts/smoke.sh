@@ -2,10 +2,11 @@
 #
 # scripts/smoke.sh — the browser smoke gate (Task SG1, extended by ui19).
 #
-# Builds the REAL client and the REAL binary, starts FOUR `gorged` servers on
+# Builds the REAL client and the REAL binary, starts FIVE `gorged` servers on
 # smoke ports (8090-8099) — public and omniscient spectators, a SEATED 1v1,
-# and the shared ui24/wheel1 board fixture — then drives
-# the headless-browser smoke test in web/e2e against all four, and tears
+# the shared ui24/wheel1 board fixture, and the fb-e079def5 Talisman two-stage
+# continuation fixture — then drives
+# the headless-browser smoke test in web/e2e against all five, and tears
 # every server down (and removes its temp dir) whether the gate passes or
 # fails.
 #
@@ -53,28 +54,31 @@ echo "== smoke: building gorged =="
 mkdir -p bin
 CGO_ENABLED=0 go build -o bin/gorged ./cmd/gorged
 
-# ---- allocate four free smoke ports (8090-8099); NEVER 8080/8081 (demo) ----
-taken=$(ss -lptn 2>/dev/null | grep -oE ':[0-9]{4}\b' | tr -d ':' | sort -u)
-ports=()
-for p in $(seq 8090 8099); do
-  if ! grep -qx "$p" <<<"$taken"; then
-    ports+=("$p")
-  fi
-  if [ "${#ports[@]}" -ge 4 ]; then break; fi
-done
-if [ "${#ports[@]}" -lt 4 ]; then
-  echo "smoke: need four free ports in 8090-8099" >&2
-  exit 1
-fi
-PUBPORT="${ports[0]}"
-OMNPORT="${ports[1]}"
-SEATPORT="${ports[2]}"
-FIXTUREPORT="${ports[3]}"
+# ---- allocate five free smoke ports (8090-8099); NEVER 8080/8081 (demo) ----
+# The scan-then-bind window races every OTHER gate running in the same range
+# (two agent worktrees legitimately share 8090-8099, measured live twice on
+# 2026-09-17: the loser's gorged fails to bind and the gate then drives the
+# WINNER's servers — wrong fixture decks, wrong seat tokens, intents from two
+# playwrights on one seeded game — which reads exactly like a product
+# failure). So allocation is a function and the whole farm is retried below.
+allocate_ports() {
+  local taken p
+  taken=$(ss -lptn 2>/dev/null | grep -oE ':[0-9]{4}\b' | tr -d ':' | sort -u)
+  PORTS=()
+  for p in $(seq 8090 8099); do
+    if ! grep -qx "$p" <<<"$taken"; then
+      PORTS+=("$p")
+    fi
+    if [ "${#PORTS[@]}" -ge 5 ]; then break; fi
+  done
+  [ "${#PORTS[@]}" -ge 5 ]
+}
 
 PUBDIR="$(mktemp -d /tmp/gorge-smoke-public-XXXXXX)"
 OMNDIR="$(mktemp -d /tmp/gorge-smoke-omni-XXXXXX)"
 SEATDIR="$(mktemp -d /tmp/gorge-smoke-seat-XXXXXX)"
 FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-ui24-XXXXXX)"
+TALISDIR="$(mktemp -d /tmp/gorge-smoke-talisman-XXXXXX)"
 SERVER_PIDS=()
 
 cleanup() {
@@ -95,7 +99,7 @@ cleanup() {
     [ "$alive" -eq 0 ] && break
     sleep 0.1
   done
-  rm -rf "$PUBDIR" "$OMNDIR" "$SEATDIR" "$FIXTUREDIR" "$VITE_CACHE_DIR"
+  rm -rf "$PUBDIR" "$OMNDIR" "$SEATDIR" "$FIXTUREDIR" "$TALISDIR" "$VITE_CACHE_DIR"
 }
 trap cleanup EXIT
 
@@ -132,19 +136,77 @@ start_seated_server() {
   SERVER_PIDS+=("$!")
 }
 
-start_server "$PUBPORT" "$PUBDIR" public  "$PUBDIR/server.log"
-start_server "$OMNPORT" "$OMNDIR" omniscient "$OMNDIR/server.log"
-start_seated_server "$SEATPORT" "$SEATDIR" "$SEATDIR/server.log"
+# start_farm starts all five servers on the current PORTS allocation and
+# records every pid. Kept as one function so the bind-race retry below can
+# rerun it wholesale.
+start_farm() {
+  SERVER_PIDS=()
+  PUBPORT="${PORTS[0]}"
+  OMNPORT="${PORTS[1]}"
+  SEATPORT="${PORTS[2]}"
+  FIXTUREPORT="${PORTS[3]}"
+  TALISPORT="${PORTS[4]}"
 
-# ui24/wheel1: deterministic human hands with zero-cost Memnites plus the
-# Underground Sea that exercises the two-stage mana wheel. The tracked fixture
-# is a deck list (names/counts), never Forge card text.
-./bin/gorged -addr "127.0.0.1:$FIXTUREPORT" -dir "$FIXTUREDIR" -spectator omniscient \
-  -decks web/e2e/fixtures/decks -tables 1 -seats 2 -pace 0 -seed 24 \
-  -mulligans 0 -perpetual=false -humans 0,1 -seat-token ui24fixture >"$FIXTUREDIR/server.log" 2>&1 &
-SERVER_PIDS+=("$!")
+  start_server "$PUBPORT" "$PUBDIR" public  "$PUBDIR/server.log"
+  start_server "$OMNPORT" "$OMNDIR" omniscient "$OMNDIR/server.log"
+  start_seated_server "$SEATPORT" "$SEATDIR" "$SEATDIR/server.log"
 
-echo "== smoke: starting gorged (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT) =="
+  # ui24/wheel1: deterministic human hands with zero-cost Memnites plus the
+  # Underground Sea that exercises the two-stage mana wheel. The tracked fixture
+  # is a deck list (names/counts), never Forge card text.
+  ./bin/gorged -addr "127.0.0.1:$FIXTUREPORT" -dir "$FIXTUREDIR" -spectator omniscient \
+    -decks web/e2e/fixtures/decks -tables 1 -seats 2 -pace 0 -seed 24 \
+    -mulligans 0 -perpetual=false -humans 0,1 -seat-token ui24fixture >"$FIXTUREDIR/server.log" 2>&1 &
+  SERVER_PIDS+=("$!")
+
+  # fb-e079def5: the two-stage Talisman continuation. The fixture gets a
+  # Talisman of Indulgence castable by turn 2 (two Mountains for its {2} cost),
+  # then stops at the priority window whose Talisman activation poses the
+  # stage-1 ability wheel the browser test answers THROUGH the picker — the
+  # path whose stage-2 colour ask must re-open the wheel at the card.
+  ./bin/gorged -addr "127.0.0.1:$TALISPORT" -dir "$TALISDIR" -spectator omniscient \
+    -decks web/e2e/fixtures/decks-talisman -tables 1 -seats 2 -pace 0 -seed 7 \
+    -mulligans 0 -perpetual=false -humans 0,1 -seat-token talismanwheel >"$TALISDIR/server.log" 2>&1 &
+  SERVER_PIDS+=("$!")
+}
+
+# The bind race: a gorged that lost the port to a concurrent gate exits within
+# milliseconds, so a short settle and a liveness check on every pid decides
+# whether this attempt owns all five ports. On a loss, kill what did start,
+# wait out the winner's own scan (so the rescan sees its ports taken), throw
+# away the persistence dirs (a retried farm must never resume a
+# half-written one — the seeded t1 resume path would leak into the run), and
+# try fresh ports. Five attempts is generous: the contention window is the
+# other gate's own scan-to-bind, not its whole run.
+farm=false
+for attempt in 1 2 3 4 5; do
+  if ! allocate_ports; then
+    echo "smoke: need five free ports in 8090-8099" >&2
+    exit 1
+  fi
+  start_farm
+  sleep 1
+  lost=""
+  for pid in "${SERVER_PIDS[@]}"; do
+    kill -0 "$pid" 2>/dev/null || lost="$lost $pid"
+  done
+  if [ -z "$lost" ]; then farm=true; break; fi
+  echo "smoke: bind race on 8090-8099 (attempt $attempt, dead pids:$lost) — rescanning" >&2
+  for pid in "${SERVER_PIDS[@]}"; do kill "$pid" 2>/dev/null || true; done
+  sleep 2
+  rm -rf "$PUBDIR" "$OMNDIR" "$SEATDIR" "$FIXTUREDIR" "$TALISDIR"
+  PUBDIR="$(mktemp -d /tmp/gorge-smoke-public-XXXXXX)"
+  OMNDIR="$(mktemp -d /tmp/gorge-smoke-omni-XXXXXX)"
+  SEATDIR="$(mktemp -d /tmp/gorge-smoke-seat-XXXXXX)"
+  FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-ui24-XXXXXX)"
+  TALISDIR="$(mktemp -d /tmp/gorge-smoke-talisman-XXXXXX)"
+done
+if [ "$farm" != true ]; then
+  echo "smoke: 8090-8099 stayed contended after 5 attempts — another gate holds the range" >&2
+  exit 1
+fi
+
+echo "== smoke: gorged farm up (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT) =="
 if ! wait_ready "$PUBPORT"; then
   echo "smoke: public gorged on :$PUBPORT never became ready:" >&2
   sed -n '1,60p' "$PUBDIR/server.log" >&2 || true
@@ -165,15 +227,20 @@ if ! wait_ready "$FIXTUREPORT"; then
   sed -n '1,60p' "$FIXTUREDIR/server.log" >&2 || true
   exit 1
 fi
+if ! wait_ready "$TALISPORT"; then
+  echo "smoke: talisman fixture gorged on :$TALISPORT never became ready:" >&2
+  sed -n '1,60p' "$TALISDIR/server.log" >&2 || true
+  exit 1
+fi
 echo "== smoke: driving the browser gate =="
 set +e
-( cd web && SMOKE_PUBLIC="http://127.0.0.1:$PUBPORT" SMOKE_OMNI="http://127.0.0.1:$OMNPORT" SMOKE_SEATED="http://127.0.0.1:$SEATPORT" SMOKE_FIXTURE="http://127.0.0.1:$FIXTUREPORT" SMOKE_WHEEL="http://127.0.0.1:$FIXTUREPORT" npx playwright test )
+( cd web && SMOKE_PUBLIC="http://127.0.0.1:$PUBPORT" SMOKE_OMNI="http://127.0.0.1:$OMNPORT" SMOKE_SEATED="http://127.0.0.1:$SEATPORT" SMOKE_FIXTURE="http://127.0.0.1:$FIXTUREPORT" SMOKE_WHEEL="http://127.0.0.1:$FIXTUREPORT" SMOKE_TALISMAN="http://127.0.0.1:$TALISPORT" npx playwright test )
 status=$?
 set -e
 
 if [ "$status" -eq 0 ]; then
-  echo "== smoke: PASS (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT) =="
+  echo "== smoke: PASS (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT) =="
 else
-  echo "== smoke: FAIL (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT) =="
+  echo "== smoke: FAIL (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT) =="
 fi
 exit "$status"

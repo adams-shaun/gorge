@@ -250,7 +250,7 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
     expect(state.note.kind).toBe('off');
   });
 
-  it('the own-objects segments carry both rules and write through editSettings', () => {
+  it('the own-objects segments carry both rules, write through editSettings, and say step stops still apply', () => {
     const state = new SeatPanelState('t1', 1, ctx, null);
     const html = panel(state);
     expect(tag(html, 'data-own="never"')).toContain('aria-pressed="true"');
@@ -259,6 +259,13 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
     state.editSettings({ ownObjects: 'if-respondable' });
     const next = panel(state);
     expect(tag(next, 'data-own="if-respondable"')).toContain('aria-pressed="true"');
+    // fb-20260916T225211Z: the awareness gap the Deadly Rollick report is
+    // about — the knob governs only the own-object stack rule, and the panel
+    // must say the step-stop table below still stops every window it names,
+    // own object on the stack or not.
+    const legend = elem(next, 'data-own-legend');
+    expect(legend).toContain('step stops below still apply');
+    expect(legend).toContain('your own object on it');
   });
 
   it('the pacing picker matches an exact (step/resolve) pair and writes through editSettings', () => {
@@ -493,5 +500,39 @@ describe('PlaySettingsPanel — Layout section (fb-20260916T182801Z)', () => {
     store.dispose();
     const calm = panel(new SeatPanelState('yt-layout3', 1, ctx, null));
     expect(elem(calm, 'data-layout-scale="creatures"')).toContain('100%');
+  });
+
+  it('the on-board steppers show/hide toggle reads Hidden by default and flips the store (fb-20260917T004304Z default flip)', () => {
+    const store = layoutStore;
+    try {
+      const html = panel(new SeatPanelState('yt-toggle1', 1, ctx, null));
+      expect(html).toContain('data-layout-steppers-toggle');
+      // a role="switch" row like the other toggles, OFF at the shipped default
+      expect(tag(html, 'data-toggle="steppers-on-board"')).toContain('role="switch"');
+      expect(tag(html, 'data-layout-steppers-toggle')).toContain('aria-checked="false"');
+      expect(elem(html, 'data-layout-steppers-toggle')).toContain('Hidden');
+
+      // the exact call the toggle's onclick makes; aria-checked follows
+      store.setSteppersOnBoard(true);
+      const on = panel(new SeatPanelState('yt-toggle2', 1, ctx, null));
+      expect(tag(on, 'data-layout-steppers-toggle')).toContain('aria-checked="true"');
+      expect(elem(on, 'data-layout-steppers-toggle')).toContain('Shown');
+
+      // ...and the panel's OWN per-zone steppers/alignment rows stay mounted
+      // regardless of the toggle: they are the way back once the board marks
+      // are hidden.
+      for (const zone of ['creatures', 'others', 'lands', 'hand'] as const) {
+        const row = elem(on, `data-layout-zone="${zone}"`);
+        expect(row).not.toBe('');
+        expect(row).toContain('data-layout-smaller');
+        expect(row).toContain('data-layout-larger');
+        expect(row).toContain('data-layout-align');
+      }
+      expect(on).toContain('data-peek-picker');
+      expect(on).toContain('data-layout-reset');
+    } finally {
+      store.reset();
+      store.dispose();
+    }
   });
 });

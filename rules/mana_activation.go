@@ -84,6 +84,7 @@ type manaUnlessActivation struct {
 	cast       bool
 	cumulative bool
 	triggers   []pendingTrigger
+	sacs       []state.ObjID
 	payers     []state.PlayerID
 	next       int
 }
@@ -230,11 +231,43 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 		Prompt: "Choose a mana ability of " + o.Face().Name, Source: source}
 	for i, ma := range abilities {
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: source,
-			Ability: i, Label: "Add " + strings.TrimSpace(ma.Params["Produced"])})
+			Ability: i, Label: manaAbilityLabel(ma)})
 	}
 	e.manaActivation = &manaActivation{player: p, source: source, abilities: abilities, cast: cast, cumulative: cumulative}
 	e.choosing = chooseMana
 	e.ask(d)
+}
+
+// manaAbilityLabel renders a mana ability's Produced$ value as the label the
+// stage-1 "choose a mana ability" wheel shows (task fb-e079def5). The raw
+// script token ("Combo B R", "Any") is engine jargon a player cannot read,
+// and it defeats the client's mana-pip styling for the whole wheel (the web
+// tints an option list only when EVERY label is a single "Add <C>"), so a
+// Talisman-of-Indulgence-shaped source rendered as plain grey text. The
+// sibling ask sites (askManaColor, askTriggeredManaColor, the replacement
+// colour ask in replacement.go) already emit resolved single colours -- this
+// was the one label site that leaked the raw Produced string. Combo
+// <colours> reads "Add B or R" (three or more: comma-separated, the last
+// joined with "or"); Any/Combo Any read "Add any color" (the oracle's own
+// wording, CR 107.4); Produced$ Chosen reads "Add chosen color"; anything
+// else -- a plain single colour or C (the shape the wheel tints), a doubled
+// "RR", a Special expression -- keeps the bare "Add <value>" shape.
+func manaAbilityLabel(ma *cards.SA) string {
+	produced := strings.TrimSpace(ma.Params["Produced"])
+	switch produced {
+	case "Any", "Combo Any":
+		return "Add any color"
+	case "Chosen":
+		return "Add chosen color"
+	}
+	if cols, ok := effects.ComboColours(produced); ok {
+		if len(cols) == 1 {
+			return "Add " + cols[0]
+		}
+		last := len(cols) - 1
+		return "Add " + strings.Join(cols[:last], ", ") + " or " + cols[last]
+	}
+	return "Add " + produced
 }
 
 // manaAbilityPayable is the mana-ability equivalent of the cast cost gate.
@@ -460,7 +493,7 @@ func (e *Engine) commitManaDiscard() {
 	}
 	e.manaDiscardActivation = nil
 	e.choosing = chooseNone
-	e.resolveManaEffect(md.player, md.source, md.ability, md.cast, md.cumulative, manaTriggers)
+	e.resolveManaEffect(md.player, md.source, md.ability, md.cast, md.cumulative, manaTriggers, md.sacs)
 	if md.cumulative && e.choosing == chooseNone {
 		e.paymentWindowAsk()
 	}
@@ -676,12 +709,16 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 	for _, id := range sacs {
 		e.emit(events.Sacrifice(id))
 	}
-	e.resolveManaEffect(p, source, ma, cast, payment, manaTriggers)
+	e.resolveManaEffect(p, source, ma, cast, payment, manaTriggers, sacs)
 }
 
-func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger) {
+// resolveManaEffect resolves the mana a paid ability produces. sacs carries
+// the permanents the ability's Sac<...> cost sacrificed, so a ManaReflected
+// Valid$ "Defined.Sacrificed" selector (Squandered Resources) can read them
+// through the resolution context's Remembered list.
+func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, sacs []state.ObjID) {
 	if strings.TrimSpace(ma.Params["UnlessCost"]) != "" {
-		e.askManaUnless(p, source, ma, cast, cumulative, triggers)
+		e.askManaUnless(p, source, ma, cast, cumulative, triggers, sacs)
 		return
 	}
 	produced := strings.TrimSpace(ma.Params["Produced"])
@@ -693,6 +730,9 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 				}
 				return nil
 			}()}
+		for _, id := range sacs {
+			ctx.Remembered = append(ctx.Remembered, state.Target{Obj: id})
+		}
 		cols := effects.ManaReflectedCandidates(e, ctx, ma)
 		switch len(cols) {
 		case 0:
@@ -722,6 +762,35 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		e.askManaColor(p, source, ma, cast, cumulative, triggers, colours)
 		return
 	}
+	// "ColorIdentity" (Command Tower, Arcane Signet: "Add one mana of any
+	// color in your commander's color identity") is a colour choice scoped to
+	// the activating player's commander colour identity (CR 903.4). Every
+	// corpus occurrence is an AB$ Mana activation (6 files), so the branch
+	// lives on the activation path only; the token is matched on the Produced
+	// value itself (with or without the "Combo " prefix) rather than on the
+	// API, so a future trigger carrying it cannot silently degrade. Colours
+	// come in fixed WUBRG order: none (no commander, or a colourless one) keeps
+	// today's fail-closed fall-through (CR 903.4's "any color" of an empty
+	// identity is nothing, not colourless), one resolves directly (a decision
+	// nobody could answer differently must not be posed), two or more ask.
+	if isColourIdentityProduced(produced) {
+		cols := e.commanderIdentityColours(p)
+		switch len(cols) {
+		case 1:
+			e.resolveManaEffectColor(p, source, ma, cols[0])
+			e.resolveTriggeredManaAbilities(triggers, cast)
+			if cumulative && e.choosing == chooseNone {
+				e.paymentWindowAsk()
+			}
+			return
+		default:
+			if len(cols) > 1 {
+				e.askManaColor(p, source, ma, cast, cumulative, triggers, cols)
+				return
+			}
+			// 0 colours: fall through to the fail-closed resolve below.
+		}
+	}
 	e.resolveManaEffectColor(p, source, ma, produced)
 	e.resolveTriggeredManaAbilities(triggers, cast)
 	if cumulative && e.choosing == chooseNone {
@@ -733,7 +802,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 // contract. Activated mana abilities cannot use effects.Host.Ask's stack
 // resume point, but their payer still receives an ordinary KModes decision
 // and rules charges exactly the same parsed cost on a "pay" answer.
-func (e *Engine) askManaUnless(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger) {
+func (e *Engine) askManaUnless(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, sacs []state.ObjID) {
 	ctx := &effects.Ctx{Source: source, Controller: p}
 	var payers []state.PlayerID
 	for _, t := range effects.UnlessPayers(e, ctx, ma) {
@@ -745,7 +814,7 @@ func (e *Engine) askManaUnless(p state.PlayerID, source state.ObjID, ma *cards.S
 		payers = []state.PlayerID{p}
 	}
 	e.manaUnlessActivation = &manaUnlessActivation{player: p, source: source, ability: ma,
-		cast: cast, cumulative: cumulative, triggers: triggers, payers: payers}
+		cast: cast, cumulative: cumulative, triggers: triggers, sacs: sacs, payers: payers}
 	e.askManaUnlessDecision()
 }
 
@@ -813,7 +882,7 @@ func (e *Engine) finishManaUnlessPayment(paid bool) {
 			delete(cp.Params, "UnlessCost")
 			delete(cp.Params, "UnlessPayer")
 			delete(cp.Params, "UnlessSwitched")
-			e.resolveManaEffect(m.player, m.source, &cp, m.cast, m.cumulative, m.triggers)
+			e.resolveManaEffect(m.player, m.source, &cp, m.cast, m.cumulative, m.triggers, m.sacs)
 		} else {
 			e.resolveTriggeredManaAbilities(m.triggers, m.cast)
 		}
@@ -850,9 +919,16 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 // verbatim from the oracle shape (Produced$ Any / Combo Any, CR 107.4) so the
 // player sees that the ONE choice covers all of the mana; a restricted
 // "Combo <colours>" shape is not "any" colour, so its prompt only names the
-// amount.
+// amount; a ColorIdentity shape names the commander-identity restriction so
+// the player knows WHY the offer is narrower than five colours (the oracle
+// wording, "any color in your commander's color identity", kept verbatim).
 func manaColourPrompt(ma *cards.SA) string {
 	generic := "Choose a colour of mana"
+	shape := strings.TrimSpace(ma.Params["Produced"])
+	identity := isColourIdentityProduced(shape)
+	if identity {
+		generic = "Choose a colour in your commander's color identity"
+	}
 	raw, ok := ma.Params["Amount"]
 	if !ok {
 		// No Amount$ param: stay generic — the prompt must not invent an
@@ -866,8 +942,10 @@ func manaColourPrompt(ma *cards.SA) string {
 		// wrong number in the prompt is worse than no number.
 		return generic
 	}
-	switch strings.TrimSpace(ma.Params["Produced"]) {
-	case "Any", "Combo Any":
+	switch {
+	case identity:
+		return fmt.Sprintf("Add %d mana of any color in your commander's color identity — choose the colour", n)
+	case shape == "Any" || shape == "Combo Any":
 		return fmt.Sprintf("Add %d mana of any one color — choose the colour", n)
 	default:
 		return fmt.Sprintf("Add %d mana — choose the colour", n)
@@ -946,4 +1024,46 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 		e.resolveManaAbility(ma.player, ma.source, ma.abilities[idx], ma.cast, ma.cumulative)
 	}
 	return ma.cast
+}
+
+// isColourIdentityProduced reports whether a Produced$ value is the
+// commander-identity choice shape — the literal "ColorIdentity" or the combo
+// form "Combo ColorIdentity" (Command Tower, Arcane Signet, Commander's
+// Sphere, Hidden Hideout, Opal Palace, Path of Ancestry). Shared by the
+// activation-path branch in resolveManaEffect and manaColourPrompt's
+// restricted wording so the two cannot disagree.
+func isColourIdentityProduced(produced string) bool {
+	return produced == "ColorIdentity" || produced == "Combo ColorIdentity"
+}
+
+// commanderIdentityColours expands seat p's commander colour identity to the
+// colours it names, in fixed WUBRG order (the order cards.Face's colour bits
+// are declared in, and the order deck/deck.go's identity checks read — no map
+// range, so the offer order is deterministic). The identity is the bitwise
+// union of every commander's full-card identity (cards.Card.ColourIdentity
+// unions over faces), read off the live command-zone objects
+// (state.Player.Commanders, populated at genesis and stable across zone
+// moves). A seat with no commanders — or commanders whose identity is empty
+// (colourless, CR 903.4) — yields a nil slice: "any color" of an empty
+// identity is no colour at all, so the caller keeps its fail-closed
+// behaviour.
+func (e *Engine) commanderIdentityColours(p state.PlayerID) []string {
+	if int(p) >= len(e.G.Players) {
+		return nil
+	}
+	var m uint8
+	for _, cid := range e.G.Players[p].Commanders {
+		o := e.G.Obj(cid)
+		if o == nil || o.Card == nil {
+			continue
+		}
+		m |= o.Card.ColourIdentity()
+	}
+	var cols []string
+	for i, sym := range []string{"W", "U", "B", "R", "G"} {
+		if m&(1<<uint(i)) != 0 {
+			cols = append(cols, sym)
+		}
+	}
+	return cols
 }

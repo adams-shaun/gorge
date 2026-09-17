@@ -262,7 +262,52 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if _, present := sa.Params["Origin"]; present && !originAll && !zoneIn(originZones, o.Zone) {
 			continue
 		}
-		settleChangeZoneMove(h, c, sa, o.ID, o.Zone, to, withKind, withAmt)
+		// Inlined rather than routed through settleChangeZoneMove: this loop
+		// carries the exiled-with association and the RememberChanged$
+		// event-backed rider (eventRemember) in a specific order (MoveZone,
+		// exiled-with, RememberChanged, WithCounters) that predates the
+		// shared settle helper, and neither is shared with that helper's
+		// other callers (see settleChangeZoneMoveAs's doc comment). The
+		// MoveZone event itself still goes through moveZoneEvent (every exile
+		// mover shares that one constructor) plus the same Imprint$True/
+		// ExiledWithSource-static IDs augmentation settleChangeZoneMoveAs
+		// applies, so events.Apply's ExiledWith-scalar derivation (o.ExiledWith
+		// = e.IDs[0]) fires here exactly as it does on that path -- Chrome
+		// Mox's own DefinedCards$ ExiledWith read needs it, not just the
+		// distinct ExiledCards list exiledWithAssociation below maintains.
+		ev := moveZoneEvent(c, o.ID, o.Zone, to)
+		if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
+			ev.IDs = []state.ObjID{c.Source}
+		}
+		h.Emit(ev)
+		exiledWithAssociation(h, c, o.ID, to)
+		// RememberLKI$ True (Reanimate's "creature card" whose mana value the
+		// chained lose-life SVar reads, RememberedLKI$CardManaCost) joins the
+		// moved object to the ability's Remembered -- a resolution-local Ctx
+		// value, replayed identically because replay re-runs the same SA. The
+		// two flags stack; an object is not remembered twice.
+		if strings.EqualFold(sa.Params["RememberLKI"], "True") &&
+			!strings.EqualFold(sa.Params["RememberChanged"], "True") {
+			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+		}
+		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			eventRemember(h, c, o.ID)
+		}
+		if withKind != "" && to == state.ZBattlefield {
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
+		}
+		// GainControl$ hands the moved object to the named player (Reanimate:
+		// "return target creature card... to the battlefield under your
+		// control"). Only a battlefield entry can carry a control change (CR
+		// 701.22a controls permanents); a card moved to a hidden or public
+		// non-battlefield zone keeps its owner. Not part of the "inlined
+		// rather than settleChangeZoneMove" scoping above -- GainControl$ is
+		// unconditional on the move landing on the battlefield, the same as
+		// settleChangeZoneMoveAs's own tail call.
+		if to == state.ZBattlefield {
+			applyGainControl(h, c, sa, o.ID)
+		}
 		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
 			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
 				imprinted = append(imprinted, o.ID)
@@ -302,6 +347,72 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 // library paths, but not for a card entering from hand; before every such
 // move this common path makes the narrowing replay-visible rather than
 // silently entering the card untapped.
+//
+// The exiled-with association and the RememberChanged$ event-backed rider
+// (eventRemember) are NOT done here: they are scoped to the two ORIGINAL
+// ChangeZone movers that carried them before this helper existed (the
+// object-target loop in effChangeZone and applyLibrarySearch's hidden-search
+// mover), not to every caller of this now-shared settle path -- widening
+// their scope here would move acceptance-game replay hashes beyond the
+// reviewed change.
+
+// gainControlOf resolves a ChangeZone SA's GainControl$ parameter (Reanimate's
+// "onto the battlefield under your control", Control Magic-family Steal
+// effects' "under your control") and returns the player the moved object must
+// come under the control of. Forge's ChangeZoneEffect names the gain target
+// in that one parameter: "True" and "You" both mean the resolving
+// controller (the corpus's 287 True lines and 43 You lines); every other
+// value is a player selector resolved through the shared Defined grammar
+// (ChosenPlayer, Targeted, Player.IsRemembered, ParentTarget, ...), taking
+// the first resolved player deterministically. The third return reports
+// whether the parameter is PRESENT at all; the second whether the value
+// resolved. An unresolvable value (a spec whose resolution names no player,
+// or one the Defined grammar does not know) is false and the caller is loud
+// rather than silently keeping the owner -- the same fail-closed convention
+// every unread parameter here follows.
+func gainControlOf(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool, bool) {
+	raw, present := sa.Params["GainControl"]
+	if !present || strings.TrimSpace(raw) == "" {
+		return 0, false, true
+	}
+	if strings.EqualFold(raw, "True") || strings.EqualFold(raw, "You") {
+		return c.Controller, true, true
+	}
+	targets, known := definedSpec(h, c, raw)
+	if !known {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "unrecognised ChangeZone GainControl$ " + raw})
+		return 0, false, true
+	}
+	for _, t := range targets {
+		if t.IsPlayer {
+			return t.Player, true, true
+		}
+		if o := h.Game().Obj(t.Obj); o != nil {
+			return o.Controller, true, true
+		}
+	}
+	// The selector resolved (its grammar is known) but named no living
+	// player: nothing to hand control to, and no silent owner-keep either.
+	return 0, false, true
+}
+
+// applyGainControl emits the ControlChange that hands a just-moved object to
+// the GainControl$ player, after the Move has placed it. Order matters: the
+// move establishes the entry (controller = owner, CR 400.7), the control
+// change is the CR 701.22a "gains control" step on top, and replay folds the
+// two events in the same order live does.
+func applyGainControl(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
+	p, ok, present := gainControlOf(h, c, sa)
+	if !present || !ok {
+		return
+	}
+	if o := h.Game().Obj(id); o != nil && o.Controller != p {
+		h.Emit(events.Event{Kind: events.ControlChange, Obj: id, Player: p,
+			Text: "GainControl"})
+	}
+}
+
 func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool) {
 	if from == state.ZHand && to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 		notePlayer := c.Controller
@@ -312,15 +423,61 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 			Text: "Tapped$ True on a hand ChangeZone is not implemented; the card enters untapped"})
 	}
 	ev := moveZoneEvent(c, id, from, to)
+	if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
+		// The S: static spelling of the same provenance need: a source whose
+		// own Static lines name ExiledWithSource (Intellect Devourer's
+		// MayPlay+ExiledWithSource grant) tracks its exiles exactly like the
+		// SVar shapes exileProvenanceNeeded covers; Imprint$ True is the
+		// Chrome Mox spelling, feeding the Defined.Imprinted reflected-mana
+		// selector. Extra IDs on an exile move are inert for every consumer
+		// that never reads them.
+		ev.IDs = []state.ObjID{c.Source}
+	}
 	if hasPlayer {
 		ev.Player = player
 	}
 	h.Emit(ev)
+	// RememberLKI$ True (the corpus's 77 ChangeZone lines -- Reanimate's
+	// "creature card" whose mana value the chained lose-life SVar reads,
+	// RememberedLKI$CardManaCost) joins the moved object to the ability's
+	// Remembered. Same Ctx binding RememberChanged$ uses: a resolution-local
+	// value, replayed identically because replay re-runs the same SA. The two
+	// flags stack; an object is not remembered twice. RememberLKI$
+	// Targeted (2 lines, a different capture point -- the CHOSEN target, not
+	// the moved object) is left to its own work and is not silently folded
+	// into this read.
+	if strings.EqualFold(sa.Params["RememberLKI"], "True") &&
+		!strings.EqualFold(sa.Params["RememberChanged"], "True") {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
+	}
 	if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 	}
 	if withKind != "" && to == state.ZBattlefield {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: withKind, Amount: withAmt})
+	}
+	// GainControl$ hands the moved object to the named player. Only a
+	// battlefield entry can carry a control change (CR 701.22a controls
+	// permanents); a card moved to a hidden or public non-battlefield zone
+	// keeps its owner.
+	if to == state.ZBattlefield {
+		applyGainControl(h, c, sa, id)
+	}
+}
+
+// exiledWithAssociation emits Forge's ChangeZoneEffect.handleExiledWith
+// association for a non-token card this effect just exiled: the host's
+// distinct exiledCards collection. It is deliberately NOT an ImprintCards$
+// association: DefinedCards$ ExiledWith consumes this list, while
+// ImprintedController only consumes explicit ImprintCards$ entries. Scoped to
+// the object-target loop and applyLibrarySearch, the two movers that carried
+// this association originally.
+func exiledWithAssociation(h Host, c *Ctx, id state.ObjID, to state.Zone) {
+	if to != state.ZExile || c.Source == 0 {
+		return
+	}
+	if o := h.Game().Obj(id); o != nil && !o.IsToken {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}, Text: "exiled-with"})
 	}
 }
 
@@ -1092,11 +1249,17 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
-		// A nested hidden search resumes in the same resolution, not from a
-		// blank spell context. The fetch list built by a preceding search is
-		// therefore available to Card.IsRemembered and Defined$ Remembered in
-		// the rest of this chain.
-		ResumeRemembered: append([]state.Target(nil), c.Remembered...),
+		// The walk's Remembered rides the ask (rules restores it on the
+		// resume) so the re-entered eligibility recheck and the SubAbility$
+		// after this one still see the cards RememberChanged$ captured -- a
+		// cast spell's mid-resolution Remembered lives only in the resolving
+		// Ctx frame, and without the ride the answer's recheck (and Nissa's
+		// Pilgrimage's "one onto the battlefield" leg) would re-resolve
+		// IsRemembered against an empty set and move nothing. A nested hidden
+		// search resumes in the same resolution too, so the fetch list built
+		// by a preceding search stays available to Card.IsRemembered and
+		// Defined$ Remembered in the rest of this chain.
+		ResumeRemembered: copyTargets(c.Remembered),
 		Prompt:           prompt}
 	for _, id := range eligible {
 		name := "a card"
@@ -1366,13 +1529,25 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		ev := moveZoneEvent(c, id, state.ZLibrary, to)
 		ev.Player = owner
 		h.Emit(ev)
+		if to == state.ZExile && c.Source != 0 {
+			if o := g.Obj(id); o != nil && !o.IsToken {
+				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}, Text: "exiled-with"})
+			}
+		}
 		moved = append(moved, id)
 		if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
 				Counter: sa.Params["WithCountersType"], Amount: withCounterAmount(h, c, sa)})
 		}
+		// GainControl$ on a library search (Act on Impulse's "you may play
+		// those cards" family's put-onto-battlefield relatives): same settle
+		// order as every other mover -- move first, then the control change.
+		if to == state.ZBattlefield {
+			applyGainControl(h, c, sa, id)
+		}
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 			// This establishes the object's entry state; it is not the CR
@@ -1664,6 +1839,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			// what a following ConditionDefined$ Remembered, Remembered$Amount
 			// or RememberedCard reads (Braids, Scapeshift, Victimize).
 			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
 	}
 	// fx42 scoping: capture and clear the answered per-player pick BEFORE the

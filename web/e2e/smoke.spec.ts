@@ -27,6 +27,7 @@ const OMNI = process.env.SMOKE_OMNI;
 const SEATED = process.env.SMOKE_SEATED;
 const FIXTURE = process.env.SMOKE_FIXTURE;
 const WHEEL = process.env.SMOKE_WHEEL;
+const TALIS = process.env.SMOKE_TALISMAN;
 
 // ui19: the seated-view gate. The two spectator modes above drove no seated
 // client, which is precisely the gap the task closes. These helpers measure
@@ -324,10 +325,14 @@ function watch(page: Page, base: string): Issues {
     // refreshPending / postIntent). It is not a product failure.
     // 502 from the Scryfall-backed proxies (/art/... images, /cards/named
     // printed facts) is gorged reporting that the UPSTREAM failed
-    // (cmd/gorged/art.go answers StatusBadGateway only on an upstream error). A Scryfall outage (observed 2026-09-14: 503
+    // (cmd/gorged/art.go answers StatusBadGateway only on an upstream error); 503
+    // on the same routes is the wait budget's "the upstream fetch had not
+    // settled within artWaitBudget — the fetch is still running detached,
+    // retry shortly" (art.go's boundedWait, added after the fb-20260917T004304Z
+    // run showed a degraded upstream wedging the page). A Scryfall outage (observed 2026-09-14: 503
     // upstream) is not a gorge product failure and must not block every web
     // merge; any other status on those paths, and every other path's failure, still counts.
-    if (r.status() === 502 && sameOrigin(base, r.url()) && /^\/(art\/|cards\/named$)/.test(new URL(r.url()).pathname)) return;
+    if ((r.status() === 502 || r.status() === 503) && sameOrigin(base, r.url()) && /^\/(art\/|cards\/named$)/.test(new URL(r.url()).pathname)) return;
     if (sameOrigin(base, r.url()) && r.status() >= 400 && r.status() !== 409) {
       c.failed.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`);
     }
@@ -887,6 +892,125 @@ test.describe('gorged [wheel1] Underground Sea fixture', () => {
       // Complete the choice so the serial ui24 test can continue driving this
       // shared real game from the next priority window.
       await blue.click();
+    } finally {
+      await ctx.close();
+    }
+  });
+});
+
+// fb-e079def5 — the two-stage Talisman continuation. A Talisman of Indulgence
+// carries TWO mana abilities ({T}: Add {C}; {T}: Add {B} or {R} plus its 1
+// damage), so activating it poses a stage-1 ability choose that the player
+// answers THROUGH the radial wheel, and the stage-2 colour ask must re-open
+// the wheel at the card. Pre-fix only the single-action badge armed the
+// continuation, so a wheel-answered stage-1 dropped the stage-2 ask into the
+// seat panel's generic option list — the reported "choice of mana color comes
+// in as generic prompt on top of screen".
+test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
+  test.skip(!TALIS, 'SMOKE_TALISMAN unset — run via scripts/smoke.sh');
+
+  const talismanToken = (seat: number): string => seat === 0 ? 'talismanwheel' : 'talismanwheel-1';
+
+  async function postTalismanIntent(request: APIRequestContext, base: string, d: WireDecision, choices: number[]): Promise<number> {
+    const resp = await request.post(`${base}/api/tables/t1/matches/1/intent`, {
+      headers: { Authorization: `Bearer ${talismanToken(d.player)}` },
+      data: { seq: d.seq, player: d.player, choices },
+    });
+    return resp.status();
+  }
+
+  /** Drive the real engine to seat 0's priority window whose options offer the
+   *  Talisman's mana activation (the Talisman cast and untapped on the
+   *  battlefield). Every earlier decision is answered by echoing one
+   *  server-provided option: in a main phase play a land, cast the Talisman
+   *  once the pool covers its {2}, or tap a Mountain (its single ability
+   *  resolves without a wheel); any other step passes, because a Mountain
+   *  tapped outside a main phase wastes its mana to the step boundary — the
+   *  Talisman's {2} would then never pool. The Talisman's own activation
+   *  (labelled "Activate Talisman …") is the STOP shape the test drives to. */
+  async function driveTalismanUntil(
+    request: APIRequestContext,
+    base: string,
+    stop: (d: WireDecision) => boolean,
+  ): Promise<WireDecision> {
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline) {
+      for (const seat of [0, 1]) {
+        const p = await request.get(`${base}/api/tables/t1/matches/1/pending?seat=${seat}&token=${talismanToken(seat)}`);
+        if (p.status() === 409) continue;
+        expect(p.ok(), `talisman pending seat ${seat}`).toBe(true);
+        const d = await p.json() as WireDecision;
+        if (stop(d)) return d;
+
+        let choices: number[] = [];
+        if (d.kind === 'priority') {
+          const v = await request.get(`${base}/api/tables/t1/matches/1/view?seat=${seat}&token=${talismanToken(seat)}`);
+          expect(v.ok(), `talisman view seat ${seat}`).toBe(true);
+          const step = (await v.json() as { step?: string }).step;
+          if (step === 'main1' || step === 'main2') {
+            const land = d.options.find((o) => o.kind === 'play_land');
+            const cast = d.options.find((o) => o.kind === 'cast' && o.label.includes('Talisman'));
+            const activate = d.options.find((o) => o.kind === 'activate' && !o.label.includes('Talisman'));
+            const pass = d.options.find((o) => o.kind === 'pass');
+            const choice = land ?? cast ?? activate ?? pass;
+            expect(choice, `talisman setup ${d.kind} seat ${seat} needs an option`).toBeDefined();
+            choices = choice ? [choice.index] : [];
+          } else {
+            const pass = d.options.find((o) => o.kind === 'pass');
+            choices = pass ? [pass.index] : [];
+          }
+        }
+        const status = await postTalismanIntent(request, base, d, choices);
+        // A 409 is a lost race against a decision that changed between the
+        // pending GET and this POST (the drive loop runs fast); re-GET on the
+        // next pass rather than failing the setup.
+        if (status !== 204 && status !== 409) {
+          expect(status, `talisman intent for ${d.kind} seat ${d.player}`).toBe(204);
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    throw new Error('talisman fixture did not reach the Talisman activation window');
+  }
+
+  test('a wheel-answered stage-1 re-opens the stage-2 colour wheel at the card', async ({ browser, request }) => {
+    const b = TALIS as string;
+    const pending = await driveTalismanUntil(request, b,
+      (d) => d.kind === 'priority' && d.player === 0 &&
+        d.options.some((o) => o.kind === 'activate' && o.label.includes('Talisman')));
+    const activation = pending.options.find((o) => o.kind === 'activate' && o.label.includes('Talisman'))!;
+    expect(activation.obj, 'the Talisman activation is card-anchored').toBeDefined();
+
+    const ctx = await browser.newContext();
+    try {
+      const page = await ctx.newPage();
+      await page.goto(`${b}/t/t1?seat=0&token=${talismanToken(0)}`, { waitUntil: 'domcontentloaded' });
+      const tile = page.locator(`.quadrant[data-seat="0"] [data-obj="${activation.obj}"]`);
+      await tile.waitFor({ state: 'visible', timeout: WAIT_MS });
+      const action = tile.locator('xpath=..').locator('[data-single-action]');
+      await action.waitFor({ state: 'visible', timeout: WAIT_MS });
+
+      // Click one: the single-action badge posts the source-level activation
+      // and the server answers with the stage-1 ability choose (Add C /
+      // Add B or R), which must open as a wheel at the card.
+      await action.click();
+      const stageOne = page.locator('body > [data-radial-picker]');
+      await expect(stageOne).toBeVisible({ timeout: WAIT_MS });
+      const combo = stageOne.locator('button[aria-label="Add B or R"]');
+      await expect(combo).toBeVisible();
+
+      // Click two (the one under test): the wheel-answered stage-1 must arm
+      // the continuation, and the stage-2 colour ask must RE-OPEN the wheel —
+      // pip-tinted Add B / Add R — never fall back to the panel's generic
+      // option list.
+      await combo.click();
+      const stageTwo = page.locator('body > [data-radial-picker]');
+      await expect(stageTwo).toBeVisible({ timeout: WAIT_MS });
+      const black = stageTwo.locator('[data-mana-option="B"]');
+      await expect(black).toBeVisible();
+      await expect(stageTwo.locator('[data-mana-option="R"]')).toBeVisible();
+      // Complete the choice so the game stays in a clean priority window.
+      await black.click();
     } finally {
       await ctx.close();
     }

@@ -578,7 +578,7 @@ func (e *Engine) askPriority(p state.PlayerID) {
 	d := &decision.Decision{
 		Player: p, Kind: decision.KPriority, Min: 1, Max: 1,
 		Prompt: fmt.Sprintf("turn %d, %s — %s has priority",
-			e.G.Turn, e.G.Step, e.G.Players[p].Name),
+			e.G.Turn, e.G.Step, seatFacingName(e.G, p)),
 		Options: e.legalActions(p),
 	}
 	e.ask(d)

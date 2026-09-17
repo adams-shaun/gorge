@@ -9,6 +9,7 @@ import (
 	"unicode"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -22,6 +23,12 @@ type CostPart struct {
 	// ExileFromHand token (the default zero value) or ZGraveyard for an
 	// ExileFromGrave token. Sac/Discard/SubCounter parts never read it.
 	Zone state.Zone
+	// Announced marks the variable-count form of a Sac part (Sac<X/Spec> --
+	// Dargo's "sacrifice any number"): the player announces the count as the
+	// cast's X (CR 601.2b) and exactly that many permanents matching Spec are
+	// sacrificed; a ReduceCost static reading the paid X composes with it.
+	// N is unused for an Announced part.
+	Announced bool
 }
 
 // ManaPair is one two-face hybrid symbol: each face is a WUBRGC mana symbol,
@@ -84,7 +91,13 @@ type Cost struct {
 	// builds: paying one draws N cards for the player(s) the spec names
 	// (default the payer). payMana never charges it; the mid-resolution
 	// unless-pay path does.
-	Draw []CostPart
+	Draw            []CostPart
+	Energy          []CostPart
+	// Return carries Return<N/Spec> tokens: a permanent (usually the source
+	// itself, Spec CARDNAME) returned to its OWNER's hand as the payment
+	// (Forge CostReturn.moveToHand; CR 118.2a lists returning a permanent to
+	// its owner's hand among the payment actions).
+	Return []CostPart
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
 	// A token lands here exactly when ParseCost could not give it real
@@ -111,6 +124,15 @@ type Cost struct {
 // description is dropped right here; the ";" alternation is folded to ","
 // (MatchesSpec's own separator) at the parse site. Ruling FL-54.
 var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard|Draw)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// sacXCost matches the announced-count sacrifice form Sac<X/Spec> (Dargo, the
+// Shipwrecker's "sacrifice any number of artifacts and/or creatures"): the
+// player announces X (0..candidates, CR 601.2b) and exactly X permanents are
+// sacrificed. The part is recorded with Spec "X" (N 0) -- the same announced
+// convention PayEnergy<X> uses -- and xAsk/sacAsk consume it; a ReduceCost
+// static that reads the paid X (Dargo's SVar X:Count$xPaid) resolves through
+// costModifiers' SVar-aware amount read.
+var sacXCost = regexp.MustCompile(`^Sac<X/([^/>]+)(?:/[^>]*)?>$`)
 
 // exileCost matches Forge's ExileFromHand<N/Spec> and ExileFromGrave<N/Spec>
 // tokens -- exiling a matching card from the named zone as a cost payment
@@ -142,6 +164,25 @@ var lifeCost = regexp.MustCompile(`^PayLife<(\d+)>$`)
 
 var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 var blightCost = regexp.MustCompile(`^Blight<(\d+)>$`)
+
+// payEnergyCost matches Forge's PayEnergy<N> and PayEnergy<X> tokens --
+// removing N energy counters from the payer (CR 118.2d; Forge
+// CostPayEnergy.canPay reads the payer's ENERGY counter total, and its
+// getMaxAmountX bounds a dynamic PayEnergy<X> by that same total). The
+// trailing "/description" Forge may append is dropped like every other
+// head. The X form is recorded as a part with Spec "X": xAsk bounds the
+// announced value by the payer's energy count and the settle spends exactly
+// that many, so the announcement and the spend cannot disagree.
+var payEnergyCost = regexp.MustCompile(`^PayEnergy<([0-9]+|X)(?:/[^>]*)?>$`)
+
+// returnCost matches Forge's Return<N/Spec> tokens -- a permanent matching
+// Spec returned to its OWNER's hand as the payment (Forge CostReturn's
+// moveToHand; its payCostFromSource branch is a Spec of CARDNAME, the source
+// itself -- Chthonian Nightmare's "Return Chthonian Nightmare to its owner's
+// hand"). N is almost always 1 (94 corpus files carry the token; every
+// parsed one is 1). The trailing description is dropped, ";"
+// alternations fold to "," like every other non-mana head.
+var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // ParseCost accepts both Forge's space-separated form ("2 U U") and the
 // bracketed oracle form ("{2}{U}{U}"). "no cost" and "" are free.
@@ -277,6 +318,43 @@ func ParseCost(s string) Cost {
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
 				c.AddCounter = append(c.AddCounter, CostPart{N: int32(n), Spec: spec})
+				continue
+			}
+			if m := sacXCost.FindStringSubmatch(sym); m != nil {
+				spec := strings.ReplaceAll(m[1], ";", ",")
+				c.Sac = append(c.Sac, CostPart{Spec: spec, Announced: true})
+				continue
+			}
+			if m := payEnergyCost.FindStringSubmatch(sym); m != nil {
+				if m[1] == "X" {
+					// The dynamic form: the SAME X the cast announces.
+					c.Energy = append(c.Energy, CostPart{Spec: "X"})
+					continue
+				}
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				c.Energy = append(c.Energy, CostPart{N: int32(n)})
+				continue
+			}
+			if m := returnCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				spec := strings.ReplaceAll(m[2], ";", ",")
+				c.Return = append(c.Return, CostPart{N: int32(n), Spec: spec})
 				continue
 			}
 			// Try to parse as a numeric token. Negative and out-of-range values
@@ -585,6 +663,12 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Blight) > 0 {
 		c.Blight = append(append([]CostPart(nil), c.Blight...), d.Blight...)
 	}
+	if len(d.Energy) > 0 {
+		c.Energy = append(append([]CostPart(nil), c.Energy...), d.Energy...)
+	}
+	if len(d.Return) > 0 {
+		c.Return = append(append([]CostPart(nil), c.Return...), d.Return...)
+	}
 	c.Forage = c.Forage || d.Forage
 	return c
 }
@@ -816,6 +900,13 @@ func formatCost(c Cost) string {
 	if c.Tap {
 		parts = append(parts, "T")
 	}
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			parts = append(parts, "PayEnergy<X>")
+		} else {
+			parts = append(parts, "PayEnergy<"+strconv.FormatInt(int64(part.N), 10)+">")
+		}
+	}
 	appendCostParts := func(kind string, costs []CostPart) {
 		for _, part := range costs {
 			parts = append(parts, kind+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
@@ -838,9 +929,12 @@ func formatCost(c Cost) string {
 	for _, part := range c.Blight {
 		parts = append(parts, "Blight<"+strconv.FormatInt(int64(part.N), 10)+">")
 	}
+	appendCostParts("Return", c.Return)
 	if c.Forage {
 		parts = append(parts, "Forage")
 	}
+	appendCostParts("PayEnergy", c.Energy)
+	appendCostParts("Return", c.Return)
 	return strings.Join(parts, " ")
 }
 
@@ -849,7 +943,7 @@ func formatCost(c Cost) string {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0
 }
 
 // Priceable reports whether payMana can actually charge every part of this
@@ -870,7 +964,8 @@ func (c Cost) Priceable() bool {
 	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
 		len(c.Draw) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 &&
 		len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
-		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0
+		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
+		len(c.Energy) == 0 && len(c.Return) == 0
 }
 
 // pip is one flexible mana demand inside a cost's mana part, as a list of
@@ -898,36 +993,77 @@ type pipAlt struct {
 // list order and each pip's alternatives in their own order, so the chosen
 // assignment is stable run to run. Snow pips come last so the search prefers
 // spending ordinary mana before touching a snow unit for generic.
-func (c Cost) costPips() []pip {
+//
+// Two payer-side grants widen the alternatives: when bLifeOK is set, every
+// plain {B} pip additionally accepts 2 life (K'rrik, Son of Yawgmoth's "For
+// each {B} in a cost, you may pay 2 life rather than pay that mana"); when
+// anyColor is set, every coloured pip (plain, hybrid, twobrid, Phyrexian or
+// hybrid-Phyrexian) is payable by ANY colour in the pool — the may-play
+// grant's MayPlayIgnoreColor$ rider, "you may spend mana as though it were
+// mana of any color to cast it" (CR 401.5). A {C} pip stays colourless-only
+// under anyColor: CR 107.4c's "any color" never includes colourless.
+func (c Cost) costPips(bLifeOK, anyColor bool) []pip {
 	var out []pip
 	// The coloured slots including the colourless one: a plain {C} pip is a
 	// strict colourless requirement generic must not satisfy by stealing the
 	// pool's only colourless, so it is reserved like any coloured pip.
 	for _, letter := range []byte{'W', 'U', 'B', 'R', 'G', 'C'} {
 		for n := c.Colored[state.ManaIndex(letter)]; n > 0; n-- {
-			out = append(out, pip{alts: []pipAlt{{color: letter}}})
+			alts := []pipAlt{{color: letter}}
+			if anyColor && letter != 'C' {
+				alts = anyColorAlts()
+			}
+			if bLifeOK && letter == 'B' {
+				alts = append(alts, pipAlt{life: 2})
+			}
+			out = append(out, pip{alts: alts})
 		}
 	}
 	for _, pair := range c.Hybrid {
-		out = append(out, pip{alts: []pipAlt{{color: pair.A}, {color: pair.B}}})
+		alts := []pipAlt{{color: pair.A}, {color: pair.B}}
+		if anyColor {
+			alts = anyColorAlts()
+		}
+		out = append(out, pip{alts: alts})
 	}
 	for _, t := range c.Twobrid {
-		alts := []pipAlt{{color: t.Col}}
+		var alts []pipAlt
+		if anyColor {
+			alts = anyColorAlts()
+		} else {
+			alts = []pipAlt{{color: t.Col}}
+		}
 		if t.Generic > 0 {
 			alts = append(alts, pipAlt{generic: t.Generic})
 		}
 		out = append(out, pip{alts: alts})
 	}
 	for _, letter := range c.Phyrexian {
-		out = append(out, pip{alts: []pipAlt{{color: letter}, {life: 2}}})
+		alts := []pipAlt{{color: letter}, {life: 2}}
+		if anyColor {
+			alts = append(anyColorAlts(), pipAlt{life: 2})
+		}
+		out = append(out, pip{alts: alts})
 	}
 	for _, hp := range c.HybridPhyrexian {
-		out = append(out, pip{alts: []pipAlt{{color: hp.A}, {color: hp.B}, {life: 2}}})
+		alts := []pipAlt{{color: hp.A}, {color: hp.B}, {life: 2}}
+		if anyColor {
+			alts = append(anyColorAlts(), pipAlt{life: 2})
+		}
+		out = append(out, pip{alts: alts})
 	}
 	for n := c.Snow; n > 0; n-- {
 		out = append(out, pip{alts: []pipAlt{{snow: true}}})
 	}
 	return out
+}
+
+// anyColorAlts is the colour alternatives a coloured pip accepts under the
+// may-play ignore-colour rider (MayPlayIgnoreColor$ True, CR 401.5): any of
+// the five colours, tried in fixed WUBRG order. A {C} pip never reaches this
+// helper: CR 107.4c's "any color" never includes colourless.
+func anyColorAlts() []pipAlt {
+	return []pipAlt{{color: 'W'}, {color: 'U'}, {color: 'B'}, {color: 'R'}, {color: 'G'}}
 }
 
 // manaPayment is what resolveMana found: the pool and snow tally after every
@@ -972,10 +1108,25 @@ func takeUnit(rem, sn *state.Mana, i int) {
 // match every pre-existing caller keeps, so games with no ManaConvert static
 // on the battlefield resolve byte-identically.
 func (c Cost) resolveMana(pool, snow state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
+	return c.resolveManaWith(pool, snow, life, false, false, conv)
+}
+
+// resolveManaWith is resolveMana with the two payer-side grants applied:
+// when bLifeOK is set, every plain {B} pip additionally accepts 2 life
+// (K'rrik, Son of Yawgmoth's "For each {B} in a cost, you may pay 2 life
+// rather than pay that mana"); when anyColor is set, every coloured pip
+// (plain, hybrid, twobrid, Phyrexian or hybrid-Phyrexian) is payable by ANY
+// colour in the pool -- the may-play grant's MayPlayIgnoreColor$ rider, "you
+// may spend mana as though it were mana of any color to cast it" (CR 401.5).
+// A {C} pip stays colourless-only under anyColor: CR 107.4c's "any color"
+// never includes colourless. Both grants keep main search's deterministic
+// first-alternative preference; the expanded alternatives are tried in fixed
+// WUBRG order (see anyColorAlts).
+func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK, anyColor bool, conv *manaConv) (manaPayment, bool) {
 	if life < c.Life {
 		return manaPayment{}, false
 	}
-	pips := c.costPips()
+	pips := c.costPips(bLifeOK, anyColor)
 	rem := pool
 	sn := snow
 	life -= c.Life
@@ -1239,4 +1390,71 @@ func ParseUnlessCost(s string) (Cost, bool) {
 		}
 	}
 	return c, true
+}
+
+// payerGrantsPayLifeInsteadOfB reports whether p's side of the battlefield
+// carries a Continuous static granting PayLifeInsteadOf:B to p (K'rrik's
+// "Affected$ You | AddKeyword$ PayLifeInsteadOf:B"). Every mana payment and
+// every cast/activation offer gate consults it, so a plain {B} pip is
+// payable with 2 life anywhere K'rrik is in play under its controller.
+func (e *Engine) payerGrantsPayLifeInsteadOfB(p state.PlayerID) bool {
+	for _, sv := range e.activeStatics("Continuous") {
+		if !slices.Contains(cards.SplitKeywordList(sv.Params["AddKeyword"]), "PayLifeInsteadOf:B") {
+			continue
+		}
+		if effects.MatchesPlayerSpec(e.G, sv.Params["Affected"], p, sv.Controller) {
+			return true
+		}
+	}
+	return false
+}
+
+// payerGrantsIgnoreColor reports whether an active may-play grant of p's
+// carrying MayPlayIgnoreColor$ True selects the card id being cast: the
+// grant is p's, its AffectedZone names the card's CURRENT zone (so a card
+// being cast the ordinary way from hand never inherits an exile grant), and
+// the Affected$ spec matches the card. The IsRemembered predicate inside a
+// grant's spec is matched against the CONTINUOUS EFFECT's Remembered set
+// (the cards the delivering Effect captured), through the SpecContext the
+// ordinary filter grammar already carries -- the same direct-list reading
+// restrictionApplies uses for Effect-delivered CantTarget/CantRegenerate.
+func (e *Engine) payerGrantsIgnoreColor(p state.PlayerID, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil {
+		return false
+	}
+	for _, ce := range e.active() {
+		if !ce.MayPlay || !ce.MayPlayIgnoreColor || ce.Controller != p {
+			continue
+		}
+		if ce.MayPlayPlayerTurn && e.G.Active != p {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if !ok && !all {
+			continue
+		}
+		if !all && !slices.Contains(zones, o.Zone) {
+			continue
+		}
+		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
+			Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+		if effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+			return true
+		}
+	}
+	return false
+}
+
+// rememberedTargets lifts a ContinuousEffect's Remembered object ids into
+// the []state.Target shape the filter grammar's SpecContext carries.
+func rememberedTargets(ids []state.ObjID) []state.Target {
+	if len(ids) == 0 {
+		return nil
+	}
+	out := make([]state.Target, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, state.Target{Obj: id})
+	}
+	return out
 }

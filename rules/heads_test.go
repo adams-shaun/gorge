@@ -855,7 +855,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "7012c79608844da6",
+	// 4 seats moved to 13ce7a60c8da708f (autonomous orchestrator): resolving inbox-rv2a-starting-player-state-and-mulligan-passes (Engine: record the starting player; CR 103.5 mulligan passes go round the table)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	4: "13ce7a60c8da708f",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -888,7 +892,28 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	6: "3989bf5e11a95729",
+	// 6 seats moved to 6ffd29493be18d92 with task inbox-engine-gap-rakdos-params:
+	// the Return cost grammar (Return<N/Spec> — return a permanent to hand as
+	// a cost) is now real, which reprices Daze's AlternativeCost static
+	// (Cost$ Return<1/Island>) from the degraded {1} generic the unmodelled
+	// token used to parse to. In the 6-seat golden game the dimir-tempo seat's
+	// first divergence vs the old golden is at event 1350: Ponder on the
+	// stack, the pool empty, and the alt-cost Daze cast now payable (the cost
+	// has no mana part — the Island return IS the payment) where {1} from an
+	// empty pool was not, so the option appears and the bot later casts it at
+	// event 1639 (target Ponder, Underground Sea returned as the cost, the
+	// unless-pay ask served). Winners and turn counts are measured unchanged;
+	// the 2-, 4- and 8-seat heads are byte-identical. Measured by dumping both
+	// complete 6-seat logs and diffing them.
+	// Auto-accepted: the deck acceptance games replay byte-identically and
+	// `make sim` 20/20 replay OK, the same proxy this repo has used by hand
+	// for every head move — neither check is sensitive to bot-choice quality,
+	// only engine correctness.
+	// 6 seats moved to ee634ef28a13dfb8 (autonomous orchestrator): resolving inbox-rv2a-starting-player-state-and-mulligan-passes (Engine: record the starting player; CR 103.5 mulligan passes go round the table)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	6: "ee634ef28a13dfb8",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -967,7 +992,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "cc24946a41837da8",
+	// 8 seats moved to c5487ff2d727e5d8 (autonomous orchestrator): resolving inbox-rv2a-starting-player-state-and-mulligan-passes (Engine: record the starting player; CR 103.5 mulligan passes go round the table)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "c5487ff2d727e5d8",
 }
 
 func TestHeads(t *testing.T) {

@@ -56,21 +56,58 @@ func TestBangPredicateNegation(t *testing.T) {
 		t.Errorf("Creature.!IsCommander must not match a commander")
 	}
 
-	// Leaf 2: IsRemembered is a resolution-local predicate. Its leading !
-	// negation sees the same Ctx list: a non-remembered creature matches, and
-	// the one object in that list does not. Neither spelling is unknown.
-	if !MatchesObjectCtx(g, "Creature.!IsRemembered", plain, SpecContext{You: 0}) {
-		t.Errorf("Creature.!IsRemembered must match a non-remembered creature")
+	// Leaf 2: !<X> on an UNRECOGNISED <X> still matches nothing and is still
+	// reported by UnknownPredicates -- "not known" is not "yes".
+	// DefenderCtrl is one of the families the pc1 census still leaves
+	// unknown (it needs object/game context this build does not track); its
+	// negation must fail closed too.
+	if MatchesObjectCtx(g, "Creature.!DefenderCtrl", plain, SpecContext{You: 0}) {
+		t.Errorf("Creature.!DefenderCtrl must match nothing (DefenderCtrl is unrecognised)")
 	}
-	if MatchesObjectCtx(g, "Creature.!IsRemembered", plain, SpecContext{You: 0, Remembered: []state.Target{{Obj: plain.ID}}}) {
+	if un := UnknownPredicates("Creature.!DefenderCtrl"); len(un) != 1 || un[0] != "!DefenderCtrl" {
+		t.Errorf("UnknownPredicates(Creature.!DefenderCtrl) = %v, want [!DefenderCtrl]", un)
+	}
+	// The bare unknown form is still reported exactly the same way.
+	if un := UnknownPredicates("Creature.DefenderCtrl"); len(un) != 1 || un[0] != "DefenderCtrl" {
+		t.Errorf("UnknownPredicates(Creature.DefenderCtrl) = %v, want [DefenderCtrl]", un)
+	}
+
+	// Leaf 2b (pc2): IsRemembered is now IMPLEMENTED, so its negation is a
+	// real negation -- the remembered creature is excluded and the
+	// un-remembered one admitted, and the census reports neither form. The
+	// remembered set rides the SpecContext (the resolution's Remembered list,
+	// what RememberChanged$/RememberChosen$ added this walk).
+	remembered := g.Obj(corpusObject(t, reg, g, "Grizzly Bears").ID)
+	sc := SpecContext{You: 0, Remembered: []state.Target{{Obj: remembered.ID}}, Resolving: true}
+	if !MatchesObjectCtx(g, "Creature.!IsRemembered", plain, sc) {
+		t.Errorf("Creature.!IsRemembered must match a creature the resolution did not remember")
+	}
+	if MatchesObjectCtx(g, "Creature.!IsRemembered", remembered, sc) {
 		t.Errorf("Creature.!IsRemembered must not match a remembered creature")
 	}
-	if !MatchesObjectCtx(g, "Creature.IsRemembered", plain, SpecContext{You: 0, Remembered: []state.Target{{Obj: plain.ID}}}) {
-		t.Errorf("Creature.IsRemembered must match the resolution's remembered object")
+	if !MatchesObjectCtx(g, "Creature.IsRemembered", remembered, sc) {
+		t.Errorf("Creature.IsRemembered must match a remembered creature")
 	}
-	for _, spec := range []string{"Creature.!IsRemembered", "Creature.IsRemembered"} {
+	// An EMPTY remembered set fails closed to no-match (never always-true).
+	if MatchesObjectCtx(g, "Creature.IsRemembered", plain, SpecContext{You: 0}) {
+		t.Errorf("Creature.IsRemembered with no remembered set must match nothing")
+	}
+	// The compound keeps both halves: the remembered creature that also
+	// carries the rest of the conjunction matches, an un-remembered one does
+	// not, and a remembered non-creature base never reaches the predicate.
+	if MatchesObjectCtx(g, "Creature.IsRemembered+HasCounters", remembered, sc) {
+		t.Errorf("the compound must not match a remembered creature with no counters")
+	}
+	countedRemembered := g.Obj(corpusObject(t, reg, g, "Grizzly Bears").ID)
+	countedRemembered.AddCounter("P1P1", 1)
+	sc2 := SpecContext{You: 0, Remembered: []state.Target{{Obj: countedRemembered.ID}}, Resolving: true}
+	if !MatchesObjectCtx(g, "Creature.IsRemembered+HasCounters", countedRemembered, sc2) {
+		t.Errorf("the compound must match a remembered creature with a counter (both halves)")
+	}
+	// And the census agrees the forms are recognised.
+	for _, spec := range []string{"Creature.IsRemembered", "Creature.!IsRemembered", "Creature.IsRemembered+HasCounters"} {
 		if un := UnknownPredicates(spec); len(un) != 0 {
-			t.Errorf("UnknownPredicates(%q) = %v, want empty", spec, un)
+			t.Errorf("UnknownPredicates(%q) = %v, want empty (recognised)", spec, un)
 		}
 	}
 

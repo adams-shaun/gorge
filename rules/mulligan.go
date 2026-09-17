@@ -113,6 +113,17 @@ func (e *Engine) stepPregame() {
 		e.askKeepMulligan(i)
 		return
 	}
+	// CR 103.5 is ROUND-ROBIN: every un-kept player has declared once before
+	// any player who mulliganed declares again. If this pass has mulliganers,
+	// restart at its first seat; only a pass in which everybody keeps reaches
+	// London bottoming.
+	for _, kept := range m.kept {
+		if !kept {
+			m.cursor = 0
+			e.stepPregame()
+			return
+		}
+	}
 	// Every seat has kept: move to the bottoming phase.
 	m.bottom = true
 	m.cursor = 0
@@ -173,24 +184,6 @@ func keepMulliganPrompt(starterName string, bottom, taken, limit, freeMulligans 
 	return starterName + " plays first. " + choice
 }
 
-// mulliganStarterName is the seat-facing identity for the pregame prompt.
-// PlayerName is supplied by the table and identifies a human even when two
-// players chose the same deck; Name is the deterministic fallback for bots or
-// callers without display names. The final fallback is defensive: mulligan
-// seats originate from AliveFrom, but malformed state must not panic while
-// constructing a client decision.
-func mulliganStarterName(g *state.Game, p state.PlayerID) string {
-	if g != nil && int(p) < len(g.Players) {
-		if name := g.Players[p].PlayerName; name != "" {
-			return name
-		}
-		if name := g.Players[p].Name; name != "" {
-			return name
-		}
-	}
-	return fmt.Sprintf("seat %d", p)
-}
-
 func (e *Engine) askKeepMulligan(i int) {
 	m := &e.mulligan
 	p := m.seats[i]
@@ -205,7 +198,7 @@ func (e *Engine) askKeepMulligan(i int) {
 	// the toss winner AliveFrom(start) begins with), so the decision is
 	// made knowing play/draw without opening the transcript.
 	e.ask(decision.New(p, decision.KMulligan,
-		keepMulliganPrompt(mulliganStarterName(e.G, m.seats[0]), m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
+		keepMulliganPrompt(seatFacingName(e.G, m.seats[0]), m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
 }
 
 // askBottoming offers seat i a bottoming decision over its kept hand: one
@@ -259,10 +252,12 @@ func (e *Engine) handleMulligan(d *decision.Decision, in decision.Intent) {
 		e.mulligan.kept[i] = true
 		return
 	}
-	// A mulligan: the seat stays un-kept (it must decide again, on a full
-	// re-drawn seven), so cursor does not advance. taken increments first;
-	// once it reaches limit the only follow-up ask offers "keep".
+	// A mulligan: the seat stays un-kept (it must decide again on a later
+	// PASS, after every other un-kept seat declares once). Advance cursor now;
+	// stepPregame resets it only after the current round has completed. taken
+	// increments first; once it reaches limit the next-pass ask offers keep.
 	e.mulligan.taken[i]++
+	e.mulligan.cursor++
 	for _, id := range e.G.Zone(state.ZHand, p) {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
 			To: state.ZLibrary, Player: p, Text: "mulligan"})

@@ -242,24 +242,45 @@ export function cardRespondableAfterTap(p: PlayerView, card: CardView, decision?
 }
 
 /**
- * castableAfterTap reports whether ANY nonland card in the seat's own hand
- * becomes castable after tapping, or a projected battlefield activation gains
- * a payable mana-and-Tap cost. Fails closed (false) whenever the hand is
- * not readable: a seat the view does not carry, or another seat's hand (a
- * JSON null on the wire -- the hand is present only for the viewer's own
- * seat), or a malformed view. It does NOT consult whose turn it is -- the
- * stop fires wherever the caller's own stop rules already consult the step.
+ * castablesAfterTap is castableAfterTap's descriptive twin (fb-20260916T225211Z):
+ * the SAME scan castableAfterTap runs, returned as the human labels of what
+ * would become playable — "Cast <name> (after tapping)" for each hand card,
+ * "Activate <name> (after tapping)" for each payable battlefield activation —
+ * so a stop note can say WHAT made the window stop-worthy. It fails closed
+ * (empty list) whenever the hand is not readable: a seat the view does not
+ * carry, or another seat's hand (a JSON null on the wire -- the hand is
+ * present only for the viewer's own seat), or a malformed view. It does NOT
+ * consult whose turn it is -- the stop fires wherever the caller's own stop
+ * rules already consult the step.
  */
-export function castableAfterTap(view: View, seat: number, decision?: Decision): boolean {
+export function castablesAfterTap(view: View, seat: number, decision?: Decision): string[] {
   const p = view.players?.find((pl) => pl.seat === seat);
-  if (!p || !Array.isArray(p.hand)) return false;
-  return p.hand.some((c) => cardCastableAfterTap(p, c, decision)) || abilityPayableAfterTap(p, decision);
+  if (!p || !Array.isArray(p.hand)) return [];
+  const out: string[] = [];
+  for (const c of p.hand) {
+    if (cardCastableAfterTap(p, c, decision)) out.push(`Cast ${c.name} (after tapping)`);
+  }
+  out.push(...abilityPayablesAfterTap(p, decision));
+  return out;
 }
 
-// abilityPayableAfterTap recognises only the deferred-activation shape this
+/**
+ * castableAfterTap reports whether ANY nonland card in the seat's own hand
+ * becomes castable after tapping, or a projected battlefield activation gains
+ * a payable mana-and-Tap cost. It IS castablesAfterTap's emptiness test —
+ * one shared scan, so the boolean and the note labels can never drift.
+ */
+export function castableAfterTap(view: View, seat: number, decision?: Decision): boolean {
+  return castablesAfterTap(view, seat, decision).length > 0;
+}
+
+// abilityPayablesAfterTap is the descriptive twin of the old boolean-only
+// abilityPayableAfterTap. It recognises only the deferred-activation shape this
 // projection can price: a battlefield Cost$ containing T and otherwise mana
-// symbols. Sacrifice, discard, life and every unknown component fail closed.
-function abilityPayableAfterTap(p: PlayerView, decision?: Decision): boolean {
+// symbols. Sacrifice, discard, life and every unknown component fail closed
+// (no label). One label per card — the same information the boolean carried.
+function abilityPayablesAfterTap(p: PlayerView, decision?: Decision): string[] {
+  const out: string[] = [];
   for (const card of p.battlefield ?? []) {
     if (!Array.isArray(card.ability_costs) || card.tapped) continue;
     // Match rules/legal.go's tap gate: summoning sickness blocks a creature's
@@ -272,10 +293,13 @@ function abilityPayableAfterTap(p: PlayerView, decision?: Decision): boolean {
       if (!tokens.includes('T')) continue;
       const mana = tokens.filter((token) => token !== 'T').map((token) => manaSymbols(token)[0]);
       if (mana.some((symbol) => !symbol || symbol.kind === 'unknown')) continue;
-      if (affordable(mana, spendable(p, decision), p.life)) return true;
+      if (affordable(mana, spendable(p, decision), p.life)) {
+        out.push(`Activate ${card.name} (after tapping)`);
+        break;
+      }
     }
   }
-  return false;
+  return out;
 }
 
 /**

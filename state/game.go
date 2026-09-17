@@ -91,10 +91,17 @@ type Game struct {
 	Turn     int32
 	Active   PlayerID
 	Priority PlayerID
-	Step     Step
-	Passes   int32
-	Over     bool
-	Winner   PlayerID
+	// StartingPlayer is the seat that takes the first turn. HasStartingPlayer
+	// keeps seat zero distinct from a game whose opening determination has not
+	// completed (for example terminal genesis with no survivors). It is folded
+	// only by events.StartingPlayerChange, so replay, Clone and snapshots retain
+	// opening-hand effects that replace the toss result.
+	StartingPlayer    PlayerID
+	HasStartingPlayer bool
+	Step              Step
+	Passes            int32
+	Over              bool
+	Winner            PlayerID
 	// Draw marks a game that ended with no surviving seats (CR 104.4a).
 	// Winner's zero value is PlayerID(0), a real seat, so Over alone cannot
 	// distinguish "seat 0 won" from "nobody did" -- Draw is what does.
@@ -155,6 +162,28 @@ type Game struct {
 
 	// zones is indexed by zoneIndex(z, p); the stack lives in Stack instead.
 	zones [][]ObjID
+
+	// Entered holds, in move order, every zone entry made this turn -- the
+	// per-add list Forge keeps per zone (CardUtil.getThisTurnEntered reads
+	// it). It is derived exclusively inside events.Apply (each Move appends
+	// one entry; the TurnChange reset clears it) so a replay folds the
+	// identical list. Objects that ceased (ZCeased) stay listed: Forge's
+	// list keeps the card too, and validity is evaluated against the object
+	// wherever it now lives.
+	Entered []ZoneEntry
+}
+
+// ZoneEntry is one zone entry made this turn: the object that moved, the
+// zone it entered (To) and the zone it actually came from (From -- the real
+// pre-move zone, the same value events.Move recorded on the object's
+// EnteredFrom). A card that entered a zone twice (bounced and replayed) is
+// listed once per entry, exactly like Forge's per-zone
+// getCardsAddedThisTurn lists, which the Count$ThisTurnEntered_* heads and
+// the ThisTurnEntered* filter predicates read.
+type ZoneEntry struct {
+	Obj  ObjID
+	To   Zone
+	From Zone
 }
 
 // DelayedTrigger is one registered delayed triggered ability awaiting its
@@ -280,6 +309,11 @@ func (g *Game) Clone() *Game {
 		c.Objs[i] = g.Objs[i].CloneDeep()
 	}
 	c.Stack = append([]ObjID(nil), g.Stack...)
+	// Entered is appended to in place by every Move (one entry per zone
+	// entry this turn), so a clone must own its own copy -- sharing the
+	// backing array would let either evolve and corrupt the other (the same
+	// rule as Delayed below and Stack above).
+	c.Entered = append([]ZoneEntry(nil), g.Entered...)
 	// Delayed is written in place (append on registration, remove on firing),
 	// so a clone must own its own registrations -- sharing the live one's
 	// backing array would let either evolve and corrupt the other (the same
@@ -326,6 +360,12 @@ func (g *Game) AliveCount() int { return len(g.AliveFrom(0)) }
 
 // IsMonarch reports whether p currently holds the monarch designation.
 func (g *Game) IsMonarch(p PlayerID) bool { return g.HasMonarch && g.Monarch == p }
+
+// IsStartingPlayer reports whether p currently holds the CR 103.1 first-turn
+// designation. The presence bit makes the zero seat unambiguous.
+func (g *Game) IsStartingPlayer(p PlayerID) bool {
+	return g.HasStartingPlayer && g.StartingPlayer == p
+}
 
 // NextAlive returns the next surviving seat after p, or p itself if none is.
 func (g *Game) NextAlive(p PlayerID) PlayerID {

@@ -46,6 +46,37 @@
   );
   const memberIds = $derived(group.cards.map((c) => c.id).join(','));
 
+  // fb-20260916T201423Z: the lands row merges tapped and untapped members
+  // into one pile (Quadrant passes ignoreTapped), so the readiness the split
+  // used to carry moves onto the tab: a collapsed pile whose members MIX
+  // tapped states shows the untapped count as a second mini-plate above the
+  // count. Derived from the group itself, not from a flag — a creature (or
+  // others-row) group can never mix, because its stack key still includes
+  // tapped, so this plate fires only where the merge happens. Uniform piles
+  // — all untapped or all tapped — keep the shipped xN tab alone. Members
+  // stay id-sorted, so a tap/untap never moves the lead and never churns the
+  // render key (fb-20260915T182335Z).
+  const tappedCount = $derived(group.cards.filter((c) => c.tapped).length);
+  const mixedTapped = $derived(tappedCount > 0 && tappedCount < group.cards.length);
+  const readyCount = $derived(group.cards.length - tappedCount);
+
+  // fb-20260917T004545Z: the collapsed face presents the PILE's readiness,
+  // not the lead member's rotation. A merged lands pile mixes tapped states
+  // (only the lands row merges tapped), and rendering the lead's own rotation
+  // made ONE member's tap rotate the whole pile's silhouette while the tap
+  // badge (the union: the next tap takes the next READY member) stayed up —
+  // "i clicked one and it rotated both cards, retaining a tap icon". So the
+  // collapsed face reads rotated only when EVERY member is tapped (the pile
+  // is then genuinely inert — the union offers nothing, so no badge shows);
+  // while any member is ready, the face presents ready and the ready plate
+  // carries the tapped/ready counts. For a uniform pile the value always
+  // equals the lead's own state, so every non-lands row (whose key still
+  // includes tapped, hence can never mix) is byte-identical to before.
+  // Deliberately the lead stays the face: the data-obj anchor (what arrows
+  // target) and the inspector's subject are untouched, and only the rotation
+  // is presentation — pinned in CardStack.test.ts.
+  const collapsedFaceTapped = $derived(readyCount === 0);
+
   // One tile's options depends on the pending decision offered THIS object
   // (per member when expanded, or the whole pile when collapsed — stack
   // members are interchangeable, so the pile's options are the union).
@@ -80,9 +111,12 @@
       <span class="ghost ghost--1" aria-hidden="true"></span>
     {/if}
     {#each faces as c (c.id)}
-      <CardTile card={c} {size} tileOptions={expanded ? memberOptions(c.id) : collapsedOptions} />
+      <CardTile card={c} {size} faceTapped={expanded ? undefined : collapsedFaceTapped} tileOptions={expanded ? memberOptions(c.id) : collapsedOptions} />
     {/each}
     <span class="count" data-stack-count aria-hidden="true">x{group.cards.length}</span>
+    {#if !expanded && mixedTapped}
+      <span class="count ready" data-stack-ready aria-hidden="true">{readyCount} ready</span>
+    {/if}
   </button>
 {/if}
 
@@ -179,5 +213,14 @@
   .stacked:focus-visible .count {
     border-color: var(--initiative);
     color: var(--initiative);
+  }
+  /* The readiness plate (fb-20260916T201423Z): the second mini-plate on a
+     mixed pile, stacked directly above the count tab with the same hang and
+     right-edge alignment. The offset is the count tab's own height (~1.8em
+     at --t-11/1.4 plus the 2px edges) plus a small gap. It only ever exists
+     on a collapsed pile, so the expanded repositioning below cannot reach
+     it. */
+  .count.ready {
+    bottom: calc(var(--sp-2) + 2.1em);
   }
 </style>

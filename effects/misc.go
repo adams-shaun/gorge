@@ -151,21 +151,35 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	}) {
 		mode, params := parseStaticLine(c.SVars, name)
 		switch mode {
-		case "CantTarget", "CantRegenerate", "CantPreventDamage":
-			// A compound IsRemembered spec (Card.IsRemembered+Creature) cannot
-			// be resolved by the remembered-set match alone -- the extra
-			// predicate would be silently dropped, over-applying the
-			// restriction. No corpus restriction static carries one (see the
-			// report / AGENTS.md), so treat it as unsupported here and keep
-			// the Note instead of registering something that over-applies.
-			if compoundRememberedSpec(params) {
-				if mode != "" {
-					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-						Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
-				}
+		case "Continuous":
+			// A may-play-from-zone grant delivered by an Effect SA (Atsushi's
+			// "you may play those cards" STPlay static): registered like the
+			// S: static shape, with the Effect's Remembered set seeding the
+			// grant so the Affected$ Card.IsRemembered spec matches the cards
+			// the resolution exiled/remembered (rules' grant walk matches
+			// through a SpecContext that carries this list). The shared
+			// MayPlayStaticParams whitelist keeps both registration paths
+			// honest: a rider this build does not read fails closed here too.
+			if grant, ok := mayPlayGrantFromLine(params); ok {
+				grant.Source = c.Source
+				grant.Controller = c.Controller
+				grant.UntilEOT = effectUntilEOT(h, c.Source, dur)
+				grant.Remembered = remembered
+				grant.Duration = dur
+				h.AddContinuous(grant)
 				registered = true
-				continue
+			} else if len(params) > 0 {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
 			}
+		case "CantTarget", "CantRegenerate", "CantPreventDamage":
+			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
+			// faithfully through the general filter now that it implements
+			// IsRemembered (rules/layers.go restrictionApplies consults the
+			// same matcher with the registered remembered set bound), so the
+			// old "reject compounds, keep the Note" guard is gone: the
+			// restriction registers for real.
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
@@ -197,6 +211,72 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "registers a continuous effect (" + what + ") for " + dur})
 	}
+}
+
+// mayPlayGrantFromLine builds the may-play ContinuousEffect from one parsed
+// static line (an SVar static body effEffect registers, or the S: line rules
+// passes through MayPlayStaticParams). ok=false is the fail-closed grant:
+// nothing is registered rather than a half-read grant going live.
+func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
+	ignoreColor, limit, playerTurn, ok := MayPlayStaticParams(params)
+	if !ok {
+		return state.ContinuousEffect{}, false
+	}
+	return state.ContinuousEffect{
+		Affects:            params["Affected"],
+		AffectedZone:       strings.TrimSpace(params["AffectedZone"]),
+		MayPlay:            true,
+		MayPlayIgnoreColor: ignoreColor,
+		MayPlayLimit:       limit,
+		MayPlayPlayerTurn:  playerTurn,
+	}, true
+}
+
+// MayPlayStaticParams reports whether a Mode$ Continuous static body (an S:
+// line or an SVar static an Effect SA registers) carries the may-play grant
+// this build implements, and resolves its two readable riders. The
+// implemented shape is MayPlay$ True plus an Affected$/AffectedZone$ pair and
+// only display/placement metadata; MayPlayIgnoreColor$ (mana as any colour),
+// MayPlayLimit$ (an integer once-per-turn cap) and Condition$ PlayerTurn
+// ("during each of your turns", the Kess/Karador family) are read. Anything
+// else -- MayPlayIgnoreType$/MayPlayWithoutManaCost$/MayPlayText$ (they change
+// what the cast IS, not just where it may come from), a Condition$ whose value
+// is not PlayerTurn, a ValidAfterStack$/Secondary$ qualifier (it changes when
+// the grant lives), or a MayPlayLimit$ value that is not a non-negative
+// integer -- fails closed:
+func MayPlayStaticParams(params map[string]string) (ignoreColor bool, limit int32, playerTurn bool, ok bool) {
+	v, okv := params["MayPlay"]
+	if !okv || !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return false, 0, false, false
+	}
+	for key := range params {
+		switch key {
+		case "Mode", "MayPlay", "MayPlayIgnoreColor", "MayPlayLimit", "Condition",
+			"Affected", "AffectedZone", "Description", "EffectZone":
+			// The keys the implemented grant (and only it) carries.
+		default:
+			return false, 0, false, false
+		}
+	}
+	limit = 0
+	if raw, okv := params["MayPlayLimit"]; okv {
+		n, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 32)
+		if err != nil || n < 0 {
+			// A MayPlayLimit$ value this build cannot enforce must not
+			// silently become "unlimited".
+			return false, 0, false, false
+		}
+		limit = int32(n)
+	}
+	playerTurn = strings.EqualFold(strings.TrimSpace(params["Condition"]), "PlayerTurn")
+	if cond, okv := params["Condition"]; okv && !playerTurn {
+		// A Condition$ other than PlayerTurn changes when the grant lives;
+		// never register it half-read.
+		_, _ = cond, okv
+		return false, 0, false, false
+	}
+	ignoreColor = strings.EqualFold(strings.TrimSpace(params["MayPlayIgnoreColor"]), "True")
+	return ignoreColor, limit, playerTurn, true
 }
 
 // parseStaticLine parses an S: static body an SVar holds ("Mode$ CantTarget |
@@ -275,7 +355,7 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 					out = append(out, t.Obj)
 				}
 			}
-		case "Remembered", "Remembered.Creature", "Remembered.Permanent":
+		case "Remembered", "Remembered.Creature", "Remembered.Permanent", "RememberedCard":
 			for _, t := range c.Remembered {
 				if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
 					out = append(out, t.Obj)
@@ -318,25 +398,11 @@ func IsNextTurnDuration(dur string) bool {
 	return false
 }
 
-// compoundRememberedSpec reports whether a restriction static's valid-spec is
-// a COMPOUND expression containing IsRemembered (a + AND or a , OR list) --
-// a shape the remembered-set match cannot resolve faithfully. The corpus's
-// CantTarget/CantRegenerate statics all use a bare Card.IsRemembered, so this
-// is a defensive guard against silently over-applying a restriction whose
-// extra predicate would be dropped (see rules/layers.go restrictionApplies).
-func compoundRememberedSpec(params map[string]string) bool {
-	spec := params["ValidCard"]
-	if spec == "" {
-		spec = params["ValidTarget"]
-	}
-	return strings.Contains(spec, "IsRemembered") && strings.ContainsAny(spec, "+,")
-}
-
 // replacementLineWith reads ReplaceWith$ off a parseReplacementLine-built
 // static line -- the SVar name of the R: body's own ReplaceWith$ body, not a
-// card Params map. Factored into its own function (mirroring
-// compoundRememberedSpec) so the paramcensus rot guard can classify the read
-// through a tracked helper parameter rather than an unclassified local.
+// card Params map. Factored into its own function so the paramcensus rot
+// guard can classify the read through a tracked helper parameter rather than
+// an unclassified local.
 func replacementLineWith(params map[string]string) string {
 	return params["ReplaceWith"]
 }
@@ -373,6 +439,38 @@ func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
 // per-resolution parameter, not stored state), so there is nothing to
 // actually clear. The Note records that the step ran.
 func effCleanup(h Host, c *Ctx, sa *cards.SA) {
+	// Forge's CleanUpEffect: ClearRemembered$ True clears the host card's
+	// remembered list (the persistent list the next resolution of this card
+	// reads -- without this an activated ability that remembers would
+	// accumulate across activations). The ctx-level list is cleared with it:
+	// every consumer downstream of this point in the chain (and the next
+	// resolution) must see an empty list, which is what Forge's host
+	// list clear produces. The clear is recorded as a real event ONLY when
+	// the source's list actually held entries -- clearing an empty list is
+	// a no-op, and emitting for it would move every chain head that carries
+	// a ClearRemembered$ cleanup for no observable change (measured: Delver
+	// of Secrets' DBCleanup in the 4/6/8-seat golden games runs its cleanup
+	// with an empty list).
+	if strings.EqualFold(sa.Params["ClearRemembered"], "True") {
+		c.Remembered = nil
+		if c.Source != 0 {
+			if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
+				// A real clear: the event is what a replay folds, so the next
+				// resolution of this card sees the empty list.
+				h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
+				return
+			}
+		}
+	}
+	// The cosmetic fallback (an empty-list clear, or a Cleanup with nothing
+	// to clear): the Note main has always emitted, byte-for-byte, so golden
+	// games whose cleanups run on empty lists replay identically. This also
+	// covers main's independent Valakut concern: Valakut's DBCleanup runs
+	// after DBEffect captured the dig's RememberChanged list into the
+	// registered Effect, so the end-step trigger's own X=Remembered$Amount
+	// must count only what IT moved -- c.Remembered is unconditionally
+	// cleared above regardless of whether the source object held a
+	// persisted list to clear too.
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "clears remembered/imprinted objects"})
 }
 
@@ -456,6 +554,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			// so a countered ability moves there, never to the graveyard.
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+				eventRemember(h, c, o.ID)
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 				From: state.ZStack, To: state.ZExile, Text: "countered"})
@@ -467,6 +566,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if remember {
 			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			eventRemember(h, c, o.ID)
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZStack, To: to, Text: "countered"})
@@ -812,6 +912,15 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	if produced == "" || produced == "Any" || produced == "Combo Any" {
 		produced = "C"
 	}
+	// A "Combo" head lists every colour the production may be taken in (CR
+	// 107.5-style "any combination"). Forge asks for the combination; this
+	// executor still degenerates to the FULL amount in EVERY listed colour --
+	// the documented stand-in (the colour-choice ask is the M4 mana-choice
+	// milestone) -- but that must not be the hard "unhandled Produced$" no-op
+	// it was: Burnt Offering's Produced$ Combo B R added NOTHING. Chosen/
+	// ComboChosen shapes (a remembered or chosen colour) still fail loudly --
+	// they have no degenerate reading.
+	produced = strings.TrimSpace(strings.TrimPrefix(produced, "Combo "))
 	// Strip braces and spaces, then validate every remaining rune before any
 	// of them reaches the pool: ComboChosen/ChosenColor/Special ... values
 	// that do not name plain mana symbols fail closed instead of splitting

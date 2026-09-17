@@ -551,10 +551,20 @@ func TestDargoCastsAsACreature(t *testing.T) {
 	moveByName(t, e, 0, "Dargo, the Shipwrecker", state.ZHand)
 	addMana(t, e, 0, "RRRRRRR")
 	castNamed(t, e, "Dargo, the Shipwrecker")
-	// The optional Sac<X> additional cost ask (decline: no sacrifice).
+	// The optional Sac<X> additional cost announces its count first (CR
+	// 601.2b): declining the sacrifice is announcing X=0.
 	d := e.Pending()
 	if d != nil && d.Kind == decision.KChoose {
-		submitChoices(t, e)
+		zero := -1
+		for _, o := range d.Options {
+			if o.Kind == "x" && o.Amount == 0 {
+				zero = o.Index
+			}
+		}
+		if zero < 0 {
+			t.Fatalf("no X=0 count option: %+v", d.Options)
+		}
+		submitChoices(t, e, zero)
 	}
 	passUntilStackEmpty(t, e, 40)
 	dargo := state.ObjID(0)

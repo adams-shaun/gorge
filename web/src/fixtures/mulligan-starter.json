@@ -427,7 +427,7 @@
     "stack": [],
     "pending": [],
     "decision": {
-      "seq": 35,
+      "seq": 37,
       "player": 1,
       "kind": "mulligan",
       "prompt": "Bob plays first. Keep your hand (put 1 card on the bottom of your library)",

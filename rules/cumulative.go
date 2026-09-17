@@ -387,7 +387,7 @@ func (e *Engine) continueCumulativeAction() {
 				continue
 			}
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "cumulative_action_life",
-				Player: p, Label: e.G.Players[p].Name})
+				Player: p, Label: seatFacingName(e.G, p)})
 		}
 		e.choosing = chooseCumulative
 		e.ask(d)
@@ -408,7 +408,7 @@ func (e *Engine) continueCumulativeAction() {
 			Prompt: "Choose a graveyard", Source: cu.source}
 		for _, p := range owners {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "cumulative_action_grave",
-				Player: p, Label: e.G.Players[p].Name + "'s graveyard"})
+				Player: p, Label: seatFacingName(e.G, p) + "'s graveyard"})
 		}
 		e.choosing = chooseCumulative
 		e.ask(d)

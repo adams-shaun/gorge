@@ -37,6 +37,15 @@ export interface OracleSource {
 
 const SPACING = 100;
 const OFFLINE_FOR = 60_000;
+// REQUEST_TIMEOUT bounds one /cards/named fetch, for the same reason as
+// images.ts's REQUEST_TIMEOUT (see there for the measured failure): gorged's
+// card-facts proxy shares the art cache's pacing semaphore, whose 429
+// backoff sleeps hold it, so a hover lookup can block for minutes — measured
+// wedging every subsequent state fetch of a seated client for a whole smoke
+// test. Aborting after 10s frees the browser connection; the catch path
+// below takes its existing 60s offline rest (nothing is stored, so the name
+// re-resolves later) while the server's prewarm warms the cache meanwhile.
+const REQUEST_TIMEOUT = 10_000;
 const KEY = 'gorge.oracle.';
 
 // Read once at module load, like basepath. A meta tag is the source of
@@ -116,20 +125,31 @@ export function createOracle(src: Partial<OracleSource> = {}) {
   }
 
   async function lookup(name: string): Promise<OracleCard | null> {
-    const res = await env.fetch(`${base}/cards/named?exact=${encodeURIComponent(name)}`, { headers: { Accept: 'application/json' } });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`oracle ${res.status}`);
-    const j = (await res.json()) as OracleCard;
-    // Normalise to exactly the six published fields; a catalog may send more
-    // (art URLs, set data) and this cache neither needs nor stores them.
-    return {
-      name: j.name ?? name,
-      mana_cost: j.mana_cost,
-      type_line: j.type_line,
-      oracle_text: j.oracle_text,
-      power: j.power,
-      toughness: j.toughness,
-    };
+    // REQUEST_TIMEOUT (see the constant's comment) bounds the whole lookup —
+    // body read included — because every millisecond of it holds a browser
+    // connection. The abort is armed through env.setTimeout so the fake-clock
+    // tests drive it; aborting an already-settled controller is a no-op.
+    const abort = new AbortController();
+    let settled = false;
+    env.setTimeout(() => { if (!settled) abort.abort(); }, REQUEST_TIMEOUT);
+    try {
+      const res = await env.fetch(`${base}/cards/named?exact=${encodeURIComponent(name)}`, { headers: { Accept: 'application/json' }, signal: abort.signal });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`oracle ${res.status}`);
+      const j = (await res.json()) as OracleCard;
+      // Normalise to exactly the six published fields; a catalog may send more
+      // (art URLs, set data) and this cache neither needs nor stores them.
+      return {
+        name: j.name ?? name,
+        mana_cost: j.mana_cost,
+        type_line: j.type_line,
+        oracle_text: j.oracle_text,
+        power: j.power,
+        toughness: j.toughness,
+      };
+    } finally {
+      settled = true;
+    }
   }
 
   function text(name: string): Promise<OracleCard | null> {

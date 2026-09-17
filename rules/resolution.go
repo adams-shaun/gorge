@@ -539,12 +539,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
 	}
-	// A mid-resolution picker may have built a Remembered fetch list before
-	// it suspended. The stack object only carries trigger-time remembered
-	// entries, so restore the asking effect's snapshot after rebuilding this
-	// fresh context; otherwise Card.IsRemembered and Defined$ Remembered in a
-	// chained hidden-origin ChangeZone see an empty list on re-entry.
-	if rp.remembered != nil {
+	// A mid-resolution ask that rode the walk's Remembered (the hidden-library
+	// search sets ResumeRemembered -- a cast spell's Remembered lives only in
+	// the resolving Ctx frame, so without the ride the resume rebuilds an
+	// empty set and the re-entered primitive's eligibility recheck and the
+	// chain's later sub-abilities see nothing, and Card.IsRemembered /
+	// Defined$ Remembered in a chained hidden-origin ChangeZone would see an
+	// empty list on re-entry too). The loop and replacement branches above
+	// are authoritative when they fire; this applies only to the ordinary
+	// frames, which never carry rp.remembered otherwise.
+	if rp.remembered != nil && !rp.replacement && !rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
 	}
 	effects.SetSVars(ctx, svars)

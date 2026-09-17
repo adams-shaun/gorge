@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -36,7 +37,7 @@ func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 // twice. Only zones a land can meaningfully be played from (graveyard, exile)
 // are walked, since hand is covered by the normal walk and library is hidden.
 func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
-	if !e.sorcerySpeed(p) || e.G.Players[p].LandsPlayed >= 1 {
+	if !e.sorcerySpeed(p) || e.G.Players[p].LandsPlayed >= int32(1+e.adjustLandPlays(p)) {
 		return nil
 	}
 	type offered struct {
@@ -45,8 +46,15 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 	}
 	var out []state.ObjID
 	var seen []offered
+	limited := e.mayPlaysThisTurn(p)
 	for _, ce := range e.active() {
 		if !ce.MayPlay || ce.Controller != p {
+			continue
+		}
+		if ce.MayPlayPlayerTurn && e.G.Active != p {
+			continue
+		}
+		if ce.MayPlayLimit > 0 && int32(limited) >= ce.MayPlayLimit {
 			continue
 		}
 		zones, all, ok := effects.ParseZones(ce.AffectedZone)
@@ -85,6 +93,155 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 		} else {
 			for _, z := range zones {
 				consider(z)
+			}
+		}
+	}
+	return out
+}
+
+// mayPlaysThisTurn counts the card plays this turn that went through a
+// may-play-from-zone grant, in deterministic log order since the last
+// TurnChange: CastInfo events carrying the mayplay flag (attributed by the
+// card's OWNER -- CastInfo predates a Player field on the kind and setting
+// one now would re-shape every replayed log's encoding, so the owner, which
+// never changes, stands in; a control-steal corner may mis-attribute and
+// then the cap can only undercount, never wedge), plus land plays whose
+// MoveZone came from a granted (never hand) zone. Only a MayPlayLimit$ cap
+// consults it; an unlimited grant ignores the count.
+func (e *Engine) mayPlaysThisTurn(p state.PlayerID) int {
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		switch ev.Kind {
+		case events.CastInfo:
+			if !strings.Contains(ev.Counter, "mayplay") {
+				continue
+			}
+			if o := e.G.Obj(ev.Obj); o != nil && o.Owner == p {
+				n++
+			}
+		case events.MoveZone:
+			if ev.From != state.ZGraveyard && ev.From != state.ZExile {
+				continue
+			}
+			if ev.To != state.ZBattlefield {
+				continue
+			}
+			if o := e.G.Obj(ev.Obj); o != nil && o.Owner == p && o.Face() != nil && o.Face().IsLand() {
+				n++
+			}
+		}
+	}
+	return n
+}
+
+// mayPlaySpellIds returns the ids of NON-LAND cards in player p's zones that
+// an active may-play-from-zone grant lets p CAST this turn, in deterministic
+// order (e.active(), then each effect's parsed AffectedZone order, then the
+// zone slice order). A card is offered once even when several grants cover
+// it (per (zone,id) dedupe). Only zones a spell can meaningfully be cast
+// from (graveyard, exile) are walked; hand is the ordinary walk and library
+// is hidden. Each candidate must match the granting effect's Affects filter
+// through MatchesSpecCtx with the grant's Remembered set loaded as the
+// SpecContext's Remembered, so the dominant Affected$ Card.IsRemembered
+// grant (227 corpus files) selects exactly the cards its delivering Effect
+// captured -- the same direct-list reading restrictionApplies uses for
+// Effect-delivered CantTarget/CantRegenerate. A MayPlayLimit$ grant whose
+// cap is already reached does not offer through itself; another grant
+// covering the same card still may.
+func (e *Engine) mayPlaySpellIds(p state.PlayerID) []state.ObjID {
+	type offered struct {
+		zone state.Zone
+		id   state.ObjID
+	}
+	var out []state.ObjID
+	var seen []offered
+	limited := e.mayPlaysThisTurn(p)
+	consider := func(z state.Zone, id state.ObjID) bool {
+		for _, s := range seen {
+			if s.zone == z && s.id == id {
+				return false
+			}
+		}
+		seen = append(seen, offered{z, id})
+		out = append(out, id)
+		return true
+	}
+	// A card in exile may grant its own may-play through EffectZone$ Exile
+	// (Misthollow Griffin / Eternal Scourge's "You may cast CARDNAME from
+	// exile"): staticEffects never reads a non-battlefield source, so this
+	// narrow self-grant scan covers exactly that shape -- the exiled card's
+	// own S: static carrying Affected$ Card.Self and an AffectedZone naming
+	// Exile. The Affects match is the card itself, so nothing else can ride
+	// the scan.
+	for _, q := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZExile, q) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil || o.Face().IsLand() || o.Owner != p {
+				continue
+			}
+			self := false
+			for _, st := range o.Face().Statics {
+				if st.Mode != "Continuous" || !mayPlayGrant(st) {
+					continue
+				}
+				if !strings.EqualFold(strings.TrimSpace(st.Params["Affected"]), "Card.Self") {
+					continue
+				}
+				zones, all, ok := effects.ParseZones(st.Params["AffectedZone"])
+				if (!ok && !all) || (!all && !slices.Contains(zones, state.ZExile)) {
+					continue
+				}
+				self = true
+				break
+			}
+			if self {
+				consider(state.ZExile, id)
+			}
+		}
+	}
+	for _, ce := range e.active() {
+		if !ce.MayPlay || ce.Controller != p {
+			continue
+		}
+		if ce.MayPlayLimit > 0 && int32(limited) >= ce.MayPlayLimit {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if !ok && !all {
+			continue
+		}
+		// Exile and graveyard are public zones keyed by the card's OWNER, and
+		// a grant's cards can sit in another seat's slice (Intellect
+		// Devourer exiles an OPPONENT's hand card, then lets its controller
+		// play it), so every seat's slice is walked in deterministic seat
+		// order -- never a map. The Affects match decides ownership claims;
+		// walking the slices only enumerates candidates.
+		for _, q := range e.G.AliveFrom(0) {
+			for _, z := range func() []state.Zone {
+				if all {
+					return []state.Zone{state.ZGraveyard, state.ZExile}
+				}
+				return zones
+			}() {
+				if z != state.ZGraveyard && z != state.ZExile {
+					continue
+				}
+				for _, id := range e.G.Zone(z, q) {
+					o := e.G.Obj(id)
+					if o == nil || o.Face() == nil || o.Face().IsLand() {
+						continue
+					}
+					sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
+						Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+						continue
+					}
+					consider(z, id)
+				}
 			}
 		}
 	}
@@ -308,10 +465,13 @@ func (e *Engine) resolveActivationLimit(id state.ObjID, p state.PlayerID, raw st
 // TargetMin$/TargetMax$ pair is Forge's unconditional one-target shape.
 // Dynamic bounds and modal or announced choices stay offerable until the
 // post-announcement askTarget backstop can evaluate them with those choices
-// made. excludeSelf is the CR 115.5 self-targeting object: the offered card
+// made. xPending extends that same carve-out to the announced {X}: a cost
+// that announces an X makes a ValidTgts$ X-bound dynamic, so a spec whose
+// ONLY zero-candidate reason is its unresolvable X bound stays offerable.
+// excludeSelf is the CR 115.5 self-targeting object: the offered card
 // for a spell cast from a zone that could contain it, 0 for an activated
 // ability (whose Source permanent IS a legal target of its own ability).
-func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA) bool {
+func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, xPending bool) bool {
 	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" || sa.API == "Charm" ||
 		sa.Params["Choices"] != "" || sa.Params["Announce"] != "" {
 		return true
@@ -322,13 +482,61 @@ func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID,
 	if _, ok := sa.Params["TargetMax"]; ok {
 		return true
 	}
-	return len(e.legalTargetCandidates(p, id, excludeSelf, sa)) > 0
+	if n := len(e.legalTargetCandidates(p, id, excludeSelf, sa)); n > 0 {
+		return true
+	}
+	// A zero-candidate census is only a withhold when the spec's X bound is
+	// static. With an announced X pending the bound is dynamic: offer, and
+	// let the post-announcement backstop evaluate it against the chosen
+	// value (a wrong value still fizzles the proposal at 601.2c).
+	return xPending && specNamesXBound(sa.Params["ValidTgts"])
+}
+
+// costAnnouncesX reports whether paying this cost announces a value for {X}
+// before targets are chosen: a printed {X} mana symbol or a PayEnergy<X>
+// energy part (Forge announces both through the same ability X). A cost that
+// announces X makes every ValidTgts$ bound that reads that X (cmcEQX and its
+// siblings) a DYNAMIC bound -- the same carve-out TargetMin$/TargetMax$/
+// Announce$/Choices$ already have -- so the offer gate does not withhold the
+// action on a bound whose value does not exist yet; the post-announcement
+// askTarget backstop evaluates it once the X is fixed (CR 601.2b before
+// 601.2c).
+func costAnnouncesX(c Cost) bool {
+	if c.X > 0 {
+		return true
+	}
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			return true
+		}
+	}
+	return false
+}
+
+// specNamesXBound reports whether a ValidTgts$ spec carries a numeric bound
+// whose right-hand side is the paid {X}: the <field><CMP>X family numericPred
+// resolves through SpecContext.Resolve (powerGEX, cmcEQX, toughnessLTX,
+// counters_GTX_<KIND>). Only these shapes are dynamic in X; a literal bound
+// (cmcGE3) is static and stays gated at offer time.
+var xBoundRe = regexp.MustCompile(`(?i)(power|toughness|cmc)(LE|GE|EQ|LT|GT)X|counters_(?:LE|GE|EQ|LT|GT)X_`)
+
+func specNamesXBound(spec string) bool {
+	return xBoundRe.MatchString(spec)
 }
 
 // castTargetsAvailable is the cast-offer guard: the spell card may not target
-// itself (CR 115.5), so excludeSelf is the card id.
+// itself (CR 115.5), so excludeSelf is the card id. A cost that announces an
+// X (printed {X} or a SpellAbility Cost$ PayEnergy<X>) relaxes an X-bound
+// spec to the post-announcement backstop (costAnnouncesX above).
 func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *cards.SA) bool {
-	return e.targetsAvailable(p, id, id, sa)
+	xPending := false
+	if o := e.G.Obj(id); o != nil && o.Face() != nil {
+		xPending = costAnnouncesX(ParseCost(o.Face().ManaCost))
+		if ab := o.Face().SpellAbility(); ab != nil {
+			xPending = xPending || costAnnouncesX(ParseCost(ab.Params["Cost"]))
+		}
+	}
+	return e.targetsAvailable(p, id, id, sa, xPending)
 }
 
 // abilityTargetsAvailable is the activated-ability offer guard. It is what
@@ -336,9 +544,10 @@ func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *card
 // the transaction aborts it (CR 602.2b / 601.2c: such an ability cannot be
 // activated at all). Unlike a cast, an activated ability CAN target its own
 // Source permanent (Mother of Runes targeting itself), so no self-exclusion
-// applies.
+// applies. An ability cost that announces an X (a {X} mana symbol or
+// PayEnergy<X>) relaxes an X-bound spec to the post-announcement backstop.
 func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
-	return e.targetsAvailable(p, id, 0, ab)
+	return e.targetsAvailable(p, id, 0, ab, costAnnouncesX(ParseCost(ab.Params["Cost"])))
 }
 
 // grantedAbility is one ability a continuous ability grant (CR 613.1f,
@@ -383,6 +592,35 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 	return out
 }
 
+// adjustLandPlays reports how many land drops BEYOND the ordinary one
+// (CR 305.2a) player p gets this turn: the SUM over the active
+// additional-land-drops grants (Azusa, Oracle of Mul Daya, Exploration)
+// whose Affects spec matches p -- the sum, never the max, because each
+// grant's printed sentence modifies the one-drop normal independently
+// (Azusa plus Exploration is three drops). Each grant's Affects is a
+// PLAYER spec evaluated with MatchesPlayerSpecFrom against the granting
+// effect's controller, so "Affected$ You" is the SOURCE's controller: a
+// stolen Azusa grants its new controller, and a spec with a qualifier the
+// matcher does not implement matches nobody (fail closed, no grant).
+// "On each of your turns" is not evaluated here -- the offer gates only
+// ever offer a play_land to the active player in a main phase, and the
+// per-turn counter resets at the TurnChange untap. The walk is a pure read
+// over active()'s sorted slice (never a map), so the resulting option list
+// stays reproducible run to run.
+func (e *Engine) adjustLandPlays(p state.PlayerID) int {
+	total := 0
+	for _, ce := range e.active() {
+		if ce.AdjustLandPlays <= 0 {
+			continue
+		}
+		if !effects.MatchesPlayerSpecFrom(e.G, ce.Affects, p, ce.Controller, ce.Source) {
+			continue
+		}
+		total += int(ce.AdjustLandPlays)
+	}
+	return total
+}
+
 // legalActions enumerates everything p may legally do with priority. The
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
@@ -399,7 +637,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		if f.IsLand() {
-			if sorcery && e.G.Players[p].LandsPlayed < 1 {
+			if sorcery && e.G.Players[p].LandsPlayed < int32(1+e.adjustLandPlays(p)) {
 				add("play_land", "Play "+f.Name, id)
 			}
 			continue
@@ -545,6 +783,38 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		add("play_land", "Play "+o.Face().Name, id)
 	}
 
+	// A may-play-from-zone grant also makes NON-LAND cards in a granted zone
+	// castable this turn (CR 401.5; Atsushi's "you may play those cards",
+	// Opposition Agent's MayPlay+IgnoreColor static). This is a THIRD cast
+	// source alongside the hand and command-zone walks, never a replacement;
+	// the cast pays the card's PRINTED cost (the grant changes where it may
+	// come from, not what it costs), with the grant's MayPlayIgnoreColor$
+	// rider payable-as-any-colour consulted by castable (the card is still
+	// in the granted zone here) and recorded on the pendingCast at beginCast
+	// for the window and the payment to keep. A MayPlayLimit$ grant whose cap
+	// is reached offers nothing through itself (mayPlaySpellIds). The offer
+	// gate folds the card's own SpellAbility additional costs exactly like
+	// the hand walk does, so an offered may-play cast and the cost beginCast
+	// charges structurally cannot disagree.
+	for _, id := range e.mayPlaySpellIds(p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || f.IsLand() || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !e.spellTimingOK(p, id, f, sorcery) {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		cost := withSpellAbilityExtras(f, e.offerCostFor(p, id, e.rawBaseCost(p, id), spellScope("mayplay")))
+		if e.castable(p, id, cost, false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name, Obj: id, Mode: "mayplay"})
+		}
+	}
+
 	// Command zone (CR 903.8, Commander format): a player may cast a
 	// commander they own from the command zone. This is a SECOND cast source
 	// alongside the hand walk above, never a replacement for it. A
@@ -664,6 +934,35 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if e.offerCastable(p, id, wc, spellScope("warped"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (warped)", Obj: id, Mode: "warped"})
+		}
+	}
+
+	// Escape (CR 702.42a): a card in its owner's graveyard carrying the
+	// Escape keyword -- printed (Kroxa's K:Escape) or granted by a continuous
+	// effect (Underworld Breach's AddKeyword$ Escape, which Derived reads off
+	// the layer system) -- may be cast for its escape cost: the card's mana
+	// cost plus ExileFromGrave<N/Card.Other> parts, exiling N OTHER cards
+	// from the same graveyard. The cast is a normal cast (CR 702.42a gives
+	// no post-resolution destination change -- unlike flashback the spell
+	// goes where it would otherwise go), so modeFlags marks it FlagEscaped
+	// and the ETB machinery reads the flag through Card.Self+escaped.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !e.HasKeyword(id, "Escape") {
+			continue
+		}
+		ec, ok := e.escapeCost(id)
+		if !ok || !e.spellTimingOK(p, id, f, sorcery) ||
+			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		if e.castable(p, id, e.offerCostFor(p, id, ec, spellScope("escape")), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (escape)", Obj: id, Mode: "escape"})
 		}
 	}
 

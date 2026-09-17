@@ -47,6 +47,8 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " " + verb + " " + itoa(int64(n)) + " speed (speed " + itoa(int64(speed)) + ")"
 	case events.MonarchChange:
 		return player(g, ev.Player) + " becomes the monarch"
+	case events.StartingPlayerChange:
+		return player(g, ev.Player) + " becomes the starting player"
 	case events.ControlChange:
 		return player(g, ev.Player) + " gains control of " + obj(g, ev.Obj)
 	case events.Goad:
@@ -58,6 +60,12 @@ func Describe(g *state.Game, ev events.Event) string {
 		}
 		return player(g, ev.Player) + " " + verb + " " + itoa(int64(n)) + " " + strings.ToLower(ev.Counter) + " counter(s)"
 	case events.Imprint:
+		if ev.Text == "clear" {
+			return obj(g, ev.Obj) + " clears imprinted cards"
+		}
+		if ev.Text == "exiled-with" {
+			return obj(g, ev.Obj) + " exiles " + objs(g, ev.IDs) + " with it"
+		}
 		return obj(g, ev.Obj) + " imprints " + objs(g, ev.IDs)
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)

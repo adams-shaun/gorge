@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createOracle, setOracleBaseForTests } from './oracle';
+import { createOracle, setOracleBaseForTests, type OracleCard } from './oracle';
 
 // fakeEnv is a deterministic catalog server: named cards resolve from
 // `responses` (an Error rejects, the number 500 makes the server fail, any
@@ -111,6 +111,50 @@ describe('createOracle', () => {
     expect(calls.length).toBe(1);
     tick(60_000);
     expect(o.offline()).toBe(false);
+  });
+  it('aborts a lookup still in flight after the 10s timeout, resolves null, and never stores the miss', async () => {
+    // The production failure this pins (task fb-20260916T225456Z): the
+    // measured wedge was a CardDetail hover's /cards/named fetch blocking
+    // forever behind gorged's art semaphore (the prewarm's Scryfall 429
+    // backoff sleeps hold it), taking the browser's last free per-host
+    // connection and starving every subsequent state fetch (view/events/
+    // pending) for the rest of the test. The lookup must abort on the
+    // injectable clock instead of holding the connection unboundedly.
+    setOracleBaseForTests('https://cat');
+    let clock = 0;
+    const timers: { at: number; fn: () => void }[] = [];
+    const calls: string[] = [];
+    const signals: AbortSignal[] = [];
+    const store = new Map<string, string>();
+    const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) } as unknown as Storage;
+    const env = {
+      fetch: (async (url: string, init?: RequestInit) => {
+        calls.push(String(url));
+        signals.push(init?.signal ?? null as unknown as AbortSignal);
+        return new Promise<Response>((_, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        });
+      }) as unknown as typeof fetch,
+      now: () => clock,
+      setTimeout: (fn: () => void, ms: number) => void timers.push({ at: clock + ms, fn }),
+      storage,
+    };
+    const tick = (ms: number) => { clock += ms; for (const t of timers.splice(0)) if (t.at <= clock) t.fn(); else timers.push(t); };
+    const o = createOracle(env);
+    const p = o.text('City of Traitors');
+    await Promise.resolve(); await Promise.resolve();
+    expect(calls.length).toBe(1);
+    expect(signals[0]).toBeInstanceOf(AbortSignal);
+    tick(9_999);
+    let settled: OracleCard | null | 'pending' = 'pending';
+    void p.then((v) => { settled = v; });
+    await Promise.resolve();
+    expect(settled).toBe('pending'); // a second before the timeout the lookup is still in flight
+    tick(1); // the 10s boundary arms the abort
+    expect(await p).toBeNull();
+    expect(signals[0].aborted).toBe(true);
+    expect(o.offline()).toBe(true); // the existing congestion response applies
+    expect([...store.keys()]).toEqual([]); // a timeout is a failure, never a stored known-miss
   });
 
   it('spaces requests at least 100ms apart', async () => {

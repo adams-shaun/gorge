@@ -602,7 +602,7 @@ func (m costMods) hasFloor() bool {
 // resolves one pip per level in announcePip order and stops at the first
 // payable assignment, so a payable cost is found without visiting the whole
 // tree.
-func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, delve int32, conv *manaConv) bool {
+func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, delve int32, bLifeOK, anyColor bool, conv *manaConv) bool {
 	composed := func(c Cost) bool {
 		cc := m.apply(c)
 		cc.Generic = addClampedGeneric(cc.Generic, int64(taxGeneric))
@@ -611,7 +611,7 @@ func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, d
 		} else {
 			cc.Generic = 0
 		}
-		_, ok := cc.resolveMana(pool, snow, life, conv)
+		_, ok := cc.resolveManaWith(pool, snow, life, bLifeOK, anyColor, conv)
 		return ok
 	}
 	if !m.hasFloor() || c.annPipCount() == 0 {
@@ -654,8 +654,20 @@ func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, d
 // mana-shaping primitives landed (paymentConv returns nil, manaAvailableFor
 // returns Pool verbatim), so every pre-existing game resolves byte-identically.
 func (e *Engine) manaFeasible(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32) bool {
+	return e.manaFeasibleGrant(p, id, ability, c, mods, taxGeneric, delve, e.payerGrantsIgnoreColor(p, id))
+}
+
+// manaFeasibleGrant is manaFeasible with the may-play ignore-colour rider
+// passed explicitly (a pendingCast's pc.mayPlayIgnore, or the offer-side
+// payerGrantsIgnoreColor derivation), and the payer's PayLifeInsteadOf:B
+// grant derived here. Both widen the leaf payable check the same way the
+// payment (resolveManaWith) widens it, so an offered cast, an offered
+// announcement face and the charged total can never disagree on a
+// K'rrik-shaped or MayPlayIgnoreColor$-shaped cost either.
+func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, anyColor bool) bool {
 	pl := e.G.Players[p]
-	return mods.feasibleAny(c, e.manaAvailableFor(p, id, ability), pl.Snow, pl.Life, taxGeneric, delve, e.paymentConv(p, id, ability))
+	return mods.feasibleAny(c, e.manaAvailableFor(p, id, ability), pl.Snow, pl.Life, taxGeneric, delve,
+		e.payerGrantsPayLifeInsteadOfB(p), anyColor, e.paymentConv(p, id, ability))
 }
 
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies
@@ -730,9 +742,18 @@ func (e *Engine) costStatics(mode string) []staticView {
 			out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params})
 		}
 	}
-	for _, p := range e.G.AliveFrom(0) {
+	for pi, p := range e.G.AliveFrom(0) {
 		for _, z := range []state.Zone{state.ZBattlefield, state.ZStack, state.ZGraveyard,
 			state.ZHand, state.ZLibrary, state.ZExile, state.ZCommand} {
+			// The stack is a SHARED zone (state.Game.Zone returns g.Stack for
+			// every player), so walking it under every alive seat would
+			// collect each stack card's statics once per seat -- a spell's own
+			// reduction (Dargo's EffectZone$ All statics while it sits on the
+			// stack) would apply twice. Walk the shared stack exactly once,
+			// under the first alive seat, keeping the original zone order.
+			if z == state.ZStack && pi > 0 {
+				continue
+			}
 			for _, id := range e.G.Zone(z, p) {
 				if o := e.G.Obj(id); o != nil {
 					add(o, id)
@@ -752,6 +773,15 @@ func (e *Engine) costStatics(mode string) []staticView {
 // reduction is a wrong cost — 0 ("no reduction") is the honest read of an
 // amount the engine cannot evaluate.
 func (e *Engine) modAmount(sv staticView) int32 {
+	return e.modAmountX(sv, 0)
+}
+
+// modAmountX is modAmount with the cast's announced {X} bound into the
+// evaluation context, so an Amount$ chain that reads Count$xPaid (Dargo's
+// SVar:X:Count$xPaid over SVar:Y:SVar$X/Times.2) sees the announced value
+// during the in-cast recomputation manaToPay/manaToPayX run. x=0 is the
+// offer-time read (an unbound {X} prices as 0), identical to modAmount.
+func (e *Engine) modAmountX(sv staticView, x int32) int32 {
 	raw := strings.TrimSpace(sv.Params["Amount"])
 	if n, err := strconv.ParseInt(raw, 10, 64); err == nil {
 		if n < 0 {
@@ -767,7 +797,7 @@ func (e *Engine) modAmount(sv staticView) int32 {
 		return 0
 	}
 	f := o.Face()
-	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: f.SVars}
+	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: f.SVars, X: x}
 	// An SVar NAME resolves through its body on the source's face; anything
 	// else is an inline Count$-class expression evaluated as written.
 	if body, ok := f.SVars[raw]; ok {
@@ -859,6 +889,104 @@ func (e *Engine) costModifiersForPotentialTargets(p state.PlayerID, id state.Obj
 	return e.costModifiersWithTargets(p, id, scope, targets, true)
 }
 
+// costModifiersForTargetsX is costModifiersForTargets with the cast's
+// announced {X} bound: the payment-side recomputation (manaToPay/manaToPayX)
+// uses it when the cost announces a variable sacrifice count (Sac<X/Spec>),
+// because the offer-time snapshot priced every Amount$ with X=0 and a
+// reduction reading Count$xPaid would otherwise never apply (Dargo's
+// "{2} less for each permanent sacrificed this way").
+func (e *Engine) costModifiersForTargetsX(p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, x int32) costMods {
+	return e.costModifiersWithTargetsX(p, id, scope, targets, false, x)
+}
+
+func (e *Engine) costModifiersWithTargetsX(p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32) costMods {
+	var mods costMods
+	xBound := x != 0
+	for _, mode := range []string{"RaiseCost", "ReduceCost"} {
+		for _, sv := range e.costStatics(mode) {
+			if potential && mode == "RaiseCost" {
+				if _, targetConditional := sv.Params["ValidTarget"]; targetConditional {
+					continue
+				}
+			}
+			if !e.costStaticApplies(sv, mode, p, id, scope, targets, xBound) {
+				continue
+			}
+			if mode == "RaiseCost" {
+				// A RaiseCost Cost$ names the whole additional cost (Forge
+				// CostAdjustment's RaiseCost branch): a plain mana/life cost
+				// is raised as-is, pips and life included. A Cost$ paired
+				// with an Amount$ ("you may pay {1}{G} any number of times")
+				// is an OPTIONAL additional-cost shape this build does not
+				// model -- the exotic Amount$ skips the static below, so only
+				// the plain raise applies. Cost$ shapes that are not plain
+				// mana/life (Waterbend, ExileFromHand, Sac<...>) parse
+				// nowhere and are skipped by raiseFromCost.
+				rc, rg, rl, costOK := raiseFromCost(sv.Params["Cost"])
+				if costOK {
+					if _, hasAmt := sv.Params["Amount"]; !hasAmt {
+						for i := range rc {
+							mods.raiseCol[i] = addClampedGeneric(mods.raiseCol[i], int64(rc[i]))
+						}
+						mods.raiseGen = addClampedGeneric(mods.raiseGen, int64(rg))
+						mods.raiseLife = addClampedGeneric(mods.raiseLife, int64(rl))
+						continue
+					}
+				}
+				mods.raises = append(mods.raises, e.modAmountX(sv, x))
+				continue
+			}
+			red := costMod{
+				ignoreGeneric: sv.Params["IgnoreGeneric"] == "True",
+				floor:         parseAmount(sv.Params["MinMana"], 0),
+			}
+			if col, ok := sv.Params["Color"]; ok && strings.TrimSpace(col) != "" {
+				// Each listed token is reduced by the Amount$: colour letters
+				// take their pip from the cost's coloured part, and a numeric
+				// token names that many generic pips.  Numeric is deliberately
+				// not limited to "1": Discontinuity's real `Color$ 2 U U`
+				// removes two generic and two blue pips.  Treating `2` as a
+				// colour letter would route it through ManaIndex and remove one
+				// colourless pip instead.  Amount$ applies to every token, so
+				// `Color$ 2 U | Amount$ X` means 2*X generic plus X blue.
+				red.hasColor = true
+				amount := e.modAmountX(sv, x)
+				for _, tok := range strings.Fields(col) {
+					if isDigitRun(tok) {
+						n, err := strconv.ParseInt(tok, 10, 64)
+						if err != nil || n < 0 || n > int64(math.MaxInt32) {
+							continue // malformed Color$ token fails closed
+						}
+						red.generic = addClampedGeneric(red.generic, n*int64(amount))
+						continue
+					}
+					if len(tok) == 1 && strings.ContainsRune("WUBRGC", rune(tok[0])) {
+						red.colored[state.ManaIndex(tok[0])] = addClampedGeneric(
+							red.colored[state.ManaIndex(tok[0])], int64(amount))
+					}
+				}
+			} else {
+				red.generic = e.modAmountX(sv, x)
+			}
+			mods.reduces = append(mods.reduces, red)
+		}
+	}
+	for _, sv := range e.costStatics("SetCost") {
+		if potential {
+			if _, targetConditional := sv.Params["ValidTarget"]; targetConditional {
+				continue
+			}
+		}
+		if !e.costStaticApplies(sv, "SetCost", p, id, scope, targets, xBound) {
+			continue
+		}
+		if n := e.modAmountX(sv, x); n > mods.setFloor {
+			mods.setFloor = n
+		}
+	}
+	return mods
+}
+
 func (e *Engine) costModifiersWithTargets(p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool) costMods {
 	var mods costMods
 	for _, mode := range []string{"RaiseCost", "ReduceCost"} {
@@ -868,7 +996,7 @@ func (e *Engine) costModifiersWithTargets(p state.PlayerID, id state.ObjID, scop
 					continue
 				}
 			}
-			if !e.costStaticApplies(sv, mode, p, id, scope, targets) {
+			if !e.costStaticApplies(sv, mode, p, id, scope, targets, false) {
 				continue
 			}
 			if mode == "RaiseCost" {
@@ -936,7 +1064,7 @@ func (e *Engine) costModifiersWithTargets(p state.PlayerID, id state.ObjID, scop
 				continue
 			}
 		}
-		if !e.costStaticApplies(sv, "SetCost", p, id, scope, targets) {
+		if !e.costStaticApplies(sv, "SetCost", p, id, scope, targets, false) {
 			continue
 		}
 		if n := e.modAmount(sv); n > mods.setFloor {
@@ -953,7 +1081,7 @@ func (e *Engine) costModifiersWithTargets(p state.PlayerID, id state.ObjID, scop
 // modifier is skipped; ValidSpell$ shapes this build cannot evaluate fail
 // closed; a SetCost without RaiseTo$ True is not the shape this build
 // implements.
-func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target) bool {
+func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, xBound bool) bool {
 	if ty, ok := sv.Params["Type"]; ok && ty != "" && ty != scope.kind {
 		return false
 	}
@@ -1000,10 +1128,20 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 		// lines). Skipping the secondary applies the primary only.
 		return false
 	}
-	if sv.Params["Relative"] == "True" {
-		// Relative$ Amount$ scales with the spell's target count (IncreaseCost
-		// per target beyond the first) — a per-target shape no offer-time
-		// composition knows. Skipping, like ValidTarget$.
+	if sv.Params["Relative"] == "True" && !(mode == "ReduceCost" && xBound) {
+		// Relative$ Amount$ scales with something the composition point does
+		// not yet know (IncreaseCost per target beyond the first, or a game
+		// state the offer-time read cannot price) — a per-target shape no
+		// offer-time composition knows. Skipping, like ValidTarget$.
+		// EXCEPTION: the announced-X recomputation (costModifiersForTargetsX,
+		// manaToPay/manaToPayX) is exactly the caller whose composition point
+		// DOES know the variable a "costs {2} less for each permanent
+		// sacrificed this way" amount scales with — Dargo's Relative$ True
+		// static reads Amount$ Y over SVar:Y:SVar$X/Times.2 with X the
+		// announced sacrifice count, and at that point the amount is
+		// evaluated with X bound. A Relative$ ReduceCost whose Amount$ is
+		// unresolvable still degrades to zero (the honest no-reduction),
+		// never to an invented discount.
 		return false
 	}
 	return true

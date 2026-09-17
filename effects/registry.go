@@ -678,6 +678,10 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		fn(h, c, sa)
+		imprint(h, c, sa)
+		if strings.EqualFold(sa.Params["ClearImprinted"], "True") && c.Source != 0 {
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
+		}
 		if h.Suspended() {
 			// A sub-ability in this chain posed a mid-resolution ask and
 			// suspended the resolution: do NOT descend into the rest of the

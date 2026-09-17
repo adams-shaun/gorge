@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { attachedTo, everyVisibleCard, groupBattlefield, quadrantFor, RECENT_RESOLVE_WINDOW, recentlyMattered, stackFaces, stackIdentical, visibleHand } from './board';
-import type { CardView, EventBody, PlayerView } from '../protocol';
+import { attachedTo, everyVisibleCard, findCardAnywhere, groupBattlefield, quadrantFor, RECENT_RESOLVE_WINDOW, recentlyMattered, stackFaces, stackIdentical, visibleHand } from './board';
+import type { CardView, EventBody, PlayerView, View } from '../protocol';
 
 const card = (id: number, types: string): CardView => ({ id, name: `c${id}`, types, tapped: false, power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false, printing: { name: `c${id}` }, token: `#${id}` });
 
@@ -14,6 +14,19 @@ const player = (hand: CardView[] | null): PlayerView => ({
 });
 
 describe('board', () => {
+  it('findCardAnywhere finds an id in each visible zone and the stack, and returns null for a hidden one', () => {
+    const v = {
+      viewer: 255, visibility: 'public', turn: 1, round: 1, step: 'main1', phase: 'main1', active: 0, priority: 0,
+      over: false, draw: false, winner: null, pending: [],
+      stack: [{ id: 900, kind: 'spell', name: 's', text: '', controller: 0, targets: [], card: card(900, 'Instant'), optional: false }],
+      players: [player([]), { ...player([]), seat: 1, battlefield: [card(11, 'Creature')], graveyard: [card(12, 'Instant')], exile: [card(13, 'Creature')] }],
+    } as unknown as View;
+    expect(findCardAnywhere(v, 11)?.id).toBe(11);
+    expect(findCardAnywhere(v, 12)?.id).toBe(12);
+    expect(findCardAnywhere(v, 13)?.id).toBe(13);
+    expect(findCardAnywhere(v, 900)?.id).toBe(900);
+    expect(findCardAnywhere(v, 777)).toBeNull(); // library / nowhere: hidden or gone
+  });
   it('groups lands, creatures and the rest, ordered by id', () => {
     const g = groupBattlefield([card(9, 'Creature Goblin'), card(3, 'Basic Land Mountain'), card(5, 'Artifact'), card(2, 'Creature Human'), card(7, 'Artifact Creature Golem')]);
     expect(g.lands.map((c) => c.id)).toEqual([3]);
@@ -124,6 +137,98 @@ describe('stackIdentical', () => {
   it('one tapped separates two otherwise identical permanents', () => {
     const groups = stackIdentical([zombie(1), zombie(2, { tapped: true }), zombie(3)]);
     expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 3], [2]]);
+  });
+
+  // fb-20260916T201423Z: the lands row merges regardless of tapped state —
+  // a pile of Forests is a pile of Forests, and the readiness moves onto
+  // the pile's tab instead of sharding the pile.
+  it('ignoreTapped merges mixed tapped/untapped same-name cards into one pile, id-sorted', () => {
+    // the report's exact shape: two tapped, one untapped
+    const groups = stackIdentical([zombie(1, { tapped: true }), zombie(2, { tapped: true }), zombie(3)], { ignoreTapped: true });
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 2, 3]]);
+    // member order stays id-sorted even when the untapped one arrives first
+    const groups2 = stackIdentical([zombie(3), zombie(1, { tapped: true }), zombie(2, { tapped: true })], { ignoreTapped: true });
+    expect(groups2.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 2, 3]]);
+  });
+
+  it('ignoreTapped removes ONLY the tapped component: counters and every other key field still split', () => {
+    const tapped = (id: number, o: StackOver = {}): CardView => zombie(id, { tapped: true, ...o });
+    expect(stackIdentical([tapped(1), tapped(2, { counters: { p1p1: 1 } })], { ignoreTapped: true })).toHaveLength(2);
+    expect(stackIdentical([tapped(1), tapped(2, { summon_sick: true })], { ignoreTapped: true })).toHaveLength(2);
+    expect(stackIdentical([tapped(1), tapped(2, { keywords: ['flying'] })], { ignoreTapped: true })).toHaveLength(2);
+    expect(stackIdentical([tapped(1), tapped(2, { damage: 2 })], { ignoreTapped: true })).toHaveLength(2);
+    expect(stackIdentical([tapped(1), tapped(2, { controller: 1 })], { ignoreTapped: true })).toHaveLength(2);
+  });
+
+  // fb-20260917T004545Z: the lands row also drops summoning sickness from the
+  // identity. The engine sets SummonSick on every battlefield entry and clears
+  // it at the next turn boundary, so a land played THIS round carried a key
+  // component its older name-mates lacked and sat in its own pile until then.
+  // Fixture is the reported snapshot's exact shape: three Islands, all tapped,
+  // the third (88) played during turn 6 and therefore still summon_sick.
+  const island = (id: number, o: StackOver = {}): CardView => ({
+    id, name: 'Island', types: 'Basic Land Island',
+    printing: { name: 'Island', set: 'ZNR', number: '264' }, token: '',
+    tapped: true, power: 0, toughness: 0, damage: 0, attacking: false,
+    controller: 0, owner: 0, summon_sick: false, ...o,
+  });
+  const LANDS = { ignoreTapped: true, ignoreSummonSick: true } as const;
+
+  it('a land played this turn joins its name-pile: the reported three-Islands snapshot is ONE pile', () => {
+    // the snapshot: 81 and 89 played in earlier turns (sick=false), 88 played
+    // during turn 6 (sick=true), all three tapped. With tapped and sickness
+    // both out of the lands key they share an identity.
+    const groups = stackIdentical([island(81), island(89), island(88, { summon_sick: true })], LANDS);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].cards.map((c) => c.id)).toEqual([81, 88, 89]);
+    expect(groups[0].render).toBe('r81');
+  });
+
+  it('the creature and others rows still split a sick member: the split IS gameplay information there', () => {
+    // default options (what Quadrant passes creatures/others): sickness stays
+    // in the key — a sick zombie cannot attack, so it is a separate pile.
+    expect(stackIdentical([zombie(1), zombie(2, { summon_sick: true })])).toHaveLength(2);
+    // ...and the lands option is lands-only by contract; nothing else passes it.
+    expect(stackIdentical([island(1), island(2, { summon_sick: true })], LANDS)).toHaveLength(1);
+  });
+
+  it('the lands option still splits on counters: tapped and sickness are the ONLY components that leave the key', () => {
+    expect(stackIdentical([island(1), island(2, { counters: { p1p1: 1 } })], LANDS)).toHaveLength(2);
+    expect(stackIdentical([island(1), island(2, { damage: 2 })], LANDS)).toHaveLength(2);
+    expect(stackIdentical([island(1), island(2, { controller: 1 })], LANDS)).toHaveLength(2);
+    expect(stackIdentical([island(1), island(2, { keywords: ['flying'] })], LANDS)).toHaveLength(2);
+    expect(stackIdentical([island(1), island(2, { printing: { name: 'Island', set: 'MH2', number: '1' } })], LANDS)).toHaveLength(2);
+  });
+
+  it('a lands pile\'s render key is stable across a member tap/untap AND across the sickness clearing at the turn boundary', () => {
+    // the turn boundary: 88's summon_sick clears — membership and lead do not move
+    const during = stackIdentical([island(81), island(88, { summon_sick: true })], LANDS)[0];
+    expect(during.render).toBe('r81');
+    const nextTurn = stackIdentical([island(81), island(88)], LANDS)[0];
+    expect(nextTurn.render).toBe('r81');
+    expect(nextTurn.key).toBe(during.key); // the pile IS the same pile across the boundary
+    // a tap/untap inside the round likewise never churns the render key
+    const tapped = stackIdentical([island(81), island(88, { tapped: false })], LANDS)[0];
+    expect(tapped.render).toBe('r81');
+    expect(tapped.key).toBe(during.key);
+  });
+
+  it('an ignoreTapped pile still never merges across a shared attachment host', () => {
+    const groups = stackIdentical([zombie(1, { tapped: true }), zombie(2, { tapped: true, attached_to: 1 }), zombie(3, { tapped: true })], { ignoreTapped: true });
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1], [2], [3]]);
+  });
+
+  it('a mixed ignoreTapped pile keeps its render key stable across a member tap/untap (membership unchanged)', () => {
+    // Lead is the lowest id (2), whether it is tapped or not: no reordering
+    // to untapped-first, so the keyed-each lifecycle key never moves on a tap.
+    const before = stackIdentical([zombie(2), zombie(3, { tapped: true }), zombie(4, { tapped: true })], { ignoreTapped: true })[0];
+    expect(before.render).toBe('r2');
+    const after = stackIdentical([zombie(2, { tapped: true }), zombie(3), zombie(4, { tapped: true })], { ignoreTapped: true })[0];
+    expect(after.render).toBe('r2');
+    // with tapped out of the identity, a tap does not move the equivalence
+    // string either — the group IS the same pile before and after the tap.
+    expect(after.key).toBe(before.key);
+    expect(after.cards.map((c) => c.id)).toEqual([2, 3, 4]);
   });
 
   it('different counters separate two otherwise identical permanents', () => {

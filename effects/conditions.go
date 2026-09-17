@@ -89,9 +89,23 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 	}
 	if notPresent != "" {
-		// Count-must-be-zero is the mirror of Present; 8 corpus lines carry
-		// it and none is the shape this file scopes. Unresolved.
-		return false, false
+		// ConditionNotPresent$ (8 corpus lines, two shapes): met when NO object
+		// matching the spec is present in the gate's group. With a
+		// ConditionDefined$ group (Ajani Sleeper Agent, Ravenous Gigamole,
+		// Fallaji Archeologist: ConditionDefined$ Remembered | NotPresent$ Card)
+		// the group is that remembered list; without one the group is the
+		// battlefield, the escape shape (Kroxa/Uro/Phlage's TrigSac spec
+		// Card.Self+escaped: the entered permanent matches exactly when it
+		// did NOT escape, so "sacrifice it unless it escaped" runs only for a
+		// non-escape entry). A second present/compare key beside NotPresent is
+		// not a corpus shape; a defined group this build cannot enumerate
+		// (Targeted, TriggeredCardLKICopy) or an unknown predicate in the spec
+		// stays unresolved and runs the sub unconditionally, the documented
+		// pre-condition-engine behaviour.
+		if present != "" || compare != "" {
+			return false, false
+		}
+		return conditionNotPresentMet(h, c, defined, notPresent)
 	}
 	if defined == "" {
 		// ConditionPresent$ with NO ConditionDefined$: Forge's default group
@@ -198,6 +212,52 @@ func conditionMetBattlefield(h Host, c *Ctx, present, compare string) (met, reso
 		}
 	}
 	return evalConditionCount(count, compare)
+}
+
+// conditionNotPresentMet is the ConditionNotPresent$ evaluator the two
+// supported group shapes share (see conditionMet's notPresent branch for the
+// shape census). The spec is matched with MatchesObjectCtx -- the same object
+// grammar ValidCard$ uses -- so the escape family's Card.Self+escaped reads
+// the CastFlags FlagEscaped provenance the escape cast recorded.
+func conditionNotPresentMet(h Host, c *Ctx, defined, spec string) (met, resolved bool) {
+	if len(UnknownPredicates(spec)) > 0 {
+		return false, false
+	}
+	g := h.Game()
+	sc := c.SpecContext(c.Controller)
+	count := 0
+	switch defined {
+	case "":
+		// Forge's default group for a group-less ConditionPresent$/NotPresent$
+		// gate is the battlefield (conditionMetBattlefield's group).
+		for i := range g.Objs {
+			o := &g.Objs[i]
+			if o.Zone != state.ZBattlefield || o.Face() == nil {
+				continue
+			}
+			if MatchesObjectCtx(g, spec, o, sc) {
+				count++
+			}
+		}
+	case "Remembered":
+		for _, t := range c.Remembered {
+			if t.IsPlayer {
+				continue
+			}
+			o := g.Obj(t.Obj)
+			if o == nil {
+				continue
+			}
+			if MatchesObjectCtx(g, spec, o, sc) {
+				count++
+			}
+		}
+	default:
+		// A defined group this build cannot enumerate (Targeted,
+		// TriggeredCardLKICopy): unresolved, the sub runs unconditionally.
+		return false, false
+	}
+	return count == 0, true
 }
 
 // evalConditionCount turns a counted group into (met, resolved) from the

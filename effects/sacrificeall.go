@@ -58,9 +58,15 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if remember {
 			c.Sacrificed = append(c.Sacrificed, state.SacrificedInfoOf(g, id))
+			// Forge's RememberSacrificed$ also remembers the card (mirroring
+			// effSacrifice's rememberLKICapture), which is what a following
+			// ConditionDefined$ Remembered, Remembered$Amount or
+			// RememberedCard reads, and event-backs it on the source so a
+			// later, independently resolving ability sees the same list.
+			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		h.Emit(events.Sacrifice(id))
 	}
 	if def := sa.Params["Defined"]; def != "" || sa.Params["ValidTgts"] != "" {
 		for _, t := range Defined(h, c, sa) {

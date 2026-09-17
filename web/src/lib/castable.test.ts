@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardCastableAfterTap, cardRespondableAfterTap, castableAfterTap, respondableAfterTap } from './castable';
+import { cardCastableAfterTap, cardRespondableAfterTap, castableAfterTap, castablesAfterTap, respondableAfterTap } from './castable';
 import type { CardView, PlayerView, View } from '../protocol';
 
 /**
@@ -91,6 +91,25 @@ describe('castableAfterTap — the post-land window', () => {
   it('a card with no printed cost does not stop the window (the engine already offers it when castable)', () => {
     const p = player({ hand: [card({ mana_cost: undefined })], available: { R: 1 } });
     expect(castableAfterTap(view(p), 0)).toBe(false);
+  });
+});
+
+describe('castablesAfterTap — the descriptive twin (fb-20260916T225211Z)', () => {
+  // Whatever makes castableAfterTap true is named here by construction (the
+  // boolean IS this list's emptiness test): the labels are what a stop-set
+  // note shows when the window's action is behind the tap.
+  it('names the castable hand card on the post-land window, and nothing on a dead hand', () => {
+    const live = player({ hand: [card({ name: 'Lava Spike', mana_cost: 'R' })], pool: {}, available: { R: 1 } });
+    expect(castablesAfterTap(view(live), 0)).toEqual(['Cast Lava Spike (after tapping)']);
+    const dead = player({ hand: [card({ name: 'Lava Spike', mana_cost: '4 U U' })], available: { R: 1 } });
+    expect(castablesAfterTap(view(dead), 0)).toEqual([]);
+  });
+
+  it('lands in hand and unreadable hands name nothing', () => {
+    const land = player({ hand: [card({ types: 'Land Mountain', mana_cost: '' })], available: { R: 1 } });
+    expect(castablesAfterTap(view(land), 0)).toEqual([]);
+    // Another seat's hand is a hidden zone: empty list, same fail-closed shape.
+    expect(castablesAfterTap({ active: 0, step: 'main1', players: [{ seat: 1 }] } as unknown as View, 0)).toEqual([]);
   });
 });
 

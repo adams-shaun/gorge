@@ -67,6 +67,11 @@ func Apply(g *state.Game, e Event) {
 			g.Monarch, g.HasMonarch = e.Player, true
 		}
 
+	case StartingPlayerChange:
+		if validPlayer(g, e.Player) {
+			g.StartingPlayer, g.HasStartingPlayer = e.Player, true
+		}
+
 	case ControlChange:
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {
@@ -75,6 +80,28 @@ func Apply(g *state.Game, e Event) {
 				// condition fails; pruning here keeps a later return of
 				// control from reviving it.
 				pruneGoads(g)
+			}
+		}
+
+	case Imprint:
+		if o := g.Obj(e.Obj); o != nil {
+			if e.Text == "clear" {
+				o.Imprinted = nil
+			} else {
+				// Text is an in-kind discriminator, not a new Event field:
+				// ImprintCards$ records Forge's imprintedCards list while a
+				// ChangeZone-to-exile records the separate exiledCards list.
+				// Both associations survive replay, but only the latter is
+				// pruned when its card leaves exile (in Move below).
+				list := &o.Imprinted
+				if e.Text == "exiled-with" {
+					list = &o.ExiledCards
+				}
+				for _, id := range e.IDs {
+					if g.Obj(id) != nil {
+						*list = append(*list, id)
+					}
+				}
 			}
 		}
 
@@ -194,6 +221,7 @@ func Apply(g *state.Game, e Event) {
 			if e.To == state.ZStack {
 				o.PreStackEntryThisTurn = o.EnteredThisTurn
 				o.PreStackEntryFrom = o.EnteredFrom
+				o.PreStackEnteredLen = len(g.Entered)
 				o.HasPreStackEntry = true
 			}
 		}
@@ -210,12 +238,17 @@ func Apply(g *state.Game, e Event) {
 			if e.Text == "reversed" && o.HasPreStackEntry {
 				o.EnteredThisTurn = o.PreStackEntryThisTurn
 				o.EnteredFrom = o.PreStackEntryFrom
+				if o.PreStackEnteredLen <= len(g.Entered) {
+					g.Entered = g.Entered[:o.PreStackEnteredLen]
+				}
 				o.PreStackEntryThisTurn = false
 				o.PreStackEntryFrom = state.ZLibrary
+				o.PreStackEnteredLen = 0
 				o.HasPreStackEntry = false
 			} else if wasStack && e.To != state.ZStack {
 				o.PreStackEntryThisTurn = false
 				o.PreStackEntryFrom = state.ZLibrary
+				o.PreStackEnteredLen = 0
 				o.HasPreStackEntry = false
 			}
 		}
@@ -314,6 +347,8 @@ func Apply(g *state.Game, e Event) {
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
+			// The per-add entry list is per-turn state too.
+			g.Entered = nil
 		}
 
 	case Goad:
@@ -423,11 +458,6 @@ func Apply(g *state.Game, e Event) {
 	case CounterChange:
 		if o := g.Obj(e.Obj); o != nil {
 			o.AddCounter(e.Counter, e.Amount)
-		}
-
-	case Imprint:
-		if o := g.Obj(e.Obj); o != nil {
-			o.Imprinted = append([]state.ObjID(nil), e.IDs...)
 		}
 
 	case DeclareAttackers:
@@ -641,6 +671,8 @@ func Apply(g *state.Game, e Event) {
 				o.Chosen = rememberedFrom(e.IDs)
 			case "remembered":
 				o.Remembered = append(o.Remembered, rememberedFrom(e.IDs)...)
+			case "clear-remembered":
+				o.Remembered = nil
 			}
 		}
 
@@ -696,6 +728,17 @@ func Apply(g *state.Game, e Event) {
 			break
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
+		if sa == nil {
+			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
+			// SVar to resolve: the ability is rebuilt structurally from the
+			// payload -- the same DB$ Ward | UnlessCost$ <cost> a printed
+			// K:Ward's compiled trigger carries -- so the live game and the
+			// replay mint identical objects from the event text alone.
+			if rest, ok := strings.CutPrefix(e.Counter, "__kwWard:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Ward",
+					Params: map[string]string{"UnlessCost": rest, "TriggerDescription": "Ward"}}
+			}
+		}
 		if sa == nil {
 			break
 		}
@@ -963,6 +1006,16 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	enteredFrom := o.Zone
 	wasBattlefield := enteredFrom == state.ZBattlefield
 	wasStack := enteredFrom == state.ZStack
+	if enteredFrom == state.ZExile && to != state.ZExile {
+		// Forge's exiledCards association is a zone relationship, not an
+		// imprint. Once this object leaves exile it is a new object for that
+		// association, even if a later effect exiles the same engine ObjID.
+		// Do this inside Apply's Move fold so live play and log replay prune
+		// every source's list identically.
+		for i := range g.Objs {
+			g.Objs[i].ExiledCards = withoutObjID(g.Objs[i].ExiledCards, id)
+		}
+	}
 	if wasBattlefield && to != state.ZBattlefield {
 		// Leaving combat removes this permanent as a blocker, but does not
 		// make creatures it blocked unblocked (CR 506.4, 509.1h). Preserve
@@ -1015,6 +1068,17 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	// state even from a malformed caller-supplied From.
 	o.EnteredThisTurn = true
 	o.EnteredFrom = enteredFrom
+	// Record the per-add entry the Count$ThisTurnEntered_* heads and the
+	// ThisTurnEntered* filter predicates read (Forge's per-zone
+	// getCardsAddedThisTurn lists, one append per add). Every Move routes
+	// through events.Apply, so this stays inside the Apply-only mutation
+	// discipline; the TurnChange case clears the list with the rest of the
+	// per-turn state. A reversed CR 733.1 cast proposal keeps its entries:
+	// the proposal's PutOnStack entry and the reverse move's entry both
+	// land, and no corpus head reads the zones that pair touches
+	// (Hand_from_Stack does, and the double entry it sees is the honest
+	// record of the two moves).
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom})
 	switch to {
 	case state.ZBattlefield:
 		o.SummonSick = true
@@ -1119,6 +1183,26 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 //   - makes it summoning sick (CR 302.6): its new controller has not controlled
 //     it continuously since their most recent turn began. TurnChange clears it
 //     from the active player's list, i.e. at its new controller's next turn.
+//
+// withoutObjID returns ids without id, retaining its order and avoiding an
+// allocation when no entry matches. ExiledCards is a short insertion-ordered
+// relation, so an ordered slice preserves deterministic selector results.
+func withoutObjID(ids []state.ObjID, id state.ObjID) []state.ObjID {
+	for i, got := range ids {
+		if got != id {
+			continue
+		}
+		out := append([]state.ObjID(nil), ids[:i]...)
+		for _, got := range ids[i:] {
+			if got != id {
+				out = append(out, got)
+			}
+		}
+		return out
+	}
+	return ids
+}
+
 func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 	if o.Controller == p {
 		return

@@ -483,6 +483,17 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		// once per spell cast before it, i.e. everyone's casts minus itself).
 		return int32(h.CastThisTurn())
 	case "RememberedSize":
+		// Forge's RememberedSize is the HOST CARD's remembered list -- the
+		// persistent list riders (RememberDiscarded$/RememberCountered$/
+		// RememberChosen$/RememberControlled$/RememberSacrificed$) add to and
+		// Cleanup's ClearRemembered$ clears. In this engine that list is the
+		// SOURCE object's event-backed Remembered; the ctx-level list also
+		// carries a trigger's captured event object, which is NOT part of
+		// Forge's host list (the same exclusion iterationBase applies). A
+		// resolution with no source object falls back to the ctx list.
+		if o := g.Obj(c.Source); o != nil {
+			return int32(len(o.Remembered))
+		}
 		return int32(len(c.Remembered))
 	case "LifeOppsLostThisTurn":
 		// The total life the controller's OPPONENTS have lost this turn
@@ -518,6 +529,20 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest))
 	}
 
+	// StartingPlayer.<yes>.<no> is Forge's two-branch opening designation
+	// count. Desert Cenote's StartingPlayer.0.1 feeds LT1, so only the
+	// starting player gets its tapped-entry replacement; the other corpus
+	// cards use different numeric branches. Parse the grammar rather than a
+	// card-specific literal so every branch pair follows the current, replayed
+	// designation (including an opening effect that changes it).
+	if branches, ok := strings.CutPrefix(head, "StartingPlayer."); ok {
+		yes, no := splitDot(branches)
+		if g.IsStartingPlayer(c.Controller) {
+			return yes
+		}
+		return no
+	}
+
 	// CardCounters.<KIND> counts a counter kind on the source.
 	if kind, ok := strings.CutPrefix(head, "CardCounters."); ok {
 		if o := g.Obj(c.Source); o != nil {
@@ -547,6 +572,21 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		return notAssembled
 	}
 
+	// Count$ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid> counts the cards
+	// ADDED to zone <Dest> this turn (optionally only those that came from
+	// <Origin>) matching <Valid> -- Forge's CardUtil.getThisTurnEntered over
+	// the per-zone getCardsAddedThisTurn lists. The list is state.Entered,
+	// appended once per move by events.Move and cleared at TurnChange, so a
+	// replay folds the identical count. A card listed twice (it entered the
+	// zone twice) counts twice, exactly like Forge's per-add list; a card
+	// that has since moved on is still listed and its validity is evaluated
+	// against the object wherever it now lives -- the same live-card read
+	// Forge's getValidCards applies to the zone list. Gravelighter's "draw a
+	// card if a creature died this turn" is the corpus carrier.
+	if rest, ok := strings.CutPrefix(head, "ThisTurnEntered"); ok && strings.HasPrefix(rest, "_") {
+		return evalThisTurnEntered(g, c, rest[1:])
+	}
+
 	// Valid / ValidZone forms count objects in a zone matching a filter.
 	// A "$<Property>" suffix (Count$Valid Creature.YouCtrl$CardPower —
 	// Ghalta, Primal Hunger) aggregates the named numeric property over the
@@ -572,6 +612,59 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		return n
 	}
 	return 0
+}
+
+// evalThisTurnEntered parses a ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid>
+// tail -- the split Forge's own parser applies (workingCopy[0] = the head, so
+// parts[0] here is <Dest>; at most five underscore parts, and a <Valid> tail
+// of more than one token is rejoined). An unknown destination zone or an
+// empty valid fails closed to zero rather than counting everything.
+func evalThisTurnEntered(g *state.Game, c *Ctx, rest string) int32 {
+	parts := strings.Split(strings.TrimSpace(rest), "_")
+	if len(parts) < 2 || len(parts) > 5 {
+		return 0
+	}
+	dest, ok := zoneWords[parts[0]]
+	if !ok {
+		return 0
+	}
+	hasFrom := len(parts) >= 3 && parts[1] == "from"
+	valid := ""
+	if hasFrom {
+		if len(parts) < 4 {
+			return 0
+		}
+		origin, known := zoneWords[parts[2]]
+		if !known {
+			return 0
+		}
+		valid = strings.Join(parts[3:], "_")
+		return countEntered(g, c, dest, &origin, valid)
+	}
+	valid = strings.Join(parts[1:], "_")
+	return countEntered(g, c, dest, nil, valid)
+}
+
+// countEntered folds the per-add entry list over one destination zone (and
+// optionally one origin zone), counting the entries whose object matches
+// valid from the resolving controller's perspective.
+func countEntered(g *state.Game, c *Ctx, dest state.Zone, origin *state.Zone, valid string) int32 {
+	if valid == "" {
+		return 0
+	}
+	var n int32
+	for _, e := range g.Entered {
+		if e.To != dest {
+			continue
+		}
+		if origin != nil && e.From != *origin {
+			continue
+		}
+		if MatchesSpecCtx(g, valid, e.Obj, c.SpecContext(c.Controller)) {
+			n++
+		}
+	}
+	return n
 }
 
 // objectProperty reads one Count$Valid-spec "$Property" aggregate term over
@@ -792,6 +885,13 @@ func applyCountOp(n int32, op string) int32 {
 		return math.MinInt32
 	}
 	return int32(v)
+}
+
+// ApplyCountOp is applyCountOp's exported form, for callers outside effects
+// (rules' cost-modifier amount read) that must apply the same /Op suffix the
+// count grammar uses -- one shared arithmetic, so the two cannot drift.
+func ApplyCountOp(n int32, op string) int32 {
+	return applyCountOp(n, op)
 }
 
 // SetSVars binds a copy of the SVar table to a context. A nil input leaves

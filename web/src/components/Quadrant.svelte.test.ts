@@ -90,6 +90,40 @@ describe('Quadrant — an eliminated seat is greyed out on the board (Task 3)', 
   });
 });
 
+describe('Quadrant — lands always stack, creatures keep the tapped split (fb-20260916T201423Z)', () => {
+  const land = (id: number, tapped: boolean): CardView =>
+    ({ id, name: 'Swamp', types: 'Basic Land Swamp', tapped, power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false, printing: { name: 'Swamp', set: 'LEB', number: '1' }, token: `#${id}` });
+  const bear = (id: number, tapped: boolean): CardView =>
+    ({ id, name: 'Grizzly Bears', types: 'Creature Bear', tapped, power: 2, toughness: 2, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false, printing: { name: 'Grizzly Bears', set: 'LEB', number: '1' }, token: `#${id}` });
+
+  it('the report snapshot shape — Swamp x2 tapped + x1 untapped — renders as ONE pile, while a tapped creature mix still splits', () => {
+    const p = player({ battlefield: [land(1, true), land(2, true), land(3, false), bear(4, true), bear(5, false)] });
+    const { html } = render(Quadrant, { props: { player: p, colour: '#e5484d' } });
+    // Exactly ONE merged group on the whole board: the three Swamps, ids
+    // id-sorted in the anchor. The bears split — a group of one renders a
+    // bare CardTile with no group anchor — so their tiles stay individual.
+    expect(html.match(/data-obj-group="[^"]*"/g)).toEqual(['data-obj-group="1,2,3"']);
+    // and every creature is still individually addressable
+    expect(html).toContain('data-obj="4"');
+    expect(html).toContain('data-obj="5"');
+  });
+
+  it('a uniform tapped land pile keeps the shipped xN tab (no readiness plate)', () => {
+    const p = player({ battlefield: [land(1, true), land(2, true)] });
+    const { html } = render(Quadrant, { props: { player: p, colour: '#e5484d' } });
+    expect(html).toContain('data-obj-group="1,2"');
+    expect(html).not.toContain('data-stack-ready');
+  });
+
+  it('a MIXED land pile shows the readiness plate in the lands row', () => {
+    const p = player({ battlefield: [land(1, true), land(2, true), land(3, false)] });
+    const { html } = render(Quadrant, { props: { player: p, colour: '#e5484d' } });
+    expect(html).toContain('data-stack-ready');
+    expect(html).toContain('>1 ready<');
+    expect(html).toContain('>x3<');
+  });
+});
+
 describe('Quadrant — layout settings (fb-20260916T182801Z)', () => {
   it('each battlefield row publishes its scale, alignment and zone key', () => {
     const p = player({ battlefield: [card(2, 'Grizzly Bears')] });
@@ -104,14 +138,50 @@ describe('Quadrant — layout settings (fb-20260916T182801Z)', () => {
 
   it('the on-board resize stepper is mounted only on the viewer\'s own quadrant', () => {
     const p = player({ battlefield: [card(2, 'Grizzly Bears')] });
-    const spectator = render(Quadrant, { props: { player: p, colour: '#e5484d' } }).html;
-    expect(spectator).not.toContain('data-zone-stepper');
-    const own = render(Quadrant, { props: { player: p, colour: '#e5484d', own: true } }).html;
-    expect(own).toContain('data-zone-stepper="creatures"');
-    expect(own).toContain('data-zone-stepper="others"');
-    expect(own).toContain('data-zone-stepper="lands"');
-    // ...and never the hand's stepper, which HandFan owns
-    expect(own).not.toContain('data-zone-stepper="hand"');
+    // fb-20260917T004304Z: the shipped default is now HIDDEN, so the test
+    // opts the shared store in for the stepper-mount assertions.
+    layoutStore.setSteppersOnBoard(true);
+    try {
+      const spectator = render(Quadrant, { props: { player: p, colour: '#e5484d' } }).html;
+      expect(spectator).not.toContain('data-zone-stepper');
+      const own = render(Quadrant, { props: { player: p, colour: '#e5484d', own: true } }).html;
+      expect(own).toContain('data-zone-stepper="creatures"');
+      expect(own).toContain('data-zone-stepper="others"');
+      expect(own).toContain('data-zone-stepper="lands"');
+      // ...and never the hand's stepper, which HandFan owns
+      expect(own).not.toContain('data-zone-stepper="hand"');
+    } finally {
+      layoutStore.reset();
+      layoutStore.dispose();
+    }
+  });
+
+  it('the Game Options show/hide toggle hides EVERY on-board stepper, and showing it restores exactly the previous mounts (fb-20260916T200925Z)', () => {
+    const p = player({ battlefield: [card(2, 'Grizzly Bears')] });
+    const props = { props: { player: p, colour: '#e5484d', own: true } };
+    try {
+      // The toggle is the layout store's steppersOnBoard; this is the exact
+      // call the panel's switch onclick makes.
+      layoutStore.setSteppersOnBoard(false);
+      const hidden = render(Quadrant, props).html;
+      // conditional render, not display:none: no stepper markup anywhere
+      expect(hidden).not.toContain('data-zone-stepper');
+      // the rows themselves stay (scale/align/outline are untouched)
+      for (const zone of ['creatures', 'others', 'lands'] as const) {
+        const row = elem(hidden, `data-zone-row="${zone}"`);
+        expect(row).not.toBe('');
+        expect(row).toContain('--row-scale');
+      }
+
+      layoutStore.setSteppersOnBoard(true);
+      const shown = render(Quadrant, props).html;
+      expect(shown).toContain('data-zone-stepper="creatures"');
+      expect(shown).toContain('data-zone-stepper="others"');
+      expect(shown).toContain('data-zone-stepper="lands"');
+    } finally {
+      layoutStore.reset();
+      layoutStore.dispose();
+    }
   });
 
   it('the dotted outline is up on every quadrant\'s row while the store pulses that zone, and down once the flash clears', () => {

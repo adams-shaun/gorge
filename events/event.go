@@ -279,12 +279,21 @@ const (
 	// PlayerCounterChange changes a counter on Player. Counter names the kind
 	// and Amount the delta; Ward's AddCounterYou<.../POISON> is its first use.
 	PlayerCounterChange
-	// Imprint records cards this permanent exiled with Imprint$ True. Obj is
-	// the imprinting permanent and IDs are the cards, in the effect's chosen
-	// order. It is append-only so replay rebuilds Defined.Imprinted. Appended
-	// AFTER main's kinds so the merge preserves main's ordinals (log.json
-	// serializes kind numerically; a committed fixture's replay pins them).
+	// Imprint updates one source-card association. Obj is the source and IDs
+	// are the cards to add: ordinary text is Forge's imprintedCards list,
+	// Text "exiled-with" is its distinct exiledCards list, and Text "clear"
+	// clears only imprintedCards. Reusing Text avoids changing Event's layout.
+	// It is append-only so prior event ordinals and replay hashes stay stable.
 	Imprint
+	// StartingPlayerChange records CR 103.1's starting-player designation.
+	// It is emitted by genesis's toss resolution (folded without appending at
+	// genesis, since genesis is replayed from Config) and by an opening-hand
+	// effect such as Impatient Iguana, rather than being inferred from
+	// TurnChange, because Count$StartingPlayer must read its result before
+	// turn one. Appended after main's kinds so the merge preserves main's
+	// ordinals (log.json serializes kind numerically; a committed fixture's
+	// replay pins them).
+	StartingPlayerChange
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -295,7 +304,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Imprint) + 1
+	NumKinds = int(StartingPlayerChange) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -310,7 +319,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
-	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint"}
+	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -427,6 +436,8 @@ var flagNames = [...]struct {
 	{"buyback", state.FlagBuyback},
 	{"harmonize", state.FlagHarmonize},
 	{"suspend", state.FlagSuspend},
+	{"escaped", state.FlagEscaped},
+	{"mayplay", state.FlagMayPlay},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

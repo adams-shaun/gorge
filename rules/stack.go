@@ -51,9 +51,20 @@ func (e *Engine) payManaConv(p state.PlayerID, cost Cost, conv *manaConv) bool {
 // and marked on the negative ManaAdd event so events.Apply can reconstruct
 // the same provenance during replay.
 func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv) bool {
+	return e.payManaFor(p, id, ability, cost, conv, false)
+}
+
+// payManaFor is payManaConvFor with the may-play ignore-colour rider passed
+// explicitly, so the payment sites that know the cast's recorded rider (a
+// pendingCast's mayPlayIgnore, kept from the offer gate that proved it) keep
+// the grant after the card has moved to the stack -- at payment time the
+// card is no longer in the granted zone, so re-deriving from the zone would
+// wrongly drop it.
+func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, anyColor bool) bool {
 	before := e.manaAvailableFor(p, id, ability)
 	beforeSnow := e.G.Players[p].Snow
-	pay, ok := cost.resolveMana(before, beforeSnow, e.G.Players[p].Life, conv)
+	pay, ok := cost.resolveManaWith(before, beforeSnow, e.G.Players[p].Life,
+		e.payerGrantsPayLifeInsteadOfB(p), anyColor, conv)
 	if !ok {
 		return false
 	}
@@ -88,6 +99,16 @@ func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, 
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
 	return true
+}
+
+// payManaCast is the spell-cost payment: the shared payManaFor core with the
+// cast's recorded may-play ignore-colour rider (CR 401.5's "spend mana as
+// though it were mana of any color to cast it"). The rider was proved by the
+// offer gate while the card still sat in the granted zone; the payment keeps
+// it via pc.mayPlayIgnore because after the push (CR 601.2a) the card is on
+// the stack and a zone re-derivation would wrongly drop the grant.
+func (e *Engine) payManaCast(pc *pendingCast, cost Cost) bool {
+	return e.payManaFor(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false), pc.mayPlayIgnore)
 }
 
 // manaAvailableFor removes every restricted batch from the visible pool, then
@@ -177,13 +198,25 @@ func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *ma
 	return &conv
 }
 
+// costPayableGrant is costPayable with the may-play ignore-colour rider
+// passed explicitly, for the payment sites that know the cast's recorded
+// rider and cannot re-derive it from the card's zone.
+func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool, cost Cost, anyColor bool) bool {
+	_, ok := cost.resolveManaWith(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].Life,
+		e.payerGrantsPayLifeInsteadOfB(p), anyColor, e.paymentConv(p, id, ability))
+	return ok
+}
+
 // costPayable is the conversion-aware equivalent of Cost.payable at the
 // offering and window gates: the SAME resolveMana payMana will run, so an
 // offered cost and the cost actually charged can never disagree about what
-// the payer's converted mana may satisfy.
+// the payer's converted mana may satisfy. The payer-side grants (a
+// PayLifeInsteadOf:B static under its controller; a may-play grant's
+// MayPlayIgnoreColor$ rider, derived from the card's current zone) are
+// applied here too, so an offered cost and the charged cost agree about a
+// K'rrik-shaped or may-play-shaped payment as well.
 func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cost Cost) bool {
-	_, ok := cost.resolveMana(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].Life, e.paymentConv(p, id, ability))
-	return ok
+	return e.costPayableGrant(p, id, ability, cost, e.payerGrantsIgnoreColor(p, id))
 }
 
 // targetBounds resolves a targeting subject's TargetMin$/TargetMax$ to the
@@ -432,7 +465,9 @@ func (e *Engine) targetName(source state.ObjID) string {
 // one helper so an ability object can never reach a nil-Face dereference in
 // either.
 func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
-	label := e.G.Players[candidate.player].Name
+	// The controller's name is seat-facing (the seat that answers sees it),
+	// so it prefers the table's display name over the deck-identity slug.
+	label := seatFacingName(e.G, candidate.player)
 	if candidate.obj != 0 {
 		label = e.targetName(candidate.obj) + " (" + label + ")"
 	}
@@ -667,16 +702,50 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := targetBounds(sa)
+	candidates := e.legalTargetCandidates(p, source, source, sa)
+	oneEach := strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True")
+	groups := map[state.PlayerID]bool{}
+	if oneEach {
+		// Forge TargetRestrictions.setForEachPlayer limits the selected targets
+		// to one controlled by each player. Option.Group makes that restriction
+		// part of the generic decision contract, so every target API consumes
+		// the same enforcement rather than each effect maintaining a picker.
+		for _, candidate := range candidates {
+			owner := candidate.player
+			if candidate.kind != "player" {
+				if o := e.G.Obj(candidate.obj); o != nil {
+					owner = o.Controller
+				}
+			}
+			groups[owner] = true
+		}
+		if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
+			min = len(groups)
+		}
+		if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
+			max = len(groups)
+		}
+	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
-	for _, candidate := range e.legalTargetCandidates(p, source, source, sa) {
+	for _, candidate := range candidates {
 		// targetOptionLabel tolerates the Face-less ability object a
 		// TargetType$ Activated/Triggered spec now offers: targetName falls
 		// back to the source permanent's name.
 		label := e.targetOptionLabel(candidate)
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
-			Label: label, Obj: candidate.obj, Player: candidate.player})
+		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: label, Obj: candidate.obj, Player: candidate.player}
+		if oneEach {
+			owner := candidate.player
+			if candidate.kind != "player" {
+				if obj := e.G.Obj(candidate.obj); obj != nil {
+					owner = obj.Controller
+				}
+			}
+			o.Group = "target-controller-" + strconv.Itoa(int(owner))
+		}
+		d.Options = append(d.Options, o)
 	}
 	if min == 0 {
 		// Requirement N2 / totality: a target-hungry subject whose minimum
