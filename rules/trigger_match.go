@@ -1523,8 +1523,12 @@ func (e *Engine) cycledMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 // counter kind's total on the object from below n to at least n -- the tenth
 // counter is put whether one event put 10 or a 5-then-5 pair crossed, and a
 // batch that overshoots (9+2) also crossed it. A put that does not cross
-// (7+1, 11+1) fires nothing. An absent CounterAmount$ is Forge's plain
-// "whenever a counter is put" -- every put admits it.
+// (7+1, 11+1) fires nothing. The threshold ops (EQ/GT/GE) all read as that
+// one crossing -- the corpus's CounterAdded CounterAmount$ values are EQ only
+// (EQ3..EQ12, every one an oracle "when the <Nth> counter is put" gate), so
+// EQ is the measured shape and GT/GE collapse onto it unmeasured. An absent
+// CounterAmount$ is Forge's plain "whenever a counter is put" -- every put
+// admits it.
 func (e *Engine) counterAddedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 	if ev.Kind != events.CounterChange || ev.Amount <= 0 {
 		return false
@@ -1549,12 +1553,22 @@ func (e *Engine) counterAddedMatches(t cards.Trigger, source state.ObjID, ev eve
 		if before < 0 {
 			before = 0
 		}
-		// The crossing semantics: below n before, at least n after. A plain
-		// comparison of the post-event total (applyCompare(after, op, n))
-		// would re-fire on every later put (11, 12, ...) -- the oracle text
-		// ("when the tenth counter is put") fires once, on the crossing.
-		if !(before < int32(n) && applyCompare(int(after), op, n)) {
-			return false
+		// The crossing semantics for the threshold ops: below n before, at
+		// least n after. applyCompare(after, op, n) would miss an overshooting
+		// batch (9+2 on EQ10: after=11 is not == 10) and re-fire on every
+		// later put that lands exactly on n -- the oracle text ("when the
+		// tenth counter is put") fires once, on the crossing, so EQ/GT/GE
+		// collapse onto before < n && after >= n. LT/LE/NE do not occur in
+		// the corpus on this mode; they keep the plain post-event comparison.
+		switch op {
+		case "EQ", "GT", "GE":
+			if !(before < int32(n) && after >= int32(n)) {
+				return false
+			}
+		default:
+			if !applyCompare(int(after), op, n) {
+				return false
+			}
 		}
 	}
 	return true

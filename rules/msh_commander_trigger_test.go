@@ -204,8 +204,10 @@ func TestAttackersDeclaredReplaysExactly(t *testing.T) {
 
 // TestCounterAddedTenthCounterFiresOnceOnCrossing pins trig:CounterAdded on
 // Shang-Chi and the Ten Rings: the tenth +1/+1 counter crosses the gate once
-// (a 9+1 pair and a single 10 both), draws five and gains 5 life; puts that
-// do not cross, and puts past the crossing, queue nothing.
+// (a 9+1 pair, a single 10, a single 11 from below and a 9+2 overshoot all
+// cross it -- the tenth is put whether the batch lands on it or past it),
+// draws five and gains 5 life; puts that do not cross (7+1), puts that start
+// past it (11+1), and later puts after the crossing, queue nothing.
 func TestCounterAddedTenthCounterFiresOnceOnCrossing(t *testing.T) {
 	shang := mshCorpusCard(t, "Shang-Chi and the Ten Rings")
 	e := combatEngine(t)
@@ -242,6 +244,45 @@ func TestCounterAddedTenthCounterFiresOnceOnCrossing(t *testing.T) {
 	e2.resolveTop()
 	if got := len(e2.G.Zone(state.ZHand, 0)); got != hand2+5 {
 		t.Fatalf("single-put hand = %d, want %d", got, hand2+5)
+	}
+
+	// A batch that overshoots the gate from below (9+2 on EQ10) crossed it: the
+	// tenth counter is among the eleven, so the crossing fires even though the
+	// post-event total is not == n. This is the shape applyCompare(after, EQ, n)
+	// missed (the finding that fixed the gate).
+	e3 := combatEngine(t)
+	id3 := onBoardCard(t, e3, 0, shang)
+	hand3 := len(e3.G.Zone(state.ZHand, 0))
+	e3.emit(events.Event{Kind: events.CounterChange, Obj: id3, Counter: "P1P1", Amount: 9})
+	e3.emit(events.Event{Kind: events.CounterChange, Obj: id3, Counter: "P1P1", Amount: 2})
+	if len(e3.pendingTriggers) != 1 {
+		t.Fatalf("overshoot-batch pendingTriggers = %d, want 1", len(e3.pendingTriggers))
+	}
+	e3.putTriggersOnStack()
+	e3.resolveTop()
+	if got := len(e3.G.Zone(state.ZHand, 0)); got != hand3+5 {
+		t.Fatalf("overshoot-batch hand = %d, want %d", got, hand3+5)
+	}
+
+	// A single put past n from below crosses too (a bare 11 puts the tenth among
+	// the batch), and the put after it no longer fires -- so a put that starts at
+	// or past the gate (the 11+1 shape) never crosses either.
+	e4 := combatEngine(t)
+	id4 := onBoardCard(t, e4, 0, shang)
+	e4.emit(events.Event{Kind: events.CounterChange, Obj: id4, Counter: "P1P1", Amount: 11})
+	if len(e4.pendingTriggers) != 1 {
+		t.Fatalf("single-11 pendingTriggers = %d, want 1", len(e4.pendingTriggers))
+	}
+	e4.putTriggersOnStack()
+	e4.resolveTop()
+	// resolveTop drew five cards and each draw queued Shang-Chi's own Drawn
+	// trigger ("put a +1/+1 counter") -- those five pending entries are the
+	// draws' puts, not the crossing gate; drop them so the assertion below
+	// sees only the gate's answer to the follow-up put.
+	e4.pendingTriggers = nil
+	e4.emit(events.Event{Kind: events.CounterChange, Obj: id4, Counter: "P1P1", Amount: 1})
+	if len(e4.pendingTriggers) != 0 {
+		t.Fatalf("post-crossing pendingTriggers = %d, want 0", len(e4.pendingTriggers))
 	}
 }
 
