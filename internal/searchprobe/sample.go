@@ -40,16 +40,15 @@ type World struct {
 	Observer *Collector
 }
 type SampleResult struct {
-	Worlds                                                                                     []World `json:"-"`
-	Attempts, Accepted, PrefixRejected, BudgetExhausted, Submits, Duplicates                   int
-	ESS                                                                                        float64
-	FirstRejection                                                                             string
-	Rejections                                                                                 []RejectionBucket
-	GuidedGenesis, GuidedLater, ArrangeWindows, UnguidedConstraints, IncompatibleProposals     int
-	LandIsolationEligible, LandIsolationSelected, LandIsolationEmpty, LandIsolationUnsupported int
-	WeightDiagnostics                                                                          WeightDiagnostics
-	HandToStackCauses                                                                          HandToStackCauses
-	StackRejectionContexts                                                                     []StackRejectionContext
+	Worlds                                                                                 []World `json:"-"`
+	Attempts, Accepted, PrefixRejected, BudgetExhausted, Submits, Duplicates               int
+	ESS                                                                                    float64
+	FirstRejection                                                                         string
+	Rejections                                                                             []RejectionBucket
+	GuidedGenesis, GuidedLater, ArrangeWindows, UnguidedConstraints, IncompatibleProposals int
+	WeightDiagnostics                                                                      WeightDiagnostics
+	HandToStackCauses                                                                      HandToStackCauses
+	StackRejectionContexts                                                                 []StackRejectionContext
 }
 type RejectionBucket struct {
 	Frame            int
@@ -102,24 +101,21 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	if err := validateGenesis(setup, epochs); err != nil {
 		return result, err
 	}
-	landNames := publicLandNames(setup)
 	stackConstraints := stackConstraintContexts(h, epochs)
-	for _, epoch := range epochs {
-		result.LandIsolationUnsupported += epoch.LandIsolationUnsupported
-	}
 	tape, tossWeight, err := publicToss(setup, h)
 	if err != nil {
 		return result, err
 	}
 	var proposals []World
 	var logs []float64
-	var proposalDiagnostics []proposalDiagnostics
+	plans := newConstraintPlanCache()
+	prefixEvents := observedPrefixEvents(h)
 	for attempt := 0; attempt < opts.Attempts; attempt++ {
 		result.Attempts++
 		seed := taggedSeed(opts.Seed, digest, attempt, seedEngine)
 		cfg := rules.Config{Seed: seed[0], Names: setup.Names, Decks: setup.Decks, Tokens: setup.Tokens, StartingLife: setup.StartingLife}
 		observer := NewCollector(h.Actor)
-		proposal := &proposalState{epochs: epochs, landNames: landNames, logWeight: tossWeight, base: opts.Seed, history: digest, attempt: attempt, observer: observer, result: &result}
+		proposal := &proposalState{epochs: epochs, logWeight: tossWeight, base: opts.Seed, history: digest, attempt: attempt, observer: observer, result: &result, plans: plans}
 		e, err := rules.NewHypotheticalPlanned(cfg, tape, proposal.plan)
 		if errors.Is(err, errIncompatibleProposal) {
 			continue
@@ -127,6 +123,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		if err != nil {
 			return result, err
 		}
+		e.L.Reserve(prefixEvents)
 		if err := e.AdvanceHypothetical(); err != nil {
 			if errors.Is(err, errIncompatibleProposal) {
 				continue
@@ -138,6 +135,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 			seed := taggedSeed(opts.Seed, digest, attempt, seedOpponent, uint64(i))
 			bots[i] = rand.New(rand.NewPCG(seed[0], seed[1]))
 		}
+		boards := newOpponentBoards(len(setup.Names))
 		pos, submits := 0, 0
 		accepted := true
 		knownGot := make(map[uint32]Identity)
@@ -202,7 +200,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 					break
 				}
 			} else {
-				in = botpolicy.Decide(botpolicy.BoardFromGame(e.G, e, d.Player), d, bots[d.Player])
+				in = botpolicy.Decide(opponentBoard(e, d.Player, boards), d, bots[d.Player])
 			}
 			pos = len(e.L.Events)
 			submits++
@@ -220,7 +218,6 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 			result.Accepted++
 			proposals = append(proposals, World{Config: cfg, Engine: e, Observer: observer})
 			logs = append(logs, proposal.logWeight)
-			proposalDiagnostics = append(proposalDiagnostics, proposal.diagnostics)
 		}
 	}
 	if len(proposals) == 0 {
@@ -231,7 +228,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		return result, err
 	}
 	result.ESS = ess
-	result.WeightDiagnostics = summarizeWeightDiagnostics(logs, weights, proposalDiagnostics)
+	result.WeightDiagnostics = summarizeWeightDiagnostics(logs, weights)
 	if len(proposals) < opts.Worlds || ess+1e-10 < float64(opts.Worlds) {
 		return result, nil
 	}
@@ -253,6 +250,26 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		result.Worlds = append(result.Worlds, w)
 	}
 	return result, nil
+}
+
+func observedPrefixEvents(h History) int {
+	total := 0
+	for _, frame := range h.Frames {
+		total += len(frame.Events)
+	}
+	return total
+}
+
+func newOpponentBoards(players int) []botpolicy.Board {
+	boards := make([]botpolicy.Board, players)
+	for i := range boards {
+		boards[i] = botpolicy.NewBoard(players)
+	}
+	return boards
+}
+
+func opponentBoard(e *rules.Engine, player state.PlayerID, boards []botpolicy.Board) botpolicy.Board {
+	return botpolicy.BoardFromGameInto(e.G, e, player, &boards[player])
 }
 
 func (c *HandToStackCauses) add(other HandToStackCauses) {

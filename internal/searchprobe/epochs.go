@@ -3,7 +3,6 @@ package searchprobe
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
@@ -21,34 +20,19 @@ type epochPosition struct {
 	Ref   uint32
 }
 
-type nameCount struct {
-	Name  string
-	Count int
-}
-
-type landIsolationConstraint struct {
-	Through    int
-	Name       string
-	PriorExits []nameCount
-}
-
 type epochConstraints struct {
-	Positions                []epochPosition
-	Deadlines                []deadlineConstraint
-	LandIsolation            []landIsolationConstraint
-	LandIsolationUnsupported int
-	ArrangeWindows           int
-	Unguided                 []string
+	Positions      []epochPosition
+	Deadlines      []deadlineConstraint
+	ArrangeWindows int
+	Unguided       []string
 }
 
 type epochCursor struct {
-	ordinal      int
-	draws        int
-	reliable     bool
-	handReliable bool
-	handExits    map[string]int
-	order        []int // remaining library positions in the epoch's original shuffle
-	arrange      *epochArrange
+	ordinal  int
+	draws    int
+	reliable bool
+	order    []int // remaining library positions in the epoch's original shuffle
+	arrange  *epochArrange
 }
 
 type epochArrange struct {
@@ -87,25 +71,13 @@ func compileEpochs(h History) (map[epochKey]epochConstraints, error) {
 			owners[identity.ID] = identity.Owner
 			introduced[identity.ID] = identity
 		}
-		landCandidates, unsupportedLandPlays := frameLandIsolation(frame, names, owners, h.Actor)
-		for eventIndex, ev := range frame.Events {
-			if player, ok := unsupportedLandPlays[eventIndex]; ok {
-				cursor := cursors[player]
-				if cursor.ordinal > 0 {
-					key := epochKey{Player: player, Ordinal: cursor.ordinal - 1}
-					ep := epochs[key]
-					ep.LandIsolationUnsupported++
-					epochs[key] = ep
-				}
-			}
+		for _, ev := range frame.Events {
 			cursor := cursors[ev.Player]
 			switch ev.Kind {
 			case events.Shuffle:
 				cursor.ordinal++
 				cursor.draws = 0
 				cursor.reliable = true
-				cursor.handReliable = true
-				cursor.handExits = make(map[string]int)
 				cursor.order, cursor.arrange = nil, nil
 				cursors[ev.Player] = cursor
 				ensureEpoch(epochs, epochKey{Player: ev.Player, Ordinal: cursor.ordinal - 1})
@@ -136,38 +108,6 @@ func compileEpochs(h History) (map[epochKey]epochConstraints, error) {
 					cursor.order = cursor.order[1:]
 				}
 				cursors[ev.Player] = cursor
-			}
-
-			if ev.Kind == events.MoveZone && ev.To == state.ZHand && ev.From != state.ZHand {
-				invalidateHandReliability(cursors, owners, ev.Obj)
-			}
-			if ev.From == state.ZHand && ev.To != state.ZHand {
-				owner, ownerKnown := owners[ev.Obj]
-				name := names[ev.Obj]
-				visibleNamed := ev.Obj != 0 && ownerKnown && name != "" && !ev.Secret && !ev.To.Hidden()
-				if !visibleNamed {
-					invalidateHandReliability(cursors, owners, ev.Obj)
-				} else {
-					ownerCursor := cursors[owner]
-					if candidateOwner, ok := landCandidates[eventIndex]; ok && candidateOwner == owner && ownerCursor.ordinal > 0 {
-						key := epochKey{Player: owner, Ordinal: ownerCursor.ordinal - 1}
-						ep := epochs[key]
-						if ownerCursor.reliable && ownerCursor.handReliable {
-							ep.LandIsolation = append(ep.LandIsolation, landIsolationConstraint{
-								Through:    ownerCursor.draws,
-								Name:       name,
-								PriorExits: sortedNameCounts(ownerCursor.handExits),
-							})
-						} else {
-							ep.LandIsolationUnsupported++
-						}
-						epochs[key] = ep
-					}
-					if ownerCursor.ordinal > 0 && ownerCursor.handReliable {
-						ownerCursor.handExits[name]++
-						cursors[owner] = ownerCursor
-					}
-				}
 			}
 
 			if identity, ok := introduced[ev.Obj]; ok && identity.Owner != h.Actor && ev.From == state.ZHand && !ev.To.Hidden() {
@@ -264,65 +204,6 @@ func compileEpochs(h History) (map[epochKey]epochConstraints, error) {
 		}
 	}
 	return epochs, nil
-}
-
-func frameLandIsolation(frame Frame, names map[uint32]string, owners map[uint32]state.PlayerID, actor state.PlayerID) (map[int]state.PlayerID, map[int]state.PlayerID) {
-	plays := make(map[state.PlayerID][]int)
-	moves := make(map[state.PlayerID][]int)
-	for i, ev := range frame.Events {
-		if ev.Kind == events.LandPlayed && ev.Player != actor {
-			plays[ev.Player] = append(plays[ev.Player], i)
-		}
-		if ev.Kind != events.MoveZone || ev.From != state.ZHand || ev.To != state.ZBattlefield || ev.Secret || ev.Obj == 0 || names[ev.Obj] == "" {
-			continue
-		}
-		if owner, ok := owners[ev.Obj]; ok && owner != actor {
-			moves[owner] = append(moves[owner], i)
-		}
-	}
-	candidates := make(map[int]state.PlayerID)
-	unsupported := make(map[int]state.PlayerID)
-	for player, indices := range plays {
-		if len(indices) == 1 && len(moves[player]) == 1 {
-			candidates[moves[player][0]] = player
-			continue
-		}
-		for _, index := range indices {
-			unsupported[index] = player
-		}
-	}
-	return candidates, unsupported
-}
-
-func invalidateHandReliability(cursors map[state.PlayerID]epochCursor, owners map[uint32]state.PlayerID, ref uint32) {
-	if owner, ok := owners[ref]; ok {
-		cursor := cursors[owner]
-		cursor.handReliable = false
-		cursors[owner] = cursor
-		return
-	}
-	for player, cursor := range cursors {
-		cursor.handReliable = false
-		cursors[player] = cursor
-	}
-}
-
-func sortedNameCounts(counts map[string]int) []nameCount {
-	names := make([]string, 0, len(counts))
-	for name, count := range counts {
-		if count > 0 {
-			names = append(names, name)
-		}
-	}
-	sort.Strings(names)
-	if len(names) == 0 {
-		return nil
-	}
-	out := make([]nameCount, 0, len(names))
-	for _, name := range names {
-		out = append(out, nameCount{Name: name, Count: counts[name]})
-	}
-	return out
 }
 
 // The owned board supplies only the public library size. Semantic actor

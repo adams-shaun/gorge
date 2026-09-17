@@ -42,6 +42,7 @@ type Collector struct {
 	known      map[state.ObjID]uint32
 	byRef      []state.ObjID
 	introduced []Identity
+	redacted   []events.Event
 }
 
 func NewCollector(actor state.PlayerID) *Collector {
@@ -90,8 +91,12 @@ func (c *Collector) Capture(e *rules.Engine, burst []events.Event) (Frame, error
 			c.introduce(e, o.Attacker)
 		}
 	}
-	redacted := make([]events.Event, len(burst))
-	for i, raw := range burst {
+	redacted := c.redacted[:0]
+	defer func() {
+		clear(redacted)
+		c.redacted = redacted[:0]
+	}()
+	for _, raw := range burst {
 		ev := view.RedactEvent(e.G, raw, c.actor)
 		if ev.Kind == events.Shuffle || ev.Kind == events.LibraryOrder {
 			// Retain occurrence, never any whole-library payload, even for owner.
@@ -118,7 +123,7 @@ func (c *Collector) Capture(e *rules.Engine, burst []events.Event) (Frame, error
 				}
 			}
 		}
-		redacted[i] = ev
+		redacted = append(redacted, ev)
 	}
 	frame := Frame{Identities: append([]Identity(nil), c.introduced...)}
 	for _, ev := range redacted {

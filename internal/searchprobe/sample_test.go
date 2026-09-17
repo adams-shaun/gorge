@@ -50,6 +50,39 @@ func TestRejectionBucketClassifiesObservedShapeWithoutIdentity(t *testing.T) {
 	}
 }
 
+func TestOpponentBoardsReusePerPlayerMaps(t *testing.T) {
+	e := &rules.Engine{G: state.NewGame([]string{"a", "b"})}
+	boards := newOpponentBoards(2)
+	wantCards := reflect.ValueOf(boards[1].Cards).Pointer()
+	wantLife := reflect.ValueOf(boards[1].Life).Pointer()
+
+	first := opponentBoard(e, 1, boards)
+	second := opponentBoard(e, 1, boards)
+	if reflect.ValueOf(first.Cards).Pointer() != wantCards || reflect.ValueOf(second.Cards).Pointer() != wantCards {
+		t.Fatal("opponent board card map was reallocated")
+	}
+	if reflect.ValueOf(first.Life).Pointer() != wantLife || reflect.ValueOf(second.Life).Pointer() != wantLife {
+		t.Fatal("opponent board life map was reallocated")
+	}
+}
+
+func TestReserveObservedPrefixChangesOnlyLogCapacity(t *testing.T) {
+	e := &rules.Engine{L: events.NewLog(17)}
+	e.L.Append(events.Event{Kind: events.Note, Text: "existing"})
+	head, length := e.L.Head(), len(e.L.Events)
+	h := History{Frames: []Frame{
+		{Events: make([]ObservedEvent, 4)},
+		{Events: make([]ObservedEvent, 7)},
+	}}
+	e.L.Reserve(observedPrefixEvents(h))
+	if len(e.L.Events) != length || e.L.Head() != head {
+		t.Fatalf("reserve changed log content: len=%d/%d head=%s/%s", len(e.L.Events), length, e.L.Head(), head)
+	}
+	if cap(e.L.Events) < 11 {
+		t.Fatalf("reserved capacity = %d, want at least 11", cap(e.L.Events))
+	}
+}
+
 func TestRejectionShapeIgnoresEarlierMatchingIdentities(t *testing.T) {
 	for _, kind := range []events.Kind{events.PutOnStack, events.Note} {
 		got := Frame{Identities: []Identity{{ID: 1, Name: "Matching Land", Owner: 1}, {ID: 2, Name: "Different", Owner: 1}}, Events: []ObservedEvent{{Kind: events.MoveZone, Obj: 1, From: state.ZHand, To: state.ZBattlefield}}}

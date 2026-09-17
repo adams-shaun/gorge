@@ -981,6 +981,10 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 		return 0, 0
 	}
 	f := o.Face()
+	return e.derivedScalarFrom(id, o, f, e.active())
+}
+
+func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Face, active []ContinuousEffect) (power, toughness int32) {
 	power, toughness = int32(f.Power()), int32(f.Toughness())
 	// Layer 7a (CR 613.4a): the object's own characteristic-defining ability
 	// (CharacteristicDefining$ True) sets the base P/T that every later
@@ -997,7 +1001,7 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 			toughness = tp
 		}
 	}
-	for _, ce := range e.active() {
+	for _, ce := range active {
 		if ce.Layer != LPT {
 			continue
 		}
@@ -1066,12 +1070,13 @@ func (e *Engine) Characteristics(id state.ObjID) (power, toughness int32, keywor
 // AffectedZone$ Stack grant against ZStack via this override; everything
 // else reads the live zone.
 func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
-	power, toughness := e.derivedScalar(id)
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
-		return Derived{Power: power, Toughness: toughness}
+		return Derived{}
 	}
 	f := o.Face()
+	active := e.active()
+	power, toughness := e.derivedScalarFrom(id, o, f, active)
 	zone := o.Zone
 	if atStack != 0 {
 		zone = atStack
@@ -1094,11 +1099,8 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	// Layer 5's base is the face's colour set (the mana cost, an explicit
 	// Colors: line, Devoid-applied). The letters compose in a fixed [5]bool so
 	// the layer walk below never touches a map.
-	var col [5]bool
-	for _, r := range effects.ColorsOf(o) {
-		col[strings.IndexByte("WUBRG", byte(r))] = true
-	}
-	for _, ce := range e.active() {
+	col := effects.ColorMaskOf(o)
+	for _, ce := range active {
 		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source, AsStack: atStack != 0}
 		if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
 			continue
@@ -1144,7 +1146,7 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 			// empty set means an overwrite to colourless, the Animate
 			// Colors$ Colorless shape), a plain one extends it.
 			if ce.OverwriteColors {
-				col = [5]bool{}
+				col = 0
 			}
 			// Letter elements are bounds-checked: state.ContinuousEffect is
 			// exported, so a malformed element (empty, or not a WUBRG letter)
@@ -1155,17 +1157,12 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 					continue
 				}
 				if i := strings.IndexByte("WUBRG", l[0]); i >= 0 {
-					col[i] = true
+					col |= effects.ColorMask(1 << i)
 				}
 			}
 		}
 	}
-	colors := ""
-	for i, c := range "WUBRG" {
-		if col[i] {
-			colors += string(c)
-		}
-	}
+	colors := col.String()
 	if e.derivedDepth <= 1 {
 		// Keep the grown buffers on the Engine for the next build; a re-entrant
 		// build's private buffers are discarded on return.

@@ -1,12 +1,49 @@
 package rules
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
+
+func BenchmarkFaceTriggerScanDistinctFaces(b *testing.B) {
+	g := state.NewGame([]string{"a", "b", "c", "d"})
+	e := &Engine{G: g}
+	effect := &cards.SA{Kind: "DB", API: "GainLife", Params: map[string]string{"LifeAmount": "1", "Defined": "You"}}
+	for i := range 240 {
+		face := &cards.Face{
+			Name:     fmt.Sprintf("Watcher %d", i),
+			Types:    []string{"Enchantment"},
+			Triggers: []cards.Trigger{{Mode: "SpellCast", Effect: effect}},
+		}
+		o := g.AddObject(&cards.Card{Faces: []*cards.Face{face}}, state.PlayerID(i%4))
+		o.Zone = state.ZBattlefield
+		g.SetZone(state.ZBattlefield, o.Controller, append(g.Zone(state.ZBattlefield, o.Controller), o.ID))
+	}
+	spell := g.AddObject(&cards.Card{Faces: []*cards.Face{{Name: "Spell", Types: []string{"Sorcery"}}}}, 0)
+	spell.Zone = state.ZStack
+	g.SetZone(state.ZStack, 0, []state.ObjID{spell.ID})
+
+	// Warm immutable syntax metadata before measuring the repeated event path.
+	e.checkFaceTriggers(e, events.Event{Kind: events.Note}, nil, 0, 0, false, false, false)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		e.checkFaceTriggers(e, events.Event{Kind: events.Note}, nil, 0, 0, false, false, false)
+	}
+	b.StopTimer()
+	if len(e.pendingTriggers) != 0 {
+		b.Fatalf("irrelevant scan queued %d triggers", len(e.pendingTriggers))
+	}
+	e.checkFaceTriggers(e, events.Event{Kind: events.PutOnStack, Obj: spell.ID, Player: 0}, nil, 0, 0, false, false, false)
+	if got := len(e.pendingTriggers); got != 240 {
+		b.Fatalf("matching scan queued %d triggers, want 240", got)
+	}
+}
 
 // Rejecting an event that cannot trigger Ward must not allocate per visited
 // object. Moving rejection back below keyword derivation regresses this even

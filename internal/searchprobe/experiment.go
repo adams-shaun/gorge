@@ -41,6 +41,7 @@ type ExperimentResult struct {
 	BaselineReplay      bool
 	BaselineHead        string
 	SampleNS, SearchNS  int64
+	NoRootReason        string
 	Unsupported, Error  string
 }
 
@@ -167,6 +168,7 @@ func RunExperiment(setup PublicGame, opts ExperimentOptions) (out ExperimentResu
 	}
 	out.BaselineReplay = true
 	if root == nil {
+		out.NoRootReason = "no eligible turn>=5 cast/ability/pass root"
 		return
 	}
 	indices := []int{0, out.StaticIndex, out.OneWorld.Index, out.FourWorld.Index}

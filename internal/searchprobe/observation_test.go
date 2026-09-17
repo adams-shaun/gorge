@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func observationEngine(t *testing.T, seed uint64) *rules.Engine {
+func observationEngine(t testing.TB, seed uint64) *rules.Engine {
 	t.Helper()
 	c, ds := cards.ParseBytes("observation-fixture", []byte("Name:Mountain\nTypes:Basic Land Mountain\nOracle:Fixture.\n"))
 	if len(ds) != 0 {
@@ -60,6 +60,54 @@ func TestObservationIgnoresHiddenSeedShuffleAndArenaIDs(t *testing.T) {
 	}
 	if len(fa.Identities) != 7 {
 		t.Fatalf("learned %d identities, want only own seven cards", len(fa.Identities))
+	}
+}
+
+func TestCollectorCaptureReusesRedactionStorageWithoutAliasingFrames(t *testing.T) {
+	e := observationEngine(t, 17)
+	c := NewCollector(0)
+	first, err := c.Capture(e, e.L.Events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantFirst, err := json.Marshal(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	allocs := testing.AllocsPerRun(100, func() {
+		if _, err := c.Capture(e, e.L.Events); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if allocs > 43 {
+		t.Fatalf("Capture allocations = %.0f, want <= 43 after scratch reuse", allocs)
+	}
+
+	if _, err := c.Capture(e, []events.Event{{Kind: events.Note, Player: 0, Text: "later capture"}}); err != nil {
+		t.Fatal(err)
+	}
+	gotFirst, err := json.Marshal(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotFirst) != string(wantFirst) {
+		t.Fatal("later capture mutated an earlier returned frame")
+	}
+}
+
+func BenchmarkCollectorCaptureRepeated(b *testing.B) {
+	e := observationEngine(b, 17)
+	c := NewCollector(0)
+	if _, err := c.Capture(e, e.L.Events); err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := c.Capture(e, e.L.Events); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 

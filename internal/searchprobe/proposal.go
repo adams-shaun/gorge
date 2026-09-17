@@ -5,9 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"math"
-	"math/big"
 	"math/rand/v2"
-	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/events"
@@ -38,122 +36,14 @@ func taggedSeed(base uint64, history [32]byte, attempt int, tag uint64, values .
 var errIncompatibleProposal = errors.New("incompatible hypothetical proposal")
 
 type proposalState struct {
-	epochs      map[epochKey]epochConstraints
-	landNames   map[state.PlayerID]map[string]bool
-	logWeight   float64
-	base        uint64
-	history     [32]byte
-	attempt     int
-	observer    *Collector
-	result      *SampleResult
-	diagnostics proposalDiagnostics
-}
-
-func publicLandNames(setup PublicGame) map[state.PlayerID]map[string]bool {
-	out := make(map[state.PlayerID]map[string]bool, len(setup.Decks))
-	for player, deck := range setup.Decks {
-		names := make(map[string]bool)
-		for _, card := range deck {
-			if card.Faces[0].IsLand() {
-				names[card.Faces[0].Name] = true
-			}
-		}
-		out[state.PlayerID(player)] = names
-	}
-	return out
-}
-
-func isolationUpperDeadlines(epoch epochConstraints, handCounts map[string]int, landNames map[string]bool) ([]upperDeadlineConstraint, bool) {
-	if len(epoch.LandIsolation) == 0 {
-		return nil, false
-	}
-	names := make([]string, 0, len(landNames))
-	for name := range landNames {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	var upper []upperDeadlineConstraint
-	for _, fact := range epoch.LandIsolation {
-		prior := make(map[string]int, len(fact.PriorExits))
-		for _, exited := range fact.PriorExits {
-			prior[exited.Name] = exited.Count
-		}
-		for _, name := range names {
-			if name == fact.Name {
-				continue
-			}
-			upper = append(upper, upperDeadlineConstraint{
-				Through: fact.Through,
-				Name:    name,
-				Count:   prior[name] - handCounts[name],
-			})
-		}
-	}
-	return upper, true
-}
-
-func sampleLandIsolationMixture(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint, upper []upperDeadlineConstraint, eligible bool, r proposalRandom) ([]state.ObjID, float64, bool, bool, bool, bool, error) {
-	baseCounter, baseAvailable, err := newConstraintCounter(cards, positions, deadlines, nil)
-	if err != nil {
-		return nil, 0, false, false, false, false, err
-	}
-	baseCount := baseCounter.total(baseAvailable)
-	if baseCount.Sign() == 0 {
-		return nil, 0, false, false, false, false, nil
-	}
-	if !eligible {
-		if r == nil {
-			return nil, 0, false, false, false, false, errors.New("missing permutation randomness")
-		}
-		order, err := baseCounter.unrank(baseAvailable, baseCount, r)
-		if err != nil {
-			return nil, 0, false, false, false, false, err
-		}
-		return order, mixtureLogTargetOverProposal(len(cards), baseCount, nil, false), true, false, false, false, nil
-	}
-
-	isolatedCount := new(big.Int)
-	var isolatedCounter *constraintCounter
-	var isolatedAvailable []proposalCard
-	negative := false
-	for _, bound := range upper {
-		if bound.Count < 0 {
-			negative = true
-			break
-		}
-	}
-	if !negative {
-		isolatedCounter, isolatedAvailable, err = newConstraintCounter(cards, positions, deadlines, upper)
-		if err != nil {
-			return nil, 0, false, false, false, false, err
-		}
-		isolatedCount = isolatedCounter.total(isolatedAvailable)
-	}
-	if isolatedCount.Sign() == 0 {
-		if r == nil {
-			return nil, 0, false, false, false, false, errors.New("missing permutation randomness")
-		}
-		order, err := baseCounter.unrank(baseAvailable, baseCount, r)
-		if err != nil {
-			return nil, 0, false, false, false, false, err
-		}
-		return order, mixtureLogTargetOverProposal(len(cards), baseCount, nil, false), true, false, false, true, nil
-	}
-	if r == nil {
-		return nil, 0, false, false, false, false, errors.New("missing permutation randomness")
-	}
-	selected := r.Uint64()&1 == 1
-	selectedCounter, selectedAvailable, selectedCount := baseCounter, baseAvailable, baseCount
-	if selected {
-		selectedCounter, selectedAvailable, selectedCount = isolatedCounter, isolatedAvailable, isolatedCount
-	}
-	order, err := selectedCounter.unrank(selectedAvailable, selectedCount, r)
-	if err != nil {
-		return nil, 0, false, selected, false, false, err
-	}
-	inside := isolatedCounter.contains(order)
-	factor := mixtureLogTargetOverProposal(len(cards), baseCount, isolatedCount, inside)
-	return order, factor, true, selected, inside, false, nil
+	epochs    map[epochKey]epochConstraints
+	logWeight float64
+	base      uint64
+	history   [32]byte
+	attempt   int
+	observer  *Collector
+	result    *SampleResult
+	plans     *constraintPlanCache
 }
 
 func publicToss(setup PublicGame, h History) ([]rules.ChanceDraw, float64, error) {
@@ -183,11 +73,11 @@ func validateGenesis(setup PublicGame, epochs map[epochKey]epochConstraints) err
 		for i, p := range ep.Positions {
 			positions[i] = positionConstraint{Index: p.Index, Name: p.Name}
 		}
-		counter, available, err := newConstraintCounter(cards, positions, ep.Deadlines, nil)
+		counter, available, err := newConstraintCounter(cards, positions, ep.Deadlines)
 		if err != nil {
 			return fail("contradictory", "invalid genesis constraints: %v", err)
 		}
-		if counter.count(0, counter.initialFree, len(available)-sumInts(counter.initialFree)).Sign() == 0 {
+		if counter.total(available).Sign() == 0 {
 			return fail("contradictory", "genesis constraints have no public-deck completion for player %d", player)
 		}
 	}
@@ -197,7 +87,7 @@ func validateGenesis(setup PublicGame, epochs map[epochKey]epochConstraints) err
 func (p *proposalState) plan(ctx rules.ShuffleContext) ([]state.ObjID, error) {
 	ep := p.epochs[epochKey{Player: ctx.Player, Ordinal: ctx.Ordinal}]
 	p.result.UnguidedConstraints += len(ep.Unguided)
-	if len(ep.Positions) == 0 && len(ep.Deadlines) == 0 && len(ep.LandIsolation) == 0 {
+	if len(ep.Positions) == 0 && len(ep.Deadlines) == 0 {
 		return nil, nil
 	}
 	cards := make([]proposalCard, len(ctx.Library))
@@ -236,32 +126,20 @@ func (p *proposalState) plan(ctx rules.ShuffleContext) ([]state.ObjID, error) {
 			return p.incompatible()
 		}
 	}
-	upper, isolationEligible := isolationUpperDeadlines(ep, handCounts, p.landNames[ctx.Player])
 	seed := taggedSeed(p.base, p.history, p.attempt, seedProposal, uint64(ctx.Player), uint64(ctx.Ordinal))
-	order, factor, compatible, isolationSelected, isolationInside, isolationEmpty, err := sampleLandIsolationMixture(cards, positions, deadlines, upper, isolationEligible, rand.New(rand.NewPCG(seed[0], seed[1])))
+	if p.plans == nil {
+		p.plans = newConstraintPlanCache()
+	}
+	plan, err := p.plans.get(cards, positions, deadlines)
+	if err != nil {
+		return nil, err
+	}
+	order, factor, compatible, err := plan.sample(rand.New(rand.NewPCG(seed[0], seed[1])))
 	if err != nil {
 		return nil, err
 	}
 	if !compatible {
 		return p.incompatible()
-	}
-	if isolationEligible {
-		p.result.LandIsolationEligible++
-		p.diagnostics.isolationEligible++
-	}
-	if isolationSelected {
-		p.result.LandIsolationSelected++
-		p.diagnostics.isolationSelected++
-	}
-	if isolationEmpty {
-		p.result.LandIsolationEmpty++
-	}
-	if isolationEligible && !isolationEmpty {
-		if isolationInside {
-			p.diagnostics.isolationInside++
-		} else {
-			p.diagnostics.isolationOutside++
-		}
 	}
 	p.logWeight += factor
 	if ctx.Ordinal == 0 {

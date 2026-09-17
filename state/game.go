@@ -257,8 +257,12 @@ func NewGame(names []string) *Game { return NewGameLife(names, startingLife) }
 
 // NewGameLife is NewGame with an explicit starting life total (Config.
 // StartingLife's 0-means-20 convention is resolved by the caller).
-func NewGameLife(names []string, life int32) *Game {
-	g := &Game{NextID: 1, zones: make([][]ObjID, numZones*len(names))}
+func NewGameLife(names []string, life int32, objectCapacity ...int) *Game {
+	capacity := 0
+	if len(objectCapacity) > 0 && objectCapacity[0] > 0 {
+		capacity = objectCapacity[0]
+	}
+	g := &Game{NextID: 1, Objs: make([]Object, 0, capacity), zones: make([][]ObjID, numZones*len(names))}
 	for i, n := range names {
 		g.Players = append(g.Players, Player{ID: PlayerID(i), Name: n, Life: life})
 	}

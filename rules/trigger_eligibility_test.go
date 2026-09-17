@@ -112,6 +112,58 @@ func TestTriggerEligibilityCacheIsCloneIndependent(t *testing.T) {
 	}
 }
 
+// TestObjectTriggerEligibilityTracksBothFaces catches a dense object cache
+// reusing the active face's mask after a transform or evicting one Room half
+// when both halves are checked on every event.
+func TestObjectTriggerEligibilityTracksBothFaces(t *testing.T) {
+	e := layerEngine(t)
+	spell := &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast"}}}
+	draw := &cards.Face{Triggers: []cards.Trigger{{Mode: "Drawn"}}}
+	o := e.G.AddObject(&cards.Card{Faces: []*cards.Face{spell, draw}}, 0)
+
+	if !e.objectFaceMayTrigger(o.ID, 0, spell, events.PutOnStack) {
+		t.Fatal("front face rejected its spell-cast event")
+	}
+	if e.objectFaceMayTrigger(o.ID, 0, spell, events.Draw) {
+		t.Fatal("front face admitted an unrelated draw")
+	}
+	if !e.objectFaceMayTrigger(o.ID, 1, draw, events.Draw) {
+		t.Fatal("back face rejected its draw event")
+	}
+	if e.objectFaceMayTrigger(o.ID, 1, draw, events.PutOnStack) {
+		t.Fatal("back face admitted an unrelated cast")
+	}
+	if !e.objectFaceMayTrigger(o.ID, 0, spell, events.PutOnStack) {
+		t.Fatal("checking the back face evicted the front-face eligibility")
+	}
+
+	c := e.Clone()
+	replacement := &cards.Face{Triggers: []cards.Trigger{{Mode: "Attacks"}}}
+	if !c.objectFaceMayTrigger(o.ID, 0, replacement, events.DeclareAttackers) {
+		t.Fatal("clone did not independently accept replacement face metadata")
+	}
+	if !e.objectFaceMayTrigger(o.ID, 0, spell, events.PutOnStack) {
+		t.Fatal("clone cache mutation changed parent eligibility")
+	}
+}
+
+func TestGrantedKeywordTriggerEventFilter(t *testing.T) {
+	for _, tc := range []struct {
+		kind events.Kind
+		want bool
+	}{
+		{events.TargetsChosen, true},
+		{events.DeclareAttackers, true},
+		{events.Priority, false},
+		{events.MoveZone, false},
+		{events.StepChange, false},
+	} {
+		if got := grantedKeywordTriggerEvent(tc.kind); got != tc.want {
+			t.Fatalf("kind %s: eligible=%v, want %v", tc.kind, got, tc.want)
+		}
+	}
+}
+
 // An impossible event must be rejected before parsing dynamic gates, even on
 // a cold look-back observer. Moving the kind guard after phaseGate allocates.
 func TestTriggerEligibilityRejectsBeforeDynamicGates(t *testing.T) {

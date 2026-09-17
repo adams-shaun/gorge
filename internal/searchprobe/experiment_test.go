@@ -95,3 +95,27 @@ func TestExperimentContradictionRetainsBaselineAndFallbackOutcomes(t *testing.T)
 		t.Fatalf("invariant swallowed as fallback: %+v", bad)
 	}
 }
+
+func TestExperimentReportsNoEligibleRoot(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	names := []string{"death-n-taxes", "dimir-tempo"}
+	decks := make([][]*cards.Card, 2)
+	for i, n := range names {
+		var err error
+		decks[i], err = testutil.LoadRepoDeck(reg, n)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	setup := PublicGame{Names: names, Decks: decks, Tokens: reg.Tokens}
+	got := RunExperiment(setup, ExperimentOptions{Seed: 10307, SampleSeed: 54321, Attempts: 4, Worlds: 4, MaxSubmits: 5000})
+	if got.Error != "" || !got.BaselineReplay || got.RootAt != -1 {
+		t.Fatalf("no-root experiment: error=%q replay=%v root=%d", got.Error, got.BaselineReplay, got.RootAt)
+	}
+	if got.NoRootReason != "no eligible turn>=5 cast/ability/pass root" {
+		t.Fatalf("no-root reason = %q", got.NoRootReason)
+	}
+	if got.FourWorld.Fallback != "" || len(got.Outcomes) != 0 {
+		t.Fatalf("no-root game counted as sampling fallback: fallback=%q outcomes=%d", got.FourWorld.Fallback, len(got.Outcomes))
+	}
+}

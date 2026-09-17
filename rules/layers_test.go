@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -16,7 +17,7 @@ import (
 // real game. A test that wants that must clear it explicitly (see
 // combat_test.go's onBoardReady), the same way a real game needs a full turn
 // to pass before a permanent loses summoning sickness.
-func onBoard(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
+func onBoard(t testing.TB, e *Engine, p state.PlayerID, src string) state.ObjID {
 	t.Helper()
 	o := e.G.AddObject(card(t, src), p)
 	o.Zone = state.ZBattlefield
@@ -35,7 +36,7 @@ func onBoard(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID 
 	return o.ID
 }
 
-func layerEngine(t *testing.T) *Engine {
+func layerEngine(t testing.TB) *Engine {
 	t.Helper()
 	// Seat 0 is the protagonist of every layer/synthetic-upkeep fixture (the
 	// synthetic StepChange emits rely on G.Active reading seat 0);
@@ -183,6 +184,43 @@ func TestEndOfTurnCleanupDropsUntilEOTEffects(t *testing.T) {
 	e.EndOfTurnCleanup()
 	if e.Power(id) != 3 {
 		t.Fatalf("power after cleanup = %d, want 3", e.Power(id))
+	}
+}
+
+func BenchmarkDerivedWithContinuousEffects(b *testing.B) {
+	e := layerEngine(b)
+	id := onBoard(b, e, 0, "Name:Layered bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nK:Trample\nOracle:x\n")
+	e.AddContinuous(ContinuousEffect{Source: id, Timestamp: 1, Layer: LType,
+		Affects: "Card.Self", AddTypes: []string{"Warrior"}})
+	e.AddContinuous(ContinuousEffect{Source: id, Timestamp: 2, Layer: LColor,
+		Affects: "Card.Self", AddColors: []string{"U"}})
+	e.AddContinuous(ContinuousEffect{Source: id, Timestamp: 3, Layer: LAbilities,
+		Affects: "Card.Self", AddKeywords: []string{"Vigilance"}})
+	e.AddContinuous(ContinuousEffect{Source: id, Timestamp: 4, Layer: LPT, Sub: SubModify,
+		Affects: "Card.Self", AddPower: 2, AddToughness: 1})
+	want := Derived{Power: 4, Toughness: 3, Keywords: []string{"Trample", "Vigilance"},
+		Types: []string{"Creature", "Bear", "Warrior"}, Colors: "UG"}
+	b.ReportAllocs()
+	b.ResetTimer()
+	var got Derived
+	for range b.N {
+		got = e.Derived(id)
+	}
+	b.StopTimer()
+	if got.Power != want.Power || got.Toughness != want.Toughness || got.Colors != want.Colors ||
+		!slices.Equal(got.Keywords, want.Keywords) || !slices.Equal(got.Types, want.Types) {
+		b.Fatalf("Derived = %+v, want %+v", got, want)
+	}
+}
+
+func TestDerivedWithContinuousEffectsDoesNotAllocate(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:Layered bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.AddContinuous(ContinuousEffect{Source: id, Layer: LColor,
+		Affects: "Card.Self", AddColors: []string{"U"}})
+	e.Derived(id)
+	if allocs := testing.AllocsPerRun(1000, func() { e.Derived(id) }); allocs != 0 {
+		t.Fatalf("warm Derived allocated %.2f objects/call, want zero", allocs)
 	}
 }
 

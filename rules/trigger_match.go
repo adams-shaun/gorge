@@ -670,9 +670,15 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// eligible alternate face. Granted Ward is independent of both -- and
 		// so is a static-grant's trigger (AddTrigger$): the granted walk below
 		// runs on BOTH paths, like Ward and Dethrone do.
-		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
-			e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
-			e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
+		if !o.Unlocked && !e.objectFaceMayTrigger(id, o.FaceIdx, f, ev.Kind) {
+			if grantedKeywordTriggerEvent(ev.Kind) {
+				switch ev.Kind {
+				case events.TargetsChosen:
+					e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+				case events.DeclareAttackers:
+					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
+				}
+			}
 			e.checkGrantedStaticTriggers(observer, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 			return
 		}
@@ -684,7 +690,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// to walk, cast face first.
 		faces, n := roomTriggerFaces(o, f)
 		for _, fc := range faces[:n] {
-			if o.Unlocked && !e.faceMayTrigger(fc.face, ev.Kind) {
+			if o.Unlocked && !e.objectFaceMayTrigger(id, fc.faceIdx, fc.face, ev.Kind) {
 				continue
 			}
 			for ti, t := range fc.face.Triggers {

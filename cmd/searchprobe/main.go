@@ -24,7 +24,29 @@ func main() {
 	}
 }
 
-func run(args []string, progress io.Writer) error {
+type resultSummary struct {
+	Covered, Errors, EligibleRoots, NoRootGames int
+}
+
+func summarizeResults(results []searchprobe.ExperimentResult) (out resultSummary) {
+	for _, result := range results {
+		if result.Error != "" {
+			out.Errors++
+		}
+		if result.RootAt >= 0 {
+			out.EligibleRoots++
+		}
+		if result.NoRootReason != "" {
+			out.NoRootGames++
+		}
+		if result.FourWorld.Replays == 4 && result.FourWorld.Fallback == "" {
+			out.Covered++
+		}
+	}
+	return out
+}
+
+func run(args []string, progress io.Writer) (retErr error) {
 	fs := flag.NewFlagSet("searchprobe", flag.ContinueOnError)
 	fs.SetOutput(progress)
 	games := fs.Int("games", 500, "number of baseline games")
@@ -36,6 +58,8 @@ func run(args []string, progress io.Writer) error {
 	maxSubmits := fs.Int("max-submits", 5000, "per-attempt and per-rollout submit cap")
 	corpus := fs.String("cards", ".cards", "pinned compiled corpus directory")
 	outPath := fs.String("out", "", "new JSON output path (will not overwrite)")
+	cpuProfile := fs.String("cpuprofile", "", "write a CPU profile over the whole run")
+	memProfile := fs.String("memprofile", "", "write an end-of-run heap profile")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -45,6 +69,15 @@ func run(args []string, progress io.Writer) error {
 	if uint64(*games-1) > ^uint64(0)-*seed {
 		return fmt.Errorf("game seed range overflows")
 	}
+	prof := &profiler{cpuPath: *cpuProfile, memPath: *memProfile}
+	if err := prof.start(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := prof.finish(); retErr == nil && err != nil {
+			retErr = err
+		}
+	}()
 	// Resolve output before expensive work and refuse to overwrite evidence.
 	f, err := os.OpenFile(*outPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
@@ -110,14 +143,15 @@ func run(args []string, progress io.Writer) error {
 	}
 	var after runtime.MemStats
 	runtime.ReadMemStats(&after)
+	summary := summarizeResults(all)
 	payload := struct {
-		Kind                                                                      string
-		Games, Workers, GOMAXPROCS, Attempts, Worlds, MaxSubmits, Covered, Errors int
-		Seed, SampleSeed                                                          uint64
-		LoadSeconds, TotalSeconds                                                 float64
-		AllocatedBytes, HeapAllocBytes, HeapSysBytes                              uint64
-		Results                                                                   []searchprobe.ExperimentResult
-	}{"history-conditioned calibration; not promotion evidence", *games, *workers, runtime.GOMAXPROCS(0), *attempts, *worlds, *maxSubmits, covered, failed, *seed, *sampleSeed, loadSeconds, time.Since(start).Seconds(), after.TotalAlloc - before.TotalAlloc, after.HeapAlloc, after.HeapSys, all}
+		Kind                                                                                                  string
+		Games, Workers, GOMAXPROCS, Attempts, Worlds, MaxSubmits, Covered, Errors, EligibleRoots, NoRootGames int
+		Seed, SampleSeed                                                                                      uint64
+		LoadSeconds, TotalSeconds                                                                             float64
+		AllocatedBytes, HeapAllocBytes, HeapSysBytes                                                          uint64
+		Results                                                                                               []searchprobe.ExperimentResult
+	}{"history-conditioned calibration; not promotion evidence", *games, *workers, runtime.GOMAXPROCS(0), *attempts, *worlds, *maxSubmits, summary.Covered, summary.Errors, summary.EligibleRoots, summary.NoRootGames, *seed, *sampleSeed, loadSeconds, time.Since(start).Seconds(), after.TotalAlloc - before.TotalAlloc, after.HeapAlloc, after.HeapSys, all}
 	if err := json.NewEncoder(f).Encode(payload); err != nil {
 		return err
 	}

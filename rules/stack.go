@@ -1753,13 +1753,19 @@ func (e *Engine) LifeGainedThisTurn(p state.PlayerID) int32 {
 // same count. The whole-log walk (not a TurnChange-bounded scan) is the
 // point: the count spans the game, not one turn.
 func (e *Engine) TurnsTaken(p state.PlayerID) int32 {
-	var n int32
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.TurnChange && ev.Player == p {
-			n++
-		}
+	if int(p) >= len(e.G.Players) {
+		return 0
 	}
-	return n
+	if len(e.turnsTaken) != len(e.G.Players) || e.turnsTakenEpoch != len(e.L.Events) {
+		e.turnsTaken = make([]int32, len(e.G.Players))
+		for _, ev := range e.L.Events {
+			if ev.Kind == events.TurnChange && int(ev.Player) < len(e.turnsTaken) {
+				e.turnsTaken[ev.Player]++
+			}
+		}
+		e.turnsTakenEpoch = len(e.L.Events)
+	}
+	return e.turnsTaken[p]
 }
 
 // AttackersThisTurn satisfies effects.Host's AttackersThisTurn for

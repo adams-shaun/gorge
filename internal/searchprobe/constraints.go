@@ -1,11 +1,12 @@
 package searchprobe
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
+	"slices"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/state"
@@ -28,12 +29,6 @@ type deadlineConstraint struct {
 	Count   int
 }
 
-type upperDeadlineConstraint struct {
-	Through int
-	Name    string
-	Count   int
-}
-
 type proposalRandom interface {
 	Uint64() uint64
 }
@@ -45,76 +40,123 @@ type constraintCounter struct {
 	nameIndex   map[string]int
 	fixedObj    map[int]proposalCard
 	fixedName   map[int]string
-	cardName    map[state.ObjID]string
 	exactPrefix [][]int
 	initialFree []int
 	deadlines   []deadlineConstraint
-	upper       []upperDeadlineConstraint
 	memo        map[string]*big.Int
+	factorials  []*big.Int
 }
 
-func sampleConstrainedPermutation(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint, upper []upperDeadlineConstraint, r proposalRandom) ([]state.ObjID, float64, bool, error) {
-	counter, available, err := newConstraintCounter(cards, positions, deadlines, upper)
+type constrainedPermutation struct {
+	cards     []proposalCard
+	positions []positionConstraint
+	deadlines []deadlineConstraint
+	counter   *constraintCounter
+	available []proposalCard
+	total     *big.Int
+	weight    float64
+}
+
+type constraintPlanCache struct {
+	plans []*constrainedPermutation
+}
+
+func newConstraintPlanCache() *constraintPlanCache { return &constraintPlanCache{} }
+
+func (c *constraintPlanCache) get(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint) (*constrainedPermutation, error) {
+	for _, plan := range c.plans {
+		if slices.Equal(plan.cards, cards) && slices.Equal(plan.positions, positions) && slices.Equal(plan.deadlines, deadlines) {
+			return plan, nil
+		}
+	}
+	plan, err := newConstrainedPermutation(cards, positions, deadlines)
+	if err != nil {
+		return nil, err
+	}
+	c.plans = append(c.plans, plan)
+	return plan, nil
+}
+
+func newConstrainedPermutation(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint) (*constrainedPermutation, error) {
+	counter, available, err := newConstraintCounter(cards, positions, deadlines)
+	if err != nil {
+		return nil, err
+	}
+	total := counter.total(available)
+	logFactorial, _ := math.Lgamma(float64(len(cards) + 1))
+	return &constrainedPermutation{
+		cards: append([]proposalCard(nil), cards...), positions: append([]positionConstraint(nil), positions...),
+		deadlines: append([]deadlineConstraint(nil), deadlines...), counter: counter,
+		available: available, total: total, weight: logBigInt(total) - logFactorial,
+	}, nil
+}
+
+func sampleConstrainedPermutation(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint, r proposalRandom) ([]state.ObjID, float64, bool, error) {
+	plan, err := newConstrainedPermutation(cards, positions, deadlines)
 	if err != nil {
 		return nil, 0, false, err
 	}
-	total := counter.total(available)
+	return plan.sample(r)
+}
+
+func (p *constrainedPermutation) sample(r proposalRandom) ([]state.ObjID, float64, bool, error) {
+	total := p.total
 	if total.Sign() == 0 {
 		return nil, 0, false, nil
 	}
 	if r == nil {
 		return nil, 0, false, fmt.Errorf("missing permutation randomness")
 	}
-	order, err := counter.unrank(available, total, r)
-	if err != nil {
-		return nil, 0, false, err
-	}
-	logFactorial, _ := math.Lgamma(float64(len(cards) + 1))
-	return order, logBigInt(total) - logFactorial, true, nil
-}
-
-func (c *constraintCounter) unrank(available []proposalCard, total *big.Int, r proposalRandom) ([]state.ObjID, error) {
 	rank := randomBigBelow(r, total)
-	order := make([]state.ObjID, c.n)
-	remaining := append([]proposalCard(nil), available...)
-	counts := append([]int(nil), c.initialFree...)
+	counter := p.counter
+	order := make([]state.ObjID, counter.n)
+	remaining := append([]proposalCard(nil), p.available...)
+	counts := append([]int(nil), counter.initialFree...)
 	other := len(remaining) - sumInts(counts)
-	for pos := 0; pos < c.n; pos++ {
-		if card, ok := c.fixedObj[pos]; ok {
+	for pos := 0; pos < counter.n; pos++ {
+		if card, ok := counter.fixedObj[pos]; ok {
 			order[pos] = card.ID
 			continue
 		}
 		chosen := -1
 		for i, card := range remaining {
-			if name := c.fixedName[pos]; name != "" && card.Name != name {
+			if name := counter.fixedName[pos]; name != "" && card.Name != name {
 				continue
 			}
-			nextCounts := append([]int(nil), counts...)
 			nextOther := other
-			if j, ok := c.nameIndex[card.Name]; ok {
-				nextCounts[j]--
+			countIndex, relevant := counter.nameIndex[card.Name]
+			if relevant {
+				counts[countIndex]--
 			} else {
 				nextOther--
 			}
-			completions := c.count(pos+1, nextCounts, nextOther)
+			completions := counter.count(pos+1, counts, nextOther)
 			if rank.Cmp(completions) < 0 {
 				chosen = i
-				counts, other = nextCounts, nextOther
+				other = nextOther
 				break
+			}
+			if relevant {
+				counts[countIndex]++
 			}
 			rank.Sub(rank, completions)
 		}
 		if chosen < 0 {
-			return nil, fmt.Errorf("constraint unranking exhausted at position %d", pos)
+			return nil, 0, false, fmt.Errorf("constraint unranking exhausted at position %d", pos)
 		}
 		order[pos] = remaining[chosen].ID
 		remaining = append(remaining[:chosen], remaining[chosen+1:]...)
 	}
-	return order, nil
+	return order, p.weight, true, nil
 }
 
-func newConstraintCounter(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint, upper []upperDeadlineConstraint) (*constraintCounter, []proposalCard, error) {
-	c := &constraintCounter{n: len(cards), fixedObj: make(map[int]proposalCard), fixedName: make(map[int]string), cardName: make(map[state.ObjID]string), memo: make(map[string]*big.Int)}
+func newConstraintCounter(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint) (*constraintCounter, []proposalCard, error) {
+	c := &constraintCounter{n: len(cards), fixedObj: make(map[int]proposalCard), fixedName: make(map[int]string), memo: make(map[string]*big.Int)}
+	c.factorials = make([]*big.Int, len(cards)+1)
+	c.factorials[0] = big.NewInt(1)
+	for i := 1; i <= len(cards); i++ {
+		c.factorials[i] = new(big.Int).Mul(c.factorials[i-1], big.NewInt(int64(i)))
+	}
 	byID := make(map[state.ObjID]proposalCard, len(cards))
 	relevant := make(map[string]bool)
 	for _, card := range cards {
@@ -122,7 +164,6 @@ func newConstraintCounter(cards []proposalCard, positions []positionConstraint, 
 			return nil, nil, fmt.Errorf("invalid or duplicate physical card %d", card.ID)
 		}
 		byID[card.ID] = card
-		c.cardName[card.ID] = card.Name
 	}
 	usedObjects := make(map[state.ObjID]bool)
 	for _, p := range positions {
@@ -167,20 +208,6 @@ func newConstraintCounter(cards []proposalCard, positions []positionConstraint, 
 			c.stop = d.Through
 		}
 	}
-	for _, d := range upper {
-		if d.Through < 0 || d.Through > len(cards) || d.Name == "" || d.Count < 0 {
-			return nil, nil, fmt.Errorf("invalid upper deadline constraint %+v", d)
-		}
-		for _, lower := range deadlines {
-			if lower.Through == d.Through && lower.Name == d.Name && lower.Count > d.Count {
-				return nil, nil, fmt.Errorf("conflicting deadline constraints for %s through %d", d.Name, d.Through)
-			}
-		}
-		relevant[d.Name] = true
-		if d.Through > c.stop {
-			c.stop = d.Through
-		}
-	}
 	c.names = make([]string, 0, len(relevant))
 	for name := range relevant {
 		c.names = append(c.names, name)
@@ -212,12 +239,12 @@ func newConstraintCounter(cards []proposalCard, positions []positionConstraint, 
 		}
 	}
 	c.deadlines = append([]deadlineConstraint(nil), deadlines...)
-	c.upper = append([]upperDeadlineConstraint(nil), upper...)
 	return c, available, nil
 }
 
 func (c *constraintCounter) total(available []proposalCard) *big.Int {
-	return c.count(0, append([]int(nil), c.initialFree...), len(available)-sumInts(c.initialFree))
+	remaining := append([]int(nil), c.initialFree...)
+	return c.count(0, remaining, len(available)-sumInts(remaining))
 }
 
 func (c *constraintCounter) count(pos int, remaining []int, other int) *big.Int {
@@ -225,11 +252,11 @@ func (c *constraintCounter) count(pos int, remaining []int, other int) *big.Int 
 		return new(big.Int)
 	}
 	if pos >= c.stop {
-		return factorial(c.n - pos)
+		return c.factorials[c.n-pos]
 	}
 	key := countKey(pos, remaining, other)
 	if cached := c.memo[key]; cached != nil {
-		return new(big.Int).Set(cached)
+		return cached
 	}
 	total := new(big.Int)
 	if _, ok := c.fixedObj[pos]; ok {
@@ -237,19 +264,19 @@ func (c *constraintCounter) count(pos int, remaining []int, other int) *big.Int 
 	} else if name := c.fixedName[pos]; name != "" {
 		i := c.nameIndex[name]
 		if remaining[i] > 0 {
-			next := append([]int(nil), remaining...)
-			multiplicity := next[i]
-			next[i]--
-			total.Mul(c.count(pos+1, next, other), big.NewInt(int64(multiplicity)))
+			multiplicity := remaining[i]
+			remaining[i]--
+			total.Mul(c.count(pos+1, remaining, other), big.NewInt(int64(multiplicity)))
+			remaining[i]++
 		}
 	} else {
 		for i, multiplicity := range remaining {
 			if multiplicity == 0 {
 				continue
 			}
-			next := append([]int(nil), remaining...)
-			next[i]--
-			branch := new(big.Int).Mul(c.count(pos+1, next, other), big.NewInt(int64(multiplicity)))
+			remaining[i]--
+			branch := new(big.Int).Mul(c.count(pos+1, remaining, other), big.NewInt(int64(multiplicity)))
+			remaining[i]++
 			total.Add(total, branch)
 		}
 		if other > 0 {
@@ -257,7 +284,7 @@ func (c *constraintCounter) count(pos int, remaining []int, other int) *big.Int 
 			total.Add(total, branch)
 		}
 	}
-	c.memo[key] = new(big.Int).Set(total)
+	c.memo[key] = total
 	return total
 }
 
@@ -272,71 +299,24 @@ func (c *constraintCounter) deadlinesHold(pos int, remaining []int) bool {
 			return false
 		}
 	}
-	for _, d := range c.upper {
-		if pos > d.Through {
-			continue
-		}
-		i := c.nameIndex[d.Name]
-		placed := c.exactPrefix[pos][i] + c.initialFree[i] - remaining[i]
-		if placed > d.Count {
-			return false
-		}
-	}
-	return true
-}
-
-func (c *constraintCounter) contains(order []state.ObjID) bool {
-	if len(order) != c.n {
-		return false
-	}
-	seen := make(map[state.ObjID]bool, len(order))
-	counts := make(map[string]int)
-	for pos, id := range order {
-		name, ok := c.cardName[id]
-		if !ok || seen[id] {
-			return false
-		}
-		seen[id] = true
-		if fixed, ok := c.fixedObj[pos]; ok && fixed.ID != id {
-			return false
-		}
-		if fixed := c.fixedName[pos]; fixed != "" && fixed != name {
-			return false
-		}
-		counts[name]++
-		through := pos + 1
-		for _, d := range c.deadlines {
-			if d.Through == through && counts[d.Name] < d.Count {
-				return false
-			}
-		}
-		for _, d := range c.upper {
-			if d.Through == through && counts[d.Name] > d.Count {
-				return false
-			}
-		}
-	}
 	return true
 }
 
 func countKey(pos int, remaining []int, other int) string {
 	var b strings.Builder
-	b.WriteString(strconv.Itoa(pos))
-	b.WriteByte('/')
+	b.Grow(len(remaining) + 3)
+	var encoded [binary.MaxVarintLen64]byte
+	write := func(value int) {
+		n := binary.PutUvarint(encoded[:], uint64(value))
+		_, _ = b.Write(encoded[:n])
+	}
+	write(pos)
+	write(len(remaining))
 	for _, n := range remaining {
-		b.WriteString(strconv.Itoa(n))
-		b.WriteByte(',')
+		write(n)
 	}
-	b.WriteString(strconv.Itoa(other))
+	write(other)
 	return b.String()
-}
-
-func factorial(n int) *big.Int {
-	out := big.NewInt(1)
-	for i := 2; i <= n; i++ {
-		out.Mul(out, big.NewInt(int64(i)))
-	}
-	return out
 }
 
 func randomBigBelow(r proposalRandom, limit *big.Int) *big.Int {
@@ -364,22 +344,6 @@ func logBigInt(n *big.Int) float64 {
 	exponent := f.MantExp(mantissa)
 	m, _ := mantissa.Float64()
 	return math.Log(m) + float64(exponent)*math.Ln2
-}
-
-func mixtureLogTargetOverProposal(n int, baseCount, isolatedCount *big.Int, inIsolated bool) float64 {
-	logFactorial, _ := math.Lgamma(float64(n + 1))
-	if isolatedCount == nil || isolatedCount.Sign() == 0 {
-		return logBigInt(baseCount) - logFactorial
-	}
-	logQ := -math.Ln2 - logBigInt(baseCount)
-	if inIsolated {
-		other := -math.Ln2 - logBigInt(isolatedCount)
-		if other > logQ {
-			logQ, other = other, logQ
-		}
-		logQ += math.Log1p(math.Exp(other - logQ))
-	}
-	return -logFactorial - logQ
 }
 
 func sumInts(values []int) int {

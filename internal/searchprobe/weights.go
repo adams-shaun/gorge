@@ -7,21 +7,14 @@ import (
 )
 
 type WeightDiagnostics struct {
-	Accepted                                                                                                int
-	LogWeightMin, LogWeightMedian, LogWeightMax                                                             float64
-	MaxNormalizedMass, Top4NormalizedMass                                                                   float64
-	Mass50Count, Mass90Count                                                                                int
-	IsolationEligibleAttempts, IsolationSelectedAttempts, IsolationInsideAttempts, IsolationOutsideAttempts int
-	IsolationSelectedMass, IsolationOutsideMass                                                             float64
-	IsolationSelectedSquaredShare, IsolationOutsideSquaredShare                                             float64
+	Accepted                                    int
+	LogWeightMin, LogWeightMedian, LogWeightMax float64
+	MaxNormalizedMass, Top4NormalizedMass       float64
+	Mass50Count, Mass90Count                    int
 }
 
-type proposalDiagnostics struct {
-	isolationEligible, isolationSelected, isolationInside, isolationOutside int
-}
-
-func summarizeWeightDiagnostics(logs, weights []float64, proposals []proposalDiagnostics) WeightDiagnostics {
-	if len(logs) == 0 || len(logs) != len(weights) || len(logs) != len(proposals) {
+func summarizeWeightDiagnostics(logs, weights []float64) WeightDiagnostics {
+	if len(logs) == 0 || len(logs) != len(weights) {
 		return WeightDiagnostics{}
 	}
 	d := WeightDiagnostics{Accepted: len(logs)}
@@ -60,32 +53,6 @@ func summarizeWeightDiagnostics(logs, weights []float64, proposals []proposalDia
 				d.Mass90Count = i + 1
 			}
 		}
-	}
-	var squaredTotal, selectedSquared, outsideSquared float64
-	for i, proposal := range proposals {
-		weight := weights[i]
-		squared := weight * weight
-		squaredTotal += squared
-		if proposal.isolationEligible > 0 {
-			d.IsolationEligibleAttempts++
-		}
-		if proposal.isolationSelected > 0 {
-			d.IsolationSelectedAttempts++
-			d.IsolationSelectedMass += weight
-			selectedSquared += squared
-		}
-		if proposal.isolationInside > 0 {
-			d.IsolationInsideAttempts++
-		}
-		if proposal.isolationOutside > 0 {
-			d.IsolationOutsideAttempts++
-			d.IsolationOutsideMass += weight
-			outsideSquared += squared
-		}
-	}
-	if squaredTotal > 0 {
-		d.IsolationSelectedSquaredShare = selectedSquared / squaredTotal
-		d.IsolationOutsideSquaredShare = outsideSquared / squaredTotal
 	}
 	return d
 }
