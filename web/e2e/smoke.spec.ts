@@ -152,7 +152,7 @@ async function driveToCardOptionsWindow(
   const sq = `?seat=${seat}&token=${encodeURIComponent(token)}`;
   const pendingURL = `${b}/api/tables/${table}/matches/${match}/pending${sq}`;
 
-  const deadline = Date.now() + 90_000;
+  const deadline = Date.now() + DRIVE_MS;
   while (Date.now() < deadline) {
     const p = await request.get(pendingURL);
     if (p.status() === 409) {
@@ -246,6 +246,29 @@ async function driveFixtureUntil(
 // subscribe, so a healthy page mounts in well under a second; 20s is a
 // generous ceiling that still turns a never-mounting page into a failure.
 const WAIT_MS = 20_000;
+
+/**
+ * STALL_MS is the de-flake budget for the one seated test that walks the
+ * seeded game's paced engine while a real client rides it (fb-20260917T004341Z
+ * round-3 diagnosis, measured in worktree traces): the seated client's fetch
+ * pool can stall tens of seconds — its own intent POSTs abort (net::ERR_ABORTED
+ * within ms, server-side applied anyway) and its /pending and /view GETs then
+ * queue behind a stuck socket for 5-41s while the SSE stream itself keeps
+ * delivering frames and the same endpoints answer curl in 0-1ms. The panel's
+ * only recovery paths (the SSE-driven view refetch and the 1s pending poll)
+ * both ride that stalled pool, so the game — paced 1.5s per decision — sits
+ * unanswered for the whole stall and the drive/crossing budgets must absorb
+ * one full stall each. Measured stalls: 5.3s, 11s, 11.2s (single-worktree
+ * probes) and 41s (the smoke gate's own failing run). WAIT_MS (20s) is fine
+ * for every assertion that does not straddle a stall; the R-E4-1 drive and
+ * its crossing assertion get STALL_MS instead, and the test's own timeout is
+ * raised to hold drive + crossing + one stall each with margin.
+ */
+const STALL_MS = 90_000;
+// The drive loop's wall-clock bound: its HTTP polls are Node-side (they do
+// not ride the browser's socket pool), so the bound is the client's own
+// stall time plus the paced walk. 90s was met once at 47.4s under load.
+const DRIVE_MS = 150_000;
 
 /** sameOrigin reports whether url is on the same origin as base — the only
  *  requests the gate forbids from failing (fonts and other third-party
@@ -737,6 +760,10 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
     // robustly by which card it is that gets cast/played, since a positional
     // bug plays the wrong one.
     test('a card menu posts its own index, not a position in a rebuilt list (R-E4-1)', async ({ browser, request }) => {
+      // The paced walk + the seated client's measured socket-pool stalls
+      // (see STALL_MS) put this test's honest worst case far above the
+      // config's 120s default; give it room explicitly.
+      test.setTimeout(300_000);
       const b = base as string;
       const label = `[seated]`;
       // The deterministic seeded game (seed 1, smoke.sh's -seed 1): seat 1 of
@@ -805,7 +832,7 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         // card), so this card stays in hand and the assertion times out.
         await page.waitForFunction((obj) => {
           return document.querySelector(`.quadrant [data-obj="${obj}"]`) !== null;
-        }, pick.obj as number, { timeout: WAIT_MS });
+        }, pick.obj as number, { timeout: STALL_MS });
 
         expectClean(c, `${label} R-E4-1 card menu`);
         await page.close();
