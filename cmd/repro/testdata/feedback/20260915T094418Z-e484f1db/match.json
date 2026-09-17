@@ -217,7 +217,7 @@
     "foundations-reign-of-dragons",
     "foundations-wretched-ranks"
   ],
-  "events": 2150,
+  "events": 2238,
   "format": "commander",
   "match": 1,
   "names": [
@@ -240,7 +240,7 @@
       "colour": "#3b82f6"
     }
   ],
-  "seed": 6581063487031301610,
+  "seed": 1671561686018727072,
   "spectator": "omniscient",
   "starting_life": 40,
   "state": "live",
