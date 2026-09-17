@@ -24,6 +24,7 @@ var repoCommanderDecks = []struct {
 	{"valgavoth-endless-punishment", "Valgavoth, Harrower of Souls"},
 	{"rakdos-muscle-scam-exe", "Rakdos, the Muscle"},
 	{"ulalek-eldrazi", "Ulalek, Fused Atrocity"},
+	{"avengers-assemble", "Captain America, Team Leader"},
 }
 
 // TestRepoCommanderDecksValidate is the m38 acceptance gate: every interim

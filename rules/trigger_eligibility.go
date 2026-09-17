@@ -30,9 +30,13 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.PutOnStack
 	case "AbilityCast", "SpellAbilityCast":
 		return 1 << events.AbilityPush
-	case "Attacks", "AttackersDeclaredOneTarget":
+	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers
+	case "AttackerBlocked":
+		return 1 << events.DeclareBlockers
 	case "Sacrificed", "Discarded", "LandPlayed":
+		return 1 << events.MoveZone
+	case "Cycled":
 		return 1 << events.MoveZone
 	case "CommitCrime", "BecomesTarget":
 		return 1 << events.TargetsChosen
@@ -40,6 +44,8 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.Tap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
 		return 1 << events.Damage
+	case "CounterAdded":
+		return 1 << events.CounterChange
 	case "Drawn":
 		return 1 << events.Draw
 	case "LifeLost":

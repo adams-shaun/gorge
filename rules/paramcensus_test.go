@@ -2191,12 +2191,32 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
-	"Spinerock Knoll":             {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
-	"Ad Nauseam":                  {"param:api:Repeat.RepeatOptional"},
-	"Conduit of Worlds":           {"param:api:Play.RememberPlayed"},
-	"Mogis, God of Slaughter":     {"param:stat:Continuous.RemoveType"},
-	"Purphoros, God of the Forge": {"param:stat:Continuous.RemoveType"},
-	"World Shaper":                {"param:api:Mill.Optional"}}
+	"Ad Nauseam":                     {"param:api:Repeat.RepeatOptional"},
+	"Arcane Denial":                  {"param:api:Counter.RememberTargets", "param:api:DelayedTrigger.NextTurn", "param:api:Draw.Upto"},
+	"Avengers Quinjet":               {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Captain Marvel, Apex Avenger":   {"param:api:PutCounter.Optional", "param:api:PutCounter.Placer", "param:api:PutCounter.TriggeredCounterMap"},
+	"Conduit of Worlds":              {"param:api:Play.RememberPlayed"},
+	"Director Nick Fury":             {"param:api:Dig.RestRandomOrder"},
+	"Gift of Immortality":            {"param:api:ChangeZone.AttachedTo", "param:api:ChangeZone.ForgetOtherRemembered"},
+	"Hercules, Olympian Hero":        {"param:trig:DamageDoneOnce.FirstTime"},
+	"Heroic Return":                  {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Heroic Sacrifice":               {"param:api:DelayedTrigger.Destination", "param:api:DelayedTrigger.ThisTurn", "param:api:DelayedTrigger.ValidCard", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Iron Man, Armored Avenger":      {"param:api:PutCounter.ValidTgtsDesc"},
+	"Jocasta, Automaton Avenger":     {"param:api:ChangeZone.Attacking"},
+	"Love on the Battlefield":        {"param:trig:AttackersDeclared.NoResolvingCheck"},
+	"Methods of the Mighty":          {"param:api:Destroy.ValidTgtsDesc"},
+	"Mogis, God of Slaughter":        {"param:stat:Continuous.RemoveType"},
+	"Path of Ancestry":               {"param:api:Mana.TriggersWhenSpent"},
+	"Patriot, Shield Wielder":        {"param:api:Pump.ValidTgtsDesc"},
+	"Photon, Mighty Marvel":          {"param:api:Mana.PersistentMana"},
+	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},
+	"Rescue, Pepper Potts":           {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Scarlet Witch, Chaotic Avenger": {"param:api:Dig.WithMayLook", "param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
+	"Speed, Young Avenger":           {"param:api:Effect.ValidTgtsDesc"},
+	"Spinerock Knoll":                {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
+	"West Coast Expansion":           {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
+	"World Shaper":                   {"param:api:Mill.Optional"},
+}
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across
 // the repo decks carries only the unread parameters and unmodelled cost

@@ -266,6 +266,13 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return controllersOf(g, c.Chosen), true
 	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
 		return copyTargets(c.Targets), true
+	case "TriggeredAttackers":
+		// Forge's plural attack-batch referent (Love on the Battlefield's
+		// "those creatures gain first strike"): the attackers the
+		// AttackersDeclared trigger fired for. The queue entry's Remembered
+		// carries the declared batch (triggerRemembered's DeclareAttackers
+		// case), so this resolves the whole per-defender attacker group.
+		return objectsOf(c.Remembered), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
 		"TriggeredSpellAbility", "TriggeredSourceSA", "TriggeredAttacker",
 		"TriggeredAttackerLKICopy", "TriggeredTargetLKICopy",

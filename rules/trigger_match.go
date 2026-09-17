@@ -140,7 +140,7 @@ type turnFires struct {
 // modes, so no trigger of another mode that fired before stops firing or
 // fires less often.
 var actionTriggerModes = map[string]bool{
-	"AttackersDeclaredOneTarget": true, "Sacrificed": true, "Discarded": true,
+	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "Sacrificed": true, "Discarded": true,
 	"CommitCrime": true, "Taps": true, "TapsForMana": true,
 }
 
@@ -536,6 +536,12 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	}
 	if ev.Kind == events.StepChange {
 		e.checkDelayedTriggers(ev)
+	}
+	// Become-blocked triggers (trig:AttackerBlocked; She-Hulk, Wallbreaker):
+	// one queue entry per blocked attacker, which the ordinary per-trigger
+	// face scan cannot express (see checkAttackerBlockedTriggers).
+	if ev.Kind == events.DeclareBlockers {
+		e.checkAttackerBlockedTriggers(ev)
 	}
 	// Rooms (CR 309.5): the unlocked half's "When you unlock this door"
 	// trigger queues off the DoorUnlock event itself -- its face is the
@@ -972,8 +978,12 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.abilityCastMatches(t, source, ev)
 	case "Attacks":
 		matched = e.attacksMatches(t, source, ev)
-	case "AttackersDeclaredOneTarget":
+	case "AttackersDeclared", "AttackersDeclaredOneTarget":
 		matched = e.attackersDeclaredOneTargetMatches(t, source, ev)
+	case "Cycled":
+		matched = e.cycledMatches(t, source, ev, lki)
+	case "CounterAdded":
+		matched = e.counterAddedMatches(t, source, ev, lki)
 	case "Sacrificed":
 		matched = e.sacrificedMatches(t, source, ev, lki)
 	case "Discarded":
@@ -1122,6 +1132,13 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		// trigger unable to fire at all, so the card's own discard admits it
 		// wherever the discard (or a replacement redirecting it) put it.
 		if t.Mode == "Discarded" && source == ev.Obj && events.IsDiscard(ev) {
+			return true
+		}
+		// The cycled card itself is the moved card (ValidCard$ Card.Self):
+		// its own cycle-trigger must fire from wherever the cost discard (or a
+		// replacement redirecting it) put it, the same courtesy the Discarded
+		// case above extends.
+		if t.Mode == "Cycled" && source == ev.Obj && events.IsDiscard(ev) {
 			return true
 		}
 		spec = "Battlefield"
@@ -1431,9 +1448,17 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 }
 
 // attackersDeclaredOneTargetMatches implements the "whenever [one or more]
-// creatures attack a player" trigger. handleAttackers emits one
+// creatures attack a player" trigger (Forge Mode$ AttackersDeclaredOneTarget)
+// and, routed to the same matcher, the batch "whenever you attack" trigger
+// (Forge Mode$ AttackersDeclared) -- both read the same per-defender
+// DeclareAttackers event the engine emits, and both admit exactly the same
+// trigger-level parameters (AttackingPlayer$, AttackedTarget$,
+// ValidAttackers$, ValidAttackersAmount$). handleAttackers emits one
 // DeclareAttackers event per defender, so this fires once for each attacked
-// player, not once for every attacker in that group.
+// player, not once for every attacker in that group. A batch AttackersDeclared
+// trigger therefore fires once per attacked player on a split attack (one
+// declare step, several events) -- the known limitation recorded in
+// AGENTS.md's approximations table, not silently.
 func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.DeclareAttackers || len(ev.IDs) == 0 {
 		return false
@@ -1459,6 +1484,201 @@ func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state
 		return false
 	}
 	return true
+}
+
+// cycledMatches implements the "when you cycle [this card]" trigger (CR
+// 702.78d's cycling trigger, Forge Mode$ Cycled -- Dismantling Wave, 77
+// corpus files). The engine's cycle activation discards the card as its
+// cost, so the causing event is that cost discard (events.DiscardCost's
+// canonical hand-to-graveyard move), and the moved card's PRINTED Cycling
+// keyword is what makes a cost discard a cycle: an ordinary discard (a
+// Wheel effect) is not one, and neither is a cycling card discarded as the
+// cost of a different card's ability. The printed-keyword limit is the same
+// one the granted-keyword Dethrone check documents: a card whose cycling is
+// granted in a layer rather than printed never matches. ValidCard$ is
+// matched against the moved card's LKI -- the card is already in its
+// destination zone when triggers are checked, exactly like Sacrificed.
+// The cycler is the moved card's controller: a card in a hand is controlled
+// by its owner, and DiscardCost carries no player field to read instead.
+func (e *Engine) cycledMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if !events.IsDiscardCost(ev) {
+		return false
+	}
+	o := lki
+	if o == nil {
+		o = e.G.Obj(ev.Obj)
+	}
+	if o == nil || o.Face() == nil || !o.Face().HasKeyword("Cycling") {
+		return false
+	}
+	return e.eventCardAndPlayerMatch(t, source, ev.Obj, o.Controller)
+}
+
+// counterAddedMatches implements the "when a counter is put on" trigger
+// family (Forge Mode$ CounterAdded; Shang-Chi and the Ten Rings' "When the
+// tenth +1/+1 counter is put on NICKNAME"). The gate is the CounterChange
+// event that put counters (Amount > 0: a removal event never adds one).
+// CounterType$ names the kind. CounterAmount$ <op><n> is the crossing gate
+// the card text means: the trigger fires when the put takes the event's
+// counter kind's total on the object from below n to at least n -- the tenth
+// counter is put whether one event put 10 or a 5-then-5 pair crossed, and a
+// batch that overshoots (9+2) also crossed it. A put that does not cross
+// (7+1, 11+1) fires nothing. The threshold ops (EQ/GT/GE) all read as that
+// one crossing -- the corpus's CounterAdded CounterAmount$ values are EQ only
+// (EQ3..EQ12, every one an oracle "when the <Nth> counter is put" gate), so
+// EQ is the measured shape and GT/GE collapse onto it unmeasured. An absent
+// CounterAmount$ is Forge's plain "whenever a counter is put" -- every put
+// admits it.
+func (e *Engine) counterAddedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.CounterChange || ev.Amount <= 0 {
+		return false
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil {
+		return false
+	}
+	if kind := t.Params["CounterType"]; kind != "" && !strings.EqualFold(kind, ev.Counter) {
+		return false
+	}
+	if !e.eventCardAndPlayerMatch(t, source, ev.Obj, o.Controller) {
+		return false
+	}
+	if cmp := t.Params["CounterAmount"]; cmp != "" {
+		op, n, ok := splitCompare(strings.TrimSpace(cmp))
+		if !ok {
+			return false
+		}
+		after := o.Counter(ev.Counter)
+		before := after - ev.Amount
+		if before < 0 {
+			before = 0
+		}
+		// The crossing semantics for the threshold ops: below n before, at
+		// least n after. applyCompare(after, op, n) would miss an overshooting
+		// batch (9+2 on EQ10: after=11 is not == 10) and re-fire on every
+		// later put that lands exactly on n -- the oracle text ("when the
+		// tenth counter is put") fires once, on the crossing, so EQ/GT/GE
+		// collapse onto before < n && after >= n. LT/LE/NE do not occur in
+		// the corpus on this mode; they keep the plain post-event comparison.
+		switch op {
+		case "EQ", "GT", "GE":
+			if !(before < int32(n) && after >= int32(n)) {
+				return false
+			}
+		default:
+			if !applyCompare(int(after), op, n) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// attackerBlockedCandidates lists the attackers one become-blocked trigger
+// fires for (Forge Mode$ AttackerBlocked; She-Hulk, Wallbreaker's "Whenever
+// a Hero you control becomes blocked"). A DeclareBlockers event's Pairs
+// name exactly the attacker-blocker assignments this defender's declaration
+// just made -- an attacker already carrying blockers is never re-paired, so
+// the declared pairs ARE the became-blocked transition, and a trigger fires
+// once per DISTINCT matching attacker (two Heroes blocked by one
+// declaration are two trigger instances, CR 603.2c). Deterministic order:
+// the event's own pair order, deduplicated.
+func (e *Engine) attackerBlockedCandidates(t cards.Trigger, source state.ObjID, ev events.Event) []state.ObjID {
+	if ev.Kind != events.DeclareBlockers || len(ev.Pairs) == 0 {
+		return nil
+	}
+	ctrl := e.controllerOf(source)
+	seen := map[state.ObjID]bool{}
+	var out []state.ObjID
+	for _, pr := range ev.Pairs {
+		a := pr[0]
+		if seen[a] {
+			continue
+		}
+		seen[a] = true
+		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, a, e.specCtx(source, ctrl)) {
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+// checkAttackerBlockedTriggers queues one trigger instance per matching
+// blocked attacker -- the per-candidate shape the ordinary face scan cannot
+// express (it queues at most one entry per trigger per event, and the
+// become-blocked referent is per attacker: She-Hulk's counter count is each
+// Hero's OWN blocker count). The same-scan-hook precedent is
+// checkChapterTriggers (rules/saga.go). The gates mirror the ordinary scan's
+// per-trigger sequence (zone, phase, fire-count bound, ActivationLimit$);
+// Secondary$ and the Once damage-batch gates do not exist on this mode.
+// The per-attacker ctx carries the blocked attacker as the Remembered
+// TriggeredAttackerLKICopy referent and as TriggerCard, so
+// Count$Valid Creature.blockingTriggeredAttacker counts that Hero's blockers.
+func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
+	if ev.Kind != events.DeclareBlockers {
+		return
+	}
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil {
+			return
+		}
+		f := o.Face()
+		if f == nil {
+			return
+		}
+		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
+			return
+		}
+		for ti, t := range f.Triggers {
+			if t.Mode != "AttackerBlocked" {
+				continue
+			}
+			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
+				continue
+			}
+			key := triggerKey{Source: id, Idx: ti}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue // cascade bound: see maxTriggerFires.
+			}
+			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			for _, aid := range e.attackerBlockedCandidates(t, id, ev) {
+				if t.Effect == nil {
+					break
+				}
+				defender := pt(0)
+				if ao := e.G.Obj(aid); ao != nil {
+					defender = pt(ao.Attacking)
+				}
+				e.triggerFireCount[key]++
+				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+					Source:     id,
+					Controller: o.Controller,
+					Idx:        ti,
+					SA:         t.Effect,
+					Ctx: effects.Ctx{
+						Source:     id,
+						Controller: o.Controller,
+						Remembered: []state.Target{{Obj: aid}},
+						Captured:   []state.Target{{Obj: aid}},
+						TriggerContext: effects.TriggerContext{
+							TriggerCard:     aid,
+							TriggerSource:   aid,
+							AttackingPlayer: pt(e.controllerOf(aid)),
+							DefendingPlayer: defender,
+						},
+					},
+				})
+			}
+		}
+	})
 }
 
 // sacrificedMatches and discardedMatches identify the two actions from the
@@ -2272,6 +2492,17 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 			// damage): a present-condition with no comparison never meant
 			// "vacuously true", which is what the old hard return made it.
 			spec2 := strings.TrimSpace(t.Params["IsPresent2"])
+			// PresentZone$ scopes the count to one named zone (Jocasta's
+			// "if this card is in your graveyard"); the no-compare branch
+			// honours it exactly like the compared branch below. A zone word
+			// this build does not know, or a combination with the IsPresent2$
+			// union whose zone each member would scan, fails closed.
+			if pz := strings.TrimSpace(t.Params["PresentZone"]); pz != "" {
+				if spec2 != "" {
+					return false
+				}
+				return e.countPresentZone(t, spec, source, you)
+			}
 			if spec2 != "" {
 				return e.presentUnionCount(spec, spec2, source, you) > 0
 			}
@@ -2401,8 +2632,48 @@ func (e *Engine) presentConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 			return comparePresent(1, cmp)
 		}
 	}
+	// PresentZone$ (Jocasta, Automaton Avenger's "if this card is in your
+	// graveyard"): the IsPresent$ spec is counted over the named zone in
+	// every living seat's copy of it, in deterministic seat/zone order, the
+	// same walk countPresent makes over the battlefield. An unknown zone
+	// word fails closed -- a clause this build cannot read must never read
+	// as vacuously satisfied.
+	if pz := strings.TrimSpace(t.Params["PresentZone"]); pz != "" {
+		n, known := e.presentZoneCount(t, spec, source, you)
+		if !known {
+			return false
+		}
+		return comparePresent(n, cmp)
+	}
 	n := e.countPresent(spec, source, you)
 	return comparePresent(n, cmp)
+}
+
+// presentZoneCount counts spec matches over one zone (PresentZone$'s value)
+// across every living seat, the deterministic walk countPresent makes over
+// the battlefield. known is false for a zone word this build does not know,
+// which every caller fails closed on.
+func (e *Engine) presentZoneCount(t cards.Trigger, spec string, source state.ObjID, you state.PlayerID) (int, bool) {
+	zone, known := effects.ParseZoneWord(strings.TrimSpace(t.Params["PresentZone"]))
+	if !known {
+		return 0, false
+	}
+	n := 0
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(zone, p) {
+			if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, you)) {
+				n++
+			}
+		}
+	}
+	return n, true
+}
+
+// countPresentZone is the no-compare IsPresent$ branch's PresentZone$ count:
+// an unknown zone word fails closed to "never holds".
+func (e *Engine) countPresentZone(t cards.Trigger, spec string, source state.ObjID, you state.PlayerID) bool {
+	n, known := e.presentZoneCount(t, spec, source, you)
+	return known && n > 0
 }
 
 // countPresent walks every object on the battlefield once and counts those
@@ -2531,6 +2802,7 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:Cycled", "trig:CounterAdded",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase",

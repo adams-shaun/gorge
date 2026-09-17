@@ -89,11 +89,21 @@ import (
 // the merged decks carried: kw:Dash (Ragavan, Nimble Pilferer), implemented
 // to CR 702's dash shape in rules/altcast.go with a named proof test in
 // rules/altcast_test.go. kw:Evoke, kw:Encore, kw:Overload, kw:Warp,
-// kw:Madness and kw:AlternateAdditionalCost registered in the same task are
-// needed only by the three held commander decks (Rakdos Scam.exe, Vivi
-// cEDH, Ulalek Eldrazi), whose entries land in this table when they are
-// imported.
-var knownUnsupported = map[string][]string{}
+// kw:Madness and kw:AlternateAdditionalCost registered in the same task for
+// the commander decks then held: Rakdos Scam.exe and Ulalek Eldrazi have
+// since been imported and measured fully supported (no entry of theirs ever
+// landed here); the Vivi cEDH deck the task also named was never imported.
+var knownUnsupported = map[string][]string{
+	// The avengers-assemble Commander deck import (the Marvel Super Heroes
+	// Commander precon, measured 2026-09-17): the three primitives the deck
+	// needs that this build does not implement. Everything else the deck
+	// exposed (kw:Crew's siblings trig:AttackersDeclared, trig:Cycled,
+	// trig:CounterAdded, trig:AttackerBlocked, the PresentZone$ clause) was
+	// implemented and is pinned in rules/msh_commander_trigger_test.go.
+	"Avengers Quinjet":             {"kw:Crew"},
+	"Captain Marvel, Apex Avenger": {"trig:CounterPlayerAddedAll"},
+	"Speed, Young Avenger":         {"api:ImmediateTrigger"},
+}
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
 // across every deck file (the 12 Legacy decks and the m38 commander decks)
