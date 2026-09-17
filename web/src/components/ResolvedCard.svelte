@@ -47,12 +47,19 @@
    * palette fallback), the same legend every seat-coloured element uses;
    * the hover panel's ledger footer carries the seat number too.
    *
-   * The hover lifecycle mirrors StackTile: hover/anchor are injectable so
-   * the SSR test harness can drive them, and the `$effect` supervise uses
-   * a list derived from the CURRENT view (the card this row is showing, or
-   * nothing) — when a newer resolve replaces this one while the panel is
-   * open, supervise closes it because the old id is no longer what the
-   * row is showing.
+   * The hover lifecycle mirrors CardTile/CommanderTile (the single-object
+   * surfaces): hover/anchor are injectable so the SSR test harness can
+   * drive them, and the `$effect` runs `superviseRendering` — the rendering
+   * half of the lifecycle contract. Unlike StackTile's supervise (which
+   * checks a present list), this row shows exactly ONE card, so feeding
+   * the id it is CURRENTLY rendering is the correct guard: when a newer
+   * resolve replaces this one while the panel is open, the rendered id
+   * changed and superviseRendering closes the panel with no pointer event;
+   * and when the row's card goes to `null` entirely (resolve landed in a
+   * hidden hand, or the RECENT_RESOLVE_WINDOW expired) the `else` arm
+   * closes the panel explicitly — the row unmounted, so `pointerleave`
+   * will never fire, and without the close the panel would sit open on a
+   * stale anchor and re-appear with the next resolve.
    */
   let {
     view,
@@ -82,7 +89,8 @@
   let anchor = $state<AnchorRect | null>(anchorProp ?? null);
 
   $effect(() => {
-    if (card) hover.supervise(card.id, [card]);
+    if (card) hover.superviseRendering(card.id);
+    else hover.close();
   });
 
   function capture(): void {

@@ -133,7 +133,7 @@ describe('ResolvedCard — the row names the card, is hoverable, and reads its o
     expect(html).not.toContain('card-detail');
   });
 
-  it('supervise closes a live panel when a newer resolve replaces this one', () => {
+  it('superviseRendering closes a live panel when a newer resolve replaces the one being rendered', () => {
     const v = viewWithGraveyard(42, 'Old Resolve');
     const hover = new HoverCard();
     hover.open(42);
@@ -141,10 +141,42 @@ describe('ResolvedCard — the row names the card, is hoverable, and reads its o
       props: { view: v, events: [ev(1, 'stack_resolve', 42)], hover, anchor },
     });
     expect(html).toContain('card-detail');
-    // The row's supervise list is the card it is CURRENTLY showing (the $effect's
-    // [card]); asserted directly, as StackTile's test does — the next view shows a
-    // different object, so the panel for 42 must close.
-    expect(hover.supervise(42, [card({ id: 43, name: 'New Resolve' })])).toBe(true);
+    // The next view shows a different object: the row now renders id 43 with
+    // the pointer still over it (the panel's owner unmounted with the old
+    // row, so pointerleave never fires). In the browser ResolvedCard's
+    // $effect calls hover.superviseRendering(card.id) on that change — the
+    // same call applied here before the re-render, exactly the pattern
+    // CardTile.svelte.test.ts documents for superviseRendering.
+    expect(hover.superviseRendering(43)).toBe(true); // a live panel was closed
+    const replacedView = baseView({ players: [
+      spectatorPlayer(0, 'Ari', { graveyard: [card({ id: 43, name: 'New Resolve' })] }),
+      spectatorPlayer(1, 'Bo'),
+    ] });
+    const { html: replaced } = render(ResolvedCard, {
+      props: { view: replacedView, events: [ev(1, 'stack_resolve', 43)], hover, anchor },
+    });
+    expect(replaced).not.toContain('card-detail');
+    expect(replaced).toContain('data-resolved="43"'); // the row itself re-targeted cleanly
+  });
+
+  it('the null-card close arm clears a panel left open when the row unmounts (hidden landing / window expiry)', () => {
+    // The row's card goes to null while the panel is open (the resolve landed
+    // in a hidden hand, or the RECENT_RESOLVE_WINDOW expired on trailing
+    // taps): the {#if card} row unmounts, pointerleave never fires. In the
+    // browser the $effect's else arm calls hover.close() — the same call
+    // applied here; without it the panel would sit open on a stale anchor
+    // forever and re-appear open with the next resolve (CardTile's
+    // superviseRendering covers this by id change; a null card has no id to
+    // feed, so the explicit close is the guard).
+    const hover = new HoverCard();
+    hover.open(42);
+    expect(hover.show).toBe(true);
+    hover.close(); // exactly what the effect's null arm does
     expect(hover.show).toBe(false);
+    const v = viewWithGraveyard(42, 'Old Resolve');
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)], hover, anchor },
+    });
+    expect(html).not.toContain('card-detail'); // the next render does not resurrect the stale panel
   });
 });
