@@ -114,14 +114,13 @@ type CompiledCatalog struct {
 
 	facePointers    []*Face
 	abilityPointers []*SA
-	canonical       []byte
 }
 
 func (c *CompiledCatalog) CanonicalBytes() []byte {
 	if c == nil {
 		return nil
 	}
-	return append([]byte(nil), c.canonical...)
+	return canonicalCatalogBytes(c)
 }
 
 func (c *CompiledCatalog) String(id StringID) (string, bool) {
@@ -157,6 +156,26 @@ func (r *Registry) Catalog() *CompiledCatalog {
 		return nil
 	}
 	return r.catalog
+}
+
+func (r *Registry) invalidateCatalog() {
+	if r == nil || r.catalog == nil {
+		return
+	}
+	old := r.catalog
+	for _, face := range old.facePointers {
+		if face != nil && face.compiledCatalog == old {
+			face.compiledCatalog = nil
+			face.compiledID = 0
+		}
+	}
+	for _, sa := range old.abilityPointers {
+		if sa != nil && sa.compiledCatalog == old {
+			sa.compiledCatalog = nil
+			sa.compiledID = 0
+		}
+	}
+	r.catalog = nil
 }
 
 // CompileMetadata constructs all rows before publishing any runtime binding.
@@ -208,7 +227,6 @@ func (r *Registry) CompileMetadata() error {
 
 	canonical := canonicalCatalogBytes(&b.catalog)
 	b.catalog.Identity = CatalogIdentity{Schema: CompiledCatalogSchema, CorpusHash: sha256.Sum256(canonical)}
-	b.catalog.canonical = canonical
 	for _, binding := range faces {
 		binding.face.compiledCatalog = &b.catalog
 		binding.face.compiledID = binding.id

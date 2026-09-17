@@ -64,6 +64,23 @@ func BenchmarkLoadRegistry(b *testing.B) {
 	}
 }
 
+func BenchmarkCompileMetadata(b *testing.B) {
+	path := benchmarkRegistryPath(b)
+	r, err := LoadRegistry(path)
+	if err != nil {
+		b.Fatal(err)
+	}
+	r.invalidateCatalog()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		if err := r.CompileMetadata(); err != nil {
+			b.Fatal(err)
+		}
+	}
+	benchmarkRegistry = r
+}
+
 func BenchmarkFaceTypeQueries(b *testing.B) {
 	f := &Face{Types: []string{"Legendary", "Creature", "Human", "Wizard"}}
 	benchmarkFace = f

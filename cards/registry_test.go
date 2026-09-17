@@ -42,6 +42,10 @@ func TestRegistryLookupNormalisation(t *testing.T) {
 
 func TestRegistryCacheRoundTrip(t *testing.T) {
 	r := fixtureRegistry(t)
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatalf("CompileMetadata: %v", err)
+	}
+	wantIdentity := r.Catalog().Identity
 	path := filepath.Join(t.TempDir(), "ir.gob.gz")
 	if err := r.Save(path); err != nil {
 		t.Fatalf("Save: %v", err)
@@ -52,6 +56,9 @@ func TestRegistryCacheRoundTrip(t *testing.T) {
 	}
 	if len(back.Cards) != len(r.Cards) {
 		t.Fatalf("cards = %d, want %d", len(back.Cards), len(r.Cards))
+	}
+	if back.Catalog() == nil || back.Catalog().Identity != wantIdentity {
+		t.Fatalf("loaded catalog identity = %+v, want %+v", back.Catalog(), wantIdentity)
 	}
 	delver, ok := back.Lookup("Delver of Secrets")
 	if !ok || delver.AlternateMode != "DoubleFaced" {
@@ -69,6 +76,33 @@ func TestRegistryCacheRoundTrip(t *testing.T) {
 	mtn, _ := back.Lookup("Mountain")
 	if len(mtn.Faces[0].ManaAbilities()) != 1 {
 		t.Fatal("intrinsic mana ability lost in round trip")
+	}
+}
+
+func TestRegistryAddInvalidatesAndRebuildsCatalogBindings(t *testing.T) {
+	r := fixtureRegistry(t)
+	oldFace := r.Cards[0].Faces[0]
+	oldAbility := oldFace.Abilities[0]
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	if oldFace.CompiledID() == 0 || oldAbility.CompiledAPI() == APIUnknown {
+		t.Fatal("initial metadata bindings missing")
+	}
+	card, _ := ParseBytes("new.txt", []byte("Name:New Card\nTypes:Sorcery\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"))
+	card.Link()
+	r.Add(card)
+	if r.Catalog() != nil {
+		t.Fatal("Add left a stale catalog published")
+	}
+	if oldFace.CompiledID() != 0 || oldAbility.CompiledAPI() != APIUnknown {
+		t.Fatal("Add left old runtime bindings active")
+	}
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	if oldFace.CompiledID() == 0 || card.Faces[0].CompiledID() == 0 || card.Faces[0].Abilities[0].CompiledAPI() != APIDraw {
+		t.Fatal("rebuild did not bind old and new faces")
 	}
 }
 
@@ -211,6 +245,9 @@ func TestCompileDirDiagnosesCardWithNoNamedFace(t *testing.T) {
 
 	if len(r.Cards) != 1 {
 		t.Fatalf("Cards = %d, want 1 (the card still compiles, just flagged)", len(r.Cards))
+	}
+	if r.Catalog() == nil || r.Cards[0].Faces[0].CompiledID() == 0 {
+		t.Fatal("CompileDir returned an uncompiled registry")
 	}
 	cv := r.Coverage(map[string]bool{})
 	if cv.Cards != 0 {

@@ -61,3 +61,34 @@ a stale slice pointer. The log-only fixture grows its arena geometrically and
 often has spare capacity, so replay mutates the current object and diverges.
 This predates the catalog work (introduced by `ef0a843`) and is not one of the
 documented accepted baseline failures.
+
+## Task 4: registry and gob lifecycle
+
+`CompileDir`, `LoadRegistry`, and therefore both `OpenCorpus` paths now publish
+a catalog only after derivation, relinking, keyword/intrinsic expansion, and
+token compilation. The gob shape and cache version remain unchanged; runtime
+bindings and rows are rebuilt after decode. `Registry.Add` clears the published
+catalog and every old face/ability binding before mutating a finalized
+registry.
+
+The full pinned corpus produced 35,385 faces, 54,671 linked ability rows,
+17,664 triggers, 7,164 statics, 2,589 replacements, and 100,093 deduplicated
+strings. Its canonical byte encoding is 20,908,489 bytes.
+
+Post-catalog five-run medians:
+
+| Measurement | Baseline | Compiled catalog | Change |
+|---|---:|---:|---:|
+| `BenchmarkLoadRegistry` | 778.271 ms | 1,249.571 ms | +60.6% |
+| load allocation | 279,452,784 B/op | 499,555,616 B/op | +78.8% |
+| load allocations | 3,016,325/op | 3,209,919/op | +6.4% |
+| retained registry bytes | 92,897,784 | 125,159,208 | +34.7% |
+| retained registry objects | 1,277,695 | 1,278,114 | +0.03% |
+
+`BenchmarkCompileMetadata` isolates the new build at 379.652 ms,
+217,338,888 B/op, and 193,600 allocs/op (five-run medians). The approximately
+32.3 MB retained increase is explained by the flat rows, adjacency tables,
+deduplicated string blob/index, and CPU reverse-pointer indexes. The 20.9 MB
+canonical serialization is generated for hashing/export and is not retained;
+an initial implementation retained that duplicate and measured about 148 MB
+total live heap, so it was removed before accepting the lifecycle task.
