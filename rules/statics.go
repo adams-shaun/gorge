@@ -544,19 +544,18 @@ func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, 
 // the card carries on itself, which activeStatics alone would never see
 // while the card is still in hand.
 //
-// p is unused today: the table this task implements gives AlternativeCost
-// only ValidCard$/Cost$, no Activator$-style actor scoping. The parameter is
-// kept for symmetry with adjustedCost and because Forge does have
-// AlternativeCost lines gated by who is casting; adding that scoping later
-// is then a one-line change here rather than a signature change at every
-// call site.
+// p is the casting player: the ValidPlayer$ rider on an AlternativeCost
+// static scopes WHO may take the alternative (Deadly Rollick/Deflecting
+// Swat's "ValidPlayer$ You"), evaluated against the static's own controller
+// so a grant from another permanent's static resolves You/Opponent relative
+// to the granter, exactly like every other static filter predicate.
 func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 	var out []Cost
 	for _, sv := range e.activeStatics("AlternativeCost") {
 		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
-		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source) {
+		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
 			continue
 		}
 		out = append(out, ParseCost(sv.Params["Cost"]))
@@ -567,7 +566,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 				if st.Mode != "AlternativeCost" {
 					continue
 				}
-				if !e.alternativeCostScopeOK(st.Params, id, id) {
+				if !e.alternativeCostScopeOK(st.Params, id, id, p, o.Controller) {
 					continue
 				}
 				out = append(out, ParseCost(st.Params["Cost"]))
@@ -581,12 +580,25 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 // ValidSA$ (which cast the alternative prices — Daze's, the Force cycle's and
 // the Flare cycle's "Spell.Self", the commander free-cast's bare "Spell") and
 // EffectZone$ (the zone the static's source must sit in — the self-carried
-// free-cast statics name "All" so the grant reaches the hand). An absent
-// rider is vacuously true; a ValidSA$ value whose Spell constraint this build
-// cannot evaluate denies, the same fail-closed direction ValidSpell$ takes —
-// a wrongly-granted free cast is an illegal game action, a wrongly-withheld
-// one merely an option lost.
-func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID state.ObjID) bool {
+// free-cast statics name "All" so the grant reaches the hand), ValidPlayer$
+// (the casting player, relative to the static's controller — Deadly
+// Rollick/Deflecting Swat) and IsPresent$ (an existence precondition over
+// the battlefield, the shared presentGate with PresentCompare$ defaulting to
+// GE1 — the commander-protection cycle). An absent rider is vacuously true;
+// a ValidSA$ value whose Spell constraint this build cannot evaluate denies,
+// the same fail-closed direction ValidSpell$ takes — a wrongly-granted free
+// cast is an illegal game action, a wrongly-withheld one merely an option
+// lost.
+func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID state.ObjID, caster, controller state.PlayerID) bool {
+	if vp := strings.TrimSpace(params["ValidPlayer"]); vp != "" && !effects.MatchesPlayerSpec(e.G, vp, caster, controller) {
+		return false
+	}
+	if ip := strings.TrimSpace(params["IsPresent"]); ip != "" {
+		view := staticView{Source: srcID, Controller: controller, Params: params}
+		if !e.presentGate(view, ip) {
+			return false
+		}
+	}
 	if vs := strings.TrimSpace(params["ValidSA"]); vs != "" {
 		ok := false
 		for _, alt := range strings.Split(vs, ",") {
