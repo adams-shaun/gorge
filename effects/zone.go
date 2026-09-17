@@ -328,8 +328,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
 			ev.IDs = []state.ObjID{c.Source}
 		}
+		fromZone := o.Zone
 		h.Emit(ev)
 		exiledWithAssociation(h, c, o.ID, to)
+		if to == state.ZExile {
+			recordExileReturn(h, c, sa, o.ID, fromZone, to)
+		}
 		// RememberLKI$ True (Reanimate's "creature card" whose mana value the
 		// chained lose-life SVar reads, RememberedLKI$CardManaCost) joins the
 		// moved object to the ability's Remembered -- a resolution-local Ctx
@@ -487,6 +491,9 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 		ev.Player = player
 	}
 	h.Emit(ev)
+	if to == state.ZExile {
+		recordExileReturn(h, c, sa, id, from, to)
+	}
 	// RememberLKI$ True (the corpus's 77 ChangeZone lines -- Reanimate's
 	// "creature card" whose mana value the chained lose-life SVar reads,
 	// RememberedLKI$CardManaCost) joins the moved object to the ability's
@@ -529,6 +536,41 @@ func exiledWithAssociation(h Host, c *Ctx, id state.ObjID, to state.Zone) {
 	if o := h.Game().Obj(id); o != nil && !o.IsToken {
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}, Text: "exiled-with"})
 	}
+}
+
+// recordExileReturn reads ChangeZone's Duration$ parameter. The corpus's
+// whole ChangeZone Duration$ population (118 raw .cards/cardsfolder lines:
+// 111 Origin$ Battlefield, 6 Hand, 1 Graveyard, plus 7 on ChangeZoneAll)
+// carries the single value UntilHostLeavesPlay -- the Oblivion Ring /
+// Banisher Priest pattern, "exile ... until CARDNAME leaves the battlefield".
+// For it, the exiled object joins the source's event-backed ExileReturn
+// association carrying the zone it was exiled from; when the source leaves
+// the battlefield the rules sweep (Engine.sweepExileReturn) returns every
+// object still in exile to that zone under its owner's control, which is
+// Forge's own return semantic for the duration (a battlefield-origin exile
+// comes back to the battlefield, a hand-origin one to the hand). A card is
+// only recorded when the move actually landed in exile, and a token is never
+// recorded: a token that left the battlefield has ceased to exist (CR 111.7)
+// and must not come back. Any other Duration$ value is loud (a Note) rather
+// than silently inert, the convention every unread parameter here follows.
+func recordExileReturn(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone) {
+	raw, present := sa.Params["Duration"]
+	if !present || strings.TrimSpace(raw) == "" {
+		return
+	}
+	if !strings.EqualFold(strings.TrimSpace(raw), "UntilHostLeavesPlay") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "unmodelled ChangeZone Duration$ " + strings.TrimSpace(raw)})
+		return
+	}
+	if to != state.ZExile || c.Source == 0 {
+		return
+	}
+	if o := h.Game().Obj(id); o == nil || o.Zone != state.ZExile || o.IsToken {
+		return
+	}
+	h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id},
+		Amount: int32(from), Text: "until-host-leaves"})
 }
 
 // handChangeNum reads the SA's ChangeNum$ as a plain integer literal
@@ -2037,6 +2079,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 					h.Emit(moveZoneEvent(c, id, z, to))
+					if to == state.ZExile {
+						recordExileReturn(h, c, sa, id, z, to)
+					}
 					// ChangeZoneAll's remembered movement is needed for the
 					// exiled-with-this-source cleanup/tally shape (Valakut
 					// Exploration). Other ChangeZoneAll RememberChanged forms
