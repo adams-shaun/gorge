@@ -2213,7 +2213,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Splendid Reclamation":        {"param:api:ChangeZoneAll.Tapped"},
 	"Steel Leaf Champion":         {"param:stat:CantBlockBy.ValidAttacker"},
 	"Sword of Fire and Ice":       {"param:stat:Continuous.AddSVar"},
-	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.MinChoiceAmount"},
 	"World Shaper":                {"param:api:ChangeZoneAll.Tapped", "param:api:Mill.Optional"},
 	"Zombie Apocalypse":           {"param:api:ChangeZoneAll.Tapped"}}
 

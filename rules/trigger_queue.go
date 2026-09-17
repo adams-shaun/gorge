@@ -353,10 +353,14 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			// it is behaviourally the absence every Phase delayed trigger
 			// read before.
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			handled := false
 			if pt.SA.Params["Choices"] != "" {
-				e.askTriggerModes(pt.Controller, id, pt.SA)
-				e.drainAwaitsModes = true
-			} else if pt.SA.Params["ValidTgts"] != "" {
+				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
+				if handled {
+					e.drainAwaitsModes = true
+				}
+			}
+			if !handled && pt.SA.Params["ValidTgts"] != "" {
 				e.askTarget(pt.Controller, id, pt.SA)
 			}
 		}
@@ -457,10 +461,14 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	if pt.SA != nil && len(e.G.Stack) > 0 &&
 		e.G.Obj(e.G.Stack[len(e.G.Stack)-1]) != nil {
 		id := e.G.Stack[len(e.G.Stack)-1]
+		handled := false
 		if pt.SA.Params["Choices"] != "" {
-			e.askTriggerModes(pt.Controller, id, pt.SA)
-			e.drainAwaitsModes = true
-		} else if pt.SA.Params["ValidTgts"] != "" {
+			handled = e.askTriggerModes(pt.Controller, id, pt.SA)
+			if handled {
+				e.drainAwaitsModes = true
+			}
+		}
+		if !handled && pt.SA.Params["ValidTgts"] != "" {
 			e.askTarget(pt.Controller, id, pt.SA)
 		}
 	}
@@ -848,7 +856,26 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 // SpellDescription$ as the label, resolved from the trigger's source SVar
 // table -- so an index chosen here maps to the same SVar name modeChoiceNames
 // produces at resolution.
-func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA) {
+//
+// The ask exists for the MODAL family: its Choices$ values are SVar names
+// that resolve to ability bodies (the Charm contract effCharm itself runs).
+// Other APIs' Choices$ mean something else entirely -- a card spec
+// (PutCounter's distribution pick, Clone's template, ChooseCard's filter), a
+// player filter (ChoosePlayer), a ballot (Vote), a colour word (Protection)
+// -- and their choice is asked at resolution through the primitive's own
+// machinery. The structural discriminator is the contract itself: every
+// Choices$ value must resolve, in the source face's own SVar table, to an
+// ability body. Measured at the corpus pin, every Charm (240), Vote (11),
+// GenericChoice (48) and VillainousChoice (5) trigger body resolves; every
+// non-modal carrier (ChooseCard 93, ChoosePlayer 29, PutCounter 10,
+// CopyPermanent 11, Clone 4, Attach, Manifest, and the rest) names at least
+// one unresolvable spec, so the old unconditional ask recorded a bogus
+// ChosenModes the primitive never read (Vastwood Hydra's death trigger asked
+// the controller to "choose one mode" labelled Creature.YouCtrl before the
+// distribution pick ever came). It returns whether the placement ask was
+// posed, so the drain knows whether to wait for a modes answer
+// (drainAwaitsModes) and whether to fall through to the target ask.
+func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA) bool {
 	var source state.ObjID
 	var svars map[string]string
 	if so := e.G.Obj(obj); so != nil {
@@ -859,14 +886,20 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 			svars = sf.SVars
 		}
 	}
+	choices := strings.Split(sa.Params["Choices"], ",")
+	for _, ch := range choices {
+		if cards.ResolveSVar(svars, strings.TrimSpace(ch)) == nil {
+			return false // not modal: the primitive asks at resolution
+		}
+	}
 	ctx := &effects.Ctx{Source: source, Controller: p, TriggerContext: e.triggerContexts[obj]}
 	effects.SetSVars(ctx, svars)
-	choices := strings.Split(sa.Params["Choices"], ",")
 	min, max := effects.CharmModeBounds(e, ctx, sa, len(choices))
 	if min > len(choices) {
-		return
+		return true
 	}
 	e.ask(modeDecision(p, source, sa, svars, min, max))
+	return true
 }
 
 // askTriggerOrder is R1: the controller of two or more simultaneous triggers

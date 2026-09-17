@@ -1,9 +1,11 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -22,6 +24,30 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	kind := sa.Params["CounterType"]
 	if kind == "" {
 		kind = "P1P1"
+	}
+	// DividedAsYouChoose$ (Vastwood Hydra's "you may distribute a number of
+	// +1/+1 counters equal to the number of +1/+1 counters on CARDNAME among
+	// any number of creatures you control", 54 raw corpus PutCounter lines):
+	// the CounterNum$ TOTAL is divided among the recipients, not placed on
+	// each. Two carrier shapes, split on where the recipients come from:
+	// Choices$ names a mid-resolution battlefield pick bounded by
+	// MinChoiceAmount$/ChoiceAmount$; without Choices$ the recipients are the
+	// ordinary chosen targets (ValidTgts$, already asked by the targeting
+	// machinery).
+	divided := strings.TrimSpace(sa.Params["DividedAsYouChoose"]) != ""
+	// fx45 scoping: capture and clear the answered Choices$ pick BEFORE the
+	// branch, so a nested PutCounter below cannot inherit the outer answer
+	// (the fx42 discipline every answered field follows).
+	distAns := c.CounterDist
+	distDone := c.CounterDistDone
+	c.CounterDist, c.CounterDistDone = nil, false
+	if divided {
+		if strings.TrimSpace(sa.Params["Choices"]) != "" {
+			putCounterPickDistribute(h, c, sa, n, kind, distAns, distDone)
+			return
+		}
+		putCounterSplit(h, n, kind, Defined(h, c, sa))
+		return
 	}
 	// ETB$ True (the K:etbCounter expansion's body, Wishclaw Talisman and
 	// every "enters with N counters" card): the counters are placed on the
@@ -51,6 +77,145 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: n})
 	}
+}
+
+// putCounterPickDistribute runs the Choices$ + DividedAsYouChoose$ shape: the
+// recipients are a battlefield pick over the Choices$ filter, bounded by
+// MinChoiceAmount$ (the ask's Min) and ChoiceAmount$ (the ask's Max, default
+// the CounterNum$ total), and the CounterNum$ total is then divided among the
+// chosen recipients.
+//
+// The recipient SET is a real KChoose ask whenever more than one eligible
+// creature exists and a smaller-than-all set is legal (MinChoiceAmount$ below
+// the eligible count): the strict-supersets gate every asking primitive here
+// follows -- a set the rules force (Min == Max == the eligible count) or a
+// single-eligible board leaves nothing to choose, so no decision is posed and
+// the split runs over the only legal recipient list.
+//
+// The DIVISION among the chosen recipients is the deterministic stand-in the
+// damage primitive's DividedAsYouChoose$ already ships (effects/damage.go):
+// one counter at a time, round-robin in the player's answer order, so the
+// earlier-chosen recipients take the extras. A per-counter division ask (the
+// repeated one-pick ask Forge's UI models by clicking) is not posed.
+func putCounterPickDistribute(h Host, c *Ctx, sa *cards.SA, total int32, kind string, ans []state.ObjID, ansDone bool) {
+	if total <= 0 {
+		return
+	}
+	g := h.Game()
+	spec := strings.TrimSpace(sa.Params["Choices"])
+	if ansDone {
+		// Re-entry: the answered pick, in answer order. A recipient that left
+		// the battlefield while the decision was outstanding takes nothing
+		// (its share is lost, not redistributed -- the same totality stance
+		// the target-based split takes).
+		putCounterSplit(h, total, kind, objTargets(ans))
+		return
+	}
+	var eligible []state.ObjID
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				eligible = append(eligible, id)
+			}
+		}
+	}
+	minCh := Num(h, c, sa, "MinChoiceAmount", 0)
+	if minCh < 0 {
+		minCh = 0
+	}
+	maxCh := Num(h, c, sa, "ChoiceAmount", total)
+	if maxCh < 0 {
+		maxCh = 0
+	}
+	if maxCh > int32(len(eligible)) {
+		maxCh = int32(len(eligible))
+	}
+	if minCh > maxCh {
+		minCh = maxCh
+	}
+	// The no-choice fallbacks share one deterministic recipient list: the
+	// first maxCh eligible creatures in zone order -- for a forced set
+	// (minCh >= the eligible count) that IS the only legal answer, and for
+	// the fuzz/no-host run (R-9) it is the exact mirror of botpolicy's
+	// "counter_dist" arm, so a bot-answered ask emits the same events the
+	// silent build did.
+	fallback := func() {
+		picks := eligible
+		if int32(len(picks)) > maxCh {
+			picks = picks[:maxCh]
+		}
+		putCounterSplit(h, total, kind, objTargets(picks))
+	}
+	// Ask gate: a real recipient choice needs two or more eligible creatures
+	// room to differ (maxCh >= 1 leaves at least one recipient; minCh below
+	// the eligible count leaves a smaller set legal).
+	if len(eligible) < 2 || maxCh < 1 || minCh >= int32(len(eligible)) {
+		fallback()
+		return
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+		Min:        int(minCh),
+		Max:        int(maxCh),
+		Source:     c.Source,
+		ResumeKind: "counter_dist",
+		ResumeSA:   sa,
+		Prompt:     "Distribute " + kind + " counter(s): choose where to place " + strconv.Itoa(int(total))}
+	for _, id := range eligible {
+		name := "a creature"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "counter_dist", Label: name, Obj: id, Player: c.Controller})
+	}
+	if Ask(h, d) == AskAsked {
+		return // resolution suspended; the answer re-enters with Ctx.CounterDist set.
+	}
+	fallback()
+}
+
+// putCounterSplit divides the CounterNum$ total among the recipients
+// round-robin in recipient order (the deterministic division stand-in) and
+// emits one CounterChange per recipient with its share. Recipients that are
+// no longer on the battlefield take nothing; the total is exact (every
+// counter lands somewhere or is lost with a departed recipient, never
+// invented).
+func putCounterSplit(h Host, total int32, kind string, ts []state.Target) {
+	if total <= 0 {
+		return
+	}
+	g := h.Game()
+	var live []state.ObjID
+	for _, t := range ts {
+		if t.IsPlayer {
+			continue
+		}
+		if o := g.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			live = append(live, t.Obj)
+		}
+	}
+	if len(live) == 0 {
+		return
+	}
+	shares := make(map[state.ObjID]int32, len(live))
+	for i := int32(0); i < total; i++ {
+		shares[live[i%int32(len(live))]]++
+	}
+	for _, id := range live {
+		if amt := shares[id]; amt > 0 {
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: amt})
+		}
+	}
+}
+
+func objTargets(ids []state.ObjID) []state.Target {
+	out := make([]state.Target, 0, len(ids))
+	for _, id := range ids {
+		if id != 0 {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	return out
 }
 
 // effRemoveCounterAll sweeps ValidCards$ (default "Permanent") on the
