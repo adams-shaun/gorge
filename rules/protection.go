@@ -128,9 +128,9 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	// kw:Protection registration covers every live K:Protection form.
 	switch strings.ToLower(q) {
 	case "card.monocolor":
-		return isMonoColor(effects.ColorsOf(o))
+		return isMonoColor(e.objColors(o))
 	case "card.enemycolor":
-		return hasEnemyColorPair(effects.ColorsOf(o))
+		return hasEnemyColorPair(e.objColors(o))
 	}
 	// Parameterised protection qualities are Forge object specs (Artifact,
 	// Creature.God, Card.MultiColor, and so on). Reuse the filter grammar so
@@ -139,7 +139,7 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 		return true
 	}
 	if c := protecColourLetter(q); c != 0 {
-		col := effects.ColorsOf(e.G.Obj(source))
+		col := e.objColors(e.G.Obj(source))
 		return col != "" && strings.ContainsRune(col, c)
 	}
 	if o.Face() == nil {

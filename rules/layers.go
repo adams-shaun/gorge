@@ -318,6 +318,12 @@ type Derived struct {
 	Power, Toughness int32
 	Keywords         []string
 	Types            []string
+	// Colors is the object's current colour set as WUBRG letters (CR 613.1e):
+	// its face's colours (effects.ColorsOf, which already applies Devoid)
+	// then every applicable layer-5 effect in timestamp order -- an
+	// OverwriteColors grant replaces the set so far, a plain one extends it.
+	// "" is a colourless object, not "no read": a battlefield land reads "".
+	Colors string
 }
 
 // AddContinuous registers one continuous effect. A zero Timestamp is
@@ -638,6 +644,13 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	}
 	kw = append(kw[:0], f.Keywords...)
 	ty = append(ty[:0], f.Types...)
+	// Layer 5's base is the face's colour set (the mana cost, an explicit
+	// Colors: line, Devoid-applied). The letters compose in a fixed [5]bool so
+	// the layer walk below never touches a map.
+	var col [5]bool
+	for _, r := range effects.ColorsOf(o) {
+		col[strings.IndexByte("WUBRG", byte(r))] = true
+	}
 	for _, ce := range e.active() {
 		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source, AsStack: atStack != 0}
 		if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
@@ -663,7 +676,47 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 			}
 			kw = append(kw, ce.AddKeywords...)
 		case LType:
+			// Forge's Animate RemoveCreatureTypes$ True: the object loses its
+			// creature-type subtypes BEFORE this effect's own additions land,
+			// so the animation's new creature type is the only one it carries
+			// while animated. Filter in place -- ty is the scratch buffer, and
+			// the write index never overtakes the read index.
+			if ce.RemoveCreatureTypes {
+				kept := ty[:0]
+				for _, t := range ty {
+					if !isCreatureSubtype(t) {
+						kept = append(kept, t)
+					}
+				}
+				ty = kept
+			}
 			ty = append(ty, ce.AddTypes...)
+		case LColor:
+			// CR 613.1e: colour-set and colour-add effects apply in timestamp
+			// order; an OverwriteColors grant replaces everything so far (an
+			// empty set means an overwrite to colourless, the Animate
+			// Colors$ Colorless shape), a plain one extends it.
+			if ce.OverwriteColors {
+				col = [5]bool{}
+			}
+			// Letter elements are bounds-checked: state.ContinuousEffect is
+			// exported, so a malformed element (empty, or not a WUBRG letter)
+			// must be skipped, never an index panic -- a parse path in this
+			// walk never crashes the match goroutine.
+			for _, l := range ce.AddColors {
+				if len(l) == 0 {
+					continue
+				}
+				if i := strings.IndexByte("WUBRG", l[0]); i >= 0 {
+					col[i] = true
+				}
+			}
+		}
+	}
+	colors := ""
+	for i, c := range "WUBRG" {
+		if col[i] {
+			colors += string(c)
 		}
 	}
 	if e.derivedDepth <= 1 {
@@ -673,7 +726,7 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		e.derivedTypes = ty
 	}
 	e.derivedDepth--
-	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty}
+	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Colors: colors}
 }
 
 func (e *Engine) Power(id state.ObjID) int32 {
@@ -724,6 +777,53 @@ func (e *Engine) IsCreature(id state.ObjID) bool {
 		}
 	}
 	return false
+}
+
+// Colors is the object's current layer-5 colour set as WUBRG letters (see
+// Derived.Colors); "" is a colourless object. Every rules-side colour read
+// about a live object goes through this (objColors below for callers that
+// already hold the *state.Object) rather than effects.ColorsOf's face read,
+// so an animated manland's granted colours are real everywhere the engine
+// consults them -- protection qualities, Fear's black-blocker test, convoke's
+// colour contributions, the Count$...$Colors heads.
+func (e *Engine) Colors(id state.ObjID) string {
+	return e.Derived(id).Colors
+}
+
+// objColors is Colors for a caller holding the object rather than the id:
+// a battlefield permanent reads its derived (layer-5) colours; anything off
+// the battlefield has no continuous characteristics (CR 613.6 -- a spell on
+// the stack shows its face's colours) and falls back to the face read,
+// which also covers LKI snapshots keyed by an id that may no longer resolve.
+func (e *Engine) objColors(o *state.Object) string {
+	if o != nil && o.Zone == state.ZBattlefield {
+		return e.Colors(o.ID)
+	}
+	return effects.ColorsOf(o)
+}
+
+// cardTypeWords are the card types; supertypeWords the supertypes. Every
+// other type word on a face is a subtype, so RemoveCreatureTypes' strip is
+// "drop what is neither" -- the same split Forge's own type vocabulary makes.
+var (
+	cardTypeWords  = []string{"Artifact", "Battle", "Creature", "Enchantment", "Instant", "Land", "Planeswalker", "Sorcery", "Tribal"}
+	supertypeWords = []string{"Basic", "Legendary", "Ongoing", "Snow", "World"}
+)
+
+// isCreatureSubtype reports whether t is a subtype word (a creature type
+// under RemoveCreatureTypes' reading): not a card type and not a supertype.
+func isCreatureSubtype(t string) bool {
+	for _, w := range cardTypeWords {
+		if strings.EqualFold(w, t) {
+			return false
+		}
+	}
+	for _, w := range supertypeWords {
+		if strings.EqualFold(w, t) {
+			return false
+		}
+	}
+	return true
 }
 
 // RegenerationDisallowed implements effects.Host for the CantRegenerate

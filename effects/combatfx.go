@@ -279,7 +279,33 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 	_, hasToughness := sa.Params["Toughness"]
 	pw := Num(h, c, sa, "Power", 0)
 	tf := Num(h, c, sa, "Toughness", 0)
-	types := strings.Fields(sa.Params["Types"])
+	types := strings.Fields(strings.ReplaceAll(sa.Params["Types"], ",", " "))
+	// Colors$ names the colour set the animated object carries; with
+	// OverwriteColors$ True it REPLACES the object's colours (the manland
+	// family -- Celestial Colonnade's "white and blue" -- where the land's
+	// printed colourlessness must not survive), without it the colours are
+	// ADDED. Both are layer-5 grants, normalised to WUBRG letters here so
+	// "All" (every colour) and "Colorless" (an overwrite to the empty set)
+	// never leak their words downstream. A value colorLetters cannot fully
+	// parse (the corpus's "ChosenColor" family, which asks its controller for
+	// a colour) fails closed: colorsGrant is false, the grant is NOT
+	// registered and a Note says so, so the object keeps its printed colours
+	// instead of the parse's empty prefix being overwritten over them. For
+	// the same reason "Colorless" without OverwriteColors$ -- an add of the
+	// empty set, a no-op whose corpus lines (raging_spirit) intend "becomes
+	// colourless" -- is noted and skipped rather than silently registering a
+	// dead effect.
+	colorsRaw := strings.TrimSpace(sa.Params["Colors"])
+	colors, colorsOK := colorLetters(sa.Params["Colors"])
+	overwrite := colorsRaw != "" && strings.EqualFold(strings.TrimSpace(sa.Params["OverwriteColors"]), "True")
+	colorsGrant := colorsRaw != "" && colorsOK && (len(colors) > 0 || overwrite)
+	// Keywords$ is a "&"-separated keyword list (Celestial Colonnade's
+	// "Flying & Vigilance"), the same grammar Pump's KW$ uses.
+	kws := cards.SplitKeywordList(sa.Params["Keywords"])
+	// RemoveCreatureTypes$ True strips the object's creature-type subtypes
+	// (Mishra's Factory's land base carries none, but an animated creature or
+	// planeswalker face does) before this animation's own Types$ apply.
+	removeCreatureTypes := strings.EqualFold(strings.TrimSpace(sa.Params["RemoveCreatureTypes"]), "True")
 	// Abilities$ names the SVar bodies (comma-separated, on THIS face's table)
 	// the animated object gains -- Urza's Saga's chapters ("CARDNAME gains
 	// '{T}: Add {C}'.") are the corpus's flagship shape. The grant is a
@@ -297,6 +323,13 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	permanent := strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
+	if colorsRaw != "" && !colorsOK {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "Animate Colors$ " + colorsRaw + " is not implemented; colours unchanged"})
+	} else if colorsRaw != "" && !colorsGrant {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "Animate Colors$ Colorless without OverwriteColors$ is not implemented; colours unchanged"})
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -312,10 +345,24 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 				SetPower: pw, SetToughness: tf, HasSet: true, UntilEOT: true,
 			})
 		}
-		if len(types) > 0 {
+		if len(types) > 0 || removeCreatureTypes {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
-				Layer: state.LType, AddTypes: types, UntilEOT: true,
+				Layer: state.LType, AddTypes: types, RemoveCreatureTypes: removeCreatureTypes, UntilEOT: true,
+			})
+		}
+		if colorsGrant {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
+				Layer: state.LColor, AddColors: colors, OverwriteColors: overwrite,
+				Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
+			})
+		}
+		if len(kws) > 0 {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
+				Layer: state.LAbilities, AddKeywords: kws,
+				Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
 			})
 		}
 		if len(abilities) > 0 {
