@@ -215,6 +215,13 @@
         >{o.label}</button>
       {/each}
     </div>
+    <!-- fb-20260916T225211Z: the awareness gap the Deadly Rollick report is
+         about — this setting governs ONLY the own-object stack rule; the
+         step-stop table below independently stops any window it names,
+         including ones with the player's own object on the stack. -->
+    <p class="legend" data-own-legend>
+      Covers your own spell or ability while it is on the stack. The step stops below still apply to every window — including ones with your own object on it.
+    </p>
   </section>
 
   <section class="sec">
@@ -281,6 +288,17 @@
       onclick={() => state.editSettings({ autoOrderIdenticalTriggers: !s.autoOrderIdenticalTriggers })}
     >
       <span>Auto-order identical triggers</span><span class="state" aria-hidden="true">{s.autoOrderIdenticalTriggers ? 'On' : 'Off'}</span>
+    </button>
+    <button
+      type="button"
+      role="switch"
+      class="row"
+      class:on={s.autoOrderAllTriggers}
+      aria-checked={s.autoOrderAllTriggers}
+      data-toggle="auto-order-all-triggers"
+      onclick={() => state.editSettings({ autoOrderAllTriggers: !s.autoOrderAllTriggers })}
+    >
+      <span>Auto-order all triggers</span><span class="state" aria-hidden="true">{s.autoOrderAllTriggers ? 'On' : 'Off'}</span>
     </button>
     <div class="row sel">
       <span id="pacing-label">Pause between auto-passes</span>

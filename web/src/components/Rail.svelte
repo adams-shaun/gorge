@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { View, SeatInfo, DecisionBody } from '../protocol';
+  import type { CardOptions } from '../lib/cardoptions';
   import { focusSeat } from '../lib/seattable';
   import SeatTable from './SeatTable.svelte';
   import ManaPool from './ManaPool.svelte';
@@ -50,6 +51,7 @@
     yields = null,
     onYield = null,
     viewerSeat = null,
+    options = null,
   }: {
     view: View;
     seats: SeatInfo[];
@@ -85,6 +87,12 @@
     onYield?: ((key: string) => void) | null;
     /** viewerSeat is the seat the stack is rendered for; an opponent-owned entry offers the always-yield menu. */
     viewerSeat?: number | null;
+    /** options is the table's card-options bundle (Table.svelte's
+     *  boardOptions), forwarded to SeatTable so its pile buttons wear the
+     *  same tone ring the identity bar's pile icons wear
+     *  (fb-20260916T225802Z). Optional and null by default so every
+     *  existing caller renders exactly as before. */
+    options?: CardOptions | null;
   } = $props();
 
   // The reader's explicit pick, or null to follow (focusSeat decides what
@@ -130,7 +138,7 @@
     {/if}
     {#if logbar}<span class="logbar__extra">{@render logbar()}</span>{/if}
   </div>
-  <SeatTable {view} {seats} {focus} {events} onFocus={(s) => (picked = picked === s ? null : s)} />
+  <SeatTable {view} {seats} {focus} {events} {options} onFocus={(s) => (picked = picked === s ? null : s)} />
 
   <section class="focus" data-focus-pane data-focus-seat={focused?.seat}>
     {#if focused}

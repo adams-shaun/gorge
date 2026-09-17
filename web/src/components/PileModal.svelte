@@ -2,6 +2,8 @@
   import { tick } from 'svelte';
   import type { CardView } from '../protocol';
   import { CardHover } from '../lib/carddetail.svelte';
+  import type { CardOptions } from '../lib/cardoptions';
+  import { ACTION_GLYPHS, actionAccessibleLabel, postSingleAction, singleActionIcon, tileScenario, tileOptions } from '../lib/cardoptions';
   import CardDetail from './CardDetail.svelte';
   import CardImage from './CardImage.svelte';
 
@@ -13,6 +15,16 @@
    * face a board tile shows, in a wrapping grid — not a text index; a pile
    * is cards, not a table of contents.
    *
+   * Piles are also ACTIONABLE (fb-20260916T225802Z): with the table's
+   * card-options bundle (options), a pile card the pending decision offers
+   * something to wears the tone ring and carries the HandFan affordance —
+   * one offer is a direct action icon, several a badge + menu, every item
+   * posting the option's own wire index (R-E4-1). A target option on a card
+   * in ANY seat's pile glows there too (not gated by pile owner); the
+   * engine validates every posted option, so a stale highlight can never do
+   * damage. Without options (spectator, nothing pending) the pile is the
+   * reading surface it always was.
+   *
    * Each card in the list carries the shared hover inspector (the SeatPanel
    * arrange-strip pattern): one CardHover for the whole list, pointer dwell
    * (250 ms) or keyboard focus opens the portalled CardDetail, leave/blur
@@ -23,12 +35,23 @@
    * descendant of it; CardDetail's z-index (1001) sits above the backdrop's
    * 1000 so the panel reads over the dim rather than under it.
    */
-  let { open, title, cards, returnFocus = null, onClose }: {
+  let { open, title, cards, returnFocus = null, onClose, options = null }: {
     open: boolean;
     title: string;
     cards: CardView[];
     returnFocus?: HTMLElement | null;
     onClose: () => void;
+    /** the table's pending-decision card-options bundle (PileHost forwards
+     *  Table.svelte's boardOptions). A pile card the decision offers
+     *  something to — a flashback/escape cast on a graveyard card, a
+     *  warp-recast on an exile card, a target on a card in ANY seat's pile
+     *  (not gated by pile owner; the engine validates every posted option) —
+     *  wears the tone ring and carries the HandFan options affordance:
+     *  one offer is a direct action icon, several a badge + menu, each item
+     *  posting the option's OWN wire index (R-E4-1 — never a rebuilt
+     *  position). Null for a spectator / nothing pending: the pile stays a
+     *  reading surface. */
+    options?: CardOptions | null;
   } = $props();
 
   let dialog = $state<HTMLElement | null>(null);
@@ -39,6 +62,13 @@
   // pile (CardHover keeps the pointer's card and the focused card separate
   // internally, so the two input owners cannot close each other).
   const hover = new CardHover();
+
+  // The per-card options menu (the HandFan contract): at most one open at
+  // a time, keyed by card id. Nothing on the wire drives it.
+  let openCard = $state<number | null>(null);
+  function toggleCard(id: number) {
+    openCard = openCard === id ? null : id;
+  }
 
   $effect(() => {
     if (open) {
@@ -86,6 +116,10 @@
   function keydown(event: KeyboardEvent): void {
     if (!open || event.key !== 'Escape') return;
     event.preventDefault();
+    if (openCard !== null) {
+      openCard = null;
+      return;
+    }
     if (hover.hover.show) {
       hover.close();
       return;
@@ -117,10 +151,18 @@
       </header>
       <ul class="cards" data-pile-scroll>
         {#each cards as card (card.id)}
-          <li data-obj={card.id}>
+          <!-- A pile card the pending decision offers something to wears the
+               tone ring and carries the HandFan options affordance (badge /
+               direct icon + menu), adapted to the pile grid: the affordance
+               is a SIBLING of the inspector button (a real button is never
+               nested inside one), anchored to the card's top edge. Every
+               menu item posts the option's own wire index, R-E4-1. -->
+          {@const opt = options ? tileOptions(options, card.id) : null}
+          <li data-obj={card.id} class:marked={!!opt}>
             <button
               type="button"
               class="pile-card"
+              data-tone={opt?.tone ?? ''}
               onpointerenter={(e) => hover.arm(card, e.currentTarget)}
               onpointerleave={() => hover.leave(card)}
               onfocus={(e) => hover.open(card, e.currentTarget)}
@@ -131,6 +173,54 @@
               <span class="card-name">{card.name}</span>
               <span class="types">{card.types}</span>
             </button>
+            {#if opt}
+              <div class="tile-actions">
+                {#if opt.list.length === 1}
+                  {@const action = opt.list[0]}
+                  {@const icon = singleActionIcon(action)}
+                  <button
+                    class="action-icon badge--{opt.tone}"
+                    type="button"
+                    data-single-action
+                    data-action-icon={icon}
+                    aria-label={actionAccessibleLabel(action)}
+                    title={actionAccessibleLabel(action)}
+                    onclick={(event) => postSingleAction(opt, false, event.ctrlKey)}
+                  >
+                    <span aria-hidden="true">{ACTION_GLYPHS[icon]}</span>
+                  </button>
+                {:else}
+                  <button
+                    class="badge badge--{opt.tone}"
+                    type="button"
+                    aria-haspopup="menu"
+                    aria-expanded={openCard === card.id}
+                    aria-label={tileScenario(opt)
+                      ? `${opt.list.length} ${tileScenario(opt)!.noun} for ${card.name}`
+                      : `${opt.list.length} actions for ${card.name}`}
+                    title="Options for {card.name}"
+                    data-action-icon={tileScenario(opt)?.icon}
+                    onclick={() => toggleCard(card.id)}
+                  >
+                    {#if tileScenario(opt)}
+                      <span class="badge__icon" aria-hidden="true">{ACTION_GLYPHS[tileScenario(opt)!.icon]}</span>
+                    {/if}
+                    <span class="badge__n data">{opt.list.length}</span>
+                  </button>
+                {/if}
+                {#if opt.list.length > 1 && openCard === card.id}
+                  <ul class="menu" role="menu" aria-label="Options for {card.name}">
+                    {#each opt.list as o (o.index)}
+                      <li role="none">
+                        <button class="menu__item" type="button" role="menuitem" onclick={(event) => opt.post(o.index, false, event.ctrlKey)}>
+                          {o.label}
+                        </button>
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+              </div>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -206,12 +296,19 @@
   }
   li {
     width: var(--card-w);
+    position: relative;
+  }
+  /* A marked card (the decision offers it something) can open a menu that
+     must read over its neighbours. */
+  li.marked {
+    z-index: 1;
   }
   /* The card is a real button so keyboard focus is the native affordance
      (focus opens the detail immediately, blur closes it); the button carries
-     the layout the li used to hold. The button's click does nothing — the
-     pile list is a reading surface, not a casting surface — so the cursor
-     stays default. */
+     the layout the li used to hold. Without options the button's click does
+     nothing — the pile list is then a reading surface, so the cursor stays
+     default; with options the affordance badge beside it is the actor, and
+     the face keeps its inspector role. */
   .pile-card {
     display: flex;
     flex-direction: column;
@@ -229,6 +326,118 @@
   .pile-card:focus-visible {
     outline: var(--edge-w) solid var(--initiative);
     outline-offset: 2px;
+  }
+  /* The tone ring, the card-tile register (HandFan's face[data-tone]): a
+     card the pending decision offers something to. */
+  .pile-card[data-tone='initiative'] {
+    box-shadow: 0 0 0 2px var(--initiative);
+    border-radius: var(--radius-card);
+  }
+  .pile-card[data-tone='offered'] {
+    box-shadow: 0 0 0 2px var(--offered);
+    border-radius: var(--radius-card);
+  }
+  /* The options affordance, anchored to the card's top edge — the HandFan
+     badge/menu, adapted to the pile grid (one offer is a direct icon,
+     several a count badge + menu; every item posts the option's own index). */
+  .tile-actions {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    line-height: 1;
+  }
+  .badge,
+  .action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 1.375rem;
+    height: 1.375rem;
+    padding: 0 0.25rem;
+    border-radius: 3px;
+    border: var(--edge-w) solid var(--edge-inst);
+    background: var(--instrument);
+    color: var(--ink);
+    font-family: var(--font-data);
+    font-size: var(--t-12);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .badge--initiative {
+    background: var(--initiative);
+    border-color: var(--initiative);
+    color: var(--felt-sunk);
+  }
+  .badge--offered {
+    background: var(--offered);
+    border-color: var(--offered);
+    color: var(--felt-sunk);
+  }
+  .action-icon {
+    width: 1.6875rem;
+    padding: 0;
+    font-size: calc(var(--t-14) * 1.25);
+    line-height: 1;
+  }
+  .badge__n {
+    font-size: inherit;
+  }
+  .badge:hover,
+  .badge[aria-expanded='true'],
+  .action-icon:hover {
+    border-color: var(--ink-dim);
+    color: var(--ink);
+  }
+  .badge--initiative:hover,
+  .badge--initiative[aria-expanded='true'],
+  .action-icon:hover {
+    color: var(--felt-sunk);
+  }
+  /* The menu opens downward over the pile grid (the modal is a centred
+     dialog, not a board edge — there is nothing below to leave). */
+  .menu {
+    position: absolute;
+    top: calc(100% + 3px);
+    right: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 2px;
+    list-style: none;
+    min-width: 9rem;
+    max-width: 14rem;
+    max-height: 12rem;
+    overflow-y: auto;
+    background: var(--instrument);
+    border: var(--edge-w) solid var(--edge-inst);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lift);
+  }
+  .menu__item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-left: 2px solid transparent;
+    border-radius: 0;
+    color: var(--ink-inst);
+    font-family: var(--font-ui);
+    font-size: var(--t-12);
+    line-height: 1.35;
+    padding: var(--sp-1) var(--sp-2);
+    cursor: pointer;
+  }
+  .menu__item:hover,
+  .menu__item:focus-visible {
+    background: color-mix(in srgb, var(--ink) 7%, var(--instrument));
+    border-left-color: var(--ink-dim);
+    color: var(--ink);
   }
   .card-name {
     max-width: 100%;

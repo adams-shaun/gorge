@@ -1,6 +1,6 @@
 import { mount } from 'svelte';
-import type { CardView, Option } from '../protocol';
-import type { TileOptions } from '../lib/cardoptions';
+import type { CardView, Decision, Option } from '../protocol';
+import { resolveCardFollowUp, type TileOptions } from '../lib/cardoptions';
 import '../app.css';
 import CardTile from './CardTile.svelte';
 
@@ -54,5 +54,64 @@ mount(CardTile, {
   props: {
     card: card(17, 'Fireball', 'Instant'),
     tileOptions: tile([opt(21, 'cast', 'Cast Fireball')]),
+  },
+});
+
+// fb-e079def5: the two-stage mana continuation, the reported Talisman of
+// Indulgence flow. Stage 1 is the ability wheel the player answers THROUGH
+// the picker (postTileOption arms the follow-up expectation); the post
+// callback plays Table.svelte's other half — decode the follow-up decision
+// through resolveCardFollowUp and render stage 2 with autoOpen when the
+// decode opens it. Pre-fix, stage 1's post carried expectFollowUp=false, the
+// decode armed nothing, and stage 2 surfaced only in the seat panel's
+// generic option list. The stage-2 remount is deferred by one macrotask to
+// mimic the network round trip: synchronously it would happen INSIDE the
+// click's bubble, and OptionPicker's window-level close-on-click would shut
+// the freshly opened wheel again — an artifact of the synchronous fixture
+// the real frame-driven flow never has.
+const stageTwo: Decision = {
+  seq: 10, player: 0, kind: 'choose', prompt: 'Choose a colour of mana', min: 1, max: 1,
+  options: [
+    { index: 0, kind: 'mana', label: 'Add B', obj: 16, player: 0 },
+    { index: 1, kind: 'mana', label: 'Add R', obj: 16, player: 0 },
+  ],
+};
+
+function remountStageTwo(autoOpen: boolean): void {
+  document.querySelector('#followup')!.replaceChildren();
+  mount(CardTile, {
+    target: document.querySelector('#followup')!,
+    props: {
+      card: card(16, 'Talisman of Indulgence', 'Artifact'),
+      tileOptions: {
+        list: stageTwo.options,
+        pickedOrder: [],
+        tone: 'initiative',
+        autoOpen,
+        post: (index: number, expectFollowUp = false) => {
+          posted.push([index, expectFollowUp, false]);
+        },
+      },
+    },
+  });
+}
+
+mount(CardTile, {
+  target: document.querySelector('#followup')!,
+  props: {
+    card: card(16, 'Talisman of Indulgence', 'Artifact'),
+    tileOptions: {
+      list: [
+        { index: 5, kind: 'mana', label: 'Add C', obj: 16, player: 0 },
+        { index: 6, kind: 'mana', label: 'Add B or R', obj: 16, player: 0 },
+      ],
+      pickedOrder: [],
+      tone: 'initiative',
+      post: (index: number, expectFollowUp = false) => {
+        posted.push([index, expectFollowUp, false]);
+        const open = resolveCardFollowUp(expectFollowUp ? { seq: 9, obj: 16 } : null, stageTwo);
+        setTimeout(() => remountStageTwo(open !== null), 0);
+      },
+    },
   },
 });

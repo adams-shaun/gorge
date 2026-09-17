@@ -205,7 +205,8 @@ describe('autopilot — what it will and will not answer', () => {
     p.considerAuto(view('main1', 0));
     expect(postIntentMock).not.toHaveBeenCalled();
     expect(p.auto).toBe(true);
-    expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step.');
+    // fb-20260916T225211Z: the note names the play the smart stop stopped for.
+    expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step and you can act — Cast 0.');
   });
 
   it('a stop set on your side does not stop auto on the opponent’s turn', async () => {
@@ -225,7 +226,8 @@ describe('autopilot — what it will and will not answer', () => {
     expect(postIntentMock).not.toHaveBeenCalled();
     expect(p.auto).toBe(true);
     expect(p.active?.seq).toBe(9);
-    expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step.');
+    // fb-20260916T225211Z: the land drop the smart stop caught is named too.
+    expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step and you can act — Play land 1.');
   });
 
   it('a hand answer at the stop window keeps Auto armed, and Auto answers the next ordinary window', async () => {
@@ -463,6 +465,40 @@ describe('the loop guard and the cap pause the machine, never the preference', (
   });
 });
 
+describe('the stop-set note names the play (fb-20260916T225211Z)', () => {
+  // The Deadly Rollick shape: the player's own main1 smart stop fired on a
+  // window whose only real action was one cast option, and the note used to
+  // say only "you set a stop on this step" — which read as a contradiction of
+  // the "My own spells and abilities: Don't stop" knob the player was looking
+  // at. The note must name WHAT the window offered.
+  it('the waiting note carries the actionable option labels and the text says you can act', () => {
+    const p = armedSeat();
+    p.stops = { yours: new Set(['main1']), opponents: new Set() };
+    const d = { seq: 1, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [
+      { index: 0, kind: 'cast', label: 'Cast Deadly Rollick (alternative cost)', player: 0 },
+      pass(1),
+      concede(2),
+      activate(3),
+    ] } as unknown as Decision;
+    p.adoptView(d);
+    p.considerAuto(view('main1', 0));
+    expect(p.note).toEqual({ kind: 'waiting', reason: 'stop-set', detail: 'Cast Deadly Rollick (alternative cost)' });
+    expect(autoNoteText(p.note)).toBe(
+      'Auto stopped here: you set a stop on this step and you can act — Cast Deadly Rollick (alternative cost).',
+    );
+  });
+
+  it('a forced stop with nothing to do keeps the base wording (no detail, no dangling clause)', () => {
+    const p = armedSeat();
+    p.stops = { yours: new Set(['draw']), opponents: new Set() };
+    p.settings = { ...p.settings, steps: { ...p.settings.steps, yours: { ...p.settings.steps.yours, draw: 'forced' } } };
+    p.adoptView(quiet(1));
+    p.considerAuto(view('draw', 0));
+    expect(p.note).toEqual({ kind: 'waiting', reason: 'stop-set' });
+    expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step.');
+  });
+});
+
 describe('the words — no enum identifier ever reaches the screen', () => {
   it('every reason and state is spoken as plain words, all distinct', () => {
     const reasons: StopReason[] = ['disabled', 'not-priority', 'unexpected-shape', 'stop-set', 'opponent-object', 'own-object'];
@@ -560,6 +596,8 @@ describe('the post-land window — castable after tapping (fb-20260914T014141Z)'
     expect(postIntentMock).not.toHaveBeenCalled();
     expect(p.auto).toBe(true); // Auto stays armed; the window is the player's
     expect(p.active?.seq).toBe(9);
-    expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step.');
+    // fb-20260916T225211Z: the cast the post-land window's stop caught is
+    // named (the float-then-cast shape — the label says "after tapping").
+    expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step and you can act — Cast Card (after tapping).');
   });
 });

@@ -250,7 +250,7 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
     expect(state.note.kind).toBe('off');
   });
 
-  it('the own-objects segments carry both rules and write through editSettings', () => {
+  it('the own-objects segments carry both rules, write through editSettings, and say step stops still apply', () => {
     const state = new SeatPanelState('t1', 1, ctx, null);
     const html = panel(state);
     expect(tag(html, 'data-own="never"')).toContain('aria-pressed="true"');
@@ -259,6 +259,13 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
     state.editSettings({ ownObjects: 'if-respondable' });
     const next = panel(state);
     expect(tag(next, 'data-own="if-respondable"')).toContain('aria-pressed="true"');
+    // fb-20260916T225211Z: the awareness gap the Deadly Rollick report is
+    // about — the knob governs only the own-object stack rule, and the panel
+    // must say the step-stop table below still stops every window it names,
+    // own object on the stack or not.
+    const legend = elem(next, 'data-own-legend');
+    expect(legend).toContain('step stops below still apply');
+    expect(legend).toContain('your own object on it');
   });
 
   it('the pacing picker matches an exact (step/resolve) pair and writes through editSettings', () => {

@@ -1,4 +1,4 @@
-import type { Decision, Option } from '../protocol';
+import type { CardView, Decision, Option } from '../protocol';
 
 /**
  * cardoptions.ts is the ONE mechanism behind three symptoms (task ui21):
@@ -47,10 +47,14 @@ export type OptionTone = 'initiative' | 'offered' | 'idle';
  * post's `holdPriority` (prio3) threads the Ctrl modifier from the tile
  * click into SeatPanelState.click's `{ holdPriority }`: Ctrl held while
  * submitting a cast/ability must not arm pass-after-acting for that one
- * action. The route's own boardOptions.post is what finally reaches
- * panel.click, so this signature is the contract every tile affordance
- * (direct icon, radial wheel, long list menu — CardTile, CommanderTile,
- * IdentityBar, HandFan) speaks.
+ * action. post's `expectFollowUp` arms the card-follow-up expectation
+ * (fb-e079def5) -- every card-anchored post arms it, because a card action
+ * can hand the server a follow-up decision for the same object (a
+ * multi-ability mana source's stage-1 ability pick, answered through the
+ * wheel, must re-open the wheel for its stage-2 colour ask). The route's own
+ * boardOptions.post is what finally reaches panel.click, so this signature
+ * is the contract every tile affordance (direct icon, radial wheel, long
+ * list menu -- CardTile, CommanderTile, IdentityBar, HandFan) speaks.
  */
 export interface CardOptions {
   /** Object the pending decision resolves for. When absent, ordinary
@@ -209,9 +213,45 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
   return tile.list.reduce((first, option) => option.index < first.index ? option : first);
 }
 
-/** Post one displayed option by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action. */
+/** Post one displayed option by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action.
+ *
+ * Every picker post ARMS the card-follow-up expectation (task fb-e079def5):
+ * every option a picker posts is card-anchored (it comes from optionsByObj /
+ * optionsByPlayer, so its `obj` names the card the choice was made on), and a
+ * card-anchored choice can hand the server a follow-up decision for the SAME
+ * object -- a multi-ability mana source's stage-1 ability pick is answered
+ * through the wheel, and its stage-2 colour ask must re-open that wheel, not
+ * fall back to the seat panel's generic option list. The arm is
+ * self-disarming: Table.svelte's $effect decodes it through
+ * resolveCardFollowUp, which opens nothing unless the next decision really
+ * carries 2-6 options on the expected object. */
 export function postTileOption(tile: TileOptions, option: Option, holdPriority = false): void {
-  tile.post(option.index, false, holdPriority);
+  tile.post(option.index, true, holdPriority);
+}
+
+/**
+ * resolveCardFollowUp is the ONE decoder of an armed card-follow-up
+ * expectation (task fb-e079def5, generalising the ui24 single-action arm to
+ * every card-anchored post). After a card action is posted, the next
+ * decision for the seat re-opens that card's picker exactly when it carries
+ * 2-6 options on the expected object -- Underground Sea's activate → Add U /
+ * Add B, a Talisman's stage-1 ability pick → its stage-2 colour wheel.
+ * Anything else returns null, so an armed expectation cannot open a wrong
+ * picker: a target ask (its options carry the CANDIDATES' objects, never the
+ * actor's), a tapped-out source with nothing left to offer (0 options on the
+ * object), a one-option follow-up (a direct badge, not a picker), and a
+ * >6-option list-menu follow-up all disarm. The caller (Table.svelte's
+ * $effect) keeps the sequencing guard -- same-seq decisions and the
+ * decision-less frames leave the expectation armed so a follow-up that
+ * arrives later still decodes.
+ */
+export function resolveCardFollowUp(
+  expected: { seq: number; obj: number } | null,
+  d: Decision | null,
+): { seq: number; obj: number } | null {
+  if (d === null || expected === null || d.seq === expected.seq) return null;
+  const count = d.options.filter((option) => option.obj === expected.obj).length;
+  return count >= 2 && count <= 6 ? { seq: d.seq, obj: expected.obj } : null;
 }
 
 /** Post a direct action by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action. */
@@ -266,6 +306,28 @@ export function optionsByPlayer(decision: Decision | null): Map<number, Option[]
     else list.push(o);
   }
   return m;
+}
+
+/**
+ * pileTone is the tone a WHOLE pile affordance wears (task fb-20260916T225802Z):
+ * when the pending decision offers something to ANY card in the pile — a
+ * flashback/escape/warp cast option on a graveyard card, a warp-recast or a
+ * may-play land on an exile card, a target option on a card in an
+ * OPPONENT's graveyard — the pile's affordance (the identity bar's
+ * graveyard/exile icons, the rail's pile buttons) wears the SAME
+ * initiative/offered ring the card tiles wear, resolved from the same
+ * bundle.tone the tiles read, so "there is something to do in that pile"
+ * is the same fact everywhere. A null bundle (spectator, nothing pending)
+ * or a pile the decision does not touch reads idle — no ring, no claim.
+ * Do not gate by pile owner: a target option on an opponent's graveyard
+ * card must glow there too; the engine validates every posted option.
+ */
+export function pileTone(bundle: CardOptions | null, cards: readonly Pick<CardView, 'id'>[]): OptionTone {
+  if (bundle === null) return 'idle';
+  for (const card of cards) {
+    if (bundle.byObj.has(card.id)) return bundle.tone;
+  }
+  return 'idle';
 }
 
 /** cardOptions returns the options a decision offers concerning `obj`, in
