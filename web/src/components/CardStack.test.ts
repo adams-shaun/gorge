@@ -107,4 +107,40 @@ describe('CardStack', () => {
     expect(html).toContain('data-options="1"'); // the union is non-empty: the pile is marked actionable
     expect(html).toContain('data-tone="offered"');
   });
+
+  // fb-20260917T004545Z: a merged lands pile mixes tapped states, and the
+  // collapsed face used to show the LEAD member's own rotation — so one
+  // member's tap rotated the whole pile's silhouette while the tap badge (the
+  // union: the next tap takes the next READY member) stayed up. The collapsed
+  // face now presents the PILE's readiness: rotated only when EVERY member is
+  // tapped. The lead member stays the face, the data-obj anchor (what arrows
+  // target) and the inspector's subject — only the rotation is presentation.
+  it('a collapsed MIXED pile presents ready even when its lead member is tapped — no whole-pile rotation', () => {
+    // the reported shape: lead 1 tapped by the one click, 2 still ready
+    const mixed = stackIdentical([tz(1), zombie(2)], { ignoreTapped: true })[0];
+    const { html } = render(CardStack, { props: { group: mixed } });
+    expect(html).not.toMatch(/class="card-tile[^"']*tapped/); // the face is NOT rotated
+    expect(html).toContain('data-stack-ready'); // the ready plate carries the counts
+    expect(html).toContain('>1 ready<');
+    expect(html).toContain('>x2<');
+    // the lead member stays the face and the anchor: presentation only
+    expect(html).toContain('data-obj="1"');
+    expect(html).toContain('data-obj-group="1,2"');
+  });
+
+  it('a collapsed uniform pile is unchanged: all-tapped renders rotated with no ready plate, all-untapped renders ready', () => {
+    const allTapped = stackIdentical([tz(1), tz(2)], { ignoreTapped: true })[0];
+    const tappedHtml = render(CardStack, { props: { group: allTapped } }).html;
+    expect(tappedHtml).toMatch(/class="card-tile[^"']*tapped/); // genuinely inert: the pile shows it
+    expect(tappedHtml).not.toContain('data-stack-ready');
+    const allReady = stackIdentical([zombie(1), zombie(2)], { ignoreTapped: true })[0];
+    const readyHtml = render(CardStack, { props: { group: allReady } }).html;
+    expect(readyHtml).not.toMatch(/class="card-tile[^"']*tapped/);
+    expect(readyHtml).not.toContain('data-stack-ready'); // uniform: no plate, as before
+  });
+
+  it('a collapsed mixed pile presents rotated again once its LAST member taps (the pile is then inert)', () => {
+    const all = stackIdentical([tz(1), tz(2)], { ignoreTapped: true })[0];
+    expect(render(CardStack, { props: { group: all } }).html).toMatch(/class="card-tile[^"']*tapped/);
+  });
 });
