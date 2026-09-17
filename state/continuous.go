@@ -58,6 +58,23 @@ type ContinuousEffect struct {
 	AddKeywords            []string
 	AddTypes               []string
 
+	// AddPowerExpr preserves a static P/T parameter that must be evaluated
+	// against its source each time characteristics are derived (for example
+	// +X or -X). An empty expression retains the already-resolved numeric
+	// field. Written only by rules' static scanner; the numeric fields above
+	// stay the API for resolution-created effects.
+	AddPowerExpr, AddToughnessExpr string
+	SetPowerExpr, SetToughnessExpr string
+	// SetPowerPresent and SetToughnessPresent distinguish an omitted setter
+	// from an explicit zero on a static that sets only one characteristic.
+	SetPowerPresent, SetToughnessPresent bool
+	// StaticSet marks a setter read from a card's S:Mode$ Continuous line.
+	// Such a static may set exactly one characteristic, so Derived must gate
+	// each assignment on its corresponding *Present bit. Effects created by
+	// the older numeric ContinuousEffect API leave this false and retain
+	// their historical paired-setter behaviour for compatibility.
+	StaticSet bool
+
 	// AddColors is a layer-5 colour change (CR 613.1e): the WUBRG letters of
 	// the colours the affected object GAINS. Written by the continuous-effect
 	// primitives (effects' Animate Colors$ without OverwriteColors$), composed

@@ -76,28 +76,7 @@ func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "type", Text: fallback})
 }
 
-// cardTypeWords and superTypeWords partition a face's Types list: anything
-// that is not one of these is a creature subtype. Both fixtures and the
-// corpus spell these capitalized exactly; comparing against the set (rather
-// than, say, "the non-Creature entries") is what lets "Creature Human Cleric"
-// name Human and Cleric while "Legendary Creature" names nothing.
-var (
-	cardTypeWords = map[string]bool{
-		"Artifact": true, "Battle": true, "Conspiracy": true, "Creature": true,
-		"Dungeon": true, "Enchantment": true, "Instant": true, "Land": true,
-		"Phenomenon": true, "Plane": true, "Planeswalker": true, "Scheme": true,
-		"Sorcery": true, "Tribal": true, "Vanguard": true,
-	}
-	superTypeWords = map[string]bool{
-		"Basic": true, "Eladamri": true, "Host": true, "Legendary": true,
-		"Ongoing": true, "Snow": true, "World": true,
-	}
-)
-
-// CreatureTypeWords reports whether a Type token is a creature subtype
-// (i.e. neither a card type nor a supertype), so the rules package can build
-// a kept-in-sync option list for a cast-time ChooseType without duplicating
-// the vocabulary. Exported because the rules package's etbChoices stage owns
-// the type option list and must agree byte-for-byte with effChooseType's
-// fallback.
-func CreatureTypeWords(t string) bool { return !cardTypeWords[t] && !superTypeWords[t] }
+// CreatureTypeWords reports whether a Type token is a creature subtype. It
+// shares the positive vocabulary Changeling uses, so a cast-time type choice
+// cannot offer a spell, plane, or planeswalker subtype as a creature type.
+func CreatureTypeWords(t string) bool { return creatureSubtypeWords[t] }

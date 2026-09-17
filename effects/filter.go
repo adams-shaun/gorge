@@ -549,7 +549,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
 	case wordType:
-		return hasType(o, key)
+		return hasTypeCtx(o, key, sc)
 	case wordColorless:
 		return ColorsOf(o) == ""
 	case wordColourSource:
@@ -604,7 +604,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordHistoric:
 		// Forge's Historic: artifact, legendary, or Saga (the reminder text
 		// on the Historic keyword).
-		return hasType(o, "Artifact") || hasType(o, "Legendary") || hasType(o, "Saga")
+		return hasTypeCtx(o, "Artifact", sc) || hasTypeCtx(o, "Legendary", sc) || hasTypeCtx(o, "Saga", sc)
 	case wordIsCommander:
 		// Forge's IsCommander: the object is one of a seat's commanders.
 		// The commander list lives on the Players at genesis.
@@ -677,7 +677,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		if a == nil {
 			return false
 		}
-		return matchesBase(g, key, a)
+		return matchesBase(g, key, a, sc)
 	}
 	return false
 }
@@ -1037,6 +1037,13 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	if op, ref, recognised := controlReferent(p); recognised {
 		return matchControlReferent(g, o, sc, op, ref)
 	}
+	// Type predicates must use the derived layer-4 type list when rules
+	// supplies one. Keep this before the generic predicate map: its legacy
+	// functions deliberately remain useful to callers without a SpecContext,
+	// but must not bypass the context-aware matcher here.
+	if result, ok := typePredicate(p, g, o, sc); ok {
+		return result, true
+	}
 	if fn, ok := predicates[p]; ok {
 		return fn(g, o, sc.You, sc.Source), true
 	}
@@ -1073,6 +1080,10 @@ func matchPredicate(g *state.Game, p string, o *state.Object, sc SpecContext) (r
 	return matchPositive(g, p, o, sc)
 }
 
+// hasType reads a printed type plus Changeling's type-defining ability. The
+// rules package supplies SpecContext.Types when a layer-derived type list is
+// available; this fallback remains deliberately useful to effects, which sits
+// below rules and cannot import the layer engine.
 func hasType(o *state.Object, t string) bool {
 	f := o.Face()
 	if f == nil {
@@ -1083,8 +1094,52 @@ func hasType(o *state.Object, t string) bool {
 			return true
 		}
 	}
-	return false
+	return f.HasKeyword("Changeling") && changelingType(t)
 }
+
+// typePredicate handles the legacy predicate-map entries whose meaning is a
+// type test. Keeping them in one context-aware path ensures layer-4 derived
+// types and Changeling apply consistently to both positive and negated forms.
+func typePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bool, bool) {
+	switch p {
+	case "Legendary", "Basic", "Snow":
+		return hasTypeCtx(o, p, sc), true
+	case "nonLand":
+		return !hasTypeCtx(o, "Land", sc), true
+	case "nonCreature":
+		return !hasTypeCtx(o, "Creature", sc), true
+	case "nonBasic":
+		return !hasTypeCtx(o, "Basic", sc), true
+	case "ChosenType":
+		s := g.Obj(sc.Source)
+		return s != nil && s.ChosenType != "" && hasTypeCtx(o, s.ChosenType, sc), true
+	}
+	return false, false
+}
+
+func hasTypeCtx(o *state.Object, t string, sc SpecContext) bool {
+	// ExtraTypes is the layer walk's accumulating type list for the ONE
+	// object being matched: a plain value slice, deliberately not a callable
+	// resolver. Any call made through a SpecContext field makes escape
+	// analysis leak the whole context to the heap on every hot-path
+	// construction (the statics/action hotspot pins measure exactly that),
+	// while a slice field is read-only and allocation-free.
+	for _, x := range sc.ExtraTypes {
+		if strings.EqualFold(x, t) {
+			return true
+		}
+	}
+	// hasType keeps intrinsic CDAs such as Changeling available without
+	// materialising hundreds of creature subtypes into the derived slice.
+	return hasType(o, t)
+}
+
+// changelingType reports whether t is an actual creature subtype. This uses
+// a positive authoritative vocabulary rather than treating every type word
+// outside an exclusion list as a creature type: Arcane, Alara, and Ajani are
+// respectively spell, plane, and planeswalker subtypes, not types Changeling
+// grants.
+func changelingType(t string) bool { return CreatureTypeWords(t) }
 
 func isBlocking(g *state.Game, id state.ObjID) bool {
 	for i := range g.Objs {
@@ -1304,13 +1359,13 @@ func isPermanentCard(o *state.Object) bool {
 }
 
 // matchesBase handles the base type, including a "non" prefix.
-func matchesBase(g *state.Game, base string, o *state.Object) bool {
+func matchesBase(g *state.Game, base string, o *state.Object, sc SpecContext) bool {
 	if neg := strings.TrimPrefix(base, "non"); neg != base {
-		return !matchesBase(g, neg, o)
+		return !matchesBase(g, neg, o, sc)
 	}
 	switch base {
 	case "Any":
-		return hasType(o, "Creature") || hasType(o, "Planeswalker") || hasType(o, "Battle")
+		return hasTypeCtx(o, "Creature", sc) || hasTypeCtx(o, "Planeswalker", sc) || hasTypeCtx(o, "Battle", sc)
 	case "Card":
 		return true
 	case "Permanent":
@@ -1333,7 +1388,7 @@ func matchesBase(g *state.Game, base string, o *state.Object) bool {
 		// this one's.
 		return o.Zone == state.ZStack
 	}
-	return hasType(o, base)
+	return hasTypeCtx(o, base, sc)
 }
 
 // SpecContext carries the extra state a filter spec beyond MatchesSpec's
@@ -1380,6 +1435,15 @@ type SpecContext struct {
 	// ordinary path (the printed cost, X as 0).
 	ManaValue    int32
 	HasManaValue bool
+	// ExtraTypes optionally supplies layer-4-derived types for the ONE object
+	// the spec is being matched against -- the layer walk (rules/layers.go's
+	// matchesWithTypes) binds the types its effect applications have
+	// accumulated so far. Ordinary filter callers leave it nil and fall back
+	// to the printed type line (plus Changeling) above. A value slice,
+	// deliberately not a callable resolver: a call made through a
+	// SpecContext field makes escape analysis leak the whole context (its
+	// Resolve closure included) to the heap on every hot-path construction.
+	ExtraTypes []string
 }
 
 // MatchesObjectCtx applies one Forge filter spec to an object VALUE rather
@@ -1439,7 +1503,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			if sc.Source == 0 || o.ID != sc.Source {
 				continue
 			}
-		} else if !matchesBase(g, base, o) {
+		} else if !matchesBase(g, base, o, sc) {
 			continue
 		}
 		all := true
@@ -1513,7 +1577,7 @@ func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecConte
 			if sc.Source == 0 || o.ID != sc.Source {
 				continue
 			}
-		} else if !matchesBaseInZone(g, base, o, zone) {
+		} else if !matchesBaseInZone(g, base, o, sc, zone) {
 			continue
 		}
 		all := true
@@ -1534,15 +1598,15 @@ func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecConte
 	return false
 }
 
-func matchesBaseInZone(g *state.Game, base string, o *state.Object, zone state.Zone) bool {
+func matchesBaseInZone(g *state.Game, base string, o *state.Object, sc SpecContext, zone state.Zone) bool {
 	if neg := strings.TrimPrefix(base, "non"); neg != base {
-		return !matchesBaseInZone(g, neg, o, zone)
+		return !matchesBaseInZone(g, neg, o, sc, zone)
 	}
 	if base != "Permanent" || zone == state.ZBattlefield {
-		return matchesBase(g, base, o)
+		return matchesBase(g, base, o, sc)
 	}
-	return hasType(o, "Artifact") || hasType(o, "Creature") || hasType(o, "Enchantment") ||
-		hasType(o, "Land") || hasType(o, "Planeswalker") || hasType(o, "Battle")
+	return hasTypeCtx(o, "Artifact", sc) || hasTypeCtx(o, "Creature", sc) || hasTypeCtx(o, "Enchantment", sc) ||
+		hasTypeCtx(o, "Land", sc) || hasTypeCtx(o, "Planeswalker", sc) || hasTypeCtx(o, "Battle", sc)
 }
 
 // MatchesSpecFrom is MatchesSpecCtx with an explicit source object, which the
