@@ -138,14 +138,22 @@ describe('Quadrant — layout settings (fb-20260916T182801Z)', () => {
 
   it('the on-board resize stepper is mounted only on the viewer\'s own quadrant', () => {
     const p = player({ battlefield: [card(2, 'Grizzly Bears')] });
-    const spectator = render(Quadrant, { props: { player: p, colour: '#e5484d' } }).html;
-    expect(spectator).not.toContain('data-zone-stepper');
-    const own = render(Quadrant, { props: { player: p, colour: '#e5484d', own: true } }).html;
-    expect(own).toContain('data-zone-stepper="creatures"');
-    expect(own).toContain('data-zone-stepper="others"');
-    expect(own).toContain('data-zone-stepper="lands"');
-    // ...and never the hand's stepper, which HandFan owns
-    expect(own).not.toContain('data-zone-stepper="hand"');
+    // fb-20260917T004304Z: the shipped default is now HIDDEN, so the test
+    // opts the shared store in for the stepper-mount assertions.
+    layoutStore.setSteppersOnBoard(true);
+    try {
+      const spectator = render(Quadrant, { props: { player: p, colour: '#e5484d' } }).html;
+      expect(spectator).not.toContain('data-zone-stepper');
+      const own = render(Quadrant, { props: { player: p, colour: '#e5484d', own: true } }).html;
+      expect(own).toContain('data-zone-stepper="creatures"');
+      expect(own).toContain('data-zone-stepper="others"');
+      expect(own).toContain('data-zone-stepper="lands"');
+      // ...and never the hand's stepper, which HandFan owns
+      expect(own).not.toContain('data-zone-stepper="hand"');
+    } finally {
+      layoutStore.reset();
+      layoutStore.dispose();
+    }
   });
 
   it('the Game Options show/hide toggle hides EVERY on-board stepper, and showing it restores exactly the previous mounts (fb-20260916T200925Z)', () => {
