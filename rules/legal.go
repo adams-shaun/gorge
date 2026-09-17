@@ -630,6 +630,13 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	}
 	sorcery := e.sorcerySpeed(p)
 	costStatics := costStaticSource{e: e}
+	actionStatics := actionStaticSource{e: e}
+	castRestricted := func(p state.PlayerID, id state.ObjID) bool {
+		return e.castRestrictedUsing(actionStatics.get().cantCast, p, id)
+	}
+	abilityRestricted := func(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+		return e.abilityRestrictedUsing(actionStatics.get().cantActivate, p, id, ab)
+	}
 	offerCastable := func(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
 		return e.offerCastableUsing(costStatics.get(), p, id, base, scope, ability)
 	}
@@ -649,7 +656,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			}
 			continue
 		}
-		if e.castRestricted(p, id) {
+		if castRestricted(p, id) {
 			continue
 		}
 		if e.castSuppressed(p, id) {
@@ -806,7 +813,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	for _, id := range e.mayPlaySpellIds(p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || f.IsLand() || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if f == nil || f.IsLand() || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) {
@@ -845,7 +852,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if f == nil {
 			continue
 		}
-		if e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) {
@@ -876,7 +883,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	// transaction, then spellRestZone exiles it after resolution.
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if o == nil || o.Face() == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		f := o.Face()
@@ -900,7 +907,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if f == nil || !e.HasKeyword(id, "Flashback") {
 			continue
 		}
-		if e.castRestricted(p, id) {
+		if castRestricted(p, id) {
 			continue
 		}
 		if e.castSuppressed(p, id) {
@@ -928,7 +935,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		wc, ok := keywordAltCost(f, "Warp")
-		if !ok || !warpGraveyardAllowed(f) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if !ok || !warpGraveyardAllowed(f) || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
@@ -956,7 +963,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.HasKeyword(id, "Escape") {
@@ -987,7 +994,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		_, ok := keywordAltCost(f, "Warp")
-		if !ok || !e.warpRecastAvailable(id) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if !ok || !e.warpRecastAvailable(id) || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
@@ -1014,7 +1021,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			if f == nil {
 				continue
 			}
-			if len(e.availableManaAbilities(p, id)) > 0 {
+			if len(e.availableManaAbilitiesUsing(&actionStatics, p, id)) > 0 {
 				add("activate", "Activate "+f.Name+" for mana", id)
 			}
 		}
@@ -1078,7 +1085,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 						continue
 					}
 				}
-				if e.abilityRestricted(p, id, ab) {
+				if abilityRestricted(p, id, ab) {
 					continue
 				}
 				// F05-2 (CR 733.2): a card whose activation aborted with no
@@ -1139,7 +1146,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			if ab.Params["SorcerySpeed"] == "True" && !sorcery {
 				continue
 			}
-			if e.abilityRestricted(p, id, ab) {
+			if abilityRestricted(p, id, ab) {
 				continue
 			}
 			cost := ParseCost(ab.Params["Cost"])
@@ -1205,7 +1212,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		for _, ab := range e.maxSpeedAbilities(p, id) {
-			if e.abilityRestricted(p, id, ab) {
+			if abilityRestricted(p, id, ab) {
 				continue
 			}
 			cost := ParseCost(ab.Params["Cost"])

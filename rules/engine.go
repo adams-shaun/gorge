@@ -169,7 +169,10 @@ type Engine struct {
 	// step and trigger predicate reads it). Clone() leaves both fields zero, so
 	// a cloned engine rebuilds the memo on its first Derived -- staticEffects
 	// is a pure function of the current board, so the rebuilt result is
-	// identical and deterministic.
+	// identical and deterministic. Rebuilds reuse the outer slice's capacity,
+	// clearing obsolete slots when it shrinks, but never reuse the nested
+	// keyword/type slices. activeBuf copies the effect values into distinct
+	// storage before sorting; neither buffer may alias a clone's scratch.
 	staticContinuous []ContinuousEffect
 	staticEpoch      int
 

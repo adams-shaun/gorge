@@ -53,6 +53,60 @@ func (s *costStaticSource) get() costStaticViews {
 	return s.views
 }
 
+// actionStaticViews contains ordered membership only, never evaluated
+// restrictions, grants or affordability. A legalActions pass owns its source
+// locally; later offers and payment/activation callers collect afresh.
+type actionStaticViews struct {
+	cantCast     []staticView
+	cantActivate []staticView
+	continuous   []staticView
+}
+
+type actionStaticSource struct {
+	e     *Engine
+	views actionStaticViews
+	ready bool
+}
+
+func (s *actionStaticSource) get() actionStaticViews {
+	if !s.ready {
+		s.views = s.e.collectActionStatics()
+		s.ready = true
+	}
+	return s.views
+}
+
+// collectActionStatics mirrors activeStatics' active-face-only battlefield
+// walk. In particular it must not inherit staticEffects' alternate Room face
+// expansion or collectCostStatics' other zones. Each mode keeps its original
+// seat, zone and parsed-static order while sharing a single membership walk.
+func (e *Engine) collectActionStatics() actionStaticViews {
+	var out actionStaticViews
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			for _, st := range o.Face().Statics {
+				var dst *[]staticView
+				switch st.Mode {
+				case "CantBeCast":
+					dst = &out.cantCast
+				case "CantBeActivated":
+					dst = &out.cantActivate
+				case "Continuous":
+					dst = &out.continuous
+				default:
+					continue
+				}
+				*dst = append(*dst, staticView{Source: id, Controller: o.Controller, Params: st.Params})
+			}
+		}
+	}
+	return out
+}
+
 // activeStatics collects every S:Mode$ <mode> line from a permanent on the
 // battlefield. The order is deterministic: AliveFrom(0) walks seats in fixed
 // APNAP order, each seat's battlefield zone is a slice built by ordinary
@@ -129,7 +183,11 @@ func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecCon
 
 // castRestricted reports whether p is forbidden from casting id (CantBeCast).
 func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
-	for _, sv := range e.activeStatics("CantBeCast") {
+	return e.castRestrictedUsing(e.activeStatics("CantBeCast"), p, id)
+}
+
+func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id state.ObjID) bool {
+	for _, sv := range statics {
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
 		}
@@ -147,11 +205,15 @@ func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
 // ValidSA$). A nonexistent object has no ability to restrict, so it degrades
 // to false rather than dereferencing a nil Object.
 func (e *Engine) abilityRestricted(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	return e.abilityRestrictedUsing(e.activeStatics("CantBeActivated"), p, id, ab)
+}
+
+func (e *Engine) abilityRestrictedUsing(statics []staticView, p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
 	o := e.G.Obj(id)
 	if o == nil {
 		return false
 	}
-	for _, sv := range e.activeStatics("CantBeActivated") {
+	for _, sv := range statics {
 		if !e.actorMatches(sv, "Activator", p) {
 			continue
 		}

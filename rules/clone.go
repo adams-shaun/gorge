@@ -216,6 +216,11 @@ func (e *Engine) Clone() *Engine {
 	// mid-range. Leaving both zero lets each engine grow its own buffer on
 	// its next depth-0 forEachObject call.
 	//
+	// staticContinuous / staticEpoch are likewise deliberately NOT copied:
+	// staticEffects rebuilds into the memo's reusable outer storage, so each
+	// branch must own its backing array. The zero epoch forces a fresh scan
+	// of the cloned board on its first active() rebuild.
+	//
 	// activeBuf / activeEpoch / activeVersion / activeDepth / continuousVersion
 	// (engine.go, layers.go) are likewise deliberately NOT copied, with the
 	// same precedent. activeBuf is active()'s shared sorted effect list and
