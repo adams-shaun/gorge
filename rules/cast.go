@@ -2972,8 +2972,11 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 	if printed.X > 0 {
 		mv = printed.WithX(pc.x).CMC()
 	}
-	for _, sv := range e.activeStatics("CantBeCast") {
+	for _, sv := range e.castRestrictionSources(e.activeStatics("CantBeCast"), pc.card) {
 		if !e.actorMatches(sv, "Caster", pc.player) {
+			continue
+		}
+		if !e.restrictionGateHolds(sv, pc.card) || !e.checkSVarHolds(sv) {
 			continue
 		}
 		sc := e.specCtx(sv.Source, sv.Controller)
