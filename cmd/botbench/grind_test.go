@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -101,16 +102,20 @@ func TestGrindAllDecksEndToEnd(t *testing.T) {
 		}
 	}
 	combinedOK := false
+	wantIters := len(testutil.RepoDeckNames())
 	for _, line := range strings.Split(report, "\n") {
 		// The tabwriter pads the first column with spaces, so the combined
-		// row is "combined<spaces>21<spaces><rate>"; match the row by its
-		// line prefix and the total iteration count.
-		if strings.HasPrefix(line, "combined") && strings.Contains(line, " 21 ") {
+		// row is "combined<spaces>N<spaces><rate>"; match the row by its
+		// line prefix and the total iteration count. N is the live pool
+		// size, not a hardcoded 21: the pool grows when a deck is imported
+		// (it was 21 before the Rakdos Muscle deck landed), and a count
+		// pinned in the test would go stale on every import.
+		if strings.HasPrefix(line, "combined") && strings.Contains(line, fmt.Sprintf(" %d ", wantIters)) {
 			combinedOK = true
 		}
 	}
 	if !combinedOK {
-		t.Errorf("missing combined line (21 iterations over 21 decks):\n%s", report)
+		t.Errorf("missing combined line (%d iterations over %d decks):\n%s", wantIters, wantIters, report)
 	}
 }
 

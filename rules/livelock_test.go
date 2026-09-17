@@ -1,0 +1,196 @@
+package rules
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// The livelock watcher (rules/livelock.go) aborts a game whose event stream
+// provably never terminates by panicking with a *LivelockError from inside
+// the emit path -- the harnesses (cmd/mtgsim, cmd/botbench) recover it and
+// report it. These tests drive the engine's own emit with synthetic
+// non-terminating patterns: the same (object, event-kind) shape repeating
+// forever is the I-1 failure family (a stack object re-resolving 700+ times
+// in a 13-event cycle), and the tests pin the diagnostic the brief asks
+// for: object id, event kind, repeat count and cycle length.
+
+// drivePattern emits n events through the real engine emit path, recovering
+// the watcher's abort so the test can assert on the diagnostic. A nil
+// result means the watcher never fired.
+func drivePattern(t *testing.T, e *Engine, make func(i int) events.Event, n int) (lle *LivelockError) {
+	t.Helper()
+	defer func() {
+		if r := recover(); r != nil {
+			if l, ok := r.(*LivelockError); ok {
+				lle = l
+				return
+			}
+			panic(r)
+		}
+	}()
+	for i := 0; i < n; i++ {
+		e.emit(make(i))
+	}
+	return nil
+}
+
+func livelockTestEngine(t *testing.T, g *LoopGuard) *Engine {
+	t.Helper()
+	return New(Config{Seed: 1, Names: []string{"A", "B"}, LoopGuard: g})
+}
+
+// TestLivelockWatcherAbortsSameObjectSameKindRepeats is the brief's minimum
+// shape: the same (object, event-kind) pair emitting forever is detected
+// within a bounded number of repeats and aborts with the object id, event
+// kind, repeat count and cycle length -- not a silent hang.
+func TestLivelockWatcherAbortsSameObjectSameKindRepeats(t *testing.T) {
+	e := livelockTestEngine(t, &LoopGuard{CycleEvents: 30, MaxPeriod: 8})
+	lle := drivePattern(t, e, func(int) events.Event {
+		return events.Event{Kind: events.Note, Obj: 42, Text: "loop"}
+	}, 1000)
+	if lle == nil {
+		t.Fatal("watcher never fired on a same-(object,kind) repeat loop")
+	}
+	if lle.Reason != "repeating cycle" || lle.Kind != events.Note || lle.Object != 42 {
+		t.Errorf("diagnostic = reason %q kind %v object %d, want repeating cycle / Note / 42", lle.Reason, lle.Kind, lle.Object)
+	}
+	if lle.CycleLen != 1 {
+		t.Errorf("CycleLen = %d, want 1 (the tightest period is the single repeated event)", lle.CycleLen)
+	}
+	if lle.Repeats != 30 {
+		t.Errorf("Repeats = %d, want 30 (CycleEvents 30 at period 1)", lle.Repeats)
+	}
+	msg := lle.Error()
+	for _, want := range []string{"livelock detected", "object 42", "note", "repeated 30 time(s)", "cycle of 1 event(s)"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("diagnostic %q missing %q", msg, want)
+		}
+	}
+	if len(lle.Cycle) != 1 || !strings.Contains(lle.Cycle[0], "obj=42") {
+		t.Errorf("rendered cycle = %v, want one entry naming obj=42", lle.Cycle)
+	}
+}
+
+// TestLivelockWatcherAbortsMultiEventCycle pins the I-1 shape directly: a
+// 13-event resolve cycle (here synthesised as a 3-event rotation) repeating
+// forever is caught, with the cycle length reported.
+func TestLivelockWatcherAbortsMultiEventCycle(t *testing.T) {
+	e := livelockTestEngine(t, &LoopGuard{CycleEvents: 12, MaxPeriod: 8})
+	lle := drivePattern(t, e, func(i int) events.Event {
+		return events.Event{Kind: events.Note, Obj: state.ObjID(1 + i%3), Text: "resolve step"}
+	}, 1000)
+	if lle == nil {
+		t.Fatal("watcher never fired on a 3-event repeating cycle")
+	}
+	if lle.CycleLen != 3 {
+		t.Errorf("CycleLen = %d, want 3", lle.CycleLen)
+	}
+	if lle.Repeats != 4 {
+		t.Errorf("Repeats = %d, want 4 (CycleEvents 12 at period 3)", lle.Repeats)
+	}
+	if len(lle.Cycle) != 3 {
+		t.Errorf("rendered cycle = %v, want all 3 events of one period", lle.Cycle)
+	}
+	if lle.FirstSeq == 0 || lle.LastSeq <= lle.FirstSeq {
+		t.Errorf("span %d-%d does not name a real event range", lle.FirstSeq, lle.LastSeq)
+	}
+}
+
+// TestLivelockWatcherCatchesDriftingPayload is why the signature excludes
+// Amount and Text: a stuck loop whose payload drifts a little each
+// iteration (a life total ticking, a counter creeping) must still abort.
+func TestLivelockWatcherCatchesDriftingPayload(t *testing.T) {
+	e := livelockTestEngine(t, &LoopGuard{CycleEvents: 20, MaxPeriod: 8})
+	lle := drivePattern(t, e, func(i int) events.Event {
+		return events.Event{Kind: events.Note, Obj: 7, Text: strings.Repeat("x", i+1)}
+	}, 1000)
+	if lle == nil {
+		t.Fatal("watcher never fired on a payload-drifting repeat loop")
+	}
+	if lle.CycleLen != 1 || lle.Object != 7 {
+		t.Errorf("diagnostic = cycle %d object %d, want cycle 1 object 7", lle.CycleLen, lle.Object)
+	}
+}
+
+// TestLivelockWatcherRunawayBackstop is the catch-all for loops the exact
+// period cannot lock onto (a new object minted every iteration, a period
+// past MaxPeriod): a bounded no-decision/no-step/no-turn run aborts.
+func TestLivelockWatcherRunawayBackstop(t *testing.T) {
+	e := livelockTestEngine(t, &LoopGuard{RunawayEvents: 50})
+	lle := drivePattern(t, e, func(i int) events.Event {
+		// A fresh object every event: no period for the cycle detector.
+		return events.Event{Kind: events.Note, Obj: state.ObjID(1000 + i)}
+	}, 1000)
+	if lle == nil {
+		t.Fatal("watcher never fired on a runaway resolution")
+	}
+	if lle.Reason != "runaway resolution" {
+		t.Errorf("Reason = %q, want runaway resolution", lle.Reason)
+	}
+	if lle.QuietEvents != 51 {
+		t.Errorf("QuietEvents = %d, want 51 (threshold crossed at the 51st consecutive non-progress event)", lle.QuietEvents)
+	}
+	if lle.FirstSeq == 0 || lle.LastSeq <= lle.FirstSeq {
+		t.Errorf("span %d-%d does not name a real event range", lle.FirstSeq, lle.LastSeq)
+	}
+	if len(lle.Cycle) != 0 {
+		t.Errorf("a runaway has no cycle to render, got %v", lle.Cycle)
+	}
+}
+
+// TestLivelockWatcherProgressResetsQuiet: a game that keeps asking
+// decisions and changing steps never trips the runaway backstop, however
+// many events it produces in between.
+func TestLivelockWatcherProgressResetsQuiet(t *testing.T) {
+	e := livelockTestEngine(t, &LoopGuard{RunawayEvents: 50})
+	lle := drivePattern(t, e, func(i int) events.Event {
+		if i%10 == 9 {
+			return events.Event{Kind: events.StepChange, Step: 1}
+		}
+		return events.Event{Kind: events.Note, Obj: state.ObjID(1000 + i)}
+	}, 500)
+	if lle != nil {
+		t.Fatalf("watcher fired on a stream with progress every 10 events: %v", lle)
+	}
+}
+
+// TestLivelockWatcherQuietBelowThresholdDoesNotAbort: under the threshold
+// the watcher is pure observation -- no panic, and the game's log is
+// untouched by it.
+func TestLivelockWatcherQuietBelowThresholdDoesNotAbort(t *testing.T) {
+	e := livelockTestEngine(t, &LoopGuard{CycleEvents: 30, MaxPeriod: 8, RunawayEvents: 50})
+	lle := drivePattern(t, e, func(int) events.Event {
+		return events.Event{Kind: events.Note, Obj: 42, Text: "loop"}
+	}, 29)
+	if lle != nil {
+		t.Fatalf("watcher fired %d events under the 30-event threshold: %v", 29, lle)
+	}
+}
+
+// TestLivelockWatcherCloneCarriesGuard: a cloned engine watches its own
+// stream under the same Config-given thresholds, so host paths (clone at
+// every turn start) keep the protection.
+func TestLivelockWatcherCloneCarriesGuard(t *testing.T) {
+	e := livelockTestEngine(t, &LoopGuard{CycleEvents: 10, MaxPeriod: 4})
+	c := e.Clone()
+	if c.loop.guard != e.loop.guard {
+		t.Fatalf("clone guard = %+v, want %+v", c.loop.guard, e.loop.guard)
+	}
+	lle := drivePattern(t, c, func(int) events.Event {
+		return events.Event{Kind: events.Note, Obj: 42}
+	}, 100)
+	if lle == nil {
+		t.Fatal("cloned engine's watcher never fired")
+	}
+	// The ORIGINAL keeps working: the clone's abort must not have shared
+	// run state with it.
+	lle2 := drivePattern(t, e, func(int) events.Event {
+		return events.Event{Kind: events.Note, Obj: 42}
+	}, 9)
+	if lle2 != nil {
+		t.Fatalf("original engine's watcher fired under its own threshold: %v", lle2)
+	}
+}

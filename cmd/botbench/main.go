@@ -240,15 +240,24 @@ type gameOutcome struct {
 	starter    int
 	starterSet bool
 	// stallOn names the watchdog cap that ended the game before it could
-	// finish, distinguishing the two failure modes a reader must tell apart:
-	// "turns" (the turn watchdog fired at -max-turns -- the game ran long)
-	// and "intents" (the intent watchdog fired at -max-intents -- the turn
-	// number stopped advancing while intents kept coming). "" means the game
-	// is not stalled. A stalled game is a distinct outcome -- NOT a win and
-	// NOT a draw -- excluded from the win-rate denominator, so a runner
-	// cannot mistake the rate of whatever happened to terminate for an
-	// honest win rate.
+	// finish, distinguishing the three failure modes a reader must tell
+	// apart: "turns" (the turn watchdog fired at -max-turns -- the game ran
+	// long), "intents" (the intent watchdog fired at -max-intents -- the
+	// turn number stopped advancing while intents kept coming) and
+	// "livelock" (the engine's own livelock watcher fired inside
+	// Submit/Advance -- the event stream was provably non-terminating; see
+	// rules/livelock.go). "" means the game is not stalled. A stalled game
+	// is a distinct outcome -- NOT a win and NOT a draw -- excluded from the
+	// win-rate denominator, so a runner cannot mistake the rate of whatever
+	// happened to terminate for an honest win rate.
 	stallOn string
+	// livelock carries the watcher's diagnostic for a "livelock" stall: the
+	// repeating event shape, its object, the repeat count and cycle length
+	// (or the runaway span). "" for every other outcome. Recorded against
+	// the deck pair and seed so a batch with one stuck game still reports
+	// the rest -- and the run exits non-zero at the end, because a livelock
+	// is an engine bug, not a slow game.
+	livelock string
 }
 
 // isStalled reports whether the game was ended by either watchdog cap.
@@ -296,7 +305,12 @@ func recordStarter(o gameOutcome, e *rules.Engine) gameOutcome {
 //
 // Reaching either cap is a stalled outcome, never an error: one hung game
 // records a stall and the rest of the run keeps going instead of aborting
-// the whole matrix.
+// the whole matrix. The engine's own livelock watcher (rules/livelock.go) is
+// a third stall cause ("livelock"): a game whose event stream provably never
+// terminates is aborted inside Submit and recorded the same way, with the
+// watcher's diagnostic carried in the outcome -- and the fold-level reporters
+// fail the run at the end, because a livelock is an engine bug, not a slow
+// game.
 func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage) (gameOutcome, error) {
 	if collect != nil {
 		collect.game()
@@ -321,41 +335,73 @@ func playMatchOnce(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns,
 	e.Advance()
 	board := botpolicy.NewBoard(len(seats))
 	n := 0
-	for !e.G.Over && e.Pending() != nil && (maxIntents <= 0 || n < maxIntents) {
-		// The turn watchdog: a game whose turn count reaches the cap is
-		// stalled -- neither a win nor a draw (and so excluded from the
-		// win-rate denominator) -- and maxTurns==0 means no cap. It reads
-		// the turn number the engine already reports (state.Game.Turn) and
-		// caps nothing under rules/.
-		if maxTurns > 0 && e.G.Turn >= int32(maxTurns) {
-			return recordStarter(gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n}, e), e, nil
+	// The livelock watcher fires inside a single Submit call -- the loop is
+	// stuck there, so there is no error return to read -- and panics with a
+	// *rules.LivelockError. The whole drive loop runs inside one recover:
+	// a livelock converts into a stalled outcome carrying the diagnostic
+	// (one hung game records a stall and the rest of the run keeps going;
+	// the fold-level reporting turns the tally into a non-zero exit at the
+	// end, because a livelock is an engine bug, not a slow game). Any other
+	// panic is re-raised: it is a bug either way. The loop's own early exits
+	// surface as (outcome, err); nil/nil means the loop ran to its natural
+	// end and the post-loop stall/failure classification below applies.
+	lle, exitOutcome, exitErr := func() (lle *rules.LivelockError, exitOutcome *gameOutcome, exitErr error) {
+		defer func() {
+			if r := recover(); r != nil {
+				if l, ok := r.(*rules.LivelockError); ok {
+					lle = l
+					return
+				}
+				panic(r)
+			}
+		}()
+		for !e.G.Over && e.Pending() != nil && (maxIntents <= 0 || n < maxIntents) {
+			// The turn watchdog: a game whose turn count reaches the cap is
+			// stalled -- neither a win nor a draw (and so excluded from the
+			// win-rate denominator) -- and maxTurns==0 means no cap. It reads
+			// the turn number the engine already reports (state.Game.Turn) and
+			// caps nothing under rules/.
+			if maxTurns > 0 && e.G.Turn >= int32(maxTurns) {
+				return nil, &gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n}, nil
+			}
+			d := e.Pending()
+			var in decision.Intent
+			var err error
+			if s, ok := seats[d.Player].(seat.BoardSeat); ok {
+				// Match the live host's reusable, seat-private Board path. Seats
+				// opting out (including legacy) still receive the full View.
+				b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
+				in, err = s.DecideBoard(context.Background(), b, *d)
+			} else {
+				v := view.Project(e.G, e, d.Player, d)
+				v.Round = view.RoundOf(e.G, e.L.Events)
+				in, err = seats[d.Player].Decide(context.Background(), v, *d)
+			}
+			if err != nil {
+				return nil, nil, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)
+			}
+			if collect != nil {
+				collect.record(d, in)
+			}
+			if cov != nil {
+				cov.record(d, in)
+			}
+			if err := e.Submit(in); err != nil {
+				return nil, nil, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, err)
+			}
+			n++
 		}
-		d := e.Pending()
-		var in decision.Intent
-		var err error
-		if s, ok := seats[d.Player].(seat.BoardSeat); ok {
-			// Match the live host's reusable, seat-private Board path. Seats
-			// opting out (including legacy) still receive the full View.
-			b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
-			in, err = s.DecideBoard(context.Background(), b, *d)
-		} else {
-			v := view.Project(e.G, e, d.Player, d)
-			v.Round = view.RoundOf(e.G, e.L.Events)
-			in, err = seats[d.Player].Decide(context.Background(), v, *d)
-		}
-		if err != nil {
-			return gameOutcome{}, e, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)
-		}
-		if collect != nil {
-			collect.record(d, in)
-		}
-		if cov != nil {
-			cov.record(d, in)
-		}
-		if err := e.Submit(in); err != nil {
-			return gameOutcome{}, e, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, err)
-		}
-		n++
+		return nil, nil, nil
+	}()
+	if exitErr != nil {
+		return gameOutcome{}, e, exitErr
+	}
+	if lle != nil {
+		o := gameOutcome{stallOn: "livelock", turns: e.G.Turn, intents: n, livelock: lle.Error()}
+		return recordStarter(o, e), e, nil
+	}
+	if exitOutcome != nil {
+		return recordStarter(*exitOutcome, e), e, nil
 	}
 	if !e.G.Over {
 		// The loop exited with the game still live: the intent cap was the
@@ -392,11 +438,15 @@ func outcomeFrom(e *rules.Engine, pols []string, intents int) gameOutcome {
 // turn count -- a reader who cannot tell them apart cannot act on either. A
 // run with no stalls prints nothing, so the constructed default report is
 // byte-identical to a run that never saw a watchdog.
-func stallNotice(turnStalls, intentStalls, eff int) string {
-	if turnStalls == 0 && intentStalls == 0 {
+func stallNotice(turnStalls, intentStalls, livelocks, eff int) string {
+	if turnStalls == 0 && intentStalls == 0 && livelocks == 0 {
 		return ""
 	}
-	return fmt.Sprintf("\n@@ STALLED: %d game(s) hit the -max-turns cap, %d hit the -max-intents cap; win rates are over %d non-stalled game(s) @@\n", turnStalls, intentStalls, eff)
+	s := fmt.Sprintf("\n@@ STALLED: %d game(s) hit the -max-turns cap, %d hit the -max-intents cap", turnStalls, intentStalls)
+	if livelocks > 0 {
+		s += fmt.Sprintf(", %d aborted with a LIVELOCK (engine bug; the diagnostic names the repeating event shape)", livelocks)
+	}
+	return s + fmt.Sprintf("; win rates are over %d non-stalled game(s) @@\n", eff)
 }
 
 // ci95 returns the 95% confidence interval on a success rate using the
@@ -445,6 +495,9 @@ func seatLabels(pols []string) string {
 // policies named "bot" the raw name alone is identical on both sides.
 func winnerLabel(o gameOutcome) string {
 	if o.isStalled() {
+		if o.stallOn == "livelock" {
+			return "LIVELOCK"
+		}
 		return "stalled"
 	}
 	if o.winner == "" {
@@ -585,7 +638,7 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 	}
 	done.Wait()
 
-	var aWins, bWins, draws, stallTurns, stallIntents int
+	var aWins, bWins, draws, stallTurns, stallIntents, livelocks int
 	seatWins := make([]int, seats)
 	starts := make([]int, seats)
 	startWins := make([]int, seats)
@@ -609,6 +662,12 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 		// ever regresses.
 		fmt.Fprintf(out, "game %d: seed %d, %s, %6d intents, %3d turns, winner=%s\n",
 			g, s, seatLabels(pols), oc.intents, oc.turns, winnerLabel(oc))
+		if oc.livelock != "" {
+			// The structured record of WHY the game was aborted: the repeating
+			// event shape, its object, the repeat count and cycle length. A
+			// parseable field on the line above (winner=LIVELOCK) points here.
+			fmt.Fprintf(out, "  game %d: LIVELOCK: %s\n", g, oc.livelock)
+		}
 		kind, err := classifyOutcome(g, oc, seats)
 		if err != nil {
 			return fmt.Errorf("game %d: %w", g, err)
@@ -616,11 +675,14 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 		switch {
 		case kind.stall:
 			// A stalled game is neither a win nor a draw: it credits no seat
-			// and is excluded from the win-rate denominator below. The two
+			// and is excluded from the win-rate denominator below. The three
 			// caps are tallied apart so the stall notice can say which
-			// pathology ended the game.
+			// pathology ended the game; a livelock additionally fails the run
+			// at the end, because it is an engine bug, not a slow game.
 			if kind.stallOn == "intents" {
 				stallIntents++
+			} else if kind.stallOn == "livelock" {
+				livelocks++
 			} else {
 				stallTurns++
 			}
@@ -704,11 +766,18 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 		}
 		fmt.Fprintf(out, "starting player: %s\n", strings.Join(parts, "  "))
 	}
-	if notice := stallNotice(stallTurns, stallIntents, eff); notice != "" {
+	if notice := stallNotice(stallTurns, stallIntents, livelocks, eff); notice != "" {
 		// A run with any stalls must say so loudly -- a line that cannot be
 		// mistaken for a clean run. Nothing is printed when there are no
 		// stalls, so the constructed default report is unchanged.
 		fmt.Fprint(out, notice)
+	}
+	if livelocks > 0 {
+		// The full report is printed first -- the other games' results are
+		// real and must reach the reader -- and then the run fails: a
+		// livelocked game is an engine bug, and a zero exit would read as a
+		// clean pass to whatever automated caller ran the bench.
+		return fmt.Errorf("%d of %d game(s) aborted with a livelock (see the LIVELOCK diagnostics above)", livelocks, games)
 	}
 	return nil
 }
@@ -864,7 +933,13 @@ type pairResult struct {
 	stalls       int
 	stallTurns   int
 	stallIntents int
-	seatWins     [2]int
+	// livelocks counts the games the engine's own livelock watcher aborted,
+	// and firstLivelock records the first game's diagnostic ("game N: ...")
+	// so the pooled report can name one concretely. A livelocked game is a
+	// stall for every rate denominator here AND fails the run at the end.
+	livelocks     int
+	firstLivelock string
+	seatWins      [2]int
 	// The play/draw tally, from each game's first TurnChange (the CR 103.1
 	// toss winner resolved over the survivors): starts[s] games where seat s
 	// played first, startWins[s] of them won by that seat. A draw counts as
@@ -1018,6 +1093,11 @@ func playOnePairWithPool(baseSeed uint64, pos, games int, aName, bName string, p
 			r.stalls++
 			if kind.stallOn == "intents" {
 				r.stallIntents++
+			} else if kind.stallOn == "livelock" {
+				r.livelocks++
+				if r.firstLivelock == "" {
+					r.firstLivelock = fmt.Sprintf("game %d: %s", g, oc.livelock)
+				}
 			} else {
 				r.stallTurns++
 			}
@@ -1165,18 +1245,20 @@ func runPairs(baseSeed uint64, games int, aName, bName string, pairs []pairDef, 
 // over-weight the small pairs -- the mutation TestPooledCIPoolsCountsNotRates
 // exists to catch.
 type mergedResult struct {
-	pairs        int
-	games        int
-	aWins        int
-	bWins        int
-	draws        int
-	stalls       int
-	stallTurns   int
-	stallIntents int
-	seatWins     [2]int
-	starts       [2]int
-	startWins    [2]int
-	totalTurns   int64
+	pairs         int
+	games         int
+	aWins         int
+	bWins         int
+	draws         int
+	stalls        int
+	stallTurns    int
+	stallIntents  int
+	livelocks     int
+	firstLivelock string
+	seatWins      [2]int
+	starts        [2]int
+	startWins     [2]int
+	totalTurns    int64
 }
 
 func mergeResults(results []pairResult) mergedResult {
@@ -1190,6 +1272,10 @@ func mergeResults(results []pairResult) mergedResult {
 		m.stalls += r.stalls
 		m.stallTurns += r.stallTurns
 		m.stallIntents += r.stallIntents
+		m.livelocks += r.livelocks
+		if m.firstLivelock == "" {
+			m.firstLivelock = r.firstLivelock
+		}
 		m.seatWins[0] += r.seatWins[0]
 		m.seatWins[1] += r.seatWins[1]
 		m.starts[0] += r.starts[0]
@@ -1282,9 +1368,17 @@ func writeMatrixText(out io.Writer, aName, bName string, baseSeed uint64, games 
 			m.starts[0], m.startWins[0], m.starts[1], m.startWins[1])
 	}
 	fmt.Fprintf(out, "pairs whose A-win interval excludes 50%%: A loses on %d, A wins on %d, undecided on %d\n", below, above, undecided)
-	if notice := stallNotice(m.stallTurns, m.stallIntents, mEff); notice != "" {
+	if notice := stallNotice(m.stallTurns, m.stallIntents, m.livelocks, mEff); notice != "" {
 		// A matrix with any stalls says so loudly, like the single-pair run.
 		fmt.Fprint(out, notice)
+	}
+	if m.firstLivelock != "" {
+		fmt.Fprintf(out, "first livelock: %s\n", m.firstLivelock)
+	}
+	if m.livelocks > 0 {
+		// After the full report: a livelocked game is an engine bug, and a
+		// zero exit would read as a clean pass to the automated caller.
+		return fmt.Errorf("%d of %d game(s) aborted with a livelock (see the LIVELOCK diagnostics above)", m.livelocks, m.games)
 	}
 	return nil
 }
@@ -1320,11 +1414,15 @@ func rateCell(wins, eff int, lo, hi float64) string {
 // can diff two runs numerically without re-parsing % strings. Field order is
 // struct order, so the JSON is byte-deterministic for identical inputs.
 type jsonPair struct {
-	Pair       string    `json:"pair"`
-	AWins      int       `json:"a_wins"`
-	BWins      int       `json:"b_wins"`
-	Draws      int       `json:"draws"`
+	Pair  string `json:"pair"`
+	AWins int    `json:"a_wins"`
+	BWins int    `json:"b_wins"`
+	Draws int    `json:"draws"`
+	// Stalls is every watchdog/aborted game; Livelocks is the subset the
+	// engine's livelock watcher aborted -- the machine-readable count an
+	// agent parses instead of tailing raw output.
 	Stalls     int       `json:"stalls"`
+	Livelocks  int       `json:"livelocks"`
 	AWinRate   float64   `json:"a_win_rate"`
 	AWinRateCI []float64 `json:"a_win_rate_ci"`
 	Seat0Wins  int       `json:"seat0_wins"`
@@ -1342,6 +1440,7 @@ type jsonPooled struct {
 	BWins        int       `json:"b_wins"`
 	Draws        int       `json:"draws"`
 	Stalls       int       `json:"stalls"`
+	Livelocks    int       `json:"livelocks"`
 	AWinRate     float64   `json:"a_win_rate"`
 	AWinRateCI   []float64 `json:"a_win_rate_ci"`
 	Seat0Rate    float64   `json:"seat0_rate"`
@@ -1383,6 +1482,7 @@ func writeMatrixJSON(out io.Writer, aName, bName string, baseSeed uint64, games 
 			BWins:      r.bWins,
 			Draws:      r.draws,
 			Stalls:     r.stalls,
+			Livelocks:  r.livelocks,
 			AWinRate:   winRateFrac(r.aWins, eff),
 			AWinRateCI: []float64{lo, hi},
 			Seat0Wins:  r.seatWins[0],
@@ -1404,6 +1504,7 @@ func writeMatrixJSON(out io.Writer, aName, bName string, baseSeed uint64, games 
 		BWins:        m.bWins,
 		Draws:        m.draws,
 		Stalls:       m.stalls,
+		Livelocks:    m.livelocks,
 		AWinRate:     winRateFrac(m.aWins, mEff),
 		AWinRateCI:   []float64{blo, bhi},
 		Seat0Rate:    winRateFrac(m.seatWins[0], mEff),
@@ -1531,6 +1632,12 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		}
 		collect.write(out)
 		cov.write(out)
+		m := mergeResults(results)
+		if m.livelocks > 0 {
+			// Same contract as the text report: the JSON document is complete
+			// (the per-pair livelocks counts are in it), then the run fails.
+			return fmt.Errorf("%d of %d game(s) aborted with a livelock (see the JSON livelocks fields)", m.livelocks, m.games)
+		}
 		return nil
 	}
 	if coverage != nil {
