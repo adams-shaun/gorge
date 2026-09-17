@@ -285,6 +285,15 @@ const (
 	// clears only imprintedCards. Reusing Text avoids changing Event's layout.
 	// It is append-only so prior event ordinals and replay hashes stay stable.
 	Imprint
+	// StartingPlayerChange records CR 103.1's starting-player designation.
+	// It is emitted by genesis's toss resolution (folded without appending at
+	// genesis, since genesis is replayed from Config) and by an opening-hand
+	// effect such as Impatient Iguana, rather than being inferred from
+	// TurnChange, because Count$StartingPlayer must read its result before
+	// turn one. Appended after main's kinds so the merge preserves main's
+	// ordinals (log.json serializes kind numerically; a committed fixture's
+	// replay pins them).
+	StartingPlayerChange
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -295,7 +304,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Imprint) + 1
+	NumKinds = int(StartingPlayerChange) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -310,8 +319,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
-	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter",
-	"imprint"}
+	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -328,6 +336,22 @@ const ExtraTurnSkipUntapText = "extra turn; skip untap"
 
 // Event is a state delta. The field set is a flat union so encoding stays
 // allocation-free and an external consumer needs no engine code to read it.
+// manaRestrictionPrefix marks a ManaAdd event whose added (or spent) mana is
+// governed by RestrictValid$. Text is otherwise unused by ManaAdd, so this
+// preserves the event wire shape while keeping the provenance replayable.
+const manaRestrictionPrefix = "mana-restriction:"
+
+// ManaRestrictionText encodes a RestrictValid$ constraint on a ManaAdd event.
+func ManaRestrictionText(valid string) string { return manaRestrictionPrefix + valid }
+
+// ManaRestrictionFromText returns the constraint carried by a restricted
+// ManaAdd event. It deliberately accepts no aliases: ordinary historical
+// ManaAdd events must remain unrestricted.
+func ManaRestrictionFromText(text string) (string, bool) {
+	valid, ok := strings.CutPrefix(text, manaRestrictionPrefix)
+	return valid, ok && valid != ""
+}
+
 type Event struct {
 	Seq     uint64           `json:"seq"`
 	Kind    Kind             `json:"kind"`
@@ -412,6 +436,8 @@ var flagNames = [...]struct {
 	{"buyback", state.FlagBuyback},
 	{"harmonize", state.FlagHarmonize},
 	{"suspend", state.FlagSuspend},
+	{"escaped", state.FlagEscaped},
+	{"mayplay", state.FlagMayPlay},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

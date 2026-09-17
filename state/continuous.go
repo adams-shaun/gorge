@@ -127,6 +127,42 @@ type ContinuousEffect struct {
 	// effects.ParseZones. Meaningful only when MayPlay is set.
 	AffectedZone string
 
+	// MayPlayIgnoreColor marks the grant's MayPlayIgnoreColor$ True rider:
+	// "you may spend mana as though it were mana of any color to cast it"
+	// (Opposition Agent, Kotose, ...). While it holds, every coloured pip of
+	// the may-play cast's cost is payable by any colour of mana in the pool;
+	// the {C} pip stays colourless-only (CR 107.4c: "any color" never
+	// includes colourless). Set only together with MayPlay.
+	MayPlayIgnoreColor bool
+
+	// MayPlayLimit is the grant's MayPlayLimit$ once-per-turn cap (Kotose's
+	// and Evelyn's "once each turn"): the number of cards p may play through
+	// THIS KIND of grant in one turn. Zero means unlimited. The count is a
+	// log scan (rules' mayPlaysThisTurn), never a mutable field.
+	MayPlayLimit int32
+
+	// MayPlayPlayerTurn marks the grant's Condition$ PlayerTurn rider (the
+	// Kess/Karador "during each of your turns" family): the grant is live
+	// only while its controller is the ACTIVE player. The walks check the
+	// live turn, never a mutable field.
+	MayPlayPlayerTurn bool
+
+	// AdjustLandPlays marks an additional-land-drops grant (Azusa, Lost but
+	// Seeking's "You may play two additional lands on each of your turns",
+	// Oracle of Mul Daya, Exploration): the number of EXTRA land drops the
+	// affected player gets each turn, ON TOP of the one ordinary drop
+	// (CR 305.2a reads the printed sentence as a modifier on the one-drop
+	// normal, so grants from multiple permanents SUM -- Azusa plus
+	// Exploration is three drops, never the max). Registered from an
+	// S:Mode$ Continuous static carrying a plain integer AdjustLandPlays$,
+	// alongside the Affects player spec (Affected$ You/Player); the effect
+	// is a rules-mod consulted by rules' land-play offer gates, never a
+	// CR 613 layer change -- no layer fields are read for it -- and it
+	// expires with its source permanent (CR 611.3b) through the ordinary
+	// source-on-battlefield check in active(). Zero means the effect grants
+	// no additional drop.
+	AdjustLandPlays int32
+
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn
 	// (UntilYourNextTurn, UntilTheEndOfYourNextTurn). Computed at

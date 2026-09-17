@@ -152,6 +152,19 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return []state.Target{{Obj: lib[i]}}, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
+	case "Imprinted":
+		if o := g.Obj(c.Source); o != nil {
+			out := make([]state.Target, 0, len(o.Imprinted))
+			for _, id := range o.Imprinted {
+				// Imprint links an exiled card only while the linked card remains
+				// in exile (CR 607.2a); its persistent ID cannot follow it later.
+				if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			return out, true
+		}
+		return nil, true
 	case "ChosenCard", "ChosenPlayer":
 		// ChooseCard/ChoosePlayer bind the current resolution's most recent
 		// choice here. This is deliberately distinct from Remembered: Forge
@@ -484,6 +497,31 @@ func exileProvenanceNeeded(c *Ctx) bool {
 	for _, body := range c.SVars {
 		if strings.Contains(body, "ExiledWithSource") {
 			return true
+		}
+	}
+	return false
+}
+
+// faceStaticsNameExiledWithSource reports whether the source CARD's own
+// Static lines name ExiledWithSource -- the S: static spelling of the same
+// provenance need the SVar scan in exileProvenanceNeeded covers (Intellect
+// Devourer's MayPlay grant, the shared-fate family). Iterating the param map
+// only feeds a boolean OR, so map order never reaches an event.
+func faceStaticsNameExiledWithSource(h Host, src state.ObjID) bool {
+	o := h.Game().Obj(src)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	for _, st := range o.Face().Statics {
+		for k, v := range st.Params {
+			switch k {
+			case "Affected", "AffectedZone", "Description":
+				// The keys a static names its card filters and text by; the
+				// ExiledWithSource provenance claim lives in one of these.
+				if strings.Contains(v, "ExiledWithSource") {
+					return true
+				}
+			}
 		}
 	}
 	return false

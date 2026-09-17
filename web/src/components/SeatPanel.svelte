@@ -6,6 +6,7 @@
   import { promptContext, promptContextText } from '../lib/prompt';
   import { arrangeCard } from '../lib/arrange';
   import { discardCard, isDiscardPick } from '../lib/discard';
+  import { isSearchPick, searchCard, searchOptions } from '../lib/search';
   import { modalPickerOpen } from '../lib/modals';
   import ArrangeModal from './ArrangeModal.svelte';
   import CardDetail from './CardDetail.svelte';
@@ -238,6 +239,37 @@
   const discardCards = $derived(discard !== null ? discard.options.map((o) => discardCard(discard, o)) : []);
   $effect(() => {
     discardHover.supervise(discardCards);
+  });
+
+  // The library-search ask (fb-20260916T181754Z): a decision whose options
+  // are card picks (kind "search", Obj set) — the fetchland / tutor / Hawk
+  // ask over a hidden library. It renders a filter input plus its card faces
+  // SORTED A→Z and FILTERED by the text typed into logic.searchFilter
+  // (display-only state on the shared SeatPanelState, reset on every newly
+  // adopted decision) instead of the generic unsorted text list. Selection
+  // is untouched: the click path and the picked ordinals are the generic
+  // ones, the answer is the picked wire indexes in click order, and the
+  // sort/filter exist only between the player and the list. isSearchPick is
+  // strict on the OPTIONS, so a mixed decision falls through to the generic
+  // list. The strip never reaches this branch: a search carries no pass
+  // option, so its tone is initiative and the strip shows the
+  // required-prompt pointer above, exactly as every other blocked decision
+  // already does.
+  const search = $derived(isSearchPick(decision) ? decision : null);
+
+  // The search grid's hover inspector: the same CardHover mechanism the
+  // arrange strip and the discard row use. The three branches are disjoint
+  // by option kind (arrange / "discard" / "search"), so three instances
+  // never fight for one pointer.
+  const searchHover = new CardHover();
+
+  // The options the grid currently shows — filtered and sorted. The CardView
+  // list beside it (same list, as synthesized faces) is what the lifecycle
+  // contract supervises against, exactly as the discard row's does.
+  const searchOpts = $derived(search !== null ? searchOptions(search, logic.searchFilter) : []);
+  const searchCards = $derived(searchOpts.map((o) => (search !== null ? searchCard(search, o) : null)).filter((c) => c !== null));
+  $effect(() => {
+    searchHover.supervise(searchCards);
   });
 
   // The prompt context line (brief Job 3): who the prompt is from and what
@@ -515,6 +547,93 @@
             </div>
           {/if}
           {#if discardHover.hover.show && discardHover.card && discardHover.anchor}<CardDetail card={discardHover.card} anchor={discardHover.anchor} />{/if}
+        </div>
+      {:else if search !== null}
+        <!-- The library-search ask (fb-20260916T181754Z): the fetchland /
+             tutor / Hawk ask over a hidden library. The complaint was the
+             flat unsorted wall of card names; the answer is a filter input
+             (display-only text on the shared state, reset on every newly
+             adopted decision) above the card faces SORTED A→Z. Selection is
+             untouched — the click path and the picked ordinals are the
+             generic ones and the posted intent is the picked wire indexes in
+             click order; sorting the display cannot move the answer because
+             a search carries no pass/resolve primary and the engine reads
+             the chosen cards' order from the click sequence. The strip never
+             reaches this branch (a search's tone is initiative, and the
+             strip shows the required-prompt pointer above) and the input is
+             therefore not cramped there. -->
+        <div class="search" data-search>
+          {#if placement !== 'strip'}
+            <div class="search-bar">
+              <input
+                class="search-filter"
+                type="search"
+                data-search-filter
+                placeholder={`Filter ${search.options.length} cards…`}
+                aria-label="Filter the offered cards by name"
+                autocomplete="off"
+                spellcheck="false"
+                bind:value={logic.searchFilter}
+                disabled={logic.busy}
+                onkeydown={(e) => {
+                  if (e.key !== 'Escape') return;
+                  // Escape in the filter clears the filter — it never
+                  // submits or closes anything. The panel's window-capture
+                  // Escape handler (the one-shot run's panic key) has
+                  // already run by the time this does: a key handler on the
+                  // input cannot stop a capture listener on window, and the
+                  // panic key keeps working. Every other hotkey is already
+                  // guarded off while focus is in an input (hotkeys.ts's
+                  // focus check), so typing filters, never fires, a table
+                  // hotkey.
+                  e.preventDefault();
+                  logic.searchFilter = '';
+                }}
+              />
+            </div>
+          {/if}
+          <div class="search-grid" data-search-grid data-options data-card-count={searchOpts.length} aria-label="Cards the search offers, sorted and filtered">
+            {#each searchOpts as opt (opt.index)}
+              {@const card = searchCard(search, opt)}
+              {@const at = logic.picked.indexOf(opt.index)}
+              <button
+                class="pick"
+                class:picked={at >= 0}
+                type="button"
+                data-option={opt.index}
+                aria-pressed={at >= 0}
+                aria-label={card.name}
+                onpointerenter={(e) => searchHover.arm(card, e.currentTarget)}
+                onpointerleave={() => searchHover.leave(card)}
+                onpointerdown={(e) => searchHover.pointerdown(card, e.currentTarget)}
+                onpointerup={() => searchHover.pointerup(card)}
+                onfocus={(e) => searchHover.open(card, e.currentTarget)}
+                onblur={() => searchHover.blur(card)}
+                onkeydown={(e) => searchHover.keydown(e)}
+                aria-describedby={searchHover.hover.show && searchHover.card?.id === card.id ? `card-detail-${card.id}` : undefined}
+                onclick={(e) => logic.click(opt.index, { holdPriority: e.ctrlKey })}
+                disabled={logic.busy}
+              >
+                <CardImage {card} />
+                {#if at >= 0}<span class="order">{at + 1}</span>{/if}
+              </button>
+            {/each}
+            {#if searchCards.length === 0}
+              <p class="search-empty">No card matches “{logic.searchFilter}”.</p>
+            {/if}
+          </div>
+          {#if logic.showSubmit && placement !== 'strip'}
+            <div class="choices">
+              <button
+                class="choice keep"
+                type="button"
+                data-submit
+                onclick={() => logic.submit()}
+                disabled={!logic.canSubmit || logic.busy}
+              >{search.min === 0 ? 'Confirm' : search.min === search.max ? `Choose ${search.min}` : `Choose ${search.min}–${search.max}`}</button>
+            </div>
+          {/if}
+          {#if searchHover.hover.show && searchHover.card && searchHover.anchor}<CardDetail card={searchHover.card} anchor={searchHover.anchor} />{/if}
         </div>
       {:else}
         <div class="options" data-options>
@@ -802,10 +921,63 @@
   }
 
   .arrange,
-  .discard {
+  .discard,
+  .search {
     display: flex;
     flex-direction: column;
     width: 100%;
+  }
+
+  /* The library-search picker's filter input (fb-20260916T181754Z): one
+     quiet bar above the grid, panel chrome rather than a dialog field. The
+     grid below it scrolls — the wall of cards the report describes is the
+     one thing the panel must not grow unbounded for. */
+  .search-bar {
+    padding: var(--sp-2) var(--sp-3) 0;
+  }
+  .search-filter {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--instrument-raised);
+    color: var(--ink);
+    border: 1px solid var(--edge-inst);
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-2);
+    font-family: var(--font-ui);
+    font-size: var(--t-12);
+  }
+  .search-filter::placeholder {
+    color: var(--ink-faint);
+  }
+  .search-filter:focus {
+    outline: 1px solid var(--offered);
+    outline-offset: -1px;
+  }
+  .search-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    justify-content: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    width: 100%;
+    /* The filtered wall is exactly what scrolls: the panel's own max-height
+       stays honest, and the grid scrolls inside it. */
+    max-height: 16rem;
+    overflow-y: auto;
+    min-height: 0;
+    /* A picker thumbnail, not the board's large face: at 72px the name is
+       still legible on the no-art blank and five cards fit the panel's row. */
+    --card-w: 72px;
+  }
+  .search-empty {
+    margin: 0;
+    padding: var(--sp-2);
+    font-size: var(--t-12);
+    line-height: 1.35;
+    color: var(--ink-dim);
+    width: 100%;
+    text-align: center;
   }
 
   /* An error is the one thing allowed to outrank the tone: the seat's last

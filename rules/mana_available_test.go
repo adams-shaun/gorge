@@ -143,3 +143,42 @@ func TestAvailableManaMatchesCardProjection(t *testing.T) {
 		}
 	}
 }
+
+// TestAvailableManaComboDualNamesItsColoursOnly is the fb-windgrace fix on
+// the aggregate side: a Blackcleave-Cliffs-shaped source ("Produced$ Combo
+// B R") contributes its two real colours and NO colourless -- the old rune
+// walk counted the letters of the word "Combo" as five phantom colourless,
+// which the mana rail then advertised as tappable.
+func TestAvailableManaComboDualNamesItsColoursOnly(t *testing.T) {
+	e := layerEngine(t)
+	onBoard(t, e, 0, "Name:Blackcleave Cliffs\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo B R | Oracle:x\n")
+	got := e.AvailableMana(0)
+	want := state.Mana{state.MB: 1, state.MR: 1}
+	if got != want {
+		t.Errorf("available = %v, want %v (one B and one R, no colourless)", got, want)
+	}
+}
+
+// TestAvailableManaColorIdentityClaimsNothing pins the other half: a
+// Command-Tower-shaped source ("Produced$ Combo ColorIdentity") contributes
+// nothing at all until commander-identity derivation exists -- the honest
+// conservative value (the same convention as an Indeterminate amount), not
+// the 18 phantom colourless the rune walk counted.
+func TestAvailableManaColorIdentityClaimsNothing(t *testing.T) {
+	e := layerEngine(t)
+	onBoard(t, e, 0, "Name:Command Tower\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo ColorIdentity | Oracle:x\n")
+	if got := e.AvailableMana(0); got.Total() != 0 {
+		t.Errorf("available = %v, want 0 (ColorIdentity is not derivable here)", got)
+	}
+}
+
+// TestAvailableManaSameSymbolTokenCountsTwice pins that the shared parse
+// still counts a plain multi-symbol token per rune ("RR" two red), so the
+// fix narrowed only the unrecognised-word case.
+func TestAvailableManaSameSymbolTokenCountsTwice(t *testing.T) {
+	e := layerEngine(t)
+	onBoard(t, e, 0, "Name:RRland\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ RR | Oracle:x\n")
+	if got := e.AvailableMana(0); got[state.MR] != 2 {
+		t.Errorf("available = %v, want two red", got)
+	}
+}

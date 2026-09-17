@@ -8,8 +8,9 @@ import { STOPPABLE_STEPS } from './autopilot';
  * so the wiring task (prio3) can build UI on it and the tests can pin every
  * preset field exactly.
  *
- * Persistence is ONE global localStorage key, `gorge.playsettings.v1`, not
- * per table: the old per-table stop keys are exactly why settings appeared
+ * Persistence is ONE global localStorage key, `gorge.playsettings.v1` (the
+ * KEY string predates the v2 field bump and is kept — see the KEY comment),
+ * not per table: the old per-table stop keys are exactly why settings appeared
  * to "reset" (every new table started from defaults again). A preference is
  * a property of the player, not of the table.
  */
@@ -56,7 +57,7 @@ export type StoppableStep =
   | 'declare-blockers' | 'combat-damage' | 'end-combat' | 'main2' | 'end';
 
 export interface PlaySettings {
-  version: 1;
+  version: 2;
   /** which named preset these settings match, or 'custom' after any edit */
   preset: Preset;
   /** master switch: false means decide() stops at every window (manual play) */
@@ -75,6 +76,8 @@ export interface PlaySettings {
   passAfterAct: boolean;
   /** auto-order identical simultaneous triggers; consumed by prio6, not decide() */
   autoOrderIdenticalTriggers: boolean;
+  /** auto-order EVERY simultaneous-trigger ask (fb-trigorder1), not only identical ones; consumed by seatpanel's auto-order path, not decide() */
+  autoOrderAllTriggers: boolean;
   /** artificial pacing for auto-passing; consumed by prio5, not decide() */
   pacing: { stepMs: number; resolveMs: number };
   /** record auto-passes in the game log; consumed by prio5, not decide() */
@@ -96,7 +99,7 @@ function steps(yours: Partial<Record<StoppableStep, StepStop>>, opponents: Parti
 }
 
 function mkSettings(p: Exclude<Preset, 'custom'>, fields: Omit<PlaySettings, 'version' | 'preset'>): PlaySettings {
-  return { version: 1, preset: p, ...fields };
+  return { version: 2, preset: p, ...fields };
 }
 
 /** allSteps builds a full Record<StoppableStep, StepStop> with one rule everywhere. */
@@ -124,6 +127,7 @@ export const PRESETS: Record<Exclude<Preset, 'custom'>, PlaySettings> = {
     ),
     passAfterAct: true,
     autoOrderIdenticalTriggers: true,
+    autoOrderAllTriggers: true,
     pacing: { stepMs: 200, resolveMs: 400 },
     logAutoPasses: true,
   }),
@@ -139,6 +143,7 @@ export const PRESETS: Record<Exclude<Preset, 'custom'>, PlaySettings> = {
     ),
     passAfterAct: true,
     autoOrderIdenticalTriggers: true,
+    autoOrderAllTriggers: true,
     pacing: { stepMs: 200, resolveMs: 400 },
     logAutoPasses: true,
   }),
@@ -151,6 +156,7 @@ export const PRESETS: Record<Exclude<Preset, 'custom'>, PlaySettings> = {
     steps: { yours: allSteps('forced'), opponents: allSteps('forced') },
     passAfterAct: false,
     autoOrderIdenticalTriggers: false,
+    autoOrderAllTriggers: false,
     pacing: { stepMs: 0, resolveMs: 0 },
     logAutoPasses: true,
   }),
@@ -178,6 +184,7 @@ export function presetPatch(id: PresetName): Partial<PlaySettings> {
     steps: { yours: { ...p.steps.yours }, opponents: { ...p.steps.opponents } },
     passAfterAct: p.passAfterAct,
     autoOrderIdenticalTriggers: p.autoOrderIdenticalTriggers,
+    autoOrderAllTriggers: p.autoOrderAllTriggers,
     pacing: { stepMs: p.pacing.stepMs, resolveMs: p.pacing.resolveMs },
     logAutoPasses: p.logAutoPasses,
   };
@@ -262,6 +269,11 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 
 /**
  * Storage key: ONE global key, deliberately not per table (see module doc).
+ * The KEY string stays `gorge.playsettings.v1` across the v1→v2 field bump
+ * (fb-trigorder1): the version lives INSIDE the blob, so renaming the key
+ * would orphan every existing player's settings — exactly the silent wipe
+ * the version-2 migration exists to avoid. validate accepts both blob
+ * versions; saveSettings writes v2 into the same key.
  * Migration: the legacy per-table keys (`gorge.stop.<table>.<seat>` from
  * stops.ts and the actpass key from actpass.ts) are NOT imported. They
  * encode the old mana-tap-era defaults — stop sets written when a mana tap
@@ -280,14 +292,23 @@ const OWN_RULES: readonly OwnObjectRule[] = ['never', 'if-respondable'];
  * value is corrupt: wrong version, a missing or wrong-typed field, an
  * unknown rule word. Corrupt means defaults, not a partial merge — a
  * half-understood settings blob should not half-apply.
+ *
+ * Version migration (fb-trigorder1): blob version 1 predates
+ * `autoOrderAllTriggers`, and rejecting it outright would reset every
+ * existing player to casual — a silent settings wipe. A v1 blob is
+ * migrated instead: every old field is preserved as-is and the new field
+ * defaults to casual's value (true). Blob version 2 requires the field.
+ * Both migrate to the in-memory version 2; the next save writes v2.
  */
 function validate(v: unknown): PlaySettings | null {
   if (!isPlainObject(v)) return null;
-  if (v.version !== 1) return null;
+  if (v.version !== 1 && v.version !== 2) return null;
   if (!isRule(v.opponentSpell, OBJECT_RULES) || !isRule(v.opponentAbility, OBJECT_RULES)) return null;
   if (!isRule(v.opponentTrigger, TRIGGER_RULES) || !isRule(v.ownObjects, OWN_RULES)) return null;
   if (typeof v.autoPass !== 'boolean' || typeof v.passAfterAct !== 'boolean') return null;
   if (typeof v.autoOrderIdenticalTriggers !== 'boolean' || typeof v.logAutoPasses !== 'boolean') return null;
+  // Required at v2; defaulted (to casual's value) on a v1 blob.
+  if (v.version === 2 && typeof v.autoOrderAllTriggers !== 'boolean') return null;
   if (typeof v.pacing !== 'object' || v.pacing === null) return null;
   const pacing = v.pacing as Record<string, unknown>;
   if (typeof pacing.stepMs !== 'number' || typeof pacing.resolveMs !== 'number') return null;
@@ -310,7 +331,7 @@ function validate(v: unknown): PlaySettings | null {
   // words but never trust the blob beyond that.
   if (typeof v.preset !== 'string' || !['casual', 'no-tells', 'full-control', 'custom'].includes(v.preset)) return null;
   return {
-    version: 1,
+    version: 2,
     preset: v.preset as Preset,
     autoPass: v.autoPass,
     opponentSpell: v.opponentSpell as OpponentObjectRule,
@@ -320,6 +341,10 @@ function validate(v: unknown): PlaySettings | null {
     steps: { yours, opponents },
     passAfterAct: v.passAfterAct,
     autoOrderIdenticalTriggers: v.autoOrderIdenticalTriggers,
+    // v1 blobs predate the field: default it to casual's value, preserve
+    // everything else exactly.
+    autoOrderAllTriggers:
+      typeof v.autoOrderAllTriggers === 'boolean' ? v.autoOrderAllTriggers : PRESETS.casual.autoOrderAllTriggers,
     pacing: { stepMs: pacing.stepMs, resolveMs: pacing.resolveMs },
     logAutoPasses: v.logAutoPasses,
   };

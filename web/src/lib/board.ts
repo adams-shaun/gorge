@@ -77,8 +77,14 @@ function attachedToId(c: CardView): number | null {
   return c.attached_to !== undefined && c.attached_to !== 0 ? c.attached_to : null;
 }
 
-/** stackKey is the identity two permanents must share to be interchangeable. Everything a player could act on is included; power/toughness are DERIVED on the wire, so two cards under different anthems already differ here. The string is deterministic: counter keys and the keyword set are sorted before joining, and array/list fields never depend on wire order. */
-function stackKey(c: CardView): string {
+/** StackOptions tunes what leaves a group's identity. Today only lands use it: a pile of Forests is a pile of Forests whether some of its members tapped for mana or not (fb-20260916T201423Z) — the readiness a tapped split used to carry moves onto the pile's tab (CardStack) instead of sharding the pile. Creatures and every other row keep the strict key, because there a tapped member really cannot do what an untapped one can (attack, block), and the split IS the gameplay information. */
+export interface StackOptions {
+  /** ignoreTapped removes the tapped component from the stack identity, so same-printing permanents merge into one pile regardless of tapped state. It is the ONLY component this option drops — counters, damage, controller, keywords, attachment state and printing identity all still split. */
+  ignoreTapped?: boolean;
+}
+
+/** stackKey is the identity two permanents must share to be interchangeable. Everything a player could act on is included; power/toughness are DERIVED on the wire, so two cards under different anthems already differ here. The string is deterministic: counter keys and the keyword set are sorted before joining, and array/list fields never depend on wire order. With ignoreTapped the 't=' component is omitted and nothing else changes — every other key field still separates. */
+function stackKey(c: CardView, ignoreTapped: boolean): string {
   const blocked = [...(c.blocked_by ?? [])].sort((a, b) => a - b);
   const counters = Object.entries(c.counters ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   const keywords = [...(c.keywords ?? [])].sort();
@@ -86,7 +92,10 @@ function stackKey(c: CardView): string {
     'p=' + c.printing.name,
     's=' + (c.printing.set ?? ''),
     'n=' + (c.printing.number ?? ''),
-    't=' + c.tapped,
+    // tapped leaves the identity ONLY when the caller says so; member order
+    // stays id-sorted either way, so a tap/untap never moves the group's lead
+    // id and the render key below never churns on a tap (fb-20260915T182335Z).
+    ...(ignoreTapped ? [] : ['t=' + c.tapped]),
     'ss=' + c.summon_sick,
     'a=' + c.attacking,
     'd=' + c.damage,
@@ -103,7 +112,8 @@ function stackKey(c: CardView): string {
 /**
  * stackIdentical merges same-printing permanents into one group per identity. Merging too aggressively silently hides state, so the merge key is deliberately strict and attachment state wins outright: a permanent that is itself attached, or that another permanent is attached to, is individual by definition — its tile shows riders a group could not compose. When in doubt, do not merge. Groups come back ordered by their lowest member id, members id-sorted, so the caller's layout is stable whatever order the wire delivered.
  */
-export function stackIdentical(cards: CardView[]): CardStackGroup[] {
+export function stackIdentical(cards: CardView[], opts?: StackOptions): CardStackGroup[] {
+  const ignoreTapped = opts?.ignoreTapped === true;
   const hosts = new Set<number>();
   for (const c of cards) {
     const host = attachedToId(c);
@@ -114,7 +124,7 @@ export function stackIdentical(cards: CardView[]): CardStackGroup[] {
   const byKey = new Map<string, CardView[]>();
   for (const c of cards) {
     if (!mergeable(c)) continue;
-    const key = stackKey(c);
+    const key = stackKey(c, ignoreTapped);
     const group = byKey.get(key);
     if (group === undefined) byKey.set(key, [c]);
     else group.push(c);

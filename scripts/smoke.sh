@@ -2,10 +2,11 @@
 #
 # scripts/smoke.sh — the browser smoke gate (Task SG1, extended by ui19).
 #
-# Builds the REAL client and the REAL binary, starts FOUR `gorged` servers on
+# Builds the REAL client and the REAL binary, starts FIVE `gorged` servers on
 # smoke ports (8090-8099) — public and omniscient spectators, a SEATED 1v1,
-# and the shared ui24/wheel1 board fixture — then drives
-# the headless-browser smoke test in web/e2e against all four, and tears
+# the shared ui24/wheel1 board fixture, and the fb-e079def5 Talisman two-stage
+# continuation fixture — then drives
+# the headless-browser smoke test in web/e2e against all five, and tears
 # every server down (and removes its temp dir) whether the gate passes or
 # fails.
 #
@@ -60,21 +61,23 @@ for p in $(seq 8090 8099); do
   if ! grep -qx "$p" <<<"$taken"; then
     ports+=("$p")
   fi
-  if [ "${#ports[@]}" -ge 4 ]; then break; fi
-done
-if [ "${#ports[@]}" -lt 4 ]; then
-  echo "smoke: need four free ports in 8090-8099" >&2
+  if [ "${#ports[@]}" -ge 5 ]; then break; fi
+ done
+if [ "${#ports[@]}" -lt 5 ]; then
+  echo "smoke: need five free ports in 8090-8099" >&2
   exit 1
 fi
 PUBPORT="${ports[0]}"
 OMNPORT="${ports[1]}"
 SEATPORT="${ports[2]}"
 FIXTUREPORT="${ports[3]}"
+TALISPORT="${ports[4]}"
 
 PUBDIR="$(mktemp -d /tmp/gorge-smoke-public-XXXXXX)"
 OMNDIR="$(mktemp -d /tmp/gorge-smoke-omni-XXXXXX)"
 SEATDIR="$(mktemp -d /tmp/gorge-smoke-seat-XXXXXX)"
 FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-ui24-XXXXXX)"
+TALISDIR="$(mktemp -d /tmp/gorge-smoke-talisman-XXXXXX)"
 SERVER_PIDS=()
 
 cleanup() {
@@ -95,7 +98,7 @@ cleanup() {
     [ "$alive" -eq 0 ] && break
     sleep 0.1
   done
-  rm -rf "$PUBDIR" "$OMNDIR" "$SEATDIR" "$FIXTUREDIR" "$VITE_CACHE_DIR"
+  rm -rf "$PUBDIR" "$OMNDIR" "$SEATDIR" "$FIXTUREDIR" "$TALISDIR" "$VITE_CACHE_DIR"
 }
 trap cleanup EXIT
 
@@ -144,7 +147,17 @@ start_seated_server "$SEATPORT" "$SEATDIR" "$SEATDIR/server.log"
   -mulligans 0 -perpetual=false -humans 0,1 -seat-token ui24fixture >"$FIXTUREDIR/server.log" 2>&1 &
 SERVER_PIDS+=("$!")
 
-echo "== smoke: starting gorged (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT) =="
+# fb-e079def5: the two-stage Talisman continuation. The fixture gets a
+# Talisman of Indulgence castable by turn 2 (two Mountains for its {2} cost),
+# then stops at the priority window whose Talisman activation poses the
+# stage-1 ability wheel the browser test answers THROUGH the picker — the
+# path whose stage-2 colour ask must re-open the wheel at the card.
+./bin/gorged -addr "127.0.0.1:$TALISPORT" -dir "$TALISDIR" -spectator omniscient \
+  -decks web/e2e/fixtures/decks-talisman -tables 1 -seats 2 -pace 0 -seed 7 \
+  -mulligans 0 -perpetual=false -humans 0,1 -seat-token talismanwheel >"$TALISDIR/server.log" 2>&1 &
+SERVER_PIDS+=("$!")
+
+echo "== smoke: starting gorged (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT) =="
 if ! wait_ready "$PUBPORT"; then
   echo "smoke: public gorged on :$PUBPORT never became ready:" >&2
   sed -n '1,60p' "$PUBDIR/server.log" >&2 || true
@@ -165,15 +178,20 @@ if ! wait_ready "$FIXTUREPORT"; then
   sed -n '1,60p' "$FIXTUREDIR/server.log" >&2 || true
   exit 1
 fi
+if ! wait_ready "$TALISPORT"; then
+  echo "smoke: talisman fixture gorged on :$TALISPORT never became ready:" >&2
+  sed -n '1,60p' "$TALISDIR/server.log" >&2 || true
+  exit 1
+fi
 echo "== smoke: driving the browser gate =="
 set +e
-( cd web && SMOKE_PUBLIC="http://127.0.0.1:$PUBPORT" SMOKE_OMNI="http://127.0.0.1:$OMNPORT" SMOKE_SEATED="http://127.0.0.1:$SEATPORT" SMOKE_FIXTURE="http://127.0.0.1:$FIXTUREPORT" SMOKE_WHEEL="http://127.0.0.1:$FIXTUREPORT" npx playwright test )
+( cd web && SMOKE_PUBLIC="http://127.0.0.1:$PUBPORT" SMOKE_OMNI="http://127.0.0.1:$OMNPORT" SMOKE_SEATED="http://127.0.0.1:$SEATPORT" SMOKE_FIXTURE="http://127.0.0.1:$FIXTUREPORT" SMOKE_WHEEL="http://127.0.0.1:$FIXTUREPORT" SMOKE_TALISMAN="http://127.0.0.1:$TALISPORT" npx playwright test )
 status=$?
 set -e
 
 if [ "$status" -eq 0 ]; then
-  echo "== smoke: PASS (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT) =="
+  echo "== smoke: PASS (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT) =="
 else
-  echo "== smoke: FAIL (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT) =="
+  echo "== smoke: FAIL (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT) =="
 fi
 exit "$status"

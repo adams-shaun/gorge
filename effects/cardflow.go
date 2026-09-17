@@ -517,6 +517,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 				ev.Player, ev.Secret = p, true
 				h.Emit(ev)
+				digRemember(c, sa, id)
 			}
 			continue
 		}
@@ -568,6 +569,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				ev := moveZoneEvent(c, eligible[i], state.ZLibrary, dest)
 				ev.Player, ev.Secret = p, true
 				h.Emit(ev)
+				digRemember(c, sa, eligible[i])
 			}
 			continue
 		}
@@ -585,8 +587,21 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 			ev.Player, ev.Secret = p, true
 			h.Emit(ev)
+			digRemember(c, sa, id)
 			moved++
 		}
+	}
+}
+
+// digRemember honours a Dig's RememberChanged$ True: each card the dig moved
+// joins the resolution's Remembered, where a chained SubAbility$ reads it --
+// Atsushi's DBEffect RememberObjects$ RememberedCard seeds the registered
+// may-play grant's Remembered from exactly this list. Absent the parameter
+// (the corpus default) the walk adds nothing, so every pre-existing game
+// replays byte-identically.
+func digRemember(c *Ctx, sa *cards.SA, id state.ObjID) {
+	if strings.EqualFold(strings.TrimSpace(sa.Params["RememberChanged"]), "True") {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 	}
 }
 
@@ -812,6 +827,13 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// the naming in one place. Ruling T23-w still passes the Note
 			// through RedactEvents unchanged (it is non-Secret).
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: revealed})
+			// The opening-hand RevealCard ability of Impatient Iguana carries
+			// this flag. The public reveal happened, so its "If you do" clause
+			// takes effect as a replayed state transition; a declined optional
+			// reveal reaches the continue above and cannot change the starter.
+			if strings.EqualFold(strings.TrimSpace(sa.Params["BecomeStartingPlayer"]), "True") {
+				h.Emit(events.Event{Kind: events.StartingPlayerChange, Player: c.Controller})
+			}
 		}
 		if remember {
 			// RememberRevealed$ (task fb-3f1cc033): the revealed cards join

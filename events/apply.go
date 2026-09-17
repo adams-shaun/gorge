@@ -67,6 +67,11 @@ func Apply(g *state.Game, e Event) {
 			g.Monarch, g.HasMonarch = e.Player, true
 		}
 
+	case StartingPlayerChange:
+		if validPlayer(g, e.Player) {
+			g.StartingPlayer, g.HasStartingPlayer = e.Player, true
+		}
+
 	case ControlChange:
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {
@@ -394,16 +399,60 @@ func Apply(g *state.Game, e Event) {
 
 	case ManaAdd:
 		if validPlayer(g, e.Player) {
+			// "S<colour>" (e.g. "SW") is a SNOW mana unit (CR 107.4h): it lands
+			// in the colour's pool slot and is tallied in Player.Snow so a {S}
+			// pip can be paid only from it. One event moves both counters, so
+			// the snow tally can never drift from the pool it parallels.
+			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
+				idx := state.ManaIndex(e.Counter[1])
+				g.Players[e.Player].Pool[idx] += e.Amount
+				g.Players[e.Player].Snow[idx] += e.Amount
+				break
+			}
 			idx := state.MC
 			if e.Counter != "" {
 				idx = state.ManaIndex(e.Counter[0])
 			}
-			g.Players[e.Player].Pool[idx] += e.Amount
+			player := &g.Players[e.Player]
+			player.Pool[idx] += e.Amount
+			if valid, restricted := ManaRestrictionFromText(e.Text); restricted {
+				if e.Amount > 0 {
+					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
+						Color: e.Counter, Amount: e.Amount, Valid: valid,
+					})
+				} else if e.Amount < 0 {
+					// A restricted spend event names exactly the restriction batch it
+					// consumes. Walk insertion order so two matching additions replay
+					// identically, and tolerate a malformed historical event that
+					// over-spends its batch without making Pool negative here.
+					need := -e.Amount
+					for i := 0; i < len(player.RestrictedMana) && need > 0; {
+						r := &player.RestrictedMana[i]
+						if r.Color != e.Counter || r.Valid != valid {
+							i++
+							continue
+						}
+						used := r.Amount
+						if used > need {
+							used = need
+						}
+						r.Amount -= used
+						need -= used
+						if r.Amount == 0 {
+							player.RestrictedMana = append(player.RestrictedMana[:i], player.RestrictedMana[i+1:]...)
+							continue
+						}
+						i++
+					}
+				}
+			}
 		}
 
 	case ManaClear:
 		if validPlayer(g, e.Player) {
 			g.Players[e.Player].Pool = state.Mana{}
+			g.Players[e.Player].RestrictedMana = nil
+			g.Players[e.Player].Snow = state.Mana{}
 		}
 
 	case CounterChange:
@@ -679,6 +728,17 @@ func Apply(g *state.Game, e Event) {
 			break
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
+		if sa == nil {
+			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
+			// SVar to resolve: the ability is rebuilt structurally from the
+			// payload -- the same DB$ Ward | UnlessCost$ <cost> a printed
+			// K:Ward's compiled trigger carries -- so the live game and the
+			// replay mint identical objects from the event text alone.
+			if rest, ok := strings.CutPrefix(e.Counter, "__kwWard:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Ward",
+					Params: map[string]string{"UnlessCost": rest, "TriggerDescription": "Ward"}}
+			}
+		}
 		if sa == nil {
 			break
 		}
@@ -976,6 +1036,13 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		}
 	}
 	remove(g, id, o.Zone, zoneOwner(o, o.Zone))
+	// CR 400.7: leaving the battlefield makes the object a new object in
+	// its next zone, so control-changing effects do not follow it. Reset
+	// before choosing the destination's zone owner: a later graveyard/hand
+	// re-entry must be placed under its owner, not its former controller.
+	if wasBattlefield && to != state.ZBattlefield {
+		o.Controller = o.Owner
+	}
 	if to != state.ZCeased {
 		dst := zoneOwner(o, to)
 		g.SetZone(to, dst, append(g.Zone(to, dst), id))
@@ -1060,6 +1127,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Counters = nil
 		o.Targets = nil
 		o.Remembered = nil
+		if wasBattlefield {
+			o.Imprinted = nil
+		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an
 		// ETB "if it was kicked" trigger needs to read X/CastFlags off the

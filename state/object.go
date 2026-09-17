@@ -64,6 +64,16 @@ const (
 	// FlagHarmonize and FlagSuspend exile the spell after it resolves.
 	FlagHarmonize
 	FlagSuspend
+	// FlagEscaped marks a cast paid for with its Escape cost (CR 702.42a);
+	// it survives onto the permanent, where the "sacrifice it unless it
+	// escaped" ETB family and the escape-with-counters replacements read it
+	// through the Card.Self+escaped spec.
+	FlagEscaped
+	// FlagMayPlay marks a cast made through a may-play-from-zone grant
+	// (CR 401.5); the MayPlayLimit$ once-per-turn cap reads it from the log
+	// (rules' mayPlaysThisTurn), the same CastInfo provenance marker the
+	// Suspend flag is.
+	FlagMayPlay
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -171,7 +181,9 @@ type Object struct {
 	// Imprinted holds cards ImprintCards$ explicitly associated with this
 	// object. It is distinct from ExiledCards: Forge's host card has separate
 	// imprintedCards and exiledCards collections, and their consumers must not
-	// make an ordinary exile satisfy an Imprinted selector.
+	// make an ordinary exile satisfy an Imprinted selector. It is state
+	// because later abilities (Chrome Mox) refer to it after the originating
+	// resolution has ended.
 	Imprinted []ObjID
 	// ExiledCards holds cards this object exiled through ChangeZone (Forge's
 	// hostCard.exiledCards). The association exists only while the card

@@ -3,17 +3,45 @@
   import type { CardOptions } from '../lib/cardoptions';
   import { attachedTo, groupBattlefield, stackIdentical } from '../lib/board';
   import type { SeatCorner } from '../lib/seattable';
+  import { layoutStore } from '../lib/layoutsettings.svelte';
   import CardStack from './CardStack.svelte';
   import CommandArea from './CommandArea.svelte';
+  import ZoneStepper from './ZoneStepper.svelte';
 
   /** Quadrant shows one player's battlefield, split into the three rows board.ts groups it into. It has no rules knowledge: grouping and ordering come entirely from groupBattlefield; stackIdentical then collapses interchangeable permanents within a row into one tile with a count (CardStack renders the group). Attachments still come from attachedTo for a group of one — a stacked group has none by the stacking rule. The seat's command zone (CommandArea) draws directly into the creatures row, at creature scale, alongside the CardStacks — not into a private area of its own (CZ2); it draws nothing at all for a seat with no commander roster. `stack` is passed through to it alone: a commander mid-cast is a spell on the stack, not in any zone list. `options` (the pending decision's card-indexed offers, or null) is forwarded to every CardStack, and from there to each tile, and to CommandArea, which looks a commander's own options up by its object id the same way.
    *
    * The keyed-each key is the group's RENDER key (g.render — the visible lead object's id), not the mutable stacking-equivalence string (g.render): `key` changes whenever any visible state changes — that is the grouping working — but a DOM key that changes unmounts CardStack and its CardTile, destroying the tile's local hover state, so an inspector the reader had open closed the moment the same permanent untapped or stopped attacking (fb-20260915T182335Z). Keyed by the lead object's id, a kept tile handed a newer CardView for the same object keeps its open inspector and renders the fresh state (CardTile's superviseRendering guard still closes it when the id itself changes or the object stops being rendered). */
-  let { player, colour, corner = 'bl', stack = [], options = null }: { player: PlayerView; colour: string; corner?: SeatCorner; stack?: StackView[]; options?: CardOptions | null } = $props();
+  let { player, colour, corner = 'bl', stack = [], options = null, own = false }: { player: PlayerView; colour: string; corner?: SeatCorner; stack?: StackView[]; options?: CardOptions | null; /** own is true only for the VIEWER'S quadrant (Board computes it from view.viewer): the on-board resize stepper (ZoneStepper) is mounted on this quadrant's rows alone — four copies of one control mutating one shared setting would be noise. The scale/align/flash themselves apply to every quadrant, because the setting is one player preference, not four. */ own?: boolean } = $props();
+
+  // Layout settings (fb-20260916T182801Z): one shared store, read reactively —
+  // a change from the Game Options panel re-renders the rows here without
+  // event plumbing. rowHover holds the stepper-presence flag per row so the
+  // dotted outline stays up while the control is being used (the store's
+  // flash covers the post-adjustment window; see layoutsettings.svelte.ts).
+  let rowHover = $state<{ creatures: boolean; others: boolean; lands: boolean }>({
+    creatures: false,
+    others: false,
+    lands: false,
+  });
+  type BattlefieldZone = 'creatures' | 'others' | 'lands';
+  function rowOutlined(zone: BattlefieldZone): boolean {
+    return layoutStore.flash[zone] || rowHover[zone];
+  }
+  function hoverRow(zone: BattlefieldZone, hovering: boolean): void {
+    rowHover[zone] = hovering;
+  }
 
   const battlefieldGroups = $derived(groupBattlefield(player.battlefield));
+  // fb-20260916T201423Z: the lands row ignores tapped state when it stacks — a
+  // pile of Forests is a pile of Forests whether some of its members are
+  // tapped for mana or not (the report's Swamp x2 tapped + x1 untapped
+  // renders as ONE pile), and the readiness a tapped split used to carry is
+  // shown on the pile's tab instead (CardStack's readiness plate). Creatures
+  // and the others row keep the strict key: there a tapped member really
+  // cannot do what an untapped one can (attack/block), and the split IS the
+  // gameplay information.
   const stacks = $derived({
-    lands: stackIdentical(battlefieldGroups.lands),
+    lands: stackIdentical(battlefieldGroups.lands, { ignoreTapped: true }),
     creatures: stackIdentical(battlefieldGroups.creatures),
     others: stackIdentical(battlefieldGroups.others),
   });
@@ -43,21 +71,57 @@
        than a scale of its own, and it sits beside the CardStacks it competes
        with in combat instead of in a private area elsewhere on the seat's
        rim. Nothing is drawn here for a seat with no commander roster. -->
-  <div class="row creatures">
+  <div
+    class="row creatures"
+    class:zone-outline={rowOutlined('creatures')}
+    style:--row-scale={layoutStore.scale('creatures')}
+    data-align={layoutStore.align('creatures')}
+    data-zone-row="creatures"
+  >
     <CommandArea {player} {stack} {options} />
     {#each stacks.creatures as g (g.render)}
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} {options} />
     {/each}
+    {#if own}
+      <!-- fb-20260916T200925Z: the on-board steppers are gated on the player's
+           show/hide toggle in Game Options (Layout section); conditional
+           render, not display:none, so the DOM and the a11y tree stay clean. -->
+      {#if layoutStore.steppersOnBoard}
+        <ZoneStepper zone="creatures" label="creature" onhover={(h) => hoverRow('creatures', h)} />
+      {/if}
+    {/if}
   </div>
-  <div class="row others">
+  <div
+    class="row others"
+    class:zone-outline={rowOutlined('others')}
+    style:--row-scale={layoutStore.scale('others')}
+    data-align={layoutStore.align('others')}
+    data-zone-row="others"
+  >
     {#each stacks.others as g (g.render)}
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} {options} />
     {/each}
+    {#if own}
+      {#if layoutStore.steppersOnBoard}
+        <ZoneStepper zone="others" label="non-creature" onhover={(h) => hoverRow('others', h)} />
+      {/if}
+    {/if}
   </div>
-  <div class="row lands">
+  <div
+    class="row lands"
+    class:zone-outline={rowOutlined('lands')}
+    style:--row-scale={layoutStore.scale('lands')}
+    data-align={layoutStore.align('lands')}
+    data-zone-row="lands"
+  >
     {#each stacks.lands as g (g.render)}
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} {options} />
     {/each}
+    {#if own}
+      {#if layoutStore.steppersOnBoard}
+        <ZoneStepper zone="lands" label="land" onhover={(h) => hoverRow('lands', h)} />
+      {/if}
+    {/if}
   </div>
 </div>
 
@@ -145,9 +209,23 @@
 
      No row stretches. A creature row with flex:1 pushed the lands to the far
      edge and opened a hole in the middle of every seat that had two
-     permanents; the rows simply sit together against the seam instead. */
+     permanents; the rows simply sit together against the seam instead.
+
+     fb-20260916T182801Z: --row-scale is the layout-settings multiplier
+     (lib/layoutsettings.svelte.ts); data-align packs the row's main axis
+     left/centre/right; position:relative anchors the on-board resize
+     stepper; .zone-outline is the dotted outline the store pulses for
+     FLASH_MS after an adjustment (and the row holds it while its stepper is
+     hovered/focused — rowHover). */
   .row {
-    --card-w: var(--play-card-w);
+    --card-w: calc(var(--play-card-w) * var(--row-scale, 1));
+    position: relative;
+  }
+  .row[data-align='center'] { justify-content: center; }
+  .row[data-align='right'] { justify-content: flex-end; }
+  .row.zone-outline {
+    outline: 2px dashed var(--ink-dim);
+    outline-offset: 3px;
   }
   .row.creatures {
     align-items: flex-start;

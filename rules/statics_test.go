@@ -457,8 +457,10 @@ func TestReduceCostAmountOverflowDoesNotIncreaseCost(t *testing.T) {
 }
 
 // TestReduceCostNegativeAmountDoesNotBecomeARaise is the reviewer's third
-// case: a plain negative Amount$ on a ReduceCost must fall back to the
-// default reduction, not flip into a cost increase.
+// case: a plain negative Amount$ on a ReduceCost must apply NO reduction and
+// never flip into a cost increase — modAmount degrades an unresolvable or
+// negative amount to zero, the honest read of an amount the engine cannot
+// evaluate (the old parseAmount(...,1) fallback is gone with the rv2c task).
 func TestReduceCostNegativeAmountDoesNotBecomeARaise(t *testing.T) {
 	zap := card(t, "Name:Zap\nManaCost:1\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n")
 	discount := card(t, "Name:Discount\nManaCost:1\nTypes:Artifact\n"+
@@ -470,7 +472,7 @@ func TestReduceCostNegativeAmountDoesNotBecomeARaise(t *testing.T) {
 
 	id := e.G.Zone(state.ZHand, 0)[0]
 	c := e.adjustedCost(0, id)
-	if c.Generic != 0 {
-		t.Fatalf("generic = %d, want 0: a negative Amount$ must fall back to the default reduction, not become a raise", c.Generic)
+	if c.Generic != 1 {
+		t.Fatalf("generic = %d, want 1: a negative Amount$ applies no reduction at all (never a raise, never a phantom discount)", c.Generic)
 	}
 }

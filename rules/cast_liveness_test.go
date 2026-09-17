@@ -386,30 +386,44 @@ func TestAuthorizedDelveAnswersStayLegal(t *testing.T) {
 	})
 }
 
-// livenessPhyrexianDrawer is the activation shape the commander bench
-// livelocked on (2026-09-15, seed 1295): an activated ability whose phyrexian
-// pip is answerable but whose generic remainder is not (pool {R}, cost
-// {1}{R/P}), so the offer-time castable gate passes (a Mountain could cover
-// the generic) while the answers actually given strand it. Solphim, Mayhem
-// Dominus is the corpus card this fixture mirrors.
+// livenessPhyrexianDrawer mirrors the activated-ability shape the commander
+// bench livelocked on (2026-09-15, seed 1295, Solphim Mayhem Dominus): an
+// ability with a Phyrexian pip and a generic remainder (cost {1}{R/P}, pool
+// {R}). Under the shared feasibility primitive the bench's strand is
+// structurally gone -- the pip ask offers only the life face (pay_R cannot
+// complete the generic) and the activation then completes legally -- so the
+// no-progress abort the F05-2 discipline governs is driven instead by the
+// target-conditional RaiseCost below: the offer gate prices the ability
+// pre-target, the CR 601.2c target answer reprices with the {2} raise, every
+// target reprices unaffordable, and the proposal reverses (CR 733.1) with no
+// state change.
 const livenessPhyrexianDrawer = "Name:Drawer\nManaCost:1 R\nTypes:Creature Human Wizard\nPT:1/1\n" +
-	"A:AB$ Draw | Cost$ 1 RP | Defined$ You | SpellDescription$ Draw a card.\nOracle:x\n"
+	"A:AB$ DealDamage | Cost$ 1 RP | ValidTgts$ Creature | NumDmg$ 1 | SpellDescription$ Deal 1 damage to target creature.\nOracle:x\n"
+
+// livenessTaxer raises by {2} the cost of every ability activated at it: a
+// target-dependent raise is deliberately invisible to the offer gate and to
+// targetDependentCostMayPay (potential mode skips raises), so it is the one
+// shape whose offer can still strand at the target gate and reach the
+// no-progress abort.
+const livenessTaxer = "Name:Taxer\nManaCost:2\nTypes:Creature\nPT:1/1\n" +
+	"S:Mode$ RaiseCost | ValidTarget$ Creature | Activator$ You | Type$ Ability | Amount$ 2 | Description$ Abilities you activate that target a creature cost {2} more.\nOracle:x\n"
 
 // TestAbilityNoProgressAbortHoldsTheAbilityOut pins the F05-2 (CR 733.2)
 // discipline at the ACTIVATION abort sites and the ability-offer path's duty
 // to read it. Before this pin the abort bookkeeping (suppressedCast/
 // castAborts) was written for "cast/activation" aborts alike, but only the
-// cast-option builder ever read the map: an ability whose cost could not
+// cast-option builder ever read the map: an activation that could not
 // complete re-offered forever inside one priority window -- the commander
 // bench spun 20000 intents on Solphim (seed 1295) with the turn count frozen
 // at 9. The sequence per attempt: choose the ability -> the phyrexian pip
-// ask (answered from the pool) -> commit fails, "activation aborted: cost no
-// longer payable", no state change. The FIRST abort leaves the ability
-// offered (CR 733.2 retry); the SECOND holds it out; a state-changing land
-// play brings it back.
+// ask (the only feasible face, life) -> the target gate reprices with the
+// {2} raise, finds no affordable target and aborts with no state change.
+// The FIRST abort leaves the ability offered (CR 733.2 retry); the SECOND
+// holds it out; a state-changing land play brings it back.
 func TestAbilityNoProgressAbortHoldsTheAbilityOut(t *testing.T) {
-	e, cfg, id := newFixtureDeck(t, 52, livenessPhyrexianDrawer)
+	e, cfg, id := newFixtureDeck(t, 52, livenessPhyrexianDrawer, livenessTaxer)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	putCreature(t, e, 0, livenessTaxer)
 	addMana(t, e, 0, "R")
 	e.Advance()
 
@@ -431,18 +445,17 @@ func TestAbilityNoProgressAbortHoldsTheAbilityOut(t *testing.T) {
 		submitChoices(t, e, d.Options[0].Index)
 	}
 	// attempt drives one full activation attempt to its no-progress abort:
-	// choose the ability -> the phyrexian pip ask (answered from the pool) ->
-	// commit. The fixture Mountains carry no mana-ability text, so the
-	// CR 601.2g window never opens (no source to activate) and the payment
-	// fails right after the pip answer -- the same shape the bench spun on
-	// (Solphim's controller likewise had no tap left to cover the generic).
+	// choose the ability -> the phyrexian pip ask (pay_life is the only
+	// feasible face; the fixture Mountains carry no mana-ability text, so
+	// the CR 601.2g window never opens) -> the target gate reprices with the
+	// {2} raise, finds no affordable target and reverses the proposal.
 	attempt := func() {
 		t.Helper()
 		if _, ok := findAbilityOption(e, id, 0); !ok {
 			t.Fatalf("the ability option is not offered at attempt start (suppressed=%v)", e.suppressedCast)
 		}
 		submitChoices(t, e, abilityOption(t, e, id, 0).Index)
-		answerOneChoose() // the phyrexian pip
+		answerOneChoose() // the phyrexian pip (pay_life, the only feasible face)
 		if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
 			t.Fatalf("the aborted activation did not return to priority: %+v", d)
 		}

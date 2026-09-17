@@ -10,8 +10,21 @@ type Player struct {
 	Lost        bool
 	LandsPlayed int32
 	Pool        Mana
+	// RestrictedMana retains the spend restriction on mana produced by a
+	// RestrictValid$ mana ability. It is cleared with the pool at step/phase
+	// cleanup and is reconstructed from ManaAdd events.
+	RestrictedMana []ManaRestriction
+
 	// Counters records player counters (currently poison, used by Ward costs).
 	Counters []Counter
+
+	// Snow parallels Pool slot for slot: Snow[i] counts how many of the
+	// Pool[i] mana units were produced by a Snow permanent (CR 107.4h — a
+	// snow unit can pay a {S} pip as well as anything else one mana pays).
+	// It is written only by the ManaAdd event's "S<colour>" Counter form and
+	// cleared with the pool by ManaClear, so Snow[i] <= Pool[i] always holds
+	// and a replay derives both identically.
+	Snow Mana
 
 	// Commanders lists this seat's commanders, in Config order, sized at
 	// genesis and never grown. CmdCasts runs parallel to it: entry k counts
@@ -78,10 +91,17 @@ type Game struct {
 	Turn     int32
 	Active   PlayerID
 	Priority PlayerID
-	Step     Step
-	Passes   int32
-	Over     bool
-	Winner   PlayerID
+	// StartingPlayer is the seat that takes the first turn. HasStartingPlayer
+	// keeps seat zero distinct from a game whose opening determination has not
+	// completed (for example terminal genesis with no survivors). It is folded
+	// only by events.StartingPlayerChange, so replay, Clone and snapshots retain
+	// opening-hand effects that replace the toss result.
+	StartingPlayer    PlayerID
+	HasStartingPlayer bool
+	Step              Step
+	Passes            int32
+	Over              bool
+	Winner            PlayerID
 	// Draw marks a game that ended with no surviving seats (CR 104.4a).
 	// Winner's zero value is PlayerID(0), a real seat, so Over alone cannot
 	// distinguish "seat 0 won" from "nobody did" -- Draw is what does.
@@ -282,6 +302,7 @@ func (g *Game) Clone() *Game {
 		c.Players[i].Commanders = append([]ObjID(nil), g.Players[i].Commanders...)
 		c.Players[i].CmdCasts = append([]int32(nil), g.Players[i].CmdCasts...)
 		c.Players[i].CmdDamage = append([]int32(nil), g.Players[i].CmdDamage...)
+		c.Players[i].RestrictedMana = append([]ManaRestriction(nil), g.Players[i].RestrictedMana...)
 	}
 	c.Objs = make([]Object, len(g.Objs))
 	for i := range g.Objs {
@@ -339,6 +360,12 @@ func (g *Game) AliveCount() int { return len(g.AliveFrom(0)) }
 
 // IsMonarch reports whether p currently holds the monarch designation.
 func (g *Game) IsMonarch(p PlayerID) bool { return g.HasMonarch && g.Monarch == p }
+
+// IsStartingPlayer reports whether p currently holds the CR 103.1 first-turn
+// designation. The presence bit makes the zero seat unambiguous.
+func (g *Game) IsStartingPlayer(p PlayerID) bool {
+	return g.HasStartingPlayer && g.StartingPlayer == p
+}
 
 // NextAlive returns the next surviving seat after p, or p itself if none is.
 func (g *Game) NextAlive(p PlayerID) PlayerID {

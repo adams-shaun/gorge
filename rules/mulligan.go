@@ -113,6 +113,17 @@ func (e *Engine) stepPregame() {
 		e.askKeepMulligan(i)
 		return
 	}
+	// CR 103.5 is ROUND-ROBIN: every un-kept player has declared once before
+	// any player who mulliganed declares again. If this pass has mulliganers,
+	// restart at its first seat; only a pass in which everybody keeps reaches
+	// London bottoming.
+	for _, kept := range m.kept {
+		if !kept {
+			m.cursor = 0
+			e.stepPregame()
+			return
+		}
+	}
 	// Every seat has kept: move to the bottoming phase.
 	m.bottom = true
 	m.cursor = 0
@@ -259,10 +270,12 @@ func (e *Engine) handleMulligan(d *decision.Decision, in decision.Intent) {
 		e.mulligan.kept[i] = true
 		return
 	}
-	// A mulligan: the seat stays un-kept (it must decide again, on a full
-	// re-drawn seven), so cursor does not advance. taken increments first;
-	// once it reaches limit the only follow-up ask offers "keep".
+	// A mulligan: the seat stays un-kept (it must decide again on a later
+	// PASS, after every other un-kept seat declares once). Advance cursor now;
+	// stepPregame resets it only after the current round has completed. taken
+	// increments first; once it reaches limit the next-pass ask offers keep.
 	e.mulligan.taken[i]++
+	e.mulligan.cursor++
 	for _, id := range e.G.Zone(state.ZHand, p) {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
 			To: state.ZLibrary, Player: p, Text: "mulligan"})

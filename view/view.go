@@ -385,12 +385,15 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 	v.Phase = PhaseOf(g.Step)
 	v.Active = g.Active
 	v.Priority = g.Priority
-	// The London mulligan round happens before the first TurnChange, so its
-	// resolved starting seat is transient engine flow rather than Game state.
-	// Ask the optional capability instead of widening Chars: test projections
-	// and non-rules embedders retain the ordinary state fallback.
+	// The London mulligan round happens before the first TurnChange. Its
+	// starting seat is nevertheless authoritative Game state now, so a
+	// snapshot-only projection (without a live rules.Engine capability) keeps
+	// the same play/draw seat after an opening effect changes it. Retain the
+	// capability fallback for hand-built legacy state with no designation.
 	if g.Turn == 0 && !g.Over {
-		if starter, ok := ch.(interface{ PregameStarter() (state.PlayerID, bool) }); ok {
+		if g.HasStartingPlayer {
+			v.Active = g.StartingPlayer
+		} else if starter, ok := ch.(interface{ PregameStarter() (state.PlayerID, bool) }); ok {
 			if p, ok := starter.PregameStarter(); ok {
 				v.Active = p
 			}

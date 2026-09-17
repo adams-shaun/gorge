@@ -151,6 +151,28 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	}) {
 		mode, params := parseStaticLine(c.SVars, name)
 		switch mode {
+		case "Continuous":
+			// A may-play-from-zone grant delivered by an Effect SA (Atsushi's
+			// "you may play those cards" STPlay static): registered like the
+			// S: static shape, with the Effect's Remembered set seeding the
+			// grant so the Affected$ Card.IsRemembered spec matches the cards
+			// the resolution exiled/remembered (rules' grant walk matches
+			// through a SpecContext that carries this list). The shared
+			// MayPlayStaticParams whitelist keeps both registration paths
+			// honest: a rider this build does not read fails closed here too.
+			if grant, ok := mayPlayGrantFromLine(params); ok {
+				grant.Source = c.Source
+				grant.Controller = c.Controller
+				grant.UntilEOT = effectUntilEOT(h, c.Source, dur)
+				grant.Remembered = remembered
+				grant.Duration = dur
+				h.AddContinuous(grant)
+				registered = true
+			} else if len(params) > 0 {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+			}
 		case "CantTarget", "CantRegenerate", "CantPreventDamage":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
@@ -189,6 +211,72 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "registers a continuous effect (" + what + ") for " + dur})
 	}
+}
+
+// mayPlayGrantFromLine builds the may-play ContinuousEffect from one parsed
+// static line (an SVar static body effEffect registers, or the S: line rules
+// passes through MayPlayStaticParams). ok=false is the fail-closed grant:
+// nothing is registered rather than a half-read grant going live.
+func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
+	ignoreColor, limit, playerTurn, ok := MayPlayStaticParams(params)
+	if !ok {
+		return state.ContinuousEffect{}, false
+	}
+	return state.ContinuousEffect{
+		Affects:            params["Affected"],
+		AffectedZone:       strings.TrimSpace(params["AffectedZone"]),
+		MayPlay:            true,
+		MayPlayIgnoreColor: ignoreColor,
+		MayPlayLimit:       limit,
+		MayPlayPlayerTurn:  playerTurn,
+	}, true
+}
+
+// MayPlayStaticParams reports whether a Mode$ Continuous static body (an S:
+// line or an SVar static an Effect SA registers) carries the may-play grant
+// this build implements, and resolves its two readable riders. The
+// implemented shape is MayPlay$ True plus an Affected$/AffectedZone$ pair and
+// only display/placement metadata; MayPlayIgnoreColor$ (mana as any colour),
+// MayPlayLimit$ (an integer once-per-turn cap) and Condition$ PlayerTurn
+// ("during each of your turns", the Kess/Karador family) are read. Anything
+// else -- MayPlayIgnoreType$/MayPlayWithoutManaCost$/MayPlayText$ (they change
+// what the cast IS, not just where it may come from), a Condition$ whose value
+// is not PlayerTurn, a ValidAfterStack$/Secondary$ qualifier (it changes when
+// the grant lives), or a MayPlayLimit$ value that is not a non-negative
+// integer -- fails closed:
+func MayPlayStaticParams(params map[string]string) (ignoreColor bool, limit int32, playerTurn bool, ok bool) {
+	v, okv := params["MayPlay"]
+	if !okv || !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return false, 0, false, false
+	}
+	for key := range params {
+		switch key {
+		case "Mode", "MayPlay", "MayPlayIgnoreColor", "MayPlayLimit", "Condition",
+			"Affected", "AffectedZone", "Description", "EffectZone":
+			// The keys the implemented grant (and only it) carries.
+		default:
+			return false, 0, false, false
+		}
+	}
+	limit = 0
+	if raw, okv := params["MayPlayLimit"]; okv {
+		n, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 32)
+		if err != nil || n < 0 {
+			// A MayPlayLimit$ value this build cannot enforce must not
+			// silently become "unlimited".
+			return false, 0, false, false
+		}
+		limit = int32(n)
+	}
+	playerTurn = strings.EqualFold(strings.TrimSpace(params["Condition"]), "PlayerTurn")
+	if cond, okv := params["Condition"]; okv && !playerTurn {
+		// A Condition$ other than PlayerTurn changes when the grant lives;
+		// never register it half-read.
+		_, _ = cond, okv
+		return false, 0, false, false
+	}
+	ignoreColor = strings.EqualFold(strings.TrimSpace(params["MayPlayIgnoreColor"]), "True")
+	return ignoreColor, limit, playerTurn, true
 }
 
 // parseStaticLine parses an S: static body an SVar holds ("Mode$ CantTarget |
@@ -267,7 +355,7 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 					out = append(out, t.Obj)
 				}
 			}
-		case "Remembered", "Remembered.Creature", "Remembered.Permanent":
+		case "Remembered", "Remembered.Creature", "Remembered.Permanent", "RememberedCard":
 			for _, t := range c.Remembered {
 				if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
 					out = append(out, t.Obj)
@@ -376,7 +464,13 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// The cosmetic fallback (an empty-list clear, or a Cleanup with nothing
 	// to clear): the Note main has always emitted, byte-for-byte, so golden
-	// games whose cleanups run on empty lists replay identically.
+	// games whose cleanups run on empty lists replay identically. This also
+	// covers main's independent Valakut concern: Valakut's DBCleanup runs
+	// after DBEffect captured the dig's RememberChanged list into the
+	// registered Effect, so the end-step trigger's own X=Remembered$Amount
+	// must count only what IT moved -- c.Remembered is unconditionally
+	// cleared above regardless of whether the source object held a
+	// persisted list to clear too.
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "clears remembered/imprinted objects"})
 }
 
@@ -937,6 +1031,15 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	if produced == "" || produced == "Any" || produced == "Combo Any" {
 		produced = "C"
 	}
+	// A "Combo" head lists every colour the production may be taken in (CR
+	// 107.5-style "any combination"). Forge asks for the combination; this
+	// executor still degenerates to the FULL amount in EVERY listed colour --
+	// the documented stand-in (the colour-choice ask is the M4 mana-choice
+	// milestone) -- but that must not be the hard "unhandled Produced$" no-op
+	// it was: Burnt Offering's Produced$ Combo B R added NOTHING. Chosen/
+	// ComboChosen shapes (a remembered or chosen colour) still fail loudly --
+	// they have no degenerate reading.
+	produced = strings.TrimSpace(strings.TrimPrefix(produced, "Combo "))
 	// Strip braces and spaces, then validate every remaining rune before any
 	// of them reaches the pool: ComboChosen/ChosenColor/Special ... values
 	// that do not name plain mana symbols fail closed instead of splitting
@@ -953,10 +1056,28 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	if amt < 0 {
 		amt = 0
 	}
+	// CR 107.4h: mana produced by a SNOW permanent is snow mana. A snow unit
+	// is tagged in the pool event itself — Counter "S<colour>" — so the pool
+	// slot and the parallel snow tally move through one event and a replay
+	// derives both identically. The {S} pips a cost may carry are paid only
+	// from that tally (rules/mana.go's resolveMana).
+	snow := false
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		for _, t := range o.Face().Types {
+			if t == "Snow" {
+				snow = true
+				break
+			}
+		}
+	}
 	for _, p := range ManaRecipients(h, c, sa) {
 		for _, r := range runes {
+			counter := string(r)
+			if snow {
+				counter = "S" + counter
+			}
 			h.Emit(events.Event{Kind: events.ManaAdd, Player: p,
-				Counter: string(r), Amount: amt})
+				Counter: counter, Amount: amt})
 		}
 	}
 }

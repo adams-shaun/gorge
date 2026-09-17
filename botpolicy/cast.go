@@ -132,9 +132,10 @@ var braceForm = strings.NewReplacer("{", " ", "}", " ")
 // because botpolicy cannot import rules (Ruling F7); both adapter halves
 // call this same exported function on the same printed field, so they can
 // only agree. {X} counts as 0 (a printed X is 0 on the stack before a value
-// is chosen — the engine's own CMC() agrees), a hybrid or Phyrexian or
-// colourless symbol approximates as one generic, and a brace-form cost
-// ("{2}{U}{U}") is normalised to the space-separated form first.
+// is chosen — the engine's own CMC() agrees); ordinary hybrid, Phyrexian and
+// colourless symbols count one, while a monocolour hybrid ({2/W}) counts its
+// generic face (two). A brace-form cost ("{2}{U}{U}") is normalised to the
+// space-separated form first.
 func CmcOf(mc string) int32 {
 	mc = braceForm.Replace(mc)
 	mc = strings.TrimSpace(mc)
@@ -154,10 +155,41 @@ func CmcOf(mc string) int32 {
 			n += int32(v)
 			continue
 		}
+		if v, ok := twobridManaValue(sym); ok {
+			n += v
+			continue
+		}
 		// Hybrid ("W/U"), Phyrexian ("UP"), and any other symbol: one generic.
 		n++
 	}
 	return n
+}
+
+// twobridManaValue recognises Forge's concatenated ("2W") and slash
+// ("2/W") monocolour-hybrid spellings. It is kept alongside CmcOf because
+// botpolicy cannot import cards or rules.
+func twobridManaValue(sym string) (int32, bool) {
+	generic, col := "", ""
+	if left, right, ok := strings.Cut(sym, "/"); ok {
+		generic, col = left, right
+	} else {
+		i := 0
+		for i < len(sym) && sym[i] >= '0' && sym[i] <= '9' {
+			i++
+		}
+		if i == 0 {
+			return 0, false
+		}
+		generic, col = sym[:i], sym[i:]
+	}
+	if len(col) != 1 || !strings.ContainsRune("WUBRGC", rune(col[0])) {
+		return 0, false
+	}
+	v, err := strconv.ParseInt(generic, 10, 32)
+	if err != nil || v < 0 {
+		return 0, false
+	}
+	return int32(v), true
 }
 
 // hasTypeWord is botpolicy's type-membership test, re-expressed so the two

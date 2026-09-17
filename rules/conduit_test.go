@@ -213,34 +213,26 @@ func TestConduitGraveyardLandEtbChoicePlaysFromGraveyard(t *testing.T) {
 
 // TestMayPlayRichGrantFailsClosed pins that the may-play permission is only
 // implemented for the UNCONDITIONAL land shape. A richer grant -- one carrying
-// a MayPlayLimit$ once-per-turn/per-type qualifier (Muldrotha's MayPlayLimit$
-// 1 + MayPlayText$ shape) or a Condition$ PlayerTurn gate -- must FAIL CLOSED:
-// it keeps the prior no-op behaviour (no play_land offered) rather than being
-// silently over-applied against the ordinary LandsPlayed limit. This is the
-// scope boundary the brief draws; the richer Muldrotha-style grants are
-// separate feature work.
+// a CheckSVar$/SVarCompare$ gate -- must FAIL CLOSED: it keeps the prior
+// no-op behaviour (no play_land offered) rather than being silently
+// over-applied. MayPlayLimit$ (the once-per-turn cap, mayPlaysThisTurn) and
+// Condition$ PlayerTurn (the Kess/Karador family) are IMPLEMENTED as of the
+// Rakdos-params task and pinned by their own tests in
+// rakdos_params_mayplay_test.go; only a rider the grant walk genuinely does
+// not read still forces closed here.
 func TestMayPlayRichGrantFailsClosed(t *testing.T) {
 	t.Run("MayPlayLimit forces closed", func(t *testing.T) {
 		e := mayPlayBase(t)
 		// Muldrotha's real uncapped-per-type land grant: MayPlay$ True but
-		// once-per-turn (MayPlayLimit$ 1) and Condition$ PlayerTurn.
+		// once-per-turn (MayPlayLimit$ 1, readable) AND MayPlayText$ Land --
+		// the per-TYPE qualifier the cap ride does not model. The unread key
+		// forces the whole grant closed.
 		muldrotha := "Name:Muldrotha, the Gravetide\nManaCost:1 G U B\nTypes:Legendary Creature\nPT:6/6\n" +
 			"S:Mode$ Continuous | Affected$ Land.YouOwn | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Land | EffectZone$ Battlefield | AffectedZone$ Graveyard | Description$ x\nOracle:x\n"
 		onBoardGrant(t, e, 0, muldrotha)
 		grave := graveCard(e, card(t, landSrc("Mountain")), 0, 0)
 		if n := countPlayLand(e, grave); n != 0 {
-			t.Fatalf("a MayPlayLimit$ grant must fail closed (no play_land), got %d", n)
-		}
-	})
-
-	t.Run("Condition PlayerTurn forces closed", func(t *testing.T) {
-		e := mayPlayBase(t)
-		gated := "Name:Gated Grant\nManaCost:2\nTypes:Artifact\n" +
-			"S:Mode$ Continuous | Affected$ Land.YouOwn | Condition$ PlayerTurn | MayPlay$ True | AffectedZone$ Graveyard | Description$ x\nOracle:x\n"
-		onBoardGrant(t, e, 0, gated)
-		grave := graveCard(e, card(t, landSrc("Mountain")), 0, 0)
-		if n := countPlayLand(e, grave); n != 0 {
-			t.Fatalf("a Condition$ grant must fail closed (no play_land), got %d", n)
+			t.Fatalf("a MayPlayText$ grant must fail closed (no play_land), got %d", n)
 		}
 	})
 

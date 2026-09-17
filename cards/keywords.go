@@ -128,6 +128,16 @@ func (f *Face) expandKeywords() {
 			f.setSVar("__kwLWAttach", "DB$ Attach | Defined$ Remembered | Object$ Self")
 			f.addKeywordTrigger(head, k, "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | TriggerDescription$ Living weapon",
 				"DB$ Token | TokenScript$ b_0_0_phyrexian_germ | TokenOwner$ You | RememberTokens$ True | SubAbility$ __kwLWAttach", has)
+		case "Cumulative upkeep":
+			// CR 702.46a is a triggered ability, not an upkeep turn action.
+			// Expanding it into the ordinary Phase-trigger pipeline gives it
+			// normal APNAP ordering, stack interaction and response windows.
+			// param may include Forge's trailing display text after a colon;
+			// only the first field is the actual upkeep cost.
+			cost, _, _ := strings.Cut(param, ":")
+			f.addKeywordTrigger(head, k,
+				"Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | TriggerDescription$ Cumulative upkeep",
+				"DB$ CumulativeUpkeep | Cost$ "+cost, has)
 		case "Equip":
 			if has("A", k) {
 				continue

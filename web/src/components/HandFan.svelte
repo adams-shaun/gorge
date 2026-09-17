@@ -7,6 +7,8 @@
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
+  import { layoutStore } from '../lib/layoutsettings.svelte';
+  import ZoneStepper from './ZoneStepper.svelte';
 
   /**
    * HandFan is the SEATED PLAYER'S OWN hand, drawn as real card faces along
@@ -105,8 +107,18 @@
   });
   const room = $derived(width > 0 ? width : measured);
   const maxW = $derived(room > 0 ? Math.max(PLAY_CARD_WIDTH, room) : Number.MAX_SAFE_INTEGER);
-  const spec: HandFanSpec = $derived({ cardWidth: PLAY_CARD_WIDTH, gap: GAP, maxWidth: maxW });
+  // The hand's card scale is a layout setting (fb-20260916T182801Z): the
+  // layout MATH takes the scaled width so step/overlap tighten against the
+  // real face size, and the CSS --card-w below takes the same multiplier so
+  // the faces and the math agree.
+  const handScale = $derived(layoutStore.scale('hand'));
+  const spec: HandFanSpec = $derived({ cardWidth: Math.round(PLAY_CARD_WIDTH * handScale), gap: GAP, maxWidth: maxW });
   const layout = $derived(handFanLayout(hand.length, spec));
+  // The dotted outline (brief decision 4): up while the hand's on-board
+  // stepper is being used and for FLASH_MS after any hand adjustment —
+  // including one made in the Game Options panel, which pulses the same
+  // shared store this track reads.
+  let handHover = $state(false);
 
   // One hover state for the whole fan, same contract as CardTile/HandList.
   const hover = new HoverCard();
@@ -167,10 +179,11 @@
 
 {#if hand.length > 0}
   <!-- The track spans the board and is the measured element; the fan row is
-       centred inside it. Both are pointer-transparent; only a face claims the
-       pointer. -->
-  <div class="handtrack" bind:this={container}>
-  <div class="handfan" style:width="{layout.rowWidth}px">
+       packed per the layout setting (data-align, default centred) inside it.
+       Both are pointer-transparent; only a face claims the pointer — and the
+       resize stepper (ZoneStepper), which re-enables the pointer on itself. -->
+  <div class="handtrack" class:zone-outline={layoutStore.flash.hand || handHover} bind:this={container}>
+  <div class="handfan" style:width="{layout.rowWidth}px" style:--hand-scale={handScale} data-peek={layoutStore.peek} data-align={layoutStore.align('hand')}>
     {#each hand as c, i (c.id)}
       <!-- A hand card is NOT a board permanent: no tapped/attacking/counters
            chrome, just the face plus the shared hover inspector. When the
@@ -260,6 +273,9 @@
       </div>
     {/each}
   </div>
+  {#if layoutStore.steppersOnBoard}
+    <ZoneStepper zone="hand" label="hand" onhover={(h) => (handHover = h)} />
+  {/if}
   </div>
 {/if}
 
@@ -279,6 +295,14 @@
     z-index: 6;
     pointer-events: none;
   }
+  /* The dotted outline (fb-20260916T182801Z): up while the hand's resize
+     stepper is being used (handHover) and for FLASH_MS after any hand
+     adjustment — including one made in the Game Options panel, which pulses
+     the same shared store this track reads. */
+  .handtrack.zone-outline {
+    outline: 2px dashed var(--ink-dim);
+    outline-offset: 3px;
+  }
   /* The fan owns the bottom edge after the fixed identity bay; together they
      make one seat strip. The track, not the cards, consumes --own-seat-w, so
      overlap tightening still follows the actual room available.
@@ -294,10 +318,36 @@
   .handfan {
     position: relative;
     margin-inline: auto;
-    --card-w: var(--play-card-w);
+    --card-w: calc(var(--play-card-w) * var(--hand-scale, 1));
     height: calc(var(--card-w) * 88 / 63);
     transform: translateY(50%);
     pointer-events: none;
+  }
+  /* The peek modes (fb-20260916T182801Z, brief decision 2 — the three
+     readings of "slide up"):
+     - hover (the shipped default): the half-clipped rest above, raised on
+       hover/focus — the base rules, unchanged.
+     - always: full cards, never clipped — the fan rests inside the board.
+       The hover raise stays as emphasis.
+     - never: no slide-up at all — the half-clipped rest stays and the hover
+       raise is suppressed (the pointer arm below); the keyboard arm
+       (.card:has(:focus-visible)) deliberately KEEPS its raise, because a
+       keyboard user must still be able to bring the focused card into view.
+       The hover CardDetail inspector still reads a card in this mode. */
+  .handfan[data-peek='always'] {
+    transform: translateY(0);
+  }
+  .handfan[data-peek='never'] .card:hover {
+    transform: translateY(0);
+  }
+  /* The fan's own alignment (data-align, layout settings): centre is the
+     shipped margin-inline: auto; left/right pin the packed row to that edge
+     of the track. */
+  .handfan[data-align='left'] {
+    margin-inline: 0 auto;
+  }
+  .handfan[data-align='right'] {
+    margin-inline: auto 0;
   }
   /* Each face is absolutely positioned by the layout's step, then that step
      is also the negative margin so a face slides UNDER the one ahead of it

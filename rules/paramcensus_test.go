@@ -959,6 +959,15 @@ var stringMapParams = map[string]string{
 	// consumed here, but the map originates in an SVar body, not a card's
 	// Params map.
 	"effects:compoundRememberedSpec:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// effects/misc.go MayPlayStaticParams: params is a map parseStaticLine
+	// built from one SVar static line (or the S: line's own Params map passed
+	// by rules/layers.go's mayPlayGrant) -- the MayPlay-family keys it
+	// whitelists are static-line keys, not a card Params map.
+	"effects:MayPlayStaticParams:params": "keys of a static may-play line (S: or parseStaticLine-built), not a card Params map",
+	// effects/misc.go mayPlayGrantFromLine: params is the map parseStaticLine
+	// built from one SVar static line -- the same SVar-body shape
+	// compoundRememberedSpec reads.
+	"effects:mayPlayGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
 	// effects/misc.go parseReplacementLine: svars is the face's SVars table
 	// (an Effect's ReplacementEffects$ body lives behind an SVar name),
 	// mirroring parseStaticLine's svars -- not a card Params map.
@@ -967,8 +976,7 @@ var stringMapParams = map[string]string{
 	// parseReplacementLine built from one SVar replacement line -- its
 	// ReplaceWith$ key is consumed here, but the map originates in an SVar
 	// body, not a card's Params map.
-	"effects:replacementLineWith:params": "keys of a parseReplacementLine-built static line (an SVar body), not a card Params map",
-}
+	"effects:replacementLineWith:params": "keys of a parseReplacementLine-built static line (an SVar body), not a card Params map"}
 
 // propagateKeyReads resolves two indirect read shapes:
 //
@@ -1088,22 +1096,29 @@ func (s *scan) closureReads(fi *fnInfo, exclude map[string]bool, visited map[str
 // params); a NEW api-specialised path must be added here or its reads
 // over-suppress every other API's real gaps.
 var apiSpecificRulesSA = map[string][]string{
-	// The mana-ability chain: activateMana through resolveManaEffectColor,
-	// the AvailableMana projection, and activatedMatchesValidSA's
-	// Produced$-based mana-ability recognition -- all run on mana abilities
-	// (api:Mana) only.
-	"Engine.activateMana":           {"Mana"},
-	"Engine.manaAbilityPayable":     {"Mana"},
-	"Engine.emitManaTap":            {"Mana"},
-	"Engine.isTriggeredManaAbility": {"Mana"},
-	"triggeredManaColourChoice":     {"Mana"},
-	"Engine.resolveManaAbility":     {"Mana"},
-	"Engine.resolveManaEffect":      {"Mana"},
-	"manaColourPrompt":              {"Mana"},
-	"Engine.AvailableMana":          {"Mana"},
-	"addAvailable":                  {"Mana"},
-	"availableAmount":               {"Mana"},
-	"activatedMatchesValidSA":       {"Mana"},
+	// The mana-ability chain: the ability-choose wheel's Produced$ label read
+	// (manaAbilityLabel, called from activateManaFor which itself no longer
+	// touches SA params), manaAbilityPayable's offer/payment path, the
+	// AvailableMana projection, and
+	// activatedMatchesValidSA's Produced$-based mana-ability recognition --
+	// all run on mana abilities (api:Mana) only.
+	"Engine.manaAbilityPayable": {"Mana"},
+	"manaAbilityLabel":          {"Mana"},
+	// The ManaReflected activation gate: only a reflected-mana ability's
+	// offer consults IsPresent$/PresentCompare$ on the SA itself (Tazri's
+	// "another activated ability" condition). A plain AB$ Mana ability's
+	// IsPresent$ gate is a separate, still-unread shape.
+	"Engine.manaReflectedPresentHolds": {"ManaReflected"},
+	"Engine.emitManaTap":               {"Mana"},
+	"Engine.isTriggeredManaAbility":    {"Mana"},
+	"triggeredManaColourChoice":        {"Mana"},
+	"Engine.resolveManaAbility":        {"Mana"},
+	"Engine.resolveManaEffect":         {"Mana"},
+	"manaColourPrompt":                 {"Mana"},
+	"Engine.AvailableMana":             {"Mana"},
+	"addAvailable":                     {"Mana"},
+	"availableAmount":                  {"Mana"},
+	"activatedMatchesValidSA":          {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
@@ -1155,11 +1170,15 @@ var handRoots = struct {
 		// []string{"RaiseCost", "ReduceCost"} both call activeStatics with a
 		// variable; the literals sit at their callers. Declared instead of
 		// refactored so the scan stays read-only over production code.
-		"RaiseCost":  {"Engine.adjustedCost", "Engine.costModifiers"},
-		"ReduceCost": {"Engine.adjustedCost", "Engine.costModifiers"},
+		"RaiseCost":  {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
+		"ReduceCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
 		// staticEffects filters on st.Mode != "Continuous" before reading.
-		"Continuous": {"Engine.staticEffects", "warpGraveyardAllowed", "Engine.maxSpeedAbilities"},
-		// warpGraveyardAllowed scans Continuous MayPlay statics directly
+		"Continuous": {"Engine.staticEffects", "warpGraveyardAllowed", "Engine.maxSpeedAbilities",
+			// The may-play grant walks read the Continuous static's Params
+			// through mayPlayGrant over the face's Statics slice -- the same
+			// direct-scan shape warpGraveyardAllowed has (mayPlaySpellIds also
+			// scans the exiled card's own EffectZone$ Exile self-grant).
+			"Engine.mayPlaySpellIds", "Engine.mayPlayLandIds"}, // warpGraveyardAllowed scans Continuous MayPlay statics directly
 		// over the face's Statics slice (Timeline Culler's explicit
 		// graveyard-Warp permission), with no activeStatics call -- the
 		// same direct-scan shape mustAttackRequired has.
@@ -1170,6 +1189,12 @@ var handRoots = struct {
 		// mustAttackRequired scans MustAttack statics directly, with no
 		// activeStatics call; its Params reads are the whitelist switch.
 		"MustAttack": {"Engine.mustAttackRequired"},
+		// untapOtherStaticsMatch scans UntapOtherPlayer statics directly over
+		// the face's Statics slice (Endbringer's foreign-untap shape), with
+		// no activeStatics call -- the same direct-scan shape
+		// mustAttackRequired has. staticPresentHolds (its IsPresent$/
+		// PresentCompare$ gate) is reached through it.
+		"UntapOtherPlayer": {"Engine.untapOtherStaticsMatch"},
 	},
 	// The trigger-queue drain and the stack-resolution paths read trigger
 	// params (OptionalDecider$, TriggerDescription$, Static$, ValidCard$)
@@ -1828,8 +1853,8 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
-	"Abbot of Keral Keep":         {"param:api:Dig.RememberChanged", "param:api:Effect.ExileOnMoved"},
-	"Ad Nauseam":                  {"param:api:Dig.RememberChanged", "param:api:Dig.Reveal", "param:api:Repeat.RepeatOptional"},
+	"Abbot of Keral Keep":         {"param:api:Effect.ExileOnMoved"},
+	"Ad Nauseam":                  {"param:api:Dig.Reveal", "param:api:Repeat.RepeatOptional"},
 	"Adaptive Automaton":          {"param:api:ChooseType.Type"},
 	"Aftermath Analyst":           {"param:api:ChangeZoneAll.Tapped"},
 	"Ancient Stirrings":           {"param:api:Dig.ForceRevealToController"},
@@ -1838,8 +1863,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Angelic Skirmisher":          {"param:api:Pump.KWChoice"},
 	"Army of the Damned":          {"param:api:Token.TokenTapped"},
 	"Assassin's Trophy":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Auriok Steelshaper":          {"param:stat:Continuous.IsPresent", "param:stat:ReduceCost.ValidSpell"},
-	"Azusa, Lost but Seeking":     {"param:stat:Continuous.AdjustLandPlays"},
+	"Auriok Steelshaper":          {"param:stat:Continuous.IsPresent"},
 	"Baloth Prime":                {"param:api:PutCounter.ETB", "param:api:Token.TokenTapped"},
 	"Banisher Priest":             {"param:api:ChangeZone.Duration"},
 	"Banishing Light":             {"param:api:ChangeZone.Duration"},
@@ -1862,7 +1886,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Cultivate":                   {"param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal"},
 	"Dark Fortress":               {"param:api:Mana.IsPresent"},
 	"Dauthi Voidwalker":           {"param:api:ChangeZone.Hidden", "param:api:Effect.ForgetOnMoved"},
-	"Daze":                        {"cost:Return", "param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
+	"Daze":                        {"param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
 	"Deadly Rollick":              {"param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer", "param:stat:AlternativeCost.ValidSA"},
 	"Defense of the Heart":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Deflecting Swat":             {"param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer", "param:stat:AlternativeCost.ValidSA"},
@@ -1878,7 +1902,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Force of Will":               {"param:api:Counter.Destination", "param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
 	"Foreboding Ruins":            {"param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
 	"Forked Bolt":                 {"param:api:DealDamage.DividedAsYouChoose"},
-	"Ghalta, Primal Hunger":       {"param:stat:ReduceCost.EffectZone"},
 	"Ghost Quarter":               {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Giada, Font of Hope":         {"param:api:Mana.RestrictValid", "param:api:PutCounter.ETB"},
 	"Goblin Guide":                {"param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
@@ -1888,13 +1911,13 @@ var knownUnsupportedParams = map[string][]string{
 	"Hallowed Fountain":           {"param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
 	"Hangarback Walker":           {"param:api:PutCounter.ETB"},
 	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
-	"Icetill Explorer":            {"param:stat:Continuous.AdjustLandPlays"},
+	"Horizon Explorer":            {"param:api:Untap.ETB"},
 	"Impulse":                     {"param:api:Dig.NoReveal"},
 	"Incinerate":                  {"param:api:Effect.ForgetOnMoved"},
 	"Infernal Tutor":              {"param:api:ChangeZone.ConditionCheckSVar", "param:api:ChangeZone.ConditionSVarCompare", "param:api:Reveal.ConditionCheckSVar"},
 	"Into the Roil":               {"param:api:Draw.Condition"},
 	"Jace, the Mind Sculptor":     {"param:api:ChangeZoneAll.Shuffle", "param:api:ChangeZoneAll.Ultimate", "param:api:Dig.LibraryPosition2"},
-	"Jeska's Will":                {"param:api:Dig.RememberChanged", "param:api:Effect.ForgetOnMoved"},
+	"Jeska's Will":                {"param:api:Effect.ForgetOnMoved"},
 	"Journey to Nowhere":          {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
 	"Karn Liberated":              {"param:api:ChangeZone.Hidden", "param:api:ChangeZoneAll.GainControl", "param:api:RestartGame.RestrictFromValid", "param:api:RestartGame.RestrictFromZone", "param:api:RestartGame.Ultimate"},
 	"Karn, the Great Creator":     {"param:api:ChangeZone.Hidden", "param:api:ChangeZone.Reveal", "param:stat:CantBeActivated.AffectedZone"},
@@ -1908,7 +1931,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Lord Windgrace":              {"param:api:Destroy.Ultimate"},
 	"Master of Etherium":          {"param:stat:Continuous.CharacteristicDefining"},
 	"Matter Reshaper":             {"param:api:Dig.DestinationZone2", "param:api:Dig.Reveal"},
-	"Meathook Massacre II":        {"param:api:ChangeZone.GainControl", "param:api:ChangeZone.UnlessCost", "param:api:ChangeZone.UnlessPayer"},
+	"Meathook Massacre II":        {"param:api:ChangeZone.UnlessCost", "param:api:ChangeZone.UnlessPayer"},
 	"Mishra's Factory":            {"param:api:Animate.RemoveCreatureTypes"},
 	"Mistveil Plains":             {"param:api:ChangeZone.IsPresent", "param:api:ChangeZone.PresentCompare"},
 	"Mogis, God of Slaughter":     {"param:api:DealDamage.UnlessCost", "param:api:DealDamage.UnlessPayer", "param:stat:Continuous.CheckSVar", "param:stat:Continuous.RemoveType", "param:stat:Continuous.SVarCompare"},
@@ -1916,9 +1939,9 @@ var knownUnsupportedParams = map[string][]string{
 	"Necrodominance":              {"cost:PayLife", "param:api:ChangeZone.Hidden", "param:stat:Continuous.SetMaxHandSize"},
 	"Necropotence":                {"param:api:ChangeZone.ExileFaceDown", "param:api:DelayedTrigger.RememberObjects", "param:api:DelayedTrigger.ValidPlayer"},
 	"Nissa's Pilgrimage":          {"param:api:ChangeZone.ForgetChanged", "param:api:ChangeZone.NoLooking"},
-	"Ob Nixilis, Captive Kingpin": {"param:api:Dig.RememberChanged", "param:api:Effect.ForgetOnMoved"},
+	"Ob Nixilis, Captive Kingpin": {"param:api:Effect.ForgetOnMoved"},
 	"Ojer Axonil, Deepest Might":  {"param:api:ChangeZone.Transformed", "param:api:SetState.CheckSVar", "param:api:SetState.SVarCompare"},
-	"Oracle of Mul Daya":          {"param:stat:Continuous.AdjustLandPlays", "param:stat:Continuous.MayLookAt"},
+	"Oracle of Mul Daya":          {"param:stat:Continuous.MayLookAt"},
 	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
 	"Palace Jailer":               {"param:api:Effect.ForgetOnMoved"},
 	"Path to Exile":               {"param:api:ChangeZone.ShuffleNonMandatory"},
@@ -1926,7 +1949,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Ponder":                      {"param:api:RearrangeTopOfLibrary.MayShuffle"},
 	"Price of Progress":           {"param:api:RepeatEach.DamageMap"},
 	"Purphoros, God of the Forge": {"param:stat:Continuous.CheckSVar", "param:stat:Continuous.RemoveType", "param:stat:Continuous.SVarCompare"},
-	"Ragavan, Nimble Pilferer":    {"param:api:Dig.RememberChanged", "param:api:Effect.ForgetOnMoved"},
+	"Ragavan, Nimble Pilferer":    {"param:api:Effect.ForgetOnMoved"},
 	"Rakdos, Lord of Riots":       {"param:stat:CantBeCast.CheckSVar", "param:stat:CantBeCast.SVarCompare"},
 	"Reality Smasher":             {"param:trig:BecomesTarget.ValidSource"},
 	"Realms Uncharted":            {"param:api:ChangeZone.DifferentNames", "param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal"},
@@ -1968,7 +1991,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Toxic Deluge":                {"cost:PayLife"},
 	"Trinket Mage":                {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Troop of Ponies":             {"param:api:ChangeZone.ForgetChanged", "param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal"},
-	"Valakut Exploration":         {"param:api:Dig.RememberChanged", "param:api:Effect.ForgetOnMoved", "param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
+	"Valakut Exploration":         {"param:api:Effect.ForgetOnMoved", "param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Valkyrie Harbinger":          {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Vampire Lacerator":           {"param:api:LoseLife.ConditionCheckSVar", "param:api:LoseLife.ConditionSVarCompare"},
 	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.ETB", "param:api:PutCounter.MinChoiceAmount"},
@@ -1976,7 +1999,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Vial Smasher the Fierce":     {"param:api:Cleanup.ClearChosenPlayer", "param:trig:SpellCast.ActivatorThisTurnCast"},
 	"Victimize":                   {"param:api:ChangeZone.ConditionCheckSVar", "param:api:ChangeZone.ConditionSVarCompare"},
 	"Vines of Vastwood":           {"param:api:Effect.ExileOnMoved"},
-	"Virtue of Persistence":       {"param:api:ChangeZone.GainControl"},
 	"Voracious Hydra":             {"param:api:PutCounter.ETB"},
 	"Walk-In Closet":              {"param:api:ChangeZone.Hidden"},
 	"Walking Ballista":            {"param:api:PutCounter.ETB"},
@@ -2133,7 +2155,6 @@ func TestParamCensusPinsTheImportReviewExamples(t *testing.T) {
 	res, _ := measureParamCensus(t, nil)
 	want := map[string]string{
 		"Relic of Progenitus":       "cost:Exile",
-		"Daze":                      "cost:Return",
 		"Chandra, Awakened Inferno": "cost:SubCounter",
 		"Vexing Devil":              "cost:DamageYou",
 	}
@@ -2155,6 +2176,11 @@ func TestParamCensusPinsTheImportReviewExamples(t *testing.T) {
 	for card, label := range map[string]string{
 		"Force of Will": "cost:ExileFromHand",
 		"Whirler Rogue": "cost:tapXType",
+		// Daze's Return<1/Island> alternative cost retired with the
+		// Rakdos-params work: ParseCost models Return<N/Spec> (the source or a
+		// matching battlefield permanent returned to its owner's hand), so the
+		// silent one-generic substitution is gone.
+		"Daze": "cost:Return",
 	} {
 		for _, l := range res.labels[card] {
 			if l == label {
@@ -2315,9 +2341,9 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 func TestParamCensusCatchesFaceOwnedCosts(t *testing.T) {
 	c := &cards.Card{Faces: []*cards.Face{
 		{
-			ManaCost: "PayEnergy<X>",
+			ManaCost: "Waterbend<X>",
 			Keywords: []string{
-				"Kicker:Return<1/CARDNAME>",
+				"Kicker:ChooseCard<1/CARDNAME>",
 				"Surge:PaySurge<1>",
 			},
 		},
@@ -2327,7 +2353,7 @@ func TestParamCensusCatchesFaceOwnedCosts(t *testing.T) {
 		}},
 	}}
 	want := []string{
-		"cost:PayEnergy", "cost:Return", "cost:PaySurge",
+		"cost:Waterbend", "cost:ChooseCard", "cost:PaySurge",
 		"cost:PayMiracle",
 	}
 	d := &derivedReads{api: map[string]map[string]bool{}, trig: map[string]map[string]bool{}, stat: map[string]map[string]bool{}, repl: map[string]map[string]bool{}}
@@ -2369,10 +2395,10 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 		},
 		SVars: map[string]string{
 			"DBMode":  "DB$ LoseLife | UnlessCost$ 3 | Defined$ Remembered",
-			"DBMoney": "DB$ LoseLife | Cost$ PayEnergy<X>",
+			"DBMoney": "DB$ LoseLife | Cost$ Waterbend<X>",
 		},
 	}}}
-	want := []string{"param:api:LoseLife.UnlessCost", "cost:PayEnergy"}
+	want := []string{"param:api:LoseLife.UnlessCost", "cost:Waterbend"}
 	if got := cardCensusLabels(c, d, nil); !sameSet(got, want) {
 		t.Errorf("SVar-body census = %v, want %v -- an unread key or unmodelled token inside a Choices$/RepeatSubAbility$ body is not being reported", got, want)
 	}
@@ -2389,7 +2415,13 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		cost string
 		want []string
 	}{
-		{"PayEnergy<X> Sac<1/Creature> Return<1/CARDNAME>", []string{"PayEnergy", "Return"}},
+		// The Chthonian Nightmare shape is now MODELLED (PayEnergy<X> is the
+		// announced X bound by the payer's energy total; Return<1/CARDNAME> is
+		// the source returned to its owner's hand), so nothing is degraded.
+		{"PayEnergy<X> Sac<1/Creature> Return<1/CARDNAME>", nil},
+		// A head ParseCost still does not model keeps reporting (the census
+		// fixture's own token: Waterbend, Kor Bladewhirl's ability cost).
+		{"Waterbend<X>", []string{"Waterbend"}},
 		{"PayLife<5>", nil},
 		{"PayLife<X>", []string{"PayLife"}},
 		// Recognised heads whose INSTANCE is malformed or out of range: the

@@ -851,22 +851,15 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	//
-	// 4 seats moved to e6d09b34efde2fc2 resolving
-	// inbox-engine-remembered-and-triggered-referents (Engine: IsRemembered
-	// filter, Triggered* referents, Discard and GainControl rider). Bisected
-	// last session by event-log diff against the pre-ticket build: Swords to
-	// Plowshares's exile-imprint association and Flickerwisp/Geralf's
-	// Messenger's remembered-object referents are now reachable in this
-	// deck's 4-seat rotation (they were not exercised by any other seat
-	// count's deck slice); no event reordering or corruption found. This
-	// specific hash differs from the head this branch measured before
-	// rebasing onto the later main that also carries
-	// inbox-rv2c-cost-modifiers-forge-parity's own unrelated 4-seat move --
-	// the cost-modifier change alone already moved the golden once; this
-	// ticket's own changes move it a second time on top of that.
-	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK.
-	4: "e6d09b34efde2fc2",
+	// 4 seats moved to 7012c79608844da6 (autonomous orchestrator): resolving inbox-rv2c-cost-modifiers-forge-parity (Engine cost modifiers diverge from Forge (Steelshaper, Rakdos, Ghalta, Color$) a)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	// 4 seats moved to 13ce7a60c8da708f (autonomous orchestrator): resolving inbox-rv2a-starting-player-state-and-mulligan-passes (Engine: record the starting player; CR 103.5 mulligan passes go round the table)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	4: "13ce7a60c8da708f",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -895,7 +888,32 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	6: "59f6f1476c8a7f2d",
+	// 6 seats moved to 3989bf5e11a95729 (autonomous orchestrator): resolving inbox-rv2c-cost-modifiers-forge-parity (Engine cost modifiers diverge from Forge (Steelshaper, Rakdos, Ghalta, Color$) a)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	// 6 seats moved to 6ffd29493be18d92 with task inbox-engine-gap-rakdos-params:
+	// the Return cost grammar (Return<N/Spec> — return a permanent to hand as
+	// a cost) is now real, which reprices Daze's AlternativeCost static
+	// (Cost$ Return<1/Island>) from the degraded {1} generic the unmodelled
+	// token used to parse to. In the 6-seat golden game the dimir-tempo seat's
+	// first divergence vs the old golden is at event 1350: Ponder on the
+	// stack, the pool empty, and the alt-cost Daze cast now payable (the cost
+	// has no mana part — the Island return IS the payment) where {1} from an
+	// empty pool was not, so the option appears and the bot later casts it at
+	// event 1639 (target Ponder, Underground Sea returned as the cost, the
+	// unless-pay ask served). Winners and turn counts are measured unchanged;
+	// the 2-, 4- and 8-seat heads are byte-identical. Measured by dumping both
+	// complete 6-seat logs and diffing them.
+	// Auto-accepted: the deck acceptance games replay byte-identically and
+	// `make sim` 20/20 replay OK, the same proxy this repo has used by hand
+	// for every head move — neither check is sensitive to bot-choice quality,
+	// only engine correctness.
+	// 6 seats moved to ee634ef28a13dfb8 (autonomous orchestrator): resolving inbox-rv2a-starting-player-state-and-mulligan-passes (Engine: record the starting player; CR 103.5 mulligan passes go round the table)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	6: "ee634ef28a13dfb8",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -970,7 +988,15 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "0122b7ae46b57cb4",
+	// 8 seats moved to cc24946a41837da8 (autonomous orchestrator): resolving inbox-rv2c-cost-modifiers-forge-parity (Engine cost modifiers diverge from Forge (Steelshaper, Rakdos, Ghalta, Color$) a)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	// 8 seats moved to c5487ff2d727e5d8 (autonomous orchestrator): resolving inbox-rv2a-starting-player-state-and-mulligan-passes (Engine: record the starting player; CR 103.5 mulligan passes go round the table)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "c5487ff2d727e5d8",
 }
 
 func TestHeads(t *testing.T) {

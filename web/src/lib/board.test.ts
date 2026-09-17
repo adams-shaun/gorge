@@ -126,6 +126,45 @@ describe('stackIdentical', () => {
     expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 3], [2]]);
   });
 
+  // fb-20260916T201423Z: the lands row merges regardless of tapped state —
+  // a pile of Forests is a pile of Forests, and the readiness moves onto
+  // the pile's tab instead of sharding the pile.
+  it('ignoreTapped merges mixed tapped/untapped same-name cards into one pile, id-sorted', () => {
+    // the report's exact shape: two tapped, one untapped
+    const groups = stackIdentical([zombie(1, { tapped: true }), zombie(2, { tapped: true }), zombie(3)], { ignoreTapped: true });
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 2, 3]]);
+    // member order stays id-sorted even when the untapped one arrives first
+    const groups2 = stackIdentical([zombie(3), zombie(1, { tapped: true }), zombie(2, { tapped: true })], { ignoreTapped: true });
+    expect(groups2.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 2, 3]]);
+  });
+
+  it('ignoreTapped removes ONLY the tapped component: counters and every other key field still split', () => {
+    const tapped = (id: number, o: StackOver = {}): CardView => zombie(id, { tapped: true, ...o });
+    expect(stackIdentical([tapped(1), tapped(2, { counters: { p1p1: 1 } })], { ignoreTapped: true })).toHaveLength(2);
+    expect(stackIdentical([tapped(1), tapped(2, { summon_sick: true })], { ignoreTapped: true })).toHaveLength(2);
+    expect(stackIdentical([tapped(1), tapped(2, { keywords: ['flying'] })], { ignoreTapped: true })).toHaveLength(2);
+    expect(stackIdentical([tapped(1), tapped(2, { damage: 2 })], { ignoreTapped: true })).toHaveLength(2);
+    expect(stackIdentical([tapped(1), tapped(2, { controller: 1 })], { ignoreTapped: true })).toHaveLength(2);
+  });
+
+  it('an ignoreTapped pile still never merges across a shared attachment host', () => {
+    const groups = stackIdentical([zombie(1, { tapped: true }), zombie(2, { tapped: true, attached_to: 1 }), zombie(3, { tapped: true })], { ignoreTapped: true });
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1], [2], [3]]);
+  });
+
+  it('a mixed ignoreTapped pile keeps its render key stable across a member tap/untap (membership unchanged)', () => {
+    // Lead is the lowest id (2), whether it is tapped or not: no reordering
+    // to untapped-first, so the keyed-each lifecycle key never moves on a tap.
+    const before = stackIdentical([zombie(2), zombie(3, { tapped: true }), zombie(4, { tapped: true })], { ignoreTapped: true })[0];
+    expect(before.render).toBe('r2');
+    const after = stackIdentical([zombie(2, { tapped: true }), zombie(3), zombie(4, { tapped: true })], { ignoreTapped: true })[0];
+    expect(after.render).toBe('r2');
+    // with tapped out of the identity, a tap does not move the equivalence
+    // string either — the group IS the same pile before and after the tap.
+    expect(after.key).toBe(before.key);
+    expect(after.cards.map((c) => c.id)).toEqual([2, 3, 4]);
+  });
+
   it('different counters separate two otherwise identical permanents', () => {
     const groups = stackIdentical([
       zombie(1, { counters: { 'p1p1': 2 } }),

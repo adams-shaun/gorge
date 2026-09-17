@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
@@ -65,7 +67,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerCard = 0
 		}
 		c.TriggerSource = c.TriggerCard
-	case "Taps", "TapsForMana":
+	case "Taps":
 		c.TriggerActivator = player(e.tapActor(ev))
 	case "ChangesZone", "LandPlayed":
 		c.TriggerCard = ev.Obj
@@ -86,6 +88,16 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerActivator = player(ev.Player)
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
+	case "TapsForMana":
+		// The ManaAdd event names the activating player, producing permanent,
+		// produced type and amount without overloading Remembered. This mode's
+		// matcher remains a separate primitive; retaining all four roles here
+		// makes ReflectProperty$ Produced exact once that trigger is queued.
+		c.TriggerPlayer = player(ev.Player)
+		c.TriggerCard = ev.Obj
+		c.TriggerSource = ev.Obj
+		c.TriggerMana = ev.Counter
+		c.TriggerAmount = ev.Amount
 	}
 	// CR 107.3m binds X when the trigger fires, not when it resolves. In
 	// particular, an ETB trigger may remain on the stack after its permanent
@@ -100,8 +112,35 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 // targetSpecContext accepts the actual stack id, so simultaneous triggers of
 // the same permanent cannot inherit one another's bindings. A prospective cast
 // or an ordinary static has no entry and therefore no trigger context.
+//
+// The Resolve hook closes over the in-flight cast/activation proposal: a
+// ValidTgts$ numeric bound naming "X" (Chthonian Nightmare's
+// Creature.YouCtrl+cmcEQX) is evaluated at the announced {X} value once the
+// cast-flow X ask has fixed it (CR 107.3i). Without it the bound could never
+// resolve -- targetSpecContext had no resolver at all -- and an X-targeted
+// ability offered no candidates at either the offer gate or the 601.2c ask.
+// No resolver (or an in-flight cast that is not this source) still answers
+// (0, false), which is numericPred's "recognised shape, unresolvable RHS
+// never matches" — so every non-X name and every no-cast caller behaves
+// exactly as before.
 func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID) effects.SpecContext {
-	sc := effects.SpecContext{You: you, Source: source, TriggerContext: e.triggerContexts[stack]}
+	sc := effects.SpecContext{You: you, Source: source, TriggerContext: e.triggerContexts[stack],
+		Resolve: func(name string) (int32, bool) {
+			if !strings.EqualFold(name, "X") {
+				return 0, false
+			}
+			// In flight: the cast/activation proposal's announced value.
+			if e.cast != nil && (e.cast.card == source || e.cast.stackObj == source) {
+				return e.cast.x, true
+			}
+			// Resolving: the stack object's own recorded {X} (CastInfo's Amount,
+			// CR 107.3m binds X when announced -- an ability resolving after the
+			// cast flow closed still carries it on the stack object).
+			if o := e.G.Obj(stack); o != nil {
+				return o.X, true
+			}
+			return 0, false
+		}}
 	// The stack object's Remembered (the trigger-captured set for a
 	// triggered ability) feeds the IsRemembered predicate at offer/placement
 	// time, exactly as the resolution's own Ctx feeds it later -- Forge's

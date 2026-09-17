@@ -81,6 +81,19 @@ type Host interface {
 	// number (Task 17's Count$ThisTurnCast backing — a copy/Storm count
 	// must be replay-derivable, never a live-only engine counter).
 	CastThisTurn() int
+	// SpellsCastThisTurnMatching counts the spells put on the stack this turn
+	// whose caster is you (when the Forge spec carries a You* qualifier) or
+	// anyone, and whose object matches the spec. Derived from the event log
+	// like CastThisTurn, so a replay derives the same number. This is the
+	// Count$ThisTurnCast_<spec> backing (the "first/second spell you cast"
+	// cost modifiers and triggers).
+	SpellsCastThisTurnMatching(you state.PlayerID, spec string) int
+	// LifeLostThisTurn reports the total life player p lost THIS TURN — the
+	// sum of every LifeChange below zero since the last TurnChange, derived
+	// from the event log so a replay derives the same number. This is the
+	// Count$LifeOppsLostThisTurn backing (Rakdos, Lord of Riots' cost
+	// reduction): the Count$ head sums it over the controller's opponents.
+	LifeLostThisTurn(p state.PlayerID) int32
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
@@ -320,6 +333,15 @@ type Ctx struct {
 	// search cannot inherit the outer answer.
 	Search     []state.ObjID
 	SearchDone bool
+	// Imprint is the selected public-zone ChangeZone card. It is scoped to
+	// Imprint$ True so a nested ordinary ChangeZone cannot consume it.
+	Imprint     []state.ObjID
+	ImprintDone bool
+	// Untap is the answered UntapType$ selection. UntapDone distinguishes an
+	// answered empty "up to" choice from the first pass and scopes the answer
+	// to the Untap primitive that asked.
+	Untap     []state.ObjID
+	UntapDone bool
 	// Dig is the answered Dig look-and-take pick on a re-entered mid-resolution
 	// resolution: the object(s) the library's owner picked out of the top
 	// DigNum$ window to move to DestinationZone$, in the player's answer

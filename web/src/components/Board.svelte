@@ -45,7 +45,7 @@
   {#each view.players as p (p.seat)}
     {@const corner = quadrantFor(p.seat, view.players.length, view.viewer)}
     <div class="cell" style={`position:absolute;${CELL[corner]}`}>
-      <Quadrant player={p} colour={seatColour(p.seat, seats)} {corner} stack={view.stack} {options} />
+      <Quadrant player={p} colour={seatColour(p.seat, seats)} {corner} stack={view.stack} {options} own={view.viewer >= 0 && p.seat === view.viewer} />
     </div>
   {/each}
 </div>

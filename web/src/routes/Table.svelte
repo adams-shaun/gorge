@@ -7,6 +7,7 @@
   import Arrows from '../components/Arrows.svelte';
   import Rail from '../components/Rail.svelte';
   import IdentityBar from '../components/IdentityBar.svelte';
+  import PileHost from '../components/PileHost.svelte';
   import RecentStrip from '../components/RecentStrip.svelte';
   import Transcript from '../components/Transcript.svelte';
   import DvrBar from '../components/DvrBar.svelte';
@@ -19,7 +20,7 @@
     mulliganPhase,
     toneOf,
   } from '../lib/seatpanel.svelte';
-  import { optionsByObj, optionsByPlayer, type CardOptions } from '../lib/cardoptions';
+  import { optionsByObj, optionsByPlayer, resolveCardFollowUp, type CardOptions } from '../lib/cardoptions';
   import { stuckDecision } from '../lib/prompt';
   import { loadLogShown, saveLogShown, safeStorage, type LogScope } from '../lib/logshown';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
@@ -127,9 +128,13 @@
   );
   // A direct card action can hand the server a first-stage choice and receive
   // a second decision for the same object (Underground Sea's activate -> Add
-  // U / Add B flow). Remember only that one network continuation: the picker
-  // itself is unmounted while the posted decision is hidden, so it cannot
-  // carry open state across the round trip.
+  // U / Add B flow; a multi-ability mana source's stage-1 ability pick -> its
+  // stage-2 colour wheel, fb-e079def5). Remember only that one network
+  // continuation: the picker itself is unmounted while the posted decision is
+  // hidden, so it cannot carry open state across the round trip. The effect
+  // is the one decoder of the expectation -- resolveCardFollowUp opens the
+  // picker only when the next decision really carries 2-6 options on the
+  // expected object, and disarms otherwise.
   let expectedCardFollowUp = $state<{ seq: number; obj: number } | null>(null);
   let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
   //
@@ -137,8 +142,7 @@
     const d = m.view?.decision ?? null;
     const expected = expectedCardFollowUp;
     if (d === null || expected === null || d.seq === expected.seq) return;
-    const count = d.options.filter((option) => option.obj === expected.obj).length;
-    autoOpenCardDecision = count >= 2 && count <= 6 ? { seq: d.seq, obj: expected.obj } : null;
+    autoOpenCardDecision = resolveCardFollowUp(expected, d);
     expectedCardFollowUp = null;
   });
 
@@ -320,6 +324,7 @@
           yields={panel?.yields ?? null}
           onYield={panel ? (key) => panel.addYield(key) : null}
           viewerSeat={seated ? (seatCtx?.seat ?? null) : null}
+          options={boardOptions}
         >
           {#snippet logbar()}
             {#if panel && concede}
@@ -348,6 +353,13 @@
            by the table root the overlay's box contains both endpoints, and
            .table below is its positioned containing block. Still
            pointer-events: none; arrowsFor/previewArrowsFor are unchanged. -->
+      <!-- fb-20260916T225802Z: the table's ONE pile modal. The rail's pile
+           buttons and the identity bar's graveyard/exile icons open it
+           through the shared pileOpener store; PileHost renders the single
+           instance and hands it boardOptions, so pile cards are actionable
+           exactly where the cards are (tone ring, badge, menu — each item
+           posting the option's own wire index). -->
+      <PileHost view={m.view} seats={m.seats} options={boardOptions} />
       <Arrows view={m.view} options={boardOptions} />
     {:else if finished && m.loadError}
       <div class="load-error">
