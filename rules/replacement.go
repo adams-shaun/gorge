@@ -1064,6 +1064,18 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 		if d, ok := r.Params["Destination"]; ok && d != "Any" && effects.ParseZone(d) != ev.To {
 			return false
 		}
+		// FoundSearchingLibrary$ True (Opposition Agent's "While an opponent
+		// is searching their library, they exile each card they find"): the
+		// replacement applies only to the moves a library search emits. The
+		// host scopes that fact (BeginLibrarySearch/EndLibrarySearch around
+		// effects' applyLibrarySearch); with no search in flight, or with the
+		// repl's own controller the one searching, the replacement is inert.
+		if raw, ok := r.Params["FoundSearchingLibrary"]; ok &&
+			strings.EqualFold(strings.TrimSpace(raw), "True") {
+			if e.searchingBy == 0 || e.controllerOf(source) == e.searchingBy {
+				return false
+			}
+		}
 		if v, ok := r.Params["ValidCard"]; ok {
 			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
 				return false

@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -21,6 +23,14 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	if kind == "" {
 		kind = "P1P1"
 	}
+	// ETB$ True (the K:etbCounter expansion's body, Wishclaw Talisman and
+	// every "enters with N counters" card): the counters are placed on the
+	// ENTERING object as it enters, so the target does not have to be a
+	// settled battlefield permanent yet. The replacement machinery runs the
+	// body after the entry move in the ordinary flow, but a body reached
+	// while the object is still mid-entry must place the counters anyway,
+	// not skip on the battlefield precondition.
+	etb := strings.EqualFold(strings.TrimSpace(sa.Params["ETB"]), "True")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			// A player target takes a PLAYER counter (energy's "you get {E}{E}{E}",
@@ -36,7 +46,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		o := h.Game().Obj(t.Obj)
-		if o == nil || o.Zone != state.ZBattlefield {
+		if o == nil || (o.Zone != state.ZBattlefield && !etb) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: n})

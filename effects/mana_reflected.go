@@ -251,7 +251,7 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		}
 		ev := events.Event{Kind: events.ManaAdd, Player: player, Counter: color, Amount: amount}
 		if restriction != "" {
-			ev.Text = events.ManaRestrictionText(restriction)
+			ev.Text = events.ManaRestrictionText(restriction, 0)
 		}
 		h.Emit(ev)
 	}

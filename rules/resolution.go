@@ -421,11 +421,35 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 		names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes)
 		if len(e.G.Stack) > 0 {
 			id := e.G.Stack[len(e.G.Stack)-1]
+			var so *state.Object
 			if o := e.G.Obj(id); o != nil {
+				so = o
 				o.ChosenModes = names
 			}
 			e.emit(events.Event{Kind: events.ModeChosen, Obj: id, Player: in.Player,
 				Text: strings.Join(labels, ",")})
+			// A trigger Charm's targeting lives INSIDE its modes (the
+			// corpus pairs ValidTgts$ on the chosen mode's SVar body,
+			// never on the ability — Charming Scoundrel's DBToken), so the
+			// mode the player just chose asks its targets now, at the same
+			// placement moment CR 603.3c puts the mode choice. The first
+			// selected target-bearing mode wins, the same one-undivided
+			// target-list narrowing the spell-side Charm carries. The
+			// answer lands on the stack object through handleTarget's
+			// ordinary record, and the resolution's effToken
+			// (AttachedTo$ Targeted) and friends read it as c.Targets.
+			if so != nil && so.Ability != nil {
+				if src := e.G.Obj(so.Source); src != nil && src.Face() != nil {
+					for _, name := range names {
+						if sub := cards.ResolveSVar(src.Face().SVars, name); sub != nil &&
+							strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+							e.drainAwaitsTarget = true
+							e.askTarget(in.Player, id, sub)
+							return
+						}
+					}
+				}
+			}
 		}
 		e.resumeTriggerDrain()
 		return

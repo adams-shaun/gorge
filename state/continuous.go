@@ -170,6 +170,26 @@ type ContinuousEffect struct {
 	// live turn, never a mutable field.
 	MayPlayPlayerTurn bool
 
+	// MayPlayIgnoreType marks the grant's MayPlayIgnoreType$ True rider
+	// (Rakdos, the Muscle's "mana of any type can be spent to cast those
+	// spells"): like MayPlayIgnoreColor it lets any colour pay a coloured
+	// pip, and it additionally lets any colour pay the {C} pips, which
+	// CR 107.4c's colour-only "any color" never reaches. Set only together
+	// with MayPlay.
+	MayPlayIgnoreType bool
+
+	// ForgetOnMoved carries the Effect's ForgetOnMoved$ zone: a remembered
+	// card that moves TO that zone leaves the effect's Remembered set (the
+	// may-play grant's Affected$ Card.IsRemembered list). Empty means the
+	// effect never forgets. Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	ForgetOnMoved string
+	// ExileOnMoved carries the Effect's ExileOnMoved$ zone: a remembered
+	// card that moves TO that zone ENDS the whole effect (Vines of
+	// Vastwood's blink-out guard). Empty means the effect never ends on a
+	// move. Engine-runtime only, like ForgetOnMoved.
+	ExileOnMoved string
+
 	// AdjustLandPlays marks an additional-land-drops grant (Azusa, Lost but
 	// Seeking's "You may play two additional lands on each of your turns",
 	// Oracle of Mul Daya, Exploration): the number of EXTRA land drops the

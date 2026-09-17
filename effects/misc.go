@@ -120,6 +120,16 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		dur = "Permanent"
 	}
 	what := strings.TrimSpace(sa.Params["StaticAbilities"] + " " + sa.Params["Triggers"])
+	// Name$ is the effect's own display name (Sephiroth's emblem, Wrenn and
+	// Six's): the log names the effect after it wherever this function would
+	// otherwise print a bare mode list.
+	name := strings.TrimSpace(sa.Params["Name"])
+	// The two move-driven lifetimes: ForgetOnMoved$ drops a remembered card
+	// from the registered effect's set when it moves to the named zone;
+	// ExileOnMoved$ ENDS the effect on such a move (Vines of Vastwood's
+	// blinked target). Both ride the registrations below.
+	forgetOn := strings.TrimSpace(sa.Params["ForgetOnMoved"])
+	exileOn := strings.TrimSpace(sa.Params["ExileOnMoved"])
 	remembered := effectRemembered(h, c, sa)
 	registered := false
 	// Effect can also create a replacement rather than a layer restriction.
@@ -166,6 +176,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.UntilEOT = effectUntilEOT(h, c.Source, dur)
 				grant.Remembered = remembered
 				grant.Duration = dur
+				grant.ForgetOnMoved = forgetOn
+				grant.ExileOnMoved = exileOn
 				h.AddContinuous(grant)
 				registered = true
 			} else if len(params) > 0 {
@@ -188,6 +200,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				RestrictParams: params,
 				Remembered:     remembered,
 				Duration:       dur,
+				ForgetOnMoved:  forgetOn,
+				ExileOnMoved:   exileOn,
 			}
 			h.AddContinuous(ce)
 			registered = true
@@ -208,8 +222,13 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// reason. The registry is the feature; a Note that names what was asked
 	// for is the honest stand-in until the mode is implemented.
 	if !registered {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "registers a continuous effect (" + what + ") for " + dur})
+		if name != "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "registers a continuous effect " + name + " (" + what + ") for " + dur})
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "registers a continuous effect (" + what + ") for " + dur})
+		}
 	}
 }
 
@@ -218,7 +237,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 // passes through MayPlayStaticParams). ok=false is the fail-closed grant:
 // nothing is registered rather than a half-read grant going live.
 func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
-	ignoreColor, limit, playerTurn, ok := MayPlayStaticParams(params)
+	ignoreColor, ignoreType, limit, playerTurn, ok := MayPlayStaticParams(params)
 	if !ok {
 		return state.ContinuousEffect{}, false
 	}
@@ -227,6 +246,7 @@ func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, boo
 		AffectedZone:       strings.TrimSpace(params["AffectedZone"]),
 		MayPlay:            true,
 		MayPlayIgnoreColor: ignoreColor,
+		MayPlayIgnoreType:  ignoreType,
 		MayPlayLimit:       limit,
 		MayPlayPlayerTurn:  playerTurn,
 	}, true
@@ -234,28 +254,30 @@ func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, boo
 
 // MayPlayStaticParams reports whether a Mode$ Continuous static body (an S:
 // line or an SVar static an Effect SA registers) carries the may-play grant
-// this build implements, and resolves its two readable riders. The
+// this build implements, and resolves its readable riders. The
 // implemented shape is MayPlay$ True plus an Affected$/AffectedZone$ pair and
 // only display/placement metadata; MayPlayIgnoreColor$ (mana as any colour),
-// MayPlayLimit$ (an integer once-per-turn cap) and Condition$ PlayerTurn
+// MayPlayIgnoreType$ (mana as any type -- Rakdos, the Muscle's rider: the
+// colour widening plus {C} pips payable by any colour), MayPlayLimit$ (an
+// integer once-per-turn cap) and Condition$ PlayerTurn
 // ("during each of your turns", the Kess/Karador family) are read. Anything
-// else -- MayPlayIgnoreType$/MayPlayWithoutManaCost$/MayPlayText$ (they change
-// what the cast IS, not just where it may come from), a Condition$ whose value
-// is not PlayerTurn, a ValidAfterStack$/Secondary$ qualifier (it changes when
-// the grant lives), or a MayPlayLimit$ value that is not a non-negative
-// integer -- fails closed:
-func MayPlayStaticParams(params map[string]string) (ignoreColor bool, limit int32, playerTurn bool, ok bool) {
+// else -- MayPlayWithoutManaCost$/MayPlayText$ (they change what the cast IS,
+// not just where it may come from), a Condition$ whose value is not
+// PlayerTurn, a ValidAfterStack$/Secondary$ qualifier (it changes when the
+// grant lives), or a MayPlayLimit$ value that is not a non-negative integer
+// -- fails closed:
+func MayPlayStaticParams(params map[string]string) (ignoreColor, ignoreType bool, limit int32, playerTurn bool, ok bool) {
 	v, okv := params["MayPlay"]
 	if !okv || !strings.EqualFold(strings.TrimSpace(v), "True") {
-		return false, 0, false, false
+		return false, false, 0, false, false
 	}
 	for key := range params {
 		switch key {
-		case "Mode", "MayPlay", "MayPlayIgnoreColor", "MayPlayLimit", "Condition",
-			"Affected", "AffectedZone", "Description", "EffectZone":
+		case "Mode", "MayPlay", "MayPlayIgnoreColor", "MayPlayIgnoreType",
+			"MayPlayLimit", "Condition", "Affected", "AffectedZone", "Description", "EffectZone":
 			// The keys the implemented grant (and only it) carries.
 		default:
-			return false, 0, false, false
+			return false, false, 0, false, false
 		}
 	}
 	limit = 0
@@ -264,7 +286,7 @@ func MayPlayStaticParams(params map[string]string) (ignoreColor bool, limit int3
 		if err != nil || n < 0 {
 			// A MayPlayLimit$ value this build cannot enforce must not
 			// silently become "unlimited".
-			return false, 0, false, false
+			return false, false, 0, false, false
 		}
 		limit = int32(n)
 	}
@@ -273,10 +295,11 @@ func MayPlayStaticParams(params map[string]string) (ignoreColor bool, limit int3
 		// A Condition$ other than PlayerTurn changes when the grant lives;
 		// never register it half-read.
 		_, _ = cond, okv
-		return false, 0, false, false
+		return false, false, 0, false, false
 	}
 	ignoreColor = strings.EqualFold(strings.TrimSpace(params["MayPlayIgnoreColor"]), "True")
-	return ignoreColor, limit, playerTurn, true
+	ignoreType = strings.EqualFold(strings.TrimSpace(params["MayPlayIgnoreType"]), "True")
+	return ignoreColor, ignoreType, limit, playerTurn, true
 }
 
 // parseStaticLine parses an S: static body an SVar holds ("Mode$ CantTarget |
@@ -360,6 +383,14 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 				if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
 					out = append(out, t.Obj)
 				}
+			}
+		case "ReplacedCard":
+			// The card the enclosing replacement acted on (Opposition Agent's
+			// RepExile → DBEffect: the found card the replacement just exiled
+			// is the one the may-play grant remembers). Outside a replacement
+			// (c.Replaced zero) or after the object ceased to exist, nothing.
+			if c.Replaced != 0 && h.Game().Obj(c.Replaced) != nil {
+				out = append(out, c.Replaced)
 			}
 		case "ChosenCard":
 			// Dauthi Voidwalker and the wider ChooseCard -> Effect family do
@@ -451,6 +482,7 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 	// a ClearRemembered$ cleanup for no observable change (measured: Delver
 	// of Secrets' DBCleanup in the 4/6/8-seat golden games runs its cleanup
 	// with an empty list).
+	noted := false
 	if strings.EqualFold(sa.Params["ClearRemembered"], "True") {
 		c.Remembered = nil
 		if c.Source != 0 {
@@ -458,7 +490,32 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 				// A real clear: the event is what a replay folds, so the next
 				// resolution of this card sees the empty list.
 				h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
-				return
+				noted = true
+			}
+		}
+	}
+	// ClearChosenCard$ / ClearChosenPlayer$ (Party Thrasher's DBClearChosen,
+	// Wishclaw Talisman's DBCleanup, Vial Smasher's): the same discipline as
+	// ClearRemembered for Forge's chosen-card / chosen-player fields -- the
+	// persistent lists a later resolution's Card.ChosenCard/ChosenPlayer
+	// predicates read. Only a real clear emits; an empty-list clear (the
+	// overwhelmingly common case for one-shot effects) stays a no-op so no
+	// golden game gains an event for nothing.
+	if strings.EqualFold(sa.Params["ClearChosenCard"], "True") {
+		c.Chosen = keepChosenPlayers(c.Chosen)
+		if c.Source != 0 {
+			if o := h.Game().Obj(c.Source); o != nil && hasChosenCards(o.Chosen) {
+				h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-chosen-card"})
+				noted = true
+			}
+		}
+	}
+	if strings.EqualFold(sa.Params["ClearChosenPlayer"], "True") {
+		c.Chosen = keepChosenCards(c.Chosen)
+		if c.Source != 0 {
+			if o := h.Game().Obj(c.Source); o != nil && hasChosenPlayers(o.Chosen) {
+				h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-chosen-player"})
+				noted = true
 			}
 		}
 	}
@@ -471,7 +528,29 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 	// must count only what IT moved -- c.Remembered is unconditionally
 	// cleared above regardless of whether the source object held a
 	// persisted list to clear too.
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "clears remembered/imprinted objects"})
+	if !noted {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "clears remembered/imprinted objects"})
+	}
+}
+
+// hasChosenCards reports whether the chosen list holds any object entries.
+func hasChosenCards(ts []state.Target) bool {
+	for _, t := range ts {
+		if !t.IsPlayer {
+			return true
+		}
+	}
+	return false
+}
+
+// hasChosenPlayers reports whether the chosen list holds any player entries.
+func hasChosenPlayers(ts []state.Target) bool {
+	for _, t := range ts {
+		if t.IsPlayer {
+			return true
+		}
+	}
+	return false
 }
 
 // effSetState flips a double-faced target to its other face. M1 does not
@@ -937,6 +1016,14 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	if amt < 0 {
 		amt = 0
 	}
+	// RestrictValid$ (Master of Dark Rites' "Spend this mana only to cast
+	// Vampire, Cleric, and/or Demon spells", Eldrazi Temple, Cavern of
+	// Souls, Giada): the produced mana carries its spend restriction on the
+	// ManaAdd event itself, so the pool retains the provenance per colour
+	// slot and the payment path (manaAvailableFor / restrictValidMatches)
+	// can admit it only to matching payments — the same event-level
+	// provenance the ManaReflected family and the Tazri batch already ride.
+	restriction := strings.TrimSpace(sa.Params["RestrictValid"])
 	// CR 107.4h: mana produced by a SNOW permanent is snow mana. A snow unit
 	// is tagged in the pool event itself — Counter "S<colour>" — so the pool
 	// slot and the parallel snow tally move through one event and a replay
@@ -957,8 +1044,12 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			if snow {
 				counter = "S" + counter
 			}
-			h.Emit(events.Event{Kind: events.ManaAdd, Player: p,
-				Counter: counter, Amount: amt})
+			ev := events.Event{Kind: events.ManaAdd, Player: p,
+				Counter: counter, Amount: amt}
+			if restriction != "" {
+				ev.Text = events.ManaRestrictionText(restriction, c.Source)
+			}
+			h.Emit(ev)
 		}
 	}
 }

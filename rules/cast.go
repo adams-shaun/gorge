@@ -60,6 +60,10 @@ type pendingCast struct {
 	// grant through it, since after the push (CR 601.2a) the card is on the
 	// stack and a zone re-derivation would wrongly drop the grant.
 	mayPlayIgnore bool
+	// mayPlayIgnoreType is the grant's MayPlayIgnoreType$ rider (Rakdos, the
+	// Muscle): the same recorded-at-beginCast discipline as mayPlayIgnore,
+	// threading "mana of any type" through the same window and payment.
+	mayPlayIgnoreType bool
 
 	x     int32
 	xDone bool
@@ -1050,6 +1054,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// gate consulted while the card was still in the granted zone.
 	if opt.Mode == "mayplay" {
 		e.cast.mayPlayIgnore = e.payerGrantsIgnoreColor(p, id)
+		e.cast.mayPlayIgnoreType = e.payerGrantsIgnoreType(p, id)
 	}
 	e.collectETBChoices(p)
 	e.continueCast()
@@ -1739,7 +1744,7 @@ func (e *Engine) xAsk() bool {
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, wx, pc.mayPlayIgnore) {
+		if !e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, wx, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
 			break
 		}
 		maxOld = x
@@ -2288,7 +2293,7 @@ func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
 	if pc.ability < 0 {
 		delve = int32(len(pc.delve))
 	}
-	return e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve, pc.mayPlayIgnore)
+	return e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // pendingCastScope returns the exact spell or ability scope whose modifiers
@@ -2352,7 +2357,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// resolvedMana carries no live pip, so manaFeasible (the shared
 		// primitive) here degenerates to the composed payable check — the same
 		// composition payCast will charge for this candidate's repricing.
-		if e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve, pc.mayPlayIgnore) ||
+		if e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
 			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
 			out = append(out, candidate)
 		}
@@ -2710,7 +2715,7 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// above), so their slots leave the cost; the pips after payIdx stay live
 	// for the shared primitive to enumerate.
 	c = c.dropAnnouncePrefix(pc.payIdx + 1)
-	return e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, c, pc.mods, pc.taxGeneric, delve, pc.mayPlayIgnore)
+	return e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, c, pc.mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
@@ -3083,7 +3088,7 @@ func (e *Engine) targetAsk() bool {
 	// conversion-aware equivalent: the SAME resolveMana payManaConvFor will
 	// run, including RestrictValid$ provenance. The
 	// targetDependentCostMayPay arm keeps the ValidTarget$ reducer exception.
-	if !e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, mana, pc.mayPlayIgnore) &&
+	if !e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) &&
 		!e.hasUntappedManaSource(pc.player) && !e.targetDependentCostMayPay(pc) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
@@ -3306,7 +3311,7 @@ func (e *Engine) manaWindowAsk() bool {
 	}
 	// A pool that already pays the total cost needs no window (nothing to
 	// gain by activating more mana abilities here).
-	if e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, mana, pc.mayPlayIgnore) {
+	if e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
 		return false
 	}
 	var sources []state.ObjID

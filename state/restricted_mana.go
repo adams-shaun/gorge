@@ -8,4 +8,9 @@ type ManaRestriction struct {
 	Color  string
 	Amount int32
 	Valid  string
+	// Source is the id of the permanent whose ability produced this batch,
+	// when the producing event recorded one (ManaRestrictionText's optional
+	// segment). Zero for every historical batch and for source-less
+	// producers; the source-relative Valid predicates resolve against it.
+	Source ObjID
 }

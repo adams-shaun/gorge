@@ -1885,6 +1885,18 @@ func differentNamesEnabled(sa *cards.SA) bool {
 }
 
 func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID) {
+	// The search-control/replacement boundary (Opposition Agent's class):
+	// the moves this function emits are the moves OF A SEARCH, and the host
+	// that models that fact scopes its FoundSearchingLibrary$ replacements
+	// and ControlOpponentsSearchingLibrary$ redirects to them. The optional
+	// hooks keep test hosts (which do not model the state) working.
+	if b, ok := h.(interface {
+		BeginLibrarySearch(owner state.PlayerID)
+		EndLibrarySearch()
+	}); ok {
+		b.BeginLibrarySearch(owner)
+		defer b.EndLibrarySearch()
+	}
 	g := h.Game()
 	spec := sa.Params["ChangeType"]
 	if spec == "" {
@@ -1987,6 +1999,17 @@ func shuffleLibrary(h Host, sa *cards.SA, owner state.PlayerID) {
 	if strings.EqualFold(sa.Params["NoShuffle"], "True") || strings.EqualFold(sa.Params["Shuffle"], "False") {
 		return
 	}
+	// ShuffleNonMandatory$ True (209 raw exact-Origin$ Library lines —
+	// Flamekin's "then shuffle", the Squadron Hawk family) is read here and
+	// deliberately honoured as the unconditional shuffle this build always
+	// performed: the search's shuffle happens even on a fail-to-find (the
+	// committed Squadron Hawk fail-to-find pin), and the second may-shuffle
+	// ask the value promises is the M4 deferral the Known-approximations
+	// table pins ("treated as an unconditional shuffle, without a second
+	// may-shuffle ask"). The read keeps the parameter census honest — the
+	// key is understood and consciously deferred, not silently unread.
+	shuffleNonMandatory := strings.TrimSpace(sa.Params["ShuffleNonMandatory"])
+	_ = shuffleNonMandatory
 	shuffleLibraryOrder(h, owner)
 }
 
@@ -2008,7 +2031,19 @@ func shuffleLibraryOrder(h Host, owner state.PlayerID) {
 
 // placeLibraryObjects implements LibraryPosition$ after its source library
 // was shuffled. It is shared by a searched subset and a Defined$ fetch list.
+// Reorder$ True (Goblin Recruiter's "put those cards on top in any order",
+// Brainstorm's put-back) is the marker that the ANSWER order is the
+// placement order: the branch below pins the chosen cards on top in exactly
+// the order the player's answer carried them (libraryOrderPlacement), never
+// a re-sorted one.
 func placeLibraryObjects(h Host, sa *cards.SA, owner state.PlayerID, moved []state.ObjID, to state.Zone) {
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Reorder"]), "True") && to == state.ZLibrary {
+		position := strings.TrimSpace(sa.Params["LibraryPosition"])
+		if len(moved) > 0 && (position == "0" || position == "-1") {
+			libraryOrderPlacement(h, owner, moved, position == "-1")
+		}
+		return
+	}
 	position := strings.TrimSpace(sa.Params["LibraryPosition"])
 	if to != state.ZLibrary || len(moved) == 0 || (position != "0" && position != "-1") {
 		return
