@@ -66,6 +66,13 @@ func (c flatChars) AbilityCosts(_ state.PlayerID, id state.ObjID) []string {
 	return nil
 }
 
+// MayLookAtLibraryTop is not exercised by flatChars-driven tests either:
+// the real value is the rules.Engine's answer (pinned by rules'
+// static-grant tests), and the view's job is only to project whatever
+// Chars hands it. flatChars therefore never reveals a library top; the
+// MayLookAt tests drive the projection through a real engine.
+func (c flatChars) MayLookAtLibraryTop(state.PlayerID) bool { return false }
+
 func fourSeatBoard(t *testing.T) *state.Game {
 	t.Helper()
 	g := state.NewGame([]string{"alice", "bob", "carol", "dave"})

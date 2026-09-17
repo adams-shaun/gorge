@@ -123,6 +123,23 @@ func parseSA(path, val string) (*SA, []Diag) {
 	return nil, []Diag{{path, "ability with no SP$/AB$/DB$/ST$ head: " + val}}
 }
 
+// ParseStaticLine parses one static body — an S: line's text, or an
+// S:-shaped SVar body ("Mode$ Continuous | Affected$ You | ...") — into a
+// Static. The face parser reads only printed S: lines; a static held in an
+// SVar and granted by another static's AddStaticAbility$ (rules/layers.go's
+// static grant walk) needs this to get the SAME shape — one shared pipe
+// grammar, so the two readers cannot drift. ok is false only for a body with
+// no Mode$ at all (an ability body or a Count$ expression an SVar walk
+// handed in by mistake).
+func ParseStaticLine(body string) (Static, bool) {
+	p := parseParams(body)
+	mode := strings.TrimSpace(p["Mode"])
+	if mode == "" {
+		return Static{}, false
+	}
+	return Static{Mode: mode, Params: p}, true
+}
+
 // ParseTriggerLine parses one trigger body — a T: line's text, or a T:-shaped
 // SVar body ("Mode$ SpellCast | ValidCard$ Card | ...") — into a Trigger. The
 // face parser links only printed T: lines (parse.go's "T" case); a trigger

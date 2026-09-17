@@ -285,6 +285,15 @@ export interface PlayerView {
   hand_size: number;
   graveyard_size: number;
   /**
+   * LibraryTop is the player's own library's top card, revealed only when
+   * a live Continuous MayLookAt grant covers it (Oracle of Mul Daya's
+   * "play with the top card of your library revealed") and only to that
+   * player's own seat -- the CR 400.2 hidden-zone redaction the Hand field
+   * documents applies to it in full. nil (an omitted JSON key) for every
+   * other seat and whenever no grant is live.
+   */
+  library_top?: CardView | null;
+  /**
    * Hand is nil (marshalling to a literal JSON null, not an omitted key --
    * it deliberately carries no "omitempty" tag) for every seat but the
    * viewer's own, whose Hand is always non-nil even when empty ("[]").
