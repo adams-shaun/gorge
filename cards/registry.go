@@ -15,8 +15,9 @@ import (
 
 // Registry is the compiled corpus: every card, indexed by normalised name.
 type Registry struct {
-	Cards  []*Card
-	byName map[string]*Card
+	Cards   []*Card
+	byName  map[string]*Card
+	catalog *CompiledCatalog
 
 	// Tokens holds compiled token scripts (forge-gui/res/tokenscripts),
 	// keyed by file stem — e.g. "r_1_1_goblin" — the name a card's

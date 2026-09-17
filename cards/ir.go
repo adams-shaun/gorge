@@ -9,6 +9,9 @@ type SA struct {
 	Params map[string]string
 	Sub    *SA // resolved SubAbility$, filled in by link.go
 	Line   string
+
+	compiledCatalog *CompiledCatalog
+	compiledID      AbilityID
 }
 
 // Trigger is a T: line. Execute$ names an SVar holding the effect.
@@ -66,6 +69,37 @@ type Face struct {
 	// derived values below it stays unexported so a stale cache decodes it as
 	// zero and derive() repairs it immediately after decode.
 	colourIdentity uint8
+
+	compiledCatalog *CompiledCatalog
+	compiledID      FaceID
+}
+
+func (f *Face) CompiledID() FaceID {
+	if f == nil || f.compiledCatalog == nil {
+		return 0
+	}
+	return f.compiledID
+}
+
+func (f *Face) CompiledTriggerInterests() (TriggerInterest, bool) {
+	if f == nil || f.compiledCatalog == nil || f.compiledID == 0 || int(f.compiledID) > len(f.compiledCatalog.Faces) {
+		return 0, false
+	}
+	return f.compiledCatalog.Faces[f.compiledID-1].TriggerInterests, true
+}
+
+func (s *SA) CompiledKind() SAKind {
+	if s == nil || s.compiledCatalog == nil {
+		return SAKindUnknown
+	}
+	return s.compiledCatalog.Abilities[s.compiledID-1].Kind
+}
+
+func (s *SA) CompiledAPI() APICode {
+	if s == nil || s.compiledCatalog == nil {
+		return APIUnknown
+	}
+	return s.compiledCatalog.Abilities[s.compiledID-1].API
 }
 
 // ColourIdentity returns the card's colour identity, the bitwise union of
