@@ -296,6 +296,90 @@ func TestManaColourPromptNamesDeterminateAmount(t *testing.T) {
 	}
 }
 
+// TestVergeLandGatesColouredAbilityOnBasicTypeCount pins the plain AB$ Mana
+// activation gate on Blazemire Verge's real corpus shape (IsPresent$ with a
+// comma OR of basic types, one produced colour per alternative): below the
+// threshold the gated {R} ability is withheld and tapping is the singleton
+// no-ask path that yields exactly the unconditional {B}; above the threshold
+// both abilities share the tap cost, so activating is one real KChoose over
+// "Add B"/"Add R" and exactly the chosen colour reaches the pool.
+func TestVergeLandGatesColouredAbilityOnBasicTypeCount(t *testing.T) {
+	const verge = "Name:Blazemire Verge\nTypes:Land\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Add {B}.\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ R | IsPresent$ Swamp.YouCtrl,Mountain.YouCtrl | SpellDescription$ Add {R}. Activate only if you control a Swamp or a Mountain.\nOracle:x\n"
+	const swamp = "Name:Gate Swamp\nTypes:Land Swamp\nOracle:x\n"
+
+	// Below the threshold (no Swamp or Mountain controlled): the gated R
+	// ability is withheld, so activating is the singleton path and the pool
+	// carries exactly the unconditional B.
+	e := layerEngine(t)
+	vergeID := onBoard(t, e, 0, verge)
+	e.askPriority(0)
+	submitChoices(t, e, activateOption(t, e, vergeID))
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("gated Verge asked an extra decision below the threshold: %+v", d)
+	}
+	if pool := e.G.Players[0].Pool; !e.G.Obj(vergeID).Tapped || pool.Total() != 1 || pool[state.MB] != 1 || pool[state.MR] != 0 {
+		t.Fatalf("below-threshold Verge pool=%+v tapped=%t, want exactly one black", pool, e.G.Obj(vergeID).Tapped)
+	}
+
+	// Above the threshold (a Swamp controlled): both abilities are offered as
+	// one choice and the answer selects the colour.
+	e = layerEngine(t)
+	vergeID = onBoard(t, e, 0, verge)
+	onBoard(t, e, 0, swamp)
+	e.askPriority(0)
+	submitChoices(t, e, activateOption(t, e, vergeID))
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Source != vergeID || len(d.Options) != 2 {
+		t.Fatalf("above-threshold Verge choice = %+v, want two abilities on the Verge", d)
+	}
+	submitChoices(t, e, manaOption(t, d, "R"))
+	if pool := e.G.Players[0].Pool; pool.Total() != 1 || pool[state.MR] != 1 || pool[state.MB] != 0 {
+		t.Fatalf("above-threshold Verge pool after choosing R = %+v, want exactly one red", pool)
+	}
+}
+
+// TestTempleOfTheFalseGodGatesOnLandCount pins the PresentCompare$ shape on
+// the Temple's real corpus script (IsPresent$ Land.YouCtrl | PresentCompare$
+// GE5 | Amount$ 2): with fewer than five lands controlled the ability is
+// withheld from the priority offer entirely; at five it is offered and the
+// singleton activation adds the full {C}{C}.
+func TestTempleOfTheFalseGodGatesOnLandCount(t *testing.T) {
+	const temple = "Name:Temple of the False God\nTypes:Land\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 2 | IsPresent$ Land.YouCtrl | PresentCompare$ GE5 | SpellDescription$ Add {C}{C}. Activate only if you control five or more lands.\nOracle:x\n"
+	const plain = "Name:Bare Land\nTypes:Land\nOracle:x\n"
+
+	// Four lands total (the Temple counts itself): withheld.
+	e := layerEngine(t)
+	templeID := onBoard(t, e, 0, temple)
+	for i := 0; i < 3; i++ {
+		onBoard(t, e, 0, plain)
+	}
+	e.askPriority(0)
+	for _, o := range e.Pending().Options {
+		if o.Kind == "activate" && o.Obj == templeID {
+			t.Fatalf("Temple offered below five lands: %+v", e.Pending().Options)
+		}
+	}
+
+	// Five lands total: offered, singleton (the Temple has one ability), and
+	// the full two colourless reach the pool.
+	e = layerEngine(t)
+	templeID = onBoard(t, e, 0, temple)
+	for i := 0; i < 4; i++ {
+		onBoard(t, e, 0, plain)
+	}
+	e.askPriority(0)
+	activateMana(t, e, templeID)
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("Temple activation asked an extra decision: %+v", d)
+	}
+	if pool := e.G.Players[0].Pool; !e.G.Obj(templeID).Tapped || pool.Total() != 2 || pool[state.MC] != 2 {
+		t.Fatalf("Temple pool=%+v tapped=%t, want two colourless", pool, e.G.Obj(templeID).Tapped)
+	}
+}
+
 // TestLionsEyeDiamondAnyAddsThreeOfOneChosenColor is the real card shape
 // (Produced$ Any | Amount$ 3, oracle "Add three mana of any one color."): one
 // colour ask whose prompt names the three, five colour options, and exactly
