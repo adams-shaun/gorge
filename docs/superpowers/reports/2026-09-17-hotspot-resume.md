@@ -1,152 +1,269 @@
-# Fresh-session resume prompt
+# Fresh-session resume prompt: continue hotspot optimization
 
 Paste the following into a fresh session with `/tmp/gorge` as the workspace.
 
 ---
 
-Resume profiling-led optimization of gorge, the pure-Go Magic rules engine.
-The objective is to loop and iterate on the largest measured hotspots, with
-bot self-play and eventual MCTS/I-MCTS throughput as the motivation.
+Continue profiling-led performance work on gorge, the pure-Go Magic rules
+engine. The long-term motivation is bot self-play and eventual MCTS/I-MCTS
+throughput.
 
-Start with a fresh brainstorming session for the next optimization. I will
-approve the chosen design before implementation; no next-stage trigger index
-or cost cache has been approved or implemented yet. Do not redo the first batch.
+Work in small, evidence-backed iterations:
 
-## Read first and establish current state
+1. Establish a fresh baseline on the actual checkout.
+2. Identify one measured hotspot.
+3. Present evidence, alternatives, a recommended design, and verification.
+4. Wait for my approval before implementing that optimization.
+5. Implement test-first, verify correctness, and remeasure.
+6. Repeat for the next hotspot until I stop the session.
 
-1. Read `AGENTS.md` and applicable skills.
-2. Inspect git status, branch, HEAD and origin rather than assuming the state
-   below is still current.
-3. Read `docs/superpowers/reports/2026-09-17-hotspot-optimization.md` for the
-   measured changes, methodology, caveats, verification and artifact locations.
+Do not commit, push, force-push, rebase, merge, create a PR, or deploy without
+a new explicit request. Preserve user changes and keep unrelated correctness
+fixes separate.
 
-The checkpoint branch is `perf/hotspot-optimization-2026-09-17`. Optimization
-commit `e169cd2` was rebased cleanly onto fetched `origin/main` at `57867a7`.
-The branch was kept local; no push or PR was performed. A later documentation
-commit may be HEAD. Preserve any subsequent user changes. Do not commit,
-push, merge into main or deploy without a new request.
+## Read first
 
-## Already implemented
+1. Read `AGENTS.md` and all applicable skills.
+2. Inspect status, branch, HEAD, upstream, origin, and merge-base. Do not assume
+   the checkpoint below is still current.
+3. Read:
+   - `docs/superpowers/reports/2026-09-17-hotspot-optimization.md`
+   - `docs/superpowers/reports/2026-09-17-trigger-pruning.md`
+   - `docs/superpowers/specs/2026-09-17-rules-test-parallelism-design.md`
+   - `docs/superpowers/plans/2026-09-17-rules-test-parallelism.md`
+4. Treat this document as a handoff, not proof of current state. Revalidate
+   anything relied upon.
+
+## Published checkpoint
+
+Verified 2026-09-17:
+
+- Workspace: `/tmp/gorge`
+- Branch: `perf/hotspot-optimization-2026-09-17`
+- HEAD and remote branch:
+  `79b2121bb59d6d33995b45c0bef0825615590a1a`
+- Rebased onto `origin/main`:
+  `8bce166943e3d09cce81acad4797a6106630ad5c`
+- Origin: `git@github.com:adams-shaun/gorge.git`
+- Corpus cache SHA-256:
+  `f6f87777b35f7270ac8caafe8c34fbe9cffd3055f1efaa16256aa77cdf636477`
+- Local ordinary-test toolchain: Go 1.25.11.
+- Open PR: https://github.com/adams-shaun/gorge/pull/1
+- No merge or deployment was performed.
+- This refreshed resume document is intentionally generated after the push
+  and may be the only uncommitted file.
+
+Commits above `origin/main`:
+
+```text
+a617c4b perf: remove rules hot-path allocation overhead
+6d8a49f docs: record hotspot sync verification and resume handoff
+abe0f71 perf: prune impossible printed-trigger scans
+91afbcc test: adapt hotspot parity check to upstream botbench
+db84d5c perf: reuse cost statics during legal action scans
+79b2121 test: share corpus and parallelize rules suite
+```
+
+The feature branch was rebased before the latest implementation. Publishing
+therefore used `git push --force-with-lease`, after fetching the remote tip,
+with strict host verification against GitHub's published SSH keys in
+`/tmp/gorge-push-check.Y39KB6/github_known_hosts`. Do not assume that
+temporary file still exists, and never disable host verification.
+
+## Completed engine optimizations
+
+### Batch 1: allocation cleanup
 
 - Reject impossible granted-Ward events/targets before expensive discovery.
 - Return trigger/replacement faces without per-object singleton allocations.
-- Iterate filter alternatives and predicates lazily, preserving raw-name commas
-  and fail-closed semantics.
-- Reuse immutable normalizers in ParseCost and ProducedCounts.
-- Cache pure Phase syntax, separately from replay-visible diagnostic state;
-  clones own their writable cache.
-- Use the existing reusable BoardSeat adapter in botbench, with View fallback
-  and full-game intent/outcome parity tests.
+- Iterate filter alternatives and predicates lazily.
+- Reuse immutable normalizers in `ParseCost` and `ProducedCounts`.
+- Cache pure Phase syntax separately from replay-visible diagnostics.
+- Use the reusable BoardSeat adapter in botbench while preserving View
+  fallback and full-game parity.
 
-On the pre-sync revision, repeated warm direct-Board comparisons reduced
-allocated bytes/game by 82.5% (duel), 89.0% (four seats), and 90.8% (aggro).
-All paired game summaries and final chain heads matched. Allocation object
-counts fell 95.6–97.8%. These are allocated bytes, not retained memory.
+See `2026-09-17-hotspot-optimization.md` for measurements.
 
-The machine is very busy: expect variance. Do not present observed wall-time
-ratios as portable speedups. Run benchmark workers one at a time with
-`GOMAXPROCS=1`, fixed seeds/decks/toolchain, corpus load and warm-up excluded,
-and separate allocation evidence from sampled CPU attribution. CPU affinity
-does not make the machine idle.
+### Batch 2: trigger eligibility pruning
 
-## Next design: follow the largest remaining hotspot
+- Cache immutable face/event eligibility on each engine.
+- Reject impossible printed trigger kinds before dynamic gates.
+- Preserve the deterministic all-zone source walk, Phase diagnostics,
+  live/look-back matching, LKI, batching, state-trigger latches, APNAP order,
+  granted Ward checks, and clone ownership.
+- This is not an object index and stores no evaluated match or mutable
+  game-state membership.
 
-Longer final-only profiles on the first batch found these inclusive CPU shares:
+See `2026-09-17-trigger-pruning.md` for measurements.
 
-| Path | Duel, 250 games | Four seats, 50 games | Aggro, 150 games |
+### Batch 3: call-scoped cost-static membership
+
+Commit: `db84d5c`.
+
+- `legalActions` lazily collects RaiseCost, ReduceCost, and SetCost static
+  membership once, in one deterministic zone walk.
+- The snapshot is reused only within that `legalActions` call.
+- It is not stored on `Engine`, so later legality/payment checks and fixture
+  mutations observe current state.
+- Applicability, conditions, targets, X, amounts, commander tax, payment, and
+  final costs are still recomputed per candidate.
+- Direct callers outside `legalActions` retain fresh collection.
+- `TestLegalActionsReusesCostStaticMembership` guards allocation behavior.
+
+Measured cost-static collection CPU share:
+
+| workload | before | after |
+|---|---:|---:|
+| duel | 9.99% | 1.21% |
+| four seats | 9.33% | 1.55% |
+| aggro | 3.63% | 0.47% |
+
+All 450 profiled games matched baseline game summaries, final heads, and event
+counts.
+
+## Test-suite acceleration
+
+Commit: `79b2121`.
+
+- `internal/testutil.CorpusRegistry` now loads once per test binary.
+- The cache callback does not retain a `testing.TB`; every caller still
+  performs its own skip/fatal handling.
+- `OpenCorpusRegistry(dir)` remains uncached.
+- The shared registry is immutable. The one rules test that modified a corpus
+  face, Vexing Devil's added Lifelink, now copies the card, face, and keyword
+  slice first.
+- The normal parameter census already used `censusOnce`; native parallel
+  tests share it. The non-nil-`drop` deleted-consumer probe still recomputes
+  independently by design.
+- Twenty-five measured high-cost top-level rules tests now call
+  `t.Parallel()`. Go's `-parallel` limit controls concurrency.
+
+Full `rules` suite, `gotestsum`, `GOMAXPROCS=10`, `-parallel=10`:
+
+| metric | previous one-process | native parallel/shared |
+|---|---:|---:|
+| gotestsum tests | 1,420 pass, 1 skip | 1,420 pass, 1 skip |
+| measured wall | 322.99 s | 22.63 s |
+| speedup | 1.00x | 14.27x |
+| user CPU | 597.79 s | 146.83 s |
+| system CPU | 20.49 s | 2.36 s |
+| CPU utilization | 191% | 659% |
+| peak RSS | 849 MiB | 500 MiB |
+| sum of top-level elapsed | 320.89 s | 32.50 s |
+
+The earlier four-process shard experiment took 123.70 s and had a roughly
+2.39 GiB aggregate peak-RSS upper bound. The native/shared run is 5.47x faster
+in wall time and avoids per-process corpus/census duplication.
+
+Slowest top-level tests in the new run:
+
+```text
+15.37s TestInvariantsUnderSeedFuzz
+ 2.20s TestHeads
+ 2.15s TestRepoDecksPlayAtEverySeatCount
+ 1.97s TestRepoCommanderDecksPlayAndCastTheirCommander
+ 1.59s TestTestBotOnlyActivatesInAMainPhase
+ 1.54s TestRepoDeckGamesReplayExactly
+ 1.40s TestCR601NoMandatoryCounterCastOnEmptyStack
+ 1.30s TestBotMatchIsDeterministicAcrossRuns
+ 1.29s TestEveryRepoDeckIsFullySupported
+ 1.21s TestNoTargetDecisionOffersAnIllegalTarget
+```
+
+Artifacts:
+
+```text
+/tmp/gorge-rules-gotestsum-20260917.{out,json,time,status}
+/tmp/gorge-rules-top-level-runtimes-20260917.tsv
+/tmp/gorge-rules-subtest-runtimes-20260917.tsv
+/tmp/gorge-rules-sharded.37kaJ9/
+/tmp/gorge-rules-native-parallel-20260917.{out,json,time,status}
+/tmp/gorge-rules-native-parallel-top-level-runtimes-20260917.tsv
+```
+
+Temporary artifacts may disappear. Recreate them rather than treating absence
+as a blocker.
+
+Verification performed after the changes:
+
+- Selected 25 parallel tests, `GOMAXPROCS=10 -parallel=10 -count=3`:
+  PASS in 47.462 s.
+- Full rules gotestsum run: 1,420 pass, one documented skip, exit 0.
+- Direct `CorpusRegistry` consumer packages passed:
+  `internal/testutil`, `botpolicy`, `cmd/botbench`, `cmd/gorged`,
+  `cmd/repro`, `effects`, `host`, `host/httpapi`, `seat`, and `view`.
+- `git diff --check`: PASS.
+- Per explicit user instruction, no race tests were run.
+
+## Next performance iteration
+
+Do not assume the next target from old percentages. Rebuild and profile the
+current HEAD first. Batch 3 materially changed the legal-action profile, so
+the pre-batch ranking is only a lead:
+
+| pre-batch path | duel | four seats | aggro |
 |---|---:|---:|---:|
-| Trigger scan | 32.9% | 46.3% | 30.4% |
-| Legal actions | 33.7% | 23.6% | 23.4% |
-| Cost-static collection | 9.5% | 7.4% | 3.2% |
-| Board projection | 8.6% | 5.5% | 16.4% |
+| legal actions | 41.11% | 33.13% | 30.95% |
+| trigger scan | 17.46% | 25.88% | 12.74% |
+| cost-static collection | 10.87% | 10.40% | 3.47% |
+| Board projection | 10.79% | 11.12% | 23.05% |
 
-These overlap; cost collection is inside legal-action generation. The wider
-workload evidence moves conservative trigger-scan pruning ahead of cost caching.
-However, upstream `57867a7` landed substantial sacrifice/unless-cost rules,
-new Draw replacements and bot-policy changes after those profiles. Establish a
-fresh baseline on the synchronized tree before treating the old percentages or
-game outcomes as current. Do not mistake upstream game changes for regressions
-from the optimization patch; compare against the matching origin revision.
-Inspect `rules/trigger_match.go`, especially `checkFaceTriggers`,
-`roomTriggerFaces`, `triggerMatches`, `zoneGate` and the look-back observer flow.
-Compare conservative event-kind/immutable-face eligibility with maintaining
-an object index; explain the invalidation and ordering tradeoffs before coding.
+Cost-static collection is now about 0.5-1.6%, so likely candidates are:
 
-Do not simply skip bookkeeping events or hidden zones. `Always` state triggers,
-once-per-spec Phase diagnostics, Room alternate faces, live versus look-back
-matching, life-loss/damage batching and granted Ward all need their current
-semantics and deterministic trigger order. Diagnostics are events too.
+- the largest remaining subpath inside legal-action generation;
+- Board projection, especially the aggro workload;
+- remaining `staticEffects` allocations;
+- a newly exposed hotspot from fresh profiles.
 
-Smaller follow-ups: `costStatics` scans every zone three times per pricing
-evaluation; remaining normalizer construction, especially `effects.effMana`,
-still allocates; `staticEffects` and event-log growth are allocation targets.
-If discussing cost caching, cache only ordered membership, never dynamic
-amounts, targets, X or evaluated costs. Audit re-entry and clone ownership.
-`handEngine` and `onBoard` mutate test setup without events after New; a durable
-log-length-only cache can retain stale pre-fixture membership. Evaluate
-call-scoped reuse as an alternative before changing fixtures.
+Inspect callers and ownership before proposing a cache. Prefer call-scoped
+reuse or elimination of repeated work over durable engine caches. Never cache
+evaluated applicability, targets, X, conditions, costs, derived mutable state,
+or event-visible ordering.
 
-For MCTS, the original probe found a different bottleneck: the first append
-to a cloned log copies historical events. At one turn-11 position this cost
-about 385 KB, versus 55 KB for Engine.Clone alone. A persistent-prefix design
-needs separate approval and history-reader/hash/clone tests. It is not fixed.
-No CUDA backend or GPU benchmark exists from this work; GPU neural inference
-and GPU-resident rules simulation are distinct proposals.
+The cloned-log append cost remains a separate architectural candidate:
+turn-11 sampling previously measured about 385,416 allocated bytes for clone
+plus append versus 55,224 bytes for `Engine.Clone` alone. A persistent-prefix
+log requires its own design approval and exhaustive history-reader, hash,
+clone, replay, and branch-independence tests. Do not mix it into a smaller
+hotspot iteration.
 
-## Verification and guardrails
+## Measurement discipline
 
-Keep all state mutation through `events.Apply`, stable event ordinals and
-ordering, exact replay hashes, no ambient randomness or event-visible map
-iteration, no cgo/third-party core dependencies, and no committed Forge scripts.
-The gitignored `.cards/` corpus exists at Makefile pin
-`95f04e8a04c8925fa97cb226fc3341cabcc90a53`; use make targets if missing.
+- Build a fresh baseline from the current checkout before editing.
+- Record revision, corpus checksum, Go version, workload, affinity, and
+  environment.
+- Use the same toolchain for both sides of any comparison. Historical engine
+  probes used Go 1.26.4; ordinary verification currently uses Go 1.25.11.
+- Run benchmark workers one at a time with `GOMAXPROCS=1`,
+  `GOMEMLIMIT=5GiB`, fixed decks/seeds, unchanged bot policy, and unchanged
+  observation adapter.
+- Check whether CPU 15 affinity is available before reusing it.
+- Exclude corpus load and one full warm-up game; include new-engine
+  construction and cache population.
+- Historical workloads:
+  - duel: death-n-taxes / dimir-tempo, 250 games;
+  - four seats: those plus eldrazi-stompy / mono-black-aggro, 50 games;
+  - aggro: mono-red-goblins / mono-green-stompy, 150 games.
+- Collect CPU/heap profiles separately from alternating unprofiled timing and
+  allocation pairs. Reverse pair order across repetitions.
+- Compare every game summary, final chain head, and event-kind count.
+- Treat shared-host elapsed ratios as local evidence, not portable speedups.
+- Do not run correctness tests alongside profiling workers.
 
-Use test-first regressions for each change, benchmark after each iteration,
-and compare exact game results/heads. Run clone/race and Room/Ward/Phase/
-look-back tests appropriate to the change, plus replay/golden-head checks.
-The first batch already had independent review with no important findings.
+## Correctness constraints
 
-The full pre-sync backend checks passed in changed packages and make sim
-verified 20/20 replays. The full repository gates were not green: pre-existing
-repro/feedback fixtures diverged at event 1, an overshoot fixture at event 76,
-architecture checks rejected existing time/resume-writer cases, and web lint
-had three existing errors. Baseline overlays independently reproduced the
-replay failures. Do not regenerate goldens/fixtures or fix unrelated failures
-just to claim green. Read the report's synchronization checkpoint for newer
-post-rebase verification; revalidate if upstream has moved. The opt-in
-conformance lane is deliberately known-red.
+- All game-state mutation goes through `events.Apply`.
+- Preserve event ordinals, order, hashes, replay behavior, LKI, APNAP, hidden
+  information, deterministic map handling, and clone ownership.
+- No cgo or third-party dependency in the rules/card core.
+- Never commit Forge scripts or token scripts.
+- The conformance lane remains intentionally known-red; follow `AGENTS.md`
+  if any leaf unexpectedly turns green.
+- Run impacted packages only unless broader verification is requested.
+- Do not run race tests unless the user changes the current instruction.
+- Use `gotestsum` for full rules-suite timing and retain exact
+  `TestFooBarThing` metrics.
 
-On the final synchronized tree, the updated host fixture instead fails at
-event 802 (`move_zone` versus `choose`); exact unmodified origin `57867a7`
-reproduces it. The old overshoot timeout tests no longer failed. Final
-targeted rules, full effects/botbench/replay/seat/state/view checks, 20/20 sim
-replays, Go vet and generated-type checks passed. The complete rules suite
-was run at the first sync, not rerun in full after the second; the report
-records the final rules-test selection. Repro/feedback and architecture
-failures and the three web lint errors remain.
-
-## Local evidence, if still present
-
-- `/tmp/gorge-profile-deep.FZ9z7k/`: original diagnostic `main.go`, `go.mod`,
-  investigation report and clone measurements.
-- `/tmp/gorge-hotspots.pfkHCN/`: stage binaries/profiles, repeated comparison
-  JSON, measurement scripts, baseline overlay and verification logs.
-- Latest attribution: `final-{duel,four,aggro}-long` CPU/heap/JSON files.
-- Repeated pairs: `repeat-*` and `isolated-*`; the latter name does NOT mean
-  isolated hardware. `comparison.json` covers only the first series.
-- Historical probe binaries use Go 1.26.4; native botbench A/B and ordinary
-  tests used Go 1.25.11. Match toolchains for comparisons.
-- `/tmp/gorge-sync-baseline.IenA7V/overlay.json` replaces all seven modified
-  production files with exact origin `57867a7` copies. It established the
-  final-sync fixture failure baseline; reassess its coverage before using it
-  after further source changes. Final-sync verification logs are beside the
-  earlier profiles, named `final-sync-*.log`.
-
-These paths are temporary and may disappear. Historical binaries measure the
-pre-sync first batch, not arbitrary future source. Rebuild a probe against the
-current branch before attributing a new result to it. No old benchmark process
-should be assumed live; inspect actual tool/process state.
-
-Begin by summarizing the evidence, checking whether fresh profiling changes
-the priority, and proposing the next design and its verification strategy.
-Wait for my approval before implementing it.
+Start by reporting the verified git state and fresh profile evidence. Then
+recommend exactly one next optimization with trade-offs and a verification
+plan, and wait for approval before editing.
