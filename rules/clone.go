@@ -79,6 +79,13 @@ func (e *Engine) Clone() *Engine {
 		// shared.
 		castAborts:     cloneAbortCounts(e.castAborts),
 		suspendedCasts: append([]state.ObjID(nil), e.suspendedCasts...),
+		// The livelock watcher (rules/livelock.go): carry the Config-given
+		// guard thresholds, reset the observation state. A clone only happens
+		// at an intent boundary -- the only moment these fields are not being
+		// written -- where the watcher holds no in-flight run or quiet count
+		// worth carrying, so a fresh watcher over the same thresholds is a
+		// faithful copy.
+		loop: newLivelockWatcherFromGuard(e.loop.guard),
 	}
 	if e.riotMove != nil {
 		ev := *e.riotMove

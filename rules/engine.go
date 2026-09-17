@@ -72,6 +72,15 @@ type Config struct {
 	// events.Apply's TokenCreate case has something to mint from. Replay
 	// must pass the same table a live match's Config did.
 	Tokens map[string]*cards.Card
+	// LoopGuard, when non-nil, overrides the livelock watcher's thresholds
+	// for this game (rules/livelock.go): how many consecutive events a
+	// repeating cycle must run before the engine aborts with a
+	// *LivelockError, the longest cycle tracked, and the no-progress
+	// runaway backstop. nil (the zero value every existing Config has) is
+	// the defaults, so every game that never sets it is byte-identical to
+	// an un-watched one. The watcher is pure observation either way: it
+	// emits no event and holds no state the engine reads.
+	LoopGuard *LoopGuard
 }
 
 type triggerObjectLKI struct {
@@ -218,6 +227,16 @@ type Engine struct {
 	// read across a suspension.
 	searchingBy state.PlayerID
 	searchDepth int
+
+	// loop is the livelock watcher (rules/livelock.go): pure observation of
+	// the event stream this engine is logging, configured by Config.
+	// LoopGuard. It reads nothing and is read by nothing else; it panics
+	// with a *LivelockError when the stream looks non-terminating. Clone
+	// copies the guard thresholds and resets the run/quiet state (a clone
+	// only happens at an intent boundary, where the watcher is idle
+	// anyway), so the clone and the original watch their own streams
+	// independently.
+	loop livelockWatcher
 
 	// derivedKW / derivedTypes are Derived's scratch keyword and type buffers
 	// (rules/layers.go): the full Derived(struct) build rewrites them in place
@@ -831,6 +850,7 @@ func New(cfg Config) *Engine {
 		L:      events.NewLog(cfg.Seed),
 		format: cfg.Format,
 		rng:    newRNG(cfg.Seed),
+		loop:   newLivelockWatcher(cfg.LoopGuard),
 	}
 	e.G.Tokens = cfg.Tokens
 	e.format = cfg.Format
@@ -1177,6 +1197,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
+	e.loop.observe(stored)
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
 		copyID := e.G.Stack[len(e.G.Stack)-1]
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {

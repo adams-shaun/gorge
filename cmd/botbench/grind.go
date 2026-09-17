@@ -63,15 +63,20 @@ const grindDefaultSeconds = 30.0
 
 // grindDeck is one deck's tally.
 type grindDeck struct {
-	name     string
-	iters    int
-	stalls   int
-	wins     [2]int // seat 0 / seat 1 (same deck, same policy: the split is the seat, not the deck)
-	draws    int
-	intents  int64
-	turns    int64
-	elapsed  time.Duration
-	outcomes []gameOutcome // kept for tests (TestGrindIterationIsAPrefixOfALongerRun)
+	name   string
+	iters  int
+	stalls int
+	// livelocks is the subset of stalls the engine's livelock watcher
+	// aborted (an engine bug, not a slow game); firstLivelock records the
+	// first one's diagnostic so the report can name it concretely.
+	livelocks     int
+	firstLivelock string
+	wins          [2]int // seat 0 / seat 1 (same deck, same policy: the split is the seat, not the deck)
+	draws         int
+	intents       int64
+	turns         int64
+	elapsed       time.Duration
+	outcomes      []gameOutcome // kept for tests (TestGrindIterationIsAPrefixOfALongerRun)
 }
 
 // runGrind is grind mode's entry: it opens the corpus, resolves the deck
@@ -173,6 +178,14 @@ func runGrind(baseSeed uint64, deck string, seconds float64, iters int, dir, for
 	return writeGrindReport(out, baseSeed, seconds, iters, commander, results, collect, cov)
 }
 
+// grindSeats builds one grind iteration's two bot seats. A package var so
+// the livelock tests can substitute a seat that aborts the game (the same
+// injection point bench has through matchPlayer): the production value is
+// the historical inline construction.
+var grindSeats = func(seed uint64) []seat.Seat {
+	return []seat.Seat{seat.NewBot(seed ^ 1), seat.NewBot(seed ^ 2)}
+}
+
 // grindOne plays one deck against itself on THIS goroutine until the budget
 // runs out (checked between games, so at least one game always plays) or the
 // iteration cap is hit. The tally fields are written only by this
@@ -186,7 +199,7 @@ func grindOne(baseSeed uint64, d int, name string, deck []*cards.Card, commander
 			break
 		}
 		seed := grindSeed(baseSeed, d, i)
-		botSeats := []seat.Seat{seat.NewBot(seed ^ 1), seat.NewBot(seed ^ 2)}
+		botSeats := grindSeats(seed)
 		pols := []string{"bot", "bot"}
 		cfg := buildGameConfig(seed, []string{name, name}, [][]*cards.Card{deck, deck}, [][]int{commanders, commanders}, commander)
 		o, err := playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
@@ -205,6 +218,19 @@ func grindOne(baseSeed uint64, d int, name string, deck []*cards.Card, commander
 		g.turns += int64(o.turns)
 		if o.isStalled() {
 			g.stalls++
+			if o.stallOn == "livelock" {
+				// A livelocked game is recorded against this deck and seed and
+				// the grind continues -- a single stuck game must not hang or
+				// abort the batch -- but the tally feeds the end-of-run error:
+				// a livelock is an engine bug, not a slow game.
+				g.livelocks++
+				if g.firstLivelock == "" {
+					g.firstLivelock = fmt.Sprintf("iteration %d (seed %d): %s", i, seed, o.livelock)
+				}
+				if prog != nil {
+					fmt.Fprintf(prog, "grind %s, iteration %d: LIVELOCK: %s\n", name, i, o.livelock)
+				}
+			}
 		} else if o.winner == "" {
 			g.draws++
 		} else {
@@ -238,7 +264,7 @@ func writeGrindReport(out io.Writer, baseSeed uint64, seconds float64, iters int
 	}
 	fmt.Fprintln(out, hdr)
 	tw := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(tw, "deck\titers\titers/sec\tmean intents\tmean turns\tdraws\tstalls")
+	fmt.Fprintln(tw, "deck\titers\titers/sec\tmean intents\tmean turns\tdraws\tstalls\tlivelocks")
 	var totalIters int
 	var totalSecs float64
 	for _, r := range results {
@@ -251,8 +277,8 @@ func writeGrindReport(out io.Writer, baseSeed uint64, seconds float64, iters int
 			meanIntents = float64(r.intents) / float64(r.iters)
 			meanTurns = float64(r.turns) / float64(r.iters)
 		}
-		fmt.Fprintf(tw, "%s\t%d\t%.2f\t%.1f\t%.1f\t%d\t%d\n",
-			r.name, r.iters, rate, meanIntents, meanTurns, r.draws, r.stalls)
+		fmt.Fprintf(tw, "%s\t%d\t%.2f\t%.1f\t%.1f\t%d\t%d\t%d\n",
+			r.name, r.iters, rate, meanIntents, meanTurns, r.draws, r.stalls, r.livelocks)
 		totalIters += r.iters
 		totalSecs += r.elapsed.Seconds()
 	}
@@ -266,13 +292,25 @@ func writeGrindReport(out io.Writer, baseSeed uint64, seconds float64, iters int
 	if totalSecs > 0 {
 		combined = float64(totalIters) / totalSecs
 	}
-	fmt.Fprintf(tw, "combined\t%d\t%.2f\t\t\t\t\t\n", totalIters, combined)
+	fmt.Fprintf(tw, "combined\t%d\t%.2f\t\t\t\t\t\t\n", totalIters, combined)
 	tw.Flush()
+	for _, r := range results {
+		if r.firstLivelock != "" {
+			fmt.Fprintf(out, "grind %s: LIVELOCK: %s\n", r.name, r.firstLivelock)
+		}
+	}
 	if collect != nil {
 		collect.write(out)
 	}
 	if cov != nil {
 		cov.write(out)
+	}
+	for _, r := range results {
+		if r.livelocks > 0 {
+			// After the full report: a livelocked game is an engine bug, and
+			// a zero exit would read as a clean pass to the automated caller.
+			return fmt.Errorf("grind %s: %d game(s) aborted with a livelock (see the LIVELOCK diagnostics above)", r.name, r.livelocks)
+		}
 	}
 	return nil
 }

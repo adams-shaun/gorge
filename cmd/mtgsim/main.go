@@ -139,22 +139,10 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	b := seat.NewBot(seed)
 	e.Advance()
 
-	ctx := context.Background()
-	n := 0
-	for !e.G.Over && e.Pending() != nil && n < maxIntents {
-		d := e.Pending()
-		v := view.Project(e.G, e, d.Player, d)
-		v.Round = view.RoundOf(e.G, e.L.Events)
-		in, err := b.Decide(ctx, v, *d)
-		if err != nil {
-			fmt.Fprintf(out, "seed %d: bot error at intent %d: %v\n", seed, n, err)
-			return false
-		}
-		if err := e.Submit(in); err != nil {
-			fmt.Fprintf(out, "seed %d: intent %d rejected: %v\n", seed, n, err)
-			return false
-		}
-		n++
+	n, err := driveGame(e, b)
+	if err != nil {
+		reportDriveFailure(out, seed, len(names), n, err)
+		return false
 	}
 
 	if !e.G.Over {
@@ -181,6 +169,55 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 		head = re.L.Head()
 	}
 	return printReplayOutcome(out, err, head)
+}
+
+// reportDriveFailure prints playOne's failure line for a game the drive
+// loop ended early: the livelock diagnostic when the engine's watcher fired
+// (the LIVELOCK marker makes the failure greppable and unmistakable next to
+// the DID NOT TERMINATE / winner lines), or the plain error otherwise.
+// Returns false, playOne's failure signal.
+func reportDriveFailure(out io.Writer, seed uint64, seats, n int, err error) bool {
+	if lle, ok := err.(*rules.LivelockError); ok {
+		fmt.Fprintf(out, "seed %d: %d seats, %6d intents -- LIVELOCK: %v\n", seed, seats, n, lle)
+	} else {
+		fmt.Fprintf(out, "seed %d: %d seats, %6d intents -- FAILED: %v\n", seed, seats, n, err)
+	}
+	return false
+}
+
+// driveGame submits bot intents until the game ends, a seat errors, an
+// intent is rejected -- or the engine's livelock watcher (rules/livelock.go)
+// aborts the game from inside Advance/Submit. That last shape cannot be a
+// returned error from Submit: the loop is stuck INSIDE one Submit call, so
+// the watcher panics with a *rules.LivelockError and this recovers it,
+// converts it to a plain return, and leaves every other panic -- a real bug
+// either way -- crashing loudly. The engine is abandoned once it has
+// livelocked; nothing may drive it again.
+func driveGame(e *rules.Engine, s seat.Seat) (n int, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if lle, ok := r.(*rules.LivelockError); ok {
+				err = lle
+				return
+			}
+			panic(r)
+		}
+	}()
+	ctx := context.Background()
+	for !e.G.Over && e.Pending() != nil && n < maxIntents {
+		d := e.Pending()
+		v := view.Project(e.G, e, d.Player, d)
+		v.Round = view.RoundOf(e.G, e.L.Events)
+		in, err := s.Decide(ctx, v, *d)
+		if err != nil {
+			return n, fmt.Errorf("bot error at intent %d: %w", n, err)
+		}
+		if err := e.Submit(in); err != nil {
+			return n, fmt.Errorf("intent %d rejected: %w", n, err)
+		}
+		n++
+	}
+	return n, nil
 }
 
 // printReplayOutcome prints the -verify line for one game -- "replay OK"
