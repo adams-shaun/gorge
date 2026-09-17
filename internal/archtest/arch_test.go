@@ -69,14 +69,19 @@ func set(s string) map[string]bool {
 // event, view or replay depends on. cmd/ledger is exempt likewise: it stamps
 // the ledger document's Generated: field for the dashboard, a docs tool
 // output, never engine state.
+// cmd/searchprobe is another diagnostic tool: it measures corpus load, total
+// elapsed time and per-root sampling/search cost. It injects a clock into the
+// experimental harness only for returned metrics; fixed work counts, explicit
+// seeds and ordinary engine execution govern every proposal and action.
 func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	allowed := map[string]bool{
-		module + "/host":         true,
-		module + "/host/httpapi": true,
-		module + "/cmd/gorged":   true,
-		module + "/cmd/testtime": true,
-		module + "/cmd/botbench": true,
-		module + "/cmd/ledger":   true,
+		module + "/host":            true,
+		module + "/host/httpapi":    true,
+		module + "/cmd/gorged":      true,
+		module + "/cmd/testtime":    true,
+		module + "/cmd/botbench":    true,
+		module + "/cmd/ledger":      true,
+		module + "/cmd/searchprobe": true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {

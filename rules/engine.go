@@ -860,6 +860,10 @@ func (c *Config) commandersFor(i, deckLen int) []int {
 const openingHand = 7
 
 func New(cfg Config) *Engine {
+	return newWithRNG(cfg, newRNG(cfg.Seed))
+}
+
+func newWithRNG(cfg Config, random *rng) *Engine {
 	life := int32(20)
 	if cfg.StartingLife > 0 {
 		life = cfg.StartingLife
@@ -868,7 +872,7 @@ func New(cfg Config) *Engine {
 		G:      state.NewGameLife(cfg.Names, life),
 		L:      events.NewLog(cfg.Seed),
 		format: cfg.Format,
-		rng:    newRNG(cfg.Seed),
+		rng:    random,
 		loop:   newLivelockWatcher(cfg.LoopGuard),
 	}
 	e.G.Tokens = cfg.Tokens

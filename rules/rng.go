@@ -10,10 +10,11 @@ import (
 // can assert it consumed exactly the same number of values — the cheapest
 // possible detector for "the engine changed underneath this log".
 type rng struct {
-	src   *rand.Rand
-	pcg   *rand.PCG // kept so clone can copy the generator's exact position
-	Draws uint64
-	seed  [2]uint64
+	src    *rand.Rand
+	pcg    *rand.PCG // kept so clone can copy the generator's exact position
+	Draws  uint64
+	seed   [2]uint64
+	chance *chanceState // nil for ordinary games; owned by hypothetical clones
 }
 
 func newRNG(seed uint64) *rng {
@@ -34,12 +35,19 @@ func (r *rng) clone() *rng {
 	if err := pcg.UnmarshalBinary(raw); err != nil {
 		panic("rules: PCG UnmarshalBinary: " + err.Error())
 	}
-	return &rng{src: rand.New(pcg), pcg: pcg, Draws: r.Draws, seed: r.seed}
+	return &rng{src: rand.New(pcg), pcg: pcg, Draws: r.Draws, seed: r.seed, chance: r.chance.clone()}
 }
 
 func (r *rng) IntN(n int) int {
+	if r.chance != nil {
+		r.chance.check(n)
+	}
 	r.Draws++
-	return r.src.IntN(n)
+	v := r.src.IntN(n)
+	if r.chance != nil {
+		return r.chance.record(n, v)
+	}
+	return v
 }
 
 // Shuffle is Fisher-Yates and consumes exactly len(ids)-1 values, so draw count
