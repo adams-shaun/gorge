@@ -100,7 +100,15 @@ type resumePoint struct {
 	before *triggerSnapshot // immutable look-back if a batch replacement suspends
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
-	target      int
+	target int
+	// player is the decision's owner. Dredge uses it to apply the answered
+	// replacement to the player drawing even when the enclosing effect's
+	// controller is someone else.
+	player state.PlayerID
+	// direct identifies an effect invoked outside stack resolution (currently
+	// an enters-the-battlefield replacement such as Hideaway). It resumes its
+	// source directly rather than requiring a stack object.
+	direct      bool
 	choices     []state.Target
 	chosenValid bool
 	remembered  []state.Target
@@ -137,6 +145,11 @@ type resumePoint struct {
 	repeatSubject state.Target
 	// repeat is a kind "repeat" frame's loop cursor.
 	repeat *repeatCursor
+	// lifeDraws parks a GainLife→Draw replacement body's remaining draws
+	// (replacement.go's lifeReplacementDraw): the loop's DrawFor suspended
+	// on a Dredge ask (CR 702.55) mid-replacement, and the answered dredge
+	// re-drives the rest from this cursor. Zero for every other frame.
+	lifeDraws int32
 }
 
 // repeatCursor is the loop position a kind "repeat" frame re-enters with.
@@ -173,8 +186,12 @@ type contFrame struct {
 // effects.Resolve returns. Always returns true: this engine can always ask.
 func (e *Engine) Ask(d *decision.Decision) bool {
 	obj := state.ObjID(0)
+	direct := false
 	if n := len(e.G.Stack); n > 0 {
 		obj = e.G.Stack[n-1]
+	} else {
+		obj = d.Source
+		direct = true
 	}
 	kind := d.ResumeKind
 	if kind == "" {
@@ -204,7 +221,9 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	// move has already taken the resolving object off the stack, so the top
 	// of the stack is some unrelated object and the resume must rebuild from
 	// the entering permanent itself. replSource keeps the replacement's host
-	// for the resumed body's own Source either way.
+	// for the resumed body's own Source either way. The one further
+	// exception this build adds is an effect invoked outside stack
+	// resolution (direct), whose resume must find its own source.
 	var replSource state.ObjID
 	if e.applyingReplacement && d.Source != 0 {
 		replSource = d.Source
@@ -234,7 +253,8 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		replacedPlayer:    e.replReplacedPlayer,
 		replacementTarget: replacementTarget, replacementSource: e.protectionSource(e.damaging),
 		replacementAmount: replacementAmount,
-		before:            e.triggerBefore, target: d.ResumeTarget, rolls: d.Rolls,
+		before:            e.triggerBefore, target: d.ResumeTarget, player: d.Player,
+		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...)}
 	return true
@@ -329,6 +349,39 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	// CR 601.2b cast branch: the spell is already provisionally on the stack,
 	// but no targets have been selected and no cost has been paid. Record the
 	// answer on that spell, then resume the cast transaction at target choice.
+	// CR 702.55 dredge: a draw-step draw replaced by a graveyard dredge is
+	// NOT a stack object, so the ordinary mid-resolution resume path (which
+	// re-enters a suspended stack-object resolution) does not apply. Handle
+	// the answered dredge here: option 0 mills the dredge card's N and returns
+	// it to hand (the ordinary draw is already skipped by the ask's
+	// suspension), option 1 (or an empty answer) lets the draw happen, which
+	// the suspended DrawFor re-runs as the ordinary draw.
+	if d.ResumeKind == "dredge" && (e.resume == nil || e.resume.direct) {
+		// A turn-based draw has no enclosing stack resolution to re-enter.
+		// A Draw API on a resolving spell/ability instead falls through to
+		// resumeResolution below, which restores its cursor and finishes every
+		// remaining draw and SubAbility$ exactly once.
+		ch := d.Chosen(in)
+		if len(ch) > 0 && ch[0].Kind == "dredge" {
+			e.applyDredge(in.Player, ch[0].Obj)
+		} else {
+			e.resumeOrdinaryDraw(in.Player)
+		}
+		// A GainLife→Draw replacement body parked its remaining draws on this
+		// ask (replacement.go's lifeReplacementDraw): the answer resolved the
+		// draw that asked, so re-drive the rest -- which may park again on
+		// the next dredge ask -- and then drain any replacement-order queue
+		// the interrupted pass left behind.
+		if rp := e.resume; rp != nil && rp.lifeDraws > 0 {
+			rest := rp.lifeDraws
+			e.resume = nil
+			e.lifeReplacementDraw(in.Player, rest)
+			e.askNextReplacementChoice()
+			return
+		}
+		e.resume = nil
+		return
+	}
 	if d.ResumeKind == "cast_modes" {
 		pc := e.cast
 		if pc == nil || pc.ability >= 0 || pc.stackObj == 0 {
@@ -403,6 +456,52 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 // continuation it carries have all completed — the fully-resolved object
 // goes where resolveTop's own tail would have sent it.
 func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
+	// A GainLife→Draw replacement body parked its remaining draws on this
+	// ask (replacement.go's lifeReplacementDraw). The body is not a stack
+	// resolution: there is no sub-ability to re-enter (rp.sa is nil -- the
+	// loop called DrawFor directly, which poses its own dredge ask). The
+	// signature is exact: DrawFor is the only sa==nil dredge asker (effDraw's
+	// frames carry ResumeSA, and a turn-based draw's direct frame never
+	// reaches here -- handleModes routes those to its own arm). The answer
+	// resolved the draw that asked, whether or not draws remain parked
+	// (lifeDraws == 0 is the FINAL draw of the body -- findings-sol5: the old
+	// lifeDraws > 0 gate dropped that frame's answer into the no-sub-ability
+	// Note below); apply it and re-drive the rest (which may park again on
+	// the next dredge ask). The frame's rp.outer continuation and the
+	// completion tail below still run after it -- the same order the body ran
+	// in before it suspended -- and the drain at this cascade's true end
+	// picks up any replacement-order queue the interrupted pass left behind.
+	parkedDraws := false
+	if rp.kind == "dredge" && rp.sa == nil {
+		parkedDraws = true
+		if !e.G.Players[rp.player].Lost {
+			// CR 800.4f: a departed player makes no choice and draws
+			// nothing; the outer continuation below still runs.
+			if len(chosen) > 0 && chosen[0].Kind == "dredge" {
+				e.applyDredge(rp.player, chosen[0].Obj)
+			} else {
+				e.resumeOrdinaryDraw(rp.player)
+			}
+			e.lifeReplacementDraw(rp.player, rp.lifeDraws)
+			if e.Suspended() || e.pending != nil {
+				// The re-drive parked on the next dredge ask: that frame's
+				// own resume arms carry the rest. The new pending point is
+				// fresh (outer nil -- Ask builds it bare, and nothing in this
+				// re-drive reports continuations), so link the interrupted
+				// frame's own continuation onto it -- the same fx32 linking
+				// discipline the e.resume != nil branch below practises --
+				// or the cascade's last frame would complete the object
+				// without ever running what this interrupted resolution was
+				// still carrying (findings-sol5: the sub-ability after the
+				// GainLife never ran). Every later park re-links the same
+				// chain, so rp.outer survives until the cascade truly ends.
+				if e.resume != nil {
+					e.resume.outer = rp.outer
+				}
+				return
+			}
+		}
+	}
 	before := e.triggerBefore
 	e.triggerBefore = rp.before
 	defer func() { e.triggerBefore = before }()
@@ -410,7 +509,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	e.resolvingObj = rp.obj
 	defer func() { e.resolvingObj = savedResolving }()
 	o := e.G.Obj(rp.obj)
-	if o == nil || (o.Zone != state.ZStack && !rp.replacement) {
+	if o == nil || (o.Zone != state.ZStack && !rp.replacement && !rp.direct) {
 		// The suspended object left the stack while the decision was
 		// outstanding. Nothing but the answer can un-freeze the engine, so
 		// this is unreachable in a well-formed match; it degrades to a
@@ -572,6 +671,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 	if rp.sa != nil {
 		switch rp.kind {
+		case "dredge":
+			// CR 702.55 replaces exactly the one draw that asked. The enclosing
+			// Draw cursor advances only after the replacement (or declined
+			// ordinary draw) completes; effDraw then re-enters at that cursor
+			// and performs all remaining draws before its SubAbility$.
+			if len(chosen) > 0 && chosen[0].Kind == "dredge" {
+				e.applyDredge(rp.player, chosen[0].Obj)
+			} else {
+				e.resumeOrdinaryDraw(rp.player)
+			}
+			ctx.DrawDone = int32(rp.target + 1)
 		case "repeat":
 			// A RepeatEach loop re-entered after one of its iterations
 			// suspended: no answer, just the cursor (CR 608.2c).
@@ -898,6 +1008,29 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// event, not on Ctx, so this is a done-marker rather than an
 			// answer the effect re-reads.
 			ctx.Arrange = true
+		case "hideaway_pick":
+			// Hideaway's first ask chooses exactly one of the looked-at cards.
+			// The effect validates it remains in the library before moving it,
+			// then asks the separate ordered-bottom question for the remainder.
+			ctx.HideawayPicked = true
+			if len(chosen) == 1 {
+				ctx.Hideaway = chosen[0].Obj
+			}
+		case "hideaway_arrange":
+			ctx.HideawayArranged = true
+		case "soulbond":
+			// Soulbond is a may choice: no option is a legitimate decline.
+			ctx.SoulbondDone = true
+			if len(chosen) == 1 {
+				ctx.SoulbondPartner = chosen[0].Obj
+			}
+		case "myriad":
+			// CR 702.109 makes a separate may choice for each eligible opponent.
+			// ResumeTarget is that opponent's stable index in effMyriad's
+			// deterministic list; only its explicit yes option creates the copy.
+			ctx.MyriadDone = true
+			ctx.MyriadTarget = rp.target
+			ctx.MyriadCreate = len(chosen) == 1 && chosen[0].Kind == "yes"
 		case "defined_library_optional":
 			// An Optional$ object-valued Defined$ library fetch list (Kenessos's
 			// DBBottom): option zero accepts the whole direct move; every other
@@ -921,6 +1054,59 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.RevealOpt = "yes"
 			} else {
 				ctx.RevealOpt = "no"
+			}
+		case "play":
+			// A Play effect (Conduit of Worlds, Spinerock Knoll) was answered:
+			// each chosen option's Obj is a card to play from its current zone,
+			// in answer order. An empty answer is a DECLINE of an Optional$
+			// Play (effPlay now offers Min 0) -- the answer is consumed with
+			// nothing begun. Only the effect's own WithoutManaCost$ grants a
+			// free cast: Conduit has no such parameter, while Spinerock Knoll
+			// does. An Amount$ All / N answer may name several cards; each is
+			// begun in turn, and the loop stops at the first cast that cannot
+			// commit synchronously (an ask inside the cast transaction -- an
+			// ETB choice, a target, a mana window -- parks the resolution on
+			// that cast's question, and the not-yet-begun cards are dropped
+			// with a Note rather than wedging; the corpus Amount$ All shapes
+			// are without-mana-cost creature/spell plays, which commit
+			// synchronously). ctx.Play/PlayDone are set so the re-entered
+			// effPlay sees the answer as consumed either way.
+			free := strings.EqualFold(rp.sa.Params["WithoutManaCost"], "True")
+			var toPlay []state.ObjID
+			for _, ch := range chosen {
+				if ch.Obj != 0 {
+					toPlay = append(toPlay, ch.Obj)
+				}
+			}
+			ctx.PlayDone = true
+			for i, id := range toPlay {
+				if i == 0 {
+					ctx.Play = id
+				}
+				e.beginPlay(ctx.Controller, id, free)
+				if e.Suspended() || e.cast != nil {
+					if rest := toPlay[i+1:]; len(rest) > 0 {
+						e.emit(events.Event{Kind: events.Note, Obj: rp.obj,
+							Text: "Play stopped after a suspended cast; the remaining cards stay unplayed"})
+					}
+					break
+				}
+			}
+		case "extort":
+			// Extort's optional {W/B} payment was answered. Option 0 is "pay";
+			// anything else is a decline. The hybrid pip is charged from the
+			// caster's pool as one W or B when available; a pool lacking both
+			// colours deterministically declines (the drain never runs without
+			// the mana being genuinely paid). The re-entered effExtort reads
+			// Ctx.Extort and runs the drain only on "pay".
+			if len(chosen) > 0 && chosen[0].Index == 0 {
+				if e.payExtortPip(chosen[0].Player) {
+					ctx.Extort = "pay"
+				} else {
+					ctx.Extort = "decline"
+				}
+			} else {
+				ctx.Extort = "decline"
 			}
 		case "effect_paid":
 			// The trigger's Cost$ was paid by triggeredCostAnswer; run the
@@ -988,12 +1174,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
 			return
 		}
-	} else if rp.kind != "replacement" {
-		// A resume with no sub-ability recorded is normally reachable only from
-		// a hand-built Ask. Replacement-order decisions are the deliberate
-		// exception: the intercepted event has already completed, and the
-		// continuation begins at rp.outer rather than re-running the effect that
-		// proposed it.
+	} else if !parkedDraws && rp.kind != "replacement" {
+		// A resume with no sub-ability recorded: normally reachable only from
+		// a hand-built Ask (every real asking primitive sets ResumeSA). Two
+		// deliberate exceptions need no Note either: a parked GainLife→Draw
+		// frame whose answer was applied above, and a replacement-order
+		// decision — the intercepted event has already completed, and the
+		// continuation begins at rp.outer rather than re-running the effect
+		// that proposed it. The resolution still finishes — the object leaves
+		// the stack with no effect, the same degrade-to-nothing stance as an
+		// unrecognised choice, rather than stalling the match forever.
 		e.emit(events.Event{Kind: events.Note, Obj: rp.obj,
 			Text: "mid-resolution answer resumed with no sub-ability recorded"})
 	}
@@ -1021,6 +1211,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 		}
 		e.resumeResolution(rp.outer, nil)
+		if parkedDraws {
+			e.askNextReplacementChoice()
+		}
 		return
 	}
 	e.finishResumption(rp.obj)
@@ -1039,6 +1232,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// is the same two-event shape an unsuspended resolution already produces
 	// (pass-branch grant + grantPriority), so the suspended path now matches.
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+	if parkedDraws {
+		// The cascade's true end: any replacement-order choice the
+		// interrupted pass left queued is asked now, after the resolution's
+		// completion marker, never before it.
+		e.askNextReplacementChoice()
+	}
 }
 
 // buildContinuationChain turns the enclosing-loop suspension points reported

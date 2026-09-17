@@ -548,6 +548,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// eligible alternate face. Granted Ward is independent of both.
 		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
 			e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
 			return
 		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
@@ -747,7 +748,6 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 			}
 		}
-		e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -1177,6 +1177,21 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	if v, ok := t.Params["Alone"]; ok && strings.EqualFold(v, "True") && len(ev.IDs) != 1 {
 		return false
+	}
+	// Dethrone (CR 702.105) fires only when the attacked player has the
+	// greatest life total (tied is enough) among ALL players. Comparing only
+	// the attacker and its defender is wrong in multiplayer: a third player
+	// with more life prevents the trigger even though it was not attacked.
+	if v, ok := t.Params["Dethrone"]; ok && strings.EqualFold(v, "True") {
+		if int(ev.Player) >= len(e.G.Players) || e.G.Players[ev.Player].Lost {
+			return false
+		}
+		life := e.G.Players[ev.Player].Life
+		for i := range e.G.Players {
+			if !e.G.Players[i].Lost && e.G.Players[i].Life > life {
+				return false
+			}
+		}
 	}
 	spec, ok := t.Params["ValidCard"]
 	if !ok {
@@ -2182,7 +2197,7 @@ func init() {
 		// ChangesZone / Attacks / SpellCast triggers routed through the modes
 		// above: Undying and Evolve are ChangesZone triggers, Exalted is
 		// (Alone$) Attacks, Prowess is SpellCast.
-		"kw:Undying", "kw:Evolve", "kw:Exalted", "kw:Prowess",
+		"kw:Undying", "kw:Evolve", "kw:Exalted", "kw:Dethrone", "kw:Prowess", "kw:Riot", "kw:Hideaway", "kw:Extort", "kw:Myriad", "kw:Soulbond", "kw:Dredge",
 		// Task 17: Storm's expansion (cards/keywords.go) is a SpellCast
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its
@@ -2205,6 +2220,41 @@ func init() {
 		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
 		"stat:Panharmonicon", "kw:Partner", "kw:CARDNAME can be your commander.",
 	)
+}
+
+// checkGrantedDethroneTriggers synthesizes Dethrone's ordinary attack trigger
+// (CR 702.105) for a creature that currently HAS the keyword but does not
+// print it: a keyword granted in layer 6 has the same rules text as a printed
+// keyword, and keyword expansion only adds triggers for printed K: lines.
+// This is deliberately a read-only derived-characteristics check; granting
+// and removing the keyword remains entirely in the existing continuous-effect
+// system. It must run on the faceMayTrigger early-return path too (a granted
+// keyword is independent of printed triggers, the same shape Granted Ward
+// is), so it is called once per object before that gate.
+func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	if ev.Kind != events.DeclareAttackers || e.HasKeyword(id, "Dethrone") && f.HasKeyword("Dethrone") {
+		return
+	}
+	if !e.HasKeyword(id, "Dethrone") || f.HasKeyword("Dethrone") {
+		return
+	}
+	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
+		"Mode": "Attacks", "ValidCard": "Card.Self", "Dethrone": "True",
+	}, Effect: &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+		"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1",
+	}}}
+	if observer.triggerMatches(t, id, ev, objLKI) {
+		key := triggerKey{Source: id, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] < maxTriggerFires {
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
+				Ctx: effects.Ctx{Source: id, Controller: o.Controller, Remembered: triggerRemembered(ev, id), LKI: objLKI,
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)}})
+		}
+	}
 }
 
 func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {

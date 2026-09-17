@@ -211,28 +211,67 @@ func TestConduitGraveyardLandEtbChoicePlaysFromGraveyard(t *testing.T) {
 	}
 }
 
-// TestMayPlayRichGrantFailsClosed pins that the may-play permission is only
-// implemented for the UNCONDITIONAL land shape. A richer grant -- one carrying
-// a CheckSVar$/SVarCompare$ gate -- must FAIL CLOSED: it keeps the prior
-// no-op behaviour (no play_land offered) rather than being silently
-// over-applied. MayPlayLimit$ (the once-per-turn cap, mayPlaysThisTurn) and
-// Condition$ PlayerTurn (the Kess/Karador family) are IMPLEMENTED as of the
-// Rakdos-params task and pinned by their own tests in
-// rakdos_params_mayplay_test.go; only a rider the grant walk genuinely does
-// not read still forces closed here.
+// TestMayPlayRichGrantFailsClosed pins the rich-grant boundary on Muldrotha's
+// real script shape: the once-per-turn MayPlayLimit$ and the Condition$
+// PlayerTurn gate are IMPLEMENTED (mayPlayLimitReached and the Condition$
+// PlayerTurn arm; TestKessGraveyardInstantCastsOnItsControllerTurn and
+// TestKessGraveyardInstantNotOfferedOnOpponentTurn pin both on Kess's real
+// compiled script), while the per-TYPE MayPlayText$ rider stays unread (the
+// grant still applies -- the kw-mayplay branch's reviewed stance) and an
+// unimplemented CheckSVar$ gate fails closed. A CheckSVar$ may-play grant's
+// withholding is a recognition, not a consumption.
 func TestMayPlayRichGrantFailsClosed(t *testing.T) {
-	t.Run("MayPlayLimit forces closed", func(t *testing.T) {
+	t.Run("MayPlayLimit grants once and then withholds", func(t *testing.T) {
 		e := mayPlayBase(t)
-		// Muldrotha's real uncapped-per-type land grant: MayPlay$ True but
-		// once-per-turn (MayPlayLimit$ 1, readable) AND MayPlayText$ Land --
-		// the per-TYPE qualifier the cap ride does not model. The unread key
-		// forces the whole grant closed.
+		// Muldrotha's real uncapped-per-type land grant: MayPlay$ True,
+		// once-per-turn (MayPlayLimit$ 1) and Condition$ PlayerTurn. The
+		// merged engine implements both gates, so the graveyard land IS
+		// offered this turn -- and after the land drop is spent it is not
+		// offered again.
 		muldrotha := "Name:Muldrotha, the Gravetide\nManaCost:1 G U B\nTypes:Legendary Creature\nPT:6/6\n" +
 			"S:Mode$ Continuous | Affected$ Land.YouOwn | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Land | EffectZone$ Battlefield | AffectedZone$ Graveyard | Description$ x\nOracle:x\n"
 		onBoardGrant(t, e, 0, muldrotha)
 		grave := graveCard(e, card(t, landSrc("Mountain")), 0, 0)
+		if n := countPlayLand(e, grave); n != 1 {
+			t.Fatalf("a MayPlayLimit$ grant is implemented (once per turn), want exactly one play_land, got %d", n)
+		}
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			e.priorityRound()
+			d = e.Pending()
+		}
+		if d == nil {
+			t.Fatal("no pending decision after priorityRound")
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "play_land" && o.Obj == grave {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("no play_land option under the MayPlayLimit$ grant: %+v", d.Options)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{idx}}); err != nil {
+			t.Fatalf("submit play_land: %v", err)
+		}
 		if n := countPlayLand(e, grave); n != 0 {
-			t.Fatalf("a MayPlayText$ grant must fail closed (no play_land), got %d", n)
+			t.Fatalf("after the once-per-turn play, no further play_land may be offered, got %d", n)
+		}
+	})
+
+	t.Run("Condition PlayerTurn grants on the controller's turn", func(t *testing.T) {
+		e := mayPlayBase(t)
+		gated := "Name:Gated Grant\nManaCost:2\nTypes:Artifact\n" +
+			"S:Mode$ Continuous | Affected$ Land.YouOwn | Condition$ PlayerTurn | MayPlay$ True | AffectedZone$ Graveyard | Description$ x\nOracle:x\n"
+		onBoardGrant(t, e, 0, gated)
+		grave := graveCard(e, card(t, landSrc("Mountain")), 0, 0)
+		// mayPlayBase sits at seat 0's main phase on seat 0's turn, so the
+		// PlayerTurn-conditioned grant applies and the land is offered. The
+		// opponent-turn side of the same gate is pinned on Kess's real script
+		// by TestKessGraveyardInstantNotOfferedOnOpponentTurn.
+		if n := countPlayLand(e, grave); n != 1 {
+			t.Fatalf("a Condition$ PlayerTurn grant applies on the controller's turn, want exactly one play_land, got %d", n)
 		}
 	})
 

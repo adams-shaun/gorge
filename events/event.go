@@ -298,6 +298,22 @@ const (
 	// ordinals (log.json serializes kind numerically; a committed fixture's
 	// replay pins them).
 	StartingPlayerChange
+	// Pair records a Soulbond pairing (CR 702.103): Obj is the pairing
+	// permanent and IDs[0] is its chosen partner. Appended after
+	// StartingPlayerChange (the merge kept main's kinds at their main
+	// ordinals), following the same append-only precedent, so all earlier
+	// Kinds keep their numeric values and the hash chain and golden replays
+	// are unaffected.
+	Pair
+	// MyriadCopy records one Myriad (CR 702.109) attacker token: a copy of
+	// the attack-creature Obj that enters tapped and attacking the opponent
+	// named by Player. Appended after Pair, same append-only precedent.
+	MyriadCopy
+	// MyriadCleanup exiles every Myriad token still on the battlefield as the
+	// end-of-combat step ends (CR 702.109a). Its event-sourced arena scan keeps
+	// live play and log replay in lockstep without adding one delayed trigger
+	// per token.
+	MyriadCleanup
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -308,7 +324,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(StartingPlayerChange) + 1
+	NumKinds = int(MyriadCleanup) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -323,7 +339,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
-	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change"}
+	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
+	"pair", "myriad_copy", "myriad_cleanup"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

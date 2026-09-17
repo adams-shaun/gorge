@@ -1,5 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/cmd/repro
 
+budget_s: 15
 budget_s: 18
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
@@ -24,6 +25,13 @@ budget_s: 18
 | 2026-09-15T10:58Z | 6fe3f77+ | 5.2 | 22 | 1 | sadams |
 | 2026-09-15T10:38Z | 6064b42+ | 6.0 | 26 | 1 | sadams |
 | 2026-09-15T10:57Z | ec72ba3+ | 6.1 | 22 | 1 | sadams |
+| 2026-09-16T02:57Z | c39fa4e+ | 9.7 | 22 | 1 | sadams |
+| 2026-09-16T03:02Z | c39fa4e+ | 10.1 | 22 | 1 | sadams |
+| 2026-09-16T03:06Z | c39fa4e+ | 10.5 | 22 | 1 | sadams |
+| 2026-09-16T03:12Z | c39fa4e+ | 10.2 | 22 | 1 | sadams |
+| 2026-09-16T17:05Z | c39fa4e+ | 9.4 | 22 | 1 | sadams |
+| 2026-09-16T17:09Z | c39fa4e+ | 11.1 | 22 | 1 | sadams |
+| 2026-09-16T17:33Z | c39fa4e+ | 9.3 | 22 | 1 | sadams |
 | 2026-09-15T22:36Z | 5600203+ | 14.9 | 22 | 1 | sadams |
 | 2026-09-16T16:51Z | 5e1c31e+ | 9.4 | 22 | 1 | sadams |
 | 2026-09-16T16:52Z | 5e1c31e+ | 9.2 | 22 | 1 | sadams |
@@ -55,3 +63,6 @@ budget_s: 18
 | 2026-09-17T06:23Z | 75485128+ | 14.6 | 22 | 1 | sadams |
 | 2026-09-17T06:42Z | 4bfe4469+ | 14.2 | 22 | 1 | sadams |
 | 2026-09-17T06:48Z | 4bfe4469+ | 14.0 | 22 | 1 | sadams |
+| 2026-09-17T08:11Z | b23a5c4c+ | 13.5 | 22 | 1 | sadams |
+| 2026-09-17T08:12Z | b23a5c4c+ | 13.7 | 22 | 1 | sadams |
+| 2026-09-17T08:15Z | b23a5c4c+ | 15.0 | 22 | 1 | sadams |

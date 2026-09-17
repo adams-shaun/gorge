@@ -99,9 +99,66 @@ func (f *Face) expandKeywords() {
 		case "Exalted":
 			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True | TriggerDescription$ Exalted",
 				"DB$ Pump | Defined$ TriggeredAttacker | NumAtt$ +1 | NumDef$ +1", has)
+		case "Dethrone":
+			// CR 702.105's event-relative life comparison is in attacksMatches.
+			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | Dethrone$ True | TriggerDescription$ Dethrone",
+				"DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1", has)
+		case "Hideaway":
+			if has("R", k) {
+				continue
+			}
+			// Hideaway is an enters-the-battlefield replacement. Keep the
+			// keyword parameter as data so its varying N is not lost.
+			n := strings.TrimSpace(param)
+			if n == "" {
+				n = "4"
+			}
+			sv := "__kwHideaway" + strconv.Itoa(i)
+			f.setSVar(sv, "DB$ Hideaway | Amount$ "+n)
+			p := parseParams("Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplacementResult$ Updated | ReplaceWith$ " + sv + " | Keyword$ Hideaway")
+			p["KeywordLine"] = k
+			f.Repls = append(f.Repls, Repl{Event: "Moved", Params: p})
 		case "Prowess":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.nonCreature | ValidActivatingPlayer$ You | TriggerDescription$ Prowess",
 				"DB$ Pump | Defined$ Self | NumAtt$ +1 | NumDef$ +1", has)
+		case "Extort":
+			// CR 702.100: "Whenever you cast a spell, you may pay {W/B}. If you
+			// do, each opponent loses 1 life and you gain that much life." A
+			// SpellCast trigger on the controller; the optional {W/B} payment is
+			// efectively asked in effExtort (the mid-resolution KModes ask) and
+			// the drain runs per spell cast.
+			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidActivatingPlayer$ You | TriggerDescription$ Extort",
+				"DB$ Extort", has)
+		case "Soulbond":
+			// CR 702.103 has two independently-triggering cases: this creature
+			// enters, and another unpaired creature its controller controls
+			// enters. The two synthetic KeywordLine suffixes retain idempotency
+			// for both expansions while Keyword remains the printed keyword.
+			//
+			// The second case's partner choice must be restricted to the
+			// SPECIFIC creature that triggered it (CR 702.103a: "you may pair
+			// this creature with that creature"), not any unpaired creature
+			// the controller happens to have -- a bystander unpaired creature
+			// must never be offered just because a third, unrelated creature
+			// entered. RestrictToRemembered$ True tells effPair (Ctx.Remembered
+			// already carries the triggering entrant, via triggerRemembered) to
+			// narrow its candidate scan to that one object; the #self trigger
+			// omits it and keeps the broad "any unpaired creature I control"
+			// scan CR 702.103a's other half calls for.
+			f.addKeywordTrigger(head, k+"#self", "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.Self | TriggerDescription$ Soulbond",
+				"DB$ Pair", has)
+			f.addKeywordTrigger(head, k+"#other", "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.YouCtrl+Other | TriggerDescription$ Soulbond",
+				"DB$ Pair | RestrictToRemembered$ True", has)
+		case "Myriad":
+			// CR 702.109: "Whenever this creature attacks, for each opponent other
+			// than the defending player, you may create a token that's a copy of
+			// this creature tapped and attacking that player." An Attacks trigger
+			// whose body creates the myriad per-other-opponent token copies; the
+			// token copy creation is the engine's Myriad effect (a focused
+			// implementation: the copies are minted and attack the respective
+			// opponent).
+			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | Myriad$ True | TriggerDescription$ Myriad",
+				"DB$ Myriad", has)
 		case "Annihilator":
 			// CR 702.86: each time this creature attacks, its defending
 			// player sacrifices the stated number of permanents. The count
@@ -226,13 +283,18 @@ func (f *Face) expandKeywords() {
 
 // addKeywordTrigger appends one tagged T: line whose Execute$ is an SVar
 // this function creates, unless the exact keyword line was already
-// expanded (kw is the head, used for the Keyword$ tag and the __kw SVar
-// name; line is the full keyword text, used only for idempotency).
+// expanded (kw is the head, used only for the Keyword$ tag; line is the full
+// keyword text, used both for idempotency and -- since it, unlike kw, is
+// unique per call -- for the __kw SVar name. Soulbond calls this twice with
+// the same kw ("Soulbond") but two different lines ("Soulbond#self" and
+// "Soulbond#other"): keying the SVar name on kw alone would collide the two
+// calls onto one shared SVar, silently letting the second call's effect body
+// overwrite the first's).
 func (f *Face) addKeywordTrigger(kw, line, trigger, effect string, has func(kind, line string) bool) {
 	if has("T", line) {
 		return
 	}
-	sv := "__kw" + strings.ReplaceAll(kw, " ", "")
+	sv := "__kw" + strings.ReplaceAll(line, " ", "")
 	f.setSVar(sv, effect)
 	p := parseParams(trigger + " | Execute$ " + sv + " | Keyword$ " + kw)
 	p["KeywordLine"] = line

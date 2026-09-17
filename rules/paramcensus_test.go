@@ -963,6 +963,19 @@ var stringMapParams = map[string]string{
 	// consumed here, but the map originates in an SVar body, not a card's
 	// Params map.
 	"effects:compoundRememberedSpec:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// rules/mayplay.go mayPlayGateRejected: params IS a card Params map, but
+	// every key the function indexes is indexed ONLY to fail the MayPlay
+	// static closed (mayPlayUnreadGates + CheckSVar$/MayPlayPlayer$) -- a
+	// fail-closed gate is a RECOGNITION, not a consumption: the static is
+	// withheld whole and the key is never honoured. Whitelisting it keeps
+	// those indexes out of the read sets entirely; without it the keys would
+	// propagate into mayPlayStatic's reads (propagateKeyReads attributes a
+	// callee's indexed keys to the caller that passes the map) and mask the
+	// genuinely unread gate keys of every MayPlay static -- Evendo
+	// Brushrazer's CheckSVar$ was masked exactly this way (review round
+	// findings-sol1, MAJOR). A NEW fail-closed gate reader must be whitelisted
+	// here too, or its recognition reads mask real gaps.
+	"rules:mayPlayGateRejected:params": "fail-closed MayPlay gate recognition (mayPlayUnreadGates + CheckSVar$/MayPlayPlayer$) -- a rejection, never a consumption",
 	// effects/misc.go MayPlayStaticParams: params is a map parseStaticLine
 	// built from one SVar static line (or the S: line's own Params map passed
 	// by rules/layers.go's mayPlayGrant) -- the MayPlay-family keys it
@@ -1161,6 +1174,55 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.handleOpening":                 {"ChangeZone", "PutCounter", "Effect"},
 }
 
+// apiSpecificRulesStat is the stat-bucket twin of apiSpecificRulesSA: it
+// names the rules functions whose static (bStat) reads execute only for a
+// synthetic FAMILY of a static mode -- NOT for every static of that mode.
+// Their reads are removed from the generic mode union and attributed to the
+// synthetic mode named in the value ("Continuous.MayPlay": statics whose
+// Mode$ is Continuous AND that carry a MayPlay$ value -- the only mode the
+// corpus pairs MayPlay$ with, measured 656/656 MayPlay$ lines are Mode$
+// Continuous at the corpus pin). The synthetic mode's read set is the base
+// mode's union PLUS the family closures -- a MayPlay static is still a
+// Continuous static and every generic Continuous consumer still reads it.
+//
+// Left in the generic union these reads would mask every other Continuous
+// static's genuinely unread gate keys: mayPlayStatic evaluates IsPresent$ /
+// MayPlayLimit$ live, but only for MayPlay$ statics -- Angelic Overseer's
+// IsPresent$ and Master of Etherium's CharacteristicDefining$ were all
+// masked exactly this way (review round findings-sol1, MAJOR). The family
+// split restores them. Condition$ and CheckSVar$/SVarCompare$ later joined
+// the generic Continuous bucket legitimately: the statics wave's generic
+// restriction/cost gates read them on every Continuous static.
+// The rot guard fails on a stale entry (renamed function, or one that no
+// longer reads static params); a NEW mode-scoped reader must be added here
+// or its reads over-suppress every other static's real gaps.
+var apiSpecificRulesStat = map[string]string{
+	// The MayPlay grant path: mayPlayGrant (the offer walk's per-card
+	// evaluation, over the card's own face statics and activeStatics
+	// "Continuous") carries the family's propagated reads (propagateKeyReads
+	// attributes mayPlayStatic's map indexes to it), and
+	// warpGraveyardAllowed scans Continuous MayPlay statics directly over
+	// the face's Statics slice (Timeline Culler's explicit graveyard-Warp
+	// permission) -- it was previously a generic Continuous root
+	// (handRoots.stat), which masked ValidSA$/EffectZone$ for every plain
+	// Continuous static.
+	"Engine.mayPlayGrant":  "Continuous.MayPlay",
+	"warpGraveyardAllowed": "Continuous.MayPlay",
+}
+
+// statFamilyInternal names the rules functions whose static reads are family
+// reads but which are NOT attribution roots -- their map-indexed keys
+// propagate to their CALLERS (propagateKeyReads attributes a callee's
+// indexed keys to the caller that passes the map), so every caller must be
+// an apiSpecificRulesStat root; a generic caller would carry the family's
+// reads in its own read set and re-mask the mode's genuinely unread keys.
+// The rot guard enforces exactly that caller discipline.
+var statFamilyInternal = []string{
+	// mayPlayStatic, the per-static gate reader: mayPlayGrant is its only
+	// legitimate caller.
+	"Engine.mayPlayStatic",
+}
+
 // handRoots declares ATTRIBUTION (which function to read for a primitive) for
 // the few roots the code does not state via Register / the dispatch switch /
 // activeStatics literals. The reads still come from the scanned bodies.
@@ -1182,10 +1244,7 @@ var handRoots = struct {
 			// through mayPlayGrant over the face's Statics slice -- the same
 			// direct-scan shape warpGraveyardAllowed has (mayPlaySpellIds also
 			// scans the exiled card's own EffectZone$ Exile self-grant).
-			"Engine.mayPlaySpellIds", "Engine.mayPlayLandIds"}, // warpGraveyardAllowed scans Continuous MayPlay statics directly
-		// over the face's Statics slice (Timeline Culler's explicit
-		// graveyard-Warp permission), with no activeStatics call -- the
-		// same direct-scan shape mustAttackRequired has.
+			"Engine.mayPlaySpellIds", "Engine.mayPlayLandIds"},
 		// maxSpeedAbilities scans Continuous AddAbility$/Condition$MaxSpeed
 		// statics directly over the face's Statics slice (CR 702.163c's
 		// max-speed grant), with no activeStatics call -- the same
@@ -1329,13 +1388,25 @@ func (s *scan) derived() *derivedReads {
 		d.trig[mode] = keys
 	}
 	// stat: per mode, every activeStatics literal call site plus the
-	// hand-declared roots.
+	// hand-declared roots. The apiSpecificRulesStat family roots' closures
+	// are EXCLUDED from the generic union -- their reads execute only for
+	// the family's synthetic mode, built below, and left here they would
+	// mask every other static of the mode's genuinely unread keys.
+	statFamRoots := map[string]bool{}
+	for fn := range apiSpecificRulesStat {
+		statFamRoots[fn] = true
+	}
 	for mode, roots := range s.statRoots {
 		keys := map[string]bool{}
 		for root := range roots {
+			if statFamRoots[root] {
+				continue // family root: attributed to the synthetic mode below
+			}
 			out := map[bucket]map[string]bool{}
 			if fi := s.fns["rules:"+root]; fi != nil {
-				s.closureReads(fi, nil, map[string]bool{}, out)
+				// (the exclusion set also stops any OTHER root's closure
+				// from descending into a family root)
+				s.closureReads(fi, statFamRoots, map[string]bool{}, out)
 			}
 			for k := range out[bStat] {
 				keys[k] = true
@@ -1349,15 +1420,55 @@ func (s *scan) derived() *derivedReads {
 			keys = map[string]bool{}
 		}
 		for _, root := range roots {
+			if statFamRoots[root] {
+				continue // family root: attributed to the synthetic mode below
+			}
 			out := map[bucket]map[string]bool{}
 			if fi := s.fns["rules:"+root]; fi != nil {
-				s.closureReads(fi, nil, map[string]bool{}, out)
+				s.closureReads(fi, statFamRoots, map[string]bool{}, out)
 			}
 			for k := range out[bStat] {
 				keys[k] = true
 			}
 		}
 		d.stat[mode] = keys
+	}
+	// synthetic family modes: the base mode's union PLUS each family root's
+	// closure -- a family static is still a mode static and every generic
+	// consumer of the mode still reads it. (The recognition helper's keys
+	// never reach any read set: its map is stringMapParams-whitelisted.)
+	// Accumulate across roots BEFORE assigning: several roots can share one
+	// family (mayPlayGrant and warpGraveyardAllowed both feed
+	// Continuous.MayPlay) and overwriting would make the family's set depend
+	// on map iteration order.
+	famReads := map[string]map[string]bool{}
+	for fn, fam := range apiSpecificRulesStat {
+		fi := s.fns["rules:"+fn]
+		if fi == nil {
+			continue // rotGuard already failed on the stale entry
+		}
+		out := map[bucket]map[string]bool{}
+		s.closureReads(fi, nil, map[string]bool{}, out)
+		if famReads[fam] == nil {
+			famReads[fam] = map[string]bool{}
+		}
+		for k := range out[bStat] {
+			famReads[fam][k] = true
+		}
+	}
+	for fam, extra := range famReads {
+		base := fam
+		if i := strings.Index(fam, "."); i >= 0 {
+			base = fam[:i]
+		}
+		keys := map[string]bool{}
+		for k := range d.stat[base] {
+			keys[k] = true
+		}
+		for k := range extra {
+			keys[k] = true
+		}
+		d.stat[fam] = keys
 	}
 	// repl: replacementMatches + the pipeline root. Every r.Params read in
 	// them is scoped to repl:Moved by replacementMatches' early return.
@@ -1468,6 +1579,39 @@ func (s *scan) rotGuard(t *testing.T) {
 	}
 	sort.Strings(s.mapArgFailures)
 	s.guardErrs = append(s.guardErrs, s.mapArgFailures...)
+	// apiSpecificRulesStat must name real rules functions that still read
+	// static params -- the stat-bucket twin of the apiSpecificRulesSA stale
+	// check: a renamed or refactored function must not leave a silent stale
+	// entry behind.
+	for fn := range apiSpecificRulesStat {
+		fi, ok := s.fns["rules:"+fn]
+		if !ok {
+			s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+				"paramcensus: apiSpecificRulesStat names rules function %q, which no longer exists -- rename the entry", fn))
+			continue
+		}
+		if len(fi.reads[bStat]) == 0 {
+			s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+				"paramcensus: apiSpecificRulesStat entry %q no longer reads static params -- delete the stale entry", fn))
+		}
+	}
+	// statFamilyInternal caller discipline: every caller of a family-internal
+	// reader must itself be an apiSpecificRulesStat root -- propagateKeyReads
+	// lands the reader's map-indexed keys on the caller, so a generic caller
+	// would carry the family's reads in its own read set and re-mask the
+	// mode's genuinely unread keys (the exact defect this scoping fixed).
+	for _, callee := range statFamilyInternal {
+		for key, fi := range s.fns {
+			if !strings.HasPrefix(key, "rules:") || !fi.calls[callee] {
+				continue
+			}
+			if _, isRoot := apiSpecificRulesStat[fi.name]; !isRoot {
+				s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+					"paramcensus: rules function %s calls the stat-family reader %s but is not an apiSpecificRulesStat root -- add it to apiSpecificRulesStat or move the call inside the family",
+					fi.name, callee))
+			}
+		}
+	}
 	if !s.complete {
 		return
 	}
@@ -1515,6 +1659,13 @@ func (s *scan) reachFromRoots(b bucket, fn string) bool {
 		}
 		for _, list := range handRoots.stat {
 			roots = append(roots, list...)
+		}
+		// the apiSpecificRulesStat family roots are stat readers in their
+		// own right (warpGraveyardAllowed has no activeStatics call at all);
+		// they stay reachable-check roots even though their reads are
+		// attributed to the synthetic family modes.
+		for fn := range apiSpecificRulesStat {
+			roots = append(roots, fn)
 		}
 	case bRepl:
 		roots = append([]string{"Engine.replacementMatches"}, handRoots.repl...)
@@ -1676,6 +1827,23 @@ func faceUnknownCostLabels(f *cards.Face) []string {
 	return out
 }
 
+// statCensusMode is the census's read-set key for one static: the plain
+// Mode$, except for the apiSpecificRulesStat families -- a Mode$ Continuous
+// static carrying a MayPlay$ value is read by the MayPlay grant path
+// (mayPlayGrant/mayPlayStatic/warpGraveyardAllowed), whose keys the census
+// attributes to the synthetic "Continuous.MayPlay" mode instead of the
+// generic Continuous union. Measured at the corpus pin, ONLY Mode$
+// Continuous lines carry MayPlay$ (656 of 656 MayPlay$ lines), so any other
+// mode stays on its plain read set -- a latent hole named here: if a future
+// corpus adds MayPlay$ to another mode, extend this function and
+// apiSpecificRulesStat together.
+func statCensusMode(mode string, params map[string]string) string {
+	if mode == "Continuous" && strings.TrimSpace(params["MayPlay"]) != "" {
+		return "Continuous.MayPlay"
+	}
+	return mode
+}
+
 // cardCensusLabels is the card-side census walk shared by the repo-deck
 // ratchet and focused fixtures. Params are labelled only for REGISTERED
 // primitives (an unimplemented primitive's unread params are noise -- the
@@ -1745,8 +1913,9 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			walk(tr.Effect)
 		}
 		for _, st := range f.Statics {
-			prim := "stat:" + st.Mode
-			readSet := d.stat[st.Mode]
+			mode := statCensusMode(st.Mode, st.Params)
+			prim := "stat:" + mode
+			readSet := d.stat[mode]
 			for k, v := range st.Params {
 				if k == "Cost" || k == "UnlessCost" {
 					for _, tok := range ParseCost(v).Unknown {
@@ -1857,6 +2026,7 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
+	"Spinerock Knoll":             {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"Abbot of Keral Keep":         {"param:api:Effect.ExileOnMoved"},
 	"Ad Nauseam":                  {"param:api:Dig.Reveal", "param:api:Repeat.RepeatOptional"},
 	"Adaptive Automaton":          {"param:api:ChooseType.Type"},
@@ -1879,6 +2049,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Chalice of the Void":         {"param:api:PutCounter.ETB"},
 	"Chandra, Awakened Inferno":   {"cost:SubCounter", "param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate", "param:api:Effect.Name"},
 	"Chaos Warp":                  {"param:api:Dig.DestinationZone2", "param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
+	"Conduit of Worlds":           {"param:api:Play.RememberPlayed"},
 	"Council's Judgment":          {"param:api:Vote.VoteCard", "param:api:Vote.VoteSubAbility"},
 	"Dark Fortress":               {"param:api:Mana.IsPresent"},
 	"Dauthi Voidwalker":           {"param:api:Effect.ForgetOnMoved"},
@@ -1898,7 +2069,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Giada, Font of Hope":         {"param:api:Mana.RestrictValid", "param:api:PutCounter.ETB"},
 	"Goblin Guide":                {"param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
 	"Grave Titan":                 {"param:trig:Attacks.Secondary"},
-	"Gravecrawler":                {"param:stat:Continuous.IsPresent"},
 	"Hangarback Walker":           {"param:api:PutCounter.ETB"},
 	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
 	"Horizon Explorer":            {"param:api:Untap.ETB"},
@@ -2296,6 +2466,81 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 	} {
 		if d.api[wrong.api][wrong.key] {
 			t.Errorf("d.api[%q][%q] = true -- a specialised rules path still over-suppresses this API's gap", wrong.api, wrong.key)
+		}
+	}
+}
+
+// TestParamCensusScopesTheMayPlayStaticFamily pins the stat-bucket family
+// split (apiSpecificRulesStat): mayPlayStatic/mayPlayGrant/warpGraveyardAllowed
+// read only MayPlay$ Continuous statics, so their keys must NOT sit in the
+// generic Continuous union -- Angelic Overseer's IsPresent$, Mogis/
+// Purphoros's CheckSVar$/SVarCompare$ and Master of Etherium's
+// CharacteristicDefining$ were all masked by that misattribution (review
+// round findings-sol1, MAJOR). Inside the family the genuinely evaluated
+// gates (Condition$ PlayerTurn, IsPresent$, MayPlayLimit$) must read, while
+// the fail-closed recognitions (mayPlayGateRejected's mayPlayUnreadGates
+// family plus CheckSVar$/MayPlayPlayer$, stringMapParams-whitelisted) must
+// stay unread: a withheld-whole MayPlay static's recognition key is a
+// RECOGNITION, never a consumption, and no census label misreads it as a
+// live gap the offer path would honour.
+func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
+	res, d := measureParamCensus(t, nil)
+	// The MayPlay family's read set: the generic Continuous union PLUS the
+	// genuinely evaluated MayPlay gates.
+	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit"} {
+		if !d.stat["Continuous.MayPlay"][key] {
+			t.Errorf("d.stat[Continuous.MayPlay][%q] = false -- the family attribution lost a real MayPlay-gate read", key)
+		}
+	}
+	// ... and the fail-closed recognitions must never read, on the family or
+	// the generic union. CheckSVar$/SVarCompare$ are NOT in that list since
+	// the statics merge: rules/statics.go's own restriction/cost gates
+	// genuinely evaluate them (checkSVarHolds, fail closed), so both buckets
+	// legitimately carry those reads.
+	for _, key := range []string{"CharacteristicDefining", "ValidAfterStack", "RaiseCost", "MayPlayAltManaCost", "MayPlayPlayer"} {
+		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
+			if d.stat[mode][key] {
+				t.Errorf("d.stat[%q][%q] = true -- the fail-closed recognition read still over-suppresses this key", mode, key)
+			}
+		}
+	}
+	// ... and the family-scoped reads must be OUT of the generic union.
+	// Condition$ joined the generic bucket with the statics merge: the
+	// generic restriction/cost gates (restrictionGateHolds,
+	// costConditionHolds) genuinely read it on every Continuous static.
+	for _, key := range []string{"IsPresent", "MayPlayLimit"} {
+		if d.stat["Continuous"][key] {
+			t.Errorf("d.stat[Continuous][%q] = true -- the MayPlay family reader still over-suppresses the generic Continuous bucket", key)
+		}
+	}
+	// The census-level effect on the real repo decks, both directions:
+	// a plain Continuous static's unread gate is labelled again, a MayPlay
+	// static's genuinely evaluated gate is not, and the withheld-whole
+	// MayPlay static's recognition key is labelled under the family.
+	for card, label := range map[string]string{
+		"Angelic Overseer":   "param:stat:Continuous.IsPresent",
+		"Static Orb":         "param:stat:Continuous.IsPresent",
+		"Master of Etherium": "param:stat:Continuous.CharacteristicDefining",
+	} {
+		found := false
+		for _, l := range res.labels[card] {
+			if l == label {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("%s: expected %s in the census (labels %v)", card, label, res.labels[card])
+		}
+	}
+	for card, banned := range map[string]string{
+		"Gravecrawler":      "param:stat:Continuous.MayPlay.IsPresent", // genuinely evaluated, real card test
+		"Evendo Brushrazer": "param:stat:Continuous.MayPlay.Condition", // Condition$ PlayerTurn is read
+	} {
+		for _, l := range res.labels[card] {
+			if l == banned {
+				t.Errorf("%s: census labels %s but the gate is genuinely evaluated -- the family attribution regressed", card, l)
+			}
 		}
 	}
 }

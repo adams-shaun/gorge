@@ -144,6 +144,18 @@ func init() {
 	predicates["EquippedBy"] = attachedBy
 	predicates["EnchantedBy"] = attachedBy
 	predicates["AttachedBy"] = attachedBy
+	// Soulbond's "PairedWith" and "Paired" predicates (CR 702.103): the
+	// Affected$ spec `Creature.PairedWith` names the creature a source is
+	// paired with, and `Creature.Self+Paired` names the source itself when it
+	// is paired. PairedWith reads source.Paired (the source is the effect's
+	// own permanent).
+	predicates["Paired"] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.Paired != 0
+	}
+	predicates["PairedWith"] = func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		s := g.Obj(src)
+		return s != nil && s.Paired == o.ID && o.Zone == state.ZBattlefield
+	}
 }
 
 // attachedBy reports whether o is the permanent src is currently attached
@@ -299,6 +311,7 @@ const (
 	// about whether a word is recognised, exactly as the type-word family is.
 	wordInZoneStack
 	wordActivePlayerCtrl
+	wordTopLibrary
 	wordHasCounters
 	wordHistoric
 	wordIsCommander
@@ -389,6 +402,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordWasCast, ""
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
+	case "TopLibrary":
+		return wordTopLibrary, ""
 	case "HasCounters":
 		return wordHasCounters, ""
 	case "Historic":
@@ -488,6 +503,16 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's ActivePlayerCtrl: the object is controlled by the active
 		// player -- the seat whose turn it is, g.Active.
 		return o.Controller == g.Active
+	case wordTopLibrary:
+		// Forge's TopLibrary: the object is the top card of its library --
+		// index 0 of the owner's library slice, the card the next draw takes
+		// (effects.drawFor draws lib[0]). A card deeper in the library never
+		// matches, and a card that is not in a library at all never matches.
+		if o.Zone != state.ZLibrary {
+			return false
+		}
+		ids := g.Zone(state.ZLibrary, o.Owner)
+		return len(ids) > 0 && ids[0] == o.ID
 	case wordHasCounters:
 		// Forge's HasCounters: the object has at least one counter of any
 		// kind on it.
@@ -1178,6 +1203,12 @@ func matchesBase(g *state.Game, base string, o *state.Object) bool {
 		return true
 	case "Permanent":
 		return o.Zone == state.ZBattlefield
+	case "PermanentCard":
+		// This internal target-base spelling is selected by rules' target
+		// census for Forge's `Permanent` base in a non-battlefield zone. A
+		// permanent CARD is distinguishable from an instant/sorcery there;
+		// it is not a permanent on the stack.
+		return o.Zone != state.ZStack && o.Face() != nil && o.Face().IsPermanent()
 	case "Spell":
 		return o.Zone == state.ZStack
 	}
@@ -1243,7 +1274,17 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	if o == nil {
 		return false
 	}
-	if o.IsCopy && o.Zone != state.ZStack {
+	// CR 707.10h: a copy of a SPELL that has left the stack (countered,
+	// fizzled, or otherwise gone) matches nothing -- it is a transient
+	// reference, not a real object anymore. That is what IsCopy+off-stack
+	// was meant to catch, but a blanket "any zone but the stack" also
+	// rejected a permanent copy legitimately living on the battlefield
+	// (Clone, Rite of Replication, a Myriad/Encore token copy, ...), which
+	// must match ordinary filters -- including its own and every bystander's
+	// ChangesZone triggers -- exactly like any other permanent. Only reject
+	// a copy that is neither on the stack (still a spell) nor on the
+	// battlefield (still a permanent).
+	if o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
 		return false
 	}
 	resolve := sc.Resolve

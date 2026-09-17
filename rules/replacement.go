@@ -91,6 +91,12 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		e.parkMadnessDiscard(ev)
 		return ev, true
 	}
+	// Riot (CR 702.108) asks its counter-or-haste question as the creature
+	// would enter; parking the move keeps the entry out of the log until the
+	// as-enters choice is recorded next to it.
+	if e.applyRiotReplacement(ev) {
+		return ev, true
+	}
 	// CR 903.9 (Task m32): a commander about to be put into its owner's
 	// graveyard, hand or library from anywhere, or exiled from anywhere, may
 	// instead be put into the command zone by its OWNER. This is a
@@ -955,6 +961,39 @@ func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
 	e.damaging = ctx.Source
 	effects.Resolve(e, ctx, with)
 	e.damaging = saved
+}
+
+// applyRiotReplacement parks every non-cast battlefield entry of a Riot
+// creature before it happens. Cast flow already records RiotChoice through
+// collectETBChoices, but reanimation/blink/search entries only visit this
+// general MoveZone path. The parked move is emitted after handleChoose logs
+// the choice, making events.Move the single place that applies it.
+func (e *Engine) applyRiotReplacement(ev events.Event) bool {
+	// A battlefield entry reached while another decision is outstanding must
+	// not overwrite it (the orphaned-pending failure poseLifeReplacementChoice
+	// already guards, and the same class findings-sol4 proved on the
+	// life-replacement draw loop): let the entry happen verbatim rather than
+	// parking on an ask that can never be posed. Unreachable in the corpus
+	// today; the guard keeps a future caller from shipping the overwrite.
+	if ev.To != state.ZBattlefield || e.riotMove != nil || e.pending != nil {
+		return false
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil ||
+		!o.Face().HasKeyword("Riot") || o.RiotChoice != "" {
+		return false
+	}
+	move := ev
+	e.riotMove = &move
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: o.ID, Prompt: "Choose how this creature enters (counter or haste)",
+		Options: []decision.Option{
+			{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter", Obj: o.ID, Player: o.Controller},
+			{Index: 1, Kind: "riot", Label: "Gain haste", Obj: o.ID, Player: o.Controller},
+		}}
+	e.choosing = chooseRiot
+	e.ask(d)
+	return true
 }
 
 // replacementMatches implements the per-event match predicates for the five
@@ -2698,9 +2737,7 @@ func (e *Engine) applyLifeReplacement(ev events.Event, m replMatch) (events.Even
 			ev.Amount = -ev.Amount
 			return ev, false
 		case "Draw":
-			for i := int32(0); i < ev.Amount; i++ {
-				effects.DrawFor(e, ev.Player)
-			}
+			e.lifeReplacementDraw(ev.Player, ev.Amount)
 			return ev, true
 		}
 		return ev, false
@@ -2722,6 +2759,26 @@ func (e *Engine) applyLifeReplacement(ev events.Event, m replMatch) (events.Even
 	}
 	e.runReplaceWith(&effects.Ctx{Source: m.id, Controller: o.Controller, SVars: o.Face().SVars}, 0, r.With, nil)
 	return ev, true
+}
+
+// lifeReplacementDraw draws n cards for a GainLife→Draw replacement body
+// (Lich's "If you would gain life, draw that many cards instead"),
+// suspension-aware: each DrawFor may pose a Dredge ask (CR 702.55) and
+// suspend. The loop parks the remaining count on the ask's resume point
+// (resolution.go) and returns, instead of looping on -- looping on would
+// pose a SECOND ask while the first is outstanding, orphaning it and losing
+// the remaining draws (findings-sol4 MAJOR). The answered dredge re-drives
+// the rest from handleModes' direct arm (stack empty) or resumeResolution's
+// dredge arm (a resolving object on the stack), both of which drain any
+// replacement-order queue the interrupted pass left behind.
+func (e *Engine) lifeReplacementDraw(p state.PlayerID, n int32) {
+	for i := int32(0); i < n; i++ {
+		effects.DrawFor(e, p)
+		if e.Suspended() {
+			e.resume.lifeDraws = n - (i + 1)
+			return
+		}
+	}
 }
 
 // emitLifeReplacement logs a fully transformed event without starting a new

@@ -163,6 +163,12 @@ type Object struct {
 	ChosenName   string
 	ChosenType   string
 	ChosenNumber int32
+	// RiotChoice is set by the logged as-enters Riot choice. It survives the
+	// hand/stack path and Move consumes it on battlefield entry.
+	RiotChoice string
+	// IntrinsicKeywords are keyword choices that become part of this
+	// permanent's characteristics (currently Riot's haste choice).
+	IntrinsicKeywords []string
 	// Chosen is the current card/player choice. It is distinct from
 	// Remembered: Forge uses Player.Chosen for the most recent choice and
 	// Player.IsRemembered for choices explicitly marked RememberChosen$.
@@ -213,13 +219,26 @@ type Object struct {
 
 	// ExiledWith is the object whose effect most recently put this card into
 	// exile. events.Apply derives it from a MoveZone event's existing IDs
-	// carrier, so Card.ExiledWithSource filters replay without ambient state.
+	// carrier (or, for Hideaway's face-down exile, the Counter/Amount
+	// carrier), so Card.ExiledWithSource filters replay without ambient
+	// state. Zero means no tracked exile provenance.
 	ExiledWith ObjID
+	// FaceDown records a face-down exile (CR 702.75 Hideaway). It is state,
+	// rather than merely a Secret event flag, so later projections know not to
+	// reveal the card to another player.
+	FaceDown bool
+
+	// Paired is the permanent this Soulbond creature is paired with (CR 702.103):
+	// a creature its controller may pair it with when either enters an the
+	// battlefield, as long as the controller controls both. 0 means unpaired.
+	// Reset whenever the object leaves the battlefield (events.Move).
+	Paired ObjID
 
 	// IsToken and IsCopy mark an object that only ever exists on the stack
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
-	IsToken bool
-	IsCopy  bool
+	IsToken  bool
+	IsCopy   bool
+	IsMyriad bool
 
 	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
 	// room was CAST as is unlocked from entry; DoorUnlock (the unlock
@@ -306,6 +325,7 @@ func (o *Object) CloneDeep() Object {
 	c.Chosen = append([]Target(nil), o.Chosen...)
 	c.Goads = append([]GoadEffect(nil), o.Goads...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
+	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)

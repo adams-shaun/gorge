@@ -80,6 +80,10 @@ func (e *Engine) Clone() *Engine {
 		castAborts:     cloneAbortCounts(e.castAborts),
 		suspendedCasts: append([]state.ObjID(nil), e.suspendedCasts...),
 	}
+	if e.riotMove != nil {
+		ev := *e.riotMove
+		c.riotMove = &ev
+	}
 	if e.pending != nil {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)

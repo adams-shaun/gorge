@@ -343,6 +343,14 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: p, IsPlayer: true}}, true
 		}
 		return nil, true
+	case "ExiledWith":
+		var out []state.Target
+		for _, id := range g.Zone(state.ZExile, c.Controller) {
+			if o := g.Obj(id); o != nil && o.ExiledWith == c.Source {
+				out = append(out, state.Target{Obj: id})
+			}
+		}
+		return out, true
 	case "Equipped", "Enchanted", "AttachedTo":
 		// The corpus spells this three ways depending on whether the source
 		// is Equipment, an Aura, or a generic script; all three name the
