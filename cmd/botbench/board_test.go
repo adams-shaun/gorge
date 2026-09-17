@@ -63,11 +63,11 @@ func TestPlayMatchUsesBoardSeatWithViewParity(t *testing.T) {
 			boardSeats[i] = &boardTraceSeat{viewTraceSeat: &viewTraceSeat{bot: seat.NewBot(botSeed), trace: &boardTrace}}
 			viewSeats[i] = &viewTraceSeat{bot: seat.NewBot(botSeed), trace: &viewTrace}
 		}
-		got, err := playMatch(cfg, names, boardSeats, 200, 20000, nil)
+		got, err := playMatch(cfg, names, boardSeats, 200, 20000, nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		want, err := playMatch(cfg, names, viewSeats, 200, 20000, nil)
+		want, err := playMatch(cfg, names, viewSeats, 200, 20000, nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
