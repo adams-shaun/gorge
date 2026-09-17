@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import type { CardView, EventBody, PlayerView, View } from '../protocol';
+import type { CardView, EventBody, PlayerView, SeatInfo, View } from '../protocol';
 import ResolvedCard from './ResolvedCard.svelte';
+import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
+import { SEAT_COLOURS } from '../lib/colours';
 
 // SSR via svelte/server, the repo's component-test pattern (see
 // Rail.svelte.test.ts / CardTile.svelte.test.ts): no DOM, no $effect, no
@@ -75,5 +77,74 @@ describe('ResolvedCard — the resolved card lives in the stack frame (fb-202609
     const v = viewWithGraveyard(42, 'Stale Card');
     const { html } = render(ResolvedCard, { props: { view: v, events } });
     expect(html).not.toContain('data-resolved');
+  });
+});
+
+describe('ResolvedCard — the row names the card, is hoverable, and reads its owner (fb-20260917T131253Z-41d199c8)', () => {
+  const anchor: AnchorRect = { left: 10, top: 20, right: 66 };
+  const seats: SeatInfo[] = [
+    { name: 'Ari', deck: 'deck-a', colour: '#ff0000' },
+    { name: 'Bo', deck: 'deck-b', colour: '#00ff00' },
+  ];
+
+  it('renders the card name as TEXT, not only as the art alt text', () => {
+    const v = viewWithGraveyard(42, 'Grizzly Bears');
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)] },
+    });
+    expect(html).toContain('resolved__name'); // a dedicated name span, so the name survives the art failing to load
+    expect(html).toContain('Grizzly Bears');
+  });
+
+  it('colours the row border by the resolving seat — server-known colour wins', () => {
+    const v = baseView({ players: [spectatorPlayer(0, 'Ari'), spectatorPlayer(1, 'Bo', { graveyard: [card({ id: 5, name: 'Bolt', controller: 1, owner: 1 })] })] });
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 5)], seats },
+    });
+    expect(html).toContain('border-color: #00ff00'); // seat 1's colour from the seat list
+  });
+
+  it('falls back to the shared palette when seats is not passed', () => {
+    const v = baseView({ players: [spectatorPlayer(0, 'Ari'), spectatorPlayer(1, 'Bo', { graveyard: [card({ id: 5, name: 'Bolt', controller: 1, owner: 1 })] })] });
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 5)] },
+    });
+    expect(html).toContain(`border-color: ${SEAT_COLOURS[1]}`);
+  });
+
+  it('renders the CardDetail inspector while the hover state is open (dwell/focus), like every other card surface', () => {
+    const v = viewWithGraveyard(42, 'Grizzly Bears');
+    const hover = new HoverCard();
+    hover.open(42);
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)], hover, anchor },
+    });
+    expect(html).toContain('card-detail');
+    expect(html).toContain('aria-describedby="card-detail-42"');
+  });
+
+  it('renders no inspector while the hover state is closed', () => {
+    const v = viewWithGraveyard(42, 'Grizzly Bears');
+    const hover = new HoverCard();
+    hover.arm(42); // armed (dwell started), not opened — no panel yet
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)], hover, anchor },
+    });
+    expect(html).not.toContain('card-detail');
+  });
+
+  it('supervise closes a live panel when a newer resolve replaces this one', () => {
+    const v = viewWithGraveyard(42, 'Old Resolve');
+    const hover = new HoverCard();
+    hover.open(42);
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)], hover, anchor },
+    });
+    expect(html).toContain('card-detail');
+    // The row's supervise list is the card it is CURRENTLY showing (the $effect's
+    // [card]); asserted directly, as StackTile's test does — the next view shows a
+    // different object, so the panel for 42 must close.
+    expect(hover.supervise(42, [card({ id: 43, name: 'New Resolve' })])).toBe(true);
+    expect(hover.show).toBe(false);
   });
 });
