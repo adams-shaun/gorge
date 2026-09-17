@@ -91,8 +91,8 @@ type Cost struct {
 	// builds: paying one draws N cards for the player(s) the spec names
 	// (default the payer). payMana never charges it; the mid-resolution
 	// unless-pay path does.
-	Draw            []CostPart
-	Energy          []CostPart
+	Draw   []CostPart
+	Energy []CostPart
 	// Return carries Return<N/Spec> tokens: a permanent (usually the source
 	// itself, Spec CARDNAME) returned to its OWNER's hand as the payment
 	// (Forge CostReturn.moveToHand; CR 118.2a lists returning a permanent to
