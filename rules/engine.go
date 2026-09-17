@@ -1681,6 +1681,15 @@ func (e *Engine) Submit(in decision.Intent) error {
 		if err := e.validateCastContributions(d, in); err != nil {
 			return err
 		}
+		// ShareLandType$ True (Myriad Landscape): a hidden-library search's
+		// answer must name cards that all share one land type -- the option
+		// list cannot express the pairwise constraint, so an answer naming
+		// e.g. a Forest and a Mountain is rejected and the pending decision
+		// survives for a legal (or smaller) answer. Single-card answers are
+		// trivially legal.
+		if err := e.validateSearch(d, in); err != nil {
+			return err
+		}
 	}
 	e.L.Intents = append(e.L.Intents, in)
 	e.emit(events.Event{Kind: events.DecisionMade, Player: in.Player,

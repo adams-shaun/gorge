@@ -382,6 +382,35 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 	return false
 }
 
+// abilityPresentHolds evaluates an activated ability's IsPresent$ /
+// PresentCompare$ activation gate at OFFER time -- Mistveil Plains' "Activate
+// only if you control two or more white permanents" (IsPresent$
+// Permanent.White+YouCtrl, PresentCompare$ GE2). The same deterministic
+// battlefield count the statics' presentGate (rules/statics.go) and the
+// reflected-mana offer's manaReflectedPresentHolds (rules/mana_activation.go)
+// evaluate; PresentCompare$ defaults to "at least one" when it is absent, the
+// shared reading everywhere else the gate appears. The gate is offer-time
+// only, exactly like SorcerySpeed$/PlayerTurn$/CheckSVar$: no state can move
+// between the offer and the answer inside one priority window, and the
+// resolution does not re-gate.
+//
+// Because the gate applies to every non-mana activation (the offer loop
+// skips isManaAbilityAPI abilities -- a plain AB$ Mana ability's own
+// IsPresent$ gate is the mana path's business), its reads are excluded from
+// the census's generic rules-side SA union for Mana/ManaReflected: see
+// genericSAExcludes in paramcensus_test.go.
+func (e *Engine) abilityPresentHolds(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	spec := strings.TrimSpace(ab.Params["IsPresent"])
+	if spec == "" {
+		return true
+	}
+	n := e.countPresent(spec, id, p)
+	if cmp := strings.TrimSpace(ab.Params["PresentCompare"]); cmp != "" {
+		return comparePresent(n, cmp)
+	}
+	return n > 0
+}
+
 // sVarGateOK evaluates the ability's CheckSVar$/SVarCompare$ intervening-if
 // at OFFER time: Bloodsoaked Champion's Raid ("Activate only if you attacked
 // this turn", CheckSVar$ RaidTest = Count$AttackersDeclared) and Ojer
@@ -1309,6 +1338,12 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				if !e.sVarGateOK(p, id, ab) {
 					continue
 				}
+				// IsPresent$/PresentCompare$ (Mistveil Plains' "Activate only if
+				// you control two or more white permanents"): the same offer-time
+				// gate funnel as the CheckSVar$ read above.
+				if !e.abilityPresentHolds(p, id, ab) {
+					continue
+				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
 					Label: f.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
 					Grant: e.abilityGrant(id, ab)})
@@ -1351,6 +1386,12 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				continue
 			}
 			if !e.abilityTargetsAvailable(p, id, ab) {
+				continue
+			}
+			// IsPresent$/PresentCompare$: the same offer-time gate the printed
+			// loop applies, so a granted ability and its printed twin share one
+			// eligibility set.
+			if !e.abilityPresentHolds(p, id, ab) {
 				continue
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "ability",
@@ -1417,6 +1458,12 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				continue
 			}
 			if !e.abilityTargetsAvailable(p, id, ab) {
+				continue
+			}
+			// IsPresent$/PresentCompare$: the same offer-time gate the printed
+			// loop applies, so a max-speed grant and its printed twin share one
+			// eligibility set.
+			if !e.abilityPresentHolds(p, id, ab) {
 				continue
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "granted",

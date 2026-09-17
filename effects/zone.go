@@ -1884,6 +1884,107 @@ func differentNamesEnabled(sa *cards.SA) bool {
 	return strings.EqualFold(strings.TrimSpace(sa.Params["DifferentNames"]), "True")
 }
 
+// landTypesOf lists the land subtypes o's face names, in face order: the
+// supertypes (Basic, Snow) and the Land type word are stripped, so a Basic
+// Forest leaves exactly Forest. The search paths this serves are
+// Land.Basic-filtered (ShareLandType$ only rides hidden-library searches),
+// so a face whose remaining types are empty never contributes a type.
+func landTypesOf(o *state.Object) []string {
+	f := o.Face()
+	if f == nil {
+		return nil
+	}
+	out := make([]string, 0, len(f.Types))
+	for _, t := range f.Types {
+		switch t {
+		case "Land", "Basic", "Snow":
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+// SharedLandTypes reports whether every named object shares at least one
+// land type: fewer than two objects is trivially true, otherwise the
+// intersection of their land-subtype sets must be non-empty. Both readers of
+// ShareLandType$ True go through it so the wire rule (rules.Submit) and the
+// host-bypass trim (applyLibrarySearch) cannot drift on what "share" means.
+func SharedLandTypes(g *state.Game, ids []state.ObjID) bool {
+	if len(ids) <= 1 {
+		return true
+	}
+	var shared map[string]bool
+	for _, id := range ids {
+		o := g.Obj(id)
+		if o == nil {
+			return false
+		}
+		types := landTypesOf(o)
+		if shared == nil {
+			shared = make(map[string]bool, len(types))
+			for _, t := range types {
+				shared[t] = true
+			}
+			continue
+		}
+		ok := false
+		keep := make(map[string]bool, len(types))
+		for _, t := range types {
+			if shared[t] {
+				ok = true
+				keep[t] = true
+			}
+		}
+		if !ok {
+			return false
+		}
+		shared = keep
+	}
+	return true
+}
+
+// trimSharedLandTypes is SharedLandTypes' deterministic enforcement for a
+// host that bypassed the wire: keep the first chosen object in answer order
+// and every later one that still shares a type with everything kept before
+// it.
+func trimSharedLandTypes(g *state.Game, chosen []state.ObjID) []state.ObjID {
+	if len(chosen) <= 1 {
+		return chosen
+	}
+	var shared map[string]bool
+	out := make([]state.ObjID, 0, len(chosen))
+	for _, id := range chosen {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		types := landTypesOf(o)
+		if shared == nil {
+			shared = make(map[string]bool, len(types))
+			for _, t := range types {
+				shared[t] = true
+			}
+			out = append(out, id)
+			continue
+		}
+		ok := false
+		keep := make(map[string]bool, len(types))
+		for _, t := range types {
+			if shared[t] {
+				ok = true
+				keep[t] = true
+			}
+		}
+		if !ok {
+			continue
+		}
+		out = append(out, id)
+		shared = keep
+	}
+	return out
+}
+
 func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID) {
 	// The search-control/replacement boundary (Opposition Agent's class):
 	// the moves this function emits are the moves OF A SEARCH, and the host
@@ -1924,6 +2025,17 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			deduped = append(deduped, id)
 		}
 		chosen = deduped
+	}
+	// ShareLandType$ True (Myriad Landscape): every chosen card must share at
+	// least one land type with the rest ("up to two basic land cards that
+	// share a land type"). A validated wire answer cannot violate it
+	// (rules.Submit rejects such an intent and the decision stays pending),
+	// so this trim is the host-bypass guard -- the same shape the
+	// DifferentNames dedupe above serves: keep the first chosen card in
+	// answer order and every later one that still shares a type with
+	// everything kept before it.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ShareLandType"]), "True") {
+		chosen = trimSharedLandTypes(g, chosen)
 	}
 	moved := make([]state.ObjID, 0, len(chosen))
 	for _, id := range chosen {

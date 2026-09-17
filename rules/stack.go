@@ -217,6 +217,18 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, abil
 	if spec == "" {
 		return true
 	}
+	if strings.Contains(spec, "+") {
+		// A multi-predicate rest ("Eldrazi+Colorless") is a conjunction of
+		// predicates over the paid object, not a base-plus-rest spec: matched
+		// directly it degrades to matchesBase("Eldrazi+Colorless") -- one type
+		// word that is never on a face -- so the whole term fail-closed and
+		// the restricted mana was never spendable (measured: Eldrazi Temple's
+		// {C}{C} admitted nothing, its restriction a dead read). Evaluate it
+		// as the Card-based spec it is; an unknown token inside the
+		// conjunction still fails closed, the direction restricted mana must
+		// keep.
+		spec = "Card." + spec
+	}
 	if src != 0 {
 		return effects.MatchesSpecFrom(e.G, spec, id, p, src)
 	}

@@ -2492,6 +2492,39 @@ func (e *Engine) convokeAbsorbs(pc *pendingCast, m Cost, pays []convokePayment, 
 	return true
 }
 
+// validateSearch is the Submit-time gate for a hidden-library search
+// decision (ResumeKind "search") whose SA carries ShareLandType$ True
+// (Myriad Landscape's "up to two basic land cards that share a land type").
+// The decision's static Validate sees only the offered option list -- no
+// option carries the shared-type constraint -- so an answer naming two lands
+// of disjoint types would pass it; this gate rejects such an answer before
+// the intent is recorded and the pending decision is consumed, exactly like
+// validateAttackers/validateCastContributions. Single-card answers are
+// trivially legal (one card always shares with itself). Any other search --
+// no ResumeSA, no ShareLandType$ -- is passed through untouched. The effect
+// side (applyLibrarySearch's trim) keeps the same constraint for a host
+// that bypassed the wire, through the one shared classifier
+// effects.SharedLandTypes.
+func (e *Engine) validateSearch(d *decision.Decision, in decision.Intent) error {
+	if d.ResumeKind != "search" || d.ResumeSA == nil ||
+		!strings.EqualFold(strings.TrimSpace(d.ResumeSA.Params["ShareLandType"]), "True") {
+		return nil
+	}
+	ids := make([]state.ObjID, 0, len(in.Choices))
+	for _, c := range in.Choices {
+		if c < 0 || c >= len(d.Options) {
+			continue // Validate's own out-of-range error already fired
+		}
+		if o := d.Options[c]; o.Obj != 0 {
+			ids = append(ids, o.Obj)
+		}
+	}
+	if !effects.SharedLandTypes(e.G, ids) {
+		return fmt.Errorf("chosen cards do not share a land type")
+	}
+	return nil
+}
+
 // validateCastContributions is the Submit-time gate for the cast flow's
 // Convoke/Harmonize announcement decision (convokeAsk). The decision's
 // static Validate sees only the offered option list -- two white creatures
@@ -2970,10 +3003,14 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		}
 	case "activate":
 		// CR 601.2g: a source's mana abilities are distinct activations that
-		// share its tap cost. activateMana resolves a singleton immediately or
-		// asks the caster to choose one before re-entering this payment window.
+		// share its tap cost. activateManaPayment resolves a singleton
+		// immediately or asks the caster to choose one before re-entering
+		// this payment window -- the payment-window form, so an
+		// InstantSpeed$ True mana ability (Lion's Eye Diamond, "Activate
+		// only as an instant") is withheld: paying a cost is no priority
+		// moment.
 		if len(chosen) > 0 {
-			e.activateMana(pc.player, chosen[0].Obj, true)
+			e.activateManaPayment(pc.player, chosen[0].Obj, true)
 		}
 	case "done":
 		// CR 601.2g: the player declines further mana abilities; pay the cost.
@@ -3338,8 +3375,6 @@ func (e *Engine) manaWindowAsk() bool {
 	return true
 }
 
-// untappedManaSource reports whether id is an untapped permanent under the
-// player p's control with at least one unrestricted mana ability.
 func (e *Engine) convokeCommitted(pc *pendingCast, id state.ObjID) bool {
 	for _, pay := range pc.convoke {
 		if pay.id == id {
@@ -3349,8 +3384,23 @@ func (e *Engine) convokeCommitted(pc *pendingCast, id state.ObjID) bool {
 	return false
 }
 
+// untappedManaSource reports whether id is an untapped permanent under
+// the player p's control with at least one unrestricted mana ability. It
+// is the PAYMENT-WINDOW gate only -- every call site (the CR 601.2g
+// cast window, a ward payment, a cumulative-upkeep payment) runs while
+// the payer holds no priority -- so an InstantSpeed$ True mana ability
+// (Lion's Eye Diamond, "Activate only as an instant") does not make its
+// source eligible: the ability is activatable at priority, never inside
+// a payment window (CR 605.4 defers to the ability's own timing
+// restriction).
 func (e *Engine) untappedManaSource(p state.PlayerID, id state.ObjID) bool {
-	return len(e.availableManaAbilities(p, id)) > 0
+	for _, ma := range e.availableManaAbilities(p, id) {
+		if e.instantSpeedOnly(ma) {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 // hasUntappedManaSource reports whether p controls ANY untapped permanent

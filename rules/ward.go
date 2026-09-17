@@ -398,7 +398,7 @@ func (e *Engine) answerWardMana(rp *resumePoint, chosen []decision.Option, ctx *
 		e.wardMana = nil
 		return false
 	}
-	e.activateMana(wm.payer, chosen[0].Obj, false)
+	e.activateManaPayment(wm.payer, chosen[0].Obj, false)
 	if e.Pending() == nil {
 		e.continueWardMana()
 	}
