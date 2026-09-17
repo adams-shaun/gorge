@@ -2482,7 +2482,10 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// the target ask. The offer gate (altCostXCandidates' existential
 		// over X) and the X ask settled the part's payability independent of
 		// any target, so the probe re-runs the exact exAsk binding for it
-		// rather than dropping it silently.
+		// rather than dropping it silently. Parts are collected and filtered
+		// AFTER the loop — mutating cost.Exile mid-range would splice wrong
+		// indices once a second announce-bound part exists.
+		exileSpent := make([]bool, len(cost.Exile))
 		for i, part := range cost.Exile {
 			if pc.announceX == "" || !strings.Contains(part.Spec, "cmcEQ"+pc.announceX) {
 				continue
@@ -2504,8 +2507,21 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 				}
 			}
 			if n >= int(part.N) {
-				cost.Exile = append(append([]CostPart(nil), cost.Exile[:i]...), cost.Exile[i+1:]...)
+				exileSpent[i] = true
 			}
+		}
+		for _, spent := range exileSpent {
+			if !spent {
+				continue
+			}
+			kept := make([]CostPart, 0, len(cost.Exile))
+			for i, part := range cost.Exile {
+				if !exileSpent[i] {
+					kept = append(kept, part)
+				}
+			}
+			cost.Exile = kept
+			break
 		}
 		cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
 		if pc.ability < 0 {

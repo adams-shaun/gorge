@@ -146,16 +146,24 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	// OptionalDecider$ (Mystic Remora, Rhystic Study — Forge's DrawEffect
 	// resolve: optional = hasParam("OptionalDecider")... the decider confirms
 	// "do you want to draw N cards?" and a decline skips): the DRAW itself is
-	// optional, decided by the named decider — the corpus's value is "You",
-	// the resolving controller (the enchantment's controller asks themselves
-	// whether to draw off their own trigger). The ask is the same mid-
+	// optional, decided by the NAMED decider, resolved through the same
+	// player selector grammar every other resolver owns ("You" — the
+	// corpus's dominant value, and its bare "True" spelling — is the
+	// resolving controller, the enchantment's controller asking themselves
+	// whether to draw off their own trigger; TargetedController is the
+	// targeted spell's controller (Vex's "that spell's controller may draw
+	// a card"), TriggeredCardController the entering creature's (Selvala),
+	// Opponent the controller's opponents). The ask is the same mid-
 	// resolution KChoose yes/no every other asking primitive poses, answered
 	// through rules' "draw_optional" resume arm into Ctx.DrawOpt; a host that
 	// cannot ask keeps the pre-ask mandatory draw (the R-9 degradation). A
-	// target with an empty library makes the draw a non-choice — Forge's
-	// canDrawAmount guard skips those silently, so the ask only fires when
-	// SOME target could actually draw; with none, no question is posed and
-	// nothing is drawn (an empty-library draw event is a no-op either way).
+	// spec the grammar cannot resolve fails closed below this read's own
+	// convention: the pre-ask mandatory draw stays and one loud Note names
+	// the unmodelled value. A target with an empty library makes the draw a
+	// non-choice — Forge's canDrawAmount guard skips those silently, so the
+	// ask only fires when SOME target could actually draw; with none, no
+	// question is posed and nothing is drawn (an empty-library draw event is
+	// a no-op either way).
 	if decider := strings.TrimSpace(sa.Params["OptionalDecider"]); decider != "" && total > 0 {
 		answered := c.DrawOpt
 		c.DrawOpt = "" // fx42 scoping: consumed once; a nested optional draw poses its own ask
@@ -168,15 +176,41 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 			if canDraw {
-				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
-					ResumeKind: "draw_optional", ResumeSA: sa, Source: c.Source,
-					Prompt: "Draw " + strconv.Itoa(int(n)) + " card(s)?"}
-				d.Options = []decision.Option{
-					{Index: 0, Kind: "yes", Label: "Yes — draw", Player: c.Controller},
-					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+				seat := c.Controller
+				spec := decider
+				if strings.EqualFold(spec, "True") {
+					spec = "You"
 				}
-				if Ask(h, d) == AskAsked {
-					return
+				askable := true
+				if !strings.EqualFold(spec, "You") {
+					resolved := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": spec}})
+					if len(resolved) == 0 || !resolved[0].IsPlayer {
+						// The decider's identity is unresolvable — a spec the
+						// selector grammar does not carry resolves to no player
+						// (the self-default fallback returns an OBJECT, which
+						// the IsPlayer gate rejects). Fail closed: the pre-ask
+						// mandatory draw stays, one loud Note names the value,
+						// and NO ask is posed (a yes/no ask to the controller
+						// would be exactly the wrong-seat decision this read
+						// exists to avoid).
+						h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+							Text: "unmodelled Draw OptionalDecider$ " + decider})
+						askable = false
+					} else {
+						seat = resolved[0].Player
+					}
+				}
+				if askable {
+					d := &decision.Decision{Player: seat, Kind: decision.KChoose, Min: 1, Max: 1,
+						ResumeKind: "draw_optional", ResumeSA: sa, Source: c.Source,
+						Prompt: "Draw " + strconv.Itoa(int(n)) + " card(s)?"}
+					d.Options = []decision.Option{
+						{Index: 0, Kind: "yes", Label: "Yes — draw", Player: seat},
+						{Index: 1, Kind: "no", Label: "No", Player: seat},
+					}
+					if Ask(h, d) == AskAsked {
+						return
+					}
 				}
 			} else {
 				answered = "no"
@@ -1150,6 +1184,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	optional := strings.EqualFold(strings.TrimSpace(sa.Params["RevealOptional"]), "True") ||
 		strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberRevealed"]), "True")
+	random := strings.EqualFold(strings.TrimSpace(sa.Params["Random"]), "True")
 	g := h.Game()
 	// Forge's RevealDefined$ is the reveal family's equivalent of Defined$.
 	// Copy the SA and translate only the target selector, so the common
@@ -1205,22 +1240,31 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			}
 			pool = filtered
 		}
-		if strings.EqualFold(strings.TrimSpace(sa.Params["Random"]), "True") && len(pool) > 0 {
+		n := amt
+		if wholeHand || int32(len(pool)) < n {
+			n = int32(len(pool))
+		}
+		if random && len(pool) > 0 {
 			// Random$ True (Urza's Bauble: "Look at a card at random in target
-			// player's hand"): the pool narrows to ONE random card before any
-			// count is taken, drawn from the engine's seeded generator through
-			// Host.Rand — the same deterministic source choose_control's
-			// AtRandom/Random discards use — so the pick replays identically.
+			// player's hand"): the pool narrows to n DISTINCT random cards,
+			// drawn from the engine's seeded generator through Host.Rand — the
+			// same deterministic source choose_control's AtRandom/Random
+			// discards use — so the pick replays identically. The narrowing
+			// runs AFTER the count is resolved (Rise // Fall's NumCards$ 2
+			// reveals two, not one); a partial Fisher-Yates over a copy picks
+			// the n cards without repeating one. For n==1 the shuffle's first
+			// swap is exactly the old single h.Rand(len(pool)) pick, so every
+			// seeded chain that ran the one-card shape replays byte-identically.
 			// The pick is a LOOK, not a reveal: the NoReveal$ arm below is the
 			// corpus's carrier (Urza's Bauble reveals nothing of what it saw —
 			// the activator alone learns the card), and the public Note below
 			// is skipped for it.
-			i := h.Rand(len(pool))
-			pool = []state.ObjID{pool[i]}
-		}
-		n := amt
-		if wholeHand || int32(len(pool)) < n {
-			n = int32(len(pool))
+			rp := append([]state.ObjID(nil), pool...)
+			for i := 0; i < int(n); i++ {
+				j := i + h.Rand(len(rp)-i)
+				rp[i], rp[j] = rp[j], rp[i]
+			}
+			pool = rp[:n]
 		}
 		if n == 0 {
 			continue
