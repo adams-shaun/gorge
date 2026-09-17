@@ -184,14 +184,14 @@ func TestDealDamageIgnoresObjectsOffTheBattlefield(t *testing.T) {
 func TestDamageAllHitsMatchingCreaturesOnly(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ DamageAll | NumDmg$ 1"))
+	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ DamageAll | ValidCards$ Creature | NumDmg$ 1"))
 	for _, name := range []string{"myBear", "myFlier", "theirBig"} {
 		if got := g.Obj(ids[name]).Damage; got != 1 {
 			t.Errorf("%s damage = %d, want 1", name, got)
 		}
 	}
 	if g.Obj(ids["myLand"]).Damage != 0 {
-		t.Error("DamageAll's default ValidCards$ Creature must not hit a land")
+		t.Error("DamageAll's explicit ValidCards$ Creature must not hit a land")
 	}
 }
 
@@ -672,6 +672,50 @@ func TestPumpRegistersLayerContinuousEffectsOnTheTarget(t *testing.T) {
 	if kw.Source != ids["myBear"] || kw.Affects != "Card.Self" || kw.Layer != state.LAbilities ||
 		len(kw.AddKeywords) != 1 || kw.AddKeywords[0] != "Flying" || !kw.UntilEOT {
 		t.Fatalf("keyword continuous effect = %+v", kw)
+	}
+}
+
+// TestPumpKeywordListReadersUseTheSharedParser covers both effects that read
+// KW$. Their only KW$ read lives in registerPumpEffects, which calls
+// cards.SplitKeywordList; keeping the two routes in one test guards the
+// structural wiring as well as the resulting grants.
+func TestPumpKeywordListReadersUseTheSharedParser(t *testing.T) {
+	const kw = "Protection:Spell.Instant,Spell.Sorcery:instant spells and from sorcery spells & Lifelink"
+	want := []string{"Protection:Spell.Instant,Spell.Sorcery:instant spells and from sorcery spells", "Lifelink"}
+	for _, tc := range []struct {
+		name  string
+		sa    string
+		ctx   func(map[string]state.ObjID) *Ctx
+		count int
+	}{
+		{
+			name: "Pump",
+			sa:   "DB$ Pump | ValidTgts$ Creature | KW$ " + kw,
+			ctx: func(ids map[string]state.ObjID) *Ctx {
+				return &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}
+			},
+			count: 1,
+		},
+		{
+			name:  "PumpAll",
+			sa:    "DB$ PumpAll | ValidCards$ Creature.YouCtrl | KW$ " + kw,
+			ctx:   func(map[string]state.ObjID) *Ctx { return &Ctx{Controller: 0} },
+			count: 2,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, ids := board(t)
+			h := &fakeHost{g: g}
+			Resolve(h, tc.ctx(ids), sa(t, tc.sa))
+			if len(h.continuous) != tc.count {
+				t.Fatalf("continuous effects = %d, want %d", len(h.continuous), tc.count)
+			}
+			for _, ce := range h.continuous {
+				if ce.Layer != state.LAbilities || !reflect.DeepEqual(ce.AddKeywords, want) {
+					t.Errorf("continuous effect = %+v, want keywords %q", ce, want)
+				}
+			}
+		})
 	}
 }
 

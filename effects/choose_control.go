@@ -99,8 +99,8 @@ func definedCardPool(g *state.Game, c *Ctx, raw string) ([]state.Target, string)
 		// zone. The list is event-backed by Imprint's "exiled-with"
 		// discriminator and cardChoices still intersects ChoiceZone$.
 		if o := g.Obj(c.Source); o != nil {
-			out := make([]state.Target, 0, len(o.ExiledWith))
-			for _, id := range o.ExiledWith {
+			out := make([]state.Target, 0, len(o.ExiledCards))
+			for _, id := range o.ExiledCards {
 				out = append(out, state.Target{Obj: id})
 			}
 			return out, qualifier
@@ -334,7 +334,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if d.Prompt == "" {
 			d.Prompt = "Choose card"
 		}
-		if Ask(h, d) {
+		if Ask(h, d) == AskAsked {
 			return
 		}
 		choiceRecord(h, c, sa, choices[:min], false)
@@ -419,7 +419,7 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 		if d.Prompt == "" {
 			d.Prompt = "Choose player"
 		}
-		if Ask(h, d) {
+		if Ask(h, d) == AskAsked {
 			return
 		}
 		choiceRecord(h, c, sa, choices[:min], true)
@@ -547,7 +547,7 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	base := ControlGrant{You: c.Controller, Source: c.Source, Duration: dur, SVars: c.SVars,
-		AddKeywords: splitKeywords(sa.Params["AddKWs"])}
+		AddKeywords: cards.SplitKeywordList(sa.Params["AddKWs"])}
 	if src := g.Obj(c.Source); src != nil && src.Zone == state.ZBattlefield {
 		base.SourceStamp = src.Timestamp
 	}
@@ -799,7 +799,7 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 		}
 		d.Options = append(d.Options, o)
 	}
-	if Ask(h, d) {
+	if Ask(h, d) == AskAsked {
 		return
 	}
 	// A no-ask host (or a redirect with no legal new target) takes the

@@ -17,11 +17,85 @@ func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 	return e.G.Active == p && e.G.Step.IsMain() && len(e.G.Stack) == 0
 }
 
+// mayPlayLandIds returns the ids of lands in player p's zones that an active
+// may-play-from-zone grant (a S:Mode$ Continuous static carrying MayPlay$ True
+// and an AffectedZone$, e.g. Conduit of Worlds' "You may play lands from your
+// graveyard") lets p play this turn, in deterministic order. The result is
+// empty unless p is at sorcery speed with a land drop remaining -- the same
+// once-per-turn gate the hand walk applies, so a graveyard land and a hand
+// land share one land drop per turn. A land already in p's hand never appears
+// here (the ordinary hand walk offers it), and neither does a land in a hidden
+// zone. Each candidate must match the granting effect's Affects filter (the
+// Affected$ spec) through the same spec matcher the layer system uses, so a
+// Land.YouOwn grant never offers an opponent's land or a non-land permanent.
+//
+// Order comes from e.active() (a sorted slice), then each effect's parsed
+// AffectedZone order, then the zone slice order -- never a map -- so the
+// resulting option list is reproducible run to run. Zones are deduplicated
+// per (zone, id) so two grants naming the same zone never offer the same land
+// twice. Only zones a land can meaningfully be played from (graveyard, exile)
+// are walked, since hand is covered by the normal walk and library is hidden.
+func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
+	if !e.sorcerySpeed(p) || e.G.Players[p].LandsPlayed >= 1 {
+		return nil
+	}
+	type offered struct {
+		zone state.Zone
+		id   state.ObjID
+	}
+	var out []state.ObjID
+	var seen []offered
+	for _, ce := range e.active() {
+		if !ce.MayPlay || ce.Controller != p {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if !ok && !all {
+			continue
+		}
+		consider := func(z state.Zone) {
+			if z != state.ZGraveyard && z != state.ZExile {
+				return
+			}
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil || !o.Face().IsLand() {
+					continue
+				}
+				if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+					continue
+				}
+				dup := false
+				for _, s := range seen {
+					if s.zone == z && s.id == id {
+						dup = true
+						break
+					}
+				}
+				if dup {
+					continue
+				}
+				seen = append(seen, offered{z, id})
+				out = append(out, id)
+			}
+		}
+		if all {
+			consider(state.ZGraveyard)
+			consider(state.ZExile)
+		} else {
+			for _, z := range zones {
+				consider(z)
+			}
+		}
+	}
+	return out
+}
+
 // abilityZoneOK reports whether ability ab may be activated while the
 // source cardinal is in zone z (CR 602.1b): the printed ActivationZone$
-// when present, the battlefield by default. Values other than Battlefield /
-// Graveyard (Hand, Command, Exile, Stack) are not enumerated by this
-// build's zone walk, so they simply never offer an option.
+// when present, the battlefield by default. Battlefield, Hand and Graveyard
+// are enumerated by the legal-action walks; other values (Command, Exile,
+// Stack) are not and therefore never offer an option.
 func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 	az, ok := ab.Params["ActivationZone"]
 	if !ok {
@@ -32,6 +106,8 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 		return z == state.ZBattlefield
 	case "Graveyard":
 		return z == state.ZGraveyard
+	case "Hand":
+		return z == state.ZHand
 	}
 	return false
 }
@@ -60,6 +136,110 @@ func isLoyaltyAbility(ab *cards.SA) bool {
 		}
 	}
 	return false
+}
+
+// loyaltyActivationsThisTurn counts how many loyalty abilities of the
+// permanent id have been activated in its current battlefield stint this turn.
+// It folds the whole replayable log forward because both facts an AbilityPush
+// needs are historical: the source's active face at that event, and whether a
+// MoveZone ACTUALLY crossed the battlefield boundary. Event.From is advisory
+// (events.Move deliberately uses the object's recorded zone instead), so it
+// must not decide a stint boundary.
+//
+// Every genesis object starts outside the battlefield and on face zero. The
+// fold keeps just those two facts for id. MoveZone's To is authoritative after
+// Apply succeeds, so a same-zone re-append leaves onBattlefield unchanged even
+// when a malformed From claims otherwise. FlipFace is applied after any push
+// on its old face, exactly as events.Apply does. TurnChange resets the count
+// but deliberately retains the folded zone and face for the next turn.
+func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
+	o := e.G.Obj(id)
+	if o == nil || o.Card == nil || len(o.Card.Faces) == 0 {
+		return 0
+	}
+
+	used := 0
+	onBattlefield := false
+	faceIdx := 0
+	for _, ev := range e.L.Events {
+		switch ev.Kind {
+		case events.TurnChange:
+			// CR 606.3's window is a turn, not a player's own turn.
+			// Mirror events.Apply's validity gate: an invalid player leaves
+			// Game.Turn unchanged, so its rejected event cannot open a new
+			// loyalty-activation window in this historical fold either.
+			if int(ev.Player) < len(e.G.Players) {
+				used = 0
+			}
+
+		case events.MoveZone:
+			if ev.Obj != id || !ev.To.Valid() {
+				continue
+			}
+			nextOnBattlefield := ev.To == state.ZBattlefield
+			if onBattlefield != nextOnBattlefield {
+				// CR 400.7: every real departure or entry starts a new
+				// permanent stint. This is derived from the folded zone,
+				// never the caller-controlled Event.From.
+				used = 0
+			}
+			onBattlefield = nextOnBattlefield
+
+		case events.AbilityPush:
+			if ev.Obj != id || !onBattlefield || int(ev.Player) >= len(e.G.Players) ||
+				ev.Amount < 0 || faceIdx >= len(o.Card.Faces) {
+				continue
+			}
+			// Amount indexes the active face's ability list. Check the exact
+			// face and bounds that events.Apply used at push time.
+			f := o.Card.Faces[faceIdx]
+			if f != nil && int(ev.Amount) < len(f.Abilities) && isLoyaltyAbility(f.Abilities[int(ev.Amount)]) {
+				used++
+			}
+
+		case events.FlipFace:
+			if ev.Obj == id && ev.Amount >= 0 && int(ev.Amount) < len(o.Card.Faces) {
+				faceIdx = int(ev.Amount)
+			}
+		}
+	}
+	return used
+}
+
+// loyaltyAbilityLimit resolves how many loyalty abilities the permanent id
+// may have activated this turn: 1 (CR 606.3) raised by every live
+// S:Mode$ NumLoyaltyAct static whose ValidCard$ matches the permanent --
+// Oath of Teferi's "twice each turn rather than only once" (Twice$ True,
+// ValidCard$ Planeswalker.YouCtrl) and Urza, Lord Protector's self-scoped
+// same (ValidCard$ Card.Self). Any matching Twice$ True raises the base limit
+// to 2 (max, so two stacked Twice statics do not compound); every matching
+// Additional$ N then adds N -- Forge's two parameters are accumulated
+// separately so their result cannot depend on battlefield scan order. An
+// additional-activation grant (The Chain Veil's "as though none of its loyalty
+// abilities had been activated") therefore stacks on top of a twice grant
+// rather than being absorbed by it. Statics that match neither parameter leave
+// the limit alone. The ValidCard$ match resolves against the static's own source
+// and controller (e.specCtx), exactly as castRestricted and abilityRestricted
+// resolve theirs.
+func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
+	twice := false
+	additional := 0
+	for _, sv := range e.activeStatics("NumLoyaltyAct") {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		if sv.Params["Twice"] == "True" {
+			twice = true
+		}
+		if raw, ok := sv.Params["Additional"]; ok {
+			additional += int(parseAmount(raw, 0))
+		}
+	}
+	base := 1
+	if twice {
+		base = 2
+	}
+	return base + additional
 }
 
 // activationLimitReached reports whether this object has already activated the
@@ -161,6 +341,48 @@ func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *c
 	return e.targetsAvailable(p, id, 0, ab)
 }
 
+// grantedAbility is one ability a continuous ability grant (CR 613.1f,
+// state.ContinuousEffect.AddAbilities -- a Saga chapter's Animate) gives an
+// object right now: the parsed AB and the SVar name on the granting face's
+// table that re-resolves it.
+type grantedAbility struct {
+	sa   *cards.SA
+	svar string
+}
+
+// grantedAbilities collects the activated abilities the battlefield's
+// AddAbilities grants give id right now. Each entry is gated on the granting
+// effect actually applying to id (its Affects spec, "You" bound to the
+// effect's own controller) and re-resolved against the granting source's
+// face SVar table -- the name travels, never a parsed copy, so a replay
+// re-executing the grant reads the identical body. Only AB$ lines grant;
+// a name whose body is missing or is not an AB degrades to no grant (the
+// same totality stance every SVar resolution takes). Order: active()'s own
+// stable layer/timestamp sort, names in the grant's own order.
+func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbility {
+	var out []grantedAbility
+	for _, ce := range e.active() {
+		if len(ce.AddAbilities) == 0 {
+			continue
+		}
+		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+			continue
+		}
+		src := e.G.Obj(ce.Source)
+		if src == nil || src.Face() == nil {
+			continue
+		}
+		for _, nm := range ce.AddAbilities {
+			ab := cards.ResolveSVar(src.Face().SVars, nm)
+			if ab == nil || ab.Kind != "AB" {
+				continue
+			}
+			out = append(out, grantedAbility{sa: ab, svar: nm})
+		}
+	}
+	return out
+}
+
 // legalActions enumerates everything p may legally do with priority. The
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
@@ -188,13 +410,10 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if e.castSuppressed(p, id) {
 			continue
 		}
-		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
-		if !instantSpeed && !sorcery {
+		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
-		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
-			continue
-		}
+		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
 		// offerCostFor prices the MANA the offer will charge (601.2f
 		// modifiers, then the commander tax); withSpellAbilityExtras adds the
 		// spell's own ADDITIONAL non-mana parts on top. Both are needed and
@@ -212,10 +431,44 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
 		base := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
-		if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
-			add("cast", "Cast "+f.Name, id)
+		convokeBase, _ := e.convokeCost(p, id, base)
+		// An either-or additional cost (AlternateAdditionalCost) makes the
+		// plain cast's gate existential: the cast is offerable when AT LEAST
+		// ONE alternative part is payable (the choice itself is asked by the
+		// cast flow, altAddAsk), never when all of them are unpayable. Cards
+		// without the keyword keep the ordinary single-cost gate.
+		altParts := altAddCostParts(f)
+		if targetsAvailable {
+			if len(altParts) > 0 {
+				for _, part := range altParts {
+					if e.castable(p, id, withSpellAbilityExtras(f, convokeBase).Plus(ParseCost(part)), false) {
+						add("cast", "Cast "+f.Name, id)
+						break
+					}
+				}
+			} else if e.castable(p, id, withSpellAbilityExtras(f, convokeBase), false) {
+				add("cast", "Cast "+f.Name, id)
+			}
+		}
+		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
+		// consumed by beginCast, which records a FlipFace before the ordinary
+		// cast transaction; from then on every cost/target/resolution reader
+		// sees the selected face. This is structural over every two-door Room,
+		// not a card-name exception (Spiked Corridor is the front-trigger case).
+		if rf := roomAlternateCastFace(o); rf != nil {
+			instant := rf.IsInstant() || e.HasKeyword(id, "Flash")
+			if (instant || sorcery) && e.castTargetsAvailable(p, id, rf.SpellAbility()) {
+				cost := e.offerCostFor(p, id, ParseCost(rf.ManaCost), false)
+				if e.castable(p, id, withSpellAbilityExtras(rf, cost), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
+				}
+			}
 		}
 		for i, alt := range e.alternativeCosts(p, id) {
+			if !targetsAvailable {
+				continue
+			}
 			// Ruling (Task 9 fix round 1, Important 1): this used to gate on
 			// mana-only alt.CanPay, but ParseCost now produces Sac/SubCounter/
 			// Tap parts that the cast flow enforces -- an AlternativeCost whose
@@ -233,14 +486,64 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					Label: altCostLabel(f.Name, i), Obj: id, AltCostIndex: i + 1})
 			}
 		}
-		if kc, ok := kickerCost(f); ok && e.castable(p, id, base.Plus(kc), false) {
+		if kc, ok := kickerCost(f); ok && targetsAvailable && e.castable(p, id, base.Plus(kc), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 		}
-		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false), false) {
+		if sc, ok := surgeCost(f); ok && targetsAvailable && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
 		}
+		// The alternative-cost keyword family (altcosts), from the hand: evoke
+		// (CR 702), dash, overload and warp each become their own "cast" mode
+		// option paying the printed keyword cost in place of the mana cost.
+		// Madness does NOT offer from the hand here (CR 702.35a: the madness
+		// cast window opens only on the discard, through the pending-trigger
+		// machinery, exactly like Miracle); warp additionally offers from the
+		// graveyard and -- after an end-step exile -- from exile, in the walks
+		// below.
+		for _, ka := range [...]struct{ mode, head string }{
+			{"evoked", "Evoke"}, {"dashed", "Dash"}, {"overloaded", "Overload"}, {"warped", "Warp"},
+		} {
+			alt, ok := keywordAltCost(f, ka.head)
+			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
+				!e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
+		}
+		if bc, ok := buybackCost(f); ok && e.castable(p, id, e.offerCostFor(p, id, base.Plus(bc), false), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (buyback)", Obj: id, Mode: "buyback"})
+		}
+		if sc, ok := suspendCost(f); ok {
+			offer := sc.cost
+			if sc.timeX {
+				// XMin<N> is part of the announcement, not a later payment
+				// preference: do not offer a Suspend X action that cannot pay
+				// even its smallest legal X.
+				offer = offer.WithX(sc.minTime)
+			}
+			if e.castable(p, id, e.offerCostFor(p, id, offer, false), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Suspend " + f.Name, Obj: id, Mode: "suspend"})
+			}
+		}
+	}
+
+	// A may-play-from-zone grant (Conduit of Worlds, Crucible of Worlds, ...)
+	// makes lands in a granted zone playable this turn. This is the SECOND
+	// play_land source alongside the hand walk above, never a replacement for
+	// it; the once-per-turn land-drop gate is the same sorcerySpeed &&
+	// LandsPlayed < 1 condition the hand walk applies, so a graveyard land
+	// and a hand land share one land drop. The zones walked, the Affects
+	// filter each grant applies, and the deterministic order all come from
+	// mayPlayLandIds.
+	for _, id := range e.mayPlayLandIds(p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		add("play_land", "Play "+o.Face().Name, id)
 	}
 
 	// Command zone (CR 903.8, Commander format): a player may cast a
@@ -269,16 +572,47 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if e.castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
-		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
-		if !instantSpeed && !sorcery {
+		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
-		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
-			continue
-		}
+		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
 		cost := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
-		if e.castable(p, id, cost, false) {
+		if targetsAvailable && e.castable(p, id, cost, false) {
 			add("cast", "Cast "+f.Name, id)
+		}
+		// Alternative costs replace the printed mana cost but not additional
+		// costs such as commander tax (CR 118.9d, 903.8). Dash and the other
+		// cast alternatives therefore remain available from the command zone;
+		// offerCostFor applies the same tax beginCast later charges.
+		for _, ka := range [...]struct{ mode, head string }{
+			{"evoked", "Evoke"}, {"dashed", "Dash"}, {"overloaded", "Overload"},
+		} {
+			alt, ok := keywordAltCost(f, ka.head)
+			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
+				!e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
+		}
+	}
+
+	// Harmonize is a graveyard alternative. It is offered as its own cast
+	// transaction, then spellRestZone exiles it after resolution.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		f := o.Face()
+		if !e.spellTimingOK(p, id, f, sorcery) {
+			continue
+		}
+		if hc, ok := harmonizeCost(f); ok && e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			hc, _ = e.harmonizePayment(p, id, hc)
+			if e.castable(p, id, e.offerCostFor(p, id, hc, false), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (harmonize)", Obj: id, Mode: "harmonize"})
+			}
 		}
 	}
 
@@ -297,8 +631,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if e.castSuppressed(p, id) {
 			continue
 		}
-		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
-		if !instantSpeed && !sorcery {
+		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
@@ -310,17 +643,76 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+	// Warp from the graveyard requires a separate MayPlay Spell.Warp static;
+	// Warp itself grants only the hand alternative. Timeline Culler is the
+	// corpus shape carrying that explicit graveyard permission.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
 		if f == nil {
 			continue
 		}
-		// A mana ability with no tap cost (Lotus Petal) remains activatable
-		// while its source is tapped. availableManaAbilities applies each
-		// ability's actual cost, including its individual tap gate.
-		if len(e.availableManaAbilities(p, id)) > 0 {
-			add("activate", "Tap "+f.Name+" for mana", id)
+		wc, ok := keywordAltCost(f, "Warp")
+		if !ok || !warpGraveyardAllowed(f) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
+		if !instantSpeed && !sorcery {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		if e.castable(p, id, e.offerCostFor(p, id, wc, false), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (warped)", Obj: id, Mode: "warped"})
+		}
+	}
+
+	// Warp recast from exile (CR 702: "exile this creature at the beginning
+	// of the next end step, then you may cast it from exile on a later
+	// turn"). The exile-zone walk offers the cast only to a warp card that
+	// the log shows was warp-cast and end-step-exiled, on a turn strictly
+	// after that exile -- the flag alone cannot say it (CastFlags reset when
+	// the permanent left the battlefield), but the log can. This later cast
+	// pays the normal mana cost and is not itself flagged warped.
+	for _, id := range e.G.Zone(state.ZExile, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || o.IsToken {
+			continue
+		}
+		_, ok := keywordAltCost(f, "Warp")
+		if !ok || !e.warpRecastAvailable(id) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
+		if !instantSpeed && !sorcery {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		normal := e.rawBaseCost(p, id)
+		if e.castable(p, id, e.offerCostFor(p, id, normal, false), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (from warp exile)", Obj: id, Mode: "warp_recast"})
+		}
+	}
+
+	// Mana abilities may explicitly function from the battlefield, hand or
+	// graveyard (Spirit Guides and Jack-o'-Lantern). availableManaAbilities
+	// applies each ability's ActivationZone and full cost gate.
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, p) {
+			o := e.G.Obj(id)
+			f := o.Face()
+			if f == nil {
+				continue
+			}
+			if len(e.availableManaAbilities(p, id)) > 0 {
+				add("activate", "Activate "+f.Name+" for mana", id)
+			}
 		}
 	}
 
@@ -341,7 +733,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	// not always true: Task 14 round 1 shipped a second, Equip-only loop and
 	// deleted it again on the main merge (one offer path, one activation
 	// path), so do not resurrect one.
-	for _, z := range []state.Zone{state.ZBattlefield, state.ZGraveyard} {
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZHand} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
 			f := o.Face()
@@ -360,23 +752,43 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				}
 				// CR 606.3: a planeswalker's loyalty ability may be activated
 				// only at the time a sorcery could be played -- during the
-				// controller's own main phase with an empty stack -- and each
-				// loyalty ability at most ONCE per turn. sorcerySpeed already
-				// folds the own-turn and main-phase halves; the once-per-turn
-				// half reuses the same event-log scan the ActivationLimit$ gate
-				// uses, at a fixed limit of 1, because no corpus loyalty ability
-				// carries that parameter and the gate must exist anyway (before
-				// this gate the [+2]/[0] abilities were offered, payable and
-				// repeatable without bound -- the live Jace draw-three exploit).
+				// controller's own main phase with an empty stack -- and a
+				// player may not activate a loyalty ability of a PERMANENT if
+				// any loyalty ability OF THAT PERMANENT has already been
+				// activated this turn. The gate is per permanent, not per
+				// ability index: after [+2] the [0] draw-three is just as
+				// withheld as a second [+2]. sorcerySpeed already folds the
+				// own-turn and main-phase halves; the once-per-turn half is
+				// the loyaltyActivationsThisTurn scan below (the event-log
+				// scan the ActivationLimit$ gate uses, keyed to the object
+				// and bounded by its current battlefield stint, CR 400.7),
+				// because no corpus loyalty ability carries ActivationLimit$
+				// and the gate must exist anyway (before this gate the
+				// [+2]/[0] abilities were offered, payable and repeatable
+				// without bound -- the live Jace draw-three exploit).
 				if isLoyaltyAbility(ab) {
 					if !sorcery {
 						continue
 					}
-					if e.activationLimitReached(id, p, i, "1") {
+					if e.loyaltyActivationsThisTurn(id) >= e.loyaltyAbilityLimit(id) {
 						continue
 					}
 				}
 				if e.abilityRestricted(p, id, ab) {
+					continue
+				}
+				// F05-2 (CR 733.2): a card whose activation aborted with no
+				// progress twice in this window is held out here too, exactly
+				// like the cast options above -- the suppression is per CARD
+				// (abortCast keys it on pc.card, which for an activation is the
+				// source), and the abort sites cover "cast/activation" alike.
+				// Without this check an activation the payer cannot complete
+				// (a mis-answered phyrexian pip, a pool that moved) re-offered
+				// forever inside one priority window: measured, the commander
+				// bench spun 20000 intents on Solphim's {1}{R/P}{R/P} ability
+				// (seed 1295, 2026-09-15) because the ability-offer path never
+				// read the map the abort wrote.
+				if e.castSuppressed(p, id) {
 					continue
 				}
 				if raw, ok := ab.Params["ActivationLimit"]; ok && e.activationLimitReached(id, p, i, raw) {
@@ -396,6 +808,115 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					Label: f.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
 					Grant: e.abilityGrant(id, ab)})
 			}
+		}
+	}
+
+	// Granted activated abilities (CR 613.1f, rules/legal.go's
+	// grantedAbilities): the abilities an AddAbilities continuous grant -- a
+	// Saga chapter's Animate, "CARDNAME gains '{T}: Add {C}'." -- gives a
+	// permanent. Non-mana ones are offered here with the SVar anchor
+	// beginActivation resolves (the same anchor the max-speed "granted"
+	// option carries); mana ones flow through availableManaAbilities below so
+	// the "Tap for mana" priority action and the payment window share one
+	// member set. Gates mirror the printed loop above minus the two index-
+	// anchored gates (loyalty, ActivationLimit$): a grant is never a loyalty
+	// ability, and no corpus granted ability carries a limit -- if one ever
+	// does, the limit is unenforced on it, which this comment is the pin of.
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o.Face() == nil {
+			continue
+		}
+		for _, ga := range e.grantedAbilities(p, id) {
+			ab := ga.sa
+			if ab.API == "Mana" {
+				continue
+			}
+			if ab.Params["SorcerySpeed"] == "True" && !sorcery {
+				continue
+			}
+			if e.abilityRestricted(p, id, ab) {
+				continue
+			}
+			cost := ParseCost(ab.Params["Cost"])
+			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
+				continue
+			}
+			if !e.castable(p, id, e.offerCostFor(p, id, cost, true), true) {
+				continue
+			}
+			if !e.abilityTargetsAvailable(p, id, ab) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "ability",
+				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar})
+		}
+	}
+
+	// kw:Station (CR 702.150, rules/station.go): each Spacecraft the player
+	// controls may be stationed as a sorcery by tapping another creature.
+	// The offer is gated on the sorcery window (Station only as a sorcery)
+	// and on a legal tap candidate existing, so an unpayable station is
+	// never offered; the tap candidate itself is the KChoose askStation
+	// poses after the option is chosen.
+	if sorcery {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil || !e.HasKeyword(id, "Station") {
+				continue
+			}
+			if len(e.stationCandidates(p, id)) == 0 {
+				continue
+			}
+			add("station", "Station "+o.Face().Name, id)
+		}
+		// Room unlock (CR 309.5, rules/rooms.go): a room whose second door is
+		// still locked may be unlocked as a sorcery by paying that half's own
+		// mana cost. The gate is the same castable total the cast options
+		// use, so an unpayable unlock is never offered (and the payment on
+		// the answer cannot disagree with the offer).
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			cost, ok := e.unlockRoomCost(o)
+			if !ok {
+				continue
+			}
+			if e.castable(p, id, e.offerCostFor(p, id, cost, true), true) {
+				add("unlock", "Unlock "+roomLockedFace(o).Name, id)
+			}
+		}
+	}
+
+	// kw:Start your engines (CR 702.163c, rules/speed.go): a max-speed
+	// static grants its AddAbility$ while its controller has speed 4, and
+	// the granted ability is offered through the same cost/target gates
+	// every other activation uses. NOT sorcery-gated: the grant is an
+	// ordinary activated ability (Amonkhet Raceway's {T}: pump) whose timing
+	// is its own cost's -- it needs a priority window, not a main phase, so
+	// the offer sits outside the sorcery block with the other activation
+	// offers.
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		for _, ab := range e.maxSpeedAbilities(p, id) {
+			if e.abilityRestricted(p, id, ab) {
+				continue
+			}
+			cost := ParseCost(ab.Params["Cost"])
+			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
+				continue
+			}
+			if !e.castable(p, id, e.offerCostFor(p, id, cost, false), false) {
+				continue
+			}
+			if !e.abilityTargetsAvailable(p, id, ab) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "granted",
+				Label: o.Face().Name + ": " + ab.Params["SpellDescription"],
+				Obj:   id, SVar: abSVarName(o.Face(), ab)})
 		}
 	}
 
@@ -453,22 +974,32 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 
 	case "play_land":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-		// Task 12: a land with an "as this enters" choice (an
-		// ETBReplacement whose ReplaceWith$ is NameCard/ChooseType/
-		// ChooseNumber, e.g. Cavern of Souls) goes through the same
-		// one-stage cast flow a spell does -- collect the choice, ask it via
-		// chooseETB, record it with a Choose event, then commitCast moves the
-		// land and logs the play. A land with none keeps the original direct
-		// path (no pendingCast, no flow), so ordinary lands are untouched.
-		// Both paths share the same continuation machinery: etbAnswer/
-		// continueCast/commitCast below, never a parallel one.
-		pc := &pendingCast{player: in.Player, card: opt.Obj, from: state.ZHand, mode: "land", ability: -1}
+		// Task 12: a land with an "as this enters" choice goes through the
+		// same one-stage cast flow a spell does -- collect the choice, ask it
+		// via chooseETB, record it with a Choose event, then continueCast's
+		// payCast moves the land and logs the play. A land with none keeps
+		// the original direct path (no pendingCast, no flow), so ordinary
+		// lands are untouched. Both paths share the same continuation
+		// machinery, never a parallel one.
+		//
+		// The source zone is the object's CURRENT zone, not hardcoded to the
+		// hand: a may-play grant lets a land be played from the graveyard (or
+		// exile), so a hand land and a graveyard land must move From the zone
+		// they were actually offered from. A land that somehow left its zone
+		// between the offer and the answer (only a hand-built intent makes
+		// that possible) resolves from whatever zone it is in, and the
+		// MoveZone/LandPlayed below still records a legal play.
+		from := state.ZHand
+		if o := e.G.Obj(opt.Obj); o != nil {
+			from = o.Zone
+		}
+		pc := &pendingCast{player: in.Player, card: opt.Obj, from: from, mode: "land", ability: -1}
 		e.cast = pc
 		e.collectETBChoices(in.Player)
 		if len(pc.etbs) == 0 {
 			e.cast = nil
 			e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
-				From: state.ZHand, To: state.ZBattlefield})
+				From: from, To: state.ZBattlefield})
 			e.emit(events.Event{Kind: events.LandPlayed, Player: in.Player})
 			return
 		}
@@ -498,6 +1029,38 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// everywhere (grantPriority, NextAlive, beginTurn).
 		e.emit(events.Event{Kind: events.PlayerLost, Player: in.Player, Text: "conceded"})
 		e.checkStateBased()
+
+	case "station":
+		// kw:Station (CR 702.150, rules/station.go): the spacecraft is
+		// stationed by tapping another creature the KChoose below names. The
+		// pass-count reset matches every other non-pass action.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		e.askStation(in.Player, opt)
+
+	case "unlock":
+		// Room unlock (CR 309.5, rules/rooms.go): pay the locked half's mana
+		// cost and emit the DoorUnlock event. The offer gated on castable,
+		// so the payment here cannot disagree with the offer; a stale option
+		// (the room left play or was unlocked between offer and answer -- the
+		// same seat's answer, so the board cannot have moved) degrades to a
+		// no-op through unlockRoomCost's nil face.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		o := e.G.Obj(opt.Obj)
+		cost, ok := e.unlockRoomCost(o)
+		if !ok {
+			return
+		}
+		if !e.payMana(in.Player, cost) {
+			return
+		}
+		e.emit(events.Event{Kind: events.DoorUnlock, Obj: opt.Obj})
+
+	case "granted":
+		// kw:Start your engines (CR 702.163c, rules/speed.go): a max-speed
+		// static's granted ability, activated through the ordinary cost
+		// payment and the delayed-shape ability mint.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		e.beginGrantedActivation(in.Player, opt)
 
 	case "cast":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
@@ -589,21 +1152,13 @@ func pureGrantKeywords(ab *cards.SA) []string {
 	return grantKeywords(ab.Params["KW"])
 }
 
-// grantKeywords splits a KW$ parameter's "&"-joined keyword list into
-// head-stripped words (the same separator effects' splitKeywords uses,
-// re-expressed here because this package cannot import effects).
+// grantKeywords splits a KW$ parameter's keyword list into head-stripped
+// words through cards.SplitKeywordList -- the shared Forge parser -- because
+// this package cannot re-express the grammar without drifting from it. The
+// Forge list separator is ampersand; a comma remains part of a parameter.
 func grantKeywords(kw string) []string {
-	kw = strings.TrimSpace(kw)
-	if kw == "" {
-		return nil
-	}
-	parts := strings.Split(kw, "&")
 	var out []string
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
+	for _, p := range cards.SplitKeywordList(kw) {
 		out = append(out, cards.KeywordHead(p))
 	}
 	return out

@@ -1,9 +1,10 @@
 package host
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"sort"
-	"strconv"
 	"sync"
 
 	"github.com/adams-shaun/gorge/protocol"
@@ -15,6 +16,9 @@ import (
 // never ring-buffered, never given an id).
 type Session struct {
 	ID string
+	// serial is an internal creation sequence for deterministic fan-out. It
+	// is separate from ID because IDs are unguessable random capabilities.
+	serial uint64
 
 	mu         sync.Mutex
 	out        chan protocol.Frame
@@ -30,14 +34,27 @@ type Session struct {
 // TableAll as a TableID, for the subscription map.
 const TableAll TableID = protocol.TableAll
 
-// OpenSession registers a new session. IDs are a counter ("s1", "s2", …):
-// they are not secrets (the authorizer hook, not the session id, is what
-// gates access), so no randomness is needed or wanted.
+// OpenSession registers a new session with an unguessable identifier issued
+// only in its hello frame. A seat-aware subscription can bind private frames
+// to this session, so a sequential id would let another seat claim it before
+// its owner subscribes. serial preserves deterministic fan-out order without
+// making the public identifier predictable.
 func (r *Registry) OpenSession() *Session {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	var id string
+	for {
+		var b [16]byte
+		if _, err := rand.Read(b[:]); err != nil {
+			panic("host: minting session id: " + err.Error())
+		}
+		id = "s" + hex.EncodeToString(b[:])
+		if _, exists := r.sessions[id]; !exists {
+			break
+		}
+	}
 	r.nextSess++
-	s := &Session{ID: "s" + strconv.Itoa(r.nextSess), out: make(chan protocol.Frame, r.opts.Ring),
+	s := &Session{ID: id, serial: uint64(r.nextSess), out: make(chan protocol.Frame, r.opts.Ring),
 		subs: map[TableID]string{}, widgets: map[TableID]protocol.Frame{}}
 	r.sessions[s.ID] = s
 	return s
@@ -284,7 +301,7 @@ func (r *Registry) sessionsFor(id TableID) (ss []*Session, modes []string) {
 		all = append(all, s)
 	}
 	r.mu.RUnlock()
-	sort.Slice(all, func(i, j int) bool { return sessionNum(all[i].ID) < sessionNum(all[j].ID) })
+	sort.Slice(all, func(i, j int) bool { return all[i].serial < all[j].serial })
 	for _, s := range all {
 		if m, ok := s.modeFor(id); ok {
 			ss = append(ss, s)
@@ -292,11 +309,6 @@ func (r *Registry) sessionsFor(id TableID) (ss []*Session, modes []string) {
 		}
 	}
 	return ss, modes
-}
-
-func sessionNum(id string) int {
-	n, _ := strconv.Atoi(id[1:])
-	return n
 }
 
 // dropOverflowed unregisters sessions that overflowed during a fan-out.

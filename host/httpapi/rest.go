@@ -72,15 +72,12 @@ func uintQuery(w http.ResponseWriter, r *http.Request, name string) (uint64, boo
 	return n, true, true
 }
 
-// claimSeat resolves the request through Options.Seat. nil means nobody may
-// act as a seat — spectator-only, today's behaviour — so every request that
-// names a seat on such a server is refused outright (403, not a nil-call
-// panic); a non-nil resolver that declines the request is refused like an
-// Authorize failure (401). The claim's seat is the only value the http layer
-// trusts from the resolver: a request's ?seat= must equal it (seatFromQuery)
-// and Pending/SubmitIntent act through it, so the resolver is the seat trust
-// boundary exactly as Authorize is the request trust boundary.
-func (h *handler) claimSeat(w http.ResponseWriter, r *http.Request) (SeatClaim, bool) {
+// claimForTable is the one authorization fence every seat-authorised handler
+// uses. nil Options.Seat means spectator-only (403); an absent token is 401;
+// and a claim for a different table is 403. Claims without a table are the
+// pre-deploy format and intentionally stop working rather than retaining the
+// old cross-table privilege.
+func (h *handler) claimForTable(w http.ResponseWriter, r *http.Request, table host.TableID) (SeatClaim, bool) {
 	if h.opts.Seat == nil {
 		writeError(w, http.StatusForbidden, "forbidden", "this server is spectator-only: no seat claims")
 		return SeatClaim{}, false
@@ -88,6 +85,10 @@ func (h *handler) claimSeat(w http.ResponseWriter, r *http.Request) (SeatClaim, 
 	claim, ok := h.opts.Seat(r)
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "request does not hold a seat claim")
+		return SeatClaim{}, false
+	}
+	if claim.Table != table {
+		writeError(w, http.StatusForbidden, "forbidden", "claim does not hold a seat at this table")
 		return SeatClaim{}, false
 	}
 	return claim, true
@@ -99,10 +100,10 @@ func (h *handler) claimSeat(w http.ResponseWriter, r *http.Request) (SeatClaim, 
 // the request actually holds — the resolver must answer, and the claim's seat
 // must equal the requested one — so seat A can never read seat B's hand or
 // decision through any endpoint that takes a seat parameter. ok false means
-// the handler already wrote the rejection. (SubmitIntent takes no ?seat=; it
-// acts through claimSeat alone, and the intent body's own Player field is the
-// fence.)
-func (h *handler) seatFromQuery(w http.ResponseWriter, r *http.Request) (seat state.PlayerID, scoped, ok bool) {
+// the handler already wrote the rejection. (SubmitIntent takes no ?seat; it
+// acts through claimForTable alone, and the intent body's own Player field is
+// the fence.)
+func (h *handler) seatFromQuery(w http.ResponseWriter, r *http.Request, table host.TableID) (seat state.PlayerID, scoped, ok bool) {
 	raw := r.URL.Query().Get("seat")
 	if raw == "" {
 		return 0, false, true
@@ -112,7 +113,7 @@ func (h *handler) seatFromQuery(w http.ResponseWriter, r *http.Request) (seat st
 		writeError(w, http.StatusBadRequest, "bad_request", "seat must be a non-negative integer")
 		return 0, false, false
 	}
-	claim, granted := h.claimSeat(w, r)
+	claim, granted := h.claimForTable(w, r, table)
 	if !granted {
 		return 0, false, false
 	}
@@ -133,7 +134,7 @@ func (h *handler) view(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	seat, scoped, ok := h.seatFromQuery(w, r)
+	seat, scoped, ok := h.seatFromQuery(w, r, t)
 	if !ok {
 		return
 	}
@@ -179,7 +180,7 @@ func (h *handler) events(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	seat, scoped, ok := h.seatFromQuery(w, r)
+	seat, scoped, ok := h.seatFromQuery(w, r, t)
 	if !ok {
 		return
 	}
@@ -212,7 +213,7 @@ func (h *handler) pending(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	seat, scoped, ok := h.seatFromQuery(w, r)
+	seat, scoped, ok := h.seatFromQuery(w, r, t)
 	if !ok {
 		return
 	}
@@ -240,7 +241,7 @@ func (h *handler) intent(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	claim, granted := h.claimSeat(w, r)
+	claim, granted := h.claimForTable(w, r, t)
 	if !granted {
 		return
 	}
@@ -270,7 +271,7 @@ func (h *handler) undo(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	claim, granted := h.claimSeat(w, r)
+	claim, granted := h.claimForTable(w, r, t)
 	if !granted {
 		return
 	}

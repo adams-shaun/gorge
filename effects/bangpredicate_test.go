@@ -58,18 +58,18 @@ func TestBangPredicateNegation(t *testing.T) {
 
 	// Leaf 2: !<X> on an UNRECOGNISED <X> still matches nothing and is still
 	// reported by UnknownPredicates -- "not known" is not "yes".
-	// ExiledWithSource is the largest family the pc1 census still leaves
-	// unknown (it needs exile provenance this build does not track); its
+	// DefenderCtrl is one of the families the pc1 census still leaves
+	// unknown (it needs object/game context this build does not track); its
 	// negation must fail closed too.
-	if MatchesObjectCtx(g, "Creature.!ExiledWithSource", plain, SpecContext{You: 0}) {
-		t.Errorf("Creature.!ExiledWithSource must match nothing (ExiledWithSource is unrecognised)")
+	if MatchesObjectCtx(g, "Creature.!DefenderCtrl", plain, SpecContext{You: 0}) {
+		t.Errorf("Creature.!DefenderCtrl must match nothing (DefenderCtrl is unrecognised)")
 	}
-	if un := UnknownPredicates("Creature.!ExiledWithSource"); len(un) != 1 || un[0] != "!ExiledWithSource" {
-		t.Errorf("UnknownPredicates(Creature.!ExiledWithSource) = %v, want [!ExiledWithSource]", un)
+	if un := UnknownPredicates("Creature.!DefenderCtrl"); len(un) != 1 || un[0] != "!DefenderCtrl" {
+		t.Errorf("UnknownPredicates(Creature.!DefenderCtrl) = %v, want [!DefenderCtrl]", un)
 	}
 	// The bare unknown form is still reported exactly the same way.
-	if un := UnknownPredicates("Creature.ExiledWithSource"); len(un) != 1 || un[0] != "ExiledWithSource" {
-		t.Errorf("UnknownPredicates(Creature.ExiledWithSource) = %v, want [ExiledWithSource]", un)
+	if un := UnknownPredicates("Creature.DefenderCtrl"); len(un) != 1 || un[0] != "DefenderCtrl" {
+		t.Errorf("UnknownPredicates(Creature.DefenderCtrl) = %v, want [DefenderCtrl]", un)
 	}
 
 	// Leaf 2b (pc2): IsRemembered is now IMPLEMENTED, so its negation is a

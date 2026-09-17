@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"sync"
 	"testing"
 
@@ -101,8 +102,8 @@ func TestChooseCardExiledWithCorpusSA(t *testing.T) {
 	}
 	effChangeZone(h, &Ctx{Source: src.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}}, exile)
 	liveSource, liveTarget := h.g.Obj(src.ID), h.g.Obj(target.ID)
-	if liveTarget.Zone != state.ZExile || len(liveSource.ExiledWith) != 1 || liveSource.ExiledWith[0] != target.ID {
-		t.Fatalf("Parallax Wave association = zone %v exiledWith %v, want exile [%d]", liveTarget.Zone, liveSource.ExiledWith, target.ID)
+	if liveTarget.Zone != state.ZExile || len(liveSource.ExiledCards) != 1 || liveSource.ExiledCards[0] != target.ID {
+		t.Fatalf("Parallax Wave association = zone %v exiledWith %v, want exile [%d]", liveTarget.Zone, liveSource.ExiledCards, target.ID)
 	}
 	c := &Ctx{Source: src.ID, Controller: 0}
 	if got := cardChoices(h, c, choose, 0); len(got) != 1 || got[0].Obj != target.ID {
@@ -116,8 +117,8 @@ func TestChooseCardExiledWithCorpusSA(t *testing.T) {
 	// through an unrelated MoveZone must not revive Parallax Wave's link.
 	h.Emit(events.Event{Kind: events.MoveZone, Obj: target.ID, From: state.ZExile, To: state.ZHand})
 	h.Emit(events.Event{Kind: events.MoveZone, Obj: target.ID, From: state.ZHand, To: state.ZExile})
-	if got := cardChoices(h, c, choose, 0); len(got) != 0 || len(h.g.Obj(src.ID).ExiledWith) != 0 {
-		t.Fatalf("stale ExiledWith after leave/re-exile: choices=%+v relation=%v", got, h.g.Obj(src.ID).ExiledWith)
+	if got := cardChoices(h, c, choose, 0); len(got) != 0 || len(h.g.Obj(src.ID).ExiledCards) != 0 {
+		t.Fatalf("stale ExiledWith after leave/re-exile: choices=%+v relation=%v", got, h.g.Obj(src.ID).ExiledCards)
 	}
 }
 
@@ -138,7 +139,7 @@ func TestChangeZoneRecordsExiledWithAndRemembered(t *testing.T) {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
 	}
 	effChangeZone(h, &Ctx{Source: src.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}}, exile)
-	if got := h.g.Obj(src.ID).ExiledWith; len(got) != 1 || got[0] != target.ID {
+	if got := h.g.Obj(src.ID).ExiledCards; len(got) != 1 || got[0] != target.ID {
 		t.Fatalf("Flickerwisp ExiledWith = %v, want [%d]", got, target.ID)
 	}
 	var exiledWith, remembered bool
@@ -308,6 +309,25 @@ func TestGainControlEmrakulCorpusSA(t *testing.T) {
 	effGainControl(h, &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa)
 	if g.Obj(ids["theirBig"]).Controller != 0 {
 		t.Fatal("Emrakul did not gain the targeted player's creature")
+	}
+}
+
+// TestGainControlKeywordListReaderUsesSharedParser covers GainControl's
+// AddKWs$ reader, the keyword-list path separate from Pump/PumpAll. The first
+// keyword deliberately carries commas in its parameters: ampersands divide
+// list members, while parameter commas must survive intact.
+func TestGainControlKeywordListReaderUsesSharedParser(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	sa := sa(t, "DB$ GainControl | Defined$ Targeted | NewController$ You | AddKWs$ Protection:Spell.Instant,Spell.Sorcery:instant spells and from sorcery spells & Haste")
+	effGainControl(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["theirBig"]}}}, sa)
+
+	if len(h.controls) != 1 {
+		t.Fatalf("registered control grants = %d, want 1", len(h.controls))
+	}
+	want := []string{"Protection:Spell.Instant,Spell.Sorcery:instant spells and from sorcery spells", "Haste"}
+	if got := h.controls[0].AddKeywords; !slices.Equal(got, want) {
+		t.Fatalf("AddKWs keywords = %q, want %q", got, want)
 	}
 }
 

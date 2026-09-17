@@ -1090,12 +1090,12 @@ func TestImprintSeparatesExplicitAndExiledWith(t *testing.T) {
 	Apply(g, Event{Kind: Imprint, Obj: source, IDs: []state.ObjID{card.ID}, Text: "exiled-with"})
 	Apply(g, Event{Kind: Imprint, Obj: source, IDs: []state.ObjID{card.ID}})
 	got := g.Obj(source)
-	if len(got.ExiledWith) != 1 || got.ExiledWith[0] != card.ID || len(got.Imprinted) != 1 || got.Imprinted[0] != card.ID {
-		t.Fatalf("associations = exiledWith %v imprinted %v, want both [%d]", got.ExiledWith, got.Imprinted, card.ID)
+	if len(got.ExiledCards) != 1 || got.ExiledCards[0] != card.ID || len(got.Imprinted) != 1 || got.Imprinted[0] != card.ID {
+		t.Fatalf("associations = exiledWith %v imprinted %v, want both [%d]", got.ExiledCards, got.Imprinted, card.ID)
 	}
 	Apply(g, Event{Kind: MoveZone, Obj: card.ID, From: state.ZExile, To: state.ZHand})
-	if len(got.ExiledWith) != 0 || len(got.Imprinted) != 1 || got.Imprinted[0] != card.ID {
-		t.Fatalf("leaving exile = exiledWith %v imprinted %v, want [] [%d]", got.ExiledWith, got.Imprinted, card.ID)
+	if len(got.ExiledCards) != 0 || len(got.Imprinted) != 1 || got.Imprinted[0] != card.ID {
+		t.Fatalf("leaving exile = exiledWith %v imprinted %v, want [] [%d]", got.ExiledCards, got.Imprinted, card.ID)
 	}
 	Apply(g, Event{Kind: Imprint, Obj: source, Text: "clear"})
 	if len(got.Imprinted) != 0 {
@@ -1270,6 +1270,12 @@ func TestTargetsChosenAppendShapes(t *testing.T) {
 	Apply(g, Event{Kind: TargetsChosen, Obj: id, Player: 0, Amount: 1}) // shape 1 still replaces
 	if tg := g.Obj(id).Targets; len(tg) != 1 || !tg[0].IsPlayer {
 		t.Fatalf("targets %+v", tg)
+	}
+}
+
+func TestKeywordTriggerPushKindString(t *testing.T) {
+	if got, want := KeywordTriggerPush.String(), "keyword_trigger_push"; got != want {
+		t.Fatalf("KeywordTriggerPush.String() = %q, want %q", got, want)
 	}
 }
 

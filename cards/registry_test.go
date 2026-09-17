@@ -13,7 +13,7 @@ func fixtureRegistry(t *testing.T) *Registry {
 	for _, src := range []string{
 		"Name:Lightning Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n",
 		"Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n",
-		"Name:Delver of Secrets\nManaCost:U\nTypes:Creature Human Wizard\nPT:1/1\nOracle:x\nALTERNATE\nName:Insectile Aberration\nTypes:Creature Human Insect\nPT:3/2\nK:Flying\nOracle:x\n",
+		"Name:Delver of Secrets\nManaCost:U\nTypes:Creature Human Wizard\nPT:1/1\nOracle:x\nAlternateMode:DoubleFaced\nALTERNATE\nName:Insectile Aberration\nTypes:Creature Human Insect\nPT:3/2\nK:Flying\nOracle:x\n",
 	} {
 		c, _ := ParseBytes("fixture.txt", []byte(src))
 		c.Link()
@@ -52,6 +52,10 @@ func TestRegistryCacheRoundTrip(t *testing.T) {
 	}
 	if len(back.Cards) != len(r.Cards) {
 		t.Fatalf("cards = %d, want %d", len(back.Cards), len(r.Cards))
+	}
+	delver, ok := back.Lookup("Delver of Secrets")
+	if !ok || delver.AlternateMode != "DoubleFaced" {
+		t.Fatalf("Delver AlternateMode = %q, want DoubleFaced", delver.AlternateMode)
 	}
 	// Structure must survive, not just names: the sub-ability tree and the
 	// intrinsic mana ability are what the engine actually consumes.
@@ -246,5 +250,64 @@ func TestCompileDirIgnoresNamelessAlternateFace(t *testing.T) {
 	cv := r.Coverage(map[string]bool{})
 	if cv.Cards != 2 {
 		t.Errorf("Coverage.Cards = %d, want 2 (both cards have a named face)", cv.Cards)
+	}
+}
+
+// TestLoadRegistryRelinksStaleCacheTransmuteWithItsManaValue pins the
+// derive-before-link order in LoadRegistry. A gob cache stores only printed
+// fields (the derived ones are unexported), so a cache compiled BEFORE a
+// keyword-expansion case existed decodes with cmc == 0 — and Transmute's
+// expansion reads f.Cmc() to build its Card.cmcEQ<N> search spec. Relinking
+// before deriving therefore expanded such a cache as cmcEQ0 (every search
+// would only ever find zero-cost cards); deriving first repairs cmc from the
+// printed ManaCost the cache does carry, so the relink expands with the
+// source's real mana value (Dizzy Spell: 1). The corpus cache itself already
+// carries the correct expansion (it was compiled through Parse→derive→Link),
+// which is exactly why the ordinary round-trip cannot catch this: this test
+// strips the expanded ability to reconstruct the pre-expansion cache bytes.
+func TestLoadRegistryRelinksStaleCacheTransmuteWithItsManaValue(t *testing.T) {
+	src := "Name:Dizzy Spell\nManaCost:U\nTypes:Instant\n" +
+		"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ -3 | IsCurse$ True | SpellDescription$ Target creature gets -3/-0 until end of turn.\n" +
+		"K:Transmute:1 U U\nOracle:x\n"
+	c, _ := ParseBytes("dizzy_spell.txt", []byte(src))
+	c.Link()
+	// Strip the expanded Transmute ability: the exact face bytes a cache
+	// compiled before the Transmute expansion case existed would carry.
+	for _, f := range c.Faces {
+		kept := f.Abilities[:0]
+		for _, ab := range f.Abilities {
+			if ab.Params["Keyword"] == "Transmute" {
+				continue
+			}
+			kept = append(kept, ab)
+		}
+		f.Abilities = kept
+	}
+	r := NewRegistry()
+	r.Add(c)
+	path := filepath.Join(t.TempDir(), "ir.gob.gz")
+	if err := r.Save(path); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	back, err := LoadRegistry(path)
+	if err != nil {
+		t.Fatalf("LoadRegistry: %v", err)
+	}
+	dizzy, ok := back.Lookup("Dizzy Spell")
+	if !ok {
+		t.Fatal("Dizzy Spell missing after stale-cache load")
+	}
+	f := dizzy.Faces[0]
+	if got := f.Cmc(); got != 1 {
+		t.Fatalf("relaid face cmc = %d, want 1", got)
+	}
+	var found []string
+	for _, ab := range f.Abilities {
+		if ab.Params["Keyword"] == "Transmute" {
+			found = append(found, ab.Params["ChangeType"])
+		}
+	}
+	if len(found) != 1 || found[0] != "Card.cmcEQ1" {
+		t.Fatalf("stale-cache relink expanded Transmute as %v, want exactly [Card.cmcEQ1]", found)
 	}
 }

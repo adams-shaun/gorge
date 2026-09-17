@@ -16,12 +16,12 @@ import (
 // carry), so a future seat inherits an honest, measured boundary rather than
 // a guessed one.
 //
-// "ExiledWithSource" and "sameName" are the two largest still-unimplemented
-// families (IsRemembered was the third and is now implemented -- its real
-// semantics are asserted in bangpredicate_test.go's leaf 2b). A card that
-// uses e.g. `Card.ExiledWithSource` (the exile-until-leaves shapes) must fail
-// closed: the predicate matches nothing, so those clauses stay inert rather
-// than firing against every card.
+// "DefenderCtrl" is one of the remaining still-unimplemented families
+// (IsRemembered, sameName and ExiledWithSource are now implemented --
+// IsRemembered's real semantics are asserted in bangpredicate_test.go's leaf
+// 2b). A card that uses e.g. `Card.DefenderCtrl` must fail closed: the
+// predicate matches nothing, so those clauses stay inert rather than firing
+// against every card.
 func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	g := state.NewGame([]string{"you", "them"})
@@ -30,8 +30,7 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	// The predicates a later seat still owes, largest first. Each must match
 	// nothing -- never become an always-true predicate.
 	for _, spec := range []string{
-		"Card.ExiledWithSource",
-		"Creature.sameName",
+		"Card.DefenderCtrl",
 		"Creature.wasDealtDamageThisTurn",
 		"Permanent.IsImprinted",
 		"Creature.HasCounters", // negative: this one IS implemented, so it breaks the loop below
@@ -46,7 +45,7 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	}
 
 	// And UnknownPredicates keeps reporting each unimplemented one.
-	for _, want := range []string{"ExiledWithSource", "sameName", "wasDealtDamageThisTurn", "IsImprinted"} {
+	for _, want := range []string{"DefenderCtrl", "wasDealtDamageThisTurn", "IsImprinted"} {
 		found := false
 		for _, u := range UnknownPredicates("Card." + want) {
 			if u == want {

@@ -24,6 +24,12 @@ type Host interface {
 	// log a complete description of the match.
 	Game() *state.Game
 	Emit(events.Event)
+	// EmitDamage emits a Damage event and returns the event that actually
+	// landed after replacement effects. A prevention returns a non-Damage
+	// result; an amount-changing replacement returns Damage with the applied
+	// amount. Damage riders (lifelink/deathtouch/commander damage) must consume
+	// this result rather than the proposed event.
+	EmitDamage(events.Event) events.Event
 	// EmitTap taps the permanent obj with the synchronous provenance a Taps
 	// trigger reads but the replayed Tap event does not carry: tapper is the
 	// player who tapped it (Forge Card.tap's tapper -- the resolving
@@ -64,6 +70,12 @@ type Host interface {
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.
 	HasKeyword(id state.ObjID, kw string) bool
+	// Power, Toughness and IsCreature are current derived characteristics.
+	// Damage/count effects must not read a printed face when layers modify P/T
+	// or make a planeswalker a creature.
+	Power(id state.ObjID) int32
+	Toughness(id state.ObjID) int32
+	IsCreature(id state.ObjID) bool
 	// CastThisTurn counts the spells cast this turn by anyone, derived from
 	// the event log so a replay that rebuilds the game arrives at the same
 	// number (Task 17's Count$ThisTurnCast backing — a copy/Storm count
@@ -101,6 +113,25 @@ type Host interface {
 	// already walks sa.Sub. A host that never suspends (an effects-package
 	// double, where Ask returns false) never sees this call.
 	SuspendContinuation(sa *cards.SA)
+	// BeginDamageBatch/EndDamageBatch bracket the Damage events one
+	// dealDamage-style call deals simultaneously (Forge dealDamage, GameAction
+	// AddDamage/triggerDamageDoneOnce): within the bracket, the
+	// DamageDealtOnce/DamageDoneOnce triggers latch once per batch per
+	// referent (per dealing source / per damaged object) and the queued
+	// trigger's referent amount is the batch's accumulated total -- Fireball
+	// splitting among three creatures is ONE batch to a DamageDealtOnce
+	// trigger on the source, not three. rules.Engine implements both; the
+	// effects-package test double reports no-ops. Neither suspends.
+	BeginDamageBatch()
+	EndDamageBatch()
+	// ReplaceEvent applies a ReplaceEffect body's requested change to the
+	// event currently being replaced. It is inert outside replacement
+	// resolution; rules owns the event and records the resulting delta.
+	ReplaceEvent(name, value string, resolved int32)
+	// CounterAllowed reports whether a spell or ability may be countered.
+	// Counter replacement effects are rules, not a MoveZone replacement: they
+	// stop Counter before it emits the move off the stack.
+	CounterAllowed(target, cause state.ObjID) bool
 	// SuspendRepeat reports that one iteration of a RepeatEach loop suspended
 	// at a mid-resolution ask. The host must bind the suspended iteration's
 	// Remembered to the pending ask (and to the iteration's own continuation
@@ -110,6 +141,30 @@ type Host interface {
 	// SuspendContinuation next; the host drops that report, because the loop
 	// frame re-enters the RepeatEach itself and so walks its Sub.
 	SuspendRepeat(RepeatSuspension)
+	// SetDamageSource overrides the in-flight damage source for the Damage
+	// events the caller is about to emit: the provenance rules' emit-side
+	// protection check (CR 702.16d) and DamageDone trigger matching read
+	// for every Damage event. It returns the previous override so the
+	// caller restores it before returning; zero restores "no override".
+	// The override is engine-transient state exactly like the resolution
+	// source it wraps: replay re-executes the same setter, and Clone never
+	// copies it because an emitter always restores before returning
+	// (DealDamage/DamageAll never ask mid-loop, so nothing suspends inside
+	// the override window).
+	SetDamageSource(id state.ObjID) state.ObjID
+	// BatchDepartures declares that the caller is about to emit MoveZone
+	// events for every object in ids as one simultaneous destruction batch
+	// (CR 704.3): the engine snapshots each object's derived lifelink
+	// state NOW, before any of the moves fold, so a later batch member's
+	// CR 603.10a departure capture reads the batch's own pre-state rather
+	// than whatever an earlier member's departure already stripped (a
+	// destroy-all over a lifelink-granting Equipment and its bearer: the
+	// bearer's lifelink LKI must not depend on battlefield order). Entries
+	// are consumed by the matching departure capture. EndBatchDepartures
+	// clears any remaining entry after the effect loop, including a member
+	// regeneration kept on the battlefield.
+	BatchDepartures(ids []state.ObjID)
+	EndBatchDepartures()
 }
 
 // RepeatCursor is a RepeatEach loop re-entered after an iteration suspended:
@@ -136,6 +191,14 @@ type RepeatSuspension struct {
 	ChosenValid bool
 }
 
+// DamageSourceLKI is the pre-departure damage provenance of one object.
+// It remains separate from Ctx's own-source fields because DamageSource$ may
+// name an object distinct from the resolving spell or ability's source.
+type DamageSourceLKI struct {
+	Lifelink   bool
+	Controller state.PlayerID
+}
+
 // Ctx carries the bindings a Forge script refers to during resolution.
 type Ctx struct {
 	TriggerContext
@@ -158,6 +221,17 @@ type Ctx struct {
 	// derived source while it remains a permanent.
 	SourceLifelinkLKI      bool
 	SourceLifelinkLKIValid bool
+	// SourceControllerLKI is the source permanent's controller immediately
+	// before it left the battlefield. Move resets Controller to Owner, so an
+	// independently resolving lifelink ability needs this companion snapshot
+	// to credit its last controller rather than its owner.
+	SourceControllerLKI      state.PlayerID
+	SourceControllerLKIValid bool
+	// DamageSourceLKI preserves lifelink and controller LKI by object id for
+	// a distinct DamageSource$ object that left while this resolution waited.
+	// Rules transports it with the stack object; DamageSource$ consults it only
+	// after that named object is no longer a battlefield permanent.
+	DamageSourceLKI map[state.ObjID]DamageSourceLKI
 	// Sacrificed carries the last-known-information snapshot of every object
 	// this resolving spell/ability sacrificed, as it was at the instant of the
 	// sacrifice (state.SacrificedInfo). Built two ways, feeding one field: a
@@ -173,18 +247,26 @@ type Ctx struct {
 	X     int32
 	// Replaced is the object the replaced event was about (Defined$ ReplacedCard):
 	// the card a "would go to the graveyard from anywhere, exile it instead"
-	// replacement is acting ON. Set by rules/replacement.go on the context it
-	// builds for a matching ReplaceWith$; zero outside a replacement, and nil for
-	// a zero (or gone) object when Defined resolves it. It is context, not state
-	// -- it drives the replacement's own resolution but is never itself persisted
-	// to the event log.
-	Replaced state.ObjID
+	// replacement is acting ON. ReplacementTarget, ReplacementSource and
+	// ReplacementAmount carry the corresponding roles of an in-flight damage
+	// event. They are resolution context, never persisted state; rules seeds
+	// them before resolving ReplaceWith$ so ReplacedTarget/ReplacedSource and
+	// ReplaceCount$DamageAmount are available to every replacement body API.
+	Replaced          state.ObjID
+	ReplacementTarget state.Target
+	ReplacementSource state.ObjID
+	ReplacementAmount int32
 	// LKI is the object a zone-change trigger fired for, as it was just
 	// before the move (CR 603.10 "look back in time"): Move resets counters,
 	// tapped state and damage on the way out, so a "dies" condition such as
 	// Undying's "if it had no +1/+1 counters" must read this, not the live
 	// object. nil for every other trigger.
 	LKI *state.Object
+	// LKIPower/LKIToughness are that snapshot's derived battlefield P/T,
+	// captured before the move removes continuous effects. The validity bit
+	// distinguishes a real zero from a non-battlefield/no-characteristic LKI.
+	LKIPower, LKIToughness int32
+	LKIPTValid             bool
 	// Modes is the answered modal choice on a re-entered mid-resolution
 	// resolution (M2d-2): the SVar names of the chosen Choices$ sub-abilities,
 	// in execution order. rules' resumeResolution sets it from the recorded
@@ -197,7 +279,10 @@ type Ctx struct {
 	// has already paid the UnlessCost$ from the payer's pool and the asking
 	// effect proceeds with its body; "decline" means it proceeds as if the
 	// player declined (no effect). "" on the first pass, where the effect
-	// poses the ask instead.
+	// poses the ask instead. For Sacrifice's damage-payment shape (Vexing
+	// Devil), "pay" additionally means the accepting opponent's Damage event
+	// has already been emitted by rules' resume arm — payment events belong
+	// to rules, never to the effects layer.
 	UnlessPay string
 	// Discard is the answered "Mode$ RevealYouChoose" discard choice on a
 	// re-entered mid-resolution resolution: the object(s) the caster named
@@ -226,6 +311,8 @@ type Ctx struct {
 	// Repeat is set only on the re-entry of a suspended RepeatEach loop; the
 	// RepeatEach whose SA it names consumes and clears it.
 	Repeat *RepeatCursor
+	// Sacrifice is an Annihilator sacrifice answer on re-entry.
+	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered
 	// ChangeZone resolution. SearchDone distinguishes "answered with no cards"
 	// from the first pass; Search preserves the player's answer order. The
@@ -259,6 +346,43 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// ManaAmount and ManaType are the in-flight unit of mana a ProduceMana
+	// replacement modifies. rules seeds them from a ManaAdd event and then
+	// emits the transformed event, so ReplaceMana never writes game state
+	// directly and replay records the final mana production normally.
+	ManaAmount int32
+	ManaType   string
+	// ManaChoice is the W/U/B/R/G answer to a choice-valued ReplaceMana
+	// body (ReplaceType$ Any, ReplaceColor$ Chosen, ReplaceMana$ Any).
+	// Rules parks the ManaAdd and supplies this on resume.
+	ManaChoice string
+	// HandMove is the answered Origin$ Hand ChangeZone selection.
+	HandMove     []state.ObjID
+	HandMoveDone bool
+	// HandMoveTarget is the index of the per-owner hidden-hand chooser whose
+	// ask was answered (rv2b r2: an owner-SELECTED Origin$ Hand ChangeZone --
+	// DefinedPlayer$/ValidTgts$ naming the hands -- asks each hand owner in
+	// turn). It keeps a resumed answer attached to the exact owner that
+	// asked, so owners before the cursor (already answered on earlier
+	// passes) are skipped and owners after it continue the chain, the same
+	// continuation effDig's DigTarget carries. Consumed and cleared at the
+	// top of the walk with HandMove/HandMoveDone (fx42 scoping).
+	HandMoveTarget int
+	// DefinedLibraryMove is the answered Optional$ True choice for an
+	// object-valued Defined$ fetch list from Origin$ Library. "yes" moves the
+	// list; "no" leaves it in place. It is consumed by
+	// moveDefinedLibraryObjects before a nested fetch list can inherit it.
+	DefinedLibraryMove string
+	// UnlessPayTarget is the index of the per-opponent damage offer the
+	// answered unless-pay belongs to (Sacrifice's UnlessCost$ DamageYou<N>
+	// switched shape — Vexing Devil's "any opponent may have it deal 4 damage
+	// to them"): opponents are offered the choice one at a time in turn
+	// order, so on re-entry the asking effect must know WHICH opponent's
+	// decline it is continuing after. rules' resume arm copies rp.target here
+	// the way the "dig" and "hand_move" arms do; effSacrifice consumes and
+	// clears it at the top of its own walk (the fx42 scoping discipline), so
+	// a nested sacrifice ask cannot inherit the outer answer.
+	UnlessPayTarget int
 	// RevealOpt is the answered RevealOptional$ yes/no on a re-entered
 	// mid-resolution reveal (task fb-3f1cc033, the Delver of Secrets
 	// PeekAndReveal shape): "yes" means the peeking player chose to reveal
@@ -270,6 +394,52 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
+	// resolution just made (effects/dice.go), under the SVar name its
+	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's
+	// SVar$ head resolves a body of the form "SVar$<name>" against them, so
+	// a chained sub's own SVar body (Velukan Dragon's
+	// "SVar:X:SVar$Result/Minus.1") and a ConditionCheckSVar$ can read the
+	// roll. Zero/"" on any resolution that did not roll, and the values are
+	// never persisted -- a roll that suspends and resumes loses them, the
+	// same per-resolution lifetime every other Ctx field has. RollPubs is
+	// the general form of the same publication (both are read through
+	// effects.dice.go's rollPublished, and this slot stays the primary
+	// result's mirror for the existing readers).
+	LastRoll     int32
+	LastRollName string
+	// RollPub is one name→value publication a DB$ RollDice of this
+	// resolution made, beyond the primary ResultSVar$ slot above:
+	// ChosenSVar$/OtherSVar$ (the Endeavor cycle's choose-one-result), and
+	// the MaxRollsResults$/EvenOddResults$ counts ("MaxRolls",
+	// "EvenResults", "OddResults" -- Luck Bobblehead). Read by Name's
+	// bare-name fallback and evalCountExpr's SVar$ head through
+	// rollPublished, and by Ctx.SpecContext's numeric-RHS resolver, so a
+	// chained sub's filter spec (Valiant Endeavor's Creature.powerGEX,
+	// Arcane Endeavor's Instant.cmcLEY) reads the roll too. Never persisted
+	// across a suspension -- the chosen/other publications are rebuilt from
+	// the answered decision on the roll resume (Ctx.RollResults/RollPick),
+	// the same per-resolution lifetime as LastRoll.
+	RollPubs []RollPub
+	// RollResults/RollPick/RollDone carry the ANSWERED choose-one-result ask
+	// on a re-entered mid-resolution RollDice (rules/resolution.go's "roll"
+	// arm): RollResults is the per-die results the asking first pass rolled
+	// (carried verbatim on the decision and the resume point), RollPick the
+	// dice the player picked (each entry a roll Option's Index), RollDone
+	// the answered marker. The re-entered effRollDice publishes
+	// ChosenSVar$ = the sum of the picked dice's results and OtherSVar$ =
+	// the sum of the rest, then lets Resolve chain the SubAbility$; it
+	// consumes and clears all three at its top (the fx42 scoping
+	// discipline), so a nested RollDice below this walk poses its own ask.
+	RollResults []int32
+	RollPick    []int
+	RollDone    bool
+}
+
+// RollPub is one name→value publication (see Ctx.RollPubs).
+type RollPub struct {
+	Name  string
+	Value int32
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)
@@ -382,19 +552,6 @@ func RegisterNonAPI(prefixed ...string) {
 }
 
 const maxChain = 32
-
-// Ask poses d through the host unless it offers nothing to choose. A
-// decision with no options cannot be answered meaningfully (a seat can only
-// submit the empty answer), so the asking effect takes its no-host path --
-// the same result an answered empty choice produces -- without a pending
-// decision or a resume. Effects should ask through this rather than
-// h.Ask directly.
-func Ask(h Host, d *decision.Decision) bool {
-	if d == nil || len(d.Options) == 0 {
-		return false
-	}
-	return h.Ask(d)
-}
 
 // Resolve runs an ability and every sub-ability chained beneath it.
 func Resolve(h Host, c *Ctx, sa *cards.SA) {

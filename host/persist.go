@@ -365,6 +365,20 @@ func readLog(dir string, t TableID, k int) (*events.Log, error) {
 // to C-1 of its intents and the C bursts those account for, and neither
 // stream may run past the other. Everything past that is trimmed, so
 // Events and ViewAt always serve a prefix that replays cleanly.
+//
+// DECIDED, fb-20260915T094418Z: the trim stays on the file path, cutting a
+// parked/finished burst's overshoot tail along with a crash-cut one — the
+// two are indistinguishable here (reconcileLog has no Config to replay
+// with, and a crash mid-APPEND leaves exactly the shape a legitimate tail
+// has: complete-looking lines past the last ask). What the trim costs is
+// re-admitted one consumer up, in matchForLog: the replay of the trimmed
+// recording legitimately runs past its end on this shape, and the sidecar's
+// Head — the chain hash over the full stream the match held at its terminal
+// transition — proves the reconstructed tail byte for byte. The in-memory
+// callers do NOT trim: SnapshotForFeedback skips the reconcile for any
+// non-crashed match (under its read lock every event belongs to a
+// completed burst, so the tail is real and verifiable), and the live
+// match's own bookkeeping (m.bounds) has always recorded true burst ends.
 func reconcileLog(l *events.Log) {
 	bounds := boundsOf(l.Events)
 	if len(bounds) == 0 {

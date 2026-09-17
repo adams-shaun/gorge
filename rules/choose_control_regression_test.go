@@ -590,6 +590,25 @@ const diesToYou = "Name:Victim\nTypes:Creature Bear\nPT:2/2\n" +
 	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ TrigLife | TriggerDescription$ When this dies, you gain 1 life.\n" +
 	"SVar:TrigLife:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
 
+// TestGainControlAmpersandAddKWsGrantsEveryKeyword pins GainControl's AddKWs$
+// reader through the rules engine. It is a separate keyword-list reader from
+// static AddKeyword$ and Pump/PumpAll KW$, and must share their parser.
+func TestGainControlAmpersandAddKWsGrantsEveryKeyword(t *testing.T) {
+	e := stealEngine(t, 730)
+	victim := onBoardReady(t, e, 1, "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	gain := card(t, "Name:Steal\nTypes:Sorcery\nA:SP$ GainControl | ValidTgts$ Creature | LoseControl$ EOT | AddKWs$ Haste & Lifelink\nOracle:x\n")
+
+	effects.Resolve(e, &effects.Ctx{Controller: 0, Targets: []state.Target{{Obj: victim}}}, gain.Faces[0].SpellAbility())
+	if got := e.G.Obj(victim).Controller; got != 0 {
+		t.Fatalf("controlled creature controller = %d, want 0", got)
+	}
+	for _, kw := range []string{"Haste", "Lifelink"} {
+		if !e.HasKeyword(victim, kw) {
+			t.Errorf("controlled creature missing %q; derived keywords %v", kw, e.Keywords(victim))
+		}
+	}
+}
+
 // TestStolenCreatureLivesInItsControllersBattlefield drives a real Act of
 // Treason steal through attack, death and reanimation, checking the game's
 // zone invariants at every step. A control change moves the permanent to its

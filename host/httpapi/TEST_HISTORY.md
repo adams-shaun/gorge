@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/host/httpapi
 
-budget_s: 8
+budget_s: 20
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -26,3 +26,6 @@ budget_s: 8
 | 2026-09-14T04:54Z | c516d22+ | 2.4 | 40 | 0 | sadams |
 | 2026-09-14T13:14Z | 79ebb63+ | 2.5 | 41 | 0 | sadams |
 | 2026-09-14T13:14Z | 79ebb63+ | 2.4 | 41 | 0 | sadams |
+| 2026-09-17T00:48Z | 33b2976a+ | 2.2 | 42 | 0 | sadams |
+| 2026-09-17T00:53Z | 33b2976a+ | 2.2 | 42 | 0 | sadams |
+| 2026-09-17T00:59Z | 33b2976a+ | 2.2 | 42 | 0 | sadams |

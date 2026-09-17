@@ -1,6 +1,6 @@
-import { chromium, type Browser, type Page } from 'playwright';
-import { createServer, type ViteDevServer } from 'vite';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { type Browser, type Page } from 'playwright';
+import { browserURL, sharedBrowser } from '../test/browser';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
 import { presetPatch, type StoppableStep } from '../lib/playsettings';
@@ -304,20 +304,11 @@ describe('PlaySettingsPanel helpers', () => {
 });
 
 describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel.fixture.html)', () => {
-  let server: ViteDevServer;
   let browser: Browser;
-  let url = '';
+  const url = browserURL;
 
   beforeAll(async () => {
-    server = await createServer({ root: process.cwd(), configLoader: 'runner', server: { port: 0 } });
-    await server.listen();
-    url = server.resolvedUrls!.local[0];
-    browser = await chromium.launch();
-  });
-
-  afterAll(async () => {
-    await browser?.close();
-    await server?.close();
+    browser = await sharedBrowser();
   });
 
   /** open mounts the fixture page (a fresh SeatPanelState at casual, null storage). */

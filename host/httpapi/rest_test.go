@@ -18,12 +18,34 @@ import (
 	"github.com/adams-shaun/gorge/view"
 )
 
+// fixtureDeckSize caps every deck the shared loader serves. The httpapi
+// fixtures do not care what the sample decks contain; several of them do run
+// whole bot-vs-bot matches to completion (finishedServer, pausedServer,
+// undoServer), and how long such a match runs is an accident of the seed's
+// rng stream: the CR 103.1 toss (one extra IntN before the shuffles) shifted
+// every game's stream at once and took the package from ~2.4s to ~14s with
+// the decks at their full 40 cards. A 40-card whelp/bolt game can stall for
+// dozens of turns before anyone dies; a 12-card deck decks out in bounded
+// time at EVERY seed, so the package's wall time no longer rides on the
+// stream. Measured 2026-09-15 at 9065580..HEAD, seed 5, 4 seats: 40-card
+// finished matches 0.8-1.2s (75k events); 12-card matches 0.01s (2,988
+// events, 23 turns, 3 seats lost, game_over) at every seed probed -- the
+// game is still real (combat, kills, decisions), just short by construction.
+// finishedServer asserts the cap still holds; raise both deliberately if a
+// fixture ever needs a longer game.
+const fixtureDeckSize = 12
+
+// fixtureMatchEvents is the generous ceiling finishedServer puts on one
+// fixture match (measured ~3k at fixtureDeckSize; the cap exists to catch a
+// future change that un-bounds game length, not to constrain the fixtures).
+const fixtureMatchEvents = 20000
+
 func loader(t *testing.T) func(string) (host.Deck, error) {
 	t.Helper()
 	names, decks := testutil.SampleDecks(t, 4)
 	by := map[string][]*cards.Card{}
 	for i, n := range names {
-		by[n] = decks[i]
+		by[n] = decks[i][:fixtureDeckSize]
 	}
 	return func(n string) (host.Deck, error) {
 		cs, ok := by[n]
@@ -50,6 +72,19 @@ func finishedServer(t *testing.T, o Options) (*httptest.Server, *host.Registry) 
 		t.Fatal(err)
 	}
 	r.Wait("t1")
+	ms, err := r.Matches("t1")
+	if err != nil || len(ms) != 1 || ms[0].State != protocol.MatchFinished {
+		t.Fatalf("finishedServer: match did not finish cleanly: err=%v ms=%+v", err, ms)
+	}
+	// The fixture contract that keeps this package inside its budget: a
+	// finishedServer match is short BY CONSTRUCTION (loader truncates every
+	// deck to fixtureDeckSize), so its length cannot ride on the seed's rng
+	// stream -- see the CR 103.1 note on fixtureDeckSize. If this trips, a
+	// fixture match got long again: raise fixtureDeckSize's game cap
+	// deliberately (both the constant and this bound), never silently.
+	if ms[0].Events > fixtureMatchEvents {
+		t.Fatalf("finishedServer: fixture match ran %d events, over the %d cap -- the fixture decks stopped bounding game length", ms[0].Events, fixtureMatchEvents)
+	}
 	srv := httptest.NewServer(NewHandler(r, o))
 	t.Cleanup(srv.Close)
 	return srv, r

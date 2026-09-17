@@ -189,22 +189,28 @@ func TestStepStringIsTotal(t *testing.T) {
 // nothing else pins the line -- every pre-existing clone test clones whole
 // games whose stack objects never carry a populated ChosenModes, so this
 // leaf exists because removing the line fails nothing until now.
-func TestCloneDeepDoesNotAliasChosenModes(t *testing.T) {
-	orig := Object{ID: 7, ChosenModes: []string{"GainLife", "Draw", "CreateToken"}, Imprinted: []ObjID{8}, ExiledWith: []ObjID{9}}
+func TestCloneDeepDoesNotAliasChosenModesOrGoads(t *testing.T) {
+	orig := Object{ID: 7, ChosenModes: []string{"GainLife", "Draw", "CreateToken"},
+		Imprinted: []ObjID{8}, ExiledCards: []ObjID{9},
+		Goads: []GoadEffect{{Player: 1, Duration: "Permanent"}, {Player: 2, Duration: "UntilYourNextTurn"}}}
 	c := orig.CloneDeep()
 	if len(c.ChosenModes) != 3 || c.ChosenModes[0] != "GainLife" ||
 		c.ChosenModes[1] != "Draw" || c.ChosenModes[2] != "CreateToken" ||
-		len(c.Imprinted) != 1 || c.Imprinted[0] != 8 || len(c.ExiledWith) != 1 || c.ExiledWith[0] != 9 {
+		len(c.Imprinted) != 1 || c.Imprinted[0] != 8 || len(c.ExiledCards) != 1 || c.ExiledCards[0] != 9 {
 		t.Fatalf("clone did not copy resolution associations: %+v", c)
+	}
+	if len(c.Goads) != 2 || c.Goads[0].Player != 1 || c.Goads[1].Player != 2 {
+		t.Fatalf("clone did not copy Goads: %v", c.Goads)
 	}
 	// An in-place write (never an append, which would reallocate regardless
 	// of whether CloneDeep aliased): only a shared backing array lets a
 	// write to the copy reach the original.
-	c.ChosenModes[1], c.Imprinted[0], c.ExiledWith[0] = "mutated", 80, 90
-	if orig.ChosenModes[1] == "mutated" || orig.Imprinted[0] == 80 || orig.ExiledWith[0] == 90 {
+	c.ChosenModes[1], c.Imprinted[0], c.ExiledCards[0] = "mutated", 80, 90
+	c.Goads[0].Player = 3
+	if orig.ChosenModes[1] == "mutated" || orig.Imprinted[0] == 80 || orig.ExiledCards[0] == 90 || orig.Goads[0].Player == 3 {
 		t.Fatal("CloneDeep aliases an association slice")
 	}
-	if orig.ChosenModes[1] != "Draw" || orig.Imprinted[0] != 8 || orig.ExiledWith[0] != 9 {
+	if orig.ChosenModes[1] != "Draw" || orig.Imprinted[0] != 8 || orig.ExiledCards[0] != 9 || orig.Goads[0].Player != 1 {
 		t.Fatalf("original associations changed: %+v", orig)
 	}
 }
