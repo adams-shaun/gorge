@@ -84,7 +84,24 @@
    * an armed pass), and applyNamedPreset for the preset picker and the
    * Reset button, which need the same re-arm effects setAuto carries.
    */
-  let { state: logic }: { state: SeatPanelState } = $props();
+  let {
+    state: logic,
+    showLog = false,
+    onToggleLog = null,
+  }: {
+    state: SeatPanelState;
+    /** fb-20260917T231628Z: the transcript's current visibility, mirrored by
+     *  the Layout section's "Show game log" switch. It is a display preference
+     *  owned by Table.svelte (logshown.ts, the persisted stops contract) — NOT
+     *  a PlaySettings field — so it arrives as a prop and never touches
+     *  logic.editSettings. Optional so every existing fixture/test renders
+     *  unchanged. */
+    showLog?: boolean;
+    /** The switch's only write path; absent/null renders no switch (the Rail
+     *  contract), so a caller that does not own the log never shows a dead
+     *  control. */
+    onToggleLog?: (() => void) | null;
+  } = $props();
 
   const s = $derived(logic.settings);
   const STEPPABLE = STOPPABLE_STEPS as readonly StoppableStep[];
@@ -456,6 +473,28 @@
     >
       <span>−/+ size controls on the board</span><span class="state" aria-hidden="true">{layoutStore.steppersOnBoard ? 'Shown' : 'Hidden'}</span>
     </button>
+    <!-- fb-20260917T231628Z: the game log's show/hide switch moved here from
+         the rail's top row (the player's ask: the rail row was in the way).
+         Same role="switch" row pattern as the toggles above, but its state and
+         write path are the props — Table.svelte's showLog/toggleLog, persisted
+         per table + scope through logshown.ts — never the layout store and
+         never logic.editSettings. Rendered only when a toggle is supplied: the
+         hot strip is mounted only in ordinary seated play, and the other
+         states (spectator, mulligan, game over, finished replay) keep the
+         rail's own LOGS control instead. -->
+    {#if onToggleLog}
+      <button
+        type="button"
+        role="switch"
+        class="row"
+        class:on={showLog}
+        aria-checked={showLog}
+        data-toggle="show-game-log"
+        onclick={() => onToggleLog?.()}
+      >
+        <span>Show game log</span><span class="state" aria-hidden="true">{showLog ? 'Shown' : 'Hidden'}</span>
+      </button>
+    {/if}
     <!-- The panel's own per-zone steppers stay mounted regardless of the
          toggle: they are already "in options" and are the only way back to
          the board steppers once it is off. -->

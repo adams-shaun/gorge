@@ -14,13 +14,21 @@
   /** A short grace period keeps a diagonal tab-to-panel pointer path open. */
   const HOT_STRIP_CLOSE_DELAY_MS = 180;
 
-  let { view, seats, state: logic, ctx, table, match }: {
+  let { view, seats, state: logic, ctx, table, match, showLog = false, onToggleLog = null }: {
     view: View;
     seats: SeatInfo[];
     state: SeatPanelState;
     ctx: SeatCtx;
     table: string;
     match: number;
+    /** fb-20260917T231628Z: the log show/hide preference, forwarded to the
+     *  OPTIONS drop's switch (PlaySettingsPanel). Optional so every existing
+     *  caller/test renders exactly as before. */
+    showLog?: boolean;
+    /** The switch's only write path — Table.svelte's toggleLog (the persisted
+     *  stops-contract state), never logic.editSettings. Absent/null renders no
+     *  switch, mirroring Rail's contract. */
+    onToggleLog?: (() => void) | null;
   } = $props();
 
   type Tab = 'actions' | 'pass' | 'ffwd' | 'done' | 'options';
@@ -333,16 +341,21 @@
   </div>
 
   <div class="hot-tab" role="presentation" onpointerenter={() => show('options')} onpointerleave={scheduleClose} onfocusin={() => show('options')} onfocusout={scheduleClose}>
-    <button class="tab" type="button" data-hot-tab="options" aria-label="Game options" aria-haspopup="true" aria-expanded={open === 'options'} aria-controls="hot-panel-options" onclick={() => show('options')}>
-      <span class="full">GAME OPTIONS</span><span class="compact" aria-hidden="true">OPTS</span>
+    <button class="tab" type="button" data-hot-tab="options" aria-label="Options" aria-haspopup="true" aria-expanded={open === 'options'} aria-controls="hot-panel-options" onclick={() => show('options')}>
+      <span class="full">OPTIONS</span><span class="compact" aria-hidden="true">OPTS</span>
     </button>
-    <div class="drop game" class:open={open === 'options'} id="hot-panel-options" data-hot-panel="options" role="group" aria-label="Game options">
+    <div class="drop game" class:open={open === 'options'} id="hot-panel-options" data-hot-panel="options" role="group" aria-label="Options">
       <!-- The whole play-settings model, edited in place (prio4): preset
            picker, auto pass, opponent-object rules, step-stop grid, pacing
            and logs. Bound to the seat panel's settings object, so every
            change lands in it (persisted, preset relabelled) through the
            same write path decide() reads. -->
-      <PlaySettingsPanel state={logic} />
+      <!-- The log show/hide switch (fb-20260917T231628Z) rides the Layout
+           section: it is a display preference owned by Table.svelte
+           (logshown.ts persistence), NOT a PlaySettings field, so it is
+           threaded as props with its own write path and the drop renders it
+           only when a toggle is actually supplied. -->
+      <PlaySettingsPanel state={logic} {showLog} {onToggleLog} />
       <p class="note">{autoNoteText(logic.note)}</p>
     </div>
   </div>

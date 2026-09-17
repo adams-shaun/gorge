@@ -63,6 +63,7 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
 
     expect(html).not.toContain('data-seat-panel'); // no seat -> no panel
     expect(html).not.toContain('data-hot-strip'); // spectators get the display-only clock, never action tabs
+    expect(html).toContain('data-log-toggle'); // fb-20260917T231628Z: the OPTIONS drop is not mounted for a spectator, so the rail keeps the LOGS toggle
     expect(html).toContain('data-cursor'); // the DVR bar still renders for the spectator
     // the seat identity never reached the MatchState: constructed with no
     // seat context, so no seat-scoped fetch can be built from it
@@ -96,6 +97,11 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     expect(html).toContain('data-hot-tab="end-turn"');
     expect(html).toContain('data-hot-tab="done"');
     expect(html).toContain('data-hot-tab="options"');
+    // fb-20260917T231628Z: in ordinary seated play the log switch lives in
+    // the OPTIONS drop, and the rail renders no second LOGS toggle (the
+    // spectator path above pins the other direction).
+    expect(html).not.toContain('data-log-toggle');
+    expect(html).toContain('data-toggle="show-game-log"');
     expect(html).not.toContain('data-action-dock'); // ui26's rail dock moved here; it was not duplicated
     expect(html).toContain('data-concede-control');
     // Concede lives inside the rail's own box (position: relative), not
