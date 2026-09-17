@@ -530,10 +530,11 @@ func Apply(g *state.Game, e Event) {
 			}
 			player := &g.Players[e.Player]
 			player.Pool[idx] += e.Amount
-			if valid, srcID, restricted := ManaRestrictionFromText(e.Text); restricted {
+			if valid, srcID, cond, restricted := ManaRestrictionFromText(e.Text); restricted {
 				if e.Amount > 0 {
 					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
 						Color: e.Counter, Amount: e.Amount, Valid: valid, Source: srcID,
+						NoCounter: cond,
 					})
 				} else if e.Amount < 0 {
 					// A restricted spend event names exactly the restriction batch it

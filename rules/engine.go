@@ -568,6 +568,18 @@ type Engine struct {
 	// the card as it was just before the stack move.
 	deferredPushLKI *state.Object
 
+	// noCounterSpend is the transient capture of emitRestrictedManaSpend: the
+	// id of the SPELL whose payment just consumed a batch carrying
+	// AddsNoCounter$ provenance (Cavern of Souls' "that spell can't be
+	// countered"), zero when none. payManaCast's caller (payCast) reads it
+	// once, synchronously, right after the payment — no ask can suspend
+	// between the spend and the read (emitRestrictedManaSpend emits, never
+	// asks) — and folds state.FlagNoCounter into the pay-time CastInfo, so
+	// replay re-derives the flag from the recorded event exactly like every
+	// other cast flag. Zero whenever no such spend is in flight, so Clone
+	// copies nothing of it.
+	noCounterSpend state.ObjID
+
 	// damaging names the source object responsible for the damage emit
 	// currently in flight (CR 609.7a): the resolution source for a spell or
 	// ability being resolved, or the dealing creature for a combat

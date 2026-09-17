@@ -58,6 +58,26 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		}
 		return out
 	}
+	// Forge's "Defined$ Valid <filter>" form (88 raw corpus lines: Angelic
+	// Skirmisher's "Defined$ Valid Creature.YouCtrl" combat grant, the
+	// double-power pump family): every battlefield object the filter admits,
+	// in the deterministic APNAP seat/zone walk. Evaluated with the resolving
+	// controller as You; an unmodelled predicate fails closed to an empty set
+	// like every filter. (ValidStack is knownDefinedTargets' own prefix above
+	// and never reaches here.)
+	if spec := sa.Params["Defined"]; spec == "Valid" || strings.HasPrefix(spec, "Valid ") {
+		filt := strings.TrimSpace(strings.TrimPrefix(spec, "Valid"))
+		g := h.Game()
+		var out []state.Target
+		for _, p := range g.AliveFrom(0) {
+			for _, id := range g.Zone(state.ZBattlefield, p) {
+				if MatchesSpecCtx(g, filt, id, c.SpecContext(c.Controller)) {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+		}
+		return out
+	}
 	// Forge's rule: an ability that names targets acts on them; one that
 	// names none acts on its source. A sub-ability that wants its
 	// parent's targets says so explicitly (Defined$ Targeted /
