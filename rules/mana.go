@@ -184,6 +184,8 @@ var payEnergyCost = regexp.MustCompile(`^PayEnergy<([0-9]+|X)(?:/[^>]*)?>$`)
 // alternations fold to "," like every other non-mana head.
 var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
+var costBraces = strings.NewReplacer("{", " ", "}", " ")
+
 // ParseCost accepts both Forge's space-separated form ("2 U U") and the
 // bracketed oracle form ("{2}{U}{U}"). "no cost" and "" are free.
 func ParseCost(s string) Cost {
@@ -191,7 +193,7 @@ func ParseCost(s string) Cost {
 	if s == "" || strings.EqualFold(s, "no cost") {
 		return Cost{}
 	}
-	s = strings.NewReplacer("{", " ", "}", " ").Replace(s)
+	s = costBraces.Replace(s)
 	var c Cost
 	for _, sym := range splitCostTokens(s) {
 		switch {

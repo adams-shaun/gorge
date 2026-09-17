@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"iter"
 	"sort"
 	"strconv"
 	"strings"
@@ -674,17 +675,20 @@ func nameArg(p string) string {
 // both the dotted and bare-base forms are recognised). Keeping the splitter
 // shared means matching, quality classification, and the unknown-predicate
 // census all parse the same filter.
-func filterAlternatives(spec string) []string {
-	var out []string
-	start := 0
-	for i := 0; i < len(spec); i++ {
-		if spec[i] != ',' || rawNameComma(spec[start:i], spec[i+1:]) {
-			continue
+func filterAlternatives(spec string) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		start := 0
+		for i := 0; i < len(spec); i++ {
+			if spec[i] != ',' || rawNameComma(spec[start:i], spec[i+1:]) {
+				continue
+			}
+			if !yield(spec[start:i]) {
+				return
+			}
+			start = i + 1
 		}
-		out = append(out, spec[start:i])
-		start = i + 1
+		yield(spec[start:])
 	}
-	return append(out, spec[start:])
 }
 
 // rawNameComma reports whether the comma after left belongs to the last
@@ -695,8 +699,7 @@ func rawNameComma(left, right string) bool {
 	if !has {
 		return false
 	}
-	parts := strings.Split(predicates, "+")
-	last := parts[len(parts)-1]
+	last := predicates[strings.LastIndexByte(predicates, '+')+1:]
 	if _, ok := strings.CutPrefix(last, "named"); !ok {
 		if _, ok := strings.CutPrefix(last, "notnamed"); !ok {
 			return false
@@ -1110,16 +1113,16 @@ func parseCMC(cost string) int32 {
 // Remembered.*, Targeted.*, and Triggered.* have many unrelated predicates
 // whose grammar and behaviour this task must not expand.
 func sameNameContextBase(base, rest string) bool {
-	if !hasPredicate(rest, "sameName") {
+	if !strings.HasPrefix(base, "Remembered") &&
+		!strings.HasPrefix(base, "Targeted") &&
+		!strings.HasPrefix(base, "Triggered") {
 		return false
 	}
-	return strings.HasPrefix(base, "Remembered") ||
-		strings.HasPrefix(base, "Targeted") ||
-		strings.HasPrefix(base, "Triggered")
+	return hasPredicate(rest, "sameName")
 }
 
 func hasPredicate(rest, want string) bool {
-	for _, p := range strings.Split(rest, "+") {
+	for p := range strings.SplitSeq(rest, "+") {
 		if p == want {
 			return true
 		}
@@ -1247,7 +1250,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	if resolve == nil {
 		resolve = noResolve
 	}
-	for _, alt := range filterAlternatives(spec) {
+	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -1278,7 +1281,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			continue
 		}
 		all := true
-		for _, p := range strings.Split(rest, "+") {
+		for p := range strings.SplitSeq(rest, "+") {
 			if p == "" {
 				continue
 			}
@@ -1338,7 +1341,7 @@ func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecConte
 	}
 	// filterAlternatives, not a raw comma split: a Count$Valid<Zone>
 	// Card.named<Name> argument may carry its printed comma.
-	for _, alt := range filterAlternatives(spec) {
+	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -1352,7 +1355,7 @@ func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecConte
 			continue
 		}
 		all := true
-		for _, p := range strings.Split(rest, "+") {
+		for p := range strings.SplitSeq(rest, "+") {
 			if p == "" {
 				continue
 			}
@@ -1600,7 +1603,7 @@ func playerCompare(have int32, op string, want int32) bool {
 // Forge's `Mandatory$` parameter, which is recorded in AGENTS.md as
 // deliberately unread and is a different thing.
 func SearchStatesQuality(spec string) bool {
-	for _, alt := range filterAlternatives(spec) {
+	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -1609,7 +1612,7 @@ func SearchStatesQuality(spec string) bool {
 		if base != "Card" && base != "Any" {
 			return true
 		}
-		for _, p := range strings.Split(rest, "+") {
+		for p := range strings.SplitSeq(rest, "+") {
 			if p == "" {
 				continue
 			}
@@ -1640,9 +1643,9 @@ func possessionPredicate(p string) bool {
 // card-validation pass uses it to refuse cards it would otherwise misplay.
 func UnknownPredicates(spec string) []string {
 	var out []string
-	for _, alt := range filterAlternatives(spec) {
+	for alt := range filterAlternatives(spec) {
 		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
-		for _, p := range strings.Split(rest, "+") {
+		for p := range strings.SplitSeq(rest, "+") {
 			if p == "" {
 				continue
 			}

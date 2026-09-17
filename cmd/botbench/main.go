@@ -319,6 +319,7 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, max
 func playMatchOnce(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage) (gameOutcome, *rules.Engine, error) {
 	e := rules.New(cfg)
 	e.Advance()
+	board := botpolicy.NewBoard(len(seats))
 	n := 0
 	for !e.G.Over && e.Pending() != nil && (maxIntents <= 0 || n < maxIntents) {
 		// The turn watchdog: a game whose turn count reaches the cap is
@@ -330,9 +331,18 @@ func playMatchOnce(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns,
 			return recordStarter(gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n}, e), e, nil
 		}
 		d := e.Pending()
-		v := view.Project(e.G, e, d.Player, d)
-		v.Round = view.RoundOf(e.G, e.L.Events)
-		in, err := seats[d.Player].Decide(context.Background(), v, *d)
+		var in decision.Intent
+		var err error
+		if s, ok := seats[d.Player].(seat.BoardSeat); ok {
+			// Match the live host's reusable, seat-private Board path. Seats
+			// opting out (including legacy) still receive the full View.
+			b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
+			in, err = s.DecideBoard(context.Background(), b, *d)
+		} else {
+			v := view.Project(e.G, e, d.Player, d)
+			v.Round = view.RoundOf(e.G, e.L.Events)
+			in, err = seats[d.Player].Decide(context.Background(), v, *d)
+		}
 		if err != nil {
 			return gameOutcome{}, e, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)
 		}

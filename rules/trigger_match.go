@@ -15,6 +15,7 @@
 package rules
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -548,7 +549,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// fire-count and once-per-turn memory never share an entry with the
 		// cast face's same-index trigger. roomTriggerFaces returns the faces
 		// to walk, cast face first.
-		for _, fc := range roomTriggerFaces(o, f) {
+		faces, n := roomTriggerFaces(o, f)
+		for _, fc := range faces[:n] {
 			for ti, t := range fc.face.Triggers {
 				// LifeLostAll is evaluated once at the end of a simultaneous
 				// life-loss batch. Do not queue it once per serialized Damage/
@@ -569,7 +571,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// means a Note is a real event, never an observer side effect.
 					spec := t.Params["Phase"]
 					if strings.TrimSpace(spec) != "" {
-						if _, unknown := state.ParsePhases(spec); len(unknown) > 0 {
+						if !e.parsedPhaseSpec(spec).valid {
 							if e.phaseUnknownNoted == nil {
 								e.phaseUnknownNoted = map[string]bool{}
 							}
@@ -756,13 +758,16 @@ type triggerFace struct {
 // roomTriggerFaces returns the faces whose Triggers a scan walks for object
 // o: its cast face always, plus the other face once unlocked (CR 309.6).
 // FaceIdx need not be zero: CR 309.4b permits casting either Room door.
-func roomTriggerFaces(o *state.Object, active *cards.Face) []triggerFace {
-	out := []triggerFace{{face: active, faceIdx: o.FaceIdx, active: true}}
+func roomTriggerFaces(o *state.Object, active *cards.Face) ([2]triggerFace, int) {
+	// At most two faces, returned by value so the ordinary single-face walk
+	// never allocates a backing slice per object per event.
+	out := [2]triggerFace{{face: active, faceIdx: o.FaceIdx, active: true}}
 	if o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
 		other := uint8(1 - int(o.FaceIdx))
-		out = append(out, triggerFace{face: o.Card.Faces[other], faceIdx: other})
+		out[1] = triggerFace{face: o.Card.Faces[other], faceIdx: other}
+		return out, 2
 	}
-	return out
+	return out, 1
 }
 
 // openDamageBatch opens a damage batch: the Damage events emitted until the
@@ -1801,6 +1806,27 @@ func (e *Engine) landPlayedMatches(t cards.Trigger, source state.ObjID, ev event
 	return true
 }
 
+type parsedPhase struct {
+	set   state.StepSet
+	valid bool
+}
+
+// parsedPhaseSpec caches syntax only, never whether the current step matches.
+// Diagnostic scans and live/look-back matchers use the same parse semantics;
+// only the live scan emits Notes, tracked separately in phaseUnknownNoted.
+func (e *Engine) parsedPhaseSpec(spec string) parsedPhase {
+	if p, ok := e.phaseSpecs[spec]; ok {
+		return p
+	}
+	set, unknown := state.ParsePhases(spec)
+	p := parsedPhase{set: set, valid: len(unknown) == 0}
+	if e.phaseSpecs == nil {
+		e.phaseSpecs = make(map[string]parsedPhase)
+	}
+	e.phaseSpecs[spec] = p
+	return p
+}
+
 // phaseGate applies Forge's Phase$ (validPhases) uniformly to every trigger
 // mode. It is deliberately before the mode switch in triggerMatches: a
 // ChangesZone or SpellCast trigger with Phase$ Main1 must not fire during an
@@ -1813,8 +1839,8 @@ func (e *Engine) phaseGate(t cards.Trigger) bool {
 	if strings.TrimSpace(spec) == "" {
 		return true
 	}
-	set, unknown := state.ParsePhases(spec)
-	return len(unknown) == 0 && set.Has(e.G.Step)
+	p := e.parsedPhaseSpec(spec)
+	return p.valid && p.set.Has(e.G.Step)
 }
 
 // phaseMatches implements Mode$ Phase after phaseGate has already checked
@@ -2168,6 +2194,12 @@ func init() {
 
 func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
 	if e.finishingLifeLossBatch || e.lifeLossBatchDepth > 0 {
+		return
+	}
+	// Every synthesized Ward uses BecomesTarget + Card.Self. Apply that
+	// matcher's cheap gates before deriving characteristics for every object
+	// in every zone. Keep the caller's visitation/queue order unchanged.
+	if ev.Kind != events.TargetsChosen || !slices.Contains(ev.IDs, id) {
 		return
 	}
 	printed := map[string]bool{}

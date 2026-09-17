@@ -342,6 +342,9 @@ type Engine struct {
 	// often its trigger is walked. Cloned like the other bookkeeping maps so
 	// a branch that becomes live cannot re-emit the same Note.
 	phaseUnknownNoted map[string]bool
+	// phaseSpecs caches pure Phase$ parsing for both diagnostics and matching.
+	// It is scratch, not replay bookkeeping: clones start with an empty cache.
+	phaseSpecs map[string]parsedPhase
 
 	// choosing says which flow is waiting on the current KChoose decision
 	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling
