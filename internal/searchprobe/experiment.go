@@ -58,6 +58,7 @@ func RunExperiment(setup PublicGame, opts ExperimentOptions) (out ExperimentResu
 	collector := NewCollector(out.Actor)
 	h := History{Actor: out.Actor, Answers: make(map[int][]Action)}
 	var root *rules.Engine
+	var samplingFallback string
 	pos := 0
 	for steps := 0; !e.G.Over; steps++ {
 		if steps >= 20000 || e.G.Turn >= 200 {
@@ -110,8 +111,13 @@ func RunExperiment(setup PublicGame, opts ExperimentOptions) (out ExperimentResu
 					out.SampleNS = diagnosticSince(opts.Clock, start)
 					if err != nil {
 						var failure *Failure
-						if errors.As(err, &failure) && failure.Kind == "unsupported" {
-							out.Unsupported = err.Error()
+						if errors.As(err, &failure) && (failure.Kind == "unsupported" || failure.Kind == "contradictory") {
+							out.Sampling.Worlds = nil
+							if failure.Kind == "unsupported" {
+								out.Unsupported = err.Error()
+							} else {
+								samplingFallback = "contradictory public history: " + failure.Detail
+							}
 						} else {
 							out.Error = "sampling: " + err.Error()
 							return
@@ -137,6 +143,9 @@ func RunExperiment(setup PublicGame, opts ExperimentOptions) (out ExperimentResu
 					if err != nil {
 						out.Error = err.Error()
 						return
+					}
+					if samplingFallback != "" {
+						out.OneWorld.Fallback, out.FourWorld.Fallback = samplingFallback, samplingFallback
 					}
 					// Do not retain large engines in the parallel result queue.
 					out.Sampling.Worlds = nil

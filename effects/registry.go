@@ -44,6 +44,10 @@ type Host interface {
 	// Rand is the engine's seeded generator. Effects that need randomness must
 	// use it and nothing else, or replay breaks.
 	Rand(n int) int
+	// ShuffleLibrary returns a Fisher-Yates permutation of order. The engine
+	// owns hypothetical shuffle planning here; effects still emit the sole
+	// state-mutating Shuffle event with the returned order.
+	ShuffleLibrary(state.PlayerID, []state.ObjID) []state.ObjID
 	// AddContinuous registers one continuous effect against the CR 613 layer
 	// system (rules.Engine.AddContinuous). This is how Pump, PumpAll, Animate
 	// and Protection reach the layer system without effects importing rules,

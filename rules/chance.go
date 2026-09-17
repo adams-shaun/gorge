@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/state"
 )
 
 // ChanceDraw records one bounded random choice. It is an experimental replay
@@ -12,6 +13,19 @@ type ChanceDraw struct {
 	Bound int `json:"bound"`
 	Value int `json:"value"`
 }
+
+type ShuffleCard struct {
+	ID   state.ObjID
+	Name string
+}
+
+type ShuffleContext struct {
+	Player        state.PlayerID
+	Ordinal       int
+	Library, Hand []ShuffleCard
+}
+
+type ShufflePlanner func(ShuffleContext) ([]state.ObjID, error)
 
 // NewHypothetical constructs an independent engine using checked chance
 // outcomes from prefix, then cfg.Seed's generator. Callers must supply their
@@ -24,6 +38,14 @@ type ChanceDraw struct {
 // replay package intentionally continues to implement Config-only randomness.
 // If construction fails, no usable engine is returned.
 func NewHypothetical(cfg Config, prefix []ChanceDraw) (e *Engine, err error) {
+	return NewHypotheticalPlanned(cfg, prefix, nil)
+}
+
+// NewHypotheticalPlanned is NewHypothetical with an opt-in callback at real
+// library-shuffle sites. The callback sees only this hypothetical game's
+// cards. Its chosen permutation is encoded into the ordinary chance transcript,
+// so replay needs no callback.
+func NewHypotheticalPlanned(cfg Config, prefix []ChanceDraw, planner ShufflePlanner) (e *Engine, err error) {
 	for i, d := range prefix {
 		if d.Bound <= 0 {
 			return nil, fmt.Errorf("hypothetical chance draw %d: invalid bound %d", i, d.Bound)
@@ -34,7 +56,7 @@ func NewHypothetical(cfg Config, prefix []ChanceDraw) (e *Engine, err error) {
 	}
 	defer recoverChance(&err)
 	r := newRNG(cfg.Seed)
-	r.chance = &chanceState{prefix: append([]ChanceDraw(nil), prefix...)}
+	r.chance = &chanceState{prefix: append([]ChanceDraw(nil), prefix...), planner: planner, shuffleOrdinals: make(map[state.PlayerID]int)}
 	e = newWithRNG(cfg, r)
 	return e, nil
 }
@@ -80,9 +102,11 @@ func (e *Engine) ChanceTranscript() []ChanceDraw {
 }
 
 type chanceState struct {
-	prefix  []ChanceDraw
-	draws   []ChanceDraw
-	failure error
+	prefix          []ChanceDraw
+	draws           []ChanceDraw
+	failure         error
+	planner         ShufflePlanner
+	shuffleOrdinals map[state.PlayerID]int
 }
 
 func (s *chanceState) clone() *chanceState {
@@ -94,6 +118,35 @@ func (s *chanceState) clone() *chanceState {
 		draws:   append([]ChanceDraw(nil), s.draws...),
 		failure: s.failure,
 	}
+}
+
+// ClearHypotheticalPlanner ends proposal construction. Future chance uses the
+// hypothesis's independently seeded generator while the recorded prefix stays
+// available for replay.
+func (e *Engine) ClearHypotheticalPlanner() {
+	if e != nil && e.rng != nil && e.rng.chance != nil {
+		e.rng.chance.planner = nil
+		e.rng.chance.shuffleOrdinals = nil
+	}
+}
+
+func (e *Engine) shuffleCards(ids []state.ObjID) []ShuffleCard {
+	out := make([]ShuffleCard, 0, len(ids))
+	for _, id := range ids {
+		name := ""
+		if obj := e.G.Obj(id); obj != nil && obj.Card != nil && len(obj.Card.Faces) > 0 {
+			name = obj.Card.Faces[0].Name
+		}
+		out = append(out, ShuffleCard{ID: id, Name: name})
+	}
+	return out
+}
+
+func (s *chanceState) fail(err error) {
+	if s.failure == nil {
+		s.failure = err
+	}
+	panic(chanceFailure{s.failure})
 }
 
 type chanceFailure struct{ err error }

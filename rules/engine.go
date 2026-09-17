@@ -987,7 +987,7 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		// moved out, so a non-Commander seat's library and the original ids
 		// are one and the same and the event is byte-identical to before.
 		order := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, p)...)
-		e.rng.Shuffle(order)
+		order = e.ShuffleLibrary(p, order)
 		// Library order is hidden information: the event carries it because the
 		// server needs it, and view projection redacts it for everyone else.
 		e.emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true})

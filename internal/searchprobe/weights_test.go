@@ -4,6 +4,8 @@ import (
 	"math"
 	"reflect"
 	"testing"
+
+	"github.com/adams-shaun/gorge/rules"
 )
 
 type fixedFloat struct {
@@ -64,5 +66,30 @@ func TestWeightedResamplingSkipsZerosAndPreservesDuplicates(t *testing.T) {
 	}
 	if _, err := weightedIndices([]float64{1}, -1, r); err == nil {
 		t.Fatal("accepted negative output count")
+	}
+}
+
+func TestProposalAccumulatesExactEpochWeights(t *testing.T) {
+	p := &proposalState{epochs: map[epochKey]epochConstraints{
+		{Player: 0}:             {Positions: []epochPosition{{Index: 0, Name: "A"}}},
+		{Player: 1, Ordinal: 1}: {Deadlines: []deadlineConstraint{{Through: 1, Name: "A", Count: 2}}},
+	}, observer: NewCollector(0), result: &SampleResult{}, logWeight: -math.Log(2)}
+	if _, err := p.plan(rules.ShuffleContext{Player: 0, Library: []rules.ShuffleCard{{ID: 1, Name: "A"}, {ID: 2, Name: "A"}, {ID: 3, Name: "B"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.plan(rules.ShuffleContext{Player: 1, Ordinal: 1, Hand: []rules.ShuffleCard{{ID: 4, Name: "A"}}, Library: []rules.ShuffleCard{{ID: 5, Name: "A"}, {ID: 6, Name: "B"}, {ID: 7, Name: "B"}}}); err != nil {
+		t.Fatal(err)
+	}
+	// Exhaustive physical orders: first epoch accepts 4/6, second 2/6;
+	// multiplying the public toss 1/2 gives exactly 1/9.
+	if math.Abs(math.Exp(p.logWeight)-1.0/9) > 1e-12 {
+		t.Fatalf("combined weight = %g", math.Exp(p.logWeight))
+	}
+	weights, ess, err := normalizeWeights([]float64{p.logWeight, p.logWeight, p.logWeight, p.logWeight})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(weights, []float64{.25, .25, .25, .25}) || ess != 4 {
+		t.Fatalf("weights=%v ESS=%g", weights, ess)
 	}
 }

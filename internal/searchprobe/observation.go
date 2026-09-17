@@ -40,11 +40,12 @@ type Frame struct {
 type Collector struct {
 	actor      state.PlayerID
 	known      map[state.ObjID]uint32
+	byRef      []state.ObjID
 	introduced []Identity
 }
 
 func NewCollector(actor state.PlayerID) *Collector {
-	return &Collector{actor: actor, known: make(map[state.ObjID]uint32)}
+	return &Collector{actor: actor, known: make(map[state.ObjID]uint32), byRef: []state.ObjID{0}}
 }
 
 func (c *Collector) clone() *Collector {
@@ -52,6 +53,7 @@ func (c *Collector) clone() *Collector {
 	for id, ref := range c.known {
 		out.known[id] = ref
 	}
+	out.byRef = append(out.byRef[:0], c.byRef...)
 	out.introduced = append([]Identity(nil), c.introduced...)
 	return out
 }
@@ -182,6 +184,7 @@ func (c *Collector) introduce(e *rules.Engine, id state.ObjID) {
 		name = o.Card.Faces[0].Name
 	}
 	c.known[id] = ref
+	c.byRef = append(c.byRef, id)
 	c.introduced = append(c.introduced, Identity{ID: ref, Name: name, Owner: o.Owner})
 }
 
@@ -190,6 +193,13 @@ func (c *Collector) ref(id state.ObjID) uint32 {
 		return uint32(id)
 	}
 	return c.known[id]
+}
+
+func (c *Collector) object(ref uint32) state.ObjID {
+	if ref == 0 || int(ref) >= len(c.byRef) {
+		return 0
+	}
+	return c.byRef[ref]
 }
 
 func (c *Collector) card(card view.CardView) view.CardView {

@@ -9,9 +9,113 @@ import (
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/rules"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
+
+func TestRejectionBucketClassifiesObservedShapeWithoutIdentity(t *testing.T) {
+	cases := []struct {
+		name string
+		got  Frame
+		want Frame
+		out  RejectionBucket
+	}{
+		{
+			name: "public land",
+			got:  Frame{Identities: []Identity{{ID: 8, Name: "Island", Owner: 1}}, Events: []ObservedEvent{{Kind: events.MoveZone, Obj: 8, From: state.ZHand, To: state.ZBattlefield}}},
+			want: Frame{Identities: []Identity{{ID: 8, Name: "Swamp", Owner: 1}}, Events: []ObservedEvent{{Kind: events.MoveZone, Obj: 8, From: state.ZHand, To: state.ZBattlefield}}},
+			out:  RejectionBucket{Frame: 5, Component: "identities", Shape: "hand_to_battlefield"},
+		},
+		{
+			name: "spell cast",
+			got:  Frame{Identities: []Identity{{ID: 9, Name: "A", Owner: 1}}, Events: []ObservedEvent{{Kind: events.PutOnStack, Obj: 9, From: state.ZHand, To: state.ZStack}}},
+			want: Frame{Events: []ObservedEvent{{Kind: events.Priority, Player: 0}}},
+			out:  RejectionBucket{Frame: 7, Component: "identities", Shape: "hand_to_stack"},
+		},
+		{
+			name: "event kind",
+			got:  Frame{Events: []ObservedEvent{{Kind: events.Priority}}},
+			want: Frame{Events: []ObservedEvent{{Kind: events.Resolve}}},
+			out:  RejectionBucket{Frame: 9, Component: "events", Shape: "priority_to_stack_resolve"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := rejectionBucket(5+map[string]int{"spell cast": 2, "event kind": 4}[tc.name], tc.got, tc.want); got != tc.out {
+				t.Fatalf("got %+v want %+v", got, tc.out)
+			}
+		})
+	}
+}
+
+func TestRejectionShapeIgnoresEarlierMatchingIdentities(t *testing.T) {
+	for _, kind := range []events.Kind{events.PutOnStack, events.Note} {
+		got := Frame{Identities: []Identity{{ID: 1, Name: "Matching Land", Owner: 1}, {ID: 2, Name: "Different", Owner: 1}}, Events: []ObservedEvent{{Kind: events.MoveZone, Obj: 1, From: state.ZHand, To: state.ZBattlefield}}}
+		want := Frame{Identities: []Identity{{ID: 1, Name: "Matching Land", Owner: 1}, {ID: 2, Name: "Expected", Owner: 1}}, Events: append([]ObservedEvent(nil), got.Events...)}
+		shape := "other"
+		if kind == events.PutOnStack {
+			got.Events = append(got.Events, ObservedEvent{Kind: kind, Obj: 2, From: state.ZHand, To: state.ZStack})
+			shape = "hand_to_stack"
+		} else {
+			got.Events = append(got.Events, ObservedEvent{Kind: kind, IDs: []uint32{2}})
+		}
+		want.Events = append([]ObservedEvent(nil), got.Events...)
+		if bucket := rejectionBucket(4, got, want); bucket.Shape != shape {
+			t.Fatalf("matching land obscured differing identity: kind=%v got=%s want=%s", kind, bucket.Shape, shape)
+		}
+	}
+}
+
+func TestSamplerRejectionHistogramCountsAndSorts(t *testing.T) {
+	setup, h := samplingHistory(t)
+	var board view.View
+	if err := json.Unmarshal(h.Frames[3].Board, &board); err != nil {
+		t.Fatal(err)
+	}
+	board.Players[0].Life = 999
+	h.Frames[3].Board, _ = json.Marshal(board)
+	result, err := Sample(setup, h, SampleOptions{Seed: 991, Attempts: 3, Worlds: 1, MaxSubmits: 5000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []RejectionBucket{{Frame: 3, Component: "board", Shape: "state", Count: 3}}
+	if !reflect.DeepEqual(result.Rejections, want) {
+		t.Fatalf("rejections = %+v want %+v", result.Rejections, want)
+	}
+	// Exercise the actual aggregation path with multiple keys, repeated keys,
+	// and ties at each sort level, in deliberately reversed insertion order.
+	for _, bucket := range []RejectionBucket{
+		{Frame: 3, Component: "identities", Shape: "hand_to_stack"},
+		{Frame: 3, Component: "identities", Shape: "hand_to_battlefield"},
+		{Frame: 1, Component: "action", Shape: "mismatch"},
+		{Frame: 3, Component: "events", Shape: "count"},
+		{Frame: 3, Component: "identities", Shape: "hand_to_stack"},
+		{Frame: 1, Component: "action", Shape: "mismatch"},
+	} {
+		addRejection(&result, bucket)
+	}
+	want = []RejectionBucket{
+		{Frame: 1, Component: "action", Shape: "mismatch", Count: 2},
+		{Frame: 3, Component: "board", Shape: "state", Count: 3},
+		{Frame: 3, Component: "events", Shape: "count", Count: 1},
+		{Frame: 3, Component: "identities", Shape: "hand_to_battlefield", Count: 1},
+		{Frame: 3, Component: "identities", Shape: "hand_to_stack", Count: 2},
+	}
+	if !reflect.DeepEqual(result.Rejections, want) {
+		t.Fatalf("multi-key aggregation/order = %+v want %+v", result.Rejections, want)
+	}
+	var reversed SampleResult
+	for i := len(want) - 1; i >= 0; i-- {
+		for n := 0; n < want[i].Count; n++ {
+			addRejection(&reversed, want[i])
+		}
+	}
+	if !reflect.DeepEqual(result.Rejections, reversed.Rejections) {
+		t.Fatal("histogram depends on insertion order")
+	}
+}
 
 func samplingHistory(t *testing.T) (PublicGame, History) {
 	t.Helper()

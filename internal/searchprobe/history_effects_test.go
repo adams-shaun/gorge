@@ -29,23 +29,30 @@ func TestGenesisNameConstraintsAccountForDuplicateCopies(t *testing.T) {
 	a := syntheticCard(t, "Name:A\nTypes:Land\nOracle:Fixture.\n")
 	b := syntheticCard(t, "Name:B\nTypes:Land\nOracle:Fixture.\n")
 	setup := PublicGame{Names: []string{"a", "b"}, Decks: [][]*cards.Card{{a, a, b}, {b, b, b}}}
-	h := History{Actor: 0, Frames: []Frame{{Identities: []Identity{{ID: 1, Name: "A"}}, Events: []ObservedEvent{{Kind: events.Note, Text: "a won the toss"}, {Kind: events.Draw, Obj: 1}}}}}
-	seen := make(map[int]bool)
+	h := History{Actor: 0, Frames: []Frame{{Identities: []Identity{{ID: 1, Name: "A"}}, Events: []ObservedEvent{{Kind: events.Note, Text: "a won the toss"}, {Kind: events.Shuffle, Player: 0}, {Kind: events.Draw, Obj: 1}}}}}
+	epochs, err := compileEpochs(h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tape, tossWeight, err := publicToss(setup, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tape) != 1 || tape[0] != (rules.ChanceDraw{Bound: 2, Value: 0}) {
+		t.Fatal("public toss not forced")
+	}
+	seen := make(map[state.ObjID]bool)
 	for seed := uint64(0); seed < 100; seed++ {
-		tape, w, err := genesisProposal(setup, h, rand.New(rand.NewPCG(seed, 9)))
+		p := &proposalState{epochs: epochs, base: seed, observer: NewCollector(0), result: &SampleResult{}, logWeight: tossWeight}
+		order, err := p.plan(rules.ShuffleContext{Player: 0, Library: []rules.ShuffleCard{{ID: 1, Name: "A"}, {ID: 2, Name: "A"}, {ID: 3, Name: "B"}}})
 		if err != nil {
 			t.Fatal(err)
 		}
 		// P(toss=0)*P(first named A) = 1/2 * 2/3 = 1/3.
-		if math.Abs(math.Exp(w)-1.0/3) > 1e-12 {
-			t.Fatalf("weight %g", math.Exp(w))
+		if math.Abs(math.Exp(p.logWeight)-1.0/3) > 1e-12 {
+			t.Fatalf("weight %g", math.Exp(p.logWeight))
 		}
-		order := []int{0, 1, 2}
-		for i, d := range tape[1:3] {
-			k := 2 - i
-			order[k], order[d.Value] = order[d.Value], order[k]
-		}
-		if order[0] == 2 {
+		if order[0] == 3 {
 			t.Fatal("violated A constraint")
 		}
 		seen[order[0]] = true

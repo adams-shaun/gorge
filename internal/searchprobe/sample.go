@@ -2,19 +2,16 @@ package searchprobe
 
 import (
 	"crypto/sha256"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"math/rand/v2"
 	"reflect"
-	"strings"
+	"sort"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
-	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -42,10 +39,17 @@ type World struct {
 	Observer *Collector
 }
 type SampleResult struct {
-	Worlds                                                                   []World `json:"-"`
-	Attempts, Accepted, PrefixRejected, BudgetExhausted, Submits, Duplicates int
-	ESS                                                                      float64
-	FirstRejection                                                           string
+	Worlds                                                                                 []World `json:"-"`
+	Attempts, Accepted, PrefixRejected, BudgetExhausted, Submits, Duplicates               int
+	ESS                                                                                    float64
+	FirstRejection                                                                         string
+	Rejections                                                                             []RejectionBucket
+	GuidedGenesis, GuidedLater, ArrangeWindows, UnguidedConstraints, IncompatibleProposals int
+}
+type RejectionBucket struct {
+	Frame            int
+	Component, Shape string
+	Count            int
 }
 
 func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, err error) {
@@ -56,6 +60,9 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		}
 	}()
 	var result SampleResult
+	defer func() {
+		out = result
+	}()
 	if len(setup.Names) != len(setup.Decks) || len(setup.Names) < 2 || int(h.Actor) >= len(setup.Names) || len(h.Frames) == 0 || opts.Attempts < 1 || opts.Worlds < 1 || opts.MaxSubmits < 1 {
 		return result, fmt.Errorf("invalid sampling configuration/history")
 	}
@@ -74,28 +81,42 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		return result, err
 	}
 	digest := sha256.Sum256(encoded)
-	seed := binary.LittleEndian.Uint64(digest[:8]) ^ opts.Seed
+	epochs, err := compileEpochs(h)
+	if err != nil {
+		return result, err
+	}
+	if err := validateGenesis(setup, epochs); err != nil {
+		return result, err
+	}
+	tape, tossWeight, err := publicToss(setup, h)
+	if err != nil {
+		return result, err
+	}
 	var proposals []World
 	var logs []float64
 	for attempt := 0; attempt < opts.Attempts; attempt++ {
 		result.Attempts++
-		r := rand.New(rand.NewPCG(seed, uint64(attempt)+0x9e3779b97f4a7c15))
-		cfg := rules.Config{Seed: r.Uint64(), Names: setup.Names, Decks: setup.Decks, Tokens: setup.Tokens, StartingLife: setup.StartingLife}
-		tape, logWeight, err := genesisProposal(setup, h, r)
-		if err != nil {
-			return result, err
+		seed := taggedSeed(opts.Seed, digest, attempt, seedEngine)
+		cfg := rules.Config{Seed: seed[0], Names: setup.Names, Decks: setup.Decks, Tokens: setup.Tokens, StartingLife: setup.StartingLife}
+		observer := NewCollector(h.Actor)
+		proposal := &proposalState{epochs: epochs, logWeight: tossWeight, base: opts.Seed, history: digest, attempt: attempt, observer: observer, result: &result}
+		e, err := rules.NewHypotheticalPlanned(cfg, tape, proposal.plan)
+		if errors.Is(err, errIncompatibleProposal) {
+			continue
 		}
-		e, err := rules.NewHypothetical(cfg, tape)
 		if err != nil {
 			return result, err
 		}
 		if err := e.AdvanceHypothetical(); err != nil {
+			if errors.Is(err, errIncompatibleProposal) {
+				continue
+			}
 			return result, err
 		}
-		observer := NewCollector(h.Actor)
 		bots := make([]*rand.Rand, len(setup.Names))
 		for i := range bots {
-			bots[i] = rand.New(rand.NewPCG(r.Uint64(), r.Uint64()))
+			seed := taggedSeed(opts.Seed, digest, attempt, seedOpponent, uint64(i))
+			bots[i] = rand.New(rand.NewPCG(seed[0], seed[1]))
 		}
 		pos, submits := 0, 0
 		accepted := true
@@ -106,6 +127,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 			}
 			if !reflect.DeepEqual(got, want) {
 				result.PrefixRejected++
+				addRejection(&result, rejectionBucket(i, got, want))
 				if result.FirstRejection == "" {
 					result.FirstRejection = frameDifference(i, got, want)
 				}
@@ -123,6 +145,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 			d := e.Pending()
 			if d == nil {
 				result.PrefixRejected++
+				addRejection(&result, RejectionBucket{Frame: i, Component: "decision", Shape: "missing"})
 				if result.FirstRejection == "" {
 					result.FirstRejection = fmt.Sprintf("frame %d missing pending decision", i)
 				}
@@ -138,6 +161,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 				in, err = observer.Match(d, actions)
 				if err != nil {
 					result.PrefixRejected++
+					addRejection(&result, RejectionBucket{Frame: i, Component: "action", Shape: "mismatch"})
 					if result.FirstRejection == "" {
 						result.FirstRejection = fmt.Sprintf("frame %d action mismatch: %v", i, err)
 					}
@@ -148,16 +172,21 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 				in = botpolicy.Decide(botpolicy.BoardFromGame(e.G, e, d.Player), d, bots[d.Player])
 			}
 			pos = len(e.L.Events)
-			if err := e.SubmitHypothetical(in); err != nil {
-				return result, fmt.Errorf("reconstruction submit: %w", err)
-			}
 			submits++
 			result.Submits++
+			if err := e.SubmitHypothetical(in); err != nil {
+				if errors.Is(err, errIncompatibleProposal) {
+					accepted = false
+					break
+				}
+				return result, fmt.Errorf("reconstruction submit: %w", err)
+			}
 		}
 		if accepted {
+			e.ClearHypotheticalPlanner()
 			result.Accepted++
 			proposals = append(proposals, World{Config: cfg, Engine: e, Observer: observer})
-			logs = append(logs, logWeight)
+			logs = append(logs, proposal.logWeight)
 		}
 	}
 	if len(proposals) == 0 {
@@ -171,7 +200,8 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	if len(proposals) < opts.Worlds || ess+1e-10 < float64(opts.Worlds) {
 		return result, nil
 	}
-	r := rand.New(rand.NewPCG(seed, 0xa0761d6478bd642f))
+	seed := taggedSeed(opts.Seed, digest, 0, seedResampling)
+	r := rand.New(rand.NewPCG(seed[0], seed[1]))
 	indices, err := weightedIndices(weights, opts.Worlds, r)
 	if err != nil {
 		return result, err
@@ -190,6 +220,83 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	return result, nil
 }
 
+func addRejection(result *SampleResult, bucket RejectionBucket) {
+	for i := range result.Rejections {
+		got := &result.Rejections[i]
+		if got.Frame == bucket.Frame && got.Component == bucket.Component && got.Shape == bucket.Shape {
+			got.Count++
+			return
+		}
+	}
+	bucket.Count = 1
+	result.Rejections = append(result.Rejections, bucket)
+	sort.Slice(result.Rejections, func(i, j int) bool {
+		a, b := result.Rejections[i], result.Rejections[j]
+		if a.Frame != b.Frame {
+			return a.Frame < b.Frame
+		}
+		if a.Component != b.Component {
+			return a.Component < b.Component
+		}
+		return a.Shape < b.Shape
+	})
+}
+
+func rejectionBucket(frame int, got, want Frame) RejectionBucket {
+	if !reflect.DeepEqual(got.Identities, want.Identities) {
+		return RejectionBucket{Frame: frame, Component: "identities", Shape: identityDifferenceShape(got, want)}
+	}
+	if !reflect.DeepEqual(got.Events, want.Events) {
+		limit := len(got.Events)
+		if len(want.Events) < limit {
+			limit = len(want.Events)
+		}
+		for i := 0; i < limit; i++ {
+			if !reflect.DeepEqual(got.Events[i], want.Events[i]) {
+				return RejectionBucket{Frame: frame, Component: "events", Shape: got.Events[i].Kind.String() + "_to_" + want.Events[i].Kind.String()}
+			}
+		}
+		return RejectionBucket{Frame: frame, Component: "events", Shape: "count"}
+	}
+	if string(got.Board) != string(want.Board) {
+		return RejectionBucket{Frame: frame, Component: "board", Shape: "state"}
+	}
+	return RejectionBucket{Frame: frame, Component: "decision", Shape: "fields"}
+}
+
+func identityDifferenceShape(got, want Frame) string {
+	declarations := [2]map[uint32]Identity{make(map[uint32]Identity), make(map[uint32]Identity)}
+	frames := []Frame{want, got}
+	for i, f := range frames {
+		for _, id := range f.Identities {
+			declarations[i][id.ID] = id
+		}
+	}
+	for i, f := range frames {
+		for _, identity := range f.Identities {
+			if other, exists := declarations[1-i][identity.ID]; exists && other == identity {
+				continue
+			}
+			for _, ev := range f.Events {
+				if ev.Obj != identity.ID || ev.From != state.ZHand {
+					continue
+				}
+				switch ev.To {
+				case state.ZBattlefield:
+					return "hand_to_battlefield"
+				case state.ZStack:
+					return "hand_to_stack"
+				case state.ZExile:
+					return "hand_to_exile"
+				default:
+					return "hand_to_other"
+				}
+			}
+		}
+	}
+	return "other"
+}
+
 func frameDifference(i int, got, want Frame) string {
 	part := "decision"
 	if !reflect.DeepEqual(got.Identities, want.Identities) {
@@ -200,92 +307,4 @@ func frameDifference(i int, got, want Frame) string {
 		part = "board"
 	}
 	return fmt.Sprintf("frame %d %s", i, part)
-}
-
-// Guide only named actor draws before that library's first non-draw mutation.
-// Other chance sites use their prior; whole-prefix rejection handles every
-// later shuffle, return, look and reorder without inventing present-day moves.
-func genesisProposal(setup PublicGame, h History, r *rand.Rand) ([]rules.ChanceDraw, float64, error) {
-	names := make(map[uint32]string)
-	for _, f := range h.Frames {
-		for _, id := range f.Identities {
-			names[id.ID] = id.Name
-		}
-	}
-	fixed := make(map[int]string)
-	drawn, shuffled, stopped, toss := 0, false, false, -1
-	for _, f := range h.Frames {
-		for _, ev := range f.Events {
-			if ev.Kind == events.Note && strings.HasSuffix(ev.Text, " won the toss") && toss < 0 {
-				toss = int(ev.Player)
-			}
-			if ev.Kind == events.Shuffle && ev.Player == h.Actor {
-				if shuffled {
-					stopped = true
-				}
-				shuffled = true
-			}
-			if ev.Kind == events.LibraryOrder && ev.Player == h.Actor {
-				stopped = true
-			}
-			// Zone moves do not reliably carry their owner; conservatively stop
-			// guidance for either seat's non-draw library mutation.
-			if ev.Kind == events.MoveZone && (ev.From == state.ZLibrary || ev.To == state.ZLibrary) {
-				stopped = true
-			}
-			if ev.Kind == events.Draw && ev.Player == h.Actor && !stopped {
-				if name := names[ev.Obj]; name != "" {
-					fixed[drawn] = name
-				}
-				drawn++
-			}
-		}
-	}
-	if toss < 0 || toss >= len(setup.Names) {
-		return nil, 0, fmt.Errorf("missing public genesis toss")
-	}
-	tape := []rules.ChanceDraw{{Bound: len(setup.Names), Value: toss}}
-	logWeight := -math.Log(float64(len(setup.Names)))
-	for p, deck := range setup.Decks {
-		ids := make([]state.ObjID, len(deck))
-		for i := range ids {
-			ids[i] = state.ObjID(i + 1)
-		}
-		var placements []placement
-		used := make(map[int]bool)
-		if state.PlayerID(p) == h.Actor {
-			for pos := 0; pos < len(deck); pos++ {
-				name, ok := fixed[pos]
-				if !ok {
-					continue
-				}
-				var matching []int
-				for j, card := range deck {
-					if !used[j] && card.Faces[0].Name == name {
-						matching = append(matching, j)
-					}
-				}
-				if len(matching) == 0 {
-					return nil, 0, fail("contradictory", "named genesis draws require unavailable card %s", name)
-				}
-				// Observations name a card, not a physical copy. Uniformly select
-				// matching copies and include their multiplicity in p/q.
-				logWeight += math.Log(float64(len(matching)))
-				j := matching[r.IntN(len(matching))]
-				used[j] = true
-				placements = append(placements, placement{Index: pos, Card: ids[j]})
-			}
-		}
-		order, factor, err := samplePermutation(ids, placements, r)
-		if err != nil {
-			return nil, 0, err
-		}
-		logWeight += factor
-		part, err := permutationTape(ids, order)
-		if err != nil {
-			return nil, 0, err
-		}
-		tape = append(tape, part...)
-	}
-	return tape, logWeight, nil
 }

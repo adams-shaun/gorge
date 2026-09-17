@@ -1,149 +1,179 @@
-# Search probe: runnable 500-game calibration
+# Search probe: final history-conditioned coverage calibration
 
-The history-conditioned probe now runs. The final-code 500-game run completed
-in **67.20 seconds**, with **GOMAXPROCS=5**, five workers and GOMEMLIMIT=5GiB.
-All **500 baseline replays** and **2,000 paired terminal outcome replays**
-matched. No invariant failures or nonterminal outcomes were reported.
+The final local code completed the fixed 500-root calibration with no invariant
+errors. **138/500 roots (27.6%)** met the four-positive-proposal / ESS >=4
+gate; 362 roots retained ordinary baseline fallback. This is a correctness,
+coverage, and cost measurement only--not strength or promotion evidence.
 
-Sampling is still the limiting factor: **17/500 roots (3.4%)** met the
-four-positive-proposal / ESS>=4 gate. The other **483 used baseline fallback**.
-This is correctness, coverage and cost calibration, **not strength evidence**.
+## Exact artifacts and commands
 
-## Reproduce
-
-From `/tmp/gorge`, with the pinned `.cards` cache present:
+Run from `/tmp/gorge` on the local working tree at `HEAD`
+`9ea75078a0e1c194d4440adc2c34e7db227dab5e`, with the pinned `.cards` cache:
 
 ```sh
 GOMAXPROCS=5 GOMEMLIMIT=5GiB go run ./cmd/searchprobe \
   -games 500 -workers 5 -seed 10000 -sample-seed 54321 \
   -attempts 64 -worlds 4 -max-submits 5000 \
-  -out /tmp/gorge-searchprobe-new-run.json
-```
+  -out /tmp/gorge-searchprobe-finalwave-500-20260917.json
 
-The command refuses to overwrite an output file. Source: branch
-`perf/hotspot-optimization-2026-09-17`, beginning at base HEAD
-`1cfef874b83d41a1229dc067bacc8d920c82d451`, plus the sampler/probe changes in
-the implementation commit that contains this report. Go 1.25.11 linux/amd64;
-Forge corpus pin `95f04e8a04c8925fa97cb226fc3341cabcc90a53`.
-No commits, pushes, deployments, race runs, golden changes or corpus source
-additions were made during the calibration itself. The user later authorized
-publishing the verified checkpoint; publication does not alter the measured
-code.
-
-Final-code artifact: `/tmp/gorge-searchprobe-500-v2.json`.
-Earlier `v1`, `final` and `repeat` artifacts predate the source-highlighted
-scalar-mode fix and are superseded. The final-code repeat,
-`/tmp/gorge-searchprobe-500-v2-repeat.json`, completed in **67.32 seconds**.
-Every per-game result matched after removing only `SampleNS` and `SearchNS`;
-this includes all actions, scores, heads, ESS, acceptance and rejection counts.
-The one-worker artifact, `/tmp/gorge-searchprobe-125-v2-serial.json`, ran seeds
-10000–10124 with GOMAXPROCS still 5 in **78.64 seconds**, with four covered roots
-and zero errors. Its 125 non-timing results exactly matched the corresponding
-five-worker prefix. Equality compared all per-game JSON after removing only
-`SampleNS` and `SearchNS`; aggregate timing/memory/worker metadata was excluded.
-
-```sh
 GOMAXPROCS=5 GOMEMLIMIT=5GiB go run ./cmd/searchprobe \
-  -games 125 -workers 1 -seed 10000 -out /tmp/gorge-searchprobe-new-serial.json
+  -games 125 -workers 1 -seed 10000 -sample-seed 54321 \
+  -attempts 64 -worlds 4 -max-submits 5000 \
+  -out /tmp/gorge-searchprobe-finalwave-125-20260917.json
+
 jq -e --slurp \
-  '(.[0].Results[:125]|map(del(.SampleNS,.SearchNS))) == (.[1].Results|map(del(.SampleNS,.SearchNS)))' \
-  /tmp/gorge-searchprobe-500-v2.json /tmp/gorge-searchprobe-new-serial.json
+  '(.[0].Results[:125] | map(del(.SampleNS, .SearchNS))) ==
+   (.[1].Results | map(del(.SampleNS, .SearchNS)))' \
+  /tmp/gorge-searchprobe-finalwave-500-20260917.json \
+  /tmp/gorge-searchprobe-finalwave-125-20260917.json
 ```
 
-## What ran
+Both commands exited 0. The 500-root run reported 138 covered roots and zero
+errors; the serial 125-root prefix reported 28 covered roots and zero errors.
+The `jq` comparison returned `true`: every matching per-game field is equal
+after removing exactly `SampleNS` and `SearchNS`. Aggregate timing, worker, and
+memory metadata were intentionally not compared.
+
+The full required checks also passed:
+
+```text
+GOMAXPROCS=5 GOMEMLIMIT=5GiB go test ./... -count=1  # exit 0
+GOMAXPROCS=5 GOMEMLIMIT=5GiB go vet ./...            # exit 0
+git diff --check                                      # exit 0
+```
+
+No race suite or golden regeneration ran. `git status --short` contained the
+local sampler/engine/tests/spec/plan work only; it contained no tracked Forge
+card or token scripts. All changes remain local and unstaged. Verification is
+complete; separate authorization is required and is now requested before any
+commit or push.
+
+## Protocol
 
 - Death-n-taxes versus dimir-tempo; current/current baseline; no mulligans.
-- Seeds 10000–10499, actor `seed % 2`, one root per game: the first eligible
-  cast/ability/pass decision at turn>=5. Baseline land/mana handling is retained.
-- Baseline and pass retained in a maximum-eight candidate set. Candidate keys
-  use observer-local object identity, decision kind/source, ability, payment
-  mode and alternate cost. Scalar modes retain their visible labels even when
-  an object merely highlights the source.
-- Actual-engine access stays in the collector/outcome harness. Sampling takes
-  public deck definitions and owned allowed-history values, never the original
-  seed, engine, hidden zones, hash or opponent-private intent indices.
-- Genesis guidance conditions the public toss and named actor draws before the
-  first non-draw library mutation. Matching physical copies are chosen uniformly
-  and their multiplicity enters the importance weight. Other chance sites use
-  prior sampling; every allowed frame must match through the root.
-- Opponents are generated by the current observation-only bot in each
-  hypothetical world. Selected worlds replay from their own chance tapes and
-  intents. Resampled duplicates have independent engines and observer maps.
-- One-world and four-world candidates roll out through turn end, at most 5,000
-  submits each, using common independent continuation-policy RNGs. Scorer v1:
-  terminal +/-100000, draw 0; otherwise life + 2*hand count + material difference.
-  Land material is 3; other permanents 10; creatures add 2*(power+toughness).
-- Static-only v1 ranks pass=0, ability=1, cast=printed material. All ties retain
-  the earlier candidate, with baseline first.
-- Four actual outcome branches each submit the chosen action once, then use
-  common independent continuation-policy RNGs. They are paired against their
-  own current-policy branch, not the separately audited uninterrupted baseline.
-  Actual continuation caps are 20,000 submits / turn 200; none were hit.
+- Seeds 10000--10499; actor `seed % 2`; first eligible turn>=5
+  cast/ability/pass root; baseline land/mana handling retained.
+- Baseline and pass retained in a maximum-eight candidate set; 64 fixed
+  reconstruction attempts, four worlds, 5,000 submit cap, and sampler seed
+  54321 independent of game seed.
+- A root is usable only with four positive proposals and ESS >=4. Selected
+  worlds replay from their own chance tapes and intent logs; resampled
+  duplicates receive independent mutable engines.
 
-## Coverage and cost
+## Coverage, sampling, and cost
 
-| Measurement | Final 500-game run |
+| Measurement | Total | Death-n-taxes actor | Dimir actor |
+|---|---:|---:|---:|
+| Roots retained | 500 | 250 | 250 |
+| Usable four-world roots | 138 | 31 | 107 |
+| Baseline fallbacks | 362 | 219 | 143 |
+| Accepted proposals / attempts | 2,473 / 32,000 | 312 / 16,000 | 2,161 / 16,000 |
+| Prefix rejections | 29,421 | 15,683 | 13,738 |
+| Incompatible proposals | 106 | 5 | 101 |
+| Submit-budget exhaustions | 0 | 0 | 0 |
+| Reconstruction submissions | 1,228,363 | 419,636 | 808,727 |
+| Sum of per-root ESS | 2,473 | 312 | 2,161 |
+| Duplicate selected entries | 80 | 30 | 50 |
+| Guided genesis shuffles | 63,936 | 32,000 | 31,936 |
+| Guided later shuffles | 131 | 20 | 111 |
+| Actor arrange-window uses | 3,016 | 0 | 3,016 |
+| Unguided-constraint occurrences | 34,327 | 20,119 | 14,208 |
+
+The attempt accounting closes exactly: 2,473 accepted + 29,421 prefix
+rejected + 106 incompatible + 0 budget exhausted = 32,000. Covered-root ESS
+ranged from 4 to 64. The four-world arm replayed 552 selected entries (four
+per covered root); the one-world arm replayed 138. All 500 baseline replays
+and all 2,000 paired terminal outcome replays succeeded; no outcome was
+nonterminal.
+
+Of 258 roots with a later shuffle/reorder/library-return epoch, 41 were usable:
+zero of 122 Death-n-taxes roots and 41 of 136 Dimir roots. The 258 roots stayed
+in the population; none were filtered to improve this result.
+
+| Cost measurement | Value |
 |---|---:|
-| Roots retained | 500/500 |
-| Proposal attempts | 32,000 |
-| Full-prefix accepted proposals | 164 |
-| Prefix rejections | 31,836 |
-| Reconstruction submit-budget exhaustions | 0 |
-| Reconstruction submissions | 597,945 |
-| Four-world usable roots | 17 |
-| Baseline fallbacks | 483 |
-| Selected world entries replayed for four-world search | 68 |
-| Duplicate selected entries (within roots) | 19 |
-| Later-shuffle/reorder/library-return roots retained | 258 |
-| Usable later-epoch roots | 6 |
-| Sampler wall time per root, p50 / p95 / max | 176.84 / 366.34 / 489.20 ms |
-| Combined one+four-world search time, covered-root p50 / max | 52.34 / 68.34 ms |
-| Total run / corpus load | 67.20 / 0.76 s |
-| Allocations across all games, after corpus load | 39,400,135,552 bytes |
-| End-of-run HeapAlloc / HeapSys | 4,365,328 / 234,323,968 bytes |
+| Corpus load / total elapsed | 0.768 / 114.186 s |
+| Sampler elapsed per root, p50 / p95 / max | 574.488 / 1,210.666 / 4,507.111 ms |
+| Combined search elapsed, covered-root p50 / p95 / max | 53.828 / 85.533 / 114.948 ms |
+| Allocations after corpus load | 83,695,350,608 bytes |
+| End HeapAlloc / HeapSys | 4,011,688 / 246,906,880 bytes |
 
-These are elapsed times under five-worker contention, not isolated search
-latency. Memory figures are Go allocator counters, **not peak RSS**. Search time
-includes selected-world replay checks. Replaying the first world again for the
-one-world arm adds 17 checks beyond the 68 above.
+Per-root sampler elapsed is measured under five-worker contention and sums to
+326.222 worker-seconds; it is not isolated latency. Allocation and heap values
+are Go allocator counters, not peak RSS.
 
-All 17 covered roots are the Dimir actor (seat 1); **zero Death-n-taxes actor
-roots met the gate**. Later-epoch roots are retained, not filtered away. The
-current guide's narrow support conditioning plus full-history rejection is too
-inefficient for representative action labels; increasing the game count alone
-does not address this sampling gap.
+## Deterministic rejection histogram
 
-## Paired outcomes — descriptive only
+The 29,421 prefix rejections aggregate to 26,967 identity and 2,454 event
+buckets. The leading normalized buckets were:
 
-| Root policy | Actor wins / 500 | Changed root action | Loss→win vs current | Win→loss vs current |
-|---|---:|---:|---:|---:|
-| Current | 242 | 0 | 0 | 0 |
-| Static-only | 247 | 268 | 17 | 12 |
-| One-world + fallback | 243 | 4 | 1 | 0 |
-| Four-world + fallback | 243 | 4 | 1 | 0 |
+| Component / shape | Count |
+|---|---:|
+| identities / hand_to_battlefield | 11,048 |
+| identities / hand_to_stack | 10,625 |
+| identities / other | 3,686 |
+| events / priority_to_stack_resolve | 1,679 |
+| identities / hand_to_exile | 1,583 |
+| events / choose_to_choose | 378 |
+| events / priority_to_priority | 168 |
+| events / stack_resolve_to_priority | 140 |
+| all remaining normalized buckets | 114 |
 
-No draws. The search arms selected the same actions in this calibration. With
-only four changed decisions and 483 fallback roots, these numbers support no
-claim of search superiority. The N=4000 / predeclared N=9000 expansion, +3pp
-resolution, current/static superiority and independent 66-deck-pair breadth
-gates remain unrun. No teacher, trainer or production-policy recommendation.
+These are diagnostics of the full-prefix correctness oracle, not hidden-card
+diagnostics and not a reason to weaken rejection.
 
-## Verification
+## Supported and unguided history shapes
 
-Fresh focused tests passed for the sampler, command, ordinary heads, chance
-replay, clones, repo-deck replay and seat/bot adapter parity. `go vet` passed for
-`rules`, `internal/searchprobe` and `cmd/searchprobe`; `git diff --check` passed.
-No claim is made that the entire repository test suite or race suite ran.
+The proposal compiler uses only the actor-owned allowed history and public deck
+definitions. It supports actor-visible draws as fixed positions (a known public
+object stays a physical-object constraint; otherwise the card name is fixed),
+actor-visible `KArrange` ordered top-card windows, and cumulative name-count
+deadlines from an opponent's first public Hand-to-public-zone appearance. A
+supported actor answer deterministically reorders the current top window;
+matching `LibraryOrder` preserves a mapping to original shuffle positions.
+Top/reorder and bottom-placement answers are supported, including subsequent
+draws of cards not exposed in the arrange window. Only semantic actor actions
+and the observed public library size are consumed, never private intent indices.
+A later Shuffle begins a new epoch; matching cards already in the hypothetical
+hand first satisfy that epoch's public-play requirement, and only the remaining
+deficit constrains post-shuffle draws. Genesis and later shuffle permutations
+are sampled uniformly over the exactly counted compatible physical orders.
 
-Regression coverage includes duplicate-copy weights, invalid chance bounds,
-future RNG continuation, effects-driven shuffle replay, hidden-seed/index
-noninterference, cross-world IDs, action context/modes/alternative costs,
-duplicate-world independence, altered intermediate history, budget exhaustion,
-and synthetic real-engine reveal/bounce/search/look/reorder/return/shuffle
-histories. Unknown identity-bearing Notes fail closed; blank Text with IDs is
-the engine's documented plain reveal/hand-look format and is supported.
+Unmodelled, opponent-private, or invalid `library_order` (including unsupported
+graveyard-destination arrangements), non-draw `library_mutation`, an arrange window after
+positional reliability is lost, and an opponent hand exit after that loss are
+explicitly unguided shapes. Earlier supported constraints remain usable; an
+epoch with none uses the ordinary prior. All stay subject to full-prefix
+rejection. The 34,327 occurrence count above is across
+proposal attempts, not a count of unique games.
 
-Whole-change review and the final scalar-mode re-review found no remaining
-load-bearing issue. The original hotspot-resume edit and pilot report are
-preserved. Next substantive work is higher-acceptance history-conditioned
-proposals, with exact proposal likelihoods, before interpreting search labels.
+Nameless stack-ability identities are permitted; actual card facts still require
+names. Reusing one exact object reference at different positions is a public
+contradiction. The experiment now retains such typed contradictions as a distinct
+baseline fallback and still runs baseline/outcome replay; invariants remain
+fatal. This fixed run had no contradiction fallbacks: all 362 fallbacks were
+`insufficient sampled worlds/ESS`. Rejection shapes now consider only differing
+identity declarations, not earlier matching cards in the same frame.
+
+## Comparison with the prior fixed checkpoint
+
+| Checkpoint measurement | Prior | This run |
+|---|---:|---:|
+| Accepted proposals | 164 / 32,000 | 2,473 / 32,000 |
+| Usable roots | 17 / 500 | 138 / 500 |
+| Death-n-taxes actor usable roots | 0 / 250 | 31 / 250 |
+| Dimir actor usable roots | 17 / 250 | 107 / 250 |
+| Usable later-epoch roots | 6 / 258 | 41 / 258 |
+
+This is a sampling-coverage comparison, not an evaluation of action quality or
+search strength. The remaining bottleneck is the large full-prefix rejection
+tail, dominated by opponent hand-to-battlefield and hand-to-stack identity
+events plus unguided epochs; 362 roots still fall back after the fixed work
+budget. Further work must retain the information boundary, exact proposal
+likelihoods, all-root accounting, and full-prefix validation.
+
+The preceding pre-final-review artifacts remain untouched at
+`/tmp/gorge-searchprobe-task6-{500,125}-20260917.json`; that 500-root run had
+135 covered roots and 2,432 accepted proposals. The new final-code run adds
+three covered later-epoch roots and 41 positive proposals. This is a coverage
+change, not evidence of stronger play.

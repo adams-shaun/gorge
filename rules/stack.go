@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -1579,7 +1580,7 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 	effects.Resolve(e, ctx, sa)
 }
 
-// Game, Emit and Rand satisfy effects.Host, which is how effects reach the
+// Game, Emit, Rand and ShuffleLibrary satisfy effects.Host, which is how effects reach the
 // engine without importing it. AddContinuous (layers.go), HasKeyword
 // (layers.go) and Ask (resolution.go) round out the interface -- HasKeyword
 // already existed for the layer system's own callers before effects.Host
@@ -1588,6 +1589,32 @@ func (e *Engine) Game() *state.Game                       { return e.G }
 func (e *Engine) Emit(ev events.Event)                    { e.emit(ev) }
 func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
 func (e *Engine) Rand(n int) int                          { return e.rng.IntN(n) }
+
+// ShuffleLibrary is the single library-shuffle path used by rules and effects.
+// State changes only when the caller emits the resulting Shuffle event.
+func (e *Engine) ShuffleLibrary(player state.PlayerID, order []state.ObjID) []state.ObjID {
+	out := append([]state.ObjID(nil), order...)
+	s := e.rng.chance
+	if s == nil || s.planner == nil {
+		e.rng.Shuffle(out)
+		return out
+	}
+	ordinal := s.shuffleOrdinals[player]
+	s.shuffleOrdinals[player] = ordinal + 1
+	ctx := ShuffleContext{Player: player, Ordinal: ordinal, Library: e.shuffleCards(out), Hand: e.shuffleCards(e.G.Zone(state.ZHand, player))}
+	desired, err := s.planner(ctx)
+	if err != nil {
+		s.fail(fmt.Errorf("hypothetical shuffle planner: %w", err))
+	}
+	if desired == nil {
+		e.rng.Shuffle(out)
+		return out
+	}
+	if err := e.rng.forcePermutation(out, desired); err != nil {
+		s.fail(err)
+	}
+	return out
+}
 
 // EmitTap satisfies effects.Host's EmitTap: see emitTap.
 func (e *Engine) EmitTap(obj state.ObjID, tapper state.PlayerID, entering bool) {

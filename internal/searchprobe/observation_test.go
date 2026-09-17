@@ -233,6 +233,31 @@ func TestObservationRejectsUnknownIdentityNote(t *testing.T) {
 	}
 }
 
+func TestCollectorReverseReferenceCloneIsIndependent(t *testing.T) {
+	e := observationEngine(t, 17)
+	c := NewCollector(0)
+	frame, err := c.Capture(e, e.L.Events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(frame.Identities) == 0 {
+		t.Fatal("fixture introduced no identities")
+	}
+	ref := frame.Identities[0].ID
+	id := c.object(ref)
+	if id == 0 {
+		t.Fatalf("reference %d did not resolve", ref)
+	}
+	clone := c.clone()
+	c.byRef[ref] = 0
+	if clone.object(ref) != id {
+		t.Fatal("clone aliases reverse reference storage")
+	}
+	if clone.object(0) != 0 || clone.object(9999) != 0 {
+		t.Fatal("invalid observer reference resolved")
+	}
+}
+
 func TestActionKeepsScalarModeMeaningWithHighlightedSource(t *testing.T) {
 	e := observationEngine(t, 17)
 	c := NewCollector(0)

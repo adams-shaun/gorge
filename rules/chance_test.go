@@ -1,12 +1,15 @@
 package rules
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -64,6 +67,309 @@ func TestHypotheticalForcesGenesisAndOwnsPrefix(t *testing.T) {
 	if e.ChanceTranscript()[0].Value != 1 {
 		t.Fatal("returned transcript aliases the engine")
 	}
+}
+
+func TestHypotheticalPlannerControlsGenesisAndReplaysFromTranscript(t *testing.T) {
+	cfg := chanceConfig(t)
+	calls := 0
+	e, err := NewHypotheticalPlanned(cfg, []ChanceDraw{{Bound: 2, Value: 0}}, func(ctx ShuffleContext) ([]state.ObjID, error) {
+		if ctx.Player != 0 {
+			return nil, nil
+		}
+		if ctx.Ordinal != 0 || len(ctx.Hand) != 0 || len(ctx.Library) != 12 {
+			return nil, fmt.Errorf("unexpected context: %+v", ctx)
+		}
+		calls++
+		out := make([]state.ObjID, len(ctx.Library))
+		for i, card := range ctx.Library {
+			out[len(out)-1-i] = card.ID
+		}
+		return out, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 {
+		t.Fatalf("planner calls=%d want 1", calls)
+	}
+	if got, want := e.G.Zone(state.ZHand, 0), []state.ObjID{12, 11, 10, 9, 8, 7, 6}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("planned hand=%v want %v", got, want)
+	}
+	replay, err := NewHypothetical(cfg, e.ChanceTranscript())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replay.L.Head() != e.L.Head() || replay.RNGDraws() != e.RNGDraws() {
+		t.Fatal("planned shuffle did not replay from chance transcript")
+	}
+	for n := 2; n < 42; n++ {
+		if got, want := replay.Rand(n), e.Rand(n); got != want {
+			t.Fatalf("forced shuffle did not advance PCG at bound %d: replay=%d engine=%d", n, got, want)
+		}
+	}
+}
+
+func TestHypotheticalPlannerRejectsNonPermutation(t *testing.T) {
+	cfg := chanceConfig(t)
+	e, err := NewHypotheticalPlanned(cfg, []ChanceDraw{{Bound: 2, Value: 0}}, func(ctx ShuffleContext) ([]state.ObjID, error) {
+		out := make([]state.ObjID, len(ctx.Library))
+		return out, nil
+	})
+	if err == nil || e != nil || !strings.Contains(err.Error(), "permutation") {
+		t.Fatalf("engine=%v error=%v", e != nil, err)
+	}
+}
+
+func TestHypotheticalPlannerControlsEffectsShuffleAndCloneDropsPlanner(t *testing.T) {
+	cfg := chanceConfig(t)
+	spell := card(t, "Name:Planned Shuffle\nManaCost:0\nTypes:Sorcery\nA:SP$ Shuffle | Defined$ You\nOracle:Test shuffle.\n")
+	for i := range cfg.Decks[0] {
+		cfg.Decks[0][i] = spell
+	}
+	var desired []state.ObjID
+	laterCalls := 0
+	e, err := NewHypotheticalPlanned(cfg, []ChanceDraw{{Bound: 2, Value: 0}}, func(ctx ShuffleContext) ([]state.ObjID, error) {
+		if ctx.Player != 0 || ctx.Ordinal == 0 {
+			return nil, nil
+		}
+		if ctx.Ordinal != 1 || len(ctx.Hand) != 6 || len(ctx.Library) != 5 {
+			return nil, fmt.Errorf("later shuffle context: %+v", ctx)
+		}
+		for _, card := range append(append([]ShuffleCard(nil), ctx.Library...), ctx.Hand...) {
+			if card.Name != "Planned Shuffle" {
+				return nil, fmt.Errorf("unexpected card %q", card.Name)
+			}
+		}
+		laterCalls++
+		desired = make([]state.ObjID, len(ctx.Library))
+		for i, card := range ctx.Library {
+			desired[len(desired)-1-i] = card.ID
+		}
+		return desired, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.AdvanceHypothetical(); err != nil {
+		t.Fatal(err)
+	}
+	clone := e.Clone()
+	castFirstAndResolve(t, e)
+	if laterCalls != 1 {
+		t.Fatalf("later planner calls=%d want 1", laterCalls)
+	}
+	if got := lastShuffle(e.L.Events, 0); !reflect.DeepEqual(got, desired) {
+		t.Fatalf("shuffle=%v want %v", got, desired)
+	}
+	castFirstAndResolve(t, clone)
+	if laterCalls != 1 {
+		t.Fatal("hypothetical clone retained proposal callback")
+	}
+	replay, err := NewHypothetical(cfg, e.ChanceTranscript())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := replay.AdvanceHypothetical(); err != nil {
+		t.Fatal(err)
+	}
+	for _, in := range e.L.Intents {
+		if err := replay.SubmitHypothetical(in); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if replay.L.Head() != e.L.Head() || replay.RNGDraws() != e.RNGDraws() {
+		t.Fatal("later planned shuffle did not replay")
+	}
+}
+
+func TestHypotheticalPlannerControlsMulliganShuffle(t *testing.T) {
+	cfg := chanceConfig(t)
+	cfg.Mulligans = 1
+	var desired []state.ObjID
+	e, err := NewHypotheticalPlanned(cfg, []ChanceDraw{{Bound: 2, Value: 0}}, func(ctx ShuffleContext) ([]state.ObjID, error) {
+		if ctx.Ordinal == 0 {
+			return nil, nil
+		}
+		if len(ctx.Hand) != 0 || len(ctx.Library) != 12 {
+			return nil, fmt.Errorf("mulligan shuffle context: %+v", ctx)
+		}
+		desired = make([]state.ObjID, len(ctx.Library))
+		for i, card := range ctx.Library {
+			desired[len(desired)-1-i] = card.ID
+		}
+		return desired, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.AdvanceHypothetical(); err != nil {
+		t.Fatal(err)
+	}
+	d := e.Pending()
+	choice := -1
+	for i, option := range d.Options {
+		if option.Kind == "mulligan" {
+			choice = i
+			break
+		}
+	}
+	if choice < 0 {
+		t.Fatalf("mulligan option missing: %+v", d)
+	}
+	if err := e.SubmitHypothetical(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{choice}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := lastShuffle(e.L.Events, d.Player); !reflect.DeepEqual(got, desired) {
+		t.Fatalf("mulligan shuffle=%v want %v", got, desired)
+	}
+}
+
+func TestHypotheticalPlannerEffectErrorPoisonsSubmit(t *testing.T) {
+	cfg := chanceConfig(t)
+	spell := card(t, "Name:Error Shuffle\nManaCost:0\nTypes:Sorcery\nA:SP$ Shuffle | Defined$ You\nOracle:Test shuffle.\n")
+	for i := range cfg.Decks[0] {
+		cfg.Decks[0][i] = spell
+	}
+	want := errors.New("planner rejected effect shuffle")
+	e, err := NewHypotheticalPlanned(cfg, []ChanceDraw{{Bound: 2, Value: 0}}, func(ctx ShuffleContext) ([]state.ObjID, error) {
+		if ctx.Player == 0 && ctx.Ordinal == 1 {
+			return nil, want
+		}
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.AdvanceHypothetical(); err != nil {
+		t.Fatal(err)
+	}
+	cast := false
+	for i := 0; i < 100; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("missing priority before effect shuffle")
+		}
+		choice := -1
+		for _, option := range d.Options {
+			if option.Kind == "pass" {
+				choice = option.Index
+			}
+			if !cast && option.Kind == "cast" {
+				choice = option.Index
+				cast = true
+				break
+			}
+		}
+		if choice < 0 {
+			t.Fatalf("missing cast/pass: %+v", d)
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{choice}}
+		err = e.SubmitHypothetical(in)
+		if err == nil {
+			continue
+		}
+		if !errors.Is(err, want) {
+			t.Fatalf("SubmitHypothetical error=%v, want wrapped %v", err, want)
+		}
+		head := e.L.Head()
+		if again := e.SubmitHypothetical(in); !errors.Is(again, want) {
+			t.Fatalf("persisted chance error=%v, want wrapped %v", again, want)
+		}
+		if e.L.Head() != head {
+			t.Fatal("poisoned effect-shuffle branch kept mutating")
+		}
+		return
+	}
+	t.Fatal("effect shuffle did not surface planner error")
+}
+
+func TestClearHypotheticalPlannerRestoresOrdinaryShuffleContinuation(t *testing.T) {
+	cfg := chanceConfig(t)
+	spell := card(t, "Name:Cleared Shuffle\nManaCost:0\nTypes:Sorcery\nA:SP$ Shuffle | Defined$ You\nOracle:Test shuffle.\n")
+	for i := range cfg.Decks[0] {
+		cfg.Decks[0][i] = spell
+	}
+	calls := 0
+	e, err := NewHypotheticalPlanned(cfg, []ChanceDraw{{Bound: 2, Value: 0}}, func(ShuffleContext) ([]state.ObjID, error) {
+		calls++
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	genesis := e.ChanceTranscript()
+	baseline, err := NewHypothetical(cfg, genesis)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.ClearHypotheticalPlanner()
+	if err := e.AdvanceHypothetical(); err != nil {
+		t.Fatal(err)
+	}
+	if err := baseline.AdvanceHypothetical(); err != nil {
+		t.Fatal(err)
+	}
+	castFirstAndResolve(t, e)
+	castFirstAndResolve(t, baseline)
+	if calls != 2 {
+		t.Fatalf("planner calls=%d want genesis-only 2", calls)
+	}
+	if e.L.Head() != baseline.L.Head() || e.RNGDraws() != baseline.RNGDraws() ||
+		!reflect.DeepEqual(e.ChanceTranscript(), baseline.ChanceTranscript()) {
+		t.Fatal("clearing planner changed ordinary shuffle continuation")
+	}
+}
+
+func castFirstAndResolve(t *testing.T, e *Engine) {
+	t.Helper()
+	cast := false
+	shuffles := shuffleCount(e.L.Events, 0)
+	for i := 0; i < 100; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("missing priority")
+		}
+		choice := -1
+		for j, option := range d.Options {
+			if option.Kind == "pass" {
+				choice = j
+			}
+			if !cast && option.Kind == "cast" {
+				choice = j
+				cast = true
+				break
+			}
+		}
+		if choice < 0 {
+			t.Fatal("missing cast/pass")
+		}
+		if err := e.SubmitHypothetical(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{choice}}); err != nil {
+			t.Fatal(err)
+		}
+		if cast && shuffleCount(e.L.Events, 0) > shuffles {
+			return
+		}
+	}
+	t.Fatal("shuffle spell did not resolve")
+}
+
+func shuffleCount(log []events.Event, player state.PlayerID) int {
+	n := 0
+	for _, ev := range log {
+		if ev.Kind == events.Shuffle && ev.Player == player {
+			n++
+		}
+	}
+	return n
+}
+
+func lastShuffle(log []events.Event, player state.PlayerID) []state.ObjID {
+	for i := len(log) - 1; i >= 0; i-- {
+		if log[i].Kind == events.Shuffle && log[i].Player == player {
+			return log[i].IDs
+		}
+	}
+	return nil
 }
 
 func TestHypotheticalRejectsMalformedChance(t *testing.T) {
