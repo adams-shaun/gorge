@@ -12,7 +12,7 @@ import (
 
 func BenchmarkFaceTriggerScanDistinctFaces(b *testing.B) {
 	g := state.NewGame([]string{"a", "b", "c", "d"})
-	e := &Engine{G: g}
+	e := &Engine{G: g, L: events.NewLog(1)}
 	effect := &cards.SA{Kind: "DB", API: "GainLife", Params: map[string]string{"LifeAmount": "1", "Defined": "You"}}
 	for i := range 240 {
 		face := &cards.Face{
