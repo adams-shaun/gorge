@@ -530,10 +530,11 @@ func Apply(g *state.Game, e Event) {
 			}
 			player := &g.Players[e.Player]
 			player.Pool[idx] += e.Amount
-			if valid, srcID, restricted := ManaRestrictionFromText(e.Text); restricted {
+			if valid, srcID, cond, restricted := ManaRestrictionFromText(e.Text); restricted {
 				if e.Amount > 0 {
 					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
 						Color: e.Counter, Amount: e.Amount, Valid: valid, Source: srcID,
+						NoCounter: cond,
 					})
 				} else if e.Amount < 0 {
 					// A restricted spend event names exactly the restriction batch it
@@ -1015,6 +1016,17 @@ func Apply(g *state.Game, e Event) {
 		if i := strings.Index(e.Text, ":"); i > 0 && e.Text[:i] == "SpellCast" {
 			mode, trigger = "SpellCast", e.Text[i+1:]
 		}
+		// The DelayedTrigger SA's ValidPlayer$ rides the same Text field
+		// ("<Phase>|VP=<value>"): a phase registration's Text is otherwise the
+		// Forge Phase$ string, which contains no "|", and the SpellCast decode
+		// above only ever matches registrations whose Text starts "SpellCast:",
+		// which never carry the suffix -- so every already-logged registration
+		// decodes with an empty ValidPlayer and fires ungated, exactly as
+		// before.
+		vp := ""
+		if i := strings.LastIndex(e.Text, "|VP="); i >= 0 {
+			vp = e.Text[i+4:]
+		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
 			ID:                g.DelayedNext,
 			Phase:             e.Step,
@@ -1027,6 +1039,7 @@ func Apply(g *state.Game, e Event) {
 			TrackSource:       track,
 			EventMode:         mode,
 			Trigger:           trigger,
+			ValidPlayer:       vp,
 		})
 		g.DelayedNext++
 
@@ -1352,7 +1365,14 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.IsMyriad = false
 		o.Paired = 0
 		o.Targets = nil
-		o.Remembered = nil
+		// o.Remembered is deliberately NOT reset here: a card's remembered
+		// list is CARD memory, not permanent state -- Forge preserves it
+		// across zone changes, which is the whole O-Ring premise (the return
+		// trigger on a card in the graveyard reads the exile its
+		// battlefield-stint remembered) and the reason its ForgetOtherTargets$
+		// exists at all (the deliberate clear on a re-exile). The list stays
+		// event-backed (Choose "remembered"/"clear-remembered"), so live play
+		// and replay derive it identically either way.
 		if wasBattlefield {
 			o.Imprinted = nil
 		}

@@ -318,6 +318,25 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		if dt.MinTurn > 0 && e.G.Turn < dt.MinTurn {
 			continue
 		}
+		// ValidPlayer$ (Necropotence's "at the beginning of YOUR next end
+		// step"): the registering DelayedTrigger SA's ValidPlayer$ filter,
+		// carried on the registration and evaluated at the phase occurrence
+		// the way phaseMatches evaluates a Mode$ Phase T: line's own
+		// ValidPlayer$ -- the step just entered always belongs to the current
+		// active player, so the gate asks MatchesPlayerSpec about e.G.Active
+		// against the REGISTRATION's controller. A gate the step fails leaves
+		// the one-shot registration pending (the DelayedPush that would
+		// consume it never mints), so it fires at the first later occurrence
+		// of the phase that does match. The corpus's DelayedTrigger
+		// ValidPlayer$ values are Player 135, You 35, Opponent 2 plus a
+		// handful of qualified forms; bare Player matches every seat (the
+		// ungated behaviour those registrations already had), and the
+		// qualified ones fail closed inside MatchesPlayerSpec (the fx20
+		// convention: an unmodellable qualifier fires for nobody, never for
+		// everybody).
+		if dt.ValidPlayer != "" && !effects.MatchesPlayerSpec(e.G, dt.ValidPlayer, e.G.Active, dt.Controller) {
+			continue
+		}
 		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
 			continue
 		}

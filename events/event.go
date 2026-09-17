@@ -389,23 +389,57 @@ func ManaRestrictionText(valid string, source state.ObjID) string {
 	return manaRestrictionPrefix + valid + " @" + strconv.FormatUint(uint64(source), 10)
 }
 
+// The AddsNoCounter$ suffixes. They are appended AFTER the optional source
+// segment, and only when the producing ability carries AddsNoCounter$, so
+// every historical encoding stays byte-identical. " nc" is the plain flag
+// (Cavern of Souls); " nc!Permanent" is Forge's conditional
+// AddsNoCounter$ !Permanent (Boseiju: the spell must not be a permanent).
+const (
+	manaRestrictionNC        = " nc"
+	manaRestrictionNCNotPerm = " nc!Permanent"
+)
+
+// ManaRestrictionTextNC is ManaRestrictionText for a batch whose producing
+// ability also carries AddsNoCounter$. cond is "True" (the plain flag) or
+// "NotPermanent" (AddsNoCounter$ !Permanent); an empty cond encodes the plain
+// historical shape.
+func ManaRestrictionTextNC(valid string, source state.ObjID, cond string) string {
+	base := ManaRestrictionText(valid, source)
+	switch cond {
+	case "NotPermanent":
+		return base + manaRestrictionNCNotPerm
+	case "True":
+		return base + manaRestrictionNC
+	default:
+		return base
+	}
+}
+
 // ManaRestrictionFromText returns the constraint carried by a restricted
 // ManaAdd event, with the producing source id when the encoding carries one
-// (0 otherwise). It deliberately accepts no aliases: ordinary historical
-// ManaAdd events must remain unrestricted.
-func ManaRestrictionFromText(text string) (string, state.ObjID, bool) {
+// (0 otherwise) and the AddsNoCounter$ condition when one is encoded (""). It
+// deliberately accepts no aliases: ordinary historical ManaAdd events must
+// remain unrestricted. A bare empty Valid with a condition still counts as a
+// restriction batch (the batch is unrestricted spend-wise but carries the
+// can't-be-countered provenance).
+func ManaRestrictionFromText(text string) (string, state.ObjID, string, bool) {
 	valid, ok := strings.CutPrefix(text, manaRestrictionPrefix)
 	if !ok || valid == "" {
-		return "", 0, false
+		return "", 0, "", false
+	}
+	cond := ""
+	if s, found := strings.CutSuffix(valid, manaRestrictionNCNotPerm); found {
+		cond, valid = "NotPermanent", s
+	} else if s, found := strings.CutSuffix(valid, manaRestrictionNC); found {
+		cond, valid = "True", s
 	}
 	if _, tail, found := strings.Cut(valid, " @"); found {
 		head, _, _ := strings.Cut(valid, " @")
-		n, err := strconv.ParseUint(tail, 10, 64)
-		if err == nil {
-			return head, state.ObjID(n), true
+		if n, err := strconv.ParseUint(tail, 10, 64); err == nil {
+			return head, state.ObjID(n), cond, true
 		}
 	}
-	return valid, 0, true
+	return valid, 0, cond, true
 }
 
 type Event struct {
@@ -499,6 +533,10 @@ var flagNames = [...]struct {
 	// own ordering rule.
 	{"kicked 1", state.FlagKicked1},
 	{"kicked 2", state.FlagKicked2},
+	// The can't-be-countered provenance of a spell paid with AddsNoCounter$
+	// mana (Cavern of Souls). Appended at the end per the table's own
+	// ordering rule.
+	{"ncount", state.FlagNoCounter},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

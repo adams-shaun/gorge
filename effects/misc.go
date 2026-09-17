@@ -637,6 +637,16 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZStack {
 			continue
 		}
+		// AddsNoCounter$ mana (Cavern of Souls): a spell paid with that mana
+		// carries state.FlagNoCounter and can't be countered — it stays on the
+		// stack and resolves (CR 608.2b's removal never happens). The spell is
+		// still a legal TARGET (CR: "can't be countered" does not stop
+		// targeting), so the record is one loud Note naming the object, and
+		// the Counter's remaining targets (and SubAbility$ chain) run on.
+		if o.CastFlags&state.FlagNoCounter != 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "can't be countered"})
+			continue
+		}
 		if !h.CounterAllowed(o.ID, c.Source) {
 			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "counter prevented"})
 			if h.Suspended() {
@@ -747,9 +757,49 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 			Text: "registers a delayed trigger with no Execute"})
 		return
 	}
+	// RememberObjects$ (Flickerwisp's and Necropotence's RememberedLKI)
+	// names what the delayed trigger remembers when it fires. The
+	// registration below ALWAYS captures the resolving chain's Remembered --
+	// which is exactly what RememberedLKI means (the parent effect's captured
+	// set, e.g. the exiled permanent RememberChanged$ put there) -- so the
+	// read confirms the corpus's dominant value and changes nothing for it.
+	// Every other value resolves through the Defined grammar (Targeted,
+	// TriggeredAttackerLKICopy, the " & " joins, ...) and unions into the
+	// same captured set, so a delayed trigger whose parent chain did not
+	// remember its subjects still learns them; an unresolvable value is loud
+	// rather than silently dropped.
+	if spec := strings.TrimSpace(sa.Params["RememberObjects"]); spec != "" && spec != "RememberedLKI" {
+		if ts, known := knownDefinedTargets(h, c, spec); known {
+			for _, t := range ts {
+				dup := false
+				for _, have := range c.Remembered {
+					if have == t {
+						dup = true
+						break
+					}
+				}
+				if !dup {
+					c.Remembered = append(c.Remembered, t)
+				}
+			}
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unmodelled DelayedTrigger RememberObjects$ " + spec})
+		}
+	}
+	// The registration's ValidPlayer$ rides the event's Text next to the
+	// phase: "<Phase>|VP=<value>". The rules-side delayed scan gates the
+	// fire on it at the phase occurrence (Necropotence's "YOUR next end
+	// step" -- a phase the gate fails leaves the one-shot registration
+	// pending for the first later occurrence that matches), and the view
+	// layer strips the suffix for display.
+	text := sa.Params["Phase"]
+	if vp := strings.TrimSpace(sa.Params["ValidPlayer"]); vp != "" {
+		text += "|VP=" + vp
+	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec,
-		IDs: encodeRemembered(c.Remembered), Text: sa.Params["Phase"]})
+		IDs: encodeRemembered(c.Remembered), Text: text})
 }
 
 // encodeRemembered turns a Remembered target list into the []ObjID an event
@@ -1170,6 +1220,28 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// it matches no payment, so the mana is never spendable, the
 	// fail-closed direction.
 	restriction := strings.TrimSpace(sa.Params["RestrictValid"])
+	// AddsNoCounter$ (Cavern of Souls' "that spell can't be countered",
+	// Boseiju, Delighted Halfling — 3 corpus files): the produced mana carries
+	// its can't-be-countered provenance on the same ManaAdd restriction batch
+	// the payment path already reads, so a cast that spends one of these units
+	// is marked can't-be-countered at payment time (rules/stack.go captures
+	// the consumption, rules/cast.go folds state.FlagNoCounter into the
+	// pay-time CastInfo). "True" is the plain flag; Forge's conditional
+	// "!Permanent" (Boseiju's instant-or-sorcery mana) is recognised as the
+	// NotPermanent condition, evaluated against the paying spell's face. Any
+	// other value is a loud Note and NO protection — an unrecognised condition
+	// must not silently promise something the engine cannot model.
+	noCounter := ""
+	switch strings.TrimSpace(sa.Params["AddsNoCounter"]) {
+	case "":
+	case "True":
+		noCounter = "True"
+	case "!Permanent":
+		noCounter = "NotPermanent"
+	default:
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unhandled AddsNoCounter$ " + strings.TrimSpace(sa.Params["AddsNoCounter"]) + "; the mana is ordinary"})
+	}
 	// CR 107.4h: mana produced by a SNOW permanent is snow mana. A snow unit
 	// is tagged in the pool event itself — Counter "S<colour>" — so the pool
 	// slot and the parallel snow tally move through one event and a replay
@@ -1192,7 +1264,9 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ev := events.Event{Kind: events.ManaAdd, Player: p,
 				Counter: counter, Amount: amt}
-			if restriction != "" {
+			if noCounter != "" {
+				ev.Text = events.ManaRestrictionTextNC(restriction, c.Source, noCounter)
+			} else if restriction != "" {
 				ev.Text = events.ManaRestrictionText(restriction, c.Source)
 			}
 			h.Emit(ev)

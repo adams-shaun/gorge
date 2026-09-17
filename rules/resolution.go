@@ -1214,7 +1214,20 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// branch above, exactly as resolveTop's own first pass would
 			// have. The re-entry below just runs the ability's effect.
 		default: // "modes", and "" (a pure outer continuation with no answer)
-			ctx.Modes = modeChoiceNames(rp.sa, chosen, nil)
+			// A KWChoice$ pump's modes are keyword labels, not SVar names:
+			// when the asking SA carries no Choices$ but a KWChoice$, the
+			// chosen indexes map against THAT list (effects' effPump re-entry
+			// consumes them as the granted keywords).
+			eligible := []string(nil)
+			if strings.TrimSpace(rp.sa.Params["Choices"]) == "" {
+				if kw := strings.TrimSpace(rp.sa.Params["KWChoice"]); kw != "" {
+					eligible = strings.Split(kw, ",")
+					for i := range eligible {
+						eligible[i] = strings.TrimSpace(eligible[i])
+					}
+				}
+			}
+			ctx.Modes = modeChoiceNames(rp.sa, chosen, eligible)
 		}
 		src := rp.obj
 		if o.Ability != nil {

@@ -217,6 +217,18 @@ type DelayedTrigger struct {
 	// field ("<Mode>:<Trigger>") because the event gains no fields.
 	EventMode string
 	Trigger   string
+	// ValidPlayer is the registering DelayedTrigger SA's ValidPlayer$ value
+	// when it has one (Necropotence's "You": "put that card into your hand
+	// at the beginning of YOUR next end step"). The rules-side delayed
+	// trigger scan gates the fire on it -- the phase occurrence must satisfy
+	// the spec against the registration's controller -- and a phase the gate
+	// fails leaves the one-shot registration pending for the first later
+	// occurrence that matches. Empty keeps the ungated fire every earlier
+	// registration had. It rides in the DelayedRegister event's Text
+	// ("<Phase>|VP=<value>") because the event gains no field (Ruling T20-a's
+	// field-reuse precedent); the SpellCast decode never collides because a
+	// Phase$ value contains no "|".
+	ValidPlayer string
 	// SourceIncarnation is captured for keyword promises whose effect applies
 	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
 	// including Encore's group cleanup, intentionally leave TrackSource false:

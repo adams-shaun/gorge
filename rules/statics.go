@@ -713,7 +713,20 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlockBy") {
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], attacker, e.specCtx(sv.Source, sv.Controller)) {
+		// ValidAttacker$ is Forge's own spelling for the attacker side of a
+		// CantBlockBy static (Steel Leaf Champion's "Creature.Self", the
+		// Unblockable pump templates' "Card.IsRemembered", the blocker-side
+		// "CARDNAME can block only creatures with flying" shape) — 594 corpus
+		// files carry it and NONE of them spell the attacker with ValidCard$;
+		// that spelling is the hand-authored test fixture's. The historical
+		// ValidCard$ read stays as the fallback so both grammars work, and an
+		// SA carrying neither fails closed exactly as before (the empty spec
+		// matches nothing).
+		attackerSpec := sv.Params["ValidAttacker"]
+		if attackerSpec == "" {
+			attackerSpec = sv.Params["ValidCard"]
+		}
+		if !effects.MatchesSpecCtx(e.G, attackerSpec, attacker, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		spec, ok := sv.Params["ValidBlocker"]
