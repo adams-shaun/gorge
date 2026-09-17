@@ -399,8 +399,18 @@ func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 		if !e.actorMatches(sv, "Caster", p) || !e.staticTimingGate(sv) {
 			continue
 		}
+		// EffectZone$ (Skittering Cicada's EffectZone$ Battlefield): the
+		// static functions only while its source sits in the named zone --
+		// a battlefield static's permission ends with the source's presence,
+		// exactly like every other zone-scoped static.
+		if az, ok := sv.Params["EffectZone"]; ok {
+			src := e.G.Obj(sv.Source)
+			if src == nil || !affectedZoneOK(az, src.Zone) {
+				continue
+			}
+		}
 		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil || !spellMatchesValidSA(o.Face(), sv.Params["ValidSA"]) {
+		if o == nil || o.Face() == nil || !spellMatchesValidSA(o.Face(), sv.Params["ValidSA"], id, sv.Source) {
 			continue
 		}
 		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
@@ -506,7 +516,15 @@ func (e *Engine) countStaticPresent(sv staticView, spec string) int {
 // spellMatchesValidSA checks the spell-side subset of Forge's ValidSA grammar.
 // Activated-only or target/X-dependent constraints are not knowable before
 // announcing a spell and therefore do not accidentally grant flash timing.
-func spellMatchesValidSA(f *cards.Face, raw string) bool {
+// id is the card the cast offers and staticSource the static's source: the
+// "Spell.Self" form (115 corpus lines, all on self-granting AlternativeCost
+// statics, Daze the most-played) means the affected card itself is the spell
+// -- true exactly when the cast card IS the static's source (the card's own
+// S: line, where alternativeCosts builds the view with source == id), false
+// for a grant from another permanent. Constraint values beyond Self
+// (XCostLE3, Teamwork, IsTargeting...) are unimplemented shapes and fail
+// closed.
+func spellMatchesValidSA(f *cards.Face, raw string, id, staticSource state.ObjID) bool {
 	if strings.TrimSpace(raw) == "" {
 		return true
 	}
@@ -515,6 +533,9 @@ func spellMatchesValidSA(f *cards.Face, raw string) bool {
 		switch kind {
 		case "Spell":
 			if constraint == "" {
+				return true
+			}
+			if constraint == "Self" && id == staticSource {
 				return true
 			}
 		case "Instant":
@@ -573,6 +594,10 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 			}
 		}
 	}
+	// A MayPlay static's MayPlayAltManaCost$ (Darksteel Monolith) is the same
+	// "pay THIS instead of the mana cost" shape delivered by the may-play
+	// family; the family root carries its own gates and limit.
+	out = append(out, e.mayPlayAltCosts(p, id)...)
 	return out
 }
 
@@ -633,6 +658,48 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 		}
 	}
 	return true
+}
+
+// onlyFirstSpellUsed reports whether a ReduceCost static carrying
+// OnlyFirstSpell$ (Conduit of Ruin: "The first creature spell you cast each
+// turn costs {2} less") has already spent its this-turn application: a covered
+// spell was cast by the payer earlier in the turn. The answer is a log walk
+// over PutOnStack events back to the last TurnChange (cast.go's
+// spellsCastThisTurn derivation), so a replay agrees by construction, and it
+// counts the ValidCard$-covered casts -- the oracle's "first creature spell"
+// is first among the covered kind, not first among all spells.
+//
+// Every cost-static evaluation site runs BEFORE the cast's own PutOnStack
+// exists (the offer walk, beginCast's modifier snapshot, and the
+// target-announcement recompute all precede pushCast -- CR 601.2f's
+// modifiers are computed into pc.mods and manaToPay only reads them), so the
+// in-flight cast is never in the log while it is being priced. The ev.Obj ==
+// id exclusion is defensive against a future evaluation site past the push:
+// the cast being priced must not count as its own "previous cast".
+//
+// A cast whose object no longer carries a face (or whose face the spec cannot
+// re-evaluate) is not counted -- the missing-match direction for a USED
+// tracking, which widens the discount by at most one cast on a board this
+// build cannot reconstruct, never withholds it.
+func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.ObjID) bool {
+	spec := strings.TrimSpace(sv.Params["ValidCard"])
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind != events.PutOnStack || ev.Player != p || ev.Obj == id {
+			continue
+		}
+		if spec == "" {
+			return true
+		}
+		if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil &&
+			effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(sv.Source, sv.Controller)) {
+			return true
+		}
+	}
+	return false
 }
 
 // blockRestricted reports whether blocker is forbidden from blocking
@@ -1337,6 +1404,14 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 	if !e.costActorMatches(sv, p) {
 		return false
 	}
+	if strings.EqualFold(strings.TrimSpace(sv.Params["OnlyFirstSpell"]), "True") &&
+		e.onlyFirstSpellUsed(sv, p, id) {
+		// OnlyFirstSpell$ (Conduit of Ruin: "The first creature spell you cast
+		// each turn costs {2} less"): the reduction is spent once the
+		// turn's first covered spell has been announced. See
+		// onlyFirstSpellUsed for the tracking.
+		return false
+	}
 	if spec, ok := sv.Params["ValidCard"]; ok && !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
 		return false
 	}
@@ -1612,7 +1687,12 @@ func (e *Engine) spellConstraintMatches(scope costScope, id state.ObjID, constra
 	case "Flashback":
 		return scope.mode == "flashback"
 	case "Kicked":
-		return scope.mode == "kicked"
+		// The bare form is the single-cost Kicker's mode; the and/or
+		// two-part Kicker's per-part modes (kicked1/kicked2/kickedboth) are
+		// kicked casts too -- a cost static gated on "was this kicked" must
+		// not depend on WHICH part was paid.
+		return scope.mode == "kicked" || scope.mode == "kicked1" ||
+			scope.mode == "kicked2" || scope.mode == "kickedboth"
 	case "Surged":
 		return scope.mode == "surged"
 	case "Miracle":

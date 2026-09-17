@@ -1181,16 +1181,20 @@ var apiSpecificRulesSA = map[string][]string{
 	// "another activated ability" condition). A plain AB$ Mana ability's
 	// IsPresent$ gate is a separate, still-unread shape.
 	"Engine.manaReflectedPresentHolds": {"ManaReflected"},
-	"Engine.emitManaTap":               {"Mana"},
-	"Engine.isTriggeredManaAbility":    {"Mana"},
-	"triggeredManaColourChoice":        {"Mana"},
-	"Engine.resolveManaAbility":        {"Mana"},
-	"Engine.resolveManaEffect":         {"Mana"},
-	"manaColourPrompt":                 {"Mana"},
-	"Engine.AvailableMana":             {"Mana"},
-	"addAvailable":                     {"Mana"},
-	"availableAmount":                  {"Mana"},
-	"activatedMatchesValidSA":          {"Mana"},
+	// The plain-Mana activation gate (Shrine of the Forsaken Gods'
+	// IsPresent$/PresentCompare$, Urza's Workshop's Activation$ Metalcraft):
+	// only a plain AB$ Mana ability's offer runs it.
+	"Engine.manaActivationGateHolds": {"Mana"},
+	"Engine.emitManaTap":             {"Mana"},
+	"Engine.isTriggeredManaAbility":  {"Mana"},
+	"triggeredManaColourChoice":      {"Mana"},
+	"Engine.resolveManaAbility":      {"Mana"},
+	"Engine.resolveManaEffect":       {"Mana"},
+	"manaColourPrompt":               {"Mana"},
+	"Engine.AvailableMana":           {"Mana"},
+	"addAvailable":                   {"Mana"},
+	"availableAmount":                {"Mana"},
+	"activatedMatchesValidSA":        {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
@@ -1205,6 +1209,12 @@ var apiSpecificRulesSA = map[string][]string{
 	// suspend with an UnlessCost$ ask, so resumeResolution's UnlessCost$
 	// read belongs to those two APIs alone.
 	"Engine.resumeResolution": {"Counter", "CopySpellAbility"},
+	// The cast-offer ETB-choice walk (rules/cast.go collectETBChoices): it
+	// reads the ReplaceWith$ body's ValidCards$/Type$ for the NameCard /
+	// ChooseType / ChooseNumber "as this enters" choices -- the etbChoiceKind
+	// switch dispatches on exactly those three apis, so the reads belong to
+	// them alone and must not join the generic rules union.
+	"Engine.collectETBChoices": {"NameCard", "ChooseType", "ChooseNumber"},
 	// The ward payment path: only the Ward keyword's expanded trigger
 	// reaches these (resumeResolution dispatches on rp.sa.API == "Ward"),
 	// so their UnlessCost$ reads belong to api:Ward alone -- left in the
@@ -1263,6 +1273,12 @@ var apiSpecificRulesStat = map[string]string{
 	// Continuous static.
 	"Engine.mayPlayGrant":  "Continuous.MayPlay",
 	"warpGraveyardAllowed": "Continuous.MayPlay",
+	// The alt-cost delivery path (rules/mayplay.go's mayPlayAltCosts, called
+	// from alternativeCosts): it reads MayPlay statics' MayPlayAltManaCost$
+	// live -- Darksteel Monolith's "pay {0} rather than the mana cost" --
+	// so its read is family-attributed like the grant path's, never in the
+	// generic Continuous union.
+	"Engine.mayPlayAltCosts": "Continuous.MayPlay",
 }
 
 // statFamilyInternal names the rules functions whose static reads are family
@@ -1873,7 +1889,19 @@ func measureParamCensus(t *testing.T, drop map[string]map[string]bool) (censusRe
 // cannot silently evade the ratchet merely because it is not a Params entry.
 func faceUnknownCostLabels(f *cards.Face) []string {
 	inputs := []string{f.ManaCost}
-	for _, keyword := range [...]string{"Kicker", "Surge", "Flashback", "Miracle"} {
+	// The and/or two-part Kicker (Forge's colon-separated Kicker:<a>:<b>,
+	// Wastescape Battlemage's "Kicker {G} and/or {1}{U}"): its parts are
+	// parsed SEPARATELY by rules' cast-time option family (twoPartKickerCosts
+	// offers one cast per payable part), so the census walks the same two
+	// parses -- a clean two-part form labels nothing, and a colon form whose
+	// parts do not parse falls back to the raw string so the unknown stays
+	// labelled. A colon-free param is the single-cost Kicker and parses raw.
+	if _, _, two := twoPartKickerCosts(f); two {
+		// both parts parsed clean inside twoPartKickerCosts; nothing to label
+	} else if cost, ok := f.KeywordParam("Kicker"); ok {
+		inputs = append(inputs, cost)
+	}
+	for _, keyword := range [...]string{"Surge", "Flashback", "Miracle"} {
 		if cost, ok := f.KeywordParam(keyword); ok {
 			inputs = append(inputs, cost)
 		}
@@ -2093,57 +2121,39 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 var knownUnsupportedParams = map[string][]string{
 	"Spinerock Knoll":             {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"Ad Nauseam":                  {"param:api:Repeat.RepeatOptional"},
-	"Adaptive Automaton":          {"param:api:ChooseType.Type"},
 	"Aftermath Analyst":           {"param:api:ChangeZoneAll.Tapped"},
-	"Angelic Accord":              {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Angelic Skirmisher":          {"param:api:Pump.KWChoice"},
 	"Army of the Damned":          {"param:api:Token.TokenTapped"},
 	"Baloth Prime":                {"param:api:Token.TokenTapped"},
 	"Bile Blight":                 {"param:api:Pump.RememberTargets"},
-	"Blazemire Verge":             {"param:api:Mana.IsPresent"},
-	"Bloodchief Ascension":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
-	"Cavern of Souls":             {"param:api:ChooseType.Type", "param:api:Mana.AddsNoCounter"},
+	"Cavern of Souls":             {"param:api:Mana.AddsNoCounter"},
 	"Chandra, Awakened Inferno":   {"param:api:DealDamage.ReplaceDyingDefined"},
 	"Conduit of Worlds":           {"param:api:Play.RememberPlayed"},
-	"Dark Fortress":               {"param:api:Mana.IsPresent"},
-	"Defense of the Heart":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
-	"Delver of Secrets":           {"param:api:PeekAndReveal.PeekAmount"},
 	"Exploration Broodship":       {"param:stat:Continuous.AddStaticAbility"},
 	"Flickerwisp":                 {"param:api:DelayedTrigger.RememberObjects"},
 	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
 	"Jace, the Mind Sculptor":     {"param:api:ChangeZoneAll.Shuffle"},
 	"Journey to Nowhere":          {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
 	"Karn Liberated":              {"param:api:ChangeZoneAll.GainControl", "param:api:RestartGame.RestrictFromValid", "param:api:RestartGame.RestrictFromZone"},
-	"Knight of the White Orchid":  {"param:trig:ChangesZone.CheckSVar", "param:trig:ChangesZone.SVarCompare"},
-	"Land Tax":                    {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Leonin Relic-Warder":         {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
 	"Lion's Eye Diamond":          {"param:api:Mana.InstantSpeed"},
 	"Master of Etherium":          {"param:stat:Continuous.CharacteristicDefining"},
 	"Mistveil Plains":             {"param:api:ChangeZone.IsPresent", "param:api:ChangeZone.PresentCompare"},
 	"Mogis, God of Slaughter":     {"param:stat:Continuous.RemoveType"},
 	"Myriad Landscape":            {"param:api:ChangeZone.ShareLandType"},
-	"Necrodominance":              {"param:stat:Continuous.SetMaxHandSize"},
 	"Necropotence":                {"param:api:ChangeZone.ExileFaceDown", "param:api:DelayedTrigger.RememberObjects", "param:api:DelayedTrigger.ValidPlayer"},
 	"Ojer Axonil, Deepest Might":  {"param:api:ChangeZone.Transformed"},
 	"Oracle of Mul Daya":          {"param:stat:Continuous.MayLookAt"},
 	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
 	"Planetary Annihilation":      {"param:api:ChooseCard.Reveal"},
 	"Purphoros, God of the Forge": {"param:stat:Continuous.RemoveType"},
-	"Resplendent Angel":           {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Skyclave Apparition":         {"param:api:Token.TokenPower", "param:api:Token.TokenToughness"},
 	"Snapcaster Mage":             {"param:api:Pump.PumpZone"},
 	"Splendid Reclamation":        {"param:api:ChangeZoneAll.Tapped"},
 	"Steel Leaf Champion":         {"param:stat:CantBlockBy.ValidAttacker"},
 	"Sword of Fire and Ice":       {"param:stat:Continuous.AddSVar"},
-	"Tainted Peak":                {"param:api:Mana.IsPresent"},
-	"Temple of the False God":     {"param:api:Mana.IsPresent", "param:api:Mana.PresentCompare"},
 	"Terminus":                    {"param:api:ChangeZoneAll.LibraryPosition"},
-	"Thornspire Verge":            {"param:api:Mana.IsPresent"},
-	"Valakut Exploration":         {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
-	"Valkyrie Harbinger":          {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.MinChoiceAmount"},
-	"Wastewood Verge":             {"param:api:Mana.IsPresent"},
-	"Whisperer of the Wilds":      {"param:api:Mana.IsPresent"},
 	"World Shaper":                {"param:api:ChangeZoneAll.Tapped", "param:api:Mill.Optional"},
 	"Wrenn and Six":               {"param:api:Effect.Stackable"},
 	"Zombie Apocalypse":           {"param:api:ChangeZoneAll.Tapped"}}
@@ -2480,8 +2490,11 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	res, d := measureParamCensus(t, nil)
 	// The MayPlay family's read set: the generic Continuous union PLUS the
-	// genuinely evaluated MayPlay gates.
-	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit"} {
+	// genuinely evaluated MayPlay gates. MayPlayAltManaCost$ joined with the
+	// alt-cost delivery (mayPlayAltCosts genuinely offers the priced
+	// alternative -- Darksteel Monolith's "pay {0}") after having been a
+	// fail-closed recognition.
+	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit", "MayPlayAltManaCost"} {
 		if !d.stat["Continuous.MayPlay"][key] {
 			t.Errorf("d.stat[Continuous.MayPlay][%q] = false -- the family attribution lost a real MayPlay-gate read", key)
 		}
@@ -2494,12 +2507,18 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// IsPresent$ is in the same position: rules/layers.go's
 	// continuousGateHolds genuinely evaluates it on every generic Continuous
 	// static (Angelic Overseer's Human check, Static Orb's untapped state).
-	for _, key := range []string{"CharacteristicDefining", "ValidAfterStack", "RaiseCost", "MayPlayAltManaCost", "MayPlayPlayer"} {
+	for _, key := range []string{"CharacteristicDefining", "ValidAfterStack", "RaiseCost", "MayPlayPlayer"} {
 		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
 			if d.stat[mode][key] {
 				t.Errorf("d.stat[%q][%q] = true -- the fail-closed recognition read still over-suppresses this key", mode, key)
 			}
 		}
+	}
+	// MayPlayAltManaCost$ is read on the FAMILY (mayPlayAltCosts) but must
+	// stay out of the generic Continuous union: a plain Continuous static's
+	// unread key must not be masked by a MayPlay-only reader.
+	if d.stat["Continuous"]["MayPlayAltManaCost"] {
+		t.Errorf("d.stat[Continuous][MayPlayAltManaCost] = true -- the alt-cost reader over-suppresses the generic Continuous bucket")
 	}
 	// ... and the family-scoped reads must be OUT of the generic union.
 	// Condition$ joined the generic bucket with the statics merge: the
@@ -2551,8 +2570,9 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 		}
 	}
 	for card, banned := range map[string]string{
-		"Gravecrawler":      "param:stat:Continuous.MayPlay.IsPresent", // genuinely evaluated, real card test
-		"Evendo Brushrazer": "param:stat:Continuous.MayPlay.Condition", // Condition$ PlayerTurn is read
+		"Gravecrawler":       "param:stat:Continuous.MayPlay.IsPresent",          // genuinely evaluated, real card test
+		"Evendo Brushrazer":  "param:stat:Continuous.MayPlay.Condition",          // Condition$ PlayerTurn is read
+		"Darksteel Monolith": "param:stat:Continuous.MayPlay.MayPlayAltManaCost", // genuinely priced by mayPlayAltCosts
 	} {
 		for _, l := range res.labels[card] {
 			if l == banned {

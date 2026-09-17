@@ -95,6 +95,14 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			controller = p
 		}
 	}
+	// IgnoreFreeze$ True (Ulalek, Fused Atrocity's copy trigger; Forge's
+	// generic copy template carries it too): Forge MagicStack's frozen flag
+	// blocks adding to the stack while it holds, and a copy SA carrying this
+	// key is exempt. This engine has no stack freeze -- nothing in the
+	// implemented ruleset suspends stack additions -- so there is no gate to
+	// relax; the recognition read documents the parameter so the census never
+	// flags it unread (review sol2: the earlier empty if-block was dropped).
+	_ = sa.Params["IgnoreFreeze"]
 	mayChoose := strings.EqualFold(strings.TrimSpace(sa.Params["MayChooseTarget"]), "True")
 	for n := Num(h, c, sa, "Amount", 1); n > 0; n-- {
 		h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: controller})

@@ -193,6 +193,7 @@ func boardFromView(v view.View) botpolicy.Board {
 					CMC:           botpolicy.CmcOf(cv.ManaCost),
 					Basic:         hasBasicView(cv),
 					AttachedTo:    cv.AttachedTo,
+					Activated:     cv.ActivatedThisTurn,
 					ManaCost:      cv.ManaCost,
 					Castable:      castable(cv),
 					OnBattlefield: battlefield,

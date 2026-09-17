@@ -458,6 +458,7 @@ func Apply(g *state.Game, e Event) {
 			for i := range g.Objs {
 				g.Objs[i].EnteredThisTurn = false
 				g.Objs[i].WasDealtDamageThisTurn = false
+				g.Objs[i].ActivatedThisTurn = 0
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
@@ -971,6 +972,12 @@ func Apply(g *state.Game, e Event) {
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = f.Abilities[e.Amount]
 		o.Source = e.Obj
+		// The per-source activation census (state/object.go's
+		// ActivatedThisTurn): one AbilityPush per non-mana activation, folded
+		// onto the source the same way the other per-turn object facts are.
+		if src.Zone == state.ZBattlefield {
+			src.ActivatedThisTurn++
+		}
 		// Same PlayerRef decode as TriggerPush above (FL-41): an activated
 		// ability can remember a player the same way a trigger can, so the
 		// two mint paths stay symmetric through rememberedFrom.

@@ -39,6 +39,26 @@ import (
 //     general cost read, not an equipment special case; an ability whose
 //     label carries no number is treated as costly (ranks below a
 //     provably-free one).
+//   - A5 (repeatability budget): an ability whose source has already been
+//     activated maxActivationsPerTurn times this turn is never activated
+//     again (Board.Card.Activated reads state.Object.ActivatedThisTurn, the
+//     events.Apply AbilityPush census). The rule exists because some
+//     repeatable abilities form a cycle with the bot's own tap gate: Basalt
+//     Monolith's "{3}: Untap this artifact" re-enables the {T} the tap gate
+//     (T1's need gate) just spent the produced mana on, and the pair loops
+//     forever -- net zero mana, board unchanged, one decision per cycle
+//     (measured: seed 0 of the ulalek-eldrazi commander deck spun past
+//     60,000 intents on turn 5 with only Tap/ManaAdd/AbilityPush events in
+//     the window). The budget is bot-quality advice, never a rules gate: a
+//     human seat's offers are unlimited (CR 605.1a) and the engine never
+//     withholds anything for it. Four activations per source per turn is
+//     generous for real repeat uses (double equip triggers, repeated land
+//     returns) while each cycle consumes the budget, so every turn ends:
+//     after the budget the policy falls through to its explicit pass
+//     (A4), and with the untap declined the tap gate has nothing left to
+//     re-enable. No map iteration reaches a choice (the count is a scalar
+//     per option) and the pick stays a pure function of the Board, the
+//     decision and the rng consumption points.
 //   - A3 (deterministic tie): two abilities of equal score tie on option
 //     index, so the whole function (and the policy through it) stays a pure
 //     function of (Board, Decision, rng consumption points). No wall clock
@@ -61,6 +81,9 @@ func (b Board) abilityScore(o decision.Option, me state.PlayerID) (score int32, 
 	}
 	if b.grantNoOp(o) {
 		return 0, false // A1: a redundant keyword grant is never activated.
+	}
+	if b.Cards[o.Obj].Activated >= maxActivationsPerTurn {
+		return 0, false // A5: the repeatability budget is spent.
 	}
 	// A2: cheaper ranks higher (only among worth-taking abilities; A1 above
 	// already returned for the no-op case).
@@ -212,3 +235,11 @@ func (b Board) chooseAbility(d *decision.Decision) int {
 	}
 	return best
 }
+
+// maxActivationsPerTurn is A5's per-source, per-turn budget on the bot's own
+// non-mana ability activations (state.Object.ActivatedThisTurn's census).
+// Advice on the BOT's own behaviour only -- never an engine gate, so a human
+// seat's unlimited activations (CR 605.1a) are untouched -- and generous
+// enough that every legitimate repeat use this deck's cards ask for
+// (double-kicker triggers, repeated equip re-sites) still happens.
+const maxActivationsPerTurn = 4
