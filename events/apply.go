@@ -93,13 +93,38 @@ func Apply(g *state.Game, e Event) {
 				// ChangeZone-to-exile records the separate exiledCards list.
 				// Both associations survive replay, but only the latter is
 				// pruned when its card leaves exile (in Move below).
-				list := &o.Imprinted
-				if e.Text == "exiled-with" {
-					list = &o.ExiledCards
-				}
-				for _, id := range e.IDs {
-					if g.Obj(id) != nil {
-						*list = append(*list, id)
+				// Text "until-host-leaves" records ChangeZone's Duration$
+				// UntilHostLeavesPlay association on the SOURCE object: the
+				// exiled cards (IDs) come back to the zone carried in Amount
+				// when the source leaves the battlefield (rules sweepExileReturn).
+				if e.Text == "until-host-leaves" {
+					from := state.Zone(e.Amount)
+					if from.Valid() {
+						for _, id := range e.IDs {
+							if g.Obj(id) == nil {
+								continue
+							}
+							dupe := false
+							for _, en := range o.ExileReturn {
+								if en.Obj == id {
+									dupe = true
+									break
+								}
+							}
+							if !dupe {
+								o.ExileReturn = append(o.ExileReturn, state.ExileReturnEntry{Obj: id, From: from})
+							}
+						}
+					}
+				} else {
+					list := &o.Imprinted
+					if e.Text == "exiled-with" {
+						list = &o.ExiledCards
+					}
+					for _, id := range e.IDs {
+						if g.Obj(id) != nil {
+							*list = append(*list, id)
+						}
 					}
 				}
 			}
@@ -1011,9 +1036,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// imprint. Once this object leaves exile it is a new object for that
 		// association, even if a later effect exiles the same engine ObjID.
 		// Do this inside Apply's Move fold so live play and log replay prune
-		// every source's list identically.
+		// every source's list identically. The ExileReturn list (ChangeZone's
+		// Duration$ UntilHostLeavesPlay) prunes identically: a card that left
+		// exile by any other path is no longer its exiler's business to return.
 		for i := range g.Objs {
 			g.Objs[i].ExiledCards = withoutObjID(g.Objs[i].ExiledCards, id)
+			g.Objs[i].ExileReturn = withoutExileReturnObj(g.Objs[i].ExileReturn, id)
 		}
 	}
 	if wasBattlefield && to != state.ZBattlefield {
@@ -1201,6 +1229,25 @@ func withoutObjID(ids []state.ObjID, id state.ObjID) []state.ObjID {
 		return out
 	}
 	return ids
+}
+
+// withoutExileReturnObj drops every ExileReturn entry naming id, preserving
+// the order of the survivors (the same withoutObjID contract for the
+// entry-valued list).
+func withoutExileReturnObj(entries []state.ExileReturnEntry, id state.ObjID) []state.ExileReturnEntry {
+	for i, got := range entries {
+		if got.Obj != id {
+			continue
+		}
+		out := append([]state.ExileReturnEntry(nil), entries[:i]...)
+		for _, got := range entries[i:] {
+			if got.Obj != id {
+				out = append(out, got)
+			}
+		}
+		return out
+	}
+	return entries
 }
 
 func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
