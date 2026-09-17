@@ -26,6 +26,25 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	// expression. knownDefinedTargets is deliberately stricter for callers
 	// that need a fail-closed fetch-list classification, not a new public
 	// contract for ordinary effects.
+	if sa.Params["Defined"] == "Imprinted" || sa.Params["Defined"] == "ImprintedLKI" {
+		// Ordinary (non-fetch-list) Imprinted resolution: the source's
+		// Imprinted association. knownDefinedTargets deliberately does NOT
+		// recognise this selector (TestImprintedDefinedLibraryFetchFailsClosed
+		// pins a hidden-library Imprinted fetch as a fail-closed no-op, since
+		// Imprinted has no persisted library-position context), so this stays
+		// scoped to Defined's own broader fallback contract.
+		g := h.Game()
+		if o := g.Obj(c.Source); o != nil {
+			out := make([]state.Target, 0, len(o.Imprinted))
+			for _, id := range o.Imprinted {
+				if g.Obj(id) != nil {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			return out
+		}
+		return nil
+	}
 	if strings.Contains(sa.Params["Defined"], " & ") {
 		var out []state.Target
 		for _, part := range strings.Split(sa.Params["Defined"], " & ") {
@@ -63,6 +82,21 @@ func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// parameter after one space ("ValidStack Spell.OppCtrl,...").
 	if stackSpec, ok := strings.CutPrefix(spec, "ValidStack"); ok {
 		return validStackTargets(g, strings.TrimSpace(stackSpec), c), true
+	}
+	// Defined$ Remembered.<spec>: the subset of the resolution's Remembered
+	// objects matching <spec>, evaluated as a Card filter (Regrowth-shaped
+	// "each card exiled this way" follow-ups that narrow Remembered by type
+	// or predicate rather than acting on the whole set).
+	if filterSpec, ok := strings.CutPrefix(spec, "Remembered."); ok {
+		var out []state.Target
+		for _, t := range c.Remembered {
+			if !t.IsPlayer {
+				if o := g.Obj(t.Obj); o != nil && MatchesObjectCtx(g, "Card."+filterSpec, o, c.SpecContext(c.Controller)) {
+					out = append(out, t)
+				}
+			}
+		}
+		return out, true
 	}
 	if ts, ok := definedSpec(h, c, spec); ok {
 		return ts, true
@@ -384,6 +418,58 @@ func relatedPlayers(g *state.Game, ts []state.Target, owner bool) []state.Target
 // backing array. A nil s yields nil, not an empty-but-non-nil slice, so
 // Defined's observable results are unchanged for every input — only the
 // aliasing is fixed.
+// eventRemember records one remembered card on the resolution's source with
+// the event-backed Choose entry Forge's host.addRemembered writes. The
+// ctx-level list a chained SubAbility reads is the caller's job; this is the
+// persistent half -- the source object's event-backed Remembered list, which
+// survives the resolution and is what Card.IsRemembered and
+// Count$RememberedSize read later (Forge's host card remembered list).
+func eventRemember(h Host, c *Ctx, id state.ObjID) {
+	if c.Source == 0 {
+		return
+	}
+	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered", IDs: []state.ObjID{id}})
+}
+
+// clearEventRemembered mirrors Forge host.clearRemembered.  Rider primitives
+// call it before replacing their ctx set, so Count$RememberedSize and a later
+// resolution observe exactly the same persistent set as the current chain.
+// imprint records Forge's host.addImprintedCards. TargetedSource names the
+// source card of a targeted stack ability when one exists; ordinary targets
+// are themselves cards. The one shared resolver is used by every API so a
+// future ImprintCards$ rider cannot be accidentally skipped by its primitive.
+func imprint(h Host, c *Ctx, sa *cards.SA) {
+	if c.Source == 0 || strings.TrimSpace(sa.Params["ImprintCards"]) == "" {
+		return
+	}
+	var ids []state.ObjID
+	for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": sa.Params["ImprintCards"]}}) {
+		if t.IsPlayer {
+			continue
+		}
+		id := t.Obj
+		if sa.Params["ImprintCards"] == "TargetedSource" {
+			if o := h.Game().Obj(id); o != nil && o.Source != 0 {
+				id = o.Source
+			}
+		}
+		if h.Game().Obj(id) != nil {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) > 0 {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids})
+	}
+}
+
+func clearEventRemembered(h Host, c *Ctx) {
+	if c.Source != 0 {
+		if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
+			h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
+		}
+	}
+}
+
 func copyTargets(s []state.Target) []state.Target {
 	return append([]state.Target(nil), s...)
 }

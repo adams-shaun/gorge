@@ -495,6 +495,13 @@ func TestControlEndsAtEndOfCombatAndWhenAuraUnattaches(t *testing.T) {
 	sa = cards.ResolveSVar(eriette.Face().SVars, "TrigGainControl")
 	ctx = &effects.Ctx{Source: eriette.ID, Controller: 0, Targets: []state.Target{{Obj: victim.ID}}, SVars: eriette.Face().SVars}
 	ctx.TriggerSource = aura.ID
+	// Eriette's script is `Defined$ TriggeredTarget`: the triggering
+	// permanent the Aura became attached to. The fixture supplies the
+	// binding a real Attached-trigger capture would carry (previously the
+	// unbound form fell back to the resolution's Targets; it now fails
+	// closed like every other known-but-absent referent, so the fixture
+	// must carry the referent itself).
+	ctx.TriggerTarget = state.Target{Obj: victim.ID}
 	effects.Resolve(e, ctx, sa)
 	if e.G.Obj(victim.ID).Controller != 0 {
 		t.Fatalf("Eriette did not gain control: controller %d", e.G.Obj(victim.ID).Controller)

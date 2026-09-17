@@ -124,7 +124,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 // never matches" — so every non-X name and every no-cast caller behaves
 // exactly as before.
 func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID) effects.SpecContext {
-	return effects.SpecContext{You: you, Source: source, TriggerContext: e.triggerContexts[stack],
+	sc := effects.SpecContext{You: you, Source: source, TriggerContext: e.triggerContexts[stack],
 		Resolve: func(name string) (int32, bool) {
 			if !strings.EqualFold(name, "X") {
 				return 0, false
@@ -141,4 +141,14 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 			}
 			return 0, false
 		}}
+	// The stack object's Remembered (the trigger-captured set for a
+	// triggered ability) feeds the IsRemembered predicate at offer/placement
+	// time, exactly as the resolution's own Ctx feeds it later -- Forge's
+	// IsRemembered is a property of the host card's remembered list either
+	// way. A cast proposal (stack == the card) and an ability proposal
+	// (stack == 0) carry no remembered set, so this changes nothing for them.
+	if o := e.G.Obj(stack); o != nil {
+		sc.Remembered = append(sc.Remembered, o.Remembered...)
+	}
+	return sc
 }

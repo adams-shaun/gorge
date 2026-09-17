@@ -864,9 +864,30 @@ func TestEffectRecordsTheIntendedRegistration(t *testing.T) {
 	}
 }
 
-func TestCleanupRecordsANote(t *testing.T) {
+func TestCleanupClearRememberedEmitsTheClearAndEmptiesTheList(t *testing.T) {
 	h := newHost(t, 2)
-	Resolve(h, &Ctx{Controller: 0, Source: 1}, sa(t, "DB$ Cleanup | ClearRemembered$ True"))
+	src := h.g.AddObject(mkCard(t, "Name:Src\nTypes:Instant\nOracle:x\n"), 0)
+	mem := h.g.AddObject(mkCard(t, "Name:Mem\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	// Seed the source's event-backed remembered list, then clear it: the
+	// clear is a real event (a replay must fold the same empty list), and
+	// the ctx-level list goes with it.
+	h.Emit(events.Event{Kind: events.Choose, Obj: src.ID, Counter: "remembered", IDs: []state.ObjID{mem.ID}})
+	c := &Ctx{Controller: 0, Source: src.ID, Remembered: []state.Target{{Obj: mem.ID}}}
+	Resolve(h, c, sa(t, "DB$ Cleanup | ClearRemembered$ True"))
+	if len(h.g.Obj(src.ID).Remembered) != 0 {
+		t.Fatalf("source remembered = %+v, want empty", h.g.Obj(src.ID).Remembered)
+	}
+	if len(c.Remembered) != 0 {
+		t.Fatalf("ctx remembered = %+v, want empty", c.Remembered)
+	}
+	if len(h.log) != 2 || h.log[1].Kind != events.Choose || h.log[1].Counter != "clear-remembered" {
+		t.Fatalf("log = %+v", h.log)
+	}
+}
+
+func TestCleanupWithoutClearRememberedStillRecordsANote(t *testing.T) {
+	h := newHost(t, 2)
+	Resolve(h, &Ctx{Controller: 0, Source: 1}, sa(t, "DB$ Cleanup"))
 	if len(h.log) != 1 || h.log[0].Kind != events.Note {
 		t.Fatalf("log = %+v", h.log)
 	}

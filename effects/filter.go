@@ -231,6 +231,12 @@ const (
 	// The two-token space form "AttachedTo <X>": <X> is a literal type or
 	// object class answerable from the object in hand (the base grammar).
 	wordAttachedTo
+	// Forge's zone-entry history predicates: "ThisTurnEntered" (the object
+	// entered a zone this turn, any zone) and "ThisTurnEnteredFrom_<Zone>"
+	// (it entered from <Zone>). Both read the per-object entry provenance
+	// events.Move records, which the Count$ThisTurnEntered_* heads share.
+	wordThisTurnEntered
+	wordThisTurnEnteredFrom
 	// The "<Colour>Source" family (Ojer Axonil's Card.RedSource+YouCtrl):
 	// the object is a source carrying that colour -- CR 700.7's "a red
 	// source" is a source with red in its colour characteristics, which for
@@ -238,10 +244,6 @@ const (
 	// Colorless member is a source with no colours at all.
 	wordColourSource
 	wordColourSourceless
-	// IsRemembered is resolution-local: it compares the candidate against the
-	// resolving Ctx's remembered object list, never an object's persistent
-	// event-backed remembered state.
-	wordIsRemembered
 	// The name-predicate family (Forge CardProperty): named<Name> and
 	// notnamed<Name> compare the candidate's name characteristics with the
 	// argument text (key carries it, `;`/`_` normalised); sameName compares
@@ -314,11 +316,15 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordBlockingSource, ""
 	case "blockedBySource":
 		return wordBlockedBySource, ""
-	case "IsRemembered":
-		return wordIsRemembered, ""
 	}
 	if targetReferent(p) {
 		return wordTargetedPlayerCtrl, ""
+	}
+	if p == "ThisTurnEntered" {
+		return wordThisTurnEntered, ""
+	}
+	if z, is := strings.CutPrefix(p, "ThisTurnEnteredFrom_"); is && zoneWordKnown(z) {
+		return wordThisTurnEnteredFrom, z
 	}
 	// The two-token space form "AttachedTo <X>": the whole "AttachedTo
 	// Creature" token survives the spec splitter (a space is not a ',' '.'
@@ -334,6 +340,26 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordType, p
 	}
 	return wordUnknown, ""
+}
+
+// zoneWords maps the zone names the corpus's ThisTurnEnteredFrom_<Zone>
+// predicate (and Forge's ZoneType.smartValueOf) spells to state zones.
+var zoneWords = map[string]state.Zone{
+	"Battlefield": state.ZBattlefield,
+	"Graveyard":   state.ZGraveyard,
+	"Hand":        state.ZHand,
+	"Library":     state.ZLibrary,
+	"Exile":       state.ZExile,
+	"Stack":       state.ZStack,
+	"Command":     state.ZCommand,
+}
+
+// zoneWordKnown reports whether a word names a zone (zoneWords membership),
+// the recognition half of the ThisTurnEnteredFrom_<Zone> classifier -- an
+// unknown zone word stays wordUnknown and fails closed.
+func zoneWordKnown(z string) bool {
+	_, ok := zoneWords[z]
+	return ok
 }
 
 // wordMatches reports whether an object satisfies a positively-evaluated
@@ -406,6 +432,16 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordTargetedPlayerCtrl:
 		matched, ok := matchTargetedPlayerCtrl(g, o, sc)
 		return ok && matched
+	case wordThisTurnEntered:
+		// Forge's ThisTurnEntered: the object entered a zone this turn (any
+		// zone). The flag is the same per-object provenance
+		// events.Move records that the Count$ThisTurnEntered_* heads read.
+		return o.EnteredThisTurn
+	case wordThisTurnEnteredFrom:
+		// Forge's ThisTurnEnteredFrom_<Zone>: the object entered from <Zone>
+		// this turn. An unknown zone word never reaches here (the classifier
+		// fails closed), so the map lookup cannot miss.
+		return o.EnteredThisTurn && o.EnteredFrom == zoneWords[key]
 	case wordNamed:
 		// Forge CardProperty "named<X>": card.sharesNameWith the argument.
 		return sharesName(o, key)
@@ -445,13 +481,6 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			return false
 		}
 		return matchesBase(g, key, a)
-	case wordIsRemembered:
-		for _, t := range sc.Remembered {
-			if !t.IsPlayer && t.Obj == o.ID {
-				return true
-			}
-		}
-		return false
 	}
 	return false
 }
@@ -492,6 +521,19 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
+	if p == "IsRemembered" || strings.HasPrefix(p, "greatestPower") {
+		return true
+	}
+	if positiveRecognisedWord(p) {
+		return true
+	}
+	return false
+}
+
+// positiveRecognisedWord is the wordPredicate-driven half of
+// positiveRecognised: a recognised classifier word (map predicate, numeric
+// predicate, generic non<X> negation, or wordPredicate word).
+func positiveRecognisedWord(p string) bool {
 	if p == "ChosenCard" || p == "nonChosenCard" || p == "RememberedPlayerCtrl" {
 		return true
 	}
@@ -683,6 +725,88 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// player there is no binding, so it fails closed even beneath '!'.
 		return matchControlReferent(g, o, sc, "ControlledBy", "RememberedPlayer")
 	}
+	if p == "IsRemembered" {
+		// Forge's IsRemembered (CardProperty "IsRemembered" ->
+		// source.isRemembered(card)): the candidate is in the remembered list
+		// of the resolving ability's source. Two bindings approximate the one
+		// Forge list and are UNIONED, both fail-closed to no-match when empty:
+		// the resolution's Remembered set (Ctx.Remembered -- what
+		// RememberChanged$/RememberChosen$/RememberDiscarded$ and the trigger
+		// capture added this walk, the "each card exiled this way" follow-up
+		// shape), and the source object's event-backed Remembered (what an
+		// earlier resolution remembered durably, Forge's persistent host list).
+		for _, t := range sc.Remembered {
+			if !t.IsPlayer && t.Obj == o.ID {
+				return true, true
+			}
+		}
+		if src := g.Obj(sc.Source); src != nil {
+			for _, t := range src.Remembered {
+				if !t.IsPlayer && t.Obj == o.ID {
+					return true, true
+				}
+			}
+		}
+		return false, true
+	}
+	if rest, has := strings.CutPrefix(p, "greatestPower"); has {
+		// Forge's greatestPower[ControlledBy <players>] (CardProperty): the
+		// candidate is a battlefield creature controlled by the named players
+		// (all battlefield creatures when no ControlledBy suffix is present)
+		// whose net power no other creature in that set exceeds -- TIES MATCH,
+		// every creature at the maximum is "the greatest". The candidate must
+		// itself be in the set (Forge's non-LKI contains check), so a creature
+		// not controlled by the named players never matches even if its power
+		// is the greatest on the battlefield. Net power is read the same way
+		// numericPred's power predicates read it (face power plus +1/+1
+		// counters); a continuous-effect power pump is not visible from here
+		// -- recorded as a known limitation in AGENTS.md.
+		var players []state.PlayerID
+		if ref, is := strings.CutPrefix(rest, "ControlledBy"); is {
+			var ok bool
+			players, ok = controlReferentPlayers(g, sc, "ControlledBy", strings.TrimSpace(ref))
+			if !ok {
+				// An unbound referent (no resolution, no remembered player)
+				// matches nothing rather than degrading to the uncontrolled
+				// whole-battlefield reading.
+				return false, true
+			}
+		}
+		if o.Zone != state.ZBattlefield || !hasType(o, "Creature") {
+			return false, true
+		}
+		inSet := len(players) == 0
+		for _, p := range players {
+			if o.Controller == p {
+				inSet = true
+			}
+		}
+		if !inSet {
+			return false, true
+		}
+		mine := objectPower(o)
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.Zone != state.ZBattlefield || !hasType(other, "Creature") || other.ID == o.ID {
+				continue
+			}
+			if len(players) > 0 {
+				controlled := false
+				for _, p := range players {
+					if other.Controller == p {
+						controlled = true
+					}
+				}
+				if !controlled {
+					continue
+				}
+			}
+			if objectPower(other) > mine {
+				return false, true
+			}
+		}
+		return true, true
+	}
 	if op, ref, recognised := controlReferent(p); recognised {
 		return matchControlReferent(g, o, sc, op, ref)
 	}
@@ -760,6 +884,18 @@ func noResolve(string) (int32, bool) { return 0, false }
 // result=false when the shape is recognised but the RHS did not resolve, so
 // a filter spec is either a hard "no" or "not this predicate", never a
 // silent match.
+// objectPower is the one net-power read the filter grammar shares (face
+// power plus +1/+1 counters -- numericPred's power predicates and the
+// greatestPower classifier both use it). A continuous-effect power pump is
+// not visible from the filter path; the limitation is recorded in AGENTS.md.
+func objectPower(o *state.Object) int {
+	f := o.Face()
+	if f == nil {
+		return 0
+	}
+	return f.Power() + int(o.Counter("P1P1"))
+}
+
 func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (result, ok bool) {
 	resolve := sc.Resolve
 	if resolve == nil {
@@ -830,7 +966,7 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		var have int
 		switch field {
 		case "power":
-			have = f.Power() + int(o.Counter("P1P1"))
+			have = objectPower(o)
 		case "toughness":
 			have = f.Toughness() + int(o.Counter("P1P1"))
 		case "cmc":
@@ -1202,6 +1338,17 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 		matchesBase := false
 		switch base {
 		case "Player", "Any":
+			if kind, is := strings.CutPrefix(qualifier, "withMost"); is {
+				// Forge's Player.withMost<kind> property (PlayerProperty), now
+				// evaluated in the shared player filter so a control grant's
+				// NewController$ and a trigger's Attacked$/restriction spec
+				// resolve the same seat. Unknown kinds fail closed (no seat
+				// matches) exactly like every other unlisted qualifier.
+				if playerHasMost(g, p, kind) {
+					return true
+				}
+				continue
+			}
 			matchesBase = true
 		case "You":
 			matchesBase = p == you
@@ -1237,6 +1384,83 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 		}
 	}
 	return false
+}
+
+// playerHasMost is the shared evaluator for Forge's Player.withMost<kind>
+// property (PlayerProperty.java). Kinds the corpus spells: Life (ties match
+// -- every seat holding the maximum life), CardsInHand (Forge's
+// strictly-greater scan keeps the FIRST holder in player order on a tie),
+// PermanentInPlay (most permanents; ties match every holder) and
+// Type<X>[Only] (most battlefield permanents of type X; "Only" requires a
+// UNIQUE holder, and when the top count is shared nobody matches -- Forge
+// returns false for every player). Dead seats take part in the scan exactly
+// like Forge's game.getPlayers(); the control-grant caller walks only the
+// living seats before consulting this, so a dead seat can win a filter match
+// but never gain control.
+func playerHasMost(g *state.Game, p state.PlayerID, kind string) bool {
+	if int(p) >= len(g.Players) {
+		return false
+	}
+	only := false
+	if x, is := strings.CutSuffix(kind, "Only"); is {
+		only = true
+		kind = x
+	}
+	switch kind {
+	case "Life":
+		best := g.Players[0].Life
+		for i := range g.Players {
+			if g.Players[i].Life > best {
+				best = g.Players[i].Life
+			}
+		}
+		return g.Players[p].Life == best
+	case "CardsInHand":
+		// Forge's getPlayerWithMostCardsInHand starts with no candidate and
+		// only binds when a player has a positive hand; all-empty hands name
+		// nobody. Ties retain the first player in seat order.
+		best, holder := 0, -1
+		for i := range g.Players {
+			if n := len(g.Zone(state.ZHand, state.PlayerID(i))); n > best {
+				best, holder = n, i
+			}
+		}
+		return holder >= 0 && int(p) == holder
+	}
+	count := func(pi state.PlayerID) int {
+		n := 0
+		for _, id := range g.Zone(state.ZBattlefield, pi) {
+			o := g.Obj(id)
+			if o == nil {
+				continue
+			}
+			if t, is := strings.CutPrefix(kind, "Type"); is {
+				if hasType(o, t) {
+					n++
+				}
+				continue
+			}
+			if kind == "PermanentInPlay" {
+				n++
+			}
+		}
+		return n
+	}
+	best, holders := -1, 0
+	for i := range g.Players {
+		n := count(state.PlayerID(i))
+		if n > best {
+			best, holders = n, 1
+		} else if n == best {
+			holders++
+		}
+	}
+	// Forge requires a unique leader for PermanentInPlay as well as the
+	// explicit Type...Only spelling. A shared top count names nobody.
+	if (only || kind == "PermanentInPlay") && holders != 1 {
+		return false
+	}
+	return count(p) == best
 }
 
 // splitPlayerCompare accepts Forge's lifeGE1/lifeLT7 player qualifiers.
