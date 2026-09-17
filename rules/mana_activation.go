@@ -266,22 +266,64 @@ func (e *Engine) manaActivationGateHolds(p state.PlayerID, id state.ObjID, ma *c
 	return true
 }
 
-// activateMana activates one of source's currently available mana abilities.
-// A singleton retains the old no-extra-decision path. Several abilities are
-// distinct activated abilities sharing one tap cost, so their controller must
-// choose one before the source is tapped.
+// activateMana activates one of source's currently available mana abilities
+// at PRIORITY -- the priority window's activate option (rules/legal.go),
+// where the activating player holds priority. A singleton retains the old
+// no-extra-decision path. Several abilities are distinct activated abilities
+// sharing one tap cost, so their controller must choose one before the
+// source is tapped.
+
 func (e *Engine) activateMana(p state.PlayerID, source state.ObjID, cast bool) {
-	e.activateManaFor(p, source, cast, false)
+	e.activateManaFor(p, source, cast, false, true)
+}
+
+// activateManaPayment is the payment-window form: the payer is paying a cost
+// (the CR 601.2g cast window, a ward payment) rather than acting on
+// priority, so "Activate only as an instant" mana abilities are withheld.
+func (e *Engine) activateManaPayment(p state.PlayerID, source state.ObjID, cast bool) {
+	e.activateManaFor(p, source, cast, false, false)
 }
 
 // activatePaymentMana opens the mana-ability-only window used while a
 // cumulative-upkeep or triggered-Untap cost is being paid.
 func (e *Engine) activatePaymentMana(p state.PlayerID, source state.ObjID) {
-	e.activateManaFor(p, source, false, true)
+	e.activateManaFor(p, source, false, true, false)
 }
 
-func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cumulative bool) {
-	abilities := e.availableManaAbilities(p, source)
+// instantSpeedOnly reports whether a mana ability's InstantSpeed$ True
+// timing restriction is present ("Activate only as an instant", Lion's Eye
+// Diamond): the ability is activatable exactly when its controller holds
+// priority. The engine activates mana abilities in exactly two contexts: a
+// priority window (the "activate for mana" action) and a payment window
+// (paying for a spell, a ward or a cumulative-upkeep cost). CR 605.4 lets a
+// player activate mana abilities while paying a cost only as far as the
+// ability's own rules permit, and the card's text bars everything but a
+// priority moment -- so the ability is activatable at priority and never
+// inside a payment window.
+func (e *Engine) instantSpeedOnly(ma *cards.SA) bool {
+	return strings.EqualFold(strings.TrimSpace(ma.Params["InstantSpeed"]), "True")
+}
+
+// availableManaAbilitiesForWindow is the member set for one window: the
+// ordinary priority set, or the payment-window set with the InstantSpeed$
+// timing-restricted abilities withheld.
+func (e *Engine) availableManaAbilitiesForWindow(p state.PlayerID, id state.ObjID, atPriority bool) []*cards.SA {
+	all := e.availableManaAbilities(p, id)
+	if atPriority {
+		return all
+	}
+	out := make([]*cards.SA, 0, len(all))
+	for _, ma := range all {
+		if e.instantSpeedOnly(ma) {
+			continue
+		}
+		out = append(out, ma)
+	}
+	return out
+}
+
+func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cumulative, atPriority bool) {
+	abilities := e.availableManaAbilitiesForWindow(p, source, atPriority)
 	if len(abilities) == 0 {
 		return
 	}

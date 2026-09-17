@@ -148,8 +148,10 @@ var baseBuckets = map[string]bucket{
 	// selector bases: r.With and m.repl.With are cards.Repl's resolved
 	// With *cards.SA (the ReplaceWith$ body: a real SA parameter map, read
 	// as generic machinery), rp.sa the resume plan's SA, o.Ability the
-	// stack object's resolved SA.
-	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA,
+	// stack object's resolved SA, and d.ResumeSA the pending decision's
+	// resume SA (validateSearch's ShareLandType$ read — the same
+	// cards.SA the "search" resume arm re-enters).
+	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA,
 	// index bases: candidates/rc.cands/matches are all []replMatch (the
 	// phase-replacement pipeline, its parked-choice resume, and the
 	// damage/counter/effect-created replacement match lists), so element
@@ -1296,6 +1298,20 @@ var statFamilyInternal = []string{
 	"Engine.mayPlayStatic",
 }
 
+// genericSAExcludes is the third attribution class: rules functions whose SA
+// reads genuinely run for every activated ability EXCEPT the named APIs --
+// the generic ability-offer loop (rules/legal.go legalActions) skips
+// isManaAbilityAPI abilities, so its abilityPresentHolds gate never executes
+// for Mana/ManaReflected and must not mark those APIs' IsPresent$/
+// PresentCompare$ read (the Verge/Temple-of-the-False-God Mana.IsPresent set
+// is a separate, still-open gap). Each entry's keys are removed from the
+// generic rules union and attributed to every api EXCEPT the named ones --
+// the mirror image of apiSpecificRulesSA. The rot guard fails on a stale
+// entry (renamed function, or one that no longer reads SA params).
+var genericSAExcludes = map[string][]string{
+	"Engine.abilityPresentHolds": {"Mana", "ManaReflected"},
+}
+
 // handRoots declares ATTRIBUTION (which function to read for a primitive) for
 // the few roots the code does not state via Register / the dispatch switch /
 // activeStatics literals. The reads still come from the scanned bodies.
@@ -1399,8 +1415,35 @@ func (s *scan) derived() *derivedReads {
 			}
 		}
 	}
+	// genericSAExcludes: keys these functions read are removed from the
+	// generic union and attributed per api minus the excluded ones (the
+	// mirror image of the specialised split above).
+	genericKeys := map[string]map[string]bool{}     // fn -> read keys
+	genericExcluded := map[string]map[string]bool{} // api -> excluded keys
+	for fn, apis := range genericSAExcludes {
+		fi := s.fns["rules:"+fn]
+		if fi == nil {
+			continue // rotGuard already failed on the stale entry
+		}
+		keys := map[string]bool{}
+		for k := range fi.reads[bSA] {
+			keys[k] = true
+		}
+		if len(keys) == 0 {
+			continue
+		}
+		genericKeys[fn] = keys
+		for _, api := range apis {
+			if genericExcluded[api] == nil {
+				genericExcluded[api] = map[string]bool{}
+			}
+			for k := range keys {
+				genericExcluded[api][k] = true
+			}
+		}
+	}
 	for key, fi := range s.fns {
-		if !strings.HasPrefix(key, "rules:") || excludedSA[fi.name] {
+		if !strings.HasPrefix(key, "rules:") || excludedSA[fi.name] || genericKeys[fi.name] != nil {
 			continue
 		}
 		for k := range fi.reads[bSA] {
@@ -1431,6 +1474,15 @@ func (s *scan) derived() *derivedReads {
 		}
 		for k := range specialised[api] {
 			keys[k] = true
+		}
+		// The genericSAExcludes keys: every generic function's read except the
+		// apis the read genuinely never runs for.
+		for _, ks := range genericKeys {
+			for k := range ks {
+				if !genericExcluded[api][k] {
+					keys[k] = true
+				}
+			}
 		}
 		d.api[api] = keys
 	}
@@ -1701,6 +1753,20 @@ func (s *scan) rotGuard(t *testing.T) {
 		if len(fi.reads[bSA]) == 0 {
 			s.guardErrs = append(s.guardErrs, fmt.Sprintf(
 				"paramcensus: apiSpecificRulesSA entry %q no longer reads SA params -- delete the stale entry", fn))
+		}
+	}
+	// genericSAExcludes is the stale-entry twin (mirrors the apiSpecificRulesSA
+	// check above).
+	for fn := range genericSAExcludes {
+		fi, ok := s.fns["rules:"+fn]
+		if !ok {
+			s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+				"paramcensus: genericSAExcludes names rules function %q, which no longer exists -- rename the entry", fn))
+			continue
+		}
+		if len(fi.reads[bSA]) == 0 {
+			s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+				"paramcensus: genericSAExcludes entry %q no longer reads SA params -- delete the stale entry", fn))
 		}
 	}
 }
@@ -2138,11 +2204,8 @@ var knownUnsupportedParams = map[string][]string{
 	"Journey to Nowhere":          {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
 	"Karn Liberated":              {"param:api:ChangeZoneAll.GainControl", "param:api:RestartGame.RestrictFromValid", "param:api:RestartGame.RestrictFromZone"},
 	"Leonin Relic-Warder":         {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
-	"Lion's Eye Diamond":          {"param:api:Mana.InstantSpeed"},
 	"Master of Etherium":          {"param:stat:Continuous.CharacteristicDefining"},
-	"Mistveil Plains":             {"param:api:ChangeZone.IsPresent", "param:api:ChangeZone.PresentCompare"},
 	"Mogis, God of Slaughter":     {"param:stat:Continuous.RemoveType"},
-	"Myriad Landscape":            {"param:api:ChangeZone.ShareLandType"},
 	"Necropotence":                {"param:api:ChangeZone.ExileFaceDown", "param:api:DelayedTrigger.RememberObjects", "param:api:DelayedTrigger.ValidPlayer"},
 	"Ojer Axonil, Deepest Might":  {"param:api:ChangeZone.Transformed"},
 	"Oracle of Mul Daya":          {"param:stat:Continuous.MayLookAt"},
