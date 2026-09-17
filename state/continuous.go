@@ -179,15 +179,17 @@ type ContinuousEffect struct {
 	MayPlayIgnoreType bool
 
 	// ForgetOnMoved carries the Effect's ForgetOnMoved$ zone: a remembered
-	// card that moves TO that zone leaves the effect's Remembered set (the
-	// may-play grant's Affected$ Card.IsRemembered list). Empty means the
+	// card that moves FROM that zone leaves the effect's Remembered set (the
+	// may-play grant's Affected$ Card.IsRemembered list; Abbot of Keral
+	// Keep's "for as long as it remains exiled"). Empty means the
 	// effect never forgets. Engine-runtime only, rebuilt by re-execution on
 	// replay like every other continuous-effect field.
 	ForgetOnMoved string
 	// ExileOnMoved carries the Effect's ExileOnMoved$ zone: a remembered
-	// card that moves TO that zone ENDS the whole effect (Vines of
-	// Vastwood's blink-out guard). Empty means the effect never ends on a
-	// move. Engine-runtime only, like ForgetOnMoved.
+	// card that moves FROM that zone ENDS the whole effect (Vines of
+	// Vastwood's blinked target, Abbot's exiled card being cast). Empty
+	// means the effect never ends on a move. Engine-runtime only, like
+	// ForgetOnMoved.
 	ExileOnMoved string
 
 	// AdjustLandPlays marks an additional-land-drops grant (Azusa, Lost but
