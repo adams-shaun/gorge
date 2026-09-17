@@ -66,7 +66,15 @@ type pendingTrigger struct {
 	// resolves from the source's SVar table).
 	Delayed   bool
 	DelayedID uint32
-	Execute   string
+	// Granted marks a static-grant's trigger (AddTrigger$ on a Mode$
+	// Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you sacrifice
+	// a land"): like a delayed trigger its Ability is an SVar-named body
+	// (the Execute$ name rides the GrantTriggerPush event for events.Apply
+	// to resolve from the affected object's SVar table), but unlike a
+	// delayed registration nothing is consumed -- the grant lives exactly as
+	// long as its granting static.
+	Granted bool
+	Execute string
 	// Ward is a GRANTED ward keyword (a layer-6 AddKeyword$ Ward:<cost>, e.g.
 	// Hexing Squelcher's "Other creatures you control have 'Ward—Pay 2
 	// life.'"): the trigger exists only in the layer system, never on the
@@ -558,10 +566,13 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		}
 		// Ordinary cards need no face-walk setup when their printed triggers
 		// cannot observe this event. An unlocked Room may still have an
-		// eligible alternate face. Granted Ward is independent of both.
+		// eligible alternate face. Granted Ward is independent of both -- and
+		// so is a static-grant's trigger (AddTrigger$): the granted walk below
+		// runs on BOTH paths, like Ward and Dethrone do.
 		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
 			e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 			e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
+			e.checkGrantedStaticTriggers(observer, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 			return
 		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
@@ -772,6 +783,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 			}
 		}
+		e.checkGrantedStaticTriggers(observer, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -2628,4 +2640,118 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 			},
 		})
 	}
+}
+
+// checkGrantedStaticTriggers queues the triggered abilities a live static
+// grant (AddTrigger$ on a Mode$ Continuous static, e.g. Hearthhull's
+// "STATION 8+ Whenever you sacrifice a land") gives this object: the
+// checkGrantedWard/checkGrantedDethrone precedent -- a granted triggered
+// ability has the same rules text a printed one would, and the face walk
+// above only ever scans printed T: lines. The grants live on the memoised
+// static scan (active()); each Affected$-matched grant is matched against
+// the event exactly as a printed trigger would be (triggerMatches, which
+// resolves the granted body's own TriggerZones$/ValidPlayer$/Phase$ clauses)
+// and queued with its SVar-resolved SA -- the pendingTrigger shape the
+// granted-keyword paths use, pushed through events.GrantTriggerPush.
+//
+// The queue gate is the live==replay contract: the stack object is minted
+// inside events.Apply, which can only resolve the Execute$ body from the
+// AFFECTED object's own SVar table, so the walk links the effect from that
+// same table (the resolveSVarAcrossFaces walk mirrored in
+// grantedTriggerExecute) and a grant whose body it cannot produce never
+// queues -- the conservative direction, matching the replayable-log
+// invariant rather than minting an ability a replay cannot rebuild. A
+// self-grant (Hearthhull) trivially satisfies it; the cross-object
+// aura-grants-its-own-SVar shape fails closed here.
+//
+// Fire-count: like Ward and Dethrone, every granted trigger shares the
+// granted slot's triggerKey (Source, Idx -1) -- the cascade bound only, not
+// once-per-turn memory, and maxTriggerFires (256) is generous enough that
+// the sharing cannot starve a legitimate fire. Like those two the walk is
+// deliberately a read over active()'s sorted slice, never a map: the queue
+// order stays the scan's deterministic order.
+func (e *Engine) checkGrantedStaticTriggers(observer *Engine, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
+	if e.finishingLifeLossBatch || e.lifeLossBatchDepth > 0 {
+		return
+	}
+	for _, ce := range observer.active() {
+		if ce.AddTrigger == nil {
+			continue
+		}
+		if !effects.MatchesSpecFrom(observer.G, ce.Affects, id, ce.Controller, ce.Source) {
+			continue
+		}
+		t := *ce.AddTrigger
+		// The live==replay gate: link the Execute$ body exactly the way
+		// events.Apply will (the affected object's own table); a body it
+		// cannot resolve never queues, and a same-named body it CAN resolve
+		// is by construction the same body a replay would resolve.
+		if t.Effect = grantedTriggerExecute(o, t.Params["Execute"]); t.Effect == nil {
+			continue
+		}
+		// CR 603.8's outstanding-instance latch, mirrored from the face walk
+		// (a state trigger already queued or on the stack does not re-fire).
+		if t.Mode == "Always" && e.stateTriggerOutstanding(id, -1) {
+			continue
+		}
+		// LifeLostAll is evaluated once at the end of a simultaneous
+		// life-loss batch, exactly as the face walk scopes it.
+		if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
+			continue
+		}
+		if !observer.triggerMatches(t, id, ev, objLKI) {
+			continue
+		}
+		key := triggerKey{Source: id, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] >= maxTriggerFires {
+			continue // cascade bound: see maxTriggerFires.
+		}
+		e.triggerFireCount[key]++
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     id,
+			Controller: o.Controller,
+			Idx:        -1,
+			SA:         t.Effect,
+			Granted:    true,
+			Execute:    t.Params["Execute"],
+			Ctx: effects.Ctx{
+				Source:         id,
+				Controller:     o.Controller,
+				Remembered:     triggerRemembered(ev, id),
+				LKI:            objLKI,
+				LKIPower:       lkiPower,
+				LKIToughness:   lkiToughness,
+				LKIPTValid:     objLKI != nil && lkiPTValid,
+				TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+			},
+		})
+	}
+}
+
+// grantedTriggerExecute mirrors events.Apply's GrantTriggerPush resolution
+// (the resolveSVarAcrossFaces walk): the granted body's Execute$ name is
+// resolved against the AFFECTED object's own SVar table -- current face
+// first, then every other face -- so the live queue links exactly the body a
+// replayed log will. nil when no face resolves it.
+func grantedTriggerExecute(o *state.Object, execute string) *cards.SA {
+	if execute == "" {
+		return nil
+	}
+	if f := o.Face(); f != nil {
+		if sa := cards.ResolveSVar(f.SVars, execute); sa != nil {
+			return sa
+		}
+	}
+	if o.Card == nil {
+		return nil
+	}
+	for _, cf := range o.Card.Faces {
+		if sa := cards.ResolveSVar(cf.SVars, execute); sa != nil {
+			return sa
+		}
+	}
+	return nil
 }

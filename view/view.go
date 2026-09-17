@@ -61,6 +61,12 @@ type Chars interface {
 	// client deciding whether tapping mana would unlock an activation cannot
 	// disagree with the engine by pricing only the printed cost.
 	AbilityCosts(state.PlayerID, state.ObjID) []string
+	// MayLookAtLibraryTop is the Continuous MayLookAt grant's read (Oracle
+	// of Mul Daya): whether p may look at the top card of their own library
+	// right now. The view uses it to reveal that top card to p's own seat
+	// only; a nil ch degrades to false, the same way it degrades every
+	// other derived fact.
+	MayLookAtLibraryTop(state.PlayerID) bool
 }
 
 // View is one seat's complete picture of the game: everything public, plus
@@ -150,6 +156,13 @@ type PlayerView struct {
 	LibrarySize   int            `json:"library_size"`
 	HandSize      int            `json:"hand_size"`
 	GraveyardSize int            `json:"graveyard_size"`
+	// LibraryTop is the player's own library's top card, revealed only when
+	// a live Continuous MayLookAt grant covers it (Oracle of Mul Daya's
+	// "play with the top card of your library revealed") and only to that
+	// player's own seat -- the CR 400.2 hidden-zone redaction the Hand field
+	// documents applies to it in full. nil (an omitted JSON key) for every
+	// other seat and whenever no grant is live.
+	LibraryTop *CardView `json:"library_top,omitempty"`
 	// Hand is nil (marshalling to a literal JSON null, not an omitted key --
 	// it deliberately carries no "omitempty" tag) for every seat but the
 	// viewer's own, whose Hand is always non-nil even when empty ("[]").
@@ -475,6 +488,18 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 			avail = ch.AvailableMana(p.ID)
 		}
 		pv.Available = poolView(avail)
+		// The MayLookAt grant (Oracle of Mul Daya): the viewer's own seat sees
+		// the top card of their own library when a live grant covers it; every
+		// other seat sees nothing (the CR 400.2 hidden-zone rule the Hand
+		// field documents applies in full). A nil ch degrades to no reveal,
+		// the way it degrades every other derived fact.
+		if viewer == p.ID && ch != nil && ch.MayLookAtLibraryTop(p.ID) {
+			if lib := g.Zone(state.ZLibrary, p.ID); len(lib) > 0 {
+				if cvs := cardViews(g, ch, lib[:1], false, p.ID, viewer, false); len(cvs) == 1 {
+					pv.LibraryTop = &cvs[0]
+				}
+			}
+		}
 		// The 21-damage clock: this player's cumulative commander damage,
 		// keyed by the commander that dealt it (re-keyed off the dense
 		// slice CmdDamage is indexed by). Only built when any tally is

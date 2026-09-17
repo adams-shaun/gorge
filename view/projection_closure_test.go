@@ -118,6 +118,15 @@ func TestViewMarshalsClosed(t *testing.T) {
 		// carrier, so it joins the public facts class here. See the
 		// Pool/available doc on view.PlayerView for how the two differ.
 		"available": true,
+		// library_top (task inbox-paramcensus-static-grant-misc) IS a hidden-
+		// zone carrier — exactly the class this allowlist exists to gate —
+		// admitted deliberately: it is the Continuous MayLookAt grant's
+		// reveal (Oracle of Mul Daya), projected only for the grant's own
+		// controller's seat (Engine.MayLookAtLibraryTop evaluates the
+		// Affected$ spec), never a raw library order and never for another
+		// seat. The grant-gated reveal rules/static_grants_test.go pins the
+		// seat scoping end to end.
+		"library_top": true,
 	})
 	// StackView is public (R3) so it is a lesser leak surface, but the
 	// reflection is the same shape and cheap, so it is pinned too. The two

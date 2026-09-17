@@ -24,6 +24,14 @@ func onBoard(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID 
 	e.G.Clock++
 	o.Timestamp = e.G.Clock
 	e.G.SetZone(state.ZBattlefield, p, append(e.G.Zone(state.ZBattlefield, p), o.ID))
+	// The placement is eventless, so it must stale the derived memos exactly
+	// like an emitted event would: the static scan (rules/layers.go) and the
+	// sorted effect list are keyed on the log head, and a board change that
+	// never emits would otherwise stay invisible to every later Derived
+	// (the static-grant work's trigger walk is what first made the memo
+	// build during genesis, exposing the stale-window this bump closes).
+	e.staticEpoch = -1
+	e.activeEpoch = -1
 	return o.ID
 }
 

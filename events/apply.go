@@ -1081,6 +1081,36 @@ func Apply(g *state.Game, e Event) {
 		}
 		o.Remembered = rememberedFrom(e.IDs)
 
+	case GrantTriggerPush:
+		// A static-grant's trigger (AddTrigger$ on a Mode$ Continuous static):
+		// the Ruling T20-a/DelayedPush precedent -- the ability object is
+		// minted here, inside Apply, so a log-only replay creates the same
+		// object a live game did. Like DelayedPush the Ability is not a face
+		// Triggers index: it is the granted trigger's Execute$ SVar-named
+		// body, resolved from the AFFECTED object's own SVar table. Rules'
+		// queue walk only queues a grant whose Execute$ body that table
+		// resolves to the exact body the granting face's table names (the
+		// self-grant shape -- Hearthhull grants its own trigger to itself),
+		// so this resolution reproduces the queue's SA. No registration is
+		// consumed: a granted trigger is fired by nothing and lives exactly
+		// as long as its granting static.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil || src.Face() == nil {
+			break
+		}
+		sa := resolveSVarAcrossFaces(src, e.Counter)
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
+		o.Remembered = rememberedFrom(e.IDs)
+
 	case CmdDamage:
 		// Commander combat damage to a player (CR 903.10, Task m33): fold
 		// Amount into Player's cumulative tally at the source commander's

@@ -185,6 +185,13 @@ type Engine struct {
 	staticContinuous []ContinuousEffect
 	staticEpoch      int
 
+	// staticQueueBuf is staticEffects' AddStaticAbility$ work queue's reused
+	// backing array: truncated to zero at every scan, grown only when a
+	// static-grant fires (the warm-rescan allocation budget,
+	// static_effects_buffer_test, is why it is reused rather than re-made).
+	// Per-scan scratch, never cloned: a clone starts nil and grows its own.
+	staticQueueBuf []staticWork
+
 	// activeBuf is the cached, fully CR-613-sorted result of layers.go's
 	// active(), the effect list every Derived() call ranges over for every
 	// object of every board build and projection. Rebuilding that sorted list

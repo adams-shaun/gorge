@@ -314,6 +314,51 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.castMiracle(pt)
 		return
 	}
+	// A static-grant's trigger (AddTrigger$ on a Mode$ Continuous static,
+	// e.g. Hearthhull's "STATION 8+ Whenever you sacrifice a land"): its
+	// stack object is minted through the GrantTriggerPush event, whose shape
+	// is DelayedPush's minus the registration -- the fired event carries the
+	// Execute$ SVar name (Counter) for events.Apply to resolve from the
+	// AFFECTED object's SVar table (the queue walk's replayability gate
+	// established that this resolves to the exact body the granting face's
+	// table names), and the ability receives the same CR 603.3c mode/target
+	// placement asks a TriggerPush ability would.
+	if pt.Granted {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+				continue
+			}
+			ids = append(ids, tgt.Obj)
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.GrantTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: pt.Execute,
+			IDs: ids, Text: "granted trigger"})
+		if pt.SA != nil && len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			handled := false
+			if pt.SA.Params["Choices"] != "" {
+				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
+				if handled {
+					e.drainAwaitsModes = true
+				}
+			}
+			if !handled && pt.SA.Params["ValidTgts"] != "" {
+				e.askTarget(pt.Controller, id, pt.SA)
+			}
+		}
+		e.drainAwaitsTarget = e.Pending() != nil && !e.drainAwaitsModes
+		return
+	}
 	// A Mode$ Phase delayed trigger (CR 603.7): its stack object is minted by
 	// a DelayedPush event rather than a TriggerPush. The difference is the
 	// Ability: TriggerPush re-derives it from a face Triggers index, while a

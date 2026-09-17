@@ -10,6 +10,8 @@
 // move. See Task 19c.
 package state
 
+import "github.com/adams-shaun/gorge/cards"
+
 // Layer is CR 613's application order.
 type Layer uint8
 
@@ -176,6 +178,34 @@ type ContinuousEffect struct {
 	// only while its controller is the ACTIVE player. The walks check the
 	// live turn, never a mutable field.
 	MayPlayPlayerTurn bool
+
+	// AddTrigger is a static-grant's triggered ability (AddTrigger$ on a
+	// Mode$ Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you
+	// sacrifice a land"): the SVar-parsed trigger (cards.ParseTriggerLine
+	// off the granting face's own SVar table, its Execute$ linked there) the
+	// objects the static's Affected$ matches gain while the static is live.
+	// Written only by rules/layers.go's static scan, matched and queued by
+	// rules/trigger_match.go's granted-trigger walk (the granted-Ward/
+	// granted-Dethrone precedent); it contributes no CR 613 characteristic
+	// and the layer sorter ignores it. Nil on every effect that grants none.
+	AddTrigger *cards.Trigger
+	// AddSVars is a static-grant's named variables (AddSVar$): the SVar the
+	// affected object GAINS, parsed from Forge's "SVar:<Name>:<Value>" value
+	// shape. The corpus's granted SVars are AI-evaluation hints (AE, AITap,
+	// MustBeBlocked) no rules consumer reads yet; the engine records the
+	// grant and resolves it through Engine.GrantedSVar, the same lookup a
+	// later CheckSVar$-style consumer of the affected object's variables
+	// reads. Nil on every effect that grants none.
+	AddSVars map[string]string
+	// MayLookAt is a look-permission grant (MayLookAt$ on a Mode$
+	// Continuous static, e.g. Oracle of Mul Daya): while the static is live,
+	// the affected player may look at the object its Affected$ spec matches
+	// -- in the corpus always the top card of the controller's own library
+	// (Affected$ Card.TopLibrary+YouCtrl, AffectedZone$ Library). Consumed
+	// by Engine.MayLookAtLibraryTop (the view's reveal of that top card);
+	// it contributes no CR 613 characteristic. False on every effect that
+	// grants none.
+	MayLookAt bool
 
 	// MayPlayIgnoreType marks the grant's MayPlayIgnoreType$ True rider
 	// (Rakdos, the Muscle's "mana of any type can be spent to cast those

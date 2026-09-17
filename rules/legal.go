@@ -431,7 +431,22 @@ func (e *Engine) sVarGateOK(p state.PlayerID, id state.ObjID, ab *cards.SA) bool
 	if o == nil || o.Face() == nil {
 		return false
 	}
-	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
+	svars := o.Face().SVars
+	// A live AddSVar$ static grant (Sword of Fire and Ice) layers its granted
+	// variables UNDER the printed table: a printed SVar of the same name
+	// wins, the same precedence the roll-publication read documents. The
+	// merge allocates only when a grant actually applies.
+	if gr := e.grantedSVarsFor(id); gr != nil {
+		merged := make(map[string]string, len(gr)+len(o.Face().SVars))
+		for k, v := range gr {
+			merged[k] = v
+		}
+		for k, v := range o.Face().SVars {
+			merged[k] = v
+		}
+		svars = merged
+	}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: svars}
 	holds, evaluated := effects.CheckSVarHolds(e, ctx, check, ab.Params["SVarCompare"])
 	if !evaluated {
 		// The gate's count body is not one the evaluator models: fail OPEN —
