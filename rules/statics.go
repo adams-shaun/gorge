@@ -187,13 +187,70 @@ func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
 }
 
 func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id state.ObjID) bool {
-	for _, sv := range statics {
+	for _, sv := range e.castRestrictionSources(statics, id) {
 		if !e.actorMatches(sv, "Caster", p) {
+			continue
+		}
+		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
 		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
+	}
+	return false
+}
+
+// castRestrictionSources merges the battlefield restriction statics with the
+// target card's OWN CantBeCast statics -- a self-restriction (Rakdos, Lord of
+// Riots' "You can't cast this spell unless an opponent lost life this turn")
+// is carried on the restricted card itself, so it must be live wherever that
+// card sits, gated by each static's EffectZone$ (Forge's default is the
+// battlefield, so the same gate collectCostStatics uses decides whether a
+// hand/library/stack source is live). Without the self-merge a hand-zone
+// lockout is invisible: activeStatics walks the battlefield only, and a
+// battlefield-only restriction can never reach the card it restricts.
+func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []staticView {
+	out := statics
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return out
+	}
+	for _, st := range o.Face().Statics {
+		if st.Mode != "CantBeCast" || !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+			continue
+		}
+		out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params})
+	}
+	return out
+}
+
+// restrictionGateHolds evaluates the non-matching gates one CantBeCast /
+// CantBeActivated restriction must pass before its ValidCard$/ValidSA$ match
+// is even consulted: AffectedZone$ (the zone the restricted card must sit
+// in -- Linvala's and Karn's Battlefield, Ashes of the Abhorrent's Graveyard)
+// and Condition$ (PlayerTurn / NotPlayerTurn, resolved against the SOURCE's
+// controller: Grand Abolisher's "During your turn" is the abolisher
+// controller's turn, never the restricted caster's, which is why the shared
+// costConditionHolds -- keyed to the payer -- must not be reused here). A
+// condition this build cannot evaluate fails closed: a lockout that silently
+// always applies over-restricts, but one that silently never applies lets an
+// illegal action through, and the static family's whole point is the
+// prohibition.
+func (e *Engine) restrictionGateHolds(sv staticView, target state.ObjID) bool {
+	if az, ok := sv.Params["AffectedZone"]; ok {
+		o := e.G.Obj(target)
+		if o == nil || !affectedZoneOK(az, o.Zone) {
+			return false
+		}
+	}
+	switch strings.TrimSpace(sv.Params["Condition"]) {
+	case "":
+		return true
+	case "PlayerTurn":
+		return e.G.Active == sv.Controller
+	case "NotPlayerTurn":
+		return e.G.Active != sv.Controller
 	}
 	return false
 }
@@ -215,6 +272,9 @@ func (e *Engine) abilityRestrictedUsing(statics []staticView, p state.PlayerID, 
 	}
 	for _, sv := range statics {
 		if !e.actorMatches(sv, "Activator", p) {
+			continue
+		}
+		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
 		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
