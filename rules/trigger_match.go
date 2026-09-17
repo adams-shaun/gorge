@@ -614,6 +614,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				if !observer.triggerMatches(t, id, ev, objLKI) {
 					continue
 				}
+				// Forge's Secondary$ True: a marked secondary is the second
+				// half of one card text, and it does not fire when the same
+				// event already fired its card's paired primary (the
+				// two-halves idiom -- Sower of Discord's complementary
+				// DamageDoneOnce pair, Wooden Stake's blocks-or-is-blocked-by
+				// pair). A secondary whose primary did not fire for this event
+				// still fires on its own. See secondaryYields for the pairing.
+				if strings.EqualFold(t.Params["Secondary"], "True") &&
+					e.secondaryYields(observer, fc.face, ti, t, id, ev, objLKI) {
+					continue
+				}
 				if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
 					continue
 				}
@@ -967,6 +978,35 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 	return true
 }
 
+// secondaryYields implements Forge's Secondary$ True (TriggerHandler,
+// Trigger.isSecondary): the marked trigger yields when the SAME event would
+// also fire its card's paired primary, so one card text never becomes two
+// triggers. The corpus pairs secondaries two ways and the pairing accepts
+// both: a primary sharing the secondary's Execute$ SVar across different
+// modes (the "enters or attacks" family -- Grave Titan, Sun Titan, Tome of
+// Legends, Kindred Discovery), and a primary sharing its Mode with
+// complementary Valid halves (Wooden Stake's blocks-or-is-blocked-by pair,
+// Sower of Discord's two DamageDoneOnce halves). A secondary whose paired
+// primary did not fire for this event still fires on its own -- Grave Titan's
+// Attacks half fires for the attack although its ETB half did not. gorge's
+// paired modes are distinct event kinds, so the cross-mode family is
+// currently unreachable here (measured: no MoveZone is a DeclareAttackers);
+// the same-mode complementary shape is the live one.
+func (e *Engine) secondaryYields(observer *Engine, face *cards.Face, ti int, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	for j, sib := range face.Triggers {
+		if j == ti || strings.EqualFold(sib.Params["Secondary"], "True") {
+			continue
+		}
+		if sib.Params["Execute"] != t.Params["Execute"] && sib.Mode != t.Mode {
+			continue
+		}
+		if observer.triggerMatches(sib, source, ev, lki) {
+			return true
+		}
+	}
+	return false
+}
+
 // zoneGate implements TriggerZones$: a trigger only fires while its source is
 // in one of the listed zones. The default is the battlefield, which is why an
 // enchantment's upkeep trigger stops when it is destroyed.
@@ -992,6 +1032,16 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		return false
 	}
 	spec := t.Params["TriggerZones"]
+	if spec == "" {
+		// Forge's ActiveZones$ is the trigger-side spelling of the same gate
+		// (the replacement side already reads the key:
+		// rules/replacement.go's zone gate). Sower of Discord's two
+		// DamageDoneOnce halves declare ActiveZones$ Battlefield; an explicit
+		// ActiveZones$ is authoritative exactly like an explicit
+		// TriggerZones$, so the two special cases below keep treating it as
+		// declared.
+		spec = t.Params["ActiveZones"]
+	}
 	if spec == "" && ev.Kind == events.PutOnStack && source == ev.Obj && t.Mode == "SpellCast" {
 		// CR 601.2i: the spell's OWN cast trigger fires while the source is
 		// the spell sitting on the stack -- exactly the event being walked.
@@ -1771,11 +1821,49 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 	return true
 }
 
-// becomesTargetMatches implements Mode$ BecomesTarget: the trigger's own
-// source must be among the chosen targets recorded by a TargetsChosen event
-// (rules.handleTarget -- "the target decision being answered").
+// becomesTargetMatches implements Mode$ BecomesTarget: the trigger fires
+// when one of the chosen targets recorded by a TargetsChosen event
+// (rules.handleTarget -- "the target decision being answered") matches its
+// ValidTarget$ -- or, with no ValidTarget$, when its own source is among the
+// targets. Forge's ValidTarget$ names the TARGETED object: the self-shapes
+// (ValidTarget$ Card.Self, the ward family, Reality Smasher) match their own
+// source that way, and the "a Dragon you control becomes the target" shapes
+// (Thunderbreak Regent) match a target their source merely watches -- the
+// 50 non-self corpus lines of the 132-line mode.
 func (e *Engine) becomesTargetMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.TargetsChosen {
+		return false
+	}
+	if v, ok := t.Params["ValidSource"]; ok {
+		// ValidSource$ names the spell or ability doing the targeting: the
+		// TargetsChosen event's Obj, the stack object whose target decision
+		// this event answers (commitCrimeMatches reads the same field as the
+		// targeting actor). Reality Smasher's "spell an opponent controls"
+		// (Spell.OppCtrl) and Thunderbreak Regent's "spell or ability"
+		// (SpellAbility.OppCtrl) both resolve against that stack object; an
+		// event carrying no targeting object can never match.
+		if ev.Obj == 0 || !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidTarget"]; ok {
+		for _, id := range ev.IDs {
+			if effects.MatchesSpecCtx(e.G, v, id, e.specCtx(source, e.controllerOf(source))) {
+				// CR 702.21a compares the Ward permanent's controller with the
+				// controller of the targeting spell or ability ON THE STACK
+				// (the same ev.Obj ValidSource$ reads above). For an ability,
+				// protectionSource would unwrap ev.Obj to its source permanent,
+				// whose controller may have changed since activation. Every
+				// ward trigger targets only itself (the synthesized shape,
+				// trigger_match.go's ward expansion), so this gate runs on the
+				// self match.
+				if t.Params["Ward"] == "True" &&
+					(ev.Obj == 0 || e.controllerOf(ev.Obj) == e.controllerOf(source)) {
+					return false
+				}
+				return true
+			}
+		}
 		return false
 	}
 	targeted := false
@@ -1785,22 +1873,7 @@ func (e *Engine) becomesTargetMatches(t cards.Trigger, source state.ObjID, ev ev
 			break
 		}
 	}
-	if !targeted {
-		return false
-	}
-	if t.Params["Ward"] == "True" {
-		// CR 702.21a compares the Ward permanent's controller with the
-		// controller of the targeting spell or ability ON THE STACK. For an
-		// ability, protectionSource would unwrap ev.Obj to its source
-		// permanent, whose controller may have changed since activation.
-		if ev.Obj == 0 || e.controllerOf(ev.Obj) == e.controllerOf(source) {
-			return false
-		}
-	}
-	if v, ok := t.Params["ValidTarget"]; ok {
-		return effects.MatchesSpecCtx(e.G, v, source, e.specCtx(source, e.controllerOf(source)))
-	}
-	return true
+	return targeted
 }
 
 // landPlayedMatches implements Mode$ LandPlayed. This fires on the MoveZone
