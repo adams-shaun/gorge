@@ -67,6 +67,20 @@ type pendingCast struct {
 
 	x     int32
 	xDone bool
+	// announceX is the alternative cost's Announce$ variable (the Shoal
+	// cycle's "X"): the X this cast announces is NOT a mana X — it is bound
+	// by the exile settlement's cmcEQX filter (xAsk's announce arm offers
+	// exactly the mana values some exilable card matches at; exAsk binds the
+	// announced value into that filter). Empty on every ordinary cast.
+	announceX string
+
+	// sameCtrlTargets is the TargetsWithSameController$ True rider (Lodestone
+	// Bauble): every target this cast's announcement chooses must share one
+	// controller — in a graveyard, its owner. The offered option list spans
+	// every player's graveyard, so the pairwise constraint is enforced at
+	// Submit (validateCastContributions' preserve-and-reject shape), not by
+	// an option-list shape the wire cannot express.
+	sameCtrlTargets bool
 	// suspendTimeX makes the chosen cast X also set the number of TIME
 	// counters; suspendMinX is Forge's XMin<N> lower bound.
 	suspendTimeX bool
@@ -947,9 +961,11 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// its reduction applied before X is known (and lost), and a
 	// flashback/alternative recast would drop the modifiers entirely.
 	cost := e.rawBaseCost(p, id)
+	var announceAlt *altCostView
 	if opt.AltCostIndex > 0 {
 		if alts := e.alternativeCosts(p, id); opt.AltCostIndex-1 < len(alts) {
-			cost = alts[opt.AltCostIndex-1]
+			cost = alts[opt.AltCostIndex-1].cost
+			announceAlt = &alts[opt.AltCostIndex-1]
 		}
 	}
 	switch opt.Mode {
@@ -1079,6 +1095,16 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	} else {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
 			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax}
+	}
+	// The announce-bearing alternative (the Shoal cycle) and the
+	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
+	// cast SA into the transaction: xAsk's announce arm and exAsk's binding
+	// read the first, handleTarget's Submit-time validator the second.
+	if announceAlt != nil && announceAlt.announce != "" {
+		e.cast.announceX = announceAlt.announce
+	}
+	if sa := f.SpellAbility(); sa != nil && strings.EqualFold(strings.TrimSpace(sa.Params["TargetsWithSameController"]), "True") {
+		e.cast.sameCtrlTargets = true
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
@@ -1484,9 +1510,29 @@ func (e *Engine) exAsk() bool {
 		if zone == 0 {
 			zone = state.ZHand
 		}
+		// The announce-bound filter (the Shoal cycle's cmcEQX): the announced
+		// X binds the spec's non-literal RHS through SpecContext.Resolve — the
+		// same closure mechanism a Chosen* predicate resolves through — so
+		// the part's candidates are exactly the cards at the announced mana
+		// value. pc.x is already settled (xAsk's announce arm ran first in
+		// continueCast).
+		var sc *effects.SpecContext
+		if pc.announceX != "" {
+			name := pc.announceX
+			sc = &effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
+				if n == name {
+					return pc.x, true
+				}
+				return 0, false
+			}}
+		}
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(zone, pc.player) {
-			if effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card) {
+			match := effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card)
+			if sc != nil {
+				match = effects.MatchesSpecCtx(e.G, part.Spec, oid, *sc)
+			}
+			if match {
 				already := false
 				for _, s := range pc.exiles {
 					if s == oid {
@@ -1666,6 +1712,32 @@ func (e *Engine) xAsk() bool {
 		return false
 	}
 	pc.xDone = true
+	// The announce-bearing alternative cost (the Shoal cycle's Announce$ X):
+	// the announced X is bound by the exile settlement, not by mana — each
+	// candidate value is a distinct mana value some exilable card still
+	// matches at (altCostXCandidates walks the payer's hand, binding X to
+	// each card's own mana value and keeping the matches). No pool bound
+	// applies (the alt cost pays no mana X), and the pool-based payable walk
+	// below is meaningless for it, so the arm returns straight from the
+	// candidate set. An empty set — the hand changed under the offer gate —
+	// aborts the cast (CR 733.1, nothing has moved).
+	if pc.announceX != "" && len(pc.cost.Exile) > 0 {
+		vals := e.altCostXCandidates(pc.player, pc.card, altCostView{
+			cost: pc.cost, announce: pc.announceX, src: pc.card})
+		if len(vals) == 0 {
+			e.abortCast(pc, "announce cost no longer payable; cast aborted", true)
+			return true
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+			Prompt: "Choose a value for X", Source: pc.card}
+		for _, x := range vals {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "x",
+				Label: fmt.Sprintf("X = %d", x), Amount: int(x)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
 	// A PayEnergy<X> part announces the same X the cast pays with (CR
 	// 107.3i's ability X), so its presence triggers this ask exactly like a
 	// printed {X} mana symbol does. A Sac<X/Spec> part announces the count of
@@ -2402,6 +2474,39 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		}
 		mods := e.costModifiersForTargets(pc.player, pc.card, scope, []state.Target{target})
 		cost := mods.apply(pc.resolvedMana())
+		// An announce-bound Exile part (the Shoal cycle's cmcEQX) is priced
+		// by the ANNOUNCED X, not by the candidate: nonManaCastable below
+		// evaluates a non-literal cmc comparison fail-closed (it has no X
+		// binding in scope), so an alt-cost cast whose only payment is such
+		// an exile would drop every candidate and reverse the proposal at
+		// the target ask. The offer gate (altCostXCandidates' existential
+		// over X) and the X ask settled the part's payability independent of
+		// any target, so the probe re-runs the exact exAsk binding for it
+		// rather than dropping it silently.
+		for i, part := range cost.Exile {
+			if pc.announceX == "" || !strings.Contains(part.Spec, "cmcEQ"+pc.announceX) {
+				continue
+			}
+			zone := part.Zone
+			if zone == 0 {
+				zone = state.ZHand
+			}
+			sc := effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
+				if n == pc.announceX {
+					return pc.x, true
+				}
+				return 0, false
+			}}
+			n := 0
+			for _, oid := range e.G.Zone(zone, pc.player) {
+				if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {
+					n++
+				}
+			}
+			if n >= int(part.N) {
+				cost.Exile = append(append([]CostPart(nil), cost.Exile[:i]...), cost.Exile[i+1:]...)
+			}
+		}
 		cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
 		if pc.ability < 0 {
 			cost.Generic -= int32(len(pc.delve))
@@ -2585,6 +2690,42 @@ func (e *Engine) validateSearch(d *decision.Decision, in decision.Intent) error 
 	}
 	if !effects.SharedLandTypes(e.G, ids) {
 		return fmt.Errorf("chosen cards do not share a land type")
+	}
+	return nil
+}
+
+// validateSameControllerTargets is the Submit-time gate for a cast-flow
+// target announcement whose SA carries TargetsWithSameController$ True
+// (Lodestone Bauble): every chosen object must share one owner — in a
+// graveyard, the owner the card there has. Any other KTarget decision, a
+// single-object answer, and an out-of-range choice (Validate's own error)
+// pass through untouched.
+func (e *Engine) validateSameControllerTargets(d *decision.Decision, in decision.Intent) error {
+	pc := e.cast
+	if pc == nil || !pc.sameCtrlTargets || d.Kind != decision.KTarget || len(in.Choices) <= 1 {
+		return nil
+	}
+	var owner state.PlayerID
+	haveOwner := false
+	for _, c := range in.Choices {
+		if c < 0 || c >= len(d.Options) {
+			continue // Validate's own out-of-range error already fired
+		}
+		o := d.Options[c]
+		if o.Obj == 0 {
+			continue
+		}
+		obj := e.G.Obj(o.Obj)
+		if obj == nil {
+			return nil // the resolution-time recheck owns a vanished object
+		}
+		if !haveOwner {
+			owner, haveOwner = obj.Owner, true
+			continue
+		}
+		if obj.Owner != owner {
+			return fmt.Errorf("chosen targets do not share one controller")
+		}
 	}
 	return nil
 }
@@ -3578,9 +3719,32 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		if !e.payManaConvFor(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true)) {
+		ok, spentMana := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
+		if !ok {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
+		}
+		// RememberCostMana$ (Jeweled Amulet: "Note the type of mana spent to
+		// pay this activation cost"): the colours the payment actually spent
+		// (the same per-colour delta the negative ManaAdd events above
+		// record, in WUBRG order) fold onto the source object through the
+		// "noted-mana" Choose marker, where the card's mana ability (Produced$
+		// Special LastNotedType) reads them back. A cost with no mana part
+		// notes nothing — Forge's CostRememberSpentMana records only mana
+		// costs too.
+		remembered := false
+		if f := e.G.Obj(pc.card).Face(); f != nil && pc.ability >= 0 && pc.ability < len(f.Abilities) {
+			ab := f.Abilities[pc.ability]
+			remembered = strings.EqualFold(strings.TrimSpace(ab.Params["RememberCostMana"]), "True")
+		}
+		if remembered {
+			noted := ""
+			for i, letter := range manaLetters {
+				if spentMana[i] > 0 {
+					noted += letter
+				}
+			}
+			e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "noted-mana", Text: noted})
 		}
 		if pc.payLife != 0 {
 			e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})

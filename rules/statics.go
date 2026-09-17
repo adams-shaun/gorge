@@ -7,6 +7,7 @@ package rules
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -558,6 +559,17 @@ func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, 
 	return sorcery || (f != nil && (f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)))
 }
 
+// altCostView is one alternative-cost entry: the parsed cost plus the
+// granting static's own riders the cast flow needs (the Announce$ X value —
+// an alternative cost whose X the caster announces at CR 601.2b before the
+// exile filter's cmcEQX resolves, the Shoal cycle) and the static's source,
+// whose face SVar table resolves the announced value's SVar.
+type altCostView struct {
+	cost     Cost
+	announce string
+	src      state.ObjID
+}
+
 // alternativeCosts lists extra ways to cast id, each becoming its own
 // "cast" option in legalActions so the client can present the choice
 // without knowing any rules. Two sources: another permanent's static
@@ -570,8 +582,8 @@ func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, 
 // Swat's "ValidPlayer$ You"), evaluated against the static's own controller
 // so a grant from another permanent's static resolves You/Opponent relative
 // to the granter, exactly like every other static filter predicate.
-func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
-	var out []Cost
+func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostView {
+	var out []altCostView
 	for _, sv := range e.activeStatics("AlternativeCost") {
 		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
@@ -579,7 +591,8 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
 			continue
 		}
-		out = append(out, ParseCost(sv.Params["Cost"]))
+		out = append(out, altCostView{cost: ParseCost(sv.Params["Cost"]),
+			announce: strings.TrimSpace(sv.Params["Announce"]), src: sv.Source})
 	}
 	if o := e.G.Obj(id); o != nil {
 		if f := o.Face(); f != nil {
@@ -590,15 +603,60 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 				if !e.alternativeCostScopeOK(st.Params, id, id, p, o.Controller) {
 					continue
 				}
-				out = append(out, ParseCost(st.Params["Cost"]))
+				out = append(out, altCostView{cost: ParseCost(st.Params["Cost"]),
+					announce: strings.TrimSpace(st.Params["Announce"]), src: id})
 			}
 		}
 	}
 	// A MayPlay static's MayPlayAltManaCost$ (Darksteel Monolith) is the same
 	// "pay THIS instead of the mana cost" shape delivered by the may-play
 	// family; the family root carries its own gates and limit.
-	out = append(out, e.mayPlayAltCosts(p, id)...)
+	for _, c := range e.mayPlayAltCosts(p, id) {
+		out = append(out, altCostView{cost: c})
+	}
 	return out
+}
+
+// altCostXCandidates returns the ASCENDING distinct mana values at which at
+// least one exilable card in the caster's hand still matches the view's
+// Exile parts — the candidate set the Announce$ X ask offers (Blazing/Disrupting
+// Shoal's "exile a red/blue card with mana value X"): the spec's cmcEQX
+// predicate is bound to each candidate value through SpecContext.Resolve,
+// the same closure mechanism a Chosen* predicate resolves through, so the
+// filter never sees an unannounced X. An empty hand or no matching card at
+// any value yields an empty set (the offer gate and the xAsk arm both
+// withhold on that).
+func (e *Engine) altCostXCandidates(p state.PlayerID, id state.ObjID, alt altCostView) []int32 {
+	vals := []int32{}
+	seen := map[int32]bool{}
+	for _, part := range alt.cost.Exile {
+		zone := part.Zone
+		if zone == 0 {
+			zone = state.ZHand
+		}
+		for _, oid := range e.G.Zone(zone, p) {
+			o := e.G.Obj(oid)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			v := o.Face().ManaValue()
+			if seen[v] {
+				continue
+			}
+			sc := effects.SpecContext{You: p, Source: alt.src, Resolve: func(name string) (int32, bool) {
+				if name == alt.announce {
+					return v, true
+				}
+				return 0, false
+			}}
+			if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {
+				seen[v] = true
+				vals = append(vals, v)
+			}
+		}
+	}
+	sort.Slice(vals, func(i, j int) bool { return vals[i] < vals[j] })
+	return vals
 }
 
 // alternativeCostScopeOK reads an AlternativeCost static's scope riders:
@@ -654,6 +712,30 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 	}
 	if ez := strings.TrimSpace(params["EffectZone"]); ez != "" {
 		if src := e.G.Obj(srcID); src != nil && !effectZoneOK(ez, src.Zone) {
+			return false
+		}
+	}
+	// CheckSVar$ / CheckSecondSVar$ (Mogg Salvage's two-condition
+	// alternative cost): Forge's StaticAbility.checkConditions — the value
+	// of each named SVar must satisfy its compare, the DEFAULT being GE1 for
+	// both (X = Count$Valid Island.OppCtrl, Y = Count$Valid
+	// Mountain.YouCtrl: opponent controls an Island AND you control a
+	// Mountain). The gate evaluates against the static's SOURCE face's SVar
+	// table, the same precedence sVarGateOK applies to an ability's own
+	// CheckSVar$. An unresolvable body fails OPEN — the documented
+	// conditionMet convention — so a gate this build cannot evaluate never
+	// withholds the alternative by itself.
+	ctx := &effects.Ctx{Source: srcID, Controller: controller}
+	if o := e.G.Obj(srcID); o != nil && o.Face() != nil {
+		ctx.SVars = o.Face().SVars
+	}
+	if ck := strings.TrimSpace(params["CheckSVar"]); ck != "" {
+		if holds, evaluated := effects.CheckSVarHolds(e, ctx, ck, params["SVarCompare"]); evaluated && !holds {
+			return false
+		}
+	}
+	if ck := strings.TrimSpace(params["CheckSecondSVar"]); ck != "" {
+		if holds, evaluated := effects.CheckSVarHolds(e, ctx, ck, params["SecondSVarCompare"]); evaluated && !holds {
 			return false
 		}
 	}

@@ -229,6 +229,16 @@ type DelayedTrigger struct {
 	// field-reuse precedent); the SpellCast decode never collides because a
 	// Phase$ value contains no "|".
 	ValidPlayer string
+	// MaxTurn is the LATEST game turn the trigger may fire in (zero = no
+	// bound) — the mirror of MinTurn for a ThisTurn$ True registration
+	// (Mistrise Village's "the next spell you cast this turn can't be
+	// countered"): a registration whose turn has passed without firing is
+	// skipped by rules' delayed-trigger scans forever after, never removed
+	// (removal would need an event of its own to keep a replay folding the
+	// same set, so the expired entry just stays inert). It rides the
+	// registering event's Text ("|TT=<turn>") because the event gains no
+	// field (Ruling T20-a's field-reuse precedent).
+	MaxTurn int32
 	// SourceIncarnation is captured for keyword promises whose effect applies
 	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
 	// including Encore's group cleanup, intentionally leave TrackSource false:

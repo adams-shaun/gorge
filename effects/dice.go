@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
 )
 
 func init() {
@@ -59,8 +60,38 @@ func effAddTurn(h Host, c *Ctx, sa *cards.SA) {
 		// this turn-specific rider without extending Event's fixed schema.
 		text = events.ExtraTurnSkipUntapText
 	}
+	// ExtraTurnDelayedTrigger$ (Final Fortune's, Last Chance's and
+	// Alchemist's Gambit's DelTrig SVar) names the delayed trigger the
+	// granted turn registers. The Execute$ name already rides the event's
+	// Counter; the trigger's Phase$ rides IDs[0] (the state.Step ordinal,
+	// parsed from the named SVar's Phase$ through the ONE shared parser —
+	// state.ParsePhases — so the two ends cannot disagree), and
+	// events.Apply's registration consumes it instead of the hardcoded
+	// end step Final Fortune's body happened to name. An unresolvable SVar,
+	// an unparseable Phase$, or a multi-step set degrades to the old end
+	// step (IDs empty), which is what every already-logged grant carries.
+	phase := state.StepEnd
+	if name := strings.TrimSpace(sa.Params["ExtraTurnDelayedTrigger"]); name != "" && c.SVars != nil {
+		if body := cards.ResolveSVar(c.SVars, name); body != nil {
+			set, unknown := state.ParsePhases(body.Params["Phase"])
+			if len(unknown) == 0 && !set.Empty() {
+				phase = set.Steps()[0]
+			}
+		}
+	}
+	// NonBasicSpell$ True (Alchemist's Gambit's cleave leg): Forge marks the
+	// alternate-cost cast as NONBASIC — the bracketed words are removed, and
+	// rules that key on the basic cast (the "cast a spell" triggers that
+	// inspect what was cast) see the reduced spell. This build applies no
+	// rule that distinguishes a nonbasic cast yet, so the read documents the
+	// marker with the Note the MayChooseTarget$ precedent gates.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["NonBasicSpell"]), "True") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: player,
+			Text: "cast nonbasic (cleave): bracketed words removed"})
+	}
 	h.Emit(events.Event{Kind: events.ExtraTurn, Player: player, Amount: n,
-		Obj: c.Source, Counter: sa.Params["ExtraTurnDelayedTriggerExecute"], Text: text})
+		Obj: c.Source, Counter: sa.Params["ExtraTurnDelayedTriggerExecute"], Text: text,
+		IDs: []state.ObjID{state.ObjID(phase)}})
 }
 
 // effLosesGame implements DB$ LosesGame (53 corpus files): the Defined$

@@ -460,6 +460,45 @@ func (e *Engine) sVarGateOK(p state.PlayerID, id state.ObjID, ab *cards.SA) bool
 	return holds
 }
 
+// ownReduceCost evaluates an ability's own ReduceCost$ parameter (Otawara,
+// Soaring City's Channel: "This ability costs {1} less to activate for each
+// legendary creature you control" — ReduceCost$ X over
+// SVar:X:Count$Valid Creature.Legendary+YouCtrl): the generic reduction the
+// value resolves to. A literal is the value; a name (X) resolves through the
+// source face's SVar table via effects.EvalCountOK — the same resolver
+// fixLifeXCost uses — and an unresolvable body degrades to zero (a
+// reduction this build cannot compute is never silently over-applied; the
+// full-cost ability stays legal, just never discounted). The CR 601.2f
+// composition: folded into the offer gate's cost AND beginActivation's
+// stored cost, so the two can never disagree. Because the read applies to
+// every non-mana activation, it joins the census's generic rules-side SA
+// set, not one api's.
+func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA) int32 {
+	v := strings.TrimSpace(ab.Params["ReduceCost"])
+	if v == "" {
+		return 0
+	}
+	if n, err := strconv.Atoi(v); err == nil {
+		if n < 0 {
+			return 0
+		}
+		return int32(n)
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	body := v
+	if b, ok := o.Face().SVars[v]; ok {
+		body = b
+	}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
+	if n, ok := effects.EvalCountOK(e, ctx, body); ok && n > 0 {
+		return n
+	}
+	return 0
+}
+
 // isLoyaltyAbility reports whether ab is a planeswalker loyalty ability
 // (CR 606): it carries the Planeswalker$ parameter (case-insensitive -- three
 // corpus lines spell it "true"), or its parsed Cost$ contains an
@@ -932,6 +971,22 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			if !targetsAvailable {
 				continue
 			}
+			// An announce-bearing alternative (the Shoal cycle's Announce$ X):
+			// the exile filter's cmcEQX is bound to the value the caster will
+			// announce, so the "some announcement is payable" gate is
+			// existential over X — at least one exilable card must match at
+			// SOME mana value. The gate below replaces offerCastable's
+			// unannounced (X=0) exile check with that existential scan and
+			// gates the mana-only remainder on the same cost minus its exile
+			// parts; beginCast asks the X (xAsk's announce arm), then exAsk
+			// re-walks the part with the announced X bound.
+			gate := alt.cost
+			if alt.announce != "" {
+				gate.Exile = nil
+				if len(e.altCostXCandidates(p, id, alt)) == 0 {
+					continue
+				}
+			}
 			// Ruling (Task 9 fix round 1, Important 1): this used to gate on
 			// mana-only alt.CanPay, but ParseCost now produces Sac/SubCounter/
 			// Tap parts that the cast flow enforces -- an AlternativeCost whose
@@ -939,7 +994,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			// matching permanents exist, and beginCast then asked a sacrifice
 			// decision with zero options that no answer could escape. castable
 			// is the same gate every other "cast" option uses.
-			if offerCastable(p, id, alt, spellScope(""), false) {
+			if offerCastable(p, id, gate, spellScope(""), false) {
 				// AltCostIndex is i+1, not i: the zero value must mean "the
 				// card's own cost" so every other Option literal in the tree
 				// (play_land, activate, pass, and the base "cast" option
@@ -1377,6 +1432,14 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					continue
 				}
 				cost := ParseCost(ab.Params["Cost"])
+				// The ability's own ReduceCost$ (Otawara's Channel): the CR
+				// 601.2f composition the offer gate and beginActivation's
+				// charge share, so an offered cost and the paid one agree.
+				if n := e.ownReduceCost(p, id, ab); n > 0 && cost.Generic >= n {
+					cost.Generic -= n
+				} else if n > 0 {
+					cost.Generic = 0
+				}
 				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 					continue
 				}
@@ -1441,6 +1504,12 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				continue
 			}
 			cost := ParseCost(ab.Params["Cost"])
+			// The granted twin of the printed loop's own ReduceCost$ fold.
+			if n := e.ownReduceCost(p, id, ab); n > 0 && cost.Generic >= n {
+				cost.Generic -= n
+			} else if n > 0 {
+				cost.Generic = 0
+			}
 			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 				continue
 			}

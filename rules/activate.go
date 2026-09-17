@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -51,8 +53,25 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 		// ability; a stale option that slips through degrades to a no-op.
 		return
 	}
+	// The ability's own ReduceCost$ (Otawara's Channel): the same fold the
+	// offer gate in rules/legal.go applied, so the charge and the gate agree
+	// (CR 601.2f — a reduction applied to the stored cost exactly once).
+	if n := e.ownReduceCost(p, opt.Obj, ab); n > 0 {
+		if cost.Generic >= n {
+			cost.Generic -= n
+		} else {
+			cost.Generic = 0
+		}
+	}
 	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: opt.Ability,
 		cost: cost, mods: mods}
+	// TargetsWithSameController$ True (Lodestone Bauble): the pairwise
+	// same-owner constraint rides the transaction into handleTarget's
+	// Submit-time validator (the offered option list spans every player's
+	// graveyard, which the wire's option shape cannot constrain).
+	if strings.EqualFold(strings.TrimSpace(ab.Params["TargetsWithSameController"]), "True") {
+		e.cast.sameCtrlTargets = true
+	}
 	e.continueCast()
 }
 

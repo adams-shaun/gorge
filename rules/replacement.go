@@ -128,11 +128,21 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// Forge R: body into the same replMatch path used by printed replacements
 	// so filters, ordering and replacement context cannot drift.
 	for _, ce := range e.active() {
-		if ce.ReplacementEvent == "" || ce.ReplacementBody == "" || ce.ReplacementEvent != event {
+		if ce.ReplacementEvent == "" || ce.ReplacementEvent != event {
 			continue
 		}
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
+			if e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) {
+				matches = append(matches, replMatch{id: ce.Source, repl: r,
+					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+			}
+		} else if ce.ReplacementBody == "" && strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Layer"]), "CantHappen") {
+			// The Effect-created CantHappen form (Mistrise Village's AntiMagic:
+			// "the next spell you cast this turn can't be countered"): no
+			// ReplaceWith$ — stopping the event is the complete replacement,
+			// the same shape printed R: lines take (the With==nil arm below).
+			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
 			if e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r,
 					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
@@ -1071,6 +1081,21 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 	}
 	you := e.controllerOf(source)
 	switch r.Event {
+	case "Counter":
+		// The Effect-created bodyless CantHappen form (Mistrise Village's
+		// AntiMagic, reached only from counterReplacementMatchesAll's scan,
+		// which passes a synthetic Event{Obj: target}): the remembered-scoped
+		// ValidCard$ gates the countered stack object — the promise covers
+		// exactly the spell the firing trigger captured. ValidSA$ is the
+		// caller's counterValidSA read (shared with the printed-Repls path);
+		// no ActiveZones read — an Effect's lifetime is active()'s, not its
+		// source's zone.
+		if v, ok := r.Params["ValidCard"]; ok {
+			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
+				return false
+			}
+		}
+		return true
 	case "Moved":
 		if ev.Kind != events.MoveZone {
 			return false
@@ -1699,6 +1724,34 @@ func (e *Engine) CounterAllowed(target, cause state.ObjID) bool {
 
 func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replMatch {
 	var matches []replMatch
+	// Effect-created Counter replacements (Mistrise Village's AntiMagic:
+	// "the next spell you cast this turn can't be countered", a delayed
+	// Effect whose body is a bodyless Layer$ CantHappen R:): the continuous
+	// registry is the only place these live, so the Counter path — whose
+	// ordinary scan reads printed face Repls — matches them here through the
+	// same remembered-scoped matcher the general replacement scan uses, plus
+	// the shared ValidSA$ subset gate. Stopping the Counter event (the
+	// With-less form) is the complete replacement.
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent != "Counter" || ce.ReplacementBody != "" ||
+			!strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Layer"]), "CantHappen") {
+			continue
+		}
+		r := cards.Repl{Event: "Counter", Params: ce.ReplacementParams}
+		if !e.replacementMatchesRemembered(r, ce.Source, events.Event{Obj: target}, ce.Remembered) {
+			continue
+		}
+		t := e.G.Obj(target)
+		src := e.G.Obj(ce.Source)
+		if t == nil || src == nil {
+			continue
+		}
+		if spec := r.Params["ValidSA"]; spec != "" && !counterValidSA(e.G, t, spec, e.controllerOf(ce.Source), ce.Source) {
+			continue
+		}
+		matches = append(matches, replMatch{id: ce.Source, repl: &r,
+			key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+	}
 	e.forEachObject(func(source state.ObjID) {
 		o := e.G.Obj(source)
 		if o == nil || o.Face() == nil {

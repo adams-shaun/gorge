@@ -669,6 +669,22 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 func effControlSpell(h Host, c *Ctx, sa *cards.SA) {
+	// Mode$ (Commandeer's "Gain"): what the control transfer targets. "Gain"
+	// — the corpus's only value — takes control of the target SPELL on the
+	// stack (the ControlChange below is already stack-scoped), which is the
+	// behaviour this primitive always had; Forge's ControlSpellEffect reads
+	// the same param and branches on it (Gain vs the permanent shapes). An
+	// unrecognised value is a loud Note and no transfer, the fail-closed
+	// direction — a control change applied to the wrong kind of object is
+	// not recoverable.
+	mode := strings.TrimSpace(sa.Params["Mode"])
+	switch mode {
+	case "", "Gain":
+	default:
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unhandled ControlSpell Mode$ " + mode})
+		return
+	}
 	p, ok := controlPlayer(h, c, sa)
 	if !ok {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "ControlSpell NewController$ " + sa.Params["NewController"] + " names no player"})

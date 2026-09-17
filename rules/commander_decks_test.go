@@ -64,6 +64,16 @@ var repoCommanderGames = []struct {
 	// so the cast assert has margin the way the tramplesaurus entry does
 	// when a correctness fix shifts a game's course.
 	{"avengers-assemble", "foundations-wretched-ranks", 1002, 5007, []uint64{1002, 1026, 1043}},
+	// The Vivi Ornitier cEDH spellslinger-storm import (measured 2026-09-17,
+	// the same slowest-foe pairing every UR/WUR entry uses): a probe of
+	// [1000,1040) had every game reach a winner and replay, and 9 of the 40
+	// seeds cast the commander (the bot does not storm, so the UR tempo deck
+	// loses most long games — the cast assert has margin on the declared
+	// three, two of them vivi wins). Vivi's own ActivationLimit$ mana
+	// ability (the once-per-turn marker the cherry-picked fix records) is
+	// live in these games; Rhystic Study/Mystic Remora's pay-or-draw asks
+	// run through the unless gate's resolved-on-suspension record.
+	{"vivi-ornitier-cedh", "foundations-wretched-ranks", 1019, 5008, []uint64{1019, 1024, 1038}},
 }
 
 // TestRepoCommanderDecksPlayAndCastTheirCommander is the m38 play evidence

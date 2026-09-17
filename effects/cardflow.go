@@ -143,6 +143,51 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDrawn"]), "True")
 	targets := actingPlayers(h, c, sa)
 	total := int32(len(targets)) * n
+	// OptionalDecider$ (Mystic Remora, Rhystic Study — Forge's DrawEffect
+	// resolve: optional = hasParam("OptionalDecider")... the decider confirms
+	// "do you want to draw N cards?" and a decline skips): the DRAW itself is
+	// optional, decided by the named decider — the corpus's value is "You",
+	// the resolving controller (the enchantment's controller asks themselves
+	// whether to draw off their own trigger). The ask is the same mid-
+	// resolution KChoose yes/no every other asking primitive poses, answered
+	// through rules' "draw_optional" resume arm into Ctx.DrawOpt; a host that
+	// cannot ask keeps the pre-ask mandatory draw (the R-9 degradation). A
+	// target with an empty library makes the draw a non-choice — Forge's
+	// canDrawAmount guard skips those silently, so the ask only fires when
+	// SOME target could actually draw; with none, no question is posed and
+	// nothing is drawn (an empty-library draw event is a no-op either way).
+	if decider := strings.TrimSpace(sa.Params["OptionalDecider"]); decider != "" && total > 0 {
+		answered := c.DrawOpt
+		c.DrawOpt = "" // fx42 scoping: consumed once; a nested optional draw poses its own ask
+		if answered == "" {
+			canDraw := false
+			for _, t := range targets {
+				if len(zoneOf(h.Game(), state.ZLibrary, PlayerOf(h, c, t))) > 0 {
+					canDraw = true
+					break
+				}
+			}
+			if canDraw {
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+					ResumeKind: "draw_optional", ResumeSA: sa, Source: c.Source,
+					Prompt: "Draw " + strconv.Itoa(int(n)) + " card(s)?"}
+				d.Options = []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes — draw", Player: c.Controller},
+					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+				}
+				if Ask(h, d) == AskAsked {
+					return
+				}
+			} else {
+				answered = "no"
+			}
+		}
+		if answered == "no" {
+			// Declined (or no drawable pool): no draw; the walk continues to
+			// any SubAbility$ chain.
+			return
+		}
+	}
 	for c.DrawDone < total {
 		p := PlayerOf(h, c, targets[c.DrawDone/n])
 		var lib []state.ObjID
@@ -1160,11 +1205,36 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			}
 			pool = filtered
 		}
+		if strings.EqualFold(strings.TrimSpace(sa.Params["Random"]), "True") && len(pool) > 0 {
+			// Random$ True (Urza's Bauble: "Look at a card at random in target
+			// player's hand"): the pool narrows to ONE random card before any
+			// count is taken, drawn from the engine's seeded generator through
+			// Host.Rand — the same deterministic source choose_control's
+			// AtRandom/Random discards use — so the pick replays identically.
+			// The pick is a LOOK, not a reveal: the NoReveal$ arm below is the
+			// corpus's carrier (Urza's Bauble reveals nothing of what it saw —
+			// the activator alone learns the card), and the public Note below
+			// is skipped for it.
+			i := h.Rand(len(pool))
+			pool = []state.ObjID{pool[i]}
+		}
 		n := amt
 		if wholeHand || int32(len(pool)) < n {
 			n = int32(len(pool))
 		}
 		if n == 0 {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(sa.Params["NoReveal"]), "True") {
+			// NoReveal$ True (Mishra's Bauble: "Look at the top card of target
+			// player's library" — a look, never a reveal): the identity goes
+			// to the ACTIVATOR alone through emitLook, the one private-look
+			// channel (CR 701.20e's shown-only-to-the-looker rule), and the
+			// public Note the reveal path emits does not happen. RememberRevealed$
+			// finds nothing — a chained gate correctly does not fire; the
+			// corpus's NoReveal$ carriers chain zone-less riders (Mishra's
+			// slowtrip DelayedTrigger) that do not read the walked Remembered.
+			emitLook(h, []state.PlayerID{c.Controller}, zone, pool[:n], "")
 			continue
 		}
 		asker := p

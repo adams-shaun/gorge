@@ -270,9 +270,22 @@ func Apply(g *state.Game, e Event) {
 		if e.Amount < 0 && e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
 			f := g.Obj(e.Obj).Face()
 			if f != nil && cards.ResolveSVar(f.SVars, e.Counter) != nil {
+				// The registered trigger's phase: IDs[0] carries the state.Step
+				// the granting DelayedTrigger SA's Phase$ named (effAddTurn
+				// parsed it through the shared parser and the consumption
+				// forwarded it). An old log's consumption — or a forwarder
+				// that degraded — carries no IDs, and the end step Final
+				// Fortune's body names is the fallback every earlier
+				// registration used. An out-of-range ordinal degrades too.
+				phase := state.StepEnd
+				if len(e.IDs) > 0 {
+					if p := state.Step(e.IDs[0]); p.Valid() {
+						phase = p
+					}
+				}
 				g.Delayed = append(g.Delayed, state.DelayedTrigger{
 					ID:         g.DelayedNext,
-					Phase:      state.StepEnd,
+					Phase:      phase,
 					Source:     e.Obj,
 					Controller: e.Player,
 					Execute:    e.Counter,
@@ -839,6 +852,15 @@ func Apply(g *state.Game, e Event) {
 					}
 				}
 				o.Chosen = keptCards
+			case "noted-mana":
+				// RememberCostMana$ (Jeweled Amulet: "note the type of mana
+				// spent to pay this activation cost"): the payment path's
+				// negative ManaAdd events carry the spend, and this marker
+				// folds the SAME colours onto the source object so the card's
+				// mana ability (Produced$ Special LastNotedType) can read
+				// them later. Text is the WUBRG-ordered colour letters the
+				// payment spent; an empty Text degrades to a cleared note.
+				o.LastNotedMana = e.Text
 			}
 		}
 
@@ -1013,21 +1035,37 @@ func Apply(g *state.Game, e Event) {
 		// precedent); a Mode$ Phase registration's Text is the Forge Phase$
 		// string, which never contains a colon, and the decode only splits on
 		// the modes rules.registerOpeningEffectTriggers emits, so every
-		// already-logged registration decodes as a phase one.
-		mode, trigger := "", ""
-		if i := strings.Index(e.Text, ":"); i > 0 && e.Text[:i] == "SpellCast" {
-			mode, trigger = "SpellCast", e.Text[i+1:]
-		}
-		// The DelayedTrigger SA's ValidPlayer$ rides the same Text field
-		// ("<Phase>|VP=<value>"): a phase registration's Text is otherwise the
-		// Forge Phase$ string, which contains no "|", and the SpellCast decode
-		// above only ever matches registrations whose Text starts "SpellCast:",
-		// which never carry the suffix -- so every already-logged registration
-		// decodes with an empty ValidPlayer and fires ungated, exactly as
-		// before.
+		// already-logged registration decodes as a phase one. An inline
+		// body (effDelayedTrigger's Mode$ SpellCast branch, where the
+		// DelayedTrigger SA is a face Ability with no SVar name of its own)
+		// stores the RAW trigger parameters instead of a name: the body
+		// starts "Mode$", which no SVar name does, so fire time can tell the
+		// two carriers apart.
+		//
+		// The tail suffixes parse off a working copy so the stored body and
+		// the phase string never carry them: ValidPlayer$ rides
+		// "|VP=<value>" and a ThisTurn$ True registration's expiry turn
+		// rides "|TT=<turn>" (state.DelayedTrigger.MaxTurn; zero when
+		// absent). The phase registrations' Texts ("Upkeep",
+		// "End of Turn|VP=You") contain neither spelling inside the phase
+		// name, so every already-logged registration decodes exactly as
+		// before (VP ungated; MaxTurn zero).
+		text := e.Text
 		vp := ""
-		if i := strings.LastIndex(e.Text, "|VP="); i >= 0 {
-			vp = e.Text[i+4:]
+		if i := strings.LastIndex(text, "|VP="); i >= 0 {
+			vp = text[i+4:]
+			text = text[:i]
+		}
+		maxTurn := int32(0)
+		if i := strings.LastIndex(text, "|TT="); i >= 0 {
+			if n, err := strconv.Atoi(strings.TrimSpace(text[i+4:])); err == nil && n > 0 {
+				maxTurn = int32(n)
+			}
+			text = text[:i]
+		}
+		mode, trigger := "", ""
+		if i := strings.Index(text, ":"); i > 0 && text[:i] == "SpellCast" {
+			mode, trigger = "SpellCast", text[i+1:]
 		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
 			ID:                g.DelayedNext,
@@ -1037,6 +1075,7 @@ func Apply(g *state.Game, e Event) {
 			Execute:           e.Counter,
 			Remembered:        rememberedFrom(e.IDs),
 			MinTurn:           e.Amount,
+			MaxTurn:           maxTurn,
 			SourceIncarnation: src.Incarnation,
 			TrackSource:       track,
 			EventMode:         mode,
@@ -1085,6 +1124,14 @@ func Apply(g *state.Game, e Event) {
 		}
 		sa := resolveSVarAcrossFaces(src, e.Counter)
 		if sa == nil {
+			break
+		}
+		if e.Text == "static" {
+			// Forge's static delayed trigger (TriggerHandler's isStatic arm):
+			// the Execute body resolved IMMEDIATELY at fire time — rules ran
+			// it inline — so the one-shot registration is consumed and no
+			// ability object is minted. Every earlier DelayedPush carries no
+			// Text, so already-logged firings mint exactly as before.
 			break
 		}
 		o := g.AddObject(nil, e.Player)
@@ -1390,6 +1437,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
+			o.LastNotedMana = ""
 			o.Chosen = nil
 		}
 		// CR 107.3m: the paid X belongs to the spell on the stack and to the
