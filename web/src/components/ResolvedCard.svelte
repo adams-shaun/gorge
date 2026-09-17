@@ -16,14 +16,22 @@
    * bottom centre and was itself a patchwork of two earlier complaints
    * about the same element (survey #26's lift, then a 220px→132px resize).
    *
-   * Lifetime: the card persists until the NEXT resolve replaces it. The
-   * wall-clock expiry the overlay carried (RECENT_MS = 1000ms) existed only
-   * because the overlay parked over the board and occluded play; inside the
-   * rail's own scroll region it occludes nothing, so the timer is gone and
-   * the display is derived purely from the event list. recentlyMattered's
-   * RECENT_RESOLVE_WINDOW event bound still applies: with no further
-   * resolve within that window (roughly half a player turn, measured) the
-   * row clears itself rather than lingering all game.
+   * Lifetime (fb-20260917T231516Z): the row shows the most recent
+   * stack_resolve and clears on whichever comes first — the next resolve
+   * replacing it, the next turn OR step boundary (every phase/step change
+   * emits a `step` event and every turn a `turn` event, both read straight
+   * off the event list by recentlyMattered), or the RECENT_RESOLVE_WINDOW
+   * event bound (roughly half a player turn, measured) clearing it rather
+   * than letting it linger all game. The wall-clock expiry the old overlay
+   * carried (RECENT_MS = 1000ms) is gone: inside the rail's own scroll
+   * region the row occludes nothing, and the display is derived purely
+   * from the event list.
+   *
+   * A hairline divider (.resolved__divider) renders under the row whenever
+   * the row is showing, separating it from the stack tiles below — the row
+   * is the stack's HISTORY, the tiles are its live frame, and without the
+   * rule the two read as one list. Nothing renders when the row is not
+   * showing.
    *
    * The data path is unchanged from the strip: recentlyMattered finds the
    * most recent stack_resolve, and the resolved object has already moved to
@@ -122,6 +130,7 @@
     </div>
     {#if hover.show && anchor}<CardDetail {card} {anchor} />{/if}
   </div>
+  <div class="resolved__divider" aria-hidden="true"></div>
 {/if}
 
 <style>
@@ -143,6 +152,14 @@
     border: 1px solid var(--edge-inst);
     border-radius: var(--radius-card);
     --card-w: 56px;
+  }
+  /* The hairline between the resolved row and the stack tiles: the rail's
+     own instrument-register edge token, so it reads as section structure
+     between history and live frame, not chrome. Renders only with the row. */
+  .resolved__divider {
+    height: 0;
+    border-bottom: 1px solid var(--edge-inst);
+    margin-bottom: 0.3rem;
   }
   .resolved__meta {
     flex: 1;

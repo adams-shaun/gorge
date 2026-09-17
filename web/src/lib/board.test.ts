@@ -81,6 +81,20 @@ describe('board', () => {
     pastBoundary[0] = ev(0, 'stack_resolve', 11);
     expect(recentlyMattered(pastBoundary)).toBeNull();
   });
+  it('clears when a turn or step boundary is newer than the resolve (fb-20260917T231516Z)', () => {
+    const ev = (seq: number, kind: string, obj?: number): EventBody => ({ event: { seq, kind, player: 0, obj }, line: '' });
+    // The resolved card belongs to the phase it resolved in: the newest turn
+    // or step boundary wins over the most recent resolve.
+    expect(recentlyMattered([ev(1, 'stack_resolve', 4), ev(2, 'step')])).toBeNull();
+    expect(recentlyMattered([ev(1, 'stack_resolve', 4), ev(2, 'turn')])).toBeNull();
+    expect(recentlyMattered([ev(1, 'stack_resolve', 4), ev(2, 'tap', 9), ev(3, 'step')])).toBeNull();
+  });
+  it('keeps showing a resolve that is newer than the newest turn/step boundary', () => {
+    const ev = (seq: number, kind: string, obj?: number): EventBody => ({ event: { seq, kind, player: 0, obj }, line: '' });
+    // Boundaries OLDER than the resolve do not clear it — only a boundary
+    // between the resolve and the newest event does.
+    expect(recentlyMattered([ev(1, 'turn'), ev(2, 'step'), ev(3, 'stack_resolve', 4), ev(4, 'tap', 9)])).toBe(4);
+  });
   it('treats a wire-null hand as invisible, not an empty array', () => {
     expect(visibleHand(player(null))).toBeNull();
     expect(visibleHand(player([]))).toEqual([]);
