@@ -372,7 +372,7 @@ func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []
 		used := false
 		for _, col := range []byte{'W', 'U', 'B', 'R', 'G'} {
 			i := state.ManaIndex(col)
-			if c.Colored[i] > 0 && strings.Contains(effects.ColorsOf(co), string(col)) {
+			if c.Colored[i] > 0 && strings.Contains(e.objColors(co), string(col)) {
 				c.Colored[i]--
 				used = true
 				break
@@ -2297,7 +2297,7 @@ func (e *Engine) convokeAsk() bool {
 			continue
 		}
 		for _, color := range []byte{'W', 'U', 'B', 'R', 'G'} {
-			if mana.Colored[state.ManaIndex(color)] > 0 && strings.Contains(effects.ColorsOf(o), string(color)) {
+			if mana.Colored[state.ManaIndex(color)] > 0 && strings.Contains(e.objColors(o), string(color)) {
 				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_" + string(color), Obj: id,
 					Group: group, Label: "Tap " + o.Face().Name + " for " + string(color)})
 			}

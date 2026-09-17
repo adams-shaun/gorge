@@ -1460,7 +1460,7 @@ func (e *Engine) replacementCheckValue(source state.ObjID, check string) int32 {
 	case "Count$Valid Permanent.YouCtrl$Colors":
 		colors := ""
 		for _, id := range e.G.Zone(state.ZBattlefield, o.Controller) {
-			colors += effects.ColorsOf(e.G.Obj(id))
+			colors += e.objColors(e.G.Obj(id))
 		}
 		var n int32
 		for _, c := range "WUBRG" {

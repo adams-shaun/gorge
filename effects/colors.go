@@ -50,3 +50,37 @@ func ColorsOf(o *state.Object) string {
 	}
 	return b.String()
 }
+
+// colorLetters turns a Forge colour-list parameter value (Animate's Colors$,
+// the "White,Blue" / "White" / "All" / "Colorless" vocabulary measured over
+// the corpus's AB$ Animate lines) into the WUBRG letters of the colour set it
+// names, in WUBRG order and deduplicated. "All" is every colour, "Colorless"
+// is the empty set; an unrecognised word contributes nothing rather than
+// guessing. The letters are what state.ContinuousEffect's colour fields
+// carry, so a caller never re-parses the words.
+func colorLetters(list string) []string {
+	var set [5]bool
+	for _, word := range strings.Split(list, ",") {
+		switch strings.ToLower(strings.TrimSpace(word)) {
+		case "all":
+			set = [5]bool{true, true, true, true, true}
+		case "white":
+			set[0] = true
+		case "blue":
+			set[1] = true
+		case "black":
+			set[2] = true
+		case "red":
+			set[3] = true
+		case "green":
+			set[4] = true
+		}
+	}
+	var out []string
+	for i, c := range "WUBRG" {
+		if set[i] {
+			out = append(out, string(c))
+		}
+	}
+	return out
+}
