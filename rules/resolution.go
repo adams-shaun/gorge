@@ -965,6 +965,22 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.DigDone = true
 			ctx.DigTarget = rp.target
+		case "counter_dist":
+			// A DividedAsYouChoose$ PutCounter distribution pick was answered
+			// (Vastwood Hydra): the chooser picked which of the Choices$
+			// eligible battlefield creatures receive the CounterNum$ total, in
+			// answer order. CounterDistDone distinguishes "answered, possibly
+			// with no creatures" (a MinChoiceAmount$ 0 decline) from the first
+			// pass. effPutCounter consumes and clears both at the top of its
+			// own walk (the fx42 scoping discipline), so a nested PutCounter
+			// cannot inherit the outer answer.
+			ctx.CounterDist = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.CounterDist = append(ctx.CounterDist, o.Obj)
+				}
+			}
+			ctx.CounterDistDone = true
 		case "roll":
 			// A RollDice choose-one-result answer (effects/dice.go's
 			// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the chosen

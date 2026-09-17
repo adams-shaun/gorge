@@ -421,6 +421,18 @@ type Ctx struct {
 	Dig       []state.ObjID
 	DigDone   bool
 	DigTarget int
+	// CounterDist is the answered DividedAsYouChoose$ PutCounter pick
+	// (Vastwood Hydra's death trigger): the recipients the chooser picked out
+	// of the Choices$-eligible battlefield creatures, in answer order.
+	// rules' resume arm sets it before re-running the suspended sub-ability,
+	// so effPutCounter's re-entry distributes the CounterNum$ total over
+	// exactly the chosen creatures instead of asking again;
+	// CounterDistDone distinguishes "answered, possibly with no creatures"
+	// (a MinChoiceAmount$ 0 decline) from the first pass. The asking effect
+	// consumes and clears both at the top of its own walk (the fx42 scoping
+	// discipline), so a nested PutCounter cannot inherit the outer answer.
+	CounterDist     []state.ObjID
+	CounterDistDone bool
 	// UnlessNext is the index of the UnlessPayer$ payer whose answered
 	// unless-pay choice this re-entry applies (0 on a first pass). The
 	// unlessProceed gate (Resolve) consumes and clears it; rules' resume

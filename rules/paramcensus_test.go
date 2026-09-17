@@ -2218,7 +2218,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Steel Leaf Champion":         {"param:stat:CantBlockBy.ValidAttacker"},
 	"Sword of Fire and Ice":       {"param:stat:Continuous.AddSVar"},
 	"Terminus":                    {"param:api:ChangeZoneAll.LibraryPosition"},
-	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.MinChoiceAmount"},
 	"World Shaper":                {"param:api:ChangeZoneAll.Tapped", "param:api:Mill.Optional"},
 	"Wrenn and Six":               {"param:api:Effect.Stackable"},
 	"Zombie Apocalypse":           {"param:api:ChangeZoneAll.Tapped"}}

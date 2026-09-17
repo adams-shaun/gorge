@@ -416,12 +416,15 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			} else {
 				in.Choices = []int{d.Options[0].Index}
 			}
-		case "dig", "hand_move", "hidden_pick":
+		case "dig", "hand_move", "hidden_pick", "counter_dist":
 			// A Dig look-and-take, a "choose N matching cards from hand"
-			// ChangeZone (handmove1), or a Hidden$ True public-origin pick
-			// (hiddenpick1): take the first Max options in offered (zone) order
+			// ChangeZone (handmove1), a Hidden$ True public-origin pick
+			// (hiddenpick1), or a DividedAsYouChoose$ PutCounter distribution
+			// pick (Vastwood Hydra): take the first Max options in offered
+			// (zone) order
 			// -- the exact mirror of effDig's / effChangeZoneHand's /
-			// effHiddenPick's no-ask stand-in (R-9), so a bot-answered ask emits
+			// effHiddenPick's / putCounterPickDistribute's no-ask stand-in (R-9),
+			// so a bot-answered ask emits
 			// the same MoveZone events the silent build did and no golden game
 			// moves for the ask alone. An Optional$ Min-0 ask still takes the
 			// full Max: the stand-in it mirrors plays "you may" as "do",
