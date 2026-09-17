@@ -403,8 +403,19 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
 		case "discard":
 			in.Choices = b.chooseDiscard(d)
-		case "exile", "sacrifice":
+		case "exile":
+			// Preserve the existing exile policy: this task adds sacrifice
+			// choices, not a new policy for unrelated exile effects.
 			in.Choices = b.chooseWorst(d)
+		case "sacrifice":
+			// Player-facing sacrifice asks use the same least-value choice as
+			// the pre-existing mandatory give-up decisions. Optional asks still
+			// take their first offered permanent, matching the no-host fallback.
+			if d.Min > 0 {
+				in.Choices = b.chooseWorst(d)
+			} else {
+				in.Choices = []int{d.Options[0].Index}
+			}
 		case "dig", "hand_move":
 			// A Dig look-and-take or a "choose N matching cards from hand"
 			// ChangeZone (handmove1): take the first Max options in offered

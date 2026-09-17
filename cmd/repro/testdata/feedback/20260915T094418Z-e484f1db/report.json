@@ -6,5 +6,5 @@
   "table": "g3",
   "seat": "0",
   "client": "client.json",
-  "snapshot": "partial: view unavailable: host: seq beyond head 1323 (captured: match.json log.json)"
+  "snapshot": "re-recorded 2026-09-16: match.json log.json (engine-current bytes: the DB$ Shuffle registration moved the game from event 76; parked seat 0 commander_zone, see host/overshoot_tail_test.go)"
 }

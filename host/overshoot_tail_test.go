@@ -12,14 +12,21 @@ package host
 // keeps sweeping lethal-damage creatures past it.
 //
 // The fixture is measured, not constructed: decks foundations-wretched-
-// ranks vs foundations-reign-of-dragons at seed 1020 (match k=1, the slot
-// takeMatchSlot reserves), burst 538 — the resolving spell deals 5 damage
-// to four creatures in one SBA pass, sweeps three of them ("lethal
-// damage"), asks seat 1's commander_zone, and one more "lethal damage"
-// sweep lands AFTER the ask. The park lands on that ask; replaying the
-// recorded intents reproduces the tail byte for byte. The shape is
-// re-derived from the live match below, so a corpus or engine move fails
-// here loudly instead of testing nothing.
+// ranks vs foundations-reign-of-dragons at seed 1111 (match k=1, the slot
+// takeMatchSlot reserves), burst 407 — the resolving spell deals damage to
+// three creatures in one pass, its caster's priority returns, seat 1's
+// commander_zone is asked (obj 214 died in the pass), and two more
+// "lethal damage" sweeps land AFTER the ask. The park lands on that ask;
+// replaying the recorded intents reproduces the tail byte for byte. The
+// shape is re-derived from the live match below, so a corpus or engine
+// move fails here loudly instead of testing nothing.
+//
+// Re-measured 2026-09-16 (sacrifice-asks/unless-costs integration): the
+// previous measured shape (seed 1020, burst 538) stopped existing — main's
+// mass-effects merge registered the DB$ Shuffle primitive (effects/
+// shuffle.go, 59 corpus files), so the seeded course moved from the first
+// real mid-game shuffle, and seed 1020 now ends at 517 intents with no
+// commander_zone overshoot burst at all. Same decks, new measured seed.
 
 import (
 	"context"
@@ -31,6 +38,7 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/internal/testutil/feedback"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/replay"
@@ -42,8 +50,8 @@ import (
 const (
 	overshootDeckA   = "foundations-wretched-ranks"
 	overshootDeckB   = "foundations-reign-of-dragons"
-	overshootSeed    = 1020
-	overshootIntents = 538 // intents recorded when parked on the overshoot burst's pending ask
+	overshootSeed    = 1111
+	overshootIntents = 407 // intents recorded when parked on the overshoot burst's pending ask
 )
 
 // gateSeat is a bot behind a test gate: every decision is signalled to the
@@ -85,6 +93,17 @@ func parkedOvershootMatch(t *testing.T, dir string) (*Registry, *table, *match, 
 	}
 	o := Options{
 		LoadDeck: commanderDeckLoader(t),
+		// Tokens must carry the live corpus token map, exactly as
+		// cmd/repro's gatedFixtureRegistry does: without it r.opts.Tokens
+		// is nil (host/match.go builds each match's rules.Config.Tokens
+		// from r.opts.Tokens), so any token-minting ability the live match
+		// hits falls back to the engine's "unimplemented API" Note stand-in
+		// instead of actually minting. feedback.Load's own token resolution
+		// falls back to the full corpus map when a capture records no
+		// tokens, so a token-starved live capture replays differently
+		// (Note vs a real token_create) the moment it is reloaded --
+		// discovered regenerating fb-20260915T094418Z's committed fixture.
+		Tokens: testutil.CorpusRegistry(t).Tokens,
 		Seats: func(names []string, seed uint64) []seat.Seat {
 			// defaultSeats' exact bots: seed ^ slot+1. Written from the
 			// match goroutine before the first park signals; the test never
@@ -403,6 +422,7 @@ func TestArchivedParkedTailMatchLoadsAfterRestart(t *testing.T) {
 
 	r2, err := New(Options{
 		LoadDeck: commanderDeckLoader(t),
+		Tokens:   testutil.CorpusRegistry(t).Tokens,
 		Sleep:    func(time.Duration, <-chan struct{}) {},
 		Dir:      dir,
 	})
@@ -503,6 +523,38 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // and the game facts at the capture point — turn, step, priority, active —
 // unchanged), so log.json's events and head were regenerated the same way the
 // tail was: same match, engine-current bytes. The recorded Intents are untouched.
+//
+// sacrifice/unless integration (2026-09-16, full re-record): the recorded
+// intents stopped replaying altogether. Main's mass-effects merge registered
+// the DB$ Shuffle primitive AFTER this capture's last regeneration (822502e4
+// is not an ancestor of 679883dc), so event 76 — Gamble's mid-burst "then
+// shuffle" — became a real Secret Shuffle where the recording kept the
+// "unimplemented API Shuffle" Note the pre-Shuffle engine emitted; a real
+// shuffle changes the library order, and no recorded intent after the draw
+// it feeds can survive that. The stale recording also failed on plain main
+// tip (the divergence is exactly the registered-primitive move, measured by
+// replaying the capture there), so it was re-recorded rather than patched:
+// a live gated match over the SAME deck pair (foundations-wretched-ranks vs
+// foundations-reign-of-dragons, commander, corpus tokens attached — a
+// capture must replay, so its registry carries Tokens, which the live
+// fixture's does not need) parked on the same reported shape: seat 0's
+// commander_zone ask (a dying Grave Titan, turn 15, declare-blockers) with
+// the post-ask "lethal damage" sweep and end-combat step change on the log
+// (2150 events, 396 intents, head 023ef9e6f0175524). report.json keeps the
+// original report's provenance fields; its snapshot line names the
+// re-record.
+//
+// event-802 re-record (2026-09-17): that re-record was itself made by
+// parkedOvershootMatch BEFORE host.Options.Tokens was wired (see this
+// file's parkedOvershootMatch) — its live match ran token-starved, so a
+// token-minting ability it hit recorded the engine's "unimplemented API"
+// Note stand-in in place of the real mint. feedback.Load falls back to the
+// full corpus token map when a capture carries no token text, so replaying
+// this same capture today actually mints the token, diverging at event 802
+// (recorded move_zone [the Note's text], replayed choose). Fixed at the
+// source and re-recorded via TestGenerateOvershootCapture
+// (REPRO_REGEN_FIXTURE=1) with Tokens now attached to the live match:
+// 2238 events, 407 intents, head d8cf3b6dc00a07d9.
 const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -523,7 +575,7 @@ func requireCommittedCapture(t *testing.T) {
 }
 
 // TestCommittedOvershootCaptureReplaysToTheParkedAsk is the committed
-// capture's gate: the REAL reported match, parked on seat 0's commander_zone
+// capture's gate: the REAL reported match, parked on seat 1's commander_zone
 // ask with its overshoot tail on the log, verifies under plain
 // replay.Replay (no tolerance, host or otherwise) and the rebuilt engine is
 // parked on that ask — the state cmd/repro prints and a -emit-test
@@ -534,8 +586,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 1326 {
-		t.Fatalf("capture carries %d events, want the full 1326-event stream (tail reconstructed)", n)
+	if n := len(l.Events); n != 2238 {
+		t.Fatalf("capture carries %d events, want the full 2238-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {
@@ -545,16 +597,29 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 		t.Fatalf("replayed head %q, want the recorded %q", got, want)
 	}
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KCommanderZone || d.Player != 0 {
-		t.Fatalf("pending is %+v, want seat 0's commander_zone ask", d)
+	if d == nil || d.Kind != decision.KCommanderZone || d.Player != 1 {
+		t.Fatalf("pending is %+v, want seat 1's commander_zone ask", d)
 	}
-	// The tail events are on the rebuilt log, after the ask that parked it:
-	// the sweep and the step change the old host's capture cut.
+	// The tail events are on the rebuilt log, after the ask that parked it.
+	// event-802 re-record (2026-09-17): with Tokens now attached, the token
+	// creatures the burst's lethal-damage sweep hits are real permanents,
+	// so their own SBA cleanup ("ceased to exist") now lands after the
+	// sweep — the pre-fix, token-starved capture never had real tokens to
+	// clean up, so its tail ended one step earlier (the step change).
 	last := l.Events[len(l.Events)-1]
-	if last.Kind != events.StepChange || last.Step != state.StepEndCombat {
-		t.Fatalf("capture ends with %+v, want the post-ask end-combat step change", last)
+	if last.Kind != events.MoveZone || last.Text != "ceased to exist" {
+		t.Fatalf("capture ends with %+v, want a token's post-sweep cleanup", last)
 	}
-	if sweep := l.Events[len(l.Events)-2]; sweep.Kind != events.MoveZone || sweep.Text != "lethal damage" {
-		t.Fatalf("second-to-last event is %+v, want the post-ask lethal-damage sweep", sweep)
+	if prev := l.Events[len(l.Events)-2]; prev.Kind != events.MoveZone || prev.Text != "ceased to exist" {
+		t.Fatalf("second-to-last event is %+v, want a token's post-sweep cleanup", prev)
+	}
+	sweep := false
+	for _, ev := range l.Events[len(l.Events)-6:] {
+		if ev.Kind == events.MoveZone && ev.Text == "lethal damage" {
+			sweep = true
+		}
+	}
+	if !sweep {
+		t.Fatal("no lethal-damage sweep found in the capture's tail")
 	}
 }

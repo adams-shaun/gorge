@@ -258,6 +258,7 @@ func acceptanceHead(t *testing.T, reg *cards.Registry, seats int) string {
 // data at scale, not about every card's fidelity, which is M4's separate
 // worklist).
 func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
 	}
@@ -293,6 +294,7 @@ func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
 // each re-run from its own recorded (Config, Log) through the package-local
 // replayFor helper, must reach the same chain Head as the original run.
 func TestRepoDeckGamesReplayExactly(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
 	}

@@ -1,0 +1,206 @@
+package rules
+
+import (
+	"reflect"
+	"slices"
+	"testing"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// The mapping is an over-approximation of the CURRENT matcher, not an
+// expansion of Forge support. SpellAbilityCast currently means AbilityPush.
+func TestTriggerEligibilityEventMatrix(t *testing.T) {
+	for _, tc := range []struct {
+		mode  string
+		kinds []events.Kind // nil means conservatively retain every event
+	}{
+		{"ChangesZone", []events.Kind{events.MoveZone, events.Draw, events.PutOnStack}},
+		{"SpellCast", []events.Kind{events.PutOnStack}},
+		{"AbilityCast", []events.Kind{events.AbilityPush}},
+		{"SpellAbilityCast", []events.Kind{events.AbilityPush}},
+		{"Attacks", []events.Kind{events.DeclareAttackers}},
+		{"AttackersDeclaredOneTarget", []events.Kind{events.DeclareAttackers}},
+		{"Sacrificed", []events.Kind{events.MoveZone}},
+		{"Discarded", []events.Kind{events.MoveZone}},
+		{"CommitCrime", []events.Kind{events.TargetsChosen}},
+		{"Taps", []events.Kind{events.Tap}},
+		{"TapsForMana", []events.Kind{events.Tap}},
+		{"DamageDone", []events.Kind{events.Damage}},
+		{"DamageDealtOnce", []events.Kind{events.Damage}},
+		{"DamageDoneOnce", []events.Kind{events.Damage}},
+		{"Drawn", []events.Kind{events.Draw}},
+		{"LifeLost", []events.Kind{events.Damage, events.LifeChange}},
+		{"LifeLostAll", nil},
+		{"BecomesTarget", []events.Kind{events.TargetsChosen}},
+		{"LandPlayed", []events.Kind{events.MoveZone}},
+		{"Phase", []events.Kind{events.StepChange}},
+		{"Always", nil},
+		{"FutureMode", nil},
+		{"", nil},
+	} {
+		t.Run(tc.mode, func(t *testing.T) {
+			mask := triggerModeEvents(tc.mode)
+			for k := 0; k < 256; k++ {
+				kind := events.Kind(k)
+				// Kinds beyond this representation must fail OPEN to the old
+				// matcher, never silently truncate a new event's eligibility.
+				want := tc.kinds == nil || k >= 64 || slices.Contains(tc.kinds, kind)
+				if got := mask.allows(kind); got != want {
+					t.Fatalf("%s kind %d: eligible=%v, want %v", tc.mode, k, got, want)
+				}
+			}
+		})
+	}
+}
+
+func TestTriggerEligibilityFaceUnionAndConservativeFallback(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		face *cards.Face
+		kind events.Kind
+		want bool
+	}{
+		{"nil", nil, events.Note, false},
+		{"empty", &cards.Face{}, events.Note, false},
+		{"irrelevant", &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast"}}}, events.Note, false},
+		{"union", &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast"}, {Mode: "Drawn"}}}, events.Draw, true},
+		{"phase diagnostic", &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast", Params: map[string]string{"Phase": "Bad"}}}}, events.Note, true},
+		{"valid phase", &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast", Params: map[string]string{"Phase": "Upkeep"}}}}, events.Note, true},
+		{"blank phase", &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast", Params: map[string]string{"Phase": " \t"}}}}, events.Note, false},
+		{"state trigger", &cards.Face{Triggers: []cards.Trigger{{Mode: "Always"}}}, events.Note, true},
+		{"life batch", &cards.Face{Triggers: []cards.Trigger{{Mode: "LifeLostAll"}}}, events.Note, true},
+		{"unknown", &cards.Face{Triggers: []cards.Trigger{{Mode: "FutureMode"}}}, events.Note, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := &Engine{}
+			if got := e.faceMayTrigger(tc.face, tc.kind); got != tc.want {
+				t.Fatalf("eligible=%v, want %v", got, tc.want)
+			}
+			if a := testing.AllocsPerRun(100, func() { e.faceMayTrigger(tc.face, tc.kind) }); a != 0 {
+				t.Fatalf("warm face lookup allocated %v objects", a)
+			}
+		})
+	}
+}
+
+func TestTriggerEligibilityCacheIsCloneIndependent(t *testing.T) {
+	e := layerEngine(t)
+	f := &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast"}}}
+	e.faceMayTrigger(f, events.Note)
+	c := e.Clone()
+	other := &cards.Face{Triggers: []cards.Trigger{{Mode: "Drawn"}}}
+	if !c.faceMayTrigger(other, events.Draw) {
+		t.Fatal("clone rejected newly encountered face")
+	}
+	if _, shared := e.triggerEventMasks[other]; shared {
+		t.Fatal("clone writes to parent's eligibility cache")
+	}
+	// Concurrent misses on independently writable caches must not race.
+	for _, branch := range []*Engine{e, c} {
+		t.Run("branch", func(t *testing.T) {
+			t.Parallel()
+			for range 100 {
+				face := &cards.Face{Triggers: []cards.Trigger{{Mode: "Attacks"}}}
+				if !branch.faceMayTrigger(face, events.DeclareAttackers) {
+					t.Fatal("branch rejected attack trigger")
+				}
+			}
+		})
+	}
+}
+
+// An impossible event must be rejected before parsing dynamic gates, even on
+// a cold look-back observer. Moving the kind guard after phaseGate allocates.
+func TestTriggerEligibilityRejectsBeforeDynamicGates(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:Gate probe\nTypes:Enchantment\nOracle:x\n")
+	tr := cards.Trigger{Mode: "ChangesZone", Params: map[string]string{"Phase": "Upkeep"}}
+	observer := &Engine{G: e.G, L: e.L}
+	allocs := testing.AllocsPerRun(100, func() {
+		observer.phaseSpecs = nil // cold syntax; observer construction is setup
+		if observer.triggerMatches(tr, id, events.Event{Kind: events.Note}, nil) {
+			t.Fatal("a Note matched ChangesZone")
+		}
+	})
+	if allocs != 0 {
+		t.Fatalf("irrelevant event allocated %.0f objects evaluating gates; want zero", allocs)
+	}
+}
+
+// These synthetic fixtures pin the scanner's existing semantics before
+// pruning. Diagnostics ignore event kind AND source zone; duplicate specs
+// name the first source in seat/zone/face/trigger order, not insertion order.
+func TestTriggerEligibilityKeepsHiddenDiagnosticOrder(t *testing.T) {
+	e := layerEngine(t)
+	later := onBoard(t, e, 0, "Name:Later\nTypes:Enchantment\n"+
+		"T:Mode$ ChangesZone | Phase$ BadA | Execute$ Gain\n"+
+		"T:Mode$ SpellCast | Phase$ BadC | Execute$ Gain\n"+
+		"SVar:Gain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\nOracle:x\n")
+	first := onBoard(t, e, 0, "Name:Hidden first\nTypes:Enchantment\n"+
+		"T:Mode$ SpellCast | Phase$ BadA | Execute$ Gain\n"+
+		"T:Mode$ FutureMode | Phase$ BadB | Execute$ Gain\n"+
+		"SVar:Gain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\nOracle:x\n")
+	events.Apply(e.G, events.Event{Kind: events.MoveZone, Obj: first, From: state.ZBattlefield, To: state.ZLibrary})
+	start := len(e.L.Events)
+	for range 2 {
+		e.checkFaceTriggers(e, events.Event{Kind: events.Priority}, nil, 0, 0, false, false, false)
+	}
+	var got []string
+	var sources []state.ObjID
+	for _, ev := range e.L.Events[start:] {
+		got = append(got, ev.Text)
+		sources = append(sources, ev.Obj)
+	}
+	want := []string{
+		"Phase$ BadA names no engine step; the trigger never fires",
+		"Phase$ BadB names no engine step; the trigger never fires",
+		"Phase$ BadC names no engine step; the trigger never fires",
+	}
+	if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(sources, []state.ObjID{first, first, later}) {
+		t.Fatalf("diagnostics = %v from %v; want %v in zone order", got, sources, want)
+	}
+}
+
+func TestTriggerEligibilityKeepsAlwaysOnBookkeepingEvents(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:State watcher\nTypes:Enchantment\n"+
+		"T:Mode$ Always | LifeTotal$ You | LifeAmount$ GE20 | Execute$ Gain\n"+
+		"SVar:Gain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\nOracle:x\n")
+	for _, kind := range []events.Kind{events.Priority, events.Note, events.DecisionMade} {
+		e.checkFaceTriggers(e, events.Event{Kind: kind}, nil, 0, 0, false, false, false)
+	}
+	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != id {
+		t.Fatalf("Always queue = %+v, want exactly one outstanding instance", e.pendingTriggers)
+	}
+}
+
+// The active face has no printed triggers. Its fast rejection must still
+// inspect an unlocked Room's other face, including when face 1 was cast.
+func TestTriggerEligibilityKeepsRoomAlternateFace(t *testing.T) {
+	for _, face := range []int32{0, 1} {
+		e := layerEngine(t)
+		quiet := "Name:Quiet\nTypes:Enchantment Room\nOracle:x\n"
+		watcher := "Name:Watcher\nTypes:Enchantment Room\n" +
+			"T:Mode$ SpellCast | Execute$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\nOracle:x\n"
+		src := quiet + "ALTERNATE\n" + watcher
+		if face == 1 {
+			src = watcher + "ALTERNATE\n" + quiet
+		}
+		id := onBoard(t, e, 0, src)
+		events.Apply(e.G, events.Event{Kind: events.FlipFace, Obj: id, Amount: face})
+		spell := onBoard(t, e, 0, "Name:Spell\nTypes:Sorcery\nOracle:x\n")
+		ev := events.Event{Kind: events.PutOnStack, Obj: spell, Player: 0}
+		e.checkFaceTriggers(e, ev, nil, 0, 0, false, false, false)
+		if len(e.pendingTriggers) != 0 {
+			t.Fatal("locked alternate face fired")
+		}
+		events.Apply(e.G, events.Event{Kind: events.DoorUnlock, Obj: id})
+		e.checkFaceTriggers(e, ev, nil, 0, 0, false, false, false)
+		if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != id || !e.pendingTriggers[0].Delayed {
+			t.Fatalf("cast face %d: queue = %+v, want alternate-face trigger", face, e.pendingTriggers)
+		}
+	}
+}

@@ -274,30 +274,65 @@ func corpusUnlessCounterSA(t *testing.T, name string, extra func(*cards.SA) bool
 // non-empty UnlessCost$, so the unguarded branch poses the decision and
 // suspends instead of countering. Verified by running it on a tree without
 // the guard, not asserted.
-func TestCounterUnlessSwitchedSuppressesTheAsk(t *testing.T) {
+// TestCounterUnlessSwitchedAppliesOrientation pins the REAL switched
+// semantics the shared unlessProceed gate gives every Counter carrying
+// UnlessSwitched$ True: the ask IS posed (the pre-gate build suppressed it
+// and countered unconditionally — an approximation this task closes), a
+// recorded "pay" CAUSES the counter, and a "decline" lets the spell resolve.
+// The five corpus carriers are Brain Gorgers, Dash Hopes, Ice Cave,
+// Phantasmagorian and Temporal Extortion (5 compiled SAs; none in a repo
+// deck). Whether the cost is actually payable is rules' decision (rules'
+// unless-pay arm); this pin is the orientation the gate applies to the
+// recorded answer.
+func TestCounterUnlessSwitchedAppliesOrientation(t *testing.T) {
 	for _, name := range []string{
 		"Brain Gorgers", "Dash Hopes", "Ice Cave", "Phantasmagorian", "Temporal Extortion",
 	} {
 		t.Run(name, func(t *testing.T) {
 			sa := corpusSwitchedCounterSA(t, name)
+			// First pass: the switched ask is POSED, to the first
+			// UnlessPayer$ player — every one of the five says "Player", so
+			// the first payer is seat 0 in AliveFrom order.
 			h := &askHost{}
 			h.g = state.NewGame(names(2))
 			src := counterSource(t, &h.fakeHost, 0)
 			target := spellOnStack(t, &h.fakeHost, "A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3", 1)
-			// Defined$ TriggeredSpellAbility reads the trigger's remembered
-			// object, which is how these SAs name the spell being countered.
-			Resolve(h, &Ctx{Source: src, Controller: 0,
-				Remembered: []state.Target{{Obj: target.ID}}}, sa)
-
-			if h.asked != nil {
-				t.Fatalf("%s (UnlessCost$ %q, UnlessSwitched$ True) posed the backwards pay ask: %+v",
-					name, sa.Params["UnlessCost"], h.asked)
+			ctx := &Ctx{Source: src, Controller: 0,
+				Remembered: []state.Target{{Obj: target.ID}}}
+			Resolve(h, ctx, sa)
+			if h.asked == nil {
+				t.Fatalf("%s (UnlessCost$ %q, UnlessSwitched$ True) posed no pay ask — the switched shape must ask, not suppress",
+					name, sa.Params["UnlessCost"])
 			}
-			if target.Zone != state.ZGraveyard {
-				t.Fatalf("%s: countered spell zone = %s, want Graveyard (switched shapes counter unconditionally)",
+			if h.asked.Player != 0 {
+				t.Fatalf("%s payer = seat %d, want seat 0 (UnlessPayer$ Player)", name, h.asked.Player)
+			}
+			if target.Zone != state.ZStack {
+				t.Fatalf("%s: countered spell zone = %s during the suspended ask, want Stack (the body must not run before the answer)",
 					name, target.Zone)
 			}
-			if got := counterMoves(&h.fakeHost, target.ID, state.ZGraveyard); got != 1 {
+			// Resume "decline": on the switched shape the decline stops the
+			// effect. With UnlessPayer$ Player the gate moves on to the next
+			// payer (seat 1); a host that cannot suspend there keeps the
+			// decline, and the spell survives.
+			h2 := &askHost{}
+			h2.g = h.g
+			ctx2 := &Ctx{Source: src, Controller: 0, UnlessPay: "decline", UnlessNext: 0,
+				Remembered: []state.Target{{Obj: target.ID}}}
+			Resolve(h2, ctx2, sa)
+			if got := target.Zone; got != state.ZStack {
+				t.Fatalf("%s: after an all-payer decline the countered spell zone = %s, want Stack (declined switched counter never fires)", name, got)
+			}
+			// Resume "pay": on the switched shape the pay CAUSES the counter.
+			h3 := &askHost{}
+			h3.g = h.g
+			ctx3 := &Ctx{Source: src, Controller: 0, UnlessPay: "pay", UnlessNext: 0,
+				Remembered: []state.Target{{Obj: target.ID}}}
+			Resolve(h3, ctx3, sa)
+			if target.Zone != state.ZGraveyard {
+				t.Fatalf("%s: after the pay the countered spell zone = %s, want Graveyard (paid switched counter fires)", name, target.Zone)
+			}
+			if got := counterMoves(&h3.fakeHost, target.ID, state.ZGraveyard); got != 1 {
 				t.Fatalf("%s: move-to-graveyard count = %d, want exactly 1", name, got)
 			}
 		})

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -167,6 +168,43 @@ func OpenCorpusRegistry(dir string) (*cards.Registry, error) {
 	return cards.OpenCorpus(dir)
 }
 
+type corpusRegistryResult struct {
+	reg     *cards.Registry
+	dir     string
+	missing bool
+	err     error
+}
+
+type corpusRegistryCache struct {
+	once   sync.Once
+	result corpusRegistryResult
+}
+
+func (c *corpusRegistryCache) get(load func() corpusRegistryResult) corpusRegistryResult {
+	c.once.Do(func() { c.result = load() })
+	return c.result
+}
+
+var repoCorpusRegistry corpusRegistryCache
+
+func loadRepoCorpusRegistry() corpusRegistryResult {
+	cmd := exec.Command("git", "-C", ".", "rev-parse", "--show-toplevel")
+	cmd.Env = cards.GitEnv()
+	out, err := cmd.Output()
+	if err != nil {
+		return corpusRegistryResult{err: fmt.Errorf("testutil: could not resolve git repo root: %v", err)}
+	}
+	dir := filepath.Join(strings.TrimSpace(string(out)), ".cards")
+	if _, err := os.Stat(dir); err != nil {
+		return corpusRegistryResult{dir: dir, missing: true}
+	}
+	r, err := OpenCorpusRegistry(dir)
+	if err != nil {
+		return corpusRegistryResult{dir: dir, err: fmt.Errorf("testutil: could not open corpus at %s: %v", dir, err)}
+	}
+	return corpusRegistryResult{reg: r, dir: dir}
+}
+
 // CorpusRegistry finds the repo root the way cards/boundary_test.go does --
 // `git rev-parse --show-toplevel`, not a hard-coded relative path, which is
 // exactly what silently broke that file's own license-boundary test when
@@ -193,19 +231,12 @@ func CorpusRegistry(t testing.TB) *cards.Registry {
 	// identical manual run of the same command measures ~18s. Those rows are
 	// fiction, and they became the baseline other measurements were judged
 	// against.
-	cmd := exec.Command("git", "-C", ".", "rev-parse", "--show-toplevel")
-	cmd.Env = cards.GitEnv()
-	out, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("testutil: could not resolve git repo root: %v", err)
-	}
-	dir := filepath.Join(strings.TrimSpace(string(out)), ".cards")
-	if _, err := os.Stat(dir); err != nil {
+	result := repoCorpusRegistry.get(loadRepoCorpusRegistry)
+	if result.missing {
 		t.Skip("testutil: no .cards/ corpus present -- run `make fetch-cards compile-cards`")
 	}
-	r, err := OpenCorpusRegistry(dir)
-	if err != nil {
-		t.Fatalf("testutil: could not open corpus at %s: %v", dir, err)
+	if result.err != nil {
+		t.Fatalf("%v", result.err)
 	}
-	return r
+	return result.reg
 }

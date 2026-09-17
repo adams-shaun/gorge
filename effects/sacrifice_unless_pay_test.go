@@ -190,7 +190,7 @@ func TestVexingDevilDeclineCursorAsksTheNextOpponent(t *testing.T) {
 		t.Fatalf("first offer = %v, want seat 1 (turn order after the controller)", ah.asks)
 	}
 	ah.suspended = false
-	ctx.UnlessPay, ctx.UnlessPayTarget = "decline", 0
+	ctx.UnlessPay, ctx.UnlessNext = "decline", 0
 	Resolve(ah, ctx, sac)
 	if len(ah.asks) != 2 || ah.asks[1].Player != 2 {
 		t.Fatalf("after the first decline the offers = %v, want a second ask to seat 2", ah.asks)
@@ -199,7 +199,7 @@ func TestVexingDevilDeclineCursorAsksTheNextOpponent(t *testing.T) {
 		t.Fatalf("second offer ResumeTarget = %d, want 1", ah.asks[1].ResumeTarget)
 	}
 	ah.suspended = false
-	ctx.UnlessPay, ctx.UnlessPayTarget = "decline", 1
+	ctx.UnlessPay, ctx.UnlessNext = "decline", 1
 	Resolve(ah, ctx, sac)
 	if len(ah.asks) != 2 {
 		t.Fatalf("after the last decline %d decisions were posed, want none", len(ah.asks)-2)
@@ -234,19 +234,20 @@ func TestLonghornFirebeastOfferRendersItsFive(t *testing.T) {
 	}
 }
 
-// TestVexingDevilNoAskHostTakesOption0 pins the R-9 stand-in the brief
-// names: a host that cannot ask takes option 0 (accept) — the first
-// opponent takes the damage (emitted here, with the ordinary DealDamage
-// emitter, because there is no rules arm) and the sacrifice proceeds.
-func TestVexingDevilNoAskHostTakesOption0(t *testing.T) {
+// TestVexingDevilNoAskHostDeclines pins the R-9 stand-in the shared unless
+// gate gives every API: a host that cannot ask records the deterministic
+// decline — the Devil stays in play and nobody takes damage. In a real
+// engine this path is unreachable (Engine.Ask always returns true); the
+// damage-offer ask is what production exercises.
+func TestVexingDevilNoAskHostDeclines(t *testing.T) {
 	h, devil, sac := devilBoard(t, "Vexing Devil", 0)
 	ctx := &Ctx{Source: devil, Controller: 0}
 	Resolve(h, ctx, sac)
-	if devilMoves(h, devil) != 1 {
-		t.Fatalf("no-ask stand-in Devil moved %d times, want 1 (option 0 = accept)", devilMoves(h, devil))
+	if devilMoves(h, devil) != 0 {
+		t.Fatalf("no-ask stand-in Devil moved %d times, want 0 (deterministic decline)", devilMoves(h, devil))
 	}
-	if n := playerDamage(h, 1); n != 4 {
-		t.Fatalf("no-ask stand-in dealt seat 1 %d damage, want 4", n)
+	if n := playerDamage(h, 1); n != 0 {
+		t.Fatalf("no-ask stand-in dealt seat 1 %d damage, want 0", n)
 	}
 }
 
@@ -297,8 +298,9 @@ func TestUpkeepSacrificePaySparesDeclineSacrifices(t *testing.T) {
 
 // TestUnpriceableSacrificeKeepsTodaysBehaviour pins the blast-radius
 // boundary: an unpriceable non-mana, non-damage UnlessCost$ (Mercenary
-// Knight's Discard<1/Creature>) poses NO ask and keeps the pre-gate
-// behaviour — the unconditional first-pass sacrifice (decline semantics).
+// Knight's Discard<1/Creature>) is a hard decline — the shared gate poses
+// the ask (so the offer stays on the wire) and the deterministic decline
+// keeps the pre-gate behaviour: the unconditional first-pass sacrifice.
 func TestUnpriceableSacrificeKeepsTodaysBehaviour(t *testing.T) {
 	h, knight, _ := devilBoard(t, "Mercenary Knight", 0)
 	sac := upkeepSacrificeSA(t, "Mercenary Knight")
@@ -309,9 +311,12 @@ func TestUnpriceableSacrificeKeepsTodaysBehaviour(t *testing.T) {
 	ah.g = h.g
 	ctx := &Ctx{Source: knight, Controller: 0}
 	Resolve(ah, ctx, sac)
-	if len(ah.asks) != 0 {
-		t.Fatalf("unpriceable UnlessCost$ posed %d decisions, want none (today's behaviour)", len(ah.asks))
+	if len(ah.asks) != 1 {
+		t.Fatalf("unpriceable UnlessCost$ posed %d decisions, want the 1 ask the shared gate records", len(ah.asks))
 	}
+	ah.suspended = false
+	ctx.UnlessPay = "decline"
+	Resolve(ah, ctx, sac)
 	if devilMoves(&ah.fakeHost, knight) != 1 {
 		t.Fatalf("unpriceable UnlessCost$ sacrifice moved %d times, want 1", devilMoves(&ah.fakeHost, knight))
 	}

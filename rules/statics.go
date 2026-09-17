@@ -25,6 +25,88 @@ type staticView struct {
 	Params     map[string]string
 }
 
+// costStaticViews is one ordered snapshot of cost-modifier membership. The
+// three slices preserve each mode's independent application order while the
+// collector walks the game's zones only once. It contains no evaluated
+// applicability, amount, target, X, condition, or final cost.
+type costStaticViews struct {
+	raise  []staticView
+	reduce []staticView
+	set    []staticView
+}
+
+// costStaticSource lazily owns one call-scoped membership snapshot. It is
+// deliberately not stored on Engine: a legal-actions pass may reuse it, but
+// a later pass or payment-side recomputation must observe the current board,
+// including test fixtures that mutate setup without emitting events.
+type costStaticSource struct {
+	e     *Engine
+	views costStaticViews
+	ready bool
+}
+
+func (s *costStaticSource) get() costStaticViews {
+	if !s.ready {
+		s.views = s.e.collectCostStatics()
+		s.ready = true
+	}
+	return s.views
+}
+
+// actionStaticViews contains ordered membership only, never evaluated
+// restrictions, grants or affordability. A legalActions pass owns its source
+// locally; later offers and payment/activation callers collect afresh.
+type actionStaticViews struct {
+	cantCast     []staticView
+	cantActivate []staticView
+	continuous   []staticView
+}
+
+type actionStaticSource struct {
+	e     *Engine
+	views actionStaticViews
+	ready bool
+}
+
+func (s *actionStaticSource) get() actionStaticViews {
+	if !s.ready {
+		s.views = s.e.collectActionStatics()
+		s.ready = true
+	}
+	return s.views
+}
+
+// collectActionStatics mirrors activeStatics' active-face-only battlefield
+// walk. In particular it must not inherit staticEffects' alternate Room face
+// expansion or collectCostStatics' other zones. Each mode keeps its original
+// seat, zone and parsed-static order while sharing a single membership walk.
+func (e *Engine) collectActionStatics() actionStaticViews {
+	var out actionStaticViews
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			for _, st := range o.Face().Statics {
+				var dst *[]staticView
+				switch st.Mode {
+				case "CantBeCast":
+					dst = &out.cantCast
+				case "CantBeActivated":
+					dst = &out.cantActivate
+				case "Continuous":
+					dst = &out.continuous
+				default:
+					continue
+				}
+				*dst = append(*dst, staticView{Source: id, Controller: o.Controller, Params: st.Params})
+			}
+		}
+	}
+	return out
+}
+
 // activeStatics collects every S:Mode$ <mode> line from a permanent on the
 // battlefield. The order is deterministic: AliveFrom(0) walks seats in fixed
 // APNAP order, each seat's battlefield zone is a slice built by ordinary
@@ -101,7 +183,11 @@ func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecCon
 
 // castRestricted reports whether p is forbidden from casting id (CantBeCast).
 func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
-	for _, sv := range e.activeStatics("CantBeCast") {
+	return e.castRestrictedUsing(e.activeStatics("CantBeCast"), p, id)
+}
+
+func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id state.ObjID) bool {
+	for _, sv := range statics {
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
 		}
@@ -119,11 +205,15 @@ func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
 // ValidSA$). A nonexistent object has no ability to restrict, so it degrades
 // to false rather than dereferencing a nil Object.
 func (e *Engine) abilityRestricted(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	return e.abilityRestrictedUsing(e.activeStatics("CantBeActivated"), p, id, ab)
+}
+
+func (e *Engine) abilityRestrictedUsing(statics []staticView, p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
 	o := e.G.Obj(id)
 	if o == nil {
 		return false
 	}
-	for _, sv := range e.activeStatics("CantBeActivated") {
+	for _, sv := range statics {
 		if !e.actorMatches(sv, "Activator", p) {
 			continue
 		}
@@ -719,8 +809,8 @@ func effectZoneOK(v string, z state.Zone) bool {
 	return false
 }
 
-// costStatics collects the cost-modifier statics of `mode` from every zone a
-// static can be live in, gated by each static's own EffectZone$ (Forge's
+// collectCostStatics collects cost-modifier statics from every zone a static
+// can be live in, gated by each static's own EffectZone$ (Forge's
 // default is the battlefield, so a static with no EffectZone$ behaves exactly
 // as activeStatics did — a battlefield-only collector). This is what lets a
 // card's own reduction apply while it is still in hand: Ghalta, Primal
@@ -728,18 +818,29 @@ func effectZoneOK(v string, z state.Zone) bool {
 // hand, the library, the command zone and the stack alike. The walk is
 // deterministic: AliveFrom(0) seats, a fixed zone order, slice order inside
 // each zone, and each face's own Statics order.
-func (e *Engine) costStatics(mode string) []staticView {
-	var out []staticView
+func (e *Engine) collectCostStatics() costStaticViews {
+	var out costStaticViews
 	add := func(o *state.Object, id state.ObjID) {
 		f := o.Face()
 		if f == nil {
 			return
 		}
 		for _, st := range f.Statics {
-			if st.Mode != mode || !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+			var dst *[]staticView
+			switch st.Mode {
+			case "RaiseCost":
+				dst = &out.raise
+			case "ReduceCost":
+				dst = &out.reduce
+			case "SetCost":
+				dst = &out.set
+			default:
 				continue
 			}
-			out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params})
+			if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+				continue
+			}
+			*dst = append(*dst, staticView{Source: id, Controller: o.Controller, Params: st.Params})
 		}
 	}
 	for pi, p := range e.G.AliveFrom(0) {
@@ -900,10 +1001,21 @@ func (e *Engine) costModifiersForTargetsX(p state.PlayerID, id state.ObjID, scop
 }
 
 func (e *Engine) costModifiersWithTargetsX(p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32) costMods {
+	return e.costModifiersWithTargetsXUsing(e.collectCostStatics(), p, id, scope, targets, potential, x)
+}
+
+func (e *Engine) costModifiersWithTargetsXUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32) costMods {
 	var mods costMods
 	xBound := x != 0
-	for _, mode := range []string{"RaiseCost", "ReduceCost"} {
-		for _, sv := range e.costStatics(mode) {
+	for _, group := range []struct {
+		mode  string
+		views []staticView
+	}{
+		{"RaiseCost", statics.raise},
+		{"ReduceCost", statics.reduce},
+	} {
+		mode := group.mode
+		for _, sv := range group.views {
 			if potential && mode == "RaiseCost" {
 				if _, targetConditional := sv.Params["ValidTarget"]; targetConditional {
 					continue
@@ -971,7 +1083,7 @@ func (e *Engine) costModifiersWithTargetsX(p state.PlayerID, id state.ObjID, sco
 			mods.reduces = append(mods.reduces, red)
 		}
 	}
-	for _, sv := range e.costStatics("SetCost") {
+	for _, sv := range statics.set {
 		if potential {
 			if _, targetConditional := sv.Params["ValidTarget"]; targetConditional {
 				continue
@@ -988,9 +1100,20 @@ func (e *Engine) costModifiersWithTargetsX(p state.PlayerID, id state.ObjID, sco
 }
 
 func (e *Engine) costModifiersWithTargets(p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool) costMods {
+	return e.costModifiersWithTargetsUsing(e.collectCostStatics(), p, id, scope, targets, potential)
+}
+
+func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool) costMods {
 	var mods costMods
-	for _, mode := range []string{"RaiseCost", "ReduceCost"} {
-		for _, sv := range e.costStatics(mode) {
+	for _, group := range []struct {
+		mode  string
+		views []staticView
+	}{
+		{"RaiseCost", statics.raise},
+		{"ReduceCost", statics.reduce},
+	} {
+		mode := group.mode
+		for _, sv := range group.views {
 			if potential && mode == "RaiseCost" {
 				if _, targetConditional := sv.Params["ValidTarget"]; targetConditional {
 					continue
@@ -1058,7 +1181,7 @@ func (e *Engine) costModifiersWithTargets(p state.PlayerID, id state.ObjID, scop
 			mods.reduces = append(mods.reduces, red)
 		}
 	}
-	for _, sv := range e.costStatics("SetCost") {
+	for _, sv := range statics.set {
 		if potential {
 			if _, targetConditional := sv.Params["ValidTarget"]; targetConditional {
 				continue

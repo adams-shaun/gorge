@@ -40,10 +40,10 @@ func (e *Engine) beginTurn(active state.PlayerID, skipUntap ...bool) {
 // eventual answer resumes this helper again.
 // chooseSuspendCast is the chooseFor for CR 702.62a's may-cast ask, posed by
 // startSuspendedCast when a suspended card's last TIME counter is removed.
-// iota+11 is pairwise distinct from the shared package set (cast=1/etb=2/
+// iota+12 is pairwise distinct from the shared package set (cast=1/etb=2/
 // miracle=3, cleanup=4, division=5, mana=6..9, opening=10); the exact numbers
 // only need to differ.
-const chooseSuspendCast chooseFor = iota + 11
+const chooseSuspendCast chooseFor = iota + 12
 
 func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepUntap && !e.finishUntapStep(0) {
@@ -846,6 +846,10 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 				e.continueCast()
 			}
 		}
+	case chooseUnlessCost:
+		// A Sac/Discard component of an already-accepted UnlessCost$ needs
+		// its payer's real choice before the suspended effect can resume.
+		e.answerUnlessPayment(chosen)
 	case chooseManaColor:
 		// A CR 605.3b triggered mana ability may pose its own colour choice
 		// after this one; the cast (or Ward's payment window) resumes only

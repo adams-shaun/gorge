@@ -134,22 +134,24 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		}
 	}
 	e.forEachReplacementSource(func(id state.ObjID) {
-		for _, f := range e.replacementFaces(id, ev) {
-			for i := range f.Repls {
-				if f.Repls[i].Event != event {
-					continue
-				}
-				m := replMatch{id: id, face: f, repl: &f.Repls[i]}
-				// Mana replacement applicability must be re-evaluated after
-				// every rewrite (CR 616.1). Keep even the candidates that do
-				// not match the initial amount: multiplying mana can make a
-				// later ManaAmount$ gate newly applicable.
-				if ev.Kind == events.ManaAdd {
-					manaCandidates = append(manaCandidates, m)
-				}
-				if e.replacementMatches(f.Repls[i], id, ev) {
-					matches = append(matches, m)
-				}
+		f := e.replacementFace(id, ev)
+		if f == nil {
+			return
+		}
+		for i := range f.Repls {
+			if f.Repls[i].Event != event {
+				continue
+			}
+			m := replMatch{id: id, face: f, repl: &f.Repls[i]}
+			// Mana replacement applicability must be re-evaluated after
+			// every rewrite (CR 616.1). Keep even the candidates that do
+			// not match the initial amount: multiplying mana can make a
+			// later ManaAmount$ gate newly applicable.
+			if ev.Kind == events.ManaAdd {
+				manaCandidates = append(manaCandidates, m)
+			}
+			if e.replacementMatches(f.Repls[i], id, ev) {
+				matches = append(matches, m)
 			}
 		}
 	})
@@ -490,27 +492,26 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "ProduceMana", true
 	case events.Damage:
 		return "DamageDone", true
+	case events.Draw:
+		return "Draw", true
 	default:
 		return "", false
 	}
 }
 
-// replacementFaces returns the source faces whose R: lines apply now. A
+// replacementFace returns the source face whose R: lines apply now. A
 // transform's "as this transforms into ..." replacement belongs to the
 // destination face, while every other replacement reads the source's current
 // face. This avoids making the alternate face live for unrelated events.
-func (e *Engine) replacementFaces(id state.ObjID, ev events.Event) []*cards.Face {
+func (e *Engine) replacementFace(id state.ObjID, ev events.Event) *cards.Face {
 	o := e.G.Obj(id)
 	if o == nil || o.Card == nil {
 		return nil
 	}
 	if ev.Kind == events.FlipFace && id == ev.Obj && ev.Amount >= 0 && int(ev.Amount) < len(o.Card.Faces) {
-		return []*cards.Face{o.Card.Faces[ev.Amount]}
+		return o.Card.Faces[ev.Amount]
 	}
-	if f := o.Face(); f != nil {
-		return []*cards.Face{f}
-	}
-	return nil
+	return o.Face()
 }
 
 // continueUntapReplacements applies the sole replacement automatically, but
@@ -821,6 +822,17 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	if f == nil {
 		f = o.Face()
 	}
+	if ev.Kind == events.Draw {
+		// A replaced DRAW names the draw-er, not (only) the card: the body's
+		// ReplacedPlayer selectors (UnlessPayer$, Defined$) resolve against
+		// this, and its own DB$ Draw re-does the draw the original event
+		// would have done, so the Remembered/Captured seed above is dropped
+		// for draws — the body's own RememberDrawn$ records what it actually
+		// drew (a seeded stale entry would double the reveal's and the
+		// discard condition's population).
+		ctx.ReplacedPlayer = state.Target{Player: ev.Player, IsPlayer: true}
+		ctx.Remembered, ctx.Captured = nil, nil
+	}
 	if f != nil {
 		effects.SetSVars(ctx, f.SVars)
 	}
@@ -833,27 +845,29 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 // both the guard and that record afterward so an outer replacement keeps its
 // own state.
 // runReplaceWith resolves one ReplaceWith$ body inside the applyingReplacement
-// guard, recording both the state a nested emit needs: replReplaced/replAction
+// guard, recording the state a nested emit needs: replReplaced/replAction
 // (Engine.emit's events.CarryAction, so a body's own move of replReplaced
-// carries the replaced event's action marker) and replacingEvent/
-// replacingSource (ReplaceEvent's target -- a DB$ ReplaceDamage body reaching
-// back to rewrite the live Damage event's Amount/Affected fields). ev is nil
-// wherever the original event was already logged (the "Updated" shape) or has
-// no action marker worth carrying (mana/ETB replacements); passing it derives
-// the action automatically rather than making every caller compute it.
+// carries the replaced event's action marker), replacingEvent/replacingSource
+// (ReplaceEvent's target -- a DB$ ReplaceDamage body reaching back to rewrite
+// the live Damage event's Amount/Affected fields), and replReplacedPlayer (the
+// draw-er a Draw replacement's body's ReplacedPlayer selectors read on
+// resume). ev is nil wherever the original event was already logged (the
+// "Updated" shape) or has no action marker worth carrying (mana/ETB
+// replacements); passing it derives the action automatically rather than
+// making every caller compute it.
 func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *cards.SA, ev *events.Event) {
-	savedRepl, savedEvent, savedSource, savedAction :=
-		e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction
+	savedRepl, savedEvent, savedSource, savedAction, savedPlayer :=
+		e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer
 	e.applyingReplacement = true
 	action := ""
 	if ev != nil {
 		action = events.ActionMarker(*ev)
 	}
-	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction =
-		replaced, ev, ctx.Source, action
+	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
+		replaced, ev, ctx.Source, action, ctx.ReplacedPlayer
 	e.resolveReplacementWith(ctx, with)
-	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction =
-		savedRepl, savedEvent, savedSource, savedAction
+	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
+		savedRepl, savedEvent, savedSource, savedAction, savedPlayer
 	e.applyingReplacement = false
 }
 
@@ -1089,7 +1103,7 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 			return false
 		}
 		// The "as this transforms" replacement is written on the destination
-		// face and applies to its own card's flip; replacementFaces already
+		// face and applies to its own card's flip; replacementFace already
 		// scanned the destination face for this event.
 		if v, ok := r.Params["ValidCard"]; ok &&
 			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
@@ -1142,6 +1156,19 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 			}
 		}
 		return e.replacementConditionHolds(r, source, you)
+	case "Draw":
+		if ev.Kind != events.Draw {
+			return false
+		}
+		// CR 611.3b: the ActiveZones gate above applies (a Draw replacement's
+		// source is already on the battlefield — there is no entering case,
+		// a card cannot replace the draw of the event that would put it into
+		// play).
+		if v, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, v, ev.Player, you) {
+			return false
+		}
+		return true
 	}
 	return false
 }
@@ -1826,6 +1853,12 @@ func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
 		// differ from that.
 		return rc.player, int(rc.player) < len(e.G.Players)
 	default:
+		// A replaced DRAW event has no object whose controller could be
+		// consulted -- the affected player is the draw-er itself (the same
+		// binding the replacement's ReplacedPlayer context carries).
+		if rc.ev.Kind == events.Draw {
+			return rc.ev.Player, int(rc.ev.Player) < len(e.G.Players)
+		}
 		o := e.G.Obj(rc.ev.Obj)
 		if o == nil || int(o.Controller) >= len(e.G.Players) {
 			return 0, false
@@ -1860,11 +1893,14 @@ func (e *Engine) poseUntapReplacementChoice(ev events.Event, matches []replMatch
 // only when no other decision is already pending (the caller has already
 // ruled out a departed controller, which makes no choices under CR 800.4a).
 func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
-	o := e.G.Obj(ev.Obj)
-	if o == nil {
-		return
+	p := ev.Player
+	if ev.Kind != events.Draw {
+		o := e.G.Obj(ev.Obj)
+		if o == nil {
+			return
+		}
+		p = o.Controller
 	}
-	p := o.Controller
 	if int(p) >= len(e.G.Players) {
 		return
 	}

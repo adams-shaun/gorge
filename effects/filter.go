@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"iter"
 	"sort"
 	"strconv"
 	"strings"
@@ -156,6 +157,84 @@ func attachedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjI
 	return s != nil && s.AttachedTo == o.ID && s.Zone == state.ZBattlefield
 }
 
+// sharesTypeArg splits the space-bearing two-token predicate
+// "sharesCardTypeWith <X>" and classifies its referent. The referent is a
+// resolution-time object list: the remembered set (RememberedCard — its
+// first card entry, Braids's "a permanent that shares a card type with
+// it" — Remembered, RememberedLKI), the triggering card
+// (TriggeredCard/TriggeredCardLKICopy), the resolution's targets (Targeted),
+// or the source itself (Self). A referent with no live binding — and any
+// other <X>, including a nested predicate — is unrecognised: the token
+// stays unknown and the spec fails closed, never widened.
+func sharesTypeArg(p string) (string, bool) {
+	name, arg, has := strings.Cut(p, " ")
+	if !has || name != "sharesCardTypeWith" {
+		return "", false
+	}
+	arg = strings.TrimSpace(arg)
+	if arg == "" || strings.ContainsAny(arg, ".+,!") {
+		return "", false
+	}
+	switch arg {
+	case "RememberedCard", "Remembered", "RememberedLKI", "TriggeredCard",
+		"TriggeredCardLKICopy", "Targeted", "Self":
+		return arg, true
+	}
+	return "", false
+}
+
+// sharesCardTypeWith reports whether o shares at least one CARD type with
+// any object the referent names (Forge Card.sharesCardTypeWith: an
+// intersection over the card types — Artifact, Creature, Enchantment, Land,
+// Planeswalker, Battle — not supertypes or subtypes). The referent object
+// is read live from the game, so a remembered card in the graveyard still
+// answers from its own face (CR 603.10's LKI reading applies to
+// power/toughness/counters, not types). An unbound referent matches
+// nothing — fail closed, never widened.
+func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	var ts []state.Target
+	switch ref {
+	case "RememberedCard":
+		for _, t := range sc.Remembered {
+			if !t.IsPlayer {
+				ts = append(ts, t)
+				break // the FIRST card entry, per Forge's RememberedCard
+			}
+		}
+	case "Remembered", "RememberedLKI":
+		for _, t := range sc.Remembered {
+			if !t.IsPlayer {
+				ts = append(ts, t)
+			}
+		}
+	case "TriggeredCard", "TriggeredCardLKICopy":
+		if sc.TriggerCard != 0 {
+			ts = append(ts, state.Target{Obj: sc.TriggerCard})
+		}
+	case "Targeted":
+		ts = sc.ResolutionTargets
+	case "Self":
+		if sc.Source != 0 {
+			ts = append(ts, state.Target{Obj: sc.Source})
+		}
+	}
+	for _, t := range ts {
+		if t.IsPlayer {
+			continue
+		}
+		r := g.Obj(t.Obj)
+		if r == nil {
+			continue
+		}
+		for _, cardType := range []string{"Artifact", "Battle", "Creature", "Enchantment", "Land", "Planeswalker"} {
+			if hasType(o, cardType) && hasType(r, cardType) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // attachedToArg splits the space-bearing two-token predicate "AttachedTo <X>"
 // into its argument and reports whether the argument is a single literal type
 // or object class the base grammar (matchesBase) can answer from the object in
@@ -231,6 +310,10 @@ const (
 	// The two-token space form "AttachedTo <X>": <X> is a literal type or
 	// object class answerable from the object in hand (the base grammar).
 	wordAttachedTo
+	// The two-token space form "sharesCardTypeWith <X>": <X> is a
+	// resolution-time referent (RememberedCard, TriggeredCard, ...) the
+	// SpecContext resolves.
+	wordSharesCardType
 	// Forge's zone-entry history predicates: "ThisTurnEntered" (the object
 	// entered a zone this turn, any zone) and "ThisTurnEnteredFrom_<Zone>"
 	// (it entered from <Zone>). Both read the per-object entry provenance
@@ -336,6 +419,9 @@ func wordPredicate(p string) (wordKind, string) {
 	if arg, ok := attachedToArg(p); ok {
 		return wordAttachedTo, arg
 	}
+	if arg, ok := sharesTypeArg(p); ok {
+		return wordSharesCardType, arg
+	}
 	if predicateTypeWords[p] {
 		return wordType, p
 	}
@@ -373,6 +459,8 @@ func zoneWordKnown(z string) bool {
 func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc SpecContext) bool {
 	source := sc.Source
 	switch kind {
+	case wordSharesCardType:
+		return sharesCardTypeWith(g, o, sc, key)
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
 	case wordType:
@@ -587,17 +675,20 @@ func nameArg(p string) string {
 // both the dotted and bare-base forms are recognised). Keeping the splitter
 // shared means matching, quality classification, and the unknown-predicate
 // census all parse the same filter.
-func filterAlternatives(spec string) []string {
-	var out []string
-	start := 0
-	for i := 0; i < len(spec); i++ {
-		if spec[i] != ',' || rawNameComma(spec[start:i], spec[i+1:]) {
-			continue
+func filterAlternatives(spec string) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		start := 0
+		for i := 0; i < len(spec); i++ {
+			if spec[i] != ',' || rawNameComma(spec[start:i], spec[i+1:]) {
+				continue
+			}
+			if !yield(spec[start:i]) {
+				return
+			}
+			start = i + 1
 		}
-		out = append(out, spec[start:i])
-		start = i + 1
+		yield(spec[start:])
 	}
-	return append(out, spec[start:])
 }
 
 // rawNameComma reports whether the comma after left belongs to the last
@@ -608,8 +699,7 @@ func rawNameComma(left, right string) bool {
 	if !has {
 		return false
 	}
-	parts := strings.Split(predicates, "+")
-	last := parts[len(parts)-1]
+	last := predicates[strings.LastIndexByte(predicates, '+')+1:]
 	if _, ok := strings.CutPrefix(last, "named"); !ok {
 		if _, ok := strings.CutPrefix(last, "notnamed"); !ok {
 			return false
@@ -1023,16 +1113,16 @@ func parseCMC(cost string) int32 {
 // Remembered.*, Targeted.*, and Triggered.* have many unrelated predicates
 // whose grammar and behaviour this task must not expand.
 func sameNameContextBase(base, rest string) bool {
-	if !hasPredicate(rest, "sameName") {
+	if !strings.HasPrefix(base, "Remembered") &&
+		!strings.HasPrefix(base, "Targeted") &&
+		!strings.HasPrefix(base, "Triggered") {
 		return false
 	}
-	return strings.HasPrefix(base, "Remembered") ||
-		strings.HasPrefix(base, "Targeted") ||
-		strings.HasPrefix(base, "Triggered")
+	return hasPredicate(rest, "sameName")
 }
 
 func hasPredicate(rest, want string) bool {
-	for _, p := range strings.Split(rest, "+") {
+	for p := range strings.SplitSeq(rest, "+") {
 		if p == want {
 			return true
 		}
@@ -1160,7 +1250,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	if resolve == nil {
 		resolve = noResolve
 	}
-	for _, alt := range filterAlternatives(spec) {
+	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -1191,7 +1281,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			continue
 		}
 		all := true
-		for _, p := range strings.Split(rest, "+") {
+		for p := range strings.SplitSeq(rest, "+") {
 			if p == "" {
 				continue
 			}
@@ -1251,7 +1341,7 @@ func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecConte
 	}
 	// filterAlternatives, not a raw comma split: a Count$Valid<Zone>
 	// Card.named<Name> argument may carry its printed comma.
-	for _, alt := range filterAlternatives(spec) {
+	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -1265,7 +1355,7 @@ func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecConte
 			continue
 		}
 		all := true
-		for _, p := range strings.Split(rest, "+") {
+		for p := range strings.SplitSeq(rest, "+") {
 			if p == "" {
 				continue
 			}
@@ -1513,7 +1603,7 @@ func playerCompare(have int32, op string, want int32) bool {
 // Forge's `Mandatory$` parameter, which is recorded in AGENTS.md as
 // deliberately unread and is a different thing.
 func SearchStatesQuality(spec string) bool {
-	for _, alt := range filterAlternatives(spec) {
+	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -1522,7 +1612,7 @@ func SearchStatesQuality(spec string) bool {
 		if base != "Card" && base != "Any" {
 			return true
 		}
-		for _, p := range strings.Split(rest, "+") {
+		for p := range strings.SplitSeq(rest, "+") {
 			if p == "" {
 				continue
 			}
@@ -1553,9 +1643,9 @@ func possessionPredicate(p string) bool {
 // card-validation pass uses it to refuse cards it would otherwise misplay.
 func UnknownPredicates(spec string) []string {
 	var out []string
-	for _, alt := range filterAlternatives(spec) {
+	for alt := range filterAlternatives(spec) {
 		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
-		for _, p := range strings.Split(rest, "+") {
+		for p := range strings.SplitSeq(rest, "+") {
 			if p == "" {
 				continue
 			}

@@ -465,3 +465,25 @@ func TestChooseValidatesLikeAnyDecision(t *testing.T) {
 		t.Fatal("wire name")
 	}
 }
+
+// TestKindsListsEveryKindOnce pins the Kinds universe slice: it must carry
+// every declared Kind exactly once, so a coverage report built on it cannot
+// silently miss a kind a new constant introduces.
+func TestKindsListsEveryKindOnce(t *testing.T) {
+	seen := map[Kind]int{}
+	for _, k := range Kinds {
+		seen[k]++
+		if seen[k] > 1 {
+			t.Errorf("kind %q appears %d times in Kinds", k, seen[k])
+		}
+	}
+	for _, k := range []Kind{KPriority, KTarget, KAttackers, KBlockers, KMulligan, KModes,
+		KTriggerOrder, KTriggerOptional, KCommanderZone, KChoose, KReplacement, KArrange} {
+		if seen[k] != 1 {
+			t.Errorf("kind %q missing from Kinds (count %d)", k, seen[k])
+		}
+	}
+	if len(Kinds) != len(seen) {
+		t.Errorf("Kinds carries %d entries with %d distinct", len(Kinds), len(seen))
+	}
+}

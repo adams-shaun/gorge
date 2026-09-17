@@ -32,6 +32,7 @@ import (
 // divergence between the offer and the recheck fails HERE, on whatever card
 // first exposes it, instead of being found by reading a game log.
 func TestNoTargetDecisionOffersAnIllegalTarget(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
 	}

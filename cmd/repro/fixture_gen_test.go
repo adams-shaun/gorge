@@ -113,6 +113,23 @@ func gatedFixtureRegistry(t *testing.T) (func(int), *host.Registry) {
 			}
 			gate.release <- struct{}{}
 		}
+		// The last release only hands the decision back to the host: the
+		// intent may still be unapplied — and the automatic seat-1 decisions
+		// that follow unrecorded — when this returns, so a caller that
+		// snapshots immediately races the match goroutine. That race is why
+		// TestReproOnFreshSnapshot intermittently captured 24 vs 25 recorded
+		// intents (3/300 at default procs; both replays verify; only the
+		// fixed-count assertion can tell). Wait for seat 0's NEXT decision to
+		// reach the gate: from there the match goroutine is parked inside
+		// Decide with every earlier intent already recorded, so the capture
+		// point — and the recorded-intent count a caller may assert on — is
+		// deterministic. This fixture's opening always asks seat 0 again; if
+		// that ever stops holding, the timeout fires rather than hanging.
+		select {
+		case <-gate.reached:
+		case <-time.After(30 * time.Second):
+			t.Fatalf("seat 0 never reached its post-advance decision; capture point not quiescent")
+		}
 	}, r
 }
 

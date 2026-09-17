@@ -1,10 +1,58 @@
 package testutil
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
+
+	"github.com/adams-shaun/gorge/cards"
 )
+
+func TestCorpusRegistryCacheSharesConcurrentLoad(t *testing.T) {
+	var cache corpusRegistryCache
+	var calls atomic.Int32
+	want := cards.NewRegistry()
+	start := make(chan struct{})
+	got := make(chan corpusRegistryResult, 16)
+	for range 16 {
+		go func() {
+			<-start
+			got <- cache.get(func() corpusRegistryResult {
+				calls.Add(1)
+				return corpusRegistryResult{reg: want}
+			})
+		}()
+	}
+	close(start)
+	for range 16 {
+		if result := <-got; result.reg != want {
+			t.Fatalf("registry = %p, want %p", result.reg, want)
+		}
+	}
+	if got := calls.Load(); got != 1 {
+		t.Fatalf("loader calls = %d, want 1", got)
+	}
+}
+
+func TestCorpusRegistryCacheSharesFailure(t *testing.T) {
+	var cache corpusRegistryCache
+	var calls atomic.Int32
+	want := errors.New("load failed")
+	load := func() corpusRegistryResult {
+		calls.Add(1)
+		return corpusRegistryResult{err: want}
+	}
+	for range 2 {
+		if result := cache.get(load); !errors.Is(result.err, want) {
+			t.Fatalf("load error = %v, want %v", result.err, want)
+		}
+	}
+	if got := calls.Load(); got != 1 {
+		t.Fatalf("loader calls = %d, want 1", got)
+	}
+}
 
 // TestCorpusRegistryResolvesUnderAnExportedGitDir pins the gitiso hazard on the
 // corpus locator itself.
@@ -32,11 +80,17 @@ func TestCorpusRegistryResolvesUnderAnExportedGitDir(t *testing.T) {
 	t.Setenv("GIT_DIR", ".git")
 	t.Setenv("GIT_INDEX_FILE", ".git/index")
 
-	// CorpusRegistry t.Fatals if it cannot resolve the root and t.Skips only
-	// when there is genuinely no corpus. A skip here would itself be the bug
-	// coming back, so the corpus presence check above is deliberately made
-	// before the environment is armed.
-	reg := CorpusRegistry(t)
+	// Exercise the uncached loader directly: another test may already have
+	// populated the package-wide CorpusRegistry cache before this test runs.
+	// The corpus presence check above means missing here is itself a failure.
+	result := loadRepoCorpusRegistry()
+	if result.missing {
+		t.Fatal("corpus loader reported the existing .cards directory missing")
+	}
+	if result.err != nil {
+		t.Fatal(result.err)
+	}
+	reg := result.reg
 	if reg == nil {
 		t.Fatal("CorpusRegistry returned nil under an exported GIT_DIR")
 	}

@@ -366,13 +366,40 @@ func TestGravelighterBranchCountsCreaturesThatDiedThisTurn(t *testing.T) {
 		t.Fatalf("draws after Gravelighter entered with a creature dead this turn = %d, want 1", got)
 	}
 
-	// False arm: nothing died, so each player sacrifices a creature.
+	// False arm: nothing died, so each player sacrifices a creature. Since
+	// this ticket's sacrifice-asks-its-player fix (CR 701.21a), the lone
+	// eligible player answers a real KChoose instead of the old deterministic
+	// stand-in silently taking the Bear.
 	e2 := mk(16)
 	alive := place(e2, bear)
 	draws2 := countDraws(e2, 0)
 	place(e2, grave)
 	e2.priorityRound()
-	passUntilStackEmpty(t, e2, 30)
+	for i := 0; i < 30 && !e2.G.Over && len(e2.G.Stack) > 0; i++ {
+		d := e2.Pending()
+		if d == nil {
+			break
+		}
+		if d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind == "sacrifice" {
+			answerSacrifice(t, e2, "Grizzly Bears")
+			continue
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("non-priority decision %+v while draining the stack", d)
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("priority decision with no pass option: %+v", d)
+		}
+		if err := e2.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("submit: %v", err)
+		}
+	}
 	if z := e2.G.Obj(alive).Zone; z != state.ZGraveyard {
 		t.Fatalf("the false arm's sacrifice stand-in must take the Bear, zone %s", z)
 	}

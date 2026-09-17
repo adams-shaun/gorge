@@ -62,10 +62,15 @@ import (
 // supported set covers. Every unresolved key family is listed in the task
 // report's Issues section.
 //
-// Mixing: a ConditionCheckSVar$ (or a bare Condition$) beside one of the
-// group keys (ConditionPresent$/Defined$/NotPresent$/Compare$) is a shape
-// no single evaluator covers (~18 and ~11 corpus SAs); it stays unresolved
-// and runs unconditionally, like every other unsupported mix.
+// The sacrifice chooser additionally needs one narrower bridge for a
+// post-sacrifice loop body: a `Defined$ Player.IsRemembered` effect — or its
+// `Defined$ You` continuation — whose SVar body is `Remembered$Valid
+// <known-spec>`. Braids uses it to distinguish an
+// opponent who took the optional sacrifice from one who declined. That
+// shape is subsumed by the general CheckSVarHolds gate below (the
+// Remembered$Valid body evaluates through evalRememberedOK/evalRefProperty),
+// so no separate bridge is kept: every Remembered$Valid gate — Braids's
+// included — goes through the shared evaluator.
 
 // CheckSVarHolds evaluates Forge's CheckSVar$/SVarCompare$ intervening-if
 // gate — the ONE SVar-compare evaluator this build ships, shared by three
@@ -186,6 +191,10 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// Any other Condition* key (Zone, ManaSpent, PlayerTurn, ...) beside the
 	// supported seven makes the shape unsupported. ConditionDescription$ is
 	// display text, not part of the evaluation, and is ignored.
+	// (The ConditionCheckSVar$ shape below covers the sacrifice-continuation
+	// bridge the pre-merge build carried as rememberedSacrificeCondition:
+	// Braids's `Defined$ Player.IsRemembered` legs with a `Remembered$Valid`
+	// SVar body evaluate through the same shared gate.)
 	for k := range sa.Params {
 		if !strings.HasPrefix(k, "Condition") || k == "ConditionDescription" {
 			continue

@@ -137,6 +137,10 @@ var baseBuckets = map[string]bucket{
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	"targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
 	"head": bSA, "ma": bSA, "pt.SA": bSA,
+	// m.ability is manaUnlessActivation's resolved *cards.SA — the ability
+	// whose activation cost/UnlessCost$ the off-stack mana-activation
+	// window reads (resolveManaEffect / askManaUnless / the settle path).
+	"m.ability": bSA,
 	// selector bases: r.With and m.repl.With are cards.Repl's resolved
 	// With *cards.SA (the ReplaceWith$ body: a real SA parameter map, read
 	// as generic machinery), rp.sa the resume plan's SA, o.Ability the
@@ -1869,7 +1873,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Banishing Light":             {"param:api:ChangeZone.Duration"},
 	"Bile Blight":                 {"param:api:Pump.RememberTargets"},
 	"Blazemire Verge":             {"param:api:Mana.IsPresent"},
-	"Blood Crypt":                 {"param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
 	"Bloodchief Ascension":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Borderland Ranger":           {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Brainstorm":                  {"param:api:ChangeZone.Reorder"},
@@ -1897,7 +1900,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Flickerwisp":                 {"param:api:DelayedTrigger.RememberObjects"},
 	"Forbidding Watchtower":       {"param:api:Animate.Colors", "param:api:Animate.OverwriteColors"},
 	"Force of Will":               {"param:api:Counter.Destination", "param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
-	"Foreboding Ruins":            {"param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
 	"Forked Bolt":                 {"param:api:DealDamage.DividedAsYouChoose"},
 	"Ghost Quarter":               {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Giada, Font of Hope":         {"param:api:Mana.RestrictValid", "param:api:PutCounter.ETB"},
@@ -1905,7 +1907,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Grand Abolisher":             {"param:stat:CantBeActivated.AffectedZone", "param:stat:CantBeActivated.Condition", "param:stat:CantBeCast.Condition"},
 	"Grave Titan":                 {"param:trig:Attacks.Secondary"},
 	"Gravecrawler":                {"param:stat:Continuous.IsPresent"},
-	"Hallowed Fountain":           {"param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
 	"Hangarback Walker":           {"param:api:PutCounter.ETB"},
 	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
 	"Horizon Explorer":            {"param:api:Untap.ETB"},
@@ -1926,10 +1927,9 @@ var knownUnsupportedParams = map[string][]string{
 	"Lord Windgrace":              {"param:api:Destroy.Ultimate"},
 	"Master of Etherium":          {"param:stat:Continuous.CharacteristicDefining"},
 	"Matter Reshaper":             {"param:api:Dig.DestinationZone2", "param:api:Dig.Reveal"},
-	"Meathook Massacre II":        {"param:api:ChangeZone.UnlessCost", "param:api:ChangeZone.UnlessPayer"},
 	"Mishra's Factory":            {"param:api:Animate.RemoveCreatureTypes"},
 	"Mistveil Plains":             {"param:api:ChangeZone.IsPresent", "param:api:ChangeZone.PresentCompare"},
-	"Mogis, God of Slaughter":     {"param:api:DealDamage.UnlessCost", "param:api:DealDamage.UnlessPayer", "param:stat:Continuous.CheckSVar", "param:stat:Continuous.RemoveType", "param:stat:Continuous.SVarCompare"},
+	"Mogis, God of Slaughter":     {"param:stat:Continuous.CheckSVar", "param:stat:Continuous.RemoveType", "param:stat:Continuous.SVarCompare"},
 	"Myriad Landscape":            {"param:api:ChangeZone.ShareLandType"},
 	"Necrodominance":              {"cost:PayLife", "param:api:ChangeZone.Hidden", "param:stat:Continuous.SetMaxHandSize"},
 	"Necropotence":                {"param:api:ChangeZone.ExileFaceDown", "param:api:DelayedTrigger.RememberObjects", "param:api:DelayedTrigger.ValidPlayer"},
@@ -1952,7 +1952,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Remand":                      {"param:api:Counter.Destination"},
 	"Resplendent Angel":           {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Restless Cottage":            {"param:api:Animate.Colors", "param:api:Animate.OverwriteColors"},
-	"Riddlesmith":                 {"cost:Draw"},
 	"Righteous Valkyrie":          {"param:stat:Continuous.CheckSVar", "param:stat:Continuous.SVarCompare"},
 	"Roiling Vortex":              {"param:trig:SpellCast.ValidSA"},
 	"Sea Gate Wreckage":           {"param:api:Draw.Activation"},
@@ -1981,7 +1980,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Through the Forest Gate":     {"param:api:Dig.SkipReorder", "param:api:Dig.Tapped"},
 	"Thunderbreak Regent":         {"param:trig:BecomesTarget.ValidSource"},
 	"Tome of Legends":             {"param:api:PutCounter.ETB", "param:trig:Attacks.Secondary"},
-	"Torment of Hailfire":         {"param:api:LoseLife.UnlessCost", "param:api:LoseLife.UnlessPayer"},
 	"Toxic Deluge":                {"cost:PayLife"},
 	"Trinket Mage":                {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Troop of Ponies":             {"param:api:ChangeZone.ForgetChanged", "param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal"},
@@ -2008,6 +2006,7 @@ var knownUnsupportedParams = map[string][]string{
 // tokens knownUnsupportedParams lists, and every entry in the table is still
 // measured. Same failure style as the primitive ratchet.
 func TestEveryRepoDeckParamsAreRead(t *testing.T) {
+	t.Parallel()
 	res, _ := measureParamCensus(t, nil)
 	t.Logf("param census: %d of %d distinct repo-deck cards carry at least one unread param or unmodelled cost token; %d distinct param labels, %d distinct cost labels",
 		len(res.labels), distinctRepoDeckCards(t), len(res.paramLabels), len(res.costLabels))
@@ -2044,6 +2043,7 @@ func TestParamCensusScanIsComplete(t *testing.T) {
 // reports param:api:Sacrifice.SacValid for exactly the repo-deck cards whose
 // Sacrifice abilities carry SacValid$ -- while the real baseline reports none.
 func TestParamCensusDetectsADeletedConsumer(t *testing.T) {
+	t.Parallel()
 	base, d := measureParamCensus(t, nil)
 	if !d.api["Sacrifice"]["SacValid"] {
 		t.Fatalf("scan no longer derives the SacValid$ read for api:Sacrifice -- the consumer was deleted for real; fix the census or re-seed")
@@ -2370,34 +2370,43 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 	// Preconditions: the outer primitives' parameters the fixture carries are
 	// genuinely read (so the labels can only come from the bodies), and the
 	// body keys are genuinely unread (so the fixture measures a real gap).
+	// LoseLife's UnlessCost$ WAS the fixture's unread body key until the
+	// shared unless gate made every API's UnlessCost$ a read (the
+	// unlessProceed dispatch reads the parameter before any primitive
+	// dispatch); the body key below moved to TargetingPlayer$, which no
+	// LoseLife reader touches. PayEnergy<X> WAS the fixture's unmodelled
+	// cost token until ParseCost gained a real Energy field; the body cost
+	// below moved to the fictional Waterbend<X>, which ParseCost can never
+	// model.
 	if !d.api["Charm"]["Choices"] || !d.api["Repeat"]["RepeatSubAbility"] {
 		t.Fatalf("outer Choices$/RepeatSubAbility$ reads lost -- fixture premise broken")
 	}
-	if d.api["LoseLife"]["UnlessCost"] {
-		t.Fatalf("api:LoseLife now reads UnlessCost$ -- re-point the fixture at a genuinely unread key")
+	if d.api["LoseLife"]["TargetingPlayer"] {
+		t.Fatalf("api:LoseLife now reads TargetingPlayer$ -- re-point the fixture at a genuinely unread key")
 	}
 	c := &cards.Card{Faces: []*cards.Face{{
-		// A modal spell whose one mode loses life unless a cost is paid
-		// (Torment of Hailfire's shape), and a repeat whose body carries an
-		// energy cost ParseCost does not model (the Chthonian Nightmare
-		// shape, reached through RepeatSubAbility$).
+		// A modal spell whose one mode loses life for the player who targeted
+		// its source (the TargetingPlayer$ spelling no LoseLife reader
+		// touches), and a repeat whose body carries an energy cost ParseCost
+		// does not model (the Chthonian Nightmare shape, reached through
+		// RepeatSubAbility$).
 		Abilities: []*cards.SA{
 			{Kind: "SP", API: "Charm", Params: map[string]string{"Choices": "DBMode,DBMoney", "CharmNum": "1"}},
 			{Kind: "SP", API: "Repeat", Params: map[string]string{"RepeatNum": "2", "RepeatSubAbility": "DBMoney"}},
 		},
 		SVars: map[string]string{
-			"DBMode":  "DB$ LoseLife | UnlessCost$ 3 | Defined$ Remembered",
+			"DBMode":  "DB$ LoseLife | TargetingPlayer$ TriggeredDefendingPlayer | Defined$ Remembered",
 			"DBMoney": "DB$ LoseLife | Cost$ Waterbend<X>",
 		},
 	}}}
-	want := []string{"param:api:LoseLife.UnlessCost", "cost:Waterbend"}
+	want := []string{"param:api:LoseLife.TargetingPlayer", "cost:Waterbend"}
 	if got := cardCensusLabels(c, d, nil); !sameSet(got, want) {
 		t.Errorf("SVar-body census = %v, want %v -- an unread key or unmodelled token inside a Choices$/RepeatSubAbility$ body is not being reported", got, want)
 	}
 	// The drop plumbing reaches the bodies too: pretending the LoseLife
-	// UnlessCost$ read existed (it does not) must not un-report the body's
-	// gap through some other path.
-	if got := cardCensusLabels(c, d, map[string]map[string]bool{"api:LoseLife": {"UnlessCost": true}}); !sameSet(got, want) {
+	// TargetingPlayer$ read existed (it does not) must not un-report the
+	// body's gap through some other path.
+	if got := cardCensusLabels(c, d, map[string]map[string]bool{"api:LoseLife": {"TargetingPlayer": true}}); !sameSet(got, want) {
 		t.Errorf("drop-simulated census = %v, want %v", got, want)
 	}
 }

@@ -17,9 +17,12 @@
 //     zero means the legal-action walk does not offer the return.
 //   - Into the Roil: the bare Condition$ Kicked branch of conditionMet -- the
 //     draw leg fires only when the spell was actually cast kicked.
-//   - Desecration Demon: the Optional$ ask's single-player-target gate -- a
-//     multi-player optional sacrifice keeps the mandatory stand-in and the
-//     table does NOT wedge (the r2 review's measured infinite re-ask).
+//   - Desecration Demon: the Optional$ ask's per-target binding -- a
+//     multi-player optional sacrifice asks each targeted player in turn
+//     (each answer re-enters scoped to the exact target that asked,
+//     `ResumeTarget`), so the table does NOT wedge (the r2 review's
+//     measured infinite re-ask is closed by the target binding, not by
+//     suppressing the ask).
 //
 // Every fixture card is a REAL deck card (the corpus protagonist plus authored
 // extras) moved with logged MoveZone events, so each test's replayCheck holds
@@ -142,6 +145,9 @@ const gateLandSrc = "Name:Gate Land\nTypes:Land\nOracle:x\n"
 // empty choice: no land is sacrificed, and the chained search sees
 // Remembered$Amount 0 -- it finds nothing (ChangeNum 0 completes the
 // fail-to-find directly) but still shuffles, and Cleanup clears Remembered.
+// The ask is 0..Amount: Amount$ SacX resolves through
+// SVar:SacX:Count$Valid Land.YouCtrl (= 2 here), so Max is 2, the card's own
+// "any number of lands".
 func TestScapeshiftOptionalDeclineSacrificesNothing(t *testing.T) {
 	e, cfg, sp := gateFixture(t, 903, "Scapeshift", gateLandSrc, gateLandSrc)
 	addMana(t, e, 0, "GGGG")
@@ -149,8 +155,8 @@ func TestScapeshiftOptionalDeclineSacrificesNothing(t *testing.T) {
 	l2 := gateMoveFromLibrary(t, e, "Gate Land", state.ZBattlefield)
 	castFixture(t, e, sp, -1) // cast + resolve up to the sacrifice ask
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 {
-		t.Fatalf("optional sacrifice ask missing: %+v (Max 1 = the Amount$ SacX stand-in)", d)
+	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 2 {
+		t.Fatalf("optional sacrifice ask missing: %+v (Max 2 = Amount$ SacX, Count$Valid Land.YouCtrl)", d)
 	}
 	for _, o := range d.Options {
 		if o.Obj != l1 && o.Obj != l2 {
@@ -179,8 +185,8 @@ func TestScapeshiftOptionalAcceptSacrificesAndSearches(t *testing.T) {
 	gateMoveFromLibrary(t, e, "Gate Land", state.ZBattlefield)
 	castFixture(t, e, sp, -1)
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 {
-		t.Fatalf("optional sacrifice ask missing: %+v", d)
+	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 2 {
+		t.Fatalf("optional sacrifice ask missing: %+v (want 0..2, Amount$ SacX)", d)
 	}
 	var landIdx int
 	for _, o := range d.Options {
@@ -356,15 +362,18 @@ func TestIntoTheRoilKickedConditionDrawsOnlyWhenKicked(t *testing.T) {
 	}
 }
 
-// TestDesecrationDemonMultiTargetOptionalDoesNotWedge pins the Optional$ ask's
-// single-player-target gate on the real corpus card the r2 review wedged with:
+// TestDesecrationDemonMultiTargetOptionalDoesNotWedge pins the Optional$
+// ask's per-target binding on the real corpus card the r2 review wedged with:
 // with TWO opponents, Defined$ Opponent + Optional$ True + a real host made
 // the shared "sacrifice" resume arm re-run effSacrifice's target walk, target
 // 1 consumed target 2's answer, and seat 2 was re-asked forever (11
-// consecutive asks before the probe capped). With the gate, the multi-target
-// shape keeps the mandatory stand-in: no ask at all, each opponent
-// sacrifices their first eligible creature, and the RememberSacrificed$
-// chain (tap + P1P1 counter, gated on Remembered$Amount) fires.
+// consecutive asks before the probe capped). The merged engine binds each
+// ask to its exact target (ResumeTarget), so the ask RUNS -- each targeted
+// opponent is asked in turn -- and the table does not wedge: a decline moves
+// on to the next target's own ask, an accepted sacrifice is remembered only
+// for the target that took it, and the RememberSacrificed$ chain (tap +
+// P1P1 counter, gated on Remembered$Amount) fires for the sacrifice that
+// happened.
 func TestDesecrationDemonMultiTargetOptionalDoesNotWedge(t *testing.T) {
 	victim := "Name:Victim\nTypes:Creature\nPT:1/1\nOracle:x\n"
 	fixture := choiceCorpusCard(t, "Desecration Demon")
@@ -394,16 +403,29 @@ func TestDesecrationDemonMultiTargetOptionalDoesNotWedge(t *testing.T) {
 	}
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: demon, Player: 0, Amount: 0})
 	e.resolveTop()
-	// The wedge guard itself: no ASK may be pending (multi-target keeps the
-	// mandatory stand-in), and resolution completed. A priority decision is
+	// Seat 1 is asked first: a 0..1 may-ask over its own Victim.
+	d1 := e.Pending()
+	if d1 == nil || d1.Kind != decision.KChoose || d1.Player != 1 || d1.Min != 0 || d1.Max != 1 || len(d1.Options) != 1 || d1.Options[0].Obj != victims[0] {
+		t.Fatalf("seat 1's optional sacrifice ask missing or wrong: %+v", d1)
+	}
+	submitChoices(t, e) // the empty answer declines
+	// Seat 2 then gets its OWN ask (the per-target binding): the decline did
+	// not consume it and it is not a re-ask of seat 1.
+	d2 := e.Pending()
+	if d2 == nil || d2.Kind != decision.KChoose || d2.Player != 2 || d2.Min != 0 || d2.Max != 1 || len(d2.Options) != 1 || d2.Options[0].Obj != victims[1] {
+		t.Fatalf("seat 2's optional sacrifice ask missing or wrong: %+v", d2)
+	}
+	submitChoices(t, e, 0) // seat 2 accepts: sacrifice its Victim
+	// Resolution completed -- no third ask, no wedge. A priority decision is
 	// the ordinary post-resolution game flow, not an ask.
 	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
-		t.Fatalf("an ask decision is still pending -- the multi-target optional ask ran: %+v", d)
+		t.Fatalf("an ask decision is still pending after both targets answered: %+v", d)
 	}
-	for i, id := range victims {
-		if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
-			t.Fatalf("victim %d zone %v, want sacrificed by the mandatory stand-in", i, z)
-		}
+	if z := e.G.Obj(victims[0]).Zone; z != state.ZBattlefield {
+		t.Fatalf("victim 1 zone %v, want kept (seat 1 declined)", z)
+	}
+	if z := e.G.Obj(victims[1]).Zone; z != state.ZGraveyard {
+		t.Fatalf("victim 2 zone %v, want sacrificed (seat 2 accepted)", z)
 	}
 	dm := e.G.Obj(demon)
 	if !dm.Tapped || dm.Counter("P1P1") != 1 {

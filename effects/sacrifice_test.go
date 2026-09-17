@@ -237,6 +237,24 @@ func TestSacrificeOutOfRangePlayerTargetDoesNotPanic(t *testing.T) {
 // TestSacrificeObjectTargetPathUnchanged guards the existing non-player
 // Defined$ path: a concrete object target is sacrificed as-is, with no
 // SacValid$ re-filter, exactly as before the fix.
+// TestSacrificeZeroAmountDoesNotAsk guards the empty-answer boundary: even
+// with eligible permanents, Amount$ X at X=0 is a no-op, not a 0..0 KChoose.
+func TestSacrificeZeroAmountDoesNotAsk(t *testing.T) {
+	h := &askHost{fakeHost: fakeHost{g: state.NewGame(names(2))}}
+	creature := putBattlefield(&h.fakeHost, 1, "Name:Victim\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	c := &Ctx{Source: creature, Controller: 0, X: 0,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+	effSacrifice(h, c, sacrificeParams(map[string]string{
+		"Defined": "Targeted", "SacValid": "Creature", "Amount": "X", "Optional": "True",
+	}))
+	if h.asked != nil {
+		t.Fatalf("Amount$ 0 posed %+v, want no decision", h.asked)
+	}
+	if got := sacZone(&h.fakeHost, creature); got != state.ZBattlefield {
+		t.Fatalf("creature zone = %v, want battlefield", got)
+	}
+}
+
 func TestSacrificeObjectTargetPathUnchanged(t *testing.T) {
 	h := newHost(t, 2)
 	src := putBattlefield(h, 0, "Name:TriggerSrc\nTypes:Creature\nPT:1/1\nOracle:x\n")

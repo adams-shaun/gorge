@@ -169,7 +169,10 @@ type Engine struct {
 	// step and trigger predicate reads it). Clone() leaves both fields zero, so
 	// a cloned engine rebuilds the memo on its first Derived -- staticEffects
 	// is a pure function of the current board, so the rebuilt result is
-	// identical and deterministic.
+	// identical and deterministic. Rebuilds reuse the outer slice's capacity,
+	// clearing obsolete slots when it shrinks, but never reuse the nested
+	// keyword/type slices. activeBuf copies the effect values into distinct
+	// storage before sorting; neither buffer may alias a clone's scratch.
 	staticContinuous []ContinuousEffect
 	staticEpoch      int
 
@@ -310,6 +313,12 @@ type Engine struct {
 	// action by Sacrificed/Discarded triggers. Empty whenever no such
 	// replacement is in flight; threaded across a suspension by resumePoint.
 	replAction string
+	// replReplacedPlayer is the player a replaced DRAW event was about (the
+	// draw-er), threaded the same way replReplaced threads the replaced
+	// object: a ReplaceWith$ body over R:Event$ Draw poses mid-resolution
+	// asks (Breathstealer's Crypt's unless-pay discard) and the resume must
+	// restore Ctx.ReplacedPlayer. Only a Draw replacement sets it.
+	replReplacedPlayer state.Target
 	// triggerFireCount and the damage-batch fields below are trigger_match.go's
 	// own bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
 	// once-per-damage-batch gate); see there.
@@ -336,6 +345,12 @@ type Engine struct {
 	// often its trigger is walked. Cloned like the other bookkeeping maps so
 	// a branch that becomes live cannot re-emit the same Note.
 	phaseUnknownNoted map[string]bool
+	// phaseSpecs caches pure Phase$ parsing for both diagnostics and matching.
+	// It is scratch, not replay bookkeeping: clones start with an empty cache.
+	phaseSpecs map[string]parsedPhase
+	// triggerEventMasks caches only immutable face syntax, not live source
+	// membership. Like phaseSpecs, clones own fresh writable scratch.
+	triggerEventMasks map[*cards.Face]triggerEventMask
 
 	// choosing says which flow is waiting on the current KChoose decision
 	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling
@@ -395,6 +410,11 @@ type Engine struct {
 	manaActivation        *manaActivation
 	manaColorActivation   *manaColorActivation
 	manaDiscardActivation *manaDiscardActivation
+	manaUnlessActivation  *manaUnlessActivation
+	// unlessPayment carries an in-progress non-mana unless-cost payment. It
+	// keeps the enclosing resolution suspended while the payer chooses the
+	// sacrifice/discard objects that pay it.
+	unlessPayment *unlessPayment
 	// Resolution-time payment windows. cumulative belongs to the replayable
 	// keyword trigger; triggerCost belongs to an ordinary triggered effect
 	// carrying Cost$ (Mana Vault). Both are plain data and Clone-copied.

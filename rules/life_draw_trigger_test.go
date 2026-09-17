@@ -121,6 +121,7 @@ func TestOrcishBowmastersDrawnSkipsFirstDrawStepCard(t *testing.T) {
 }
 
 func TestLifeLostAllObNixilisQueuesOnceForDamageAllPlayers(t *testing.T) {
+	t.Parallel()
 	// DamageAll must batch all serialized player hits. Ogre Painbringer is the
 	// broad real-card regression (every player); End the Festivities supplies
 	// Ob Nixilis's exact-one-life condition for the one-trigger assertion.
@@ -211,6 +212,7 @@ func TestValgavothLifeLostFirstTimeGate(t *testing.T) {
 }
 
 func TestLoseLifeAllBatchesOpponentsForObNixilis(t *testing.T) {
+	t.Parallel()
 	e := New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b", "c"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}))
 	source := onBoardCard(t, e, 0, corpusCard(t, "Ob Nixilis, Captive Kingpin"))
@@ -357,6 +359,7 @@ func lifeReplacementOrder(t *testing.T, e *Engine, p state.PlayerID, amount int3
 // turns the gain into a loss, so Archive no longer applies (lose 3). Archive
 // first doubles the gain, and Remedy then turns the +6 into a loss of 6.
 func TestTaintedRemedyAndArchiveGainingPlayerChoosesOrder(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name  string
 		first int // index into {remedy, archive}
@@ -381,6 +384,7 @@ func TestTaintedRemedyAndArchiveGainingPlayerChoosesOrder(t *testing.T) {
 // would gain 3 chooses between double-then-plus-one (7) and
 // plus-one-then-double (8).
 func TestArchiveAndClericClassControllerChoosesOrder(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name  string
 		first int // index into {archive, cleric}

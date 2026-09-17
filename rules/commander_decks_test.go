@@ -60,6 +60,7 @@ var repoCommanderGames = []struct {
 // command-zone cast — rules/cast.go's recordCmdCast). A deck file that
 // never played, or whose commander never came down, fails here.
 func TestRepoCommanderDecksPlayAndCastTheirCommander(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
 	}

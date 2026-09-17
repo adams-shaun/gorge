@@ -185,6 +185,8 @@ func (e *Engine) Clone() *Engine {
 			c.phaseUnknownNoted[k] = v
 		}
 	}
+	// phaseSpecs and triggerEventMasks are pure syntax caches. Leave them
+	// empty: each branch owns its writable maps, unlike diagnostic history.
 	if e.triggerTurnFires != nil {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
 		for k, v := range e.triggerTurnFires {
@@ -213,6 +215,11 @@ func (e *Engine) Clone() *Engine {
 	// bug, because either one walking would clobber the other's zone snapshot
 	// mid-range. Leaving both zero lets each engine grow its own buffer on
 	// its next depth-0 forEachObject call.
+	//
+	// staticContinuous / staticEpoch are likewise deliberately NOT copied:
+	// staticEffects rebuilds into the memo's reusable outer storage, so each
+	// branch must own its backing array. The zero epoch forces a fresh scan
+	// of the cloned board on its first active() rebuild.
 	//
 	// activeBuf / activeEpoch / activeVersion / activeDepth / continuousVersion
 	// (engine.go, layers.go) are likewise deliberately NOT copied, with the
@@ -256,6 +263,24 @@ func (e *Engine) Clone() *Engine {
 		ma.discards = append([]state.ObjID(nil), e.manaDiscardActivation.discards...)
 		ma.exiles = append([]state.ObjID(nil), e.manaDiscardActivation.exiles...)
 		c.manaDiscardActivation = &ma
+	}
+	if e.manaUnlessActivation != nil {
+		ma := *e.manaUnlessActivation
+		ma.triggers = clonePendingTriggers(e.manaUnlessActivation.triggers)
+		ma.payers = append([]state.PlayerID(nil), e.manaUnlessActivation.payers...)
+		c.manaUnlessActivation = &ma
+	}
+	if e.unlessPayment != nil {
+		u := *e.unlessPayment
+		u.cost.Sac = append([]CostPart(nil), e.unlessPayment.cost.Sac...)
+		u.cost.Discard = append([]CostPart(nil), e.unlessPayment.cost.Discard...)
+		u.cost.SubCounter = append([]CostPart(nil), e.unlessPayment.cost.SubCounter...)
+		u.cost.Draw = append([]CostPart(nil), e.unlessPayment.cost.Draw...)
+		u.sacs = append([]state.ObjID(nil), e.unlessPayment.sacs...)
+		u.discards = append([]state.ObjID(nil), e.unlessPayment.discards...)
+		u.ctx = cloneUnlessCtx(e.unlessPayment.ctx)
+		u.rp = cloneResume(e.unlessPayment.rp)
+		c.unlessPayment = &u
 	}
 	if e.cumulative != nil {
 		cu := *e.cumulative

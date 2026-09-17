@@ -57,10 +57,19 @@ func DrawFor(h Host, p state.PlayerID) {
 
 func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumCards", 1)
+	// RememberDrawn$ records every card actually drawn into the resolution's
+	// Remembered (Breathstealer's Crypt's reveal-and-maybe-discard chain acts
+	// on exactly the drawn card; a library that ran out mid-draw records only
+	// what moved). Unread before this — the whole sub-chain saw nothing.
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDrawn"]), "True")
 	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		for i := int32(0); i < n; i++ {
+			lib := zoneOf(h.Game(), state.ZLibrary, p)
 			DrawFor(h, p)
+			if remember && len(lib) > 0 {
+				c.Remembered = append(c.Remembered, state.Target{Obj: lib[0]})
+			}
 		}
 	}
 }
@@ -345,6 +354,28 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 					discardAndRemember(h, c, riders, id, p)
 				}
 			}
+
+		case "Defined":
+			// DefinedCards$ names the cards to discard (Breathstealer's
+			// Crypt: "that player discards it" — the Remembered drawn card).
+			// Only cards still in this target's hand move; everything else
+			// (already gone, or never theirs) is skipped. The old default arm
+			// ignored DefinedCards$ entirely and discarded the front of hand.
+			if dc := strings.TrimSpace(sa.Params["DefinedCards"]); dc != "" {
+				for _, t := range discardDefinedCards(h, c, dc) {
+					if t.IsPlayer {
+						continue
+					}
+					for _, id := range hand {
+						if id == t.Obj {
+							h.Emit(events.Discard(id, p))
+							break
+						}
+					}
+				}
+				break
+			}
+			fallthrough
 
 		default:
 			// Deterministic discard from the top of hand order. Real discard is
@@ -1063,4 +1094,18 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "name", Text: name})
+}
+
+// discardDefinedCards resolves a Discard SA's DefinedCards$ parameter to the
+// concrete objects it names. Only the group spellings the corpus's Mode$
+// Defined discards actually use are wired (Remembered and its aliases, the
+// targets); any other spelling falls through the generic Defined resolver.
+func discardDefinedCards(h Host, c *Ctx, spec string) []state.Target {
+	switch strings.Split(spec, ".")[0] {
+	case "Remembered", "RememberedLKI", "RememberedCard", "DirectRemembered":
+		return objectsOf(c.Remembered)
+	case "Targeted":
+		return objectsOf(c.Targets)
+	}
+	return Defined(h, c, &cards.SA{Params: map[string]string{"Defined": spec}})
 }

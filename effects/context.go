@@ -152,7 +152,28 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return []state.Target{{Obj: lib[i]}}, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
-	case "Imprinted":
+	case "Imprinted", "ImprintedController":
+		// Two populations share the spelling. Inside a RepeatEach iteration
+		// (this build's own binding) Forge's UseImprinted$ names the loop's
+		// CURRENT SUBJECT: Heroism pumps it, Stench of Evil deals its damage
+		// to its controller — and ImprintedController is only ever that
+		// iteration's subject's controller. Outside a loop iteration the
+		// spelling is the source's persistent imprint pile (Mirrorworks'
+		// exiled-with-imprint list, CR 607.2a links only while the card stays
+		// in exile); no corpus RepeatEach body resolves against a source that
+		// also carries a persistent imprint, so the two never collide.
+		if c.RepeatSubject.IsPlayer {
+			return []state.Target{{Player: c.RepeatSubject.Player, IsPlayer: true}}, true
+		}
+		if o := g.Obj(c.RepeatSubject.Obj); o != nil {
+			if spec == "ImprintedController" {
+				return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+			}
+			return []state.Target{{Obj: c.RepeatSubject.Obj}}, true
+		}
+		if spec == "ImprintedController" {
+			return nil, true
+		}
 		if o := g.Obj(c.Source); o != nil {
 			out := make([]state.Target, 0, len(o.Imprinted))
 			for _, id := range o.Imprinted {
@@ -334,6 +355,27 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		var out []state.Target
 		for _, p := range g.AliveFrom(c.Controller) {
 			if p != c.Controller {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out, true
+	case "ReplacedPlayer":
+		// The draw-er of the replaced Draw event (Breathstealer's Crypt draws
+		// and reveals for "that player"). Set only on a Draw replacement's
+		// own context; nil outside one.
+		if c.ReplacedPlayer.IsPlayer {
+			return []state.Target{{Player: c.ReplacedPlayer.Player, IsPlayer: true}}, true
+		}
+		return nil, true
+	case "NonReplacedPlayer":
+		// Every OTHER player (Zur's Weirding: "any other player may pay 2
+		// life"), in AliveFrom order, excluding the draw-er.
+		if !c.ReplacedPlayer.IsPlayer {
+			return nil, true
+		}
+		var out []state.Target
+		for _, p := range g.AliveFrom(0) {
+			if p != c.ReplacedPlayer.Player {
 				out = append(out, state.Target{Player: p, IsPlayer: true})
 			}
 		}

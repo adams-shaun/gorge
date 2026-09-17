@@ -201,11 +201,13 @@ type RepeatCursor struct {
 
 // RepeatSuspension is what effRepeatEach reports when an iteration asks.
 // Body is the suspended iteration's Remembered (the loop subject plus
-// anything the iteration remembered before asking); Outer and Chosen are the
-// RepeatEach resolution's own bindings, restored when the loop re-enters.
+// anything the iteration remembered before asking); Subject is that
+// iteration's current subject (the Imprinted binding); Outer and Chosen are
+// the RepeatEach resolution's own bindings, restored when the loop re-enters.
 type RepeatSuspension struct {
 	RepeatCursor
 	Body        []state.Target
+	Subject     state.Target
 	Outer       []state.Target
 	Chosen      []state.Target
 	ChosenValid bool
@@ -267,12 +269,23 @@ type Ctx struct {
 	X     int32
 	// Replaced is the object the replaced event was about (Defined$ ReplacedCard):
 	// the card a "would go to the graveyard from anywhere, exile it instead"
-	// replacement is acting ON. ReplacementTarget, ReplacementSource and
+	// replacement is acting ON. Set by rules/replacement.go on the context it
+	// builds for a matching ReplaceWith$; zero outside a replacement, and nil for
+	// a zero (or gone) object when Defined resolves it. It is context, not state
+	// -- it drives the replacement's own resolution but is never itself persisted
+	// to the event log.
+	Replaced state.ObjID
+	// ReplacedPlayer is the player a replaced DRAW event was about — the
+	// draw-er (Breathstealer's Crypt draws/reveals/discards "that player",
+	// Zur's Weirding's other players pay relative to them). Set only on a
+	// Draw replacement's own context, like Replaced; zero outside one.
+	ReplacedPlayer state.Target
+	// ReplacementTarget, ReplacementSource and
+	// ReplacementAmount carry the corresponding roles of an in-flight damage
 	// ReplacementAmount carry the corresponding roles of an in-flight damage
 	// event. They are resolution context, never persisted state; rules seeds
 	// them before resolving ReplaceWith$ so ReplacedTarget/ReplacedSource and
 	// ReplaceCount$DamageAmount are available to every replacement body API.
-	Replaced          state.ObjID
 	ReplacementTarget state.Target
 	ReplacementSource state.ObjID
 	ReplacementAmount int32
@@ -331,6 +344,14 @@ type Ctx struct {
 	// Repeat is set only on the re-entry of a suspended RepeatEach loop; the
 	// RepeatEach whose SA it names consumes and clears it.
 	Repeat *RepeatCursor
+	// RepeatSubject is the RepeatEach iteration's current subject — what
+	// Forge's UseImprinted$ binds as "Imprinted" for the sub-ability the
+	// loop resolves (Heroism's attacking red creature, Stench of Evil's
+	// destroyed Plains). effRepeatEach sets it per iteration; the suspension
+	// machinery carries it through a resumed ask the way loopRemembered
+	// carries the iteration's Remembered. Zero outside a loop iteration, and
+	// the Imprinted/ImprintedController selectors fail closed on zero.
+	RepeatSubject state.Target
 	// Sacrifice is an Annihilator sacrifice answer on re-entry.
 	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered
@@ -365,6 +386,32 @@ type Ctx struct {
 	Dig       []state.ObjID
 	DigDone   bool
 	DigTarget int
+	// UnlessNext is the index of the UnlessPayer$ payer whose answered
+	// unless-pay choice this re-entry applies (0 on a first pass). The
+	// unlessProceed gate (Resolve) consumes and clears it; rules' resume
+	// arm copies it off the resume point, where Ask stored the asking
+	// decision's ResumeTarget. A decline moves the gate on to payer idx+1,
+	// so a multi-payer UnlessPayer$ asks each payer in turn.
+	UnlessNext int
+	// SacPicks is the answered per-player sacrifice choice on a re-entered
+	// Sacrifice resolution: the object(s) the sacrificing player chose to
+	// sacrifice, in the player's answer order. SacDone distinguishes
+	// "answered (possibly with nothing)" from the first pass and SacTarget
+	// identifies the Defined$ target index whose player posed that ask, so
+	// re-entry skips targets already processed before suspension and
+	// continues asking later targets. The asking effect consumes and clears
+	// all three at the top of its own walk (the fx42 scoping discipline), so
+	// a nested sacrifice below it poses its own ask instead of inheriting.
+	SacPicks  []state.ObjID
+	SacDone   bool
+	SacTarget int
+	// SacOptional is the answered first step of an Optional$ + StrictAmount$
+	// sacrifice: "sacrifice" means its player elected the exact batch and
+	// "decline" means they did not. It is separate from SacPicks because a
+	// KChoose represents a range, while this Forge shape permits only zero or
+	// exactly Amount$. SacOptionalTarget identifies that player's target slot.
+	SacOptional       string
+	SacOptionalTarget int
 	// Arrange is the answered KArrange decision on a re-entered
 	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
 	// has applied the answered arrangement and emitted the LibraryOrder
@@ -402,16 +449,6 @@ type Ctx struct {
 	// list; "no" leaves it in place. It is consumed by
 	// moveDefinedLibraryObjects before a nested fetch list can inherit it.
 	DefinedLibraryMove string
-	// UnlessPayTarget is the index of the per-opponent damage offer the
-	// answered unless-pay belongs to (Sacrifice's UnlessCost$ DamageYou<N>
-	// switched shape — Vexing Devil's "any opponent may have it deal 4 damage
-	// to them"): opponents are offered the choice one at a time in turn
-	// order, so on re-entry the asking effect must know WHICH opponent's
-	// decline it is continuing after. rules' resume arm copies rp.target here
-	// the way the "dig" and "hand_move" arms do; effSacrifice consumes and
-	// clears it at the top of its own walk (the fx42 scoping discipline), so
-	// a nested sacrifice ask cannot inherit the outer answer.
-	UnlessPayTarget int
 	// RevealOpt is the answered RevealOptional$ yes/no on a re-entered
 	// mid-resolution reveal (task fb-3f1cc033, the Delver of Secrets
 	// PeekAndReveal shape): "yes" means the peeking player chose to reveal
@@ -607,6 +644,46 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				Text: "unimplemented API " + sa.API})
 			continue
 		}
+		// UnlessCost$ gate: every API with an UnlessCost$ pays (or declines)
+		// before its body runs. This is the one shared unless-cost path —
+		// the gate poses the pay decision, rules' resume arm charges the
+		// cost, and the re-entry applies the orientation. UnlessResolveSubs$
+		// (Forge's AbilityUtils.handleUnlessCost) then gates the SubAbility$
+		// walk on the pay outcome: absent/'Always' resolves the subs either
+		// way, WhenPaid only when the cost was paid, WhenNotPaid only when it
+		// was not. A gate that skips BOTH the body and the subs ends this
+		// SA's chain entirely — Forge returns from handleUnlessCost without
+		// resolveSubAbilities, so the enclosing chain stops here too.
+		runBody, paid := true, false
+		// Suspended() is widened by the cumulative-upkeep/triggered-cost
+		// payment windows (rules' Suspended() counts e.cumulative and
+		// e.triggerCost): a mana ability resolving INSIDE one of those windows
+		// must still dispatch, so only a suspension the gate itself caused —
+		// the ask poseUnlessAsk posed — stops the loop here. Compare against
+		// the pre-gate state instead of the raw predicate.
+		wasSuspended := h.Suspended()
+		if strings.TrimSpace(sa.Params["UnlessCost"]) != "" {
+			runBody, paid = unlessProceed(h, c, sa)
+		}
+		if !wasSuspended && h.Suspended() {
+			// The gate posed the unless-pay ask and suspended the
+			// resolution: stop here exactly as an asking effect body
+			// would. The resume re-enters THIS SA (the ask's ResumeSA),
+			// where the gate consumes the answer and the loop walks
+			// sa.Sub — so this loop's own continuation is dropped, like
+			// any asking loop's (SuspendContinuation's innermost rule).
+			h.SuspendContinuation(sa)
+			return
+		}
+		if !runBody {
+			// The body is skipped (paid on an unswitched shape, or every
+			// payer declined on a switched one). The Sub chain walks only
+			// when UnlessResolveSubs$ says so for this pay outcome.
+			if !unlessSubsRun(sa, paid) {
+				return
+			}
+			continue
+		}
 		fn(h, c, sa)
 		imprint(h, c, sa)
 		if strings.EqualFold(sa.Params["ClearImprinted"], "True") && c.Source != 0 {
@@ -631,6 +708,13 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			// outer continuations and drops this one when it is the asking
 			// loop's own level, which re-enters sa.Sub itself.
 			h.SuspendContinuation(sa)
+			return
+		}
+		// UnlessResolveSubs$ also gates the sub walk when the body RAN: Forge
+		// resolves the subs iff (paid && WhenPaid-or-default) or
+		// (!paid && WhenNotPaid-or-default), independent of the orientation —
+		// a paid unswitched body both runs AND suppresses a WhenNotPaid chain.
+		if strings.TrimSpace(sa.Params["UnlessCost"]) != "" && !unlessSubsRun(sa, paid) {
 			return
 		}
 	}

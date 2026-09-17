@@ -663,6 +663,20 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		out = append(out, decision.Option{Index: len(out), Kind: kind, Label: label, Obj: obj})
 	}
 	sorcery := e.sorcerySpeed(p)
+	costStatics := costStaticSource{e: e}
+	actionStatics := actionStaticSource{e: e}
+	castRestricted := func(p state.PlayerID, id state.ObjID) bool {
+		return e.castRestrictedUsing(actionStatics.get().cantCast, p, id)
+	}
+	abilityRestricted := func(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+		return e.abilityRestrictedUsing(actionStatics.get().cantActivate, p, id, ab)
+	}
+	offerCastable := func(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
+		return e.offerCastableUsing(costStatics.get(), p, id, base, scope, ability)
+	}
+	offerCostFor := func(p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost {
+		return e.offerCostForUsing(costStatics.get(), p, id, base, scope)
+	}
 
 	for _, id := range e.G.Zone(state.ZHand, p) {
 		o := e.G.Obj(id)
@@ -676,7 +690,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			}
 			continue
 		}
-		if e.castRestricted(p, id) {
+		if castRestricted(p, id) {
 			continue
 		}
 		if e.castSuppressed(p, id) {
@@ -713,12 +727,12 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if targetsAvailable {
 			if len(altParts) > 0 {
 				for _, part := range altParts {
-					if e.offerCastable(p, id, withSpellAbilityExtras(f, convokeBase).Plus(ParseCost(part)), spellScope(""), false) {
+					if offerCastable(p, id, withSpellAbilityExtras(f, convokeBase).Plus(ParseCost(part)), spellScope(""), false) {
 						add("cast", "Cast "+f.Name, id)
 						break
 					}
 				}
-			} else if e.offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
+			} else if offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
 				add("cast", "Cast "+f.Name, id)
 			}
 		}
@@ -730,7 +744,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if rf := roomAlternateCastFace(o); rf != nil {
 			instant := rf.IsInstant() || e.HasKeyword(id, "Flash")
 			if (instant || sorcery) && e.castTargetsAvailable(p, id, rf.SpellAbility()) {
-				if e.offerCastable(p, id, withSpellAbilityExtras(rf, ParseCost(rf.ManaCost)), spellScope(""), false) {
+				if offerCastable(p, id, withSpellAbilityExtras(rf, ParseCost(rf.ManaCost)), spellScope(""), false) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
 				}
@@ -747,7 +761,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			// matching permanents exist, and beginCast then asked a sacrifice
 			// decision with zero options that no answer could escape. castable
 			// is the same gate every other "cast" option uses.
-			if e.offerCastable(p, id, alt, spellScope(""), false) {
+			if offerCastable(p, id, alt, spellScope(""), false) {
 				// AltCostIndex is i+1, not i: the zero value must mean "the
 				// card's own cost" so every other Option literal in the tree
 				// (play_land, activate, pass, and the base "cast" option
@@ -757,11 +771,11 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					Label: altCostLabel(f.Name, i), Obj: id, AltCostIndex: i + 1})
 			}
 		}
-		if kc, ok := kickerCost(f); ok && targetsAvailable && e.offerCastable(p, id, e.rawBaseCost(p, id).Plus(kc), spellScope("kicked"), false) {
+		if kc, ok := kickerCost(f); ok && targetsAvailable && offerCastable(p, id, e.rawBaseCost(p, id).Plus(kc), spellScope("kicked"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 		}
-		if sc, ok := surgeCost(f); ok && targetsAvailable && e.spellsCastThisTurn(p) > 0 && e.offerCastable(p, id, sc, spellScope("surged"), false) {
+		if sc, ok := surgeCost(f); ok && targetsAvailable && e.spellsCastThisTurn(p) > 0 && offerCastable(p, id, sc, spellScope("surged"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
 		}
@@ -778,13 +792,13 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		} {
 			alt, ok := keywordAltCost(f, ka.head)
 			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
-				!e.offerCastable(p, id, alt, spellScope(ka.mode), false) {
+				!offerCastable(p, id, alt, spellScope(ka.mode), false) {
 				continue
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
-		if bc, ok := buybackCost(f); ok && e.offerCastable(p, id, e.rawBaseCost(p, id).Plus(bc), spellScope("buyback"), false) {
+		if bc, ok := buybackCost(f); ok && offerCastable(p, id, e.rawBaseCost(p, id).Plus(bc), spellScope("buyback"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (buyback)", Obj: id, Mode: "buyback"})
 		}
 		if sc, ok := suspendCost(f); ok {
@@ -795,7 +809,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				// even its smallest legal X.
 				offer = offer.WithX(sc.minTime)
 			}
-			if e.offerCastable(p, id, offer, spellScope("suspend"), false) {
+			if offerCastable(p, id, offer, spellScope("suspend"), false) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Suspend " + f.Name, Obj: id, Mode: "suspend"})
 			}
 		}
@@ -833,7 +847,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	for _, id := range e.mayPlaySpellIds(p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || f.IsLand() || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if f == nil || f.IsLand() || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) {
@@ -842,7 +856,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		cost := withSpellAbilityExtras(f, e.offerCostFor(p, id, e.rawBaseCost(p, id), spellScope("mayplay")))
+		cost := withSpellAbilityExtras(f, offerCostFor(p, id, e.rawBaseCost(p, id), spellScope("mayplay")))
 		if e.castable(p, id, cost, false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name, Obj: id, Mode: "mayplay"})
@@ -872,14 +886,14 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if f == nil {
 			continue
 		}
-		if e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
-		if targetsAvailable && e.offerCastable(p, id, e.rawBaseCost(p, id), spellScope(""), false) {
+		if targetsAvailable && offerCastable(p, id, e.rawBaseCost(p, id), spellScope(""), false) {
 			add("cast", "Cast "+f.Name, id)
 		}
 		// Alternative costs replace the printed mana cost but not additional
@@ -891,7 +905,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		} {
 			alt, ok := keywordAltCost(f, ka.head)
 			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
-				!e.offerCastable(p, id, alt, spellScope(ka.mode), false) {
+				!offerCastable(p, id, alt, spellScope(ka.mode), false) {
 				continue
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
@@ -903,7 +917,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	// transaction, then spellRestZone exiles it after resolution.
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if o == nil || o.Face() == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		f := o.Face()
@@ -912,7 +926,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 		if hc, ok := harmonizeCost(f); ok && e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			hc, _ = e.harmonizePayment(p, id, hc)
-			if e.offerCastable(p, id, hc, spellScope("harmonize"), false) {
+			if offerCastable(p, id, hc, spellScope("harmonize"), false) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (harmonize)", Obj: id, Mode: "harmonize"})
 			}
 		}
@@ -927,7 +941,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if f == nil || !e.HasKeyword(id, "Flashback") {
 			continue
 		}
-		if e.castRestricted(p, id) {
+		if castRestricted(p, id) {
 			continue
 		}
 		if e.castSuppressed(p, id) {
@@ -939,7 +953,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if fc := e.flashbackCost(id); e.offerCastable(p, id, fc, spellScope("flashback"), false) {
+		if fc := e.flashbackCost(id); offerCastable(p, id, fc, spellScope("flashback"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
 		}
@@ -955,7 +969,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		wc, ok := keywordAltCost(f, "Warp")
-		if !ok || !warpGraveyardAllowed(f) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if !ok || !warpGraveyardAllowed(f) || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
@@ -965,7 +979,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if e.offerCastable(p, id, wc, spellScope("warped"), false) {
+		if offerCastable(p, id, wc, spellScope("warped"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (warped)", Obj: id, Mode: "warped"})
 		}
@@ -983,7 +997,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.HasKeyword(id, "Escape") {
@@ -994,7 +1008,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if e.castable(p, id, e.offerCostFor(p, id, ec, spellScope("escape")), false) {
+		if e.castable(p, id, offerCostFor(p, id, ec, spellScope("escape")), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (escape)", Obj: id, Mode: "escape"})
 		}
@@ -1014,7 +1028,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		_, ok := keywordAltCost(f, "Warp")
-		if !ok || !e.warpRecastAvailable(id) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if !ok || !e.warpRecastAvailable(id) || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
@@ -1025,7 +1039,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		normal := e.rawBaseCost(p, id)
-		if e.offerCastable(p, id, normal, spellScope("warp_recast"), false) {
+		if offerCastable(p, id, normal, spellScope("warp_recast"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (from warp exile)", Obj: id, Mode: "warp_recast"})
 		}
@@ -1041,7 +1055,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			if f == nil {
 				continue
 			}
-			if len(e.availableManaAbilities(p, id)) > 0 {
+			if len(e.availableManaAbilitiesUsing(&actionStatics, p, id)) > 0 {
 				add("activate", "Activate "+f.Name+" for mana", id)
 			}
 		}
@@ -1105,7 +1119,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 						continue
 					}
 				}
-				if e.abilityRestricted(p, id, ab) {
+				if abilityRestricted(p, id, ab) {
 					continue
 				}
 				// F05-2 (CR 733.2): a card whose activation aborted with no
@@ -1129,7 +1143,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 					continue
 				}
-				if !e.offerCastable(p, id, cost, abilityScope(ab), true) {
+				if !offerCastable(p, id, cost, abilityScope(ab), true) {
 					continue
 				}
 				if !e.abilityTargetsAvailable(p, id, ab) {
@@ -1176,14 +1190,14 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			if ab.Params["SorcerySpeed"] == "True" && !sorcery {
 				continue
 			}
-			if e.abilityRestricted(p, id, ab) {
+			if abilityRestricted(p, id, ab) {
 				continue
 			}
 			cost := ParseCost(ab.Params["Cost"])
 			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 				continue
 			}
-			if !e.offerCastable(p, id, cost, abilityScope(ab), true) {
+			if !offerCastable(p, id, cost, abilityScope(ab), true) {
 				continue
 			}
 			if !e.abilityTargetsAvailable(p, id, ab) {
@@ -1222,7 +1236,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			if !ok {
 				continue
 			}
-			if e.offerCastable(p, id, cost, costScope{kind: "Ability"}, true) {
+			if offerCastable(p, id, cost, costScope{kind: "Ability"}, true) {
 				add("unlock", "Unlock "+roomLockedFace(o).Name, id)
 			}
 		}
@@ -1242,14 +1256,14 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		for _, ab := range e.maxSpeedAbilities(p, id) {
-			if e.abilityRestricted(p, id, ab) {
+			if abilityRestricted(p, id, ab) {
 				continue
 			}
 			cost := ParseCost(ab.Params["Cost"])
 			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 				continue
 			}
-			if !e.offerCastable(p, id, cost, abilityScope(ab), true) {
+			if !offerCastable(p, id, cost, abilityScope(ab), true) {
 				continue
 			}
 			if !e.abilityTargetsAvailable(p, id, ab) {
