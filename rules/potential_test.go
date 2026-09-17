@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -71,6 +72,81 @@ func jitteSnapshotBoard(t *testing.T, withThalia bool) (*Engine, state.ObjID) {
 		}
 	}
 	return e, jitte
+}
+
+// restrictedBearBoard seats the rv2c-review drift pin: a plain {2} Bear in
+// hand with a floating batch of two colourless RESTRICTED to the given
+// RestrictValid$ class, both lands tapped, main1, land drop spent. The class
+// is a parameter so the same fixture pins both sides of the boundary -- a
+// non-matching class must be invisible to the ordinary offer gate (exactly
+// the pool the payment will charge) while a matching one must be visible.
+func restrictedBearBoard(t *testing.T, valid string) (*Engine, state.ObjID) {
+	t.Helper()
+	e := layerEngine(t)
+	e.G.Step = state.StepMain1
+	e.G.Players[0].LandsPlayed = 1
+	e.G.SetZone(state.ZHand, 0, nil)
+	card := onHand(t, e, 0, "Name:ProbeBear\nManaCost:2\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 2,
+		Text: events.ManaRestrictionText(valid, 0)})
+	return e, card
+}
+
+// TestCastableExcludesNonMatchingRestrictedMana pins the ordinary offer gate's
+// pool semantics against the raw floating pool (rv2c review, the drift the
+// castable/castablePriced split introduced and this fixes): manaAvailableFor
+// excludes a restricted batch a payment does not admit, so a {2} creature
+// cannot be cast off {C:2 Spell.Artifact} -- the offer gate and the payment
+// path must answer identically, or the engine offers a cast whose payment
+// later aborts. The matching class ({Spell.Creature}) is the contrast half:
+// the same batch pays, so the gate did not overcorrect. The potential walk's
+// hypothetical pool deliberately keeps the RAW units (a mana over-bound: a
+// wrongly withheld pass costs one idle stop, a wrongly eaten window loses the
+// action), so the projection may still carry the cast here -- only the
+// ordinary offer is pinned.
+func TestCastableExcludesNonMatchingRestrictedMana(t *testing.T) {
+	e, bear := restrictedBearBoard(t, "Spell.Artifact")
+	if e.costPayable(0, bear, false, ParseCost("2")) {
+		t.Fatal("costPayable admitted a restricted batch the payment would refuse")
+	}
+	if e.castable(0, bear, ParseCost("2"), false) {
+		t.Fatal("castable priced the offer against the RAW pool: a non-matching restricted batch counted toward a creature cast")
+	}
+	for _, o := range e.legalActions(0) {
+		if o.Kind == "cast" && o.Obj == bear {
+			t.Errorf("offer walk offered the Bear cast off non-matching restricted mana; the payment (payManaFor) would refuse it")
+		}
+	}
+	// The deliberate over-bound, documented not accidental: the hypothetical
+	// pool keeps the raw units, so the PROJECTION (never a payment) may still
+	// carry the cast.
+	projected := false
+	for _, a := range e.PotentialActions(0) {
+		if a.Kind == "cast" && a.Obj == bear {
+			projected = true
+		}
+	}
+	if !projected {
+		t.Error("the potential walk's hyp pool must stay a raw over-bound: the projection should still carry the cast")
+	}
+
+	// Contrast: the matching class admits the batch at every gate.
+	e2, bear2 := restrictedBearBoard(t, "Spell.Creature")
+	if !e2.costPayable(0, bear2, false, ParseCost("2")) {
+		t.Fatal("matching restricted batch must pay a creature cast")
+	}
+	if !e2.castable(0, bear2, ParseCost("2"), false) {
+		t.Fatal("castable must admit mana whose restriction matches the payment")
+	}
+	found := false
+	for _, o := range e2.legalActions(0) {
+		if o.Kind == "cast" && o.Obj == bear2 {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("offer walk must offer the Bear cast off matching restricted mana")
+	}
 }
 
 // TestPotentialActionsJitteThaliaSnapshotIsNotCastable pins the Jitte report's

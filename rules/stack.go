@@ -303,12 +303,16 @@ func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cos
 // costPayablePool is costPayable priced against an EXPLICIT pool instead of
 // the seat's restriction-adjusted floating one: pool is the mana the cost
 // must resolve against, whatever the seat is actually holding right now. The
-// ordinary gate (costPayable above) is exactly this with the real
-// manaAvailableFor pool; the potential-action walk (rules/legal.go
-// legalActionsPriced) passes the hypothetical bound the seat would hold after
-// floating every untapped source. The payer grants and conversion shaping
-// are the same reads in both modes, so a potential action and the payment it
-// promises can never disagree about what the pool may satisfy.
+// ordinary gates (costPayable here, manaFeasible in statics.go) are exactly
+// this with the real manaAvailableFor pool and never call it directly with
+// the RAW pool -- offering a cast on mana its RestrictValid$ provenance would
+// refuse at payment is the illegal direction (rv2c review: an earlier shape
+// of castable did, and was reverted). The only caller is the potential-action
+// walk (rules/legal.go legalActionsPriced via castablePriced), which passes
+// the hypothetical bound the seat would hold after floating every untapped
+// source. The payer grants and conversion shaping are the same reads in both
+// modes, so a potential action and the payment it promises can never disagree
+// about what the pool may satisfy.
 func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana) bool {
 	_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p),
