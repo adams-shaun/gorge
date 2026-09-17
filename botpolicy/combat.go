@@ -266,6 +266,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				CMC:           CmcOf(f.ManaCost),
 				Basic:         hasTypeWord(f.Types, "Basic"),
 				AttachedTo:    o.AttachedTo,
+				Activated:     o.ActivatedThisTurn,
 				ManaCost:      f.ManaCost,
 				Castable:      castable,
 				OnBattlefield: z == state.ZBattlefield,

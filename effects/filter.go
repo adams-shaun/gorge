@@ -392,6 +392,10 @@ const (
 	// convoke/cascade grants key on it (Chief Engineer). An ability object
 	// (Card == nil) was never cast.
 	wordWasCast
+	// The and/or Kicker's index form: "kicked 1" / "kicked 2" (the whole
+	// two-token form survives the spec splitter) reads the specific part's
+	// CastFlags bit. The bare "kicked" word stays in the predicates map.
+	wordKickedIndex
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -437,6 +441,26 @@ func wordPredicate(p string) (wordKind, string) {
 	if z, ok := strings.CutPrefix(p, "inZone"); ok && z != "" {
 		if _, is := parseZone(z); is {
 			return wordInZone, z
+		}
+	}
+	// Forge's inRealZone<X> property: the object's REAL (current) zone is
+	// <X> -- the same live read inZone<X> gives, spelled to distinguish from
+	// an LKI-based zone test (Not of This World's TargetValidTargeting$
+	// Permanent.YouCtrl+inRealZoneBattlefield). An unresolvable zone name
+	// falls through to wordUnknown and fails closed.
+	if z, ok := strings.CutPrefix(p, "inRealZone"); ok && z != "" {
+		if _, is := parseZone(z); is {
+			return wordInZone, z
+		}
+	}
+	// The and/or Kicker's index form "kicked <n>" (Forge's Card.kicked with
+	// the part index -- Wastescape Battlemage's "Card.Self+kicked 1"): the
+	// bare "kicked" word is in the predicates map (any CastFlags kicker
+	// bit); the index form reads the specific part's bit.
+	if rest, ok := strings.CutPrefix(p, "kicked "); ok {
+		switch strings.TrimSpace(rest) {
+		case "1", "2":
+			return wordKickedIndex, strings.TrimSpace(rest)
 		}
 	}
 	switch p {
@@ -532,6 +556,18 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return strings.Contains(ColorsOf(o), key)
 	case wordColourSourceless:
 		return ColorsOf(o) == ""
+	case wordKickedIndex:
+		// The and/or Kicker's part bits (state/object.go): the CastInfo
+		// provenance the kicked1/kicked2/kickedboth cast modes ride. A part
+		// never paid never matches, and the bare FlagKicked bit alone (a
+		// single-cost Kicker) never matches an index form.
+		switch key {
+		case "1":
+			return o.CastFlags&state.FlagKicked1 != 0
+		case "2":
+			return o.CastFlags&state.FlagKicked2 != 0
+		}
+		return false
 	case wordMultiColor:
 		return len(ColorsOf(o)) > 1
 	case wordWasCast:

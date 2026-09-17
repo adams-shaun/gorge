@@ -1100,11 +1100,15 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// RestrictValid$ (Master of Dark Rites' "Spend this mana only to cast
 	// Vampire, Cleric, and/or Demon spells", Eldrazi Temple, Cavern of
-	// Souls, Giada): the produced mana carries its spend restriction on the
-	// ManaAdd event itself, so the pool retains the provenance per colour
-	// slot and the payment path (manaAvailableFor / restrictValidMatches)
-	// can admit it only to matching payments — the same event-level
-	// provenance the ManaReflected family and the Tazri batch already ride.
+	// Souls, Giada, Shrine of the Forsaken Gods): the produced mana carries
+	// its spend restriction on the ManaAdd event itself, so the pool retains
+	// the provenance per colour slot and the payment path
+	// (manaAvailableFor / restrictValidMatches) can admit it only to
+	// matching payments — the same event-level provenance the ManaReflected
+	// family and the Tazri batch already ride. A class the payment path
+	// cannot evaluate (anything but Spell./Activated.) is still retained --
+	// it matches no payment, so the mana is never spendable, the
+	// fail-closed direction.
 	restriction := strings.TrimSpace(sa.Params["RestrictValid"])
 	// CR 107.4h: mana produced by a SNOW permanent is snow mana. A snow unit
 	// is tagged in the pool event itself — Counter "S<colour>" — so the pool

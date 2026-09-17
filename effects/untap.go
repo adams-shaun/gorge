@@ -113,6 +113,14 @@ func untapTypeCandidates(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 // permits zero through Amount. The resumed answer is scoped and consumed here,
 // so a nested Untap poses its own choice.
 func effUntap(h Host, c *Ctx, sa *cards.SA) {
+	// AIManaPref$ (Basalt Monolith's "{3}: Untap this artifact" carries
+	// AIManaPref$ NotSameCard) is Forge's AI mana-generation hint -- which
+	// floating mana the AI prefers to leave untapped when it activates the
+	// untap. It is deck-building and bot-policy guidance, never a rules tail:
+	// the activation's legality and effect are unchanged by its value. The
+	// recognition keeps the parameter census honest; the bot-policy half is
+	// named in the deck import report's Issues.
+	_ = sa.Params["AIManaPref"]
 	if !untapBattlefieldCondition(h, c, sa) {
 		return
 	}

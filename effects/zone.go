@@ -1955,6 +1955,16 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 			eventRemember(h, c, id)
 		}
+		if strings.EqualFold(strings.TrimSpace(sa.Params["RememberSearched"]), "True") {
+			// RememberSearched$ True (Tempt with Discovery's tempting offer):
+			// the cards the search found join the resolution's Remembered --
+			// the same Ctx set RememberChanged$ feeds -- so the follow-up sub
+			// ("for each opponent who searched, search again") counts them
+			// through Count$RememberedSize and repeats the search that many
+			// times.
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
+		}
 		eventForgetChanged(h, c, sa, id)
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 			// This establishes the object's entry state; it is not the CR
@@ -1999,17 +2009,16 @@ func shuffleLibrary(h Host, sa *cards.SA, owner state.PlayerID) {
 	if strings.EqualFold(sa.Params["NoShuffle"], "True") || strings.EqualFold(sa.Params["Shuffle"], "False") {
 		return
 	}
-	// ShuffleNonMandatory$ True (209 raw exact-Origin$ Library lines —
-	// Flamekin's "then shuffle", the Squadron Hawk family) is read here and
-	// deliberately honoured as the unconditional shuffle this build always
-	// performed: the search's shuffle happens even on a fail-to-find (the
-	// committed Squadron Hawk fail-to-find pin), and the second may-shuffle
-	// ask the value promises is the M4 deferral the Known-approximations
-	// table pins ("treated as an unconditional shuffle, without a second
-	// may-shuffle ask"). The read keeps the parameter census honest — the
-	// key is understood and consciously deferred, not silently unread.
-	shuffleNonMandatory := strings.TrimSpace(sa.Params["ShuffleNonMandatory"])
-	_ = shuffleNonMandatory
+	// ShuffleNonMandatory$ True (Conduit of Ruin, Path to Exile, Solemn
+	// Simulacrum, ... -- 212 corpus files) is Forge's "Do you want to shuffle
+	// the library?" confirm, an information-mercy so a player may keep the
+	// knowledge a search gave them. Every corpus card carrying the flag has
+	// mandatory "then shuffle" oracle text, so the CR-mandatory reading this
+	// engine implements is the stricter and correct one: the shuffle always
+	// happens and no ask is posed -- a decision no legal answer could take
+	// differently under the printed text. The read documents that decision
+	// against the parameter census.
+	_ = strings.TrimSpace(sa.Params["ShuffleNonMandatory"])
 	shuffleLibraryOrder(h, owner)
 }
 

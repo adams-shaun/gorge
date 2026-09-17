@@ -156,7 +156,8 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		// artifacts"): the same keyword-condition gate the printed-ability
 		// offer loop in rules/legal.go applies, so the priority action, the
 		// payment window and the chosen activation share one member set.
-		if abilityZoneOK(ma, o.Zone) && e.activationConditionOK(p, ma) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
+		if abilityZoneOK(ma, o.Zone) && e.activationConditionOK(p, ma) && e.manaActivationGateHolds(p, id, ma) &&
+			!abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
 			out = append(out, ma)
 		}
 	}
@@ -198,7 +199,8 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			considerReflected(ma)
 			continue
 		}
-		if ma.API == "Mana" && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
+		if ma.API == "Mana" && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
+			e.manaActivationGateHolds(p, id, ma) {
 			out = append(out, ma)
 		}
 	}
@@ -216,11 +218,40 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		if ga.sa.API != "Mana" {
 			continue
 		}
-		if !abilityRestricted(ga.sa) && e.manaAbilityPayable(p, id, ga.sa) {
+		if !abilityRestricted(ga.sa) && e.manaAbilityPayable(p, id, ga.sa) &&
+			e.manaActivationGateHolds(p, id, ga.sa) {
 			out = append(out, ga.sa)
 		}
 	}
 	return out
+}
+
+// manaActivationGateHolds evaluates a plain AB$ Mana ability's IsPresent$/
+// PresentCompare$ existence gate (the same shape manaReflectedPresentHolds is
+// for a reflected ability); an Activation$ mechanic rides rules/legal.go's
+// shared activationConditionOK instead:
+//
+//   - IsPresent$ <spec> with PresentCompare$ <op><n>: the count of objects
+//     matching <spec> (Shrine of the Forsaken Gods' "Activate only if you
+//     control seven or more lands"). PresentCompare$ absent means GE1.
+// An Activation$ <mechanic> rides rules/legal.go's shared
+// activationConditionOK instead (main's vocabulary: Hellbent, Threshold,
+// Metalcraft, Delirium), so the two gates compose rather than duplicate.
+//
+// A gate this build cannot price fails closed: the ability is withheld from
+// the offer, the payment window and the activation alike, never widened.
+func (e *Engine) manaActivationGateHolds(p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
+	if spec, ok := ma.Params["IsPresent"]; ok && strings.TrimSpace(spec) != "" {
+		n := e.countPresent(strings.TrimSpace(spec), id, p)
+		if cmp := strings.TrimSpace(ma.Params["PresentCompare"]); cmp != "" {
+			if !comparePresent(n, cmp) {
+				return false
+			}
+		} else if n <= 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // activateMana activates one of source's currently available mana abilities.

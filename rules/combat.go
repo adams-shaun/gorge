@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -1300,16 +1301,45 @@ func (e *Engine) runCombatAssignments() {
 	e.EndLifeLossBatch()
 }
 
-// maxHandSize is CR 514.1: at the beginning of a player's cleanup step, if
-// their hand contains more than this many cards, they discard cards from it
-// until it contains exactly this many (normally seven). Task D1 made the
-// discard a real decision and verified that no effect in the corpus modifies
-// the maximum hand size today -- a grep for maximum-hand-size text across
-// cards/ and effects/ found nothing that sets or reads it (see the task
-// report) -- so it is a plain package constant, not a game field an effect
-// can reach. A card that one day DOES modify it is a separate finding and
-// must not silently change this constant.
+// maxHandSize is CR 514.1's DEFAULT maximum: at the beginning of a player's
+// cleanup step, if their hand contains more cards than their effective
+// maximum, they discard down to it. Task D1 verified no corpus effect
+// modified it then; Reliquary Tower and Thought Vessel (SetMaxHandSize$
+// Unlimited) do now, so cleanupStep reads the effective maximum through
+// maxHandSizeFor below and this constant is only that read's default.
 const maxHandSize = 7
+
+// unlimitedHandSize is the stand-in value SetMaxHandSize$ Unlimited maps to:
+// far above any hand a game can assemble, so the CR 514.1 discard never
+// triggers for a player under a no-maximum effect.
+const unlimitedHandSize = 1 << 20
+
+// maxHandSizeFor is p's effective CR 514.1 maximum: the SetMaxHandSize$
+// Continuous statics affecting p (Reliquary Tower's Affected$ You,
+// "Unlimited"; a numeric value sets the maximum outright, Forge's
+// StaticAbilityContinuous RULES layer reads both shapes), else the default.
+// The scan walks activeStatics in their deterministic order; the FIRST
+// affecting static wins (applying two at once has no rules meaning for a
+// set -- CR 613 uses timestamps, and "no maximum" can only be overridden by
+// another set, which the first-match reading approximates).
+func (e *Engine) maxHandSizeFor(p state.PlayerID) int {
+	for _, sv := range e.activeStatics("Continuous") {
+		raw := strings.TrimSpace(sv.Params["SetMaxHandSize"])
+		if raw == "" {
+			continue
+		}
+		if !effects.MatchesPlayerSpecFrom(e.G, sv.Params["Affected"], p, sv.Controller, sv.Source) {
+			continue
+		}
+		if strings.EqualFold(raw, "Unlimited") {
+			return unlimitedHandSize
+		}
+		if n, err := strconv.Atoi(raw); err == nil && n >= 0 {
+			return n
+		}
+	}
+	return maxHandSize
+}
 
 // cleanupStep is the CR 514 cleanup step's turn-based actions, Task D1
 // adding CR 514.1 on top of the CR 514.2 body Task 21 owns. Ordering:
@@ -1332,8 +1362,9 @@ const maxHandSize = 7
 // cleanup.
 func (e *Engine) cleanupStep() {
 	hand := e.G.Zone(state.ZHand, e.G.Active)
-	if len(hand) > maxHandSize {
-		n := len(hand) - maxHandSize
+	limit := e.maxHandSizeFor(e.G.Active)
+	if len(hand) > limit {
+		n := len(hand) - limit
 		opts := make([]decision.Option, 0, len(hand))
 		for _, id := range hand {
 			name := "a card"

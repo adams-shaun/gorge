@@ -428,6 +428,14 @@ func isLoyaltyAbility(ab *cards.SA) bool {
 	if v, ok := ab.Params["Planeswalker"]; ok && strings.EqualFold(strings.TrimSpace(v), "True") {
 		return true
 	}
+	// Ultimate$ (Ugin, Eye of the Storms' [-X]: AB$ ChangeZone ... Ultimate$
+	// True) marks the planeswalker's ultimate for Forge's deck-tooling and
+	// the client's loyalty-UI presentation; the rules meaning -- a loyalty
+	// ability, once per permanent per turn (CR 606.3) -- is already covered
+	// by the Planeswalker$ marker this gate reads. The recognition keeps the
+	// parameter census honest; the presentation half is named in the deck
+	// import report's Issues.
+	_ = ab.Params["Ultimate"]
 	c := ParseCost(ab.Params["Cost"])
 	for _, part := range c.AddCounter {
 		if strings.EqualFold(part.Spec, "LOYALTY") {
@@ -896,7 +904,28 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					Label: altCostLabel(f.Name, i), Obj: id, AltCostIndex: i + 1})
 			}
 		}
-		if kc, ok := kickerCost(f); ok && targetsAvailable && offerCastable(p, id, e.rawBaseCost(p, id).Plus(kc), spellScope("kicked"), false) {
+		// The and/or Kicker (Forge's colon-separated two-part Kicker:<a>:<b>,
+		// Wastescape Battlemage's "Kicker {G} and/or {1}{U}"): each part is an
+		// independent optional additional cost (CR 601.2b), so each payable
+		// combination is its own cast option -- part 1, part 2, or both. The
+		// modes ride FlagKicked1/FlagKicked2 (modeFlags), which the
+		// "Card.Self+kicked <n>" trigger and replacement specs read.
+		if c1, c2, ok := twoPartKickerCosts(f); ok {
+			base := e.rawBaseCost(p, id)
+			for _, kp := range [...]struct {
+				mode, label string
+				cost        Cost
+			}{
+				{"kicked1", "Cast " + f.Name + " (kicked 1)", c1},
+				{"kicked2", "Cast " + f.Name + " (kicked 2)", c2},
+				{"kickedboth", "Cast " + f.Name + " (kicked both)", c1.Plus(c2)},
+			} {
+				if targetsAvailable && offerCastable(p, id, base.Plus(kp.cost), spellScope(kp.mode), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: kp.label, Obj: id, Mode: kp.mode})
+				}
+			}
+		} else if kc, ok := kickerCost(f); ok && targetsAvailable && offerCastable(p, id, e.rawBaseCost(p, id).Plus(kc), spellScope("kicked"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 		}

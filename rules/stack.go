@@ -665,7 +665,48 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 			}
 		}
 	}
-	return e.filterTargetsWithDefinedController(out, sa, sc)
+	out = e.filterTargetsWithDefinedController(out, sa, sc)
+	return e.filterTargetValidTargeting(out, sa, sc)
+}
+
+// filterTargetValidTargeting implements TargetValidTargeting$ (Not of This
+// World: "Counter target spell or ability that targets a permanent you
+// control", TargetValidTargeting$ Permanent.YouCtrl+inRealZoneBattlefield):
+// the candidate stack object QUALIFIES only when its own chosen targets
+// include an object matching the spec, evaluated from the targeting
+// ability's controller (the counter's "you" is its controller, not the
+// countered spell's). Only permanent-kind candidates carry targets to
+// check; a player candidate or a stack object without recorded targets --
+// the ability-object shapes whose per-stack target bindings live in the
+// trigger/activation roles this filter cannot see -- fails the filter, the
+// narrower direction (Not of This World can still counter every spell that
+// visibly targeted a matching permanent; an ability it cannot verify is
+// never offered, never wrongly offered).
+func (e *Engine) filterTargetValidTargeting(in []targetCandidate, sa *cards.SA, sc effects.SpecContext) []targetCandidate {
+	spec := strings.TrimSpace(sa.Params["TargetValidTargeting"])
+	if spec == "" {
+		return in
+	}
+	out := make([]targetCandidate, 0, len(in))
+	for _, cand := range in {
+		if cand.kind != "permanent" {
+			continue
+		}
+		o := e.G.Obj(cand.obj)
+		if o == nil {
+			continue
+		}
+		for _, t := range o.Targets {
+			if t.IsPlayer || t.Obj == 0 {
+				continue
+			}
+			if effects.MatchesSpecCtx(e.G, spec, t.Obj, sc) {
+				out = append(out, cand)
+				break
+			}
+		}
+	}
+	return out
 }
 
 // filterTargetsWithDefinedController implements the common target restriction

@@ -1348,6 +1348,21 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	if ev.Kind != events.DeclareAttackers {
 		return false
 	}
+	if strings.EqualFold(strings.TrimSpace(t.Params["Myriad"]), "True") {
+		// Myriad$ True is the myriad keyword expansion's own marker
+		// (cards/keywords.go addKeywordTrigger): the per-other-opponent token
+		// copies are the DB$ Myriad body, so the marker requires the
+		// trigger's Execute sub to resolve to exactly that body -- a
+		// mismatched or unresolvable expansion must not fire.
+		src := e.G.Obj(source)
+		if src == nil || src.Face() == nil {
+			return false
+		}
+		sa := cards.ResolveSVar(src.Face().SVars, t.Params["Execute"])
+		if sa == nil || sa.API != "Myriad" {
+			return false
+		}
+	}
 	if v, ok := t.Params["Alone"]; ok && strings.EqualFold(v, "True") && len(ev.IDs) != 1 {
 		return false
 	}
@@ -2249,6 +2264,25 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 			return applyCompare(e.presentUnionCount(spec, spec2, source, you), op, n)
 		}
 	}
+	if name, ok := t.Params["CheckSVar"]; ok {
+		// CheckSVar$/SVarCompare$ (Kozilek, the Great Distortion's cast
+		// trigger: "if you have fewer than seven cards in hand"): the
+		// CR 603.4 intervening-if the shared SVar-compare evaluator reads,
+		// evaluated with the source face's SVar table and the trigger's
+		// "you" -- the same wrapper rules' static gate uses. A condition
+		// this build cannot evaluate fails closed (the trigger does not
+		// fire), the same convention triggerConditionHolds' other clauses
+		// document above.
+		src := e.G.Obj(source)
+		if src == nil || src.Face() == nil {
+			return false
+		}
+		ctx := &effects.Ctx{Source: source, Controller: you, SVars: src.Face().SVars}
+		holds, evaluated := effects.CheckSVarHolds(e, ctx, name, strings.TrimSpace(t.Params["SVarCompare"]))
+		if !evaluated || !holds {
+			return false
+		}
+	}
 	if spec, ok := t.Params["CheckDefinedPlayer"]; ok {
 		holds, supported := e.checkDefinedPlayerHolds(spec, you)
 		// A supported predicate is evaluated for every mode. An unsupported
@@ -2320,6 +2354,22 @@ func (e *Engine) lifeConditionHoldsAs(t cards.Trigger, you state.PlayerID, amoun
 // spec (relative to the trigger's source and the caller's chosen "you") and
 // comparing that count.
 func (e *Engine) presentConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID, spec, cmp string) bool {
+	// PresentDefined$ (Mana Vault's draw-step self-check): the IsPresent$
+	// spec is evaluated over the DEFINED set rather than the whole
+	// battlefield. "Self" -- the corpus's dominant value -- counts the
+	// source object alone when it matches; any other selector falls back to
+	// the battlefield-wide count, so an unreadable defined set degrades to
+	// the pre-PresentDefined behaviour instead of fail-closing a trigger
+	// whose spec the count would otherwise answer.
+	if pd := strings.TrimSpace(t.Params["PresentDefined"]); pd != "" {
+		if strings.EqualFold(pd, "Self") {
+			if o := e.G.Obj(source); o == nil || o.Zone != state.ZBattlefield ||
+				!effects.MatchesSpecCtx(e.G, spec, source, e.specCtx(source, you)) {
+				return comparePresent(0, cmp)
+			}
+			return comparePresent(1, cmp)
+		}
+	}
 	n := e.countPresent(spec, source, you)
 	return comparePresent(n, cmp)
 }

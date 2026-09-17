@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 )
@@ -35,11 +37,21 @@ func effChooseNumber(h Host, c *Ctx, sa *cards.SA) {
 // carrying a ChosenType it is a no-op; without one, it names the first
 // creature subtype of the controller's own objects (in object-ID order,
 // i.e. deterministic), falling back to "Human" when the controller owns no
-// creature subtype at all.
+// creature subtype at all. Type$ (Herald's Horn, Urza's Incubator, Roaming
+// Throne, Three Tree City) names the CATEGORY the choice ranges over:
+// "Creature" (the corpus's dominant value, 125 ChooseType lines) is exactly
+// the creature-type list this fallback and the cast-time option list build;
+// any other category (Basic, Card, Land, ColorOrType, ...) has no option
+// builder in this build and is recorded loudly rather than silently offered
+// a creature-type list that cannot answer the question.
 func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	if o := g.Obj(c.Source); o != nil && o.ChosenType != "" {
 		return
+	}
+	if cat := strings.TrimSpace(sa.Params["Type"]); cat != "" && !strings.EqualFold(cat, "Creature") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "ChooseType Type$ " + cat + " is not a category this engine can ask; the choice falls back to creature types"})
 	}
 	var fallback string
 	for i := range g.Objs {
