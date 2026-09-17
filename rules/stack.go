@@ -217,10 +217,23 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, abil
 	if spec == "" {
 		return true
 	}
+	srcID := id
 	if src != 0 {
-		return effects.MatchesSpecFrom(e.G, spec, id, p, src)
+		srcID = src
 	}
-	return effects.MatchesSpecFrom(e.G, spec, id, p, id)
+	if effects.MatchesSpecFrom(e.G, spec, id, p, srcID) {
+		return true
+	}
+	// Forge's object-filter grammar defaults the base to Card, so a bare
+	// predicate-only spec -- "Spell.Colorless" (Shrine of the Forsaken
+	// Gods), "Spell.MultiColor", the compound "Spell.Eldrazi+Colorless"
+	// (Eldrazi Temple) -- means Card.<spec>: a bare type word ("Creature",
+	// "Artifact") already evaluates as its own base, but a word the matcher
+	// only knows as a QUALIFIER fails closed with no base. Retry with the
+	// explicit base before denying the batch: the retry can only turn a
+	// "never spendable" batch into the correct evaluation, never widen a
+	// spec that already evaluated (the first attempt ran unchanged).
+	return effects.MatchesSpecFrom(e.G, "Card."+spec, id, p, srcID)
 }
 
 // paymentConv is the conversion set for p paying id (ability selects the

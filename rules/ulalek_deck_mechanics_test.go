@@ -266,18 +266,62 @@ func TestOnlyFirstSpellDiscountsOnce(t *testing.T) {
 	}
 	submitChoices(t, e, opts[0].Index)
 	drainKickerStack(t, e, 30)
-	// {3} for the SECOND creature spell: the discount was spent on the first
-	// (the log walk counts the first covered cast), so the option is
-	// withheld, and it comes back only at the full {4}.
-	addMana(t, e, 0, "G")
+	// The discount was spent on the first cast (the log walk counts the
+	// first covered cast), so the second Bean is the full-price {4}. Funded
+	// to exactly the still-discounted {2} first: zero options is the
+	// DISCRIMINATING assertion (review sol2) -- against a tracking that
+	// never spends, the second cast is payable at {2} and this fails -- and
+	// then to the full {4}, where exactly one plain cast is offered.
+	addMana(t, e, 0, "GG")
 	if opts := castOptions(t, e); len(opts) != 0 {
-		t.Fatalf("second creature cast at {3}: %+v, want none (no second discount)", opts)
+		t.Fatalf("second creature cast at the still-discounted {2}: %+v, want none (the discount was spent)", opts)
 	}
 	replayCheck(t, e, cfg)
-	addMana(t, e, 0, "G")
+	addMana(t, e, 0, "GG")
 	opts = castOptions(t, e)
 	if len(opts) != 1 || opts[0].AltCostIndex != 0 {
 		t.Fatalf("second creature cast at {4}: %+v, want the full-price plain cast", opts)
+	}
+	replayCheck(t, e, cfg)
+}
+
+const colorlessArtifactSrc = "Name:Gravestone\nManaCost:3\nTypes:Artifact\nOracle:x\n"
+const greenCreatureSrc = "Name:Mossback\nManaCost:1 G\nTypes:Creature Beast\nPT:2/2\nOracle:x\n"
+
+// TestRestrictedFloatRefusesAColouredCast pins the RestrictValid$ emit ->
+// consume round trip the ulalek-eldrazi deck's Shrine of the Forsaken Gods
+// leans on ("Add {C}{C}. Spend this mana only to cast colorless spells.",
+// script line `RestrictValid$ Spell.Colorless`): restricted mana carries its
+// spend restriction on the ManaAdd event itself (events.ManaRestrictionText,
+// the same provenance effMana emits) and the payment path admits it only to
+// a matching spell. A coloured spell is refused even for its generic pips --
+// restrictValidMatches evaluates the whole payment, never one pip -- and an
+// unrestricted pip keeps the ordinary path.
+func TestRestrictedFloatRefusesAColouredCast(t *testing.T) {
+	e, cfg, _ := altCostBoard(t, 60, beanSrc, colorlessArtifactSrc, greenCreatureSrc)
+	// Three colourless, restricted to colorless spells only (the same
+	// emission effMana rides on every restricted ManaAdd; src 0 is the
+	// source-less batch reading).
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 3,
+		Text: events.ManaRestrictionText("Spell.Colorless", 0)})
+	e.priorityRound()
+	opts := castOptions(t, e)
+	if len(opts) != 1 || opts[0].Label != "Cast Gravestone" {
+		t.Fatalf("restricted-float cast options %+v, want only the colorless Gravestone", opts)
+	}
+	// One unrestricted generic: the coloured spell is still refused, because
+	// its {G} pip cannot be paid from the restricted batch and its {1} pip
+	// may not consume restricted mana toward a coloured cast either.
+	addMana(t, e, 0, "C")
+	if opts := castOptions(t, e); len(opts) != 1 || opts[0].Label != "Cast Gravestone" {
+		t.Fatalf("with one free generic: %+v, want the coloured Mossback still refused", opts)
+	}
+	// An unrestricted {G}: now the {1} comes from the free generic and the
+	// pip from the free G, so the coloured spell is offered.
+	addMana(t, e, 0, "G")
+	opts = castOptions(t, e)
+	if len(opts) != 2 {
+		t.Fatalf("with a free G: %+v, want both spells offered", opts)
 	}
 	replayCheck(t, e, cfg)
 }
