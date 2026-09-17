@@ -142,7 +142,7 @@ func ProducedCounts(produced string) (counts [6]int32, any bool) {
 		counts[5] = 1
 		return counts, true
 	}
-	tokens := strings.Fields(strings.NewReplacer("{", "", "}", "").Replace(raw))
+	tokens := strings.Fields(producedBraces.Replace(raw))
 	if len(tokens) > 0 && tokens[0] == "Combo" {
 		tokens = tokens[1:]
 		any = true // a Combo choice is never a plain colour string
@@ -176,6 +176,8 @@ func ProducedCounts(produced string) (counts [6]int32, any bool) {
 	}
 	return counts, any
 }
+
+var producedBraces = strings.NewReplacer("{", "", "}", "")
 
 // add folds one mana ability's production into the collector. It mirrors
 // effMana's honest conventions: blank / "Any" / "Combo Any" become one C,

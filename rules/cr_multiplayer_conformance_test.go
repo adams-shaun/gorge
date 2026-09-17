@@ -78,6 +78,7 @@ func TestCR800DepartedOwnersCardsLeaveEveryZone(t *testing.T) {
 }
 
 func TestCR800DepartedControllersStackObjectsCease(t *testing.T) {
+	t.Parallel()
 	for _, name := range []string{"Lightning Bolt", "Azure Mage"} {
 		t.Run(name, func(t *testing.T) {
 			e := crResolutionEngine(t, []string{name}, nil, nil, nil)
@@ -137,6 +138,7 @@ func TestCR800NoCombatDamageToDepartedDefender(t *testing.T) {
 }
 
 func TestCR802BlockDeclarationsFollowAPNAP(t *testing.T) {
+	t.Parallel()
 	for active := state.PlayerID(0); active < 4; active++ {
 		e := crResolutionEngine(t, []string{"Memnite", "Memnite", "Memnite"}, []string{"Memnite", "Memnite", "Memnite"}, []string{"Memnite", "Memnite", "Memnite"}, []string{"Memnite", "Memnite", "Memnite"})
 		var attackers []state.ObjID

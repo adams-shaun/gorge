@@ -169,7 +169,10 @@ type Engine struct {
 	// step and trigger predicate reads it). Clone() leaves both fields zero, so
 	// a cloned engine rebuilds the memo on its first Derived -- staticEffects
 	// is a pure function of the current board, so the rebuilt result is
-	// identical and deterministic.
+	// identical and deterministic. Rebuilds reuse the outer slice's capacity,
+	// clearing obsolete slots when it shrinks, but never reuse the nested
+	// keyword/type slices. activeBuf copies the effect values into distinct
+	// storage before sorting; neither buffer may alias a clone's scratch.
 	staticContinuous []ContinuousEffect
 	staticEpoch      int
 
@@ -342,6 +345,12 @@ type Engine struct {
 	// often its trigger is walked. Cloned like the other bookkeeping maps so
 	// a branch that becomes live cannot re-emit the same Note.
 	phaseUnknownNoted map[string]bool
+	// phaseSpecs caches pure Phase$ parsing for both diagnostics and matching.
+	// It is scratch, not replay bookkeeping: clones start with an empty cache.
+	phaseSpecs map[string]parsedPhase
+	// triggerEventMasks caches only immutable face syntax, not live source
+	// membership. Like phaseSpecs, clones own fresh writable scratch.
+	triggerEventMasks map[*cards.Face]triggerEventMask
 
 	// choosing says which flow is waiting on the current KChoose decision
 	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling

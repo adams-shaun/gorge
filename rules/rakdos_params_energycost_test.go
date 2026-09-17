@@ -139,6 +139,7 @@ func TestChthonianNightmareXBoundedByEnergy(t *testing.T) {
 // PayEnergy<N> IS gated at offer time (Forge CostPayEnergy.canPay), unlike
 // the X form whose value is announced later.
 func TestWhirlerVirtuosoFixedEnergyCostGatesAndPays(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := handEngine(t, corpusAlternativeCard(t, "Whirler Virtuoso"))
 	if thopter := reg.Tokens["c_1_1_a_thopter_flying"]; thopter != nil {

@@ -107,6 +107,7 @@ func TestChromeMoxReflectsTheImprintedCardColour(t *testing.T) {
 }
 
 func TestCorruptedGrafstoneReflectsGraveyardColours(t *testing.T) {
+	t.Parallel()
 	// Single colour in the graveyard: the exact behaviour.
 	e := handEngine(t, corpusAlternativeCard(t, "Corrupted Grafstone"))
 	stone := e.G.Obj(e.G.Zone(state.ZHand, 0)[0])

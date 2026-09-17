@@ -34,6 +34,7 @@ func requireCR601Audit(t *testing.T, finding string) {
 // This does not generalise to modal spells, optional targets, or targets whose
 // availability depends on choices made later during casting (CR 601.5).
 func TestCR601NoMandatoryCounterCastOnEmptyStack(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	for _, seats := range []int{2, 4, 6, 8} {
 		t.Run(seatCount(seats), func(t *testing.T) {

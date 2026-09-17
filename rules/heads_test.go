@@ -1000,6 +1000,7 @@ var acceptanceHeads = map[int]string{
 }
 
 func TestHeads(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("long")
 	}

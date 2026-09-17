@@ -132,19 +132,32 @@ func (e *Engine) manaReflectedPresentHolds(p state.PlayerID, source state.ObjID,
 }
 
 func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*cards.SA {
+	return e.availableManaAbilitiesUsing(nil, p, id)
+}
+
+// A non-nil source belongs only to the caller's current legalActions pass.
+// The ordinary wrapper deliberately supplies nil so payment windows and
+// activation rechecks discover fresh static membership.
+func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return nil
 	}
+	abilityRestricted := func(ma *cards.SA) bool {
+		if statics == nil {
+			return e.abilityRestricted(p, id, ma)
+		}
+		return e.abilityRestrictedUsing(statics.get().cantActivate, p, id, ma)
+	}
 	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
 	var out []*cards.SA
 	for _, ma := range o.Face().ManaAbilities() {
-		if abilityZoneOK(ma, o.Zone) && !e.abilityRestricted(p, id, ma) && e.manaAbilityPayable(p, id, ma) {
+		if abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
 			out = append(out, ma)
 		}
 	}
 	considerReflected := func(ma *cards.SA) {
-		if ma.Kind != "AB" || ma.API != "ManaReflected" || e.abilityRestricted(p, id, ma) || !e.manaAbilityPayable(p, id, ma) || !e.manaReflectedPresentHolds(p, id, ma) {
+		if ma.Kind != "AB" || ma.API != "ManaReflected" || abilityRestricted(ma) || !e.manaAbilityPayable(p, id, ma) || !e.manaReflectedPresentHolds(p, id, ma) {
 			return
 		}
 		if len(effects.ManaReflectedCandidates(e, ctx, ma)) > 0 {
@@ -158,7 +171,13 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 	// Resolve its named SVar from the static's source but activate it from id:
 	// Tazri's ManaReflected reads the recipient creature's colours and its own
 	// "another activated ability" condition, not Tazri's.
-	for _, sv := range e.activeStatics("Continuous") {
+	var continuous []staticView
+	if statics == nil {
+		continuous = e.activeStatics("Continuous")
+	} else {
+		continuous = statics.get().continuous
+	}
+	for _, sv := range continuous {
 		name := strings.TrimSpace(sv.Params["AddAbility"])
 		if name == "" || !effects.MatchesSpecCtx(e.G, sv.Params["Affected"], id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
@@ -175,7 +194,7 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 			considerReflected(ma)
 			continue
 		}
-		if ma.API == "Mana" && !e.abilityRestricted(p, id, ma) && e.manaAbilityPayable(p, id, ma) {
+		if ma.API == "Mana" && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
 			out = append(out, ma)
 		}
 	}
@@ -193,7 +212,7 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 		if ga.sa.API != "Mana" {
 			continue
 		}
-		if !e.abilityRestricted(p, id, ga.sa) && e.manaAbilityPayable(p, id, ga.sa) {
+		if !abilityRestricted(ga.sa) && e.manaAbilityPayable(p, id, ga.sa) {
 			out = append(out, ga.sa)
 		}
 	}

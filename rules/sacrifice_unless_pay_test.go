@@ -346,9 +346,13 @@ func TestEngineLonghornFirebeastFiveThroughEngine(t *testing.T) {
 // corpus face) makes its CONTROLLER gain the 4 the accepting opponent took.
 func TestEngineVexingDevilLifelinkSourceGainsLife(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	src := mustCorpusCard(t, reg, "Vexing Devil")
-	src.Faces[0].Keywords = append(src.Faces[0].Keywords, "Lifelink")
-	e := handEngine(t, src)
+	original := mustCorpusCard(t, reg, "Vexing Devil")
+	src := *original
+	src.Faces = append([]*cards.Face(nil), original.Faces...)
+	face := *original.Faces[0]
+	face.Keywords = append(append([]string(nil), original.Faces[0].Keywords...), "Lifelink")
+	src.Faces[0] = &face
+	e := handEngine(t, &src)
 	for _, id := range e.G.Zone(state.ZHand, 0) {
 		if e.G.Obj(id).Face().Name == "Vexing Devil" {
 			e.G.Players[0].Pool = state.Mana{state.MR: 1}

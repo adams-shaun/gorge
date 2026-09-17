@@ -134,22 +134,24 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		}
 	}
 	e.forEachReplacementSource(func(id state.ObjID) {
-		for _, f := range e.replacementFaces(id, ev) {
-			for i := range f.Repls {
-				if f.Repls[i].Event != event {
-					continue
-				}
-				m := replMatch{id: id, face: f, repl: &f.Repls[i]}
-				// Mana replacement applicability must be re-evaluated after
-				// every rewrite (CR 616.1). Keep even the candidates that do
-				// not match the initial amount: multiplying mana can make a
-				// later ManaAmount$ gate newly applicable.
-				if ev.Kind == events.ManaAdd {
-					manaCandidates = append(manaCandidates, m)
-				}
-				if e.replacementMatches(f.Repls[i], id, ev) {
-					matches = append(matches, m)
-				}
+		f := e.replacementFace(id, ev)
+		if f == nil {
+			return
+		}
+		for i := range f.Repls {
+			if f.Repls[i].Event != event {
+				continue
+			}
+			m := replMatch{id: id, face: f, repl: &f.Repls[i]}
+			// Mana replacement applicability must be re-evaluated after
+			// every rewrite (CR 616.1). Keep even the candidates that do
+			// not match the initial amount: multiplying mana can make a
+			// later ManaAmount$ gate newly applicable.
+			if ev.Kind == events.ManaAdd {
+				manaCandidates = append(manaCandidates, m)
+			}
+			if e.replacementMatches(f.Repls[i], id, ev) {
+				matches = append(matches, m)
 			}
 		}
 	})
@@ -497,22 +499,19 @@ func replacementEvent(ev events.Event) (string, bool) {
 	}
 }
 
-// replacementFaces returns the source faces whose R: lines apply now. A
+// replacementFace returns the source face whose R: lines apply now. A
 // transform's "as this transforms into ..." replacement belongs to the
 // destination face, while every other replacement reads the source's current
 // face. This avoids making the alternate face live for unrelated events.
-func (e *Engine) replacementFaces(id state.ObjID, ev events.Event) []*cards.Face {
+func (e *Engine) replacementFace(id state.ObjID, ev events.Event) *cards.Face {
 	o := e.G.Obj(id)
 	if o == nil || o.Card == nil {
 		return nil
 	}
 	if ev.Kind == events.FlipFace && id == ev.Obj && ev.Amount >= 0 && int(ev.Amount) < len(o.Card.Faces) {
-		return []*cards.Face{o.Card.Faces[ev.Amount]}
+		return o.Card.Faces[ev.Amount]
 	}
-	if f := o.Face(); f != nil {
-		return []*cards.Face{f}
-	}
-	return nil
+	return o.Face()
 }
 
 // continueUntapReplacements applies the sole replacement automatically, but
@@ -1095,7 +1094,7 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 			return false
 		}
 		// The "as this transforms" replacement is written on the destination
-		// face and applies to its own card's flip; replacementFaces already
+		// face and applies to its own card's flip; replacementFace already
 		// scanned the destination face for this event.
 		if v, ok := r.Params["ValidCard"]; ok &&
 			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {

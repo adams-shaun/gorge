@@ -185,6 +185,8 @@ func (e *Engine) Clone() *Engine {
 			c.phaseUnknownNoted[k] = v
 		}
 	}
+	// phaseSpecs and triggerEventMasks are pure syntax caches. Leave them
+	// empty: each branch owns its writable maps, unlike diagnostic history.
 	if e.triggerTurnFires != nil {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
 		for k, v := range e.triggerTurnFires {
@@ -213,6 +215,11 @@ func (e *Engine) Clone() *Engine {
 	// bug, because either one walking would clobber the other's zone snapshot
 	// mid-range. Leaving both zero lets each engine grow its own buffer on
 	// its next depth-0 forEachObject call.
+	//
+	// staticContinuous / staticEpoch are likewise deliberately NOT copied:
+	// staticEffects rebuilds into the memo's reusable outer storage, so each
+	// branch must own its backing array. The zero epoch forces a fresh scan
+	// of the cloned board on its first active() rebuild.
 	//
 	// activeBuf / activeEpoch / activeVersion / activeDepth / continuousVersion
 	// (engine.go, layers.go) are likewise deliberately NOT copied, with the
