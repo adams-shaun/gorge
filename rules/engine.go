@@ -1209,6 +1209,23 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.sourceControllerLKI, ev.Obj)
 		delete(e.damageSourceLKI, ev.Obj)
 	}
+	if ev.Kind == events.MoveZone && lki != nil && lki.Zone == state.ZBattlefield {
+		// ChangeZone's Duration$ UntilHostLeavesPlay (the Oblivion Ring /
+		// Banisher Priest pattern): the exiling permanent has just left the
+		// battlefield, so every card it exiled under that duration and that is
+		// still in exile returns to the zone it was exiled from, under its
+		// owner's control. The sweep runs BEFORE this leave event's own
+		// triggers are matched, matching Forge's command semantics (the return
+		// is not a triggered ability); the returned cards' own ETB triggers
+		// are queued by their return move's emit. events.Move prunes the
+		// marker entries when their object leaves exile by any other path, so
+		// the sweep can never return a card whose exile was another effect's
+		// business, and a card exiled again by something else after it was
+		// once returned is equally out of reach.
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone != state.ZBattlefield {
+			e.sweepExileReturn(ev.Obj)
+		}
+	}
 	// Damage batch (CR 510.4, Forge dealAssignedDamage): DamageDealtOnce/
 	// DamageDoneOnce latch once per damage BATCH. A Damage event arriving with
 	// no batch already open (combat's damageStep and effects' dealDamage calls
@@ -1290,6 +1307,30 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.expireControl(controlOnEvent)
 	}
 	return stored
+}
+
+// sweepExileReturn implements ChangeZone's Duration$ UntilHostLeavesPlay
+// return half: the object named by source has just left the battlefield, so
+// every card it exiled under that duration and that is still in exile moves
+// back to the zone it was exiled from, under its owner's control (events.Move
+// gives a battlefield re-entry its owner's control, and the returned card's
+// own ETB triggers queue through its return move's own emit). The marker list
+// is snapshotted first: the return moves prune it underneath the loop. Entry
+// order -- the order the exiles happened in -- is the return order,
+// deterministic.
+func (e *Engine) sweepExileReturn(source state.ObjID) {
+	src := e.G.Obj(source)
+	if src == nil || len(src.ExileReturn) == 0 {
+		return
+	}
+	pending := append([]state.ExileReturnEntry(nil), src.ExileReturn...)
+	for _, entry := range pending {
+		o := e.G.Obj(entry.Obj)
+		if o == nil || o.Zone != state.ZExile {
+			continue
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: entry.Obj, From: state.ZExile, To: entry.From})
+	}
 }
 
 // captureSourceLifelinkLKI preserves CR 608.2h's pre-departure derived

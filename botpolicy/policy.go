@@ -416,14 +416,16 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			} else {
 				in.Choices = []int{d.Options[0].Index}
 			}
-		case "dig", "hand_move":
-			// A Dig look-and-take or a "choose N matching cards from hand"
-			// ChangeZone (handmove1): take the first Max options in offered
-			// (zone) order -- the exact mirror of effDig's / effChangeZoneHand's
-			// no-ask stand-in (R-9), so a bot-answered ask emits the same
-			// MoveZone events the silent build did and no golden game moves for
-			// the ask alone. An Optional$ Min-0 ask still takes the full Max:
-			// the stand-in it mirrors plays "you may" as "do", deterministically.
+		case "dig", "hand_move", "hidden_pick":
+			// A Dig look-and-take, a "choose N matching cards from hand"
+			// ChangeZone (handmove1), or a Hidden$ True public-origin pick
+			// (hiddenpick1): take the first Max options in offered (zone) order
+			// -- the exact mirror of effDig's / effChangeZoneHand's /
+			// effHiddenPick's no-ask stand-in (R-9), so a bot-answered ask emits
+			// the same MoveZone events the silent build did and no golden game
+			// moves for the ask alone. An Optional$ Min-0 ask still takes the
+			// full Max: the stand-in it mirrors plays "you may" as "do",
+			// deterministically.
 			for j := 0; j < len(d.Options) && j < d.Max; j++ {
 				in.Choices = append(in.Choices, d.Options[j].Index)
 			}
@@ -581,8 +583,12 @@ func clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 	}
 	if len(in.Choices) < min {
 		have := make(map[int]bool, len(in.Choices)) // membership only -- never ranged.
+		groups := make(map[string]bool)             // an option Group already represented.
 		for _, c := range in.Choices {
 			have[c] = true
+			if c >= 0 && c < len(d.Options) && d.Options[c].Group != "" {
+				groups[d.Options[c].Group] = true
+			}
 		}
 		for _, o := range d.Options {
 			if len(in.Choices) >= min {
@@ -597,10 +603,22 @@ func clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			if len(in.Choices) >= min {
 				break
 			}
-			if !have[o.Index] {
-				have[o.Index] = true
-				in.Choices = append(in.Choices, o.Index)
+			if have[o.Index] {
+				continue
 			}
+			// Two options sharing one non-empty Group are mutually exclusive
+			// (Decision.Validate's general rule): topping up with a second
+			// same-group option would hand back an intent Validate rejects --
+			// an answer the engine cannot accept and clamp cannot repair, so
+			// the group is skipped the way a duplicate index is.
+			if o.Group != "" && groups[o.Group] {
+				continue
+			}
+			have[o.Index] = true
+			if o.Group != "" {
+				groups[o.Group] = true
+			}
+			in.Choices = append(in.Choices, o.Index)
 		}
 	}
 	return in

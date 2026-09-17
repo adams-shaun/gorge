@@ -281,8 +281,12 @@ const (
 	PlayerCounterChange
 	// Imprint updates one source-card association. Obj is the source and IDs
 	// are the cards to add: ordinary text is Forge's imprintedCards list,
-	// Text "exiled-with" is its distinct exiledCards list, and Text "clear"
-	// clears only imprintedCards. Reusing Text avoids changing Event's layout.
+	// Text "exiled-with" is its distinct exiledCards list, Text
+	// "until-host-leaves" is ChangeZone's Duration$ UntilHostLeavesPlay
+	// association (Amount carries the zone the cards were exiled from, which
+	// their return moves them back to; rules sweepExileReturn consumes it),
+	// and Text "clear" clears only imprintedCards. Reusing Text avoids
+	// changing Event's layout.
 	// It is append-only so prior event ordinals and replay hashes stay stable.
 	Imprint
 	// StartingPlayerChange records CR 103.1's starting-player designation.
