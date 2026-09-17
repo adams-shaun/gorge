@@ -812,7 +812,11 @@ var acceptanceHeads = map[int]string{
 	// declines and taps option 3 instead; with the filter neutralised the
 	// stream is byte-identical to main's b80cb7ba6b93abc7 game (2426 events),
 	// so the filter is the sole cause at this seat count.
-	2: "0ff0aff481758d4b",
+	// 2 seats moved to 6085b337c4a4c0a1 (autonomous orchestrator): resolving inbox-paramcensus-shuffle-nonmandatory (param census: ChangeZone.ShuffleNonMandatory (fetch effects that may decline to )
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	2: "6085b337c4a4c0a1",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither

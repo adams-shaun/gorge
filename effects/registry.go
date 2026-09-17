@@ -384,6 +384,16 @@ type Ctx struct {
 	// search cannot inherit the outer answer.
 	Search     []state.ObjID
 	SearchDone bool
+	// SearchShuffle is the answered ShuffleNonMandatory$ may-shuffle confirm
+	// ("yes"/"no") on a re-entered ChangeZone search; SearchShuffleMoved
+	// carries the objects the search's first pass moved, so the re-entry can
+	// run the LibraryPosition$ placement after the answered shuffle. Both
+	// ride the ask (the moved list via Decision.ResumeMoved, the same
+	// runtime-continuation class as ResumeRemembered) and are consumed and
+	// cleared at the re-entry's top (fx42 scoping), so a nested search poses
+	// its own confirm.
+	SearchShuffle      string
+	SearchShuffleMoved []state.ObjID
 	// Extort is the answered optional {W/B} payment on a re-entered Extort
 	// resolution (M2d-2): "pay" means the caster agreed to pay and the drain
 	// runs; anything else ("decline", first pass with a host that cannot ask)

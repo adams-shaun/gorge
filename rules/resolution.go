@@ -108,7 +108,12 @@ type resumePoint struct {
 	// direct identifies an effect invoked outside stack resolution (currently
 	// an enters-the-battlefield replacement such as Hideaway). It resumes its
 	// source directly rather than requiring a stack object.
-	direct      bool
+	direct bool
+	// moved is the object list a ShuffleNonMandatory$ search's first pass
+	// moved before its may-shuffle confirm suspended, ridden on the ask via
+	// Decision.ResumeMoved: the re-entry's LibraryPosition$ placement needs
+	// the list the suspension lost. Nil for every other ask.
+	moved       []state.ObjID
 	choices     []state.Target
 	chosenValid bool
 	remembered  []state.Target
@@ -256,7 +261,8 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		before:            e.triggerBefore, target: d.ResumeTarget, player: d.Player,
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
-		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...)}
+		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
+		moved: append([]state.ObjID(nil), d.ResumeMoved...)}
 	return true
 }
 
@@ -927,6 +933,24 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.SearchDone = true
+		case "search_mayshuffle":
+			// A ChangeZone search carrying ShuffleNonMandatory$ True (Path to
+			// Exile, Stoneforge Mystic, Boggart Harbinger) asked its searcher
+			// "Shuffle your library?" after the search's moves landed. The
+			// answer is a bare yes/no, recorded here as a marker the
+			// re-entered effect consumes and clears (fx42 scoping): "yes"
+			// emits the same Secret events.Shuffle every library shuffle
+			// emits, "no" -- the information-mercy Forge's flag names -- keeps
+			// the library order. The moved list rides the ask
+			// (Decision.ResumeMoved -> rp.moved) so the re-entry can finish
+			// with the LibraryPosition$ placement after the answered shuffle.
+			// A malformed or empty answer keeps the order, the conservative
+			// read of an ambiguous one.
+			ctx.SearchShuffle = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.SearchShuffle = "yes"
+			}
+			ctx.SearchShuffleMoved = append([]state.ObjID(nil), rp.moved...)
 		case "imprint":
 			// An Imprint$ True public-zone choice. The effect consumes this
 			// answer on re-entry and emits the persistent Imprint event.
