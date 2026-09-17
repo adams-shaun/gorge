@@ -257,6 +257,24 @@ func (e *Engine) Clone() *Engine {
 		ma.exiles = append([]state.ObjID(nil), e.manaDiscardActivation.exiles...)
 		c.manaDiscardActivation = &ma
 	}
+	if e.manaUnlessActivation != nil {
+		ma := *e.manaUnlessActivation
+		ma.triggers = clonePendingTriggers(e.manaUnlessActivation.triggers)
+		ma.payers = append([]state.PlayerID(nil), e.manaUnlessActivation.payers...)
+		c.manaUnlessActivation = &ma
+	}
+	if e.unlessPayment != nil {
+		u := *e.unlessPayment
+		u.cost.Sac = append([]CostPart(nil), e.unlessPayment.cost.Sac...)
+		u.cost.Discard = append([]CostPart(nil), e.unlessPayment.cost.Discard...)
+		u.cost.SubCounter = append([]CostPart(nil), e.unlessPayment.cost.SubCounter...)
+		u.cost.Draw = append([]CostPart(nil), e.unlessPayment.cost.Draw...)
+		u.sacs = append([]state.ObjID(nil), e.unlessPayment.sacs...)
+		u.discards = append([]state.ObjID(nil), e.unlessPayment.discards...)
+		u.ctx = cloneUnlessCtx(e.unlessPayment.ctx)
+		u.rp = cloneResume(e.unlessPayment.rp)
+		c.unlessPayment = &u
+	}
 	if e.cumulative != nil {
 		cu := *e.cumulative
 		cu.amount.Sac = append([]CostPart(nil), e.cumulative.amount.Sac...)

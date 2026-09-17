@@ -780,15 +780,29 @@ func TestDamageReplacementSupportedBodyFamilies(t *testing.T) {
 	t.Run("Sacrifice Dralnu", func(t *testing.T) {
 		e := newSeats(t, 2)
 		dralnu := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Dralnu, Lich Lord"))
-		onBoard(t, e, 0, "Name:One\nTypes:Creature\nPT:1/1\nOracle:x\n")
-		onBoard(t, e, 0, "Name:Two\nTypes:Creature\nPT:1/1\nOracle:x\n")
+		one := onBoard(t, e, 0, "Name:One\nTypes:Creature\nPT:1/1\nOracle:x\n")
+		two := onBoard(t, e, 0, "Name:Two\nTypes:Creature\nPT:1/1\nOracle:x\n")
 		source := onBoard(t, e, 1, "Name:Source\nTypes:Creature\nPT:2/2\nOracle:x\n")
 		before := len(e.G.Zone(state.ZGraveyard, 0))
 		e.damaging = source
 		e.emit(events.Event{Kind: events.Damage, Obj: dralnu, Amount: 2})
 		e.damaging = 0
+		// The merge's approved sacrifice semantics ask the player to choose
+		// the exact batch whenever more eligible permanents exist than the
+		// amount (three creatures, sacrifice two), so the replacement body
+		// suspends on the real KChoose and the answer applies the batch.
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KChoose || d.Min != 2 || d.Max != 2 || len(d.Options) != 3 {
+			t.Fatalf("Dralnu did not ask its controller to choose two sacrifices: %+v", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{1, 2}}); err != nil {
+			t.Fatal(err)
+		}
 		if got := len(e.G.Zone(state.ZGraveyard, 0)); got != before+2 {
 			t.Fatalf("graveyard size = %d, want %d after sacrificing two permanents", got, before+2)
+		}
+		if e.G.Obj(one).Zone != state.ZGraveyard || e.G.Obj(two).Zone != state.ZGraveyard {
+			t.Fatalf("the chosen permanents did not move: %s %s", e.G.Obj(one).Zone, e.G.Obj(two).Zone)
 		}
 	})
 

@@ -12,14 +12,21 @@ package host
 // keeps sweeping lethal-damage creatures past it.
 //
 // The fixture is measured, not constructed: decks foundations-wretched-
-// ranks vs foundations-reign-of-dragons at seed 1020 (match k=1, the slot
-// takeMatchSlot reserves), burst 538 — the resolving spell deals 5 damage
-// to four creatures in one SBA pass, sweeps three of them ("lethal
-// damage"), asks seat 1's commander_zone, and one more "lethal damage"
-// sweep lands AFTER the ask. The park lands on that ask; replaying the
-// recorded intents reproduces the tail byte for byte. The shape is
-// re-derived from the live match below, so a corpus or engine move fails
-// here loudly instead of testing nothing.
+// ranks vs foundations-reign-of-dragons at seed 1111 (match k=1, the slot
+// takeMatchSlot reserves), burst 407 — the resolving spell deals damage to
+// three creatures in one pass, its caster's priority returns, seat 1's
+// commander_zone is asked (obj 214 died in the pass), and two more
+// "lethal damage" sweeps land AFTER the ask. The park lands on that ask;
+// replaying the recorded intents reproduces the tail byte for byte. The
+// shape is re-derived from the live match below, so a corpus or engine
+// move fails here loudly instead of testing nothing.
+//
+// Re-measured 2026-09-16 (sacrifice-asks/unless-costs integration): the
+// previous measured shape (seed 1020, burst 538) stopped existing — main's
+// mass-effects merge registered the DB$ Shuffle primitive (effects/
+// shuffle.go, 59 corpus files), so the seeded course moved from the first
+// real mid-game shuffle, and seed 1020 now ends at 517 intents with no
+// commander_zone overshoot burst at all. Same decks, new measured seed.
 
 import (
 	"context"
@@ -42,8 +49,8 @@ import (
 const (
 	overshootDeckA   = "foundations-wretched-ranks"
 	overshootDeckB   = "foundations-reign-of-dragons"
-	overshootSeed    = 1020
-	overshootIntents = 538 // intents recorded when parked on the overshoot burst's pending ask
+	overshootSeed    = 1111
+	overshootIntents = 407 // intents recorded when parked on the overshoot burst's pending ask
 )
 
 // gateSeat is a bot behind a test gate: every decision is signalled to the
@@ -503,6 +510,26 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // and the game facts at the capture point — turn, step, priority, active —
 // unchanged), so log.json's events and head were regenerated the same way the
 // tail was: same match, engine-current bytes. The recorded Intents are untouched.
+//
+// sacrifice/unless integration (2026-09-16, full re-record): the recorded
+// intents stopped replaying altogether. Main's mass-effects merge registered
+// the DB$ Shuffle primitive AFTER this capture's last regeneration (822502e4
+// is not an ancestor of 679883dc), so event 76 — Gamble's mid-burst "then
+// shuffle" — became a real Secret Shuffle where the recording kept the
+// "unimplemented API Shuffle" Note the pre-Shuffle engine emitted; a real
+// shuffle changes the library order, and no recorded intent after the draw
+// it feeds can survive that. The stale recording also failed on plain main
+// tip (the divergence is exactly the registered-primitive move, measured by
+// replaying the capture there), so it was re-recorded rather than patched:
+// a live gated match over the SAME deck pair (foundations-wretched-ranks vs
+// foundations-reign-of-dragons, commander, corpus tokens attached — a
+// capture must replay, so its registry carries Tokens, which the live
+// fixture's does not need) parked on the same reported shape: seat 0's
+// commander_zone ask (a dying Grave Titan, turn 15, declare-blockers) with
+// the post-ask "lethal damage" sweep and end-combat step change on the log
+// (2150 events, 396 intents, head 023ef9e6f0175524). report.json keeps the
+// original report's provenance fields; its snapshot line names the
+// re-record.
 const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -534,8 +561,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 1326 {
-		t.Fatalf("capture carries %d events, want the full 1326-event stream (tail reconstructed)", n)
+	if n := len(l.Events); n != 2150 {
+		t.Fatalf("capture carries %d events, want the full 2150-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {

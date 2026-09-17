@@ -976,11 +976,17 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		// source/controller remain those of the outer spell or ability.
 		base := iterationBase(c, t)
 		cc.Remembered = append(copyTargets(base), t)
+		// UseImprinted$ names the same subject "Imprinted" for the body's
+		// selectors (UnlessPayer$ ImprintedController, Defined$
+		// ImprintedController). The suspension carries it so a resumed ask
+		// inside the body still binds it.
+		cc.RepeatSubject = t
 		Resolve(h, &cc, sub)
 		if h.Suspended() {
 			h.SuspendRepeat(RepeatSuspension{
 				RepeatCursor: RepeatCursor{SA: sa, Subjects: copyTargets(subjects), Next: i + 1},
 				Body:         copyTargets(cc.Remembered),
+				Subject:      t,
 				Outer:        copyTargets(c.Remembered),
 				Chosen:       copyTargets(c.Chosen),
 				ChosenValid:  c.ChosenValid,

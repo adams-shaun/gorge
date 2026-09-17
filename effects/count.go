@@ -454,7 +454,19 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 	case "Compare":
 		return evalCompare(h, c, arg, depth)
 	case "xPaid":
-		return c.X
+		// CR 107.3i: the {X} paid for the resolving spell or ability. On a
+		// TRIGGER of a permanent that was cast for {X} the ability object's
+		// own X is zero (a trigger was never paid an X), so the paid value
+		// is read off the source permanent, which CastInfo carried out of
+		// the cast onto the battlefield object (Meathook Massacre II's
+		// SVar:X:Count$xPaid driving "each player sacrifices X creatures").
+		if c.X != 0 {
+			return c.X
+		}
+		if o := g.Obj(c.Source); o != nil {
+			return o.X
+		}
+		return 0
 	case "YourLifeTotal":
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0
