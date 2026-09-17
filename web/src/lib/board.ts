@@ -181,12 +181,16 @@ export function quadrantFor(seat: number, seats: number, viewer: number): SeatCo
  */
 export const RECENT_RESOLVE_WINDOW = 100;
 
-/** recentlyMattered is the object id of the most recent stack_resolve, for the rail stack section's resolved-card display (the old board overlay's data path, kept), but only if that resolution sits inside the trailing RECENT_RESOLVE_WINDOW events. A resolve further back than the window returns null, so the display clears itself instead of lingering indefinitely. The parameter is structural — the display's caller (Rail) carries a widened event shape — so any object whose `event` names a kind (and optionally an obj) works. */
+/** recentlyMattered is the object id of the most recent stack_resolve, for the rail stack section's resolved-card display (the old board overlay's data path, kept), but only if that resolution is the newest interesting event in the trailing RECENT_RESOLVE_WINDOW: a turn or step boundary newer than it clears the display (fb-20260917T231516Z — a resolved card belongs to the phase it resolved in, so the row must not pedal forward across turn/phase changes), and a resolve further back than the window also returns null. The parameter is structural — the display's caller (Rail) carries a widened event shape — so any object whose `event` names a kind (and optionally an obj) works. */
 export function recentlyMattered(events: { event: { kind: string; obj?: number } }[]): number | null {
   const lo = Math.max(0, events.length - RECENT_RESOLVE_WINDOW);
   for (let i = events.length - 1; i >= lo; i--) {
     const e = events[i].event;
     if (e.kind === 'stack_resolve' && e.obj) return e.obj;
+    // 'turn' and 'step' are the server's own boundary kinds (events/event.go
+    // kindNames; logfilter.ts keys on 'step' too), so no extra wiring is
+    // needed — every EventBody in the DVR list carries them.
+    if (e.kind === 'turn' || e.kind === 'step') return null;
   }
   return null;
 }

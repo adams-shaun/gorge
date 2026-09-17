@@ -158,11 +158,12 @@
        (design system, "Layout"); the transcript is the band under this rail. -->
   <section class="stack">
     <h3>Stack{#if topFirst.length > 0} <span class="count">{topFirst.length}</span>{/if}</h3>
-    <!-- The last resolved object's artwork (fb-20260916T225456Z): a card
-         popping OFF this stack shows at its top, labelled, where it reads
-         as the stack's own history — the old RecentStrip board overlay is
-         gone. Renders nothing when nothing has resolved within the event
-         window. -->
+    <!-- The last resolved object's artwork (fb-20260916T225456Z; lifetime
+         narrowed by fb-20260917T231516Z): a card popping OFF this stack
+         shows at its top, labelled, where it reads as the stack's own
+         history — the old RecentStrip board overlay is gone. It clears on
+         the next resolve, the next turn/step boundary, or the event window
+         bound, and renders nothing while nothing is showing. -->
     <ResolvedCard {view} {events} {seats} />
     {#each topFirst as s, i (s.id)}
       <StackTile stack={s} {view} emphasized={emphasizeTop && i === 0} dimmed={emphasizeTop && i > 0} {yields} {onYield} {viewerSeat} />

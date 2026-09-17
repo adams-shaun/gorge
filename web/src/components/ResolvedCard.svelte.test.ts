@@ -69,6 +69,28 @@ describe('ResolvedCard — the resolved card lives in the stack frame (fb-202609
     expect(html).not.toContain('data-resolved');
   });
 
+  it('renders nothing when a turn or step event postdates the resolve (fb-20260917T231516Z)', () => {
+    const v = viewWithGraveyard(42, 'Gone Card');
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42), ev(2, 'step')], },
+    });
+    expect(html).not.toContain('data-resolved');
+    const { html: turnHtml } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42), ev(2, 'turn')] },
+    });
+    expect(turnHtml).not.toContain('data-resolved');
+  });
+
+  it('renders the divider under the row, and only when the row is showing', () => {
+    const v = viewWithGraveyard(42, 'Grizzly Bears');
+    const { html } = render(ResolvedCard, {
+      props: { view: v, events: [ev(1, 'stack_resolve', 42)] },
+    });
+    expect(html).toContain('resolved__divider'); // the hairline between the resolved row and the stack tiles
+    const { html: empty } = render(ResolvedCard, { props: { view: baseView(), events: [ev(1, 'tap', 9)] } });
+    expect(empty).not.toContain('resolved__divider'); // no bare rule over an empty spot
+  });
+
   it('renders nothing when the only resolve is older than the RECENT_RESOLVE_WINDOW bound', () => {
     // The window is a safety bound, unchanged from the strip: 100 trailing
     // events, so this resolve at the boundary's far edge is already stale.
