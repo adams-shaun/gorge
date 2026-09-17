@@ -193,6 +193,18 @@ type Object struct {
 	// the reverse relationship: what exiled THIS card).
 	ExiledCards []ObjID
 
+	// ExileReturn holds the cards this object exiled through ChangeZone's
+	// Duration$ UntilHostLeavesPlay (the Oblivion Ring / Banisher Priest
+	// pattern): each entry's From is the zone the card was exiled from, and
+	// when this object leaves the battlefield the rules sweep returns every
+	// entry whose object is still in exile to that zone under its owner's
+	// control. Like ExiledCards it is a zone relationship, not an imprint:
+	// events.Move prunes entries naming an object that left exile by any
+	// other path, so a sweep never returns a card whose exile was some other
+	// effect's business. Event-backed through the Imprint kind's
+	// "until-host-leaves" Text discriminator.
+	ExileReturn []ExileReturnEntry
+
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
 	// means unattached. Reset whenever the object itself leaves the
 	// battlefield (events.Move) -- an Aura or Equipment cannot stay
@@ -216,6 +228,15 @@ type Object struct {
 	// halves' rules text is live (rules-side scans consult this field). Only
 	// events.Apply writes it, so a replay rebuilds it.
 	Unlocked bool
+}
+
+// ExileReturnEntry is one ChangeZone Duration$ UntilHostLeavesPlay exile:
+// the exiled object and the zone it was exiled from (which the return moves
+// it back to; a battlefield-origin exile returns to the battlefield, a
+// hand-origin one to the hand).
+type ExileReturnEntry struct {
+	Obj  ObjID
+	From Zone
 }
 
 func (o *Object) Face() *cards.Face {
@@ -287,6 +308,7 @@ func (o *Object) CloneDeep() Object {
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
+	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	return c
 }
 
