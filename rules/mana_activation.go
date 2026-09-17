@@ -173,8 +173,14 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			out = append(out, ma)
 		}
 	}
+	// CR 605.2a: a mana ability functions only while its source object is in
+	// the zone its ActivationZone$ names -- the battlefield when printed
+	// none is. The plain AB$ Mana branch above gates on abilityZoneOK; this
+	// closure must agree, or a reflected land in hand/graveyard is offered
+	// (and activatable) wherever an opponent's land exists -- Exotic Orchard
+	// reporting an "Activate ... for mana" action for the card IN HAND.
 	considerReflected := func(ma *cards.SA) {
-		if ma.Kind != "AB" || ma.API != "ManaReflected" || abilityRestricted(ma) || !e.manaAbilityPayable(p, id, ma) || !e.manaReflectedPresentHolds(p, id, ma) {
+		if ma.Kind != "AB" || ma.API != "ManaReflected" || !abilityZoneOK(ma, o.Zone) || abilityRestricted(ma) || !e.manaAbilityPayable(p, id, ma) || !e.manaReflectedPresentHolds(p, id, ma) {
 			return
 		}
 		if len(effects.ManaReflectedCandidates(e, ctx, ma)) > 0 {
@@ -211,7 +217,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			considerReflected(ma)
 			continue
 		}
-		if ma.API == "Mana" && !isLoyaltyAbility(ma) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
+		if ma.API == "Mana" && !isLoyaltyAbility(ma) && abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
 			e.manaActivationGateHolds(p, id, ma) {
 			out = append(out, ma)
 		}
@@ -230,10 +236,11 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		if ga.sa.API != "Mana" || isLoyaltyAbility(ga.sa) {
 			continue
 		}
-		if !abilityRestricted(ga.sa) && e.manaAbilityPayable(p, id, ga.sa) &&
-			e.manaActivationGateHolds(p, id, ga.sa) {
-			out = append(out, ga.sa)
+		if !abilityZoneOK(ga.sa, o.Zone) || !abilityRestricted(ga.sa) || !e.manaAbilityPayable(p, id, ga.sa) ||
+			!e.manaActivationGateHolds(p, id, ga.sa) {
+			continue
 		}
+		out = append(out, ga.sa)
 	}
 	return out
 }
