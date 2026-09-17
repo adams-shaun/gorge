@@ -299,6 +299,48 @@ nonuniform exact weights reduced ESS enough to lose seven usable roots despite
 682 additional accepted attempts. This is why raw acceptance alone is not the
 success criterion.
 
+## ESS-loss diagnosis and bounded weight-cap prototypes
+
+A root-by-root comparison found 36 newly covered roots and 43 roots lost from
+the prior history-conditioned proposal. Of the 43 losses, 15 had fewer than
+four accepted proposals; 28 still had at least four and failed only ESS. Across
+all 369 land-mixture fallbacks, 319 had fewer than four acceptances and 50 had
+at least four acceptances but ESS below four.
+
+Identity-free accepted-weight diagnostics reproduced every pre-existing
+non-timing result exactly in
+`/tmp/gorge-searchprobe-weightdiag-500-20260917.json`. For the 28 previously
+covered roots lost only to ESS, accepted outside-isolation worlds averaged
+2.07 attempts but carried 85.4% of normalized mass and 98.8% of squared-weight
+mass. Every one of all 50 ESS-only fallbacks assigned more than 90% of its
+squared-weight mass to outside-isolation worlds. The highest-value cause is
+therefore the fixed mixture's unbounded inside/outside importance ratio, not a
+shortage of accepted proposals on those roots.
+
+The full fixed 500-root causal census is
+`/tmp/gorge-searchprobe-stackcensus-500-20260917.json`; every pre-existing
+non-timing result matches the land-isolation artifact after removing only the
+new diagnostic fields. It closes all 13,034 `hand_to_stack` rejections:
+6,175 hypothetical-extra-cast divergences where the observed action was pass,
+5,738 different-name cast competitions, 1,118 missing observed casts, and only
+3 observer-reference novelties. All occurred in main phase 1. Of the 6,859
+rejections where the observation cast a spell, 6,686 (97.5%) already had a
+supported public deadline and only 173 were in an unguided epoch. The bucket
+affected 409 roots, including 303 fallbacks and 182 roots with zero accepted
+proposals. This does not support adding spell isolation as the next automatic
+analogue of land isolation: the dominant problem is frozen-policy action
+divergence under different information-consistent hands, not reference mapping
+or absent public constraints.
+
+Two exact count-adaptive mixtures were tested on fresh development seeds
+10500--10624. Fixed 50/50 covered 37/125 with 876 accepted proposals and 10
+ESS-only fallbacks. A 2:1 importance-ratio cap covered 36/125 with 733 accepted
+and no ESS-only fallbacks. A 4:1 cap covered 37/125 with 708 accepted and two
+ESS-only fallbacks, gaining seven roots and losing seven. Neither improved net
+coverage, so both probability changes were reverted and no holdout was spent.
+The exact designs and artifact paths are recorded in
+`docs/superpowers/specs/2026-09-17-search-land-mixture-weight-cap-design.md`.
+
 Cost after the counter-reuse/early-pruning refactor was 0.871 seconds corpus
 load and 125.395 seconds total. Per-root sampler elapsed under five-worker
 contention was 680.889 / 1,393.170 / 5,916.048 ms at p50/p95/max and summed to
@@ -308,3 +350,54 @@ contention was 680.889 / 1,393.170 / 5,916.048 ms at p50/p95/max and summed to
 `/tmp/gorge-searchprobe-land-isolation-500-20260917.json` produced identical
 non-timing per-root results but took 327.833 seconds and allocated
 370,156,069,016 bytes; it is not the final calibration artifact.
+
+## Post-rebase fixed census
+
+The six branch commits were rebased onto `origin/main` `0695432` on
+2026-09-17. The rebased local tip was `7c699ce` before restoring the unstaged
+diagnostic work. The only rebase conflict was the engine constructor: the
+resolution retains upstream's livelock watcher and uses the caller-supplied RNG
+required by hypothetical construction. No commit or push followed the rebase.
+
+The same fixed 500-game command above was rerun to a new exclusive artifact:
+
+```text
+/tmp/gorge-searchprobe-stackcensus-rebased-500-20260917.json
+```
+
+The run completed all 500 games with zero experiment errors and zero sampling
+budget exhaustions. It covered 112 roots; 387 roots used explicit baseline
+fallback and seed 10307 produced no eligible turn>=5 root, so it ran no sampled
+or terminal-outcome arms. The run accepted 2,588 of 32,000 proposals, prefix
+rejected 29,198, and found 150 incompatible proposals. Death-n-taxes actor
+coverage was 39/250 and Dimir actor coverage was 73/250. It covered 20 of 263
+later-epoch roots. Land isolation recorded 31,366 eligible attempt-shuffles,
+15,786 isolation selections, 34 empty-isolation fallbacks, and 93 unsupported
+public shapes. All 500 baseline replays, 112 one-world replays, 448 four-world
+replays, and all 1,996 terminal outcome replays succeeded.
+
+The post-rebase `hand_to_stack` total is 11,776: 5,781 hypothetical extra casts
+against an observed pass, 4,931 different-name cast competitions, 1,061
+missing observed casts, and 3 observer-reference novelties. All remain in main
+phase 1. Of the 5,995 observed-cast mismatches, 5,973 had a supported public
+deadline and 22 were unguided. The bucket affected 405 roots, including 312
+non-covered roots and 199 roots with zero accepted proposals.
+
+This is not directly comparable as a sampler-only rerun. After removing
+`SampleNS`, `SearchNS`, `WeightDiagnostics`, `HandToStackCauses`, and
+`StackRejectionContexts`, only 28/500 per-root records matched the pre-rebase
+stack-census artifact exactly. Baseline heads changed for 459 roots, root
+positions changed for 160, and pre-existing sampling fields changed for 309.
+Coverage gained 16 roots and lost 35, a net change from 131 to 112. The 82
+upstream commits after the branch fork changed the engine and bot policy, so
+the earlier artifact remains the pre-rebase checkpoint and this artifact is
+the new-engine census.
+
+Focused search-probe tests and `go vet ./...` passed, and `git diff --check`
+was clean. `go test ./... -count=1` is red on two tests that reproduce
+unchanged on a clean detached `origin/main` worktree:
+`cmd/botbench.TestConstructedDefaultIsByteIdentical` measures 18/2 against its
+16/4 golden, and `host.TestStallGuardSetToZeroDoesNotHalt` does not reach 200
+decisions before its 30-second deadline. They are upstream baseline failures,
+not introduced by the rebased search-probe changes; no unrelated golden or
+host behavior was changed here.

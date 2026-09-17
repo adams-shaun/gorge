@@ -68,6 +68,65 @@ func TestRejectionShapeIgnoresEarlierMatchingIdentities(t *testing.T) {
 	}
 }
 
+func TestHandToStackCauseUsesOwnedIdentityHistory(t *testing.T) {
+	knownGot := map[uint32]Identity{4: {ID: 4, Name: "Expected", Owner: 1}}
+	knownWant := map[uint32]Identity{9: {ID: 9, Name: "Expected", Owner: 1}}
+	want := Frame{Events: []ObservedEvent{{Kind: events.PutOnStack, Obj: 9, From: state.ZHand, To: state.ZStack}}}
+
+	if got := handToStackCause(
+		Frame{Identities: []Identity{{ID: 5, Name: "Competitor", Owner: 1}}, Events: []ObservedEvent{{Kind: events.PutOnStack, Obj: 5, From: state.ZHand, To: state.ZStack}}},
+		want, knownGot, knownWant,
+	); got != (HandToStackCauses{PolicyCompetition: 1}) {
+		t.Fatalf("competing-name cause = %+v", got)
+	}
+	if got := handToStackCause(
+		Frame{Events: []ObservedEvent{{Kind: events.PutOnStack, Obj: 4, From: state.ZHand, To: state.ZStack}}},
+		want, knownGot, knownWant,
+	); got != (HandToStackCauses{ObserverReference: 1}) {
+		t.Fatalf("same-name reference cause = %+v", got)
+	}
+	if got := handToStackCause(Frame{Events: []ObservedEvent{{Kind: events.Priority}}}, want, knownGot, knownWant); got != (HandToStackCauses{ObservedCastMissing: 1}) {
+		t.Fatalf("missing stack move cause = %+v", got)
+	}
+	if got := handToStackCause(want, Frame{Events: []ObservedEvent{{Kind: events.Priority}}}, knownWant, knownGot); got != (HandToStackCauses{HypotheticalExtraCast: 1}) {
+		t.Fatalf("extra hypothetical stack move cause = %+v", got)
+	}
+}
+
+func TestStackRejectionContextNormalizesPhaseActionAndConstraint(t *testing.T) {
+	knownGot := map[uint32]Identity{5: {ID: 5, Name: "Unexpected", Owner: 1}}
+	knownWant := map[uint32]Identity{}
+	got := Frame{
+		Board:  json.RawMessage(`{"step":"main1"}`),
+		Events: []ObservedEvent{{Kind: events.PutOnStack, Obj: 5, From: state.ZHand, To: state.ZStack}},
+	}
+	want := Frame{
+		Board:  json.RawMessage(`{"step":"main1"}`),
+		Events: []ObservedEvent{{Kind: events.Priority, Player: 1}},
+	}
+	wantBucket := StackRejectionContext{Cause: "hypothetical_extra_cast", Step: "main1", ExpectedAction: "pass", Constraint: "no_observed_cast", Count: 1}
+	if gotBucket := stackRejectionContext(got, want, knownGot, knownWant, "no_observed_cast"); gotBucket != wantBucket {
+		t.Fatalf("context = %+v, want %+v", gotBucket, wantBucket)
+	}
+}
+
+func TestStackConstraintContextsDistinguishSupportedAndUnguidedEpochs(t *testing.T) {
+	h := History{Actor: 0, Frames: []Frame{
+		{Events: []ObservedEvent{{Kind: events.Shuffle, Player: 1}}},
+		{Identities: []Identity{{ID: 1, Name: "Expected", Owner: 1}}, Events: []ObservedEvent{{Kind: events.PutOnStack, Obj: 1, From: state.ZHand, To: state.ZStack}}},
+		{Events: []ObservedEvent{{Kind: events.Shuffle, Player: 1}}},
+		{Identities: []Identity{{ID: 2, Name: "Later", Owner: 1}}, Events: []ObservedEvent{{Kind: events.PutOnStack, Obj: 2, From: state.ZHand, To: state.ZStack}}},
+	}}
+	epochs := map[epochKey]epochConstraints{
+		{Player: 1}:             {Deadlines: []deadlineConstraint{{Through: 7, Name: "Expected", Count: 1}}},
+		{Player: 1, Ordinal: 1}: {Unguided: []string{"library_mutation"}},
+	}
+	want := []string{"", "supported", "", "unguided"}
+	if got := stackConstraintContexts(h, epochs); !reflect.DeepEqual(got, want) {
+		t.Fatalf("contexts = %v, want %v", got, want)
+	}
+}
+
 func TestSamplerRejectionHistogramCountsAndSorts(t *testing.T) {
 	setup, h := samplingHistory(t)
 	var board view.View

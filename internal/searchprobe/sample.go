@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -46,11 +47,23 @@ type SampleResult struct {
 	Rejections                                                                                 []RejectionBucket
 	GuidedGenesis, GuidedLater, ArrangeWindows, UnguidedConstraints, IncompatibleProposals     int
 	LandIsolationEligible, LandIsolationSelected, LandIsolationEmpty, LandIsolationUnsupported int
+	WeightDiagnostics                                                                          WeightDiagnostics
+	HandToStackCauses                                                                          HandToStackCauses
+	StackRejectionContexts                                                                     []StackRejectionContext
 }
 type RejectionBucket struct {
 	Frame            int
 	Component, Shape string
 	Count            int
+}
+
+type HandToStackCauses struct {
+	PolicyCompetition, ObserverReference, ObservedCastMissing, HypotheticalExtraCast, Other int
+}
+
+type StackRejectionContext struct {
+	Cause, Step, ExpectedAction, Constraint string
+	Count                                   int
 }
 
 func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, err error) {
@@ -90,6 +103,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		return result, err
 	}
 	landNames := publicLandNames(setup)
+	stackConstraints := stackConstraintContexts(h, epochs)
 	for _, epoch := range epochs {
 		result.LandIsolationUnsupported += epoch.LandIsolationUnsupported
 	}
@@ -99,6 +113,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	}
 	var proposals []World
 	var logs []float64
+	var proposalDiagnostics []proposalDiagnostics
 	for attempt := 0; attempt < opts.Attempts; attempt++ {
 		result.Attempts++
 		seed := taggedSeed(opts.Seed, digest, attempt, seedEngine)
@@ -125,14 +140,27 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		}
 		pos, submits := 0, 0
 		accepted := true
+		knownGot := make(map[uint32]Identity)
+		knownWant := make(map[uint32]Identity)
 		for i, want := range h.Frames {
 			got, err := observer.Capture(e, e.L.Events[pos:])
 			if err != nil {
 				return result, err
 			}
+			for _, identity := range got.Identities {
+				knownGot[identity.ID] = identity
+			}
+			for _, identity := range want.Identities {
+				knownWant[identity.ID] = identity
+			}
 			if !reflect.DeepEqual(got, want) {
 				result.PrefixRejected++
-				addRejection(&result, rejectionBucket(i, got, want))
+				bucket := rejectionBucket(i, got, want)
+				addRejection(&result, bucket)
+				if bucket.Component == "identities" && bucket.Shape == "hand_to_stack" {
+					result.HandToStackCauses.add(handToStackCause(got, want, knownGot, knownWant))
+					addStackRejectionContext(&result, stackRejectionContext(got, want, knownGot, knownWant, stackConstraints[i]))
+				}
 				if result.FirstRejection == "" {
 					result.FirstRejection = frameDifference(i, got, want)
 				}
@@ -192,6 +220,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 			result.Accepted++
 			proposals = append(proposals, World{Config: cfg, Engine: e, Observer: observer})
 			logs = append(logs, proposal.logWeight)
+			proposalDiagnostics = append(proposalDiagnostics, proposal.diagnostics)
 		}
 	}
 	if len(proposals) == 0 {
@@ -202,6 +231,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		return result, err
 	}
 	result.ESS = ess
+	result.WeightDiagnostics = summarizeWeightDiagnostics(logs, weights, proposalDiagnostics)
 	if len(proposals) < opts.Worlds || ess+1e-10 < float64(opts.Worlds) {
 		return result, nil
 	}
@@ -223,6 +253,169 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		result.Worlds = append(result.Worlds, w)
 	}
 	return result, nil
+}
+
+func (c *HandToStackCauses) add(other HandToStackCauses) {
+	c.PolicyCompetition += other.PolicyCompetition
+	c.ObserverReference += other.ObserverReference
+	c.ObservedCastMissing += other.ObservedCastMissing
+	c.HypotheticalExtraCast += other.HypotheticalExtraCast
+	c.Other += other.Other
+}
+
+func handToStackCause(got, want Frame, knownGot, knownWant map[uint32]Identity) HandToStackCauses {
+	for _, identity := range got.Identities {
+		knownGot[identity.ID] = identity
+	}
+	for _, identity := range want.Identities {
+		knownWant[identity.ID] = identity
+	}
+	stackName := func(frame Frame, known map[uint32]Identity) (string, bool) {
+		for _, event := range frame.Events {
+			if event.From == state.ZHand && event.To == state.ZStack {
+				identity, ok := known[event.Obj]
+				if !ok || identity.Name == "" {
+					return "", false
+				}
+				return identity.Name, true
+			}
+		}
+		return "", false
+	}
+	gotName, gotOK := stackName(got, knownGot)
+	wantName, wantOK := stackName(want, knownWant)
+	if gotOK && wantOK {
+		if gotName == wantName {
+			return HandToStackCauses{ObserverReference: 1}
+		}
+		return HandToStackCauses{PolicyCompetition: 1}
+	}
+	if wantOK && !gotOK {
+		return HandToStackCauses{ObservedCastMissing: 1}
+	}
+	if gotOK && !wantOK {
+		return HandToStackCauses{HypotheticalExtraCast: 1}
+	}
+	return HandToStackCauses{Other: 1}
+}
+
+func stackRejectionContext(got, want Frame, knownGot, knownWant map[uint32]Identity, constraint string) StackRejectionContext {
+	cause := handToStackCause(got, want, knownGot, knownWant)
+	causeName := "other"
+	switch {
+	case cause.PolicyCompetition > 0:
+		causeName = "policy_competition"
+	case cause.ObserverReference > 0:
+		causeName = "observer_reference"
+	case cause.ObservedCastMissing > 0:
+		causeName = "observed_cast_missing"
+	case cause.HypotheticalExtraCast > 0:
+		causeName = "hypothetical_extra_cast"
+	}
+	if constraint == "" {
+		if cause.HypotheticalExtraCast > 0 {
+			constraint = "no_observed_cast"
+		} else {
+			constraint = "unknown"
+		}
+	}
+	step := "unknown"
+	var board struct {
+		Step string `json:"step"`
+	}
+	if json.Unmarshal(want.Board, &board) == nil && board.Step != "" {
+		step = board.Step
+	}
+	return StackRejectionContext{Cause: causeName, Step: step, ExpectedAction: frameActionShape(want), Constraint: constraint, Count: 1}
+}
+
+func frameActionShape(frame Frame) string {
+	for _, event := range frame.Events {
+		if event.From == state.ZHand && event.To == state.ZStack {
+			return "cast"
+		}
+	}
+	for _, event := range frame.Events {
+		switch event.Kind {
+		case events.LandPlayed:
+			return "land_play"
+		case events.AbilityPush:
+			return "ability"
+		case events.DeclareAttackers, events.DeclareBlockers:
+			return "combat"
+		case events.Priority:
+			return "pass"
+		case events.Resolve:
+			return "resolve"
+		}
+	}
+	return "other"
+}
+
+func stackConstraintContexts(h History, epochs map[epochKey]epochConstraints) []string {
+	out := make([]string, len(h.Frames))
+	ordinals := make(map[state.PlayerID]int)
+	names := make(map[uint32]Identity)
+	for frameIndex, frame := range h.Frames {
+		for _, identity := range frame.Identities {
+			names[identity.ID] = identity
+		}
+		for _, event := range frame.Events {
+			if event.Kind == events.Shuffle {
+				ordinals[event.Player]++
+				continue
+			}
+			if event.From != state.ZHand || event.To != state.ZStack {
+				continue
+			}
+			identity, ok := names[event.Obj]
+			if !ok || identity.Name == "" || ordinals[identity.Owner] == 0 {
+				out[frameIndex] = "unknown"
+				break
+			}
+			if identity.Owner == h.Actor {
+				out[frameIndex] = "actor"
+				break
+			}
+			epoch := epochs[epochKey{Player: identity.Owner, Ordinal: ordinals[identity.Owner] - 1}]
+			out[frameIndex] = "unconstrained"
+			for _, deadline := range epoch.Deadlines {
+				if deadline.Name == identity.Name {
+					out[frameIndex] = "supported"
+					break
+				}
+			}
+			if out[frameIndex] == "unconstrained" && len(epoch.Unguided) > 0 {
+				out[frameIndex] = "unguided"
+			}
+			break
+		}
+	}
+	return out
+}
+
+func addStackRejectionContext(result *SampleResult, bucket StackRejectionContext) {
+	for i := range result.StackRejectionContexts {
+		got := &result.StackRejectionContexts[i]
+		if got.Cause == bucket.Cause && got.Step == bucket.Step && got.ExpectedAction == bucket.ExpectedAction && got.Constraint == bucket.Constraint {
+			got.Count++
+			return
+		}
+	}
+	result.StackRejectionContexts = append(result.StackRejectionContexts, bucket)
+	sort.Slice(result.StackRejectionContexts, func(i, j int) bool {
+		a, b := result.StackRejectionContexts[i], result.StackRejectionContexts[j]
+		if a.Cause != b.Cause {
+			return a.Cause < b.Cause
+		}
+		if a.Step != b.Step {
+			return a.Step < b.Step
+		}
+		if a.ExpectedAction != b.ExpectedAction {
+			return a.ExpectedAction < b.ExpectedAction
+		}
+		return a.Constraint < b.Constraint
+	})
 }
 
 func addRejection(result *SampleResult, bucket RejectionBucket) {

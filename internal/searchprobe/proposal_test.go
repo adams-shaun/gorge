@@ -108,7 +108,7 @@ func TestLandIsolationMixturePreservesSupportAndExactWeights(t *testing.T) {
 	baseReachedIsolation := false
 	for rank := uint64(0); rank < 24; rank++ {
 		rng := &sequenceProposalRandom{values: []uint64{0, rank}}
-		order, factor, compatible, selected, empty, err := sampleLandIsolationMixture(cards, nil, nil, upper, true, rng)
+		order, factor, compatible, selected, _, empty, err := sampleLandIsolationMixture(cards, nil, nil, upper, true, rng)
 		if err != nil || !compatible || selected || empty {
 			t.Fatalf("base rank %d: compatible=%v selected=%v empty=%v err=%v", rank, compatible, selected, empty, err)
 		}
@@ -126,7 +126,7 @@ func TestLandIsolationMixturePreservesSupportAndExactWeights(t *testing.T) {
 	isolatedOrders := make(map[string]bool)
 	for rank := uint64(0); rank < 12; rank++ {
 		rng := &sequenceProposalRandom{values: []uint64{1, rank}}
-		order, factor, compatible, selected, empty, err := sampleLandIsolationMixture(cards, nil, nil, upper, true, rng)
+		order, factor, compatible, selected, _, empty, err := sampleLandIsolationMixture(cards, nil, nil, upper, true, rng)
 		if err != nil || !compatible || !selected || empty {
 			t.Fatalf("isolated rank %d: compatible=%v selected=%v empty=%v err=%v", rank, compatible, selected, empty, err)
 		}
@@ -156,7 +156,7 @@ func TestLandIsolationEmptySetConsumesNoSelectionAndKeepsPrior(t *testing.T) {
 		{{Through: 1, Name: "B", Count: -1}},
 	} {
 		rng := &sequenceProposalRandom{values: []uint64{2}}
-		order, factor, compatible, selected, empty, err := sampleLandIsolationMixture(cards, nil, nil, upper, true, rng)
+		order, factor, compatible, selected, _, empty, err := sampleLandIsolationMixture(cards, nil, nil, upper, true, rng)
 		if err != nil || !compatible || selected || !empty || rng.at != 1 {
 			t.Fatalf("empty L: compatible=%v selected=%v empty=%v draws=%d err=%v", compatible, selected, empty, rng.at, err)
 		}
@@ -223,6 +223,15 @@ func TestLandIsolationKeepsFrozenOpponentPolicyAndReplays(t *testing.T) {
 	}
 	if result.Accepted < result.LandIsolationSelected || result.PrefixRejected == 0 || len(result.Worlds) != 4 {
 		t.Fatalf("mixture did not retain isolated worlds and base rejection: accepted=%d selected=%d rejected=%d worlds=%d first=%s", result.Accepted, result.LandIsolationSelected, result.PrefixRejected, len(result.Worlds), result.FirstRejection)
+	}
+	if result.WeightDiagnostics.Accepted != result.Accepted || result.WeightDiagnostics.IsolationEligibleAttempts != result.Accepted {
+		t.Fatalf("accepted weight diagnostics = %+v, accepted=%d", result.WeightDiagnostics, result.Accepted)
+	}
+	if result.WeightDiagnostics.IsolationInsideAttempts+result.WeightDiagnostics.IsolationOutsideAttempts < result.Accepted {
+		t.Fatalf("accepted mixture membership missing: %+v", result.WeightDiagnostics)
+	}
+	if result.WeightDiagnostics.MaxNormalizedMass <= 0 || result.WeightDiagnostics.IsolationSelectedMass <= 0 {
+		t.Fatalf("accepted mass diagnostics missing: %+v", result.WeightDiagnostics)
 	}
 	for _, world := range result.Worlds {
 		if err := VerifyWorld(world); err != nil {

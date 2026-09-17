@@ -3,7 +3,92 @@ package searchprobe
 import (
 	"fmt"
 	"math"
+	"sort"
 )
+
+type WeightDiagnostics struct {
+	Accepted                                                                                                int
+	LogWeightMin, LogWeightMedian, LogWeightMax                                                             float64
+	MaxNormalizedMass, Top4NormalizedMass                                                                   float64
+	Mass50Count, Mass90Count                                                                                int
+	IsolationEligibleAttempts, IsolationSelectedAttempts, IsolationInsideAttempts, IsolationOutsideAttempts int
+	IsolationSelectedMass, IsolationOutsideMass                                                             float64
+	IsolationSelectedSquaredShare, IsolationOutsideSquaredShare                                             float64
+}
+
+type proposalDiagnostics struct {
+	isolationEligible, isolationSelected, isolationInside, isolationOutside int
+}
+
+func summarizeWeightDiagnostics(logs, weights []float64, proposals []proposalDiagnostics) WeightDiagnostics {
+	if len(logs) == 0 || len(logs) != len(weights) || len(logs) != len(proposals) {
+		return WeightDiagnostics{}
+	}
+	d := WeightDiagnostics{Accepted: len(logs)}
+	sortedLogs := append([]float64(nil), logs...)
+	sort.Float64s(sortedLogs)
+	d.LogWeightMin = sortedLogs[0]
+	d.LogWeightMax = sortedLogs[len(sortedLogs)-1]
+	mid := len(sortedLogs) / 2
+	if len(sortedLogs)%2 == 0 {
+		d.LogWeightMedian = (sortedLogs[mid-1] + sortedLogs[mid]) / 2
+	} else {
+		d.LogWeightMedian = sortedLogs[mid]
+	}
+	sortedWeights := append([]float64(nil), weights...)
+	sort.Sort(sort.Reverse(sort.Float64Slice(sortedWeights)))
+	d.MaxNormalizedMass = sortedWeights[0]
+	for i, weight := range sortedWeights {
+		if i < 4 {
+			d.Top4NormalizedMass += weight
+		}
+		if d.Mass50Count == 0 {
+			var mass float64
+			for _, w := range sortedWeights[:i+1] {
+				mass += w
+			}
+			if mass+1e-12 >= 0.5 {
+				d.Mass50Count = i + 1
+			}
+		}
+		if d.Mass90Count == 0 {
+			var mass float64
+			for _, w := range sortedWeights[:i+1] {
+				mass += w
+			}
+			if mass+1e-12 >= 0.9 {
+				d.Mass90Count = i + 1
+			}
+		}
+	}
+	var squaredTotal, selectedSquared, outsideSquared float64
+	for i, proposal := range proposals {
+		weight := weights[i]
+		squared := weight * weight
+		squaredTotal += squared
+		if proposal.isolationEligible > 0 {
+			d.IsolationEligibleAttempts++
+		}
+		if proposal.isolationSelected > 0 {
+			d.IsolationSelectedAttempts++
+			d.IsolationSelectedMass += weight
+			selectedSquared += squared
+		}
+		if proposal.isolationInside > 0 {
+			d.IsolationInsideAttempts++
+		}
+		if proposal.isolationOutside > 0 {
+			d.IsolationOutsideAttempts++
+			d.IsolationOutsideMass += weight
+			outsideSquared += squared
+		}
+	}
+	if squaredTotal > 0 {
+		d.IsolationSelectedSquaredShare = selectedSquared / squaredTotal
+		d.IsolationOutsideSquaredShare = outsideSquared / squaredTotal
+	}
+	return d
+}
 
 type floatRandom interface{ Float64() float64 }
 

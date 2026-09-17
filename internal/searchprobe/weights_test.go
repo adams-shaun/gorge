@@ -42,6 +42,35 @@ func TestWeightsNormalizeWithoutUnderflow(t *testing.T) {
 	}
 }
 
+func TestSummarizeWeightDiagnosticsSeparatesIsolationMass(t *testing.T) {
+	logs := []float64{0, 0, math.Log(2), math.Log(6)}
+	weights, _, err := normalizeWeights(logs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := summarizeWeightDiagnostics(logs, weights, []proposalDiagnostics{
+		{isolationEligible: 1, isolationSelected: 1, isolationInside: 1},
+		{isolationEligible: 1, isolationInside: 1},
+		{isolationEligible: 1, isolationOutside: 1},
+		{isolationEligible: 1, isolationOutside: 1},
+	})
+	if d.Accepted != 4 || d.IsolationEligibleAttempts != 4 || d.IsolationSelectedAttempts != 1 || d.IsolationInsideAttempts != 2 || d.IsolationOutsideAttempts != 2 {
+		t.Fatalf("component counts = %+v", d)
+	}
+	if math.Abs(d.LogWeightMin) > 1e-12 || math.Abs(d.LogWeightMedian-math.Log(2)/2) > 1e-12 || math.Abs(d.LogWeightMax-math.Log(6)) > 1e-12 {
+		t.Fatalf("log-weight distribution = %+v", d)
+	}
+	if math.Abs(d.MaxNormalizedMass-0.6) > 1e-12 || math.Abs(d.Top4NormalizedMass-1) > 1e-12 || d.Mass50Count != 1 || d.Mass90Count != 3 {
+		t.Fatalf("mass concentration = %+v", d)
+	}
+	if math.Abs(d.IsolationSelectedMass-0.1) > 1e-12 || math.Abs(d.IsolationOutsideMass-0.8) > 1e-12 {
+		t.Fatalf("component mass = %+v", d)
+	}
+	if math.Abs(d.IsolationSelectedSquaredShare-(0.01/0.42)) > 1e-12 || math.Abs(d.IsolationOutsideSquaredShare-(0.40/0.42)) > 1e-12 {
+		t.Fatalf("effective-sample contribution = %+v", d)
+	}
+}
+
 func TestWeightsRejectNonDistributions(t *testing.T) {
 	for _, logs := range [][]float64{nil, {math.Inf(-1), math.Inf(-1)}, {math.NaN()}, {math.Inf(1)}} {
 		if _, _, err := normalizeWeights(logs); err == nil {
