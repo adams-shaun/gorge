@@ -738,31 +738,29 @@ describe('actionables — the labels behind actionable() (fb-20260916T225211Z)',
     expect(actionable(d, view(0, 'main1'), 0)).toBe(true);
   });
 
-  it('on a mana-only window it names the castable-after-tap card; a dead hand is empty and not actionable', () => {
+  it('on a mana-only window it names the server-projected potential play; an empty projection is not actionable', () => {
     const d = priority(ONLY_MANA);
-    const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ id: 7, name: 'Lava Spike', mana_cost: 'R' })], available: { R: 1 } });
+    const v = withHand(view(0, 'main1'), 0, { potential_actions: [{ kind: 'cast', obj: 7, label: 'Cast Lava Spike' }] });
     expect(actionables(v, 0, d)).toEqual(['Cast Lava Spike (after tapping)']);
     expect(actionable(d, v, 0)).toBe(true);
 
-    const dead = withHand(view(0, 'main1'), 0, { hand: [handCard({ id: 7, name: 'Lava Spike', mana_cost: '4 U U' })], available: { R: 1 } });
+    const dead = withHand(view(0, 'main1'), 0, { potential_actions: [] });
     expect(actionables(dead, 0, d)).toEqual([]);
     expect(actionable(d, dead, 0)).toBe(false);
   });
 
-  it('names a payable battlefield activation behind the tap when the hand is dead', () => {
-    // The same working shape the stop-side test above uses: an untapped
-    // source the decision's activate offer joins, and a projected '1 T'
-    // activation on another card.
+  it('names a projected battlefield activation behind the tap', () => {
     const d = priority([{ ...opt('activate', 0), obj: 7 }, opt('pass', 1), opt('concede', 2)]);
-    const source = handCard({ id: 7, name: 'Rock', types: 'Artifact', produces: { colour: [0, 0, 0, 0, 0, 1], any: false } });
-    const ability = handCard({ id: 8, name: 'Ability Rock', types: 'Artifact', ability_costs: ['1 T'] } as unknown as Partial<CardView>);
-    const v = withHand(view(0, 'main1'), 0, { hand: [], pool: {}, battlefield: [source, ability] });
+    const v = withHand(view(0, 'main1'), 0, {
+      potential_actions: [{ kind: 'ability', obj: 8, ability: 0, label: 'Activate Ability Rock' }],
+    });
     expect(actionables(v, 0, d)).toEqual(['Activate Ability Rock (after tapping)']);
     expect(actionable(d, v, 0)).toBe(true);
 
-    // A cost this projection cannot price (a sacrifice component) names
-    // nothing and leaves the window not actionable — the fail-closed arm.
-    const sacrifice = withHand(view(0, 'main1'), 0, { hand: [], pool: {}, battlefield: [source, handCard({ id: 8, name: 'Sac Rock', ability_costs: ['1 T Sac<1/Artifact>'] } as unknown as Partial<CardView>)] });
+    // A cost the engine itself withholds (a sacrifice component with nothing
+    // to sacrifice) simply never enters the projection -- names nothing and
+    // leaves the window not actionable, the fail-closed arm.
+    const sacrifice = withHand(view(0, 'main1'), 0, { potential_actions: [] });
     expect(actionables(sacrifice, 0, d)).toEqual([]);
     expect(actionable(d, sacrifice, 0)).toBe(false);
   });

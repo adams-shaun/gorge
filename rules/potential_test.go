@@ -3,6 +3,8 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -535,5 +537,77 @@ func TestPotentialActionsBlankProducedNotColoured(t *testing.T) {
 	// {1} generic, the shape the old unbounded blank wrongly generalised.
 	if m := e.PotentialMana(0); m[state.MC] != 1 {
 		t.Fatalf("blank source potential must be {C:1}, got %v", m)
+	}
+}
+
+// TestPotentialActionsJitteThaliaCorpusScriptIsNotCastable is the
+// real-script form of the substitute proof the controller's 2026-09-17
+// ruling accepts for the (waived, evidence-gone) cmd/repro replay: the REAL
+// corpus Thalia, Guardian of Thraben and Umezawa's Jitte, the capture point's
+// board (both lands tapped, pool {C}{W}, land drop spent, main1). The engine
+// must project no cast — Thalia's RaiseCost raises the printed {2} Jitte to
+// {3} — and without Thalia the same board must project the cast, because the
+// pool {C}{W} pays the printed {2}. The projection is what the auto-pass
+// stop decision reads, so the window the Jitte report described is skipped.
+func TestPotentialActionsJitteThaliaCorpusScriptIsNotCastable(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jitte, ok := reg.Lookup("Umezawa's Jitte")
+	if !ok {
+		t.Fatal("corpus fixture: Umezawa's Jitte missing")
+	}
+	thalia, ok := reg.Lookup("Thalia, Guardian of Thraben")
+	if !ok {
+		t.Fatal("corpus fixture: Thalia, Guardian of Thraben missing")
+	}
+	build := func(withThalia bool) (*Engine, state.ObjID) {
+		t.Helper()
+		e := New(Config{Seed: 42, Names: []string{"a", "b"},
+			Decks: [][]*cards.Card{append([]*cards.Card{jitte}, mountainDeck(t, 39)...), mountainDeck(t, 40)}})
+		e.Advance()
+		toMain1(t, e)
+		jitteID := moveByName(t, e, 0, "Umezawa's Jitte", state.ZHand)
+		if withThalia {
+			onBoardCard(t, e, 0, thalia)
+		}
+		// The capture point: the reporter tapped BOTH lands for {C}{W} and
+		// spent the land drop, so nothing untapped remains and no land drop
+		// can mask the cast answer.
+		e.G.Players[0].LandsPlayed = 1
+		for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+			o := e.G.Obj(id)
+			if o.Face() != nil && o.Face().IsLand() {
+				o.Tapped = true
+			}
+		}
+		pool := e.G.Players[0].Pool
+		pool[state.MC] = 1
+		pool[state.MW] = 1
+		e.G.Players[0].Pool = pool
+		return e, jitteID
+	}
+
+	e, _ := build(true)
+	for _, a := range e.PotentialActions(0) {
+		if a.Kind == "cast" {
+			t.Errorf("real-script Jitte board with Thalia: potential actions carry cast %q; want none — RaiseCost raises {2} to {3} over pool {C}{W}", a.Label)
+		}
+	}
+	// The engine's own REAL offer agrees (the projection mirrors it): no cast
+	// is offered now either.
+	for _, o := range e.legalActions(0) {
+		if o.Kind == "cast" {
+			t.Errorf("real-script Jitte board with Thalia: the offer walk itself carries cast %q", o.Label)
+		}
+	}
+
+	e2, jitte2 := build(false)
+	found := false
+	for _, a := range e2.PotentialActions(0) {
+		if a.Kind == "cast" && a.Obj == jitte2 {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("real-script Jitte board without Thalia: the cast must be a potential action (pool {C}{W} pays {2})")
 	}
 }
