@@ -2106,8 +2106,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Chandra, Awakened Inferno":   {"param:api:DealDamage.ReplaceDyingDefined"},
 	"Conduit of Worlds":           {"param:api:Play.RememberPlayed"},
 	"Dark Fortress":               {"param:api:Mana.IsPresent"},
-	"Deadly Rollick":              {"param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer"},
-	"Deflecting Swat":             {"param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer"},
 	"Defense of the Heart":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Delver of Secrets":           {"param:api:PeekAndReveal.PeekAmount"},
 	"Exploration Broodship":       {"param:stat:Continuous.AddStaticAbility"},

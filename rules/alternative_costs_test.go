@@ -764,3 +764,191 @@ func TestOpeningHandRevealActionAndPlayFirstGate(t *testing.T) {
 // hand-writing state mutation; this compile-time assertion documents that all
 // alternative-cost tests use the event boundary for game changes.
 var _ = events.Event{}
+
+// altCastOptions returns the alternative-cost cast options legalActions
+// offered for id (AltCostIndex > 0; the paid cast carries the zero value).
+func altCastOptions(opts []decision.Option, id state.ObjID) []decision.Option {
+	var out []decision.Option
+	for _, o := range opts {
+		if o.Kind == "cast" && o.Obj == id && o.AltCostIndex > 0 {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+// TestDazeAltCostGatedOnAnIslandToReturn pins the two-param shape: Daze's
+// EffectZone$ All + ValidSA$ Spell.Self self-carried static reaches the
+// hand, but the Cost$ Return<1/Island> candidate gate keeps the alternative
+// unoffered until the payer controls an Island. Taking the alternative
+// returns the Island at cast commit, beside the other payments.
+func TestDazeAltCostGatedOnAnIslandToReturn(t *testing.T) {
+	daze := corpusAlternativeCard(t, "Daze")
+	e := handEngine(t, daze)
+	dazeID := e.G.Zone(state.ZHand, 0)[0]
+
+	// A spell on the stack so the counterspell has a legal target either way.
+	bolt := e.G.AddObject(card(t, "Name:Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"), 1)
+	bolt.Zone = state.ZStack
+	e.G.SetZone(state.ZStack, 1, []state.ObjID{bolt.ID})
+
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 1, 1
+
+	if alts := altCastOptions(e.legalActions(0), dazeID); len(alts) != 0 {
+		t.Fatalf("Daze alt-cost offered with no Island on the battlefield: %+v", alts)
+	}
+	if !hasCastOption(e.legalActions(0), dazeID) {
+		t.Fatal("the paid cast is still offered without an Island")
+	}
+
+	// EffectZone$ is a real gate: a Daze-shaped static pointed at the
+	// battlefield (Daze names All) withdraws the grant from the hand.
+	// Synthetic, not the corpus card: registry lookups are shared pointers.
+	bfDaze := card(t, "Name:Battlefield Daze\nManaCost:1 U\nTypes:Instant\n"+
+		"A:SP$ Counter | TargetType$ Spell | ValidTgts$ Card\n"+
+		"S:Mode$ AlternativeCost | ValidSA$ Spell.Self | EffectZone$ Battlefield | Cost$ Return<1/Island>\nOracle:x\n")
+	e2 := handEngine(t, bfDaze)
+	bfID := e2.G.Zone(state.ZHand, 0)[0]
+	stack := e2.G.AddObject(card(t, "Name:Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"), 1)
+	stack.Zone = state.ZStack
+	e2.G.SetZone(state.ZStack, 1, []state.ObjID{stack.ID})
+	isl := e2.G.AddObject(card(t, "Name:Island\nTypes:Basic Land Island\nOracle:x\n"), 0)
+	isl.Zone = state.ZBattlefield
+	e2.G.SetZone(state.ZBattlefield, 0, []state.ObjID{isl.ID})
+	if alts := altCastOptions(e2.legalActions(0), bfID); len(alts) != 0 {
+		t.Fatalf("EffectZone$ Battlefield grant still reached the hand: %+v", alts)
+	}
+
+	land := e.G.AddObject(card(t, "Name:Island\nTypes:Basic Land Island\nOracle:x\n"), 0)
+	land.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{land.ID})
+
+	alts := altCastOptions(e.legalActions(0), dazeID)
+	if len(alts) != 1 {
+		t.Fatalf("Daze with an Island in play: alt-cost options = %+v, want exactly one", alts)
+	}
+	e.beginCast(0, alts[0])
+	// The Return<1/Island> payment asks over the payer's battlefield...
+	if d := e.Pending(); d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "returncost" {
+		t.Fatalf("Daze alt-cost did not ask to return the Island: %+v", e.Pending())
+	}
+	submitChoices(t, e, 0)
+	// ...then the counter's target ask...
+	d := e.Pending()
+	targetChoice := -1
+	for i, o := range d.Options {
+		if o.Obj == bolt.ID {
+			targetChoice = i
+			break
+		}
+	}
+	if targetChoice < 0 {
+		t.Fatalf("Daze target ask missing the stack spell: %+v", d)
+	}
+	submitChoices(t, e, targetChoice)
+	// ...and the cast commits with the Island back in the payer's hand.
+	if got := e.G.Obj(land.ID).Zone; got != state.ZHand {
+		t.Fatalf("Daze alt-cost left the Island in %s, want hand", got)
+	}
+	if got := e.G.Obj(dazeID).Zone; got != state.ZStack {
+		t.Fatalf("free-cast Daze sits in %s, want stack", got)
+	}
+}
+
+// TestDeadlyRollickAltCostGatedOnCommanderPresence pins the four-param
+// shape: ValidPlayer$ You (the caster is the static's controller),
+// EffectZone$ All, ValidSA$ Spell and -- the one that actually gates --
+// IsPresent$ Card.IsCommander+YouCtrl, which counts battlefield permanents
+// only, so a commander in the command zone does not unlock the free cast.
+func TestDeadlyRollickAltCostGatedOnCommanderPresence(t *testing.T) {
+	rollick := corpusAlternativeCard(t, "Deadly Rollick")
+	e := handEngine(t, rollick)
+	rollickID := e.G.Zone(state.ZHand, 0)[0]
+
+	prey := e.G.AddObject(card(t, "Name:Prey\nTypes:Creature Human\nPT:2/2\nOracle:x\n"), 1)
+	prey.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 1, []state.ObjID{prey.ID})
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MB] = 3, 1
+
+	// No commander anywhere: IsPresent$ blocks the free cast; only the
+	// paid 3 B cast is on the table.
+	if alts := altCastOptions(e.legalActions(0), rollickID); len(alts) != 0 {
+		t.Fatalf("Deadly Rollick free-cast offered with no commander: %+v", alts)
+	}
+	if !hasCastOption(e.legalActions(0), rollickID) {
+		t.Fatal("the paid cast is still offered without a commander")
+	}
+
+	// A commander in the command zone is not a permanent you control:
+	// IsPresent$ scans the battlefield only.
+	cmd := e.G.AddObject(card(t, "Name:Commander\nManaCost:2 G\nTypes:Creature Human\nPT:2/2\nOracle:x\n"), 0)
+	cmd.Zone = state.ZCommand
+	e.G.SetZone(state.ZCommand, 0, []state.ObjID{cmd.ID})
+	e.G.Players[0].Commanders = []state.ObjID{cmd.ID}
+	if alts := altCastOptions(e.legalActions(0), rollickID); len(alts) != 0 {
+		t.Fatal("a command-zone commander incorrectly satisfied IsPresent$")
+	}
+
+	// The commander enters the battlefield: the free cast is offered.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: cmd.ID, From: state.ZCommand, To: state.ZBattlefield, Text: "commander entered the battlefield"})
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{cmd.ID})
+	e.G.SetZone(state.ZCommand, 0, nil)
+
+	alts := altCastOptions(e.legalActions(0), rollickID)
+	if len(alts) != 1 {
+		t.Fatalf("Deadly Rollick with a commander in play: alt-cost options = %+v, want exactly one", alts)
+	}
+	e.beginCast(0, alts[0])
+	// Cost$ 0 pays nothing: the only ask is the exile target.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("free-cast Deadly Rollick did not go straight to targets: %+v", d)
+	}
+	targetChoice := -1
+	for i, o := range d.Options {
+		if o.Obj == prey.ID {
+			targetChoice = i
+			break
+		}
+	}
+	if targetChoice < 0 {
+		t.Fatalf("Deadly Rollick target ask missing the creature: %+v", d)
+	}
+	submitChoices(t, e, targetChoice)
+	if got := e.G.Obj(rollickID).Zone; got != state.ZStack {
+		t.Fatalf("free-cast Deadly Rollick sits in %s, want stack", got)
+	}
+	if got := e.G.Obj(prey.ID).Zone; got != state.ZBattlefield {
+		t.Fatalf("target exiled at cast time? prey in %s", got)
+	}
+}
+
+// TestAlternativeCostValidPlayerScopesTheOffer pins ValidPlayer$ being read
+// (You = the static's controller: seat 0 casting its own card matches) and
+// the fail-closed direction for an unevaluable ValidSA$ Spell constraint:
+// the free cast is denied, never silently widened.
+func TestAlternativeCostValidPlayerScopesTheOffer(t *testing.T) {
+	freebie := card(t, "Name:Freebie\nManaCost:1 U\nTypes:Instant\n"+
+		"A:SP$ Draw | Defined$ You | NumCards$ 1\n"+
+		"S:Mode$ AlternativeCost | ValidSA$ Spell | ValidPlayer$ You | Cost$ 0\nOracle:x\n")
+	e := handEngine(t, freebie)
+	freeID := e.G.Zone(state.ZHand, 0)[0]
+
+	if alts := altCastOptions(e.legalActions(0), freeID); len(alts) != 1 {
+		t.Fatalf("controller's own free cast missing: %+v", alts)
+	}
+	if !hasCastOption(e.legalActions(0), freeID) {
+		t.Fatal("the paid cast is still offered")
+	}
+
+	// An unevaluable ValidSA$ Spell constraint fails closed (the grant is
+	// not withdrawn silently into a paid cast): the alternative disappears.
+	scoped := card(t, "Name:Scoped\nManaCost:1 U\nTypes:Instant\n"+
+		"A:SP$ Draw | Defined$ You | NumCards$ 1\n"+
+		"S:Mode$ AlternativeCost | ValidSA$ Spell.Samurai | Cost$ 0\nOracle:x\n")
+	e2 := handEngine(t, scoped)
+	scopedID := e2.G.Zone(state.ZHand, 0)[0]
+	if alts := altCastOptions(e2.legalActions(0), scopedID); len(alts) != 0 {
+		t.Fatalf("unevaluable ValidSA$ constraint still granted the free cast: %+v", alts)
+	}
+}
