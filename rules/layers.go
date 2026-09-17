@@ -410,6 +410,20 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 // (no turn boundary) if p is not alive, bounding the walk so an eliminated
 // controller cannot spin the loop forever: at most AliveCount successors are
 // distinct alive seats, so a full cycle without hitting p proves p is gone.
+// ContinuousNamed reports whether an ACTIVE continuous effect registered by
+// p carries the given name (an Effect's Name$): the ask effEffect's
+// Stackable$ False dedup makes before it would register a second copy of the
+// same named effect (Wrenn and Six's emblem). Scans active() so an expired
+// effect never blocks a fresh registration.
+func (e *Engine) ContinuousNamed(p state.PlayerID, name string) bool {
+	for _, ce := range e.active() {
+		if ce.Controller == p && ce.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) nextTurnFor(p state.PlayerID) int32 {
 	alive := e.G.AliveCount()
 	t := e.G.Turn

@@ -38,6 +38,13 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	if n < 0 {
 		n = 0
 	}
+	// ReplaceDyingDefined$ <list> (Chandra, Awakened Inferno's "If a permanent
+	// dealt damage this way would die this turn, exile it instead", Wilt in
+	// the Heat's Targeted form): registered once the damage batch has landed,
+	// over the objects this resolution actually damaged/targeted. The deferred
+	// call runs after EndDamageBatch on either path.
+	var dying []state.Target
+	defer func() { registerReplaceDying(h, c, sa, dying) }()
 	// CR 702.15a: damage dealt by a source with lifelink causes that source's
 	// controller to gain that much life. Every non-combat emit site below pays
 	// the rider through one damageRider; combat has its own rider in
@@ -123,6 +130,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 					c.Remembered = append(c.Remembered, state.Target{Obj: t.obj})
 					eventRemember(h, c, t.obj)
 				}
+				dying = append(dying, state.Target{Obj: t.obj})
 				continue
 			}
 			emitPlayerDamage(r, t.player)
@@ -141,9 +149,65 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 				c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
 				eventRemember(h, c, t.Obj)
 			}
+			dying = append(dying, state.Target{Obj: t.Obj})
 		}
 	}
 	h.EndDamageBatch()
+}
+
+// registerReplaceDying implements DealDamage's ReplaceDyingDefined$ <list>
+// ("If a permanent dealt damage this way would die this turn, exile it
+// instead"): every PERMANENT this resolution damaged joins one continuous
+// Moved replacement (battlefield-to-graveyard becomes exile) that lasts
+// until end of turn (CR 614.9's "this turn" half — the replacement must
+// outlive the resolving spell, which is why it rides the continuous registry
+// rather than the resolution's own Ctx). The list name is Forge's
+// Defined-list selector: "Remembered" (Chandra's RememberDamaged$ shape)
+// reads the resolution's remembered set, "Targeted" (Wilt in the Heat's) its
+// chosen targets; an optional ".<filter>" qualifier (Burn from Within's
+// Remembered.Creature) narrows the list through the ordinary filter grammar.
+// The replacement's ValidCard$ Card.IsRemembered is matched against the
+// registered ContinuousEffect's Remembered snapshot (rules carries the list
+// into the match), so a Cleanup ClearRemembered$ rider (Chandra's DBCleanup)
+// cannot cut the replacement's legs out from under it, and the With body is
+// the same Defined$ ReplacedCard exile the Kumano-family R: lines carry. A
+// list name this grammar does not know is loud rather than silently inert.
+func registerReplaceDying(h Host, c *Ctx, sa *cards.SA, damaged []state.Target) {
+	die := strings.TrimSpace(sa.Params["ReplaceDyingDefined"])
+	if die == "" || len(damaged) == 0 {
+		return
+	}
+	base, qualifier, _ := strings.Cut(die, ".")
+	if base != "Remembered" && base != "Targeted" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "unrecognised ReplaceDyingDefined$ " + die})
+		return
+	}
+	var ids []state.ObjID
+	for _, t := range damaged {
+		if t.IsPlayer || t.Obj == 0 {
+			continue
+		}
+		if qualifier != "" && !MatchesSpecCtx(h.Game(), qualifier, t.Obj, c.SpecContext(c.Controller)) {
+			continue
+		}
+		ids = append(ids, t.Obj)
+	}
+	if len(ids) == 0 {
+		return
+	}
+	h.AddContinuous(state.ContinuousEffect{
+		Source: c.Source, Controller: c.Controller,
+		UntilEOT: true, Duration: "UntilEOT",
+		ReplacementEvent: "Moved",
+		ReplacementParams: map[string]string{
+			"Origin":      "Battlefield",
+			"Destination": "Graveyard",
+			"ValidCard":   "Card.IsRemembered",
+		},
+		ReplacementBody: "DB$ ChangeZone | Defined$ ReplacedCard | Origin$ Battlefield | Destination$ Exile",
+		Remembered:      ids,
+	})
 }
 
 // damageRider bundles the facts every non-combat damage emit site shares: the
