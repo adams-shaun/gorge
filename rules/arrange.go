@@ -100,6 +100,15 @@ func (e *Engine) handleArrange(d *decision.Decision, in decision.Intent) {
 	k := len(d.Options)
 	remainder := lib[k:]
 	switch kind {
+	case "hideaway_bottom":
+		// Hideaway has already moved its one chosen card to exile before this
+		// ask. Unlike Scry's selected subset, all remaining cards go to the
+		// bottom and their ANSWER order is the bottom order (CR 702.75a).
+		newLib := make([]state.ObjID, 0, len(remainder)+len(pileA))
+		newLib = append(newLib, remainder...)
+		newLib = append(newLib, pileA...)
+		e.emit(events.Event{Kind: events.LibraryOrder, Player: d.Player,
+			IDs: newLib, Secret: true})
 	case "bottom":
 		// Ruling J4: pile B goes to the END of the library, BELOW the
 		// untouched remainder. One LibraryOrder carrying pileA + remainder +

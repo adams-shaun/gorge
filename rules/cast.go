@@ -31,6 +31,14 @@ const (
 	chooseCast chooseFor = iota + 1
 	chooseETB
 	chooseMiracle
+	// chooseRiot is deliberately outside the independently extended
+	// chooseCleanup/chooseMana ranges in combat.go and mana_activation.go.
+	// It is 20 because the merged package occupies 1 through 18 (cast/etb/
+	// miracle 1-3, cleanup 4, damageDivision 5, mana 6-9, opening 10,
+	// suspendCast 12, station 13, unlock 14, cumulative 15, triggeredCost
+	// 16, manaUnless/unlessCost 17-18): all pairwise-distinct consts in one
+	// switch table, so the exact numbers do matter inside the package.
+	chooseRiot chooseFor = 20
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and
@@ -858,6 +866,16 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		cost = Cost{}
 	case "flashback":
 		cost = e.flashbackCost(id)
+	case "mayplay":
+		// rules/mayplay.go granted this play from a non-hand zone. The
+		// printed cost is paid (the default below) unless the granting
+		// static said MayPlayWithoutManaCost$ True, in which case the mana
+		// part is free while non-mana additional costs still apply
+		// (CR 118.9) -- so this mode folds into the withSpellAbilityExtras
+		// condition below, exactly like a plain cast.
+		if free, ok := e.mayPlayGrant(p, id); ok && free {
+			cost = Cost{}
+		}
 	case "miracle":
 		// Task 18: a Miracle cast pays the printed Miracle cost (CR 702.93d) in
 		// place of the card's normal cost. KeywordParam is read off the face;
@@ -951,6 +969,92 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	}
 	e.collectETBChoices(p)
 	e.continueCast()
+}
+
+// beginPlay is the rules' hand-off for an answered Play effect. It starts a
+// cast from the card's current zone and uses its printed cost unless that
+// specific Play SA said WithoutManaCost$ True. This distinction is material:
+// Spinerock Knoll grants a free cast, while Conduit of Worlds requires payment.
+// The card must still be on the stack of the suspended Play resolution when
+// this runs; a malformed answer degrades to a logged no-op rather than panic.
+func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play found no card to play"})
+		return
+	}
+	if o.Face().IsLand() {
+		// A "play" permission can play a land, but it does not grant an
+		// additional land drop. Lands never become spells or enter the stack.
+		if int(p) >= len(e.G.Players) || e.G.Players[p].LandsPlayed >= 1 {
+			e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play cannot use an additional land drop"})
+			return
+		}
+		e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "land", ability: -1}
+		e.collectETBChoices(p)
+		e.continueCast()
+		return
+	}
+	cost := e.rawBaseCost(p, id)
+	if withoutManaCost {
+		cost = Cost{}
+	}
+	// A normal Play cast pays its printed mana cost; a free Play cast does
+	// not. Both still pay non-mana additional costs, exactly as an ordinary
+	// cast does (CR 118.9 / 601.2f). The cost is stored RAW (no cost
+	// modifiers folded): RaiseCost/ReduceCost ride pc.mods and manaToPay
+	// applies them after {X} is folded, the same shape beginCast stores.
+	cost = withSpellAbilityExtras(o.Face(), cost)
+	mods := e.costModifiers(p, id, spellScope(""))
+	e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "play", ability: -1,
+		cost: cost, mods: mods}
+	e.collectETBChoices(p)
+	e.continueCast()
+}
+
+// applyDredge performs a dredged replacement of a draw: mill N cards (N = the
+// dredge card's Dredge number) from p's library into the graveyard, then move
+// the dredge card from p's graveyard to their hand. The ordinary draw was
+// skipped by choosing option 0 in DrawFor's dredge ask.
+func (e *Engine) applyDredge(p state.PlayerID, dredgeID state.ObjID) {
+	o := e.G.Obj(dredgeID)
+	if o == nil || o.Face() == nil {
+		return
+	}
+	n := int32(0)
+	if v, ok := o.Face().KeywordParam("Dredge"); ok {
+		if parsed, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			n = int32(parsed)
+		}
+	}
+	lib := e.G.Zone(state.ZLibrary, p)
+	// A stale or malformed answer must not turn an illegal insufficient-library
+	// dredge into a partial mill: CR 702.55 requires all N cards.
+	if n <= 0 || int(n) > len(lib) {
+		return
+	}
+	for _, id := range lib[:n] {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZGraveyard})
+	}
+	if dredgeID != 0 && o.Zone != state.ZHand {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: dredgeID,
+			From: o.Zone, To: state.ZHand})
+	}
+}
+
+// resumeOrdinaryDraw re-emits the ordinary draw a declined dredge skipped.
+// DrawFor posed the dredge ask and suspended; a "no" (option 1) means the
+// player draws as normal, which is exactly the Draw event DrawFor would have
+// emitted had no dredger been in the graveyard. Only the library's top card
+// moves; a decline with an empty library is a loss, checked by the SBA.
+func (e *Engine) resumeOrdinaryDraw(p state.PlayerID) {
+	lib := e.G.Zone(state.ZLibrary, p)
+	if len(lib) == 0 {
+		e.emit(events.Event{Kind: events.PlayerLost, Player: p, Text: "drew from an empty library"})
+		return
+	}
+	e.emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
+		From: state.ZLibrary, To: state.ZHand, Secret: true})
 }
 
 // continueCast runs the cast flow's stages in order -- announced
@@ -1758,6 +1862,10 @@ func (e *Engine) discardAsk() bool {
 // play_land). Nothing is asked and no choice is recorded for an etbCounter
 // replacement (its ReplaceWith$ is PutCounter) -- those need only Ctx.X, not
 // a player decision.
+// collectETBChoices is the cast-path fast path. Entries that do not pass
+// through a pending cast (reanimation, blink, or a direct ChangeZone) are
+// caught by applyRiotReplacement in replacement.go before their MoveZone is
+// logged, so Riot is never limited to spells cast normally.
 func (e *Engine) collectETBChoices(you state.PlayerID) {
 	pc := e.cast
 	if pc == nil {
@@ -1770,6 +1878,12 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 	f := o.Face()
 	if f == nil {
 		return
+	}
+	if f.HasKeyword("Riot") {
+		pc.etbs = append(pc.etbs, etbChoice{kind: "riot", options: []decision.Option{
+			{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter"},
+			{Index: 1, Kind: "riot", Label: "Gain haste"},
+		}})
 	}
 	for i := range f.Repls {
 		r := &f.Repls[i]
@@ -1920,6 +2034,8 @@ func etbChoicePrompt(kind string) string {
 		return " a card name"
 	case "type":
 		return " a creature type"
+	case "riot":
+		return " how this creature enters (counter or haste)"
 	}
 	return " a number"
 }
@@ -2558,6 +2674,12 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "type", Text: opt.Label})
 	case "number":
 		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: int32(opt.Amount)})
+	case "riot":
+		choice := "haste"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "riot", Text: choice})
 	}
 	pc.etbIdx++
 }

@@ -177,6 +177,11 @@ func LoadRegistry(path string) (*Registry, error) {
 			f.link(c.Path)
 			f.derive()
 		}
+		// A cache can predate a newly added idempotent keyword expansion.
+		// Link runs that expansion again while preserving existing generated
+		// entries, so loading an older cache never turns a supported keyword
+		// into a behaviourless printed label.
+		c.Link()
 		r.Add(c)
 	}
 	if cf.Tokens != nil {
@@ -190,6 +195,7 @@ func LoadRegistry(path string) (*Registry, error) {
 				f.link(c.Path)
 				f.derive()
 			}
+			c.Link()
 		}
 	}
 	return r, nil

@@ -643,6 +643,7 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		ty = nil
 	}
 	kw = append(kw[:0], f.Keywords...)
+	kw = append(kw, o.IntrinsicKeywords...)
 	ty = append(ty[:0], f.Types...)
 	// Layer 5's base is the face's colour set (the mana cost, an explicit
 	// Colors: line, Devoid-applied). The letters compose in a fixed [5]bool so

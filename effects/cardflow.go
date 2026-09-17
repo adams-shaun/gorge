@@ -22,6 +22,7 @@ func init() {
 	Register("Scry", effScry)
 	Register("Surveil", effSurveil)
 	Register("NameCard", effNameCard)
+	Register("Hideaway", effHideaway)
 }
 
 // zoneOf is a bounds-checked g.Zone. PlayerOf returns a target's raw Player
@@ -44,34 +45,124 @@ func zoneOf(g *state.Game, z state.Zone, p state.PlayerID) []state.ObjID {
 
 // DrawFor is exported so the rules package can use the same code path for the
 // draw step. Drawing from an empty library is a loss, checked by SBAs.
-func DrawFor(h Host, p state.PlayerID) {
+func DrawFor(h Host, p state.PlayerID) { drawFor(h, p, -1, nil) }
+
+// drawFor is DrawFor with an optional enclosing Draw cursor. A nonnegative
+// cursor is recorded on a dredge decision so rules can continue that exact
+// multi-card resolution after its replacement is answered.
+func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA) {
 	g := h.Game()
 	lib := zoneOf(g, state.ZLibrary, p)
 	if len(lib) == 0 {
 		h.Emit(events.Event{Kind: events.PlayerLost, Player: p, Text: "drew from an empty library"})
 		return
 	}
+	// A DrawFor reached while the resolution is already suspended: a caller
+	// that does not check h.Suspended() between draws drove a second draw
+	// after the first one parked on a dredge ask. Posing a second ask here
+	// would overwrite the outstanding one (the orphaned-decision failure
+	// findings-sol4 proved); the guarded callers (effDraw's cursor loop,
+	// the turn draw, rules' lifeReplacementDraw park) never reach this
+	// suspended, so this degrades the unguarded one deterministically: no
+	// ask, an ordinary draw, one Note naming why.
+	if h.Suspended() {
+		h.Emit(events.Event{Kind: events.Note, Player: p,
+			Text: "drew without a dredge choice: another decision is already pending"})
+		h.Emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
+			From: state.ZLibrary, To: state.ZHand, Secret: true})
+		return
+	}
+	// Dredge (CR 702.55): before a player draws a card, if they have a card
+	// with Dredge in the graveyard they may instead mill N cards (N = the
+	// dredge number) and return that card from the graveyard to their hand,
+	// and the draw is replaced. This is a player choice at the point of the
+	// draw, so it is posed as a mid-resolution KModes choice over every legal
+	// dredger in graveyard scan order plus the ordinary draw. A fluff/no-host
+	// host declines and draws normally.
+	if candidates := dredgeCandidates(g, p); len(candidates) > 0 {
+		// Pose every legal replacement plus the ordinary draw. A player with
+		// several dredgers chooses which replacement applies (CR 616.1).
+		d := &decision.Decision{Player: p, Kind: decision.KModes, Min: 1, Max: 1,
+			ResumeKind: "dredge", ResumeTarget: cursor, ResumeSA: resumeSA, Prompt: "Replace draw with Dredge?"}
+		for _, candidate := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "dredge",
+				Label: "Dredge " + strconv.Itoa(int(candidate.n)) + " (mill, then return " + objName(g, candidate.id) + " to hand)", Obj: candidate.id, Player: p})
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "draw", Label: "Draw card", Player: p})
+		if h.Ask(d) {
+			return
+		}
+	}
 	h.Emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
 		From: state.ZLibrary, To: state.ZHand, Secret: true})
 }
 
-func effDraw(h Host, c *Ctx, sa *cards.SA) {
-	n := Num(h, c, sa, "NumCards", 1)
-	// RememberDrawn$ records every card actually drawn into the resolution's
-	// Remembered (Breathstealer's Crypt's reveal-and-maybe-discard chain acts
-	// on exactly the drawn card; a library that ran out mid-draw records only
-	// what moved). Unread before this — the whole sub-chain saw nothing.
-	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDrawn"]), "True")
-	for _, t := range actingPlayers(h, c, sa) {
-		p := PlayerOf(h, c, t)
-		for i := int32(0); i < n; i++ {
-			lib := zoneOf(h.Game(), state.ZLibrary, p)
-			DrawFor(h, p)
-			if remember && len(lib) > 0 {
-				c.Remembered = append(c.Remembered, state.Target{Obj: lib[0]})
+type dredgeCandidate struct {
+	id state.ObjID
+	n  int32
+}
+
+// dredgeCandidates returns every graveyard Dredge replacement that is legal:
+// CR 702.55 requires enough cards to mill the full number. Graveyard scan
+// order is deterministic and becomes the decision's stable option order.
+func dredgeCandidates(g *state.Game, p state.PlayerID) []dredgeCandidate {
+	library := g.Zone(state.ZLibrary, p)
+	var out []dredgeCandidate
+	for _, id := range g.Zone(state.ZGraveyard, p) {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		if n, ok := o.Face().KeywordParam("Dredge"); ok {
+			if v, err := strconv.Atoi(strings.TrimSpace(n)); err == nil && v > 0 && len(library) >= v {
+				out = append(out, dredgeCandidate{id: id, n: int32(v)})
 			}
 		}
 	}
+	return out
+}
+
+func objName(g *state.Game, id state.ObjID) string {
+	if o := g.Obj(id); o != nil && o.Face() != nil {
+		return o.Face().Name
+	}
+	return "it"
+}
+
+func effDraw(h Host, c *Ctx, sa *cards.SA) {
+	n := Num(h, c, sa, "NumCards", 1)
+	if n <= 0 {
+		return
+	}
+	// RememberDrawn$ records every card actually drawn into the resolution's
+	// Remembered (Breathstealer's Crypt's reveal-and-maybe-discard chain acts
+	// on exactly the drawn card; a library that ran out mid-draw records only
+	// what moved). Unread before this — the whole sub-chain saw nothing. A
+	// draw that parked on a dredge ask has not happened yet, so the record
+	// waits until the draw is real (the suspend check below).
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDrawn"]), "True")
+	targets := actingPlayers(h, c, sa)
+	total := int32(len(targets)) * n
+	for c.DrawDone < total {
+		p := PlayerOf(h, c, targets[c.DrawDone/n])
+		var lib []state.ObjID
+		if remember {
+			lib = zoneOf(h.Game(), state.ZLibrary, p)
+		}
+		drawFor(h, p, int(c.DrawDone), sa)
+		if h.Suspended() {
+			// A Dredge choice is between individual draws. Its resume point
+			// carries this cursor; do not run later draws, Remembered or
+			// SubAbility$ yet.
+			return
+		}
+		if remember && len(lib) > 0 {
+			c.Remembered = append(c.Remembered, state.Target{Obj: lib[0]})
+		}
+		c.DrawDone++
+	}
+	// DrawDone is scoped to this primitive like the other Ctx answer fields.
+	c.DrawDone = 0
 }
 
 // effDiscard moves cards from a player's hand to their graveyard. Which
@@ -1082,6 +1173,93 @@ func destinationPhrase(kind string) string {
 // the first card in the controller's library, which is at least a
 // deterministic, legal name for whatever downstream sub-ability expects
 // one, recorded now as the Choose event so the choice survives replay.
+// effHideaway implements CR 702.75: when a permanent with Hideaway enters,
+// its controller looks at the top N cards, exiles one face down, then puts
+// the rest on the bottom in the order they chose. Exile provenance is carried
+// by MoveZone, so a later Play resolves Defined$ ExiledWith by identity.
+func effHideaway(h Host, c *Ctx, sa *cards.SA) {
+	if c.HideawayArranged {
+		c.HideawayArranged = false
+		return
+	}
+	g := h.Game()
+	if c.HideawayPicked {
+		// The choice was recorded by rules' hideaway_pick resume arm. Move the
+		// selected card before arranging: that leaves precisely the remaining
+		// cards at the top of the library for the KArrange handler.
+		id := c.Hideaway
+		c.Hideaway = 0
+		c.HideawayPicked = false
+		lib := zoneOf(g, state.ZLibrary, c.Controller)
+		if id == 0 || !containsObj(lib, id) {
+			return
+		}
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZExile,
+			Counter: "exiled_with_face_down", Amount: int32(c.Source), Secret: true})
+		hideawayBottom(h, c, sa)
+		return
+	}
+	n := int(Num(h, c, sa, "Amount", 4))
+	if n < 0 {
+		n = 0
+	}
+	lib := zoneOf(g, state.ZLibrary, c.Controller)
+	if n > len(lib) {
+		n = len(lib)
+	}
+	if n == 0 {
+		return
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: c.Source, ResumeKind: "hideaway_pick", ResumeSA: sa,
+		Prompt: "Choose a card to exile with Hideaway"}
+	for i, id := range lib[:n] {
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "hideaway", Label: objName(g, id), Obj: id, Player: c.Controller})
+	}
+	if h.Ask(d) {
+		return
+	}
+	// The no-host degradation chooses the first card, then retains the offered
+	// order for the rest on the bottom.
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: lib[0], From: state.ZLibrary, To: state.ZExile,
+		Counter: "exiled_with_face_down", Amount: int32(c.Source), Secret: true})
+	hideawayBottom(h, c, sa)
+}
+
+func hideawayBottom(h Host, c *Ctx, sa *cards.SA) {
+	lib := zoneOf(h.Game(), state.ZLibrary, c.Controller)
+	n := int(Num(h, c, sa, "Amount", 4)) - 1
+	if n < 0 {
+		n = 0
+	}
+	if n > len(lib) {
+		n = len(lib)
+	}
+	if n == 0 {
+		return
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KArrange, Min: n, Max: n,
+		Source: c.Source, ResumeKind: "hideaway_arrange", ResumeSA: sa,
+		Prompt: "Put the remaining Hideaway cards on the bottom in any order"}
+	for i, id := range lib[:n] {
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "hideaway_bottom", Label: objName(h.Game(), id), Obj: id, Player: c.Controller})
+	}
+	if h.Ask(d) {
+		return
+	}
+	newLib := append(append([]state.ObjID(nil), lib[n:]...), lib[:n]...)
+	h.Emit(events.Event{Kind: events.LibraryOrder, Player: c.Controller, IDs: newLib, Secret: true})
+}
+
+func containsObj(ids []state.ObjID, want state.ObjID) bool {
+	for _, id := range ids {
+		if id == want {
+			return true
+		}
+	}
+	return false
+}
+
 func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	if o := h.Game().Obj(c.Source); o != nil && o.ChosenName != "" {
 		return

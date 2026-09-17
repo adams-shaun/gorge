@@ -368,6 +368,26 @@ type Ctx struct {
 	// search cannot inherit the outer answer.
 	Search     []state.ObjID
 	SearchDone bool
+	// Extort is the answered optional {W/B} payment on a re-entered Extort
+	// resolution (M2d-2): "pay" means the caster agreed to pay and the drain
+	// runs; anything else ("decline", first pass with a host that cannot ask)
+	// means no drain. rules' resumeResolution sets it from the recorded answer
+	// before re-running the suspended effExtort, and effExtort clears it after
+	// reading so a nested Extort below it poses its own ask.
+	Extort string
+	// Play is the answered card a resolved Play effect chose to play from a
+	// zone (CR 701.23): the object the controller selected among the offered
+	// candidates. rules' resumeResolution sets it from the recorded answer
+	// before re-running the suspended effPlay, which then casts/plays it from
+	// its own zone. PlayDone distinguishes "answered (possibly with no card)"
+	// from the first pass.
+	Play     state.ObjID
+	PlayDone bool
+	// DrawDone is the number of individual draws a multi-card Draw has already
+	// completed. A dredge choice suspends between draws; rules restores this
+	// cursor after applying the selected replacement so the enclosing Draw
+	// continues rather than restarting or abandoning its remaining cards.
+	DrawDone int32
 	// Imprint is the selected public-zone ChangeZone card. It is scoped to
 	// Imprint$ True so a nested ordinary ChangeZone cannot consume it.
 	Imprint     []state.ObjID
@@ -429,6 +449,26 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// Hideaway holds the selected top-library card while the Hideaway
+	// replacement resumes to exile it; HideawayPicked distinguishes that
+	// selected answer from the first pass. HideawayArranged marks completion
+	// of the following bottom-order KArrange ask.
+	Hideaway         state.ObjID
+	HideawayPicked   bool
+	HideawayArranged bool
+	// SoulbondPartner is the optional pairing answer. SoulbondDone makes a
+	// declined empty choice distinct from the initial pass.
+	SoulbondPartner state.ObjID
+	SoulbondDone    bool
+	// Myriad is one per-opponent optional token decision. MyriadTarget is the
+	// index in the deterministic eligible-opponent list that just answered;
+	// MyriadDone distinguishes that answer from the first pass, and
+	// MyriadCreate says whether it creates that target's token. Re-entry emits
+	// the selected token, then asks the next opponent, so each may choice is
+	// independent and no answer is retained by a nested Myriad.
+	MyriadTarget int
+	MyriadDone   bool
+	MyriadCreate bool
 	// ManaAmount and ManaType are the in-flight unit of mana a ProduceMana
 	// replacement modifies. rules seeds them from a ManaAdd event and then
 	// emits the transformed event, so ReplaceMana never writes game state

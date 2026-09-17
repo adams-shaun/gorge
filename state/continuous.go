@@ -141,7 +141,7 @@ type ContinuousEffect struct {
 	// that carries MayPlay$ True, alongside the Affects filter (the Affected$
 	// spec, the effect's ordinary filter field) and AffectedZone. When set
 	// the effect is a rules-mod consulted by the land-play offer (rules'
-	// mayPlayLandIds), never a CR 613 layer change -- no layer fields are
+	// mayplay.go), never a CR 613 layer change -- no layer fields are
 	// read for it -- and it expires with its source permanent (CR 611.3b)
 	// through the ordinary source-on-battlefield check in active().
 	MayPlay bool

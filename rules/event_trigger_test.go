@@ -194,7 +194,20 @@ func TestTapsForManaTriggerCryptGhastPaysForCastImmediately(t *testing.T) {
 	e.beginCast(0, decision.Option{Kind: "cast", Obj: spellID})
 	e.Advance()
 	submitChoices(t, e, activateOption(t, e, swamp))
-	if len(e.G.Stack) != 1 || e.G.Stack[0] != spellID || e.G.Obj(spellID).Zone != state.ZStack {
+	// The merged engine also expands Crypt Ghast's Extort keyword into a
+	// SpellCast trigger (kw:Extort, this branch's primitive), which rides the
+	// stack after the spell -- so the stack is [spell, extort trigger], not
+	// the pre-merge [spell] alone. What the payment window pins is that the
+	// spell itself is ON the stack and fully paid: the Ghast TapsForMana
+	// trigger resolved immediately under CR 605.3b (pool empty, no pending
+	// triggers) and supplied the second {B}.
+	onStack := false
+	for _, id := range e.G.Stack {
+		if id == spellID {
+			onStack = true
+		}
+	}
+	if !onStack || e.G.Obj(spellID).Zone != state.ZStack {
 		t.Fatalf("Black Knight stack/zone = %v/%s, want paid cast on stack", e.G.Stack, e.G.Obj(spellID).Zone)
 	}
 	if got := e.G.Players[0].Pool.Total(); got != 0 {

@@ -96,6 +96,41 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 			}
 		}
 	}
+	// kw-mayplay: the card's OWN static (or a battlefield static naming it)
+	// can also grant the play -- the same predicate beginCast's "mayplay"
+	// cost case consults, so offer and charge agree. It covers the zones the
+	// ce walk above cannot reach: a self-grant on a card sitting in a
+	// graveyard or exile (staticEffects never reads a non-battlefield
+	// source) and a Library-zone grant (Ka-Zar of the Savage Land), offered
+	// for the TOP CARD ONLY so the hidden library never leaks a deeper
+	// identity. The membership check keeps a card the ce walk already
+	// offered from being offered twice.
+	contains := func(id state.ObjID) bool {
+		for _, got := range out {
+			if got == id {
+				return true
+			}
+		}
+		return false
+	}
+	for _, z := range []state.Zone{state.ZGraveyard, state.ZExile} {
+		for _, id := range e.G.Zone(z, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil || !o.Face().IsLand() || o.Controller != p {
+				continue
+			}
+			if _, ok := e.mayPlayGrant(p, id); ok && !contains(id) {
+				out = append(out, id)
+			}
+		}
+	}
+	if lib := e.G.Zone(state.ZLibrary, p); len(lib) > 0 {
+		if o := e.G.Obj(lib[0]); o != nil && o.Face() != nil && o.Face().IsLand() && o.Controller == p {
+			if _, ok := e.mayPlayGrant(p, lib[0]); ok && !contains(lib[0]) {
+				out = append(out, lib[0])
+			}
+		}
+	}
 	return out
 }
 
@@ -170,41 +205,45 @@ func (e *Engine) mayPlaySpellIds(p state.PlayerID) []state.ObjID {
 		out = append(out, id)
 		return true
 	}
-	// A card in exile may grant its own may-play through EffectZone$ Exile
-	// (Misthollow Griffin / Eternal Scourge's "You may cast CARDNAME from
-	// exile"): staticEffects never reads a non-battlefield source, so this
-	// narrow self-grant scan covers exactly that shape -- the exiled card's
-	// own S: static carrying Affected$ Card.Self and an AffectedZone naming
-	// Exile. The Affects match is the card itself, so nothing else can ride
-	// the scan.
-	for _, q := range e.G.AliveFrom(0) {
-		for _, id := range e.G.Zone(state.ZExile, q) {
-			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil || o.Face().IsLand() || o.Owner != p {
-				continue
+	// A card's OWN S: static can grant its cast from a public zone it sits
+	// in -- Misthollow Griffin / Eternal Scourge's exile self-grant,
+	// Gravecrawler's "as long as you control a Zombie" graveyard cast -- or
+	// from the library's top card (Korlessa, Scale Singer). staticEffects
+	// never reads a non-battlefield source, so this scan covers exactly the
+	// self-grant shapes; the same mayPlayGrant predicate beginCast's
+	// "mayplay" cost case consults evaluates the card's statics (its gates
+	// -- Condition$ PlayerTurn, IsPresent$, the unread-gate family -- fail
+	// closed inside) AND every battlefield static naming the card, so the
+	// ce walk below and this scan agree on every grant either discovers.
+	// A Library-zone grant is offered for the TOP CARD ONLY, so the hidden
+	// library never leaks a deeper card identity into the option list. The
+	// dedupe keeps a card the ce walk already offered from being offered
+	// twice.
+	for _, z := range []state.Zone{state.ZGraveyard, state.ZExile} {
+		for _, q := range e.G.AliveFrom(0) {
+			for _, id := range e.G.Zone(z, q) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil || o.Face().IsLand() || o.Controller != p {
+					continue
+				}
+				if _, ok := e.mayPlayGrant(p, id); ok {
+					consider(z, id)
+				}
 			}
-			self := false
-			for _, st := range o.Face().Statics {
-				if st.Mode != "Continuous" || !mayPlayGrant(st) {
-					continue
-				}
-				if !strings.EqualFold(strings.TrimSpace(st.Params["Affected"]), "Card.Self") {
-					continue
-				}
-				zones, all, ok := effects.ParseZones(st.Params["AffectedZone"])
-				if (!ok && !all) || (!all && !slices.Contains(zones, state.ZExile)) {
-					continue
-				}
-				self = true
-				break
-			}
-			if self {
-				consider(state.ZExile, id)
+		}
+	}
+	if lib := e.G.Zone(state.ZLibrary, p); len(lib) > 0 {
+		if o := e.G.Obj(lib[0]); o != nil && o.Face() != nil && !o.Face().IsLand() && o.Controller == p {
+			if _, ok := e.mayPlayGrant(p, lib[0]); ok {
+				consider(state.ZLibrary, lib[0])
 			}
 		}
 	}
 	for _, ce := range e.active() {
 		if !ce.MayPlay || ce.Controller != p {
+			continue
+		}
+		if ce.MayPlayPlayerTurn && e.G.Active != p {
 			continue
 		}
 		if ce.MayPlayLimit > 0 && int32(limited) >= ce.MayPlayLimit {
@@ -856,13 +895,19 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		cost := withSpellAbilityExtras(f, offerCostFor(p, id, e.rawBaseCost(p, id), spellScope("mayplay")))
+		base := e.rawBaseCost(p, id)
+		if free, ok := e.mayPlayGrant(p, id); ok && free {
+			// MayPlayWithoutManaCost$ True (the kw-mayplay predicate): the
+			// mana part is free, exactly as beginCast's "mayplay" case will
+			// charge it; non-mana additional costs still apply (CR 118.9).
+			base = Cost{}
+		}
+		cost := withSpellAbilityExtras(f, offerCostFor(p, id, base, spellScope("mayplay")))
 		if e.castable(p, id, cost, false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name, Obj: id, Mode: "mayplay"})
 		}
 	}
-
 	// Command zone (CR 903.8, Commander format): a player may cast a
 	// commander they own from the command zone. This is a SECOND cast source
 	// alongside the hand walk above, never a replacement for it. A
@@ -958,6 +1003,11 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
 		}
 	}
+
+	// MayPlay static offers are the main-side walk above (mayPlayLandIds /
+	// mayPlaySpellIds over the continuous-effect grants plus the self-grant
+	// scan); the kw-mayplay branch's separate mayPlayGrantOffers walk is
+	// retired here so a granted card is offered exactly once.
 
 	// Warp from the graveyard requires a separate MayPlay Spell.Warp static;
 	// Warp itself grants only the hand alternative. Timeline Culler is the
@@ -1329,20 +1379,24 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 
 	case "play_land":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-		// Task 12: a land with an "as this enters" choice goes through the
-		// same one-stage cast flow a spell does -- collect the choice, ask it
-		// via chooseETB, record it with a Choose event, then continueCast's
+		// Task 12: a land with an "as this enters" choice (an
+		// ETBReplacement whose ReplaceWith$ is NameCard/ChooseType/
+		// ChooseNumber, e.g. Cavern of Souls) goes through the same
+		// one-stage cast flow a spell does -- collect the choice, ask it via
+		// chooseETB, record it with a Choose event, then continueCast's
 		// payCast moves the land and logs the play. A land with none keeps
 		// the original direct path (no pendingCast, no flow), so ordinary
 		// lands are untouched. Both paths share the same continuation
-		// machinery, never a parallel one.
+		// machinery: etbAnswer/continueCast/commitCast below, never a
+		// parallel one.
 		//
 		// The source zone is the object's CURRENT zone, not hardcoded to the
-		// hand: a may-play grant lets a land be played from the graveyard (or
-		// exile), so a hand land and a graveyard land must move From the zone
-		// they were actually offered from. A land that somehow left its zone
-		// between the offer and the answer (only a hand-built intent makes
-		// that possible) resolves from whatever zone it is in, and the
+		// hand: since the MayPlay grants (rules/mayplay.go) the play_land
+		// offer also comes from the graveyard, exile or the top of the
+		// library, a hand land and a graveyard land must move From the zone
+		// they were actually offered from (CR 118.3a -- the permission names
+		// the zone it grants). A land that somehow left its zone between the
+		// offer and the answer resolves from whatever zone it is in, and the
 		// MoveZone/LandPlayed below still records a legal play.
 		from := state.ZHand
 		if o := e.G.Obj(opt.Obj); o != nil {

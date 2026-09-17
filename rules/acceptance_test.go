@@ -93,11 +93,7 @@ import (
 // needed only by the three held commander decks (Rakdos Scam.exe, Vivi
 // cEDH, Ulalek Eldrazi), whose entries land in this table when they are
 // imported.
-var knownUnsupported = map[string][]string{
-	"Conduit of Worlds": {"api:Play"},
-	"Crypt Ghast":       {"kw:Extort"},
-	"Spinerock Knoll":   {"api:Play", "kw:Hideaway"},
-}
+var knownUnsupported = map[string][]string{}
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
 // across every deck file (the 12 Legacy decks and the m38 commander decks)

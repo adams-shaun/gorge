@@ -165,6 +165,7 @@ export interface ManaProduction {
 export interface CardView {
   id: number;
   name: string;
+  face_down?: boolean;
   types: string;
   /**
    * ManaCost is the printed cost in Forge's notation ("1 W", "R", "X G").

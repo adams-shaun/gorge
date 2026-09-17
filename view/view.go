@@ -239,9 +239,10 @@ type Printing struct {
 // the viewer owns it — cardViews is only ever called with a zone list the
 // caller has already decided is visible.
 type CardView struct {
-	ID    state.ObjID `json:"id"`
-	Name  string      `json:"name"`
-	Types string      `json:"types"`
+	ID       state.ObjID `json:"id"`
+	Name     string      `json:"name"`
+	FaceDown bool        `json:"face_down,omitempty"`
+	Types    string      `json:"types"`
 	// ManaCost is the printed cost in Forge's notation ("1 W", "R", "X G").
 	// Hand lists render it as symbols.
 	ManaCost string `json:"mana_cost,omitempty"`
@@ -449,10 +450,10 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 			LibrarySize:    len(g.Zone(state.ZLibrary, p.ID)),
 			HandSize:       len(g.Zone(state.ZHand, p.ID)),
 			GraveyardSize:  len(g.Zone(state.ZGraveyard, p.ID)),
-			Battlefield:    cardViews(g, ch, g.Zone(state.ZBattlefield, p.ID), true, p.ID),
-			Graveyard:      cardViews(g, ch, g.Zone(state.ZGraveyard, p.ID), false, p.ID),
-			Exile:          cardViews(g, ch, g.Zone(state.ZExile, p.ID), false, p.ID),
-			Command:        cardViews(g, ch, g.Zone(state.ZCommand, p.ID), false, p.ID),
+			Battlefield:    cardViews(g, ch, g.Zone(state.ZBattlefield, p.ID), true, p.ID, viewer, false),
+			Graveyard:      cardViews(g, ch, g.Zone(state.ZGraveyard, p.ID), false, p.ID, viewer, false),
+			Exile:          cardViews(g, ch, g.Zone(state.ZExile, p.ID), false, p.ID, viewer, false),
+			Command:        cardViews(g, ch, g.Zone(state.ZCommand, p.ID), false, p.ID, viewer, false),
 			Commanders:     roster,
 			CommanderCasts: casts,
 		}
@@ -491,7 +492,7 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		// names hand as a hidden zone).
 		pv.Pool = poolView(p.Pool)
 		if p.ID == viewer {
-			pv.Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID), true, p.ID)
+			pv.Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID), true, p.ID, viewer, false)
 		}
 		v.Players = append(v.Players, pv)
 	}
@@ -706,7 +707,7 @@ func PhaseOf(s state.Step) string {
 // site -- and an ability object (Card == nil, so Face() == nil too) never
 // legitimately sits in a card zone at all. Both are parked in exile by the
 // engine and are skipped here (Task 4).
-func cardViews(g *state.Game, ch Chars, ids []state.ObjID, includeAbilityCosts bool, abilityPlayer state.PlayerID) []CardView {
+func cardViews(g *state.Game, ch Chars, ids []state.ObjID, includeAbilityCosts bool, abilityPlayer, viewer state.PlayerID, revealFaceDown bool) []CardView {
 	out := make([]CardView, 0, len(ids))
 	for _, id := range ids {
 		o := g.Obj(id)
@@ -716,6 +717,17 @@ func cardViews(g *state.Game, ch Chars, ids []state.ObjID, includeAbilityCosts b
 			continue
 		}
 		cv := cardView(g, ch, id)
+		// A face-down exiled card is public as a distinct object but its face is
+		// visible only to its controller (or an omniscient projection). Keep
+		// every printed field blank for other viewers; Secret on the original
+		// MoveZone was only event redaction and cannot carry this lasting fact.
+		if o.FaceDown {
+			cv.FaceDown = true
+			if !revealFaceDown && viewer != o.Controller {
+				cv = CardView{ID: id, FaceDown: true, Token: "#" + strconv.FormatUint(uint64(id), 10),
+					Controller: o.Controller, Owner: o.Owner}
+			}
+		}
 		if includeAbilityCosts {
 			if ch != nil {
 				cv.AbilityCosts = ch.AbilityCosts(abilityPlayer, id)

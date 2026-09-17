@@ -194,6 +194,19 @@ func (e *Engine) finishUntapStep(next int) bool {
 //	and deleting it is exactly the mutant that draws for an eliminated
 //	player.
 //
+//	The draw can also SUSPEND on a mid-draw ask: a Dredge replacement
+//	(CR 702.55) poses its KModes choice through the same DrawFor this
+//	turn-based action shares with the Draw primitive, and the ask leaves
+//	e.pending set (exactly the condition the Advance loop pauses on).
+//	CR 405.1: the step's priority comes only AFTER the turn-based action
+//	completes -- and the dredge answer's resume path (resolution.go's
+//	dredge arm -> Advance -> priorityRound) grants that one priority
+//	itself. Reporting the suspension here (e.pending != nil alongside
+//	e.G.Over) is what keeps the emit below from granting priority twice
+//	and from logging a Priority event before the player had even answered
+//	whether to replace the draw (findings-sol4 MAJOR;
+//	dredge_turn_draw_test.go is the committed probe).
+//
 // CR 702.151a (Sagas, kw:Chapter): "As this Saga enters and after your draw
 // step, add a lore counter." The ETB half is granted in events.Move (the
 // same every-entry-site convention the planeswalker starting loyalty uses);
@@ -209,6 +222,16 @@ func (e *Engine) drawStepTurnAction() bool {
 	}
 	e.drawCard(e.G.Active)
 	if e.G.Over {
+		return true
+	}
+	if e.pending != nil {
+		// The draw suspended on a mid-draw ask (a Dredge replacement's
+		// KModes choice): the step's priority comes from the answer's
+		// resume path (resolution.go's dredge arm -> Advance ->
+		// priorityRound), so the emit below must not grant it twice. The
+		// after-draw Saga grant is likewise deferred: it belongs after the
+		// step's draw actually lands, and the dredge answer re-drives the
+		// turn structure before that priority.
 		return true
 	}
 	e.advanceSagas(e.G.Active)
@@ -305,6 +328,16 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
 		}
 	}
 	if leaving == state.StepEndCombat && entering != leaving {
+		// CR 702.109a exiles every Myriad token at end of combat before the
+		// combat-state reset. Emit only when one exists, so unrelated combats
+		// retain their established event stream while replay still folds the
+		// same deterministic cleanup whenever it matters.
+		for i := range e.G.Objs {
+			if o := &e.G.Objs[i]; o.IsMyriad && o.Zone == state.ZBattlefield {
+				e.emit(events.Event{Kind: events.MyriadCleanup})
+				break
+			}
+		}
 		// CR 511.3 removes creatures and planeswalkers from combat as the end
 		// of combat step ends, not when it begins. Keeping the leaving-step
 		// boundary here covers every transition made through setStep exactly
@@ -765,6 +798,26 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			e.resumeTriggerDrain()
 			return
 		}
+	case chooseRiot:
+		// Riot is an as-enters replacement for every MoveZone path, including
+		// reanimation and blink that never create pendingCast. Record the
+		// choice first, then re-emit the parked entry; Apply consumes it on
+		// battlefield entry.
+		if e.riotMove == nil || len(chosen) != 1 {
+			e.riotMove = nil
+			e.choosing = chooseNone
+			e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "Riot answered with no entry pending"})
+			return
+		}
+		choice := "haste"
+		if chosen[0].Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: e.riotMove.Obj, Counter: "riot", Text: choice})
+		move := *e.riotMove
+		e.riotMove = nil
+		e.choosing = chooseNone
+		e.emit(move)
 	case chooseOpening:
 		e.handleOpening(d, in)
 	case chooseSuspendCast:
