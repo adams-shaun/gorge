@@ -1181,7 +1181,9 @@ var apiSpecificRulesSA = map[string][]string{
 	// The ManaReflected activation gate: only a reflected-mana ability's
 	// offer consults IsPresent$/PresentCompare$ on the SA itself (Tazri's
 	// "another activated ability" condition). A plain AB$ Mana ability's
-	// IsPresent$ gate is a separate, still-unread shape.
+	// IsPresent$ gate is read separately, by manaActivationGateHolds below
+	// (the Verge lands, Temple of the False God, Shrine of the Forsaken
+	// Gods), so this entry must not swallow it.
 	"Engine.manaReflectedPresentHolds": {"ManaReflected"},
 	// The plain-Mana activation gate (Shrine of the Forsaken Gods'
 	// IsPresent$/PresentCompare$, Urza's Workshop's Activation$ Metalcraft):
