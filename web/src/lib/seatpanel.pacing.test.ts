@@ -503,3 +503,33 @@ describe('casual still ships the paced defaults', () => {
     expect(defaultSettings().logAutoPasses).toBe(true);
   });
 });
+
+// fb-20260917T004341Z: the Custom step-delay pair. paceMs reads
+// settings.pacing generically, so any user-set pair drives the machine —
+// this is the wiring pin that a pair set through the panel's Custom inputs
+// schedules a wait (never posts synchronously, never posts early).
+describe('a user-set (Custom) pacing pair drives the same wait', () => {
+  it('750/750 schedules and posts only after the full beat, on a bare step and under a resolving object', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 750, resolveMs: 750 });
+    p.adoptView(quiet(1));
+    p.considerAuto(view());
+    expect(postIntentMock).not.toHaveBeenCalled(); // nothing synchronous
+    expect(vi.getTimerCount()).toBe(1); // a real wait is scheduled
+    await vi.advanceTimersByTimeAsync(749);
+    expect(postIntentMock).not.toHaveBeenCalled(); // still inside the beat
+    await vi.advanceTimersByTimeAsync(1);
+    await settle(() => p.postedSeq === 1);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    // Same pair under a resolving object: resolveMs (not stepMs) governs —
+    // identical here, so pin that the wait restarts and waits the full beat.
+    p.adoptView(quiet(2));
+    p.considerAuto(view('main1', 0, 2, [stackView('Lightning Bolt')]));
+    expect(postIntentMock).toHaveBeenCalledTimes(1); // not yet
+    await vi.advanceTimersByTimeAsync(749);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    await settle(() => p.postedSeq === 2);
+    expect(postIntentMock).toHaveBeenCalledTimes(2);
+  });
+});
