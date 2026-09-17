@@ -134,7 +134,7 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
     expect(html).toMatch(/data-done-action[^>]*disabled/);
   });
 
-  it('the GAME OPTIONS drop mounts the play-settings editor, which reflects pass-after-acting', () => {
+  it('the OPTIONS drop mounts the play-settings editor, which reflects pass-after-acting', () => {
     const priority: Decision = {
       seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
       options: [option(7, 'cast', 'Cast spell'), option(42, 'pass', 'Pass priority')],
@@ -147,6 +147,24 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
     expect(on).toMatch(/aria-checked="true"[^>]*data-actpass-toggle/);
     expect(on).not.toContain('Skip empty windows');
     expect(on).not.toContain('data-stop-grid');
+
+    // fb-20260917T231628Z: the drop carries the game log's show/hide switch,
+    // but only when a toggle is threaded in — the control lives in Table.svelte
+    // (logshown.ts persistence), so a strip mounted without it renders no dead
+    // switch, mirroring Rail's own {#if onToggleLog} contract.
+    expect(on).not.toContain('data-toggle="show-game-log"');
+    const state2 = new SeatPanelState('t1', 1, ctx, null);
+    state2.skipEmpty = false;
+    state2.adoptView(priority);
+    const withLog = render(HotButtonStrip, {
+      props: { view: { ...baseView, decision: priority }, seats, state: state2, ctx, table: 't1', match: 1, showLog: false, onToggleLog: () => {} },
+    }).html;
+    const sw = /<button[^>]*data-toggle="show-game-log"[^>]*>/.exec(withLog)?.[0] ?? '';
+    expect(sw).not.toBe('');
+    expect(sw).toContain('role="switch"');
+    expect(sw).toContain('aria-checked="false"');
+    expect(withLog).toContain('Show game log');
+    expect(withLog).toContain('>Hidden<');
 
     const state = new SeatPanelState('t1', 1, ctx, null);
     state.skipEmpty = false;

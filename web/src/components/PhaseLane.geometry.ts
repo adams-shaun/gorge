@@ -52,7 +52,7 @@ mount(BoardStage, {
     view, seats, seat: 0,
     stops: { yours: new Set<string>(), opponents: new Set<string>() },
     onToggle: () => {},
-    controls: { state: panel, ctx: { seat: 0, token: 'geometry' }, table: 'fixture', match: 1 },
+    controls: { state: panel, ctx: { seat: 0, token: 'geometry' }, table: 'fixture', match: 1, showLog: true, onToggleLog: () => {} },
   },
 });
 

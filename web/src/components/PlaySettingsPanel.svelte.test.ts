@@ -21,9 +21,10 @@ import { layoutStore } from '../lib/layoutsettings.svelte';
 
 const ctx = { seat: 0, token: 'tok' };
 
-/** panel renders the editor bound to a fresh (or caller-prepared) seat state. */
-function panel(state: SeatPanelState): string {
-  return render(PlaySettingsPanel, { props: { state } }).html;
+/** panel renders the editor bound to a fresh (or caller-prepared) seat state.
+ *  The optional log props (fb-20260917T231628Z's switch) ride along when given. */
+function panel(state: SeatPanelState, log?: { showLog: boolean; onToggleLog: () => void }): string {
+  return render(PlaySettingsPanel, { props: log ? { state, ...log } : { state } }).html;
 }
 
 /** tag returns the opening tag of the element carrying one data attribute ('' when absent). */
@@ -101,7 +102,7 @@ describe('PlaySettingsPanel — Remembered trigger answers (fb-20260914T062319Z-
   });
 });
 
-describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
+describe('PlaySettingsPanel — the OPTIONS editor (rendered)', () => {
   it('renders casual by default: preset pressed, its blurb shown, the opponent rules reflecting it', () => {
     const html = panel(new SeatPanelState('t1', 1, ctx, null));
     expect(tag(html, 'data-preset="casual"')).toContain('aria-pressed="true"');
@@ -508,6 +509,22 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
     await page.close();
   });
 
+  it('a real click on the fixture game log switch calls onToggleLog — its only write path (fb-20260917T231628Z)', async () => {
+    const page = await open();
+    const sw = page.locator('[data-toggle="show-game-log"]');
+    // The fixture mounts with showLog: false (the seated default).
+    expect(await sw.getAttribute('aria-checked')).toBe('false');
+    expect(await sw.textContent()).toContain('Show game log');
+    await sw.click();
+    expect(await page.evaluate(() => (window as unknown as { gameLogToggles: number }).gameLogToggles)).toBe(1);
+    await sw.click();
+    expect(await page.evaluate(() => (window as unknown as { gameLogToggles: number }).gameLogToggles)).toBe(2);
+    // The click wrote nothing into the play settings — the switch is outside
+    // that model entirely (no editSettings call, no preset relabelling).
+    expect((await stateOf(page)).preset).toBe('casual');
+    await page.close();
+  });
+
   // fb-20260914T062319Z-88b4069a B4: the remembered-answers management list
   // against the REAL state — a real click on Forget deletes just that entry,
   // Forget all empties it, and the panel follows the store (the empty-state
@@ -690,5 +707,29 @@ describe('PlaySettingsPanel — Layout section (fb-20260916T182801Z)', () => {
       store.reset();
       store.dispose();
     }
+  });
+
+  // fb-20260917T231628Z: the transcript's show/hide switch moved into the
+  // Layout section from the rail's top row. Same role="switch" row idiom as
+  // the toggle above, but its state and write path are PROPS (Table.svelte's
+  // showLog/toggleLog, persisted through logshown.ts) — never the layout
+  // store, never logic.editSettings, never a PlaySettings field.
+  it('renders the game log switch bound to its props, and nothing when no toggle is supplied', () => {
+    // No onToggleLog: a caller that does not own the log (every existing
+    // fixture/test) renders no switch — the Rail contract, mirrored.
+    const absent = panel(new SeatPanelState('lg-absent', 1, ctx, null));
+    expect(absent).not.toContain('data-toggle="show-game-log"');
+    expect(absent).toContain('data-layout-section'); // the section itself is untouched
+
+    const shown = panel(new SeatPanelState('lg-on', 1, ctx, null), { showLog: true, onToggleLog: () => {} });
+    const on = tag(shown, 'data-toggle="show-game-log"');
+    expect(on).toContain('role="switch"');
+    expect(on).toContain('aria-checked="true"');
+    expect(elem(shown, 'data-toggle="show-game-log"')).toContain('Show game log');
+    expect(elem(shown, 'data-toggle="show-game-log"')).toContain('Shown');
+
+    const hidden = panel(new SeatPanelState('lg-off', 1, ctx, null), { showLog: false, onToggleLog: () => {} });
+    expect(tag(hidden, 'data-toggle="show-game-log"')).toContain('aria-checked="false"');
+    expect(elem(hidden, 'data-toggle="show-game-log"')).toContain('Hidden');
   });
 });

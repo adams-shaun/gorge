@@ -111,6 +111,20 @@
   );
   const mulligan = $derived(panel ? mulliganPhase(panel.active) : null);
   const concede = $derived(panel?.concedeOption ?? null);
+  // fb-20260917T231628Z: the log show/hide control moved into the OPTIONS drop
+  // (PlaySettingsPanel's Layout section) for ordinary seated play. The drop is
+  // mounted only when BoardStage's `controls` object is non-null, so the rail's
+  // LOGS toggle must survive in exactly the states where the drop does not exist
+  // (spectator, mulligan round, game over, the finished /m/:match replay) — a
+  // spectator whose saved preference is "hidden" could otherwise never get the
+  // log back. The reachability flag is DEFINED AS `controls !== null`, so the
+  // rail's toggle and the drop's switch can never both be absent.
+  const controls = $derived(
+    panel && seatCtx && m.match !== null && m.view !== null && !finished && mulligan === null && !m.view.over
+      ? { state: panel, ctx: seatCtx, table, match: m.match, showLog, onToggleLog: toggleLog }
+      : null,
+  );
+  const optionsReachable = $derived(controls !== null);
   // The empty-answer safety net (the Squadron Hawk fail-to-find soft-lock):
   // a decision for THIS seat that carries no options is one no picker can
   // render, so the Pending tray names it — and, when the empty answer is
@@ -254,9 +268,7 @@
           stops={panel ? panel.stops : null}
           onToggle={panel ? (step, side) => panel.toggleStop(step, side) : null}
           mulligan={mulligan !== null}
-          controls={panel && seatCtx && m.match !== null && !finished && mulligan === null && !m.view.over
-            ? { state: panel, ctx: seatCtx, table, match: m.match }
-            : null}
+          {controls}
         />
         {#each m.view.players as p (p.seat)}
           <IdentityBar
@@ -315,6 +327,12 @@
              the row is the anchor and grows if the control needs height.
              The state stays here (SeatPanelState wiring); only the markup's
              host row moved. -->
+        <!-- fb-20260917T231628Z: while the OPTIONS drop is reachable the log
+             switch lives there, so the rail renders no second control (its
+             own {#if onToggleLog} hides the row's button when the prop is
+             null). The drop is NOT mounted for a spectator, the mulligan
+             round, a game-over board or the finished replay — exactly the
+             states where the rail keeps its toggle. -->
         <Rail
           view={m.view}
           seats={m.seats}
@@ -324,7 +342,7 @@
           emphasizeTop={seated}
           events={m.dvr.events}
           showLog={showLog}
-          onToggleLog={toggleLog}
+          onToggleLog={optionsReachable ? null : toggleLog}
           yields={panel?.yields ?? null}
           onYield={panel ? (key) => panel.addYield(key) : null}
           viewerSeat={seated ? (seatCtx?.seat ?? null) : null}
