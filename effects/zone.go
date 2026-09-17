@@ -334,6 +334,9 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZExile {
 			recordExileReturn(h, c, sa, o.ID, fromZone, to)
 		}
+		if to == state.ZBattlefield {
+			applyTransformed(h, c, sa, o.ID)
+		}
 		// RememberLKI$ True (Reanimate's "creature card" whose mana value the
 		// chained lose-life SVar reads, RememberedLKI$CardManaCost) joins the
 		// moved object to the ability's Remembered -- a resolution-local Ctx
@@ -467,6 +470,27 @@ func applyGainControl(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
 	}
 }
 
+// applyTransformed implements ChangeZone's Transformed$ True: a double-faced
+// card this effect moves to the battlefield enters TRANSFORMED (CR 711.10a:
+// a transforming double-faced card enters with its back face up when an
+// effect says so) — the Ojer Axonil death trigger's "return it to the
+// battlefield tapped and transformed", the Kytheon/Kumano "return it
+// transformed" returns. The flip is the one FlipFace event effSetState
+// emits, to the face AFTER the one the card carries out of its zone, so
+// replay folds move-then-flip in the same order live does. A card with fewer
+// than two faces is not a transform and is left alone.
+func applyTransformed(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
+	if !strings.EqualFold(strings.TrimSpace(sa.Params["Transformed"]), "True") {
+		return
+	}
+	o := h.Game().Obj(id)
+	if o == nil || o.Card == nil || len(o.Card.Faces) < 2 {
+		return
+	}
+	next := (int(o.FaceIdx) + 1) % len(o.Card.Faces)
+	h.Emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(next), Text: "Transformed"})
+}
+
 func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool) {
 	if from == state.ZHand && to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 		notePlayer := c.Controller
@@ -519,6 +543,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	// keeps its owner.
 	if to == state.ZBattlefield {
 		applyGainControl(h, c, sa, id)
+		applyTransformed(h, c, sa, id)
 	}
 }
 
@@ -2228,6 +2253,28 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		spec = "Card"
 	}
 	g := h.Game()
+	// LibraryPosition$ (Terminus' "put all creatures on the bottom of their
+	// owners' libraries") and Shuffle$ (Jace, the Mind Sculptor's [-12]
+	// "shuffles their hand into their library", Gomazoa's "put on top ... then
+	// those players shuffle") both act on the DESTINATION libraries, so the
+	// move loop records every owner that had a card moved, in the loop's own
+	// deterministic (zone-major, AliveFrom(0)-minor) order.
+	position := strings.TrimSpace(sa.Params["LibraryPosition"])
+	shuffle := strings.EqualFold(sa.Params["Shuffle"], "True")
+	type ownerMoved struct {
+		owner state.PlayerID
+		ids   []state.ObjID
+	}
+	var placements []ownerMoved
+	findOwnerMoved := func(owner state.PlayerID) *ownerMoved {
+		for i := range placements {
+			if placements[i].owner == owner {
+				return &placements[i]
+			}
+		}
+		placements = append(placements, ownerMoved{owner: owner})
+		return &placements[len(placements)-1]
+	}
 	for _, z := range from {
 		for _, p := range g.AliveFrom(0) {
 			// Snapshot the zone: emitting move events mutates it underneath us.
@@ -2238,6 +2285,18 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 					if to == state.ZExile {
 						recordExileReturn(h, c, sa, id, z, to)
 					}
+					// GainControl$ hands the moved object to the named player
+					// (Karn Liberated's ReturnFromExile, Cold Storage, Ghost
+					// Vacuum). Only a battlefield entry can carry a control
+					// change (CR 701.22a controls permanents), the same rule the
+					// ChangeZone path applies; the shared resolver is loud rather
+					// than silent on an unresolvable selector.
+					if to == state.ZBattlefield {
+						applyGainControl(h, c, sa, id)
+					}
+					if to == state.ZLibrary {
+						findOwnerMoved(p).ids = append(findOwnerMoved(p).ids, id)
+					}
 					// ChangeZoneAll's remembered movement is needed for the
 					// exiled-with-this-source cleanup/tally shape (Valakut
 					// Exploration). Other ChangeZoneAll RememberChanged forms
@@ -2247,6 +2306,32 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 						c.Remembered = append(c.Remembered, state.Target{Obj: id})
 					}
 				}
+			}
+		}
+	}
+	if to == state.ZLibrary && len(placements) > 0 {
+		// LibraryPosition$: MoveZone already appends at the bottom of the
+		// destination library in settle order, so "-1" (Terminus) is exactly the
+		// move order and needs no extra event; "0" pins the moved cards on TOP
+		// via the one Secret LibraryOrder placement every library placement
+		// shares. Any other value is loud rather than silently inert.
+		switch position {
+		case "", "-1":
+		case "0":
+			for _, pm := range placements {
+				libraryOrderPlacement(h, pm.owner, pm.ids, false)
+			}
+		default:
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "LibraryPosition$ " + position + " is not implemented; the cards go on top"})
+		}
+		// Shuffle$ True shuffles each destination library that received a card,
+		// AFTER the placement (Gomazoa's "put on top ..., then those players
+		// shuffle" order), through the same Secret events.Shuffle every other
+		// library shuffle emits.
+		if shuffle {
+			for _, pm := range placements {
+				shuffleLibraryOrder(h, pm.owner)
 			}
 		}
 	}
