@@ -747,9 +747,49 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 			Text: "registers a delayed trigger with no Execute"})
 		return
 	}
+	// RememberObjects$ (Flickerwisp's and Necropotence's RememberedLKI)
+	// names what the delayed trigger remembers when it fires. The
+	// registration below ALWAYS captures the resolving chain's Remembered --
+	// which is exactly what RememberedLKI means (the parent effect's captured
+	// set, e.g. the exiled permanent RememberChanged$ put there) -- so the
+	// read confirms the corpus's dominant value and changes nothing for it.
+	// Every other value resolves through the Defined grammar (Targeted,
+	// TriggeredAttackerLKICopy, the " & " joins, ...) and unions into the
+	// same captured set, so a delayed trigger whose parent chain did not
+	// remember its subjects still learns them; an unresolvable value is loud
+	// rather than silently dropped.
+	if spec := strings.TrimSpace(sa.Params["RememberObjects"]); spec != "" && spec != "RememberedLKI" {
+		if ts, known := knownDefinedTargets(h, c, spec); known {
+			for _, t := range ts {
+				dup := false
+				for _, have := range c.Remembered {
+					if have == t {
+						dup = true
+						break
+					}
+				}
+				if !dup {
+					c.Remembered = append(c.Remembered, t)
+				}
+			}
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unmodelled DelayedTrigger RememberObjects$ " + spec})
+		}
+	}
+	// The registration's ValidPlayer$ rides the event's Text next to the
+	// phase: "<Phase>|VP=<value>". The rules-side delayed scan gates the
+	// fire on it at the phase occurrence (Necropotence's "YOUR next end
+	// step" -- a phase the gate fails leaves the one-shot registration
+	// pending for the first later occurrence that matches), and the view
+	// layer strips the suffix for display.
+	text := sa.Params["Phase"]
+	if vp := strings.TrimSpace(sa.Params["ValidPlayer"]); vp != "" {
+		text += "|VP=" + vp
+	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec,
-		IDs: encodeRemembered(c.Remembered), Text: sa.Params["Phase"]})
+		IDs: encodeRemembered(c.Remembered), Text: text})
 }
 
 // encodeRemembered turns a Remembered target list into the []ObjID an event

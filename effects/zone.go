@@ -256,6 +256,38 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	targets := Defined(h, c, sa)
+	// The O-Ring return shape (Journey to Nowhere, Leonin Relic-Warder): the
+	// LEAVE-battlefield trigger's Execute is `DB$ ChangeZone | Defined$
+	// Remembered`, and Forge reads the HOST CARD's remembered list there --
+	// the cross-resolution memory RememberTargets$ wrote -- not this build's
+	// Ctx binding. This build's trigger resolutions seed Ctx.Remembered with
+	// the event capture (triggerRemembered), which for a self-trigger is
+	// exactly [{source}], so the ctx set is distinguishable: when the
+	// resolved set is exactly that capture and the source's persistent
+	// Remembered is non-empty, the card's list is what the script meant.
+	// Mid-chain readings are unaffected: a chain that remembered its own
+	// source through the object path below wrote BOTH halves (ctx and
+	// persistent), so the replacement is the same set; a hand-path
+	// RememberChanged$ writes ctx only and leaves the persistent list empty,
+	// so the guard keeps the ctx set.
+	if sa.Params["Defined"] == "Remembered" {
+		if len(targets) == 1 && !targets[0].IsPlayer && targets[0].Obj == c.Source {
+			if src := h.Game().Obj(c.Source); src != nil && len(src.Remembered) > 0 {
+				targets = append([]state.Target(nil), src.Remembered...)
+			}
+		}
+	}
+	// ForgetOtherTargets$ True (Journey to Nowhere, Leonin Relic-Warder):
+	// Forge's ChangeZoneEffect.forgetOtherTargets -- forget every previously
+	// remembered object before this effect resolves, so a source that
+	// remembered something earlier (a re-entered O-Ring exiling a second
+	// creature) remembers only its own targets and the return trigger
+	// returns exactly this effect's set. Both halves clear: the resolution's
+	// ctx list and the source's event-backed persistent one.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherTargets"]), "True") {
+		c.Remembered = nil
+		clearEventRemembered(h, c)
+	}
 	// Imprint effects such as Chrome Mox select eligible cards from their
 	// controller's hand. Keep them out of the generic hand mover so their
 	// successful exile can be recorded in the replayable Imprint event.
@@ -328,6 +360,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
 			ev.IDs = []state.ObjID{c.Source}
 		}
+		applyExileFaceDown(sa, c, &ev, to)
 		fromZone := o.Zone
 		h.Emit(ev)
 		exiledWithAssociation(h, c, o.ID, to)
@@ -347,6 +380,19 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
 		}
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			eventRemember(h, c, o.ID)
+		}
+		// RememberTargets$ True (Journey to Nowhere's exile trigger, Bile
+		// Blight's Pump sibling): the CHOSEN TARGETS join the ability's
+		// Remembered, in both halves -- the ctx list the chain's later
+		// sub-abilities read (Bile Blight's PumpAll Remembered.sameName) and
+		// the source's event-backed persistent list, which a LATER, separate
+		// resolution reads through Defined$ Remembered via the O-Ring rescue
+		// above (Journey's leave-battlefield return trigger). Only a target
+		// the move actually moved is remembered: a target skipped by the
+		// Origin$ precondition was never exiled and must never come back.
+		if strings.EqualFold(strings.TrimSpace(sa.Params["RememberTargets"]), "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
 			eventRemember(h, c, o.ID)
 		}
@@ -374,6 +420,23 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if len(imprinted) > 0 {
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
+}
+
+// applyExileFaceDown marks a just-built exile MoveZone face-down
+// (ExileFaceDown$ True, Necropotence's "exile the top card of your library
+// face down"): events.Apply's "exiled_with_face_down" decode sets
+// Object.FaceDown, which the view layer redacts to everyone but the
+// exiling controller, and records the exiling source as the ExiledWith
+// association -- the same encoding Hideaway's face-down exile uses. The IDs
+// provenance payload is cleared so the two carriers cannot disagree on one
+// event.
+func applyExileFaceDown(sa *cards.SA, c *Ctx, ev *events.Event, to state.Zone) {
+	if to != state.ZExile || !strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True") {
+		return
+	}
+	ev.Counter = "exiled_with_face_down"
+	ev.Amount = int32(c.Source)
+	ev.IDs = nil
 }
 
 // settleChangeZoneMove is the one settle path every ChangeZone mover shares:
@@ -514,6 +577,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if hasPlayer {
 		ev.Player = player
 	}
+	applyExileFaceDown(sa, c, &ev, to)
 	h.Emit(ev)
 	if to == state.ZExile {
 		recordExileReturn(h, c, sa, id, from, to)
@@ -2081,6 +2145,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 		ev := moveZoneEvent(c, id, state.ZLibrary, to)
 		ev.Player = owner
+		applyExileFaceDown(sa, c, &ev, to)
 		h.Emit(ev)
 		if to == state.ZExile && c.Source != 0 {
 			if o := g.Obj(id); o != nil && !o.IsToken {

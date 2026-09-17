@@ -193,6 +193,17 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
+		// RememberTargets$ True (Bile Blight): the CHOSEN TARGETS join the
+		// ability's Remembered, in both halves -- the ctx list the chained
+		// sub-ability reads (DBPumpAll's ValidCards$ Remembered.sameName+
+		// Other+Creature) and the source's event-backed persistent list. The
+		// object must actually be on the battlefield to be pumped, and only a
+		// pumped target is remembered, so the Remembered set names exactly
+		// what the spell acted on.
+		if strings.EqualFold(strings.TrimSpace(sa.Params["RememberTargets"]), "True") {
+			c.Remembered = append(c.Remembered, t)
+			eventRemember(h, c, t.Obj)
+		}
 		registerPumpEffects(h, c, o.ID, att, def, sa)
 	}
 	// ForgetImprinted$ names (in the Defined$ grammar) the imprinted card(s)
