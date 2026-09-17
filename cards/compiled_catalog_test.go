@@ -2,6 +2,8 @@ package cards
 
 import (
 	"bytes"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -171,6 +173,187 @@ func TestWholeCorpusCompilesMetadata(t *testing.T) {
 	}
 	t.Logf("catalog rows: faces=%d abilities=%d triggers=%d statics=%d replacements=%d strings=%d bytes=%d",
 		len(c.Faces), len(c.Abilities), len(c.Triggers), len(c.Statics), len(c.Replacements), len(c.Strings), len(c.CanonicalBytes()))
+}
+
+func textualHasType(face *Face, want string) bool {
+	for _, typ := range face.Types {
+		if strings.EqualFold(typ, want) {
+			return true
+		}
+	}
+	return false
+}
+
+func textualHasKeyword(face *Face, want string) bool {
+	for _, keyword := range face.Keywords {
+		if strings.EqualFold(KeywordHead(keyword), want) {
+			return true
+		}
+	}
+	return false
+}
+
+func textualKeywordParam(face *Face, want string) (string, bool) {
+	for _, keyword := range face.Keywords {
+		if strings.EqualFold(KeywordHead(keyword), want) {
+			if i := strings.IndexByte(keyword, ':'); i >= 0 {
+				return strings.TrimSpace(keyword[i+1:]), true
+			}
+			return "", true
+		}
+	}
+	return "", false
+}
+
+func textualSpellAbility(face *Face) *SA {
+	for _, ability := range face.Abilities {
+		if ability.Kind == "SP" {
+			return ability
+		}
+	}
+	return nil
+}
+
+func textualManaAbilities(face *Face) []*SA {
+	var out []*SA
+	for _, ability := range face.Abilities {
+		if ability.Kind == "AB" && ability.API == "Mana" {
+			out = append(out, ability)
+		}
+	}
+	return out
+}
+
+func TestCompiledFaceQueryParity(t *testing.T) {
+	r, err := LoadRegistry(filepath.Join("..", ".cards", "ir.gob.gz"))
+	if err != nil {
+		t.Skipf("load corpus cache: %v", err)
+	}
+	typeNames := []string{
+		"Artifact", "Battle", "Conspiracy", "Creature", "Dungeon", "Enchantment", "Instant",
+		"Kindred", "Land", "Phenomenon", "Plane", "Planeswalker", "Scheme", "Sorcery", "Tribal",
+		"Vanguard", "Basic", "Legendary", "Ongoing", "Snow", "World", "Spacecraft", "Vehicle", "Room",
+	}
+	keywordNames := []string{
+		"AlternateAdditionalCost", "Buyback", "Chapter", "Cycling", "Dethrone", "Devoid",
+		"Dredge", "Enchant", "Flash", "Flashback", "Harmonize", "Kicker", "Madness",
+		"MayEffectFromOpeningHand", "Miracle", "Riot", "Surge", "Suspend",
+	}
+	checked := 0
+	checkCard := func(card *Card) {
+		for _, face := range card.Faces {
+			if face.CompiledID() == 0 {
+				t.Fatalf("corpus face %q has no compiled ID", face.Name)
+			}
+			for _, name := range typeNames {
+				if got, want := face.hasType(name), textualHasType(face, name); got != want {
+					t.Fatalf("%q type %q = %v, want %v", face.Name, name, got, want)
+				}
+			}
+			for _, name := range keywordNames {
+				if got, want := face.HasKeyword(name), textualHasKeyword(face, name); got != want {
+					t.Fatalf("%q keyword %q = %v, want %v", face.Name, name, got, want)
+				}
+				gotParam, gotOK := face.KeywordParam(name)
+				wantParam, wantOK := textualKeywordParam(face, name)
+				if gotParam != wantParam || gotOK != wantOK {
+					t.Fatalf("%q keyword param %q = %q,%v; want %q,%v", face.Name, name, gotParam, gotOK, wantParam, wantOK)
+				}
+			}
+			if got, want := face.SpellAbility(), textualSpellAbility(face); got != want {
+				t.Fatalf("%q spell ability pointer differs", face.Name)
+			}
+			gotMana, wantMana := face.ManaAbilities(), textualManaAbilities(face)
+			if len(gotMana) != len(wantMana) {
+				t.Fatalf("%q mana abilities = %d, want %d", face.Name, len(gotMana), len(wantMana))
+			}
+			for i := range gotMana {
+				if gotMana[i] != wantMana[i] {
+					t.Fatalf("%q mana ability %d pointer differs", face.Name, i)
+				}
+			}
+			checked++
+		}
+	}
+	for _, card := range r.Cards {
+		checkCard(card)
+	}
+	for _, key := range sortedKeys(r.Tokens) {
+		checkCard(r.Tokens[key])
+	}
+	if checked < 35_000 {
+		t.Fatalf("checked only %d compiled faces", checked)
+	}
+
+	spell := &SA{Kind: "SP", API: "FutureAPI"}
+	manaA := &SA{Kind: "AB", API: "Mana"}
+	manaB := &SA{Kind: "AB", API: "Mana"}
+	bound := &Face{
+		Types:    []string{"cReAtUrE", "FutureSubtype"},
+		Keywords: []string{"kIcKeR:2", "FutureKeyword:value"},
+		Abilities: []*SA{
+			{Kind: "AB", API: "Draw"}, spell, manaA, manaB,
+		},
+	}
+	fixture := NewRegistry()
+	fixture.Add(&Card{Faces: []*Face{bound, {}}})
+	if err := fixture.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	if !bound.hasType("CREATURE") || !bound.hasType("futuresubtype") || bound.hasType("Land") {
+		t.Fatal("bound type lookup lost mixed-case or unknown fallback")
+	}
+	if !bound.HasKeyword("KICKER") || !bound.HasKeyword("futurekeyword") || bound.HasKeyword("Madness") {
+		t.Fatal("bound keyword lookup lost mixed-case or unknown fallback")
+	}
+	if got, ok := bound.KeywordParam("kicker"); !ok || got != "2" {
+		t.Fatalf("bound Kicker param = %q, %v", got, ok)
+	}
+	if bound.SpellAbility() != spell {
+		t.Fatal("bound spell pointer differs")
+	}
+	gotMana := bound.ManaAbilities()
+	if len(gotMana) != 2 || gotMana[0] != manaA || gotMana[1] != manaB {
+		t.Fatal("bound mana pointers or order differ")
+	}
+	if empty := fixture.Cards[0].Faces[1]; empty.SpellAbility() != nil || empty.ManaAbilities() != nil {
+		t.Fatal("empty bound face lookup changed")
+	}
+}
+
+func TestUnboundFaceFallback(t *testing.T) {
+	spell := &SA{Kind: "SP", API: "FutureAPI"}
+	manaA := &SA{Kind: "AB", API: "Mana"}
+	manaB := &SA{Kind: "AB", API: "Mana"}
+	face := &Face{
+		Types:    []string{"cReAtUrE", "FutureSubtype"},
+		Keywords: []string{"wArD:2", "FutureKeyword:value"},
+		Abilities: []*SA{
+			{Kind: "AB", API: "Draw"}, spell, manaA, manaB,
+		},
+	}
+	if face.CompiledID() != 0 {
+		t.Fatal("synthetic face unexpectedly bound")
+	}
+	if !face.hasType("Creature") || !face.hasType("futuresubtype") || face.hasType("Land") {
+		t.Fatal("unbound type fallback changed")
+	}
+	if !face.HasKeyword("WARD") || !face.HasKeyword("futurekeyword") || face.HasKeyword("Haste") {
+		t.Fatal("unbound keyword fallback changed")
+	}
+	if got, ok := face.KeywordParam("ward"); !ok || got != "2" {
+		t.Fatalf("unbound Ward param = %q, %v", got, ok)
+	}
+	if face.SpellAbility() != spell {
+		t.Fatal("unbound spell lookup changed")
+	}
+	gotMana := face.ManaAbilities()
+	if len(gotMana) != 2 || gotMana[0] != manaA || gotMana[1] != manaB {
+		t.Fatal("unbound mana lookup changed")
+	}
+	if (&Face{}).SpellAbility() != nil || (&Face{}).ManaAbilities() != nil {
+		t.Fatal("empty unbound face lookup changed")
+	}
 }
 
 func assertCatalogSpansInRange(t *testing.T, c *CompiledCatalog) {

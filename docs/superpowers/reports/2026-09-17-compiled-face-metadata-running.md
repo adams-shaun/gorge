@@ -92,3 +92,31 @@ deduplicated string blob/index, and CPU reverse-pointer indexes. The 20.9 MB
 canonical serialization is generated for hashing/export and is not retained;
 an initial implementation retained that duplicate and measured about 148 MB
 total live heap, so it was removed before accepting the lifecycle task.
+
+## Task 5: compiled face queries
+
+Bound faces now answer recognized type and keyword queries from their catalog
+masks. `KeywordParam` uses the mask only to reject an absent recognized head,
+then preserves textual parameter extraction. Spell and mana ability queries
+use the catalog's one-based IDs and return the original `*SA` pointers in face
+order. Unbound faces and unknown syntax retain the textual paths.
+
+The benchmark fixtures are now finalized through a real registry catalog. The
+keyword fixture changed from uncompiled `Ward`/`Haste` to the engine-consumed,
+parameterized `Kicker:2` and absent `Madness`; its Task 1 number is therefore
+context rather than a strict like-for-like comparison.
+
+Five-run medians:
+
+| Benchmark | Task 1 textual | Compiled | Allocations |
+|---|---:|---:|---:|
+| `BenchmarkFaceTypeQueries` | 35.43 ns/op | 10.82 ns/op | 0 B/op, 0 allocs/op |
+| `BenchmarkFaceKeywordQueries` | 73.69 ns/op | 14.73 ns/op | 0 B/op, 0 allocs/op |
+| `BenchmarkFaceAbilityQueries` | 92.01 ns/op | 57.46 ns/op | 16 B/op, 1 alloc/op |
+
+The type and ability fixtures retain their Task 1 query shapes. Ability queries
+previously allocated 24 B in 2 allocations; the remaining allocation is the
+returned mana-ability slice. Corpus parity covers every bound face, including
+tokens, and synthetic fixtures cover mixed-case recognized queries, unknown
+type/keyword fallback, empty ability sets, and multiple mana abilities with
+pointer/order equality.

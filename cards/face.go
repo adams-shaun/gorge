@@ -11,6 +11,9 @@ import (
 var manaBraceForm = strings.NewReplacer("{", " ", "}", " ")
 
 func (f *Face) hasType(t string) bool {
+	if mask := typeMaskFor(t); mask != 0 && f.compiledCatalog != nil && f.compiledID != 0 && int(f.compiledID) <= len(f.compiledCatalog.Faces) {
+		return f.compiledCatalog.Faces[f.compiledID-1].TypeMask&mask != 0
+	}
 	for _, x := range f.Types {
 		if strings.EqualFold(x, t) {
 			return true
@@ -66,6 +69,9 @@ func SplitKeywordList(list string) []string {
 }
 
 func (f *Face) HasKeyword(k string) bool {
+	if mask := keywordMaskFor(k); mask != 0 && f.compiledCatalog != nil && f.compiledID != 0 && int(f.compiledID) <= len(f.compiledCatalog.Faces) {
+		return f.compiledCatalog.Faces[f.compiledID-1].KeywordMask&mask != 0
+	}
 	for _, x := range f.Keywords {
 		if strings.EqualFold(KeywordHead(x), k) {
 			return true
@@ -78,6 +84,9 @@ func (f *Face) HasKeyword(k string) bool {
 // ("Kicker:B" -> "B"; "Equip:2" -> "2") and reports whether the keyword is
 // printed at all ("Flash" -> "", true; absent -> "", false).
 func (f *Face) KeywordParam(head string) (string, bool) {
+	if mask := keywordMaskFor(head); mask != 0 && f.compiledCatalog != nil && f.compiledID != 0 && int(f.compiledID) <= len(f.compiledCatalog.Faces) && f.compiledCatalog.Faces[f.compiledID-1].KeywordMask&mask == 0 {
+		return "", false
+	}
 	for _, k := range f.Keywords {
 		if strings.EqualFold(KeywordHead(k), head) {
 			if i := strings.IndexByte(k, ':'); i >= 0 {
@@ -91,6 +100,15 @@ func (f *Face) KeywordParam(head string) (string, bool) {
 
 // SpellAbility is the SP$ ability a card casts with, if any.
 func (f *Face) SpellAbility() *SA {
+	if f.compiledCatalog != nil && f.compiledID != 0 && int(f.compiledID) <= len(f.compiledCatalog.Faces) {
+		id := f.compiledCatalog.Faces[f.compiledID-1].SpellAbility
+		if id == 0 {
+			return nil
+		}
+		if int(id) <= len(f.compiledCatalog.abilityPointers) {
+			return f.compiledCatalog.abilityPointers[id-1]
+		}
+	}
 	for _, a := range f.Abilities {
 		if a.Kind == "SP" {
 			return a
@@ -101,6 +119,27 @@ func (f *Face) SpellAbility() *SA {
 
 // ManaAbilities lists every activated ability that produces mana.
 func (f *Face) ManaAbilities() []*SA {
+	if f.compiledCatalog != nil && f.compiledID != 0 && int(f.compiledID) <= len(f.compiledCatalog.Faces) {
+		span := f.compiledCatalog.Faces[f.compiledID-1].ManaAbilities
+		end := uint64(span.Start) + uint64(span.Count)
+		if end <= uint64(len(f.compiledCatalog.ManaAbilityIDs)) {
+			if span.Count == 0 {
+				return nil
+			}
+			out := make([]*SA, 0, span.Count)
+			for _, id := range f.compiledCatalog.ManaAbilityIDs[span.Start:uint32(end)] {
+				if id == 0 || int(id) > len(f.compiledCatalog.abilityPointers) {
+					return f.textualManaAbilities()
+				}
+				out = append(out, f.compiledCatalog.abilityPointers[id-1])
+			}
+			return out
+		}
+	}
+	return f.textualManaAbilities()
+}
+
+func (f *Face) textualManaAbilities() []*SA {
 	var out []*SA
 	for _, a := range f.Abilities {
 		if a.Kind == "AB" && a.API == "Mana" {

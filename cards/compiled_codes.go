@@ -505,6 +505,56 @@ const (
 )
 
 func typeMaskFor(name string) TypeMask {
+	switch name {
+	case "Artifact":
+		return TypeArtifact
+	case "Battle":
+		return TypeBattle
+	case "Conspiracy":
+		return TypeConspiracy
+	case "Creature":
+		return TypeCreature
+	case "Dungeon":
+		return TypeDungeon
+	case "Enchantment":
+		return TypeEnchantment
+	case "Instant":
+		return TypeInstant
+	case "Kindred":
+		return TypeKindred
+	case "Land":
+		return TypeLand
+	case "Phenomenon":
+		return TypePhenomenon
+	case "Plane":
+		return TypePlane
+	case "Planeswalker":
+		return TypePlaneswalker
+	case "Scheme":
+		return TypeScheme
+	case "Sorcery":
+		return TypeSorcery
+	case "Tribal":
+		return TypeTribal
+	case "Vanguard":
+		return TypeVanguard
+	case "Basic":
+		return TypeBasic
+	case "Legendary":
+		return TypeLegendary
+	case "Ongoing":
+		return TypeOngoing
+	case "Snow":
+		return TypeSnow
+	case "World":
+		return TypeWorld
+	case "Spacecraft":
+		return TypeSpacecraft
+	case "Vehicle":
+		return TypeVehicle
+	case "Room":
+		return TypeRoom
+	}
 	switch strings.ToLower(name) {
 	case "artifact":
 		return TypeArtifact
@@ -583,6 +633,44 @@ const (
 )
 
 func keywordMaskFor(head string) KeywordMask {
+	switch head {
+	case "AlternateAdditionalCost":
+		return KeywordAlternateAdditionalCost
+	case "Buyback":
+		return KeywordBuyback
+	case "Chapter":
+		return KeywordChapter
+	case "Cycling":
+		return KeywordCycling
+	case "Dethrone":
+		return KeywordDethrone
+	case "Devoid":
+		return KeywordDevoid
+	case "Dredge":
+		return KeywordDredge
+	case "Enchant":
+		return KeywordEnchant
+	case "Flash":
+		return KeywordFlash
+	case "Flashback":
+		return KeywordFlashback
+	case "Harmonize":
+		return KeywordHarmonize
+	case "Kicker":
+		return KeywordKicker
+	case "Madness":
+		return KeywordMadness
+	case "MayEffectFromOpeningHand":
+		return KeywordMayEffectFromOpeningHand
+	case "Miracle":
+		return KeywordMiracle
+	case "Riot":
+		return KeywordRiot
+	case "Surge":
+		return KeywordSurge
+	case "Suspend":
+		return KeywordSuspend
+	}
 	switch strings.ToLower(head) {
 	case "alternateadditionalcost":
 		return KeywordAlternateAdditionalCost

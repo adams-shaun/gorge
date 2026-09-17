@@ -81,8 +81,19 @@ func BenchmarkCompileMetadata(b *testing.B) {
 	benchmarkRegistry = r
 }
 
+func benchmarkBoundFace(b *testing.B, face *Face) *Face {
+	b.Helper()
+	r := NewRegistry()
+	r.Add(&Card{Faces: []*Face{face}})
+	if err := r.CompileMetadata(); err != nil {
+		b.Fatal(err)
+	}
+	benchmarkRegistry = r
+	return face
+}
+
 func BenchmarkFaceTypeQueries(b *testing.B) {
-	f := &Face{Types: []string{"Legendary", "Creature", "Human", "Wizard"}}
+	f := benchmarkBoundFace(b, &Face{Types: []string{"Legendary", "Creature", "Human", "Wizard"}})
 	benchmarkFace = f
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -92,12 +103,12 @@ func BenchmarkFaceTypeQueries(b *testing.B) {
 }
 
 func BenchmarkFaceKeywordQueries(b *testing.B) {
-	f := &Face{Keywords: []string{"Flying", "Ward:2", "Trample"}}
+	f := benchmarkBoundFace(b, &Face{Keywords: []string{"Flying", "Kicker:2", "Trample"}})
 	benchmarkFace = f
 	b.ReportAllocs()
 	b.ResetTimer()
 	for range b.N {
-		benchmarkBool = f.HasKeyword("Ward") && !f.HasKeyword("Haste")
+		benchmarkBool = f.HasKeyword("Kicker") && !f.HasKeyword("Madness")
 	}
 }
 
@@ -105,13 +116,13 @@ func BenchmarkFaceAbilityQueries(b *testing.B) {
 	spell := &SA{Kind: "SP", API: "DealDamage"}
 	manaW := &SA{Kind: "AB", API: "Mana"}
 	manaU := &SA{Kind: "AB", API: "Mana"}
-	f := &Face{Abilities: []*SA{
+	f := benchmarkBoundFace(b, &Face{Abilities: []*SA{
 		{Kind: "AB", API: "Draw"},
 		spell,
 		manaW,
 		{Kind: "DB", API: "GainLife"},
 		manaU,
-	}}
+	}})
 	benchmarkFace = f
 	b.ReportAllocs()
 	b.ResetTimer()
