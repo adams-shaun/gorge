@@ -80,6 +80,22 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 					if affects == "" {
 						continue
 					}
+					// The "as long as" recheck gates (Forge's intervening-if on a
+					// continuous static): IsPresent$/IsPresent2$ (an existence count
+					// over every battlefield, PresentCompare$ pricing the count with
+					// GE1 the default) and CheckSVar$/SVarCompare$ (the named SVar
+					// compared under the threshold). staticEffects re-runs once per
+					// emitted event (the staticContinuous memo's epoch key), so the
+					// gate is a genuine continuous recheck: the board moves, the
+					// grant follows -- Angelic Overseer's Human, Static Orb's
+					// untapped state, Auriok Steelshaper's equipped state, Kiyomaro's
+					// hand size. A gate this build cannot evaluate fails CLOSED
+					// (the shipped statics convention rules/statics.go's
+					// checkSVarHolds documents): the grant is withheld whole, never
+					// silently always-applied.
+					if !e.continuousGateHolds(staticView{Source: id, Controller: o.Controller, Params: st.Params}) {
+						continue
+					}
 					base := ContinuousEffect{
 						Source:     id,
 						Timestamp:  o.Timestamp,
@@ -184,6 +200,28 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 		clear(dst[len(out):])
 	}
 	return out
+}
+
+// continuousGateHolds evaluates the "as long as" condition gates a Mode$
+// Continuous static can carry, the intervening-if that decides whether the
+// grant lives at this instant: IsPresent$/IsPresent2$ (an existence count over
+// every battlefield, PresentCompare$ pricing the count -- default GE1) and
+// CheckSVar$/SVarCompare$ (the named SVar -- or inline Count$ expression --
+// compared under the threshold, no compare meaning "nonzero"). Both
+// evaluators are shared with the restriction/cost static gates
+// (rules/statics.go's presentGate and checkSVarHolds) so the ONE grammar
+// governs every static family. staticEffects re-runs once per emitted event,
+// so evaluating the gate there is the continuous recheck the grant needs. A
+// gate this build cannot evaluate fails closed -- the shipped statics
+// convention: an unreadable "as long as" must not silently always-apply.
+func (e *Engine) continuousGateHolds(sv staticView) bool {
+	if spec, ok := sv.Params["IsPresent"]; ok && !e.presentGate(sv, spec) {
+		return false
+	}
+	if spec, ok := sv.Params["IsPresent2"]; ok && !e.presentGate(sv, spec) {
+		return false
+	}
+	return e.checkSVarHolds(sv)
 }
 
 // adjustLandPlaysGrant reports whether a Mode$ Continuous static carries the
