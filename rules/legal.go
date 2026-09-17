@@ -1369,7 +1369,11 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 		for _, ga := range e.grantedAbilities(p, id) {
 			ab := ga.sa
-			if ab.API == "Mana" {
+			// isManaAbilityAPI, not a bare "Mana" check: a granted
+			// ManaReflected flows through availableManaAbilities too (its
+			// IsPresent$ gate lives in manaReflectedPresentHolds, which knows
+			// the hasAbility Activated.otherAbility special form).
+			if isManaAbilityAPI(ab.API) {
 				continue
 			}
 			if ab.Params["SorcerySpeed"] == "True" && !sorcery {

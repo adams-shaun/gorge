@@ -322,6 +322,12 @@ func TestMistveilPlainsGatesOnWhitePermanents(t *testing.T) {
 	e.pending = nil
 	e.priorityRound()
 
+	// The {W} cost is pre-charged BEFORE the no-white-permanents check so
+	// the cost-payable offer gate cannot withhold the ability and mask the
+	// IsPresent$/PresentCompare$ gate under test; the resolution below then
+	// pays that cost straight from the pool.
+	addMana(t, e, 0, "W")
+
 	idx := -1
 	for i, ab := range e.G.Obj(mv).Face().Abilities {
 		if ab.Kind == "AB" && ab.API == "ChangeZone" && ab.Params["IsPresent"] != "" {
@@ -339,7 +345,7 @@ func TestMistveilPlainsGatesOnWhitePermanents(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		putToken(t, e, 0, "Name:Chaplain\nManaCost:W\nTypes:Creature Human Cleric\nPT:1/1\nOracle:x\n", state.ZBattlefield)
 	}
-	addMana(t, e, 0, "W")
+	e.priorityRound() // refresh the pending ask after putToken left it nil
 	opt := abilityOption(t, e, mv, idx)
 	submitChoices(t, e, opt.Index)
 
