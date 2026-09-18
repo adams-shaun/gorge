@@ -2,6 +2,7 @@ package effects
 
 import (
 	"math"
+	"math/bits"
 	"strconv"
 	"strings"
 
@@ -255,9 +256,45 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	n, ok2 := evalCountBody(h, c, strings.TrimSpace(body), depth)
 	if hasOp {
-		n = applyCountOp(n, op)
+		if clamped, isLimit := countColorsLimitMax(strings.TrimSpace(body), op, n); isLimit {
+			n = clamped
+		} else {
+			n = applyCountOp(n, op)
+		}
 	}
 	return n, ok2
+}
+
+// countColorsLimitMax answers whether op is a LimitMax.<n> clamp on a
+// Count$Valid/ValidZone body whose property is Colors -- Colors's one corpus
+// op suffix (happily_ever_after's Permanent.YouCtrl$Colors/LimitMax.5). It is
+// called from evalCountExprOK's generic /Op site, which cuts the suffix off
+// the whole body BEFORE the head dispatch, so the countZone branch never sees
+// it; keeping the clamp here scopes the new op to Colors bodies only (the
+// summed properties carry no op in the corpus and keep the plain
+// applyCountOp read, where an unknown op name is ignored and the base value
+// stands).
+func countColorsLimitMax(body, op string, n int32) (int32, bool) {
+	head, arg, _ := strings.Cut(body, " ")
+	if _, ok := countZone(head); !ok {
+		return n, false
+	}
+	_, prop, hasProp := strings.Cut(strings.TrimSpace(arg), "$")
+	if !hasProp || strings.TrimSpace(prop) != "Colors" {
+		return n, false
+	}
+	lim, ok := strings.CutPrefix(op, "LimitMax.")
+	if !ok {
+		return n, false
+	}
+	v, err := strconv.Atoi(strings.TrimSpace(lim))
+	if err != nil || v < 0 {
+		return n, false
+	}
+	if n > int32(v) {
+		return int32(v), true
+	}
+	return n, true
 }
 
 // evalTriggerCount resolves a "TriggerCount$<Head>[/Op]" body against the
@@ -755,10 +792,20 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// instead of counting them -- Mosswort Bridge's gate
 	// `Count$Valid Creature.YouCtrl$CardPower` ("creatures you control have
 	// total power 10 or greater") is the corpus shape (62 raw lines over 61
-	// files: CardPower 42, CardManaCost 13, CardToughness 5). An unrecognised
-	// property keeps the whole token as the spec -- the pre-existing
-	// fail-closed behaviour, since such a token never matched anyway -- and
-	// the Greatest/Least/Different/Colors variants are out of scope here.
+	// files: CardPower 42, CardManaCost 13, CardToughness 5). CardTypes and
+	// Colors are DISTINCT-set counts over the same matches, not sums:
+	// Colors counts the distinct colours among the matched permanents
+	// ("the number of colors among permanents you control", Shimmercreep's
+	// Vivid et al., 31 raw corpus lines, bounded by five), read through
+	// ColorMaskOf so an explicit Colors: line and Devoid's colourless
+	// treatment agree with the colour predicates; its single corpus op
+	// suffix /LimitMax.<n> (happily_ever_after) clamps the result. An
+	// unrecognised property keeps the whole token as the spec -- the
+	// pre-existing fail-closed behaviour, since such a token never matched
+	// anyway -- and the Greatest/Least/Different variants are still out of
+	// scope here. Colors's one corpus op suffix /LimitMax.<n> is honoured at
+	// evalCountExprOK's generic /Op site (countColorsLimitMax), scoped to
+	// Colors bodies.
 	if zone, ok := countZone(head); ok {
 		spec, prop, hasProp := strings.Cut(arg, "$")
 		if !hasProp {
@@ -766,10 +813,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		} else {
 			prop = strings.TrimSpace(prop)
 			switch prop {
-			case "CardPower", "CardToughness", "CardManaCost", "CardTypes":
+			case "CardPower", "CardToughness", "CardManaCost", "CardTypes", "Colors":
 			default:
-				// Not a summed property (GreatestCardPower, DifferentNames,
-				// Colors, ...): keep the old whole-token spec read.
+				// Not a recognised property (GreatestCardPower,
+				// DifferentNames, Least*, ...): keep the old whole-token
+				// spec read.
 				spec, prop = arg, ""
 			}
 		}
@@ -781,6 +829,10 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if prop == "CardTypes" {
 			seenCardTypes = make(map[string]bool)
 		}
+		// Colors folds each match's colour mask; read only through a
+		// popcount at the end, so no per-colour ordering ever reaches an
+		// event or a view.
+		var colorsSeen ColorMask
 		var n int32
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(zone, p) {
@@ -808,16 +860,31 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 							seenCardTypes[typ] = true
 						}
 					}
+				case "Colors":
+					colorsSeen |= ColorMaskOf(o)
 				}
 			}
 		}
 		if prop == "CardTypes" {
 			return int32(len(seenCardTypes)), true
 		}
+		if prop == "Colors" {
+			n = int32(bits.OnesCount8(uint8(colorsSeen)))
+		}
 		return n, true
 	}
 	return 0, false
 }
+
+// countColorsLimitMax answers whether op is a LimitMax.<n> clamp on a
+// Count$Valid/ValidZone body whose property is Colors -- Colors's one corpus
+// op suffix (happily_ever_after's Permanent.YouCtrl$Colors/LimitMax.5). It is
+// called from evalCountExprOK's generic /Op site, which cuts the suffix off
+// the whole body BEFORE the head dispatch, so the countZone branch never sees
+// it; keeping the clamp here scopes the new op to Colors bodies only (the
+// summed properties carry no op in the corpus and keep the plain
+// applyCountOp read, where an unknown op name is ignored and the base value
+// stands).
 
 // evalThisTurnEntered parses a ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid>
 // tail -- the split Forge's own parser applies (workingCopy[0] = the head, so

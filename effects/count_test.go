@@ -90,6 +90,55 @@ func TestEvalCountValidSumsAPropertySuffix(t *testing.T) {
 	}
 }
 
+func TestEvalCountValidCountsDistinctColors(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	// Controller 0's board: Bear (G), Flier (U), Aura (W), Walker (U),
+	// Siege (R) plus a colourless Mountain and a colourless Relic; the
+	// Giant (R) is the opponent's. DISTINCT colours among the matches,
+	// not a sum over permanents: 4 (W,U,R,G), the Walker's second U
+	// counted once.
+	if got := EvalCount(h, c, "Count$Valid Permanent.YouCtrl$Colors"); got != 4 {
+		t.Errorf("Permanent.YouCtrl$Colors = %d, want 4", got)
+	}
+	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl$Colors"); got != 2 {
+		t.Errorf("Creature.YouCtrl$Colors = %d, want 2 (G+U)", got)
+	}
+	// The opponent's permanents never enter a YouCtrl count (their Giant
+	// is also R, so an unscoping bug would still show 4).
+	if got := EvalCount(h, c, "Count$Valid Permanent.YouCtrl$Colors"); got != 4 {
+		t.Errorf("re-read Permanent.YouCtrl$Colors = %d, want 4", got)
+	}
+	// A spec matching only colourless permanents counts zero colours.
+	if got := EvalCount(h, c, "Count$Valid Land$Colors"); got != 0 {
+		t.Errorf("Land$Colors = %d, want 0 (colourless Mountain)", got)
+	}
+	// A compound spec still matches; the Legendary Walker alone is U.
+	if got := EvalCount(h, c, "Count$Valid Permanent.YouCtrl+Legendary$Colors"); got != 1 {
+		t.Errorf("Permanent.YouCtrl+Legendary$Colors = %d, want 1 (U)", got)
+	}
+	// The corpus's one op suffix (happily_ever_after) parses and does not
+	// bind at 5 on a four-colour board...
+	if got := EvalCount(h, c, "Count$Valid Permanent.YouCtrl$Colors/LimitMax.5"); got != 4 {
+		t.Errorf("Colors/LimitMax.5 = %d, want 4", got)
+	}
+	// ...and clamps when it does bind.
+	if got := EvalCount(h, c, "Count$Valid Permanent.YouCtrl$Colors/LimitMax.2"); got != 2 {
+		t.Errorf("Colors/LimitMax.2 = %d, want 2 (clamped)", got)
+	}
+	// An op suffix Colors does not READ (Bogus.3) follows applyCountOp's
+	// convention for every unknown op -- ignored, so the plain Colors count
+	// stands -- and the still-out-of-scope properties keep the whole-token
+	// fail-closed read.
+	if got := EvalCount(h, c, "Count$Valid Permanent.YouCtrl$Colors/Bogus.3"); got != 4 {
+		t.Errorf("Colors/Bogus.3 = %d, want 4 (unknown op ignored, plain Colors)", got)
+	}
+	if got := EvalCount(h, c, "Count$Valid Creature$GreatestCardPower"); got != 0 {
+		t.Errorf("GreatestCardPower token = %d, want 0 (out of scope, fail closed)", got)
+	}
+}
+
 func TestEvalCountZoneScopedForms(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
