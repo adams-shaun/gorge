@@ -397,10 +397,14 @@ describe('single-action card affordance', () => {
     // radial picker -- the player knows that wheel as the mana bubble -- it
     // presents via the seat panel and the tile badge.
     it('a modes pay election does NOT auto-open (the shock-land pay-life ask is not a mana wheel)', () => {
-      const d = decision(10, [
-        opt(0, 86, 'mode', 'Pay the cost'),
-        opt(1, 86, 'mode', "Don't pay"),
-      ]);
+      // the real wire shape (view.json seq 1295): kind 'modes', prompt naming
+      // the election, and two 'mode' options on the EXPECTED object — the
+      // shape a shock-land election actually arrives in after the land post.
+      const d: Decision = {
+        seq: 10, player: 0, kind: 'modes', prompt: 'Pay the cost, or decline',
+        min: 1, max: 1,
+        options: [opt(0, 83, 'mode', 'Pay the cost'), opt(1, 83, 'mode', "Don't pay")],
+      };
       expect(resolveCardFollowUp(expected, d)).toBeNull();
     });
 
