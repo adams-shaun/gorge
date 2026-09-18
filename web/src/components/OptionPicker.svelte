@@ -6,6 +6,7 @@
     placeMenu,
     placeRadial,
     MENU_WIDTH,
+    RADIAL_BUTTON,
     type MenuAnchor,
   } from '../lib/menuplacement';
 
@@ -101,6 +102,21 @@
     document.body.appendChild(node);
     return { destroy: () => node.remove() };
   }
+
+  /** Immediate help-bubble placement (fb-20260917T232800Z). The bubble sits
+   * in the same portaled radial layer as its button — a tooltip child of the
+   * button would be clipped by .wheel-button's overflow: hidden — anchored to
+   * the button's own radial coordinates: centred above it when there is room,
+   * flipped below against the viewport's top edge. The horizontal anchor is
+   * clamped half a max bubble width from each edge so a wide label on an
+   * edge button never runs off screen (it may sit slightly off-centre then,
+   * the cheap price of not measuring text). */
+  const TIP_GAP = 8;
+  const TIP_ROOM = 40; // bubble line height + gap: point.y below this flips the bubble below the button
+  const TIP_HALF = 88; // half of the bubble's 176px max-width
+  function tipAnchorX(x: number): number {
+    return Math.max(TIP_HALF, Math.min(x + RADIAL_BUTTON / 2, viewportWidth() - TIP_HALF));
+  }
 </script>
 
 <svelte:window onkeydown={onWindowKeydown} onclick={close} />
@@ -159,22 +175,39 @@
         {#each tileOptions.list as opt, i (opt.index)}
           {@const point = radialPlacement[i] ?? { x: 8, y: 8 }}
           {@const mana = manaSymbols[i]}
-          <button
-            class="wheel-button badge--{tileOptions.tone}"
-            class:wheel-button--mana={isManaChoice}
-            type="button"
-            role="menuitem"
-            data-wire-index={opt.index}
-            data-mana-option={isManaChoice ? mana : undefined}
-            aria-label={opt.label}
-            title={opt.label}
-            style:left="{point.x}px"
-            style:top="{point.y}px"
-            style:--pip={isManaChoice && mana ? `var(--mana-${mana.toLowerCase()})` : undefined}
-            onclick={(event) => choose(opt, event.ctrlKey)}
-          >
-            {#if isManaChoice}<span aria-hidden="true">{mana}</span>{:else}<span>{compactLabel(opt.label)}</span>{/if}
-          </button>
+          {@const tipAbove = point.y >= TIP_ROOM}
+          <div class="wheel-slot">
+            <button
+              class="wheel-button badge--{tileOptions.tone}"
+              class:wheel-button--mana={isManaChoice}
+              type="button"
+              role="menuitem"
+              data-wire-index={opt.index}
+              data-mana-option={isManaChoice ? mana : undefined}
+              aria-label={opt.label}
+              style:left="{point.x}px"
+              style:top="{point.y}px"
+              style:--pip={isManaChoice && mana ? `var(--mana-${mana.toLowerCase()})` : undefined}
+              onclick={(event) => choose(opt, event.ctrlKey)}
+            >
+              {#if isManaChoice}<span aria-hidden="true">{mana}</span>{:else}<span>{compactLabel(opt.label)}</span>{/if}
+            </button>
+            <!-- Immediate help bubble (fb-20260917T232800Z): the option's own
+                 label, revealed the moment the pointer enters or the button
+                 takes keyboard focus — no dwell delay, no native title (the
+                 ~1s browser tooltip this feedback replaced). Sibling of the
+                 button inside the portaled radial layer, so overflow: hidden
+                 cannot clip it; pointer-events: none so it never blocks a
+                 click on the wheel. -->
+            <span
+              class="wheel-tip"
+              class:wheel-tip--below={!tipAbove}
+              role="tooltip"
+              style:left="{tipAnchorX(point.x)}px"
+              style:top="{tipAbove ? point.y : point.y + RADIAL_BUTTON + TIP_GAP}px"
+              style:transform={tipAbove ? 'translate(-50%, calc(-100% - 8px))' : 'translate(-50%, 0)'}
+            >{opt.label}</span>
+          </div>
         {/each}
       </div>
     {:else}
@@ -256,6 +289,41 @@
   /* The portal itself has no box: each 42px control is positioned around the
      badge centre by placeRadial, making the empty middle read as a wheel. */
   .radial-pop { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+  /* One slot per option: the button plus its help bubble. The slot is an
+     unpositioned, zero-size grouping so the button's own fixed coordinates
+     are untouched; :hover and :focus-within on the slot are what reveal the
+     bubble (an ancestor of the hovered/focused button is in the hover chain
+     even at zero size, so no JS is involved and the reveal is immediate —
+     zero dwell, the point of fb-20260917T232800Z). */
+  .wheel-slot { pointer-events: none; }
+  .wheel-tip {
+    position: fixed;
+    z-index: 21;
+    box-sizing: border-box;
+    max-width: 176px;
+    padding: 2px 6px;
+    border: var(--edge-w, 1px) solid var(--edge-inst);
+    border-radius: 4px;
+    background: var(--instrument);
+    color: var(--ink-inst);
+    box-shadow: var(--shadow-lift);
+    font-family: var(--font-data);
+    font-size: var(--t-10);
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .wheel-slot:hover .wheel-tip,
+  .wheel-slot:focus-within .wheel-tip {
+    opacity: 1;
+    visibility: visible;
+  }
   .wheel-button {
     position: fixed;
     box-sizing: border-box;

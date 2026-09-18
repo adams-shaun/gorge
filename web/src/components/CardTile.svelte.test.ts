@@ -142,7 +142,41 @@ describe('CardTile options affordance (ui21)', () => {
       expect(html).toContain(`var(--mana-${symbol.toLowerCase()})`);
     }
     expect(html).toContain('wheel-button--mana');
-    expect(html).not.toMatch(/>Add [WUBRGC]</); // colour itself is the visible label
+    // The pip BUTTON's visible label is still the bare colour (the tooltip
+    // bubble legitimately carries the full "Add <C>" label, so the old
+    // whole-document regex is scoped to the button's own first span).
+    expect(html).not.toMatch(/data-mana-option="[^"]+"[^>]*>\s*<span[^>]*>Add /);
+  });
+
+  it('each radial wheel button carries an immediate help bubble with the label of the option, and no native title (fb-20260917T232800Z)', () => {
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts(), open0: true } });
+    // One tooltip per option, sibling of its button inside the portaled
+    // radial layer (a child would be clipped by .wheel-button's overflow:
+    // hidden), carrying the FULL label — the immediate bubble's content.
+    const bubbles = html.match(/class="wheel-tip[^"]*"[^>]*>([^<]+)</g) ?? [];
+    expect(bubbles).toHaveLength(2);
+    expect(html).toContain('role="tooltip"');
+    expect(html).toContain('>Cast Fireball</span>');
+    expect(html).toContain('>Activate Wasteland</span>');
+    // The native title tooltip is GONE from the wheel buttons: the ~1s
+    // browser dwell this feedback replaced must not sit behind the bubble.
+    expect(html).not.toMatch(/<button[^>]*data-wire-index[^>]*title=/);
+    // The bubble is revealed by :hover/:focus-within on the wrapper slot —
+    // no transition property on the reveal (zero dwell), and the bubble is
+    // pointer-events: none so it never blocks a click.
+    expect(html).toContain('wheel-slot');
+  });
+
+  it('the mana wheel help bubbles carry the same Add <C> labels the pips do', () => {
+    const list = ['C', 'B', 'R'].map((symbol, i) => ({
+      index: 41 + i * 2, kind: 'ability', label: `Add ${symbol}`, obj: 16, player: 0,
+    }));
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts({ list }), open0: true } });
+    for (const symbol of ['C', 'B', 'R']) {
+      expect(html).toContain(`>Add ${symbol}</span>`); // the full label in the bubble
+      expect(html).toContain(`data-mana-option="${symbol}"`); // the pip stays
+    }
+    expect(html).not.toMatch(/<button[^>]*data-wire-index[^>]*title=/);
   });
 
   it('each menu item is keyed by the option\'s OWN index, never a position in a rebuilt list (R-E4-1)', () => {

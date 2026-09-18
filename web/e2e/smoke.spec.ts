@@ -925,14 +925,15 @@ test.describe('gorged [wheel1] Underground Sea fixture', () => {
   });
 });
 
-// fb-e079def5 — the two-stage Talisman continuation. A Talisman of Indulgence
-// carries TWO mana abilities ({T}: Add {C}; {T}: Add {B} or {R} plus its 1
-// damage), so activating it poses a stage-1 ability choose that the player
-// answers THROUGH the radial wheel, and the stage-2 colour ask must re-open
-// the wheel at the card. Pre-fix only the single-action badge armed the
-// continuation, so a wheel-answered stage-1 dropped the stage-2 ask into the
-// seat panel's generic option list — the reported "choice of mana color comes
-// in as generic prompt on top of screen".
+// fb-e079def5 / fb-20260917T232800Z — the Talisman continuation. A Talisman
+// of Indulgence carries TWO mana abilities ({T}: Add {C}; {T}: Add {B} or {R}
+// plus its 1 damage), so activating it poses a stage-1 ability choose that
+// the player answers THROUGH the radial wheel. fb-20260917T232800Z
+// FLATTENED the explicit Combo ability into per-colour options (Add C / Add
+// B / Add R in one wheel), so the stage-2 colour ask no longer exists: one
+// click on Add B pays the tap and lands the mana, and the wheel closes
+// without a second ask re-opening. (The pre-flattening pin asserted the
+// two-ask flow; that supersession is deliberate.)
 test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
   test.skip(!TALIS, 'SMOKE_TALISMAN unset — run via scripts/smoke.sh');
 
@@ -1018,26 +1019,22 @@ test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
       await action.waitFor({ state: 'visible', timeout: WAIT_MS });
 
       // Click one: the single-action badge posts the source-level activation
-      // and the server answers with the stage-1 ability choose (Add C /
-      // Add B or R), which must open as a wheel at the card.
+      // and the server answers with the stage-1 ability choose, FLATTENED
+      // (fb-20260917T232800Z) into Add C / Add B / Add R — pip-tinted, one
+      // wheel, no prose "Add B or R" option.
       await action.click();
       const stageOne = page.locator('body > [data-radial-picker]');
       await expect(stageOne).toBeVisible({ timeout: WAIT_MS });
-      const combo = stageOne.locator('button[aria-label="Add B or R"]');
-      await expect(combo).toBeVisible();
-
-      // Click two (the one under test): the wheel-answered stage-1 must arm
-      // the continuation, and the stage-2 colour ask must RE-OPEN the wheel —
-      // pip-tinted Add B / Add R — never fall back to the panel's generic
-      // option list.
-      await combo.click();
-      const stageTwo = page.locator('body > [data-radial-picker]');
-      await expect(stageTwo).toBeVisible({ timeout: WAIT_MS });
-      const black = stageTwo.locator('[data-mana-option="B"]');
+      const black = stageOne.locator('button[aria-label="Add B"]');
       await expect(black).toBeVisible();
-      await expect(stageTwo.locator('[data-mana-option="R"]')).toBeVisible();
-      // Complete the choice so the game stays in a clean priority window.
+      await expect(stageOne.locator('button[aria-label="Add C"]')).toBeVisible();
+      await expect(stageOne.locator('button[aria-label="Add R"]')).toBeVisible();
+
+      // The one click under test: answering the flattened Add B pays the tap
+      // and lands the mana with NO second decision — the wheel closes and no
+      // stage-2 colour ask re-opens at the card.
       await black.click();
+      await expect(page.locator('body > [data-radial-picker]')).toHaveCount(0, { timeout: WAIT_MS });
     } finally {
       await ctx.close();
     }
