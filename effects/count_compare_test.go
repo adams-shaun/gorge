@@ -172,3 +172,51 @@ func TestCompareHeadSelfReferenceIsDepthCapped(t *testing.T) {
 		t.Errorf("cyclic SVar table not deterministic: got %d", got)
 	}
 }
+
+// The PlayerCountPropertyYou$HasPropertyActive head -- Starting Town's ETB
+// gate reads SVar:Y:PlayerCountPropertyYou$HasPropertyActive and feeds it to
+// Count$Compare Y GE1.Z.4, so X is YourTurns while the controller is the
+// active player and 4 off it (tapped only when X > 3). Before the fix the
+// head matched no dispatch branch, Y degraded to 0, the Compare took the
+// ifFalse branch "4" and the gate held on EVERY turn.
+func TestPlayerCountPropertyYouHasPropertyActive(t *testing.T) {
+	h, c := fixtureHost(t)
+
+	// The head itself: 1 when the resolving controller is the active player.
+	if got, ok := EvalCountOK(h, c, "PlayerCountPropertyYou$HasPropertyActive"); !ok || got != 1 {
+		t.Errorf("controller active: head = (%d, %v), want (1, true)", got, ok)
+	}
+	h.g.Active = 1
+	if got, ok := EvalCountOK(h, c, "PlayerCountPropertyYou$HasPropertyActive"); !ok || got != 0 {
+		t.Errorf("controller not active: head = (%d, %v), want (0, true)", got, ok)
+	}
+
+	// Every other property on the You group, and every other group, stays
+	// unresolvable (0, false) -- fail closed, not a fake zero.
+	h.g.Active = 0
+	for _, head := range []string{
+		"PlayerCountPropertyYou$LifeLostThisTurn",
+		"PlayerCountPropertyYou$LandsPlayed",
+		"PlayerCountPropertyOpponent$HasPropertyActive",
+		"PlayerCountPropertywithAtLeast2MoreLandsThanYou$Amount",
+	} {
+		if got, ok := EvalCountOK(h, c, head); ok {
+			t.Errorf("%s resolved to %d, want unresolvable (0, false)", head, got)
+		}
+	}
+
+	// The mechanical chain through the Compare: on your turn X is Z (the
+	// fakeHost's TurnsTaken is 0); off your turn X takes the ifFalse branch 4.
+	c.SVars = map[string]string{
+		"X": "Count$Compare Y GE1.Z.4",
+		"Y": "PlayerCountPropertyYou$HasPropertyActive",
+		"Z": "Count$YourTurns",
+	}
+	if got := EvalCount(h, c, "Count$Compare Y GE1.Z.4"); got != 0 {
+		t.Errorf("active controller: X chain = %d, want Z = 0", got)
+	}
+	h.g.Active = 1
+	if got := EvalCount(h, c, "Count$Compare Y GE1.Z.4"); got != 4 {
+		t.Errorf("inactive controller: X chain = %d, want the ifFalse branch 4", got)
+	}
+}
