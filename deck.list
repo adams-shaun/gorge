@@ -515,3 +515,98 @@ Commander
 1 Wayfarer's Bauble
 1 Wondrous Crucible
 1 Workshop Elders
+
+# --- Legends' Legacy (dmc commander precon, Dihada, Binder of Wills) — census input, 2026-09-18 (this worktree) ---
+Commander
+1 Dihada, Binder of Wills
+1 Akroma's Memorial
+1 Anafenza, Kin-Tree Spirit
+1 Arcane Signet
+1 Arvad the Cursed
+1 Avacyn's Memorial
+1 Battlefield Forge
+1 Bedevil
+1 Blackblade Reforged
+1 Bladewing, Deathless Tyrant
+1 Bojuka Bog
+1 Boros Garrison
+1 Boros Signet
+1 Breena, the Demagogue
+1 Cadric, Soul Kindler
+1 Captain Lannery Storm
+1 Caves of Koilos
+1 Chainer, Nightmare Adept
+1 Command Tower
+1 Day of Destiny
+1 Dragonskull Summit
+1 Drana, Liberator of Malakir
+1 Etali, Primal Storm
+1 Evolving Wilds
+1 Exotic Orchard
+1 Faithless Looting
+1 Feldon of the Third Path
+1 Fellwar Stone
+1 Foreboding Ruins
+1 Gadrak, the Crown-Scourge
+1 Garna, the Bloodflame
+1 Geier Reach Sanitarium
+1 Generous Gift
+1 Gerrard's Hourglass Pendant
+1 Goro-Goro, Disciple of Ryusei
+1 Heroes' Podium
+1 Kalain, Reclusive Painter
+1 Kher Keep
+1 Krenko, Tin Street Kingpin
+1 Lae'zel, Vlaakith's Champion
+1 Liesa, Forgotten Archangel
+1 Lychguard
+1 Magda, Brazen Outlaw
+1 Mahadi, Emporium Master
+1 Mikaeus, the Lunarch
+1 Mikokoro, Center of the Sea
+1 Mortify
+3 Mountain
+1 Mythos of Snapdax
+1 Night's Whisper
+1 Nomad Outpost
+1 Odric, Lunarch Marshal
+1 Orcus, Prince of Undeath
+1 Orzhov Basilica
+1 Orzhov Signet
+1 Painful Truths
+1 Piru, the Volatile
+7 Plains
+1 Primevals' Glorious Rebirth
+1 Rain of Riches
+1 Rakdos Carnarium
+1 Rakdos Signet
+1 Ratadrabik of Urborg
+1 Read the Bones
+1 Relic of Legends
+1 Ruinous Ultimatum
+1 Search for Glory
+1 Semester's End
+1 Shanid, Sleepers' Scourge
+1 Shizo, Death's Storehouse
+1 Smoldering Marsh
+1 Sol Ring
+2 Swamp
+1 Temple of Malice
+1 Temple of Silence
+1 Temple of Triumph
+1 Terramorphic Expanse
+1 Teshar, Ancestor's Apostle
+1 Thalia's Lancers
+1 The Peregrine Dynamo
+1 The Reaver Cleaver
+1 Tyrite Sanctum
+1 Unbreakable Formation
+1 Untaidake, the Cloud Keeper
+1 Urza's Ruinous Blast
+1 Utter End
+# ground truth spells it Wear/Tear; the registry only resolves the // spelling (single '/' normalises to a different name)
+1 Wear // Tear
+1 Yawgmoth's Vile Offering
+1 Yomiji, Who Bars the Way
+1 Zetalpa, Primal Dawn
+1 Zurgo Helmsmasher
