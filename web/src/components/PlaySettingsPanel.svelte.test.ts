@@ -1,6 +1,6 @@
 import { type Browser, type Page } from 'playwright';
 import { browserURL, sharedBrowser } from '../test/browser';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
 import { presetPatch, type StoppableStep } from '../lib/playsettings';
@@ -738,5 +738,53 @@ describe('PlaySettingsPanel — Layout section (fb-20260916T182801Z)', () => {
     const hidden = panel(new SeatPanelState('lg-off', 1, ctx, null), { showLog: false, onToggleLog: () => {} });
     expect(tag(hidden, 'data-toggle="show-game-log"')).toContain('aria-checked="false"');
     expect(elem(hidden, 'data-toggle="show-game-log"')).toContain('Hidden');
+  });
+});
+
+describe('PlaySettingsPanel — persistence notice (fb-20260917T232814Z)', () => {
+  // The notice is the ONE visible signal that every preference store is
+  // memory-only (lib/storage.ts storageWritable, probed live at mount). The
+  // node test env has no localStorage, so the "works" case stubs a fake and
+  // the "refuses" case stubs the throwing shape the brief names.
+  const refusing = {
+    getItem: () => null,
+    setItem: () => {
+      throw new Error('refused');
+    },
+    removeItem: () => undefined,
+    clear: () => undefined,
+  };
+
+  it('is hidden when localStorage writes round-trip', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => null,
+      setItem: () => undefined,
+      removeItem: () => undefined,
+      clear: () => undefined,
+    });
+    try {
+      const html = panel(new SeatPanelState('pw-ok', 1, ctx, null));
+      expect(html).not.toContain('data-persist-warn');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('is shown when the browser refuses site data (setItem throws)', () => {
+    vi.stubGlobal('localStorage', refusing);
+    try {
+      const html = panel(new SeatPanelState('pw-refuses', 1, ctx, null));
+      expect(html).toContain('data-persist-warn');
+      expect(elem(html, 'data-persist-warn')).toContain('Preferences are not being saved');
+      // One-line notice UNDER the step-stop grid, inside its section.
+      expect(html.indexOf('data-persist-warn')).toBeGreaterThan(html.indexOf('data-step-cell'));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('is shown when there is no localStorage global at all (the node/SSR default)', () => {
+    const html = panel(new SeatPanelState('pw-none', 1, ctx, null));
+    expect(html).toContain('data-persist-warn');
   });
 });

@@ -1,4 +1,5 @@
 import { withBase } from './basepath';
+import { safeStorage } from './storage';
 
 export interface ImageSource {
   fetch: typeof fetch;
@@ -144,10 +145,6 @@ export function createImages(src: Partial<ImageSource> = {}) {
   }
 
   return { url, offline };
-}
-
-function safeStorage(): Storage | null {
-  try { return typeof localStorage === 'undefined' ? null : localStorage; } catch { return null; }
 }
 
 export const images = createImages();

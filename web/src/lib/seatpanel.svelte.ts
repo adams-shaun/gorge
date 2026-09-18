@@ -1,5 +1,6 @@
 import type { Decision, Intent, Option, View } from '../protocol';
 import { fetchPending, postIntent, ApiError } from './api';
+import { safeStorage } from './storage';
 import type { SeatCtx } from './seat';
 import { STOPPABLE_STEPS, actionables, decide, emptyPriorityWindow, isActionKind, type StopReason, type Stops, type TurnSide } from './autopilot';
 import {
@@ -372,19 +373,11 @@ function runStopNote(mode: 'end-turn' | 'hard-skip' | 'resolve-all', reason: Sto
   return { kind, reason } as AutoNote;
 }
 
-/** safeStorage is localStorage where it exists and is reachable; null under SSR and in a browser that refuses site data. Same guard as images.ts. */
-function safeStorage(): Storage | null {
-  try {
-    return typeof localStorage === 'undefined' ? null : localStorage;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * safeSessionStorage is sessionStorage under the same guard — the handle for
  * the YIELD store only (prio6), deliberately separate from the persisted
- * play settings' localStorage: a yield is session-scoped (review r2 — it
+ * play settings' localStorage (whose ONE shared handle lives in
+ * lib/storage.ts): a yield is session-scoped (review r2 — it
  * must die with the browser session, not outlive it the way a localStorage
  * record would).
  */

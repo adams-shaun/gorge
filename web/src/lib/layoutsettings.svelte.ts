@@ -12,7 +12,7 @@ import {
   type LayoutZone,
   type ZoneAlign,
 } from './layoutsettings';
-import { safeStorage } from './logshown';
+import { safeStorage } from './storage';
 
 /**
  * layoutsettings.svelte.ts is the reactive shell over the pure

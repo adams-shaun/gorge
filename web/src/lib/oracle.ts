@@ -19,6 +19,8 @@
  * answer, not an error.
  */
 
+import { safeStorage } from './storage';
+
 export interface OracleCard {
   name: string;
   mana_cost?: string;
@@ -200,14 +202,6 @@ export function createOracle(src: Partial<OracleSource> = {}) {
   }
 
   return { text, offline };
-}
-
-function safeStorage(): Storage | null {
-  try {
-    return typeof localStorage === 'undefined' ? null : localStorage;
-  } catch {
-    return null;
-  }
 }
 
 export const oracle = createOracle();

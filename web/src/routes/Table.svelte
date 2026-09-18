@@ -21,7 +21,8 @@
   } from '../lib/seatpanel.svelte';
   import { optionsByObj, optionsByPlayer, resolveCardFollowUp, type CardOptions } from '../lib/cardoptions';
   import { stuckDecision } from '../lib/prompt';
-  import { loadLogShown, saveLogShown, safeStorage, type LogScope } from '../lib/logshown';
+  import { loadLogShown, saveLogShown, type LogScope } from '../lib/logshown';
+  import { safeStorage } from '../lib/storage';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import { seatRows } from '../lib/seattable';
