@@ -2,6 +2,7 @@ package rules
 
 import (
 	"sort"
+	"sync"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
@@ -15,7 +16,90 @@ type compiledText struct {
 	costs      map[string]Cost
 }
 
+// compiledTextConfig snapshots exactly the card pointers whose text feeds a
+// compiledText. It intentionally excludes runtime and replay configuration:
+// sidecars are keyed only by immutable configured card text.
+type compiledTextConfig struct {
+	decks  [][]*cards.Card
+	tokens map[string]*cards.Card
+}
+
+type compiledTextCacheEntry struct {
+	config compiledTextConfig
+	text   *compiledText
+}
+
+var compiledTextCache = struct {
+	sync.Mutex
+	entries map[*cards.Card][]compiledTextCacheEntry
+}{entries: make(map[*cards.Card][]compiledTextCacheEntry)}
+
 func newCompiledText(cfg Config) *compiledText {
+	key := firstConfiguredCard(cfg)
+	compiledTextCache.Lock()
+	defer compiledTextCache.Unlock()
+	for _, entry := range compiledTextCache.entries[key] {
+		if entry.config.matchesConfig(cfg) {
+			return entry.text
+		}
+	}
+	config := snapshotCompiledTextConfig(cfg)
+	text := buildCompiledText(cfg)
+	compiledTextCache.entries[key] = append(compiledTextCache.entries[key], compiledTextCacheEntry{
+		config: config,
+		text:   text,
+	})
+	return text
+}
+
+func firstConfiguredCard(cfg Config) *cards.Card {
+	for _, deck := range cfg.Decks {
+		for _, card := range deck {
+			if card != nil {
+				return card
+			}
+		}
+	}
+	return nil
+}
+
+func snapshotCompiledTextConfig(cfg Config) compiledTextConfig {
+	config := compiledTextConfig{
+		decks:  make([][]*cards.Card, len(cfg.Decks)),
+		tokens: make(map[string]*cards.Card, len(cfg.Tokens)),
+	}
+	for i, deck := range cfg.Decks {
+		config.decks[i] = append([]*cards.Card(nil), deck...)
+	}
+	for key, token := range cfg.Tokens {
+		config.tokens[key] = token
+	}
+	return config
+}
+
+func (c compiledTextConfig) matchesConfig(cfg Config) bool {
+	if len(c.decks) != len(cfg.Decks) || len(c.tokens) != len(cfg.Tokens) {
+		return false
+	}
+	for i, deck := range c.decks {
+		if len(deck) != len(cfg.Decks[i]) {
+			return false
+		}
+		for j, card := range deck {
+			if card != cfg.Decks[i][j] {
+				return false
+			}
+		}
+	}
+	for key, token := range c.tokens {
+		if otherToken, ok := cfg.Tokens[key]; !ok || token != otherToken {
+			return false
+		}
+	}
+	return true
+}
+
+func buildCompiledText(cfg Config) *compiledText {
 	predicateTexts := make(map[string]struct{})
 	costTexts := make(map[string]struct{})
 	seen := make(map[*cards.SA]struct{})

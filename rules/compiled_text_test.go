@@ -27,4 +27,25 @@ func TestEngineCompiledTextSharesWithCloneAndFallsBack(t *testing.T) {
 	if clone.compiledText != e.compiledText {
 		t.Fatal("clone did not share immutable compiled text")
 	}
+	again := New(Config{Names: []string{"you"}, Decks: [][]*cards.Card{{c}}})
+	if again.compiledText != e.compiledText {
+		t.Fatal("equivalent configurations rebuilt immutable compiled text")
+	}
+}
+
+func TestEngineCompiledTextCacheSeparatesCardLayouts(t *testing.T) {
+	deckA := card(t, "Name:Deck A\nTypes:Creature Test\nPT:1/1\nOracle:x\n")
+	deckB := card(t, "Name:Deck B\nTypes:Creature Test\nPT:1/1\nOracle:x\n")
+	tokenA := card(t, "Name:Token A\nTypes:Creature Test\nPT:1/1\nOracle:x\n")
+	tokenB := card(t, "Name:Token B\nTypes:Creature Test\nPT:1/1\nOracle:x\n")
+
+	base := New(Config{Decks: [][]*cards.Card{{deckA}}, Tokens: map[string]*cards.Card{"T": tokenA}})
+	otherDeck := New(Config{Decks: [][]*cards.Card{{deckB}}, Tokens: map[string]*cards.Card{"T": tokenA}})
+	if otherDeck.compiledText == base.compiledText {
+		t.Fatal("different deck card reused immutable compiled text")
+	}
+	otherToken := New(Config{Decks: [][]*cards.Card{{deckA}}, Tokens: map[string]*cards.Card{"T": tokenB}})
+	if otherToken.compiledText == base.compiledText {
+		t.Fatal("different token card reused immutable compiled text")
+	}
 }

@@ -56,6 +56,42 @@ parser median of 1,612 ns/op, 176 B/op, and 5 allocs/op. The first migration
 batch covers mana activation/availability, activation, speed, and ability
 offer paths; raw strings a match did not precollect still call `ParseCost`.
 
+## Task 6: reuse immutable sidecars across hypothetical engines
+
+The first 500-game run after adding the engine-local sidecar regressed to
+91.659 seconds and 59.49 GB allocated. Its CPU profile showed why:
+`rules.newCompiledText` spent 45.70 cumulative CPU-seconds (12.12%) rebuilding
+the same configured card interpretation for each
+`NewHypotheticalPlanned` engine.
+
+`rules.compiledTextCache` now holds immutable sidecars behind a mutex. Cache
+identity is an exact check, not a hash: the ordered deck dimensions and card
+pointers plus every token key/value card pointer must match. The entry owns a
+snapshot to protect its identity from later caller slice/map edits; hit lookup
+compares that snapshot directly with the supplied configuration and does not
+copy it. The cache contains no state, event, replay, decision, or runtime
+catalog IDs.
+
+The regression test first demonstrated that equivalent configurations rebuilt
+the sidecar, then now requires pointer reuse. Its companion test proves that
+one different deck card or token card does not reuse a sidecar.
+
+The exact semantic oracle comparison is `true` after deleting only timing and
+memory telemetry (and per-result timing fields): 500 games, 498 eligible
+roots, 2 no-root games, 100 covered roots, and zero errors. On the final
+profiled run:
+
+| Metric | post-AbilityPush control | sidecar cache | Change |
+|---|---:|---:|---:|
+| Wall time | 84.076 s | 83.015 s | -1.26% |
+| Runtime allocated bytes | 50.491 GB | 50.103 GB | -0.77% |
+
+The cache path no longer appears in the CPU profile's 2.05-second reporting
+threshold. The remaining direct parser cost is 9.80 cumulative CPU-seconds
+(2.39%); `MatchesSpecCtx`/`MatchesObjectCtx` remain 22.24/20.89 seconds
+(5.43%/5.10%) and are the next candidates for a separately designed,
+conservative grammar expansion.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:
