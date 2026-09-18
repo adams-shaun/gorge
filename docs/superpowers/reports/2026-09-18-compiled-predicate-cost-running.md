@@ -17,7 +17,7 @@ Task 1 added focused benchmarks. Five-run medians on an Intel Xeon Platinum
 
 | Benchmark | ns/op | B/op | allocs/op |
 |---|---:|---:|---:|
-| `BenchmarkFilterTextualMatch` | 197.5 | 0 | 0 |
+| `BenchmarkFilterTextualMatch` | 183.4 | 0 | 0 |
 | `BenchmarkFilterTextualReject` | 200.9 | 0 | 0 |
 | `BenchmarkFilterTextualUnknown` | 267.5 | 0 | 0 |
 | `BenchmarkParseCostMana` | 283.0 | 0 | 0 |
@@ -27,6 +27,25 @@ Task 1 added focused benchmarks. Five-run medians on an Intel Xeon Platinum
 The filter work must remove repeated grammar scanning without regressing its
 zero-allocation property. The parsed-cost cache has the clearest focused
 allocation opportunity.
+
+## Task 2: conservative predicate programs
+
+The initial immutable program evaluator recognizes only local grammar and
+returns `maybe` for every unmodeled base or predicate; the public matcher then
+uses the original textual evaluator. This makes an unknown base conservative
+as well as an unknown predicate -- neither can be silently rejected.
+
+Five-run compiled-path medians were:
+
+| Benchmark | ns/op | B/op | allocs/op |
+|---|---:|---:|---:|
+| `BenchmarkFilterCompiledYes` | 131.1 | 0 | 0 |
+| `BenchmarkFilterCompiledNo` | 75.24 | 0 | 0 |
+| `BenchmarkFilterCompiledMaybe` | 329.3 | 0 | 0 |
+
+The direct yes/no paths improve over the separately measured textual baseline;
+the fallback pays the expected lookup overhead and is retained only for
+correctness. Broader corpus reachability and end-to-end benefit remain open.
 
 ## Known baseline failures
 

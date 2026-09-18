@@ -4,6 +4,12 @@ import "testing"
 
 var benchmarkMatch bool
 
+var benchmarkPredicatePrograms = CompilePredicatePrograms([]string{
+	"Creature.YouCtrl+untapped",
+	"Land,Artifact",
+	"Creature.UnknownPredicate",
+})
+
 // Simple filter matching is read-only and needs no owned result storage.
 // Reintroducing per-alternative or per-predicate slices breaks this budget,
 // including on failed alternatives and fail-closed unknown predicates.
@@ -40,7 +46,7 @@ func BenchmarkFilterTextualMatch(b *testing.B) {
 	sc := SpecContext{You: 0, Source: ids["myBear"]}
 	b.ReportAllocs()
 	for range b.N {
-		benchmarkMatch = MatchesSpecCtx(g, "Creature.YouCtrl+tapped", ids["myBear"], sc)
+		benchmarkMatch = MatchesSpecCtx(g, "Creature.YouCtrl+untapped", ids["myBear"], sc)
 	}
 }
 
@@ -56,6 +62,33 @@ func BenchmarkFilterTextualReject(b *testing.B) {
 func BenchmarkFilterTextualUnknown(b *testing.B) {
 	g, ids := board(b)
 	sc := SpecContext{You: 0, Source: ids["myBear"]}
+	b.ReportAllocs()
+	for range b.N {
+		benchmarkMatch = MatchesSpecCtx(g, "Creature.UnknownPredicate", ids["myBear"], sc)
+	}
+}
+
+func BenchmarkFilterCompiledYes(b *testing.B) {
+	g, ids := board(b)
+	sc := SpecContext{You: 0, Source: ids["myBear"]}
+	b.ReportAllocs()
+	for range b.N {
+		benchmarkMatch = benchmarkPredicatePrograms.Evaluate("Creature.YouCtrl+untapped", g, g.Obj(ids["myBear"]), sc) == PredicateYes
+	}
+}
+
+func BenchmarkFilterCompiledNo(b *testing.B) {
+	g, ids := board(b)
+	sc := SpecContext{You: 0, Source: ids["myBear"]}
+	b.ReportAllocs()
+	for range b.N {
+		benchmarkMatch = benchmarkPredicatePrograms.Evaluate("Land,Artifact", g, g.Obj(ids["myBear"]), sc) == PredicateYes
+	}
+}
+
+func BenchmarkFilterCompiledMaybe(b *testing.B) {
+	g, ids := board(b)
+	sc := SpecContext{You: 0, Source: ids["myBear"], PredicatePrograms: benchmarkPredicatePrograms}
 	b.ReportAllocs()
 	for range b.N {
 		benchmarkMatch = MatchesSpecCtx(g, "Creature.UnknownPredicate", ids["myBear"], sc)
