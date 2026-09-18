@@ -77,6 +77,24 @@
   // is presentation — pinned in CardStack.test.ts.
   const collapsedFaceTapped = $derived(readyCount === 0);
 
+  // fb-20260918T010805Z: on a COLLAPSED MIXED pile the ready plate alone was
+  // the tapped signal, and the player overlooked it twice — "should show
+  // tapped card in the same pile". So the pile renders a SECOND face: the
+  // quarter-turned representative (the lowest-id tapped member — cards are
+  // id-sorted, so this is deterministic and a tap/untap never re-keys it)
+  // lying across the pile's corner, while the lead face above keeps its ready
+  // presentation, its data-obj anchor and the inspector's subject. The
+  // historical constraints all hold: the pile never splits into two piles by
+  // tapped state (fb-20260916T201423Z — this is one pile with a visible tapped
+  // member in it), the whole-pile silhouette never rotates from one member's
+  // tap (fb-20260917T004545Z — the lead face stays ready until EVERY member
+  // is tapped), and the render key is still the lead id so nothing
+  // unmounts (fb-20260915T182335Z). Uniform piles and expanded piles never
+  // mix, so they never render the representative and are byte-identical to
+  // before. Deliberately a full CardTile, not a third small plate: the plate
+  // is the thing the player already overlooked.
+  const tappedRep = $derived(mixedTapped ? (group.cards.find((c) => c.tapped) ?? null) : null);
+
   // One tile's options depends on the pending decision offered THIS object
   // (per member when expanded, or the whole pile when collapsed — stack
   // members are interchangeable, so the pile's options are the union).
@@ -113,6 +131,15 @@
     {#each faces as c (c.id)}
       <CardTile card={c} {size} faceTapped={expanded ? undefined : collapsedFaceTapped} tileOptions={expanded ? memberOptions(c.id) : collapsedOptions} />
     {/each}
+    {#if !expanded && tappedRep}
+      <!-- fb-20260918T010805Z: the collapsed mixed pile's tapped member, shown
+           IN the pile as the quarter-turned card it is. Presentation only: the
+           representative carries no options affordance of its own (the pile's
+           union lives on the lead tile) and the lead face stays the anchor. -->
+      <span class="tapped-rep">
+        <CardTile card={tappedRep} {size} faceTapped={true} tileOptions={null} />
+      </span>
+    {/if}
     <span class="count" data-stack-count aria-hidden="true">x{group.cards.length}</span>
     {#if !expanded && mixedTapped}
       <span class="count ready" data-stack-ready aria-hidden="true">{readyCount} ready</span>
@@ -222,5 +249,18 @@
      it. */
   .count.ready {
     bottom: calc(var(--sp-2) + 2.1em);
+  }
+
+  /* The tapped representative (fb-20260918T010805Z): a quarter-turned card
+     lying across the pile's bottom-right corner and sticking out past it,
+     like the tapped card it stands in for. Absolutely positioned, so it is
+     out of the flex flow and the ghost layers still trace the lead face's
+     own box — the pile stays square and its geometry is otherwise untouched.
+     The offsets clear the pile's corner without reaching the tab gutter on
+     the left or overlapping a neighbouring pile materially. */
+  .tapped-rep {
+    position: absolute;
+    right: calc(var(--sp-2) * -1.5);
+    bottom: calc(var(--sp-2) * -1);
   }
 </style>
