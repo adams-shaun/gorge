@@ -30,6 +30,13 @@
  * never clipped) and never (no slide-up at all; the hover inspector still
  * reads a card, and keyboard focus still raises it for accessibility).
  *
+ * command (fb-20260917T232202Z) is the seat's COMMAND ZONE — the commander
+ * tiles CommandArea draws at the front of the creatures row. It is a rim
+ * zone of the seat's own, not a battlefield row, so it sits between lands
+ * and hand in the panel order; on the board its tiles are one pack at the
+ * creatures row's front (a flex sub-row inside that row), which is why it
+ * can carry its own scale + align while the creatures row carries its own.
+ *
  * steppersOnBoard (fb-20260916T200925Z) gates the ON-BOARD − / + size
  * steppers (ZoneStepper mounts in Quadrant and HandFan): the player asked
  * for a show/hide toggle in the Game Options panel, so the board can carry
@@ -44,12 +51,12 @@
  * defaults.
  */
 
-export type LayoutZone = 'creatures' | 'others' | 'lands' | 'hand';
+export type LayoutZone = 'creatures' | 'others' | 'lands' | 'command' | 'hand';
 export type ZoneAlign = 'left' | 'center' | 'right';
 export type HandPeek = 'hover' | 'always' | 'never';
 
-/** The four zones, in panel order (battlefield rows top-to-bottom, then hand). */
-export const LAYOUT_ZONES: readonly LayoutZone[] = ['creatures', 'others', 'lands', 'hand'];
+/** The five zones, in panel order (battlefield rows top-to-bottom, the seat's own command rim zone, then hand). */
+export const LAYOUT_ZONES: readonly LayoutZone[] = ['creatures', 'others', 'lands', 'command', 'hand'];
 
 export const ZONE_ALIGNS: readonly ZoneAlign[] = ['left', 'center', 'right'];
 export const HAND_PEEKS: readonly HandPeek[] = ['hover', 'always', 'never'];
@@ -59,6 +66,7 @@ export const ZONE_LABELS: Record<LayoutZone, string> = {
   creatures: 'Creatures',
   others: 'Other permanents',
   lands: 'Lands',
+  command: 'Command zone',
   hand: 'Hand',
 };
 
@@ -99,8 +107,8 @@ export interface LayoutSettings {
 export function defaultLayout(): LayoutSettings {
   return {
     version: 1,
-    scale: { creatures: 1, others: 1, lands: 1, hand: 1 },
-    align: { creatures: 'left', others: 'left', lands: 'left', hand: 'center' },
+    scale: { creatures: 1, others: 1, lands: 1, command: 1, hand: 1 },
+    align: { creatures: 'left', others: 'left', lands: 'left', command: 'left', hand: 'center' },
     handPeek: 'hover',
     steppersOnBoard: false,
   };
@@ -167,18 +175,19 @@ function isScale(v: unknown): v is number {
  * defaults, not a partial merge — a half-understood layout blob should not
  * half-apply (same rule as playsettings.validate).
  *
- * steppersOnBoard is the ONE deliberate exception to "missing field means
- * corrupt": the toggle shipped AFTER the blob's first version, so blobs
- * saved by the pre-toggle client have no such key. A missing field loads as
- * false (fb-20260917T004304Z: the player asked the steppers to default
- * hidden). The toggle existed for only one day as opt-out with default ON,
- * so nobody had the chance to opt IN — no saved blob can carry an explicit
- * `steppersOnBoard: true` preference that this flip would override, and a
- * pre-toggle blob loading as hidden therefore loses nobody a choice they
- * made. What the missing-field path must still preserve is the REST of the
- * blob (scale/align/handPeek), which is why the field stays optional
- * instead of failing validate to all defaults. Anything PRESENT that is not
- * a boolean is still corrupt (same strictness as every other field).
+ * steppersOnBoard and the COMMAND ZONE are the deliberate exceptions to
+ * "missing field means corrupt": both shipped AFTER the blob's first
+ * version, so blobs saved by an earlier client have no such keys. A missing
+ * steppersOnBoard loads as false (fb-20260917T004304Z: the player asked the
+ * steppers to default hidden). A missing command scale/align loads as the
+ * shipped command defaults (scale 1, align left) — fb-20260917T232202Z, the
+ * player asked for the command zone to have its own sizing and placement,
+ * and the four legacy zones' saved sizes must survive that deploy intact,
+ * NOT fall back to all-defaults. Both stay STRICT about what is present: a
+ * steppersOnBoard that is not a boolean, a command scale outside the legal
+ * range or a command align that is not a known word still corrupt the whole
+ * blob to defaults (same rule as every other field). Version stays 1 — the
+ * blob's shape only ever grew, its meaning never changed.
  */
 function validate(v: unknown): LayoutSettings | null {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
@@ -186,14 +195,38 @@ function validate(v: unknown): LayoutSettings | null {
   const o = v as Record<string, unknown>;
   if (typeof o.scale !== 'object' || o.scale === null || Array.isArray(o.scale)) return null;
   if (typeof o.align !== 'object' || o.align === null || Array.isArray(o.align)) return null;
+  /**
+   * zones shipped after the v1 blob format (fb-20260917T232202Z): a key
+   * these zones lack loads as the zone's shipped default instead of
+   * corrupting the blob. Every other zone key is required, as it always was.
+   */
+  const POST_V1_ZONES: Record<LayoutZone, { scale: number; align: ZoneAlign } | undefined> = {
+    creatures: undefined,
+    others: undefined,
+    lands: undefined,
+    command: { scale: 1, align: 'left' },
+    hand: undefined,
+  };
   const scale = {} as Record<LayoutZone, number>;
   for (const z of LAYOUT_ZONES) {
-    if (!isScale((o.scale as Record<string, unknown>)[z])) return null;
+    const fallback = POST_V1_ZONES[z];
+    const raw = (o.scale as Record<string, unknown>)[z];
+    if (raw === undefined && fallback !== undefined) {
+      scale[z] = fallback.scale;
+      continue;
+    }
+    if (!isScale(raw)) return null;
     scale[z] = (o.scale as Record<string, number>)[z];
   }
   const align = {} as Record<LayoutZone, ZoneAlign>;
   for (const z of LAYOUT_ZONES) {
-    if (!isOneOf((o.align as Record<string, unknown>)[z], ZONE_ALIGNS)) return null;
+    const fallback = POST_V1_ZONES[z];
+    const raw = (o.align as Record<string, unknown>)[z];
+    if (raw === undefined && fallback !== undefined) {
+      align[z] = fallback.align;
+      continue;
+    }
+    if (!isOneOf(raw, ZONE_ALIGNS)) return null;
     align[z] = (o.align as Record<string, ZoneAlign>)[z];
   }
   if (!isOneOf(o.handPeek, HAND_PEEKS)) return null;

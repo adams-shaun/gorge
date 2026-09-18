@@ -8,10 +8,13 @@
 
   /**
    * One commander, drawn as a card in its seat's CREATURES row (CZ2) — a
-   * commander is a creature, so it is drawn at the same --card-w the row
-   * scales every other creature to, and reads the ambient `--card-w`
-   * cascading from `.row.creatures` in Quadrant.svelte rather than setting a
-   * scale of its own. Nothing here decides the number; it only inherits it.
+   * commander is a creature, and the tile reads the ambient `--card-w`
+   * cascading over it rather than setting a scale of its own. Nothing here
+   * decides the number; it only inherits it. Since fb-20260917T232202Z the
+   * ambient value comes from the COMMAND PACK (CommandArea's own sub-row at
+   * the creatures row's front), which carries the command zone's OWN layout
+   * scale — at its default 1 that is exactly the creatures row's creature
+   * scale the tile has always read.
    *
    * Commander identity is the premise of the format and a line of text is not
    * how anyone recognises a commander — you recognise it by its art. So this
@@ -209,11 +212,12 @@
      rather than over it: the band is the one thing that must stay readable
      when the face is greyed (in the zone) or an empty box (away), so it
      never sits on the art. */
-  /* Width comes straight from the row's own --card-w (104px in the creatures
-     row) — a commander is a creature, drawn at creature scale, not at a
-     private scale of its own (CZ2). No fallback is set here: outside a row
-     that defines --card-w, CardImage's own 90px default applies, which only
-     ever happens in a test render. */
+  /* Width comes from the ambient --card-w — since fb-20260917T232202Z that
+     is the command pack's own scale (CommandArea's .cmd-pack), whose
+     default 1 is the creatures row's scale (104px) the tile has always
+     read. No fallback is set here: outside a container that defines
+     --card-w, CardImage's own 90px default applies, which only ever happens
+     in a test render. */
   .cmd-tile {
     display: flex;
     flex-direction: column;

@@ -3,6 +3,7 @@
   import { commandZoneOf, stackIdsOf } from '../lib/commander';
   import type { CardOptions } from '../lib/cardoptions';
   import { tileOptions } from '../lib/cardoptions';
+  import { layoutStore } from '../lib/layoutsettings.svelte';
   import CommanderTile from './CommanderTile.svelte';
 
   /**
@@ -38,11 +39,21 @@
    * board, so the command-zone tile is the one place the reader can find and
    * inspect them.
    *
-   * This component has NO wrapping element: it is a plain `{#each}`, so the
-   * tiles it renders become flex items of whichever row includes it, with
-   * nothing of its own to size, position or stack. A seat with no roster
-   * (a Constructed game) renders literally nothing — not an empty node, not a
-   * frame, not a heading.
+   * This component renders ONE wrapping element — the command pack
+   * (`.cmd-pack`, fb-20260917T232202Z) — a sub-container inside the
+   * creatures row that carries the command zone's OWN layout settings: its
+   * scale resolves the tiles' `--card-w` (the creatures row's resolution of
+   * that property has already happened on the `.row`, so a tile-level value
+   * could not reach its children) and its `data-align` packs the pack's
+   * main axis independently of the creatures row's. It is a flex-wrap row
+   * exactly like the row that contains it, sits FIRST among the creatures
+   * row's children (the CZ2 "commanders draw first" order preserved) and
+   * its tiles wrap inside it. With both settings at their defaults the pack
+   * is content-sized at the row's front and renders indistinguishably from
+   * the pre-pack interleaved tiles. A seat with no roster (a Constructed
+   * game) still renders literally nothing — not an empty node, not a frame,
+   * not a heading — so the pack is conditional on a non-empty roster (an
+   * empty wrapper would insert a stray flex gap into the creatures row).
    *
    * `options` (the pending decision's card-indexed offers, forwarded from
    * Quadrant the same way every CardStack in this row already gets it) is
@@ -60,6 +71,51 @@
   );
 </script>
 
-{#each commanders as c (c.commander.id)}
-  <CommanderTile status={c} player={player.name} seat={player.seat} tileOptions={options ? tileOptions(options, c.commander.id) : null} />
-{/each}
+{#if commanders.length > 0}
+  <!-- The command pack: the seat's command zone laid out by its OWN layout
+       settings (fb-20260917T232202Z), rendered as the creatures row's first
+       flex item. Conditional on a non-empty roster so a constructed seat (or
+       a moment when every commander is on the battlefield) still renders
+       literally nothing — an empty wrapper would insert a stray row gap. -->
+  <div
+    class="cmd-pack"
+    class:zone-outline={layoutStore.flash.command}
+    style:--cmd-scale={layoutStore.scale('command')}
+    data-align={layoutStore.align('command')}
+    data-cmd-pack=""
+  >
+    {#each commanders as c (c.commander.id)}
+      <CommanderTile status={c} player={player.name} seat={player.seat} tileOptions={options ? tileOptions(options, c.commander.id) : null} />
+    {/each}
+  </div>
+{/if}
+
+<style>
+  /* The command pack mirrors a Quadrant row's geometry exactly, one level
+     down: a flex-wrap row with the row gap, its own card scale and its own
+     main-axis packing. --card-w is resolved HERE (the creatures row's
+     resolution of --card-w has already happened on the .row element, so a
+     scale set on a tile could not reach its children) from --cmd-scale,
+     which the template sets from layoutStore.scale('command'); the tiles
+     inside read the ambient --card-w exactly as they read the creatures
+     row's before. With the defaults (scale 1, left) the computed width and
+     packing are identical to the pre-pack rendering. */
+  .cmd-pack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+    align-items: flex-start;
+    align-content: flex-start;
+    min-width: 0;
+    --card-w: calc(var(--play-card-w) * var(--cmd-scale, 1));
+  }
+  .cmd-pack[data-align='center'] { justify-content: center; }
+  .cmd-pack[data-align='right'] { justify-content: flex-end; }
+  /* The dotted outline the layout store pulses for FLASH_MS after a Command
+     zone row adjustment lands in the panel (this zone has no on-board
+     stepper, so no hover-held outline). Same look as the Quadrant rows'. */
+  .cmd-pack.zone-outline {
+    outline: 2px dashed var(--ink-dim);
+    outline-offset: 3px;
+  }
+</style>

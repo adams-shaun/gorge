@@ -41,7 +41,7 @@ export interface LayoutStoreEnv {
   clearTimeout: (id: unknown) => void;
 }
 
-const NO_FLASH: Record<LayoutZone, boolean> = { creatures: false, others: false, lands: false, hand: false };
+const NO_FLASH: Record<LayoutZone, boolean> = { creatures: false, others: false, lands: false, command: false, hand: false };
 
 export class LayoutStore {
   #env: LayoutStoreEnv;

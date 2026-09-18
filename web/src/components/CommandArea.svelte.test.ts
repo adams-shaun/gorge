@@ -3,6 +3,7 @@ import { render } from 'svelte/server';
 import type { CardView, PlayerView, SeatInfo, View } from '../protocol';
 import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
 import { commandZoneOf } from '../lib/commander';
+import { layoutStore } from '../lib/layoutsettings.svelte';
 import CommandArea from './CommandArea.svelte';
 import CommanderTile from './CommanderTile.svelte';
 import Board from './Board.svelte';
@@ -22,12 +23,17 @@ import Rail from './Rail.svelte';
  * twice.
  *
  * CZ2 moved the tiles OUT of a private, rim-pinned area and INTO the seat's
- * creatures row, at creature scale, so CommandArea no longer renders a
- * wrapping element or a corner-dependent side: it is a plain `{#each}` and
- * the tiles it produces are direct flex children of whatever includes it.
- * The tests that used to assert a `data-command-area` wrapper and a
- * `side-start`/`side-end` placement were replaced accordingly — see the
- * "one tile per seat" and "the private area is gone" blocks below.
+ * creatures row, at creature scale. fb-20260917T232202Z then gave the command
+ * zone its OWN layout settings, which the creatures row cannot carry for it
+ * (the row resolves --card-w on itself; the tiles are siblings of the
+ * CardStacks in one flex row, where an independent justify-content has
+ * nothing to act on): CommandArea now renders ONE wrapper — the command
+ * pack, first among the creatures row's children — that is itself a
+ * flex-wrap row carrying the command zone's own scale (--cmd-scale →
+ * --card-w) and align (data-align). The tests that used to assert NO
+ * wrapper were re-pointed at the pack: the old private-area assertions
+ * (no data-command-area, no side-start/side-end recess) still hold — the
+ * pack is inside the creatures row, not a private area elsewhere on the rim.
  */
 
 const card = (id: number, name: string, manaCost?: string): CardView => ({
@@ -50,6 +56,12 @@ function tiles(html: string): { index: string; state: string; zone: string; tax:
     zone: m[3],
     tax: null,
   }));
+}
+
+/** elem returns one element with its content, matched by a data attribute ('' when absent). Same helper PlaySettingsPanel.svelte.test.ts uses. */
+function elem(html: string, attr: string): string {
+  const m = new RegExp(`<([a-z]+)[^>]*${attr.replace(/"/g, '\\"')}[^>]*>([\\s\\S]*?)</\\1>`).exec(html);
+  return m === null ? '' : m[0];
 }
 
 describe('CommandArea — one seat"s commanders, on the board', () => {
@@ -119,6 +131,53 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     expect(html).toContain('cmd-zone-box');
     expect(html).toContain('>Liliana<');
     expect(html).toContain('>graveyard<');
+  });
+
+  it('with a roster the tiles render inside the command pack, which carries the zone\'s OWN scale and align (fb-20260917T232202Z)', () => {
+    const store = layoutStore;
+    store.bump('command', 0.2);
+    store.setAlign('command', 'center');
+    try {
+      const c = card(1, 'Isamaru');
+      const p = player({ commanders: [c], command: [c] });
+      const { html } = render(CommandArea, { props: { player: p } });
+      const pack = elem(html, 'data-cmd-pack');
+      expect(pack).not.toBe('');
+      // the zone's OWN settings — not the creatures row's
+      expect(pack).toContain('data-align="center"');
+      expect(pack).toMatch(/style="[^"]*--cmd-scale:\s*1\.2/);
+      // and the tile lives INSIDE the pack
+      expect(pack).toContain('data-commander="0"');
+    } finally {
+      store.reset();
+      store.dispose();
+    }
+  });
+
+  it('the pack renders at the shipped defaults as one content-sized flex item at the creatures row\'s front (100% / left)', () => {
+    const c = card(1, 'Isamaru');
+    const p = player({ commanders: [c], command: [c] });
+    const { html } = render(CommandArea, { props: { player: p } });
+    const pack = elem(html, 'data-cmd-pack');
+    expect(pack).toContain('data-align="left"');
+    expect(pack).toMatch(/style="[^"]*--cmd-scale:\s*1($|[";.])/);
+    // no dotted outline at rest: the flash pulse is the only outline trigger
+    expect(pack).not.toContain('zone-outline');
+  });
+
+  it('the panel\'s Command zone steppers pulse the pack\'s dotted outline and NOT the creatures row\'s', () => {
+    const store = layoutStore;
+    const c = card(1, 'Isamaru');
+    const p = player({ commanders: [c], command: [c] });
+    store.bump('command', 0.1);
+    try {
+      const { html } = render(CommandArea, { props: { player: p } });
+      const pack = elem(html, 'data-cmd-pack');
+      expect(pack).toContain('zone-outline');
+    } finally {
+      store.reset();
+      store.dispose();
+    }
   });
 
   it('the empty away box is STILL inspectable and still names its card', () => {
@@ -252,7 +311,7 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     expect(html.replace(/<!--[\s\S]*?-->/g, '').trim()).toBe('');
   });
 
-  it('the private rim-pinned area is gone (CZ2): no wrapper element, no corner-dependent placement, no recess', () => {
+  it('the private rim-pinned area is gone (CZ2): no private area element, no corner-dependent placement, no recess', () => {
     const c = card(1, 'Isamaru');
     const p = player({ commanders: [c], command: [c] });
     const { html } = render(CommandArea, { props: { player: p } });
