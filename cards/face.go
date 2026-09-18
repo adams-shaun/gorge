@@ -69,8 +69,10 @@ func SplitKeywordList(list string) []string {
 }
 
 func (f *Face) HasKeyword(k string) bool {
-	if mask := keywordMaskFor(k); mask != 0 && f.compiledCatalog != nil && f.compiledID != 0 && int(f.compiledID) <= len(f.compiledCatalog.Faces) {
-		return f.compiledCatalog.Faces[f.compiledID-1].KeywordMask&mask != 0
+	if f.compiledCatalog != nil && f.compiledID != 0 && int(f.compiledID) <= len(f.compiledCatalog.Faces) {
+		if mask := keywordMaskFor(k); mask != 0 {
+			return f.compiledCatalog.Faces[f.compiledID-1].KeywordMask&mask != 0
+		}
 	}
 	for _, x := range f.Keywords {
 		if strings.EqualFold(KeywordHead(x), k) {
