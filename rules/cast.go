@@ -3629,8 +3629,16 @@ func (e *Engine) manaWindowAsk() bool {
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Activate mana abilities to pay for " + name, Source: pc.card}
 	for _, id := range sources {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate",
-			Obj: id, Label: "Activate " + e.G.Obj(id).Face().Name + " for mana"})
+		opt := decision.Option{Index: len(d.Options), Kind: "activate",
+			Obj: id, Label: "Activate " + e.G.Obj(id).Face().Name + " for mana"}
+		// The same beyond-tap cost marker legal.go's priority-window offer
+		// carries, so the one "activate" option shape stays consistent across
+		// both ask sites (fb-led1); this ask sits on a choose decision, which
+		// every auto path refuses, so the marker changes no classification.
+		if marker := manaActivationCostMarker(e.availableManaAbilities(pc.player, id)); marker != "" {
+			opt.Cost = marker
+		}
+		d.Options = append(d.Options, opt)
 	}
 	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
 	e.choosing = chooseCast

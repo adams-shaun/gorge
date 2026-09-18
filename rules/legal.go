@@ -1356,9 +1356,18 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if f == nil {
 				continue
 			}
-			if len(e.availableManaAbilitiesUsing(&actionStatics, p, id)) > 0 {
-				add("activate", "Activate "+f.Name+" for mana", id)
+			mas := e.availableManaAbilitiesUsing(&actionStatics, p, id)
+			if len(mas) == 0 {
+				continue
 			}
+			opt := decision.Option{Index: len(out), Kind: "activate", Label: "Activate " + f.Name + " for mana", Obj: id}
+			// fb-led1: a mana ability that costs more than a bare tap is the
+			// play the window exists for — carry its cost so the client's
+			// empty-priority-window floor stops instead of passing it away.
+			if marker := manaActivationCostMarker(mas); marker != "" {
+				opt.Cost = marker
+			}
+			out = append(out, opt)
 		}
 	}
 

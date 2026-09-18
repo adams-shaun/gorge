@@ -583,6 +583,42 @@ describe('the post-land window — castable after tapping (fb-20260914T014141Z)'
     expect(p.active?.seq).toBe(3);
   });
 
+  /** ledActivate is the fb-led1 option: a mana activation whose cost is more than a bare tap (Lion's Eye Diamond's {T}, Sacrifice) — the wire marker the engine now hangs on the option. */
+  const ledActivate = (i: number): Option =>
+    ({ index: i, kind: 'activate', label: "Activate Lion's Eye Diamond for mana", player: 0, cost: "T Sac<1/Lion's Eye Diamond>" });
+
+  /** ledWindow is the fb-led1 window: the ONLY action on it is that costly activation — the shape the empty-priority-window floor swallowed for the whole rest of the reporter's game (fb-20260917T192520Z-26136705). */
+  const ledWindow = (seq: number): Decision =>
+    ({ seq, player: 0, kind: 'priority', prompt: 'turn 5, main1 — You has priority', min: 1, max: 1, options: [ledActivate(0), pass(1), concede(2)] });
+
+  it('manual mode (skipEmpty on): the floor does NOT swallow the fb-led1 window — a costly mana activation with a dead hand stops (20260917T192520Z-26136705)', async () => {
+    const p = manualSeat();
+    p.adoptView(ledWindow(3));
+    p.considerAuto(postLandView([])); // the reporter's hand: empty, nothing castable, no projection
+    await settle(() => p.busy === false);
+    expect(postIntentMock).not.toHaveBeenCalled(); // the window is the player's to answer
+    expect(p.emptySkipped).toBe(0);
+    expect(p.active?.seq).toBe(3);
+  });
+
+  it('manual mode (skipEmpty on): the floor still swallows the same shape when the activate option is a bare tap (no cost marker)', async () => {
+    const p = manualSeat();
+    p.adoptView(tapOnly(4));
+    p.considerAuto(postLandView([]));
+    await settle(() => p.postedSeq === 4);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]); // the pass option's index
+    expect(p.emptySkipped).toBe(1);
+  });
+
+  it('auto (casual): the fb-led1 costly-activation window stops instead of machine-passing it', async () => {
+    const p = armedSeat();
+    p.adoptView(ledWindow(5));
+    p.considerAuto(postLandView([]));
+    await settle(() => p.busy === false);
+    expect(postIntentMock).not.toHaveBeenCalled();
+  });
+
   it('manual mode (skipEmpty on): the floor still swallows the same window when the hand is dead mana-wise', async () => {
     const p = manualSeat();
     p.adoptView(tapOnly(4));

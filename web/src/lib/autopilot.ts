@@ -1,4 +1,4 @@
-import type { Decision, View } from '../protocol';
+import type { Decision, Option, View } from '../protocol';
 import { castablesAfterTap, respondableAfterTap } from './castable';
 import type { OpponentObjectRule, OpponentTriggerRule, PlaySettings, StoppableStep } from './playsettings';
 import { stackYieldKey } from './yields';
@@ -87,13 +87,21 @@ export function turnSide(view: View, seat: number): TurnSide {
  * not-a-play are stated once and cannot drift apart:
  *
  *  - pass and concede are non-answers by definition;
- *  - activate is the tap-for-mana offer the engine hangs on every priority
- *    window that has an untapped source (rules/legal.go's
+ *  - a BARE-TAP activate is the tap-for-mana offer the engine hangs on every
+ *    priority window that has an untapped source (rules/legal.go's
  *    availableManaAbilities loop), so counting it as an action makes almost
  *    every window "actionable" and defeats both the empty-window skip and the
  *    smart step rule — tapping mana with nothing to spend it on is not a play
  *    (fb-3ab6d9da: it also armed pass-after-acting, machine-passing the very
- *    window the floated mana unlocked).
+ *    window the floated mana unlocked). The one exception is the COSTLY
+ *    activation (fb-20260917T192520Z): since the engine marks an activate
+ *    option whose mana ability costs more than a bare tap with Option.cost,
+ *    that option IS a play — it is the sac-for-mana / pay-life activation a
+ *    ritual-combo deck needs the window for, and with a dead hand it is the
+ *    window's ONLY action, which the floor then swallowed whole and the card
+ *    was unreachable for the rest of the game. isCostlyManaActivation below
+ *    is that exception; isActionKind itself stays a pure kind test so the
+ *    pass-after-acting arming test (a tap arms nothing) keeps its old shape.
  *
  * The wire fact that makes the activate exclusion safe on every consumer: a
  * priority decision's activate kind is only ever the mana tap (non-mana
@@ -109,17 +117,38 @@ export function isActionKind(kind: string): boolean {
 }
 
 /**
+ * isCostlyManaActivation is the ONE fb-led1 exception to the activate
+ * exclusion above: an "activate" option carrying the engine's cost marker
+ * (decision.Option.Cost, set at rules/legal.go's mana-ability offer loop when
+ * the offered mana ability costs more than a bare tap — Lion's Eye Diamond's
+ * {T}, Sacrifice; Mana Confluence's Pay 1 life). A bare tap (every plain
+ * land) carries no marker and stays not-a-play, so the ordinary
+ * mana-tap-everywhere shape is unchanged; a costly activation is a real play
+ * the player must see the window for. The marker exists precisely so this
+ * predicate can exist: CardView.Produces says what a source makes, never
+ * what it costs to make it, so no client-side projection could tell the two
+ * shapes apart before the engine spoke.
+ */
+export function isCostlyManaActivation(o: Option): boolean {
+  return o.kind === 'activate' && !!o.cost;
+}
+
+/**
  * actionables is actionable()'s descriptive twin (fb-20260916T225211Z): the
  * SAME scan, returned as the human labels of what made the window actionable
  * — an action-kind option's own wire label ("Cast Deadly Rollick (alternative
- * cost)"), else castablesAfterTap's labels for the float-then-cast shape
+ * cost)"), the costly mana activation's label ("Activate Lion's Eye Diamond
+ * for mana", fb-20260917T192520Z), else castablesAfterTap's labels for the
+ * float-then-cast shape
  * ("Cast Lava Spike (after tapping)"). actionable() below is this list's
  * emptiness test, so a smart step stop and the note that explains it read ONE
  * predicate by construction: whatever made the stop fire is named here,
  * verbatim. The two arms are actionable()'s two arms, in the same order.
  */
 export function actionables(view: View, seat: number, decision: Decision): string[] {
-  const labels = decision.options.filter((o) => isActionKind(o.kind)).map((o) => o.label);
+  const labels = decision.options
+    .filter((o) => isActionKind(o.kind) || isCostlyManaActivation(o))
+    .map((o) => o.label);
   if (labels.length > 0) return labels;
   return castablesAfterTap(view, seat, decision);
 }
@@ -194,11 +223,13 @@ export function respondableFor(view: View, seat: number, decision: Decision): bo
 /**
  * emptyPriorityWindow reports the one window shape the panel skips even when
  * auto is OFF: a plain single-pick priority window with nothing actionable
- * on it. "Actionable" is actionable()'s test -- pass, concede and activate
- * do not count as option kinds (a mana tap is offered at every window and is
- * not a play), EXCEPT that a mana-only window whose hand holds a card that
- * becomes castable after tapping IS actionable now (lib/castable: the
- * float-then-cast payment model hides the cast behind the tap). So this
+ * on it. "Actionable" is actionable()'s test -- pass, concede and a bare-tap
+ * activate do not count as option kinds (a mana tap is offered at every window
+ * and is not a play), EXCEPT that a mana-only window whose hand holds a card
+ * that becomes castable after tapping IS actionable now (lib/castable: the
+ * float-then-cast payment model hides the cast behind the tap), and so is a
+ * window whose only action is a COSTLY mana activation carrying the engine's
+ * cost marker (fb-20260917T192520Z — Lion's Eye Diamond with a dead hand). So this
  * covers the only-pass-and-concede shape and the mana-only shape whose hand
  * is dead mana-wise, and deliberately does NOT cover the post-land window
  * holding a spell the player is about to want -- that window stops, in

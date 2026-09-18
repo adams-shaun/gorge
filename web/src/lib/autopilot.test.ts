@@ -654,6 +654,26 @@ describe('decide', () => {
     expect(emptyPriorityWindow(d, v, 0)).toBe(null);
   });
 
+  // --- fb-20260917T192520Z-26136705: a costly mana activation is an action ---
+
+  it("fb-led1: a window whose ONLY action is a costly mana activation (Lion's Eye Diamond) is actionable and emptyPriorityWindow returns null", () => {
+    const d = priority([
+      { index: 0, kind: 'activate', label: "Activate Lion's Eye Diamond for mana", player: 0, cost: "T Sac<1/Lion's Eye Diamond>" },
+      opt('pass', 1),
+      opt('concede', 2),
+    ]);
+    const v = view(0, 'main1'); // no players: the hand is dead mana-wise, exactly the reporter's shape
+    expect(actionables(v, 0, d)).toEqual(["Activate Lion's Eye Diamond for mana"]);
+    expect(actionable(d, v, 0)).toBe(true);
+    expect(emptyPriorityWindow(d, v, 0)).toBe(null);
+  });
+
+  it('fb-led1: the same window whose activate option is a bare tap (no cost marker) is still empty — the floor passes it', () => {
+    const d = priority(ONLY_MANA);
+    const v = view(0, 'main1');
+    expect(emptyPriorityWindow(d, v, 0)).toBe(1);
+  });
+
   // --- the post-land window (fb-20260914T014141Z): smart stops now catch the tap-then-cast shape ---
 
   it('casual decide(): a post-land mana-only window with a castable-after-tap card in hand STOPS (stop-set)', () => {

@@ -1176,6 +1176,42 @@ func formatCost(c Cost) string {
 	return strings.Join(parts, " ")
 }
 
+// manaCostBeyondTap reports whether paying this cost takes anything beyond
+// a bare tap: any mana pip (generic, coloured, X, snow, hybrid, Phyrexian,
+// twobrid) or any non-mana component (HasNonMana). A bare-tap mana ability
+// (every plain land's) and a tapless free one report false — exactly the
+// windows the client's empty-priority-window floor may pass away unseen.
+func manaCostBeyondTap(c Cost) bool {
+	c.Tap = false
+	if c.Generic > 0 || c.X > 0 || c.Snow > 0 || c.Colored != (state.Mana{}) {
+		return true
+	}
+	if len(c.Hybrid) > 0 || len(c.Phyrexian) > 0 || len(c.Twobrid) > 0 || len(c.HybridPhyrexian) > 0 {
+		return true
+	}
+	return c.HasNonMana()
+}
+
+// manaActivationCostMarker is the wire marker fb-led1 adds to a priority
+// window's "activate" option (decision.Option.Cost): the formatCost rendering
+// of the FIRST available mana ability (face order, deterministic) whose cost
+// is more than a bare tap, "" when every available ability is a bare tap —
+// so a plain land's option carries no field and every existing option list
+// serialises byte-identically. The engine already gates the offer through
+// manaAbilityPayable, which parses and prices the whole cost, so the marker
+// costs no new rules knowledge at the offer site; it exists purely so a
+// client that (rightly) does not count a bare tap as a play can still tell
+// the Lion's Eye Diamond window it must show the player.
+func manaActivationCostMarker(abilities []*cards.SA) string {
+	for _, ma := range abilities {
+		c := ParseCost(ma.Params["Cost"])
+		if manaCostBeyondTap(c) {
+			return formatCost(c)
+		}
+	}
+	return ""
+}
+
 // HasNonMana reports whether paying this cost takes more than mana.
 // AddCounter counts (the part is settled by the cast flow beside SubCounter,
 // even though it takes no payment), so a caller using this to skip the
