@@ -595,6 +595,23 @@ export interface Option {
    * it.
    */
   svar?: string;
+  /**
+   * Cost is the activation cost of a priority-window "activate" option whose
+   * mana ability costs MORE than a bare tap, in the same whitespace-delimited
+   * Forge notation AbilityCosts uses (rules/mana.go's formatCost over
+   * ParseCost of the ability's Cost$ param) — "T Sac<1/Lion's Eye Diamond>"
+   * for Lion's Eye Diamond, "T PayLife<1>" for Mana Confluence. It is the
+   * wire marker the client's empty-priority-window floor and auto-pass need
+   * (fb-20260917T192520Z-26136705): isActionKind excludes every "activate"
+   * because a bare tap is offered at every window and is not a play, but a
+   * costly activation is exactly the play a ritual-combo deck needs the
+   * window for, and an empty hand leaves it the window's ONLY action — the
+   * floor passed it away unseen, and the card was unreachable for the rest
+   * of the game. A bare tap (every plain land) omits the field, so every
+   * existing option list and every plain-land window serialises
+   * byte-identically. omitempty: only a beyond-tap activation carries it.
+   */
+  cost?: string;
 }
 
   /**
