@@ -1281,9 +1281,11 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 	return false, false
 }
 
+var cmcBraceNormalizer = strings.NewReplacer("{", " ", "}", " ")
+
 // parseCMC counts a mana cost's converted value without importing rules.
 func parseCMC(cost string) int32 {
-	cost = strings.NewReplacer("{", " ", "}", " ").Replace(cost)
+	cost = cmcBraceNormalizer.Replace(cost)
 	if strings.EqualFold(strings.TrimSpace(cost), "no cost") {
 		return 0
 	}

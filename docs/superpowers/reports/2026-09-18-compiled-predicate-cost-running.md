@@ -148,6 +148,33 @@ seconds, 3.63% below the 84.076-second control, and allocated 49.630 GB,
 1.70% below the control's 50.491 GB. `ParseCost` is no longer present in the
 CPU profile's 2-second reporting table.
 
+## Task 9: reuse effect-side brace normalizers
+
+The next allocation profile identified 2.12 GB under
+`strings.(*Replacer).build`, reached from `effects.effMana` and
+`effects.parseCMC`. Both paths constructed an identical immutable
+`strings.Replacer` on every invocation. They now use package-level immutable
+normalizers; the parsing, validation, and emitted event sequence are
+unchanged.
+
+Regression tests pin the allocation budgets of the real braced CMC and literal
+mana-production paths. The tests first failed on the former implementation:
+`parseCMC("{2}{U}{B}")` allocated 10 objects and literal `effMana` allocated
+6. With shared normalizers the corresponding steady-state counts are 7 and 2,
+respectively. Five-run focused medians are:
+
+| Benchmark | ns/op | B/op | allocs/op |
+|---|---:|---:|---:|
+| `BenchmarkParseCMCBraced` | 420.1 | 176 | 7 |
+| `BenchmarkManaLiteralProduction` | 250.9 | 8 | 2 |
+
+The exact normalized 500-game semantic comparison against the post-
+`AbilityPush` control is `true`: 500 games, 498 eligible roots, two no-root
+games, and zero errors. The candidate took 78.146 seconds and allocated
+46.967 GB, versus the control's 84.076 seconds and 50.491 GB: improvements of
+7.05% and 6.98%. `strings.(*Replacer).build` is absent from the candidate heap
+profile's reporting table. The change is retained.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:

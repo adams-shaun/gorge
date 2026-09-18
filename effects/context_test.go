@@ -196,7 +196,7 @@ func (h *fakeHost) SetDamageSource(id state.ObjID) state.ObjID {
 func (h *fakeHost) BatchDepartures(ids []state.ObjID) { h.batch = ids }
 func (h *fakeHost) EndBatchDepartures()               { h.batch = nil }
 
-func newHost(t *testing.T, seats int) *fakeHost {
+func newHost(t testing.TB, seats int) *fakeHost {
 	t.Helper()
 	return &fakeHost{g: state.NewGame(names(seats))}
 }
@@ -223,7 +223,7 @@ func names(n int) []string {
 	return out
 }
 
-func sa(t *testing.T, line string) *cards.SA {
+func sa(t testing.TB, line string) *cards.SA {
 	t.Helper()
 	src := "Name:T\nTypes:Sorcery\nA:" + line + "\nOracle:x\n"
 	c, d := cards.ParseBytes("t.txt", []byte(src))
