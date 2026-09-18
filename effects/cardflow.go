@@ -267,9 +267,17 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 //     deterministically with no question.
 //   - Mode$ RevealDiscardAll (Cabal Therapy): a FILTER, not a choice. Every
 //     card in the target's hand matching DiscardValid$ is discarded, no ask.
-//   - Mode$ absent / Hand / Random / Defined / LookYouChoose / YouChoose /
-//     RevealTgtChoose (the cleanup step, Delve-style costs and the wheel
-//     family): still the deterministic front-of-hand discard NumCards times —
+//   - Mode$ Hand (Reforge the Soul, Windfall, Magus of the Wheel, Dark
+//     Deal): the whole-hand wheel — every card in the target's hand, in hand
+//     order, one events.Discard per card, no ask and no Note (a mandatory
+//     line has no choice to record). Forge's DiscardEffect HAND mode
+//     discards the ENTIRE hand and never reads NumCards$ there. The
+//     Optional$ True variant keeps its deterministic stand-in (whole hand +
+//     one Note recording why); a real may-discard election is M4 follow-up
+//     work.
+//   - Mode$ absent / Random / Defined / LookYouChoose / YouChoose /
+//     RevealTgtChoose (the cleanup step, Delve-style costs): still the
+//     deterministic front-of-hand discard NumCards times —
 //     right, because those paths have no player choice to make (or the
 //     approximation is elsewhere), and must not become a question.
 //
@@ -611,6 +619,30 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
 					discardAndRemember(h, c, riders, id, p)
 				}
+			}
+
+		case "Hand":
+			// Mode$ Hand is the whole-hand wheel (Reforge the Soul, Windfall,
+			// Magus of the Wheel, Dark Deal): "each player discards their hand".
+			// Forge's DiscardEffect HAND mode discards the ENTIRE hand and
+			// never reads NumCards$ there; the pre-fix engine fell through to
+			// the default arm and discarded only the front card. A mandatory
+			// Hand line has no choice to record, so there is no ask and no
+			// Note: every card in hand order, one events.Discard per card via
+			// discardAndRemember (which applies the RememberDiscarded$ /
+			// RememberDiscardingPlayers$ riders per card, exactly what Windfall's
+			// "greatest number discarded" draw reads). The measured corpus
+			// population (108 raw lines) carries no NumCards$, DiscardValid$ or
+			// AnyNumber$, so none is read here.
+			if strings.EqualFold(sa.Params["Optional"], "True") {
+				// "each player MAY discard their hand and draw N" (5 corpus
+				// lines): a real may-discard election is M4 follow-up work; the
+				// deterministic stand-in takes the discard and records why.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "may discard resolved as discard (no engine host to ask)"})
+			}
+			for _, id := range hand {
+				discardAndRemember(h, c, riders, id, p)
 			}
 
 		case "Defined":
