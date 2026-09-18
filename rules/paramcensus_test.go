@@ -1177,12 +1177,16 @@ func (s *scan) closureReads(fi *fnInfo, exclude map[string]bool, visited map[str
 var apiSpecificRulesSA = map[string][]string{
 	// The mana-ability chain: the ability-choose wheel's Produced$ label read
 	// (manaAbilityLabel, called from activateManaFor which itself no longer
-	// touches SA params), manaAbilityPayable's offer/payment path, the
-	// AvailableMana projection, and
+	// touches SA params), the flattened combo wheel's per-colour expansion
+	// read (manaAbilityComboColours -- both call sites, activateManaFor and
+	// answerManaActivation, guard on ma.API == "Mana" before calling, so the
+	// Produced$ read never executes for another api), manaAbilityPayable's
+	// offer/payment path, the AvailableMana projection, and
 	// activatedMatchesValidSA's Produced$-based mana-ability recognition --
 	// all run on mana abilities (api:Mana) only.
 	"Engine.manaAbilityPayable": {"Mana"},
 	"manaAbilityLabel":          {"Mana"},
+	"manaAbilityComboColours":   {"Mana"},
 	// The ManaReflected activation gate: only a reflected-mana ability's
 	// offer consults IsPresent$/PresentCompare$ on the SA itself (Tazri's
 	// "another activated ability" condition). A plain AB$ Mana ability's

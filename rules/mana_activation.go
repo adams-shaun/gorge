@@ -388,14 +388,12 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 		// offers today, so the two cannot disagree. Any / Combo Any / Chosen
 		// keep the single option + stage-2 ask (the choice there is not
 		// enumerable at option-build time).
-		if ma.API == "Mana" {
-			if cols, ok := effects.ComboColours(strings.TrimSpace(ma.Params["Produced"])); ok && len(cols) > 1 {
-				for _, col := range cols {
-					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
-						Ability: i, Label: "Add " + col})
-				}
-				continue
+		if cols, ok := manaAbilityComboColours(ma); ok {
+			for _, col := range cols {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
+					Ability: i, Label: "Add " + col})
 			}
+			continue
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
 			Ability: i, Label: manaAbilityLabel(ma)})
@@ -419,6 +417,25 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 // wording, CR 107.4); Produced$ Chosen reads "Add chosen color"; anything
 // else -- a plain single colour or C (the shape the wheel tints), a doubled
 // "RR", a Special expression -- keeps the bare "Add <value>" shape.
+// manaAbilityComboColours reports whether the ability's own Produced$ is an
+// explicit MULTI-colour combo ("Combo B R") and returns the colour list in
+// the ability's own token order -- the same order askManaColor offers, so the
+// flattened stage-1 wheel and the stage-2 ask cannot disagree. Both call
+// sites guard on ma.API == "Mana" before calling (a ManaReflected ability's
+// colours come from what other sources produce, never its own Produced$
+// token), so this helper's Produced$ read is Mana-attributed
+// (apiSpecificRulesSA) rather than joining the generic rules union.
+func manaAbilityComboColours(ma *cards.SA) ([]string, bool) {
+	if ma == nil || ma.API != "Mana" {
+		return nil, false
+	}
+	cols, ok := effects.ComboColours(strings.TrimSpace(ma.Params["Produced"]))
+	if !ok || len(cols) <= 1 {
+		return nil, false
+	}
+	return cols, true
+}
+
 func manaAbilityLabel(ma *cards.SA) string {
 	produced := strings.TrimSpace(ma.Params["Produced"])
 	switch produced {
@@ -1231,17 +1248,15 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 	idx := chosen[0].Ability
 	if idx >= 0 && idx < len(ma.abilities) {
 		ab := ma.abilities[idx]
-		if ab.API == "Mana" {
-			if cols, ok := effects.ComboColours(strings.TrimSpace(ab.Params["Produced"])); ok && len(cols) > 1 {
-				color := strings.TrimPrefix(chosen[0].Label, "Add ")
-				if len(color) == 1 && strings.Contains("WUBRGC", color) {
-					// abilities entries are chain heads (printed faces list
-					// top-level abilities; granted and static-granted ones
-					// come from ResolveSVar bodies), so head == target copies
-					// the whole Sub chain with Produced$ rewritten.
-					e.resolveManaAbility(ma.player, ma.source, withProduced(ab, ab, color), ma.cast, ma.cumulative)
-					return ma.cast
-				}
+		if _, ok := manaAbilityComboColours(ab); ok {
+			color := strings.TrimPrefix(chosen[0].Label, "Add ")
+			if len(color) == 1 && strings.Contains("WUBRGC", color) {
+				// abilities entries are chain heads (printed faces list
+				// top-level abilities; granted and static-granted ones
+				// come from ResolveSVar bodies), so head == target copies
+				// the whole Sub chain with Produced$ rewritten.
+				e.resolveManaAbility(ma.player, ma.source, withProduced(ab, ab, color), ma.cast, ma.cumulative)
+				return ma.cast
 			}
 		}
 		e.resolveManaAbility(ma.player, ma.source, ab, ma.cast, ma.cumulative)
