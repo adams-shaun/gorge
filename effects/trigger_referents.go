@@ -232,26 +232,90 @@ func matchTargetedPlayerCtrl(g *state.Game, o *state.Object, sc SpecContext) (bo
 func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
 	sc := SpecContext{You: you, Source: c.Source, TriggerContext: c.TriggerContext,
 		ResolutionTargets: c.Targets, Remembered: c.Remembered, Chosen: c.Chosen, ChosenValid: c.ChosenValid, Resolving: true}
-	// A DB$ RollDice publication of this same resolution (effects/dice.go) is
-	// the one numeric RHS a resolving filter spec can name that has no static
-	// expression: Valiant Endeavor's Creature.powerGEX (destroy each creature
-	// with power greater than or equal to the CHOSEN roll) and Arcane
-	// Endeavor's Instant.cmcLEY (cast for free up to the OTHER roll) read the
-	// published roll through here. Wired only when a roll published
-	// something, so no card without a roll in its resolution changes filter
-	// behaviour; inside a roll resolution the {X} a publication set and every
-	// published name resolve, everything else stays unresolvable (the
-	// recognised-shape-never-matches contract).
-	if c.LastRollName != "" || len(c.RollPubs) > 0 {
+	// Numeric-RHS resolution for a resolution-time filter spec, in priority
+	// order:
+	//
+	//  1. a DB$ RollDice publication of this same resolution
+	//     (effects/dice.go) -- Valiant Endeavor's Creature.powerGEX (destroy
+	//     each creature with power greater than or equal to the CHOSEN roll)
+	//     and Arcane Endeavor's Instant.cmcLEY (cast for free up to the OTHER
+	//     roll) read the published roll through here.
+	//  2. the bare name "X": the two-shape SVar:X reading fixLifeXCost
+	//     established (rules/mana.go) -- body Count$xPaid (Whir of
+	//     Invention) is the paid X itself; any OTHER resolvable body
+	//     (Nightmare Unmaking's SVar:X:Count$ValidHand Card.YouOwn) is a
+	//     fixed value evaluated through EvalCountOK with the resolving Host;
+	//     no SVar:X at all is the paid X (0 when unpaid), the same reading
+	//     the roll closure always gave. An unresolvable body fails closed:
+	//     the recognised-shape-never-matches contract, never a guessed zero.
+	//  3. any other name: the SVar table -> EvalCountOK (resolveNumericRHS),
+	//     same fail-closed verdict.
+	//
+	// Wired only when something can resolve -- a roll published, or the
+	// context came through effects.Resolve with a paid X or an SVar table
+	// (the numericRHS flag Resolve computes on entry; the resolver itself
+	// decides per name and fails closed on a name with no resolvable body,
+	// so the broad flag never widens a match) -- so every other card keeps
+	// building the plain resolver-free SpecContext it always built.
+	// Hand-built contexts (the direct Num/EvalCount probes) never carry the
+	// flag. The gate must also stay inline-budget small AND the resolver
+	// must be installed through a func literal that calls the method (never
+	// the method value c.resolveNumericRHS itself): the escape-analysis pin
+	// this caller answers to (rules/layers_test.go's warm Derived pin, zero
+	// heap allocations per Derived call) needs (*Ctx).SpecContext to remain
+	// inlinable, and the method value both blows the cost budget and leaks
+	// the receiver. See also the hot statics/layer walk, which builds its
+	// SpecContexts directly and never routes through here.
+	if c.LastRollName != "" || len(c.RollPubs) > 0 || c.numericRHS {
 		sc.Resolve = func(name string) (int32, bool) {
-			if v, ok := rollPublished(c, name); ok {
-				return v, true
-			}
-			if name == "X" {
-				return c.X, true
-			}
-			return 0, false
+			return c.resolveNumericRHS(name)
 		}
 	}
 	return sc
+}
+
+// resolveNumericRHS is the numeric-RHS resolver the gate in (*Ctx).SpecContext
+// installs on the SpecContext it builds: priority order is a published roll
+// name, then "X" per the
+// two-shape SVar:X reading, then any other name through the SVar table. A
+// name with no resolvable source returns ok=false -- the recognised-shape-
+// never-matches contract -- and the resolvingRHS guard fails closed the
+// re-entrant SVar-counts-a-spec-with-the-same-RHS case.
+func (c *Ctx) resolveNumericRHS(name string) (int32, bool) {
+	if v, ok := rollPublished(c, name); ok {
+		return v, true
+	}
+	if c.resolvingRHS {
+		return 0, false
+	}
+	if name == "X" {
+		if c.Host != nil {
+			if body := strings.TrimSpace(c.SVars["X"]); body != "" && !strings.EqualFold(body, "Count$xPaid") {
+				c.resolvingRHS = true
+				n, ok := EvalCountOK(c.Host, c, body)
+				c.resolvingRHS = false
+				if !ok {
+					return 0, false
+				}
+				return n, true
+			}
+		}
+		// No SVar:X, a Count$xPaid body, or a roll-only context without a
+		// Host: the variable IS the paid X (0 when unpaid).
+		return c.X, true
+	}
+	if c.Host == nil {
+		return 0, false
+	}
+	body := strings.TrimSpace(c.SVars[name])
+	if body == "" {
+		return 0, false
+	}
+	c.resolvingRHS = true
+	n, ok := EvalCountOK(c.Host, c, body)
+	c.resolvingRHS = false
+	if !ok {
+		return 0, false
+	}
+	return n, true
 }

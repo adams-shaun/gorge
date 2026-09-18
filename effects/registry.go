@@ -303,6 +303,35 @@ type Ctx struct {
 	// Both are bound by the rules package when it builds the context.
 	SVars map[string]string
 	X     int32
+	// Host is the engine driving this resolution, bound by effects.Resolve
+	// itself (it receives the host as its own parameter, so every walk that
+	// can reach a resolution-time filter evaluation has passed through one
+	// set here) rather than at every Ctx construction site. Ctx.SpecContext
+	// consults it to resolve a numeric filter RHS through the SVar table
+	// (EvalCountOK -- Nightmare Unmaking's Creature.powerGTX against
+	// SVar:X:Count$ValidHand Card.YouOwn, Whir of Invention's
+	// Artifact.cmcLEX against the paid X). It stays nil on contexts that
+	// never entered Resolve -- the direct Num/EvalCount probes -- which keeps
+	// those read-only and resolver-free exactly as they have always been.
+	Host Host
+	// numericRHS is the cheap gate SpecContext's resolver install reads:
+	// effects.Resolve computes it on entry (a paid X, or any SVar table at
+	// all -- the resolver itself decides per name and fails closed on a name
+	// with no resolvable body, so the broad flag never widens a match), so
+	// the gate at the SpecContext call site is one field read and that call
+	// site stays inside the inline budget the warm Derived escape-analysis
+	// pin (rules/layers_test.go) enforces. Hand-built contexts (the direct
+	// Num/EvalCount probes) leave it false and stay resolver-free.
+	numericRHS bool
+	// resolvingRHS is the one-level recursion guard on the SVar-body
+	// resolution SpecContext installs: an SVar body that itself counts a spec
+	// carrying the same numeric RHS (Count$Valid Creature.powerGTX named by
+	// the SVar that resolves powerGTX) would otherwise recurse unboundedly
+	// through SpecContext -> resolveNumericRHS -> EvalCountOK ->
+	// MatchesSpecCtx -> resolveNumericRHS. A re-entrant ask fails closed
+	// (never matches), the documented unresolvable-RHS contract. Not
+	// event-backed, not state: resolution-scratch like Targets or SVars.
+	resolvingRHS bool
 	// Replaced is the object the replaced event was about (Defined$ ReplacedCard):
 	// the card a "would go to the graveyard from anywhere, exile it instead"
 	// replacement is acting ON. Set by rules/replacement.go on the context it
@@ -778,6 +807,10 @@ const maxChain = 32
 
 // Resolve runs an ability and every sub-ability chained beneath it.
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
+	if c != nil {
+		c.Host = h
+		c.numericRHS = c.X != 0 || len(c.SVars) > 0
+	}
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {
 		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
