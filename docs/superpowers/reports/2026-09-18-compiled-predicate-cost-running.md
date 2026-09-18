@@ -279,6 +279,37 @@ Its 500 per-result payloads were identical after timing fields were removed,
 but the outer JSON comparator correctly rejected the environment mismatch;
 it is not used for this decision.
 
+## Rejected experiment: face-bound trigger-interest value
+
+The retained direct-interest path still loaded `TriggerInterests` through a
+catalog slice lookup for every corpus-bound face. This probe bound that
+immutable value directly to the legacy `cards.Face` at catalog publication,
+and cleared it together with the catalog binding on invalidation. It did not
+change `state.Object`, add a card sidecar, or alter the fallback for synthetic
+and replaced faces.
+
+The red/green binding-and-invalidation test passed. The focused compiled
+eligibility benchmark improved from the retained 4.906 ns/op five-run median
+to 4.284 ns/op, with zero allocations. The profiled 500-game run reduced flat
+`Face.CompiledTriggerInterests` CPU from 14.41 to 6.51 seconds. Both fixed
+`GOMAXPROCS=5` outputs compare exactly equal to the post-`AbilityPush` oracle:
+500 games, 498 eligible roots, two no-root games, 100 covered roots, and zero
+errors.
+
+| Measurement | Retained direct interests (two-run median) | Face-bound value (two-run median) | Change |
+|---|---:|---:|---:|
+| Wall time | 73.713 s | 74.964 s | +1.7% |
+| Runtime allocated bytes | 46.550 GB | 46.555 GB | +0.01% |
+
+The probe samples were 74.787 s / 46.553 GB and 75.140 s / 46.556 GB. The
+restored retained tree was replayed before rejecting the probe: it too was
+exactly equal to the oracle. An interleaved retained/candidate/retained
+sequence measured 77.595 s / 46.588 GB, 74.441 s / 46.548 GB, and 73.512 s /
+46.552 GB respectively. The candidate falls inside the retained 5.5% spread,
+so the local profile improvement does not establish an end-to-end win. The
+code and test were reverted exactly. Artifacts remain at
+`/tmp/gorge-face-bound-trigger-interest-{500,repeat-500,cpu-500,heap-500,bin-500}-20260918.*`.
+
 ## Rejected experiment: card-owned compiled-face sidecar
 
 Keeping the active `*cards.Face` on `state.Object` reduced that accessor but
