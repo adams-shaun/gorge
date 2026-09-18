@@ -20,6 +20,14 @@
    * stack), so a seat box is one text-line tall and the name — not a count —
    * is what flexes when the rail is narrow.
    *
+   * The rows are a `ul`/`li` list, not the old semantic `<table>`: a one-line
+   * summary carries no column structure to read out, and every count keeps
+   * its own aria-label, so the deliberate trade is row/cell semantics for
+   * one compact line. A lost seat's cause line WRAPS (white-space: normal,
+   * back to the pre-one-line table's behaviour) inside the name box — it is
+   * the one element on the row that may take a second text line, and only
+   * for seats that are already out of the game.
+   *
    * The pile buttons wear the same tone ring the identity bar's pile icons
    * wear (fb-20260916T225802Z): when the pending decision offers something
    * to a card in the pile (pileTone over the table's card-options bundle,
@@ -157,7 +165,7 @@
      text-line tall and the rail's floor is the counts' content. */
   ul { margin: 0; padding: 0; list-style: none; }
   li[data-seat-row] { display: flex; align-items: center; padding: 1px 0; color: var(--ink-inst); white-space: nowrap; }
-  .who { flex: 1 1 auto; min-width: 0; }
+  .who { flex: 1 1 auto; min-width: 0; overflow: hidden; }
   .pick { display: flex; align-items: center; width: 100%; min-width: 0; background: none; border: 0; border-left: 3px solid var(--seat); padding: 1px var(--sp-2); font-size: var(--t-12); line-height: 1.6; color: var(--ink-inst); text-align: left; cursor: pointer; }
   li.active .pick { border-left-width: 6px; padding-left: calc(var(--sp-2) - 3px); }
   li.selected .pick, .pick:hover { background: var(--instrument-raised); }
@@ -185,7 +193,13 @@
   }
   [data-hand-hidden] { color: var(--ink-faint); }
   li.lost .name, li.lost .life { text-decoration: line-through; color: var(--ink-faint); }
-  .eliminated { margin: 1px 0 0; padding-left: var(--sp-2); font-size: var(--t-10); color: var(--danger); line-height: 1.3; }
+  /* The row is nowrap for the name/counts; the lost-cause line must WRAP
+     inside the name box instead (fb-20260917T232028Z round-2 finding): the
+     longest real cause ("commander damage (21 or more from one commander)",
+     lib/seattable.ts) painted past the counts and the rail at the floor
+     while inheriting nowrap — the pre-one-line table wrapped it, so wrap it
+     again. .who's overflow: hidden is the second guard for a long word. */
+  .eliminated { margin: 1px 0 0; padding-left: var(--sp-2); font-size: var(--t-10); color: var(--danger); line-height: 1.3; white-space: normal; }
   .eliminated__tag { font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
   .eliminated__cause { color: color-mix(in srgb, var(--danger) 82%, var(--ink-inst)); }
 </style>

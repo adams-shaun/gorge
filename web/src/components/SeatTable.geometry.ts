@@ -60,6 +60,16 @@ const railView: View = {
   pending: [{ source: 901, controller: 2, label: 'Longwinded Ambush Elemental trigger', optional: true, decider: 2 }],
   players: railPlayers,
 };
+// ?lost=1 makes seat 1 a LOST seat whose cause is the longest real loss text
+// the engine emits (lib/seattable.ts lossCauses doc) — the fixture variant
+// the eliminated-line overflow test measures at the rail floor. Seat 1 keeps
+// its populated piles (hand 9 / graveyard 12 / exile 2) so the row is the
+// widest lost seat the rail can hold.
+const lostSeat = new URLSearchParams(window.location.search).get('lost') === '1';
+if (lostSeat) railPlayers[1].lost = true;
+const railEvents: { event: { kind: string; player: number; text?: string; obj?: number } }[] = lostSeat
+  ? [{ event: { kind: 'player_lost', player: 1, text: 'commander damage (21 or more from one commander)' } }]
+  : [];
 // Rail is mounted through RailFixture so the fixture can render the REAL
 // concede control (ConcedeControl) as Rail's logbar snippet — the same seam
 // Table.svelte uses on the live route — when the page URL asks for it
@@ -77,5 +87,6 @@ mount(RailFixture, {
     emphasizeTop: true,
     onToggleLog: () => {},
     concede: concedeState,
+    events: railEvents,
   },
 });
