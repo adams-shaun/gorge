@@ -251,6 +251,34 @@ consistently lower: 46.558 and 46.543 GB versus the prior 46.984 GB
 repeat is 0.58% faster than the prior 71.878-second run, while the two-run
 median remains noisy. The CPU and allocation reductions retain the change.
 
+## Rejected experiment: event-maintained active-face pointer
+
+`state.Object.Face` still accounted for 11.51 flat CPU-seconds, with 5.75
+seconds reached directly from `checkFaceTriggers`. The probe added a derived
+active `*cards.Face` cache to every `state.Object`, initialized at object
+creation and maintained by `events.Apply` on `FlipFace`, Myriad, CardToken,
+and StackCopy. It retained the original defensive lookup for manually
+assembled or externally replaced test fixtures. A red/green test required
+new objects to initialize the cache; focused state/events tests, the regular
+targeted gate, vet, and whitespace checks passed.
+
+The cache is deliberately not retained. The fixed `GOMAXPROCS=5` 500-game
+artifact (`/tmp/gorge-active-face-cache-gomax5-500-20260918.json`) is exactly
+equal to the post-`AbilityPush` semantic oracle: 498 eligible roots, two
+no-root games, 100 covered roots, and zero errors. It took 90.270 seconds
+and allocated 47.006 GB. The immediately preceding retained direct-interest
+candidate measured 71.461 seconds / 46.543 GB; wall samples are noisy, but
+the new representation adds allocation and has no plausible end-to-end
+benefit. The CPU profile explains the regression: `Object.Face` fell from
+11.51 to 9.90 flat CPU-seconds, but the larger, frequently copied Object made
+`runtime.duffcopy` rise from about 30.40 to 36.68 CPU-seconds. The trial code
+and its cache-specific test were reverted exactly.
+
+An initial run inherited `GOMAXPROCS=16` while the fixed control records 5.
+Its 500 per-result payloads were identical after timing fields were removed,
+but the outer JSON comparator correctly rejected the environment mismatch;
+it is not used for this decision.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:
