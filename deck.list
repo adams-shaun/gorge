@@ -4150,3 +4150,135 @@ Commander
 1x Mountain
 1x Mountain
 1x Mountain
+# --- Doom Prevails (msc commander precon, Doctor Doom, King of Latveria) — census input, 2026-09-18 (issue agent-20260918T211806Z-558096c7) ---
+# run: sed -n '/Doom Prevails (msc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/msc-doom-prevails.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC Marvel Super Heroes Commander decklist announcement, Doom Prevails <main-deck> element, cross-checked
+#   card-for-card against MTGGoldfish deck 7838834 (fetched 2026-09-18)
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps: kw:Mayhem, kw:Melee, api:VillainousChoice,
+#   trig:Connives (+ 7 new param/cost families; overlap tickets cited in the census report).
+# Gap primitives (22 of 100 cards / 15 distinct primitive labels, lists in the census report):
+#   api:Connive (Ultron Unlimited, Prowler, Villainous Hideout, Baron Strucker, Kang Temporal Tyrant, Doctor Doom,
+#     Lethal Scheme); api:PutCounterAll (Iron Monger, Glorious Purpose); api:DigUntil (Lady Loki, Kang Prime);
+#   api:Clone (Spark Double, Chameleon); api:CopyPermanent (Living Laser, Loki the Deceiver);
+#   api:VillainousChoice (Damocles Base); kw:Mayhem (Abomination, The Squadron Sinister, Chameleon);
+#   kw:Melee (Titania); kw:Multikicker (Batroc); kw:Unearth (Tri-Sentinel); kw:Crew (Damocles Base);
+#   stat:CantAttackUnless (Propaganda); trig:Connives (Iron Monger, Ultron Unlimited, Glorious Purpose);
+#   trig:DiscardedAll (Doctor Doom). Tickets for the TRUE new gaps in .ds4/new-tickets/ (10 filed);
+#   the open-ledger overlaps (Connive, PutCounterAll, DigUntil, Clone, CopyPermanent, Multikicker,
+#   CantAttackUnless, Crew, Unearth, Play.WithoutManaCost/Controller, Play.ReplaceGraveyard,
+#   Effect.ForgetOnCast, DiscardedAll) NOT re-filed.
+# VARIANT NOTE on open ticket 83c8fb8e (api:Connive): the trigger-mode variant trig:Connives ("whenever a
+#   creature you control connives", T:Mode$ Connives — Iron Monger, Ultron Unlimited, Glorious Purpose;
+#   /usr/bin/grep -rlE 'Mode\$ Connives' .cards/cardsfolder | wc -l -> 3) rides the same connive primitive;
+#   add it to that ticket the way the Lorehold census noted trig:TokenCreatedOnce on the trig:TokenCreated ticket.
+# New param/cost tickets (10): kw-mayhem, kw-melee, api-villainouschoice, trig-changeszone-resolvedlimit,
+#   api-effect-imprintonhost, api-destroyall-zone, api-charm-random, cost-draw,
+#   api-animate-staticabilities, api-dig-imprint.
+# Known-family leans, no ticket: the desc-only ValidTgtsDesc family (Kang Dynasty Pump, Doom's Time Platform
+#   ChangeZone, Age of Ultron Destroy, Helmut Zemo Play), api:Play.RememberPlayed (Conduit of Worlds row),
+#   api:Dig.WithMayLook (Extract Power, Klaw — Scarlet Witch row), api:Effect.ImprintOnHost is ticketed above,
+#   api:DestroyAll.Zone ticketed above (cross-ref the open IsNotChosenType ticket c09a9312 for the same card).
+Commander
+1 Doctor Doom, King of Latveria
+
+Deck
+1 Molecule Man
+1 Helmut Zemo, Mastermind
+1 The Frightful Four
+1 Iron Monger, Sadistic Tycoon
+1 Klaw, Master of Sound
+1 Abomination, World Ravager
+1 Batroc the Leaper
+1 Killmonger, Ruthless Usurper
+1 Lady Loki, Agent of Chaos
+1 Living Laser
+1 Puppet Master, String Puller
+1 Stilt-Man, Towering Terror
+1 Titania, Proud Pummeler
+1 Kang Prime
+1 Loki, the Deceiver
+1 Red Ghost, Intangible Genius
+1 The Squadron Sinister
+1 Typhoid Mary, Fractured
+1 Ultron, Unlimited
+1 Tri-Sentinel, Act of Vengeance
+1 Spark Double
+1 Titan of Littjara
+1 Baron Strucker, HYDRA Overlord
+1 Moonstone, Harsh Mistress
+1 Kang, Temporal Tyrant
+1 Madame Hydra
+1 Containment Construct
+1 Chameleon, Master of Disguise
+1 Tombstone, Career Criminal
+1 Superior Foes of Spider-Man
+1 Prowler, Clawed Thief
+1 Glorious Purpose
+1 Kang Dynasty
+1 Age of Ultron
+1 Archnemesis
+1 Black Market Connections
+1 Propaganda
+1 Damocles Base, Sword of Kang
+1 Loki's Scepter
+1 Doom's Time Platform
+1 Currency Converter
+1 Progenitor's Icon
+1 Skullclamp
+1 Arcane Signet
+1 Patchwork Banner
+1 Sol Ring
+1 Swiftfoot Boots
+1 Talisman of Dominance
+1 Talisman of Indulgence
+1 Lethal Scheme
+1 Chaos Warp
+1 Bedevil
+1 Withering Torment
+1 Terminate
+1 Extract Power
+1 Endless Ranks of HYDRA
+1 Kindred Dominance
+1 Toxic Deluge
+1 Blasphemous Act
+1 Night's Whisper
+1 Syphon Mind
+1 Vandalblast
+1 Canyon Slough
+1 Choked Estuary
+1 Coastal Peak
+1 Dragonskull Summit
+1 Drowned Catacomb
+1 Exotic Orchard
+1 Fetid Pools
+1 Foreboding Ruins
+1 Frostboil Snarl
+1 Luxury Suite
+1 Scavenger Grounds
+1 Scorched Geyser
+1 Smoldering Marsh
+1 Sulfur Falls
+1 Sunken Hollow
+1 Villainous Hideout
+1 Command Tower
+1 Crumbling Necropolis
+1 Path of Ancestry
+1 Secluded Courtyard
+1 Terramorphic Expanse
+1 Unclaimed Territory
+1 Island
+1 Island
+1 Island
+1 Island
+1 Swamp
+1 Swamp
+1 Swamp
+1 Swamp
+1 Swamp
+1 Swamp
+1 Mountain
+1 Mountain
+1 Mountain
+1 Mountain
+1 Mountain
