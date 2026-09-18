@@ -24,6 +24,12 @@
      *  first-paint state); 'confirm' renders the armed "Concede — confirm"
      *  button — the widest state the control ever takes. */
     concede = 'none',
+    /** Transcript events handed straight through to Rail (and so to
+     *  SeatTable's lossCauses) — the lost-seat fixture variant uses one real
+     *  `player_lost` event carrying the longest real cause text so the
+     *  eliminated line is measured with the widest content it ever holds
+     *  (fb-20260917T232028Z round-2 overflow finding). */
+    events = [],
   }: {
     view: View;
     seats: SeatInfo[];
@@ -32,13 +38,14 @@
     showLog?: boolean;
     onToggleLog?: (() => void) | null;
     concede?: 'none' | 'idle' | 'confirm';
+    events?: { event: { kind: string; player: number; text?: string; obj?: number } }[];
   } = $props();
 </script>
 
 {#if concede === 'none'}
-  <Rail {view} {seats} {decision} {emphasizeTop} {showLog} {onToggleLog} />
+  <Rail {view} {seats} {events} {decision} {emphasizeTop} {showLog} {onToggleLog} />
 {:else}
-  <Rail {view} {seats} {decision} {emphasizeTop} {showLog} {onToggleLog}>
+  <Rail {view} {seats} {events} {decision} {emphasizeTop} {showLog} {onToggleLog}>
     {#snippet logbar()}
       <ConcedeControl confirming={concede === 'confirm'} onArm={() => {}} onConfirm={() => {}} />
     {/snippet}

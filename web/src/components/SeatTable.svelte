@@ -14,10 +14,19 @@
    * their lists open in the table's ONE shared PileModal (lib/pileopener +
    * PileHost, mounted by Table.svelte — the identity bar's pile icons open
    * the same instance, so a pile cannot open twice at once) rather than
-   * expanding the rail. The four zone counts (hand, library, graveyard,
-   * exile) stack two-high inside one cell — hand+library over
-   * graveyard+exile — so the rail's width floor is two count columns rather
-   * than four, and the board keeps the difference.
+   * expanding the rail. All four zone counts (hand, library, graveyard,
+   * exile) sit on ONE line beside the life pill (fb-20260917T232028Z — the
+   * player asked for a single row per seat instead of the old two-high
+   * stack), so a seat box is one text-line tall and the name — not a count —
+   * is what flexes when the rail is narrow.
+   *
+   * The rows are a `ul`/`li` list, not the old semantic `<table>`: a one-line
+   * summary carries no column structure to read out, and every count keeps
+   * its own aria-label, so the deliberate trade is row/cell semantics for
+   * one compact line. A lost seat's cause line WRAPS (white-space: normal,
+   * back to the pre-one-line table's behaviour) inside the name box — it is
+   * the one element on the row that may take a second text line, and only
+   * for seats that are already out of the game.
    *
    * The pile buttons wear the same tone ring the identity bar's pile icons
    * wear (fb-20260916T225802Z): when the pending decision offers something
@@ -63,114 +72,112 @@
   }
 </script>
 
-<section class="seats" data-seat-table>
-  <table>
-    <caption class="sr-only">Seats: life, hand, library, graveyard and exile</caption>
-    <tbody>
-      {#each rows as r (r.seat)}
-        {@const player = view.players.find((p) => p.seat === r.seat)}
-        {@const handCards = player ? cardsFor(player, 'hand') : []}
-        {@const graveyardCards = player ? cardsFor(player, 'graveyard') : []}
-        {@const exileCards = player ? cardsFor(player, 'exile') : []}
-        <tr
-          data-seat-row={r.seat}
-          data-state={r.state}
-          class:lost={r.lost}
-          class:active={r.active}
-          class:selected={focus === r.seat}
-          style={`--seat:${r.colour || seatColour(r.seat, seats)}`}
-        >
-          <th scope="row" class="who">
-            <button
-              type="button"
-              class="pick"
-              aria-pressed={focus === r.seat}
-              title={`${describe(r.name, r.deck, r.state, r.lostReason)} — press to focus this seat`}
-              aria-label={describe(r.name, r.deck, r.state, r.lostReason)}
-              onclick={() => onFocus(r.seat)}
-            >
-              <span class="name" class:priority={r.priority}>{r.name}</span>
-            </button>
-            {#if r.lost}
-              <p class="eliminated" data-eliminated>
-                <span class="eliminated__tag">Eliminated</span>{#if r.lostReason}<span class="eliminated__cause"> — {r.lostReason}</span>{/if}
-              </p>
-            {/if}
-          </th>
+<section class="seats" data-seat-table aria-label="Seats: life, hand, library, graveyard and exile">
+  <ul>
+    {#each rows as r (r.seat)}
+      {@const player = view.players.find((p) => p.seat === r.seat)}
+      {@const handCards = player ? cardsFor(player, 'hand') : []}
+      {@const graveyardCards = player ? cardsFor(player, 'graveyard') : []}
+      {@const exileCards = player ? cardsFor(player, 'exile') : []}
+      <li
+        data-seat-row={r.seat}
+        data-state={r.state}
+        class:lost={r.lost}
+        class:active={r.active}
+        class:selected={focus === r.seat}
+        style={`--seat:${r.colour || seatColour(r.seat, seats)}`}
+      >
+        <div class="who">
+          <button
+            type="button"
+            class="pick"
+            aria-pressed={focus === r.seat}
+            title={`${describe(r.name, r.deck, r.state, r.lostReason)} — press to focus this seat`}
+            aria-label={describe(r.name, r.deck, r.state, r.lostReason)}
+            onclick={() => onFocus(r.seat)}
+          >
+            <span class="name" class:priority={r.priority}>{r.name}</span>
+          </button>
+          {#if r.lost}
+            <p class="eliminated" data-eliminated>
+              <span class="eliminated__tag">Eliminated</span>{#if r.lostReason}<span class="eliminated__cause"> — {r.lostReason}</span>{/if}
+            </p>
+          {/if}
+        </div>
 
-          <td data-stat="life" aria-label={`Life: ${r.life}`}>
-            <span class="stat life">
-              <svg data-icon="heart" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14S2 10.2 2 5.6C2 2.4 6 1.4 8 4c2-2.6 6-1.6 6 1.6C14 10.2 8 14 8 14Z"/></svg>
-              <span>{r.life}</span>
-            </span>
-          </td>
-          <!-- The four zone counts stack two-high (hand+library over
-               graveyard+exile) so the rail's floor is set by two count
-               columns instead of four. One <tr> per seat: the focus/pile
-               affordances and the geometry contract live on the row. -->
-          <td class="zones">
-            <div class="zone-line">
-              <span data-stat="hand" data-hand-hidden={r.handVisible ? undefined : ''} aria-label={`Hand: ${r.hand}`}>
-                {#if r.hand > 0 && handCards.length > 0}
-                  <button type="button" class="pile" data-pile="hand" data-tone={player ? pileToneOf(player, 'hand') : undefined} aria-label={pileLabel(r.name, 'hand', r.hand)} onclick={(e) => showPile(r.seat, 'hand', e)}>
-                    <svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg>
-                    <span>{r.hand}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
-                  </button>
-                {:else}
-                  <span class="count"><svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg><span>{r.hand}</span></span>
-                {/if}
-              </span>
-              <span data-stat="library" aria-label={`Library: ${r.library}`}>
-                <span class="count"><svg data-icon="book" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.2C4 2.6 6 3 8 4v9c-2-1-4-1.4-6-.8v-9Zm12 0c-2-.6-4-.2-6 .8v9c2-1 4-1.4 6-.8v-9Z"/></svg><span>{r.library}</span></span>
-              </span>
-            </div>
-            <div class="zone-line">
-              <span data-stat="graveyard" aria-label={`Graveyard: ${r.graveyard}`}>
-                {#if r.graveyard > 0 && graveyardCards.length > 0}
-                  <button type="button" class="pile" data-pile="graveyard" data-tone={player ? pileToneOf(player, 'graveyard') : undefined} aria-label={pileLabel(r.name, 'graveyard', r.graveyard)} onclick={(e) => showPile(r.seat, 'graveyard', e)}>
-                    <svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg>
-                    <span>{r.graveyard}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
-                  </button>
-                {:else}
-                  <span class="count"><svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg><span>{r.graveyard}</span></span>
-                {/if}
-              </span>
-              <span data-stat="exile" aria-label={`Exile: ${r.exile}`}>
-                {#if r.exile > 0 && exileCards.length > 0}
-                  <button type="button" class="pile" data-pile="exile" data-tone={player ? pileToneOf(player, 'exile') : undefined} aria-label={pileLabel(r.name, 'exile', r.exile)} onclick={(e) => showPile(r.seat, 'exile', e)}>
-                    <svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg>
-                    <span>{r.exile}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
-                  </button>
-                {:else}
-                  <span class="count"><svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg><span>{r.exile}</span></span>
-                {/if}
-              </span>
-            </div>
-          </td>
-        </tr>
-      {/each}
-    </tbody>
-  </table>
+        <span data-stat="life" aria-label={`Life: ${r.life}`}>
+          <span class="stat life">
+            <svg data-icon="heart" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14S2 10.2 2 5.6C2 2.4 6 1.4 8 4c2-2.6 6-1.6 6 1.6C14 10.2 8 14 8 14Z"/></svg>
+            <span>{r.life}</span>
+          </span>
+        </span>
+        <!-- All four zone counts on ONE line (hand, library, graveyard,
+             exile) so a seat row is one text-line tall. The counts never
+             flex: the name box takes the slack and ellipsizes, so the
+             rail's floor is the counts' content. -->
+        <div class="zone-line">
+          <span data-stat="hand" data-hand-hidden={r.handVisible ? undefined : ''} aria-label={`Hand: ${r.hand}`}>
+            {#if r.hand > 0 && handCards.length > 0}
+              <button type="button" class="pile" data-pile="hand" data-tone={player ? pileToneOf(player, 'hand') : undefined} aria-label={pileLabel(r.name, 'hand', r.hand)} onclick={(e) => showPile(r.seat, 'hand', e)}>
+                <svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg>
+                <span>{r.hand}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
+              </button>
+            {:else}
+              <span class="count"><svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg><span>{r.hand}</span></span>
+            {/if}
+          </span>
+          <span data-stat="library" aria-label={`Library: ${r.library}`}>
+            <span class="count"><svg data-icon="book" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.2C4 2.6 6 3 8 4v9c-2-1-4-1.4-6-.8v-9Zm12 0c-2-.6-4-.2-6 .8v9c2-1 4-1.4 6-.8v-9Z"/></svg><span>{r.library}</span></span>
+          </span>
+          <span data-stat="graveyard" aria-label={`Graveyard: ${r.graveyard}`}>
+            {#if r.graveyard > 0 && graveyardCards.length > 0}
+              <button type="button" class="pile" data-pile="graveyard" data-tone={player ? pileToneOf(player, 'graveyard') : undefined} aria-label={pileLabel(r.name, 'graveyard', r.graveyard)} onclick={(e) => showPile(r.seat, 'graveyard', e)}>
+                <svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg>
+                <span>{r.graveyard}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
+              </button>
+            {:else}
+              <span class="count"><svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg><span>{r.graveyard}</span></span>
+            {/if}
+          </span>
+          <span data-stat="exile" aria-label={`Exile: ${r.exile}`}>
+            {#if r.exile > 0 && exileCards.length > 0}
+              <button type="button" class="pile" data-pile="exile" data-tone={player ? pileToneOf(player, 'exile') : undefined} aria-label={pileLabel(r.name, 'exile', r.exile)} onclick={(e) => showPile(r.seat, 'exile', e)}>
+                <svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg>
+                <span>{r.exile}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
+              </button>
+            {:else}
+              <span class="count"><svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg><span>{r.exile}</span></span>
+            {/if}
+          </span>
+        </div>
+      </li>
+    {/each}
+  </ul>
 </section>
 
 <style>
-  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  th.who { width: auto; font-weight: 400; padding: 0; }
-  td { padding: 1px 0; color: var(--ink-inst); white-space: nowrap; }
-  td:nth-child(2) { width: 2.45rem; }
-  td.zones { width: 5.1rem; }
-  .zone-line { display: flex; justify-content: flex-end; }
-  .zone-line > [data-stat] { width: 2.25rem; }
-  .pick { display: flex; align-items: center; width: 100%; background: none; border: 0; border-left: 3px solid var(--seat); padding: 1px var(--sp-2); font-size: var(--t-12); line-height: 1.6; color: var(--ink-inst); text-align: left; cursor: pointer; }
-  tr.active .pick { border-left-width: 6px; padding-left: calc(var(--sp-2) - 3px); }
-  tr.selected .pick, .pick:hover { background: var(--instrument-raised); }
-  tr.selected .pick { color: var(--ink); }
-  .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* One flex row per seat: the name box is the row's ONLY flexible box
+     (min-width 0, so its nowrap text contributes nothing to the row's
+     min-content width and the ellipsis does the truncation work at any rail
+     width); the life pill and the four-count line never flex. The old table
+     with its fixed 2.45rem life band and 5.1rem two-column zones cell is
+     gone with the two-high stack (fb-20260917T232028Z) — a seat row is one
+     text-line tall and the rail's floor is the counts' content. */
+  ul { margin: 0; padding: 0; list-style: none; }
+  li[data-seat-row] { display: flex; align-items: center; padding: 1px 0; color: var(--ink-inst); white-space: nowrap; }
+  .who { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+  .pick { display: flex; align-items: center; width: 100%; min-width: 0; background: none; border: 0; border-left: 3px solid var(--seat); padding: 1px var(--sp-2); font-size: var(--t-12); line-height: 1.6; color: var(--ink-inst); text-align: left; cursor: pointer; }
+  li.active .pick { border-left-width: 6px; padding-left: calc(var(--sp-2) - 3px); }
+  li.selected .pick, .pick:hover { background: var(--instrument-raised); }
+  li.selected .pick { color: var(--ink); }
+  .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .name.priority { color: var(--initiative); text-decoration: underline 2px dotted; text-underline-offset: 0.16em; }
-  .stat, .count, .pile { display: flex; align-items: center; justify-content: flex-end; gap: 0.16rem; font-family: var(--font-data); font-size: var(--t-11); font-variant-numeric: tabular-nums; color: var(--ink-dim); }
+  [data-stat='life'] { flex: none; }
+  .zone-line { display: flex; justify-content: flex-end; gap: 0.18rem; flex: none; }
+  .stat, .count, .pile { display: flex; align-items: center; justify-content: flex-end; gap: 0.12rem; font-family: var(--font-data); font-size: var(--t-10); font-variant-numeric: tabular-nums; color: var(--ink-dim); }
   .life { padding-right: var(--sp-1); font-size: var(--t-14); font-weight: 600; color: var(--ink-inst); }
-  .stat svg, .count svg, .pile svg { width: 0.72rem; height: 0.72rem; flex: none; fill: currentColor; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .stat svg, .count svg, .pile svg { width: 0.58rem; height: 0.58rem; flex: none; fill: currentColor; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .life svg { width: 0.72rem; height: 0.72rem; }
   .caret { width: 0.36rem; fill: none; }
   .pile { width: 100%; border: 0; padding: 0; background: none; cursor: pointer; }
   .pile:hover { color: var(--ink-inst); }
@@ -185,8 +192,14 @@
     border-radius: 2px;
   }
   [data-hand-hidden] { color: var(--ink-faint); }
-  tr.lost .name, tr.lost .life { text-decoration: line-through; color: var(--ink-faint); }
-  .eliminated { margin: 1px 0 0; padding-left: var(--sp-2); font-size: var(--t-10); color: var(--danger); line-height: 1.3; }
+  li.lost .name, li.lost .life { text-decoration: line-through; color: var(--ink-faint); }
+  /* The row is nowrap for the name/counts; the lost-cause line must WRAP
+     inside the name box instead (fb-20260917T232028Z round-2 finding): the
+     longest real cause ("commander damage (21 or more from one commander)",
+     lib/seattable.ts) painted past the counts and the rail at the floor
+     while inheriting nowrap — the pre-one-line table wrapped it, so wrap it
+     again. .who's overflow: hidden is the second guard for a long word. */
+  .eliminated { margin: 1px 0 0; padding-left: var(--sp-2); font-size: var(--t-10); color: var(--danger); line-height: 1.3; white-space: normal; }
   .eliminated__tag { font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
   .eliminated__cause { color: color-mix(in srgb, var(--danger) 82%, var(--ink-inst)); }
 </style>

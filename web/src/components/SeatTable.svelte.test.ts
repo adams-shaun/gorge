@@ -50,20 +50,16 @@ describe('SeatTable — compact seat summary', () => {
     expect(html).not.toContain('data-pile="library"');
   });
 
-  it('stacks the four zone counts two-high: hand+library on the first line, graveyard+exile on the second', () => {
+  it('puts all four zone counts on ONE line beside the life pill (the old two-high zone stack is gone)', () => {
     const { html } = render(SeatTable, { props: { view: summaryView(player()), seats: summarySeats, onFocus: () => {} } });
-    expect(html.match(/zone-line/g)?.length).toBe(2);
-    const first = html.slice(html.indexOf('zone-line'), html.lastIndexOf('zone-line'));
-    const second = html.slice(html.lastIndexOf('zone-line'));
-    // life stays on the name line, outside both zone lines
-    expect(first.includes('data-stat="life"')).toBe(false);
-    expect(second.includes('data-stat="life"')).toBe(false);
-    expect(first.indexOf('data-stat="hand"')).toBeGreaterThan(-1);
-    expect(first.indexOf('data-stat="library"')).toBeGreaterThan(first.indexOf('data-stat="hand"'));
-    expect(first.includes('data-stat="graveyard"')).toBe(false);
-    expect(first.includes('data-stat="exile"')).toBe(false);
-    expect(second.indexOf('data-stat="graveyard"')).toBeGreaterThan(-1);
-    expect(second.indexOf('data-stat="exile"')).toBeGreaterThan(second.indexOf('data-stat="graveyard"'));
+    expect(html.match(/zone-line/g)?.length).toBe(1);
+    const line = html.slice(html.indexOf('zone-line'));
+    // life stays in its own cell before the counts, outside the zone line
+    expect(line.includes('data-stat="life"')).toBe(false);
+    expect(line.indexOf('data-stat="hand"')).toBeGreaterThan(-1);
+    expect(line.indexOf('data-stat="library"')).toBeGreaterThan(line.indexOf('data-stat="hand"'));
+    expect(line.indexOf('data-stat="graveyard"')).toBeGreaterThan(line.indexOf('data-stat="library"'));
+    expect(line.indexOf('data-stat="exile"')).toBeGreaterThan(line.indexOf('data-stat="graveyard"'));
   });
 
   it('shows true counts but no caret for empty or redacted lists', () => {
@@ -93,7 +89,7 @@ describe('SeatTable — priority geometry', () => {
           row: rect('#seat-idle [data-seat-row="0"]'),
           pick: rect('#seat-idle [data-seat-row="0"] .pick'),
           name: rect('#seat-idle [data-seat-row="0"] .name'),
-          table: rect('#seat-idle table'),
+          section: rect('#seat-idle .seats'),
           identity: rect('#identity-idle .identity'),
           identityName: rect('#identity-idle .name'),
         },
@@ -101,7 +97,7 @@ describe('SeatTable — priority geometry', () => {
           row: rect('#seat-priority [data-seat-row="0"]'),
           pick: rect('#seat-priority [data-seat-row="0"] .pick'),
           name: rect('#seat-priority [data-seat-row="0"] .name'),
-          table: rect('#seat-priority table'),
+          section: rect('#seat-priority .seats'),
           identity: rect('#identity-priority .identity'),
           identityName: rect('#identity-priority .name'),
         },
@@ -112,18 +108,26 @@ describe('SeatTable — priority geometry', () => {
     expect(geometry.priority).toEqual(geometry.idle);
   });
 });
-describe('SeatTable — the rail floor (stacked counts let the rail shrink)', () => {
-  // The new grid floor in Table.svelte is 11rem = 176px. The fixture mounts
+describe('SeatTable — the rail floor (one-line counts let the rail shrink)', () => {
+  // The grid floor in Table.svelte is 11rem = 176px. The fixture mounts
   // the whole rail (seat table, mana pool, decision line, stack tile, pending
   // tray) at exactly that width, with a 27-character seat name that was
   // ALREADY ellipsized at the old 17rem floor (needs 173px, had 64px there),
   // so the assertions below are measured facts about the reduced rail, not
-  // about the name change.
+  // about the name change. Since fb-20260917T232028Z the seat summary is one
+  // text-line tall: its register (life pill + four one-line counts + row
+  // chrome) measures ~141px — just under the stack tile's 144px floor, which
+  // the 11rem floor cleared before this change too. The name takes the
+  // remainder and ellipsizes.
   const FLOOR_PX = 176;
 
-  async function atFloor(px = FLOOR_PX, concede: 'none' | 'idle' | 'confirm' = 'none') {
+  async function atFloor(px = FLOOR_PX, concede: 'none' | 'idle' | 'confirm' = 'none', lost = false) {
+    const params = new URLSearchParams();
+    if (concede !== 'none') params.set('concede', concede);
+    if (lost) params.set('lost', '1');
+    const q = params.toString();
     const page = await browser.newPage();
-    await page.goto(`${url}src/components/SeatTable.geometry.html${concede === 'none' ? '' : `?concede=${concede}`}`);
+    await page.goto(`${url}src/components/SeatTable.geometry.html${q ? `?${q}` : ''}`);
     await page.waitForSelector('#rail .rail-inner');
     await page.evaluate((w) => document.documentElement.style.setProperty('--rail-w', `${w}px`), px);
     return page;
@@ -143,6 +147,56 @@ describe('SeatTable — the rail floor (stacked counts let the rail shrink)', ()
     });
     await page.close();
     expect(overflows).toEqual([]);
+  });
+
+  it('wraps the lost seat\'s long loss cause inside the rail instead of overflowing past it', async () => {
+    // fb-20260917T232028Z round-2 finding: the eliminated line inherited the
+    // row's nowrap inside a min-width: 0 flex item, so the longest real loss
+    // cause (lib/seattable.ts lossCauses doc: "commander damage (21 or more
+    // from one commander)") painted past the counts and past the rail box at
+    // the 11rem floor (measured 349px scroll vs 176px client). The fix wraps
+    // the cause inside the name box, like the pre-one-line table did; this
+    // pins the class at the floor with the widest lost seat the rail holds
+    // (hand 9 / library 41 / graveyard 12 / exile 2). A lost seat may be
+    // TALLER than a live one (the wrapped cause) — only live seats owe their
+    // one-line height.
+    const page = await atFloor(FLOOR_PX, 'none', true);
+    const measured = await page.evaluate(() => {
+      const bad: { label: string; sw: number; cw: number }[] = [];
+      const check = (el: HTMLElement, label: string) => {
+        if (el.scrollWidth > el.clientWidth + 1) bad.push({ label, sw: el.scrollWidth, cw: el.clientWidth });
+      };
+      const rail = document.querySelector<HTMLElement>('#rail .rail-inner')!;
+      check(rail, 'rail-inner');
+      for (const child of Array.from(rail.children)) check(child as HTMLElement, child.className || child.tagName);
+      const rows = Array.from(document.querySelectorAll<HTMLElement>('#rail [data-seat-row]'));
+      for (const row of rows) check(row, `seat-row ${row.getAttribute('data-seat-row')}`);
+      const lost = document.querySelector<HTMLElement>('#rail [data-eliminated]');
+      const lh = lost ? parseFloat(getComputedStyle(lost).lineHeight) : 0;
+      return {
+        bad,
+        eliminated: lost !== null,
+        tag: lost?.querySelector('.eliminated__tag')?.textContent ?? null,
+        cause: lost?.querySelector('.eliminated__cause')?.textContent ?? null,
+        causeHeight: lost?.getBoundingClientRect().height ?? 0,
+        lineHeight: lh,
+        heights: rows.map((r) => ({ seat: r.getAttribute('data-seat-row'), h: r.getBoundingClientRect().height })),
+      };
+    });
+    await page.close();
+    // the fixture must have wired the lost seat, or the run proves nothing
+    expect(measured.eliminated, 'the lost-seat fixture variant did not render an eliminated line').toBe(true);
+    expect(measured.tag).toBe('Eliminated');
+    expect(measured.cause).toContain('commander damage');
+    expect(measured.bad, JSON.stringify(measured.bad)).toEqual([]);
+    // AND it wraps rather than being clipped to one line: overflow: hidden on
+    // .who contains the paint, so containment alone cannot tell a wrapped
+    // cause from a clipped one — the cause box must hold at least two lines.
+    expect(measured.causeHeight, `the cause did not wrap (${measured.causeHeight}px, one line is ${measured.lineHeight}px)`)
+      .toBeGreaterThanOrEqual(measured.lineHeight * 2 - 1);
+    const lostHeight = measured.heights.find((r) => r.seat === '1')!.h;
+    const liveHeight = measured.heights.find((r) => r.seat === '2')!.h;
+    expect(lostHeight, 'the long cause did not wrap (lost row is not taller than a live row)').toBeGreaterThan(liveHeight);
   });
 
   it('keeps the long seat name inside its row with the ellipsis doing the work', async () => {
