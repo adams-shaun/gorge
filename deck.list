@@ -4411,3 +4411,107 @@ Commander
 1x Forest
 1x Forest
 1x Forest
+# --- World Shaper (eoc commander precon, Hearthhull, the Worldseed) — census input, 2026-09-18 ---
+# run: sed -n '/World Shaper (eoc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/eoc-world-shaper.list
+# source: WotC official decklist article magic.wizards.com/en/news/announcements/edge-of-eternities-commander-decklists
+#   (MTGJSON DeckList entry WorldShaper_EOC cross-checked; mtggoldfish unreachable — deck/archetype pages 404 for eoc)
+# 100/100 resolved; commander eligible (Legendary Artifact Spacecraft). Deck file NOT added — real new gaps:
+#   pred:ChosenCardStrict, pred:CanBeSacrificedBy, count:PlayerCountPropertyYou$<Property>,
+#   TargetMin$/TargetMax$ non-literal bounds, Count$Valid $DifferentCardPower-family aggregates,
+#   pred:hasABasicLandType, count:TriggerRemembered$ — 7 tickets in .ds4/new-tickets/. Open-ledger overlaps
+#   NOT re-filed: api:AddPhase — 358dffd6, api:Investigate — 29ab26dd + trig 33d2eba5, api:ImmediateTrigger —
+#   2fd3b568 + 6ad7f5ec, api:CopyPermanent — 6994a692, api:PutCounterAll — 6d0f5aae, kw:Retrace — 72587dc0,
+#   Cost$-on-trigger-body — a1faec2c (also Springbloom Druid), trig:ChangesZoneAll — 7054b9c3 (Gitrog Monster),
+#   static:AddAbility — 6efc3126 (Hearthhull's STATION 2+ draw ability), Count$Valid $GreatestCardPower —
+#   155888e1 + e27469dd (the Different* variants this census filed are the unfiled siblings)
+# note: Szarel, Genesis Shepherd (cn 0004) is the featured/alternate face commander, also in the deck.
+Commander
+1 Hearthhull, the Worldseed
+
+Deck
+1 Szarel, Genesis Shepherd
+1 Eumidian Wastewaker
+1 Evendo Brushrazer
+1 Planetary Annihilation
+1 Baloth Prime
+1 Exploration Broodship
+1 Horizon Explorer
+1 Scouring Swarm
+1 Eumidian Hatchery
+1 Festering Thicket
+1 Vernal Fen
+1 Fabled Passage
+1 Braids, Arisen Nightmare
+1 God-Eternal Bontu
+1 Blasphemous Act
+1 Hammer of Purphoros
+1 Moraug, Fury of Akoum
+1 Augur of Autumn
+1 Centaur Vinecrasher
+1 Formless Genesis
+1 Loamcrafter Faun
+1 Multani, Yavimaya's Avatar
+1 Oracle of Mul Daya
+1 Pest Infestation
+1 Rampaging Baloths
+1 Splendid Reclamation
+1 Tireless Tracker
+1 Titania, Protector of Argoth
+1 World Breaker
+1 Escape to the Wilds
+1 Gaze of Granite
+1 The Gitrog Monster
+1 Korvold, Fae-Cursed King
+1 Mazirek, Kraul Death Priest
+1 Omnath, Locus of Rage
+1 Soul of Windgrace
+1 Windgrace's Judgment
+1 Worldsoul's Rage
+1 Canyon Slough
+1 Cinder Glade
+1 Karplusan Forest
+1 Llanowar Wastes
+1 Sheltered Thicket
+1 Smoldering Marsh
+1 Sulfurous Springs
+1 Twilight Mire
+1 Viridescent Bog
+1 Farseek
+1 Springbloom Druid
+1 Binding the Old Gods
+1 Arcane Signet
+1 Sol Ring
+1 Command Tower
+1 Mountain Valley
+1 Terramorphic Expanse
+1 Infernal Grasp
+1 Night's Whisper
+1 Sprouting Goblin
+1 Aftermath Analyst
+1 Beast Within
+1 Cultivate
+1 Groundskeeper
+1 Harrow
+1 Nature's Lore
+1 Roiling Regrowth
+1 Satyr Wayfinder
+1 Skyshroud Claim
+1 Tear Asunder
+1 Juri, Master of the Revue
+1 Mayhem Devil
+1 Putrefy
+1 Rakdos Charm
+1 Uurg, Spawn of Turg
+1 Bojuka Bog
+1 Cabaretti Courtyard
+1 Dakmor Salvage
+1 Escape Tunnel
+1 Evolving Wilds
+1 Maestros Theater
+1 Myriad Landscape
+1 Riveteers Overlook
+1 Rocky Tar Pit
+1 Wastes
+5 Swamp
+3 Mountain
+8 Forest
