@@ -14,17 +14,29 @@ func BenchmarkFaceTriggerScanDistinctFaces(b *testing.B) {
 	g := state.NewGame([]string{"a", "b", "c", "d"})
 	e := &Engine{G: g, L: events.NewLog(1)}
 	effect := &cards.SA{Kind: "DB", API: "GainLife", Params: map[string]string{"LifeAmount": "1", "Defined": "You"}}
+	registry := cards.NewRegistry()
+	watchers := make([]*cards.Card, 0, 240)
 	for i := range 240 {
 		face := &cards.Face{
 			Name:     fmt.Sprintf("Watcher %d", i),
 			Types:    []string{"Enchantment"},
 			Triggers: []cards.Trigger{{Mode: "SpellCast", Effect: effect}},
 		}
-		o := g.AddObject(&cards.Card{Faces: []*cards.Face{face}}, state.PlayerID(i%4))
+		card := &cards.Card{Faces: []*cards.Face{face}}
+		registry.Add(card)
+		watchers = append(watchers, card)
+	}
+	spellCard := &cards.Card{Faces: []*cards.Face{{Name: "Spell", Types: []string{"Sorcery"}}}}
+	registry.Add(spellCard)
+	if err := registry.CompileMetadata(); err != nil {
+		b.Fatal(err)
+	}
+	for i, card := range watchers {
+		o := g.AddObject(card, state.PlayerID(i%4))
 		o.Zone = state.ZBattlefield
 		g.SetZone(state.ZBattlefield, o.Controller, append(g.Zone(state.ZBattlefield, o.Controller), o.ID))
 	}
-	spell := g.AddObject(&cards.Card{Faces: []*cards.Face{{Name: "Spell", Types: []string{"Sorcery"}}}}, 0)
+	spell := g.AddObject(spellCard, 0)
 	spell.Zone = state.ZStack
 	g.SetZone(state.ZStack, 0, []state.ObjID{spell.ID})
 

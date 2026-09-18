@@ -396,8 +396,9 @@ type Engine struct {
 	// phaseSpecs caches pure Phase$ parsing for both diagnostics and matching.
 	// It is scratch, not replay bookkeeping: clones start with an empty cache.
 	phaseSpecs map[string]parsedPhase
-	// triggerEventMasks caches only immutable face syntax, not live source
-	// membership. Like phaseSpecs, clones own fresh writable scratch.
+	// triggerEventMasks caches only immutable syntax for unbound fixture faces,
+	// not live source membership. Bound corpus faces use their catalog-owned
+	// trigger interests. Like phaseSpecs, clones own fresh writable scratch.
 	triggerEventMasks map[*cards.Face]triggerEventMask
 	// triggerObjectMasks is the dense object-walk form of triggerEventMasks.
 	// Entries validate their immutable face pointer and are scratch owned by

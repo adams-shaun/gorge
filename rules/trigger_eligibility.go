@@ -15,14 +15,66 @@ import (
 type triggerEventMask uint64
 
 type objectTriggerEventMasks struct {
-	faces [2]*cards.Face
-	masks [2]triggerEventMask
+	faces     [2]*cards.Face
+	masks     [2]triggerEventMask
+	interests [2]cards.TriggerInterest
+	compiled  [2]bool
 }
 
 const allTriggerEvents triggerEventMask = ^triggerEventMask(0)
 
 func (m triggerEventMask) allows(kind events.Kind) bool {
 	return kind >= 64 || m&(1<<kind) != 0
+}
+
+// eventTriggerInterest maps replay-stable event kinds to cards-owned semantic
+// trigger classes. Every current irrelevant kind is named explicitly so a
+// future event reaches the conservative catch-all default until audited.
+func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
+	switch kind {
+	case events.MoveZone:
+		return cards.TriggerInterestZoneChange
+	case events.Draw:
+		return cards.TriggerInterestZoneChange | cards.TriggerInterestDraw
+	case events.LifeChange:
+		return cards.TriggerInterestLifeChange
+	case events.Damage:
+		return cards.TriggerInterestDamage
+	case events.Tap:
+		return cards.TriggerInterestTap
+	case events.StepChange:
+		return cards.TriggerInterestStepChange
+	case events.PutOnStack:
+		return cards.TriggerInterestZoneChange | cards.TriggerInterestStackPut
+	case events.DeclareAttackers, events.DeclareBlockers:
+		return cards.TriggerInterestAttackDeclaration
+	case events.TargetsChosen:
+		return cards.TriggerInterestTargetsChosen
+	case events.AbilityPush:
+		return cards.TriggerInterestAbilityPush
+	case events.GameStart, events.Shuffle, events.Untap, events.TurnChange,
+		events.Priority, events.Resolve, events.ManaAdd, events.ManaClear,
+		events.CounterChange, events.PlayerLost, events.GameOver,
+		events.DecisionAsk, events.DecisionMade, events.Note, events.LandPlayed,
+		events.FlipFace, events.ClockTick, events.TriggerPush,
+		events.EndCombatReset, events.CastInfo, events.Choose,
+		events.TokenCreate, events.StackCopy, events.Attach, events.ModeChosen,
+		events.CmdDamage, events.DelayedRegister, events.DelayedPush,
+		events.LibraryOrder, events.ExtraTurn, events.DoorUnlock,
+		events.SpeedChange, events.MonarchChange, events.ControlChange,
+		events.CardToken, events.KeywordTriggerPush, events.Goad,
+		events.PlayerCounterChange, events.Imprint, events.StartingPlayerChange,
+		events.Pair, events.MyriadCopy, events.MyriadCleanup,
+		events.GrantTriggerPush, events.ManaActivate:
+		return 0
+	default:
+		return cards.TriggerInterestAny
+	}
+}
+
+func compiledTriggerInterestAllows(interests cards.TriggerInterest, kind events.Kind) bool {
+	eventInterest := eventTriggerInterest(kind)
+	return interests&cards.TriggerInterestAny != 0 || eventInterest == cards.TriggerInterestAny || interests&eventInterest != 0
 }
 
 // Keep this aligned with triggerMatches' actual dispatch, not with a wider
@@ -95,6 +147,9 @@ func (e *Engine) faceMayTrigger(f *cards.Face, kind events.Kind) bool {
 	if f == nil || len(f.Triggers) == 0 {
 		return false
 	}
+	if interests, ok := f.CompiledTriggerInterests(); ok {
+		return compiledTriggerInterestAllows(interests, kind)
+	}
 	m, ok := e.triggerEventMasks[f]
 	if !ok {
 		m = triggerMaskForFace(f)
@@ -125,7 +180,15 @@ func (e *Engine) objectFaceMayTrigger(id state.ObjID, faceIdx uint8, f *cards.Fa
 	entry := &e.triggerObjectMasks[i]
 	if entry.faces[faceIdx] != f {
 		entry.faces[faceIdx] = f
-		entry.masks[faceIdx] = triggerMaskForFace(f)
+		entry.interests[faceIdx], entry.compiled[faceIdx] = f.CompiledTriggerInterests()
+		if entry.compiled[faceIdx] {
+			entry.masks[faceIdx] = 0
+		} else {
+			entry.masks[faceIdx] = triggerMaskForFace(f)
+		}
+	}
+	if entry.compiled[faceIdx] {
+		return compiledTriggerInterestAllows(entry.interests[faceIdx], kind)
 	}
 	return entry.masks[faceIdx].allows(kind)
 }

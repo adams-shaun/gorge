@@ -56,6 +56,80 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 	}
 }
 
+func TestTriggerEventInterestMapping(t *testing.T) {
+	for kind := events.Kind(0); int(kind) < events.NumKinds; kind++ {
+		var want cards.TriggerInterest
+		switch kind {
+		case events.MoveZone:
+			want = cards.TriggerInterestZoneChange
+		case events.Draw:
+			want = cards.TriggerInterestZoneChange | cards.TriggerInterestDraw
+		case events.LifeChange:
+			want = cards.TriggerInterestLifeChange
+		case events.Damage:
+			want = cards.TriggerInterestDamage
+		case events.Tap:
+			want = cards.TriggerInterestTap
+		case events.StepChange:
+			want = cards.TriggerInterestStepChange
+		case events.PutOnStack:
+			want = cards.TriggerInterestZoneChange | cards.TriggerInterestStackPut
+		case events.DeclareAttackers, events.DeclareBlockers:
+			want = cards.TriggerInterestAttackDeclaration
+		case events.TargetsChosen:
+			want = cards.TriggerInterestTargetsChosen
+		case events.AbilityPush:
+			want = cards.TriggerInterestAbilityPush
+		}
+		if got := eventTriggerInterest(kind); got != want {
+			t.Fatalf("kind %s interest = %x, want %x", kind, got, want)
+		}
+	}
+	if got := eventTriggerInterest(events.Kind(events.NumKinds)); got != cards.TriggerInterestAny {
+		t.Fatalf("future event interest = %x, want catch-all", got)
+	}
+}
+
+func TestCompiledTriggerInterestParity(t *testing.T) {
+	modes := []string{
+		"ChangesZone", "SpellCast", "AbilityCast", "SpellAbilityCast", "Attacks",
+		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "Sacrificed",
+		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
+		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
+		"Drawn", "LifeLost", "Phase", "Always", "LifeLostAll", "FutureMode", "",
+	}
+	card := &cards.Card{}
+	for _, mode := range modes {
+		card.Faces = append(card.Faces, &cards.Face{Triggers: []cards.Trigger{{Mode: mode}}})
+	}
+	phaseDiagnostic := &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast", Params: map[string]string{"Phase": "Bad"}}}}
+	card.Faces = append(card.Faces, phaseDiagnostic)
+	r := cards.NewRegistry()
+	r.Add(card)
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+
+	e := &Engine{}
+	for i, mode := range modes {
+		face := card.Faces[i]
+		for kind := events.Kind(0); int(kind) < events.NumKinds; kind++ {
+			want := triggerModeEvents(mode).allows(kind)
+			if got := e.faceMayTrigger(face, kind); want && !got {
+				t.Fatalf("mode %q kind %s: compiled prefilter rejected a textual candidate", mode, kind)
+			}
+		}
+	}
+	for kind := events.Kind(0); int(kind) < events.NumKinds; kind++ {
+		if !e.faceMayTrigger(phaseDiagnostic, kind) {
+			t.Fatalf("phase diagnostic rejected %s", kind)
+		}
+	}
+	if len(e.triggerEventMasks) != 0 {
+		t.Fatalf("bound faces populated textual pointer cache with %d entries", len(e.triggerEventMasks))
+	}
+}
+
 func TestTriggerEligibilityFaceUnionAndConservativeFallback(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -119,7 +193,13 @@ func TestObjectTriggerEligibilityTracksBothFaces(t *testing.T) {
 	e := layerEngine(t)
 	spell := &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast"}}}
 	draw := &cards.Face{Triggers: []cards.Trigger{{Mode: "Drawn"}}}
-	o := e.G.AddObject(&cards.Card{Faces: []*cards.Face{spell, draw}}, 0)
+	card := &cards.Card{Faces: []*cards.Face{spell, draw}}
+	r := cards.NewRegistry()
+	r.Add(card)
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	o := e.G.AddObject(card, 0)
 
 	if !e.objectFaceMayTrigger(o.ID, 0, spell, events.PutOnStack) {
 		t.Fatal("front face rejected its spell-cast event")

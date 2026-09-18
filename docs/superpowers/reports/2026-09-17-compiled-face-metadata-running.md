@@ -120,3 +120,23 @@ returned mana-ability slice. Corpus parity covers every bound face, including
 tokens, and synthetic fixtures cover mixed-case recognized queries, unknown
 type/keyword fallback, empty ability sets, and multiple mana abilities with
 pointer/order equality.
+
+## Task 6: compiled trigger interests
+
+Bound faces now bypass the engine's pointer-keyed textual trigger-mask cache.
+Rules maps every current `events.Kind` explicitly to the catalog's semantic
+interest classes; a future event kind takes the conservative path until it is
+audited. Unknown trigger modes and Phase-bearing diagnostics remain catch-all.
+The object-local two-face cache retains its face-pointer validation for Rooms,
+transforms, and synthetic replacement while storing compiled interests for
+bound faces and textual masks for unbound fixtures.
+
+The semantic interest mask is an over-approximation, not the final trigger
+matcher. In particular, attacker and blocker declarations intentionally share
+one interest bit; tests require that the compiled prefilter never rejects a
+candidate admitted by the textual mask, and the existing matcher performs the
+exact mode check afterward.
+
+`BenchmarkFaceTriggerScanDistinctFaces`, now backed by 240 catalog-bound
+faces, measured a five-run median of 6.983 us/op with 0 B/op and 0 allocs/op,
+down from the 10.300 us/op textual baseline (32.2%).
