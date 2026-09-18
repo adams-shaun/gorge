@@ -140,3 +140,23 @@ exact mode check afterward.
 `BenchmarkFaceTriggerScanDistinctFaces`, now backed by 240 catalog-bound
 faces, measured a five-run median of 6.983 us/op with 0 B/op and 0 allocs/op,
 down from the 10.300 us/op textual baseline (32.2%).
+
+## Task 7: dense effect API dispatch
+
+The effect registry now publishes one immutable snapshot containing both the
+existing name map and a dense `APICode` slice. Registration, replacement, and
+unregistration clone and update both views under the existing writer mutex,
+then atomically publish them together. Resolution uses a bound ability's
+nonzero opcode first and falls back to its textual API name for unbound,
+unknown, or extension APIs. `Supported` continues to enumerate the name map.
+
+Five-run medians, using a nonallocating effect and host:
+
+| Benchmark | ns/op | B/op | allocs/op |
+|---|---:|---:|---:|
+| `BenchmarkResolveKnownCompiledAPI` | 87.30 | 0 | 0 |
+| `BenchmarkResolveKnownTextAPI` | 89.38 | 0 | 0 |
+| `BenchmarkResolveUnknownAPI` | 89.67 | 0 | 0 |
+
+The compiled microbenchmark is only 2.3% below the matched textual path, so
+the final fixed workload remains the acceptance gate for retaining it.
