@@ -223,8 +223,11 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
  * through the wheel, and its stage-2 colour ask must re-open that wheel, not
  * fall back to the seat panel's generic option list. The arm is
  * self-disarming: Table.svelte's $effect decodes it through
- * resolveCardFollowUp, which opens nothing unless the next decision really
- * carries 2-6 options on the expected object. */
+ * resolveCardFollowUp, which re-opens the MANA colour wheel only -- the next
+ * decision must carry 2-6 options on the expected object AND every option
+ * must be of kind 'mana' (fb-20260917T233137Z: without the kind gate a
+ * shock land's "pay 2 life?" election -- 2 'mode' options on the land --
+ * auto-opened the radial wheel and presented as the mana bubble). */
 export function postTileOption(tile: TileOptions, option: Option, holdPriority = false): void {
   tile.post(option.index, true, holdPriority);
 }
@@ -234,22 +237,32 @@ export function postTileOption(tile: TileOptions, option: Option, holdPriority =
  * expectation (task fb-e079def5, generalising the ui24 single-action arm to
  * every card-anchored post). After a card action is posted, the next
  * decision for the seat re-opens that card's picker exactly when it carries
- * 2-6 options on the expected object -- Underground Sea's activate → Add U /
- * Add B, a Talisman's stage-1 ability pick → its stage-2 colour wheel.
- * Anything else returns null, so an armed expectation cannot open a wrong
- * picker: a target ask (its options carry the CANDIDATES' objects, never the
- * actor's), a tapped-out source with nothing left to offer (0 options on the
- * object), a one-option follow-up (a direct badge, not a picker), and a
- * >6-option list-menu follow-up all disarm. The caller (Table.svelte's
- * $effect) keeps the sequencing guard -- same-seq decisions and the
- * decision-less frames leave the expectation armed so a follow-up that
- * arrives later still decodes.
+ * 2-6 options on the expected object AND every option is kind 'mana' --
+ * the stage-2 colour wheel's shape (server side: rules/mana_activation.go
+ * mints every wheel option with Kind "mana" labelled "Add <colour>").
+ * Underground Sea's activate → Add U / Add B, a Talisman's stage-1 ability
+ * pick → its stage-2 colour wheel.
+ *
+ * The kind gate (fb-20260917T233137Z) keeps every OTHER card-anchored
+ * follow-up off the radial picker: a shock land's pay-life election, a
+ * Charm's mode ask, a counter's "pay to save" -- all arrive as 'mode'
+ * options on the played card and present through the seat panel and the
+ * tile badge instead of popping the mana wheel. Anything else also returns
+ * null, so an armed expectation cannot open a wrong picker: a target ask
+ * (its options carry the CANDIDATES' objects, never the actor's), a
+ * tapped-out source with nothing left to offer (0 options on the object), a
+ * one-option follow-up (a direct badge, not a picker), and a >6-option
+ * list-menu follow-up all disarm. The caller (Table.svelte's $effect) keeps
+ * the sequencing guard -- same-seq decisions and the decision-less frames
+ * leave the expectation armed so a follow-up that arrives later still
+ * decodes.
  */
 export function resolveCardFollowUp(
   expected: { seq: number; obj: number } | null,
   d: Decision | null,
 ): { seq: number; obj: number } | null {
   if (d === null || expected === null || d.seq === expected.seq) return null;
+  if (d.options.length === 0 || !d.options.every((option) => option.kind === 'mana')) return null;
   const count = d.options.filter((option) => option.obj === expected.obj).length;
   return count >= 2 && count <= 6 ? { seq: d.seq, obj: expected.obj } : null;
 }
