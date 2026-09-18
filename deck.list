@@ -3504,3 +3504,149 @@ Commander
 1x Forest
 1x Forest
 1x Forest
+# --- Quick Draw (otc commander precon, Stella Lee, Wild Card) — census input, 2026-09-18 (issue agent-20260918T203713Z-76174fbb) ---
+# run: go run ./cmd/deckimport -in /tmp/quick-draw.list -out /tmp/qd101.deck -force -name "Quick Draw"
+# (the standalone section file keeps the Commander/Deck headers; the flat list below stores the cards)
+# AS-ENUMERATED the list is 101 cards, not the source page's claimed 100: 73 nonlands incl. commander
+# + 14 Island + 14 Mountain, `uniq -d` over the nonland names is empty — exactly ONE basic is over, and WHICH
+# basic (Island or Mountain) is unverified offline. The section stores the enumerated 14/14 with this note —
+# never invent a 13/14 or 14/13 split. (Post-census correction, recorded on review round 2: the source issue file
+# was edited after this section was committed, dropping ONE Mountain — the de-facto split is 14 Island / 13
+# Mountain, i.e. Mountain was the over-count basic. The enumeration above stays as-measured at census time;
+# re-verify against the source page before any deck-file addition.)
+# 101/101 resolved, 0 missing names; commander NOT eligible at 101 ("imported: 101 cards, but a Commander deck
+# must have exactly 100"). Corrected-count run (drop one Island — either basic resolves, all names resolve):
+# go run ./cmd/deckimport -in /tmp/qd100.list -out /tmp/qd100.deck -force -name "Quick Draw" → 100/100 resolved,
+# commander eligible: yes (Stella Lee, Wild Card is Legendary Creature — eligibility fails only on the count).
+# 12 new-gap tickets (.ds4/new-tickets/*.md) — deck file NOT added. (Round 1 filed 13; two were withdrawn on
+# review: count-head-targetedplayer.md was a duplicate of an already-open ledger entry — see overlaps below — and
+# static-setmaxhandsize.md was narrowed from the (implemented) battlefield static to the Effect-delivered shape
+# only — see the gap list.)
+# Gap primitives (12 tickets): DB$ Proliferate (Tezzeret's Gambit) — api-proliferate.md, 68 files; K:Plot
+#   (Lock and Load, Pyretic Charge) — kw-plot.md, 33; K:Jump-start (Radical Idea) — kw-jump-start.md, 13
+#   (enumeration brief said 16 — re-measured 13); Adapt$ on AB$ PutCounter (Pteramander) — param-adapt.md, 24;
+#   Effect-delivered SetMaxHandSize$ static (Finale of Revelation's DB$ Effect | StaticAbilities$ STHandSize) —
+#   static-setmaxhandsize.md, narrowed: the PLAIN battlefield static IS implemented (rules/combat.go:1317
+#   maxHandSizeFor reads both Unlimited and numeric, called by cleanupStep, pinned by TestNumericSetMaxHandSize —
+#   Reliquary Tower works); PersistentMana$ (Rousing Refrain) — param-persistentmana.md, 23; UseAllOriginZones$
+#   (Finale of Revelation) — param-usealloriginzones.md, 32; count head DifferentCardManaCost/Times.2 (Eris, Roar
+#   of the Storm) — count-head-differentcardmanacost.md, 20; count head TotalCommanderCastFromCommandZone
+#   (Thunderclap Drake) — count-head-totalcommandercast.md, 17; Upto$ on DB$ Draw (Arcane Denial) —
+#   param-draw-upto.md, 7; ChangeZoneTable$ on RepeatEach (Curse of the Swine) — param-changezonetable.md, 47;
+#   OrderDuplicates$ on triggers (Arcane Bombardment) — param-orderduplicates.md, 2.
+# Open-ledger overlaps (do not re-file): S:Mode$ CantAttackUnless (Propaganda) = issue-agent-20260918T210307Z-f658abd8;
+#   kw:Cascade (Volcanic Torrent) = issue-agent-20260918T214742Z-83cb70eb; kw:Crew (Smoldering Stagecoach) =
+#   issue-agent-20260918T221252Z-ebdaae26; mana-ability TriggersWhenSpent$ rider (Forger's Foundry) =
+#   issue-agent-20260918T205611Z-de7f8a84; api:Play.WithoutManaCost family (Forger's Foundry AB$ Play Defined$
+#   ExiledWith, Arcane Bombardment DBCast Valid$ Card.ExiledWithSource + CopyCard$ True, Baral's Expertise DBPlay,
+#   Finale of Promise DBPlay + ReplaceGraveyard$ Exile, Bloodthirsty Adversary DBCopyCast, Mizzix's Mastery
+#   DBPlay Defined$ Remembered + CopyCard$ True — six new carriers; the ExiledWith/ExiledWithSource predicate
+#   itself IS implemented (effects/play.go + effects/conditions.go) and so is WithoutManaCost$ on a Play SA
+#   (rules/resolution.go reads it and begins the free cast — landed bc01c474 2026-09-15, NOT the hole); the real
+#   unreads among these carriers are CopyCard$ True on Arcane Bombardment's DBCast and Mizzix's Mastery's DBPlay
+#   (zero non-test readers in effects/rules/cards — on those shapes the engine begins the cast of the ORIGINAL
+#   exiled card, not a copy) and Controller$ You on Baral's Expertise / Finale of Promise / Mizzix's Mastery /
+#   Bloodthirsty Adversary (no reader in the Play path; only effects/copy.go:93 reads Controller$, a different
+#   primitive) — widen d504b33b's primitive list with CopyCard$ True and Controller$ You, whose own title already
+#   names the Controller family) = issue-agent-20260918T221252Z-d504b33b; api:ImmediateTrigger (Bloodthirsty
+#   Adversary's ETB pay-repeat arm) =
+#   issue-agent-20260918T195920Z-2fd3b568 + issue-agent-20260918T202223Z-6ad7f5ec; api:Mill.RememberMilled
+#   (Leyline Dowser) = issue-agent-20260918T201731Z-86b4ef09; Windfall's SVar X multi-zone count SVar
+#   (PlayerCountPlayers$HighestValidGraveyard,Library,Exile) = ticket windfall-multizone-count-svar-unresolvable.md
+#   (filed by the wheel-feedback census; pinned in rules/reforge_the_soul_wheel_test.go:162 — population 3 files);
+#   count head TargetedPlayer$<prop> (Rousing Refrain's SVar:Z:TargetedPlayer$CardsInHand adds 0 mana today) =
+#   issue-agent-20260918T201425Z-bfb2a578, "TargetedPlayer$ count head is unread", open, priority 4 — filed ~23
+#   minutes before this census; round 1's own ticket was a re-file and has been withdrawn (81 corpus files).
+# Approximation-table leans (known, do not ticket): DelayedTrigger Mode$ SpellCast (Galvanic Iteration, Thunderclap
+#   Drake) and DelayedTrigger's ValidPlayer$ gate (Arcane Denial slowtrip) — approx DelayedTrigger row; Effect-granted
+#   ReduceCost/statics beyond CantTarget/CantRegenerate (Kaza, Roil Chaser; Crackling Spellslinger's Storm grant;
+#   Smoldering Stagecoach's Cascade grants) — approx Effect row (the hand-size Effect twin is now ticketed as
+#   static-setmaxhandsize.md instead of leaned here); copies keep
+#   the original's targets (Stella Lee, Finale of Promise, Galvanic Iteration, Thunderclap Drake) — approx copy row;
+#   +!CastSaSource predicate (Lock and Load) — approx ValidLKI row; TargetMin$/TargetMax$ X dynamic target count
+#   (Curse of the Swine) — approx castTargetsAvailable row; ManaReflected (Exotic Orchard) and mana-choice shapes
+#   (Cascade Bluffs' {U/R} + Amount$ 2 triple production) — approx mana rows; Haughty Djinn/Smoldering Stagecoach
+#   SetPower$ X statics, Storm-Kiln Artist AddPower$ X — static-PT row (real). Winged Boots' AddKeyword$ Flying &
+#   Ward:4 grant IS read (rules/layers.go:131 + checkGrantedWardTriggers over Derived keywords); Crackling
+#   Spellslinger's Card.wasCast+Self gate IS read (effects/filter.go:471); Niv-Mizzet's R:Event$ Counter
+#   Layer$ CantHappen bodyless form IS read (effects/misc.go:188).
+# source: the WotC Outlaws of Thunder Junction commander decklists article (magic.wizards.com/en/news/announcements/outlaws-of-thunder-junction-commander-decklists)
+
+Commander
+1x Stella Lee, Wild Card
+
+Deck
+1x Eris, Roar of the Storm
+1x Archmage Emeritus
+1x Baral's Expertise
+1x Tezzeret's Gambit
+1x Midnight Clock
+1x Haughty Djinn
+1x Dig Through Time
+1x Winged Boots
+1x Talrand, Sky Summoner
+1x Octavia, Living Thesis
+1x Thunderclap Drake
+1x Lock and Load
+1x Forger's Foundry
+1x Finale of Revelation
+1x Curse of the Swine
+1x Mizzix's Mastery
+1x Chaos Warp
+1x Crackling Spellslinger
+1x Pyretic Charge
+1x Smoldering Stagecoach
+1x Elemental Eruption
+1x Rousing Refrain
+1x Cursed Mirror
+1x Bloodthirsty Adversary
+1x Finale of Promise
+1x Arcane Bombardment
+1x Niv-Mizzet, Parun
+1x Kaza, Roil Chaser
+1x Shark Typhoon
+1x Galvanic Iteration
+1x Epic Experiment
+1x Veyran, Voice of Duality
+1x Leyline Dowser
+1x Exotic Orchard
+1x Shivan Reef
+1x Sulfur Falls
+1x Frostboil Snarl
+1x Temple of Epiphany
+1x Cascade Bluffs
+1x Ferrous Lake
+1x Treasure Cruise
+1x Preordain
+1x Ponder
+1x Murmuring Mystic
+1x Deep Analysis
+1x Radical Idea
+1x Opt
+1x Think Twice
+1x Arcane Denial
+1x Pteramander
+1x Vandalblast
+1x Pongify
+1x Serum Visions
+1x Faithless Looting
+1x Big Score
+1x Storm-Kiln Artist
+1x Young Pyromancer
+1x Electrostatic Field
+1x Guttersnipe
+1x Volcanic Torrent
+1x Windfall
+1x Goblin Electromancer
+1x Third Path Iconoclast
+1x Expressive Iteration
+1x Arcane Signet
+1x Izzet Signet
+1x Sol Ring
+1x Command Tower
+1x Temple of the False God
+1x Reliquary Tower
+1x Izzet Boilerworks
+1x Propaganda
+14 Island
+14 Mountain
