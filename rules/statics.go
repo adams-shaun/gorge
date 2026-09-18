@@ -127,6 +127,11 @@ func (e *Engine) activeStatics(mode string) []staticView {
 			if f == nil {
 				continue
 			}
+			if e.faceDownPrintedHides(o) {
+				// CR 708.8: a face-down permanent's printed statics do not
+				// exist while it is face down (the shared gate in layers.go).
+				continue
+			}
 			for _, st := range f.Statics {
 				if st.Mode == mode {
 					out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params})

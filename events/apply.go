@@ -335,6 +335,20 @@ func Apply(g *state.Game, e Event) {
 				o.HasPreStackEntry = true
 			}
 		}
+		// A manifest's face-down entry (CR 708.5) must be visible INSIDE the
+		// Move below: Move's battlefield-entry grants read it (a manifested
+		// planeswalker enters as a 2/2 creature with no loyalty grant, a
+		// manifested Saga with no lore counter -- while face down it is
+		// neither), so the marker folds onto the object before the move and
+		// is re-asserted after it. A Counter value on the existing MoveZone
+		// decode: no new event kind, no Event field change.
+		manifesting := e.Kind == MoveZone && e.To == state.ZBattlefield &&
+			e.Counter == "entered_face_down"
+		if manifesting {
+			if o := g.Obj(e.Obj); o != nil {
+				o.FaceDown = true
+			}
+		}
 		Move(g, e.Obj, e.From, e.To)
 		if o := g.Obj(e.Obj); o != nil {
 			if e.To == state.ZExile {
@@ -360,6 +374,13 @@ func Apply(g *state.Game, e Event) {
 					}
 					o.FaceDown = false
 				}
+			} else if manifesting {
+				// CR 708.5: the manifested card stays state-face-down while it
+				// is on the battlefield (the view redacts it to everyone but
+				// its controller); leaving the battlefield clears it (CR 708.9)
+				// through Move's own leave reset and the default branch.
+				o.ExiledWith = 0
+				o.FaceDown = true
 			} else {
 				o.ExiledWith = 0
 				o.FaceDown = false
@@ -1381,7 +1402,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// Known gap (recorded in AGENTS.md): TokenCreate does NOT route
 		// through Move, so a planeswalker TOKEN enters with zero loyalty.
 		if !wasBattlefield {
-			if f := o.Face(); f != nil && f.IsPlaneswalker() {
+			// FaceDown is folded before the move (see Apply's MoveZone case),
+			// so a face-down entry (a manifest) reads here: while face down the
+			// card is a 2/2 creature with no abilities (CR 708.5) -- a manifested
+			// planeswalker gains no loyalty counters, a manifested Saga no lore
+			// counter.
+			if f := o.Face(); f != nil && f.IsPlaneswalker() && !o.FaceDown {
 				if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
 					o.AddCounter("LOYALTY", int32(n))
 				}
@@ -1399,9 +1425,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			// lore counter" -- the same every-entry-site grant the loyalty
 			// half above is. The chapter-I trigger queues rules-side off this
 			// Move event (rules' chapter check reads the live counter, which
-			// by then includes this grant).
-			if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
-				o.AddCounter("LORE", 1)
+			// by then includes this grant). A face-down entry (a manifest) is
+			// not a Saga while face down and gains none.
+			if !o.FaceDown {
+				if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
+					o.AddCounter("LORE", 1)
+				}
 			}
 		}
 	default:

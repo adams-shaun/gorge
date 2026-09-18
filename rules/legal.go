@@ -1435,6 +1435,13 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if f == nil {
 				continue
 			}
+			if e.faceDownPrintedHides(o) {
+				// CR 708.8: a face-down permanent's printed activated abilities
+				// and mana abilities do not exist while it is face down, and
+				// turn-face-up (CR 708.6) is not implemented -- nothing on a
+				// face-down permanent is offered at all.
+				continue
+			}
 			for i, ab := range f.Abilities {
 				if ab.Kind != "AB" {
 					continue
@@ -1570,7 +1577,10 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// does, the limit is unenforced on it, which this comment is the pin of.
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
-		if o.Face() == nil {
+		if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
+			// A face-down permanent is not offered granted abilities: the
+			// offer label reads the printed face name, which CR 708.8 says
+			// does not exist while face down.
 			continue
 		}
 		for _, ga := range e.grantedAbilities(p, id) {
@@ -1639,6 +1649,9 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// the answer cannot disagree with the offer).
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
+				continue
+			}
 			cost, ok := e.unlockRoomCost(o)
 			if !ok {
 				continue

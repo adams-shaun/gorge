@@ -16,6 +16,7 @@ func init() {
 	Register("Destroy", effDestroy)
 	Register("DestroyAll", effDestroyAll)
 	Register("Sacrifice", effSacrifice)
+	Register("Manifest", effManifest)
 }
 
 // ParseZone maps a Forge zone name to a state.Zone. Unknown names resolve to
@@ -1704,6 +1705,83 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 		}
 	}
 	return true
+}
+
+// effManifest implements Forge's Manifest primitive (Reality Shift's
+// "its controller manifests the top card of their library", Whisperwood
+// Elemental's bare `DB$ Manifest` trigger body): move the top card of each
+// named player's library onto the battlefield FACE DOWN (CR 708.5). The move
+// is the REAL card object -- never a token mint: the manifested 2/2 keeps
+// the object's identity, so if it dies it reaches the graveyard as itself
+// (CR 708.9's reveal is the FaceDown clear on leaving the battlefield, and
+// the view's FaceDown redaction hides the face from non-controllers while it
+// stays in play). Each move is one Secret MoveZone with Player set to the
+// manifesting player: Secret is what keeps the event's Obj out of every
+// other seat's projection (redaction rule 1) -- a library-to-battlefield
+// move would otherwise stay public under rule 2 and leak the face through
+// the transcript.
+//
+// Scope, measured over the corpus's 33 plain-Manifest lines: the default
+// top-card shape (the 9 bare `DB$ Manifest` trigger bodies), a
+// `DefinedPlayer$` selector through searchPlayers's grammar (Reality
+// Shift's `TargetedController`) and a literal/SVar `Amount$` (default 1;
+// a value resolving to <= 0 manifests nothing, no event) are implemented.
+// Every other shape -- `Defined$` object manifests, the `Choices$`
+// chooser forms, `RememberManifested$ True`, an unresolvable `Amount$`
+// body (Y, or X outside a cast's own X-value) -- emits the SAME loud
+// "unimplemented API Manifest" note the unimplemented-API fallback emits
+// and moves nothing: fail loud, never silently move the wrong card.
+// ManifestDread is a DIFFERENT API (31 corpus files) and stays on that
+// fallback; turning a face-down permanent face up (CR 708.6) is not
+// implemented anywhere (AGENTS.md's manifest row).
+func effManifest(h Host, c *Ctx, sa *cards.SA) {
+	if strings.TrimSpace(sa.Params["Defined"]) != "" ||
+		strings.TrimSpace(sa.Params["Choices"]) != "" ||
+		strings.EqualFold(strings.TrimSpace(sa.Params["RememberManifested"]), "True") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented API Manifest"})
+		return
+	}
+	amount := int32(1)
+	if raw, present := sa.Params["Amount"]; present {
+		// X/Y (and any body Num's grammar cannot resolve) are out of scope:
+		// loud, never a degraded count silently moving a wrong number of
+		// cards.
+		if raw == "X" || raw == "Y" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unimplemented API Manifest"})
+			return
+		}
+		n, ok := NumResolved(h, c, sa, "Amount", 1)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unimplemented API Manifest"})
+			return
+		}
+		amount = n
+	}
+	if amount <= 0 {
+		return
+	}
+	g := h.Game()
+	for _, p := range searchPlayers(h, c, sa) {
+		if int(p) >= len(g.Players) {
+			continue
+		}
+		n := amount
+		if l := int32(len(g.Zone(state.ZLibrary, p))); l < n {
+			n = l
+		}
+		for i := int32(0); i < n; i++ {
+			// Index 0 is the TOP of the library (the end a Draw takes). The
+			// MoveZone fold removes the object as it lands, so the zone is
+			// re-read each iteration.
+			top := g.Zone(state.ZLibrary, p)[0]
+			h.Emit(events.Event{Kind: events.MoveZone, Obj: top, Player: p,
+				From: state.ZLibrary, To: state.ZBattlefield,
+				Counter: "entered_face_down", Secret: true})
+		}
+	}
 }
 
 // searchPlayers resolves whose library is searched. DefinedPlayer$ takes
