@@ -460,25 +460,61 @@ func sortTargets(ts []state.Target, rank map[state.PlayerID]int) {
 // unlessCostLabel renders an UnlessCost$ value for the humans a
 // decision.Decision can reach. A plain mana cost ("1", "3", "2 U", "R R") is
 // already readable and comes back verbatim -- that is every repo-deck Counter
-// with an UnlessCost$ except Mausoleum Wanderer and Reality Smasher.
+// with an UnlessCost$ except Mausoleum Wanderer and Reality Smasher. A fixed
+// life payment PayLife<N> (the shock-land election family -- Steam Vents'
+// "As Steam Vents enters, you may pay 2 life" -- and the rest of the corpus's
+// UnlessCost$ PayLife population) is equally readable: rules' ParseUnlessCost
+// prices exactly that token and charges exactly N life, so it renders "N
+// life" (fb-20260917T233137Z: the election used to say "Pay the cost, or
+// decline" without naming the cost). A cost mixing mana with PayLife<N> (2
+// raw corpus lines, "1 PayLife<3>") renders both parts; PayLife<X>/Y keep the
+// degradation, their value being unresolved here.
 // Everything else is raw Forge script: a bare SVar name (X, Y, Z, whose value
 // this engine does not read at all) or a bracket form (Discard<1/Hand>,
-// ExileFromGrave<1/All>, PayLife<5>). Those must not reach a player's screen,
-// so they render as "the cost". Display only: the amount actually charged is
-// decided by rules' unless-payment path.
+// ExileFromGrave<1/All>). Those must not reach a player's screen, so they
+// render as "the cost". Display only: the amount actually charged is decided
+// by rules' unless-payment path.
 func unlessCostLabel(cost string) string {
 	fields := strings.Fields(cost)
 	if len(fields) == 0 {
 		return "the cost"
 	}
+	var life, mana []string
 	for _, f := range fields {
+		if n, ok := payLifeAmount(f); ok {
+			life = append(life, strconv.Itoa(n)+" life")
+			continue
+		}
 		if _, err := strconv.Atoi(f); err == nil {
-			continue // generic amount
+			mana = append(mana, f) // generic amount
+			continue
 		}
 		if strings.Trim(f, "WUBRGC") == "" {
-			continue // colour/colourless symbols
+			mana = append(mana, f) // colour/colourless symbols
+			continue
 		}
 		return "the cost"
 	}
-	return cost
+	switch {
+	case len(life) == 0:
+		return cost // plain mana cost, verbatim as before
+	case len(mana) == 0:
+		return strings.Join(life, ", ")
+	default:
+		return strings.Join(mana, " ") + " and " + strings.Join(life, ", ")
+	}
+}
+
+// payLifeAmount reports whether f is Forge's FIXED life-payment token
+// PayLife<N> and extracts N. rules' lifeCost (rules/mana.go) prices exactly
+// this shape and charges N life, so the label can name it. PayLife<X>,
+// PayLife<Y> and any other bracket form stay false: their value is not
+// resolved here and the "the cost" degradation applies.
+func payLifeAmount(f string) (int, bool) {
+	rest, ok := strings.CutPrefix(f, "PayLife<")
+	if !ok || !strings.HasSuffix(rest, ">") {
+		return 0, false
+	}
+	n, err := strconv.Atoi(strings.TrimSuffix(rest, ">"))
+	return n, err == nil
 }
