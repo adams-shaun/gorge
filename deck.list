@@ -3381,3 +3381,126 @@ Deck
 6 Plains
 4 Mountain
 7 Forest
+
+# --- Squirreled Away (blc commander precon, Hazel of the Rootbloom) — census input, 2026-09-18 (issue agent-20260918T203713Z-55f6fb0f) ---
+# run: sed -n '/Squirreled Away (blc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/blc-squirreled-away.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# 100/100 resolved (85 distinct); commander eligible. Deck file NOT added — real new gaps: S:GainsAbilitiesOf, S:AddAllCreatureTypes, kw:Vanishing, filter:basePowerEQ/baseToughnessEQ, filter:tokenCreated.
+# Gap primitives (5 of 100 cards / 5 primitives, 5 fresh tickets): S:Mode$ Continuous GainsAbilitiesOf$ (Hazel's Brewmaster) — .ds4/new-tickets/static-gains-abilities-of.md,
+#   31 corpus files; S:Mode$ Continuous AddAllCreatureTypes$ True (Maskwood Nexus) — .ds4/new-tickets/static-addallcreaturetypes.md, 22 files; kw:Vanishing
+#   (Deep Forest Hermit) — .ds4/new-tickets/kw-vanishing.md, 21 files; filter predicates basePowerEQ/baseToughnessEQ (Sword of the Squeak) —
+#   .ds4/new-tickets/filter-basepower-toughness-eq.md, 7 files; filter predicate tokenCreated (Idol of Oblivion) — .ds4/new-tickets/filter-tokencreated-predicate.md, 8 files.
+# Open-ledger overlaps (do not re-file): api:CopyPermanent (Hazel of the Rootbloom, Saw in Half, Rootcast Apprenticeship, Second Harvest) = issue-agent-20260918T213512Z-bdef0f98;
+#   api:ImmediateTrigger (Skyfisher Spider) = issue-agent-20260918T195920Z-2fd3b568 + issue-agent-20260918T202223Z-6ad7f5ec; api:PutCounterAll (Gourmand's Talent,
+#   Oran-Rief, the Vastwood) = issue-agent-20260918T195920Z-6d0f5aae + issue-agent-20260918T200326Z-d7ef330f; api:GenericChoice (Tireless Provisioner) =
+#   issue-agent-20260918T202223Z-eb7aab2a; api:ReplaceToken (Chatterfang Squirrel General, Academy Manufactor) = issue-agent-20260918T204633Z-909e595e +
+#   issue-agent-20260918T213615Z-3b98250e; api:StoreSVar (Insatiable Frugivore) = issue-agent-20260918T213615Z-af7f0a60; api:Mill.RememberMilled (Cache Grab) =
+#   issue-agent-20260918T201731Z-86b4ef09; kw:Class (Gourmand's Talent) = issue-agent-20260918T220612Z-ac6d048b; trig:LifeGained (Gourmand's Talent's chapter
+#   2/3 triggers) = issue-agent-20260918T202223Z-eb38487f; kw:Ravenous (Ravenous Squirrel) = issue-agent-20260918T220612Z-df1a711b, NOT blocking: the card carries
+#   no K:Ravenous line, its sacrifice trigger is plain Mode$ Sacrificed.
+# Approximation-table leans (known, do not ticket): Garruk's SubCounter<N/LOYALTY> costs and his emblem AB$Effect (approx pw1 + approx-Effect row); Insatiable
+#   Frugivore's UnlessCost$ ExileFromGrave<3/Card> hard decline (approx unless row); Gilded Goose's Produced$ Any (approx effMana row); Maelstrom Pulse's
+#   NotDefinedTargeted fail-closed (approx pc1 row); Tear Asunder's TargetMin$/TargetMax$ X (approx castTargetsAvailable row); Hazel's non-literal Amount$ X
+#   token-tap mana (approx mana-production collector row).
+# source: WotC Bloomburrow Commander decklist announcement (issue ## Report, fetched 2026-09-18)
+Commander
+1x Hazel of the Rootbloom
+1x The Odd Acorn Gang
+1x Garruk, Cursed Huntsman
+1x Chittering Witch
+1x Insatiable Frugivore
+1x Moonstone Eulogist
+1x Swarmyard Massacre
+1x Hazel's Brewmaster
+1x Woe Strider
+1x Saw in Half
+1x Ogre Slumlord
+1x Decree of Pain
+1x Gourmand's Talent
+1x Rootcast Apprenticeship
+1x Scurry of Squirrels
+1x End-Raze Forerunners
+1x Arasta of the Endless Web
+1x Deep Forest Hermit
+1x Toski, Bearer of Secrets
+1x Beastmaster Ascension
+1x Second Harvest
+1x Shamanic Revelation
+1x Chatterfang, Squirrel General
+1x Temple of Malady
+1x Casualties of War
+1x Windgrace's Judgment
+1x Maskwood Nexus
+1x Academy Manufactor
+1x Woodland Cemetery
+1x Necroblossom Snarl
+1x Oran-Rief, the Vastwood
+1x Swarmyard
+1x Exotic Orchard
+1x Llanowar Wastes
+1x Grim Backwoods
+1x Viridescent Bog
+1x Twilight Mire
+1x Gilded Goose
+1x Chitterspitter
+1x Maelstrom Pulse
+1x Beledros Witherbloom
+1x Idol of Oblivion
+1x Sword of the Squeak
+1x Morbid Opportunist
+1x Nadier's Nightblade
+1x Plumb the Forbidden
+1x Bastion of Remembrance
+1x Plaguecrafter
+1x Cache Grab
+1x Chatterstorm
+1x Poison-Tip Archer
+1x Moldervine Reclamation
+1x Ravenous Squirrel
+1x Skyfisher Spider
+1x Binding the Old Gods
+1x Golgari Rot Farm
+1x Jungle Hollow
+1x Haunted Mire
+1x Nested Shambler
+1x Deadly Dispute
+1x Zulaport Cutthroat
+1x Squirrel Sovereign
+1x Prosperous Innkeeper
+1x Haywire Mite
+1x Tireless Provisioner
+1x Squirrel Nest
+1x Honored Dreyleader
+1x Tear Asunder
+1x Wolfwillow Haven
+1x Putrefy
+1x Arcane Signet
+1x Golgari Signet
+1x Talisman of Resilience
+1x Sol Ring
+1x Skullclamp
+1x Terramorphic Expanse
+1x Path of Ancestry
+1x Evolving Wilds
+1x Command Tower
+1x Tranquil Thicket
+1x Bojuka Bog
+1x Tainted Wood
+1x Barren Moor
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
