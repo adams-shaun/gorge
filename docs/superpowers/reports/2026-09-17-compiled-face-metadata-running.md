@@ -7,9 +7,11 @@
 **Corpus cache:** `.cards/ir.gob.gz`, 8.6 MB
 
 This report records the task-by-task measurements for
-`docs/superpowers/plans/2026-09-17-compiled-face-metadata.md`. The immutable
-end-to-end comparison remains
-`/tmp/gorge-searchprobe-engine-final-500-20260917.json`.
+`docs/superpowers/plans/2026-09-17-compiled-face-metadata.md`. The original
+immutable end-to-end artifact is
+`/tmp/gorge-searchprobe-engine-final-500-20260917.json`; Task 8 explains why
+the required pre-catalog replay fix moved the semantic comparison point to a
+fresh control built at `1b703c0`.
 
 ## Task 1: pre-catalog baseline
 
@@ -160,3 +162,87 @@ Five-run medians, using a nonallocating effect and host:
 
 The compiled microbenchmark is only 2.3% below the matched textual path, so
 the final fixed workload remains the acceptance gate for retaining it.
+
+## Task 8: end-to-end verification and checkpoint
+
+The implementation HEAD before this report-only checkpoint was `dea13a5`
+(`perf: dispatch compiled effect APIs by opcode`). Focused verification passed:
+
+```sh
+go test ./cards ./effects ./rules ./state ./internal/searchprobe ./cmd/searchprobe -count=1
+go vet ./...
+git diff --check
+```
+
+The full suite was also run with the plan's resource limits. Its failures were
+reproduced at the `1b703c0` control and are not introduced by compiled
+metadata: botbench deck ordering and its 9/11 versus 16/4 golden, gorged deck
+listing, five host overshoot-tail fixtures, the stall-guard timeout, and the
+architecture resume-writer allowlist. No golden was regenerated and no race
+test was run.
+
+### Semantic baseline correction
+
+Task 1 found and fixed a pre-existing `AbilityPush` stale-pointer replay bug.
+That correction necessarily changes deterministic search results, so the
+original `29fd5f9` artifact cannot be the exact semantic oracle for the later
+metadata commits:
+
+| Result | Original engine artifact | Post-`AbilityPush` control |
+|---|---:|---:|
+| Eligible roots | 499 | 498 |
+| No-root games | 1 | 2 |
+| Covered roots | 114 | 100 |
+| Errors | 0 | 0 |
+
+The valid control was therefore built from `1b703c0` in the preserved checkout
+`/tmp/gorge-post-ability-fix-baseline-20260918`. After deleting only top-level
+`LoadSeconds`, `TotalSeconds`, `AllocatedBytes`, `HeapAllocBytes`,
+`HeapSysBytes` and each result's `SampleNS`/`SearchNS`, its JSON and the
+compiled branch JSON compare exactly equal. Both contain 500 games, 498
+eligible roots, two no-root games, 100 covered roots, and zero errors.
+
+Artifacts:
+
+```text
+/tmp/gorge-searchprobe-post-ability-fix-500-20260918.json
+/tmp/gorge-searchprobe-post-ability-fix-cpu-500-20260918.pprof
+/tmp/gorge-searchprobe-post-ability-fix-heap-500-20260918.pprof
+/tmp/gorge-searchprobe-post-ability-fix-bin-20260918
+/tmp/gorge-compiled-face-500-20260918.json
+/tmp/gorge-compiled-face-cpu-500-20260918.pprof
+/tmp/gorge-compiled-face-heap-500-20260918.pprof
+/tmp/gorge-compiled-face-bin-20260918
+```
+
+### Fixed-workload result
+
+| Measurement | Post-fix textual control | Compiled metadata | Change |
+|---|---:|---:|---:|
+| Load time | 0.8265 s | 1.0630 s | +28.6% |
+| Wall time | 84.0761 s | 83.5442 s | -0.6% |
+| Profiled CPU | 410.99 CPU-s | 412.43 CPU-s | +0.35% |
+| Runtime allocated bytes | 50,490,551,912 | 50,553,352,192 | +0.12% |
+| Sampled `alloc_space` | 48,517.47 MB | 48,535.32 MB | +0.04% |
+
+The full workload is effectively neutral. The clearest profile movement is
+`strings.EqualFold`, down from 6.14 CPU-s flat in the post-fix control to 2.71
+CPU-s in the compiled run; total CPU sampling variance and garbage-collector
+movement absorb that local improvement. The retained catalog also raises the
+end-of-run heap, as expected from Task 4, so this milestone is retained for its
+deterministic flat representation and measured focused-path gains rather than
+claimed as an end-to-end speedup.
+
+## Outcome and next boundary
+
+The milestone preserves textual IR and replay-sensitive ordinals while adding
+one-based face/ability identities, deterministic flat tables, compiled face
+queries, conservative trigger interests, and dense known-API dispatch. No
+consumer added steady-state allocations.
+
+Further migration should begin with a separately designed predicate/cost
+compiler. It must keep a three-way `yes`/`no`/`maybe` result, route `maybe` to
+the textual oracle, benchmark filters and cost/mana feasibility before changing
+them, and re-run the fixed semantic workload against the post-`AbilityPush`
+control. CUDA, cgo, plugins, and external workers remain out of scope for the
+pure-Go core.

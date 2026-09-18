@@ -1,96 +1,98 @@
-# Compiled face metadata execution resume
+# Compiled face metadata completed checkpoint
 
-Resume work in `/tmp/gorge` on branch
+Resume in `/tmp/gorge` on branch
 `perf/hotspot-optimization-2026-09-17`.
 
-## Objective
+## Completed work
 
-Execute the approved compiled `cards.Face` metadata plan. Build a deterministic
-registry-owned flat catalog, migrate selected CPU hot paths to masks/opcodes,
-and preserve textual IR and exact replay/search behavior. The catalog is the
-immutable half of a possible future CUDA boundary; do not add CUDA, cgo,
-plugins, or an external worker in this task.
-
-Read in order:
-
-1. `AGENTS.md`
-2. `docs/superpowers/specs/2026-09-17-compiled-face-metadata-design.md`
-3. `docs/superpowers/plans/2026-09-17-compiled-face-metadata.md`
-4. `docs/superpowers/reports/2026-09-17-engine-profile-optimization-resume.md`
-5. this resume
-
-Use `superpowers:using-git-worktrees` as required by the execution workflow,
-but detect the environment first. This branch may already be the intended
-workspace; do not create an isolated worktree that omits required local state.
-Then use `superpowers:executing-plans`, or
-`superpowers:subagent-driven-development` if agent-per-task execution is
-explicitly selected. Follow the plan in order with test-driven development.
-
-## Checkpoint
-
-The architectural design and previous engine optimization work were committed
-and pushed on 2026-09-17. Confirm actual HEAD and upstream before editing; do
-not assume a recorded hash remains current after this resume is committed.
-
-The worktree should be clean. If it is not, inspect and preserve every existing
-change. Do not reset, overwrite, or absorb unrelated work.
-
-## Non-negotiable constraints
-
-- Pure Go only; no cgo or third-party core dependencies.
-- Never commit Forge card scripts or anything under `.cards`.
-- All game-state mutation continues through `events.Apply`.
-- Sort source maps before assigning IDs or emitting catalog bytes.
-- Runtime catalog IDs never enter events, replays, decisions, or existing
-  external protocols.
-- `TriggerPush.Amount` and `AbilityPush.Amount` remain face-local ordinals.
-- Unknown syntax retains text and uses a conservative fallback; it never
-  aliases a known opcode or becomes a false negative.
-- Do not regenerate goldens or run race tests without fresh authorization.
-
-## Baseline evidence
-
-The corpus census is 33,669 registry cards, 839 token scripts, 35,385 faces,
-and 54,671 linked SA nodes. Loading the 8.6 MB gob cache measured approximately
-0.87 seconds and retained approximately 93 MB / 1.28 million heap objects in a
-one-process probe.
-
-The immutable end-to-end baseline is:
+The approved compiled `cards.Face` metadata plan is implemented through Task
+8. The implementation HEAD before the report-only checkpoint was `dea13a5`.
+The retained commits are:
 
 ```text
-/tmp/gorge-searchprobe-engine-final-500-20260917.json
-/tmp/gorge-searchprobe-engine-final-bin-20260917
-/tmp/gorge-searchprobe-engine-final-cpu-500-20260917.pprof
-/tmp/gorge-searchprobe-engine-final-heap-500-20260917.pprof
+1b703c0 fix(events): preserve activation count across arena growth
+4352c4a test: benchmark face metadata baseline
+41e1c41 feat: define compiled card metadata codes
+a70ba6f feat: compile flat face metadata catalog
+ffd3961 feat: bind compiled metadata during corpus load
+6524e52 perf: use compiled face query metadata
+63767ef perf: use compiled trigger interest masks
+dea13a5 perf: dispatch compiled effect APIs by opcode
 ```
 
-It contains 500 games, 499 eligible roots, one no-root game, 114 covered roots,
-and zero errors. Its measured totals were 69.463003930 seconds wall, 338.66 CPU
-seconds, 49,603,764,312 runtime-allocated bytes, 46.36 GiB sampled allocation
-space, and 317,072,050 sampled allocated objects.
+The catalog uses one-based IDs, sorted source-map and token-key traversal, and
+conservative unknown fallbacks. Runtime IDs do not enter events or protocols.
+Face queries preserve textual fallback and pointer/order equality, trigger
+interests are conservative prefilters, and the effect registry atomically
+publishes its name and opcode views.
 
-The relevant pre-catalog costs include `checkFaceTriggers.func1` at 22.06 CPU-s
-flat / 59.32 s cumulative, `Object.Face` at approximately 14.5 s,
-`forEachObject` at 72.73 s cumulative, and small-string map lookup at 6.46 s
-flat / 13.29 s cumulative. `BenchmarkFaceTriggerScanDistinctFaces` scans 240
-faces in approximately 3.2–4.5 microseconds with zero allocations.
+Read the final evidence in
+`docs/superpowers/reports/2026-09-17-compiled-face-metadata-running.md` before
+starting new work.
 
-## Execution rules
+## Verification checkpoint
 
-Complete one plan task at a time. For every behavior change, write the failing
-test first, observe the expected failure, implement the smallest passing
-change, run the focused suite, measure the named benchmark, and commit the
-task. Do not claim a performance win from a microbenchmark alone; the final
-500-game run is the semantic and end-to-end gate.
+Focused tests, vet, and whitespace checks passed:
 
-The full suite has known baseline failures:
+```sh
+go test ./cards ./effects ./rules ./state ./internal/searchprobe ./cmd/searchprobe -count=1
+go vet ./...
+git diff --check
+```
 
-- `cmd/botbench.TestConstructedDefaultIsByteIdentical`: 18/2 versus 16/4
-- `host.TestStallGuardSetToZeroDoesNotHalt`: timing failure
-- an occasional asynchronous host undo-stream assertion; focused reruns have
-  passed 20/20
+The full suite is not green because of failures reproduced at the `1b703c0`
+control: botbench deck ordering/golden expectations, gorged deck listing, five
+host overshoot-tail fixtures, the stall-guard timeout, and the architecture
+resume-writer allowlist. Do not alter host behavior or regenerate goldens to
+hide them.
 
-Do not change host behavior or regenerate goldens to hide these failures.
+The original pre-task search artifact is not a valid exact oracle after the
+required `AbilityPush` replay correction. The preserved post-fix control and
+compiled results compare exactly equal after removing only timing/memory
+fields: 500 games, 498 eligible roots, two no-root games, 100 covered roots,
+and zero errors.
 
-The task-level commits in the plan are authorized. Do not push implementation
-commits without fresh user authorization in the execution session.
+```text
+/tmp/gorge-searchprobe-post-ability-fix-500-20260918.json
+/tmp/gorge-searchprobe-post-ability-fix-cpu-500-20260918.pprof
+/tmp/gorge-searchprobe-post-ability-fix-heap-500-20260918.pprof
+/tmp/gorge-searchprobe-post-ability-fix-bin-20260918
+/tmp/gorge-compiled-face-500-20260918.json
+/tmp/gorge-compiled-face-cpu-500-20260918.pprof
+/tmp/gorge-compiled-face-heap-500-20260918.pprof
+/tmp/gorge-compiled-face-bin-20260918
+```
+
+End-to-end performance is neutral: wall time improved 0.6%, profiled CPU rose
+0.35%, runtime allocation rose 0.12%, and sampled allocation space rose 0.04%.
+The focused type, keyword, ability, and trigger paths improved without new
+steady-state allocations; registry load and retained heap increased.
+
+## Next task: design predicate and cost compilation
+
+Do not rerun the completed face-metadata plan. Start a new design and approval
+cycle for the next immutable compilation boundary. Candidate scope is
+selector/filter predicates, condition expressions, cost tokens, and mana
+feasibility, prioritized by a fresh profile.
+
+The design must preserve these constraints:
+
+- Pure Go only; no cgo or third-party core dependencies.
+- Never commit Forge scripts or `.cards` content.
+- Keep textual IR as the authoritative diagnostic and fallback form.
+- Compiled predicates use `yes`, `no`, and `maybe`; only `no` may eliminate a
+  candidate, while `maybe` runs the textual oracle.
+- Sort all source maps before assigning IDs or emitting bytes.
+- Runtime catalog IDs never enter events, replays, decisions, or existing
+  protocols.
+- Preserve face-local `TriggerPush.Amount` and `AbilityPush.Amount` ordinals.
+- Preserve all mutation through `events.Apply`, deterministic ordering,
+  replay bytes, decisions, RNG, and clone independence.
+- Benchmark filters and cost/mana feasibility before migrating a consumer.
+- Use the post-`AbilityPush` 500-game control above as the semantic oracle.
+- Do not run race tests, regenerate goldens, push, merge, rebase, or create a
+  PR without fresh authorization.
+
+Before editing, inspect HEAD, upstream, worktree status, and the complete diff.
+Use `superpowers:brainstorming` for the new design, then write and approve a
+spec before producing an implementation plan.
