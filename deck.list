@@ -3037,3 +3037,120 @@ Deck
 4 Swamp
 3 Mountain
 5 Forest
+# --- Family Matters (blc commander precon, Zinnia, Valley's Voice) — census input, 2026-09-18 (issue agent-20260918T203713Z-0df2e990) ---
+# run: sed -n '/Family Matters (blc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/blc-family-matters.list
+# 100/100 resolved (90 distinct); commander eligible. 3 new-gap tickets (.ds4/new-tickets/kw-ravenous.md, kw-offspring.md, kw-class.md) — deck file NOT added.
+# Gap primitives (12 of 90 cards / 7 primitives): kw:Ravenous (Jacked Rabbit) — NEW, 12 corpus files; kw:Offspring (Agate Instigator) — NEW, 21 corpus files,
+#   and Zinnia, Valley's Voice herself is a two-layer registration FALSE gap: her AddKeyword$ Offspring:2 grant on the stack is dead because kw:Offspring is
+#   unimplemented AND the Affected$ Creature.wasCastByYou predicate is not in effects/filter.go's vocabulary (unknown predicates fail closed) — see kw-offspring.md;
+#   kw:Class (Fortune Teller's Talent) — NEW, 38 corpus files.
+# Open-ledger overlaps (do not re-file): api:CopyPermanent (Echoing Assault, Helm of the Host) = issue-agent-20260918T200326Z-6994a692 + issue-agent-20260918T213512Z-bdef0f98;
+#   api:ImmediateTrigger (Rose Room Treasurer) = issue-agent-20260918T195920Z-2fd3b568 + issue-agent-20260918T202223Z-6ad7f5ec;
+#   stat:OptionalAttackCost (Combat Celebrant) = issue-agent-20260918T200326Z-9e55fbe5; kw:TypeCycling (Angel of the Ruins) = issue-agent-20260918T201425Z-85662d41 +
+#   issue-agent-20260918T205611Z-88f888d5; kw:Aftermath (Dusk // Dawn) = issue-agent-20260918T202223Z-03627292; api:ChooseColor (Thriving Heath, Thriving Isle,
+#   Thriving Bluff) = issue-agent-20260918T195920Z-1cef0de2.
+# source: WotC Bloomburrow Commander decklist announcement, fetched 2026-09-18
+
+Commander
+1x Zinnia, Valley's Voice
+
+Deck
+1x Arthur, Marigold Knight
+1x Elspeth, Sun's Champion
+1x Jazal Goldmane
+1x Martial Coup
+1x Storm of Souls
+1x Selfless Spirit
+1x Murmuration
+1x Blade Splicer
+1x Hanged Executioner
+1x Loyal Warhound
+1x Restoration Angel
+1x Jacked Rabbit
+1x Skyclave Apparition
+1x Dusk // Dawn
+1x Boss's Chauffeur
+1x Angel of the Ruins
+1x Luminous Broodmoth
+1x Sun Titan
+1x Pollywog Prodigy
+1x Fortune Teller's Talent
+1x Aether Channeler
+1x Pull from Tomorrow
+1x Shield Broker
+1x Stolen by the Fae
+1x Rapid Augmenter
+1x Bident of Thassa
+1x Curiosity Crafter
+1x Devilish Valet
+1x Siege-Gang Commander
+1x Echoing Assault
+1x Agate Instigator
+1x Calamity of Cinders
+1x Rose Room Treasurer
+1x Combat Celebrant
+1x Inferno Titan
+1x Time Wipe
+1x Solemn Simulacrum
+1x Helm of the Host
+1x Glacial Fortress
+1x Adarkar Wastes
+1x Temple of Enlightenment
+1x Castle Ardenvale
+1x Seachrome Coast
+1x Sulfur Falls
+1x Cascade Bluffs
+1x Exotic Orchard
+1x Clifftop Retreat
+1x Shivan Reef
+1x Temple of Triumph
+1x Battlefield Forge
+1x Skycloud Expanse
+1x Temple of Epiphany
+1x Ferrous Lake
+1x Rugged Prairie
+1x Sunscorched Divide
+1x Spirited Companion
+1x Inspiring Overseer
+1x Cut a Deal
+1x Path to Exile
+1x Illusory Ambusher
+1x Rowdy Research
+1x Plumecreed Escort
+1x Rapid Hybridization
+1x Junk Winder
+1x Aetherize
+1x Chart a Course
+1x Tetsuko Umezawa, Fugitive
+1x Thopter Engineer
+1x Cloudblazer
+1x Arcane Signet
+1x Boros Signet
+1x Ornithopter of Paradise
+1x Azorius Signet
+1x Izzet Signet
+1x Circuit Mender
+1x Fellwar Stone
+1x Sol Ring
+1x Mind Stone
+1x Terramorphic Expanse
+1x Path of Ancestry
+1x Thriving Heath
+1x Evolving Wilds
+1x Thriving Isle
+1x Thriving Bluff
+1x Command Tower
+1x Mystic Monastery
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Island
+1x Island
+1x Island
+1x Island
+1x Mountain
+1x Mountain
+1x Mountain
+1x Mountain
