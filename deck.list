@@ -3760,7 +3760,26 @@ Deck
 # face commander; Vihaan, Goldwaker is the precon's alternate commander, inside the 100, and neither card
 # carries Partner, so deck.File's single "commander" field correctly names the face card).
 # Deck file NOT added — real new gaps remain (the brief's condition). Measured by both ratchets with the
-# deck file temporarily present (15 of 95 distinct cards primitive-gap-flagged; param census 2):
+# deck file temporarily present (15 of 95 distinct cards primitive-gap-flagged; param census 6 — six of the
+# deck's cards carry an unread param, 31 of 932 repo-deck cards total, baseline 25 + 6). The r1 comment said
+# "param census 2" (Requisition Raid, Seize the Spotlight) — FALSE, corrected r2 after an independent
+# re-measurement found four more. The six, with their labels:
+#   Requisition Raid param:api:Destroy.ModeCost (covered by the kw:Spree line below).
+#   Seize the Spotlight param:api:Pump.NoteCards / param:api:Pump.NoteCardsFor /
+#     param:api:RepeatEach.ClearRememberedBeforeLoop (covered by the api:GenericChoice line below).
+#   Marshland Bloodcaster param:api:Effect.ForgetOnCast — NEW, untracked in ledger.json and AGENTS.md —
+#     ticket api-effect-forget-on-cast.md (30 corpus files / 31 lines; no ForgetOnCast consumer exists in
+#     effects/, rules/ or cards/; its carrier static is Mode$ AlternativeCost ReduceCost Cost$
+#     PayLife<ConvertedManaCost>, so the ticket names the dynamic-cost shape too).
+#   Fain, the Broker cost:RemoveAnyCounter — NEW, untracked — ticket cost-remove-any-counter.md (40 corpus
+#     files / 41 lines, 39 inside a Cost$; the AB$ Token with Cost$ T RemoveAnyCounter<1/Any/Creature>).
+#   Graywater's Fixer param:stat:Continuous.EffectZone — NEW, at best ambiguous coverage (approx-02 names
+#     only stat:ManaConvert's EffectZone$ Command shape, a different param) — ticket
+#     stat-continuous-effectzone.md (252 static lines / 234 files carry EffectZone$; 121 files with a zone
+#     other than Battlefield/All, where ignoring the param is materially wrong).
+#   Shiny Impetus param:stat:Continuous.Goad — KNOWN, overlap with OPEN ledger issue
+#     issue-agent-20260918T201425Z-2a7b632f (S:Mode$ Continuous Goad$ True — the static goad rider is
+#     unread); noted here, not re-filed.
 #   api:AnimateAll (Vihaan, Goldwaker; Mirror Entity; Dead Before Sunrise — DB/AB shapes incl. the granted
 #     AB$ Fight executor and AddAllCreatureTypes$ True) = OPEN issue-agent-20260918T201425Z-dffc06a3 (do not
 #     re-file); the AddAllCreatureTypes$ param overlaps Squirreled Away's filed ticket (e009bfa6).
@@ -3792,9 +3811,19 @@ Deck
 #   Invisible-to-the-primitive-ratchet census-fidelity note: cards.Face.Primitives() does not walk SVar-name-
 #     referenced sub-abilities (Charm's Choices$, Repeat's RepeatSubAbility$) — measured on Requisition Raid,
 #     whose gap list shows [kw:Spree] while its modes carry api:Destroy/api:PutCounterAll = OPEN ledger issue
-#     agent-20260918T202223Z-d6a3729d (Final Act precedent; do not re-file).
+#     agent-20260918T202223Z-d6a3729d (Final Act precedent; do not re-file). The Primitives()-walk finding
+#     is also carried verbatim in .ds4/report-r2.md §Issues, so it reaches the backlog even though the
+#     ledger entry's body (where it may only live) is not readable from a task worktree.
 # source: WotC "Outlaws of Thunder Junction Commander decklists" (fetched 2026-09-18 by the enum seat), set otc,
-#         released 2024-04-19 — measured 100/100 resolved at make report `cards: 33667  playable: 25105 (74.6%)`
+#         released 2024-04-19 — 100/100 resolved (deckimport, this census). Playable-coverage figure r2
+#         RE-MEASURED: `make report` cannot run in this worktree (the shared `.cards/ir.gob.gz` is IR cache
+#         v3; this branch's forgec wants v4 — "forgec: IR cache version 3, want 4 — run make compile-cards"),
+#         and compiling would overwrite the SHARED cache, so the shared corpus was copied locally
+#         (.ds4/cards-mw, `cp -rL`; its cards.lock pin equals FORGE_REF 95f04e8a04c8925fa97cb226fc3341cabcc90a53)
+#         and measured fresh: `forgec compile -dir .ds4/cards-mw` (33669 cards, 839 tokens, 11 diagnostics)
+#         then `forgec report -dir .ds4/cards-mw` → `cards: 33667  playable: 25105 (74.6%)` / `tokens: 839`.
+#         (Round 1 quoted this figure unmeasured — it is byte-identical to the m3c Graveyard Overdrive
+#         census's print; the number itself is correct at this branch, now genuinely measured.)
 
 Commander:
 1x Olivia, Opulent Outlaw
