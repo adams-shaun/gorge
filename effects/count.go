@@ -625,6 +625,29 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 
+	// PlayerCountPropertyYou$<Property> — the single resolvable member of
+	// Forge's PlayerCountProperty<group>$<Property> family (86 raw corpus
+	// files carry the family; the two HasPropertyActive files are Starting
+	// Town and Hylda's Crown of Winter). HasPropertyActive reads 1 when the
+	// RESOLVING controller is the active player, else 0 — Starting Town's
+	// ETB gate reads SVar:Y:PlayerCountPropertyYou$HasPropertyActive and
+	// feeds Count$Compare Y GE1.Z.4, so X is YourTurns on your turn and 4
+	// off it, tapped only when X > 3. Every OTHER property on this group,
+	// and every other group's property (a state qualifier this count path
+	// carries no machinery to evaluate), reports (0, false) — the same
+	// fail-closed unresolvable verdict the general PlayerCount dispatch
+	// above documents, so a gate over one degrades per its caller's
+	// documented direction rather than enforcing a fake zero.
+	if rest, ok := strings.CutPrefix(head, "PlayerCountPropertyYou$"); ok {
+		if strings.TrimSpace(rest) == "HasPropertyActive" {
+			if c.Controller == g.Active {
+				return 1, true
+			}
+			return 0, true
+		}
+		return 0, false
+	}
+
 	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
 	// spec (Count$ThisTurnCast_Card.YouCtrl — the "first/second spell you
 	// cast" family): the caster scope is the controller when the spec carries
