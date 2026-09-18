@@ -584,6 +584,27 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// LookAck is the answered bare-look "Continue" ack (lookack, task
+	// fb-20260917T232325Z-35cfca4b): the looker acknowledged the private
+	// look a NoReveal$ / mandatory-Look$ Reveal-family effect is about to
+	// record, so the Secret Note lands below the modal instead of streaming
+	// past ungated. There is no decline — the ask paces the look, it does
+	// not permit it — so the resume arm sets it on ANY answer, together with
+	// LookAckTarget: the decision's ResumeTarget, the index of the Defined$
+	// target whose ack was answered. effReveal consumes and clears BOTH at
+	// the top of its own walk (fx42 scoping): targets before LookAckTarget
+	// were fully processed on the pass that suspended and are skipped,
+	// LookAckTarget itself emits without re-asking, and every LATER bare
+	// look in the walk poses its own ack — the per-target cursor (the
+	// DigTarget pattern) is what keeps a multi-target bare look (Case the
+	// Joint's "look at the top card of each player's library", Defined$
+	// Player) terminating with exactly one Continue per target instead of
+	// re-asking the earlier targets' notes unboundedly.
+	LookAck bool
+	// LookAckTarget is the Defined$ target index whose look_ack was answered
+	// (the decision's ResumeTarget). Meaningful only while LookAck is set;
+	// consumed and cleared with it.
+	LookAckTarget int
 	// DrawOpt is the answered OptionalDecider$ yes/no on a re-entered
 	// mid-resolution Draw (Mystic Remora, Rhystic Study): "yes" draws and
 	// "no" declines, the same two-way answer the RevealOpt ask poses. ""

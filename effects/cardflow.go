@@ -1171,6 +1171,17 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	// subset for every API in this row).
 	answer := c.RevealOpt
 	c.RevealOpt = "" // fx42 scoping: consumed once; a nested peek poses its own ask
+	// The bare-look ack (lookack): consumed once per WALK, together with its
+	// per-target cursor — the answer attaches to the exact Defined$ target
+	// that asked (the decision's ResumeTarget). Targets before the cursor
+	// were fully processed on the pass that suspended and are skipped, the
+	// cursor target emits without re-asking, and every LATER bare look in
+	// the walk poses its own ack. Consuming at walk entry (fx42) also keeps
+	// a nested bare look below this walk posing its own instead of
+	// inheriting the answer.
+	lookAck := c.LookAck
+	lookAckTarget := c.LookAckTarget
+	c.LookAck, c.LookAckTarget = false, 0
 	look := strings.EqualFold(strings.TrimSpace(sa.Params["Look"]), "True")
 	revealType := strings.TrimSpace(sa.Params["RevealType"])
 	// The may-reveal ask: PeekAndReveal poses it through RevealOptional$
@@ -1200,7 +1211,14 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		}
 		revealSA.Params["Defined"] = spec
 	}
-	for _, t := range Defined(h, c, &revealSA) {
+	for targetIndex, t := range Defined(h, c, &revealSA) {
+		if lookAck && targetIndex < lookAckTarget {
+			// The cursor skip: this target was fully processed (note emitted,
+			// RememberRevealed$ captured) on an earlier pass of this same
+			// resume chain, before the walk suspended on a later target's
+			// ack — re-running it would duplicate its events.
+			continue
+		}
 		p := PlayerOf(h, c, t)
 		pool := zoneOf(g, zone, p)
 		if sa.Params["RevealDefined"] != "" && !t.IsPlayer {
@@ -1278,6 +1296,35 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// finds nothing — a chained gate correctly does not fire; the
 			// corpus's NoReveal$ carriers chain zone-less riders (Mishra's
 			// slowtrip DelayedTrigger) that do not read the walked Remembered.
+			//
+			// The look is also the one information transfer with no decision
+			// attached, which a client's auto-passing priority streams past
+			// unread — the pacing defect the reporter hit. The bare look now
+			// gates on the look_ack ack FIRST (ask-first: ask → suspend → the
+			// resume arm sets Ctx.LookAck → the re-entered walk lands the note
+			// below the modal). A Random$ narrowing re-derives from the seeded
+			// generator on every pass, so a random bare look would show the
+			// resume a DIFFERENT card than the prompt named — it keeps the
+			// ungated shape (measured at the corpus pin: ZERO Reveal-family
+			// lines combine Random$ with NoReveal$/Look$; the one Random$
+			// carrier, Urza's Bauble, is the public-reveal path). The ack is
+			// addressed by the per-target cursor (LookAckTarget, the decision's
+			// ResumeTarget): the cursor target emits without re-asking, and a
+			// later bare look in the same walk poses its own ack — consuming
+			// the flag at the FIRST bare-look target instead would leave the
+			// later target's ack unanswered and loop forever.
+			if lookAck && targetIndex == lookAckTarget {
+				// The answered target: its ack's resume pass re-entered here, so
+				// fall through to the emit without re-asking.
+			} else if !random {
+				if poseLookAck(h, c, sa, c.Controller, p, zone, pool[:n], targetIndex) {
+					return
+				}
+				// No host to ask (R-9), or the ask was skipped: fall through
+				// and emit the look immediately — information is never lost to
+				// a host that cannot ask, the same deterministic degradation
+				// Scry/Surveil carry.
+			}
 			emitLook(h, []state.PlayerID{c.Controller}, zone, pool[:n], "")
 			continue
 		}
@@ -1360,6 +1407,27 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// whole hand off it). RememberRevealed$ below still sees the
 			// looked-at cards: the chained subs that read Remembered are part
 			// of the same walk the looker's own card drives.
+			//
+			// The mandatory look is gated on the look_ack ack (lookack) like
+			// the NoReveal$ arm above — ask-first, the note lands on the
+			// resume pass, addressed by the same per-target cursor. The
+			// Look$+Optional$ combination keeps the reveal_optional ask ALONE:
+			// the player who just answered "yes — look" has consented to the
+			// follow-through, so no second gate (the brief's scope boundary;
+			// measured at the corpus pin: zero corpus lines combine Look$ with
+			// Optional$/RevealOptional$).
+			if lookAck && targetIndex == lookAckTarget {
+				// The answered target: its ack's resume pass re-entered here, so
+				// fall through to the emit without re-asking.
+			} else if !optional && !random {
+				// The same Random$ re-derivation guard the NoReveal$ arm
+				// carries (measured: zero corpus lines combine Random$ with
+				// Look$, so the guard is dormant groundwork).
+				if poseLookAck(h, c, sa, asker, p, zone, revealed, targetIndex) {
+					return
+				}
+				// R-9: no host to ask — emit immediately, deterministically.
+			}
 			emitLook(h, []state.PlayerID{asker}, zone, revealed, "")
 		} else {
 			// No Text: the Note's payload is the ids, and view.Describe renders
