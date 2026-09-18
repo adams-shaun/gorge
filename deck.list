@@ -4677,3 +4677,151 @@ Deck
 1x Swamp
 1x Swamp
 1x Swamp
+# --- Dance of the Elements (ecc commander precon, Ashling, the Limitless) — census input, 2026-09-19 (issue agent-20260918T211806Z-862d474f) ---
+# run: sed -n '/Dance of the Elements (ecc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/ecc-dance-of-the-elements.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC "Lorwyn Eclipsed" Commander decklist announcement, the Dance of the Elements <deck-list>
+#   element (magic.wizards.com/en/news/announcements/lorwyn-eclipsed-commander-decklists, set="ECC,ECL",
+#   <main-deck> 89 entries / 100 cards), fetched 2026-09-19; corroborated by the MTGJSON DeckList entry
+#   DanceOfTheElements_ECC (type Commander Deck, releaseDate 2026-01-23, source field points at the same
+#   WotC article; the per-deck endpoint Deck/DanceOfTheElements_ECC.json 404s). MTGGoldfish cross-check
+#   NOT obtainable (deck search "0 results", no archetype page, 404 in triage) — WotC + MTGJSON only.
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps remain:
+#   count:Valid$Colors (count head), kw:Foretell (keyword + Count$Foretold), cost:ExileAnyGrave,
+#   unless:Reveal-cost, defined:PlayerStateQualifier, mana:ProducedSpecial (EachColorAmong),
+#   param:AddsCounters (+ Count$CommanderCastFromCommandZone), kw:Companion — 8 tickets in .ds4/new-tickets/.
+# Gap primitives (deck carriers, corpus prevalence with /usr/bin/grep over .cards/cardsfolder):
+#   count:Valid$Colors — Elemental Spectacle, Shimmercreep, Faeburrow Elder (31 raw lines / 31 files);
+#   kw:Foretell — Haunting Voyage (55 raw lines / 55 files, K:Foretell; Count$Foretold 3 raw lines);
+#   cost:ExileAnyGrave — Cavalier of Thorns, Greenwarden of Murasa (18 raw lines / 18 files; sibling
+#     open ticket 2aebee22 owns the ExiledMoveToGrave verb, not this one);
+#   unless:Reveal-cost — Primal Beyond, Flamekin Village (22 raw lines / 22 files; ParseUnlessCost
+#     hard-declines, so the land ALWAYS enters tapped, the reveal arm is unreachable);
+#   defined:PlayerStateQualifier — Shatter the Sky (10 raw files; definedSpec returns nil,false);
+#   mana:ProducedSpecial — Faeburrow Elder (Produced$ Special EachColorAmong_<spec>, 9 raw lines /
+#     9 files; "Combo ColorIdentity" and "Combo <C> Chosen" are NOT in this ticket — ColorIdentity is
+#     implemented on the activation path (rules/mana_activation.go isColourIdentityProduced) and Chosen
+#     is the mana-choice approximations row);
+#   param:AddsCounters — Opal Palace (4 raw files; Count$CommanderCastFromCommandZone also unresolvable,
+#     sibling open ticket 3dbb3f9c owns the Total* spelling);
+#   kw:Companion — Jegantha, the Wellspring (10 raw lines / 10 files; no config field, no registration,
+#     no ledger entry — lowest priority of the eight).
+# Open-ledger overlaps cited, NOT re-filed: api:CopyPermanent (Ashling) -> 6994a692 + bdef0f98;
+#   api:DigUntil (Descendants' Fury, Kindred Summons) -> e8579598 + 876eea96;
+#   api:Play.WithoutManaCost (Impulsivity's TrigPlay, Horde of Notions' AB$ Play) -> d504b33b;
+#   api:Animate.Triggers (Subterfuge) -> 86babb6f; api:ChangeZoneAll.RandomOrder (Endurance) -> 064ef40a;
+#   api:Manifest (Reality Shift) -> 317cd391; kw:Cascade (Maelstrom Wanderer) -> 83cb70eb;
+#   count:$GreatestCardPower (Return of the Wildspeaker, Selvala) -> 155888e1 + e27469dd;
+#   pred:ChosenCtrl (Slithermuse) -> d5a7bdc4; param:AtEOT$ (Incandescent Soulstoke's Animate) -> 487de5e1;
+#   stat:Continuous.MayPlay library-zone grant (Realmwalker, Muldrotha) -> d98417fb.
+# Known approximations leaned on, no ticket: RestrictValid$ mana spend restrictions (Abundant
+#   Countryside, Flamebraider, Smokebraider, Ancient Ziggurat, Secluded Courtyard, Unclaimed Territory) —
+#   the mana-restrictions row; Produced$ Any -> colourless (Springleaf Parade's granted AnyMana,
+#   Chromatic Lantern, Abundant Growth's grant) — the effMana row; Produced$ Combo <C> Chosen (the five
+#   Thriving lands) and Produced$ Combo Any degenerate reads — the mana-choice rows (approx-39);
+#   RestRandomOrder$/RevealRandomOrder$ remainder ordering (Eclipsed Flamekin's TrigDig, Descendants'
+#   Fury's DigUntil) — the Dig row; the Dig primary LibraryPosition$ (Cream of the Crop) — the Dig row.
+# Verified implemented, no flag: kw:Encore, kw:Myriad (+ Pump's KW$ grant on Mass of Mysteries),
+#   trig:Drawn (Hoofprints), api:ChooseType + ChosenType predicate (Haunting Voyage, Distant Melody,
+#   Kindred Summons, Realmwalker), api:ChoosePlayer (Slithermuse), api:Branch (Haunting Voyage),
+#   SubCounter<N/HOOFPRINT> cost (Hoofprints), K:Evoke incl. ExileFromHand alt-cast (Fury, Endurance,
+#   Shriekmaw, Ingot Chewer, Mulldrifter, Foundation Breaker, Slithermuse), DelayedTrigger Mode$ Phase
+#   (Ashling's DelTrig), the shared unless gate (Ashling's UnlessCost$ W U B R G), stat:Panharmonicon
+#   (Yarok), DividedAsYouChoose$ (Fury), repl:Moved ETB-tap replacements (the lands), MayLookAt$
+#   (Realmwalker), PutCounter's Choices$ (Titan of Industry), ConditionPresent (Sodden Verdure).
+# Trap note: the deck carries BOTH borderless face cards — Ashling, the Limitless (cn 1, recorded
+#   commander; deckimport's Commander section takes exactly the FIRST card) and Mass of Mysteries
+#   (cn 3, an ordinary deck card here); neither has partner. The deck's Sol Ring / Command Tower /
+#   Arcane Signet are special Lorwyn-numbered printings — recorded as the plain names.
+Commander
+1x Ashling, the Limitless
+
+Deck
+1x Mass of Mysteries
+1x Elemental Spectacle
+1x Springleaf Parade
+1x Jubilation
+1x Impulsivity
+1x Lamentation
+1x Belonging
+1x Subterfuge
+1x Rain-Slicked Copse
+1x Sodden Verdure
+1x Abundant Countryside
+1x Endurance
+1x Fury
+1x Haunting Voyage
+1x Avenger of Zendikar
+1x Cavalier of Thorns
+1x Greenwarden of Murasa
+1x Selvala, Heart of the Wilds
+1x Titan of Industry
+1x Muldrotha, the Gravetide
+1x Omnath, Locus of Rage
+1x Yarok, the Desecrated
+1x Omnath, Locus of the Roil
+1x Timeless Lotus
+1x Shatter the Sky
+1x Hoofprints of the Stag
+1x Slithermuse
+1x Descendants' Fury
+1x Blasphemous Act
+1x Cream of the Crop
+1x Kindred Summons
+1x Bane of Progress
+1x Realmwalker
+1x Return of the Wildspeaker
+1x Faeburrow Elder
+1x Vernal Sovereign
+1x Horde of Notions
+1x Maelstrom Wanderer
+1x Jegantha, the Wellspring
+1x Chromatic Lantern
+1x Primal Beyond
+1x Raging Ravine
+1x Exotic Orchard
+1x Flamekin Village
+1x Path to Exile
+1x Mulldrifter
+1x Reality Shift
+1x Shriekmaw
+1x Shimmercreep
+1x Flamebraider
+1x Crib Swap
+1x Secluded Courtyard
+1x Sol Ring
+1x Command Tower
+1x Arcane Signet
+1x Distant Melody
+1x Incandescent Soulstoke
+1x Eclipsed Flamekin
+1x Foundation Breaker
+1x Garruk's Uprising
+1x Risen Reef
+1x Fellwar Stone
+1x Unclaimed Territory
+1x Ancient Ziggurat
+1x Frontier Bivouac
+1x Sandsteppe Citadel
+1x Savage Lands
+1x Opulent Palace
+1x Seaside Citadel
+1x Jungle Shrine
+1x Smokebraider
+1x Ingot Chewer
+1x Fertile Ground
+1x Abundant Growth
+1x Kodama's Reach
+1x Cultivate
+1x Path of Ancestry
+1x Thriving Grove
+1x Thriving Heath
+1x Thriving Isle
+1x Opal Palace
+1x Thriving Bluff
+1x Thriving Moor
+2x Plains
+2x Island
+2x Swamp
+2x Mountain
+8x Forest
