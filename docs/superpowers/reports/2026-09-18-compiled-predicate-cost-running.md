@@ -279,7 +279,7 @@ Its 500 per-result payloads were identical after timing fields were removed,
 but the outer JSON comparator correctly rejected the environment mismatch;
 it is not used for this decision.
 
-## Rejected experiment: face-bound trigger-interest value
+## Retained experiment: face-bound trigger-interest value
 
 The retained direct-interest path still loaded `TriggerInterests` through a
 catalog slice lookup for every corpus-bound face. This probe bound that
@@ -302,12 +302,14 @@ errors.
 | Runtime allocated bytes | 46.550 GB | 46.555 GB | +0.01% |
 
 The probe samples were 74.787 s / 46.553 GB and 75.140 s / 46.556 GB. The
-restored retained tree was replayed before rejecting the probe: it too was
+restored retained tree was replayed before deciding to retain the probe: it too was
 exactly equal to the oracle. An interleaved retained/candidate/retained
 sequence measured 77.595 s / 46.588 GB, 74.441 s / 46.548 GB, and 73.512 s /
 46.552 GB respectively. The candidate falls inside the retained 5.5% spread,
-so the local profile improvement does not establish an end-to-end win. The
-code and test were reverted exactly. Artifacts remain at
+so those wall-clock samples do not establish an end-to-end gain. It is
+retained by decision because it removes the measured catalog lookup without
+enlarging `state.Object` or increasing allocation; future comparisons must
+use an interleaved A/B protocol. Artifacts remain at
 `/tmp/gorge-face-bound-trigger-interest-{500,repeat-500,cpu-500,heap-500,bin-500}-20260918.*`.
 
 ## Rejected experiment: card-owned compiled-face sidecar

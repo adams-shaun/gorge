@@ -69,6 +69,10 @@ type Face struct {
 	// derived values below it stays unexported so a stale cache decodes it as
 	// zero and derive() repairs it immediately after decode.
 	colourIdentity uint8
+	// compiledTriggerInterests is bound from the immutable catalog at load
+	// time. Keeping this hot prefilter beside the legacy face avoids a catalog
+	// slice lookup during every trigger scan; it is not serialized.
+	compiledTriggerInterests TriggerInterest
 
 	compiledCatalog *CompiledCatalog
 	compiledID      FaceID
@@ -82,10 +86,10 @@ func (f *Face) CompiledID() FaceID {
 }
 
 func (f *Face) CompiledTriggerInterests() (TriggerInterest, bool) {
-	if f == nil || f.compiledCatalog == nil || f.compiledID == 0 || int(f.compiledID) > len(f.compiledCatalog.Faces) {
+	if f == nil || f.compiledCatalog == nil || f.compiledID == 0 {
 		return 0, false
 	}
-	return f.compiledCatalog.Faces[f.compiledID-1].TriggerInterests, true
+	return f.compiledTriggerInterests, true
 }
 
 func (s *SA) CompiledKind() SAKind {

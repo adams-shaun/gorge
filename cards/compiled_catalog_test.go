@@ -148,6 +148,20 @@ func TestCompiledCatalogBindsRecursiveAbilitiesAndUnknownText(t *testing.T) {
 	}
 }
 
+func TestCompiledCatalogBindsDirectTriggerInterests(t *testing.T) {
+	r, face, _, _, _ := compiledCatalogFixture(false, false)
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := face.compiledTriggerInterests, TriggerInterestAny; got != want {
+		t.Fatalf("direct trigger interests = %x, want %x", got, want)
+	}
+	r.invalidateCatalog()
+	if got := face.compiledTriggerInterests; got != 0 {
+		t.Fatalf("direct trigger interests after invalidation = %x, want 0", got)
+	}
+}
+
 func TestCompiledCatalogIdentityChangesWithParameter(t *testing.T) {
 	a, _, _, _, _ := compiledCatalogFixture(false, false)
 	b, _, _, _, _ := compiledCatalogFixture(false, true)
