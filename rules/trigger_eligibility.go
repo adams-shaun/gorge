@@ -170,6 +170,13 @@ func (e *Engine) objectFaceMayTrigger(id state.ObjID, faceIdx uint8, f *cards.Fa
 	if f == nil {
 		return false
 	}
+	// Corpus-bound faces already own an immutable catalog row. Avoid growing
+	// per-engine object state just to cache the same interest bits again;
+	// synthetic fixtures and dynamically replaced faces retain the fallback
+	// below, including its pointer-identity guard.
+	if interests, ok := f.CompiledTriggerInterests(); ok {
+		return compiledTriggerInterestAllows(interests, kind)
+	}
 	if id == 0 || faceIdx >= 2 {
 		return e.faceMayTrigger(f, kind)
 	}

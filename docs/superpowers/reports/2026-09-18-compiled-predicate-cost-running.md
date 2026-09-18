@@ -231,6 +231,26 @@ baseline's 71.878 seconds (+3.76%) with effectively identical allocated
 bytes. The defensive snapshot remains in use; its locality and general safety
 outweigh the isolated traversal microbenchmark.
 
+## Task 12: read catalog trigger interests directly
+
+Catalog-bound faces already own immutable trigger-interest bits, but the
+object trigger fast path first copied those same bits into a mutable,
+per-engine two-face cache. `objectFaceMayTrigger` now reads the catalog row
+directly for a bound face; synthetic/unbound and dynamically replaced faces
+retain the original pointer-guarded cache. A red/green regression test
+requires a compiled face not to grow `triggerObjectMasks`, while the existing
+transform and clone tests cover the fallback.
+
+The compiled lookup benchmark has a five-run median of 4.906 ns/op with zero
+allocations. The profiled candidate reduces `objectFaceMayTrigger` from 6.96
+to 2.93 CPU-seconds and `Object.Face` from 15.64 to 11.51, while both
+normalized 500-game candidates are exactly equal to the semantic control
+(498 eligible roots, two no-root games, zero errors). Allocation is
+consistently lower: 46.558 and 46.543 GB versus the prior 46.984 GB
+(-0.92% median). Wall-clock samples were 75.965 and 71.461 seconds; the
+repeat is 0.58% faster than the prior 71.878-second run, while the two-run
+median remains noisy. The CPU and allocation reductions retain the change.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:

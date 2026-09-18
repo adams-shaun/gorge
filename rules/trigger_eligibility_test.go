@@ -10,6 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+var benchmarkObjectTriggerEligibility bool
+
 // The mapping is an over-approximation of the CURRENT matcher, not an
 // expansion of Forge support. SpellAbilityCast currently means AbilityPush.
 func TestTriggerEligibilityEventMatrix(t *testing.T) {
@@ -224,6 +226,43 @@ func TestObjectTriggerEligibilityTracksBothFaces(t *testing.T) {
 	}
 	if !e.objectFaceMayTrigger(o.ID, 0, spell, events.PutOnStack) {
 		t.Fatal("clone cache mutation changed parent eligibility")
+	}
+}
+
+// Bound catalog faces own immutable trigger-interest metadata. Looking one up
+// must not allocate or populate a mutable per-engine object cache merely to
+// repeat that same immutable lookup.
+func TestCompiledObjectTriggerEligibilitySkipsRuntimeCache(t *testing.T) {
+	e := &Engine{G: state.NewGame([]string{"a"})}
+	face := &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast"}}}
+	card := &cards.Card{Faces: []*cards.Face{face}}
+	r := cards.NewRegistry()
+	r.Add(card)
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	o := e.G.AddObject(card, 0)
+	if !e.objectFaceMayTrigger(o.ID, o.FaceIdx, face, events.PutOnStack) {
+		t.Fatal("compiled face rejected its spell-cast event")
+	}
+	if len(e.triggerObjectMasks) != 0 {
+		t.Fatalf("compiled face populated %d runtime object-mask entries", len(e.triggerObjectMasks))
+	}
+}
+
+func BenchmarkCompiledObjectTriggerEligibility(b *testing.B) {
+	e := &Engine{G: state.NewGame([]string{"a"})}
+	face := &cards.Face{Triggers: []cards.Trigger{{Mode: "SpellCast"}}}
+	card := &cards.Card{Faces: []*cards.Face{face}}
+	r := cards.NewRegistry()
+	r.Add(card)
+	if err := r.CompileMetadata(); err != nil {
+		b.Fatal(err)
+	}
+	o := e.G.AddObject(card, 0)
+	b.ReportAllocs()
+	for range b.N {
+		benchmarkObjectTriggerEligibility = e.objectFaceMayTrigger(o.ID, o.FaceIdx, face, events.PutOnStack)
 	}
 }
 
