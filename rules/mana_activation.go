@@ -476,7 +476,7 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 	if o == nil || o.Face() == nil {
 		return false
 	}
-	cost := ParseCost(ma.Params["Cost"])
+	cost := e.parseCost(ma.Params["Cost"])
 	pool := e.manaAvailableFor(p, source, true)
 	if hyp != nil {
 		pool = *hyp
@@ -907,7 +907,7 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 			e.emit(events.Event{Kind: events.ManaActivate, Player: p, Obj: source, Amount: int32(idx)})
 		}
 	}
-	cost := ParseCost(ma.Params["Cost"])
+	cost := e.parseCost(ma.Params["Cost"])
 	sacs, _ := e.manaSacrifices(p, source, cost)
 	if len(cost.Discard) > 0 || len(cost.Exile) > 0 {
 		e.manaDiscardActivation = &manaDiscardActivation{player: p, source: source,
@@ -1205,7 +1205,7 @@ func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma
 	// replay chain head). A sacrifice-only KCI activation therefore identifies
 	// its source but is not tap-produced.
 	savedTap, savedProducer := e.manaFromTap, e.manaProducer
-	e.manaFromTap = ParseCost(ma.Params["Cost"]).Tap
+	e.manaFromTap = e.parseCost(ma.Params["Cost"]).Tap
 	e.manaProducer = source
 	e.resolveAbility(source, p, nil, &copy, o.Face().SVars)
 	e.manaFromTap, e.manaProducer = savedTap, savedProducer

@@ -47,6 +47,15 @@ The direct yes/no paths improve over the separately measured textual baseline;
 the fallback pays the expected lookup overhead and is retained only for
 correctness. Broader corpus reachability and end-to-end benefit remain open.
 
+## Task 3/5: configured cost cache
+
+The engine constructs and clones an immutable cache of configured printed,
+activation, and unless costs. A hybrid/non-mana cache hit measured 79.38
+ns/op (five-run median), 0 B/op, and 0 allocs/op, against the Task 1 direct
+parser median of 1,612 ns/op, 176 B/op, and 5 allocs/op. The first migration
+batch covers mana activation/availability, activation, speed, and ability
+offer paths; raw strings a match did not precollect still call `ParseCost`.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:
