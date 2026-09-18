@@ -77,16 +77,23 @@ var progressKinds = map[events.Kind]bool{
 // the defaults, so every existing Config is unchanged. A RunawayEvents of
 // 0 explicitly means DEFAULT here (the zero-value-falls-back rule), not
 // "off" -- the backstop is what catches a loop the period detector cannot
-// see, so it is never disabled.
+// see, so the zero value never disables it. The watcher CAN be disabled
+// outright, but only explicitly: Disabled is the embedder's own opt-out
+// for a deliberately supervised non-terminating game (the host's
+// MaxDecisionsPerTurn = 0 propagates it -- the host stall-guard opt-out
+// and the engine watcher are the same protection at two levels, and opting
+// out of one opts out of both). It is never set by any default path.
 type LoopGuard struct {
 	CycleEvents   int
 	MaxPeriod     int
 	RunawayEvents int
+	Disabled      bool
 }
 
 func (g *LoopGuard) filled() LoopGuard {
 	out := LoopGuard{CycleEvents: defaultCycleEvents, MaxPeriod: defaultMaxPeriod, RunawayEvents: defaultRunawayEvents}
 	if g != nil {
+		out.Disabled = g.Disabled
 		if g.CycleEvents > 0 {
 			out.CycleEvents = g.CycleEvents
 		}
@@ -177,8 +184,13 @@ func newLivelockWatcherFromGuard(g LoopGuard) livelockWatcher {
 
 // observe feeds one just-logged event to the watcher. It panics with a
 // *LivelockError when either trigger fires; every other return leaves the
-// game byte-identical to an un-watched one.
+// game byte-identical to an un-watched one. A Disabled guard observes
+// nothing at all -- an explicitly opted-out game is supervised by whoever
+// set the flag, exactly as the host stall-guard opt-out intends.
 func (w *livelockWatcher) observe(ev events.Event) {
+	if w.guard.Disabled {
+		return
+	}
 	sig := eventSignature(ev)
 	w.sigs = append(w.sigs, sig)
 	if len(w.sigs) > 2*w.guard.MaxPeriod {

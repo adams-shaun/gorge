@@ -107,7 +107,11 @@ type Options struct {
 	// demo trips within its third turn instead of freezing the table. 0 —
 	// the zero value — means "no guard": every existing test and embedder
 	// that never sets the field keeps exactly today's behaviour, so this
-	// option is strictly opt-in.
+	// option is strictly opt-in. 0 ALSO disables the engine's own livelock
+	// watcher (rules.Config.LoopGuard.Disabled, wired in match.go): the two
+	// are the same non-terminating-loop protection at two levels, and the
+	// engine aborting a game whose stall guard the embedder explicitly
+	// turned off would defeat the opt-out.
 	MaxDecisionsPerTurn int
 	// ThinkTimeout is how long a HumanSeat parks on a decision before its
 	// deterministic caretaker bot (the already-seeded bot for that slot) is

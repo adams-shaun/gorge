@@ -150,6 +150,16 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 		}
 	}
 	cfg := rules.Config{Seed: seed, Names: names, PlayerNames: playerNames, Decks: decks, Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
+	// The engine's own livelock watcher (rules/livelock.go) is the same
+	// non-terminating-loop protection as this file's per-turn decision
+	// guard, one level down: an embedder that opted out of the host guard
+	// (MaxDecisionsPerTurn == 0, the supervised-infinite-loop shape the
+	// stall tests drive) must not have the engine crash the match instead
+	// at its own 400-event cycle threshold. Propagate the opt-out; every
+	// Config with the host guard at its default keeps the watcher on.
+	if r.opts.MaxDecisionsPerTurn == 0 {
+		cfg.LoopGuard = &rules.LoopGuard{Disabled: true}
+	}
 	// The format the table was configured with is threaded into the engine
 	// once, here, so the match's rules.Config is the single value both the
 	// live game and its replay are built from (R-8.4). A commander table
