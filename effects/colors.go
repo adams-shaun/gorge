@@ -6,6 +6,36 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+type ColorMask uint8
+
+var colorMaskStrings = [32]string{
+	"", "W", "U", "WU", "B", "WB", "UB", "WUB",
+	"R", "WR", "UR", "WUR", "BR", "WBR", "UBR", "WUBR",
+	"G", "WG", "UG", "WUG", "BG", "WBG", "UBG", "WUBG",
+	"RG", "WRG", "URG", "WURG", "BRG", "WBRG", "UBRG", "WUBRG",
+}
+
+func colorBit(c byte) ColorMask {
+	switch c {
+	case 'W':
+		return 1 << 0
+	case 'U':
+		return 1 << 1
+	case 'B':
+		return 1 << 2
+	case 'R':
+		return 1 << 3
+	case 'G':
+		return 1 << 4
+	default:
+		return 0
+	}
+}
+
+func (m ColorMask) String() string {
+	return colorMaskStrings[m&31]
+}
+
 // ColorsOf is an object's colours as WUBRG letters in that fixed order:
 // the colours of its mana cost, or an explicit Colors: line for a card
 // whose cost does not show them (a token, an artifact "that is green").
@@ -13,42 +43,50 @@ import (
 // object (an ability, a copy of nothing) is colourless. Protection (rules)
 // and the colour predicates read this rather than the face directly.
 func ColorsOf(o *state.Object) string {
+	return ColorMaskOf(o).String()
+}
+
+// ColorMaskOf is ColorsOf's compact representation for rules hot paths that
+// combine printed colours with continuous effects before rendering WUBRG.
+func ColorMaskOf(o *state.Object) ColorMask {
 	if o == nil {
-		return ""
+		return 0
 	}
 	f := o.Face()
 	if f == nil || f.HasKeyword("Devoid") {
-		return ""
+		return 0
 	}
-	set := map[byte]bool{}
-	for _, r := range f.ManaCost {
-		if strings.ContainsRune("WUBRG", r) {
-			set[byte(r)] = true
-		}
+	var mask ColorMask
+	for i := 0; i < len(f.ManaCost); i++ {
+		mask |= colorBit(f.ManaCost[i])
 	}
-	if len(set) == 0 && f.Colors != "" {
-		for _, word := range strings.Split(strings.ToLower(f.Colors), ",") {
-			switch strings.TrimSpace(word) {
-			case "white":
-				set['W'] = true
-			case "blue":
-				set['U'] = true
-			case "black":
-				set['B'] = true
-			case "red":
-				set['R'] = true
-			case "green":
-				set['G'] = true
+	if mask == 0 && f.Colors != "" {
+		for rest := f.Colors; ; {
+			word := rest
+			if comma := strings.IndexByte(rest, ','); comma >= 0 {
+				word, rest = rest[:comma], rest[comma+1:]
+			} else {
+				rest = ""
+			}
+			word = strings.TrimSpace(word)
+			switch {
+			case strings.EqualFold(word, "white"):
+				mask |= 1 << 0
+			case strings.EqualFold(word, "blue"):
+				mask |= 1 << 1
+			case strings.EqualFold(word, "black"):
+				mask |= 1 << 2
+			case strings.EqualFold(word, "red"):
+				mask |= 1 << 3
+			case strings.EqualFold(word, "green"):
+				mask |= 1 << 4
+			}
+			if rest == "" {
+				break
 			}
 		}
 	}
-	var b strings.Builder
-	for _, c := range "WUBRG" {
-		if set[byte(c)] {
-			b.WriteRune(c)
-		}
-	}
-	return b.String()
+	return mask
 }
 
 // colorLetters turns a Forge colour-list parameter value (Animate's Colors$,

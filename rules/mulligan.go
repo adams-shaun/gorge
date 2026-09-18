@@ -263,7 +263,7 @@ func (e *Engine) handleMulligan(d *decision.Decision, in decision.Intent) {
 			To: state.ZLibrary, Player: p, Text: "mulligan"})
 	}
 	order := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, p)...)
-	e.rng.Shuffle(order)
+	order = e.ShuffleLibrary(p, order)
 	e.emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true})
 	// CR 103.4: a mulligan draws a FULL new hand of seven -- the later
 	// bottoming is the entire penalty, and the redraw is literally the same

@@ -97,6 +97,13 @@ type Engine struct {
 	G *state.Game
 	L *events.Log
 
+	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
+	// turnsTakenEpoch is the log length represented by the cache; emit advances
+	// both together, while an Engine assembled around an existing log lazily
+	// rebuilds on its first query.
+	turnsTaken      []int32
+	turnsTakenEpoch int
+
 	// format is the construction format New was configured with (Config.
 	// Format). It is the explicit gate the Commander rules (the tax, CR
 	// 903.9, commander damage) check -- "in a non-Commander game none of
@@ -392,6 +399,10 @@ type Engine struct {
 	// triggerEventMasks caches only immutable face syntax, not live source
 	// membership. Like phaseSpecs, clones own fresh writable scratch.
 	triggerEventMasks map[*cards.Face]triggerEventMask
+	// triggerObjectMasks is the dense object-walk form of triggerEventMasks.
+	// Entries validate their immutable face pointer and are scratch owned by
+	// one Engine, so hypothetical clones never share writable cache storage.
+	triggerObjectMasks []objectTriggerEventMasks
 
 	// choosing says which flow is waiting on the current KChoose decision
 	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling
@@ -864,16 +875,28 @@ func (c *Config) commandersFor(i, deckLen int) []int {
 const openingHand = 7
 
 func New(cfg Config) *Engine {
+	return newWithRNG(cfg, newRNG(cfg.Seed))
+}
+
+func newWithRNG(cfg Config, random *rng) *Engine {
 	life := int32(20)
 	if cfg.StartingLife > 0 {
 		life = cfg.StartingLife
 	}
+	initialObjects := 0
+	for i, deck := range cfg.Decks {
+		if i >= len(cfg.Names) {
+			break
+		}
+		initialObjects += len(deck)
+	}
 	e := &Engine{
-		G:      state.NewGameLife(cfg.Names, life),
-		L:      events.NewLog(cfg.Seed),
-		format: cfg.Format,
-		rng:    newRNG(cfg.Seed),
-		loop:   newLivelockWatcher(cfg.LoopGuard),
+		G:          state.NewGameLife(cfg.Names, life, initialObjects),
+		L:          events.NewLog(cfg.Seed),
+		format:     cfg.Format,
+		rng:        random,
+		loop:       newLivelockWatcher(cfg.LoopGuard),
+		turnsTaken: make([]int32, len(cfg.Names)),
 	}
 	e.G.Tokens = cfg.Tokens
 	e.format = cfg.Format
@@ -987,7 +1010,7 @@ func New(cfg Config) *Engine {
 		// moved out, so a non-Commander seat's library and the original ids
 		// are one and the same and the event is byte-identical to before.
 		order := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, p)...)
-		e.rng.Shuffle(order)
+		order = e.ShuffleLibrary(p, order)
 		// Library order is hidden information: the event carries it because the
 		// server needs it, and view projection redacts it for everyone else.
 		e.emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true})
@@ -1220,6 +1243,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
+	if len(e.turnsTaken) == len(e.G.Players) && e.turnsTakenEpoch == len(e.L.Events)-1 {
+		if stored.Kind == events.TurnChange && int(stored.Player) < len(e.turnsTaken) {
+			e.turnsTaken[stored.Player]++
+		}
+		e.turnsTakenEpoch++
+	} else {
+		e.turnsTaken = nil
+		e.turnsTakenEpoch = 0
+	}
 	e.loop.observe(stored)
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
 		copyID := e.G.Stack[len(e.G.Stack)-1]

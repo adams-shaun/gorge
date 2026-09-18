@@ -2309,11 +2309,7 @@ func shuffleLibraryExplicit(h Host, sa *cards.SA, owner state.PlayerID) {
 }
 
 func shuffleLibraryOrder(h Host, owner state.PlayerID) {
-	order := append([]state.ObjID(nil), h.Game().Zone(state.ZLibrary, owner)...)
-	for i := len(order) - 1; i > 0; i-- {
-		j := h.Rand(i + 1)
-		order[i], order[j] = order[j], order[i]
-	}
+	order := h.ShuffleLibrary(owner, h.Game().Zone(state.ZLibrary, owner))
 	h.Emit(events.Event{Kind: events.Shuffle, Player: owner, IDs: order, Secret: true})
 }
 

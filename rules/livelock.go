@@ -3,8 +3,6 @@ package rules
 import (
 	"encoding/binary"
 	"fmt"
-	"hash"
-	"hash/fnv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/events"
@@ -157,11 +155,15 @@ func (e *LivelockError) Error() string {
 type livelockWatcher struct {
 	guard LoopGuard
 	// sigs is the trailing signature window, newest last, capped at
-	// 2*MaxPeriod (the two halves the period detector compares).
-	sigs []uint64
+	// 2*MaxPeriod (the two halves the period detector compares). sigHead is
+	// the oldest logical entry once the bounded slice is full.
+	sigs    []uint64
+	sigHead int
 	// recent is the trailing event window, newest last, capped at
-	// MaxPeriod, so an abort can render one real period.
-	recent []events.Event
+	// MaxPeriod, so an abort can render one real period. recentHead is the
+	// oldest logical entry once the bounded slice is full.
+	recent     []events.Event
+	recentHead int
 	// runPeriod/runEvents track the active periodic run: runEvents counts
 	// the consecutive events (>= 2*runPeriod at detection) matching the
 	// runPeriod period.
@@ -192,13 +194,18 @@ func (w *livelockWatcher) observe(ev events.Event) {
 		return
 	}
 	sig := eventSignature(ev)
-	w.sigs = append(w.sigs, sig)
-	if len(w.sigs) > 2*w.guard.MaxPeriod {
-		w.sigs = w.sigs[1:]
+	sigCap := 2 * w.guard.MaxPeriod
+	if len(w.sigs) < sigCap {
+		w.sigs = append(w.sigs, sig)
+	} else {
+		w.sigs[w.sigHead] = sig
+		w.sigHead = (w.sigHead + 1) % sigCap
 	}
-	w.recent = append(w.recent, ev)
-	if len(w.recent) > w.guard.MaxPeriod {
-		w.recent = w.recent[len(w.recent)-w.guard.MaxPeriod:]
+	if len(w.recent) < w.guard.MaxPeriod {
+		w.recent = append(w.recent, ev)
+	} else {
+		w.recent[w.recentHead] = ev
+		w.recentHead = (w.recentHead + 1) % w.guard.MaxPeriod
 	}
 
 	// Runaway backstop: count the events since the last progress event.
@@ -226,7 +233,7 @@ func (w *livelockWatcher) observe(ev events.Event) {
 	// ends the run and the trailing window is re-scanned for a fresh one.
 	if w.runPeriod > 0 {
 		n := len(w.sigs)
-		if n > w.runPeriod && w.sigs[n-1] == w.sigs[n-1-w.runPeriod] {
+		if n > w.runPeriod && w.sigAt(n-1) == w.sigAt(n-1-w.runPeriod) {
 			w.runEvents++
 			if w.runEvents >= w.guard.CycleEvents {
 				w.abort()
@@ -236,6 +243,22 @@ func (w *livelockWatcher) observe(ev events.Event) {
 		w.runPeriod, w.runEvents = 0, 0
 	}
 	w.detect()
+}
+
+func (w *livelockWatcher) sigAt(i int) uint64 {
+	i += w.sigHead
+	if i >= len(w.sigs) {
+		i -= len(w.sigs)
+	}
+	return w.sigs[i]
+}
+
+func (w *livelockWatcher) recentAt(i int) events.Event {
+	i += w.recentHead
+	if i >= len(w.recent) {
+		i -= len(w.recent)
+	}
+	return w.recent[i]
 }
 
 // detect scans for the shortest period p whose trailing 2p signatures are
@@ -249,7 +272,7 @@ func (w *livelockWatcher) detect() {
 	for p := 1; p <= maxP; p++ {
 		ok := true
 		for j := n - 1; j >= n-2*p+1; j-- {
-			if w.sigs[j] != w.sigs[j-p] {
+			if w.sigAt(j) != w.sigAt(j-p) {
 				ok = false
 				break
 			}
@@ -269,9 +292,10 @@ func (w *livelockWatcher) detect() {
 // times it has repeated.
 func (w *livelockWatcher) abort() {
 	p := w.runPeriod
-	first := w.recent[len(w.recent)-p]
+	first := w.recentAt(len(w.recent) - p)
 	cycle := make([]string, 0, p)
-	for _, ev := range w.recent[len(w.recent)-p:] {
+	for i := len(w.recent) - p; i < len(w.recent); i++ {
+		ev := w.recentAt(i)
 		cycle = append(cycle, describeEvent(ev))
 	}
 	panic(&LivelockError{
@@ -281,7 +305,7 @@ func (w *livelockWatcher) abort() {
 		Repeats:  w.runEvents / p,
 		CycleLen: p,
 		FirstSeq: first.Seq,
-		LastSeq:  w.recent[len(w.recent)-1].Seq,
+		LastSeq:  w.recentAt(len(w.recent) - 1).Seq,
 		Cycle:    cycle,
 	})
 }
@@ -293,45 +317,58 @@ func (w *livelockWatcher) abort() {
 // payload drifts must still be caught). Length-prefixing keeps adjacent
 // fields unambiguous.
 func eventSignature(ev events.Event) uint64 {
-	h := fnv.New64a()
+	h := uint64(14695981039346656037)
 	var b [5]byte
 	b[0] = byte(ev.Kind)
 	b[1] = byte(ev.Player)
 	b[2] = byte(ev.From)
 	b[3] = byte(ev.To)
 	b[4] = byte(ev.Step)
-	h.Write(b[:])
+	sigBytes(&h, b[:])
 	if ev.Secret {
-		h.Write([]byte{1})
+		sigByte(&h, 1)
 	} else {
-		h.Write([]byte{0})
+		sigByte(&h, 0)
 	}
 	var u4 [4]byte
 	binary.LittleEndian.PutUint32(u4[:], uint32(ev.Obj))
-	h.Write(u4[:])
-	sigStr(h, ev.Counter)
+	sigBytes(&h, u4[:])
+	sigStr(&h, ev.Counter)
 	binary.LittleEndian.PutUint32(u4[:], uint32(len(ev.IDs)))
-	h.Write(u4[:])
+	sigBytes(&h, u4[:])
 	for _, id := range ev.IDs {
 		binary.LittleEndian.PutUint32(u4[:], uint32(id))
-		h.Write(u4[:])
+		sigBytes(&h, u4[:])
 	}
 	binary.LittleEndian.PutUint32(u4[:], uint32(len(ev.Pairs)))
-	h.Write(u4[:])
+	sigBytes(&h, u4[:])
 	for _, pr := range ev.Pairs {
 		binary.LittleEndian.PutUint32(u4[:], uint32(pr[0]))
-		h.Write(u4[:])
+		sigBytes(&h, u4[:])
 		binary.LittleEndian.PutUint32(u4[:], uint32(pr[1]))
-		h.Write(u4[:])
+		sigBytes(&h, u4[:])
 	}
-	return h.Sum64()
+	return h
 }
 
-func sigStr(h hash.Hash64, s string) {
+func sigByte(h *uint64, b byte) {
+	*h ^= uint64(b)
+	*h *= 1099511628211
+}
+
+func sigBytes(h *uint64, b []byte) {
+	for _, c := range b {
+		sigByte(h, c)
+	}
+}
+
+func sigStr(h *uint64, s string) {
 	var u4 [4]byte
 	binary.LittleEndian.PutUint32(u4[:], uint32(len(s)))
-	h.Write(u4[:])
-	h.Write([]byte(s))
+	sigBytes(h, u4[:])
+	for i := 0; i < len(s); i++ {
+		sigByte(h, s[i])
+	}
 }
 
 // describeEvent renders one event for the diagnostic: compact, stable, and
