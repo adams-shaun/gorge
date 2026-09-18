@@ -507,14 +507,27 @@ func unlessCostLabel(cost string) string {
 
 // payLifeAmount reports whether f is Forge's FIXED life-payment token
 // PayLife<N> and extracts N. rules' lifeCost (rules/mana.go) prices exactly
-// this shape and charges N life, so the label can name it. PayLife<X>,
-// PayLife<Y> and any other bracket form stay false: their value is not
-// resolved here and the "the cost" degradation applies.
+// this shape — bare ASCII digits only — and charges N life, so the label can
+// name it. The inner text is accepted only when every rune is a digit: a
+// sign-prefixed value like PayLife<-2> or PayLife<+2> would Atoi cleanly but
+// lifeCost rejects it (hard decline), so the label must not promise a
+// payable cost the payment path refuses. PayLife<X>, PayLife<Y> and any
+// other bracket form stay false: their value is not resolved here and the
+// "the cost" degradation applies.
 func payLifeAmount(f string) (int, bool) {
 	rest, ok := strings.CutPrefix(f, "PayLife<")
 	if !ok || !strings.HasSuffix(rest, ">") {
 		return 0, false
 	}
-	n, err := strconv.Atoi(strings.TrimSuffix(rest, ">"))
+	inner := strings.TrimSuffix(rest, ">")
+	if inner == "" {
+		return 0, false
+	}
+	for _, r := range inner {
+		if r < '0' || r > '9' {
+			return 0, false
+		}
+	}
+	n, err := strconv.Atoi(inner)
 	return n, err == nil
 }

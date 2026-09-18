@@ -79,6 +79,12 @@ func TestUnlessCostLabelDegradations(t *testing.T) {
 		{"1 PayLife<3>", "1 and 3 life"},
 		{"PayLife<X>", "the cost"},
 		{"PayLife<Y>", "the cost"},
+		// signs: Atoi would accept them but rules' lifeCost (bare digits only)
+		// hard-declines, so the label must not promise a payable cost
+		{"PayLife<-2>", "the cost"},
+		{"PayLife<+2>", "the cost"},
+		{"PayLife<>", "the cost"},
+		{"PayLife<2e3>", "the cost"},
 		{"X", "the cost"},
 		{"Discard<1/Card>", "the cost"},
 		{"3", "3"},
