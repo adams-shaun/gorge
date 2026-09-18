@@ -1892,6 +1892,7 @@ func main() {
 	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
 	actionCoverage := flag.Bool("action-coverage", false, "append the action-coverage completeness report (decision kinds / option rows never asked, offered-but-never-chosen shapes, cast shapes, cards and ability slots never fired, primitives never exercised) at the end of a run; default off so the normal report is unchanged")
 	decisionTrace := flag.String("decision-trace", "", "write an opt-in atomic JSONL decision trace to a new file (matrix mode only; parent must exist and destination must not)")
+	analyzeTrace := flag.String("analyze-trace", "", "read a decision trace and write deterministic diagnostic-proxy JSON; no games are played")
 	grind := flag.String("grind", "", "grind mode: pin one repo deck to one goroutine and play it against itself as many games as the budget allows; a deck name, or \"all\" for every deck in the format's pool (one goroutine each); mutually exclusive with -pairs; -workers is ignored (the one-goroutine-per-deck shape IS the mode)")
 	grindSeconds := flag.Float64("grind-seconds", 0, "grind wall-clock budget in seconds (checked between games, so at least one game always plays); 0 with -grind-iters 0 means the 30s default")
 	grindIters := flag.Int("grind-iters", 0, "grind iteration cap per deck; 0 = wall-clock only")
@@ -1902,7 +1903,7 @@ func main() {
 	actionCoverageEnabled = *actionCoverage
 
 	os.Exit(mainExit(*a, *b, *games, *seed, *seats, *rotate, *pairs, *format, *out, *workers,
-		*maxTurns, *maxIntents, *dir, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile, *decisionTrace))
+		*maxTurns, *maxIntents, *dir, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile, *decisionTrace, *analyzeTrace))
 }
 
 // mainExit is main's body with the exit code as its return, so the profiler
@@ -1910,10 +1911,19 @@ func main() {
 // profile is still readable evidence -- instead of being skipped by the
 // os.Exit calls a flag-error path used to make.
 func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pairs, format, out string, workers,
-	maxTurns, maxIntents int, dir string, decisionStats, actionCoverage bool, grind string, grindSeconds float64, grindIters int, cpuprofile, memprofile, decisionTrace string) int {
+	maxTurns, maxIntents int, dir string, decisionStats, actionCoverage bool, grind string, grindSeconds float64, grindIters int, cpuprofile, memprofile, decisionTrace, analyzeTrace string) int {
 	fail := func(err error) int {
 		fmt.Fprintln(os.Stderr, "botbench:", err)
 		return 1
+	}
+	if analyzeTrace != "" {
+		if decisionTrace != "" || pairs != "" || grind != "" {
+			return fail(fmt.Errorf("-analyze-trace cannot be combined with -decision-trace, -pairs, or -grind"))
+		}
+		if err := analyzeTraceFile(analyzeTrace, os.Stdout); err != nil {
+			return fail(err)
+		}
+		return 0
 	}
 
 	prof := &profiler{cpuPath: cpuprofile, memPath: memprofile}
