@@ -375,7 +375,29 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose a mana ability of " + o.Face().Name, Source: source}
 	for i, ma := range abilities {
-		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: source,
+		// An explicit multi-colour "Produced$ Combo <colours>" ability is
+		// flattened into one option per colour (task fb-20260917T232800Z):
+		// the player asked for per-colour pip bubbles, not the prose "Add B
+		// or R" plus a second stage-2 colour ask. Each flattened option
+		// carries the ability's own index, so the answer resolves that
+		// ability with its Produced$ rewritten to the chosen colour and the
+		// cost is paid once with no follow-up. Only plain AB$ Mana abilities
+		// flatten -- a ManaReflected ability's colours come from what other
+		// sources produce, never from its own Produced$ token. The colour
+		// order is the ability's own token order, the same order askManaColor
+		// offers today, so the two cannot disagree. Any / Combo Any / Chosen
+		// keep the single option + stage-2 ask (the choice there is not
+		// enumerable at option-build time).
+		if ma.API == "Mana" {
+			if cols, ok := effects.ComboColours(strings.TrimSpace(ma.Params["Produced"])); ok && len(cols) > 1 {
+				for _, col := range cols {
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
+						Ability: i, Label: "Add " + col})
+				}
+				continue
+			}
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
 			Ability: i, Label: manaAbilityLabel(ma)})
 	}
 	e.manaActivation = &manaActivation{player: p, source: source, abilities: abilities, cast: cast, cumulative: cumulative}
@@ -921,7 +943,23 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 	// (effects.ComboColours) rejects "Combo Any" (kept on the five-colour
 	// branch above) and every combo it cannot resolve to a plain colour list,
 	// which then falls to resolveManaEffectColor and fails closed in effMana.
+	// A SINGLE-colour list never asks -- a decision nobody could answer
+	// differently is never posed (the same convention the ManaReflected and
+	// ColorIdentity siblings apply): it resolves directly. Measured on the
+	// corpus, no raw script carries "Produced$ Combo <one letter>"; the only
+	// live carriers are the flattened stage-1 answers, whose ability arrives
+	// with its Produced$ already rewritten to the chosen colour (task
+	// fb-20260917T232800Z), so the shortcut skips the otherwise-posed
+	// one-option stage-2 ask.
 	if colours, ok := effects.ComboColours(produced); ok {
+		if len(colours) == 1 {
+			e.resolveManaEffectColor(p, source, ma, colours[0])
+			e.resolveTriggeredManaAbilities(triggers, cast)
+			if cumulative && e.choosing == chooseNone {
+				e.paymentWindowAsk()
+			}
+			return
+		}
 		e.askManaColor(p, source, ma, cast, cumulative, triggers, colours)
 		return
 	}
@@ -1174,7 +1212,15 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 }
 
 // answerManaActivation completes a multi-ability choice and returns whether
-// it came from the cast-time mana window.
+// it came from the cast-time mana window. A flattened combo choice (the
+// stage-1 wheel offered one option per colour of an explicit "Produced$ Combo
+// <colours>" ability, task fb-20260917T232800Z) resolves the ability with its
+// Produced$ rewritten to the chosen colour: the cost is paid exactly once by
+// resolveManaAbility and the stage-2 colour ask never opens, because
+// resolveManaEffect sees a single fixed colour. The rewrite guards on the
+// ability's own Produced$ being a MULTI-colour combo and the label being one
+// "Add <C>" pip, so a plain single-colour ability that happens to share the
+// label keeps its unrewritten resolution.
 func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 	ma := e.manaActivation
 	e.manaActivation = nil
@@ -1184,7 +1230,21 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 	}
 	idx := chosen[0].Ability
 	if idx >= 0 && idx < len(ma.abilities) {
-		e.resolveManaAbility(ma.player, ma.source, ma.abilities[idx], ma.cast, ma.cumulative)
+		ab := ma.abilities[idx]
+		if ab.API == "Mana" {
+			if cols, ok := effects.ComboColours(strings.TrimSpace(ab.Params["Produced"])); ok && len(cols) > 1 {
+				color := strings.TrimPrefix(chosen[0].Label, "Add ")
+				if len(color) == 1 && strings.Contains("WUBRGC", color) {
+					// abilities entries are chain heads (printed faces list
+					// top-level abilities; granted and static-granted ones
+					// come from ResolveSVar bodies), so head == target copies
+					// the whole Sub chain with Produced$ rewritten.
+					e.resolveManaAbility(ma.player, ma.source, withProduced(ab, ab, color), ma.cast, ma.cumulative)
+					return ma.cast
+				}
+			}
+		}
+		e.resolveManaAbility(ma.player, ma.source, ab, ma.cast, ma.cumulative)
 	}
 	return ma.cast
 }

@@ -184,27 +184,29 @@ func TestKarplusanForestAddsOneChosenColourAndDealsOneDamage(t *testing.T) {
 	life := e.G.Players[0].Life
 	activateMana(t, e, id)
 	// Two distinct mana abilities share one tap cost, so the engine asks
-	// which one before the tap -- and the stage-1 label is human text now
-	// (fb-e079def5): "Add R or G", never the raw "Add Combo R G" token.
+	// which one before the tap -- and the explicit Combo ability is FLATTENED
+	// into per-colour options (task fb-20260917T232800Z): the wheel offers
+	// "Add C", "Add R", "Add G", and the flattened "Add G" answer pays the
+	// tap once with no second decision.
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("Karplusan ability decision = %+v, want a KChoose", d)
 	}
-	comboIdx := -1
+	labels := map[string]bool{}
 	for _, o := range d.Options {
-		if o.Kind == "mana" && o.Obj == id && o.Label == "Add R or G" {
-			comboIdx = o.Index
+		if o.Kind != "mana" || o.Obj != id {
+			t.Fatalf("stage-1 option %+v is not a mana option for %d", o, id)
 		}
+		labels[o.Label] = true
 	}
-	if comboIdx < 0 {
-		t.Fatalf("no human Combo R G ability label offered: %+v", d.Options)
-	}
-	submitChoices(t, e, comboIdx)
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 {
-		t.Fatalf("Karplusan colour decision = %+v, want R/G only", d)
+	if !labels["Add C"] || !labels["Add R"] || !labels["Add G"] || len(labels) != 3 {
+		t.Fatalf("Karplusan stage-1 labels = %v, want exactly Add C, Add R and Add G", labels)
 	}
 	submitChoices(t, e, manaOption(t, d, "G"))
+	d = e.Pending()
+	if d != nil && d.Kind == decision.KChoose {
+		t.Fatalf("flattened answer still posed a stage-2 ask: %+v", d)
+	}
 	pool := e.G.Players[0].Pool
 	if pool.Total() != 1 || pool[state.MG] != 1 || pool[state.MC] != 0 {
 		t.Fatalf("Karplusan pool = %v, want exactly one green, no colourless", pool)
