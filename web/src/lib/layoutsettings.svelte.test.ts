@@ -138,6 +138,20 @@ describe('LayoutStore — writes', () => {
     expect(new LayoutStore({ storage: st }).steppersOnBoard).toBe(false);
   });
 
+  it('the command zone is a first-class zone: bump pulses its outline and persists (fb-20260917T232202Z)', () => {
+    const { storage, t, store } = mkStore();
+    store.bump('command', 0.1);
+    expect(store.scale('command')).toBe(1.1);
+    expect(store.flash.command).toBe(true);
+    expect(store.flash.creatures).toBe(false); // the creatures row is NOT moved
+    t.fireAll();
+    expect(store.flash.command).toBe(false);
+    store.setAlign('command', 'center');
+    expect(store.align('command')).toBe('center');
+    expect(JSON.parse(storage.getItem(LAYOUT_KEY) ?? '{}')).toEqual(store.settings);
+    store.dispose();
+  });
+
   it('reset returns every zone to the shipped layout and persists it', () => {
     const { storage, store } = mkStore();
     store.bump('creatures', 0.3);

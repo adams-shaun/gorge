@@ -72,6 +72,40 @@ describe('Quadrant — commanders share the creatures row at creature scale (CZ2
     expect(html).not.toContain('data-commander');
     expect(html).not.toContain('data-cmd-state');
   });
+
+  it('the command pack sits FIRST among the creatures row\'s children, ahead of every CardStack (genesis order, CZ2 preserved)', () => {
+    const cmd = card(1, 'Isamaru', 'Legendary Creature');
+    const creature = card(2, 'Grizzly Bears');
+    const p = player({ commanders: [cmd], command: [cmd], battlefield: [creature] });
+    const { html } = render(Quadrant, { props: { player: p, colour: '#e5484d' } });
+    const rowStart = html.indexOf('row creatures');
+    const rowOthersStart = html.indexOf('row others');
+    const packIdx = html.indexOf('data-cmd-pack');
+    const creatureIdx = html.indexOf('data-obj="2"');
+    // the pack renders inside the creatures row's markup, before the creatures
+    // row's own CardStacks — the commanders-draw-first order CZ2 established
+    expect(packIdx).toBeGreaterThan(rowStart);
+    expect(packIdx).toBeLessThan(rowOthersStart);
+    expect(packIdx).toBeLessThan(creatureIdx);
+  });
+
+  it('the command pack and the creatures row carry SEPARATE scales and aligns (fb-20260917T232202Z)', () => {
+    const store = layoutStore;
+    const cmd = card(1, 'Isamaru', 'Legendary Creature');
+    const creature = card(2, 'Grizzly Bears');
+    const p = player({ commanders: [cmd], command: [cmd], battlefield: [creature] });
+    store.bump('command', 0.3);
+    try {
+      const { html } = render(Quadrant, { props: { player: p, colour: '#e5484d' } });
+      const creaturesRow = html.slice(html.indexOf('row creatures'), html.indexOf('row others'));
+      // the row keeps ITS OWN scale (1) while the pack carries the command scale (1.3)
+      expect(creaturesRow).toMatch(/--row-scale:\s*1/);
+      expect(creaturesRow).toMatch(/--cmd-scale:\s*1\.3/);
+    } finally {
+      store.reset();
+      store.dispose();
+    }
+  });
 });
 
 describe('Quadrant — an eliminated seat is greyed out on the board (Task 3)', () => {

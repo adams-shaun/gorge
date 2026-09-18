@@ -646,7 +646,7 @@ describe('PlaySettingsPanel — Layout section (fb-20260916T182801Z)', () => {
   it('renders a row per zone with a size stepper, a live readout and an alignment select', () => {
     const html = panel(new SeatPanelState('yt-layout', 1, ctx, null));
     expect(html).toContain('data-layout-section');
-    for (const zone of ['creatures', 'others', 'lands', 'hand'] as const) {
+    for (const zone of ['creatures', 'others', 'lands', 'command', 'hand'] as const) {
       const row = elem(html, `data-layout-zone="${zone}"`);
       expect(row).not.toBe('');
       expect(row).toContain('data-layout-smaller');
@@ -655,6 +655,13 @@ describe('PlaySettingsPanel — Layout section (fb-20260916T182801Z)', () => {
       expect(row).toContain('<select');
       expect(row).toContain('data-layout-align');
     }
+    // fb-20260917T232202Z: the command zone has its own row, labelled, ordered
+    // between the lands row and the hand row (the seat's rim zone, not a
+    // battlefield row).
+    const cmdRow = elem(html, 'data-layout-zone="command"');
+    expect(cmdRow).toContain('Command zone');
+    expect(html.indexOf('data-layout-zone="lands"')).toBeLessThan(html.indexOf('data-layout-zone="command"'));
+    expect(html.indexOf('data-layout-zone="command"')).toBeLessThan(html.indexOf('data-layout-zone="hand"'));
     expect(html).toContain('data-peek-picker');
     expect(html).toContain('data-layout-reset');
     // the hand's peek segmented control marks the shipped default
@@ -694,7 +701,7 @@ describe('PlaySettingsPanel — Layout section (fb-20260916T182801Z)', () => {
       // ...and the panel's OWN per-zone steppers/alignment rows stay mounted
       // regardless of the toggle: they are the way back once the board marks
       // are hidden.
-      for (const zone of ['creatures', 'others', 'lands', 'hand'] as const) {
+      for (const zone of ['creatures', 'others', 'lands', 'command', 'hand'] as const) {
         const row = elem(on, `data-layout-zone="${zone}"`);
         expect(row).not.toBe('');
         expect(row).toContain('data-layout-smaller');

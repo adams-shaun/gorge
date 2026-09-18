@@ -72,11 +72,13 @@
 <div class="quadrant rule-{OUTER[corner]} {FACING[corner]}" class:lost={player.lost} style:--seat={colour} data-seat={player.seat} data-lost={player.lost}>
   <!-- Nonlands above, lands below (survey #22), so a board stays parseable as
        it grows and the row a combat is read from is always in the same place.
-       The seat's commanders draw first in the creatures row (CZ2): a
-       commander is a creature, so it takes the row's own --card-w rather
-       than a scale of its own, and it sits beside the CardStacks it competes
-       with in combat instead of in a private area elsewhere on the seat's
-       rim. Nothing is drawn here for a seat with no commander roster. -->
+       The seat's commanders draw first in the creatures row (CZ2), inside
+       the command pack — CommandArea's own sub-row carrying the command
+       zone's OWN scale and align (fb-20260917T232202Z, the player asked for
+       the command zone to have its own sizing and placement options);
+       with both at their defaults the pack is indistinguishable from the
+       pre-pack interleaved tiles at the row's own --card-w. Nothing is
+       drawn here for a seat with no commander roster. -->
   <div
     class="row creatures"
     class:zone-outline={rowOutlined('creatures')}

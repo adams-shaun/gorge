@@ -37,14 +37,82 @@ describe('defaults', () => {
   it('every zone at 100%, left-packed rows, centred hand, hover peek', () => {
     const d = defaultLayout();
     expect(d.version).toBe(1);
-    expect(d.scale).toEqual({ creatures: 1, others: 1, lands: 1, hand: 1 });
-    expect(d.align).toEqual({ creatures: 'left', others: 'left', lands: 'left', hand: 'center' });
+    expect(d.scale).toEqual({ creatures: 1, others: 1, lands: 1, command: 1, hand: 1 });
+    expect(d.align).toEqual({ creatures: 'left', others: 'left', lands: 'left', command: 'left', hand: 'center' });
     expect(d.handPeek).toBe('hover');
     expect(d.steppersOnBoard).toBe(false); // fb-20260917T004304Z: hidden by default
   });
 
-  it('covers exactly the four zones the brief scopes (stacks + hand)', () => {
-    expect(LAYOUT_ZONES).toEqual(['creatures', 'others', 'lands', 'hand']);
+  it('covers exactly the five zones: the three battlefield rows, the seat\'s command rim zone, then hand', () => {
+    // fb-20260917T232202Z: the command zone is a first-class LayoutZone —
+    // panel order is battlefield rows top-to-bottom, the seat's own rim
+    // zone, then hand.
+    expect(LAYOUT_ZONES).toEqual(['creatures', 'others', 'lands', 'command', 'hand']);
+  });
+});
+
+describe('the command zone\'s own keys (fb-20260917T232202Z)', () => {
+  it('a pre-change saved v1 blob (no command keys) loads WITHOUT falling back to all-defaults', () => {
+    // The exact blob shape the PRE-COMMAND client saved: version 1, the four
+    // legacy zones' scale/align, handPeek, steppersOnBoard — and nothing for
+    // the command zone. validate treats the command keys as OPTIONAL (the
+    // steppersOnBoard precedent, fb-20260917T004304Z): the missing keys load
+    // as the shipped command defaults (scale 1, align left) and every
+    // player-chosen value below survives the deploy — a blob wipe to
+    // all-defaults here would lose the player their sizes.
+    const st = memStorage();
+    const preCommand = {
+      version: 1,
+      scale: { creatures: 1.2, others: 0.8, lands: 1.1, hand: 0.9 },
+      align: { creatures: 'center', others: 'right', lands: 'left', hand: 'left' },
+      handPeek: 'always',
+      steppersOnBoard: true,
+    };
+    st.setItem(LAYOUT_KEY, JSON.stringify(preCommand));
+    expect(loadLayout(st)).toEqual({
+      ...preCommand,
+      scale: { ...preCommand.scale, command: 1 },
+      align: { ...preCommand.align, command: 'left' },
+    });
+  });
+
+  it('the loaded pre-change blob can then be edited per zone and round-trips the command keys', () => {
+    const st = memStorage();
+    const preCommand = {
+      version: 1,
+      scale: { creatures: 1.2, others: 0.8, lands: 1.1, hand: 0.9 },
+      align: { creatures: 'center', others: 'right', lands: 'left', hand: 'left' },
+      handPeek: 'always',
+    };
+    st.setItem(LAYOUT_KEY, JSON.stringify(preCommand));
+    const loaded = loadLayout(st);
+    expect(withScale(loaded, 'command', 1.4).scale.command).toBe(1.4);
+    expect(loaded.scale.creatures).toBe(1.2); // the legacy zones untouched
+    saveLayout(st, withAlign(loaded, 'command', 'right'));
+    const reloaded = loadLayout(st);
+    expect(reloaded.align.command).toBe('right');
+    expect(reloaded.align.creatures).toBe('center');
+  });
+
+  it('a present-but-invalid command scale corrupts the whole blob to defaults (same strictness as every field)', () => {
+    const st = memStorage();
+    st.setItem(LAYOUT_KEY, JSON.stringify({ ...defaultLayout(), scale: { ...defaultLayout().scale, command: 5 } }));
+    expect(loadLayout(st)).toEqual(defaultLayout());
+    st.setItem(LAYOUT_KEY, JSON.stringify({ ...defaultLayout(), scale: { ...defaultLayout().scale, command: 'big' } }));
+    expect(loadLayout(st)).toEqual(defaultLayout());
+  });
+
+  it('a present-but-unknown command align word corrupts the whole blob to defaults', () => {
+    const st = memStorage();
+    st.setItem(LAYOUT_KEY, JSON.stringify({ ...defaultLayout(), align: { ...defaultLayout().align, command: 'middle' } }));
+    expect(loadLayout(st)).toEqual(defaultLayout());
+  });
+
+  it('the default command align is left, not the hand\'s centre', () => {
+    // The command tiles sit at the creatures row's FRONT today (CZ2, genesis
+    // order); their shipped packing must keep them there.
+    expect(defaultLayout().align.command).toBe('left');
+    expect(defaultLayout().scale.command).toBe(1);
   });
 });
 
@@ -166,7 +234,8 @@ describe('persistence', () => {
     // the toggle was opt-out-with-default-ON for one day, so nobody could
     // have opted IN and no saved blob loses a choice it made (the missing
     // path must still preserve the rest of the blob, hence optional, not
-    // corrupt).
+    // corrupt). The command zone's keys (fb-20260917T232202Z, optional for
+    // the same reason) load as their shipped defaults alongside.
     const st = memStorage();
     const preToggle = {
       version: 1,
@@ -175,7 +244,12 @@ describe('persistence', () => {
       handPeek: 'always',
     };
     st.setItem(LAYOUT_KEY, JSON.stringify(preToggle));
-    expect(loadLayout(st)).toEqual({ ...preToggle, steppersOnBoard: false });
+    expect(loadLayout(st)).toEqual({
+      ...preToggle,
+      scale: { ...preToggle.scale, command: 1 },
+      align: { ...preToggle.align, command: 'left' },
+      steppersOnBoard: false,
+    });
   });
 
   it('a present-but-non-boolean steppersOnBoard is still corrupt (falls back to ALL defaults)', () => {
