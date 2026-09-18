@@ -65,6 +65,7 @@
   import { stepFullName } from '../lib/phases';
   import { LAYOUT_ZONES, ZONE_ALIGNS, HAND_PEEKS, ZONE_LABELS, ALIGN_LABELS, HAND_PEEK_LABELS, SCALE_STEP, type ZoneAlign } from '../lib/layoutsettings';
   import { layoutStore } from '../lib/layoutsettings.svelte';
+  import { storageWritable } from '../lib/storage';
   import type {
     OpponentObjectRule,
     OpponentTriggerRule,
@@ -105,6 +106,17 @@
 
   const s = $derived(logic.settings);
   const STEPPABLE = STOPPABLE_STEPS as readonly StoppableStep[];
+
+  /**
+   * persistOK is the ONE storage-availability signal (lib/storage.ts):
+   * false means every preference store — play settings, layout, remembered
+   * answers, the transcript toggle — is silently memory-only in this browser
+   * (site data refused or the write probe fails), so settings reset on every
+   * reload. Probed once at mount; rendered as the notice under the step-stop
+   * grid (fb-20260917T232814Z), the one place a player editing preferences
+   * is guaranteed to look.
+   */
+  const persistOK = storageWritable();
 
   const OBJECT_OPTIONS: { value: OpponentObjectRule; label: string }[] = [
     { value: 'if-respondable', label: 'If I can respond' },
@@ -320,6 +332,11 @@
         {/each}
       </tbody>
     </table>
+    {#if !persistOK}
+      <p class="persist-warn" data-persist-warn role="status">
+        Preferences are not being saved — this browser is refusing site data, so settings reset on every reload.
+      </p>
+    {/if}
     <p class="legend">Smart = only if I have a play. Always stops even at an empty window; Off never stops.</p>
   </section>
 
@@ -745,6 +762,14 @@
     margin: var(--sp-1) 0 0;
     color: var(--ink-faint);
     font-size: var(--t-10);
+  }
+  /* fb-20260917T232814Z: the storage-refusal notice under the step-stop grid.
+     Same box rhythm as .legend but in --danger so it reads as a warning, not
+     as a cell explanation. */
+  .persist-warn {
+    margin: var(--sp-2) 0 0;
+    color: var(--danger);
+    font-size: var(--t-12);
   }
   .reset {
     width: 100%;

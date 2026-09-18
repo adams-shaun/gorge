@@ -11,7 +11,12 @@
  * recorded here rather than in the component — a seat's view is a different
  * thing from a spectator's, and the two scopes get separate stored values so
  * toggling in one does not flip the other.
+ *
+ * The storage handle is the ONE shared guard (lib/storage.ts) since
+ * fb-20260917T232814Z — this module used to carry its own private copy.
  */
+
+import { safeStorage } from './storage';
 
 const PREFIX = 'gorge.log.';
 
@@ -26,16 +31,6 @@ export function logShownKey(table: string, scope: LogScope): string {
  *  about how much log anyone wants. */
 export function defaultLogShown(scope: LogScope): boolean {
   return scope === 'spectator';
-}
-
-/** safeStorage is localStorage where it exists and is reachable; null under
- *  SSR and in a browser that refuses site data. Same guard as stops.ts. */
-function safeStorage(): Storage | null {
-  try {
-    return typeof localStorage === 'undefined' ? null : localStorage;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -63,5 +58,3 @@ export function saveLogShown(storage: Storage | null, table: string, scope: LogS
     /* private mode or quota: keep the in-memory copy */
   }
 }
-
-export { safeStorage };
