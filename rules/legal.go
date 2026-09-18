@@ -1003,6 +1003,24 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				}
 			}
 		}
+		// CR 714.3a: the Adventure spell face of an Adventure card may be cast
+		// from hand. Mode adventure_alt is consumed by beginCast, which records
+		// a FlipFace to the spell face before the ordinary cast transaction;
+		// the resolution then exiles the card into the adventure zone
+		// (spellRestZone's FlagAdventure branch). Gated on the ADVENTURE face's
+		// own timing, targets and cost -- an Instant Adventure casts at instant
+		// speed, a Sorcery Adventure only at sorcery timing -- exactly like the
+		// Room offer above, including the withSpellAbilityExtras fold (the
+		// spell face's own SP Cost$ additional parts).
+		if int(o.FaceIdx) == 0 {
+			if af := adventureSpellFace(o); af != nil && e.spellTimingOK(p, id, af, sorcery) &&
+				e.castTargetsAvailable(p, id, af.SpellAbility()) {
+				if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
+				}
+			}
+		}
 		for i, alt := range e.alternativeCosts(p, id) {
 			if !targetsAvailable {
 				continue
@@ -1326,6 +1344,28 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		o := e.G.Obj(id)
 		f := o.Face()
 		if f == nil || o.IsToken {
+			continue
+		}
+		// CR 714.3a: the main face of an Adventure card resting in the
+		// adventure zone (exile, at its Adventure spell face) may be cast from
+		// there. Mode adventure_recast is consumed by beginCast, which flips
+		// the card back to its main face before the ordinary cast transaction
+		// -- so everything downstream reads the main face. The provenance (the
+		// card got here by RESOLVING an adventure_alt cast) is log-derived:
+		// adventureZoneAvailable. The cost is built from the MAIN face
+		// explicitly -- rawBaseCost reads o.Face(), which is still the
+		// Adventure face in exile, exactly the reason the Room offer parses its
+		// own face's cost too. The adventure-zone entry from a non-resolution
+		// path (CR 714.3b) is out of scope, and adventureZoneAvailable refuses
+		// it.
+		if adventureSpellFace(o) != nil && int(o.FaceIdx) == 1 && e.adventureZoneAvailable(id) &&
+			!castRestricted(p, id) && !e.castSuppressed(p, id) {
+			front := o.Card.Faces[0]
+			if e.spellTimingOK(p, id, front, sorcery) && e.castTargetsAvailable(p, id, front.SpellAbility()) &&
+				offerCastable(p, id, ParseCost(front.ManaCost), spellScope(""), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + front.Name + " (from adventure zone)", Obj: id, Mode: "adventure_recast"})
+			}
 			continue
 		}
 		_, ok := keywordAltCost(f, "Warp")

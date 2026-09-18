@@ -165,7 +165,8 @@ type pendingCast struct {
 	// flight (an ability, or a spell aborted before the push).
 	preSuppress map[state.ObjID]bool
 
-	// faceBefore is non-nil only for a CR 309.4b alternate Room cast. The
+	// faceBefore is non-nil only for a CR 309.4b alternate Room cast or a CR
+	// 714 Adventure-face cast (adventure_alt / adventure_recast). The
 	// proposal begins with an event-sourced FlipFace so all ordinary cast
 	// stages read the chosen door; an aborted proposal flips it back.
 	faceBefore *uint8
@@ -974,6 +975,29 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		faceBefore = &before
 		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
 	}
+	// CR 714: the same flip mechanism serves the Adventure faces. From the
+	// hand the cast flips to the Adventure spell face (adventure_alt); from
+	// the adventure zone it flips back to the main face (adventure_recast).
+	// Everything downstream -- rawBaseCost, targets, timing, resolution --
+	// then reads the flipped face, because o.Face() is Faces[FaceIdx]. An
+	// aborted proposal restores the pre-flip face via pc.faceBefore (CR
+	// 733.1), the same reversal a Room cast takes.
+	if opt.Mode == "adventure_alt" {
+		if adventureSpellFace(o) == nil {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	}
+	if opt.Mode == "adventure_recast" {
+		if o.Zone != state.ZExile || adventureSpellFace(o) == nil || o.Face() != o.Card.Faces[1] {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	}
 	f := o.Face()
 	if f == nil {
 		return
@@ -1093,7 +1117,8 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// re-added mana part would double charge. Only a plain cast reaches this
 	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
 	// no SP Cost$ contributes nothing.
-	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt") {
+	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
+		opt.Mode == "adventure_alt") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -3306,6 +3331,13 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagOverloaded)
 	case "warped":
 		return events.FlagsString(state.FlagWarped)
+	// The Adventure spell face's cast (CR 714.3a): the flag is what the
+	// resolution reader (spellRestZone) uses to exile the spell into the
+	// adventure zone instead of the graveyard. adventure_recast deliberately
+	// has NO case here -- casting the main face from the adventure zone is an
+	// ordinary cast, exactly like warp_recast.
+	case "adventure_alt":
+		return events.FlagsString(state.FlagAdventure)
 	case "buyback":
 		return events.FlagsString(state.FlagBuyback)
 	case "mayplay":
