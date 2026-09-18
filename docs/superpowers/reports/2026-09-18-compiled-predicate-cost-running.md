@@ -131,6 +131,23 @@ seconds (`matchesObjectText` plus compiled evaluator) to 12.25 seconds
 exactly 500 games, 498 eligible roots, 2 no-root games, 100 covered roots,
 and zero errors.
 
+## Task 8: cache loyalty and projection cost reads
+
+The next profile attributed 5.05 CPU-seconds of direct parsing to the
+receiver-owned `isLoyaltyAbility` helper: its fixed loyalty-counter check
+reparsed every configured activated-ability cost. `Engine.isLoyaltyAbility`
+now supplies `parseCost` to a shared classifier, while the public helper
+retains direct parsing for standalone/dynamic callers. `rawBaseCost` and the
+view projection `AbilityCosts` now likewise use the configured cache.
+
+The new regression test covers a configured `AddCounter<1/LOYALTY>` cost.
+Focused tests, vet, and the fixed workload pass. The final normalized
+500-game result is exactly equal to the control (500 games, 498 eligible
+roots, 2 no-root games, 100 covered roots, zero errors). It took 81.021
+seconds, 3.63% below the 84.076-second control, and allocated 49.630 GB,
+1.70% below the control's 50.491 GB. `ParseCost` is no longer present in the
+CPU profile's 2-second reporting table.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:

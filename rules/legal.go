@@ -508,6 +508,16 @@ func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA) i
 // so only the parameter identifies those; conversely the param covers every
 // fixed [+N]/[-N] shape, 966 of the 970 raw ability lines carrying it.
 func isLoyaltyAbility(ab *cards.SA) bool {
+	return isLoyaltyAbilityCost(ab, ParseCost(ab.Params["Cost"]))
+}
+
+// isLoyaltyAbility is the engine-owned form of the loyalty classifier. Its
+// card-script cost is configured text, so use the immutable parser sidecar.
+func (e *Engine) isLoyaltyAbility(ab *cards.SA) bool {
+	return isLoyaltyAbilityCost(ab, e.parseCost(ab.Params["Cost"]))
+}
+
+func isLoyaltyAbilityCost(ab *cards.SA, c Cost) bool {
 	if v, ok := ab.Params["Planeswalker"]; ok && strings.EqualFold(strings.TrimSpace(v), "True") {
 		return true
 	}
@@ -519,7 +529,6 @@ func isLoyaltyAbility(ab *cards.SA) bool {
 	// parameter census honest; the presentation half is named in the deck
 	// import report's Issues.
 	_ = ab.Params["Ultimate"]
-	c := ParseCost(ab.Params["Cost"])
 	for _, part := range c.AddCounter {
 		if strings.EqualFold(part.Spec, "LOYALTY") {
 			return true
@@ -588,7 +597,7 @@ func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
 			// Amount indexes the active face's ability list. Check the exact
 			// face and bounds that events.Apply used at push time.
 			f := o.Card.Faces[faceIdx]
-			if f != nil && int(ev.Amount) < len(f.Abilities) && isLoyaltyAbility(f.Abilities[int(ev.Amount)]) {
+			if f != nil && int(ev.Amount) < len(f.Abilities) && e.isLoyaltyAbility(f.Abilities[int(ev.Amount)]) {
 				used++
 			}
 
@@ -1409,7 +1418,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// exclusion there is what closed the ulalek-eldrazi seed-1019
 				// livelock (an un-tapping, gate-free, zero-cost repeatable
 				// +3 colourless activation re-offered every priority window).
-				if isManaAbilityAPI(ab.API) && !isLoyaltyAbility(ab) {
+				if isManaAbilityAPI(ab.API) && !e.isLoyaltyAbility(ab) {
 					continue
 				}
 				if !abilityZoneOK(ab, z) {
@@ -1441,7 +1450,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// and the gate must exist anyway (before this gate the
 				// [+2]/[0] abilities were offered, payable and repeatable
 				// without bound -- the live Jace draw-three exploit).
-				if isLoyaltyAbility(ab) {
+				if e.isLoyaltyAbility(ab) {
 					if !sorcery {
 						continue
 					}
@@ -1548,7 +1557,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if abilityRestricted(p, id, ab) {
 				continue
 			}
-				cost := e.parseCost(ab.Params["Cost"])
+			cost := e.parseCost(ab.Params["Cost"])
 			// The granted twin of the printed loop's own ReduceCost$ fold.
 			if n := e.ownReduceCost(p, id, ab); n > 0 && cost.Generic >= n {
 				cost.Generic -= n
@@ -1626,7 +1635,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if abilityRestricted(p, id, ab) {
 				continue
 			}
-				cost := e.parseCost(ab.Params["Cost"])
+			cost := e.parseCost(ab.Params["Cost"])
 			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 				continue
 			}

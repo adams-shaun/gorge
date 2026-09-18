@@ -857,7 +857,7 @@ func (e *Engine) rawBaseCost(p state.PlayerID, id state.ObjID) Cost {
 	if o == nil || o.Face() == nil {
 		return Cost{}
 	}
-	return ParseCost(o.Face().ManaCost)
+	return e.parseCost(o.Face().ManaCost)
 }
 
 // offerCostFor is the CR 601.2f-composed cost an offer is gated on: the
@@ -1072,7 +1072,7 @@ func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
 		if ab.Kind != "AB" || isManaAbilityAPI(ab.API) {
 			continue
 		}
-		cost := ParseCost(ab.Params["Cost"])
+		cost := e.parseCost(ab.Params["Cost"])
 		// The ability's own ReduceCost$ (Otawara's Channel): the same
 		// composition the offer gate and beginActivation's charge apply, so
 		// the decision's displayed cost is the cost the payment will charge.

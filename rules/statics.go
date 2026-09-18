@@ -1859,7 +1859,7 @@ func (e *Engine) abilityConstraintMatches(scope costScope, p state.PlayerID, id 
 	case "!ManaAbility":
 		return ab.API != "Mana"
 	case "Loyalty":
-		return isLoyaltyAbility(ab)
+		return e.isLoyaltyAbility(ab)
 	case "YouCtrl":
 		o := e.G.Obj(id)
 		return o != nil && o.Controller == p

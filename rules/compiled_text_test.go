@@ -68,3 +68,11 @@ func TestEngineMatchesSpecFromCarriesCompiledText(t *testing.T) {
 		t.Fatal("engine-owned match did not preserve configured filter semantics")
 	}
 }
+
+func TestEngineLoyaltyAbilityUsesConfiguredCost(t *testing.T) {
+	c := card(t, "Name:Loyalty Cache\nTypes:Planeswalker Test\nLoyalty:3\nA:AB$ Pump | Cost$ AddCounter<1/LOYALTY>\nOracle:x\n")
+	e := New(Config{Names: []string{"you"}, Decks: [][]*cards.Card{{c}}})
+	if !e.isLoyaltyAbility(c.Faces[0].Abilities[0]) {
+		t.Fatal("configured loyalty counter cost was not recognized")
+	}
+}
