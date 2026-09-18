@@ -175,6 +175,31 @@ games, and zero errors. The candidate took 78.146 seconds and allocated
 7.05% and 6.98%. `strings.(*Replacer).build` is absent from the candidate heap
 profile's reporting table. The change is retained.
 
+## Task 10: snapshot active statics for a trigger scan
+
+`checkGrantedStaticTriggers` previously called the cached `active()` accessor
+once for every object in an event's deterministic trigger walk. Trigger
+matching cannot emit events or mutate continuous effects, and the only
+post-walk emission (a deferred Phase diagnostic) happens after the walk, so
+`checkFaceTriggers` now takes one `observer.active()` snapshot and passes it
+through every granted-trigger match for that event. Queue construction,
+matching, and scan order are unchanged.
+
+The new semantic fixture requires a supplied active-static snapshot to queue
+the same linked `GrantTriggerPush` candidate as the ordinary matcher. Its
+first run is a compile failure against the missing snapshot-aware path. The
+240-object granted-static scan benchmark is allocation-free and has a
+five-run median of 32,682 ns/op. On the profiled workload, flat `active()` CPU
+falls from 9.06 seconds to 1.49 seconds, while granted-static trigger
+matching falls from 39.32 to 15.96 cumulative CPU-seconds.
+
+Both candidate 500-game results compare exactly equal to the post-
+`AbilityPush` semantic control: 500 games, 498 eligible roots, two no-root
+games, and zero errors. Their wall times were 78.957 and 74.719 seconds; the
+76.838-second median is 1.67% below Task 9's 78.146-second baseline.
+Allocated-byte median is effectively flat at 47.008 GB (+0.087%). The CPU
+reduction and median wall-clock improvement retain the change.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:

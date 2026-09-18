@@ -643,6 +643,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		spec string
 	}
 	var phaseNotes []phaseNote
+	// Granted triggers inspect the same active-static list for every object
+	// this event visits. Matching cannot emit or mutate continuous effects;
+	// phase diagnostics emit only after the walk, so this snapshot is stable
+	// for its full deterministic traversal.
+	grantedStatics := observer.active()
 	observer.forEachObject(func(id state.ObjID) {
 		o := observer.G.Obj(id)
 		if o == nil {
@@ -679,7 +684,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
-			e.checkGrantedStaticTriggers(observer, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 			return
 		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
@@ -890,7 +895,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 			}
 		}
-		e.checkGrantedStaticTriggers(observer, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -3043,11 +3048,11 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // the sharing cannot starve a legitimate fire. Like those two the walk is
 // deliberately a read over active()'s sorted slice, never a map: the queue
 // order stays the scan's deterministic order.
-func (e *Engine) checkGrantedStaticTriggers(observer *Engine, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
+func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []ContinuousEffect, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
 	if e.finishingLifeLossBatch || e.lifeLossBatchDepth > 0 {
 		return
 	}
-	for _, ce := range observer.active() {
+	for _, ce := range statics {
 		if ce.AddTrigger == nil {
 			continue
 		}

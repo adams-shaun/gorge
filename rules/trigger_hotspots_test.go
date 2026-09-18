@@ -100,6 +100,61 @@ func TestFaceTriggerScanDoesNotAllocatePerCard(t *testing.T) {
 	}
 }
 
+// A granted trigger is evaluated against the active-static snapshot for this
+// event. The supplied snapshot must still queue the same replayable pending
+// trigger as the ordinary scan when its state condition holds.
+func TestGrantedStaticTriggerSnapshotQueuesMatchingTrigger(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:Granted watcher\nTypes:Creature\nPT:1/1\nSVar:Go:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n")
+	e.AddContinuous(ContinuousEffect{
+		Source: id, Timestamp: 1, Layer: LAbilities, Affects: "Creature",
+		Controller: 0, UntilEOT: true,
+		AddTrigger: &cards.Trigger{Mode: "Always", Params: map[string]string{"Execute": "Go"}},
+	})
+
+	e.checkGrantedStaticTriggersUsing(e, e.active(), id, e.G.Obj(id), events.Event{Kind: events.Note}, nil, 0, 0, false)
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("pending granted triggers = %d, want 1", len(e.pendingTriggers))
+	}
+	got := e.pendingTriggers[0]
+	if !got.Granted || got.Source != id || got.Execute != "Go" || got.SA == nil {
+		t.Fatalf("pending granted trigger = %+v, want linked grant from %d", got, id)
+	}
+}
+
+func grantedStaticTriggerBenchEngine(b testing.TB, watchers int) *Engine {
+	b.Helper()
+	g := state.NewGame([]string{"a", "b", "c", "d"})
+	e := &Engine{G: g, L: events.NewLog(1), activeEpoch: -1}
+	watcher := &cards.Card{Faces: []*cards.Face{{Name: "Watcher", Types: []string{"Creature"}}}}
+	var source state.ObjID
+	for i := range watchers {
+		o := g.AddObject(watcher, state.PlayerID(i%4))
+		o.Zone = state.ZBattlefield
+		g.SetZone(state.ZBattlefield, o.Controller, append(g.Zone(state.ZBattlefield, o.Controller), o.ID))
+		if i == 0 {
+			source = o.ID
+		}
+	}
+	e.continuous = []ContinuousEffect{{
+		Source: source, Timestamp: 1, Layer: LAbilities, Affects: "Creature",
+		Controller: 0, UntilEOT: true,
+		AddTrigger: &cards.Trigger{Mode: "SpellCast"},
+	}}
+	return e
+}
+
+func BenchmarkGrantedStaticTriggerScan(b *testing.B) {
+	e := grantedStaticTriggerBenchEngine(b, 240)
+	ev := events.Event{Kind: events.Note}
+	e.checkFaceTriggers(e, ev, nil, 0, 0, false, false, false)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		e.checkFaceTriggers(e, ev, nil, 0, 0, false, false, false)
+	}
+}
+
 func TestReplacementScanDoesNotAllocatePerCard(t *testing.T) {
 	e := layerEngine(t)
 	id := onBoard(t, e, 0, "Name:Replacement probe\nTypes:Basic Land Forest\nOracle:x\n")
