@@ -446,6 +446,14 @@ describe('decide', () => {
   });
 
   // --- own-turn main-phase floor (fb-20260917T231311Z-e392fcc0) ---
+  //
+  // rv2c merged over b4234e28: the castability oracle the floor reads is no
+  // longer a client-side mana scan of hand+lands — it is the seat's own
+  // projected potential_actions (castable.ts reads the server's offer walk
+  // and fails closed to empty without it). The seq-1260 fixtures keep the
+  // incident's hand and battlefield as context; the PROJECTION is the
+  // operative input, carrying the two Burning Wish casts the engine would
+  // unlock once the lands' mana floated.
 
   const seqLand = (id: number, name: string, colour: [number, number, number, number, number, number]): CardView =>
     ({ id, name, types: 'Land', mana_cost: '', controller: 0, owner: 0, produces: { colour, any: false } }) as CardView;
@@ -457,6 +465,9 @@ describe('decide', () => {
   const SEQ_BW_2 = handCard({ id: 34, name: 'Burning Wish', types: 'Sorcery', mana_cost: '1 R' });
   const SEQ_AD_NAUSEAM = handCard({ id: 43, name: 'Ad Nauseam', types: 'Instant', mana_cost: '3 B B' });
 
+  /** seqBW is one projected Burning Wish cast: the offer's obj is the hand card's id, the label the server's own. */
+  const seqBW = (id: number): PotentialAction => ({ kind: 'cast', obj: id, label: 'Cast Burning Wish' });
+
   /** seq1260Options is the incident decision's exact option list: four mana-tap activates, the pass at index 4. */
   const seq1260Options: Option[] = [
     { index: 0, kind: 'activate', label: 'Activate Island for mana', player: 0, obj: 6 },
@@ -467,12 +478,16 @@ describe('decide', () => {
     { index: 5, kind: 'concede', label: 'Concede', player: 0 },
   ];
 
-  /** seqView rebuilds the incident state (turn 11 main1, seat 0 active): four untapped lands, the reported hand, empty pool. */
-  const seqView = (step = 'main1', active = 0): View =>
+  /**
+   * seqView rebuilds the incident state (turn 11 main1, seat 0 active): four untapped lands, the reported hand,
+   * empty pool, and seat 0's own projection — by default the two Burning Wish casts the incident hand unlocks.
+   */
+  const seqView = (step = 'main1', active = 0, actions: PotentialAction[] = [seqBW(33), seqBW(34)]): View =>
     withHand(view(active, step, [], [{ seat: 0, cards: [] }]), 0, {
       hand: [SEQ_BW_1, SEQ_AD_NAUSEAM, SEQ_BW_2],
       battlefield: [SEQ_ISLAND, SEQ_SWAMP, SEQ_MOUNTAIN, SEQ_VOLC],
       pool: {},
+      potential_actions: actions,
     });
 
   /** seqOff is the incident settings: Auto on (default), the own-main steps off. */
@@ -492,17 +507,16 @@ describe('decide', () => {
     expect(run(priority(seq1260Options), seqView('main2'), seqOff())).toEqual({ act: 'stop', reason: 'stop-set' });
   });
 
-  it('own-turn main1 off + a dead hand still passes (the seq-1053 shape: only Mountain untapped, {1}{R} and {3}{B}{B} unpayable)', () => {
+  it('own-turn main1 off + a dead hand still passes (the seq-1053 shape: the engine projects no play for the unpayable hand)', () => {
     const d = priority([
       { index: 0, kind: 'activate', label: 'Activate Mountain for mana', player: 0, obj: 7 },
       { index: 1, kind: 'pass', label: 'Pass priority', player: 0 },
       { index: 2, kind: 'concede', label: 'Concede', player: 0 },
     ]);
-    const v = withHand(view(0, 'main1', [], [{ seat: 0, cards: [] }]), 0, {
-      hand: [SEQ_BW_1, SEQ_AD_NAUSEAM, SEQ_BW_2],
-      battlefield: [SEQ_MOUNTAIN],
-      pool: {},
-    });
+    // rv2c: the projection is the castability oracle — the seq-1053 incident's
+    // hand (only Mountain untapped) unlocks nothing, so the engine projects
+    // no cast and the floor stays quiet.
+    const v = seqView('main1', 0, []);
     expect(run(d, v, seqOff())).toEqual({ act: 'pass', index: 1 });
   });
 
@@ -523,14 +537,11 @@ describe('decide', () => {
       { index: 2, kind: 'pass', label: 'Pass priority', player: 0 },
       { index: 3, kind: 'concede', label: 'Concede', player: 0 },
     ]);
-    // {1}{R} here IS payable (Mountain R + Island U, both offered), so this
-    // leaf isolates the step scoping: the hand IS castable and the upkeep
-    // pass must survive the floor anyway.
-    const vCastable = withHand(view(0, 'upkeep', [], [{ seat: 0, cards: [] }]), 0, {
-      hand: [SEQ_BW_1],
-      battlefield: [SEQ_MOUNTAIN, SEQ_ISLAND],
-      pool: {},
-    });
+    // A sorcery IS projected here, so this leaf isolates the step scoping:
+    // the window has a real play and the upkeep pass must survive the floor
+    // anyway (the engine itself gates sorcery-speed offers by step, so an
+    // upkeep projection of a sorcery is the timing-safe shape).
+    const vCastable = seqView('upkeep', 0, [seqBW(33)]);
     expect(run(d, vCastable, seqOff())).toEqual({ act: 'pass', index: 2 });
     expect(actionables(vCastable, 0, d).length).toBeGreaterThan(0);
   });
