@@ -60,6 +60,27 @@ func BenchmarkParseCostHotShapes(b *testing.B) {
 	}
 }
 
+func BenchmarkParseCostMana(b *testing.B) {
+	b.ReportAllocs()
+	for range b.N {
+		parsedCostSink = ParseCost("2 U U")
+	}
+}
+
+func BenchmarkParseCostHybridNonMana(b *testing.B) {
+	b.ReportAllocs()
+	for range b.N {
+		parsedCostSink = ParseCost("GWP 2B Sac<1/Creature>")
+	}
+}
+
+func BenchmarkParseCostGraveyardLife(b *testing.B) {
+	b.ReportAllocs()
+	for range b.N {
+		parsedCostSink = ParseCost("1 B ExileFromGrave<1/CARDNAME> PayLife<2>")
+	}
+}
+
 func TestParseCostSingleManaDoesNotAllocate(t *testing.T) {
 	if got := ParseCost("1 U"); got.Generic != 1 || got.Colored[1] != 1 {
 		t.Fatalf("ParseCost = %+v", got)

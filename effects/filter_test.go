@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func board(t *testing.T) (*state.Game, map[string]state.ObjID) {
+func board(t testing.TB) (*state.Game, map[string]state.ObjID) {
 	t.Helper()
 	g := state.NewGame([]string{"you", "them"})
 	mkIn := func(owner state.PlayerID, zone state.Zone, src string) state.ObjID {
