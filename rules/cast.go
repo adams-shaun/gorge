@@ -4258,5 +4258,9 @@ func init() {
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
-		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling")
+		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
+		// kw:Affinity: CR 702.41, expanded by cards/keywords.go into the
+		// ordinary ReduceCost cost-static machinery (rules/statics.go's
+		// collectCostStatics) -- no separate cast path of its own.
+		"kw:Affinity")
 }
