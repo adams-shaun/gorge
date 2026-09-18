@@ -3926,3 +3926,227 @@ Commander:
 1x Swamp
 1x Mountain
 1x Mountain
+# --- Eldrazi Incursion (m3c commander precon, Ulalek, Fused Atrocity) — census input, 2026-09-18 (issue agent-20260918T203713Z-c5624ae1) ---
+1 Ulalek, Fused Atrocity
+1 Azlask, the Swelling Scourge
+1 Ulamog's Dreadsire
+1 Benthic Anomaly
+1 Eldritch Immunity
+1 Selective Obliteration
+1 Angelic Aberration
+1 Bismuth Mindrender
+1 Hideous Taskmaster
+1 Twins of Discord
+1 Mutated Cultist
+1 Eldrazi Confluence
+1 Spawnbed Protector
+1 Chittering Dispatcher
+1 Inversion Behemoth
+1 Ugin, the Ineffable
+1 Eldrazi Conscription
+1 Cascading Cataracts
+1 Eldrazi Monument
+1 Sire of Stagnation
+1 Shrine of the Forsaken Gods
+1 Ugin's Insight
+1 Drowner of Hope
+1 Return of the Wildspeaker
+1 Tendo Ice Bridge
+1 Battlefield Forge
+1 Llanowar Wastes
+1 Brushland
+1 Underground River
+1 Oblivion Sower
+1 Adarkar Wastes
+1 Karplusan Forest
+1 Yavimaya Coast
+1 Sulfurous Springs
+1 Caves of Koilos
+1 Shivan Reef
+1 Imprisoned in the Moon
+1 Temple of Malady
+1 Temple of Silence
+1 Morophon, the Boundless
+1 Kozilek's Return
+1 World Breaker
+1 Ruins of Oran-Rief
+1 Sifter of Skulls
+1 Endbringer
+1 Corrupted Crossroads
+1 Deepfathom Skulker
+1 Vile Redeemer
+1 Eldrazi Displacer
+1 Mystic Forge
+1 All Is Dust
+1 Rishkar's Expertise
+1 Awakening Zone
+1 Eldrazi Temple
+1 Elder Deep-Fiend
+1 Bonders' Enclave
+1 Exotic Orchard
+1 Forsaken Monument
+1 Snapping Voidcraw
+1 Herald's Horn
+1 Everflowing Chalice
+1 Glaring Fleshraker
+1 Wastescape Battlemage
+1 Crib Swap
+1 Titans' Vanguard
+1 Talisman of Resilience
+1 Hedron Archive
+1 Spawning Bed
+1 Ulamog's Nullifier
+1 Twisted Landscape
+1 Tranquil Landscape
+1 Tectonic Edge
+1 Reliquary Tower
+1 Sol Ring
+1 Artisan of Kozilek
+1 Opal Palace
+1 Dreamstone Hedron
+1 Arcane Signet
+1 Tomb of the Spirit Dragon
+1 Secluded Courtyard
+1 Idol of Oblivion
+1 Wastes
+1 Talisman of Curiosity
+1 Talisman of Impulse
+1 Warping Wail
+1 Talisman of Dominance
+1 Command Tower
+1 Ash Barrens
+1 Ancient Stirrings
+1 Ulamog's Crusher
+1 Garruk's Uprising
+1 Suffer the Past
+1 Skittering Invasion
+1 Path of Ancestry
+1 Unclaimed Territory
+1 Plains
+1 Island
+1 Swamp
+1 Mountain
+1 Forest
+# --- Lorehold Spirit (soc commander precon, Quintorius, History Chaser) — census input, 2026-09-18 (issue agent-20260918T211806Z-5165a52a) ---
+# run: sed -n '/Lorehold Spirit (soc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/soc-lorehold-spirit.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC Secrets of Strixhaven Commander decklist announcement deck-list element, cross-checked
+#   card-for-card against MTGGoldfish deck 7711188 (fetched 2026-09-18)
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps: kw:Hexproof, kw:Echo, kw:Backup,
+#   api:Phases, api:EachDamage, trig:DiscardedAll (+ 8 new param/cost families).
+# Gap primitives (18 of 100 cards / 13 distinct primitive labels, lists in the census report):
+#   trig:ChangesZoneAll (Quintorius HC, Laelia, Tocasia's Welcome, Kirol, Quintorius FH, Spirit of Resilience);
+#   api:AlterAttribute (Naktamun Lorespinner, Lorehold Archivist, Kirol); api:Clone (Spirit of Resilience);
+#   api:CopyPermanent (Hofri Ghostforge, Lorehold Archivist); kw:Class (Advanced Reconstruction);
+#   api:Phases (Guardian of Faith); kw:Backup (Guardian Scalelord); kw:Hexproof (Lotus Field);
+#   trig:TokenCreatedOnce (Staff of the Storyteller); kw:Echo (Karmic Guide);
+#   api:ImmediateTrigger (Augusta, Order Returned); api:EachDamage (Wave of Reckoning);
+#   trig:DiscardedAll (Conspiracy Theorist). Tickets for the TRUE new gaps in .ds4/new-tickets/ (14 filed);
+#   the open-ledger overlaps (ChangesZoneAll, Clone, CopyPermanent, Class, AlterAttribute, ImmediateTrigger,
+#   ChangeZone.StaticEffect, Animate.Triggers, Mana.TriggersWhenSpent, Mill.RememberMilled) NOT re-filed.
+# New param/cost tickets (8): api:Dig.WithTotalCMC, api:ChooseCard.ChooseEach, api:CopySpellAbility.Optional,
+#   api:Vote.StoreVoteNum, api:Animate.sVars, cost:Mill, stat:Continuous.MayPlay.ValidAfterStack (the
+#   withheld-whole may-play gate — must be evaluated, not widened), stat:Continuous.EffectZone (234 files).
+# Known-family leans, no ticket: api:Dig.RestRandomOrder (Ao) and the desc-only ValidTgtsDesc family
+#   (Excava, Primary Research, Lorehold Charm, Augusta) — both named in AGENTS.md's approximations table.
+Commander
+1x Quintorius, History Chaser
+1x Excava, the Risen Past
+1x Lorehold Archivist
+1x Augusta, Order Returned
+1x Ceaseless Conflict
+1x Vanguard of the Restless
+1x Advanced Reconstruction
+1x Fateful Tempest
+1x Naktamun Lorespinner
+1x Relic Retriever
+1x Spirit of Resilience
+1x Turbulent Steppe
+1x Moonshaker Cavalry
+1x Staff of the Storyteller
+1x Wave of Reckoning
+1x Fabled Passage
+1x Angel of Indemnity
+1x Ao, the Dawn Sky
+1x Archaeomancer's Map
+1x Claim Jumper
+1x Drumbellower
+1x Guardian of Faith
+1x Guardian Scalelord
+1x Karmic Guide
+1x Monologue Tax
+1x Remorseful Cleric
+1x Selfless Spirit
+1x Serra Paragon
+1x Sevinne's Reclamation
+1x Skyclave Apparition
+1x Sun Titan
+1x Tocasia's Welcome
+1x Tragic Arrogance
+1x White Orchid Phantom
+1x Atsushi, the Blazing Sky
+1x Conspiracy Theorist
+1x Laelia, the Blade Reforged
+1x Balefire Liege
+1x Hofri Ghostforge
+1x Quintorius, Loremaster
+1x Venerable Warsinger
+1x Bitterthorn, Nissa's Animus
+1x Currency Converter
+1x Battlefield Forge
+1x Clifftop Retreat
+1x Emeria, the Sky Ruin
+1x Exotic Orchard
+1x Furycalm Snarl
+1x Glittering Massif
+1x Lotus Field
+1x Radiant Summit
+1x Rugged Prairie
+1x Sunscorched Divide
+1x Temple of Triumph
+1x Arcane Signet
+1x Sol Ring
+1x Command Tower
+1x Primary Research
+1x Seize the Spoils
+1x Kirol, History Buff
+1x Lorehold Charm
+1x Fields of Strife
+1x Terramorphic Expanse
+1x Kami of Ancient Law
+1x Path to Exile
+1x Secret Rendezvous
+1x Swords to Plowshares
+1x Teshar, Ancestor's Apostle
+1x Anger
+1x Faithless Looting
+1x Squee, Goblin Nabob
+1x Quintorius, Field Historian
+1x Rip Apart
+1x Containment Construct
+1x Fellwar Stone
+1x Millikin
+1x Mind Stone
+1x Patchwork Banner
+1x Perpetual Timepiece
+1x Lorehold Campus
+1x Mistveil Plains
+1x Sacred Peaks
+1x Study Hall
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Mountain
+1x Mountain
+1x Mountain
+1x Mountain
+1x Mountain
+1x Mountain
