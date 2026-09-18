@@ -2925,3 +2925,115 @@ Deck
 5 Plains
 5 Swamp
 5 Mountain
+# --- Graveyard Overdrive (m3c commander precon, Disa the Restless) — census input, 2026-09-18 (issue agent-20260918T203713Z-010e53fd) ---
+# run: sed -n '/Graveyard Overdrive (m3c/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/m3c-graveyard-overdrive.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# 100/100 resolved; commander eligible (Legendary Creature). 1 new-gap ticket (.ds4/new-tickets/kw-cascade.md); kw-escape.md re-filed as a registration false gap (r2 review) — deck file NOT added.
+# Gap primitives (7 of 91 cards / 3 primitives): kw:Cascade (Bloodbraid Elf, Bituminous Blast, Bloodbraid Challenger) — NEW, not in the ledger;
+#   api:ImmediateTrigger and api:CopyPermanent are the open-ledger overlaps listed below. kw:Escape (Bloodbraid Challenger) is a FALSE gap of the
+#   registration class: the escape cast IS implemented (rules/legal.go's graveyard-cast offer, rules/altcast.go escapeCost, exileCost in rules/mana.go,
+#   state.FlagEscaped, pinned by rules/rakdos_params_escape_test.go) — only effects.RegisterNonAPI("kw:Escape") is missing (.ds4/new-tickets/kw-escape.md, corrected r2).
+# Open-ledger overlaps (do not re-file): api:ImmediateTrigger (Grist the Hunger Tide, Ziatora the Incinerator, Riveteers Overlook) =
+#   issue-agent-20260918T195920Z-2fd3b568 + issue-agent-20260918T202223Z-6ad7f5ec; api:CopyPermanent (Disa the Restless) =
+#   issue-agent-20260918T200326Z-6994a692 + issue-agent-20260918T213512Z-bdef0f98.
+# False gap: kw:Changeling (Graveshifter) — implemented at effects/filter.go hasType; only the RegisterNonAPI("kw:Changeling") line is missing.
+# Invisible gap the primitive ratchet cannot see: Final Act's fifth Charm choice (Choices$ RemoveAllCounters) reaches an unregistered
+#   api:RemoveCounter through an SVar body only — Primitives() walks Abilities/Triggers/Statics/Repls/Keywords, not Charm Choices$ SVars,
+#   so the deck gap list shows Final Act clean while that mode is a guaranteed no-op. Ledger: issue-agent-20260918T202223Z-d6a3729d.
+# source: MTGJSON DeckLists GraveyardOverdrive_M3C (api/v5/decks/GraveyardOverdrive_M3C.json, 100 cards, basics aggregated) —
+#         measured 100/100 resolved, 91 distinct, 8 cards flagged with gaps (7 real / 3 primitives; kw:Escape on Bloodbraid Challenger is the false one) at make report `cards: 33667  playable: 25105 (74.6%)`
+
+Commander
+1 Disa the Restless
+
+Deck
+1 Accursed Marauder
+1 Altar of the Goyf
+1 Anger
+1 Arcane Signet
+1 Archon of Cruelty
+1 Barrowgoyf
+1 Bituminous Blast
+1 Bloodbraid Challenger
+1 Bloodbraid Elf
+1 Brawn
+1 Broodmate Tyrant
+1 Burnished Hart
+1 Canyon Slough
+1 Chandra's Ignition
+1 Cinder Glade
+1 Command Tower
+1 Coram, the Undertaker
+1 Dakmor Salvage
+1 Deadbridge Chant
+1 Deathreap Ritual
+1 Demolition Field
+1 Eternal Witness
+1 Evolving Wilds
+1 Exotic Orchard
+1 Exterminator Magmarch
+1 Faithless Looting
+1 Final Act
+1 Find // Finality
+1 Forgotten Cave
+1 Garruk, Apex Predator
+1 Gluttonous Hellkite
+1 Grapple with the Past
+1 Graveshifter
+1 Grisly Salvage
+1 Grist, the Hunger Tide
+1 Ignoble Hierarch
+1 Infested Thrinax
+1 Izoni, Thousand-Eyed
+1 Junji, the Midnight Sky
+1 Kessig Wolf Run
+1 Kolaghan's Command
+1 Lhurgoyf
+1 Lightning Greaves
+1 Liliana, Death's Majesty
+1 Maelstrom Pulse
+1 Maskwood Nexus
+1 Mortivore
+1 Mossfire Valley
+1 Myriad Landscape
+1 Necrogoyf
+1 Path of Ancestry
+1 Polygoyf
+1 Pyrogoyf
+1 Raging Ravine
+1 Rampant Growth
+1 Riveteers Charm
+1 Riveteers Overlook
+1 Sakura-Tribe Elder
+1 Savage Lands
+1 Sawhorn Nemesis
+1 Selvala, Heart of the Wilds
+1 Shadowblood Ridge
+1 Sheltered Thicket
+1 Siege-Gang Lieutenant
+1 Smoldering Marsh
+1 Sol Ring
+1 Stitcher's Supplier
+1 Syphon Mind
+1 Syr Konrad, the Grim
+1 Tainted Peak
+1 Tainted Wood
+1 Talisman of Impulse
+1 Talisman of Indulgence
+1 Talisman of Resilience
+1 Tarmogoyf Nest
+1 Temple of Abandon
+1 Temple of Malady
+1 Temple of Malice
+1 Tempt with Mayhem
+1 Terminate
+1 Terramorphic Expanse
+1 The Reaver Cleaver
+1 Tranquil Thicket
+1 Twisted Landscape
+1 Viridescent Bog
+1 Yavimaya Elder
+1 Ziatora, the Incinerator
+4 Swamp
+3 Mountain
+5 Forest
