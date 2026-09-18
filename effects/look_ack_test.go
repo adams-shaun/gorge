@@ -37,8 +37,10 @@ func saWithSubs(t *testing.T, line string, svars ...string) *cards.SA {
 // it ("im not sure if other players hand was shown to me... happened way too
 // fast"). Both arms now pose a one-option "Continue" KChoose (ResumeKind
 // "look_ack") BEFORE the note; the answer re-enters through rules'
-// resumeResolution with Ctx.LookAck set, and the note lands below the modal.
-// The ask gates only the pacing — there is no decline.
+// resumeResolution with Ctx.LookAck set together with Ctx.LookAckTarget (the
+// decision's ResumeTarget, the index of the Defined$ target that asked), and
+// the note lands below the modal. The ask gates only the pacing — there is
+// no decline.
 
 // TestBareNoRevealLookPosesTheAckBeforeTheNote pins the NoReveal$ arm's ask
 // (Mishra's Bauble's shape): the ack is posed to the looker, names the
@@ -181,32 +183,59 @@ func TestMandatoryLookAcksTheLooker(t *testing.T) {
 	}
 }
 
-// TestBareLookAckIsConsumedOncePerFx42 pins the consumed-once scoping: with
-// TWO bare-look targets in one walk, the first consumes the answered flag
-// and the second poses its own ack — an answer never carries between bare
-// looks.
-func TestBareLookAckIsConsumedOncePerFx42(t *testing.T) {
+// TestMultiTargetBareLookTerminatesWithOneNotePerTarget pins the per-target
+// cursor (the DigTarget pattern — the r2 review's CRITICAL fix): a walk with
+// TWO bare-look targets (the Case the Joint shape, `Defined$ Player`)
+// answers one Continue per target, each decision bound to its own
+// ResumeTarget, and the chain TERMINATES with exactly one Secret note per
+// target, no duplicated earlier note, no re-ask. Consuming the flag at the
+// FIRST bare-look target instead (the r1 shape) left the later target's ack
+// unanswered, so every resume re-emitted the earlier notes and re-posed the
+// later ack — the walk never terminated.
+func TestMultiTargetBareLookTerminatesWithOneNotePerTarget(t *testing.T) {
 	h, _, _ := lookBoard(t) // seat 1's hand: Bear, Isle, Bolt; seat 0's library: mountains
 	bear0 := h.g.AddObject(mkCard(t, "Name:Bear0\nTypes:Creature\nPT:2/2\nOracle:x\n"), 0)
 	bear0.Zone = state.ZHand
 	h.g.SetZone(state.ZHand, 0, []state.ObjID{bear0.ID})
-	sh := h // lookBoard's askHost captures the posed decision
+	sh := h // lookBoard's askHost captures the posed decision and suspends
 	ctx := &Ctx{Controller: 0,
 		Targets: []state.Target{{Player: 1, IsPlayer: true}, {Player: 0, IsPlayer: true}}}
 	sa := sa(t, "SP$ RevealHand | ValidTgts$ Player | Look$ True")
-	Resolve(sh, ctx, sa) // suspends on the FIRST target's ack
-	if sh.asked == nil || sh.asked.ResumeKind != "look_ack" {
-		t.Fatalf("first pass posed %+v, want a look_ack", sh.asked)
+	// Pass 1: target 0's ack, bound to ResumeTarget 0; no note yet.
+	Resolve(sh, ctx, sa)
+	if sh.asked == nil || sh.asked.ResumeKind != "look_ack" || sh.asked.ResumeTarget != 0 {
+		t.Fatalf("first pass posed %+v, want a look_ack bound to target 0", sh.asked)
+	}
+	if len(secretLookNotes(sh.log)) != 0 {
+		t.Fatalf("a note landed before the first ack: %+v", sh.log)
 	}
 	sh.asked = nil
-	ctx.LookAck = true
+	ctx.LookAck, ctx.LookAckTarget = true, 0
+	// Pass 2: target 0 emits exactly its note; target 1 poses its own ack,
+	// bound to ResumeTarget 1 — the cursor advanced, not consumed.
 	Resolve(sh, ctx, sa)
 	notes := secretLookNotes(sh.log)
 	if len(notes) != 1 || notes[0].Player != 0 || !slices.Equal(notes[0].IDs, h.g.Zone(state.ZHand, 1)) {
-		t.Fatalf("notes = %+v, want exactly seat 1's whole hand", notes)
+		t.Fatalf("notes after pass 2 = %+v, want exactly seat 1's whole hand", notes)
 	}
-	if sh.asked == nil || sh.asked.ResumeKind != "look_ack" || sh.asked.Player != 0 {
-		t.Fatalf("the second bare look posed %+v, want its own look_ack", sh.asked)
+	if sh.asked == nil || sh.asked.ResumeKind != "look_ack" || sh.asked.ResumeTarget != 1 || sh.asked.Player != 0 {
+		t.Fatalf("the second bare look posed %+v, want its own look_ack bound to target 1", sh.asked)
+	}
+	sh.asked = nil
+	ctx.LookAck, ctx.LookAckTarget = true, 1
+	// Pass 3: terminates — target 0 is skipped (already emitted on pass 2),
+	// target 1 emits, no third ask.
+	Resolve(sh, ctx, sa)
+	if sh.asked != nil {
+		t.Fatalf("the walk re-posed an ack after every target was answered: %+v", sh.asked)
+	}
+	notes = secretLookNotes(sh.log)
+	if len(notes) != 2 {
+		t.Fatalf("got %d Secret look notes total (%+v), want exactly one per target", len(notes), sh.log)
+	}
+	seat1, seat0 := h.g.Zone(state.ZHand, 1), h.g.Zone(state.ZHand, 0)
+	if !slices.Equal(notes[0].IDs, seat1) || !slices.Equal(notes[1].IDs, seat0) {
+		t.Fatalf("look notes %+v, want one over %v and one over %v", notes, seat1, seat0)
 	}
 }
 
