@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/state"
 )
 
 // compiledText contains only immutable interpretations of configured card
@@ -219,4 +220,11 @@ func (e *Engine) parseCost(raw string) Cost {
 		}
 	}
 	return ParseCost(raw)
+}
+
+// matchesSpecFrom is the engine-owned form of effects.MatchesSpecFrom. It
+// preserves the public helper's source-relative semantics while carrying this
+// engine's immutable predicate programs into configured filter evaluation.
+func (e *Engine) matchesSpecFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {
+	return effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, you))
 }

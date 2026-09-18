@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/state"
 )
 
 func TestEngineCompiledTextSharesWithCloneAndFallsBack(t *testing.T) {
@@ -47,5 +48,23 @@ func TestEngineCompiledTextCacheSeparatesCardLayouts(t *testing.T) {
 	otherToken := New(Config{Decks: [][]*cards.Card{{deckA}}, Tokens: map[string]*cards.Card{"T": tokenB}})
 	if otherToken.compiledText == base.compiledText {
 		t.Fatal("different token card reused immutable compiled text")
+	}
+}
+
+func TestEngineMatchesSpecFromCarriesCompiledText(t *testing.T) {
+	c := card(t, "Name:Compiled Match\nTypes:Creature Test\nPT:1/1\nOracle:x\n")
+	e := New(Config{Names: []string{"you"}, Decks: [][]*cards.Card{{c}}})
+	var id state.ObjID
+	for _, o := range e.G.Objs {
+		if o.Card == c {
+			id = o.ID
+			break
+		}
+	}
+	if id == 0 {
+		t.Fatal("configured card was not added to the game")
+	}
+	if !e.matchesSpecFrom("Creature.YouCtrl+untapped", id, 0, id) {
+		t.Fatal("engine-owned match did not preserve configured filter semantics")
 	}
 }

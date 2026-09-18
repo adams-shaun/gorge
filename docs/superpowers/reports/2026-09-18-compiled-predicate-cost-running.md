@@ -92,6 +92,45 @@ threshold. The remaining direct parser cost is 9.80 cumulative CPU-seconds
 (5.43%/5.10%) and are the next candidates for a separately designed,
 conservative grammar expansion.
 
+## Task 7: carry compiled predicates through layer evaluation
+
+The first predicate sidecar only helped call sites that already constructed an
+engine `SpecContext`. The profile showed 18.87 cumulative CPU-seconds still
+in `matchesObjectText`; its largest source was `Engine.derivedWith`, whose
+calls to the public `effects.MatchesSpecFrom` necessarily omitted the
+engine-owned sidecar.
+
+`Engine.matchesSpecFrom` preserves the public helper's source-relative
+semantics while attaching `Engine.specCtx`. The layer/continuous/static paths
+now use it, including the `AsStack` and remembered-context paths that need
+additional fields. A regression test covers the engine-owned helper.
+
+The initial program representation still re-dispatched each base and term
+through string grammar at evaluation time. The profile measured 2.55 CPU-s in
+the program map lookup, 2.31 in `matchesBase`, and 0.93 in `matchPredicate`.
+The compiler now stores the existing conservative subset as base/term opcodes
+with only the literal type/colour argument retained. Unsupported grammar
+remains `maybe` exactly as before. Five-run focused medians improved from
+131.1 to 58.6 ns/op for definite yes and from 75.2 to 58.3 ns/op for definite
+no, both zero-allocation.
+
+A corpus fallback census identified source-relative attachment predicates as
+the dominant remaining `Affected$` forms: `EnchantedBy` 926 occurrences and
+`EquippedBy` 617. The compiler now uses their pre-existing shared
+`attachedBy` implementation for all three aliases (`EnchantedBy`,
+`EquippedBy`, `AttachedBy`); a red/green regression test requires definite
+yes/no results for an attached and unattached object.
+
+Both 500-game attachment runs compare semantically equal to the fixed
+post-`AbilityPush` control. They recorded 86.174 and 81.200 seconds; the
+83.687-second median is 0.46% faster than the control's 84.076 seconds. The
+repeat run used 50.084 GB allocated, 0.81% below the control's 50.491 GB.
+The repeat profile reduced filter work from the pre-context 19.78 combined
+seconds (`matchesObjectText` plus compiled evaluator) to 12.25 seconds
+(6.49 text + 5.76 compiled), a 38.1% reduction. The fixed workload remained
+exactly 500 games, 498 eligible roots, 2 no-root games, 100 covered roots,
+and zero errors.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:
