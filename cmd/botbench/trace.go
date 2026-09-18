@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 
 	"github.com/adams-shaun/gorge/botpolicy"
@@ -10,6 +13,64 @@ import (
 )
 
 const traceSchemaVersion = 1
+
+type traceRunV1 struct {
+	RecordType         string   `json:"record_type"`
+	SchemaVersion      int      `json:"schema_version"`
+	BoardSchemaVersion int      `json:"board_schema_version"`
+	PolicyA            string   `json:"policy_a"`
+	PolicyB            string   `json:"policy_b"`
+	BaseSeed           uint64   `json:"base_seed"`
+	GamesPerPair       int      `json:"games_per_pair"`
+	Seats              int      `json:"seats"`
+	Format             string   `json:"format"`
+	MaxTurns           int      `json:"max_turns"`
+	MaxIntents         int      `json:"max_intents"`
+	Split              string   `json:"split,omitempty"`
+	Suite              string   `json:"suite,omitempty"`
+	Pairs              []string `json:"pairs"`
+}
+
+func newTraceRunV1(baseSeed uint64, games int, aName, bName string, pairs []pairDef, maxTurns, maxIntents int, commander bool) traceRunV1 {
+	format := "constructed"
+	if commander {
+		format = "commander"
+	}
+	r := traceRunV1{
+		RecordType: "run-v1", SchemaVersion: traceSchemaVersion, BoardSchemaVersion: traceSchemaVersion,
+		PolicyA: aName, PolicyB: bName, BaseSeed: baseSeed, GamesPerPair: games, Seats: 2,
+		Format: format, MaxTurns: maxTurns, MaxIntents: maxIntents,
+	}
+	for _, pair := range pairs {
+		r.Pairs = append(r.Pairs, pair.String())
+	}
+	if samePairManifest(pairs, initialMono5Pairs()) {
+		r.Suite = "mono5"
+		switch {
+		case baseSeed == 0 && games == 100:
+			r.Split = "development"
+		case baseSeed == 1_000_000 && games == 400:
+			r.Split = "heldout"
+		}
+	}
+	return r
+}
+
+func initialMono5Pairs() []pairDef {
+	return fullPairs([]string{"mono-white-equipment", "mono-blue-tempo", "mono-black-aggro", "mono-red-prowess", "mono-green-stompy"})
+}
+
+func samePairManifest(a, b []pairDef) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
 
 type traceDecisionMeta struct {
 	PairIndex int
@@ -25,6 +86,24 @@ type gameTrace struct {
 }
 
 func newGameTrace() *gameTrace { return &gameTrace{} }
+
+func (g *gameTrace) finish(o gameOutcome, meta traceDecisionMeta) {
+	r := traceGameV1{
+		RecordType: "game-v1", SchemaVersion: traceSchemaVersion,
+		PairIndex: meta.PairIndex, Pair: meta.Pair, GameIndex: meta.GameIndex, Seed: meta.Seed,
+		Draw: o.winner == "" && !o.isStalled(), Stall: o.stallOn, Turns: o.turns,
+		Intents: o.intents, Livelock: o.livelock,
+	}
+	if o.winner != "" {
+		winner := state.PlayerID(o.winnerSeat)
+		r.WinnerSeat = &winner
+	}
+	if o.starterSet {
+		starter := o.starter
+		r.StartingSeat = &starter
+	}
+	g.Terminal = r
+}
 
 type traceDecisionV1 struct {
 	RecordType    string                 `json:"record_type"`
@@ -122,8 +201,96 @@ type traceStackV1 struct {
 }
 
 type traceGameV1 struct {
-	RecordType    string `json:"record_type"`
-	SchemaVersion int    `json:"schema_version"`
+	RecordType    string          `json:"record_type"`
+	SchemaVersion int             `json:"schema_version"`
+	PairIndex     int             `json:"pair_index"`
+	Pair          string          `json:"pair"`
+	GameIndex     int             `json:"game_index"`
+	Seed          uint64          `json:"seed"`
+	WinnerSeat    *state.PlayerID `json:"winner_seat,omitempty"`
+	Draw          bool            `json:"draw"`
+	Stall         string          `json:"stall,omitempty"`
+	Turns         int32           `json:"turns"`
+	Intents       int             `json:"intents"`
+	StartingSeat  *int            `json:"starting_seat,omitempty"`
+	Livelock      string          `json:"livelock,omitempty"`
+}
+
+func writeDecisionTrace(path string, run traceRunV1, games []*gameTrace) (err error) {
+	if path == "" {
+		return nil
+	}
+	parent := filepath.Dir(path)
+	info, statErr := os.Stat(parent)
+	if statErr != nil {
+		return fmt.Errorf("decision trace parent: %w", statErr)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("decision trace parent %q is not a directory", parent)
+	}
+	if _, statErr := os.Lstat(path); statErr == nil {
+		return fmt.Errorf("decision trace destination %q already exists", path)
+	} else if !os.IsNotExist(statErr) {
+		return fmt.Errorf("checking decision trace destination: %w", statErr)
+	}
+	if err := validateTraceRecord(run); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(parent, "."+filepath.Base(path)+"-*.tmp")
+	if err != nil {
+		return fmt.Errorf("creating decision trace temporary file: %w", err)
+	}
+	tmpName := tmp.Name()
+	defer func() {
+		if tmp != nil {
+			_ = tmp.Close()
+		}
+		if err != nil {
+			_ = os.Remove(tmpName)
+		}
+	}()
+	enc := json.NewEncoder(tmp)
+	encode := func(record any) error {
+		if err := validateTraceRecord(record); err != nil {
+			return err
+		}
+		if err := enc.Encode(record); err != nil {
+			return fmt.Errorf("writing decision trace: %w", err)
+		}
+		return nil
+	}
+	if err = encode(run); err != nil {
+		return err
+	}
+	for _, game := range games {
+		if game == nil {
+			return fmt.Errorf("nil game trace")
+		}
+		for _, record := range game.Decisions {
+			if err = encode(record); err != nil {
+				return err
+			}
+		}
+		if err = encode(game.Terminal); err != nil {
+			return err
+		}
+	}
+	if err = tmp.Sync(); err != nil {
+		return fmt.Errorf("syncing decision trace: %w", err)
+	}
+	if err = tmp.Close(); err != nil {
+		return fmt.Errorf("closing decision trace: %w", err)
+	}
+	tmp = nil
+	if _, statErr := os.Lstat(path); statErr == nil {
+		return fmt.Errorf("decision trace destination %q appeared during run", path)
+	} else if !os.IsNotExist(statErr) {
+		return fmt.Errorf("rechecking decision trace destination: %w", statErr)
+	}
+	if err = os.Rename(tmpName, path); err != nil {
+		return fmt.Errorf("publishing decision trace: %w", err)
+	}
+	return nil
 }
 
 func (g *gameTrace) record(d *decision.Decision, in decision.Intent, b *botpolicy.Board, meta traceDecisionMeta) error {
@@ -236,6 +403,17 @@ func validateTraceRecord(v any) error {
 		}
 		if r.RecordType != "game-v1" {
 			return fmt.Errorf("invalid game trace record type %q", r.RecordType)
+		}
+		return nil
+	case traceRunV1:
+		if r.SchemaVersion != traceSchemaVersion {
+			return fmt.Errorf("run trace schema version %d is unsupported", r.SchemaVersion)
+		}
+		if r.BoardSchemaVersion != traceSchemaVersion {
+			return fmt.Errorf("board trace schema version %d is unsupported", r.BoardSchemaVersion)
+		}
+		if r.RecordType != "run-v1" {
+			return fmt.Errorf("invalid run trace record type %q", r.RecordType)
 		}
 		return nil
 	default:

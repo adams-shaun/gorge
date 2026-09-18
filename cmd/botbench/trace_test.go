@@ -1,13 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
+	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/replay"
+	"github.com/adams-shaun/gorge/rules"
+	"github.com/adams-shaun/gorge/seat"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -94,5 +103,171 @@ func TestTraceRejectsUnknownSchema(t *testing.T) {
 	err := validateTraceRecord(traceDecisionV1{RecordType: "decision-v1", SchemaVersion: 2})
 	if err == nil || !strings.Contains(err.Error(), "schema version") {
 		t.Fatalf("validate unknown schema = %v, want schema version error", err)
+	}
+}
+
+func TestTraceDoesNotChangeGameOrReplay(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	names := []string{"mono-red-prowess", "mono-green-stompy"}
+	decks := [][]*cards.Card{testutil.RepoDeck(t, reg, names[0]), testutil.RepoDeck(t, reg, names[1])}
+	cfg := rules.Config{Seed: 17, Names: names, Decks: decks, Tokens: reg.Tokens}
+	newSeats := func() []seat.Seat { return []seat.Seat{seat.NewBot(16), seat.NewBot(19)} }
+
+	wantOutcome, wantEngine, err := playMatchOnce(cfg, []string{"bot", "bot"}, newSeats(), 200, 20000, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	trace := newGameTrace()
+	gotOutcome, gotEngine, err := playMatchOnceTraced(cfg, []string{"bot", "bot"}, newSeats(), 200, 20000, nil, nil, trace, traceDecisionMeta{PairIndex: 0, Pair: "mono-red-prowess:mono-green-stompy", GameIndex: 0, Seed: 17})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(gotOutcome, wantOutcome) {
+		t.Fatalf("trace changed outcome: got %+v want %+v", gotOutcome, wantOutcome)
+	}
+	if !reflect.DeepEqual(gotEngine.L.Events, wantEngine.L.Events) || gotEngine.L.Head() != wantEngine.L.Head() {
+		t.Fatal("trace changed event stream or chain head")
+	}
+	if len(trace.Decisions) == 0 {
+		t.Fatal("trace recorded no decisions")
+	}
+	for i, d := range trace.Decisions {
+		if i > 0 && d.Sequence <= trace.Decisions[i-1].Sequence {
+			t.Fatalf("decision %d sequence %d does not follow %d", i, d.Sequence, trace.Decisions[i-1].Sequence)
+		}
+		if d.Policy != "bot" {
+			t.Fatalf("decision %d policy = %q, want bot", i, d.Policy)
+		}
+	}
+	r, err := replay.Replay(gotEngine.L, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.L.Head() != gotEngine.L.Head() || !reflect.DeepEqual(r.L.Events, gotEngine.L.Events) {
+		t.Fatal("trace-enabled game did not replay exactly")
+	}
+}
+
+func TestDecisionTraceWritesRunThenOrderedGamesAtomically(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "trace.jsonl")
+	games := []*gameTrace{
+		{Decisions: []traceDecisionV1{{RecordType: "decision-v1", SchemaVersion: 1, PairIndex: 0, Pair: "a:b", GameIndex: 0, Sequence: 2, Options: []traceOptionV1{}, Choices: []int{}, Board: traceBoardV1{SchemaVersion: 1}}}, Terminal: traceGameV1{RecordType: "game-v1", SchemaVersion: 1, PairIndex: 0, Pair: "a:b", GameIndex: 0}},
+		{Decisions: []traceDecisionV1{{RecordType: "decision-v1", SchemaVersion: 1, PairIndex: 1, Pair: "a:c", GameIndex: 0, Sequence: 1, Options: []traceOptionV1{}, Choices: []int{}, Board: traceBoardV1{SchemaVersion: 1}}}, Terminal: traceGameV1{RecordType: "game-v1", SchemaVersion: 1, PairIndex: 1, Pair: "a:c", GameIndex: 0}},
+	}
+	run := traceRunV1{RecordType: "run-v1", SchemaVersion: 1, BoardSchemaVersion: 1, PolicyA: "bot", PolicyB: "legacy", BaseSeed: 0, GamesPerPair: 1, Seats: 2, Format: "constructed", Split: "development", Suite: "mono5", Pairs: []string{"a:b", "a:c"}}
+	if err := writeDecisionTrace(path, run, games); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := bytes.Split(bytes.TrimSpace(b), []byte("\n"))
+	if len(lines) != 5 {
+		t.Fatalf("trace lines = %d, want 5: %s", len(lines), b)
+	}
+	wantTypes := []string{"run-v1", "decision-v1", "game-v1", "decision-v1", "game-v1"}
+	for i, line := range lines {
+		var hdr struct {
+			RecordType string `json:"record_type"`
+		}
+		if err := json.Unmarshal(line, &hdr); err != nil {
+			t.Fatalf("line %d: %v", i, err)
+		}
+		if hdr.RecordType != wantTypes[i] {
+			t.Fatalf("line %d type = %q, want %q", i, hdr.RecordType, wantTypes[i])
+		}
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "trace.jsonl" {
+		t.Fatalf("atomic writer left sibling artifacts: %v", entries)
+	}
+}
+
+func TestDecisionTraceRefusesUnsafeDestinations(t *testing.T) {
+	dir := t.TempDir()
+	run := traceRunV1{RecordType: "run-v1", SchemaVersion: 1, BoardSchemaVersion: 1}
+	existing := filepath.Join(dir, "existing.jsonl")
+	if err := os.WriteFile(existing, []byte("keep"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeDecisionTrace(existing, run, nil); err == nil {
+		t.Fatal("existing destination was overwritten")
+	}
+	got, _ := os.ReadFile(existing)
+	if string(got) != "keep" {
+		t.Fatalf("existing destination changed to %q", got)
+	}
+	missing := filepath.Join(dir, "absent", "trace.jsonl")
+	if err := writeDecisionTrace(missing, run, nil); err == nil {
+		t.Fatal("absent parent was created or accepted")
+	}
+	if _, err := os.Stat(filepath.Dir(missing)); !os.IsNotExist(err) {
+		t.Fatalf("absent parent unexpectedly exists: %v", err)
+	}
+}
+
+func TestDecisionTraceValidationFailureLeavesNoDestination(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "trace.jsonl")
+	run := traceRunV1{RecordType: "run-v1", SchemaVersion: 99, BoardSchemaVersion: 1}
+	if err := writeDecisionTrace(path, run, nil); err == nil {
+		t.Fatal("unknown schema version was accepted")
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("completed destination exists after validation failure: %v", err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("validation failure left temporary files: %v", entries)
+	}
+}
+
+func TestDecisionTraceHeaderRecognizesExactMono5Splits(t *testing.T) {
+	pairs := mono5Pairs()
+	dev := newTraceRunV1(0, 100, "bot", "legacy", pairs, 200, 20000, false)
+	if dev.Suite != "mono5" || dev.Split != "development" {
+		t.Fatalf("development header suite/split = %q/%q", dev.Suite, dev.Split)
+	}
+	held := newTraceRunV1(1_000_000, 400, "bot", "legacy", pairs, 200, 20000, false)
+	if held.Suite != "mono5" || held.Split != "heldout" {
+		t.Fatalf("heldout header suite/split = %q/%q", held.Suite, held.Split)
+	}
+	other := newTraceRunV1(0, 99, "bot", "legacy", pairs, 200, 20000, false)
+	if other.Suite != "mono5" || other.Split != "" {
+		t.Fatalf("nonstandard sample suite/split = %q/%q", other.Suite, other.Split)
+	}
+}
+
+func mono5Pairs() []pairDef {
+	names := []string{"mono-white-equipment", "mono-blue-tempo", "mono-black-aggro", "mono-red-prowess", "mono-green-stompy"}
+	return fullPairs(names)
+}
+
+func TestTraceWorkerCountDeterminism(t *testing.T) {
+	pairs := []pairDef{{a: "mono-red-prowess", b: "mono-green-stompy"}}
+	corpus := corpusDirOrSkip(t)
+	run := func(workers int) []byte {
+		path := filepath.Join(t.TempDir(), "trace.jsonl")
+		if err := runMatrixTraced(23, 4, 2, "bot", "legacy", corpus, "json", pairs, workers, 200, 20000, false, nil, path, io.Discard, io.Discard); err != nil {
+			t.Fatal(err)
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return b
+	}
+	one := run(1)
+	many := run(4)
+	if !bytes.Equal(one, many) {
+		t.Fatal("decision trace differs between workers=1 and workers=4")
 	}
 }
