@@ -200,6 +200,25 @@ games, and zero errors. Their wall times were 78.957 and 74.719 seconds; the
 Allocated-byte median is effectively flat at 47.008 GB (+0.087%). The CPU
 reduction and median wall-clock improvement retain the change.
 
+## Task 11: avoid copying continuous effects in granted-trigger scans
+
+The Task 10 profile then localized 2.08 flat / 11.54 cumulative CPU-seconds
+to `for _, ce := range statics` inside the granted-trigger walk. Each
+iteration copied the large immutable `ContinuousEffect` value before testing
+whether it carried `AddTrigger`. The loop now ranges by index and takes a
+pointer to the existing snapshot element. It preserves slice order and never
+mutates the snapshot.
+
+The existing granted-static semantic fixture continues to require the linked
+pending trigger, and the 240-object benchmark improves from a 35,152 ns/op
+five-run median to 26,953 ns/op (23.3%), both with zero allocations. The
+profiled full workload reduces the loop line to 0.44 flat CPU-seconds. Its
+normalized 500-game result is exactly equal to the semantic control (498
+eligible roots, two no-root games, zero errors), taking 71.878 seconds and
+allocating 46.984 GB. Compared with Task 10's 76.838-second / 47.008-GB
+two-run median, this is 6.45% faster with 0.051% fewer allocated bytes. The
+change is retained.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:

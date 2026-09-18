@@ -3052,7 +3052,8 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 	if e.finishingLifeLossBatch || e.lifeLossBatchDepth > 0 {
 		return
 	}
-	for _, ce := range statics {
+	for i := range statics {
+		ce := &statics[i]
 		if ce.AddTrigger == nil {
 			continue
 		}
