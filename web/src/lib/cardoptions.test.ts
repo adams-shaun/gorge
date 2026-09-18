@@ -391,6 +391,27 @@ describe('single-action card affordance', () => {
       expect(resolveCardFollowUp(expected, decision(10, [opt(0, 83, 'mana', 'Add B')]))).toBeNull();
     });
 
+    // fb-20260917T233137Z: playing a land arms the follow-up expectation, and
+    // a shock land's pay/decline election arrives next as 2 'mode' options on
+    // the land (Steam Vents, view.json seq 1295). It must NOT auto-open the
+    // radial picker -- the player knows that wheel as the mana bubble -- it
+    // presents via the seat panel and the tile badge.
+    it('a modes pay election does NOT auto-open (the shock-land pay-life ask is not a mana wheel)', () => {
+      const d = decision(10, [
+        opt(0, 86, 'mode', 'Pay the cost'),
+        opt(1, 86, 'mode', "Don't pay"),
+      ]);
+      expect(resolveCardFollowUp(expected, d)).toBeNull();
+    });
+
+    it('a decision mixing mana and non-mana options does not auto-open either', () => {
+      const d = decision(10, [
+        opt(0, 83, 'mana', 'Add B'),
+        opt(1, 83, 'mode', "Don't pay"),
+      ]);
+      expect(resolveCardFollowUp(expected, d)).toBeNull();
+    });
+
     it('arms nothing for a >6-option follow-up (the list menu keeps its own shape)', () => {
       const d = decision(10, Array.from({ length: 7 }, (_, i) => opt(i, 83, 'mana', `Add ${i}`)));
       expect(resolveCardFollowUp(expected, d)).toBeNull();
