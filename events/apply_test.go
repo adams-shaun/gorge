@@ -1247,6 +1247,30 @@ func TestAbilityPushMintsAnActivatedAbilityObject(t *testing.T) {
 	}
 }
 
+// TestAbilityPushActivationCountSurvivesRealloc pins the snapshot-path bug
+// the parked-overshoot view test exposed ( Shepherd of Rot's
+// activated_this_turn): src is a pointer into g.Objs' backing array and
+// AddObject appends, so with the slice exactly full the mint reallocates
+// and a post-mint src mutation would be written into the orphaned old
+// array -- silently dropped in every snapshot-clone-derived engine (cap ==
+// len after Game.Clone's copy) while an organically grown replay kept it.
+// The census increment must land on the LIVE object regardless of whether
+// this Apply reallocates.
+func TestAbilityPushActivationCountSurvivesRealloc(t *testing.T) {
+	g, id := gameWithOneCardSrc(t, "Name:Sailor\nManaCost:U\nTypes:Creature Spirit\nPT:1/1\nA:AB$ Draw | Cost$ 3 U | NumCards$ 1 | Defined$ You | SpellDescription$ Draw a card.\nOracle:x\n")
+	Move(g, id, state.ZHand, state.ZBattlefield)
+	// Force the realloc: an exactly full backing array makes AddObject's
+	// append grow a fresh one, orphaning every outstanding g.Obj pointer.
+	g.Objs = g.Objs[:len(g.Objs):len(g.Objs)]
+	Apply(g, Event{Kind: AbilityPush, Obj: id, Player: 0, Amount: 0})
+	if len(g.Stack) != 1 {
+		t.Fatal("no ability object")
+	}
+	if got := g.Obj(id).ActivatedThisTurn; got != 1 {
+		t.Fatalf("source ActivatedThisTurn = %d, want 1 -- the increment was written into a reallocated-away backing array", got)
+	}
+}
+
 // TestAbilityPushPlayerRefRememberedRoundTrips is FL-41's symmetry check for
 // AbilityPush: the same PlayerRef sentinel TriggerPush decodes must decode
 // in AbilityPush too, so an activated ability that remembered a player (the

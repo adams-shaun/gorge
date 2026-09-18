@@ -993,16 +993,26 @@ func Apply(g *state.Game, e Event) {
 		if f == nil || e.Amount < 0 || int(e.Amount) >= len(f.Abilities) {
 			break
 		}
+		// The per-source activation census (state/object.go's
+		// ActivatedThisTurn): one AbilityPush per non-mana activation, folded
+		// onto the source the same way the other per-turn object facts are.
+		// Mutated BEFORE AddObject, per StackCopy's discipline below:
+		// AddObject appends to g.Objs and may reallocate its backing array,
+		// and src is a pointer into it (g.Obj returns &g.Objs[id-1]) -- a
+		// src pointer mutated after the mint would write into the orphaned
+		// old array whenever the append reallocated, silently dropping the
+		// increment. A cloned engine's Objs slice is exactly full (Game.Clone
+		// copies into len-sized storage), so its very next mint always
+		// reallocates: the snapshot-derived view path lost every activation
+		// the mint coincided with, while the from-genesis replay kept them
+		// (the parked-overshoot view test's Shepherd of Rot divergence).
+		if src.Zone == state.ZBattlefield {
+			src.ActivatedThisTurn++
+		}
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = f.Abilities[e.Amount]
 		o.Source = e.Obj
-		// The per-source activation census (state/object.go's
-		// ActivatedThisTurn): one AbilityPush per non-mana activation, folded
-		// onto the source the same way the other per-turn object facts are.
-		if src.Zone == state.ZBattlefield {
-			src.ActivatedThisTurn++
-		}
 		// Same PlayerRef decode as TriggerPush above (FL-41): an activated
 		// ability can remember a player the same way a trigger can, so the
 		// two mint paths stay symmetric through rememberedFrom.
@@ -1134,12 +1144,16 @@ func Apply(g *state.Game, e Event) {
 			// Text, so already-logged firings mint exactly as before.
 			break
 		}
+		// StackCopy's discipline: snapshot every src field the post-mint
+		// code reads (Incarnation here) before AddObject may reallocate
+		// g.Objs and orphan the src pointer.
+		incarnation := src.Incarnation
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
 		o.Source = e.Obj
 		if registration != nil && registration.TrackSource {
-			o.SourceIncarnation = src.Incarnation
+			o.SourceIncarnation = incarnation
 		}
 		o.Remembered = rememberedFrom(e.IDs)
 
