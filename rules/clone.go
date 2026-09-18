@@ -24,6 +24,7 @@ func (e *Engine) Clone() *Engine {
 	c := &Engine{
 		G:                   e.G.Clone(),
 		L:                   e.L.Clone(),
+		compiledText:        e.compiledText,
 		turnsTaken:          append([]int32(nil), e.turnsTaken...),
 		turnsTakenEpoch:     e.turnsTakenEpoch,
 		format:              e.format,

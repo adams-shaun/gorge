@@ -159,9 +159,14 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 // restriction would be dead. The resolver closes over source/you -- both
 // plain scalars -- so it is deterministic and Clone-safe.
 func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecContext {
+	var predicates *effects.PredicatePrograms
+	if e.compiledText != nil {
+		predicates = e.compiledText.predicates
+	}
 	return effects.SpecContext{
-		You:    you,
-		Source: source,
+		You:               you,
+		Source:            source,
+		PredicatePrograms: predicates,
 		Resolve: func(name string) (int32, bool) {
 			o := e.G.Obj(source)
 			if o == nil {
