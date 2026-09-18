@@ -64,6 +64,12 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 			if f == nil {
 				continue
 			}
+			if e.faceDownPrintedHides(o) {
+				// CR 708.8: a face-down permanent's printed statics do not
+				// exist while it is face down (the one gate shared with
+				// activeStatics, the trigger scan and the offer loops).
+				continue
+			}
 			// Enchantment Rooms (rules/rooms.go): once the room's second door
 			// is unlocked, the ALTERNATE face's statics are live too -- a room
 			// permanent's rules text is both halves' combined after the
@@ -990,6 +996,22 @@ func (e *Engine) active() []ContinuousEffect {
 	return buf
 }
 
+// faceDownBasis is CR 708.5's synthetic printed face for a face-down
+// battlefield permanent: a vanilla 2/2 creature. Only exported fields are
+// read off it (derivedScalarFrom pins the 2/2 base itself, since Face's
+// parsed P/T is unexported); nothing writes to it.
+var faceDownBasis = &cards.Face{Types: []string{"Creature"}}
+
+// faceDownPrintedHides is the one CR 708.8 gate every printed-face scan
+// shares: while a battlefield object is face down, its printed abilities,
+// triggers and statics do not exist. The ability-offer loop, the
+// mana-ability collector, the trigger scan and both static scans all
+// consult it, so no printed face of a manifested card can leak into any
+// offer or queue while it is face down.
+func (e *Engine) faceDownPrintedHides(o *state.Object) bool {
+	return o != nil && o.FaceDown && o.Zone == state.ZBattlefield
+}
+
 // typeCharacteristics applies layer 4 before anything that tests a type. The
 // accumulated types-so-far list passed into the shared effects filter is what
 // lets a later effect select a creature made a Goblin by an earlier layer-4
@@ -1000,6 +1022,13 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return nil
+	}
+	// CR 708.5: a face-down battlefield permanent's type set is exactly
+	// {Creature} -- its printed types do not exist while it is face down
+	// (even a manifested land). Layer-4 grants from other permanents still
+	// apply on top in the walk below.
+	if o.FaceDown && o.Zone == state.ZBattlefield {
+		return []string{"Creature"}
 	}
 	zone := o.Zone
 	if atStack != 0 {
@@ -1080,21 +1109,29 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 }
 
 func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Face, active []ContinuousEffect) (power, toughness int32) {
-	power, toughness = int32(f.Power()), int32(f.Toughness())
-	// Layer 7a (CR 613.4a): the object's own characteristic-defining ability
-	// (CharacteristicDefining$ True) sets the base P/T that every later
-	// layer applies on top of, in EVERY zone (CR 604.3/208.2 -- Master of
-	// Etherium is its artifact count in hand and graveyard too, which the
-	// battlefield-only static scan cannot express). Applied before the
-	// effect walk below, so a layer-7b set still overrides it and a 7c
-	// modify still stacks on it. staticEffects withholds the resolvable CDAs
-	// from its emission exactly so this read is not applied twice.
-	if p, tp, hp, ht := e.cdaSetPT(o); hp || ht {
-		if hp {
-			power = p
-		}
-		if ht {
-			toughness = tp
+	if o != nil && o.FaceDown && o.Zone == state.ZBattlefield {
+		// CR 708.5's base: a face-down battlefield permanent is a 2/2
+		// creature; its printed P/T and any printed characteristic-defining
+		// ability do not exist while it is face down. Layer-7 effects on top
+		// still apply in the walk below.
+		power, toughness = 2, 2
+	} else {
+		power, toughness = int32(f.Power()), int32(f.Toughness())
+		// Layer 7a (CR 613.4a): the object's own characteristic-defining ability
+		// (CharacteristicDefining$ True) sets the base P/T that every later
+		// layer applies on top of, in EVERY zone (CR 604.3/208.2 -- Master of
+		// Etherium is its artifact count in hand and graveyard too, which the
+		// battlefield-only static scan cannot express). Applied before the
+		// effect walk below, so a layer-7b set still overrides it and a 7c
+		// modify still stacks on it. staticEffects withholds the resolvable CDAs
+		// from its emission exactly so this read is not applied twice.
+		if p, tp, hp, ht := e.cdaSetPT(o); hp || ht {
+			if hp {
+				power = p
+			}
+			if ht {
+				toughness = tp
+			}
 		}
 	}
 	// typeCharacteristics is 837910f4's layer-4-aware type derivation; the
@@ -1204,6 +1241,17 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		return Derived{}
 	}
 	f := o.Face()
+	// CR 708.5: while a battlefield object is face down its printed face
+	// does not exist -- the derived basis is a vanilla 2/2 Creature face
+	// (derivedScalarFrom pins the 2/2 base; this synthetic face carries no
+	// keywords or printed types, and the colour basis below is overridden
+	// to none). Layer effects from OTHER permanents still apply on top (an
+	// Anthem pumps a manifested 2/2 to 3/3); the printed-face scans never
+	// reach here because faceDownPrintedHides gates them all off (CR 708.8).
+	faceDown := o.FaceDown && o.Zone == state.ZBattlefield
+	if faceDown {
+		f = faceDownBasis
+	}
 	active := e.active()
 	power, toughness := e.derivedScalarFrom(id, o, f, active)
 	zone := o.Zone
@@ -1235,6 +1283,9 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	// 837910f4's type-aware wrapper — a bare SpecContext carries no
 	// ExtraTypes, so MatchesSpecCtx here would regress to printed types only.
 	col := effects.ColorMaskOf(o)
+	if faceDown {
+		col = 0 // CR 708.5: a face-down permanent has no colours
+	}
 	for _, ce := range active {
 		if !e.matchesWithTypes(ce, id, ty, atStack) {
 			continue

@@ -655,6 +655,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			// carry triggered abilities.
 			return
 		}
+		if e.faceDownPrintedHides(o) {
+			// CR 708.8: a face-down permanent's printed triggers (and any
+			// granted walk keyed to it) do not exist while it is face down --
+			// a manifested Sultai Emissary that dies reveals itself as a card
+			// in the graveyard and fires nothing (the leaves-battlefield
+			// look-back observer reads the pre-move state, where it is still
+			// face down; the live walk matches leaves-triggers only through
+			// that observer or a TriggerZones the departed card no longer
+			// occupies).
+			return
+		}
 		// objLKI is the whole-event LKI snapshot, hoisted here because every
 		// trigger this loop matches for this event shares it (lki.ID == ev.Obj
 		// always holds when lki != nil -- see checkTriggers's own doc above; a

@@ -155,7 +155,9 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 // activation rechecks discover fresh static membership.
 func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil {
+	if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
+		// CR 708.8: a face-down permanent's printed mana abilities do not
+		// exist while it is face down.
 		return nil
 	}
 	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
