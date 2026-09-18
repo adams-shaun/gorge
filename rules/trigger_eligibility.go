@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
 )
 
 // triggerEventMask is only an over-approximation: an eligible trigger still
@@ -12,6 +13,11 @@ import (
 // Event ordinals are unchanged. Future kinds beyond the mask go through the
 // full matcher rather than being silently truncated by a shift.
 type triggerEventMask uint64
+
+type objectTriggerEventMasks struct {
+	faces [2]*cards.Face
+	masks [2]triggerEventMask
+}
 
 const allTriggerEvents triggerEventMask = ^triggerEventMask(0)
 
@@ -59,6 +65,27 @@ func triggerModeEvents(mode string) triggerEventMask {
 	}
 }
 
+func grantedKeywordTriggerEvent(kind events.Kind) bool {
+	return kind == events.TargetsChosen || kind == events.DeclareAttackers
+}
+
+func triggerMaskForFace(f *cards.Face) triggerEventMask {
+	if f == nil || len(f.Triggers) == 0 {
+		return 0
+	}
+	var m triggerEventMask
+	for _, t := range f.Triggers {
+		// Phase diagnostics are event-visible and run on unrelated events
+		// and in hidden zones too. Keep ALL Phase-bearing faces on the
+		// original path, without caching whether a diagnostic was emitted.
+		if strings.TrimSpace(t.Params["Phase"]) != "" {
+			return allTriggerEvents
+		}
+		m |= triggerModeEvents(t.Mode)
+	}
+	return m
+}
+
 // faceMayTrigger caches immutable printed eligibility, never object/zone
 // membership or a dynamic match. New fixture objects, token faces, transforms
 // and Room unlocks therefore need no invalidation. The LIVE queue owner owns
@@ -70,20 +97,35 @@ func (e *Engine) faceMayTrigger(f *cards.Face, kind events.Kind) bool {
 	}
 	m, ok := e.triggerEventMasks[f]
 	if !ok {
-		for _, t := range f.Triggers {
-			// Phase diagnostics are event-visible and run on unrelated events
-			// and in hidden zones too. Keep ALL Phase-bearing faces on the
-			// original path, without caching whether a diagnostic was emitted.
-			if strings.TrimSpace(t.Params["Phase"]) != "" {
-				m = allTriggerEvents
-				break
-			}
-			m |= triggerModeEvents(t.Mode)
-		}
+		m = triggerMaskForFace(f)
 		if e.triggerEventMasks == nil {
 			e.triggerEventMasks = make(map[*cards.Face]triggerEventMask)
 		}
 		e.triggerEventMasks[f] = m
 	}
 	return m.allows(kind)
+}
+
+// objectFaceMayTrigger is the object-walk fast path. Object IDs are dense, and
+// the two face slots stay stable for the immutable lifetime of a Card, so the
+// repeated event scan can avoid hashing a face pointer. The pointer check keeps
+// synthetic face replacement and transforms safe; uncommon faces beyond the
+// two-face card model use the conservative face cache above.
+func (e *Engine) objectFaceMayTrigger(id state.ObjID, faceIdx uint8, f *cards.Face, kind events.Kind) bool {
+	if f == nil {
+		return false
+	}
+	if id == 0 || faceIdx >= 2 {
+		return e.faceMayTrigger(f, kind)
+	}
+	i := int(id) - 1
+	if i >= len(e.triggerObjectMasks) {
+		e.triggerObjectMasks = append(e.triggerObjectMasks, make([]objectTriggerEventMasks, i+1-len(e.triggerObjectMasks))...)
+	}
+	entry := &e.triggerObjectMasks[i]
+	if entry.faces[faceIdx] != f {
+		entry.faces[faceIdx] = f
+		entry.masks[faceIdx] = triggerMaskForFace(f)
+	}
+	return entry.masks[faceIdx].allows(kind)
 }

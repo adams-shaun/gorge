@@ -1204,7 +1204,11 @@ func (e *Engine) modAmountX(sv staticView, x int32) int32 {
 // Amount$ reading (absent → the zero raise) rather than silently pricing an
 // unmodelled cost as one generic mana.
 func raiseFromCost(s string) (col state.Mana, gen, life int32, ok bool) {
-	for _, sym := range splitCostTokens(s) {
+	for toks := (costTokenIter{s: s}); ; {
+		sym, more := toks.next()
+		if !more {
+			break
+		}
 		switch {
 		case len(sym) == 1 && strings.ContainsRune("WUBRGC", rune(sym[0])):
 			col[state.ManaIndex(sym[0])]++

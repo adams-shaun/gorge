@@ -44,11 +44,7 @@ func effShuffle(h Host, c *Ctx, sa *cards.SA) {
 		if int(p) < 0 || int(p) >= len(g.Players) {
 			continue
 		}
-		order := append([]state.ObjID(nil), g.Zone(state.ZLibrary, p)...)
-		for i := len(order) - 1; i > 0; i-- {
-			j := h.Rand(i + 1)
-			order[i], order[j] = order[j], order[i]
-		}
+		order := h.ShuffleLibrary(p, g.Zone(state.ZLibrary, p))
 		h.Emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true})
 	}
 }

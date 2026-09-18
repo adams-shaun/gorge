@@ -41,6 +41,14 @@ func (h *fakeHost) EmitTap(obj state.ObjID, _ state.PlayerID, _ bool) {
 	h.Emit(events.Event{Kind: events.Tap, Obj: obj})
 }
 func (h *fakeHost) Rand(n int) int { h.n++; return 0 }
+func (h *fakeHost) ShuffleLibrary(_ state.PlayerID, order []state.ObjID) []state.ObjID {
+	out := append([]state.ObjID(nil), order...)
+	for i := len(out) - 1; i > 0; i-- {
+		j := h.Rand(i + 1)
+		out[i], out[j] = out[j], out[i]
+	}
+	return out
+}
 func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
 }

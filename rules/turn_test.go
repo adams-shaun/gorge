@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func card(t *testing.T, src string) *cards.Card {
+func card(t testing.TB, src string) *cards.Card {
 	t.Helper()
 	c, d := cards.ParseBytes("t.txt", []byte(src))
 	if len(d) != 0 {
@@ -22,7 +22,7 @@ func card(t *testing.T, src string) *cards.Card {
 	return c
 }
 
-func mountainDeck(t *testing.T, n int) []*cards.Card {
+func mountainDeck(t testing.TB, n int) []*cards.Card {
 	m := card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")
 	out := make([]*cards.Card, n)
 	for i := range out {

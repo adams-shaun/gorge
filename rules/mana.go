@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
@@ -242,7 +243,11 @@ func ParseCost(s string) Cost {
 	}
 	s = costBraces.Replace(s)
 	var c Cost
-	for _, sym := range splitCostTokens(s) {
+	for toks := (costTokenIter{s: s}); ; {
+		sym, ok := toks.next()
+		if !ok {
+			break
+		}
 		switch {
 		case sym == "T":
 			c.Tap = true
@@ -485,31 +490,46 @@ func (c *Cost) reportUnknown(sym string) {
 // nonManaCost can see them. Ruling FL-54.
 func splitCostTokens(s string) []string {
 	var out []string
-	var cur strings.Builder
-	depth := 0
-	for _, r := range s {
-		switch {
-		case r == '<':
-			depth++
-			cur.WriteRune(r)
-		case r == '>':
-			if depth > 0 {
-				depth--
-			}
-			cur.WriteRune(r)
-		case unicode.IsSpace(r) && depth == 0:
-			if cur.Len() > 0 {
-				out = append(out, cur.String())
-				cur.Reset()
-			}
-		default:
-			cur.WriteRune(r)
+	for toks := (costTokenIter{s: s}); ; {
+		tok, ok := toks.next()
+		if !ok {
+			return out
 		}
+		out = append(out, tok)
 	}
-	if cur.Len() > 0 {
-		out = append(out, cur.String())
+}
+
+type costTokenIter struct {
+	s   string
+	pos int
+}
+
+func (it *costTokenIter) next() (string, bool) {
+	for it.pos < len(it.s) {
+		r, size := utf8.DecodeRuneInString(it.s[it.pos:])
+		if !unicode.IsSpace(r) {
+			break
+		}
+		it.pos += size
 	}
-	return out
+	if it.pos == len(it.s) {
+		return "", false
+	}
+	start, depth := it.pos, 0
+	for it.pos < len(it.s) {
+		r, size := utf8.DecodeRuneInString(it.s[it.pos:])
+		if r == '<' {
+			depth++
+		} else if r == '>' && depth > 0 {
+			depth--
+		} else if unicode.IsSpace(r) && depth == 0 {
+			tok := it.s[start:it.pos]
+			it.pos += size
+			return tok, true
+		}
+		it.pos += size
+	}
+	return it.s[start:], true
 }
 
 // addClampedGeneric adds n to the int32 generic count, saturating at
@@ -1585,9 +1605,13 @@ func ParseUnlessCost(s string) (Cost, bool) {
 	if s == "" || strings.EqualFold(s, "no cost") {
 		return Cost{}, true
 	}
-	s = strings.NewReplacer("{", " ", "}", " ").Replace(s)
+	s = costBraces.Replace(s)
 	var c Cost
-	for _, sym := range splitCostTokens(s) {
+	for toks := (costTokenIter{s: s}); ; {
+		sym, ok := toks.next()
+		if !ok {
+			break
+		}
 		switch {
 		case sym == "T" || sym == "X":
 			// An unfolded X is never priceable here: payMana does not charge

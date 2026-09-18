@@ -194,3 +194,41 @@ func TestLivelockWatcherCloneCarriesGuard(t *testing.T) {
 		t.Fatalf("original engine's watcher fired under its own threshold: %v", lle2)
 	}
 }
+
+func BenchmarkLivelockWatcherSteadyAperiodic(b *testing.B) {
+	maxInt := int(^uint(0) >> 1)
+	w := newLivelockWatcher(&LoopGuard{
+		CycleEvents: maxInt, RunawayEvents: maxInt, MaxPeriod: 128,
+	})
+	for i := range 256 {
+		w.observe(events.Event{Seq: uint64(i + 1), Kind: events.Note, Obj: state.ObjID(i + 1)})
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := range b.N {
+		w.observe(events.Event{Seq: uint64(257 + i), Kind: events.Note, Obj: state.ObjID(257 + i)})
+	}
+	b.StopTimer()
+	if w.quiet != b.N+256 || len(w.sigs) != 256 || len(w.recent) != 128 {
+		b.Fatalf("watcher digest = quiet %d, sigs %d, recent %d", w.quiet, len(w.sigs), len(w.recent))
+	}
+}
+
+func TestLivelockWatcherSteadyWindowDoesNotAllocate(t *testing.T) {
+	maxInt := int(^uint(0) >> 1)
+	w := newLivelockWatcher(&LoopGuard{
+		CycleEvents: maxInt, RunawayEvents: maxInt, MaxPeriod: 8,
+	})
+	seq := 0
+	for range 16 {
+		seq++
+		w.observe(events.Event{Seq: uint64(seq), Kind: events.Note, Obj: state.ObjID(seq)})
+	}
+	allocs := testing.AllocsPerRun(1000, func() {
+		seq++
+		w.observe(events.Event{Seq: uint64(seq), Kind: events.Note, Obj: state.ObjID(seq)})
+	})
+	if allocs != 0 {
+		t.Fatalf("steady bounded observation allocated %.2f objects/event, want zero", allocs)
+	}
+}
