@@ -418,13 +418,17 @@
        and positions itself absolute/inset 0 against this box, so its
        coordinates are measured over the whole table — felt and rail both. */
     position: relative;
-    /* The rail's floor is what its content measures: the stacked two-high zone
-       counts in SeatTable let the seat summary fit in two count columns, the
-       widest rail section (a stack tile's 56px art column) bottoms out at
-       143px, and the "Concede — confirm" control needs 138px in the logbar
-       row it shares with the LOGS toggle — measured with the geometry harness
-       (SeatTable.svelte.test.ts). 11rem (176px) sits comfortably above that
-       floor. The 15% cap matters more than the floor
+    /* The rail's floor is what its content measures: since fb-20260917T232028Z
+       the seat summary is one text-line tall and its register — the life
+       pill, the four one-line zone counts and the row's own chrome — measures
+       ~141px (SeatTable.svelte.test.ts's geometry harness). That now sits
+       just under the old binding constraint, the stack tile's 144px art
+       column, instead of well under it; both clear 176px. The "Concede —
+       confirm" control needs 138px in the logbar row it shares with the
+       LOGS toggle. 11rem (176px) leaves the ellipsized seat name ~16px at
+       the floor and ~56px at the 15% cap of a 1440px viewport — the name is
+       the one thing that flexes; the floor itself is unchanged by the
+       one-line redesign. The 15% cap matters more than the floor
        on common viewports: with min 17rem the track was pinned to 17rem on
        every window narrower than ~1510px (18% of the viewport fell below the
        floor), so typical laptops saw the full 17rem whatever the content

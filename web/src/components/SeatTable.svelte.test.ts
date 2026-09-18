@@ -50,20 +50,16 @@ describe('SeatTable — compact seat summary', () => {
     expect(html).not.toContain('data-pile="library"');
   });
 
-  it('stacks the four zone counts two-high: hand+library on the first line, graveyard+exile on the second', () => {
+  it('puts all four zone counts on ONE line beside the life pill (the old two-high zone stack is gone)', () => {
     const { html } = render(SeatTable, { props: { view: summaryView(player()), seats: summarySeats, onFocus: () => {} } });
-    expect(html.match(/zone-line/g)?.length).toBe(2);
-    const first = html.slice(html.indexOf('zone-line'), html.lastIndexOf('zone-line'));
-    const second = html.slice(html.lastIndexOf('zone-line'));
-    // life stays on the name line, outside both zone lines
-    expect(first.includes('data-stat="life"')).toBe(false);
-    expect(second.includes('data-stat="life"')).toBe(false);
-    expect(first.indexOf('data-stat="hand"')).toBeGreaterThan(-1);
-    expect(first.indexOf('data-stat="library"')).toBeGreaterThan(first.indexOf('data-stat="hand"'));
-    expect(first.includes('data-stat="graveyard"')).toBe(false);
-    expect(first.includes('data-stat="exile"')).toBe(false);
-    expect(second.indexOf('data-stat="graveyard"')).toBeGreaterThan(-1);
-    expect(second.indexOf('data-stat="exile"')).toBeGreaterThan(second.indexOf('data-stat="graveyard"'));
+    expect(html.match(/zone-line/g)?.length).toBe(1);
+    const line = html.slice(html.indexOf('zone-line'));
+    // life stays in its own cell before the counts, outside the zone line
+    expect(line.includes('data-stat="life"')).toBe(false);
+    expect(line.indexOf('data-stat="hand"')).toBeGreaterThan(-1);
+    expect(line.indexOf('data-stat="library"')).toBeGreaterThan(line.indexOf('data-stat="hand"'));
+    expect(line.indexOf('data-stat="graveyard"')).toBeGreaterThan(line.indexOf('data-stat="library"'));
+    expect(line.indexOf('data-stat="exile"')).toBeGreaterThan(line.indexOf('data-stat="graveyard"'));
   });
 
   it('shows true counts but no caret for empty or redacted lists', () => {
@@ -93,7 +89,7 @@ describe('SeatTable — priority geometry', () => {
           row: rect('#seat-idle [data-seat-row="0"]'),
           pick: rect('#seat-idle [data-seat-row="0"] .pick'),
           name: rect('#seat-idle [data-seat-row="0"] .name'),
-          table: rect('#seat-idle table'),
+          section: rect('#seat-idle .seats'),
           identity: rect('#identity-idle .identity'),
           identityName: rect('#identity-idle .name'),
         },
@@ -101,7 +97,7 @@ describe('SeatTable — priority geometry', () => {
           row: rect('#seat-priority [data-seat-row="0"]'),
           pick: rect('#seat-priority [data-seat-row="0"] .pick'),
           name: rect('#seat-priority [data-seat-row="0"] .name'),
-          table: rect('#seat-priority table'),
+          section: rect('#seat-priority .seats'),
           identity: rect('#identity-priority .identity'),
           identityName: rect('#identity-priority .name'),
         },
@@ -112,13 +108,17 @@ describe('SeatTable — priority geometry', () => {
     expect(geometry.priority).toEqual(geometry.idle);
   });
 });
-describe('SeatTable — the rail floor (stacked counts let the rail shrink)', () => {
-  // The new grid floor in Table.svelte is 11rem = 176px. The fixture mounts
+describe('SeatTable — the rail floor (one-line counts let the rail shrink)', () => {
+  // The grid floor in Table.svelte is 11rem = 176px. The fixture mounts
   // the whole rail (seat table, mana pool, decision line, stack tile, pending
   // tray) at exactly that width, with a 27-character seat name that was
   // ALREADY ellipsized at the old 17rem floor (needs 173px, had 64px there),
   // so the assertions below are measured facts about the reduced rail, not
-  // about the name change.
+  // about the name change. Since fb-20260917T232028Z the seat summary is one
+  // text-line tall: its register (life pill + four one-line counts + row
+  // chrome) measures ~141px — just under the stack tile's 144px floor, which
+  // the 11rem floor cleared before this change too. The name takes the
+  // remainder and ellipsizes.
   const FLOOR_PX = 176;
 
   async function atFloor(px = FLOOR_PX, concede: 'none' | 'idle' | 'confirm' = 'none') {
