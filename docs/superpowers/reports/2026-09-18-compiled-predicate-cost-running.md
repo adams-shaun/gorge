@@ -219,6 +219,18 @@ allocating 46.984 GB. Compared with Task 10's 76.838-second / 47.008-GB
 two-run median, this is 6.45% faster with 0.051% fewer allocated bytes. The
 change is retained.
 
+## Rejected experiment: read-only trigger traversal
+
+A `forEachObjectReadOnly` walker was prototyped for `checkFaceTriggers` to
+avoid the general walker's defensive zone-slice copy. It preserved the
+ordinary walk's deterministic order in a new regression test and its
+normalized 500-game replay was exactly equal to the semantic control (498
+eligible roots, two no-root games, zero errors). It is deliberately not
+retained: the full workload took 74.579 seconds versus the copy-elision
+baseline's 71.878 seconds (+3.76%) with effectively identical allocated
+bytes. The defensive snapshot remains in use; its locality and general safety
+outweigh the isolated traversal microbenchmark.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:
