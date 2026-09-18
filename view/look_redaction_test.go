@@ -133,6 +133,16 @@ func driveProbeLook(t *testing.T) (*rules.Engine, events.Event, []state.ObjID) {
 						break
 					}
 				}
+			} else if strings.HasPrefix(d.Prompt, "You look at") {
+				// the bare look's look_ack: the looker clicks Continue on the
+				// "You look at ..." modal (d8047da4 made the bare look an ask;
+				// the driver predates it and stalled on the unhandled kind)
+				for _, o := range d.Options {
+					if o.Kind == "yes" && o.Label == "Continue" {
+						idx = o.Index
+						break
+					}
+				}
 			} else if strings.Contains(d.Prompt, "hand-size limit") {
 				// a later seat's cleanup discard: discard anything
 				idx = 0
