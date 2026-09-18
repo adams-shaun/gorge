@@ -1893,6 +1893,7 @@ Deck:
 # (tail -n +3 keeps the Commander: section header; deck.list stores the flat 100 list)
 Commander:
 1 Strefan, Maurer Progenitor
+1 Ancient Craving
 1 Anje's Ravager
 1 Anowon, the Ruin Sage
 1 Arcane Signet
@@ -1952,7 +1953,6 @@ Commander:
 1 Smoldering Marsh
 1 Sol Ring
 1 Stensia Masquerade
-1 Strefan, Maurer Progenitor
 1 Stromkirk Captain
 1 Stromkirk Condemned
 1 Stromkirk Occultist
