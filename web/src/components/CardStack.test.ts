@@ -115,17 +115,51 @@ describe('CardStack', () => {
   // face now presents the PILE's readiness: rotated only when EVERY member is
   // tapped. The lead member stays the face, the data-obj anchor (what arrows
   // target) and the inspector's subject — only the rotation is presentation.
+  // fb-20260918T010805Z narrows the original no-rotated-face-anywhere
+  // assertion to the LEAD face: the constraint it guards — the lead face /
+  // whole-pile silhouette stays ready on a mixed pile — still holds, but the
+  // pile now ALSO renders a quarter-turned representative of its tapped
+  // members (the pinned new behaviour), so a rotated card-tile exists
+  // elsewhere in the markup by design.
   it('a collapsed MIXED pile presents ready even when its lead member is tapped — no whole-pile rotation', () => {
     // the reported shape: lead 1 tapped by the one click, 2 still ready
     const mixed = stackIdentical([tz(1), zombie(2)], { ignoreTapped: true })[0];
     const { html } = render(CardStack, { props: { group: mixed } });
-    expect(html).not.toMatch(/class="card-tile[^"']*tapped/); // the face is NOT rotated
+    // exactly two faces now: the ready lead, then the tapped representative
+    const tiles = html.match(/class="card-tile[^"]*"/g) ?? [];
+    expect(tiles).toHaveLength(2);
+    expect(tiles[0]).not.toContain('tapped'); // the LEAD face is NOT rotated
+    expect(tiles[1]).toContain('tapped'); // the tapped member is shown IN the pile
     expect(html).toContain('data-stack-ready'); // the ready plate carries the counts
     expect(html).toContain('>1 ready<');
     expect(html).toContain('>x2<');
     // the lead member stays the face and the anchor: presentation only
-    expect(html).toContain('data-obj="1"');
     expect(html).toContain('data-obj-group="1,2"');
+  });
+
+  // fb-20260918T010805Z: the mixed pile's tapped member is VISIBLE in the
+  // pile, not only on the plate the player overlooked twice.
+  it('a collapsed mixed pile shows a rotated representative face beside its ready lead (tap one of three)', () => {
+    const mixed = stackIdentical([zombie(1), zombie(2), tz(3)], { ignoreTapped: true })[0];
+    const { html } = render(CardStack, { props: { group: mixed } });
+    const tiles = html.match(/class="card-tile[^"]*"/g) ?? [];
+    expect(tiles).toHaveLength(2);
+    expect(tiles[0]).not.toContain('tapped'); // lead face stays ready
+    expect(tiles[1]).toContain('tapped'); // the tapped card is rendered, quarter-turned
+    // the representative is the lowest-id TAPPED member (3 here; the ready
+    // lead 1 keeps the anchor), still individually addressable
+    expect(html).toContain('data-obj="3"');
+    expect(html).toContain('data-obj-group="1,2,3"');
+    // the ready plate and count stay exactly as they were
+    expect(html).toContain('>2 ready<');
+    expect(html).toContain('>x3<');
+  });
+
+  it('the representative is the lowest-id tapped member when several are tapped', () => {
+    const mixed = stackIdentical([zombie(1), tz(2), tz(3)], { ignoreTapped: true })[0];
+    const { html } = render(CardStack, { props: { group: mixed } });
+    expect(html).toContain('data-obj="2"'); // rep = 2, not 3
+    expect(html).toContain('>1 ready<');
   });
 
   it('a collapsed uniform pile is unchanged: all-tapped renders rotated with no ready plate, all-untapped renders ready', () => {
@@ -141,6 +175,20 @@ describe('CardStack', () => {
 
   it('a collapsed mixed pile presents rotated again once its LAST member taps (the pile is then inert)', () => {
     const all = stackIdentical([tz(1), tz(2)], { ignoreTapped: true })[0];
-    expect(render(CardStack, { props: { group: all } }).html).toMatch(/class="card-tile[^"']*tapped/);
+    expect(render(CardStack, { props: { group: all } }).html).toMatch(/class="card-tile[^"]*tapped/);
+  });
+
+  // fb-20260918T010805Z: the representative exists ONLY on a collapsed MIXED
+  // pile. Tapping the last ready member makes the pile uniform all-tapped
+  // again: one rotated face (the whole pile is genuinely inert), no
+  // representative, no ready plate — byte-identical to the shipped uniform
+  // rendering.
+  it('the last tap makes the pile uniform again: one rotated face, no representative, no plate', () => {
+    const afterLast = stackIdentical([tz(1), tz(2), tz(3)], { ignoreTapped: true })[0];
+    const { html } = render(CardStack, { props: { group: afterLast } });
+    const tiles = html.match(/class="card-tile[^"]*"/g) ?? [];
+    expect(tiles).toHaveLength(1); // the representative is gone
+    expect(tiles[0]).toContain('tapped'); // the pile face itself is rotated, as before
+    expect(html).not.toContain('data-stack-ready');
   });
 });
