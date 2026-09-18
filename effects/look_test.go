@@ -2,6 +2,7 @@ package effects
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -103,6 +104,14 @@ func TestEveryLookerScopedEffectRecordsItsLookThroughEmitLook(t *testing.T) {
 				ctx.Targets = []state.Target{{Player: 1, IsPlayer: true}}
 			}
 			Resolve(h, ctx, sa(t, tc.line))
+			if !tc.wantAsk && h.asked != nil && h.asked.ResumeKind == "look_ack" {
+				// A bare private look (lookack) now gates on its pacing ack:
+				// answer it the way rules' resume arm does — set Ctx.LookAck
+				// and re-enter — before the note exists to count.
+				ctx.LookAck = true
+				h.asked = nil
+				Resolve(h, ctx, sa(t, tc.line))
+			}
 			notes := secretLookNotes(h.log)
 			if len(notes) != 1 {
 				t.Fatalf("got %d Secret look Notes (%+v), want exactly one", len(notes), notes)
@@ -159,6 +168,16 @@ func TestSlayersBountyLookShowsOnlyCreatureCards(t *testing.T) {
 	src := h.g.AddObject(mkCard(t, "Name:Slayer's Bounty\nManaCost:W\nTypes:Legendary Artifact Clue\nOracle:x\n"), 0)
 	ctx := &Ctx{Source: src.ID, Controller: 0,
 		Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+	Resolve(h, ctx, sa2)
+	if h.asked == nil || h.asked.ResumeKind != "look_ack" || h.asked.Player != 0 {
+		t.Fatalf("the bare look posed %+v, want a look_ack for the looker (seat 0)", h.asked)
+	}
+	if !strings.Contains(h.asked.Prompt, "Bear") {
+		t.Fatalf("ack prompt = %q, want it to name the creature card", h.asked.Prompt)
+	}
+	// Answer the ack the way rules' resume arm does and re-enter.
+	ctx.LookAck = true
+	h.asked = nil
 	Resolve(h, ctx, sa2)
 	notes := secretLookNotes(h.log)
 	if len(notes) != 1 {

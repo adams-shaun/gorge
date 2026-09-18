@@ -1174,6 +1174,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.RevealOpt = "no"
 			}
+		case "look_ack":
+			// The bare private look's pacing ack (lookack, task
+			// fb-20260917T232325Z-35cfca4b, Mishra's Bauble / Gitaxian Probe):
+			// the looker clicked Continue on the "You look at ..." modal. There
+			// is NO decline — the ask gates only the pacing, and CR 701.20e
+			// requires the look itself to happen — so ANY answer (the single
+			// Continue option; a malformed empty one included) acknowledges,
+			// and the re-entered effReveal consumes the flag at its emit point
+			// (fx42) and emits the note without re-asking. A second bare look
+			// in the same walk poses its own ack.
+			ctx.LookAck = true
 		case "draw_optional":
 			// OptionalDecider$ Draw (Mystic Remora, Rhystic Study): the
 			// decider's yes/no was answered. Option 0 is "yes" (draw the

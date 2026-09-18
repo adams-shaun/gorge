@@ -584,6 +584,15 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// LookAck is the answered bare-look "Continue" ack (lookack, task
+	// fb-20260917T232325Z-35cfca4b): the looker acknowledged the private
+	// look a NoReveal$ / mandatory-Look$ Reveal-family effect is about to
+	// record, so the Secret Note lands below the modal instead of streaming
+	// past ungated. There is no decline — the ask paces the look, it does
+	// not permit it — so the resume arm sets it on ANY answer, and effReveal
+	// consumes and clears it at the emit point, so a second bare look in the
+	// same walk poses its own ack (fx42 scoping).
+	LookAck bool
 	// DrawOpt is the answered OptionalDecider$ yes/no on a re-entered
 	// mid-resolution Draw (Mystic Remora, Rhystic Study): "yes" draws and
 	// "no" declines, the same two-way answer the RevealOpt ask poses. ""

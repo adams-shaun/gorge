@@ -349,6 +349,25 @@ func TestMishrasBaublePrivateLookAndNextTurnSlowtrip(t *testing.T) {
 	submitChoices(t, e, ta.Index)
 	viviPass(t, e)
 	viviPass(t, e)
+	// The pacing gate (lookack, fb-20260917T232325Z-35cfca4b): the bare
+	// private look now poses its one-option Continue ack to the activator
+	// BEFORE the note lands — the reporter's defect was exactly this line
+	// streaming past ungated.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "look_ack" || d.Player != 0 {
+		t.Fatalf("expected the look ack, got %+v", d)
+	}
+	if len(d.Options) != 1 || d.Options[0].Kind != "yes" || d.Options[0].Label != "Continue" {
+		t.Fatalf("ack options = %+v, want a single Continue", d.Options)
+	}
+	if lib := e.G.Zone(state.ZLibrary, 1); len(lib) > 0 {
+		if name := e.G.Obj(lib[0]).Face().Name; !strings.Contains(d.Prompt, name) {
+			t.Fatalf("ack prompt %q does not name the top library card %q", d.Prompt, name)
+		}
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	viviPass(t, e)
+	viviPass(t, e)
 	// One Secret look Note scoped to the activator (seat 0), naming the top
 	// library card; NO public reveal.
 	looks := 0
