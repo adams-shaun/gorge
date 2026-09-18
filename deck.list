@@ -4282,6 +4282,135 @@ Deck
 1 Mountain
 1 Mountain
 1 Mountain
+# --- The Fantastic Four (msc commander precon, Invisible Woman) — census input, 2026-09-18 (issue agent-20260918T211806Z-7e1cf3d1) ---
+# run: sed -n '/The Fantastic Four (msc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/msc-fantastic-four.list
+# source: WotC Marvel Super Heroes Commander decklist announcement deck-list element, fetched 2026-09-18; MTGJSON
+#   DeckList entry TheFantasticFour_MSC cross-checked; MTGGoldfish stock list rate-limited (its deck 7915879 is a
+#   user-submitted Bracket-4 build, not the precon — do not substitute it)
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps: api:Discover, api:FlipCoin,
+#   api:GainControlVariant, api:MultiplyCounter, kw:Escalate, kw:Rebound, stat:IgnoreLegendRule
+#   (7 tickets filed in .ds4/new-tickets/; open-ledger overlaps NOT re-filed: api:AddPhase — 358dffd6,
+#   api:Clone — d0f64ebe, api:CopyPermanent — 6994a692 + bdef0f98, api:Explore — 2b8f933d,
+#   api:ImmediateTrigger — 6ad7f5ec et al., api:Phases — 1f98ae46, api:PutCounterAll — 6d0f5aae,
+#   kw:Cascade — 83cb70eb, trig:ChangesZoneAll — 7054b9c3 et al.).
+# Commander: Invisible Woman (cn 1 face card, first card of the official list; Mister Fantastic, Human Torch and
+#   The Thing are the precon's alternate face commanders — all four Legendary Creature, none Partner, all inside
+#   the 100 — deck.File's single 'commander' field correctly names the face card).
+# Gap primitives (22 of 100 cards / 16 distinct primitive labels, lists in the census report):
+#   api:Discover (Franklin Richards, Ascendant); api:FlipCoin (Negative Zone Portal);
+#   api:GainControlVariant (Alicia Masters, Skilled Sculptor); api:MultiplyCounter (The Thing);
+#   kw:Escalate (Collective Effort); kw:Rebound (Invisible Force Field, Fantastic Elasticity, Flame On!,
+#   It's Clobberin' Time!, Quantum Misalignment, Recurring Insight, Into the Time Vortex, Terramorph);
+#   stat:IgnoreLegendRule (Council of Reeds); api:AddPhase (Seize the Day); api:Clone (Mirage Mirror);
+#   api:CopyPermanent (Council of Reeds, Quantum Misalignment); api:Explore (Path of Discovery);
+#   api:ImmediateTrigger (Invisible Woman, Lockjaw, The Thing); api:Phases (Clever Concealment);
+#   api:PutCounterAll (Collective Effort); kw:Cascade (Into the Time Vortex);
+#   trig:ChangesZoneAll (Mister Fantastic, Reed Richards).
+# Known-family leans, no ticket: stat:MustAttack (Galactus, Devourer of Worlds — unregistered but read directly
+#   by rules/combat.go), api:DelayedTrigger Mode$ SpellCast (Galvanic Iteration — the AGENTS.md DelayedTrigger
+#   row implements only Mode$ Phase), api:ManaReflected (Exotic Orchard — implemented, effects/mana_reflected.go),
+#   kw:Convoke (Clever Concealment — implemented, rules/cast.go).
+Commander
+1x Invisible Woman
+1x Mister Fantastic
+1x Human Torch
+1x The Thing
+1x Galactus, Devourer of Worlds
+1x Silver Surfer, Galactus's Herald
+1x Invisible Force Field
+1x Ultimate Nullification
+1x Council of Reeds
+1x Fantastic Elasticity
+1x Lockjaw, Slobbering Teleporter
+1x Valeria Richards, Precocious
+1x Alicia Masters, Skilled Sculptor
+1x Flame On!
+1x Franklin Richards, Ascendant
+1x Nova Flame
+1x It's Clobberin' Time!
+1x Medusa, Inhuman Queen
+1x Black Bolt, Inhuman King
+1x Cosmic Crucible
+1x Crystal, Inhuman Princess
+1x Dragon Man, Reformed Robot
+1x First Family
+1x Namor, Atlantean King
+1x Power Pack
+1x Willie Lumpkin, Postman
+1x The Fantasticar
+1x H.E.R.B.I.E., Lovable Robot
+1x Negative Zone Portal
+1x Unstable Molecule Suit
+1x Cleansing Nova
+1x Clever Concealment
+1x Collective Effort
+1x Monologue Tax
+1x Promise of Loyalty
+1x Tragic Arrogance
+1x Quantum Misalignment
+1x Recurring Insight
+1x Into the Time Vortex
+1x Seize the Day
+1x Path of Discovery
+1x Galvanic Iteration
+1x Taunt from the Rampart
+1x Whirlwind of Thought
+1x Chromatic Lantern
+1x Mirage Mirror
+1x Canopy Vista
+1x Cinder Glade
+1x Clifftop Retreat
+1x Exotic Orchard
+1x Fabled Passage
+1x Glacial Fortress
+1x Hinterland Harbor
+1x Prairie Stream
+1x Radiant Summit
+1x Rejuvenating Springs
+1x Rootbound Crag
+1x Scorched Geyser
+1x Sodden Verdure
+1x Sulfur Falls
+1x Sunpetal Grove
+1x Terramorphic Expanse
+1x Mind's Dilation
+1x Annie Joins Up
+1x Genesis Ultimatum
+1x Mister Fantastic, Reed Richards
+1x Baxter Building
+1x Bovine Intervention
+1x Cut a Deal
+1x Path to Exile
+1x Deep Analysis
+1x Cultivate
+1x Farseek
+1x Terramorph
+1x Three Visits
+1x Expressive Iteration
+1x Hull Breach
+1x Arcane Signet
+1x Lightning Greaves
+1x Sol Ring
+1x Command Tower
+1x Evolving Wilds
+1x Path of Ancestry
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Island
+1x Island
+1x Island
+1x Island
+1x Mountain
+1x Mountain
+1x Mountain
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
 # --- Silverquill Influence (soc commander precon, Killian, Decisive Mentor) — census input, 2026-09-18 (issue agent-20260918T211806Z-7f1829ef) ---
 # run: sed -n '/Silverquill Influence (soc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/soc-silverquill-influence.list
 # (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
