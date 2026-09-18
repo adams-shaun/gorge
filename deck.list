@@ -1,3 +1,617 @@
+# deck.list — census scratch inputs, one section per deck-census task.
+# Each section is a standalone deckimport input (deckimport -in deck.list):
+# comment lines and blank lines are stripped, so extract one section to run it.
+
+# --- Necron Dynasties (40k commander precon) — census input, merged 2026-09-18 (170ae3d3) ---
+1 Anrakyr the Traveller
+1 Arcane Signet
+1 Barren Moor
+1 Beacon of Unrest
+1 Biotransference
+1 Caged Sun
+1 Canoptek Scarab Swarm
+1 Canoptek Spyder
+1 Canoptek Tomb Sentinel
+1 Canoptek Wraith
+1 Chronomancer
+1 Commander's Sphere
+1 Convergence of Dominion
+1 Cranial Plating
+1 Cryptek
+1 Cryptothrall
+1 Darkness
+1 Defile
+1 Desert of the Glorified
+1 Dread Return
+1 Endless Atlas
+1 Flayed One
+1 Ghost Ark
+1 Gilded Lotus
+1 Go for the Throat
+1 Hedron Archive
+1 Hexmark Destroyer
+1 Illuminor Szeras
+1 Imotekh the Stormlord
+1 Living Death
+1 Lokhust Heavy Destroyer
+1 Lychguard
+1 Mask of Memory
+1 Mind Stone
+1 Mutilate
+1 Myriad Landscape
+1 Mystic Forge
+1 Necron Deathmark
+1 Necron Monolith
+1 Necron Overlord
+1 Night Scythe
+1 Out of the Tombs
+1 Plasmancer
+1 Polluted Mire
+1 Psychomancer
+1 Reliquary Tower
+1 Resurrection Orb
+1 Royal Warden
+1 Sautekh Immortal
+1 Sceptre of Eternal Glory
+1 Sculpting Steel
+1 Shard of the Nightbringer
+1 Shard of the Void Dragon
+1 Skorpekh Destroyer
+1 Skorpekh Lord
+1 Sol Ring
+30 Swamp
+1 Szarekh, the Silent King
+1 Technomancer
+1 The War in Heaven
+1 Their Name Is Death
+1 Their Number Is Legion
+1 Thought Vessel
+1 Tomb Blade
+1 Tomb Fortress
+1 Trazyn the Infinite
+1 Triarch Praetorian
+1 Triarch Stalker
+1 Unstable Obelisk
+1 Vault of Whispers
+1 Wayfarer's Bauble
+
+# --- The Ruinous Powers (40k commander precon, Abaddon the Despoiler) — census input (2026-09-18) ---
+Commander
+Abaddon the Despoiler
+1 Aspiring Champion
+1 Assault Suit
+1 Barren Moor
+1 Be'lakor, the Dark Master
+1 Bile Blight
+1 Bituminous Blast
+1 Blasphemous Act
+1 Blight Grenade
+1 Blood for the Blood God!
+1 Bloodcrusher of Khorne
+1 Bloodthirster
+1 Brainstorm
+1 Chaos Defiler
+1 Chaos Mutation
+1 Chaos Terminator Lord
+1 Chaos Warp
+1 Chromatic Lantern
+1 Command Tower
+1 Commander's Sphere
+1 Crumbling Necropolis
+1 Dark Apostle
+1 Dark Ritual
+1 Decree of Pain
+1 Deny Reality
+1 Dismal Backwater
+1 Drach'Nyen
+1 Evolving Wilds
+1 Exalted Flamer of Tzeentch
+1 Exotic Orchard
+1 Foreboding Ruins
+1 Forgotten Cave
+1 Great Unclean One
+1 Helbrute
+1 Herald of Slaanesh
+1 Heralds of Tzeentch
+8 Island
+1 Keeper of Secrets
+1 Khârn the Betrayer
+1 Kill! Maim! Burn!
+1 Knight Rampager
+1 Let the Galaxy Burn
+1 Lord of Change
+1 Lucius the Eternal
+1 Magnus the Red
+1 Mandate of Abaddon
+1 Molten Slagheap
+1 Mortarion, Daemon Primarch
+8 Mountain
+1 Mutalith Vortex Beast
+1 Noise Marine
+1 Nurgle's Conscription
+1 Nurgle's Rot
+1 Past in Flames
+1 Path of Ancestry
+1 Pink Horror
+1 Plague Drone
+1 Poxwalkers
+1 Reverberate
+1 Seeker of Slaanesh
+1 Sloppity Bilepiper
+1 Sol Ring
+1 Sunken Hollow
+8 Swamp
+1 Swiftwater Cliffs
+1 Talisman of Creativity
+1 Talisman of Dominance
+1 Talisman of Indulgence
+1 Tallyman of Nurgle
+1 Temple of the False God
+1 Terramorphic Expanse
+1 The Horus Heresy
+1 The Lost and the Damned
+1 The Ruinous Powers
+1 Tzaangor Shaman
+1 Venomcrawler
+1 Warstorm Surge
+1 Wayfarer's Bauble
+1 Worn Powerstone
+
+
+# --- Forces of the Imperium (40k commander precon, Marneus Calgar) — census input (929f62e0) ---
+Commander
+1 Marneus Calgar
+1 And They Shall Know No Fear
+1 Arcane Sanctum
+1 Arcane Signet
+1 Arco-Flagellant
+1 Ash Barrens
+1 Assault Intercessor
+1 Bastion Protector
+1 Belisarius Cawl
+1 Birth of the Imperium
+1 Callidus Assassin
+1 Celestine, the Living Saint
+1 Choked Estuary
+1 Collective Effort
+1 Command Tower
+1 Commander's Sphere
+1 Commissar Severina Raine
+1 Company Commander
+1 Cybernetica Datasmith
+1 Darkwater Catacombs
+1 Defenders of Humanity
+1 Deny the Witch
+1 Deploy to the Front
+1 Dismal Backwater
+1 Entrapment Maneuver
+1 Epistolary Librarian
+1 Everflowing Chalice
+1 Evolving Wilds
+1 Exotic Orchard
+1 Exterminatus
+1 Fell the Mighty
+1 For the Emperor!
+1 Grey Knight Paragon
+1 Hour of Reckoning
+1 Inquisitor Eisenhorn
+1 Inquisitor Greyfax
+1 Inquisitorial Rosette
+5 Island
+1 Knight Paladin
+1 Launch the Fleet
+1 Martial Coup
+1 Memorial to Glory
+1 Mind Stone
+1 Mortify
+1 Neyam Shai Murad
+1 Path of Ancestry
+8 Plains
+1 Port Town
+1 Prairie Stream
+1 Primaris Chaplain
+1 Primaris Eliminator
+1 Reaver Titan
+1 Reconnaissance Mission
+1 Redemptor Dreadnought
+1 Sanguinary Priest
+1 Scoured Barrens
+1 Sicarian Infiltrator
+1 Sister Hospitaller
+1 Sister Repentia
+1 Sister of Silence
+1 Skullclamp
+1 Skycloud Expanse
+1 Sol Ring
+1 Space Marine Devastator
+1 Space Marine Scout
+1 Sunken Hollow
+7 Swamp
+1 Swords to Plowshares
+1 Talisman of Dominance
+1 Talisman of Hierarchy
+1 Talisman of Progress
+1 Terramorphic Expanse
+1 The Flesh Is Weak
+1 The Golden Throne
+1 Thunderhawk Gunship
+1 Thunderwolf Cavalry
+1 Tranquil Cove
+1 Triumph of Saint Katherine
+1 Ultramarines Honour Guard
+1 Utter End
+1 Vanguard Suppressor
+1 Vexilus Praetor
+1 Zephyrim
+
+# --- Tyranid Swarm (40k commander precon) — census input 2026-09-18 ---
+Commander
+1 The Swarmlord
+1 Aberrant
+1 Abundance
+1 Acolyte Hybrid
+1 Aetherize
+1 Arcane Signet
+1 Ash Barrens
+1 Atalan Jackal
+1 Biophagus
+1 Bone Sabres
+1 Bred for the Hunt
+1 Broodlord
+1 Cave of Temptation
+1 Cinder Glade
+1 Clamavus
+1 Command Tower
+1 Cultivate
+1 Death's Presence
+1 Deathleaper, Terror Weapon
+1 Evolving Wilds
+1 Exocrine
+1 Exotic Orchard
+1 Explore
+1 Farseek
+8 Forest
+1 Frontier Bivouac
+1 Game Trail
+1 Gargoyle Flock
+1 Genestealer Locus
+1 Genestealer Patriarch
+1 Ghyrson Starn, Kelermorph
+1 Goliath Truck
+1 Hardened Scales
+1 Harrow
+1 Haruspex
+1 Herald's Horn
+1 Hierophant Bio-Titan
+1 Hormagaunt Horde
+1 Hull Breach
+1 Icon of Ancestry
+1 Inspiring Call
+7 Island
+1 Lictor
+1 Magus Lucea Kane
+1 Malanthrope
+1 Mawloc
+7 Mountain
+1 New Horizons
+1 Nexos
+1 Old One Eye
+1 Opal Palace
+1 Overgrowth
+1 Path of Ancestry
+1 Purestrain Genestealer
+1 Rampant Growth
+1 Ravener
+1 Rugged Highlands
+1 Screamer-Killer
+1 Shadow in the Warp
+1 Sol Ring
+1 Sporocyst
+1 Starstorm
+1 Temple of Abandon
+1 Temple of Epiphany
+1 Temple of Mystery
+1 Termagant Swarm
+1 Terramorphic Expanse
+1 Tervigon
+1 The First Tyrannic War
+1 The Red Terror
+1 Thornwood Falls
+1 Toxicrene
+1 Trygon Prime
+1 Tyranid Harridan
+1 Tyranid Invasion
+1 Tyranid Prime
+1 Tyrant Guard
+1 Unclaimed Territory
+1 Venomthrope
+1 Winged Hive Tyrant
+1 Zoanthrope
+
+# --- Urza's Iron Alliance (brc commander precon, Urza, Chief Artificer) — census input 2026-09-18 ---
+1 Alela, Artful Provocateur
+1 Ancient Den
+1 Angel of the Ruins
+1 Arcane Sanctum
+1 Arcane Signet
+1 Armix, Filigree Thrasher
+1 Ash Barrens
+1 Austere Command
+1 Azorius Chancery
+1 Azorius Signet
+1 Baleful Strix
+1 Bident of Thassa
+1 Bojuka Bog
+1 Bronze Guardian
+1 Chief of the Foundry
+1 Chrome Courier
+1 Command Tower
+1 Cranial Plating
+1 Darksteel Citadel
+1 Darksteel Juggernaut
+1 Despark
+1 Digsite Engineer
+1 Dimir Aqueduct
+1 Dimir Signet
+1 Etched Champion
+1 Etherium Sculptor
+1 Ethersworn Adjudicator
+1 Evolving Wilds
+1 Exotic Orchard
+1 Filigree Attendant
+1 Goldmire Bridge
+1 Hexavus
+1 Indomitable Archangel
+4 Island
+1 Kayla's Music Box
+1 Liquimetal Torque
+1 Losheel, Clockwork Scholar
+1 March of Progress
+1 Marionette Master
+1 Master of Etherium
+1 Mistvault Bridge
+1 Myr Battlesphere
+1 Noxious Gearhulk
+1 One with the Machine
+1 Orzhov Basilica
+1 Orzhov Signet
+1 Path of Ancestry
+1 Phyrexian Rebirth
+4 Plains
+1 Prairie Stream
+1 Preordain
+1 Razortide Bridge
+1 Relic of Progenitus
+1 River of Tears
+1 Sai, Master Thopterist
+1 Sanwell, Avenger Ace
+1 Scholar of New Horizons
+1 Seat of the Synod
+1 Sharding Sphinx
+1 Sharuum the Hegemon
+1 Shimmer Dragon
+1 Skullclamp
+1 Skycloud Expanse
+1 Sol Ring
+1 Solemn Simulacrum
+1 Sphinx's Revelation
+1 Spire of Industry
+1 Steel Hellkite
+1 Steel Overseer
+1 Sunken Hollow
+3 Swamp
+1 Swiftfoot Boots
+1 Swords to Plowshares
+1 Tawnos, Solemn Survivor
+1 Tempered Steel
+1 Temple of Deceit
+1 Temple of Enlightenment
+1 Temple of Silence
+1 Teshar, Ancestor's Apostle
+1 Thopter Shop
+1 Thopter Spy Network
+1 Thought Monitor
+1 Thought Vessel
+1 Unbreakable Formation
+1 Urza's Ruinous Blast
+1 Urza, Chief Artificer
+1 Vault of Whispers
+1 Vedalken Humiliator
+1 Vindicate
+1 Whirler Rogue
+1 Wire Surgeons
+1 Wreck Hunter
+
+# --- Mishra's Burnished Banner (brc commander precon) — census input, 2026-09-18 (this worktree) ---
+# the first two lines are the Commander section deckimport lifts into the header
+Commander
+1 Mishra, Eminent One
+1 Abrade
+1 Arcane Signet
+1 Ash Barrens
+1 Ashnod the Uncaring
+1 Audacious Reshapers
+1 Bedevil
+1 Blasphemous Act
+1 Blast-Furnace Hellkite
+1 Brudiclad, Telchor Engineer
+1 Buried Ruin
+1 Chaos Warp
+1 Command Tower
+1 Commander's Sphere
+1 Crumbling Necropolis
+1 Cursed Mirror
+1 Darkwater Catacombs
+1 Dimir Aqueduct
+1 Dimir Signet
+1 Dreamstone Hedron
+1 Drossforge Bridge
+1 Emry, Lurker of the Loch
+1 Executioner's Capsule
+1 Exotic Orchard
+1 Expressive Iteration
+1 Fact or Fiction
+1 Fain, the Broker
+1 Faithless Looting
+1 Farid, Enterprising Salvager
+1 Feed the Swarm
+1 Fellwar Stone
+1 Geth, Lord of the Vault
+1 Glint Raker
+1 Great Furnace
+1 Hedron Archive
+1 Hellkite Igniter
+1 Herald of Anguish
+1 Ichor Wellspring
+1 Idol of Oblivion
+5 Island
+1 Izzet Boilerworks
+1 Jhoira, Weatherlight Captain
+1 Lithoform Engine
+1 Machine God's Effigy
+1 Master Transmuter
+1 Metalwork Colossus
+1 Mind Stone
+1 Mirrorworks
+1 Mistvault Bridge
+1 Mnemonic Sphere
+4 Mountain
+1 Muzzio, Visionary Architect
+1 Mycosynth Wellspring
+1 Myriad Landscape
+1 Nihil Spellbomb
+1 Oblivion Stone
+1 Oni-Cult Anvil
+1 Padeem, Consul of Innovation
+1 Path of Ancestry
+1 Prophetic Prism
+1 Rakdos Carnarium
+1 Rakdos Signet
+1 Reliquary Tower
+1 Scavenged Brawler
+1 Seat of the Synod
+1 Servo Schematic
+1 Shadowblood Ridge
+1 Silas Renn, Seeker Adept
+1 Silverbluff Bridge
+1 Slobad, Goblin Tinkerer
+1 Smelting Vat
+1 Smoldering Marsh
+1 Sol Ring
+1 Spine of Ish Sah
+1 Strionic Resonator
+4 Swamp
+1 Temple of Deceit
+1 Temple of Epiphany
+1 Temple of Malice
+1 Terisiare's Devastation
+1 Terramorphic Expanse
+1 Thirst for Knowledge
+1 Thoughtcast
+1 Thran Dynamo
+1 Trading Post
+1 Traxos, Scourge of Kroog
+1 Vault of Whispers
+1 Wayfarer's Bauble
+1 Wondrous Crucible
+1 Workshop Elders
+
+# --- Legends' Legacy (dmc commander precon, Dihada, Binder of Wills) — census input, 2026-09-18 (this worktree) ---
+Commander
+1 Dihada, Binder of Wills
+1 Akroma's Memorial
+1 Anafenza, Kin-Tree Spirit
+1 Arcane Signet
+1 Arvad the Cursed
+1 Avacyn's Memorial
+1 Battlefield Forge
+1 Bedevil
+1 Blackblade Reforged
+1 Bladewing, Deathless Tyrant
+1 Bojuka Bog
+1 Boros Garrison
+1 Boros Signet
+1 Breena, the Demagogue
+1 Cadric, Soul Kindler
+1 Captain Lannery Storm
+1 Caves of Koilos
+1 Chainer, Nightmare Adept
+1 Command Tower
+1 Day of Destiny
+1 Dragonskull Summit
+1 Drana, Liberator of Malakir
+1 Etali, Primal Storm
+1 Evolving Wilds
+1 Exotic Orchard
+1 Faithless Looting
+1 Feldon of the Third Path
+1 Fellwar Stone
+1 Foreboding Ruins
+1 Gadrak, the Crown-Scourge
+1 Garna, the Bloodflame
+1 Geier Reach Sanitarium
+1 Generous Gift
+1 Gerrard's Hourglass Pendant
+1 Goro-Goro, Disciple of Ryusei
+1 Heroes' Podium
+1 Kalain, Reclusive Painter
+1 Kher Keep
+1 Krenko, Tin Street Kingpin
+1 Lae'zel, Vlaakith's Champion
+1 Liesa, Forgotten Archangel
+1 Lychguard
+1 Magda, Brazen Outlaw
+1 Mahadi, Emporium Master
+1 Mikaeus, the Lunarch
+1 Mikokoro, Center of the Sea
+1 Mortify
+3 Mountain
+1 Mythos of Snapdax
+1 Night's Whisper
+1 Nomad Outpost
+1 Odric, Lunarch Marshal
+1 Orcus, Prince of Undeath
+1 Orzhov Basilica
+1 Orzhov Signet
+1 Painful Truths
+1 Piru, the Volatile
+7 Plains
+1 Primevals' Glorious Rebirth
+1 Rain of Riches
+1 Rakdos Carnarium
+1 Rakdos Signet
+1 Ratadrabik of Urborg
+1 Read the Bones
+1 Relic of Legends
+1 Ruinous Ultimatum
+1 Search for Glory
+1 Semester's End
+1 Shanid, Sleepers' Scourge
+1 Shizo, Death's Storehouse
+1 Smoldering Marsh
+1 Sol Ring
+2 Swamp
+1 Temple of Malice
+1 Temple of Silence
+1 Temple of Triumph
+1 Terramorphic Expanse
+1 Teshar, Ancestor's Apostle
+1 Thalia's Lancers
+1 The Peregrine Dynamo
+1 The Reaver Cleaver
+1 Tyrite Sanctum
+1 Unbreakable Formation
+1 Untaidake, the Cloud Keeper
+1 Urza's Ruinous Blast
+1 Utter End
+# ground truth spells it Wear/Tear; the registry only resolves the // spelling (single '/' normalises to a different name)
+1 Wear // Tear
+1 Yawgmoth's Vile Offering
+1 Yomiji, Who Bars the Way
+1 Zetalpa, Primal Dawn
+1 Zurgo Helmsmasher
+
+# --- Coven Counters (mic commander precon, Leinore, Autumn Sovereign) — census input, 2026-09-18 (this worktree) ---
 Commander
 1 Leinore, Autumn Sovereign
 
@@ -44,6 +658,7 @@ Deck
 1 Krosan Verge
 1 Kurbis, Harvest Celebrant
 1 Kyler, Sigardian Emissary
+1 Leinore, Autumn Sovereign
 1 Lifecrafter's Bestiary
 1 Mikaeus, the Lunarch
 1 Moonsilver Key
