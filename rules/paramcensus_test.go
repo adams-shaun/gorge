@@ -1180,13 +1180,22 @@ var apiSpecificRulesSA = map[string][]string{
 	// touches SA params), the flattened combo wheel's per-colour expansion
 	// read (manaAbilityComboColours -- both call sites, activateManaFor and
 	// answerManaActivation, guard on ma.API == "Mana" before calling, so the
-	// Produced$ read never executes for another api), manaAbilityPayable's
-	// offer/payment path, the AvailableMana projection, and
+	// Produced$ read never executes for another api), manaAbilityPayablePool's
+	// offer/payment path (the pool-parameterized core manaAbilityPayable
+	// delegates to; the potential-action walk calls it directly with the
+	// hypothetical bound), the AvailableMana projection, and
 	// activatedMatchesValidSA's Produced$-based mana-ability recognition --
 	// all run on mana abilities (api:Mana) only.
-	"Engine.manaAbilityPayable": {"Mana"},
-	"manaAbilityLabel":          {"Mana"},
-	"manaAbilityComboColours":   {"Mana"},
+	"Engine.manaAbilityPayablePool": {"Mana"},
+	"manaAbilityLabel":              {"Mana"},
+	"manaAbilityComboColours":       {"Mana"},
+	// The potential pool's mana-ability readers (rules/potential.go): they
+	// read a mana ability's Produced$/Amount$ ONLY, and PotentialMana is
+	// reachable from the viewer's projection on every priority decision, so
+	// without this entry their reads would join the generic union and mask
+	// Sacrifice's unread Produced$/DealDamage's unread Produced$.
+	"addPotentialMana": {"Mana"},
+	"potentialAmount":  {"Mana"},
 	// The ManaReflected activation gate: only a reflected-mana ability's
 	// offer consults IsPresent$/PresentCompare$ on the SA itself (Tazri's
 	// "another activated ability" condition). A plain AB$ Mana ability's

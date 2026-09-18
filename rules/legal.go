@@ -875,11 +875,36 @@ func (e *Engine) adjustLandPlays(p state.PlayerID) int {
 // legalActions enumerates everything p may legally do with priority. The
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
+	return e.legalActionsPriced(p, nil)
+}
+
+// legalActionsPriced is legalActions with the mana affordability priced
+// against an OVERBOUND hypothetical pool instead of the seat's floating one:
+// hyp nil keeps the ordinary floating-pool pricing, hyp non-nil prices every
+// cast/activation gate against *hyp -- the pool the seat would hold if it
+// first floated every mana its untapped sources could produce (PotentialMana).
+// The walk itself is otherwise IDENTICAL: same zones (hand, command zone,
+// graveyard flashback, battlefield abilities), same timing, restriction,
+// target and non-mana-cost gates, same live RaiseCost/ReduceCost composition
+// (offerCostFor) -- so a potential action is by construction the same option
+// the engine WOULD offer once the mana floated, never a client-side
+// re-derivation that can drift from the engine's own cost rules.
+//
+// It is a pure read: no event is emitted, no state field is written, and the
+// hypothetical pool lives only in local copies, so replay is untouched.
+func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decision.Option {
 	var out []decision.Option
 	add := func(kind, label string, obj state.ObjID) {
 		out = append(out, decision.Option{Index: len(out), Kind: kind, Label: label, Obj: obj})
 	}
 	sorcery := e.sorcerySpeed(p)
+	// hyp is the pricing mode the walk runs in: nil is the ordinary real-pool
+	// offer walk; non-nil is the potential-action walk's hypothetical bound.
+	// The two affordability gates below are the ONLY pricing difference:
+	// every non-mana part (Sac/Discard/SubCounter/Tap) is checked against the
+	// REAL state in both modes -- floating mana never satisfies a sacrifice --
+	// and the cost composition (offerCostFor) is pool-independent, so the
+	// two walks cannot drift inside the body they share.
 	costStatics := costStaticSource{e: e}
 	actionStatics := actionStaticSource{e: e}
 	castRestricted := func(p state.PlayerID, id state.ObjID) bool {
@@ -889,7 +914,18 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		return e.abilityRestrictedUsing(actionStatics.get().cantActivate, p, id, ab)
 	}
 	offerCastable := func(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
-		return e.offerCastableUsing(costStatics.get(), p, id, base, scope, ability)
+		return e.offerCastableUsing(costStatics.get(), p, id, base, scope, ability, hyp)
+	}
+	// affordable is the composed-cost gate the two direct e.castable sites of
+	// the walk use (the may-play and escape walks price an already-composed
+	// cost, so they cannot re-run the modifier composition offerCastable
+	// owns); hyp==nil is the ordinary castable, hyp!=nil prices the same
+	// composed cost against the hypothetical pool.
+	affordable := func(q state.PlayerID, id state.ObjID, c Cost, ability bool) bool {
+		if hyp == nil {
+			return e.castable(q, id, c, ability)
+		}
+		return e.castablePriced(q, id, c, ability, *hyp)
 	}
 	offerCostFor := func(p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost {
 		return e.offerCostForUsing(costStatics.get(), p, id, base, scope)
@@ -1118,7 +1154,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			base = Cost{}
 		}
 		cost := withSpellAbilityExtras(f, offerCostFor(p, id, base, spellScope("mayplay")))
-		if e.castable(p, id, cost, false) {
+		if affordable(p, id, cost, false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name, Obj: id, Mode: "mayplay"})
 		}
@@ -1273,7 +1309,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if e.castable(p, id, offerCostFor(p, id, ec, spellScope("escape")), false) {
+		if affordable(p, id, offerCostFor(p, id, ec, spellScope("escape")), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (escape)", Obj: id, Mode: "escape"})
 		}

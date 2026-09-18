@@ -459,13 +459,30 @@ func manaAbilityLabel(ma *cards.SA) string {
 // can pay it without a chooser. Discard costs have their own continuation:
 // ordinary discard asks, while random and discard-your-hand do not.
 func (e *Engine) manaAbilityPayable(p state.PlayerID, source state.ObjID, ma *cards.SA) bool {
+	return e.manaAbilityPayablePool(p, source, ma, nil)
+}
+
+// manaAbilityPayablePool is manaAbilityPayable with the mana part priced
+// against an optional explicit pool: hyp nil keeps the ordinary real-pool
+// gate (the restriction-adjusted manaAvailableFor the offer walk uses), hyp
+// non-nil prices the activation against the potential-action walk's growing
+// hypothetical bound (rules/potential.go PotentialMana), which is what lets
+// a source's paid activation be reached after the seat floats mana from a
+// cheaper source first. Every non-mana read -- tap state, sacrifice,
+// discard and exile candidates, the announced-part refusals -- is real in
+// both modes: hypothetical mana never satisfies a sacrifice.
+func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma *cards.SA, hyp *state.Mana) bool {
 	o := e.G.Obj(source)
 	if o == nil || o.Face() == nil {
 		return false
 	}
 	cost := ParseCost(ma.Params["Cost"])
+	pool := e.manaAvailableFor(p, source, true)
+	if hyp != nil {
+		pool = *hyp
+	}
 	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.Behold) > 0 || len(cost.TapPermanent) > 0 ||
-		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayable(p, source, true, cost) {
+		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayablePool(p, source, true, cost, pool) {
 		return false
 	}
 	// The mana-activation path has no X ask and no mid-payment suspension, so

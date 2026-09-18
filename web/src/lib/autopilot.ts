@@ -29,9 +29,9 @@ import { stackYieldKey } from './yields';
  * holding a counterspell and the untapped lands to pay for it, because the
  * cast option does not exist until the mana floats. respondableFor() is the
  * arm the stack rules go through: respondable()'s kinds OR lib/castable's
- * instant-speed hand scan, so a Mana Leak with two untapped Islands stops
- * the window and a sorcery does not (the timing filter is the difference
- * between "I can act" and "I could cast this on my own turn anyway").
+ * potential-action scan, so a Mana Leak with two untapped Islands stops the
+ * window and a sorcery does not (the server's own timing gates are already in
+ * the projection, so nothing here re-derives them).
  *
  * decide() can only ever return an index pointing at an option whose kind
  * is "pass". It is structurally incapable of returning a "concede": the
@@ -172,22 +172,23 @@ export function respondable(decision: Decision): boolean {
 /**
  * respondableFor is the predicate decide()'s stack rules go through: could
  * this seat respond to the object on the stack if it stopped NOW. It is
- * respondable()'s option-kind test OR lib/castable's instant-speed hand
- * scan (respondableAfterTap): the engine prices a cast against the floating
- * pool only, so a window where the player holds a castable counterspell and
- * the untapped lands to pay for it still offers nothing but mana taps --
- * and reading that window as "nothing to respond with" silently eats exactly
- * the response the if-respondable rules exist to protect (the Kitesail
- * Apprentice / Mana Leak report). The hand half carries its own timing
- * filter: only Instant or Flash cards count, so a sorcery that merely
- * becomes affordable after tapping never stops an opponent-spell window
- * (it could not respond even if it floated first).
+ * respondable()'s option-kind test OR lib/castable's potential-action scan
+ * (respondableAfterTap): the engine prices a cast against the floating pool
+ * only, so a window where the player holds a castable counterspell and the
+ * untapped lands to pay for it still offers nothing but mana taps -- and
+ * reading that window as "nothing to respond with" silently eats exactly the
+ * response the if-respondable rules exist to protect (the Kitesail
+ * Apprentice / Mana Leak report). The projection half carries the engine's
+ * own timing gates already: a sorcery-speed play is only potential in a
+ * sorcery window, so a sorcery that merely becomes affordable after tapping
+ * never stops an opponent-spell window (it could not respond even if it
+ * floated first).
  *
  * Kept as one function (not an inline OR at each arm) so the three arms
  * cannot drift apart and the next if-respondable consumer inherits the fix.
  */
 export function respondableFor(view: View, seat: number, decision: Decision): boolean {
-  return respondable(decision) || respondableAfterTap(view, seat, decision);
+  return respondable(decision) || respondableAfterTap(view, seat);
 }
 
 /**

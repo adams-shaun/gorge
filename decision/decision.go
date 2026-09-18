@@ -427,3 +427,41 @@ func (d *Decision) Chosen(in Intent) []Option {
 	}
 	return out
 }
+
+// PotentialAction is one action a seat COULD take if it first floated every
+// mana its untapped sources could produce: the engine's own legal-offer walk
+// (rules/legal.go) priced against a hypothetical pool instead of the floating
+// one. It is the server-side answer to the float-then-cast payment model --
+// the engine prices a cast against the FLOATING pool only, so the priority
+// window carries no cast option yet, and a client that re-derives
+// "castable after tapping" on its own (printed costs, no live modifiers,
+// no command zone, no flashback) drifts from the engine on every cost rule
+// (Thalia's RaiseCost, a Medallion's ReduceCost, an Indeterminate Tron
+// source, an X spell at 0). The projection carries only what the client's
+// stop decisions need: which kind of action and where its object lives.
+// A card/ability id is NOT a promise the action is currently offered -- it is
+// a promise the engine WOULD offer it once the mana floated.
+type PotentialAction struct {
+	// Kind is the action kind, the same vocabulary decision.Option uses but
+	// restricted to real plays: "cast", "ability" and "play_land". The mana
+	// tap ("activate"), pass and concede are deliberately absent -- they are
+	// offered at every priority window and are never a play.
+	Kind string `json:"kind"`
+	// Obj is the card or permanent the action names (the spell to cast from
+	// hand/command zone/graveyard, or the source of the ability), 0 when the
+	// action has no object. The id is the CardView id the client already has.
+	Obj state.ObjID `json:"obj,omitempty"`
+	// Ability anchors an "ability" potential action to its exact activated
+	// ability, the index into the source Face().Abilities, exactly as
+	// Option.Ability does. omitempty: casts and land drops carry no field.
+	Ability int `json:"ability,omitempty"`
+	// Mode distinguishes a "cast" potential action's payment kind ("",
+	// "kicked", "surged", "flashback", "miracle"), exactly as Option.Mode
+	// does. omitempty: an ordinary cast carries no field.
+	Mode string `json:"mode,omitempty"`
+	// Label is the offer label ("Cast X", "Name: ability text") -- the same
+	// string the corresponding Option would carry, so a client can surface
+	// the action without re-deriving it. omitempty: never empty in practice,
+	// but a defensive omit keeps the wire free of empty strings.
+	Label string `json:"label,omitempty"`
+}

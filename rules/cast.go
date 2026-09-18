@@ -545,10 +545,42 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 // with a scarcer later part is conservatively withheld (the engine's standing
 // rule is that wrongly withholding a legal option is safe, while wrongly
 // offering an unpayable one is an illegal game action).
+// castable is the ordinary offer gate's price check. The mana half resolves
+// through costPayable -- the seat's RESTRICTION-ADJUSTED floating pool
+// (manaAvailableFor), exactly the pool payManaFor will charge -- because the
+// engine must never offer a cast whose payment would later fail: restricted
+// mana (a RestrictValid$ batch, e.g. Eldrazi Temple's "colorless mana that
+// can be used only to pay Eldrazi costs") that does not match this payment
+// is invisible here, the same way it is invisible to the payment. The
+// potential-action walk does NOT go through castable: it prices against an
+// explicitly hypothetical pool (castablePriced below), where the over-bound
+// direction is deliberate. Every non-mana part -- Sac candidates, Discard
+// candidates, SubCounter counts, Tap untappedness -- is checked against the
+// REAL state: floating mana never satisfies a sacrifice.
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
 	if !e.costPayable(p, id, ability, mana) {
+		return false
+	}
+	return e.nonManaCastable(p, id, cost, ability)
+}
+
+// castablePriced is castable priced against an EXPLICIT pool instead of the
+// seat's restriction-adjusted floating one. Its only caller is the
+// potential-action walk (rules/legal.go legalActionsPriced's affordable, and
+// its own hyp==nil arm routes back to castable): pool is the hypothetical
+// bound the seat would hold after floating every untapped source. The pool is
+// a pure mana bound -- the walk may price against raw units a RestrictValid$
+// provenance would refuse at payment time, because a wrongly WITHHELD pass
+// costs one idle stop while a wrongly eaten window loses the player's action
+// -- but every non-mana part (Sac candidates, Discard candidates, SubCounter
+// counts, Tap untappedness) is still checked against the REAL state: floating
+// or hypothetical mana never satisfies a sacrifice.
+func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, ability bool, pool state.Mana) bool {
+	mana := cost
+	mana.Generic -= e.delveCredit(p, id, mana.Generic)
+	if !e.costPayablePool(p, id, ability, mana, pool) {
 		return false
 	}
 	return e.nonManaCastable(p, id, cost, ability)
