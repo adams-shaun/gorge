@@ -279,6 +279,36 @@ Its 500 per-result payloads were identical after timing fields were removed,
 but the outer JSON comparator correctly rejected the environment mismatch;
 it is not used for this decision.
 
+## Rejected experiment: card-owned compiled-face sidecar
+
+Keeping the active `*cards.Face` on `state.Object` reduced that accessor but
+made every copied object larger. This follow-up instead added an immutable,
+card-owned sidecar indexed by `FaceIdx`; each entry held the legacy face
+pointer and its compiled trigger-interest bits. The trigger scanner consumed
+the sidecar only while the stored pointer still matched the card's live face,
+so synthetic and dynamically replaced faces retained the old conservative
+path. `state.Object` was unchanged.
+
+The red/green tests covered sidecar publication/invalidation and the
+replacement-face fallback. The focused gate, `go vet ./...`, and whitespace
+check passed. Both fixed `GOMAXPROCS=5` 500-game outputs compare exactly equal
+to the post-AbilityPush oracle after deleting only timing/memory telemetry:
+498 eligible roots, two no-root games, 100 covered roots, and zero errors.
+
+| Measurement | Retained direct interests (two-run median) | Card sidecar (two-run median) | Change |
+|---|---:|---:|---:|
+| Wall time | 73.713 s | 82.180 s | +11.5% |
+| Runtime allocated bytes | 46.550 GB | 46.557 GB | +0.01% |
+
+The sidecar samples were 83.080 s / 46.555 GB and 81.279 s / 46.558 GB;
+the retained samples were 75.965 s / 46.558 GB and 71.461 s / 46.543 GB.
+Its profile removed `Face.CompiledTriggerInterests` and reduced flat
+`Object.Face` from 11.51 to 6.12 CPU-seconds, but did not translate into an
+end-to-end gain: `cardFaceMayTrigger` itself accounted for 3.76 flat
+CPU-seconds and `runtime.duffcopy` rose from about 30.40 to 35.72 CPU-seconds.
+The trial was reverted exactly; its artifacts remain at
+`/tmp/gorge-card-sidecar-{500,repeat-500,cpu-500,heap-500}-20260918.*`.
+
 ## Known baseline failures
 
 `go test ./...` reproduces the prior checkpoint's unrelated failures:
