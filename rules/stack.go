@@ -1412,7 +1412,8 @@ func (e *Engine) resolveTop() {
 // resolution replacement (CR 702.27a), not a replacement for being
 // countered, so only this resolved-spell helper may return it to hand.
 func spellRestZone(o *state.Object) state.Zone {
-	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy) {
+	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 ||
+		o.IsCopy || o.CastFlags&state.FlagAdventure != 0) {
 		return state.ZExile
 	}
 	if o != nil && o.CastFlags&state.FlagBuyback != 0 {

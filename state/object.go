@@ -48,7 +48,7 @@ type SacrificedInfo struct {
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
 const (
-	FlagKicked uint16 = 1 << iota // CR 601.2b: paid an optional additional cost
+	FlagKicked uint32 = 1 << iota // CR 601.2b: paid an optional additional cost
 	FlagSurged
 	FlagFlashback
 	FlagMiracle
@@ -92,6 +92,14 @@ const (
 	// payCast ORs it into the same event the X value and mode flags ride) and
 	// is read by the Counter primitive through the can't-be-countered gate.
 	FlagNoCounter
+	// FlagAdventure marks a cast of an Adventure card's Adventure spell face
+	// (CR 714.3a); it is the provenance the resolution reader (spellRestZone)
+	// uses to exile the spell into the adventure zone instead of the
+	// graveyard. The zone's own provenance -- "this card sits in the
+	// adventure zone" -- is log-derived (rules' adventureZoneAvailable)
+	// because CastFlags reset on the very stack->exile move the resolution
+	// makes. Appended per the enum's own append-only precedent.
+	FlagAdventure
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -182,7 +190,7 @@ type Object struct {
 	// permanent) -- events.Move resets both when the object leaves the
 	// battlefield.
 	X         int32
-	CastFlags uint16
+	CastFlags uint32
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number. Reset alongside X/
