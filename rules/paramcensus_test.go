@@ -1010,7 +1010,7 @@ var stringMapParams = map[string]string{
 //
 //   - `.Params[paramIdent]` reads: every caller of a function that reads one
 //     of its own string parameters as a key gains the literal keys passed at
-//     those positions (hasStat / statInt / statList / actorMatches /
+//     those positions (hasStat / statList / actorMatches /
 //     effects/count's Num-body).
 //   - map[string]string-parameter reads (the helper-passed-map form): a
 //     literal key indexed on such a parameter is attributed to the caller
@@ -2582,10 +2582,10 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// IsPresent$ is in the same position: rules/layers.go's
 	// continuousGateHolds genuinely evaluates it on every generic Continuous
 	// static (Angelic Overseer's Human check, Static Orb's untapped state).
-	// CharacteristicDefining$ is NOT in that list since the static-grant
-	// work (task inbox-paramcensus-static-grant-misc): rules/layers.go's
-	// CDA path genuinely consumes it (the layer-7a P/T base), so it is a
-	// real read on the generic bucket now.
+	// CharacteristicDefining$ left the list with the static-PT wave:
+	// rules/layers.go's staticEffects reads it to place a Set static in the
+	// CR 613.4a CDA sublayer (Tarmogoyf, Krovikan Mist now derive their
+	// announced P/T), so the read is genuine on the generic bucket.
 	for _, key := range []string{"ValidAfterStack", "RaiseCost", "MayPlayPlayer"} {
 		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
 			if d.stat[mode][key] {
@@ -2605,8 +2605,10 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// costConditionHolds) genuinely read it on every Continuous static, and
 	// since the continuous-gate wave IsPresent$ reads there too
 	// (continuousGateHolds) -- MayPlayLimit$ is the one read that must stay
-	// family-only.
-	for _, key := range []string{"Condition", "IsPresent"} {
+	// family-only. CharacteristicDefining$ joined the generic bucket with
+	// the static-PT wave (staticEffects' CDA sublayer placement), so the
+	// former generic-bucket evidence (Master of Etherium) retired.
+	for _, key := range []string{"Condition", "IsPresent", "CharacteristicDefining"} {
 		if !d.stat["Continuous"][key] {
 			t.Errorf("d.stat[Continuous][%q] = false -- the generic Continuous reader lost a real gate read", key)
 		}
@@ -2624,8 +2626,8 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// GONE since the continuous-gate wave -- the formerly-labelled trio the
 	// split was first pinned with; Mogis/Purphoros's RemoveType$ (a distinct,
 	// still-unread grant param) is the surviving generic-bucket evidence,
-	// and Master of Etherium's CharacteristicDefining$ label is gone since
-	// the CDA work genuinely consumed it.
+	// and Master of Etherium's CharacteristicDefining$ retired with the
+	// static-PT wave's genuine CDA read.
 	for card, label := range map[string]string{
 		"Mogis, God of Slaughter":     "param:stat:Continuous.RemoveType",
 		"Purphoros, God of the Forge": "param:stat:Continuous.RemoveType",

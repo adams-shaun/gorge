@@ -78,8 +78,12 @@ type Config struct {
 	// *LivelockError, the longest cycle tracked, and the no-progress
 	// runaway backstop. nil (the zero value every existing Config has) is
 	// the defaults, so every game that never sets it is byte-identical to
-	// an un-watched one. The watcher is pure observation either way: it
-	// emits no event and holds no state the engine reads.
+	// an un-watched one. LoopGuard.Disabled (explicitly set) turns the
+	// watcher off entirely -- the embedder's own opt-out for a supervised
+	// non-terminating game; the host sets it whenever its
+	// MaxDecisionsPerTurn opt-out is in force. The watcher is pure
+	// observation either way: it emits no event and holds no state the
+	// engine reads.
 	LoopGuard *LoopGuard
 }
 

@@ -21,12 +21,13 @@ package host
 // shape is re-derived from the live match below, so a corpus or engine
 // move fails here loudly instead of testing nothing.
 //
-// Re-measured 2026-09-16 (sacrifice-asks/unless-costs integration): the
-// previous measured shape (seed 1020, burst 538) stopped existing — main's
-// mass-effects merge registered the DB$ Shuffle primitive (effects/
-// shuffle.go, 59 corpus files), so the seeded course moved from the first
-// real mid-game shuffle, and seed 1020 now ends at 517 intents with no
-// commander_zone overshoot burst at all. Same decks, new measured seed.
+// Re-measured 2026-09-17 (rv2d static variable P/T): the previous measured
+// shape (seed 1111, burst 407) stopped existing — the live course's burst
+// 407 ask no longer parks (its overshoot tail moved), so seed 1111 now ends
+// with no commander_zone overshoot burst to park on. Same decks, new
+// measured seed (found by replaying the pure-bot course across seeds and
+// taking the first whose burst carries seat 1's commander_zone ask with the
+// post-ask lethal tail).
 
 import (
 	"context"
@@ -50,8 +51,8 @@ import (
 const (
 	overshootDeckA   = "foundations-wretched-ranks"
 	overshootDeckB   = "foundations-reign-of-dragons"
-	overshootSeed    = 1111
-	overshootIntents = 407 // intents recorded when parked on the overshoot burst's pending ask
+	overshootSeed    = 8
+	overshootIntents = 378 // intents recorded when parked on the overshoot burst's pending ask
 )
 
 // gateSeat is a bot behind a test gate: every decision is signalled to the

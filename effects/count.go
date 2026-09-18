@@ -743,12 +743,20 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		} else {
 			prop = strings.TrimSpace(prop)
 			switch prop {
-			case "CardPower", "CardToughness", "CardManaCost":
+			case "CardPower", "CardToughness", "CardManaCost", "CardTypes":
 			default:
 				// Not a summed property (GreatestCardPower, DifferentNames,
 				// Colors, ...): keep the old whole-token spec read.
 				spec, prop = arg, ""
 			}
+		}
+		// CardTypes is Tarmogoyf's distinct-card-type form, not a filter:
+		// count each real card type (CR 205.1) represented among the
+		// selected cards once. The map is read only through len, so its
+		// iteration order never reaches an event or a view.
+		var seenCardTypes map[string]bool
+		if prop == "CardTypes" {
+			seenCardTypes = make(map[string]bool)
 		}
 		var n int32
 		for _, p := range g.AliveFrom(0) {
@@ -771,8 +779,17 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 					n += int32(o.Face().Toughness()) + o.Counter("P1P1")
 				case "CardManaCost":
 					n += o.Face().Cmc()
+				case "CardTypes":
+					for _, typ := range o.Face().Types {
+						if cardTypeWords[typ] {
+							seenCardTypes[typ] = true
+						}
+					}
 				}
 			}
+		}
+		if prop == "CardTypes" {
+			return int32(len(seenCardTypes)), true
 		}
 		return n, true
 	}

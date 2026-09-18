@@ -8,6 +8,7 @@
 package rules
 
 import (
+	"math"
 	"slices"
 	"sort"
 	"strconv"
@@ -92,8 +93,11 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						continue
 					}
 					affects := st.Params["Affected"]
+					// Forge omits Affected$ on a self-only characteristic-defining
+					// static (Tarmogoyf, Krovikan Mist). Its default is the host
+					// card, not "no affected object".
 					if affects == "" {
-						continue
+						affects = "Card.Self"
 					}
 					// The "as long as" recheck gates (Forge's intervening-if on a
 					// continuous static): IsPresent$/IsPresent2$ (an existence count
@@ -120,8 +124,8 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 					if hasStat(st, "AddPower") || hasStat(st, "AddToughness") {
 						pt := base
 						pt.Layer, pt.Sub = LPT, SubModify
-						pt.AddPower = statInt(st, "AddPower")
-						pt.AddToughness = statInt(st, "AddToughness")
+						pt.AddPowerExpr = st.Params["AddPower"]
+						pt.AddToughnessExpr = st.Params["AddToughness"]
 						out = append(out, pt)
 					}
 					if hasStat(st, "AddKeyword") {
@@ -179,8 +183,14 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						if !skip {
 							set := base
 							set.Layer, set.Sub = LPT, SubSet
-							set.SetPower = statInt(st, "SetPower")
-							set.SetToughness = statInt(st, "SetToughness")
+							if strings.EqualFold(st.Params["CharacteristicDefining"], "true") {
+								set.Sub = SubCDA
+							}
+							set.SetPowerExpr = st.Params["SetPower"]
+							set.SetToughnessExpr = st.Params["SetToughness"]
+							set.SetPowerPresent = hasStat(st, "SetPower")
+							set.SetToughnessPresent = hasStat(st, "SetToughness")
+							set.StaticSet = true
 							set.HasSet = true
 							out = append(out, set)
 						}
@@ -573,15 +583,33 @@ func hasStat(st cards.Static, key string) bool {
 	return ok
 }
 
-// statInt parses an S: line's numeric parameter, defaulting to 0 for a
-// missing or unparseable value. Unlike parseAmount this tolerates negative
-// values, because a static pump can lower power/toughness (-1) while
-// parseAmount's clamp exists for the cost/characteristic modes that must
-// never go negative.
-func statInt(st cards.Static, key string) int32 {
-	n, err := strconv.Atoi(strings.TrimSpace(st.Params[key]))
-	if err != nil {
+// staticAmount evaluates a static's P/T parameter at derivation time. It
+// deliberately goes through effects.Num: that is the shared Forge numeric
+// grammar for signed SVar names and Count$ bodies. The source and its SVar
+// table are rebound on every call, so a life total, counters, or zones changing
+// after the static entered changes its value without any cached snapshot.
+func (e *Engine) staticAmount(ce ContinuousEffect, expr string) int32 {
+	if expr == "" {
 		return 0
+	}
+	o := e.G.Obj(ce.Source)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	sa := &cards.SA{Params: map[string]string{"Amount": expr}}
+	return effects.Num(e, &effects.Ctx{Source: ce.Source, Controller: ce.Controller, SVars: o.Face().SVars}, sa, "Amount", 0)
+}
+
+// addPT saturates instead of allowing a large static expression to wrap a
+// characteristic through zero. Forge's calculateAmount is int-bounded too;
+// keeping the clamp at this boundary makes all P/T additions deterministic.
+func addPT(a, b int32) int32 {
+	n := int64(a) + int64(b)
+	if n > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if n < math.MinInt32 {
+		return math.MinInt32
 	}
 	return int32(n)
 }
@@ -962,19 +990,86 @@ func (e *Engine) active() []ContinuousEffect {
 	return buf
 }
 
+// typeCharacteristics applies layer 4 before anything that tests a type. The
+// accumulated types-so-far list passed into the shared effects filter is what
+// lets a later effect select a creature made a Goblin by an earlier layer-4
+// effect rather than looking back at its printed face. atStack is
+// derivedWith's zone override for AffectedZone$ Stack grants; the zero value
+// reads the object's live zone.
+func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []string {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return nil
+	}
+	zone := o.Zone
+	if atStack != 0 {
+		zone = atStack
+	}
+	// Fast path: with no layer-4 effect active anywhere the derived list IS
+	// the printed list. Returning the face slice directly (every caller only
+	// reads it) keeps the common game -- no Animate/type-granting static in
+	// play -- allocation-free; the legal-actions pass reaches here through
+	// HasKeyword's Derived read, and the cost/action-statics hotspot pins
+	// measure that pass.
+	anyLType := false
+	for _, ce := range e.active() {
+		if ce.Layer == LType {
+			anyLType = true
+			break
+		}
+	}
+	if !anyLType {
+		return o.Face().Types
+	}
+	ty := append([]string(nil), o.Face().Types...)
+	for _, ce := range e.active() {
+		if ce.Layer != LType || !e.matchesWithTypes(ce, id, ty, atStack) {
+			continue
+		}
+		if ce.AffectedZone != "" && !ce.MayPlay {
+			if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, zone)) {
+				continue
+			}
+		}
+		if ce.RemoveCreatureTypes {
+			kept := ty[:0]
+			for _, t := range ty {
+				if !isCreatureSubtype(t) {
+					kept = append(kept, t)
+				}
+			}
+			ty = kept
+		}
+		ty = append(ty, ce.AddTypes...)
+	}
+	return ty
+}
+
+func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []string, atStack state.Zone) bool {
+	return effects.MatchesSpecCtx(e.G, ce.Affects, id, effects.SpecContext{
+		You: ce.Controller, Source: ce.Source, AsStack: atStack != 0,
+		// ExtraTypes is the walk's types-so-far list for THIS object: a later
+		// layer-4 effect selects a creature an earlier one made a Goblin, and
+		// a layer-7 lord's Affected$ sees the derived type. A value slice,
+		// not a callable: a call made through a SpecContext field makes
+		// escape analysis leak the whole context (its Resolve closure
+		// included) to the heap on every hot-path construction.
+		ExtraTypes: types,
+	})
+}
+
 // derivedScalar returns only an object's derived power and toughness — the
 // subset of Derived that combat, legal, cast, trigger and bot predicates read
 // constantly (and, through the Chars interface, every projected view). It
 // never builds the keyword/type slices Derived carries, and its effect list
-// comes from active()'s cached, buffer-reused build, so it allocates nothing
-// per call. Its P/T is identical to what the full Derived computes because an
-// LPT effect's applicability never depends on the derived keyword/type
-// grants: MatchesSpecFrom (effects/filter.go) resolves every predicate
-// against the object's *printed* face (o.Face().HasKeyword / o.Face().Types),
-// never against the grants Derived accumulates. So no layer-6/4 grant can
-// flip a layer-7 pump, and a pass that reads only LPT effects reproduces the
-// same power and toughness Derived did before — skipping the other layers is
-// a saving, never a behaviour change.
+// comes from active()'s cached, buffer-reused build. Its P/T is identical to
+// what the full Derived computes because it first derives layer-4 types and
+// hands them to every filter used by a layer-7 effect. Layer-6 keywords
+// cannot affect P/T applicability in the supported grammar; layer-4 changes
+// can, and typeCharacteristics below is deliberately shared rather than
+// skipped. This remains a saving because the keyword slice itself is not
+// needed for scalar reads.
+
 func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
@@ -988,7 +1083,8 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 	// Etherium is its artifact count in hand and graveyard too, which the
 	// battlefield-only static scan cannot express). Applied before the
 	// effect walk below, so a layer-7b set still overrides it and a 7c
-	// modify still stacks on it.
+	// modify still stacks on it. staticEffects withholds the resolvable CDAs
+	// from its emission exactly so this read is not applied twice.
 	if p, tp, hp, ht := e.cdaSetPT(o); hp || ht {
 		if hp {
 			power = p
@@ -997,21 +1093,51 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 			toughness = tp
 		}
 	}
+	types := e.typeCharacteristics(id, 0)
 	for _, ce := range e.active() {
 		if ce.Layer != LPT {
 			continue
 		}
-		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+		if !e.matchesWithTypes(ce, id, types, 0) {
 			continue
 		}
 		switch ce.Sub {
-		case SubSet:
+		case SubCDA, SubSet:
 			if ce.HasSet {
-				power, toughness = ce.SetPower, ce.SetToughness
+				if ce.StaticSet {
+					// A static can set just power or just toughness. Its omitted
+					// parameter must leave the printed/earlier-layer value alone,
+					// rather than treating the empty expression as numeric zero.
+					if ce.SetPowerPresent {
+						power = ce.SetPower
+						if ce.SetPowerExpr != "" {
+							power = e.staticAmount(ce, ce.SetPowerExpr)
+						}
+					}
+					if ce.SetToughnessPresent {
+						toughness = ce.SetToughness
+						if ce.SetToughnessExpr != "" {
+							toughness = e.staticAmount(ce, ce.SetToughnessExpr)
+						}
+					}
+				} else {
+					// Effects created through the original numeric API (Animate
+					// and direct ContinuousEffect callers) predate per-component
+					// presence flags and deliberately retain their paired setter
+					// semantics.
+					power, toughness = ce.SetPower, ce.SetToughness
+				}
 			}
 		case SubModify:
-			power += ce.AddPower
-			toughness += ce.AddToughness
+			addPower, addToughness := ce.AddPower, ce.AddToughness
+			if ce.AddPowerExpr != "" {
+				addPower = e.staticAmount(ce, ce.AddPowerExpr)
+			}
+			if ce.AddToughnessExpr != "" {
+				addToughness = e.staticAmount(ce, ce.AddToughnessExpr)
+			}
+			power = addPT(power, addPower)
+			toughness = addPT(toughness, addToughness)
 		}
 	}
 	// 7d: counters apply after every other layer-7 effect (CR 613.4).
@@ -1090,7 +1216,10 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	}
 	kw = append(kw[:0], f.Keywords...)
 	kw = append(kw, o.IntrinsicKeywords...)
-	ty = append(ty[:0], f.Types...)
+	// Layer 4 runs first through typeCharacteristics (see above), so every
+	// later effect's Affected$ filter — and every layer-4 effect's own —
+	// sees the derived type list, not the printed face.
+	ty = append(ty[:0], e.typeCharacteristics(id, atStack)...)
 	// Layer 5's base is the face's colour set (the mana cost, an explicit
 	// Colors: line, Devoid-applied). The letters compose in a fixed [5]bool so
 	// the layer walk below never touches a map.
@@ -1099,8 +1228,7 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		col[strings.IndexByte("WUBRG", byte(r))] = true
 	}
 	for _, ce := range e.active() {
-		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source, AsStack: atStack != 0}
-		if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+		if !e.matchesWithTypes(ce, id, ty, atStack) {
 			continue
 		}
 		// An AffectedZone$ qualifier on a characteristic grant narrows where
@@ -1123,21 +1251,8 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 			}
 			kw = append(kw, ce.AddKeywords...)
 		case LType:
-			// Forge's Animate RemoveCreatureTypes$ True: the object loses its
-			// creature-type subtypes BEFORE this effect's own additions land,
-			// so the animation's new creature type is the only one it carries
-			// while animated. Filter in place -- ty is the scratch buffer, and
-			// the write index never overtakes the read index.
-			if ce.RemoveCreatureTypes {
-				kept := ty[:0]
-				for _, t := range ty {
-					if !isCreatureSubtype(t) {
-						kept = append(kept, t)
-					}
-				}
-				ty = kept
-			}
-			ty = append(ty, ce.AddTypes...)
+			// Already applied in typeCharacteristics above — layer 4 must
+			// settle before any filter that tests a type runs.
 		case LColor:
 			// CR 613.1e: colour-set and colour-add effects apply in timestamp
 			// order; an OverwriteColors grant replaces everything so far (an
