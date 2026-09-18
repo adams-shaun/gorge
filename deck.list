@@ -2719,7 +2719,10 @@ Commander:
 # 100/100 resolved; commander eligible (Legendary Creature). 16 new-gap tickets (.ds4/new-tickets/deck-gap-*.md) — deck file NOT added.
 # Nelly Borca's second trigger reads `Draw | Defined$ TriggeredSourcesController & You` — the pg2 multi-source caveat applies.
 # source: mtggoldfish 6139128, cross-checked against the WotC official mkc decklist article
+Commander
 1 Nelly Borca, Impulsive Accuser
+
+Deck
 1 Feather, Radiant Arbiter
 1 Immortal Obligation
 1 Otherworldly Escort
