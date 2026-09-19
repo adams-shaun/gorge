@@ -60,9 +60,12 @@ type SPSASchedule struct {
 	C, Gamma float64
 }
 
-// DefaultSchedule is the textbook finite-difference SPSA schedule with the
-// "practical" exponents (Spall 1998): a decays 0.602, c decays 0.101.
-var DefaultSchedule = SPSASchedule{A: 1.0, Alpha: 0.602, C: 4.0, Gamma: 0.101}
+// DefaultSchedule uses the "practical" SPSA exponents (Spall 1998): a decays
+// 0.602, c decays 0.101. A is sized to the objective's scale, not to 1: a
+// head-to-head win rate of 0.52 at c=4 gives |ĝ| = 0.005 in scaled units, and
+// A=100 turns that into a first step of half a scaled unit -- the smallest
+// move that changes a rounded weight of scale 1.
+var DefaultSchedule = SPSASchedule{A: 100, Alpha: 0.602, C: 4.0, Gamma: 0.101}
 
 // Schedule returns the (a, c) pair for iteration k (0-based).
 func (s SPSASchedule) At(k int) (a, c float64) {
@@ -134,12 +137,12 @@ type Iteration struct {
 }
 
 // RunSPSA runs the fit: iteration k draws Rademacher Δ from (seed, k), builds
-// w+cΔ and w-cΔ as INTEGER profiles (rounding each perturbed weight, c>=1 so
-// the two differ), evaluates them head-to-head on the same per-game seeds
-// (baseSeed = seed + k*Stride), and steps
+// round(θ + c s Δ) and round(θ - c s Δ) as INTEGER profiles (s_i the fixed
+// per-weight scale), evaluates them head-to-head on the same per-game seeds
+// (baseSeed = seed + k*Stride), and steps the real-valued iterate
 //
 //	ĝ_i = (winrate - 0.5) * 2 / (2 c Δ_i)
-//	w_i ← round(w_i + a ĝ_i)
+//	θ_i ← θ_i + a s_i ĝ_i,   w_i = round(θ_i)
 //
 // Every BenchEvery iterations (when > 0) it also benches the current weights
 // against the bot and logs the rate. The returned weights are the final
@@ -156,6 +159,24 @@ func RunSPSA(cfg Config, init Weights, eval Evaluator, bench BenchFn) (Result, e
 		return Result{}, fmt.Errorf("-fit names no weights")
 	}
 
+	// theta is the real-valued iterate; the integer profile the engine plays is
+	// its rounding. Rounding the iterate itself after every step (the first
+	// version) discarded every update smaller than half a unit, and a realistic
+	// head-to-head gap of a few percent gives |a*ĝ| ≈ 0.005 per step -- the
+	// weights never moved. Accumulating in float and rounding only what is
+	// played keeps small, consistent gradients.
+	//
+	// scale puts the weights on a common footing: fitting CreatureBase (30)
+	// and CurveFit (0) with the same ±c probe either drowns the small weights
+	// or never moves the large ones. Each field is perturbed and stepped in
+	// units of scale_i = max(1, |init_i|/4), fixed from the initial profile so
+	// the schedule stays a pure function of the flags.
+	theta := make([]float64, len(fields))
+	scale := make([]float64, len(fields))
+	for i, name := range fields {
+		theta[i] = float64(getWeight(init, name))
+		scale[i] = math.Max(1, math.Abs(theta[i])/4)
+	}
 	w := init
 	res := Result{Weights: init}
 	for k := 0; k < cfg.Iters; k++ {
@@ -163,20 +184,20 @@ func RunSPSA(cfg Config, init Weights, eval Evaluator, bench BenchFn) (Result, e
 		delta := Rademacher(cfg.Seed, k, len(fields))
 		plus, minus := w, w
 		for i, name := range fields {
-			cur := getWeight(w, name)
-			step := int32(math.Round(c * float64(delta[i])))
-			if step == 0 {
-				// c >= 1 makes this unreachable, but rounding a c that landed
-				// exactly on a half-integer could still collapse; the guard
-				// keeps the two probes distinct no matter what.
+			step := c * scale[i] * float64(delta[i])
+			p := clampInt32(int64(math.Round(theta[i] + step)))
+			m := clampInt32(int64(math.Round(theta[i] - step)))
+			if p == m {
+				// c >= 1 and scale >= 1 make this unreachable; the guard keeps
+				// the two probes distinct no matter how the rounding lands.
 				if delta[i] > 0 {
-					step = 1
+					p++
 				} else {
-					step = -1
+					m++
 				}
 			}
-			setWeight(&plus, name, clampInt32(int64(cur)+int64(step)))
-			setWeight(&minus, name, clampInt32(int64(cur)-int64(step)))
+			setWeight(&plus, name, p)
+			setWeight(&minus, name, m)
 		}
 
 		baseSeed := cfg.Seed + uint64(k)*cfg.Stride
@@ -185,14 +206,18 @@ func RunSPSA(cfg Config, init Weights, eval Evaluator, bench BenchFn) (Result, e
 			return res, fmt.Errorf("iteration %d evaluation: %w", k, err)
 		}
 
-		grad := make([]float64, len(fields))
-		for i := range fields {
-			grad[i] = (ev.WinRate() - 0.5) * 2 / (2 * c * float64(delta[i]))
-		}
+		// ĝ_i is the gradient in scaled units; the step returns to weight units
+		// through scale_i.
 		next := w
 		for i, name := range fields {
-			cur := float64(getWeight(w, name))
-			setWeight(&next, name, clampInt32(int64(math.Round(cur+a*grad[i]))))
+			g := (ev.WinRate() - 0.5) * 2 / (2 * c * float64(delta[i]))
+			theta[i] += a * scale[i] * g
+			if theta[i] > math.MaxInt32 {
+				theta[i] = math.MaxInt32
+			} else if theta[i] < math.MinInt32 {
+				theta[i] = math.MinInt32
+			}
+			setWeight(&next, name, clampInt32(int64(math.Round(theta[i]))))
 		}
 
 		res.History = append(res.History, Iteration{

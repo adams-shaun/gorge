@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/seat"
 )
@@ -110,6 +111,45 @@ func TestSPSAConvergesOnSyntheticConcaveObjective(t *testing.T) {
 	// Frozen weights must stay frozen.
 	if res.Weights.NonCreatureCMC != 0 {
 		t.Fatalf("an untuned weight moved: NonCreatureCMC = %d", res.Weights.NonCreatureCMC)
+	}
+}
+
+// TestSPSAAccumulatesSmallGradients pins the float-iterate fix: a realistic
+// head-to-head edge (the "+" side wins 51% whenever its CurveFit is higher)
+// gives |a*ĝ| far below half a unit per step. Rounding the iterate each step
+// discarded every such update and CurveFit never left 0; accumulating in float
+// must walk it steadily upward under the default schedule.
+func TestSPSAAccumulatesSmallGradients(t *testing.T) {
+	eval := evalFunc(func(plus, minus Weights, _ uint64) (EvalResult, error) {
+		wr := 0.5
+		if plus.CurveFit > minus.CurveFit {
+			wr = 0.51
+		} else if plus.CurveFit < minus.CurveFit {
+			wr = 0.49
+		}
+		return EvalResult{PlusWins: int(math.Round(wr * 1000)), Games: 1000}, nil
+	})
+	cfg := Config{Iters: 60, Seed: 3, Stride: 1000, Schedule: DefaultSchedule, Fit: []string{"CurveFit"}}
+	res, err := RunSPSA(cfg, botpolicy.DefaultCastWeights, eval, nil)
+	if err != nil {
+		t.Fatalf("RunSPSA: %v", err)
+	}
+	if got := res.Weights.CurveFit; got < 3 {
+		t.Fatalf("CurveFit = %d after 60 iterations of a consistent 1pp edge, want >= 3 (small gradients are being rounded away)", got)
+	}
+	// Per-weight scaling: a probe on a zero-valued weight is ±c (scale 1), on
+	// CreatureBase (30) it is ±c*7.5 -- checked on the first iteration.
+	cfg2 := Config{Iters: 1, Seed: 3, Stride: 1000, Schedule: DefaultSchedule, Fit: []string{"CreatureBase", "CurveFit"}}
+	res2, err := RunSPSA(cfg2, botpolicy.DefaultCastWeights, eval, nil)
+	if err != nil {
+		t.Fatalf("RunSPSA: %v", err)
+	}
+	it := res2.History[0]
+	if d := it.Plus.CreatureBase - it.Minus.CreatureBase; d != 60 && d != -60 {
+		t.Fatalf("CreatureBase probe spread = %d, want ±60 (2 * c=4 * scale=7.5)", d)
+	}
+	if d := it.Plus.CurveFit - it.Minus.CurveFit; d != 8 && d != -8 {
+		t.Fatalf("CurveFit probe spread = %d, want ±8 (2 * c=4 * scale=1)", d)
 	}
 }
 
