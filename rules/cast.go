@@ -10,6 +10,7 @@ package rules
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -1349,13 +1350,41 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	e.continueCast()
 }
 
+// convertedManaCostToken matches Forge's ConvertedManaCost placeholder inside
+// a PlayCost$ token, case-insensitively (the corpus spells it exactly this
+// way; the case fold costs nothing).
+var convertedManaCostToken = regexp.MustCompile(`(?i)convertedmanacost`)
+
+// pricePlayCost prices a Play effect's PlayCost$ token for one chosen card:
+// the ConvertedManaCost placeholder is substituted with the card face's mana
+// value (Amped Raptor's "an amount of {E} equal to its mana value") and the
+// result is parsed with the ordinary cost grammar -- PayEnergy<N>, PayLife<N>,
+// a fixed generic, and Discard<N/Spec> all land in the Cost fields the cast
+// flow already asks and charges. A token the grammar reports as unmodelled
+// (Cost.Unknown -- the corpus's one PlayCost$ SuspendCost, The Face of Boe)
+// is NOT degraded the way a printed cost's malformed token would be:
+// PlayCost$ is an ALTERNATIVE to the mana cost (CR 118.9 "rather than paying
+// its mana cost"), so degrading it to one generic would still charge the
+// player full price -- the caller hard-declines instead, ParseUnlessCost-style.
+func pricePlayCost(f *cards.Face, token string) (Cost, bool) {
+	s := convertedManaCostToken.ReplaceAllString(token, strconv.FormatInt(int64(f.ManaValue()), 10))
+	c := ParseCost(s)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
 // beginPlay is the rules' hand-off for an answered Play effect. It starts a
 // cast from the card's current zone and uses its printed cost unless that
-// specific Play SA said WithoutManaCost$ True. This distinction is material:
-// Spinerock Knoll grants a free cast, while Conduit of Worlds requires payment.
-// The card must still be on the stack of the suspended Play resolution when
-// this runs; a malformed answer degrades to a logged no-op rather than panic.
-func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool) {
+// specific Play SA said WithoutManaCost$ True (Spinerock Knoll grants a free
+// cast, while Conduit of Worlds requires payment) or carries a PlayCost$
+// alternative (Amped Raptor's energy cast), which REPLACES the mana cost
+// only -- additional costs and cost modifiers ride exactly as an ordinary
+// cast's do (CR 118.9 / 601.2f). The card must still be on the stack of the
+// suspended Play resolution when this runs; a malformed answer degrades to a
+// logged no-op rather than panic.
+func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string) {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play found no card to play"})
@@ -1376,12 +1405,38 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	cost := e.rawBaseCost(p, id)
 	if withoutManaCost {
 		cost = Cost{}
+	} else if playCost != "" {
+		// A PlayCost$ alternative replaces the mana cost; an unpriceable
+		// token is a hard DECLINE, never a mana fallback -- the player is
+		// never charged full mana for a "rather than" alternative.
+		alt, ok := pricePlayCost(o.Face(), playCost)
+		if !ok {
+			e.emit(events.Event{Kind: events.Note, Player: p,
+				Text: "Play cannot price its alternative cost (" + playCost + "); the play is declined"})
+			return
+		}
+		// The alternative's non-mana parts must be payable the way an
+		// offered cast's would be (the energy total, the discard
+		// candidates): a YES answer the payment cannot settle is declined
+		// with a Note, not begun and short-changed at the settle.
+		if !e.nonManaCastable(p, id, alt, false) {
+			e.emit(events.Event{Kind: events.Note, Player: p,
+				Text: "The alternative cost cannot be paid (" + playCost + "); the play is declined"})
+			return
+		}
+		if alt.Life > e.G.Players[p].Life {
+			e.emit(events.Event{Kind: events.Note, Player: p,
+				Text: "The alternative cost cannot be paid (" + playCost + "); the play is declined"})
+			return
+		}
+		cost = alt
 	}
 	// A normal Play cast pays its printed mana cost; a free Play cast does
-	// not. Both still pay non-mana additional costs, exactly as an ordinary
-	// cast does (CR 118.9 / 601.2f). The cost is stored RAW (no cost
-	// modifiers folded): RaiseCost/ReduceCost ride pc.mods and manaToPay
-	// applies them after {X} is folded, the same shape beginCast stores.
+	// not; a PlayCost$ cast pays the alternative. All three still pay
+	// non-mana additional costs, exactly as an ordinary cast does (CR
+	// 118.9 / 601.2f). The cost is stored RAW (no cost modifiers folded):
+	// RaiseCost/ReduceCost ride pc.mods and manaToPay applies them after {X}
+	// is folded, the same shape beginCast stores.
 	cost = withSpellAbilityExtras(o.Face(), cost)
 	converted, ok := e.fixLifeXCost(p, id, cost)
 	if !ok {

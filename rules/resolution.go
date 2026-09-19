@@ -1384,16 +1384,23 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// Play (effPlay now offers Min 0) -- the answer is consumed with
 			// nothing begun. Only the effect's own WithoutManaCost$ grants a
 			// free cast: Conduit has no such parameter, while Spinerock Knoll
-			// does. An Amount$ All / N answer may name several cards; each is
-			// begun in turn, and the loop stops at the first cast that cannot
-			// commit synchronously (an ask inside the cast transaction -- an
-			// ETB choice, a target, a mana window -- parks the resolution on
-			// that cast's question, and the not-yet-begun cards are dropped
-			// with a Note rather than wedging; the corpus Amount$ All shapes
-			// are without-mana-cost creature/spell plays, which commit
+			// does. A PlayCost$ alternative (task playcost1: Amped Raptor's
+			// PayEnergy<ConvertedManaCost>, Anrakyr's PayLife<ConvertedManaCost>,
+			// Blue Mage's Cane's fixed {3}, Cruelclaw's Discard<1/Card>) is
+			// priced per chosen card -- ConvertedManaCost substitutes the
+			// card's own mana value -- inside beginPlay, which hard-declines an
+			// unpriceable or unpayable alternative with a loud Note instead of
+			// charging full mana. An Amount$ All / N answer may name several
+			// cards; each is begun in turn, and the loop stops at the first cast
+			// that cannot commit synchronously (an ask inside the cast
+			// transaction -- an ETB choice, a target, a mana window -- parks the
+			// resolution on that cast's question, and the not-yet-begun cards
+			// are dropped with a Note rather than wedging; the corpus Amount$ All
+			// shapes are without-mana-cost creature/spell plays, which commit
 			// synchronously). ctx.Play/PlayDone are set so the re-entered
 			// effPlay sees the answer as consumed either way.
 			free := strings.EqualFold(rp.sa.Params["WithoutManaCost"], "True")
+			playCost := strings.TrimSpace(rp.sa.Params["PlayCost"])
 			var toPlay []state.ObjID
 			for _, ch := range chosen {
 				if ch.Obj != 0 {
@@ -1405,7 +1412,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if i == 0 {
 					ctx.Play = id
 				}
-				e.beginPlay(ctx.Controller, id, free)
+				e.beginPlay(ctx.Controller, id, free, playCost)
 				if e.Suspended() || e.cast != nil {
 					if rest := toPlay[i+1:]; len(rest) > 0 {
 						e.emit(events.Event{Kind: events.Note, Obj: rp.obj,
