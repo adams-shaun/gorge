@@ -38,6 +38,13 @@ func (r *Registry) load() error {
 			return err
 		}
 		for _, sc := range scs {
+			// Sidecars written before named host policies have no bot_policy.
+			// They necessarily used the table's historical default controller,
+			// so expose the restored table policy without rewriting their
+			// replay-bearing archival record.
+			if sc.BotPolicy == "" {
+				sc.BotPolicy = cfg.BotPolicy
+			}
 			if sc.State == protocol.MatchLive {
 				sc.State = protocol.MatchAborted
 				if err := writeSidecar(r.opts.Dir, sc, r.opts.Sync); err != nil {

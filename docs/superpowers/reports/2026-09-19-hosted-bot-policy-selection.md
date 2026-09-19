@@ -19,6 +19,14 @@ Commits:
 - `919d0ce` — controller/caretaker wiring and public metadata
 - `7531287` — play-vs-bot API selection and shared botbench constructors
 
+Post-implementation review found that an archived sidecar written before
+`bot_policy` would list an empty match policy after restart. The follow-up
+normalizes an absent sidecar value from the already-normalized table policy
+in memory, without rewriting the archival sidecar or changing replay input.
+`TestPrePolicyArchivedMatchReportsBotAndReplays` hand-authors both the old
+table and old sidecar shape, then verifies the listed effective name and a
+full event replay.
+
 ## Verification
 
 Passed:
@@ -33,6 +41,7 @@ Passed:
 - `go vet ./...`
 - `go run ./cmd/gentypes -check`
 - `git diff --check`
+- `go test ./host -run 'TestPrePolicyArchivedMatchReportsBotAndReplays|TestBotPolicyPersistsItsNormalizedDefaultAndRejectsUnknownRestore|TestAFinishedMatchIsServedFromDiskAfterRestart' -count=1`
 
 The broader focused-package command
 `go test ./botpolicy ./seat ./host ./host/httpapi ./cmd/gorged -count=1`
@@ -42,6 +51,10 @@ deck-directory expectation assumes `death-n-taxes` sorts first despite the
 new `avengers-assemble` deck. The policy tests, `botpolicy`, `seat`, and
 `host/httpapi` portions passed. The wider Task 4 command similarly reports
 only that stale gorged deck-list assertion; botbench passed.
+
+The full `go test ./host -count=1` follow-up has the same documented,
+pre-existing committed-overshoot replay divergence at event 836; the new
+pre-policy migration regression and all other host tests passed.
 
 ## Scope and risks
 
@@ -54,6 +67,11 @@ regenerated.
 compatibility. The default hosted path is policy-aware; an embedder that
 installs its own `Seats` function is intentionally responsible for its own
 controller semantics.
+
+The independent review's remaining minor coverage suggestions are deferred:
+run whole-game board/view adapter parity for `lethal-pressure`, and add a
+host-level two-run replay equality test for each named policy. The focused
+factory/adaptor and current golden/replay tests cover the shipped migration.
 
 ## Next experiment
 

@@ -153,6 +153,75 @@ func TestBotPolicyPersistsItsNormalizedDefaultAndRejectsUnknownRestore(t *testin
 	}
 }
 
+// TestPrePolicyArchivedMatchReportsBotAndReplays guards the migration path for
+// tables and completed-match sidecars written before bot_policy existed.
+// Those matches necessarily ran the former production default, bot: callers
+// must see that effective name after restart, without changing their log.
+func TestPrePolicyArchivedMatchReportsBotAndReplays(t *testing.T) {
+	dir := t.TempDir()
+	playOneToDisk(t, dir)
+	// Use the actual persisted types rather than map[string]any: the latter
+	// round-trips a uint64 seed through float64 and would manufacture a replay
+	// failure unrelated to the old-file shape under test.
+	tablesPath := filepath.Join(dir, "tables.json")
+	raw, err := os.ReadFile(tablesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tables tablesFile
+	if err := json.Unmarshal(raw, &tables); err != nil {
+		t.Fatal(err)
+	}
+	for i := range tables.Tables {
+		tables.Tables[i].Config.BotPolicy = ""
+	}
+	raw, err = json.MarshalIndent(tables, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(tablesPath, raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	sidecarPath := filepath.Join(dir, "t1", "1.json")
+	sc, err := readSidecar(dir, "t1", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sc.BotPolicy = ""
+	raw, err = json.MarshalIndent(sc, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// sidecar.BotPolicy deliberately has no omitempty tag, so remove the key
+	// from this hand-authored pre-feature fixture rather than writing an
+	// explicit empty value.
+	raw = []byte(strings.Replace(string(raw), ",\n  \"bot_policy\": \"\"\n}", "\n}", 1))
+	if err := os.WriteFile(sidecarPath, raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := New(diskOptions(t, dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	ms, err := r.Matches("t1")
+	if err != nil || len(ms) != 1 {
+		t.Fatalf("restarted matches = %+v, %v", ms, err)
+	}
+	if got := ms[0].BotPolicy; got != BotPolicy {
+		t.Fatalf("pre-policy archived match reports %q, want %q", got, BotPolicy)
+	}
+	evs, err := r.Events("t1", 1, 0)
+	if err != nil {
+		t.Fatalf("pre-policy archived match does not replay: %v", err)
+	}
+	if got, want := len(evs), ms[0].Events; got != want {
+		t.Fatalf("replayed %d events, want %d", got, want)
+	}
+}
+
 // TestTerminalGenesisIsServedFromDiskAfterRestart is the CR 103.1 toss
 // persistence regression. Both opening decks are undersized, so New records a
 // toss Note and then ends genesis without a decision. GameOver must remain the
