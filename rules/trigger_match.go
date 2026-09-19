@@ -1372,6 +1372,21 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		if t.Mode == "Cycled" && source == ev.Obj && events.IsDiscard(ev) {
 			return true
 		}
+		// A card's own hand->exile move (Lupine Harbingers' "note the number
+		// of turns you've begun since it was foretold" exile trigger -- the
+		// corpus's ONE ChangesZone self-trigger with no TriggerZones$ whose
+		// destination is not the battlefield, measured over the corpus pin):
+		// the only zone the trigger can observe the move from is the hand the
+		// card sits in. Forge applies no zone restriction to a trigger
+		// without TriggerZones$; the battlefield default would leave such a
+		// trigger unable to fire at all, so the card's own hand-origin move
+		// admits it, the same courtesy the Discarded and Cycled cases above
+		// extend. (Self-moves whose DESTINATION is the battlefield need no
+		// admission: the post-move zone check below already sees them.)
+		if t.Mode == "ChangesZone" && source == ev.Obj && ev.Kind == events.MoveZone &&
+			ev.From == state.ZHand {
+			return true
+		}
 		spec = "Battlefield"
 	}
 	zones := [2]state.Zone{o.Zone, o.Zone}

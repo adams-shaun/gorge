@@ -65,11 +65,42 @@ func (f *Face) expandKeywords() {
 			// contain their own "|", which would otherwise inject a
 			// spurious param into both).
 			kind, rest, _ := strings.Cut(param, ":")
-			n, _, _ := strings.Cut(rest, ":")
+			n, extra, _ := strings.Cut(rest, ":")
 			sv := "__kwEtbCounter" + strconv.Itoa(i)
 			f.setSVar(sv, "DB$ PutCounter | Defined$ Self | CounterType$ "+kind+" | CounterNum$ "+n+" | ETB$ True")
 			p := parseParams("Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplacementResult$ Updated | ReplaceWith$ " + sv +
 				" | Keyword$ etbCounter | Description$ CARDNAME enters with " + n + " " + kind + " counters.")
+			// The FIRST extra colon field may be a condition gate: either a
+			// bare `CheckSVar$ <name>` (Lupine Harbingers' "... since it was
+			// foretold", Myojin of Night's Reach's "if you cast it from your
+			// hand") or a `CheckSVar$ <name> | SVarCompare$ <op><N>` pair
+			// (Hotheaded Giant, Freestrider Commando, Steel Exemplar). Split
+			// the ` | `-separated tokens through to the shared
+			// rules/replacementConditionHolds read (CheckSVar + optional
+			// SVarCompare) instead of stuffing the whole field into one param:
+			// a whole-stuffed CheckSVar resolves no SVar, the gate fails
+			// closed, and those carriers' counters silently un-apply (the
+			// round-2 review's measured regression). Only these two condition
+			// params are passed through: a gate field can also carry real
+			// match params (the Myojin-family lines carry `ValidCard$ ...`
+			// here) that the replacement matcher honours, and passing those
+			// through would widen every carrier's match. Everything else stays
+			// dropped, exactly as before -- the later colon fields remain
+			// display metadata.
+			if first, _, _ := strings.Cut(extra, ":"); strings.Contains(first, "$") {
+				for _, part := range strings.Split(first, " | ") {
+					name, val, ok := strings.Cut(strings.TrimSpace(part), "$")
+					if !ok {
+						continue
+					}
+					switch strings.TrimSpace(name) {
+					case "CheckSVar", "SVarCompare":
+						if val = strings.TrimSpace(val); val != "" {
+							p[strings.TrimSpace(name)] = val
+						}
+					}
+				}
+			}
 			p["KeywordLine"] = k
 			f.Repls = append(f.Repls, Repl{Event: "Moved", Params: p})
 		case "ETBReplacement":

@@ -2045,6 +2045,24 @@ func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int
 	return n
 }
 
+// WasCastFromHandByYou satisfies effects.Host's WasCastFromHandByYou for the
+// Count$wasCastFromYourHandByYou branch head (the Myojin cycle's etbCounter
+// CheckSVar$ gate) and the Card.wasCastFromYourHandByYou filter predicate:
+// obj's latest PutOnStack event names the cast that put it on the stack —
+// From is the zone the cast came from, Player the caster. Provenance is
+// game-long, so the scan is not bounded by the turn; if the card was later
+// cast again from another zone, the latest cast wins. Derived from the event
+// log like SpellsCastThisTurnMatching, so a replay derives the same answer.
+func (e *Engine) WasCastFromHandByYou(obj state.ObjID, p state.PlayerID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return ev.From == state.ZHand && ev.Player == p
+		}
+	}
+	return false
+}
+
 // LifeLostThisTurn satisfies effects.Host's LifeLostThisTurn for
 // Count$LifeOppsLostThisTurn (Rakdos, Lord of Riots' cost reduction): the
 // total life p lost this turn, summed from every LifeChange below zero since

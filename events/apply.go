@@ -985,6 +985,16 @@ func Apply(g *state.Game, e Event) {
 			o.X = e.Amount
 		}
 
+	case NoteNumber:
+		// A trigger's Execute$ body noted a number onto the CARD (DB$ Pump
+		// NoteNumber$ <expr> -- Lupine Harbingers' exile trigger noting
+		// Count$YourTurns). Amount is the value, Obj the card; Count$
+		// NotedNumber reads it at the later ETB, and events.Move's
+		// leave-the-battlefield reset clears it with the X/CastFlags window.
+		if o := g.Obj(e.Obj); o != nil {
+			o.NotedNumber = e.Amount
+		}
+
 	case Choose:
 		if o := g.Obj(e.Obj); o != nil {
 			switch e.Counter {
@@ -1657,6 +1667,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
+			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
 			o.Chosen = nil
@@ -1676,6 +1687,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
+			o.NotedNumber = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).
