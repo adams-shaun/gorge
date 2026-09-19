@@ -688,6 +688,12 @@ var flagNames = [...]struct {
 	// cast from exile (modeFlags). Appended at the end per the table's own
 	// ordering rule.
 	{"foretold", state.FlagForetold},
+	// The total-mana-spent capture (task castprov1): a face whose SVar
+	// table reads the Count$CastTotalManaSpent head stamps its pay-time
+	// CastInfo with the flag, so the Amount folds into Object.ManaSpent
+	// instead of overwriting X. Appended at the end per the table's own
+	// ordering rule.
+	{"manaspent", state.FlagManaSpent},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

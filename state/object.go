@@ -144,6 +144,14 @@ const (
 	// Count$Foretold read it. An ordinary cast or any other way into exile
 	// never sets it. Appended per the enum's own append-only precedent.
 	FlagForetold
+	// FlagManaSpent marks a cast whose pay-time CastInfo carries the TOTAL
+	// mana actually spent to cast it (CR 601.2h's payment; task castprov1's
+	// Count$CastTotalManaSpent capture, the FlagConverged pattern: the flag
+	// routes the Amount into Object.ManaSpent instead of overwriting X).
+	// Only a face whose SVar table reads the count (faceWantsCastSpend)
+	// emits the event, so every unrelated cast stays byte-identical.
+	// Appended per the enum's own append-only precedent.
+	FlagManaSpent
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -277,6 +285,16 @@ type Object struct {
 	// events.Move; a COPY of the spell was never kicked and reads 0 (the
 	// same reading Count$ReplicatePaid documents).
 	TimesKicked int32
+	// ManaSpent is the TOTAL mana actually spent to cast the spell (CR
+	// 601.2h's payment -- the spent delta's pips summed over every slot),
+	// carried by the pay-time CastInfo's FlagManaSpent Amount (the
+	// X-overwrite guard: the flag routes the Amount here instead of into
+	// X). Convoke contributions are taps and Delve exiles cards, so neither
+	// rides the delta: a convoke-only cast's total spend is a real zero.
+	// It rides the same provenance window as X/CastFlags and resets
+	// alongside them in events.Move; a copy of the spell was never cast and
+	// a cheated-in permanent reads 0.
+	ManaSpent int32
 	// NotedNumber is the number a trigger's Execute$ body noted onto the
 	// CARD (Lupine Harbingers' T:Mode$ ChangesZone | Destination$ Exile
 	// trigger executing DB$ Pump | NoteNumber$ Count$YourTurns -- the

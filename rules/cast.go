@@ -121,6 +121,16 @@ type pendingCast struct {
 	convergeOn bool
 	converge   int32
 
+	// manaSpentOn/manaSpent (task castprov1) capture the TOTAL mana the
+	// cast's payment actually spent, from the same full spent delta
+	// payManaCastSpent returns (the pips summed over every slot).
+	// manaSpentOn is the heads-safety gate (faceWantsCastSpend): the pay-time
+	// CastInfo is emitted ONLY for a face whose SVar table reads the
+	// Count$CastTotalManaSpent head, so no game that casts no such card
+	// changes an event. Plain data, so Clone copies it like converge.
+	manaSpentOn bool
+	manaSpent   int32
+
 	sacs    []state.ObjID
 	sacPart int
 
@@ -3035,6 +3045,26 @@ func faceWantsConverge(f *cards.Face) bool {
 	return false
 }
 
+// faceWantsCastSpend is the heads-safety gate for the pay-time cast-spend
+// CastInfo (the converge gate's shape): it reports whether the face's SVar
+// table reads the TOTAL mana actually spent to cast the spell -- a body
+// naming the Count$CastTotalManaSpent head (Freestrider Commando's
+// SVar:X:Count$CastTotalManaSpent feeding its etbCounter CheckSVar$ gate).
+// The ref-property readers of OTHER casts (TriggeredCard$
+// CastTotalManaSpent and its family) do not read this object field and do
+// not gate the emission -- they stay on the rv2b exotic-heads ledger.
+func faceWantsCastSpend(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, body := range f.SVars {
+		if strings.Contains(body, "Count$CastTotalManaSpent") {
+			return true
+		}
+	}
+	return false
+}
+
 // faceWantsTimesKicked is the heads-safety gate for the pay-time multikick
 // CastInfo on a PLAIN-Kicker cast mode (the converge gate's shape): it
 // reports whether the face's SVar table reads the times-kicked count
@@ -3104,6 +3134,18 @@ func convergeColours(spent state.Mana) int32 {
 		if spent[i] > 0 {
 			n++
 		}
+	}
+	return n
+}
+
+// manaSpentTotal is the total mana a cast's payment actually spent: the
+// spent delta's pips summed over every slot (coloured and colourless).
+// Contribute the FULL delta -- a generic pip spent from a coloured unit is
+// one mana spent -- so the sum is CR 601.2h's "mana spent to cast it".
+func manaSpentTotal(spent state.Mana) int32 {
+	var n int32
+	for i := range spent {
+		n += spent[i]
 	}
 	return n
 }
@@ -4513,6 +4555,10 @@ func (e *Engine) payCast() {
 		pc.convergeOn = true
 		pc.converge = convergeColours(spentMana)
 	}
+	if f := e.G.Obj(pc.card).Face(); faceWantsCastSpend(f) {
+		pc.manaSpentOn = true
+		pc.manaSpent = manaSpentTotal(spentMana)
+	}
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
 	}
@@ -4701,6 +4747,20 @@ func (e *Engine) payCast() {
 	if mkCount > 0 && (pc.mode == "multikicked" || faceWantsTimesKicked(e.G.Obj(pc.card).Face())) {
 		mkFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagKicked | state.FlagMultikicked)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: mkCount, Counter: mkFlags})
+	}
+	// Cast-spend (task castprov1): the TOTAL mana actually spent to cast the
+	// spell rides its own TRAILING pay-time CastInfo -- the flag routes the
+	// Amount into Object.ManaSpent (events.Apply's CastInfo case), so this
+	// event never clobbers the X an earlier event in this block carried, and
+	// its Counter leaves CastFlags carrying every earlier flag too. A
+	// convoke-only cast (tapped creatures, no mana) is a real zero, not an
+	// absent one -- the same "count 0 included" contract the converge
+	// emission keeps. The emission gate keeps unrelated casts byte-identical:
+	// only a face whose SVar table reads the count (faceWantsCastSpend)
+	// stamps the event.
+	if pc.manaSpentOn {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSpent)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpent, Counter: flags})
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for.

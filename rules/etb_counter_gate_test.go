@@ -133,3 +133,23 @@ func TestSteelExemplarOneColourCastEntersWithCounters(t *testing.T) {
 		t.Fatalf("one-colour-cast Steel Exemplar entered with %d P1P1, want 2 (LT2 holds at converge 1)", got)
 	}
 }
+
+// TestFreestriderCommandoCastWithManaEntersWithoutCounters is the cast half
+// the CheckSVar$ X unshadowing plus the FlagManaSpent capture unlock: the
+// face's real SVar:X body (Count$CastTotalManaSpent) reads the total mana
+// the payment actually spent, so a cast paid with mana takes no counters
+// (EQ0 fails). The un-cast half (2 counters) is the existing pin above.
+func TestFreestriderCommandoCastWithManaEntersWithoutCounters(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Freestrider Commando"))
+	id := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MG] = 2, 1
+	castMode(t, e, id, "")
+	finishCast(t, e, id)
+	if got := e.G.Obj(id).Counter("P1P1"); got != 0 {
+		t.Fatalf("cast-with-mana Freestrider Commando entered with %d P1P1, want 0 (Count$CastTotalManaSpent reads 3: EQ0 fails)", got)
+	}
+	if got := e.G.Obj(id).ManaSpent; got != 3 {
+		t.Fatalf("cast-with-mana Freestrider Commando recorded %d mana spent, want 3", got)
+	}
+}

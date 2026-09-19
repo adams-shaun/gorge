@@ -683,6 +683,24 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.ConvergeColours, true
 		}
 		return 0, true
+	case "CastTotalManaSpent":
+		// CR 601.2h's payment: the TOTAL mana actually spent to cast the
+		// resolving spell (the spent delta's pips summed over every slot),
+		// carried by the pay-time CastInfo's FlagManaSpent Amount
+		// (rules/cast.go's payCast capture -- the converge/replicate/
+		// multikick pattern; faceWantsCastSpend is the heads-safety gate).
+		// Same provenance read Converge makes -- the cast spell, and in the
+		// K:etbCounter ETB replacement the same object after the
+		// stack->battlefield move preserves it -- so a replay derives the
+		// same number; a copy of the spell was never cast and a cheated-in
+		// permanent reads 0. The ref-property readers of OTHER casts
+		// (TriggeredCard$CastTotalManaSpent, evalRefProperty) stay on the
+		// rv2b exotic-heads ledger -- they read a trigger context, not this
+		// field.
+		if o := g.Obj(c.Source); o != nil {
+			return o.ManaSpent, true
+		}
+		return 0, true
 	case "ChosenNumber":
 		// The Effect's SetChosenNumber$ binding (state.ContinuousEffect.ChosenNumber,
 		// threaded into Ctx by rules' replCtx for effect-created replacement

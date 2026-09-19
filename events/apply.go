@@ -964,6 +964,11 @@ func Apply(g *state.Game, e Event) {
 			// (rules/cast.go's payCast), so a multikicker carrier that pairs
 			// {X} with Multikicker (Comet Storm) keeps the two on separate
 			// events.
+			// FlagManaSpent's Amount is the TOTAL mana actually spent to cast
+			// the spell (CR 601.2h), never an X value: the count rides its own
+			// TRAILING pay-time CastInfo (rules/cast.go's payCast), so a
+			// carrier that pairs {X} with the read (none measured) keeps the
+			// two on separate events.
 			switch {
 			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
 				o.ConvergeColours = e.Amount
@@ -971,6 +976,8 @@ func Apply(g *state.Game, e Event) {
 				o.ReplicateTimes = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
 				o.TimesKicked = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaSpent != 0:
+				o.ManaSpent = e.Amount
 			default:
 				o.X = e.Amount
 			}
@@ -1669,6 +1676,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
+			o.ManaSpent = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
@@ -1689,6 +1697,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
+			o.ManaSpent = 0
 			o.NotedNumber = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
