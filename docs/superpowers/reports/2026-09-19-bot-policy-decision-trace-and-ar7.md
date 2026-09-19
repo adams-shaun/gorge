@@ -4,6 +4,14 @@ Date: 2026-09-19
 Corpus pin: `95f04e8a04c8925fa97cb226fc3341cabcc90a53`  
 Trace implementation commits: `14d3e37`, `c8f047c`, `2a87693`
 
+The completion audit subsequently hardened atomic publication: injected write
+and publication failures now prove that no destination or temporary sibling is
+left behind, and a destination created concurrently at the publication
+boundary is preserved rather than overwritten. Publication uses an atomic
+same-directory hard link followed by removal of the temporary name, avoiding
+the check-then-rename overwrite race while retaining a fully-written file at
+the instant the destination appears.
+
 ## Method
 
 The suite is the approved ten unordered pairs over `mono-white-equipment`,
@@ -151,6 +159,10 @@ go test ./cmd/botbench -count=1 \
   -skip 'TestFullPairsIteratesSorted|TestConstructedDefaultIsByteIdentical'
 # PASS: 23.696s
 
+go test ./cmd/botbench -run 'TestTrace|TestDecisionTrace' -count=1
+# PASS: includes injected write/publication failures, concurrent-destination
+# preservation, redaction, replay isolation, and two-pair worker determinism
+
 go test ./rules -run TestHeads -count=1
 # PASS: 2.479s; no golden regenerated
 
@@ -178,11 +190,6 @@ the unchanged rules chain-head gate pass.
   games produced 1.8 GiB; the legacy run produced 8.9 GiB because 100 games
   reached 20,000 intents. Consumers need streaming analysis and deliberate
   retention cleanup.
-- The writer checks destination nonexistence before `os.Rename`; another
-  process racing to create that exact path could be overwritten on platforms
-  where rename replaces an existing file. Normal single-process use and all
-  tested error paths preserve the no-overwrite contract, but a no-replace
-  cross-process primitive would close the race.
 - AR7 evaluates each attacker independently. It does not yet calculate a
   multi-attacker lethal set or the defender's minimum blocking assignment.
 - `legacy` is unsuitable as a clean strength gate for the four white-deck

@@ -216,7 +216,50 @@ type traceGameV1 struct {
 	Livelock      string          `json:"livelock,omitempty"`
 }
 
-func writeDecisionTrace(path string, run traceRunV1, games []*gameTrace) (err error) {
+type traceTempFile interface {
+	Write([]byte) (int, error)
+	Sync() error
+	Close() error
+	Name() string
+}
+
+type traceWriterOps struct {
+	createTemp func(string, string) (traceTempFile, error)
+	publish    func(string, string) error
+}
+
+func defaultTraceWriterOps() traceWriterOps {
+	return traceWriterOps{
+		createTemp: func(parent, pattern string) (traceTempFile, error) {
+			return os.CreateTemp(parent, pattern)
+		},
+		publish: publishTraceNoReplace,
+	}
+}
+
+// publishTraceNoReplace makes the completed temporary file visible at dst
+// atomically without the overwrite race of a check followed by os.Rename.
+// The temporary file is a sibling, so the hard link stays on one filesystem.
+func publishTraceNoReplace(src, dst string) error {
+	if err := os.Link(src, dst); err != nil {
+		return err
+	}
+	if err := os.Remove(src); err != nil {
+		// Publication is all-or-nothing to the caller: if retiring the temporary
+		// name fails, remove the new name and let the deferred cleanup retry src.
+		if rollbackErr := os.Remove(dst); rollbackErr != nil {
+			return fmt.Errorf("removing published trace after temporary cleanup failed: %v (cleanup error: %w)", rollbackErr, err)
+		}
+		return err
+	}
+	return nil
+}
+
+func writeDecisionTrace(path string, run traceRunV1, games []*gameTrace) error {
+	return writeDecisionTraceWithOps(path, run, games, defaultTraceWriterOps())
+}
+
+func writeDecisionTraceWithOps(path string, run traceRunV1, games []*gameTrace, ops traceWriterOps) (err error) {
 	if path == "" {
 		return nil
 	}
@@ -236,7 +279,7 @@ func writeDecisionTrace(path string, run traceRunV1, games []*gameTrace) (err er
 	if err := validateTraceRecord(run); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(parent, "."+filepath.Base(path)+"-*.tmp")
+	tmp, err := ops.createTemp(parent, "."+filepath.Base(path)+"-*.tmp")
 	if err != nil {
 		return fmt.Errorf("creating decision trace temporary file: %w", err)
 	}
@@ -287,7 +330,7 @@ func writeDecisionTrace(path string, run traceRunV1, games []*gameTrace) (err er
 	} else if !os.IsNotExist(statErr) {
 		return fmt.Errorf("rechecking decision trace destination: %w", statErr)
 	}
-	if err = os.Rename(tmpName, path); err != nil {
+	if err = ops.publish(tmpName, path); err != nil {
 		return fmt.Errorf("publishing decision trace: %w", err)
 	}
 	return nil

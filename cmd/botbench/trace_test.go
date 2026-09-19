@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -43,7 +44,10 @@ func TestTraceBoardProjectionIsSortedAndRedacted(t *testing.T) {
 			Amount: 4, Ability: 5, SVar: "SECRET_SVAR", Cost: "SECRET_COST",
 			Grant: &decision.Grant{Keywords: []string{"Flying"}},
 		}},
-		ResumeKind: "SECRET_RESUME", Rolls: []int32{6}, ResumeMoved: []state.ObjID{7},
+		ResumeKind: "SECRET_RESUME", ResumeSA: &cards.SA{Kind: "SP", API: "SECRET_API"},
+		ResumeModes: []string{"SECRET_MODE"}, ResumeTarget: 17, Rolls: []int32{6},
+		ResumeChoices: []state.Target{{Obj: 23}}, ResumeChosenValid: true,
+		ResumeRemembered: []state.Target{{Player: 1, IsPlayer: true}}, ResumeMoved: []state.ObjID{7},
 	}
 	g := newGameTrace()
 	if err := g.record(d, decision.Intent{Seq: 12, Player: 0, Choices: []int{0}}, &b, traceDecisionMeta{PairIndex: 4, Pair: "a:b", GameIndex: 6, Seed: 10, Policy: "bot"}); err != nil {
@@ -54,7 +58,11 @@ func TestTraceBoardProjectionIsSortedAndRedacted(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(got)
-	for _, secret := range []string{"SECRET PROMPT", "SECRET LABEL", "SECRET_SVAR", "SECRET_COST", "SECRET_RESUME", `"source"`, `"rolls"`, `"grant"`} {
+	for _, secret := range []string{
+		"SECRET PROMPT", "SECRET LABEL", "SECRET_SVAR", "SECRET_COST", "SECRET_RESUME", "SECRET_API", "SECRET_MODE",
+		`"prompt"`, `"source"`, `"rolls"`, `"grant"`, `"resume_kind"`, `"resume_sa"`, `"resume_modes"`,
+		`"resume_target"`, `"resume_choices"`, `"resume_chosen_valid"`, `"resume_remembered"`, `"resume_moved"`,
+	} {
 		if strings.Contains(s, secret) {
 			t.Errorf("trace leaked %q: %s", secret, s)
 		}
@@ -230,6 +238,90 @@ func TestDecisionTraceValidationFailureLeavesNoDestination(t *testing.T) {
 	}
 }
 
+type failingTraceTemp struct {
+	*os.File
+	err error
+}
+
+func (f *failingTraceTemp) Write([]byte) (int, error) { return 0, f.err }
+
+func TestDecisionTraceWriteFailureLeavesNoDestination(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "trace.jsonl")
+	wantErr := errors.New("injected write failure")
+	ops := defaultTraceWriterOps()
+	ops.createTemp = func(parent, pattern string) (traceTempFile, error) {
+		f, err := os.CreateTemp(parent, pattern)
+		if err != nil {
+			return nil, err
+		}
+		return &failingTraceTemp{File: f, err: wantErr}, nil
+	}
+	err := writeDecisionTraceWithOps(path, traceRunV1{RecordType: "run-v1", SchemaVersion: 1, BoardSchemaVersion: 1}, nil, ops)
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("write error = %v, want injected failure", err)
+	}
+	assertNoTraceArtifacts(t, dir, path)
+}
+
+func TestDecisionTracePublicationFailureLeavesNoDestination(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "trace.jsonl")
+	wantErr := errors.New("injected rename failure")
+	ops := defaultTraceWriterOps()
+	ops.publish = func(_, _ string) error { return wantErr }
+	err := writeDecisionTraceWithOps(path, traceRunV1{RecordType: "run-v1", SchemaVersion: 1, BoardSchemaVersion: 1}, nil, ops)
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("rename error = %v, want injected failure", err)
+	}
+	assertNoTraceArtifacts(t, dir, path)
+}
+
+func TestDecisionTraceConcurrentDestinationIsNotOverwritten(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "trace.jsonl")
+	ops := defaultTraceWriterOps()
+	publish := ops.publish
+	ops.publish = func(old, new string) error {
+		if err := os.WriteFile(new, []byte("concurrent writer"), 0o600); err != nil {
+			return err
+		}
+		return publish(old, new)
+	}
+	err := writeDecisionTraceWithOps(path, traceRunV1{RecordType: "run-v1", SchemaVersion: 1, BoardSchemaVersion: 1}, nil, ops)
+	if err == nil {
+		t.Fatal("concurrently created destination was overwritten")
+	}
+	got, readErr := os.ReadFile(path)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if string(got) != "concurrent writer" {
+		t.Fatalf("concurrently created destination changed to %q", got)
+	}
+	entries, readErr := os.ReadDir(dir)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if len(entries) != 1 || entries[0].Name() != "trace.jsonl" {
+		t.Fatalf("race failure left temporary files: %v", entries)
+	}
+}
+
+func assertNoTraceArtifacts(t *testing.T, dir, path string) {
+	t.Helper()
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("completed destination exists after failure: %v", err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("failure left temporary files: %v", entries)
+	}
+}
+
 func TestDecisionTraceHeaderRecognizesExactMono5Splits(t *testing.T) {
 	pairs := mono5Pairs()
 	dev := newTraceRunV1(0, 100, "bot", "legacy", pairs, 200, 20000, false)
@@ -252,7 +344,10 @@ func mono5Pairs() []pairDef {
 }
 
 func TestTraceWorkerCountDeterminism(t *testing.T) {
-	pairs := []pairDef{{a: "mono-red-prowess", b: "mono-green-stompy"}}
+	pairs := []pairDef{
+		{a: "mono-red-prowess", b: "mono-green-stompy"},
+		{a: "mono-blue-tempo", b: "mono-black-aggro"},
+	}
 	corpus := corpusDirOrSkip(t)
 	run := func(workers int) []byte {
 		path := filepath.Join(t.TempDir(), "trace.jsonl")
