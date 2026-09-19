@@ -5064,3 +5064,170 @@ Deck
 3 Island
 3 Mountain
 0
+
+# --- Blight Curse (ecc commander precon, Auntie Ool, Cursewretch) — census input, 2026-09-19 (issue agent-20260918T211806Z-b7050f99) ---
+# run: sed -n '/Blight Curse (ecc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/ecc-blight-curse.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC "Lorwyn Eclipsed" Commander decklist announcement, the Blight Curse <deck-list> element
+#   (magic.wizards.com/en/news/announcements/lorwyn-eclipsed-commander-decklists, set="ECC,ECL",
+#   <main-deck> 85 entries / 100 cards), fetched 2026-09-19 and re-reproduced in this round (HTTP 200,
+#   85 entries / 100 cards). MTGJSON per-deck corroboration NOT obtainable — DeckLists.json 404s both in
+#   triage and in this round, so WotC only. MTGGoldfish cross-check NOT obtainable (deck search 404s,
+#   measured in triage).
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps remain (25 gap cards):
+#   trig:CounterAddedOnce, api:Blight, kw:Wither, api:ExchangeLifeVariant, api:Poison, kw:Compleated,
+#   stat:WitherDamage, stat:OptionalCost, param:TriggersWhenSpent, count:RememberedNumber,
+#   count:CountersAddedThisTurn, count:Valid$CardCounters (property), defined:TriggeredCardOwner,
+#   param:Activator (AB offer gate) + the census-walker SVar undercount — 15 tickets in .ds4/new-tickets/.
+# Gap primitives (deck carriers, corpus prevalence with /usr/bin/grep over .cards/cardsfolder):
+#   trig:CounterAddedOnce — Auntie Ool (the commander), Wickersmith's Tools, Hapatra, Vizier of Poisons
+#     (47 raw lines / 47 files; the sibling Mode$ CounterAdded IS registered — Once is a distinct
+#     unregistered mode string, matcher exists);
+#   api:Blight — Sinister Gnarlbark (DB$ Blight 5 raw lines / 5 files, AB$ Blight 1/1; the Ward:Blight<N>
+#     cost form is implemented ONLY inside Ward, rules/ward.go wardSpecialCost — Cost$ Blight outside
+#     Ward is unpayable, 14 raw lines / 14 files, incl. Burning Curiosity's OptionalCost);
+#   kw:Wither — Village Pillagers, Necroskitter, Midnight Banshee, Kulrath Knight (K:Wither 27/27;
+#     AddKeyword$ Wither grants 7/7 incl. Massacre Girl, Known Killer — grant works, conversion does not);
+#   api:ExchangeLifeVariant — Tree of Perdition (3/3);
+#   api:Poison — Vraska, Betrayal's Sting (AB$ 1/1, DB$ 34, SP$ 2; ~39 files carry $ Poison);
+#   kw:Compleated — Vraska (K:Compleated 7/7; the {B/P} pip payment works, the enters-with-two-fewer-
+#     loyalty rider is unread);
+#   stat:WitherDamage — Everlasting Torment (1/1, the singleton; its CantGainLife/CantPreventDamage
+#     siblings ARE implemented);
+#   stat:OptionalCost — Burning Curiosity (S:Mode$ OptionalCost 40/40; companion count head
+#     Count$OptionalGenericCostPaid 11 files, also unimplemented);
+#   param:TriggersWhenSpent — Path of Ancestry (13/13; the rider is unread so its commander-scry SVar
+#     trigger never registers);
+#   count:RememberedNumber — Eventide's Shadow (38/38; sibling RememberedSize IS implemented);
+#   count:CountersAddedThisTurn — Lasting Tarfire (11/11; sibling CountersRemovedThisTurn already
+#     ticketed open in the ledger);
+#   count:Valid$CardCounters.<KIND> property — Ferrafor, Young Yew (18/18; not in the countZone branch's
+#     recognized property set, whole-spec fail-closed → 0 Saprolings, always);
+#   defined:TriggeredCardOwner/NonTriggeredCardOwner — Oft-Nabbed Goat (21/21 + 1/1; both legs fail
+#     closed);
+#   param:Activator on an AB offer — Oft-Nabbed Goat (1/1; the ability is offered to its own controller
+#     and to nobody else, the exact inverse of "only your opponents may activate").
+# Open-ledger overlaps cited, NOT re-filed: api:RemoveCounter (Eventide's Shadow) ->
+#   issue-agent-20260918T202223Z-d6a3729d; api:MultiplyCounter (Ferrafor) -> issue-agent-20260918T232250Z-d339a2a3;
+#   api:MoveCounter (Nesting Grounds) -> issue-agent-20260918T205611Z-1c5d04bf; api:Proliferate (Vraska,
+#   Evolution Sage, Contagion Clasp) -> issue-agent-20260918T224137Z-c0df25bc (dup 224034Z-a94a8ba5);
+#   api:Discover (Chimil, the Inner Sun) -> issue-agent-20260918T232250Z-6a290217; api:PutCounterAll
+#   (Carnifex Demon, Black Sun's Zenith, Archfiend of Ifnir, Soul Snuffers) -> issue-agent-20260918T195920Z-6d0f5aae
+#   (dup 200326Z-d7ef330f); kw:Persist (Puppeteer Clique) -> issue-agent-20260918T201019Z-ea03b13d;
+#   trig:Blocks (Dusk Urchins) -> issue-agent-20260918T202223Z-efca418d; api:ImmediateTrigger (Riveteers
+#   Overlook) -> issue-agent-20260918T202223Z-6ad7f5ec (dup 195920Z-2fd3b568); the stat:CantAttack,CantBlock
+#   compound (Kulrath Knight) -> issue-agent-20260919T000105Z-4e09dd7c (base stat:CantAttack 200326Z-91ffd4aa);
+#   Vraska's TargetedPlayer$Counters.Poison + Number$9/Minus.X count forms -> issue-agent-20260918T201425Z-bfb2a578
+#   and issue-agent-20260918T224034Z-2d8f552c (cited in the poison ticket, not re-filed); Puppeteer Clique's
+#   AtEOT$ YourExile rider -> issue-agent-20260918T201120Z-487de5e1.
+# Known approximations leaned on, no ticket: Produced$ Any -> colourless stand-in (Wickersmith's Tools,
+#   Channeler Initiate, Vraska's TreasureSac grant) — the effMana row; Devoted Druid's AddCounter<1/M1M1>
+#   untap cost priced as one generic with the counter never put — the pw1 row's non-loyalty AddCounter note;
+#   Puca's Covenant's NotDefinedTriggeredCard predicate is unknown (fail-closed, its graveyard-return target
+#   spec matches nothing; 2 corpus files) — noted in the census report's Issues.
+# Verified implemented, no flag: K:Ward:Blight<2> (Auntie Ool — wardSpecialCost in rules/ward.go, named in
+#   the code comment); R:Event$ Counter Layer$ CantHappen "can't be countered" (Chimil — the bodyless
+#   CantHappen form, rules/replacement.go); K:etbCounter (Carnifex Demon x2, Grim Poppet x3, Wickerbough
+#   Elder); trig:CounterAdded plain mode (Flourishing Defenses); counters_GE1_M1M1 / toughnessLT1 numeric
+#   predicates (The Reaper, Scorpion God, Massacre Girl, Dread Tiller, Necroskitter); HasCounters (Puca's
+#   Covenant, Village Pillagers' treasure trigger); DelayedTrigger Mode$ Phase (The Scorpion God's
+#   return-to-hand); trig:Discarded + K:Cycling (Archfiend of Ifnir); DB$ DamageAll ETB (Village Pillagers);
+#   Produced$ Combo <colours> as a real multi-colour ask (Dragonskull Summit, Rootbound Crag, Woodland
+#   Cemetery, Savage Lands, Ignoble Hierarch) and Combo ColorIdentity (Arcane Signet, Command Tower,
+#   Commander's Sphere) on the activation path; BecomeMonarch + CheckDefinedPlayer$ You.isMonarch (Grave
+#   Venerations); fixed SubCounter<N/LOYALTY> costs (Vraska -2/-9, Liliana -3/-10); DB$ Animate
+#   RemoveAllAbilities/Types$ Treasure conversion (Vraska); cmcLEX numericPred with an SVar right-hand side
+#   (Puca's Covenant); R:Event$ Moved ETB-tap replacements (the lands).
+# Trap note: the deck carries BOTH borderless face cards — Auntie Ool, Cursewretch (cn 0002, recorded
+#   commander; deckimport's Commander section takes exactly the FIRST card) and The Reaper, King No More
+#   (cn 0004, an ordinary deck card here); neither has partner. Sol Ring / Arcane Signet / Command Tower
+#   are special Shadowmoor-frame printings — recorded as the plain names the corpus carries. The basics
+#   carried [set/print annotations] in the article, stripped.
+Commander
+1x Auntie Ool, Cursewretch
+
+Deck
+1x The Reaper, King No More
+1x Wickersmith's Tools
+1x Sinister Gnarlbark
+1x Eventide's Shadow
+1x Aberrant Return
+1x Dread Tiller
+1x Grave Venerations
+1x Oft-Nabbed Goat
+1x Village Pillagers
+1x Puca's Covenant
+1x Ferrafor, Young Yew
+1x Tree of Perdition
+1x Vernal Fen
+1x Festering Thicket
+1x Necroskitter
+1x Ignoble Hierarch
+1x Nesting Grounds
+1x Massacre Girl, Known Killer
+1x Grave Titan
+1x Vraska, Betrayal's Sting
+1x The Scorpion God
+1x Liliana, Death Wielder
+1x Chimil, the Inner Sun
+1x Carnifex Demon
+1x Puppeteer Clique
+1x Dusk Urchins
+1x Black Sun's Zenith
+1x Painful Truths
+1x Persist
+1x Midnight Banshee
+1x Chain Reaction
+1x Archfiend of Ifnir
+1x Channeler Initiate
+1x Hapatra, Vizier of Poisons
+1x Glissa Sunslayer
+1x Everlasting Torment
+1x Assassin's Trophy
+1x Grim Poppet
+1x Canyon Slough
+1x Sheltered Thicket
+1x Exotic Orchard
+1x Smoldering Marsh
+1x Cinder Glade
+1x Dragonskull Summit
+1x Rootbound Crag
+1x Woodland Cemetery
+1x Lasting Tarfire
+1x Burning Curiosity
+1x Hoarder's Greed
+1x Blowfly Infestation
+1x Fire Covenant
+1x Sol Ring
+1x Arcane Signet
+1x Command Tower
+1x Cathartic Reunion
+1x Skinrender
+1x Soul Snuffers
+1x Incremental Blight
+1x Infernal Grasp
+1x Evolution Sage
+1x Devoted Druid
+1x Flourishing Defenses
+1x Harmonize
+1x Putrefy
+1x Binding the Old Gods
+1x Kulrath Knight
+1x Contagion Clasp
+1x Savage Lands
+1x Ifnir Deadlands
+1x Night's Whisper
+1x Wickerbough Elder
+1x Terminate
+1x Commander's Sphere
+1x Cathartic Pyre
+1x Evolving Wilds
+1x Terramorphic Expanse
+1x Path of Ancestry
+1x Riveteers Overlook
+1x Rakdos Carnarium
+1x Gruul Turf
+1x Golgari Rot Farm
+8x Swamp
+4x Mountain
+6x Forest
