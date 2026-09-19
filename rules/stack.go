@@ -1327,18 +1327,21 @@ func (e *Engine) resolveTop() {
 		// The ability-cast copy family (abcopy1): an AB$ CopySpellAbility
 		// execute carrying a real Cost$ (Rings of Brighthearth {2}, Kurkesh
 		// {R}, Battlemages' Bracers {1}, Chandra's Regulator {1}) must never
-		// copy for free. When the firing trigger's context carries the
-		// activation role (TriggerAbility), route the same pay/decline window
+		// copy for free. When the firing trigger's context carries an event
+		// role -- the activation role TriggerAbility, or the spell arm's
+		// TriggerCard (a SpellCast fires on PutOnStack, whose Obj IS the spell;
+		// no ability wrapper is minted) -- route the same pay/decline window
 		// the Untap/ImmediateTrigger shapes use: a decline leaves the trigger
 		// unexecuted, a pay charges the cost and then runs the copy. An
-		// unpriceable cost (Verrak's PayLife<X>) poses the ask but offers no
-		// answerable "pay" -- the ParseUnlessCost hard-decline convention.
-		// Spell-cast copy triggers with a Cost$ keep their established
-		// free-executor semantics: no activation role reaches them.
+		// unpriceable cost (Verrak's PayLife<X>, Mica's Sac<1/Artifact>) poses
+		// the ask but offers no answerable "pay" -- the ParseUnlessCost
+		// hard-decline convention. A context-less synthetic push (no role)
+		// keeps the free-executor semantics.
+		tc := e.triggerContexts[id]
 		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
 			o.Ability.API == "CopySpellAbility" &&
 			o.Ability.Params["Cost"] != "" &&
-			e.triggerContexts[id].TriggerAbility != 0 {
+			(tc.TriggerAbility != 0 || tc.TriggerCard != 0) {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}

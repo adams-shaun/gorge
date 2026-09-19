@@ -786,13 +786,18 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// attempt the effect; payment is a separate resolution-time window with
 	// mana-ability opportunities. Direct mandatory triggers enter the same
 	// window from resolveTop.
-	if rp.kind == "optional" && rp.sa != nil && rp.sa.Params["Cost"] != "" &&
+	tc := e.triggerContexts[rp.obj]
+	armed := rp.kind == "optional" && rp.sa != nil && rp.sa.Params["Cost"] != "" &&
 		(rp.sa.API == "Untap" ||
 			// abcopy1: an OptionalDecider$ copy trigger's AB$ CopySpellAbility
-			// with a real Cost$ (Rings of Brighthearth, Battlemages' Bracers)
-			// pays through the same window; a copy without the activation role
-			// (a spell-cast arm) keeps the established free-executor semantics.
-			(rp.sa.API == "CopySpellAbility" && e.triggerContexts[rp.obj].TriggerAbility != 0)) {
+			// with a real Cost$ (Rings of Brighthearth, Battlemages' Bracers,
+			// Mirari) pays through the same window whenever the trigger context
+			// carries an event role -- the activation role TriggerAbility, or
+			// the spell-cast arm's TriggerCard (a SpellCast fires on PutOnStack,
+			// whose Obj IS the cast spell; no ability wrapper is minted). Only
+			// a context-less synthetic push keeps the free-executor semantics.
+			(rp.sa.API == "CopySpellAbility" && (tc.TriggerAbility != 0 || tc.TriggerCard != 0)))
+	if armed {
 		e.startTriggeredEffectCost(rp, ctx.Source)
 		return
 	}
