@@ -570,3 +570,58 @@ func TestRegistryConcurrentRegisterAndReadDoesNotRace(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+// TestKnownDefinedTargetsRecognisesBareValidBattlefieldForm pins the resolver
+// contract behind the copyp2 fix: the bare "Defined$ Valid <filter>"
+// battlefield form must be classified as KNOWN by knownDefinedTargets, not as
+// an unresolvable fetch list. Before the fix definedSpec recognised only the
+// zone-suffixed forms (ValidGraveyard/ValidHand/...) and ValidStack, so every
+// fail-closed caller (effCopyPermanent, effChangeZone's hidden search,
+// effCopySpellAbility, the DamageSource$/ValidPlayers$ resolvers) treated a
+// bare Valid spec as "unknown" and acted on nothing -- Redoubled Stormsinger
+// (Defined$ Valid Creature.token+YouCtrl+ThisTurnEntered) minted no copy.
+//
+// The sweep itself is shared with Defined's own bare-Valid branch
+// (battlefieldValidTargets), so this also guards the two against drifting.
+func TestKnownDefinedTargetsRecognisesBareValidBattlefieldForm(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Source: ids["myBear"], Controller: 0}
+
+	got, ok := knownDefinedTargets(h, c, "Valid Creature")
+	if !ok {
+		t.Fatal("bare Defined$ Valid form was not classified as known")
+	}
+	// board(t) seats two creatures for seat 0 (myBear, myFlier) and one
+	// for seat 1 (theirBig): the sweep is the whole battlefield.
+	if len(got) != 3 {
+		t.Fatalf("Valid Creature -> %v, want all three battlefield creatures", got)
+	}
+
+	// A controller qualifier narrows to the resolving controller's seat, and
+	// the fail-closed caller shares Defined's exact reading of it.
+	got, ok = knownDefinedTargets(h, c, "Valid Creature.YouCtrl")
+	if !ok || len(got) != 2 {
+		t.Fatalf("Valid Creature.YouCtrl -> %v (ok=%v), want seat 0's two creatures", got, ok)
+	}
+
+	// An unmodelled predicate fails CLOSED inside the filter (empty set) but
+	// is still a KNOWN selector -- never ok=false, which would make a
+	// fail-closed caller fall through to a wrong source instead.
+	got, ok = knownDefinedTargets(h, c, "Valid Creature.NotAPredicateXYZ")
+	if !ok {
+		t.Fatal("unmodelled predicate made the selector unknown; want ok=true, empty set")
+	}
+	if len(got) != 0 {
+		t.Fatalf("unmodelled predicate -> %v, want empty", got)
+	}
+
+	// The zone-suffixed and ValidStack prefixes must still win over the bare
+	// form (ValidGraveyard is not a prefix of "Valid " and vice versa).
+	if _, ok := knownDefinedTargets(h, c, "ValidStack Spell"); !ok {
+		t.Fatal("ValidStack prefix no longer recognised")
+	}
+	if got, ok := knownDefinedTargets(h, c, "ValidGraveyard Creature"); !ok || len(got) != 0 {
+		t.Fatalf("ValidGraveyard Creature -> %v (ok=%v), want ok=true over the empty graveyard", got, ok)
+	}
+}

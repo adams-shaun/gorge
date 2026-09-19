@@ -245,3 +245,111 @@ func TestGrowingRanksPopulatesTheCreatureTokenYouControl(t *testing.T) {
 	noUnimplementedCopyPermanent(t, e)
 	replayCheck(t, e, cfg)
 }
+
+// TestRedoubledStormsingerCopiesEachTokenThatEnteredThisTurn pins the exact
+// shape the filed report named end to end on its real corpus card: the attack
+// trigger's `DB$ CopyPermanent | Defined$ Valid
+// Creature.token+YouCtrl+ThisTurnEntered | TokenTapped$ True | TokenAttacking$
+// True | AtEOT$ Sacrifice`. The bare battlefield "Defined$ Valid <filter>"
+// form is the load-bearing part: effCopyPermanent resolves Defined$ through
+// knownDefinedTargets (FAIL-CLOSED, never a silent source fallback), so before
+// definedSpec recognised the bare Valid form every such line emitted
+// "CopyPermanent source ... is not resolvable; no copy" and minted nothing.
+//
+// The oracle text is "for each creature token you control that entered this
+// turn, create a tapped and attacking token that's a copy of that token. At
+// the beginning of the next end step, sacrifice those tokens": this test seeds
+// TWO such tokens and asserts BOTH are copied (the whole sweep, not the first),
+// the copies enter tapped and attacking the attacked seat, and the next end
+// step sacrifices exactly the copies while leaving the originals.
+func TestRedoubledStormsingerCopiesEachTokenThatEnteredThisTurn(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := searchEngine(t, reg, "Redoubled Stormsinger")
+	st := searchMoveByName(t, e, "Redoubled Stormsinger", state.ZBattlefield)
+	bear := searchMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)
+
+	// Seat 0's turn 2: summoning sickness is gone, so the Stormsinger can
+	// attack; the two seed tokens enter DURING this turn so the
+	// ThisTurnEntered predicate admits them (a token seeded on turn 1 would
+	// fall out of the filter, which is the card's own timing).
+	e.pending = nil
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+	seedA := e.G.NextID
+	e.emit(events.Event{Kind: events.CardToken, Obj: bear, Player: 0})
+	seedB := e.G.NextID
+	e.emit(events.Event{Kind: events.CardToken, Obj: bear, Player: 0})
+	for _, id := range []state.ObjID{seedA, seedB} {
+		if o := e.G.Obj(id); o == nil || !o.IsToken || o.Zone != state.ZBattlefield {
+			t.Fatalf("seed token %d not on the battlefield: %+v", id, o)
+		}
+	}
+
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepDeclareAttackers})
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("want attackers decision, got %+v", d)
+	}
+	var picks []int
+	for _, o := range d.Options {
+		if o.Obj == st {
+			picks = append(picks, o.Index)
+		}
+	}
+	if len(picks) == 0 {
+		t.Fatalf("Redoubled Stormsinger not offered as an attacker: %+v", d.Options)
+	}
+	crAbortAnswer(t, e, "attack declaration", picks...)
+	passUntilStackEmpty(t, e, 30)
+
+	// The trigger must have resolved the unresolvable-source note, and it
+	// must have minted one copy per eligible token (2), both tapped and
+	// attacking the attacked seat.
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "is not resolvable") {
+			t.Fatalf("bare Defined$ Valid was not recognised: %q", ev.Text)
+		}
+	}
+	noUnimplementedCopyPermanent(t, e)
+	bearCard := e.G.Obj(bear).Card
+	copyA := findTokenCopyOf(t, e, bearCard, seedA, seedB)
+	copyB := findTokenCopyOf(t, e, bearCard, seedA, seedB, copyA)
+	for _, cid := range []state.ObjID{copyA, copyB} {
+		o := e.G.Obj(cid)
+		if !o.Tapped || !o.IsAttacking || o.Controller != 0 || o.Zone != state.ZBattlefield {
+			t.Fatalf("copy %d: tapped=%v attacking=%v controller=%d zone=%s",
+				cid, o.Tapped, o.IsAttacking, o.Controller, o.Zone)
+		}
+		if o.Attacking != 1 {
+			t.Fatalf("copy %d attacks %d, want seat 1", cid, o.Attacking)
+		}
+	}
+	if len(e.G.Zone(state.ZBattlefield, 0)) == 0 {
+		t.Fatal("seat 0's battlefield is empty after the copies entered")
+	}
+	replayCheck(t, e, cfg)
+
+	// AtEOT$ Sacrifice: the next end step sacrifices exactly the copies; the
+	// two original tokens (which are NOT the delayed registration's source)
+	// stay on the battlefield. TWO delayed triggers fire at once for the same
+	// controller, so the engine poses a CR 603.3b trigger-order ask before
+	// pushing them -- answer it in offered order, then drain.
+	driveToStep(t, e, e.G.Turn, 0, state.StepEnd)
+	for e.putTriggersOnStack() {
+		answerTriggerOrders(t, e)
+		passUntilStackEmpty(t, e, 30)
+	}
+	passUntilStackEmpty(t, e, 30)
+	for _, cid := range []state.ObjID{copyA, copyB} {
+		if z := e.G.Obj(cid).Zone; z == state.ZBattlefield {
+			t.Fatalf("copy %d survived the end-step sacrifice (zone %s)", cid, z)
+		}
+	}
+	for _, id := range []state.ObjID{seedA, seedB} {
+		if z := e.G.Obj(id).Zone; z != state.ZBattlefield {
+			t.Fatalf("original seed token %d was sacrificed (zone %s), want it kept", id, z)
+		}
+	}
+	noUnimplementedCopyPermanent(t, e)
+	replayCheck(t, e, cfg)
+}

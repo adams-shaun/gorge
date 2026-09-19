@@ -84,17 +84,7 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	// like every filter. (ValidStack is knownDefinedTargets' own prefix above
 	// and never reaches here.)
 	if spec := sa.Params["Defined"]; spec == "Valid" || strings.HasPrefix(spec, "Valid ") {
-		filt := strings.TrimSpace(strings.TrimPrefix(spec, "Valid"))
-		g := h.Game()
-		var out []state.Target
-		for _, p := range g.AliveFrom(0) {
-			for _, id := range g.Zone(state.ZBattlefield, p) {
-				if MatchesSpecCtx(g, filt, id, c.SpecContext(c.Controller)) {
-					out = append(out, state.Target{Obj: id})
-				}
-			}
-		}
-		return out
+		return battlefieldValidTargets(h, c, strings.TrimSpace(strings.TrimPrefix(spec, "Valid")))
 	}
 	// Forge's rule: an ability that names targets acts on them; one that
 	// names none acts on its source. A sub-ability that wants its
@@ -112,6 +102,27 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		return copyTargets(c.Targets)
 	}
 	return []state.Target{{Obj: c.Source}}
+}
+
+// battlefieldValidTargets is Forge's "Defined$ Valid <filter>" battlefield
+// sweep: every battlefield object the filter admits, in the deterministic
+// APNAP seat/zone walk, evaluated with the resolving controller as You; an
+// unmodelled predicate fails closed to an empty set like every filter. It is
+// the ONE implementation shared by Defined's bare-Valid branch and
+// definedSpec's fail-closed recognition of the same selector (the
+// zone-suffixed family is its per-zone twin), so the two can never disagree
+// about what the battlefield form means.
+func battlefieldValidTargets(h Host, c *Ctx, filt string) []state.Target {
+	g := h.Game()
+	var out []state.Target
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if MatchesSpecCtx(g, filt, id, c.SpecContext(c.Controller)) {
+				out = append(out, state.Target{Obj: id})
+			}
+		}
+	}
+	return out
 }
 
 // knownDefinedTargets resolves a Defined$ form only when every selector in it
@@ -545,6 +556,18 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			}
 			return out, true
 		}
+	}
+	// Forge's bare "Defined$ Valid <filter>" form (88 raw corpus lines:
+	// Redoubled Stormsinger's "Defined$ Valid Creature.token+YouCtrl+
+	// ThisTurnEntered", Angelic Skirmisher's "Defined$ Valid
+	// Creature.YouCtrl" combat grant). It is the battlefield twin of the
+	// zone-suffixed family above and MUST be recognised here: a fail-closed
+	// caller (knownDefinedTargets) treats an unrecognised selector as an
+	// unresolvable fetch list, so omitting it makes every such copy/search
+	// mint nothing. The sweep is the shared battlefieldValidTargets helper
+	// Defined's own bare-Valid branch calls, so the two cannot drift.
+	if spec == "Valid" || strings.HasPrefix(spec, "Valid ") {
+		return battlefieldValidTargets(h, c, strings.TrimSpace(strings.TrimPrefix(spec, "Valid"))), true
 	}
 	// Any Defined$ form this build does not model falls back to the chosen
 	// targets rather than silently acting on nothing (the caller decides via
