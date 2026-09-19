@@ -359,3 +359,22 @@ func TestPlayerCountExtremePropertiesFailUnresolvable(t *testing.T) {
 		}
 	}
 }
+
+// TestChosenNumberHeadReadsTheFrozenBinding locks the Count$ChosenNumber
+// head (task wildgrowth1): the head reads Ctx.ChosenNumber -- the
+// Effect-created replacement's SetChosenNumber$ binding rules' replCtx
+// threads in -- and nothing else; zero wherever nothing bound, still an
+// evaluated verdict (the failed binding degrades to the same zero).
+func TestChosenNumberHeadReadsTheFrozenBinding(t *testing.T) {
+	h := newHost(t, 2)
+	c := &Ctx{ChosenNumber: 5}
+	n, ok := EvalCountOK(h, c, "Count$ChosenNumber")
+	if !ok || n != 5 {
+		t.Errorf("Count$ChosenNumber = (%d, %v), want (5, true)", n, ok)
+	}
+	zero := &Ctx{}
+	n, ok = EvalCountOK(h, zero, "Count$ChosenNumber")
+	if !ok || n != 0 {
+		t.Errorf("unbound Count$ChosenNumber = (%d, %v), want (0, true)", n, ok)
+	}
+}

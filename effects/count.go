@@ -661,6 +661,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.ConvergeColours, true
 		}
 		return 0, true
+	case "ChosenNumber":
+		// The Effect's SetChosenNumber$ binding (state.ContinuousEffect.ChosenNumber,
+		// threaded into Ctx by rules' replCtx for effect-created replacement
+		// bodies, task wildgrowth1: torgal_a_fine_hound / communal_brewing /
+		// wildgrowth_archaic's "enters with an additional +1/+1 counter for
+		// each ..." body). Bound ONCE when the Effect was created, against the
+		// trigger's own context, so the body reads the frozen number wherever
+		// the entry lands. Zero wherever nothing bound -- the same number a
+		// failed binding degrades to, so the verdict is true either way.
+		return c.ChosenNumber, true
 	case "YourLifeTotal":
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0, true
@@ -1294,15 +1304,27 @@ func evalCompare(h Host, c *Ctx, arg string, depth int) int32 {
 // itself as an inline expression (EvalCount degrades a bare unknown word to
 // zero, the convention every other head follows).
 func evalCountOperand(h Host, c *Ctx, tok string, depth int) int32 {
+	n, _ := resolveCountOperand(h, c, tok, depth)
+	return n
+}
+
+// resolveCountOperand is evalCountOperand with an evaluated verdict: an
+// integer literal directly, an SVar body through the ordinary expression
+// evaluator at depth+1 (the same recursion bound evalCountOperand always
+// carried -- a self-referential Compare SVar must terminate), else the token
+// itself as an inline expression. ok is false only when nothing resolved --
+// the caller that binds a value once (effects' SetChosenNumber$ read) turns
+// that into its fail-closed Note.
+func resolveCountOperand(h Host, c *Ctx, tok string, depth int) (int32, bool) {
 	if n, err := strconv.Atoi(tok); err == nil {
-		return int32(n)
+		return int32(n), true
 	}
 	if c.SVars != nil {
 		if body, ok := c.SVars[tok]; ok {
-			return evalCountExpr(h, c, body, depth+1)
+			return evalCountExprOK(h, c, body, depth+1)
 		}
 	}
-	return evalCountExpr(h, c, tok, depth+1)
+	return evalCountExprOK(h, c, tok, depth+1)
 }
 
 // splitDot splits an "a.b" pair into two integers, defaulting either side to

@@ -164,6 +164,24 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	remembered := effectRemembered(h, c, sa)
+	// SetChosenNumber$ binds the Effect's number ONCE, here at creation,
+	// against THIS resolution's own context: the trigger-time board (Torgal's
+	// Count$Valid Dog.YouCtrl,Wolf.YouCtrl, Communal Brewing's
+	// Count$CardCounters.INGREDIENT) or the fire-time snapshot (Wildgrowth
+	// Archaic's TriggeredCard$Converge, tconverge1). The registered
+	// replacement's body later reads the frozen number through the
+	// Count$ChosenNumber head; a live re-read at entry time would answer a
+	// different question. An unresolvable value is the fail-closed loud Note
+	// plus a zero binding (which reads as zero everywhere).
+	chosenNumber := int32(0)
+	if v := strings.TrimSpace(sa.Params["SetChosenNumber"]); v != "" {
+		n, ok := resolveCountOperand(h, c, v, 0)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unresolvable SetChosenNumber$ " + v})
+		}
+		chosenNumber = n
+	}
 	registered := false
 	// Effect can also create a replacement rather than a layer restriction.
 	// Forge stores its R: body behind an SVar name in ReplacementEffects$.
@@ -177,11 +195,35 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		if with := replacementLineWith(params); with != "" {
 			body = c.SVars[with]
 		}
-		if event == "DamageDone" && body != "" {
+		// A LIVE replacement registration: a body this build's replacement
+		// dispatcher actually resolves. DamageDone is the Taii Wakeen shape
+		// (the body is a DB$ ReplaceEffect damage rewrite); Event$ Moved with
+		// a PutCounter body is the "that creature enters with an additional
+		// +1/+1 counter for each ..." family (torgal_a_fine_hound,
+		// communal_brewing, wildgrowth_archaic, task wildgrowth1): the
+		// Updated-shaped MoveZone dispatch already applies the original move,
+		// fires entry triggers, then runs the body, and effPutCounter handles
+		// ETB$ True on the entered object. Every OTHER Moved body (the
+		// destination-changing ChangeZone/Tap/Clone family, 44 measured
+		// files) and every Draw/ProduceMana/CreateToken body keeps its loud
+		// Note: a half-modelled Replaced-result could LOSE the moved object.
+		// The effect's own capture state rides every live registration:
+		// Remembered (the trigger's RememberObjects$ card, what the body's
+		// IsRemembered/Remembered$ specs and Count$ChosenNumber's neighbours
+		// read), the two move-driven lifetimes (ExileOnMoved$ Stack ends the
+		// effect exactly after the one entry it upgrades -- load-bearing:
+		// without it the effect would upgrade EVERY later creature cast this
+		// turn), and the frozen SetChosenNumber$ binding.
+		if body != "" && (event == "DamageDone" ||
+			(event == "Moved" && replacementBodyAPI(body) == "PutCounter")) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
 				Name:             effectName,
+				Remembered:       remembered,
+				ForgetOnMoved:    forgetOn,
+				ExileOnMoved:     exileOn,
+				ChosenNumber:     chosenNumber,
 				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
 			})
 			registered = true
@@ -509,6 +551,20 @@ func replacementLineWith(params map[string]string) string {
 // local, the same shape replacementLineWith takes.
 func replacementLineCantHappen(params map[string]string) bool {
 	return strings.EqualFold(strings.TrimSpace(params["Layer"]), "CantHappen")
+}
+
+// replacementBodyAPI names the API a retained replacement body's head
+// resolves to ("DB$ PutCounter | Defined$ ReplacedCard | ..." ->
+// "PutCounter"), so an effEffect registration gate can admit exactly the
+// body shapes the rules dispatcher handles without hard-coding card names.
+// An unparsable body returns "" (and the gate declines it).
+func replacementBodyAPI(body string) string {
+	head, _, _ := strings.Cut(body, "|")
+	kind, api, ok := strings.Cut(strings.TrimSpace(head), "$")
+	if !ok || strings.TrimSpace(kind) == "" || strings.TrimSpace(api) == "" {
+		return ""
+	}
+	return strings.TrimSpace(api)
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell

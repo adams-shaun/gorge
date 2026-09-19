@@ -344,6 +344,13 @@ type Ctx struct {
 	// Both are bound by the rules package when it builds the context.
 	SVars map[string]string
 	X     int32
+	// ChosenNumber is the Effect's SetChosenNumber$ binding (task
+	// wildgrowth1): the number the Effect resolved at creation, threaded into
+	// a registered replacement's body Ctx by rules' replCtx so the body's
+	// Count$ChosenNumber head (evalCountBody) reads the frozen binding rather
+	// than re-deriving. Zero wherever nothing bound -- the same number a
+	// failed binding degrades to.
+	ChosenNumber int32
 	// Host is the engine driving this resolution, bound by effects.Resolve
 	// itself (it receives the host as its own parameter, so every walk that
 	// can reach a resolution-time filter evaluation has passed through one

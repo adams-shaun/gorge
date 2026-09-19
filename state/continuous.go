@@ -164,6 +164,17 @@ type ContinuousEffect struct {
 	ReplacementEvent  string
 	ReplacementParams map[string]string
 	ReplacementBody   string
+	// ChosenNumber is the Effect's SetChosenNumber$ binding: the number the
+	// Effect resolved when it was created (Torgal's Dog/Wolf count at trigger
+	// time, Wildgrowth Archaic's TriggeredCard$Converge snapshot, Communal
+	// Brewing's ingredient-counter count), read later by the registered
+	// replacement's body through the Count$ChosenNumber head (rules' replCtx
+	// threads it into the body Ctx). Binding ONCE at creation against the
+	// trigger's own context is the point: a live re-read after the entry would
+	// answer a different question. Engine-runtime only, rebuilt by
+	// re-execution on replay like every other continuous-effect field. Zero
+	// means nothing bound (and reads as zero).
+	ChosenNumber int32
 	// RemoveAbilities is a layer-6 ability-removing effect (CR 613.1f/613.4b,
 	// e.g. Humility's RemoveAllAbilities$ True): when an applicable effect
 	// carries it, Derived clears the object's printed (and any earlier-granted)
