@@ -2,14 +2,17 @@ package host
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/seat"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -383,6 +386,60 @@ func TestTableBotPolicyDefaultsAndRejectsUnknown(t *testing.T) {
 	bad.ID, bad.BotPolicy = "bad", "legacy"
 	if err := r.AddTable(bad); err == nil {
 		t.Fatal("legacy policy was accepted for a hosted table")
+	}
+}
+
+func TestBotPolicyMetadataIsCarriedToMatch(t *testing.T) {
+	r, err := New(testOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	cfg := TableConfig{ID: "t1", Seats: 2, Decks: []string{"a", "b"}, Spectator: view.Public, BotPolicy: LethalPressurePolicy}
+	if err := r.AddTable(cfg); err != nil {
+		t.Fatal(err)
+	}
+	r.mu.RLock()
+	tab := r.tables["t1"]
+	r.mu.RUnlock()
+	m, err := r.newMatch(tab, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := m.info().BotPolicy; got != LethalPressurePolicy {
+		t.Fatalf("match policy = %q, want %q", got, LethalPressurePolicy)
+	}
+}
+
+func TestDefaultSeatsConstructTheConfiguredPolicy(t *testing.T) {
+	board := botpolicy.NewBoard(2)
+	board.Life[1] = 10
+	board.Creatures[1] = botpolicy.Creature{Power: 10, Toughness: 1, Controller: 0}
+	board.Creatures[2] = botpolicy.Creature{Power: 1, Toughness: 1, Controller: 1}
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Max: 1,
+		Options: []decision.Option{{Index: 0, Obj: state.ObjID(1), Player: 1}}}
+
+	for _, tc := range []struct {
+		policy string
+		want   []int
+	}{
+		{policy: BotPolicy, want: nil},
+		{policy: LethalPressurePolicy, want: []int{0}},
+	} {
+		t.Run(tc.policy, func(t *testing.T) {
+			seats := defaultSeats(tc.policy, []string{"a", "b"}, 7)
+			bot, ok := seats[0].(seat.BoardSeat)
+			if !ok {
+				t.Fatalf("configured seat %T does not accept public board decisions", seats[0])
+			}
+			in, err := bot.DecideBoard(context.Background(), board, d)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(in.Choices, tc.want) {
+				t.Fatalf("%s chose %v, want %v", tc.policy, in.Choices, tc.want)
+			}
+		})
 	}
 }
 

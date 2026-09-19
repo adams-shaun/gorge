@@ -157,6 +157,7 @@ type MatchStart struct {
 	Seats     []SeatInfo `json:"seats"`
 	Seed      uint64     `json:"seed"`
 	Spectator string     `json:"spectator"`
+	BotPolicy string     `json:"bot_policy"`
 }
 
 // Snapshot is the whole view at Head plus the turn-start seqs so far — the
@@ -228,16 +229,17 @@ type ErrorBody struct {
 
 // MatchInfo is one row of a table's match list, from its sidecar.
 type MatchInfo struct {
-	Table  string     `json:"table"`
-	Match  int        `json:"match"`
-	Seed   uint64     `json:"seed"`
-	Seats  []SeatInfo `json:"seats"`
-	State  string     `json:"state"`
-	Result string     `json:"result,omitempty"`
-	Winner *uint8     `json:"winner"`
-	Head   string     `json:"head,omitempty"`
-	Events int        `json:"events"`
-	Turns  int32      `json:"turns"`
+	Table     string     `json:"table"`
+	Match     int        `json:"match"`
+	Seed      uint64     `json:"seed"`
+	Seats     []SeatInfo `json:"seats"`
+	State     string     `json:"state"`
+	Result    string     `json:"result,omitempty"`
+	Winner    *uint8     `json:"winner"`
+	Head      string     `json:"head,omitempty"`
+	Events    int        `json:"events"`
+	Turns     int32      `json:"turns"`
+	BotPolicy string     `json:"bot_policy"`
 }
 
 // Subscribe and Unsubscribe are the POST bodies.
