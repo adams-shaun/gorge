@@ -739,3 +739,80 @@ func TestCastWeightInstantSpeedOffTurnHold(t *testing.T) {
 		t.Fatalf("non-instant at threshold 1 = option %d, want 0 — the same threshold does not hold a card the term does not reach", got)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// L1c: the within-turn mana-efficiency feature (C11, SetValue).
+
+// TestCastWeightSetValuePrefersTheFollowUp is the brief's headline case: four
+// mana and a hand of one 3-drop plus two 2-drops. Greedy best-first alone ties
+// them on index (the default picks the 3-drop at option 0); with SetValue set,
+// a 2-drop's score carries the second 2-drop it leaves affordable, so a 2-drop
+// is cast first. Equal-power creatures keep every card's base castScore equal,
+// so the flip is attributable to the feature alone.
+func TestCastWeightSetValuePrefersTheFollowUp(t *testing.T) {
+	cards := map[state.ObjID]Card{
+		1: {Creature: true, Power: 2, CMC: 3, Castable: true},
+		2: {Creature: true, Power: 2, CMC: 2, Castable: true},
+		3: {Creature: true, Power: 2, CMC: 2, Castable: true},
+	}
+	opts := []decision.Option{castCreature(0, 1), castCreature(1, 2), castCreature(2, 3)}
+	b := Board{IsMain: true, Pool: state.Mana{state.MC: 4}, Cards: cards}
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: opts}
+	if got := b.chooseCast(d); got != 0 {
+		t.Fatalf("default pick = option %d, want the index tie (0) — the 3-drop", got)
+	}
+	if got := withTuned(b, func(w *CastWeights) { w.SetValue = 8 }).chooseCast(d); got != 1 {
+		t.Fatalf("SetValue=8 pick = option %d, want 1 — a 2-drop leaves the second 2-drop affordable (4 mana), the 3-drop leaves nothing", got)
+	}
+}
+
+// TestCastWeightSetValueZeroIsUnchanged pins the brief's other half: with
+// SetValue explicitly 0 the pick is identical to the pre-L1c rule on every
+// mirrored cast case — the same equivalence the DefaultCastWeights table
+// asserts, restated for this field so a future change cannot make the feature
+// evaluate at weight 0.
+func TestCastWeightSetValueZeroIsUnchanged(t *testing.T) {
+	for _, tc := range castWeightsCases() {
+		w := DefaultCastWeights
+		w.SetValue = 0
+		tc.b.Cast = w
+		d := &decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: tc.opts}
+		if got := tc.b.chooseCast(d); got != legacyChooseCast(tc.b, d) {
+			t.Fatalf("%s: chooseCast with SetValue=0 = option %d, want the pre-L1c rule's pick", tc.name, got)
+		}
+	}
+}
+
+// TestCastWeightSetValueSubsetCapDeterministic pins the brief's bounded-search
+// requirement: with more candidates than the exhaustive cap (>10) the greedy
+// fallback is used, and the answer is a pure function of the board — repeated
+// picks on the same board are identical, so no map iteration order reaches it.
+// The candidates differ in cost and score so a non-deterministic search would
+// vary across the repetitions.
+func TestCastWeightSetValueSubsetCapDeterministic(t *testing.T) {
+	cards := map[state.ObjID]Card{}
+	opts := make([]decision.Option, 0, 13)
+	for i := 0; i < 13; i++ {
+		id := state.ObjID(i + 1)
+		cards[id] = Card{Creature: true, Power: int32(i%3) + 1, CMC: int32(i%5) + 1, Castable: true}
+		opts = append(opts, castCreature(i, id))
+	}
+	b := Board{IsMain: true, Pool: state.Mana{state.MC: 20}, Cards: cards}
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: opts}
+	tuned := withTuned(b, func(w *CastWeights) { w.SetValue = 8 })
+	first := tuned.chooseCast(d)
+	if first < 0 {
+		t.Fatalf("SetValue=8 with 13 candidates picked nothing (option %d)", first)
+	}
+	for i := 0; i < 50; i++ {
+		if got := tuned.chooseCast(d); got != first {
+			t.Fatalf("SetValue=8 pick varied across identical boards: got %d, want %d", got, first)
+		}
+	}
+	// The cap must actually be reached for this board (13 options -> 12
+	// "other" candidates, over the 10-card exhaustive limit) so the greedy
+	// fallback is the path exercised above.
+	if n := len(tuned.castEntries(d, false)); n != 13 {
+		t.Fatalf("candidate table has %d entries, want 13", n)
+	}
+}

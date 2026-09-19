@@ -2,6 +2,7 @@ package botpolicy
 
 import (
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -352,6 +353,28 @@ type CastWeights struct {
 	// main phase while a creature cast (which earns no such term) stays
 	// above the threshold and is still made.
 	InstantSpeedOffTurnHold int32
+
+	// SetValue is the L1c within-turn mana-efficiency feature (C11): it
+	// prices the FOLLOW-UP a cast leaves behind. For each offered cast
+	// option o the scorer computes the best total castScore obtainable this
+	// turn by casting o first and then a best affordable subset of the
+	// OTHER offered cast options with the mana that would remain (the
+	// seat's producible mana minus o's cast cost, priced with the same
+	// producibleMana/castCost helpers the other features read), and adds
+	// SetValue*(that total)/8 to o's score. A positive weight therefore
+	// prefers the cast that leaves the best continuation — two 2-drops over
+	// one 3-drop on four mana — where the greedy best-first rule alone is
+	// blind to it. The subset search is bounded and deterministic: the
+	// candidate cards are deduped by object id and sorted by object id, up
+	// to setSubsetMaxCards are searched exhaustively (2^10 = 1024 subsets)
+	// and beyond that cap a greedy-by-score pass (ties on object id) picks
+	// the follow-ups, so no map iteration order can reach the choice. The
+	// total is an int32 sum of the same castScore values the main loop
+	// ranks with.
+	//
+	// Weight 0 in the default profile: the feature is not even evaluated,
+	// so every default pick is byte-identical to the pre-L1c arithmetic.
+	SetValue int32
 }
 
 // DefaultCastWeights is the pre-refactor arithmetic, weight for weight:
@@ -581,6 +604,15 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		}
 	}
 	ctx := b.castContextFor(d)
+	// C11's candidate table: every cast option that survives C8, deduped by
+	// object id (a card offered under several cast modes counts once, at
+	// its best castScore) and sorted by object id. Built ONCE per decision
+	// so the subset search below is independent of option order; only read
+	// when SetValue is non-zero, so the default profile pays nothing.
+	var entries []castEntry
+	if w.SetValue != 0 {
+		entries = b.castEntries(d, foreignSpell)
+	}
 	for _, o := range d.Options {
 		if o.Kind != "cast" {
 			continue
@@ -626,6 +658,17 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		s += w.OppCreatures * ctx.oppCreatures
 		s += w.OwnCreatures * ctx.ownCreatures
 		s += w.LifeDelta * ctx.lifeDelta
+		// C11 (SetValue): the follow-up this cast leaves. Total castScore of
+		// casting o first, then a best affordable subset of the other
+		// offered casts with the mana remaining. Weight 0 skips it entirely,
+		// so the default arithmetic is unchanged (pinned by the equivalence
+		// table); the total is divided by 8 before scaling so a learned
+		// weight reads on the same scale as the other features.
+		if w.SetValue != 0 {
+			eff := b.setEfficiency(entries,
+				castEntry{obj: o.Obj, cost: cost, score: b.castScore(o)}, ctx.producible-cost)
+			s += w.SetValue * eff / 8
+		}
 		// C10's interaction features: the card's class conjuncted with the
 		// same decision-level context, fixed evaluation order.
 		card := b.Cards[o.Obj]
@@ -817,6 +860,109 @@ func (b Board) castCost(id state.ObjID, c Card) int32 {
 		cost += 2 * cmdr.Casts
 	}
 	return cost
+}
+
+// castEntry is one card's contribution to the C11 subset search: its object
+// id (the deterministic sort key and the exclusion key), its cast cost and
+// its castScore.
+type castEntry struct {
+	obj   state.ObjID
+	cost  int32
+	score int32
+}
+
+// setSubsetMaxCards bounds C11's exhaustive subset search: up to this many
+// candidate cards are searched over every subset (2^10 = 1024 masks); a larger
+// board falls back to the deterministic greedy-by-score pass.
+const setSubsetMaxCards = 10
+
+// castEntries builds C11's candidate table: every cast option that survives
+// C8 (a counter with no foreign spell is never cast; foreignSpell is the same
+// census chooseCast computed), deduped by object id so a card offered under
+// several cast modes counts once at its best castScore, and sorted by object
+// id. The map is only an accumulator -- the returned slice is sorted, so no
+// map iteration order reaches a score.
+func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry {
+	byObj := make(map[state.ObjID]castEntry)
+	for _, o := range d.Options {
+		if o.Kind != "cast" {
+			continue
+		}
+		if b.Cards[o.Obj].Counter && !foreignSpell {
+			continue
+		}
+		e := byObj[o.Obj]
+		e.obj = o.Obj
+		e.cost = b.castCost(o.Obj, b.Cards[o.Obj])
+		if sc := b.castScore(o); sc > e.score {
+			e.score = sc
+		}
+		byObj[o.Obj] = e
+	}
+	out := make([]castEntry, 0, len(byObj))
+	for _, e := range byObj {
+		out = append(out, e)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].obj < out[j].obj })
+	return out
+}
+
+// setEfficiency computes C11's follow-up value: the best total castScore
+// obtainable by casting first and then an affordable subset of the other
+// entries within budget (the seat's producible mana minus first's cast cost).
+//
+// Bounded and deterministic by construction. Candidates are the entries
+// whose object id is not first's and whose cost fits the budget alone, taken
+// in the (object-id-sorted) order castEntries produced. Up to
+// setSubsetMaxCards of them are searched exhaustively over every subset
+// (cost must stay within budget; the score is summed only from subsets that
+// fit); a larger set falls back to a greedy-by-score sweep, ties on object
+// id, taking each affordable card at most once. Every fold is over a slice
+// in a fixed order, so no map iteration order can reach the result.
+func (b Board) setEfficiency(entries []castEntry, first castEntry, budget int32) int32 {
+	if budget < 0 {
+		budget = 0
+	}
+	others := make([]castEntry, 0, len(entries))
+	for _, e := range entries {
+		if e.obj == first.obj || e.cost > budget {
+			continue
+		}
+		others = append(others, e)
+	}
+	best := int32(0)
+	if len(others) > setSubsetMaxCards {
+		// Beyond the cap: greedy by score (ties on object id), each card
+		// taken once if the running spend still fits the budget.
+		sort.Slice(others, func(i, j int) bool {
+			if others[i].score != others[j].score {
+				return others[i].score > others[j].score
+			}
+			return others[i].obj < others[j].obj
+		})
+		var spent int32
+		for _, e := range others {
+			if spent+e.cost <= budget {
+				spent += e.cost
+				best += e.score
+			}
+		}
+	} else {
+		masks := 1 << uint(len(others))
+		for mask := 0; mask < masks; mask++ {
+			var cost, score int32
+			for i := range others {
+				if mask&(1<<uint(i)) != 0 {
+					cost += others[i].cost
+					score += others[i].score
+				}
+			}
+			if cost <= budget && score > best {
+				best = score
+			}
+		}
+	}
+	return first.score + best
 }
 
 // chooseLand is the KPriority land-drop ranking: it picks ONE of the
