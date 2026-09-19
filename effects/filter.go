@@ -296,41 +296,41 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 	return false
 }
 
-// sharesTypeArg splits the space-bearing two-token predicate
-// "sharesCardTypeWith <X>" and classifies its referent. The referent is a
-// resolution-time object list: the remembered set (RememberedCard — its
-// first card entry, Braids's "a permanent that shares a card type with
-// it" — Remembered, RememberedLKI), the triggering card
-// (TriggeredCard/TriggeredCardLKICopy), the resolution's targets (Targeted),
-// or the source itself (Self). A referent with no live binding — and any
-// other <X>, including a nested predicate — is unrecognised: the token
-// stays unknown and the spec fails closed, never widened.
-func sharesTypeArg(p string) (string, bool) {
-	name, arg, has := strings.Cut(p, " ")
-	if !has || name != "sharesCardTypeWith" {
-		return "", false
+// sharesTypeArg splits the space-bearing two-token predicates
+// "sharesCardTypeWith <X>" and "sharesCreatureTypeWith <X>" and classifies
+// their shared referent. The referent is a resolution-time object list: the
+// remembered set (RememberedCard — its first card entry, Braids's "a
+// permanent that shares a card type with it" — Remembered, RememberedLKI),
+// the triggering card (TriggeredCard/TriggeredCardLKICopy, Heirloom
+// Blade's "a creature card that shares a creature type with it"), the
+// resolution's targets (Targeted), or the source itself (Self). The
+// predicate NAME is returned alongside the referent so the dispatch can
+// tell the CARD-type and CREATURE-type readings apart. A referent with no
+// live binding — and any other <X>, including a nested predicate — is
+// unrecognised: the token stays unknown and the spec fails closed, never
+// widened.
+func sharesTypeArg(p string) (name, arg string, ok bool) {
+	name, arg, ok = strings.Cut(p, " ")
+	if !ok || (name != "sharesCardTypeWith" && name != "sharesCreatureTypeWith") {
+		return "", "", false
 	}
 	arg = strings.TrimSpace(arg)
 	if arg == "" || strings.ContainsAny(arg, ".+,!") {
-		return "", false
+		return "", "", false
 	}
 	switch arg {
 	case "RememberedCard", "Remembered", "RememberedLKI", "TriggeredCard",
 		"TriggeredCardLKICopy", "Targeted", "Self":
-		return arg, true
+		return name, arg, true
 	}
-	return "", false
+	return "", "", false
 }
 
-// sharesCardTypeWith reports whether o shares at least one CARD type with
-// any object the referent names (Forge Card.sharesCardTypeWith: an
-// intersection over the card types — Artifact, Creature, Enchantment, Land,
-// Planeswalker, Battle — not supertypes or subtypes). The referent object
-// is read live from the game, so a remembered card in the graveyard still
-// answers from its own face (CR 603.10's LKI reading applies to
-// power/toughness/counters, not types). An unbound referent matches
-// nothing — fail closed, never widened.
-func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+// sharesTypeReferents resolves the SHARED referent switch of the
+// sharesCardTypeWith/sharesCreatureTypeWith family into the live objects it
+// names (empty = an unbound referent; both callers fail closed on that), so
+// the two readings can never disagree about which objects <X> names.
+func sharesTypeReferents(sc SpecContext, ref string) []state.Target {
 	var ts []state.Target
 	switch ref {
 	case "RememberedCard":
@@ -357,7 +357,19 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 			ts = append(ts, state.Target{Obj: sc.Source})
 		}
 	}
-	for _, t := range ts {
+	return ts
+}
+
+// sharesCardTypeWith reports whether o shares at least one CARD type with
+// any object the referent names (Forge Card.sharesCardTypeWith: an
+// intersection over the card types — Artifact, Creature, Enchantment, Land,
+// Planeswalker, Battle — not supertypes or subtypes). The referent object
+// is read live from the game, so a remembered card in the graveyard still
+// answers from its own face (CR 603.10's LKI reading applies to
+// power/toughness/counters, not types). An unbound referent matches
+// nothing — fail closed, never widened.
+func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	for _, t := range sharesTypeReferents(sc, ref) {
 		if t.IsPlayer {
 			continue
 		}
@@ -367,6 +379,36 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 		}
 		for _, cardType := range []string{"Artifact", "Battle", "Creature", "Enchantment", "Land", "Planeswalker"} {
 			if hasType(o, cardType) && hasType(r, cardType) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// sharesCreatureTypeWith reports whether o shares at least one CREATURE
+// subtype with any object the referent names (Forge
+// Card.sharesCreatureTypeWith: an intersection over the creature subtypes —
+// Heirloom Blade's "a creature card that shares a creature type with it").
+// The candidate's subtypes are read context-aware (hasTypeCtx: layer grants
+// and Changeling reach it); the referent's own subtypes are read from its
+// live face exactly like sharesCardTypeWith's card-type read (hasType,
+// which handles Changeling on the referent's side too). An unbound referent
+// matches nothing — fail closed, never widened.
+func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	for _, t := range sharesTypeReferents(sc, ref) {
+		if t.IsPlayer {
+			continue
+		}
+		r := g.Obj(t.Obj)
+		if r == nil || r.Face() == nil {
+			continue
+		}
+		for _, word := range r.Face().Types {
+			if !CreatureTypeWords(word) {
+				continue
+			}
+			if hasTypeCtx(o, word, sc) && hasType(r, word) {
 				return true
 			}
 		}
@@ -551,6 +593,9 @@ const (
 	// resolution-time referent (RememberedCard, TriggeredCard, ...) the
 	// SpecContext resolves.
 	wordSharesCardType
+	// The creature-subtype twin "sharesCreatureTypeWith <X>": same referent
+	// switch, the intersection is over creature subtypes (Heirloom Blade).
+	wordSharesCreatureType
 	// The two-token space form "EnchantedBy <Type>.<qual>": the candidate
 	// bears an attached permanent of the named type whose qualifier holds
 	// against that attached object (Daybreak Coronet's "creature with
@@ -698,7 +743,10 @@ func wordPredicate(p string) (wordKind, string) {
 	if arg, ok := attachedToArg(p); ok {
 		return wordAttachedTo, arg
 	}
-	if arg, ok := sharesTypeArg(p); ok {
+	if name, arg, ok := sharesTypeArg(p); ok {
+		if name == "sharesCreatureTypeWith" {
+			return wordSharesCreatureType, arg
+		}
 		return wordSharesCardType, arg
 	}
 	// The two-token space form "EnchantedBy <Type>.<qual>" (the whole token
@@ -749,6 +797,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	switch kind {
 	case wordSharesCardType:
 		return sharesCardTypeWith(g, o, sc, key)
+	case wordSharesCreatureType:
+		return sharesCreatureTypeWith(g, o, sc, key)
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
 	case wordType:
