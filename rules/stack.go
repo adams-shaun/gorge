@@ -1371,7 +1371,12 @@ func (e *Engine) resolveTop() {
 		// lookup two lines above already gets this right by reading from
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
-			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id]}
+			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id],
+			// The resolving stack-object wrapper: ValidStack's otherAbility
+			// exclusion (Ulalek's sub-copy) anchors here, not on Source --
+			// Source is the source permanent (Ruling T20-b), which is not on
+			// the stack and would exclude nothing.
+			ResolvingObj: id}
 		// The SA whose targeting the placement ask actually offered, not
 		// blindly the resolving SA: for a non-modal ability that is the outer
 		// SA's own ValidTgts$ (pushTrigger's askTarget), for a modal one it is
@@ -1524,7 +1529,8 @@ func (e *Engine) resolveTop() {
 	e.emit(events.Event{Kind: events.Resolve, Obj: id, Text: f.Name})
 	if sa != nil {
 		e.damaging = id
-		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets}
+		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets,
+			ResolvingObj: id}
 		// Same marker as the ability branch: the cast-flow target ask
 		// (targetAsk's targetSA) offered exactly this spell's targeting.
 		if targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != "" {

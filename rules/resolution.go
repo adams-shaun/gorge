@@ -632,7 +632,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets,
 		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
-		ChoiceTarget: rp.target}
+		ChoiceTarget: rp.target,
+		// The resolving stack-object wrapper, same anchor resolveTop's
+		// branches set: a SUSPENDED-then-resumed ability (Ulalek's pay ask is
+		// exactly such a suspension) keeps the ValidStack otherAbility
+		// exclusion pointed at its own wrapper on re-entry. The replacement
+		// arm below may rebind ctx.Source to the replacement's host;
+		// ResolvingObj stays rp.obj -- the wrapper whose resolution this
+		// frame is.
+		ResolvingObj: rp.obj}
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo -- the same binding resolveTop's spell and
 	// ability branches now carry. A spell whose resolution suspends on a

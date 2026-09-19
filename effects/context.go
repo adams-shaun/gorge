@@ -774,9 +774,31 @@ func PlayerOf(h Host, c *Ctx, t state.Target) state.PlayerID {
 //     (ExiledWithSource needs exile provenance it does not track) matches no
 //     card, so the name set is empty and the token admits nothing -- the
 //     fail-closed direction, never widened.
+//   - "otherAbility" (Ulalek, Fused Atrocity's
+//     `Ability.YouCtrl+otherAbility`): the object is not the ability
+//     currently RESOLVING, nor any other instance or copy of that same
+//     printed ability. The anchor is Ctx.ResolvingObj -- the stack-object
+//     wrapper rules knows as e.resolvingObj / rp.obj -- NOT Ctx.Source,
+//     which for an ability resolution is the source PERMANENT (Ruling
+//     T20-b) and is not on the stack, so a Source-anchored exclusion would
+//     exclude nothing and Ulalek's trigger would copy itself (each copy
+//     asking its pay question again -- an unbounded regress). The family
+//     half (same Source permanent AND same Ability pointer -- StackCopy
+//     preserves both, and every mint of one printed trigger shares the
+//     parsed slice's pointer) is the loop guard's second half, needed the
+//     moment MORE THAN ONE instance of the trigger can be on the stack at
+//     once: a paid Ulalek trigger's copy is itself an ability wrapper, the
+//     copy asks the same {C}{C} question on resolution, and a
+//     deterministic host answers it the same way every time -- the walk
+//     never terminates. Oracle text would copy other instances and let
+//     each copy's controller decline; this build's hosts cannot express a
+//     decline (the recorded stand-in, see the abcopy3 row). A context with
+//     ResolvingObj zero (a hand-built one, or a resolution path that never
+//     set it) falls back to the Ctx.Source id alone -- never widened.
 type validStackToken struct {
 	kt             state.StackKindToken
 	other          bool
+	otherAbility   bool
 	sharesNameWith string
 }
 
@@ -800,8 +822,23 @@ func validStackTokens(spec string) []validStackToken {
 				tok.sharesNameWith = strings.TrimSpace(inner)
 				continue
 			}
-			if q == "Other" {
-				tok.other = true
+			// A `+`-compound qualifier (Ulalek's `YouCtrl+otherAbility`) is
+			// one dot-split token; its halves are conjunctive. State's own
+			// qualifier switch ignores the compound entirely, so the
+			// controller half is recovered here onto tok.kt -- the token
+			// validStackAdmits re-reads through state.StackKindAdmits. The
+			// plain forms keep their exact state-side reading either way.
+			for _, sub := range strings.Split(q, "+") {
+				switch strings.TrimSpace(sub) {
+				case "YouCtrl":
+					tok.kt.YouCtrl = true
+				case "OppCtrl":
+					tok.kt.OppCtrl = true
+				case "Other":
+					tok.other = true
+				case "otherAbility":
+					tok.otherAbility = true
+				}
 			}
 		}
 		toks = append(toks, tok)
@@ -816,8 +853,11 @@ func validStackTokens(spec string) []validStackToken {
 // it names, at resolution time, in stack order (the stack zone's arena
 // order -- the same enumeration the target census uses). Kind membership and
 // controller qualifiers go through state.StackKindAdmits, so this arm cannot
-// drift from what target legality offers; Other and sharesNameWith are the
-// ValidStack-only qualifiers validStackToken carries.
+// drift from what target legality offers; Other, otherAbility and
+// sharesNameWith are the ValidStack-only qualifiers validStackToken carries.
+// The otherAbility exclusion anchors on the RESOLVING WRAPPER
+// (Ctx.ResolvingObj, falling back to Ctx.Source when zero) and its whole
+// printed-ability family -- see validStackToken's doc.
 func validStackTargets(g *state.Game, spec string, c *Ctx) []state.Target {
 	toks := validStackTokens(spec)
 	// One name set per distinct sharesNameWith inner spec, built before any
@@ -848,13 +888,25 @@ func validStackTargets(g *state.Game, spec string, c *Ctx) []state.Target {
 		}
 		nameSets[tok.sharesNameWith] = names
 	}
+	anchorID := c.ResolvingObj
+	if anchorID == 0 {
+		anchorID = c.Source // a hand-built context degrades to the same shape, never widened
+	}
+	// The anchor's family identity: same source permanent AND same Ability
+	// pointer (the resolving wrapper's own mint). Nil when the anchor is a
+	// spell resolution (a card object has no Ability -- the exclusion then
+	// degrades to the plain id test below) or the anchor object is gone.
+	var anchor *state.Object
+	if anchorID != 0 {
+		anchor = g.Obj(anchorID)
+	}
 	var out []state.Target
 	for _, oid := range g.Zone(state.ZStack, 0) {
 		o := g.Obj(oid)
 		if o == nil {
 			continue
 		}
-		if !validStackAdmits(toks, state.StackKindOf(g, o), o, o.Controller, c.Controller, c.Source, nameSets) {
+		if !validStackAdmits(toks, state.StackKindOf(g, o), o, o.Controller, c.Controller, c.Source, anchor, anchorID, nameSets) {
 			continue
 		}
 		out = append(out, state.Target{Obj: oid})
@@ -867,13 +919,25 @@ func validStackTargets(g *state.Game, spec string, c *Ctx) []state.Target {
 // kind/controller half is state.StackKindAdmits on that one token, and the
 // ValidStack-only qualifiers narrow it further.
 func validStackAdmits(toks []validStackToken, k state.StackObjKind, o *state.Object,
-	controller, you state.PlayerID, source state.ObjID, nameSets map[string]map[string]bool) bool {
+	controller, you state.PlayerID, source state.ObjID, anchor *state.Object, anchorID state.ObjID,
+	nameSets map[string]map[string]bool) bool {
 	for _, tok := range toks {
 		if !state.StackKindAdmits([]state.StackKindToken{tok.kt}, k, o, controller, you) {
 			continue
 		}
 		if tok.other && o.ID == source {
 			continue
+		}
+		if tok.otherAbility {
+			// Same printed ability as the resolving one: the resolving wrapper
+			// itself, every other instance of it, and every copy of either.
+			if anchor != nil && anchor.Ability != nil &&
+				o.Ability == anchor.Ability && o.Source == anchor.Source {
+				continue
+			}
+			if o.ID == anchorID {
+				continue
+			}
 		}
 		if tok.sharesNameWith != "" {
 			f := o.Face()

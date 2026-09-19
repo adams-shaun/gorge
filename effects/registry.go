@@ -340,6 +340,19 @@ type Ctx struct {
 	// directly so a SubAbility$ chained after it can read it. The
 	// Sacrificed$<Property> heads in count.go read it.
 	Sacrificed []state.SacrificedInfo
+	// ResolvingObj is the stack-object WRAPPER of the spell/ability currently
+	// resolving -- rules' e.resolvingObj (resolveTop's ability and spell
+	// branches) and rp.obj (resumeResolution) -- set at those two ctx
+	// construction sites. For an ability resolution Ctx.Source is the source
+	// PERMANENT (Ruling T20-b: Defined$ Self must resolve to something with a
+	// face), so a ValidStack qualifier that means "not the ability resolving
+	// right now" (Ulalek's `Ability.YouCtrl+otherAbility`) cannot anchor on
+	// Source: the permanent is not on the stack and excludes nothing. This
+	// field is resolution-scratch like Targets/SVars -- never event-encoded,
+	// a replay re-derives the same binding -- and zero on contexts built off
+	// the resolution path (hand-built test probes), where ValidStack's
+	// otherAbility falls back to Ctx.Source. Never widened.
+	ResolvingObj state.ObjID
 	// SVars is the resolving card's SVar table, and X the value paid for {X}.
 	// Both are bound by the rules package when it builds the context.
 	SVars map[string]string
