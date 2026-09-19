@@ -5,6 +5,7 @@ import (
 
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -193,5 +194,44 @@ func TestFirstAttackReplaysExactly(t *testing.T) {
 	}
 	if !reflect.DeepEqual(e.G, clone.G) {
 		t.Fatal("clone game state diverged across the FirstAttack resolution")
+	}
+}
+
+// TestFirstAttackLoopContinuesPastANonFirstMatch pins the ValidCard match
+// loop's restructure: a non-first matching attacker must NOT veto the event --
+// a later matching attacker whose own count is 1 still fires. Corpus-unreachable
+// today (all four carriers use ValidCard$ Creature.Self, so the source is the
+// only possible match), so pinned synthetically on a non-Self spec via
+// ParseBytes (no fixture file on disk).
+func TestFirstAttackLoopContinuesPastANonFirstMatch(t *testing.T) {
+	c, ds := cards.ParseBytes("first_attack_observer.txt", []byte(
+		"Name:FirstAttackObserver\nManaCost:2 W\nTypes:Creature Angel\nPT:4/4\nOracle:x\n"+
+			"T:Mode$ Attacks | ValidCard$ Creature | TriggerZones$ Battlefield | Execute$ TrigUntap | FirstAttack$ True | TriggerDescription$ Whenever a creature attacks for the first time each turn, untap all creatures you control.\n"+
+			"SVar:TrigUntap:DB$ UntapAll | ValidCards$ Creature.YouCtrl\n"))
+	if len(ds) != 0 {
+		t.Fatalf("parse observer: %v", ds)
+	}
+	if ds = c.Link(); len(ds) != 0 {
+		t.Fatalf("link observer: %v", ds)
+	}
+	e := combatEngine(t)
+	src := onBoardCard(t, e, 0, c)
+	_ = src // the trigger's source is never an attacker in this fixture
+	bear1 := onBoardReady(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	bear2 := onBoardReady(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+
+	// bear1's first attack fires.
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0, IDs: []state.ObjID{bear1}})
+	if len(e.pendingTriggers) == 0 {
+		t.Fatal("first attack did not queue the trigger")
+	}
+	e.putTriggersOnStack()
+	e.resolveTop()
+
+	// A fresh event naming the now-twice-attacked bear1 FIRST: its gate
+	// failure must continue the loop, not veto bear2's first attack.
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0, IDs: []state.ObjID{bear1, bear2}})
+	if len(e.pendingTriggers) == 0 {
+		t.Fatal("a non-first matching attacker vetoed the event; a later first-time attacker must still fire")
 	}
 }

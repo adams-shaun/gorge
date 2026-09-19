@@ -1740,8 +1740,8 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	ctrl := e.controllerOf(source)
 	for _, id := range ev.IDs {
-		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, ctrl)) {
-			return e.firstAttackOK(t, id)
+		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, ctrl)) && e.firstAttackOK(t, id) {
+			return true
 		}
 	}
 	return false
