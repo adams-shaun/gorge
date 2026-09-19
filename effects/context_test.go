@@ -624,4 +624,32 @@ func TestKnownDefinedTargetsRecognisesBareValidBattlefieldForm(t *testing.T) {
 	if got, ok := knownDefinedTargets(h, c, "ValidGraveyard Creature"); !ok || len(got) != 0 {
 		t.Fatalf("ValidGraveyard Creature -> %v (ok=%v), want ok=true over the empty graveyard", got, ok)
 	}
+
+	// Forge's " & " joins independent selectors as a UNION, so a compound
+	// "Valid Creature & Player" must be split -- NOT captured whole by the
+	// bare-Valid branch, which would hand battlefieldValidTargets the mangled
+	// filter "Creature & Player" and match nothing. definedSpec runs BEFORE
+	// knownDefinedTargets' own " & " split, so the guard lives in definedSpec.
+	// kitsune_palliator.txt:5 is the corpus carrier
+	// (AB$ PreventDamage | Defined$ Valid Creature & Player).
+	got, ok = knownDefinedTargets(h, c, "Valid Creature & Player")
+	if !ok {
+		t.Fatal("compound Defined$ Valid & selector was not classified as known")
+	}
+	// board(t) seats three battlefield creatures and two players: the union
+	// is 3 objects + 2 players = 5, the pre-regression reading.
+	if len(got) != 5 {
+		t.Fatalf("Valid Creature & Player -> %v, want the 3 creatures + 2 players union", got)
+	}
+	var objs, players int
+	for _, tt := range got {
+		if tt.IsPlayer {
+			players++
+		} else {
+			objs++
+		}
+	}
+	if objs != 3 || players != 2 {
+		t.Fatalf("compound split -> %d objects / %d players, want 3/2", objs, players)
+	}
 }

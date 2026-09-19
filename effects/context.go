@@ -566,7 +566,17 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// unresolvable fetch list, so omitting it makes every such copy/search
 	// mint nothing. The sweep is the shared battlefieldValidTargets helper
 	// Defined's own bare-Valid branch calls, so the two cannot drift.
-	if spec == "Valid" || strings.HasPrefix(spec, "Valid ") {
+	//
+	// The `!strings.Contains(spec, " & ")` guard is load-bearing: a compound
+	// "Valid Creature & Player" must NOT be captured whole here. Forge's " & "
+	// joins independent selectors (a union, not an intersection), and
+	// knownDefinedTargets splits on " & " only AFTER definedSpec returns
+	// ok=false -- so matching the compound here hands the whole string to
+	// battlefieldValidTargets as the mangled filter "Creature & Player",
+	// which matches nothing, replacing a correct union with an empty set.
+	// With the guard, the compound falls through to that split and each part
+	// ("Valid Creature", "Player") is resolved on its own.
+	if !strings.Contains(spec, " & ") && (spec == "Valid" || strings.HasPrefix(spec, "Valid ")) {
 		return battlefieldValidTargets(h, c, strings.TrimSpace(strings.TrimPrefix(spec, "Valid"))), true
 	}
 	// Any Defined$ form this build does not model falls back to the chosen
