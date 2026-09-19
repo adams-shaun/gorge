@@ -288,7 +288,7 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 // wire format allows, not only today's. Every access into d.Options remains
 // guarded against the list being empty.
 func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
-	return decide(b, d, r, false)
+	return decide(b, d, r, true)
 }
 
 // LethalPressureDecide is the measured opt-in policy used by botbench. It is
