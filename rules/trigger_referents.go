@@ -109,8 +109,15 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	// particular, an ETB trigger may remain on the stack after its permanent
 	// dies, at which point Move has correctly cleared the object's live X.
 	// Keep the event's card value with the rest of the trigger provenance.
+	// CR 107.4f's converge colour count rides the same capture: a SpellCast
+	// trigger's card carries the pay-time CastInfo stamp (rules/cast.go's
+	// payCast) at fire time, and a spell countered before the trigger resolves
+	// has had the stack->graveyard move clear it -- the snapshot is what lets
+	// evalRefProperty's Converge property answer with the colours actually
+	// spent, regardless of the spell's fate.
 	if card := e.G.Obj(c.TriggerCard); card != nil {
 		c.TriggerPaidX = card.X
+		c.TriggerConverge = card.ConvergeColours
 	}
 	return c
 }

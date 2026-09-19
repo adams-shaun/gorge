@@ -51,6 +51,16 @@ type TriggerContext struct {
 	// resolves. Zero is both a valid paid value and the value for a triggering
 	// card with no paid X.
 	TriggerPaidX int32
+	// TriggerConverge snapshots the CR 107.4f converge colour count of
+	// TriggerCard's cast when this trigger matched (rules/trigger_referents'
+	// capture beside TriggerPaidX, read by evalRefProperty's Converge
+	// property). The same trigger-time binding rule applies: the colours were
+	// spent when the spell was cast, so a spell countered between trigger push
+	// and resolution must not read 0 -- its stack->graveyard move clears the
+	// live Object.ConvergeColours, while this snapshot survives to resolution.
+	// Zero is both a valid count and the value for a triggering card whose
+	// cast carried none.
+	TriggerConverge int32
 }
 
 // TriggeredCardController is the one resolver for "that card's controller"
