@@ -62,28 +62,39 @@ func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, 
 // card is no longer in the granted zone, so re-deriving from the zone would
 // wrongly drop it.
 func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) bool {
-	ok, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
+	ok, _, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
 	return ok
 }
 
 // payManaForSpent is payManaFor with the payment's actually-spent mana
 // returned: the per-colour delta the negative ManaAdd events record (zero on
-// a failed payment). The RememberCostMana$ payment site (Jeweled Amulet) is
-// the caller that needs it — every existing caller keeps the bool-only
-// wrapper, so no other payment site changes shape.
-func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana) {
+// a failed payment). TWO deltas come back: `spentPlain` is the split the
+// payment emits (restricted batches already carved off by
+// emitRestrictedManaSpend, the delta RememberCostMana$ notes today) and
+// `spentAll` is the FULL pool delta copied before that split -- the true
+// "all mana spent to pay this cost", which converge (CR 107.4f-family)
+// counts from via payManaCastSpent. The RememberCostMana$ payment site
+// (Jeweled Amulet) keeps its existing split-based note; every other caller
+// keeps the bool-only payManaFor wrapper, so no other payment site changes
+// shape.
+func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana) {
 	before := e.manaAvailableFor(p, id, ability)
 	beforeSnow := e.G.Players[p].Snow
 	pay, ok := cost.resolveManaWith(before, beforeSnow, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 	if !ok {
-		return false, state.Mana{}
+		return false, state.Mana{}, state.Mana{}
 	}
 	after, afterSnow, lifeSpent := pay.pool, pay.snow, pay.lifeSpent
 	spent := state.Mana{}
 	for i := range before {
 		spent[i] = before[i] - after[i]
 	}
+	// Converge counts ALL mana spent, restricted batches included -- Boseiju's
+	// {C} is not a colour, but a Tazri-restricted coloured unit IS the colour
+	// it was paid as -- so copy the full delta before emitRestrictedManaSpend
+	// carves the restricted batches out of `spent`.
+	spentAll := spent
 	e.emitRestrictedManaSpend(p, id, ability, &spent)
 	for i, letter := range manaLetters {
 		if spent[i] == 0 {
@@ -109,7 +120,24 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	if lifeSpent != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
-	return true, spent
+	return true, spentAll, spent
+}
+
+// payManaCastSpent is the spell-cost payment (the shared payManaFor core
+// with the cast's recorded may-play ignore-colour rider, CR 401.5's "spend
+// mana as though it were mana of any color to cast it") returning the FULL
+// spent delta: the pre-restriction-split per-colour pool delta converge
+// counts from (task converge1). The spell arm's only ask stages have all
+// completed by payment, so the delta rides pendingCast plain data to the
+// pay-time CastInfo exactly like replicateTimes does. The rider was proved
+// by the offer gate while the card still sat in the granted zone; the
+// payment keeps it via pc.mayPlayIgnore because after the push (CR 601.2a)
+// the card is on the stack and a zone re-derivation would wrongly drop the
+// grant.
+func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana) {
+	ok, spentAll, _ := e.payManaForSpent(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
+		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	return ok, spentAll
 }
 
 // payExtortPip charges the {W/B} hybrid pip (one mana of either W or B)
@@ -127,17 +155,6 @@ func (e *Engine) payExtortPip(p state.PlayerID) bool {
 		}
 	}
 	return false
-}
-
-// payManaCast is the spell-cost payment: the shared payManaFor core with the
-// cast's recorded may-play ignore-colour rider (CR 401.5's "spend mana as
-// though it were mana of any color to cast it"). The rider was proved by the
-// offer gate while the card still sat in the granted zone; the payment keeps
-// it via pc.mayPlayIgnore because after the push (CR 601.2a) the card is on
-// the stack and a zone re-derivation would wrongly drop the grant.
-func (e *Engine) payManaCast(pc *pendingCast, cost Cost) bool {
-	return e.payManaFor(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
-		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // manaAvailableFor removes every restricted batch from the visible pool, then
@@ -261,6 +278,25 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, abil
 	if src != 0 {
 		srcID = src
 	}
+	// The bare wasCastFromYourHand qualifier (castprov3, Mm'menon's
+	// RestrictValid$ Spell.!wasCastFromYourHand — "spend this mana only to
+	// cast a spell from anywhere other than your hand"): split the
+	// provenance out before the filter match, through the pending-cast
+	// variant — the offer-side affordability walk (castable → costPayable)
+	// evaluates this read PRE-push, where the object has no cast in the log
+	// and the negated spelling would wrongly hold, offering a hand cast as
+	// payable on mana the payment then refuses. Off the stack the spec
+	// denies (this function's own fail-closed convention: restricted mana is
+	// never spent illegally — here it is never even counted); at the payment
+	// the spell is on the stack and the read is honest. The term's spec is
+	// BASE-LESS here (the "Spell." class was already cut off) and the strip
+	// helpers rejoin onto a base, so evaluate the Card.-prefixed form; a
+	// surviving alternative whose only predicate was the provenance token
+	// rejoins to bare "Card", which MatchesSpecFrom matches like any card.
+	spec, ok = e.castProvenanceAdmitsPending("Card."+spec, id, p)
+	if !ok {
+		return false
+	}
 	if effects.MatchesSpecFrom(e.G, spec, id, p, srcID) {
 		return true
 	}
@@ -344,6 +380,11 @@ func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool,
 // max >= 1 and max >= min. A discarded parameter and a clamped one both
 // resolve to the same number when used alone, but they differ the moment
 // TargetMin$ is also present -- this says which one the engine means.
+//
+// This is the LITERAL reader only. The dynamic forms the corpus writes as
+// TargetMax$ X / TargetMin$ X (with SVar:X:Count$...) resolve through
+// resolvedTargetBounds below; a token that is not a literal is silently
+// dropped here, which is today's (and the unresolvable-fallback's) semantics.
 func targetBounds(sa *cards.SA) (int, int) {
 	min, max := 1, 1
 	if v, ok := sa.Params["TargetMin"]; ok {
@@ -368,9 +409,128 @@ func targetBounds(sa *cards.SA) (int, int) {
 	return min, max
 }
 
-// targetMin is the Min half of targetBounds, inlined for resolveTop's N2 gate.
-func targetMin(sa *cards.SA) int {
-	min, _ := targetBounds(sa)
+// isLiteralBound reports whether a raw TargetMin$/TargetMax$ token is a
+// plain signed integer.
+func isLiteralBound(v string) bool {
+	_, err := strconv.Atoi(strings.TrimSpace(v))
+	return err == nil
+}
+
+// targetBoundsDynamic reports whether either bound token is present and not
+// a literal -- the only shape resolvedTargetBounds does extra work for, so a
+// literal-only script never leaves the byte-identical fast path. (The two
+// reads are spelled out rather than looped over the keys so the paramcensus
+// rot guard sees two static Params keys.)
+func targetBoundsDynamic(sa *cards.SA) bool {
+	if v, ok := sa.Params["TargetMin"]; ok && !isLiteralBound(v) {
+		return true
+	}
+	if v, ok := sa.Params["TargetMax"]; ok && !isLiteralBound(v) {
+		return true
+	}
+	return false
+}
+
+// targetBoundCtx binds the effects numeric grammar to the asking player and
+// the target declaration's source. The anchor follows what source IS: for a
+// spell the stack object IS the card, so its face carries the SVar table
+// (Kiora's Dismissal's SVar:X); for an ability or trigger wrapper
+// (o.Card == nil, so Face() returns nil) the anchor is o.Source -- the
+// source permanent every TriggerPush/AbilityPush stamps -- and ITS face's
+// SVar table. No anchor (the object gone, or a sourceless wrapper) fails
+// closed to the literal reader.
+func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.Ctx, bool) {
+	o := e.G.Obj(source)
+	if o == nil {
+		return nil, false
+	}
+	ctx := &effects.Ctx{Controller: p}
+	// The pending cast's own multikicker count (rules/cast.go's multikickAsk):
+	// at the CR 601.2c announcement ask the pay-time CastInfo has not run
+	// yet, so a TimesKicked bound (Comet Storm's TargetMin/Max$ TargetsNum)
+	// would read 0 off the stack object. When the asking source IS the card
+	// the pending cast is casting, seed the count the ask just settled --
+	// exactly the `x` resolvedTargetBounds threads for a Count$xPaid bound.
+	if pc := e.cast; pc != nil && pc.card == source && pc.multikickSet {
+		ctx.TimesKicked = pc.multikickTimes
+	}
+	if f := o.Face(); f != nil {
+		ctx.Source = source
+		effects.SetSVars(ctx, f.SVars)
+		return ctx, true
+	}
+	src := e.G.Obj(o.Source)
+	if src == nil {
+		return nil, false
+	}
+	if f := src.Face(); f == nil {
+		return nil, false
+	}
+	ctx.Source = o.Source
+	effects.SetSVars(ctx, src.Face().SVars)
+	return ctx, true
+}
+
+// resolvedTargetBounds is targetBounds extended to the dynamic bounds the
+// corpus writes as TargetMax$ X / TargetMin$ X with an SVar body (212 raw
+// TargetMax$ X lines / 209 files, 102 TargetMin$ X lines / 100 files -- the
+// dominant shape is TargetMin$ 0 + TargetMax$ X, "return any number up to
+// X"). A bound token that is a plain literal keeps targetBounds' reading
+// byte-for-byte; a token that is PRESENT and not a literal resolves through
+// the effects numeric grammar (NumResolved: an SVar name, an inline
+// Count$/... expression, or the bare X bound to ctx.X), bound to the asking
+// player and the source anchor targetBoundCtx builds. A present token the
+// grammar cannot resolve (TargetMax$ Y, the MaxTgts family, a named SVar the
+// face does not define) keeps today's semantics -- the parameter is dropped
+// to the default 1 -- because Num's degrade-to-zero contract is correct for
+// an effect amount ("the card did nothing") but wrong for a mandatory
+// target MINIMUM (a TargetMin$ X degrading to 0 would let a mandatory spell
+// resolve untargeted). x is the cast's settled {X} (pc.x at the CR 601.2c
+// announcement ask, where the announce has already run) so a
+// SVar:X:Count$xPaid bound reads the paid value; at a placement ask no X
+// applies (a trigger was never paid an X) and 0 is correct there -- an
+// xPaid body still finds the cast's value on the source permanent via
+// count.go's provenance fallback. The clamp contract is targetBounds',
+// applied AFTER resolution: min >= 0, max >= 1, max >= min.
+func (e *Engine) resolvedTargetBounds(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) (int, int) {
+	min, max := targetBounds(sa)
+	if !targetBoundsDynamic(sa) {
+		return min, max
+	}
+	ctx, ok := e.targetBoundCtx(p, source)
+	if !ok {
+		return min, max
+	}
+	ctx.X = x
+	if v, ok := sa.Params["TargetMin"]; ok && !isLiteralBound(v) {
+		if n, resolved := effects.NumResolved(e, ctx, sa, "TargetMin", 1); resolved {
+			min = int(n)
+		}
+	}
+	if v, ok := sa.Params["TargetMax"]; ok && !isLiteralBound(v) {
+		if n, resolved := effects.NumResolved(e, ctx, sa, "TargetMax", 1); resolved {
+			max = int(n)
+		}
+	}
+	if min < 0 {
+		min = 1
+	}
+	if max < 1 {
+		max = 1
+	}
+	if max < min {
+		max = min
+	}
+	return min, max
+}
+
+// resolvedTargetMin is the Min half of resolvedTargetBounds, for resolveTop's
+// N2 gate -- an ability or spell that MAY target zero things (a resolved
+// TargetMin$ 0) and has none recorded resolves untargeted rather than
+// fizzling. An unresolvable dynamic Min keeps the literal reader's default 1,
+// so the N2 exemption never opens for a bound this build cannot price.
+func (e *Engine) resolvedTargetMin(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) int {
+	min, _ := e.resolvedTargetBounds(p, source, sa, x)
 	return min
 }
 
@@ -662,7 +822,23 @@ func (e *Engine) affectedCandidates(p state.PlayerID, source, excludeSelf state.
 
 func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA, targeting bool) []targetCandidate {
 	spec := sa.Params["ValidTgts"]
-	sc := e.targetSpecContext(source, excludeSelf, p)
+	// The spec-relative source (Self/Other/CARDNAME/sameName predicates read
+	// it) is the SOURCE PERMANENT when the ask belongs to a minted ability
+	// object -- the same object resolution-time recheck (legalTargets) already
+	// judges its specs against (rules/stack.go passes o.Source there), so the
+	// offer and the recheck cannot disagree (Critical C2's one-definition
+	// rule). The Face-less wrapper itself is never a creature/permanent, so
+	// a spec like Flamerush Rider's `Creature.attacking+Other` judged the
+	// wrapper id meant "every creature but nobody in particular" and offered
+	// the ability's own source as its own copy target. excludeSelf stays the
+	// object the CR 115.5 self-targeting rule keys on (the stack object, for
+	// an ability -- an ability CAN legally target its own Source permanent),
+	// and the trigger-context lookup stays keyed on the stack id.
+	specSrc := source
+	if o := e.G.Obj(source); o != nil && o.Face() == nil && o.Ability != nil && o.Source != 0 {
+		specSrc = o.Source
+	}
+	sc := e.targetSpecContext(specSrc, excludeSelf, p)
 	zones := targetZones(sa)
 	var out []targetCandidate
 	// Players are offered only alongside the default battlefield search and
@@ -727,12 +903,15 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 				o := e.G.Obj(oid)
 				// CR 702.16c withholds a permanent protected from the
 				// targeting source's qualities; a CantTarget restriction
-				// (Vines of Vastwood) withholds one from the spoke player.
-				// Both function only on the battlefield (CR 604.3), the same
+				// (Vines of Vastwood) withholds one from the spoke player;
+				// CR 702.14 shroud withholds one from EVERY targeting spell
+				// or ability, its controller's included.
+				// All function only on the battlefield (CR 604.3), the same
 				// gate as protection above. CR 115.5 excludes the source.
 				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) &&
 					effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, z), oid, sc) &&
 					(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
+					(!targeting || !(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(oid))) &&
 					(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
 				}
@@ -851,11 +1030,46 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 	return out
 }
 
+// askCrossModeCharmTargets poses the cross-mode TargetUnique family's ONE
+// combined target ask: Min == Max == the number of chosen target-bearing
+// modes, over the shared candidate pool of the modes' common ValidTgts$ spec,
+// with every option's Group naming its player — Decision.Validate's
+// mutual-exclusion rule (and botpolicy clamp's group discipline) enforce
+// "each mode must target a different player" on the wire, so an intent that
+// reuses a player is not merely wrong but impossible to submit. The answer
+// records onto the stack object in choice order, which is the chosen-mode
+// order, so the per-mode attribution is positional and replay-safe without
+// any new event kind or field. Returns false (nothing asked) when the legal
+// candidates are fewer than the modes that need them — the caller keeps the
+// historical first-mode narrowing, whose own insufficiency handling governs.
+func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, tbms []*cards.SA) bool {
+	k := len(tbms)
+	sub := tbms[0]
+	candidates := e.legalTargetCandidates(p, source, source, sub)
+	if len(candidates) < k {
+		return false
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: k, Max: k,
+		Prompt: fmt.Sprintf("Choose %d targets: one for each mode, each a different player", k),
+		Source: source, TargetEffect: describeTargetEffect(sub)}
+	for _, candidate := range candidates {
+		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player}
+		if candidate.kind == "player" {
+			o.Group = "charm-mode-player-" + strconv.Itoa(int(candidate.player))
+		}
+		d.Options = append(d.Options, o)
+	}
+	e.drainAwaitsTarget = true
+	e.ask(d)
+	return true
+}
+
 // askTarget offers every legal target for a spell or ability. It deliberately
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
-	min, max := targetBounds(sa)
+	min, max := e.resolvedTargetBounds(p, source, sa, 0)
 	candidates := e.legalTargetCandidates(p, source, source, sa)
 	oneEach := strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True")
 	groups := map[state.PlayerID]bool{}
@@ -1073,6 +1287,50 @@ func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Op
 // script from running anyway once every target it had was gone. With only
 // some targets still legal, resolution proceeds against exactly that
 // narrowed set -- CR 608.2b's "resolves, doing as much as possible".
+// offeredTargetSA is the SA whose ValidTgts$ targeting the placement or
+// announcement ask covered for this stack object, derived exactly as the
+// TargetsOffered marker's derivation in resolveTop: the ability SA itself
+// for a non-modal trigger or activated ability (pushTrigger's askTarget),
+// the first target-bearing CHOSEN MODE's sub for a modal one (handleModes'
+// placement branch asks the mode sub and skips the outer ask entirely), and
+// the spell's target declaration (targetAsk's targetSA -- the announced
+// mode's for a modal spell) for a spell. nil when none of those declares
+// targets. Shared by resolveTop's two branches and resumeResolution so the
+// generic ValidTgts$ pre-ask (effects' chosenTargetsFor) skips exactly the
+// covered SA on the first pass AND on every resume re-entry -- an optional
+// trigger's yes re-enters through resumeResolution, where the first pass's
+// bool marker alone is not carried (task mvts1).
+func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
+	if o.Ability != nil {
+		if len(o.ChosenModes) > 0 && strings.TrimSpace(o.Ability.Params["Choices"]) != "" {
+			for _, name := range o.ChosenModes {
+				if sub := cards.ResolveSVar(svars, name); sub != nil &&
+					strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+					return sub
+				}
+			}
+			return nil
+		}
+		if strings.TrimSpace(o.Ability.Params["ValidTgts"]) != "" {
+			return o.Ability
+		}
+		return nil
+	}
+	f := o.Face()
+	if f == nil {
+		return nil
+	}
+	sa := f.SpellAbility()
+	if sa == nil {
+		return nil
+	}
+	targetSA := modalTargetSA(f, sa, o.ChosenModes)
+	if targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != "" {
+		return targetSA
+	}
+	return nil
+}
+
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
@@ -1143,7 +1401,7 @@ func (e *Engine) resolveTop() {
 		// Requirement N2: an ability that MAY target zero things (TargetMin$ 0)
 		// and has none recorded resolves untargeted rather than fizzling --
 		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
-		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(targetMin(o.Ability) == 0 && len(targets) == 0) {
+		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, o.Ability, 0) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, spec, targetZones(o.Ability), o.Controller, o.Source, id)
 			if len(legal) == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
@@ -1201,13 +1459,51 @@ func (e *Engine) resolveTop() {
 		// age/payment resolution needs rules' cost machinery. Mana Vault's
 		// triggered Untap is the one ordinary effect shape authorized to use
 		// that window; unrelated Cost$-bearing trigger effects retain their
-		// established executor semantics.
+		// established executor semantics. ImmediateTrigger joins Untap: its AB
+		// shape is Forge's "you may pay <Cost$>. When you do, ..." idiom (Speed,
+		// Young Avenger's TrigImmediateTrig -- the only repo-deck carrier), so
+		// the ordinary triggered-cost window poses the pay/decline ask before
+		// the body runs; a decline leaves the body unexecuted exactly as CR
+		// 603.5's "when you do" promises. The DB shape's optional payment stays
+		// the UnlessCost$ gate's (effects.unlessProceed); a plain Cost$ on a DB
+		// ImmediateTrigger remains the established free-executor semantics.
 		if o.Ability.API == "CumulativeUpkeep" {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
 		}
+		// Echo (kw:Echo, CR 702.35a) is the same keyword-expansion shape: an
+		// ordinary Phase trigger whose DB$ Echo body needs rules' payment
+		// window and the pay-or-sacrifice election (rules/echo.go). The
+		// intervening-if was already applied at trigger time (triggerMatches's
+		// Echo$ branch), so everything reaching here is owed.
+		if o.Ability.API == "Echo" {
+			e.startEcho(id, o.Source, o.Ability)
+			return
+		}
 		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
-			o.Ability.API == "Untap" && o.Ability.Params["Cost"] != "" {
+			(o.Ability.API == "Untap" || o.Ability.API == "ImmediateTrigger") &&
+			o.Ability.Params["Cost"] != "" {
+			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
+			return
+		}
+		// The ability-cast copy family (abcopy1): an AB$ CopySpellAbility
+		// execute carrying a real Cost$ (Rings of Brighthearth {2}, Kurkesh
+		// {R}, Battlemages' Bracers {1}, Chandra's Regulator {1}) must never
+		// copy for free. When the firing trigger's context carries an event
+		// role -- the activation role TriggerAbility, or the spell arm's
+		// TriggerCard (a SpellCast fires on PutOnStack, whose Obj IS the spell;
+		// no ability wrapper is minted) -- route the same pay/decline window
+		// the Untap/ImmediateTrigger shapes use: a decline leaves the trigger
+		// unexecuted, a pay charges the cost and then runs the copy. An
+		// unpriceable cost (Verrak's PayLife<X>, Mica's Sac<1/Artifact>) poses
+		// the ask but offers no answerable "pay" -- the ParseUnlessCost
+		// hard-decline convention. A context-less synthetic push (no role)
+		// keeps the free-executor semantics.
+		tc := e.triggerContexts[id]
+		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
+			o.Ability.API == "CopySpellAbility" &&
+			o.Ability.Params["Cost"] != "" &&
+			(tc.TriggerAbility != 0 || tc.TriggerCard != 0) {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}
@@ -1237,7 +1533,28 @@ func (e *Engine) resolveTop() {
 		// lookup two lines above already gets this right by reading from
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
-			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id]}
+			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id],
+			// The resolving stack-object wrapper: ValidStack's otherAbility
+			// exclusion (Ulalek's sub-copy) anchors here, not on Source --
+			// Source is the source permanent (Ruling T20-b), which is not on
+			// the stack and would exclude nothing.
+			ResolvingObj: id}
+		// The SA whose targeting the placement ask actually offered, not
+		// blindly the resolving SA: for a non-modal ability that is the outer
+		// SA's own ValidTgts$ (pushTrigger's askTarget), for a modal one it is
+		// the first target-bearing CHOSEN MODE's sub -- handleModes' placement
+		// branch asks the mode sub and skips the outer ask entirely (a Charm's
+		// ValidTgts$ lives inside its modes, Kami of Restless Shadows'
+		// RaiseScoundrel). Deriving the marker from the outer SA alone left
+		// the modal shape unmarked, so a Min-0 mode target the chooser elected
+		// ZERO of was re-posed by effChangeZone's mid-resolution ask at
+		// resolution -- the exact duplicate-ask defect the marker exists to
+		// stop.
+		offeredSA := offeredTargetSA(o, svars)
+		if offeredSA != nil {
+			ctx.TargetsOffered = true
+			ctx.OfferedSA = offeredSA
+		}
 		if lki, ok := e.triggerLKI[id]; ok {
 			ctx.LKI = lki.object
 			ctx.LKIPower, ctx.LKIToughness, ctx.LKIPTValid =
@@ -1305,7 +1622,22 @@ func (e *Engine) resolveTop() {
 
 	f := o.Face()
 	sa := f.SpellAbility()
+	// Bestow (CR 702.114a): a cast paid for with the bestow cost resolves
+	// as the synthesized Aura attach spell -- the creature face itself has
+	// no SP -- so the whole ordinary Aura tail below runs unchanged:
+	// effAttach emits events.Attach while the spell is still on the stack,
+	// and moveResolvedOffStack enters the permanent attached (the entry
+	// keeps an Attach set on the stack). The flag is the pay-time CastInfo
+	// provenance modeFlags("bestowed") rode.
+	if o.CastFlags&state.FlagBestowed != 0 {
+		sa = bestowedAttachSA()
+	}
 	targets := o.Targets
+	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered
+	// (the modal declaration for a Charm, the SpellAbility itself otherwise);
+	// hoisted so the resolution ctx can carry the TargetsOffered marker and
+	// the mvts1 pre-ask's OfferedSA skip.
+	targetSA := modalTargetSA(f, sa, o.ChosenModes)
 	// An overloaded spell affects the matching set as it resolves, never as
 	// targets chosen during announcement. This fresh non-target census means
 	// protection/hexproof do not apply and objects entering or changing
@@ -1314,7 +1646,6 @@ func (e *Engine) resolveTop() {
 	// different.
 	overloaded := o.CastFlags&state.FlagOverloaded != 0
 	if overloaded && sa != nil {
-		targetSA := modalTargetSA(f, sa, o.ChosenModes)
 		if targetSA != nil {
 			for _, cand := range e.affectedCandidates(o.Controller, id, id, targetSA) {
 				if cand.kind == "player" {
@@ -1329,8 +1660,7 @@ func (e *Engine) resolveTop() {
 		// A modal spell's target declaration lives on its announced mode SVar,
 		// not the outer Charm SA. Use the same selected declaration targetAsk
 		// used during CR 601.2c, so its targets receive the ordinary CR 608.2b
-		// legality recheck at resolution.
-		targetSA := modalTargetSA(f, sa, o.ChosenModes)
+		// legality recheck at resolution. (targetSA is hoisted above.)
 		// Fix round 2 (re-review N1), the same correction as the ability
 		// branch above, and the one that was actually reachable. Widening the
 		// departed-player release hook in fix round 1 turned a stall into a
@@ -1345,7 +1675,7 @@ func (e *Engine) resolveTop() {
 		// permits it to resolve.
 		// Requirement N2, the same exemption as the ability branch: an
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
-		if spec := targetSA.Params["ValidTgts"]; spec != "" && !(targetMin(targetSA) == 0 && len(targets) == 0) {
+		if spec := targetSA.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, targetSA, 0) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, spec, targetZones(targetSA), o.Controller, id, id)
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does
@@ -1371,7 +1701,14 @@ func (e *Engine) resolveTop() {
 	e.emit(events.Event{Kind: events.Resolve, Obj: id, Text: f.Name})
 	if sa != nil {
 		e.damaging = id
-		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets}
+		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets,
+			ResolvingObj: id}
+		// Same marker as the ability branch: the cast-flow target ask
+		// (targetAsk's targetSA) offered exactly this spell's targeting.
+		if targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != "" {
+			ctx.TargetsOffered = true
+			ctx.OfferedSA = targetSA
+		}
 		// CR 107.3i: X is the value the caster chose for the mana cost's {X},
 		// recorded on the stack object by commitCast's CastInfo (the same
 		// value the ETB/replacement path already reads as o.X). Without this
@@ -1412,7 +1749,8 @@ func (e *Engine) resolveTop() {
 // resolution replacement (CR 702.27a), not a replacement for being
 // countered, so only this resolved-spell helper may return it to hand.
 func spellRestZone(o *state.Object) state.Zone {
-	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy) {
+	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 ||
+		o.IsCopy || o.CastFlags&state.FlagAdventure != 0) {
 		return state.ZExile
 	}
 	if o != nil && o.CastFlags&state.FlagBuyback != 0 {
@@ -1518,7 +1856,15 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 	// The resolution recheck, unlike a target offer, has this stack object's
 	// Targets available. Targeted* predicates may read precisely this binding;
 	// setting it here keeps their self-reference unavailable at announcement.
-	sc := e.targetSpecContext(0, self, you)
+	// The source rides in too, the same object askTarget's own offer filter
+	// sees (candidatesFor's sc.Source): a source-reading predicate
+	// (CanEnchantEquippedBy -- Mantle of the Ancients' recheck) judges the
+	// chosen target at resolution exactly as the offer judged it at
+	// placement, Critical C2's one-definition rule. Before this, the recheck
+	// built its SpecContext with source 0 and every source-reading predicate
+	// failed closed there -- a target the placement offer had just certified
+	// fizzled at resolution.
+	sc := e.targetSpecContext(source, self, you)
 	sc.ResolutionTargets = targets
 	sc.Resolving = true
 	for _, t := range targets {
@@ -1547,9 +1893,15 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 		// through protectionSource so an ability fizzling here judges "the
 		// source" as its Source permanent, the same object askTarget's own
 		// filter has now been made to see (Critical C2 -- one definition).
+		// CR 702.14 rides the same recheck: a target that GAINED shroud
+		// between placement and resolution (Lightning Greaves equipping in
+		// response) is dropped here, and a target with no other legal target
+		// left fizzles the whole spell/ability through the existing fizzle
+		// machinery upstream of this recheck.
 		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) &&
 			effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, o.Zone), t.Obj, sc) &&
 			!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
+			!(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(t.Obj)) &&
 			!e.protectedFrom(t.Obj, e.protectionSource(source)) {
 			legal = append(legal, t)
 		}
@@ -1597,6 +1949,12 @@ func zoneIn(z state.Zone, zones []state.Zone) bool {
 func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 	targets []state.Target, sa *cards.SA, svars map[string]string) {
 	ctx := &effects.Ctx{Source: source, Controller: controller, Targets: targets}
+	// The caller supplies the chosen targets -- the announcement or placement
+	// ask's answer -- so the generic ValidTgts$ pre-ask must not re-pose it
+	// for an SA that declares targets (task mvts1).
+	if sa != nil && strings.TrimSpace(sa.Params["ValidTgts"]) != "" {
+		ctx.TargetsOffered = true
+	}
 	effects.SetSVars(ctx, svars)
 	effects.Resolve(e, ctx, sa)
 }
@@ -1659,7 +2017,18 @@ func (e *Engine) emitTap(obj state.ObjID, tapper state.PlayerID, entering bool) 
 // LegalTargets satisfies effects.Host for target-changing effects. It exposes
 // the same census used by cast and trigger target decisions, so a redirect
 // cannot bypass protection, CantTarget, stack-kind, zone, or filter legality.
+//
+// The census runs with the RESOLVING stack object as both source and
+// excludeSelf whenever one exists -- exactly the placement ask's own call
+// (pushTrigger -> askTarget passes the stack object id): CR 115.5 withholds
+// the ability on the stack from targeting itself, never its source permanent,
+// so a trigger whose source is a legal target may target it (Kor Outfitter's
+// Attach sub attaches to Kor Outfitter). A direct, off-stack resolution (no
+// resolving object) keeps the caller's source.
 func (e *Engine) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
+	if e.resolvingObj != 0 {
+		source = e.resolvingObj
+	}
 	cs := e.legalTargetCandidates(chooser, source, source, sa)
 	out := make([]state.Target, 0, len(cs))
 	for _, c := range cs {
@@ -1700,8 +2069,29 @@ func (e *Engine) CastThisTurn() int {
 // carries a You* qualifier the count scopes to YOU's casts; otherwise it
 // counts everyone's. Derived from the event log like CastThisTurn.
 func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int {
+	return len(e.spellsCastThisTurnMatching(you, spec, 0))
+}
+
+// SpellsCastThisTurnMatchingExcluding is SpellsCastThisTurnMatching with one
+// object's own cast excluded -- the bare !CastSaSource qualifier's engine
+// reading (the count's "other than the spell being cast" device; effects
+// stripBareCastSaSource strips the token and routes here with the ctx
+// source). Derived from the event log like CastThisTurn.
+func (e *Engine) SpellsCastThisTurnMatchingExcluding(you state.PlayerID, spec string, exclude state.ObjID) int {
+	return len(e.spellsCastThisTurnMatching(you, spec, exclude))
+}
+
+// EachSpellCastThisTurnMatching satisfies effects.Host's method of the same
+// name: the matching casts' OBJECT IDS (the ARGUMENTED !CastSaSource$<Prop>
+// aggregate forms' engine side; effects' aggregateCastProperty sums the
+// property over them). Derived from the event log like the count forms.
+func (e *Engine) EachSpellCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID {
+	return e.spellsCastThisTurnMatching(you, spec, exclude)
+}
+
+func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID {
 	youScoped := strings.Contains(spec, "You")
-	n := 0
+	var out []state.ObjID
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
@@ -1710,14 +2100,97 @@ func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int
 		if ev.Kind != events.PutOnStack {
 			continue
 		}
+		if exclude != 0 && ev.Obj == exclude {
+			continue
+		}
 		if youScoped && ev.Player != you {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, spec, ev.Obj, you, ev.Obj) {
-			n++
+		// The bare wasCastFromYourHandByYou qualifier (the 5 end-step "if you
+		// haven't cast a spell from your hand this turn" carriers'
+		// Count$ThisTurnCast_Card.wasCastFromYourHandByYou bodies) is
+		// evaluated per cast event against the log (task castprov1); the
+		// wasCastByYou sibling (task castprov2) rides the same combined read.
+		matchSpec, ok := e.castProvenanceAdmits(spec, ev.Obj, you)
+		if !ok {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, matchSpec, ev.Obj, you, ev.Obj) {
+			out = append(out, ev.Obj)
 		}
 	}
-	return n
+	return out
+}
+
+// WasCastFromHandByYou satisfies effects.Host's WasCastFromHandByYou for the
+// Count$wasCastFromYourHandByYou branch head (the Myojin cycle's etbCounter
+// CheckSVar$ gate) and the Card.wasCastFromYourHandByYou filter predicate:
+// obj's latest PutOnStack event names the cast that put it on the stack —
+// From is the zone the cast came from, Player the caster. Provenance is
+// game-long, so the scan is not bounded by the turn; if the card was later
+// cast again from another zone, the latest cast wins. Derived from the event
+// log like SpellsCastThisTurnMatching, so a replay derives the same answer.
+func (e *Engine) WasCastFromHandByYou(obj state.ObjID, p state.PlayerID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return ev.From == state.ZHand && ev.Player == p
+		}
+	}
+	return false
+}
+
+// WasCastFromHand satisfies effects.Host's WasCastFromHand for the BARE
+// wasCastFromYourHand filter family (task castprov3 — the "from anywhere
+// other than your hand" carriers whose scripts spell the predicate without
+// the ByYou suffix: Vega the Watcher, Bilbo Thief in the Night, Mm'menon's
+// RestrictValid$): obj's latest PutOnStack event names the cast that put it
+// on the stack, and From is the zone that cast came from — ANY caster. Every
+// carrier that needs player scoping supplies it elsewhere (measured over the
+// 46 raw carrier files: ValidActivatingPlayer$ You on the trigger lines,
+// YouCtrl or wasCastByYou in the same Affected$/Count spec). A copy was
+// never cast (the rules-side split, castProvenanceAdmits, applies the same
+// IsCopy guard; this read answers the log question alone); a card never put
+// on the stack (cheated into play) reads false. Derived from the event log
+// like WasCastFromHandByYou, so a replay derives the same answer;
+// latest-cast-wins.
+func (e *Engine) WasCastFromHand(obj state.ObjID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return ev.From == state.ZHand
+		}
+	}
+	return false
+}
+
+// WasCastByYou reports whether card obj was CAST AT ALL by player p — the
+// bare wasCastByYou qualifier's engine read (task castprov2: the "When
+// CARDNAME enters, if you cast it" ETB family — Zacama, Marina Vendrell's
+// Grimoire — and Nine-Lives Familiar's etbCounter gate field): the LATEST
+// PutOnStack event for this object names you as caster, whatever zone the
+// cast came from (a normal hand cast, a flashback, any origin — the oracle's
+// "if you cast it" does not care where from). LATEST-cast, not exists-anywhere:
+// the battlefield entry this gate answers for followed the latest cast, so
+// that cast is the provenance the oracle means; the corner this leaves is
+// you cast it, it left the battlefield again, and an OPPONENT later cast the
+// same object — the gate then reads false even though you did cast it
+// (measured: no corpus carrier exercises the corner; an exists-scan would
+// instead answer true for a card whose latest cast was an opponent's, the
+// wider wrong). Copies were never cast; the rules-side split
+// (castProvenanceAdmits) applies that guard, this read answers the log
+// question alone. Derived from the event log like WasCastFromHandByYou, so
+// a replay derives the same answer; a card never put on the stack (cheated
+// into play) reads false. Shared approximation with the hand read: the scan
+// cannot distinguish a cast from a later un-cast re-entry's provenance.
+func (e *Engine) WasCastByYou(obj state.ObjID, p state.PlayerID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return ev.Player == p
+		}
+	}
+	return false
 }
 
 // LifeLostThisTurn satisfies effects.Host's LifeLostThisTurn for
@@ -1843,16 +2316,16 @@ func targetsPermanents(spec string) bool {
 }
 
 // payUnlessCost charges the non-choice subset of a mid-resolution
-// UnlessCost$ to payer p. Sacrifice and discard components are deliberately
-// refused here: beginUnlessPayment owns every such component and gathers the
-// payer's selected objects before it calls payMana. Keeping this guard makes
-// a future caller unable to silently revive the old first-in-zone-order
-// stand-in. Fixed mana/life, SubCounter and Draw components remain
-// synchronous: a Draw<N/Spec> pays by drawing N cards for the player(s) the
-// spec names (default the payer), resolved through the same Ctx roles the
-// UnlessPayer$ grammar reads.
+// UnlessCost$ to payer p. Sacrifice, discard and reveal components are
+// deliberately refused here: beginUnlessPayment owns every such component
+// and gathers the payer's selected objects before it calls payMana. Keeping
+// this guard makes a future caller unable to silently revive the old
+// first-in-zone-order stand-in. Fixed mana/life, SubCounter and Draw
+// components remain synchronous: a Draw<N/Spec> pays by drawing N cards for
+// the player(s) the spec names (default the payer), resolved through the
+// same Ctx roles the UnlessPayer$ grammar reads.
 func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
-	if len(cost.Sac) != 0 || len(cost.Discard) != 0 {
+	if len(cost.Sac) != 0 || len(cost.Discard) != 0 || len(cost.Reveal) != 0 {
 		return false
 	}
 	if int(p) < 0 || int(p) >= len(e.G.Players) {

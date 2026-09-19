@@ -32,7 +32,8 @@ import (
 // same way by TestBotAdaptersAgreeOverCommanderGame). The fields are
 // deliberately not speculative: a board fact no policy branch reads would
 // be untested surface. Priority reads IsMain, Pool, Cards, Life and
-// Commanders; combat reads Creatures, Life and Commanders.
+// Commanders; combat reads Creatures, Life and Commanders; the cast scorer
+// (cast.go) additionally reads Cast, FirstMain and MyTurn.
 type Board struct {
 	// IsMain reports whether sorcery-speed actions are legal right now.
 	// The seat adapter lifts it off the projected View's Phase
@@ -123,6 +124,29 @@ type Board struct {
 	// state.Game.Stack), pinned on every intent of a whole game by
 	// seat/integration_test.go's parity tests.
 	Stack []StackEntry
+	// Cast is the learned cast profile the cast scorer dots its feature
+	// vector with (cast.go's CastWeights). It is CONFIGURATION, not board
+	// state: the adapters never fill it (BoardFromGameInto's refill contract
+	// leaves it untouched, so a profile set once on a reused Board survives
+	// every refill), and the zero value is treated as DefaultCastWeights --
+	// the pre-refactor arithmetic, byte for byte (cast.go's castWeights).
+	// A Board nobody configured plays the default bot.
+	Cast CastWeights
+	// FirstMain reports whether the current main phase is the FIRST one
+	// (main1, not main2): the Precombat feature's board half. It is filled
+	// exactly like IsMain on both adapter halves -- the projected View's
+	// Phase string ("main1") on the view half, g.Step == state.StepMain1 on
+	// the game half -- so both halves agree on it wherever they agree on
+	// IsMain itself.
+	FirstMain bool
+	// MyTurn reports whether the deciding seat is the ACTIVE player (the
+	// seat whose turn it is): the InstantOnOwnTurn feature's board half. A
+	// main phase can belong to another seat (an opponent holding priority
+	// during the active seat's main phase), so IsMain alone cannot say
+	// "own main phase". Filled from the projected View's Active field on
+	// the view half and g.Active on the game half, the same field both
+	// halves already agree is public.
+	MyTurn bool
 }
 
 // Commander is the Board's per-commander commander-format bookkeeping,
@@ -220,7 +244,8 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //   - KAttackers/KBlockers: the combat heuristic in combat.go's
 //     chooseAttackers/chooseBlockers (AR1-AR6 / BR1-BR4, stated there),
 //     including the per-attacker defender choice (AR6) and the commander
-//     clock (AR5/BR3/BR4). Neither consumes the rng: the choice is a pure
+//     clock (AR5/BR3/BR4). The opt-in LethalPressureDecide variant adds
+//     AR7. Neither consumes the rng: the choice is a pure
 //     function of the offered options and the board facts both adapters
 //     supply.
 //   - KTriggerOrder: a permutation of the offered indices drawn from the
@@ -263,6 +288,17 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 // wire format allows, not only today's. Every access into d.Options remains
 // guarded against the list being empty.
 func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
+	return decide(b, d, r, false)
+}
+
+// LethalPressureDecide is the measured opt-in policy used by botbench. It is
+// identical to Decide except that a combat attack which is lethal if
+// unblocked is made even when the defender can trade for it cheaply.
+func LethalPressureDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
+	return decide(b, d, r, true)
+}
+
+func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure bool) decision.Intent {
 	in := decision.Intent{Seq: d.Seq, Player: d.Player}
 	switch d.Kind {
 	case decision.KPriority:
@@ -344,7 +380,7 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		return clamp(d, in)
 
 	case decision.KAttackers:
-		in.Choices = b.chooseAttackers(d)
+		in.Choices = b.chooseAttackersMode(d, lethalPressure)
 		return clamp(d, in)
 
 	case decision.KBlockers:
@@ -416,11 +452,12 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			} else {
 				in.Choices = []int{d.Options[0].Index}
 			}
-		case "dig", "hand_move", "hidden_pick", "counter_dist":
+		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick":
 			// A Dig look-and-take, a "choose N matching cards from hand"
 			// ChangeZone (handmove1), a Hidden$ True public-origin pick
-			// (hiddenpick1), or a DividedAsYouChoose$ PutCounter distribution
-			// pick (Vastwood Hydra): take the first Max options in offered
+			// (hiddenpick1), a DividedAsYouChoose$ PutCounter distribution
+			// pick (Vastwood Hydra), or a bare-Choices$ PutCounter pick
+			// (Promise of Loyalty's vow): take the first Max options in offered
 			// (zone) order
 			// -- the exact mirror of effDig's / effChangeZoneHand's /
 			// effHiddenPick's / putCounterPickDistribute's no-ask stand-in (R-9),
@@ -451,6 +488,34 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 					in.Choices = []int{o.Index}
 					break
 				}
+			}
+		case "search":
+			// A hidden-library search whose options carry no Group keeps the
+			// first-offer answer it has always taken (Min 0, so one card). An
+			// EACH "EACH Forest & Plains" search (each1) builds one option per
+			// eligible card with the type's ordinal in Group -- at most one per
+			// Group may be selected -- so the answer takes the FIRST option of
+			// each new Group up to Max: one card per listed type, in the
+			// decision's deterministic option order (types in spec order,
+			// library order within a type). A DifferentNames search's
+			// name-Groups get the same shape, which is what the constraint
+			// itself asks for (distinct names, filled to Max). Both are legal
+			// under Decision.Validate by construction; clamp's group skip is
+			// the backstop, never the path.
+			if d.Options[0].Group == "" {
+				in.Choices = []int{d.Options[0].Index}
+				break
+			}
+			groups := make(map[string]bool)
+			for _, o := range d.Options {
+				if len(in.Choices) >= d.Max {
+					break
+				}
+				if o.Group == "" || groups[o.Group] {
+					continue
+				}
+				groups[o.Group] = true
+				in.Choices = append(in.Choices, o.Index)
 			}
 		default: // yes/no (yes is first), name, type, number: the first offer
 			in.Choices = []int{d.Options[0].Index}

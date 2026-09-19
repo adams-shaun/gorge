@@ -155,7 +155,9 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 // activation rechecks discover fresh static membership.
 func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil {
+	if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
+		// CR 708.8: a face-down permanent's printed mana abilities do not
+		// exist while it is face down.
 		return nil
 	}
 	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
@@ -177,7 +179,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		// [0] once per intent, +3 colourless per activation, forever. The
 		// ability offer (rules/legal.go) owns these abilities with the full
 		// CR 606.3 gates (sorcery timing, once per permanent per turn).
-		if isLoyaltyAbility(ma) {
+		if e.isLoyaltyAbility(ma) {
 			continue
 		}
 		// Activation$ (Mox Opal's "Activate only if you control three or more
@@ -247,7 +249,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			considerReflected(ma)
 			continue
 		}
-		if ma.API == "Mana" && !isLoyaltyAbility(ma) && abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
+		if ma.API == "Mana" && !e.isLoyaltyAbility(ma) && abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
 			e.manaActivationGateHolds(p, id, ma) {
 			out = append(out, ma)
 		}
@@ -263,7 +265,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			considerReflected(ga.sa)
 			continue
 		}
-		if ga.sa.API != "Mana" || isLoyaltyAbility(ga.sa) {
+		if ga.sa.API != "Mana" || e.isLoyaltyAbility(ga.sa) {
 			continue
 		}
 		if !abilityZoneOK(ga.sa, o.Zone) || abilityRestricted(ga.sa) || !e.manaAbilityPayable(p, id, ga.sa) ||
@@ -374,6 +376,7 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 	o := e.G.Obj(source)
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose a mana ability of " + o.Face().Name, Source: source}
+	chosen := e.chosenProducedColour(source)
 	for i, ma := range abilities {
 		// An explicit multi-colour "Produced$ Combo <colours>" ability is
 		// flattened into one option per colour (task fb-20260917T232800Z):
@@ -388,7 +391,7 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 		// offers today, so the two cannot disagree. Any / Combo Any / Chosen
 		// keep the single option + stage-2 ask (the choice there is not
 		// enumerable at option-build time).
-		if cols, ok := manaAbilityComboColours(ma); ok {
+		if cols, ok := manaAbilityComboColours(ma, chosen); ok {
 			for _, col := range cols {
 				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
 					Ability: i, Label: "Add " + col})
@@ -396,7 +399,7 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 			continue
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
-			Ability: i, Label: manaAbilityLabel(ma)})
+			Ability: i, Label: manaAbilityLabel(ma, chosen)})
 	}
 	e.manaActivation = &manaActivation{player: p, source: source, abilities: abilities, cast: cast, cumulative: cumulative}
 	e.choosing = chooseMana
@@ -404,7 +407,9 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 }
 
 // manaAbilityLabel renders a mana ability's Produced$ value as the label the
-// stage-1 "choose a mana ability" wheel shows (task fb-e079def5). The raw
+// stage-1 "choose a mana ability" wheel shows (task fb-e079def5), with a
+// recorded "Chosen" token already substituted (the combo-Chosen family), so
+// the wheel shows "Add R", never the raw "Combo R Chosen" jargon. The raw
 // script token ("Combo B R", "Any") is engine jargon a player cannot read,
 // and it defeats the client's mana-pip styling for the whole wheel (the web
 // tints an option list only when EVERY label is a single "Add <C>"), so a
@@ -420,24 +425,27 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 // manaAbilityComboColours reports whether the ability's own Produced$ is an
 // explicit MULTI-colour combo ("Combo B R") and returns the colour list in
 // the ability's own token order -- the same order askManaColor offers, so the
-// flattened stage-1 wheel and the stage-2 ask cannot disagree. Both call
+// flattened stage-1 wheel and the stage-2 ask cannot disagree. A trailing
+// "Chosen" token is first substituted from the recorded as-enters colour
+// (the Thriving-lands/gate family, substituteChosenProduced). Both call
 // sites guard on ma.API == "Mana" before calling (a ManaReflected ability's
 // colours come from what other sources produce, never its own Produced$
 // token), so this helper's Produced$ read is Mana-attributed
 // (apiSpecificRulesSA) rather than joining the generic rules union.
-func manaAbilityComboColours(ma *cards.SA) ([]string, bool) {
+func manaAbilityComboColours(ma *cards.SA, chosen string) ([]string, bool) {
 	if ma == nil || ma.API != "Mana" {
 		return nil, false
 	}
-	cols, ok := effects.ComboColours(strings.TrimSpace(ma.Params["Produced"]))
+	produced := substituteChosenProduced(strings.TrimSpace(ma.Params["Produced"]), chosen)
+	cols, ok := effects.ComboColours(produced)
 	if !ok || len(cols) <= 1 {
 		return nil, false
 	}
 	return cols, true
 }
 
-func manaAbilityLabel(ma *cards.SA) string {
-	produced := strings.TrimSpace(ma.Params["Produced"])
+func manaAbilityLabel(ma *cards.SA, chosen string) string {
+	produced := substituteChosenProduced(strings.TrimSpace(ma.Params["Produced"]), chosen)
 	switch produced {
 	case "Any", "Combo Any":
 		return "Add any color"
@@ -476,7 +484,7 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 	if o == nil || o.Face() == nil {
 		return false
 	}
-	cost := ParseCost(ma.Params["Cost"])
+	cost := e.parseCost(ma.Params["Cost"])
 	pool := e.manaAvailableFor(p, source, true)
 	if hyp != nil {
 		pool = *hyp
@@ -520,6 +528,9 @@ func (e *Engine) manaSacrifices(p state.PlayerID, source state.ObjID, cost Cost)
 	for _, part := range cost.Sac {
 		var candidates []state.ObjID
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if e.SacrificeBlocked(id) {
+				continue
+			}
 			if !reserved[id] && effects.MatchesSpecFrom(e.G, part.Spec, id, p, source) {
 				candidates = append(candidates, id)
 			}
@@ -817,11 +828,45 @@ func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast b
 		if src := e.G.Obj(pt.Source); src != nil && src.Face() != nil {
 			effects.SetSVars(&pt.Ctx, src.Face().SVars)
 		}
+		pt = e.rewriteChosenMana(pt)
 		if e.askTriggeredManaColor(pt, triggers[i+1:], cast) {
 			return
 		}
 		effects.Resolve(e, &pt.Ctx, pt.SA)
 	}
+}
+
+// rewriteChosenMana resolves a triggered Mana sub-ability's Produced$ Chosen
+// (Utopia Sprawl: "Whenever enchanted Forest is tapped for mana, its
+// controller adds an additional one mana of the chosen color"): the colour
+// was already chosen by the triggering source's as-enters ChooseColor choice
+// (state.Object.ChosenColor), so it is a read, not a choice -- the chain is
+// rewritten via withProduced so effMana sees a plain letter, and any later
+// genuinely-choice-valued sub still asks through askTriggeredManaColor. With
+// nothing recorded the chain is returned untouched and effMana keeps its
+// loud fail-closed (never invent a colour). Measured on the corpus, the
+// "Combo <letter> Chosen" family (Thriving Bluff, Citadel Gate) carries its
+// Produced$ on AB$ activations only -- 0 triggered carriers -- so this
+// rewrite keeps the exact-"Chosen" read and does not need the combo
+// substitution (substituteChosenProduced covers it if a trigger ever
+// carries one).
+func (e *Engine) rewriteChosenMana(pt pendingTrigger) pendingTrigger {
+	for sa, d := pt.SA, 0; sa != nil && d < 32; sa, d = sa.Sub, d+1 {
+		if sa.API != "Mana" || strings.TrimSpace(sa.Params["Produced"]) != "Chosen" {
+			continue
+		}
+		o := e.G.Obj(pt.Source)
+		if o == nil {
+			return pt
+		}
+		col := strings.TrimSpace(o.ChosenColor)
+		if len(col) != 1 || !strings.ContainsRune("WUBRG", rune(col[0])) {
+			return pt
+		}
+		pt.SA = withProduced(pt.SA, sa, col)
+		return pt
+	}
+	return pt
 }
 
 // askTriggeredManaColor poses the colour choice for the first colour-choice
@@ -890,6 +935,66 @@ func withProduced(head, target *cards.SA, produced string) *cards.SA {
 	return &cp
 }
 
+// substituteChosenProduced replaces the literal "Chosen" token in a Mana
+// ability's Produced$ value with the recorded as-enters chosen colour
+// (state.Object.ChosenColor): the bare "Chosen" (Quirion Elves) and the
+// "Combo <letter> Chosen" family (Thriving Bluff, Citadel Gate, the five
+// thriving lands and five gates: "Add {R} or one mana of the chosen
+// color"). It is a read, not a choice; with nothing valid recorded the
+// value is returned unchanged and the caller keeps its loud fail-closed
+// handling (never invent a colour). The classifier for the substituted
+// value stays effects.ComboColours -- a pure string classifier shared with
+// the tests and the mana projection, deliberately not taught about state --
+// so the substitution happens here in rules, where ChosenColor is readable,
+// and every caller (resolveManaEffect, manaAbilityComboColours,
+// manaAbilityLabel) sees one consistent value. Measured on the corpus,
+// every Chosen token is the value's LAST token ("Combo Chosen" has no fixed
+// letter), so the rewrite only ever touches the tail.
+func substituteChosenProduced(produced, chosen string) string {
+	if chosen == "" {
+		return produced
+	}
+	trimmed := strings.TrimSpace(produced)
+	if trimmed == "Chosen" {
+		return chosen
+	}
+	toks := strings.Fields(trimmed)
+	if len(toks) >= 2 && toks[0] == "Combo" && toks[len(toks)-1] == "Chosen" {
+		toks[len(toks)-1] = chosen
+		// The recorded colour can equal a fixed letter ("Combo R Chosen" with
+		// R recorded): dedup so the value stays "Combo R" -- a decision nobody
+		// could answer differently resolves directly, and the duplicate
+		// "Combo R R" would otherwise pose a two-option ask over one colour.
+		out := toks[:1]
+		for _, tok := range toks[1:] {
+			seen := false
+			for _, prev := range out {
+				if prev == tok {
+					seen = true
+					break
+				}
+			}
+			if !seen {
+				out = append(out, tok)
+			}
+		}
+		return "Combo " + strings.Join(out[1:], " ")
+	}
+	return produced
+}
+
+// chosenProducedColour reads the recorded as-enters chosen colour for
+// source: a single WUBRG letter, else "" (nothing valid recorded). Shared
+// by the activation-path Produced$ read sites.
+func (e *Engine) chosenProducedColour(source state.ObjID) string {
+	if o := e.G.Obj(source); o != nil {
+		if col := strings.TrimSpace(o.ChosenColor); len(col) == 1 && strings.ContainsRune("WUBRG", rune(col[0])) {
+			return col
+		}
+	}
+	return ""
+}
+
 // resolveManaAbility pays this ability's actual activation cost, then resolves
 // it outside the stack. In particular, Sac and Discard costs are emitted
 // before the mana effect, and no phantom generic mana is charged.
@@ -907,7 +1012,7 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 			e.emit(events.Event{Kind: events.ManaActivate, Player: p, Obj: source, Amount: int32(idx)})
 		}
 	}
-	cost := ParseCost(ma.Params["Cost"])
+	cost := e.parseCost(ma.Params["Cost"])
 	sacs, _ := e.manaSacrifices(p, source, cost)
 	if len(cost.Discard) > 0 || len(cost.Exile) > 0 {
 		e.manaDiscardActivation = &manaDiscardActivation{player: p, source: source,
@@ -941,6 +1046,16 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		return
 	}
 	produced := strings.TrimSpace(ma.Params["Produced"])
+	// A "Chosen" token (Quirion Elves' second activation: "Add one mana of
+	// the chosen color"; the Thriving-lands/gate family: "Add {R} or one mana
+	// of the chosen color") is a READ, not a choice: the colour was already
+	// chosen by the source's as-enters ChooseColor choice
+	// (state.Object.ChosenColor). With nothing recorded the local keeps the
+	// raw value and the fall-through keeps effMana's loud fail-closed (never
+	// invent a colour).
+	if col := e.chosenProducedColour(source); col != "" {
+		produced = substituteChosenProduced(produced, col)
+	}
 	if ma.API == "ManaReflected" {
 		ctx := &effects.Ctx{Source: source, Controller: p,
 			SVars: func() map[string]string {
@@ -1081,9 +1196,9 @@ func (e *Engine) answerManaUnless(chosen []decision.Option) bool {
 	paid := false
 	if len(chosen) == 1 && chosen[0].Index == 0 {
 		if cost, ok := ParseUnlessCost(m.ability.Params["UnlessCost"]); ok {
-			if len(cost.Sac) > 0 || len(cost.Discard) > 0 {
-				// Activated mana stays off stack, but a sacrifice/discard in
-				// its unless cost is still a real payer choice. The payment
+			if len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Reveal) > 0 {
+				// Activated mana stays off stack, but a sacrifice/discard/reveal
+				// in its unless cost is still a real payer choice. The payment
 				// continuation returns through finishManaUnlessPayment.
 				e.beginUnlessPayment(payer, cost, &effects.Ctx{Source: m.source, Controller: m.player}, m.source, nil)
 				return m.cast
@@ -1205,7 +1320,7 @@ func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma
 	// replay chain head). A sacrifice-only KCI activation therefore identifies
 	// its source but is not tap-produced.
 	savedTap, savedProducer := e.manaFromTap, e.manaProducer
-	e.manaFromTap = ParseCost(ma.Params["Cost"]).Tap
+	e.manaFromTap = e.parseCost(ma.Params["Cost"]).Tap
 	e.manaProducer = source
 	e.resolveAbility(source, p, nil, &copy, o.Face().SVars)
 	e.manaFromTap, e.manaProducer = savedTap, savedProducer
@@ -1265,7 +1380,7 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 	idx := chosen[0].Ability
 	if idx >= 0 && idx < len(ma.abilities) {
 		ab := ma.abilities[idx]
-		if _, ok := manaAbilityComboColours(ab); ok {
+		if _, ok := manaAbilityComboColours(ab, e.chosenProducedColour(ma.source)); ok {
 			color := strings.TrimPrefix(chosen[0].Label, "Add ")
 			if len(color) == 1 && strings.Contains("WUBRGC", color) {
 				// abilities entries are chain heads (printed faces list
@@ -1321,4 +1436,14 @@ func (e *Engine) commanderIdentityColours(p state.PlayerID) []string {
 		}
 	}
 	return cols
+}
+
+// CommanderIdentityColourCount is the effects.Host read over
+// commanderIdentityColours: how many colours seat p's commander colour
+// identity names. This is Count$ColorsColorIdentity's backing (War Room's
+// fixed "Pay life equal to the number of colors in your commanders' color
+// identity"); it reads the same genesis bookkeeping the replay rebuilds in
+// Config order, so a replay derives the identical count.
+func (e *Engine) CommanderIdentityColourCount(p state.PlayerID) int {
+	return len(e.commanderIdentityColours(p))
 }

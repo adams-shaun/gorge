@@ -108,6 +108,9 @@ type TableInfo struct {
 	// Format is "constructed", a real value, so an omitted field
 	// would be indistinguishable from it.
 	Format string `json:"format"`
+	// BotPolicy is the effective hosted policy for bot seats and human-seat
+	// caretakers. It is public table configuration, never private game state.
+	BotPolicy string `json:"bot_policy"`
 	// SeatNames names the table's seats in seat order: the deck name each
 	// seat is playing, as MatchStart carries them. Empty when no match
 	// has started on this table yet. It is public information -- the
@@ -154,6 +157,7 @@ type MatchStart struct {
 	Seats     []SeatInfo `json:"seats"`
 	Seed      uint64     `json:"seed"`
 	Spectator string     `json:"spectator"`
+	BotPolicy string     `json:"bot_policy"`
 }
 
 // Snapshot is the whole view at Head plus the turn-start seqs so far — the
@@ -225,16 +229,17 @@ type ErrorBody struct {
 
 // MatchInfo is one row of a table's match list, from its sidecar.
 type MatchInfo struct {
-	Table  string     `json:"table"`
-	Match  int        `json:"match"`
-	Seed   uint64     `json:"seed"`
-	Seats  []SeatInfo `json:"seats"`
-	State  string     `json:"state"`
-	Result string     `json:"result,omitempty"`
-	Winner *uint8     `json:"winner"`
-	Head   string     `json:"head,omitempty"`
-	Events int        `json:"events"`
-	Turns  int32      `json:"turns"`
+	Table     string     `json:"table"`
+	Match     int        `json:"match"`
+	Seed      uint64     `json:"seed"`
+	Seats     []SeatInfo `json:"seats"`
+	State     string     `json:"state"`
+	Result    string     `json:"result,omitempty"`
+	Winner    *uint8     `json:"winner"`
+	Head      string     `json:"head,omitempty"`
+	Events    int        `json:"events"`
+	Turns     int32      `json:"turns"`
+	BotPolicy string     `json:"bot_policy"`
 }
 
 // Subscribe and Unsubscribe are the POST bodies.

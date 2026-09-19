@@ -102,7 +102,11 @@ var knownUnsupported = map[string][]string{
 	// implemented and is pinned in rules/msh_commander_trigger_test.go.
 	"Avengers Quinjet":             {"kw:Crew"},
 	"Captain Marvel, Apex Avenger": {"trig:CounterPlayerAddedAll"},
-	"Speed, Young Avenger":         {"api:ImmediateTrigger"},
+	// Speed, Young Avenger's api:ImmediateTrigger entry was deleted when the
+	// API was registered (effects/immediate.go): the real card test
+	// rules/forum_filibuster_test.go's TestSpeedYoungAvengerImmediateTrigger
+	// pays its AB Cost$ 1 through the triggered-cost window and executes
+	// TrigEffect, which is what licensed the shrink.
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

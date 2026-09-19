@@ -47,7 +47,7 @@ func twoFacedCard(t *testing.T) *cards.Card {
 func TestDealDamageHitsATargetedPlayer(t *testing.T) {
 	h := newHost(t, 2)
 	h.g.Players[1].Life = 20
-	c := &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+	c := &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}
 	Resolve(h, c, sa(t, "SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3"))
 	if h.g.Players[1].Life != 17 {
 		t.Fatalf("life = %d, want 17", h.g.Players[1].Life)
@@ -104,7 +104,7 @@ func TestAddManaDefaultsToColorlessAndAmountOne(t *testing.T) {
 func TestDealDamageClampsNegativeNumDmgToZero(t *testing.T) {
 	h := newHost(t, 2)
 	h.g.Players[1].Life = 20
-	c := &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+	c := &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}
 	Resolve(h, c, sa(t, "SP$ DealDamage | ValidTgts$ Any | NumDmg$ -5"))
 	if h.g.Players[1].Life != 20 {
 		t.Fatalf("life = %d, want unchanged at 20 (negative damage must not heal)", h.g.Players[1].Life)
@@ -132,7 +132,7 @@ func TestPrimitivesAreRegistered(t *testing.T) {
 	sup := Supported()
 	for _, api := range []string{
 		"DealDamage", "DamageAll", "Mana",
-		"Draw", "Discard", "Mill", "Dig", "Reveal", "RevealHand", "PeekAndReveal",
+		"Draw", "Discard", "Mill", "Dig", "DigUntil", "Reveal", "RevealHand", "PeekAndReveal",
 		"RearrangeTopOfLibrary", "Scry", "Surveil", "NameCard", "ChooseType", "ChooseNumber",
 		"ChangeZone", "ChangeZoneAll", "Destroy", "DestroyAll", "Sacrifice",
 		"GainLife", "LoseLife",
@@ -155,7 +155,7 @@ func TestPrimitivesAreRegistered(t *testing.T) {
 func TestDealDamageHitsPlayersAndPermanents(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	c := &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+	c := &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}
 	Resolve(h, c, sa(t, "SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3"))
 	if g.Players[1].Life != 17 {
 		t.Fatalf("life = %d, want 17", g.Players[1].Life)
@@ -725,7 +725,7 @@ func TestPumpRequiresTheBattlefield(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}, TargetsOffered: true},
 		sa(t, "AB$ Pump | ValidTgts$ Creature | NumAtt$ +2 | NumDef$ +1"))
 	if len(h.continuous) != 0 {
 		t.Fatalf("continuous = %+v, want none off the battlefield", h.continuous)
@@ -783,7 +783,7 @@ func TestAnimateRegistersASetContinuousEffectEvenOffTheBattlefield(t *testing.T)
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}, TargetsOffered: true},
 		sa(t, "DB$ Animate | ValidTgts$ Creature | Power$ 4 | Toughness$ 4"))
 	if len(h.continuous) != 1 {
 		t.Fatalf("continuous = %+v, want 1", h.continuous)
@@ -818,7 +818,7 @@ func TestAnimateWithNoPowerOrToughnessOnlyGrantsTypes(t *testing.T) {
 func TestProtectionRequiresTheBattlefield(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Protection | ValidTgts$ Creature | Gains$ red"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}, TargetsOffered: true}, sa(t, "AB$ Protection | ValidTgts$ Creature | Gains$ red"))
 	if len(h.continuous) != 1 {
 		t.Fatalf("continuous = %+v, want one registration", h.continuous)
 	}
@@ -829,7 +829,7 @@ func TestProtectionRequiresTheBattlefield(t *testing.T) {
 	}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
 	h.continuous = nil
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Protection | ValidTgts$ Creature | Gains$ red"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}, TargetsOffered: true}, sa(t, "AB$ Protection | ValidTgts$ Creature | Gains$ red"))
 	if len(h.continuous) != 0 {
 		t.Fatalf("continuous = %+v, want none off the battlefield", h.continuous)
 	}
@@ -1093,7 +1093,7 @@ func TestVoteRecordsANotePerVotingPlayer(t *testing.T) {
 
 func TestBecomeMonarchRecordsTheTargetPlayer(t *testing.T) {
 	h := newHost(t, 2)
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t, "AB$ BecomeMonarch | ValidTgts$ Player"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}, sa(t, "AB$ BecomeMonarch | ValidTgts$ Player"))
 	if len(h.log) != 1 || h.log[0].Kind != events.MonarchChange || h.log[0].Player != 1 || !h.g.IsMonarch(1) {
 		t.Fatalf("log = %+v, monarch = %v/%d", h.log, h.g.HasMonarch, h.g.Monarch)
 	}
@@ -1146,7 +1146,7 @@ func TestMana(t *testing.T) {
 // suffix). Both must be a total no-op: no panic, and the game state
 // afterwards is reflect.DeepEqual to a clone taken beforehand.
 func TestCardflowAPIsGuardOutOfRangePlayerID(t *testing.T) {
-	apis := []string{"Draw", "Discard", "Mill", "Dig",
+	apis := []string{"Draw", "Discard", "Mill", "Dig", "DigUntil",
 		"Reveal", "RevealHand", "PeekAndReveal", "RearrangeTopOfLibrary", "NameCard"}
 
 	run := func(t *testing.T, line string, c *Ctx) {
@@ -1171,7 +1171,7 @@ func TestCardflowAPIsGuardOutOfRangePlayerID(t *testing.T) {
 		api := api
 		t.Run(api+"/target_player_out_of_range", func(t *testing.T) {
 			run(t, "SP$ "+api+" | ValidTgts$ Player", &Ctx{Controller: 0,
-				Targets: []state.Target{{Player: 250, IsPlayer: true}}})
+				Targets: []state.Target{{Player: 250, IsPlayer: true}}, TargetsOffered: true})
 		})
 		t.Run(api+"/controller_out_of_range", func(t *testing.T) {
 			line := "SP$ " + api

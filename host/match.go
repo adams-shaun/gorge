@@ -251,7 +251,7 @@ func (m *match) afterSubmit(before int) {
 func (m *match) info() protocol.MatchInfo {
 	return protocol.MatchInfo{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats,
 		State: m.state, Result: m.result, Winner: m.winner, Head: m.head,
-		Events: len(m.e.L.Events), Turns: m.e.G.Turn}
+		Events: len(m.e.L.Events), Turns: m.e.G.Turn, BotPolicy: m.table.cfg.BotPolicy}
 }
 
 // sidecar is the on-disk summary of the match. Called with m.mu held.
@@ -266,14 +266,18 @@ func (m *match) sidecar() sidecar {
 	return sidecar{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats, Names: m.cfg.Names,
 		PlayerNames: m.cfg.PlayerNames, Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
 		Head: m.head, Events: events, Turns: m.e.G.Turn, Reason: m.reason, Mulligans: m.cfg.Mulligans,
-		Format: Format(m.cfg.Format), StartingLife: m.cfg.StartingLife, Commanders: m.cfg.Commanders}
+		Format: Format(m.cfg.Format), StartingLife: m.cfg.StartingLife, Commanders: m.cfg.Commanders, BotPolicy: m.table.cfg.BotPolicy}
 }
 
 // defaultSeats is PL-14: one bot per seat, seeded from the match seed.
-func defaultSeats(names []string, seed uint64) []seat.Seat {
+func defaultSeats(policy string, names []string, seed uint64) []seat.Seat {
 	out := make([]seat.Seat, len(names))
 	for i := range names {
-		out[i] = seat.NewBot(seed ^ uint64(i+1))
+		bot, err := NewBotPolicySeat(policy, seed^uint64(i+1))
+		if err != nil {
+			panic(err) // policy was normalized before the table was registered.
+		}
+		out[i] = bot
 	}
 	return out
 }
@@ -430,7 +434,10 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			return r.crash(t, m, err)
 		}
 	}
-	seats := r.opts.Seats(m.cfg.Names, m.seed)
+	seats := defaultSeats(t.cfg.BotPolicy, m.cfg.Names, m.seed)
+	if r.opts.Seats != nil {
+		seats = r.opts.Seats(m.cfg.Names, m.seed)
+	}
 	// Task M2c-2: honor the TableConfig.Humans plan — every listed slot is a
 	// real person, so replace the bot that Options.Seats built for it (by
 	// default defaultSeats, one bot per seat) with a fresh HumanSeat. The
@@ -452,7 +459,11 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	// the match goroutine before the loop, so it never races a Decide.
 	for i, s := range seats {
 		if hs, ok := s.(*HumanSeat); ok {
-			hs.configure(r.opts.ThinkTimeout, seat.NewBot(m.seed^uint64(i+1)))
+			caretaker, err := NewBotPolicySeat(t.cfg.BotPolicy, m.seed^uint64(i+1))
+			if err != nil {
+				return r.crash(t, m, err)
+			}
+			hs.configure(r.opts.ThinkTimeout, caretaker)
 		}
 	}
 	maxIntents := r.opts.MaxIntents

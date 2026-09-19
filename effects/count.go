@@ -2,6 +2,7 @@ package effects
 
 import (
 	"math"
+	"math/bits"
 	"strconv"
 	"strings"
 
@@ -88,8 +89,28 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	if strings.HasPrefix(raw, "Sacrificed$") {
 		return sign * EvalCount(h, c, raw), true
 	}
+	if strings.HasPrefix(raw, "Remembered$") {
+		// The doc above already listed this prefix; the read makes it real --
+		// the corpus writes Remembered$Amount as a DIRECT parameter value on
+		// the ImmediateTrigger family (TriggerAmount$ Remembered$Amount,
+		// Forum Filibuster / Dain Ironfoot / Ratonhnhaké:ton; the /Op suffix
+		// rides the same body, Diregraf Horde's /DivideEvenlyDown.2), not
+		// behind an SVar name.
+		return sign * EvalCount(h, c, raw), true
+	}
 	if strings.HasPrefix(raw, "TriggerCount$") || strings.HasPrefix(raw, "ReplaceCount$") {
 		return sign * EvalCount(h, c, raw), true
+	}
+	// A <Ref>>Count$... indirection (Unbound Flourishing's Value$
+	// TriggeredSpellAbility>Count$xPaid/Twice) is a count expression in its
+	// own right, not an SVar name -- the SVar lookup above would otherwise
+	// miss it and degrade the whole parameter to zero. The verdict rides
+	// through from evalCountExprOK, so an unknown ref (the CastSA
+	// adamant-gate family's shape) stays NOT evaluated rather than a silent
+	// zero.
+	if _, rest, found := strings.Cut(raw, ">"); found && strings.HasPrefix(strings.TrimSpace(rest), "Count$") {
+		n, ok := evalCountExprOK(h, c, raw, 0)
+		return sign * n, ok
 	}
 	if raw == "X" {
 		return sign * c.X, true
@@ -156,6 +177,40 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	if n, ok := evalRefProperty(h, c, expr); ok {
 		return n, true
 	}
+	// A <Ref>">Count$..."[/Op] indirection (Unbound Flourishing's Value$
+	// TriggeredSpellAbility>Count$xPaid/Twice): the ref names the objects and
+	// the right side is a Count$ expression evaluated against the FIRST
+	// resolved object, bound as that object's own resolution context (Source,
+	// Controller, X seeded from the object, SVars from its face) -- so
+	// Count$xPaid answers the {X} the CAST paid, not the triggering
+	// permanent's own. The ref switch is the same one evalRefProperty
+	// dispatches through (refTargets), so the two cannot disagree; an unknown
+	// ref fails closed to not-evaluated, exactly as evalRefProperty's default
+	// does. The /Op suffix rides the ordinary Count$ read of the right side.
+	if ref, right, found := strings.Cut(expr, ">"); found {
+		if strings.HasPrefix(strings.TrimSpace(right), "Count$") {
+			ts, ok := refTargets(h, c, strings.TrimSpace(ref))
+			if !ok {
+				return 0, false
+			}
+			g := h.Game()
+			for _, t := range ts {
+				if t.IsPlayer {
+					continue
+				}
+				o := g.Obj(t.Obj)
+				if o == nil {
+					continue
+				}
+				sub := &Ctx{Source: o.ID, Controller: o.Controller, X: o.X}
+				if f := o.Face(); f != nil {
+					sub.SVars = f.SVars
+				}
+				return evalCountExprOK(h, sub, strings.TrimSpace(right), depth+1)
+			}
+			return 0, false
+		}
+	}
 	// A Sacrificed$... expression answers "the sacrificed object's" head (CR
 	// 608.2g last-known-information): power, toughness, mana value, or the
 	// number of objects sacrificed. It reads the LKI snapshot captured at the
@@ -220,7 +275,10 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// not only ReplaceEffect itself, sees the same in-flight value.
 	if body, ok := strings.CutPrefix(expr, "ReplaceCount$"); ok {
 		field, op, hasOp := strings.Cut(strings.TrimSpace(body), "/")
-		if field != "DamageAmount" && field != "Amount" {
+		// "Number" is Forge's DrawCards-replacement spelling of the same
+		// in-flight amount (Quantum Riddler's NumCards$
+		// ReplaceCount$Number/Plus.1 body; 8 corpus files carry the field).
+		if field != "DamageAmount" && field != "Amount" && field != "Number" {
 			return 0, false
 		}
 		n := c.ReplacementAmount
@@ -255,9 +313,45 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	n, ok2 := evalCountBody(h, c, strings.TrimSpace(body), depth)
 	if hasOp {
-		n = applyCountOp(n, op)
+		if clamped, isLimit := countColorsLimitMax(strings.TrimSpace(body), op, n); isLimit {
+			n = clamped
+		} else {
+			n = applyCountOp(n, op)
+		}
 	}
 	return n, ok2
+}
+
+// countColorsLimitMax answers whether op is a LimitMax.<n> clamp on a
+// Count$Valid/ValidZone body whose property is Colors -- Colors's one corpus
+// op suffix (happily_ever_after's Permanent.YouCtrl$Colors/LimitMax.5). It is
+// called from evalCountExprOK's generic /Op site, which cuts the suffix off
+// the whole body BEFORE the head dispatch, so the countZone branch never sees
+// it; keeping the clamp here scopes the new op to Colors bodies only (the
+// summed properties carry no op in the corpus and keep the plain
+// applyCountOp read, where an unknown op name is ignored and the base value
+// stands).
+func countColorsLimitMax(body, op string, n int32) (int32, bool) {
+	head, arg, _ := strings.Cut(body, " ")
+	if _, ok := countZone(head); !ok {
+		return n, false
+	}
+	_, prop, hasProp := strings.Cut(strings.TrimSpace(arg), "$")
+	if !hasProp || strings.TrimSpace(prop) != "Colors" {
+		return n, false
+	}
+	lim, ok := strings.CutPrefix(op, "LimitMax.")
+	if !ok {
+		return n, false
+	}
+	v, err := strconv.Atoi(strings.TrimSpace(lim))
+	if err != nil || v < 0 {
+		return n, false
+	}
+	if n > int32(v) {
+		return int32(v), true
+	}
+	return n, true
 }
 
 // evalTriggerCount resolves a "TriggerCount$<Head>[/Op]" body against the
@@ -363,6 +457,38 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 	return 0, false
 }
 
+// refTargets resolves one ref name of the <Ref>$<Property> family into the
+// targets it names. Shared by evalRefProperty and the <Ref>>Count$...>
+// indirection branch in evalCountExprOK, so the two cannot disagree about
+// which refs exist. An unknown ref returns false -- the caller fails closed,
+// exactly as evalRefProperty's default always did.
+func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
+	switch ref {
+	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
+		return c.Targets, true
+	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
+		"TriggeredAttacker", "TriggeredAttackerLKICopy",
+		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
+		"DelayTriggerRememberedLKI", "RememberedLKI":
+		return c.Remembered, true
+	case "TriggeredSpellAbility":
+		// The activation arm (abcopy1): the fire-time TriggerAbility role is
+		// the exact referent (Remembered names the source permanent); the
+		// spell-cast arm and hand-built contexts keep the Remembered entry.
+		if c.TriggerAbility != 0 {
+			return []state.Target{{Obj: c.TriggerAbility}}, true
+		}
+		return c.Remembered, true
+	case "Remembered":
+		// Forge's plain Remembered$ form reads the executing ability's shared
+		// host-card remembered list: the ctx walk's set UNIONED with the
+		// source's persistent event-backed list (rememberedWithSource).
+		return rememberedWithSource(h, c), true
+	default:
+		return nil, false
+	}
+}
+
 // evalRefProperty resolves one "<Ref>$<Property>[...][/Op]" count body over
 // the objects a target reference names. Refs: Targeted/ParentTarget/
 // ThisTargetedCard name the resolving ability's chosen targets;
@@ -388,21 +514,8 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	}
 	prop, op, hasOp := strings.Cut(prop, "/")
 	prop = strings.TrimSpace(prop)
-	var ts []state.Target
-	switch ref {
-	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
-		ts = c.Targets
-	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
-		"TriggeredSpellAbility", "TriggeredAttacker", "TriggeredAttackerLKICopy",
-		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
-		"DelayTriggerRememberedLKI", "RememberedLKI":
-		ts = c.Remembered
-	case "Remembered":
-		// Forge's plain Remembered$ form reads the executing ability's shared
-		// host-card remembered list: the ctx walk's set UNIONED with the
-		// source's persistent event-backed list (rememberedWithSource).
-		ts = rememberedWithSource(h, c)
-	default:
+	ts, ok := refTargets(h, c, ref)
+	if !ok {
 		return 0, false
 	}
 	g := h.Game()
@@ -452,6 +565,27 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			if (lki && MatchesObjectCtx(g, spec, o, c.SpecContext(c.Controller))) ||
 				(!lki && MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(c.Controller))) {
 				n++
+			}
+		case prop == "Converge":
+			// CR 107.4f-family converge, the TRIGGER-relative spelling: the
+			// distinct-colour spend count of the cast the firing trigger is
+			// about (Magmablood Archaic's SVar:Y:TriggeredCard$Converge), not
+			// the resolving ability's own cast the plain Count$Converge head
+			// at evalCountBody's "Converge" case reads off c.Source. Same
+			// provenance discipline as that head and as TriggerPaidX: the
+			// value was stamped on the cast spell by payCast's trailing
+			// FlagConverged CastInfo BEFORE the deferred SpellCast trigger
+			// re-walk fired, so a replay derives the same number; when the
+			// read object IS the triggering card the fire-time snapshot
+			// TriggerConverge wins over the live field, because a spell
+			// countered between trigger push and resolution has had its
+			// stack->graveyard move clear ConvergeColours while the colours
+			// were spent regardless (CR 601.2h: the payment is not undone).
+			// A copy of the spell was never cast and reads 0.
+			if c.TriggerCard != 0 && t.Obj == c.TriggerCard {
+				n += c.TriggerConverge
+			} else {
+				n += o.ConvergeColours
 			}
 		default:
 			return 0, false
@@ -506,6 +640,84 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.X, true
 		}
 		return 0, true
+	case "ReplicatePaid":
+		// CR 702.55a: the number of replicate payments the resolving spell's
+		// cast made, carried by the pay-time CastInfo's FlagReplicated Amount
+		// (rules/cast.go's replicateAsk and payCast). Read off the SOURCE --
+		// the cast spell, the same provenance read xPaid makes -- so a replay
+		// derives the same count; a copy of the spell was never cast and
+		// reads 0.
+		if o := g.Obj(c.Source); o != nil {
+			return o.ReplicateTimes, true
+		}
+		return 0, true
+	case "TimesKicked":
+		// CR 702.43: the number of times the resolving spell's multikicker
+		// cost was paid as it was cast, carried by the pay-time CastInfo's
+		// FlagMultikicked Amount (rules/cast.go's multikickAsk and payCast).
+		// The same provenance read ReplicatePaid makes: read off the SOURCE
+		// (the cast spell on the stack; an ETB reader sees the PERMANENT it
+		// became -- the stack->battlefield move preserves the field -- so a
+		// replay derives the same count). A pending cast's count is seeded
+		// into ctx.TimesKicked by targetBoundCtx when the spell's own
+		// announcement ask reads a TimesKicked bound BEFORE payment has
+		// stamped the object (Comet Storm's TargetMin/Max$ TargetsNum); a
+		// COPY of the spell was never kicked and reads 0.
+		if c.TimesKicked != 0 {
+			return c.TimesKicked, true
+		}
+		if o := g.Obj(c.Source); o != nil {
+			return o.TimesKicked, true
+		}
+		return 0, true
+	case "Converge":
+		// CR 107.4f-family converge: the number of DISTINCT colours (WUBRG)
+		// of mana actually spent to cast the resolving spell, carried by the
+		// pay-time CastInfo's FlagConverged Amount (rules/cast.go's
+		// payManaCastSpent capture and payCast's trailing CastInfo). Same
+		// provenance read ReplicatePaid makes -- the cast spell, and in the
+		// K:etbCounter ETB replacement the same object after the
+		// stack->battlefield move preserves it -- so a replay derives the
+		// same count; a copy of the spell was never cast and reads 0.
+		if o := g.Obj(c.Source); o != nil {
+			return o.ConvergeColours, true
+		}
+		return 0, true
+	case "CastTotalManaSpent":
+		// CR 601.2h's payment: the TOTAL mana actually spent to cast the
+		// resolving spell (the spent delta's pips summed over every slot),
+		// carried by the pay-time CastInfo's FlagManaSpent Amount
+		// (rules/cast.go's payCast capture -- the converge/replicate/
+		// multikick pattern; faceWantsCastSpend is the heads-safety gate).
+		// Same provenance read Converge makes -- the cast spell, and in the
+		// K:etbCounter ETB replacement the same object after the
+		// stack->battlefield move preserves it -- so a replay derives the
+		// same number; a copy of the spell was never cast and a cheated-in
+		// permanent reads 0. The ref-property readers of OTHER casts
+		// (TriggeredCard$CastTotalManaSpent, evalRefProperty) stay on the
+		// rv2b exotic-heads ledger -- they read a trigger context, not this
+		// field.
+		if o := g.Obj(c.Source); o != nil {
+			return o.ManaSpent, true
+		}
+		return 0, true
+	case "ChosenNumber":
+		// The Effect's SetChosenNumber$ binding (state.ContinuousEffect.ChosenNumber,
+		// threaded into Ctx by rules' replCtx for effect-created replacement
+		// bodies, task wildgrowth1: torgal_a_fine_hound / communal_brewing /
+		// wildgrowth_archaic's "enters with an additional +1/+1 counter for
+		// each ..." body). Bound ONCE when the Effect was created, against the
+		// trigger's own context, so the body reads the frozen number wherever
+		// the entry lands. The VERDICT is the bound flag (Ctx.ChosenNumberBound,
+		// set only by rules' seedEffectReplCtx on effect-created matches): an
+		// unbound context is UNRESOLVED, so every EvalCountOK consumer keeps
+		// its pre-wildgrowth fail direction for the Choose-event population
+		// whose ChosenNumber lives on state.Object.ChosenNumber and never
+		// reaches here -- CheckSVarHolds fails open, a numeric filter RHS
+		// (void's cmcEQX through resolveNumericRHS) never matches -- instead
+		// of enforcing a meaningless zero. A bound zero is a real binding and
+		// evaluates (torgal with no Dogs/Wolves on the board).
+		return c.ChosenNumber, c.ChosenNumberBound
 	case "YourLifeTotal":
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0, true
@@ -521,6 +733,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// classic idiom is Count$ThisTurnCast/Minus1 (storm copies the spell
 		// once per spell cast before it, i.e. everyone's casts minus itself).
 		return int32(h.CastThisTurn()), true
+	case "RememberedNumber":
+		// Forge's Count$RememberedNumber is the executing ability's remembered
+		// count -- the same list evalRememberedOK's Amount head reads. In this
+		// build that is Ctx.Remembered; a caller that needs the list WITHOUT a
+		// trigger's event capture (effImmediateTrigger's TriggerAmount$ read)
+		// passes a ctx whose Remembered is already the capture-excluded set, so
+		// this head needs no special case of its own. Five corpus
+		// ImmediateTrigger lines and 38 files elsewhere carry it.
+		return int32(len(c.Remembered)), true
 	case "RememberedSize":
 		// Forge's RememberedSize is the HOST CARD's remembered list -- the
 		// persistent list riders (RememberDiscarded$/RememberCountered$/
@@ -583,6 +804,21 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// Engine.AttackersThisTurn) so a replay derives the identical number,
 		// the same discipline CastThisTurn takes.
 		return int32(h.AttackersThisTurn()), true
+	case "ColorsColorIdentity":
+		// Count$ColorsColorIdentity: the number of colours in the resolving
+		// controller's commanders' colour identity (War Room's
+		// "SVar:X:Count$ColorsColorIdentity" driving "{3}, {T}, Pay life equal
+		// to the number of colors in your commanders' color identity: Draw a
+		// card", the corpus's only carrier). Read through the Host's
+		// CommanderIdentityColourCount like the other log/state-derived heads
+		// (LifeLostThisTurn, TurnsTaken), so a replay derives the identical
+		// count. An empty identity (no commander, or a colourless one) is a
+		// real, resolvable 0 — the gate that withholds the ability outside the
+		// Commander format is ActivationGameTypes$, not this count.
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return int32(h.CommanderIdentityColourCount(c.Controller)), true
 	}
 
 	// PlayerCount<Players|Opponents|RegisteredOpponents>$<Property> — per-
@@ -651,8 +887,34 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
 	// spec (Count$ThisTurnCast_Card.YouCtrl — the "first/second spell you
 	// cast" family): the caster scope is the controller when the spec carries
-	// a You* qualifier, everyone otherwise.
+	// a You* qualifier, everyone otherwise. The spec's bare !CastSaSource
+	// qualifier is Forge's "other than the spell being cast" device (every
+	// bare-form carrier's oracle says other/another), so the count excludes
+	// its own ctx source through the Host's Excluding read; the ARGUMENTED
+	// forms (!CastSaSource$CardManaCost, !CastSaSource/Plus.2) stay in place
+	// and keep failing closed downstream (no provenance grammar prices them).
 	if rest, ok := strings.CutPrefix(head, "ThisTurnCast_"); ok {
+		if stripped, selfExcl := stripBareCastSaSource(rest); selfExcl {
+			return int32(h.SpellsCastThisTurnMatchingExcluding(c.Controller, stripped, c.Source)), true
+		}
+		// The ARGUMENTED forms (task castprov2) peel the token and reuse the
+		// same Excluding read:
+		//
+		//   - !CastSaSource/<op> (thunder_salvo's /Plus.2): this form never
+		//     reaches this arm — evalCountExprOK's GENERIC /Op peel cuts the
+		//     body at the first "/" before the head parse, leaving the bare
+		//     !CastSaSource for the bare arm above and handing the op to the
+		//     ordinary applyCountOp — which is exactly the oracle's reading
+		//     (the exclusion count, then Plus.2). Pinned by
+		//     TestThunderSalvoXIsTwoPlusOtherSpellsCast.
+		//   - !CastSaSource$<Property> (call_forth_the_tempest's
+		//     $CardManaCost): the matching casts' objects, the property
+		//     AGGREGATED over them instead of counting 1 each (the zone-count
+		//     heads' `$Property` precedent). An unknown property fails closed
+		//     to (0, false), the unresolvable verdict.
+		if stripped, prop, ok2 := stripCastSaSourceAggregate(rest); ok2 {
+			return aggregateCastProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, c.Source), prop)
+		}
 		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest)), true
 	}
 
@@ -684,6 +946,39 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return yes, true
 		}
 		return no, true
+	}
+	// Foretold.<ifTrue>.<ifFalse> is <ifTrue> when the resolving source was
+	// cast foretold (CR 702.126a -- the pay-time FlagForetold provenance,
+	// the same read Kicked makes), else <ifFalse>. The operands resolve
+	// through the same operand machinery evalCompare's branches use (a
+	// literal, or an SVar name resolved recursively -- Starnheim Unleashed's
+	// Count$Foretold.X.1 reads the announced X through the face's SVar
+	// table), with the same depth discipline. A carrier missing a branch is
+	// a corpus bug: fail closed (0, false) rather than answer a half body.
+	if rest, ok := strings.CutPrefix(head, "Foretold."); ok {
+		yes, no, found := strings.Cut(rest, ".")
+		if !found || strings.TrimSpace(yes) == "" || strings.TrimSpace(no) == "" {
+			return 0, false
+		}
+		foretold := false
+		if o := g.Obj(c.Source); o != nil {
+			foretold = o.CastFlags&state.FlagForetold != 0
+		}
+		if foretold {
+			return evalCountOperand(h, c, yes, depth), true
+		}
+		return evalCountOperand(h, c, no, depth), true
+	}
+	// NotedNumber is the number a trigger's Execute$ body last noted onto
+	// the source card (DB$ Pump | NoteNumber$ <expr> -- Lupine Harbingers'
+	// exile trigger noting Count$YourTurns). Read off the card the ETB
+	// replacement resolves over (c.Source), the same object events.NotedNumber
+	// wrote; a card with no note reads 0.
+	if head == "NotedNumber" {
+		if o := g.Obj(c.Source); o != nil {
+			return o.NotedNumber, true
+		}
+		return 0, true
 	}
 	// UrzaLands.<assembled>.<not assembled> is <assembled> when the controller
 	// controls at least one of each Urza land subtype on the battlefield
@@ -717,8 +1012,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// Count$<Predicate>.<yes>.<no> — Forge's yes/no branch heads: the value
 	// is the first number when the predicate holds, the second when it does
 	// not (Count$Morbid.1.0 ×33 and Count$Monarch.1.0 ×10 are the corpus's
-	// dominant spellings; the exotic predicates — Delirium, Blessing, Void,
-	// Adamant_<n>.<colour> — stay unmodelled and degrade to zero). Morbid is
+	// dominant spellings). wasCastFromGraveyard is modelled below — the
+	// resolving source's graveyard-origin cast bits (the Increasing cycle's
+	// Count$wasCastFromGraveyard.10.5, 11 corpus lines); the remaining
+	// exotic predicates — Delirium, Blessing, Void, Adamant_<n>.<colour> —
+	// stay unmodelled and degrade to zero. Morbid is
 	// CR 702.53's "a creature died this turn": a creature entered a graveyard
 	// FROM THE BATTLEFIELD this turn, folded off the same state.Entered list
 	// ThisTurnEntered_ reads (a battlefield→graveyard MoveZone is exactly a
@@ -727,6 +1025,98 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// state g.IsMonarch answers for a CheckDefinedPlayer$ .isMonarch spec).
 	if dot := strings.IndexByte(head, '.'); dot > 0 {
 		switch head[:dot] {
+		case "wasCastFromGraveyard":
+			// The resolving source was CAST FROM A GRAVEYARD (CR 601.2b's
+			// alternative-cost provenance): any graveyard-origin cast bit —
+			// FlagFlashback, FlagHarmonize or FlagEscaped — holds it. This is
+			// the same bit test the Card.wasCastFromGraveyard filter predicate
+			// and its compiled twin share (effects/filter.go,
+			// effects/compiled_predicate.go); a nil/missing source reads
+			// false, and so does a stack copy (IsCopy — a copy was never cast,
+			// even though StackCopy preserves the original's flags). The
+			// branch tokens resolve through resolveCountOperand, not splitDot:
+			// the_final_days' YES branch is the SVar X
+			// (Count$wasCastFromGraveyard.X.2, X = Count$ValidGraveyard
+			// Creature.YouCtrl), the Compare head's evalCountOperand recursion
+			// precedent; an unresolvable token degrades to 0, never wedges.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			holds := false
+			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
+				holds = o.CastFlags&(state.FlagFlashback|state.FlagHarmonize|state.FlagEscaped) != 0
+			}
+			if holds {
+				y, ok := resolveCountOperand(h, c, yesTok, depth)
+				if !ok {
+					y = 0
+				}
+				return y, true
+			}
+			n, ok := resolveCountOperand(h, c, noTok, depth)
+			if !ok {
+				n = 0
+			}
+			return n, true
+		case "wasCastFromYourHandByYou":
+			// The resolving source was cast from ITS OWN CONTROLLER's hand by
+			// that controller (the Myojin cycle's etbCounter CheckSVar$ gate:
+			// "enters with a divinity counter on it if you cast it from your
+			// hand", 12 corpus carriers). An ordinary hand-origin cast carries
+			// no CastFlags bit — the flags mark alternative costs and origins
+			// only — so the provenance is the object's latest PutOnStack
+			// (Host.WasCastFromHandByYou's log scan, replay-derivable like
+			// CastThisTurn); a copy was never cast, and a card never put on
+			// the stack (cheated into play) reads false, the same guards the
+			// wasCastFromGraveyard case takes. The branch tokens resolve
+			// through resolveCountOperand, the same machinery.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			holds := false
+			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
+				if h != nil {
+					holds = h.WasCastFromHandByYou(c.Source, o.Controller)
+				}
+			}
+			if holds {
+				y, ok := resolveCountOperand(h, c, yesTok, depth)
+				if !ok {
+					y = 0
+				}
+				return y, true
+			}
+			n2, ok := resolveCountOperand(h, c, noTok, depth)
+			if !ok {
+				n2 = 0
+			}
+			return n2, true
+		case "wasCastFromYourHand":
+			// The BARE (no "ByYou") hand-provenance branch head (task
+			// castprov3, see_the_truth's SVar:X:Count$wasCastFromYourHand.1.3 —
+			// "put one of those cards into your hand ... If this spell was cast
+			// from anywhere other than your hand, put each of those cards into
+			// your hand instead"): the resolving source's latest cast came from
+			// a hand — ANY caster's hand, the player scoping the ByYou twin
+			// carries being absent here. The same guards the ByYou case takes:
+			// the provenance is the object's latest PutOnStack
+			// (Host.WasCastFromHand's log scan, replay-derivable), a copy was
+			// never cast, a card never put on the stack (cheated into play)
+			// reads false. Branch tokens through resolveCountOperand, the same
+			// machinery.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			holds := false
+			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
+				holds = h.WasCastFromHand(c.Source)
+			}
+			if holds {
+				y, ok := resolveCountOperand(h, c, yesTok, depth)
+				if !ok {
+					y = 0
+				}
+				return y, true
+			}
+			n3, ok := resolveCountOperand(h, c, noTok, depth)
+			if !ok {
+				n3 = 0
+			}
+			return n3, true
 		case "Morbid", "Monarch":
 			y, n := splitDot(head[dot+1:])
 			holds := false
@@ -755,10 +1145,20 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// instead of counting them -- Mosswort Bridge's gate
 	// `Count$Valid Creature.YouCtrl$CardPower` ("creatures you control have
 	// total power 10 or greater") is the corpus shape (62 raw lines over 61
-	// files: CardPower 42, CardManaCost 13, CardToughness 5). An unrecognised
-	// property keeps the whole token as the spec -- the pre-existing
-	// fail-closed behaviour, since such a token never matched anyway -- and
-	// the Greatest/Least/Different/Colors variants are out of scope here.
+	// files: CardPower 42, CardManaCost 13, CardToughness 5). CardTypes and
+	// Colors are DISTINCT-set counts over the same matches, not sums:
+	// Colors counts the distinct colours among the matched permanents
+	// ("the number of colors among permanents you control", Shimmercreep's
+	// Vivid et al., 31 raw corpus lines, bounded by five), read through
+	// ColorMaskOf so an explicit Colors: line and Devoid's colourless
+	// treatment agree with the colour predicates; its single corpus op
+	// suffix /LimitMax.<n> (happily_ever_after) clamps the result. An
+	// unrecognised property keeps the whole token as the spec -- the
+	// pre-existing fail-closed behaviour, since such a token never matched
+	// anyway -- and the Greatest/Least/Different variants are still out of
+	// scope here. Colors's one corpus op suffix /LimitMax.<n> is honoured at
+	// evalCountExprOK's generic /Op site (countColorsLimitMax), scoped to
+	// Colors bodies.
 	if zone, ok := countZone(head); ok {
 		spec, prop, hasProp := strings.Cut(arg, "$")
 		if !hasProp {
@@ -766,10 +1166,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		} else {
 			prop = strings.TrimSpace(prop)
 			switch prop {
-			case "CardPower", "CardToughness", "CardManaCost", "CardTypes":
+			case "CardPower", "CardToughness", "CardManaCost", "CardTypes", "Colors":
 			default:
-				// Not a summed property (GreatestCardPower, DifferentNames,
-				// Colors, ...): keep the old whole-token spec read.
+				// Not a recognised property (GreatestCardPower,
+				// DifferentNames, Least*, ...): keep the old whole-token
+				// spec read.
 				spec, prop = arg, ""
 			}
 		}
@@ -781,10 +1182,30 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if prop == "CardTypes" {
 			seenCardTypes = make(map[string]bool)
 		}
+		// The bare wasCastFromYourHand qualifier (task castprov3, Approach of
+		// the Second Sun's Count$ValidStack Card.wasCastFromYourHand+Self):
+		// not a filter predicate — split out per CANDIDATE object through the
+		// Host's log read before the ordinary match (the ByYou family never
+		// needed this here because it had no Valid* carrier; a ByYou spec
+		// still routes to its own helper's absence and fails closed as
+		// before, unchanged).
+		hasBareHand := !strings.Contains(spec, "wasCastFromYourHandByYou") && strings.Contains(spec, "wasCastFromYourHand")
+		// Colors folds each match's colour mask; read only through a
+		// popcount at the end, so no per-colour ordering ever reaches an
+		// event or a view.
+		var colorsSeen ColorMask
 		var n int32
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(zone, p) {
-				if !matchesZoneSpecCtx(g, spec, id, c.SpecContext(c.Controller), zone) {
+				matchSpec := spec
+				if hasBareHand {
+					s, ok := castFromHandAnyAdmitsFilter(h, spec, id)
+					if !ok {
+						continue
+					}
+					matchSpec = s
+				}
+				if !matchesZoneSpecCtx(g, matchSpec, id, c.SpecContext(c.Controller), zone) {
 					continue
 				}
 				if prop == "" {
@@ -808,16 +1229,31 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 							seenCardTypes[typ] = true
 						}
 					}
+				case "Colors":
+					colorsSeen |= ColorMaskOf(o)
 				}
 			}
 		}
 		if prop == "CardTypes" {
 			return int32(len(seenCardTypes)), true
 		}
+		if prop == "Colors" {
+			n = int32(bits.OnesCount8(uint8(colorsSeen)))
+		}
 		return n, true
 	}
 	return 0, false
 }
+
+// countColorsLimitMax answers whether op is a LimitMax.<n> clamp on a
+// Count$Valid/ValidZone body whose property is Colors -- Colors's one corpus
+// op suffix (happily_ever_after's Permanent.YouCtrl$Colors/LimitMax.5). It is
+// called from evalCountExprOK's generic /Op site, which cuts the suffix off
+// the whole body BEFORE the head dispatch, so the countZone branch never sees
+// it; keeping the clamp here scopes the new op to Colors bodies only (the
+// summed properties carry no op in the corpus and keep the plain
+// applyCountOp read, where an unknown op name is ignored and the base value
+// stands).
 
 // evalThisTurnEntered parses a ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid>
 // tail -- the split Forge's own parser applies (workingCopy[0] = the head, so
@@ -1085,15 +1521,27 @@ func evalCompare(h Host, c *Ctx, arg string, depth int) int32 {
 // itself as an inline expression (EvalCount degrades a bare unknown word to
 // zero, the convention every other head follows).
 func evalCountOperand(h Host, c *Ctx, tok string, depth int) int32 {
+	n, _ := resolveCountOperand(h, c, tok, depth)
+	return n
+}
+
+// resolveCountOperand is evalCountOperand with an evaluated verdict: an
+// integer literal directly, an SVar body through the ordinary expression
+// evaluator at depth+1 (the same recursion bound evalCountOperand always
+// carried -- a self-referential Compare SVar must terminate), else the token
+// itself as an inline expression. ok is false only when nothing resolved --
+// the caller that binds a value once (effects' SetChosenNumber$ read) turns
+// that into its fail-closed Note.
+func resolveCountOperand(h Host, c *Ctx, tok string, depth int) (int32, bool) {
 	if n, err := strconv.Atoi(tok); err == nil {
-		return int32(n)
+		return int32(n), true
 	}
 	if c.SVars != nil {
 		if body, ok := c.SVars[tok]; ok {
-			return evalCountExpr(h, c, body, depth+1)
+			return evalCountExprOK(h, c, body, depth+1)
 		}
 	}
-	return evalCountExpr(h, c, tok, depth+1)
+	return evalCountExprOK(h, c, tok, depth+1)
 }
 
 // splitDot splits an "a.b" pair into two integers, defaulting either side to
@@ -1208,12 +1656,30 @@ func applyCountOp(n int32, op string) int32 {
 		}
 	case op == "Twice":
 		v *= 2
+	case op == "Thrice":
+		// Stronghold Arena's Count$TimesKicked/Thrice: the script writes its
+		// own arithmetic as the op suffix ("gain 3 life for each time it was
+		// kicked" = 3 x the kicks). rules/replacement.go's replCountOp
+		// already knows the word.
+		v *= 3
 	case op == "HalfDown":
 		v /= 2
 	case op == "HalfUp":
 		v = (v + 1) / 2
 	case op == "Negative":
 		v = -v
+	case strings.HasPrefix(op, "DivideEvenlyDown."):
+		// Forge's AmountOperators.divideEvenlyDown: division by the named
+		// divisor (Remembered$Amount/DivideEvenlyDown.2 -- the ImmediateTrigger
+		// "one instance per pair of remembered tokens" shape, diregraf_horde
+		// and faebloom_trick). A missing or non-positive divisor leaves the
+		// value unchanged rather than dividing by zero. NOTE this is Go's
+		// integer division, which TRUNCATES toward zero, not a true floor: the
+		// two differ only for negative operands (-3/2 = -1 here, floor -2),
+		// and every count this op reaches in the corpus is non-negative.
+		if x, err := strconv.Atoi(op[len("DivideEvenlyDown."):]); err == nil && x > 0 {
+			v /= int64(x)
+		}
 	}
 	if v > math.MaxInt32 {
 		return math.MaxInt32
@@ -1244,4 +1710,32 @@ func SetSVars(c *Ctx, sv map[string]string) {
 		copied[k] = v
 	}
 	c.SVars = copied
+}
+
+// aggregateCastProperty sums one numeric property over the matching casts'
+// objects (the ARGUMENTED !CastSaSource$<Property> aggregate forms' shared
+// read; task castprov2). The property vocabulary is the zone-count heads':
+// CardManaCost sums the faces' converted costs, CardPower/CardToughness the
+// engine's derived (layer-aware) characteristics; any other property is
+// unresolvable (0, false) — the whole Count$ then degrades per its caller's
+// documented direction. Measured population: CardManaCost x1
+// (call_forth_the_tempest); the other two are supported for symmetry.
+func aggregateCastProperty(h Host, ids []state.ObjID, prop string) (int32, bool) {
+	g := h.Game()
+	var n int32
+	for _, id := range ids {
+		switch prop {
+		case "CardManaCost":
+			if o := g.Obj(id); o != nil && o.Face() != nil {
+				n += o.Face().Cmc()
+			}
+		case "CardPower":
+			n += h.Power(id)
+		case "CardToughness":
+			n += h.Toughness(id)
+		default:
+			return 0, false
+		}
+	}
+	return n, true
 }

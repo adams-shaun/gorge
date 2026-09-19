@@ -1,6 +1,7 @@
 package botpolicy
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
@@ -126,6 +127,26 @@ type Card struct {
 	// and is out of the cast-side rule's scope by design -- those route
 	// through the ability/trigger paths, not chooseCast.
 	Counter bool
+	// Toughness is the engine's derived toughness (ch.Toughness), the
+	// creature body's other half. It is a cast-scorer feature only -- the
+	// CreatureToughness weight in castScore -- never part of the shared base
+	// worth (cardWorth), so the discard and commander-zone paths keep
+	// pricing a creature by power alone. Per this doc comment's parity
+	// obligation above, both adapter halves fill it from the same derived
+	// source -- the projected CardView.Toughness on the view half,
+	// ch.Toughness(id) on the game half -- so the adapter-parity tests judge
+	// it on every intent of a whole game.
+	Toughness int32
+	// Tapped reports whether this battlefield permanent is currently tapped
+	// sideways. It exists for one reader: the cast scorer's CurveFit feature
+	// counts the seat's producible mana over its UNTAPPED battlefield
+	// sources (producibleMana), so a tapped source must not promise mana
+	// this turn. Like every Card field it is filled identically on both
+	// adapter halves -- cv.Tapped on the view half, o.Tapped on the game
+	// half, the same object field both halves already read for Creature
+	// facts -- and stays false for every card off the battlefield, which is
+	// inert wherever the feature is not consulted.
+	Tapped bool
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
@@ -217,6 +238,164 @@ func hasTypeWord(words []string, want string) bool {
 	return false
 }
 
+// CastWeights is the learned cast profile: the weights the cast scorer
+// (cardWorth, castScore, chooseCast) dots its feature vector with. The
+// default profile below reproduces the pre-refactor literal arithmetic
+// EXACTLY — every C1–C8 rule and CR1 in cast.go's doc comments stays true
+// of DefaultCastWeights — so a Board carrying it (or the zero value, see
+// castWeights) plays the bot that has always played. Integer arithmetic
+// only, fixed evaluation order, ties on option index.
+type CastWeights struct {
+	// CreatureBase is the per-creature base worth (C1); CreaturePower the
+	// per-point-of-power term (C2). Both apply only to a creature option.
+	// NonCreatureCMC is the per-mana-value term for every non-creature
+	// option (C3).
+	CreatureBase, CreaturePower, NonCreatureCMC int32
+	// Kicked is the alternative-cost premium a kicked/surged cast earns
+	// (C4); Flashback the one a flashback/miracle cast earns (C4).
+	Kicked, Flashback int32
+	// ReserveScale prices the C7 reserve preference: a cast that keeps the
+	// pool at or above the reserve earns reserve*ReserveScale points.
+	ReserveScale int32
+	// CommanderTaxScale prices the CR1 command-zone recast penalty: a
+	// command-zone cast scores minus CommanderTaxScale*Casts*CMC.
+	CommanderTaxScale int32
+
+	// CastThreshold is the hold threshold (C9): when the best surviving
+	// cast option's final score is strictly below it, chooseCast returns
+	// -1 and the whole priority rule falls through to the ability ranking
+	// and the pass, exactly as when nothing was castable. This is what
+	// makes the per-decision features (Precombat, OppCreatures,
+	// OwnCreatures, LifeDelta) meaningful for a tuner: without a threshold
+	// they add the same constant to every option's score and can only
+	// reorder casts, never change WHETHER one is cast; with a threshold
+	// they move the cast/hold boundary. A command-zone cast is NOT subject
+	// to the threshold — CR1 prices it by value alone and its own
+	// score-below-zero refusal is its only boundary, because the deck must
+	// always be able to cast its commander.
+	//
+	// DefaultCastWeights sets it to MinInt32/2, a value no default-profile
+	// score can approach, so the default bot never holds a cast it would
+	// otherwise make (pinned by cast_weights_test.go's equivalence table).
+	// The bound: with the default profile every context, toughness and
+	// interaction weight is 0, so a candidate's score is cardWorth + mode
+	// premium + reserve bonus (a non-commander cast), or the same minus the
+	// CR1 tax with a score-below-zero refusal (a commander cast).
+	// cardWorth is 30 + 4*Power for a creature — a hand card's Power is its
+	// PRINTED power, no continuous effect applies off the battlefield,
+	// measured over the compiled corpus at [-1, 20] — or a CMC in [0, 16]
+	// (CmcOf only ever adds non-negative values). The premiums add at most
+	// 6, the reserve bonus at most 5 * 16 = 80 (the reserve is the cheapest
+	// instant-speed card's CMC, same corpus bound), so every default-profile
+	// candidate score lies within [0, ~200] — roughly twelve orders of
+	// magnitude above MinInt32/2 ≈ -1.07e9. A learned profile sets its own
+	// threshold deliberately; see castWeights for the zero-value wrinkle
+	// (an explicitly-zero threshold on an otherwise-set profile is ACTIVE).
+	CastThreshold int32
+
+	// Everything below is a NEW feature, weight 0 in the default profile —
+	// the scorer reads them, the default bot does not change because of
+	// them. A learned profile turns one on by setting its weight.
+
+	// CreatureToughness adds a creature option's toughness to its score
+	// (a bulkier body is worth more when power ties).
+	CreatureToughness int32
+	// CurveFit scores 1 for a cast whose cost exactly equals the mana the
+	// seat can produce this turn (the pool plus its untapped mana sources'
+	// guaranteed production), 0 otherwise — the curve-spent-exactly bonus.
+	CurveFit int32
+	// ManaLeft is the feature "pool total minus this cast's cost": a
+	// positive weight prefers the cheaper cast, a negative one the pricier.
+	ManaLeft int32
+	// Precombat scores 1 in the first main phase (Board.FirstMain).
+	Precombat int32
+	// InstantOnOwnTurn scores 1 for an instant-speed card cast in the seat's
+	// OWN main phase (Board.MyTurn && Board.IsMain).
+	InstantOnOwnTurn int32
+	// OppCreatures / OwnCreatures are the public battlefield creature counts
+	// on each side of the deciding seat, as one per-creature weight.
+	OppCreatures, OwnCreatures int32
+	// LifeDelta is the deciding seat's life minus the lowest opponent's.
+	LifeDelta int32
+
+	// Everything below is an L1b INTERACTION feature (C10): a per-option
+	// conjunction of the card's own class (creature vs not, instant-speed
+	// vs not) with a decision-level context, so a tuner can price a
+	// creature differently from a one-shot in the same board instead of
+	// only through the shared constants. All are weight 0 in the default
+	// profile.
+
+	// CreaturePrecombat scores 1 for a CREATURE option in the first main
+	// phase — the creature-before-combat question, per option, where the
+	// shared Precombat could only shift every option equally.
+	CreaturePrecombat int32
+	// CreatureOppCreatures multiplies a creature option's score by the
+	// opponent creature count (a body matters more against a wide board).
+	CreatureOppCreatures int32
+	// NonCreatureOppCreatures multiplies a NON-creature option's score by
+	// the opponent creature count — the removal proxy. The option's
+	// EFFECT is still unread; the feature prices only the board pressure
+	// the count carries, which is why it is a separate weight from
+	// CreatureOppCreatures rather than one signed term.
+	NonCreatureOppCreatures int32
+	// CreatureLifeDelta multiplies a creature option's score by
+	// LifeDelta (a body is the aggressive pick when the seat is ahead).
+	CreatureLifeDelta int32
+	// InstantSpeedOffTurnHold scores 1 for an instant-speed card cast in
+	// the seat's OWN main phase — the same indicator InstantOnOwnTurn
+	// reads, kept as a separate named dimension so a fitted profile's two
+	// weights stay semantically legible (InstantOnOwnTurn is the "cast
+	// instants now" premium; this is the paired "hold instants" term).
+	// On its own a per-option term can only reorder casts; PAIRED WITH THE
+	// C9 THRESHOLD it is what moves an instant-speed cast below the hold
+	// boundary — a negative weight holds the instant in the seat's own
+	// main phase while a creature cast (which earns no such term) stays
+	// above the threshold and is still made.
+	InstantSpeedOffTurnHold int32
+}
+
+// DefaultCastWeights is the pre-refactor arithmetic, weight for weight:
+// creature 30 + 4*Power (C1/C2), non-creature its mana value (C3), kicked
+// +6 and flashback +4 (C4), the reserve preference at 5 points per reserved
+// mana (C7, the old reserveBonusScale) and the command-zone tax at 5 per
+// prior cast per mana value (CR1, the old cmdrTaxScale). Every weight for
+// the new features is 0, so the default pick is byte-identical to the
+// literal pre-refactor rule (pinned by cast_weights_test.go's equivalence
+// table over every cast_test.go case). The one non-zero addition is the
+// CastThreshold hold boundary at MinInt32/2 — see the field's comment for
+// the bound proving no default-profile score can ever fall below it.
+var DefaultCastWeights = CastWeights{
+	CreatureBase:      30,
+	CreaturePower:     4,
+	NonCreatureCMC:    1,
+	Kicked:            6,
+	Flashback:         4,
+	ReserveScale:      5,
+	CommanderTaxScale: 5,
+	CastThreshold:     math.MinInt32 / 2,
+}
+
+// castWeights returns the Board's cast profile. The zero value is treated
+// as DefaultCastWeights: a Board nobody configured (every existing test
+// and adapter path) must keep playing the pre-refactor bot, and a learned
+// profile is always set explicitly field by field — an all-zero profile
+// ("never score a cast at all") is not expressible, which is the documented
+// trade of this choice. The same trade reaches CastThreshold: because the
+// zero STRUCT is the "unset" marker, a learned profile that sets other
+// fields but leaves CastThreshold 0 gets an ACTIVE threshold at 0 (every
+// non-commander cast scoring below zero is held) — a profile that wants no
+// boundary at all must set CastThreshold to MinInt32/2 itself, matching
+// DefaultCastWeights. The adapters do not fill Board.Cast at all (it is
+// configuration, not board state), so the zero-value rule is also what the
+// BoardFromGameInto reuse contract needs: a profile set once on a reused
+// Board survives every refill untouched.
+func (b Board) castWeights() CastWeights {
+	if b.Cast == (CastWeights{}) {
+		return DefaultCastWeights
+	}
+	return b.Cast
+}
+
 // castScore ranks one "cast" option. It is the one function whichever
 // chooseCast reads, so the C-rules below are exactly this arithmetic, and
 // a mutation that takes the first "cast" option, or treats every cast the
@@ -241,35 +420,45 @@ func hasTypeWord(words []string, want string) bool {
 // non-creature of mana value 0 (C5): it can only win against another
 // zero-fact card, and never beats a real read.
 func (b Board) castScore(o decision.Option) int32 {
+	w := b.castWeights()
 	s := b.cardWorth(o.Obj)
+	// CreatureToughness is a cast-scorer feature, not part of the shared
+	// base worth (cardWorth): the discard and commander-zone paths price a
+	// creature by its power alone, the cast path may price the body.
+	if b.Cards[o.Obj].Creature {
+		s += w.CreatureToughness * b.Cards[o.Obj].Toughness
+	}
 	switch o.Mode {
 	// The and/or Kicker's per-part modes are kicked casts too (each a
 	// net-upside optional additional cost the bot commits to when scored).
 	case "kicked", "kicked1", "kicked2", "kickedboth", "surged":
-		s += 6
+		s += w.Kicked
 	case "flashback", "miracle":
-		s += 4
+		s += w.Flashback
 	}
 	return s
 }
 
-// cmdrTaxScale prices each prior command-zone cast by the commander's mana
-// value. Five is the old 20-point penalty normalized to a CMC-4 reference;
-// using the mana axis makes the recast value judgment track its cost.
-const cmdrTaxScale = 5
-
 // cardWorth prices cast desirability, not the usefulness of keeping a hand card.
+// It is the shared base-worth feature dot — CreatureBase+CreaturePower*Power
+// for a creature (C1/C2), NonCreatureCMC*CMC for everything else (C3) — read
+// by the cast scorer AND the paths that only want a card's standing worth
+// (the discard bottoming, the commander-zone leave ask). Toughness is NOT a
+// base-worth feature: it belongs to the cast scorer alone (castScore).
 func (b Board) cardWorth(id state.ObjID) int32 {
+	w := b.castWeights()
 	c := b.Cards[id]
 	if c.Creature {
-		return 30 + 4*c.Power
+		return w.CreatureBase + w.CreaturePower*c.Power
 	}
-	return c.CMC
+	return w.NonCreatureCMC * c.CMC
 }
 
-// commandTax shares CR1's mana-value-scaled recast penalty with commander_zone.
+// commandTax is the CR1 recast penalty: CommanderTaxScale*Casts*CMC — the
+// mana-value-scaled recast penalty shared with commander_zone (policy.go's
+// KCommanderZone branch), now priced by the Board's cast profile.
 func (b Board) commandTax(id state.ObjID) int32 {
-	return cmdrTaxScale * b.Commanders[id].Casts * b.Cards[id].CMC
+	return b.castWeights().CommanderTaxScale * b.Commanders[id].Casts * b.Cards[id].CMC
 }
 
 // chooseCast is the KPriority cast ranking: it picks ONE of the offered
@@ -295,8 +484,8 @@ func (b Board) commandTax(id state.ObjID) int32 {
 //     scores as a non-creature of mana value 0, a low rank, never a crash.
 //   - CR1 (the command zone is taxed, CR 903.8): a "cast" whose Obj is a
 //     commander currently sitting in its owner's command zone ranks as its
-//     ordinary castScore minus cmdrTaxScale*Casts*CMC — the tax priced on
-//     the commander's own mana value (see the cmdrTaxScale comment), and
+//     ordinary castScore minus CommanderTaxScale*Casts*CMC — the tax priced on
+//     the commander's own mana value (see the commandTax comment), and
 //     an option scoring below zero is NOT cast at all. The tax is per
 //     prior cast, so the bot casts its commander while the recast is
 //     still worth the mana it costs — a cheap commander is recast many
@@ -310,7 +499,29 @@ func (b Board) commandTax(id state.ObjID) int32 {
 //     is a value judgment on what the recast costs, NOT an affordability
 //     check: the engine already refuses what the pool cannot pay
 //     (rules/cast.go's commanderTaxFor gates the offer), so this is purely
-//     "is the recast still worth bothering with".
+//     "is the recast still worth bothering with". A command-zone cast is
+//     also NOT subject to C9's hold threshold: CR1 prices it by value
+//     alone and its own score-below-zero refusal is its only boundary,
+//     because the deck must always be able to cast its commander.
+//   - C9 (the hold threshold): after the loop, when the best surviving
+//     option's final score is strictly below CastThreshold AND that best
+//     option is NOT a command-zone cast, chooseCast returns -1 and the
+//     priority rule (policy.go) falls through to the ability ranking and
+//     the pass exactly as it does when nothing was castable. The
+//     exemption is per WINNER, not per candidate: a command-zone cast is
+//     exempt only while it is itself the best option — if a hand card
+//     outscores it, the hand card is the best option and the threshold
+//     applies to the whole decision. The default profile's threshold is
+//     MinInt32/2, unreachable by the bound in the field's comment, so the
+//     default bot never holds.
+//   - C10 (interaction features): five per-option conjunctions of the
+//     card's class with the decision context — CreaturePrecombat
+//     (creature × FirstMain), CreatureOppCreatures and
+//     NonCreatureOppCreatures (each class × the opponent creature count,
+//     the latter the removal proxy), CreatureLifeDelta (creature ×
+//     LifeDelta) and InstantSpeedOffTurnHold (instant-speed × the seat's
+//     own main phase, the hold term that pairs with C9). All are weight 0
+//     in the default profile, so the default arithmetic is unchanged.
 //   - C6 (deterministic tie): ties break on option index, so no map
 //     iteration order reaches the answer.
 //   - C7 (the mana reserve, B2): the bot keeps the mana pool at or above the
@@ -344,8 +555,10 @@ func (b Board) commandTax(id state.ObjID) int32 {
 // Like the target and combat branches it consumes no rng: the pick is a
 // pure function of the offered options and the board facts.
 func (b Board) chooseCast(d *decision.Decision) int {
+	w := b.castWeights()
 	best := -1
 	var bestScore int32 = -1
+	bestInCmd := false
 	// C7 (the mana reserve, B2): the reserve is the cost of the cheapest
 	// instant-speed card the seat holds (0 when it holds none, in which case
 	// C7 is inert). It is a PREFERENCE, not a hard block: a cast that would
@@ -367,6 +580,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 			break
 		}
 	}
+	ctx := b.castContextFor(d)
 	for _, o := range d.Options {
 		if o.Kind != "cast" {
 			continue
@@ -388,19 +602,133 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		// cast its commander), so it is priced by value alone.
 		inCmd := b.Commanders[o.Obj].InCommandZone
 		s := b.castScore(o)
+		// The context features, dotted with their weights. With the default
+		// profile every weight here is 0, so the default bot's pick is the
+		// pre-refactor arithmetic to the digit (pinned by cast_weights_test.go).
+		// The constants (Precombat, OppCreatures, OwnCreatures, LifeDelta) add
+		// the same term to every surviving option — which is exactly why they
+		// CAN flip a CR1-priced-out commander cast back above zero without ever
+		// reordering an otherwise-tied pair; the per-option ones (CurveFit,
+		// ManaLeft, InstantOnOwnTurn) separate casts the base worth ties. With
+		// a C9 threshold set, the constants become meaningful in a second way:
+		// they move the cast/hold boundary instead of only reordering casts.
+		cost := b.castCost(o.Obj, b.Cards[o.Obj])
+		if b.FirstMain {
+			s += w.Precombat // Precombat feature: 1 in the first main phase
+		}
+		if b.MyTurn && b.IsMain && b.Cards[o.Obj].InstantSpeed {
+			s += w.InstantOnOwnTurn // instant-speed card in the seat's own main phase
+		}
+		if ctx.producible == cost {
+			s += w.CurveFit // CurveFit feature: cost exactly matches producible mana
+		}
+		s += w.ManaLeft * (ctx.poolTotal - cost)
+		s += w.OppCreatures * ctx.oppCreatures
+		s += w.OwnCreatures * ctx.ownCreatures
+		s += w.LifeDelta * ctx.lifeDelta
+		// C10's interaction features: the card's class conjuncted with the
+		// same decision-level context, fixed evaluation order.
+		card := b.Cards[o.Obj]
+		if card.Creature {
+			if b.FirstMain {
+				s += w.CreaturePrecombat // creature × first main phase
+			}
+			s += w.CreatureOppCreatures * ctx.oppCreatures
+			s += w.CreatureLifeDelta * ctx.lifeDelta
+		} else {
+			s += w.NonCreatureOppCreatures * ctx.oppCreatures
+		}
+		if b.MyTurn && b.IsMain && card.InstantSpeed {
+			s += w.InstantSpeedOffTurnHold // the hold-instants term (pairs with C9)
+		}
 		if inCmd {
 			s -= b.commandTax(o.Obj)
 			if s < 0 {
 				continue // CR1: the recast has priced itself out — do not cast
 			}
-		} else if res > 0 && b.Pool.Total()-b.castCost(o.Obj, b.Cards[o.Obj]) >= res {
-			s += res * reserveBonusScale // C7: prefer a cast that keeps the reserve
+		} else if res > 0 && ctx.poolTotal-cost >= res {
+			s += res * w.ReserveScale // C7: prefer a cast that keeps the reserve
 		}
 		if best == -1 || s > bestScore || (s == bestScore && o.Index < best) {
-			best, bestScore = o.Index, s
+			best, bestScore, bestInCmd = o.Index, s, inCmd
 		}
 	}
+	// C9: the hold threshold. Only a NON-commander best can be held — a
+	// command-zone cast is priced by value alone (CR1) because the deck
+	// must be able to cast its commander; see the rule's comment above for
+	// the per-winner reading.
+	if best >= 0 && !bestInCmd && bestScore < w.CastThreshold {
+		return -1
+	}
 	return best
+}
+
+// castContext is the decision-level context the cast scorer's features read:
+// every value here is constant across the offered options of one decision,
+// so it is computed once per chooseCast call, never per option.
+type castContext struct {
+	// poolTotal is the deciding seat's current mana pool (state.Mana.Total).
+	poolTotal int32
+	// producible is the mana the seat can produce this turn: the pool plus
+	// the guaranteed production (Card.Produces) of every untapped mana
+	// source it controls on the battlefield. The Card census only carries
+	// the deciding seat's own zones, so every OnBattlefield entry is the
+	// seat's own permanent. An Any/indeterminate production claims nothing
+	// (its colour slots are 0 — the same fail-closed read availableColours
+	// uses), so only demonstrable mana is counted.
+	producible int32
+	// oppCreatures / ownCreatures are the public battlefield creature counts
+	// on each side of the deciding seat (Creature.Controller vs d.Player).
+	// Min/count folds over maps are order-independent, so no map iteration
+	// order can reach a score.
+	oppCreatures, ownCreatures int32
+	// lifeDelta is the seat's life minus the LOWEST opponent's life; 0 when
+	// no other player has a life total on the board.
+	lifeDelta int32
+}
+
+// castContextFor computes the cast scorer's decision-level context for the
+// deciding seat d.Player. Every fold is order-independent (a min or a
+// count), so no map iteration order reaches it.
+func (b Board) castContextFor(d *decision.Decision) castContext {
+	ctx := castContext{poolTotal: b.Pool.Total(), producible: b.producibleMana()}
+	for _, cr := range b.Creatures {
+		if cr.Controller == d.Player {
+			ctx.ownCreatures++
+		} else {
+			ctx.oppCreatures++
+		}
+	}
+	own := b.Life[d.Player]
+	low, hasOpp := int32(0), false
+	for p, life := range b.Life {
+		if p == d.Player {
+			continue
+		}
+		if !hasOpp || life < low {
+			low, hasOpp = life, true
+		}
+	}
+	if hasOpp {
+		ctx.lifeDelta = own - low
+	}
+	return ctx
+}
+
+// producibleMana is the mana the deciding seat can produce this turn: the
+// pool plus every untapped own mana source's guaranteed production (the
+// CurveFit feature's "mana the seat can produce" side).
+func (b Board) producibleMana() int32 {
+	total := b.Pool.Total()
+	for _, c := range b.Cards {
+		if !c.OnBattlefield || c.Tapped {
+			continue
+		}
+		for i := 0; i < len(c.Produces.Colour); i++ {
+			total += c.Produces.Colour[i]
+		}
+	}
+	return total
 }
 
 // colourNeed is the aggregate coloured-pip demand of the seat's castable
@@ -451,18 +779,6 @@ func (b Board) availableColours() [5]int32 {
 	}
 	return avail
 }
-
-// reserveBonusScale prices the C7 reserve preference: a cast that keeps the
-// pool at or above the reserve earns reserve*reserveBonusScale points, so
-// among comparable cards the bot holds mana for an instant-speed play
-// rather than emptying the pool. It is a pricing constant like the target
-// tier offsets -- not the reserve amount itself, which is evidence-driven
-// (cheapest instant-speed card in hand) -- and it is sized so a
-// reserve-keeping cheap card beats a comparable draining one (5 points per
-// reserved mana) but never outranks a clearly better play (a creature's 30+
-// base, an unprotected commander), which is what keeps the bot from sitting
-// on its good hands forever.
-const reserveBonusScale int32 = 5
 
 // reserve is the mana the policy keeps unspent in its own main phase so it
 // can answer on another seat's turn. It is evidence-driven, not a constant:

@@ -52,6 +52,11 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 	}
 	remember := sa.Params["RememberSacrificed"] != ""
 	sacrifice := func(id state.ObjID) {
+		if h.SacrificeBlocked(id) {
+			// A CantSacrifice restriction (Call for Aid) or face static: the
+			// permanent stays. Not remembered either — it was not sacrificed.
+			return
+		}
 		o := g.Obj(id)
 		if o == nil || o.Zone != state.ZBattlefield {
 			return

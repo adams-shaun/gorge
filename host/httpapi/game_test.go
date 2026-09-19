@@ -116,6 +116,38 @@ func TestCreateGameRejectsUnknownFormat(t *testing.T) {
 	}
 }
 
+func TestCreateGameBotPolicyDecodeAndRejectsDiagnostic(t *testing.T) {
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	var got []CreateGameOptions
+	srv := httptest.NewServer(NewHandler(r, Options{CreateGame: func(o CreateGameOptions) (CreateGameResponse, error) {
+		got = append(got, o)
+		return CreateGameResponse{Table: "g1", BotPolicy: o.BotPolicy}, nil
+	}}))
+	defer srv.Close()
+	for _, body := range []string{`{}`, `{"bot_policy":"lethal-pressure"}`} {
+		status, _, _ := postGames(t, srv.URL, body)
+		if status != http.StatusOK {
+			t.Fatalf("%s returned %d", body, status)
+		}
+	}
+	if len(got) != 2 || got[0].BotPolicy != host.BotPolicy || got[1].BotPolicy != host.LethalPressurePolicy {
+		t.Fatalf("builder options = %+v", got)
+	}
+	for _, body := range []string{`{"bot_policy":"legacy"}`, `{"bot_policy":"random"}`} {
+		status, e, _ := postGames(t, srv.URL, body)
+		if status != http.StatusBadRequest || e.Code != "bad_request" {
+			t.Fatalf("%s: %d %+v", body, status, e)
+		}
+	}
+	if len(got) != 2 {
+		t.Fatalf("invalid policy reached builder: %+v", got)
+	}
+}
+
 // TestCreateGameMulligansDecodeLeaf is the decode leaf for the per-game
 // London allowance (finding fb-20260914T114629Z-6c81e4d6): an omitted
 // "mulligans" must reach the builder as a NIL CreateGameOptions.Mulligans

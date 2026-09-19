@@ -2,14 +2,20 @@ package host
 
 import (
 	"context"
+	"reflect"
+	"slices"
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/protocol"
+	"github.com/adams-shaun/gorge/replay"
 	"github.com/adams-shaun/gorge/seat"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -83,24 +89,78 @@ func TestATablePlaysOneMatchToCompletionAndGoesIdle(t *testing.T) {
 	}
 }
 
-func TestTheSameConfigurationPlaysTheSameMatch(t *testing.T) {
+func TestHostedPoliciesReplayDeterministically(t *testing.T) {
 	t.Parallel()
-	run := func() protocol.MatchInfo {
+	type runResult struct {
+		info protocol.MatchInfo
+		log  *events.Log
+	}
+	run := func(policy string) runResult {
 		r, _ := New(testOptions(t))
 		defer r.Close()
-		if err := r.AddTable(fourSeatTable("t1", false)); err != nil {
+		tableCfg := fourSeatTable("t1", false)
+		tableCfg.BotPolicy = policy
+		if err := r.AddTable(tableCfg); err != nil {
 			t.Fatal(err)
 		}
 		if err := r.Start("t1"); err != nil {
 			t.Fatal(err)
 		}
 		r.Wait("t1")
-		ms, _ := r.Matches("t1")
-		return ms[0]
+		r.mu.RLock()
+		tab := r.tables["t1"]
+		r.mu.RUnlock()
+		tab.mu.RLock()
+		m := tab.history[0]
+		tab.mu.RUnlock()
+		m.mu.RLock()
+		info, log, rulesCfg := m.info(), m.e.L.Clone(), m.cfg
+		m.mu.RUnlock()
+		replayed, err := replay.Replay(log, rulesCfg)
+		if err != nil {
+			t.Fatalf("%q replay: %v", policy, err)
+		}
+		if got, want := replayed.L.Head(), info.Head; got != want {
+			t.Fatalf("%q replay head %s, want %s", policy, got, want)
+		}
+		return runResult{info: info, log: log}
 	}
-	a, b := run(), run()
-	if a.Head != b.Head || a.Events != b.Events || a.Turns != b.Turns {
-		t.Fatalf("two runs differ: %+v vs %+v", a, b)
+	type policyCase struct {
+		name   string
+		policy string
+	}
+	results := make(map[string]runResult, 4)
+	for _, tc := range []policyCase{
+		{name: "default", policy: ""},
+		{name: BotPolicy, policy: BotPolicy},
+		{name: LethalPressurePolicy, policy: LethalPressurePolicy},
+		{name: CastProfilePolicy, policy: CastProfilePolicy},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a, b := run(tc.policy), run(tc.policy)
+			for _, got := range []runResult{a, b} {
+				if got.info.State != protocol.MatchFinished || (got.info.Result != "win" && got.info.Result != "draw") || (got.info.Result == "win") != (got.info.Winner != nil) {
+					t.Fatalf("%q did not finish with a valid outcome: %+v", tc.name, got.info)
+				}
+			}
+			if !reflect.DeepEqual(a.log.Events, b.log.Events) || !reflect.DeepEqual(a.log.Intents, b.log.Intents) || a.info.Head != b.info.Head || a.info.Result != b.info.Result || !reflect.DeepEqual(a.info.Winner, b.info.Winner) {
+				t.Fatalf("two %q runs differ: %+v vs %+v", tc.name, a.info, b.info)
+			}
+			results[tc.name] = a
+		})
+	}
+	defaultRun, explicitBot := results["default"], results[BotPolicy]
+	if !reflect.DeepEqual(defaultRun.log.Events, explicitBot.log.Events) || !reflect.DeepEqual(defaultRun.log.Intents, explicitBot.log.Intents) || defaultRun.info.Head != explicitBot.info.Head || defaultRun.info.Result != explicitBot.info.Result || !reflect.DeepEqual(defaultRun.info.Winner, explicitBot.info.Winner) {
+		t.Fatalf("omitted policy and explicit %q differ: %+v vs %+v", BotPolicy, defaultRun.info, explicitBot.info)
+	}
+	// The cast-profile policy on the embedded default profile is
+	// intent-identical to the production bot over a whole hosted match (the
+	// same weights, pinned equal by botpolicy's profile tests) -- so its
+	// event log, intents, head, result and winner must all match the
+	// explicit-bot run exactly.
+	castProfileRun := results[CastProfilePolicy]
+	if !reflect.DeepEqual(castProfileRun.log.Events, explicitBot.log.Events) || !reflect.DeepEqual(castProfileRun.log.Intents, explicitBot.log.Intents) || castProfileRun.info.Head != explicitBot.info.Head || castProfileRun.info.Result != explicitBot.info.Result || !reflect.DeepEqual(castProfileRun.info.Winner, explicitBot.info.Winner) {
+		t.Fatalf("%q on the default profile and explicit %q differ: %+v vs %+v", CastProfilePolicy, BotPolicy, castProfileRun.info, explicitBot.info)
 	}
 }
 
@@ -363,6 +423,80 @@ func TestConfigurationIsValidated(t *testing.T) {
 	}
 	if _, err := r.Matches("missing"); err == nil {
 		t.Fatal("Matches of an unknown table succeeded")
+	}
+}
+
+func TestTableBotPolicyDefaultsAndRejectsUnknown(t *testing.T) {
+	r, err := New(testOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	good := TableConfig{ID: "good", Seats: 2, Decks: []string{"a"}, Spectator: view.Public}
+	if err := r.AddTable(good); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Tables()[0].BotPolicy; got != BotPolicy {
+		t.Fatalf("default policy = %q, want %q", got, BotPolicy)
+	}
+	bad := good
+	bad.ID, bad.BotPolicy = "bad", "legacy"
+	if err := r.AddTable(bad); err == nil {
+		t.Fatal("legacy policy was accepted for a hosted table")
+	}
+}
+
+func TestBotPolicyMetadataIsCarriedToMatch(t *testing.T) {
+	r, err := New(testOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	cfg := TableConfig{ID: "t1", Seats: 2, Decks: []string{"a", "b"}, Spectator: view.Public, BotPolicy: LethalPressurePolicy}
+	if err := r.AddTable(cfg); err != nil {
+		t.Fatal(err)
+	}
+	r.mu.RLock()
+	tab := r.tables["t1"]
+	r.mu.RUnlock()
+	m, err := r.newMatch(tab, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := m.info().BotPolicy; got != LethalPressurePolicy {
+		t.Fatalf("match policy = %q, want %q", got, LethalPressurePolicy)
+	}
+}
+
+func TestDefaultSeatsConstructTheConfiguredPolicy(t *testing.T) {
+	board := botpolicy.NewBoard(2)
+	board.Life[1] = 10
+	board.Creatures[1] = botpolicy.Creature{Power: 10, Toughness: 1, Controller: 0}
+	board.Creatures[2] = botpolicy.Creature{Power: 1, Toughness: 1, Controller: 1}
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Max: 1,
+		Options: []decision.Option{{Index: 0, Obj: state.ObjID(1), Player: 1}}}
+
+	for _, tc := range []struct {
+		policy string
+		want   []int
+	}{
+		{policy: BotPolicy, want: nil},
+		{policy: LethalPressurePolicy, want: []int{0}},
+	} {
+		t.Run(tc.policy, func(t *testing.T) {
+			seats := defaultSeats(tc.policy, []string{"a", "b"}, 7)
+			bot, ok := seats[0].(seat.BoardSeat)
+			if !ok {
+				t.Fatalf("configured seat %T does not accept public board decisions", seats[0])
+			}
+			in, err := bot.DecideBoard(context.Background(), board, d)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(in.Choices, tc.want) {
+				t.Fatalf("%s chose %v, want %v", tc.policy, in.Choices, tc.want)
+			}
+		})
 	}
 }
 

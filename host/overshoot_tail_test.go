@@ -556,6 +556,27 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // source and re-recorded via TestGenerateOvershootCapture
 // (REPRO_REGEN_FIXTURE=1) with Tokens now attached to the live match:
 // 2238 events, 407 intents, head d8cf3b6dc00a07d9.
+//
+// Discard Mode$ Hand re-record (2026-09-19): the pre-fix capture (the
+// seed-1111 game: MatchSeed(1111,1) = 1671561686018727072, 2238 events,
+// 407 intents, head d8cf3b6dc00a07d9, 10 discard events) names Reforge the
+// Soul, and the Discard Mode$ Hand wheel fix (DiscardEffect's Mode$ Hand
+// arm, pinned on the real corpus card in rules/reforge_the_soul_wheel_test.go)
+// made it diverge at event 836 under the post-fix engine: the pre-fix
+// engine kept one front-card events.Discard where the post-fix engine
+// emits one events.Discard per card in hand order. Re-recorded via
+// TestGenerateOvershootCapture (REPRO_REGEN_FIXTURE=1) — but NOT over that
+// old game: 4987fe2e (2026-09-17) had already re-measured the live
+// fixture to table seed 8 (MatchSeed(8,1) = 11409396526365357622, burst
+// 378 — overshootIntents as it stands) WITHOUT re-recording the capture,
+// so the regen mechanism (which records the CURRENT fixture's game) taped
+// a different game than the one the pre-fix capture held: toss to
+// foundations-reign-of-dragons, 14 turns, 2112 events, 378 intents, head
+// fd33d9db389d28e3. That game contains NO discard events at all, so this
+// gate does not exercise the wheel fix's emission shape — that fix's
+// defence remains rules/reforge_the_soul_wheel_test.go, and a future diff
+// against 2238 → 2112 is the seed re-measure at 4987fe2e plus this
+// re-record, not a discard-shape change.
 const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -587,8 +608,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 2238 {
-		t.Fatalf("capture carries %d events, want the full 2238-event stream (re-recorded)", n)
+	if n := len(l.Events); n != 2112 {
+		t.Fatalf("capture carries %d events, want the full 2112-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {

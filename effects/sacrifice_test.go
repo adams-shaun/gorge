@@ -81,7 +81,7 @@ func TestGatekeeperOfMalakirKickedETBMakesPlayerSacrifice(t *testing.T) {
 	// later resolve the trigger's Execute$ with that chosen target; here the
 	// resolved-from-corpus SA is driven directly with that target bound, which
 	// is what the trigger's resolution feeds it.
-	c := &Ctx{Source: gk.ID, Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+	c := &Ctx{Source: gk.ID, Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}
 	Resolve(h, c, sac)
 
 	if sacZone(h, oppCreature) != state.ZGraveyard {

@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -182,5 +183,104 @@ func TestTokenOwnerUnrecognizedFormNotesAndDefaultsToController(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("log = %+v, want a Note %q", h.log, want)
+	}
+}
+
+// TestTokenAttackingTrueMarksTheDefender: with the firing Attacks trigger's
+// referent capture in context (c.DefendingPlayer set, what
+// rules/trigger_referents.go binds from the DeclareAttackers event), every
+// token TokenAttacking$ True creates enters tapped and attacking that
+// defender through the appended events.TokenAttacks kind -- and NO diagnostic
+// Note runs.
+func TestTokenAttackingTrueMarksTheDefender(t *testing.T) {
+	h, c := fixtureHostWithTokens(t)
+	c.DefendingPlayer = state.Target{IsPlayer: true, Player: 1}
+	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
+		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenTapped": "True", "TokenAttacking": "True"}})
+	bf := h.Game().Zone(state.ZBattlefield, c.Controller)
+	if len(bf) != 1 {
+		t.Fatalf("battlefield = %v, want 1 token", bf)
+	}
+	o := h.Game().Obj(bf[0])
+	if !o.Tapped || !o.IsAttacking || o.Attacking != 1 {
+		t.Fatalf("token tapped=%v attacking=%v defender=%d, want tapped, attacking seat 1", o.Tapped, o.IsAttacking, o.Attacking)
+	}
+	attacks := 0
+	for _, ev := range h.log {
+		if ev.Kind == events.TokenAttacks {
+			attacks++
+			if ev.Obj != bf[0] || len(ev.IDs) != 1 || ev.IDs[0] != 1 {
+				t.Fatalf("TokenAttacks event = %+v, want Obj %d attacking seat 1", ev, bf[0])
+			}
+		}
+	}
+	if attacks != 1 {
+		t.Fatalf("%d TokenAttacks events, want 1", attacks)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.Note {
+			t.Fatalf("a correct defender context must not note: %+v", h.log)
+		}
+	}
+}
+
+// TestTokenAttackingWithoutDefenderDegradesLoud: an ACTIVATED AB$ Token
+// rider (kavaron_harrier, militias_pride) has no trigger context, so there is
+// no defender to attack: the token still enters (tapped, TokenTapped$ says
+// so) but NOT attacking, under exactly ONE loud deterministic Note naming the
+// limitation -- never a guessed defender, never silence.
+func TestTokenAttackingWithoutDefenderDegradesLoud(t *testing.T) {
+	h, c := fixtureHostWithTokens(t)
+	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
+		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenTapped": "True", "TokenAttacking": "True"}})
+	bf := h.Game().Zone(state.ZBattlefield, c.Controller)
+	if len(bf) != 1 {
+		t.Fatalf("battlefield = %v, want 1 token", bf)
+	}
+	o := h.Game().Obj(bf[0])
+	if !o.Tapped {
+		t.Fatal("the token must still enter tapped (TokenTapped$ True is the ordinary path)")
+	}
+	if o.IsAttacking || o.Attacking != 0 {
+		t.Fatalf("token attacking=%v defender=%d with no defender context, want not attacking", o.IsAttacking, o.Attacking)
+	}
+	notes := 0
+	for _, ev := range h.log {
+		if ev.Kind == events.Note {
+			notes++
+			if !strings.Contains(ev.Text, "no defending player in context") {
+				t.Fatalf("degrade note = %q, want the no-defender-context limitation", ev.Text)
+			}
+		}
+	}
+	if notes != 1 {
+		t.Fatalf("%d notes, want exactly one", notes)
+	}
+}
+
+// TestTokenAttackingUnimplementedSelectorNotes: the corpus's other
+// TokenAttacking$ selector forms (Remembered, RememberedPlayer,
+// TriggeredAttackedTarget, TriggeredDefender) stay unimplemented -- the token
+// enters unmarked and one Note per call names the form, so the census-free
+// degrade is visible rather than silent.
+func TestTokenAttackingUnimplementedSelectorNotes(t *testing.T) {
+	h, c := fixtureHostWithTokens(t)
+	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
+		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenAttacking": "Remembered"}})
+	bf := h.Game().Zone(state.ZBattlefield, c.Controller)
+	if len(bf) != 1 {
+		t.Fatalf("battlefield = %v, want 1 token", bf)
+	}
+	if o := h.Game().Obj(bf[0]); o.IsAttacking || o.Tapped {
+		t.Fatalf("token tapped=%v attacking=%v, want unmarked", o.Tapped, o.IsAttacking)
+	}
+	notes := 0
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "TokenAttacking$ Remembered is not implemented") {
+			notes++
+		}
+	}
+	if notes != 1 {
+		t.Fatalf("%d selector notes, want exactly one; log = %+v", notes, h.log)
 	}
 }

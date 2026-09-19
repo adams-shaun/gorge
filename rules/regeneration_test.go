@@ -135,7 +135,7 @@ func TestRegenerationCannotReplaceNoRegen(t *testing.T) {
 			e, id := regenFixture(t)
 			source := e.G.AddObject(card, 0)
 			start := len(e.L.Events)
-			effects.Resolve(e, &effects.Ctx{Source: source.ID, Controller: 0, Targets: []state.Target{{Obj: id}}}, destroy)
+			effects.Resolve(e, &effects.Ctx{Source: source.ID, Controller: 0, Targets: []state.Target{{Obj: id}}, TargetsOffered: true}, destroy)
 			if e.G.Obj(id).Zone != state.ZGraveyard {
 				t.Fatalf("shielded creature survived; zone=%v", e.G.Obj(id).Zone)
 			}
