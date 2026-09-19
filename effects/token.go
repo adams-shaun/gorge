@@ -62,6 +62,20 @@ func init() { Register("Token", effToken) }
 // keyword expansion (cards/keywords.go) attaches the Germ it just made: its
 // SubAbility is `DB$ Attach | Defined$ Remembered`, and Resolve walks Sub
 // with the SAME *Ctx, so appending here is what that Attach later reads.
+//
+// RememberOriginalTokens$ True (Forum Filibuster, Diregraf Horde, Dain
+// Ironfoot and 5 more corpus carriers, all `DB$ Token` shapes) takes the SAME
+// branch. Forge's own distinction is original-token-vs-post-replacement
+// mint, and in this build that distinction collapses in favour of the flag:
+// every mint this call proposes IS an original token, because the per-emitted
+// event `want` capture runs before any token replacement could rewrite it and
+// replacement EXTRA mints get no riders at all (the tokrepl1 contract --
+// Academy Manufactor remembers only its first mint). One documented
+// divergence stays: under a Type$ ReplaceToken rewrite (Divine Visitation)
+// `g.Obj(want)` is the REPLACED mint, so the remembered object is the
+// replaced token, not the token the script named. All 8 carriers are plain
+// `DB$ Token` lines with no `R:` replacement in reach (measured at the
+// corpus pin), so the divergence is corpus-unreachable today.
 func effToken(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	n := Num(h, c, sa, "TokenAmount", 1)
@@ -112,7 +126,11 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unrecognized TokenOwner " + v + ", defaulting to the controller"})
 	}
-	remember := sa.Params["RememberTokens"] == "True"
+	// RememberOriginalTokens$ True mirrors RememberTokens$ exactly (see the
+	// doc above for the original-vs-replaced-mint note). The 8 carriers all
+	// chain a `DB$ ImmediateTrigger` "when you do" sub that reads this set.
+	remember := sa.Params["RememberTokens"] == "True" ||
+		sa.Params["RememberOriginalTokens"] == "True"
 	// AttachedTo$ names the permanent the token enters attached to (the Wicked
 	// Role of Charming Scoundrel's ETB, 50+ corpus lines): the value is a
 	// Defined$-grammar selector, resolved with the ordinary resolver against

@@ -155,6 +155,12 @@ var baseBuckets = map[string]bucket{
 	// replacement dispatcher (continueCreateTokenReplacements /
 	// applyTokenReplacementToPlan read its Type$/Amount$/TokenScript$).
 	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA, "body": bSA,
+	// offeredSA is resolveTop's ability-branch marker derivation: the SA
+	// whose ValidTgts$ the placement ask actually covered -- o.Ability for a
+	// non-modal trigger, the first target-bearing chosen mode's sub for a
+	// modal one. The same cards.SA parameter map, so the same bucket as
+	// o.Ability.
+	"offeredSA": bSA,
 	// so.Ability is handleModes' placement branch's stack object (the local
 	// name for the same stack object o.Ability reads): the trigger Charm's
 	// resolved SA, whose full Choices$ list classifies the cross-mode
@@ -2231,13 +2237,18 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
-	"Ad Nauseam":                     {"param:api:Repeat.RepeatOptional"},
-	"Arcane Denial":                  {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
-	"Avengers Quinjet":               {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Captain Marvel, Apex Avenger":   {"param:api:PutCounter.Optional", "param:api:PutCounter.Placer", "param:api:PutCounter.TriggeredCounterMap"},
-	"Conduit of Worlds":              {"param:api:Play.RememberPlayed"},
-	"Director Nick Fury":             {"param:api:Dig.RestRandomOrder"},
-	"Gift of Immortality":            {"param:api:ChangeZone.AttachedTo", "param:api:ChangeZone.ForgetOtherRemembered"},
+	"Ad Nauseam":                   {"param:api:Repeat.RepeatOptional"},
+	"Arcane Denial":                {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
+	"Avengers Quinjet":             {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Captain Marvel, Apex Avenger": {"param:api:PutCounter.Optional", "param:api:PutCounter.Placer", "param:api:PutCounter.TriggeredCounterMap"},
+	"Conduit of Worlds":            {"param:api:Play.RememberPlayed"},
+	"Director Nick Fury":           {"param:api:Dig.RestRandomOrder"},
+	// Gift of Immortality's param:api:ChangeZone.AttachedTo label was deleted
+	// when the ChangeZone AttachedTo$ read landed (effects/zone.go
+	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
+	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
+	// unread.
+	"Gift of Immortality":            {"param:api:ChangeZone.ForgetOtherRemembered"},
 	"Hercules, Olympian Hero":        {"param:trig:DamageDoneOnce.FirstTime"},
 	"Heroic Return":                  {"param:api:ChangeZone.ValidTgtsDesc"},
 	"Heroic Sacrifice":               {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},

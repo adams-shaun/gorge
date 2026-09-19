@@ -1236,13 +1236,21 @@ func (e *Engine) resolveTop() {
 		// age/payment resolution needs rules' cost machinery. Mana Vault's
 		// triggered Untap is the one ordinary effect shape authorized to use
 		// that window; unrelated Cost$-bearing trigger effects retain their
-		// established executor semantics.
+		// established executor semantics. ImmediateTrigger joins Untap: its AB
+		// shape is Forge's "you may pay <Cost$>. When you do, ..." idiom (Speed,
+		// Young Avenger's TrigImmediateTrig -- the only repo-deck carrier), so
+		// the ordinary triggered-cost window poses the pay/decline ask before
+		// the body runs; a decline leaves the body unexecuted exactly as CR
+		// 603.5's "when you do" promises. The DB shape's optional payment stays
+		// the UnlessCost$ gate's (effects.unlessProceed); a plain Cost$ on a DB
+		// ImmediateTrigger remains the established free-executor semantics.
 		if o.Ability.API == "CumulativeUpkeep" {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
 		}
 		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
-			o.Ability.API == "Untap" && o.Ability.Params["Cost"] != "" {
+			(o.Ability.API == "Untap" || o.Ability.API == "ImmediateTrigger") &&
+			o.Ability.Params["Cost"] != "" {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}
@@ -1273,6 +1281,36 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id]}
+		// The SA whose targeting the placement ask actually offered, not
+		// blindly the resolving SA: for a non-modal ability that is the outer
+		// SA's own ValidTgts$ (pushTrigger's askTarget), for a modal one it is
+		// the first target-bearing CHOSEN MODE's sub -- handleModes' placement
+		// branch asks the mode sub and skips the outer ask entirely (a Charm's
+		// ValidTgts$ lives inside its modes, Kami of Restless Shadows'
+		// RaiseScoundrel). Deriving the marker from the outer SA alone left
+		// the modal shape unmarked, so a Min-0 mode target the chooser elected
+		// ZERO of was re-posed by effChangeZone's mid-resolution ask at
+		// resolution -- the exact duplicate-ask defect the marker exists to
+		// stop.
+		offeredSA := (*cards.SA)(nil)
+		if o.Ability != nil {
+			if len(o.ChosenModes) > 0 && strings.TrimSpace(o.Ability.Params["Choices"]) != "" {
+				if src := e.G.Obj(o.Source); src != nil && src.Face() != nil {
+					for _, name := range o.ChosenModes {
+						if sub := cards.ResolveSVar(src.Face().SVars, name); sub != nil &&
+							strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+							offeredSA = sub
+							break
+						}
+					}
+				}
+			} else {
+				offeredSA = o.Ability
+			}
+		}
+		if offeredSA != nil {
+			ctx.TargetsOffered = strings.TrimSpace(offeredSA.Params["ValidTgts"]) != ""
+		}
 		if lki, ok := e.triggerLKI[id]; ok {
 			ctx.LKI = lki.object
 			ctx.LKIPower, ctx.LKIToughness, ctx.LKIPTValid =
@@ -1341,6 +1379,10 @@ func (e *Engine) resolveTop() {
 	f := o.Face()
 	sa := f.SpellAbility()
 	targets := o.Targets
+	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered
+	// (the modal declaration for a Charm, the SpellAbility itself otherwise);
+	// hoisted so the resolution ctx can carry the TargetsOffered marker.
+	targetSA := modalTargetSA(f, sa, o.ChosenModes)
 	// An overloaded spell affects the matching set as it resolves, never as
 	// targets chosen during announcement. This fresh non-target census means
 	// protection/hexproof do not apply and objects entering or changing
@@ -1349,7 +1391,6 @@ func (e *Engine) resolveTop() {
 	// different.
 	overloaded := o.CastFlags&state.FlagOverloaded != 0
 	if overloaded && sa != nil {
-		targetSA := modalTargetSA(f, sa, o.ChosenModes)
 		if targetSA != nil {
 			for _, cand := range e.affectedCandidates(o.Controller, id, id, targetSA) {
 				if cand.kind == "player" {
@@ -1364,8 +1405,7 @@ func (e *Engine) resolveTop() {
 		// A modal spell's target declaration lives on its announced mode SVar,
 		// not the outer Charm SA. Use the same selected declaration targetAsk
 		// used during CR 601.2c, so its targets receive the ordinary CR 608.2b
-		// legality recheck at resolution.
-		targetSA := modalTargetSA(f, sa, o.ChosenModes)
+		// legality recheck at resolution. (targetSA is hoisted above.)
 		// Fix round 2 (re-review N1), the same correction as the ability
 		// branch above, and the one that was actually reachable. Widening the
 		// departed-player release hook in fix round 1 turned a stall into a
@@ -1407,6 +1447,9 @@ func (e *Engine) resolveTop() {
 	if sa != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets}
+		// Same marker as the ability branch: the cast-flow target ask
+		// (targetAsk's targetSA) offered exactly this spell's targeting.
+		ctx.TargetsOffered = targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != ""
 		// CR 107.3i: X is the value the caster chose for the mana cost's {X},
 		// recorded on the stack object by commitCast's CastInfo (the same
 		// value the ETB/replacement path already reads as o.X). Without this
