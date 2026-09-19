@@ -42,6 +42,10 @@ func (e *Engine) Clone() *Engine {
 		// the same reference-sharing Clone already practises for
 		// orderedTriggers.
 		blockerRound: e.blockerRound,
+		// exertAskState (combat.go, task exert1): the exert election's offer
+		// list and cursor, the same plain-value class as blockerRound -- the
+		// offers slice is never mutated, so sharing the reference is safe.
+		exertAskState: e.exertAskState,
 		// stationing (station.go): the plain-value spacecraft a pending
 		// Station tap pick belongs to; zero whenever none is outstanding.
 		stationing: e.stationing,

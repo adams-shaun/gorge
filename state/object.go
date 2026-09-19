@@ -207,6 +207,28 @@ type Object struct {
 	// event, so the event's own attack is already counted.
 	AttacksThisTurn int32
 
+	// ExertedThisTurn records CR 702.100a's exert election (task exert1):
+	// the permanent was exerted this turn. Set only by events.Apply's Exert
+	// case; reset in TurnChange's per-object loop (a per-turn fact) and
+	// cleared with ExertSkipUntap when the permanent leaves the battlefield
+	// (CR 400.7: a new object never carries the old object's exerted
+	// status). The filter predicate notExertedThisTurn reads it, which is
+	// what Combat Celebrant's IsPresent$ offer gate evaluates.
+	ExertedThisTurn bool
+
+	// ExertSkipUntap records CR 702.100b's other lifetime: an exerted
+	// creature won't untap during its controller's NEXT untap step, a
+	// window that spans the turn boundary (TurnChange fires between the
+	// exerting turn's cleanup and the next untap step), so TurnChange does
+	// NOT reset it. It is consumed at use, the regeneration-shield
+	// expire-at-use precedent: the untap-step scan (rules/turn.go
+	// finishUntapStep) skips the untap of a permanent carrying it and emits
+	// an Exert event with Amount -1, whose fold clears the flag. Cleared
+	// with ExertedThisTurn on leaving the battlefield. Untap effects are
+	// unaffected: CR 702.100b names only the untap step, and the skip is
+	// implemented in the turn scan, never in effects.TryUntap.
+	ExertSkipUntap bool
+
 	// preStackEntry* carries a card's entry history only while it is on the
 	// stack. events.Apply captures it before PutOnStack overwrites the public
 	// fields, then restores and clears it for CR 733.1's logged reverse move.

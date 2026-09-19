@@ -133,6 +133,14 @@ func Describe(g *state.Game, ev events.Event) string {
 			text += " (exiled at end of combat)"
 		}
 		return text
+	case events.Exert:
+		// CR 702.100 (task exert1): the exert itself, and the consume marker
+		// the untap-step scan emits as it passes an exerted permanent -- the
+		// window that made it skip that untap closes there.
+		if ev.Amount < 0 {
+			return obj(g, ev.Obj) + " skips its untap step (exerted)"
+		}
+		return obj(g, ev.Obj) + " is exerted"
 	case events.NoteNumber:
 		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
 	case events.MoveZone:

@@ -297,6 +297,118 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 			e.emitTap(opt.Obj, d.Player, false)
 		}
 	}
+	// CR 702.100a (task exert1): each attacking creature carrying an
+	// offerable stat:OptionalAttackCost static is offered its exert
+	// election now, still inside the declare-attackers step, before the
+	// declare-blockers step begins. The election is one KChoose per
+	// offerable attacker in the declaration's own option order (chosen
+	// order, deduped) -- deterministic, and the re-derivation a replay runs
+	// when it answers the recorded intents again.
+	e.startExertAsks(chosen)
+}
+
+// exertOfferList returns the declared attackers (in chosen-option order,
+// deduped) that carry an offerable stat:OptionalAttackCost static: the
+// static's source is the attacker itself (every corpus carrier's ValidCard$
+// is Card.Self, verified in triage), its controller is the attacker's
+// controller, and its as-long-as gate (IsPresent$/IsPresent2$/CheckSVar$,
+// the shared continuousGateHolds grammar) holds. Combat Celebrant's
+// `IsPresent$ Creature.Self+notExertedThisTurn` is the corpus's one gated
+// carrier: it is only offerable while it has not been exerted this turn.
+func (e *Engine) exertOfferList(chosen []decision.Option) []state.ObjID {
+	var out []state.ObjID
+	seen := make(map[state.ObjID]bool, len(chosen))
+	for _, opt := range chosen {
+		id := opt.Obj
+		if id == 0 || seen[id] {
+			continue
+		}
+		seen[id] = true
+		if e.exertOfferHolds(id) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// exertOfferHolds reports whether id carries a stat:OptionalAttackCost
+// static whose source is id itself and whose gate holds at this instant.
+func (e *Engine) exertOfferHolds(id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+		return false
+	}
+	for _, sv := range e.activeStatics("OptionalAttackCost") {
+		if sv.Source != id || sv.Controller != o.Controller {
+			continue
+		}
+		// The static's own ValidCard$ (uniformly Card.Self over the corpus's
+		// 28 carriers, verified in triage) must still admit the attacker;
+		// an unparseable spec fails closed.
+		if vc := sv.Params["ValidCard"]; vc != "" &&
+			!effects.MatchesSpecFrom(e.G, vc, id, o.Controller, sv.Source) {
+			continue
+		}
+		if !e.continuousGateHolds(sv) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// startExertAsks seeds the exert election's offer list from the answered
+// declaration and poses the first ask, if any attacker carries an offer.
+func (e *Engine) startExertAsks(chosen []decision.Option) {
+	offers := e.exertOfferList(chosen)
+	if len(offers) == 0 {
+		return
+	}
+	e.exertAskState = exertAsk{offers: offers}
+	e.askNextExert()
+}
+
+// askNextExert poses the exert election for the next offerable attacker, or
+// clears the election once the list is exhausted. The offer gate is
+// re-evaluated per ask: the exert asks never change state between
+// themselves, but the re-check keeps the cursor honest against any future
+// interleaved state change and costs one statics walk per offer.
+func (e *Engine) askNextExert() {
+	p := e.G.Active
+	for e.exertAskState.next < len(e.exertAskState.offers) {
+		id := e.exertAskState.offers[e.exertAskState.next]
+		if e.exertOfferHolds(id) {
+			o := e.G.Obj(id)
+			d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+				Prompt: fmt.Sprintf("Exert %s as it attacks? (An exerted creature won't untap during your next untap step.)", o.Face().Name),
+				Source: id}
+			d.Options = append(d.Options,
+				decision.Option{Index: 0, Kind: "exert", Label: "Don't exert " + o.Face().Name},
+				decision.Option{Index: 1, Kind: "exert", Label: "Exert " + o.Face().Name,
+					Obj: id, Amount: 1})
+			e.choosing = chooseExert
+			e.ask(d)
+			return
+		}
+		e.exertAskState.next++
+	}
+	e.exertAskState = exertAsk{}
+}
+
+// exertAnswer applies one answered exert election: the decline (option 0)
+// emits nothing, a yes emits the Exert event (whose fold stamps both
+// lifetimes and whose checkExertTriggers walk queues the static's Trigger$
+// rider), then the cursor advances to the next offerable attacker or the
+// election ends. The Advance loop resumes the declare-attackers step's own
+// flow -- the priority round -- when no ask is left.
+func (e *Engine) exertAnswer(d *decision.Decision, in decision.Intent) {
+	e.choosing = chooseNone
+	chosen := d.Chosen(in)
+	if len(chosen) == 1 && chosen[0].Amount == 1 && chosen[0].Obj != 0 {
+		e.emit(events.Event{Kind: events.Exert, Obj: chosen[0].Obj, Player: d.Player})
+	}
+	e.exertAskState.next++
+	e.askNextExert()
 }
 
 // validateAttackers is the KAttackers legality guard behind Option A's
@@ -1680,6 +1792,27 @@ const chooseDamageDivision chooseFor = iota + 5
 // unlock=14 / cumulative=15 / triggeredcost=16 / manaunless=17 / riot=20 /
 // echo=21).
 const chooseAsUnblockedElection chooseFor = chooseEcho + 1
+
+// chooseExert is the chooseFor for the declare-attackers step's exert
+// election (CR 702.100a, task exert1): one KChoose per attacking creature
+// carrying an offerable stat:OptionalAttackCost static, posed by askNextExert
+// after the KAttackers declaration is recorded, still inside the
+// declare-attackers step (the CR 702.100a "as it attacks" ask is a follow-up
+// election inside the same step -- a disclosed approximation: nothing can
+// respond between the declaration and the election). Option 0 is always the
+// decline ("Don't exert"), the replicate/multikicker shape: botpolicy's
+// KChoose default arm takes the first offer, so a bot never exerts.
+const chooseExert chooseFor = chooseAsUnblockedElection + 1
+
+// exertAsk is the declare-attackers exert election's resumable state (the
+// blockerRound plain-value precedent): the deterministic offer list, in the
+// answered KAttackers declaration's option order, and the cursor of the ask
+// currently outstanding. A nil/empty offer list means no election is owed;
+// it is cleared when the cursor exhausts the list.
+type exertAsk struct {
+	offers []state.ObjID
+	next   int
+}
 
 // discardCleanup applies an answered CR 514.1 discard decision: each chosen
 // card moves from the active player's hand to their graveyard (a canonical

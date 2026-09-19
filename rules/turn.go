@@ -109,7 +109,28 @@ func (e *Engine) finishUntapStep(next int) bool {
 	ids := e.G.Zone(state.ZBattlefield, e.G.Active)
 	for i := next; i < len(ids); i++ {
 		o := e.G.Obj(ids[i])
-		if o == nil || !o.Tapped {
+		if o == nil {
+			continue
+		}
+		if o.ExertSkipUntap {
+			// CR 702.100b (task exert1): an exerted creature won't untap
+			// during its controller's next untap step. The window closes
+			// here -- consumed at use, the regeneration-shield precedent: the
+			// Amount -1 Exert event's fold clears the flag, and replay
+			// re-derives both the skip and the consume from the same scan.
+			// Untap EFFECTS are deliberately untouched: CR 702.100b names
+			// only the untap step, so this gate lives in the turn scan and
+			// never in effects.TryUntap (a Combat-Celebrant untap-all still
+			// untaps an exerted creature). An already-untapped permanent's
+			// window is consumed just the same: the next untap step has
+			// passed either way. (The stat:UntapOtherPlayer foreign scan
+			// below neither skips nor consumes: the flag's owner is the
+			// permanent's controller, whose own untap step is the active
+			// scan this loop walks.)
+			e.emit(events.Event{Kind: events.Exert, Obj: ids[i], Amount: -1})
+			continue
+		}
+		if !o.Tapped {
 			continue
 		}
 		e.untapResume = &untapStep{next: i + 1}
@@ -982,6 +1003,17 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// drain to resume (an election answer is never handed out from
 		// inside one).
 		e.handleAsUnblockedElection(chosen)
+	case chooseExert:
+		// exert1: the declare-attackers step's exert election (CR 702.100a)
+		// was answered. exertAnswer emits the decline's nothing or the
+		// accepted exert's event, then advances the cursor to the next
+		// offerable attacker or ends the election; the Advance loop resumes
+		// the step's own priority round after the last ask. The queued rider
+		// triggers (the static's Trigger$ body, walk checkExertTriggers) are
+		// placed at that same priority round, after every attack trigger the
+		// declaration itself queued -- the ordinary APNAP drain, no separate
+		// resume needed here.
+		e.exertAnswer(d, in)
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; Ward's

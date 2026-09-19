@@ -1944,6 +1944,14 @@ func init() {
 		// requirement solver already carried for MustAttack) — the conditional
 		// shapes stay unregistered behaviour-wise and are ledgered in AGENTS.md.
 		"stat:CantAttack", "stat:CantSacrifice", "stat:MustAttack",
+		// exert1: CR 702.100's attack-time election.
+		"stat:OptionalAttackCost",
+		// The static's Cost$ Exert<1/CARDNAME> and Trigger$ rider are consumed
+		// by the declare-attackers offer (rules/combat.go's askNextExert) and
+		// the Exert-event trigger walker (rules/trigger_match.go
+		// checkExertTriggers); its IsPresent$ gate reuses the shared
+		// presentGate/countPresent grammar, whose filter now knows the
+		// notExertedThisTurn predicate (effects/filter.go).
 		// asunblk1: the combat-damage assignment election (rules/combat.go
 		// asUnblockedNeeding / damageStep's chosenElection case, CR 509's
 		// optional "assign as though it weren't blocked"). Only the printed
