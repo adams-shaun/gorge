@@ -178,6 +178,52 @@ suite; the L5/L6 network phases stay closed. Together with the early probes
 this feature family. The infrastructure (CastWeights, `cast-profile`,
 `policytune`) stays: it is the harness for any future feature family.
 
+## Revision after L4 (2026-09-19): a search teacher, then a scorer
+
+Operator chose all four follow-ups: AR7 promoted into default `bot`
+(9be52252, heads 2/6/8 moved); AR8 combined-attacker lethal and BLK block
+assignment queued (opt-in); L1c within-turn mana efficiency queued; and a
+search-teacher spike.
+
+**Spike result** (`docs/superpowers/reports/2026-09-19-search-teacher-spike.md`,
+harness ae3e03f9, dev seeds only): ensemble determinization on the existing
+`internal/searchprobe` sampler (K=8 worlds, rollouts to game end with the
+default bot) beats the bot, measured as paired Δ vs bot-v-bot on the same seeds:
+
+| teacher on | paired Δ (95%) | coverage | cost/labelled decision |
+|---|---|---|---|
+| attackers | +2.80pp ± 1.10 | 34% | ~2.5 s |
+| priority ≥2 casts | +2.70pp ± 1.86 | 53% | ~2.1 s |
+
+Label quality vs the true state (audit): attackers 84% best-option vs bot
+69%; with a ≥0.3 margin, 18 right / 0 wrong. The bottleneck is the sampler
+(8–19% acceptance; 61% of attack decisions get no world), dominated by
+PolicyCompetition rejections. The spike also found a livelock-detector index
+bug (fixed, 2ba585ba).
+
+This answers R1 §6.2 risk 1 ("gorge has no teacher"): the search teacher is
+measurably better than the bot on the decisions it covers, so the network
+phase reopens as **expert iteration**, not self-play from scratch:
+
+- **L7 — sampler coverage.** Fix the opponent-hand PolicyCompetition
+  rejection (a proposed hand in which the bot would have cast something else
+  than what was observed) so more decisions get worlds, especially late game.
+  Measured by acceptance rate and coverage-by-turn, not win rate.
+- **L8 — label corpus.** `searchteacher -labels`: per labelled decision, the
+  decision-trace board snapshot (existing redacted schema), every candidate's
+  mean value and world count, the bot's answer, and the margin. Positive label
+  only above the margin (attackers 0.25, cast 0.3). Offline, deterministic,
+  dev seeds only; K=16, 128 attempts, MinESS 2.
+- **L9 — per-option scorer.** Pure-Go MLP over hashed state features ·
+  per-option features (AlphaStar-style pointer scoring over the legal set,
+  R1 §1.4 shape), trained on L8 labels (value regression + margin ranking).
+  Warm start and teacher are the search labels, not the bot, which removes the
+  BC-ceiling objection. Opt-in hosted policy, and it must pass the standard
+  held-out gate (seed 1,000,000, 400/pair) before any promotion.
+- **L10 — iterate.** Use the L9 scorer as the rollout/prior policy for the
+  next teacher generation (ExIt), gated +1.96σ per generation, which is the mtgbld
+  lesson.
+
 ## Parallel (unchanged, lower priority)
 
 AR8 combined-attacker lethal, block assignment, trace-family comparison
