@@ -44,10 +44,25 @@ func untapBattlefieldCondition(h Host, c *Ctx, sa *cards.SA) bool {
 	if len(UnknownPredicates(spec)) > 0 {
 		return false
 	}
+	// ConditionZone$ names the zone the ConditionPresent$ spec counts in
+	// (Animist's Awakening's "two or more instants/sorceries in your
+	// graveyard"). It defaults to the battlefield when absent or spelled
+	// "Battlefield"; an unparseable zone name fails closed like every other
+	// unresolvable gate input here. The shared conditionMet gate in
+	// conditions.go deliberately leaves ConditionZone$ unresolved and defers
+	// to this reader.
+	zone := state.ZBattlefield
+	if z := sa.Params["ConditionZone"]; z != "" {
+		parsed, ok := parseZone(z)
+		if !ok {
+			return false
+		}
+		zone = parsed
+	}
 	n := 0
 	g := h.Game()
 	for _, p := range g.AliveFrom(0) {
-		for _, id := range g.Zone(state.ZBattlefield, p) {
+		for _, id := range g.Zone(zone, p) {
 			o := g.Obj(id)
 			if o != nil && MatchesObjectCtx(g, spec, o, c.SpecContext(c.Controller)) {
 				n++
