@@ -1018,7 +1018,13 @@ var stringMapParams = map[string]string{
 	// parseReplacementLine built from one SVar replacement body -- the
 	// Layer$ CantHappen recognition of the bodyless form (Mistrise Village's
 	// AntiMagic) reads the same SVar body shape, not a card Params map.
-	"effects:replacementLineCantHappen:params": "keys of a parseReplacementLine-built replacement line (an SVar body), not a card Params map"}
+	"effects:replacementLineCantHappen:params": "keys of a parseReplacementLine-built replacement line (an SVar body), not a card Params map",
+	// effects/misc.go replacementLinePrevents: params is the map
+	// parseReplacementLine built from one SVar replacement body -- the
+	// bodyless Prevent$ True DamageDone recognition (Selfless Squire's
+	// RPrevent, task dponce1) reads the same SVar body shape, not a card
+	// Params map.
+	"effects:replacementLinePrevents:params": "keys of a parseReplacementLine-built replacement line (an SVar body), not a card Params map"}
 
 // propagateKeyReads resolves two indirect read shapes:
 //

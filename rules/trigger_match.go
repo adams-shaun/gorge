@@ -142,6 +142,15 @@ type turnFires struct {
 var actionTriggerModes = map[string]bool{
 	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "Sacrificed": true, "Discarded": true,
 	"CommitCrime": true, "Taps": true, "TapsForMana": true,
+	// DamagePreventedOnce joins them for the same reason: it is an event mode
+	// registered from the start (rules/trigger_match.go's
+	// damagePreventedMatches), so the trigger-level parameters Forge scopes
+	// to every event mode -- PlayerTurn$, ActivationLimit$, and an
+	// unevaluable CheckDefinedPlayer$ predicate failing closed -- apply from
+	// day one. No Once latch rides it: each stored prevention Note is one
+	// occurrence (prevention happens per Damage event, no batching concept --
+	// the DamageDealtOnce/DamageDoneOnce batch latch exists because combat
+	// batches several Damage events).
 	// TokenCreated/TokenCreatedOnce are event modes registered from the start
 	// (rules/trigger_match.go's tokenCreatedMatches), so the trigger-level
 	// parameters Forge scopes to every event mode -- PlayerTurn$,
@@ -1207,6 +1216,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.tapsMatches(t, source, ev, true)
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
 		matched = e.damageMatches(t, source, ev)
+	case "DamagePreventedOnce":
+		matched = e.damagePreventedMatches(t, source, ev)
 	case "Drawn":
 		matched = e.drawnMatches(t, source, ev)
 	case "LifeLost", "LifeLostAll":
@@ -2507,6 +2518,39 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 			return false
 		}
 	}
+	if v, ok := t.Params["ValidTarget"]; ok {
+		if ev.Obj != 0 {
+			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+				return false
+			}
+		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
+			return false
+		}
+	}
+	return true
+}
+
+// damagePreventedMatches implements Mode$ DamagePreventedOnce (task dponce1):
+// the trigger fires on a STORED prevention Note -- the re-entrant Note the
+// full-prevention replacement arm (rules/replacement.go
+// applyNonMoveReplacements) and the ReplaceDamage/protection siblings emit
+// when damage is prevented. The Note carries the prevented damage in Amount
+// (0 for Fog's whole-pass statement, which is deliberately excluded -- a
+// whole-turn statement is not "damage that would be dealt to you is
+// prevented") and names the damaged side in Obj/Player exactly like the
+// DamageDone trigger's event does, so ValidTarget$ reads the same grammar:
+// the damaged object when the hit was object-directed, the damaged player
+// otherwise. There is no Once latch: each stored prevention Note is one
+// occurrence, so two prevented hits in one turn fire twice, each with its
+// own amount.
+func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Note || ev.Amount <= 0 {
+		return false
+	}
+	if !strings.Contains(strings.ToLower(ev.Text), "prevent") {
+		return false
+	}
+	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidTarget"]; ok {
 		if ev.Obj != 0 {
 			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
