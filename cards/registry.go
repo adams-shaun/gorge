@@ -100,6 +100,19 @@ type cacheFile struct {
 // corpus.
 const cacheVersion = 4
 
+// CacheVersionError is returned by LoadRegistry when the cache file on disk
+// was written by a different cacheVersion than this build's. Callers detect
+// it with errors.As so they can offer a targeted remedy (an in-memory
+// recompile) instead of the generic load-failure handling.
+type CacheVersionError struct {
+	Got  int
+	Want int
+}
+
+func (e *CacheVersionError) Error() string {
+	return fmt.Sprintf("IR cache version %d, want %d — run `make compile-cards`", e.Got, e.Want)
+}
+
 func (r *Registry) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
@@ -152,7 +165,7 @@ func LoadRegistry(path string) (*Registry, error) {
 		return nil, err
 	}
 	if cf.Version != cacheVersion {
-		return nil, fmt.Errorf("IR cache version %d, want %d — run `make compile-cards`", cf.Version, cacheVersion)
+		return nil, &CacheVersionError{Got: cf.Version, Want: cacheVersion}
 	}
 	r := NewRegistry()
 	for _, c := range cf.Cards {

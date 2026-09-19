@@ -1,6 +1,10 @@
 package cards
 
 import (
+	"compress/gzip"
+	"encoding/gob"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -346,5 +350,48 @@ func TestLoadRegistryRelinksStaleCacheTransmuteWithItsManaValue(t *testing.T) {
 	}
 	if len(found) != 1 || found[0] != "Card.cmcEQ1" {
 		t.Fatalf("stale-cache relink expanded Transmute as %v, want exactly [Card.cmcEQ1]", found)
+	}
+}
+
+// TestLoadRegistryWrongVersion fabricates a cache one version behind by
+// gob-encoding a cacheFile directly (cacheFile is package-internal, so only a
+// cards test can build the exact stale shape) and pins the typed error: the
+// failure is a *CacheVersionError carrying Got/Want, and its text is the
+// historical wording so every existing printer keeps its output.
+func TestLoadRegistryWrongVersion(t *testing.T) {
+	r := fixtureRegistry(t)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "ir.gob.gz")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	zw := gzip.NewWriter(f)
+	if err := gob.NewEncoder(zw).Encode(cacheFile{Version: cacheVersion - 1, Cards: r.Cards, Tokens: r.Tokens}); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	_, err = LoadRegistry(path)
+	var cve *CacheVersionError
+	if !errors.As(err, &cve) {
+		t.Fatalf("LoadRegistry error = %T(%v), want *CacheVersionError", err, err)
+	}
+	if cve.Got != cacheVersion-1 || cve.Want != cacheVersion {
+		t.Fatalf("CacheVersionError = %d/%d, want %d/%d", cve.Got, cve.Want, cacheVersion-1, cacheVersion)
+	}
+	want := fmt.Sprintf("IR cache version %d, want %d — run `make compile-cards`", cacheVersion-1, cacheVersion)
+	if cve.Error() != want {
+		t.Fatalf("Error() = %q, want %q", cve.Error(), want)
+	}
+	// LoadRegistry must return the typed error itself (not wrapped) so a
+	// bare type assertion keeps working too.
+	var direct *CacheVersionError
+	if !errors.As(err, &direct) || direct != cve {
+		t.Fatal("LoadRegistry wrapped or copied the typed error")
 	}
 }
