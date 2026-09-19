@@ -98,7 +98,16 @@ func (b *Bot) DecideBoard(_ context.Context, brd botpolicy.Board, d decision.Dec
 // two halves to the same facts over a whole game.
 func boardFromView(v view.View) botpolicy.Board {
 	b := botpolicy.Board{
-		IsMain:     v.Phase == "main1" || v.Phase == "main2",
+		IsMain: v.Phase == "main1" || v.Phase == "main2",
+		// The cast scorer's two board-half features (botpolicy/cast.go):
+		// FirstMain is the FIRST main phase (the Precombat feature), MyTurn
+		// whether the deciding seat is the active player (the
+		// InstantOnOwnTurn feature's "own main phase" half — a main phase can
+		// belong to another seat, so IsMain alone cannot say it). Same facts
+		// the game half derives from g.Step == state.StepMain1 and
+		// g.Active == me.
+		FirstMain:  v.Phase == "main1",
+		MyTurn:     v.Active == v.Viewer,
 		Creatures:  make(map[state.ObjID]botpolicy.Creature, 32),
 		Life:       make(map[state.PlayerID]int32, len(v.Players)),
 		Cards:      make(map[state.ObjID]botpolicy.Card, 16),
@@ -204,6 +213,7 @@ func boardFromView(v view.View) botpolicy.Board {
 				b.Cards[cv.ID] = botpolicy.Card{
 					Creature:      isCreatureView(cv),
 					Power:         cv.Power,
+					Toughness:     cv.Toughness,
 					CMC:           botpolicy.CmcOf(cv.ManaCost),
 					Basic:         hasBasicView(cv),
 					AttachedTo:    cv.AttachedTo,
@@ -211,6 +221,7 @@ func boardFromView(v view.View) botpolicy.Board {
 					ManaCost:      cv.ManaCost,
 					Castable:      castable(cv),
 					OnBattlefield: battlefield,
+					Tapped:        cv.Tapped,
 					Produces:      produces,
 					InstantSpeed:  instantSpeedView(cv),
 					Counter:       cv.SpellAPI == "Counter",
