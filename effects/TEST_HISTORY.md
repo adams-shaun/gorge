@@ -74,3 +74,6 @@ so the pre-perf calibration is not lost.
 | 2026-09-19T11:40Z | 5476ca3a+ | 0.6 | 400 | 0 | sadams |
 | 2026-09-19T11:37Z | 5476ca3a+ | 0.6 | 396 | 0 | sadams |
 | 2026-09-19T11:47Z | acca5b28+ | 0.6 | 396 | 0 | sadams |
+| 2026-09-19T11:50Z | ea3fc488+ | 0.6 | 400 | 0 | sadams |
+| 2026-09-19T11:51Z | ea3fc488+ | 0.6 | 400 | 0 | sadams |
+| 2026-09-19T11:51Z | ea3fc488+ | 0.8 | 400 | 0 | sadams |
