@@ -1279,7 +1279,7 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, scrip
 			// The provenance qualifier split applies here too (task castprov1):
 			// a would-be TOKEN was never cast at all, so an alternative carrying
 			// the qualifier is dropped for it.
-			spec, ok := e.castFromHandAdmits(v, tok.ID, e.controllerOf(m.id))
+			spec, ok := e.castProvenanceAdmits(v, tok.ID, e.controllerOf(m.id))
 			if !ok || !effects.MatchesObjectCtx(e.G, spec, tok,
 				e.rememberedSpecContext(e.controllerOf(m.id), m.id, m.remembered)) {
 				return false
@@ -1537,7 +1537,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			// it if you didn't cast it from your hand") is split out and
 			// evaluated against the log here (task castprov1); the remainder
 			// matches as before.
-			spec, ok2 := e.castFromHandAdmits(v, ev.Obj, you)
+			spec, ok2 := e.castProvenanceAdmits(v, ev.Obj, you)
 			if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
 				return false
 			}

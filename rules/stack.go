@@ -2092,7 +2092,7 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		// Count$ThisTurnCast_Card.wasCastFromYourHandByYou bodies) is
 		// evaluated per cast event against the log (task castprov1); the
 		// wasCastByYou sibling (task castprov2) rides the same combined read.
-		matchSpec, ok := e.castFromHandAdmits(spec, ev.Obj, you)
+		matchSpec, ok := e.castProvenanceAdmits(spec, ev.Obj, you)
 		if !ok {
 			continue
 		}
@@ -2116,6 +2116,30 @@ func (e *Engine) WasCastFromHandByYou(obj state.ObjID, p state.PlayerID) bool {
 		ev := e.L.Events[i]
 		if ev.Kind == events.PutOnStack && ev.Obj == obj {
 			return ev.From == state.ZHand && ev.Player == p
+		}
+	}
+	return false
+}
+
+// WasCastByYou reports whether card obj was CAST AT ALL by player p — the
+// bare wasCastByYou qualifier's engine read (task castprov2: the "When
+// CARDNAME enters, if you cast it" ETB family — Zacama, Marina Vendrell's
+// Grimoire — and Nine-Lives Familiar's etbCounter gate field): SOME
+// PutOnStack event for this object names you as caster, whatever zone the
+// cast came from (a normal hand cast, a flashback, any origin — the oracle's
+// "if you cast it" does not care where from). Copies were never cast; the
+// rules-side split (castProvenanceAdmits) applies that guard, this read
+// answers the log question alone. Derived from the event log like
+// WasCastFromHandByYou, so a replay derives the same answer; a card never
+// put on the stack (cheated into play) reads false. Shared approximation
+// with the hand read: the scan cannot distinguish a cast from a later
+// un-cast re-entry's provenance, but the exists-scan still answers the
+// oracle's own wording ("you did cast it, earlier").
+func (e *Engine) WasCastByYou(obj state.ObjID, p state.PlayerID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return ev.Player == p
 		}
 	}
 	return false

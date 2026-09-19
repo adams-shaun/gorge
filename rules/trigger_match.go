@@ -1496,12 +1496,12 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 		// log here, where the Engine is in scope; the remainder matches as
 		// before (task castprov1).
 		if ev.Obj != 0 && lki != nil && (source == ev.Obj || leftBattlefield(ev)) {
-			spec, ok := e.castFromHandAdmits(v, lki.ID, ctrl)
+			spec, ok := e.castProvenanceAdmits(v, lki.ID, ctrl)
 			if !ok || !effects.MatchesObjectCtx(e.G, spec, lki, e.specCtx(source, ctrl)) {
 				return false
 			}
 		} else {
-			spec, ok := e.castFromHandAdmits(v, ev.Obj, e.controllerOf(source))
+			spec, ok := e.castProvenanceAdmits(v, ev.Obj, e.controllerOf(source))
 			if !ok || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
 				return false
 			}
@@ -1556,7 +1556,7 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 		// bare !CastSaSource token (Alania) is NOT handled here: a trigger
 		// ValidCard$ exclusion of the current cast would dead the trigger
 		// either way, so it stays fail-closed (recorded in the ledger).
-		spec, ok2 := e.castFromHandAdmits(spec, ev.Obj, ctrl)
+		spec, ok2 := e.castProvenanceAdmits(spec, ev.Obj, ctrl)
 		if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
