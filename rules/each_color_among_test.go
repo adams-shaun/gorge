@@ -118,6 +118,17 @@ func TestFaeburrowElderEachColorAmong(t *testing.T) {
 	tapForMana(t, e2, "Faeburrow Elder")
 	poolIs(t, e2, [state.MC + 1]int32{state.MW: 1, state.MU: 1, state.MG: 1})
 	replayCheck(t, e2, cfg2)
+
+	// Shared-colour dedupe: a mono-G permanent joins the board. The set is a
+	// UNION of the matching permanents' colours, so a colour the Elder
+	// already contributes is not doubled — G=1 W=1, not G=2 W=1.
+	e3, cfg3 := eachColorGame(t, 91, []*cards.Card{elder,
+		card(t, monoFixtureSrc("G"))})
+	toMain1(t, e3)
+	moveToBattlefieldByName(t, e3, 0, "MonoG Testee")
+	tapForMana(t, e3, "Faeburrow Elder")
+	poolIs(t, e3, [state.MC + 1]int32{state.MW: 1, state.MG: 1})
+	replayCheck(t, e3, cfg3)
 }
 
 // TestTarnationVistaEachColorAmongMonoColor pins the +MonoColor variant: the
@@ -207,6 +218,56 @@ func TestMonoColorPredicate(t *testing.T) {
 	}
 	if !effects.MatchesSpec(e.G, "Card.MultiColor", m(elder), 0) {
 		t.Fatalf("two-coloured Elder does not match MultiColor")
+	}
+}
+
+// TestMonoColorWidensRealCorpusSpecs pins the generic predicate against a
+// REAL corpus card whose spec previously matched NOTHING (unknown predicate
+// failed closed): Ultimate Price's ValidTgts$ Creature.MonoColor read from
+// the compiled registry card itself — it now matches a monocoloured creature
+// and rejects a multicoloured one, and UnknownPredicates no longer reports
+// the word. Tarnation Vista is the carrier the ticket's fix needed; Ultimate
+// Price is one of the ~16 other corpus files the same predicate widened.
+func TestMonoColorWidensRealCorpusSpecs(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	price, ok := reg.Lookup("Ultimate Price")
+	if !ok {
+		t.Fatalf("Ultimate Price not in the compiled corpus")
+	}
+	var valid string
+	for _, ab := range price.Faces[0].Abilities {
+		if v, ok := ab.Params["ValidTgts"]; ok && strings.Contains(v, "MonoColor") {
+			valid = v
+		}
+	}
+	if valid == "" {
+		t.Fatalf("Ultimate Price carries no MonoColor ValidTgts in the compiled corpus")
+	}
+
+	monoG := card(t, monoFixtureSrc("G"))
+	dualUR := card(t, multicolourFixtureSrc("U", "R"))
+	e, _ := eachColorGame(t, 96, []*cards.Card{monoG, dualUR})
+	idOf := func(c *cards.Card) state.ObjID {
+		for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+			for _, id := range e.G.Zone(z, 0) {
+				if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == c.Faces[0].Name {
+					return id
+				}
+			}
+		}
+		t.Fatalf("card %q not seeded", c.Faces[0].Name)
+		return 0
+	}
+	if !effects.MatchesSpec(e.G, valid, idOf(monoG), 0) {
+		t.Fatalf("Ultimate Price's %q does not match a monocoloured creature", valid)
+	}
+	if effects.MatchesSpec(e.G, valid, idOf(dualUR), 0) {
+		t.Fatalf("Ultimate Price's %q matches a multicoloured creature", valid)
+	}
+	for _, p := range effects.UnknownPredicates(valid) {
+		if p == "MonoColor" {
+			t.Fatalf("MonoColor still reported unknown for %q", valid)
+		}
 	}
 }
 
