@@ -105,20 +105,33 @@ func TestBotAdaptersAgreePerStep(t *testing.T) {
 			{Index: 0, Kind: "activate", Obj: 100},
 			{Index: 1, Kind: "pass"},
 		}}
-	for _, s := range allSteps {
-		boardView := boardFromView(view.View{Phase: view.PhaseOf(s)})
-		boardGame := botpolicy.Board{IsMain: s.IsMain()} // the rules host's expression
-		if boardView.IsMain != boardGame.IsMain {
-			t.Errorf("step %s: view-shaped IsMain %v, game-shaped IsMain %v", s, boardView.IsMain, boardGame.IsMain)
-		}
-		inView, err := NewBot(1).Decide(context.Background(), view.View{Phase: view.PhaseOf(s)}, prio)
-		if err != nil {
-			t.Fatalf("step %s: view-shaped Decide: %v", s, err)
-		}
-		inGame := botpolicy.Decide(boardGame, &prio, rand.New(rand.NewPCG(1, 1^0x9e3779b97f4a7c15)))
-		if !slices.Equal(inView.Choices, inGame.Choices) {
-			t.Errorf("step %s: view-shaped choices %v, game-shaped choices %v", s, inView.Choices, inGame.Choices)
-		}
+	for _, tc := range []struct {
+		name string
+		new  func(uint64) *Bot
+	}{
+		{name: "bot", new: NewBot},
+		{name: "lethal-pressure", new: NewLethalPressureBot},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, s := range allSteps {
+				boardView := boardFromView(view.View{Phase: view.PhaseOf(s)})
+				boardGame := botpolicy.Board{IsMain: s.IsMain()} // the rules host's expression
+				if boardView.IsMain != boardGame.IsMain {
+					t.Errorf("step %s: view-shaped IsMain %v, game-shaped IsMain %v", s, boardView.IsMain, boardGame.IsMain)
+				}
+				inView, err := tc.new(1).Decide(context.Background(), view.View{Phase: view.PhaseOf(s)}, prio)
+				if err != nil {
+					t.Fatalf("step %s: view-shaped Decide: %v", s, err)
+				}
+				inGame, err := tc.new(1).DecideBoard(context.Background(), boardGame, prio)
+				if err != nil {
+					t.Fatalf("step %s: game-shaped DecideBoard: %v", s, err)
+				}
+				if !slices.Equal(inView.Choices, inGame.Choices) {
+					t.Errorf("step %s: view-shaped choices %v, game-shaped choices %v", s, inView.Choices, inGame.Choices)
+				}
+			}
+		})
 	}
 }
 
