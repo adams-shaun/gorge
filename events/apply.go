@@ -1115,6 +1115,46 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case CopyToken:
+		// DB$ CopyPermanent's mint (task copyp1: Flamerush Rider, Molten
+		// Echoes, the populate family). Mirrors MyriadCopy's discipline: the
+		// copy is the SOURCE CARD + face snapshot taken BEFORE AddObject
+		// (which may reallocate g.Objs), the token's printed characteristics
+		// are the copied card's, and the entry-state riders ride the Amount
+		// bitmask so a replay derives the identical object. Like MyriadCopy
+		// this only MINTS (in the untracked ZLibrary state AddObject leaves
+		// it in); the caller follows with a genuine MoveZone so the entry is
+		// an ordinary ChangesZone-matchable event. AtEOT$ ExileCombat flags
+		// IsMyriad so the existing end-of-combat cleanup -- the same fold and
+		// the same rules-side emit gate Myriad tokens already use -- exiles
+		// the copy with identical semantics (end of combat, battlefield
+		// only). Totality like every case: a missing source or an invalid
+		// player mints nothing.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil || src.Card == nil {
+			break
+		}
+		card, faceIdx := src.Card, src.FaceIdx
+		o := g.AddObject(card, e.Player)
+		o.IsToken = true
+		o.IsCopy = true
+		o.FaceIdx = faceIdx
+		if e.Amount&CopyTokenTapped != 0 {
+			o.Tapped = true
+		}
+		if e.Amount&CopyTokenAttacking != 0 {
+			o.IsAttacking = true
+			if len(e.IDs) > 0 {
+				o.Attacking = state.PlayerID(e.IDs[0])
+			}
+		}
+		if e.Amount&CopyTokenExileCombat != 0 {
+			o.IsMyriad = true
+		}
+
 	case KeywordTriggerPush:
 		if !validPlayer(g, e.Player) {
 			break

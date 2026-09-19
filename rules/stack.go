@@ -803,7 +803,23 @@ func (e *Engine) affectedCandidates(p state.PlayerID, source, excludeSelf state.
 
 func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA, targeting bool) []targetCandidate {
 	spec := sa.Params["ValidTgts"]
-	sc := e.targetSpecContext(source, excludeSelf, p)
+	// The spec-relative source (Self/Other/CARDNAME/sameName predicates read
+	// it) is the SOURCE PERMANENT when the ask belongs to a minted ability
+	// object -- the same object resolution-time recheck (legalTargets) already
+	// judges its specs against (rules/stack.go passes o.Source there), so the
+	// offer and the recheck cannot disagree (Critical C2's one-definition
+	// rule). The Face-less wrapper itself is never a creature/permanent, so
+	// a spec like Flamerush Rider's `Creature.attacking+Other` judged the
+	// wrapper id meant "every creature but nobody in particular" and offered
+	// the ability's own source as its own copy target. excludeSelf stays the
+	// object the CR 115.5 self-targeting rule keys on (the stack object, for
+	// an ability -- an ability CAN legally target its own Source permanent),
+	// and the trigger-context lookup stays keyed on the stack id.
+	specSrc := source
+	if o := e.G.Obj(source); o != nil && o.Face() == nil && o.Ability != nil && o.Source != 0 {
+		specSrc = o.Source
+	}
+	sc := e.targetSpecContext(specSrc, excludeSelf, p)
 	zones := targetZones(sa)
 	var out []targetCandidate
 	// Players are offered only alongside the default battlefield search and
