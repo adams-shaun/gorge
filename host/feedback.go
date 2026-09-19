@@ -50,6 +50,7 @@ type FeedbackMatch struct {
 	Format       Format              `json:"format,omitempty"`
 	StartingLife int32               `json:"starting_life,omitempty"`
 	Commanders   [][]int             `json:"commanders,omitempty"`
+	BotPolicy    string              `json:"bot_policy"`
 
 	// Tokens carries the raw token scripts — keyed by file stem, the exact
 	// spelling a card's TokenScript$ parameter uses — behind the match's
@@ -253,7 +254,7 @@ func feedbackMatch(sc sidecar, deckCards [][]string, tokens map[string]string, t
 		PlayerNames: sc.PlayerNames, Decks: sc.Decks, DeckCards: deckCards, Spectator: sc.Spectator,
 		State: sc.State, Result: sc.Result, Winner: sc.Winner, Head: sc.Head, Events: sc.Events,
 		Turns: sc.Turns, Reason: sc.Reason, Mulligans: sc.Mulligans, Format: sc.Format,
-		StartingLife: sc.StartingLife, Commanders: sc.Commanders,
+		StartingLife: sc.StartingLife, Commanders: sc.Commanders, BotPolicy: sc.BotPolicy,
 		Tokens: tokens, TokensUnread: tokensUnread,
 	}
 }

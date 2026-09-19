@@ -161,7 +161,7 @@ func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.S
 	// the stack. A response may change control of the cumulative permanent,
 	// but it must not transfer the already-triggered payment decision.
 	cu := &cumulativeUpkeep{stackObj: stackObj, source: source, player: stack.Controller,
-		amount: scaleCost(ParseCost(label), o.Counter("AGE")), costLabel: label,
+		amount: scaleCost(e.parseCost(label), o.Counter("AGE")), costLabel: label,
 		actionRemaining: o.Counter("AGE")}
 	if actionOK {
 		cu.action = action
@@ -181,7 +181,7 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 	}
 	label := rp.sa.Params["Cost"]
 	e.triggerCost = &triggeredEffectCost{resume: rp, source: source,
-		player: o.Controller, amount: ParseCost(label), costLabel: label}
+		player: o.Controller, amount: e.parseCost(label), costLabel: label}
 	e.triggeredCostPaymentAsk()
 }
 
@@ -190,6 +190,12 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 func (e *Engine) paymentWindowAsk() {
 	if e.triggerCost != nil {
 		e.triggeredCostPaymentAsk()
+		return
+	}
+	if e.echo != nil {
+		// kw:Echo's mana window re-opens after each activated source (the
+		// same continuation every other window uses).
+		e.echoElectionAsk()
 		return
 	}
 	e.cumulativePaymentAsk()
@@ -430,6 +436,15 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	}
 	opts := []decision.Option{{Index: 0, Kind: "trigger_cost_pay", Obj: tc.source, Label: "Pay " + tc.costLabel},
 		{Index: 1, Kind: "trigger_cost_decline", Obj: tc.source, Label: "Do not pay"}}
+	if !tc.amount.Priceable() {
+		// An unpriceable cost (PayLife<X>, Verrak, Warped Sengir's copy
+		// trigger) is a hard decline per the ParseUnlessCost convention: the
+		// ask is still posed and the decision recorded, but "pay" is not an
+		// answerable option -- never a free copy through a zero-amount read.
+		// Options are renumbered: an ask's option Index must equal its
+		// position.
+		opts = []decision.Option{{Index: 0, Kind: "trigger_cost_decline", Obj: tc.source, Label: "Do not pay"}}
+	}
 	e.choosing = chooseTriggeredCost
 	e.ask(&decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: name + " — pay " + tc.costLabel + "?", Source: tc.source, Options: opts})

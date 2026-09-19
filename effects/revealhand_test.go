@@ -83,8 +83,9 @@ func TestGitaxianProbeLookIsAPrivateLookScopedToTheActivator(t *testing.T) {
 	src := h.g.AddObject(mkCard(t, "Name:Gitaxian Probe\nManaCost:UP\nTypes:Sorcery\nOracle:x\n"), 0)
 	ctx := &Ctx{Source: src.ID, Controller: 0,
 		// ValidTgts$ Player with no Defined$: the ability acts on its
-		// chosen targets, which the harness supplies directly.
-		Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+		// chosen targets, which the harness supplies directly (marked as
+		// offered — the placement/announcement ask already chose them).
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}
 	Resolve(sh, ctx, probe)
 
 	// The pacing gate (lookack): the bare look first poses its one-option
@@ -156,7 +157,7 @@ func TestThoughtKnotSeerRevealHandRevealsTheWholeHand(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	src := corpusObject(t, reg, h.g, "Thought-Knot Seer")
 	ctx := &Ctx{Source: src.ID, Controller: 0,
-		Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}
 	Resolve(h, ctx, trig)
 
 	// Two Notes: the public whole-hand reveal, then the sub-ability's

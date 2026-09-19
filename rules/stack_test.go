@@ -851,3 +851,61 @@ func TestTargetBoundsClampsTargetMaxNotDiscardsIt(t *testing.T) {
 		})
 	}
 }
+
+// TestResolvedTargetBoundsDynamic extends the clamp contract to the dynamic
+// bounds resolvedTargetBounds serves: a literal token passes through
+// unchanged; TargetMax$ X resolves through the effects numeric grammar (an
+// SVar name, or the bare X bound to the caller's x); a token the grammar
+// cannot resolve keeps today's default-1 semantics (never a degrade-to-zero,
+// which would open resolveTop's N2 exemption for a mandatory Min); and the
+// clamps apply AFTER resolution. The fixture face is reached through a hand
+// object, the same anchor targetBoundCtx uses for a spell -- the end-to-end
+// ask behaviour is pinned in targetmax_x_test.go and the Mantle pin in
+// changezone_attachedto_test.go.
+func TestResolvedTargetBoundsDynamic(t *testing.T) {
+	xVolley := card(t, "Name:Bound Volley\nManaCost:R\nTypes:Instant\n"+
+		"A:SP$ Draw | Defined$ You | NumCards$ 1 | ValidTgts$ Creature | TargetMax$ X\n"+
+		"SVar:X:Count$Valid Creature.YouCtrl\nOracle:x\n")
+	xMin := card(t, "Name:Bound Min\nManaCost:R\nTypes:Instant\n"+
+		"A:SP$ Draw | Defined$ You | NumCards$ 1 | ValidTgts$ Creature | TargetMin$ X | TargetMax$ X\n"+
+		"SVar:X:Count$Valid Creature.YouCtrl\nOracle:x\n")
+	bareX := card(t, "Name:Bound Bare\nManaCost:X R\nTypes:Sorcery\n"+
+		"A:SP$ Draw | Defined$ You | NumCards$ 1 | ValidTgts$ Creature | TargetMax$ X\nOracle:x\n")
+	unresolvable := card(t, "Name:Bound Y\nManaCost:R\nTypes:Instant\n"+
+		"A:SP$ Draw | Defined$ You | NumCards$ 1 | ValidTgts$ Creature | TargetMin$ Y | TargetMax$ Y\nOracle:x\n")
+	bear := card(t, testBearSrc)
+	e := handEngine(t, xVolley, xMin, bareX, unresolvable, bear, bear)
+	ids := map[string]state.ObjID{}
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		o := e.G.Obj(id)
+		ids[o.Face().Name] = id
+		if o.Face().Name == "Bear" {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+		}
+	}
+	for _, tc := range []struct {
+		name             string
+		id               state.ObjID
+		x                int32
+		wantMin, wantMax int
+	}{
+		{"X with a resolvable SVar reads the count", ids["Bound Volley"], 0, 1, 2},
+		{"TargetMin$ X reads the count and clamps Max up to Min", ids["Bound Min"], 0, 2, 2},
+		{"bare X reads the caller's x", ids["Bound Bare"], 3, 1, 3},
+		{"bare X zero clamps back to one", ids["Bound Bare"], 0, 1, 1},
+		{"unresolvable Y keeps the default, not a zero", ids["Bound Y"], 0, 1, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sa := e.G.Obj(tc.id).Face().SpellAbility()
+			min, max := e.resolvedTargetBounds(0, tc.id, sa, tc.x)
+			if min != tc.wantMin || max != tc.wantMax {
+				t.Fatalf("resolvedTargetBounds = (%d, %d), want (%d, %d)", min, max, tc.wantMin, tc.wantMax)
+			}
+		})
+	}
+	// The resolved bound feeds resolveTop's N2 gate: an unresolvable
+	// TargetMin$ X must NOT open the resolve-untargeted exemption.
+	if got := e.resolvedTargetMin(0, ids["Bound Y"], e.G.Obj(ids["Bound Y"]).Face().SpellAbility(), 0); got != 1 {
+		t.Fatalf("unresolvable TargetMin$ X resolved to %d, want the default 1", got)
+	}
+}

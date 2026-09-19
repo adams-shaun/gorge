@@ -44,9 +44,9 @@ func fixtures(t *testing.T) []Frame {
 		// underlying types).
 		Pending: []view.PendingView{{Source: 30, Controller: 1, Label: "Watcher: gain 1 life", Optional: true, Decider: (*state.PlayerID)(seat(1))}}}
 	return []Frame{
-		mk(THello, 0, Hello{Session: "s3", Tables: []TableInfo{{ID: "t1", Name: "Table 1", Seats: 4, Spectator: "omniscient", State: TableLive, Match: 7, Perpetual: true, Format: "commander"}}}),
+		mk(THello, 0, Hello{Session: "s3", Tables: []TableInfo{{ID: "t1", Name: "Table 1", Seats: 4, Spectator: "omniscient", State: TableLive, Match: 7, Perpetual: true, Format: "commander", BotPolicy: "bot"}}}),
 		mk(TWidget, 9130, Widget{Turn: 3, Step: "main1", Phase: "main1", Active: 0, Priority: 2, Life: []int32{20, 17, 12, 20}, Lost: []bool{false, false, false, false}, StackDepth: 1, Last: "Bob casts Bolt #2", State: MatchLive}),
-		mk(TMatchStart, 0, MatchStart{Seats: []SeatInfo{{Name: "mono-red-goblins", Deck: "mono-red-goblins", Colour: SeatColours[0]}}, Seed: 12345, Spectator: "omniscient"}),
+		mk(TMatchStart, 0, MatchStart{Seats: []SeatInfo{{Name: "mono-red-goblins", Deck: "mono-red-goblins", Colour: SeatColours[0]}}, Seed: 12345, Spectator: "omniscient", BotPolicy: "bot"}),
 		mk(TSnapshot, 9130, Snapshot{View: v, TurnStarts: []uint64{0, 402, 1180}, Head: 9130}),
 		mk(TEvent, 9131, EventBody{Event: EventFrom(events.Event{Seq: 9131, Kind: events.MoveZone, Player: 1, Obj: 12, From: state.ZHand, To: state.ZBattlefield}), Line: "Goblin Guide #12 moves from hand to battlefield"}),
 		mk(TDecision, 9131, DecisionBody{Player: 2, Kind: "priority", Prompt: "You have priority."}),

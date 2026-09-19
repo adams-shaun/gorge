@@ -64,6 +64,12 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 			if f == nil {
 				continue
 			}
+			if e.faceDownPrintedHides(o) {
+				// CR 708.8: a face-down permanent's printed statics do not
+				// exist while it is face down (the one gate shared with
+				// activeStatics, the trigger scan and the offer loops).
+				continue
+			}
 			// Enchantment Rooms (rules/rooms.go): once the room's second door
 			// is unlocked, the ALTERNATE face's statics are live too -- a room
 			// permanent's rules text is both halves' combined after the
@@ -157,8 +163,15 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						} else {
 							ty.AddTypes = nil
 						}
+						// The strip flags ride the AddType emission (measured: every
+						// corpus S: line carrying RemoveCardTypes$/RemoveCreatureTypes$
+						// also carries AddType$): a strip-only static -- an AddType$
+						// ChosenType the host has not resolved -- must still emit so
+						// the strip is not silently dropped.
+						ty.RemoveCardTypes = hasStat(st, "RemoveCardTypes")
+						ty.RemoveCreatureTypes = hasStat(st, "RemoveCreatureTypes")
 						ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-						if len(ty.AddTypes) > 0 {
+						if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes {
 							out = append(out, ty)
 						}
 					}
@@ -273,7 +286,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 					// the outer spec no longer matches, grants nothing.
 					if name := strings.TrimSpace(st.Params["AddStaticAbility"]); name != "" && w.depth == 0 {
 						if inner, ok := cards.ParseStaticLine(fc.SVars[name]); ok && inner.Mode == "Continuous" &&
-							effects.MatchesSpecFrom(e.G, affects, id, o.Controller, id) {
+							e.matchesSpecFrom(affects, id, o.Controller, id) {
 							grantQueue = append(grantQueue, staticWork{st: inner, depth: w.depth + 1})
 						}
 					}
@@ -327,6 +340,36 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							lv.MayLookAt = true
 							out = append(out, lv)
 						}
+					}
+					// A control-change static (Mind Control's "You control enchanted
+					// creature", Fealty to the Realm's "The monarch controls
+					// enchanted creature"): GainControl$ on a Mode$ Continuous static
+					// hands every object the Affected$ spec matches to the player the
+					// value names, for exactly as long as the static is live. Like
+					// MayPlay it changes no characteristic, so it is carried as a
+					// rules-mod (GainControl) and realized by rules'
+					// reconcileControlStatics (rules/control_static.go): that pass
+					// registers a real tracked control grant and emits
+					// events.ControlChange only where the object's controller
+					// actually differs, and the tracked grant's liveness (grantEnded)
+					// is this scan's own output, so an ended static -- source left,
+					// gate flipped, Aura moved bearers, named player changed -- hands
+					// the bearer back through expireControl's ordinary Previous
+					// chain. The VALUE itself is not validated here (the scan cannot
+					// resolve players): resolution happens in the reconcile, where a
+					// value that names nobody -- or several players -- yields no
+					// grant, the fail-closed direction. The static's "as long as"
+					// gate (IsPresent$/CheckSVar$) already ran above for every
+					// branch. Measured corpus population (GNU /usr/bin/grep): 42 raw
+					// S:Mode$ Continuous lines carrying GainControl$, every one
+					// shaped Mode/Affected/GainControl/Description with Affected$
+					// *.EnchantedBy and the value You (41) or Player.isMonarch (1,
+					// Fealty to the Realm); none is in any repo deck, so the golden
+					// heads and the ratchet are untouched by construction.
+					if raw := strings.TrimSpace(st.Params["GainControl"]); raw != "" {
+						gc := base
+						gc.GainControl = raw
+						out = append(out, gc)
 					}
 				}
 				e.staticQueueBuf = grantQueue
@@ -451,7 +494,7 @@ func (e *Engine) GrantedSVar(id state.ObjID, name string) (string, bool) {
 		if len(ce.AddSVars) == 0 {
 			continue
 		}
-		if v, ok := ce.AddSVars[name]; ok && effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+		if v, ok := ce.AddSVars[name]; ok && e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
 			return v, true
 		}
 	}
@@ -470,7 +513,7 @@ func (e *Engine) grantedSVarsFor(id state.ObjID) map[string]string {
 		if len(ce.AddSVars) == 0 {
 			continue
 		}
-		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+		if !e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
 			continue
 		}
 		if merged == nil {
@@ -497,7 +540,7 @@ func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
 		return false
 	}
 	for _, ce := range e.active() {
-		if ce.MayLookAt && effects.MatchesSpecFrom(e.G, ce.Affects, lib[0], ce.Controller, ce.Source) {
+		if ce.MayLookAt && e.matchesSpecFrom(ce.Affects, lib[0], ce.Controller, ce.Source) {
 			return true
 		}
 	}
@@ -784,6 +827,7 @@ func (e *Engine) nextTurnFor(p state.PlayerID) int32 {
 // step.
 func (e *Engine) EndOfTurnCleanup() {
 	e.expireControl(controlAtCleanup)
+	e.reconcileControlStatics()
 	kept := e.continuous[:0]
 	for _, ce := range e.continuous {
 		// A Permanent one-shot survives cleanup (CR 611.2a).
@@ -848,6 +892,41 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 		if exile != "" && effects.ParseZone(exile) == ev.From && objIDIn(ce.Remembered, ev.Obj) {
 			changed = true
 			continue // the effect ends: not kept
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousVersion++
+}
+
+// effectCounterSweep is the counter-driven lifetime of Effect-created
+// continuous effects (task vow1; ForgetCounter$), run from Engine.emit after
+// every CounterChange has been applied: a remembered card whose count of the
+// named kind reached zero after that removal leaves the effect's Remembered
+// set -- Promise of Loyalty's "for as long as it has a vow counter on it",
+// Quicksilver Fountain's FLOOD, Obsidian Fireheart's BLAZE (18 corpus
+// carriers). The measured semantics this build pins: a count that DROPS
+// without reaching zero keeps the card (a multi-countered card loses the
+// restriction only when its LAST such counter goes), and an ADDITION never
+// forgets anything. Like effectMoveSweep this is an in-place rewrite of
+// e.continuous that emits no event and moves no log head; a replay rebuilds
+// it by re-executing the same registrations against the same counter events,
+// so it reproduces byte-identically.
+func (e *Engine) effectCounterSweep(ev events.Event) {
+	if ev.Amount >= 0 || len(e.continuous) == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.ForgetCounter != "" && ce.ForgetCounter == ev.Counter && objIDIn(ce.Remembered, ev.Obj) {
+			if o := e.G.Obj(ev.Obj); o == nil || o.Counter(ev.Counter) == 0 {
+				ce.Remembered = objIDWithout(ce.Remembered, ev.Obj)
+				changed = true
+			}
 		}
 		kept = append(kept, ce)
 	}
@@ -980,7 +1059,23 @@ func (e *Engine) active() []ContinuousEffect {
 		if buf[i].Sub != buf[j].Sub {
 			return buf[i].Sub < buf[j].Sub
 		}
-		return buf[i].Timestamp < buf[j].Timestamp
+		if buf[i].Timestamp != buf[j].Timestamp {
+			return buf[i].Timestamp < buf[j].Timestamp
+		}
+		// A full tie inside layer 6 between an ability-REMOVING effect and an
+		// ability-granting one (a static line carrying both RemoveAllAbilities$
+		// True and AddKeyword$ -- Darksteel Mutation, Deep Freeze, Stasis Field,
+		// Spider-Man No More; measured 4 corpus files) applies removal first:
+		// the oracle's "loses all OTHER abilities" grants after stripping (CR
+		// 613.1f's removal-then-grant reading of a simultaneous pair). Without
+		// this tie-break the stable sort keeps the scanner's emission order and
+		// the removal wipes the very grant on its own line. Timestamps still
+		// dominate: a LATER removal (Humility entering after) still wipes an
+		// earlier grant.
+		if buf[i].Layer == LAbilities && buf[i].RemoveAbilities != buf[j].RemoveAbilities {
+			return buf[i].RemoveAbilities
+		}
+		return false
 	})
 	if e.activeDepth <= 1 {
 		// Keep the grown, sorted buffer on the Engine for the next build or
@@ -988,6 +1083,22 @@ func (e *Engine) active() []ContinuousEffect {
 		e.activeBuf = buf
 	}
 	return buf
+}
+
+// faceDownBasis is CR 708.5's synthetic printed face for a face-down
+// battlefield permanent: a vanilla 2/2 creature. Only exported fields are
+// read off it (derivedScalarFrom pins the 2/2 base itself, since Face's
+// parsed P/T is unexported); nothing writes to it.
+var faceDownBasis = &cards.Face{Types: []string{"Creature"}}
+
+// faceDownPrintedHides is the one CR 708.8 gate every printed-face scan
+// shares: while a battlefield object is face down, its printed abilities,
+// triggers and statics do not exist. The ability-offer loop, the
+// mana-ability collector, the trigger scan and both static scans all
+// consult it, so no printed face of a manifested card can leak into any
+// offer or queue while it is face down.
+func (e *Engine) faceDownPrintedHides(o *state.Object) bool {
+	return o != nil && o.FaceDown && o.Zone == state.ZBattlefield
 }
 
 // typeCharacteristics applies layer 4 before anything that tests a type. The
@@ -1000,6 +1111,13 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return nil
+	}
+	// CR 708.5: a face-down battlefield permanent's type set is exactly
+	// {Creature} -- its printed types do not exist while it is face down
+	// (even a manifested land). Layer-4 grants from other permanents still
+	// apply on top in the walk below.
+	if o.FaceDown && o.Zone == state.ZBattlefield {
+		return []string{"Creature"}
 	}
 	zone := o.Zone
 	if atStack != 0 {
@@ -1019,7 +1137,7 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 		}
 	}
 	if !anyLType {
-		return o.Face().Types
+		return bestowedTypeSwitch(o, o.Face().Types)
 	}
 	ty := append([]string(nil), o.Face().Types...)
 	for _, ce := range e.active() {
@@ -1030,6 +1148,20 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, zone)) {
 				continue
 			}
+		}
+		if ce.RemoveCardTypes {
+			// RemoveCardTypes$ keeps only the SUPERTYPES: a subtype is tied to
+			// its card type (CR 205.2-family), so losing the card type loses
+			// its subtypes, and the flat type list cannot attribute a subtype
+			// word to a surviving type. Both flags together are therefore
+			// "everything but supertypes" -- Darksteel Mutation's oracle.
+			kept := ty[:0]
+			for _, t := range ty {
+				if isSupertype(t) {
+					kept = append(kept, t)
+				}
+			}
+			ty = kept
 		}
 		if ce.RemoveCreatureTypes {
 			kept := ty[:0]
@@ -1042,20 +1174,53 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 		}
 		ty = append(ty, ce.AddTypes...)
 	}
-	return ty
+	return bestowedTypeSwitch(o, ty)
+}
+
+// bestowedTypeSwitch applies CR 702.114e's type switch to a DERIVED type
+// list: a bestowed card attached to a creature is an Aura, not a creature --
+// the printed "Enchantment Creature" pair loses its Creature half and gains
+// Aura -- and an unattached bestowed card (or anything not bestowed) keeps
+// the list unchanged, returning the SAME slice so the common game stays
+// byte-identical and allocation-free. Derived live state
+// (state.Object.BestowedAttached), never a stored marker, so every replay
+// derives the switch identically. Creature SUBTYPES deliberately stay: the
+// subtype words are inert on an Aura in every filter this engine evaluates
+// (no Aura filter reads "Archon"), and stripping them would widen the diff
+// into every subtype-affected static.
+func bestowedTypeSwitch(o *state.Object, types []string) []string {
+	if !o.BestowedAttached() {
+		return types
+	}
+	out := make([]string, 0, len(types)+1)
+	for _, t := range types {
+		if t == "Creature" {
+			continue
+		}
+		out = append(out, t)
+	}
+	return append(out, "Aura")
 }
 
 func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []string, atStack state.Zone) bool {
-	return effects.MatchesSpecCtx(e.G, ce.Affects, id, effects.SpecContext{
-		You: ce.Controller, Source: ce.Source, AsStack: atStack != 0,
-		// ExtraTypes is the walk's types-so-far list for THIS object: a later
-		// layer-4 effect selects a creature an earlier one made a Goblin, and
-		// a layer-7 lord's Affected$ sees the derived type. A value slice,
-		// not a callable: a call made through a SpecContext field makes
-		// escape analysis leak the whole context (its Resolve closure
-		// included) to the heap on every hot-path construction.
-		ExtraTypes: types,
-	})
+	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
+	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
+	// `Instant.wasCastByYou+wasCastFromYourHand`) are split out before the
+	// filter match, through the combined entry point; its Contains guard is
+	// the early-out, so every Affected$ spec without the tokens costs three
+	// Contains calls on this shared hot path.
+	affects, ok := e.castProvenanceAdmits(ce.Affects, id, ce.Controller)
+	if !ok {
+		return false
+	}
+	// ExtraTypes is the walk's types-so-far list for THIS object: a later
+	// layer-4 effect selects a creature an earlier one made a Goblin, and a
+	// layer-7 lord's Affected$ sees the derived type. A value slice, not a
+	// callable, keeps the context stack-allocated on this hot path.
+	sc := e.specCtx(ce.Source, ce.Controller)
+	sc.AsStack = atStack != 0
+	sc.ExtraTypes = types
+	return effects.MatchesSpecCtx(e.G, affects, id, sc)
 }
 
 // derivedScalar returns only an object's derived power and toughness — the
@@ -1080,21 +1245,29 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 }
 
 func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Face, active []ContinuousEffect) (power, toughness int32) {
-	power, toughness = int32(f.Power()), int32(f.Toughness())
-	// Layer 7a (CR 613.4a): the object's own characteristic-defining ability
-	// (CharacteristicDefining$ True) sets the base P/T that every later
-	// layer applies on top of, in EVERY zone (CR 604.3/208.2 -- Master of
-	// Etherium is its artifact count in hand and graveyard too, which the
-	// battlefield-only static scan cannot express). Applied before the
-	// effect walk below, so a layer-7b set still overrides it and a 7c
-	// modify still stacks on it. staticEffects withholds the resolvable CDAs
-	// from its emission exactly so this read is not applied twice.
-	if p, tp, hp, ht := e.cdaSetPT(o); hp || ht {
-		if hp {
-			power = p
-		}
-		if ht {
-			toughness = tp
+	if o != nil && o.FaceDown && o.Zone == state.ZBattlefield {
+		// CR 708.5's base: a face-down battlefield permanent is a 2/2
+		// creature; its printed P/T and any printed characteristic-defining
+		// ability do not exist while it is face down. Layer-7 effects on top
+		// still apply in the walk below.
+		power, toughness = 2, 2
+	} else {
+		power, toughness = int32(f.Power()), int32(f.Toughness())
+		// Layer 7a (CR 613.4a): the object's own characteristic-defining ability
+		// (CharacteristicDefining$ True) sets the base P/T that every later
+		// layer applies on top of, in EVERY zone (CR 604.3/208.2 -- Master of
+		// Etherium is its artifact count in hand and graveyard too, which the
+		// battlefield-only static scan cannot express). Applied before the
+		// effect walk below, so a layer-7b set still overrides it and a 7c
+		// modify still stacks on it. staticEffects withholds the resolvable CDAs
+		// from its emission exactly so this read is not applied twice.
+		if p, tp, hp, ht := e.cdaSetPT(o); hp || ht {
+			if hp {
+				power = p
+			}
+			if ht {
+				toughness = tp
+			}
 		}
 	}
 	// typeCharacteristics is 837910f4's layer-4-aware type derivation; the
@@ -1204,6 +1377,17 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		return Derived{}
 	}
 	f := o.Face()
+	// CR 708.5: while a battlefield object is face down its printed face
+	// does not exist -- the derived basis is a vanilla 2/2 Creature face
+	// (derivedScalarFrom pins the 2/2 base; this synthetic face carries no
+	// keywords or printed types, and the colour basis below is overridden
+	// to none). Layer effects from OTHER permanents still apply on top (an
+	// Anthem pumps a manifested 2/2 to 3/3); the printed-face scans never
+	// reach here because faceDownPrintedHides gates them all off (CR 708.8).
+	faceDown := o.FaceDown && o.Zone == state.ZBattlefield
+	if faceDown {
+		f = faceDownBasis
+	}
 	active := e.active()
 	power, toughness := e.derivedScalarFrom(id, o, f, active)
 	zone := o.Zone
@@ -1235,6 +1419,9 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	// 837910f4's type-aware wrapper — a bare SpecContext carries no
 	// ExtraTypes, so MatchesSpecCtx here would regress to printed types only.
 	col := effects.ColorMaskOf(o)
+	if faceDown {
+		col = 0 // CR 708.5: a face-down permanent has no colours
+	}
 	for _, ce := range active {
 		if !e.matchesWithTypes(ce, id, ty, atStack) {
 			continue
@@ -1375,6 +1562,17 @@ var (
 	supertypeWords = []string{"Basic", "Legendary", "Ongoing", "Snow", "World"}
 )
 
+// isSupertype reports whether t is a supertype word (the only thing a
+// RemoveCardTypes strip keeps: card types and their subtypes go).
+func isSupertype(t string) bool {
+	for _, w := range supertypeWords {
+		if strings.EqualFold(w, t) {
+			return true
+		}
+	}
+	return false
+}
+
 // isCreatureSubtype reports whether t is a subtype word (a creature type
 // under RemoveCreatureTypes' reading): not a card type and not a supertype.
 func isCreatureSubtype(t string) bool {
@@ -1449,7 +1647,7 @@ func (e *Engine) restrictionApplies(ce ContinuousEffect, id state.ObjID) bool {
 	if spec == "" {
 		return len(ce.Remembered) > 0
 	}
-	sc := effects.SpecContext{You: ce.Controller, Source: ce.Source}
+	sc := e.specCtx(ce.Source, ce.Controller)
 	for _, r := range ce.Remembered {
 		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 	}
@@ -1467,6 +1665,151 @@ func (e *Engine) restrictionActorMatches(ce ContinuousEffect, actor state.Player
 		return true
 	}
 	return effects.MatchesPlayerSpec(e.G, spec, actor, ce.Controller)
+}
+
+// SacrificeBlocked implements effects.Host for the CantSacrifice restriction
+// (task combatrestriction1): reports whether id is forbidden from being
+// sacrificed at all — an Effect-registered CantSacrifice restriction (Call for
+// Aid's "You can't sacrifice those creatures this turn") or a face
+// CantSacrifice static (the simple Card.Self carriers). Consulted at every
+// sacrifice candidate choke point (effSacrifice's eligible pool and its
+// object-target paths, effSacrificeAll, and the cast/activation/mana/ward/
+// unless Sac-cost candidate walks), so a blocked permanent is never offered,
+// never asked, and never taken.
+func (e *Engine) SacrificeBlocked(id state.ObjID) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantSacrifice" {
+			continue
+		}
+		if e.restrictionApplies(ce, id) {
+			return true
+		}
+	}
+	for _, sv := range e.activeStatics("CantSacrifice") {
+		if !effects.CantRestrictionParamsReadable(sv.Params) {
+			continue
+		}
+		if spec := sv.Params["ValidCard"]; spec != "" &&
+			effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			return true
+		}
+	}
+	return false
+}
+
+// attackBlocked reports whether creature id is forbidden from being declared
+// attacking defender this combat — an Effect-registered CantAttack restriction
+// (Call for Aid's "You can't attack that player this turn") or a face
+// CantAttack static (the Vow cycle's "can't attack you"). A restriction with
+// no Target$ (the "Creatures can't attack." shapes) blocks every defender.
+// Consulted at the two (attacker, defender) enforcement points — askAttackers'
+// option filter and validateAttackers — and by mustAttackRequired's
+// attackPairAvailable gate (CR 508.1d's "if able").
+func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantAttack" {
+			continue
+		}
+		if !e.restrictionApplies(ce, id) {
+			continue
+		}
+		if !restrictionPlayerTargetMatches(e.G, ce.RestrictParams["Target"], defender, ce.Controller, ce.RememberedPlayers) {
+			continue
+		}
+		return true
+	}
+	for _, sv := range e.activeStatics("CantAttack") {
+		if !effects.CantRestrictionParamsReadable(sv.Params) {
+			continue
+		}
+		spec := sv.Params["ValidCard"]
+		if spec == "" || !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, nil) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// restrictionPlayerTargetMatches resolves a CantAttack restriction's Target$
+// player spec (the defender-side scoping: "can't attack THAT player") against
+// the defender under attack. The corpus spells it as a comma-separated list of
+// player specs ("You,Planeswalker.YouCtrl" — this build has no
+// planeswalker-attack path, so a walker clause is a player spec that matches
+// nobody and the You half carries the read); any part matching blocks the
+// pair. An absent Target$ applies to every defender.
+func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, rememberedPlayers []state.PlayerID) bool {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return true
+	}
+	for _, part := range strings.Split(spec, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		if restrictionPlayerSpecMatches(g, part, defender, controller, rememberedPlayers) {
+			return true
+		}
+	}
+	return false
+}
+
+// restrictionPlayerSpecMatches resolves ONE player spec of a restriction's
+// Target$ against the defender, with the one extension the ordinary
+// MatchesPlayerSpec grammar cannot answer: an IsRemembered clause (Player.
+// IsRemembered, and its ! negation and + compounds) resolves against the
+// registered effect's captured player set (state.ContinuousEffect.
+// RememberedPlayers — Call for Aid's RememberObjects$ TargetedPlayer), not
+// against a source object's event-backed list, which a one-shot sorcery
+// source does not carry. A face static passes an empty remembered set, so its
+// IsRemembered clauses match nobody (fail closed).
+func restrictionPlayerSpecMatches(g *state.Game, spec string, defender, controller state.PlayerID, rememberedPlayers []state.PlayerID) bool {
+	if !strings.Contains(spec, "IsRemembered") {
+		return effects.MatchesPlayerSpec(g, spec, defender, controller)
+	}
+	for _, clause := range strings.Split(spec, "+") {
+		clause = strings.TrimSpace(clause)
+		if clause == "" {
+			continue
+		}
+		if neg, has := clauseIsRemembered(clause); has {
+			found := false
+			for _, p := range rememberedPlayers {
+				if p == defender {
+					found = true
+					break
+				}
+			}
+			if found == neg {
+				return false
+			}
+			continue
+		}
+		if !effects.MatchesPlayerSpec(g, clause, defender, controller) {
+			return false
+		}
+	}
+	return true
+}
+
+// clauseIsRemembered reports whether one "+"-clause of a player spec carries
+// the IsRemembered qualifier (in either polarity, under the spec's own
+// dot-separated token grammar) and which polarity it is.
+func clauseIsRemembered(clause string) (neg, has bool) {
+	for _, tok := range strings.Split(clause, ".") {
+		tok = strings.TrimSpace(tok)
+		if strings.EqualFold(tok, "!IsRemembered") {
+			return true, true
+		}
+		if strings.EqualFold(tok, "IsRemembered") {
+			return false, true
+		}
+	}
+	return false, false
 }
 
 // Keywords exists for Ruling F2: Task 23's view.Chars interface needs a

@@ -24,6 +24,7 @@ func (e *Engine) Clone() *Engine {
 	c := &Engine{
 		G:                   e.G.Clone(),
 		L:                   e.L.Clone(),
+		compiledText:        e.compiledText,
 		turnsTaken:          append([]int32(nil), e.turnsTaken...),
 		turnsTakenEpoch:     e.turnsTakenEpoch,
 		format:              e.format,
@@ -41,6 +42,10 @@ func (e *Engine) Clone() *Engine {
 		// the same reference-sharing Clone already practises for
 		// orderedTriggers.
 		blockerRound: e.blockerRound,
+		// exertAskState (combat.go, task exert1): the exert election's offer
+		// list and cursor, the same plain-value class as blockerRound -- the
+		// offers slice is never mutated, so sharing the reference is safe.
+		exertAskState: e.exertAskState,
 		// stationing (station.go): the plain-value spacecraft a pending
 		// Station tap pick belongs to; zero whenever none is outstanding.
 		stationing: e.stationing,
@@ -198,8 +203,9 @@ func (e *Engine) Clone() *Engine {
 			c.phaseUnknownNoted[k] = v
 		}
 	}
-	// phaseSpecs, triggerEventMasks and triggerObjectMasks are pure syntax caches. Leave them
-	// empty: each branch owns its writable maps, unlike diagnostic history.
+	// phaseSpecs, the unbound-face triggerEventMasks fallback and
+	// triggerObjectMasks are pure syntax caches. Leave them empty: each branch
+	// owns its writable caches, unlike diagnostic history.
 	c.triggerObjectMasks = nil
 	if e.triggerTurnFires != nil {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
@@ -233,7 +239,12 @@ func (e *Engine) Clone() *Engine {
 	// staticContinuous / staticEpoch are likewise deliberately NOT copied:
 	// staticEffects rebuilds into the memo's reusable outer storage, so each
 	// branch must own its backing array. The zero epoch forces a fresh scan
-	// of the cloned board on its first active() rebuild.
+	// of the cloned board on its first active() rebuild. The static-control
+	// reconcile (rules/control_static.go) derives its wanted set fresh from
+	// the same memo under the same epoch key, so it needs no copied cache
+	// either; reconcilingControlStatics (engine.go) is a transient re-entry
+	// guard, false at every intent boundary exactly like expiringControl,
+	// which Clone has never copied for the same reason.
 	//
 	// activeBuf / activeEpoch / activeVersion / activeDepth / continuousVersion
 	// (engine.go, layers.go) are likewise deliberately NOT copied, with the
@@ -290,8 +301,10 @@ func (e *Engine) Clone() *Engine {
 		u.cost.Discard = append([]CostPart(nil), e.unlessPayment.cost.Discard...)
 		u.cost.SubCounter = append([]CostPart(nil), e.unlessPayment.cost.SubCounter...)
 		u.cost.Draw = append([]CostPart(nil), e.unlessPayment.cost.Draw...)
+		u.cost.Reveal = append([]CostPart(nil), e.unlessPayment.cost.Reveal...)
 		u.sacs = append([]state.ObjID(nil), e.unlessPayment.sacs...)
 		u.discards = append([]state.ObjID(nil), e.unlessPayment.discards...)
+		u.reveals = append([]state.ObjID(nil), e.unlessPayment.reveals...)
 		u.ctx = cloneUnlessCtx(e.unlessPayment.ctx)
 		u.rp = cloneResume(e.unlessPayment.rp)
 		c.unlessPayment = &u
@@ -336,6 +349,26 @@ func (e *Engine) Clone() *Engine {
 		tc.amount.Phyrexian = append([]byte(nil), e.triggerCost.amount.Phyrexian...)
 		tc.amount.Unknown = append([]string(nil), e.triggerCost.amount.Unknown...)
 		c.triggerCost = &tc
+	}
+	if e.echo != nil {
+		// kw:Echo (rules/echo.go): the same plain-value class as cumulative
+		// above — the Cost's slice fields deep-copied so the clone owns them.
+		ef := *e.echo
+		ef.amount.Sac = append([]CostPart(nil), e.echo.amount.Sac...)
+		ef.amount.Discard = append([]CostPart(nil), e.echo.amount.Discard...)
+		ef.amount.SubCounter = append([]CostPart(nil), e.echo.amount.SubCounter...)
+		ef.amount.AddCounter = append([]CostPart(nil), e.echo.amount.AddCounter...)
+		ef.amount.Exile = append([]CostPart(nil), e.echo.amount.Exile...)
+		ef.amount.Reveal = append([]CostPart(nil), e.echo.amount.Reveal...)
+		ef.amount.Behold = append([]CostPart(nil), e.echo.amount.Behold...)
+		ef.amount.TapPermanent = append([]CostPart(nil), e.echo.amount.TapPermanent...)
+		ef.amount.Blight = append([]CostPart(nil), e.echo.amount.Blight...)
+		ef.amount.Hybrid = append([]ManaPair(nil), e.echo.amount.Hybrid...)
+		ef.amount.Twobrid = append([]Twobrid(nil), e.echo.amount.Twobrid...)
+		ef.amount.HybridPhyrexian = append([]HybridPhyrexian(nil), e.echo.amount.HybridPhyrexian...)
+		ef.amount.Phyrexian = append([]byte(nil), e.echo.amount.Phyrexian...)
+		ef.amount.Unknown = append([]string(nil), e.echo.amount.Unknown...)
+		c.echo = &ef
 	}
 	if e.wardMana != nil {
 		wm := *e.wardMana
@@ -519,6 +552,10 @@ func cloneCombatRound(cr combatRound) combatRound {
 		}
 		cr.askOptions = table
 	}
+	// asunblk1: the as-unblocked election queues the same way.
+	cr.electQueue = append([]state.ObjID(nil), cr.electQueue...)
+	cr.doneElect = append([]state.ObjID(nil), cr.doneElect...)
+	// askElection is a plain bool, carried by the value copy.
 	return cr
 }
 

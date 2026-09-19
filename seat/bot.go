@@ -2,6 +2,7 @@ package seat
 
 import (
 	"context"
+	"fmt"
 	"math/rand/v2"
 	"strings"
 
@@ -27,7 +28,19 @@ import (
 // TestBotAdaptersAgree* pins the two halves to the same Board for the same
 // game facts.
 type Bot struct {
-	r *rand.Rand
+	r              *rand.Rand
+	lethalPressure bool
+	// cast/castSet are the cast-profile policy's weights: when castSet is
+	// true every decision's Board gets brd.Cast = cast before the policy
+	// runs, so the cast scorer (cardWorth/castScore/chooseCast) dots its
+	// features with the profile instead of the default. Set once at
+	// construction from a parsed profile; the Board refill (BoardFromGame /
+	// boardFromView) never touches Board.Cast, so the profile survives the
+	// reuse contract untouched. With the embedded default profile (whose
+	// weights equal DefaultCastWeights, pinned in botpolicy/profile_test.go)
+	// the decisions are identical to NewBot's by the L1 equivalence table.
+	cast    botpolicy.CastWeights
+	castSet bool
 }
 
 // M4: a compile-time assertion that Bot keeps satisfying Seat, since
@@ -48,6 +61,45 @@ func NewBot(seed uint64) *Bot {
 	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
 }
 
+// NewLethalPressureBot returns the measured opt-in AR7 policy. Both Seat
+// adapters use the same variant, preserving the Board/View parity contract.
+func NewLethalPressureBot(seed uint64) *Bot {
+	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), lethalPressure: true}
+}
+
+// NewCastProfileBot returns the cast-profile policy playing the named
+// embedded profile (today: the default one). The only error is an embedded
+// profile that fails its own strict loader -- never reachable for a valid
+// committed file (pinned by botpolicy's profile tests), surfaced as an error
+// rather than a panic so the host factory can report it the same way it
+// reports an unknown policy name.
+func NewCastProfileBot(seed uint64) (*Bot, error) {
+	w, err := botpolicy.LoadCastProfile(botpolicy.DefaultCastProfileName)
+	if err != nil {
+		return nil, fmt.Errorf("seat: %w", err)
+	}
+	return NewCastProfileBotWithWeights(seed, w), nil
+}
+
+// NewCastProfileBotWithWeights returns the cast-profile policy playing the
+// given weights -- the shape botbench's -profile flag builds after parsing a
+// candidate file, so a profile is benched without a rebuild. Same PCG
+// derivation as NewBot, so a profile's RNG consumption matches the
+// production bot's exactly.
+func NewCastProfileBotWithWeights(seed uint64, w botpolicy.CastWeights) *Bot {
+	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), cast: w, castSet: true}
+}
+
+func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent {
+	if b.castSet {
+		brd.Cast = b.cast
+	}
+	if b.lethalPressure {
+		return botpolicy.LethalPressureDecide(brd, d, b.r)
+	}
+	return botpolicy.Decide(brd, d, b.r)
+}
+
 // Decide answers d with the combat-aware policy in botpolicy. v is read
 // for two things -- whether it is currently a main phase, and the public
 // battlefield/life facts the combat heuristic reads (both halves of
@@ -58,7 +110,7 @@ func NewBot(seed uint64) *Bot {
 // TestBotAdaptersAgree* (integration_test.go) pins the two halves to the
 // same Board for the same game facts.
 func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
-	return botpolicy.Decide(boardFromView(v), &d, b.r), nil
+	return b.decide(boardFromView(v), &d), nil
 }
 
 // DecideBoard is the game-shaped half of Decide: the Board is already built
@@ -68,7 +120,7 @@ func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decis
 // was built from derives exactly the facts the projected View would have
 // carried (TestBotAdaptersAgreeOverWholeGame pins the two halves).
 func (b *Bot) DecideBoard(_ context.Context, brd botpolicy.Board, d decision.Decision) (decision.Intent, error) {
-	return botpolicy.Decide(brd, &d, b.r), nil
+	return b.decide(brd, &d), nil
 }
 
 // boardFromView is the view-shaped adapter: the Board the policy reads,
@@ -84,7 +136,16 @@ func (b *Bot) DecideBoard(_ context.Context, brd botpolicy.Board, d decision.Dec
 // two halves to the same facts over a whole game.
 func boardFromView(v view.View) botpolicy.Board {
 	b := botpolicy.Board{
-		IsMain:     v.Phase == "main1" || v.Phase == "main2",
+		IsMain: v.Phase == "main1" || v.Phase == "main2",
+		// The cast scorer's two board-half features (botpolicy/cast.go):
+		// FirstMain is the FIRST main phase (the Precombat feature), MyTurn
+		// whether the deciding seat is the active player (the
+		// InstantOnOwnTurn feature's "own main phase" half — a main phase can
+		// belong to another seat, so IsMain alone cannot say it). Same facts
+		// the game half derives from g.Step == state.StepMain1 and
+		// g.Active == me.
+		FirstMain:  v.Phase == "main1",
+		MyTurn:     v.Active == v.Viewer,
 		Creatures:  make(map[state.ObjID]botpolicy.Creature, 32),
 		Life:       make(map[state.PlayerID]int32, len(v.Players)),
 		Cards:      make(map[state.ObjID]botpolicy.Card, 16),
@@ -190,6 +251,7 @@ func boardFromView(v view.View) botpolicy.Board {
 				b.Cards[cv.ID] = botpolicy.Card{
 					Creature:      isCreatureView(cv),
 					Power:         cv.Power,
+					Toughness:     cv.Toughness,
 					CMC:           botpolicy.CmcOf(cv.ManaCost),
 					Basic:         hasBasicView(cv),
 					AttachedTo:    cv.AttachedTo,
@@ -197,6 +259,7 @@ func boardFromView(v view.View) botpolicy.Board {
 					ManaCost:      cv.ManaCost,
 					Castable:      castable(cv),
 					OnBattlefield: battlefield,
+					Tapped:        cv.Tapped,
 					Produces:      produces,
 					InstantSpeed:  instantSpeedView(cv),
 					Counter:       cv.SpellAPI == "Counter",
