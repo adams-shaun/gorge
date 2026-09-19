@@ -557,18 +557,26 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // (REPRO_REGEN_FIXTURE=1) with Tokens now attached to the live match:
 // 2238 events, 407 intents, head d8cf3b6dc00a07d9.
 //
-// Discard Mode$ Hand re-record (2026-09-19): the Discard Mode$ Hand wheel
-// fix (DiscardEffect's Mode$ Hand arm) changed the emission shape — the
-// recorded pre-fix engine kept one front-card events.Discard where the
-// post-fix engine emits one events.Discard per card in hand order (pinned
-// on the real corpus card in rules/reforge_the_soul_wheel_test.go). This
-// capture names Reforge the Soul, so the pre-fix recording diverged at
-// event 836 under the post-fix engine. Mode$ Hand discards are no-ask in
-// both engines, so the intents and the parked commander_zone ask are
-// unchanged (the live fixture still measures 378 intents, matching
-// overshootIntents); only the discard events' shape moved. Re-recorded via
-// TestGenerateOvershootCapture (REPRO_REGEN_FIXTURE=1) over the same
-// parked match: 2112 events, 378 intents, head fd33d9db389d28e3.
+// Discard Mode$ Hand re-record (2026-09-19): the pre-fix capture (the
+// seed-1111 game: MatchSeed(1111,1) = 1671561686018727072, 2238 events,
+// 407 intents, head d8cf3b6dc00a07d9, 10 discard events) names Reforge the
+// Soul, and the Discard Mode$ Hand wheel fix (DiscardEffect's Mode$ Hand
+// arm, pinned on the real corpus card in rules/reforge_the_soul_wheel_test.go)
+// made it diverge at event 836 under the post-fix engine: the pre-fix
+// engine kept one front-card events.Discard where the post-fix engine
+// emits one events.Discard per card in hand order. Re-recorded via
+// TestGenerateOvershootCapture (REPRO_REGEN_FIXTURE=1) — but NOT over that
+// old game: 4987fe2e (2026-09-17) had already re-measured the live
+// fixture to table seed 8 (MatchSeed(8,1) = 11409396526365357622, burst
+// 378 — overshootIntents as it stands) WITHOUT re-recording the capture,
+// so the regen mechanism (which records the CURRENT fixture's game) taped
+// a different game than the one the pre-fix capture held: toss to
+// foundations-reign-of-dragons, 14 turns, 2112 events, 378 intents, head
+// fd33d9db389d28e3. That game contains NO discard events at all, so this
+// gate does not exercise the wheel fix's emission shape — that fix's
+// defence remains rules/reforge_the_soul_wheel_test.go, and a future diff
+// against 2238 → 2112 is the seed re-measure at 4987fe2e plus this
+// re-record, not a discard-shape change.
 const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
