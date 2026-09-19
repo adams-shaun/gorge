@@ -1303,6 +1303,20 @@ func hasType(o *state.Object, t string) bool {
 	if f == nil {
 		return false
 	}
+	// CR 702.114e: a bestowed card attached to a creature is an Aura, not a
+	// creature, in every filter read (Count$Valid, target offer, cost
+	// candidates, statics' Affected$). Derived live state
+	// (state.Object.BestowedAttached); the layer walk sees the same switch
+	// through rules/layers.go's bestowedTypeSwitch, and hasTypeCtx inherits
+	// this gate through the hasType call below.
+	if o.BestowedAttached() {
+		if strings.EqualFold(t, "Aura") {
+			return true
+		}
+		if strings.EqualFold(t, "Creature") {
+			return false
+		}
+	}
 	for _, x := range f.Types {
 		if strings.EqualFold(x, t) {
 			return true

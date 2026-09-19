@@ -588,6 +588,11 @@ var flagNames = [...]struct {
 	// COUNT rides the same CastInfo's Amount. Appended at the end per the
 	// table's own ordering rule.
 	{"converged", state.FlagConverged},
+	// The Bestow keyword's alternative-cost cast (CR 702.114a); the flag is
+	// the provenance rules' resolution reader uses to substitute the
+	// synthesized Aura attach spell. Appended at the end per the table's
+	// own ordering rule.
+	{"bestowed", state.FlagBestowed},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
