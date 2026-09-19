@@ -405,6 +405,75 @@ func attachedToArg(p string) (string, bool) {
 	return "", false
 }
 
+// enchantedByArg splits the space-bearing two-token predicate
+// "EnchantedBy <Type>.<qual>" into its argument halves and validates both.
+// <Type> is a literal object class or corpus type word the base grammar
+// answers from the attached object in hand (every carrier names Aura), and
+// <qual> is one of the possession/otherness map predicates the qualifier is
+// evaluated against THE ATTACHED OBJECT -- Other (not the resolving source:
+// Daybreak Coronet's "another Aura attached to it", and Face of Divinity's
+// static excluding Face itself) and YouCtrl (controlled by the spec's you:
+// the Killian / Eriette / Archon / Kaima / Dawn Evangel family). A bare
+// "EnchantedBy" token never reaches this parser -- the predicates map's
+// attachedBy ("the permanent the resolving source is attached to") is
+// consulted first on both the matcher and the recognition path and keeps
+// its own meaning. Any other shape -- a resolution-time referent
+// (EnchantedBy Aura.Targeted), a nested predicate (EnchantedBy
+// Aura.Permanent.YouCtrl), a qualifier outside the allowlist, an
+// unrecognised type word, or an absent argument -- stays unrecognised:
+// the token fails closed and UnknownPredicates keeps reporting it.
+func enchantedByArg(p string) (string, bool) {
+	name, arg, has := strings.Cut(p, " ")
+	if !has || name != "EnchantedBy" {
+		return "", false
+	}
+	arg = strings.TrimSpace(arg)
+	if arg == "" || strings.ContainsAny(arg, "+,!") {
+		return "", false
+	}
+	typ, qual, hasDot := strings.Cut(arg, ".")
+	if !hasDot || typ == "" || qual == "" || strings.Contains(qual, ".") {
+		return "", false
+	}
+	switch typ {
+	case "Card", "Permanent", "Spell":
+	default:
+		if !predicateTypeWords[typ] {
+			return "", false
+		}
+	}
+	switch qual {
+	case "Other", "YouCtrl":
+	default:
+		return "", false
+	}
+	return typ + "." + qual, true
+}
+
+// hasAttachmentMatching reports whether any battlefield permanent attached
+// to id (some permanent's AttachedTo names id) satisfies the base typ and
+// the qualifier fn evaluated against THAT ATTACHED OBJECT. The scan is the
+// hasAttachmentOfKind walk (deterministic AliveFrom/zone slices, never a
+// map), so it is replay-safe as a filter predicate; an attachment list is
+// not stored on the bearer, so the scan is the only source.
+func hasAttachmentMatching(g *state.Game, id state.ObjID, sc SpecContext, typ string, fn predFn) bool {
+	for _, p := range g.AliveFrom(0) {
+		for _, sid := range g.Zone(state.ZBattlefield, p) {
+			a := g.Obj(sid)
+			if a == nil || a.AttachedTo != id {
+				continue
+			}
+			if !matchesBase(g, typ, a, sc) {
+				continue
+			}
+			if fn(g, a, sc.You, sc.Source) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // wordKind classifies a predicate word that is neither in the `predicates`
 // map nor a numeric predicate. It is the single classifier shared by the
 // positive path in MatchesObjectCtx and by the generic non<X> negation in
@@ -442,6 +511,13 @@ const (
 	// resolution-time referent (RememberedCard, TriggeredCard, ...) the
 	// SpecContext resolves.
 	wordSharesCardType
+	// The two-token space form "EnchantedBy <Type>.<qual>": the candidate
+	// bears an attached permanent of the named type whose qualifier holds
+	// against that attached object (Daybreak Coronet's "creature with
+	// another Aura attached to it", the Aura.YouCtrl family). The bare
+	// "EnchantedBy" token keeps its map-predicate meaning (attachedBy) and
+	// never reaches this classifier.
+	wordEnchantedBy
 	// Forge's zone-entry history predicates: "ThisTurnEntered" (the object
 	// entered a zone this turn, any zone) and "ThisTurnEnteredFrom_<Zone>"
 	// (it entered from <Zone>). Both read the per-object entry provenance
@@ -584,6 +660,13 @@ func wordPredicate(p string) (wordKind, string) {
 	}
 	if arg, ok := sharesTypeArg(p); ok {
 		return wordSharesCardType, arg
+	}
+	// The two-token space form "EnchantedBy <Type>.<qual>" (the whole token
+	// survives the spec splitter -- a space is not a delimiter). Only the
+	// shapes enchantedByArg validates become wordEnchantedBy; everything
+	// else falls through to wordUnknown and fails closed.
+	if arg, ok := enchantedByArg(p); ok {
+		return wordEnchantedBy, arg
 	}
 	if predicateTypeWords[p] {
 		return wordType, p
@@ -760,6 +843,25 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			return false
 		}
 		return matchesBase(g, key, a, sc)
+	case wordEnchantedBy:
+		// Forge's two-token "EnchantedBy <Type>.<qual>": the candidate bears
+		// an attached permanent of the named type whose qualifier holds
+		// against that attached object. The qualifier bodies are the map's
+		// own (Other: the attached Aura is not the resolving source -- for a
+		// cast the source is not yet attached, so any current Aura
+		// qualifies; for a static whose source IS the attached Aura, like
+		// Face of Divinity, Face itself is excluded; YouCtrl: the attached
+		// Aura is controlled by the spec's you). The key was validated by
+		// enchantedByArg, so the re-split here cannot miss.
+		typ, qual, ok := strings.Cut(key, ".")
+		if !ok {
+			return false
+		}
+		fn, is := predicates[qual]
+		if !is {
+			return false
+		}
+		return hasAttachmentMatching(g, o.ID, sc, typ, fn)
 	}
 	return false
 }
