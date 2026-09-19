@@ -2256,8 +2256,11 @@ var knownUnsupportedParams = map[string][]string{
 	// deleted when the bare-Choices$ PutCounter pick read Placer$ (task
 	// vow1, effects/counters.go putCounterChoose) -- the static scan now
 	// sees the read in effPutCounter's closure; its TriggeredCounterMap$
-	// shape stays unread and labelled.
-	"Captain Marvel, Apex Avenger": {"param:api:PutCounter.Optional", "param:api:PutCounter.TriggeredCounterMap"},
+	// shape stays unread and labelled. The param:api:PutCounter.Optional
+	// label was deleted when the Optional$ True election read landed
+	// (effects/counters.go effPutCounter's put_optional ask) -- the may-put
+	// election is pinned end to end in rules/putcounter_optional_test.go.
+	"Captain Marvel, Apex Avenger": {"param:api:PutCounter.TriggeredCounterMap"},
 	"Conduit of Worlds":            {"param:api:Play.RememberPlayed"},
 	"Director Nick Fury":           {"param:api:Dig.RestRandomOrder"},
 	// Gift of Immortality's param:api:ChangeZone.AttachedTo label was deleted

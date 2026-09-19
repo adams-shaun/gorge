@@ -1104,6 +1104,20 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.AttachOpt = "yes"
 			}
+		case "put_optional":
+			// An Optional$ True PutCounter's yes/no election (Talus Paladin's
+			// "you may put a +1/+1 counter on CARDNAME", Black Widow's "You
+			// may put ... If you don't, ...") was answered. The answer is a
+			// bare yes/no, recorded here as a marker the re-entered effect
+			// consumes and clears (fx42 scoping): "yes" places the counters
+			// through the ordinary path, "no" -- the decline -- places nothing
+			// and the chained SubAbility$ still runs (the attach_optional
+			// convention). A malformed or empty answer keeps the decline, the
+			// conservative read of an ambiguous one.
+			ctx.PutOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.PutOpt = "yes"
+			}
 		case "imprint":
 			// An Imprint$ True public-zone choice. The effect consumes this
 			// answer on re-entry and emits the persistent Imprint event.
