@@ -355,6 +355,45 @@ func TestTwoPilesSplitTheSpoilsTargetedChooserOpponent(t *testing.T) {
 	}
 }
 
+// TestTwoPilesPlayBodyHandsThePileToPlay pins Brilliant Ultimatum's shape:
+// a ChosenPile$ naming a DB$ Play body hands the pile to the registered Play
+// primitive through the fresh sub-Ctx — the play ask is posed over exactly
+// the pile's cards, proving the handoff (the optional play's own answer flow
+// is effPlay's business, pinned there).
+func TestTwoPilesPlayBodyHandsThePileToPlay(t *testing.T) {
+	h, ids := twopilesBoard(t)
+	sh := &suspendHost{fakeHost: *h}
+	svars := map[string]string{
+		"DBPlay": "DB$ Play | Defined$ Remembered | WithoutManaCost$ True | Optional$ True | Amount$ All",
+	}
+	ctx := &Ctx{Controller: 0, Source: ids[5], Remembered: twopilesRemembered(ids[:5]), SVars: svars}
+	sa := sa(t, "DB$ TwoPiles | Defined$ You | DefinedCards$ Remembered | Separator$ Opponent | ChosenPile$ DBPlay")
+	ctx.TwoPiles = []state.ObjID{ids[0], ids[1]}
+	ctx.TwoPilesDone = true
+	ctx.TwoPilesPick, ctx.TwoPilesPickDone = "a", true
+	Resolve(sh, ctx, sa)
+	if !sh.suspended || sh.asked == nil {
+		t.Fatal("the DB$ Play pile body posed no ask — the handoff did not reach effPlay")
+	}
+	if sh.asked.Kind != decision.KModes || sh.asked.ResumeKind != "play" {
+		t.Fatalf("ask = kind %s resume %q, want the play KModes", sh.asked.Kind, sh.asked.ResumeKind)
+	}
+	played := map[state.ObjID]bool{}
+	for _, o := range sh.asked.Options {
+		if o.Obj != 0 {
+			played[o.Obj] = true
+		}
+	}
+	if len(played) != 2 || !played[ids[0]] || !played[ids[1]] {
+		t.Fatalf("play options = %+v, want exactly the chosen pile's two cards", sh.asked.Options)
+	}
+	for _, id := range ids[2:5] {
+		if played[id] {
+			t.Fatalf("unchosen pile card %d leaked into the play options", id)
+		}
+	}
+}
+
 // TestTwoPilesExoticShapeIsLoudAndInert pins the scope boundary: a line
 // carrying an unread parameter (Raging River's LeftRightPile$) emits exactly
 // ONE loud Note naming it and moves nothing.
