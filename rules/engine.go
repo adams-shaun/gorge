@@ -612,6 +612,22 @@ type Engine struct {
 	// copies nothing of it.
 	noCounterSpend state.ObjID
 
+	// costProvenanceSeen is the transient capture of the last cost-modifier
+	// pass (castprov3): true when that pass evaluated a cost static whose
+	// ValidCard$ carries a cast-provenance token (Bilbo's
+	// "!wasCastFromYourHand" ReduceCost) — such a static is unresolvable
+	// pre-push, so the pass denied it and the pending cast's payment needs
+	// the post-push re-price continueCast runs right after CR 601.2a's push.
+	// Set inside costStaticApplies (inside the costModifiers attribution
+	// roots, so the param census sees no new read), cleared at the top of
+	// every costModifiersWithTargets[ X]Using pass. Like noCounterSpend it
+	// is synchronous computation state: every read of it (the option-
+	// selection sites and continueCast's post-push re-price) happens in the
+	// same driven flow as the pass that set it, and no ask suspends between
+	// the pass and the read. Like noCounterSpend, Clone copies nothing of
+	// it.
+	costProvenanceSeen bool
+
 	// damaging names the source object responsible for the damage emit
 	// currently in flight (CR 609.7a): the resolution source for a spell or
 	// ability being resolved, or the dealing creature for a combat

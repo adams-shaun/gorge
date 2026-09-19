@@ -151,6 +151,12 @@ func (h *fakeHost) EachSpellCastThisTurnMatching(_ state.PlayerID, _ string, _ s
 // (the Myojin cycle's corpus tests).
 func (h *fakeHost) WasCastFromHandByYou(_ state.ObjID, _ state.PlayerID) bool { return h.castFromHand }
 
+// The bare wasCastFromYourHand family's read (castprov3): the fake has no
+// cast log either, so it reports the same single flag the ByYou double reads
+// — enough for the branch-head and ConditionPresent$ gate unit tests, whose
+// provenance is pinned end to end on the real engine in rules.
+func (h *fakeHost) WasCastFromHand(_ state.ObjID) bool { return h.castFromHand }
+
 // CommanderIdentityColourCount has no commander bookkeeping here; the double
 // reports zero (the same replay-derivable class as TurnsTaken above).
 func (h *fakeHost) CommanderIdentityColourCount(_ state.PlayerID) int { return 0 }

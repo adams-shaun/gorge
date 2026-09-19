@@ -410,17 +410,22 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		group = []state.Target{{Obj: c.TriggerCard}}
 	}
 	// The wasCastFromYourHandByYou / !wasCastFromYourHandByYou qualifier
-	// (task castprov2, Amped Raptor's gate) is not a filter predicate: it is
-	// evaluated per member against the Host's log read (castFromHandAdmits
-	// Filter), the same split rules' castFromHandAdmits applies at the
-	// rules-side match sites. The UnknownPredicates guard below reads the
-	// token-STRIPPED spec — the token itself is unknown to the filter (that
-	// is the whole reason for the split), and an unreadable remainder must
-	// still be unresolved.
+	// (task castprov2, Amped Raptor's gate) and its bare wasCastFromYourHand
+	// sibling (task castprov3, Otterball Antics' `Card.wasCast+!
+	// wasCastFromYourHand`) are not filter predicates: they are evaluated
+	// per member against the Host's log reads (castFromHandAdmitsFilter /
+	// castFromHandAnyAdmitsFilter), the same split rules' castProvenanceAdmits
+	// applies at the rules-side match sites. The UnknownPredicates guard
+	// below reads the token-STRIPPED spec — the tokens themselves are unknown
+	// to the filter (that is the whole reason for the split), and an
+	// unreadable remainder must still be unresolved.
 	hasHandToken := strings.Contains(present, "wasCastFromYourHandByYou")
+	// The bare spelling is a SUBSTRING of the ByYou token, so a ByYou spec
+	// must not route to the bare helper — the ByYou branch owns it.
+	hasBareHand := !hasHandToken && strings.Contains(present, "wasCastFromYourHand")
 	if present != "" {
 		check := present
-		if hasHandToken {
+		if hasHandToken || hasBareHand {
 			check = stripWasCastFromHandToken(present)
 		}
 		if len(UnknownPredicates(check)) > 0 {
@@ -446,6 +451,12 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			s, ok := castFromHandAdmitsFilter(h, present, t.Obj, c.Controller)
 			if !ok {
 				// This member fails its own provenance requirement.
+				continue
+			}
+			memberSpec = s
+		} else if hasBareHand {
+			s, ok := castFromHandAnyAdmitsFilter(h, present, t.Obj)
+			if !ok {
 				continue
 			}
 			memberSpec = s
@@ -601,33 +612,23 @@ func parseConditionCompare(v string) (op string, n int, ok bool) {
 	return op, n, true
 }
 
-// castFromHandAdmitsFilter evaluates the bare wasCastFromYourHandByYou /
-// !wasCastFromYourHandByYou qualifier of a Forge filter spec against ONE
-// object through the Host's log read (task castprov2, Amped Raptor's
-// `ConditionPresent$ Card.wasCastFromYourHandByYou` gate — the effects-side
-// twin of rules' castFromHandAdmits, which runs the same split at the
-// rules-side match sites where the Engine and its log are in scope). The
-// spec is split into its comma alternatives, every alternative CARRYING the
-// qualifier but failing the provenance test — the object was NOT cast from
-// you's hand by you, or the object is a copy (never cast, the same IsCopy
-// guard the Count$wasCastFromYourHandByYou head takes) — is dropped, and the
-// surviving alternatives are rejoined for the ordinary filter. ok is false
-// when no alternative survives: the spec matches nothing (this member fails
-// its own provenance requirement). A spec without the token is returned
-// unchanged, so every unrelated gate is byte-identical.
-func castFromHandAdmitsFilter(h Host, spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
-	if !strings.Contains(spec, "wasCastFromYourHandByYou") {
+// admitProvenanceAlternativesFilter is the effects-side rejoin loop shared
+// by the two cast-provenance filter helpers (rules' twin,
+// admitProvenanceAlternatives, lives in rules/cast_provenance.go): the spec
+// is split into its comma alternatives, every alternative CARRYING the
+// qualifier but failing the provenance test is dropped, and the surviving
+// alternatives are rejoined for the ordinary filter. ok is false when no
+// alternative survives: the spec matches nothing. A spec without the token
+// is returned unchanged, so every unrelated gate is byte-identical.
+func admitProvenanceAlternativesFilter(spec, pred string, holds bool) (string, bool) {
+	if !strings.Contains(spec, pred) {
 		return spec, true
-	}
-	holds := false
-	if o := h.Game().Obj(objID); o != nil && !o.IsCopy {
-		holds = h.WasCastFromHandByYou(objID, you)
 	}
 	var b strings.Builder
 	first, alive := true, false
 	for alt := range FilterAlternatives(spec) {
-		s1, hadPos := StripPredicateToken(alt, "wasCastFromYourHandByYou")
-		s2, hadNeg := StripPredicateToken(s1, "!wasCastFromYourHandByYou")
+		s1, hadPos := StripPredicateToken(alt, pred)
+		s2, hadNeg := StripPredicateToken(s1, "!"+pred)
 		// The positive spelling requires the provenance to HOLD; the negated
 		// spelling requires it to FAIL.
 		if (hadPos && !holds) || (hadNeg && holds) {
@@ -646,14 +647,60 @@ func castFromHandAdmitsFilter(h Host, spec string, objID state.ObjID, you state.
 	return b.String(), true
 }
 
-// stripWasCastFromHandToken removes both spellings of the
-// wasCastFromYourHandByYou qualifier from every comma alternative of a spec,
-// text-only and polarity-agnostic: the UnknownPredicates guard must read the
-// token-STRIPPED spec (the token itself is unknown to the filter — that is
-// the whole reason the split exists), while the per-member polarity lives in
-// castFromHandAdmitsFilter. A spec without the token is returned unchanged.
-func stripWasCastFromHandToken(spec string) string {
+// castFromHandAdmitsFilter evaluates the bare wasCastFromYourHandByYou /
+// !wasCastFromYourHandByYou qualifier of a Forge filter spec against ONE
+// object through the Host's log read (task castprov2, Amped Raptor's
+// `ConditionPresent$ Card.wasCastFromYourHandByYou` gate — the effects-side
+// twin of rules' castFromHandAdmits, which runs the same split at the
+// rules-side match sites where the Engine and its log are in scope). The
+// object was NOT cast from you's hand by you, or the object is a copy (never
+// cast, the same IsCopy guard the Count$wasCastFromYourHandByYou head
+// takes) — every alternative carrying the qualifier but failing the
+// provenance test is dropped. ok is false when no alternative survives: the
+// spec matches nothing (this member fails its own provenance requirement).
+func castFromHandAdmitsFilter(h Host, spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
 	if !strings.Contains(spec, "wasCastFromYourHandByYou") {
+		return spec, true
+	}
+	holds := false
+	if o := h.Game().Obj(objID); o != nil && !o.IsCopy {
+		holds = h.WasCastFromHandByYou(objID, you)
+	}
+	return admitProvenanceAlternativesFilter(spec, "wasCastFromYourHandByYou", holds)
+}
+
+// castFromHandAnyAdmitsFilter evaluates the BARE wasCastFromYourHand /
+// !wasCastFromYourHand qualifier (task castprov3 — the player-less hand
+// provenance: the "from anywhere other than your hand" carriers whose
+// scripts omit the ByYou suffix, Otterball Antics' `ConditionPresent$
+// Card.wasCast+!wasCastFromYourHand`) against ONE object through the Host's
+// log read — the effects-side twin of rules' castFromHandAnyAdmits. The
+// provenance is any caster's hand: every carrier that needs player scoping
+// supplies it elsewhere in the spec. Copies were never cast; a card never
+// put on the stack reads false. A spec carrying the ByYou spelling is NOT
+// this helper's family (ByYou is a SUPERSTRING of the bare token; its own
+// helper runs first wherever both could appear) and is returned unchanged.
+func castFromHandAnyAdmitsFilter(h Host, spec string, objID state.ObjID) (string, bool) {
+	if strings.Contains(spec, "wasCastFromYourHandByYou") || !strings.Contains(spec, "wasCastFromYourHand") {
+		return spec, true
+	}
+	holds := false
+	if o := h.Game().Obj(objID); o != nil && !o.IsCopy {
+		holds = h.WasCastFromHand(objID)
+	}
+	return admitProvenanceAlternativesFilter(spec, "wasCastFromYourHand", holds)
+}
+
+// stripWasCastFromHandToken removes both spellings of the
+// wasCastFromYourHandByYou qualifier AND the bare wasCastFromYourHand
+// spelling (task castprov3) from every comma alternative of a spec,
+// text-only and polarity-agnostic: the UnknownPredicates guard must read the
+// token-STRIPPED spec (the tokens themselves are unknown to the filter —
+// that is the whole reason the split exists), while the per-member polarity
+// lives in castFromHandAdmitsFilter / castFromHandAnyAdmitsFilter. A spec
+// without either token is returned unchanged.
+func stripWasCastFromHandToken(spec string) string {
+	if !strings.Contains(spec, "wasCastFromYourHand") {
 		return spec
 	}
 	var b strings.Builder
@@ -661,10 +708,12 @@ func stripWasCastFromHandToken(spec string) string {
 	for alt := range FilterAlternatives(spec) {
 		s1, _ := StripPredicateToken(alt, "wasCastFromYourHandByYou")
 		s2, _ := StripPredicateToken(s1, "!wasCastFromYourHandByYou")
+		s3, _ := StripPredicateToken(s2, "wasCastFromYourHand")
+		s4, _ := StripPredicateToken(s3, "!wasCastFromYourHand")
 		if !first {
 			b.WriteByte(',')
 		}
-		b.WriteString(s2)
+		b.WriteString(s4)
 		first = false
 	}
 	return b.String()

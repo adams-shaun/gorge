@@ -580,6 +580,15 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 		return false
 	}
 	if v, ok := t.Params["ValidCard"]; ok {
+		// The cast-provenance qualifiers (castprov1/2/3 — narset's
+		// `ValidCard$ Instant.wasCastFromYourHand,Sorcery.wasCastFromYourHand`)
+		// split out BEFORE spellCastPermanentSpec rewrites the base: the strip
+		// helpers match the raw Forge spec's predicate chain. The spell is on
+		// the stack (this is the PutOnStack event), so the log read is honest.
+		v, ok := e.castProvenanceAdmits(v, ev.Obj, dt.Controller)
+		if !ok {
+			return false
+		}
 		if !effects.MatchesSpecCtx(e.G, spellCastPermanentSpec(v), ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
 			return false
 		}

@@ -1087,6 +1087,36 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				n2 = 0
 			}
 			return n2, true
+		case "wasCastFromYourHand":
+			// The BARE (no "ByYou") hand-provenance branch head (task
+			// castprov3, see_the_truth's SVar:X:Count$wasCastFromYourHand.1.3 —
+			// "put one of those cards into your hand ... If this spell was cast
+			// from anywhere other than your hand, put each of those cards into
+			// your hand instead"): the resolving source's latest cast came from
+			// a hand — ANY caster's hand, the player scoping the ByYou twin
+			// carries being absent here. The same guards the ByYou case takes:
+			// the provenance is the object's latest PutOnStack
+			// (Host.WasCastFromHand's log scan, replay-derivable), a copy was
+			// never cast, a card never put on the stack (cheated into play)
+			// reads false. Branch tokens through resolveCountOperand, the same
+			// machinery.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			holds := false
+			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
+				holds = h.WasCastFromHand(c.Source)
+			}
+			if holds {
+				y, ok := resolveCountOperand(h, c, yesTok, depth)
+				if !ok {
+					y = 0
+				}
+				return y, true
+			}
+			n3, ok := resolveCountOperand(h, c, noTok, depth)
+			if !ok {
+				n3 = 0
+			}
+			return n3, true
 		case "Morbid", "Monarch":
 			y, n := splitDot(head[dot+1:])
 			holds := false
@@ -1152,6 +1182,14 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if prop == "CardTypes" {
 			seenCardTypes = make(map[string]bool)
 		}
+		// The bare wasCastFromYourHand qualifier (task castprov3, Approach of
+		// the Second Sun's Count$ValidStack Card.wasCastFromYourHand+Self):
+		// not a filter predicate — split out per CANDIDATE object through the
+		// Host's log read before the ordinary match (the ByYou family never
+		// needed this here because it had no Valid* carrier; a ByYou spec
+		// still routes to its own helper's absence and fails closed as
+		// before, unchanged).
+		hasBareHand := !strings.Contains(spec, "wasCastFromYourHandByYou") && strings.Contains(spec, "wasCastFromYourHand")
 		// Colors folds each match's colour mask; read only through a
 		// popcount at the end, so no per-colour ordering ever reaches an
 		// event or a view.
@@ -1159,7 +1197,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		var n int32
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(zone, p) {
-				if !matchesZoneSpecCtx(g, spec, id, c.SpecContext(c.Controller), zone) {
+				matchSpec := spec
+				if hasBareHand {
+					s, ok := castFromHandAnyAdmitsFilter(h, spec, id)
+					if !ok {
+						continue
+					}
+					matchSpec = s
+				}
+				if !matchesZoneSpecCtx(g, matchSpec, id, c.SpecContext(c.Controller), zone) {
 					continue
 				}
 				if prop == "" {
