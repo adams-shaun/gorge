@@ -129,6 +129,14 @@ func isAura(o *state.Object) bool { return hasType(o, "Aura") }
 // isEquipment reports whether a permanent has the Equipment subtype.
 func isEquipment(o *state.Object) bool { return hasType(o, "Equipment") }
 
+// isRole reports whether a permanent has the Role subtype. The nine
+// `.cards/tokenscripts/role_*.txt` scripts each print
+// `Types:Enchantment Aura Role`, so a minted Role token carries the word;
+// real printed Role cards do NOT (Forge omits the subtype there), which is
+// recorded as an open issue -- the exclusivity sweep below keys on this
+// predicate, so it only ever fires for minted Role tokens.
+func isRole(o *state.Object) bool { return hasType(o, "Role") }
+
 // hasType is the rules-package view of an object's printed types, mirroring
 // the effects-package hasType (effects/filter.go). Faced-less objects have no
 // types.
