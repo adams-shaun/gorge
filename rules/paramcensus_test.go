@@ -2249,10 +2249,15 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
-	"Ad Nauseam":                   {"param:api:Repeat.RepeatOptional"},
-	"Arcane Denial":                {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
-	"Avengers Quinjet":             {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Captain Marvel, Apex Avenger": {"param:api:PutCounter.Optional", "param:api:PutCounter.Placer", "param:api:PutCounter.TriggeredCounterMap"},
+	"Ad Nauseam":       {"param:api:Repeat.RepeatOptional"},
+	"Arcane Denial":    {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
+	"Avengers Quinjet": {"param:api:ChangeZone.ValidTgtsDesc"},
+	// Captain Marvel, Apex Avenger's param:api:PutCounter.Placer label was
+	// deleted when the bare-Choices$ PutCounter pick read Placer$ (task
+	// vow1, effects/counters.go putCounterChoose) -- the static scan now
+	// sees the read in effPutCounter's closure; its TriggeredCounterMap$
+	// shape stays unread and labelled.
+	"Captain Marvel, Apex Avenger": {"param:api:PutCounter.Optional", "param:api:PutCounter.TriggeredCounterMap"},
 	"Conduit of Worlds":            {"param:api:Play.RememberPlayed"},
 	"Director Nick Fury":           {"param:api:Dig.RestRandomOrder"},
 	// Gift of Immortality's param:api:ChangeZone.AttachedTo label was deleted

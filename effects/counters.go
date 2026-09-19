@@ -42,12 +42,27 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	distAns := c.CounterDist
 	distDone := c.CounterDistDone
 	c.CounterDist, c.CounterDistDone = nil, false
+	// The bare-Choices$ pick's answer rides its own pair of fields (the
+	// divided family and the bare pick can never both ask for one SA, but
+	// each consumes and clears only its own).
+	pickAns := c.CounterPick
+	pickDone := c.CounterPickDone
+	c.CounterPick, c.CounterPickDone = nil, false
 	if divided {
 		if strings.TrimSpace(sa.Params["Choices"]) != "" {
 			putCounterPickDistribute(h, c, sa, n, kind, distAns, distDone)
 			return
 		}
-		putCounterSplit(h, n, kind, Defined(h, c, sa))
+		placed := putCounterSplit(h, n, kind, Defined(h, c, sa))
+		rememberPlaced(c, sa, placed)
+		return
+	}
+	if strings.TrimSpace(sa.Params["Choices"]) != "" {
+		// The bare-Choices$ pick shape (task vow1; Promise of Loyalty): the
+		// chooser picks which creatures take the counters, each chosen one
+		// taking the full CounterNum$ (no division). The choice re-enters
+		// through ResumeKind "counter_pick".
+		putCounterChoose(h, c, sa, n, kind, pickAns, pickDone)
 		return
 	}
 	// ETB$ True (the K:etbCounter expansion's body, Wishclaw Talisman and
@@ -58,6 +73,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	// while the object is still mid-entry must place the counters anyway,
 	// not skip on the battlefield precondition.
 	etb := strings.EqualFold(strings.TrimSpace(sa.Params["ETB"]), "True")
+	var placed []state.Target
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			// A player target takes a PLAYER counter (energy's "you get {E}{E}{E}",
@@ -77,7 +93,26 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: n})
+		if !t.IsPlayer && t.Obj != 0 {
+			placed = append(placed, t)
+		}
 	}
+	rememberPlaced(c, sa, placed)
+}
+
+// rememberPlaced folds the objects a PutCounter pass just countered into the
+// resolution's Remembered set, when the SA carries RememberCards$ True. The
+// flag names the cards that WERE countered, never the attempt: a pass that
+// placed no counter remembers nothing. A RepeatEach loop's rememberIteration
+// propagates what the iteration remembered into the loop's own set, so
+// Promise of Loyalty's chained SacAllOthers (the SAME iteration) and its
+// loop-tail DBEffect (RememberObjects$ Remembered) both see the vowed
+// creatures without any event-backed persistence.
+func rememberPlaced(c *Ctx, sa *cards.SA, placed []state.Target) {
+	if len(placed) == 0 || !strings.EqualFold(strings.TrimSpace(sa.Params["RememberCards"]), "True") {
+		return
+	}
+	c.Remembered = append(c.Remembered, placed...)
 }
 
 // putCounterPickDistribute runs the Choices$ + DividedAsYouChoose$ shape: the
@@ -109,7 +144,8 @@ func putCounterPickDistribute(h Host, c *Ctx, sa *cards.SA, total int32, kind st
 		// the battlefield while the decision was outstanding takes nothing
 		// (its share is lost, not redistributed -- the same totality stance
 		// the target-based split takes).
-		putCounterSplit(h, total, kind, objTargets(ans))
+		placed := putCounterSplit(h, total, kind, objTargets(ans))
+		rememberPlaced(c, sa, placed)
 		return
 	}
 	var eligible []state.ObjID
@@ -145,7 +181,8 @@ func putCounterPickDistribute(h Host, c *Ctx, sa *cards.SA, total int32, kind st
 		if int32(len(picks)) > maxCh {
 			picks = picks[:maxCh]
 		}
-		putCounterSplit(h, total, kind, objTargets(picks))
+		placed := putCounterSplit(h, total, kind, objTargets(picks))
+		rememberPlaced(c, sa, placed)
 	}
 	// Ask gate: a real recipient choice needs two or more eligible creatures
 	// room to differ (maxCh >= 1 leaves at least one recipient; minCh below
@@ -181,9 +218,9 @@ func putCounterPickDistribute(h Host, c *Ctx, sa *cards.SA, total int32, kind st
 // no longer on the battlefield take nothing; the total is exact (every
 // counter lands somewhere or is lost with a departed recipient, never
 // invented).
-func putCounterSplit(h Host, total int32, kind string, ts []state.Target) {
+func putCounterSplit(h Host, total int32, kind string, ts []state.Target) []state.Target {
 	if total <= 0 {
-		return
+		return nil
 	}
 	g := h.Game()
 	var live []state.ObjID
@@ -196,17 +233,20 @@ func putCounterSplit(h Host, total int32, kind string, ts []state.Target) {
 		}
 	}
 	if len(live) == 0 {
-		return
+		return nil
 	}
 	shares := make(map[state.ObjID]int32, len(live))
 	for i := int32(0); i < total; i++ {
 		shares[live[i%int32(len(live))]]++
 	}
+	var placed []state.Target
 	for _, id := range live {
 		if amt := shares[id]; amt > 0 {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: amt})
+			placed = append(placed, state.Target{Obj: id})
 		}
 	}
+	return placed
 }
 
 func objTargets(ids []state.ObjID) []state.Target {
@@ -217,6 +257,199 @@ func objTargets(ids []state.ObjID) []state.Target {
 		}
 	}
 	return out
+}
+
+// putCounterChoose runs the bare-Choices$ PutCounter pick shape (no
+// DividedAsYouChoose$ — task vow1; Promise of Loyalty's vow, mikey_mona's
+// "target player chooses a creature they control and puts two +1/+1 counters
+// on it", Haphazard Bombardment's four aim counters): the CHOOSER
+// (Chooser$, default the resolving controller) picks
+// MinChoiceAmount$..ChoiceAmount$ (default 1..1) battlefield objects out of
+// the Choices$ pool, and EACH chosen object takes the full CounterNum$
+// counters. The answer re-enters through ResumeKind "counter_pick" with
+// Ctx.CounterPick; RememberCards$ True remembers the countered objects (the
+// vow chain's SacAllOthers and DBEffect read them in the same walk).
+//
+// The ask gate is the strict-supersets rule every asking primitive here
+// follows (a decision nobody could answer differently is never emitted): a
+// pool with fewer than two eligible objects, a Max below one, or a Min at or
+// above the eligible count leaves only the deterministic first-Max answer,
+// so the placement runs without an ask. Promise of Loyalty's "each player
+// chooses ONE creature" asks exactly when that player controls two or more
+// eligible creatures.
+func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, ans []state.ObjID, done bool) {
+	if n <= 0 {
+		return
+	}
+	g := h.Game()
+	spec := strings.TrimSpace(sa.Params["Choices"])
+	if done {
+		// Re-entry: the answered pick, in answer order. A chosen creature
+		// that left the battlefield while the decision was outstanding takes
+		// nothing (the same totality stance the divided sibling takes).
+		putCounterPickApply(h, c, sa, n, kind, ans)
+		return
+	}
+	chooser, ok := putCounterChooserFor(h, c, strings.TrimSpace(sa.Params["Chooser"]))
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "PutCounter Chooser$ unresolvable (" + sa.Params["Chooser"] + ")"})
+		return
+	}
+	// Placer$ names whose placement the counters are attributed to; on the
+	// choice shape every carrier spells it equal to Chooser$ and the
+	// placement target is the chosen object regardless, so a value that
+	// resolves to the chooser (or is absent) is a silent no-op and anything
+	// else is one loud Note, placement unchanged.
+	if pl := strings.TrimSpace(sa.Params["Placer"]); pl != "" {
+		if pp, pok := putCounterChooserFor(h, c, pl); !pok || pp != chooser {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "PutCounter Placer$ unmodelled (" + pl + ")"})
+		}
+	}
+	var eligible []state.ObjID
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				eligible = append(eligible, id)
+			}
+		}
+	}
+	minCh := Num(h, c, sa, "MinChoiceAmount", 1)
+	if minCh < 0 {
+		minCh = 0
+	}
+	maxCh := Num(h, c, sa, "ChoiceAmount", 1)
+	if maxCh < 0 {
+		maxCh = 0
+	}
+	if maxCh > int32(len(eligible)) {
+		maxCh = int32(len(eligible))
+	}
+	if minCh > maxCh {
+		minCh = maxCh
+	}
+	// The no-choice fallback shares one deterministic pick list with the
+	// divided sibling: the first maxCh eligible objects in zone order -- for
+	// a forced set (minCh >= the eligible count) that IS the only legal
+	// answer, and for the fuzz/no-host run (R-9) it is the exact mirror of
+	// botpolicy's "counter_pick" arm, so a bot-answered ask emits the same
+	// events the silent build did.
+	fallback := func() {
+		picks := eligible
+		if int32(len(picks)) > maxCh {
+			picks = picks[:maxCh]
+		}
+		putCounterPickApply(h, c, sa, n, kind, picks)
+	}
+	if len(eligible) < 2 || maxCh < 1 || minCh >= int32(len(eligible)) {
+		fallback()
+		return
+	}
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+		Min:        int(minCh),
+		Max:        int(maxCh),
+		Source:     c.Source,
+		ResumeKind: "counter_pick",
+		ResumeSA:   sa,
+		Prompt:     sa.Params["ChoiceTitle"]}
+	for _, id := range eligible {
+		name := "a creature"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "counter_pick", Label: name, Obj: id, Player: chooser})
+	}
+	if Ask(h, d) == AskAsked {
+		return // resolution suspended; the answer re-enters with Ctx.CounterPick set.
+	}
+	fallback()
+}
+
+// putCounterPickApply places CounterNum$ counters on each live chosen object
+// and, when the SA carries RememberCards$ True, remembers exactly the ones
+// that took a counter.
+func putCounterPickApply(h Host, c *Ctx, sa *cards.SA, n int32, kind string, picks []state.ObjID) {
+	g := h.Game()
+	var placed []state.Target
+	for _, id := range picks {
+		o := g.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: n})
+		placed = append(placed, state.Target{Obj: id})
+	}
+	rememberPlaced(c, sa, placed)
+}
+
+// putCounterChooserFor resolves one Chooser$/Placer$ value of the bare-
+// Choices$ PutCounter pick to the player who answers. The allowlist covers
+// every spelling the corpus's six Chooser$ carriers use plus the obvious
+// defaults; anything else fails closed (nil, false) — a chooser is never
+// guessed, because asking the WRONG player would record a choice nobody
+// made. The Remembered-backed spellings read the RESOLUTION's Remembered
+// player entries: inside a RepeatEach iteration the loop subject is exactly
+// that entry (Promise of Loyalty's Player.IsRemembered, Eye of Doom's bare
+// Remembered), falling back to the source's event-backed list the same way
+// the Player.IsRemembered Defined selector does.
+func putCounterChooserFor(h Host, c *Ctx, v string) (state.PlayerID, bool) {
+	g := h.Game()
+	firstRememberedPlayer := func() (state.PlayerID, bool) {
+		for _, t := range c.Remembered {
+			if t.IsPlayer {
+				return t.Player, true
+			}
+		}
+		if o := g.Obj(c.Source); o != nil {
+			for _, t := range o.Remembered {
+				if t.IsPlayer {
+					return t.Player, true
+				}
+			}
+		}
+		return 0, false
+	}
+	firstChosenPlayer := func() (state.PlayerID, bool) {
+		for _, t := range c.Chosen {
+			if t.IsPlayer {
+				return t.Player, true
+			}
+		}
+		if o := g.Obj(c.Source); o != nil {
+			for _, t := range o.Chosen {
+				if t.IsPlayer {
+					return t.Player, true
+				}
+			}
+		}
+		return 0, false
+	}
+	switch v {
+	case "", "You", "True":
+		return c.Controller, true
+	case "Player.IsRemembered", "Remembered", "RememberedController":
+		return firstRememberedPlayer()
+	case "ChosenPlayer", "Player.Chosen":
+		return firstChosenPlayer()
+	case "TriggeredPlayer":
+		if c.TriggerPlayer.IsPlayer {
+			return c.TriggerPlayer.Player, true
+		}
+		return 0, false
+	case "ThisTargetedPlayer", "TargetedPlayer", "Targeted":
+		for _, t := range c.Targets {
+			if t.IsPlayer {
+				return t.Player, true
+			}
+			if o := g.Obj(t.Obj); o != nil {
+				return o.Controller, true
+			}
+		}
+		return 0, false
+	}
+	return 0, false
 }
 
 // effPutCounterAll sweeps ValidCards$ (default "Permanent") over the

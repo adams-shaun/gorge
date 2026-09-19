@@ -683,6 +683,19 @@ type Ctx struct {
 	// discipline), so a nested PutCounter cannot inherit the outer answer.
 	CounterDist     []state.ObjID
 	CounterDistDone bool
+	// CounterPick is the answered bare-Choices$ PutCounter pick (Promise of
+	// Loyalty's vow: the chooser picked the creature(s) — WITHOUT a
+	// DividedAsYouChoose$ total, so each chosen creature takes the full
+	// CounterNum$) out of the Choices$-eligible battlefield creatures, in
+	// answer order. rules' resume arm sets it before re-running the
+	// suspended sub-ability, so effPutCounter's re-entry places the counters
+	// on exactly the chosen creatures instead of asking again;
+	// CounterPickDone distinguishes "answered" from the first pass. The
+	// asking effect consumes and clears both at the top of its own walk (the
+	// fx42 scoping discipline), so a nested PutCounter cannot inherit the
+	// outer answer.
+	CounterPick     []state.ObjID
+	CounterPickDone bool
 	// UnlessNext is the index of the UnlessPayer$ payer whose answered
 	// unless-pay choice this re-entry applies (0 on a first pass). The
 	// unlessProceed gate (Resolve) consumes and clears it; rules' resume

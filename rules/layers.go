@@ -902,6 +902,41 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	e.continuousVersion++
 }
 
+// effectCounterSweep is the counter-driven lifetime of Effect-created
+// continuous effects (task vow1; ForgetCounter$), run from Engine.emit after
+// every CounterChange has been applied: a remembered card whose count of the
+// named kind reached zero after that removal leaves the effect's Remembered
+// set -- Promise of Loyalty's "for as long as it has a vow counter on it",
+// Quicksilver Fountain's FLOOD, Obsidian Fireheart's BLAZE (18 corpus
+// carriers). The measured semantics this build pins: a count that DROPS
+// without reaching zero keeps the card (a multi-countered card loses the
+// restriction only when its LAST such counter goes), and an ADDITION never
+// forgets anything. Like effectMoveSweep this is an in-place rewrite of
+// e.continuous that emits no event and moves no log head; a replay rebuilds
+// it by re-executing the same registrations against the same counter events,
+// so it reproduces byte-identically.
+func (e *Engine) effectCounterSweep(ev events.Event) {
+	if ev.Amount >= 0 || len(e.continuous) == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.ForgetCounter != "" && ce.ForgetCounter == ev.Counter && objIDIn(ce.Remembered, ev.Obj) {
+			if o := e.G.Obj(ev.Obj); o == nil || o.Counter(ev.Counter) == 0 {
+				ce.Remembered = objIDWithout(ce.Remembered, ev.Obj)
+				changed = true
+			}
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousVersion++
+}
+
 // objIDIn reports whether ids holds id.
 func objIDIn(ids []state.ObjID, id state.ObjID) bool {
 	for _, x := range ids {
