@@ -14,16 +14,20 @@ package rules
 // (script text lives only in this gitignored corpus; a fixture copies it into
 // a test, never into a tracked .txt).
 //
-// DEVIATION from the brief, measured: the brief's symptom claimed Unbound
-// Flourishing's SpellCast trigger "fires on EVERY permanent spell you cast".
-// It does not fire AT ALL in this build: spellCastMatches reads ValidCard$
-// through the zone-unaware MatchesObjectCtx, whose base "Permanent" is
-// `o.Zone == ZBattlefield` (effects/filter.go matchesBase) -- a spell on the
-// stack never matches, so the trigger is dead before and after the gate.
-// TestUnboundFlourishingSpellCastCorpusLineStaysInert pins that divergence;
-// the SpellCast gate itself is proven on Brass Infiniscope's carrier line,
-// whose ValidSA$ Spell DOES match every stack spell (the over-firing the
-// brief described is real there, and on UF's SpellAbilityCast half).
+// DEVIATION from the original brief, measured: the brief's symptom claimed
+// Unbound Flourishing's SpellCast trigger "fires on EVERY permanent spell you
+// cast". It did not fire AT ALL in this build: spellCastMatches read
+// ValidCard$ through the zone-unaware MatchesObjectCtx, whose base
+// "Permanent" was `o.Zone == ZBattlefield` (effects/filter.go matchesBase) --
+// a spell on the stack never matched, so the trigger was dead before and
+// after the gate. That zone-blindness is now FIXED (rules/trigger_match.go's
+// spellCastPermanentSpec rewrites the leading `Permanent` token to
+// `PermanentCard`, whose base reads a permanent spell on the stack, CR
+// 109.2), and TestUnboundFlourishingFiresOnPermanentSpellCasts below pins
+// the live behaviour; the SpellCast gate itself is also proven on Brass
+// Infiniscope's carrier line, whose ValidSA$ Spell DOES match every stack
+// spell (the over-firing the brief described is real there, and on UF's
+// SpellAbilityCast half).
 
 import (
 	"testing"
@@ -61,6 +65,13 @@ const xCostHydraSrc = "Name:Test X Hydra\nManaCost:X G\nTypes:Creature Beast\nPT
 	"Oracle:x\n"
 
 const nonXBeastSrc = "Name:Plain Beast\nManaCost:1 G\nTypes:Creature Beast\nPT:1/1\n" +
+	"Oracle:x\n"
+
+// xBoltSrc is an instant WITH {X} in its printed cost, so the only gate that
+// can keep UF's SpellCast trigger silent on it is ValidCard$ Permanent -- a
+// permanent spell (CR 109.2) an instant is not.
+const xBoltSrc = "Name:Test X Bolt\nManaCost:X R\nTypes:Instant\n" +
+	"SVar:X:Count$xPaid\n" +
 	"Oracle:x\n"
 
 // The X-cost activated ability the SpellAbilityCast half needs: a printed
@@ -292,15 +303,32 @@ func TestHasXManaCostGateIsPerTrigger(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestUnboundFlourishingSpellCastCorpusLineStaysInert pins the measured
-// divergence the brief's symptom did not anticipate: UF's real SpellCast line
-// (ValidCard$ Permanent) NEVER fires on a spell cast, gate or no gate,
-// because matchesBase's "Permanent" is `o.Zone == ZBattlefield` and a spell
-// on the stack is not on the battlefield (10 more corpus SpellCast lines
-// carry the same dead shape). If this test ever FAILS, the Permanent-on-
-// stack read changed -- revisit the pin and the ticket that fixes it.
-func TestUnboundFlourishingSpellCastCorpusLineStaysInert(t *testing.T) {
-	e, cfg, _ := etbConfig(t, 131, []string{unboundFlourishingSrc, xCostHydraSrc, nonXBeastSrc}, nil)
+// spellCastPushCount counts TriggerPush events naming id as the trigger
+// source at trigger index 0 -- the card's FIRST T: line. On Unbound
+// Flourishing that is the Mode$ SpellCast trigger (the second T: line, the
+// SpellAbilityCast trigger, pushes at index 1), so the two halves of the
+// card can be asserted separately.
+func spellCastPushCount(e *Engine, id state.ObjID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TriggerPush && ev.Obj == id && ev.Amount == 0 {
+			n++
+		}
+	}
+	return n
+}
+
+// TestUnboundFlourishingFiresOnPermanentSpellCasts is the flipped pin (was
+// TestUnboundFlourishingSpellCastCorpusLineStaysInert, which pinned the
+// zone-blind ValidCard$ read keeping the trigger dead). With the
+// spellCastPermanentSpec rewrite, casting an X-cost CREATURE spell fires UF's
+// SpellCast trigger exactly once; casting an X-cost INSTANT spell does not
+// fire it -- the printed {X} satisfies HasXManaCost$, so the only clause
+// standing between the trigger and the cast is ValidCard$ Permanent, and an
+// instant is not a permanent spell (CR 109.2). The SpellAbilityCast half's
+// behaviour is asserted unchanged by the tests above.
+func TestUnboundFlourishingFiresOnPermanentSpellCasts(t *testing.T) {
+	e, cfg, _ := etbConfig(t, 131, []string{unboundFlourishingSrc, xCostHydraSrc, xBoltSrc}, nil)
 	uf := moveSeeded(t, e, 0, unboundFlourishingSrc, state.ZBattlefield)
 	addMana(t, e, 0, "GGG")
 	castFirst(t, e, "cast")
@@ -309,8 +337,21 @@ func TestUnboundFlourishingSpellCastCorpusLineStaysInert(t *testing.T) {
 	}
 	submitChoices(t, e, 2)
 	drainTriggerAsks(t, e, 30)
-	if got := pushCount(e, uf); got != 0 {
-		t.Fatalf("UF TriggerPush count after X-cost cast = %d, want 0 (ValidCard$ Permanent never matches a stack spell -- see the pin's comment)", got)
+	if got := spellCastPushCount(e, uf); got != 1 {
+		t.Fatalf("UF SpellCast TriggerPush count after X-cost creature cast = %d, want 1", got)
+	}
+	// X-cost instant: not a permanent spell -- the ValidCard$ gate must keep
+	// the SpellCast trigger silent (the SpellAbilityCast trigger, index 1,
+	// may still fire; that is the other half's business).
+	addMana(t, e, 0, "RRR")
+	castFirst(t, e, "cast")
+	if d := e.Pending(); d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "x" {
+		t.Fatalf("instant X decision %+v", d)
+	}
+	submitChoices(t, e, 2)
+	drainTriggerAsks(t, e, 30)
+	if got := spellCastPushCount(e, uf); got != 1 {
+		t.Fatalf("UF SpellCast TriggerPush count after X-cost instant cast = %d, want still 1 (an instant is not a permanent spell)", got)
 	}
 	replayCheck(t, e, cfg)
 }

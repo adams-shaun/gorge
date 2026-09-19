@@ -269,7 +269,11 @@ func matchesCompiledBase(base predicateBase, o *state.Object) bool {
 	case predicateBasePermanent:
 		matched = o.Zone == state.ZBattlefield
 	case predicateBasePermanentCard:
-		matched = o.Zone != state.ZStack && o.Face() != nil && o.Face().IsPermanent()
+		// The textual oracle's twin (effects/filter.go matchesBase): a
+		// permanent CARD wherever the object sits, including a permanent
+		// spell on the stack (CR 109.2). The compiled sidecar and the text
+		// must not disagree.
+		matched = o.Face() != nil && o.Face().IsPermanent()
 	case predicateBaseSpell, predicateBaseSpellAbility:
 		matched = o.Zone == state.ZStack
 	case predicateBaseType:
