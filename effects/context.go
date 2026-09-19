@@ -299,10 +299,22 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// carries the declared batch (triggerRemembered's DeclareAttackers
 		// case), so this resolves the whole per-defender attacker group.
 		return objectsOf(c.Remembered), true
+	case "TriggeredTargetLKICopy":
+		// The BEARER the Attached referent walk captured (triggerReferents'
+		// Attached case): the permanent an Aura/Equipment became attached to
+		// -- Enormous Energy Blade's "tap that creature". Only the Attached
+		// walk sets TriggerBearer, so no other mode's provenance moves: a
+		// BecomesTarget trigger's TriggerTarget role is its OWN source
+		// permanent (the enchanted creature, Horobi himself), and this
+		// spelling keeps resolving that mode's Remembered entry (the
+		// targeting spell) exactly as it always has.
+		if c.TriggerBearer != 0 {
+			return []state.Target{{Obj: c.TriggerBearer}}, true
+		}
+		return objectsOf(c.Remembered), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
-		"TriggeredAttackerLKICopy", "TriggeredTargetLKICopy",
-		"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
+		"TriggeredAttackerLKICopy", "DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
@@ -330,8 +342,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// the target's kind here; callers that require an object (the damage
 		// rider) already reject player entries rather than guessing. When the
 		// causing event's mode did not capture a TriggerTarget (a hand-built
-		// context or an Attached-mode trigger the referent walk does not
-		// model), fall back to the chosen targets -- Defined's pre-branch
+		// context), fall back to the chosen targets -- Defined's pre-branch
 		// convention for a trigger selector whose provenance was not recorded.
 		if c.TriggerTarget.Obj != 0 || c.TriggerTarget.IsPlayer {
 			return []state.Target{c.TriggerTarget}, true

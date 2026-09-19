@@ -58,7 +58,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.DecisionAsk, events.DecisionMade, events.Note, events.LandPlayed,
 		events.FlipFace, events.ClockTick, events.TriggerPush,
 		events.EndCombatReset, events.CastInfo, events.Choose,
-		events.TokenCreate, events.StackCopy, events.Attach, events.ModeChosen,
+		events.TokenCreate, events.StackCopy, events.ModeChosen,
 		events.CmdDamage, events.DelayedRegister, events.DelayedPush,
 		events.LibraryOrder, events.ExtraTurn, events.DoorUnlock,
 		events.SpeedChange, events.MonarchChange, events.ControlChange,
@@ -68,6 +68,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.GrantTriggerPush, events.ManaActivate,
 		events.TokenAttacks, events.XChange:
 		return 0
+	case events.Attach:
+		return cards.TriggerInterestAttach
 	default:
 		return cards.TriggerInterestAny
 	}
@@ -99,6 +101,8 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.MoveZone
 	case "CommitCrime", "BecomesTarget":
 		return 1 << events.TargetsChosen
+	case "Attached":
+		return 1 << events.Attach
 	case "Taps", "TapsForMana":
 		return 1 << events.Tap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
