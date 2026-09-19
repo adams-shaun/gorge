@@ -190,6 +190,15 @@ type Object struct {
 	// legal unlimited activations -- the count is advice, never a gate.
 	ActivatedThisTurn int32
 
+	// AttacksThisTurn counts the DeclareAttackers events this object has
+	// attacked in this turn (events.Apply's DeclareAttackers case), reset in
+	// TurnChange's per-object loop. Extra combats within one turn share
+	// g.Turn and do NOT reset it, so a "attacks for the first time each
+	// turn" trigger (rules/trigger_match.go attacksMatches' FirstAttack$)
+	// reads count == 1 at fire time -- trigger matching runs on the FOLDED
+	// event, so the event's own attack is already counted.
+	AttacksThisTurn int32
+
 	// preStackEntry* carries a card's entry history only while it is on the
 	// stack. events.Apply captures it before PutOnStack overwrites the public
 	// fields, then restores and clears it for CR 733.1's logged reverse move.
