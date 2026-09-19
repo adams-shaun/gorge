@@ -90,6 +90,10 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1<<events.MoveZone | 1<<events.Draw | 1<<events.PutOnStack
 	case "SpellCast":
 		return 1 << events.PutOnStack
+	case "SpellCastOrCopy":
+		return 1<<events.PutOnStack | 1<<events.StackCopy
+	case "SpellCopy":
+		return 1 << events.StackCopy
 	case "AbilityCast", "SpellAbilityCast":
 		return 1 << events.AbilityPush
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":

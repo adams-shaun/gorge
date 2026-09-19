@@ -1266,6 +1266,23 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.zoneChangeMatches(t, source, ev, lki)
 	case "SpellCast":
 		matched = e.spellCastMatches(t, source, ev)
+	case "SpellCastOrCopy":
+		// The magecraft family ("Whenever you cast or copy an instant or
+		// sorcery spell, ..."): the cast half is the ordinary SpellCast
+		// evaluation on the PutOnStack event; the copy half delegates a
+		// StackCopy event to spellCopyMatches. A copy never re-enters the
+		// stack as a PutOnStack -- effects/copy.go emits events.StackCopy
+		// naming the original -- so spellCastMatches' entering-the-stack guard
+		// would keep the copy half dead if the whole mode fell through to it.
+		if ev.Kind == events.StackCopy {
+			matched = e.spellCopyMatches(t, source, ev)
+		} else {
+			matched = e.spellCastMatches(t, source, ev)
+		}
+	case "SpellCopy":
+		// The copy-only mode ("Whenever you copy a spell, ..."): plain casts
+		// are not copies, so a PutOnStack event must not fire it.
+		matched = e.spellCopyMatches(t, source, ev)
 	case "AbilityCast", "SpellAbilityCast":
 		matched = e.abilityCastMatches(t, source, ev)
 	case "Attacks":
@@ -1611,8 +1628,39 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 	if ev.Kind != events.PutOnStack {
 		return false
 	}
-	// Casting a spell means an actual card entering the stack. This build
-	// also uses PutOnStack-shaped Move()s for nothing else today (triggered
+	return e.spellCastEval(t, source, ev)
+}
+
+// spellCopyMatches is the copy half of the spell-cast family: Mode$
+// SpellCastOrCopy delegates a StackCopy event here, and Mode$ SpellCopy
+// ("Whenever you copy a spell, ...", the_parnesse_the_subtle_brush shape)
+// is its only mode. Copies do not re-enter the stack as a PutOnStack --
+// effects/copy.go emits events.StackCopy naming the ORIGINAL spell (ev.Obj,
+// still on the stack; events.Apply's StackCopy case rejects anything else)
+// with ev.Player the copy's controller -- and the copy object shares the
+// original's card, face and CastFlags, so the shared evaluation below reads
+// the copied spell identically. A plain SpellCast trigger stays silent here
+// (a copy is not a cast) and a SpellCastOrCopy/SpellCopy trigger does not
+// fire on the cast of the spell itself -- that half of the division is
+// spellCastMatches'.
+func (e *Engine) spellCopyMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.StackCopy {
+		return false
+	}
+	return e.spellCastEval(t, source, ev)
+}
+
+// spellCastEval is the spell evaluation spellCastMatches and
+// spellCopyMatches share, minus the entering-the-stack guard each mode owns:
+// ValidCard$ (through the trigger-side cast alternatives and the
+// cast-provenance qualifiers), ValidActivatingPlayer$, the
+// ActivatorThisTurnCast[Each] counts, ValidSA$ and HasXManaCost$ -- read off
+// ev.Obj (the spell being cast, or the original being copied) and ev.Player
+// (the cast's or the copy's controller) exactly alike.
+func (e *Engine) spellCastEval(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	// Casting a spell means an actual card entering the stack (a copy
+	// evaluates the ORIGINAL, which Apply's StackCopy case guarantees is on
+	// the stack). This build also uses PutOnStack-shaped Move()s for nothing else today (triggered
 	// abilities go on the stack via a dedicated TriggerPush event --
 	// putTriggersOnStack, above, and events.Apply's TriggerPush case), but a
 	// Face()-less object could otherwise satisfy a bare "Any"/"Spell"
