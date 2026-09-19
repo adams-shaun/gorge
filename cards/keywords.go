@@ -178,6 +178,19 @@ func (f *Face) expandKeywords() {
 		case "Storm":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Storm",
 				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnCast/Minus1 | MayChooseTarget$ True", has)
+		case "Replicate":
+			// CR 702.55a: "you may pay an additional [cost] any number of
+			// times as you cast this spell. If you do, copy it for each time
+			// you paid its replicate cost." The cast flow poses the count ask
+			// (rules/cast.go's replicateAsk, one KChoose before the payment
+			// window) and records the count on the pay-time CastInfo
+			// (FlagReplicated's Amount); this trigger reads Count$ReplicatePaid
+			// off the cast spell, so a DECLINED replicate resolves the trigger
+			// with Amount 0 and effCopySpellAbility's loop emits nothing. The
+			// copies keep their targets (MayChooseTarget$), the same
+			// Storm-shaped stand-in the M4 copy-target task owns.
+			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Replicate",
+				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ReplicatePaid | MayChooseTarget$ True", has)
 		case "Living Weapon":
 			if has("T", k) {
 				continue

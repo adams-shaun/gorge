@@ -552,6 +552,17 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.X, true
 		}
 		return 0, true
+	case "ReplicatePaid":
+		// CR 702.55a: the number of replicate payments the resolving spell's
+		// cast made, carried by the pay-time CastInfo's FlagReplicated Amount
+		// (rules/cast.go's replicateAsk and payCast). Read off the SOURCE --
+		// the cast spell, the same provenance read xPaid makes -- so a replay
+		// derives the same count; a copy of the spell was never cast and
+		// reads 0.
+		if o := g.Obj(c.Source); o != nil {
+			return o.ReplicateTimes, true
+		}
+		return 0, true
 	case "YourLifeTotal":
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0, true
