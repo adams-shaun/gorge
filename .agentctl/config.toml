@@ -18,29 +18,43 @@ provider = "bm-llms-glm"
 model = "glm-5.3-flash"
 thinking = "medium"
 
+# 2026-09-19 (operator): the GPT/Codex seats are out for now (plan exhausted);
+# every paid role runs DeepSeek-V4.1-Flash on DeepInfra. The key is
+# DEEPSEEK_API_KEY, inherited from the supervisor's environment (~/.zshrc).
+# To restore the GPT seats, swap the commented lines back in.
 [seats.overflow]
-provider = "openai-codex"
-model = "gpt-5.6-terra"
+# provider = "openai-codex"
+# model = "gpt-5.6-terra"
+provider = "deepinfra"
+model = "deepseek-ai/DeepSeek-V4.1-Flash"
 thinking = "high"
 
 [seats.escalated]
-provider = "openai-codex"
-model = "gpt-5.6-terra"
+# provider = "openai-codex"
+# model = "gpt-5.6-terra"
+provider = "deepinfra"
+model = "deepseek-ai/DeepSeek-V4.1-Flash"
 thinking = "high"
 
 [seats.reviewer]
-provider = "openai-codex"
-model = "gpt-5.6-terra"
-thinking = "medium"
+# provider = "openai-codex"
+# model = "gpt-5.6-terra"
+# thinking = "medium"
+provider = "deepinfra"
+model = "deepseek-ai/DeepSeek-V4.1-Flash"
+thinking = "high"
 
 # What an overrides.json entry may switch each role to (design §12.10); the
 # daemon re-checks every override against this list. Astra is never listed
 # (config.py:49-50). The reviewer list is design §13.2's example.
 [seats.allow]
 local = ["bm-llms-glm/glm-5.3-flash"]
-overflow = ["openai-codex/gpt-5.6-terra"]
-escalated = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol"]
-reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "bm-llms-glm/glm-5.3-flash"]
+# overflow = ["openai-codex/gpt-5.6-terra"]
+# escalated = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol"]
+# reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "bm-llms-glm/glm-5.3-flash"]
+overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
+escalated = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
+reviewer = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 
 # config.py:64-65, 73, 79, 99-100, 119; daemon.py:308.
 [policy]
@@ -49,7 +63,12 @@ review_local_thinking = "high"
 escalation_local_fallback = true
 local_endpoint_probe = true
 max_local_rounds = 2
-max_escalated_rounds = 5
+# 2026-09-19 (operator): the escalated tier is held for Claude. 0 means ONE
+# DeepSeek escalated round after the local rounds (the ladder launches the first
+# escalated round before it checks the cap), then human_needed, which a Claude
+# operator session picks up with ~/projects/agentctl/docs/claude-operator-prompt.md.
+# max_escalated_rounds = 5
+max_escalated_rounds = 0
 max_merge_rounds = 2
 seat_start_grace_s = 180
 poll_seconds = 60
