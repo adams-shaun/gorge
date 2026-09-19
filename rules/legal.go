@@ -1131,6 +1131,17 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (replicated)", Obj: id, Mode: "replicated"})
 		}
+		// Multikicker (CR 702.43): the multikicked variant is its own cast
+		// option paying the base cost plus ONE multikicker payment -- the
+		// replicate offer's exact shape (one payment is what gates the offer;
+		// the count ask, multikickAsk, settles how many afterwards). No corpus
+		// carrier pairs Kicker with Multikicker (measured), so this offer
+		// never collides with the kicked family above.
+		if mkc, ok := multikickerCost(f); ok && targetsAvailable &&
+			offerCastable(p, id, e.rawBaseCost(p, id).Plus(mkc), spellScope("multikicked"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (multikicked)", Obj: id, Mode: "multikicked"})
+		}
 		// The alternative-cost keyword family (altcosts), from the hand: evoke
 		// (CR 702), dash, overload and warp each become their own "cast" mode
 		// option paying the printed keyword cost in place of the mana cost.

@@ -99,6 +99,16 @@ type pendingCast struct {
 	replicateTimes int32
 	replicateDone  bool
 
+	// multikickParam is the raw Multikicker keyword parameter (CR 702.43) a
+	// "multikicked" cast re-parses at ask and answer time; multikickTimes is
+	// the answered payment count (0 = declined: no flag, a plain cast) and
+	// multikickDone marks the one ask already posed. Same shape as the
+	// replicate fields above; plain data, so Clone copies it.
+	multikickParam string
+	multikickSet   bool
+	multikickTimes int32
+	multikickDone  bool
+
 	// converge (task converge1) is CR 107.4f-family's count of distinct
 	// colours (WUBRG) of mana actually spent to cast this spell, captured at
 	// payment from the full spent delta payManaCastSpent returns. convergeOn
@@ -322,6 +332,24 @@ func surgeCost(f *cards.Face) (Cost, bool) {
 // twoPartKickerCosts takes) rather than charged as degraded generic mana.
 func replicateCost(f *cards.Face) (Cost, bool) {
 	s, ok := f.KeywordParam("Replicate")
+	if !ok {
+		return Cost{}, false
+	}
+	c := ParseCost(s)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
+// multikickerCost resolves the Multikicker keyword's PER-PAYMENT cost
+// (CR 702.43, Forge's K:Multikicker:<cost>), the replicateCost shape: the
+// same payment may be made any number of times as the spell is cast, so the
+// offer gates on ONE payment being payable and the count ask
+// (multikickAsk) settles how many. A cost carrying a token ParseCost cannot
+// model is withheld (the replicateCost fail-closed direction).
+func multikickerCost(f *cards.Face) (Cost, bool) {
+	s, ok := f.KeywordParam("Multikicker")
 	if !ok {
 		return Cost{}, false
 	}
@@ -1126,6 +1154,14 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// parameter itself is captured onto the pendingCast after its
 		// construction (the suspend block below), keeping this switch's
 		// cost-folding contract intact.
+	case "multikicked":
+		// Multikicker (CR 702.43): the same shape as "replicated" above --
+		// the mode marks the intent to pay the optional multikicker cost;
+		// the PAYMENT COUNT is settled by multikickAsk before the Convoke/X
+		// stages and folded into cost there, so this case folds NOTHING. A
+		// declined count leaves an exactly plain cast (modeFlags maps this
+		// mode to ""), and the pay-time CastInfo rides the trailing
+		// FlagMultikicked event.
 	case "harmonize":
 		if hc, ok := harmonizeCost(f); ok {
 			cost = hc
@@ -1265,6 +1301,15 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 			e.cast.replicateParam, e.cast.replicateSet = f.KeywordParam("Replicate")
 		}
 	}
+	// Multikicker (CR 702.43): the cost is carried as its raw keyword
+	// parameter and re-parsed by multikickAsk and the answer handler -- the
+	// same string-survives-Clone convention the replicate capture above
+	// documents.
+	if opt.Mode == "multikicked" {
+		if _, ok := multikickerCost(f); ok {
+			e.cast.multikickParam, e.cast.multikickSet = f.KeywordParam("Multikicker")
+		}
+	}
 	// CR 401.5's MayPlayIgnoreColor$ rider: "you may spend mana as though it
 	// were mana of any color to cast it". Recorded from the grant the offer
 	// gate consulted while the card was still in the granted zone.
@@ -1389,6 +1434,13 @@ func (e *Engine) continueCast() {
 	// paid any number of times) is announced before Convoke/Harmonize and X,
 	// whose asks must see and bound against the composed total.
 	if e.replicateAsk() {
+		return
+	}
+	// CR 601.2b: the multikicker count (CR 702.43's optional additional cost,
+	// paid any number of times) is announced the same way -- no Kicker
+	// carrier pairs both keywords (measured over the corpus), so the two
+	// asks never coexist on one cast.
+	if e.multikickAsk() {
 		return
 	}
 	// CR 601.2b announces Convoke/Harmonize before X: an announced creature
@@ -1921,6 +1973,60 @@ func (e *Engine) replicateAsk() bool {
 			label = fmt.Sprintf("Pay replicate %d times", n)
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "replicate",
+			Label: label, Amount: int(n)})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+// multikickAsk poses CR 702.43's multikicker count question -- "you may pay
+// [the multikicker cost] any number of times as you cast this spell" -- once,
+// the replicateAsk shape (the same cast announcement, CR 601.2b): the max is
+// the largest N the current board can still pay, walked with the SAME
+// affordability checker the payment window's composed total faces (castable),
+// pool-only at ask time. The answered count folds that many payments into
+// cost (castAnswer); 0 declines: no flag, an exactly plain cast.
+func (e *Engine) multikickAsk() bool {
+	pc := e.cast
+	if pc.multikickDone || !pc.multikickSet {
+		return false
+	}
+	pc.multikickDone = true
+	mk := ParseCost(pc.multikickParam)
+	max := int32(0)
+	cand := pc.cost
+	for i := int32(0); i < 64; i++ {
+		// The hard cap only exists so a degenerate future cost whose every
+		// part prices against a non-reserving candidate count cannot loop;
+		// every real multikicker resource is finite and breaks the loop
+		// naturally (the replicateAsk comment).
+		next := cand.Plus(mk)
+		if !e.castable(pc.player, pc.card, next, false) {
+			break
+		}
+		cand = next
+		max++
+	}
+	if max == 0 {
+		// The offer gate proved one payment payable; a board that changed
+		// under the proposal degrades the explicitly chosen
+		// "(multikicked)" mode to the count-0 plain cast (the replicateAsk
+		// max==0 arm's conservative direction), never a wedge or abort.
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			Text: "multikicker no longer payable; casting without multikick"})
+		return false
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Pay the multikicker cost how many times?", Source: pc.card}
+	for n := int32(0); n <= max; n++ {
+		label := "No multikick"
+		if n == 1 {
+			label = "Pay multikicker once"
+		} else if n > 1 {
+			label = fmt.Sprintf("Pay multikicker %d times", n)
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "multikick",
 			Label: label, Amount: int(n)})
 	}
 	e.choosing = chooseCast
@@ -2904,6 +3010,27 @@ func faceWantsConverge(f *cards.Face) bool {
 	return false
 }
 
+// faceWantsTimesKicked is the heads-safety gate for the pay-time multikick
+// CastInfo on a PLAIN-Kicker cast mode (the converge gate's shape): it
+// reports whether the face's SVar table reads the times-kicked count
+// anywhere (Count$TimesKicked, op suffix included). The 11 legacy
+// plain-Kicker carriers (Stronghold Arena, Urborg Lhurgoyf, ...) carry the
+// SVar and get a real count stamped; a kicker card without the SVar (Into
+// the Roil, Wastescape Battlemage) casts byte-identically to before. A
+// multikicked-mode cast needs no gate -- its count>0 emission is the
+// primitive itself.
+func faceWantsTimesKicked(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, v := range f.SVars {
+		if strings.Contains(v, "Count$TimesKicked") {
+			return true
+		}
+	}
+	return false
+}
+
 // triggeredConvergeReaderOut is the capture gate's second arm: it reports
 // whether any alive player's battlefield holds a permanent whose face SVars
 // name TriggeredCard$Converge -- a trigger that reads ANOTHER spell's cast
@@ -3505,6 +3632,17 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			}
 			pc.replicateTimes = n
 		}
+	case "multikick":
+		// CR 702.43: the answered payment count folds that many multikicker
+		// payments into cost -- the replicate arm's exact shape.
+		if len(chosen) > 0 && pc.multikickSet {
+			n := int32(chosen[0].Amount)
+			mk := ParseCost(pc.multikickParam)
+			for i := int32(0); i < n; i++ {
+				pc.cost = pc.cost.Plus(mk)
+			}
+			pc.multikickTimes = n
+		}
 	case "exile":
 		for _, o := range chosen {
 			pc.delve = append(pc.delve, o.Obj)
@@ -3664,6 +3802,14 @@ func modeFlags(mode string) string {
 	// spell, and what keeps a bestowed cast distinguishable on the wire.
 	case "bestowed":
 		return events.FlagsString(state.FlagBestowed)
+	// Multikicker (CR 702.43): the mode marks the INTENT to pay the
+	// optional multikicker cost, and the count ask (multikickAsk) can still
+	// answer 0 -- a DECLINED multikick must stay the byte-identical plain
+	// cast, no flag and no event, exactly the "replicated" contract above.
+	// When a payment WAS made, payCast ORs bare FlagKicked (a multikicked
+	// cast IS a kicked cast) and FlagMultikicked onto the trailing CastInfo.
+	case "multikicked":
+		return ""
 	}
 	return ""
 }
@@ -4474,6 +4620,34 @@ func (e *Engine) payCast() {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagConverged)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.converge, Counter: flags})
 	}
+	// Multikicker (CR 702.43, task multikicker1): the times-kicked count
+	// rides its own TRAILING pay-time CastInfo -- the flag routes the Amount
+	// into Object.TimesKicked (events.Apply's CastInfo case), so this event
+	// never clobbers the X a main CastInfo carried (Comet Storm pairs {X}
+	// with Multikicker; the two-event split falls out of the trailing shape
+	// itself), and its Counter leaves CastFlags carrying every earlier flag
+	// too. A multikicked cast IS a kicked cast, so the flag rides with the
+	// bare FlagKicked (the bare predicate and the Condition$ Kicked gate
+	// keep matching). The emission gate keeps unrelated casts
+	// byte-identical: ALWAYS on a multikicked-mode cast with count > 0 (a
+	// declined kick -- count 0, the modeFlags("replicated") contract --
+	// emits nothing), and on a plain-Kicker cast mode ONLY when the face
+	// carries a Count$TimesKicked SVar (faceWantsTimesKicked): the 11 legacy
+	// plain-Kicker carriers' scripts still read the count, and no other
+	// kicked cast gains an event.
+	mkCount := int32(0)
+	switch pc.mode {
+	case "multikicked":
+		mkCount = pc.multikickTimes
+	case "kicked", "kicked1", "kicked2":
+		mkCount = 1
+	case "kickedboth":
+		mkCount = 2
+	}
+	if mkCount > 0 && (pc.mode == "multikicked" || faceWantsTimesKicked(e.G.Obj(pc.card).Face())) {
+		mkFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagKicked | state.FlagMultikicked)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: mkCount, Counter: mkFlags})
+	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for.
 	e.fireDeferredCastTrigger()
@@ -4667,6 +4841,13 @@ func init() {
 		// the pay-time CastInfo's count; the cast flow's replicateAsk poses
 		// the CR 601.2b count announcement.
 		"kw:Replicate",
+		// kw:Multikicker: CR 702.43, the count-ask cast shape -- the cast flow
+		// (rules/legal.go's multikicked offer, rules/cast.go's multikickAsk)
+		// poses the CR 601.2b count announcement and the trailing
+		// FlagMultikicked CastInfo carries the count into Object.TimesKicked
+		// for the Count$TimesKicked head (effects/count.go). No keyword
+		// expansion: the K:Multikicker line is read directly.
+		"kw:Multikicker",
 		// kw:Affinity: CR 702.41, expanded by cards/keywords.go into the
 		// ordinary ReduceCost cost-static machinery (rules/statics.go's
 		// collectCostStatics) -- no separate cast path of its own.

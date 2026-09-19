@@ -363,6 +363,14 @@ type Ctx struct {
 	// Both are bound by the rules package when it builds the context.
 	SVars map[string]string
 	X     int32
+	// TimesKicked is the pending cast's settled multikicker payment count
+	// (CR 702.43), seeded by rules' targetBoundCtx when the spell's OWN
+	// announcement ask resolves a Count$TimesKicked bound BEFORE payment has
+	// stamped the stack object (Comet Storm's TargetMin/Max$ TargetsNum).
+	// Everywhere else it is zero and the TimesKicked count head falls back to
+	// the source object's stamped field -- the same priority the xPaid head
+	// gives ctx.X over the object read.
+	TimesKicked int32
 	// ChosenNumber is the Effect's SetChosenNumber$ binding (task
 	// wildgrowth1): the number the Effect resolved at creation, threaded into
 	// a registered replacement's body Ctx by rules' replCtx so the body's

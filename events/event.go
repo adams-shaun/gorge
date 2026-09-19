@@ -593,6 +593,10 @@ var flagNames = [...]struct {
 	// synthesized Aura attach spell. Appended at the end per the table's
 	// own ordering rule.
 	{"bestowed", state.FlagBestowed},
+	// Multikicker's payment provenance (CR 702.43); the TIMES-KICKED COUNT
+	// rides the same CastInfo's Amount. Appended at the end per the table's
+	// own ordering rule.
+	{"multikicked", state.FlagMultikicked},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

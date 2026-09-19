@@ -426,6 +426,15 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		return nil, false
 	}
 	ctx := &effects.Ctx{Controller: p}
+	// The pending cast's own multikicker count (rules/cast.go's multikickAsk):
+	// at the CR 601.2c announcement ask the pay-time CastInfo has not run
+	// yet, so a TimesKicked bound (Comet Storm's TargetMin/Max$ TargetsNum)
+	// would read 0 off the stack object. When the asking source IS the card
+	// the pending cast is casting, seed the count the ask just settled --
+	// exactly the `x` resolvedTargetBounds threads for a Count$xPaid bound.
+	if pc := e.cast; pc != nil && pc.card == source && pc.multikickSet {
+		ctx.TimesKicked = pc.multikickTimes
+	}
 	if f := o.Face(); f != nil {
 		ctx.Source = source
 		effects.SetSVars(ctx, f.SVars)
