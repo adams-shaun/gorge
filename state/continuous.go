@@ -143,6 +143,16 @@ type ContinuousEffect struct {
 	// nothing. Objects only; a player-only remembered target yields an empty
 	// slice.
 	Remembered []ObjID
+	// RememberedPlayers is the PLAYERS an Effect captured for its restriction
+	// (Call for Aid's RememberObjects$ TargetedPlayer: the targeted opponent
+	// whose creatures were stolen, so the registered CantAttack's Target$
+	// Player.IsRemembered — "you can't attack that player" — has a remembered
+	// player to resolve). effectRemembered deliberately records objects only;
+	// a player-only remember yields an empty slice there, so this field is the
+	// explicit player half of the same capture. Empty on every effect that
+	// captured no players. Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	RememberedPlayers []PlayerID
 	// Duration is the original Duration$ value ("" means Permanent, the
 	// effEffect default) preserved for reporting and for the expiry decision
 	// in rules/layers.go. Cosmetic for a layer effect.

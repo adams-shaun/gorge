@@ -1909,7 +1909,19 @@ func parseAmount(s string, def int32) int32 {
 func init() {
 	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost", "stat:CastWithFlash",
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:CantBlock", "stat:CantBlockBy",
-		"stat:CantGainLife", "stat:Continuous", "stat:ManaConvert", "stat:NumLoyaltyAct")
+		"stat:CantGainLife", "stat:Continuous", "stat:ManaConvert", "stat:NumLoyaltyAct",
+		// combatrestriction1: the three combat/sacrifice restriction statics.
+		// CantAttack is enforced per (attacker, defender) pair
+		// (rules/layers.go attackBlocked, consulted by askAttackers /
+		// validateAttackers / mustAttackRequired's pair gate), CantSacrifice at
+		// every sacrifice candidate choke point (rules.Engine.SacrificeBlocked,
+		// the effects.Host method), and MustAttack by the board-wide
+		// activeStatics walk in mustAttackRequired. Only the whitelisted
+		// parameter shapes are enforced (cantRestrictionParamsReadable for the
+		// two Cant* statics; the Mode$/ValidCreature$/Description$ whitelist the
+		// requirement solver already carried for MustAttack) — the conditional
+		// shapes stay unregistered behaviour-wise and are ledgered in AGENTS.md.
+		"stat:CantAttack", "stat:CantSacrifice", "stat:MustAttack")
 }
 
 // altCostLabel names the nth (0-indexed) alternative-cost option for a

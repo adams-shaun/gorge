@@ -88,6 +88,16 @@ type Host interface {
 	// Implemented by rules.Engine against its continuous-effect registry; the
 	// effects test double reports false (no engine to consult). Task ce1.
 	RegenerationDisallowed(id state.ObjID) bool
+	// SacrificeBlocked reports whether id is forbidden from being sacrificed
+	// at all this turn — an Effect-registered CantSacrifice restriction (Call
+	// for Aid's "You can't sacrifice those creatures this turn") or a face
+	// CantSacrifice static (the simple Card.Self carriers). Consulted at every
+	// sacrifice candidate choke point (effSacrifice's eligible pool and
+	// object-target paths, effSacrificeAll, the cast/activation/mana/ward/unless
+	// Sac-cost candidate walks) so a blocked permanent is never offered and
+	// never taken. Implemented by rules.Engine (rules/layers.go); the effects
+	// test double reports false (no engine to consult).
+	SacrificeBlocked(id state.ObjID) bool
 	// HasKeyword reports a DERIVED keyword — printed or granted by a
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.

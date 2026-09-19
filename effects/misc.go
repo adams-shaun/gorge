@@ -295,13 +295,27 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
 			// same matcher with the registered remembered set bound), so the
 			// old "reject compounds, keep the Note" guard is gone: the
 			// restriction registers for real.
+			//
+			// CantAttack/CantSacrifice additionally gate on the same parameter
+			// whitelist the face-static readers (rules/layers.go
+			// cantRestrictionParamsReadable) enforce: a body carrying a
+			// condition or scoping this build does not evaluate (UnlessCost$,
+			// ValidCause$, ForCost$, IsPresent$, ...) must not register
+			// blanket — it is reported unimplemented instead, so the two
+			// registration paths cannot disagree about what is readable.
+			if (mode == "CantAttack" || mode == "CantSacrifice") && !CantRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
@@ -313,6 +327,17 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				Duration:       dur,
 				ForgetOnMoved:  forgetOn,
 				ExileOnMoved:   exileOn,
+			}
+			if mode == "CantAttack" || mode == "CantSacrifice" {
+				// The player half of the remembered capture: Call for Aid's
+				// RememberObjects$ TargetedPlayer must reach the registered
+				// CantAttack, whose Target$ Player.IsRemembered ("you can't
+				// attack that player") resolves against this set at
+				// consultation time (rules/layers.go
+				// restrictionPlayerSpecMatches) — effectRemembered records
+				// objects only, so without this the remembered player would
+				// silently vanish.
+				ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
 			}
 			h.AddContinuous(ce)
 			registered = true
@@ -469,7 +494,8 @@ func parseStaticLine(svars map[string]string, name string) (string, map[string]s
 // resolution already had; "You & Targeted" and the default degrade to the
 // source plus the chosen targets. Objects only: a player-only remember yields
 // an empty slice, which a restriction whose ValidCard$ is Card.IsRemembered
-// then applies to nothing.
+// then applies to nothing. The player half of the same capture lives in
+// effectRememberedPlayers below.
 func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 	ro := sa.Params["RememberObjects"]
 	if ro == "" {
@@ -531,6 +557,79 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 		}
 	}
 	return out
+}
+
+// effectRememberedPlayers resolves RememberObjects$ into the concrete PLAYER
+// ids the Effect captured — the player half of effectRemembered, which
+// deliberately records objects only (a player-only remember yields an empty
+// slice there). Only the player-flavoured RememberObjects$ spellings are
+// read: "TargetedPlayer" (the chosen player targets — Call for Aid's
+// "target opponent", whose remembered self the registered CantAttack's
+// Target$ Player.IsRemembered then resolves), "RememberedPlayer"/
+// "RememberedPlayers" (the resolution's remembered players). Anything else
+// contributes no player, so an effect whose remember the helper cannot read
+// registers a restriction with an empty player set (its IsRemembered target
+// clauses match nobody — fail closed). Deduplicated, first-capture order.
+func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	ro := sa.Params["RememberObjects"]
+	if ro == "" {
+		return nil
+	}
+	var out []state.PlayerID
+	seen := make(map[state.PlayerID]bool)
+	add := func(p state.PlayerID) {
+		if !seen[p] {
+			seen[p] = true
+			out = append(out, p)
+		}
+	}
+	for _, part := range strings.FieldsFunc(ro, func(r rune) bool {
+		return r == '&' || r == ',' || r == ' '
+	}) {
+		part = strings.TrimSpace(part)
+		switch part {
+		case "TargetedPlayer":
+			for _, t := range c.Targets {
+				if t.IsPlayer {
+					add(t.Player)
+				}
+			}
+		case "RememberedPlayer", "RememberedPlayers":
+			for _, t := range c.Remembered {
+				if t.IsPlayer {
+					add(t.Player)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// CantRestrictionParamsReadable is the parameter whitelist a CantAttack /
+// CantSacrifice static must pass before this build enforces it — used BOTH by
+// the face-static readers (rules/layers.go's SacrificeBlocked/attackBlocked
+// activeStatics walks) and by effEffect's registration case (an Effect body
+// carrying an unreadable parameter must not register blanket, so the two
+// registration paths cannot disagree about what is readable): Mode$, the
+// ValidCard$ object spec, the Target$ player spec, and display text only.
+// A static carrying any other parameter (UnlessDefender$, IsPresent$,
+// Cost$, CheckSVar$, ValidSA$, ...) names a condition or scoping this build
+// does not evaluate; enforcing it blanket would OVER-restrict — a "can't
+// attack unless ..." would become "can't attack at all", and a creature a
+// MustAttack static requires could be left without a single legal pair — so
+// the static is skipped/reported, which is the pre-registration behaviour and
+// the permissive direction for a restriction. Secondary$ is allowed: it marks
+// a Forge-side duplicate for modifier composition, and a boolean restriction
+// cannot be applied twice.
+func CantRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "Target", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // IsNextTurnDuration reports whether a Duration$ value names the
