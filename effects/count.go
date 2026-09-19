@@ -1009,6 +1009,37 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				n = 0
 			}
 			return n, true
+		case "wasCastFromYourHandByYou":
+			// The resolving source was cast from ITS OWN CONTROLLER's hand by
+			// that controller (the Myojin cycle's etbCounter CheckSVar$ gate:
+			// "enters with a divinity counter on it if you cast it from your
+			// hand", 12 corpus carriers). An ordinary hand-origin cast carries
+			// no CastFlags bit — the flags mark alternative costs and origins
+			// only — so the provenance is the object's latest PutOnStack
+			// (Host.WasCastFromHandByYou's log scan, replay-derivable like
+			// CastThisTurn); a copy was never cast, and a card never put on
+			// the stack (cheated into play) reads false, the same guards the
+			// wasCastFromGraveyard case takes. The branch tokens resolve
+			// through resolveCountOperand, the same machinery.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			holds := false
+			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
+				if h != nil {
+					holds = h.WasCastFromHandByYou(c.Source, o.Controller)
+				}
+			}
+			if holds {
+				y, ok := resolveCountOperand(h, c, yesTok, depth)
+				if !ok {
+					y = 0
+				}
+				return y, true
+			}
+			n2, ok := resolveCountOperand(h, c, noTok, depth)
+			if !ok {
+				n2 = 0
+			}
+			return n2, true
 		case "Morbid", "Monarch":
 			y, n := splitDot(head[dot+1:])
 			holds := false
