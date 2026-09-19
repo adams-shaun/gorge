@@ -831,8 +831,16 @@ func Apply(g *state.Game, e Event) {
 
 	case CastInfo:
 		if o := g.Obj(e.Obj); o != nil {
-			o.X = e.Amount
 			o.CastFlags = FlagsFrom(e.Counter)
+			// FlagReplicated's Amount is the replicate payment count, never an
+			// X value (measured: no K:Replicate carrier's mana value carries
+			// {X}), so the flag routes the Amount into the count field instead
+			// of overwriting X.
+			if FlagsFrom(e.Counter)&state.FlagReplicated != 0 {
+				o.ReplicateTimes = e.Amount
+			} else {
+				o.X = e.Amount
+			}
 		}
 
 	case Choose:
@@ -1495,6 +1503,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// regardless of where the object came from.
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
+			o.ReplicateTimes = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
 			o.LastNotedMana = ""
 			o.Chosen = nil
@@ -1511,6 +1520,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// what lets an ETB trigger read them off the permanent.)
 		if wasStack {
 			o.X, o.CastFlags = 0, 0
+			o.ReplicateTimes = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).

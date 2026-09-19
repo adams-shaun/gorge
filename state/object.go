@@ -100,6 +100,13 @@ const (
 	// because CastFlags reset on the very stack->exile move the resolution
 	// makes. Appended per the enum's own append-only precedent.
 	FlagAdventure
+	// FlagReplicated marks a cast that paid its Replicate cost at least once
+	// (CR 702.55a). The payment COUNT rides the same pay-time CastInfo's
+	// Amount into state.Object.ReplicateTimes -- no carrier pairs {X} with
+	// Replicate (measured), so the two never compete for the Amount field --
+	// and the copy trigger's Count$ReplicatePaid reads it off the cast spell.
+	// Appended per the enum's own append-only precedent.
+	FlagReplicated
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -191,6 +198,12 @@ type Object struct {
 	// battlefield.
 	X         int32
 	CastFlags uint32
+	// ReplicateTimes is CR 702.55a's count of replicate payments the cast
+	// made, carried by the pay-time CastInfo's FlagReplicated Amount (the
+	// X-overwrite guard: the flag routes the Amount here instead of into X).
+	// It rides the same provenance window as X/CastFlags and resets
+	// alongside them in events.Move.
+	ReplicateTimes int32
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number. Reset alongside X/

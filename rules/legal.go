@@ -1118,6 +1118,19 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
 		}
+		// Replicate (CR 702.55a): the replicated variant is its own cast
+		// option paying the base cost plus ONE replicate payment -- one
+		// payment is what gates the offer; the count ask (replicateAsk)
+		// settles how many afterwards and the 601.2g payment window may still
+		// produce mana for the composed total, exactly like a kicked cast, so
+		// the max count cannot be fixed at offer time. The non-mana parts of
+		// the payment fail closed in nonManaCastable (offerCastable's shared
+		// tail), so the two tapXType carriers' replicate never offers.
+		if rc, ok := replicateCost(f); ok && targetsAvailable &&
+			offerCastable(p, id, e.rawBaseCost(p, id).Plus(rc), spellScope("replicated"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (replicated)", Obj: id, Mode: "replicated"})
+		}
 		// The alternative-cost keyword family (altcosts), from the hand: evoke
 		// (CR 702), dash, overload and warp each become their own "cast" mode
 		// option paying the printed keyword cost in place of the mana cost.

@@ -567,6 +567,10 @@ var flagNames = [...]struct {
 	// The Adventure spell face's cast (CR 714.3a). Appended at the end per
 	// the table's own ordering rule.
 	{"adventure", state.FlagAdventure},
+	// The Replicate keyword's payment provenance (CR 702.55a); the payment
+	// COUNT rides the same CastInfo's Amount. Appended at the end per the
+	// table's own ordering rule.
+	{"replicated", state.FlagReplicated},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

@@ -89,6 +89,16 @@ type pendingCast struct {
 	delve     []state.ObjID
 	delveDone bool
 
+	// replicateParam is the raw Replicate keyword parameter (CR 702.55a) a
+	// "replicated" cast re-parses at ask and answer time; replicateTimes is
+	// the answered payment count (0 = declined: no flag, a plain cast) and
+	// replicateDone marks the one ask already posed. Plain data, so Clone
+	// copies it like x/delve/sacs.
+	replicateParam string
+	replicateSet   bool
+	replicateTimes int32
+	replicateDone  bool
+
 	sacs    []state.ObjID
 	sacPart int
 
@@ -291,6 +301,22 @@ func surgeCost(f *cards.Face) (Cost, bool) {
 		return Cost{}, false
 	}
 	return ParseCost(s), true
+}
+
+// replicateCost resolves the Replicate keyword's payment cost (CR 702.55a,
+// Forge's K:Replicate:<cost>), the surgeCost shape. A cost carrying a token
+// ParseCost cannot model is withheld (the fail-closed direction
+// twoPartKickerCosts takes) rather than charged as degraded generic mana.
+func replicateCost(f *cards.Face) (Cost, bool) {
+	s, ok := f.KeywordParam("Replicate")
+	if !ok {
+		return Cost{}, false
+	}
+	c := ParseCost(s)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
 }
 
 // keywordAltCost resolves any of the alternative-cast keyword family
@@ -653,9 +679,27 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			return false
 		}
 	}
+	// Tap cost parts reserve their candidates against the Sac/Exile/Return
+	// reservations above (one permanent cannot pay both) AND against each
+	// other: a composed cost carrying the same tap part several times -- a
+	// replicated cast re-pays its tapXType cost once per payment -- must not
+	// count one untapped permanent for every part. Without the reservation
+	// an affordability walk over the composed cost offered a bound far above
+	// what the board could actually pay, and answering it aborted the cast
+	// at the payment stage (CR 733's clean reversal, but a needless one).
 	for _, part := range cost.TapPermanent {
-		if len(e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true)) < int(part.N) {
+		var avail []state.ObjID
+		for _, oid := range e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true) {
+			if reserved[oid] {
+				continue
+			}
+			avail = append(avail, oid)
+		}
+		if len(avail) < int(part.N) {
 			return false
+		}
+		for i := 0; i < int(part.N); i++ {
+			reserved[avail[i]] = true
 		}
 	}
 	for range cost.Blight {
@@ -668,16 +712,22 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 		return false
 	}
 	// Energy cost parts (PayEnergy<N>): the payer's energy counter total
-	// covers a fixed part (Forge CostPayEnergy.canPay reads the same total).
-	// The dynamic X form is bounded by that total at the X ask, so the offer
-	// gate needs no assumption about the not-yet-chosen value.
+	// covers the SUM of the fixed parts -- Forge CostPayEnergy.canPay reads
+	// the same total, and a composed cost carrying the part several times (a
+	// replicated cast re-pays its PayEnergy cost once per payment) draws the
+	// pool down once per part, so the parts cannot each spend the whole
+	// counter total independently. The dynamic X form is bounded by that
+	// total at the X ask, so the offer gate needs no assumption about the
+	// not-yet-chosen value.
+	energyTotal := int32(0)
 	for _, part := range cost.Energy {
 		if part.Spec == "X" {
 			continue
 		}
-		if e.G.Players[p].Counter("ENERGY") < part.N {
-			return false
-		}
+		energyTotal += part.N
+	}
+	if energyTotal > 0 && e.G.Players[p].Counter("ENERGY") < energyTotal {
+		return false
 	}
 	// Return cost parts (Return<N/Spec>): the source itself (Spec CARDNAME,
 	// Forge's payCostFromSource) must be in play; otherwise the payer controls
@@ -1053,6 +1103,16 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if bc, ok := buybackCost(f); ok {
 			cost = cost.Plus(bc)
 		}
+	case "replicated":
+		// Replicate (CR 702.55a): the mode marks the intent to pay the
+		// optional replicate cost. The PAYMENT COUNT is a cast announcement
+		// of its own (CR 601.2b), settled by replicateAsk before the
+		// Convoke/X stages and folded into cost there, so a declined count
+		// leaves an exactly plain cast and the offer gate's own base+1
+		// composition is never silently charged for a different count. The
+		// parameter itself is captured onto the pendingCast after its
+		// construction (the suspend block below), keeping this switch's
+		// cost-folding contract intact.
 	case "harmonize":
 		if hc, ok := harmonizeCost(f); ok {
 			cost = hc
@@ -1182,6 +1242,15 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 			e.cast.suspendTimeX, e.cast.suspendMinX = true, sc.minTime
 		}
 	}
+	// Replicate (CR 702.55a): the cost is carried as its raw keyword
+	// parameter and re-parsed by replicateAsk and the answer handler -- a
+	// string survives the intent boundary's pendingCast Clone without
+	// deep-copying cost slices, and ParseCost is deterministic.
+	if opt.Mode == "replicated" {
+		if _, ok := replicateCost(f); ok {
+			e.cast.replicateParam, e.cast.replicateSet = f.KeywordParam("Replicate")
+		}
+	}
 	// CR 401.5's MayPlayIgnoreColor$ rider: "you may spend mana as though it
 	// were mana of any color to cast it". Recorded from the grant the offer
 	// gate consulted while the card was still in the granted zone.
@@ -1300,6 +1369,12 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.forageAsk() || e.revealCostAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
+		return
+	}
+	// CR 601.2b: the replicate count (CR 702.55a's optional additional cost,
+	// paid any number of times) is announced before Convoke/Harmonize and X,
+	// whose asks must see and bound against the composed total.
+	if e.replicateAsk() {
 		return
 	}
 	// CR 601.2b announces Convoke/Harmonize before X: an announced creature
@@ -1504,6 +1579,24 @@ func (e *Engine) tapPermanentCostAsk() bool {
 	for pc.tapPart < len(pc.cost.TapPermanent) {
 		part := pc.cost.TapPermanent[pc.tapPart]
 		candidates := e.costCandidates(pc.player, pc.card, state.ZBattlefield, part.Spec, false, true)
+		// An earlier part's recorded tap (taps settle together at payCast, so
+		// the state does not yet show it) has already claimed its permanent:
+		// the same reservation the affordability bound's nonManaCastable walk
+		// applies across the composed parts, honoured here so one permanent
+		// can never be chosen to pay two parts.
+		if len(pc.taps) > 0 {
+			taken := make(map[state.ObjID]bool, len(pc.taps))
+			for _, id := range pc.taps {
+				taken[id] = true
+			}
+			kept := make([]state.ObjID, 0, len(candidates))
+			for _, cid := range candidates {
+				if !taken[cid] {
+					kept = append(kept, cid)
+				}
+			}
+			candidates = kept
+		}
 		if len(candidates) < int(part.N) {
 			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
 			return true
@@ -1758,6 +1851,67 @@ func modalTargetSA(f *cards.Face, sa *cards.SA, modes []string) *cards.SA {
 		}
 	}
 	return sa
+}
+
+// replicateAsk poses CR 702.55a's replicate count question -- "you may pay
+// [the replicate cost] any number of times as you cast this spell" -- once,
+// before the Convoke/Harmonize and X stages, whose asks must see and bound
+// against the composed total. The max is the largest N the current board can
+// still pay, checked with the SAME affordability checker the payment window's
+// composed total faces (castable: the conversion-aware mana gate plus every
+// non-mana part), pool-only at ask time -- the 601.2g window afterwards may
+// still produce mana for the composed total, exactly like a kicked cast. The
+// answered count folds that many payments into cost (castAnswer); 0 declines:
+// no flag, an exactly plain cast.
+func (e *Engine) replicateAsk() bool {
+	pc := e.cast
+	if pc.replicateDone || !pc.replicateSet {
+		return false
+	}
+	pc.replicateDone = true
+	rc := ParseCost(pc.replicateParam)
+	max := int32(0)
+	cand := pc.cost
+	for i := int32(0); i < 64; i++ {
+		// The hard cap only exists so a degenerate future cost whose every
+		// part prices against a non-reserving candidate count cannot loop;
+		// every real replicate resource (mana, energy, life, tap/sac
+		// candidates) is finite and breaks the loop naturally.
+		next := cand.Plus(rc)
+		if !e.castable(pc.player, pc.card, next, false) {
+			break
+		}
+		cand = next
+		max++
+	}
+	if max == 0 {
+		// The offer gate proved one payment payable; a board that changed
+		// under the proposal (or a cost modifier that priced the OFFER but
+		// not this loop's bare, unmodified cost -- the bound here is
+		// deliberately conservative, never over-offering) degrades the
+		// explicitly chosen "(replicated)" mode to the count-0 plain cast
+		// (the conservative CR 733 direction) rather than wedging or
+		// aborting. The degrade is loud: a silent downgrade would leave the
+		// player's choice unrecorded.
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			Text: "replicate no longer payable; casting without replicate"})
+		return false
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Pay the replicate cost how many times?", Source: pc.card}
+	for n := int32(0); n <= max; n++ {
+		label := "No replicate"
+		if n == 1 {
+			label = "Pay replicate once"
+		} else if n > 1 {
+			label = fmt.Sprintf("Pay replicate %d times", n)
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "replicate",
+			Label: label, Amount: int(n)})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
 }
 
 // xAsk asks a value for {X} if pc.cost carries one, offering 0..max where
@@ -3192,6 +3346,19 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			// would silently corrupt an Index-derived value.
 			pc.x = int32(chosen[0].Amount)
 		}
+	case "replicate":
+		// CR 702.55a: the answered payment count folds that many replicate
+		// payments into cost, so every later stage (Convoke, X, the payment
+		// window, payCast) charges the composed total. The count rides on
+		// Option.Amount, not Index, for the same reason xAsk's value does.
+		if len(chosen) > 0 && pc.replicateSet {
+			n := int32(chosen[0].Amount)
+			rc := ParseCost(pc.replicateParam)
+			for i := int32(0); i < n; i++ {
+				pc.cost = pc.cost.Plus(rc)
+			}
+			pc.replicateTimes = n
+		}
 	case "exile":
 		for _, o := range chosen {
 			pc.delve = append(pc.delve, o.Obj)
@@ -4103,8 +4270,31 @@ func (e *Engine) payCast() {
 	if noCounter {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagNoCounter)
 	}
-	if pc.x != 0 || flags != "" {
-		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.x, Counter: flags})
+	// Replicate (CR 702.55a): the payment count rides the same pay-time
+	// CastInfo. modeFlags deliberately maps "replicated" to "" -- a DECLINED
+	// replicate (count 0) must stay the byte-identical plain cast, no flag
+	// and no event -- so the flag is ORed here only when a payment was made.
+	// The count and a paid {X} never share one Amount: measured at the corpus
+	// pin, no K:Replicate carrier's mana value carries {X}, so the
+	// single-event shape below is the live path; the defensive two-event
+	// split keeps the two provenances distinct should one ever pair.
+	repCount := int32(0)
+	if pc.mode == "replicated" {
+		repCount = pc.replicateTimes
+	}
+	if repCount > 0 {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagReplicated)
+	}
+	if repCount > 0 && pc.x != 0 {
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.x,
+			Counter: events.FlagsString(events.FlagsFrom(flags) &^ state.FlagReplicated)})
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: repCount, Counter: flags})
+	} else if pc.x != 0 || flags != "" {
+		amt := pc.x
+		if repCount > 0 {
+			amt = repCount
+		}
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: amt, Counter: flags})
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for.
@@ -4291,6 +4481,11 @@ func init() {
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
+		// kw:Replicate: CR 702.55, expanded by cards/keywords.go into the
+		// Storm-shaped copy trigger whose Amount$ Count$ReplicatePaid reads
+		// the pay-time CastInfo's count; the cast flow's replicateAsk poses
+		// the CR 601.2b count announcement.
+		"kw:Replicate",
 		// kw:Affinity: CR 702.41, expanded by cards/keywords.go into the
 		// ordinary ReduceCost cost-static machinery (rules/statics.go's
 		// collectCostStatics) -- no separate cast path of its own.
