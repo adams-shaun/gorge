@@ -975,6 +975,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.SearchShuffle = "yes"
 			}
 			ctx.SearchShuffleMoved = append([]state.ObjID(nil), rp.moved...)
+		case "attach_optional":
+			// An Optional$ True Attach's yes/no election (Ajani's Chosen's
+			// "you may attach it to the token") was answered. The answer is a
+			// bare yes/no, recorded here as a marker the re-entered effect
+			// consumes and clears (fx42 scoping): "yes" attaches the resolved
+			// object to the first legal Defined$ target, "no" -- the decline --
+			// emits no Attach and the chained SubAbility$ still runs. A
+			// malformed or empty answer keeps the decline, the conservative
+			// read of an ambiguous one.
+			ctx.AttachOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.AttachOpt = "yes"
+			}
 		case "imprint":
 			// An Imprint$ True public-zone choice. The effect consumes this
 			// answer on re-entry and emits the persistent Imprint event.
