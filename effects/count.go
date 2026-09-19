@@ -620,6 +620,21 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// Engine.AttackersThisTurn) so a replay derives the identical number,
 		// the same discipline CastThisTurn takes.
 		return int32(h.AttackersThisTurn()), true
+	case "ColorsColorIdentity":
+		// Count$ColorsColorIdentity: the number of colours in the resolving
+		// controller's commanders' colour identity (War Room's
+		// "SVar:X:Count$ColorsColorIdentity" driving "{3}, {T}, Pay life equal
+		// to the number of colors in your commanders' color identity: Draw a
+		// card", the corpus's only carrier). Read through the Host's
+		// CommanderIdentityColourCount like the other log/state-derived heads
+		// (LifeLostThisTurn, TurnsTaken), so a replay derives the identical
+		// count. An empty identity (no commander, or a colourless one) is a
+		// real, resolvable 0 — the gate that withholds the ability outside the
+		// Commander format is ActivationGameTypes$, not this count.
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return int32(h.CommanderIdentityColourCount(c.Controller)), true
 	}
 
 	// PlayerCount<Players|Opponents|RegisteredOpponents>$<Property> — per-

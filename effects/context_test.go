@@ -115,6 +115,10 @@ func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
 // SpellsCastThisTurnMatching has no event log here; the double reports zero.
 func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }
 
+// CommanderIdentityColourCount has no commander bookkeeping here; the double
+// reports zero (the same replay-derivable class as TurnsTaken above).
+func (h *fakeHost) CommanderIdentityColourCount(_ state.PlayerID) int { return 0 }
+
 // AttackersThisTurn has no combat log here; the double reports zero (the same
 // conservative no-op as CastThisTurn).
 func (h *fakeHost) AttackersThisTurn() int { return 0 }
