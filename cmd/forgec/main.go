@@ -77,8 +77,24 @@ func compile(dir string) error {
 	return nil
 }
 
-func report(dir string, top int) error {
+// loadReportRegistry loads dir's IR cache for the report command. When the
+// cache is absent, unreadable or stale (e.g. a version bump in cards' cache
+// schema), it falls back to compiling dir/cardsfolder fresh in memory — the
+// same staleness rule cards.OpenCorpus applies everywhere else. The fallback
+// NEVER writes a cache back: in an agent worktree dir/ir.gob.gz may be a
+// symlink into a shared checkout, and compiling from one seat must not
+// mutate what every other seat reads.
+func loadReportRegistry(dir string) (*cards.Registry, error) {
 	r, err := cards.LoadRegistry(cachePath(dir))
+	if err == nil {
+		return r, nil
+	}
+	fmt.Fprintf(os.Stderr, "forgec: IR cache unusable (%v); compiling fresh from cardsfolder\n", err)
+	return cards.OpenCorpus(dir)
+}
+
+func report(dir string, top int) error {
+	r, err := loadReportRegistry(dir)
 	if err != nil {
 		return err
 	}
