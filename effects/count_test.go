@@ -363,18 +363,29 @@ func TestPlayerCountExtremePropertiesFailUnresolvable(t *testing.T) {
 // TestChosenNumberHeadReadsTheFrozenBinding locks the Count$ChosenNumber
 // head (task wildgrowth1): the head reads Ctx.ChosenNumber -- the
 // Effect-created replacement's SetChosenNumber$ binding rules' replCtx
-// threads in -- and nothing else; zero wherever nothing bound, still an
-// evaluated verdict (the failed binding degrades to the same zero).
+// threads in -- and its VERDICT is the bound flag. A bound context evaluates
+// (including a bound zero, torgal with no Dogs); an UNBOUND context stays
+// unresolved, so the Choose-event population (whose binding lives on
+// state.Object.ChosenNumber, never on Ctx) keeps its pre-wildgrowth fail
+// direction at every EvalCountOK consumer instead of enforcing a meaningless
+// zero.
 func TestChosenNumberHeadReadsTheFrozenBinding(t *testing.T) {
 	h := newHost(t, 2)
-	c := &Ctx{ChosenNumber: 5}
-	n, ok := EvalCountOK(h, c, "Count$ChosenNumber")
-	if !ok || n != 5 {
-		t.Errorf("Count$ChosenNumber = (%d, %v), want (5, true)", n, ok)
+	bound := &Ctx{ChosenNumber: 5, ChosenNumberBound: true}
+	if n, ok := EvalCountOK(h, bound, "Count$ChosenNumber"); !ok || n != 5 {
+		t.Errorf("bound Count$ChosenNumber = (%d, %v), want (5, true)", n, ok)
 	}
-	zero := &Ctx{}
-	n, ok = EvalCountOK(h, zero, "Count$ChosenNumber")
-	if !ok || n != 0 {
-		t.Errorf("unbound Count$ChosenNumber = (%d, %v), want (0, true)", n, ok)
+	// A bound ZERO is a legitimate binding, not a failed one.
+	boundZero := &Ctx{ChosenNumberBound: true}
+	if n, ok := EvalCountOK(h, boundZero, "Count$ChosenNumber"); !ok || n != 0 {
+		t.Errorf("bound-zero Count$ChosenNumber = (%d, %v), want (0, true)", n, ok)
+	}
+	// Unbound: UNRESOLVED. The value-true verdict of the first draft flipped
+	// every EvalCountOK consumer for the Choose-event cards (void's
+	// Artifact.cmcEQX DestroyAll matched MV-0; plague_of_vermin's GE1 SVar
+	// gate enforced 0 fail-closed) -- the verdict must stay false here.
+	unbound := &Ctx{}
+	if n, ok := EvalCountOK(h, unbound, "Count$ChosenNumber"); ok {
+		t.Errorf("unbound Count$ChosenNumber = (%d, %v), want unresolved (0, false)", n, ok)
 	}
 }

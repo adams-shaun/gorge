@@ -317,3 +317,48 @@ func TestMysticReflectionShapeStaysLoud(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// voidShapeSrc is void's exact SP$ ChooseNumber chain (its corpus carrier's
+// SVar chain, minus the RevealDiscard sub whose targeting is noise here):
+// SVar:X:Count$ChosenNumber feeding a ValidCards$ cmcEQX DestroyAll. Void's
+// chosen number lives on state.Object.ChosenNumber (effects/choose.go's
+// Choose event), NEVER on Ctx -- the Choose-event population the
+// Count$ChosenNumber head must NOT answer for.
+const voidShapeSrc = "Name:Void Shape\nManaCost:3 B R\nTypes:Sorcery\n" +
+	"A:SP$ ChooseNumber | SubAbility$ DBVoidDestroyAll | SpellDescription$ Choose a number. Destroy all artifacts and creatures with mana value equal to that number.\n" +
+	"SVar:DBVoidDestroyAll:DB$ DestroyAll | ValidCards$ Artifact.cmcEQX,Creature.cmcEQX\n" +
+	"SVar:X:Count$ChosenNumber\n" +
+	"Oracle:x\n"
+
+const wgConstructSrc = "Name:Fixture Construct\nManaCost:0\nTypes:Artifact Creature Construct\nPT:0/2\nOracle:x\n"
+const wgBaubleSrc = "Name:Fixture Bauble\nManaCost:0\nTypes:Artifact\nOracle:x\n"
+
+// TestVoidChooseNumberPopulationStaysUnresolved pins the OTHER side of the
+// Count$ChosenNumber verdict (the review-measured regression class): on a
+// non-effect shape the head is UNRESOLVED, so void's cmcEQX numeric RHS
+// never matches and the DestroyAll destroys NOTHING -- not even the MV-0
+// board. The first draft's unconditionally-true verdict made X resolve to a
+// meaningless 0, and every MV-0 artifact/creature died (and
+// plague_of_vermin's GE1 SVar gate went fail-closed). Unresolved also means
+// fail-open at CheckSVarHolds, so the same fix covers both consumer classes.
+func TestVoidChooseNumberPopulationStaysUnresolved(t *testing.T) {
+	e, cfg, find := etbConfig(t, seedTossSeat0(251), []string{voidShapeSrc, wgConstructSrc, wgBaubleSrc}, nil)
+	construct := putCreature(t, e, 0, wgConstructSrc)
+	bauble := putCreature(t, e, 0, wgBaubleSrc)
+	voidID := find("Void Shape", 0)
+	addMana(t, e, 0, "BBRRRR")
+	castObj(t, e, voidID)
+	for _, tc := range []struct {
+		name string
+		id   state.ObjID
+	}{{"MV-0 artifact creature", construct}, {"MV-0 artifact", bauble}} {
+		o := e.G.Obj(tc.id)
+		if o == nil || o.Zone != state.ZBattlefield {
+			t.Fatalf("%s was destroyed by the MV=chosen(0) comparison -- the unbound Count$ChosenNumber resolved instead of staying unresolved", tc.name)
+		}
+	}
+	if hasNote(e, "continuous replacement unimplemented") {
+		t.Fatal("unrelated Note present")
+	}
+	replayCheck(t, e, cfg)
+}

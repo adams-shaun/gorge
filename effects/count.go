@@ -668,9 +668,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// wildgrowth_archaic's "enters with an additional +1/+1 counter for
 		// each ..." body). Bound ONCE when the Effect was created, against the
 		// trigger's own context, so the body reads the frozen number wherever
-		// the entry lands. Zero wherever nothing bound -- the same number a
-		// failed binding degrades to, so the verdict is true either way.
-		return c.ChosenNumber, true
+		// the entry lands. The VERDICT is the bound flag (Ctx.ChosenNumberBound,
+		// set only by rules' seedEffectReplCtx on effect-created matches): an
+		// unbound context is UNRESOLVED, so every EvalCountOK consumer keeps
+		// its pre-wildgrowth fail direction for the Choose-event population
+		// whose ChosenNumber lives on state.Object.ChosenNumber and never
+		// reaches here -- CheckSVarHolds fails open, a numeric filter RHS
+		// (void's cmcEQX through resolveNumericRHS) never matches -- instead
+		// of enforcing a meaningless zero. A bound zero is a real binding and
+		// evaluates (torgal with no Dogs/Wolves on the board).
+		return c.ChosenNumber, c.ChosenNumberBound
 	case "YourLifeTotal":
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0, true

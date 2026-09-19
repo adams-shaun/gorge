@@ -929,6 +929,10 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 // so a live seed cannot be erased by that clearing on a registered shape.
 func (e *Engine) seedEffectReplCtx(ctx *effects.Ctx, m replMatch) {
 	ctx.ChosenNumber = m.chosen
+	// The bound flag is the Count$ChosenNumber head's verdict: effect-created
+	// only, so a printed or choose-event context stays UNRESOLVED and the
+	// EvalCountOK consumers keep their fail direction (see Ctx.ChosenNumberBound).
+	ctx.ChosenNumberBound = m.key != ""
 	if m.key == "" || len(m.remembered) == 0 {
 		return
 	}
@@ -1195,7 +1199,19 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []string, m r
 // the gate when present.
 func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, script string) bool {
 	mint := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: script}
-	if !e.replacementMatchesEffectCreated(*m.repl, m.id, mint, m.remembered) {
+	// The recheck uses the same matcher class the initial collection used:
+	// an effect-created match re-matches through the remembered-scoped effect
+	// matcher, a printed match through the ordinary one -- never the ungated
+	// effect matcher for a printed key. For a TokenCreate mint the two agree
+	// on every printed Repl today (the mint, like ev, carries no To), but the
+	// split keeps the recheck from ever widening what the initial gated
+	// collection admitted, the same discipline remainingDamageReplacements
+	// and counterReplacementMatchesAll follow.
+	if m.key != "" {
+		if !e.replacementMatchesEffectCreated(*m.repl, m.id, mint, m.remembered) {
+			return false
+		}
+	} else if !e.replacementMatches(*m.repl, m.id, mint) {
 		return false
 	}
 	if m.repl.With != nil {
@@ -2118,6 +2134,7 @@ func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replM
 			continue
 		}
 		matches = append(matches, replMatch{id: ce.Source, repl: &r,
+			remembered: ce.Remembered, chosen: ce.ChosenNumber,
 			key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 	}
 	e.forEachObject(func(source state.ObjID) {
