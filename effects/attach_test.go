@@ -119,6 +119,29 @@ func TestEquipedByMatchesOnlyTheAttachedPermanent(t *testing.T) {
 	}
 }
 
+func TestCompiledPredicateAttachmentTermsAreDefinite(t *testing.T) {
+	h, c, ids := attachBoard(t)
+	c.Remembered = []state.Target{{Obj: ids["bear"]}}
+	Resolve(h, c, sa(t, "SP$ Attach | Object$ Self | Defined$ Remembered"))
+	ps := CompilePredicatePrograms([]string{
+		"Creature.EquippedBy", "Creature.EnchantedBy", "Creature.AttachedBy",
+	})
+	for _, tc := range []struct {
+		spec string
+		id   state.ObjID
+		want PredicateResult
+	}{
+		{"Creature.EquippedBy", ids["bear"], PredicateYes},
+		{"Creature.EnchantedBy", ids["bear"], PredicateYes},
+		{"Creature.AttachedBy", ids["bear"], PredicateYes},
+		{"Creature.EquippedBy", ids["inLib"], PredicateNo},
+	} {
+		if got := ps.Evaluate(tc.spec, h.g, h.g.Obj(tc.id), SpecContext{You: 0, Source: ids["eq"]}); got != tc.want {
+			t.Errorf("Evaluate(%q) = %v, want %v", tc.spec, got, tc.want)
+		}
+	}
+}
+
 func hasNoteLike(log []events.Event, substr string) bool {
 	for _, ev := range log {
 		if ev.Kind == events.Note && len(ev.Text) > 0 && contains(ev.Text, substr) {

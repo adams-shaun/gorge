@@ -182,7 +182,7 @@ func TestManaAbilityLabelShapes(t *testing.T) {
 	}
 	for _, c := range cases {
 		ma := &cards.SA{Kind: "AB", API: "Mana", Params: map[string]string{"Produced": c.produced}}
-		if got := manaAbilityLabel(ma); got != c.want {
+		if got := manaAbilityLabel(ma, ""); got != c.want {
 			t.Errorf("manaAbilityLabel(Produced$ %q) = %q, want %q", c.produced, got, c.want)
 		}
 	}

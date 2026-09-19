@@ -89,3 +89,32 @@ func TestManaLiteralWUAddsEachMixedSymbol(t *testing.T) {
 		t.Fatalf("Produced$ W U added %v, want one W and one U", got)
 	}
 }
+
+// Literal braced production runs through effMana on every mana activation.
+// The normalized text is inherently owned by this call, but the immutable
+// brace/space normalizer must not be rebuilt for each activation.
+func TestManaLiteralProductionReusesRuneNormalizer(t *testing.T) {
+	h := newHost(t, 2)
+	h.log = make([]events.Event, 0, 1)
+	c := &Ctx{Source: 0, Controller: 0}
+	mana := sa(t, "AB$ Mana | Cost$ T | Produced$ {W}")
+
+	if allocs := testing.AllocsPerRun(1000, func() {
+		h.log = h.log[:0]
+		effMana(h, c, mana)
+	}); allocs > 2 {
+		t.Fatalf("effMana allocated %.2f objects, want no rebuilt rune normalizer", allocs)
+	}
+}
+
+func BenchmarkManaLiteralProduction(b *testing.B) {
+	h := newHost(b, 2)
+	h.log = make([]events.Event, 0, 1)
+	c := &Ctx{Source: 0, Controller: 0}
+	mana := sa(b, "AB$ Mana | Cost$ T | Produced$ {W}")
+	b.ReportAllocs()
+	for range b.N {
+		h.log = h.log[:0]
+		effMana(h, c, mana)
+	}
+}

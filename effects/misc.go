@@ -147,6 +147,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// blinked target). Both ride the registrations below.
 	forgetOn := strings.TrimSpace(sa.Params["ForgetOnMoved"])
 	exileOn := strings.TrimSpace(sa.Params["ExileOnMoved"])
+	// ForgetCounter$ <kind> (task vow1): a remembered card whose count of
+	// that kind reaches zero after a counter-removal leaves the registered
+	// effect's Remembered set. Both this and ForgetOnMoved$ ride every
+	// registration below.
+	forgetCounter := strings.TrimSpace(sa.Params["ForgetCounter"])
 	// RememberLKI$ (Quicksilver Elemental's "RememberLKI$ Targeted"): the
 	// effect remembers the TARGETED cards — "Targeted" (and Forge's bare
 	// "True", which is Targeted in the corpus's spelling) is exactly the
@@ -164,6 +169,24 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	remembered := effectRemembered(h, c, sa)
+	// SetChosenNumber$ binds the Effect's number ONCE, here at creation,
+	// against THIS resolution's own context: the trigger-time board (Torgal's
+	// Count$Valid Dog.YouCtrl,Wolf.YouCtrl, Communal Brewing's
+	// Count$CardCounters.INGREDIENT) or the fire-time snapshot (Wildgrowth
+	// Archaic's TriggeredCard$Converge, tconverge1). The registered
+	// replacement's body later reads the frozen number through the
+	// Count$ChosenNumber head; a live re-read at entry time would answer a
+	// different question. An unresolvable value is the fail-closed loud Note
+	// plus a zero binding (which reads as zero everywhere).
+	chosenNumber := int32(0)
+	if v := strings.TrimSpace(sa.Params["SetChosenNumber"]); v != "" {
+		n, ok := resolveCountOperand(h, c, v, 0)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unresolvable SetChosenNumber$ " + v})
+		}
+		chosenNumber = n
+	}
 	registered := false
 	// Effect can also create a replacement rather than a layer restriction.
 	// Forge stores its R: body behind an SVar name in ReplacementEffects$.
@@ -177,15 +200,41 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		if with := replacementLineWith(params); with != "" {
 			body = c.SVars[with]
 		}
-		if event == "DamageDone" && body != "" {
+		// A LIVE replacement registration: a body this build's replacement
+		// dispatcher actually resolves. DamageDone is the Taii Wakeen shape
+		// (the body is a DB$ ReplaceEffect damage rewrite); Event$ Moved with
+		// a PutCounter body is the "that creature enters with an additional
+		// +1/+1 counter for each ..." family (torgal_a_fine_hound,
+		// communal_brewing, wildgrowth_archaic, task wildgrowth1): the
+		// Updated-shaped MoveZone dispatch already applies the original move,
+		// fires entry triggers, then runs the body, and effPutCounter handles
+		// ETB$ True on the entered object. Every OTHER Moved body (the
+		// destination-changing ChangeZone/Tap/Clone family, 44 measured
+		// files) and every Draw/ProduceMana/CreateToken body keeps its loud
+		// Note: a half-modelled Replaced-result could LOSE the moved object.
+		// The effect's own capture state rides every live registration:
+		// Remembered (the trigger's RememberObjects$ card, what the body's
+		// IsRemembered/Remembered$ specs and Count$ChosenNumber's neighbours
+		// read), the two move-driven lifetimes (ExileOnMoved$ Stack ends the
+		// effect exactly after the one entry it upgrades -- load-bearing:
+		// without it the effect would upgrade EVERY later creature cast this
+		// turn), and the frozen SetChosenNumber$ binding.
+		if body != "" && (event == "DamageDone" ||
+			(event == "Moved" && replacementBodyAPI(body) == "PutCounter")) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
 				Name:             effectName,
+				Remembered:       remembered,
+				ForgetOnMoved:    forgetOn,
+				ExileOnMoved:     exileOn,
+				ForgetCounter:    forgetCounter,
+				ChosenNumber:     chosenNumber,
 				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
 			})
 			registered = true
-		} else if event != "" && body == "" && replacementLineCantHappen(params) {
+		} else if event != "" && body == "" && (replacementLineCantHappen(params) ||
+			(event == "DamageDone" && replacementLinePrevents(params))) {
 			// The bodyless CantHappen form (Mistrise Village's AntiMagic: the
 			// Event$ Counter | ValidCard$ Card.IsRemembered | Layer$ CantHappen
 			// R: the delayed Effect registers): stopping the event is the
@@ -194,9 +243,24 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// set (the cast spell the trigger captured) rides the registration,
 			// so the ValidCard$ IsRemembered gate scopes the promise to the
 			// exact spell.
+			// The bodyless Prevent$ True DamageDone form is the same idiom for
+			// damage: full prevention IS the complete replacement (Selfless
+			// Squire's RPrevent, and the Fog family's DB$ Effect bodies -- 131
+			// measured carriers). The shared damage dispatch prevents through
+			// damageReplacementPrevents and stores the prevention Note whose
+			// Amount Mode$ DamagePreventedOnce triggers read.
+			untilEOT := effectUntilEOT(h, c.Source, dur)
+			if event == "DamageDone" && sa.Params["Duration"] == "" {
+				// This family's oracle text is always "this turn" (Selfless
+				// Squire, Kurbis, the Fog spells) and none of its bodyless lines
+				// names Duration$: a prevent from a PERMANENT source with no
+				// explicit Duration$ is a this-turn grant, not the Permanent
+				// default the other shapes keep. An explicit Duration$ wins.
+				untilEOT = true
+			}
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
-				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				UntilEOT: untilEOT, Duration: dur,
 				Name:             effectName,
 				Remembered:       remembered,
 				ReplacementEvent: event, ReplacementParams: params,
@@ -230,6 +294,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.Duration = dur
 				grant.ForgetOnMoved = forgetOn
 				grant.ExileOnMoved = exileOn
+				grant.ForgetCounter = forgetCounter
 				h.AddContinuous(grant)
 				registered = true
 			} else if len(params) > 0 {
@@ -237,13 +302,27 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
 			// same matcher with the registered remembered set bound), so the
 			// old "reject compounds, keep the Note" guard is gone: the
 			// restriction registers for real.
+			//
+			// CantAttack/CantSacrifice additionally gate on the same parameter
+			// whitelist the face-static readers (rules/layers.go
+			// cantRestrictionParamsReadable) enforce: a body carrying a
+			// condition or scoping this build does not evaluate (UnlessCost$,
+			// ValidCause$, ForCost$, IsPresent$, ...) must not register
+			// blanket — it is reported unimplemented instead, so the two
+			// registration paths cannot disagree about what is readable.
+			if (mode == "CantAttack" || mode == "CantSacrifice") && !CantRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
@@ -255,6 +334,18 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				Duration:       dur,
 				ForgetOnMoved:  forgetOn,
 				ExileOnMoved:   exileOn,
+				ForgetCounter:  forgetCounter,
+			}
+			if mode == "CantAttack" || mode == "CantSacrifice" {
+				// The player half of the remembered capture: Call for Aid's
+				// RememberObjects$ TargetedPlayer must reach the registered
+				// CantAttack, whose Target$ Player.IsRemembered ("you can't
+				// attack that player") resolves against this set at
+				// consultation time (rules/layers.go
+				// restrictionPlayerSpecMatches) — effectRemembered records
+				// objects only, so without this the remembered player would
+				// silently vanish.
+				ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
 			}
 			h.AddContinuous(ce)
 			registered = true
@@ -411,7 +502,8 @@ func parseStaticLine(svars map[string]string, name string) (string, map[string]s
 // resolution already had; "You & Targeted" and the default degrade to the
 // source plus the chosen targets. Objects only: a player-only remember yields
 // an empty slice, which a restriction whose ValidCard$ is Card.IsRemembered
-// then applies to nothing.
+// then applies to nothing. The player half of the same capture lives in
+// effectRememberedPlayers below.
 func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 	ro := sa.Params["RememberObjects"]
 	if ro == "" {
@@ -475,6 +567,79 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 	return out
 }
 
+// effectRememberedPlayers resolves RememberObjects$ into the concrete PLAYER
+// ids the Effect captured — the player half of effectRemembered, which
+// deliberately records objects only (a player-only remember yields an empty
+// slice there). Only the player-flavoured RememberObjects$ spellings are
+// read: "TargetedPlayer" (the chosen player targets — Call for Aid's
+// "target opponent", whose remembered self the registered CantAttack's
+// Target$ Player.IsRemembered then resolves), "RememberedPlayer"/
+// "RememberedPlayers" (the resolution's remembered players). Anything else
+// contributes no player, so an effect whose remember the helper cannot read
+// registers a restriction with an empty player set (its IsRemembered target
+// clauses match nobody — fail closed). Deduplicated, first-capture order.
+func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	ro := sa.Params["RememberObjects"]
+	if ro == "" {
+		return nil
+	}
+	var out []state.PlayerID
+	seen := make(map[state.PlayerID]bool)
+	add := func(p state.PlayerID) {
+		if !seen[p] {
+			seen[p] = true
+			out = append(out, p)
+		}
+	}
+	for _, part := range strings.FieldsFunc(ro, func(r rune) bool {
+		return r == '&' || r == ',' || r == ' '
+	}) {
+		part = strings.TrimSpace(part)
+		switch part {
+		case "TargetedPlayer":
+			for _, t := range c.Targets {
+				if t.IsPlayer {
+					add(t.Player)
+				}
+			}
+		case "RememberedPlayer", "RememberedPlayers":
+			for _, t := range c.Remembered {
+				if t.IsPlayer {
+					add(t.Player)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// CantRestrictionParamsReadable is the parameter whitelist a CantAttack /
+// CantSacrifice static must pass before this build enforces it — used BOTH by
+// the face-static readers (rules/layers.go's SacrificeBlocked/attackBlocked
+// activeStatics walks) and by effEffect's registration case (an Effect body
+// carrying an unreadable parameter must not register blanket, so the two
+// registration paths cannot disagree about what is readable): Mode$, the
+// ValidCard$ object spec, the Target$ player spec, and display text only.
+// A static carrying any other parameter (UnlessDefender$, IsPresent$,
+// Cost$, CheckSVar$, ValidSA$, ...) names a condition or scoping this build
+// does not evaluate; enforcing it blanket would OVER-restrict — a "can't
+// attack unless ..." would become "can't attack at all", and a creature a
+// MustAttack static requires could be left without a single legal pair — so
+// the static is skipped/reported, which is the pre-registration behaviour and
+// the permissive direction for a restriction. Secondary$ is allowed: it marks
+// a Forge-side duplicate for modifier composition, and a boolean restriction
+// cannot be applied twice.
+func CantRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "Target", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // IsNextTurnDuration reports whether a Duration$ value names the
 // controller's NEXT-turn lifetime (UntilYourNextTurn, UntilTheEndOfYourNextTurn)
 // -- the two largest non-Permanent durations the wave survey measured. Such
@@ -509,6 +674,31 @@ func replacementLineWith(params map[string]string) string {
 // local, the same shape replacementLineWith takes.
 func replacementLineCantHappen(params map[string]string) bool {
 	return strings.EqualFold(strings.TrimSpace(params["Layer"]), "CantHappen")
+}
+
+// replacementLinePrevents reports whether a parseReplacementLine-built
+// replacement body is the bodyless full-prevention form: Prevent$ True with
+// no ReplaceWith$ body of its own -- the complete replacement is stopping
+// the damage (Selfless Squire's RPrevent, task dponce1). Factored into its
+// own function so the paramcensus rot guard can classify the read through a
+// tracked helper parameter rather than an unclassified local, the same shape
+// replacementLineCantHappen takes.
+func replacementLinePrevents(params map[string]string) bool {
+	return strings.EqualFold(params["Prevent"], "True")
+}
+
+// replacementBodyAPI names the API a retained replacement body's head
+// resolves to ("DB$ PutCounter | Defined$ ReplacedCard | ..." ->
+// "PutCounter"), so an effEffect registration gate can admit exactly the
+// body shapes the rules dispatcher handles without hard-coding card names.
+// An unparsable body returns "" (and the gate declines it).
+func replacementBodyAPI(body string) string {
+	head, _, _ := strings.Cut(body, "|")
+	kind, api, ok := strings.Cut(strings.TrimSpace(head), "$")
+	if !ok || strings.TrimSpace(kind) == "" || strings.TrimSpace(api) == "" {
+		return ""
+	}
+	return strings.TrimSpace(api)
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
@@ -866,9 +1056,37 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	if vp := strings.TrimSpace(sa.Params["ValidPlayer"]); vp != "" {
 		text += "|VP=" + vp
 	}
+	// RememberChain$ False (this repo's own generated-SA param, the
+	// Annihilator$-marker precedent: no raw corpus card carries it, only
+	// cards/keywords.go's generated Mobilize delay SVar does): the
+	// registration keeps only what THIS resolving chain itself remembered
+	// beyond the referents its triggering event captured -- Ctx.Captured is
+	// exactly the part of Remembered the trigger put there (the attacking
+	// creature, the defending player), RememberTokens$ True put the minted
+	// tokens in the chain part -- so Mobilize's end-step sacrifice touches
+	// the Warrior tokens and never the creature that merely triggered. The
+	// default (absent) keeps the whole-chain capture every earlier
+	// registration had, byte for byte.
+	remembered := c.Remembered
+	if strings.EqualFold(strings.TrimSpace(sa.Params["RememberChain"]), "False") {
+		chain := make([]state.Target, 0, len(c.Remembered))
+		for _, t := range c.Remembered {
+			captured := false
+			for _, cp := range c.Captured {
+				if cp == t {
+					captured = true
+					break
+				}
+			}
+			if !captured {
+				chain = append(chain, t)
+			}
+		}
+		remembered = chain
+	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec, Amount: amount,
-		IDs: encodeRemembered(c.Remembered), Text: text})
+		IDs: encodeRemembered(remembered), Text: text})
 }
 
 // effDelayedTriggerSpellCast registers the event-matched delayed shape: a
@@ -982,6 +1200,10 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 // MinCharmNum$ to CharmNum$, but an explicit MinCharmNum$ permits choosing
 // fewer modes. Both values use Num so literal, SVar, and inline Count$ forms
 // share the same evaluation in spell, trigger, and resolution paths.
+// Optional$ True (Shadrix Silverquill's "you may choose two") lowers the
+// minimum to 0: the election is real, and choosing nothing is a legal answer
+// at every site that asks (the placement ask, the cast announcement and
+// effCharm's own mid-resolution ask all share this one helper).
 func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
 	max = int(Num(h, c, sa, "CharmNum", 1))
 	if max < 1 {
@@ -991,6 +1213,9 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
 	if _, ok := sa.Params["MinCharmNum"]; ok {
 		min = int(Num(h, c, sa, "MinCharmNum", int32(min)))
 	}
+	if strings.EqualFold(sa.Params["Optional"], "True") {
+		min = 0
+	}
 	if max > choices {
 		max = choices
 	}
@@ -998,6 +1223,194 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
 		min = 0
 	}
 	return min, max
+}
+
+// CharmUniqueNone/Supported/Unsupported classify a Charm's chosen-mode set
+// against the cross-mode "each mode must target a different player" family
+// (Shadrix Silverquill, the Tarkir/Ninja duo cycle, Balor, Vindictive Lich,
+// Chaos Balor -- 8 corpus files, all trigger-side DB$ Charm).
+type CharmUniqueStatus int
+
+const (
+	// CharmUniqueNone: fewer than two target-bearing chosen modes, or none
+	// of them carries TargetUnique$ — the ordinary shared-target narrowing
+	// applies, byte-identically to the pre-family engine.
+	CharmUniqueNone CharmUniqueStatus = iota
+	// CharmUniqueSupported: at least two target-bearing chosen modes, every
+	// one of them single-target (no TargetMin$/TargetMax$ beyond 1), every
+	// one targeting the SAME player-kind spec ("Player" or "Opponent"),
+	// and at least one carrying TargetUnique$ True. The combined
+	// different-player target ask is posed and the per-mode split applies.
+	CharmUniqueSupported
+	// CharmUniqueUnsupported: TargetUnique$ is present on the chosen modes
+	// but some member the combined ask cannot serve — differing ValidTgts$
+	// specs, a non-player spec, or multi-target bounds. The ordinary
+	// narrowing keeps and a loud Note names the shape (never silent).
+	CharmUniqueUnsupported
+)
+
+// charmUniquePlayerSpec reports whether a ValidTgts$ spec names players in
+// the exact form every corpus carrier of the family uses. Wider player
+// grammars are not served: a "You" spec could never satisfy two different
+// players anyway, and a compound spec's candidates are not all players.
+func charmUniquePlayerSpec(spec string) bool {
+	return spec == "Player" || spec == "Opponent"
+}
+
+// charmUniqueBounds mirrors rules' targetBounds for the single-target check:
+// absent TargetMin$/TargetMax$ mean 1..1 (the M1 single-target contract).
+// Anything a caller set explicitly beyond 1..1 keeps the mode out of the
+// combined ask.
+func charmUniqueBounds(sa *cards.SA) (min, max int) {
+	min, max = 1, 1
+	if v, ok := sa.Params["TargetMin"]; ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			min = n
+		}
+	}
+	if v, ok := sa.Params["TargetMax"]; ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			max = n
+		}
+	}
+	if min < 1 {
+		min = 1
+	}
+	if max < min {
+		max = min
+	}
+	return min, max
+}
+
+// CharmCrossModeShape classifies a Charm's mode list for the cross-mode
+// TargetUnique family, with a reason fragment for the Unsupported loud Note.
+// It is deliberately a property of the CHARM's full
+// Choices$ list, not of whichever subset a particular answer selected: the
+// classification must be stable across the charm's whole lifetime, because
+// the per-mode target split (effCharm) and the suspension re-entry
+// (rules' resumeResolution) re-derive it after a mid-mode ask — and a
+// continuation can carry only a suffix of the original chosen order.
+// Measured at the corpus pin: every charm outside the 8-file family carries
+// TargetUnique$ on NONE of its target-bearing modes (the anyUnique trigger
+// below never fires for them), so they classify None and keep today's
+// narrowing byte-identically.
+func CharmCrossModeShape(svars map[string]string, modes []string) (CharmUniqueStatus, string) {
+	var spec string
+	tbms, anyUnique, oneSpec, boundsOK := 0, false, true, true
+	for _, name := range modes {
+		sub := cards.ResolveSVar(svars, strings.TrimSpace(name))
+		if sub == nil {
+			continue
+		}
+		s := strings.TrimSpace(sub.Params["ValidTgts"])
+		if s == "" {
+			continue
+		}
+		tbms++
+		if strings.EqualFold(sub.Params["TargetUnique"], "True") {
+			anyUnique = true
+		}
+		if spec == "" {
+			spec = s
+		} else if s != spec {
+			oneSpec = false
+		}
+		if min, max := charmUniqueBounds(sub); min != 1 || max != 1 {
+			boundsOK = false
+		}
+	}
+	if tbms < 2 || !anyUnique {
+		return CharmUniqueNone, ""
+	}
+	if !oneSpec {
+		return CharmUniqueUnsupported, "differing ValidTgts$ specs across the target-bearing modes"
+	}
+	if !charmUniquePlayerSpec(spec) {
+		return CharmUniqueUnsupported, "ValidTgts$ " + spec + " is not a player-kind spec"
+	}
+	if !boundsOK {
+		return CharmUniqueUnsupported, "a target-bearing mode declares multi-target bounds"
+	}
+	return CharmUniqueSupported, ""
+}
+
+// charmCrossModeRun is effCharm's cross-mode TargetUnique family runner. It
+// runs the chosen modes in order, giving each target-bearing mode its OWN
+// target — the positional slice of Ctx.Targets the combined placement ask
+// recorded — instead of the one-undivided target list every mode shared
+// before. A mode that suspends (donnie's and mikey's hidden graveyard pick)
+// stops the run and reports the remaining modes as a continuation
+// (Host.SuspendCharmRest), so the rest re-enter through the answered ask's
+// chain rather than running while the suspension is still outstanding.
+// Non-target-bearing modes keep the shared context exactly as before.
+// Returns false when the shape does not apply and the caller must keep the
+// historical shared-target loop.
+func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
+	choices := strings.Split(sa.Params["Choices"], ",")
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	if status, _ := CharmCrossModeShape(c.SVars, choices); status != CharmUniqueSupported {
+		return false
+	}
+	var tbmIdx []int
+	for i, name := range names {
+		if sub := cards.ResolveSVar(c.SVars, name); sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+			tbmIdx = append(tbmIdx, i)
+		}
+	}
+	k := len(tbmIdx)
+	if k == 0 || len(c.Targets) < k {
+		// The running mode set carries target-bearing modes the placement ask
+		// could not serve (an insufficient-candidate fallback, or a spell-side
+		// single-target ask): keep the shared list, exactly the historical
+		// narrowing, rather than inventing an assignment the ask never made.
+		return false
+	}
+	// Assignment: the j-th target-bearing mode of the RUNNING list takes
+	// targets[len(targets)-k+j]. On a full run that is targets[j] — the
+	// combined ask's answer order, which is the chosen-mode order. On a
+	// suffix continuation the remaining target-bearing modes are the last
+	// ones of the original order, so the last k targets are theirs.
+	base := len(c.Targets) - k
+	ti := 0
+	for i, name := range names {
+		sub := cards.ResolveSVar(c.SVars, name)
+		if sub == nil {
+			continue
+		}
+		if ti < k && tbmIdx[ti] == i {
+			saved := c.Targets
+			savedOffered := c.OfferedSA
+			c.Targets = []state.Target{c.Targets[base+ti]}
+			// The combined placement ask covered THIS mode's targeting (its
+			// assignment is positional); mark it so the generic ValidTgts$
+			// pre-ask does not re-pose the cross-mode question per mode --
+			// both on the initial pass (where the resolution-level marker's
+			// bool would also suppress it) and on a charm_rest resume, where
+			// the resume ctx carries only the FIRST chosen mode as OfferedSA
+			// (task mvts1).
+			c.OfferedSA = sub
+			Resolve(h, c, sub)
+			c.OfferedSA = savedOffered
+			c.Targets = saved
+			ti++
+		} else {
+			Resolve(h, c, sub)
+		}
+		if h.Suspended() {
+			// The mode's own chain posed a mid-resolution ask: stop here. The
+			// remaining modes resume through SuspendCharmRest's continuation
+			// once the answer lands — never while the suspension is live (the
+			// historical loop ran them immediately, before the answered mode
+			// had even completed).
+			if rest := names[i+1:]; len(rest) > 0 {
+				h.SuspendCharmRest(sa, rest)
+			}
+			return true
+		}
+	}
+	return true
 }
 
 // effCharm runs the selected Choices$ sub-abilities in chosen order.
@@ -1033,9 +1446,42 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		// to the Charm that asked for it.
 		names := c.Modes
 		c.Modes = nil
-		for _, name := range names {
+		if charmCrossModeRun(h, c, sa, names) {
+			return
+		}
+		// Task mvts1, two guards the generic ValidTgts$ pre-ask needs here.
+		//
+		// Coverage: a placement-announced modal resolution asked every CHOSEN
+		// target-bearing mode's targeting in its placement ask (the combined
+		// per-mode ask), but a resume ctx carries only the FIRST of them as
+		// Ctx.OfferedSA (rules' offeredTargetSA returns the first
+		// target-bearing chosen mode). modalOffered detects that derivation
+		// -- OfferedSA set and NOT the Charm root itself -- and marks each
+		// target-bearing mode as covered while it dispatches, so the pre-ask
+		// cannot re-pose the placement question per mode. A mid-resolution
+		// Charm (its own KModes answered) has no modal derivation -- its
+		// OfferedSA is nil or the root's own covered SA -- and its
+		// target-bearing modes keep their real asks.
+		modalOffered := c.OfferedSA != nil && c.OfferedSA.Line != sa.Line
+		for i, name := range names {
 			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				savedOffered := c.OfferedSA
+				if modalOffered && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+					c.OfferedSA = sub
+				}
 				Resolve(h, c, sub)
+				c.OfferedSA = savedOffered
+			}
+			if h.Suspended() {
+				// A mode's own chain posed a mid-resolution ask: never run the
+				// remaining modes while a decision is pending (Engine.ask
+				// panics on the overwrite). Report the rest as a charm-rest
+				// continuation, the same report the cross-mode runner makes,
+				// so they run once the answer lands.
+				if rest := names[i+1:]; len(rest) > 0 {
+					h.SuspendCharmRest(sa, rest)
+				}
+				return
 			}
 		}
 		return
@@ -1307,6 +1753,8 @@ func effReplaceMana(_ Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+var manaRuneNormalizer = strings.NewReplacer("{", "", "}", "", " ", "")
+
 func effMana(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
 	if produced == "" || produced == "Any" || produced == "Combo Any" {
@@ -1340,12 +1788,33 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		}
 		produced = noted
 	}
+	// Special EachColorAmong_Valid <spec> (Faeburrow Elder, Tarnation Vista's
+	// second ability: "For each color among [matching] permanents you control,
+	// add one mana of that color"): a deterministic BATCH, not a choice. The
+	// matching permanents' colours (ColorsOf: mana cost or Colors: line,
+	// Devoid-aware) are unioned and rendered in fixed WUBRG order, and the
+	// tail's per-rune loop adds one unit per distinct colour. The spec is
+	// evaluated over the battlefield exactly as ManaReflectedCandidates
+	// evaluates its Valid$: MatchesSpecFrom with the resolving source as
+	// Self and its controller as You. An empty colour set is a legitimate
+	// deterministic no-op ("for each color" over none adds nothing) -- no
+	// Note, no mana, like ChangeNum$ 0 Dig. Every OTHER Special selector
+	// (EachColorAmong_ExiledWith, EnchantedManaCost, DoubleManaInPool,
+	// EachColoredManaSymbol_Milled) still falls through to the rune gate's
+	// loud Note below.
+	if sel, ok := strings.CutPrefix(produced, "Special EachColorAmong_Valid "); ok {
+		syms := eachColorAmongValid(h, c, strings.TrimSpace(sel))
+		if syms == "" {
+			return
+		}
+		produced = syms
+	}
 	produced = strings.TrimSpace(strings.TrimPrefix(produced, "Combo "))
 	// Strip braces and spaces, then validate every remaining rune before any
 	// of them reaches the pool: ComboChosen/ChosenColor/Special ... values
 	// that do not name plain mana symbols fail closed instead of splitting
 	// into garbage.
-	runes := strings.NewReplacer("{", "", "}", "", " ", "").Replace(produced)
+	runes := manaRuneNormalizer.Replace(produced)
 	for _, r := range runes {
 		if !strings.ContainsRune(ManaSymbols, r) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -1421,6 +1890,29 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(ev)
 		}
 	}
+}
+
+// eachColorAmongValid resolves a Produced$ Special EachColorAmong_Valid <spec>
+// selector: the union of the matching battlefield permanents' colours, in the
+// controller-relative battlefield scan order (AliveFrom(0) x zone order, the
+// same scan ManaReflectedCandidates uses), rendered in fixed WUBRG order via
+// ColorMask's table. Colourless contributes nothing ("each color" never
+// includes colourless). The spec is evaluated with the resolving source as
+// Self and its controller as You, so a bare Permanent.YouCtrl always matches
+// the resolving permanent itself while it is on the battlefield. No map
+// iteration reaches the result: the union is a bitmask and the output order
+// is the fixed WUBRG table.
+func eachColorAmongValid(h Host, c *Ctx, spec string) string {
+	g := h.Game()
+	var mask ColorMask
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+				mask |= ColorMaskOf(g.Obj(id))
+			}
+		}
+	}
+	return mask.String()
 }
 
 // ManaRecipients is the player or players a Mana SA adds its mana for. Forge's

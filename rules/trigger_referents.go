@@ -46,6 +46,16 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if o := e.G.Obj(e.inFlightDamageSource()); o != nil && o.IsAttacking {
 			c.DefendingPlayer = player(o.Attacking)
 		}
+	case "DamagePreventedOnce":
+		// The prevention Note carries the prevented damage in Amount and the
+		// damaged side in Obj/Player (rules/replacement.go's stored-prevention
+		// arms). TriggerCount$DamageAmount reads TriggerAmount when the
+		// trigger's DB$ PutCounter resolves (Selfless Squire's TrigPut).
+		c.TriggerAmount = ev.Amount
+		c.TriggerTarget = state.Target{Obj: ev.Obj}
+		if ev.Obj == 0 {
+			c.TriggerTarget = player(ev.Player)
+		}
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		c.DefendingPlayer = player(ev.Player)
 		c.AttackedTarget = player(ev.Player)
@@ -92,6 +102,36 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// same ev.Player ValidActivatingPlayer$ is matched against
 		// (Tangleroot: "that player adds {G}").
 		c.TriggerActivator = player(ev.Player)
+		// The activation arm (abcopy1): an AbilityPush event's Obj is the
+		// SOURCE PERMANENT -- the ability's stack wrapper is minted inside
+		// events.Apply and never travels on the event, so Remembered names the
+		// battlefield permanent. Capture the minted wrapper here, at fire
+		// time, when it is deterministically the topmost non-trigger ability
+		// wrapper whose source is the triggering permanent (checkTriggers
+		// runs synchronously inside emit immediately after the AbilityPush
+		// applied, and a log-only replay folds the same AbilityPush, mints the
+		// same id and re-runs this capture at the same point -- no event
+		// schema change, the TriggerPaidX/TriggerConverge mechanism). Absent
+		// for PutOnStack: a spell cast's ev.Obj IS the spell object.
+		if ev.Kind == events.AbilityPush {
+			c.TriggerAbility = e.abilityCastStackObject(ev.Obj)
+		}
+	case "Attached":
+		// ev.Obj is the attaching Aura/Equipment, ev.IDs[0] the bearer it
+		// became attached to (attachedMatches guarantees a bearer-bearing
+		// Attach event reached this mode). The TriggerTarget role serves the
+		// TriggeredTarget/TriggeredTargetController spellings (Bramble
+		// Elemental's token owner); TriggerBearer -- a field ONLY this case
+		// sets -- is what TriggeredTargetLKICopy (Enormous Energy Blade's
+		// "tap that creature") resolves, so the bearer never masquerades as
+		// another mode's TriggerTarget provenance (a BecomesTarget trigger's
+		// TriggerTarget is its own source permanent; reading it as a bearer
+		// would make Horobi destroy himself on every targeting).
+		c.TriggerCard = ev.Obj
+		if len(ev.IDs) > 0 {
+			c.TriggerTarget = state.Target{Obj: ev.IDs[0]}
+			c.TriggerBearer = ev.IDs[0]
+		}
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
 	case "TapsForMana":
@@ -109,10 +149,37 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	// particular, an ETB trigger may remain on the stack after its permanent
 	// dies, at which point Move has correctly cleared the object's live X.
 	// Keep the event's card value with the rest of the trigger provenance.
+	// CR 107.4f's converge colour count rides the same capture: a SpellCast
+	// trigger's card carries the pay-time CastInfo stamp (rules/cast.go's
+	// payCast) at fire time, and a spell countered before the trigger resolves
+	// has had the stack->graveyard move clear it -- the snapshot is what lets
+	// evalRefProperty's Converge property answer with the colours actually
+	// spent, regardless of the spell's fate.
 	if card := e.G.Obj(c.TriggerCard); card != nil {
 		c.TriggerPaidX = card.X
+		c.TriggerConverge = card.ConvergeColours
 	}
 	return c
+}
+
+// abilityCastStackObject is the fire-time twin of effects.changeXAbilityObject's
+// scan (effects cannot import rules, so the scan is mirrored, not shared): the
+// topmost non-trigger ability wrapper on the stack whose Source is the
+// activating permanent. Called synchronously inside the AbilityPush emit,
+// when that wrapper is exactly the stack top; 0 when no such wrapper exists
+// (a stale registration) -- the role simply stays absent.
+func (e *Engine) abilityCastStackObject(perm state.ObjID) state.ObjID {
+	for i := len(e.G.Stack) - 1; i >= 0; i-- {
+		o := e.G.Obj(e.G.Stack[i])
+		if o == nil || o.Card != nil || o.Ability == nil || o.Source != perm {
+			continue
+		}
+		if _, isTrig := state.TriggerOf(e.G, o); isTrig {
+			continue
+		}
+		return o.ID
+	}
+	return 0
 }
 
 // targetSpecContext accepts the actual stack id, so simultaneous triggers of

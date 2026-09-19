@@ -21,6 +21,7 @@ func init() {
 	Register("RearrangeTopOfLibrary", effRearrangeTopOfLibrary)
 	Register("Scry", effScry)
 	Register("Surveil", effSurveil)
+	Register("DigUntil", effDigUntil)
 	Register("NameCard", effNameCard)
 	Register("Hideaway", effHideaway)
 }
@@ -1133,6 +1134,323 @@ func digDestPhrase(dest state.Zone) string {
 	default:
 		return "its destination"
 	}
+}
+
+// effDigUntil implements Forge's reveal-until search (DigUntilEffect; task
+// diguntil1) — a DIFFERENT primitive from Dig, with its own param family:
+// reveal cards from the top of Defined$'s library (default: the resolving
+// controller) in zone order until one matches Valid$, publicly reveal every
+// card turned over INCLUDING the found one (the same non-Secret ids-Note
+// shape effDig's Reveal$ arm emits), move the found card(s) to
+// FoundDestination$ (default Hand) and the revealed rest to
+// RevealedDestination$ (default Library; RevealedLibraryPosition$ "-1" =
+// bottom via Move's zone append, "0"/absent = the stay-in-place default so
+// no event). The cards AFTER the found card stay in the library untouched —
+// the scan stops at the amount-th match, unlike Dig's fixed window.
+//
+// OptionalFoundMove$ True (4 corpus lines — Songbirds' Blessing) makes the
+// found move a real yes/no ask to the library's owner (the attach_optional
+// KChoose shape): "yes" moves to FoundDestination$, "no" — the decline —
+// to OptionalNoDestination$ when the SA carries one, else the found card
+// JOINS the revealed pile (the corpus oracles all say "then put all cards
+// revealed this way that weren't put onto the battlefield on the bottom":
+// Genesis Storm, Hei Bai, Aurora Awakener). A no-host (AskNoHost) declines
+// deterministically (R-9); botpolicy's clamp fallback answers option 0 =
+// "yes". RevealRandomOrder$ True (54 lines) means the revealed pile would
+// return "in a random order" — randomness is forbidden here, so the
+// deterministic stand-in returns them in their existing library order
+// (recorded in AGENTS.md's Known approximations).
+//
+// Riders implemented: RememberFound$ / RememberRevealed$ (the ctx-level
+// Remembered discipline digRemember uses), Tapped$ (the MoveZone-then-Tap
+// pair effDig's battlefield take emits) and GainControl$ (the found
+// permanent enters under the resolving controller via the ordinary
+// ControlChange event). A found card with an AURA face put onto the
+// battlefield gets the CR 303.4f non-cast-entry attach, degraded to the
+// deterministic stand-in: the first permanent in the controller's
+// battlefield zone order that satisfies the Enchant keyword's own spec (the
+// same read rules/attach.go's auraStillMatchesEnchant does; effects keeps
+// its own copy — it must not import rules). With NO eligible bearer the
+// Aura stays in the library (CR 303.4f's remain-in-current-zone) rather
+// than entering unattached and dying to the CR 704.5m SBA. Riders withheld with ONE loud Note naming each and
+// the core move still running: Amount$ non-literal (X/MassX/VoteNum/Y —
+// amount 1 then; literal 1..5 ARE honoured as "keep revealing until N
+// matches"), DigZone$ (only Library is a real zone — the PlanarDeck
+// carriers scan no zone at all and move nothing), NoMoveFound$ /
+// FoundLibraryPosition$ (the found card stays where it is), Shuffle$ /
+// ShuffleCondition$ (the revealed rest go to RevealedDestination$ in
+// existing order instead of shuffling in), ImprintFound$ /
+// ImprintRevealed$ (no imprint association is recorded).
+func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
+	spec := sa.Params["Valid"]
+	if spec == "" {
+		spec = "Card"
+	}
+	spec = permanentCardSpec(spec)
+	foundDestName := sa.Params["FoundDestination"]
+	if foundDestName == "" {
+		foundDestName = "Hand"
+	}
+	foundDest := ParseZone(foundDestName)
+	revDest := state.ZLibrary
+	if raw := strings.TrimSpace(sa.Params["RevealedDestination"]); raw != "" {
+		revDest = ParseZone(raw)
+	}
+	revPos := strings.TrimSpace(sa.Params["RevealedLibraryPosition"])
+	optionalMove := strings.EqualFold(strings.TrimSpace(sa.Params["OptionalFoundMove"]), "True")
+	noMoveRevealed := strings.EqualFold(strings.TrimSpace(sa.Params["NoMoveRevealed"]), "True")
+	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
+	gainControl := strings.EqualFold(strings.TrimSpace(sa.Params["GainControl"]), "True")
+	rememberFound := strings.EqualFold(strings.TrimSpace(sa.Params["RememberFound"]), "True")
+	rememberRevealed := strings.EqualFold(strings.TrimSpace(sa.Params["RememberRevealed"]), "True")
+	amount := int32(1)
+	var withheld []string
+	if raw := strings.TrimSpace(sa.Params["Amount"]); raw != "" && raw != "1" {
+		if n, err := strconv.Atoi(raw); err == nil && n > 1 && n <= 5 {
+			amount = int32(n)
+		} else {
+			withheld = append(withheld, "Amount$ "+raw)
+		}
+	}
+	// The params that keep the FOUND card where it is: NoMoveFound$ True is
+	// the card's own instruction, and the FoundLibraryPosition$ carriers are
+	// all position "0" — already on top — so the no-move read is the
+	// behaviour the card names, with the loud Note saying the primitive is
+	// not the full param.
+	noMoveFound := false
+	for _, key := range []string{"NoMoveFound", "FoundLibraryPosition"} {
+		if v := digUntilParamValue(sa, key); v != "" {
+			withheld = append(withheld, key+"$ "+v)
+			noMoveFound = true
+		}
+	}
+	// Purely inert riders: one loud Note, the move proceeds without them.
+	for _, key := range []string{"Shuffle", "ShuffleCondition", "ImprintFound", "ImprintRevealed"} {
+		if v := digUntilParamValue(sa, key); v != "" {
+			withheld = append(withheld, key+"$ "+v)
+		}
+	}
+	// fx42 scoping: capture and clear the answered found-move election BEFORE
+	// the target loop, so a nested DigUntil in the same chain poses its own
+	// ask instead of inheriting the answer. moveDone also suppresses the
+	// re-emit of the reveal Note (recorded before the first-pass ask) and of
+	// the withheld-params Note.
+	moveAns := c.DigUntilMove
+	moveDone := c.DigUntilMoveDone
+	c.DigUntilMove, c.DigUntilMoveDone = "", false
+	if moveAns == "" {
+		moveAns = "no"
+	}
+	g := h.Game()
+	if !moveDone && len(withheld) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "DigUntil withholds " + strings.Join(withheld, ", ") + "; the core move runs without it"})
+	}
+	targets := Defined(h, c, sa)
+	if sa.Params["Defined"] == "" && sa.Params["ValidTgts"] == "" {
+		// Forge's default for a reveal-until with no Defined$ and no targets:
+		// the resolving controller's own library (Songbirds' Blessing's
+		// trigger). Defined's source-object fallback is wrong here — the
+		// source is the resolving permanent, not a player.
+		targets = []state.Target{{Player: c.Controller, IsPlayer: true}}
+	}
+	if digZone := strings.TrimSpace(sa.Params["DigZone"]); digZone != "" && !strings.EqualFold(digZone, "Library") {
+		// The PlanarDeck carriers (4): planes are unimplemented engine-wide
+		// and there is no planar-deck zone to scan. Loud, and nothing moves.
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "DigUntil DigZone$ " + digZone + " is not implemented; no cards are revealed or moved"})
+		return
+	}
+	// declineDest is where the found card goes when the optional move is
+	// declined: OptionalNoDestination$ when the SA carries one, else the
+	// revealed pile (the corpus oracles' "put all cards revealed this way
+	// that weren't put onto the battlefield ...").
+	declineDest := revDest
+	if raw := strings.TrimSpace(sa.Params["OptionalNoDestination"]); raw != "" {
+		declineDest = ParseZone(raw)
+	}
+	for _, t := range targets {
+		p := PlayerOf(h, c, t)
+		lib := zoneOf(g, state.ZLibrary, p)
+		if len(lib) == 0 {
+			continue
+		}
+		var revealed, found []state.ObjID
+		for _, id := range lib {
+			revealed = append(revealed, id)
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				found = append(found, id)
+				if int32(len(found)) >= amount {
+					break
+				}
+			}
+		}
+		// The reveal is PUBLIC (the same non-Secret ids-Note effDig's Reveal$
+		// arm emits), recorded before the ask, once per resolution -- a
+		// re-entry after the optional-move answer must not reveal again.
+		if !moveDone {
+			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: revealed})
+		}
+		if optionalMove && !moveDone {
+			verb := digDestPhrase(foundDest)
+			d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+				Source:     c.Source,
+				ResumeKind: "diguntil_move", ResumeSA: sa,
+				Prompt: "Put the revealed matching card(s) onto " + verb + "?",
+				Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes — put into " + verb, Player: p},
+					{Index: 1, Kind: "no", Label: "No", Player: p},
+				}}
+			if Ask(h, d) == AskAsked {
+				return // resolution suspended; the answer re-enters with Ctx.DigUntilMove set.
+			}
+			// Fuzz/no-engine host: the deterministic decline (R-9) — the found
+			// card(s) join the decline destination.
+			moveDone = true
+			moveAns = "no"
+		}
+		switch {
+		case rememberRevealed:
+			// The revealed set already carries every found card (it is a
+			// prefix scan), so RememberFound$ adds nothing new.
+			for _, id := range revealed {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			}
+		case rememberFound:
+			for _, id := range found {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			}
+		}
+		foundJoinedRevealed := false
+		if !noMoveFound && len(found) > 0 {
+			dest := foundDest
+			if optionalMove && moveAns != "yes" {
+				dest = declineDest
+				foundJoinedRevealed = dest == revDest
+			}
+			for _, id := range found {
+				if dest == state.ZBattlefield {
+					// An AURA face put onto the battlefield by a non-cast effect
+					// never got a cast-time target. With NO eligible bearer the
+					// card stays in the library (CR 303.4f's
+					// remain-in-current-zone) instead of entering unattached and
+					// dying to the CR 704.5m SBA.
+					bearer, isAuraFace := auraEntryBearer(g, id, p)
+					if isAuraFace && bearer == 0 {
+						h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+							Text: "no permanent the revealed Aura can enchant; it stays in the library (CR 303.4f)"})
+						continue
+					}
+					ev := moveZoneEvent(c, id, state.ZLibrary, dest)
+					ev.Player, ev.Secret = p, true
+					h.Emit(ev)
+					if tapped {
+						h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
+					}
+					if gainControl {
+						h.Emit(events.Event{Kind: events.ControlChange, Obj: id, Player: c.Controller})
+					}
+					if bearer != 0 {
+						// The CR 303.4f attach, degraded to the deterministic
+						// stand-in documented above (the bearer the scan picked).
+						h.Emit(events.Event{Kind: events.Attach, Obj: id, IDs: []state.ObjID{bearer}})
+					}
+					continue
+				}
+				ev := moveZoneEvent(c, id, state.ZLibrary, dest)
+				ev.Player, ev.Secret = p, true
+				h.Emit(ev)
+			}
+		}
+		// The revealed rest (plus a found card whose decline joined the pile)
+		// move to RevealedDestination$; NoMoveRevealed$ True (8 corpus lines)
+		// leaves them where they are instead.
+		if noMoveRevealed {
+			continue
+		}
+		for _, id := range revealed {
+			isFound := false
+			for _, fid := range found {
+				if fid == id {
+					isFound = true
+					break
+				}
+			}
+			if isFound && !foundJoinedRevealed {
+				continue
+			}
+			if revDest == state.ZLibrary {
+				// Library placement: "-1" (bottom) is a real library-to-library
+				// move (Move's zone append lands it at the bottom — the exact
+				// contract effDig's LibraryPosition2$ "-1" arm documents);
+				// "0"/absent is the engine's stay-in-place default (the cards
+				// already sit on top in their existing relative order) so no
+				// event; anything else is named loudly and the card stays.
+				if revPos == "-1" {
+					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZLibrary, To: state.ZLibrary, Player: p, Secret: true})
+				} else if revPos != "" && revPos != "0" {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+						Text: "RevealedLibraryPosition$ " + revPos + " is not implemented; the card stays on top"})
+				}
+				continue
+			}
+			ev := moveZoneEvent(c, id, state.ZLibrary, revDest)
+			ev.Player, ev.Secret = p, true
+			h.Emit(ev)
+		}
+	}
+}
+
+// digUntilParamValue is the withhold-list keys' trimmed value read (the
+// paramcensus's dynamic-key rule: the key is this helper's own parameter,
+// and every call site passes a string literal). Empty means absent-or-False.
+func digUntilParamValue(sa *cards.SA, key string) string {
+	v := strings.TrimSpace(sa.Params[key])
+	if strings.EqualFold(v, "False") {
+		return ""
+	}
+	return v
+}
+
+// auraEntryBearer resolves a non-cast battlefield entry's Aura bearer: the
+// first permanent in the entering controller's battlefield zone order that
+// satisfies the face's Enchant keyword spec (or any permanent when the face
+// carries no Enchant keyword — nothing in the corpus prints one, the same
+// convention rules/attach.go's auraStillMatchesEnchant uses). aura is false
+// when the face is not an Aura (no attach needed); aura && bearer == 0
+// means the face IS an Aura but no eligible bearer exists. The filter read
+// is the shared MatchesSpecFrom, so a compound spec (Enchant:
+// Creature.YouCtrl) evaluates exactly like an attach-time legality check.
+func auraEntryBearer(g *state.Game, id state.ObjID, p state.PlayerID) (state.ObjID, bool) {
+	o := g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0, false
+	}
+	isAura := false
+	for _, t := range o.Face().Types {
+		if strings.EqualFold(t, "Aura") {
+			isAura = true
+			break
+		}
+	}
+	if !isAura {
+		return 0, false
+	}
+	spec := "Permanent"
+	if param, ok := o.Face().KeywordParam("Enchant"); ok && strings.TrimSpace(param) != "" {
+		spec, _, _ = strings.Cut(param, ":")
+	}
+	spec = strings.TrimSpace(spec)
+	for _, bid := range g.Zone(state.ZBattlefield, p) {
+		if bid == id {
+			continue
+		}
+		if MatchesSpecFrom(g, spec, bid, p, id) {
+			return bid, true
+		}
+	}
+	return 0, true
 }
 
 // effReveal backs Reveal, RevealHand and PeekAndReveal, which the brief

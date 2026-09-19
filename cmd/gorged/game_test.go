@@ -85,6 +85,21 @@ func TestCreateGameBuildsARealSingleShotHumanVsBotTable(t *testing.T) {
 	}
 }
 
+func TestCreateGamePersistsRequestedBotPolicy(t *testing.T) {
+	r, gate := freshGameLock(t)
+	create := (config{mulligans: 0}).createGame(r, gate, []string{"a", "b"}, []string{"c", "d"}, view.Omniscient)
+	resp, err := create(httpapi.CreateGameOptions{Format: host.FormatConstructed, BotPolicy: host.LethalPressurePolicy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.BotPolicy != host.LethalPressurePolicy {
+		t.Fatalf("response policy = %q", resp.BotPolicy)
+	}
+	if got := r.Tables()[0].BotPolicy; got != host.LethalPressurePolicy {
+		t.Fatalf("table policy = %q", got)
+	}
+}
+
 // TestCreateGameDealsADistinctConstructedPairAndIncrementsIDs pins the
 // "two distinct decks" part of the random assignment — seat 0 and seat 1
 // are never the same deck, whatever the shuffle — and that each requested

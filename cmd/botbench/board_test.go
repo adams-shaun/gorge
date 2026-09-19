@@ -54,30 +54,35 @@ func TestPlayMatchUsesBoardSeatWithViewParity(t *testing.T) {
 	for i, name := range names {
 		decks[i] = testutil.RepoDeck(t, reg, name)
 	}
-	for _, seed := range []uint64{0, 7} {
-		cfg := rules.Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens}
-		var boardTrace, viewTrace []decision.Intent
-		boardSeats, viewSeats := make([]seat.Seat, 2), make([]seat.Seat, 2)
-		for i := range boardSeats {
-			botSeed := seed ^ uint64(i+1)
-			boardSeats[i] = &boardTraceSeat{viewTraceSeat: &viewTraceSeat{bot: seat.NewBot(botSeed), trace: &boardTrace}}
-			viewSeats[i] = &viewTraceSeat{bot: seat.NewBot(botSeed), trace: &viewTrace}
-		}
-		got, err := playMatch(cfg, names, boardSeats, 200, 20000, nil, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		want, err := playMatch(cfg, names, viewSeats, 200, 20000, nil, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got.stallOn != "" || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(boardTrace, viewTrace) {
-			t.Fatalf("seed %d: Board and View must finish with identical intents and outcomes", seed)
-		}
-		for i, s := range boardSeats {
-			b := s.(*boardTraceSeat)
-			if b.boardCalls == 0 || b.calls != 0 {
-				t.Fatalf("seat %d: Board calls=%d, View calls=%d; want Board only", i, b.boardCalls, b.calls)
+	for _, tc := range []struct {
+		name string
+		new  func(uint64) *seat.Bot
+	}{{"bot", seat.NewBot}, {"lethal-pressure", seat.NewLethalPressureBot}} {
+		for _, seed := range []uint64{0, 7} {
+			cfg := rules.Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens}
+			var boardTrace, viewTrace []decision.Intent
+			boardSeats, viewSeats := make([]seat.Seat, 2), make([]seat.Seat, 2)
+			for i := range boardSeats {
+				botSeed := seed ^ uint64(i+1)
+				boardSeats[i] = &boardTraceSeat{viewTraceSeat: &viewTraceSeat{bot: tc.new(botSeed), trace: &boardTrace}}
+				viewSeats[i] = &viewTraceSeat{bot: tc.new(botSeed), trace: &viewTrace}
+			}
+			got, err := playMatch(cfg, names, boardSeats, 200, 20000, nil, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want, err := playMatch(cfg, names, viewSeats, 200, 20000, nil, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.stallOn != "" || !reflect.DeepEqual(got, want) || !reflect.DeepEqual(boardTrace, viewTrace) {
+				t.Fatalf("%s seed %d: Board and View must finish with identical intents and outcomes", tc.name, seed)
+			}
+			for i, s := range boardSeats {
+				b := s.(*boardTraceSeat)
+				if b.boardCalls == 0 || b.calls != 0 {
+					t.Fatalf("seat %d: Board calls=%d, View calls=%d; want Board only", i, b.boardCalls, b.calls)
+				}
 			}
 		}
 	}

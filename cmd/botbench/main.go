@@ -120,6 +120,7 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
@@ -137,7 +138,20 @@ var policies = map[string]func(seed uint64) seat.Seat{
 	// covariance: a func returning *Bot is not assignable to one returning
 	// seat.Seat, and the wrapper keeps a future policy free to return any
 	// Seat implementation.
-	"bot": func(seed uint64) seat.Seat { return seat.NewBot(seed) },
+	"bot":             hostedPolicy(host.BotPolicy),
+	"lethal-pressure": hostedPolicy(host.LethalPressurePolicy),
+	// cast-profile plays the production bot with a learned cast profile
+	// (botpolicy.CastWeights): with the embedded default profile it is
+	// intent-identical to "bot" (the baseline equality the L2 tests pin),
+	// and -profile <path> swaps the weights for a candidate file so a
+	// profile is benched without a rebuild.
+	"cast-profile": func(seed uint64) seat.Seat {
+		w, err := castProfileWeightsForRun()
+		if err != nil {
+			panic(err) // the embedded default profile is pinned valid by botpolicy's tests.
+		}
+		return seat.NewCastProfileBotWithWeights(seed, w)
+	},
 	// legacy is the pre-B2 policy, frozen in botpolicy.LegacyDecide: attack
 	// with everything that can, block half the legal pairs on a coin. It is
 	// not a production policy -- nothing but the bench drives it -- it is
@@ -146,6 +160,35 @@ var policies = map[string]func(seed uint64) seat.Seat{
 	"legacy": func(seed uint64) seat.Seat {
 		return &legacySeat{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
 	},
+}
+
+func hostedPolicy(name string) func(seed uint64) seat.Seat {
+	return func(seed uint64) seat.Seat {
+		s, err := host.NewBotPolicySeat(name, seed)
+		if err != nil {
+			panic(err) // constants above are the closed hosted-policy vocabulary.
+		}
+		return s
+	}
+}
+
+// castProfileOverride is the weights -profile names: nil (the zero value)
+// means the embedded default profile, and mainExit sets it once after
+// parsing the file. Package scope rather than a run parameter so the
+// policies map's cast-profile entry can read it without threading a
+// weights argument through run/runMatrix/playMatch; it is write-once
+// before any game starts and read-only afterwards.
+var castProfileOverride *botpolicy.CastWeights
+
+// castProfileWeightsForRun resolves the run's cast-profile weights: the
+// -profile file when one was given, else the embedded default profile.
+// LoadCastProfile for the default is infallible for a committed file, but
+// the error is propagated anyway so the caller decides how loudly to fail.
+func castProfileWeightsForRun() (botpolicy.CastWeights, error) {
+	if castProfileOverride != nil {
+		return *castProfileOverride, nil
+	}
+	return botpolicy.LoadCastProfile(botpolicy.DefaultCastProfileName)
 }
 
 // legacySeat is the bench seat for the old policy: it reads the same view
@@ -312,18 +355,25 @@ func recordStarter(o gameOutcome, e *rules.Engine) gameOutcome {
 // fail the run at the end, because a livelock is an engine bug, not a slow
 // game.
 func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage) (gameOutcome, error) {
+	return playMatchTraced(cfg, pols, seats, maxTurns, maxIntents, collect, cov, nil, traceDecisionMeta{})
+}
+
+func playMatchTraced(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage, trace *gameTrace, meta traceDecisionMeta) (gameOutcome, error) {
 	if collect != nil {
 		collect.game()
 	}
 	if cov != nil {
 		cov.game()
 	}
-	o, e, err := playMatchOnce(cfg, pols, seats, maxTurns, maxIntents, collect, cov)
+	o, e, err := playMatchOnceTraced(cfg, pols, seats, maxTurns, maxIntents, collect, cov, trace, meta)
 	if err == nil && cov != nil {
 		// A finished game (win, draw OR stall) attributes its runtime
 		// exercise from the log; a game that ERRORED has no trustworthy log
 		// shape to walk, so it is skipped.
 		cov.walkGame(cfg, e)
+	}
+	if err == nil && trace != nil {
+		trace.finish(o, meta)
 	}
 	return o, err
 }
@@ -331,6 +381,14 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, max
 // playMatchOnce is playMatch's game loop; it returns the engine so the
 // action-coverage walk can read the finished log and state.
 func playMatchOnce(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage) (gameOutcome, *rules.Engine, error) {
+	return playMatchOnceTraced(cfg, pols, seats, maxTurns, maxIntents, collect, cov, nil, traceDecisionMeta{})
+}
+
+// playMatchOnceTraced is the opt-in observational form of playMatchOnce.
+// trace is game-local, so concurrent workers never share or write it. The
+// ordinary wrapper passes nil and retains its pre-trace allocation and output
+// path.
+func playMatchOnceTraced(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage, trace *gameTrace, meta traceDecisionMeta) (gameOutcome, *rules.Engine, error) {
 	e := rules.New(cfg)
 	e.Advance()
 	board := botpolicy.NewBoard(len(seats))
@@ -367,15 +425,21 @@ func playMatchOnce(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns,
 			d := e.Pending()
 			var in decision.Intent
 			var err error
+			var decisionBoard *botpolicy.Board
 			if s, ok := seats[d.Player].(seat.BoardSeat); ok {
 				// Match the live host's reusable, seat-private Board path. Seats
 				// opting out (including legacy) still receive the full View.
 				b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
 				in, err = s.DecideBoard(context.Background(), b, *d)
+				decisionBoard = &b
 			} else {
 				v := view.Project(e.G, e, d.Player, d)
 				v.Round = view.RoundOf(e.G, e.L.Events)
 				in, err = seats[d.Player].Decide(context.Background(), v, *d)
+				if trace != nil {
+					b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
+					decisionBoard = &b
+				}
 			}
 			if err != nil {
 				return nil, nil, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)
@@ -385,6 +449,13 @@ func playMatchOnce(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns,
 			}
 			if cov != nil {
 				cov.record(d, in)
+			}
+			if trace != nil {
+				decisionMeta := meta
+				decisionMeta.Policy = pols[d.Player]
+				if err := trace.record(d, in, decisionBoard, decisionMeta); err != nil {
+					return nil, nil, fmt.Errorf("seed %d, intent %d: recording decision trace: %w", cfg.Seed, n, err)
+				}
 			}
 			if err := e.Submit(in); err != nil {
 				return nil, nil, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, err)
@@ -1541,6 +1612,10 @@ func winRateFrac(wins, eff int) float64 {
 // policies table and ci95 with run(), so the seat-trades-policies and
 // seed-determinism properties are the same two seats a single-pair run has.
 func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format string, pairs []pairDef, workers, maxTurns, maxIntents int, commander bool, coverage *coveragePlan, out, prog io.Writer) error {
+	return runMatrixTraced(baseSeed, games, seats, aName, bName, dir, format, pairs, workers, maxTurns, maxIntents, commander, coverage, "", out, prog)
+}
+
+func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, format string, pairs []pairDef, workers, maxTurns, maxIntents int, commander bool, coverage *coveragePlan, tracePath string, out, prog io.Writer) error {
 	if seats != 2 {
 		return fmt.Errorf("-pairs requires -seats 2 (a matrix pits one deck pair against another), got %d", seats)
 	}
@@ -1603,6 +1678,10 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 	if actionCoverageEnabled {
 		cov = newActionCoverage()
 	}
+	var traces []*gameTrace
+	if tracePath != "" {
+		traces = make([]*gameTrace, len(pairs)*games)
+	}
 
 	play := func(pos int, seed uint64, pols []string) (gameOutcome, error) {
 		pd := pairs[pos]
@@ -1619,7 +1698,14 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		cfg := buildGameConfig(seed, []string{pd.a, pd.b},
 			[][]*cards.Card{deckByName[pd.a], deckByName[pd.b]}, commanders, commander)
 		cfg.Tokens = reg.Tokens
-		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
+		if traces == nil {
+			return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
+		}
+		gameIndex := int(seed - gameSeedPair(baseSeed, pos, games, 0))
+		trace := newGameTrace()
+		traces[pos*games+gameIndex] = trace
+		meta := traceDecisionMeta{PairIndex: pos, Pair: pd.String(), GameIndex: gameIndex, Seed: seed}
+		return playMatchTraced(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov, trace, meta)
 	}
 
 	results, err := runPairs(baseSeed, games, aName, bName, pairs, play, workers, &progressWriter{w: prog})
@@ -1638,6 +1724,9 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 			// (the per-pair livelocks counts are in it), then the run fails.
 			return fmt.Errorf("%d of %d game(s) aborted with a livelock (see the JSON livelocks fields)", m.livelocks, m.games)
 		}
+		if tracePath != "" {
+			return writeDecisionTrace(tracePath, newTraceRunV1(baseSeed, games, aName, bName, pairs, maxTurns, maxIntents, commander), traces)
+		}
 		return nil
 	}
 	if coverage != nil {
@@ -1649,6 +1738,9 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 	}
 	collect.write(out)
 	cov.write(out)
+	if tracePath != "" {
+		return writeDecisionTrace(tracePath, newTraceRunV1(baseSeed, games, aName, bName, pairs, maxTurns, maxIntents, commander), traces)
+	}
 	return nil
 }
 
@@ -1840,8 +1932,11 @@ func main() {
 	maxTurns := flag.Int("max-turns", 200, "maximum turns per game before it ends as a stall (not a win, not a draw); catches a game that runs long in turn count; 0 = no cap")
 	maxIntents := flag.Int("max-intents", 20000, "maximum intents per game before it ends as a stall (not a win, not a draw); catches a game whose turn count never advances but that keeps submitting intents; 0 = no cap")
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
+	profile := flag.String("profile", "", "path to a cast-profile weights JSON (schema {\"version\":1,\"cast\":{...}}) applied to any side named cast-profile; empty = the embedded default profile")
 	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
 	actionCoverage := flag.Bool("action-coverage", false, "append the action-coverage completeness report (decision kinds / option rows never asked, offered-but-never-chosen shapes, cast shapes, cards and ability slots never fired, primitives never exercised) at the end of a run; default off so the normal report is unchanged")
+	decisionTrace := flag.String("decision-trace", "", "write an opt-in atomic JSONL decision trace to a new file (matrix mode only; parent must exist and destination must not)")
+	analyzeTrace := flag.String("analyze-trace", "", "read a decision trace and write deterministic diagnostic-proxy JSON; no games are played")
 	grind := flag.String("grind", "", "grind mode: pin one repo deck to one goroutine and play it against itself as many games as the budget allows; a deck name, or \"all\" for every deck in the format's pool (one goroutine each); mutually exclusive with -pairs; -workers is ignored (the one-goroutine-per-deck shape IS the mode)")
 	grindSeconds := flag.Float64("grind-seconds", 0, "grind wall-clock budget in seconds (checked between games, so at least one game always plays); 0 with -grind-iters 0 means the 30s default")
 	grindIters := flag.Int("grind-iters", 0, "grind iteration cap per deck; 0 = wall-clock only")
@@ -1852,7 +1947,7 @@ func main() {
 	actionCoverageEnabled = *actionCoverage
 
 	os.Exit(mainExit(*a, *b, *games, *seed, *seats, *rotate, *pairs, *format, *out, *workers,
-		*maxTurns, *maxIntents, *dir, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile))
+		*maxTurns, *maxIntents, *dir, *profile, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile, *decisionTrace, *analyzeTrace))
 }
 
 // mainExit is main's body with the exit code as its return, so the profiler
@@ -1860,10 +1955,34 @@ func main() {
 // profile is still readable evidence -- instead of being skipped by the
 // os.Exit calls a flag-error path used to make.
 func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pairs, format, out string, workers,
-	maxTurns, maxIntents int, dir string, decisionStats, actionCoverage bool, grind string, grindSeconds float64, grindIters int, cpuprofile, memprofile string) int {
+	maxTurns, maxIntents int, dir, profile string, decisionStats, actionCoverage bool, grind string, grindSeconds float64, grindIters int, cpuprofile, memprofile, decisionTrace, analyzeTrace string) int {
 	fail := func(err error) int {
 		fmt.Fprintln(os.Stderr, "botbench:", err)
 		return 1
+	}
+	// The -profile file is parsed before any game starts so a bad candidate
+	// fails the run at the front door instead of mid-game: it applies to any
+	// side named cast-profile (single-pair, matrix or grind), and an empty
+	// path leaves the embedded default in place.
+	if profile != "" {
+		data, err := os.ReadFile(profile)
+		if err != nil {
+			return fail(fmt.Errorf("reading -profile %s: %w", profile, err))
+		}
+		w, err := botpolicy.ParseCastProfile(data)
+		if err != nil {
+			return fail(fmt.Errorf("-profile %s: %w", profile, err))
+		}
+		castProfileOverride = &w
+	}
+	if analyzeTrace != "" {
+		if decisionTrace != "" || pairs != "" || grind != "" {
+			return fail(fmt.Errorf("-analyze-trace cannot be combined with -decision-trace, -pairs, or -grind"))
+		}
+		if err := analyzeTraceFile(analyzeTrace, os.Stdout); err != nil {
+			return fail(err)
+		}
+		return 0
 	}
 
 	prof := &profiler{cpuPath: cpuprofile, memPath: memprofile}
@@ -1885,6 +2004,9 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 	// Grind mode first: it is its own shape (one deck, one goroutine, budget
 	// driven) and refuses to mix with the pair matrix.
 	if grind != "" {
+		if decisionTrace != "" {
+			return fail(fmt.Errorf("-decision-trace requires -pairs and cannot be used with -grind"))
+		}
 		if pairs != "" {
 			return fail(fmt.Errorf("-grind and -pairs are mutually exclusive (grind pins one deck to one goroutine; the matrix fans pairs over the pool)"))
 		}
@@ -1948,10 +2070,13 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 				return fail(err)
 			}
 		}
-		if err := runMatrix(seed, games, seats, aName, bName, dir, out, ps, workers, maxTurns, maxIntents, commander, coverage, os.Stdout, os.Stderr); err != nil {
+		if err := runMatrixTraced(seed, games, seats, aName, bName, dir, out, ps, workers, maxTurns, maxIntents, commander, coverage, decisionTrace, os.Stdout, os.Stderr); err != nil {
 			return fail(err)
 		}
 		return 0
+	}
+	if decisionTrace != "" {
+		return fail(fmt.Errorf("-decision-trace requires -pairs"))
 	}
 	if err := run(seed, games, seats, rotate, workers, aName, bName, dir, maxTurns, maxIntents, commander, os.Stdout); err != nil {
 		return fail(err)

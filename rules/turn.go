@@ -109,7 +109,28 @@ func (e *Engine) finishUntapStep(next int) bool {
 	ids := e.G.Zone(state.ZBattlefield, e.G.Active)
 	for i := next; i < len(ids); i++ {
 		o := e.G.Obj(ids[i])
-		if o == nil || !o.Tapped {
+		if o == nil {
+			continue
+		}
+		if o.ExertSkipUntap {
+			// CR 702.100b (task exert1): an exerted creature won't untap
+			// during its controller's next untap step. The window closes
+			// here -- consumed at use, the regeneration-shield precedent: the
+			// Amount -1 Exert event's fold clears the flag, and replay
+			// re-derives both the skip and the consume from the same scan.
+			// Untap EFFECTS are deliberately untouched: CR 702.100b names
+			// only the untap step, so this gate lives in the turn scan and
+			// never in effects.TryUntap (a Combat-Celebrant untap-all still
+			// untaps an exerted creature). An already-untapped permanent's
+			// window is consumed just the same: the next untap step has
+			// passed either way. (The stat:UntapOtherPlayer foreign scan
+			// below neither skips nor consumes: the flag's owner is the
+			// permanent's controller, whose own untap step is the active
+			// scan this loop walks.)
+			e.emit(events.Event{Kind: events.Exert, Obj: ids[i], Amount: -1})
+			continue
+		}
+		if !o.Tapped {
 			continue
 		}
 		e.untapResume = &untapStep{next: i + 1}
@@ -347,6 +368,7 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
 		e.emit(events.Event{Kind: events.EndCombatReset})
 		// CR 511.3: "until end of combat" control effects end with the step.
 		e.expireControl(controlAtEndOfCombat)
+		e.reconcileControlStatics()
 	}
 }
 
@@ -682,11 +704,113 @@ func (e *Engine) advanceStep() {
 		e.beginCombatPass(false)
 		return
 	}
-	e.setStep(e.G.Step + 1)
+	next := e.G.Step + 1
+	if s, ok := e.extraPhaseBoundary(); ok {
+		next = s
+	}
+	e.setStep(next)
 	if e.pending != nil {
 		return
 	}
 	e.finishEnteredStep()
+}
+
+// extraPhaseBoundary is the extra-phase consumer (Forge AddPhaseEffect, DB$
+// AddPhase; the state.Game.ExtraPhases fold is the queue, the ExtraTurnQueue
+// precedent one level up). It is called at the ONLY site that advances the
+// ordinary turn walk -- the tail of advanceStep -- and answers what step the
+// walk enters next. The turn is treated as the phase LIST the grant spliced
+// (state.ExtraPhase's type comment): when the walk leaves step L,
+//
+//  1. every CONSUMED grant whose extra phase ends at L (RangeEnd) completes
+//     here -- one -2 ExtraPhase event per entry, the entry removed from the
+//     fold;
+//  2. then the earliest-created PENDING grant spliced at L -- or, when step
+//     1 completed grants, at the same insertion point they spliced at
+//     (Obeka's N upkeeps all splice after the same end-of-combat step, and
+//     each next upkeep is spliced there, not after the last one) -- is
+//     consumed (-1) and its extra phase entered;
+//  3. when step 1 completed grants but step 2 found nothing to splice, the
+//     walk jumps to the LAST completed grant's resume point (FollowedBy$, or
+//     AfterStep+1 when absent);
+//  4. otherwise the natural advance (Step+1) -- ok=false.
+//
+// The two list-splice jumps the walk makes OUTSIDE this site (CR 508.8's
+// declare-attackers-with-no-attack jump to the end-of-combat step, and the
+// combat-damage pass's jump there) skip the consumer: no corpus carrier
+// splices at or completes across declare-attackers or combat-damage, and an
+// extra combat reached through them still completes at its own RangeEnd
+// (leaving end-of-combat goes through this site). A resume point outside the
+// step range (or invalid) degrades to the natural advance, never a panic.
+func (e *Engine) extraPhaseBoundary() (state.Step, bool) {
+	leaving := e.G.Step
+	// 1. Completing grants: one -2 event per consumed entry whose extra
+	// phase ends here. emit folds synchronously, so the queue shrinks under
+	// the loop -- rescan from the top after every completion. The LAST
+	// completed grant's resume point is the walk's continuation (the
+	// innermost completed extra phase is where the ordinary walk stands).
+	completedAfter := state.Step(0)
+	completed := false
+	resume := state.Step(0)
+	for {
+		idx := -1
+		for i := range e.G.ExtraPhases {
+			if ep := e.G.ExtraPhases[i]; ep.Consumed && ep.RangeEnd == leaving {
+				idx = i
+				break
+			}
+		}
+		if idx < 0 {
+			break
+		}
+		ep := e.G.ExtraPhases[idx]
+		e.emit(consumedExtraPhaseEvent(ep, -2))
+		completed, completedAfter = true, ep.AfterStep
+		// The walk resumes at the explicit FollowedBy$ when the grant named
+		// one, else at the phase that would naturally have followed the
+		// splice point (AfterStep+1 -- Forge AddPhaseEffect's default).
+		if ep.HasFollowedBy {
+			resume = ep.FollowedBy
+		} else {
+			resume = ep.AfterStep + 1
+		}
+	}
+	// 2. Splicing the next pending grant: earliest created first, spliced at
+	// the leaving step -- or, when this boundary completed grants, at their
+	// insertion point too.
+	for i := range e.G.ExtraPhases {
+		ep := e.G.ExtraPhases[i]
+		if ep.Consumed {
+			continue
+		}
+		if ep.AfterStep != leaving && !(completed && ep.AfterStep == completedAfter) {
+			continue
+		}
+		e.emit(consumedExtraPhaseEvent(ep, -1))
+		return ep.Entry, true
+	}
+	if completed && resume.Valid() && resume <= state.StepCleanup {
+		return resume, true
+	}
+	return 0, false
+}
+
+// consumedExtraPhaseEvent builds the -1 (consume) / -2 (complete) message
+// for one queue entry: the full identity the fold matches on (IDs[0] the
+// entry step), with the delayed-trigger rider echoed in Text (the consume's
+// registration reads it) and the follow/resume point deliberately absent --
+// the fold's own entry already holds it, and a fixed slot beside the entry
+// step could not be told apart from an absent rider.
+func consumedExtraPhaseEvent(ep state.ExtraPhase, amount int32) events.Event {
+	ev := events.Event{Kind: events.ExtraPhase, Player: ep.Player, Obj: ep.Source,
+		Amount: amount, Step: ep.AfterStep, Counter: ep.Execute,
+		IDs: []state.ObjID{state.ObjID(ep.Entry)}}
+	if ep.HasDelayedPhase || ep.ValidPlayer != "" {
+		ev.Text = events.EncodeExtraPhaseRiders(events.ExtraPhaseRiders{
+			HasDelayedPhase: ep.HasDelayedPhase, DelayedPhase: ep.DelayedPhase,
+			ValidPlayer: ep.ValidPlayer})
+	}
+	return ev
 }
 
 // handle dispatches a validated intent to the code that owns that decision
@@ -860,6 +984,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// A Cost$ carried by a triggered effect (Mana Vault's pay-{4} untap)
 		// is paid during resolution rather than being silently ignored.
 		e.triggeredCostAnswer(chosen)
+	case chooseEcho:
+		// kw:Echo's pay-or-sacrifice election (rules/echo.go) was answered.
+		e.echoAnswer(chosen)
 	case chooseDamageDivision:
 		// Task jj-cmb (F40): the combat damage step's controller
 		// damage-division decision (CR 510.1c) was answered.
@@ -868,6 +995,25 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// own resume. There is no trigger drain to resume (a division answer
 		// is never handed out from inside one).
 		e.handleDamageDivision(chosen)
+	case chooseAsUnblockedElection:
+		// asunblk1: the combat damage step's assign-as-unblocked election
+		// (stat:AssignCombatDamageAsUnblocked, CR 509) was answered.
+		// handleAsUnblockedElection records the accepted elections and then
+		// asks the next combat ask or deals the pass. There is no trigger
+		// drain to resume (an election answer is never handed out from
+		// inside one).
+		e.handleAsUnblockedElection(chosen)
+	case chooseExert:
+		// exert1: the declare-attackers step's exert election (CR 702.100a)
+		// was answered. exertAnswer emits the decline's nothing or the
+		// accepted exert's event, then advances the cursor to the next
+		// offerable attacker or ends the election; the Advance loop resumes
+		// the step's own priority round after the last ask. The queued rider
+		// triggers (the static's Trigger$ body, walk checkExertTriggers) are
+		// placed at that same priority round, after every attack trigger the
+		// declaration itself queued -- the ordinary APNAP drain, no separate
+		// resume needed here.
+		e.exertAnswer(d, in)
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; Ward's

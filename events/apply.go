@@ -113,6 +113,22 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case TokenAttacks:
+		// A token that entered tapped and attacking (Mobilize, Kari Zev's
+		// monkey: the TokenAttacking$ True rider). Unlike MyriadCopy -- which
+		// MINTS a copy of the source card and flags IsMyriad, which
+		// MyriadCleanup exiles at end of combat -- this marks an
+		// ALREADY-MINTED battlefield token: Obj is the token, Player its
+		// controller and IDs[0] the defender it attacks. The object must
+		// still be on the battlefield and both players valid; anything else
+		// (a gone token, a fuzz event) is a no-op.
+		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield &&
+			validPlayer(g, e.Player) && len(e.IDs) > 0 && validPlayer(g, state.PlayerID(e.IDs[0])) {
+			o.Tapped = true
+			o.IsAttacking = true
+			o.Attacking = state.PlayerID(e.IDs[0])
+		}
+
 	case Shuffle:
 		if validPlayer(g, e.Player) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
@@ -295,6 +311,93 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case ExtraPhase:
+		// One Forge AddPhaseEffect message (DB$ AddPhase). Three forms split
+		// on Amount (the ExtraTurn precedent one level up): +1 appends one
+		// queue entry per granted phase (NumPhases$ is the emitter's count),
+		// -1 marks a grant consumed (the turn structure entered its extra
+		// phase), -2 removes a consumed grant (the extra phase completed).
+		// A malformed grant -- no IDs, an invalid step ordinal, an invalid
+		// player -- is a no-op, the same totality stance as the ExtraTurn
+		// case. Totality for consume/complete: an identity that matches no
+		// queue entry is a no-op, never a panic.
+		switch {
+		case e.Amount > 0:
+			if !validPlayer(g, e.Player) || len(e.IDs) == 0 {
+				break
+			}
+			entry := state.Step(e.IDs[0])
+			if !entry.Valid() {
+				break
+			}
+			ep := state.ExtraPhase{
+				Player:    e.Player,
+				AfterStep: e.Step,
+				Entry:     entry,
+				RangeEnd:  state.ExtraPhaseRangeEnd(entry),
+				Execute:   e.Counter,
+				Source:    e.Obj,
+			}
+			if len(e.IDs) > 1 {
+				if fb := state.Step(e.IDs[1]); fb.Valid() {
+					ep.HasFollowedBy, ep.FollowedBy = true, fb
+				}
+			}
+			riders := DecodeExtraPhaseRiders(e.Text)
+			ep.HasDelayedPhase, ep.DelayedPhase = riders.HasDelayedPhase, riders.DelayedPhase
+			ep.ValidPlayer = riders.ValidPlayer
+			for n := int32(0); n < e.Amount; n++ {
+				g.ExtraPhases = append(g.ExtraPhases, ep)
+			}
+		case e.Amount == -1:
+			if i, ok := matchExtraPhase(g, e, false); ok {
+				g.ExtraPhases[i].Consumed = true
+			}
+			// The delayed-trigger rider (Moraug's "At the beginning of that
+			// combat, untap all creatures you control") registers HERE, at
+			// consume time -- the ExtraTurn Final-Fortune precedent: the
+			// registration must ride the consumption, because the extra phase
+			// begins exactly now (the very next StepChange is its entry step,
+			// which the ordinary delayed-trigger drain fires on). MinTurn is
+			// the CURRENT turn -- the extra phase begins in the granting turn,
+			// unlike an extra turn's Turn+1. A consume with no source object,
+			// no Execute$ name, or a source whose face lacks the SVar degrades
+			// to no registration rather than panicking.
+			if e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
+				f := g.Obj(e.Obj).Face()
+				if f != nil && cards.ResolveSVar(f.SVars, e.Counter) != nil {
+					// The registered phase: the rider's DELAY= step when the
+					// grant forwarded one, else the extra phase's own entry
+					// step (IDs[0] -- the only step a consume always carries).
+					riders := DecodeExtraPhaseRiders(e.Text)
+					phase := state.Step(0)
+					okPhase := false
+					if riders.HasDelayedPhase {
+						phase, okPhase = riders.DelayedPhase, true
+					} else if len(e.IDs) > 0 {
+						phase, okPhase = state.Step(e.IDs[0]), state.Step(e.IDs[0]).Valid()
+					}
+					if okPhase {
+						dt := state.DelayedTrigger{
+							ID:         g.DelayedNext,
+							Phase:      phase,
+							Source:     e.Obj,
+							Controller: e.Player,
+							Execute:    e.Counter,
+							MinTurn:    g.Turn,
+						}
+						dt.ValidPlayer = riders.ValidPlayer
+						g.Delayed = append(g.Delayed, dt)
+						g.DelayedNext++
+					}
+				}
+			}
+		case e.Amount == -2:
+			if i, ok := matchExtraPhase(g, e, true); ok {
+				g.ExtraPhases = append(g.ExtraPhases[:i], g.ExtraPhases[i+1:]...)
+			}
+		}
+
 	case DoorUnlock:
 		// CR 309.5: the unlock activation paid the locked half's mana cost as
 		// a sorcery. The flag is what makes the alternate face's rules text
@@ -335,6 +438,20 @@ func Apply(g *state.Game, e Event) {
 				o.HasPreStackEntry = true
 			}
 		}
+		// A manifest's face-down entry (CR 708.5) must be visible INSIDE the
+		// Move below: Move's battlefield-entry grants read it (a manifested
+		// planeswalker enters as a 2/2 creature with no loyalty grant, a
+		// manifested Saga with no lore counter -- while face down it is
+		// neither), so the marker folds onto the object before the move and
+		// is re-asserted after it. A Counter value on the existing MoveZone
+		// decode: no new event kind, no Event field change.
+		manifesting := e.Kind == MoveZone && e.To == state.ZBattlefield &&
+			e.Counter == "entered_face_down"
+		if manifesting {
+			if o := g.Obj(e.Obj); o != nil {
+				o.FaceDown = true
+			}
+		}
 		Move(g, e.Obj, e.From, e.To)
 		if o := g.Obj(e.Obj); o != nil {
 			if e.To == state.ZExile {
@@ -360,6 +477,13 @@ func Apply(g *state.Game, e Event) {
 					}
 					o.FaceDown = false
 				}
+			} else if manifesting {
+				// CR 708.5: the manifested card stays state-face-down while it
+				// is on the battlefield (the view redacts it to everyone but
+				// its controller); leaving the battlefield clears it (CR 708.9)
+				// through Move's own leave reset and the default branch.
+				o.ExiledWith = 0
+				o.FaceDown = true
 			} else {
 				o.ExiledWith = 0
 				o.FaceDown = false
@@ -448,6 +572,28 @@ func Apply(g *state.Game, e Event) {
 
 	case StepChange:
 		g.Step = e.Step
+		// The per-turn combat-phase count (CR 500.6: a turn has exactly one
+		// combat phase -- except the additional ones an api:AddPhase grant
+		// splices in): one increment per BeginCombat ENTRY, so an extra combat
+		// counts a second time and ConditionFirstCombat$ (Raiyuu's "if it's the
+		// first combat phase of the turn" gate, effects/conditions.go) reads
+		// the real ordinal. TurnChange resets it below.
+		if e.Step.Valid() && e.Step == state.StepBeginCombat {
+			g.CombatsThisTurn++
+		}
+		// kw:Echo's provenance (CR 702.35a): the Draw step's beginning means
+		// this turn's upkeep just ended, so the turn's upkeep is now the
+		// controller's "most recent upkeep". Recording here (not at the
+		// Upkeep StepChange) is what makes the gate's comparison read the
+		// PREVIOUS upkeep at the next upkeep's beginning: the echo trigger
+		// fires on the same StepChange that would otherwise have just
+		// overwritten the record, and an acquisition made during that upkeep
+		// itself still counts via its AcqStep >= StepUpkeep half. Zero stays
+		// zero until a seat's first draw step (their first upkeep then reads
+		// as absent — gate vacuously true).
+		if e.Step == state.StepDraw && validPlayer(g, g.Active) {
+			g.Players[g.Active].LastUpkeepTurn = g.Turn
+		}
 
 	case TurnChange:
 		if validPlayer(g, e.Player) {
@@ -474,11 +620,23 @@ func Apply(g *state.Game, e Event) {
 				g.Objs[i].EnteredThisTurn = false
 				g.Objs[i].WasDealtDamageThisTurn = false
 				g.Objs[i].ActivatedThisTurn = 0
+				g.Objs[i].AttacksThisTurn = 0
+				// CR 702.100a: exerted is a per-turn fact. ExertSkipUntap is
+				// deliberately NOT reset here -- its window spans the turn
+				// boundary and is consumed at the next untap step instead.
+				g.Objs[i].ExertedThisTurn = false
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
 			// The per-add entry list is per-turn state too.
 			g.Entered = nil
+			// Extra phases never survive into the next turn: whatever is still
+			// queued (or mid-extra-phase) at the turn boundary is dropped here,
+			// so a grant whose splice point this turn has already passed is
+			// silently spent at the boundary rather than firing next turn. The
+			// per-turn combat-phase count resets with them.
+			g.ExtraPhases = nil
+			g.CombatsThisTurn = 0
 		}
 
 	case Goad:
@@ -606,6 +764,7 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(id); o != nil {
 				o.IsAttacking = true
 				o.Attacking = e.Player
+				o.AttacksThisTurn++
 			}
 		}
 
@@ -794,8 +953,59 @@ func Apply(g *state.Game, e Event) {
 
 	case CastInfo:
 		if o := g.Obj(e.Obj); o != nil {
-			o.X = e.Amount
 			o.CastFlags = FlagsFrom(e.Counter)
+			// FlagConverged's Amount is the distinct-colour spend count (CR
+			// 107.4f converge), never an X value: converge faces carrying their
+			// own {X} pip (Skyrider Elf) keep the two on separate pay-time
+			// CastInfo events, and the flag routes this Amount into the count
+			// field instead of overwriting X.
+			// FlagReplicated's Amount is the replicate payment count, never an
+			// X value (measured: no K:Replicate carrier's mana value carries
+			// {X}), so the flag routes the Amount into the count field instead
+			// of overwriting X.
+			// FlagMultikicked's Amount is CR 702.43's times-kicked count, never
+			// an X value: the count rides its own TRAILING pay-time CastInfo
+			// (rules/cast.go's payCast), so a multikicker carrier that pairs
+			// {X} with Multikicker (Comet Storm) keeps the two on separate
+			// events.
+			// FlagManaSpent's Amount is the TOTAL mana actually spent to cast
+			// the spell (CR 601.2h), never an X value: the count rides its own
+			// TRAILING pay-time CastInfo (rules/cast.go's payCast), so a
+			// carrier that pairs {X} with the read (none measured) keeps the
+			// two on separate events.
+			switch {
+			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
+				o.ConvergeColours = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
+				o.ReplicateTimes = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
+				o.TimesKicked = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaSpent != 0:
+				o.ManaSpent = e.Amount
+			default:
+				o.X = e.Amount
+			}
+		}
+
+	case XChange:
+		// A mid-resolution effect rewrote the {X} a stack object was cast or
+		// activated with (DB$ ChangeX: Unbound Flourishing's doubling, Glava's
+		// "the value of X becomes 5"). Amount is the new value, Obj the stack
+		// object -- downstream readers (resolution's ctx.X, the ETB
+		// replacement ctx, Count$xPaid) pick it up fresh, so the rewrite is
+		// the only write needed.
+		if o := g.Obj(e.Obj); o != nil {
+			o.X = e.Amount
+		}
+
+	case NoteNumber:
+		// A trigger's Execute$ body noted a number onto the CARD (DB$ Pump
+		// NoteNumber$ <expr> -- Lupine Harbingers' exile trigger noting
+		// Count$YourTurns). Amount is the value, Obj the card; Count$
+		// NotedNumber reads it at the later ETB, and events.Move's
+		// leave-the-battlefield reset clears it with the X/CastFlags window.
+		if o := g.Obj(e.Obj); o != nil {
+			o.NotedNumber = e.Amount
 		}
 
 	case Choose:
@@ -805,6 +1015,8 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenName = e.Text
 			case "type":
 				o.ChosenType = e.Text
+			case "color":
+				o.ChosenColor = e.Text
 			case "number":
 				o.ChosenNumber = e.Amount
 			case "riot":
@@ -906,6 +1118,65 @@ func Apply(g *state.Game, e Event) {
 				o.EncoreAttackDefender = defender
 			}
 		}
+
+	case CopyToken:
+		// DB$ CopyPermanent's mint (task copyp1: Flamerush Rider, Molten
+		// Echoes, the populate family). Mirrors MyriadCopy's discipline: the
+		// copy is the SOURCE CARD + face snapshot taken BEFORE AddObject
+		// (which may reallocate g.Objs), the token's printed characteristics
+		// are the copied card's, and the entry-state riders ride the Amount
+		// bitmask so a replay derives the identical object. Like MyriadCopy
+		// this only MINTS (in the untracked ZLibrary state AddObject leaves
+		// it in); the caller follows with a genuine MoveZone so the entry is
+		// an ordinary ChangesZone-matchable event. AtEOT$ ExileCombat flags
+		// IsMyriad so the existing end-of-combat cleanup -- the same fold and
+		// the same rules-side emit gate Myriad tokens already use -- exiles
+		// the copy with identical semantics (end of combat, battlefield
+		// only). Totality like every case: a missing source or an invalid
+		// player mints nothing.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil || src.Card == nil {
+			break
+		}
+		card, faceIdx := src.Card, src.FaceIdx
+		o := g.AddObject(card, e.Player)
+		o.IsToken = true
+		o.IsCopy = true
+		o.FaceIdx = faceIdx
+		if e.Amount&CopyTokenTapped != 0 {
+			o.Tapped = true
+		}
+		if e.Amount&CopyTokenAttacking != 0 {
+			o.IsAttacking = true
+			if len(e.IDs) > 0 {
+				o.Attacking = state.PlayerID(e.IDs[0])
+			}
+		}
+		if e.Amount&CopyTokenExileCombat != 0 {
+			o.IsMyriad = true
+		}
+
+	case Exert:
+		// CR 702.100's fold (task exert1). Amount >= 0 is the exert itself:
+		// both lifetimes stamp here -- ExertedThisTurn (the per-turn fact the
+		// notExertedThisTurn offer gate and the "as it attacks" walkers
+		// read) and ExertSkipUntap (the consumed-at-use no-untap window,
+		// cleared by the Amount -1 consume marker the untap-step scan emits
+		// when it passes the permanent). Totality: a missing object is a
+		// no-op, never a panic.
+		o := g.Obj(e.Obj)
+		if o == nil {
+			break
+		}
+		if e.Amount < 0 {
+			o.ExertSkipUntap = false
+			break
+		}
+		o.ExertedThisTurn = true
+		o.ExertSkipUntap = true
 
 	case KeywordTriggerPush:
 		if !validPlayer(g, e.Player) {
@@ -1380,8 +1651,20 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		//
 		// Known gap (recorded in AGENTS.md): TokenCreate does NOT route
 		// through Move, so a planeswalker TOKEN enters with zero loyalty.
+		// CR 400.7: a battlefield entry from another zone is a new object and
+		// a new control acquisition — kw:Echo's gate stamp (the entry already
+		// carries the entering controller). A battlefield→battlefield stay is
+		// not a new acquisition and must not re-stamp, so the tuple lives in
+		// the !wasBattlefield arm beside the loyalty grant it mirrors.
 		if !wasBattlefield {
-			if f := o.Face(); f != nil && f.IsPlaneswalker() {
+			o.AcqTurn = g.Turn
+			o.AcqStep = g.Step
+			// FaceDown is folded before the move (see Apply's MoveZone case),
+			// so a face-down entry (a manifest) reads here: while face down the
+			// card is a 2/2 creature with no abilities (CR 708.5) -- a manifested
+			// planeswalker gains no loyalty counters, a manifested Saga no lore
+			// counter.
+			if f := o.Face(); f != nil && f.IsPlaneswalker() && !o.FaceDown {
 				if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
 					o.AddCounter("LOYALTY", int32(n))
 				}
@@ -1399,9 +1682,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			// lore counter" -- the same every-entry-site grant the loyalty
 			// half above is. The chapter-I trigger queues rules-side off this
 			// Move event (rules' chapter check reads the live counter, which
-			// by then includes this grant).
-			if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
-				o.AddCounter("LORE", 1)
+			// by then includes this grant). A face-down entry (a manifest) is
+			// not a Saga while face down and gains none.
+			if !o.FaceDown {
+				if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
+					o.AddCounter("LORE", 1)
+				}
 			}
 		}
 	default:
@@ -1450,9 +1736,18 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// regardless of where the object came from.
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
-			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
+			o.ReplicateTimes = 0
+			o.ConvergeColours = 0
+			o.TimesKicked = 0
+			o.ManaSpent = 0
+			o.NotedNumber = 0
+			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
 			o.Chosen = nil
+			// Exert state is the old permanent's, not the new object's
+			// (CR 400.7): a re-entering Combat Celebrant may exert again
+			// this turn and carries no untap-skip window.
+			o.ExertedThisTurn, o.ExertSkipUntap = false, false
 		}
 		// CR 107.3m: the paid X belongs to the spell on the stack and to the
 		// permanent the spell becomes, and to nothing else. An object leaving
@@ -1466,6 +1761,11 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// what lets an ETB trigger read them off the permanent.)
 		if wasStack {
 			o.X, o.CastFlags = 0, 0
+			o.ReplicateTimes = 0
+			o.ConvergeColours = 0
+			o.TimesKicked = 0
+			o.ManaSpent = 0
+			o.NotedNumber = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).
@@ -1553,6 +1853,14 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 		o.IsAttacking = false
 		o.BlockedBy = nil
 		o.SummonSick = true
+		// kw:Echo's gate stamp (CR 702.35a): a battlefield control change is
+		// a fresh "came under your control" moment for the new controller,
+		// so the acquisition tuple re-stamps here. The echo trigger's own
+		// ValidPlayer$ You keeps it firing only during the controller's
+		// upkeep, so this record is read against the new controller's
+		// Player.LastUpkeepTurn.
+		o.AcqTurn = g.Turn
+		o.AcqStep = g.Step
 	}
 	o.Controller = p
 }
@@ -1636,4 +1944,31 @@ func applyPair(g *state.Game, srcID, partnerID state.ObjID) {
 		src.Paired = partnerID
 		partner.Paired = srcID
 	}
+}
+
+// matchExtraPhase finds the queue entry a consume (-1) or complete (-2)
+// event names: the FIRST entry (creation order, deterministic) whose
+// identity matches the event's carried fields. consumed=false matches only
+// un-consumed grants (a consume marks), consumed=true only consumed ones (a
+// complete removes). ok=false when no entry matches -- a malformed or
+// stale message, a no-op by the case's totality stance.
+func matchExtraPhase(g *state.Game, e Event, consumed bool) (int, bool) {
+	wantEntry := state.Step(0)
+	wantEntryOK := false
+	if len(e.IDs) > 0 {
+		wantEntry = state.Step(e.IDs[0])
+		wantEntryOK = wantEntry.Valid()
+	}
+	for i := range g.ExtraPhases {
+		ep := &g.ExtraPhases[i]
+		if ep.Consumed != consumed || ep.Player != e.Player || ep.AfterStep != e.Step ||
+			ep.Source != e.Obj || ep.Execute != e.Counter || ep.Entry != wantEntry {
+			continue
+		}
+		if !wantEntryOK {
+			continue
+		}
+		return i, true
+	}
+	return 0, false
 }

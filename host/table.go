@@ -95,6 +95,11 @@ type TableConfig struct {
 	Seats int      `json:"seats"`
 	Decks []string `json:"decks"` // deck names for Options.LoadDeck; seat i of match k plays Decks[(i+k)%len]
 	Seed  uint64   `json:"seed"`
+	// BotPolicy selects the deterministic policy for every non-human seat and
+	// human-seat caretaker. Empty is normalized to BotPolicy at registration,
+	// so tables written before named policy selection retain production bot
+	// behavior when restored.
+	BotPolicy string `json:"bot_policy,omitempty"`
 	// PlayerNames names each seat, independently of its deck, for the wire's
 	// player box (view.PlayerView.Name). Seat i of match k uses
 	// PlayerNames[i]; a missing or short list falls back to the deterministic
@@ -146,18 +151,26 @@ type TableConfig struct {
 
 var ErrNotFound = errors.New("host: not found")
 
-func (c TableConfig) validate(load func(string) (Deck, error)) error {
+// validated normalizes a table configuration before it is retained by the
+// registry. Keeping normalization beside validation means a name cannot be
+// persisted as an ambiguous empty value or reach a running table unchecked.
+func (c TableConfig) validated(load func(string) (Deck, error)) (TableConfig, error) {
+	policy, err := NormalizeBotPolicy(c.BotPolicy)
+	if err != nil {
+		return TableConfig{}, fmt.Errorf("host: table %s: %w", c.ID, err)
+	}
+	c.BotPolicy = policy
 	switch {
 	case c.ID == "":
-		return fmt.Errorf("host: table has no id")
+		return TableConfig{}, fmt.Errorf("host: table has no id")
 	case c.Seats < 1 || c.Seats > 8:
-		return fmt.Errorf("host: table %s: seats %d, want 1..8", c.ID, c.Seats)
+		return TableConfig{}, fmt.Errorf("host: table %s: seats %d, want 1..8", c.ID, c.Seats)
 	case c.Mulligans < 0:
-		return fmt.Errorf("host: table %s: mulligans %d, want >= 0 (0 disables the London round)", c.ID, c.Mulligans)
+		return TableConfig{}, fmt.Errorf("host: table %s: mulligans %d, want >= 0 (0 disables the London round)", c.ID, c.Mulligans)
 	case len(c.Decks) == 0:
-		return fmt.Errorf("host: table %s: no decks", c.ID)
+		return TableConfig{}, fmt.Errorf("host: table %s: no decks", c.ID)
 	case c.Spectator != view.Public && c.Spectator != view.Omniscient:
-		return fmt.Errorf("host: table %s: spectator visibility must be public or omniscient", c.ID)
+		return TableConfig{}, fmt.Errorf("host: table %s: spectator visibility must be public or omniscient", c.ID)
 	}
 	// Task M2c-2: a human-seated table is single-shot by definition, so an
 	// explicit Perpetual: true alongside Humans is a caller contradicting
@@ -165,7 +178,7 @@ func (c TableConfig) validate(load func(string) (Deck, error)) error {
 	// ignoring an explicit Perpetual is the kind of thing discovered in
 	// production.
 	if c.Perpetual && len(c.Humans) > 0 {
-		return fmt.Errorf("host: table %s: perpetual and humans cannot be combined; a human-seated table is single-shot", c.ID)
+		return TableConfig{}, fmt.Errorf("host: table %s: perpetual and humans cannot be combined; a human-seated table is single-shot", c.ID)
 	}
 	// Human indices must be in range, unique, and — because every bot slot is
 	// the complement of this set — thereby disjoint from the bot slots.
@@ -174,13 +187,13 @@ func (c TableConfig) validate(load func(string) (Deck, error)) error {
 	if c.Humans != nil {
 		for i, h := range c.Humans {
 			if h < 0 || h >= c.Seats {
-				return fmt.Errorf("host: table %s: human seat %d (element %d) out of range 0..%d", c.ID, h, i, c.Seats-1)
+				return TableConfig{}, fmt.Errorf("host: table %s: human seat %d (element %d) out of range 0..%d", c.ID, h, i, c.Seats-1)
 			}
 		}
 		seen := make(map[int]bool, len(c.Humans))
 		for _, h := range c.Humans {
 			if seen[h] {
-				return fmt.Errorf("host: table %s: duplicate human seat %d", c.ID, h)
+				return TableConfig{}, fmt.Errorf("host: table %s: duplicate human seat %d", c.ID, h)
 			}
 			seen[h] = true
 		}
@@ -188,7 +201,7 @@ func (c TableConfig) validate(load func(string) (Deck, error)) error {
 	for _, d := range c.Decks {
 		dd, err := load(d)
 		if err != nil {
-			return fmt.Errorf("host: table %s: deck %q: %w", c.ID, d, err)
+			return TableConfig{}, fmt.Errorf("host: table %s: deck %q: %w", c.ID, d, err)
 		}
 		// A commander table dealt a deck that names no commander is a
 		// config error, not a game: the seat would play without a command
@@ -198,16 +211,16 @@ func (c TableConfig) validate(load func(string) (Deck, error)) error {
 		// table is impossible rather than merely unlikely.
 		if c.Format == FormatCommander {
 			if len(dd.Commanders) == 0 {
-				return fmt.Errorf("host: table %s: commander table deck %q names no commander", c.ID, d)
+				return TableConfig{}, fmt.Errorf("host: table %s: commander table deck %q names no commander", c.ID, d)
 			}
 			for _, ci := range dd.Commanders {
 				if ci < 0 || ci >= len(dd.Cards) {
-					return fmt.Errorf("host: table %s: deck %q commander index %d out of range 0..%d for %d cards", c.ID, d, ci, len(dd.Cards)-1, len(dd.Cards))
+					return TableConfig{}, fmt.Errorf("host: table %s: deck %q commander index %d out of range 0..%d for %d cards", c.ID, d, ci, len(dd.Cards)-1, len(dd.Cards))
 				}
 			}
 		}
 	}
-	return nil
+	return c, nil
 }
 
 // table is one registry entry and the goroutine that plays it. started is
@@ -268,7 +281,7 @@ func (t *table) info() protocol.TableInfo {
 	defer t.mu.RUnlock()
 	info := protocol.TableInfo{ID: string(t.cfg.ID), Name: t.cfg.Name, Seats: t.cfg.Seats,
 		Spectator: t.cfg.Spectator.String(), State: t.state, Match: t.k, Perpetual: t.cfg.Perpetual,
-		Format: t.cfg.Format.String()}
+		Format: t.cfg.Format.String(), BotPolicy: t.cfg.BotPolicy}
 	// SeatNames come from the live match's own seat list — the same
 	// []protocol.SeatInfo that MatchStart carries — so the two can never
 	// drift. cur is guarded by t.mu, which we already hold; reading its

@@ -50,7 +50,7 @@ func (e *Engine) canAttack(id state.ObjID) bool {
 		return false
 	}
 	f := o.Face()
-	if f == nil || !f.IsCreature() {
+	if f == nil || !f.IsCreature() || o.BestowedAttached() {
 		return false
 	}
 	if o.Tapped || e.HasKeyword(id, "Defender") {
@@ -88,7 +88,7 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 		return false
 	}
 	bf := b.Face()
-	if bf == nil || !bf.IsCreature() {
+	if bf == nil || !bf.IsCreature() || b.BestowedAttached() {
 		return false
 	}
 	if b.Tapped || b.Controller != a.Attacking {
@@ -219,6 +219,13 @@ func (e *Engine) askAttackers() {
 			if !e.goadMayAttack(id, d) {
 				continue
 			}
+			// CR 508.1a per-pair CantAttack scoping: a creature a
+			// CantAttack static/restriction forbids attacking THIS defender is
+			// never offered the pair (and validateAttackers rejects it
+			// independently, so a hand-built intent cannot slip one in).
+			if e.attackBlocked(id, d) {
+				continue
+			}
 			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
 				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + seatFacingName(e.G, d),
 				Obj:   id, Player: d, Required: mustAtt[id]})
@@ -233,6 +240,16 @@ func (e *Engine) askAttackers() {
 	maxOpts := len(opts)
 	if ceil := e.maxAttackers(); ceil < maxOpts {
 		maxOpts = ceil
+	}
+	if len(opts) == 0 {
+		// Every (attacker, defender) pair is blocked — a CantAttack static or
+		// restriction covering the whole table. No declaration anyone could
+		// answer differently exists, so the step resolves silently with the
+		// empty declaration, the same no-decision path the no-attacker case
+		// above takes (asking KAttackers with only the empty answer legal is
+		// the forbidden wedge shape).
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(p)})
+		return
 	}
 	e.ask(&decision.Decision{Player: p, Kind: decision.KAttackers, Min: 0, Max: maxOpts,
 		Prompt: fmt.Sprintf("turn %d — declare attackers", e.G.Turn), Options: opts})
@@ -280,6 +297,118 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 			e.emitTap(opt.Obj, d.Player, false)
 		}
 	}
+	// CR 702.100a (task exert1): each attacking creature carrying an
+	// offerable stat:OptionalAttackCost static is offered its exert
+	// election now, still inside the declare-attackers step, before the
+	// declare-blockers step begins. The election is one KChoose per
+	// offerable attacker in the declaration's own option order (chosen
+	// order, deduped) -- deterministic, and the re-derivation a replay runs
+	// when it answers the recorded intents again.
+	e.startExertAsks(chosen)
+}
+
+// exertOfferList returns the declared attackers (in chosen-option order,
+// deduped) that carry an offerable stat:OptionalAttackCost static: the
+// static's source is the attacker itself (every corpus carrier's ValidCard$
+// is Card.Self, verified in triage), its controller is the attacker's
+// controller, and its as-long-as gate (IsPresent$/IsPresent2$/CheckSVar$,
+// the shared continuousGateHolds grammar) holds. Combat Celebrant's
+// `IsPresent$ Creature.Self+notExertedThisTurn` is the corpus's one gated
+// carrier: it is only offerable while it has not been exerted this turn.
+func (e *Engine) exertOfferList(chosen []decision.Option) []state.ObjID {
+	var out []state.ObjID
+	seen := make(map[state.ObjID]bool, len(chosen))
+	for _, opt := range chosen {
+		id := opt.Obj
+		if id == 0 || seen[id] {
+			continue
+		}
+		seen[id] = true
+		if e.exertOfferHolds(id) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// exertOfferHolds reports whether id carries a stat:OptionalAttackCost
+// static whose source is id itself and whose gate holds at this instant.
+func (e *Engine) exertOfferHolds(id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+		return false
+	}
+	for _, sv := range e.activeStatics("OptionalAttackCost") {
+		if sv.Source != id || sv.Controller != o.Controller {
+			continue
+		}
+		// The static's own ValidCard$ (uniformly Card.Self over the corpus's
+		// 28 carriers, verified in triage) must still admit the attacker;
+		// an unparseable spec fails closed.
+		if vc := sv.Params["ValidCard"]; vc != "" &&
+			!effects.MatchesSpecFrom(e.G, vc, id, o.Controller, sv.Source) {
+			continue
+		}
+		if !e.continuousGateHolds(sv) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// startExertAsks seeds the exert election's offer list from the answered
+// declaration and poses the first ask, if any attacker carries an offer.
+func (e *Engine) startExertAsks(chosen []decision.Option) {
+	offers := e.exertOfferList(chosen)
+	if len(offers) == 0 {
+		return
+	}
+	e.exertAskState = exertAsk{offers: offers}
+	e.askNextExert()
+}
+
+// askNextExert poses the exert election for the next offerable attacker, or
+// clears the election once the list is exhausted. The offer gate is
+// re-evaluated per ask: the exert asks never change state between
+// themselves, but the re-check keeps the cursor honest against any future
+// interleaved state change and costs one statics walk per offer.
+func (e *Engine) askNextExert() {
+	p := e.G.Active
+	for e.exertAskState.next < len(e.exertAskState.offers) {
+		id := e.exertAskState.offers[e.exertAskState.next]
+		if e.exertOfferHolds(id) {
+			o := e.G.Obj(id)
+			d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+				Prompt: fmt.Sprintf("Exert %s as it attacks? (An exerted creature won't untap during your next untap step.)", o.Face().Name),
+				Source: id}
+			d.Options = append(d.Options,
+				decision.Option{Index: 0, Kind: "exert", Label: "Don't exert " + o.Face().Name},
+				decision.Option{Index: 1, Kind: "exert", Label: "Exert " + o.Face().Name,
+					Obj: id, Amount: 1})
+			e.choosing = chooseExert
+			e.ask(d)
+			return
+		}
+		e.exertAskState.next++
+	}
+	e.exertAskState = exertAsk{}
+}
+
+// exertAnswer applies one answered exert election: the decline (option 0)
+// emits nothing, a yes emits the Exert event (whose fold stamps both
+// lifetimes and whose checkExertTriggers walk queues the static's Trigger$
+// rider), then the cursor advances to the next offerable attacker or the
+// election ends. The Advance loop resumes the declare-attackers step's own
+// flow -- the priority round -- when no ask is left.
+func (e *Engine) exertAnswer(d *decision.Decision, in decision.Intent) {
+	e.choosing = chooseNone
+	chosen := d.Chosen(in)
+	if len(chosen) == 1 && chosen[0].Amount == 1 && chosen[0].Obj != 0 {
+		e.emit(events.Event{Kind: events.Exert, Obj: chosen[0].Obj, Player: d.Player})
+	}
+	e.exertAskState.next++
+	e.askNextExert()
 }
 
 // validateAttackers is the KAttackers legality guard behind Option A's
@@ -313,6 +442,9 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		if required, ok := e.encoreAttackDefender(o.Obj); ok && o.Player != required {
 			return fmt.Errorf("encore attacker %d must attack player %d", o.Obj, required)
 		}
+		if e.attackBlocked(o.Obj, o.Player) {
+			return fmt.Errorf("attacker %d cannot attack player %d", o.Obj, o.Player)
+		}
 		seen[o.Obj] = true
 	}
 	return e.validateAttackDeclaration(d, in)
@@ -326,7 +458,12 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 // not counted as required), which is the safe direction for a requirement —
 // erring toward requiring a creature that already attacks changes nothing,
 // while falsely requiring one that cannot legitimately attack would make a
-// legal declaration unanswerable.
+// legal declaration unanswerable. The walk is the board-wide activeStatics
+// scan (which includes the creature's own face, source-bound through the
+// same specCtx the face walk used), so an AURA-carried requirement — Fealty
+// to the Realm's `S:Mode$ MustAttack | ValidCreature$ Creature.EnchantedBy`,
+// the Vow cycle's shape — reaches the enchanted creature, not just its
+// bearer's own face.
 func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
@@ -336,32 +473,76 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	if f == nil || !e.canAttack(id) {
 		return false
 	}
+	// CR 508.1d counts a requirement only when the creature can actually
+	// satisfy it ("attack ... if able"): a creature whose every (attacker,
+	// defender) pair a CantAttack static/restriction blocks is NOT required,
+	// otherwise validateAttackDeclaration would reject every legal
+	// declaration and the KAttackers decision would have no legal answer.
+	// The MaxAttackers$ ceiling is deliberately not a pair gate: the
+	// requirement solver's maxReq (validateAttackDeclaration) already clamps
+	// to it, and a nonzero ceiling that merely caps the count still leaves
+	// the requirement binding.
+	if !e.attackPairAvailable(id) {
+		return false
+	}
 	if _, ok := e.encoreAttackDefender(id); ok {
 		return true
 	}
 	if e.hasActiveGoad(o) {
 		return true
 	}
-	for _, st := range f.Statics {
-		if st.Mode != "MustAttack" {
-			continue
-		}
+	for _, sv := range e.activeStatics("MustAttack") {
 		// A conditional or non-self requirement is out of scope for this
-		// solver: do not count it as required.
-		for k := range st.Params {
+		// solver: that STATIC is not counted (another static on the same or
+		// another permanent may still require).
+		deny := false
+		for k := range sv.Params {
 			switch k {
 			case "Mode", "ValidCreature", "Description":
 			default:
-				return false
+				deny = true
 			}
 		}
-		v := st.Params["ValidCreature"]
+		if deny {
+			continue
+		}
+		v := sv.Params["ValidCreature"]
 		if v == "" {
 			v = "Card.Self"
 		}
-		if effects.MatchesSpecCtx(e.G, v, id, e.specCtx(id, o.Controller)) {
+		if effects.MatchesSpecCtx(e.G, v, id, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
+	}
+	return false
+}
+
+// attackPairAvailable reports whether creature id has at least one legal
+// (attacker, defender) pair this combat under the requirements' own filters
+// (encore's fixed defender, goad's not-the-goaders rule) and the CantAttack
+// scoping (attackBlocked). The defender enumeration matches askAttackers'
+// (AliveFrom(0), controller excluded), so the solver and the option list can
+// never disagree about which pairs exist.
+func (e *Engine) attackPairAvailable(id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil {
+		return false
+	}
+	requiredDefender, required := e.encoreAttackDefender(id)
+	for _, d := range e.G.AliveFrom(0) {
+		if d == o.Controller {
+			continue
+		}
+		if required && d != requiredDefender {
+			continue
+		}
+		if !e.goadMayAttack(id, d) {
+			continue
+		}
+		if e.attackBlocked(id, d) {
+			continue
+		}
+		return true
 	}
 	return false
 }
@@ -692,6 +873,25 @@ type combatRound struct {
 	// askOptions is parallel to the pending division Decision's Options:
 	// askOptions[i] is the per-blocker damage split the i-th option selects.
 	askOptions [][]int32
+
+	// electQueue lists this pass's attackers whose controller may elect to
+	// assign their combat damage as though they weren't blocked
+	// (stat:AssignCombatDamageAsUnblocked, CR 509's optional assignment
+	// election), in battlefield order. Elections are collected BEFORE the
+	// division queue: an accepted election routes the whole power to the
+	// defending player, so the attacker needs no division at all and is
+	// dropped from the queue when its election is accepted (a declined
+	// election leaves it in place for the ordinary division ask).
+	electQueue []state.ObjID
+	// doneElect holds the attackers of this pass whose as-unblocked election
+	// was ACCEPTED (or whose matching static is mandatory, auto-accepted
+	// without an ask -- all printed corpus carriers are Optional$ True, so
+	// the mandatory reading is comment-only today). damageStep consults it
+	// through chosenElection before the ordinary assignment switch.
+	doneElect []state.ObjID
+	// askElection marks the pending askAttacker ask as an election rather
+	// than a division, so the answer routes to the right handler.
+	askElection bool
 	// assignments and damageNext preserve a combat pass when a replacement
 	// order decision parks one assignment. The remaining simultaneous pass
 	// cannot run (nor can its SBA/regular pass) until that event settles.
@@ -738,12 +938,15 @@ func (e *Engine) combatStep() {
 func (e *Engine) beginCombatPass(pass bool) {
 	e.combatRound.pass = pass
 	e.combatRound.active = true
+	e.combatRound.electQueue = e.asUnblockedNeeding(pass)
+	e.combatRound.doneElect = nil
 	e.combatRound.queue = e.divisionNeeding(pass)
 	e.combatRound.done = nil
 	e.combatRound.askAttacker = 0
 	e.combatRound.askOptions = nil
-	if e.askNextDivision() {
-		return // a division decision is pending; Advance pauses on it
+	e.combatRound.askElection = false
+	if e.askNextCombatAsk() {
+		return // a combat decision is pending; Advance pauses on it
 	}
 	e.finishCombatPass()
 }
@@ -801,6 +1004,129 @@ func (e *Engine) divisionCount(blockers []state.ObjID, power int32) int {
 		}
 	}
 	return int(res)
+}
+
+// askNextCombatAsk poses the combat damage pass's next pending controller
+// decision, or returns false when none remains (so the pass can be dealt).
+// Elections (as-unblocked, stat:AssignCombatDamageAsUnblocked) are asked
+// first, one at a time, then the damage-division decisions: an accepted
+// election removes its attacker from the division queue entirely (the whole
+// power goes to the defending player), so the two queues are drained in that
+// fixed order. Building the ask and asking in one go keeps the pending-ask
+// bookkeeping (askAttacker, askElection, askOptions) in lockstep with the
+// pending Decision.
+func (e *Engine) askNextCombatAsk() bool {
+	if len(e.combatRound.electQueue) > 0 {
+		a := e.combatRound.electQueue[0]
+		e.combatRound.askAttacker = a
+		e.combatRound.askElection = true
+		e.choosing = chooseAsUnblockedElection
+		e.ask(&decision.Decision{Player: e.G.Obj(a).Controller, Kind: decision.KChoose,
+			Min: 1, Max: 1,
+			Prompt: fmt.Sprintf("turn %d — have %s assign its combat damage as though it weren't blocked?",
+				e.G.Turn, e.G.Obj(a).Face().Name),
+			Options: []decision.Option{
+				{Index: 0, Kind: "asunblocked", Label: "assign normally (blocked)", Obj: a,
+					Player: e.G.Obj(a).Controller},
+				{Index: 1, Kind: "asunblocked", Label: "assign as though not blocked", Obj: a,
+					Player: e.G.Obj(a).Controller},
+			}, Source: a})
+		return true
+	}
+	e.combatRound.askElection = false
+	return e.askNextDivision()
+}
+
+// asUnblockedNeeding returns this pass's attacking creatures whose controller
+// is offered the stat:AssignCombatDamageAsUnblocked election (CR 509's
+// optional "assign as though it weren't blocked"): a creature that WAS
+// blocked (a genuinely unblocked creature's election is a no-op), with power
+// above zero (an election over zero damage is a decision nobody could answer
+// differently), not in the one shape where the outcome is already identical
+// (Trample with no live blocker left routes the whole power to the player
+// either way, Ruling T21-d), and whose static match is OPTIONAL (Optional$
+// True -- every printed corpus carrier). A mandatory match (no Optional$) is
+// auto-accepted into doneElect without an ask: the election is the
+// controller's only when the card says "may", and a mandatory reading
+// assigns as-unblocked unconditionally. No printed corpus static omits
+// Optional$, so the mandatory arm is dead code kept for the shape's
+// correctness (documented, deliberately untested -- out of scope per brief).
+// Battlefield order, deterministic.
+func (e *Engine) asUnblockedNeeding(pass bool) []state.ObjID {
+	var out []state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
+		a := e.G.Obj(id)
+		if a == nil || !a.IsAttacking || a.Zone != state.ZBattlefield {
+			continue
+		}
+		if !e.actsThisDamageStep(id, pass) {
+			continue
+		}
+		if len(a.BlockedBy) == 0 || e.Power(id) <= 0 {
+			continue
+		}
+		if e.HasKeyword(id, "Trample") && len(e.liveBlockers(a)) == 0 {
+			continue
+		}
+		matched, mandatory := e.asUnblockedStaticMatches(id)
+		if !matched {
+			continue
+		}
+		if mandatory {
+			e.combatRound.doneElect = append(e.combatRound.doneElect, id)
+			continue
+		}
+		out = append(out, id)
+	}
+	return out
+}
+
+// chosenElection reports whether attacker a's as-unblocked election was
+// accepted (or auto-accepted, mandatory) in the CURRENT pass, so damageStep
+// routes its whole power to the defending player.
+func (e *Engine) chosenElection(a state.ObjID) bool {
+	for _, id := range e.combatRound.doneElect {
+		if id == a {
+			return true
+		}
+	}
+	return false
+}
+
+// handleAsUnblockedElection applies an answered as-unblocked election: an
+// accepted election records the attacker in doneElect (so damageStep routes
+// its whole power to the defending player) and drops it from the division
+// queue; a declined election leaves the ordinary assignment path untouched.
+// It is the chooseAsUnblockedElection branch of handleChoose.
+func (e *Engine) handleAsUnblockedElection(chosen []decision.Option) {
+	// This flow consumed the pending choose: clear the marker so a later,
+	// unrelated KChoose answer is not routed back into the election path
+	// (the same reset handleDamageDivision performs).
+	e.choosing = chooseNone
+	if len(e.combatRound.electQueue) == 0 {
+		// No pending election to consume: fall through to the pass rather
+		// than stranding it (the same empty-answer fallback the division
+		// handler keeps).
+		e.finishCombatPass()
+		return
+	}
+	a := e.combatRound.electQueue[0]
+	e.combatRound.electQueue = e.combatRound.electQueue[1:]
+	e.combatRound.askAttacker = 0
+	e.combatRound.askElection = false
+	if len(chosen) > 0 && chosen[0].Index == 1 {
+		e.combatRound.doneElect = append(e.combatRound.doneElect, a)
+		for i, id := range e.combatRound.queue {
+			if id == a {
+				e.combatRound.queue = append(e.combatRound.queue[:i], e.combatRound.queue[i+1:]...)
+				break
+			}
+		}
+	}
+	if e.askNextCombatAsk() {
+		return
+	}
+	e.finishCombatPass()
 }
 
 // askNextDivision asks the controller for the next unanswered damage division
@@ -884,6 +1210,9 @@ func (e *Engine) completeCombatPass(pass bool) {
 	e.combatRound.done = nil
 	e.combatRound.askAttacker = 0
 	e.combatRound.askOptions = nil
+	e.combatRound.electQueue = nil
+	e.combatRound.doneElect = nil
+	e.combatRound.askElection = false
 	if pass {
 		e.combatRound.firstDone = true
 		e.combatRound.active = false
@@ -926,7 +1255,7 @@ func (e *Engine) handleDamageDivision(chosen []decision.Option) {
 	e.combatRound.queue = e.combatRound.queue[1:]
 	e.combatRound.askAttacker = 0
 	e.combatRound.askOptions = nil
-	if e.askNextDivision() {
+	if e.askNextCombatAsk() {
 		return
 	}
 	e.finishCombatPass()
@@ -1111,6 +1440,20 @@ func (e *Engine) damageStep(firstStrike bool) {
 				dt := e.HasKeyword(aid, "Deathtouch")
 				trample := e.HasKeyword(aid, "Trample")
 				switch {
+				case e.chosenElection(aid):
+					// stat:AssignCombatDamageAsUnblocked (CR 509's optional
+					// "assign as though it weren't blocked"): the controller's
+					// accepted election routes the WHOLE power to the defending
+					// player and nothing to any blocker -- the same shape an
+					// unblocked attacker takes. This case sits first so it also
+					// covers Ruling T21-d's blocked-but-blockers-all-left shape
+					// (an accepted election deals to the player even without
+					// Trample) and the ordinary blocked shape. The blockers
+					// still hit back below; only the ATTACKER's assignment is
+					// rerouted.
+					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
+						lifelink: a.Controller, hasLink: link, from: aid})
+
 				case len(a.BlockedBy) == 0:
 					// Genuinely unblocked: full damage to the defending player.
 					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
@@ -1438,6 +1781,38 @@ const chooseCleanup chooseFor = iota + 4
 // pairwise distinct from the shared package set (cast=1 / etb=2 / miracle=3 /
 // cleanup=4), and the exact numbers only need to differ.
 const chooseDamageDivision chooseFor = iota + 5
+
+// chooseAsUnblockedElection is the chooseFor for the combat damage step's
+// assign-as-unblocked election (stat:AssignCombatDamageAsUnblocked, CR
+// 509's optional "assign as though it weren't blocked"): it lets handleChoose
+// route the KChoose answer to handleAsUnblockedElection (combat.go). Like
+// its siblings it extends the chooseFor enum in combat.go; chooseEcho+1 is
+// pairwise distinct from the shared package set (cast=1 / etb=2 / miracle=3 /
+// cleanup=4 / division=5 / mana=6.. / opening=10 / suspend=12 / station=13 /
+// unlock=14 / cumulative=15 / triggeredcost=16 / manaunless=17 / riot=20 /
+// echo=21).
+const chooseAsUnblockedElection chooseFor = chooseEcho + 1
+
+// chooseExert is the chooseFor for the declare-attackers step's exert
+// election (CR 702.100a, task exert1): one KChoose per attacking creature
+// carrying an offerable stat:OptionalAttackCost static, posed by askNextExert
+// after the KAttackers declaration is recorded, still inside the
+// declare-attackers step (the CR 702.100a "as it attacks" ask is a follow-up
+// election inside the same step -- a disclosed approximation: nothing can
+// respond between the declaration and the election). Option 0 is always the
+// decline ("Don't exert"), the replicate/multikicker shape: botpolicy's
+// KChoose default arm takes the first offer, so a bot never exerts.
+const chooseExert chooseFor = chooseAsUnblockedElection + 1
+
+// exertAsk is the declare-attackers exert election's resumable state (the
+// blockerRound plain-value precedent): the deterministic offer list, in the
+// answered KAttackers declaration's option order, and the cursor of the ask
+// currently outstanding. A nil/empty offer list means no election is owed;
+// it is cleared when the cursor exhausts the list.
+type exertAsk struct {
+	offers []state.ObjID
+	next   int
+}
 
 // discardCleanup applies an answered CR 514.1 discard decision: each chosen
 // card moves from the active player's hand to their graveyard (a canonical

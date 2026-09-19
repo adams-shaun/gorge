@@ -172,3 +172,151 @@ func TestCounterRememberCounteredFeedsRememberedAmount(t *testing.T) {
 		t.Fatalf("countered spell went to %s, want graveyard", z)
 	}
 }
+
+// abilityStackBoard mints one activated and one triggered ability wrapper
+// for EACH seat plus one spell per seat, so the `Ability` base's two-kind
+// reach and its controller qualifier can be pinned from seat 0's ctx.
+// Objects are minted directly (the same licence validStackBoard uses).
+func abilityStackBoard(t *testing.T) (*fakeHost, *Ctx, validStackIds, validStackIds) {
+	t.Helper()
+	h := newHost(t, 2)
+	caster0 := h.g.AddObject(mkCard(t, abilityCasterSrc), 0)
+	caster0.Zone = state.ZBattlefield
+	caster1 := h.g.AddObject(mkCard(t, abilityCasterSrc), 1)
+	caster1.Zone = state.ZBattlefield
+	face0 := h.g.Obj(caster0.ID).Face()
+	face1 := h.g.Obj(caster1.ID).Face()
+
+	own := h.g.AddObject(mkCard(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	own.Zone = state.ZStack
+	opp := h.g.AddObject(mkCard(t, "Name:Ogre\nManaCost:3 R\nTypes:Creature Ogre\nPT:3/3\nOracle:x\n"), 1)
+	opp.Zone = state.ZStack
+	act0 := h.g.AddObject(nil, 0)
+	act0.Ability = face0.Abilities[0]
+	act0.Source = caster0.ID
+	act0.Zone = state.ZStack
+	trg0 := h.g.AddObject(nil, 0)
+	trg0.Ability = face0.Triggers[0].Effect
+	trg0.Source = caster0.ID
+	trg0.Zone = state.ZStack
+	act1 := h.g.AddObject(nil, 1)
+	act1.Ability = face1.Abilities[0]
+	act1.Source = caster1.ID
+	act1.Zone = state.ZStack
+	trg1 := h.g.AddObject(nil, 1)
+	trg1.Ability = face1.Triggers[0].Effect
+	trg1.Source = caster1.ID
+	trg1.Zone = state.ZStack
+	h.g.SetZone(state.ZStack, 0, []state.ObjID{own.ID, opp.ID, act0.ID, trg0.ID, act1.ID, trg1.ID})
+	ctx := &Ctx{Source: own.ID, Controller: 0}
+	return h, ctx, validStackIds{own.ID, opp.ID, act0.ID, trg0.ID}, validStackIds{own.ID, opp.ID, act1.ID, trg1.ID}
+}
+
+// idsOf extracts the stack-order object ids of a Defined() result.
+func idsOf(ts []state.Target) []state.ObjID {
+	out := make([]state.ObjID, 0, len(ts))
+	for _, x := range ts {
+		out = append(out, x.Obj)
+	}
+	return out
+}
+
+// TestValidStackAbilityBaseAdmitsBothAbilityKindsYouCtrl pins the `Ability`
+// base (task abcopy3): an alias for Activated+Triggered -- never a spell
+// kind -- and its YouCtrl qualifier reads through the shared
+// state.StackKindAdmits matcher.
+func TestValidStackAbilityBaseAdmitsBothAbilityKindsYouCtrl(t *testing.T) {
+	h, ctx, s0, s1 := abilityStackBoard(t)
+	got := Defined(h, ctx, sa(t, "SP$ Counter | Defined$ ValidStack Ability.YouCtrl"))
+	if want := []state.ObjID{s0.activated, s0.triggered}; len(idsOf(got)) != len(want) || idsOf(got)[0] != want[0] || idsOf(got)[1] != want[1] {
+		t.Fatalf("Ability.YouCtrl = %v, want %v (both ability kinds you control, stack order; never a spell, never seat 1's %v/%v)",
+			idsOf(got), want, s1.activated, s1.triggered)
+	}
+	// No qualifier: every ability wrapper either seat controls, still never
+	// a spell.
+	got = Defined(h, ctx, sa(t, "SP$ Counter | Defined$ ValidStack Ability"))
+	if len(idsOf(got)) != 4 {
+		t.Fatalf("Ability = %v, want all four ability wrappers %v", idsOf(got), []state.ObjID{s0.activated, s0.triggered, s1.activated, s1.triggered})
+	}
+}
+
+// TestValidStackOtherAbilityExcludesTheResolvingWrapper pins the
+// otherAbility qualifier's anchor: Ctx.ResolvingObj -- the resolving
+// stack-object WRAPPER -- not Ctx.Source, which for an ability resolution is
+// the source permanent (Ruling T20-b) and excludes nothing on the stack.
+// Without this, Ulalek's sub-copy would copy its own still-resolving wrapper
+// (each copy asking its pay question again).
+func TestValidStackOtherAbilityExcludesTheResolvingWrapper(t *testing.T) {
+	h, ctx, s0, _ := abilityStackBoard(t)
+	// Plain YouCtrl first: both seat-0 wrappers are admitted before the
+	// exclusion narrows anything.
+	got := Defined(h, ctx, sa(t, "SP$ Counter | Defined$ ValidStack Ability.YouCtrl+otherAbility"))
+	if len(idsOf(got)) != 2 || idsOf(got)[0] != s0.activated || idsOf(got)[1] != s0.triggered {
+		t.Fatalf("Ability.YouCtrl+otherAbility with no anchor = %v, want both seat-0 wrappers", idsOf(got))
+	}
+	// Anchor on the resolving wrapper: the triggered wrapper is excluded.
+	ctx.ResolvingObj = s0.triggered
+	got = Defined(h, ctx, sa(t, "SP$ Counter | Defined$ ValidStack Ability.YouCtrl+otherAbility"))
+	if len(idsOf(got)) != 1 || idsOf(got)[0] != s0.activated {
+		t.Fatalf("with ResolvingObj = %d: %v, want only the activated wrapper (the resolving one excluded)", s0.triggered, idsOf(got))
+	}
+	// A context with ResolvingObj zero (a hand-built one) falls back to the
+	// Source anchor -- never widened.
+	ctx2 := &Ctx{Source: s0.activated, Controller: 0}
+	got = Defined(h, ctx2, sa(t, "SP$ Counter | Defined$ ValidStack Ability.YouCtrl+otherAbility"))
+	if len(idsOf(got)) != 1 || idsOf(got)[0] != s0.triggered {
+		t.Fatalf("Source-anchored fallback = %v, want only the triggered wrapper (the source excluded)", idsOf(got))
+	}
+}
+
+// TestValidStackUnknownAbilityTokenDegradesToSpellOnly pins the guard
+// against a near-miss base: `Ability2` names no stack kind, so the token is
+// dropped and the spec degrades to the Spell-only default (no controller
+// qualifier) -- the same narrow default every unparsed token gets, never a
+// widened one, and copy.go's known-token guard keeps it fail-closed.
+func TestValidStackUnknownAbilityTokenDegradesToSpellOnly(t *testing.T) {
+	h, ctx, ids, _ := abilityStackBoard(t)
+	got := Defined(h, ctx, sa(t, "SP$ Counter | Defined$ ValidStack Ability2.OppCtrl"))
+	if want := []state.ObjID{ids.own, ids.opp}; len(idsOf(got)) != 2 || idsOf(got)[0] != want[0] || idsOf(got)[1] != want[1] {
+		t.Fatalf("Ability2.OppCtrl = %v, want the spell-only default %v", idsOf(got), want)
+	}
+}
+
+// TestValidStackOtherAbilityExcludesTheSameAbilityFamily pins the loop
+// guard's family half: the exclusion covers not only the resolving wrapper
+// but every other instance and copy of the SAME printed ability (same source
+// permanent AND same Ability pointer -- StackCopy preserves both and every
+// mint of one printed trigger shares the parsed slice's pointer). Without it
+// a paid Ulalek trigger whose sub-copy copies an earlier still-on-the-stack
+// instance of its own trigger regresses: the copy asks the same pay question,
+// a deterministic host answers it the same way, and the walk never ends.
+func TestValidStackOtherAbilityExcludesTheSameAbilityFamily(t *testing.T) {
+	h := newHost(t, 2)
+	caster0 := h.g.AddObject(mkCard(t, abilityCasterSrc), 0)
+	caster0.Zone = state.ZBattlefield
+	face0 := h.g.Obj(caster0.ID).Face()
+	own := h.g.AddObject(mkCard(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	own.Zone = state.ZStack
+	// Two instances of the SAME printed activated ability (the same SA
+	// pointer), plus one instance of the trigger.
+	inst1 := h.g.AddObject(nil, 0)
+	inst1.Ability = face0.Abilities[0]
+	inst1.Source = caster0.ID
+	inst1.Zone = state.ZStack
+	inst2 := h.g.AddObject(nil, 0)
+	inst2.Ability = face0.Abilities[0]
+	inst2.Source = caster0.ID
+	inst2.Zone = state.ZStack
+	trg := h.g.AddObject(nil, 0)
+	trg.Ability = face0.Triggers[0].Effect
+	trg.Source = caster0.ID
+	trg.Zone = state.ZStack
+	h.g.SetZone(state.ZStack, 0, []state.ObjID{own.ID, inst1.ID, inst2.ID, trg.ID})
+	ctx := &Ctx{Source: own.ID, Controller: 0, ResolvingObj: inst1.ID}
+
+	got := Defined(h, ctx, sa(t, "SP$ Counter | Defined$ ValidStack Ability.YouCtrl+otherAbility"))
+	if len(got) != 1 || got[0].Obj != trg.ID {
+		t.Fatalf("with the resolving inst1 anchor: %v, want only the DIFFERENT ability %d (inst1 %d and its same-ability sibling inst2 %d excluded)",
+			idsOf(got), trg.ID, inst1.ID, inst2.ID)
+	}
+}

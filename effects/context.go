@@ -8,6 +8,24 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// zoneValidPrefixes is the fixed-order prefix dispatch for Forge's
+// zone-suffixed "Valid" filter family in Defined$ values (definedSpec's
+// ValidGraveyard/ValidHand/... branch, the twin of count.go's countZone). A
+// slice, never a map: the dispatch order is deterministic and the first
+// matching prefix wins (the prefixes are mutually exclusive anyway --
+// ValidGraveyard's is not a prefix of ValidHand's -- so the order only has
+// to be stable, and never map-ordered).
+var zoneValidPrefixes = []struct {
+	prefix string
+	zone   state.Zone
+}{
+	{"ValidGraveyard ", state.ZGraveyard},
+	{"ValidHand ", state.ZHand},
+	{"ValidLibrary ", state.ZLibrary},
+	{"ValidExile ", state.ZExile},
+	{"ValidBattlefield ", state.ZBattlefield},
+}
+
 // Defined resolves a Defined$ parameter to concrete targets. With no Defined$
 // at all, Forge's own rule applies: an ability that declares ValidTgts$ (it
 // has real targets to name) acts on the chosen ones; an ability with no
@@ -83,6 +101,14 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	// parent's targets says so explicitly (Defined$ Targeted /
 	// ParentTarget), which every script in the corpus does.
 	if _, targeted := sa.Params["ValidTgts"]; targeted {
+		// The generic pre-ask's answered set (task mvts1) outranks the
+		// resolution's own Ctx.Targets: this dispatch asked for and received
+		// ITS OWN targets, and the resolution-level list is either the outer
+		// SA's (the CLOBBER inherit) or empty. Non-nil (possibly empty) only
+		// while the pre-asked body dispatches; the wrapper clears it after.
+		if c.PickedTargets != nil {
+			return copyTargets(c.PickedTargets)
+		}
 		return copyTargets(c.Targets)
 	}
 	return []state.Target{{Obj: c.Source}}
@@ -273,10 +299,22 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// carries the declared batch (triggerRemembered's DeclareAttackers
 		// case), so this resolves the whole per-defender attacker group.
 		return objectsOf(c.Remembered), true
+	case "TriggeredTargetLKICopy":
+		// The BEARER the Attached referent walk captured (triggerReferents'
+		// Attached case): the permanent an Aura/Equipment became attached to
+		// -- Enormous Energy Blade's "tap that creature". Only the Attached
+		// walk sets TriggerBearer, so no other mode's provenance moves: a
+		// BecomesTarget trigger's TriggerTarget role is its OWN source
+		// permanent (the enchanted creature, Horobi himself), and this
+		// spelling keeps resolving that mode's Remembered entry (the
+		// targeting spell) exactly as it always has.
+		if c.TriggerBearer != 0 {
+			return []state.Target{{Obj: c.TriggerBearer}}, true
+		}
+		return objectsOf(c.Remembered), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
-		"TriggeredSpellAbility", "TriggeredSourceSA", "TriggeredAttacker",
-		"TriggeredAttackerLKICopy", "TriggeredTargetLKICopy",
-		"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
+		"TriggeredSourceSA", "TriggeredAttacker",
+		"TriggeredAttackerLKICopy", "DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
@@ -285,6 +323,18 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// glasskite family's counters -- 18 corpus files); its Controller
 		// variant resolves in unlessPayerTargets, its object here.
 		return objectsOf(c.Remembered), true
+	case "TriggeredSpellAbility":
+		// The activation arm (abcopy1): an ability-cast trigger's Remembered
+		// names the SOURCE PERMANENT (an AbilityPush's Obj -- the minted
+		// ability wrapper never travels on the event), so the fire-time
+		// TriggerAbility role is the only exact referent: the wrapper is on
+		// the stack and a copy/counter/rewrite of it is stack-legal. The
+		// role-absent fallback (the spell-cast arm, where Remembered IS the
+		// cast spell, and hand-built contexts) keeps the Remembered entry.
+		if c.TriggerAbility != 0 {
+			return []state.Target{{Obj: c.TriggerAbility}}, true
+		}
+		return objectsOf(c.Remembered), true
 	case "TriggeredTarget":
 		// The object or player that received the triggering event. Spiteful
 		// Shadows uses this as a DamageSource$: the enchanted creature, not the
@@ -292,8 +342,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// the target's kind here; callers that require an object (the damage
 		// rider) already reject player entries rather than guessing. When the
 		// causing event's mode did not capture a TriggerTarget (a hand-built
-		// context or an Attached-mode trigger the referent walk does not
-		// model), fall back to the chosen targets -- Defined's pre-branch
+		// context), fall back to the chosen targets -- Defined's pre-branch
 		// convention for a trigger selector whose provenance was not recorded.
 		if c.TriggerTarget.Obj != 0 || c.TriggerTarget.IsPlayer {
 			return []state.Target{c.TriggerTarget}, true
@@ -458,6 +507,44 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			out = append(out, state.Target{Player: p, IsPlayer: true})
 		}
 		return out, true
+	}
+	// Player.<state-qualifier>: a compound spelling this build's fixed cases
+	// do not name (Player.lifeEQ13, Player.controlsCreature.powerGE4_GE1,
+	// Player.withMostTypeCreature, ...) resolves through the trigger-side
+	// player-filter grammar (MatchesPlayerSpecFrom) over every living seat,
+	// the same bridge DamageAll's ValidPlayers$ resolution already uses
+	// (effects/damage.go's validPlayers). Qualifiers the grammar cannot
+	// evaluate fail closed INSIDE the filter -- every seat matches nothing --
+	// so this returns the empty set with ok=true: the effect acts on nobody
+	// rather than falling back to the spell's chosen (object) targets, which
+	// is the wrong set for a player-valued effect.
+	if base, _, _ := strings.Cut(spec, "."); base == "Player" {
+		var out []state.Target
+		for _, p := range g.AliveFrom(c.Controller) {
+			if MatchesPlayerSpecFrom(g, spec, p, c.Controller, c.Source) {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out, true
+	}
+	// Forge's zone-suffixed Valid filter family ("Defined$ ValidGraveyard
+	// Aura.YouOwn" -- Retether's mass return, and 16 more raw ChangeZone
+	// lines; the same spelling Count$ValidGraveyard already reads through
+	// count.go's countZone): the named zone's cards the filter admits,
+	// evaluated with the resolving controller as You -- the same walk the
+	// "Valid <filter>" battlefield branch runs, over the zone the prefix
+	// names instead of the battlefield. Unmodelled predicates fail closed
+	// INSIDE the filter (an empty set, ok=true), never a guessed fallback.
+	for _, zf := range zoneValidPrefixes {
+		if filt, ok := strings.CutPrefix(spec, zf.prefix); ok {
+			var out []state.Target
+			for _, id := range g.Zone(zf.zone, c.Controller) {
+				if MatchesSpecCtx(g, strings.TrimSpace(filt), id, c.SpecContext(c.Controller)) {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			return out, true
+		}
 	}
 	// Any Defined$ form this build does not model falls back to the chosen
 	// targets rather than silently acting on nothing (the caller decides via
@@ -735,9 +822,31 @@ func PlayerOf(h Host, c *Ctx, t state.Target) state.PlayerID {
 //     (ExiledWithSource needs exile provenance it does not track) matches no
 //     card, so the name set is empty and the token admits nothing -- the
 //     fail-closed direction, never widened.
+//   - "otherAbility" (Ulalek, Fused Atrocity's
+//     `Ability.YouCtrl+otherAbility`): the object is not the ability
+//     currently RESOLVING, nor any other instance or copy of that same
+//     printed ability. The anchor is Ctx.ResolvingObj -- the stack-object
+//     wrapper rules knows as e.resolvingObj / rp.obj -- NOT Ctx.Source,
+//     which for an ability resolution is the source PERMANENT (Ruling
+//     T20-b) and is not on the stack, so a Source-anchored exclusion would
+//     exclude nothing and Ulalek's trigger would copy itself (each copy
+//     asking its pay question again -- an unbounded regress). The family
+//     half (same Source permanent AND same Ability pointer -- StackCopy
+//     preserves both, and every mint of one printed trigger shares the
+//     parsed slice's pointer) is the loop guard's second half, needed the
+//     moment MORE THAN ONE instance of the trigger can be on the stack at
+//     once: a paid Ulalek trigger's copy is itself an ability wrapper, the
+//     copy asks the same {C}{C} question on resolution, and a
+//     deterministic host answers it the same way every time -- the walk
+//     never terminates. Oracle text would copy other instances and let
+//     each copy's controller decline; this build's hosts cannot express a
+//     decline (the recorded stand-in, see the abcopy3 row). A context with
+//     ResolvingObj zero (a hand-built one, or a resolution path that never
+//     set it) falls back to the Ctx.Source id alone -- never widened.
 type validStackToken struct {
 	kt             state.StackKindToken
 	other          bool
+	otherAbility   bool
 	sharesNameWith string
 }
 
@@ -761,8 +870,23 @@ func validStackTokens(spec string) []validStackToken {
 				tok.sharesNameWith = strings.TrimSpace(inner)
 				continue
 			}
-			if q == "Other" {
-				tok.other = true
+			// A `+`-compound qualifier (Ulalek's `YouCtrl+otherAbility`) is
+			// one dot-split token; its halves are conjunctive. State's own
+			// qualifier switch ignores the compound entirely, so the
+			// controller half is recovered here onto tok.kt -- the token
+			// validStackAdmits re-reads through state.StackKindAdmits. The
+			// plain forms keep their exact state-side reading either way.
+			for _, sub := range strings.Split(q, "+") {
+				switch strings.TrimSpace(sub) {
+				case "YouCtrl":
+					tok.kt.YouCtrl = true
+				case "OppCtrl":
+					tok.kt.OppCtrl = true
+				case "Other":
+					tok.other = true
+				case "otherAbility":
+					tok.otherAbility = true
+				}
 			}
 		}
 		toks = append(toks, tok)
@@ -777,8 +901,11 @@ func validStackTokens(spec string) []validStackToken {
 // it names, at resolution time, in stack order (the stack zone's arena
 // order -- the same enumeration the target census uses). Kind membership and
 // controller qualifiers go through state.StackKindAdmits, so this arm cannot
-// drift from what target legality offers; Other and sharesNameWith are the
-// ValidStack-only qualifiers validStackToken carries.
+// drift from what target legality offers; Other, otherAbility and
+// sharesNameWith are the ValidStack-only qualifiers validStackToken carries.
+// The otherAbility exclusion anchors on the RESOLVING WRAPPER
+// (Ctx.ResolvingObj, falling back to Ctx.Source when zero) and its whole
+// printed-ability family -- see validStackToken's doc.
 func validStackTargets(g *state.Game, spec string, c *Ctx) []state.Target {
 	toks := validStackTokens(spec)
 	// One name set per distinct sharesNameWith inner spec, built before any
@@ -809,13 +936,25 @@ func validStackTargets(g *state.Game, spec string, c *Ctx) []state.Target {
 		}
 		nameSets[tok.sharesNameWith] = names
 	}
+	anchorID := c.ResolvingObj
+	if anchorID == 0 {
+		anchorID = c.Source // a hand-built context degrades to the same shape, never widened
+	}
+	// The anchor's family identity: same source permanent AND same Ability
+	// pointer (the resolving wrapper's own mint). Nil when the anchor is a
+	// spell resolution (a card object has no Ability -- the exclusion then
+	// degrades to the plain id test below) or the anchor object is gone.
+	var anchor *state.Object
+	if anchorID != 0 {
+		anchor = g.Obj(anchorID)
+	}
 	var out []state.Target
 	for _, oid := range g.Zone(state.ZStack, 0) {
 		o := g.Obj(oid)
 		if o == nil {
 			continue
 		}
-		if !validStackAdmits(toks, state.StackKindOf(g, o), o, o.Controller, c.Controller, c.Source, nameSets) {
+		if !validStackAdmits(toks, state.StackKindOf(g, o), o, o.Controller, c.Controller, c.Source, anchor, anchorID, nameSets) {
 			continue
 		}
 		out = append(out, state.Target{Obj: oid})
@@ -828,13 +967,25 @@ func validStackTargets(g *state.Game, spec string, c *Ctx) []state.Target {
 // kind/controller half is state.StackKindAdmits on that one token, and the
 // ValidStack-only qualifiers narrow it further.
 func validStackAdmits(toks []validStackToken, k state.StackObjKind, o *state.Object,
-	controller, you state.PlayerID, source state.ObjID, nameSets map[string]map[string]bool) bool {
+	controller, you state.PlayerID, source state.ObjID, anchor *state.Object, anchorID state.ObjID,
+	nameSets map[string]map[string]bool) bool {
 	for _, tok := range toks {
 		if !state.StackKindAdmits([]state.StackKindToken{tok.kt}, k, o, controller, you) {
 			continue
 		}
 		if tok.other && o.ID == source {
 			continue
+		}
+		if tok.otherAbility {
+			// Same printed ability as the resolving one: the resolving wrapper
+			// itself, every other instance of it, and every copy of either.
+			if anchor != nil && anchor.Ability != nil &&
+				o.Ability == anchor.Ability && o.Source == anchor.Source {
+				continue
+			}
+			if o.ID == anchorID {
+				continue
+			}
 		}
 		if tok.sharesNameWith != "" {
 			f := o.Face()

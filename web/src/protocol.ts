@@ -51,6 +51,11 @@ export interface TableInfo {
    */
   format: string;
   /**
+   * BotPolicy is the effective hosted policy for bot seats and human-seat
+   * caretakers. It is public table configuration, never private game state.
+   */
+  bot_policy: string;
+  /**
    * SeatNames names the table's seats in seat order: the deck name each
    * seat is playing, as MatchStart carries them. Empty when no match
    * has started on this table yet. It is public information -- the
@@ -113,6 +118,7 @@ export interface MatchStart {
   seats: SeatInfo[];
   seed: number;
   spectator: string;
+  bot_policy: string;
 }
 
   /**
@@ -842,6 +848,7 @@ export interface MatchInfo {
   head?: string;
   events: number;
   turns: number;
+  bot_policy: string;
 }
 
   /**
