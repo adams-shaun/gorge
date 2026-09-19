@@ -107,6 +107,14 @@ const (
 	// and the copy trigger's Count$ReplicatePaid reads it off the cast spell.
 	// Appended per the enum's own append-only precedent.
 	FlagReplicated
+	// FlagConverged marks a cast whose pay-time CastInfo carries CR
+	// 107.4f-family converge provenance: the Amount is the number of
+	// distinct colours (WUBRG) of mana actually spent to cast the spell,
+	// routed into Object.ConvergeColours. Emitted only for faces carrying a
+	// Count$Converge SVar (rules/cast.go's faceWantsConverge), so a
+	// non-converge cast stays byte-identical. Appended per the enum's own
+	// append-only precedent.
+	FlagConverged
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -204,6 +212,12 @@ type Object struct {
 	// It rides the same provenance window as X/CastFlags and resets
 	// alongside them in events.Move.
 	ReplicateTimes int32
+	// ConvergeColours is the number of distinct colours (WUBRG) of mana
+	// actually spent to cast the spell (CR 107.4f-family converge), carried
+	// by the pay-time CastInfo's FlagConverged Amount. It rides the same
+	// provenance window as X/CastFlags and resets alongside them in
+	// events.Move; a copy of the spell was never cast and reads 0.
+	ConvergeColours int32
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number. Reset alongside X/

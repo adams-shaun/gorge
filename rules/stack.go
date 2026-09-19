@@ -62,28 +62,39 @@ func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, 
 // card is no longer in the granted zone, so re-deriving from the zone would
 // wrongly drop it.
 func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) bool {
-	ok, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
+	ok, _, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
 	return ok
 }
 
 // payManaForSpent is payManaFor with the payment's actually-spent mana
 // returned: the per-colour delta the negative ManaAdd events record (zero on
-// a failed payment). The RememberCostMana$ payment site (Jeweled Amulet) is
-// the caller that needs it — every existing caller keeps the bool-only
-// wrapper, so no other payment site changes shape.
-func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana) {
+// a failed payment). TWO deltas come back: `spentPlain` is the split the
+// payment emits (restricted batches already carved off by
+// emitRestrictedManaSpend, the delta RememberCostMana$ notes today) and
+// `spentAll` is the FULL pool delta copied before that split -- the true
+// "all mana spent to pay this cost", which converge (CR 107.4f-family)
+// counts from via payManaCastSpent. The RememberCostMana$ payment site
+// (Jeweled Amulet) keeps its existing split-based note; every other caller
+// keeps the bool-only payManaFor wrapper, so no other payment site changes
+// shape.
+func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana) {
 	before := e.manaAvailableFor(p, id, ability)
 	beforeSnow := e.G.Players[p].Snow
 	pay, ok := cost.resolveManaWith(before, beforeSnow, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 	if !ok {
-		return false, state.Mana{}
+		return false, state.Mana{}, state.Mana{}
 	}
 	after, afterSnow, lifeSpent := pay.pool, pay.snow, pay.lifeSpent
 	spent := state.Mana{}
 	for i := range before {
 		spent[i] = before[i] - after[i]
 	}
+	// Converge counts ALL mana spent, restricted batches included -- Boseiju's
+	// {C} is not a colour, but a Tazri-restricted coloured unit IS the colour
+	// it was paid as -- so copy the full delta before emitRestrictedManaSpend
+	// carves the restricted batches out of `spent`.
+	spentAll := spent
 	e.emitRestrictedManaSpend(p, id, ability, &spent)
 	for i, letter := range manaLetters {
 		if spent[i] == 0 {
@@ -109,7 +120,24 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	if lifeSpent != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
-	return true, spent
+	return true, spentAll, spent
+}
+
+// payManaCastSpent is the spell-cost payment (the shared payManaFor core
+// with the cast's recorded may-play ignore-colour rider, CR 401.5's "spend
+// mana as though it were mana of any color to cast it") returning the FULL
+// spent delta: the pre-restriction-split per-colour pool delta converge
+// counts from (task converge1). The spell arm's only ask stages have all
+// completed by payment, so the delta rides pendingCast plain data to the
+// pay-time CastInfo exactly like replicateTimes does. The rider was proved
+// by the offer gate while the card still sat in the granted zone; the
+// payment keeps it via pc.mayPlayIgnore because after the push (CR 601.2a)
+// the card is on the stack and a zone re-derivation would wrongly drop the
+// grant.
+func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana) {
+	ok, spentAll, _ := e.payManaForSpent(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
+		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	return ok, spentAll
 }
 
 // payExtortPip charges the {W/B} hybrid pip (one mana of either W or B)
@@ -127,17 +155,6 @@ func (e *Engine) payExtortPip(p state.PlayerID) bool {
 		}
 	}
 	return false
-}
-
-// payManaCast is the spell-cost payment: the shared payManaFor core with the
-// cast's recorded may-play ignore-colour rider (CR 401.5's "spend mana as
-// though it were mana of any color to cast it"). The rider was proved by the
-// offer gate while the card still sat in the granted zone; the payment keeps
-// it via pc.mayPlayIgnore because after the push (CR 601.2a) the card is on
-// the stack and a zone re-derivation would wrongly drop the grant.
-func (e *Engine) payManaCast(pc *pendingCast, cost Cost) bool {
-	return e.payManaFor(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
-		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // manaAvailableFor removes every restricted batch from the visible pool, then
