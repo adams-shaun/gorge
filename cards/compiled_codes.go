@@ -116,9 +116,10 @@ const (
 	APIVote                  APICode = 73
 	APIWard                  APICode = 74
 	APIEcho                  APICode = 75
+	APIChangeX               APICode = 76
 
 	// APICodeCount includes the zero/unknown slot and sizes dense dispatch.
-	APICodeCount = 76
+	APICodeCount = 77
 )
 
 // APICodeForName returns the stable opcode for an engine-owned effect API.
@@ -139,6 +140,8 @@ func APICodeForName(api string) APICode {
 		return APIBranch
 	case "ChangeTargets":
 		return APIChangeTargets
+	case "ChangeX":
+		return APIChangeX
 	case "ChangeZone":
 		return APIChangeZone
 	case "ChangeZoneAll":

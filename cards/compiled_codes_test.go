@@ -32,8 +32,8 @@ func TestCompiledCodeMappings(t *testing.T) {
 		names := []string{
 			"AddTurn", "Amass", "Animate", "Attach", "BecomeMonarch", "Branch",
 			"ChangeTargets", "ChangeZone", "ChangeZoneAll", "Charm", "ChooseCard",
-			"ChooseNumber", "ChoosePlayer", "ChooseType", "Cleanup", "ControlSpell",
-			"CopySpellAbility", "Counter", "CumulativeUpkeep", "DamageAll", "DealDamage",
+			"ChangeX", "ChooseNumber", "ChoosePlayer", "ChooseType", "Cleanup",
+			"ControlSpell", "CopySpellAbility", "Counter", "CumulativeUpkeep", "DamageAll", "DealDamage",
 			"DelayedTrigger", "Destroy", "DestroyAll", "Dig", "Discard", "Draw", "Echo", "Effect",
 			"Encore", "Extort", "Fog", "GainControl", "GainLife", "Goad", "Hideaway",
 			"LoseLife", "LosesGame", "Mana", "ManaReflected", "Mill", "Myriad", "NameCard",

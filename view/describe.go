@@ -380,6 +380,11 @@ func Describe(g *state.Game, ev events.Event) string {
 		// The ActivationLimit$ scan marker for a mana ability's activation
 		// (events.ManaActivate's own comment). Obj is the source permanent.
 		return obj(g, ev.Obj) + " is activated for mana"
+	case events.XChange:
+		// A mid-resolution effect rewrote the {X} a stack object was paid
+		// with (events.XChange's own comment): Obj the stack object, Amount
+		// the new value.
+		return obj(g, ev.Obj) + " has its X set to " + itoa(int64(ev.Amount))
 	}
 	return "unknown event"
 }

@@ -101,6 +101,17 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	if strings.HasPrefix(raw, "TriggerCount$") || strings.HasPrefix(raw, "ReplaceCount$") {
 		return sign * EvalCount(h, c, raw), true
 	}
+	// A <Ref>>Count$... indirection (Unbound Flourishing's Value$
+	// TriggeredSpellAbility>Count$xPaid/Twice) is a count expression in its
+	// own right, not an SVar name -- the SVar lookup above would otherwise
+	// miss it and degrade the whole parameter to zero. The verdict rides
+	// through from evalCountExprOK, so an unknown ref (the CastSA
+	// adamant-gate family's shape) stays NOT evaluated rather than a silent
+	// zero.
+	if _, rest, found := strings.Cut(raw, ">"); found && strings.HasPrefix(strings.TrimSpace(rest), "Count$") {
+		n, ok := evalCountExprOK(h, c, raw, 0)
+		return sign * n, ok
+	}
 	if raw == "X" {
 		return sign * c.X, true
 	}
@@ -165,6 +176,40 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// zero before stays zero.
 	if n, ok := evalRefProperty(h, c, expr); ok {
 		return n, true
+	}
+	// A <Ref>">Count$..."[/Op] indirection (Unbound Flourishing's Value$
+	// TriggeredSpellAbility>Count$xPaid/Twice): the ref names the objects and
+	// the right side is a Count$ expression evaluated against the FIRST
+	// resolved object, bound as that object's own resolution context (Source,
+	// Controller, X seeded from the object, SVars from its face) -- so
+	// Count$xPaid answers the {X} the CAST paid, not the triggering
+	// permanent's own. The ref switch is the same one evalRefProperty
+	// dispatches through (refTargets), so the two cannot disagree; an unknown
+	// ref fails closed to not-evaluated, exactly as evalRefProperty's default
+	// does. The /Op suffix rides the ordinary Count$ read of the right side.
+	if ref, right, found := strings.Cut(expr, ">"); found {
+		if strings.HasPrefix(strings.TrimSpace(right), "Count$") {
+			ts, ok := refTargets(h, c, strings.TrimSpace(ref))
+			if !ok {
+				return 0, false
+			}
+			g := h.Game()
+			for _, t := range ts {
+				if t.IsPlayer {
+					continue
+				}
+				o := g.Obj(t.Obj)
+				if o == nil {
+					continue
+				}
+				sub := &Ctx{Source: o.ID, Controller: o.Controller, X: o.X}
+				if f := o.Face(); f != nil {
+					sub.SVars = f.SVars
+				}
+				return evalCountExprOK(h, sub, strings.TrimSpace(right), depth+1)
+			}
+			return 0, false
+		}
 	}
 	// A Sacrificed$... expression answers "the sacrificed object's" head (CR
 	// 608.2g last-known-information): power, toughness, mana value, or the
@@ -409,6 +454,30 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 	return 0, false
 }
 
+// refTargets resolves one ref name of the <Ref>$<Property> family into the
+// targets it names. Shared by evalRefProperty and the <Ref>>Count$...>
+// indirection branch in evalCountExprOK, so the two cannot disagree about
+// which refs exist. An unknown ref returns false -- the caller fails closed,
+// exactly as evalRefProperty's default always did.
+func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
+	switch ref {
+	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
+		return c.Targets, true
+	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
+		"TriggeredSpellAbility", "TriggeredAttacker", "TriggeredAttackerLKICopy",
+		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
+		"DelayTriggerRememberedLKI", "RememberedLKI":
+		return c.Remembered, true
+	case "Remembered":
+		// Forge's plain Remembered$ form reads the executing ability's shared
+		// host-card remembered list: the ctx walk's set UNIONED with the
+		// source's persistent event-backed list (rememberedWithSource).
+		return rememberedWithSource(h, c), true
+	default:
+		return nil, false
+	}
+}
+
 // evalRefProperty resolves one "<Ref>$<Property>[...][/Op]" count body over
 // the objects a target reference names. Refs: Targeted/ParentTarget/
 // ThisTargetedCard name the resolving ability's chosen targets;
@@ -434,21 +503,8 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	}
 	prop, op, hasOp := strings.Cut(prop, "/")
 	prop = strings.TrimSpace(prop)
-	var ts []state.Target
-	switch ref {
-	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
-		ts = c.Targets
-	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
-		"TriggeredSpellAbility", "TriggeredAttacker", "TriggeredAttackerLKICopy",
-		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
-		"DelayTriggerRememberedLKI", "RememberedLKI":
-		ts = c.Remembered
-	case "Remembered":
-		// Forge's plain Remembered$ form reads the executing ability's shared
-		// host-card remembered list: the ctx walk's set UNIONED with the
-		// source's persistent event-backed list (rememberedWithSource).
-		ts = rememberedWithSource(h, c)
-	default:
+	ts, ok := refTargets(h, c, ref)
+	if !ok {
 		return 0, false
 	}
 	g := h.Game()
