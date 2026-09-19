@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -428,6 +429,53 @@ func TestPutCounterAllValidTgtsOpponentStaysLoud(t *testing.T) {
 	}
 	if got := e.G.Obj(bear).Counter("P1P1"); got != 0 {
 		t.Fatalf("seat 0's Rust Bear took %d +1/+1 counters, want 0", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestShalaiVoiceOfPlentyPutsACounterOnEachCreatureYouControl pins the sweep
+// on its flagship real-corpus carrier Shalai, Voice of Plenty (a plain
+// ValidCards$ Creature.YouCtrl AB$ activation, cost {4}{G}{G}, no tap): every
+// creature seat 0 controls takes exactly one +1/+1 counter -- Shalai herself
+// included, the "each creature you control" self-inclusion -- seat 1's
+// creatures take nothing, and the resolution stays silent (no unimplemented
+// Note).
+func TestShalaiVoiceOfPlentyPutsACounterOnEachCreatureYouControl(t *testing.T) {
+	shalai := corpusCard(t, "Shalai, Voice of Plenty")
+	e, cfg := putCounterTable(t, 202,
+		[]*cards.Card{shalai, card(t, counterBear("Shalai First Bear")), card(t, counterBear("Shalai Second Bear"))},
+		[]*cards.Card{card(t, counterBear("Shalai Enemy Bear"))})
+	shalaiID := findAndMoveToBattlefield(t, e, 0, "Shalai, Voice of Plenty")
+	first := findAndMoveToBattlefield(t, e, 0, "Shalai First Bear")
+	second := findAndMoveToBattlefield(t, e, 0, "Shalai Second Bear")
+	enemy := findAndMoveToBattlefield(t, e, 1, "Shalai Enemy Bear")
+	// Cost {4}{G}{G}: the two green pips plus four generic the green covers.
+	addMana(t, e, 0, "GGGGGG")
+	opt := abilityOption(t, e, shalaiID, 0)
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 30)
+
+	for _, id := range []state.ObjID{shalaiID, first, second} {
+		if got := e.G.Obj(id).Counter("P1P1"); got != 1 {
+			t.Fatalf("creature %d has %d P1P1 counters, want 1 (Shalai included -- 'each creature you control')", id, got)
+		}
+		if n := len(counterChanges(e, id)); n != 1 {
+			t.Fatalf("creature %d received %d CounterChange events, want exactly 1", id, n)
+		}
+	}
+	if got := e.G.Obj(enemy).Counter("P1P1"); got != 0 {
+		t.Fatalf("seat 1's Shalai Enemy Bear took %d counters, want 0", got)
+	}
+	if n := len(counterChanges(e, enemy)); n != 0 {
+		t.Fatalf("seat 1's Shalai Enemy Bear received %d CounterChange events, want 0", n)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented") {
+			t.Fatalf("the Shalai sweep emitted an unimplemented Note anyway: %s", ev.Text)
+		}
+	}
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("pool not drained: %d", e.G.Players[0].Pool.Total())
 	}
 	replayCheck(t, e, cfg)
 }
