@@ -362,24 +362,51 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 }
 
 // attachedToArg splits the space-bearing two-token predicate "AttachedTo <X>"
-// into its argument and reports whether the argument is a single literal type
-// or object class the base grammar (matchesBase) can answer from the object in
-// hand. It returns false for any token that is not exactly this shape: a
-// different predicate name, no space, an empty argument, an argument carrying
-// a nested predicate ('.'/'+'/',' -- e.g. "AttachedTo Permanent.YouCtrl", a
-// referent needing resolution-time context such as "AttachedTo Targeted", or
-// a word that is neither an object class nor a corpus type word. Consuming
-// tokens that are not this shape keeps the matcher and UnknownPredicates
-// agreeing, because a token either becomes a wordAttachedTo classifier here or
-// it does not -- there is no middle where one side sees it and the other does
-// not.
+// into its argument and reports whether the argument is (a) a single literal
+// type or object class the base grammar (matchesBase) can answer from the
+// object in hand, or (b) the dotted two-token form "AttachedTo <class>.<qual>"
+// whose qualifier is evaluated against the attached object itself (the
+// counterpart of the adjacent enchantedByArg's <Type>.<qual>). The dotted
+// allowlist is exactly YouCtrl — the only measured qualifier (Umbra Mystic's
+// "Aura.AttachedTo Permanent.YouCtrl" grant; 6 occurrences / 5 files). <class>
+// keeps the bare form's object-class / type-word validation, so
+// "Player.EnchantedBy" (the 2 curse occurrences) fails naturally: a player is
+// neither an object class nor a type word. It returns false for any token that
+// is not one of these shapes: a different predicate name, no space, an empty
+// argument, an argument carrying a nested predicate ('+'/','), a dotted
+// qualifier outside the allowlist, a referent needing resolution-time context
+// such as "AttachedTo Targeted", or a word that is neither an object class nor
+// a corpus type word. Consuming tokens that are not these shapes keeps the
+// matcher and UnknownPredicates agreeing, because a token either becomes a
+// wordAttachedTo classifier here or it does not -- there is no middle where
+// one side sees it and the other does not.
 func attachedToArg(p string) (string, bool) {
 	name, arg, has := strings.Cut(p, " ")
 	if !has || name != "AttachedTo" {
 		return "", false
 	}
 	arg = strings.TrimSpace(arg)
-	if arg == "" || strings.ContainsAny(arg, ".+,") {
+	if arg == "" {
+		return "", false
+	}
+	// The dotted two-token form "<class>.<qual>": the qualifier rides the
+	// object the candidate is attached to (wordAttachedTo's matcher case
+	// evaluates it there), so it is validated here once for both the matcher
+	// and the recognition path.
+	if class, qual, ok := strings.Cut(arg, "."); ok {
+		if qual != "YouCtrl" {
+			return "", false
+		}
+		switch class {
+		case "Card", "Permanent", "Spell":
+		default:
+			if !predicateTypeWords[class] {
+				return "", false
+			}
+		}
+		return class + "." + qual, true
+	}
+	if strings.ContainsAny(arg, "+,") {
 		return "", false
 	}
 	switch arg {
@@ -834,13 +861,24 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// (AttachedTo == 0), or one whose attachment is gone, matches
 		// nothing. This is the two-token counterpart of attachedBy, which
 		// reads the SOURCE's AttachedTo to find what the source attaches
-		// to; here we read the candidate object's own AttachedTo.
+		// to; here we read the candidate object's own AttachedTo. The
+		// dotted two-token "<class>.<qual>" form narrows the attached
+		// object by its qualifier (YouCtrl: attached to a permanent the
+		// spec's you controls -- Umbra Mystic); the key was validated by
+		// attachedToArg, so the re-split here cannot miss.
 		if o.AttachedTo == 0 {
 			return false
 		}
 		a := g.Obj(o.AttachedTo)
 		if a == nil {
 			return false
+		}
+		if class, qual, ok := strings.Cut(key, "."); ok {
+			fn, is := predicates[qual]
+			if !is {
+				return false
+			}
+			return matchesBase(g, class, a, sc) && fn(g, a, sc.You, sc.Source)
 		}
 		return matchesBase(g, key, a, sc)
 	case wordEnchantedBy:

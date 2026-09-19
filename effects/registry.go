@@ -82,6 +82,12 @@ type Host interface {
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.
 	HasKeyword(id state.ObjID, kw string) bool
+	// UmbraArmorAura returns the ObjID of the first attached Aura whose
+	// DERIVED keyword set carries "Umbra armor" (CR 702.90), in
+	// deterministic AliveFrom(0) × battlefield-slice order, or 0 if bearer id
+	// wears none. Derived, never the printed face: Umbra Mystic's and Dog
+	// Umbra's layer-6 grants must be seen. Consulted by ReplaceUmbraArmor.
+	UmbraArmorAura(id state.ObjID) state.ObjID
 	// Power, Toughness and IsCreature are current derived characteristics.
 	// Damage/count effects must not read a printed face when layers modify P/T
 	// or make a planeswalker a creature.

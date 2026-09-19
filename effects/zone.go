@@ -2744,6 +2744,13 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
 			continue
 		}
+		// Umbra armor (CR 702.90) applies even when NoRegen$ suppresses
+		// regeneration — it is its own replacement, not a shield. Consuming
+		// the Aura leaves it in the graveyard; when the loop reaches the Aura
+		// itself (a DestroyAll that named it too) the zone guard above skips it.
+		if ReplaceUmbraArmor(h, id) {
+			continue
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 	}
@@ -2785,6 +2792,10 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		}
 		// NoRegen$ != "True", not == "": see effDestroy's note above.
 		if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
+			continue
+		}
+		// Umbra armor after the shield: see effDestroy's note.
+		if ReplaceUmbraArmor(h, id) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,

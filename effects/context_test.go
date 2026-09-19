@@ -130,6 +130,12 @@ func (h *fakeHost) HasKeyword(id state.ObjID, kw string) bool {
 	o := h.g.Obj(id)
 	return o != nil && o.Face() != nil && o.Face().HasKeyword(kw)
 }
+
+// UmbraArmorAura has no layer system to consult here either (Umbra Mystic's
+// grant is a rules-side derived keyword); the double reports none, so the
+// effects-package tests that drive ReplaceUmbraArmor directly must seed a
+// printed keyword on the Aura's face.
+func (h *fakeHost) UmbraArmorAura(_ state.ObjID) state.ObjID { return 0 }
 func (h *fakeHost) Power(id state.ObjID) int32 {
 	o := h.g.Obj(id)
 	if o == nil || o.Face() == nil {
