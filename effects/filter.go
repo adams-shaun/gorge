@@ -1035,6 +1035,102 @@ func filterAlternatives(spec string) iter.Seq[string] {
 	}
 }
 
+// FilterAlternatives exposes filterAlternatives to rules (the one package
+// above effects): rules-side spec rewriting (the cast-provenance qualifier
+// split, task castprov1) must split alternatives EXACTLY as the filter does,
+// so the two cannot disagree about where a comma is a boundary.
+func FilterAlternatives(spec string) iter.Seq[string] { return filterAlternatives(spec) }
+
+// StripPredicateToken removes the exact predicate token -- optionally
+// !-negated -- from ONE filter alternative's "+" chain, returning the
+// stripped alternative and whether the token was present. The token may ride
+// the base's first predicate ("Card.wasCastFromYourHandByYou") or a later
+// chain link ("Creature.!token+YouCtrl+!wasCastFromYourHandByYou"); both
+// shapes strip to the remainder. The base itself (before the first
+// angle-bracket-0 dot) is never touched, and an ARGUMENTED spelling of the
+// token ("CastSaSource$CardManaCost", "CastSaSource/Plus.2") is a different
+// token and is left in place. An alternative that is nothing but the token
+// has no base and strips to "" -- the filter then fails closed on it (no
+// corpus carrier writes that shape).
+func StripPredicateToken(alt, token string) (string, bool) {
+	base, preds := splitAltBasePreds(alt)
+	if preds == "" {
+		return alt, false
+	}
+	parts := strings.Split(preds, "+")
+	out := parts[:0]
+	had := false
+	for _, p := range parts {
+		if p == token || p == "!"+token {
+			had = true
+			continue
+		}
+		out = append(out, p)
+	}
+	if !had {
+		return alt, false
+	}
+	if len(out) == 0 {
+		return base, true
+	}
+	return base + "." + strings.Join(out, "+"), true
+}
+
+// splitAltBasePreds splits one filter alternative at the first
+// angle-bracket-depth-0 dot: the base, then the "+" predicate chain
+// (possibly empty). A dot inside a named<X.Y>-style argument is not the
+// boundary.
+func splitAltBasePreds(alt string) (string, string) {
+	depth := 0
+	for i := 0; i < len(alt); i++ {
+		switch alt[i] {
+		case '<':
+			depth++
+		case '>':
+			if depth > 0 {
+				depth--
+			}
+		case '.':
+			if depth == 0 {
+				return alt[:i], alt[i+1:]
+			}
+		}
+	}
+	return alt, ""
+}
+
+// stripBareCastSaSource removes the exact bare !CastSaSource predicate from
+// every comma alternative of a Count$ThisTurnCast_ spec, reporting whether it
+// was present anywhere. The bare qualifier is Forge's "other than the spell
+// being cast" device (Hotheaded Giant's "unless you've cast another red
+// spell this turn", Dream Thief's "another blue spell", Storm Entity's
+// "each other spell cast this turn" -- the resolving spell's own PutOnStack
+// is unavoidably in the window when an ETB gate reads the count); rules'
+// SpellsCastThisTurnMatchingExcluding supplies the exclusion. The ARGUMENTED
+// forms (!CastSaSource$CardManaCost, !CastSaSource/Plus.2 -- call_forth_the_
+// tempest, thunder_salvo) are different tokens and stay in place, failing
+// closed downstream as they always did.
+func stripBareCastSaSource(spec string) (string, bool) {
+	if !strings.Contains(spec, "CastSaSource") {
+		return spec, false
+	}
+	var b strings.Builder
+	first := true
+	has := false
+	for alt := range filterAlternatives(spec) {
+		stripped, had := StripPredicateToken(alt, "CastSaSource")
+		if had {
+			has = true
+		}
+		if !first {
+			b.WriteByte(',')
+		}
+		b.WriteString(stripped)
+		first = false
+	}
+	return b.String(), has
+}
+
 // eachAlternatives recognises Forge's multi-type search grammar:
 // "EACH <typeA>[.preds] & <typeB>[.preds] ..." -- one pick of EACH listed
 // type (Krosan Verge's "EACH Forest & Plains", Conflux's five Card.<Colour>

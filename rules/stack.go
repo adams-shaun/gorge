@@ -2025,6 +2025,19 @@ func (e *Engine) CastThisTurn() int {
 // carries a You* qualifier the count scopes to YOU's casts; otherwise it
 // counts everyone's. Derived from the event log like CastThisTurn.
 func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int {
+	return e.spellsCastThisTurnMatching(you, spec, 0)
+}
+
+// SpellsCastThisTurnMatchingExcluding is SpellsCastThisTurnMatching with one
+// object's own cast excluded -- the bare !CastSaSource qualifier's engine
+// reading (the count's "other than the spell being cast" device; effects
+// stripBareCastSaSource strips the token and routes here with the ctx
+// source). Derived from the event log like CastThisTurn.
+func (e *Engine) SpellsCastThisTurnMatchingExcluding(you state.PlayerID, spec string, exclude state.ObjID) int {
+	return e.spellsCastThisTurnMatching(you, spec, exclude)
+}
+
+func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) int {
 	youScoped := strings.Contains(spec, "You")
 	n := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
@@ -2033,6 +2046,9 @@ func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int
 			break
 		}
 		if ev.Kind != events.PutOnStack {
+			continue
+		}
+		if exclude != 0 && ev.Obj == exclude {
 			continue
 		}
 		if youScoped && ev.Player != you {

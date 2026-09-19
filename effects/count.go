@@ -887,8 +887,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
 	// spec (Count$ThisTurnCast_Card.YouCtrl — the "first/second spell you
 	// cast" family): the caster scope is the controller when the spec carries
-	// a You* qualifier, everyone otherwise.
+	// a You* qualifier, everyone otherwise. The spec's bare !CastSaSource
+	// qualifier is Forge's "other than the spell being cast" device (every
+	// bare-form carrier's oracle says other/another), so the count excludes
+	// its own ctx source through the Host's Excluding read; the ARGUMENTED
+	// forms (!CastSaSource$CardManaCost, !CastSaSource/Plus.2) stay in place
+	// and keep failing closed downstream (no provenance grammar prices them).
 	if rest, ok := strings.CutPrefix(head, "ThisTurnCast_"); ok {
+		if stripped, selfExcl := stripBareCastSaSource(rest); selfExcl {
+			return int32(h.SpellsCastThisTurnMatchingExcluding(c.Controller, stripped, c.Source)), true
+		}
 		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest)), true
 	}
 
