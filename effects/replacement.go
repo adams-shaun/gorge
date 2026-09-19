@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -31,8 +32,40 @@ func effReplaceEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	if strings.HasPrefix(raw, "ReplaceCount$") {
-		h.ReplaceEvent(name, raw, 0)
+		h.ReplaceEvent(name, rewriteReplaceCountOperand(h, c, raw), 0)
 		return
 	}
 	h.ReplaceEvent(name, raw, Num(h, c, sa, "VarValue", 0))
+}
+
+// rewriteReplaceCountOperand resolves a ReplaceCount$ operand the host's
+// arithmetic cannot parse, so the bound value survives the handover (task
+// wildgrowth1 stretch): replCountOp prices only numeric operands
+// (Plus.3/Minus.4/Times.2) and the word ops, so Taii Wakeen's
+// ReplaceCount$DamageAmount/Plus.Y -- the Plus operand behind the SVar
+// Y:Count$ChosenNumber, the Effect's frozen SetChosenNumber$ binding -- used
+// to degrade to "base unchanged" and the activation did nothing. A resolvable
+// non-numeric operand is rewritten to its number in THIS body's context (the
+// face SVar table the printed R: lines need, plus Ctx.ChosenNumber for the
+// effect-created binding); an unresolvable one returns raw unchanged, which
+// the host reads as base unchanged -- the fail-closed direction, never an
+// erased amount.
+func rewriteReplaceCountOperand(h Host, c *Ctx, raw string) string {
+	_, body, _ := strings.Cut(raw, "ReplaceCount$")
+	field, op, hasOp := strings.Cut(body, "/")
+	if !hasOp {
+		return raw
+	}
+	verb, operand, hasOperand := strings.Cut(op, ".")
+	if !hasOperand {
+		return raw // the word ops (Twice, Thrice, HalfDown, ...) carry no operand
+	}
+	if _, err := strconv.Atoi(operand); err == nil {
+		return raw // already numeric
+	}
+	n, ok := resolveCountOperand(h, c, operand, 0)
+	if !ok {
+		return raw
+	}
+	return "ReplaceCount$" + field + "/" + verb + "." + strconv.FormatInt(int64(n), 10)
 }

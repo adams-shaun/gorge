@@ -142,6 +142,36 @@ type turnFires struct {
 var actionTriggerModes = map[string]bool{
 	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "Sacrificed": true, "Discarded": true,
 	"CommitCrime": true, "Taps": true, "TapsForMana": true,
+	// DamagePreventedOnce joins them for the same reason: it is an event mode
+	// registered from the start (rules/trigger_match.go's
+	// damagePreventedMatches), so the trigger-level parameters Forge scopes
+	// to every event mode -- PlayerTurn$, ActivationLimit$, and an
+	// unevaluable CheckDefinedPlayer$ predicate failing closed -- apply from
+	// day one. No Once latch rides it: each stored prevention Note is one
+	// occurrence (prevention happens per Damage event, no batching concept --
+	// the DamageDealtOnce/DamageDoneOnce batch latch exists because combat
+	// batches several Damage events).
+	// TokenCreated/TokenCreatedOnce are event modes registered from the start
+	// (rules/trigger_match.go's tokenCreatedMatches), so the trigger-level
+	// parameters Forge scopes to every event mode -- PlayerTurn$,
+	// ActivationLimit$, and an unevaluable CheckDefinedPlayer$ predicate
+	// failing closed -- apply from day one, and the Once mode's implicit
+	// once-per-turn latch rides the same queue-time gate.
+	"TokenCreated": true, "TokenCreatedOnce": true,
+	// ChangesZoneAll joins them for the trigger-level parameters Forge scopes
+	// to every event mode: ActivationLimit$ ("triggers only once each turn"
+	// on 40 of the 126 corpus ChangesZoneAll lines) MUST be enforced, and the
+	// mode's 7 PlayerTurn$ True lines want the same requirement as every
+	// other event mode. Membership also makes an unevaluable CheckDefinedPlayer$
+	// predicate fail closed for the mode, which is the conservative direction
+	// for a mode registered from the start.
+	"ChangesZoneAll": true,
+	// Attached is an event mode registered from the start
+	// (attachedMatches over events.Attach), so the trigger-level parameters
+	// Forge scopes to every event mode -- PlayerTurn$, ActivationLimit$, and
+	// an unevaluable CheckDefinedPlayer$ predicate failing closed -- apply
+	// from day one (Inchblade Companion carries ActivationLimit$ 1).
+	"Attached": true,
 }
 
 // triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
@@ -152,11 +182,27 @@ var actionTriggerModes = map[string]bool{
 func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
 	raw, ok := t.Params["ActivationLimit"]
 	if !ok {
-		return true
+		// Mode$ TokenCreatedOnce is Forge's own once-per-turn gate (Akim, the
+		// Soaring Wind: "whenever you create one or more tokens for the first
+		// time each turn"): an implicit ActivationLimit 1, latched at queue
+		// time on the same per-turn map so a batch of mints fires once and
+		// the next turn resets. Reusing triggerTurnFires (which Clone already
+		// deep-copies) instead of a second latch field keeps the two
+		// per-turn trigger counts structurally identical.
+		if t.Mode == "TokenCreatedOnce" {
+			raw, ok = "1", true
+		} else {
+			return true
+		}
 	}
 	limit, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil || limit < 0 {
 		return false
+	}
+	// The Once mode's meaning is once per turn; an explicit ActivationLimit$
+	// above 1 on a TokenCreatedOnce line cannot raise it.
+	if t.Mode == "TokenCreatedOnce" && limit > 1 {
+		limit = 1
 	}
 	if e.triggerTurnFires == nil {
 		e.triggerTurnFires = map[triggerKey]turnFires{}
@@ -534,7 +580,16 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 		return false
 	}
 	if v, ok := t.Params["ValidCard"]; ok {
-		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
+		// The cast-provenance qualifiers (castprov1/2/3 — narset's
+		// `ValidCard$ Instant.wasCastFromYourHand,Sorcery.wasCastFromYourHand`)
+		// split out BEFORE spellCastPermanentSpec rewrites the base: the strip
+		// helpers match the raw Forge spec's predicate chain. The spell is on
+		// the stack (this is the PutOnStack event), so the log read is honest.
+		v, ok := e.castProvenanceAdmits(v, ev.Obj, dt.Controller)
+		if !ok {
+			return false
+		}
+		if !effects.MatchesSpecCtx(e.G, spellCastPermanentSpec(v), ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
 			return false
 		}
 	}
@@ -557,6 +612,73 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 		}
 	}
 	return true
+}
+
+// spellCastPermanentSpec rewrites the leading `Permanent` base token of
+// every comma-alternative in a SpellCast trigger's ValidCard$ spec to
+// `PermanentCard`, so the "whenever you cast a permanent spell" family
+// (Unbound Flourishing, the Defiler cycle, Archmage of Echoes) reads the
+// base as a permanent card at PutOnStack -- the evaluated object there is
+// always the cast spell, and CR 109.2 makes an artifact/creature/
+// enchantment/planeswalker/battle spell a permanent spell. matchesBase's
+// bare `Permanent` keeps the on-the-battlefield reading every other filter
+// depends on and is deliberately untouched. rules/stack.go's
+// targetSpecForZone and effects/cardflow.go's permanentCardSpec carry the
+// same leading-token rule with a zone gate (both leave ZStack unchanged);
+// this third copy applies it WITHOUT a zone gate and ACROSS alternatives,
+// because a comma-separated spec names each alternative's own base
+// (Archmage of Echoes' `Permanent.Faerie,Permanent.Wizard`). effects must
+// not import rules and vice versa, so the copies cannot share code. The
+// rewritten text is not the original spec, so the compiled sidecar's
+// byText lookup misses and the textual oracle answers it -- which after the
+// matchesBase/matchesCompiledBase relaxation is correct.
+func spellCastPermanentSpec(spec string) string {
+	// Comma-split at angle-bracket depth 0: a named<X, Y> name argument's
+	// printed comma is not an alternative boundary (the same distinction
+	// effects.filterAlternatives draws).
+	depth, start := 0, 0
+	var b strings.Builder
+	for i := 0; i < len(spec); i++ {
+		switch spec[i] {
+		case '<':
+			depth++
+		case '>':
+			if depth > 0 {
+				depth--
+			}
+		case ',':
+			if depth == 0 {
+				if start > 0 {
+					b.WriteByte(',')
+				}
+				b.WriteString(spellCastLeadingPermanentToCard(spec[start:i]))
+				start = i + 1
+			}
+		}
+	}
+	if start == 0 {
+		return spellCastLeadingPermanentToCard(spec)
+	}
+	b.WriteByte(',')
+	b.WriteString(spellCastLeadingPermanentToCard(spec[start:]))
+	return b.String()
+}
+
+// spellCastLeadingPermanentToCard is the leading-token rule targetSpecForZone
+// and permanentCardSpec share: the whole spec is `Permanent`, or its leading
+// token is `Permanent` followed by '.', '+' or ',' -- only that token is
+// rewritten, every qualifier rides along.
+func spellCastLeadingPermanentToCard(alt string) string {
+	if alt == "Permanent" {
+		return "PermanentCard"
+	}
+	if len(alt) > len("Permanent") && alt[:len("Permanent")] == "Permanent" {
+		switch alt[len("Permanent")] {
+		case '.', '+':
+			return "PermanentCard" + alt[len("Permanent"):]
+		}
+	}
+	return alt
 }
 
 // triggerSnapshot is immutable look-back state. Parked replacement choices
@@ -626,6 +748,73 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	if ev.Kind == events.DoorUnlock {
 		e.checkUnlockTriggers(ev)
 	}
+	// Exert's Trigger$ rider (task exert1, CR 702.100a): the static's named
+	// SVar body queues off the Exert event itself, with Source = the
+	// exerted permanent. The Amount -1 consume marker fires nothing: it is
+	// the untap-step scan's own bookkeeping fold.
+	if ev.Kind == events.Exert && ev.Amount >= 0 {
+		e.checkExertTriggers(ev)
+	}
+}
+
+// checkExertTriggers queues the Trigger$ rider of every offerable
+// stat:OptionalAttackCost static carried by the exerted permanent (task
+// exert1, CR 702.100a "When you do, ..."): a real triggered ability the
+// ordinary APNAP drain places with Source = the exerted permanent, resolving
+// with the registered APIs every rider body uses (UntapAll, AddPhase, Pump,
+// ... -- the triage census). The queue entry is the granted-trigger shape
+// (checkGrantedStaticTriggersUsing's precedent): the stack object is minted
+// inside events.Apply from the Execute$ SVar name resolved against the
+// exerted permanent's own table -- the same body grantedTriggerExecute links
+// here, so live queue and replayed log carry the identical SA. The gate
+// (ValidCard$, IsPresent$/...) is re-read per static exactly as the offer
+// walk (rules/combat.go exertOfferHolds) read it; the static's parameters a
+// fire-time re-check cannot evaluate fail closed and queue nothing. The walk
+// is the deterministic activeStatics order, never a map, and the cascade
+// bound is the granted slot's triggerKey (Source, Idx -1), the same key the
+// granted walk shares -- cascade bound only, never once-per-turn memory.
+func (e *Engine) checkExertTriggers(ev events.Event) {
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+		return
+	}
+	for _, sv := range e.activeStatics("OptionalAttackCost") {
+		if sv.Source != ev.Obj {
+			continue
+		}
+		if vc := sv.Params["ValidCard"]; vc != "" &&
+			!effects.MatchesSpecFrom(e.G, vc, ev.Obj, o.Controller, sv.Source) {
+			continue
+		}
+		exec := sv.Params["Trigger"]
+		if exec == "" {
+			continue
+		}
+		sa := grantedTriggerExecute(o, exec)
+		if sa == nil {
+			continue
+		}
+		key := triggerKey{Source: ev.Obj, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] >= maxTriggerFires {
+			continue // cascade bound: see maxTriggerFires.
+		}
+		e.triggerFireCount[key]++
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     ev.Obj,
+			Controller: o.Controller,
+			Idx:        -1,
+			SA:         sa,
+			Granted:    true,
+			Execute:    exec,
+			Ctx: effects.Ctx{
+				Source:     ev.Obj,
+				Controller: o.Controller,
+			},
+		})
+	}
 }
 
 // checkFaceTriggers separates the read-only matching board from the live
@@ -643,6 +832,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		spec string
 	}
 	var phaseNotes []phaseNote
+	// Granted triggers inspect the same active-static list for every object
+	// this event visits. Matching cannot emit or mutate continuous effects;
+	// phase diagnostics emit only after the walk, so this snapshot is stable
+	// for its full deterministic traversal.
+	grantedStatics := observer.active()
 	observer.forEachObject(func(id state.ObjID) {
 		o := observer.G.Obj(id)
 		if o == nil {
@@ -653,6 +847,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			// Ruling F3: an ability or token object has no Face and
 			// therefore no printed Triggers to check -- only real cards
 			// carry triggered abilities.
+			return
+		}
+		if e.faceDownPrintedHides(o) {
+			// CR 708.8: a face-down permanent's printed triggers (and any
+			// granted walk keyed to it) do not exist while it is face down --
+			// a manifested Sultai Emissary that dies reveals itself as a card
+			// in the graveyard and fires nothing (the leaves-battlefield
+			// look-back observer reads the pre-move state, where it is still
+			// face down; the live walk matches leaves-triggers only through
+			// that observer or a TriggerZones the departed card no longer
+			// occupies).
 			return
 		}
 		// objLKI is the whole-event LKI snapshot, hoisted here because every
@@ -679,7 +884,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
-			e.checkGrantedStaticTriggers(observer, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 			return
 		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
@@ -890,7 +1095,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 			}
 		}
-		e.checkGrantedStaticTriggers(observer, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -1052,10 +1257,32 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	var matched bool
 	switch t.Mode {
-	case "ChangesZone":
+	case "ChangesZone", "ChangesZoneAll":
+		// ChangesZoneAll shares the per-object matcher (batch-of-one: see the
+		// ValidCards plural key there); the once-per-group semantics Forge's
+		// name promises for a multi-object operation is the recorded
+		// ActivationLimit-driven narrowing for the lines that carry one and an
+		// open approximation for the rest.
 		matched = e.zoneChangeMatches(t, source, ev, lki)
 	case "SpellCast":
 		matched = e.spellCastMatches(t, source, ev)
+	case "SpellCastOrCopy":
+		// The magecraft family ("Whenever you cast or copy an instant or
+		// sorcery spell, ..."): the cast half is the ordinary SpellCast
+		// evaluation on the PutOnStack event; the copy half delegates a
+		// StackCopy event to spellCopyMatches. A copy never re-enters the
+		// stack as a PutOnStack -- effects/copy.go emits events.StackCopy
+		// naming the original -- so spellCastMatches' entering-the-stack guard
+		// would keep the copy half dead if the whole mode fell through to it.
+		if ev.Kind == events.StackCopy {
+			matched = e.spellCopyMatches(t, source, ev)
+		} else {
+			matched = e.spellCastMatches(t, source, ev)
+		}
+	case "SpellCopy":
+		// The copy-only mode ("Whenever you copy a spell, ..."): plain casts
+		// are not copies, so a PutOnStack event must not fire it.
+		matched = e.spellCopyMatches(t, source, ev)
 	case "AbilityCast", "SpellAbilityCast":
 		matched = e.abilityCastMatches(t, source, ev)
 	case "Attacks":
@@ -1066,6 +1293,10 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.cycledMatches(t, source, ev, lki)
 	case "CounterAdded":
 		matched = e.counterAddedMatches(t, source, ev, lki)
+	case "Attached":
+		matched = e.attachedMatches(t, source, ev)
+	case "TokenCreated", "TokenCreatedOnce":
+		matched = e.tokenCreatedMatches(t, source, ev)
 	case "Sacrificed":
 		matched = e.sacrificedMatches(t, source, ev, lki)
 	case "Discarded":
@@ -1078,6 +1309,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.tapsMatches(t, source, ev, true)
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
 		matched = e.damageMatches(t, source, ev)
+	case "DamagePreventedOnce":
+		matched = e.damagePreventedMatches(t, source, ev)
 	case "Drawn":
 		matched = e.drawnMatches(t, source, ev)
 	case "LifeLost", "LifeLostAll":
@@ -1088,6 +1321,15 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.landPlayedMatches(t, source, ev)
 	case "Phase":
 		matched = e.phaseMatches(t, source, ev)
+		// kw:Echo (CR 702.35a) rides the Echo$ True marker on its generated
+		// keyword trigger the way Annihilator$ rides its own: the intervening-if
+		// must suppress the trigger BEFORE it stacks (a stacked-but-owed-nothing
+		// echo is an observable divergence). The gate reads the object's
+		// control-acquisition tuple (rules/echo.go) against the controller's
+		// most recent upkeep.
+		if matched && t.Params["Echo"] == "True" {
+			matched = e.echoGateHolds(source)
+		}
 	case "Always":
 		// CR 603.8 state trigger: the event under test is irrelevant; the
 		// trigger fires when its condition holds (see triggerConditionHolds)
@@ -1223,6 +1465,21 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		if t.Mode == "Cycled" && source == ev.Obj && events.IsDiscard(ev) {
 			return true
 		}
+		// A card's own hand->exile move (Lupine Harbingers' "note the number
+		// of turns you've begun since it was foretold" exile trigger -- the
+		// corpus's ONE ChangesZone self-trigger with no TriggerZones$ whose
+		// destination is not the battlefield, measured over the corpus pin):
+		// the only zone the trigger can observe the move from is the hand the
+		// card sits in. Forge applies no zone restriction to a trigger
+		// without TriggerZones$; the battlefield default would leave such a
+		// trigger unable to fire at all, so the card's own hand-origin move
+		// admits it, the same courtesy the Discarded and Cycled cases above
+		// extend. (Self-moves whose DESTINATION is the battlefield need no
+		// admission: the post-move zone check below already sees them.)
+		if t.Mode == "ChangesZone" && source == ev.Obj && ev.Kind == events.MoveZone &&
+			ev.From == state.ZHand {
+			return true
+		}
 		spec = "Battlefield"
 	}
 	zones := [2]state.Zone{o.Zone, o.Zone}
@@ -1304,7 +1561,14 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 	if d, ok := t.Params["Destination"]; ok && d != "Any" && effects.ParseZone(d) != ev.To {
 		return false
 	}
-	if v, ok := t.Params["ValidCard"]; ok {
+	// ValidCards$ is the PLURAL key the ChangesZoneAll corpus uses (124 of
+	// its 126 lines); ValidCard$ is the singular key ChangesZone uses. One
+	// matcher serves both modes, so read the plural first and fall back.
+	v, hasSpec := t.Params["ValidCards"]
+	if !hasSpec {
+		v, hasSpec = t.Params["ValidCard"]
+	}
+	if hasSpec {
 		// The trigger's own source moving (source == ev.Obj) with an LKI
 		// snapshot available is a dying card asserting a property about
 		// itself, e.g. Undying's counters_EQ0_P1P1: read it against the LKI
@@ -1320,12 +1584,20 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 		if source == ev.Obj && lki != nil && leftBattlefield(ev) {
 			ctrl = lki.Controller
 		}
+		// The bare wasCastFromYourHandByYou qualifier (the "if you cast it
+		// from your hand" ETB family) is split out and evaluated against the
+		// log here, where the Engine is in scope; the remainder matches as
+		// before (task castprov1).
 		if ev.Obj != 0 && lki != nil && (source == ev.Obj || leftBattlefield(ev)) {
-			if !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(source, ctrl)) {
+			spec, ok := e.castProvenanceAdmits(v, lki.ID, ctrl)
+			if !ok || !effects.MatchesObjectCtx(e.G, spec, lki, e.specCtx(source, ctrl)) {
 				return false
 			}
-		} else if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
-			return false
+		} else {
+			spec, ok := e.castProvenanceAdmits(v, ev.Obj, e.controllerOf(source))
+			if !ok || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
+				return false
+			}
 		}
 	}
 	// Evolve$ True (CR 702.99a): the trigger fires only when the entering
@@ -1356,8 +1628,39 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 	if ev.Kind != events.PutOnStack {
 		return false
 	}
-	// Casting a spell means an actual card entering the stack. This build
-	// also uses PutOnStack-shaped Move()s for nothing else today (triggered
+	return e.spellCastEval(t, source, ev)
+}
+
+// spellCopyMatches is the copy half of the spell-cast family: Mode$
+// SpellCastOrCopy delegates a StackCopy event here, and Mode$ SpellCopy
+// ("Whenever you copy a spell, ...", the_parnesse_the_subtle_brush shape)
+// is its only mode. Copies do not re-enter the stack as a PutOnStack --
+// effects/copy.go emits events.StackCopy naming the ORIGINAL spell (ev.Obj,
+// still on the stack; events.Apply's StackCopy case rejects anything else)
+// with ev.Player the copy's controller -- and the copy object shares the
+// original's card, face and CastFlags, so the shared evaluation below reads
+// the copied spell identically. A plain SpellCast trigger stays silent here
+// (a copy is not a cast) and a SpellCastOrCopy/SpellCopy trigger does not
+// fire on the cast of the spell itself -- that half of the division is
+// spellCastMatches'.
+func (e *Engine) spellCopyMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.StackCopy {
+		return false
+	}
+	return e.spellCastEval(t, source, ev)
+}
+
+// spellCastEval is the spell evaluation spellCastMatches and
+// spellCopyMatches share, minus the entering-the-stack guard each mode owns:
+// ValidCard$ (through the trigger-side cast alternatives and the
+// cast-provenance qualifiers), ValidActivatingPlayer$, the
+// ActivatorThisTurnCast[Each] counts, ValidSA$ and HasXManaCost$ -- read off
+// ev.Obj (the spell being cast, or the original being copied) and ev.Player
+// (the cast's or the copy's controller) exactly alike.
+func (e *Engine) spellCastEval(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	// Casting a spell means an actual card entering the stack (a copy
+	// evaluates the ORIGINAL, which Apply's StackCopy case guarantees is on
+	// the stack). This build also uses PutOnStack-shaped Move()s for nothing else today (triggered
 	// abilities go on the stack via a dedicated TriggerPush event --
 	// putTriggersOnStack, above, and events.Apply's TriggerPush case), but a
 	// Face()-less object could otherwise satisfy a bare "Any"/"Spell"
@@ -1369,10 +1672,32 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 		return false
 	}
 	ctrl := e.controllerOf(source)
+	// The ValidCard alternatives (post trigger-side self-cast exclusion) are
+	// computed ONCE: the cast's own match below and the
+	// ActivatorThisTurnCastEach$ tally must read the same surviving set, so
+	// the two can never disagree (the Each arm below reads only the alts this
+	// block computed).
+	var castAlts []triggerCastAlt
 	if v, ok := t.Params["ValidCard"]; ok {
-		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		alts, ok2 := e.triggerCastAlternatives(v, source, ev.Obj)
+		if !ok2 {
 			return false
 		}
+		spec := ""
+		for i, alt := range alts {
+			if i > 0 {
+				spec += ","
+			}
+			spec += alt.spec
+		}
+		// The bare wasCastFromYourHandByYou / wasCastByYou qualifiers (the
+		// cast-provenance families, tasks castprov1/castprov2) are split out
+		// and evaluated against the log here; the remainder matches as before.
+		spec, ok3 := e.castProvenanceAdmits(spec, ev.Obj, ctrl)
+		if !ok3 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(source, ctrl)) {
+			return false
+		}
+		castAlts = alts
 	}
 	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
 		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
@@ -1384,12 +1709,89 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 			return false
 		}
 	}
+	if v, ok := t.Params["ActivatorThisTurnCastEach"]; ok {
+		// The PER-ALTERNATIVE first-cast read (task castprov2, Alania,
+		// Divergent Storm — the corpus's one carrier): the trigger fires when
+		// the activator's cast is the FIRST this turn of at least ONE
+		// ValidCard$ alternative — a disjunction of firsts, so casting an
+		// instant and then a sorcery fires on the sorcery. The tally is the
+		// activator's casts this turn matching that alternative, the current
+		// cast INCLUDED (it is already in the log when the deferred trigger
+		// fires; EQ1 means this cast is the first).
+		//
+		// Only alternatives the CURRENT CAST MATCHES are evaluated (round-2
+		// review): the oracle reads "if it's the first instant ... you've cast
+		// this turn" — the firstness must attach to the spell being cast, so
+		// a second instant after instant→sorcery does NOT fire on the
+		// sorcery alternative's earlier tally (that sorcery was the first
+		// sorcery, but this cast is not one). An alternative whose tally is
+		// met while the current cast matches a DIFFERENT alternative is
+		// skipped; without the guard the trigger false-fires on any
+		// two-cast-then-repeat turn. castAlts comes from the same surviving
+		// set the cast's own match above used, so the two cannot disagree.
+		//
+		// A trigger carrying the Each param with NO ValidCard$ has no
+		// alternatives to attach the firstness to: UNSUPPORTED, fail closed
+		// (castAlts stays nil; the corpus's one carrier, Alania, always has
+		// a ValidCard$).
+		fired := false
+		for _, alt := range castAlts {
+			if !effects.MatchesSpecCtx(e.G, alt.spec, ev.Obj, e.specCtx(source, ctrl)) {
+				continue
+			}
+			if compareIntCount(int32(e.spellsCastThisTurnByMatching(ev.Player, alt.spec, alt.exclSelf, source)), v) {
+				fired = true
+				break
+			}
+		}
+		if !fired {
+			return false
+		}
+	}
 	if v, ok := t.Params["ValidSA"]; ok {
 		if !e.validSAMatches(source, ev, ctrl, v) {
 			return false
 		}
 	}
+	if !hasXManaCostGate(t.Params, obj.Face().ManaCost, nil) {
+		return false
+	}
 	return true
+}
+
+// hasXManaCostGate implements HasXManaCost$ True on cast/activation trigger
+// modes (Mode$ SpellCast and Mode$ AbilityCast/SpellAbilityCast): "whenever
+// you cast a permanent spell with a mana cost that contains {X}" / "...or
+// activate an ability ... if that ability's activation cost contains {X}"
+// (Unbound Flourishing, Glava Five-Advents Mage, Brass Infiniscope, Magus
+// Lucea Kane). The gate reads the PRINTED cost -- the spell's ManaCost face
+// field, or the ability's Cost$ param -- through ParseCost, which counts only
+// the mana {X} tokens (c.X); a non-mana component token such as
+// SubCounter<X/CHARGE> or PayEnergy<X> is matched by its own grammar and does
+// NOT count, which is exactly the card text's "mana cost/activation cost
+// contains {X}". For an activation the printed Cost$ still carries the X at
+// AbilityPush time (the announced value folds into the provisional payment
+// cost, rules/cast.go's pc.cost.WithX, never into the SA params), so the
+// gate is about the printed shape, never the announced value.
+//
+// A param present with a value other than True FAILS CLOSED (the trigger
+// stays silent), per the repo's unreadable-condition convention; a param
+// absent leaves the trigger's behaviour unchanged. ab is the activated
+// ability on the AbilityCast arm (nil on the SpellCast arm, where faceCost is
+// the spell's printed face cost); a nil ab with an empty faceCost fails
+// closed rather than firing wide.
+func hasXManaCostGate(params map[string]string, faceCost string, ab *cards.SA) bool {
+	v, ok := params["HasXManaCost"]
+	if !ok {
+		return true
+	}
+	if !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return false
+	}
+	if ab != nil {
+		return ParseCost(ab.Params["Cost"]).X > 0
+	}
+	return ParseCost(faceCost).X > 0
 }
 
 // compareIntCount evaluates Forge's <OP><N> comparison grammar (EQ1, GT1,
@@ -1511,22 +1913,41 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 			}
 		}
 	}
+	// FirstAttack$ True (Aurelia the Warleader, Godo Bandit Warlord, Scourge
+	// of the Throne, Fear of Missing Out -- the four corpus carriers, all the
+	// plain True spelling) gates the trigger to the attacker's FIRST attack
+	// this turn (CR 603.2e's "for the first time each turn"). The count is
+	// event-folded state (Object.AttacksThisTurn, reset at TurnChange -- an
+	// extra combat inside the same turn does not reset it), and trigger
+	// matching runs on the FOLDED event, so the test is count == 1, never 0.
+	// A non-first attacker must not veto the match either: an event may name
+	// several attackers and another one may still be first.
 	spec, ok := t.Params["ValidCard"]
 	if !ok {
 		for _, id := range ev.IDs {
 			if id == source {
-				return true
+				return e.firstAttackOK(t, id)
 			}
 		}
 		return false
 	}
 	ctrl := e.controllerOf(source)
 	for _, id := range ev.IDs {
-		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, ctrl)) {
+		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, ctrl)) && e.firstAttackOK(t, id) {
 			return true
 		}
 	}
 	return false
+}
+
+// firstAttackOK reports whether the matched attacker passes the trigger's
+// FirstAttack$ gate (nil-safe: a trigger without the param always passes).
+func (e *Engine) firstAttackOK(t cards.Trigger, id state.ObjID) bool {
+	if v, ok := t.Params["FirstAttack"]; !ok || !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return true
+	}
+	o := e.G.Obj(id)
+	return o != nil && o.AttacksThisTurn == 1
 }
 
 // attackersDeclaredOneTargetMatches implements the "whenever [one or more]
@@ -1790,6 +2211,35 @@ func (e *Engine) sacrificedMatches(t cards.Trigger, source state.ObjID, ev event
 	}
 	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, sacrificer, ctrl) {
 		return false
+	}
+	return true
+}
+
+// tokenCreatedMatches identifies Forge's "whenever you create a token"
+// trigger (Mode$ TokenCreated / TokenCreatedOnce) on the existing, replayed
+// TokenCreate event -- one event per minted token (effects/token.go's effToken
+// loop, effects/amass.go, and the token-replacement mint path), so a
+// three-token spell fires the trigger three times and the Once mode's
+// once-per-turn latch (triggerActivationLimitAllows, actionTriggerModes
+// membership above) is what collapses a batch to one queueing. The would-be
+// token does not exist as a game object at match time: ValidToken$ is taken
+// against the same shallow tokenSnapshot the CreateToken replacement class
+// matches against -- an unknown token key fails closed -- with the You-side
+// predicates reading against the trigger source's controller while the
+// snapshot's controller is ev.Player, the token's creator ("you create").
+func (e *Engine) tokenCreatedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.TokenCreate {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v, ok := t.Params["ValidToken"]; ok && v != "" {
+		tok := e.tokenSnapshot(ev)
+		if tok == nil || !effects.MatchesObjectCtx(e.G, v, tok, e.specCtx(source, ctrl)) {
+			return false
+		}
 	}
 	return true
 }
@@ -2307,6 +2757,78 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 	return true
 }
 
+// damagePreventedMatches implements Mode$ DamagePreventedOnce (task dponce1):
+// the trigger fires on a STORED prevention Note -- the re-entrant Note the
+// full-prevention replacement arm (rules/replacement.go
+// applyNonMoveReplacements) and the ReplaceDamage/protection siblings emit
+// when damage is prevented. The Note carries the prevented damage in Amount
+// (0 for Fog's whole-pass statement, which is deliberately excluded -- a
+// whole-turn statement is not "damage that would be dealt to you is
+// prevented") and names the damaged side in Obj/Player exactly like the
+// DamageDone trigger's event does, so ValidTarget$ reads the same grammar:
+// the damaged object when the hit was object-directed, the damaged player
+// otherwise. There is no Once latch: each stored prevention Note is one
+// occurrence, so two prevented hits in one turn fire twice, each with its
+// own amount.
+func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Note || ev.Amount <= 0 {
+		return false
+	}
+	if !strings.Contains(strings.ToLower(ev.Text), "prevent") {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidTarget"]; ok {
+		if ev.Obj != 0 {
+			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+				return false
+			}
+		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
+			return false
+		}
+	}
+	return true
+}
+
+// attachedMatches implements Mode$ Attached: the trigger fires when an Aura,
+// Equipment or other attachment becomes attached to a permanent (CR
+// 701.3a's "becomes attached" -- the event the engine's one shared attach
+// emit site, effects/attach.go's effAttach, publishes for the cast, equip
+// and ETB-attached shapes alike). events.Attach with len(ev.IDs) > 0 carries
+// the attachment in ev.Obj and the bearer in ev.IDs[0]; the no-IDs emits are
+// the detach state-based actions (rules/attach.go), which are NOT "becomes
+// attached" and never match, and an emit with no attachment object (Obj == 0)
+// has nothing to bind ValidSource$ against, so it never matches either.
+// Forge's ValidSource$ names the ATTACHING
+// object (Siona's Aura.YouCtrl, Enormous Energy Blade's Card.Self) and
+// ValidTarget$ names the BEARER (Brood Keeper's Card.Self reads Self as the
+// trigger's source through the same specCtx becomesTargetMatches uses).
+// A trigger with NO ValidTarget$ never fires: Eriette's line names only
+// TargetRelativeToSource$, a parameter this build does not read anywhere,
+// so firing without the bearer restriction would over-fire on every Aura
+// attach. The Static$ True guard keeps Forge's "static effect expressed as
+// a trigger" lines (Metamorphic Alteration, Paleontologist's Pick-Axe --
+// Execute$ DBClone continuous shapes with no static-trigger machinery here)
+// from firing a clone on every attach.
+func (e *Engine) attachedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Attach || len(ev.IDs) == 0 || ev.Obj == 0 {
+		return false
+	}
+	if t.Params["Static"] == "True" {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidSource"]; ok {
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidTarget"]; ok {
+		return effects.MatchesSpecCtx(e.G, v, ev.IDs[0], e.specCtx(source, ctrl))
+	}
+	return false
+}
+
 // becomesTargetMatches implements Mode$ BecomesTarget: the trigger fires
 // when one of the chosen targets recorded by a TargetsChosen event
 // (rules.handleTarget -- "the target decision being answered") matches its
@@ -2483,6 +3005,16 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 		if !abilityCastValidSA(obj.Face().Abilities[int(ev.Amount)], v) {
 			return false
 		}
+	}
+	// HasXManaCost$ True: the activation cost must contain {X}. The ability
+	// at the recorded index (the same bounds check ValidSA$ uses); a stale
+	// index fails closed through the nil ab below.
+	var ab *cards.SA
+	if ev.Amount >= 0 && int(ev.Amount) < len(obj.Face().Abilities) {
+		ab = obj.Face().Abilities[int(ev.Amount)]
+	}
+	if !hasXManaCostGate(t.Params, "", ab) {
+		return false
 	}
 	return true
 }
@@ -2883,11 +3415,12 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 
 func init() {
 	effects.RegisterNonAPI(
-		"trig:ChangesZone", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
+		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
 		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:Cycled", "trig:CounterAdded",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
+		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
-		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase",
+		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
@@ -2899,7 +3432,10 @@ func init() {
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
-		"kw:Storm", "kw:Ward", "kw:Annihilator",
+		"kw:Storm", "kw:Ward", "kw:Annihilator", "kw:Mobilize",
+		// Afterlife's expansion (cards/keywords.go) is a ChangesZone death
+		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
+		"kw:Afterlife",
 		// Mass effects, extra turns and new-set mechanics (the
 		// inbox-engine-gap-mass-turn-new-mechanics ticket):
 		//   - trig:UnlockDoor: a Room's unlock trigger (rules/rooms.go),
@@ -3043,11 +3579,12 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // the sharing cannot starve a legitimate fire. Like those two the walk is
 // deliberately a read over active()'s sorted slice, never a map: the queue
 // order stays the scan's deterministic order.
-func (e *Engine) checkGrantedStaticTriggers(observer *Engine, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
+func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []ContinuousEffect, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
 	if e.finishingLifeLossBatch || e.lifeLossBatchDepth > 0 {
 		return
 	}
-	for _, ce := range observer.active() {
+	for i := range statics {
+		ce := &statics[i]
 		if ce.AddTrigger == nil {
 			continue
 		}
@@ -3127,4 +3664,88 @@ func grantedTriggerExecute(o *state.Object, execute string) *cards.SA {
 		}
 	}
 	return nil
+}
+
+// triggerCastAlt is one surviving ValidCard$ alternative of a Mode$
+// SpellCast trigger after the trigger-side self-cast exclusion was applied:
+// spec is the token-stripped filter text, exclSelf whether the alternative
+// carried the bare !CastSaSource token — its ActivatorThisTurnCastEach$
+// tally must also skip the trigger source's own printed-name casts.
+type triggerCastAlt struct {
+	spec     string
+	exclSelf bool
+}
+
+// triggerCastAlternatives splits a Mode$ SpellCast trigger's ValidCard$ into
+// its comma alternatives and applies the trigger-side bare !CastSaSource
+// reading (task castprov2, Alania, Divergent Storm — measured: exactly 1
+// trigger-side line in the corpus): an alternative carrying the token names
+// "a spell whose PRINTED NAME is not the trigger SOURCE's printed name" (the
+// oracle's "other than NICKNAME"; Forge has no trigger-side CastSaSource
+// grammar precedent in this corpus, so this reading is a documented
+// decision, not a discovered fact). The cast card's printed name equal to
+// the source's drops the alternative (a second Alania cast fails the Otter
+// alternative and does not trigger); the token is otherwise stripped and the
+// alternative kept for the ordinary filter. ok is false when no alternative
+// survives.
+func (e *Engine) triggerCastAlternatives(rawSpec string, source, castObj state.ObjID) ([]triggerCastAlt, bool) {
+	spec := spellCastPermanentSpec(rawSpec)
+	sourceName, castName := "", ""
+	if o := e.G.Obj(source); o != nil && o.Face() != nil {
+		sourceName = o.Face().Name
+	}
+	if o := e.G.Obj(castObj); o != nil && o.Face() != nil {
+		castName = o.Face().Name
+	}
+	isSelf := sourceName != "" && castName == sourceName
+	var alts []triggerCastAlt
+	for alt := range effects.FilterAlternatives(spec) {
+		s, had := effects.StripPredicateToken(alt, "!CastSaSource")
+		if had && isSelf {
+			continue
+		}
+		alts = append(alts, triggerCastAlt{spec: s, exclSelf: had})
+	}
+	if len(alts) == 0 {
+		return nil, false
+	}
+	return alts, true
+}
+
+// spellsCastThisTurnByMatching counts player p's spells cast this turn whose
+// object matches ONE alternative spec, with the trigger-side NICKNAME
+// exclusion applied to the tally when that alternative carried the
+// !CastSaSource token (Alania's "the first Otter spell other than Alania":
+// the source's own casts do not count toward that alternative's first).
+// The current cast is INCLUDED — it is already in the log when the deferred
+// trigger fires, and the oracle's "first ... you've cast this turn" counts
+// it (EQ1 = this cast is the first).
+func (e *Engine) spellsCastThisTurnByMatching(p state.PlayerID, spec string, exclSelf bool, source state.ObjID) int {
+	selfName := ""
+	if exclSelf {
+		if o := e.G.Obj(source); o != nil && o.Face() != nil {
+			selfName = o.Face().Name
+		}
+	}
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind != events.PutOnStack || ev.Player != p {
+			continue
+		}
+		o := e.G.Obj(ev.Obj)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		if selfName != "" && o.Face().Name == selfName {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, spec, ev.Obj, p, ev.Obj) {
+			n++
+		}
+	}
+	return n
 }

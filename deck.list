@@ -3504,6 +3504,152 @@ Commander
 1x Forest
 1x Forest
 1x Forest
+# --- Quick Draw (otc commander precon, Stella Lee, Wild Card) — census input, 2026-09-18 (issue agent-20260918T203713Z-76174fbb) ---
+# run: go run ./cmd/deckimport -in /tmp/quick-draw.list -out /tmp/qd101.deck -force -name "Quick Draw"
+# (the standalone section file keeps the Commander/Deck headers; the flat list below stores the cards)
+# AS-ENUMERATED the list is 101 cards, not the source page's claimed 100: 73 nonlands incl. commander
+# + 14 Island + 14 Mountain, `uniq -d` over the nonland names is empty — exactly ONE basic is over, and WHICH
+# basic (Island or Mountain) is unverified offline. The section stores the enumerated 14/14 with this note —
+# never invent a 13/14 or 14/13 split. (Post-census correction, recorded on review round 2: the source issue file
+# was edited after this section was committed, dropping ONE Mountain — the de-facto split is 14 Island / 13
+# Mountain, i.e. Mountain was the over-count basic. The enumeration above stays as-measured at census time;
+# re-verify against the source page before any deck-file addition.)
+# 101/101 resolved, 0 missing names; commander NOT eligible at 101 ("imported: 101 cards, but a Commander deck
+# must have exactly 100"). Corrected-count run (drop one Island — either basic resolves, all names resolve):
+# go run ./cmd/deckimport -in /tmp/qd100.list -out /tmp/qd100.deck -force -name "Quick Draw" → 100/100 resolved,
+# commander eligible: yes (Stella Lee, Wild Card is Legendary Creature — eligibility fails only on the count).
+# 12 new-gap tickets (.ds4/new-tickets/*.md) — deck file NOT added. (Round 1 filed 13; two were withdrawn on
+# review: count-head-targetedplayer.md was a duplicate of an already-open ledger entry — see overlaps below — and
+# static-setmaxhandsize.md was narrowed from the (implemented) battlefield static to the Effect-delivered shape
+# only — see the gap list.)
+# Gap primitives (12 tickets): DB$ Proliferate (Tezzeret's Gambit) — api-proliferate.md, 68 files; K:Plot
+#   (Lock and Load, Pyretic Charge) — kw-plot.md, 33; K:Jump-start (Radical Idea) — kw-jump-start.md, 13
+#   (enumeration brief said 16 — re-measured 13); Adapt$ on AB$ PutCounter (Pteramander) — param-adapt.md, 24;
+#   Effect-delivered SetMaxHandSize$ static (Finale of Revelation's DB$ Effect | StaticAbilities$ STHandSize) —
+#   static-setmaxhandsize.md, narrowed: the PLAIN battlefield static IS implemented (rules/combat.go:1317
+#   maxHandSizeFor reads both Unlimited and numeric, called by cleanupStep, pinned by TestNumericSetMaxHandSize —
+#   Reliquary Tower works); PersistentMana$ (Rousing Refrain) — param-persistentmana.md, 23; UseAllOriginZones$
+#   (Finale of Revelation) — param-usealloriginzones.md, 32; count head DifferentCardManaCost/Times.2 (Eris, Roar
+#   of the Storm) — count-head-differentcardmanacost.md, 20; count head TotalCommanderCastFromCommandZone
+#   (Thunderclap Drake) — count-head-totalcommandercast.md, 17; Upto$ on DB$ Draw (Arcane Denial) —
+#   param-draw-upto.md, 7; ChangeZoneTable$ on RepeatEach (Curse of the Swine) — param-changezonetable.md, 47;
+#   OrderDuplicates$ on triggers (Arcane Bombardment) — param-orderduplicates.md, 2.
+# Open-ledger overlaps (do not re-file): S:Mode$ CantAttackUnless (Propaganda) = issue-agent-20260918T210307Z-f658abd8;
+#   kw:Cascade (Volcanic Torrent) = issue-agent-20260918T214742Z-83cb70eb; kw:Crew (Smoldering Stagecoach) =
+#   issue-agent-20260918T221252Z-ebdaae26; mana-ability TriggersWhenSpent$ rider (Forger's Foundry) =
+#   issue-agent-20260918T205611Z-de7f8a84; api:Play.WithoutManaCost family (Forger's Foundry AB$ Play Defined$
+#   ExiledWith, Arcane Bombardment DBCast Valid$ Card.ExiledWithSource + CopyCard$ True, Baral's Expertise DBPlay,
+#   Finale of Promise DBPlay + ReplaceGraveyard$ Exile, Bloodthirsty Adversary DBCopyCast, Mizzix's Mastery
+#   DBPlay Defined$ Remembered + CopyCard$ True — six new carriers; the ExiledWith/ExiledWithSource predicate
+#   itself IS implemented (effects/play.go + effects/conditions.go) and so is WithoutManaCost$ on a Play SA
+#   (rules/resolution.go reads it and begins the free cast — landed bc01c474 2026-09-15, NOT the hole); the real
+#   unreads among these carriers are CopyCard$ True on Arcane Bombardment's DBCast and Mizzix's Mastery's DBPlay
+#   (zero non-test readers in effects/rules/cards — on those shapes the engine begins the cast of the ORIGINAL
+#   exiled card, not a copy) and Controller$ You on Baral's Expertise / Finale of Promise / Mizzix's Mastery /
+#   Bloodthirsty Adversary (no reader in the Play path; only effects/copy.go:93 reads Controller$, a different
+#   primitive) — widen d504b33b's primitive list with CopyCard$ True and Controller$ You, whose own title already
+#   names the Controller family) = issue-agent-20260918T221252Z-d504b33b; api:ImmediateTrigger (Bloodthirsty
+#   Adversary's ETB pay-repeat arm) =
+#   issue-agent-20260918T195920Z-2fd3b568 + issue-agent-20260918T202223Z-6ad7f5ec; api:Mill.RememberMilled
+#   (Leyline Dowser) = issue-agent-20260918T201731Z-86b4ef09; Windfall's SVar X multi-zone count SVar
+#   (PlayerCountPlayers$HighestValidGraveyard,Library,Exile) = ticket windfall-multizone-count-svar-unresolvable.md
+#   (filed by the wheel-feedback census; pinned in rules/reforge_the_soul_wheel_test.go:162 — population 3 files);
+#   count head TargetedPlayer$<prop> (Rousing Refrain's SVar:Z:TargetedPlayer$CardsInHand adds 0 mana today) =
+#   issue-agent-20260918T201425Z-bfb2a578, "TargetedPlayer$ count head is unread", open, priority 4 — filed ~23
+#   minutes before this census; round 1's own ticket was a re-file and has been withdrawn (81 corpus files).
+# Approximation-table leans (known, do not ticket): DelayedTrigger Mode$ SpellCast (Galvanic Iteration, Thunderclap
+#   Drake) and DelayedTrigger's ValidPlayer$ gate (Arcane Denial slowtrip) — approx DelayedTrigger row; Effect-granted
+#   ReduceCost/statics beyond CantTarget/CantRegenerate (Kaza, Roil Chaser; Crackling Spellslinger's Storm grant;
+#   Smoldering Stagecoach's Cascade grants) — approx Effect row (the hand-size Effect twin is now ticketed as
+#   static-setmaxhandsize.md instead of leaned here); copies keep
+#   the original's targets (Stella Lee, Finale of Promise, Galvanic Iteration, Thunderclap Drake) — approx copy row;
+#   +!CastSaSource predicate (Lock and Load) — approx ValidLKI row; TargetMin$/TargetMax$ X dynamic target count
+#   (Curse of the Swine) — approx castTargetsAvailable row; ManaReflected (Exotic Orchard) and mana-choice shapes
+#   (Cascade Bluffs' {U/R} + Amount$ 2 triple production) — approx mana rows; Haughty Djinn/Smoldering Stagecoach
+#   SetPower$ X statics, Storm-Kiln Artist AddPower$ X — static-PT row (real). Winged Boots' AddKeyword$ Flying &
+#   Ward:4 grant IS read (rules/layers.go:131 + checkGrantedWardTriggers over Derived keywords); Crackling
+#   Spellslinger's Card.wasCast+Self gate IS read (effects/filter.go:471); Niv-Mizzet's R:Event$ Counter
+#   Layer$ CantHappen bodyless form IS read (effects/misc.go:188).
+# source: the WotC Outlaws of Thunder Junction commander decklists article (magic.wizards.com/en/news/announcements/outlaws-of-thunder-junction-commander-decklists)
+
+Commander
+1x Stella Lee, Wild Card
+
+Deck
+1x Eris, Roar of the Storm
+1x Archmage Emeritus
+1x Baral's Expertise
+1x Tezzeret's Gambit
+1x Midnight Clock
+1x Haughty Djinn
+1x Dig Through Time
+1x Winged Boots
+1x Talrand, Sky Summoner
+1x Octavia, Living Thesis
+1x Thunderclap Drake
+1x Lock and Load
+1x Forger's Foundry
+1x Finale of Revelation
+1x Curse of the Swine
+1x Mizzix's Mastery
+1x Chaos Warp
+1x Crackling Spellslinger
+1x Pyretic Charge
+1x Smoldering Stagecoach
+1x Elemental Eruption
+1x Rousing Refrain
+1x Cursed Mirror
+1x Bloodthirsty Adversary
+1x Finale of Promise
+1x Arcane Bombardment
+1x Niv-Mizzet, Parun
+1x Kaza, Roil Chaser
+1x Shark Typhoon
+1x Galvanic Iteration
+1x Epic Experiment
+1x Veyran, Voice of Duality
+1x Leyline Dowser
+1x Exotic Orchard
+1x Shivan Reef
+1x Sulfur Falls
+1x Frostboil Snarl
+1x Temple of Epiphany
+1x Cascade Bluffs
+1x Ferrous Lake
+1x Treasure Cruise
+1x Preordain
+1x Ponder
+1x Murmuring Mystic
+1x Deep Analysis
+1x Radical Idea
+1x Opt
+1x Think Twice
+1x Arcane Denial
+1x Pteramander
+1x Vandalblast
+1x Pongify
+1x Serum Visions
+1x Faithless Looting
+1x Big Score
+1x Storm-Kiln Artist
+1x Young Pyromancer
+1x Electrostatic Field
+1x Guttersnipe
+1x Volcanic Torrent
+1x Windfall
+1x Goblin Electromancer
+1x Third Path Iconoclast
+1x Expressive Iteration
+1x Arcane Signet
+1x Izzet Signet
+1x Sol Ring
+1x Command Tower
+1x Temple of the False God
+1x Reliquary Tower
+1x Izzet Boilerworks
+1x Propaganda
+14 Island
+14 Mountain
 
 # --- Creative Energy (m3c commander precon, Satya, Aetherflux Genius) — census input, 2026-09-18 (issue agent-20260918T203713Z-786be74b) ---
 1 Satya, Aetherflux Genius
@@ -3606,6 +3752,2034 @@ Commander
 1 Mountain
 1 Mountain
 1 Mountain
+# --- Most Wanted (otc commander precon, Olivia, Opulent Outlaw) — census input, 2026-09-18 (issue agent-20260918T203713Z-efe5e453) ---
+# run: go run ./cmd/deckimport -in .ds4/scratch/most-wanted.list -out .ds4/deck-census.json -json -force
+# (the standalone section file is the verbatim WotC decklist — one "Commander:" header, 100 "1x Name" lines,
+# basics expanded to 1x lines so the count is exact; 95 distinct names)
+# 100/100 resolved, 0 missing names; commander eligible: true (Olivia, Opulent Outlaw, Legendary Creature —
+# face commander; Vihaan, Goldwaker is the precon's alternate commander, inside the 100, and neither card
+# carries Partner, so deck.File's single "commander" field correctly names the face card).
+# Deck file NOT added — real new gaps remain (the brief's condition). Measured by both ratchets with the
+# deck file temporarily present (15 of 95 distinct cards primitive-gap-flagged; param census 6 — six of the
+# deck's cards carry an unread param, 31 of 932 repo-deck cards total, baseline 25 + 6). The r1 comment said
+# "param census 2" (Requisition Raid, Seize the Spotlight) — FALSE, corrected r2 after an independent
+# re-measurement found four more. The six, with their labels:
+#   Requisition Raid param:api:Destroy.ModeCost (covered by the kw:Spree line below).
+#   Seize the Spotlight param:api:Pump.NoteCards / param:api:Pump.NoteCardsFor /
+#     param:api:RepeatEach.ClearRememberedBeforeLoop (covered by the api:GenericChoice line below).
+#   Marshland Bloodcaster param:api:Effect.ForgetOnCast — NEW, untracked in ledger.json and AGENTS.md —
+#     ticket api-effect-forget-on-cast.md (30 corpus files / 31 lines; no ForgetOnCast consumer exists in
+#     effects/, rules/ or cards/; its carrier static is Mode$ AlternativeCost ReduceCost Cost$
+#     PayLife<ConvertedManaCost>, so the ticket names the dynamic-cost shape too).
+#   Fain, the Broker cost:RemoveAnyCounter — NEW, untracked — ticket cost-remove-any-counter.md (40 corpus
+#     files / 41 lines, 39 inside a Cost$; the AB$ Token with Cost$ T RemoveAnyCounter<1/Any/Creature>).
+#   Graywater's Fixer param:stat:Continuous.EffectZone — NEW, at best ambiguous coverage (approx-02 names
+#     only stat:ManaConvert's EffectZone$ Command shape, a different param) — ticket
+#     stat-continuous-effectzone.md (252 static lines / 234 files carry EffectZone$; 121 files with a zone
+#     other than Battlefield/All, where ignoring the param is materially wrong).
+#   Shiny Impetus param:stat:Continuous.Goad — KNOWN, overlap with OPEN ledger issue
+#     issue-agent-20260918T201425Z-2a7b632f (S:Mode$ Continuous Goad$ True — the static goad rider is
+#     unread); noted here, not re-filed.
+#   api:AnimateAll (Vihaan, Goldwaker; Mirror Entity; Dead Before Sunrise — DB/AB shapes incl. the granted
+#     AB$ Fight executor and AddAllCreatureTypes$ True) = OPEN issue-agent-20260918T201425Z-dffc06a3 (do not
+#     re-file); the AddAllCreatureTypes$ param overlaps Squirreled Away's filed ticket (e009bfa6).
+#   api:PutCounterAll (Olivia's AB$ activation; Requisition Raid's DBPutCounterAll Charm mode)
+#     = OPEN issue-agent-20260918T195920Z-6d0f5aae (do not re-file).
+#   api:GenericChoice (Seize the Spotlight) = OPEN issue-agent-20260918T202223Z-eb7aab2a (do not re-file);
+#     its NoteCards$/NoteCardsFor$ + Player.NotedFor<X> notation family and RepeatEach.ClearRememberedBeforeLoop$
+#     are NEW — ticket noted-for-notation.md (Depends-On the GenericChoice issue).
+#   kw:Spree + ModeCost$ (Requisition Raid, param:api:Destroy.ModeCost) = OPEN issue-agent-20260918T222058Z-0298ba80.
+#   trig:ChangesZoneAll (Morbid Opportunist, batch creature deaths, trigger-side ActivationLimit$ 1)
+#     = OPEN issue-agent-20260918T202223Z-7054b9c3 (do not re-file).
+#   trig:LifeGained (Veinwitch Coven) = OPEN issue-agent-20260918T202223Z-eb38487f (do not re-file).
+#   api:ReplaceToken + repl:CreateToken (Academy Manufactor) = OPEN issue-agent-20260918T204633Z-909e595e.
+#   api:MoveCounter (Aetherborn Marauder, counters_GE1_P1P1 ValidSource) = OPEN issue-agent-20260918T205611Z-1c5d04bf.
+#   kw:Undaunted (Curtains' Call) — NEW, not in the ledger — ticket kw-undaunted.md, 8 corpus files.
+#   kw:Partner with (Kamber, the Plunderer; Laurine, the Diversion) — NEW registration + ETB may-put-in-hand
+#     offer — ticket kw-partner-with.md, 52 corpus files; the partner-PAIR deck-representation side is OPEN
+#     issue-agent-20260918T202223Z-591678f9 (Depends-On).
+#   kw:Changeling (Changeling Outcast; Mirror Entity) and kw:Escape (Charred Graverobber) — FALSE gaps of the
+#     registration class (the m3c Graveyard Overdrive census recorded the same for Graveshifter/Bloodbraid
+#     Challenger): Changeling is implemented at effects/filter.go hasType (approx-52 documents the behaviour),
+#     the escape cast is implemented (rules/legal.go graveyard-cast offer, rules/altcast.go escapeCost, pinned
+#     by rules/rakdos_params_escape_test.go) — only the effects.RegisterNonAPI("kw:Changeling"/"kw:Escape")
+#     lines are missing; kw-escape.md is already filed and corrected r2. Not re-filed here.
+#   NEW beyond the ratchets: cast-provenance predicates outside the documented ValidLKI$ replacement gate —
+#     Rain of Riches' Affected$ Card.YouCtrl+CastSa Spell.ManaFromTreasure cascade-grant static (and its
+#     Count$ThisTurnCast...ManaFromTreasure SVarCompare EQ0 gate) fails closed, so the static is inert and the
+#     card is ETB-tokens-only; 5 corpus files carry ManaFromTreasure, 36 carry CastSa. Ticket castsa-provenance.md.
+#   Invisible-to-the-primitive-ratchet census-fidelity note: cards.Face.Primitives() does not walk SVar-name-
+#     referenced sub-abilities (Charm's Choices$, Repeat's RepeatSubAbility$) — measured on Requisition Raid,
+#     whose gap list shows [kw:Spree] while its modes carry api:Destroy/api:PutCounterAll = OPEN ledger issue
+#     agent-20260918T202223Z-d6a3729d (Final Act precedent; do not re-file). The Primitives()-walk finding
+#     is also carried verbatim in .ds4/report-r2.md §Issues, so it reaches the backlog even though the
+#     ledger entry's body (where it may only live) is not readable from a task worktree.
+# source: WotC "Outlaws of Thunder Junction Commander decklists" (fetched 2026-09-18 by the enum seat), set otc,
+#         released 2024-04-19 — 100/100 resolved (deckimport, this census). Playable-coverage figure r2
+#         RE-MEASURED: `make report` cannot run in this worktree (the shared `.cards/ir.gob.gz` is IR cache
+#         v3; this branch's forgec wants v4 — "forgec: IR cache version 3, want 4 — run make compile-cards"),
+#         and compiling would overwrite the SHARED cache, so the shared corpus was copied locally
+#         (.ds4/cards-mw, `cp -rL`; its cards.lock pin equals FORGE_REF 95f04e8a04c8925fa97cb226fc3341cabcc90a53)
+#         and measured fresh: `forgec compile -dir .ds4/cards-mw` (33669 cards, 839 tokens, 11 diagnostics)
+#         then `forgec report -dir .ds4/cards-mw` → `cards: 33667  playable: 25105 (74.6%)` / `tokens: 839`.
+#         (Round 1 quoted this figure unmeasured — it is byte-identical to the m3c Graveyard Overdrive
+#         census's print; the number itself is correct at this branch, now genuinely measured.)
+
+Commander:
+1x Olivia, Opulent Outlaw
+1x Vihaan, Goldwaker
+1x Council's Judgment
+1x Heliod's Intervention
+1x Angelic Sell-Sword
+1x We Ride at Dawn
+1x Massacre Girl
+1x Fain, the Broker
+1x Witch of the Moors
+1x Nighthawk Scavenger
+1x Curtains' Call
+1x Misfortune Teller
+1x Painful Truths
+1x Kamber, the Plunderer
+1x Ogre Slumlord
+1x Hex
+1x Mari, the Killing Quill
+1x Discreet Retreat
+1x Charred Graverobber
+1x Back in Town
+1x Marshland Bloodcaster
+1x Veinwitch Coven
+1x Rankle, Master of Pranks
+1x Dire Fleet Ravager
+1x Mirror Entity
+1x Dire Fleet Daredevil
+1x Captain Lannery Storm
+1x Seize the Spotlight
+1x Grenzo, Havoc Raiser
+1x Angrath's Marauders
+1x Captivating Crew
+1x Rain of Riches
+1x Laurine, the Diversion
+1x Mass Mutiny
+1x Dead Before Sunrise
+1x Graywater's Fixer
+1x Life Insurance
+1x Breena, the Demagogue
+1x Queen Marchesa
+1x Idol of Oblivion
+1x Academy Manufactor
+1x Bounty Board
+1x Fetid Heath
+1x Command Beacon
+1x Vault of the Archangel
+1x Dragonskull Summit
+1x Temple of Silence
+1x Temple of Malice
+1x Exotic Orchard
+1x Temple of Triumph
+1x Clifftop Retreat
+1x Isolated Chapel
+1x Bonders' Enclave
+1x Caves of Koilos
+1x Battlefield Forge
+1x Sulfurous Springs
+1x Rugged Prairie
+1x Desolate Mire
+1x Shadowblood Ridge
+1x Canyon Slough
+1x Smoldering Marsh
+1x Blackcleave Cliffs
+1x Mistmeadow Skulk
+1x Requisition Raid
+1x Changeling Outcast
+1x Feed the Swarm
+1x Deadly Dispute
+1x Morbid Opportunist
+1x Aetherborn Marauder
+1x Tenured Inkcaster
+1x Shoot the Sheriff
+1x Lightning Greaves
+1x Impulsive Pilferer
+1x Shiny Impetus
+1x Humble Defector
+1x Glittering Stockpile
+1x Boros Charm
+1x Arcane Signet
+1x Trailblazer's Boots
+1x Bandit's Haul
+1x Orzhov Signet
+1x Sol Ring
+1x Rakdos Signet
+1x Command Tower
+1x Bojuka Bog
+1x Path of Ancestry
+1x Rogue's Passage
+1x Demolition Field
+1x Tainted Peak
+1x Sunhome, Fortress of the Legion
+1x Nomad Outpost
+1x Temple of the False God
+1x Plains
+1x Plains
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+1x Mountain
+1x Mountain
+# --- Eldrazi Incursion (m3c commander precon, Ulalek, Fused Atrocity) — census input, 2026-09-18 (issue agent-20260918T203713Z-c5624ae1) ---
+1 Ulalek, Fused Atrocity
+1 Azlask, the Swelling Scourge
+1 Ulamog's Dreadsire
+1 Benthic Anomaly
+1 Eldritch Immunity
+1 Selective Obliteration
+1 Angelic Aberration
+1 Bismuth Mindrender
+1 Hideous Taskmaster
+1 Twins of Discord
+1 Mutated Cultist
+1 Eldrazi Confluence
+1 Spawnbed Protector
+1 Chittering Dispatcher
+1 Inversion Behemoth
+1 Ugin, the Ineffable
+1 Eldrazi Conscription
+1 Cascading Cataracts
+1 Eldrazi Monument
+1 Sire of Stagnation
+1 Shrine of the Forsaken Gods
+1 Ugin's Insight
+1 Drowner of Hope
+1 Return of the Wildspeaker
+1 Tendo Ice Bridge
+1 Battlefield Forge
+1 Llanowar Wastes
+1 Brushland
+1 Underground River
+1 Oblivion Sower
+1 Adarkar Wastes
+1 Karplusan Forest
+1 Yavimaya Coast
+1 Sulfurous Springs
+1 Caves of Koilos
+1 Shivan Reef
+1 Imprisoned in the Moon
+1 Temple of Malady
+1 Temple of Silence
+1 Morophon, the Boundless
+1 Kozilek's Return
+1 World Breaker
+1 Ruins of Oran-Rief
+1 Sifter of Skulls
+1 Endbringer
+1 Corrupted Crossroads
+1 Deepfathom Skulker
+1 Vile Redeemer
+1 Eldrazi Displacer
+1 Mystic Forge
+1 All Is Dust
+1 Rishkar's Expertise
+1 Awakening Zone
+1 Eldrazi Temple
+1 Elder Deep-Fiend
+1 Bonders' Enclave
+1 Exotic Orchard
+1 Forsaken Monument
+1 Snapping Voidcraw
+1 Herald's Horn
+1 Everflowing Chalice
+1 Glaring Fleshraker
+1 Wastescape Battlemage
+1 Crib Swap
+1 Titans' Vanguard
+1 Talisman of Resilience
+1 Hedron Archive
+1 Spawning Bed
+1 Ulamog's Nullifier
+1 Twisted Landscape
+1 Tranquil Landscape
+1 Tectonic Edge
+1 Reliquary Tower
+1 Sol Ring
+1 Artisan of Kozilek
+1 Opal Palace
+1 Dreamstone Hedron
+1 Arcane Signet
+1 Tomb of the Spirit Dragon
+1 Secluded Courtyard
+1 Idol of Oblivion
+1 Wastes
+1 Talisman of Curiosity
+1 Talisman of Impulse
+1 Warping Wail
+1 Talisman of Dominance
+1 Command Tower
+1 Ash Barrens
+1 Ancient Stirrings
+1 Ulamog's Crusher
+1 Garruk's Uprising
+1 Suffer the Past
+1 Skittering Invasion
+1 Path of Ancestry
+1 Unclaimed Territory
+1 Plains
+1 Island
+1 Swamp
+1 Mountain
+1 Forest
+# --- Lorehold Spirit (soc commander precon, Quintorius, History Chaser) — census input, 2026-09-18 (issue agent-20260918T211806Z-5165a52a) ---
+# run: sed -n '/Lorehold Spirit (soc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/soc-lorehold-spirit.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC Secrets of Strixhaven Commander decklist announcement deck-list element, cross-checked
+#   card-for-card against MTGGoldfish deck 7711188 (fetched 2026-09-18)
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps: kw:Hexproof, kw:Echo, kw:Backup,
+#   api:Phases, api:EachDamage, trig:DiscardedAll (+ 8 new param/cost families).
+# Gap primitives (18 of 100 cards / 13 distinct primitive labels, lists in the census report):
+#   trig:ChangesZoneAll (Quintorius HC, Laelia, Tocasia's Welcome, Kirol, Quintorius FH, Spirit of Resilience);
+#   api:AlterAttribute (Naktamun Lorespinner, Lorehold Archivist, Kirol); api:Clone (Spirit of Resilience);
+#   api:CopyPermanent (Hofri Ghostforge, Lorehold Archivist); kw:Class (Advanced Reconstruction);
+#   api:Phases (Guardian of Faith); kw:Backup (Guardian Scalelord); kw:Hexproof (Lotus Field);
+#   trig:TokenCreatedOnce (Staff of the Storyteller); kw:Echo (Karmic Guide);
+#   api:ImmediateTrigger (Augusta, Order Returned); api:EachDamage (Wave of Reckoning);
+#   trig:DiscardedAll (Conspiracy Theorist). Tickets for the TRUE new gaps in .ds4/new-tickets/ (14 filed);
+#   the open-ledger overlaps (ChangesZoneAll, Clone, CopyPermanent, Class, AlterAttribute, ImmediateTrigger,
+#   ChangeZone.StaticEffect, Animate.Triggers, Mana.TriggersWhenSpent, Mill.RememberMilled) NOT re-filed.
+# New param/cost tickets (8): api:Dig.WithTotalCMC, api:ChooseCard.ChooseEach, api:CopySpellAbility.Optional,
+#   api:Vote.StoreVoteNum, api:Animate.sVars, cost:Mill, stat:Continuous.MayPlay.ValidAfterStack (the
+#   withheld-whole may-play gate — must be evaluated, not widened), stat:Continuous.EffectZone (234 files).
+# Known-family leans, no ticket: api:Dig.RestRandomOrder (Ao) and the desc-only ValidTgtsDesc family
+#   (Excava, Primary Research, Lorehold Charm, Augusta) — both named in AGENTS.md's approximations table.
+Commander
+1x Quintorius, History Chaser
+1x Excava, the Risen Past
+1x Lorehold Archivist
+1x Augusta, Order Returned
+1x Ceaseless Conflict
+1x Vanguard of the Restless
+1x Advanced Reconstruction
+1x Fateful Tempest
+1x Naktamun Lorespinner
+1x Relic Retriever
+1x Spirit of Resilience
+1x Turbulent Steppe
+1x Moonshaker Cavalry
+1x Staff of the Storyteller
+1x Wave of Reckoning
+1x Fabled Passage
+1x Angel of Indemnity
+1x Ao, the Dawn Sky
+1x Archaeomancer's Map
+1x Claim Jumper
+1x Drumbellower
+1x Guardian of Faith
+1x Guardian Scalelord
+1x Karmic Guide
+1x Monologue Tax
+1x Remorseful Cleric
+1x Selfless Spirit
+1x Serra Paragon
+1x Sevinne's Reclamation
+1x Skyclave Apparition
+1x Sun Titan
+1x Tocasia's Welcome
+1x Tragic Arrogance
+1x White Orchid Phantom
+1x Atsushi, the Blazing Sky
+1x Conspiracy Theorist
+1x Laelia, the Blade Reforged
+1x Balefire Liege
+1x Hofri Ghostforge
+1x Quintorius, Loremaster
+1x Venerable Warsinger
+1x Bitterthorn, Nissa's Animus
+1x Currency Converter
+1x Battlefield Forge
+1x Clifftop Retreat
+1x Emeria, the Sky Ruin
+1x Exotic Orchard
+1x Furycalm Snarl
+1x Glittering Massif
+1x Lotus Field
+1x Radiant Summit
+1x Rugged Prairie
+1x Sunscorched Divide
+1x Temple of Triumph
+1x Arcane Signet
+1x Sol Ring
+1x Command Tower
+1x Primary Research
+1x Seize the Spoils
+1x Kirol, History Buff
+1x Lorehold Charm
+1x Fields of Strife
+1x Terramorphic Expanse
+1x Kami of Ancient Law
+1x Path to Exile
+1x Secret Rendezvous
+1x Swords to Plowshares
+1x Teshar, Ancestor's Apostle
+1x Anger
+1x Faithless Looting
+1x Squee, Goblin Nabob
+1x Quintorius, Field Historian
+1x Rip Apart
+1x Containment Construct
+1x Fellwar Stone
+1x Millikin
+1x Mind Stone
+1x Patchwork Banner
+1x Perpetual Timepiece
+1x Lorehold Campus
+1x Mistveil Plains
+1x Sacred Peaks
+1x Study Hall
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Mountain
+1x Mountain
+1x Mountain
+1x Mountain
+1x Mountain
+1x Mountain
+# --- Doom Prevails (msc commander precon, Doctor Doom, King of Latveria) — census input, 2026-09-18 (issue agent-20260918T211806Z-558096c7) ---
+# run: sed -n '/Doom Prevails (msc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/msc-doom-prevails.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC Marvel Super Heroes Commander decklist announcement, Doom Prevails <main-deck> element, cross-checked
+#   card-for-card against MTGGoldfish deck 7838834 (fetched 2026-09-18)
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps: kw:Mayhem, kw:Melee, api:VillainousChoice,
+#   trig:Connives (+ 7 new param/cost families; overlap tickets cited in the census report).
+# Gap primitives (22 of 100 cards / 15 distinct primitive labels, lists in the census report):
+#   api:Connive (Ultron Unlimited, Prowler, Villainous Hideout, Baron Strucker, Kang Temporal Tyrant, Doctor Doom,
+#     Lethal Scheme); api:PutCounterAll (Iron Monger, Glorious Purpose); api:DigUntil (Lady Loki, Kang Prime);
+#   api:Clone (Spark Double, Chameleon); api:CopyPermanent (Living Laser, Loki the Deceiver);
+#   api:VillainousChoice (Damocles Base); kw:Mayhem (Abomination, The Squadron Sinister, Chameleon);
+#   kw:Melee (Titania); kw:Multikicker (Batroc); kw:Unearth (Tri-Sentinel); kw:Crew (Damocles Base);
+#   stat:CantAttackUnless (Propaganda); trig:Connives (Iron Monger, Ultron Unlimited, Glorious Purpose);
+#   trig:DiscardedAll (Doctor Doom). Tickets for the TRUE new gaps in .ds4/new-tickets/ (10 filed);
+#   the open-ledger overlaps (Connive, PutCounterAll, DigUntil, Clone, CopyPermanent, Multikicker,
+#   CantAttackUnless, Crew, Unearth, Play.WithoutManaCost/Controller, Play.ReplaceGraveyard,
+#   Effect.ForgetOnCast, DiscardedAll) NOT re-filed.
+# VARIANT NOTE on open ticket 83c8fb8e (api:Connive): the trigger-mode variant trig:Connives ("whenever a
+#   creature you control connives", T:Mode$ Connives — Iron Monger, Ultron Unlimited, Glorious Purpose;
+#   /usr/bin/grep -rlE 'Mode\$ Connives' .cards/cardsfolder | wc -l -> 3) rides the same connive primitive;
+#   add it to that ticket the way the Lorehold census noted trig:TokenCreatedOnce on the trig:TokenCreated ticket.
+# New param/cost tickets (10): kw-mayhem, kw-melee, api-villainouschoice, trig-changeszone-resolvedlimit,
+#   api-effect-imprintonhost, api-destroyall-zone, api-charm-random, cost-draw,
+#   api-animate-staticabilities, api-dig-imprint.
+# Known-family leans, no ticket: the desc-only ValidTgtsDesc family (Kang Dynasty Pump, Doom's Time Platform
+#   ChangeZone, Age of Ultron Destroy, Helmut Zemo Play), api:Play.RememberPlayed (Conduit of Worlds row),
+#   api:Dig.WithMayLook (Extract Power, Klaw — Scarlet Witch row), api:Effect.ImprintOnHost is ticketed above,
+#   api:DestroyAll.Zone ticketed above (cross-ref the open IsNotChosenType ticket c09a9312 for the same card).
+Commander
+1 Doctor Doom, King of Latveria
+
+Deck
+1 Molecule Man
+1 Helmut Zemo, Mastermind
+1 The Frightful Four
+1 Iron Monger, Sadistic Tycoon
+1 Klaw, Master of Sound
+1 Abomination, World Ravager
+1 Batroc the Leaper
+1 Killmonger, Ruthless Usurper
+1 Lady Loki, Agent of Chaos
+1 Living Laser
+1 Puppet Master, String Puller
+1 Stilt-Man, Towering Terror
+1 Titania, Proud Pummeler
+1 Kang Prime
+1 Loki, the Deceiver
+1 Red Ghost, Intangible Genius
+1 The Squadron Sinister
+1 Typhoid Mary, Fractured
+1 Ultron, Unlimited
+1 Tri-Sentinel, Act of Vengeance
+1 Spark Double
+1 Titan of Littjara
+1 Baron Strucker, HYDRA Overlord
+1 Moonstone, Harsh Mistress
+1 Kang, Temporal Tyrant
+1 Madame Hydra
+1 Containment Construct
+1 Chameleon, Master of Disguise
+1 Tombstone, Career Criminal
+1 Superior Foes of Spider-Man
+1 Prowler, Clawed Thief
+1 Glorious Purpose
+1 Kang Dynasty
+1 Age of Ultron
+1 Archnemesis
+1 Black Market Connections
+1 Propaganda
+1 Damocles Base, Sword of Kang
+1 Loki's Scepter
+1 Doom's Time Platform
+1 Currency Converter
+1 Progenitor's Icon
+1 Skullclamp
+1 Arcane Signet
+1 Patchwork Banner
+1 Sol Ring
+1 Swiftfoot Boots
+1 Talisman of Dominance
+1 Talisman of Indulgence
+1 Lethal Scheme
+1 Chaos Warp
+1 Bedevil
+1 Withering Torment
+1 Terminate
+1 Extract Power
+1 Endless Ranks of HYDRA
+1 Kindred Dominance
+1 Toxic Deluge
+1 Blasphemous Act
+1 Night's Whisper
+1 Syphon Mind
+1 Vandalblast
+1 Canyon Slough
+1 Choked Estuary
+1 Coastal Peak
+1 Dragonskull Summit
+1 Drowned Catacomb
+1 Exotic Orchard
+1 Fetid Pools
+1 Foreboding Ruins
+1 Frostboil Snarl
+1 Luxury Suite
+1 Scavenger Grounds
+1 Scorched Geyser
+1 Smoldering Marsh
+1 Sulfur Falls
+1 Sunken Hollow
+1 Villainous Hideout
+1 Command Tower
+1 Crumbling Necropolis
+1 Path of Ancestry
+1 Secluded Courtyard
+1 Terramorphic Expanse
+1 Unclaimed Territory
+1 Island
+1 Island
+1 Island
+1 Island
+1 Swamp
+1 Swamp
+1 Swamp
+1 Swamp
+1 Swamp
+1 Swamp
+1 Mountain
+1 Mountain
+1 Mountain
+1 Mountain
+1 Mountain
+# --- The Fantastic Four (msc commander precon, Invisible Woman) — census input, 2026-09-18 (issue agent-20260918T211806Z-7e1cf3d1) ---
+# run: sed -n '/The Fantastic Four (msc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/msc-fantastic-four.list
+# source: WotC Marvel Super Heroes Commander decklist announcement deck-list element, fetched 2026-09-18; MTGJSON
+#   DeckList entry TheFantasticFour_MSC cross-checked; MTGGoldfish stock list rate-limited (its deck 7915879 is a
+#   user-submitted Bracket-4 build, not the precon — do not substitute it)
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps: api:Discover, api:FlipCoin,
+#   api:GainControlVariant, api:MultiplyCounter, kw:Escalate, kw:Rebound, stat:IgnoreLegendRule
+#   (7 tickets filed in .ds4/new-tickets/; open-ledger overlaps NOT re-filed: api:AddPhase — 358dffd6,
+#   api:Clone — d0f64ebe, api:CopyPermanent — 6994a692 + bdef0f98, api:Explore — 2b8f933d,
+#   api:ImmediateTrigger — 6ad7f5ec et al., api:Phases — 1f98ae46, api:PutCounterAll — 6d0f5aae,
+#   kw:Cascade — 83cb70eb, trig:ChangesZoneAll — 7054b9c3 et al.).
+# Commander: Invisible Woman (cn 1 face card, first card of the official list; Mister Fantastic, Human Torch and
+#   The Thing are the precon's alternate face commanders — all four Legendary Creature, none Partner, all inside
+#   the 100 — deck.File's single 'commander' field correctly names the face card).
+# Gap primitives (22 of 100 cards / 16 distinct primitive labels, lists in the census report):
+#   api:Discover (Franklin Richards, Ascendant); api:FlipCoin (Negative Zone Portal);
+#   api:GainControlVariant (Alicia Masters, Skilled Sculptor); api:MultiplyCounter (The Thing);
+#   kw:Escalate (Collective Effort); kw:Rebound (Invisible Force Field, Fantastic Elasticity, Flame On!,
+#   It's Clobberin' Time!, Quantum Misalignment, Recurring Insight, Into the Time Vortex, Terramorph);
+#   stat:IgnoreLegendRule (Council of Reeds); api:AddPhase (Seize the Day); api:Clone (Mirage Mirror);
+#   api:CopyPermanent (Council of Reeds, Quantum Misalignment); api:Explore (Path of Discovery);
+#   api:ImmediateTrigger (Invisible Woman, Lockjaw, The Thing); api:Phases (Clever Concealment);
+#   api:PutCounterAll (Collective Effort); kw:Cascade (Into the Time Vortex);
+#   trig:ChangesZoneAll (Mister Fantastic, Reed Richards).
+# Known-family leans, no ticket: stat:MustAttack (Galactus, Devourer of Worlds — unregistered but read directly
+#   by rules/combat.go), api:DelayedTrigger Mode$ SpellCast (Galvanic Iteration — the AGENTS.md DelayedTrigger
+#   row implements only Mode$ Phase), api:ManaReflected (Exotic Orchard — implemented, effects/mana_reflected.go),
+#   kw:Convoke (Clever Concealment — implemented, rules/cast.go).
+Commander
+1x Invisible Woman
+1x Mister Fantastic
+1x Human Torch
+1x The Thing
+1x Galactus, Devourer of Worlds
+1x Silver Surfer, Galactus's Herald
+1x Invisible Force Field
+1x Ultimate Nullification
+1x Council of Reeds
+1x Fantastic Elasticity
+1x Lockjaw, Slobbering Teleporter
+1x Valeria Richards, Precocious
+1x Alicia Masters, Skilled Sculptor
+1x Flame On!
+1x Franklin Richards, Ascendant
+1x Nova Flame
+1x It's Clobberin' Time!
+1x Medusa, Inhuman Queen
+1x Black Bolt, Inhuman King
+1x Cosmic Crucible
+1x Crystal, Inhuman Princess
+1x Dragon Man, Reformed Robot
+1x First Family
+1x Namor, Atlantean King
+1x Power Pack
+1x Willie Lumpkin, Postman
+1x The Fantasticar
+1x H.E.R.B.I.E., Lovable Robot
+1x Negative Zone Portal
+1x Unstable Molecule Suit
+1x Cleansing Nova
+1x Clever Concealment
+1x Collective Effort
+1x Monologue Tax
+1x Promise of Loyalty
+1x Tragic Arrogance
+1x Quantum Misalignment
+1x Recurring Insight
+1x Into the Time Vortex
+1x Seize the Day
+1x Path of Discovery
+1x Galvanic Iteration
+1x Taunt from the Rampart
+1x Whirlwind of Thought
+1x Chromatic Lantern
+1x Mirage Mirror
+1x Canopy Vista
+1x Cinder Glade
+1x Clifftop Retreat
+1x Exotic Orchard
+1x Fabled Passage
+1x Glacial Fortress
+1x Hinterland Harbor
+1x Prairie Stream
+1x Radiant Summit
+1x Rejuvenating Springs
+1x Rootbound Crag
+1x Scorched Geyser
+1x Sodden Verdure
+1x Sulfur Falls
+1x Sunpetal Grove
+1x Terramorphic Expanse
+1x Mind's Dilation
+1x Annie Joins Up
+1x Genesis Ultimatum
+1x Mister Fantastic, Reed Richards
+1x Baxter Building
+1x Bovine Intervention
+1x Cut a Deal
+1x Path to Exile
+1x Deep Analysis
+1x Cultivate
+1x Farseek
+1x Terramorph
+1x Three Visits
+1x Expressive Iteration
+1x Hull Breach
+1x Arcane Signet
+1x Lightning Greaves
+1x Sol Ring
+1x Command Tower
+1x Evolving Wilds
+1x Path of Ancestry
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Island
+1x Island
+1x Island
+1x Island
+1x Mountain
+1x Mountain
+1x Mountain
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+# --- World Shaper (eoc commander precon, Hearthhull, the Worldseed) — census input, 2026-09-18 ---
+# run: sed -n '/World Shaper (eoc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/eoc-world-shaper.list
+# source: WotC official decklist article magic.wizards.com/en/news/announcements/edge-of-eternities-commander-decklists
+#   (MTGJSON DeckList entry WorldShaper_EOC cross-checked; mtggoldfish unreachable — deck/archetype pages 404 for eoc)
+# 100/100 resolved; commander eligible (Legendary Artifact Spacecraft). Deck file NOT added — real new gaps:
+#   pred:ChosenCardStrict, pred:CanBeSacrificedBy, count:PlayerCountPropertyYou$<Property>,
+#   TargetMin$/TargetMax$ non-literal bounds, Count$Valid $DifferentCardPower-family aggregates,
+#   pred:hasABasicLandType, count:TriggerRemembered$ — 7 tickets in .ds4/new-tickets/. Open-ledger overlaps
+#   NOT re-filed: api:AddPhase — 358dffd6, api:Investigate — 29ab26dd + trig 33d2eba5, api:ImmediateTrigger —
+#   2fd3b568 + 6ad7f5ec, api:CopyPermanent — 6994a692, api:PutCounterAll — 6d0f5aae, kw:Retrace — 72587dc0,
+#   Cost$-on-trigger-body — a1faec2c (also Springbloom Druid), trig:ChangesZoneAll — 7054b9c3 (Gitrog Monster),
+#   static:AddAbility — 6efc3126 (Hearthhull's STATION 2+ draw ability), Count$Valid $GreatestCardPower —
+#   155888e1 + e27469dd (the Different* variants this census filed are the unfiled siblings)
+# note: Szarel, Genesis Shepherd (cn 0004) is the featured/alternate face commander, also in the deck.
+Commander
+1 Hearthhull, the Worldseed
+
+Deck
+1 Szarel, Genesis Shepherd
+1 Eumidian Wastewaker
+1 Evendo Brushrazer
+1 Planetary Annihilation
+1 Baloth Prime
+1 Exploration Broodship
+1 Horizon Explorer
+1 Scouring Swarm
+1 Eumidian Hatchery
+1 Festering Thicket
+1 Vernal Fen
+1 Fabled Passage
+1 Braids, Arisen Nightmare
+1 God-Eternal Bontu
+1 Blasphemous Act
+1 Hammer of Purphoros
+1 Moraug, Fury of Akoum
+1 Augur of Autumn
+1 Centaur Vinecrasher
+1 Formless Genesis
+1 Loamcrafter Faun
+1 Multani, Yavimaya's Avatar
+1 Oracle of Mul Daya
+1 Pest Infestation
+1 Rampaging Baloths
+1 Splendid Reclamation
+1 Tireless Tracker
+1 Titania, Protector of Argoth
+1 World Breaker
+1 Escape to the Wilds
+1 Gaze of Granite
+1 The Gitrog Monster
+1 Korvold, Fae-Cursed King
+1 Mazirek, Kraul Death Priest
+1 Omnath, Locus of Rage
+1 Soul of Windgrace
+1 Windgrace's Judgment
+1 Worldsoul's Rage
+1 Canyon Slough
+1 Cinder Glade
+1 Karplusan Forest
+1 Llanowar Wastes
+1 Sheltered Thicket
+1 Smoldering Marsh
+1 Sulfurous Springs
+1 Twilight Mire
+1 Viridescent Bog
+1 Farseek
+1 Springbloom Druid
+1 Binding the Old Gods
+1 Arcane Signet
+1 Sol Ring
+1 Command Tower
+1 Mountain Valley
+1 Terramorphic Expanse
+1 Infernal Grasp
+1 Night's Whisper
+1 Sprouting Goblin
+1 Aftermath Analyst
+1 Beast Within
+1 Cultivate
+1 Groundskeeper
+1 Harrow
+1 Nature's Lore
+1 Roiling Regrowth
+1 Satyr Wayfinder
+1 Skyshroud Claim
+1 Tear Asunder
+1 Juri, Master of the Revue
+1 Mayhem Devil
+1 Putrefy
+1 Rakdos Charm
+1 Uurg, Spawn of Turg
+1 Bojuka Bog
+1 Cabaretti Courtyard
+1 Dakmor Salvage
+1 Escape Tunnel
+1 Evolving Wilds
+1 Maestros Theater
+1 Myriad Landscape
+1 Riveteers Overlook
+1 Rocky Tar Pit
+1 Wastes
+5 Swamp
+3 Mountain
+8 Forest
+# --- Silverquill Influence (soc commander precon, Killian, Decisive Mentor) — census input, 2026-09-18 (issue agent-20260918T211806Z-7f1829ef) ---
+# run: sed -n '/Silverquill Influence (soc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/soc-silverquill-influence.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC "Secrets of Strixhaven" Commander decklist announcement
+#   (magic.wizards.com/en/news/announcements/secrets-of-strixhaven-commander-decklists), the
+#   Silverquill Influence <deck-list> element, fetched 2026-09-18; corroborated by the MTGJSON DeckList
+#   entry SilverquillInfluence_SOC (type Commander Deck, releaseDate 2026-04-24). MTGGoldfish cross-check
+#   NOT obtainable (search endpoints 404/no hits in triage) — WotC + MTGJSON only.
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps remain (re-measured r2 with the
+#   deck temporarily present at internal/testutil/decks/silverquill-influence.json, then deleted: coverage
+#   ratchet 17 of 932 distinct repo-deck cards = 14 new + the 3 baseline table cards; param census 44 of 932
+#   = 19 new over the 25-card baseline; baseline green again after deletion).
+# Trap note: the deck ALSO carries Killian, Ink Duelist (the STX card) as an ordinary card — do not confuse
+#   it with the commander, Killian, Decisive Mentor.
+# Coverage-gap labels (14): OPEN-ledger overlaps cited, not re-filed —
+#   stat:CantAttackUnless (Nils, Discipline Enforcer; Ghostly Prison) -> agent-20260918T210307Z-f658abd8;
+#   kw:Escape (Sentinel's Eyes) -> agent-20260918T214742Z-f741ed13 (sibling registration note
+#     agent-20260918T215400Z-ed2f3c55, also open);
+#   api:AlterAttribute (Eiganjo Dynastorian; Defacing Duskmage) -> agent-20260918T210307Z-f6df1b2f;
+#   api:DigUntil (Songbirds' Blessing) -> agent-20260918T195920Z-e8579598 (that ticket already names the
+#     card; sibling agent-20260918T200326Z-876eea96, also open);
+#   api:ChooseColor (Flickering Ward) -> agent-20260918T195920Z-1cef0de2;
+#   api:AnimateAll (Arcane Lighthouse) -> agent-20260918T201425Z-dffc06a3;
+#   stat:CantAttack (Eriette of the Charmed Apple; Combat Calligrapher) -> agent-20260918T200326Z-91ffd4aa;
+#   api:ImmediateTrigger (Forum Filibuster) -> agent-20260918T195920Z-2fd3b568 (sibling
+#     agent-20260918T202223Z-6ad7f5ec, also open);
+#   kw:Class (Intermediate Chirography) -> agent-20260918T220612Z-ac6d048b;
+#   kw:Bestow (Eidolon of Countless Battles) -> agent-20260918T195920Z-d10a3398.
+#   TRUE new coverage gap: kw:Replicate (Changing Loyalty; /usr/bin/grep -rlE '^K:Replicate:'
+#   .cards/cardsfolder | wc -l = 21) -> deck-gap-kw-replicate.
+# New param tickets (8 filed in .ds4/new-tickets/, 14 distinct labels):
+#   deck-gap-kw-replicate — kw:Replicate, Changing Loyalty (21 raw files);
+#   deck-gap-token-rememberoriginaltokens — api:Token.RememberOriginalTokens, Forum Filibuster (8 raw files);
+#   deck-gap-attach-optional — api:Attach.Optional, Ajani's Chosen (26 raw files);
+#   deck-gap-continuous-remove-types — stat:Continuous.RemoveCardTypes (24) / RemoveCreatureTypes (27)
+#     raw files, Darksteel Mutation (distinct from the merged manland api:Animate.RemoveCreatureTypes
+#     census ticket inbox-paramcensus-animate-colors, which owns the DB$ Animate shape);
+#   deck-gap-draw-activationgametypes — api:Draw.ActivationGameTypes, War Room (1 raw file);
+#   deck-gap-animate-removekeywords — api:Animate.RemoveKeywords, Animate Dead (8 raw files);
+#   deck-gap-putcounter-choice-params — api:PutCounter.Chooser (6) / Placer (11) / RememberCards (12) +
+#     api:Effect.ForgetCounter (18) raw files, Promise of Loyalty;
+#   deck-gap-shadrix-targetunique-charm-optional — api:Charm.Optional (1) + api:Draw.TargetUnique (4) +
+#     api:Token.TargetUnique (3) raw files, Shadrix Silverquill.
+# OPEN-ledger param overlaps cited, not re-filed:
+#   stat:Continuous.Goad (Ghoulish Impetus; Martial Impetus; Coercive Impetus; Parasitic Impetus;
+#     Redemption Arc — 5 deck cards measured) -> agent-20260918T201425Z-2a7b632f;
+#   api:ChangeZone.AttachedTo (Forum Filibuster) -> agent-20260918T195920Z-7554f14f;
+#   api:ChangeZoneAll.RandomOrder (Herald of Amity) -> agent-20260918T221252Z-064ef40a;
+#   api:Play.Controller + api:Play.WithoutManaCost (Herald of Amity) -> agent-20260918T221252Z-d504b33b;
+#   api:Mana.TriggersWhenSpent (Study Hall) -> agent-20260918T205611Z-de7f8a84;
+#   api:Token.TokenAttacking (Combat Calligrapher) -> agent-20260918T205611Z-170e8a31;
+#   api:PeekAndReveal.NoPeek (Keen Duelist) -> agent-20260918T201120Z-53968c37 (the open TwoPiles ticket
+#     whose Fact-or-Fiction chain carries the flag; sibling agent-20260918T201425Z-1cf578cf, also open —
+#     note the standalone PeekAndReveal ask itself is unowned, the citation covers the NoPeek rider only);
+#   trig:SpellCast.TargetsValid (Pearl-Ear, Imperial Advisor) -> agent-20260918T210307Z-b6ca5a70 (that
+#     ticket owns the SpellAbilityCast mode of the same param read in rules/trigger_match.go; fix the
+#     class across spellCastMatches too, not only the SpellAbilityCast instance).
+# Known-family leans, no ticket: api:ChangeZone.ValidTgtsDesc (Forum Filibuster) and api:Token.ValidTgtsDesc
+#   (Scriv, the Obligator) — the desc-only ValidTgtsDesc family (AGENTS.md param-census note);
+#   api:Dig.LibraryPosition + api:Dig.RestRandomOrder (Armored Skyhunter) — the AGENTS.md Dig row (M4).
+Commander
+1x Killian, Decisive Mentor
+Deck
+1x Scriv, the Obligator
+1x Eiganjo Dynastorian
+1x Forum Filibuster
+1x Herald of Amity
+1x Changing Loyalty
+1x Coercive Impetus
+1x Intermediate Chirography
+1x Defacing Duskmage
+1x Eclipsed Steppe
+1x Turbulent Moor
+1x Umbral Expanse
+1x Fabled Passage
+1x Eldrazi Conscription
+1x Ajani's Chosen
+1x Angelic Destiny
+1x Archon of Sun's Grace
+1x Armored Skyhunter
+1x Combat Calligrapher
+1x Eidolon of Countless Battles
+1x Firemane Commando
+1x Gift of Immortality
+1x Kor Spiritdancer
+1x Land Tax
+1x Mangara, the Diplomat
+1x Nils, Discipline Enforcer
+1x Pearl-Ear, Imperial Advisor
+1x Promise of Loyalty
+1x Redemption Arc
+1x Shielded by Faith
+1x Songbirds' Blessing
+1x Sram, Senior Edificer
+1x Starfield Mystic
+1x Winds of Rath
+1x Doomwake Giant
+1x Ghoulish Impetus
+1x Keen Duelist
+1x Anguished Unmaking
+1x Breena, the Demagogue
+1x Eriette of the Charmed Apple
+1x Inkshield
+1x Shadrix Silverquill
+1x Tomik, Wielder of Law
+1x Vanishing Verse
+1x Caves of Koilos
+1x Desolate Mire
+1x Exotic Orchard
+1x Fetid Heath
+1x Isolated Chapel
+1x Shineshadow Snarl
+1x Temple of Silence
+1x War Room
+1x Flickering Ward
+1x Fallen Ideal
+1x Screams from Within
+1x Arcane Signet
+1x Sol Ring
+1x Command Tower
+1x Forum of Amity
+1x Terramorphic Expanse
+1x Chains of Custody
+1x Darksteel Mutation
+1x Ghostly Prison
+1x Martial Impetus
+1x Raffine's Guidance
+1x Sage's Reverie
+1x Secret Rendezvous
+1x Sentinel's Eyes
+1x Sheltered by Ghosts
+1x Spirit Mantle
+1x Transcendent Envoy
+1x Animate Dead
+1x Hateful Eidolon
+1x Parasitic Impetus
+1x Fracture
+1x Killian, Ink Duelist
+1x Fellwar Stone
+1x Talisman of Hierarchy
+1x Arcane Lighthouse
+1x Bojuka Bog
+1x Path of Ancestry
+1x Silverquill Campus
+1x Study Hall
+1x Sunlit Marsh
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Plains
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+1x Swamp
+# --- Dance of the Elements (ecc commander precon, Ashling, the Limitless) — census input, 2026-09-19 (issue agent-20260918T211806Z-862d474f) ---
+# run: sed -n '/Dance of the Elements (ecc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/ecc-dance-of-the-elements.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC "Lorwyn Eclipsed" Commander decklist announcement, the Dance of the Elements <deck-list>
+#   element (magic.wizards.com/en/news/announcements/lorwyn-eclipsed-commander-decklists, set="ECC,ECL",
+#   <main-deck> 89 entries / 100 cards), fetched 2026-09-19; corroborated by the MTGJSON DeckList entry
+#   DanceOfTheElements_ECC (type Commander Deck, releaseDate 2026-01-23, source field points at the same
+#   WotC article; the per-deck endpoint Deck/DanceOfTheElements_ECC.json 404s). MTGGoldfish cross-check
+#   NOT obtainable (deck search "0 results", no archetype page, 404 in triage) — WotC + MTGJSON only.
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps remain:
+#   count:Valid$Colors (count head), kw:Foretell (keyword + Count$Foretold), cost:ExileAnyGrave,
+#   unless:Reveal-cost, defined:PlayerStateQualifier, mana:ProducedSpecial (EachColorAmong),
+#   param:AddsCounters (+ Count$CommanderCastFromCommandZone), kw:Companion — 8 tickets in .ds4/new-tickets/.
+# Gap primitives (deck carriers, corpus prevalence with /usr/bin/grep over .cards/cardsfolder):
+#   count:Valid$Colors — Elemental Spectacle, Shimmercreep, Faeburrow Elder (31 raw lines / 31 files);
+#   kw:Foretell — Haunting Voyage (55 raw lines / 55 files, K:Foretell; Count$Foretold 3 raw lines);
+#   cost:ExileAnyGrave — Cavalier of Thorns, Greenwarden of Murasa (18 raw lines / 18 files; sibling
+#     open ticket 2aebee22 owns the ExiledMoveToGrave verb, not this one);
+#   unless:Reveal-cost — Primal Beyond, Flamekin Village (22 raw lines / 22 files; ParseUnlessCost
+#     hard-declines, so the land ALWAYS enters tapped, the reveal arm is unreachable);
+#   defined:PlayerStateQualifier — Shatter the Sky (10 raw files; definedSpec returns nil,false);
+#   mana:ProducedSpecial — Faeburrow Elder (Produced$ Special EachColorAmong_<spec>, 9 raw lines /
+#     9 files; "Combo ColorIdentity" and "Combo <C> Chosen" are NOT in this ticket — ColorIdentity is
+#     implemented on the activation path (rules/mana_activation.go isColourIdentityProduced) and Chosen
+#     is the mana-choice approximations row);
+#   param:AddsCounters — Opal Palace (4 raw files; Count$CommanderCastFromCommandZone also unresolvable,
+#     sibling open ticket 3dbb3f9c owns the Total* spelling);
+#   kw:Companion — Jegantha, the Wellspring (10 raw lines / 10 files; no config field, no registration,
+#     no ledger entry — lowest priority of the eight).
+# Open-ledger overlaps cited, NOT re-filed: api:CopyPermanent (Ashling) -> 6994a692 + bdef0f98;
+#   api:DigUntil (Descendants' Fury, Kindred Summons) -> e8579598 + 876eea96;
+#   api:Play.WithoutManaCost (Impulsivity's TrigPlay, Horde of Notions' AB$ Play) -> d504b33b;
+#   api:Animate.Triggers (Subterfuge) -> 86babb6f; api:ChangeZoneAll.RandomOrder (Endurance) -> 064ef40a;
+#   api:Manifest (Reality Shift) -> 317cd391; kw:Cascade (Maelstrom Wanderer) -> 83cb70eb;
+#   count:$GreatestCardPower (Return of the Wildspeaker, Selvala) -> 155888e1 + e27469dd;
+#   pred:ChosenCtrl (Slithermuse) -> d5a7bdc4; param:AtEOT$ (Incandescent Soulstoke's Animate) -> 487de5e1;
+#   stat:Continuous.MayPlay library-zone grant (Realmwalker, Muldrotha) -> d98417fb.
+# Known approximations leaned on, no ticket: RestrictValid$ mana spend restrictions (Abundant
+#   Countryside, Flamebraider, Smokebraider, Ancient Ziggurat, Secluded Courtyard, Unclaimed Territory) —
+#   the mana-restrictions row; Produced$ Any -> colourless (Springleaf Parade's granted AnyMana,
+#   Chromatic Lantern, Abundant Growth's grant) — the effMana row; Produced$ Combo <C> Chosen (the five
+#   Thriving lands) and Produced$ Combo Any degenerate reads — the mana-choice rows (approx-39);
+#   RestRandomOrder$/RevealRandomOrder$ remainder ordering (Eclipsed Flamekin's TrigDig, Descendants'
+#   Fury's DigUntil) — the Dig row; the Dig primary LibraryPosition$ (Cream of the Crop) — the Dig row.
+# Verified implemented, no flag: kw:Encore, kw:Myriad (+ Pump's KW$ grant on Mass of Mysteries),
+#   trig:Drawn (Hoofprints), api:ChooseType + ChosenType predicate (Haunting Voyage, Distant Melody,
+#   Kindred Summons, Realmwalker), api:ChoosePlayer (Slithermuse), api:Branch (Haunting Voyage),
+#   SubCounter<N/HOOFPRINT> cost (Hoofprints), K:Evoke incl. ExileFromHand alt-cast (Fury, Endurance,
+#   Shriekmaw, Ingot Chewer, Mulldrifter, Foundation Breaker, Slithermuse), DelayedTrigger Mode$ Phase
+#   (Ashling's DelTrig), the shared unless gate (Ashling's UnlessCost$ W U B R G), stat:Panharmonicon
+#   (Yarok), DividedAsYouChoose$ (Fury), repl:Moved ETB-tap replacements (the lands), MayLookAt$
+#   (Realmwalker), PutCounter's Choices$ (Titan of Industry), ConditionPresent (Sodden Verdure).
+# Trap note: the deck carries BOTH borderless face cards — Ashling, the Limitless (cn 1, recorded
+#   commander; deckimport's Commander section takes exactly the FIRST card) and Mass of Mysteries
+#   (cn 3, an ordinary deck card here); neither has partner. The deck's Sol Ring / Command Tower /
+#   Arcane Signet are special Lorwyn-numbered printings — recorded as the plain names.
+Commander
+1x Ashling, the Limitless
+
+Deck
+1x Mass of Mysteries
+1x Elemental Spectacle
+1x Springleaf Parade
+1x Jubilation
+1x Impulsivity
+1x Lamentation
+1x Belonging
+1x Subterfuge
+1x Rain-Slicked Copse
+1x Sodden Verdure
+1x Abundant Countryside
+1x Endurance
+1x Fury
+1x Haunting Voyage
+1x Avenger of Zendikar
+1x Cavalier of Thorns
+1x Greenwarden of Murasa
+1x Selvala, Heart of the Wilds
+1x Titan of Industry
+1x Muldrotha, the Gravetide
+1x Omnath, Locus of Rage
+1x Yarok, the Desecrated
+1x Omnath, Locus of the Roil
+1x Timeless Lotus
+1x Shatter the Sky
+1x Hoofprints of the Stag
+1x Slithermuse
+1x Descendants' Fury
+1x Blasphemous Act
+1x Cream of the Crop
+1x Kindred Summons
+1x Bane of Progress
+1x Realmwalker
+1x Return of the Wildspeaker
+1x Faeburrow Elder
+1x Vernal Sovereign
+1x Horde of Notions
+1x Maelstrom Wanderer
+1x Jegantha, the Wellspring
+1x Chromatic Lantern
+1x Primal Beyond
+1x Raging Ravine
+1x Exotic Orchard
+1x Flamekin Village
+1x Path to Exile
+1x Mulldrifter
+1x Reality Shift
+1x Shriekmaw
+1x Shimmercreep
+1x Flamebraider
+1x Crib Swap
+1x Secluded Courtyard
+1x Sol Ring
+1x Command Tower
+1x Arcane Signet
+1x Distant Melody
+1x Incandescent Soulstoke
+1x Eclipsed Flamekin
+1x Foundation Breaker
+1x Garruk's Uprising
+1x Risen Reef
+1x Fellwar Stone
+1x Unclaimed Territory
+1x Ancient Ziggurat
+1x Frontier Bivouac
+1x Sandsteppe Citadel
+1x Savage Lands
+1x Opulent Palace
+1x Seaside Citadel
+1x Jungle Shrine
+1x Smokebraider
+1x Ingot Chewer
+1x Fertile Ground
+1x Abundant Growth
+1x Kodama's Reach
+1x Cultivate
+1x Path of Ancestry
+1x Thriving Grove
+1x Thriving Heath
+1x Thriving Isle
+1x Opal Palace
+1x Thriving Bluff
+1x Thriving Moor
+2x Plains
+2x Island
+2x Swamp
+2x Mountain
+8x Forest
+
+# --- Wakanda Forever (msc commander precon, T'Challa, the Black Panther) — census input, 2026-09-19 (issue agent-20260918T211806Z-9633c5df) ---
+# run: sed -n '/Wakanda Forever (msc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/msc-wakanda-forever.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# 100/100 resolved; commander eligible. 2 new-gap tickets (.ds4/new-tickets/api-replace-damage.md,
+#   .ds4/new-tickets/compound-mode-statics.md) — deck file NOT added. CORRECTION (post-review): the
+#   api:ReplaceDamage ticket's "prevention never happens" premise was FALSE — DB$ ReplaceDamage prevention
+#   bodies are implemented (rules/replacement.go applyReplaceDamageBody, commits 0c83541f + 1b80b992, pinned
+#   by rules/replacement_damage_counter_test.go; Heart-Shaped Herb live-prevents 1 of N at this pin) and the
+#   real residual is census-token-only: .ds4/new-tickets/api-replace-damage-census-token.md (supersedes the
+#   ingested agent-20260919T000105Z-80411e9a). Behaviourally NEW is only the compound S:Mode$ static shape.
+# gap cards (each open unless marked NEW — issue ids in the census report): api:Fight (Fight for the Throne),
+#   api:PutCounterAll (Zuri, Warrior of Wakanda; Loyal Guardian), api:CopyPermanent (Helm of the Host),
+#   api:ReplaceToken+repl:CreateToken (Divine Visitation), trig:AttackerUnblockedOnce (Coveted Jewel),
+#   trig:ChangesZoneAll (Ingenious Smith), kw:Crew (Royal Talon Fighter Jet, N'Yami-Class Mother Ship,
+#   Vibranium Mining Mech), stat:CantAttack (Queen Mother Ramonda), stat:CantAttack,CantBlock compound (Bast,
+#   Panther Goddess); NEW: the compound S:Mode$ static shape itself; census-token-only (behaviour already
+#   implemented, see the correction above): api:ReplaceDamage (Heart-Shaped Herb).
+# commander note: T'Challa's Vibranium token mana carries AB$ Mana RestrictValid$ CantCastNonArtifactSpells —
+#   the restriction is unread (the known "RestrictValid$ spend restrictions are never read" approximation), so
+#   the token's {C} is spendable on anything in this build.
+# source: MTGJSON DeckList entry WakandaForever_MSC (mtgjson.com/api/v5/decks/WakandaForever_MSC.json;
+#   releaseDate 2026-06-26, type Commander Deck; its source field is the WotC article), fetched 2026-09-19,
+#   cross-checked card-for-card against the WotC decklist article
+#   (magic.wizards.com/en/news/announcements/marvel-super-heroes-commander-decklists): the only differences were
+#   line-wrap artifacts ("Zuri, Warrior of" / "Storm, Queen of") and the article's variant printings
+#   "Arcane Signet Wakanda"/"Sol Ring Wakanda"/"Command Tower Wakanda", whose card identity is the plain name
+#   the corpus carries. 12 Plains + 12 Forest.
+# commander fact-check: the issue's face-card hint (M'Baku cn 67, Bast cn 75, Black Panther, Most Dangerous cn 584)
+#   is wrong about the commander — the actual commander is T'Challa, the Black Panther; M'Baku and Bast are among
+#   the 99, Most Dangerous is not in the deck.
+Commander
+1 T'Challa, the Black Panther
+
+Deck
+1 Dora Milaje Elite
+1 Everett K. Ross, Hapless Attaché
+1 Hatut Zeraze Strike Force
+1 King Solomon's Frogs
+1 Midnight Angel Armor
+1 Queen Mother Ramonda
+1 Royal Talon Fighter Jet
+1 The Spear of Bashenga
+1 Ancestral Communion
+1 Fight for the Throne
+1 M'Baku, Jabari Chieftain
+1 Nakia, Wakandan Operative
+1 W'Kabi, Shield of the Nation
+1 Wakanda Forever!
+1 Zuri, Warrior of Wakanda
+1 Bast, Panther Goddess
+1 Okoye, Mighty and Adored
+1 Shuri, the Black Panther
+1 Storm, Queen of Wakanda
+1 T'Chaka, Venerable King
+1 Heart-Shaped Herb
+1 Kimoyo Beads
+1 N'Yami-Class Mother Ship
+1 Panther Habit
+1 Panther Robot
+1 Shuri's Fabricator
+1 Vibranium Mining Mech
+1 Vibranium Strike Gauntlets
+1 The Great Mound
+1 Divine Visitation
+1 Loyal Retainers
+1 Martial Coup
+1 Vanquish the Horde
+1 Birds of Paradise
+1 Conduit of Worlds
+1 Greater Good
+1 Nature's Lore
+1 Overwhelming Stampede
+1 Coveted Jewel
+1 Gilded Lotus
+1 Helm of the Host
+1 Metalwork Colossus
+1 Solemn Simulacrum
+1 Trading Post
+1 Bountiful Promenade
+1 Canopy Vista
+1 Fortified Village
+1 Razorverge Thicket
+1 Scattered Groves
+1 Scavenger Grounds
+1 Sungrass Prairie
+1 Sunpetal Grove
+1 Throne of the High City
+1 Scourglass
+1 Fleecemane Lion
+1 Hammer of Nazahn
+1 Mind's Eye
+1 Sword of the Animist
+1 Thran Dynamo
+1 Dispatch
+1 Generous Gift
+1 Ingenious Smith
+1 Palace Jailer
+1 Valorous Stance
+1 Beast Within
+1 Harmonize
+1 Loyal Guardian
+1 Arcane Signet
+1 Meteor Golem
+1 Sol Ring
+1 Whispersilk Cloak
+1 Command Tower
+1 Evolving Wilds
+1 Path of Ancestry
+1 Terramorphic Expanse
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+
+# --- Counter Intelligence (eoc commander precon, Inspirit, Flagship Vessel) — census input, 2026-09-19 ---
+# run: sed -n '/Counter Intelligence (eoc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/eoc-counter-intelligence.list
+# source: WotC official decklist article magic.wizards.com/en/news/announcements/edge-of-eternities-commander-decklists
+#   (MTGJSON DeckList entry CounterIntelligence_EOC cross-checked; mtggoldfish/EDHREC unreachable in triage)
+# STATUS: 100/100 resolved; commander eligible (Legendary Artifact Spacecraft, P/T box). Deck file NOT added — the deck leans on open-ledger primitives incl. the commander's own GenericChoice trigger (api:GenericChoice) and Proliferate, and 6 new-gap tickets were filed (.ds4/new-tickets/deck-gap-*.md: sunburst, incubate, phasing, converge, eachfromsource, subcounter-target).
+# note: Kilo, Apogee Mind (cn 0003) is the alternate face commander, also in the deck.
+Commander
+1 Inspirit, Flagship Vessel
+
+Deck
+1 Kilo, Apogee Mind
+1 Patrolling Peacemaker
+1 Insight Engine
+1 Uthros Research Craft
+1 Depthshaker Titan
+1 Long-Range Sensor
+1 Moxite Refinery
+1 Solar Array
+1 Surge Conductor
+1 Glittering Massif
+1 Radiant Summit
+1 Swan Song
+1 Chaos Warp
+1 Cloud Key
+1 Gavel of the Righteous
+1 Battlefield Forge
+1 Angel of the Ruins
+1 Fumigate
+1 Organic Extinction
+1 Resourceful Defense
+1 Chrome Host Seedshark
+1 Cyberdrive Awakener
+1 Deepglow Skate
+1 Emry, Lurker of the Loch
+1 Kappa Cannoneer
+1 Phyrexian Metamorph
+1 Pull from Tomorrow
+1 Ripples of Potential
+1 Tekuthal, Inquiry Dominus
+1 Thought Monitor
+1 Universal Surveillance
+1 Chain Reaction
+1 Alibou, Ancient Witness
+1 Jhoira, Weatherlight Captain
+1 Wake the Past
+1 Astral Cornucopia
+1 Crystalline Crawler
+1 Darksteel Reactor
+1 Empowered Autogenerator
+1 Hangarback Walker
+1 Lux Artillery
+1 Lux Cannon
+1 Steel Overseer
+1 Threefold Thunderhulk
+1 Titan Forge
+1 Adarkar Wastes
+1 Cascade Bluffs
+1 Clifftop Retreat
+1 Exotic Orchard
+1 Glacial Fortress
+1 Irrigated Farmland
+1 Karn's Bastion
+1 The Mycosynth Gardens
+1 Rugged Prairie
+1 Shivan Reef
+1 Skycloud Expanse
+1 Spire of Industry
+1 Sulfur Falls
+1 Temple of Enlightenment
+1 Temple of Epiphany
+1 Temple of Triumph
+1 Swords to Plowshares
+1 Tezzeret's Gambit
+1 Thirst for Knowledge
+1 Arcane Signet
+1 Pentad Prism
+1 Sol Ring
+1 Command Tower
+1 Dispatch
+1 Etherium Sculptor
+1 Experimental Augury
+1 Thrummingbird
+1 Enthusiastic Mechanaut
+1 Coretapper
+1 Etched Oracle
+1 Everflowing Chalice
+1 Golem Foundry
+1 Mindless Automaton
+1 Soul-Guide Lantern
+1 Ancient Den
+1 Buried Ruin
+1 Evolving Wilds
+1 Great Furnace
+1 Lonely Sandbar
+1 Mystic Monastery
+1 Razortide Bridge
+1 Rustvale Bridge
+1 Seat of the Synod
+1 Secluded Steppe
+1 Silverbluff Bridge
+3 Plains
+3 Island
+3 Mountain
+0
+
+# --- Blight Curse (ecc commander precon, Auntie Ool, Cursewretch) — census input, 2026-09-19 (issue agent-20260918T211806Z-b7050f99) ---
+# run: sed -n '/Blight Curse (ecc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/ecc-blight-curse.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC "Lorwyn Eclipsed" Commander decklist announcement, the Blight Curse <deck-list> element
+#   (magic.wizards.com/en/news/announcements/lorwyn-eclipsed-commander-decklists, set="ECC,ECL",
+#   <main-deck> 85 entries / 100 cards), fetched 2026-09-19 and re-reproduced in this round (HTTP 200,
+#   85 entries / 100 cards). MTGJSON per-deck corroboration NOT obtainable — DeckLists.json 404s both in
+#   triage and in this round, so WotC only. MTGGoldfish cross-check NOT obtainable (deck search 404s,
+#   measured in triage).
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps remain (25 gap cards):
+#   trig:CounterAddedOnce, api:Blight, kw:Wither, api:ExchangeLifeVariant, api:Poison, kw:Compleated,
+#   stat:WitherDamage, stat:OptionalCost, param:TriggersWhenSpent, count:RememberedNumber,
+#   count:CountersAddedThisTurn, count:Valid$CardCounters (property), defined:TriggeredCardOwner,
+#   param:Activator (AB offer gate) + the census-walker SVar undercount — 15 tickets in .ds4/new-tickets/.
+# Gap primitives (deck carriers, corpus prevalence with /usr/bin/grep over .cards/cardsfolder):
+#   trig:CounterAddedOnce — Auntie Ool (the commander), Wickersmith's Tools, Hapatra, Vizier of Poisons
+#     (47 raw lines / 47 files; the sibling Mode$ CounterAdded IS registered — Once is a distinct
+#     unregistered mode string, matcher exists);
+#   api:Blight — Sinister Gnarlbark (DB$ Blight 5 raw lines / 5 files, AB$ Blight 1/1; the Ward:Blight<N>
+#     cost form is implemented ONLY inside Ward, rules/ward.go wardSpecialCost — Cost$ Blight outside
+#     Ward is unpayable, 14 raw lines / 14 files, incl. Burning Curiosity's OptionalCost);
+#   kw:Wither — Village Pillagers, Necroskitter, Midnight Banshee, Kulrath Knight (K:Wither 27/27;
+#     AddKeyword$ Wither grants 7/7 incl. Massacre Girl, Known Killer — grant works, conversion does not);
+#   api:ExchangeLifeVariant — Tree of Perdition (3/3);
+#   api:Poison — Vraska, Betrayal's Sting (AB$ 1/1, DB$ 34, SP$ 2; ~39 files carry $ Poison);
+#   kw:Compleated — Vraska (K:Compleated 7/7; the {B/P} pip payment works, the enters-with-two-fewer-
+#     loyalty rider is unread);
+#   stat:WitherDamage — Everlasting Torment (1/1, the singleton; its CantGainLife/CantPreventDamage
+#     siblings ARE implemented);
+#   stat:OptionalCost — Burning Curiosity (S:Mode$ OptionalCost 40/40; companion count head
+#     Count$OptionalGenericCostPaid 11 files, also unimplemented);
+#   param:TriggersWhenSpent — Path of Ancestry (13/13; the rider is unread so its commander-scry SVar
+#     trigger never registers);
+#   count:RememberedNumber — Eventide's Shadow (38/38; sibling RememberedSize IS implemented);
+#   count:CountersAddedThisTurn — Lasting Tarfire (11/11; sibling CountersRemovedThisTurn already
+#     ticketed open in the ledger);
+#   count:Valid$CardCounters.<KIND> property — Ferrafor, Young Yew (18/18; not in the countZone branch's
+#     recognized property set, whole-spec fail-closed → 0 Saprolings, always);
+#   defined:TriggeredCardOwner/NonTriggeredCardOwner — Oft-Nabbed Goat (21/21 + 1/1; both legs fail
+#     closed);
+#   param:Activator on an AB offer — Oft-Nabbed Goat (1/1; the ability is offered to its own controller
+#     and to nobody else, the exact inverse of "only your opponents may activate").
+# Open-ledger overlaps cited, NOT re-filed: api:RemoveCounter (Eventide's Shadow) ->
+#   issue-agent-20260918T202223Z-d6a3729d; api:MultiplyCounter (Ferrafor) -> issue-agent-20260918T232250Z-d339a2a3;
+#   api:MoveCounter (Nesting Grounds) -> issue-agent-20260918T205611Z-1c5d04bf; api:Proliferate (Vraska,
+#   Evolution Sage, Contagion Clasp) -> issue-agent-20260918T224137Z-c0df25bc (dup 224034Z-a94a8ba5);
+#   api:Discover (Chimil, the Inner Sun) -> issue-agent-20260918T232250Z-6a290217; api:PutCounterAll
+#   (Carnifex Demon, Black Sun's Zenith, Archfiend of Ifnir, Soul Snuffers) -> issue-agent-20260918T195920Z-6d0f5aae
+#   (dup 200326Z-d7ef330f); kw:Persist (Puppeteer Clique) -> issue-agent-20260918T201019Z-ea03b13d;
+#   trig:Blocks (Dusk Urchins) -> issue-agent-20260918T202223Z-efca418d; api:ImmediateTrigger (Riveteers
+#   Overlook) -> issue-agent-20260918T202223Z-6ad7f5ec (dup 195920Z-2fd3b568); the stat:CantAttack,CantBlock
+#   compound (Kulrath Knight) -> issue-agent-20260919T000105Z-4e09dd7c (base stat:CantAttack 200326Z-91ffd4aa);
+#   Vraska's TargetedPlayer$Counters.Poison + Number$9/Minus.X count forms -> issue-agent-20260918T201425Z-bfb2a578
+#   and issue-agent-20260918T224034Z-2d8f552c (cited in the poison ticket, not re-filed); Puppeteer Clique's
+#   AtEOT$ YourExile rider -> issue-agent-20260918T201120Z-487de5e1.
+# Known approximations leaned on, no ticket: Produced$ Any -> colourless stand-in (Wickersmith's Tools,
+#   Channeler Initiate, Vraska's TreasureSac grant) — the effMana row; Devoted Druid's AddCounter<1/M1M1>
+#   untap cost priced as one generic with the counter never put — the pw1 row's non-loyalty AddCounter note;
+#   Puca's Covenant's NotDefinedTriggeredCard predicate is unknown (fail-closed, its graveyard-return target
+#   spec matches nothing; 2 corpus files) — noted in the census report's Issues.
+# Verified implemented, no flag: K:Ward:Blight<2> (Auntie Ool — wardSpecialCost in rules/ward.go, named in
+#   the code comment); R:Event$ Counter Layer$ CantHappen "can't be countered" (Chimil — the bodyless
+#   CantHappen form, rules/replacement.go); K:etbCounter (Carnifex Demon x2, Grim Poppet x3, Wickerbough
+#   Elder); trig:CounterAdded plain mode (Flourishing Defenses); counters_GE1_M1M1 / toughnessLT1 numeric
+#   predicates (The Reaper, Scorpion God, Massacre Girl, Dread Tiller, Necroskitter); HasCounters (Puca's
+#   Covenant, Village Pillagers' treasure trigger); DelayedTrigger Mode$ Phase (The Scorpion God's
+#   return-to-hand); trig:Discarded + K:Cycling (Archfiend of Ifnir); DB$ DamageAll ETB (Village Pillagers);
+#   Produced$ Combo <colours> as a real multi-colour ask (Dragonskull Summit, Rootbound Crag, Woodland
+#   Cemetery, Savage Lands, Ignoble Hierarch) and Combo ColorIdentity (Arcane Signet, Command Tower,
+#   Commander's Sphere) on the activation path; BecomeMonarch + CheckDefinedPlayer$ You.isMonarch (Grave
+#   Venerations); fixed SubCounter<N/LOYALTY> costs (Vraska -2/-9, Liliana -3/-10); DB$ Animate
+#   RemoveAllAbilities/Types$ Treasure conversion (Vraska); cmcLEX numericPred with an SVar right-hand side
+#   (Puca's Covenant); R:Event$ Moved ETB-tap replacements (the lands).
+# Trap note: the deck carries BOTH borderless face cards — Auntie Ool, Cursewretch (cn 0002, recorded
+#   commander; deckimport's Commander section takes exactly the FIRST card) and The Reaper, King No More
+#   (cn 0004, an ordinary deck card here); neither has partner. Sol Ring / Arcane Signet / Command Tower
+#   are special Shadowmoor-frame printings — recorded as the plain names the corpus carries. The basics
+#   carried [set/print annotations] in the article, stripped.
+Commander
+1x Auntie Ool, Cursewretch
+
+Deck
+1x The Reaper, King No More
+1x Wickersmith's Tools
+1x Sinister Gnarlbark
+1x Eventide's Shadow
+1x Aberrant Return
+1x Dread Tiller
+1x Grave Venerations
+1x Oft-Nabbed Goat
+1x Village Pillagers
+1x Puca's Covenant
+1x Ferrafor, Young Yew
+1x Tree of Perdition
+1x Vernal Fen
+1x Festering Thicket
+1x Necroskitter
+1x Ignoble Hierarch
+1x Nesting Grounds
+1x Massacre Girl, Known Killer
+1x Grave Titan
+1x Vraska, Betrayal's Sting
+1x The Scorpion God
+1x Liliana, Death Wielder
+1x Chimil, the Inner Sun
+1x Carnifex Demon
+1x Puppeteer Clique
+1x Dusk Urchins
+1x Black Sun's Zenith
+1x Painful Truths
+1x Persist
+1x Midnight Banshee
+1x Chain Reaction
+1x Archfiend of Ifnir
+1x Channeler Initiate
+1x Hapatra, Vizier of Poisons
+1x Glissa Sunslayer
+1x Everlasting Torment
+1x Assassin's Trophy
+1x Grim Poppet
+1x Canyon Slough
+1x Sheltered Thicket
+1x Exotic Orchard
+1x Smoldering Marsh
+1x Cinder Glade
+1x Dragonskull Summit
+1x Rootbound Crag
+1x Woodland Cemetery
+1x Lasting Tarfire
+1x Burning Curiosity
+1x Hoarder's Greed
+1x Blowfly Infestation
+1x Fire Covenant
+1x Sol Ring
+1x Arcane Signet
+1x Command Tower
+1x Cathartic Reunion
+1x Skinrender
+1x Soul Snuffers
+1x Incremental Blight
+1x Infernal Grasp
+1x Evolution Sage
+1x Devoted Druid
+1x Flourishing Defenses
+1x Harmonize
+1x Putrefy
+1x Binding the Old Gods
+1x Kulrath Knight
+1x Contagion Clasp
+1x Savage Lands
+1x Ifnir Deadlands
+1x Night's Whisper
+1x Wickerbough Elder
+1x Terminate
+1x Commander's Sphere
+1x Cathartic Pyre
+1x Evolving Wilds
+1x Terramorphic Expanse
+1x Path of Ancestry
+1x Riveteers Overlook
+1x Rakdos Carnarium
+1x Gruul Turf
+1x Golgari Rot Farm
+8x Swamp
+4x Mountain
+6x Forest
+
+# --- Witherbloom Pestilence (soc commander precon, Dina, Essence Brewer) — census input, 2026-09-19 ---
+# run: sed -n '/Witherbloom Pestilence (soc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/soc-witherbloom-pestilence.list
+# source: MTGJSON DeckList entry WitherbloomPestilence_SOC (mtgjson.com/api/v5/decks/WitherbloomPestilence_SOC.json), cross-checked against the WotC article magic.wizards.com/en/news/announcements/secrets-of-strixhaven-commander-decklists
+# STATUS: 100/100 resolved (86 distinct names all resolve from the corpus; 88 lookup entries
+#   counting the 4+4+4+4 repeated basics); commander eligible (Dina, Essence Brewer — the commander
+#   both sources agree on; her AB cost `2 T Sac<1/Creature.Other/another creature>` and
+#   SVar:X:Sacrificed$CardPower rider are implemented, and the param census reads her clean).
+#   Deck file NOT added — 8 open-ledger gap primitives, 0 new-gap tickets this round.
+# note: Gorma, the Gullet (cn 0003 alternate face) is an ordinary mainBoard entry per MTGJSON's
+#   commander section, not a second commander; it rides in the 99 like Counter Intelligence's Kilo.
+# Gap primitives (walker over cards.OpenCorpus -> Primitives() minus effects.Supported(), with rules
+#   imported so RegisterNonAPI's init has run; 88 resolved, 11 gapped, 9 distinct — all already
+#   ledgered, file nothing):
+#   trig:LifeGained — Dina, Soul Steeper, Trudge Garden, Veinwitch Coven
+#     (ledger issue-agent-20260918T202223Z-eb38487f; Mode$ LifeGained 99 raw files);
+#   api:AlterAttribute — Eccentric Pestfinder // Turn Stones
+#     (ledger issue-agent-20260918T210307Z-f6df1b2f; $ AlterAttribute 105 raw files);
+#   api:PutCounterAll — Mazirek, Kraul Death Priest
+#     (ledger issue-agent-20260918T195920Z-6d0f5aae, -200326Z-d7ef330f, -213615Z-ed97bfe7;
+#     DB/AB/SP$ PutCounterAll 291 raw files);
+#   trig:ChangesZoneAll — Morbid Opportunist
+#     (ledger issue-agent-20260918T202223Z-7054b9c3, -213615Z-a44e8e5d, -213615Z-e9b0fa3b;
+#     Mode$ ChangesZoneAll 128 raw files);
+#   kw:Devour — Mycoloth, Ribtruss Roaster
+#     (ledger issue-agent-20260918T202223Z-a8eac320; K:Devour:N 23 raw files);
+#   kw:Gravestorm — Ominous Harvest
+#     (ledger issue-agent-20260918T204633Z-6ddafb8c; Gravestorm 4 raw files);
+#   kw:Ascend — Tendershoot Dryad
+#     (ledger issue-agent-20260918T204633Z-bda5dda9; ^K:Ascend 30 raw files);
+#   kw:Escape — Woe Strider (FALSE GAP: escape machinery is implemented — rules/legal.go escape
+#     cast, rules/altcast.go escapeCost, rules/mana.go ExileFromGrave costs — only the
+#     RegisterNonAPI("kw:Escape") admission is missing, verified against every RegisterNonAPI list
+#     this round; ledger issue-agent-20260918T215400Z-ed2f3c55; K:Escape/Escape<N> 33 raw files).
+# Param-level pass (the paramcensus machinery run over the deck's 86 distinct cards): only 4 carry
+#   unread params, both labels already known families, no ticket:
+#   param:api:Destroy.ValidTgtsDesc — Immoral Bargain, Witherbloom Charm (the desc-only ValidTgtsDesc
+#     family, already in knownUnsupportedParams; known-family lean, no ticket per precedent);
+#   param:api:Mana.TriggersWhenSpent — Path of Ancestry, Study Hall
+#     (already in knownUnsupportedParams and the ledger). The headline cards pass both gates clean:
+#   Dina, Essence Brewer, Gorma, the Gullet (kw:ETBReplacement registered; its
+#   Count$ThisTurnEntered_Graveyard_from_Battlefield_Creature.YouCtrl matches the implemented
+#   ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid> grammar, effects/count.go), Merchant of Venom
+#   (controller-defaulted sacrifice + its own T:Mode$ Sacrificed trigger), and both MDC cards
+#   resolve by front-face Name with every face's primitives counted by the face walk.
+Commander
+1 Dina, Essence Brewer
+
+Deck
+1 Gorma, the Gullet
+1 Merchant of Venom
+1 Defiling Daemogoth
+1 Ominous Harvest
+1 Stensian Sanguinist // Exsanguinate
+1 Feral Appetite
+1 Pest Rescuer
+1 Ribtruss Roaster
+1 Eccentric Pestfinder // Turn Stones
+1 Immoral Bargain
+1 Turbulent Fen
+1 Ophiomancer
+1 Toxic Deluge
+1 Tendershoot Dryad
+1 Fabled Passage
+1 Blight Mound
+1 Bloodghast
+1 Final Act
+1 Jadar, Ghoulcaller of Nephalia
+1 Nether Traitor
+1 Priest of Forgotten Gods
+1 Smothering Abomination
+1 Veinwitch Coven
+1 Witch of the Moors
+1 Woe Strider
+1 Yahenni, Undying Partisan
+1 Awakening Zone
+1 Blossoming Bogbeast
+1 Gilded Goose
+1 Mycoloth
+1 Ohran Frostfang
+1 Pest Infestation
+1 Trudge Garden
+1 Assassin's Trophy
+1 Beledros Witherbloom
+1 Casualties of War
+1 Creakwood Liege
+1 Culling Ritual
+1 Gyome, Master Chef
+1 Mazirek, Kraul Death Priest
+1 Wight of the Reliquary
+1 Witherbloom Command
+1 Exotic Orchard
+1 Festering Thicket
+1 Grim Backwoods
+1 High Market
+1 Llanowar Wastes
+1 Necroblossom Snarl
+1 Temple of Malady
+1 Twilight Mire
+1 Vernal Fen
+1 Viridescent Bog
+1 Woodland Cemetery
+1 Arcane Signet
+1 Sol Ring
+1 Command Tower
+1 Teacher's Pest
+1 Witherbloom Charm
+1 Terramorphic Expanse
+1 Titan's Grave
+1 Blood Artist
+1 Infernal Grasp
+1 Morbid Opportunist
+1 Night's Whisper
+1 Pawn of Ulamog
+1 Plumb the Forbidden
+1 Umbral Collar Zealot
+1 Viscera Seer
+1 Zulaport Cutthroat
+1 Cultivate
+1 Elvish Mystic
+1 Sakura-Tribe Elder
+1 Springbloom Druid
+1 Deadly Brew
+1 Dina, Soul Steeper
+1 Moldervine Reclamation
+1 Mortality Spear
+1 Haywire Mite
+1 Bojuka Bog
+1 Haunted Mire
+1 Path of Ancestry
+1 Study Hall
+1 Witherbloom Campus
+4 Swamp
+4 Swamp
+4 Forest
+4 Forest
+0
+# --- Quandrix Unlimited (soc commander precon, Zimone, Infinite Analyst) — census input, 2026-09-19 (issue agent-20260918T211806Z-c9b53a54) ---
+# run: sed -n '/Quandrix Unlimited (soc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/soc-quandrix-unlimited.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC "Secrets of Strixhaven" Commander decklist announcement
+#   (magic.wizards.com/en/news/announcements/secrets-of-strixhaven-commander-decklists), the
+#   Quandrix Unlimited <deck-list> element, fetched 2026-09-19; the MTGJSON DeckList entry
+#   QuandrixUnlimited_SOC (type Commander Deck, releaseDate 2026-04-24) could NOT be fetched
+#   (mtgjson.com endpoints 404 from this box, same as the Silverquill Influence triage; MTGGoldfish
+#   search endpoints 404 too) — WotC article is the single usable source, verified by cmd/deckimport.
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps remain (re-measured r1 with the
+#   deck temporarily present at internal/testutil/decks/quandrix-unlimited.json, then deleted: coverage
+#   ratchet 25 of 933 distinct repo-deck cards = 22 new + the 3 baseline table cards; param census
+#   35 of 933 = 10 new over the 25-card baseline; baseline green again after deletion).
+# Trap note: the deck carries THREE distinct Zimone cards — the commander Zimone, Infinite Analyst (soc
+#   cn 10), Zimone, All-Questioning (an STX-era card) and Zimone, Quandrix Prodigy — do not collapse or
+#   confuse them (same class of trap as Silverquill's two Killians, recorded in that section's header).
+# Commander note: BOTH face legends have CommBord printings in the WotC article's CIG grid
+#   (0010_MTGSOS_CommBord Zimone, Infinite Analyst; 0006_MTGSOS_CommBord Primo, the Unbounded) and
+#   neither card's oracle text carries "Partner" — the FIRST main-deck entry is recorded as the deck's
+#   commander per the Lorehold Spirit / Silverquill Influence convention; Primo rides in the Commander
+#   section like Excava, the Risen Past in Lorehold Spirit's.
+# Coverage-gap labels (22 cards, 14 distinct primitive labels; OPEN-ledger overlaps cited, not re-filed) —
+#   api:MultiplyCounter (Primordial Hydra, Kinetic Ooze, Fractal Harness, Tanazir Quandrix)
+#     -> agent-20260918T211806Z-b7050f99 et al.;
+#   api:ReplaceCounter + repl:AddCounter (Ozolith the Shattered Spire, Kami of Whispered Hopes,
+#     Hardened Scales, Benevolent Hydra) -> agent-20260918T224137Z-8327049c;
+#   api:Proliferate (Expansion Algorithm) -> agent-20260918T211806Z-b7050f99;
+#   api:GenericChoice (Zimone's Hypothesis) -> agent-20260918T225913Z-c3e84a8e;
+#   api:MoveCounter (Forgotten Ancient) -> agent-20260918T203713Z-68bb5f63;
+#   api:PutCounterAll (Oran-Rief, the Vastwood) -> agent-20260918T203713Z-3f821cde;
+#   api:Fight (Primal Might) -> agent-20260918T194906Z-071f79fe;
+#   kw:Skulk (Ingenious Prodigy) -> agent-20260918T202223Z-7b310f8b;
+#   trig:SpellCastOrCopy (Quandrix Apprentice; Deekah, Fractal Theorist) -> agent-20260918T203713Z-76174fbb;
+#   api:Clone (Altered Ego) + api:AlterAttribute (Yavimaya Bloomsage; Striding Shotcaller)
+#     -> agent-20260918T210307Z-f6df1b2f;
+#   api:AnimateAll (Biomass Mutation; Tanazir Quandrix) -> agent-20260918T201425Z-dffc06a3;
+#   api:DigUntil (Open the Way) -> agent-20260918T195920Z-e8579598.
+#   TRUE new coverage gap: api:ChangeX (Unbound Flourishing) -> deck-gap-api-changex.
+# New param tickets (4 filed in .ds4/new-tickets/):
+#   deck-gap-api-changex — api:ChangeX, Unbound Flourishing (DB$ ChangeX = 2 raw files);
+#   deck-gap-trig-hasxmanacost — param:trig:SpellCast.HasXManaCost +
+#     param:trig:SpellAbilityCast.HasXManaCost, Unbound Flourishing (HasXManaCost = 4 raw files);
+#   deck-gap-putcounter-optional — param:api:PutCounter.Optional, Zimone's Hypothesis (8 raw files);
+#   deck-gap-untap-conditionzone — param:api:Untap.ConditionZone, Animist's Awakening (1 raw file).
+# Cited param gaps NOT re-filed: ChangeZoneAll.RememberLKI + RepeatEach.ChangeZoneTable/UseImprinted
+#   (agent-20260918T203713Z-91eb9127); PutCounter.Placer (Silverquill ticket
+#   agent-20260918T211806Z-7f1829ef); Mana.AddsCounters (Dance of the Elements ticket
+#   agent-20260918T211806Z-862d474f); Mana.TriggersWhenSpent (Lorehold cited); the desc-only
+#   ValidTgtsDesc family (PutCounter/Counter/Destroy) and api:Dig.RestRandomOrder are named families
+#   of the AGENTS.md approximations table.
+Commander
+1x Zimone, Infinite Analyst
+1x Primo, the Unbounded
+1x Owlin Spiralmancer
+1x Expansion Algorithm
+1x Nexus Mentality
+1x Kinetic Ooze
+1x Lattice Library
+1x Nev, the Practical Dean
+1x Yavimaya Bloomsage
+1x Striding Shotcaller
+1x Brass Infiniscope
+1x Turbulent Wilderness
+1x Commander's Insight
+1x Ingenious Prodigy
+1x Pull from Tomorrow
+1x Benevolent Hydra
+1x Unbound Flourishing
+1x Fabled Passage
+1x Curse of the Swine
+1x Deekah, Fractal Theorist
+1x Entrancing Melody
+1x Perplexing Test
+1x Stroke of Genius
+1x Zimone's Hypothesis
+1x Animist's Awakening
+1x Forgotten Ancient
+1x Fractal Harness
+1x Goldvein Hydra
+1x Guardian Augmenter
+1x Hardened Scales
+1x Lifeblood Hydra
+1x Mana Bloom
+1x Open the Way
+1x Ozolith, the Shattered Spire
+1x Primal Might
+1x Primordial Hydra
+1x Silkguard
+1x Steelbane Hydra
+1x Altered Ego
+1x Biomass Mutation
+1x Elusive Otter
+1x The Goose Mother
+1x Hydroid Krasis
+1x Oversimplify
+1x Quandrix Command
+1x Tanazir Quandrix
+1x Zimone, All-Questioning
+1x Astral Cornucopia
+1x Elementalist's Palette
+1x Hangarback Walker
+1x Stonecoil Serpent
+1x Alchemist's Refuge
+1x Exotic Orchard
+1x Flooded Grove
+1x Hinterland Harbor
+1x Oran-Rief, the Vastwood
+1x Overflowing Basin
+1x Rain-Slicked Copse
+1x Sodden Verdure
+1x Temple of Mystery
+1x Vineglimmer Snarl
+1x Yavimaya Coast
+1x Arcane Signet
+1x Sol Ring
+1x Command Tower
+1x Quandrix Charm
+1x Paradox Gardens
+1x Terramorphic Expanse
+1x Rapid Hybridization
+1x Beast Within
+1x Kami of Whispered Hopes
+1x Nature's Lore
+1x Three Visits
+1x Tyvar's Stand
+1x Decisive Denial
+1x Eureka Moment
+1x Quandrix Apprentice
+1x Troyan, Gutsy Explorer
+1x Zimone, Quandrix Prodigy
+1x Opal Palace
+1x Path of Ancestry
+1x Quandrix Campus
+1x Reliquary Tower
+1x Rogue's Passage
+1x Study Hall
+1x Tangled Islet
+1x Temple of the False God
+1x Island
+1x Island
+1x Island
+1x Island
+1x Island
+1x Island
+1x Island
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+
+# --- Prismari Artistry (soc commander precon, Rootha, Mastering the Moment) — census input, 2026-09-19 ---
+# run: sed -n '/Prismari Artistry (soc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' | grep -v '^0$' > .ds4/scratch/soc-prismari-artistry.list
+#   (deckimport cannot parse the section's trailing `0` terminator — hence the last grep)
+# source: MTGJSON DeckList entry PrismariArtistry_SOC (mtgjson.com/api/v5/decks/PrismariArtistry_SOC.json),
+#   cross-checked against the WotC article magic.wizards.com/en/news/announcements/secrets-of-strixhaven-commander-decklists
+# STATUS: 100/100 resolved (87 distinct names all resolve from the corpus; 89 list lines
+#   counting the 4+4/4+3 repeated basics); commander eligible (Rootha, Mastering the Moment —
+#   the commander both sources agree on; her trigger is X-sized by Count$ThisTurnCast_...$GreatestCardManaCost,
+#   which is NOT read — see the gap list below).
+#   Deck file NOT ADDED — 7 true-new gap families (ticketed this round) plus 10 known-open
+#   families cited by id; the deck's magecraft engine never fires (probe: Storm-Kiln Artist +
+#   a resolved cast produced 0 Treasures) and the commander's token sizes to 0/0 (probe:
+#   Y = Count$ThisTurnCast_...$GreatestCardManaCost evaluated 0 with a real MV-6 sorcery cast).
+# note: Muddle, the Ever-Changing (cn 0005) is an ordinary mainBoard entry per MTGJSON and the
+#   WotC deck-list, not a second commander.
+# NEW gap families (walker over cards.OpenCorpus -> Primitives() minus effects.Supported(), with rules
+#   imported so RegisterNonAPI's init has run; 87 distinct names, 21 gapped, 11 distinct missing
+#   primitives, 10 already ledgered — the 7 below were not, ticketed under .ds4/new-tickets/):
+#   trig:SpellCastOrCopy — Veyran Voice of Duality, Archmage Emeritus, Storm-Kiln Artist
+#     (magecraft's copy half AND cast half: no dispatch case in rules/trigger_match.go's
+#     `switch t.Mode`, matched=false fallthrough; Mode$ SpellCastOrCopy 31 raw files; probe
+#     measured 0 Treasures off a real resolved cast);
+#   kw:Strive — Twinflame (no expansion in cards/keywords.go; K:Strive 20 raw files);
+#   Count$ThisTurnCast_<spec>$GreatestCardManaCost — Rootha, Mastering the Moment (the COMMANDER;
+#     the extreme-props suffix is read on the Count$Valid[Zone] branch, not the ThisTurnCast_
+#     branch at effects/count.go:692 which passes it into the spec whole; 62 raw files);
+#   PersistentMana$ on A:SP$ Mana — Rousing Refrain ("you don't lose this mana as steps and
+#     phases end"; zero engine hits; 23 raw files; the paramcensus table knows the param label
+#     from Photon, Mighty Marvel — this ticket names the primitive-level gap);
+#   wasCastFromYourHandByYou predicate — Dirgur Focusmage // Braingeyser (unknown filter
+#     predicate, fails closed, the trigger never fires; wasCastFromYourHand 94 raw files);
+#   RepeatOptional$ on DB$ Repeat — Dance with Calamity (effRepeat reads MaxRepeat/RepeatNum
+#     only, the may-repeat election is never posed; RepeatOptional 14 raw files; sibling
+#     RepeatOptionalForEachPlayer$ on RepeatEach is the same ticket);
+#   CopyCard$ True on DB$ Play — Renegade Bull, Surge to Victory (effPlay reads
+#     ValidTgts/Defined/Valid+ValidZone/ValidSA/Optional/Amount only; 48 raw CopyCard$ True
+#     files, 43 with a DB$ Play line; EXTENDS the open Play-params ticket, not a re-file).
+# Known-open families the deck leans on (cite, do not re-file): api:CopyPermanent x8 carriers
+#   (348 files); api:Clone x3 — Muddle, Brudiclad, Cursed Mirror (167; Cursed Mirror also rides
+#   the replacement:ETB-copy ticket); api:DigUntil x2 (165); api:TwoPiles — Abstract Performance
+#   (32); api:GenericChoice — Dance with Calamity (153); kw:Cascade x2 (37); kw:Retrace (17);
+#   kw:Demonstrate x2 (6); api:AlterAttribute + prepared x2 (105 / AlternateMode:Prepare 54);
+#   ChangeZoneTable$ on RepeatEach — Furygale Flocking (47); TotalCommanderCastFromCommandZone
+#   — Thunderclap Drake (17); TargetedPlayer$CardsInHand — Rousing Refrain (32); param:AtEOT$ —
+#   Manaform Hellkite. Approximation-table leans: Manaform Hellkite's TriggeredCard$CastTotalManaSpent
+#   (rv2b exotic count head — token is 0/0), Expressive Iteration's MayPlay Effect (Note only),
+#   Frostboil Snarl's UnlessCost$ Reveal<...> hard decline (always enters tapped) and its Combo
+#   U R tap-gate degrade, Galazeth Prismari's Produced$ Any + unread RestrictValid$,
+#   Reality Shift's face-down manifest, Furygale's MustAttack Effect Note, Rootha Mercurial
+#   Artist's Return<1/CARDNAME> copy ability never offered (probe-measured; the cost verb
+#   PARSES — rules/mana.go returnCost — but the ability-offer path never admits it).
+# Implemented (walker-clean; verified): the whole land suite (typed lands' intrinsic mana via
+#   cards/intrinsic.go basicLandMana; Scry lands; fetch/expanse/sanctuary), rocks and Talisman,
+#   Brazen Borrower // Petty Theft (Adventure), Dig Through Time / Treasure Cruise (Delve),
+#   Deep Analysis (Flashback), Prismari Command / Prismari Charm / Abrade (Charm + TgtChoose
+#   discard), Chain Reaction / Volcanic Torrent / Magma Opus / Blasphemous Act / Chaos Warp /
+#   Volcanic Salvo / Resculpt / Reality Shift / Aether Gale / Arcane Denial (damage-all, bounce,
+#   counter, ChangeZone+Token), Goldspan Dragon (Sac<1/CARDNAME> cost source-aware), Faerie
+#   Mastermind (T:Mode$ Drawn Number$ IS read), Solemn Simulacrum, Arcane Signet / Sol Ring /
+#   Command Tower / Fellwar Stone / Exotic Orchard, Mirrorwing Dragon + Rootha Mercurial's
+#   CopySpellAbility engine, Big Score / Storm-Kiln Artist Treasure tokens (Discard<N/Card>
+#   costs are implemented cost verbs — Magma Opus's Discard<1/CARDNAME> too), Harmonic
+#   Prodigy / Veyran's S:Mode$ Panharmonicon stat.
+Commander
+1 Rootha, Mastering the Moment
+
+Deck
+1 Muddle, the Ever-Changing
+1 Inspired Skypainter // Maestro's Gift
+1 Abstract Performance
+1 Dirgur Focusmage // Braingeyser
+1 Leitmotif Composer
+1 Furygale Flocking
+1 Prismari Pianist
+1 Renegade Bull
+1 Coastal Peak
+1 Scorched Geyser
+1 Turbulent Springs
+1 Faerie Mastermind
+1 Chain Reaction
+1 Determined Iteration
+1 Harmonic Prodigy
+1 Fabled Passage
+1 Archmage Emeritus
+1 Brazen Borrower // Petty Theft
+1 Curiosity Crafter
+1 Dig Through Time
+1 Replication Technique
+1 Rite of Replication
+1 Thunderclap Drake
+1 Blasphemous Act
+1 Chaos Warp
+1 Creative Technique
+1 Cursed Mirror
+1 Dance with Calamity
+1 Goldspan Dragon
+1 Manaform Hellkite
+1 Mirrorwing Dragon
+1 Plargg and Nassari
+1 Redoubled Stormsinger
+1 Rionya, Fire Dancer
+1 Rousing Refrain
+1 Surge to Victory
+1 Twinflame
+1 Volcanic Salvo
+1 Brudiclad, Telchor Engineer
+1 Galazeth Prismari
+1 Magma Opus
+1 Prismari Command
+1 Veyran, Voice of Duality
+1 Solemn Simulacrum
+1 Cascade Bluffs
+1 Exotic Orchard
+1 Ferrous Lake
+1 Frostboil Snarl
+1 Hall of Oracles
+1 Restless Spire
+1 Shivan Reef
+1 Sulfur Falls
+1 Temple of Epiphany
+1 Arcane Signet
+1 Sol Ring
+1 Command Tower
+1 Prismari Charm
+1 Spectacle Summit
+1 Terramorphic Expanse
+1 Aether Gale
+1 Arcane Denial
+1 Deep Analysis
+1 Reality Shift
+1 Resculpt
+1 Treasure Cruise
+1 Abrade
+1 Big Score
+1 Mana Geyser
+1 Storm-Kiln Artist
+1 Throes of Chaos
+1 Volcanic Torrent
+1 Expressive Iteration
+1 Rootha, Mercurial Artist
+1 Stormcatch Mentor
+1 Fellwar Stone
+1 Lightning Greaves
+1 Talisman of Creativity
+1 Molten Tributary
+1 Mystic Sanctuary
+1 Path of Ancestry
+1 Prismari Campus
+1 Reliquary Tower
+1 Study Hall
+1 Temple of the False God
+4 Island
+4 Island
+4 Mountain
+3 Mountain
+0
+# --- Grand Larceny (otc commander precon, Gonti, Canny Acquisitor) — census input, 2026-09-18 (issue agent-20260918T203713Z-91eb9127) ---
+Commander
+1 Gonti, Canny Acquisitor
+
+Deck
+1 Felix Five-Boots
+1 Thieving Skydiver
+1 Sage of the Beyond
+1 Ghostly Pilferer
+1 Diluvian Primordial
+1 Stolen Goods
+1 Curse of the Swine
+1 Dazzling Sphinx
+1 Arcane Heist
+1 Smirking Spelljacker
+1 Mind's Dilation
+1 Gonti, Lord of Luxury
+1 Predators' Hour
+1 Brainstealer Dragon
+1 Cunning Rhetoric
+1 Thieving Amalgam
+1 Orochi Soul-Reaver
+1 Thieving Varmint
+1 Heartless Conscription
+1 Nashi, Moon Sage's Scion
+1 Baleful Mastery
+1 Ohran Frostfang
+1 Savvy Trader
+1 Tower Winder
+1 Cazur, Ruthless Stalker
+1 Silent-Blade Oni
+1 Hostage Taker
+1 Edric, Spymaster of Trest
+1 Fallen Shinobi
+1 Cold-Eyed Selkie
+1 Siphon Insight
+1 Extract Brain
+1 Shadowmage Infiltrator
+1 Baleful Strix
+1 Culling Ritual
+1 Thief of Sanity
+1 Villainous Wealth
+1 The Mimeoplasm
+1 Plasm Capture
+1 Ukkima, Stalking Shadow
+1 Bladegriff Prototype
+1 Chaos Wand
+1 Dream-Thief's Bandana
+1 Oblivion Sower
+1 Overflowing Basin
+1 Drowned Catacomb
+1 Temple of Deceit
+1 Temple of Malady
+1 Darkwater Catacombs
+1 Fetid Pools
+1 Yavimaya Coast
+1 Viridescent Bog
+1 Exotic Orchard
+1 Underground River
+1 Woodland Cemetery
+1 Sunken Hollow
+1 Temple of Mystery
+1 Hinterland Harbor
+1 Darkslick Shores
+1 Flooded Grove
+1 Twilight Mire
+1 Llanowar Wastes
+1 Slither Blade
+1 Whirler Rogue
+1 Triton Shorestalker
+1 Feed the Swarm
+1 Silhana Ledgewalker
+1 Rampant Growth
+1 Kodama's Reach
+1 Void Attendant
+1 Three Visits
+1 Putrefy
+1 Trygon Predator
+1 Doc Aurlock, Grizzled Genius
+1 Arcane Signet
+1 Darksteel Ingot
+1 Fellwar Stone
+1 Prismatic Lens
+1 Sol Ring
+1 Command Tower
+1 Reliquary Tower
+1 Access Tunnel
+1 Dimir Aqueduct
+1 Opulent Palace
+1 Island
+1 Island
+1 Island
+1 Island
+1 Island
+1 Swamp
+1 Swamp
+1 Swamp
+1 Swamp
+1 Swamp
+1 Swamp
+1 Forest
+1 Forest
+1 Forest
+1 Forest
 
 # --- Tricky Terrain (m3c commander precon, Omo, Queen of Vesuva) — census input, 2026-09-18 (issue agent-20260918T203713Z-aba52a3a) ---
 1 Omo, Queen of Vesuva

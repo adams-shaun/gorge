@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -32,11 +33,56 @@ func main() {
 	games := flag.Int("games", 10, "mirror games PER DECK; 0 for presence/corpus only")
 	seed := flag.Uint64("seed", 110000, "each deck uses seed+i, i in [0,games)")
 	corpus := flag.Bool("corpus", false, "also rank raw K: lines and compiled keyword card reach")
+	recompile := flag.Bool("recompile", false, "on any cache load failure, recompile cardsfolder IN MEMORY (never writes the cache; safe in a worktree sharing .cards)")
 	flag.Parse()
-	if err := run(*dir, *names, *games, *seed, *corpus, os.Stdout); err != nil {
+	if err := run(*dir, *names, *games, *seed, *corpus, *recompile, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "keywordbench:", err)
 		os.Exit(1)
 	}
+}
+
+// loadRegistryForBench loads dir/ir.gob.gz for measurement. The default path
+// never recompiles: a benchmark must not silently substitute a freshly
+// compiled corpus for the cache it claims to measure. When recompile is set
+// and the cache load fails for ANY reason (missing, unreadable, version
+// mismatch), it falls back to compiling cardsfolder in memory — exactly what
+// cards.OpenCorpus does — and NEVER writes dir/ir.gob.gz: in an agent
+// worktree dir/.cards may be a symlink into a shared checkout, and compiling
+// from one seat must not mutate what every other seat reads.
+func loadRegistryForBench(dir string, recompile bool) (*cards.Registry, bool, error) {
+	path := filepath.Join(dir, "ir.gob.gz")
+	reg, err := cards.LoadRegistry(path)
+	if err == nil {
+		return reg, false, nil
+	}
+	if !recompile {
+		var cve *cards.CacheVersionError
+		if errors.As(err, &cve) {
+			printSharedCacheAdvice(os.Stderr, err, path)
+		}
+		return nil, false, err
+	}
+	fmt.Fprintf(os.Stderr, "keywordbench: IR cache unusable (%v); recompiling cardsfolder in memory — nothing is written to %s\n", err, path)
+	r, _, cerr := cards.CompileDir(cards.CorpusDir(dir))
+	if cerr != nil {
+		return nil, false, cerr
+	}
+	return r, true, nil
+}
+
+// printSharedCacheAdvice explains, for a *cards.CacheVersionError, why the
+// obvious `make compile-cards` fix is UNSAFE from a worktree (the .cards
+// symlink makes dir/ir.gob.gz the main checkout's shared cache that every
+// concurrent seat reads) and names the two safe remedies. Non-version errors
+// print nothing: their plain failure is self-explanatory.
+func printSharedCacheAdvice(w io.Writer, err error, path string) {
+	var cve *cards.CacheVersionError
+	if !errors.As(err, &cve) {
+		return
+	}
+	fmt.Fprintf(w, "keywordbench: %v\n", err)
+	fmt.Fprintf(w, "  the cache at %s is SHARED (the worktree .cards symlink points into the main checkout) — `make compile-cards` must be run there only, by the controller.\n", path)
+	fmt.Fprintln(w, "  or rerun with -recompile to measure against an in-memory rebuild of cardsfolder (nothing is written).")
 }
 
 func keys[V any](m map[string]V) []string {
@@ -366,12 +412,13 @@ func merge(dst, src tally) {
 		}
 	}
 }
-func run(dir, spec string, games int, seed uint64, corpus bool, w io.Writer) error {
+func run(dir, spec string, games int, seed uint64, corpus bool, recompile bool, w io.Writer) error {
 	if games < 0 {
 		return fmt.Errorf("negative -games")
 	}
 	// Load the named cache directly: measurement must not silently recompile it.
-	reg, err := cards.LoadRegistry(filepath.Join(dir, "ir.gob.gz"))
+	// -recompile opts into an in-memory rebuild on any load failure.
+	reg, _, err := loadRegistryForBench(dir, recompile)
 	if err != nil {
 		return err
 	}

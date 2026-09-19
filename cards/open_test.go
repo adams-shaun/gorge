@@ -36,6 +36,9 @@ func TestOpenCorpusCompilesWhenThereIsNoCache(t *testing.T) {
 	if _, ok := r.Lookup("Mountain"); !ok {
 		t.Fatal("compiled registry lacks Mountain")
 	}
+	if r.Catalog() == nil {
+		t.Fatal("compiled OpenCorpus result has no catalog")
+	}
 }
 
 func TestOpenCorpusPrefersAFreshCacheAndRecompilesAStaleOne(t *testing.T) {
@@ -56,6 +59,9 @@ func TestOpenCorpusPrefersAFreshCacheAndRecompilesAStaleOne(t *testing.T) {
 	if _, ok := got.Lookup("Island"); !ok {
 		t.Fatal("fresh cache was not used")
 	}
+	if got.Catalog() == nil {
+		t.Fatal("fresh-cache OpenCorpus result has no catalog")
+	}
 	// Now a cards.lock newer than the cache marks it stale: recompile.
 	lock := filepath.Join(dir, "cards.lock")
 	if err := os.WriteFile(lock, []byte("x"), 0o644); err != nil {
@@ -71,5 +77,8 @@ func TestOpenCorpusPrefersAFreshCacheAndRecompilesAStaleOne(t *testing.T) {
 	}
 	if _, ok := got.Lookup("Mountain"); !ok {
 		t.Fatal("stale cache was not recompiled from the folder")
+	}
+	if got.Catalog() == nil {
+		t.Fatal("recompiled OpenCorpus result has no catalog")
 	}
 }

@@ -51,6 +51,43 @@ type TriggerContext struct {
 	// resolves. Zero is both a valid paid value and the value for a triggering
 	// card with no paid X.
 	TriggerPaidX int32
+	// TriggerBearer is the permanent an Aura/Equipment BECAME attached to
+	// (rules/triggerReferents' Attached case, over the one shared Attach
+	// event: ev.Obj is the attachment, ev.IDs[0] the bearer). It is the
+	// exact referent Defined$ TriggeredTargetLKICopy resolves for an
+	// Attached execute (Enormous Energy Blade's "tap that creature"). Only
+	// the Attached capture sets it, so the spelling's Remembered fallback
+	// for every other mode is untouched -- in particular a BecomesTarget
+	// trigger's Remembered entry (the targeting spell) stays exactly as it
+	// always resolved, and the mode-agnostic TriggerTarget role (which for
+	// BecomesTarget is the trigger's own source permanent) is never read
+	// through this spelling. Zero outside an Attached trigger.
+	TriggerBearer state.ObjID
+	// TriggerAbility is the minted ability STACK OBJECT an AbilityCast /
+	// SpellAbilityCast trigger fired on (abcopy1). An AbilityPush event's Obj
+	// is the source PERMANENT -- events.Apply mints the ability's stack wrapper
+	// off the event -- so Remembered alone names the battlefield permanent and
+	// every Defined$ TriggeredSpellAbility consumer would resolve a non-stack
+	// object (effCopySpellAbility's stack zone guard then no-ops silently).
+	// Rules captures the wrapper id at fire time, when it is deterministically
+	// the topmost non-trigger ability wrapper whose Source is the triggering
+	// permanent (the same mechanism TriggerPaidX/TriggerConverge use: no event
+	// schema change, a log-only replay folds the same AbilityPush, mints the
+	// same id and re-runs the capture at the same point). Zero for a spell-cast
+	// trigger (the ev.Obj spell object is TriggerCard) and for every other
+	// mode. Unlike TriggerStack it is not a targeting event's object; it is
+	// the activation provenance the copy / ChangeX / counter family reads.
+	TriggerAbility state.ObjID
+	// TriggerConverge snapshots the CR 107.4f converge colour count of
+	// TriggerCard's cast when this trigger matched (rules/trigger_referents'
+	// capture beside TriggerPaidX, read by evalRefProperty's Converge
+	// property). The same trigger-time binding rule applies: the colours were
+	// spent when the spell was cast, so a spell countered between trigger push
+	// and resolution must not read 0 -- its stack->graveyard move clears the
+	// live Object.ConvergeColours, while this snapshot survives to resolution.
+	// Zero is both a valid count and the value for a triggering card whose
+	// cast carried none.
+	TriggerConverge int32
 }
 
 // TriggeredCardController is the one resolver for "that card's controller"
@@ -91,7 +128,13 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	switch ref {
 	case "TriggeredTarget", "TriggeredDefendingPlayer", "TriggeredPlayer", "TriggeredCard",
 		"Targeted", "TargetedPlayer", "ThisTargetedPlayer", "TargetedController", "TargetedOrController",
-		"Remembered":
+		"Remembered", "RememberedPlayer",
+		// vow1: the full player-spec spellings the bare-Choices$ PutCounter
+		// family writes (Promise of Loyalty's "ControlledBy
+		// Player.IsRemembered", Gluntch's "ControlledBy ChosenPlayer"):
+		// resolution-only, resolved in controlReferentPlayers against the
+		// same remembered/chosen player entries the bare referents read.
+		"Player.IsRemembered", "ChosenPlayer", "Player.Chosen":
 		return op, ref, true
 	}
 	return "", "", false
@@ -142,6 +185,31 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		}
 		for _, t := range sc.Remembered {
 			if t.IsPlayer || ref == "Remembered" {
+				targets = append(targets, t)
+			}
+		}
+	case "Player.IsRemembered":
+		// vow1: the same remembered set the bare "Remembered" referent
+		// reads, PLAYERS ONLY -- the full player-spec spelling names the
+		// remembered player (a RepeatEach loop's subject), never a
+		// remembered object's controller.
+		if !sc.Resolving {
+			return nil, false
+		}
+		for _, t := range sc.Remembered {
+			if t.IsPlayer {
+				targets = append(targets, t)
+			}
+		}
+	case "ChosenPlayer", "Player.Chosen":
+		// vow1: the resolution's own ChoosePlayer answer (Gluntch's
+		// "ControlledBy ChosenPlayer"), the same current-resolution set the
+		// Player.Chosen Defined selector reads.
+		if !sc.Resolving {
+			return nil, false
+		}
+		for _, t := range sc.Chosen {
+			if t.IsPlayer {
 				targets = append(targets, t)
 			}
 		}

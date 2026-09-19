@@ -143,18 +143,24 @@ func TestDeckDirectoryListingIsSortedAndComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(names) < 2 || names[0] != "death-n-taxes" {
-		t.Fatalf("expected sorted listing starting with death-n-taxes, got %v", names)
+	if len(names) < 2 {
+		t.Fatalf("expected at least 2 decks, got %v", names)
 	}
+	// Sortedness is the contract the host's table listing depends on; WHICH
+	// deck sorts first is not pinned -- it changes whenever a deck is added
+	// (avengers-assemble displaced death-n-taxes once already).
 	for i := 1; i < len(names); i++ {
 		if names[i-1] >= names[i] {
 			t.Fatalf("deck listing not strictly sorted at %q after %q: %v", names[i], names[i-1], names)
 		}
 	}
-	// The 12 Legacy constructed decks (dimir-tempo included) and the five
-	// m38 commander decks must all still be present, and the listing must
-	// stay complete: the directory is what the host serves for tables.
+	// The historical deck set must all still be present (the 12 Legacy
+	// constructed decks, the foundations-* precons, and the decks added
+	// since), and the listing must stay complete in that subset sense: the
+	// directory is what the host serves for tables. Decks added later join
+	// the listing without breaking this; a RENAMED or removed deck fails here.
 	want := []string{
+		"avengers-assemble",
 		"death-n-taxes", "dimir-tempo", "foundations-calling-all-angels",
 		"foundations-keen-engineering", "foundations-reign-of-dragons",
 		"foundations-tramplesaurus-rex", "foundations-wretched-ranks",

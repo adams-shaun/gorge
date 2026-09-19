@@ -35,7 +35,7 @@ func discardBoard(t *testing.T, hand ...*cards.Card) (*askHost, *Ctx, []state.Ob
 	}
 	ah.g.SetZone(state.ZHand, 1, ids)
 	ctx := &Ctx{Source: src.ID, Controller: 0,
-		Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}
 	return ah, ctx, ids
 }
 

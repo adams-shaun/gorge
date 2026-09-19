@@ -38,8 +38,11 @@ func init() { Register("Token", effToken) }
 // emit for their own Tapped$ (an entry state, not the CR 701.21a event of
 // becoming tapped) lands right after each mint, so the token is on the
 // battlefield untapped for exactly one folded event and then tapped.
-// TokenAttacking$ (the Kari Zev / Kessig Cagebreakers attack rider) stays a
-// census-free gap outside this task.
+// TokenAttacking$ True (Mobilize, Kari Zev) makes every token this call
+// creates enter tapped and attacking the combat's defending player through
+// the appended events.TokenAttacks kind; see the implementation comment at
+// the read below for the no-defender degrade. The other TokenAttacking$
+// selector forms stay census-free gaps.
 //
 // TokenPower$/TokenToughness$ set the token's P/T from a dynamic value
 // (Skyclave Apparition's X/X Illusion, SVar:X:Remembered$CardManaCost): the
@@ -59,6 +62,20 @@ func init() { Register("Token", effToken) }
 // keyword expansion (cards/keywords.go) attaches the Germ it just made: its
 // SubAbility is `DB$ Attach | Defined$ Remembered`, and Resolve walks Sub
 // with the SAME *Ctx, so appending here is what that Attach later reads.
+//
+// RememberOriginalTokens$ True (Forum Filibuster, Diregraf Horde, Dain
+// Ironfoot and 5 more corpus carriers, all `DB$ Token` shapes) takes the SAME
+// branch. Forge's own distinction is original-token-vs-post-replacement
+// mint, and in this build that distinction collapses in favour of the flag:
+// every mint this call proposes IS an original token, because the per-emitted
+// event `want` capture runs before any token replacement could rewrite it and
+// replacement EXTRA mints get no riders at all (the tokrepl1 contract --
+// Academy Manufactor remembers only its first mint). One documented
+// divergence stays: under a Type$ ReplaceToken rewrite (Divine Visitation)
+// `g.Obj(want)` is the REPLACED mint, so the remembered object is the
+// replaced token, not the token the script named. All 8 carriers are plain
+// `DB$ Token` lines with no `R:` replacement in reach (measured at the
+// corpus pin), so the divergence is corpus-unreachable today.
 func effToken(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	n := Num(h, c, sa, "TokenAmount", 1)
@@ -89,11 +106,31 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 		}
+	case "ThisTargetedPlayer":
+		// The player one of the charm's modes targeted (Shadrix Silverquill,
+		// the duo cycle, verdant/ashlings/prismari command -- 7 corpus files
+		// carry the spelling on a Token): the first player-kind entry of this
+		// resolution's own target list. With the cross-mode TargetUnique split
+		// (effCharm's charmCrossModeRun) that list is exactly the running
+		// mode's own target, so the token is created BY the player the mode
+		// targeted, not by the ability's controller. A resolution with no
+		// player target keeps the controller, the same silent degrade the
+		// other miss cases here take.
+		for _, t := range c.Targets {
+			if t.IsPlayer {
+				owner = t.Player
+				break
+			}
+		}
 	default:
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unrecognized TokenOwner " + v + ", defaulting to the controller"})
 	}
-	remember := sa.Params["RememberTokens"] == "True"
+	// RememberOriginalTokens$ True mirrors RememberTokens$ exactly (see the
+	// doc above for the original-vs-replaced-mint note). The 8 carriers all
+	// chain a `DB$ ImmediateTrigger` "when you do" sub that reads this set.
+	remember := sa.Params["RememberTokens"] == "True" ||
+		sa.Params["RememberOriginalTokens"] == "True"
 	// AttachedTo$ names the permanent the token enters attached to (the Wicked
 	// Role of Charming Scoundrel's ETB, 50+ corpus lines): the value is a
 	// Defined$-grammar selector, resolved with the ordinary resolver against
@@ -145,6 +182,37 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	}
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["TokenTapped"]), "True")
 
+	// TokenAttacking$ True (Mobilize, Kari Zev's "tapped and attacking"
+	// rider): every token this call creates enters attacking the combat's
+	// DEFENDING player, read from the firing Attacks trigger's own referent
+	// capture (rules/trigger_referents.go binds c.DefendingPlayer from the
+	// DeclareAttackers event; the defending player is ev.Player there --
+	// the engine batches attackers per defender). Only the literal True
+	// form is implemented: the corpus's other selector values (Remembered
+	// x5, RememberedPlayer x3, TriggeredAttackedTarget x4, TriggeredDefender
+	// x1) keep the census-free degrade they had, now named by ONE loud Note
+	// per call instead of silence. A True with NO defender in context (an
+	// ACTIVATED AB$ Token rider like kavaron_harrier or militias_pride -- no
+	// trigger context exists) still enters (tapped, when TokenTapped$ says
+	// so) but NOT attacking, under one deterministic Note: never a guessed
+	// defender. The mark itself rides the appended events.TokenAttacks kind
+	// (events/apply.go), so replay rebuilds it.
+	attackCtx := false
+	var attackDefender state.PlayerID
+	if attack := strings.TrimSpace(sa.Params["TokenAttacking"]); attack != "" {
+		switch {
+		case strings.EqualFold(attack, "True") && c.DefendingPlayer.IsPlayer:
+			attackCtx = true
+			attackDefender = c.DefendingPlayer.Player
+		case strings.EqualFold(attack, "True"):
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "TokenAttacking$ with no defending player in context; the token enters but does not attack"})
+		default:
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "TokenAttacking$ " + attack + " is not implemented; the token enters but does not attack"})
+		}
+	}
+
 	for _, key := range strings.Split(sa.Params["TokenScript"], ",") {
 		key = strings.TrimSpace(key)
 		if key == "" {
@@ -168,6 +236,10 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			}
 			if tapped && g.Obj(want) != nil {
 				h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: owner, Text: "entered tapped"})
+			}
+			if attackCtx && g.Obj(want) != nil {
+				h.Emit(events.Event{Kind: events.TokenAttacks, Obj: want, Player: owner,
+					IDs: []state.ObjID{state.ObjID(attackDefender)}, Text: "entered attacking"})
 			}
 			if (hasPow || hasTgh) && g.Obj(want) != nil && g.Obj(want).Face() != nil {
 				// The absent side keeps the token script's printed value. Every

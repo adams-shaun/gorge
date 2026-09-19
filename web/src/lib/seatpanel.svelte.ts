@@ -558,6 +558,16 @@ export class SeatPanelState {
   arrangeOpen = $state(false);
 
   /**
+   * discardOpen is the discard-pick modal's open flag (fb-20260918T201739Z),
+   * the twin of arrangeOpen: the same shared-state reasons (a component-local
+   * `$state` is undeclarable in SeatPanel; the board and strip surfaces mount
+   * against one state object) and the same reset sites — a new decision and
+   * a match boundary both close it, so the modal can never outlive the ask
+   * it belongs to.
+   */
+  discardOpen = $state(false);
+
+  /**
    * autoOrderedSeq is the seq the identical-trigger auto-order last posted
    * for — the same loop guard autoActedSeq is for the pass paths, so a
    * rejected auto-order is never retried forever against a refusing server.
@@ -1541,6 +1551,7 @@ export class SeatPanelState {
     this.resolveAllIds = null;
     this.currentView = null;
     this.arrangeOpen = false;
+    this.discardOpen = false;
     this.rememberChoice = false;
     this.note = { kind: 'off' };
   }
@@ -1607,6 +1618,10 @@ export class SeatPanelState {
     // popup's own modal also resets on a seq change (ArrangeModal), so a
     // future mount site that forgets to close still cannot reuse edits.
     this.arrangeOpen = false;
+    // The discard-pick modal is the same kind of ask-local surface: a new
+    // decision closes it, so its picked view can never be presented as (or
+    // submitted for) the next ask.
+    this.discardOpen = false;
     // The identical-trigger auto-order runs at ADOPT, not only in
     // considerAuto: the decision frame can arrive while no view change
     // follows it, and the submit must not depend on the next effect tick.

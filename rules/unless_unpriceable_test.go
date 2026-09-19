@@ -295,9 +295,13 @@ func TestParseCostPriceable(t *testing.T) {
 // price. Where the ParseCost golden above records what the lenient parser
 // silently substitutes, this one records what the strict gate declines: X, Y,
 // Z (a cast choice or an SVar the answer does not carry), DamageYou<N>,
-// PayEnergy<N>, Return<...>, ExileFromGrave<...>, Reveal<...>, LifeTotalHalfUp,
-// DefinedCost_*, CopyCost and prose. Measured on the compiled .cards/ir.gob.gz
-// corpus at FORGE_REF: 212 distinct cards. API Ward is excluded: the ward
+// PayEnergy<N>, Return<...>, ExileFromGrave<...>, Behold<...>, tapXType<...>,
+// LifeTotalHalfUp, DefinedCost_*, CopyCost and prose. Measured on the
+// compiled .cards/ir.gob.gz corpus at FORGE_REF: 190 distinct cards — the
+// 22 Reveal<N/Spec> carriers this population used to hold (the hideaway
+// family, Xyru Specter, Priest of the Wakening Sun, Invasion of the Giants)
+// left it when the unless-payment continuation learned to pay a Reveal
+// component. API Ward is excluded: the ward
 // keyword expansion stamps the raw ward cost onto a DB$ Ward line, and ward
 // costs are priced by rules' ward payment handler (beginWardPayment's
 // mana/alt-cost/CollectEvidence/Blight/Waterbend arms), never by the shared
@@ -332,8 +336,9 @@ func strictUnpriceableCards(reg *cards.Registry) []string {
 // TestUnlessCostStrictParsePopulation pins the corpus population whose
 // UnlessCost$ the strict unless-pay parser declines. It is the executable
 // boundary of the payment grammar this task built: mana symbols, fixed
-// PayLife<N>, and Sac/Discard/SubCounter components are chargeable
-// mid-resolution; everything else is a hard decline (the ask is still posed
+// PayLife<N>, and Sac/Discard/SubCounter/Draw/Reveal components are
+// chargeable mid-resolution (Sac/Discard/Reveal through the payer-choice
+// continuation); everything else is a hard decline (the ask is still posed
 // and recorded, but "pay" cannot succeed). A corpus or grammar change that
 // adds or removes a name here is a real scope change that must be
 // understood, not silently absorbed.
@@ -341,14 +346,14 @@ func TestUnlessCostStrictParsePopulation(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	got := strictUnpriceableCards(reg)
 	want := []string{
-		"A-Galvanic Discharge", "A-Karn, Living Legacy", "Aether Refinery", "Aether Spike", "Alliance of Arms", "Ancient Amphitheater",
+		"A-Galvanic Discharge", "A-Karn, Living Legacy", "Aether Refinery", "Aether Spike", "Alliance of Arms",
 		"Anurid Scavenger", "Archfiend of Spite", "Arcum's Whistle", "Armor Wars",
-		"Auntie's Hovel", "Barbarian Bully", "Barrow Ghoul", "Behemoth of Vault 0",
+		"Barbarian Bully", "Barrow Ghoul", "Behemoth of Vault 0",
 		"Blaster Hulk", "Blazing Salvo", "Book Burning", "Breaking Point",
 		"Brine Seer", "Broken Ambitions", "Browbeat", "Bull Elephant",
 		"Carrion Rats", "Carrion Wurm", "Cephalid Shrine", "Champions of Minas Tirith",
 		"Charismatic Conqueror", "Cheering Crowd", "Chisei, Heart of Oceans",
-		"Choked Estuary", "Circling Vultures", "Circular Logic", "Clash of Wills",
+		"Circling Vultures", "Circular Logic", "Clash of Wills",
 		"Collective Voyage", "Combustion Man", "Command Bridge", "Concerted Defense",
 		"Condescend", "Confiscation Coup", "Coral Atoll", "Countervailing Winds",
 		"Court of Ambition", "Craig Boone, Novac Guard", "Crosis's Catacombs",
@@ -359,32 +364,31 @@ func TestUnlessCostStrictParsePopulation(t *testing.T) {
 		"Elven Passage", "Energy Vortex", "Errant Minion", "Esper Sentinel",
 		"Essence Leak", "Essence Vortex", "Evasive Action", "Everglades", "Excise",
 		"Extravagant Spirit", "Faerie Impostor", "Feather, Radiant Arbiter",
-		"Fettergeist", "Flamekin Village", "Flash", "Flitting Guerrilla",
-		"Foreboding Ruins", "Fortified Village", "Frostboil Snarl",
-		"Furycalm Snarl", "Galvanic Discharge", "Game Trail", "Gilt-Leaf Palace", "Glint Hawk", "Greenbelt Rampager", "Grip of Amnesia",
+		"Fettergeist", "Flash", "Flitting Guerrilla",
+		"Galvanic Discharge", "Glint Hawk", "Greenbelt Rampager", "Grip of Amnesia",
 		"Gurzigost", "Gutsplitter Gang", "Harnessed Lightning", "Heated Argument",
 		"Hungry Hungry Heifer", "Ice Cave", "In the Eye of Chaos",
-		"Insatiable Frugivore", "Invasion of the Giants", "Invoke Prejudice",
+		"Insatiable Frugivore", "Invoke Prejudice",
 		"Ixidor's Will", "Jolted Awake", "Jungle Basin", "Karn, Living Legacy",
 		"Karoo", "Killing Wave", "Koskun Falls", "Lathnu Hellion", "Lava Blister", "Liberty Prime, Recharged",
 		"Liege of the Hollows", "Lightning Runner", "Lilting Refrain",
 		"Living Tsunami", "Localized Destruction", "Lofty Denial", "Logic Knot",
 		"Longhorn Firebeast", "Mana-Charged Dragon", "Martyr of Frost",
 		"Mausoleum Wanderer", "Megatherium", "Memory Vampire", "Minds Aglow",
-		"Mindswipe", "Molten Influence", "Murmuring Bosk", "Musician",
-		"Necroblossom Snarl", "Oppressive Will", "Overencumbered", "Override",
+		"Mindswipe", "Molten Influence", "Musician",
+		"Oppressive Will", "Overencumbered", "Override",
 		"Overrule", "Ovinomancer", "Pendrell Flux", "Phantasmal Sphere",
 		"Pia Nalaar, Chief Mechanic", "Pia's Revolution", "Plague of Vermin",
-		"Plunge into Darkness", "Port Town", "Power Leak", "Power Sink",
-		"Priest of the Wakening Sun", "Primal Beyond", "Primordial Ooze",
+		"Plunge into Darkness", "Power Leak", "Power Sink",
+		"Primordial Ooze",
 		"Protect the Negotiators", "Protection Racket", "Public Thoroughfare",
 		"Quickling", "Rakshasa's Disdain", "Rampaging Aetherhood", "Rent Is Due",
 		"Repulsive Mutation", "Rescuer Sphinx", "Reservoir Kraken", "Rethink",
 		"Risk Factor", "Rites of Refusal", "Rith's Grove", "Rogue Skycaptain",
 		"Rose Room Treasurer", "Rotting Giant", "Rune Snag", "Rush of Inspiration",
-		"Rustic Clachan", "Saheeli, Filigree Master", "Sanctuary Wall",
-		"Satya, Aetherflux Genius", "Scent of Brine", "Secluded Glen",
-		"Shared Trauma", "Shineshadow Snarl", "Skullscorch",
+		"Saheeli, Filigree Master", "Sanctuary Wall",
+		"Satya, Aetherflux Genius", "Scent of Brine",
+		"Shared Trauma", "Skullscorch",
 		"Soul Strings", "Soul Tithe", "Spectral Denial", "Spell Rupture",
 		"Spell Stutter", "Spell Syphon", "Static Prison", "Suppression Ray",
 		"Swallowed by Leviathan", "Syncopate", "Tainted Specter", "Tariff", "Temporal Extortion", "Territorial Aetherkite",
@@ -392,11 +396,11 @@ func TestUnlessCostStrictParsePopulation(t *testing.T) {
 		"Tibalt, Wicked Tormentor", "Tourach's Chant", "Tragic Lesson",
 		"Transmute Artifact", "Treacherous Vampire", "Treva's Ruins", "Trystan, Penitent Culler", "Tymaret Calls the Dead",
 		"Urza's Tome", "Vapor Snare", "Vault 112: Sadistic Simulation",
-		"Vexing Devil", "Vineglimmer Snarl", "Volatile Stormdrake", "Wand of Ith",
-		"Wanderwine Hub", "Waterbending Lesson", "Waterspout Djinn",
+		"Vexing Devil", "Volatile Stormdrake", "Wand of Ith",
+		"Waterbending Lesson", "Waterspout Djinn",
 		"We Say Thee Nay!", "Web of Inertia", "Well of Lost Dreams",
 		"Wheel of Potential", "Worms of the Earth",
-		"Wrath of the Skies", "Xyru Specter",
+		"Wrath of the Skies",
 	}
 	sort.Strings(want)
 	if len(got) != len(want) {
