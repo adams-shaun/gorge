@@ -120,6 +120,7 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
@@ -137,8 +138,8 @@ var policies = map[string]func(seed uint64) seat.Seat{
 	// covariance: a func returning *Bot is not assignable to one returning
 	// seat.Seat, and the wrapper keeps a future policy free to return any
 	// Seat implementation.
-	"bot":             func(seed uint64) seat.Seat { return seat.NewBot(seed) },
-	"lethal-pressure": func(seed uint64) seat.Seat { return seat.NewLethalPressureBot(seed) },
+	"bot":             hostedPolicy(host.BotPolicy),
+	"lethal-pressure": hostedPolicy(host.LethalPressurePolicy),
 	// legacy is the pre-B2 policy, frozen in botpolicy.LegacyDecide: attack
 	// with everything that can, block half the legal pairs on a coin. It is
 	// not a production policy -- nothing but the bench drives it -- it is
@@ -147,6 +148,16 @@ var policies = map[string]func(seed uint64) seat.Seat{
 	"legacy": func(seed uint64) seat.Seat {
 		return &legacySeat{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
 	},
+}
+
+func hostedPolicy(name string) func(seed uint64) seat.Seat {
+	return func(seed uint64) seat.Seat {
+		s, err := host.NewBotPolicySeat(name, seed)
+		if err != nil {
+			panic(err) // constants above are the closed hosted-policy vocabulary.
+		}
+		return s
+	}
 }
 
 // legacySeat is the bench seat for the old policy: it reads the same view
