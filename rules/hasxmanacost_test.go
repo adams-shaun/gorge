@@ -129,8 +129,9 @@ func pushCount(e *Engine, id state.ObjID) int {
 // ask (two same-controller triggers, CR 603.3b -- option 0 puts that one on
 // the stack first) and a trigger_optional ask (an OptionalDecider$ trigger's
 // resolution-time "apply the effect?" -- option 0 = yes; the bodies under
-// test here are unimplemented ChangeX notes or a gain-life either way, and
-// the CR 603.5 placement is unconditional regardless of the answer).
+// test here are a gain-life either way, and since changex1 the ChangeX
+// bodies rewrite the paid X, all recorded unconditionally, and the CR 603.5
+// placement is unconditional regardless of the answer).
 func drainTriggerAsks(t *testing.T, e *Engine, limit int) {
 	t.Helper()
 	for i := 0; i < limit && !e.G.Over && len(e.G.Stack) > 0; i++ {

@@ -864,6 +864,17 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case XChange:
+		// A mid-resolution effect rewrote the {X} a stack object was cast or
+		// activated with (DB$ ChangeX: Unbound Flourishing's doubling, Glava's
+		// "the value of X becomes 5"). Amount is the new value, Obj the stack
+		// object -- downstream readers (resolution's ctx.X, the ETB
+		// replacement ctx, Count$xPaid) pick it up fresh, so the rewrite is
+		// the only write needed.
+		if o := g.Obj(e.Obj); o != nil {
+			o.X = e.Amount
+		}
+
 	case Choose:
 		if o := g.Obj(e.Obj); o != nil {
 			switch e.Counter {
