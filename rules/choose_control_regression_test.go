@@ -193,7 +193,7 @@ func TestFlayerTemporaryControlExpiresAndZoneChangeResetsControl(t *testing.T) {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
 	}
 	sa := cards.ResolveSVar(flayer.Face().SVars, "TrigGainControl")
-	effects.Resolve(e, &effects.Ctx{Source: flayer.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}, SVars: flayer.Face().SVars}, sa)
+	effects.Resolve(e, &effects.Ctx{Source: flayer.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}, TargetsOffered: true, SVars: flayer.Face().SVars}, sa)
 	if e.G.Obj(target.ID).Controller != 0 {
 		t.Fatalf("Flayer did not gain control: %d", e.G.Obj(target.ID).Controller)
 	}
@@ -342,7 +342,7 @@ func containsObj(ids []state.ObjID, id state.ObjID) bool {
 // stealWith resolves a real GainControl SA from src's face against target.
 func stealWith(t *testing.T, e *Engine, src *state.Object, sa *cards.SA, controller state.PlayerID, target state.ObjID) {
 	t.Helper()
-	effects.Resolve(e, &effects.Ctx{Source: src.ID, Controller: controller, Targets: []state.Target{{Obj: target}}, SVars: src.Face().SVars}, sa)
+	effects.Resolve(e, &effects.Ctx{Source: src.ID, Controller: controller, Targets: []state.Target{{Obj: target}}, TargetsOffered: true, SVars: src.Face().SVars}, sa)
 }
 
 func controlBoard(t *testing.T, seed uint64, thief string) (*Engine, *state.Object, *state.Object) {
@@ -598,7 +598,7 @@ func TestGainControlAmpersandAddKWsGrantsEveryKeyword(t *testing.T) {
 	victim := onBoardReady(t, e, 1, "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	gain := card(t, "Name:Steal\nTypes:Sorcery\nA:SP$ GainControl | ValidTgts$ Creature | LoseControl$ EOT | AddKWs$ Haste & Lifelink\nOracle:x\n")
 
-	effects.Resolve(e, &effects.Ctx{Controller: 0, Targets: []state.Target{{Obj: victim}}}, gain.Faces[0].SpellAbility())
+	effects.Resolve(e, &effects.Ctx{Controller: 0, Targets: []state.Target{{Obj: victim}}, TargetsOffered: true}, gain.Faces[0].SpellAbility())
 	if got := e.G.Obj(victim).Controller; got != 0 {
 		t.Fatalf("controlled creature controller = %d, want 0", got)
 	}
@@ -626,7 +626,7 @@ func TestStolenCreatureLivesInItsControllersBattlefield(t *testing.T) {
 	treason := e.G.AddObject(choiceCorpusCard(t, "Act of Treason"), 0)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: treason.ID, From: state.ZLibrary, To: state.ZStack})
 	effects.Resolve(e, &effects.Ctx{Source: treason.ID, Controller: 0, Targets: []state.Target{{Obj: victim}},
-		SVars: treason.Face().SVars}, treason.Face().SpellAbility())
+		TargetsOffered: true, SVars: treason.Face().SVars}, treason.Face().SpellAbility())
 	testutil.CheckInvariants(t, e.G, nil, "after steal")
 	v := e.G.Obj(victim)
 	if v.Controller != 0 || !inZone(e, state.ZBattlefield, 0, victim) || inZone(e, state.ZBattlefield, 1, victim) {
@@ -797,7 +797,7 @@ func TestDeflectingSwatOffersTheSpellControllersLegalTargets(t *testing.T) {
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: murder.ID, IDs: []state.ObjID{mineA}})
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: swat.ID, IDs: []state.ObjID{murder.ID}})
 	effects.Resolve(e, &effects.Ctx{Source: swat.ID, Controller: 0, Targets: []state.Target{{Obj: murder.ID}},
-		SVars: swat.Face().SVars}, swat.Face().SpellAbility())
+		TargetsOffered: true, SVars: swat.Face().SVars}, swat.Face().SpellAbility())
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("Deflecting Swat did not ask: %+v", d)

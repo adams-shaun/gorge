@@ -65,11 +65,57 @@ func (f *Face) expandKeywords() {
 			// contain their own "|", which would otherwise inject a
 			// spurious param into both).
 			kind, rest, _ := strings.Cut(param, ":")
-			n, _, _ := strings.Cut(rest, ":")
+			n, extra, _ := strings.Cut(rest, ":")
 			sv := "__kwEtbCounter" + strconv.Itoa(i)
 			f.setSVar(sv, "DB$ PutCounter | Defined$ Self | CounterType$ "+kind+" | CounterNum$ "+n+" | ETB$ True")
 			p := parseParams("Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplacementResult$ Updated | ReplaceWith$ " + sv +
 				" | Keyword$ etbCounter | Description$ CARDNAME enters with " + n + " " + kind + " counters.")
+			// The FIRST extra colon field may be a condition gate: either a
+			// bare `CheckSVar$ <name>` (Lupine Harbingers' "... since it was
+			// foretold", Myojin of Night's Reach's "if you cast it from your
+			// hand") or a `CheckSVar$ <name> | SVarCompare$ <op><N>` pair
+			// (Hotheaded Giant, Freestrider Commando, Steel Exemplar). Split
+			// the ` | `-separated tokens through to the shared
+			// rules/replacementConditionHolds read (CheckSVar + optional
+			// SVarCompare) instead of stuffing the whole field into one param:
+			// a whole-stuffed CheckSVar resolves no SVar, the gate fails
+			// closed, and those carriers' counters silently un-apply (the
+			// round-2 review's measured regression). Only these two condition
+			// params are passed through: a gate field can also carry real
+			// match params (the Myojin-family lines carry `ValidCard$ ...`
+			// here) that the replacement matcher honours, and passing those
+			// through would widen every carrier's match. Everything else stays
+			// dropped, exactly as before -- the later colon fields remain
+			// display metadata.
+			if first, _, _ := strings.Cut(extra, ":"); strings.Contains(first, "$") {
+				for _, part := range strings.Split(first, " | ") {
+					name, val, ok := strings.Cut(strings.TrimSpace(part), "$")
+					if !ok {
+						continue
+					}
+					switch strings.TrimSpace(name) {
+					case "CheckSVar", "SVarCompare":
+						if val = strings.TrimSpace(val); val != "" {
+							p[strings.TrimSpace(name)] = val
+						}
+					case "ValidCard":
+						// A gate field's ValidCard$ is a real match param the
+						// replacement matcher honours -- epochrasite's
+						// `Card.Self+!wasCastFromYourHandByYou` (task castprov1)
+						// and the escape-counter family's `Card.Self+escaped`,
+						// all 11 raw carriers spelled `Card.Self+<preds>`. It
+						// replaces the default `Card.Self` ONLY when the gate's
+						// own spec still constrains Self (a Self-less fragment
+						// would widen the default's match, the pre-existing
+						// drop's reason); a spec the filter fails closed on
+						// (wasCastByYou's unknown predicate) keeps failing
+						// closed. Measured: no carrier is in any repo deck.
+						if val = strings.TrimSpace(val); val != "" && strings.Contains(val, "Self") {
+							p["ValidCard"] = val
+						}
+					}
+				}
+			}
 			p["KeywordLine"] = k
 			f.Repls = append(f.Repls, Repl{Event: "Moved", Params: p})
 		case "ETBReplacement":
@@ -178,6 +224,19 @@ func (f *Face) expandKeywords() {
 		case "Storm":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Storm",
 				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnCast/Minus1 | MayChooseTarget$ True", has)
+		case "Replicate":
+			// CR 702.55a: "you may pay an additional [cost] any number of
+			// times as you cast this spell. If you do, copy it for each time
+			// you paid its replicate cost." The cast flow poses the count ask
+			// (rules/cast.go's replicateAsk, one KChoose before the payment
+			// window) and records the count on the pay-time CastInfo
+			// (FlagReplicated's Amount); this trigger reads Count$ReplicatePaid
+			// off the cast spell, so a DECLINED replicate resolves the trigger
+			// with Amount 0 and effCopySpellAbility's loop emits nothing. The
+			// copies keep their targets (MayChooseTarget$), the same
+			// Storm-shaped stand-in the M4 copy-target task owns.
+			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Replicate",
+				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ReplicatePaid | MayChooseTarget$ True", has)
 		case "Living Weapon":
 			if has("T", k) {
 				continue
@@ -195,20 +254,86 @@ func (f *Face) expandKeywords() {
 			f.addKeywordTrigger(head, k,
 				"Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | TriggerDescription$ Cumulative upkeep",
 				"DB$ CumulativeUpkeep | Cost$ "+cost, has)
+		case "Echo":
+			// CR 702.35a: "At the beginning of your upkeep, if this permanent
+			// came under your control since the beginning of your most recent
+			// upkeep, you may pay {cost}. If you don't, sacrifice it." Expanded
+			// into the ordinary Phase-trigger pipeline like Cumulative upkeep
+			// (normal APNAP ordering, stack interaction, response windows). The
+			// intervening-if rides the Echo$ True marker the same way
+			// Annihilator$ rides its generated trigger: rules/trigger_match.go
+			// checks it against the object's control-acquisition tuple
+			// (Object.AcqTurn/AcqStep vs Player.LastUpkeepTurn) and suppresses
+			// the trigger before it stacks when the gate is false. The election
+			// itself (pay-or-sacrifice) is rules/echo.go's resolution-time flow.
+			// param may include Forge's trailing display text after a colon;
+			// only the first field is the echo cost.
+			cost, _, _ := strings.Cut(param, ":")
+			f.addKeywordTrigger(head, k,
+				"Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | TriggerDescription$ Echo | Echo$ True",
+				"DB$ Echo | Cost$ "+cost, has)
 		case "Equip":
 			if has("A", k) {
 				continue
 			}
-			// param is "<cost>", occasionally followed by a creature-type
-			// restriction and/or a human-readable description ("3:Creature.
-			// YouCtrl+Legendary:legendary creature") or trailing ability
-			// modifiers ("0:::ActivationLimit$ 1:..."). No corpus equip cost
-			// itself contains a ":" (mana symbols, Sac<1/Creature>, PayLife
-			// <3> and so on are all safe), so the first field is exactly the
-			// cost; anything after is dropped for now -- restrictions are a
-			// later Equip task's job, not this one's (Ledger).
-			cost, _, _ := strings.Cut(param, ":")
-			sa, _ := parseSA("", "AB$ Attach | Cost$ "+cost+" | ValidTgts$ Creature.YouCtrl | TgtPrompt$ Select target creature you control | SorcerySpeed$ True | Keyword$ Equip | SpellDescription$ Equip "+cost)
+			// param is "<cost>" followed by colon fields: a target
+			// restriction ("3:Creature.YouCtrl+Legendary:legendary creature"),
+			// rider parameters ("4:::ReduceCost$ Monarch:...",
+			// "0:::ActivationLimit$ 1:...") and human-readable text. The first
+			// field is exactly the cost: no corpus equip cost itself contains
+			// a ":" (mana symbols, Sac<1/Creature>, PayLife<3> and so on are
+			// all safe; measured over all 646 raw K:Equip lines at the corpus
+			// pin -- the split-on-":" is a corpus invariant, not an
+			// assumption to re-litigate per card).
+			// The trailing fields are read, not dropped wholesale:
+			//   - a "ReduceCost$ <v>" / "ActivationLimit$ <v>" field rides the
+			//     minted SA verbatim; rules/legal.go's ownReduceCost and the
+			//     offer loop's ActivationLimit gate already read both params.
+			//   - the FIRST remaining field that is neither a rider nor a
+			//     "Flavor " marker is the target restriction, a real filter
+			//     spec passed through verbatim as ValidTgts$ (comma
+			//     alternatives included); later fields are display text and
+			//     stay dropped, as before. The space-free test separates spec
+			//     from prose: every restriction spec in the corpus is
+			//     space-free ("Creature.YouCtrl+Legendary",
+			//     "Creature.YouCtrl+Shaman,..." — commas, never spaces), while
+			//     every description field carries spaces ("legendary
+			//     creature", "This ability costs {3} less to activate if
+			//     you're the monarch"); the one-word descs ("Soldier",
+			//     "commander") only ever trail a real restriction, so the
+			//     first-real-field rule already claimed the slot.
+			//   - any other "<Head>$ <value>" field is an unwired rider family
+			//     (AlternateCost$, 4 raw lines) -- dropped, as today, but
+			//     never mistaken for a restriction spec.
+			fields := strings.Split(param, ":")
+			cost := fields[0]
+			restriction := ""
+			var riders []string
+			for _, fld := range fields[1:] {
+				fld = strings.TrimSpace(fld)
+				if fld == "" || strings.HasPrefix(fld, "Flavor ") {
+					continue
+				}
+				head, _, isParam := strings.Cut(fld, " ")
+				if isParam && strings.HasSuffix(head, "$") {
+					if head == "ReduceCost$" || head == "ActivationLimit$" {
+						riders = append(riders, fld)
+					}
+					continue
+				}
+				if restriction == "" && !strings.Contains(fld, " ") {
+					restriction = fld
+				}
+			}
+			tgts := "Creature.YouCtrl"
+			if restriction != "" {
+				tgts = restriction
+			}
+			saStr := "AB$ Attach | Cost$ " + cost + " | ValidTgts$ " + tgts + " | TgtPrompt$ Select target creature you control | SorcerySpeed$ True | Keyword$ Equip | SpellDescription$ Equip " + cost
+			for _, r := range riders {
+				saStr += " | " + r
+			}
+			sa, _ := parseSA("", saStr)
 			if sa != nil {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)
@@ -235,6 +360,58 @@ func (f *Face) expandKeywords() {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)
 			}
+		case "Affinity":
+			// CR 702.41a: affinity for <spec> is a cost-reduction static, not an
+			// ability, so its idempotence key cannot use has() (which reads only
+			// Triggers/Repls/Abilities) -- it keys on the minted static itself,
+			// carrying the same KeywordLine tag the other cases set. Without it a
+			// second Link() (cards/registry.go re-runs f.link() on cached faces
+			// that predate a newly added expansion) would append a SECOND
+			// reduction and double the discount, replay-visibly.
+			dup := false
+			for _, st := range f.Statics {
+				if st.Params["KeywordLine"] == k {
+					dup = true
+					break
+				}
+			}
+			if dup {
+				continue
+			}
+			// param is "<spec>", occasionally followed by a human-readable
+			// description after a second colon ("Land.Snow:snow land",
+			// "Permanent.token:token", "Creature.Artifact:artifact creature" --
+			// 3 corpus lines): only the first field is the count spec, exactly
+			// the trailing-field strip the etbCounter and Equip cases do.
+			spec, desc, _ := strings.Cut(param, ":")
+			if desc == "" {
+				desc = spec
+			}
+			sv := "__kwAffinity" + strconv.Itoa(i)
+			// Count$Valid counts BATTLEFIELD objects (effects/count.go's countZone
+			// maps "Valid" to ZBattlefield), so the "you control" qualifier lives
+			// inside the spec. The joining separator is load-bearing: the matcher
+			// splits base from predicates on the FIRST dot
+			// (effects/filter.go MatchesObjectCtx), so a dot-less spec joined with
+			// '+' ("Food+YouCtrl") reads the whole thing as one base type word and
+			// fails closed to 0 -- but a spec that already carries a dot
+			// ("Land.Snow", "Permanent.token") must join with '+' (the corpus's
+			// measured-working "Swamp.Snow+YouCtrl" shape), because a second dot
+			// would glue "YouCtrl" onto the previous predicate token, which is
+			// unknown and fails closed just as hard.
+			sep := "."
+			if strings.ContainsRune(spec, '.') {
+				sep = "+"
+			}
+			f.setSVar(sv, "Count$Valid "+spec+sep+"YouCtrl")
+			p := parseParams("Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | EffectZone$ All | Amount$ " + sv +
+				" | Description$ This spell costs {1} less to cast for each " + desc + " you control.")
+			// EffectZone$ All keeps the reduction live from hand/library (the
+			// Ghalta precedent in rules/statics.go's collectCostStatics doc);
+			// no Color$ (affinity reduces generic only -- CR 702.41a) and no
+			// Relative$ (that flag is for X-dependent amounts).
+			p["KeywordLine"] = k
+			f.Statics = append(f.Statics, Static{Mode: "ReduceCost", Params: p})
 		case "Enchant":
 			if has("A", k) || f.SpellAbility() != nil {
 				continue
@@ -253,6 +430,45 @@ func (f *Face) expandKeywords() {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)
 			}
+		case "Mobilize":
+			// CR 702.<mobilize>: "Whenever this creature attacks, create N
+			// tapped and attacking 1/1 red Warrior creature tokens. Sacrifice
+			// them at the beginning of the next end step." One Attacks
+			// trigger (the Myriad shape, ValidCard$ Card.Self) whose effect
+			// mints the Warrior tokens -- TokenTapped$ True is the ordinary
+			// entry-tap path, TokenAttacking$ True the defender-marking path
+			// (both in effects/token.go) -- and remembers every minted token
+			// so ONE end-step delayed trigger can sacrifice the whole group
+			// the way Encore's end-step sacrifice does. The registration
+			// captures the resolving chain's Remembered, and the fired
+			// ability's Defined$ DelayTriggerRememberedLKI resolves it, so a
+			// token that already left the battlefield (killed in combat) is
+			// simply not among the survivors Sacrifice moves. The trigger's
+			// SVar names key on the full keyword line, the addKeywordTrigger
+			// convention, so two Mobilize lines on one face cannot collide.
+			if has("T", k) {
+				continue
+			}
+			sv := "__kw" + strings.ReplaceAll(k, " ", "")
+			f.setSVar(sv+"Delay", "DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ "+sv+"Sacrifice | RememberChain$ False")
+			f.setSVar(sv+"Sacrifice", "DB$ Sacrifice | Defined$ DelayTriggerRememberedLKI")
+			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | TriggerDescription$ Mobilize",
+				"DB$ Token | TokenScript$ r_1_1_warrior | TokenTapped$ True | TokenAttacking$ True | TokenAmount$ "+param+" | RememberTokens$ True | SubAbility$ "+sv+"Delay", has)
+		case "Afterlife":
+			// CR 702.132a: "When this creature dies, create N 1/1 white and
+			// black Spirit creature tokens with flying." One ChangesZone
+			// death trigger (the Undying shape: Origin$ Battlefield,
+			// Destination$ Graveyard, ValidCard$ Card.Self) whose effect mints
+			// the Spirit tokens from the existing wb_1_1_spirit_flying token
+			// script; effToken's default owner is the resolving controller,
+			// so the tokens enter under the dying creature's controller. The
+			// param is a bare literal count on every corpus line (measured:
+			// 11 files, values 1/2/3, no trailing fields), so it is spliced
+			// in verbatim as TokenAmount$. addKeywordTrigger already guards
+			// idempotency via the KeywordLine tag, so a second Link() of a
+			// cached face cannot double-add the trigger.
+			f.addKeywordTrigger(head, k, "Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | TriggerDescription$ Afterlife",
+				"DB$ Token | TokenScript$ wb_1_1_spirit_flying | TokenAmount$ "+param, has)
 		case "Encore":
 			if has("A", k) {
 				continue

@@ -49,7 +49,7 @@ import (
 //
 // Deliberate scope (task fb-3f1cc033): the wider Condition vocabulary —
 // Condition$ beyond Kicked, ConditionZone$ (57), ConditionManaSpent$ (34),
-// the other ConditionDefined$ values (Targeted 161, ChosenCard 90, Self 72,
+// the other ConditionDefined$ values (Targeted 161, ChosenCard 90,
 // Imprinted 34, ...), a bare ConditionCompare$ with no group, and
 // ConditionNotPresent$ (8) — is NOT implemented. A sub carrying any of
 // those is UNRESOLVED: conditionMet reports resolved=false and Resolve's
@@ -177,6 +177,13 @@ func CheckSVarHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) {
 //     Condition$ whose value is not Kicked, and the mixed shapes are all in
 //     this class.
 //   - a sub with no Condition* key at all is not gated: (true, false).
+//
+// Two more keys landed with the Unbreakable Formation task
+// (agent-20260918T200326Z-10b49320): `ConditionPlayerTurn$ True|False` —
+// the resolving controller's turn vs. not — and `ConditionPhases$ <list>`
+// (Main1,Main2 — the Addendum family), both read through the ONE shared
+// phase-name parser state.ParsePhases and AND-ed with whatever group gate
+// the SA also carries.
 func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	defined := strings.TrimSpace(sa.Params["ConditionDefined"])
 	present := strings.TrimSpace(sa.Params["ConditionPresent"])
@@ -185,11 +192,15 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	check := strings.TrimSpace(sa.Params["ConditionCheckSVar"])
 	svarCmp := strings.TrimSpace(sa.Params["ConditionSVarCompare"])
 	bare := strings.TrimSpace(sa.Params["Condition"])
-	if defined == "" && present == "" && notPresent == "" && compare == "" && check == "" && bare == "" {
+	playerTurn := strings.TrimSpace(sa.Params["ConditionPlayerTurn"])
+	phases := strings.TrimSpace(sa.Params["ConditionPhases"])
+	firstCombat := strings.TrimSpace(sa.Params["ConditionFirstCombat"])
+	if defined == "" && present == "" && notPresent == "" && compare == "" && check == "" && bare == "" &&
+		playerTurn == "" && phases == "" && firstCombat == "" {
 		return true, false // not gated (a lone ConditionSVarCompare$ compares nothing)
 	}
-	// Any other Condition* key (Zone, ManaSpent, PlayerTurn, ...) beside the
-	// supported seven makes the shape unsupported. ConditionDescription$ is
+	// Any other Condition* key (Zone, ManaSpent, ...) beside the supported
+	// nine makes the shape unsupported. ConditionDescription$ is
 	// display text, not part of the evaluation, and is ignored.
 	// (The ConditionCheckSVar$ shape below covers the sacrifice-continuation
 	// bridge the pre-merge build carried as rememberedSacrificeCondition:
@@ -201,10 +212,69 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 		switch k {
 		case "ConditionDefined", "ConditionPresent", "ConditionNotPresent", "ConditionCompare",
-			"ConditionCheckSVar", "ConditionSVarCompare", "Condition":
+			"ConditionCheckSVar", "ConditionSVarCompare", "Condition",
+			"ConditionPlayerTurn", "ConditionPhases", "ConditionFirstCombat":
 		default:
 			return false, false
 		}
+	}
+	// The player-turn / phase preconditions (ConditionPlayerTurn$ True|False,
+	// ConditionPhases$ <phase-list>): the Unbreakable Formation Addendum
+	// family and the conditional enters-tapped lands. ConditionPlayerTurn$
+	// compares g.Active with the resolving controller, case-insensitively
+	// True/False — Eddymurk Crab's `False` ("enters tapped if it's not your
+	// turn") is a real shape, not a negation-by-absence. ConditionPhases$
+	// parses through the ONE shared phase-name parser (state.ParsePhases —
+	// the same parser Mode$ Phase triggers use) and requires the game's
+	// current step to be in the named set; unknown names or an empty
+	// resolved set are unsupported, fail-open per this file's convention.
+	// Both are preconditions AND-ed with whatever group gate the SA also
+	// carries (combine below); a value this gate cannot read leaves the
+	// whole shape unsupported so the sub runs unconditionally, exactly as
+	// before these keys existed.
+	g := h.Game()
+	extraMet := true
+	if playerTurn != "" {
+		switch strings.ToLower(playerTurn) {
+		case "true":
+			extraMet = g.Active == c.Controller
+		case "false":
+			extraMet = g.Active != c.Controller
+		default:
+			return false, false
+		}
+	}
+	if phases != "" {
+		set, unknown := state.ParsePhases(phases)
+		if len(unknown) > 0 || set == 0 {
+			return false, false
+		}
+		if !set.Has(g.Step) {
+			extraMet = false
+		}
+	}
+	// ConditionFirstCombat$ (the DB$ AddPhase gate: Raiyuu, Storm's Edge and
+	// A-Raiyuu's "if it's the first combat phase of the turn" -- 3 corpus
+	// lines, the gate that keeps an extra combat from granting another one):
+	// met when the current combat is the turn's FIRST, read off the folded
+	// per-turn combat count (state.Game.CombatsThisTurn, one increment per
+	// BeginCombat entry). Only "True" is a corpus shape; anything else stays
+	// unsupported (the fail-open run-anyway this file's convention).
+	if firstCombat != "" {
+		if !strings.EqualFold(firstCombat, "True") {
+			return false, false
+		}
+		extraMet = extraMet && g.CombatsThisTurn == 1
+	}
+	// combine AND-s the group gate's answer with the player-turn/phase
+	// preconditions above: a resolved group gate that says run still stays
+	// skipped when a phase/turn precondition says no, and an unresolved
+	// group gate keeps the whole shape fail-open.
+	combine := func(met, resolved bool) (bool, bool) {
+		if resolved && !extraMet {
+			return false, true
+		}
+		return met, resolved
 	}
 	// The SVar gate (ConditionCheckSVar$ + optional ConditionSVarCompare$,
 	// Forge's dominant pair at 544 corpus SAs): Vampire Lacerator's upkeep
@@ -215,7 +285,8 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// (~18 corpus SAs) has no single evaluator and stays unsupported, the
 	// same fail-open run-anyway the other unsupported shapes take.
 	if check != "" {
-		if defined != "" || present != "" || notPresent != "" || compare != "" || bare != "" {
+		if defined != "" || present != "" || notPresent != "" || compare != "" || bare != "" ||
+			playerTurn != "" || phases != "" || firstCombat != "" {
 			return false, false
 		}
 		holds, evaluated := CheckSVarHolds(h, c, check, svarCmp)
@@ -230,21 +301,32 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 		return holds, true
 	}
-	// A bare Condition$ is the cast-option family: only Kicked is evaluated
-	// (the source's CastFlags FlagKicked, the same bit the Kicker payment
-	// recorded); Delirium/OptionalCost/Bargain/Threshold/Blessing/Metalcraft/
-	// Foretold/Hellbent/Revolt/Surge stay unresolved and run unconditionally.
-	// A bare Condition beside a group key or beside ConditionSVarCompare$ is
-	// a mixed shape no single evaluator covers (~11 corpus SAs).
+	// A bare Condition$ is the cast-option family: Kicked and Foretold are
+	// evaluated over the source's CastFlags (the bit the Kicker payment / the
+	// Foretell action's CastInfo recorded -- the same provenance Count$
+	// Foretold reads); Delirium/OptionalCost/Bargain/Threshold/Blessing/
+	// Metalcraft/Hellbent/Revolt/Surge stay unresolved and run
+	// unconditionally. A bare Condition beside a group key or beside
+	// ConditionSVarCompare$ is a mixed shape no single evaluator covers (~11
+	// corpus SAs).
 	if bare != "" {
-		if defined != "" || present != "" || notPresent != "" || compare != "" || svarCmp != "" {
+		if defined != "" || present != "" || notPresent != "" || compare != "" || svarCmp != "" ||
+			playerTurn != "" || phases != "" || firstCombat != "" {
 			return false, false
 		}
-		if !strings.EqualFold(bare, "Kicked") {
-			return false, false
+		switch {
+		case strings.EqualFold(bare, "Kicked"):
+			o := h.Game().Obj(c.Source)
+			return o != nil && o.CastFlags&state.FlagKicked != 0, true
+		case strings.EqualFold(bare, "Foretold"):
+			// CR 702.126: the "if this spell was foretold" gate (Poison the
+			// Cup's conditional scry, Alrund's Epiphany's conditional tokens) --
+			// the same FlagForetold provenance Count$Foretold reads, the two
+			// bare-Condition corpus carriers are exactly this shape.
+			o := h.Game().Obj(c.Source)
+			return o != nil && o.CastFlags&state.FlagForetold != 0, true
 		}
-		o := h.Game().Obj(c.Source)
-		return o != nil && o.CastFlags&state.FlagKicked != 0, true
+		return false, false
 	}
 	if notPresent != "" {
 		// ConditionNotPresent$ (8 corpus lines, two shapes): met when NO object
@@ -263,7 +345,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		if present != "" || compare != "" {
 			return false, false
 		}
-		return conditionNotPresentMet(h, c, defined, notPresent)
+		return combine(conditionNotPresentMet(h, c, defined, notPresent))
 	}
 	if defined == "" {
 		// ConditionPresent$ with NO ConditionDefined$: Forge's default group
@@ -278,22 +360,79 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// A BARE ConditionCompare$ (no Present, no Defined) names no count
 		// group here, so it stays unresolved.
 		if present == "" {
+			if compare == "" {
+				// No group key named anything and the player-turn/phase gates
+				// above resolved: met is exactly their conjunction (the
+				// Eddymurk Crab shape — a lone ConditionPlayerTurn$ gate).
+				return extraMet, true
+			}
 			return false, false
 		}
-		return conditionMetBattlefield(h, c, present, compare)
+		return combine(conditionMetBattlefield(h, c, present, compare))
 	}
-	if defined != "Remembered" {
-		// Only the Remembered family is in scope among DEFINED groups: the
-		// revealed/captured objects a walk carries in Ctx.Remembered.
-		// Targeted, ChosenCard, Self, Imprinted and the rest need Ctx state
-		// this gate does not model (and whose fail-closed skip would change
-		// unrelated cards).
+	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" {
+		// Only the Remembered, Self and TriggeredCard families are in scope
+		// among DEFINED groups: the objects a walk carries in Ctx.Remembered,
+		// the resolving source object alone (the Addendum shape:
+		// ConditionDefined$ Self | ConditionPresent$ Card.wasCast holds only
+		// when the sub is reached through a cast of the source, which
+		// effects.Resolve's walk evaluates while the spell is still on the
+		// stack), and — task castprov2 — the card the triggering event moved
+		// (Amped Raptor's `ConditionDefined$ TriggeredCard | ConditionPresent$
+		// Card.wasCastFromYourHandByYou`: the exile-until runs only when the
+		// entering permanent was cast from its controller's hand). Targeted,
+		// ChosenCard, Imprinted, the LKI-copy variants and the rest need Ctx
+		// state this gate does not model (and whose fail-closed skip would
+		// change unrelated cards).
 		return false, false
 	}
-	g := h.Game()
 	sc := c.SpecContext(c.Controller)
 	count := 0
-	for _, t := range rememberedWithSource(h, c) {
+	group := rememberedWithSource(h, c)
+	if defined == "Self" {
+		// Self is the source object ALONE — not rememberedWithSource's
+		// Source-union with the walk's remembered set.
+		group = []state.Target{{Obj: c.Source}}
+	}
+	if defined == "TriggeredCard" {
+		// The card the triggering event moved — the TriggerContext.TriggerCard
+		// role rules' triggerReferents captures for every mode that names one
+		// (ChangesZone, SpellCast, Drawn, ...). An ABSENT binding (a synthetic
+		// fixture, a hand-built context, a mode with no card role) leaves the
+		// gate UNSUPPORTED — the sub runs unconditionally, this file's
+		// documented convention — never a resolved-false, which would silently
+		// stop subs that ran before the group was enumerable. Measured corpus
+		// population of `ConditionDefined$ TriggeredCard` gates: 33 raw lines
+		// over 36 files, every one of which ran its sub unconditionally before.
+		if c.TriggerCard == 0 {
+			return false, false
+		}
+		group = []state.Target{{Obj: c.TriggerCard}}
+	}
+	// The wasCastFromYourHandByYou / !wasCastFromYourHandByYou qualifier
+	// (task castprov2, Amped Raptor's gate) and its bare wasCastFromYourHand
+	// sibling (task castprov3, Otterball Antics' `Card.wasCast+!
+	// wasCastFromYourHand`) are not filter predicates: they are evaluated
+	// per member against the Host's log reads (castFromHandAdmitsFilter /
+	// castFromHandAnyAdmitsFilter), the same split rules' castProvenanceAdmits
+	// applies at the rules-side match sites. The UnknownPredicates guard
+	// below reads the token-STRIPPED spec — the tokens themselves are unknown
+	// to the filter (that is the whole reason for the split), and an
+	// unreadable remainder must still be unresolved.
+	hasHandToken := strings.Contains(present, "wasCastFromYourHandByYou")
+	// The bare spelling is a SUBSTRING of the ByYou token, so a ByYou spec
+	// must not route to the bare helper — the ByYou branch owns it.
+	hasBareHand := !hasHandToken && strings.Contains(present, "wasCastFromYourHand")
+	if present != "" {
+		check := present
+		if hasHandToken || hasBareHand {
+			check = stripWasCastFromHandToken(present)
+		}
+		if len(UnknownPredicates(check)) > 0 {
+			return false, false
+		}
+	}
+	for _, t := range group {
 		if t.IsPlayer {
 			// A Card spec never matches a player entry; skip rather than
 			// hand MatchesObjectCtx an object-less target.
@@ -307,22 +446,26 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			count++
 			continue
 		}
-		if MatchesObjectCtx(g, present, o, sc) {
+		memberSpec := present
+		if hasHandToken {
+			s, ok := castFromHandAdmitsFilter(h, present, t.Obj, c.Controller)
+			if !ok {
+				// This member fails its own provenance requirement.
+				continue
+			}
+			memberSpec = s
+		} else if hasBareHand {
+			s, ok := castFromHandAnyAdmitsFilter(h, present, t.Obj)
+			if !ok {
+				continue
+			}
+			memberSpec = s
+		}
+		if MatchesObjectCtx(g, memberSpec, o, sc) {
 			count++
 		}
 	}
-	if present != "" {
-		// An unknown predicate in the spec cannot be evaluated: the whole
-		// gate is unresolved rather than counting a false-negative zero
-		// (which would silently stop subs that used to run — Skyclave
-		// Apparition's Card.ExiledWithSource). Checked once, outside the
-		// object loop: an EMPTY remembered set with an unreadable spec must
-		// also be unresolved, not a resolved "count 0".
-		if len(UnknownPredicates(present)) > 0 {
-			return false, false
-		}
-	}
-	return evalConditionCount(count, compare)
+	return combine(evalConditionCount(count, compare))
 }
 
 // conditionMetBattlefield resolves a ConditionPresent$ (with an optional
@@ -467,4 +610,111 @@ func parseConditionCompare(v string) (op string, n int, ok bool) {
 		return "", 0, false
 	}
 	return op, n, true
+}
+
+// admitProvenanceAlternativesFilter is the effects-side rejoin loop shared
+// by the two cast-provenance filter helpers (rules' twin,
+// admitProvenanceAlternatives, lives in rules/cast_provenance.go): the spec
+// is split into its comma alternatives, every alternative CARRYING the
+// qualifier but failing the provenance test is dropped, and the surviving
+// alternatives are rejoined for the ordinary filter. ok is false when no
+// alternative survives: the spec matches nothing. A spec without the token
+// is returned unchanged, so every unrelated gate is byte-identical.
+func admitProvenanceAlternativesFilter(spec, pred string, holds bool) (string, bool) {
+	if !strings.Contains(spec, pred) {
+		return spec, true
+	}
+	var b strings.Builder
+	first, alive := true, false
+	for alt := range FilterAlternatives(spec) {
+		s1, hadPos := StripPredicateToken(alt, pred)
+		s2, hadNeg := StripPredicateToken(s1, "!"+pred)
+		// The positive spelling requires the provenance to HOLD; the negated
+		// spelling requires it to FAIL.
+		if (hadPos && !holds) || (hadNeg && holds) {
+			continue
+		}
+		if !first {
+			b.WriteByte(',')
+		}
+		b.WriteString(s2)
+		first = false
+		alive = true
+	}
+	if !alive {
+		return "", false
+	}
+	return b.String(), true
+}
+
+// castFromHandAdmitsFilter evaluates the bare wasCastFromYourHandByYou /
+// !wasCastFromYourHandByYou qualifier of a Forge filter spec against ONE
+// object through the Host's log read (task castprov2, Amped Raptor's
+// `ConditionPresent$ Card.wasCastFromYourHandByYou` gate — the effects-side
+// twin of rules' castFromHandAdmits, which runs the same split at the
+// rules-side match sites where the Engine and its log are in scope). The
+// object was NOT cast from you's hand by you, or the object is a copy (never
+// cast, the same IsCopy guard the Count$wasCastFromYourHandByYou head
+// takes) — every alternative carrying the qualifier but failing the
+// provenance test is dropped. ok is false when no alternative survives: the
+// spec matches nothing (this member fails its own provenance requirement).
+func castFromHandAdmitsFilter(h Host, spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
+	if !strings.Contains(spec, "wasCastFromYourHandByYou") {
+		return spec, true
+	}
+	holds := false
+	if o := h.Game().Obj(objID); o != nil && !o.IsCopy {
+		holds = h.WasCastFromHandByYou(objID, you)
+	}
+	return admitProvenanceAlternativesFilter(spec, "wasCastFromYourHandByYou", holds)
+}
+
+// castFromHandAnyAdmitsFilter evaluates the BARE wasCastFromYourHand /
+// !wasCastFromYourHand qualifier (task castprov3 — the player-less hand
+// provenance: the "from anywhere other than your hand" carriers whose
+// scripts omit the ByYou suffix, Otterball Antics' `ConditionPresent$
+// Card.wasCast+!wasCastFromYourHand`) against ONE object through the Host's
+// log read — the effects-side twin of rules' castFromHandAnyAdmits. The
+// provenance is any caster's hand: every carrier that needs player scoping
+// supplies it elsewhere in the spec. Copies were never cast; a card never
+// put on the stack reads false. A spec carrying the ByYou spelling is NOT
+// this helper's family (ByYou is a SUPERSTRING of the bare token; its own
+// helper runs first wherever both could appear) and is returned unchanged.
+func castFromHandAnyAdmitsFilter(h Host, spec string, objID state.ObjID) (string, bool) {
+	if strings.Contains(spec, "wasCastFromYourHandByYou") || !strings.Contains(spec, "wasCastFromYourHand") {
+		return spec, true
+	}
+	holds := false
+	if o := h.Game().Obj(objID); o != nil && !o.IsCopy {
+		holds = h.WasCastFromHand(objID)
+	}
+	return admitProvenanceAlternativesFilter(spec, "wasCastFromYourHand", holds)
+}
+
+// stripWasCastFromHandToken removes both spellings of the
+// wasCastFromYourHandByYou qualifier AND the bare wasCastFromYourHand
+// spelling (task castprov3) from every comma alternative of a spec,
+// text-only and polarity-agnostic: the UnknownPredicates guard must read the
+// token-STRIPPED spec (the tokens themselves are unknown to the filter —
+// that is the whole reason the split exists), while the per-member polarity
+// lives in castFromHandAdmitsFilter / castFromHandAnyAdmitsFilter. A spec
+// without either token is returned unchanged.
+func stripWasCastFromHandToken(spec string) string {
+	if !strings.Contains(spec, "wasCastFromYourHand") {
+		return spec
+	}
+	var b strings.Builder
+	first := true
+	for alt := range FilterAlternatives(spec) {
+		s1, _ := StripPredicateToken(alt, "wasCastFromYourHandByYou")
+		s2, _ := StripPredicateToken(s1, "!wasCastFromYourHandByYou")
+		s3, _ := StripPredicateToken(s2, "wasCastFromYourHand")
+		s4, _ := StripPredicateToken(s3, "!wasCastFromYourHand")
+		if !first {
+			b.WriteByte(',')
+		}
+		b.WriteString(s4)
+		first = false
+	}
+	return b.String()
 }

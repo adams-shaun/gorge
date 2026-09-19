@@ -99,7 +99,7 @@ func TestEveryLookerScopedEffectRecordsItsLookThroughEmitLook(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			h, hand, _ := lookBoard(t)
-			ctx := &Ctx{Controller: 0}
+			ctx := &Ctx{Controller: 0, TargetsOffered: tc.hand}
 			if tc.hand {
 				ctx.Targets = []state.Target{{Player: 1, IsPlayer: true}}
 			}
@@ -167,7 +167,7 @@ func TestSlayersBountyLookShowsOnlyCreatureCards(t *testing.T) {
 	}
 	src := h.g.AddObject(mkCard(t, "Name:Slayer's Bounty\nManaCost:W\nTypes:Legendary Artifact Clue\nOracle:x\n"), 0)
 	ctx := &Ctx{Source: src.ID, Controller: 0,
-		Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}
 	Resolve(h, ctx, sa2)
 	if h.asked == nil || h.asked.ResumeKind != "look_ack" || h.asked.Player != 0 {
 		t.Fatalf("the bare look posed %+v, want a look_ack for the looker (seat 0)", h.asked)

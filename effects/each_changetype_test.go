@@ -1,0 +1,325 @@
+package effects
+
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// ChangeType$ "EACH <A> & <B>" (Forge's multi-type search grammar) used to
+// reach the filter matcher as ONE alternative whose whole string was the
+// base, so every carrier's eligible set was empty and Krosan Verge never
+// fetched anything. These leaves pin the union matcher (any listed sub-spec
+// matches), the truthful census, and the hidden-library search's per-type
+// pick structure (one Option.Group per listed type).
+
+// eachTestGame is a two-seat game with the matching-layer fixture cards
+// already parsed.
+func eachTestGame(t *testing.T) (*state.Game, *cards.Card, *cards.Card, *cards.Card) {
+	t.Helper()
+	forest := mkCard(t, "Name:F\nTypes:Land Forest\nOracle:x\n")
+	plains := mkCard(t, "Name:P\nTypes:Land Plains\nOracle:x\n")
+	island := mkCard(t, "Name:I\nTypes:Land Island\nOracle:x\n")
+	return state.NewGame(names(2)), forest, plains, island
+}
+
+// TestEachChangeTypeMatchesAnyListedType is the union matcher: an EACH spec
+// matches a candidate when ANY listed sub-spec matches it, never the whole
+// string as one (never-matching) base.
+func TestEachChangeTypeMatchesAnyListedType(t *testing.T) {
+	g, forest, plains, island := eachTestGame(t)
+	sc := SpecContext{You: 0}
+	for _, tc := range []struct {
+		spec string
+		o    *cards.Card
+		want bool
+	}{
+		{"EACH Forest & Plains", forest, true},
+		{"EACH Forest & Plains", plains, true},
+		{"EACH Forest & Plains", island, false},
+		// Forge's spelling keeps sub-spec predicates intact.
+		{"EACH Forest.Basic & Plains", forest, false}, // F is not Basic in this fixture
+		{"EACH Creature & Land", forest, true},
+		{"Forest", forest, true}, // sanity: the ordinary path still works
+	} {
+		got := MatchesObjectCtx(g, tc.spec, g.AddObject(tc.o, 0), sc)
+		if got != tc.want {
+			t.Fatalf("MatchesObjectCtx(%q, %s) = %v, want %v", tc.spec, tc.o.Faces[0].Name, got, tc.want)
+		}
+	}
+}
+
+// TestEachDottedSubSpecsEvaluateTheirPredicates covers the dotted form: each
+// '&' part is an ordinary spec whose own predicates (YouOwn, IsRemembered)
+// are evaluated, not one base cut at the first dot with the rest of the
+// string as garbage predicate tokens.
+func TestEachDottedSubSpecsEvaluateTheirPredicates(t *testing.T) {
+	g, _, _, _ := eachTestGame(t)
+	saga := mkCard(t, "Name:S\nTypes:Saga\nOracle:x\n")
+	sc := SpecContext{You: 0, Remembered: []state.Target{}}
+	sagaObj := g.AddObject(saga, 0)
+	landObj := g.AddObject(mkCard(t, "Name:L\nTypes:Land\nOracle:x\n"), 0)
+	spec := "EACH Saga.YouOwn+IsRemembered & Land.YouOwn+IsRemembered"
+	if MatchesObjectCtx(g, spec, sagaObj, sc) {
+		t.Fatal("unremembered saga matched an IsRemembered sub-spec")
+	}
+	sc.Remembered = []state.Target{{Obj: sagaObj.ID}, {Obj: landObj.ID}}
+	if !MatchesObjectCtx(g, spec, sagaObj, sc) {
+		t.Fatal("remembered saga did not match its sub-spec")
+	}
+	if !MatchesObjectCtx(g, spec, landObj, sc) {
+		t.Fatal("remembered land did not match its sub-spec")
+	}
+	mountain := g.AddObject(mkCard(t, "Name:M\nTypes:Land Mountain\nOracle:x\n"), 0)
+	if MatchesObjectCtx(g, spec, mountain, sc) {
+		t.Fatal("unremembered mountain matched")
+	}
+}
+
+// TestEachChangeTypeCensusIsTruthful pins the census reads: the dotted form
+// no longer leaks the '&' join and the later clauses as garbage predicate
+// tokens, the bare form's unknowns are the sub-specs', and the quality
+// classification evaluates the sub-specs (a quantity-only EACH stays
+// quantity-only).
+func TestEachChangeTypeCensusIsTruthful(t *testing.T) {
+	for _, tc := range []struct {
+		spec string
+		want []string
+	}{
+		{"EACH Forest & Plains", nil},
+		{"EACH Saga.YouOwn+IsRemembered & Land.YouOwn+IsRemembered", nil},
+		{"EACH Land.FooBar & Forest", []string{"FooBar"}},
+	} {
+		got := UnknownPredicates(tc.spec)
+		if len(got) != len(tc.want) {
+			t.Fatalf("UnknownPredicates(%q) = %v, want %v", tc.spec, got, tc.want)
+		}
+		for i := range got {
+			if got[i] != tc.want[i] {
+				t.Fatalf("UnknownPredicates(%q) = %v, want %v", tc.spec, got, tc.want)
+			}
+		}
+	}
+	for _, tc := range []struct {
+		spec string
+		want bool
+	}{
+		{"EACH Forest & Plains", true},
+		{"EACH Card.White & Card.Blue & Card.Black & Card.Red & Card.Green", true},
+		{"EACH Card.YouOwn & Card.YouCtrl", false},
+	} {
+		if got := SearchStatesQuality(tc.spec); got != tc.want {
+			t.Fatalf("SearchStatesQuality(%q) = %v, want %v", tc.spec, got, tc.want)
+		}
+	}
+}
+
+// eachVergeAbility returns Krosan Verge's compiled ChangeZone activated
+// ability from the corpus.
+func eachVergeAbility(t *testing.T) (*cards.Registry, *cards.Card, *cards.SA) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	if reg == nil {
+		t.Skip("no corpus")
+	}
+	verge, ok := reg.Lookup("Krosan Verge")
+	if !ok || len(verge.Faces) == 0 {
+		t.Fatal("Krosan Verge is absent from the corpus")
+	}
+	for _, a := range verge.Faces[0].Abilities {
+		if a.Kind == "AB" && a.API == "ChangeZone" {
+			return reg, verge, a
+		}
+	}
+	t.Fatal("Krosan Verge has no compiled ChangeZone ability")
+	return nil, nil, nil
+}
+
+// fillLibEach appends the cards to p's library (fillLibrary SETS the zone,
+// so consecutive fills would overwrite each other) and returns the ids in
+// library order.
+func fillLibEach(g *state.Game, p state.PlayerID, cs ...*cards.Card) []state.ObjID {
+	lib := append([]state.ObjID(nil), g.Zone(state.ZLibrary, p)...)
+	var added []state.ObjID
+	for _, c := range cs {
+		added = append(added, g.AddObject(c, p).ID)
+	}
+	g.SetZone(state.ZLibrary, p, append(lib, added...))
+	return added
+}
+
+// TestKrosanVergeEachSearchAsksPerTypeAndHonoursTheAnswer drives the real
+// compiled AB over a library holding Forests AND Plainses: the posed
+// decision has Max 2 (one per listed type), Groups partition the two types,
+// Min 0 (stated quality), and the answered pair -- a Forest and a Plains --
+// move onto the battlefield tapped before the shuffle.
+func TestKrosanVergeEachSearchAsksPerTypeAndHonoursTheAnswer(t *testing.T) {
+	reg, verge, ab := eachVergeAbility(t)
+	h := newHost(t, 2)
+	src := h.g.AddObject(verge, 0)
+	h.g.SetZone(state.ZBattlefield, 0, []state.ObjID{src.ID})
+	forest, okF := reg.Lookup("Forest")
+	if !okF {
+		t.Fatal("Forest absent from the corpus")
+	}
+	plains, okP := reg.Lookup("Plains")
+	if !okP {
+		t.Fatal("Plains absent from the corpus")
+	}
+	fids := fillLibEach(h.g, 0, forest, forest)
+	pids := fillLibEach(h.g, 0, plains, plains)
+	sh := &suspendHost{fakeHost: *h}
+	ctx := &Ctx{Source: src.ID, Controller: 0}
+
+	Resolve(sh, ctx, ab)
+	d := sh.asked
+	if d == nil {
+		t.Fatal("no search decision was posed")
+	}
+	if d.Kind != decision.KChoose || d.ResumeKind != "search" {
+		t.Fatalf("decision = %+v, want a KChoose search", d)
+	}
+	if d.Player != 0 {
+		t.Fatalf("search player = %d, want the controller (0)", d.Player)
+	}
+	if d.Min != 0 || d.Max != 2 {
+		t.Fatalf("search range = %d..%d, want 0..2 (one per listed type)", d.Min, d.Max)
+	}
+	if d.Prompt != "Search a library: choose one card of each listed type" {
+		t.Fatalf("prompt = %q", d.Prompt)
+	}
+	// Options: the two Forests in group "0" (library order), then the two
+	// Plainses in group "1" -- real names on the labels.
+	if len(d.Options) != 4 {
+		t.Fatalf("%d options, want 4: %+v", len(d.Options), d.Options)
+	}
+	for i, want := range []struct {
+		id    state.ObjID
+		group string
+		label string
+	}{
+		{fids[0], "0", "Forest"}, {fids[1], "0", "Forest"},
+		{pids[0], "1", "Plains"}, {pids[1], "1", "Plains"},
+	} {
+		o := d.Options[i]
+		if o.Obj != want.id || o.Group != want.group || o.Label != want.label || o.Kind != "search" {
+			t.Fatalf("option %d = %+v, want obj %d group %q label %q", i, o, want.id, want.group, want.label)
+		}
+	}
+
+	// The answer (one Forest + one Plains) re-enters as the ordinary search
+	// resume carries it; both move onto the battlefield tapped, then the
+	// shuffle happens.
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{1, 2}}); err != nil {
+		t.Fatalf("one-per-group answer rejected: %v", err)
+	}
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0, 1}}); err == nil {
+		t.Fatal("two same-group choices accepted: the Group contract must refuse them")
+	}
+	h.log = nil
+	fresh := &Ctx{Source: src.ID, Controller: 0, Search: []state.ObjID{fids[1], pids[0]}, SearchDone: true}
+	Resolve(sh, fresh, ab)
+	var moves, taps, shuffles int
+	for _, ev := range sh.log {
+		switch ev.Kind {
+		case events.MoveZone:
+			moves++
+			if ev.To != state.ZBattlefield {
+				t.Fatalf("move %+v did not go to the battlefield", ev)
+			}
+		case events.Tap:
+			taps++
+			if ev.Text != "entered tapped" {
+				t.Fatalf("tap %+v is not the entry tap", ev)
+			}
+		case events.Shuffle:
+			shuffles++
+		}
+	}
+	if moves != 2 || taps != 2 || shuffles != 1 {
+		t.Fatalf("moves=%d taps=%d shuffles=%d, want 2/2/1: %v", moves, taps, shuffles, sh.log)
+	}
+	if got := h.g.Zone(state.ZBattlefield, 0); len(got) != 3 || got[0] != src.ID {
+		t.Fatalf("battlefield = %v, want the verge plus the two fetched lands", got)
+	}
+	for _, id := range []state.ObjID{fids[1], pids[0]} {
+		o := h.g.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield || !o.Tapped {
+			t.Fatalf("object %d = %+v, want a tapped battlefield permanent", id, o)
+		}
+	}
+}
+
+// TestEachSearchOffersOnlyTheTypesWithCandidates pins the type-with-no-
+// eligible shape: a library of Forests and no Plains offers only the Forest
+// group (Max 1), and the answered Forest still moves.
+func TestEachSearchOffersOnlyTheTypesWithCandidates(t *testing.T) {
+	reg, verge, ab := eachVergeAbility(t)
+	h := newHost(t, 2)
+	src := h.g.AddObject(verge, 0)
+	forest, okF := reg.Lookup("Forest")
+	if !okF {
+		t.Fatal("Forest absent from the corpus")
+	}
+	fids := fillLibEach(h.g, 0, forest, forest)
+	sh := &suspendHost{fakeHost: *h}
+	Resolve(sh, &Ctx{Source: src.ID, Controller: 0}, ab)
+	d := sh.asked
+	if d == nil {
+		t.Fatal("no search decision was posed")
+	}
+	if d.Min != 0 || d.Max != 1 || len(d.Options) != 2 {
+		t.Fatalf("range = %d..%d over %d options, want 0..1 over the Forest group only: %+v",
+			d.Min, d.Max, len(d.Options), d.Options)
+	}
+	if d.Options[0].Group != "0" || d.Options[1].Group != "0" {
+		t.Fatalf("groups = %q/%q, want one Forest group", d.Options[0].Group, d.Options[1].Group)
+	}
+	Resolve(sh, &Ctx{Source: src.ID, Controller: 0, Search: []state.ObjID{fids[1]}, SearchDone: true}, ab)
+	moves := 0
+	for _, ev := range sh.log {
+		if ev.Kind == events.MoveZone && ev.Obj == fids[1] {
+			moves++
+		}
+	}
+	if moves != 1 {
+		t.Fatalf("the answered Forest did not move: %v", sh.log)
+	}
+}
+
+// TestEachSearchAllTypesEmptyFailsToFindSilently keeps the no-ask
+// fail-to-find: a library with neither a Forest nor a Plains asks nothing,
+// still shuffles, and moves nothing.
+func TestEachSearchAllTypesEmptyFailsToFindSilently(t *testing.T) {
+	reg, verge, ab := eachVergeAbility(t)
+	h := newHost(t, 2)
+	src := h.g.AddObject(verge, 0)
+	mountain, ok := reg.Lookup("Mountain")
+	if !ok {
+		t.Fatal("Mountain absent from the corpus")
+	}
+	fillLibEach(h.g, 0, mountain, mountain, mountain)
+	sh := &suspendHost{fakeHost: *h}
+	Resolve(sh, &Ctx{Source: src.ID, Controller: 0}, ab)
+	if sh.asked != nil {
+		t.Fatalf("posed %+v; an all-types-empty EACH search must fail to find silently", sh.asked)
+	}
+	var moves, shuffles, notes int
+	for _, ev := range sh.log {
+		switch ev.Kind {
+		case events.MoveZone:
+			moves++
+		case events.Shuffle:
+			shuffles++
+		case events.Note:
+			notes++
+		}
+	}
+	if moves != 0 || shuffles != 1 || notes != 0 {
+		t.Fatalf("moves=%d shuffles=%d notes=%d, want 0/1/0: %v", moves, shuffles, notes, sh.log)
+	}
+}

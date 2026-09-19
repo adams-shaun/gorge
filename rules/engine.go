@@ -94,8 +94,9 @@ type triggerObjectLKI struct {
 }
 
 type Engine struct {
-	G *state.Game
-	L *events.Log
+	G            *state.Game
+	L            *events.Log
+	compiledText *compiledText
 
 	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
 	// turnsTakenEpoch is the log length represented by the cache; emit advances
@@ -137,6 +138,10 @@ type Engine struct {
 	// expiringControl guards expireControl against re-entry through the
 	// ControlChange events it emits.
 	expiringControl bool
+	// reconcilingControlStatics guards reconcileControlStatics (rules/
+	// control_static.go) against re-entry through the ControlChange events
+	// IT emits; the same intent-boundary discipline as expiringControl.
+	reconcilingControlStatics bool
 
 	// pregame is true while the London mulligan round runs, between the
 	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
@@ -163,6 +168,15 @@ type Engine struct {
 	// decision at a time. Plain-value state (a defender list plus an index),
 	// never a closure, so Clone copies it like the mulligan round.
 	blockerRound blockerRound
+
+	// exertAskState is the declare-attackers exert election's resumable
+	// state (rules/combat.go, task exert1): the deterministic offer list
+	// (attacking creatures carrying an offerable stat:OptionalAttackCost
+	// static, in declaration option order) plus the cursor of the ask
+	// currently outstanding. Plain-value state, so Clone copies it like
+	// blockerRound; a log-driven replay re-derives the same list when it
+	// re-runs the recorded KAttackers answer through handleAttackers.
+	exertAskState exertAsk
 
 	// stationing is the spacecraft a pending Station tap pick (rules/
 	// station.go) belongs to: the "station" priority option's object, held
@@ -396,8 +410,9 @@ type Engine struct {
 	// phaseSpecs caches pure Phase$ parsing for both diagnostics and matching.
 	// It is scratch, not replay bookkeeping: clones start with an empty cache.
 	phaseSpecs map[string]parsedPhase
-	// triggerEventMasks caches only immutable face syntax, not live source
-	// membership. Like phaseSpecs, clones own fresh writable scratch.
+	// triggerEventMasks caches only immutable syntax for unbound fixture faces,
+	// not live source membership. Bound corpus faces use their catalog-owned
+	// trigger interests. Like phaseSpecs, clones own fresh writable scratch.
 	triggerEventMasks map[*cards.Face]triggerEventMask
 	// triggerObjectMasks is the dense object-walk form of triggerEventMasks.
 	// Entries validate their immutable face pointer and are scratch owned by
@@ -476,6 +491,10 @@ type Engine struct {
 	// carrying Cost$ (Mana Vault). Both are plain data and Clone-copied.
 	cumulative  *cumulativeUpkeep
 	triggerCost *triggeredEffectCost
+	// echo (rules/echo.go, kw:Echo): the pay-or-sacrifice election of a
+	// resolving echo keyword trigger. Same plain-data class as the two
+	// above; Clone-copied.
+	echo *echoFlow
 
 	// wardMana holds a CR 702.21a mana-payment window while a Ward trigger
 	// is resolving. It is plain data so Clone preserves the suspended choice.
@@ -601,6 +620,22 @@ type Engine struct {
 	// other cast flag. Zero whenever no such spend is in flight, so Clone
 	// copies nothing of it.
 	noCounterSpend state.ObjID
+
+	// costProvenanceSeen is the transient capture of the last cost-modifier
+	// pass (castprov3): true when that pass evaluated a cost static whose
+	// ValidCard$ carries a cast-provenance token (Bilbo's
+	// "!wasCastFromYourHand" ReduceCost) — such a static is unresolvable
+	// pre-push, so the pass denied it and the pending cast's payment needs
+	// the post-push re-price continueCast runs right after CR 601.2a's push.
+	// Set inside costStaticApplies (inside the costModifiers attribution
+	// roots, so the param census sees no new read), cleared at the top of
+	// every costModifiersWithTargets[ X]Using pass. Like noCounterSpend it
+	// is synchronous computation state: every read of it (the option-
+	// selection sites and continueCast's post-push re-price) happens in the
+	// same driven flow as the pass that set it, and no ask suspends between
+	// the pass and the read. Like noCounterSpend, Clone copies nothing of
+	// it.
+	costProvenanceSeen bool
 
 	// damaging names the source object responsible for the damage emit
 	// currently in flight (CR 609.7a): the resolution source for a spell or
@@ -891,12 +926,13 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		initialObjects += len(deck)
 	}
 	e := &Engine{
-		G:          state.NewGameLife(cfg.Names, life, initialObjects),
-		L:          events.NewLog(cfg.Seed),
-		format:     cfg.Format,
-		rng:        random,
-		loop:       newLivelockWatcher(cfg.LoopGuard),
-		turnsTaken: make([]int32, len(cfg.Names)),
+		G:            state.NewGameLife(cfg.Names, life, initialObjects),
+		L:            events.NewLog(cfg.Seed),
+		format:       cfg.Format,
+		rng:          random,
+		loop:         newLivelockWatcher(cfg.LoopGuard),
+		turnsTaken:   make([]int32, len(cfg.Names)),
+		compiledText: newCompiledText(cfg),
 	}
 	e.G.Tokens = cfg.Tokens
 	e.format = cfg.Format
@@ -1181,7 +1217,11 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.Damage && ev.Obj != 0 {
 		if src := e.inFlightDamageSource(); src != 0 && e.protectedFrom(ev.Obj, src) &&
 			!e.cantPreventDamage(src, ev.Obj) {
-			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "prevented: protection"})
+			// Amount rides the stored Note (task dponce1): a prevention is a
+			// game action a triggered ability can see, and Mode$
+			// DamagePreventedOnce keys on these Notes' Amount.
+			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+				Amount: ev.Amount, Text: "prevented: protection"})
 		}
 	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 &&
@@ -1202,6 +1242,38 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// directly -- that would prove only that the if-lookup works, not that
 		// a game state reaches it.
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
+	}
+	// Role-token exclusivity (the second sentence of every Role token's rules
+	// text: "If you control another Role on it, put that one into the
+	// graveyard."): a second Role token attaching to a bearer that already
+	// carries one puts the old Role into its owner's graveyard BEFORE the new
+	// Attach applies. The measured corpus makes the sweep unconditional: every
+	// one of the 41 `TokenScript$ role_` carrier lines mints the Role with
+	// `TokenOwner$ You` (or omits it, defaulting to the controller), so creator
+	// and Role controller are always the same player and the controller-qualified
+	// reading is vacuous. This lives here in emit -- beside the protection guard
+	// above, the exact same pre-apply, re-entrant Attach interception -- because
+	// EVERY attach path (effects/token.go's AttachedTo$ mint and
+	// effects/attach.go's Attach SA) funnels through Engine.Emit. The sweep is a
+	// plain MoveZone (NOT destruction: no replacement/regeneration path), whose
+	// recursive emit lets "leaves the battlefield" triggers on the old Role fire
+	// normally; zone slices are copied before iteration because the MoveZone
+	// mutates the battlefield while we walk it (the attachmentSBAs discipline).
+	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 {
+		if attaching := e.G.Obj(ev.Obj); attaching != nil && isRole(attaching) {
+			for _, p := range e.G.AliveFrom(0) {
+				zone := append([]state.ObjID(nil), e.G.Zone(state.ZBattlefield, p)...)
+				for _, id := range zone {
+					o := e.G.Obj(id)
+					if o == nil || id == ev.Obj || o.AttachedTo != ev.IDs[0] || !isRole(o) {
+						continue
+					}
+					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZBattlefield, To: state.ZGraveyard,
+						Text: "another Role on it: the old Role goes to the graveyard"})
+				}
+			}
+		}
 	}
 	if e.applyingReplacement {
 		ev = events.CarryAction(e.replAction, e.replReplaced, ev)
@@ -1332,6 +1404,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.PutOnStack {
 		e.effectMoveSweep(ev)
 	}
+	if ev.Kind == events.CounterChange {
+		// Effect-created continuous effects' counter-driven lifetime (task
+		// vow1; ForgetCounter$): after a counter REMOVAL is applied, a
+		// remembered card whose count of the named kind reached zero leaves
+		// the effect's Remembered set -- Promise of Loyalty's "for as long
+		// as it has a vow counter on it". Applied before this event's own
+		// triggers are checked, the same timing effectMoveSweep keeps.
+		e.effectCounterSweep(ev)
+	}
 	// Damage batch (CR 510.4, Forge dealAssignedDamage): DamageDealtOnce/
 	// DamageDoneOnce latch once per damage BATCH. A Damage event arriving with
 	// no batch already open (combat's damageStep and effects' dealDamage calls
@@ -1411,6 +1492,11 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// CR 611.2b: a "for as long as" control effect ends the moment its
 		// condition stops holding, not at the next state-based check.
 		e.expireControl(controlOnEvent)
+		// A GainControl$ static (Mind Control) is realized the same way:
+		// ending ran above (a static grant's grantEnded reads the fresh
+		// wanted set), this registers the transfers the live scan newly
+		// wants. Both are no-ops unless such a static is in play.
+		e.reconcileControlStatics()
 	}
 	return stored
 }

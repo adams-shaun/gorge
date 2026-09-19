@@ -45,7 +45,8 @@ import (
 // Derived keywords include granted ones, so a permanent that gained
 // "Protection from red" through a Resolution (e.g. a DB$ Protection
 // resolution, or a continuous effect) protects as surely as a printed
-// bearer does. target or source being a zero/nonexistent object is never
+// bearer does. (Shroud — CR 702.14 — is enforced by shroudBlocksTarget
+// below, not here; protection and shroud are separate keyword families.) target or source being a zero/nonexistent object is never
 // protected (players have no ObjID, so a player target is never withheld on
 // protection grounds).
 func (e *Engine) protectedFrom(target, source state.ObjID) bool {
@@ -54,6 +55,29 @@ func (e *Engine) protectedFrom(target, source state.ObjID) bool {
 	}
 	for _, kw := range e.Keywords(target) {
 		if q, ok := protectionQuality(kw); ok && e.sourceHasQuality(source, q) {
+			return true
+		}
+	}
+	return false
+}
+
+// shroudBlocksTarget reports whether the object carries shroud (CR 702.14):
+// any derived keyword whose head is "Shroud" — printed K:Shroud or granted
+// (Lightning Greaves' "Haste & Shroud" static, a KW$ pump grant) — makes the
+// permanent an illegal target for ANY spell or ability, its own controller's
+// included (that symmetry is what separates shroud from hexproof). Derived
+// keywords include granted ones, exactly like protectedFrom. The caller owns
+// the zone gate: shroud functions only while the object is a permanent on
+// the battlefield (CR 702.14a), the same CR 604.3 gate the protection and
+// CantTarget targeting guards apply, and it must NOT reach the non-target
+// attachment path (the CR 303.4f Aura entry in rules/attach.go) or the
+// Overload affected census (candidatesFor's targeting=false arm).
+func (e *Engine) shroudBlocksTarget(id state.ObjID) bool {
+	if id == 0 {
+		return false
+	}
+	for _, kw := range e.Keywords(id) {
+		if strings.EqualFold(cards.KeywordHead(kw), "Shroud") {
 			return true
 		}
 	}
@@ -150,7 +174,8 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	case "artifacts":
 		return f.IsArtifact()
 	case "creatures":
-		return f.IsCreature()
+		// CR 702.114e: a bestowed-attached card is an Aura, not a creature.
+		return f.IsCreature() && !o.BestowedAttached()
 	case "enchantments":
 		return f.IsEnchantment()
 	case "instants":

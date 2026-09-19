@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -106,5 +109,88 @@ func TestPlayedLogIsReproducible(t *testing.T) {
 	}
 	if outputs[0] != outputs[1] {
 		t.Fatal("same seed has different measurement")
+	}
+}
+
+// writeBenchCorpus lays down a one-card cardsfolder fixture (the minimum
+// CompileDir accepts) and optionally a deliberately-corrupt ir.gob.gz so the
+// cache load fails without needing a stale shared cache on disk.
+func writeBenchCorpus(t *testing.T, withCache bool) string {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "cardsfolder"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	src := "Name:Test Card\nTypes:Sorcery\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"
+	if err := os.WriteFile(filepath.Join(dir, "cardsfolder", "test_card.txt"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if withCache {
+		if err := os.WriteFile(filepath.Join(dir, "ir.gob.gz"), []byte("not a cache"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
+}
+
+// TestLoadRegistryForBenchRecompilesInMemoryOnRequest covers the -recompile
+// path: any cache load failure (here: unreadable file) falls back to an
+// in-memory CompileDir over cardsfolder and NEVER writes dir/ir.gob.gz — the
+// load's original error is reported, not the compile's.
+func TestLoadRegistryForBenchRecompilesInMemoryOnRequest(t *testing.T) {
+	dir := writeBenchCorpus(t, true)
+	reg, recompiled, err := loadRegistryForBench(dir, true)
+	if err != nil {
+		t.Fatalf("loadRegistryForBench(recompile): %v", err)
+	}
+	if !recompiled {
+		t.Fatal("recompiled = false, want true")
+	}
+	if _, ok := reg.Lookup("Test Card"); !ok {
+		t.Fatal("in-memory rebuild lost the fixture card")
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "ir.gob.gz"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "not a cache" {
+		t.Fatal("recompile wrote under dir/ — shared-cache mutation hazard")
+	}
+}
+
+// TestLoadRegistryForBenchDefaultFailsHard covers the default path: without
+// -recompile an unusable cache is a hard error, nothing is recompiled, and
+// the compile is never even attempted.
+func TestLoadRegistryForBenchDefaultFailsHard(t *testing.T) {
+	dir := writeBenchCorpus(t, true)
+	reg, recompiled, err := loadRegistryForBench(dir, false)
+	if err == nil || reg != nil || recompiled {
+		t.Fatalf("default path err=%v reg=%v recompiled=%v, want hard error", err, reg, recompiled)
+	}
+}
+
+// TestPrintSharedCacheAdvice pins the shared-cache-aware hint: a
+// *cards.CacheVersionError gets the symlink/main-checkout advice plus the
+// -recompile remedy; any other error prints nothing.
+func TestPrintSharedCacheAdvice(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ir.gob.gz")
+	var buf bytes.Buffer
+	printSharedCacheAdvice(&buf, &cards.CacheVersionError{Got: 3, Want: 4}, path)
+	out := buf.String()
+	for _, want := range []string{
+		"IR cache version 3, want 4",
+		path,
+		"SHARED",
+		"main checkout",
+		"-recompile",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("advice missing %q:\n%s", want, out)
+		}
+	}
+	buf.Reset()
+	printSharedCacheAdvice(&buf, errors.New("no card scripts under /x"), path)
+	if buf.Len() != 0 {
+		t.Fatalf("non-version error printed advice: %s", buf.String())
 	}
 }

@@ -10,6 +10,7 @@ package rules
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -89,6 +90,48 @@ type pendingCast struct {
 	delve     []state.ObjID
 	delveDone bool
 
+	// replicateParam is the raw Replicate keyword parameter (CR 702.55a) a
+	// "replicated" cast re-parses at ask and answer time; replicateTimes is
+	// the answered payment count (0 = declined: no flag, a plain cast) and
+	// replicateDone marks the one ask already posed. Plain data, so Clone
+	// copies it like x/delve/sacs.
+	replicateParam string
+	replicateSet   bool
+	replicateTimes int32
+	replicateDone  bool
+
+	// multikickParam is the raw Multikicker keyword parameter (CR 702.43) a
+	// "multikicked" cast re-parses at ask and answer time; multikickTimes is
+	// the answered payment count (0 = declined: no flag, a plain cast) and
+	// multikickDone marks the one ask already posed. Same shape as the
+	// replicate fields above; plain data, so Clone copies it.
+	multikickParam string
+	multikickSet   bool
+	multikickTimes int32
+	multikickDone  bool
+
+	// converge (task converge1) is CR 107.4f-family's count of distinct
+	// colours (WUBRG) of mana actually spent to cast this spell, captured at
+	// payment from the full spent delta payManaCastSpent returns. convergeOn
+	// is the heads-safety two-arm gate (faceWantsConverge OR a battlefield
+	// reader naming TriggeredCard$Converge): the pay-time CastInfo is emitted
+	// ONLY for a face carrying a Count$Converge SVar, or when some alive
+	// player's battlefield permanent's trigger reads another spell's cast
+	// colours, so no game that casts neither changes an event. Plain data, so
+	// Clone copies it like replicateTimes.
+	convergeOn bool
+	converge   int32
+
+	// manaSpentOn/manaSpent (task castprov1) capture the TOTAL mana the
+	// cast's payment actually spent, from the same full spent delta
+	// payManaCastSpent returns (the pips summed over every slot).
+	// manaSpentOn is the heads-safety gate (faceWantsCastSpend): the pay-time
+	// CastInfo is emitted ONLY for a face whose SVar table reads the
+	// Count$CastTotalManaSpent head, so no game that casts no such card
+	// changes an event. Plain data, so Clone copies it like converge.
+	manaSpentOn bool
+	manaSpent   int32
+
 	sacs    []state.ObjID
 	sacPart int
 
@@ -157,6 +200,14 @@ type pendingCast struct {
 	// An aborted proposal reverses the push when it is set.
 	pushed bool
 
+	// provenanceRepriced is true once the post-push provenance re-price has
+	// run for this proposal (castprov3: a provenance-keyed cost static is
+	// unresolvable pre-push, so continueCast re-prices pc.mods right after
+	// the push; the flag keeps the re-entries — a mana-window resume re-enters
+	// continueCast with pushed already true — from gathering the statics
+	// again). Plain data, so Clone copies it.
+	provenanceRepriced bool
+
 	// preSuppress is the suppressedCast set as it was just before pushCast's
 	// PutOnStack, captured so an aborted (reversed) cast can restore it:
 	// the push is a state-changing event that emit treats as progress and so
@@ -165,7 +216,8 @@ type pendingCast struct {
 	// flight (an ability, or a spell aborted before the push).
 	preSuppress map[state.ObjID]bool
 
-	// faceBefore is non-nil only for a CR 309.4b alternate Room cast. The
+	// faceBefore is non-nil only for a CR 309.4b alternate Room cast or a CR
+	// 714 Adventure-face cast (adventure_alt / adventure_recast). The
 	// proposal begins with an event-sourced FlipFace so all ordinary cast
 	// stages read the chosen door; an aborted proposal flips it back.
 	faceBefore *uint8
@@ -202,6 +254,7 @@ type pendingCast struct {
 	etbName   string
 	etbType   string
 	etbNumber int32
+	etbColor  string
 
 	// altAddParts are the alternative parts of the card's
 	// AlternateAdditionalCost keyword ("As an additional cost to cast this
@@ -292,6 +345,40 @@ func surgeCost(f *cards.Face) (Cost, bool) {
 	return ParseCost(s), true
 }
 
+// replicateCost resolves the Replicate keyword's payment cost (CR 702.55a,
+// Forge's K:Replicate:<cost>), the surgeCost shape. A cost carrying a token
+// ParseCost cannot model is withheld (the fail-closed direction
+// twoPartKickerCosts takes) rather than charged as degraded generic mana.
+func replicateCost(f *cards.Face) (Cost, bool) {
+	s, ok := f.KeywordParam("Replicate")
+	if !ok {
+		return Cost{}, false
+	}
+	c := ParseCost(s)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
+// multikickerCost resolves the Multikicker keyword's PER-PAYMENT cost
+// (CR 702.43, Forge's K:Multikicker:<cost>), the replicateCost shape: the
+// same payment may be made any number of times as the spell is cast, so the
+// offer gates on ONE payment being payable and the count ask
+// (multikickAsk) settles how many. A cost carrying a token ParseCost cannot
+// model is withheld (the replicateCost fail-closed direction).
+func multikickerCost(f *cards.Face) (Cost, bool) {
+	s, ok := f.KeywordParam("Multikicker")
+	if !ok {
+		return Cost{}, false
+	}
+	c := ParseCost(s)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
 // keywordAltCost resolves any of the alternative-cast keyword family
 // (Evoke, Dash, Overload, Warp, Madness) to a parsed Cost, reporting whether
 // the keyword is printed at all. All five are "you may cast this for [cost]
@@ -359,7 +446,7 @@ func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cos
 			break
 		}
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() || co.BestowedAttached() {
 			continue
 		}
 		// The reduction is the creature's ACTUAL power (CR 702.46a: "reduce
@@ -426,7 +513,7 @@ func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []
 	var tapped []state.ObjID
 	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() || co.BestowedAttached() {
 			continue
 		}
 		used := false
@@ -599,7 +686,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 		var avail []state.ObjID
 		matchSpec := sacrificeMatchSpec(part.Spec)
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
-			if reserved[oid] { // an earlier Sac part already claimed this one
+			if reserved[oid] || e.SacrificeBlocked(oid) { // an earlier Sac part already claimed this one; a CantSacrifice-blocked one can never pay
 				continue
 			}
 			if effects.MatchesSpecFrom(e.G, matchSpec, oid, p, id) {
@@ -652,9 +739,27 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			return false
 		}
 	}
+	// Tap cost parts reserve their candidates against the Sac/Exile/Return
+	// reservations above (one permanent cannot pay both) AND against each
+	// other: a composed cost carrying the same tap part several times -- a
+	// replicated cast re-pays its tapXType cost once per payment -- must not
+	// count one untapped permanent for every part. Without the reservation
+	// an affordability walk over the composed cost offered a bound far above
+	// what the board could actually pay, and answering it aborted the cast
+	// at the payment stage (CR 733's clean reversal, but a needless one).
 	for _, part := range cost.TapPermanent {
-		if len(e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true)) < int(part.N) {
+		var avail []state.ObjID
+		for _, oid := range e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true) {
+			if reserved[oid] {
+				continue
+			}
+			avail = append(avail, oid)
+		}
+		if len(avail) < int(part.N) {
 			return false
+		}
+		for i := 0; i < int(part.N); i++ {
+			reserved[avail[i]] = true
 		}
 	}
 	for range cost.Blight {
@@ -667,16 +772,22 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 		return false
 	}
 	// Energy cost parts (PayEnergy<N>): the payer's energy counter total
-	// covers a fixed part (Forge CostPayEnergy.canPay reads the same total).
-	// The dynamic X form is bounded by that total at the X ask, so the offer
-	// gate needs no assumption about the not-yet-chosen value.
+	// covers the SUM of the fixed parts -- Forge CostPayEnergy.canPay reads
+	// the same total, and a composed cost carrying the part several times (a
+	// replicated cast re-pays its PayEnergy cost once per payment) draws the
+	// pool down once per part, so the parts cannot each spend the whole
+	// counter total independently. The dynamic X form is bounded by that
+	// total at the X ask, so the offer gate needs no assumption about the
+	// not-yet-chosen value.
+	energyTotal := int32(0)
 	for _, part := range cost.Energy {
 		if part.Spec == "X" {
 			continue
 		}
-		if e.G.Players[p].Counter("ENERGY") < part.N {
-			return false
-		}
+		energyTotal += part.N
+	}
+	if energyTotal > 0 && e.G.Players[p].Counter("ENERGY") < energyTotal {
+		return false
 	}
 	// Return cost parts (Return<N/Spec>): the source itself (Spec CARDNAME,
 	// Forge's payCostFromSource) must be in play; otherwise the payer controls
@@ -974,6 +1085,29 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		faceBefore = &before
 		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
 	}
+	// CR 714: the same flip mechanism serves the Adventure faces. From the
+	// hand the cast flips to the Adventure spell face (adventure_alt); from
+	// the adventure zone it flips back to the main face (adventure_recast).
+	// Everything downstream -- rawBaseCost, targets, timing, resolution --
+	// then reads the flipped face, because o.Face() is Faces[FaceIdx]. An
+	// aborted proposal restores the pre-flip face via pc.faceBefore (CR
+	// 733.1), the same reversal a Room cast takes.
+	if opt.Mode == "adventure_alt" {
+		if adventureSpellFace(o) == nil {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	}
+	if opt.Mode == "adventure_recast" {
+		if o.Zone != state.ZExile || adventureSpellFace(o) == nil || o.Face() != o.Card.Faces[1] {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	}
 	f := o.Face()
 	if f == nil {
 		return
@@ -1029,6 +1163,24 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if bc, ok := buybackCost(f); ok {
 			cost = cost.Plus(bc)
 		}
+	case "replicated":
+		// Replicate (CR 702.55a): the mode marks the intent to pay the
+		// optional replicate cost. The PAYMENT COUNT is a cast announcement
+		// of its own (CR 601.2b), settled by replicateAsk before the
+		// Convoke/X stages and folded into cost there, so a declined count
+		// leaves an exactly plain cast and the offer gate's own base+1
+		// composition is never silently charged for a different count. The
+		// parameter itself is captured onto the pendingCast after its
+		// construction (the suspend block below), keeping this switch's
+		// cost-folding contract intact.
+	case "multikicked":
+		// Multikicker (CR 702.43): the same shape as "replicated" above --
+		// the mode marks the intent to pay the optional multikicker cost;
+		// the PAYMENT COUNT is settled by multikickAsk before the Convoke/X
+		// stages and folded into cost there, so this case folds NOTHING. A
+		// declined count leaves an exactly plain cast (modeFlags maps this
+		// mode to ""), and the pay-time CastInfo rides the trailing
+		// FlagMultikicked event.
 	case "harmonize":
 		if hc, ok := harmonizeCost(f); ok {
 			cost = hc
@@ -1039,6 +1191,24 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 	case "suspend_cast":
 		cost = Cost{}
+	case "foretell":
+		// CR 702.126a: the Foretell ACTION pays {2} and exiles the card face
+		// down -- never the keyword's own colon parameter, which prices the
+		// LATER cast (the foretell_cast case below).
+		cost = Cost{Generic: 2}
+	case "foretell_cast":
+		// CR 702.126a: the later cast pays the foretell cost -- the K: line's
+		// colon parameter (Starnheim Unleashed's "X X W" rides the ordinary
+		// X machinery here), read off the face; a missing parameter falls
+		// back to the rule's action default {2} (no corpus carrier -- every
+		// K:Foretell line carries a colon cost, measured 55/55). Stored RAW:
+		// cost modifiers apply later in manaToPay, exactly like every other
+		// alternative-cost mode's cost.
+		if fc, ok := f.KeywordParam("Foretell"); ok && strings.TrimSpace(fc) != "" {
+			cost = ParseCost(fc)
+		} else {
+			cost = Cost{Generic: 2}
+		}
 	case "flashback":
 		cost = e.flashbackCost(id)
 	case "mayplay":
@@ -1068,7 +1238,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
-	case "evoked", "dashed", "overloaded", "warped", "madness":
+	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed":
 		// The alternative-cost keyword family (altcosts): each mode's cost is
 		// the printed keyword parameter in place of the mana cost, exactly the
 		// Miracle shape. Evoke and Madness casts come from hand and exile
@@ -1077,7 +1247,8 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// only a hand-built option) falls back to the empty cost rather than
 		// charging the printed mana cost.
 		head := map[string]string{"evoked": "Evoke", "dashed": "Dash",
-			"overloaded": "Overload", "warped": "Warp", "madness": "Madness"}[opt.Mode]
+			"overloaded": "Overload", "warped": "Warp", "madness": "Madness",
+			"bestowed": "Bestow"}[opt.Mode]
 		if mc, ok := f.KeywordParam(head); ok {
 			cost = ParseCost(mc)
 		} else {
@@ -1093,7 +1264,8 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// re-added mana part would double charge. Only a plain cast reaches this
 	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
 	// no SP Cost$ contributes nothing.
-	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt") {
+	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
+		opt.Mode == "adventure_alt") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -1157,6 +1329,24 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 			e.cast.suspendTimeX, e.cast.suspendMinX = true, sc.minTime
 		}
 	}
+	// Replicate (CR 702.55a): the cost is carried as its raw keyword
+	// parameter and re-parsed by replicateAsk and the answer handler -- a
+	// string survives the intent boundary's pendingCast Clone without
+	// deep-copying cost slices, and ParseCost is deterministic.
+	if opt.Mode == "replicated" {
+		if _, ok := replicateCost(f); ok {
+			e.cast.replicateParam, e.cast.replicateSet = f.KeywordParam("Replicate")
+		}
+	}
+	// Multikicker (CR 702.43): the cost is carried as its raw keyword
+	// parameter and re-parsed by multikickAsk and the answer handler -- the
+	// same string-survives-Clone convention the replicate capture above
+	// documents.
+	if opt.Mode == "multikicked" {
+		if _, ok := multikickerCost(f); ok {
+			e.cast.multikickParam, e.cast.multikickSet = f.KeywordParam("Multikicker")
+		}
+	}
 	// CR 401.5's MayPlayIgnoreColor$ rider: "you may spend mana as though it
 	// were mana of any color to cast it". Recorded from the grant the offer
 	// gate consulted while the card was still in the granted zone.
@@ -1168,13 +1358,41 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	e.continueCast()
 }
 
+// convertedManaCostToken matches Forge's ConvertedManaCost placeholder inside
+// a PlayCost$ token, case-insensitively (the corpus spells it exactly this
+// way; the case fold costs nothing).
+var convertedManaCostToken = regexp.MustCompile(`(?i)convertedmanacost`)
+
+// pricePlayCost prices a Play effect's PlayCost$ token for one chosen card:
+// the ConvertedManaCost placeholder is substituted with the card face's mana
+// value (Amped Raptor's "an amount of {E} equal to its mana value") and the
+// result is parsed with the ordinary cost grammar -- PayEnergy<N>, PayLife<N>,
+// a fixed generic, and Discard<N/Spec> all land in the Cost fields the cast
+// flow already asks and charges. A token the grammar reports as unmodelled
+// (Cost.Unknown -- the corpus's one PlayCost$ SuspendCost, The Face of Boe)
+// is NOT degraded the way a printed cost's malformed token would be:
+// PlayCost$ is an ALTERNATIVE to the mana cost (CR 118.9 "rather than paying
+// its mana cost"), so degrading it to one generic would still charge the
+// player full price -- the caller hard-declines instead, ParseUnlessCost-style.
+func pricePlayCost(f *cards.Face, token string) (Cost, bool) {
+	s := convertedManaCostToken.ReplaceAllString(token, strconv.FormatInt(int64(f.ManaValue()), 10))
+	c := ParseCost(s)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
 // beginPlay is the rules' hand-off for an answered Play effect. It starts a
 // cast from the card's current zone and uses its printed cost unless that
-// specific Play SA said WithoutManaCost$ True. This distinction is material:
-// Spinerock Knoll grants a free cast, while Conduit of Worlds requires payment.
-// The card must still be on the stack of the suspended Play resolution when
-// this runs; a malformed answer degrades to a logged no-op rather than panic.
-func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool) {
+// specific Play SA said WithoutManaCost$ True (Spinerock Knoll grants a free
+// cast, while Conduit of Worlds requires payment) or carries a PlayCost$
+// alternative (Amped Raptor's energy cast), which REPLACES the mana cost
+// only -- additional costs and cost modifiers ride exactly as an ordinary
+// cast's do (CR 118.9 / 601.2f). The card must still be on the stack of the
+// suspended Play resolution when this runs; a malformed answer degrades to a
+// logged no-op rather than panic.
+func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string) {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play found no card to play"})
@@ -1195,12 +1413,38 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	cost := e.rawBaseCost(p, id)
 	if withoutManaCost {
 		cost = Cost{}
+	} else if playCost != "" {
+		// A PlayCost$ alternative replaces the mana cost; an unpriceable
+		// token is a hard DECLINE, never a mana fallback -- the player is
+		// never charged full mana for a "rather than" alternative.
+		alt, ok := pricePlayCost(o.Face(), playCost)
+		if !ok {
+			e.emit(events.Event{Kind: events.Note, Player: p,
+				Text: "Play cannot price its alternative cost (" + playCost + "); the play is declined"})
+			return
+		}
+		// The alternative's non-mana parts must be payable the way an
+		// offered cast's would be (the energy total, the discard
+		// candidates): a YES answer the payment cannot settle is declined
+		// with a Note, not begun and short-changed at the settle.
+		if !e.nonManaCastable(p, id, alt, false) {
+			e.emit(events.Event{Kind: events.Note, Player: p,
+				Text: "The alternative cost cannot be paid (" + playCost + "); the play is declined"})
+			return
+		}
+		if alt.Life > e.G.Players[p].Life {
+			e.emit(events.Event{Kind: events.Note, Player: p,
+				Text: "The alternative cost cannot be paid (" + playCost + "); the play is declined"})
+			return
+		}
+		cost = alt
 	}
 	// A normal Play cast pays its printed mana cost; a free Play cast does
-	// not. Both still pay non-mana additional costs, exactly as an ordinary
-	// cast does (CR 118.9 / 601.2f). The cost is stored RAW (no cost
-	// modifiers folded): RaiseCost/ReduceCost ride pc.mods and manaToPay
-	// applies them after {X} is folded, the same shape beginCast stores.
+	// not; a PlayCost$ cast pays the alternative. All three still pay
+	// non-mana additional costs, exactly as an ordinary cast does (CR
+	// 118.9 / 601.2f). The cost is stored RAW (no cost modifiers folded):
+	// RaiseCost/ReduceCost ride pc.mods and manaToPay applies them after {X}
+	// is folded, the same shape beginCast stores.
 	cost = withSpellAbilityExtras(o.Face(), cost)
 	converted, ok := e.fixLifeXCost(p, id, cost)
 	if !ok {
@@ -1277,6 +1521,19 @@ func (e *Engine) continueCast() {
 	if e.forageAsk() || e.revealCostAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
 		return
 	}
+	// CR 601.2b: the replicate count (CR 702.55a's optional additional cost,
+	// paid any number of times) is announced before Convoke/Harmonize and X,
+	// whose asks must see and bound against the composed total.
+	if e.replicateAsk() {
+		return
+	}
+	// CR 601.2b: the multikicker count (CR 702.43's optional additional cost,
+	// paid any number of times) is announced the same way -- no Kicker
+	// carrier pairs both keywords (measured over the corpus), so the two
+	// asks never coexist on one cast.
+	if e.multikickAsk() {
+		return
+	}
 	// CR 601.2b announces Convoke/Harmonize before X: an announced creature
 	// contribution is part of the available payment for X, and cannot be used
 	// as a mana source in the later mana window.
@@ -1311,11 +1568,33 @@ func (e *Engine) continueCast() {
 		e.payCast()
 		return
 	}
+	// Foretell (CR 702.126a) is the same shape: the {2} special action is not
+	// a cast -- no stack push, no targets; the card is exiled face down and
+	// its later foretell-cost cast announces its own targets.
+	if e.cast.mode == "foretell" {
+		e.payCast()
+		return
+	}
 	// CR 601.2a: the object reaches the stack before the target choice
 	// (601.2c) and payment (601.2h). For a spell the cast trigger (601.2i)
 	// is held back until payCast; an ability's AbilityPush fires no trigger.
 	if e.pushCast() {
 		return
+	}
+	// castprov3: a provenance-keyed cost modifier (Bilbo's
+	// "!wasCastFromYourHand" ReduceCost) is unresolvable before CR 601.2a's
+	// push — the offer and option-selection snapshots both denied it (full
+	// price, the fail-closed direction) because the priced card had no cast
+	// in the log yet. Now the PutOnStack is in the log: when the selection
+	// pass evaluated such a static (e.costProvenanceSeen, the
+	// noCounterSpend-style transient capture), re-price the pending cast so
+	// the payment takes the honest reduction. For every other cast the
+	// recompute is byte-identical to the offer snapshot (both are the
+	// nil-target base snapshot), so no existing price — and no chain head —
+	// moves.
+	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && e.costProvenanceSeen {
+		pc.provenanceRepriced = true
+		pc.mods = e.costModifiers(pc.player, pc.card, spellScope(pc.mode))
 	}
 	// FlagSuspend is exile provenance, not cast-time state. Clear it when the
 	// mandatory free cast starts so a later unrelated exile move cannot revive
@@ -1479,6 +1758,24 @@ func (e *Engine) tapPermanentCostAsk() bool {
 	for pc.tapPart < len(pc.cost.TapPermanent) {
 		part := pc.cost.TapPermanent[pc.tapPart]
 		candidates := e.costCandidates(pc.player, pc.card, state.ZBattlefield, part.Spec, false, true)
+		// An earlier part's recorded tap (taps settle together at payCast, so
+		// the state does not yet show it) has already claimed its permanent:
+		// the same reservation the affordability bound's nonManaCastable walk
+		// applies across the composed parts, honoured here so one permanent
+		// can never be chosen to pay two parts.
+		if len(pc.taps) > 0 {
+			taken := make(map[state.ObjID]bool, len(pc.taps))
+			for _, id := range pc.taps {
+				taken[id] = true
+			}
+			kept := make([]state.ObjID, 0, len(candidates))
+			for _, cid := range candidates {
+				if !taken[cid] {
+					kept = append(kept, cid)
+				}
+			}
+			candidates = kept
+		}
 		if len(candidates) < int(part.N) {
 			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
 			return true
@@ -1698,7 +1995,7 @@ func (e *Engine) castModeAsk() bool {
 			legal = append(legal, name)
 			continue
 		}
-		min, _ := targetBounds(sub)
+		min, _ := e.resolvedTargetBounds(pc.player, pc.card, sub, pc.x)
 		if len(e.legalTargetCandidates(pc.player, pc.card, pc.card, sub)) >= min {
 			legal = append(legal, name)
 		}
@@ -1733,6 +2030,121 @@ func modalTargetSA(f *cards.Face, sa *cards.SA, modes []string) *cards.SA {
 		}
 	}
 	return sa
+}
+
+// replicateAsk poses CR 702.55a's replicate count question -- "you may pay
+// [the replicate cost] any number of times as you cast this spell" -- once,
+// before the Convoke/Harmonize and X stages, whose asks must see and bound
+// against the composed total. The max is the largest N the current board can
+// still pay, checked with the SAME affordability checker the payment window's
+// composed total faces (castable: the conversion-aware mana gate plus every
+// non-mana part), pool-only at ask time -- the 601.2g window afterwards may
+// still produce mana for the composed total, exactly like a kicked cast. The
+// answered count folds that many payments into cost (castAnswer); 0 declines:
+// no flag, an exactly plain cast.
+func (e *Engine) replicateAsk() bool {
+	pc := e.cast
+	if pc.replicateDone || !pc.replicateSet {
+		return false
+	}
+	pc.replicateDone = true
+	rc := ParseCost(pc.replicateParam)
+	max := int32(0)
+	cand := pc.cost
+	for i := int32(0); i < 64; i++ {
+		// The hard cap only exists so a degenerate future cost whose every
+		// part prices against a non-reserving candidate count cannot loop;
+		// every real replicate resource (mana, energy, life, tap/sac
+		// candidates) is finite and breaks the loop naturally.
+		next := cand.Plus(rc)
+		if !e.castable(pc.player, pc.card, next, false) {
+			break
+		}
+		cand = next
+		max++
+	}
+	if max == 0 {
+		// The offer gate proved one payment payable; a board that changed
+		// under the proposal (or a cost modifier that priced the OFFER but
+		// not this loop's bare, unmodified cost -- the bound here is
+		// deliberately conservative, never over-offering) degrades the
+		// explicitly chosen "(replicated)" mode to the count-0 plain cast
+		// (the conservative CR 733 direction) rather than wedging or
+		// aborting. The degrade is loud: a silent downgrade would leave the
+		// player's choice unrecorded.
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			Text: "replicate no longer payable; casting without replicate"})
+		return false
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Pay the replicate cost how many times?", Source: pc.card}
+	for n := int32(0); n <= max; n++ {
+		label := "No replicate"
+		if n == 1 {
+			label = "Pay replicate once"
+		} else if n > 1 {
+			label = fmt.Sprintf("Pay replicate %d times", n)
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "replicate",
+			Label: label, Amount: int(n)})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+// multikickAsk poses CR 702.43's multikicker count question -- "you may pay
+// [the multikicker cost] any number of times as you cast this spell" -- once,
+// the replicateAsk shape (the same cast announcement, CR 601.2b): the max is
+// the largest N the current board can still pay, walked with the SAME
+// affordability checker the payment window's composed total faces (castable),
+// pool-only at ask time. The answered count folds that many payments into
+// cost (castAnswer); 0 declines: no flag, an exactly plain cast.
+func (e *Engine) multikickAsk() bool {
+	pc := e.cast
+	if pc.multikickDone || !pc.multikickSet {
+		return false
+	}
+	pc.multikickDone = true
+	mk := ParseCost(pc.multikickParam)
+	max := int32(0)
+	cand := pc.cost
+	for i := int32(0); i < 64; i++ {
+		// The hard cap only exists so a degenerate future cost whose every
+		// part prices against a non-reserving candidate count cannot loop;
+		// every real multikicker resource is finite and breaks the loop
+		// naturally (the replicateAsk comment).
+		next := cand.Plus(mk)
+		if !e.castable(pc.player, pc.card, next, false) {
+			break
+		}
+		cand = next
+		max++
+	}
+	if max == 0 {
+		// The offer gate proved one payment payable; a board that changed
+		// under the proposal degrades the explicitly chosen
+		// "(multikicked)" mode to the count-0 plain cast (the replicateAsk
+		// max==0 arm's conservative direction), never a wedge or abort.
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			Text: "multikicker no longer payable; casting without multikick"})
+		return false
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Pay the multikicker cost how many times?", Source: pc.card}
+	for n := int32(0); n <= max; n++ {
+		label := "No multikick"
+		if n == 1 {
+			label = "Pay multikicker once"
+		} else if n > 1 {
+			label = fmt.Sprintf("Pay multikicker %d times", n)
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "multikick",
+			Label: label, Amount: int(n)})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
 }
 
 // xAsk asks a value for {X} if pc.cost carries one, offering 0..max where
@@ -1845,6 +2257,9 @@ func (e *Engine) xAsk() bool {
 			matchSpec := sacrificeMatchSpec(part.Spec)
 			avail := int32(0)
 			for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
+				if e.SacrificeBlocked(oid) {
+					continue
+				}
 				if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
 					avail++
 				}
@@ -2027,6 +2442,9 @@ func (e *Engine) sacAsk() bool {
 		matchSpec := sacrificeMatchSpec(part.Spec)
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
+			if e.SacrificeBlocked(oid) {
+				continue
+			}
 			if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
 				already := false
 				for _, s := range pc.sacs {
@@ -2153,7 +2571,8 @@ func (e *Engine) discardAsk() bool {
 
 // collectETBChoices walks pc.card's printed replacement lines and, for every
 // ETBReplacement Repl whose ReplaceWith$ resolves to a NameCard/ChooseType/
-// ChooseNumber ability, adds one etbChoice with its pre-built option list.
+// ChooseNumber/ChooseColor ability, adds one etbChoice with its pre-built
+// option list.
 // The list (not just the kind) is captured up front so the offered option and
 // the recorded choice always agree, and so the choice is the same whether it
 // is asked here (cast flow) or once the object has moved (a land's
@@ -2201,7 +2620,10 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 				// option list below builds it; a category this build cannot
 				// enumerate is recorded loudly at resolution time by
 				// effects.effChooseType, never silently.
-				r.With.Params["Type"]),
+				r.With.Params["Type"],
+				// Exclude$ (Black Dragon Gate, the five Thriving lands) names
+				// colours the choice must NOT offer, comma-separated.
+				r.With.Params["Exclude"]),
 		})
 	}
 }
@@ -2214,6 +2636,29 @@ func etbChoiceKind(api string) string {
 		return "type"
 	case "ChooseNumber":
 		return "number"
+	case "ChooseColor":
+		return "color"
+	}
+	return ""
+}
+
+// etbColourLabels pairs the WUBRG letter the Choose event records with the
+// option label the client shows, in fixed WUBRG order -- the same order every
+// colour choice in this build offers (askManaColor, triggeredManaColourChoice,
+// commanderIdentityColours). etbOptions and etbAnswer both read it, so the
+// option offered and the letter recorded always agree.
+var etbColourLabels = []struct{ letter, name string }{
+	{"W", "White"}, {"U", "Blue"}, {"B", "Black"}, {"R", "Red"}, {"G", "Green"},
+}
+
+// etbColourLetter maps an option label (or already-a-letter) back to the
+// WUBRG letter the event records; "" when the label is neither (an etbAnswer
+// caller only sees options etbOptions built, so the guard is defensive).
+func etbColourLetter(name string) string {
+	for _, cl := range etbColourLabels {
+		if strings.EqualFold(name, cl.name) || strings.EqualFold(name, cl.letter) {
+			return cl.letter
+		}
 	}
 	return ""
 }
@@ -2227,8 +2672,36 @@ func etbChoiceKind(api string) string {
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
-func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory string) []decision.Option {
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory, exclude string) []decision.Option {
 	switch kind {
+	case "color":
+		// Exclude$ tokens (comma-separated, e.g. "black" on Black Dragon
+		// Gate) remove the matching WUBRG label. Fail OPEN: a token
+		// etbColourLetter cannot resolve is ignored, never emptied into an
+		// ask with zero options (the totality rule in this doc comment).
+		excluded := map[string]bool{}
+		for _, tok := range strings.Split(exclude, ",") {
+			if letter := etbColourLetter(strings.TrimSpace(tok)); letter != "" {
+				excluded[letter] = true
+			}
+		}
+		out := make([]decision.Option, 0, len(etbColourLabels))
+		for _, cl := range etbColourLabels {
+			if excluded[cl.letter] {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "color", Label: cl.name})
+		}
+		if len(out) == 0 {
+			// Totality guard: an exclusion naming every colour must never
+			// empty the ask (corpus carriers exclude exactly one; this is
+			// defensive against a future carrier).
+			out = make([]decision.Option, 0, len(etbColourLabels))
+			for _, cl := range etbColourLabels {
+				out = append(out, decision.Option{Index: len(out), Kind: "color", Label: cl.name})
+			}
+		}
+		return out
 	case "name":
 		if validCards == "" {
 			validCards = "Card.nonLand"
@@ -2263,41 +2736,9 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case "type":
-		// Type$ Creature (the corpus's dominant value) is exactly this list;
-		// an absent Type$ keeps the creature-type default. Any other category
-		// has no option builder in this build: the list stays the creature
-		// fallback and effects.effChooseType records the gap loudly at
-		// resolution time, so the limitation is never silent. The switch's
-		// only act would be a non-creature option list this build cannot
-		// build, so no branch -- the comment is the read.
-		seen := map[string]bool{}
-		types := []string{}
-		for i := range e.G.Objs {
-			o := &e.G.Objs[i]
-			if o.Owner != you {
-				continue
-			}
-			f := o.Face()
-			if f == nil || !isCreatureFace(f) {
-				continue
-			}
-			for _, t := range f.Types {
-				if !effects.CreatureTypeWords(t) || seen[t] {
-					continue
-				}
-				seen[t] = true
-				types = append(types, t)
-			}
-		}
-		if len(types) == 0 {
-			types = []string{"Human"}
-		}
-		sort.Strings(types)
-		out := make([]decision.Option, 0, len(types))
-		for _, t := range types {
-			out = append(out, decision.Option{Index: len(out), Kind: "type", Label: t})
-		}
-		return out
+		// The shared creature-type enumeration (creatureTypeOptions); the
+		// comment there is the read.
+		return e.creatureTypeOptions(you)
 	default: // "number"
 		out := make([]decision.Option, 0, 13)
 		for i := 0; i <= 12; i++ {
@@ -2317,6 +2758,58 @@ func isCreatureFace(f *cards.Face) bool {
 		}
 	}
 	return false
+}
+
+// creatureTypeOptions enumerates the creature-type option list the cast-time
+// "as this enters" ask (etbOptions' "type" arm) and the mid-resolution
+// ChooseType ask (Engine.TypeChoices, task ct1) BOTH offer, so the two asks
+// and the no-ask fallback can never disagree about what a creature-type
+// choice ranges over. The list is the distinct creature subtypes of every
+// object you OWN (all zones, object order), sorted alphabetically; the
+// "Human" tail keeps the list non-empty when you own no creature subtype,
+// the same totality rule the colour list carries.
+func (e *Engine) creatureTypeOptions(you state.PlayerID) []decision.Option {
+	seen := map[string]bool{}
+	types := []string{}
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner != you {
+			continue
+		}
+		f := o.Face()
+		if f == nil || !isCreatureFace(f) {
+			continue
+		}
+		for _, t := range f.Types {
+			if !effects.CreatureTypeWords(t) || seen[t] {
+				continue
+			}
+			seen[t] = true
+			types = append(types, t)
+		}
+	}
+	if len(types) == 0 {
+		types = []string{"Human"}
+	}
+	sort.Strings(types)
+	out := make([]decision.Option, 0, len(types))
+	for _, t := range types {
+		out = append(out, decision.Option{Index: len(out), Kind: "type", Label: t})
+	}
+	return out
+}
+
+// TypeChoices implements effects.Host.TypeChoices (task ct1): the option list
+// a mid-resolution ChooseType ask offers its chooser — the SAME enumeration
+// the cast-time "type" arm builds, so the two lists can never disagree. A
+// category this build cannot enumerate yields nil; the asking effect never
+// asks for one (it records the loud Note and the deterministic fallback), so
+// nil is unreachable through the ask path.
+func (e *Engine) TypeChoices(chooser state.PlayerID, category string) []decision.Option {
+	if category != "" && !strings.EqualFold(category, "Creature") {
+		return nil
+	}
+	return e.creatureTypeOptions(chooser)
 }
 
 // etbAsk asks the next unsettled "as this enters" choice (pc.etbs[pc.etbIdx]),
@@ -2346,6 +2839,8 @@ func etbChoicePrompt(kind string) string {
 		return " a card name"
 	case "type":
 		return " a creature type"
+	case "color":
+		return " a color"
 	case "riot":
 		return " how this creature enters (counter or haste)"
 	}
@@ -2635,6 +3130,130 @@ func costAnnouncesPaidX(c Cost) bool {
 // manaToPayX is manaToPay with {X} folded to an explicit value.
 // paymentMana applies announced Convoke/Harmonize contributions to the
 // already-formed total. A stale answer can never make a requirement negative.
+// faceWantsConverge is the heads-safety gate for the pay-time converge
+// CastInfo: it reports whether the face carries a Count$Converge SVar body.
+// Without it a count>0-only gate would stamp a CastInfo onto EVERY
+// multicolour cast and move the chain heads; with it, no game that casts no
+// converge card changes an event (measured: no repo-deck card carries
+// Count$Converge, so TestHeads stays put). K:Sunburst's keyword expansion
+// (its own ledger entry) is the planned second consumer of this seam.
+func faceWantsConverge(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, v := range f.SVars {
+		if body, ok := strings.CutPrefix(v, "Count$"); ok && strings.EqualFold(strings.TrimSpace(body), "Converge") {
+			return true
+		}
+	}
+	return false
+}
+
+// faceWantsCastSpend is the heads-safety gate for the pay-time cast-spend
+// CastInfo (the converge gate's shape): it reports whether the face's SVar
+// table reads the TOTAL mana actually spent to cast the spell -- a body
+// naming the Count$CastTotalManaSpent head (Freestrider Commando's
+// SVar:X:Count$CastTotalManaSpent feeding its etbCounter CheckSVar$ gate).
+// The ref-property readers of OTHER casts (TriggeredCard$
+// CastTotalManaSpent and its family) do not read this object field and do
+// not gate the emission -- they stay on the rv2b exotic-heads ledger.
+func faceWantsCastSpend(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, body := range f.SVars {
+		if strings.Contains(body, "Count$CastTotalManaSpent") {
+			return true
+		}
+	}
+	return false
+}
+
+// faceWantsTimesKicked is the heads-safety gate for the pay-time multikick
+// CastInfo on a PLAIN-Kicker cast mode (the converge gate's shape): it
+// reports whether the face's SVar table reads the times-kicked count
+// anywhere (Count$TimesKicked, op suffix included). The 11 legacy
+// plain-Kicker carriers (Stronghold Arena, Urborg Lhurgoyf, ...) carry the
+// SVar and get a real count stamped; a kicker card without the SVar (Into
+// the Roil, Wastescape Battlemage) casts byte-identically to before. A
+// multikicked-mode cast needs no gate -- its count>0 emission is the
+// primitive itself.
+func faceWantsTimesKicked(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, v := range f.SVars {
+		if strings.Contains(v, "Count$TimesKicked") {
+			return true
+		}
+	}
+	return false
+}
+
+// triggeredConvergeReaderOut is the capture gate's second arm: it reports
+// whether any alive player's battlefield holds a permanent whose face SVars
+// name TriggeredCard$Converge -- a trigger that reads ANOTHER spell's cast
+// colours (Magmablood Archaic's "for each color of mana spent to cast that
+// spell"), which the Count$Converge face gate cannot see because the cast
+// face itself is an ordinary non-converge instant/sorcery. Only then does the
+// pay-time CastInfo need stamping on a plain cast; a TriggerZones$ Battlefield
+// SpellCast trigger can only exist for casts made while the reader is out, so
+// this scan-at-pay-time gate stamps exactly when the value can be needed and
+// no game without a reader out changes an event (heads stay put: neither
+// Archaic is in any repo deck). Pure read -- the boolean OR over the
+// deterministic seat/zone walk cannot reach an event; replay re-runs payCast
+// and derives the same scan.
+func (e *Engine) triggeredConvergeReaderOut() bool {
+	g := e.G
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			o := g.Obj(id)
+			if o == nil {
+				continue
+			}
+			f := o.Face()
+			if f == nil {
+				continue
+			}
+			for _, v := range f.SVars {
+				if strings.Contains(strings.ToLower(v), "triggeredcard$converge") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// convergeColours is CR 107.4f-family's converge count: the number of
+// DISTINCT colours among W,U,B,R,G actually spent to cast the spell.
+// Colourless/generic ({C}, generic pips) is not a colour and does not count;
+// snow mana spent as a colour lives in the colour buckets here, so the plain
+// per-colour delta is already right; mana conversion and the may-play
+// ignore-colour rider changed what was actually paid, which is exactly what
+// converge asks about.
+func convergeColours(spent state.Mana) int32 {
+	n := int32(0)
+	for i := state.MW; i <= state.MG; i++ {
+		if spent[i] > 0 {
+			n++
+		}
+	}
+	return n
+}
+
+// manaSpentTotal is the total mana a cast's payment actually spent: the
+// spent delta's pips summed over every slot (coloured and colourless).
+// Contribute the FULL delta -- a generic pip spent from a coloured unit is
+// one mana spent -- so the sum is CR 601.2h's "mana spent to cast it".
+func manaSpentTotal(spent state.Mana) int32 {
+	var n int32
+	for i := range spent {
+		n += spent[i]
+	}
+	return n
+}
+
 func (e *Engine) paymentMana(pc *pendingCast) Cost {
 	return e.applyConvoke(pc, e.manaToPay(pc))
 }
@@ -2846,7 +3465,7 @@ func (e *Engine) convokeAsk() bool {
 		Prompt: "Choose creatures to help pay for " + e.G.Obj(pc.card).Face().Name, Source: pc.card}
 	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil || !o.Face().IsCreature() {
+		if o == nil || o.Tapped || o.Face() == nil || !o.Face().IsCreature() || o.BestowedAttached() {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
@@ -3098,8 +3717,8 @@ func (e *Engine) manaAsk() bool {
 // etbAnswer records one answered "as this enters" choice onto the card as a
 // Choose event, before the object is put on the stack (or, for a land, before
 // it moves to the battlefield), so the recorded value survives replay exactly
-// as the player chose it. The value rides on Option.Label (name/type) or
-// Option.Amount (number), not the choice index.
+// as the player chose it. The value rides on Option.Label (name/type/colour)
+// or Option.Amount (number), not the choice index.
 func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 	pc := e.cast
 	if pc == nil || len(chosen) != 1 {
@@ -3114,7 +3733,7 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 	// by a later answer and so a spell that never chose asks for no restore.
 	if !pc.etbChosen {
 		if o := e.G.Obj(pc.card); o != nil {
-			pc.etbName, pc.etbType, pc.etbNumber = o.ChosenName, o.ChosenType, o.ChosenNumber
+			pc.etbName, pc.etbType, pc.etbNumber, pc.etbColor = o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor
 		}
 		pc.etbChosen = true
 	}
@@ -3125,6 +3744,10 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "type", Text: opt.Label})
 	case "number":
 		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: int32(opt.Amount)})
+	case "color":
+		if letter := etbColourLetter(opt.Label); letter != "" {
+			e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "color", Text: letter})
+		}
 	case "riot":
 		choice := "haste"
 		if opt.Index == 0 {
@@ -3166,6 +3789,30 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			// prepends an option (a "cancel", Task 10's ability variants)
 			// would silently corrupt an Index-derived value.
 			pc.x = int32(chosen[0].Amount)
+		}
+	case "replicate":
+		// CR 702.55a: the answered payment count folds that many replicate
+		// payments into cost, so every later stage (Convoke, X, the payment
+		// window, payCast) charges the composed total. The count rides on
+		// Option.Amount, not Index, for the same reason xAsk's value does.
+		if len(chosen) > 0 && pc.replicateSet {
+			n := int32(chosen[0].Amount)
+			rc := ParseCost(pc.replicateParam)
+			for i := int32(0); i < n; i++ {
+				pc.cost = pc.cost.Plus(rc)
+			}
+			pc.replicateTimes = n
+		}
+	case "multikick":
+		// CR 702.43: the answered payment count folds that many multikicker
+		// payments into cost -- the replicate arm's exact shape.
+		if len(chosen) > 0 && pc.multikickSet {
+			n := int32(chosen[0].Amount)
+			mk := ParseCost(pc.multikickParam)
+			for i := int32(0); i < n; i++ {
+				pc.cost = pc.cost.Plus(mk)
+			}
+			pc.multikickTimes = n
 		}
 	case "exile":
 		for _, o := range chosen {
@@ -3306,6 +3953,13 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagOverloaded)
 	case "warped":
 		return events.FlagsString(state.FlagWarped)
+	// The Adventure spell face's cast (CR 714.3a): the flag is what the
+	// resolution reader (spellRestZone) uses to exile the spell into the
+	// adventure zone instead of the graveyard. adventure_recast deliberately
+	// has NO case here -- casting the main face from the adventure zone is an
+	// ordinary cast, exactly like warp_recast.
+	case "adventure_alt":
+		return events.FlagsString(state.FlagAdventure)
 	case "buyback":
 		return events.FlagsString(state.FlagBuyback)
 	case "mayplay":
@@ -3314,6 +3968,29 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagHarmonize)
 	case "suspend":
 		return events.FlagsString(state.FlagSuspend)
+	// Foretell's later cast (CR 702.126a): the flag is the provenance an ETB
+	// reader (Lupine Harbingers' CheckSVar$ WasForetold) and Count$Foretold
+	// read off the permanent the spell becomes -- the stack->battlefield
+	// persistence the Suspend flag rides too. The {2} ACTION's CastInfo is
+	// emitted directly by payCast's foretell branch (which then returns, so
+	// the ordinary flags path below is never reached for that mode); the
+	// action's flag has no modeFlags case for the same reason suspend's
+	// branch does not share this switch.
+	case "foretell_cast":
+		return events.FlagsString(state.FlagForetold)
+	// Bestow (CR 702.114a): the flag is the provenance the resolution
+	// reader (resolveTop) uses to substitute the synthesized Aura attach
+	// spell, and what keeps a bestowed cast distinguishable on the wire.
+	case "bestowed":
+		return events.FlagsString(state.FlagBestowed)
+	// Multikicker (CR 702.43): the mode marks the INTENT to pay the
+	// optional multikicker cost, and the count ask (multikickAsk) can still
+	// answer 0 -- a DECLINED multikick must stay the byte-identical plain
+	// cast, no flag and no event, exactly the "replicated" contract above.
+	// When a payment WAS made, payCast ORs bare FlagKicked (a multikicked
+	// cast IS a kicked cast) and FlagMultikicked onto the trailing CastInfo.
+	case "multikicked":
+		return ""
 	}
 	return ""
 }
@@ -3358,6 +4035,13 @@ func (e *Engine) targetAsk() bool {
 		sa = f.Abilities[pc.ability]
 	} else if f != nil {
 		sa = f.SpellAbility()
+		if sa == nil && pc.mode == "bestowed" {
+			// Bestow (CR 702.114a): the bestowed cast targets through the
+			// synthesized Aura attach SA -- the creature face has no SP of its
+			// own, so the plain cast's no-SP shape says nothing about the
+			// bestowed one.
+			sa = bestowedAttachSA()
+		}
 	}
 	sa = modalTargetSA(f, sa, o.ChosenModes)
 	if sa == nil || sa.Params["ValidTgts"] == "" {
@@ -3393,7 +4077,7 @@ func (e *Engine) targetAsk() bool {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
 	}
-	min, max := targetBounds(sa)
+	min, max := e.resolvedTargetBounds(pc.player, pc.card, sa, pc.x)
 	// CR 115.5: a spell may not target itself (excludeSelf == the card); an
 	// activated ability CAN target its own Source permanent (Mother of Runes
 	// targeting itself). The Face-less ability stack object on the stack is
@@ -3775,7 +4459,7 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		ok, spentMana := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
+		ok, _, spentMana := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
 		if !ok {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
@@ -3955,7 +4639,8 @@ func (e *Engine) payCast() {
 	if mana.Generic < 0 {
 		mana.Generic = 0
 	}
-	if !e.payManaCast(pc, mana) {
+	paid, spentMana := e.payManaCastSpent(pc, mana)
+	if !paid {
 		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
 		// than the shortfall needs, so the cast aborts with no state change
@@ -3969,6 +4654,14 @@ func (e *Engine) payCast() {
 		// the window ends or the mana/board changes).
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return
+	}
+	if f := e.G.Obj(pc.card).Face(); faceWantsConverge(f) || e.triggeredConvergeReaderOut() {
+		pc.convergeOn = true
+		pc.converge = convergeColours(spentMana)
+	}
+	if f := e.G.Obj(pc.card).Face(); faceWantsCastSpend(f) {
+		pc.manaSpentOn = true
+		pc.manaSpent = manaSpentTotal(spentMana)
 	}
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
@@ -4050,6 +4743,25 @@ func (e *Engine) payCast() {
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
+	if pc.mode == "foretell" {
+		// CR 702.126a: the Foretell ACTION is not a cast. CastInfo is the
+		// replayable provenance marker -- only this action sets FlagForetold
+		// on a hand->exile move, so an arbitrary exiled card is never treated
+		// as foretold -- and the MoveZone carries the face-down exile
+		// encoding (events.Apply's decode sets FaceDown and clears ExiledWith:
+		// no exiling source permanent exists for Foretell, so Amount 0). Do
+		// NOT route through effects' applyExileFaceDown: it is unexported and
+		// binds an ability source that does not exist here -- the raw event
+		// encoding is emitted directly, the suspend branch's own pattern. The
+		// view redacts the face-down exile to everyone but the exiler (the
+		// owner, for Foretell), and any move NOT to exile clears FaceDown, so
+		// the later foretell-cost cast reveals automatically.
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Counter: events.FlagsString(state.FlagForetold)})
+		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZExile,
+			Counter: "exiled_with_face_down", Amount: 0})
+		e.cast, e.choosing = nil, chooseNone
+		return
+	}
 	if e.sacrificedLKI == nil {
 		e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
 	}
@@ -4071,8 +4783,88 @@ func (e *Engine) payCast() {
 	if noCounter {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagNoCounter)
 	}
-	if pc.x != 0 || flags != "" {
-		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.x, Counter: flags})
+	// Replicate (CR 702.55a): the payment count rides the same pay-time
+	// CastInfo. modeFlags deliberately maps "replicated" to "" -- a DECLINED
+	// replicate (count 0) must stay the byte-identical plain cast, no flag
+	// and no event -- so the flag is ORed here only when a payment was made.
+	// The count and a paid {X} never share one Amount: measured at the corpus
+	// pin, no K:Replicate carrier's mana value carries {X}, so the
+	// single-event shape below is the live path; the defensive two-event
+	// split keeps the two provenances distinct should one ever pair.
+	repCount := int32(0)
+	if pc.mode == "replicated" {
+		repCount = pc.replicateTimes
+	}
+	if repCount > 0 {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagReplicated)
+	}
+	if repCount > 0 && pc.x != 0 {
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.x,
+			Counter: events.FlagsString(events.FlagsFrom(flags) &^ state.FlagReplicated)})
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: repCount, Counter: flags})
+	} else if pc.x != 0 || flags != "" {
+		amt := pc.x
+		if repCount > 0 {
+			amt = repCount
+		}
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: amt, Counter: flags})
+	}
+	// Converge (CR 107.4f-family, task converge1): the distinct-colour spend
+	// count rides its own TRAILING pay-time CastInfo -- the flag routes the
+	// Amount into Object.ConvergeColours (events.Apply's CastInfo case), so
+	// this event never clobbers the X or replicate count an earlier event in
+	// this block set, and its Counter (flags + FlagConverged) leaves
+	// CastFlags carrying every earlier flag too. Emitted whenever the face
+	// carries a Count$Converge SVar -- or when a battlefield permanent's
+	// trigger names TriggeredCard$Converge and so reads THIS cast's colours --
+	// count 0 included (a colourless-only converge cast is a real zero, not an
+	// absent one); the two-arm gate is heads-safety, so no game that casts no
+	// converge card with no reader out changes an event.
+	if pc.convergeOn {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagConverged)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.converge, Counter: flags})
+	}
+	// Multikicker (CR 702.43, task multikicker1): the times-kicked count
+	// rides its own TRAILING pay-time CastInfo -- the flag routes the Amount
+	// into Object.TimesKicked (events.Apply's CastInfo case), so this event
+	// never clobbers the X a main CastInfo carried (Comet Storm pairs {X}
+	// with Multikicker; the two-event split falls out of the trailing shape
+	// itself), and its Counter leaves CastFlags carrying every earlier flag
+	// too. A multikicked cast IS a kicked cast, so the flag rides with the
+	// bare FlagKicked (the bare predicate and the Condition$ Kicked gate
+	// keep matching). The emission gate keeps unrelated casts
+	// byte-identical: ALWAYS on a multikicked-mode cast with count > 0 (a
+	// declined kick -- count 0, the modeFlags("replicated") contract --
+	// emits nothing), and on a plain-Kicker cast mode ONLY when the face
+	// carries a Count$TimesKicked SVar (faceWantsTimesKicked): the 11 legacy
+	// plain-Kicker carriers' scripts still read the count, and no other
+	// kicked cast gains an event.
+	mkCount := int32(0)
+	switch pc.mode {
+	case "multikicked":
+		mkCount = pc.multikickTimes
+	case "kicked", "kicked1", "kicked2":
+		mkCount = 1
+	case "kickedboth":
+		mkCount = 2
+	}
+	if mkCount > 0 && (pc.mode == "multikicked" || faceWantsTimesKicked(e.G.Obj(pc.card).Face())) {
+		mkFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagKicked | state.FlagMultikicked)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: mkCount, Counter: mkFlags})
+	}
+	// Cast-spend (task castprov1): the TOTAL mana actually spent to cast the
+	// spell rides its own TRAILING pay-time CastInfo -- the flag routes the
+	// Amount into Object.ManaSpent (events.Apply's CastInfo case), so this
+	// event never clobbers the X an earlier event in this block carried, and
+	// its Counter leaves CastFlags carrying every earlier flag too. A
+	// convoke-only cast (tapped creatures, no mana) is a real zero, not an
+	// absent one -- the same "count 0 included" contract the converge
+	// emission keeps. The emission gate keeps unrelated casts byte-identical:
+	// only a face whose SVar table reads the count (faceWantsCastSpend)
+	// stamps the event.
+	if pc.manaSpentOn {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSpent)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpent, Counter: flags})
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for.
@@ -4167,6 +4959,9 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 			if o.ChosenNumber != pc.etbNumber {
 				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: pc.etbNumber})
 			}
+			if o.ChosenColor != pc.etbColor {
+				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "color", Text: pc.etbColor})
+			}
 		}
 	}
 	// CR 733.1 applies identically to a mode announced during the proposal.
@@ -4258,5 +5053,21 @@ func init() {
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
-		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling")
+		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
+		// kw:Replicate: CR 702.55, expanded by cards/keywords.go into the
+		// Storm-shaped copy trigger whose Amount$ Count$ReplicatePaid reads
+		// the pay-time CastInfo's count; the cast flow's replicateAsk poses
+		// the CR 601.2b count announcement.
+		"kw:Replicate",
+		// kw:Multikicker: CR 702.43, the count-ask cast shape -- the cast flow
+		// (rules/legal.go's multikicked offer, rules/cast.go's multikickAsk)
+		// poses the CR 601.2b count announcement and the trailing
+		// FlagMultikicked CastInfo carries the count into Object.TimesKicked
+		// for the Count$TimesKicked head (effects/count.go). No keyword
+		// expansion: the K:Multikicker line is read directly.
+		"kw:Multikicker",
+		// kw:Affinity: CR 702.41, expanded by cards/keywords.go into the
+		// ordinary ReduceCost cost-static machinery (rules/statics.go's
+		// collectCostStatics) -- no separate cast path of its own.
+		"kw:Affinity")
 }

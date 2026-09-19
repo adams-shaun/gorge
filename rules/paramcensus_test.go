@@ -150,8 +150,22 @@ var baseBuckets = map[string]bucket{
 	// as generic machinery), rp.sa the resume plan's SA, o.Ability the
 	// stack object's resolved SA, and d.ResumeSA the pending decision's
 	// resume SA (validateSearch's ShareLandType$ read — the same
-	// cards.SA the "search" resume arm re-enters).
-	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA,
+	// cards.SA the "search" resume arm re-enters). "body" is the same
+	// resolved ReplaceWith$ body under its local name in the CreateToken
+	// replacement dispatcher (continueCreateTokenReplacements /
+	// applyTokenReplacementToPlan read its Type$/Amount$/TokenScript$).
+	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA, "body": bSA,
+	// offeredSA is resolveTop's ability-branch marker derivation: the SA
+	// whose ValidTgts$ the placement ask actually covered -- o.Ability for a
+	// non-modal trigger, the first target-bearing chosen mode's sub for a
+	// modal one. The same cards.SA parameter map, so the same bucket as
+	// o.Ability.
+	"offeredSA": bSA,
+	// so.Ability is handleModes' placement branch's stack object (the local
+	// name for the same stack object o.Ability reads): the trigger Charm's
+	// resolved SA, whose full Choices$ list classifies the cross-mode
+	// TargetUnique family (effects.CharmCrossModeShape).
+	"so.Ability": bSA,
 	// index bases: candidates/rc.cands/matches are all []replMatch (the
 	// phase-replacement pipeline, its parked-choice resume, and the
 	// damage/counter/effect-created replacement match lists), so element
@@ -1004,7 +1018,13 @@ var stringMapParams = map[string]string{
 	// parseReplacementLine built from one SVar replacement body -- the
 	// Layer$ CantHappen recognition of the bodyless form (Mistrise Village's
 	// AntiMagic) reads the same SVar body shape, not a card Params map.
-	"effects:replacementLineCantHappen:params": "keys of a parseReplacementLine-built replacement line (an SVar body), not a card Params map"}
+	"effects:replacementLineCantHappen:params": "keys of a parseReplacementLine-built replacement line (an SVar body), not a card Params map",
+	// effects/misc.go replacementLinePrevents: params is the map
+	// parseReplacementLine built from one SVar replacement body -- the
+	// bodyless Prevent$ True DamageDone recognition (Selfless Squire's
+	// RPrevent, task dponce1) reads the same SVar body shape, not a card
+	// Params map.
+	"effects:replacementLinePrevents:params": "keys of a parseReplacementLine-built replacement line (an SVar body), not a card Params map"}
 
 // propagateKeyReads resolves two indirect read shapes:
 //
@@ -1210,13 +1230,18 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.emitManaTap":             {"Mana"},
 	"Engine.isTriggeredManaAbility":  {"Mana"},
 	"triggeredManaColourChoice":      {"Mana"},
-	"Engine.resolveManaAbility":      {"Mana"},
-	"Engine.resolveManaEffect":       {"Mana"},
-	"manaColourPrompt":               {"Mana"},
-	"Engine.AvailableMana":           {"Mana"},
-	"addAvailable":                   {"Mana"},
-	"availableAmount":                {"Mana"},
-	"activatedMatchesValidSA":        {"Mana"},
+	// rewriteChosenMana (rules/mana_activation.go) executes only inside
+	// resolveTriggeredManaAbilities, so its Produced$ read belongs to
+	// api:Mana alone -- left in the generic union it would mask every
+	// other API's unread Produced$.
+	"Engine.rewriteChosenMana":  {"Mana"},
+	"Engine.resolveManaAbility": {"Mana"},
+	"Engine.resolveManaEffect":  {"Mana"},
+	"manaColourPrompt":          {"Mana"},
+	"Engine.AvailableMana":      {"Mana"},
+	"addAvailable":              {"Mana"},
+	"availableAmount":           {"Mana"},
+	"activatedMatchesValidSA":   {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
@@ -1232,11 +1257,12 @@ var apiSpecificRulesSA = map[string][]string{
 	// read belongs to those two APIs alone.
 	"Engine.resumeResolution": {"Counter", "CopySpellAbility"},
 	// The cast-offer ETB-choice walk (rules/cast.go collectETBChoices): it
-	// reads the ReplaceWith$ body's ValidCards$/Type$ for the NameCard /
-	// ChooseType / ChooseNumber "as this enters" choices -- the etbChoiceKind
-	// switch dispatches on exactly those three apis, so the reads belong to
-	// them alone and must not join the generic rules union.
-	"Engine.collectETBChoices": {"NameCard", "ChooseType", "ChooseNumber"},
+	// reads the ReplaceWith$ body's ValidCards$/Type$/Exclude$ for the
+	// NameCard / ChooseType / ChooseNumber / ChooseColor "as this enters"
+	// choices -- the etbChoiceKind switch dispatches on exactly those four
+	// apis, so the reads belong to them alone and must not join the generic
+	// rules union.
+	"Engine.collectETBChoices": {"NameCard", "ChooseType", "ChooseNumber", "ChooseColor"},
 	// The ward payment path: only the Ward keyword's expanded trigger
 	// reaches these (resumeResolution dispatches on rp.sa.API == "Ward"),
 	// so their UnlessCost$ reads belong to api:Ward alone -- left in the
@@ -1259,6 +1285,14 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.applyOpeningEffect":            {"ChangeZone", "PutCounter", "Effect"},
 	"Engine.registerOpeningEffectTriggers": {"ChangeZone", "PutCounter", "Effect"},
 	"Engine.handleOpening":                 {"ChangeZone", "PutCounter", "Effect"},
+	// The token-creation replacement dispatch: these read the ReplaceWith$
+	// body of an R:Event$ CreateToken replacement line ONLY -- the body is
+	// by definition a DB$ ReplaceToken SA, so the Type$/Amount$/TokenScript$/
+	// ValidChoices$ reads belong to api:ReplaceToken alone -- left in the
+	// generic union they would mask every other API's unread Amount$
+	// (measured: api:ChangeZone).
+	"Engine.continueCreateTokenReplacements": {"ReplaceToken"},
+	"Engine.applyTokenReplacementToPlan":     {"ReplaceToken"},
 }
 
 // apiSpecificRulesStat is the stat-bucket twin of apiSpecificRulesSA: it
@@ -2215,13 +2249,26 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
-	"Ad Nauseam":                     {"param:api:Repeat.RepeatOptional"},
-	"Arcane Denial":                  {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
-	"Avengers Quinjet":               {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Captain Marvel, Apex Avenger":   {"param:api:PutCounter.Optional", "param:api:PutCounter.Placer", "param:api:PutCounter.TriggeredCounterMap"},
-	"Conduit of Worlds":              {"param:api:Play.RememberPlayed"},
-	"Director Nick Fury":             {"param:api:Dig.RestRandomOrder"},
-	"Gift of Immortality":            {"param:api:ChangeZone.AttachedTo", "param:api:ChangeZone.ForgetOtherRemembered"},
+	"Ad Nauseam":       {"param:api:Repeat.RepeatOptional"},
+	"Arcane Denial":    {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
+	"Avengers Quinjet": {"param:api:ChangeZone.ValidTgtsDesc"},
+	// Captain Marvel, Apex Avenger's param:api:PutCounter.Placer label was
+	// deleted when the bare-Choices$ PutCounter pick read Placer$ (task
+	// vow1, effects/counters.go putCounterChoose) -- the static scan now
+	// sees the read in effPutCounter's closure; its TriggeredCounterMap$
+	// shape stays unread and labelled. The param:api:PutCounter.Optional
+	// label was deleted when the Optional$ True election read landed
+	// (effects/counters.go effPutCounter's put_optional ask) -- the may-put
+	// election is pinned end to end in rules/putcounter_optional_test.go.
+	"Captain Marvel, Apex Avenger": {"param:api:PutCounter.TriggeredCounterMap"},
+	"Conduit of Worlds":            {"param:api:Play.RememberPlayed"},
+	"Director Nick Fury":           {"param:api:Dig.RestRandomOrder"},
+	// Gift of Immortality's param:api:ChangeZone.AttachedTo label was deleted
+	// when the ChangeZone AttachedTo$ read landed (effects/zone.go
+	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
+	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
+	// unread.
+	"Gift of Immortality":            {"param:api:ChangeZone.ForgetOtherRemembered"},
 	"Hercules, Olympian Hero":        {"param:trig:DamageDoneOnce.FirstTime"},
 	"Heroic Return":                  {"param:api:ChangeZone.ValidTgtsDesc"},
 	"Heroic Sacrifice":               {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},

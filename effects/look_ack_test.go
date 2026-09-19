@@ -151,7 +151,7 @@ func TestMandatoryLookAcksTheLooker(t *testing.T) {
 	sh := &suspendHost{fakeHost: *h}
 	src := h.g.AddObject(mkCard(t, "Name:Probe\nManaCost:U\nTypes:Sorcery\nOracle:x\n"), 0)
 	ctx := &Ctx{Source: src.ID, Controller: 0,
-		Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}
 	sa := sa(t, "SP$ RevealHand | ValidTgts$ Player | Look$ True")
 	Resolve(sh, ctx, sa)
 	if !sh.suspended || sh.asked == nil {
@@ -199,7 +199,7 @@ func TestMultiTargetBareLookTerminatesWithOneNotePerTarget(t *testing.T) {
 	h.g.SetZone(state.ZHand, 0, []state.ObjID{bear0.ID})
 	sh := h // lookBoard's askHost captures the posed decision and suspends
 	ctx := &Ctx{Controller: 0,
-		Targets: []state.Target{{Player: 1, IsPlayer: true}, {Player: 0, IsPlayer: true}}}
+		Targets: []state.Target{{Player: 1, IsPlayer: true}, {Player: 0, IsPlayer: true}}, TargetsOffered: true}
 	sa := sa(t, "SP$ RevealHand | ValidTgts$ Player | Look$ True")
 	// Pass 1: target 0's ack, bound to ResumeTarget 0; no note yet.
 	Resolve(sh, ctx, sa)

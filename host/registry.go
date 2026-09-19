@@ -64,7 +64,9 @@ type Options struct {
 	// timer; it is the only place in the package that touches the clock,
 	// so a caller wanting a faster-than-realtime test still goes through
 	// this field rather than host reading time.Now/time.Sleep itself.
-	Sleep    func(d time.Duration, stop <-chan struct{})
+	Sleep func(d time.Duration, stop <-chan struct{})
+	// Seats is an explicit embedder controller override. Nil selects the
+	// table's named hosted policy through defaultSeats in play.
 	Seats    func(names []string, seed uint64) []seat.Seat
 	Sync     bool
 	Ring     int
@@ -188,9 +190,6 @@ func New(o Options) (*Registry, error) {
 	if o.Sleep == nil {
 		o.Sleep = defaultSleep
 	}
-	if o.Seats == nil {
-		o.Seats = defaultSeats
-	}
 	if o.Ring == 0 {
 		o.Ring = 256
 	}
@@ -205,7 +204,9 @@ func New(o Options) (*Registry, error) {
 
 // AddTable registers (and persists) a table without starting it.
 func (r *Registry) AddTable(c TableConfig) error {
-	if err := c.validate(r.opts.LoadDeck); err != nil {
+	var err error
+	c, err = c.validated(r.opts.LoadDeck)
+	if err != nil {
 		return err
 	}
 	r.mu.Lock()

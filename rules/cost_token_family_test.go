@@ -532,10 +532,14 @@ func TestFixedLifeXSVarCountsCounters(t *testing.T) {
 }
 
 // TestFixedLifeXUnresolvableWithheld: War Room's
-// "SVar:X:Count$ColorsColorIdentity" is a body this evaluator cannot resolve
-// (commander colour identity), so the ability is WITHHELD -- the fail-closed
-// direction -- instead of offered with an arbitrary announced X the payer
-// cannot be held to. The land's mana ability is unaffected.
+// "SVar:X:Count$ColorsColorIdentity" used to be a body this evaluator could
+// not resolve, so the ability was WITHHELD. The head is now resolvable
+// (war_room_commander_test.go pins the Commander-format play), and THIS
+// Constructed game still withholds the ability -- but for the
+// ActivationGameTypes$ format gate now, not for the count: a Constructed
+// game has no commanders, an empty identity counts 0, and without the
+// format gate the ability would be a free {3},{T} draw here. The land's
+// mana ability is unaffected.
 func TestFixedLifeXUnresolvableWithheld(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	warRoomCard := mustCorpusCard(t, reg, "War Room")
@@ -552,7 +556,7 @@ func TestFixedLifeXUnresolvableWithheld(t *testing.T) {
 	addMana(t, e, 0, "CCC")
 	e.priorityRound()
 	if _, ok := findAbilityOption(e, room, 1); ok {
-		t.Fatal("War Room's PayLife<X> draw ability offered on an unresolvable SVar:X body")
+		t.Fatal("War Room's PayLife<X> draw ability offered in a Constructed game (format gate missing?)")
 	}
 	replayCheck(t, e, cfg)
 }

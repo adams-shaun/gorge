@@ -61,6 +61,24 @@ func TestNumLoyaltyActPrimitiveIsRegistered(t *testing.T) {
 	}
 }
 
+// TestTokenReplacementPrimitivesAreRegistered pins the support declaration
+// for the token-creation replacement class (Divine Visitation, Doubling
+// Season, Academy Manufactor, Xorn, ...): cards' census derives
+// repl:CreateToken from the R: line and api:ReplaceToken from the
+// ReplaceWith$ body, and rules/replacement.go's init registers both now
+// that replacementMatchesRemembered's CreateToken case and
+// continueCreateTokenReplacements implement the class. Omitting either
+// would leave all 35 corpus carrier cards unplayable.
+func TestTokenReplacementPrimitivesAreRegistered(t *testing.T) {
+	supported := effects.Supported()
+	if !supported["repl:CreateToken"] {
+		t.Fatal(`effects.Supported() is missing "repl:CreateToken"`)
+	}
+	if !supported["api:ReplaceToken"] {
+		t.Fatal(`effects.Supported() is missing "api:ReplaceToken"`)
+	}
+}
+
 // TestForgecBinaryImportsRules is the second assertion path: a static check,
 // independent of anything already loaded into this test binary, that
 // cmd/forgec's own dependency graph includes package rules. `go list -deps`
