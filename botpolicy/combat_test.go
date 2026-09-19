@@ -638,3 +638,172 @@ func TestAttackClockClosesAgainstOnlyOneDefender(t *testing.T) {
 		t.Fatalf("non-closing commander vs {1/1 deathtouch, empty} = %v, want the seat-2 swing (16+4 does not close)", fa.choices)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// AR8: combined-attacker lethal pressure (opt-in CombinedLethalDecide).
+
+// combinedAttackDecisionFull is attackDecisionDefsFull answered by the AR8
+// policy instead of the default one: seat 0 attacks seat 1, one option per
+// attacker id, and the decision it answered is returned so a test can name
+// the chosen options.
+func combinedAttackDecisionFull(b Board, ids ...int) attackAnswer {
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Min: 0, Max: len(ids),
+		Options: []decision.Option{}}
+	for _, id := range ids {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "attacker",
+			Obj: state.ObjID(100 + id), Player: 1})
+	}
+	return attackAnswer{&d, CombinedLethalDecide(b, &d, rng(1)).Choices}
+}
+
+// combinedAttackDecision is combinedAttackDecisionFull's choices alone.
+func combinedAttackDecision(b Board, ids ...int) []int {
+	return combinedAttackDecisionFull(b, ids...).choices
+}
+
+// TestCombinedLethalTwoThreesVsFiveLife is the brief's headline case: two
+// 3/3s against 5 life with a lone 2/2 blocker. No single attacker is lethal
+// (AR7 misses it) and AR4 would hold one 3/3 back to keep a blocker, so the
+// baseline attacks with one; AR8's subset search sees 3+3=6 >= 5 through a
+// blocking response that can absorb only one 3/3 and sends both.
+func TestCombinedLethalTwoThreesVsFiveLife(t *testing.T) {
+	b := boardOf(atk(1, 3, 3), atk(2, 3, 3), def(1, 2, 2))
+	b.Life[1] = 5
+	if got := attackDecision(b, 1, 2); len(got) != 1 {
+		t.Fatalf("baseline (AR7 only) choices = %v, want one attacker held back", got)
+	}
+	got := combinedAttackDecision(b, 1, 2)
+	if len(got) != 2 {
+		t.Fatalf("AR8 choices = %v, want both 3/3s to attack (combined 6 >= 5)", got)
+	}
+}
+
+// TestCombinedLethalSevenLifeAddsNothing is the same board at 7 life: the
+// combined 6 still falls short, so AR8 finds no lethal subset and the
+// baseline (AR4 holds one back) is unchanged.
+func TestCombinedLethalSevenLifeAddsNothing(t *testing.T) {
+	b := boardOf(atk(1, 3, 3), atk(2, 3, 3), def(1, 2, 2))
+	b.Life[1] = 7
+	base := attackDecision(b, 1, 2)
+	got := combinedAttackDecision(b, 1, 2)
+	if len(base) != 1 || len(got) != 1 {
+		t.Fatalf("at 7 life: baseline=%v AR8=%v, want both to send exactly one (6 < 7)", base, got)
+	}
+}
+
+// TestCombinedLethalFlyingIsUnblockable pins the blocking-response model:
+// a Flying attacker with no reach blocker is never absorbed, so its power
+// reaches the defender in full. Two 2/2s (one flying) against 3 life and a
+// lone ground 2/2 blocker: the blocker may absorb only the ground 2/2, the
+// flier's 2 plus... -- the flier is unblockable, so the through damage is
+// 2 (flier) while the ground 2/2 is blocked. Directly assert the model so
+// a future change that treats the flier as blockable fails here.
+func TestCombinedLethalFlyingIsUnblockable(t *testing.T) {
+	flier := ar8Attacker{id: 101, a: Creature{Power: 3, Toughness: 3, Keywords: []string{"Flying"}, Controller: 0}}
+	ground := ar8Attacker{id: 102, a: Creature{Power: 2, Toughness: 2, Controller: 0}}
+	groundBlocker := blocker{id: 201, c: Creature{Power: 2, Toughness: 2, Controller: 1}}
+	if got := ar8DamageThrough([]ar8Attacker{flier, ground}, []blocker{groundBlocker}); got != 3 {
+		t.Fatalf("damage through flier(3)+ground(2) vs ground blocker = %d, want 3 (only the ground 2/2 is blockable)", got)
+	}
+	// A Reach blocker that can keep the block absorbs the flier: greedy takes
+	// the largest reachable power, so the flier's 3 is eaten and the ground
+	// 2/2 gets through -- 2. A reach 2/2 could NOT (it dies without killing
+	// the 3/3), so the 4/4 is the blocker that actually stops the flier.
+	reachBlocker := blocker{id: 202, c: Creature{Power: 4, Toughness: 4, Keywords: []string{"Reach"}, Controller: 1}}
+	if got := ar8DamageThrough([]ar8Attacker{flier, ground}, []blocker{reachBlocker}); got != 2 {
+		t.Fatalf("damage through vs reach 4/4 = %d, want 2 (the 3/3 flier is absorbed)", got)
+	}
+}
+
+// TestCombinedLethalFlyingSwingIsFound is the integration counterpart: a
+// 3/3 flier and a 2/2 ground attacker against 4 life with a lone 5/5 ground
+// blocker (it cannot block the flier). The blocker absorbs the 2/2, leaving
+// the flier's 3 -- not lethal on its own and not found by AR7 (3 < 4), and
+// no subset reaches 4, so AR8 adds nothing here; raising the flier to 4/4
+// makes the lone flier AR7-lethal. The case proves the model never counts a
+// ground blocker against a flier in the SET search (the 3/3+2/2 set must
+// yield exactly 3 through, not 0).
+func TestCombinedLethalFlyingSwingIsFound(t *testing.T) {
+	b := boardOf(atk(1, 3, 3, "Flying"), atk(2, 2, 2), def(1, 5, 5))
+	b.Life[1] = 4
+	if got := combinedAttackDecision(b, 1, 2); len(got) != 1 || got[0] != 0 {
+		t.Fatalf("AR8 vs 4 life with ground-only blocker = %v, want only the flier (blocker absorbs the 2/2; 3 < 4)", got)
+	}
+	if got := ar8DamageThrough(
+		[]ar8Attacker{{id: 101, a: Creature{Power: 3, Toughness: 3, Keywords: []string{"Flying"}, Controller: 0}},
+			{id: 102, a: Creature{Power: 2, Toughness: 2, Controller: 0}}},
+		[]blocker{{id: 201, c: Creature{Power: 5, Toughness: 5, Controller: 1}}},
+	); got != 3 {
+		t.Fatalf("5/5 ground blocker must not absorb the flier: through = %d, want 3", got)
+	}
+}
+
+// TestCombinedLethalUnknownLifeIsNoChange: a missing life fact is unknown,
+// never zero, so AR8 has no effect -- the choices equal the baseline's.
+func TestCombinedLethalUnknownLifeIsNoChange(t *testing.T) {
+	b := boardOf(atk(1, 3, 3), atk(2, 3, 3), def(1, 2, 2))
+	base := attackDecision(b, 1, 2)
+	got := combinedAttackDecision(b, 1, 2)
+	if len(got) != len(base) {
+		t.Fatalf("unknown life: AR8=%v baseline=%v, want AR8 to add nothing", got, base)
+	}
+	for i := range got {
+		if got[i] != base[i] {
+			t.Fatalf("unknown life: AR8=%v baseline=%v, want identical", got, base)
+		}
+	}
+}
+
+// TestCombinedLethalDeterministic pins that two runs over the same board and
+// decision produce byte-identical choices (no rng, no map-iteration order).
+func TestCombinedLethalDeterministic(t *testing.T) {
+	build := func() Board {
+		b := boardOf(atk(1, 3, 3), atk(2, 3, 3), atk(3, 2, 2), def(1, 2, 2), def(2, 1, 1))
+		b.Life[1] = 5
+		return b
+	}
+	a := combinedAttackDecision(build(), 1, 2, 3)
+	c := combinedAttackDecision(build(), 1, 2, 3)
+	if len(a) != len(c) {
+		t.Fatalf("AR8 nondeterministic length: %v vs %v", a, c)
+	}
+	for i := range a {
+		if a[i] != c[i] {
+			t.Fatalf("AR8 nondeterministic choices: %v vs %v", a, c)
+		}
+	}
+}
+
+// TestCombinedLethalMultiDefenderDeterministic guards the defender-order rule:
+// the same attacker may be offered against several defenders (CR 506.2), and
+// AR8 processes the defenders in first-seen option order, not map-iteration
+// order, so the forced assignment is a function of the offer list alone. Two
+// runs over the same board and option list must be byte-identical.
+func TestCombinedLethalMultiDefenderDeterministic(t *testing.T) {
+	b := boardOf(atk(1, 3, 3), atk(2, 3, 3),
+		defN(1, 1, 2, 2), defN(2, 1, 2, 2))
+	b.Life[1], b.Life[2] = 5, 5
+	build := func() decision.Decision {
+		return decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Min: 0, Max: 4,
+			Options: []decision.Option{
+				{Index: 0, Kind: "attacker", Obj: 101, Player: 1},
+				{Index: 1, Kind: "attacker", Obj: 102, Player: 1},
+				{Index: 2, Kind: "attacker", Obj: 101, Player: 2},
+				{Index: 3, Kind: "attacker", Obj: 102, Player: 2},
+			}}
+	}
+	d1, d2 := build(), build()
+	a := CombinedLethalDecide(b, &d1, rng(1)).Choices
+	c := CombinedLethalDecide(b, &d2, rng(1)).Choices
+	if len(a) != len(c) {
+		t.Fatalf("multi-defender AR8 nondeterministic length: %v vs %v", a, c)
+	}
+	for i := range a {
+		if a[i] != c[i] {
+			t.Fatalf("multi-defender AR8 nondeterministic choices: %v vs %v", a, c)
+		}
+	}
+	if len(a) != 2 {
+		t.Fatalf("multi-defender AR8 choices = %v, want both 3/3s forced (6 >= 5)", a)
+	}
+}
