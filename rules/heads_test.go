@@ -827,7 +827,10 @@ var acceptanceHeads = map[int]string{
 	// discard resolution runs for real. Instrumented negative control: this
 	// is the ONLY ValidTgts$-carrying sub that poses in any of the four
 	// golden games (2/4/6/8-seat instrumented runs), and 4/6/8 are UNMOVED.
-	2: "938816b6a03a9cfc",
+	// AR7 promotion (2026-09-19): the default bot now attacks with a creature
+	// that is lethal to its defender if unblocked even into an unfavourable
+	// block (botpolicy lethal pressure; held-out 2,066-1,934 vs the old bot).
+	2: "41aff817d4f931ef",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -995,7 +998,10 @@ var acceptanceHeads = map[int]string{
 	// toward the "6 B B" card's black pips with only blue sources offered,
 	// the fixed gate declines; the neutralised stream reproduces main's
 	// 9de9ac3590cae377 byte-for-byte, so the filter is the sole cause.
-	6: "100db196f20a293a",
+	// AR7 promotion (2026-09-19): the default bot now attacks with a creature
+	// that is lethal to its defender if unblocked even into an unfavourable
+	// block (botpolicy lethal pressure; held-out 2,066-1,934 vs the old bot).
+	6: "17354c8eda982ae3",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1101,7 +1107,10 @@ var acceptanceHeads = map[int]string{
 	// pushes Lion's Eye Diamond at 2435 instead; the neutralised stream
 	// reproduces main's bcc3636853dbc777 byte-for-byte, so the filter is the
 	// sole cause.
-	8: "35522b0d8c5d2bf9",
+	// AR7 promotion (2026-09-19): the default bot now attacks with a creature
+	// that is lethal to its defender if unblocked even into an unfavourable
+	// block (botpolicy lethal pressure; held-out 2,066-1,934 vs the old bot).
+	8: "ad8f88a9bc9aa060",
 }
 
 func TestHeads(t *testing.T) {

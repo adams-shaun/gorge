@@ -271,7 +271,7 @@ func (w *livelockWatcher) detect() {
 	}
 	for p := 1; p <= maxP; p++ {
 		ok := true
-		for j := n - 1; j >= n-2*p+1; j-- {
+		for j := n - 1; j >= n-p; j-- {
 			if w.sigAt(j) != w.sigAt(j-p) {
 				ok = false
 				break

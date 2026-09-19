@@ -146,12 +146,19 @@ func TestLethalPressureCandidateForcesBlockOrWins(t *testing.T) {
 	b.Life[1] = 5
 	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Min: 0, Max: 1,
 		Options: []decision.Option{{Index: 0, Kind: "attacker", Obj: 101, Player: 1}}}
-	if got := Decide(b, &d, rng(1)).Choices; len(got) != 0 {
-		t.Fatalf("baseline choices = %v, want the bad trade held back", got)
+	// AR7 is promoted into the default: Decide and LethalPressureDecide both
+	// swing the lethal-if-unblocked 5/5 into the 6/6.
+	if got := Decide(b, &d, rng(1)).Choices; len(got) != 1 || got[0] != 0 {
+		t.Fatalf("Decide choices = %v, want attack [0]", got)
 	}
-	got := LethalPressureDecide(b, &d, rng(1)).Choices
-	if len(got) != 1 || got[0] != 0 {
-		t.Fatalf("lethal-pressure choices = %v, want attack [0]", got)
+	if got := LethalPressureDecide(b, &d, rng(1)).Choices; len(got) != 1 || got[0] != 0 {
+		t.Fatalf("LethalPressureDecide choices = %v, want attack [0]", got)
+	}
+	// Not lethal (6 life vs 5 power): the AR3 veto still holds the bad
+	// trade back.
+	b.Life[1] = 6
+	if got := Decide(b, &d, rng(1)).Choices; len(got) != 0 {
+		t.Fatalf("non-lethal choices = %v, want the bad trade held back", got)
 	}
 }
 
@@ -528,7 +535,11 @@ func TestAttackDefenderLifeTiebreak(t *testing.T) {
 		{name: "lower life beats reversed options", life1: 10, life2: 40, reverse: true, wantOption: 1},
 		{name: "equal life keeps first option not lowest seat", life1: 20, life2: 20, reverse: true},
 		{name: "missing life keeps first option", reverse: true},
-		{name: "unblockable tier beats low life", life1: 1, life2: 40, blocker: true, wantOption: 1},
+		// AR7 (promoted into the default): the 4/4 is lethal to seat 1 at 1
+		// life if unblocked, so it swings there and forces the trade rather
+		// than taking the unblockable 4 at the 40-life seat.
+		{name: "lethal pressure beats unblockable tier", life1: 1, life2: 40, blocker: true, wantOption: 0},
+		{name: "unblockable tier beats low life", life1: 5, life2: 40, blocker: true, wantOption: 1},
 		{name: "closing clock beats low life", life1: 40, life2: 1, blocker: true, clock: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

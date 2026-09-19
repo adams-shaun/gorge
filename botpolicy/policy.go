@@ -288,7 +288,10 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 // wire format allows, not only today's. Every access into d.Options remains
 // guarded against the list being empty.
 func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
-	return decide(b, d, r, false, false)
+	// main's 9be52252 promoted AR7 lethal pressure into the default bot, so the
+	// default carries lethalPressure; the AR8 combined-lethal test stays opt-in
+	// (CombinedLethalDecide only), per this branch's 162a8acc.
+	return decide(b, d, r, true, false)
 }
 
 // LethalPressureDecide is the measured opt-in policy used by botbench. It is
@@ -303,7 +306,8 @@ func LethalPressureDecide(b Board, d *decision.Decision, r *rand.Rand) decision.
 // ATTACKING SET is lethal once the defender's minimum blocking response is
 // subtracted is made even when no single attacker would be. It is exposed to
 // cmd/botbench as the "ar8" policy and is NEVER wired into the hosted or
-// production bot (the default Decide is unchanged).
+// production bot (the default Decide carries only AR7 lethal pressure, never
+// the combined-lethal test).
 func CombinedLethalDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	return decide(b, d, r, true, true)
 }

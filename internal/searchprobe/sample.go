@@ -33,6 +33,11 @@ type History struct {
 type SampleOptions struct {
 	Seed                         uint64
 	Attempts, Worlds, MaxSubmits int
+	// MinESS is the effective-sample-size gate for resampling Worlds. Zero
+	// keeps the calibration contract (ESS >= Worlds). A positive value lets a
+	// caller (the search-teacher spike) resample Worlds with replacement from a
+	// thinner accepted pool; duplicates are then counted in Duplicates.
+	MinESS float64
 }
 type World struct {
 	Config   rules.Config
@@ -229,7 +234,13 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	}
 	result.ESS = ess
 	result.WeightDiagnostics = summarizeWeightDiagnostics(logs, weights)
-	if len(proposals) < opts.Worlds || ess+1e-10 < float64(opts.Worlds) {
+	minESS := float64(opts.Worlds)
+	if opts.MinESS > 0 {
+		minESS = opts.MinESS
+	} else if len(proposals) < opts.Worlds {
+		return result, nil
+	}
+	if ess+1e-10 < minESS {
 		return result, nil
 	}
 	seed := taggedSeed(opts.Seed, digest, 0, seedResampling)
