@@ -49,7 +49,7 @@ import (
 //
 // Deliberate scope (task fb-3f1cc033): the wider Condition vocabulary —
 // Condition$ beyond Kicked, ConditionZone$ (57), ConditionManaSpent$ (34),
-// the other ConditionDefined$ values (Targeted 161, ChosenCard 90, Self 72,
+// the other ConditionDefined$ values (Targeted 161, ChosenCard 90,
 // Imprinted 34, ...), a bare ConditionCompare$ with no group, and
 // ConditionNotPresent$ (8) — is NOT implemented. A sub carrying any of
 // those is UNRESOLVED: conditionMet reports resolved=false and Resolve's
@@ -177,6 +177,13 @@ func CheckSVarHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) {
 //     Condition$ whose value is not Kicked, and the mixed shapes are all in
 //     this class.
 //   - a sub with no Condition* key at all is not gated: (true, false).
+//
+// Two more keys landed with the Unbreakable Formation task
+// (agent-20260918T200326Z-10b49320): `ConditionPlayerTurn$ True|False` —
+// the resolving controller's turn vs. not — and `ConditionPhases$ <list>`
+// (Main1,Main2 — the Addendum family), both read through the ONE shared
+// phase-name parser state.ParsePhases and AND-ed with whatever group gate
+// the SA also carries.
 func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	defined := strings.TrimSpace(sa.Params["ConditionDefined"])
 	present := strings.TrimSpace(sa.Params["ConditionPresent"])
@@ -185,11 +192,14 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	check := strings.TrimSpace(sa.Params["ConditionCheckSVar"])
 	svarCmp := strings.TrimSpace(sa.Params["ConditionSVarCompare"])
 	bare := strings.TrimSpace(sa.Params["Condition"])
-	if defined == "" && present == "" && notPresent == "" && compare == "" && check == "" && bare == "" {
+	playerTurn := strings.TrimSpace(sa.Params["ConditionPlayerTurn"])
+	phases := strings.TrimSpace(sa.Params["ConditionPhases"])
+	if defined == "" && present == "" && notPresent == "" && compare == "" && check == "" && bare == "" &&
+		playerTurn == "" && phases == "" {
 		return true, false // not gated (a lone ConditionSVarCompare$ compares nothing)
 	}
-	// Any other Condition* key (Zone, ManaSpent, PlayerTurn, ...) beside the
-	// supported seven makes the shape unsupported. ConditionDescription$ is
+	// Any other Condition* key (Zone, ManaSpent, ...) beside the supported
+	// nine makes the shape unsupported. ConditionDescription$ is
 	// display text, not part of the evaluation, and is ignored.
 	// (The ConditionCheckSVar$ shape below covers the sacrifice-continuation
 	// bridge the pre-merge build carried as rememberedSacrificeCondition:
@@ -201,10 +211,56 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 		switch k {
 		case "ConditionDefined", "ConditionPresent", "ConditionNotPresent", "ConditionCompare",
-			"ConditionCheckSVar", "ConditionSVarCompare", "Condition":
+			"ConditionCheckSVar", "ConditionSVarCompare", "Condition",
+			"ConditionPlayerTurn", "ConditionPhases":
 		default:
 			return false, false
 		}
+	}
+	// The player-turn / phase preconditions (ConditionPlayerTurn$ True|False,
+	// ConditionPhases$ <phase-list>): the Unbreakable Formation Addendum
+	// family and the conditional enters-tapped lands. ConditionPlayerTurn$
+	// compares g.Active with the resolving controller, case-insensitively
+	// True/False — Eddymurk Crab's `False` ("enters tapped if it's not your
+	// turn") is a real shape, not a negation-by-absence. ConditionPhases$
+	// parses through the ONE shared phase-name parser (state.ParsePhases —
+	// the same parser Mode$ Phase triggers use) and requires the game's
+	// current step to be in the named set; unknown names or an empty
+	// resolved set are unsupported, fail-open per this file's convention.
+	// Both are preconditions AND-ed with whatever group gate the SA also
+	// carries (combine below); a value this gate cannot read leaves the
+	// whole shape unsupported so the sub runs unconditionally, exactly as
+	// before these keys existed.
+	g := h.Game()
+	extraMet := true
+	if playerTurn != "" {
+		switch strings.ToLower(playerTurn) {
+		case "true":
+			extraMet = g.Active == c.Controller
+		case "false":
+			extraMet = g.Active != c.Controller
+		default:
+			return false, false
+		}
+	}
+	if phases != "" {
+		set, unknown := state.ParsePhases(phases)
+		if len(unknown) > 0 || set == 0 {
+			return false, false
+		}
+		if !set.Has(g.Step) {
+			extraMet = false
+		}
+	}
+	// combine AND-s the group gate's answer with the player-turn/phase
+	// preconditions above: a resolved group gate that says run still stays
+	// skipped when a phase/turn precondition says no, and an unresolved
+	// group gate keeps the whole shape fail-open.
+	combine := func(met, resolved bool) (bool, bool) {
+		if resolved && !extraMet {
+			return false, true
+		}
+		return met, resolved
 	}
 	// The SVar gate (ConditionCheckSVar$ + optional ConditionSVarCompare$,
 	// Forge's dominant pair at 544 corpus SAs): Vampire Lacerator's upkeep
@@ -215,7 +271,8 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// (~18 corpus SAs) has no single evaluator and stays unsupported, the
 	// same fail-open run-anyway the other unsupported shapes take.
 	if check != "" {
-		if defined != "" || present != "" || notPresent != "" || compare != "" || bare != "" {
+		if defined != "" || present != "" || notPresent != "" || compare != "" || bare != "" ||
+			playerTurn != "" || phases != "" {
 			return false, false
 		}
 		holds, evaluated := CheckSVarHolds(h, c, check, svarCmp)
@@ -237,7 +294,8 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// A bare Condition beside a group key or beside ConditionSVarCompare$ is
 	// a mixed shape no single evaluator covers (~11 corpus SAs).
 	if bare != "" {
-		if defined != "" || present != "" || notPresent != "" || compare != "" || svarCmp != "" {
+		if defined != "" || present != "" || notPresent != "" || compare != "" || svarCmp != "" ||
+			playerTurn != "" || phases != "" {
 			return false, false
 		}
 		if !strings.EqualFold(bare, "Kicked") {
@@ -263,7 +321,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		if present != "" || compare != "" {
 			return false, false
 		}
-		return conditionNotPresentMet(h, c, defined, notPresent)
+		return combine(conditionNotPresentMet(h, c, defined, notPresent))
 	}
 	if defined == "" {
 		// ConditionPresent$ with NO ConditionDefined$: Forge's default group
@@ -278,22 +336,37 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// A BARE ConditionCompare$ (no Present, no Defined) names no count
 		// group here, so it stays unresolved.
 		if present == "" {
+			if compare == "" {
+				// No group key named anything and the player-turn/phase gates
+				// above resolved: met is exactly their conjunction (the
+				// Eddymurk Crab shape — a lone ConditionPlayerTurn$ gate).
+				return extraMet, true
+			}
 			return false, false
 		}
-		return conditionMetBattlefield(h, c, present, compare)
+		return combine(conditionMetBattlefield(h, c, present, compare))
 	}
-	if defined != "Remembered" {
-		// Only the Remembered family is in scope among DEFINED groups: the
-		// revealed/captured objects a walk carries in Ctx.Remembered.
-		// Targeted, ChosenCard, Self, Imprinted and the rest need Ctx state
-		// this gate does not model (and whose fail-closed skip would change
-		// unrelated cards).
+	if defined != "Remembered" && defined != "Self" {
+		// Only the Remembered and Self families are in scope among DEFINED
+		// groups: the objects a walk carries in Ctx.Remembered, and — for
+		// Self — the resolving source object alone (the Addendum shape:
+		// ConditionDefined$ Self | ConditionPresent$ Card.wasCast holds only
+		// when the sub is reached through a cast of the source, which
+		// effects.Resolve's walk evaluates while the spell is still on the
+		// stack). Targeted, ChosenCard, Imprinted and the rest need Ctx
+		// state this gate does not model (and whose fail-closed skip would
+		// change unrelated cards).
 		return false, false
 	}
-	g := h.Game()
 	sc := c.SpecContext(c.Controller)
 	count := 0
-	for _, t := range rememberedWithSource(h, c) {
+	group := rememberedWithSource(h, c)
+	if defined == "Self" {
+		// Self is the source object ALONE — not rememberedWithSource's
+		// Source-union with the walk's remembered set.
+		group = []state.Target{{Obj: c.Source}}
+	}
+	for _, t := range group {
 		if t.IsPlayer {
 			// A Card spec never matches a player entry; skip rather than
 			// hand MatchesObjectCtx an object-less target.
@@ -322,7 +395,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			return false, false
 		}
 	}
-	return evalConditionCount(count, compare)
+	return combine(evalConditionCount(count, compare))
 }
 
 // conditionMetBattlefield resolves a ConditionPresent$ (with an optional
