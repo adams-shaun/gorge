@@ -1324,3 +1324,13 @@ func (e *Engine) commanderIdentityColours(p state.PlayerID) []string {
 	}
 	return cols
 }
+
+// CommanderIdentityColourCount is the effects.Host read over
+// commanderIdentityColours: how many colours seat p's commander colour
+// identity names. This is Count$ColorsColorIdentity's backing (War Room's
+// fixed "Pay life equal to the number of colors in your commanders' color
+// identity"); it reads the same genesis bookkeeping the replay rebuilds in
+// Config order, so a replay derives the identical count.
+func (e *Engine) CommanderIdentityColourCount(p state.PlayerID) int {
+	return len(e.commanderIdentityColours(p))
+}

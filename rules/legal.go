@@ -361,6 +361,28 @@ func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 	return false
 }
 
+// activationGameTypesOK evaluates an activated ability's ActivationGameTypes$
+// format list at offer time (War Room's "Activate only in a game of
+// Commander, Brawl, Tiny Leaders, or Oathbreaker", the corpus's only
+// carrier). The value is a comma list of the game formats the ability exists
+// in; gorge models exactly two formats -- FormatCommander and
+// FormatConstructed -- and only the "Commander" token maps to one. Brawl,
+// TinyLeaders and Oathbreaker are not modelled and match nothing, so the
+// list never admits a Constructed game: a format-gated ability is withheld
+// before it could ever be announced (CR 602.1/601.2c: an illegal activation
+// is not offered). Deterministic pure read -- no map range, tokens trimmed.
+func activationGameTypesOK(f Format, raw string) bool {
+	for _, tok := range strings.Split(raw, ",") {
+		switch strings.TrimSpace(tok) {
+		case "Commander":
+			if f == FormatCommander {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // abilityZoneOK reports whether ability ab may be activated while the
 // source cardinal is in zone z (CR 602.1b): the printed ActivationZone$
 // when present, the battlefield by default. Battlefield, Hand and Graveyard
@@ -1479,6 +1501,15 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// controller is the active player. CR 602.1b would otherwise
 				// offer it on any player's priority.
 				if ab.Params["PlayerTurn"] == "True" && e.G.Active != p {
+					continue
+				}
+				// ActivationGameTypes$ (activationGameTypesOK, above): a comma
+				// list of the formats the ability exists in. In a Constructed
+				// game every token list fails closed and the ability is
+				// withheld -- one gate here covers both the real-pool offer and
+				// the hypothetical walk (offerCastable's hyp variants share
+				// this loop body).
+				if raw, ok := ab.Params["ActivationGameTypes"]; ok && !activationGameTypesOK(e.format, raw) {
 					continue
 				}
 				// CR 606.3: a planeswalker's loyalty ability may be activated

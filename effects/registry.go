@@ -128,6 +128,15 @@ type Host interface {
 	// turn" read: Bloodsoaked Champion's CheckSVar$ activation gate and ten
 	// ConditionCheckSVar$ bodies).
 	AttackersThisTurn() int
+	// CommanderIdentityColourCount reports how many colours seat p's
+	// commander colour identity names (the WUBRG-ordered union of every
+	// commander's Card.ColourIdentity, read off state.Player.Commanders —
+	// genesis bookkeeping the replay rebuilds in Config order, so the count
+	// is replay-derivable like TurnsTaken). This is the Count$ColorsColorIdentity
+	// backing (War Room's fixed "Pay life equal to the number of colors in
+	// your commanders' color identity"); an empty identity (no commander,
+	// or a colourless one) is a real, resolvable 0.
+	CommanderIdentityColourCount(p state.PlayerID) int
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
