@@ -319,6 +319,22 @@ func TestSpeedYoungAvengerImmediateTrigger(t *testing.T) {
 		}
 		poolBefore := e.G.Players[0].Pool.Total()
 		submitChoices(t, e, choice)
+		if shouldPay {
+			// The paid body is TrigEffect (DB$ Effect | ValidTgts$
+			// Creature.withHaste) — the "target creature with haste" the
+			// oracle names. It was never placement-covered (the ImmediateTrigger
+			// AB root declares no targets), so task mvts1's pre-ask poses its
+			// own KChoose here; the census's withHaste candidates are non-empty
+			// (Speed itself has haste), so the ask is real. Answer it.
+			dt := passUntilAsk(t, e)
+			if dt == nil || dt.Kind != decision.KChoose || dt.ResumeKind != "tgts" {
+				t.Fatalf("post-pay ask = %+v, want the Effect sub's KChoose with ResumeKind tgts", dt)
+			}
+			if len(dt.Options) == 0 || dt.Options[0].Obj != speed {
+				t.Fatalf("options %+v, want Speed offered (the haste creature)", dt.Options)
+			}
+			submitChoices(t, e, 0)
+		}
 
 		note := false
 		for _, ev := range e.L.Events {

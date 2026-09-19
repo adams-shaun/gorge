@@ -294,15 +294,16 @@ type Ctx struct {
 	// ctx rebuilt by a resume does not carry it -- a deeper sub's targeting
 	// was genuinely never offered, which is the ask's real population.
 	//
-	// Boundary, stated honestly: the flag is copied into every same-pass
-	// nested sub ctx (the cc := *c copies each loop builds), so a deeper sub
-	// in the SAME resolution that carries its OWN never-offered ValidTgts$ is
-	// suppressed from asking whenever the outer targeting was offered and the
-	// resolution carries no targets. That is the pre-existing shape (such a
-	// sub moved nothing silently before the flag existed too) and no corpus
-	// line is measured in it; a genuinely-fresh ask -- a resume ctx, a new
-	// sub chain -- asks normally. A per-SVar-walk-level flag would fix the
-	// last corner but needs a plumb through every fresh-copy site.
+	// Boundary, updated by task mvts1: the flag suppresses only the depth-0
+	// entry SA of an effects.Resolve call (chosenTargetsFor's atRoot arm) --
+	// the SA the placement/announcement ask actually covered. A deeper sub
+	// in the SAME resolution that carries its OWN never-offered ValidTgts$
+	// now poses its own ask there (the trigger "when you do" family: Mogg
+	// Bombers' DealDamage, Kor Outfitter's Attach); before mvts1 it either
+	// inherited the outer targets or moved nothing silently. A nested
+	// Resolve entry at depth 0 whose SA is genuinely never-covered (a
+	// RepeatEach iteration body) is also suppressed while the flag is set --
+	// the conservative direction, same as the pre-mvts1 ChangeZone shape.
 	TargetsOffered bool
 	// Captured is the part of Remembered the resolution started with because
 	// its trigger, delayed trigger or replacement put the event's object there
@@ -437,6 +438,34 @@ type Ctx struct {
 	// empty optional choice from its first pass.
 	Choice     []state.Target
 	ChoiceDone bool
+	// TargetsPick is the answered target set of the generic ValidTgts$
+	// pre-ask (chosenTargetsFor, posed inside effects.Resolve's dispatch
+	// loop for a sub the placement/announcement ask never covered -- the
+	// trigger "when you do" family, task mvts1). rules' "tgts" resume arm
+	// fills it on the re-entered pass; the pre-ask consumes and clears it
+	// (fx42 scoping: each resume builds a fresh Ctx and re-enters exactly
+	// the asking SA, so nothing else can be holding it). The answer rides
+	// its own resume kind ("tgts") and its own Ctx transport rather than
+	// the shared Choice pair so another KChoose primitive resolving under
+	// the same SA can never steal it.
+	TargetsPick     []state.Target
+	TargetsPickDone bool
+	// OfferedSA is the SA whose ValidTgts$ targeting the placement or
+	// announcement ask actually covered (rules' resolveTop and
+	// resumeResolution both set it; chosenTargetsFor skips exactly that SA,
+	// matched by SA.Line -- ResolveSVar parses fresh on every call, so
+	// pointer identity does not hold between two derivations of the same
+	// body, the matching convention rules' charmModeTarget already
+	// established).
+	OfferedSA *cards.SA
+	// PickedTargets is the answering pre-ask's target set, made visible to
+	// Defined's ValidTgts$ fallthrough for exactly ONE dispatch (the
+	// wrapper clears it when the body returns). It must not be Ctx.Targets:
+	// a CLOBBER sub names its parent's target explicitly (Object$
+	// ParentTarget, Defined$ Targeted), and overwriting Ctx.Targets would
+	// point those referents at the sub's OWN answer instead of the outer
+	// target the script meant.
+	PickedTargets []state.Target
 	// ChoiceTarget is the index of the per-player chooser currently being
 	// resumed. It keeps multi-player ChooseCard/ChoosePlayer asks from
 	// returning to the first chooser after every answer.
@@ -987,7 +1016,34 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			}
 			continue
 		}
-		fn(h, c, sa)
+		// The generic ValidTgts$ pre-ask (task mvts1): an SA the placement/
+		// announcement ask never covered -- a sub at depth >= 2 of a trigger's
+		// Execute chain (the "when you do" family: Mogg Bombers' DealDamage,
+		// Kor Outfitter's Attach, Rhino's second PutCounter) -- poses its own
+		// target ask here, before its body reads Defined's ValidTgts$
+		// fallthrough. The SA the placement ask covered (Ctx.OfferedSA) is
+		// skipped; an ANSWERED ask re-enters this same SA (the pending
+		// frame's ResumeSA), so the consumption inside chosenTargetsFor runs
+		// before any skip could suppress it. API$ ChangeZone is left to
+		// effChangeZone's own mid-resolution ask (changeZoneChosenTargets),
+		// which the closed ChangeZone slice owns.
+		if ts, done := chosenTargetsFor(h, c, sa, d == 0); done {
+			if ts == nil {
+				// The ask was posed and suspended the resolution: stop here
+				// exactly as an asking body would. The ask's ResumeSA is THIS
+				// SA, so the pending frame re-enters it (the innermost rule),
+				// the "tgts" arm fills Ctx.TargetsPick, and the re-entered
+				// pass consumes the answer and dispatches with it visible to
+				// Defined for this SA.
+				h.SuspendContinuation(sa)
+				return
+			}
+			c.PickedTargets = ts
+			fn(h, c, sa)
+			c.PickedTargets = nil
+		} else {
+			fn(h, c, sa)
+		}
 		imprint(h, c, sa)
 		if strings.EqualFold(sa.Params["ClearImprinted"], "True") && c.Source != 0 {
 			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})

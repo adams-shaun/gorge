@@ -1125,6 +1125,50 @@ func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Op
 // script from running anyway once every target it had was gone. With only
 // some targets still legal, resolution proceeds against exactly that
 // narrowed set -- CR 608.2b's "resolves, doing as much as possible".
+// offeredTargetSA is the SA whose ValidTgts$ targeting the placement or
+// announcement ask covered for this stack object, derived exactly as the
+// TargetsOffered marker's derivation in resolveTop: the ability SA itself
+// for a non-modal trigger or activated ability (pushTrigger's askTarget),
+// the first target-bearing CHOSEN MODE's sub for a modal one (handleModes'
+// placement branch asks the mode sub and skips the outer ask entirely), and
+// the spell's target declaration (targetAsk's targetSA -- the announced
+// mode's for a modal spell) for a spell. nil when none of those declares
+// targets. Shared by resolveTop's two branches and resumeResolution so the
+// generic ValidTgts$ pre-ask (effects' chosenTargetsFor) skips exactly the
+// covered SA on the first pass AND on every resume re-entry -- an optional
+// trigger's yes re-enters through resumeResolution, where the first pass's
+// bool marker alone is not carried (task mvts1).
+func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
+	if o.Ability != nil {
+		if len(o.ChosenModes) > 0 && strings.TrimSpace(o.Ability.Params["Choices"]) != "" {
+			for _, name := range o.ChosenModes {
+				if sub := cards.ResolveSVar(svars, name); sub != nil &&
+					strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+					return sub
+				}
+			}
+			return nil
+		}
+		if strings.TrimSpace(o.Ability.Params["ValidTgts"]) != "" {
+			return o.Ability
+		}
+		return nil
+	}
+	f := o.Face()
+	if f == nil {
+		return nil
+	}
+	sa := f.SpellAbility()
+	if sa == nil {
+		return nil
+	}
+	targetSA := modalTargetSA(f, sa, o.ChosenModes)
+	if targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != "" {
+		return targetSA
+	}
+	return nil
+}
+
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
@@ -1318,24 +1362,10 @@ func (e *Engine) resolveTop() {
 		// ZERO of was re-posed by effChangeZone's mid-resolution ask at
 		// resolution -- the exact duplicate-ask defect the marker exists to
 		// stop.
-		offeredSA := (*cards.SA)(nil)
-		if o.Ability != nil {
-			if len(o.ChosenModes) > 0 && strings.TrimSpace(o.Ability.Params["Choices"]) != "" {
-				if src := e.G.Obj(o.Source); src != nil && src.Face() != nil {
-					for _, name := range o.ChosenModes {
-						if sub := cards.ResolveSVar(src.Face().SVars, name); sub != nil &&
-							strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
-							offeredSA = sub
-							break
-						}
-					}
-				}
-			} else {
-				offeredSA = o.Ability
-			}
-		}
+		offeredSA := offeredTargetSA(o, svars)
 		if offeredSA != nil {
-			ctx.TargetsOffered = strings.TrimSpace(offeredSA.Params["ValidTgts"]) != ""
+			ctx.TargetsOffered = true
+			ctx.OfferedSA = offeredSA
 		}
 		if lki, ok := e.triggerLKI[id]; ok {
 			ctx.LKI = lki.object
@@ -1407,7 +1437,8 @@ func (e *Engine) resolveTop() {
 	targets := o.Targets
 	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered
 	// (the modal declaration for a Charm, the SpellAbility itself otherwise);
-	// hoisted so the resolution ctx can carry the TargetsOffered marker.
+	// hoisted so the resolution ctx can carry the TargetsOffered marker and
+	// the mvts1 pre-ask's OfferedSA skip.
 	targetSA := modalTargetSA(f, sa, o.ChosenModes)
 	// An overloaded spell affects the matching set as it resolves, never as
 	// targets chosen during announcement. This fresh non-target census means
@@ -1475,7 +1506,10 @@ func (e *Engine) resolveTop() {
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets}
 		// Same marker as the ability branch: the cast-flow target ask
 		// (targetAsk's targetSA) offered exactly this spell's targeting.
-		ctx.TargetsOffered = targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != ""
+		if targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != "" {
+			ctx.TargetsOffered = true
+			ctx.OfferedSA = targetSA
+		}
 		// CR 107.3i: X is the value the caster chose for the mana cost's {X},
 		// recorded on the stack object by commitCast's CastInfo (the same
 		// value the ETB/replacement path already reads as o.X). Without this
@@ -1702,6 +1736,12 @@ func zoneIn(z state.Zone, zones []state.Zone) bool {
 func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 	targets []state.Target, sa *cards.SA, svars map[string]string) {
 	ctx := &effects.Ctx{Source: source, Controller: controller, Targets: targets}
+	// The caller supplies the chosen targets -- the announcement or placement
+	// ask's answer -- so the generic ValidTgts$ pre-ask must not re-pose it
+	// for an SA that declares targets (task mvts1).
+	if sa != nil && strings.TrimSpace(sa.Params["ValidTgts"]) != "" {
+		ctx.TargetsOffered = true
+	}
 	effects.SetSVars(ctx, svars)
 	effects.Resolve(e, ctx, sa)
 }
@@ -1764,7 +1804,18 @@ func (e *Engine) emitTap(obj state.ObjID, tapper state.PlayerID, entering bool) 
 // LegalTargets satisfies effects.Host for target-changing effects. It exposes
 // the same census used by cast and trigger target decisions, so a redirect
 // cannot bypass protection, CantTarget, stack-kind, zone, or filter legality.
+//
+// The census runs with the RESOLVING stack object as both source and
+// excludeSelf whenever one exists -- exactly the placement ask's own call
+// (pushTrigger -> askTarget passes the stack object id): CR 115.5 withholds
+// the ability on the stack from targeting itself, never its source permanent,
+// so a trigger whose source is a legal target may target it (Kor Outfitter's
+// Attach sub attaches to Kor Outfitter). A direct, off-stack resolution (no
+// resolving object) keeps the caller's source.
 func (e *Engine) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
+	if e.resolvingObj != 0 {
+		source = e.resolvingObj
+	}
 	cs := e.legalTargetCandidates(chooser, source, source, sa)
 	out := make([]state.Target, 0, len(cs))
 	for _, c := range cs {

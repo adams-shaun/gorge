@@ -267,6 +267,16 @@ func TestEchoShahOfNaarIsleFreePay(t *testing.T) {
 // sacrifice, never a silent keep.
 func TestEchoUnresolvableCostStaysLoud(t *testing.T) {
 	e, hellion := echoEntryEngine(t, "Volcano Hellion", 0)
+	// The ETB trigger's chain (ChooseNumber -> DB$ DealDamage | ValidTgts$
+	// Creature) poses its DealDamage sub's own target ask on the way (task
+	// mvts1: the sub was never placement-covered; the ChooseNumber ahead of
+	// it is the engine's deterministic stand-in and asks nothing). Answer it
+	// so the drive below reaches the echo upkeep.
+	etb := passUntilAsk(t, e)
+	if etb == nil || etb.Kind != decision.KChoose || etb.ResumeKind != "tgts" || etb.Source != hellion {
+		t.Fatalf("ETB ask = %+v, want the DealDamage sub's tgts KChoose for the Hellion", etb)
+	}
+	submitChoices(t, e, 0)
 	// Drive through the turn-3 upkeep: no election may ever be asked, one
 	// loud note names the unresolved cost, the Hellion stays.
 	driveEchoQuiet(t, e, hellion, 3, 0, state.StepDraw)

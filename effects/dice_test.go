@@ -99,7 +99,8 @@ func TestBoomflingerPublishesTheDifferenceBetweenRolls(t *testing.T) {
 		t.Fatal("corpus fixture: Boomflinger has no TrigCrank SVar")
 	}
 	ctx := &Ctx{Controller: 0, Source: src.ID, SVars: face.SVars,
-		Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+		Targets:   []state.Target{{Player: 1, IsPlayer: true}},
+		OfferedSA: saTrig.Sub}
 	life1 := g.Players[1].Life
 	Resolve(h, ctx, saTrig)
 	if rolls := rollResults(t, h); len(rolls) != 2 || rolls[0] != 4 || rolls[1] != 2 {

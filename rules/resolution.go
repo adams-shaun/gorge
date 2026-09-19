@@ -772,6 +772,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.remembered != nil && !rp.replacement && !rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
 	}
+	// Task mvts1: carry the SA whose targeting the placement/announcement
+	// ask covered, exactly as resolveTop's first pass does. An optional
+	// trigger's yes (Kor Outfitter) re-enters through here, and without
+	// this the re-entered ROOT would re-pose its placement target ask
+	// under the generic ValidTgts$ pre-ask.
+	if offeredSA := offeredTargetSA(o, svars); offeredSA != nil {
+		ctx.OfferedSA = offeredSA
+	}
 	effects.SetSVars(ctx, svars)
 	// An accepted optional trigger may itself carry Cost$ (Mana Vault's
 	// "you may pay {4}; if you do" untap). The optional answer chooses to
@@ -1005,6 +1013,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.ChoiceDone = true
+		case "tgts":
+			// The generic ValidTgts$ pre-ask (task mvts1) posed inside
+			// effects.Resolve's dispatch loop. Same KChoose answer shape as
+			// "choice", on its own resume kind and its own Ctx transport
+			// (Ctx.TargetsPick) so another KChoose primitive resolving under
+			// the same SA can never consume this answer.
+			ctx.TargetsPick = make([]state.Target, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Kind == "player" {
+					ctx.TargetsPick = append(ctx.TargetsPick, state.Target{Player: o.Player, IsPlayer: true})
+				} else if o.Obj != 0 {
+					ctx.TargetsPick = append(ctx.TargetsPick, state.Target{Obj: o.Obj})
+				}
+			}
+			ctx.TargetsPickDone = true
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate
