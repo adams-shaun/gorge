@@ -65,7 +65,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CardToken, events.KeywordTriggerPush, events.Goad,
 		events.PlayerCounterChange, events.Imprint, events.StartingPlayerChange,
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
-		events.GrantTriggerPush, events.ManaActivate:
+		events.GrantTriggerPush, events.ManaActivate,
+		events.TokenAttacks:
 		return 0
 	default:
 		return cards.TriggerInterestAny

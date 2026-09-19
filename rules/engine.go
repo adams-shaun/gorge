@@ -94,8 +94,8 @@ type triggerObjectLKI struct {
 }
 
 type Engine struct {
-	G *state.Game
-	L *events.Log
+	G            *state.Game
+	L            *events.Log
 	compiledText *compiledText
 
 	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
@@ -893,12 +893,12 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		initialObjects += len(deck)
 	}
 	e := &Engine{
-		G:          state.NewGameLife(cfg.Names, life, initialObjects),
-		L:          events.NewLog(cfg.Seed),
-		format:     cfg.Format,
-		rng:        random,
-		loop:       newLivelockWatcher(cfg.LoopGuard),
-		turnsTaken: make([]int32, len(cfg.Names)),
+		G:            state.NewGameLife(cfg.Names, life, initialObjects),
+		L:            events.NewLog(cfg.Seed),
+		format:       cfg.Format,
+		rng:          random,
+		loop:         newLivelockWatcher(cfg.LoopGuard),
+		turnsTaken:   make([]int32, len(cfg.Names)),
 		compiledText: newCompiledText(cfg),
 	}
 	e.G.Tokens = cfg.Tokens
