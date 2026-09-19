@@ -5519,3 +5519,160 @@ Commander
 1x Forest
 1x Forest
 1x Forest
+
+# --- Prismari Artistry (soc commander precon, Rootha, Mastering the Moment) — census input, 2026-09-19 ---
+# run: sed -n '/Prismari Artistry (soc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' | grep -v '^0$' > .ds4/scratch/soc-prismari-artistry.list
+#   (deckimport cannot parse the section's trailing `0` terminator — hence the last grep)
+# source: MTGJSON DeckList entry PrismariArtistry_SOC (mtgjson.com/api/v5/decks/PrismariArtistry_SOC.json),
+#   cross-checked against the WotC article magic.wizards.com/en/news/announcements/secrets-of-strixhaven-commander-decklists
+# STATUS: 100/100 resolved (87 distinct names all resolve from the corpus; 89 list lines
+#   counting the 4+4/4+3 repeated basics); commander eligible (Rootha, Mastering the Moment —
+#   the commander both sources agree on; her trigger is X-sized by Count$ThisTurnCast_...$GreatestCardManaCost,
+#   which is NOT read — see the gap list below).
+#   Deck file NOT ADDED — 7 true-new gap families (ticketed this round) plus 10 known-open
+#   families cited by id; the deck's magecraft engine never fires (probe: Storm-Kiln Artist +
+#   a resolved cast produced 0 Treasures) and the commander's token sizes to 0/0 (probe:
+#   Y = Count$ThisTurnCast_...$GreatestCardManaCost evaluated 0 with a real MV-6 sorcery cast).
+# note: Muddle, the Ever-Changing (cn 0005) is an ordinary mainBoard entry per MTGJSON and the
+#   WotC deck-list, not a second commander.
+# NEW gap families (walker over cards.OpenCorpus -> Primitives() minus effects.Supported(), with rules
+#   imported so RegisterNonAPI's init has run; 87 distinct names, 21 gapped, 11 distinct missing
+#   primitives, 10 already ledgered — the 7 below were not, ticketed under .ds4/new-tickets/):
+#   trig:SpellCastOrCopy — Veyran Voice of Duality, Archmage Emeritus, Storm-Kiln Artist
+#     (magecraft's copy half AND cast half: no dispatch case in rules/trigger_match.go's
+#     `switch t.Mode`, matched=false fallthrough; Mode$ SpellCastOrCopy 31 raw files; probe
+#     measured 0 Treasures off a real resolved cast);
+#   kw:Strive — Twinflame (no expansion in cards/keywords.go; K:Strive 20 raw files);
+#   Count$ThisTurnCast_<spec>$GreatestCardManaCost — Rootha, Mastering the Moment (the COMMANDER;
+#     the extreme-props suffix is read on the Count$Valid[Zone] branch, not the ThisTurnCast_
+#     branch at effects/count.go:692 which passes it into the spec whole; 62 raw files);
+#   PersistentMana$ on A:SP$ Mana — Rousing Refrain ("you don't lose this mana as steps and
+#     phases end"; zero engine hits; 23 raw files; the paramcensus table knows the param label
+#     from Photon, Mighty Marvel — this ticket names the primitive-level gap);
+#   wasCastFromYourHandByYou predicate — Dirgur Focusmage // Braingeyser (unknown filter
+#     predicate, fails closed, the trigger never fires; wasCastFromYourHand 94 raw files);
+#   RepeatOptional$ on DB$ Repeat — Dance with Calamity (effRepeat reads MaxRepeat/RepeatNum
+#     only, the may-repeat election is never posed; RepeatOptional 14 raw files; sibling
+#     RepeatOptionalForEachPlayer$ on RepeatEach is the same ticket);
+#   CopyCard$ True on DB$ Play — Renegade Bull, Surge to Victory (effPlay reads
+#     ValidTgts/Defined/Valid+ValidZone/ValidSA/Optional/Amount only; 48 raw CopyCard$ True
+#     files, 43 with a DB$ Play line; EXTENDS the open Play-params ticket, not a re-file).
+# Known-open families the deck leans on (cite, do not re-file): api:CopyPermanent x8 carriers
+#   (348 files); api:Clone x3 — Muddle, Brudiclad, Cursed Mirror (167; Cursed Mirror also rides
+#   the replacement:ETB-copy ticket); api:DigUntil x2 (165); api:TwoPiles — Abstract Performance
+#   (32); api:GenericChoice — Dance with Calamity (153); kw:Cascade x2 (37); kw:Retrace (17);
+#   kw:Demonstrate x2 (6); api:AlterAttribute + prepared x2 (105 / AlternateMode:Prepare 54);
+#   ChangeZoneTable$ on RepeatEach — Furygale Flocking (47); TotalCommanderCastFromCommandZone
+#   — Thunderclap Drake (17); TargetedPlayer$CardsInHand — Rousing Refrain (32); param:AtEOT$ —
+#   Manaform Hellkite. Approximation-table leans: Manaform Hellkite's TriggeredCard$CastTotalManaSpent
+#   (rv2b exotic count head — token is 0/0), Expressive Iteration's MayPlay Effect (Note only),
+#   Frostboil Snarl's UnlessCost$ Reveal<...> hard decline (always enters tapped) and its Combo
+#   U R tap-gate degrade, Galazeth Prismari's Produced$ Any + unread RestrictValid$,
+#   Reality Shift's face-down manifest, Furygale's MustAttack Effect Note, Rootha Mercurial
+#   Artist's Return<1/CARDNAME> copy ability never offered (probe-measured; the cost verb
+#   PARSES — rules/mana.go returnCost — but the ability-offer path never admits it).
+# Implemented (walker-clean; verified): the whole land suite (typed lands' intrinsic mana via
+#   cards/intrinsic.go basicLandMana; Scry lands; fetch/expanse/sanctuary), rocks and Talisman,
+#   Brazen Borrower // Petty Theft (Adventure), Dig Through Time / Treasure Cruise (Delve),
+#   Deep Analysis (Flashback), Prismari Command / Prismari Charm / Abrade (Charm + TgtChoose
+#   discard), Chain Reaction / Volcanic Torrent / Magma Opus / Blasphemous Act / Chaos Warp /
+#   Volcanic Salvo / Resculpt / Reality Shift / Aether Gale / Arcane Denial (damage-all, bounce,
+#   counter, ChangeZone+Token), Goldspan Dragon (Sac<1/CARDNAME> cost source-aware), Faerie
+#   Mastermind (T:Mode$ Drawn Number$ IS read), Solemn Simulacrum, Arcane Signet / Sol Ring /
+#   Command Tower / Fellwar Stone / Exotic Orchard, Mirrorwing Dragon + Rootha Mercurial's
+#   CopySpellAbility engine, Big Score / Storm-Kiln Artist Treasure tokens (Discard<N/Card>
+#   costs are implemented cost verbs — Magma Opus's Discard<1/CARDNAME> too), Harmonic
+#   Prodigy / Veyran's S:Mode$ Panharmonicon stat.
+Commander
+1 Rootha, Mastering the Moment
+
+Deck
+1 Muddle, the Ever-Changing
+1 Inspired Skypainter // Maestro's Gift
+1 Abstract Performance
+1 Dirgur Focusmage // Braingeyser
+1 Leitmotif Composer
+1 Furygale Flocking
+1 Prismari Pianist
+1 Renegade Bull
+1 Coastal Peak
+1 Scorched Geyser
+1 Turbulent Springs
+1 Faerie Mastermind
+1 Chain Reaction
+1 Determined Iteration
+1 Harmonic Prodigy
+1 Fabled Passage
+1 Archmage Emeritus
+1 Brazen Borrower // Petty Theft
+1 Curiosity Crafter
+1 Dig Through Time
+1 Replication Technique
+1 Rite of Replication
+1 Thunderclap Drake
+1 Blasphemous Act
+1 Chaos Warp
+1 Creative Technique
+1 Cursed Mirror
+1 Dance with Calamity
+1 Goldspan Dragon
+1 Manaform Hellkite
+1 Mirrorwing Dragon
+1 Plargg and Nassari
+1 Redoubled Stormsinger
+1 Rionya, Fire Dancer
+1 Rousing Refrain
+1 Surge to Victory
+1 Twinflame
+1 Volcanic Salvo
+1 Brudiclad, Telchor Engineer
+1 Galazeth Prismari
+1 Magma Opus
+1 Prismari Command
+1 Veyran, Voice of Duality
+1 Solemn Simulacrum
+1 Cascade Bluffs
+1 Exotic Orchard
+1 Ferrous Lake
+1 Frostboil Snarl
+1 Hall of Oracles
+1 Restless Spire
+1 Shivan Reef
+1 Sulfur Falls
+1 Temple of Epiphany
+1 Arcane Signet
+1 Sol Ring
+1 Command Tower
+1 Prismari Charm
+1 Spectacle Summit
+1 Terramorphic Expanse
+1 Aether Gale
+1 Arcane Denial
+1 Deep Analysis
+1 Reality Shift
+1 Resculpt
+1 Treasure Cruise
+1 Abrade
+1 Big Score
+1 Mana Geyser
+1 Storm-Kiln Artist
+1 Throes of Chaos
+1 Volcanic Torrent
+1 Expressive Iteration
+1 Rootha, Mercurial Artist
+1 Stormcatch Mentor
+1 Fellwar Stone
+1 Lightning Greaves
+1 Talisman of Creativity
+1 Molten Tributary
+1 Mystic Sanctuary
+1 Path of Ancestry
+1 Prismari Campus
+1 Reliquary Tower
+1 Study Hall
+1 Temple of the False God
+4 Island
+4 Island
+4 Mountain
+3 Mountain
+0
