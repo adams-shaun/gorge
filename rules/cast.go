@@ -102,9 +102,11 @@ type pendingCast struct {
 	// converge (task converge1) is CR 107.4f-family's count of distinct
 	// colours (WUBRG) of mana actually spent to cast this spell, captured at
 	// payment from the full spent delta payManaCastSpent returns. convergeOn
-	// is the heads-safety face gate (faceWantsConverge): the pay-time
-	// CastInfo is emitted ONLY for faces carrying a Count$Converge SVar, so
-	// no game that casts no converge card changes an event. Plain data, so
+	// is the heads-safety two-arm gate (faceWantsConverge OR a battlefield
+	// reader naming TriggeredCard$Converge): the pay-time CastInfo is emitted
+	// ONLY for a face carrying a Count$Converge SVar, or when some alive
+	// player's battlefield permanent's trigger reads another spell's cast
+	// colours, so no game that casts neither changes an event. Plain data, so
 	// Clone copies it like replicateTimes.
 	convergeOn bool
 	converge   int32
@@ -2843,6 +2845,41 @@ func faceWantsConverge(f *cards.Face) bool {
 	return false
 }
 
+// triggeredConvergeReaderOut is the capture gate's second arm: it reports
+// whether any alive player's battlefield holds a permanent whose face SVars
+// name TriggeredCard$Converge -- a trigger that reads ANOTHER spell's cast
+// colours (Magmablood Archaic's "for each color of mana spent to cast that
+// spell"), which the Count$Converge face gate cannot see because the cast
+// face itself is an ordinary non-converge instant/sorcery. Only then does the
+// pay-time CastInfo need stamping on a plain cast; a TriggerZones$ Battlefield
+// SpellCast trigger can only exist for casts made while the reader is out, so
+// this scan-at-pay-time gate stamps exactly when the value can be needed and
+// no game without a reader out changes an event (heads stay put: neither
+// Archaic is in any repo deck). Pure read -- the boolean OR over the
+// deterministic seat/zone walk cannot reach an event; replay re-runs payCast
+// and derives the same scan.
+func (e *Engine) triggeredConvergeReaderOut() bool {
+	g := e.G
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			o := g.Obj(id)
+			if o == nil {
+				continue
+			}
+			f := o.Face()
+			if f == nil {
+				continue
+			}
+			for _, v := range f.SVars {
+				if strings.Contains(strings.ToLower(v), "triggeredcard$converge") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // convergeColours is CR 107.4f-family's converge count: the number of
 // DISTINCT colours among W,U,B,R,G actually spent to cast the spell.
 // Colourless/generic ({C}, generic pips) is not a colour and does not count;
@@ -4216,7 +4253,7 @@ func (e *Engine) payCast() {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return
 	}
-	if f := e.G.Obj(pc.card).Face(); faceWantsConverge(f) {
+	if f := e.G.Obj(pc.card).Face(); faceWantsConverge(f) || e.triggeredConvergeReaderOut() {
 		pc.convergeOn = true
 		pc.converge = convergeColours(spentMana)
 	}
@@ -4353,9 +4390,11 @@ func (e *Engine) payCast() {
 	// this event never clobbers the X or replicate count an earlier event in
 	// this block set, and its Counter (flags + FlagConverged) leaves
 	// CastFlags carrying every earlier flag too. Emitted whenever the face
-	// carries a Count$Converge SVar, count 0 included (a colourless-only
-	// converge cast is a real zero, not an absent one); pc.convergeOn is the
-	// face gate, so no game that casts no converge card changes an event.
+	// carries a Count$Converge SVar -- or when a battlefield permanent's
+	// trigger names TriggeredCard$Converge and so reads THIS cast's colours --
+	// count 0 included (a colourless-only converge cast is a real zero, not an
+	// absent one); the two-arm gate is heads-safety, so no game that casts no
+	// converge card with no reader out changes an event.
 	if pc.convergeOn {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagConverged)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.converge, Counter: flags})

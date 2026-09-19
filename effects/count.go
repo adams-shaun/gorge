@@ -555,6 +555,27 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 				(!lki && MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(c.Controller))) {
 				n++
 			}
+		case prop == "Converge":
+			// CR 107.4f-family converge, the TRIGGER-relative spelling: the
+			// distinct-colour spend count of the cast the firing trigger is
+			// about (Magmablood Archaic's SVar:Y:TriggeredCard$Converge), not
+			// the resolving ability's own cast the plain Count$Converge head
+			// at evalCountBody's "Converge" case reads off c.Source. Same
+			// provenance discipline as that head and as TriggerPaidX: the
+			// value was stamped on the cast spell by payCast's trailing
+			// FlagConverged CastInfo BEFORE the deferred SpellCast trigger
+			// re-walk fired, so a replay derives the same number; when the
+			// read object IS the triggering card the fire-time snapshot
+			// TriggerConverge wins over the live field, because a spell
+			// countered between trigger push and resolution has had its
+			// stack->graveyard move clear ConvergeColours while the colours
+			// were spent regardless (CR 601.2h: the payment is not undone).
+			// A copy of the spell was never cast and reads 0.
+			if c.TriggerCard != 0 && t.Obj == c.TriggerCard {
+				n += c.TriggerConverge
+			} else {
+				n += o.ConvergeColours
+			}
 		default:
 			return 0, false
 		}
