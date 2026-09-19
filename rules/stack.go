@@ -2050,7 +2050,7 @@ func (e *Engine) CastThisTurn() int {
 // carries a You* qualifier the count scopes to YOU's casts; otherwise it
 // counts everyone's. Derived from the event log like CastThisTurn.
 func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int {
-	return e.spellsCastThisTurnMatching(you, spec, 0)
+	return len(e.spellsCastThisTurnMatching(you, spec, 0))
 }
 
 // SpellsCastThisTurnMatchingExcluding is SpellsCastThisTurnMatching with one
@@ -2059,12 +2059,20 @@ func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int
 // stripBareCastSaSource strips the token and routes here with the ctx
 // source). Derived from the event log like CastThisTurn.
 func (e *Engine) SpellsCastThisTurnMatchingExcluding(you state.PlayerID, spec string, exclude state.ObjID) int {
+	return len(e.spellsCastThisTurnMatching(you, spec, exclude))
+}
+
+// EachSpellCastThisTurnMatching satisfies effects.Host's method of the same
+// name: the matching casts' OBJECT IDS (the ARGUMENTED !CastSaSource$<Prop>
+// aggregate forms' engine side; effects' aggregateCastProperty sums the
+// property over them). Derived from the event log like the count forms.
+func (e *Engine) EachSpellCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID {
 	return e.spellsCastThisTurnMatching(you, spec, exclude)
 }
 
-func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) int {
+func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID {
 	youScoped := strings.Contains(spec, "You")
-	n := 0
+	var out []state.ObjID
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
@@ -2082,16 +2090,17 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		// The bare wasCastFromYourHandByYou qualifier (the 5 end-step "if you
 		// haven't cast a spell from your hand this turn" carriers'
 		// Count$ThisTurnCast_Card.wasCastFromYourHandByYou bodies) is
-		// evaluated per cast event against the log (task castprov1).
+		// evaluated per cast event against the log (task castprov1); the
+		// wasCastByYou sibling (task castprov2) rides the same combined read.
 		matchSpec, ok := e.castFromHandAdmits(spec, ev.Obj, you)
 		if !ok {
 			continue
 		}
 		if effects.MatchesSpecFrom(e.G, matchSpec, ev.Obj, you, ev.Obj) {
-			n++
+			out = append(out, ev.Obj)
 		}
 	}
-	return n
+	return out
 }
 
 // WasCastFromHandByYou satisfies effects.Host's WasCastFromHandByYou for the

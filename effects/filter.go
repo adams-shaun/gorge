@@ -1185,6 +1185,58 @@ func stripBareCastSaSource(spec string) (string, bool) {
 	return b.String(), has
 }
 
+// stripCastSaSourceAggregate removes the ARGUMENTED !CastSaSource$<Property>
+// token (call_forth_the_tempest's `Card.YouCtrl+!CastSaSource$CardManaCost`:
+// "damage equal to the total mana value of other spells you've cast this
+// turn") from every comma alternative of a Count$ThisTurnCast_ spec,
+// returning the stripped spec and the property to AGGREGATE over the
+// matching casts instead of counting them one each (the aggregation
+// precedent is the zone-count heads' `$<Property>` suffix read). ok is false
+// when no alternative carries the token.
+func stripCastSaSourceAggregate(spec string) (rest, prop string, ok bool) {
+	if !strings.Contains(spec, "!CastSaSource$") {
+		return "", "", false
+	}
+	var b strings.Builder
+	first, found := true, false
+	for alt := range filterAlternatives(spec) {
+		s := alt
+		if _, preds := splitAltBasePreds(alt); preds != "" {
+			parts := strings.Split(preds, "+")
+			out := parts[:0]
+			had := false
+			for _, p := range parts {
+				if strings.HasPrefix(p, "!CastSaSource$") {
+					had = true
+					if !found {
+						prop = strings.TrimPrefix(p, "!CastSaSource$")
+					}
+					continue
+				}
+				out = append(out, p)
+			}
+			if had {
+				found = true
+				base, _ := splitAltBasePreds(alt)
+				if len(out) == 0 {
+					s = base
+				} else {
+					s = base + "." + strings.Join(out, "+")
+				}
+			}
+		}
+		if !first {
+			b.WriteByte(',')
+		}
+		b.WriteString(s)
+		first = false
+	}
+	if !found || prop == "" {
+		return "", "", false
+	}
+	return b.String(), prop, true
+}
+
 // eachAlternatives recognises Forge's multi-type search grammar:
 // "EACH <typeA>[.preds] & <typeB>[.preds] ..." -- one pick of EACH listed
 // type (Krosan Verge's "EACH Forest & Plains", Conflux's five Card.<Colour>

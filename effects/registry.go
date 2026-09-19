@@ -136,6 +136,14 @@ type Host interface {
 	// count, so the qualifier is the count's exclusion of its own ctx source.
 	// Derived from the event log like SpellsCastThisTurnMatching.
 	SpellsCastThisTurnMatchingExcluding(you state.PlayerID, spec string, exclude state.ObjID) int
+	// EachSpellCastThisTurnMatching is the ARGUMENTED !CastSaSource forms'
+	// engine side (task castprov2): the object ids of the spells put on the
+	// stack this turn matching spec (with the same You*-qualifier scoping
+	// and the same single-object exclusion as
+	// SpellsCastThisTurnMatchingExcluding), in reverse log order (newest
+	// first) — the order is irrelevant to the aggregate reads (a sum).
+	// Derived from the event log like SpellsCastThisTurnMatching.
+	EachSpellCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID
 	// WasCastFromHandByYou reports whether card obj was cast from ITS OWN
 	// CONTROLLER's hand by that controller — the Count$wasCastFromYourHandByYou
 	// branch head backing (the Myojin cycle's etbCounter CheckSVar$ gate:
