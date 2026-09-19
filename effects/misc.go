@@ -1558,6 +1558,27 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		}
 		produced = noted
 	}
+	// Special EachColorAmong_Valid <spec> (Faeburrow Elder, Tarnation Vista's
+	// second ability: "For each color among [matching] permanents you control,
+	// add one mana of that color"): a deterministic BATCH, not a choice. The
+	// matching permanents' colours (ColorsOf: mana cost or Colors: line,
+	// Devoid-aware) are unioned and rendered in fixed WUBRG order, and the
+	// tail's per-rune loop adds one unit per distinct colour. The spec is
+	// evaluated over the battlefield exactly as ManaReflectedCandidates
+	// evaluates its Valid$: MatchesSpecFrom with the resolving source as
+	// Self and its controller as You. An empty colour set is a legitimate
+	// deterministic no-op ("for each color" over none adds nothing) -- no
+	// Note, no mana, like ChangeNum$ 0 Dig. Every OTHER Special selector
+	// (EachColorAmong_ExiledWith, EnchantedManaCost, DoubleManaInPool,
+	// EachColoredManaSymbol_Milled) still falls through to the rune gate's
+	// loud Note below.
+	if sel, ok := strings.CutPrefix(produced, "Special EachColorAmong_Valid "); ok {
+		syms := eachColorAmongValid(h, c, strings.TrimSpace(sel))
+		if syms == "" {
+			return
+		}
+		produced = syms
+	}
 	produced = strings.TrimSpace(strings.TrimPrefix(produced, "Combo "))
 	// Strip braces and spaces, then validate every remaining rune before any
 	// of them reaches the pool: ComboChosen/ChosenColor/Special ... values
@@ -1639,6 +1660,29 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(ev)
 		}
 	}
+}
+
+// eachColorAmongValid resolves a Produced$ Special EachColorAmong_Valid <spec>
+// selector: the union of the matching battlefield permanents' colours, in the
+// controller-relative battlefield scan order (AliveFrom(0) x zone order, the
+// same scan ManaReflectedCandidates uses), rendered in fixed WUBRG order via
+// ColorMask's table. Colourless contributes nothing ("each color" never
+// includes colourless). The spec is evaluated with the resolving source as
+// Self and its controller as You, so a bare Permanent.YouCtrl always matches
+// the resolving permanent itself while it is on the battlefield. No map
+// iteration reaches the result: the union is a bitmask and the output order
+// is the fixed WUBRG table.
+func eachColorAmongValid(h Host, c *Ctx, spec string) string {
+	g := h.Game()
+	var mask ColorMask
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+				mask |= ColorMaskOf(g.Obj(id))
+			}
+		}
+	}
+	return mask.String()
 }
 
 // ManaRecipients is the player or players a Mana SA adds its mana for. Forge's

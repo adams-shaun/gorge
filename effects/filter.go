@@ -343,6 +343,7 @@ const (
 	wordType
 	wordColorless
 	wordMultiColor
+	wordMonoColor
 	// The game/source-aware families. Each needs more than the object alone:
 	// the game (for the active player and the commander list), the source
 	// (for combat pairing), or the object's own zone/counters. They are
@@ -468,6 +469,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordColorless, ""
 	case "MultiColor":
 		return wordMultiColor, ""
+	case "MonoColor":
+		return wordMonoColor, ""
 	case "wasCast":
 		return wordWasCast, ""
 	case "ActivePlayerCtrl":
@@ -535,8 +538,10 @@ func zoneWordKnown(z string) bool {
 
 // wordMatches reports whether an object satisfies a positively-evaluated
 // classifier from wordPredicate. Colorless is "no colour at all" and
-// MultiColor "more than one colour", both read off ColorsOf rather than the
-// face directly -- so a Devoid card (CR 702.114, which ColorsOf already
+// MultiColor "more than one colour"; MonoColor is its twin, "exactly one
+// colour" (Tarnation Vista's EachColorAmong_Valid
+// Permanent.YouCtrl+MonoColor -- a colourless permanent is not monocolored),
+// all read off ColorsOf rather than the face directly -- so a Devoid card (CR 702.114, which ColorsOf already
 // implements) is Colorless, which is the whole point of Devoid. The
 // game/source-aware families read the live game, the object's own zone or
 // counters, and the effect's source (for combat pairing and commander
@@ -570,6 +575,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return false
 	case wordMultiColor:
 		return len(ColorsOf(o)) > 1
+	case wordMonoColor:
+		return len(ColorsOf(o)) == 1
 	case wordWasCast:
 		// Forge's wasCast: a spell (Card != nil) currently on the stack. An
 		// ability object was activated, never cast. The AsStack override
