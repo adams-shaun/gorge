@@ -1173,6 +1173,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.CounterDistDone = true
+		case "counter_pick":
+			// A bare-Choices$ PutCounter pick was answered (task vow1;
+			// Promise of Loyalty's vow): the chooser picked the creature(s)
+			// that take the full CounterNum$, in answer order.
+			// CounterPickDone distinguishes "answered" from the first pass.
+			// effPutCounter consumes and clears both at the top of its own
+			// walk (the fx42 scoping discipline), so a nested PutCounter
+			// cannot inherit the outer answer.
+			ctx.CounterPick = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.CounterPick = append(ctx.CounterPick, o.Obj)
+				}
+			}
+			ctx.CounterPickDone = true
 		case "roll":
 			// A RollDice choose-one-result answer (effects/dice.go's
 			// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the chosen

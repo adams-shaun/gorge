@@ -1379,6 +1379,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.PutOnStack {
 		e.effectMoveSweep(ev)
 	}
+	if ev.Kind == events.CounterChange {
+		// Effect-created continuous effects' counter-driven lifetime (task
+		// vow1; ForgetCounter$): after a counter REMOVAL is applied, a
+		// remembered card whose count of the named kind reached zero leaves
+		// the effect's Remembered set -- Promise of Loyalty's "for as long
+		// as it has a vow counter on it". Applied before this event's own
+		// triggers are checked, the same timing effectMoveSweep keeps.
+		e.effectCounterSweep(ev)
+	}
 	// Damage batch (CR 510.4, Forge dealAssignedDamage): DamageDealtOnce/
 	// DamageDoneOnce latch once per damage BATCH. A Damage event arriving with
 	// no batch already open (combat's damageStep and effects' dealDamage calls

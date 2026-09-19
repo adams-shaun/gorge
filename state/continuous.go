@@ -296,6 +296,17 @@ type ContinuousEffect struct {
 	// means the effect never ends on a move. Engine-runtime only, like
 	// ForgetOnMoved.
 	ExileOnMoved string
+	// ForgetCounter carries the Effect's ForgetCounter$ counter kind (task
+	// vow1; Promise of Loyalty's VOW, Quicksilver Fountain's FLOOD,
+	// Obsidian Fireheart's BLAZE -- 18 corpus carriers): a remembered card
+	// whose count of that kind reaches zero after a counter-removal leaves
+	// the effect's Remembered set -- "for as long as it has a vow counter
+	// on it". The count DROPPING without reaching zero keeps the card (the
+	// measured semantics this build pins: a multi-countered card loses the
+	// restriction only when its LAST such counter goes). Engine-runtime
+	// only, rebuilt by re-execution on replay like every other
+	// continuous-effect field.
+	ForgetCounter string
 
 	// AdjustLandPlays marks an additional-land-drops grant (Azusa, Lost but
 	// Seeking's "You may play two additional lands on each of your turns",

@@ -128,7 +128,13 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	switch ref {
 	case "TriggeredTarget", "TriggeredDefendingPlayer", "TriggeredPlayer", "TriggeredCard",
 		"Targeted", "TargetedPlayer", "ThisTargetedPlayer", "TargetedController", "TargetedOrController",
-		"Remembered":
+		"Remembered", "RememberedPlayer",
+		// vow1: the full player-spec spellings the bare-Choices$ PutCounter
+		// family writes (Promise of Loyalty's "ControlledBy
+		// Player.IsRemembered", Gluntch's "ControlledBy ChosenPlayer"):
+		// resolution-only, resolved in controlReferentPlayers against the
+		// same remembered/chosen player entries the bare referents read.
+		"Player.IsRemembered", "ChosenPlayer", "Player.Chosen":
 		return op, ref, true
 	}
 	return "", "", false
@@ -179,6 +185,31 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		}
 		for _, t := range sc.Remembered {
 			if t.IsPlayer || ref == "Remembered" {
+				targets = append(targets, t)
+			}
+		}
+	case "Player.IsRemembered":
+		// vow1: the same remembered set the bare "Remembered" referent
+		// reads, PLAYERS ONLY -- the full player-spec spelling names the
+		// remembered player (a RepeatEach loop's subject), never a
+		// remembered object's controller.
+		if !sc.Resolving {
+			return nil, false
+		}
+		for _, t := range sc.Remembered {
+			if t.IsPlayer {
+				targets = append(targets, t)
+			}
+		}
+	case "ChosenPlayer", "Player.Chosen":
+		// vow1: the resolution's own ChoosePlayer answer (Gluntch's
+		// "ControlledBy ChosenPlayer"), the same current-resolution set the
+		// Player.Chosen Defined selector reads.
+		if !sc.Resolving {
+			return nil, false
+		}
+		for _, t := range sc.Chosen {
+			if t.IsPlayer {
 				targets = append(targets, t)
 			}
 		}

@@ -147,6 +147,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// blinked target). Both ride the registrations below.
 	forgetOn := strings.TrimSpace(sa.Params["ForgetOnMoved"])
 	exileOn := strings.TrimSpace(sa.Params["ExileOnMoved"])
+	// ForgetCounter$ <kind> (task vow1): a remembered card whose count of
+	// that kind reaches zero after a counter-removal leaves the registered
+	// effect's Remembered set. Both this and ForgetOnMoved$ ride every
+	// registration below.
+	forgetCounter := strings.TrimSpace(sa.Params["ForgetCounter"])
 	// RememberLKI$ (Quicksilver Elemental's "RememberLKI$ Targeted"): the
 	// effect remembers the TARGETED cards — "Targeted" (and Forge's bare
 	// "True", which is Targeted in the corpus's spelling) is exactly the
@@ -223,6 +228,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				Remembered:       remembered,
 				ForgetOnMoved:    forgetOn,
 				ExileOnMoved:     exileOn,
+				ForgetCounter:    forgetCounter,
 				ChosenNumber:     chosenNumber,
 				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
 			})
@@ -288,6 +294,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.Duration = dur
 				grant.ForgetOnMoved = forgetOn
 				grant.ExileOnMoved = exileOn
+				grant.ForgetCounter = forgetCounter
 				h.AddContinuous(grant)
 				registered = true
 			} else if len(params) > 0 {
@@ -327,6 +334,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				Duration:       dur,
 				ForgetOnMoved:  forgetOn,
 				ExileOnMoved:   exileOn,
+				ForgetCounter:  forgetCounter,
 			}
 			if mode == "CantAttack" || mode == "CantSacrifice" {
 				// The player half of the remembered capture: Call for Aid's
