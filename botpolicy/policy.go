@@ -32,7 +32,8 @@ import (
 // same way by TestBotAdaptersAgreeOverCommanderGame). The fields are
 // deliberately not speculative: a board fact no policy branch reads would
 // be untested surface. Priority reads IsMain, Pool, Cards, Life and
-// Commanders; combat reads Creatures, Life and Commanders.
+// Commanders; combat reads Creatures, Life and Commanders; the cast scorer
+// (cast.go) additionally reads Cast, FirstMain and MyTurn.
 type Board struct {
 	// IsMain reports whether sorcery-speed actions are legal right now.
 	// The seat adapter lifts it off the projected View's Phase
@@ -123,6 +124,29 @@ type Board struct {
 	// state.Game.Stack), pinned on every intent of a whole game by
 	// seat/integration_test.go's parity tests.
 	Stack []StackEntry
+	// Cast is the learned cast profile the cast scorer dots its feature
+	// vector with (cast.go's CastWeights). It is CONFIGURATION, not board
+	// state: the adapters never fill it (BoardFromGameInto's refill contract
+	// leaves it untouched, so a profile set once on a reused Board survives
+	// every refill), and the zero value is treated as DefaultCastWeights --
+	// the pre-refactor arithmetic, byte for byte (cast.go's castWeights).
+	// A Board nobody configured plays the default bot.
+	Cast CastWeights
+	// FirstMain reports whether the current main phase is the FIRST one
+	// (main1, not main2): the Precombat feature's board half. It is filled
+	// exactly like IsMain on both adapter halves -- the projected View's
+	// Phase string ("main1") on the view half, g.Step == state.StepMain1 on
+	// the game half -- so both halves agree on it wherever they agree on
+	// IsMain itself.
+	FirstMain bool
+	// MyTurn reports whether the deciding seat is the ACTIVE player (the
+	// seat whose turn it is): the InstantOnOwnTurn feature's board half. A
+	// main phase can belong to another seat (an opponent holding priority
+	// during the active seat's main phase), so IsMain alone cannot say
+	// "own main phase". Filled from the projected View's Active field on
+	// the view half and g.Active on the game half, the same field both
+	// halves already agree is public.
+	MyTurn bool
 }
 
 // Commander is the Board's per-commander commander-format bookkeeping,

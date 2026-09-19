@@ -153,6 +153,16 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil})
 	}
 	b.IsMain = g.Step.IsMain()
+	// The cast scorer's two board-half features (cast.go): FirstMain is the
+	// FIRST main phase (the Precombat feature) and MyTurn whether the
+	// deciding seat is the active player (the InstantOnOwnTurn feature's
+	// "own main phase" half -- a main phase can belong to another seat, so
+	// IsMain alone cannot say it). Same function of the same engine state
+	// the view half reads off the projected View (v.Phase == "main1",
+	// v.Active == v.Viewer), so the halves agree wherever they agree on
+	// IsMain itself.
+	b.FirstMain = g.Step == state.StepMain1
+	b.MyTurn = g.Active == me
 	b.Pool = g.Players[me].Pool
 	for i := range g.Players {
 		p := &g.Players[i]
@@ -248,21 +258,23 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			if f == nil {
 				continue
 			}
-			var power int32
+			var power, toughness int32
 			var castable, instantSpeed bool
 			if hasCombined {
 				var keywords []string
-				power, _, keywords = combined.Characteristics(id)
+				power, toughness, keywords = combined.Characteristics(id)
 				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(keywords))
 				instantSpeed = hasTypeWord(f.Types, "Instant") || hasFlash(keywords)
 			} else {
 				power = ch.Power(id)
+				toughness = ch.Toughness(id)
 				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id)))
 				instantSpeed = hasTypeWord(f.Types, "Instant") || hasFlash(ch.Keywords(id))
 			}
 			b.Cards[id] = Card{
 				Creature:      f.IsCreature(),
 				Power:         power,
+				Toughness:     toughness,
 				CMC:           CmcOf(f.ManaCost),
 				Basic:         hasTypeWord(f.Types, "Basic"),
 				AttachedTo:    o.AttachedTo,
@@ -270,6 +282,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				ManaCost:      f.ManaCost,
 				Castable:      castable,
 				OnBattlefield: z == state.ZBattlefield,
+				Tapped:        o.Tapped,
 				Produces:      f.ManaProduction(),
 				InstantSpeed:  instantSpeed,
 				Counter:       f.SpellAbility() != nil && f.SpellAbility().API == "Counter",
