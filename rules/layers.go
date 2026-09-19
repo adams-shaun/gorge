@@ -1203,6 +1203,16 @@ func bestowedTypeSwitch(o *state.Object, types []string) []string {
 }
 
 func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []string, atStack state.Zone) bool {
+	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
+	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
+	// `Instant.wasCastByYou+wasCastFromYourHand`) are split out before the
+	// filter match, through the combined entry point; its Contains guard is
+	// the early-out, so every Affected$ spec without the tokens costs three
+	// Contains calls on this shared hot path.
+	affects, ok := e.castProvenanceAdmits(ce.Affects, id, ce.Controller)
+	if !ok {
+		return false
+	}
 	// ExtraTypes is the walk's types-so-far list for THIS object: a later
 	// layer-4 effect selects a creature an earlier one made a Goblin, and a
 	// layer-7 lord's Affected$ sees the derived type. A value slice, not a
@@ -1210,7 +1220,7 @@ func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []s
 	sc := e.specCtx(ce.Source, ce.Controller)
 	sc.AsStack = atStack != 0
 	sc.ExtraTypes = types
-	return effects.MatchesSpecCtx(e.G, ce.Affects, id, sc)
+	return effects.MatchesSpecCtx(e.G, affects, id, sc)
 }
 
 // derivedScalar returns only an object's derived power and toughness — the

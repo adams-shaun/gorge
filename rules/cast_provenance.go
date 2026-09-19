@@ -24,9 +24,21 @@
 //     exists-scan still answers "you did cast it, earlier", which is the
 //     oracle's own wording.
 //
+//   - wasCastFromYourHand (castprov3): the object's LATEST PutOnStack event
+//     names the cast AND that cast came from a hand — ANY caster. The bare
+//     spelling is the one the "from anywhere other than your hand" carriers
+//     print (Vega the Watcher, Bilbo Thief in the Night, Mm'menon's
+//     RestrictValid$); every carrier that needs player scoping supplies it
+//     elsewhere (ValidActivatingPlayer$ You on the trigger lines, YouCtrl or
+//     wasCastByYou in the same Affected$/Count spec), measured over the 46
+//     raw carrier files. A copy was never cast (the same IsCopy guard both
+//     existing families take); a card never put on the stack reads false.
+//
 // castProvenanceAdmits is the combined entry point every match site calls:
-// it evaluates both families in one pass, so a future carrier mixing the
-// tokens in one spec is covered by construction.
+// it evaluates all three families in one pass, so a future carrier mixing
+// the tokens in one spec is covered by construction (measured: alex_wilder
+// and quandrix_the_proof carry wasCastByYou AND the bare token in one
+// alternative).
 
 package rules
 
@@ -104,16 +116,71 @@ func (e *Engine) castAtAllAdmits(spec string, objID state.ObjID, you state.Playe
 	return admitProvenanceAlternatives(spec, "wasCastByYou", holds)
 }
 
-// castProvenanceAdmits evaluates BOTH cast-provenance families of a Forge
-// filter spec against objID — the hand-origin one (castFromHandAdmits) and
-// the any-origin one (castAtAllAdmits) — chaining the two splits so a spec
-// carrying either (or both) token evaluates fully. This is the one entry
-// point every rules-side match site calls, so a future carrier mixing the
-// tokens is covered by construction.
+// castFromHandAnyAdmits evaluates the bare wasCastFromYourHand /
+// !wasCastFromYourHand qualifier (castprov3): the object's LATEST PutOnStack
+// event names the cast and that cast came from a hand, any caster — the
+// WasCastFromHand read minus the ByYou families' player comparison. Copies
+// were never cast; a card never put on the stack (cheated into play) reads
+// false, so a negated alternative holds for it.
+//
+// ORDER INVARIANT: this helper MUST run after castFromHandAdmits in
+// castProvenanceAdmits's chain. The bare token is a SUBSTRING of
+// wasCastFromYourHandByYou, so a ByYou spec also contains the bare one;
+// StripPredicateToken removes exact tokens (it would never partially mangle
+// a ByYou token), but the polarity accounting would be wrong if the bare
+// helper ran first — a ByYou spec would be evaluated under the bare,
+// caster-less read. ByYou must be stripped (or found absent) first.
+func (e *Engine) castFromHandAnyAdmits(spec string, objID state.ObjID) (string, bool) {
+	if strings.Contains(spec, "wasCastFromYourHandByYou") || !strings.Contains(spec, "wasCastFromYourHand") {
+		return spec, true
+	}
+	holds := false
+	if o := e.G.Obj(objID); o != nil && !o.IsCopy {
+		holds = e.WasCastFromHand(objID)
+	}
+	return admitProvenanceAlternatives(spec, "wasCastFromYourHand", holds)
+}
+
+// castProvenanceAdmits evaluates ALL THREE cast-provenance families of a
+// Forge filter spec against objID — the hand-origin ByYou one
+// (castFromHandAdmits), the any-origin one (castAtAllAdmits) and the bare
+// player-less hand one (castFromHandAnyAdmits) — chaining the splits so a
+// spec carrying any (or several) of the tokens evaluates fully. The chain
+// order is load-bearing: ByYou before bare (see castFromHandAnyAdmits's
+// order invariant). This is the one entry point every rules-side match site
+// calls, so a future carrier mixing the tokens is covered by construction.
 func (e *Engine) castProvenanceAdmits(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
 	s, ok := e.castFromHandAdmits(spec, objID, you)
 	if !ok {
 		return "", false
 	}
-	return e.castAtAllAdmits(s, objID, you)
+	s, ok = e.castAtAllAdmits(s, objID, you)
+	if !ok {
+		return "", false
+	}
+	return e.castFromHandAnyAdmits(s, objID)
+}
+
+// castProvenanceAdmitsPending is castProvenanceAdmits with the pending-cast
+// guard the two COST paths need (the ReduceCost/RaiseCost statics'
+// ValidCard$, and the RestrictValid$ mana-restriction read): a
+// provenance-keyed spec is UNRESOLVABLE while the priced object has no cast
+// in the log yet. The offer-side walk (castable → costPayable) and the
+// option-selection snapshot (costModifiers) both evaluate pre-push, where
+// the log scan reads false and the NEGATED spellings would wrongly hold —
+// a hand cast would be offered as payable on mana the payment then refuses,
+// or priced at a reduction the payment must not take. Such a spec denies
+// the whole match while the object is off the stack (the fail-closed
+// direction both call sites document); continueCast re-prices the pending
+// cast right after CR 601.2a's push, once the PutOnStack is in the log. A
+// spec without a provenance token is returned unchanged, so every
+// unrelated cost evaluation is byte-identical.
+func (e *Engine) castProvenanceAdmitsPending(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
+	if !strings.Contains(spec, "wasCastFromYourHand") && !strings.Contains(spec, "wasCastByYou") {
+		return spec, true
+	}
+	if o := e.G.Obj(objID); o == nil || o.Zone != state.ZStack {
+		return "", false
+	}
+	return e.castProvenanceAdmits(spec, objID, you)
 }

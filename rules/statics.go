@@ -1334,6 +1334,8 @@ func (e *Engine) costModifiersWithTargetsX(p state.PlayerID, id state.ObjID, sco
 }
 
 func (e *Engine) costModifiersWithTargetsXUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32) costMods {
+	// The same per-pass provenance capture costModifiersWithTargetsUsing owns.
+	e.costProvenanceSeen = false
 	var mods costMods
 	xBound := x != 0
 	for _, group := range []struct {
@@ -1433,6 +1435,9 @@ func (e *Engine) costModifiersWithTargets(p state.PlayerID, id state.ObjID, scop
 }
 
 func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool) costMods {
+	// Each pass owns the provenance capture: cleared here, set by
+	// costStaticApplies when a ValidCard$ carries a cast-provenance token.
+	e.costProvenanceSeen = false
 	var mods costMods
 	for _, group := range []struct {
 		mode  string
@@ -1548,8 +1553,25 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 		// onlyFirstSpellUsed for the tracking.
 		return false
 	}
-	if spec, ok := sv.Params["ValidCard"]; ok && !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
-		return false
+	if spec, ok := sv.Params["ValidCard"]; ok {
+		// The provenance-keyed ValidCard$ (castprov3: Bilbo's
+		// "!wasCastFromYourHand" ReduceCost) is unresolvable while the priced
+		// object has no cast in the log yet — the offer walk and the
+		// option-selection snapshot both evaluate pre-push, where the negated
+		// spelling would wrongly hold for the hand cast it must not cover.
+		// Deny the modifier (full price, this gate chain's documented
+		// fail-closed direction); continueCast re-prices the pending cast
+		// right after CR 601.2a's push, once the PutOnStack is in the log.
+		// The capture (noCounterSpend's shape) tells the pending-cast flow a
+		// re-price is owed; the read stays inside the attributed cost-static
+		// pass, so the param census sees no new Params site.
+		if strings.Contains(spec, "wasCastFromYourHand") || strings.Contains(spec, "wasCastByYou") {
+			e.costProvenanceSeen = true
+		}
+		spec, ok2 := e.castProvenanceAdmitsPending(spec, id, sv.Controller)
+		if !ok2 || !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			return false
+		}
 	}
 	if vs, ok := sv.Params["ValidSpell"]; ok && !e.validSpellMatches(scope, p, id, vs) {
 		return false

@@ -278,6 +278,25 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, abil
 	if src != 0 {
 		srcID = src
 	}
+	// The bare wasCastFromYourHand qualifier (castprov3, Mm'menon's
+	// RestrictValid$ Spell.!wasCastFromYourHand — "spend this mana only to
+	// cast a spell from anywhere other than your hand"): split the
+	// provenance out before the filter match, through the pending-cast
+	// variant — the offer-side affordability walk (castable → costPayable)
+	// evaluates this read PRE-push, where the object has no cast in the log
+	// and the negated spelling would wrongly hold, offering a hand cast as
+	// payable on mana the payment then refuses. Off the stack the spec
+	// denies (this function's own fail-closed convention: restricted mana is
+	// never spent illegally — here it is never even counted); at the payment
+	// the spell is on the stack and the read is honest. The term's spec is
+	// BASE-LESS here (the "Spell." class was already cut off) and the strip
+	// helpers rejoin onto a base, so evaluate the Card.-prefixed form; a
+	// surviving alternative whose only predicate was the provenance token
+	// rejoins to bare "Card", which MatchesSpecFrom matches like any card.
+	spec, ok = e.castProvenanceAdmitsPending("Card."+spec, id, p)
+	if !ok {
+		return false
+	}
 	if effects.MatchesSpecFrom(e.G, spec, id, p, srcID) {
 		return true
 	}
@@ -2116,6 +2135,30 @@ func (e *Engine) WasCastFromHandByYou(obj state.ObjID, p state.PlayerID) bool {
 		ev := e.L.Events[i]
 		if ev.Kind == events.PutOnStack && ev.Obj == obj {
 			return ev.From == state.ZHand && ev.Player == p
+		}
+	}
+	return false
+}
+
+// WasCastFromHand satisfies effects.Host's WasCastFromHand for the BARE
+// wasCastFromYourHand filter family (task castprov3 — the "from anywhere
+// other than your hand" carriers whose scripts spell the predicate without
+// the ByYou suffix: Vega the Watcher, Bilbo Thief in the Night, Mm'menon's
+// RestrictValid$): obj's latest PutOnStack event names the cast that put it
+// on the stack, and From is the zone that cast came from — ANY caster. Every
+// carrier that needs player scoping supplies it elsewhere (measured over the
+// 46 raw carrier files: ValidActivatingPlayer$ You on the trigger lines,
+// YouCtrl or wasCastByYou in the same Affected$/Count spec). A copy was
+// never cast (the rules-side split, castProvenanceAdmits, applies the same
+// IsCopy guard; this read answers the log question alone); a card never put
+// on the stack (cheated into play) reads false. Derived from the event log
+// like WasCastFromHandByYou, so a replay derives the same answer;
+// latest-cast-wins.
+func (e *Engine) WasCastFromHand(obj state.ObjID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return ev.From == state.ZHand
 		}
 	}
 	return false

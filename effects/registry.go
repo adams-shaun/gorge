@@ -158,6 +158,21 @@ type Host interface {
 	// the same answer; a card never put on the stack (cheated into play)
 	// reads false.
 	WasCastFromHandByYou(obj state.ObjID, p state.PlayerID) bool
+	// WasCastFromHand reports whether card obj's LATEST cast came from a
+	// hand — ANY caster's hand — the bare wasCastFromYourHand filter family's
+	// backing (task castprov3: the "from anywhere other than your hand"
+	// carriers whose scripts spell the predicate without the ByYou suffix —
+	// Vega the Watcher's trigger, Otterball Antics' ConditionPresent$ gate,
+	// See the Truth's Count$ branch head, Approach of the Second Sun's
+	// Count$ValidStack). Every carrier that needs player scoping supplies it
+	// elsewhere (ValidActivatingPlayer$ You, YouCtrl, wasCastByYou in the
+	// same spec), measured over the 46 raw carrier files. Derived from the
+	// event log like WasCastFromHandByYou: the object's latest PutOnStack
+	// event names the cast that put it on the stack, whose From is the zone
+	// it was cast FROM; a copy was never cast (the same IsCopy guard the
+	// ByYou read takes); a card never put on the stack (cheated into play)
+	// reads false; latest-cast-wins.
+	WasCastFromHand(obj state.ObjID) bool
 	// LifeLostThisTurn reports the total life player p lost THIS TURN — the
 	// sum of every LifeChange below zero since the last TurnChange, derived
 	// from the event log so a replay derives the same number. This is the

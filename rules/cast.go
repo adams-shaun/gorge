@@ -200,6 +200,14 @@ type pendingCast struct {
 	// An aborted proposal reverses the push when it is set.
 	pushed bool
 
+	// provenanceRepriced is true once the post-push provenance re-price has
+	// run for this proposal (castprov3: a provenance-keyed cost static is
+	// unresolvable pre-push, so continueCast re-prices pc.mods right after
+	// the push; the flag keeps the re-entries — a mana-window resume re-enters
+	// continueCast with pushed already true — from gathering the statics
+	// again). Plain data, so Clone copies it.
+	provenanceRepriced bool
+
 	// preSuppress is the suppressedCast set as it was just before pushCast's
 	// PutOnStack, captured so an aborted (reversed) cast can restore it:
 	// the push is a state-changing event that emit treats as progress and so
@@ -1572,6 +1580,21 @@ func (e *Engine) continueCast() {
 	// is held back until payCast; an ability's AbilityPush fires no trigger.
 	if e.pushCast() {
 		return
+	}
+	// castprov3: a provenance-keyed cost modifier (Bilbo's
+	// "!wasCastFromYourHand" ReduceCost) is unresolvable before CR 601.2a's
+	// push — the offer and option-selection snapshots both denied it (full
+	// price, the fail-closed direction) because the priced card had no cast
+	// in the log yet. Now the PutOnStack is in the log: when the selection
+	// pass evaluated such a static (e.costProvenanceSeen, the
+	// noCounterSpend-style transient capture), re-price the pending cast so
+	// the payment takes the honest reduction. For every other cast the
+	// recompute is byte-identical to the offer snapshot (both are the
+	// nil-target base snapshot), so no existing price — and no chain head —
+	// moves.
+	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && e.costProvenanceSeen {
+		pc.provenanceRepriced = true
+		pc.mods = e.costModifiers(pc.player, pc.card, spellScope(pc.mode))
 	}
 	// FlagSuspend is exile provenance, not cast-time state. Clear it when the
 	// mandatory free cast starts so a later unrelated exile move cannot revive
