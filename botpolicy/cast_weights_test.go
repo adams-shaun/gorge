@@ -493,3 +493,249 @@ func TestCastWeightsZeroValueIsDefault(t *testing.T) {
 		t.Fatalf("tuned profile pick = option %d, want 0 — with the creature terms zeroed the CMC-3 spell outranks the 1/1", got)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// L1b: the hold threshold (C9) and the interaction features (C10).
+
+// TestCastThresholdHoldsTheBestCast: a threshold above the best option's
+// final score makes chooseCast return -1, and the boundary is the strict
+// "<" the rule states — a threshold exactly AT the best score still casts.
+func TestCastThresholdHoldsTheBestCast(t *testing.T) {
+	cards := map[state.ObjID]Card{
+		1: {Creature: true, Power: 2, Castable: true},
+		2: {Creature: true, Power: 3, Castable: true},
+	}
+	opts := []decision.Option{castCreature(0, 1), castCreature(1, 2)}
+	b := Board{IsMain: true, Cards: cards}
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: opts}
+	if got := b.chooseCast(d); got != 1 {
+		t.Fatalf("default pick = option %d, want 1 — the 3-power creature (42) outranks the 2/2 (38)", got)
+	}
+	// Threshold exactly at the best score (42): 42 is not strictly below it,
+	// so the cast is still made.
+	if got := withTuned(b, func(w *CastWeights) { w.CastThreshold = 42 }).chooseCast(d); got != 1 {
+		t.Fatalf("threshold AT the best score = option %d, want 1 — the boundary is strictly-below", got)
+	}
+	// One above: the best score (42) is below 43, so nothing is cast.
+	if got := withTuned(b, func(w *CastWeights) { w.CastThreshold = 43 }).chooseCast(d); got != -1 {
+		t.Fatalf("threshold above the best score = option %d, want -1 — the cast is held", got)
+	}
+}
+
+// TestCastThresholdHoldsTheWholePriorityDecision: with a threshold above
+// the best cast score, the WHOLE KPriority decision passes rather than
+// casting — chooseCast's -1 falls through the tap gate (inert: the CMC-0
+// card is payable from the empty pool), the land drop (none offered), the
+// ability ranking (no ability offered) and lands on the explicit pass,
+// never the trailing concede.
+func TestCastThresholdHoldsTheWholePriorityDecision(t *testing.T) {
+	d := &decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
+		Options: []decision.Option{
+			{Index: 0, Kind: "cast", Obj: 1},
+			{Index: 1, Kind: "pass"},
+			{Index: 2, Kind: "concede"},
+		}}
+	b := Board{IsMain: true, Cards: map[state.ObjID]Card{1: {Creature: true, Power: 2, Castable: true}}}
+	in := Decide(b, d, rng(1))
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("default intent failed Validate: %v", in)
+	}
+	if len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "cast" {
+		t.Fatalf("default priority = %+v, want the cast — the threshold never binds at MinInt32/2", in)
+	}
+	held := withTuned(b, func(w *CastWeights) { w.CastThreshold = 100 })
+	in = Decide(held, d, rng(1))
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("held intent failed Validate: %v", in)
+	}
+	if len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "pass" {
+		t.Fatalf("held priority = %+v, want the pass — the threshold holds the whole decision", in)
+	}
+}
+
+// TestCastThresholdSparesTheCommanderCast: a command-zone cast is priced by
+// value alone and is NOT subject to the threshold (CR1 — the deck must be
+// able to cast its commander). The exemption is per WINNER: while the
+// commander cast IS the best option it is made whatever the threshold; when
+// a hand card outscores it, the hand card is the best option and the
+// threshold holds the whole decision.
+func TestCastThresholdSparesTheCommanderCast(t *testing.T) {
+	b := Board{IsMain: true,
+		Cards:      map[state.ObjID]Card{1: {Creature: true, Power: 2, CMC: 2, Castable: true}},
+		Commanders: map[state.ObjID]Commander{1: {Casts: 0, InCommandZone: true}}}
+	opts := []decision.Option{castCreature(0, 1), {Index: 1, Kind: "pass"}}
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: opts}
+	if got := withTuned(b, func(w *CastWeights) { w.CastThreshold = 100 }).chooseCast(d); got != 0 {
+		t.Fatalf("commander cast with threshold 100 = option %d, want 0 — the recast (38) is exempt from the threshold", got)
+	}
+	// Mixed: the hand 4-power creature (46) outscores the commander (38), so
+	// it is the best option and the threshold applies to the whole decision.
+	b2 := Board{IsMain: true,
+		Cards: map[state.ObjID]Card{
+			1: {Creature: true, Power: 2, CMC: 2, Castable: true},
+			2: {Creature: true, Power: 4, Castable: true},
+		},
+		Commanders: map[state.ObjID]Commander{1: {Casts: 0, InCommandZone: true}}}
+	opts2 := []decision.Option{castCreature(0, 1), castCreature(1, 2), {Index: 2, Kind: "pass"}}
+	d2 := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: opts2}
+	if got := b2.chooseCast(d2); got != 1 {
+		t.Fatalf("default mixed pick = option %d, want 1 — the hand 4-power (46) outranks the commander (38)", got)
+	}
+	if got := withTuned(b2, func(w *CastWeights) { w.CastThreshold = 100 }).chooseCast(d2); got != -1 {
+		t.Fatalf("mixed with threshold 100 = option %d, want -1 — the hand card is the best option, so the threshold holds everything", got)
+	}
+}
+
+// TestCastWeightCreaturePrecombat: with CreaturePrecombat weight 5, of a
+// creature and a same-score spell (34 vs CMC 34, an index tie by default)
+// the CREATURE is cast in the FIRST main phase; outside the first main
+// phase the same tuned profile keeps the tie.
+func TestCastWeightCreaturePrecombat(t *testing.T) {
+	cards := map[state.ObjID]Card{
+		1: {Creature: true, Power: 1},
+		2: {CMC: 34},
+	}
+	opts := []decision.Option{castSpell(0, 2), castCreature(1, 1)}
+	b := Board{IsMain: true, FirstMain: true, Cards: cards}
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: opts}
+	if got := b.chooseCast(d); got != 0 {
+		t.Fatalf("default pick = option %d, want the index tie (0)", got)
+	}
+	if got := withTuned(b, func(w *CastWeights) { w.CreaturePrecombat = 5 }).chooseCast(d); got != 1 {
+		t.Fatalf("CreaturePrecombat=5 pick = option %d, want 1 — the creature earns the first-main term", got)
+	}
+	outside := b
+	outside.FirstMain = false
+	if got := withTuned(outside, func(w *CastWeights) { w.CreaturePrecombat = 5 }).chooseCast(d); got != 0 {
+		t.Fatalf("CreaturePrecombat=5 outside the first main = option %d, want 0 — the term is FirstMain-gated", got)
+	}
+}
+
+// TestCastWeightCreatureOppCreatures: with CreatureOppCreatures weight 3 and
+// two opposing creatures on the battlefield, of a creature and a same-score
+// spell (the index tie) the creature is cast; with no opposing creatures the
+// same tuned profile keeps the tie.
+func TestCastWeightCreatureOppCreatures(t *testing.T) {
+	cards := map[state.ObjID]Card{
+		1: {Creature: true, Power: 1},
+		2: {CMC: 34},
+	}
+	opts := []decision.Option{castSpell(0, 2), castCreature(1, 1)}
+	b := Board{IsMain: true, FirstMain: true, Cards: cards,
+		Creatures: map[state.ObjID]Creature{10: {Controller: 1}, 11: {Controller: 1}}}
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: opts}
+	if got := b.chooseCast(d); got != 0 {
+		t.Fatalf("default pick = option %d, want the index tie (0)", got)
+	}
+	if got := withTuned(b, func(w *CastWeights) { w.CreatureOppCreatures = 3 }).chooseCast(d); got != 1 {
+		t.Fatalf("CreatureOppCreatures=3 pick = option %d, want 1 — the creature earns 2 opposing creatures × 3", got)
+	}
+	empty := b
+	empty.Creatures = nil
+	if got := withTuned(empty, func(w *CastWeights) { w.CreatureOppCreatures = 3 }).chooseCast(d); got != 0 {
+		t.Fatalf("CreatureOppCreatures=3 with an empty board = option %d, want 0 — the count is 0 and the tie stands", got)
+	}
+}
+
+// TestCastWeightNonCreatureOppCreatures: with NonCreatureOppCreatures weight
+// 20 and two opposing creatures, the one-shot (the removal proxy) outscores
+// the 1/1 creature the default rule prefers; with an empty battlefield the
+// same tuned profile keeps the creature.
+func TestCastWeightNonCreatureOppCreatures(t *testing.T) {
+	cards := map[state.ObjID]Card{
+		1: {Creature: true, Power: 1},
+		2: {CMC: 1},
+	}
+	opts := []decision.Option{castSpell(0, 2), castCreature(1, 1)}
+	b := Board{IsMain: true, Cards: cards,
+		Creatures: map[state.ObjID]Creature{10: {Controller: 1}, 11: {Controller: 1}}}
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: opts}
+	if got := b.chooseCast(d); got != 1 {
+		t.Fatalf("default pick = option %d, want 1 — C1 casts the creature over the one-shot", got)
+	}
+	if got := withTuned(b, func(w *CastWeights) { w.NonCreatureOppCreatures = 20 }).chooseCast(d); got != 0 {
+		t.Fatalf("NonCreatureOppCreatures=20 pick = option %d, want 0 — the one-shot earns 2 × 20 against the wide board", got)
+	}
+	empty := b
+	empty.Creatures = nil
+	if got := withTuned(empty, func(w *CastWeights) { w.NonCreatureOppCreatures = 20 }).chooseCast(d); got != 1 {
+		t.Fatalf("NonCreatureOppCreatures=20 with an empty board = option %d, want 1 — the count is 0 and C1 stands", got)
+	}
+}
+
+// TestCastWeightCreatureLifeDelta: with CreatureLifeDelta weight 2 and the
+// seat five life ahead, of a creature and a same-score spell (the index tie)
+// the creature is cast; with equal life totals the same tuned profile keeps
+// the tie.
+func TestCastWeightCreatureLifeDelta(t *testing.T) {
+	cards := map[state.ObjID]Card{
+		1: {Creature: true, Power: 1},
+		2: {CMC: 34},
+	}
+	opts := []decision.Option{castSpell(0, 2), castCreature(1, 1)}
+	b := Board{IsMain: true, FirstMain: true, Cards: cards,
+		Life: map[state.PlayerID]int32{0: 25, 1: 20}}
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: opts}
+	if got := b.chooseCast(d); got != 0 {
+		t.Fatalf("default pick = option %d, want the index tie (0)", got)
+	}
+	if got := withTuned(b, func(w *CastWeights) { w.CreatureLifeDelta = 2 }).chooseCast(d); got != 1 {
+		t.Fatalf("CreatureLifeDelta=2 pick = option %d, want 1 — the creature earns the +5 life delta × 2", got)
+	}
+	even := b
+	even.Life = map[state.PlayerID]int32{0: 20, 1: 20}
+	if got := withTuned(even, func(w *CastWeights) { w.CreatureLifeDelta = 2 }).chooseCast(d); got != 0 {
+		t.Fatalf("CreatureLifeDelta=2 at even life = option %d, want 0 — the delta is 0 and the tie stands", got)
+	}
+}
+
+// TestCastWeightInstantSpeedOffTurnHold: with InstantSpeedOffTurnHold
+// weight -10 in the seat's OWN main phase, of an instant and a same-cost
+// non-instant (an index tie by default) the NON-instant is cast; off the
+// seat's own turn the same tuned profile keeps the tie. Paired with the C9
+// threshold the term holds the instant outright: at threshold 1 the plain
+// CMC-2 instant (score 2) still casts, the same instant with the term scores
+// -8 and is held, and a non-instant at the same threshold still casts —
+// the term, not the threshold alone, moved the boundary for this card.
+func TestCastWeightInstantSpeedOffTurnHold(t *testing.T) {
+	cards := map[state.ObjID]Card{
+		1: {CMC: 2, InstantSpeed: true},
+		2: {CMC: 2},
+	}
+	opts := []decision.Option{castSpell(0, 1), castSpell(1, 2)}
+	b := Board{IsMain: true, MyTurn: true, Cards: cards}
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: opts}
+	if got := b.chooseCast(d); got != 0 {
+		t.Fatalf("default pick = option %d, want the index tie (0)", got)
+	}
+	if got := withTuned(b, func(w *CastWeights) { w.InstantSpeedOffTurnHold = -10 }).chooseCast(d); got != 1 {
+		t.Fatalf("InstantSpeedOffTurnHold=-10 pick = option %d, want 1 — the instant earns the hold term in its own main phase", got)
+	}
+	off := b
+	off.MyTurn = false
+	if got := withTuned(off, func(w *CastWeights) { w.InstantSpeedOffTurnHold = -10 }).chooseCast(d); got != 0 {
+		t.Fatalf("InstantSpeedOffTurnHold=-10 off-turn = option %d, want 0 — the term is MyTurn-gated", got)
+	}
+
+	// The threshold pairing. Castable is false on purpose: a castable
+	// instant-speed card would earn the C7 reserve bonus and muddy the
+	// score the threshold reads.
+	pair := Board{IsMain: true, MyTurn: true, Pool: state.Mana{state.MC: 5},
+		Cards: map[state.ObjID]Card{1: {CMC: 2, InstantSpeed: true}}}
+	pairOpts := []decision.Option{castSpell(0, 1), {Index: 1, Kind: "pass"}}
+	pairD := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1, Options: pairOpts}
+	if got := withTuned(pair, func(w *CastWeights) { w.CastThreshold = 1 }).chooseCast(pairD); got != 0 {
+		t.Fatalf("instant at threshold 1 without the term = option %d, want 0 — score 2 is not below the boundary", got)
+	}
+	both := withTuned(pair, func(w *CastWeights) { w.CastThreshold = 1; w.InstantSpeedOffTurnHold = -10 })
+	if got := both.chooseCast(pairD); got != -1 {
+		t.Fatalf("instant at threshold 1 with the term = option %d, want -1 — the term moved the score (2-10) below the boundary", got)
+	}
+	plain := Board{IsMain: true, MyTurn: true, Pool: state.Mana{state.MC: 5},
+		Cards: map[state.ObjID]Card{1: {CMC: 2}}}
+	plainD := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
+		Options: []decision.Option{castSpell(0, 1), {Index: 1, Kind: "pass"}}}
+	if got := withTuned(plain, func(w *CastWeights) { w.CastThreshold = 1 }).chooseCast(plainD); got != 0 {
+		t.Fatalf("non-instant at threshold 1 = option %d, want 0 — the same threshold does not hold a card the term does not reach", got)
+	}
+}
