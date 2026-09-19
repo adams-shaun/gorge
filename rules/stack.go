@@ -1684,7 +1684,15 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 	// The resolution recheck, unlike a target offer, has this stack object's
 	// Targets available. Targeted* predicates may read precisely this binding;
 	// setting it here keeps their self-reference unavailable at announcement.
-	sc := e.targetSpecContext(0, self, you)
+	// The source rides in too, the same object askTarget's own offer filter
+	// sees (candidatesFor's sc.Source): a source-reading predicate
+	// (CanEnchantEquippedBy -- Mantle of the Ancients' recheck) judges the
+	// chosen target at resolution exactly as the offer judged it at
+	// placement, Critical C2's one-definition rule. Before this, the recheck
+	// built its SpecContext with source 0 and every source-reading predicate
+	// failed closed there -- a target the placement offer had just certified
+	// fizzled at resolution.
+	sc := e.targetSpecContext(source, self, you)
 	sc.ResolutionTargets = targets
 	sc.Resolving = true
 	for _, t := range targets {

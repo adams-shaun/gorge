@@ -478,6 +478,24 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 	}
 	sub := *sa
 	sub.Params = map[string]string{"Defined": val}
+	// A bare card-filter spelling ("Creature" -- Retether's mass return;
+	// "Creature.YouCtrl" -- One Last Job, Storm Herald, Nomad Mythmaker;
+	// "Creature.sharesCreatureTypeWith <ref>" -- Runed Crown) is not a
+	// Defined$ referent (definedSpec has no case for it) and MUST NOT ride
+	// Defined's source fallback: that would fasten the moved Aura to the
+	// resolving spell/ability itself, an attach the CR 704.5m SBA then
+	// sweeps the moment the source leaves play. When knownDefinedTargets
+	// cannot classify the value, resolve it as a battlefield card filter --
+	// the same walk the Valid-prefixed branch runs -- so a spelling this
+	// grammar cannot evaluate fails closed to the loud Note below, never to
+	// a guessed attach. A value that is already the Valid-prefixed filter
+	// form (Mantle of the Ancients' "Valid Creature.EnchantedBy") keeps its
+	// own branch.
+	if val != "Valid" && !strings.HasPrefix(val, "Valid ") {
+		if _, ok := knownDefinedTargets(h, c, val); !ok {
+			sub.Params["Defined"] = "Valid " + val
+		}
+	}
 	var to state.ObjID
 	for _, t := range Defined(h, c, &sub) {
 		if !t.IsPlayer {
