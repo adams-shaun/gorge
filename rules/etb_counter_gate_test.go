@@ -101,3 +101,35 @@ func TestSteelExemplarUncastEntersWithCounters(t *testing.T) {
 		t.Fatalf("un-cast Steel Exemplar entered with %d P1P1, want 2 (SVarCompare$ LT2 holds at 0)", got)
 	}
 }
+
+// TestSteelExemplarConvergeCastEntersWithoutCounters is the cast half the
+// CheckSVar$ X unshadowing unlocks: the face's real SVar:X body
+// (Count$Converge) is evaluated through the machinery, so a cast whose
+// payment spent two colours of mana takes no counters (LT2 fails), and a
+// one-colour cast still takes both (the gate holds at converge 1).
+func TestSteelExemplarConvergeCastEntersWithoutCounters(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Steel Exemplar"))
+	id := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MW], e.G.Players[0].Pool[state.MU] = 3, 1, 1
+	castMode(t, e, id, "")
+	finishCast(t, e, id)
+	if got := e.G.Obj(id).Counter("P1P1"); got != 0 {
+		t.Fatalf("two-colour-cast Steel Exemplar entered with %d P1P1, want 0 (Count$Converge reads 2: LT2 fails)", got)
+	}
+	if got := e.G.Obj(id).ConvergeColours; got != 2 {
+		t.Fatalf("two-colour-cast Steel Exemplar recorded %d converge colours, want 2", got)
+	}
+}
+
+func TestSteelExemplarOneColourCastEntersWithCounters(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Steel Exemplar"))
+	id := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MW] = 4, 1
+	castMode(t, e, id, "")
+	finishCast(t, e, id)
+	if got := e.G.Obj(id).Counter("P1P1"); got != 2 {
+		t.Fatalf("one-colour-cast Steel Exemplar entered with %d P1P1, want 2 (LT2 holds at converge 1)", got)
+	}
+}

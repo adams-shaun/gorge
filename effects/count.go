@@ -275,7 +275,10 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// not only ReplaceEffect itself, sees the same in-flight value.
 	if body, ok := strings.CutPrefix(expr, "ReplaceCount$"); ok {
 		field, op, hasOp := strings.Cut(strings.TrimSpace(body), "/")
-		if field != "DamageAmount" && field != "Amount" {
+		// "Number" is Forge's DrawCards-replacement spelling of the same
+		// in-flight amount (Quantum Riddler's NumCards$
+		// ReplaceCount$Number/Plus.1 body; 8 corpus files carry the field).
+		if field != "DamageAmount" && field != "Amount" && field != "Number" {
 			return 0, false
 		}
 		n := c.ReplacementAmount
