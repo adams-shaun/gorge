@@ -565,7 +565,7 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 		return false
 	}
 	if v, ok := t.Params["ValidCard"]; ok {
-		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
+		if !effects.MatchesSpecCtx(e.G, spellCastPermanentSpec(v), ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
 			return false
 		}
 	}
@@ -588,6 +588,73 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 		}
 	}
 	return true
+}
+
+// spellCastPermanentSpec rewrites the leading `Permanent` base token of
+// every comma-alternative in a SpellCast trigger's ValidCard$ spec to
+// `PermanentCard`, so the "whenever you cast a permanent spell" family
+// (Unbound Flourishing, the Defiler cycle, Archmage of Echoes) reads the
+// base as a permanent card at PutOnStack -- the evaluated object there is
+// always the cast spell, and CR 109.2 makes an artifact/creature/
+// enchantment/planeswalker/battle spell a permanent spell. matchesBase's
+// bare `Permanent` keeps the on-the-battlefield reading every other filter
+// depends on and is deliberately untouched. rules/stack.go's
+// targetSpecForZone and effects/cardflow.go's permanentCardSpec carry the
+// same leading-token rule with a zone gate (both leave ZStack unchanged);
+// this third copy applies it WITHOUT a zone gate and ACROSS alternatives,
+// because a comma-separated spec names each alternative's own base
+// (Archmage of Echoes' `Permanent.Faerie,Permanent.Wizard`). effects must
+// not import rules and vice versa, so the copies cannot share code. The
+// rewritten text is not the original spec, so the compiled sidecar's
+// byText lookup misses and the textual oracle answers it -- which after the
+// matchesBase/matchesCompiledBase relaxation is correct.
+func spellCastPermanentSpec(spec string) string {
+	// Comma-split at angle-bracket depth 0: a named<X, Y> name argument's
+	// printed comma is not an alternative boundary (the same distinction
+	// effects.filterAlternatives draws).
+	depth, start := 0, 0
+	var b strings.Builder
+	for i := 0; i < len(spec); i++ {
+		switch spec[i] {
+		case '<':
+			depth++
+		case '>':
+			if depth > 0 {
+				depth--
+			}
+		case ',':
+			if depth == 0 {
+				if start > 0 {
+					b.WriteByte(',')
+				}
+				b.WriteString(spellCastLeadingPermanentToCard(spec[start:i]))
+				start = i + 1
+			}
+		}
+	}
+	if start == 0 {
+		return spellCastLeadingPermanentToCard(spec)
+	}
+	b.WriteByte(',')
+	b.WriteString(spellCastLeadingPermanentToCard(spec[start:]))
+	return b.String()
+}
+
+// spellCastLeadingPermanentToCard is the leading-token rule targetSpecForZone
+// and permanentCardSpec share: the whole spec is `Permanent`, or its leading
+// token is `Permanent` followed by '.', '+' or ',' -- only that token is
+// rewritten, every qualifier rides along.
+func spellCastLeadingPermanentToCard(alt string) string {
+	if alt == "Permanent" {
+		return "PermanentCard"
+	}
+	if len(alt) > len("Permanent") && alt[:len("Permanent")] == "Permanent" {
+		switch alt[len("Permanent")] {
+		case '.', '+':
+			return "PermanentCard" + alt[len("Permanent"):]
+		}
+	}
+	return alt
 }
 
 // triggerSnapshot is immutable look-back state. Parked replacement choices
@@ -1440,7 +1507,7 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidCard"]; ok {
-		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		if !effects.MatchesSpecCtx(e.G, spellCastPermanentSpec(v), ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}

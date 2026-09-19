@@ -1380,11 +1380,16 @@ func matchesBase(g *state.Game, base string, o *state.Object, sc SpecContext) bo
 	case "Permanent":
 		return o.Zone == state.ZBattlefield
 	case "PermanentCard":
-		// This internal target-base spelling is selected by rules' target
-		// census for Forge's `Permanent` base in a non-battlefield zone. A
-		// permanent CARD is distinguishable from an instant/sorcery there;
-		// it is not a permanent on the stack.
-		return o.Zone != state.ZStack && o.Face() != nil && o.Face().IsPermanent()
+		// This internal base spelling is selected by rules' target census
+		// (targetSpecForZone) and Dig windows (permanentCardSpec) for Forge's
+		// `Permanent` base evaluated AWAY from the battlefield, and by rules'
+		// SpellCast trigger matcher (spellCastPermanentSpec) for the permanent
+		// SPELL a "cast a permanent spell" trigger evaluates on the stack. A
+		// permanent CARD is anything whose printed face is a permanent type
+		// (CR 109.2) wherever the object sits; the bare `Permanent` case
+		// above keeps the on-the-battlefield reading every other filter
+		// depends on.
+		return o.Face() != nil && o.Face().IsPermanent()
 	case "Spell":
 		return o.Zone == state.ZStack
 	case "SpellAbility":
