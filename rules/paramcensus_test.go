@@ -2226,13 +2226,18 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
-	"Ad Nauseam":                     {"param:api:Repeat.RepeatOptional"},
-	"Arcane Denial":                  {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
-	"Avengers Quinjet":               {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Captain Marvel, Apex Avenger":   {"param:api:PutCounter.Optional", "param:api:PutCounter.Placer", "param:api:PutCounter.TriggeredCounterMap"},
-	"Conduit of Worlds":              {"param:api:Play.RememberPlayed"},
-	"Director Nick Fury":             {"param:api:Dig.RestRandomOrder"},
-	"Gift of Immortality":            {"param:api:ChangeZone.AttachedTo", "param:api:ChangeZone.ForgetOtherRemembered"},
+	"Ad Nauseam":                   {"param:api:Repeat.RepeatOptional"},
+	"Arcane Denial":                {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
+	"Avengers Quinjet":             {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Captain Marvel, Apex Avenger": {"param:api:PutCounter.Optional", "param:api:PutCounter.Placer", "param:api:PutCounter.TriggeredCounterMap"},
+	"Conduit of Worlds":            {"param:api:Play.RememberPlayed"},
+	"Director Nick Fury":           {"param:api:Dig.RestRandomOrder"},
+	// Gift of Immortality's param:api:ChangeZone.AttachedTo label was deleted
+	// when the ChangeZone AttachedTo$ read landed (effects/zone.go
+	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
+	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
+	// unread.
+	"Gift of Immortality":            {"param:api:ChangeZone.ForgetOtherRemembered"},
 	"Hercules, Olympian Hero":        {"param:trig:DamageDoneOnce.FirstTime"},
 	"Heroic Return":                  {"param:api:ChangeZone.ValidTgtsDesc"},
 	"Heroic Sacrifice":               {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},

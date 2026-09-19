@@ -266,6 +266,26 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	targets := Defined(h, c, sa)
+	// ValidTgts$ targeting whose ask was never offered: the placement ask
+	// (rules' pushTrigger) reads only the trigger's OWN Execute SA, so a
+	// deeper sub's ValidTgts$ -- the "when you do" family's shape (Forum
+	// Filibuster's `TrigReturn`, 134 raw corpus T: chains reaching one) --
+	// arrives here with no chosen targets and used to move nothing silently.
+	// Offer the targets now, through the same Host.LegalTargets census the
+	// announcement ask uses (targetZones' Origin$-implied graveyard included),
+	// as a KChoose over the shared "choice" resume arm; the answer lands in
+	// Ctx.Choice and the re-entered pass consumes it (fx42 scoping -- a nested
+	// ChangeZone in the same chain poses its own ask). A host that cannot ask
+	// takes the deterministic first-max stand-in (R-9, the same mirror the
+	// effDig ask's botpolicy arm answers with option 0). The chosen bounds are
+	// TargetMin$/TargetMax$ through the ordinary Num grammar (TrigReturn's
+	// TargetMin$ 0 / TargetMax$ 1 -- "up to one"), clamped to the eligible
+	// count; a bound pair that admits nothing (Min == Max == 0, or no eligible
+	// candidate) poses no ask and moves nothing -- a decision nobody could
+	// answer differently is never emitted.
+	if ans, ok := changeZoneChosenTargets(h, c, sa); ok {
+		targets = ans
+	}
 	// The O-Ring return shape (Journey to Nowhere, Leonin Relic-Warder): the
 	// LEAVE-battlefield trigger's Execute is `DB$ ChangeZone | Defined$
 	// Remembered`, and Forge reads the HOST CARD's remembered list there --
@@ -420,6 +440,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// settleChangeZoneMoveAs's own tail call.
 		if to == state.ZBattlefield {
 			applyGainControl(h, c, sa, o.ID)
+			changeZoneAttachedTo(h, c, sa, o.ID)
 		}
 		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
 			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
@@ -430,6 +451,46 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if len(imprinted) > 0 {
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
+}
+
+// changeZoneAttachedTo implements ChangeZone's AttachedTo$ param: "the moved
+// card enters the battlefield attached to the resolved target" (Forum
+// Filibuster's `AttachedTo$ DelayTriggerRememberedLKI` -- attach the returned
+// Aura to the remembered token; the 42 raw corpus ChangeZone lines carrying
+// the param: Self x15 is the dominant form, "return an Aura ... attached to
+// CARDNAME"). The value is a Defined$-grammar selector, resolved with the
+// ordinary resolver against a shallow SA that carries it in Defined$ (the
+// same shape effToken's own AttachedTo$ rider takes), so every corpus
+// spelling (Self, ParentTarget, TriggeredCardLKICopy, ChosenCard,
+// DelayTriggerRememberedLKI, a card filter, ...) resolves without a second
+// resolver. The Attach event is the same shape that rider emits: Obj is the
+// MOVED card (it takes the AttachedTo back-reference), IDs[0] the target it
+// attaches to. A value that resolves to no object -- a selector this grammar
+// cannot evaluate, or a target that left play -- is ONE loud Note and the
+// card enters unattached (an Aura's unattached state), never a guessed
+// target and never a silent skip. Battlefield destinations only: the param
+// on a move that does not enter the battlefield has no CR meaning (nothing
+// can be attached in a hidden zone) and is left unread.
+func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
+	val := strings.TrimSpace(sa.Params["AttachedTo"])
+	if val == "" || moved == 0 {
+		return
+	}
+	sub := *sa
+	sub.Params = map[string]string{"Defined": val}
+	var to state.ObjID
+	for _, t := range Defined(h, c, &sub) {
+		if !t.IsPlayer {
+			to = t.Obj
+			break
+		}
+	}
+	if to == 0 || h.Game().Obj(to) == nil {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "ChangeZone AttachedTo$ " + val + " resolved to nothing; the card enters unattached"})
+		return
+	}
+	h.Emit(events.Event{Kind: events.Attach, Obj: moved, IDs: []state.ObjID{to}})
 }
 
 // applyExileFaceDown marks a just-built exile MoveZone face-down
@@ -2246,9 +2307,12 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 		// GainControl$ on a library search (Act on Impulse's "you may play
 		// those cards" family's put-onto-battlefield relatives): same settle
-		// order as every other mover -- move first, then the control change.
+		// order as every other mover -- move first, then the control change,
+		// then the AttachedTo$ rider (the Origin$ Library ChangeZone lines
+		// carrying it, e.g. an "return an Aura ... attached to CARDNAME" search).
 		if to == state.ZBattlefield {
 			applyGainControl(h, c, sa, id)
+			changeZoneAttachedTo(h, c, sa, id)
 		}
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
@@ -3075,4 +3139,83 @@ func sacrificeAmount(h Host, c *Ctx, sa *cards.SA) int32 {
 		return 1 // unknown shape: today's fixed-one behaviour, not a silent zero
 	}
 	return v
+}
+
+// changeZoneChosenTargets serves effChangeZone's object path the targets of a
+// ValidTgts$-declared targeting when no ask has offered them yet. The ok
+// return is NOT "targets were found" -- it is "use the returned set INSTEAD of
+// Defined's own fallthrough": ok=true with a nil set means the ask was posed
+// and SUSPENDED the resolution (the caller must return before moving
+// anything), and the answered re-entry consumes Ctx.Choice here. Every other
+// shape returns false and the caller keeps Defined's own behaviour
+// (placement-chosen targets, Defined$-named objects, the source default).
+//
+// The ask never fires when the resolution already carries targets (the
+// placement ask's answered set) or when the SA also carries Defined$ (an
+// already-named fetch list is Forge's no-ask shape). Bounds come from
+// TargetMin$/TargetMax$ through the ordinary Num grammar, clamped to the
+// eligible count; Min == Max == 0 or an empty eligible set is no ask and no
+// move. A host that cannot ask takes the deterministic first-max stand-in
+// (R-9), which is exactly what botpolicy's clamp fallback answers with.
+func changeZoneChosenTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
+	if _, targeted := sa.Params["ValidTgts"]; !targeted ||
+		strings.TrimSpace(sa.Params["Defined"]) != "" {
+		return nil, false
+	}
+	if c.ChoiceDone {
+		ans := c.Choice
+		c.ChoiceDone, c.Choice = false, nil
+		return ans, true
+	}
+	if len(c.Targets) > 0 {
+		// The placement ask already offered this targeting; Defined's own
+		// fallthrough reads it.
+		return nil, false
+	}
+	chooser := c.Controller
+	candidates := h.LegalTargets(chooser, c.Source, sa)
+	min := Num(h, c, sa, "TargetMin", 1)
+	max := Num(h, c, sa, "TargetMax", 1)
+	if max > int32(len(candidates)) {
+		max = int32(len(candidates))
+	}
+	if min > max {
+		min = max
+	}
+	if min < 0 {
+		min = 0
+	}
+	if max <= 0 {
+		// Nothing eligible (or an explicitly zero bound): no ask, no move.
+		return nil, false
+	}
+	prompt := strings.TrimSpace(sa.Params["TgtPrompt"])
+	if prompt == "" {
+		prompt = "Choose target"
+	}
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+		Min: int(min), Max: int(max), Source: c.Source,
+		ResumeKind: "choice", ResumeSA: sa,
+		ResumeRemembered: copyTargets(c.Remembered), Prompt: prompt}
+	for _, t := range candidates {
+		o := decision.Option{Index: len(d.Options)}
+		label := ""
+		if t.IsPlayer {
+			o.Kind, o.Player = "player", t.Player
+			if p := h.Game(); int(t.Player) < len(p.Players) {
+				label = p.Players[t.Player].Name
+			}
+		} else {
+			o.Kind, o.Obj = "card", t.Obj
+			if g := h.Game().Obj(t.Obj); g != nil && g.Face() != nil {
+				label = g.Face().Name
+			}
+		}
+		o.Label = label
+		d.Options = append(d.Options, o)
+	}
+	if Ask(h, d) == AskAsked {
+		return nil, true
+	}
+	return candidates[:max], true
 }

@@ -89,6 +89,15 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	if strings.HasPrefix(raw, "Sacrificed$") {
 		return sign * EvalCount(h, c, raw), true
 	}
+	if strings.HasPrefix(raw, "Remembered$") {
+		// The doc above already listed this prefix; the read makes it real --
+		// the corpus writes Remembered$Amount as a DIRECT parameter value on
+		// the ImmediateTrigger family (TriggerAmount$ Remembered$Amount,
+		// Forum Filibuster / Dain Ironfoot / Ratonhnhaké:ton; the /Op suffix
+		// rides the same body, Diregraf Horde's /DivideEvenlyDown.2), not
+		// behind an SVar name.
+		return sign * EvalCount(h, c, raw), true
+	}
 	if strings.HasPrefix(raw, "TriggerCount$") || strings.HasPrefix(raw, "ReplaceCount$") {
 		return sign * EvalCount(h, c, raw), true
 	}
@@ -558,6 +567,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// classic idiom is Count$ThisTurnCast/Minus1 (storm copies the spell
 		// once per spell cast before it, i.e. everyone's casts minus itself).
 		return int32(h.CastThisTurn()), true
+	case "RememberedNumber":
+		// Forge's Count$RememberedNumber is the executing ability's remembered
+		// count -- the same list evalRememberedOK's Amount head reads. In this
+		// build that is Ctx.Remembered; a caller that needs the list WITHOUT a
+		// trigger's event capture (effImmediateTrigger's TriggerAmount$ read)
+		// passes a ctx whose Remembered is already the capture-excluded set, so
+		// this head needs no special case of its own. Five corpus
+		// ImmediateTrigger lines and 38 files elsewhere carry it.
+		return int32(len(c.Remembered)), true
 	case "RememberedSize":
 		// Forge's RememberedSize is the HOST CARD's remembered list -- the
 		// persistent list riders (RememberDiscarded$/RememberCountered$/
@@ -1296,6 +1314,16 @@ func applyCountOp(n int32, op string) int32 {
 		v = (v + 1) / 2
 	case op == "Negative":
 		v = -v
+	case strings.HasPrefix(op, "DivideEvenlyDown."):
+		// Forge's AmountOperators.divideEvenlyDown: floor division by the named
+		// divisor (Remembered$Amount/DivideEvenlyDown.2 -- the ImmediateTrigger
+		// "one instance per pair of remembered tokens" shape, diregraf_horde
+		// and faebloom_trick). A missing or non-positive divisor leaves the
+		// value unchanged rather than dividing by zero; the value was already
+		// an int64-clamped count, so the floor is the natural read.
+		if x, err := strconv.Atoi(op[len("DivideEvenlyDown."):]); err == nil && x > 0 {
+			v /= int64(x)
+		}
 	}
 	if v > math.MaxInt32 {
 		return math.MaxInt32

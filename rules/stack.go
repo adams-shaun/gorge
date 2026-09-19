@@ -1201,13 +1201,21 @@ func (e *Engine) resolveTop() {
 		// age/payment resolution needs rules' cost machinery. Mana Vault's
 		// triggered Untap is the one ordinary effect shape authorized to use
 		// that window; unrelated Cost$-bearing trigger effects retain their
-		// established executor semantics.
+		// established executor semantics. ImmediateTrigger joins Untap: its AB
+		// shape is Forge's "you may pay <Cost$>. When you do, ..." idiom (Speed,
+		// Young Avenger's TrigImmediateTrig -- the only repo-deck carrier), so
+		// the ordinary triggered-cost window poses the pay/decline ask before
+		// the body runs; a decline leaves the body unexecuted exactly as CR
+		// 603.5's "when you do" promises. The DB shape's optional payment stays
+		// the UnlessCost$ gate's (effects.unlessProceed); a plain Cost$ on a DB
+		// ImmediateTrigger remains the established free-executor semantics.
 		if o.Ability.API == "CumulativeUpkeep" {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
 		}
 		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
-			o.Ability.API == "Untap" && o.Ability.Params["Cost"] != "" {
+			(o.Ability.API == "Untap" || o.Ability.API == "ImmediateTrigger") &&
+			o.Ability.Params["Cost"] != "" {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}
