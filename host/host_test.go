@@ -125,14 +125,32 @@ func TestHostedPoliciesReplayDeterministically(t *testing.T) {
 		}
 		return runResult{info: info, log: log}
 	}
-	for _, policy := range []string{"", BotPolicy, LethalPressurePolicy} {
-		policy := policy
-		t.Run(policy, func(t *testing.T) {
-			a, b := run(policy), run(policy)
-			if !reflect.DeepEqual(a.log.Events, b.log.Events) || !reflect.DeepEqual(a.log.Intents, b.log.Intents) || a.info.Head != b.info.Head || a.info.Result != b.info.Result || !reflect.DeepEqual(a.info.Winner, b.info.Winner) {
-				t.Fatalf("two %q runs differ: %+v vs %+v", policy, a.info, b.info)
+	type policyCase struct {
+		name   string
+		policy string
+	}
+	results := make(map[string]runResult, 3)
+	for _, tc := range []policyCase{
+		{name: "default", policy: ""},
+		{name: BotPolicy, policy: BotPolicy},
+		{name: LethalPressurePolicy, policy: LethalPressurePolicy},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a, b := run(tc.policy), run(tc.policy)
+			for _, got := range []runResult{a, b} {
+				if got.info.State != protocol.MatchFinished || (got.info.Result != "win" && got.info.Result != "draw") || (got.info.Result == "win") != (got.info.Winner != nil) {
+					t.Fatalf("%q did not finish with a valid outcome: %+v", tc.name, got.info)
+				}
 			}
+			if !reflect.DeepEqual(a.log.Events, b.log.Events) || !reflect.DeepEqual(a.log.Intents, b.log.Intents) || a.info.Head != b.info.Head || a.info.Result != b.info.Result || !reflect.DeepEqual(a.info.Winner, b.info.Winner) {
+				t.Fatalf("two %q runs differ: %+v vs %+v", tc.name, a.info, b.info)
+			}
+			results[tc.name] = a
 		})
+	}
+	defaultRun, explicitBot := results["default"], results[BotPolicy]
+	if !reflect.DeepEqual(defaultRun.log.Events, explicitBot.log.Events) || !reflect.DeepEqual(defaultRun.log.Intents, explicitBot.log.Intents) || defaultRun.info.Head != explicitBot.info.Head || defaultRun.info.Result != explicitBot.info.Result || !reflect.DeepEqual(defaultRun.info.Winner, explicitBot.info.Winner) {
+		t.Fatalf("omitted policy and explicit %q differ: %+v vs %+v", BotPolicy, defaultRun.info, explicitBot.info)
 	}
 }
 

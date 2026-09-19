@@ -75,8 +75,10 @@ factory/adaptor and current golden/replay tests cover the shipped migration.
 
 Those review follow-ups are now covered: `TestHostedPoliciesReplayDeterministically`
 plays two hosted matches for omitted/default `bot`, explicit `bot`, and
-`lethal-pressure`, comparing every event and intent, outcome/winner, chain
-head, and an independent replay. `TestBotAdaptersAgreeOverWholeGame` and
+`lethal-pressure`, requiring a terminal win/draw, comparing every event and
+intent, outcome/winner, chain head, and an independent replay; it also
+compares omitted/default `bot` directly with explicit `bot`.
+`TestBotAdaptersAgreeOverWholeGame` and
 `TestBotAdaptersAgreeOverCommanderGame` run both variants through real
 view- and game-shaped adapters, including stack/counter, attachment, and
 Commander facts; each paired game terminates with identical adapter intent
