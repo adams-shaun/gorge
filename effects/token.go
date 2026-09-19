@@ -92,6 +92,22 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 		}
+	case "ThisTargetedPlayer":
+		// The player one of the charm's modes targeted (Shadrix Silverquill,
+		// the duo cycle, verdant/ashlings/prismari command -- 7 corpus files
+		// carry the spelling on a Token): the first player-kind entry of this
+		// resolution's own target list. With the cross-mode TargetUnique split
+		// (effCharm's charmCrossModeRun) that list is exactly the running
+		// mode's own target, so the token is created BY the player the mode
+		// targeted, not by the ability's controller. A resolution with no
+		// player target keeps the controller, the same silent degrade the
+		// other miss cases here take.
+		for _, t := range c.Targets {
+			if t.IsPlayer {
+				owner = t.Player
+				break
+			}
+		}
 	default:
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unrecognized TokenOwner " + v + ", defaulting to the controller"})

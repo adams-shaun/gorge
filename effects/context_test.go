@@ -184,6 +184,9 @@ func (h *fakeHost) CounterAllowed(state.ObjID, state.ObjID) bool { return true }
 // SuspendRepeat is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
 
+// SuspendCharmRest is a no-op for the same reason as SuspendContinuation.
+func (h *fakeHost) SuspendCharmRest(*cards.SA, []string) {}
+
 // SetDamageSource records the published damage source on the double (the
 // last value wins) and returns the previous one, mirroring the engine's
 // set-and-restore contract so an emitter's restore is observable.

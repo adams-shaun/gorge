@@ -206,6 +206,17 @@ type Host interface {
 	// SuspendContinuation next; the host drops that report, because the loop
 	// frame re-enters the RepeatEach itself and so walks its Sub.
 	SuspendRepeat(RepeatSuspension)
+	// SuspendCharmRest reports that a cross-mode TargetUnique Charm's mode
+	// loop (effCharm's re-entry) suspended mid-mode with chosen modes still
+	// to run: sa is the Charm's own SA and rest the remaining chosen mode
+	// names in execution order. The host records a continuation that
+	// re-enters the Charm with Ctx.Modes = rest once the answered ask's own
+	// chain completes — the remaining modes must not run while the
+	// suspension is live. The Resolve loop enclosing the Charm reports that
+	// same SA through SuspendContinuation next; the host drops that report
+	// (the charm frame re-enters the Charm itself), which is why the reporter
+	// marks it the way SuspendRepeat marks a RepeatEach.
+	SuspendCharmRest(sa *cards.SA, rest []string)
 	// SetDamageSource overrides the in-flight damage source for the Damage
 	// events the caller is about to emit: the provenance rules' emit-side
 	// protection check (CR 702.16d) and DamageDone trigger matching read

@@ -128,6 +128,12 @@ type resumePoint struct {
 	// the re-entry pass consumes the marker instead of re-posing the pay
 	// ask, the asking-body-under-UnlessCost$ livelock fix (Rhystic Study).
 	unlessResolved string
+	// charmRest carries the remaining chosen mode names of a cross-mode
+	// TargetUnique Charm's mode loop (SuspendCharmRest): the frame re-enters
+	// the Charm SA itself with Ctx.Modes = charmRest, so effCharm runs the
+	// rest — each target-bearing one with its own split target — after the
+	// answered ask's chain completes. Nil everywhere else.
+	charmRest []string
 	// rolls is the per-die results of the RollDice ask whose answer this
 	// point resumes (effects/dice.go's ChosenSVar$/OtherSVar$ choose-one-
 	// result shape, the Endeavor cycle): the asking first pass carried them
@@ -175,11 +181,14 @@ type repeatCursor struct {
 }
 
 // contFrame is one enclosing-loop suspension reported during a resolution
-// pass: a plain Resolve loop (resume at sa.Sub) or a RepeatEach loop
-// (repeat != nil; re-enter sa itself at the cursor).
+// pass: a plain Resolve loop (resume at sa.Sub), a RepeatEach loop
+// (repeat != nil; re-enter sa itself at the cursor), or a cross-mode
+// TargetUnique Charm's mode loop (charmRest != nil; re-enter sa — the Charm
+// SA itself — with Ctx.Modes = the remaining chosen modes).
 type contFrame struct {
 	sa            *cards.SA
 	repeat        *repeatCursor
+	charmRest     []string
 	bound         bool
 	remembered    []state.Target
 	repeatSubject state.Target
@@ -356,6 +365,25 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 	e.repeatReported = s.SA
 }
 
+// SuspendCharmRest implements effects.Host.SuspendCharmRest: a cross-mode
+// TargetUnique Charm's mode loop suspended mid-mode (effCharm's
+// charmCrossModeRun) with chosen modes still to run. The frame re-enters the
+// Charm SA itself with Ctx.Modes = rest once the answered ask's chain
+// completes; it runs AFTER the inner continuations the suspended mode's own
+// chain reported, which is exactly the append order here. Setting
+// repeatReported to the Charm's SA suppresses the enclosing Resolve loop's
+// own SuspendContinuation report of the same SA (the innermost rule: this
+// frame re-enters the Charm itself, so a second frame would re-run
+// CharmSA.Sub — nil — and degrade to a spurious no-sub-ability Note).
+func (e *Engine) SuspendCharmRest(sa *cards.SA, rest []string) {
+	if e.resume == nil || len(rest) == 0 {
+		return
+	}
+	e.contChain = append(e.contChain, contFrame{sa: sa,
+		charmRest: append([]string(nil), rest...)})
+	e.repeatReported = sa
+}
+
 // handleModes applies an answered KModes decision. ResumeKind and the trigger
 // drain flag distinguish three lifetimes: a modal spell's CR 601.2b cast
 // proposal, a modal trigger's CR 603.3c placement, and an effect suspended in
@@ -461,22 +489,53 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			// A trigger Charm's targeting lives INSIDE its modes (the
 			// corpus pairs ValidTgts$ on the chosen mode's SVar body,
 			// never on the ability — Charming Scoundrel's DBToken), so the
-			// mode the player just chose asks its targets now, at the same
-			// placement moment CR 603.3c puts the mode choice. The first
-			// selected target-bearing mode wins, the same one-undivided
-			// target-list narrowing the spell-side Charm carries. The
-			// answer lands on the stack object through handleTarget's
-			// ordinary record, and the resolution's effToken
-			// (AttachedTo$ Targeted) and friends read it as c.Targets.
+			// modes the player just chose ask their targets now, at the same
+			// placement moment CR 603.3c puts the mode choice. The cross-mode
+			// TargetUnique family (Shadrix Silverquill, the duo cycle, Balor,
+			// Vindictive Lich, Chaos Balor) asks ONE combined KTarget over the
+			// shared player pool with per-player Option.Group exclusivity —
+			// Decision.Validate's mutual-exclusion rule IS the "each mode must
+			// target a different player" rule, enforced on the wire — and the
+			// answers attribute to the target-bearing modes positionally in
+			// chosen-mode order (ask order == chosen order == replay order).
+			// Every other shape keeps the historical one-undivided-list
+			// narrowing: only the FIRST target-bearing mode's targets are
+			// asked, and the resolution's modes share them (the same narrowing
+			// the spell-side Charm carries). The answer lands on the stack
+			// object through handleTarget's ordinary record, and the
+			// resolution's effToken (TokenOwner$ ThisTargetedPlayer) and
+			// friends read it as c.Targets.
 			if so != nil && so.Ability != nil {
 				if src := e.G.Obj(so.Source); src != nil && src.Face() != nil {
+					svars := src.Face().SVars
+					var tbms []*cards.SA
 					for _, name := range names {
-						if sub := cards.ResolveSVar(src.Face().SVars, name); sub != nil &&
+						if sub := cards.ResolveSVar(svars, name); sub != nil &&
 							strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
-							e.drainAwaitsTarget = true
-							e.askTarget(in.Player, id, sub)
+							tbms = append(tbms, sub)
+						}
+					}
+					choices := strings.Split(so.Ability.Params["Choices"], ",")
+					for i := range choices {
+						choices[i] = strings.TrimSpace(choices[i])
+					}
+					status, why := effects.CharmCrossModeShape(svars, choices)
+					if status == effects.CharmUniqueSupported && len(tbms) >= 2 {
+						if e.askCrossModeCharmTargets(in.Player, id, tbms) {
 							return
 						}
+						// Fewer legal candidates than target-bearing modes: the
+						// combined different-player ask is unsatisfiable. Fall
+						// through to the historical first-mode ask below, whose
+						// own bounds/insufficiency handling governs.
+					} else if status == effects.CharmUniqueUnsupported {
+						e.emit(events.Event{Kind: events.Note, Obj: id,
+							Text: "cross-mode TargetUnique$ Charm shape unimplemented: " + why})
+					}
+					for _, sub := range tbms {
+						e.drainAwaitsTarget = true
+						e.askTarget(in.Player, id, sub)
+						return
 					}
 				}
 			}
@@ -1273,6 +1332,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		case "effect_paid":
 			// The trigger's Cost$ was paid by triggeredCostAnswer; run the
 			// parked effect without opening the payment window a second time.
+		case "charm_rest":
+			// A cross-mode TargetUnique Charm's mode loop suspended mid-mode;
+			// the remaining chosen modes re-enter effCharm exactly as the
+			// placement answer did: Ctx.Modes names them (overriding the
+			// o.Ability branch's full ChosenModes seed), effCharm's split
+			// assigns each target-bearing one the last targets of the original
+			// positional assignment, and nothing re-asks.
+			ctx.Modes = append([]string(nil), rp.charmRest...)
 		case "optional":
 			// CR 603.5: the decider answered yes to applying this optional
 			// triggered ability's effect. The answer is a yes/no, not a mode
@@ -1341,6 +1408,18 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// decline (the Kitesail Larcenist regression).
 		if rp.unlessResolved != "" && ctx.UnlessPay == "" {
 			ctx.UnlessPay = rp.unlessResolved
+		}
+		// Cross-mode TargetUnique attribution (the family runner effCharm's
+		// charmCrossModeRun): a frame whose SA is (or is inside) one of the
+		// chosen target-bearing modes' chains re-enters with that mode's OWN
+		// target, not the stack object's undivided list — the split the
+		// initial pass applied does not survive this ctx rebuild, so it is
+		// re-derived here from the same deterministic inputs (ChosenModes,
+		// Targets, the face's SVar table). The match is by the SA's Line (the
+		// SVar body text parseSA stores): ResolveSVar parses fresh on every
+		// call, so pointer identity never holds across a resume.
+		if one := e.charmModeTarget(rp.obj, rp.sa); one != nil {
+			ctx.Targets = one
 		}
 		effects.Resolve(e, ctx, rp.sa)
 		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
@@ -1430,6 +1509,57 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 }
 
+// charmModeTarget re-derives, for a frame of a cross-mode TargetUnique
+// Charm's resolution (see SuspendCharmRest / the charm_rest kind), the ONE
+// target the SA's chain belongs to: the j-th positional entry of the stack
+// object's Targets, where j is the frame's position among the chosen
+// target-bearing modes. Returns nil whenever the frame is not part of such a
+// charm's resolution — including every non-family shape (classification None
+// or Unsupported) and every insufficient-candidate fallback (fewer recorded
+// targets than the chosen target-bearing modes need) — so those keep the
+// shared list byte-identically. sa == nil is the no-answer continuation
+// shape the Line-match cannot serve; the charm_rest frame itself carries the
+// Charm SA, whose body text never equals a mode body's, so it matches
+// nothing and effCharm's own split handles it.
+func (e *Engine) charmModeTarget(obj state.ObjID, sa *cards.SA) []state.Target {
+	if sa == nil {
+		return nil
+	}
+	o := e.G.Obj(obj)
+	if o == nil || o.Ability == nil || len(o.ChosenModes) == 0 || len(o.Targets) == 0 {
+		return nil
+	}
+	src := e.G.Obj(o.Source)
+	if src == nil || src.Face() == nil {
+		return nil
+	}
+	svars := src.Face().SVars
+	choices := strings.Split(o.Ability.Params["Choices"], ",")
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	if status, _ := effects.CharmCrossModeShape(svars, choices); status != effects.CharmUniqueSupported {
+		return nil
+	}
+	var tbms []*cards.SA
+	for _, name := range o.ChosenModes {
+		if sub := cards.ResolveSVar(svars, name); sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+			tbms = append(tbms, sub)
+		}
+	}
+	if len(tbms) < 2 || len(o.Targets) < len(tbms) {
+		return nil
+	}
+	for j, sub := range tbms {
+		for w := sub; w != nil; w = w.Sub {
+			if w.Line != "" && w.Line == sa.Line {
+				return []state.Target{o.Targets[j]}
+			}
+		}
+	}
+	return nil
+}
+
 // buildContinuationChain turns the enclosing-loop suspension points reported
 // for one re-entry into a linked run of pure-continuation frames (kind ""),
 // in report order — inner continuations first, outer last — and chains the
@@ -1459,7 +1589,12 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.replacementAmount = e.replacingEvent.Amount
 			f.replacementSource = e.protectionSource(e.damaging)
 		}
-		if cf.repeat != nil {
+		if cf.charmRest != nil {
+			// The Charm re-enters ITSELF (rp.sa = the Charm SA, not sa.Sub — a
+			// Charm body has no SubAbility$ chain of its own to resume) with
+			// Ctx.Modes = the remaining chosen modes.
+			f.kind, f.sa, f.charmRest = "charm_rest", sa, cf.charmRest
+		} else if cf.repeat != nil {
 			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat
 			f.choices, f.chosenValid = cf.choices, cf.chosenValid
 		}

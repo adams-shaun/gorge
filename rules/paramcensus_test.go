@@ -155,6 +155,11 @@ var baseBuckets = map[string]bucket{
 	// replacement dispatcher (continueCreateTokenReplacements /
 	// applyTokenReplacementToPlan read its Type$/Amount$/TokenScript$).
 	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA, "body": bSA,
+	// so.Ability is handleModes' placement branch's stack object (the local
+	// name for the same stack object o.Ability reads): the trigger Charm's
+	// resolved SA, whose full Choices$ list classifies the cross-mode
+	// TargetUnique family (effects.CharmCrossModeShape).
+	"so.Ability": bSA,
 	// index bases: candidates/rc.cands/matches are all []replMatch (the
 	// phase-replacement pipeline, its parked-choice resume, and the
 	// damage/counter/effect-created replacement match lists), so element

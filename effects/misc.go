@@ -1010,6 +1010,10 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 // MinCharmNum$ to CharmNum$, but an explicit MinCharmNum$ permits choosing
 // fewer modes. Both values use Num so literal, SVar, and inline Count$ forms
 // share the same evaluation in spell, trigger, and resolution paths.
+// Optional$ True (Shadrix Silverquill's "you may choose two") lowers the
+// minimum to 0: the election is real, and choosing nothing is a legal answer
+// at every site that asks (the placement ask, the cast announcement and
+// effCharm's own mid-resolution ask all share this one helper).
 func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
 	max = int(Num(h, c, sa, "CharmNum", 1))
 	if max < 1 {
@@ -1019,6 +1023,9 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
 	if _, ok := sa.Params["MinCharmNum"]; ok {
 		min = int(Num(h, c, sa, "MinCharmNum", int32(min)))
 	}
+	if strings.EqualFold(sa.Params["Optional"], "True") {
+		min = 0
+	}
 	if max > choices {
 		max = choices
 	}
@@ -1026,6 +1033,184 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
 		min = 0
 	}
 	return min, max
+}
+
+// CharmUniqueNone/Supported/Unsupported classify a Charm's chosen-mode set
+// against the cross-mode "each mode must target a different player" family
+// (Shadrix Silverquill, the Tarkir/Ninja duo cycle, Balor, Vindictive Lich,
+// Chaos Balor -- 8 corpus files, all trigger-side DB$ Charm).
+type CharmUniqueStatus int
+
+const (
+	// CharmUniqueNone: fewer than two target-bearing chosen modes, or none
+	// of them carries TargetUnique$ — the ordinary shared-target narrowing
+	// applies, byte-identically to the pre-family engine.
+	CharmUniqueNone CharmUniqueStatus = iota
+	// CharmUniqueSupported: at least two target-bearing chosen modes, every
+	// one of them single-target (no TargetMin$/TargetMax$ beyond 1), every
+	// one targeting the SAME player-kind spec ("Player" or "Opponent"),
+	// and at least one carrying TargetUnique$ True. The combined
+	// different-player target ask is posed and the per-mode split applies.
+	CharmUniqueSupported
+	// CharmUniqueUnsupported: TargetUnique$ is present on the chosen modes
+	// but some member the combined ask cannot serve — differing ValidTgts$
+	// specs, a non-player spec, or multi-target bounds. The ordinary
+	// narrowing keeps and a loud Note names the shape (never silent).
+	CharmUniqueUnsupported
+)
+
+// charmUniquePlayerSpec reports whether a ValidTgts$ spec names players in
+// the exact form every corpus carrier of the family uses. Wider player
+// grammars are not served: a "You" spec could never satisfy two different
+// players anyway, and a compound spec's candidates are not all players.
+func charmUniquePlayerSpec(spec string) bool {
+	return spec == "Player" || spec == "Opponent"
+}
+
+// charmUniqueBounds mirrors rules' targetBounds for the single-target check:
+// absent TargetMin$/TargetMax$ mean 1..1 (the M1 single-target contract).
+// Anything a caller set explicitly beyond 1..1 keeps the mode out of the
+// combined ask.
+func charmUniqueBounds(sa *cards.SA) (min, max int) {
+	min, max = 1, 1
+	if v, ok := sa.Params["TargetMin"]; ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			min = n
+		}
+	}
+	if v, ok := sa.Params["TargetMax"]; ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			max = n
+		}
+	}
+	if min < 1 {
+		min = 1
+	}
+	if max < min {
+		max = min
+	}
+	return min, max
+}
+
+// CharmCrossModeShape classifies a Charm's mode list for the cross-mode
+// TargetUnique family, with a reason fragment for the Unsupported loud Note.
+// It is deliberately a property of the CHARM's full
+// Choices$ list, not of whichever subset a particular answer selected: the
+// classification must be stable across the charm's whole lifetime, because
+// the per-mode target split (effCharm) and the suspension re-entry
+// (rules' resumeResolution) re-derive it after a mid-mode ask — and a
+// continuation can carry only a suffix of the original chosen order.
+// Measured at the corpus pin: every charm outside the 8-file family carries
+// TargetUnique$ on NONE of its target-bearing modes (the anyUnique trigger
+// below never fires for them), so they classify None and keep today's
+// narrowing byte-identically.
+func CharmCrossModeShape(svars map[string]string, modes []string) (CharmUniqueStatus, string) {
+	var spec string
+	tbms, anyUnique, oneSpec, boundsOK := 0, false, true, true
+	for _, name := range modes {
+		sub := cards.ResolveSVar(svars, strings.TrimSpace(name))
+		if sub == nil {
+			continue
+		}
+		s := strings.TrimSpace(sub.Params["ValidTgts"])
+		if s == "" {
+			continue
+		}
+		tbms++
+		if strings.EqualFold(sub.Params["TargetUnique"], "True") {
+			anyUnique = true
+		}
+		if spec == "" {
+			spec = s
+		} else if s != spec {
+			oneSpec = false
+		}
+		if min, max := charmUniqueBounds(sub); min != 1 || max != 1 {
+			boundsOK = false
+		}
+	}
+	if tbms < 2 || !anyUnique {
+		return CharmUniqueNone, ""
+	}
+	if !oneSpec {
+		return CharmUniqueUnsupported, "differing ValidTgts$ specs across the target-bearing modes"
+	}
+	if !charmUniquePlayerSpec(spec) {
+		return CharmUniqueUnsupported, "ValidTgts$ " + spec + " is not a player-kind spec"
+	}
+	if !boundsOK {
+		return CharmUniqueUnsupported, "a target-bearing mode declares multi-target bounds"
+	}
+	return CharmUniqueSupported, ""
+}
+
+// charmCrossModeRun is effCharm's cross-mode TargetUnique family runner. It
+// runs the chosen modes in order, giving each target-bearing mode its OWN
+// target — the positional slice of Ctx.Targets the combined placement ask
+// recorded — instead of the one-undivided target list every mode shared
+// before. A mode that suspends (donnie's and mikey's hidden graveyard pick)
+// stops the run and reports the remaining modes as a continuation
+// (Host.SuspendCharmRest), so the rest re-enter through the answered ask's
+// chain rather than running while the suspension is still outstanding.
+// Non-target-bearing modes keep the shared context exactly as before.
+// Returns false when the shape does not apply and the caller must keep the
+// historical shared-target loop.
+func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
+	choices := strings.Split(sa.Params["Choices"], ",")
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	if status, _ := CharmCrossModeShape(c.SVars, choices); status != CharmUniqueSupported {
+		return false
+	}
+	var tbmIdx []int
+	for i, name := range names {
+		if sub := cards.ResolveSVar(c.SVars, name); sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+			tbmIdx = append(tbmIdx, i)
+		}
+	}
+	k := len(tbmIdx)
+	if k == 0 || len(c.Targets) < k {
+		// The running mode set carries target-bearing modes the placement ask
+		// could not serve (an insufficient-candidate fallback, or a spell-side
+		// single-target ask): keep the shared list, exactly the historical
+		// narrowing, rather than inventing an assignment the ask never made.
+		return false
+	}
+	// Assignment: the j-th target-bearing mode of the RUNNING list takes
+	// targets[len(targets)-k+j]. On a full run that is targets[j] — the
+	// combined ask's answer order, which is the chosen-mode order. On a
+	// suffix continuation the remaining target-bearing modes are the last
+	// ones of the original order, so the last k targets are theirs.
+	base := len(c.Targets) - k
+	ti := 0
+	for i, name := range names {
+		sub := cards.ResolveSVar(c.SVars, name)
+		if sub == nil {
+			continue
+		}
+		if ti < k && tbmIdx[ti] == i {
+			saved := c.Targets
+			c.Targets = []state.Target{c.Targets[base+ti]}
+			Resolve(h, c, sub)
+			c.Targets = saved
+			ti++
+		} else {
+			Resolve(h, c, sub)
+		}
+		if h.Suspended() {
+			// The mode's own chain posed a mid-resolution ask: stop here. The
+			// remaining modes resume through SuspendCharmRest's continuation
+			// once the answer lands — never while the suspension is live (the
+			// historical loop ran them immediately, before the answered mode
+			// had even completed).
+			if rest := names[i+1:]; len(rest) > 0 {
+				h.SuspendCharmRest(sa, rest)
+			}
+			return true
+		}
+	}
+	return true
 }
 
 // effCharm runs the selected Choices$ sub-abilities in chosen order.
@@ -1061,6 +1246,9 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		// to the Charm that asked for it.
 		names := c.Modes
 		c.Modes = nil
+		if charmCrossModeRun(h, c, sa, names) {
+			return
+		}
 		for _, name := range names {
 			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
 				Resolve(h, c, sub)
