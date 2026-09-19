@@ -169,6 +169,26 @@ func TestAlaniaFirstSorceryAfterAnInstantTriggers(t *testing.T) {
 	}
 }
 
+func TestAlaniaSecondInstantAfterASorceryDoesNotTrigger(t *testing.T) {
+	t.Parallel()
+	// The round-2 review edge the original pins missed: instant → sorcery →
+	// second instant. The sorcery alternative's tally legitimately held EQ1
+	// on the sorcery cast, but the SECOND INSTANT matches only the instant
+	// alternative, whose tally is 2 — the Each loop must skip alternatives
+	// the current cast does not match, or the trigger false-fires here.
+	probe := card(t, "Name:Probe\nManaCost:U\nTypes:Instant\nA:SP$ Draw | Defined$ You | NumCards$ 1\nOracle:Draw a card.\n")
+	verse := card(t, "Name:Verse\nManaCost:1 G\nTypes:Sorcery\nA:SP$ Draw | Defined$ You | NumCards$ 1\nOracle:Draw a card.\n")
+	probe2 := card(t, "Name:Probe II\nManaCost:U\nTypes:Instant\nA:SP$ Draw | Defined$ You | NumCards$ 1\nOracle:Draw a card.\n")
+	e := alaniaEngine(t, probe, verse, probe2)
+	castAlaniaProbe(t, e, "Probe") // the first instant: fires
+	castAlaniaProbe(t, e, "Verse") // the first sorcery: fires
+	before := opponentHand(t, e)
+	castAlaniaProbe(t, e, "Probe II") // the second instant: must not fire
+	if got := opponentHand(t, e); got != before {
+		t.Fatalf("the second instant after a sorcery drew %d cards for the opponent, want 0 (it matches no alternative whose first it is)", got-before)
+	}
+}
+
 func TestAlaniaSecondAlaniaCastDoesNotTrigger(t *testing.T) {
 	t.Parallel()
 	second := corpusAlternativeCard(t, "Alania, Divergent Storm")

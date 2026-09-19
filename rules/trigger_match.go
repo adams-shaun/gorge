@@ -1594,8 +1594,27 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 		// activator's casts this turn matching that alternative, the current
 		// cast INCLUDED (it is already in the log when the deferred trigger
 		// fires; EQ1 means this cast is the first).
+		//
+		// Only alternatives the CURRENT CAST MATCHES are evaluated (round-2
+		// review): the oracle reads "if it's the first instant ... you've cast
+		// this turn" — the firstness must attach to the spell being cast, so
+		// a second instant after instant→sorcery does NOT fire on the
+		// sorcery alternative's earlier tally (that sorcery was the first
+		// sorcery, but this cast is not one). An alternative whose tally is
+		// met while the current cast matches a DIFFERENT alternative is
+		// skipped; without the guard the trigger false-fires on any
+		// two-cast-then-repeat turn. castAlts comes from the same surviving
+		// set the cast's own match above used, so the two cannot disagree.
+		//
+		// A trigger carrying the Each param with NO ValidCard$ has no
+		// alternatives to attach the firstness to: UNSUPPORTED, fail closed
+		// (castAlts stays nil; the corpus's one carrier, Alania, always has
+		// a ValidCard$).
 		fired := false
 		for _, alt := range castAlts {
+			if !effects.MatchesSpecCtx(e.G, alt.spec, ev.Obj, e.specCtx(source, ctrl)) {
+				continue
+			}
 			if compareIntCount(int32(e.spellsCastThisTurnByMatching(ev.Player, alt.spec, alt.exclSelf, source)), v) {
 				fired = true
 				break
