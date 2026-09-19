@@ -361,6 +361,11 @@ func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool,
 // max >= 1 and max >= min. A discarded parameter and a clamped one both
 // resolve to the same number when used alone, but they differ the moment
 // TargetMin$ is also present -- this says which one the engine means.
+//
+// This is the LITERAL reader only. The dynamic forms the corpus writes as
+// TargetMax$ X / TargetMin$ X (with SVar:X:Count$...) resolve through
+// resolvedTargetBounds below; a token that is not a literal is silently
+// dropped here, which is today's (and the unresolvable-fallback's) semantics.
 func targetBounds(sa *cards.SA) (int, int) {
 	min, max := 1, 1
 	if v, ok := sa.Params["TargetMin"]; ok {
@@ -385,9 +390,119 @@ func targetBounds(sa *cards.SA) (int, int) {
 	return min, max
 }
 
-// targetMin is the Min half of targetBounds, inlined for resolveTop's N2 gate.
-func targetMin(sa *cards.SA) int {
-	min, _ := targetBounds(sa)
+// isLiteralBound reports whether a raw TargetMin$/TargetMax$ token is a
+// plain signed integer.
+func isLiteralBound(v string) bool {
+	_, err := strconv.Atoi(strings.TrimSpace(v))
+	return err == nil
+}
+
+// targetBoundsDynamic reports whether either bound token is present and not
+// a literal -- the only shape resolvedTargetBounds does extra work for, so a
+// literal-only script never leaves the byte-identical fast path. (The two
+// reads are spelled out rather than looped over the keys so the paramcensus
+// rot guard sees two static Params keys.)
+func targetBoundsDynamic(sa *cards.SA) bool {
+	if v, ok := sa.Params["TargetMin"]; ok && !isLiteralBound(v) {
+		return true
+	}
+	if v, ok := sa.Params["TargetMax"]; ok && !isLiteralBound(v) {
+		return true
+	}
+	return false
+}
+
+// targetBoundCtx binds the effects numeric grammar to the asking player and
+// the target declaration's source. The anchor follows what source IS: for a
+// spell the stack object IS the card, so its face carries the SVar table
+// (Kiora's Dismissal's SVar:X); for an ability or trigger wrapper
+// (o.Card == nil, so Face() returns nil) the anchor is o.Source -- the
+// source permanent every TriggerPush/AbilityPush stamps -- and ITS face's
+// SVar table. No anchor (the object gone, or a sourceless wrapper) fails
+// closed to the literal reader.
+func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.Ctx, bool) {
+	o := e.G.Obj(source)
+	if o == nil {
+		return nil, false
+	}
+	ctx := &effects.Ctx{Controller: p}
+	if f := o.Face(); f != nil {
+		ctx.Source = source
+		effects.SetSVars(ctx, f.SVars)
+		return ctx, true
+	}
+	src := e.G.Obj(o.Source)
+	if src == nil {
+		return nil, false
+	}
+	if f := src.Face(); f == nil {
+		return nil, false
+	}
+	ctx.Source = o.Source
+	effects.SetSVars(ctx, src.Face().SVars)
+	return ctx, true
+}
+
+// resolvedTargetBounds is targetBounds extended to the dynamic bounds the
+// corpus writes as TargetMax$ X / TargetMin$ X with an SVar body (212 raw
+// TargetMax$ X lines / 209 files, 102 TargetMin$ X lines / 100 files -- the
+// dominant shape is TargetMin$ 0 + TargetMax$ X, "return any number up to
+// X"). A bound token that is a plain literal keeps targetBounds' reading
+// byte-for-byte; a token that is PRESENT and not a literal resolves through
+// the effects numeric grammar (NumResolved: an SVar name, an inline
+// Count$/... expression, or the bare X bound to ctx.X), bound to the asking
+// player and the source anchor targetBoundCtx builds. A present token the
+// grammar cannot resolve (TargetMax$ Y, the MaxTgts family, a named SVar the
+// face does not define) keeps today's semantics -- the parameter is dropped
+// to the default 1 -- because Num's degrade-to-zero contract is correct for
+// an effect amount ("the card did nothing") but wrong for a mandatory
+// target MINIMUM (a TargetMin$ X degrading to 0 would let a mandatory spell
+// resolve untargeted). x is the cast's settled {X} (pc.x at the CR 601.2c
+// announcement ask, where the announce has already run) so a
+// SVar:X:Count$xPaid bound reads the paid value; at a placement ask no X
+// applies (a trigger was never paid an X) and 0 is correct there -- an
+// xPaid body still finds the cast's value on the source permanent via
+// count.go's provenance fallback. The clamp contract is targetBounds',
+// applied AFTER resolution: min >= 0, max >= 1, max >= min.
+func (e *Engine) resolvedTargetBounds(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) (int, int) {
+	min, max := targetBounds(sa)
+	if !targetBoundsDynamic(sa) {
+		return min, max
+	}
+	ctx, ok := e.targetBoundCtx(p, source)
+	if !ok {
+		return min, max
+	}
+	ctx.X = x
+	if v, ok := sa.Params["TargetMin"]; ok && !isLiteralBound(v) {
+		if n, resolved := effects.NumResolved(e, ctx, sa, "TargetMin", 1); resolved {
+			min = int(n)
+		}
+	}
+	if v, ok := sa.Params["TargetMax"]; ok && !isLiteralBound(v) {
+		if n, resolved := effects.NumResolved(e, ctx, sa, "TargetMax", 1); resolved {
+			max = int(n)
+		}
+	}
+	if min < 0 {
+		min = 1
+	}
+	if max < 1 {
+		max = 1
+	}
+	if max < min {
+		max = min
+	}
+	return min, max
+}
+
+// resolvedTargetMin is the Min half of resolvedTargetBounds, for resolveTop's
+// N2 gate -- an ability or spell that MAY target zero things (a resolved
+// TargetMin$ 0) and has none recorded resolves untargeted rather than
+// fizzling. An unresolvable dynamic Min keeps the literal reader's default 1,
+// so the N2 exemption never opens for a bound this build cannot price.
+func (e *Engine) resolvedTargetMin(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) int {
+	min, _ := e.resolvedTargetBounds(p, source, sa, x)
 	return min
 }
 
@@ -907,7 +1022,7 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
-	min, max := targetBounds(sa)
+	min, max := e.resolvedTargetBounds(p, source, sa, 0)
 	candidates := e.legalTargetCandidates(p, source, source, sa)
 	oneEach := strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True")
 	groups := map[state.PlayerID]bool{}
@@ -1239,7 +1354,7 @@ func (e *Engine) resolveTop() {
 		// Requirement N2: an ability that MAY target zero things (TargetMin$ 0)
 		// and has none recorded resolves untargeted rather than fizzling --
 		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
-		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(targetMin(o.Ability) == 0 && len(targets) == 0) {
+		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, o.Ability, 0) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, spec, targetZones(o.Ability), o.Controller, o.Source, id)
 			if len(legal) == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
@@ -1503,7 +1618,7 @@ func (e *Engine) resolveTop() {
 		// permits it to resolve.
 		// Requirement N2, the same exemption as the ability branch: an
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
-		if spec := targetSA.Params["ValidTgts"]; spec != "" && !(targetMin(targetSA) == 0 && len(targets) == 0) {
+		if spec := targetSA.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, targetSA, 0) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, spec, targetZones(targetSA), o.Controller, id, id)
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does

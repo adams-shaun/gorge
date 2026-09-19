@@ -1829,7 +1829,7 @@ func (e *Engine) castModeAsk() bool {
 			legal = append(legal, name)
 			continue
 		}
-		min, _ := targetBounds(sub)
+		min, _ := e.resolvedTargetBounds(pc.player, pc.card, sub, pc.x)
 		if len(e.legalTargetCandidates(pc.player, pc.card, pc.card, sub)) >= min {
 			legal = append(legal, name)
 		}
@@ -3737,7 +3737,7 @@ func (e *Engine) targetAsk() bool {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
 	}
-	min, max := targetBounds(sa)
+	min, max := e.resolvedTargetBounds(pc.player, pc.card, sa, pc.x)
 	// CR 115.5: a spell may not target itself (excludeSelf == the card); an
 	// activated ability CAN target its own Source permanent (Mother of Runes
 	// targeting itself). The Face-less ability stack object on the stack is
