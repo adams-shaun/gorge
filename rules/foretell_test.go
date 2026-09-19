@@ -19,13 +19,11 @@ import (
 //
 // Two measured boundaries this file documents rather than hides:
 //
-//   - The engine's SP$ ChooseType primitive (effects/choose.go) records a
-//     DETERMINISTIC creature-type fallback at resolution time -- the first
-//     creature subtype of the resolving controller's own objects -- and never
-//     poses a mid-resolution type ask. The graveyard stocking below is built
-//     so that fallback is the type the test needs; a real player choice over
-//     types is its own ticket (the corpus's ChooseType-at-resolution
-//     carriers are far wider than this card family).
+//   - Haunting Voyage's mid-resolution SP$ ChooseType now poses a real
+//     KChoose type ask (task ct1); the drives below answer it (the graveyard
+//     stocking is built so "Elf" is a real option). The pre-ct1 behaviour --
+//     a deterministic fallback type read off the controller's objects, never
+//     asked -- is pinned by the effects-side fallback tests, not here.
 //   - handEngine's fixture runs no genesis TurnChange, so a turn-1 note
 //     records 0 and the ETB delta is read relative to NotedNumber, never
 //     against an absolute "turns since" number.
@@ -195,10 +193,11 @@ func TestHauntingVoyageForetellUnlocksTheReturnAllHalf(t *testing.T) {
 	if optionByLabel(e.legalActions(0), "Cast Haunting Voyage (foretold)") >= 0 {
 		t.Error("foretell cast offered on the foretell turn itself")
 	}
-	// Graveyard stock: three 1/1 Elves and a Zombie -- the deterministic
-	// ChooseType fallback reads "Elf" off them, and the foretold arm's
-	// ReturnAll (ChangeZoneAll) is distinguishable from the ordinary arm's
-	// ChangeNum$ 2 cap by the zombie's rest state.
+	// Graveyard stock: three 1/1 Elves and a Zombie -- two owned creature
+	// subtypes, so the mid-resolution ChooseType ask (ct1) is real (two
+	// options) and the foretold arm's ReturnAll (ChangeZoneAll) is
+	// distinguishable from the ordinary arm's ChangeNum$ 2 cap by the
+	// zombie's rest state. The ask is answered "Elf".
 	var elves [3]state.ObjID
 	for i := range elves {
 		elves[i] = graveCreature(t, e, 0, "Name:Elf"+string(rune('A'+i))+"\nManaCost:no cost\nTypes:Creature Elf\nPT:1/1\nOracle:x\n")
@@ -209,6 +208,20 @@ func TestHauntingVoyageForetellUnlocksTheReturnAllHalf(t *testing.T) {
 	driveToTurn3Main(t, e)
 	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MB] = 5, 2
 	submitOption(t, e, "foretell_cast", "Cast Haunting Voyage (foretold)")
+	// Pass priority once: the spell resolves and suspends on the
+	// mid-resolution creature-type ask (ct1); answer it "Elf", the same type
+	// the pre-ct1 fallback recorded, so the movement assertions below are
+	// unchanged.
+	passUntilAsk(t, e)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosetype" || len(d.Options) != 2 {
+		t.Fatalf("expected the mid-resolution creature-type ask, got %+v", d)
+	}
+	idx := optionByLabel(d.Options, "Elf")
+	if idx < 0 {
+		t.Fatalf("no Elf option in the type ask: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
 	// The reveal-on-cast state: the face-down marker is gone the moment the
 	// card moves off exile (CR 702.126c), here onto the stack.
 	if voyage.FaceDown {
@@ -249,13 +262,24 @@ func TestHauntingVoyageOrdinaryCastReturnsUpToTwo(t *testing.T) {
 		elves[i] = graveCreature(t, e, 0, "Name:Elf"+string(rune('A'+i))+"\nManaCost:no cost\nTypes:Creature Elf\nPT:1/1\nOracle:x\n")
 	}
 	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MB] = 4, 2
+	zombie := graveCreature(t, e, 0, "Name:Zombie\nManaCost:no cost\nTypes:Creature Zombie\nPT:1/1\nOracle:x\n")
 	castMode(t, e, id, "")
 	// The false branch of Count$Foretold.1.0 (the un-foretold ordinary cast)
 	// is the ChangeNum$ 2 pick over the three eligible Elves: the ask fires
 	// (strictly more eligible than the cap) and the answered pair is exactly
-	// what returns.
+	// what returns. Its first ask is the mid-resolution creature-type ask
+	// (ct1); answer it "Elf".
 	resolveOffStack(t, e, id)
 	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosetype" || len(d.Options) != 2 {
+		t.Fatalf("expected the mid-resolution creature-type ask, got %+v", d)
+	}
+	tidx := optionByLabel(d.Options, "Elf")
+	if tidx < 0 {
+		t.Fatalf("no Elf option in the type ask: %+v", d.Options)
+	}
+	submitChoices(t, e, tidx)
+	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 {
 		t.Fatalf("expected the return-up-to-two pick, got %+v", d)
 	}
@@ -268,6 +292,9 @@ func TestHauntingVoyageOrdinaryCastReturnsUpToTwo(t *testing.T) {
 	}
 	if returned != 2 {
 		t.Fatalf("ordinary cast returned %d Elves, want exactly the capped 2", returned)
+	}
+	if o := e.G.Obj(zombie); o.Zone != state.ZGraveyard {
+		t.Fatalf("the unchosen type's card moved to %s", o.Zone)
 	}
 	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
 		t.Fatalf("resolved voyage in %s, want graveyard", o.Zone)
