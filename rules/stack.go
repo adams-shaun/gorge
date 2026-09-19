@@ -912,6 +912,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 					effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, z), oid, sc) &&
 					(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
 					(!targeting || !(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(oid))) &&
+					(!targeting || !(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(oid, p, protSrc))) &&
 					(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
 				}
@@ -1902,6 +1903,7 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 			effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, o.Zone), t.Obj, sc) &&
 			!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
 			!(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(t.Obj)) &&
+			!(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(t.Obj, you, e.protectionSource(source))) &&
 			!e.protectedFrom(t.Obj, e.protectionSource(source)) {
 			legal = append(legal, t)
 		}

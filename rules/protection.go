@@ -84,6 +84,62 @@ func (e *Engine) shroudBlocksTarget(id state.ObjID) bool {
 	return false
 }
 
+// hexproofBlocksTarget reports whether id carries hexproof (CR 702.11) that
+// withholds it from a targeting spell or ability controlled by targeting.
+// It mirrors shroudBlocksTarget except for the controller test: hexproof is
+// ASYMMETRIC (CR 702.11b), so its controller may still target it, while
+// shroud blocks every controller. Derived keywords include granted ones,
+// exactly like protectedFrom and shroud. A quality-bearing form
+// (K:Hexproof:Artifact, "hexproof from artifacts", CR 702.11c) withholds
+// only when the targeting SOURCE carries that quality, reusing protection's
+// sourceHasQuality; a quality this build cannot evaluate fails closed and
+// never withholds (the permissive direction a restriction's fail-closed
+// convention takes). The caller owns the battlefield zone gate (CR 604.3),
+// the same gate shroud and protection use, and must NOT route the
+// non-target attachment path here (hexproof never stops its controller's own
+// Auras/Equipment, CR 702.11b).
+func (e *Engine) hexproofBlocksTarget(id state.ObjID, targeting state.PlayerID, source state.ObjID) bool {
+	if id == 0 {
+		return false
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Controller == targeting {
+		return false
+	}
+	for _, kw := range e.Keywords(id) {
+		q, ok := hexproofQuality(kw)
+		if !ok {
+			continue
+		}
+		if q == "" || e.sourceHasQuality(source, q) {
+			return true
+		}
+	}
+	return false
+}
+
+// hexproofQuality splits one derived keyword into its hexproof quality: ""
+// for the plain keyword (CR 702.11b, "hexproof"), the spec after the first
+// colon for a parameterised one (CR 702.11c, "Hexproof:Artifact"), and
+// ok=false for any keyword that is not hexproof at all. The display-text
+// field after a second colon is dropped, the same shape protectionQuality
+// reads for K:Protection:<Spec>:<desc>.
+func hexproofQuality(kw string) (string, bool) {
+	const head = "Hexproof"
+	if len(kw) < len(head) || !strings.EqualFold(kw[:len(head)], head) {
+		return "", false
+	}
+	rest := strings.TrimSpace(kw[len(head):])
+	if rest == "" {
+		return "", true
+	}
+	if rest[0] != ':' {
+		return "", false
+	}
+	q, _, _ := strings.Cut(strings.TrimSpace(rest[1:]), ":")
+	return strings.TrimSpace(q), true
+}
+
 // protectionQuality turns one derived keyword into the single quality it
 // protects against. "Protection from red and from blue" is emitted by Forge
 // as TWO keywords joined with "&" — each resolves here to its own keyword
@@ -292,6 +348,11 @@ func init() {
 	effects.RegisterNonAPI("kw:Protection", "kw:Protection from white", "kw:Protection from blue",
 		"kw:Protection from black", "kw:Protection from red", "kw:Protection from green",
 		"stat:CantPreventDamage")
+	// kw:Hexproof is the plain keyword and every parameterised K:Hexproof:<Spec>
+	// form (KeywordHead collapses them onto the same head); enforcement lives
+	// in hexproofBlocksTarget, which reads the quality the same way
+	// protectedFrom does.
+	effects.RegisterNonAPI("kw:Hexproof")
 }
 
 // permanentCastThisTurn reports whether the permanent id became a permanent by

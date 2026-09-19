@@ -26,6 +26,7 @@ var repoCommanderDecks = []struct {
 	{"ulalek-eldrazi", "Ulalek, Fused Atrocity"},
 	{"avengers-assemble", "Captain America, Team Leader"},
 	{"vivi-ornitier-cedh", "Vivi Ornitier"},
+	{"pro-shaper", "Hearthhull, the Worldseed"},
 }
 
 // TestRepoCommanderDecksValidate is the m38 acceptance gate: every interim
