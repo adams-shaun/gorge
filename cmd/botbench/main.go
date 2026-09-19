@@ -146,6 +146,14 @@ var policies = map[string]func(seed uint64) seat.Seat{
 	"ar8": func(seed uint64) seat.Seat {
 		return seat.NewCombinedLethalBot(seed)
 	},
+	// blocks is the BLK whole-assignment defender experiment (B0-B3): the
+	// production bot with KBlockers answered by the whole-assignment
+	// heuristic instead of the per-blocker one. Deliberately NOT a hosted
+	// policy -- host.NormalizeBotPolicy does not know the name -- so it can
+	// only be benched here, never hosted.
+	"blocks": func(seed uint64) seat.Seat {
+		return seat.NewBlocksBot(seed)
+	},
 	// cast-profile plays the production bot with a learned cast profile
 	// (botpolicy.CastWeights): with the embedded default profile it is
 	// intent-identical to "bot" (the baseline equality the L2 tests pin),

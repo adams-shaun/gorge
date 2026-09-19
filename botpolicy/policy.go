@@ -291,14 +291,14 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	// main's 9be52252 promoted AR7 lethal pressure into the default bot, so the
 	// default carries lethalPressure; the AR8 combined-lethal test stays opt-in
 	// (CombinedLethalDecide only), per this branch's 162a8acc.
-	return decide(b, d, r, true, false)
+	return decide(b, d, r, true, false, false)
 }
 
 // LethalPressureDecide is the measured opt-in policy used by botbench. It is
 // identical to Decide except that a combat attack which is lethal if
 // unblocked is made even when the defender can trade for it cheaply.
 func LethalPressureDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
-	return decide(b, d, r, true, false)
+	return decide(b, d, r, true, false, false)
 }
 
 // CombinedLethalDecide is the opt-in AR8 bench policy: on top of the AR7
@@ -309,10 +309,19 @@ func LethalPressureDecide(b Board, d *decision.Decision, r *rand.Rand) decision.
 // production bot (the default Decide carries only AR7 lethal pressure, never
 // the combined-lethal test).
 func CombinedLethalDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
-	return decide(b, d, r, true, true)
+	return decide(b, d, r, true, true, false)
 }
 
-func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combinedLethal bool) decision.Intent {
+// BlocksDecide is the opt-in BLK bench policy: identical to Decide except
+// that KBlockers is answered by the whole-assignment heuristic in
+// blocks.go (chooseBlockAssignment, rules B0-B3) instead of the per-blocker
+// chooseBlockers. It is exposed to cmd/botbench as the "blocks" policy and
+// is NEVER wired into the hosted or production bot.
+func BlocksDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
+	return decide(b, d, r, true, false, true)
+}
+
+func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combinedLethal, blocksAssignment bool) decision.Intent {
 	in := decision.Intent{Seq: d.Seq, Player: d.Player}
 	switch d.Kind {
 	case decision.KPriority:
@@ -398,7 +407,12 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		return clamp(d, in)
 
 	case decision.KBlockers:
-		in.Choices = b.chooseBlockers(d)
+		if blocksAssignment {
+			// BLK: the opt-in whole-assignment policy (blocks.go, B0-B3).
+			in.Choices = b.chooseBlockAssignment(d)
+		} else {
+			in.Choices = b.chooseBlockers(d)
+		}
 		return clamp(d, in)
 
 	case decision.KTriggerOrder:
