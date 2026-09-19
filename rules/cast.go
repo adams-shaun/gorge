@@ -679,9 +679,27 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			return false
 		}
 	}
+	// Tap cost parts reserve their candidates against the Sac/Exile/Return
+	// reservations above (one permanent cannot pay both) AND against each
+	// other: a composed cost carrying the same tap part several times -- a
+	// replicated cast re-pays its tapXType cost once per payment -- must not
+	// count one untapped permanent for every part. Without the reservation
+	// an affordability walk over the composed cost offered a bound far above
+	// what the board could actually pay, and answering it aborted the cast
+	// at the payment stage (CR 733's clean reversal, but a needless one).
 	for _, part := range cost.TapPermanent {
-		if len(e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true)) < int(part.N) {
+		var avail []state.ObjID
+		for _, oid := range e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true) {
+			if reserved[oid] {
+				continue
+			}
+			avail = append(avail, oid)
+		}
+		if len(avail) < int(part.N) {
 			return false
+		}
+		for i := 0; i < int(part.N); i++ {
+			reserved[avail[i]] = true
 		}
 	}
 	for range cost.Blight {
@@ -694,16 +712,22 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 		return false
 	}
 	// Energy cost parts (PayEnergy<N>): the payer's energy counter total
-	// covers a fixed part (Forge CostPayEnergy.canPay reads the same total).
-	// The dynamic X form is bounded by that total at the X ask, so the offer
-	// gate needs no assumption about the not-yet-chosen value.
+	// covers the SUM of the fixed parts -- Forge CostPayEnergy.canPay reads
+	// the same total, and a composed cost carrying the part several times (a
+	// replicated cast re-pays its PayEnergy cost once per payment) draws the
+	// pool down once per part, so the parts cannot each spend the whole
+	// counter total independently. The dynamic X form is bounded by that
+	// total at the X ask, so the offer gate needs no assumption about the
+	// not-yet-chosen value.
+	energyTotal := int32(0)
 	for _, part := range cost.Energy {
 		if part.Spec == "X" {
 			continue
 		}
-		if e.G.Players[p].Counter("ENERGY") < part.N {
-			return false
-		}
+		energyTotal += part.N
+	}
+	if energyTotal > 0 && e.G.Players[p].Counter("ENERGY") < energyTotal {
+		return false
 	}
 	// Return cost parts (Return<N/Spec>): the source itself (Spec CARDNAME,
 	// Forge's payCostFromSource) must be in play; otherwise the payer controls
@@ -1555,6 +1579,24 @@ func (e *Engine) tapPermanentCostAsk() bool {
 	for pc.tapPart < len(pc.cost.TapPermanent) {
 		part := pc.cost.TapPermanent[pc.tapPart]
 		candidates := e.costCandidates(pc.player, pc.card, state.ZBattlefield, part.Spec, false, true)
+		// An earlier part's recorded tap (taps settle together at payCast, so
+		// the state does not yet show it) has already claimed its permanent:
+		// the same reservation the affordability bound's nonManaCastable walk
+		// applies across the composed parts, honoured here so one permanent
+		// can never be chosen to pay two parts.
+		if len(pc.taps) > 0 {
+			taken := make(map[state.ObjID]bool, len(pc.taps))
+			for _, id := range pc.taps {
+				taken[id] = true
+			}
+			kept := make([]state.ObjID, 0, len(candidates))
+			for _, cid := range candidates {
+				if !taken[cid] {
+					kept = append(kept, cid)
+				}
+			}
+			candidates = kept
+		}
 		if len(candidates) < int(part.N) {
 			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
 			return true
@@ -1844,8 +1886,15 @@ func (e *Engine) replicateAsk() bool {
 	}
 	if max == 0 {
 		// The offer gate proved one payment payable; a board that changed
-		// under the proposal degrades to the count-0 plain cast (the
-		// conservative CR 733 direction) rather than wedging or aborting.
+		// under the proposal (or a cost modifier that priced the OFFER but
+		// not this loop's bare, unmodified cost -- the bound here is
+		// deliberately conservative, never over-offering) degrades the
+		// explicitly chosen "(replicated)" mode to the count-0 plain cast
+		// (the conservative CR 733 direction) rather than wedging or
+		// aborting. The degrade is loud: a silent downgrade would leave the
+		// player's choice unrecorded.
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			Text: "replicate no longer payable; casting without replicate"})
 		return false
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
