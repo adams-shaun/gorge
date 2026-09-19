@@ -132,7 +132,7 @@ func TestPrimitivesAreRegistered(t *testing.T) {
 	sup := Supported()
 	for _, api := range []string{
 		"DealDamage", "DamageAll", "Mana",
-		"Draw", "Discard", "Mill", "Dig", "Reveal", "RevealHand", "PeekAndReveal",
+		"Draw", "Discard", "Mill", "Dig", "DigUntil", "Reveal", "RevealHand", "PeekAndReveal",
 		"RearrangeTopOfLibrary", "Scry", "Surveil", "NameCard", "ChooseType", "ChooseNumber",
 		"ChangeZone", "ChangeZoneAll", "Destroy", "DestroyAll", "Sacrifice",
 		"GainLife", "LoseLife",
@@ -1146,7 +1146,7 @@ func TestMana(t *testing.T) {
 // suffix). Both must be a total no-op: no panic, and the game state
 // afterwards is reflect.DeepEqual to a clone taken beforehand.
 func TestCardflowAPIsGuardOutOfRangePlayerID(t *testing.T) {
-	apis := []string{"Draw", "Discard", "Mill", "Dig",
+	apis := []string{"Draw", "Discard", "Mill", "Dig", "DigUntil",
 		"Reveal", "RevealHand", "PeekAndReveal", "RearrangeTopOfLibrary", "NameCard"}
 
 	run := func(t *testing.T, line string, c *Ctx) {
