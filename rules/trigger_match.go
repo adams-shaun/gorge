@@ -2915,7 +2915,7 @@ func init() {
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
-		"kw:Storm", "kw:Ward", "kw:Annihilator",
+		"kw:Storm", "kw:Ward", "kw:Annihilator", "kw:Mobilize",
 		// Mass effects, extra turns and new-set mechanics (the
 		// inbox-engine-gap-mass-turn-new-mechanics ticket):
 		//   - trig:UnlockDoor: a Room's unlock trigger (rules/rooms.go),

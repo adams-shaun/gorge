@@ -30,6 +30,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Prowess":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
 		"kw:Ward":           "TestWardVeinRipperCountersAnUnpaidTargetingSpell",
 		"kw:Annihilator":    "TestAnnihilatorArtisanSacrificesThePrintedAmount",
+		"kw:Mobilize":       "TestMobilizeUsesRealCorpusCard",
 		"kw:Double Strike":  "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
 		"kw:Fear":           "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
 		"kw:Shadow":         "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
