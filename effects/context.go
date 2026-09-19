@@ -300,18 +300,16 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// case), so this resolves the whole per-defender attacker group.
 		return objectsOf(c.Remembered), true
 	case "TriggeredTargetLKICopy":
-		// The fire-time TriggerTarget role is the exact referent for the
-		// "that <object>" reading: the Attached capture records the BEARER
-		// an Aura/Equipment became attached to (Enormous Energy Blade's
-		// "tap that creature"), the DamageDone capture records the damaged
-		// object (equal to Remembered[0] there, so no behaviour change), and
-		// the BecomesTarget capture records the targeted permanent -- which
-		// is what Horobi/Cowardice/Willbreaker's "that creature" names,
-		// whereas Remembered[0] for that mode is the TARGETING SPELL. The
-		// role-absent fallback (SpellCast, ChangesZone, hand-built contexts)
-		// keeps the Remembered entry exactly as before.
-		if c.TriggerTarget.Obj != 0 {
-			return []state.Target{{Obj: c.TriggerTarget.Obj}}, true
+		// The BEARER the Attached referent walk captured (triggerReferents'
+		// Attached case): the permanent an Aura/Equipment became attached to
+		// -- Enormous Energy Blade's "tap that creature". Only the Attached
+		// walk sets TriggerBearer, so no other mode's provenance moves: a
+		// BecomesTarget trigger's TriggerTarget role is its OWN source
+		// permanent (the enchanted creature, Horobi himself), and this
+		// spelling keeps resolving that mode's Remembered entry (the
+		// targeting spell) exactly as it always has.
+		if c.TriggerBearer != 0 {
+			return []state.Target{{Obj: c.TriggerBearer}}, true
 		}
 		return objectsOf(c.Remembered), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",

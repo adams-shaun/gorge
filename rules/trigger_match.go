@@ -2526,7 +2526,9 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 // and ETB-attached shapes alike). events.Attach with len(ev.IDs) > 0 carries
 // the attachment in ev.Obj and the bearer in ev.IDs[0]; the no-IDs emits are
 // the detach state-based actions (rules/attach.go), which are NOT "becomes
-// attached" and never match. Forge's ValidSource$ names the ATTACHING
+// attached" and never match, and an emit with no attachment object (Obj == 0)
+// has nothing to bind ValidSource$ against, so it never matches either.
+// Forge's ValidSource$ names the ATTACHING
 // object (Siona's Aura.YouCtrl, Enormous Energy Blade's Card.Self) and
 // ValidTarget$ names the BEARER (Brood Keeper's Card.Self reads Self as the
 // trigger's source through the same specCtx becomesTargetMatches uses).
@@ -2538,7 +2540,7 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 // Execute$ DBClone continuous shapes with no static-trigger machinery here)
 // from firing a clone on every attach.
 func (e *Engine) attachedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
-	if ev.Kind != events.Attach || len(ev.IDs) == 0 {
+	if ev.Kind != events.Attach || len(ev.IDs) == 0 || ev.Obj == 0 {
 		return false
 	}
 	if t.Params["Static"] == "True" {
@@ -2546,7 +2548,7 @@ func (e *Engine) attachedMatches(t cards.Trigger, source state.ObjID, ev events.
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidSource"]; ok {
-		if ev.Obj == 0 || !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}

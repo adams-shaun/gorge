@@ -51,6 +51,18 @@ type TriggerContext struct {
 	// resolves. Zero is both a valid paid value and the value for a triggering
 	// card with no paid X.
 	TriggerPaidX int32
+	// TriggerBearer is the permanent an Aura/Equipment BECAME attached to
+	// (rules/triggerReferents' Attached case, over the one shared Attach
+	// event: ev.Obj is the attachment, ev.IDs[0] the bearer). It is the
+	// exact referent Defined$ TriggeredTargetLKICopy resolves for an
+	// Attached execute (Enormous Energy Blade's "tap that creature"). Only
+	// the Attached capture sets it, so the spelling's Remembered fallback
+	// for every other mode is untouched -- in particular a BecomesTarget
+	// trigger's Remembered entry (the targeting spell) stays exactly as it
+	// always resolved, and the mode-agnostic TriggerTarget role (which for
+	// BecomesTarget is the trigger's own source permanent) is never read
+	// through this spelling. Zero outside an Attached trigger.
+	TriggerBearer state.ObjID
 	// TriggerAbility is the minted ability STACK OBJECT an AbilityCast /
 	// SpellAbilityCast trigger fired on (abcopy1). An AbilityPush event's Obj
 	// is the source PERMANENT -- events.Apply mints the ability's stack wrapper

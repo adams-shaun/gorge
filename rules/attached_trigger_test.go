@@ -195,6 +195,44 @@ func TestAttachedEnormousEnergyBladeTapsTheBearer(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestAttachedBearerCaptureDoesNotLeakIntoBecomesTarget is the canary for
+// the bearer capture's SCOPING: TriggerBearer is set only by the Attached
+// referent walk, so the shared TriggeredTargetLKICopy spelling keeps every
+// other mode's pre-existing resolution. Horobi, Death's Wail (BecomesTarget,
+// Defined$ TriggeredTargetLKICopy) is the real-corpus probe: his trigger's
+// Remembered entry is the TARGETING SPELL, so the Destroy resolves against
+// a stack object and no-ops -- Horobi survives the bolt at the bear. Reading
+// the mode-agnostic TriggerTarget role through this spelling would instead
+// bind his own source permanent (the referent walk's BecomesTarget capture)
+// and Horobi would destroy HIMSELF whenever any other creature became
+// targeted -- the regression this pin forbids.
+func TestAttachedBearerCaptureDoesNotLeakIntoBecomesTarget(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	horobi := mustCorpusCard(t, reg, "Horobi, Death's Wail")
+	bolt := card(t, "Name:Probe Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n")
+	bearCard := card(t, attachedBearSrc)
+	e, cfg := tokenReplGameSeats(t, 98, []*cards.Card{horobi, bolt}, []*cards.Card{bearCard})
+	horobiID := moveSeededCard(t, e, 0, horobi, state.ZBattlefield)
+	boltID := moveSeededCard(t, e, 0, bolt, state.ZHand)
+	oppBear := moveSeededCard(t, e, 1, bearCard, state.ZBattlefield)
+	passUntilStackEmpty(t, e, 20)
+
+	addMana(t, e, 0, "R")
+	submitChoices(t, e, castCardOption(t, e, boltID).Index)
+	d := e.Pending()
+	idx := indexOfObjOption(d, oppBear)
+	if d == nil || d.Kind != decision.KTarget || idx < 0 {
+		t.Fatalf("bolt target ask: %+v", d)
+	}
+	submitChoices(t, e, idx)
+	passUntilStackEmpty(t, e, 20)
+
+	if o := e.G.Obj(horobiID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Horobi in zone %v, want battlefield -- the bearer capture leaked into BecomesTarget provenance and his trigger destroyed him", o)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestAttachedDetachDoesNotFire: events.Attach with NO IDs is a detach (the
 // rules/attach.go SBA emits) -- the matcher must ignore it, so after Brood
 // Keeper made her Dragon off the real attach, the detach makes no second

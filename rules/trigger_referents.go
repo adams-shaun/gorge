@@ -109,12 +109,18 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	case "Attached":
 		// ev.Obj is the attaching Aura/Equipment, ev.IDs[0] the bearer it
 		// became attached to (attachedMatches guarantees a bearer-bearing
-		// Attach event reached this mode). Enormous Energy Blade's execute
-		// reads TriggeredTargetLKICopy and Bramble Elemental's token reads
-		// TriggeredTargetController, both off the bearer role below.
+		// Attach event reached this mode). The TriggerTarget role serves the
+		// TriggeredTarget/TriggeredTargetController spellings (Bramble
+		// Elemental's token owner); TriggerBearer -- a field ONLY this case
+		// sets -- is what TriggeredTargetLKICopy (Enormous Energy Blade's
+		// "tap that creature") resolves, so the bearer never masquerades as
+		// another mode's TriggerTarget provenance (a BecomesTarget trigger's
+		// TriggerTarget is its own source permanent; reading it as a bearer
+		// would make Horobi destroy himself on every targeting).
 		c.TriggerCard = ev.Obj
 		if len(ev.IDs) > 0 {
 			c.TriggerTarget = state.Target{Obj: ev.IDs[0]}
+			c.TriggerBearer = ev.IDs[0]
 		}
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
