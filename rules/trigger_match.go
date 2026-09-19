@@ -1459,7 +1459,45 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 			return false
 		}
 	}
+	if !hasXManaCostGate(t.Params, obj.Face().ManaCost, nil) {
+		return false
+	}
 	return true
+}
+
+// hasXManaCostGate implements HasXManaCost$ True on cast/activation trigger
+// modes (Mode$ SpellCast and Mode$ AbilityCast/SpellAbilityCast): "whenever
+// you cast a permanent spell with a mana cost that contains {X}" / "...or
+// activate an ability ... if that ability's activation cost contains {X}"
+// (Unbound Flourishing, Glava Five-Advents Mage, Brass Infiniscope, Magus
+// Lucea Kane). The gate reads the PRINTED cost -- the spell's ManaCost face
+// field, or the ability's Cost$ param -- through ParseCost, which counts only
+// the mana {X} tokens (c.X); a non-mana component token such as
+// SubCounter<X/CHARGE> or PayEnergy<X> is matched by its own grammar and does
+// NOT count, which is exactly the card text's "mana cost/activation cost
+// contains {X}". For an activation the printed Cost$ still carries the X at
+// AbilityPush time (the announced value folds into the provisional payment
+// cost, rules/cast.go's pc.cost.WithX, never into the SA params), so the
+// gate is about the printed shape, never the announced value.
+//
+// A param present with a value other than True FAILS CLOSED (the trigger
+// stays silent), per the repo's unreadable-condition convention; a param
+// absent leaves the trigger's behaviour unchanged. ab is the activated
+// ability on the AbilityCast arm (nil on the SpellCast arm, where faceCost is
+// the spell's printed face cost); a nil ab with an empty faceCost fails
+// closed rather than firing wide.
+func hasXManaCostGate(params map[string]string, faceCost string, ab *cards.SA) bool {
+	v, ok := params["HasXManaCost"]
+	if !ok {
+		return true
+	}
+	if !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return false
+	}
+	if ab != nil {
+		return ParseCost(ab.Params["Cost"]).X > 0
+	}
+	return ParseCost(faceCost).X > 0
 }
 
 // compareIntCount evaluates Forge's <OP><N> comparison grammar (EQ1, GT1,
@@ -2582,6 +2620,16 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 		if !abilityCastValidSA(obj.Face().Abilities[int(ev.Amount)], v) {
 			return false
 		}
+	}
+	// HasXManaCost$ True: the activation cost must contain {X}. The ability
+	// at the recorded index (the same bounds check ValidSA$ uses); a stale
+	// index fails closed through the nil ab below.
+	var ab *cards.SA
+	if ev.Amount >= 0 && int(ev.Amount) < len(obj.Face().Abilities) {
+		ab = obj.Face().Abilities[int(ev.Amount)]
+	}
+	if !hasXManaCostGate(t.Params, "", ab) {
+		return false
 	}
 	return true
 }
