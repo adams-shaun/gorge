@@ -113,14 +113,13 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"text/tabwriter"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
-	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/host"
+	gbench "github.com/adams-shaun/gorge/internal/bench"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
@@ -239,7 +238,7 @@ var actionCoverageEnabled bool
 // truth for both the seat assignment AND the win attribution: the tally
 // credits each win to the side aPlaysSeat says held the winning seat, so
 // the two cannot drift apart.
-func aPlaysSeat(game, seat int) bool { return (game+seat)%2 == 0 }
+func aPlaysSeat(game, seat int) bool { return gbench.PlaysSeat(game, seat) }
 
 // resolvePolicy looks a -a/-b name up in the policies table. The error
 // message lists the known names sorted, so it is deterministic like every
@@ -306,30 +305,6 @@ type gameOutcome struct {
 // isStalled reports whether the game was ended by either watchdog cap.
 func (o gameOutcome) isStalled() bool { return o.stallOn != "" }
 
-// firstTurnSeat reads the seat the game's first TurnChange handed the turn
-// to -- the CR 103.1 toss winner resolved over the survivors -- which is
-// what the report's starting-player split attributes wins by. The boolean is
-// false when the log holds no TurnChange (the game ended during its opening
-// deal).
-func firstTurnSeat(e *rules.Engine) (int, bool) {
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.TurnChange {
-			return int(ev.Player), true
-		}
-	}
-	return 0, false
-}
-
-// recordStarter attaches the first-turn seat when the game reached turn 1.
-// Keeping presence separate from the integer makes an omitted synthetic field
-// suppress the optional split rather than inventing a seat-0 start.
-func recordStarter(o gameOutcome, e *rules.Engine) gameOutcome {
-	if starter, ok := firstTurnSeat(e); ok {
-		o.starter, o.starterSet = starter, true
-	}
-	return o
-}
-
 // playMatch plays one game between the given per-seat seats to completion, or
 // ends it as a stall at whichever watchdog cap fires first. pols is the
 // policy name sitting at each seat, used only to map the winner's seat back
@@ -388,62 +363,20 @@ func playMatchOnce(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns,
 // trace is game-local, so concurrent workers never share or write it. The
 // ordinary wrapper passes nil and retains its pre-trace allocation and output
 // path.
+//
+// The engine drive loop itself lives in internal/bench (bench.PlayGame), the
+// SAME loop cmd/policytune runs: this function only translates the optional
+// observers (decision stats, action coverage, decision trace) into bench's
+// Hooks and the policy-name-free bench.Outcome back into a gameOutcome. There
+// is no second copy of the watchdog/livelock loop to keep in step.
 func playMatchOnceTraced(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats, cov *actionCoverage, trace *gameTrace, meta traceDecisionMeta) (gameOutcome, *rules.Engine, error) {
-	e := rules.New(cfg)
-	e.Advance()
-	board := botpolicy.NewBoard(len(seats))
-	n := 0
-	// The livelock watcher fires inside a single Submit call -- the loop is
-	// stuck there, so there is no error return to read -- and panics with a
-	// *rules.LivelockError. The whole drive loop runs inside one recover:
-	// a livelock converts into a stalled outcome carrying the diagnostic
-	// (one hung game records a stall and the rest of the run keeps going;
-	// the fold-level reporting turns the tally into a non-zero exit at the
-	// end, because a livelock is an engine bug, not a slow game). Any other
-	// panic is re-raised: it is a bug either way. The loop's own early exits
-	// surface as (outcome, err); nil/nil means the loop ran to its natural
-	// end and the post-loop stall/failure classification below applies.
-	lle, exitOutcome, exitErr := func() (lle *rules.LivelockError, exitOutcome *gameOutcome, exitErr error) {
-		defer func() {
-			if r := recover(); r != nil {
-				if l, ok := r.(*rules.LivelockError); ok {
-					lle = l
-					return
-				}
-				panic(r)
-			}
-		}()
-		for !e.G.Over && e.Pending() != nil && (maxIntents <= 0 || n < maxIntents) {
-			// The turn watchdog: a game whose turn count reaches the cap is
-			// stalled -- neither a win nor a draw (and so excluded from the
-			// win-rate denominator) -- and maxTurns==0 means no cap. It reads
-			// the turn number the engine already reports (state.Game.Turn) and
-			// caps nothing under rules/.
-			if maxTurns > 0 && e.G.Turn >= int32(maxTurns) {
-				return nil, &gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n}, nil
-			}
-			d := e.Pending()
-			var in decision.Intent
-			var err error
-			var decisionBoard *botpolicy.Board
-			if s, ok := seats[d.Player].(seat.BoardSeat); ok {
-				// Match the live host's reusable, seat-private Board path. Seats
-				// opting out (including legacy) still receive the full View.
-				b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
-				in, err = s.DecideBoard(context.Background(), b, *d)
-				decisionBoard = &b
-			} else {
-				v := view.Project(e.G, e, d.Player, d)
-				v.Round = view.RoundOf(e.G, e.L.Events)
-				in, err = seats[d.Player].Decide(context.Background(), v, *d)
-				if trace != nil {
-					b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
-					decisionBoard = &b
-				}
-			}
-			if err != nil {
-				return nil, nil, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)
-			}
+	hooks := gbench.Hooks{NeedBoard: trace != nil}
+	if collect != nil || cov != nil || trace != nil {
+		// game() already ran in playMatchTraced (this function's only
+		// collector-carrying caller) before the loop started, so the hook
+		// records decisions only; a Start callback here would double-count the
+		// game in every collector's header.
+		hooks.Decision = func(seatIdx int, d *decision.Decision, in decision.Intent, brd *botpolicy.Board) error {
 			if collect != nil {
 				collect.record(d, in)
 			}
@@ -452,52 +385,39 @@ func playMatchOnceTraced(cfg rules.Config, pols []string, seats []seat.Seat, max
 			}
 			if trace != nil {
 				decisionMeta := meta
-				decisionMeta.Policy = pols[d.Player]
-				if err := trace.record(d, in, decisionBoard, decisionMeta); err != nil {
-					return nil, nil, fmt.Errorf("seed %d, intent %d: recording decision trace: %w", cfg.Seed, n, err)
+				decisionMeta.Policy = pols[seatIdx]
+				if err := trace.record(d, in, brd, decisionMeta); err != nil {
+					return fmt.Errorf("seed %d: recording decision trace: %w", cfg.Seed, err)
 				}
 			}
-			if err := e.Submit(in); err != nil {
-				return nil, nil, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, err)
-			}
-			n++
+			return nil
 		}
-		return nil, nil, nil
-	}()
-	if exitErr != nil {
-		return gameOutcome{}, e, exitErr
 	}
-	if lle != nil {
-		o := gameOutcome{stallOn: "livelock", turns: e.G.Turn, intents: n, livelock: lle.Error()}
-		return recordStarter(o, e), e, nil
+	o, e, err := gbench.PlayGame(cfg, seats, maxTurns, maxIntents, hooks)
+	if err != nil {
+		return gameOutcome{}, e, err
 	}
-	if exitOutcome != nil {
-		return recordStarter(*exitOutcome, e), e, nil
-	}
-	if !e.G.Over {
-		// The loop exited with the game still live: the intent cap was the
-		// limiter (maxIntents <= 0 with a live game would mean a nil pending
-		// decision mid-game, itself a non-terminating stall). This is a
-		// stalled outcome -- NOT an error -- so the run records it and steps
-		// over the pair instead of killing the whole matrix.
-		return recordStarter(gameOutcome{stallOn: "intents", turns: e.G.Turn, intents: n}, e), e, nil
-	}
-	return outcomeFrom(e, pols, n), e, nil
+	return gameOutcomeFrom(o, pols), e, nil
 }
 
-// outcomeFrom reads a finished game's result. Ruling P14: Draw must be read
-// before Winner -- Winner's zero value is seat 0, a real seat, so reading
-// it unconditionally would misreport a drawn game as its first seat's
-// policy winning.
-func outcomeFrom(e *rules.Engine, pols []string, intents int) gameOutcome {
-	var o gameOutcome
-	o.turns = e.G.Turn
-	o.intents = intents
-	if !e.G.Draw {
-		o.winner = pols[e.G.Winner]
-		o.winnerSeat = int(e.G.Winner)
+// gameOutcomeFrom converts bench's policy-name-free Outcome back into the
+// bench command's gameOutcome, resolving the winning seat to the policy name
+// sitting there. Ruling P14: Draw must be read before any winner, and a
+// stalled game has neither.
+func gameOutcomeFrom(o gbench.Outcome, pols []string) gameOutcome {
+	g := gameOutcome{
+		turns:      o.Turns,
+		intents:    o.Intents,
+		stallOn:    o.StallOn,
+		livelock:   o.Livelock,
+		starter:    o.Starter,
+		starterSet: o.StarterSet,
 	}
-	return recordStarter(o, e)
+	if !o.Draw && !o.IsStalled() {
+		g.winner = pols[o.WinnerSeat]
+		g.winnerSeat = o.WinnerSeat
+	}
+	return g
 }
 
 // stallNotice is the loud, unmistakable summary line a run with any stalled
@@ -583,14 +503,7 @@ func winnerLabel(o gameOutcome) string {
 // and the matrix pair worker use, so the two can never disagree about which
 // policy a seat holds in a given game.
 func polsFor(g, seats int, aName, bName string) []string {
-	pols := make([]string, seats)
-	for seat := 0; seat < seats; seat++ {
-		pols[seat] = bName
-		if aPlaysSeat(g, seat) {
-			pols[seat] = aName
-		}
-	}
-	return pols
+	return gbench.PolsFor(g, seats, aName, bName)
 }
 
 // matchPlayer plays one game of a bench run: given a game's seed and the
@@ -871,11 +784,10 @@ func (p pairDef) String() string { return p.a + ":" + p.b }
 // dimir-tempo), because death-n-taxes sorts first -- is exactly the pair the
 // default single-pair run has always played, so a matrix row reproduces it.
 func fullPairs(names []string) []pairDef {
-	ps := make([]pairDef, 0, len(names)*(len(names)-1)/2)
-	for i := 0; i < len(names); i++ {
-		for j := i + 1; j < len(names); j++ {
-			ps = append(ps, pairDef{names[i], names[j]})
-		}
+	bps := gbench.FullPairs(names)
+	ps := make([]pairDef, len(bps))
+	for i, b := range bps {
+		ps[i] = pairDef{a: b.A, b: b.B}
 	}
 	return ps
 }
@@ -947,34 +859,13 @@ func parsePairsForMode(spec string, pool []string, commander bool) ([]pairDef, e
 // order cannot reach the output. names is the pool for the run's format
 // (commander mode passes the commander-only list).
 func parsePairs(spec string, names []string) ([]pairDef, error) {
-	if spec == "all" {
-		return fullPairs(names), nil
+	bps, err := gbench.ParsePairs(spec, names)
+	if err != nil {
+		return nil, err
 	}
-	known := make(map[string]bool, len(names))
-	for _, n := range names {
-		known[n] = true
-	}
-	var ps []pairDef
-	for _, tok := range strings.Split(spec, ",") {
-		tok = strings.TrimSpace(tok)
-		if tok == "" {
-			return nil, fmt.Errorf("-pairs: empty pair in %q", spec)
-		}
-		parts := strings.SplitN(tok, ":", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("-pairs: %q is not a \"a:b\" deck pair", tok)
-		}
-		a, b := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
-		if !known[a] {
-			return nil, fmt.Errorf("-pairs: unknown deck %q (not one of the %d decks in this format's pool)", a, len(names))
-		}
-		if !known[b] {
-			return nil, fmt.Errorf("-pairs: unknown deck %q (not one of the %d decks in this format's pool)", b, len(names))
-		}
-		ps = append(ps, pairDef{a, b})
-	}
-	if len(ps) == 0 {
-		return nil, fmt.Errorf("-pairs: no deck pairs given")
+	ps := make([]pairDef, len(bps))
+	for i, b := range bps {
+		ps[i] = pairDef{a: b.A, b: b.B}
 	}
 	return ps, nil
 }
@@ -1061,12 +952,66 @@ func parseGameFormat(s string) (bool, error) {
 // reproduce today's number (and that cmd/botbench's own liveness probe
 // would catch if it ever stopped holding).
 func gameSeedPair(baseSeed uint64, pos, games, g int) uint64 {
-	return baseSeed + uint64(pos*games+g)
+	return gbench.GameSeedPair(baseSeed, pos, games, g)
 }
 
-// gamePool is the one shared execution budget for a matrix run. Pair workers
-// submit individual games to it instead of creating a worker pool per pair;
-// therefore -workers bounds live games even when many pairs are active.
+// pdToBench converts a bench command pair into the shared scheduler's
+// PairDef.
+func pdToBench(pd pairDef) gbench.PairDef { return gbench.PairDef{A: pd.a, B: pd.b} }
+
+// seatCtorFor resolves a policy name to a shared-scheduler seat constructor.
+// A name in the policies table uses that policy's real constructor; any other
+// name (a synthetic test player) gets a nil-returning ctor, because the
+// synthetic player reads the policy names, not the built seats. The real run
+// path validates names with resolvePolicy before any game starts, so a typo
+// never reaches here.
+func seatCtorFor(name string) gbench.SeatCtor {
+	if c, ok := policies[name]; ok {
+		return gbench.SeatCtor(c)
+	}
+	return func(uint64) seat.Seat { return nil }
+}
+
+// pairFromBench converts a shared scheduler PairResult back into the bench
+// command's pairResult (same fields, unexported spelling).
+func pairFromBench(r gbench.PairResult) pairResult {
+	return pairResult{
+		pd:            pairDef{a: r.PD.A, b: r.PD.B},
+		games:         r.Games,
+		aWins:         r.AWins,
+		bWins:         r.BWins,
+		draws:         r.Draws,
+		stalls:        r.Stalls,
+		stallTurns:    r.StallTurns,
+		stallIntents:  r.StallIntents,
+		livelocks:     r.Livelocks,
+		firstLivelock: r.FirstLivelock,
+		seatWins:      r.SeatWins,
+		starts:        r.Starts,
+		startWins:     r.StartWins,
+		totalTurns:    r.TotalTurns,
+	}
+}
+
+// outcomeToBench converts the bench command's gameOutcome into the shared
+// scheduler's policy-name-free Outcome. The winner's SEAT is what the shared
+// fold attributes by; the name stays command-side.
+func outcomeToBench(o gameOutcome) gbench.Outcome {
+	return gbench.Outcome{
+		WinnerSeat: o.winnerSeat,
+		Draw:       o.winner == "" && !o.isStalled(),
+		StallOn:    o.stallOn,
+		Livelock:   o.livelock,
+		Turns:      o.turns,
+		Intents:    o.intents,
+		Starter:    o.starter,
+		StarterSet: o.starterSet,
+	}
+}
+
+// gamePool is the one shared execution budget for the single-pair bench
+// (benchWithPool) and the -rotate run. The matrix scheduler moved to
+// internal/bench (gbench.RunPairs); this remains the single-pair pool.
 type gamePool struct {
 	jobs chan func()
 	wg   sync.WaitGroup
@@ -1103,101 +1048,6 @@ type gameResult struct {
 	err     error
 }
 
-// playOnePair plays `games` matches of one deck pair and tallies them into a
-// pairResult. Seats trade policies every game (aPlaysSeat), exactly as the
-// single-pair bench does, so the deck a seat holds is fixed for the pair but
-// which policy plays it alternates -- a deck list can no more masquerade as
-// a policy advantage here than it can in the single-pair run. Every game is
-// seeded from gameSeedPair so the whole matrix is a pure function of (base
-// seed, per-pair game count, pair list) and nothing else.
-func playOnePair(baseSeed uint64, pos, games int, aName, bName string, pd pairDef, play pairPlayer, prog *progressWriter) (pairResult, error) {
-	pool := newGamePool(runtime.NumCPU())
-	defer pool.close()
-	return playOnePairWithPool(baseSeed, pos, games, aName, bName, pd, play, prog, pool)
-}
-
-// playOnePairWithPool runs all games concurrently, but folds their slots in
-// ascending game order. The fold is the only place that mutates pairResult,
-// so tallying and the first error remain identical to the old sequential loop
-// regardless of completion order.
-func playOnePairWithPool(baseSeed uint64, pos, games int, aName, bName string, pd pairDef, play pairPlayer, prog *progressWriter, pool *gamePool) (pairResult, error) {
-	var r pairResult
-	r.pd = pd
-	r.games = games
-	step := games
-	if step > 1000 {
-		step = 1000
-	}
-
-	slots := make([]gameResult, games)
-	var done sync.WaitGroup
-	done.Add(games)
-	for g := 0; g < games; g++ {
-		g := g
-		s := gameSeedPair(baseSeed, pos, games, g)
-		pols := polsFor(g, 2, aName, bName)
-		pool.submit(func() {
-			defer done.Done()
-			slots[g].outcome, slots[g].err = play(pos, s, pols)
-		})
-	}
-	done.Wait()
-
-	for g, result := range slots {
-		if result.err != nil {
-			// All games have completed, so selecting the first error from the
-			// ordered slots preserves the sequential loop's lowest failing
-			// game, not whichever worker happened to finish first.
-			return pairResult{}, fmt.Errorf("pair %s: %w", pd, result.err)
-		}
-		oc := result.outcome
-		kind, err := classifyOutcome(g, oc, 2)
-		if err != nil {
-			return pairResult{}, fmt.Errorf("pair %s, game %d: %w", pd, g, err)
-		}
-		switch {
-		case kind.stall:
-			// A stalled game is a distinct outcome -- not a win, not a draw,
-			// credited to no seat -- and is excluded from the win-rate
-			// denominator when the pair is reported. The cause is tallied
-			// apart so the pooled notice can name the cap that ended the game.
-			r.stalls++
-			if kind.stallOn == "intents" {
-				r.stallIntents++
-			} else if kind.stallOn == "livelock" {
-				r.livelocks++
-				if r.firstLivelock == "" {
-					r.firstLivelock = fmt.Sprintf("game %d: %s", g, oc.livelock)
-				}
-			} else {
-				r.stallTurns++
-			}
-		case kind.draw:
-			r.draws++
-		default:
-			r.seatWins[kind.winnerSeat]++
-			if kind.aWin {
-				r.aWins++
-			} else {
-				r.bWins++
-			}
-		}
-		// The starting-player tally: the play/draw measurement the seat
-		// split no longer provides, since the toss decides who plays first.
-		if kind.starterSet {
-			r.starts[kind.starter]++
-			if !kind.stall && !kind.draw && kind.winnerSeat == kind.starter {
-				r.startWins[kind.starter]++
-			}
-		}
-		r.totalTurns += int64(oc.turns)
-		if g > 0 && g%step == 0 {
-			prog.line("pair %d (%s): %d/%d games", pos+1, pd, g, games)
-		}
-	}
-	return r, nil
-}
-
 // progressWriter serialises live progress lines from parallel workers onto a
 // single writer. It is deliberately NOT the report writer: a matrix run's
 // report is printed once, serially and in pair order, after every pair
@@ -1227,85 +1077,51 @@ func (p *progressWriter) line(format string, a ...any) {
 // cap, a policy failure) records it, closes stop, and the whole run returns
 // that error -- the same abort-on-error behaviour as the single-pair bench.
 func runPairs(baseSeed uint64, games int, aName, bName string, pairs []pairDef, play pairPlayer, workers int, prog *progressWriter) ([]pairResult, error) {
-	total := len(pairs)
-	if total == 0 {
-		return nil, fmt.Errorf("no deck pairs to run")
+	// The scheduler itself lives in internal/bench (gbench.RunPairs), the SAME
+	// pair-matrix runner cmd/policytune calls: it owns the worker pool, the
+	// per-pair seed block, the side-to-seat trading and the ascending-order
+	// fold. This function only translates the bench command's policy-name
+	// player into the shared two-seat-constructor shape and the shared tallies
+	// back into pairResult.
+	bPairs := make([]gbench.PairDef, len(pairs))
+	for i, pd := range pairs {
+		bPairs[i] = pdToBench(pd)
 	}
-	if workers <= 0 {
-		workers = runtime.NumCPU()
+	// The side constructors: side A is the -a policy, side B the -b policy.
+	// gbench's scheduler builds that game's two seats from them (PlaysSeat
+	// decides which side sits where). A synthetic `play` (the tests inject
+	// one with fake names like "a"/"b") never reads the seats, so an unknown
+	// name maps to a nil-returning ctor rather than an error: the real run's
+	// resolvePolicy validates names before any game starts.
+	aCtor := seatCtorFor(aName)
+	bCtor := seatCtorFor(bName)
+	var progress gbench.Progress
+	if prog != nil {
+		progress = prog.line
 	}
-	// TWO budgets, deliberately not the same number.
-	//
-	// `workers` is the total live-game budget and is NOT clamped by the pair
-	// count: a one-pair run must still be able to play its games across every
-	// core, which is the whole point of the inner pool. Clamping it here is
-	// what made a single-pair matrix run sequential again -- measured, before
-	// this fix: 1 pair x 40 games took 0.46s at 158% CPU both with and without
-	// the inner pool, because the pool had been sized to 1.
-	//
-	// `coords` is how many pair COORDINATORS to spawn, and there is no use for
-	// more of those than there are pairs.
-	coords := workers
-	if coords > total {
-		coords = total
-	}
-	results := make([]pairResult, total)
-	if prog == nil {
-		prog = &progressWriter{}
-	}
-	// Every pair coordinator submits into this one pool, so the number of
-	// games actually in flight is `workers` no matter how many pairs are
-	// active -- a matrix cannot multiply pair workers by game workers.
-	pool := newGamePool(workers)
-	defer pool.close()
-
-	var (
-		next int32
-		mu   sync.Mutex
-		fail error
-		wg   sync.WaitGroup
-	)
-	stop := make(chan struct{})
-	record := func(e error) {
-		mu.Lock()
-		if fail == nil {
-			fail = e
-			close(stop)
+	var adapter gbench.PairPlayer = func(pos int, seed uint64, g int, seats [2]seat.Seat) (gbench.Outcome, error) {
+		// Reconstruct the per-seat policy-name assignment the trace and the
+		// per-game lines report, then call the caller's player. The seats the
+		// shared scheduler built are the same two the caller would build from
+		// those names (same constructors, same per-seat seed), so passing the
+		// names is equivalent and keeps the bench's player signature stable.
+		_ = seats
+		pols := polsFor(g, 2, aName, bName)
+		oc, err := play(pos, seed, pols)
+		if err != nil {
+			return gbench.Outcome{}, err
 		}
-		mu.Unlock()
+		return outcomeToBench(oc), nil
 	}
-
-	wg.Add(coords)
-	for w := 0; w < coords; w++ {
-		go func() {
-			defer wg.Done()
-			for {
-				pos := int(atomic.AddInt32(&next, 1)) - 1
-				if pos >= total {
-					return
-				}
-				select {
-				case <-stop:
-					return
-				default:
-				}
-				prog.line("pair %d/%d (%s): playing %d games", pos+1, total, pairs[pos], games)
-				r, err := playOnePairWithPool(baseSeed, pos, games, aName, bName, pairs[pos], play, prog, pool)
-				if err != nil {
-					record(err)
-					return
-				}
-				results[pos] = r
-				prog.line("pair %d/%d (%s): done -- policy A %d/%d (%.1f%%)",
-					pos+1, total, pairs[pos], r.aWins, r.games, float64(r.aWins)/float64(r.games)*100)
-			}
-		}()
+	results, err := gbench.RunPairs(baseSeed, games, bPairs, aCtor, bCtor, adapter, workers, progress)
+	if err != nil {
+		return nil, err
 	}
-	wg.Wait()
-	if fail != nil {
-		return nil, fail
+	out := make([]pairResult, len(results))
+	for i, r := range results {
+		out[i] = pairFromBench(r)
 	}
-	return results, nil
+	return out, nil
 }
 
 // mergedResult pools every pair's counts into the single set of numbers the

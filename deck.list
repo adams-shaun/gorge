@@ -6057,3 +6057,125 @@ Deck
 1 Forest
 1 Forest
 1 Forest
+
+# --- Peace Offering (blc commander precon, Ms. Bumbleflower) — census input, 2026-09-18 (issue agent-20260918T203713Z-68bb5f63) ---
+# run: go run ./cmd/deckimport -in .ds4/scratch/blc-peace-offering.list -out .ds4/scratch/peace-offering-census.json -json -force -name "Peace Offering"
+# (standalone section file keeps the Commander/Deck headers; the flat list below stores the 100 cards)
+# 100/100 resolved (91 distinct); commander eligible (Legendary Creature). 5 new-gap tickets (.ds4/new-tickets/*.md) — deck file NOT added.
+# NEW gap primitives (19 distinct primitives across 23 of 91 cards; measured by cards.Registry.Unsupported + effects.Supported):
+#   kw:Gift + trig:GiveGift (Perch Protection, Octomancer, Long River's Pull, Wear Down, Peerless Recycling, Jolly Gerbils);
+#   api:Phases (Perch Protection — also needs the known Effect row for its gift-gated STCantChange/protection static);
+#   api:Poison + kw:Toxic (Bloodroot Apothecary); api:MultiplyCounter (Kalonian Hydra);
+#   trig:AttackerUnblockedOnce (Coveted Jewel); trig:CounterAddedOnce (Simic Ascendancy).
+# Open-ledger overlaps (do not re-file): api:WinsGame (Triskaidekaphile, Twenty-Toed Toad, Simic Ascendancy) = issue-agent-20260918T204633Z-d5074403;
+#   kw:Class (Wizard Class, Fisher's Talent) = issue-agent-20260918T220612Z-ac6d048b; kw:Offspring (Steelburr Champion) = issue-agent-20260918T220612Z-e9a1648b + df1a711b;
+#   api:StoreSVar (Tempt with Bunnies — its RepeatOptionalForEachPlayer is also NEW) = issue-agent-20260918T213615Z-af7f0a60;
+#   api:RemoveFromCombat + api:AddPhase (Illusionist's Gambit) = issue-agent-20260918T201120Z-acad64c4 + issue-agent-20260918T200326Z-358dffd6;
+#   api:ChooseColor (Thriving Heath/Isle/Grove) = issue-agent-20260918T195920Z-1cef0de2; api:MoveCounter (Forgotten Ancient) = issue-agent-20260918T205611Z-1c5d04bf;
+#   api:CopyPermanent (Octomancer) = issue-agent-20260918T200326Z-6994a692 + issue-agent-20260918T213512Z-bdef0f98; api:AnimateAll (Jolrael) = issue-agent-20260918T201425Z-dffc06a3;
+#   stat:CantAttackUnless (Baird) = issue-agent-20260918T210307Z-f658abd8.
+# source: the WotC Bloomburrow Commander decklists article (magic.wizards.com/en/news/announcements/bloomburrow-commander-decklists)
+
+Commander
+1 Ms. Bumbleflower
+
+Deck
+1 Mr. Foxglove
+1 Tamiyo, Field Researcher
+1 Tenuous Truce
+1 Loran of the Third Path
+1 Steelburr Champion
+1 Tempt with Bunnies
+1 Perch Protection
+1 Sunscorch Regent
+1 Promise of Loyalty
+1 Hoofprints of the Stag
+1 Mangara, the Diplomat
+1 Realm-Cloaked Giant
+1 Sphinx of Enlightenment
+1 Forgotten Ancient
+1 Bloodroot Apothecary
+1 Communal Brewing
+1 Managorger Hydra
+1 Rishkar, Peema Renegade
+1 Rites of Flourishing
+1 Tempt with Discovery
+1 Kalonian Hydra
+1 Faeburrow Elder
+1 Exotic Orchard
+1 Simic Ascendancy
+1 Ghirapur Orrery
+1 Psychosis Crawler
+1 Adarkar Wastes
+1 Temple of Enlightenment
+1 Seachrome Coast
+1 Glacial Fortress
+1 Hinterland Harbor
+1 Razorverge Thicket
+1 Flooded Grove
+1 Skycloud Expanse
+1 Canopy Vista
+1 Prairie Stream
+1 Brushland
+1 Temple of Mystery
+1 Yavimaya Coast
+1 Overflowing Basin
+1 Sungrass Prairie
+1 Sunpetal Grove
+1 Triskaidekaphile
+1 Octomancer
+1 Twenty-Toed Toad
+1 Intellectual Offering
+1 Illusionist's Gambit
+1 Body of Knowledge
+1 Chasm Skulker
+1 Perplexing Test
+1 Jolrael, Mwonvuli Recluse
+1 Fisher's Talent
+1 Selvala, Explorer Returned
+1 Kwain, Itinerant Meddler
+1 Coveted Jewel
+1 Temple of Plenty
+1 Generous Gift
+1 Swords to Plowshares
+1 Secret Rendezvous
+1 Baird, Steward of Argive
+1 An Offer You Can't Refuse
+1 Wizard Class
+1 Cultivate
+1 Farseek
+1 Broken Wings
+1 Spore Frog
+1 Wear Down
+1 Peerless Recycling
+1 Coiling Oracle
+1 Riot Control
+1 Martial Impetus
+1 Jolly Gerbils
+1 Long River's Pull
+1 Thought Vessel
+1 Arcane Signet
+1 Swiftfoot Boots
+1 Fellwar Stone
+1 Sol Ring
+1 Mind Stone
+1 Thriving Heath
+1 Thriving Isle
+1 Thriving Grove
+1 Terramorphic Expanse
+1 Command Tower
+1 Evolving Wilds
+1 Reliquary Tower
+1 Seaside Citadel
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Island
+1 Island
+1 Island
+1 Island
+1 Forest
+1 Forest
+1 Forest
+1 Forest
