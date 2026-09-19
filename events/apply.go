@@ -485,6 +485,19 @@ func Apply(g *state.Game, e Event) {
 
 	case StepChange:
 		g.Step = e.Step
+		// kw:Echo's provenance (CR 702.35a): the Draw step's beginning means
+		// this turn's upkeep just ended, so the turn's upkeep is now the
+		// controller's "most recent upkeep". Recording here (not at the
+		// Upkeep StepChange) is what makes the gate's comparison read the
+		// PREVIOUS upkeep at the next upkeep's beginning: the echo trigger
+		// fires on the same StepChange that would otherwise have just
+		// overwritten the record, and an acquisition made during that upkeep
+		// itself still counts via its AcqStep >= StepUpkeep half. Zero stays
+		// zero until a seat's first draw step (their first upkeep then reads
+		// as absent — gate vacuously true).
+		if e.Step == state.StepDraw && validPlayer(g, g.Active) {
+			g.Players[g.Active].LastUpkeepTurn = g.Turn
+		}
 
 	case TurnChange:
 		if validPlayer(g, e.Player) {
@@ -1433,7 +1446,14 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		//
 		// Known gap (recorded in AGENTS.md): TokenCreate does NOT route
 		// through Move, so a planeswalker TOKEN enters with zero loyalty.
+		// CR 400.7: a battlefield entry from another zone is a new object and
+		// a new control acquisition — kw:Echo's gate stamp (the entry already
+		// carries the entering controller). A battlefield→battlefield stay is
+		// not a new acquisition and must not re-stamp, so the tuple lives in
+		// the !wasBattlefield arm beside the loyalty grant it mirrors.
 		if !wasBattlefield {
+			o.AcqTurn = g.Turn
+			o.AcqStep = g.Step
 			// FaceDown is folded before the move (see Apply's MoveZone case),
 			// so a face-down entry (a manifest) reads here: while face down the
 			// card is a 2/2 creature with no abilities (CR 708.5) -- a manifested
@@ -1618,6 +1638,14 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 		o.IsAttacking = false
 		o.BlockedBy = nil
 		o.SummonSick = true
+		// kw:Echo's gate stamp (CR 702.35a): a battlefield control change is
+		// a fresh "came under your control" moment for the new controller,
+		// so the acquisition tuple re-stamps here. The echo trigger's own
+		// ValidPlayer$ You keeps it firing only during the controller's
+		// upkeep, so this record is read against the new controller's
+		// Player.LastUpkeepTurn.
+		o.AcqTurn = g.Turn
+		o.AcqStep = g.Step
 	}
 	o.Controller = p
 }

@@ -1265,6 +1265,15 @@ func (e *Engine) resolveTop() {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
 		}
+		// Echo (kw:Echo, CR 702.35a) is the same keyword-expansion shape: an
+		// ordinary Phase trigger whose DB$ Echo body needs rules' payment
+		// window and the pay-or-sacrifice election (rules/echo.go). The
+		// intervening-if was already applied at trigger time (triggerMatches's
+		// Echo$ branch), so everything reaching here is owed.
+		if o.Ability.API == "Echo" {
+			e.startEcho(id, o.Source, o.Ability)
+			return
+		}
 		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
 			(o.Ability.API == "Untap" || o.Ability.API == "ImmediateTrigger") &&
 			o.Ability.Params["Cost"] != "" {

@@ -860,6 +860,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// A Cost$ carried by a triggered effect (Mana Vault's pay-{4} untap)
 		// is paid during resolution rather than being silently ignored.
 		e.triggeredCostAnswer(chosen)
+	case chooseEcho:
+		// kw:Echo's pay-or-sacrifice election (rules/echo.go) was answered.
+		e.echoAnswer(chosen)
 	case chooseDamageDivision:
 		// Task jj-cmb (F40): the combat damage step's controller
 		// damage-division decision (CR 510.1c) was answered.

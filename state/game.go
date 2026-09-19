@@ -18,6 +18,17 @@ type Player struct {
 	// Counters records player counters (currently poison, used by Ward costs).
 	Counters []Counter
 
+	// LastUpkeepTurn records the turn of this seat's most recent upkeep,
+	// written by events.Apply's StepChange case when the Draw step begins
+	// (the turn's upkeep has just completed, so acquisitions made during
+	// that upkeep itself still count as "since the beginning of your most
+	// recent upkeep" — kw:Echo's gate, CR 702.35a — via the AcqStep half of
+	// the acquisition tuple). Zero means no upkeep has been recorded (the
+	// seat's first upkeep); kw:Echo's gate treats zero as vacuously true.
+	// Written ONLY inside events.Apply so a live game and a replay derive it
+	// identically; Clone copies it with the struct.
+	LastUpkeepTurn int32
+
 	// Snow parallels Pool slot for slot: Snow[i] counts how many of the
 	// Pool[i] mana units were produced by a Snow permanent (CR 107.4h — a
 	// snow unit can pay a {S} pip as well as anything else one mana pays).

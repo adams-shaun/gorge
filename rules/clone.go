@@ -339,6 +339,26 @@ func (e *Engine) Clone() *Engine {
 		tc.amount.Unknown = append([]string(nil), e.triggerCost.amount.Unknown...)
 		c.triggerCost = &tc
 	}
+	if e.echo != nil {
+		// kw:Echo (rules/echo.go): the same plain-value class as cumulative
+		// above — the Cost's slice fields deep-copied so the clone owns them.
+		ef := *e.echo
+		ef.amount.Sac = append([]CostPart(nil), e.echo.amount.Sac...)
+		ef.amount.Discard = append([]CostPart(nil), e.echo.amount.Discard...)
+		ef.amount.SubCounter = append([]CostPart(nil), e.echo.amount.SubCounter...)
+		ef.amount.AddCounter = append([]CostPart(nil), e.echo.amount.AddCounter...)
+		ef.amount.Exile = append([]CostPart(nil), e.echo.amount.Exile...)
+		ef.amount.Reveal = append([]CostPart(nil), e.echo.amount.Reveal...)
+		ef.amount.Behold = append([]CostPart(nil), e.echo.amount.Behold...)
+		ef.amount.TapPermanent = append([]CostPart(nil), e.echo.amount.TapPermanent...)
+		ef.amount.Blight = append([]CostPart(nil), e.echo.amount.Blight...)
+		ef.amount.Hybrid = append([]ManaPair(nil), e.echo.amount.Hybrid...)
+		ef.amount.Twobrid = append([]Twobrid(nil), e.echo.amount.Twobrid...)
+		ef.amount.HybridPhyrexian = append([]HybridPhyrexian(nil), e.echo.amount.HybridPhyrexian...)
+		ef.amount.Phyrexian = append([]byte(nil), e.echo.amount.Phyrexian...)
+		ef.amount.Unknown = append([]string(nil), e.echo.amount.Unknown...)
+		c.echo = &ef
+	}
 	if e.wardMana != nil {
 		wm := *e.wardMana
 		c.wardMana = &wm

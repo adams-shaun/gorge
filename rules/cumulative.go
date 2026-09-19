@@ -192,6 +192,12 @@ func (e *Engine) paymentWindowAsk() {
 		e.triggeredCostPaymentAsk()
 		return
 	}
+	if e.echo != nil {
+		// kw:Echo's mana window re-opens after each activated source (the
+		// same continuation every other window uses).
+		e.echoElectionAsk()
+		return
+	}
 	e.cumulativePaymentAsk()
 }
 
