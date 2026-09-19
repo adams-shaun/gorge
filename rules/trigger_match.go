@@ -3162,6 +3162,9 @@ func init() {
 		// since Task 11; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
 		"kw:Storm", "kw:Ward", "kw:Annihilator", "kw:Mobilize",
+		// Afterlife's expansion (cards/keywords.go) is a ChangesZone death
+		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
+		"kw:Afterlife",
 		// Mass effects, extra turns and new-set mechanics (the
 		// inbox-engine-gap-mass-turn-new-mechanics ticket):
 		//   - trig:UnlockDoor: a Room's unlock trigger (rules/rooms.go),
