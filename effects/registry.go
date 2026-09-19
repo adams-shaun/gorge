@@ -106,6 +106,20 @@ type Host interface {
 	// Count$ThisTurnCast_<spec> backing (the "first/second spell you cast"
 	// cost modifiers and triggers).
 	SpellsCastThisTurnMatching(you state.PlayerID, spec string) int
+	// WasCastFromHandByYou reports whether card obj was cast from ITS OWN
+	// CONTROLLER's hand by that controller — the Count$wasCastFromYourHandByYou
+	// branch head backing (the Myojin cycle's etbCounter CheckSVar$ gate:
+	// "enters with a divinity counter on it if you cast it from your hand")
+	// and the Card.wasCastFromYourHandByYou filter predicate the corpus's
+	// "if you cast it from your hand" ETB trigger specs read. An ordinary
+	// hand-origin cast carries no CastFlags bit (the flags mark alternative
+	// costs and origins only), so the answer is derived from the event log:
+	// the object's latest PutOnStack event names the cast that put it on the
+	// stack, whose From is the zone it was cast FROM and whose Player is the
+	// caster. Derived from the log like CastThisTurn, so a replay derives
+	// the same answer; a card never put on the stack (cheated into play)
+	// reads false.
+	WasCastFromHandByYou(obj state.ObjID, p state.PlayerID) bool
 	// LifeLostThisTurn reports the total life player p lost THIS TURN — the
 	// sum of every LifeChange below zero since the last TurnChange, derived
 	// from the event log so a replay derives the same number. This is the

@@ -27,6 +27,10 @@ type fakeHost struct {
 	n          int
 	dmgSrc     state.ObjID
 	batch      []state.ObjID
+	// castFromHand is the WasCastFromHandByYou answer the double reports;
+	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
+	// true branch (the real log-scan read is pinned in rules).
+	castFromHand bool
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -114,6 +118,13 @@ func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
 
 // SpellsCastThisTurnMatching has no event log here; the double reports zero.
 func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }
+
+// WasCastFromHandByYou has no cast log here; the double reports false (the
+// same conservative no-op as CastThisTurn), so the Count$
+// wasCastFromYourHandByYou branch head's fakeHost evals take the ifFalse
+// branch; the true branch is pinned end to end on the real engine in rules
+// (the Myojin cycle's corpus tests).
+func (h *fakeHost) WasCastFromHandByYou(_ state.ObjID, _ state.PlayerID) bool { return h.castFromHand }
 
 // CommanderIdentityColourCount has no commander bookkeeping here; the double
 // reports zero (the same replay-derivable class as TurnsTaken above).

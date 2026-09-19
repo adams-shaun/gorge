@@ -87,6 +87,8 @@ func Describe(g *state.Game, ev events.Event) string {
 			return obj(g, ev.Obj) + " attacks " + player(g, state.PlayerID(firstID(ev.IDs)))
 		}
 		return obj(g, ev.Obj) + " attacks"
+	case events.NoteNumber:
+		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:

@@ -367,6 +367,18 @@ const (
 	// Kind's own append-only precedent, so no earlier ordinal, hash chain
 	// or golden replay is affected.
 	XChange
+	// NoteNumber records a number a trigger's Execute$ body NOTED onto a
+	// card (DB$ Pump | NoteNumber$ <expr> -- Lupine Harbingers' exile
+	// trigger noting Count$YourTurns, the corpus's one NoteNumber$
+	// carrier): Obj is the card, Amount the noted value, and Apply folds it
+	// into Object.NotedNumber for Count$NotedNumber to read at the later
+	// ETB. A plain Note could not carry this: it is transcript text with no
+	// numeric payload and no Apply behaviour, and the value must be
+	// event-backed so a replay derives the identical count. Appended here,
+	// after XChange, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	NoteNumber
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -377,7 +389,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(XChange) + 1
+	NumKinds = int(NoteNumber) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -394,7 +406,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change"}
+	"x_change", "note_number"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -597,6 +609,12 @@ var flagNames = [...]struct {
 	// rides the same CastInfo's Amount. Appended at the end per the table's
 	// own ordering rule.
 	{"multikicked", state.FlagMultikicked},
+	// Foretell's cast provenance (CR 702.126a): set by BOTH provenance
+	// markers -- the {2} face-down hand exile (rules' payCast foretell
+	// branch, which emits its own CastInfo) and the later foretell-cost
+	// cast from exile (modeFlags). Appended at the end per the table's own
+	// ordering rule.
+	{"foretold", state.FlagForetold},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
