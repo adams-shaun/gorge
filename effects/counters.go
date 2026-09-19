@@ -261,6 +261,13 @@ func effPutCounterAll(h Host, c *Ctx, sa *cards.SA) {
 	if zone := strings.TrimSpace(sa.Params["ValidZone"]); zone != "" && !strings.EqualFold(zone, "Battlefield") {
 		exotic = append(exotic, "ValidZone$ "+zone)
 	}
+	// A ValidTgts$ naming anything but the plain chosen-player sweep is an
+	// exotic shape: anything else (Corrosion's "Opponent", a named
+	// selector, a compound) would fall through to the whole-table branch
+	// below and sweep the WRONG-WIDE set silently. Loud instead.
+	if tgts := strings.TrimSpace(sa.Params["ValidTgts"]); tgts != "" && !strings.EqualFold(tgts, "Player") {
+		exotic = append(exotic, "ValidTgts$ "+tgts)
+	}
 	if len(exotic) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented PutCounterAll shape: " + strings.Join(exotic, ", ")})
@@ -283,6 +290,13 @@ func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, spec, kind string, n int32
 	}
 	if n < 0 {
 		n = 0
+	}
+	if n <= 0 {
+		// Same discipline as effRemoveCounterAll: a zero-amount batch is a
+		// no-op, and emitting one CounterChange whose Amount overstates what
+		// changed per object is log noise (an unresolvable CounterNum$
+		// degrades to 0 through Num).
+		return
 	}
 	players := h.Game().AliveFrom(0)
 	if strings.TrimSpace(sa.Params["ValidTgts"]) == "Player" {

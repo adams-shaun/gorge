@@ -294,6 +294,144 @@ func TestPutCounterAllExoticShapesStayLoud(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestPutCounterAllZeroCountEmitsNothing pins the sibling discipline: an
+// unresolvable CounterNum$ degrades to 0 through Num (present but
+// unresolvable degrades to zero, not to the default), and a zero-amount
+// batch emits no per-object CounterChange -- one Amount-0 event per match is
+// log noise; effRemoveCounterAll skips amt <= 0 for the same reason
+// (messenger_jays' CounterNum$ VoteNum with no SVar on the face was the live
+// carrier).
+func TestPutCounterAllZeroCountEmitsNothing(t *testing.T) {
+	zeroer := "Name:Zeroer\nManaCost:2 U\nTypes:Creature Wizard\nPT:2/2\n" +
+		"A:AB$ PutCounterAll | Cost$ 1 | ValidCards$ Creature | CounterType$ P1P1 | CounterNum$ NoSuchSVar | SpellDescription$ x\nOracle:x\n"
+	e, cfg, _ := newFixtureDeck(t, 221, zeroer, counterBear("Zero Bear"))
+	zeroerID := moveSeeded(t, e, 0, zeroer, state.ZBattlefield)
+	bear := putCreature(t, e, 0, counterBear("Zero Bear"))
+	addMana(t, e, 0, "UU")
+	e.Advance()
+	opt := abilityOption(t, e, zeroerID, 0)
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 20)
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.CounterChange {
+			t.Fatalf("a zero-amount batch emitted a CounterChange anyway: %+v", ev)
+		}
+	}
+	if got := e.G.Obj(bear).Counter("P1P1"); got != 0 {
+		t.Fatalf("Zero Bear has %d P1P1 counters, want 0", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestPutCounterAllValidTgtsOpponentStaysLoud(t *testing.T) {
+	corrosion := corpusCard(t, "Corrosion")
+	e, cfg := putCounterTable(t, 201,
+		[]*cards.Card{corrosion, card(t, counterBear("Rust Bear"))},
+		[]*cards.Card{card(t, counterBear("Foe Bear"))})
+	findAndMoveToBattlefield(t, e, 0, "Corrosion")
+	bear := findAndMoveToBattlefield(t, e, 0, "Rust Bear")
+	enemy := findAndMoveToBattlefield(t, e, 1, "Foe Bear")
+
+	// Drive the REAL upkeep path (Corrosion's Cumulative upkeep fires beside
+	// Corrode, so the whole trigger flow is exercised): at seat 0's upkeep on
+	// turn 2, order the two triggers so the cumulative one is put on the
+	// stack first (resolves LAST) and Corrode resolves first; answer
+	// Corrode's player target with seat 1; then pass everything.
+	//
+	// Before the exotic gate the Opponent value fell through to the
+	// whole-table branch and rusted the resolving controller's OWN artifacts
+	// too -- wrong-wide and silent. Now: the body emits the
+	// unimplemented-shape Note and places nothing (seat 1 was targeted, so
+	// even a correct sweep would not have touched seat 0's artifacts, but the
+	// shape itself is unimplemented and stays loud).
+	asked := false
+	for i := 0; i < 8000; i++ {
+		if asked && len(e.G.Stack) == 0 && e.G.Step != state.StepUpkeep {
+			break
+		}
+		if e.G.Over {
+			t.Fatalf("game ended early at turn %d step %s", e.G.Turn, e.G.Step)
+		}
+		if answerIfDiscard(t, e) {
+			continue
+		}
+		d := e.Pending()
+		if d == nil {
+			e.Advance()
+			continue
+		}
+		switch d.Kind {
+		case decision.KPriority:
+			idx := -1
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("priority decision with no pass option: %+v", d)
+			}
+			submitChoices(t, e, idx)
+		case decision.KAttackers, decision.KBlockers:
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: nil}); err != nil {
+				t.Fatalf("submit %s: %v", d.Kind, err)
+			}
+		case decision.KTriggerOrder:
+			// Options: [0] Corrode, [1] Cumulative upkeep. The choice order
+			// is the stack order -- chosen first resolves last -- so pick
+			// the cumulative trigger first to make Corrode resolve first.
+			submitChoices(t, e, 1, 0)
+		case decision.KTarget:
+			if asked {
+				t.Fatalf("second target ask during the upkeep: %+v", d)
+			}
+			asked = true
+			submitChoices(t, e, indexOfPlayerOption(d, 1))
+		case decision.KChoose:
+			// Corrosion's own cumulative upkeep window (no mana to pay with):
+			// sacrifice it. Its leave trigger (RemoveCounterAll RUST) is inert
+			// -- nothing was ever placed.
+			idx := -1
+			for _, o := range d.Options {
+				if o.Kind == "cumulative_sac" {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("unexpected choose during the upkeep: %+v", d)
+			}
+			submitChoices(t, e, idx)
+		default:
+			t.Fatalf("unexpected decision %s during the upkeep: %+v", d.Kind, d)
+		}
+	}
+	if !asked {
+		t.Fatal("the ValidTgts$ Opponent trigger never asked for its target")
+	}
+	if !hasNote(e, "unimplemented PutCounterAll shape") {
+		t.Fatal("no unimplemented-shape note for the ValidTgts$ Opponent sweep")
+	}
+	for _, ev := range e.L.Events {
+		// A POSITIVE RUST amount would be a placement; the negative ones here
+		// are Corrosion's own leave trigger (RemoveCounterAll RUST, clamped
+		// at zero by state.Object.AddCounter -- pre-existing sibling
+		// behaviour, not a placement).
+		if ev.Kind == events.CounterChange && ev.Counter == "RUST" && ev.Amount > 0 {
+			t.Fatalf("the ValidTgts$ Opponent sweep placed rust counters anyway: %+v", ev)
+		}
+	}
+	if got := e.G.Obj(bear).Counter("RUST"); got != 0 {
+		t.Fatalf("seat 0's Rust Bear took %d rust counters, want 0", got)
+	}
+	if got := e.G.Obj(enemy).Counter("RUST"); got != 0 {
+		t.Fatalf("seat 1's Foe Bear took %d rust counters, want 0", got)
+	}
+	if got := e.G.Obj(bear).Counter("P1P1"); got != 0 {
+		t.Fatalf("seat 0's Rust Bear took %d +1/+1 counters, want 0", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestMethodsOfTheMightyCharmModePutsCounters pins the one repo-deck card
 // whose behaviour this registration changes (avengers-assemble.json carries
 // Methods of the Mighty): choosing its DB$ PutCounterAll Charm mode places a
