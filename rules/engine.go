@@ -1210,6 +1210,38 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// a game state reaches it.
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
 	}
+	// Role-token exclusivity (the second sentence of every Role token's rules
+	// text: "If you control another Role on it, put that one into the
+	// graveyard."): a second Role token attaching to a bearer that already
+	// carries one puts the old Role into its owner's graveyard BEFORE the new
+	// Attach applies. The measured corpus makes the sweep unconditional: every
+	// one of the 41 `TokenScript$ role_` carrier lines mints the Role with
+	// `TokenOwner$ You` (or omits it, defaulting to the controller), so creator
+	// and Role controller are always the same player and the controller-qualified
+	// reading is vacuous. This lives here in emit -- beside the protection guard
+	// above, the exact same pre-apply, re-entrant Attach interception -- because
+	// EVERY attach path (effects/token.go's AttachedTo$ mint and
+	// effects/attach.go's Attach SA) funnels through Engine.Emit. The sweep is a
+	// plain MoveZone (NOT destruction: no replacement/regeneration path), whose
+	// recursive emit lets "leaves the battlefield" triggers on the old Role fire
+	// normally; zone slices are copied before iteration because the MoveZone
+	// mutates the battlefield while we walk it (the attachmentSBAs discipline).
+	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 {
+		if attaching := e.G.Obj(ev.Obj); attaching != nil && isRole(attaching) {
+			for _, p := range e.G.AliveFrom(0) {
+				zone := append([]state.ObjID(nil), e.G.Zone(state.ZBattlefield, p)...)
+				for _, id := range zone {
+					o := e.G.Obj(id)
+					if o == nil || id == ev.Obj || o.AttachedTo != ev.IDs[0] || !isRole(o) {
+						continue
+					}
+					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZBattlefield, To: state.ZGraveyard,
+						Text: "another Role on it: the old Role goes to the graveyard"})
+				}
+			}
+		}
+	}
 	if e.applyingReplacement {
 		ev = events.CarryAction(e.replAction, e.replReplaced, ev)
 	} else {
