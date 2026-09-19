@@ -3393,8 +3393,8 @@ func (e *Engine) manaAsk() bool {
 // etbAnswer records one answered "as this enters" choice onto the card as a
 // Choose event, before the object is put on the stack (or, for a land, before
 // it moves to the battlefield), so the recorded value survives replay exactly
-// as the player chose it. The value rides on Option.Label (name/type) or
-// Option.Amount (number), not the choice index.
+// as the player chose it. The value rides on Option.Label (name/type/colour)
+// or Option.Amount (number), not the choice index.
 func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 	pc := e.cast
 	if pc == nil || len(chosen) != 1 {
