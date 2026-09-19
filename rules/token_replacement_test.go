@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -35,12 +36,22 @@ func tokenReplCorpusCard(t *testing.T, name string) *cards.Card {
 // returned cfg travels to replayCheck.
 func tokenReplGame(t *testing.T, seed uint64, seat0 ...*cards.Card) (*Engine, Config) {
 	t.Helper()
+	return tokenReplGameSeats(t, seed, seat0, nil)
+}
+
+// tokenReplGameSeats is tokenReplGame with a seeded seat 1 deck too, for
+// the opponent-side shapes (halving_season's ValidToken$ Card.OppCtrl).
+func tokenReplGameSeats(t *testing.T, seed uint64, seat0, seat1 []*cards.Card) (*Engine, Config) {
+	t.Helper()
 	reg := testutil.CorpusRegistry(t)
+	if seat1 == nil {
+		seat1 = mountainDeck(t, 40)
+	}
 	build := func(s uint64) Config {
 		return Config{Seed: s, Names: []string{"a", "b"},
 			Decks: [][]*cards.Card{
 				append(append([]*cards.Card{}, seat0...), mountainDeck(t, 40-len(seat0))...),
-				mountainDeck(t, 40),
+				append(append([]*cards.Card{}, seat1...), mountainDeck(t, 40-len(seat1))...),
 			},
 			Tokens: reg.Tokens,
 		}
@@ -49,6 +60,29 @@ func tokenReplGame(t *testing.T, seed uint64, seat0 ...*cards.Card) (*Engine, Co
 	e := New(cfg)
 	e.Advance()
 	return e, cfg
+}
+
+// passPriorityOnce submits the pass option of the pending priority
+// decision, whoever holds it — the APNAP hand-off a second seat's
+// activation needs before its own ability option is pending.
+func passPriorityOnce(t *testing.T, e *Engine) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("no priority decision pending to pass: %+v", d)
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "pass" {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("priority decision with no pass option: %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit pass: %v", err)
+	}
 }
 
 // moveSeededCard moves one specific *cards.Card from seat p's library or
@@ -254,6 +288,50 @@ func TestTokenReplacementExtrasNeverRematch(t *testing.T) {
 	activateTokenForge(t, e, m)
 	if got := countTokensNamedOnSeat(t, e, 0, "Squirrel Token"); got != 4 {
 		t.Fatalf("two doublers made %d Squirrel Tokens, want exactly 4 (extras re-matching would give 8+)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestHalvingSeasonRoundsOpponentTokensDownToZero pins the empty-plan
+// arm: Halving Season (ValidToken$ Card.OppCtrl, Amount$ HalfDown) under
+// seat 0 while seat 1, the opponent, creates ONE token — HalfDown floors
+// to zero, the plan empties, the Note witnesses the nothing-creation in
+// the log, and the handled=true return discards the original event (no
+// mint ever lands, so effToken's want-id rider bookkeeping reads a nil
+// g.Obj(want) and skips).
+func TestHalvingSeasonRoundsOpponentTokensDownToZero(t *testing.T) {
+	hs := tokenReplCorpusCard(t, "Halving Season")
+	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
+	e, cfg := tokenReplGameSeats(t, 73, []*cards.Card{hs}, []*cards.Card{maker})
+	moveSeededCard(t, e, 0, hs, state.ZBattlefield)
+	m := moveSeededCard(t, e, 1, maker, state.ZBattlefield)
+	// seat 0 holds the APNAP first slot (seatZeroStart): get its priority
+	// pending, pass it, and seat 1's own priority then offers its maker's
+	// ability (activateTokenForge's addMana re-runs the round, granting to
+	// the holder the pass just handed it to).
+	addMana(t, e, 0, "")
+	passPriorityOnce(t, e)
+	activateTokenForge(t, e, m)
+	if got := countTokensNamedOnSeat(t, e, 1, "Squirrel Token"); got != 0 {
+		t.Fatalf("Halving Season let %d Squirrel Tokens through, want 0 (HalfDown of 1 is 0)", got)
+	}
+	if got := countTokensNamedOnSeat(t, e, 0, "Squirrel Token"); got != 0 {
+		t.Fatalf("the token landed under the wrong seat: %d", got)
+	}
+	notes := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && ev.Text == "no tokens created (replacement effect rounded the creation down to zero)" {
+			notes++
+		}
+	}
+	if notes != 1 {
+		t.Fatalf("empty-plan witness Note count = %d, want exactly 1", notes)
+	}
+	// And the discarded original left no TokenCreate of its own in the log.
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TokenCreate && ev.Text == "g_1_1_squirrel" {
+			t.Fatal("the halved-to-zero TokenCreate was still emitted")
+		}
 	}
 	replayCheck(t, e, cfg)
 }

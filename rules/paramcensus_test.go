@@ -1262,6 +1262,14 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.applyOpeningEffect":            {"ChangeZone", "PutCounter", "Effect"},
 	"Engine.registerOpeningEffectTriggers": {"ChangeZone", "PutCounter", "Effect"},
 	"Engine.handleOpening":                 {"ChangeZone", "PutCounter", "Effect"},
+	// The token-creation replacement dispatch: these read the ReplaceWith$
+	// body of an R:Event$ CreateToken replacement line ONLY -- the body is
+	// by definition a DB$ ReplaceToken SA, so the Type$/Amount$/TokenScript$/
+	// ValidChoices$ reads belong to api:ReplaceToken alone -- left in the
+	// generic union they would mask every other API's unread Amount$
+	// (measured: api:ChangeZone).
+	"Engine.continueCreateTokenReplacements": {"ReplaceToken"},
+	"Engine.applyTokenReplacementToPlan":     {"ReplaceToken"},
 }
 
 // apiSpecificRulesStat is the stat-bucket twin of apiSpecificRulesSA: it
