@@ -1083,9 +1083,9 @@ func (e *Engine) answerManaUnless(chosen []decision.Option) bool {
 	paid := false
 	if len(chosen) == 1 && chosen[0].Index == 0 {
 		if cost, ok := ParseUnlessCost(m.ability.Params["UnlessCost"]); ok {
-			if len(cost.Sac) > 0 || len(cost.Discard) > 0 {
-				// Activated mana stays off stack, but a sacrifice/discard in
-				// its unless cost is still a real payer choice. The payment
+			if len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Reveal) > 0 {
+				// Activated mana stays off stack, but a sacrifice/discard/reveal
+				// in its unless cost is still a real payer choice. The payment
 				// continuation returns through finishManaUnlessPayment.
 				e.beginUnlessPayment(payer, cost, &effects.Ctx{Source: m.source, Controller: m.player}, m.source, nil)
 				return m.cast

@@ -881,9 +881,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// value for X from CastInfo/ModeChosen or an SVar folded into
 				// Generic via WithX before payment. ParseUnlessCost is the
 				// strict parser: every token must be a mana symbol, a fixed
-				// PayLife<N>, or a Sac/Discard/SubCounter component; X, Y,
-				// DamageYou<N>, PayEnergy<N>, Return<...>, ExileFromGrave<...>,
-				// Reveal<...>, LifeTotalHalfUp, DefinedCost_* and every other
+				// PayLife<N>, or a Sac/Discard/SubCounter/Draw/Reveal component;
+				// X, Y, DamageYou<N>, PayEnergy<N>, Return<...>, ExileFromGrave<...>,
+				// Behold<...>, tapXType<...>, LifeTotalHalfUp, DefinedCost_* and every other
 				// dynamic or unmodelled token declines here rather than
 				// ParseCost's flat {1} substitution buying it for one generic.
 				// The ask is still posed to the payer (the answer is recorded by
@@ -893,11 +893,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
 			} else if len(chosen) > 0 && chosen[0].Index == 0 {
-				if len(paid.Sac) > 0 || len(paid.Discard) > 0 {
-					// Sacrifice and discard are choice-bearing costs. Park this
-					// resume before any mutation and let the payer select every
-					// component; finishUnlessPayment re-enters with unlessPay
-					// set, so this arm never charges it twice.
+				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 {
+					// Sacrifice, discard and reveal are choice-bearing costs.
+					// Park this resume before any mutation and let the payer
+					// select every component; finishUnlessPayment re-enters
+					// with unlessPay set, so this arm never charges it twice.
 					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
 					return
 				}

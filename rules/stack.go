@@ -1948,16 +1948,16 @@ func targetsPermanents(spec string) bool {
 }
 
 // payUnlessCost charges the non-choice subset of a mid-resolution
-// UnlessCost$ to payer p. Sacrifice and discard components are deliberately
-// refused here: beginUnlessPayment owns every such component and gathers the
-// payer's selected objects before it calls payMana. Keeping this guard makes
-// a future caller unable to silently revive the old first-in-zone-order
-// stand-in. Fixed mana/life, SubCounter and Draw components remain
-// synchronous: a Draw<N/Spec> pays by drawing N cards for the player(s) the
-// spec names (default the payer), resolved through the same Ctx roles the
-// UnlessPayer$ grammar reads.
+// UnlessCost$ to payer p. Sacrifice, discard and reveal components are
+// deliberately refused here: beginUnlessPayment owns every such component
+// and gathers the payer's selected objects before it calls payMana. Keeping
+// this guard makes a future caller unable to silently revive the old
+// first-in-zone-order stand-in. Fixed mana/life, SubCounter and Draw
+// components remain synchronous: a Draw<N/Spec> pays by drawing N cards for
+// the player(s) the spec names (default the payer), resolved through the
+// same Ctx roles the UnlessPayer$ grammar reads.
 func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
-	if len(cost.Sac) != 0 || len(cost.Discard) != 0 {
+	if len(cost.Sac) != 0 || len(cost.Discard) != 0 || len(cost.Reveal) != 0 {
 		return false
 	}
 	if int(p) < 0 || int(p) >= len(e.G.Players) {
