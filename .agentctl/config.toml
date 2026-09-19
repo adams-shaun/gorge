@@ -1,0 +1,160 @@
+# gorge's pipeline on agentctl (plan-slice5 Task 5.14).
+#
+# Every value below reproduces gorge's orchestrator/config.py, gates.py and
+# daemon.py as of the 2026-09-19 snapshot (gorge HEAD 1c83cd12, working tree);
+# tests/test_consumer_parity.py in agentctl pins that. Change a value here,
+# not in agentctl. Per-tick knobs (seats, caps, max_minutes) are overridden
+# live through the dash (.ds4/orchestrator/overrides.json), not by editing
+# this file.
+
+[repo]
+base_branch = "main"
+state_dir = ".ds4"
+worktrees_dir = ".worktrees"
+
+# config.py:45-57, 96-98; seats.py:121 hard-codes the escalated thinking.
+[seats.local]
+provider = "bm-llms-glm"
+model = "glm-5.3-flash"
+thinking = "medium"
+
+[seats.overflow]
+provider = "openai-codex"
+model = "gpt-5.6-terra"
+thinking = "high"
+
+[seats.escalated]
+provider = "openai-codex"
+model = "gpt-5.6-terra"
+thinking = "high"
+
+[seats.reviewer]
+provider = "openai-codex"
+model = "gpt-5.6-terra"
+thinking = "medium"
+
+# What an overrides.json entry may switch each role to (design §12.10); the
+# daemon re-checks every override against this list. Astra is never listed
+# (config.py:49-50). The reviewer list is design §13.2's example.
+[seats.allow]
+local = ["bm-llms-glm/glm-5.3-flash"]
+overflow = ["openai-codex/gpt-5.6-terra"]
+escalated = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol"]
+reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "bm-llms-glm/glm-5.3-flash"]
+
+# config.py:64-65, 73, 79, 99-100, 119; daemon.py:308.
+[policy]
+review_local_fallback = true
+review_local_thinking = "high"
+escalation_local_fallback = true
+local_endpoint_probe = true
+max_local_rounds = 2
+max_escalated_rounds = 5
+max_merge_rounds = 2
+seat_start_grace_s = 180
+poll_seconds = 60
+
+# config.py:75, 90-91.
+[caps]
+local = 2
+paid = 5
+max_minutes = 75
+
+# config.py:21-22.
+[dispatch]
+context_file = ".superpowers/ds4/gorge-context.md"
+tails_dir = ".superpowers/ds4"
+
+# config.py:17-19; daemon.py:62-80, 153-180.
+[intake]
+inbox = true
+agent_tickets = true
+feedback_dir = "feedback"
+
+# git_ops.py:27-37 (create_worktree), :58-67 (triage), :80-86 (node_modules),
+# :231-237 (TEST_HISTORY.md).
+[worktree]
+copy = [".ds4/ledger.json"]
+link = [".cards", ".superpowers"]
+hardlink = ["web/node_modules"]
+ignore_uncommitted = ["TEST_HISTORY.md"]
+
+# gates.py:114-148, in order; each gate's argv/timeout/env/cwd is gates.py:34-103.
+[[gates]]
+name = "go build"
+cmd = ["go", "build", "./..."]
+timeout = 900
+
+[[gates]]
+name = "go test (core)"
+cmd = ["go", "test", "-count=1", "-skip", "^TestHeads$", "./effects", "./rules", "./cards"]
+timeout = 300
+
+[[gates]]
+name = "CR conformance"
+cmd = ["go", "test", "-p=2", "-count=1", "./rules", "-run", "TestCR", "-v"]
+timeout = 300
+env = { GORGE_CR_CONFORMANCE = "1", GOMEMLIMIT = "5GiB" }
+accept = "orchestrator.hooks:cr_no_fail_lines"
+
+[[gates]]
+name = "TestHeads"
+cmd = ["go", "test", "./rules", "-run", "TestHeads", "-v"]
+timeout = 120
+blocking = false          # the TestHeads policy (hooks.testheads_policy) decides
+
+[[gates]]
+name = "make sim"
+cmd = ["make", "sim"]
+timeout = 600
+accept = "orchestrator.hooks:sim_all_replayed"
+
+[[gates]]
+name = "npm run check"
+cmd = ["npm", "run", "check"]
+cwd = "web"
+timeout = 300
+applies_diff_touches = "web/"
+
+[[gates]]
+name = "npm test"
+cmd = ["npm", "test"]
+cwd = "web"
+timeout = 300
+retries = 1               # gates.py:80-91: one retry for layout-probe flakes, never more
+applies_diff_touches = "web/"
+
+[[gates]]
+name = "npm run build"
+cmd = ["npm", "run", "build"]
+cwd = "web"
+timeout = 300
+applies_diff_touches = "web/"
+
+[[gates]]
+name = "smoke"
+cmd = ["flock", "{orch_dir}/smoke.lock", "bash", "scripts/smoke.sh"]
+timeout = 1200
+applies_diff_touches = "web/"
+
+# daemon.py:869-921; git_ops.py:205-216.
+[landing]
+strategy = "merge-push"
+remote = "origin"
+push = true
+deploy_cmd = ["make", "deploy-demo"]
+post_merge = [["make", "ledger"]]
+carry_trailers = ["Test-Budget-Approved:"]
+
+# config.py:35, 138-163.
+[harness]
+pi_agent = "~/projects/ds4-harness/bin/pi-agent"
+models_json = "~/.pi/agent/models.json"
+probe_key_env = "BM_LLMS_API_KEY"
+
+[harness.env_from_cmd.BM_LLMS_API_KEY]
+cmd = ["kubectl", "--context", "k3d-bm", "-n", "llm-system", "get", "secret", "bm-llms-secrets", "-o", "jsonpath={.data.apiToken}"]
+decode = "base64"
+
+[hooks]
+post_gates = "orchestrator.hooks:testheads_policy"
