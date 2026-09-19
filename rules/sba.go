@@ -590,6 +590,13 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 		if c.text == "lethal damage" && effects.ReplaceDestruction(e, c.id) {
 			continue
 		}
+		// Umbra armor (CR 702.90) after the regeneration shield, the same
+		// deterministic shield-first stand-in the Destroy effects use. A
+		// bearer saved here has had all its damage removed inside the
+		// replacement, so the next sweep cannot re-kill it.
+		if c.text == "lethal damage" && effects.ReplaceUmbraArmor(e, c.id) {
+			continue
+		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
 	}
