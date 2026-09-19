@@ -119,6 +119,40 @@ profile is the warm start and the baseline to beat, which answers R1's
 "gorge has no teacher" risk: the fitted profile *is* a teacher that has
 already beaten `bot`.
 
+## Early probes (2026-09-19, after L2 merged, before L3)
+
+Hand-set profiles via `botbench -a cast-profile -b bot -profile <f>`, ten
+approved pairs, 100 games/pair, **development seed 0** (not held-out).
+Baseline `bot` self-control on this suite was 515-485 (51.5%).
+
+| profile (delta from default) | pooled | 95% CI | note |
+|---|---|---|---|
+| CurveFit=8 | 51.7% | [48.6, 54.8] | ≈ control; 9/10 pairs within ±2 games |
+| CreaturePrecombat=−10 | 51.7% | [48.6, 54.8] | ≈ control |
+| NonCreatureOppCreatures=6 | 51.6% | [48.5, 54.7] | ≈ control |
+| InstantSpeedOffTurnHold=−40, CastThreshold=0 | **43.5%** | [40.4, 46.6] | holding instants hurts |
+| reversed ranking (all base weights negated) | **43.1%** | [40.0, 46.2] | worst-first costs 8.4pp |
+
+A trace of 180 `bot`-v-`bot` games: 6,061 priority decisions offered a
+cast; 55% of those offered ≥2 distinct castable cards (up to 9).
+
+Reading:
+
+- The ranking surface is live (reversal −8.4pp) and so is cast/hold
+  (−8pp), but small nudges on the new features flip almost no picks: the
+  creature base (30 + 4·Power) dominates every non-creature score, so a
+  weight of 6–10 only reorders ties inside a class. L3 must scale its SPSA
+  perturbation **per weight** (c_i ∝ max(1, |w_i|/4)) or the fit will read
+  pure noise on the new dimensions.
+- R1's 16.8pp "spell selection" sensitivity randomised among cast/ability/
+  **pass**; these probes suggest a large part of it is cast-vs-pass. The
+  band above the current rule may be narrow — which is exactly what L4's
+  gate decides.
+- If L4 is flat, the next candidate is a **within-turn mana-efficiency**
+  feature (value of the best affordable remaining set after this cast), since
+  greedy best-first casting only differs from any other order when mana
+  runs out mid-turn.
+
 ## Parallel (unchanged, lower priority)
 
 AR8 combined-attacker lethal, block assignment, trace-family comparison
