@@ -73,6 +73,15 @@ run whole-game board/view adapter parity for `lethal-pressure`, and add a
 host-level two-run replay equality test for each named policy. The focused
 factory/adaptor and current golden/replay tests cover the shipped migration.
 
+Those review follow-ups are now covered: `TestHostedPoliciesReplayDeterministically`
+plays two hosted matches for omitted/default `bot`, explicit `bot`, and
+`lethal-pressure`, comparing every event and intent, outcome/winner, chain
+head, and an independent replay. `TestBotAdaptersAgreeOverWholeGame` and
+`TestBotAdaptersAgreeOverCommanderGame` run both variants through real
+view- and game-shaped adapters, including stack/counter, attachment, and
+Commander facts; each paired game terminates with identical adapter intent
+streams and chain head.
+
 ## Final full-suite check
 
 `go test ./... -count=1` was red only in known broad-suite areas: the stale

@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"reflect"
 	"slices"
 	"testing"
 	"time"
@@ -9,8 +10,10 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/protocol"
+	"github.com/adams-shaun/gorge/replay"
 	"github.com/adams-shaun/gorge/seat"
 	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
@@ -86,24 +89,50 @@ func TestATablePlaysOneMatchToCompletionAndGoesIdle(t *testing.T) {
 	}
 }
 
-func TestTheSameConfigurationPlaysTheSameMatch(t *testing.T) {
+func TestHostedPoliciesReplayDeterministically(t *testing.T) {
 	t.Parallel()
-	run := func() protocol.MatchInfo {
+	type runResult struct {
+		info protocol.MatchInfo
+		log  *events.Log
+	}
+	run := func(policy string) runResult {
 		r, _ := New(testOptions(t))
 		defer r.Close()
-		if err := r.AddTable(fourSeatTable("t1", false)); err != nil {
+		tableCfg := fourSeatTable("t1", false)
+		tableCfg.BotPolicy = policy
+		if err := r.AddTable(tableCfg); err != nil {
 			t.Fatal(err)
 		}
 		if err := r.Start("t1"); err != nil {
 			t.Fatal(err)
 		}
 		r.Wait("t1")
-		ms, _ := r.Matches("t1")
-		return ms[0]
+		r.mu.RLock()
+		tab := r.tables["t1"]
+		r.mu.RUnlock()
+		tab.mu.RLock()
+		m := tab.history[0]
+		tab.mu.RUnlock()
+		m.mu.RLock()
+		info, log, rulesCfg := m.info(), m.e.L.Clone(), m.cfg
+		m.mu.RUnlock()
+		replayed, err := replay.Replay(log, rulesCfg)
+		if err != nil {
+			t.Fatalf("%q replay: %v", policy, err)
+		}
+		if got, want := replayed.L.Head(), info.Head; got != want {
+			t.Fatalf("%q replay head %s, want %s", policy, got, want)
+		}
+		return runResult{info: info, log: log}
 	}
-	a, b := run(), run()
-	if a.Head != b.Head || a.Events != b.Events || a.Turns != b.Turns {
-		t.Fatalf("two runs differ: %+v vs %+v", a, b)
+	for _, policy := range []string{"", BotPolicy, LethalPressurePolicy} {
+		policy := policy
+		t.Run(policy, func(t *testing.T) {
+			a, b := run(policy), run(policy)
+			if !reflect.DeepEqual(a.log.Events, b.log.Events) || !reflect.DeepEqual(a.log.Intents, b.log.Intents) || a.info.Head != b.info.Head || a.info.Result != b.info.Result || !reflect.DeepEqual(a.info.Winner, b.info.Winner) {
+				t.Fatalf("two %q runs differ: %+v vs %+v", policy, a.info, b.info)
+			}
+		})
 	}
 }
 
