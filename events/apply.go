@@ -620,6 +620,7 @@ func Apply(g *state.Game, e Event) {
 				g.Objs[i].EnteredThisTurn = false
 				g.Objs[i].WasDealtDamageThisTurn = false
 				g.Objs[i].ActivatedThisTurn = 0
+				g.Objs[i].AttacksThisTurn = 0
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
@@ -759,6 +760,7 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(id); o != nil {
 				o.IsAttacking = true
 				o.Attacking = e.Player
+				o.AttacksThisTurn++
 			}
 		}
 

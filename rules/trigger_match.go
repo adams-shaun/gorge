@@ -1720,11 +1720,20 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 			}
 		}
 	}
+	// FirstAttack$ True (Aurelia the Warleader, Godo Bandit Warlord, Scourge
+	// of the Throne, Fear of Missing Out -- the four corpus carriers, all the
+	// plain True spelling) gates the trigger to the attacker's FIRST attack
+	// this turn (CR 603.2e's "for the first time each turn"). The count is
+	// event-folded state (Object.AttacksThisTurn, reset at TurnChange -- an
+	// extra combat inside the same turn does not reset it), and trigger
+	// matching runs on the FOLDED event, so the test is count == 1, never 0.
+	// A non-first attacker must not veto the match either: an event may name
+	// several attackers and another one may still be first.
 	spec, ok := t.Params["ValidCard"]
 	if !ok {
 		for _, id := range ev.IDs {
 			if id == source {
-				return true
+				return e.firstAttackOK(t, id)
 			}
 		}
 		return false
@@ -1732,10 +1741,20 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	ctrl := e.controllerOf(source)
 	for _, id := range ev.IDs {
 		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, ctrl)) {
-			return true
+			return e.firstAttackOK(t, id)
 		}
 	}
 	return false
+}
+
+// firstAttackOK reports whether the matched attacker passes the trigger's
+// FirstAttack$ gate (nil-safe: a trigger without the param always passes).
+func (e *Engine) firstAttackOK(t cards.Trigger, id state.ObjID) bool {
+	if v, ok := t.Params["FirstAttack"]; !ok || !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return true
+	}
+	o := e.G.Obj(id)
+	return o != nil && o.AttacksThisTurn == 1
 }
 
 // attackersDeclaredOneTargetMatches implements the "whenever [one or more]
