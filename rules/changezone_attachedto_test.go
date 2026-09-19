@@ -262,14 +262,16 @@ func TestMantleOfTheAncientsEtbAttaches(t *testing.T) {
 	t.Run("equipment", func(t *testing.T) {
 		run(t, []string{"Bonesplitter"}, "Bonesplitter", "")
 	})
-	// With BOTH an Aura and an Equipment eligible the ask is still bounded
-	// Max 1: the placement ask (rules/trigger_queue.go pushTarget's askTarget)
-	// reads TargetMax$ through targetBounds' literal reader, and "X" is not a
-	// literal -- the SVar:X:Count$ValidGraveyard bound degrades to 1. This is
-	// the recorded TargetMax$-X placement-ask limitation (209 raw corpus
-	// lines carry TargetMax$ X), filed separately; the pin holds the current
-	// behaviour so the bound's fix must update this pin consciously.
-	t.Run("both-eligible-capped-at-one", func(t *testing.T) {
+	// With BOTH an Aura and an Equipment eligible the ask's bound is the
+	// RESOLVED TargetMax$ X (SVar:X:Count$ValidGraveyard
+	// Aura.CanEnchantEquippedBy,Equipment.CanEnchantEquippedBy): the placement
+	// ask (rules/trigger_queue.go pushTarget's askTarget) routes through
+	// resolvedTargetBounds, which resolves the dynamic bound through the
+	// effects numeric grammar against the triggering source's SVar table --
+	// so Max is 2 and BOTH cards can be returned. Before the fix the literal
+	// reader dropped "X" and the ask was capped at Max 1; this subtest pinned
+	// that defect and was updated consciously when the bound was fixed.
+	t.Run("both-eligible-resolved-bound", func(t *testing.T) {
 		reg := searchTestRegistry(t)
 		e, ids := attachedToFixture(t, reg, 9313, []string{"Mantle of the Ancients"},
 			[]string{"Grizzly Bears"}, []string{"Divine Favor", "Bonesplitter"})
@@ -291,8 +293,17 @@ func TestMantleOfTheAncientsEtbAttaches(t *testing.T) {
 		if ask == nil {
 			t.Fatal("no return ask posed")
 		}
-		if len(ask.Options) != 2 || ask.Max != 1 {
-			t.Fatalf("return ask = %+v, want both cards offered under the recorded Max-1 bound", ask)
+		if len(ask.Options) != 2 || ask.Max != 2 {
+			t.Fatalf("return ask = %+v, want both cards offered under the resolved Max-2 bound", ask)
+		}
+		// attachDrain answered the Max-2 ask with both options: both cards
+		// return to the battlefield, each attached to the Bear, and both
+		// survive the CR 704.5m/n SBAs.
+		for _, name := range []string{"Divine Favor", "Bonesplitter"} {
+			o := e.G.Obj(ids[name])
+			if o == nil || o.Zone != state.ZBattlefield || o.AttachedTo != ids["Grizzly Bears"] {
+				t.Fatalf("%s did not return attached to the Bear (obj %+v)", name, o)
+			}
 		}
 	})
 }
