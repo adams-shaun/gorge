@@ -480,7 +480,10 @@ func TestDefaultSeatsConstructTheConfiguredPolicy(t *testing.T) {
 		policy string
 		want   []int
 	}{
-		{policy: BotPolicy, want: nil},
+		// AR7 lethal pressure was promoted into the default bot (held-out
+		// 2,066-1,934 vs the old default), so both names now swing the
+		// lethal-if-unblocked 10/1 into the 1/1 blocker.
+		{policy: BotPolicy, want: []int{0}},
 		{policy: LethalPressurePolicy, want: []int{0}},
 	} {
 		t.Run(tc.policy, func(t *testing.T) {
