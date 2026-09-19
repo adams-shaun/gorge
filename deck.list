@@ -4830,13 +4830,19 @@ Deck
 # run: sed -n '/Wakanda Forever (msc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/msc-wakanda-forever.list
 # (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
 # 100/100 resolved; commander eligible. 2 new-gap tickets (.ds4/new-tickets/api-replace-damage.md,
-#   .ds4/new-tickets/compound-mode-statics.md) — deck file NOT added.
+#   .ds4/new-tickets/compound-mode-statics.md) — deck file NOT added. CORRECTION (post-review): the
+#   api:ReplaceDamage ticket's "prevention never happens" premise was FALSE — DB$ ReplaceDamage prevention
+#   bodies are implemented (rules/replacement.go applyReplaceDamageBody, commits 0c83541f + 1b80b992, pinned
+#   by rules/replacement_damage_counter_test.go; Heart-Shaped Herb live-prevents 1 of N at this pin) and the
+#   real residual is census-token-only: .ds4/new-tickets/api-replace-damage-census-token.md (supersedes the
+#   ingested agent-20260919T000105Z-80411e9a). Behaviourally NEW is only the compound S:Mode$ static shape.
 # gap cards (each open unless marked NEW — issue ids in the census report): api:Fight (Fight for the Throne),
 #   api:PutCounterAll (Zuri, Warrior of Wakanda; Loyal Guardian), api:CopyPermanent (Helm of the Host),
 #   api:ReplaceToken+repl:CreateToken (Divine Visitation), trig:AttackerUnblockedOnce (Coveted Jewel),
 #   trig:ChangesZoneAll (Ingenious Smith), kw:Crew (Royal Talon Fighter Jet, N'Yami-Class Mother Ship,
 #   Vibranium Mining Mech), stat:CantAttack (Queen Mother Ramonda), stat:CantAttack,CantBlock compound (Bast,
-#   Panther Goddess); NEW: api:ReplaceDamage (Heart-Shaped Herb), the compound S:Mode$ static shape itself.
+#   Panther Goddess); NEW: the compound S:Mode$ static shape itself; census-token-only (behaviour already
+#   implemented, see the correction above): api:ReplaceDamage (Heart-Shaped Herb).
 # commander note: T'Challa's Vibranium token mana carries AB$ Mana RestrictValid$ CantCastNonArtifactSpells —
 #   the restriction is unread (the known "RestrictValid$ spend restrictions are never read" approximation), so
 #   the token's {C} is spendable on anything in this build.
