@@ -1548,18 +1548,32 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 		return false
 	}
 	ctrl := e.controllerOf(source)
+	// The ValidCard alternatives (post trigger-side self-cast exclusion) are
+	// computed ONCE: the cast's own match below and the
+	// ActivatorThisTurnCastEach$ tally must read the same surviving set, so
+	// the two can never disagree (the Each arm below reads only the alts this
+	// block computed).
+	var castAlts []triggerCastAlt
 	if v, ok := t.Params["ValidCard"]; ok {
-		spec := spellCastPermanentSpec(v)
-		// The bare wasCastFromYourHandByYou qualifier (Banish into Fable's
-		// copy trigger, the "when you cast this from your hand" family) is
-		// split out and evaluated against the log here (task castprov1). The
-		// bare !CastSaSource token (Alania) is NOT handled here: a trigger
-		// ValidCard$ exclusion of the current cast would dead the trigger
-		// either way, so it stays fail-closed (recorded in the ledger).
-		spec, ok2 := e.castProvenanceAdmits(spec, ev.Obj, ctrl)
-		if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(source, ctrl)) {
+		alts, ok2 := e.triggerCastAlternatives(v, source, ev.Obj)
+		if !ok2 {
 			return false
 		}
+		spec := ""
+		for i, alt := range alts {
+			if i > 0 {
+				spec += ","
+			}
+			spec += alt.spec
+		}
+		// The bare wasCastFromYourHandByYou / wasCastByYou qualifiers (the
+		// cast-provenance families, tasks castprov1/castprov2) are split out
+		// and evaluated against the log here; the remainder matches as before.
+		spec, ok3 := e.castProvenanceAdmits(spec, ev.Obj, ctrl)
+		if !ok3 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(source, ctrl)) {
+			return false
+		}
+		castAlts = alts
 	}
 	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
 		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
@@ -1568,6 +1582,26 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 	}
 	if v, ok := t.Params["ActivatorThisTurnCast"]; ok {
 		if !compareIntCount(int32(e.spellsCastThisTurn(ev.Player)), v) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ActivatorThisTurnCastEach"]; ok {
+		// The PER-ALTERNATIVE first-cast read (task castprov2, Alania,
+		// Divergent Storm — the corpus's one carrier): the trigger fires when
+		// the activator's cast is the FIRST this turn of at least ONE
+		// ValidCard$ alternative — a disjunction of firsts, so casting an
+		// instant and then a sorcery fires on the sorcery. The tally is the
+		// activator's casts this turn matching that alternative, the current
+		// cast INCLUDED (it is already in the log when the deferred trigger
+		// fires; EQ1 means this cast is the first).
+		fired := false
+		for _, alt := range castAlts {
+			if compareIntCount(int32(e.spellsCastThisTurnByMatching(ev.Player, alt.spec, alt.exclSelf, source)), v) {
+				fired = true
+				break
+			}
+		}
+		if !fired {
 			return false
 		}
 	}
@@ -3487,4 +3521,88 @@ func grantedTriggerExecute(o *state.Object, execute string) *cards.SA {
 		}
 	}
 	return nil
+}
+
+// triggerCastAlt is one surviving ValidCard$ alternative of a Mode$
+// SpellCast trigger after the trigger-side self-cast exclusion was applied:
+// spec is the token-stripped filter text, exclSelf whether the alternative
+// carried the bare !CastSaSource token — its ActivatorThisTurnCastEach$
+// tally must also skip the trigger source's own printed-name casts.
+type triggerCastAlt struct {
+	spec     string
+	exclSelf bool
+}
+
+// triggerCastAlternatives splits a Mode$ SpellCast trigger's ValidCard$ into
+// its comma alternatives and applies the trigger-side bare !CastSaSource
+// reading (task castprov2, Alania, Divergent Storm — measured: exactly 1
+// trigger-side line in the corpus): an alternative carrying the token names
+// "a spell whose PRINTED NAME is not the trigger SOURCE's printed name" (the
+// oracle's "other than NICKNAME"; Forge has no trigger-side CastSaSource
+// grammar precedent in this corpus, so this reading is a documented
+// decision, not a discovered fact). The cast card's printed name equal to
+// the source's drops the alternative (a second Alania cast fails the Otter
+// alternative and does not trigger); the token is otherwise stripped and the
+// alternative kept for the ordinary filter. ok is false when no alternative
+// survives.
+func (e *Engine) triggerCastAlternatives(rawSpec string, source, castObj state.ObjID) ([]triggerCastAlt, bool) {
+	spec := spellCastPermanentSpec(rawSpec)
+	sourceName, castName := "", ""
+	if o := e.G.Obj(source); o != nil && o.Face() != nil {
+		sourceName = o.Face().Name
+	}
+	if o := e.G.Obj(castObj); o != nil && o.Face() != nil {
+		castName = o.Face().Name
+	}
+	isSelf := sourceName != "" && castName == sourceName
+	var alts []triggerCastAlt
+	for alt := range effects.FilterAlternatives(spec) {
+		s, had := effects.StripPredicateToken(alt, "!CastSaSource")
+		if had && isSelf {
+			continue
+		}
+		alts = append(alts, triggerCastAlt{spec: s, exclSelf: had})
+	}
+	if len(alts) == 0 {
+		return nil, false
+	}
+	return alts, true
+}
+
+// spellsCastThisTurnByMatching counts player p's spells cast this turn whose
+// object matches ONE alternative spec, with the trigger-side NICKNAME
+// exclusion applied to the tally when that alternative carried the
+// !CastSaSource token (Alania's "the first Otter spell other than Alania":
+// the source's own casts do not count toward that alternative's first).
+// The current cast is INCLUDED — it is already in the log when the deferred
+// trigger fires, and the oracle's "first ... you've cast this turn" counts
+// it (EQ1 = this cast is the first).
+func (e *Engine) spellsCastThisTurnByMatching(p state.PlayerID, spec string, exclSelf bool, source state.ObjID) int {
+	selfName := ""
+	if exclSelf {
+		if o := e.G.Obj(source); o != nil && o.Face() != nil {
+			selfName = o.Face().Name
+		}
+	}
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind != events.PutOnStack || ev.Player != p {
+			continue
+		}
+		o := e.G.Obj(ev.Obj)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		if selfName != "" && o.Face().Name == selfName {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, spec, ev.Obj, p, ev.Obj) {
+			n++
+		}
+	}
+	return n
 }
