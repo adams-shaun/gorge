@@ -12,6 +12,7 @@ import (
 
 func init() {
 	Register("PutCounter", effPutCounter)
+	Register("PutCounterAll", effPutCounterAll)
 	Register("RemoveCounterAll", effRemoveCounterAll)
 	Register("Regenerate", effRegenerate)
 }
@@ -216,6 +217,96 @@ func objTargets(ids []state.ObjID) []state.Target {
 		}
 	}
 	return out
+}
+
+// effPutCounterAll sweeps ValidCards$ (default "Permanent") over the
+// battlefield in deterministic order (g.AliveFrom(0), then each seat's zone
+// order -- never a map range) and places CounterType$ (default "P1P1")
+// counters on each match: CounterNum$ resolved through Num (default 1,
+// negative clamped to 0 like both siblings), one events.CounterChange per
+// recipient with a signed positive Amount. It is the mass-placement mirror
+// of effRemoveCounterAll.
+//
+// Player-targeted sweep (ValidTgts$ Player, 7 raw corpus lines over 6
+// carriers, e.g.
+// Meadowboon's "put a +1/+1 counter on each creature target player
+// controls"): the sweep is scoped to each CHOSEN player target's battlefield
+// instead of the whole table; ValidCards$ stays the filter inside that
+// scope, so an unqualified "Creature" means the target player's creatures.
+// A ValidTgts$ Player line that reaches resolution with no chosen player
+// target is loud, never silent.
+//
+// A second batch (ValidCards2$/CounterType2$/CounterNum2$, e.g. Brokers
+// Ascendancy's "...and a loyalty counter on each planeswalker you control")
+// runs as a second sweep after the first, with its own filter, kind (default
+// P1P1) and count (default 1).
+//
+// Exotic parameters the core sweep cannot express stay LOUD (the
+// effManifest out-of-scope pattern): Placer$ (who places, 7 corpus lines),
+// TargetUnique$ (2) and AmountByChosenMap$ (1), and a ValidZone$ naming any
+// zone other than the battlefield (2, both Exile -- suspended TIME
+// counters). Registering the API removed the generic "unimplemented API"
+// fallback, so without these notes the shapes would silently place nothing.
+func effPutCounterAll(h Host, c *Ctx, sa *cards.SA) {
+	var exotic []string
+	if strings.TrimSpace(sa.Params["Placer"]) != "" {
+		exotic = append(exotic, "Placer$")
+	}
+	if strings.TrimSpace(sa.Params["TargetUnique"]) != "" {
+		exotic = append(exotic, "TargetUnique$")
+	}
+	if strings.TrimSpace(sa.Params["AmountByChosenMap"]) != "" {
+		exotic = append(exotic, "AmountByChosenMap$")
+	}
+	if zone := strings.TrimSpace(sa.Params["ValidZone"]); zone != "" && !strings.EqualFold(zone, "Battlefield") {
+		exotic = append(exotic, "ValidZone$ "+zone)
+	}
+	if len(exotic) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented PutCounterAll shape: " + strings.Join(exotic, ", ")})
+		return
+	}
+	putCounterAllSweep(h, c, sa, sa.Params["ValidCards"], sa.Params["CounterType"], Num(h, c, sa, "CounterNum", 1))
+	if strings.TrimSpace(sa.Params["ValidCards2"]) != "" {
+		putCounterAllSweep(h, c, sa, sa.Params["ValidCards2"], sa.Params["CounterType2"], Num(h, c, sa, "CounterNum2", 1))
+	}
+}
+
+// putCounterAllSweep is one PutCounterAll batch: filter spec, counter kind
+// and count already resolved from their literal Params keys.
+func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, spec, kind string, n int32) {
+	if kind == "" {
+		kind = "P1P1"
+	}
+	if spec == "" {
+		spec = "Permanent"
+	}
+	if n < 0 {
+		n = 0
+	}
+	players := h.Game().AliveFrom(0)
+	if strings.TrimSpace(sa.Params["ValidTgts"]) == "Player" {
+		players = nil
+		for _, t := range c.Targets {
+			if t.IsPlayer {
+				players = append(players, t.Player)
+			}
+		}
+		if len(players) == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unimplemented PutCounterAll shape: player-targeted sweep with no chosen player target"})
+			return
+		}
+	}
+	g := h.Game()
+	for _, p := range players {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				continue
+			}
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: n})
+		}
+	}
 }
 
 // effRemoveCounterAll sweeps ValidCards$ (default "Permanent") on the
