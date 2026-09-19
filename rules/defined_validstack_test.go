@@ -297,3 +297,41 @@ func TestDismissalCountersAbilitiesOfBothSeats(t *testing.T) {
 		t.Fatalf("Dismissal was countered %d time(s); a non-Spell token never admits the source spell", n)
 	}
 }
+
+// TestStackKindTokenOfAbilityBase pins the state-side grammar addition
+// (task abcopy3): `Ability` parses to the Activated+Triggered kind set --
+// the mirror of SpellAbility minus Spell -- and admits an ability wrapper
+// of either kind while never admitting a spell. Near-miss bases stay
+// unknown (ok=false), which is what keeps copy.go's known-token guard
+// fail-closed for a genuinely unparsed token.
+func TestStackKindTokenOfAbilityBase(t *testing.T) {
+	tok, ok := state.StackKindTokenOf("Ability.YouCtrl")
+	if !ok {
+		t.Fatal("Ability.YouCtrl did not parse as a stack-kind token")
+	}
+	if !tok.Kinds[state.StackKindActivated] || !tok.Kinds[state.StackKindTriggered] {
+		t.Fatalf("Ability kinds = %+v, want Activated+Triggered", tok.Kinds)
+	}
+	if tok.Kinds[state.StackKindSpell] {
+		t.Fatalf("Ability must never admit the Spell kind: %+v", tok.Kinds)
+	}
+	if !tok.YouCtrl {
+		t.Fatalf("YouCtrl qualifier lost: %+v", tok)
+	}
+	if _, ok := state.StackKindTokenOf("Ability2"); ok {
+		t.Fatal("Ability2 parsed as a stack-kind token; near-miss bases must stay unknown")
+	}
+	// Admission, both kinds: an ability wrapper (Face nil) of each kind is
+	// admitted; a card object (a spell) is not.
+	tok, _ = state.StackKindTokenOf("Ability")
+	ab := &state.Object{ID: 7, Controller: 0}
+	if !state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindActivated, ab, 0, 0) {
+		t.Fatal("Ability does not admit an activated wrapper")
+	}
+	if !state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindTriggered, ab, 0, 0) {
+		t.Fatal("Ability does not admit a triggered wrapper")
+	}
+	if state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindSpell, ab, 0, 0) {
+		t.Fatal("Ability admits a spell object")
+	}
+}

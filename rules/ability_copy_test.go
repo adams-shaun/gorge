@@ -90,10 +90,12 @@ const clovenCastingSpellCopySrc = "Name:Test Cloven Casting\nManaCost:5 U R\nTyp
 // ulalekSpellCopySrc carries ulalek_fused_atrocity's T: line and BOTH SVars
 // VERBATIM -- the mandatory spell-cast arm with Cost$ C C, the repo-deck
 // commander. The main copy's Defined$ ValidStack Spell.YouCtrl resolves
-// through effCopySpellAbility's ValidStack arm (the one spell-cast carrier
-// whose SVar does not name TriggeredSpellAbility); the SubAbility$'s
-// Ability.YouCtrl+otherAbility half stays the recorded stand-in (see the
-// paid leaf).
+// through effCopySpellAbility's ValidStack arm; the SubAbility$'s
+// Ability.YouCtrl+otherAbility half now parses too (task abcopy3: the
+// `Ability` base, the otherAbility exclusion anchored on Ctx.ResolvingObj
+// and its same-printed-ability family) -- see the paid leaf and the
+// sub-copy pin below. The arm stays SINGLE-TARGET: with several matches it
+// copies only the first (stack-arena order), the recorded plural stand-in.
 const ulalekSpellCopySrc = "Name:Test Ulalek\nManaCost:4\nTypes:Creature Eldrazi\nPT:4/4\n" +
 	"T:Mode$ SpellCast | ValidCard$ Card.Eldrazi | ValidActivatingPlayer$ You | Execute$ TrigCopySpell | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast an Eldrazi spell, you may pay {C}{C}. If you do, copy all spells you control, then copy all other activated and triggered abilities you control. You may choose new targets for the copies. (Mana abilities can't be copied.)\n" +
 	"SVar:TrigCopySpell:AB$ CopySpellAbility | Cost$ C C | Defined$ ValidStack Spell.YouCtrl | MayChooseTarget$ True | IgnoreFreeze$ True | SubAbility$ TrigCopyAbilities\n" +
@@ -522,10 +524,8 @@ func TestClovenCastingCopySpellPaidCopiesAndResolves(t *testing.T) {
 // mandatory spell-cast arm on Ulalek's VERBATIM T: line and SVars: the {C}{C}
 // pay ask poses straight from resolution, "pay" charges it, and the copy of
 // the cast Eldrazi spell RESOLVES. (The SubAbility$ "copy all other
-// activated and triggered abilities" half copies nothing here -- its
-// Ability.YouCtrl+otherAbility token names no stack kind the ValidStack
-// grammar parses, so effCopySpellAbility's ValidStack arm fails closed rather
-// than degrading it to Spell-only; recorded as the sub-copy stand-in.)
+// activated and triggered abilities" half has its own end-to-end pin:
+// TestUlalekSubAbilityCopiesOtherTriggeredAbility below.)
 func TestUlalekCopySpellPaidCopiesAndResolves(t *testing.T) {
 	e, cfg, _ := newFixtureDeck(t, 149, ulalekSpellCopySrc, eldraziInsightSrc, plainSifterSrc)
 	moveSeeded(t, e, 0, ulalekSpellCopySrc, state.ZBattlefield)
@@ -592,6 +592,129 @@ func TestMicaCopySpellCostIsHardDecline(t *testing.T) {
 	}
 	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
 		t.Fatalf("hand %d, want %d (only the spell's own draw)", got, handBefore+1)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// eldraziEchoSrc is the NEW fixture the sub-copy pin needs: a second,
+// mandatory Eldrazi-cast trigger, so another of seat 0's triggered ability
+// wrappers is sitting on the stack the moment Ulalek's trigger resolves.
+const eldraziEchoSrc = "Name:Test Eldrazi Echo\nManaCost:3\nTypes:Creature Eldrazi\nPT:2/2\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.Eldrazi | TriggerZones$ Battlefield | Execute$ TrigDraw | " +
+	"TriggerDescription$ Whenever a player casts an Eldrazi spell, draw a card.\n" +
+	"SVar:TrigDraw:DB$ Draw | NumCards$ 1\nOracle:x\n"
+
+// drainUlalekSubCopyAsks drives the stack with the trigger-order ask answered
+// so Ulalek's trigger is pushed LAST (the ask's first choice is put on the
+// stack first and resolves last, so the Ulalek option goes at the END of the
+// submitted permutation -- handleTriggerOrder applies the permutation
+// positionally; askTriggerOrder's prompt states the direction), the pay ask
+// answered yes, and everything else passed or accepted. Returns the id of the
+// resolving TrigCopySpell wrapper, captured while the pay ask it posed is
+// pending (the wrapper is the stack top at that moment).
+func drainUlalekSubCopyAsks(t *testing.T, e *Engine, ulalek, echo state.ObjID, limit int) (wrapper, echoTrig state.ObjID) {
+	t.Helper()
+	for i := 0; i < limit && !e.G.Over && len(e.G.Stack) > 0; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatalf("no decision while draining the stack (stack depth %d)", len(e.G.Stack))
+		}
+		switch {
+		case d.Kind == decision.KPriority:
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}); err != nil {
+						t.Fatalf("submit pass: %v", err)
+					}
+					goto next
+				}
+			}
+			t.Fatalf("priority decision with no pass option: %+v", d.Options)
+		case d.Kind == decision.KTriggerOrder:
+			var choices []int
+			for j, o := range d.Options {
+				if o.Obj != ulalek {
+					choices = append(choices, o.Index)
+				}
+				_ = j
+			}
+			for _, o := range d.Options {
+				if o.Obj == ulalek {
+					choices = append(choices, o.Index)
+				}
+			}
+			if len(choices) != len(d.Options) {
+				t.Fatalf("trigger order options %v lost Ulalek's entry", d.Options)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+				t.Fatalf("submit trigger order: %v", err)
+			}
+		case d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind == "trigger_cost_pay":
+			top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1])
+			if top == nil || top.Ability == nil || top.Source != ulalek {
+				t.Fatalf("pay ask pending with stack top %+v, want Ulalek's resolving wrapper", top)
+			}
+			wrapper = top.ID
+			// The Echo trigger's wrapper sits below on the stack at this
+			// moment; capture its id for the copy assertions.
+			for _, sid := range e.G.Stack {
+				o := e.G.Obj(sid)
+				if o != nil && o.Ability != nil && o.Source == echo {
+					echoTrig = o.ID
+				}
+			}
+			submitChoices(t, e, 0)
+		default:
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+				t.Fatalf("submit %v: %v", d.Kind, err)
+			}
+		}
+	next:
+	}
+	if !e.G.Over && len(e.G.Stack) > 0 {
+		t.Fatalf("stack never emptied (depth %d after %d passes)", len(e.G.Stack), limit)
+	}
+	return wrapper, echoTrig
+}
+
+// TestUlalekSubAbilityCopiesOtherTriggeredAbility is the end-to-end pin for
+// the sub-copy half on the VERBATIM SVar: cast the Eldrazi instant with
+// Ulalek AND a second mandatory Eldrazi-cast trigger (Test Eldrazi Echo) on
+// the battlefield, answer the trigger-order ask so Ulalek's trigger is on
+// top, and pay {C}{C}. The resolution copies the cast spell AND the Echo
+// trigger's wrapper (the `Ability.YouCtrl+otherAbility` ValidStack spec now
+// parses), and every one of the four draws resolves: spell 1 + spell copy 1 +
+// echo trigger 1 + echo-trigger copy 1. The resolving TrigCopySpell wrapper
+// itself is NEVER copied -- the otherAbility exclusion anchors on
+// Ctx.ResolvingObj (rules set it at both ability-resolution ctx sites), the
+// loop guard that keeps the pay/copy walk from regressing on itself.
+func TestUlalekSubAbilityCopiesOtherTriggeredAbility(t *testing.T) {
+	e, cfg, _ := newFixtureDeck(t, 153, ulalekSpellCopySrc, eldraziInsightSrc, eldraziEchoSrc)
+	ulalek := moveSeeded(t, e, 0, ulalekSpellCopySrc, state.ZBattlefield)
+	echo := moveSeeded(t, e, 0, eldraziEchoSrc, state.ZBattlefield)
+	spell := moveSeeded(t, e, 0, eldraziInsightSrc, state.ZHand)
+	addMana(t, e, 0, "CCC") // {C} for the spell, {C}{C} for the copy
+	castFirst(t, e, "cast")
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	poolBefore := poolTotal(e.G.Players[0].Pool)
+	wrapper, echoTrig := drainUlalekSubCopyAsks(t, e, ulalek, echo, 60)
+	if echoTrig == 0 || wrapper == 0 {
+		t.Fatalf("drain captured no pay ask (wrapper %d, echoTrig %d) -- Ulalek's trigger never resolved", wrapper, echoTrig)
+	}
+
+	// Exactly two StackCopy events: the cast spell and the Echo trigger's
+	// wrapper -- and never Ulalek's own resolving wrapper.
+	copies := allStackCopies(e)
+	if len(copies) != 2 || (copies[0] != spell && copies[1] != spell) ||
+		echoTrig == 0 || (copies[0] != echoTrig && copies[1] != echoTrig) || copies[0] == copies[1] {
+		t.Fatalf("StackCopy events %v, want exactly {spell %d, echo trigger wrapper %d}; the resolving wrapper must never be copied",
+			copies, spell, echoTrig)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+4 {
+		t.Fatalf("hand %d, want %d (spell 1 + spell copy 1 + echo trigger 1 + echo-trigger copy 1)", got, handBefore+4)
+	}
+	if got := poolTotal(e.G.Players[0].Pool); got != poolBefore-2 {
+		t.Fatalf("pool %d, want %d -- the {C}{C} must be charged exactly once", got, poolBefore-2)
 	}
 	replayCheck(t, e, cfg)
 }

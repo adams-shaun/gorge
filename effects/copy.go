@@ -79,16 +79,22 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if spell == 0 {
 			// Defined$ ValidStack <spec> (Ulalek, Fused Atrocity's "copy all
-			// spells you control"): the one Defined form this arm cannot read
-			// off c.Targets -- a ValidStack spec resolves from the STACK, not
-			// from the trigger's targets. Route it through the shared ValidStack
-			// resolver every other Defined consumer uses, but ONLY when some
-			// comma token actually names a stack kind (state.StackKindTokenOf):
-			// the parser's no-usable-token degradation to Spell-only must not
-			// leak in here -- an unparsed "Ability" token (Ulalek's sub-copy's
-			// `Ability.YouCtrl+otherAbility`) would otherwise widen to "all
-			// spells you control" and copy every spell on the stack. Fail
-			// closed instead; that sub-copy half stays the recorded stand-in.
+			// spells you control" and its SubAbility$'s "copy all other
+			// activated and triggered abilities you control"): the one Defined
+			// form this arm cannot read off c.Targets -- a ValidStack spec
+			// resolves from the STACK, not from the trigger's targets. Route
+			// it through the shared ValidStack resolver every other Defined
+			// consumer uses, but ONLY when some comma token actually names a
+			// stack kind (state.StackKindTokenOf): the parser's no-usable-token
+			// degradation to Spell-only must not leak in here -- a genuinely
+			// unknown token would otherwise widen to "all spells you control"
+			// and copy every spell on the stack. Fail closed instead. The
+			// `Ability` base IS a stack kind now (task abcopy3: Activated+
+			// Triggered, never Spell), and its `otherAbility` qualifier
+			// excludes the resolving wrapper via Ctx.ResolvingObj, so the
+			// sub-copy cannot copy itself; the arm stays SINGLE-TARGET --
+			// with several matches it copies only the first (stack-arena
+			// order), the recorded plural-copy stand-in.
 			spec := strings.TrimSpace(sa.Params["Defined"])
 			if stackSpec, ok := strings.CutPrefix(spec, "ValidStack"); ok {
 				for _, tok := range strings.Split(strings.TrimSpace(stackSpec), ",") {
