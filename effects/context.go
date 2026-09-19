@@ -8,6 +8,24 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// zoneValidPrefixes is the fixed-order prefix dispatch for Forge's
+// zone-suffixed "Valid" filter family in Defined$ values (definedSpec's
+// ValidGraveyard/ValidHand/... branch, the twin of count.go's countZone). A
+// slice, never a map: the dispatch order is deterministic and the first
+// matching prefix wins (the prefixes are mutually exclusive anyway --
+// ValidGraveyard's is not a prefix of ValidHand's -- so the order only has
+// to be stable, and never map-ordered).
+var zoneValidPrefixes = []struct {
+	prefix string
+	zone   state.Zone
+}{
+	{"ValidGraveyard ", state.ZGraveyard},
+	{"ValidHand ", state.ZHand},
+	{"ValidLibrary ", state.ZLibrary},
+	{"ValidExile ", state.ZExile},
+	{"ValidBattlefield ", state.ZBattlefield},
+}
+
 // Defined resolves a Defined$ parameter to concrete targets. With no Defined$
 // at all, Forge's own rule applies: an ability that declares ValidTgts$ (it
 // has real targets to name) acts on the chosen ones; an ability with no
@@ -497,6 +515,25 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			}
 		}
 		return out, true
+	}
+	// Forge's zone-suffixed Valid filter family ("Defined$ ValidGraveyard
+	// Aura.YouOwn" -- Retether's mass return, and 16 more raw ChangeZone
+	// lines; the same spelling Count$ValidGraveyard already reads through
+	// count.go's countZone): the named zone's cards the filter admits,
+	// evaluated with the resolving controller as You -- the same walk the
+	// "Valid <filter>" battlefield branch runs, over the zone the prefix
+	// names instead of the battlefield. Unmodelled predicates fail closed
+	// INSIDE the filter (an empty set, ok=true), never a guessed fallback.
+	for _, zf := range zoneValidPrefixes {
+		if filt, ok := strings.CutPrefix(spec, zf.prefix); ok {
+			var out []state.Target
+			for _, id := range g.Zone(zf.zone, c.Controller) {
+				if MatchesSpecCtx(g, strings.TrimSpace(filt), id, c.SpecContext(c.Controller)) {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			return out, true
+		}
 	}
 	// Any Defined$ form this build does not model falls back to the chosen
 	// targets rather than silently acting on nothing (the caller decides via

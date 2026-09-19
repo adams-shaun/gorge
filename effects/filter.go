@@ -144,6 +144,24 @@ func init() {
 	predicates["EquippedBy"] = attachedBy
 	predicates["EnchantedBy"] = attachedBy
 	predicates["AttachedBy"] = attachedBy
+	// CanEnchantEquippedBy: the candidate card could legally be attached to
+	// the creature the resolving source attaches to -- Mantle of the
+	// Ancients' "return ... Aura and/or Equipment cards that could be
+	// attached to enchanted creature" (ValidTgts$
+	// Aura.CanEnchantEquippedBy+YouOwn,Equipment.CanEnchantEquippedBy+YouOwn)
+	// and Holy Avenger's "put an Aura card from your hand onto the
+	// battlefield attached to it" (ChangeType$ Aura.CanEnchantEquippedBy),
+	// the two corpus carriers. The referent creature is the source itself
+	// when the source is a creature (Holy Avenger's equipped creature fires
+	// the trigger), else the permanent the source is attached to (Mantle's
+	// bearer). An Aura candidate matches when the bearer still satisfies the
+	// candidate's K:Enchant spec -- the same test the CR 704.5m SBA runs
+	// (rules/attach.go auraStillMatchesEnchant); an Equipment candidate when
+	// the bearer is a creature (CR 704.5n); anything else admits nothing. A
+	// source with no referent (gone, or an unattached non-creature) and an
+	// Enchant spec this filter cannot evaluate both fail closed inside the
+	// filter, never over-offering an attachment the SBA would just sweep.
+	predicates["CanEnchantEquippedBy"] = canEnchantEquippedBy
 	// equipped / enchanted: the IS-side counterpart of the pair above -- the
 	// candidate itself carries the attachment. Auriok Steelshaper's IsPresent$
 	// Card.Self+equipped ("as long as CARDNAME is equipped") reads the first;
@@ -182,6 +200,63 @@ func init() {
 func attachedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 	s := g.Obj(src)
 	return s != nil && s.AttachedTo == o.ID && s.Zone == state.ZBattlefield
+}
+
+// canEnchantEquippedBy is the CanEnchantEquippedBy predicate body; see the
+// registration above for the spelling's carriers and the referent rule.
+func canEnchantEquippedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+	s := g.Obj(src)
+	if s == nil {
+		return false
+	}
+	// The resolving source may be the Face-less ability/trigger wrapper a
+	// TriggerPush minted (the placement ask's SpecContext.Source is that
+	// wrapper, rules/trigger_queue.go pushTrigger) -- its Source field names
+	// the permanent that carries the ability (Ruling T20-b). Unwrap before
+	// reading the creature/attach referent, or Mantle's own placement ask
+	// would see an unattached Face-less object and admit nothing.
+	if s.Face() == nil && s.Source != 0 {
+		if real := g.Obj(s.Source); real != nil {
+			s = real
+		}
+	}
+	bearer := s
+	if !hasType(bearer, "Creature") {
+		bearer = g.Obj(s.AttachedTo)
+		if bearer == nil {
+			return false
+		}
+	}
+	return attachableTo(g, o, bearer)
+}
+
+// attachableTo reports whether the (possibly off-battlefield) card o could
+// legally be attached to the battlefield permanent bearer: an Aura when the
+// bearer satisfies its K:Enchant spec, an Equipment when the bearer is a
+// creature (CR 704.5n), anything else never. Evaluated from the candidate's
+// own controller seat (the Aura's YouCtrl is the Aura controller's), the same
+// seat the CR 704.5m SBA's auraStillMatchesEnchant test uses.
+func attachableTo(g *state.Game, o *state.Object, bearer *state.Object) bool {
+	if o == nil || bearer == nil || bearer.Zone != state.ZBattlefield {
+		return false
+	}
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	switch {
+	case hasType(o, "Aura"):
+		param, ok := f.KeywordParam("Enchant")
+		if !ok || strings.TrimSpace(param) == "" {
+			return true
+		}
+		spec, _, _ := strings.Cut(param, ":")
+		return MatchesSpecFrom(g, strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID)
+	case hasType(o, "Equipment"):
+		bf := bearer.Face()
+		return bf != nil && bf.IsCreature()
+	}
+	return false
 }
 
 // hasAttachmentOfKind reports whether any battlefield permanent whose face
