@@ -1540,6 +1540,21 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	// (the DifferentNames fetchList filter) enforces there. The apply side
 	// dedupes a host that bypassed the wire (applyLibrarySearch).
 	differentNames := strings.EqualFold(strings.TrimSpace(sa.Params["DifferentNames"]), "True")
+	// Forge's EACH multi-type search grammar ("EACH Forest & Plains"): with
+	// every per-type cap at most 1 -- every corpus carrier -- the pick is
+	// structured, not a flat count: one option per eligible card, the
+	// type's ordinal in Option.Group, one decision whose Max is the number
+	// of listed types that have at least one eligible card. The Group
+	// exclusivity contract (decision.Decision.Validate) enforces at-most-one
+	// per Group on the wire, which IS one pick per type; the ordinary
+	// "search" resume arm carries the ordered picks, and applyLibrarySearch
+	// re-checks each against the union matcher, so no new Ctx field and no
+	// resume change. Min stays 0: the spec states a quality, so the
+	// fail-to-find allowance (CR 701.23b) is kept -- a listed type with no
+	// eligible card simply contributes no options and no Group, and its
+	// pick is the one the player cannot make.
+	eachSubs, isEach := eachAlternatives(spec)
+	eachStructured := isEach && max <= 1 && SearchStatesQuality(spec)
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
@@ -1555,21 +1570,57 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		// Defined$ Remembered in the rest of this chain.
 		ResumeRemembered: copyTargets(c.Remembered),
 		Prompt:           prompt}
-	for _, id := range eligible {
-		name := "a card"
-		var cardName string
-		if o := g.Obj(id); o != nil && o.Face() != nil {
-			cardName = o.Face().Name
-			if !noLooking {
-				name = cardName
+	if eachStructured {
+		groups := 0
+		sc := c.SpecContext(c.Controller)
+		for ti, sub := range eachSubs {
+			var typeIDs []state.ObjID
+			for _, id := range lib {
+				if MatchesSpecCtx(g, sub, id, sc) {
+					typeIDs = append(typeIDs, id)
+				}
 			}
+			if len(typeIDs) == 0 {
+				continue
+			}
+			for _, id := range typeIDs {
+				name := "a card"
+				if o := g.Obj(id); o != nil && o.Face() != nil && !noLooking {
+					name = o.Face().Name
+				}
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+					Kind: "search", Label: name, Obj: id, Player: owner,
+					Group: strconv.Itoa(ti)})
+			}
+			groups++
 		}
-		opt := decision.Option{Index: len(d.Options),
-			Kind: "search", Label: name, Obj: id, Player: owner}
-		if differentNames && cardName != "" {
-			opt.Group = cardName
+		d.Min, d.Max = 0, groups
+		d.Prompt = "Search a library: choose one card of each listed type"
+	} else {
+		if isEach {
+			// A measured-absent shape kept loud rather than silently wrong:
+			// a per-type ChangeNum$ above 1 (or a quantity-only EACH spec)
+			// keeps the ordinary flat-count path over the union -- its
+			// candidates are correct, its pick structure is not one-per-type.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "EACH ChangeType with per-type count above 1 resolves as a flat count"})
 		}
-		d.Options = append(d.Options, opt)
+		for _, id := range eligible {
+			name := "a card"
+			var cardName string
+			if o := g.Obj(id); o != nil && o.Face() != nil {
+				cardName = o.Face().Name
+				if !noLooking {
+					name = cardName
+				}
+			}
+			opt := decision.Option{Index: len(d.Options),
+				Kind: "search", Label: name, Obj: id, Player: owner}
+			if differentNames && cardName != "" {
+				opt.Group = cardName
+			}
+			d.Options = append(d.Options, opt)
+		}
 	}
 	// The shared ask boundary (effects.Ask) refuses to post a decision whose
 	// only legal answer is the empty one -- with zero eligible cards max

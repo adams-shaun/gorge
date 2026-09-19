@@ -452,6 +452,34 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 					break
 				}
 			}
+		case "search":
+			// A hidden-library search whose options carry no Group keeps the
+			// first-offer answer it has always taken (Min 0, so one card). An
+			// EACH "EACH Forest & Plains" search (each1) builds one option per
+			// eligible card with the type's ordinal in Group -- at most one per
+			// Group may be selected -- so the answer takes the FIRST option of
+			// each new Group up to Max: one card per listed type, in the
+			// decision's deterministic option order (types in spec order,
+			// library order within a type). A DifferentNames search's
+			// name-Groups get the same shape, which is what the constraint
+			// itself asks for (distinct names, filled to Max). Both are legal
+			// under Decision.Validate by construction; clamp's group skip is
+			// the backstop, never the path.
+			if d.Options[0].Group == "" {
+				in.Choices = []int{d.Options[0].Index}
+				break
+			}
+			groups := make(map[string]bool)
+			for _, o := range d.Options {
+				if len(in.Choices) >= d.Max {
+					break
+				}
+				if o.Group == "" || groups[o.Group] {
+					continue
+				}
+				groups[o.Group] = true
+				in.Choices = append(in.Choices, o.Index)
+			}
 		default: // yes/no (yes is first), name, type, number: the first offer
 			in.Choices = []int{d.Options[0].Index}
 		}
