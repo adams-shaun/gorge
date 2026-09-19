@@ -2993,7 +2993,7 @@ Commander:
 1 Forest
 
 # --- Blame Game (mkc commander precon, Nelly Borca, Impulsive Accuser) — census input, 2026-09-18 (this worktree) ---
-# 100/100 resolved; commander eligible (Legendary Creature). 17 new-gap tickets (.ds4/new-tickets/deck-gap-*.md) — deck file NOT added.
+# 100/100 resolved; commander eligible (Legendary Creature). 16 new-gap tickets (.ds4/new-tickets/deck-gap-*.md) — deck file NOT added.
 # Nelly Borca's second trigger reads `Draw | Defined$ TriggeredSourcesController & You` — the pg2 multi-source caveat applies.
 # source: mtggoldfish 6139128, cross-checked against the WotC official mkc decklist article
 Commander
@@ -5712,7 +5712,11 @@ Deck
 1 Grim Backwoods
 1 High Market
 # --- Death Toll (dsc commander precon, Winter, Cynical Opportunist) — census input, 2026-09-18 (this worktree) ---
-# 100/100 resolved; commander eligible (Legendary Creature). 17 new-gap tickets (.ds4/new-tickets/deck-gap-*.md) — deck file NOT added (new engine gaps).
+# 100/100 resolved; commander eligible (Legendary Creature). Deck file NOT added (new engine gaps).
+# Re-verified against main 2026-09-19: 3 of the 17 originally filed gaps were already implemented in main
+# (trig:SpellCastOrCopy + trig:ChangesZoneAll; api:ImmediateTrigger; Count$Kicked) and are retracted;
+# 14 remain, of which deck-gap-finality-counters and deck-gap-tokenowner-player are narrowed to the
+# still-missing slivers (WithTotalCardTypes$/finality-counter SBA; TokenOwner$ Player).
 # source: WotC official Duskmourn Commander decklist article (mtggoldfish rate-limited during enumeration)
 Commander
 1 Winter, Cynical Opportunist
