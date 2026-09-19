@@ -73,15 +73,19 @@ func set(s string) map[string]bool {
 // elapsed time and per-root sampling/search cost. It injects a clock into the
 // experimental harness only for returned metrics; fixed work counts, explicit
 // seeds and ordinary engine execution govern every proposal and action.
+// cmd/searchteacher (the 2026-09-19 search-teacher spike) is exempt on the
+// same terms: it reads the clock only to report per-decision sampling and
+// search milliseconds; no proposal, rollout, label or game reads it.
 func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	allowed := map[string]bool{
-		module + "/host":            true,
-		module + "/host/httpapi":    true,
-		module + "/cmd/gorged":      true,
-		module + "/cmd/testtime":    true,
-		module + "/cmd/botbench":    true,
-		module + "/cmd/ledger":      true,
-		module + "/cmd/searchprobe": true,
+		module + "/host":              true,
+		module + "/host/httpapi":      true,
+		module + "/cmd/gorged":        true,
+		module + "/cmd/testtime":      true,
+		module + "/cmd/botbench":      true,
+		module + "/cmd/ledger":        true,
+		module + "/cmd/searchprobe":   true,
+		module + "/cmd/searchteacher": true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {
