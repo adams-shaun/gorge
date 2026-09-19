@@ -6432,6 +6432,26 @@ Deck
 # ChooseColor, TypeCycling, CantAttackUnless, RemoveCounter, TokenAttacking) — noted in the census
 # report, not re-filed.
 # source: WotC official Duskmourn House of Horror Commander decklist article (fetched 2026-09-18)
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Island
+1 Island
+1 Island
+1 Island
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+
+# --- Death Toll (dsc commander precon, Winter, Cynical Opportunist) — census input, 2026-09-18 (this worktree) ---
+# 100/100 resolved; commander eligible (Legendary Creature). Deck file NOT added (new engine gaps).
+# Re-verified against main 2026-09-19: 3 of the 17 originally filed gaps were already implemented in main
+# (trig:SpellCastOrCopy + trig:ChangesZoneAll; api:ImmediateTrigger; Count$Kicked) and are retracted;
+# 14 remain, of which deck-gap-finality-counters and deck-gap-tokenowner-player are narrowed to the
+# still-missing slivers (WithTotalCardTypes$/finality-counter SBA; TokenOwner$ Player).
+# source: WotC official Duskmourn Commander decklist article (mtggoldfish rate-limited during enumeration)
 Commander
 1 Aminatou, Veil Piercer
 
