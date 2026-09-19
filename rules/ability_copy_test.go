@@ -64,6 +64,65 @@ const verrakUnpriceableCopySrc = "Name:Test Verrak\nManaCost:2 B\nTypes:Creature
 	"DeckHas:Ability$Life\n" +
 	"Oracle:x\n"
 
+// The spell-cast arm (abcopy2): a Mode$ SpellCast trigger fires on
+// PutOnStack, whose Obj IS the cast spell -- no ability wrapper is minted, so
+// the trigger context carries TriggerCard, not TriggerAbility. The gates that
+// arm the pay/decline window accept either role; the copy source resolves
+// through the TriggeredSpellAbility arm's remembered entry.
+
+// mirariSpellCopySrc carries mirari's T: line and TrigCopy SVar VERBATIM --
+// the OPTIONAL spell-cast arm (OptionalDecider$ You) with Cost$ 3.
+const mirariSpellCopySrc = "Name:Test Mirari\nManaCost:5\nTypes:Legendary Artifact\n" +
+	"T:Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | OptionalDecider$ You | Execute$ TrigCopy | TriggerDescription$ Whenever you cast an instant or sorcery spell, you may pay {3}. If you do, copy that spell. You may choose new targets for the copy.\n" +
+	"SVar:TrigCopy:AB$ CopySpellAbility | Cost$ 3 | Defined$ TriggeredSpellAbility | AILogic$ Always | MayChooseTarget$ True\n" +
+	"Oracle:Whenever you cast an instant or sorcery spell, you may pay {3}. If you do, copy that spell. You may choose new targets for the copy.\n"
+
+// clovenCastingSpellCopySrc carries cloven_casting's T: line and TrigCopy
+// SVar VERBATIM -- the MANDATORY spell-cast arm (no OptionalDecider$, the ask
+// poses straight from resolveTop) with Cost$ 1. The ValidCard$ names
+// MultiColor, so the spell under it is a two-colour instant.
+const clovenCastingSpellCopySrc = "Name:Test Cloven Casting\nManaCost:5 U R\nTypes:Enchantment\n" +
+	"T:Mode$ SpellCast | ValidCard$ Instant.MultiColor,Sorcery.MultiColor | ValidActivatingPlayer$ You | Execute$ TrigCopy | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast a multicolored instant or sorcery spell, you may pay {1}. If you do, copy that spell. You may choose new targets for the copy.\n" +
+	"SVar:TrigCopy:AB$ CopySpellAbility | Cost$ 1 | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
+	"AI:RemoveDeck:Random\n" +
+	"Oracle:Whenever you cast a multicolored instant or sorcery spell, you may pay {1}. If you do, copy that spell. You may choose new targets for the copy.\n"
+
+// ulalekSpellCopySrc carries ulalek_fused_atrocity's T: line and BOTH SVars
+// VERBATIM -- the mandatory spell-cast arm with Cost$ C C, the repo-deck
+// commander. The main copy's Defined$ ValidStack Spell.YouCtrl resolves
+// through effCopySpellAbility's ValidStack arm (the one spell-cast carrier
+// whose SVar does not name TriggeredSpellAbility); the SubAbility$'s
+// Ability.YouCtrl+otherAbility half stays the recorded stand-in (see the
+// paid leaf).
+const ulalekSpellCopySrc = "Name:Test Ulalek\nManaCost:4\nTypes:Creature Eldrazi\nPT:4/4\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.Eldrazi | ValidActivatingPlayer$ You | Execute$ TrigCopySpell | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast an Eldrazi spell, you may pay {C}{C}. If you do, copy all spells you control, then copy all other activated and triggered abilities you control. You may choose new targets for the copies. (Mana abilities can't be copied.)\n" +
+	"SVar:TrigCopySpell:AB$ CopySpellAbility | Cost$ C C | Defined$ ValidStack Spell.YouCtrl | MayChooseTarget$ True | IgnoreFreeze$ True | SubAbility$ TrigCopyAbilities\n" +
+	"SVar:TrigCopyAbilities:DB$ CopySpellAbility | Defined$ ValidStack Ability.YouCtrl+otherAbility | MayChooseTarget$ True | IgnoreFreeze$ True\n" +
+	"Oracle:x\n"
+
+// micaSpellCopySrc carries mica_reader_of_ruins's T: line and TrigCopy SVar
+// VERBATIM -- the spell-cast arm whose Cost$ Sac<1/Artifact> is unpriceable
+// in the pay window: hard decline (the ask is posed, "pay" is not answerable).
+const micaSpellCopySrc = "Name:Test Mica\nManaCost:3 R\nTypes:Legendary Creature Human Artificer\nPT:4/4\n" +
+	"T:Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigCopy | TriggerDescription$ Whenever you cast an instant or sorcery spell, you may sacrifice an artifact. If you do, copy that spell and you may choose new targets for the copy.\n" +
+	"SVar:TrigCopy:AB$ CopySpellAbility | Cost$ Sac<1/Artifact> | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
+	"Oracle:x\n"
+
+// spellInsightSrc is the plain one-draw instant the mirari/mica carriers
+// fire on (their ValidCard$ is Instant,Sorcery).
+const spellInsightSrc = "Name:Test Blue Insight\nManaCost:U\nTypes:Instant\n" +
+	"A:SP$ Draw | NumCards$ 1\nOracle:x\n"
+
+// clovenBoltSrc is the two-colour instant the cloven_casting carrier fires on
+// (ValidCard$ Instant.MultiColor needs two colours in the mana cost).
+const clovenBoltSrc = "Name:Test Cloven Bolt\nManaCost:U R\nTypes:Instant\n" +
+	"A:SP$ Draw | NumCards$ 1\nOracle:x\n"
+
+// eldraziInsightSrc is the Eldrazi instant the Ulalek carrier fires on
+// (ValidCard$ Card.Eldrazi).
+const eldraziInsightSrc = "Name:Test Eldrazi Insight\nManaCost:C\nTypes:Instant Eldrazi\n" +
+	"A:SP$ Draw | NumCards$ 1\nOracle:x\n"
+
 // taplessXSifterSrc is changeXSifterSrc without the {T}: two activations of
 // ONE permanent can then be outstanding at once for the multi-activation leaf.
 const taplessXSifterSrc = "Name:Tapless X Sifter\nTypes:Artifact\n" +
@@ -346,6 +405,193 @@ func TestEachTriggerCopiesItsOwnActivation(t *testing.T) {
 	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+6 {
 		t.Fatalf("hand %d, want %d (each activation and ITS OWN copy drew its own X: 1+1+2+2)",
 			got, handBefore+6)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// announceSpell casts seat 0's fixture spell named name (the priority
+// decision's first "cast" option for it) and returns the spell object's id
+// while it sits on the stack -- the spell-cast arm's twin of announceAbility.
+func announceSpell(t *testing.T, e *Engine, name string) state.ObjID {
+	t.Helper()
+	castFirst(t, e, "cast")
+	for i := len(e.G.Stack) - 1; i >= 0; i-- {
+		o := e.G.Obj(e.G.Stack[i])
+		if o == nil || o.Card == nil {
+			continue
+		}
+		if o.Face() != nil && o.Face().Name == name {
+			return o.ID
+		}
+	}
+	t.Fatalf("spell %q not on the stack after cast: %v", name, e.G.Stack)
+	return 0
+}
+
+// poolTotal sums a player's floating mana pool (the pay window charges it).
+func poolTotal(m state.Mana) int {
+	var n int
+	for _, v := range m {
+		n += int(v)
+	}
+	return n
+}
+
+// TestMirariCopySpellDeclineNeverCopies is the spell-cast OPTIONAL arm's
+// decline leaf on mirari's verbatim lines: cast the instant, accept the
+// trigger's OptionalDecider$ ask, then DECLINE the {3} pay ask -- no
+// StackCopy, only the spell's own resolution (one draw), pool untouched.
+func TestMirariCopySpellDeclineNeverCopies(t *testing.T) {
+	e, cfg, _ := newFixtureDeck(t, 146, mirariSpellCopySrc, spellInsightSrc, plainSifterSrc)
+	moveSeeded(t, e, 0, mirariSpellCopySrc, state.ZBattlefield)
+	spell := moveSeeded(t, e, 0, spellInsightSrc, state.ZHand)
+	addMana(t, e, 0, "U") // the spell's own cost only
+	castFirst(t, e, "cast")
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	poolBefore := poolTotal(e.G.Players[0].Pool)
+	drainCopyPayAsks(t, e, 40, "decline")
+	if got := copyCount(e, spell); got != 0 {
+		t.Fatalf("declined {3} pay still copied the spell: %d StackCopy events %v",
+			got, allStackCopies(e))
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
+		t.Fatalf("hand %d, want %d (only the spell's own draw)", got, handBefore+1)
+	}
+	if got := poolTotal(e.G.Players[0].Pool); got != poolBefore {
+		t.Fatalf("pool %d, want %d -- a decline must not charge", got, poolBefore)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestMirariCopySpellPaidCopiesAndResolves is the spell-cast OPTIONAL arm's
+// paid leaf on mirari's verbatim lines: the {3} pay ask is answered "pay"
+// from the floating pool -- exactly one StackCopy of the cast spell, the copy
+// RESOLVES (spell and copy each draw 1), and the pool is charged exactly {3}.
+func TestMirariCopySpellPaidCopiesAndResolves(t *testing.T) {
+	e, cfg, _ := newFixtureDeck(t, 147, mirariSpellCopySrc, spellInsightSrc, plainSifterSrc)
+	moveSeeded(t, e, 0, mirariSpellCopySrc, state.ZBattlefield)
+	spell := moveSeeded(t, e, 0, spellInsightSrc, state.ZHand)
+	addMana(t, e, 0, "UUUU") // {U} for the spell, {3} for the copy
+	castFirst(t, e, "cast")
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	poolBefore := poolTotal(e.G.Players[0].Pool)
+	drainCopyPayAsks(t, e, 40, "pay")
+	if got := copyCount(e, spell); got != 1 {
+		t.Fatalf("paid {3} copy = %d StackCopy events, want exactly one (got %v)",
+			got, allStackCopies(e))
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+2 {
+		t.Fatalf("hand %d, want %d (spell and paid copy each drew 1 -- a copy that never resolves is not a fix)",
+			got, handBefore+2)
+	}
+	if got := poolTotal(e.G.Players[0].Pool); got != poolBefore-3 {
+		t.Fatalf("pool %d, want %d -- the {3} must be charged", got, poolBefore-3)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestClovenCastingCopySpellPaidCopiesAndResolves is the spell-cast
+// MANDATORY arm's paid leaf on cloven_casting's verbatim lines: no
+// OptionalDecider$, so the {1} pay ask poses straight from resolveTop's gate
+// (the cloven carrier's ValidCard$ is MultiColor, hence the two-colour
+// instant). Pay -> exactly one StackCopy that RESOLVES; the mandatory shape's
+// decline half is the Ulalek leaf below.
+func TestClovenCastingCopySpellPaidCopiesAndResolves(t *testing.T) {
+	e, cfg, _ := newFixtureDeck(t, 148, clovenCastingSpellCopySrc, clovenBoltSrc, plainSifterSrc)
+	moveSeeded(t, e, 0, clovenCastingSpellCopySrc, state.ZBattlefield)
+	spell := moveSeeded(t, e, 0, clovenBoltSrc, state.ZHand)
+	addMana(t, e, 0, "URU") // {U}{R} for the spell, {1} for the copy
+	castFirst(t, e, "cast")
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	poolBefore := poolTotal(e.G.Players[0].Pool)
+	drainCopyPayAsks(t, e, 40, "pay")
+	if got := copyCount(e, spell); got != 1 {
+		t.Fatalf("paid {1} copy = %d StackCopy events, want exactly one (got %v)",
+			got, allStackCopies(e))
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+2 {
+		t.Fatalf("hand %d, want %d (spell and paid copy each drew 1)", got, handBefore+2)
+	}
+	if got := poolTotal(e.G.Players[0].Pool); got != poolBefore-1 {
+		t.Fatalf("pool %d, want %d -- the {1} must be charged", got, poolBefore-1)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestUlalekCopySpellPaidCopiesAndResolves is the repo-deck commander's
+// mandatory spell-cast arm on Ulalek's VERBATIM T: line and SVars: the {C}{C}
+// pay ask poses straight from resolution, "pay" charges it, and the copy of
+// the cast Eldrazi spell RESOLVES. (The SubAbility$ "copy all other
+// activated and triggered abilities" half copies nothing here -- its
+// Ability.YouCtrl+otherAbility token names no stack kind the ValidStack
+// grammar parses, so effCopySpellAbility's ValidStack arm fails closed rather
+// than degrading it to Spell-only; recorded as the sub-copy stand-in.)
+func TestUlalekCopySpellPaidCopiesAndResolves(t *testing.T) {
+	e, cfg, _ := newFixtureDeck(t, 149, ulalekSpellCopySrc, eldraziInsightSrc, plainSifterSrc)
+	moveSeeded(t, e, 0, ulalekSpellCopySrc, state.ZBattlefield)
+	spell := moveSeeded(t, e, 0, eldraziInsightSrc, state.ZHand)
+	addMana(t, e, 0, "CCC") // {C} for the spell, {C}{C} for the copy
+	castFirst(t, e, "cast")
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	poolBefore := poolTotal(e.G.Players[0].Pool)
+	drainCopyPayAsks(t, e, 40, "pay")
+	if got := copyCount(e, spell); got != 1 {
+		t.Fatalf("paid {C}{C} copy = %d StackCopy events, want exactly one (got %v)",
+			got, allStackCopies(e))
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+2 {
+		t.Fatalf("hand %d, want %d (spell and paid copy each drew 1)", got, handBefore+2)
+	}
+	if got := poolTotal(e.G.Players[0].Pool); got != poolBefore-2 {
+		t.Fatalf("pool %d, want %d -- the {C}{C} must be charged", got, poolBefore-2)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestUlalekCopySpellDeclineNeverCopies is the same verbatim carrier's
+// decline leaf: "Do not pay" leaves the trigger unexecuted -- no StackCopy,
+// only the spell's own draw, pool untouched.
+func TestUlalekCopySpellDeclineNeverCopies(t *testing.T) {
+	e, cfg, _ := newFixtureDeck(t, 151, ulalekSpellCopySrc, eldraziInsightSrc, plainSifterSrc)
+	moveSeeded(t, e, 0, ulalekSpellCopySrc, state.ZBattlefield)
+	spell := moveSeeded(t, e, 0, eldraziInsightSrc, state.ZHand)
+	addMana(t, e, 0, "C") // the spell's own cost only
+	castFirst(t, e, "cast")
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	poolBefore := poolTotal(e.G.Players[0].Pool)
+	drainCopyPayAsks(t, e, 40, "decline")
+	if got := copyCount(e, spell); got != 0 {
+		t.Fatalf("declined {C}{C} pay still copied: %d StackCopy events %v",
+			got, allStackCopies(e))
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
+		t.Fatalf("hand %d, want %d (only the spell's own draw)", got, handBefore+1)
+	}
+	if got := poolTotal(e.G.Players[0].Pool); got != poolBefore {
+		t.Fatalf("pool %d, want %d -- a decline must not charge", got, poolBefore)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestMicaCopySpellCostIsHardDecline is the unpriceable spell-cast carrier on
+// mica_reader_of_ruins's verbatim lines: Cost$ Sac<1/Artifact> poses the ask
+// straight from resolution but offers ONLY the decline option (the
+// ParseUnlessCost hard-decline convention -- never a free copy through a
+// zero-amount read), and answering it copies nothing.
+func TestMicaCopySpellCostIsHardDecline(t *testing.T) {
+	e, cfg, _ := newFixtureDeck(t, 152, micaSpellCopySrc, spellInsightSrc, plainSifterSrc)
+	moveSeeded(t, e, 0, micaSpellCopySrc, state.ZBattlefield)
+	spell := moveSeeded(t, e, 0, spellInsightSrc, state.ZHand)
+	addMana(t, e, 0, "U") // the spell's own cost
+	castFirst(t, e, "cast")
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	drainCopyPayAsks(t, e, 40, "hard-decline")
+	if got := copyCount(e, spell); got != 0 {
+		t.Fatalf("unpriceable Sac<1/Artifact> copy still copied: %d events %v",
+			got, allStackCopies(e))
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
+		t.Fatalf("hand %d, want %d (only the spell's own draw)", got, handBefore+1)
 	}
 	replayCheck(t, e, cfg)
 }

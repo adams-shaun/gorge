@@ -78,6 +78,35 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		if spell == 0 {
+			// Defined$ ValidStack <spec> (Ulalek, Fused Atrocity's "copy all
+			// spells you control"): the one Defined form this arm cannot read
+			// off c.Targets -- a ValidStack spec resolves from the STACK, not
+			// from the trigger's targets. Route it through the shared ValidStack
+			// resolver every other Defined consumer uses, but ONLY when some
+			// comma token actually names a stack kind (state.StackKindTokenOf):
+			// the parser's no-usable-token degradation to Spell-only must not
+			// leak in here -- an unparsed "Ability" token (Ulalek's sub-copy's
+			// `Ability.YouCtrl+otherAbility`) would otherwise widen to "all
+			// spells you control" and copy every spell on the stack. Fail
+			// closed instead; that sub-copy half stays the recorded stand-in.
+			spec := strings.TrimSpace(sa.Params["Defined"])
+			if stackSpec, ok := strings.CutPrefix(spec, "ValidStack"); ok {
+				for _, tok := range strings.Split(strings.TrimSpace(stackSpec), ",") {
+					if _, known := state.StackKindTokenOf(strings.TrimSpace(tok)); known {
+						if ts, knownAll := knownDefinedTargets(h, c, spec); knownAll {
+							for _, t := range ts {
+								if !t.IsPlayer && t.Obj != 0 {
+									spell = t.Obj
+									break
+								}
+							}
+						}
+						break
+					}
+				}
+			}
+		}
+		if spell == 0 {
 			return
 		}
 	}
