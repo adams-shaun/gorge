@@ -260,6 +260,16 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 	}{
 		{name: "bot", new: NewBot},
 		{name: "lethal-pressure", new: NewLethalPressureBot},
+		// cast-profile rides the same adapter pair: with the embedded default
+		// profile its decisions must agree across both halves exactly like
+		// the other policies' do.
+		{name: "cast-profile", new: func(seed uint64) *Bot {
+			b, err := NewCastProfileBot(seed)
+			if err != nil {
+				t.Fatalf("NewCastProfileBot: %v", err)
+			}
+			return b
+		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) { agreeOverWholeGame(t, tc.new) })
 	}

@@ -140,6 +140,18 @@ var policies = map[string]func(seed uint64) seat.Seat{
 	// Seat implementation.
 	"bot":             hostedPolicy(host.BotPolicy),
 	"lethal-pressure": hostedPolicy(host.LethalPressurePolicy),
+	// cast-profile plays the production bot with a learned cast profile
+	// (botpolicy.CastWeights): with the embedded default profile it is
+	// intent-identical to "bot" (the baseline equality the L2 tests pin),
+	// and -profile <path> swaps the weights for a candidate file so a
+	// profile is benched without a rebuild.
+	"cast-profile": func(seed uint64) seat.Seat {
+		w, err := castProfileWeightsForRun()
+		if err != nil {
+			panic(err) // the embedded default profile is pinned valid by botpolicy's tests.
+		}
+		return seat.NewCastProfileBotWithWeights(seed, w)
+	},
 	// legacy is the pre-B2 policy, frozen in botpolicy.LegacyDecide: attack
 	// with everything that can, block half the legal pairs on a coin. It is
 	// not a production policy -- nothing but the bench drives it -- it is
@@ -158,6 +170,25 @@ func hostedPolicy(name string) func(seed uint64) seat.Seat {
 		}
 		return s
 	}
+}
+
+// castProfileOverride is the weights -profile names: nil (the zero value)
+// means the embedded default profile, and mainExit sets it once after
+// parsing the file. Package scope rather than a run parameter so the
+// policies map's cast-profile entry can read it without threading a
+// weights argument through run/runMatrix/playMatch; it is write-once
+// before any game starts and read-only afterwards.
+var castProfileOverride *botpolicy.CastWeights
+
+// castProfileWeightsForRun resolves the run's cast-profile weights: the
+// -profile file when one was given, else the embedded default profile.
+// LoadCastProfile for the default is infallible for a committed file, but
+// the error is propagated anyway so the caller decides how loudly to fail.
+func castProfileWeightsForRun() (botpolicy.CastWeights, error) {
+	if castProfileOverride != nil {
+		return *castProfileOverride, nil
+	}
+	return botpolicy.LoadCastProfile(botpolicy.DefaultCastProfileName)
 }
 
 // legacySeat is the bench seat for the old policy: it reads the same view
@@ -1901,6 +1932,7 @@ func main() {
 	maxTurns := flag.Int("max-turns", 200, "maximum turns per game before it ends as a stall (not a win, not a draw); catches a game that runs long in turn count; 0 = no cap")
 	maxIntents := flag.Int("max-intents", 20000, "maximum intents per game before it ends as a stall (not a win, not a draw); catches a game whose turn count never advances but that keeps submitting intents; 0 = no cap")
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
+	profile := flag.String("profile", "", "path to a cast-profile weights JSON (schema {\"version\":1,\"cast\":{...}}) applied to any side named cast-profile; empty = the embedded default profile")
 	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
 	actionCoverage := flag.Bool("action-coverage", false, "append the action-coverage completeness report (decision kinds / option rows never asked, offered-but-never-chosen shapes, cast shapes, cards and ability slots never fired, primitives never exercised) at the end of a run; default off so the normal report is unchanged")
 	decisionTrace := flag.String("decision-trace", "", "write an opt-in atomic JSONL decision trace to a new file (matrix mode only; parent must exist and destination must not)")
@@ -1915,7 +1947,7 @@ func main() {
 	actionCoverageEnabled = *actionCoverage
 
 	os.Exit(mainExit(*a, *b, *games, *seed, *seats, *rotate, *pairs, *format, *out, *workers,
-		*maxTurns, *maxIntents, *dir, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile, *decisionTrace, *analyzeTrace))
+		*maxTurns, *maxIntents, *dir, *profile, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile, *decisionTrace, *analyzeTrace))
 }
 
 // mainExit is main's body with the exit code as its return, so the profiler
@@ -1923,10 +1955,25 @@ func main() {
 // profile is still readable evidence -- instead of being skipped by the
 // os.Exit calls a flag-error path used to make.
 func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pairs, format, out string, workers,
-	maxTurns, maxIntents int, dir string, decisionStats, actionCoverage bool, grind string, grindSeconds float64, grindIters int, cpuprofile, memprofile, decisionTrace, analyzeTrace string) int {
+	maxTurns, maxIntents int, dir, profile string, decisionStats, actionCoverage bool, grind string, grindSeconds float64, grindIters int, cpuprofile, memprofile, decisionTrace, analyzeTrace string) int {
 	fail := func(err error) int {
 		fmt.Fprintln(os.Stderr, "botbench:", err)
 		return 1
+	}
+	// The -profile file is parsed before any game starts so a bad candidate
+	// fails the run at the front door instead of mid-game: it applies to any
+	// side named cast-profile (single-pair, matrix or grind), and an empty
+	// path leaves the embedded default in place.
+	if profile != "" {
+		data, err := os.ReadFile(profile)
+		if err != nil {
+			return fail(fmt.Errorf("reading -profile %s: %w", profile, err))
+		}
+		w, err := botpolicy.ParseCastProfile(data)
+		if err != nil {
+			return fail(fmt.Errorf("-profile %s: %w", profile, err))
+		}
+		castProfileOverride = &w
 	}
 	if analyzeTrace != "" {
 		if decisionTrace != "" || pairs != "" || grind != "" {
