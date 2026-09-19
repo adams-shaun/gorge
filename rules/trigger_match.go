@@ -142,6 +142,13 @@ type turnFires struct {
 var actionTriggerModes = map[string]bool{
 	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "Sacrificed": true, "Discarded": true,
 	"CommitCrime": true, "Taps": true, "TapsForMana": true,
+	// TokenCreated/TokenCreatedOnce are event modes registered from the start
+	// (rules/trigger_match.go's tokenCreatedMatches), so the trigger-level
+	// parameters Forge scopes to every event mode -- PlayerTurn$,
+	// ActivationLimit$, and an unevaluable CheckDefinedPlayer$ predicate
+	// failing closed -- apply from day one, and the Once mode's implicit
+	// once-per-turn latch rides the same queue-time gate.
+	"TokenCreated": true, "TokenCreatedOnce": true,
 	// ChangesZoneAll joins them for the trigger-level parameters Forge scopes
 	// to every event mode: ActivationLimit$ ("triggers only once each turn"
 	// on 40 of the 126 corpus ChangesZoneAll lines) MUST be enforced, and the
@@ -160,11 +167,27 @@ var actionTriggerModes = map[string]bool{
 func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
 	raw, ok := t.Params["ActivationLimit"]
 	if !ok {
-		return true
+		// Mode$ TokenCreatedOnce is Forge's own once-per-turn gate (Akim, the
+		// Soaring Wind: "whenever you create one or more tokens for the first
+		// time each turn"): an implicit ActivationLimit 1, latched at queue
+		// time on the same per-turn map so a batch of mints fires once and
+		// the next turn resets. Reusing triggerTurnFires (which Clone already
+		// deep-copies) instead of a second latch field keeps the two
+		// per-turn trigger counts structurally identical.
+		if t.Mode == "TokenCreatedOnce" {
+			raw, ok = "1", true
+		} else {
+			return true
+		}
 	}
 	limit, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil || limit < 0 {
 		return false
+	}
+	// The Once mode's meaning is once per turn; an explicit ActivationLimit$
+	// above 1 on a TokenCreatedOnce line cannot raise it.
+	if t.Mode == "TokenCreatedOnce" && limit > 1 {
+		limit = 1
 	}
 	if e.triggerTurnFires == nil {
 		e.triggerTurnFires = map[triggerKey]turnFires{}
@@ -1095,6 +1118,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.cycledMatches(t, source, ev, lki)
 	case "CounterAdded":
 		matched = e.counterAddedMatches(t, source, ev, lki)
+	case "TokenCreated", "TokenCreatedOnce":
+		matched = e.tokenCreatedMatches(t, source, ev)
 	case "Sacrificed":
 		matched = e.sacrificedMatches(t, source, ev, lki)
 	case "Discarded":
@@ -1826,6 +1851,35 @@ func (e *Engine) sacrificedMatches(t cards.Trigger, source state.ObjID, ev event
 	}
 	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, sacrificer, ctrl) {
 		return false
+	}
+	return true
+}
+
+// tokenCreatedMatches identifies Forge's "whenever you create a token"
+// trigger (Mode$ TokenCreated / TokenCreatedOnce) on the existing, replayed
+// TokenCreate event -- one event per minted token (effects/token.go's effToken
+// loop, effects/amass.go, and the token-replacement mint path), so a
+// three-token spell fires the trigger three times and the Once mode's
+// once-per-turn latch (triggerActivationLimitAllows, actionTriggerModes
+// membership above) is what collapses a batch to one queueing. The would-be
+// token does not exist as a game object at match time: ValidToken$ is taken
+// against the same shallow tokenSnapshot the CreateToken replacement class
+// matches against -- an unknown token key fails closed -- with the You-side
+// predicates reading against the trigger source's controller while the
+// snapshot's controller is ev.Player, the token's creator ("you create").
+func (e *Engine) tokenCreatedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.TokenCreate {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v, ok := t.Params["ValidToken"]; ok && v != "" {
+		tok := e.tokenSnapshot(ev)
+		if tok == nil || !effects.MatchesObjectCtx(e.G, v, tok, e.specCtx(source, ctrl)) {
+			return false
+		}
 	}
 	return true
 }
@@ -2922,6 +2976,7 @@ func init() {
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
 		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:Cycled", "trig:CounterAdded",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
+		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",

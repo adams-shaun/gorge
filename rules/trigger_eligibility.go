@@ -105,6 +105,8 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.Damage
 	case "CounterAdded":
 		return 1 << events.CounterChange
+	case "TokenCreated", "TokenCreatedOnce":
+		return 1 << events.TokenCreate
 	case "Drawn":
 		return 1 << events.Draw
 	case "LifeLost":
