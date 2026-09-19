@@ -157,6 +157,12 @@ var actionTriggerModes = map[string]bool{
 	// predicate fail closed for the mode, which is the conservative direction
 	// for a mode registered from the start.
 	"ChangesZoneAll": true,
+	// Attached is an event mode registered from the start
+	// (attachedMatches over events.Attach), so the trigger-level parameters
+	// Forge scopes to every event mode -- PlayerTurn$, ActivationLimit$, and
+	// an unevaluable CheckDefinedPlayer$ predicate failing closed -- apply
+	// from day one (Inchblade Companion carries ActivationLimit$ 1).
+	"Attached": true,
 }
 
 // triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
@@ -1185,6 +1191,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.cycledMatches(t, source, ev, lki)
 	case "CounterAdded":
 		matched = e.counterAddedMatches(t, source, ev, lki)
+	case "Attached":
+		matched = e.attachedMatches(t, source, ev)
 	case "TokenCreated", "TokenCreatedOnce":
 		matched = e.tokenCreatedMatches(t, source, ev)
 	case "Sacrificed":
@@ -2511,6 +2519,43 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 	return true
 }
 
+// attachedMatches implements Mode$ Attached: the trigger fires when an Aura,
+// Equipment or other attachment becomes attached to a permanent (CR
+// 701.3a's "becomes attached" -- the event the engine's one shared attach
+// emit site, effects/attach.go's effAttach, publishes for the cast, equip
+// and ETB-attached shapes alike). events.Attach with len(ev.IDs) > 0 carries
+// the attachment in ev.Obj and the bearer in ev.IDs[0]; the no-IDs emits are
+// the detach state-based actions (rules/attach.go), which are NOT "becomes
+// attached" and never match. Forge's ValidSource$ names the ATTACHING
+// object (Siona's Aura.YouCtrl, Enormous Energy Blade's Card.Self) and
+// ValidTarget$ names the BEARER (Brood Keeper's Card.Self reads Self as the
+// trigger's source through the same specCtx becomesTargetMatches uses).
+// A trigger with NO ValidTarget$ never fires: Eriette's line names only
+// TargetRelativeToSource$, a parameter this build does not read anywhere,
+// so firing without the bearer restriction would over-fire on every Aura
+// attach. The Static$ True guard keeps Forge's "static effect expressed as
+// a trigger" lines (Metamorphic Alteration, Paleontologist's Pick-Axe --
+// Execute$ DBClone continuous shapes with no static-trigger machinery here)
+// from firing a clone on every attach.
+func (e *Engine) attachedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Attach || len(ev.IDs) == 0 {
+		return false
+	}
+	if t.Params["Static"] == "True" {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidSource"]; ok {
+		if ev.Obj == 0 || !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidTarget"]; ok {
+		return effects.MatchesSpecCtx(e.G, v, ev.IDs[0], e.specCtx(source, ctrl))
+	}
+	return false
+}
+
 // becomesTargetMatches implements Mode$ BecomesTarget: the trigger fires
 // when one of the chosen targets recorded by a TargetsChosen event
 // (rules.handleTarget -- "the target decision being answered") matches its
@@ -3102,7 +3147,7 @@ func init() {
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
-		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase",
+		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary

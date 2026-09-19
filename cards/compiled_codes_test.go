@@ -63,7 +63,7 @@ func TestCompiledCodeMappings(t *testing.T) {
 			"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "Sacrificed",
 			"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 			"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
-			"Drawn", "LifeLost", "LifeLostAll", "Phase", "Always",
+			"Drawn", "LifeLost", "LifeLostAll", "Phase", "Always", "Attached",
 		}
 		assertUniqueKnownCodes(t, "trigger mode", names, triggerModeCode, TriggerModeUnknown)
 		if got := triggerModeCode("FutureTrigger"); got != TriggerModeUnknown {

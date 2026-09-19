@@ -106,6 +106,16 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if ev.Kind == events.AbilityPush {
 			c.TriggerAbility = e.abilityCastStackObject(ev.Obj)
 		}
+	case "Attached":
+		// ev.Obj is the attaching Aura/Equipment, ev.IDs[0] the bearer it
+		// became attached to (attachedMatches guarantees a bearer-bearing
+		// Attach event reached this mode). Enormous Energy Blade's execute
+		// reads TriggeredTargetLKICopy and Bramble Elemental's token reads
+		// TriggeredTargetController, both off the bearer role below.
+		c.TriggerCard = ev.Obj
+		if len(ev.IDs) > 0 {
+			c.TriggerTarget = state.Target{Obj: ev.IDs[0]}
+		}
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
 	case "TapsForMana":

@@ -312,6 +312,7 @@ const (
 	TriggerModeLifeLostAll                TriggerModeCode = 23
 	TriggerModePhase                      TriggerModeCode = 24
 	TriggerModeAlways                     TriggerModeCode = 25
+	TriggerModeAttached                   TriggerModeCode = 26
 )
 
 func triggerModeCode(mode string) TriggerModeCode {
@@ -366,6 +367,8 @@ func triggerModeCode(mode string) TriggerModeCode {
 		return TriggerModePhase
 	case "Always":
 		return TriggerModeAlways
+	case "Attached":
+		return TriggerModeAttached
 	default:
 		return TriggerModeUnknown
 	}
@@ -772,6 +775,7 @@ const (
 	TriggerInterestDraw
 	TriggerInterestLifeChange
 	TriggerInterestStepChange
+	TriggerInterestAttach
 )
 
 func triggerInterestForMode(mode string) TriggerInterest {
@@ -786,6 +790,8 @@ func triggerInterestForMode(mode string) TriggerInterest {
 		return TriggerInterestAttackDeclaration
 	case "CommitCrime", "BecomesTarget":
 		return TriggerInterestTargetsChosen
+	case "Attached":
+		return TriggerInterestAttach
 	case "Taps", "TapsForMana":
 		return TriggerInterestTap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
