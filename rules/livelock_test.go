@@ -232,3 +232,27 @@ func TestLivelockWatcherSteadyWindowDoesNotAllocate(t *testing.T) {
 		t.Fatalf("steady bounded observation allocated %.2f objects/event, want zero", allocs)
 	}
 }
+
+// TestLivelockWatcherShortWindowDoesNotReadBeforeTheWindow pins the detect()
+// bound: a period-p match compares the trailing 2p signatures as two halves
+// (j from n-1 down to n-p against j-p). The old bound (j >= n-2p+1) walked
+// p-1 pairs further and, on a window not yet wrapped (a fresh or freshly
+// Cloned watcher), read sigAt(-1): four events alternating A,B,A,B panicked
+// with an index out of range instead of recognising period 2 (found by the
+// search-teacher spike's rollouts, ~1% of cloned cast rollouts).
+func TestLivelockWatcherShortWindowDoesNotReadBeforeTheWindow(t *testing.T) {
+	w := newLivelockWatcher(nil)
+	a := events.Event{Kind: events.Note, Obj: 11}
+	b := events.Event{Kind: events.Tap, Obj: 12}
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("A,B,A,B on a fresh watcher panicked: %v", r)
+		}
+	}()
+	for _, ev := range []events.Event{a, b, a, b} {
+		w.observe(ev)
+	}
+	if w.runPeriod != 2 {
+		t.Fatalf("runPeriod = %d after A,B,A,B, want 2", w.runPeriod)
+	}
+}
