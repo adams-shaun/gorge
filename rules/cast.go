@@ -2394,7 +2394,10 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 				// option list below builds it; a category this build cannot
 				// enumerate is recorded loudly at resolution time by
 				// effects.effChooseType, never silently.
-				r.With.Params["Type"]),
+				r.With.Params["Type"],
+				// Exclude$ (Black Dragon Gate, the five Thriving lands) names
+				// colours the choice must NOT offer, comma-separated.
+				r.With.Params["Exclude"]),
 		})
 	}
 }
@@ -2443,12 +2446,34 @@ func etbColourLetter(name string) string {
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
-func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory string) []decision.Option {
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory, exclude string) []decision.Option {
 	switch kind {
 	case "color":
+		// Exclude$ tokens (comma-separated, e.g. "black" on Black Dragon
+		// Gate) remove the matching WUBRG label. Fail OPEN: a token
+		// etbColourLetter cannot resolve is ignored, never emptied into an
+		// ask with zero options (the totality rule in this doc comment).
+		excluded := map[string]bool{}
+		for _, tok := range strings.Split(exclude, ",") {
+			if letter := etbColourLetter(strings.TrimSpace(tok)); letter != "" {
+				excluded[letter] = true
+			}
+		}
 		out := make([]decision.Option, 0, len(etbColourLabels))
 		for _, cl := range etbColourLabels {
+			if excluded[cl.letter] {
+				continue
+			}
 			out = append(out, decision.Option{Index: len(out), Kind: "color", Label: cl.name})
+		}
+		if len(out) == 0 {
+			// Totality guard: an exclusion naming every colour must never
+			// empty the ask (corpus carriers exclude exactly one; this is
+			// defensive against a future carrier).
+			out = make([]decision.Option, 0, len(etbColourLabels))
+			for _, cl := range etbColourLabels {
+				out = append(out, decision.Option{Index: len(out), Kind: "color", Label: cl.name})
+			}
 		}
 		return out
 	case "name":
