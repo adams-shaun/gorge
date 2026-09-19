@@ -65,11 +65,24 @@ func (f *Face) expandKeywords() {
 			// contain their own "|", which would otherwise inject a
 			// spurious param into both).
 			kind, rest, _ := strings.Cut(param, ":")
-			n, _, _ := strings.Cut(rest, ":")
+			n, extra, _ := strings.Cut(rest, ":")
 			sv := "__kwEtbCounter" + strconv.Itoa(i)
 			f.setSVar(sv, "DB$ PutCounter | Defined$ Self | CounterType$ "+kind+" | CounterNum$ "+n+" | ETB$ True")
 			p := parseParams("Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplacementResult$ Updated | ReplaceWith$ " + sv +
 				" | Keyword$ etbCounter | Description$ CARDNAME enters with " + n + " " + kind + " counters.")
+			// The FIRST space-free extra colon field may be a CheckSVar$ gate
+			// (Lupine Harbingers' "K:etbCounter:P1P1:Z:CheckSVar$ WasForetold:
+			// CARDNAME enters with X +1/+1 counters ... since it was foretold"):
+			// pass the SVar name through verbatim so rules'
+			// replacementConditionHolds (shared with the damage/counter
+			// families' CheckSVar$ gates) applies the replacement only when the
+			// value is non-zero. Everything else stays dropped, exactly as
+			// before -- the later colon fields remain display metadata.
+			if first, _, _ := strings.Cut(extra, ":"); strings.HasPrefix(strings.TrimSpace(first), "CheckSVar$") {
+				if cond := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(first), "CheckSVar$")); cond != "" {
+					p["CheckSVar"] = cond
+				}
+			}
 			p["KeywordLine"] = k
 			f.Repls = append(f.Repls, Repl{Event: "Moved", Params: p})
 		case "ETBReplacement":

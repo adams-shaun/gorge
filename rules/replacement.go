@@ -1519,7 +1519,14 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 				return false
 			}
 		}
-		return true
+		// CheckSVar$/SVarCompare$ (kw:etbCounter's CheckSVar$ third field --
+		// Lupine Harbingers' "enters with X +1/+1 counters ... since it was
+		// foretold" gate) shares replacementConditionHolds with the
+		// damage/counter families. The comment above its own declaration used
+		// to say the Moved case never carries these gates in the corpus; the
+		// etbCounter passthrough is the one carrier, and the shared read is a
+		// no-op for every Moved line without the params.
+		return e.replacementConditionHolds(r, source, you)
 	case "Untap":
 		if ev.Kind != events.Untap {
 			return false

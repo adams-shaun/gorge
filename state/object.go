@@ -133,6 +133,17 @@ const (
 	// (rules/cast.go's faceWantsTimesKicked), so unrelated kicked casts stay
 	// byte-identical. Appended per the enum's own append-only precedent.
 	FlagMultikicked
+	// FlagForetold marks a cast paid for with the card's Foretell cost
+	// (CR 702.126a). The flag is SET TWICE in a foretold card's life, once
+	// by each provenance marker: the {2} face-down hand exile (rules'
+	// payCast foretell branch -- the action is not a cast, so only this
+	// action ever sets it there) and the later foretell-cost cast from exile
+	// (modeFlags("foretell_cast")), so the cast spell and the permanent it
+	// becomes both carry it -- the stack->battlefield persistence is what
+	// lets an ETB reader (Lupine Harbingers' CheckSVar$ WasForetold) and
+	// Count$Foretold read it. An ordinary cast or any other way into exile
+	// never sets it. Appended per the enum's own append-only precedent.
+	FlagForetold
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -257,6 +268,15 @@ type Object struct {
 	// events.Move; a COPY of the spell was never kicked and reads 0 (the
 	// same reading Count$ReplicatePaid documents).
 	TimesKicked int32
+	// NotedNumber is the number a trigger's Execute$ body noted onto the
+	// CARD (Lupine Harbingers' T:Mode$ ChangesZone | Destination$ Exile
+	// trigger executing DB$ Pump | NoteNumber$ Count$YourTurns -- the
+	// corpus's one NoteNumber$ carrier). events.NotedNumber carries it,
+	// Count$NotedNumber reads it, and it resets with the X/CastFlags window
+	// when the permanent leaves the battlefield: the note is made in exile
+	// and consumed by the ETB machinery of the cast it later becomes, and a
+	// fresh exile re-notes it.
+	NotedNumber int32
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number, a colour (the

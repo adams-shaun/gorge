@@ -900,6 +900,39 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		}
 		return no, true
 	}
+	// Foretold.<ifTrue>.<ifFalse> is <ifTrue> when the resolving source was
+	// cast foretold (CR 702.126a -- the pay-time FlagForetold provenance,
+	// the same read Kicked makes), else <ifFalse>. The operands resolve
+	// through the same operand machinery evalCompare's branches use (a
+	// literal, or an SVar name resolved recursively -- Starnheim Unleashed's
+	// Count$Foretold.X.1 reads the announced X through the face's SVar
+	// table), with the same depth discipline. A carrier missing a branch is
+	// a corpus bug: fail closed (0, false) rather than answer a half body.
+	if rest, ok := strings.CutPrefix(head, "Foretold."); ok {
+		yes, no, found := strings.Cut(rest, ".")
+		if !found || strings.TrimSpace(yes) == "" || strings.TrimSpace(no) == "" {
+			return 0, false
+		}
+		foretold := false
+		if o := g.Obj(c.Source); o != nil {
+			foretold = o.CastFlags&state.FlagForetold != 0
+		}
+		if foretold {
+			return evalCountOperand(h, c, yes, depth), true
+		}
+		return evalCountOperand(h, c, no, depth), true
+	}
+	// NotedNumber is the number a trigger's Execute$ body last noted onto
+	// the source card (DB$ Pump | NoteNumber$ <expr> -- Lupine Harbingers'
+	// exile trigger noting Count$YourTurns). Read off the card the ETB
+	// replacement resolves over (c.Source), the same object events.NotedNumber
+	// wrote; a card with no note reads 0.
+	if head == "NotedNumber" {
+		if o := g.Obj(c.Source); o != nil {
+			return o.NotedNumber, true
+		}
+		return 0, true
+	}
 	// UrzaLands.<assembled>.<not assembled> is <assembled> when the controller
 	// controls at least one of each Urza land subtype on the battlefield
 	// (Urza's Mine, Urza's Tower, Urza's Power-Plant), else <not assembled>.

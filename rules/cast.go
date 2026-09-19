@@ -1172,6 +1172,24 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 	case "suspend_cast":
 		cost = Cost{}
+	case "foretell":
+		// CR 702.126a: the Foretell ACTION pays {2} and exiles the card face
+		// down -- never the keyword's own colon parameter, which prices the
+		// LATER cast (the foretell_cast case below).
+		cost = Cost{Generic: 2}
+	case "foretell_cast":
+		// CR 702.126a: the later cast pays the foretell cost -- the K: line's
+		// colon parameter (Starnheim Unleashed's "X X W" rides the ordinary
+		// X machinery here), read off the face; a missing parameter falls
+		// back to the rule's action default {2} (no corpus carrier -- every
+		// K:Foretell line carries a colon cost, measured 55/55). Stored RAW:
+		// cost modifiers apply later in manaToPay, exactly like every other
+		// alternative-cost mode's cost.
+		if fc, ok := f.KeywordParam("Foretell"); ok && strings.TrimSpace(fc) != "" {
+			cost = ParseCost(fc)
+		} else {
+			cost = Cost{Generic: 2}
+		}
 	case "flashback":
 		cost = e.flashbackCost(id)
 	case "mayplay":
@@ -1474,6 +1492,13 @@ func (e *Engine) continueCast() {
 	// the keyword cost and exiles the card with time counters. Targets are
 	// chosen only when its later free cast is announced.
 	if e.cast.mode == "suspend" {
+		e.payCast()
+		return
+	}
+	// Foretell (CR 702.126a) is the same shape: the {2} special action is not
+	// a cast -- no stack push, no targets; the card is exiled face down and
+	// its later foretell-cost cast announces its own targets.
+	if e.cast.mode == "foretell" {
 		e.payCast()
 		return
 	}
@@ -3797,6 +3822,16 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagHarmonize)
 	case "suspend":
 		return events.FlagsString(state.FlagSuspend)
+	// Foretell's later cast (CR 702.126a): the flag is the provenance an ETB
+	// reader (Lupine Harbingers' CheckSVar$ WasForetold) and Count$Foretold
+	// read off the permanent the spell becomes -- the stack->battlefield
+	// persistence the Suspend flag rides too. The {2} ACTION's CastInfo is
+	// emitted directly by payCast's foretell branch (which then returns, so
+	// the ordinary flags path below is never reached for that mode); the
+	// action's flag has no modeFlags case for the same reason suspend's
+	// branch does not share this switch.
+	case "foretell_cast":
+		return events.FlagsString(state.FlagForetold)
 	// Bestow (CR 702.114a): the flag is the provenance the resolution
 	// reader (resolveTop) uses to substitute the synthesized Aura attach
 	// spell, and what keeps a bestowed cast distinguishable on the wire.
@@ -4555,6 +4590,25 @@ func (e *Engine) payCast() {
 		if time > 0 {
 			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: "TIME", Amount: time})
 		}
+		e.cast, e.choosing = nil, chooseNone
+		return
+	}
+	if pc.mode == "foretell" {
+		// CR 702.126a: the Foretell ACTION is not a cast. CastInfo is the
+		// replayable provenance marker -- only this action sets FlagForetold
+		// on a hand->exile move, so an arbitrary exiled card is never treated
+		// as foretold -- and the MoveZone carries the face-down exile
+		// encoding (events.Apply's decode sets FaceDown and clears ExiledWith:
+		// no exiling source permanent exists for Foretell, so Amount 0). Do
+		// NOT route through effects' applyExileFaceDown: it is unexported and
+		// binds an ability source that does not exist here -- the raw event
+		// encoding is emitted directly, the suspend branch's own pattern. The
+		// view redacts the face-down exile to everyone but the exiler (the
+		// owner, for Foretell), and any move NOT to exile clears FaceDown, so
+		// the later foretell-cost cast reveals automatically.
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Counter: events.FlagsString(state.FlagForetold)})
+		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZExile,
+			Counter: "exiled_with_face_down", Amount: 0})
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}

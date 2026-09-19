@@ -287,22 +287,32 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 		return holds, true
 	}
-	// A bare Condition$ is the cast-option family: only Kicked is evaluated
-	// (the source's CastFlags FlagKicked, the same bit the Kicker payment
-	// recorded); Delirium/OptionalCost/Bargain/Threshold/Blessing/Metalcraft/
-	// Foretold/Hellbent/Revolt/Surge stay unresolved and run unconditionally.
-	// A bare Condition beside a group key or beside ConditionSVarCompare$ is
-	// a mixed shape no single evaluator covers (~11 corpus SAs).
+	// A bare Condition$ is the cast-option family: Kicked and Foretold are
+	// evaluated over the source's CastFlags (the bit the Kicker payment / the
+	// Foretell action's CastInfo recorded -- the same provenance Count$
+	// Foretold reads); Delirium/OptionalCost/Bargain/Threshold/Blessing/
+	// Metalcraft/Hellbent/Revolt/Surge stay unresolved and run
+	// unconditionally. A bare Condition beside a group key or beside
+	// ConditionSVarCompare$ is a mixed shape no single evaluator covers (~11
+	// corpus SAs).
 	if bare != "" {
 		if defined != "" || present != "" || notPresent != "" || compare != "" || svarCmp != "" ||
 			playerTurn != "" || phases != "" {
 			return false, false
 		}
-		if !strings.EqualFold(bare, "Kicked") {
-			return false, false
+		switch {
+		case strings.EqualFold(bare, "Kicked"):
+			o := h.Game().Obj(c.Source)
+			return o != nil && o.CastFlags&state.FlagKicked != 0, true
+		case strings.EqualFold(bare, "Foretold"):
+			// CR 702.126: the "if this spell was foretold" gate (Poison the
+			// Cup's conditional scry, Alrund's Epiphany's conditional tokens) --
+			// the same FlagForetold provenance Count$Foretold reads, the two
+			// bare-Condition corpus carriers are exactly this shape.
+			o := h.Game().Obj(c.Source)
+			return o != nil && o.CastFlags&state.FlagForetold != 0, true
 		}
-		o := h.Game().Obj(c.Source)
-		return o != nil && o.CastFlags&state.FlagKicked != 0, true
+		return false, false
 	}
 	if notPresent != "" {
 		// ConditionNotPresent$ (8 corpus lines, two shapes): met when NO object

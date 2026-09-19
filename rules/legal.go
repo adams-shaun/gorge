@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"regexp"
 	"slices"
 	"strconv"
@@ -1189,6 +1190,17 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Suspend " + f.Name, Obj: id, Mode: "suspend"})
 			}
 		}
+		// Foretell (CR 702.126a): the special action pays {2} and exiles the
+		// card from the hand FACE DOWN -- never the keyword's own colon
+		// parameter, which prices the LATER cast. "During your turn" is the
+		// only timing gate (deliberately NO instant/sorcery-speed check,
+		// unlike Suspend); the hand walk's own castRestricted/castSuppressed
+		// and spellTimingOK continues bound the offer, the same window the
+		// Suspend offer above inherits.
+		if _, ok := f.KeywordParam("Foretell"); ok && e.G.Active == p &&
+			offerCastable(p, id, Cost{Generic: 2}, spellScope("foretell"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Foretell " + f.Name, Obj: id, Mode: "foretell"})
+		}
 	}
 
 	// A may-play-from-zone grant (Conduit of Worlds, Crucible of Worlds, ...)
@@ -1422,6 +1434,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if f == nil || o.IsToken {
 			continue
 		}
+		if strings.Contains(f.Name, "Voyage") {
+			_, kw := f.KeywordParam("Foretell")
+			fmt.Println("DBG walk:", f.Name, kw, o.CastFlags&state.FlagForetold != 0, e.foretellCastAvailable(id),
+				castRestricted(p, id), e.castSuppressed(p, id), e.spellTimingOK(p, id, f, sorcery), e.castTargetsAvailable(p, id, f.SpellAbility()))
+		}
 		// CR 714.3a: the main face of an Adventure card resting in the
 		// adventure zone (exile, at its Adventure spell face) may be cast from
 		// there. Mode adventure_recast is consumed by beginCast, which flips
@@ -1443,6 +1460,33 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 					Label: "Cast " + front.Name + " (from adventure zone)", Obj: id, Mode: "adventure_recast"})
 			}
 			continue
+		}
+		// Foretell cast (CR 702.126a): a card exiled face down by the {2}
+		// Foretell ACTION (not by any other effect -- the flag is the action's
+		// own provenance marker) may be cast from exile for its FORETELL cost
+		// (the K: line's colon parameter) on a later turn. "Later turn" is
+		// log-derived (foretellCastAvailable): the flag alone cannot say it,
+		// the same reason the warp recast offer below is log-derived. The cast
+		// follows the card's own timing (spellTimingOK) and targets. The block
+		// sits BEFORE the warp gate's continue: a non-warp card (every foretell
+		// carrier) would otherwise never reach it.
+		if raw, ok := f.KeywordParam("Foretell"); ok && o.CastFlags&state.FlagForetold != 0 &&
+			e.foretellCastAvailable(id) && !castRestricted(p, id) && !e.castSuppressed(p, id) &&
+			e.spellTimingOK(p, id, f, sorcery) && e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			// The K:Foretell parameter prices the later cast (CR 702.126a);
+			// a face with no parameter falls back to the rule's action default
+			// {2} -- every corpus carrier carries one (measured 55/55), so the
+			// fallback is latent. The RAW parsed cost is offered here; cost
+			// modifiers (CR 601.2f) apply later, in manaToPay, exactly like
+			// the other alternative-cost recasts.
+			fc := Cost{Generic: 2}
+			if strings.TrimSpace(raw) != "" {
+				fc = ParseCost(raw)
+			}
+			if offerCastable(p, id, fc, spellScope("foretell_cast"), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + f.Name + " (foretold)", Obj: id, Mode: "foretell_cast"})
+			}
 		}
 		_, ok := keywordAltCost(f, "Warp")
 		if !ok || !e.warpRecastAvailable(id) || castRestricted(p, id) || e.castSuppressed(p, id) {
