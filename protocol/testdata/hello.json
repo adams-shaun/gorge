@@ -16,7 +16,8 @@
         "state": "live",
         "match": 7,
         "perpetual": true,
-        "format": "commander"
+        "format": "commander",
+        "bot_policy": "bot"
       }
     ]
   }

@@ -366,6 +366,26 @@ func TestConfigurationIsValidated(t *testing.T) {
 	}
 }
 
+func TestTableBotPolicyDefaultsAndRejectsUnknown(t *testing.T) {
+	r, err := New(testOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	good := TableConfig{ID: "good", Seats: 2, Decks: []string{"a"}, Spectator: view.Public}
+	if err := r.AddTable(good); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Tables()[0].BotPolicy; got != BotPolicy {
+		t.Fatalf("default policy = %q, want %q", got, BotPolicy)
+	}
+	bad := good
+	bad.ID, bad.BotPolicy = "bad", "legacy"
+	if err := r.AddTable(bad); err == nil {
+		t.Fatal("legacy policy was accepted for a hosted table")
+	}
+}
+
 func TestNewRequiresLoadDeckAndSleep(t *testing.T) {
 	t.Parallel()
 	if _, err := New(Options{}); err == nil {

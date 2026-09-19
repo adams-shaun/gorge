@@ -205,7 +205,9 @@ func New(o Options) (*Registry, error) {
 
 // AddTable registers (and persists) a table without starting it.
 func (r *Registry) AddTable(c TableConfig) error {
-	if err := c.validate(r.opts.LoadDeck); err != nil {
+	var err error
+	c, err = c.validated(r.opts.LoadDeck)
+	if err != nil {
 		return err
 	}
 	r.mu.Lock()

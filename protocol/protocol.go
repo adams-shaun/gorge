@@ -108,6 +108,9 @@ type TableInfo struct {
 	// Format is "constructed", a real value, so an omitted field
 	// would be indistinguishable from it.
 	Format string `json:"format"`
+	// BotPolicy is the effective hosted policy for bot seats and human-seat
+	// caretakers. It is public table configuration, never private game state.
+	BotPolicy string `json:"bot_policy"`
 	// SeatNames names the table's seats in seat order: the deck name each
 	// seat is playing, as MatchStart carries them. Empty when no match
 	// has started on this table yet. It is public information -- the

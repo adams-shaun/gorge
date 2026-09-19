@@ -26,12 +26,14 @@ func (r *Registry) load() error {
 		return fmt.Errorf("host: tables.json: %w", err)
 	}
 	for _, rec := range tf.Tables {
-		if err := rec.Config.validate(r.opts.LoadDeck); err != nil {
+		cfg, err := rec.Config.validated(r.opts.LoadDeck)
+		if err != nil {
 			return err
 		}
-		t := newTable(rec.Config)
+		rec.Config = cfg
+		t := newTable(cfg)
 		t.k = rec.Match
-		scs, err := readSidecars(r.opts.Dir, rec.Config.ID)
+		scs, err := readSidecars(r.opts.Dir, cfg.ID)
 		if err != nil {
 			return err
 		}
@@ -47,14 +49,14 @@ func (r *Registry) load() error {
 				// the rewritten (aborted) MatchInfo, like any other terminal
 				// transition. Sidecar-derived, not a live match — see
 				// callOnMatchEnd.
-				r.callOnMatchEnd(rec.Config.ID, sc.Match, sc.info())
+				r.callOnMatchEnd(cfg.ID, sc.Match, sc.info())
 			}
 			t.archived = append(t.archived, sc)
 			if sc.Match > t.k {
 				t.k = sc.Match
 			}
 		}
-		r.tables[rec.Config.ID] = t
+		r.tables[cfg.ID] = t
 	}
 	return nil
 }

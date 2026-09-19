@@ -117,6 +117,42 @@ func TestAFinishedMatchIsServedFromDiskAfterRestart(t *testing.T) {
 	}
 }
 
+func TestBotPolicyPersistsItsNormalizedDefaultAndRejectsUnknownRestore(t *testing.T) {
+	dir := t.TempDir()
+	r, err := New(diskOptions(t, dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AddTable(TableConfig{ID: "t1", Seats: 2, Decks: []string{"a", "b"}, Spectator: view.Public}); err != nil {
+		r.Close()
+		t.Fatal(err)
+	}
+	r.Close()
+
+	r, err = New(diskOptions(t, dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Tables()[0].BotPolicy; got != BotPolicy {
+		r.Close()
+		t.Fatalf("restored policy = %q, want %q", got, BotPolicy)
+	}
+	r.Close()
+
+	p := filepath.Join(dir, "tables.json")
+	raw, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw = []byte(strings.Replace(string(raw), `"bot_policy": "bot"`, `"bot_policy": "random"`, 1))
+	if err := os.WriteFile(p, raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(diskOptions(t, dir)); err == nil || !strings.Contains(err.Error(), `unknown bot policy "random"`) {
+		t.Fatalf("restoring unknown policy error = %v", err)
+	}
+}
+
 // TestTerminalGenesisIsServedFromDiskAfterRestart is the CR 103.1 toss
 // persistence regression. Both opening decks are undersized, so New records a
 // toss Note and then ends genesis without a decision. GameOver must remain the
