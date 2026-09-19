@@ -445,6 +445,14 @@ type Ctx struct {
 	// its own confirm.
 	SearchShuffle      string
 	SearchShuffleMoved []state.ObjID
+	// AttachOpt is the answered Optional$ True attach election ("yes"/"no")
+	// on a re-entered Attach resolution (Ajani's Chosen's "you may attach it
+	// to the token", Cori-Steel Cutter's "you may attach this Equipment to
+	// it"): "yes" attaches, anything else declines. It rides the ask (the
+	// same runtime-continuation class as ResumeRemembered) and is consumed
+	// and cleared at the re-entry's top (fx42 scoping), so a nested Attach
+	// poses its own ask.
+	AttachOpt string
 	// Extort is the answered optional {W/B} payment on a re-entered Extort
 	// resolution (M2d-2): "pay" means the caster agreed to pay and the drain
 	// runs; anything else ("decline", first pass with a host that cannot ask)
