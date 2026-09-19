@@ -494,6 +494,7 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 //     option is chosen. "Best" is a tiered ranking of how hard that
 //     defender has to answer the swing: a defender whose commander clock
 //     the swing closes ranks highest (AR5 -- a second-track win), then a
+//     defender whose life total the swing can end (AR7), then a
 //     defender that cannot block it at all (AR2 -- guaranteed damage), then
 //     one whose every block fails to kill it, then one it can only trade
 //     even-or-worse with; ties favour the lowest defender life, then the
@@ -523,14 +524,18 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 //     names, so a commander pounding one opponent's clock attacks that
 //     opponent -- the clock is per (commander, damaged player) -- and is
 //     evaluated normally against every other.
+//   - AR7 (opt-in lethal pressure): a creature whose unblocked power reaches the
+//     defender's known life total attacks even when a cheaper blocker can
+//     kill it. The defender must spend a blocker or lose immediately. A
+//     missing life fact is unknown and never treated as zero/lethal.
 //   - AR4 (leave a blocker): if attacking with the chosen set would leave
 //     the board with no untapped creature that can block (an attacker with
 //     Vigilance never taps and still blocks) while ANY opponent has a
 //     creature of its own, the best blockable attacker is held back, so an
 //     attack never leaves the board undefended. A commander whose swing
-//     closes its target's clock (AR5) is never the one held back -- it is
-//     the swing the rest of the attack exists to enable; the hold-back
-//     picks from the other chosen attackers instead.
+//     closes its target's clock (AR5), or reaches that target's life total
+//     (AR7), is never the one held back -- it is the game-ending pressure;
+//     the hold-back picks from the other chosen attackers instead.
 //
 // The decision is purely a function of the offered options and the board
 // facts both adapters supply; no rng is consumed, and no map iteration
@@ -538,10 +543,18 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 // game facts; the per-defender and per-opponent maps below are membership sets
 // and order-independent aggregates, never ranged into a choice).
 func (b Board) chooseAttackers(d *decision.Decision) []int {
+	return b.chooseAttackersMode(d, false)
+}
+
+func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure bool) []int {
 	if len(d.Options) == 0 {
 		return nil
 	}
 	me := d.Player
+	lethalToLife := func(defender state.PlayerID, power int32) bool {
+		life, ok := b.Life[defender]
+		return ok && power > 0 && power >= life
+	}
 
 	// The per-defender board facts: each opponent's creatures -- the block
 	// risk an option against them carries -- and whether any of them has a
@@ -606,7 +619,10 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 		a := at.a
 		defender := o.Player
 		if b.closesClock(defender, at.id, a) {
-			return 3, true // AR5: the swing closes THIS defender's clock
+			return 4, true // AR5: the swing closes THIS defender's clock
+		}
+		if lethalPressure && lethalToLife(defender, a.Power) {
+			return 3, true // experimental: win unblocked or force a blocker
 		}
 		blockers := 0
 		for _, db := range defBlockers[defender] {
@@ -737,6 +753,9 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 			// AR5: a commander whose swing closes its target's clock is
 			// never held back -- the attack's game-ending piece.
 			if b.closesClock(d.Options[oi].Player, d.Options[oi].Obj, a) {
+				continue
+			}
+			if lethalPressure && lethalToLife(d.Options[oi].Player, a.Power) {
 				continue
 			}
 			if a.pt() > holdScore || (a.pt() == holdScore && d.Options[oi].Obj < holdID) {

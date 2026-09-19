@@ -220,7 +220,8 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //   - KAttackers/KBlockers: the combat heuristic in combat.go's
 //     chooseAttackers/chooseBlockers (AR1-AR6 / BR1-BR4, stated there),
 //     including the per-attacker defender choice (AR6) and the commander
-//     clock (AR5/BR3/BR4). Neither consumes the rng: the choice is a pure
+//     clock (AR5/BR3/BR4). The opt-in LethalPressureDecide variant adds
+//     AR7. Neither consumes the rng: the choice is a pure
 //     function of the offered options and the board facts both adapters
 //     supply.
 //   - KTriggerOrder: a permutation of the offered indices drawn from the
@@ -263,6 +264,17 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 // wire format allows, not only today's. Every access into d.Options remains
 // guarded against the list being empty.
 func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
+	return decide(b, d, r, false)
+}
+
+// LethalPressureDecide is the measured opt-in policy used by botbench. It is
+// identical to Decide except that a combat attack which is lethal if
+// unblocked is made even when the defender can trade for it cheaply.
+func LethalPressureDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
+	return decide(b, d, r, true)
+}
+
+func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure bool) decision.Intent {
 	in := decision.Intent{Seq: d.Seq, Player: d.Player}
 	switch d.Kind {
 	case decision.KPriority:
@@ -344,7 +356,7 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		return clamp(d, in)
 
 	case decision.KAttackers:
-		in.Choices = b.chooseAttackers(d)
+		in.Choices = b.chooseAttackersMode(d, lethalPressure)
 		return clamp(d, in)
 
 	case decision.KBlockers:

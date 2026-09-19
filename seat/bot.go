@@ -27,7 +27,8 @@ import (
 // TestBotAdaptersAgree* pins the two halves to the same Board for the same
 // game facts.
 type Bot struct {
-	r *rand.Rand
+	r              *rand.Rand
+	lethalPressure bool
 }
 
 // M4: a compile-time assertion that Bot keeps satisfying Seat, since
@@ -48,6 +49,19 @@ func NewBot(seed uint64) *Bot {
 	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
 }
 
+// NewLethalPressureBot returns the measured opt-in AR7 policy. Both Seat
+// adapters use the same variant, preserving the Board/View parity contract.
+func NewLethalPressureBot(seed uint64) *Bot {
+	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), lethalPressure: true}
+}
+
+func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent {
+	if b.lethalPressure {
+		return botpolicy.LethalPressureDecide(brd, d, b.r)
+	}
+	return botpolicy.Decide(brd, d, b.r)
+}
+
 // Decide answers d with the combat-aware policy in botpolicy. v is read
 // for two things -- whether it is currently a main phase, and the public
 // battlefield/life facts the combat heuristic reads (both halves of
@@ -58,7 +72,7 @@ func NewBot(seed uint64) *Bot {
 // TestBotAdaptersAgree* (integration_test.go) pins the two halves to the
 // same Board for the same game facts.
 func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
-	return botpolicy.Decide(boardFromView(v), &d, b.r), nil
+	return b.decide(boardFromView(v), &d), nil
 }
 
 // DecideBoard is the game-shaped half of Decide: the Board is already built
@@ -68,7 +82,7 @@ func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decis
 // was built from derives exactly the facts the projected View would have
 // carried (TestBotAdaptersAgreeOverWholeGame pins the two halves).
 func (b *Bot) DecideBoard(_ context.Context, brd botpolicy.Board, d decision.Decision) (decision.Intent, error) {
-	return botpolicy.Decide(brd, &d, b.r), nil
+	return b.decide(brd, &d), nil
 }
 
 // boardFromView is the view-shaped adapter: the Board the policy reads,

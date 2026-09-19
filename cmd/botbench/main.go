@@ -137,7 +137,8 @@ var policies = map[string]func(seed uint64) seat.Seat{
 	// covariance: a func returning *Bot is not assignable to one returning
 	// seat.Seat, and the wrapper keeps a future policy free to return any
 	// Seat implementation.
-	"bot": func(seed uint64) seat.Seat { return seat.NewBot(seed) },
+	"bot":             func(seed uint64) seat.Seat { return seat.NewBot(seed) },
+	"lethal-pressure": func(seed uint64) seat.Seat { return seat.NewLethalPressureBot(seed) },
 	// legacy is the pre-B2 policy, frozen in botpolicy.LegacyDecide: attack
 	// with everything that can, block half the legal pairs on a coin. It is
 	// not a production policy -- nothing but the bench drives it -- it is
