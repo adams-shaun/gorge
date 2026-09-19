@@ -2027,6 +2027,16 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 			if p == g.Active {
 				return true
 			}
+		case "isMonarch":
+			// CR 716.2's monarch designation, on the Player/Any base only:
+			// the state-local qualifier a control static's GainControl$
+			// value (Fealty to the Realm's "The monarch controls enchanted
+			// creature") and any other player spec resolve through. A
+			// qualified You/Opponent/Other base (You.isMonarch) still fails
+			// closed, like every fx20 qualifier not listed here.
+			if (base == "Player" || base == "Any") && g.IsMonarch(p) {
+				return true
+			}
 		default:
 			if int(p) < len(g.Players) {
 				op, n, ok := splitPlayerCompare(qualifier)

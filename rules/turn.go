@@ -347,6 +347,7 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
 		e.emit(events.Event{Kind: events.EndCombatReset})
 		// CR 511.3: "until end of combat" control effects end with the step.
 		e.expireControl(controlAtEndOfCombat)
+		e.reconcileControlStatics()
 	}
 }
 
