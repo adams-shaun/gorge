@@ -2287,6 +2287,19 @@ var knownUnsupportedParams = map[string][]string{
 	"Spinerock Knoll":                {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"West Coast Expansion":           {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"World Shaper":                   {"param:api:Mill.Optional"},
+	// The pro-shaper player-submitted Commander import (2026-09-18): the
+	// parameter reads its cards expose that this build does not implement.
+	// Each label is the unimplemented parameter on a fully-registered
+	// primitive (the primitive ratchet above separately carries the four
+	// unregistered APIs/keywords the deck needs).
+	"Chord of Calling":         {"param:api:ChangeZone.AIXMax"},
+	"Earthbender Ascension":    {"param:api:PutCounter.RememberAmount"},
+	"Glacial Chasm":            {"param:api:Sacrifice.ChangeNum"},
+	"Green Sun's Zenith":       {"param:api:ChangeZone.AIXMax"},
+	"Kona, Rescue Beastie":     {"param:trig:Phase.PhaseCount"},
+	"Natural Order":            {"param:api:ChangeZone.AISearchGoal"},
+	"Nissa, Resurgent Animist": {"param:api:DigUntil.RevealRandomOrder"},
+	"Six":                      {"param:api:Mill.RememberMilled"},
 }
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across

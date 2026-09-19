@@ -107,6 +107,25 @@ var knownUnsupported = map[string][]string{
 	// rules/forum_filibuster_test.go's TestSpeedYoungAvengerImmediateTrigger
 	// pays its AB Cost$ 1 through the triggered-cost window and executes
 	// TrigEffect, which is what licensed the shrink.
+	//
+	// The pro-shaper player-submitted Commander import (2026-09-18): the
+	// primitives this build does not implement that its cards need. Earthbend
+	// (7 cards) and Clone (2) are unregistered APIs; GenericChoice (1) and
+	// Devour (1) are unregistered primitives. kw:Hexproof was implemented in
+	// the same change (rules/protection.go hexproofBlocksTarget, pinned in
+	// rules/hexproof_test.go), so its two carriers -- Lotus Field and Tectonic
+	// Split -- are deliberately absent here: they are fully supported now.
+	"Ba Sing Se":                   {"api:Earthbend"},
+	"Badgermole Cub":               {"api:Earthbend"},
+	"Beifong's Bounty Hunters":     {"api:Earthbend"},
+	"Earthbender Ascension":        {"api:Earthbend"},
+	"The Boulder, Ready to Rumble": {"api:Earthbend"},
+	"Toph, Earthbending Master":    {"api:Earthbend"},
+	"Toph, Hardheaded Teacher":     {"api:Earthbend"},
+	"Shifting Woodland":            {"api:Clone"},
+	"Vesuva":                       {"api:Clone"},
+	"Tireless Provisioner":         {"api:GenericChoice"},
+	"Famished Worldsire":           {"kw:Devour"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
