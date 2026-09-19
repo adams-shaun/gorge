@@ -612,6 +612,15 @@ type Ctx struct {
 	// and cleared at the re-entry's top (fx42 scoping), so a nested Attach
 	// poses its own ask.
 	AttachOpt string
+	// PutOpt is the answered Optional$ True put-counter election ("yes"/"no")
+	// on a re-entered PutCounter resolution (Talus Paladin's "you may put a
+	// +1/+1 counter on CARDNAME", Black Widow's "You may put ... If you
+	// don't, ..."): "yes" places the counters through the ordinary path,
+	// anything else declines and the chained SubAbility$ still runs. It rides
+	// the ask (the same runtime-continuation class as ResumeRemembered) and
+	// is consumed and cleared at the re-entry's top (fx42 scoping), so a
+	// nested PutCounter poses its own ask.
+	PutOpt string
 	// Extort is the answered optional {W/B} payment on a re-entered Extort
 	// resolution (M2d-2): "pay" means the caster agreed to pay and the drain
 	// runs; anything else ("decline", first pass with a host that cannot ask)

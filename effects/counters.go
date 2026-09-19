@@ -18,6 +18,10 @@ func init() {
 }
 
 func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
+	// fx42 scoping: consume and clear the answered Optional$ election at the
+	// top, so a nested PutCounter in the same chain poses its own ask.
+	optAns := c.PutOpt
+	c.PutOpt = ""
 	n := Num(h, c, sa, "CounterNum", 1)
 	if n < 0 {
 		n = 0
@@ -25,6 +29,53 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	kind := sa.Params["CounterType"]
 	if kind == "" {
 		kind = "P1P1"
+	}
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
+		switch {
+		case optAns != "" && optAns != "yes":
+			// Answered "no" (or any non-affirmative marker): the decline. No
+			// counter is placed and no Note is emitted; the chained
+			// SubAbility$ STILL RUNS -- the chain is owned by Resolve, not by
+			// this body (the Attach.Optional precedent,
+			// effects/attach.go:96-131; the chain-skip mechanism is the
+			// DIFFERENT UnlessCost$ + UnlessResolveSubs$ pair, which none of
+			// the corpus's Optional$ PutCounter lines carry). Black Widow's
+			// "If you don't, ..." sub gates itself on its own Condition$ read
+			// of the (empty) Remembered set, exactly as the oracle says.
+			return
+		case optAns == "":
+			// Unanswered: pose the yes/no election -- but only when the put
+			// would actually place something (at least one live recipient and
+			// n > 0); with nothing legal to put on, decline and accept are the
+			// same, so no ask (the Attach precedent's len(legal) == 0 gate).
+			// The pickAnswered guard is the two-ask shape's own discipline:
+			// an Optional$ bare-Choices$/DividedAsYouChoose$ SA asks TWICE
+			// (election, then the recipient pick), and each resume builds a
+			// FRESH Ctx -- the pick re-entry arrives with PutOpt already
+			// consumed, so without this guard the election would re-pose over
+			// the answered pick. The Done flag names the pick, never the
+			// election: a pickDone pass is past the election by construction.
+			pickAnswered := c.CounterPickDone || c.CounterDistDone
+			if n > 0 && !pickAnswered && putCounterWouldPlace(h, c, sa) {
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+					Source: c.Source, ResumeKind: "put_optional", ResumeSA: sa,
+					ResumeRemembered: copyTargets(c.Remembered),
+					Prompt:           "Put a counter on it?",
+					Options: []decision.Option{
+						{Index: 0, Kind: "yes", Label: "Yes — put the counter", Player: c.Controller},
+						{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+					}}
+				// AskAsked suspends; the answer re-enters with Ctx.PutOpt set.
+				// AskNoHost is the deterministic decline stand-in (R-9) — the
+				// same class the Attach election falls back to (the clamp-
+				// answered bot path answers option 0 = "yes", so a bot game
+				// stays byte-identical to the pre-ask silent always-put).
+				_ = Ask(h, d)
+				return
+			}
+			// optAns == "yes" (or nothing to place): fall through to the
+			// ordinary placement paths.
+		}
 	}
 	// DividedAsYouChoose$ (Vastwood Hydra's "you may distribute a number of
 	// +1/+1 counters equal to the number of +1/+1 counters on CARDNAME among
@@ -98,6 +149,64 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	rememberPlaced(c, sa, placed)
+}
+
+// putCounterWouldPlace reports whether the put this SA describes would
+// place at least one counter on a live recipient, mirroring the live-
+// recipient conditions each placement path applies:
+//   - the two Choices$ shapes (bare pick and DividedAsYouChoose$
+//     distribute): the Choices$ pool must hold an eligible battlefield
+//     object AND the ask's Max (ChoiceAmount$, default 1 for the bare pick,
+//     the CounterNum$ total for the divided distribute) must be at least
+//     one -- the same bounds putCounterChoose/putCounterPickDistribute
+//     read, so the election is never posed over a pool the placement
+//     would refuse;
+//   - the plain target loop: a player target whose PlayerOf resolves, or
+//     an object target on the battlefield (or mid-entry when ETB$ True).
+//
+// It is a pure read: no event, no state change, replay-safe.
+func putCounterWouldPlace(h Host, c *Ctx, sa *cards.SA) bool {
+	g := h.Game()
+	spec := strings.TrimSpace(sa.Params["Choices"])
+	if spec != "" {
+		found := false
+		for _, p := range g.AliveFrom(0) {
+			for _, id := range g.Zone(state.ZBattlefield, p) {
+				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					found = true
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+		defMax := int32(1)
+		if strings.TrimSpace(sa.Params["DividedAsYouChoose"]) != "" {
+			defMax = Num(h, c, sa, "CounterNum", 1)
+		}
+		return Num(h, c, sa, "ChoiceAmount", defMax) >= 1
+	}
+	etb := strings.EqualFold(strings.TrimSpace(sa.Params["ETB"]), "True")
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			if p := PlayerOf(h, c, t); int(p) >= 0 && int(p) < len(h.Game().Players) {
+				return true
+			}
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil {
+			continue
+		}
+		if o.Zone == state.ZBattlefield || etb {
+			return true
+		}
+	}
+	return false
 }
 
 // rememberPlaced folds the objects a PutCounter pass just countered into the
