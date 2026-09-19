@@ -1,0 +1,7 @@
+# Test history — github.com/adams-shaun/gorge/cmd/policytune
+
+budget_s: 5
+
+| date (UTC) | commit | wall_s | tests | skipped | runner |
+|---|---|---|---|---|---|
+| 2026-09-19T18:39Z | b466cda9+ | 3.9 | 9 | 0 | sadams |
