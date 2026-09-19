@@ -350,9 +350,11 @@ func matrixText(t *testing.T, games, workers int, pairs []pairDef, play pairPlay
 
 // TestFullPairsIteratesSorted pins the pair generator: N decks must yield
 // the N*(N-1)/2 unordered pairs, strictly sorted (a < b and lexicographically
-// ascending sequence), no duplicates, and the FIRST pair must be the
-// historical single-pair run (death-n-taxes : dimir-tempo) so a matrix row
-// reproduces it. N is the repo deck directory's size, whatever it is now
+// ascending sequence), no duplicates, and the FIRST pair must be the default
+// single-pair run's decks -- names[0]:names[1] of the same sorted deck list
+// `run` seats -- so a matrix row reproduces it. The pair is DERIVED from the
+// list, never hard-coded: which deck sorts first changes whenever a deck is
+// added (avengers-assemble displaced death-n-taxes once already). N is the repo deck directory's size, whatever it is now
 // (12 Legacy decks plus the m38 commander decks: the pair count is a
 // property of the list, not a pinned constant). Sorting is the whole
 // guarantee that pair order never depends on map iteration -- the mutation
@@ -368,8 +370,8 @@ func TestFullPairsIteratesSorted(t *testing.T) {
 	if len(ps) != want {
 		t.Fatalf("fullPairs(%d decks) = %d pairs, want %d (= N*(N-1)/2)", len(names), len(ps), want)
 	}
-	if ps[0].String() != "death-n-taxes:dimir-tempo" {
-		t.Errorf("first pair = %s, want death-n-taxes:dimir-tempo (the single-pair run must be a matrix row)", ps[0])
+	if want := (pairDef{names[0], names[1]}).String(); ps[0].String() != want {
+		t.Errorf("first pair = %s, want %s (the default single-pair run seats names[0] and names[1]; a matrix row must reproduce it)", ps[0], want)
 	}
 	seen := map[string]bool{}
 	prev := ""
@@ -643,11 +645,15 @@ var winRe = regexp.MustCompile(`winner=([^\s]+)`)
 
 // TestConstructedDefaultIsByteIdentical pins Part A's non-negotiable: the
 // default constructed path must produce today's exact numbers for a fixed
-// seed (the 15/5 split at seed 0, games 20), and the Config the
-// default builds must carry NO commander settings -- a mutation that made
-// the default path apply commander life/command-zone settings would move
-// the seat split and fail here. The 15/5 is asserted directly (not just
-// determinism) because this bench's numbers are quoted as a golden.
+// seed at games 20, and the Config the default builds must carry NO
+// commander settings -- a mutation that made the default path apply
+// commander life/command-zone settings would move the seat split and fail
+// here. The split is asserted directly (not just determinism) because this
+// bench's numbers are quoted as a golden. The split belongs to the DEFAULT
+// PAIR -- the first two sorted repo decks, whatever they are at the time
+// (run() seats names[:seats]); which decks that is changes whenever a deck
+// is added, so the pair is re-derived here and the pinned number is
+// re-measured against the real run when the pair moves.
 func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 
@@ -665,17 +671,19 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	if m == nil {
 		t.Fatalf("summary block missing:\n%s", buf.String())
 	}
-	// Seat 0 wins: 16, seat 1 wins: 4 at this fixed seed. This is a command
-	// golden, not a claim about policy strength: it catches a change to the
-	// default constructed bench's deck order, seed use, or bot path. The prior
-	// 14/6 expectation was stale after the current engine's RNG/gameplay
-	// changes; the measured 15/5 was then moved to 16/4 by
+	// Seat 0 wins: 7, seat 1 wins: 13 at this fixed seed, for the default
+	// pair avengers-assemble:death-n-taxes (the first two sorted repo decks
+	// at the 2026-09-17 avengers-assemble import; the prior 16/4 belonged to
+	// death-n-taxes:dimir-tempo). This is a command golden, not a claim about
+	// policy strength: it catches a change to the default constructed bench's
+	// deck order, seed use, or bot path. The 16/4 was itself re-measured by
 	// inbox-botbench-stability-run's bot fix: the KChoose mana-payment arm now
 	// prefers a phyrexian pip's life payment over its pool colour while the
 	// seat has life to spare (measured by reverting the arm: the old 15/5
-	// returns), which changes dimir-tempo's Dismember ({1}{B/P}{B/P}) pip answers in this run.
-	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 16 || seat1 != 4 {
-		t.Errorf("constructed default split = %d/%d, want 16/4", seat0, seat1)
+	// returns), which changed dimir-tempo's Dismember ({1}{B/P}{B/P}) pip
+	// answers in that run.
+	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 7 || seat1 != 13 {
+		t.Errorf("constructed default split = %d/%d, want 7/13 (%s vs %s at seed 0, games 20)", seat0, seat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
 	}
 	if strings.Contains(buf.String(), "STALLED") {
 		t.Errorf("constructed default (no stalls) must not print a stall line")

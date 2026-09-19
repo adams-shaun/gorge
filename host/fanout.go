@@ -217,7 +217,7 @@ func (r *Registry) onMatchStart(t *table, m *match) {
 	focus, overview := hasMode(modes, protocol.ModeFocus), hasMode(modes, protocol.ModeOverview)
 
 	m.mu.RLock()
-	start := frame(protocol.TMatchStart, t, m.k, 0, protocol.MatchStart{Seats: m.seats, Seed: m.seed, Spectator: t.cfg.Spectator.String()})
+	start := frame(protocol.TMatchStart, t, m.k, 0, protocol.MatchStart{Seats: m.seats, Seed: m.seed, Spectator: t.cfg.Spectator.String(), BotPolicy: t.cfg.BotPolicy})
 	var snap, widget protocol.Frame
 	if focus {
 		snap = r.snapshotFrame(t, m)

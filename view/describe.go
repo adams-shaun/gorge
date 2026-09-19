@@ -40,6 +40,32 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " takes an extra turn"
 		}
 		return player(g, ev.Player) + " takes " + itoa(int64(ev.Amount)) + " extra turns"
+	case events.ExtraPhase:
+		// Only the grant is narrated; the consume (-1) and complete (-2)
+		// messages are the turn structure's own bookkeeping, the same silence
+		// the ExtraTurn consumption keeps.
+		if ev.Amount <= 0 {
+			return ""
+		}
+		what := "extra phase"
+		if len(ev.IDs) > 0 {
+			switch state.Step(ev.IDs[0]) {
+			case state.StepBeginCombat:
+				what = "additional combat phase"
+			case state.StepUntap:
+				what = "additional beginning phase"
+			case state.StepUpkeep:
+				what = "additional upkeep step"
+			case state.StepEnd:
+				what = "additional end-of-turn step"
+			default:
+				what = "additional " + state.Step(ev.IDs[0]).String() + " step"
+			}
+		}
+		if ev.Amount > 1 {
+			return player(g, ev.Player) + " gets " + itoa(int64(ev.Amount)) + " " + what + "s"
+		}
+		return player(g, ev.Player) + " gets an " + what
 	case events.DoorUnlock:
 		return obj(g, ev.Obj) + "'s locked door is unlocked"
 	case events.SpeedChange:
@@ -80,6 +106,43 @@ func Describe(g *state.Game, ev events.Event) string {
 		return obj(g, ev.Obj) + " creates a Myriad copy attacking " + player(g, state.PlayerID(firstID(ev.IDs)))
 	case events.MyriadCleanup:
 		return "Myriad tokens are exiled at end of combat"
+	case events.TokenAttacks:
+		// A token that entered tapped and attacking (Mobilize, Kari Zev):
+		// Obj is the minted token, IDs[0] the player it is attacking.
+		if len(ev.IDs) > 0 {
+			return obj(g, ev.Obj) + " attacks " + player(g, state.PlayerID(firstID(ev.IDs)))
+		}
+		return obj(g, ev.Obj) + " attacks"
+	case events.CopyToken:
+		// DB$ CopyPermanent's mint (Flamerush Rider, Molten Echoes, populate):
+		// Obj is the COPIED card, so the line reads the copy's provenance;
+		// the entry itself is the follow-up MoveZone's own line. The
+		// entry-state riders (the Amount bitmask) are named when set.
+		text := obj(g, ev.Obj) + " creates a token copy"
+		if ev.Amount&events.CopyTokenTapped != 0 {
+			text += ", tapped"
+		}
+		if ev.Amount&events.CopyTokenAttacking != 0 {
+			if len(ev.IDs) > 0 {
+				text += " and attacking " + player(g, state.PlayerID(firstID(ev.IDs)))
+			} else {
+				text += " and attacking"
+			}
+		}
+		if ev.Amount&events.CopyTokenExileCombat != 0 {
+			text += " (exiled at end of combat)"
+		}
+		return text
+	case events.Exert:
+		// CR 702.100 (task exert1): the exert itself, and the consume marker
+		// the untap-step scan emits as it passes an exerted permanent -- the
+		// window that made it skip that untap closes there.
+		if ev.Amount < 0 {
+			return obj(g, ev.Obj) + " skips its untap step (exerted)"
+		}
+		return obj(g, ev.Obj) + " is exerted"
+	case events.NoteNumber:
+		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:
@@ -373,6 +436,11 @@ func Describe(g *state.Game, ev events.Event) string {
 		// The ActivationLimit$ scan marker for a mana ability's activation
 		// (events.ManaActivate's own comment). Obj is the source permanent.
 		return obj(g, ev.Obj) + " is activated for mana"
+	case events.XChange:
+		// A mid-resolution effect rewrote the {X} a stack object was paid
+		// with (events.XChange's own comment): Obj the stack object, Amount
+		// the new value.
+		return obj(g, ev.Obj) + " has its X set to " + itoa(int64(ev.Amount))
 	}
 	return "unknown event"
 }

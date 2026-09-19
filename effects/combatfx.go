@@ -188,6 +188,23 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 // own lord-effect tests already established (layers_test.go), rather than
 // inventing a new filter form.
 func effPump(h Host, c *Ctx, sa *cards.SA) {
+	// NoteNumber$ (Lupine Harbingers' exile trigger: "note the number of
+	// turns you've begun"): the body does not pump at all -- it notes the
+	// evaluated number onto its source CARD through the events.NotedNumber
+	// marker, which Count$NotedNumber reads at the later ETB (the corpus's
+	// one carrier is exactly that shape: the exile trigger notes
+	// Count$YourTurns, the ETB's SVar reads SVar$X/Minus.Y where Y is
+	// Count$NotedNumber). Terminal: a NoteNumber body never also pumps, and
+	// the read comes before any registration so a note is never a
+	// half-applied pump.
+	if note := strings.TrimSpace(sa.Params["NoteNumber"]); note != "" {
+		n := Num(h, c, sa, "NoteNumber", 0)
+		if c.Source != 0 {
+			h.Emit(events.Event{Kind: events.NoteNumber, Obj: c.Source, Amount: n})
+		}
+		return
+	}
+
 	// Secondary$ True (Amonkhet Raceway's max-speed AddAbility$ grant marks
 	// the granted pump with it): Forge CardFactoryUtil sets the key on
 	// machine-derived abilities, and Card.java's ability-text renderer skips

@@ -102,6 +102,31 @@ var predicates = map[string]predFn{
 	"escaped": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagEscaped != 0
 	},
+	// wasCastFromGraveyard is the CastFlags provenance of a GRAVEYARD-ORIGIN
+	// cast (CR 601.2b): any of FlagFlashback, FlagHarmonize or FlagEscaped.
+	// The same bit test the Count$wasCastFromGraveyard branch head shares
+	// (effects/count.go) and its compiled twin mirrors
+	// (effects/compiled_predicate.go's predicateTermWasCastFromGraveyard).
+	// Ash Zealot's "whenever a player casts a spell from a graveyard"
+	// ValidCard$ reads it at spellCastMatches time — the deferred cast
+	// trigger fires after payCast's CastInfo, so the bit is already stamped
+	// — as do River Kelpie's draws and Laquatus's Disdain's counter. A card
+	// never so cast never matches.
+	"wasCastFromGraveyard": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&(state.FlagFlashback|state.FlagHarmonize|state.FlagEscaped) != 0
+	},
+	// notExertedThisTurn is CR 702.100a's offer gate (task exert1): the
+	// object has NOT been exerted this turn. The event-backed read is
+	// events.Apply's Exert fold (state.Object.ExertedThisTurn). Combat
+	// Celebrant's `IsPresent$ Creature.Self+notExertedThisTurn` is the
+	// corpus's one carrier; the predicate is a recognised-shape entry (the
+	// compiled predicate layer marks an unlisted term `maybe` and falls
+	// through to this textual oracle, so no twin term is owed), and
+	// UnknownPredicates classifies it through the same predicates map, so
+	// the census and the matcher cannot disagree.
+	"notExertedThisTurn": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return !o.ExertedThisTurn
+	},
 }
 
 // colorLetter maps a colour's English name to its WUBRG letter -- note Blue
@@ -144,6 +169,24 @@ func init() {
 	predicates["EquippedBy"] = attachedBy
 	predicates["EnchantedBy"] = attachedBy
 	predicates["AttachedBy"] = attachedBy
+	// CanEnchantEquippedBy: the candidate card could legally be attached to
+	// the creature the resolving source attaches to -- Mantle of the
+	// Ancients' "return ... Aura and/or Equipment cards that could be
+	// attached to enchanted creature" (ValidTgts$
+	// Aura.CanEnchantEquippedBy+YouOwn,Equipment.CanEnchantEquippedBy+YouOwn)
+	// and Holy Avenger's "put an Aura card from your hand onto the
+	// battlefield attached to it" (ChangeType$ Aura.CanEnchantEquippedBy),
+	// the two corpus carriers. The referent creature is the source itself
+	// when the source is a creature (Holy Avenger's equipped creature fires
+	// the trigger), else the permanent the source is attached to (Mantle's
+	// bearer). An Aura candidate matches when the bearer still satisfies the
+	// candidate's K:Enchant spec -- the same test the CR 704.5m SBA runs
+	// (rules/attach.go auraStillMatchesEnchant); an Equipment candidate when
+	// the bearer is a creature (CR 704.5n); anything else admits nothing. A
+	// source with no referent (gone, or an unattached non-creature) and an
+	// Enchant spec this filter cannot evaluate both fail closed inside the
+	// filter, never over-offering an attachment the SBA would just sweep.
+	predicates["CanEnchantEquippedBy"] = canEnchantEquippedBy
 	// equipped / enchanted: the IS-side counterpart of the pair above -- the
 	// candidate itself carries the attachment. Auriok Steelshaper's IsPresent$
 	// Card.Self+equipped ("as long as CARDNAME is equipped") reads the first;
@@ -184,6 +227,63 @@ func attachedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjI
 	return s != nil && s.AttachedTo == o.ID && s.Zone == state.ZBattlefield
 }
 
+// canEnchantEquippedBy is the CanEnchantEquippedBy predicate body; see the
+// registration above for the spelling's carriers and the referent rule.
+func canEnchantEquippedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+	s := g.Obj(src)
+	if s == nil {
+		return false
+	}
+	// The resolving source may be the Face-less ability/trigger wrapper a
+	// TriggerPush minted (the placement ask's SpecContext.Source is that
+	// wrapper, rules/trigger_queue.go pushTrigger) -- its Source field names
+	// the permanent that carries the ability (Ruling T20-b). Unwrap before
+	// reading the creature/attach referent, or Mantle's own placement ask
+	// would see an unattached Face-less object and admit nothing.
+	if s.Face() == nil && s.Source != 0 {
+		if real := g.Obj(s.Source); real != nil {
+			s = real
+		}
+	}
+	bearer := s
+	if !hasType(bearer, "Creature") {
+		bearer = g.Obj(s.AttachedTo)
+		if bearer == nil {
+			return false
+		}
+	}
+	return attachableTo(g, o, bearer)
+}
+
+// attachableTo reports whether the (possibly off-battlefield) card o could
+// legally be attached to the battlefield permanent bearer: an Aura when the
+// bearer satisfies its K:Enchant spec, an Equipment when the bearer is a
+// creature (CR 704.5n), anything else never. Evaluated from the candidate's
+// own controller seat (the Aura's YouCtrl is the Aura controller's), the same
+// seat the CR 704.5m SBA's auraStillMatchesEnchant test uses.
+func attachableTo(g *state.Game, o *state.Object, bearer *state.Object) bool {
+	if o == nil || bearer == nil || bearer.Zone != state.ZBattlefield {
+		return false
+	}
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	switch {
+	case hasType(o, "Aura"):
+		param, ok := f.KeywordParam("Enchant")
+		if !ok || strings.TrimSpace(param) == "" {
+			return true
+		}
+		spec, _, _ := strings.Cut(param, ":")
+		return MatchesSpecFrom(g, strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID)
+	case hasType(o, "Equipment"):
+		bf := bearer.Face()
+		return bf != nil && bf.IsCreature()
+	}
+	return false
+}
+
 // hasAttachmentOfKind reports whether any battlefield permanent whose face
 // carries the type word kind names id in its AttachedTo -- the state the
 // equip/attach path maintains (rules/attach_test.go pins the SBA that
@@ -208,41 +308,41 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 	return false
 }
 
-// sharesTypeArg splits the space-bearing two-token predicate
-// "sharesCardTypeWith <X>" and classifies its referent. The referent is a
-// resolution-time object list: the remembered set (RememberedCard — its
-// first card entry, Braids's "a permanent that shares a card type with
-// it" — Remembered, RememberedLKI), the triggering card
-// (TriggeredCard/TriggeredCardLKICopy), the resolution's targets (Targeted),
-// or the source itself (Self). A referent with no live binding — and any
-// other <X>, including a nested predicate — is unrecognised: the token
-// stays unknown and the spec fails closed, never widened.
-func sharesTypeArg(p string) (string, bool) {
-	name, arg, has := strings.Cut(p, " ")
-	if !has || name != "sharesCardTypeWith" {
-		return "", false
+// sharesTypeArg splits the space-bearing two-token predicates
+// "sharesCardTypeWith <X>" and "sharesCreatureTypeWith <X>" and classifies
+// their shared referent. The referent is a resolution-time object list: the
+// remembered set (RememberedCard — its first card entry, Braids's "a
+// permanent that shares a card type with it" — Remembered, RememberedLKI),
+// the triggering card (TriggeredCard/TriggeredCardLKICopy, Heirloom
+// Blade's "a creature card that shares a creature type with it"), the
+// resolution's targets (Targeted), or the source itself (Self). The
+// predicate NAME is returned alongside the referent so the dispatch can
+// tell the CARD-type and CREATURE-type readings apart. A referent with no
+// live binding — and any other <X>, including a nested predicate — is
+// unrecognised: the token stays unknown and the spec fails closed, never
+// widened.
+func sharesTypeArg(p string) (name, arg string, ok bool) {
+	name, arg, ok = strings.Cut(p, " ")
+	if !ok || (name != "sharesCardTypeWith" && name != "sharesCreatureTypeWith") {
+		return "", "", false
 	}
 	arg = strings.TrimSpace(arg)
 	if arg == "" || strings.ContainsAny(arg, ".+,!") {
-		return "", false
+		return "", "", false
 	}
 	switch arg {
 	case "RememberedCard", "Remembered", "RememberedLKI", "TriggeredCard",
 		"TriggeredCardLKICopy", "Targeted", "Self":
-		return arg, true
+		return name, arg, true
 	}
-	return "", false
+	return "", "", false
 }
 
-// sharesCardTypeWith reports whether o shares at least one CARD type with
-// any object the referent names (Forge Card.sharesCardTypeWith: an
-// intersection over the card types — Artifact, Creature, Enchantment, Land,
-// Planeswalker, Battle — not supertypes or subtypes). The referent object
-// is read live from the game, so a remembered card in the graveyard still
-// answers from its own face (CR 603.10's LKI reading applies to
-// power/toughness/counters, not types). An unbound referent matches
-// nothing — fail closed, never widened.
-func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+// sharesTypeReferents resolves the SHARED referent switch of the
+// sharesCardTypeWith/sharesCreatureTypeWith family into the live objects it
+// names (empty = an unbound referent; both callers fail closed on that), so
+// the two readings can never disagree about which objects <X> names.
+func sharesTypeReferents(sc SpecContext, ref string) []state.Target {
 	var ts []state.Target
 	switch ref {
 	case "RememberedCard":
@@ -269,7 +369,19 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 			ts = append(ts, state.Target{Obj: sc.Source})
 		}
 	}
-	for _, t := range ts {
+	return ts
+}
+
+// sharesCardTypeWith reports whether o shares at least one CARD type with
+// any object the referent names (Forge Card.sharesCardTypeWith: an
+// intersection over the card types — Artifact, Creature, Enchantment, Land,
+// Planeswalker, Battle — not supertypes or subtypes). The referent object
+// is read live from the game, so a remembered card in the graveyard still
+// answers from its own face (CR 603.10's LKI reading applies to
+// power/toughness/counters, not types). An unbound referent matches
+// nothing — fail closed, never widened.
+func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	for _, t := range sharesTypeReferents(sc, ref) {
 		if t.IsPlayer {
 			continue
 		}
@@ -286,25 +398,82 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 	return false
 }
 
+// sharesCreatureTypeWith reports whether o shares at least one CREATURE
+// subtype with any object the referent names (Forge
+// Card.sharesCreatureTypeWith: an intersection over the creature subtypes —
+// Heirloom Blade's "a creature card that shares a creature type with it").
+// The candidate's subtypes are read context-aware (hasTypeCtx: layer grants
+// and Changeling reach it); the referent's own subtypes are read from its
+// live face exactly like sharesCardTypeWith's card-type read (hasType,
+// which handles Changeling on the referent's side too). An unbound referent
+// matches nothing — fail closed, never widened.
+func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	for _, t := range sharesTypeReferents(sc, ref) {
+		if t.IsPlayer {
+			continue
+		}
+		r := g.Obj(t.Obj)
+		if r == nil || r.Face() == nil {
+			continue
+		}
+		for _, word := range r.Face().Types {
+			if !CreatureTypeWords(word) {
+				continue
+			}
+			if hasTypeCtx(o, word, sc) && hasType(r, word) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // attachedToArg splits the space-bearing two-token predicate "AttachedTo <X>"
-// into its argument and reports whether the argument is a single literal type
-// or object class the base grammar (matchesBase) can answer from the object in
-// hand. It returns false for any token that is not exactly this shape: a
-// different predicate name, no space, an empty argument, an argument carrying
-// a nested predicate ('.'/'+'/',' -- e.g. "AttachedTo Permanent.YouCtrl", a
-// referent needing resolution-time context such as "AttachedTo Targeted", or
-// a word that is neither an object class nor a corpus type word. Consuming
-// tokens that are not this shape keeps the matcher and UnknownPredicates
-// agreeing, because a token either becomes a wordAttachedTo classifier here or
-// it does not -- there is no middle where one side sees it and the other does
-// not.
+// into its argument and reports whether the argument is (a) a single literal
+// type or object class the base grammar (matchesBase) can answer from the
+// object in hand, or (b) the dotted two-token form "AttachedTo <class>.<qual>"
+// whose qualifier is evaluated against the attached object itself (the
+// counterpart of the adjacent enchantedByArg's <Type>.<qual>). The dotted
+// allowlist is exactly YouCtrl — the only measured qualifier (Umbra Mystic's
+// "Aura.AttachedTo Permanent.YouCtrl" grant; 6 occurrences / 5 files). <class>
+// keeps the bare form's object-class / type-word validation, so
+// "Player.EnchantedBy" (the 2 curse occurrences) fails naturally: a player is
+// neither an object class nor a type word. It returns false for any token that
+// is not one of these shapes: a different predicate name, no space, an empty
+// argument, an argument carrying a nested predicate ('+'/','), a dotted
+// qualifier outside the allowlist, a referent needing resolution-time context
+// such as "AttachedTo Targeted", or a word that is neither an object class nor
+// a corpus type word. Consuming tokens that are not these shapes keeps the
+// matcher and UnknownPredicates agreeing, because a token either becomes a
+// wordAttachedTo classifier here or it does not -- there is no middle where
+// one side sees it and the other does not.
 func attachedToArg(p string) (string, bool) {
 	name, arg, has := strings.Cut(p, " ")
 	if !has || name != "AttachedTo" {
 		return "", false
 	}
 	arg = strings.TrimSpace(arg)
-	if arg == "" || strings.ContainsAny(arg, ".+,") {
+	if arg == "" {
+		return "", false
+	}
+	// The dotted two-token form "<class>.<qual>": the qualifier rides the
+	// object the candidate is attached to (wordAttachedTo's matcher case
+	// evaluates it there), so it is validated here once for both the matcher
+	// and the recognition path.
+	if class, qual, ok := strings.Cut(arg, "."); ok {
+		if qual != "YouCtrl" {
+			return "", false
+		}
+		switch class {
+		case "Card", "Permanent", "Spell":
+		default:
+			if !predicateTypeWords[class] {
+				return "", false
+			}
+		}
+		return class + "." + qual, true
+	}
+	if strings.ContainsAny(arg, "+,") {
 		return "", false
 	}
 	switch arg {
@@ -330,6 +499,75 @@ func attachedToArg(p string) (string, bool) {
 	return "", false
 }
 
+// enchantedByArg splits the space-bearing two-token predicate
+// "EnchantedBy <Type>.<qual>" into its argument halves and validates both.
+// <Type> is a literal object class or corpus type word the base grammar
+// answers from the attached object in hand (every carrier names Aura), and
+// <qual> is one of the possession/otherness map predicates the qualifier is
+// evaluated against THE ATTACHED OBJECT -- Other (not the resolving source:
+// Daybreak Coronet's "another Aura attached to it", and Face of Divinity's
+// static excluding Face itself) and YouCtrl (controlled by the spec's you:
+// the Killian / Eriette / Archon / Kaima / Dawn Evangel family). A bare
+// "EnchantedBy" token never reaches this parser -- the predicates map's
+// attachedBy ("the permanent the resolving source is attached to") is
+// consulted first on both the matcher and the recognition path and keeps
+// its own meaning. Any other shape -- a resolution-time referent
+// (EnchantedBy Aura.Targeted), a nested predicate (EnchantedBy
+// Aura.Permanent.YouCtrl), a qualifier outside the allowlist, an
+// unrecognised type word, or an absent argument -- stays unrecognised:
+// the token fails closed and UnknownPredicates keeps reporting it.
+func enchantedByArg(p string) (string, bool) {
+	name, arg, has := strings.Cut(p, " ")
+	if !has || name != "EnchantedBy" {
+		return "", false
+	}
+	arg = strings.TrimSpace(arg)
+	if arg == "" || strings.ContainsAny(arg, "+,!") {
+		return "", false
+	}
+	typ, qual, hasDot := strings.Cut(arg, ".")
+	if !hasDot || typ == "" || qual == "" || strings.Contains(qual, ".") {
+		return "", false
+	}
+	switch typ {
+	case "Card", "Permanent", "Spell":
+	default:
+		if !predicateTypeWords[typ] {
+			return "", false
+		}
+	}
+	switch qual {
+	case "Other", "YouCtrl":
+	default:
+		return "", false
+	}
+	return typ + "." + qual, true
+}
+
+// hasAttachmentMatching reports whether any battlefield permanent attached
+// to id (some permanent's AttachedTo names id) satisfies the base typ and
+// the qualifier fn evaluated against THAT ATTACHED OBJECT. The scan is the
+// hasAttachmentOfKind walk (deterministic AliveFrom/zone slices, never a
+// map), so it is replay-safe as a filter predicate; an attachment list is
+// not stored on the bearer, so the scan is the only source.
+func hasAttachmentMatching(g *state.Game, id state.ObjID, sc SpecContext, typ string, fn predFn) bool {
+	for _, p := range g.AliveFrom(0) {
+		for _, sid := range g.Zone(state.ZBattlefield, p) {
+			a := g.Obj(sid)
+			if a == nil || a.AttachedTo != id {
+				continue
+			}
+			if !matchesBase(g, typ, a, sc) {
+				continue
+			}
+			if fn(g, a, sc.You, sc.Source) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // wordKind classifies a predicate word that is neither in the `predicates`
 // map nor a numeric predicate. It is the single classifier shared by the
 // positive path in MatchesObjectCtx and by the generic non<X> negation in
@@ -343,6 +581,7 @@ const (
 	wordType
 	wordColorless
 	wordMultiColor
+	wordMonoColor
 	// The game/source-aware families. Each needs more than the object alone:
 	// the game (for the active player and the commander list), the source
 	// (for combat pairing), or the object's own zone/counters. They are
@@ -366,6 +605,16 @@ const (
 	// resolution-time referent (RememberedCard, TriggeredCard, ...) the
 	// SpecContext resolves.
 	wordSharesCardType
+	// The creature-subtype twin "sharesCreatureTypeWith <X>": same referent
+	// switch, the intersection is over creature subtypes (Heirloom Blade).
+	wordSharesCreatureType
+	// The two-token space form "EnchantedBy <Type>.<qual>": the candidate
+	// bears an attached permanent of the named type whose qualifier holds
+	// against that attached object (Daybreak Coronet's "creature with
+	// another Aura attached to it", the Aura.YouCtrl family). The bare
+	// "EnchantedBy" token keeps its map-predicate meaning (attachedBy) and
+	// never reaches this classifier.
+	wordEnchantedBy
 	// Forge's zone-entry history predicates: "ThisTurnEntered" (the object
 	// entered a zone this turn, any zone) and "ThisTurnEnteredFrom_<Zone>"
 	// (it entered from <Zone>). Both read the per-object entry provenance
@@ -468,6 +717,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordColorless, ""
 	case "MultiColor":
 		return wordMultiColor, ""
+	case "MonoColor":
+		return wordMonoColor, ""
 	case "wasCast":
 		return wordWasCast, ""
 	case "ActivePlayerCtrl":
@@ -504,8 +755,18 @@ func wordPredicate(p string) (wordKind, string) {
 	if arg, ok := attachedToArg(p); ok {
 		return wordAttachedTo, arg
 	}
-	if arg, ok := sharesTypeArg(p); ok {
+	if name, arg, ok := sharesTypeArg(p); ok {
+		if name == "sharesCreatureTypeWith" {
+			return wordSharesCreatureType, arg
+		}
 		return wordSharesCardType, arg
+	}
+	// The two-token space form "EnchantedBy <Type>.<qual>" (the whole token
+	// survives the spec splitter -- a space is not a delimiter). Only the
+	// shapes enchantedByArg validates become wordEnchantedBy; everything
+	// else falls through to wordUnknown and fails closed.
+	if arg, ok := enchantedByArg(p); ok {
+		return wordEnchantedBy, arg
 	}
 	if predicateTypeWords[p] {
 		return wordType, p
@@ -535,8 +796,10 @@ func zoneWordKnown(z string) bool {
 
 // wordMatches reports whether an object satisfies a positively-evaluated
 // classifier from wordPredicate. Colorless is "no colour at all" and
-// MultiColor "more than one colour", both read off ColorsOf rather than the
-// face directly -- so a Devoid card (CR 702.114, which ColorsOf already
+// MultiColor "more than one colour"; MonoColor is its twin, "exactly one
+// colour" (Tarnation Vista's EachColorAmong_Valid
+// Permanent.YouCtrl+MonoColor -- a colourless permanent is not monocolored),
+// all read off ColorsOf rather than the face directly -- so a Devoid card (CR 702.114, which ColorsOf already
 // implements) is Colorless, which is the whole point of Devoid. The
 // game/source-aware families read the live game, the object's own zone or
 // counters, and the effect's source (for combat pairing and commander
@@ -546,6 +809,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	switch kind {
 	case wordSharesCardType:
 		return sharesCardTypeWith(g, o, sc, key)
+	case wordSharesCreatureType:
+		return sharesCreatureTypeWith(g, o, sc, key)
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
 	case wordType:
@@ -570,6 +835,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return false
 	case wordMultiColor:
 		return len(ColorsOf(o)) > 1
+	case wordMonoColor:
+		return len(ColorsOf(o)) == 1
 	case wordWasCast:
 		// Forge's wasCast: a spell (Card != nil) currently on the stack. An
 		// ability object was activated, never cast. The AsStack override
@@ -669,7 +936,11 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// (AttachedTo == 0), or one whose attachment is gone, matches
 		// nothing. This is the two-token counterpart of attachedBy, which
 		// reads the SOURCE's AttachedTo to find what the source attaches
-		// to; here we read the candidate object's own AttachedTo.
+		// to; here we read the candidate object's own AttachedTo. The
+		// dotted two-token "<class>.<qual>" form narrows the attached
+		// object by its qualifier (YouCtrl: attached to a permanent the
+		// spec's you controls -- Umbra Mystic); the key was validated by
+		// attachedToArg, so the re-split here cannot miss.
 		if o.AttachedTo == 0 {
 			return false
 		}
@@ -677,7 +948,33 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		if a == nil {
 			return false
 		}
+		if class, qual, ok := strings.Cut(key, "."); ok {
+			fn, is := predicates[qual]
+			if !is {
+				return false
+			}
+			return matchesBase(g, class, a, sc) && fn(g, a, sc.You, sc.Source)
+		}
 		return matchesBase(g, key, a, sc)
+	case wordEnchantedBy:
+		// Forge's two-token "EnchantedBy <Type>.<qual>": the candidate bears
+		// an attached permanent of the named type whose qualifier holds
+		// against that attached object. The qualifier bodies are the map's
+		// own (Other: the attached Aura is not the resolving source -- for a
+		// cast the source is not yet attached, so any current Aura
+		// qualifies; for a static whose source IS the attached Aura, like
+		// Face of Divinity, Face itself is excluded; YouCtrl: the attached
+		// Aura is controlled by the spec's you). The key was validated by
+		// enchantedByArg, so the re-split here cannot miss.
+		typ, qual, ok := strings.Cut(key, ".")
+		if !ok {
+			return false
+		}
+		fn, is := predicates[qual]
+		if !is {
+			return false
+		}
+		return hasAttachmentMatching(g, o.ID, sc, typ, fn)
 	}
 	return false
 }
@@ -798,6 +1095,188 @@ func filterAlternatives(spec string) iter.Seq[string] {
 		}
 		yield(spec[start:])
 	}
+}
+
+// FilterAlternatives exposes filterAlternatives to rules (the one package
+// above effects): rules-side spec rewriting (the cast-provenance qualifier
+// split, task castprov1) must split alternatives EXACTLY as the filter does,
+// so the two cannot disagree about where a comma is a boundary.
+func FilterAlternatives(spec string) iter.Seq[string] { return filterAlternatives(spec) }
+
+// StripPredicateToken removes the EXACT predicate token from ONE filter
+// alternative's "+" chain, returning the stripped alternative and whether
+// the token was present. The token argument is the exact predicate text to
+// remove — "pred" for the positive spelling or "!pred" for the negated one
+// (the caller owns the polarity: the cast-provenance split evaluates the two
+// spellings as opposite requirements). The token may ride the base's first
+// predicate ("Card.wasCastFromYourHandByYou") or a later chain link
+// ("Creature.!token+YouCtrl+!wasCastFromYourHandByYou"); both shapes strip
+// to the remainder. The base itself (before the first angle-bracket-0 dot)
+// is never touched, and an ARGUMENTED spelling of the token
+// ("CastSaSource$CardManaCost", "CastSaSource/Plus.2") is a different token
+// and is left in place. An alternative that is nothing but the token has no
+// base and strips to "" -- the filter then fails closed on it (no corpus
+// carrier writes that shape).
+func StripPredicateToken(alt, token string) (string, bool) {
+	base, preds := splitAltBasePreds(alt)
+	if preds == "" {
+		return alt, false
+	}
+	parts := strings.Split(preds, "+")
+	out := parts[:0]
+	had := false
+	for _, p := range parts {
+		if p == token {
+			had = true
+			continue
+		}
+		out = append(out, p)
+	}
+	if !had {
+		return alt, false
+	}
+	if len(out) == 0 {
+		return base, true
+	}
+	return base + "." + strings.Join(out, "+"), true
+}
+
+// splitAltBasePreds splits one filter alternative at the first
+// angle-bracket-depth-0 dot: the base, then the "+" predicate chain
+// (possibly empty). A dot inside a named<X.Y>-style argument is not the
+// boundary.
+func splitAltBasePreds(alt string) (string, string) {
+	depth := 0
+	for i := 0; i < len(alt); i++ {
+		switch alt[i] {
+		case '<':
+			depth++
+		case '>':
+			if depth > 0 {
+				depth--
+			}
+		case '.':
+			if depth == 0 {
+				return alt[:i], alt[i+1:]
+			}
+		}
+	}
+	return alt, ""
+}
+
+// stripBareCastSaSource removes the exact bare !CastSaSource predicate from
+// every comma alternative of a Count$ThisTurnCast_ spec, reporting whether it
+// was present anywhere. The bare qualifier is Forge's "other than the spell
+// being cast" device (Hotheaded Giant's "unless you've cast another red
+// spell this turn", Dream Thief's "another blue spell", Storm Entity's
+// "each other spell cast this turn" -- the resolving spell's own PutOnStack
+// is unavoidably in the window when an ETB gate reads the count); rules'
+// SpellsCastThisTurnMatchingExcluding supplies the exclusion. The ARGUMENTED
+// forms (!CastSaSource$CardManaCost, !CastSaSource/Plus.2 -- call_forth_the_
+// tempest, thunder_salvo) are different tokens and stay in place, failing
+// closed downstream as they always did.
+func stripBareCastSaSource(spec string) (string, bool) {
+	if !strings.Contains(spec, "CastSaSource") {
+		return spec, false
+	}
+	var b strings.Builder
+	first := true
+	has := false
+	for alt := range filterAlternatives(spec) {
+		s1, hadNeg := StripPredicateToken(alt, "!CastSaSource")
+		s2, hadPos := StripPredicateToken(s1, "CastSaSource")
+		if hadNeg || hadPos {
+			has = true
+		}
+		if !first {
+			b.WriteByte(',')
+		}
+		b.WriteString(s2)
+		first = false
+	}
+	return b.String(), has
+}
+
+// stripCastSaSourceAggregate removes the ARGUMENTED !CastSaSource$<Property>
+// token (call_forth_the_tempest's `Card.YouCtrl+!CastSaSource$CardManaCost`:
+// "damage equal to the total mana value of other spells you've cast this
+// turn") from every comma alternative of a Count$ThisTurnCast_ spec,
+// returning the stripped spec and the property to AGGREGATE over the
+// matching casts instead of counting them one each (the aggregation
+// precedent is the zone-count heads' `$<Property>` suffix read). ok is false
+// when no alternative carries the token.
+func stripCastSaSourceAggregate(spec string) (rest, prop string, ok bool) {
+	if !strings.Contains(spec, "!CastSaSource$") {
+		return "", "", false
+	}
+	var b strings.Builder
+	first, found := true, false
+	for alt := range filterAlternatives(spec) {
+		s := alt
+		if _, preds := splitAltBasePreds(alt); preds != "" {
+			parts := strings.Split(preds, "+")
+			out := parts[:0]
+			had := false
+			for _, p := range parts {
+				if strings.HasPrefix(p, "!CastSaSource$") {
+					had = true
+					if !found {
+						prop = strings.TrimPrefix(p, "!CastSaSource$")
+					}
+					continue
+				}
+				out = append(out, p)
+			}
+			if had {
+				found = true
+				base, _ := splitAltBasePreds(alt)
+				if len(out) == 0 {
+					s = base
+				} else {
+					s = base + "." + strings.Join(out, "+")
+				}
+			}
+		}
+		if !first {
+			b.WriteByte(',')
+		}
+		b.WriteString(s)
+		first = false
+	}
+	if !found || prop == "" {
+		return "", "", false
+	}
+	return b.String(), prop, true
+}
+
+// eachAlternatives recognises Forge's multi-type search grammar:
+// "EACH <typeA>[.preds] & <typeB>[.preds] ..." -- one pick of EACH listed
+// type (Krosan Verge's "EACH Forest & Plains", Conflux's five Card.<Colour>
+// clauses). The prefix is exactly Forge's spelling (the trimmed spec starts
+// with "EACH "); the remainder splits on '&' into sub-specs, each an
+// ORDINARY filter spec -- dots and '+' predicates intact. No type word, no
+// predicate token in this grammar is '&' or contains it, so a flat split is
+// the top-level split. An EACH spec matches a candidate when ANY listed
+// sub-spec matches it; the per-type one-pick structure lives with the
+// hidden-library search (effects/zone.go), which reads the sub-specs in
+// order to build its option Groups.
+func eachAlternatives(spec string) ([]string, bool) {
+	rest, ok := strings.CutPrefix(strings.TrimSpace(spec), "EACH ")
+	if !ok || strings.TrimSpace(rest) == "" {
+		return nil, false
+	}
+	parts := strings.Split(rest, "&")
+	subs := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			// A malformed EACH spec ("A & & B") is not split: it keeps the
+			// old whole-string behaviour rather than half-matching.
+			return nil, false
+		}
+		subs = append(subs, p)
+	}
+	return subs, true
 }
 
 // rawNameComma reports whether the comma after left belongs to the last
@@ -1089,6 +1568,20 @@ func hasType(o *state.Object, t string) bool {
 	if f == nil {
 		return false
 	}
+	// CR 702.114e: a bestowed card attached to a creature is an Aura, not a
+	// creature, in every filter read (Count$Valid, target offer, cost
+	// candidates, statics' Affected$). Derived live state
+	// (state.Object.BestowedAttached); the layer walk sees the same switch
+	// through rules/layers.go's bestowedTypeSwitch, and hasTypeCtx inherits
+	// this gate through the hasType call below.
+	if o.BestowedAttached() {
+		if strings.EqualFold(t, "Aura") {
+			return true
+		}
+		if strings.EqualFold(t, "Creature") {
+			return false
+		}
+	}
 	for _, x := range f.Types {
 		if strings.EqualFold(x, t) {
 			return true
@@ -1281,9 +1774,11 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 	return false, false
 }
 
+var cmcBraceNormalizer = strings.NewReplacer("{", " ", "}", " ")
+
 // parseCMC counts a mana cost's converted value without importing rules.
 func parseCMC(cost string) int32 {
-	cost = strings.NewReplacer("{", " ", "}", " ").Replace(cost)
+	cost = cmcBraceNormalizer.Replace(cost)
 	if strings.EqualFold(strings.TrimSpace(cost), "no cost") {
 		return 0
 	}
@@ -1371,11 +1866,16 @@ func matchesBase(g *state.Game, base string, o *state.Object, sc SpecContext) bo
 	case "Permanent":
 		return o.Zone == state.ZBattlefield
 	case "PermanentCard":
-		// This internal target-base spelling is selected by rules' target
-		// census for Forge's `Permanent` base in a non-battlefield zone. A
-		// permanent CARD is distinguishable from an instant/sorcery there;
-		// it is not a permanent on the stack.
-		return o.Zone != state.ZStack && o.Face() != nil && o.Face().IsPermanent()
+		// This internal base spelling is selected by rules' target census
+		// (targetSpecForZone) and Dig windows (permanentCardSpec) for Forge's
+		// `Permanent` base evaluated AWAY from the battlefield, and by rules'
+		// SpellCast trigger matcher (spellCastPermanentSpec) for the permanent
+		// SPELL a "cast a permanent spell" trigger evaluates on the stack. A
+		// permanent CARD is anything whose printed face is a permanent type
+		// (CR 109.2) wherever the object sits; the bare `Permanent` case
+		// above keeps the on-the-battlefield reading every other filter
+		// depends on.
+		return o.Face() != nil && o.Face().IsPermanent()
 	case "Spell":
 		return o.Zone == state.ZStack
 	case "SpellAbility":
@@ -1403,6 +1903,10 @@ type SpecContext struct {
 	You     state.PlayerID
 	Source  state.ObjID
 	Resolve func(name string) (int32, bool)
+	// PredicatePrograms is an optional immutable compiled-text sidecar. A nil
+	// value keeps the textual matcher authoritative for synthetic fixtures and
+	// dynamic source strings.
+	PredicatePrograms *PredicatePrograms
 	// ResolutionTargets are the state.Object.Targets of the spell or ability
 	// currently resolving. They are deliberately absent while a target offer is
 	// built: Targeted* is self-referential and cannot determine legality before
@@ -1459,6 +1963,23 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	if o == nil {
 		return false
 	}
+	if ps := sc.PredicatePrograms; ps != nil {
+		switch ps.Evaluate(spec, g, o, sc) {
+		case PredicateYes:
+			return true
+		case PredicateNo:
+			return false
+		}
+	}
+	return matchesObjectText(g, spec, o, sc)
+}
+
+// matchesObjectText is the original textual filter evaluator. It remains the
+// oracle for unbound and partially compiled predicate programs.
+func matchesObjectText(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
+	if o == nil {
+		return false
+	}
 	// CR 707.10h: a copy of a SPELL that has left the stack (countered,
 	// fizzled, or otherwise gone) matches nothing -- it is a transient
 	// reference, not a real object anymore. That is what IsCopy+off-stack
@@ -1475,6 +1996,19 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	resolve := sc.Resolve
 	if resolve == nil {
 		resolve = noResolve
+	}
+	// Forge's EACH multi-type search grammar: the spec is a '&' list of
+	// ordinary sub-specs, and the union matches. Sub-specs are evaluated
+	// through this same oracle, so their own predicates and bases keep the
+	// ordinary semantics (a bare "EACH Forest & Plains" previously reached
+	// the type walk as ONE base and matched nothing).
+	if subs, ok := eachAlternatives(spec); ok {
+		for _, sub := range subs {
+			if matchesObjectText(g, sub, o, sc) {
+				return true
+			}
+		}
+		return false
 	}
 	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
@@ -1665,6 +2199,23 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 				}
 				continue
 			}
+			if rem, is := strings.CutPrefix(qualifier, "controlsCreature."); is {
+				// Forge's Player.controlsCreature.<objspec> / controlsPermanent.
+				// <objspec> property (PlayerControlsCreatures/Permanents): the
+				// seat qualifies when its battlefield holds an object matching
+				// <objspec> as an object filter, with an optional trailing
+				// _GE<n>-style count comparison. See playerControlsMatches.
+				if playerControlsMatches(g, p, you, source, "Creature", rem) {
+					return true
+				}
+				continue
+			}
+			if rem, is := strings.CutPrefix(qualifier, "controlsPermanent."); is {
+				if playerControlsMatches(g, p, you, source, "Permanent", rem) {
+					return true
+				}
+				continue
+			}
 			matchesBase = true
 		case "You":
 			matchesBase = p == you
@@ -1690,6 +2241,16 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 			if p == g.Active {
 				return true
 			}
+		case "isMonarch":
+			// CR 716.2's monarch designation, on the Player/Any base only:
+			// the state-local qualifier a control static's GainControl$
+			// value (Fealty to the Realm's "The monarch controls enchanted
+			// creature") and any other player spec resolve through. A
+			// qualified You/Opponent/Other base (You.isMonarch) still fails
+			// closed, like every fx20 qualifier not listed here.
+			if (base == "Player" || base == "Any") && g.IsMonarch(p) {
+				return true
+			}
 		default:
 			if int(p) < len(g.Players) {
 				op, n, ok := splitPlayerCompare(qualifier)
@@ -1700,6 +2261,62 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 		}
 	}
 	return false
+}
+
+// splitCountCompare strips a trailing "_"-separated count comparison token
+// ("GE1", "LT3", ...) from an object-spec remainder. It returns the remainder
+// with the token removed, the comparison operator, the threshold, and whether
+// a count token was present at all. A trailing token that is not a count
+// comparison (e.g. the named-arg convention's "namedAether_Burst") stays part
+// of the object spec, and a remainder with no "_" at all is returned whole.
+func splitCountCompare(rem string) (string, string, int32, bool) {
+	i := strings.LastIndex(rem, "_")
+	if i < 0 {
+		return rem, "", 0, false
+	}
+	tok := rem[i+1:]
+	if len(tok) < len("GE0") {
+		return rem, "", 0, false
+	}
+	op, digits := tok[:2], tok[2:]
+	n, err := strconv.ParseInt(digits, 10, 32)
+	if err != nil {
+		return rem, "", 0, false
+	}
+	switch op {
+	case "GE", "GT", "EQ", "LE", "LT":
+		return rem[:i], op, int32(n), true
+	}
+	return rem, "", 0, false
+}
+
+// playerControlsMatches evaluates Forge's Player.controlsCreature.<spec> /
+// controlsPermanent.<spec> qualifiers (PlayerProperty's
+// PlayerControlsCreatures/PlayerControlsPermanents family): the seat
+// qualifies when the required number of its battlefield objects match
+// <spec> as an object filter. The count comparison rides a trailing
+// "_GE<n>"-style token and defaults to an existential _GE1; a spec with no
+// count token matches when at least one object does. The object filter is
+// evaluated with the same SpecContext binding MatchesPlayerSpecFrom carries
+// (the perspective seat and the source permanent), so the named<Name>,
+// MultiColor, IsRemembered and EnchantedBy object predicates all resolve
+// unchanged. A spec that matches nothing -- including one carrying an
+// unmodelled predicate, which fails closed inside the object matcher --
+// never matches for that seat.
+func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, source state.ObjID, objBase, rem string) bool {
+	spec, op, want, counted := splitCountCompare(rem)
+	spec = objBase + "." + spec
+	sc := SpecContext{You: you, Source: source}
+	n := int32(0)
+	for _, id := range g.Zone(state.ZBattlefield, p) {
+		if MatchesObjectCtx(g, spec, g.Obj(id), sc) {
+			n++
+		}
+	}
+	if !counted {
+		return n > 0
+	}
+	return playerCompare(n, op, want)
 }
 
 // playerHasMost is the shared evaluator for Forge's Player.withMost<kind>
@@ -1829,6 +2446,18 @@ func playerCompare(have int32, op string, want int32) bool {
 // Forge's `Mandatory$` parameter, which is recorded in AGENTS.md as
 // deliberately unread and is a different thing.
 func SearchStatesQuality(spec string) bool {
+	// An EACH spec states a quality when ANY listed sub-spec does -- every
+	// real carrier lists a named type, so an EACH library search keeps
+	// CR 701.23b's fail-to-find allowance. A quantity-only EACH (none in the
+	// corpus) would keep the mandatory-find reading of its sub-specs.
+	if subs, ok := eachAlternatives(spec); ok {
+		for _, sub := range subs {
+			if SearchStatesQuality(sub) {
+				return true
+			}
+		}
+		return false
+	}
 	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
@@ -1869,6 +2498,18 @@ func possessionPredicate(p string) bool {
 // card-validation pass uses it to refuse cards it would otherwise misplay.
 func UnknownPredicates(spec string) []string {
 	var out []string
+	// An EACH spec is split first: the sub-specs' unknowns are the union, so
+	// the census is truthful for the multi-type grammar (the dotted dotted
+	// form previously leaked the '&' join and every later clause as garbage
+	// predicate tokens; the bare form's unknown base was never checked at
+	// all, because a base-position token is not a predicate).
+	if subs, ok := eachAlternatives(spec); ok {
+		for _, sub := range subs {
+			out = append(out, UnknownPredicates(sub)...)
+		}
+		sort.Strings(out)
+		return out
+	}
 	for alt := range filterAlternatives(spec) {
 		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		for p := range strings.SplitSeq(rest, "+") {

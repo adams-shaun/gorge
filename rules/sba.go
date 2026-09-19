@@ -242,6 +242,10 @@ func (e *Engine) checkStateBased() {
 	// Safety net for a duration-ending change folded outside Engine.emit
 	// (the Updated replacement paths call events.Emit directly).
 	e.expireControl(controlOnEvent)
+	// The same safety for a static GainControl$ transfer: an SBA-pass change
+	// (e.g. a legend rule binning the Aura) can end or newly want a static
+	// grant without Engine.emit's tail having run the reconcile.
+	e.reconcileControlStatics()
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		changed := e.checkLoseConditions(tried)
 		if e.annihilateOppositeCounters() {
@@ -537,7 +541,9 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 				continue
 			}
 			f := o.Face()
-			if f == nil || !f.IsCreature() {
+			// CR 702.114e: a bestowed-attached card is an Aura, not a creature,
+			// so the creature SBAs (lethal damage/toughness) do not hit it.
+			if f == nil || !f.IsCreature() || o.BestowedAttached() {
 				continue
 			}
 			if e.Toughness(id) <= 0 {
@@ -586,6 +592,13 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 	for _, c := range dead {
 		tried.objs[c.id] = true
 		if c.text == "lethal damage" && effects.ReplaceDestruction(e, c.id) {
+			continue
+		}
+		// Umbra armor (CR 702.90) after the regeneration shield, the same
+		// deterministic shield-first stand-in the Destroy effects use. A
+		// bearer saved here has had all its damage removed inside the
+		// replacement, so the next sweep cannot re-kill it.
+		if c.text == "lethal damage" && effects.ReplaceUmbraArmor(e, c.id) {
 			continue
 		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,

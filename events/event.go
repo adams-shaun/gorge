@@ -343,6 +343,87 @@ const (
 	// prior Kind's own append-only precedent, so no earlier ordinal, hash
 	// chain or golden replay is affected.
 	ManaActivate
+	// TokenAttacks marks one token that entered the battlefield TAPPED AND
+	// ATTACKING (Mobilize, Kari Zev's "tapped and attacking" monkey -- the
+	// TokenAttacking$ True rider). It is NOT a mint: events.Apply's
+	// TokenCreate case already made the object, and Obj here is that
+	// already-existing battlefield token, Player its controller and IDs[0]
+	// the defender it attacks. MyriadCopy must not be reused for this: it
+	// mints a copy of the SOURCE card and flags IsMyriad, which
+	// MyriadCleanup exiles at end of combat -- wrong semantics for a script
+	// token a Sacrifice at the next end step owns. Appended here, after
+	// ManaActivate, following every prior Kind's own append-only precedent,
+	// so no earlier ordinal, hash chain or golden replay is affected.
+	TokenAttacks
+	// XChange records a mid-resolution effect rewriting the {X} a stack
+	// object was cast or activated with (Unbound Flourishing's "double the
+	// value of X", Glava's "the value of X becomes 5" -- DB$ ChangeX). Obj
+	// is the stack object whose {X} was rewritten, Amount the new value. A
+	// plain CastInfo could not carry this: its Apply case resets CastFlags
+	// from Counter unconditionally (wiping Kicked/Flashback on a flagged X
+	// spell) and would shadow adventure's first-CastInfo backward log scan,
+	// and neither FlagConverged nor FlagReplicated may alias a real X
+	// value. Appended here, after TokenAttacks, following every prior
+	// Kind's own append-only precedent, so no earlier ordinal, hash chain
+	// or golden replay is affected.
+	XChange
+	// NoteNumber records a number a trigger's Execute$ body NOTED onto a
+	// card (DB$ Pump | NoteNumber$ <expr> -- Lupine Harbingers' exile
+	// trigger noting Count$YourTurns, the corpus's one NoteNumber$
+	// carrier): Obj is the card, Amount the noted value, and Apply folds it
+	// into Object.NotedNumber for Count$NotedNumber to read at the later
+	// ETB. A plain Note could not carry this: it is transcript text with no
+	// numeric payload and no Apply behaviour, and the value must be
+	// event-backed so a replay derives the identical count. Appended here,
+	// after XChange, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	NoteNumber
+	// ExtraPhase records one Forge AddPhaseEffect message (DB$ AddPhase:
+	// "after this phase, there is an additional combat phase"; 56 corpus SA
+	// lines). Three forms, split on Amount, mirroring the ExtraTurn
+	// precedent one level up: +1 is a grant (Step the splice point
+	// AfterStep -- the phase after which the extra phase is inserted, either
+	// the parsed AfterPhase$ or, when omitted, the phase the grant resolved
+	// in so the fold agrees with the live splice; IDs[0] the extra phase's
+	// entry step, IDs[1] an explicit FollowedBy$ resume point when present;
+	// Counter the forwarded Execute$ SVar name; Text the ExtraPhaseRiders
+	// marker when the granting SA carries ExtraPhaseDelayedTrigger$); -1
+	// CONSUMES one grant at the turn boundary it splices at -- the queue
+	// entry is marked consumed and, when it carries the delayed rider, the
+	// one-shot delayed trigger registers HERE (MinTurn = the current turn:
+	// the extra phase begins in this turn, unlike an extra turn's Turn+1);
+	// -2 COMPLETES one consumed grant when the walk leaves the extra
+	// phase's last step. The fold lives in state.Game.ExtraPhases (cleared
+	// at TurnChange), and the consumer is rules/turn.go's advanceStep tail.
+	// Appended after NoteNumber (main's own later append), still after every
+	// earlier Kind, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	ExtraPhase
+	// CopyToken mints a battlefield token that is a copy of the CARD object
+	// Obj names (DB$ CopyPermanent: Flamerush Rider, Molten Echoes, the
+	// populate family -- task copyp1). Like MyriadCopy it only MINTS the
+	// object, in the untracked ZLibrary state AddObject leaves it in; the
+	// caller follows with a genuine MoveZone, so the copy's battlefield
+	// entry stays a ChangesZone-matchable event every "a creature enters"
+	// trigger observes (the CardToken shape folds its own move, which the
+	// Myriad comment above records as entry-invisible). Player is the copy's
+	// controller and Amount is the entry-state rider bitmask the
+	// CopyToken* constants name; bit CopyTokenAttacking takes the defender
+	// it attacks from IDs[0] (a player number, the MyriadCopy/TokenAttacks
+	// precedent). Appended after ExtraPhase, still after every earlier
+	// Kind, so no earlier ordinal, hash chain or golden replay is affected.
+	CopyToken
+	// Exert records CR 702.100's exert election (task exert1): Obj is the
+	// permanent the controller exerted and Player is the controller at exert
+	// time. Amount >= 0 is the exert itself; Amount == -1 is the
+	// consumed-at-use marker rules/turn.go's untap-step scan emits when it
+	// passes an exerted permanent -- CR 702.100b's "won't untap during your
+	// next untap step" window closes there, so the fold clears the object's
+	// skip flag. Appended here, after CopyToken, following every prior Kind's
+	// own append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	Exert
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -353,8 +434,72 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(ManaActivate) + 1
+	NumKinds = int(Exert) + 1
 )
+
+// CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
+// riders, folded in Apply so replay derives the identical object):
+// TokenTapped$ True, TokenAttacking$ True, and AtEOT$ ExileCombat -- the
+// latter flags the copy IsMyriad so the existing end-of-combat cleanup
+// (MyriadCleanup, CR 702.109a) exiles it with the same semantics every
+// Myriad token already had: end-of-combat exile, battlefield only.
+const (
+	CopyTokenTapped      int32 = 1
+	CopyTokenAttacking   int32 = 2
+	CopyTokenExileCombat int32 = 4
+)
+
+// ExtraPhaseRiders is the rider payload an api:AddPhase grant forwards for
+// its ExtraPhaseDelayedTrigger$ pair (Moraug's "at the beginning of that
+// combat, untap all creatures you control"), Text-encoded on the ExtraPhase
+// event (Ruling T20-a's field-reuse precedent -- the event gains no field):
+// "DELAY=<step ordinal>" and "VP=<ValidPlayer$ value>", joined with "|".
+// The delayed phase cannot ride the IDs slice beside the entry/FollowedBy
+// steps: an absent rider and the zero Step (untap) would be
+// indistinguishable, so the riders live in Text and the IDs slots stay
+// unambiguous (IDs[0] the entry step, IDs[1] an explicit FollowedBy$ only).
+type ExtraPhaseRiders struct {
+	HasDelayedPhase bool
+	DelayedPhase    state.Step
+	ValidPlayer     string
+}
+
+const (
+	extraPhaseDelayKey = "DELAY="
+	extraPhaseVPKey    = "VP="
+)
+
+// EncodeExtraPhaseRiders writes the rider payload as the canonical Text
+// marker. Deterministic key order (DELAY first), so the same riders always
+// encode identically.
+func EncodeExtraPhaseRiders(r ExtraPhaseRiders) string {
+	var parts []string
+	if r.HasDelayedPhase {
+		parts = append(parts, extraPhaseDelayKey+strconv.FormatInt(int64(r.DelayedPhase), 10))
+	}
+	if r.ValidPlayer != "" {
+		parts = append(parts, extraPhaseVPKey+r.ValidPlayer)
+	}
+	return strings.Join(parts, "|")
+}
+
+// DecodeExtraPhaseRiders reads the rider payload back; the zero value (no
+// riders) for any other Text.
+func DecodeExtraPhaseRiders(text string) ExtraPhaseRiders {
+	var r ExtraPhaseRiders
+	for _, part := range strings.Split(text, "|") {
+		if v, ok := strings.CutPrefix(part, extraPhaseDelayKey); ok {
+			if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 && state.Step(n).Valid() {
+				r.HasDelayedPhase, r.DelayedPhase = true, state.Step(n)
+			}
+			continue
+		}
+		if v, ok := strings.CutPrefix(part, extraPhaseVPKey); ok {
+			r.ValidPlayer = strings.TrimSpace(v)
+		}
+	}
+	return r
+}
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
 // kindNames and the enum cannot drift apart: a Kind added without a name (or
@@ -369,7 +514,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
-	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate"}
+	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
+	"x_change", "note_number", "extra_phase", "copy_token", "exert"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -555,6 +701,35 @@ var flagNames = [...]struct {
 	// The Adventure spell face's cast (CR 714.3a). Appended at the end per
 	// the table's own ordering rule.
 	{"adventure", state.FlagAdventure},
+	// The Replicate keyword's payment provenance (CR 702.55a); the payment
+	// COUNT rides the same CastInfo's Amount. Appended at the end per the
+	// table's own ordering rule.
+	{"replicated", state.FlagReplicated},
+	// Converge's spend provenance (CR 107.4f-family); the distinct-colour
+	// COUNT rides the same CastInfo's Amount. Appended at the end per the
+	// table's own ordering rule.
+	{"converged", state.FlagConverged},
+	// The Bestow keyword's alternative-cost cast (CR 702.114a); the flag is
+	// the provenance rules' resolution reader uses to substitute the
+	// synthesized Aura attach spell. Appended at the end per the table's
+	// own ordering rule.
+	{"bestowed", state.FlagBestowed},
+	// Multikicker's payment provenance (CR 702.43); the TIMES-KICKED COUNT
+	// rides the same CastInfo's Amount. Appended at the end per the table's
+	// own ordering rule.
+	{"multikicked", state.FlagMultikicked},
+	// Foretell's cast provenance (CR 702.126a): set by BOTH provenance
+	// markers -- the {2} face-down hand exile (rules' payCast foretell
+	// branch, which emits its own CastInfo) and the later foretell-cost
+	// cast from exile (modeFlags). Appended at the end per the table's own
+	// ordering rule.
+	{"foretold", state.FlagForetold},
+	// The total-mana-spent capture (task castprov1): a face whose SVar
+	// table reads the Count$CastTotalManaSpent head stamps its pay-time
+	// CastInfo with the flag, so the Amount folds into Object.ManaSpent
+	// instead of overwriting X. Appended at the end per the table's own
+	// ordering rule.
+	{"manaspent", state.FlagManaSpent},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

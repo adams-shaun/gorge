@@ -364,3 +364,61 @@ func (e *Engine) warpRecastAvailable(id state.ObjID) bool {
 	}
 	return false
 }
+
+// foretellCastAvailable reports whether the foretold card id in exile may be
+// cast from exile on a later turn (CR 702.126a: "Cast it on a later turn for
+// its foretell cost"). It is derived entirely from the log, never from
+// mutable per-object state, because the FlagForetold the {2} action stamps
+// onto the exiled card says WHICH provenance but cannot say WHEN -- the same
+// log-scan shape warpRecastAvailable takes. The shape it looks for, walking
+// backwards from the log's end:
+//
+//  1. the most recent MoveZone taking id to exile (the {2} action's own
+//     hand->exile move),
+//  2. a CastInfo of id flagged foretold before that exile, with no
+//     intervening move of id between the two (only the action emits both,
+//     back to back -- a card exiled by anything else fails here),
+//  3. at least one TurnChange strictly after the exile ("on a later turn").
+//
+// A foretold card already cast (the later cast's own flag rides its
+// resolution) re-enters this scan only if it is back in exile, and any move
+// of id out of exile between the CastInfo and the latest exile -- the
+// resolution's own stack move -- fails step 2, so a re-exiled foretell card
+// never inherits the old provenance. Everything is a fixed-order walk of the
+// log, so a replayed game derives the same answer.
+func (e *Engine) foretellCastAvailable(id state.ObjID) bool {
+	log := e.L.Events
+	exileIdx := -1
+	for i := len(log) - 1; i >= 0; i-- {
+		if ev := log[i]; ev.Kind == events.MoveZone && ev.Obj == id && ev.To == state.ZExile {
+			exileIdx = i
+			break
+		}
+	}
+	if exileIdx < 0 {
+		return false
+	}
+	foretoldIdx := -1
+	for i := exileIdx - 1; i >= 0; i-- {
+		ev := log[i]
+		if ev.Kind == events.MoveZone && ev.Obj == id {
+			// An intervening move between the flag stamp and this exile:
+			// the exile is not the foretell action's own, whatever preceded it.
+			return false
+		}
+		if ev.Kind == events.CastInfo && ev.Obj == id &&
+			events.FlagsFrom(ev.Counter)&state.FlagForetold != 0 {
+			foretoldIdx = i
+			break
+		}
+	}
+	if foretoldIdx < 0 {
+		return false
+	}
+	for i := exileIdx + 1; i < len(log); i++ {
+		if log[i].Kind == events.TurnChange {
+			return true
+		}
+	}
+	return false
+}

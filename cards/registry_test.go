@@ -1,6 +1,10 @@
 package cards
 
 import (
+	"compress/gzip"
+	"encoding/gob"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,6 +46,10 @@ func TestRegistryLookupNormalisation(t *testing.T) {
 
 func TestRegistryCacheRoundTrip(t *testing.T) {
 	r := fixtureRegistry(t)
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatalf("CompileMetadata: %v", err)
+	}
+	wantIdentity := r.Catalog().Identity
 	path := filepath.Join(t.TempDir(), "ir.gob.gz")
 	if err := r.Save(path); err != nil {
 		t.Fatalf("Save: %v", err)
@@ -52,6 +60,9 @@ func TestRegistryCacheRoundTrip(t *testing.T) {
 	}
 	if len(back.Cards) != len(r.Cards) {
 		t.Fatalf("cards = %d, want %d", len(back.Cards), len(r.Cards))
+	}
+	if back.Catalog() == nil || back.Catalog().Identity != wantIdentity {
+		t.Fatalf("loaded catalog identity = %+v, want %+v", back.Catalog(), wantIdentity)
 	}
 	delver, ok := back.Lookup("Delver of Secrets")
 	if !ok || delver.AlternateMode != "DoubleFaced" {
@@ -69,6 +80,33 @@ func TestRegistryCacheRoundTrip(t *testing.T) {
 	mtn, _ := back.Lookup("Mountain")
 	if len(mtn.Faces[0].ManaAbilities()) != 1 {
 		t.Fatal("intrinsic mana ability lost in round trip")
+	}
+}
+
+func TestRegistryAddInvalidatesAndRebuildsCatalogBindings(t *testing.T) {
+	r := fixtureRegistry(t)
+	oldFace := r.Cards[0].Faces[0]
+	oldAbility := oldFace.Abilities[0]
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	if oldFace.CompiledID() == 0 || oldAbility.CompiledAPI() == APIUnknown {
+		t.Fatal("initial metadata bindings missing")
+	}
+	card, _ := ParseBytes("new.txt", []byte("Name:New Card\nTypes:Sorcery\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"))
+	card.Link()
+	r.Add(card)
+	if r.Catalog() != nil {
+		t.Fatal("Add left a stale catalog published")
+	}
+	if oldFace.CompiledID() != 0 || oldAbility.CompiledAPI() != APIUnknown {
+		t.Fatal("Add left old runtime bindings active")
+	}
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	if oldFace.CompiledID() == 0 || card.Faces[0].CompiledID() == 0 || card.Faces[0].Abilities[0].CompiledAPI() != APIDraw {
+		t.Fatal("rebuild did not bind old and new faces")
 	}
 }
 
@@ -212,6 +250,9 @@ func TestCompileDirDiagnosesCardWithNoNamedFace(t *testing.T) {
 	if len(r.Cards) != 1 {
 		t.Fatalf("Cards = %d, want 1 (the card still compiles, just flagged)", len(r.Cards))
 	}
+	if r.Catalog() == nil || r.Cards[0].Faces[0].CompiledID() == 0 {
+		t.Fatal("CompileDir returned an uncompiled registry")
+	}
 	cv := r.Coverage(map[string]bool{})
 	if cv.Cards != 0 {
 		t.Errorf("Coverage.Cards = %d, want 0 (nameless card excluded)", cv.Cards)
@@ -309,5 +350,48 @@ func TestLoadRegistryRelinksStaleCacheTransmuteWithItsManaValue(t *testing.T) {
 	}
 	if len(found) != 1 || found[0] != "Card.cmcEQ1" {
 		t.Fatalf("stale-cache relink expanded Transmute as %v, want exactly [Card.cmcEQ1]", found)
+	}
+}
+
+// TestLoadRegistryWrongVersion fabricates a cache one version behind by
+// gob-encoding a cacheFile directly (cacheFile is package-internal, so only a
+// cards test can build the exact stale shape) and pins the typed error: the
+// failure is a *CacheVersionError carrying Got/Want, and its text is the
+// historical wording so every existing printer keeps its output.
+func TestLoadRegistryWrongVersion(t *testing.T) {
+	r := fixtureRegistry(t)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "ir.gob.gz")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	zw := gzip.NewWriter(f)
+	if err := gob.NewEncoder(zw).Encode(cacheFile{Version: cacheVersion - 1, Cards: r.Cards, Tokens: r.Tokens}); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	_, err = LoadRegistry(path)
+	var cve *CacheVersionError
+	if !errors.As(err, &cve) {
+		t.Fatalf("LoadRegistry error = %T(%v), want *CacheVersionError", err, err)
+	}
+	if cve.Got != cacheVersion-1 || cve.Want != cacheVersion {
+		t.Fatalf("CacheVersionError = %d/%d, want %d/%d", cve.Got, cve.Want, cacheVersion-1, cacheVersion)
+	}
+	want := fmt.Sprintf("IR cache version %d, want %d — run `make compile-cards`", cacheVersion-1, cacheVersion)
+	if cve.Error() != want {
+		t.Fatalf("Error() = %q, want %q", cve.Error(), want)
+	}
+	// LoadRegistry must return the typed error itself (not wrapped) so a
+	// bare type assertion keeps working too.
+	var direct *CacheVersionError
+	if !errors.As(err, &direct) || direct != cve {
+		t.Fatal("LoadRegistry wrapped or copied the typed error")
 	}
 }

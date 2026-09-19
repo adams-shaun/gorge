@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func board(t *testing.T) (*state.Game, map[string]state.ObjID) {
+func board(t testing.TB) (*state.Game, map[string]state.ObjID) {
 	t.Helper()
 	g := state.NewGame([]string{"you", "them"})
 	mkIn := func(owner state.PlayerID, zone state.Zone, src string) state.ObjID {
@@ -200,6 +200,46 @@ func TestPlayerSpecs(t *testing.T) {
 				t.Fatalf("MatchesPlayerSpec(%q, p=%d, you=0) = %v, want %v", tc.spec, tc.p, got, tc.want)
 			}
 		})
+	}
+}
+
+// TestPlayerSpecIsMonarchStateLocal pins the monarch qualifier (CR 716.2)
+// in the shared player-spec grammar: Player.isMonarch (the base the static
+// GainControl$ value and every other consumer resolve through) matches only
+// the seat holding the monarch designation, and the fx20 qualifiers that
+// need player-state machinery this grammar does not carry still fail closed.
+func TestPlayerSpecIsMonarchStateLocal(t *testing.T) {
+	g, _ := board(t)
+	g.HasMonarch, g.Monarch = true, 1
+	if !MatchesPlayerSpec(g, "Player.isMonarch", 1, 0) {
+		t.Error("Player.isMonarch must match the monarch")
+	}
+	if MatchesPlayerSpec(g, "Player.isMonarch", 0, 0) {
+		t.Error("Player.isMonarch must not match a non-monarch seat")
+	}
+	// you is irrelevant: the qualifier is a state read, not a relation.
+	if !MatchesPlayerSpec(g, "Player.isMonarch", 1, 1) {
+		t.Error("Player.isMonarch must match the monarch regardless of you")
+	}
+	// No monarch on the board: nobody matches.
+	g.HasMonarch = false
+	if MatchesPlayerSpec(g, "Player.isMonarch", 1, 0) {
+		t.Error("Player.isMonarch with no monarch must match nobody")
+	}
+	g.HasMonarch, g.Monarch = true, 1
+	// A qualified You/Opponent/Other base still fails closed (the fx20
+	// convention -- narrow is the contract, never silently widened).
+	if MatchesPlayerSpec(g, "You.isMonarch", 1, 1) {
+		t.Error("You.isMonarch must still fail closed")
+	}
+	if MatchesPlayerSpec(g, "Opponent.isMonarch", 0, 1) {
+		t.Error("Opponent.isMonarch must still fail closed")
+	}
+	// The neighbouring unimplemented qualifiers remain dead.
+	for _, spec := range []string{"Player.EnchantedBy", "Player.descended", "Player.Chosen", "Player.NonActive"} {
+		if MatchesPlayerSpec(g, spec, 1, 0) {
+			t.Errorf("%s must still fail closed", spec)
+		}
 	}
 }
 

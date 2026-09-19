@@ -15,8 +15,9 @@ import (
 
 // Registry is the compiled corpus: every card, indexed by normalised name.
 type Registry struct {
-	Cards  []*Card
-	byName map[string]*Card
+	Cards   []*Card
+	byName  map[string]*Card
+	catalog *CompiledCatalog
 
 	// Tokens holds compiled token scripts (forge-gui/res/tokenscripts),
 	// keyed by file stem — e.g. "r_1_1_goblin" — the name a card's
@@ -58,6 +59,7 @@ func NormalizeName(s string) string {
 }
 
 func (r *Registry) Add(c *Card) {
+	r.invalidateCatalog()
 	r.Cards = append(r.Cards, c)
 	if r.byName == nil {
 		r.byName = map[string]*Card{}
@@ -97,6 +99,19 @@ type cacheFile struct {
 // added idempotent expansion does not force every worktree to rewrite its
 // corpus.
 const cacheVersion = 4
+
+// CacheVersionError is returned by LoadRegistry when the cache file on disk
+// was written by a different cacheVersion than this build's. Callers detect
+// it with errors.As so they can offer a targeted remedy (an in-memory
+// recompile) instead of the generic load-failure handling.
+type CacheVersionError struct {
+	Got  int
+	Want int
+}
+
+func (e *CacheVersionError) Error() string {
+	return fmt.Sprintf("IR cache version %d, want %d — run `make compile-cards`", e.Got, e.Want)
+}
 
 func (r *Registry) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -150,7 +165,7 @@ func LoadRegistry(path string) (*Registry, error) {
 		return nil, err
 	}
 	if cf.Version != cacheVersion {
-		return nil, fmt.Errorf("IR cache version %d, want %d — run `make compile-cards`", cf.Version, cacheVersion)
+		return nil, &CacheVersionError{Got: cf.Version, Want: cacheVersion}
 	}
 	r := NewRegistry()
 	for _, c := range cf.Cards {
@@ -198,6 +213,9 @@ func LoadRegistry(path string) (*Registry, error) {
 			c.Link()
 		}
 	}
+	if err := r.CompileMetadata(); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 
@@ -229,6 +247,9 @@ func CompileDir(dir string) (*Registry, []Diag, error) {
 	}
 
 	if err := compileTokens(r, dir, &diags); err != nil {
+		return nil, nil, err
+	}
+	if err := r.CompileMetadata(); err != nil {
 		return nil, nil, err
 	}
 
