@@ -1251,11 +1251,12 @@ var apiSpecificRulesSA = map[string][]string{
 	// read belongs to those two APIs alone.
 	"Engine.resumeResolution": {"Counter", "CopySpellAbility"},
 	// The cast-offer ETB-choice walk (rules/cast.go collectETBChoices): it
-	// reads the ReplaceWith$ body's ValidCards$/Type$ for the NameCard /
-	// ChooseType / ChooseNumber "as this enters" choices -- the etbChoiceKind
-	// switch dispatches on exactly those three apis, so the reads belong to
-	// them alone and must not join the generic rules union.
-	"Engine.collectETBChoices": {"NameCard", "ChooseType", "ChooseNumber"},
+	// reads the ReplaceWith$ body's ValidCards$/Type$/Exclude$ for the
+	// NameCard / ChooseType / ChooseNumber / ChooseColor "as this enters"
+	// choices -- the etbChoiceKind switch dispatches on exactly those four
+	// apis, so the reads belong to them alone and must not join the generic
+	// rules union.
+	"Engine.collectETBChoices": {"NameCard", "ChooseType", "ChooseNumber", "ChooseColor"},
 	// The ward payment path: only the Ward keyword's expanded trigger
 	// reaches these (resumeResolution dispatches on rp.sa.API == "Ward"),
 	// so their UnlessCost$ reads belong to api:Ward alone -- left in the
