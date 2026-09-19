@@ -11,6 +11,7 @@ import (
 func init() {
 	Register("DealDamage", effDealDamage)
 	Register("DamageAll", effDamageAll)
+	Register("EachDamage", effEachDamage)
 }
 
 // effDealDamage implements "SP$/AB$/DB$ DealDamage" against players and
@@ -472,4 +473,237 @@ func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 		}
 	}
 	return out
+}
+
+// effEachDamage implements "SP$/AB$/DB$ EachDamage" -- the "each creature
+// deals damage" primitive (Wave of Reckoning's "Each creature deals damage
+// to itself equal to its power", the fight family's two-sided shapes, the
+// Sarkhan the Masterless attack trigger).
+//
+// The grammar below is measured over the corpus's 29 EachDamage carriers:
+//
+// Damagers (exactly one of):
+//   - ToEachOther$ <ref>: the named set is BOTH damagers and recipients --
+//     each member deals to every OTHER member (Grim Contest, The Great
+//     Aerie).
+//   - DefinedDamagers$ <spec>: one Defined resolver spec (ParentTarget,
+//     Targeted, Targeted.YouCtrl, Remembered, or the "Valid <filter>"
+//     battlefield sweep).
+//   - ValidCards$ <spec>: the DamageAll battlefield sweep, seat order then
+//     zone order.
+//
+// An unresolvable or empty damager set is a fail-closed no-op -- the
+// standing filter convention (an unknown predicate matches nobody), never
+// a guess at the resolving source.
+//
+// Recipients, in precedence order:
+//   - EachToItself$ True: each damager damages itself (Wave of Reckoning,
+//     Solar Blaze, The Akroan War's tapped sweep).
+//   - ToEachOther$: the OTHER members of the damager set.
+//   - Defined$ <spec>: the ordinary Defined resolver (Self, ParentTarget,
+//     Opponent, Remembered, TriggeredAttackerLKICopy, ...).
+//   - the SA's own ValidTgts$ targets: the mid-resolution target ask's
+//     answer (effects.Resolve's generic pre-ask, the Kamahl's Will /
+//     coordinated_clobbering family).
+//
+// Amount: NumDmg$ is PER DAMAGER -- Count$CardPower/CardToughness evaluate
+// bound to each damager (a per-damager Ctx whose Source is the damager,
+// keeping the resolution's own SVar table so Nissa's Judgment's NumDmg$ X
+// still finds the spell face's SVar), which is what makes EachDamage
+// different from DamageAll, whose NumDmg resolves once against the
+// resolution's source. Default 1 (DamageAll's default; every corpus line
+// carries NumDmg$ so the default is defensive only); negatives clamp to 0
+// like both siblings.
+//
+// Every hit is its own damage source: one rider per damager, built through
+// the same newDamageRider the siblings use (so a DamageSource$ override, if
+// one ever appears on a corpus line, resolves through its existing spec
+// arm), and SetDamageSource published around each damager's pass -- the
+// lifelink rider, the deathtouch mark, protection and the DamageDone
+// triggers all read the DAMAGER, and the pg2 referent machinery binds it.
+// The whole pass is one simultaneous damage batch (CR: the creatures deal
+// their damage at the same time even though the log serializes the hits),
+// so DamageDealtOnce/DamageDoneOnce latch per pass and LifeLostAll-style
+// triggers observe the group once.
+func effEachDamage(h Host, c *Ctx, sa *cards.SA) {
+	eachToItself := strings.TrimSpace(sa.Params["EachToItself"]) != ""
+	eachOtherRef := strings.TrimSpace(sa.Params["ToEachOther"])
+	hasDefined := strings.TrimSpace(sa.Params["Defined"]) != ""
+	_, hasTgts := sa.Params["ValidTgts"]
+
+	// LifeLostAll observes the affected group once, exactly as effDamageAll
+	// brackets its sweep.
+	if b, ok := h.(interface {
+		BeginLifeLossBatch()
+		EndLifeLossBatch()
+	}); ok {
+		b.BeginLifeLossBatch()
+		defer b.EndLifeLossBatch()
+	}
+
+	var eachOtherSet []state.ObjID
+	damagers := func() []state.ObjID {
+		g := h.Game()
+		battlefield := func(ts []state.Target) []state.ObjID {
+			var out []state.ObjID
+			for _, t := range ts {
+				if t.IsPlayer || t.Obj == 0 {
+					continue
+				}
+				if o := g.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+					out = append(out, t.Obj)
+				}
+			}
+			return out
+		}
+		if eachOtherRef != "" {
+			// The set named by ToEachOther$ is the parent's targets (in
+			// Ctx.Targets) joined with this SA's own answered ask (in
+			// Ctx.PickedTargets while it dispatches). Dedup keeps a shared
+			// member one member.
+			seen := make(map[state.ObjID]bool)
+			var out []state.ObjID
+			for _, id := range append(battlefield(c.Targets), battlefield(c.PickedTargets)...) {
+				if !seen[id] {
+					seen[id] = true
+					out = append(out, id)
+				}
+			}
+			eachOtherSet = out
+			return out
+		}
+		if spec := strings.TrimSpace(sa.Params["DefinedDamagers"]); spec != "" {
+			return battlefield(eachDamagerTargets(h, c, spec))
+		}
+		if spec := strings.TrimSpace(sa.Params["ValidCards"]); spec != "" {
+			var out []state.ObjID
+			for _, p := range g.AliveFrom(0) {
+				for _, id := range g.Zone(state.ZBattlefield, p) {
+					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+						out = append(out, id)
+					}
+				}
+			}
+			return out
+		}
+		return nil
+	}()
+	if len(damagers) == 0 {
+		return
+	}
+
+	// Recipients for the Defined$/ValidTgts$ arms, resolved once against the
+	// resolution's own context. The ValidTgts$ arm must not fall through to
+	// the source-default: a sub whose own ask found no eligible candidates
+	// (chosenTargetsFor's max<=0 arm returns ok=false) has no recipients,
+	// never the parent's targets.
+	var recipients []state.Target
+	if !eachToItself && eachOtherRef == "" {
+		if hasDefined {
+			recipients = Defined(h, c, sa)
+		} else if hasTgts {
+			if c.PickedTargets != nil {
+				recipients = copyTargets(c.PickedTargets)
+			} else if c.OfferedSA != nil && sa.Line == c.OfferedSA.Line {
+				recipients = copyTargets(c.Targets)
+			} else {
+				return
+			}
+		} else {
+			return
+		}
+	}
+
+	h.BeginDamageBatch()
+	for _, d := range damagers {
+		o := h.Game().Obj(d)
+		if o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		// Per-damager amount: Count$CardPower/CardToughness read
+		// g.Obj(c.Source), so the per-damager Ctx anchors Source on the
+		// damager; the resolution's SVar table is kept so an SVar-named
+		// amount (Nissa's Judgment's NumDmg$ X) still resolves.
+		pc := &Ctx{Source: d, Controller: o.Controller, SVars: c.SVars}
+		n := Num(h, pc, sa, "NumDmg", 1)
+		if n < 0 {
+			n = 0
+		}
+		rider := newDamageRider(h, pc, sa, n)
+		prev := h.SetDamageSource(rider.source)
+		switch {
+		case eachToItself:
+			emitObjectDamage(rider, d)
+		case eachOtherRef != "":
+			for _, r := range eachOtherSet {
+				if r == d {
+					continue
+				}
+				emitObjectDamage(rider, r)
+			}
+		default:
+			for _, t := range recipients {
+				if t.IsPlayer {
+					emitPlayerDamage(rider, t.Player)
+					continue
+				}
+				if ro := h.Game().Obj(t.Obj); ro != nil && ro.Zone == state.ZBattlefield {
+					emitObjectDamage(rider, t.Obj)
+				}
+			}
+		}
+		h.SetDamageSource(prev)
+	}
+	h.EndDamageBatch()
+}
+
+// eachDamagerTargets resolves a DefinedDamagers$ value to concrete targets,
+// failing closed (nil) on a spec this grammar does not model -- the same
+// contract damage.go's DamageSource$ and ValidPlayers$ resolutions keep.
+// knownDefinedTargets answers the exact referent forms (ParentTarget,
+// Targeted, Remembered, ... and their " & " joins); the "Valid <filter>"
+// form is Defined's own battlefield sweep, repeated here so the resolver
+// never falls through to a source default; and the one qualified referent
+// the corpus writes on an EachDamage (friendly_rivalry's
+// "Targeted.YouCtrl") narrows the named set through the one qualifier this
+// grammar reads -- YouCtrl, the resolving controller.
+func eachDamagerTargets(h Host, c *Ctx, spec string) []state.Target {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return nil
+	}
+	if ts, ok := knownDefinedTargets(h, c, spec); ok {
+		return ts
+	}
+	if base, filt, ok := strings.Cut(spec, " "); ok && base == "Valid" {
+		filt = strings.TrimSpace(filt)
+		g := h.Game()
+		var out []state.Target
+		for _, p := range g.AliveFrom(0) {
+			for _, id := range g.Zone(state.ZBattlefield, p) {
+				if MatchesSpecCtx(g, filt, id, c.SpecContext(c.Controller)) {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+		}
+		return out
+	}
+	if base, qual, ok := strings.Cut(spec, "."); ok && qual == "YouCtrl" {
+		if ts, known := knownDefinedTargets(h, c, base); known {
+			var out []state.Target
+			for _, t := range ts {
+				if t.IsPlayer {
+					if t.Player == c.Controller {
+						out = append(out, t)
+					}
+					continue
+				}
+				if o := h.Game().Obj(t.Obj); o != nil && o.Controller == c.Controller {
+					out = append(out, t)
+				}
+			}
+			return out
+		}
+	}
+	return nil
 }
