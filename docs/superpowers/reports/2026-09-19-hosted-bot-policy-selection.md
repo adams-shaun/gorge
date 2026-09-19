@@ -73,6 +73,16 @@ run whole-game board/view adapter parity for `lethal-pressure`, and add a
 host-level two-run replay equality test for each named policy. The focused
 factory/adaptor and current golden/replay tests cover the shipped migration.
 
+## Final full-suite check
+
+`go test ./... -count=1` was red only in known broad-suite areas: the stale
+botbench/deck-pool expectations, host's committed overshoot capture at event
+836, `internal/archtest`, and `internal/searchprobe`. Its one additional
+gorged human-play exact-sequence failure passed on an immediate isolated rerun
+and also passed at pre-feature commit `4afad4b`, so it is not evidence of a
+hosted-policy regression. The focused host migration test and `TestHeads`
+were green at `4fa8e00`.
+
 ## Next experiment
 
 AR8 combined-attacker lethal pressure should remain a separate opt-in policy
