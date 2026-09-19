@@ -142,6 +142,14 @@ type turnFires struct {
 var actionTriggerModes = map[string]bool{
 	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "Sacrificed": true, "Discarded": true,
 	"CommitCrime": true, "Taps": true, "TapsForMana": true,
+	// ChangesZoneAll joins them for the trigger-level parameters Forge scopes
+	// to every event mode: ActivationLimit$ ("triggers only once each turn"
+	// on 40 of the 126 corpus ChangesZoneAll lines) MUST be enforced, and the
+	// mode's 7 PlayerTurn$ True lines want the same requirement as every
+	// other event mode. Membership also makes an unevaluable CheckDefinedPlayer$
+	// predicate fail closed for the mode, which is the conservative direction
+	// for a mode registered from the start.
+	"ChangesZoneAll": true,
 }
 
 // triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
@@ -1068,7 +1076,12 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	var matched bool
 	switch t.Mode {
-	case "ChangesZone":
+	case "ChangesZone", "ChangesZoneAll":
+		// ChangesZoneAll shares the per-object matcher (batch-of-one: see the
+		// ValidCards plural key there); the once-per-group semantics Forge's
+		// name promises for a multi-object operation is the recorded
+		// ActivationLimit-driven narrowing for the lines that carry one and an
+		// open approximation for the rest.
 		matched = e.zoneChangeMatches(t, source, ev, lki)
 	case "SpellCast":
 		matched = e.spellCastMatches(t, source, ev)
@@ -1320,7 +1333,14 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 	if d, ok := t.Params["Destination"]; ok && d != "Any" && effects.ParseZone(d) != ev.To {
 		return false
 	}
-	if v, ok := t.Params["ValidCard"]; ok {
+	// ValidCards$ is the PLURAL key the ChangesZoneAll corpus uses (124 of
+	// its 126 lines); ValidCard$ is the singular key ChangesZone uses. One
+	// matcher serves both modes, so read the plural first and fall back.
+	v, hasSpec := t.Params["ValidCards"]
+	if !hasSpec {
+		v, hasSpec = t.Params["ValidCard"]
+	}
+	if hasSpec {
 		// The trigger's own source moving (source == ev.Obj) with an LKI
 		// snapshot available is a dying card asserting a property about
 		// itself, e.g. Undying's counters_EQ0_P1P1: read it against the LKI
@@ -2899,7 +2919,7 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 
 func init() {
 	effects.RegisterNonAPI(
-		"trig:ChangesZone", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
+		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
 		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:Cycled", "trig:CounterAdded",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
