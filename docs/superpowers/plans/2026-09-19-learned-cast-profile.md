@@ -224,6 +224,12 @@ phase reopens as **expert iteration**, not self-play from scratch:
   next teacher generation (ExIt), gated +1.96σ per generation, which is the mtgbld
   lesson.
 
+**AR8 (merged opt-in as botbench `ar8`)**: dev seed 20,000,000, 200/pair,
+vs promoted `bot`: 1,030–970, 51.5% [49.3, 53.7]; a variant counting chump
+blocks as absorbing (the brief's literal reading) scored 50.85% [48.7, 53.0].
+Both noise: with AR7 in the default, combined-attacker lethal adds little on
+the mono suite. Not promoted.
+
 ## Parallel (unchanged, lower priority)
 
 AR8 combined-attacker lethal, block assignment, trace-family comparison
