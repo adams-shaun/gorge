@@ -2054,7 +2054,15 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		if youScoped && ev.Player != you {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, spec, ev.Obj, you, ev.Obj) {
+		// The bare wasCastFromYourHandByYou qualifier (the 5 end-step "if you
+		// haven't cast a spell from your hand this turn" carriers'
+		// Count$ThisTurnCast_Card.wasCastFromYourHandByYou bodies) is
+		// evaluated per cast event against the log (task castprov1).
+		matchSpec, ok := e.castFromHandAdmits(spec, ev.Obj, you)
+		if !ok {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, matchSpec, ev.Obj, you, ev.Obj) {
 			n++
 		}
 	}

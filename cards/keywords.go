@@ -98,6 +98,21 @@ func (f *Face) expandKeywords() {
 						if val = strings.TrimSpace(val); val != "" {
 							p[strings.TrimSpace(name)] = val
 						}
+					case "ValidCard":
+						// A gate field's ValidCard$ is a real match param the
+						// replacement matcher honours -- epochrasite's
+						// `Card.Self+!wasCastFromYourHandByYou` (task castprov1)
+						// and the escape-counter family's `Card.Self+escaped`,
+						// all 11 raw carriers spelled `Card.Self+<preds>`. It
+						// replaces the default `Card.Self` ONLY when the gate's
+						// own spec still constrains Self (a Self-less fragment
+						// would widen the default's match, the pre-existing
+						// drop's reason); a spec the filter fails closed on
+						// (wasCastByYou's unknown predicate) keeps failing
+						// closed. Measured: no carrier is in any repo deck.
+						if val = strings.TrimSpace(val); val != "" && strings.Contains(val, "Self") {
+							p["ValidCard"] = val
+						}
 					}
 				}
 			}

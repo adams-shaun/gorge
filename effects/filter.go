@@ -1041,17 +1041,20 @@ func filterAlternatives(spec string) iter.Seq[string] {
 // so the two cannot disagree about where a comma is a boundary.
 func FilterAlternatives(spec string) iter.Seq[string] { return filterAlternatives(spec) }
 
-// StripPredicateToken removes the exact predicate token -- optionally
-// !-negated -- from ONE filter alternative's "+" chain, returning the
-// stripped alternative and whether the token was present. The token may ride
-// the base's first predicate ("Card.wasCastFromYourHandByYou") or a later
-// chain link ("Creature.!token+YouCtrl+!wasCastFromYourHandByYou"); both
-// shapes strip to the remainder. The base itself (before the first
-// angle-bracket-0 dot) is never touched, and an ARGUMENTED spelling of the
-// token ("CastSaSource$CardManaCost", "CastSaSource/Plus.2") is a different
-// token and is left in place. An alternative that is nothing but the token
-// has no base and strips to "" -- the filter then fails closed on it (no
-// corpus carrier writes that shape).
+// StripPredicateToken removes the EXACT predicate token from ONE filter
+// alternative's "+" chain, returning the stripped alternative and whether
+// the token was present. The token argument is the exact predicate text to
+// remove — "pred" for the positive spelling or "!pred" for the negated one
+// (the caller owns the polarity: the cast-provenance split evaluates the two
+// spellings as opposite requirements). The token may ride the base's first
+// predicate ("Card.wasCastFromYourHandByYou") or a later chain link
+// ("Creature.!token+YouCtrl+!wasCastFromYourHandByYou"); both shapes strip
+// to the remainder. The base itself (before the first angle-bracket-0 dot)
+// is never touched, and an ARGUMENTED spelling of the token
+// ("CastSaSource$CardManaCost", "CastSaSource/Plus.2") is a different token
+// and is left in place. An alternative that is nothing but the token has no
+// base and strips to "" -- the filter then fails closed on it (no corpus
+// carrier writes that shape).
 func StripPredicateToken(alt, token string) (string, bool) {
 	base, preds := splitAltBasePreds(alt)
 	if preds == "" {
@@ -1061,7 +1064,7 @@ func StripPredicateToken(alt, token string) (string, bool) {
 	out := parts[:0]
 	had := false
 	for _, p := range parts {
-		if p == token || p == "!"+token {
+		if p == token {
 			had = true
 			continue
 		}
@@ -1118,14 +1121,15 @@ func stripBareCastSaSource(spec string) (string, bool) {
 	first := true
 	has := false
 	for alt := range filterAlternatives(spec) {
-		stripped, had := StripPredicateToken(alt, "CastSaSource")
-		if had {
+		s1, hadNeg := StripPredicateToken(alt, "!CastSaSource")
+		s2, hadPos := StripPredicateToken(s1, "CastSaSource")
+		if hadNeg || hadPos {
 			has = true
 		}
 		if !first {
 			b.WriteByte(',')
 		}
-		b.WriteString(stripped)
+		b.WriteString(s2)
 		first = false
 	}
 	return b.String(), has

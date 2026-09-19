@@ -1491,12 +1491,20 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 		if source == ev.Obj && lki != nil && leftBattlefield(ev) {
 			ctrl = lki.Controller
 		}
+		// The bare wasCastFromYourHandByYou qualifier (the "if you cast it
+		// from your hand" ETB family) is split out and evaluated against the
+		// log here, where the Engine is in scope; the remainder matches as
+		// before (task castprov1).
 		if ev.Obj != 0 && lki != nil && (source == ev.Obj || leftBattlefield(ev)) {
-			if !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(source, ctrl)) {
+			spec, ok := e.castFromHandAdmits(v, lki.ID, ctrl)
+			if !ok || !effects.MatchesObjectCtx(e.G, spec, lki, e.specCtx(source, ctrl)) {
 				return false
 			}
-		} else if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
-			return false
+		} else {
+			spec, ok := e.castFromHandAdmits(v, ev.Obj, e.controllerOf(source))
+			if !ok || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
+				return false
+			}
 		}
 	}
 	// Evolve$ True (CR 702.99a): the trigger fires only when the entering
@@ -1541,7 +1549,15 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidCard"]; ok {
-		if !effects.MatchesSpecCtx(e.G, spellCastPermanentSpec(v), ev.Obj, e.specCtx(source, ctrl)) {
+		spec := spellCastPermanentSpec(v)
+		// The bare wasCastFromYourHandByYou qualifier (Banish into Fable's
+		// copy trigger, the "when you cast this from your hand" family) is
+		// split out and evaluated against the log here (task castprov1). The
+		// bare !CastSaSource token (Alania) is NOT handled here: a trigger
+		// ValidCard$ exclusion of the current cast would dead the trigger
+		// either way, so it stays fail-closed (recorded in the ledger).
+		spec, ok2 := e.castFromHandAdmits(spec, ev.Obj, ctrl)
+		if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}

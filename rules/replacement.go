@@ -1273,7 +1273,14 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, scrip
 	if m.repl.With != nil {
 		if v := strings.TrimSpace(m.repl.With.Params["ValidCard"]); v != "" {
 			tok := e.tokenSnapshot(mint)
-			if tok == nil || !effects.MatchesObjectCtx(e.G, v, tok,
+			if tok == nil {
+				return false
+			}
+			// The provenance qualifier split applies here too (task castprov1):
+			// a would-be TOKEN was never cast at all, so an alternative carrying
+			// the qualifier is dropped for it.
+			spec, ok := e.castFromHandAdmits(v, tok.ID, e.controllerOf(m.id))
+			if !ok || !effects.MatchesObjectCtx(e.G, spec, tok,
 				e.rememberedSpecContext(e.controllerOf(m.id), m.id, m.remembered)) {
 				return false
 			}
@@ -1524,7 +1531,14 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			}
 		}
 		if v, ok := r.Params["ValidCard"]; ok {
-			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
+			// The bare wasCastFromYourHandByYou qualifier (epochrasite's
+			// etbCounter gate field `ValidCard$ Card.Self+
+			// !wasCastFromYourHandByYou`: "enters with three +1/+1 counters on
+			// it if you didn't cast it from your hand") is split out and
+			// evaluated against the log here (task castprov1); the remainder
+			// matches as before.
+			spec, ok2 := e.castFromHandAdmits(v, ev.Obj, you)
+			if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
 				return false
 			}
 		}
