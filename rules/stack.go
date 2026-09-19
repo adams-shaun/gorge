@@ -868,12 +868,15 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 				o := e.G.Obj(oid)
 				// CR 702.16c withholds a permanent protected from the
 				// targeting source's qualities; a CantTarget restriction
-				// (Vines of Vastwood) withholds one from the spoke player.
-				// Both function only on the battlefield (CR 604.3), the same
+				// (Vines of Vastwood) withholds one from the spoke player;
+				// CR 702.14 shroud withholds one from EVERY targeting spell
+				// or ability, its controller's included.
+				// All function only on the battlefield (CR 604.3), the same
 				// gate as protection above. CR 115.5 excludes the source.
 				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) &&
 					effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, z), oid, sc) &&
 					(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
+					(!targeting || !(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(oid))) &&
 					(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
 				}
@@ -1855,9 +1858,15 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 		// through protectionSource so an ability fizzling here judges "the
 		// source" as its Source permanent, the same object askTarget's own
 		// filter has now been made to see (Critical C2 -- one definition).
+		// CR 702.14 rides the same recheck: a target that GAINED shroud
+		// between placement and resolution (Lightning Greaves equipping in
+		// response) is dropped here, and a target with no other legal target
+		// left fizzles the whole spell/ability through the existing fizzle
+		// machinery upstream of this recheck.
 		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) &&
 			effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, o.Zone), t.Obj, sc) &&
 			!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
+			!(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(t.Obj)) &&
 			!e.protectedFrom(t.Obj, e.protectionSource(source)) {
 			legal = append(legal, t)
 		}
