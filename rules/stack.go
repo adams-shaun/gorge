@@ -1575,6 +1575,16 @@ func (e *Engine) resolveTop() {
 
 	f := o.Face()
 	sa := f.SpellAbility()
+	// Bestow (CR 702.114a): a cast paid for with the bestow cost resolves
+	// as the synthesized Aura attach spell -- the creature face itself has
+	// no SP -- so the whole ordinary Aura tail below runs unchanged:
+	// effAttach emits events.Attach while the spell is still on the stack,
+	// and moveResolvedOffStack enters the permanent attached (the entry
+	// keeps an Attach set on the stack). The flag is the pay-time CastInfo
+	// provenance modeFlags("bestowed") rode.
+	if o.CastFlags&state.FlagBestowed != 0 {
+		sa = bestowedAttachSA()
+	}
 	targets := o.Targets
 	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered
 	// (the modal declaration for a Charm, the SpellAbility itself otherwise);

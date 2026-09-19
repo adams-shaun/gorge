@@ -1150,6 +1150,19 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
+		// Bestow (CR 702.114a): the bestowed cast is its own "cast" option
+		// paying the bestow cost in place of the mana cost, and the spell is
+		// an Aura with enchant creature, so the offer gates on the targets of
+		// the SYNTHESIZED attach SA -- the face has no SP of its own, so the
+		// plain cast's targetsAvailable (from the nil SpellAbility) says
+		// nothing about it. bestowCost withholds the exotic bestow costs (an
+		// {X}, detectives_phoenix's CollectEvidence<6>, hypnotic_siren's
+		// colon-suffixed metadata line), the replicateCost convention.
+		if ba, ok := bestowCost(f); ok && e.castTargetsAvailable(p, id, bestowedAttachSA()) &&
+			offerCastable(p, id, ba, spellScope("bestowed"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (bestowed)", Obj: id, Mode: "bestowed"})
+		}
 		if bc, ok := buybackCost(f); ok && offerCastable(p, id, e.rawBaseCost(p, id).Plus(bc), spellScope("buyback"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (buyback)", Obj: id, Mode: "buyback"})
 		}
@@ -1268,6 +1281,14 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
+		}
+		// Bestow (CR 702.114a), the command-zone half (a bestowed commander,
+		// kestia_the_cultivator's shape): the same synthesized-attach-SA gate
+		// the hand walk applies.
+		if ba, ok := bestowCost(f); ok && e.castTargetsAvailable(p, id, bestowedAttachSA()) &&
+			offerCastable(p, id, ba, spellScope("bestowed"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (bestowed)", Obj: id, Mode: "bestowed"})
 		}
 	}
 

@@ -537,7 +537,9 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 				continue
 			}
 			f := o.Face()
-			if f == nil || !f.IsCreature() {
+			// CR 702.114e: a bestowed-attached card is an Aura, not a creature,
+			// so the creature SBAs (lethal damage/toughness) do not hit it.
+			if f == nil || !f.IsCreature() || o.BestowedAttached() {
 				continue
 			}
 			if e.Toughness(id) <= 0 {

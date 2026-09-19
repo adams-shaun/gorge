@@ -115,6 +115,14 @@ const (
 	// non-converge cast stays byte-identical. Appended per the enum's own
 	// append-only precedent.
 	FlagConverged
+	// FlagBestowed marks a cast paid for with the card's Bestow cost
+	// (CR 702.114a): the spell was an Aura spell with enchant creature, and
+	// the permanent that enters attached reverts to a creature when the
+	// attachment ends. It is the provenance rules/stack.go's resolution
+	// reader uses to substitute the synthesized Aura attach spell for the
+	// face's (absent) spell ability. Appended per the enum's own
+	// append-only precedent.
+	FlagBestowed
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -341,6 +349,18 @@ type Object struct {
 type ExileReturnEntry struct {
 	Obj  ObjID
 	From Zone
+}
+
+// BestowedAttached reports whether o is a card printed with Bestow that is
+// currently attached to a permanent (CR 702.114e: while attached to a
+// creature the bestowed permanent is an Aura with enchant creature, not a
+// creature; unattached it is a creature again). It is derived from live
+// state -- AttachedTo and the printed face -- so every replay and every read
+// site derives the switch identically and no event field carries a marker.
+// An unattached bestowed card, and any object printed without Bestow, is
+// never "bestowed attached".
+func (o *Object) BestowedAttached() bool {
+	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Bestow")
 }
 
 func (o *Object) Face() *cards.Face {

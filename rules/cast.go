@@ -399,7 +399,7 @@ func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cos
 			break
 		}
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() || co.BestowedAttached() {
 			continue
 		}
 		// The reduction is the creature's ACTUAL power (CR 702.46a: "reduce
@@ -466,7 +466,7 @@ func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []
 	var tapped []state.ObjID
 	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() || co.BestowedAttached() {
 			continue
 		}
 		used := false
@@ -1165,7 +1165,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
-	case "evoked", "dashed", "overloaded", "warped", "madness":
+	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed":
 		// The alternative-cost keyword family (altcosts): each mode's cost is
 		// the printed keyword parameter in place of the mana cost, exactly the
 		// Miracle shape. Evoke and Madness casts come from hand and exile
@@ -1174,7 +1174,8 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// only a hand-built option) falls back to the empty cost rather than
 		// charging the printed mana cost.
 		head := map[string]string{"evoked": "Evoke", "dashed": "Dash",
-			"overloaded": "Overload", "warped": "Warp", "madness": "Madness"}[opt.Mode]
+			"overloaded": "Overload", "warped": "Warp", "madness": "Madness",
+			"bestowed": "Bestow"}[opt.Mode]
 		if mc, ok := f.KeywordParam(head); ok {
 			cost = ParseCost(mc)
 		} else {
@@ -3166,7 +3167,7 @@ func (e *Engine) convokeAsk() bool {
 		Prompt: "Choose creatures to help pay for " + e.G.Obj(pc.card).Face().Name, Source: pc.card}
 	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil || !o.Face().IsCreature() {
+		if o == nil || o.Tapped || o.Face() == nil || !o.Face().IsCreature() || o.BestowedAttached() {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
@@ -3658,6 +3659,11 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagHarmonize)
 	case "suspend":
 		return events.FlagsString(state.FlagSuspend)
+	// Bestow (CR 702.114a): the flag is the provenance the resolution
+	// reader (resolveTop) uses to substitute the synthesized Aura attach
+	// spell, and what keeps a bestowed cast distinguishable on the wire.
+	case "bestowed":
+		return events.FlagsString(state.FlagBestowed)
 	}
 	return ""
 }
@@ -3702,6 +3708,13 @@ func (e *Engine) targetAsk() bool {
 		sa = f.Abilities[pc.ability]
 	} else if f != nil {
 		sa = f.SpellAbility()
+		if sa == nil && pc.mode == "bestowed" {
+			// Bestow (CR 702.114a): the bestowed cast targets through the
+			// synthesized Aura attach SA -- the creature face has no SP of its
+			// own, so the plain cast's no-SP shape says nothing about the
+			// bestowed one.
+			sa = bestowedAttachSA()
+		}
 	}
 	sa = modalTargetSA(f, sa, o.ChosenModes)
 	if sa == nil || sa.Params["ValidTgts"] == "" {
