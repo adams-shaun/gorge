@@ -66,6 +66,50 @@ type ExtraTurn struct {
 	SkipUntap bool
 }
 
+// ExtraPhase is one pending Forge AddPhaseEffect grant (DB$ AddPhase: "after
+// this phase, there is an additional combat phase", 56 corpus SA lines). It
+// is deliberately a queue entry, like ExtraTurn: several grants can be
+// pending for the same splice point (Obeka, Splitter of Seconds's "that many
+// additional upkeep steps" is several entries after the same end-of-combat
+// step; two Aurelia triggers queue two extra combats the same way), and each
+// grant can carry a different rider.
+//
+// The engine's turn walk is a linear Step advance (rules/turn.go's
+// advanceStep), so an extra phase is spliced as a LIST insertion rather than
+// a step renumbering: the extra phase begins when the walk leaves AfterStep
+// (Consumed), runs Entry..RangeEnd, and on leaving RangeEnd the walk resumes
+// at FollowedBy (default AfterStep+1, the phase that would naturally have
+// followed the splice point -- Forge AddPhaseEffect's default followedBy, so
+// an extra Beginning spliced after Main2 resumes at the end step, never back
+// into Main1). RangeEnd is derived from Entry, never stored twice in events.
+// Every field is folded from the ExtraPhase event (grant +1 / consume -1 /
+// complete -2), cloned in Clone, and the whole queue clears at TurnChange --
+// an extra phase is spliced into the CURRENT turn only and never survives
+// into the next one.
+type ExtraPhase struct {
+	Player    PlayerID // the granting ability's controller (informational)
+	AfterStep Step     // the step after which the extra phase is inserted
+	Entry     Step     // the extra phase's first step
+	RangeEnd  Step     // the extra phase's last step; completion when the walk leaves it
+	// FollowedBy is the explicit FollowedBy$ resume point when HasFollowedBy
+	// is set; otherwise the resume point is AfterStep+1 (see the type comment).
+	HasFollowedBy bool
+	FollowedBy    Step
+	// Consumed marks a grant whose extra phase has been entered. It completes
+	// when the walk leaves RangeEnd.
+	Consumed bool
+	// Delayed-trigger rider (Moraug's ExtraPhaseDelayedTrigger$/
+	// ExtraPhaseDelayedTriggerExcute$ pair, the extra-turn Final-Fortune
+	// precedent one level up): the SVar named by Execute registers a one-shot
+	// delayed trigger at CONSUME time, firing at DelayedPhase in this same
+	// turn (MinTurn = the current turn), gated by ValidPlayer when present.
+	HasDelayedPhase bool
+	DelayedPhase    Step
+	ValidPlayer     string
+	Execute         string
+	Source          ObjID
+}
+
 // Counter returns this player's count of kind.
 func (p *Player) Counter(kind string) int32 {
 	for _, c := range p.Counters {
@@ -133,6 +177,23 @@ type Game struct {
 	// cannot express. Every mutation rides the same events. Empty when no extra
 	// turn is pending.
 	ExtraTurnQueue []ExtraTurn
+	// ExtraPhases is the ORDERED pending Forge AddPhaseEffect grants (DB$
+	// AddPhase), in creation order, with the same fold discipline as
+	// ExtraTurnQueue: appended by an api:AddPhase grant (+1 ExtraPhase event),
+	// marked Consumed when the turn structure enters the extra phase (-1),
+	// removed when the extra phase completes (-2), and cleared wholesale at
+	// TurnChange -- an extra phase is spliced into the CURRENT turn only and
+	// never survives into the next one. Empty when no extra phase is pending.
+	ExtraPhases []ExtraPhase
+	// CombatsThisTurn counts the combat phases BEGUN this turn (one per
+	// BeginCombat StepChange, folded in events/apply.go's StepChange case,
+	// reset at TurnChange): 1 through the ordinary combat, 2 through an extra
+	// combat. It exists for ConditionFirstCombat$ (Raiyuu's "if it's the first
+	// combat phase of the turn" AddPhase gate, effects/conditions.go), which
+	// without it reads no state and would fail open, re-granting an extra
+	// combat from every combat the first one created (a measured livelock). No
+	// event or behaviour changes for any game without such a condition.
+	CombatsThisTurn int32
 	// Monarch is the current monarch when HasMonarch is true. The presence bit
 	// keeps seat zero distinct from no monarch.
 	Monarch    PlayerID
@@ -377,6 +438,7 @@ func (g *Game) Clone() *Game {
 		}
 	}
 	c.ExtraTurnQueue = append([]ExtraTurn(nil), g.ExtraTurnQueue...)
+	c.ExtraPhases = append([]ExtraPhase(nil), g.ExtraPhases...)
 	return &c
 }
 

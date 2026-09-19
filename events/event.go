@@ -379,6 +379,27 @@ const (
 	// precedent, so no earlier ordinal, hash chain or golden replay is
 	// affected.
 	NoteNumber
+	// ExtraPhase records one Forge AddPhaseEffect message (DB$ AddPhase:
+	// "after this phase, there is an additional combat phase"; 56 corpus SA
+	// lines). Three forms, split on Amount, mirroring the ExtraTurn
+	// precedent one level up: +1 is a grant (Step the splice point
+	// AfterStep -- the phase after which the extra phase is inserted, either
+	// the parsed AfterPhase$ or, when omitted, the phase the grant resolved
+	// in so the fold agrees with the live splice; IDs[0] the extra phase's
+	// entry step, IDs[1] an explicit FollowedBy$ resume point when present;
+	// Counter the forwarded Execute$ SVar name; Text the ExtraPhaseRiders
+	// marker when the granting SA carries ExtraPhaseDelayedTrigger$); -1
+	// CONSUMES one grant at the turn boundary it splices at -- the queue
+	// entry is marked consumed and, when it carries the delayed rider, the
+	// one-shot delayed trigger registers HERE (MinTurn = the current turn:
+	// the extra phase begins in this turn, unlike an extra turn's Turn+1);
+	// -2 COMPLETES one consumed grant when the walk leaves the extra
+	// phase's last step. The fold lives in state.Game.ExtraPhases (cleared
+	// at TurnChange), and the consumer is rules/turn.go's advanceStep tail.
+	// Appended after NoteNumber (main's own later append), still after every
+	// earlier Kind, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	ExtraPhase
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -389,8 +410,60 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(NoteNumber) + 1
+	NumKinds = int(ExtraPhase) + 1
 )
+
+// ExtraPhaseRiders is the rider payload an api:AddPhase grant forwards for
+// its ExtraPhaseDelayedTrigger$ pair (Moraug's "at the beginning of that
+// combat, untap all creatures you control"), Text-encoded on the ExtraPhase
+// event (Ruling T20-a's field-reuse precedent -- the event gains no field):
+// "DELAY=<step ordinal>" and "VP=<ValidPlayer$ value>", joined with "|".
+// The delayed phase cannot ride the IDs slice beside the entry/FollowedBy
+// steps: an absent rider and the zero Step (untap) would be
+// indistinguishable, so the riders live in Text and the IDs slots stay
+// unambiguous (IDs[0] the entry step, IDs[1] an explicit FollowedBy$ only).
+type ExtraPhaseRiders struct {
+	HasDelayedPhase bool
+	DelayedPhase    state.Step
+	ValidPlayer     string
+}
+
+const (
+	extraPhaseDelayKey = "DELAY="
+	extraPhaseVPKey    = "VP="
+)
+
+// EncodeExtraPhaseRiders writes the rider payload as the canonical Text
+// marker. Deterministic key order (DELAY first), so the same riders always
+// encode identically.
+func EncodeExtraPhaseRiders(r ExtraPhaseRiders) string {
+	var parts []string
+	if r.HasDelayedPhase {
+		parts = append(parts, extraPhaseDelayKey+strconv.FormatInt(int64(r.DelayedPhase), 10))
+	}
+	if r.ValidPlayer != "" {
+		parts = append(parts, extraPhaseVPKey+r.ValidPlayer)
+	}
+	return strings.Join(parts, "|")
+}
+
+// DecodeExtraPhaseRiders reads the rider payload back; the zero value (no
+// riders) for any other Text.
+func DecodeExtraPhaseRiders(text string) ExtraPhaseRiders {
+	var r ExtraPhaseRiders
+	for _, part := range strings.Split(text, "|") {
+		if v, ok := strings.CutPrefix(part, extraPhaseDelayKey); ok {
+			if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 && state.Step(n).Valid() {
+				r.HasDelayedPhase, r.DelayedPhase = true, state.Step(n)
+			}
+			continue
+		}
+		if v, ok := strings.CutPrefix(part, extraPhaseVPKey); ok {
+			r.ValidPlayer = strings.TrimSpace(v)
+		}
+	}
+	return r
+}
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
 // kindNames and the enum cannot drift apart: a Kind added without a name (or
@@ -406,7 +479,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number"}
+	"x_change", "note_number", "extra_phase"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

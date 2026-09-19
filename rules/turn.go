@@ -682,11 +682,113 @@ func (e *Engine) advanceStep() {
 		e.beginCombatPass(false)
 		return
 	}
-	e.setStep(e.G.Step + 1)
+	next := e.G.Step + 1
+	if s, ok := e.extraPhaseBoundary(); ok {
+		next = s
+	}
+	e.setStep(next)
 	if e.pending != nil {
 		return
 	}
 	e.finishEnteredStep()
+}
+
+// extraPhaseBoundary is the extra-phase consumer (Forge AddPhaseEffect, DB$
+// AddPhase; the state.Game.ExtraPhases fold is the queue, the ExtraTurnQueue
+// precedent one level up). It is called at the ONLY site that advances the
+// ordinary turn walk -- the tail of advanceStep -- and answers what step the
+// walk enters next. The turn is treated as the phase LIST the grant spliced
+// (state.ExtraPhase's type comment): when the walk leaves step L,
+//
+//  1. every CONSUMED grant whose extra phase ends at L (RangeEnd) completes
+//     here -- one -2 ExtraPhase event per entry, the entry removed from the
+//     fold;
+//  2. then the earliest-created PENDING grant spliced at L -- or, when step
+//     1 completed grants, at the same insertion point they spliced at
+//     (Obeka's N upkeeps all splice after the same end-of-combat step, and
+//     each next upkeep is spliced there, not after the last one) -- is
+//     consumed (-1) and its extra phase entered;
+//  3. when step 1 completed grants but step 2 found nothing to splice, the
+//     walk jumps to the LAST completed grant's resume point (FollowedBy$, or
+//     AfterStep+1 when absent);
+//  4. otherwise the natural advance (Step+1) -- ok=false.
+//
+// The two list-splice jumps the walk makes OUTSIDE this site (CR 508.8's
+// declare-attackers-with-no-attack jump to the end-of-combat step, and the
+// combat-damage pass's jump there) skip the consumer: no corpus carrier
+// splices at or completes across declare-attackers or combat-damage, and an
+// extra combat reached through them still completes at its own RangeEnd
+// (leaving end-of-combat goes through this site). A resume point outside the
+// step range (or invalid) degrades to the natural advance, never a panic.
+func (e *Engine) extraPhaseBoundary() (state.Step, bool) {
+	leaving := e.G.Step
+	// 1. Completing grants: one -2 event per consumed entry whose extra
+	// phase ends here. emit folds synchronously, so the queue shrinks under
+	// the loop -- rescan from the top after every completion. The LAST
+	// completed grant's resume point is the walk's continuation (the
+	// innermost completed extra phase is where the ordinary walk stands).
+	completedAfter := state.Step(0)
+	completed := false
+	resume := state.Step(0)
+	for {
+		idx := -1
+		for i := range e.G.ExtraPhases {
+			if ep := e.G.ExtraPhases[i]; ep.Consumed && ep.RangeEnd == leaving {
+				idx = i
+				break
+			}
+		}
+		if idx < 0 {
+			break
+		}
+		ep := e.G.ExtraPhases[idx]
+		e.emit(consumedExtraPhaseEvent(ep, -2))
+		completed, completedAfter = true, ep.AfterStep
+		// The walk resumes at the explicit FollowedBy$ when the grant named
+		// one, else at the phase that would naturally have followed the
+		// splice point (AfterStep+1 -- Forge AddPhaseEffect's default).
+		if ep.HasFollowedBy {
+			resume = ep.FollowedBy
+		} else {
+			resume = ep.AfterStep + 1
+		}
+	}
+	// 2. Splicing the next pending grant: earliest created first, spliced at
+	// the leaving step -- or, when this boundary completed grants, at their
+	// insertion point too.
+	for i := range e.G.ExtraPhases {
+		ep := e.G.ExtraPhases[i]
+		if ep.Consumed {
+			continue
+		}
+		if ep.AfterStep != leaving && !(completed && ep.AfterStep == completedAfter) {
+			continue
+		}
+		e.emit(consumedExtraPhaseEvent(ep, -1))
+		return ep.Entry, true
+	}
+	if completed && resume.Valid() && resume <= state.StepCleanup {
+		return resume, true
+	}
+	return 0, false
+}
+
+// consumedExtraPhaseEvent builds the -1 (consume) / -2 (complete) message
+// for one queue entry: the full identity the fold matches on (IDs[0] the
+// entry step), with the delayed-trigger rider echoed in Text (the consume's
+// registration reads it) and the follow/resume point deliberately absent --
+// the fold's own entry already holds it, and a fixed slot beside the entry
+// step could not be told apart from an absent rider.
+func consumedExtraPhaseEvent(ep state.ExtraPhase, amount int32) events.Event {
+	ev := events.Event{Kind: events.ExtraPhase, Player: ep.Player, Obj: ep.Source,
+		Amount: amount, Step: ep.AfterStep, Counter: ep.Execute,
+		IDs: []state.ObjID{state.ObjID(ep.Entry)}}
+	if ep.HasDelayedPhase || ep.ValidPlayer != "" {
+		ev.Text = events.EncodeExtraPhaseRiders(events.ExtraPhaseRiders{
+			HasDelayedPhase: ep.HasDelayedPhase, DelayedPhase: ep.DelayedPhase,
+			ValidPlayer: ep.ValidPlayer})
+	}
+	return ev
 }
 
 // handle dispatches a validated intent to the code that owns that decision

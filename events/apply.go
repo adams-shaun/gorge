@@ -311,6 +311,93 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case ExtraPhase:
+		// One Forge AddPhaseEffect message (DB$ AddPhase). Three forms split
+		// on Amount (the ExtraTurn precedent one level up): +1 appends one
+		// queue entry per granted phase (NumPhases$ is the emitter's count),
+		// -1 marks a grant consumed (the turn structure entered its extra
+		// phase), -2 removes a consumed grant (the extra phase completed).
+		// A malformed grant -- no IDs, an invalid step ordinal, an invalid
+		// player -- is a no-op, the same totality stance as the ExtraTurn
+		// case. Totality for consume/complete: an identity that matches no
+		// queue entry is a no-op, never a panic.
+		switch {
+		case e.Amount > 0:
+			if !validPlayer(g, e.Player) || len(e.IDs) == 0 {
+				break
+			}
+			entry := state.Step(e.IDs[0])
+			if !entry.Valid() {
+				break
+			}
+			ep := state.ExtraPhase{
+				Player:    e.Player,
+				AfterStep: e.Step,
+				Entry:     entry,
+				RangeEnd:  state.ExtraPhaseRangeEnd(entry),
+				Execute:   e.Counter,
+				Source:    e.Obj,
+			}
+			if len(e.IDs) > 1 {
+				if fb := state.Step(e.IDs[1]); fb.Valid() {
+					ep.HasFollowedBy, ep.FollowedBy = true, fb
+				}
+			}
+			riders := DecodeExtraPhaseRiders(e.Text)
+			ep.HasDelayedPhase, ep.DelayedPhase = riders.HasDelayedPhase, riders.DelayedPhase
+			ep.ValidPlayer = riders.ValidPlayer
+			for n := int32(0); n < e.Amount; n++ {
+				g.ExtraPhases = append(g.ExtraPhases, ep)
+			}
+		case e.Amount == -1:
+			if i, ok := matchExtraPhase(g, e, false); ok {
+				g.ExtraPhases[i].Consumed = true
+			}
+			// The delayed-trigger rider (Moraug's "At the beginning of that
+			// combat, untap all creatures you control") registers HERE, at
+			// consume time -- the ExtraTurn Final-Fortune precedent: the
+			// registration must ride the consumption, because the extra phase
+			// begins exactly now (the very next StepChange is its entry step,
+			// which the ordinary delayed-trigger drain fires on). MinTurn is
+			// the CURRENT turn -- the extra phase begins in the granting turn,
+			// unlike an extra turn's Turn+1. A consume with no source object,
+			// no Execute$ name, or a source whose face lacks the SVar degrades
+			// to no registration rather than panicking.
+			if e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
+				f := g.Obj(e.Obj).Face()
+				if f != nil && cards.ResolveSVar(f.SVars, e.Counter) != nil {
+					// The registered phase: the rider's DELAY= step when the
+					// grant forwarded one, else the extra phase's own entry
+					// step (IDs[0] -- the only step a consume always carries).
+					riders := DecodeExtraPhaseRiders(e.Text)
+					phase := state.Step(0)
+					okPhase := false
+					if riders.HasDelayedPhase {
+						phase, okPhase = riders.DelayedPhase, true
+					} else if len(e.IDs) > 0 {
+						phase, okPhase = state.Step(e.IDs[0]), state.Step(e.IDs[0]).Valid()
+					}
+					if okPhase {
+						dt := state.DelayedTrigger{
+							ID:         g.DelayedNext,
+							Phase:      phase,
+							Source:     e.Obj,
+							Controller: e.Player,
+							Execute:    e.Counter,
+							MinTurn:    g.Turn,
+						}
+						dt.ValidPlayer = riders.ValidPlayer
+						g.Delayed = append(g.Delayed, dt)
+						g.DelayedNext++
+					}
+				}
+			}
+		case e.Amount == -2:
+			if i, ok := matchExtraPhase(g, e, true); ok {
+				g.ExtraPhases = append(g.ExtraPhases[:i], g.ExtraPhases[i+1:]...)
+			}
+		}
+
 	case DoorUnlock:
 		// CR 309.5: the unlock activation paid the locked half's mana cost as
 		// a sorcery. The flag is what makes the alternate face's rules text
@@ -485,6 +572,15 @@ func Apply(g *state.Game, e Event) {
 
 	case StepChange:
 		g.Step = e.Step
+		// The per-turn combat-phase count (CR 500.6: a turn has exactly one
+		// combat phase -- except the additional ones an api:AddPhase grant
+		// splices in): one increment per BeginCombat ENTRY, so an extra combat
+		// counts a second time and ConditionFirstCombat$ (Raiyuu's "if it's the
+		// first combat phase of the turn" gate, effects/conditions.go) reads
+		// the real ordinal. TurnChange resets it below.
+		if e.Step.Valid() && e.Step == state.StepBeginCombat {
+			g.CombatsThisTurn++
+		}
 		// kw:Echo's provenance (CR 702.35a): the Draw step's beginning means
 		// this turn's upkeep just ended, so the turn's upkeep is now the
 		// controller's "most recent upkeep". Recording here (not at the
@@ -529,6 +625,13 @@ func Apply(g *state.Game, e Event) {
 			}
 			// The per-add entry list is per-turn state too.
 			g.Entered = nil
+			// Extra phases never survive into the next turn: whatever is still
+			// queued (or mid-extra-phase) at the turn boundary is dropped here,
+			// so a grant whose splice point this turn has already passed is
+			// silently spent at the boundary rather than firing next turn. The
+			// per-turn combat-phase count resets with them.
+			g.ExtraPhases = nil
+			g.CombatsThisTurn = 0
 		}
 
 	case Goad:
@@ -1763,4 +1866,31 @@ func applyPair(g *state.Game, srcID, partnerID state.ObjID) {
 		src.Paired = partnerID
 		partner.Paired = srcID
 	}
+}
+
+// matchExtraPhase finds the queue entry a consume (-1) or complete (-2)
+// event names: the FIRST entry (creation order, deterministic) whose
+// identity matches the event's carried fields. consumed=false matches only
+// un-consumed grants (a consume marks), consumed=true only consumed ones (a
+// complete removes). ok=false when no entry matches -- a malformed or
+// stale message, a no-op by the case's totality stance.
+func matchExtraPhase(g *state.Game, e Event, consumed bool) (int, bool) {
+	wantEntry := state.Step(0)
+	wantEntryOK := false
+	if len(e.IDs) > 0 {
+		wantEntry = state.Step(e.IDs[0])
+		wantEntryOK = wantEntry.Valid()
+	}
+	for i := range g.ExtraPhases {
+		ep := &g.ExtraPhases[i]
+		if ep.Consumed != consumed || ep.Player != e.Player || ep.AfterStep != e.Step ||
+			ep.Source != e.Obj || ep.Execute != e.Counter || ep.Entry != wantEntry {
+			continue
+		}
+		if !wantEntryOK {
+			continue
+		}
+		return i, true
+	}
+	return 0, false
 }

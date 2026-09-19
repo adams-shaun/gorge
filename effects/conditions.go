@@ -194,8 +194,9 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	bare := strings.TrimSpace(sa.Params["Condition"])
 	playerTurn := strings.TrimSpace(sa.Params["ConditionPlayerTurn"])
 	phases := strings.TrimSpace(sa.Params["ConditionPhases"])
+	firstCombat := strings.TrimSpace(sa.Params["ConditionFirstCombat"])
 	if defined == "" && present == "" && notPresent == "" && compare == "" && check == "" && bare == "" &&
-		playerTurn == "" && phases == "" {
+		playerTurn == "" && phases == "" && firstCombat == "" {
 		return true, false // not gated (a lone ConditionSVarCompare$ compares nothing)
 	}
 	// Any other Condition* key (Zone, ManaSpent, ...) beside the supported
@@ -212,7 +213,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		switch k {
 		case "ConditionDefined", "ConditionPresent", "ConditionNotPresent", "ConditionCompare",
 			"ConditionCheckSVar", "ConditionSVarCompare", "Condition",
-			"ConditionPlayerTurn", "ConditionPhases":
+			"ConditionPlayerTurn", "ConditionPhases", "ConditionFirstCombat":
 		default:
 			return false, false
 		}
@@ -252,6 +253,19 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			extraMet = false
 		}
 	}
+	// ConditionFirstCombat$ (the DB$ AddPhase gate: Raiyuu, Storm's Edge and
+	// A-Raiyuu's "if it's the first combat phase of the turn" -- 3 corpus
+	// lines, the gate that keeps an extra combat from granting another one):
+	// met when the current combat is the turn's FIRST, read off the folded
+	// per-turn combat count (state.Game.CombatsThisTurn, one increment per
+	// BeginCombat entry). Only "True" is a corpus shape; anything else stays
+	// unsupported (the fail-open run-anyway this file's convention).
+	if firstCombat != "" {
+		if !strings.EqualFold(firstCombat, "True") {
+			return false, false
+		}
+		extraMet = extraMet && g.CombatsThisTurn == 1
+	}
 	// combine AND-s the group gate's answer with the player-turn/phase
 	// preconditions above: a resolved group gate that says run still stays
 	// skipped when a phase/turn precondition says no, and an unresolved
@@ -272,7 +286,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// same fail-open run-anyway the other unsupported shapes take.
 	if check != "" {
 		if defined != "" || present != "" || notPresent != "" || compare != "" || bare != "" ||
-			playerTurn != "" || phases != "" {
+			playerTurn != "" || phases != "" || firstCombat != "" {
 			return false, false
 		}
 		holds, evaluated := CheckSVarHolds(h, c, check, svarCmp)
@@ -297,7 +311,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// corpus SAs).
 	if bare != "" {
 		if defined != "" || present != "" || notPresent != "" || compare != "" || svarCmp != "" ||
-			playerTurn != "" || phases != "" {
+			playerTurn != "" || phases != "" || firstCombat != "" {
 			return false, false
 		}
 		switch {

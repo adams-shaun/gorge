@@ -40,6 +40,32 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " takes an extra turn"
 		}
 		return player(g, ev.Player) + " takes " + itoa(int64(ev.Amount)) + " extra turns"
+	case events.ExtraPhase:
+		// Only the grant is narrated; the consume (-1) and complete (-2)
+		// messages are the turn structure's own bookkeeping, the same silence
+		// the ExtraTurn consumption keeps.
+		if ev.Amount <= 0 {
+			return ""
+		}
+		what := "extra phase"
+		if len(ev.IDs) > 0 {
+			switch state.Step(ev.IDs[0]) {
+			case state.StepBeginCombat:
+				what = "additional combat phase"
+			case state.StepUntap:
+				what = "additional beginning phase"
+			case state.StepUpkeep:
+				what = "additional upkeep step"
+			case state.StepEnd:
+				what = "additional end-of-turn step"
+			default:
+				what = "additional " + state.Step(ev.IDs[0]).String() + " step"
+			}
+		}
+		if ev.Amount > 1 {
+			return player(g, ev.Player) + " gets " + itoa(int64(ev.Amount)) + " " + what + "s"
+		}
+		return player(g, ev.Player) + " gets an " + what
 	case events.DoorUnlock:
 		return obj(g, ev.Obj) + "'s locked door is unlocked"
 	case events.SpeedChange:
