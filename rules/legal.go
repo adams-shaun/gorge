@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"fmt"
 	"regexp"
 	"slices"
 	"strconv"
@@ -1433,11 +1432,6 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		f := o.Face()
 		if f == nil || o.IsToken {
 			continue
-		}
-		if strings.Contains(f.Name, "Voyage") {
-			_, kw := f.KeywordParam("Foretell")
-			fmt.Println("DBG walk:", f.Name, kw, o.CastFlags&state.FlagForetold != 0, e.foretellCastAvailable(id),
-				castRestricted(p, id), e.castSuppressed(p, id), e.spellTimingOK(p, id, f, sorcery), e.castTargetsAvailable(p, id, f.SpellAbility()))
 		}
 		// CR 714.3a: the main face of an Adventure card resting in the
 		// adventure zone (exile, at its Adventure spell face) may be cast from
