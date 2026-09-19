@@ -556,6 +556,19 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // source and re-recorded via TestGenerateOvershootCapture
 // (REPRO_REGEN_FIXTURE=1) with Tokens now attached to the live match:
 // 2238 events, 407 intents, head d8cf3b6dc00a07d9.
+//
+// Discard Mode$ Hand re-record (2026-09-19): the Discard Mode$ Hand wheel
+// fix (DiscardEffect's Mode$ Hand arm) changed the emission shape — the
+// recorded pre-fix engine kept one front-card events.Discard where the
+// post-fix engine emits one events.Discard per card in hand order (pinned
+// on the real corpus card in rules/reforge_the_soul_wheel_test.go). This
+// capture names Reforge the Soul, so the pre-fix recording diverged at
+// event 836 under the post-fix engine. Mode$ Hand discards are no-ask in
+// both engines, so the intents and the parked commander_zone ask are
+// unchanged (the live fixture still measures 378 intents, matching
+// overshootIntents); only the discard events' shape moved. Re-recorded via
+// TestGenerateOvershootCapture (REPRO_REGEN_FIXTURE=1) over the same
+// parked match: 2112 events, 378 intents, head fd33d9db389d28e3.
 const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -587,8 +600,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 2238 {
-		t.Fatalf("capture carries %d events, want the full 2238-event stream (re-recorded)", n)
+	if n := len(l.Events); n != 2112 {
+		t.Fatalf("capture carries %d events, want the full 2112-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {
