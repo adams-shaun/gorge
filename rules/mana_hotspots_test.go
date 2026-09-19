@@ -1,6 +1,10 @@
 package rules
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/cards"
+)
 
 var costTokensSink []string
 
@@ -57,6 +61,36 @@ func BenchmarkParseCostHotShapes(b *testing.B) {
 	}
 	if parsedCostSink.CMC() < 0 {
 		b.Fatal("impossible negative cost digest")
+	}
+}
+
+func BenchmarkParseCostMana(b *testing.B) {
+	b.ReportAllocs()
+	for range b.N {
+		parsedCostSink = ParseCost("2 U U")
+	}
+}
+
+func BenchmarkParseCostHybridNonMana(b *testing.B) {
+	b.ReportAllocs()
+	for range b.N {
+		parsedCostSink = ParseCost("GWP 2B Sac<1/Creature>")
+	}
+}
+
+func BenchmarkParseCostGraveyardLife(b *testing.B) {
+	b.ReportAllocs()
+	for range b.N {
+		parsedCostSink = ParseCost("1 B ExileFromGrave<1/CARDNAME> PayLife<2>")
+	}
+}
+
+func BenchmarkEngineParseCostCachedHybridNonMana(b *testing.B) {
+	c := card(b, "Name:Cache Cost\nManaCost:1 G\nTypes:Creature Test\nPT:1/1\nA:AB$ Draw | Cost$ GWP 2B Sac<1/Creature>\nOracle:x\n")
+	e := New(Config{Names: []string{"you"}, Decks: [][]*cards.Card{{c}}})
+	b.ReportAllocs()
+	for range b.N {
+		parsedCostSink = e.parseCost("GWP 2B Sac<1/Creature>")
 	}
 }
 

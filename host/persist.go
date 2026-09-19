@@ -61,11 +61,12 @@ type sidecar struct {
 	Format       Format  `json:"format,omitempty"`
 	StartingLife int32   `json:"starting_life,omitempty"`
 	Commanders   [][]int `json:"commanders,omitempty"`
+	BotPolicy    string  `json:"bot_policy"`
 }
 
 func (sc sidecar) info() protocol.MatchInfo {
 	return protocol.MatchInfo{Table: sc.Table, Match: sc.Match, Seed: sc.Seed, Seats: sc.Seats, State: sc.State,
-		Result: sc.Result, Winner: sc.Winner, Head: sc.Head, Events: sc.Events, Turns: sc.Turns}
+		Result: sc.Result, Winner: sc.Winner, Head: sc.Head, Events: sc.Events, Turns: sc.Turns, BotPolicy: sc.BotPolicy}
 }
 
 // matchFiles are a live match's append-only logs. The two offset slices

@@ -34,6 +34,10 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 	return func(req httpapi.CreateGameOptions) (httpapi.CreateGameResponse, error) {
 		mu.Lock()
 		defer mu.Unlock()
+		policy, err := host.NormalizeBotPolicy(req.BotPolicy)
+		if err != nil {
+			return httpapi.CreateGameResponse{}, err
+		}
 		pool, otherPool := conPool, cmdPool
 		otherFormat := host.FormatCommander
 		if req.Format == host.FormatCommander {
@@ -93,6 +97,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			ID: id, Name: fmt.Sprintf("Play vs bot (%s)", req.Format), Seats: 2, Decks: decks,
 			Seed: seed, PlayerNames: []string{"You", "Bot"}, Mulligans: mulligans,
 			Spectator: vis, Perpetual: false, Humans: []int{0}, Format: req.Format,
+			BotPolicy: policy,
 		}
 		if err := r.AddTable(cfg); err != nil {
 			return httpapi.CreateGameResponse{}, err
@@ -101,7 +106,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			return httpapi.CreateGameResponse{}, err
 		}
 		return httpapi.CreateGameResponse{Table: string(id), Match: 1, Seed: seed, Seat: 0,
-			Token: tok, Join: fmt.Sprintf("/t/%s?seat=0&token=%s", id, tok)}, nil
+			Token: tok, Join: fmt.Sprintf("/t/%s?seat=0&token=%s", id, tok), BotPolicy: policy}, nil
 	}
 }
 

@@ -97,6 +97,15 @@ type ContinuousEffect struct {
 	// the face. A printed planeswalker's name-subtype ("Sarkhan") is stripped
 	// with the rest while the walker is animated as a creature.
 	RemoveCreatureTypes bool
+	// RemoveCardTypes is the S:Mode$ Continuous RemoveCardTypes$ True strip
+	// (Darksteel Mutation, Kenrith's Transformation, Witness Protection):
+	// while this effect applies, the affected object loses every card type
+	// AND every subtype -- subtypes are tied to their card types (CR
+	// 205.2-family), so the object keeps only its supertypes -- BEFORE this
+	// same effect's AddTypes apply (strip-before-add, like
+	// RemoveCreatureTypes). Set only by the static scanner today; the Animate
+	// primitive does not read RemoveCardTypes$ yet.
+	RemoveCardTypes bool
 	// AddAbilities is a layer-6 ability GRANT (CR 613.1f): the SVar names --
 	// on the SOURCE object's own face -- of the AB$ activated abilities the
 	// affected object gains for the effect's lifetime. Written only by the
@@ -134,6 +143,16 @@ type ContinuousEffect struct {
 	// nothing. Objects only; a player-only remembered target yields an empty
 	// slice.
 	Remembered []ObjID
+	// RememberedPlayers is the PLAYERS an Effect captured for its restriction
+	// (Call for Aid's RememberObjects$ TargetedPlayer: the targeted opponent
+	// whose creatures were stolen, so the registered CantAttack's Target$
+	// Player.IsRemembered — "you can't attack that player" — has a remembered
+	// player to resolve). effectRemembered deliberately records objects only;
+	// a player-only remember yields an empty slice there, so this field is the
+	// explicit player half of the same capture. Empty on every effect that
+	// captured no players. Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	RememberedPlayers []PlayerID
 	// Duration is the original Duration$ value ("" means Permanent, the
 	// effEffect default) preserved for reporting and for the expiry decision
 	// in rules/layers.go. Cosmetic for a layer effect.
@@ -155,6 +174,17 @@ type ContinuousEffect struct {
 	ReplacementEvent  string
 	ReplacementParams map[string]string
 	ReplacementBody   string
+	// ChosenNumber is the Effect's SetChosenNumber$ binding: the number the
+	// Effect resolved when it was created (Torgal's Dog/Wolf count at trigger
+	// time, Wildgrowth Archaic's TriggeredCard$Converge snapshot, Communal
+	// Brewing's ingredient-counter count), read later by the registered
+	// replacement's body through the Count$ChosenNumber head (rules' replCtx
+	// threads it into the body Ctx). Binding ONCE at creation against the
+	// trigger's own context is the point: a live re-read after the entry would
+	// answer a different question. Engine-runtime only, rebuilt by
+	// re-execution on replay like every other continuous-effect field. Zero
+	// means nothing bound (and reads as zero).
+	ChosenNumber int32
 	// RemoveAbilities is a layer-6 ability-removing effect (CR 613.1f/613.4b,
 	// e.g. Humility's RemoveAllAbilities$ True): when an applicable effect
 	// carries it, Derived clears the object's printed (and any earlier-granted)
@@ -214,6 +244,27 @@ type ContinuousEffect struct {
 	// later CheckSVar$-style consumer of the affected object's variables
 	// reads. Nil on every effect that grants none.
 	AddSVars map[string]string
+	// GainControl is a control-change static (Mind Control's "You control
+	// enchanted creature", Fealty to the Realm's "The monarch controls
+	// enchanted creature"): the value is the GainControl$ parameter of an
+	// S:Mode$ Continuous static, and while the static is live every object
+	// its Affects spec matches is controlled by the player the value names.
+	// Like MayPlay it changes no characteristic and is not a CR 613 layer
+	// change -- it is a rules-mod realized by rules' static-control reconcile
+	// (rules/control_static.go), which registers a real tracked control grant
+	// (rules/control.go) and emits events.ControlChange, so triggers, the
+	// controller-reset semantics and the view all see the transfer through
+	// the ordinary path. The value resolves through the shared player-spec
+	// grammar: "You" is the static's controller, any other qualified player
+	// spec ("Player.isMonarch") resolves to the single seat the spec matches,
+	// and anything that names nobody (or several) fails closed -- no grant.
+	// The static's own "as long as" gate (IsPresent$/CheckSVar$) is the
+	// ordinary continuousGateHolds the scan runs for every static; the grant
+	// ends when the static stops being live (source left the battlefield,
+	// gate flipped, Aura moved bearers) or the resolved controller changes.
+	// Empty on every effect that grants no control.
+	GainControl string
+
 	// MayLookAt is a look-permission grant (MayLookAt$ on a Mode$
 	// Continuous static, e.g. Oracle of Mul Daya): while the static is live,
 	// the affected player may look at the object its Affected$ spec matches
@@ -245,6 +296,17 @@ type ContinuousEffect struct {
 	// means the effect never ends on a move. Engine-runtime only, like
 	// ForgetOnMoved.
 	ExileOnMoved string
+	// ForgetCounter carries the Effect's ForgetCounter$ counter kind (task
+	// vow1; Promise of Loyalty's VOW, Quicksilver Fountain's FLOOD,
+	// Obsidian Fireheart's BLAZE -- 18 corpus carriers): a remembered card
+	// whose count of that kind reaches zero after a counter-removal leaves
+	// the effect's Remembered set -- "for as long as it has a vow counter
+	// on it". The count DROPPING without reaching zero keeps the card (the
+	// measured semantics this build pins: a multi-countered card loses the
+	// restriction only when its LAST such counter goes). Engine-runtime
+	// only, rebuilt by re-execution on replay like every other
+	// continuous-effect field.
+	ForgetCounter string
 
 	// AdjustLandPlays marks an additional-land-drops grant (Azusa, Lost but
 	// Seeking's "You may play two additional lands on each of your turns",

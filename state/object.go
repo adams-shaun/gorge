@@ -48,7 +48,7 @@ type SacrificedInfo struct {
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
 const (
-	FlagKicked uint16 = 1 << iota // CR 601.2b: paid an optional additional cost
+	FlagKicked uint32 = 1 << iota // CR 601.2b: paid an optional additional cost
 	FlagSurged
 	FlagFlashback
 	FlagMiracle
@@ -92,6 +92,66 @@ const (
 	// payCast ORs it into the same event the X value and mode flags ride) and
 	// is read by the Counter primitive through the can't-be-countered gate.
 	FlagNoCounter
+	// FlagAdventure marks a cast of an Adventure card's Adventure spell face
+	// (CR 714.3a); it is the provenance the resolution reader (spellRestZone)
+	// uses to exile the spell into the adventure zone instead of the
+	// graveyard. The zone's own provenance -- "this card sits in the
+	// adventure zone" -- is log-derived (rules' adventureZoneAvailable)
+	// because CastFlags reset on the very stack->exile move the resolution
+	// makes. Appended per the enum's own append-only precedent.
+	FlagAdventure
+	// FlagReplicated marks a cast that paid its Replicate cost at least once
+	// (CR 702.55a). The payment COUNT rides the same pay-time CastInfo's
+	// Amount into state.Object.ReplicateTimes -- no carrier pairs {X} with
+	// Replicate (measured), so the two never compete for the Amount field --
+	// and the copy trigger's Count$ReplicatePaid reads it off the cast spell.
+	// Appended per the enum's own append-only precedent.
+	FlagReplicated
+	// FlagConverged marks a cast whose pay-time CastInfo carries CR
+	// 107.4f-family converge provenance: the Amount is the number of
+	// distinct colours (WUBRG) of mana actually spent to cast the spell,
+	// routed into Object.ConvergeColours. Emitted only for faces carrying a
+	// Count$Converge SVar (rules/cast.go's faceWantsConverge), so a
+	// non-converge cast stays byte-identical. Appended per the enum's own
+	// append-only precedent.
+	FlagConverged
+	// FlagBestowed marks a cast paid for with the card's Bestow cost
+	// (CR 702.114a): the spell was an Aura spell with enchant creature, and
+	// the permanent that enters attached reverts to a creature when the
+	// attachment ends. It is the provenance rules/stack.go's resolution
+	// reader uses to substitute the synthesized Aura attach spell for the
+	// face's (absent) spell ability. Appended per the enum's own
+	// append-only precedent.
+	FlagBestowed
+	// FlagMultikicked marks a cast whose pay-time CastInfo carries CR
+	// 702.43 multikicker provenance: the Amount is the number of times the
+	// multikicker cost was paid, routed into Object.TimesKicked. Any
+	// multikicked cast also sets FlagKicked (a multikicked cast IS a kicked
+	// cast -- the bare predicate and the Condition$ Kicked gate keep
+	// matching). Emitted only for a multikicked-mode cast with count > 0 or
+	// a plain-Kicker cast mode whose face carries a Count$TimesKicked SVar
+	// (rules/cast.go's faceWantsTimesKicked), so unrelated kicked casts stay
+	// byte-identical. Appended per the enum's own append-only precedent.
+	FlagMultikicked
+	// FlagForetold marks a cast paid for with the card's Foretell cost
+	// (CR 702.126a). The flag is SET TWICE in a foretold card's life, once
+	// by each provenance marker: the {2} face-down hand exile (rules'
+	// payCast foretell branch -- the action is not a cast, so only this
+	// action ever sets it there) and the later foretell-cost cast from exile
+	// (modeFlags("foretell_cast")), so the cast spell and the permanent it
+	// becomes both carry it -- the stack->battlefield persistence is what
+	// lets an ETB reader (Lupine Harbingers' CheckSVar$ WasForetold) and
+	// Count$Foretold read it. An ordinary cast or any other way into exile
+	// never sets it. Appended per the enum's own append-only precedent.
+	FlagForetold
+	// FlagManaSpent marks a cast whose pay-time CastInfo carries the TOTAL
+	// mana actually spent to cast it (CR 601.2h's payment; task castprov1's
+	// Count$CastTotalManaSpent capture, the FlagConverged pattern: the flag
+	// routes the Amount into Object.ManaSpent instead of overwriting X).
+	// Only a face whose SVar table reads the count (faceWantsCastSpend)
+	// emits the event, so every unrelated cast stays byte-identical.
+	// Appended per the enum's own append-only precedent.
+	FlagManaSpent
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -117,6 +177,17 @@ type Object struct {
 	EnteredThisTurn        bool
 	EnteredFrom            Zone
 	WasDealtDamageThisTurn bool
+	// The control-acquisition tuple (AcqTurn, AcqStep) records WHEN this
+	// object last came under its current controller's control on the
+	// battlefield: stamped by events.Apply on every battlefield ENTRY (Move,
+	// a real CR 400.7 new-object zone change — a battlefield→battlefield
+	// stay is not a new acquisition) and on every battlefield ControlChange.
+	// kw:Echo's intervening-if (CR 702.35a) compares it against the
+	// controller's Player.LastUpkeepTurn. Written ONLY inside events.Apply
+	// so a live game and a replay derive it identically; Clone copies both
+	// with the struct.
+	AcqTurn int32
+	AcqStep Step
 	// ActivatedThisTurn counts the non-mana activated abilities whose
 	// activation minted an AbilityPush with this source this turn
 	// (events.Apply's AbilityPush case). Mana abilities never mint one (CR
@@ -126,6 +197,37 @@ type Object struct {
 	// re-enabling its own tap forever) without ever misreading a human's
 	// legal unlimited activations -- the count is advice, never a gate.
 	ActivatedThisTurn int32
+
+	// AttacksThisTurn counts the DeclareAttackers events this object has
+	// attacked in this turn (events.Apply's DeclareAttackers case), reset in
+	// TurnChange's per-object loop. Extra combats within one turn share
+	// g.Turn and do NOT reset it, so a "attacks for the first time each
+	// turn" trigger (rules/trigger_match.go attacksMatches' FirstAttack$)
+	// reads count == 1 at fire time -- trigger matching runs on the FOLDED
+	// event, so the event's own attack is already counted.
+	AttacksThisTurn int32
+
+	// ExertedThisTurn records CR 702.100a's exert election (task exert1):
+	// the permanent was exerted this turn. Set only by events.Apply's Exert
+	// case; reset in TurnChange's per-object loop (a per-turn fact) and
+	// cleared with ExertSkipUntap when the permanent leaves the battlefield
+	// (CR 400.7: a new object never carries the old object's exerted
+	// status). The filter predicate notExertedThisTurn reads it, which is
+	// what Combat Celebrant's IsPresent$ offer gate evaluates.
+	ExertedThisTurn bool
+
+	// ExertSkipUntap records CR 702.100b's other lifetime: an exerted
+	// creature won't untap during its controller's NEXT untap step, a
+	// window that spans the turn boundary (TurnChange fires between the
+	// exerting turn's cleanup and the next untap step), so TurnChange does
+	// NOT reset it. It is consumed at use, the regeneration-shield
+	// expire-at-use precedent: the untap-step scan (rules/turn.go
+	// finishUntapStep) skips the untap of a permanent carrying it and emits
+	// an Exert event with Amount -1, whose fold clears the flag. Cleared
+	// with ExertedThisTurn on leaving the battlefield. Untap effects are
+	// unaffected: CR 702.100b names only the untap step, and the skip is
+	// implemented in the turn scan, never in effects.TryUntap.
+	ExertSkipUntap bool
 
 	// preStackEntry* carries a card's entry history only while it is on the
 	// stack. events.Apply captures it before PutOnStack overwrites the public
@@ -182,14 +284,59 @@ type Object struct {
 	// permanent) -- events.Move resets both when the object leaves the
 	// battlefield.
 	X         int32
-	CastFlags uint16
+	CastFlags uint32
+	// ReplicateTimes is CR 702.55a's count of replicate payments the cast
+	// made, carried by the pay-time CastInfo's FlagReplicated Amount (the
+	// X-overwrite guard: the flag routes the Amount here instead of into X).
+	// It rides the same provenance window as X/CastFlags and resets
+	// alongside them in events.Move.
+	ReplicateTimes int32
+	// ConvergeColours is the number of distinct colours (WUBRG) of mana
+	// actually spent to cast the spell (CR 107.4f-family converge), carried
+	// by the pay-time CastInfo's FlagConverged Amount. It rides the same
+	// provenance window as X/CastFlags and resets alongside them in
+	// events.Move; a copy of the spell was never cast and reads 0.
+	ConvergeColours int32
+	// TimesKicked is CR 702.43's count of times the spell's multikicker cost
+	// was paid as it was cast, carried by the pay-time CastInfo's
+	// FlagMultikicked Amount (the X-overwrite guard: the flag routes the
+	// Amount here instead of into X). A plain-Kicker cast mode's count (1,
+	// or 2 for a paid-both two-part Kicker) rides the same flag so the 11
+	// legacy Count$TimesKicked carriers read real counts. It rides the same
+	// provenance window as X/CastFlags and resets alongside them in
+	// events.Move; a COPY of the spell was never kicked and reads 0 (the
+	// same reading Count$ReplicatePaid documents).
+	TimesKicked int32
+	// ManaSpent is the TOTAL mana actually spent to cast the spell (CR
+	// 601.2h's payment -- the spent delta's pips summed over every slot),
+	// carried by the pay-time CastInfo's FlagManaSpent Amount (the
+	// X-overwrite guard: the flag routes the Amount here instead of into
+	// X). Convoke contributions are taps and Delve exiles cards, so neither
+	// rides the delta: a convoke-only cast's total spend is a real zero.
+	// It rides the same provenance window as X/CastFlags and resets
+	// alongside them in events.Move; a copy of the spell was never cast and
+	// a cheated-in permanent reads 0.
+	ManaSpent int32
+	// NotedNumber is the number a trigger's Execute$ body noted onto the
+	// CARD (Lupine Harbingers' T:Mode$ ChangesZone | Destination$ Exile
+	// trigger executing DB$ Pump | NoteNumber$ Count$YourTurns -- the
+	// corpus's one NoteNumber$ carrier). events.NotedNumber carries it,
+	// Count$NotedNumber reads it, and it resets with the X/CastFlags window
+	// when the permanent leaves the battlefield: the note is made in exile
+	// and consumed by the ETB machinery of the cast it later becomes, and a
+	// fresh exile re-notes it.
+	NotedNumber int32
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
-	// effects: a card name, a creature type, a number. Reset alongside X/
-	// CastFlags when the object leaves the battlefield.
+	// effects: a card name, a creature type, a number, a colour (the
+	// K:ETBReplacement ChooseColor family -- Utopia Sprawl, Caged Sun,
+	// Quirion Elves; the letter the mana path reads when a Produced$ Chosen
+	// ability resolves). Reset alongside X/CastFlags when the object leaves
+	// the battlefield.
 	ChosenName   string
 	ChosenType   string
 	ChosenNumber int32
+	ChosenColor  string
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string
@@ -291,6 +438,18 @@ type Object struct {
 type ExileReturnEntry struct {
 	Obj  ObjID
 	From Zone
+}
+
+// BestowedAttached reports whether o is a card printed with Bestow that is
+// currently attached to a permanent (CR 702.114e: while attached to a
+// creature the bestowed permanent is an Aura with enchant creature, not a
+// creature; unattached it is a creature again). It is derived from live
+// state -- AttachedTo and the printed face -- so every replay and every read
+// site derives the switch identically and no event field carries a marker.
+// An unattached bestowed card, and any object printed without Bestow, is
+// never "bestowed attached".
+func (o *Object) BestowedAttached() bool {
+	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Bestow")
 }
 
 func (o *Object) Face() *cards.Face {

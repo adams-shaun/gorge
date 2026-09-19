@@ -87,17 +87,35 @@ func TestEnchantUsesTrailingFieldAsPrompt(t *testing.T) {
 	}
 }
 
-// TestEquipDropsTrailingRestrictionFromCost covers K:Equip:<cost>:<restriction>:<desc>
-// (46 corpus lines): only the first field is the cost -- the rest must never
-// reach Cost$.
-func TestEquipDropsTrailingRestrictionFromCost(t *testing.T) {
+// TestEquipReadsTrailingFields covers K:Equip:<cost>:<restriction>:<desc>
+// and the rider forms: the cost stays field 0 (trailing text must never
+// reach Cost$), the restriction spec becomes ValidTgts$ verbatim, and
+// ReduceCost$/ActivationLimit$ riders ride the minted SA (eqcm1 -- the
+// expansion used to drop every trailing field). Prose fields (spaces) and
+// "Flavor " markers are never a spec, and a rider-then-prose line keeps the
+// default Creature.YouCtrl targets.
+func TestEquipReadsTrailingFields(t *testing.T) {
 	eq := expanded(t, "Name:S\nManaCost:3\nTypes:Artifact Equipment\nK:Equip:3:Creature.YouCtrl+Legendary:legendary creature\nOracle:x\n")
 	if len(eq.Abilities) != 1 {
 		t.Fatalf("%+v", eq.Abilities)
 	}
 	a := eq.Abilities[0]
-	if a.Params["Cost"] != "3" || a.Params["ValidTgts"] != "Creature.YouCtrl" {
+	if a.Params["Cost"] != "3" || a.Params["ValidTgts"] != "Creature.YouCtrl+Legendary" {
 		t.Fatalf("%+v", a.Params)
+	}
+	crown := expanded(t, "Name:C\nManaCost:4\nTypes:Artifact Equipment\nK:Equip:4:::ReduceCost$ Monarch:This ability costs {3} less to activate if you're the monarch\nOracle:x\n")
+	ca := crown.Abilities[0]
+	if ca.Params["ValidTgts"] != "Creature.YouCtrl" || ca.Params["ReduceCost"] != "Monarch" {
+		t.Fatalf("%+v", ca.Params)
+	}
+	la := expanded(t, "Name:L\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:0:::ActivationLimit$ 1:Activate only once each turn\nOracle:x\n")
+	laa := la.Abilities[0]
+	if laa.Params["ValidTgts"] != "Creature.YouCtrl" || laa.Params["ActivationLimit"] != "1" {
+		t.Fatalf("%+v", laa.Params)
+	}
+	fl := expanded(t, "Name:F\nManaCost:5\nTypes:Artifact Equipment\nK:Equip:5:Flavor Murasame\nOracle:x\n")
+	if fl.Abilities[0].Params["ValidTgts"] != "Creature.YouCtrl" {
+		t.Fatalf("Flavor field leaked into ValidTgts: %+v", fl.Abilities[0].Params)
 	}
 }
 

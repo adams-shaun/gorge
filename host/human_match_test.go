@@ -71,7 +71,7 @@ func repoDeckLoader(t *testing.T) func(string) (Deck, error) {
 // caretaker counter afterwards.
 func humanFirstSeat(human **HumanSeat) func(names []string, seed uint64) []seat.Seat {
 	return func(names []string, seed uint64) []seat.Seat {
-		out := defaultSeats(names, seed)
+		out := defaultSeats(BotPolicy, names, seed)
 		hs := NewHumanSeat()
 		out[0] = hs
 		*human = hs

@@ -108,9 +108,11 @@ func TestAttachedToLiteralPredicate(t *testing.T) {
 // AttachedTo Targeted (the self-referential resolution-time referent pg1 puts
 // in step 4) must keep failing closed -- it matches nothing and is still
 // reported by UnknownPredicates -- so this work does not silently pretend the
-// referent grammar landed. The nested "AttachedTo Permanent.YouCtrl" shape
-// (a predicate on the attached object, not a single literal) is the same
-// class and also stays unknown.
+// referent grammar landed. The dotted qualifier form is no longer in this
+// class: the YouCtrl qualifier is recognised since the umbra-armor task
+// (Umbra Mystic's Affected$ Aura.AttachedTo Permanent.YouCtrl), pinned by
+// TestAttachedToDottedYouCtrlGrammar in rules; the other dotted qualifiers
+// (EnchantedBy and friends) stay unknown and stay pinned there.
 func TestAttachedToTargetedStillUnknown(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	g := state.NewGame([]string{"you", "them"})
@@ -118,14 +120,13 @@ func TestAttachedToTargetedStillUnknown(t *testing.T) {
 	aura := corpusObject(t, reg, g, "Unholy Strength")
 	aura.AttachedTo = bear.ID
 
-	for _, spec := range []string{"Aura.AttachedTo Targeted", "Aura.AttachedTo Permanent.YouCtrl", "Aura.AttachedTo TriggeredCardLKICopy"} {
+	for _, spec := range []string{"Aura.AttachedTo Targeted", "Aura.AttachedTo TriggeredCardLKICopy"} {
 		if MatchesObjectCtx(g, spec, aura, SpecContext{You: 0}) {
 			t.Errorf("%s must match nothing (the referent needs resolution-time context)", spec)
 		}
 	}
 	for spec, want := range map[string]string{
 		"Aura.AttachedTo Targeted":             "AttachedTo Targeted",
-		"Aura.AttachedTo Permanent.YouCtrl":    "AttachedTo Permanent.YouCtrl",
 		"Aura.AttachedTo TriggeredCardLKICopy": "AttachedTo TriggeredCardLKICopy",
 	} {
 		un := UnknownPredicates(spec)

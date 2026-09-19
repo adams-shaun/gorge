@@ -1062,6 +1062,12 @@ func TestCastInfoKindString(t *testing.T) {
 	}
 }
 
+func TestXChangeKindString(t *testing.T) {
+	if got, want := XChange.String(), "x_change"; got != want {
+		t.Fatalf("XChange.String() = %q, want %q", got, want)
+	}
+}
+
 // TestFlagsFromTrimsWhitespaceAndIgnoresUnknownNames pins down the two
 // FlagsFrom behaviors TestCastInfoRecordsXAndFlags' clean "kicked,flashback"
 // round trip does not exercise: surrounding whitespace around a flag name

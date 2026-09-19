@@ -351,6 +351,7 @@ type CreateGameRequest struct {
 	Format    string `json:"format"`
 	HumanDeck string `json:"human_deck,omitempty"`
 	BotDeck   string `json:"bot_deck,omitempty"`
+	BotPolicy string `json:"bot_policy,omitempty"`
 	// Mulligans is the optional London mulligan allowance for the created
 	// game (finding fb-20260914T114629Z-6c81e4d6: a play-vs-bot game could
 	// mulligan exactly once, with no knob at any layer). It is a pointer so
@@ -366,6 +367,7 @@ type CreateGameOptions struct {
 	Format    host.Format
 	HumanDeck string
 	BotDeck   string
+	BotPolicy string
 	// Mulligans is the validated mulligan allowance; nil keeps the builder's
 	// server-side default.
 	Mulligans *int
@@ -378,11 +380,12 @@ type CreateGameOptions struct {
 // hand-off; a viewer replaying the match needs only the table id and seed,
 // both here and on the match's own wire records.
 type CreateGameResponse struct {
-	Table string `json:"table"`
-	Match int    `json:"match"`
-	Seed  uint64 `json:"seed"`
-	Seat  int    `json:"seat"`
-	Token string `json:"token"`
+	Table     string `json:"table"`
+	Match     int    `json:"match"`
+	Seed      uint64 `json:"seed"`
+	Seat      int    `json:"seat"`
+	Token     string `json:"token"`
+	BotPolicy string `json:"bot_policy"`
 	// Join is the base-relative path the human opens to sit in the seat,
 	// carrying the seat and its token: /t/<table>?seat=N&token=….
 	Join string `json:"join"`
@@ -418,8 +421,13 @@ func (h *handler) games(w http.ResponseWriter, r *http.Request) {
 			"mulligans must be between 0 and 6")
 		return
 	}
+	policy, err := host.NormalizeBotPolicy(req.BotPolicy)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
+		return
+	}
 	resp, err := h.opts.CreateGame(CreateGameOptions{
-		Format: format, HumanDeck: req.HumanDeck, BotDeck: req.BotDeck, Mulligans: req.Mulligans,
+		Format: format, HumanDeck: req.HumanDeck, BotDeck: req.BotDeck, BotPolicy: policy, Mulligans: req.Mulligans,
 	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())

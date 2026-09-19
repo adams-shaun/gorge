@@ -141,6 +141,29 @@ func TestAttackCheapKillBlockIsDeadly(t *testing.T) {
 	}
 }
 
+func TestLethalPressureCandidateForcesBlockOrWins(t *testing.T) {
+	b := boardOf(atk(1, 5, 5), def(1, 6, 6))
+	b.Life[1] = 5
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Min: 0, Max: 1,
+		Options: []decision.Option{{Index: 0, Kind: "attacker", Obj: 101, Player: 1}}}
+	if got := Decide(b, &d, rng(1)).Choices; len(got) != 0 {
+		t.Fatalf("baseline choices = %v, want the bad trade held back", got)
+	}
+	got := LethalPressureDecide(b, &d, rng(1)).Choices
+	if len(got) != 1 || got[0] != 0 {
+		t.Fatalf("lethal-pressure choices = %v, want attack [0]", got)
+	}
+}
+
+func TestLethalPressureCandidateDoesNotAssumeMissingLifeIsZero(t *testing.T) {
+	b := boardOf(atk(1, 5, 5), def(1, 6, 6))
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Min: 0, Max: 1,
+		Options: []decision.Option{{Index: 0, Kind: "attacker", Obj: 101, Player: 1}}}
+	if got := LethalPressureDecide(b, &d, rng(1)).Choices; len(got) != 0 {
+		t.Fatalf("missing defender life produced lethal-pressure attack %v", got)
+	}
+}
+
 // TestAttackFirstStrikeSweeps pins the First-Strike branch of the damage
 // simulation the combat math is built on (blockCombat): a First-Strike
 // attacker kills the first blocker in its own step and the rest hit it
@@ -489,7 +512,8 @@ func attackDecisionDefsFull(b Board, pairs ...[2]int) attackAnswer {
 
 // TestAttackDefenderLifeTiebreak pins AR6's order: tier, lowest life, then
 // first option. In particular a later, higher-numbered seat must win a life
-// comparison, but low life must never override block risk or a closing clock.
+// comparison, but low life must never override block risk or a closing clock
+// in the production baseline.
 func TestAttackDefenderLifeTiebreak(t *testing.T) {
 	for _, tc := range []struct {
 		name       string

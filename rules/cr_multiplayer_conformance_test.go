@@ -32,6 +32,32 @@ func crMultiplayerConfig(t *testing.T, reg *cards.Registry, deck string) Config 
 // permanent. Distribute the departing seat's cards across ordinary zones;
 // battlefield candidates must be permanents. The oracle is zone membership,
 // not arena deletion (an implementation may retain inert historical records).
+// crProbeAnswerAsks settles every non-priority decision the probe's raw
+// entry emits suspend on, then returns once the engine is back at a priority
+// decision. A Cavern of Souls moved onto the battlefield by the fixture asks
+// its "as this enters" creature-type choice at entry (task ct1 made the
+// mid-resolution ChooseType real; a raw MoveZone entry is not a cast, so no
+// cast-time ask pre-recorded it), and the ask must be answered before the
+// probe's own askPriority can post — the overwrite guard would panic
+// otherwise. The probe answers the first legal option, the same
+// deterministic shape botpolicy's clamp fallback gives a bot.
+func crProbeAnswerAsks(t *testing.T, e *Engine) {
+	t.Helper()
+	for i := 0; i < 40; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind == decision.KPriority {
+			return
+		}
+		if len(d.Options) == 0 {
+			t.Fatalf("probe entry ask with no options: %+v", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+			t.Fatalf("probe entry ask answer: %v", err)
+		}
+	}
+	t.Fatal("probe entry asks never settled")
+}
+
 func TestCR800DepartedOwnersCardsLeaveEveryZone(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
@@ -51,6 +77,7 @@ func TestCR800DepartedOwnersCardsLeaveEveryZone(t *testing.T) {
 				to = state.ZHand
 			}
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: to})
+			crProbeAnswerAsks(t, e)
 			checked++ // EXAMINED physical cards, never offending ones.
 		}
 		e.askPriority(1)

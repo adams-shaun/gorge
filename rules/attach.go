@@ -55,6 +55,25 @@ func (e *Engine) attachmentSBAs() bool {
 				continue
 			}
 			bearer := e.G.Obj(o.AttachedTo)
+			if o.BestowedAttached() {
+				// CR 702.114b: a bestowed permanent that is no longer attached
+				// to a legal creature becomes a creature again -- it DETACHES
+				// and stays on the battlefield, never taking the "Aura attached
+				// to nothing / bearer left / illegal bearer" graveyard arms
+				// below. The illegal-bearer reading chosen here: the bearer
+				// left the battlefield, is no longer a creature, or gained
+				// protection from the bestowed card's colours -- any of the
+				// three emits one detach Attach (no IDs) and the card is a
+				// creature again from the derived type switch. (The Aura arm
+				// binning it to the graveyard would contradict 702.114b's own
+				// "becomes a creature again if it's not attached".)
+				if bearer == nil || bearer.Zone != state.ZBattlefield ||
+					!e.IsCreature(bearer.ID) || e.protectedFrom(bearer.ID, o.ID) {
+					e.emit(events.Event{Kind: events.Attach, Obj: id})
+					changed = true
+				}
+				continue
+			}
 			if bearer == nil || bearer.Zone != state.ZBattlefield {
 				// The bearer left the battlefield: an Equipment detaches
 				// (CR 704.5n), an Aura goes to the graveyard (CR 704.5m).
@@ -109,6 +128,14 @@ func isAura(o *state.Object) bool { return hasType(o, "Aura") }
 
 // isEquipment reports whether a permanent has the Equipment subtype.
 func isEquipment(o *state.Object) bool { return hasType(o, "Equipment") }
+
+// isRole reports whether a permanent has the Role subtype. The nine
+// `.cards/tokenscripts/role_*.txt` scripts each print
+// `Types:Enchantment Aura Role`, so a minted Role token carries the word;
+// real printed Role cards do NOT (Forge omits the subtype there), which is
+// recorded as an open issue -- the exclusivity sweep below keys on this
+// predicate, so it only ever fires for minted Role tokens.
+func isRole(o *state.Object) bool { return hasType(o, "Role") }
 
 // hasType is the rules-package view of an object's printed types, mirroring
 // the effects-package hasType (effects/filter.go). Faced-less objects have no

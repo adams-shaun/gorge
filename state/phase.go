@@ -190,6 +190,25 @@ func resolveOnePhase(name string) (Step, bool) {
 	return steps[0], true
 }
 
+// ExtraPhaseRangeEnd returns the LAST step of the extra phase that begins at
+// entry -- the step whose leaving completes the extra phase (rules/turn.go's
+// consumer). Forge's ExtraPhase$ values: Combat is the whole combat
+// (BeginCombat..EndCombat), Beginning the whole beginning phase
+// (Untap..Upkeep..Draw, whose Turn-Based-Actions all run -- Shadow of the
+// Second Sun's added beginning phase untaps and DRAWS), and the single-step
+// values Upkeep and End of Turn are their own range. An unknown entry is its
+// own range (a single-step extra phase).
+func ExtraPhaseRangeEnd(entry Step) Step {
+	switch entry {
+	case StepBeginCombat:
+		return StepEndCombat
+	case StepUntap:
+		return StepDraw
+	default:
+		return entry
+	}
+}
+
 // EarliestAfter returns the set member that comes first in turn order
 // strictly after cur, wrapping once past cleanup -- the step a one-shot
 // "at the beginning of the next ..." delayed trigger registers for. A

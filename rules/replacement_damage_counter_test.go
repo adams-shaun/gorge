@@ -572,7 +572,7 @@ func TestConditionalCounterReplacementUsesPaidX(t *testing.T) {
 			e.G.Stack = []state.ObjID{banefire.ID}
 			cs := mustCorpusCard(t, reg, "Counterspell").Faces[0].SpellAbility()
 			effects.Resolve(e, &effects.Ctx{Source: onBoard(t, e, 1, "Name:Counter Source\nTypes:Creature\nPT:1/1\nOracle:x\n"), Controller: 1,
-				Targets: []state.Target{{Obj: banefire.ID}}}, cs)
+				Targets: []state.Target{{Obj: banefire.ID}}, TargetsOffered: true}, cs)
 			countered := e.G.Obj(banefire.ID).Zone != state.ZStack
 			if countered != tc.wantCountered {
 				t.Fatalf("Banefire X=%d countered=%v, want %v", tc.x, countered, tc.wantCountered)
@@ -934,11 +934,11 @@ func TestHexingSquelcherProtectsYourSpells(t *testing.T) {
 	e.G.Stack = append(e.G.Stack, theirs.ID)
 
 	cs := mustCorpusCard(t, reg, "Counterspell").Faces[0].SpellAbility()
-	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: mine.ID}}}, cs)
+	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: mine.ID}}, TargetsOffered: true}, cs)
 	if got := e.G.Obj(mine.ID).Zone; got != state.ZStack {
 		t.Fatalf("your spell left the stack (zone %s): Hexing Squelcher forbids countering it", got)
 	}
-	effects.Resolve(e, &effects.Ctx{Controller: 0, Targets: []state.Target{{Obj: theirs.ID}}}, cs)
+	effects.Resolve(e, &effects.Ctx{Controller: 0, Targets: []state.Target{{Obj: theirs.ID}}, TargetsOffered: true}, cs)
 	if got := e.G.Obj(theirs.ID).Zone; got == state.ZStack {
 		t.Fatalf("the opponent's spell stayed on the stack: the replacement only shields YOUR spells")
 	}

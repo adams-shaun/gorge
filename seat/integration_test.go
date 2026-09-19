@@ -3,7 +3,6 @@ package seat
 import (
 	"context"
 	"maps"
-	"math/rand/v2"
 	"reflect"
 	"slices"
 	"testing"
@@ -105,20 +104,33 @@ func TestBotAdaptersAgreePerStep(t *testing.T) {
 			{Index: 0, Kind: "activate", Obj: 100},
 			{Index: 1, Kind: "pass"},
 		}}
-	for _, s := range allSteps {
-		boardView := boardFromView(view.View{Phase: view.PhaseOf(s)})
-		boardGame := botpolicy.Board{IsMain: s.IsMain()} // the rules host's expression
-		if boardView.IsMain != boardGame.IsMain {
-			t.Errorf("step %s: view-shaped IsMain %v, game-shaped IsMain %v", s, boardView.IsMain, boardGame.IsMain)
-		}
-		inView, err := NewBot(1).Decide(context.Background(), view.View{Phase: view.PhaseOf(s)}, prio)
-		if err != nil {
-			t.Fatalf("step %s: view-shaped Decide: %v", s, err)
-		}
-		inGame := botpolicy.Decide(boardGame, &prio, rand.New(rand.NewPCG(1, 1^0x9e3779b97f4a7c15)))
-		if !slices.Equal(inView.Choices, inGame.Choices) {
-			t.Errorf("step %s: view-shaped choices %v, game-shaped choices %v", s, inView.Choices, inGame.Choices)
-		}
+	for _, tc := range []struct {
+		name string
+		new  func(uint64) *Bot
+	}{
+		{name: "bot", new: NewBot},
+		{name: "lethal-pressure", new: NewLethalPressureBot},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, s := range allSteps {
+				boardView := boardFromView(view.View{Phase: view.PhaseOf(s)})
+				boardGame := botpolicy.Board{IsMain: s.IsMain()} // the rules host's expression
+				if boardView.IsMain != boardGame.IsMain {
+					t.Errorf("step %s: view-shaped IsMain %v, game-shaped IsMain %v", s, boardView.IsMain, boardGame.IsMain)
+				}
+				inView, err := tc.new(1).Decide(context.Background(), view.View{Phase: view.PhaseOf(s)}, prio)
+				if err != nil {
+					t.Fatalf("step %s: view-shaped Decide: %v", s, err)
+				}
+				inGame, err := tc.new(1).DecideBoard(context.Background(), boardGame, prio)
+				if err != nil {
+					t.Fatalf("step %s: game-shaped DecideBoard: %v", s, err)
+				}
+				if !slices.Equal(inView.Choices, inGame.Choices) {
+					t.Errorf("step %s: view-shaped choices %v, game-shaped choices %v", s, inView.Choices, inGame.Choices)
+				}
+			}
+		})
 	}
 }
 
@@ -135,6 +147,19 @@ func TestBotAdaptersAgreePerStep(t *testing.T) {
 // made (the projected command zone, roster + cast counts, and CmdDamage)
 // are exactly the wire facts this test's view-shaped half reads.
 func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		new  func(uint64) *Bot
+	}{
+		{name: "bot", new: NewBot},
+		{name: "lethal-pressure", new: NewLethalPressureBot},
+	} {
+		t.Run(tc.name, func(t *testing.T) { agreeOverCommanderGame(t, tc.new) })
+	}
+}
+
+func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
+	t.Helper()
 	names, decks := testutil.SampleDecks(t, 2)
 	cmds := [][]int{{17}, {17}} // each seat's first vanilla creature leaves the deck for the command zone
 	cfg := rules.Config{Seed: 0, Names: names, Decks: decks,
@@ -143,8 +168,8 @@ func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 	eGame := rules.New(cfg)
 	eView.Advance()
 	eGame.Advance()
-	botView := NewBot(7)
-	botGame := rand.New(rand.NewPCG(7, 7^0x9e3779b97f4a7c15))
+	botView := newBot(7)
+	botGame := newBot(7)
 	cmdPinned := 0
 	poolN := 0
 	stackN := 0
@@ -188,7 +213,10 @@ func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 			stackN++
 		}
 		cmdPinned++
-		inGame := botpolicy.Decide(boardGame, eGame.Pending(), botGame)
+		inGame, err := botGame.DecideBoard(context.Background(), boardGame, *eGame.Pending())
+		if err != nil {
+			t.Fatalf("intent %d: game-shaped DecideBoard: %v", n, err)
+		}
 		if inView.Seq != inGame.Seq || inView.Player != inGame.Player || !slices.Equal(inView.Choices, inGame.Choices) {
 			t.Fatalf("intent %d: adapters diverged: view %+v vs game %+v (step %s)", n, inView, inGame, eGame.G.Step)
 		}
@@ -226,6 +254,29 @@ func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 // is the copy-paste mirror's guarantee (Ruling F7) turned into a measured
 // property of the two real adapter halves over a whole game.
 func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		new  func(uint64) *Bot
+	}{
+		{name: "bot", new: NewBot},
+		{name: "lethal-pressure", new: NewLethalPressureBot},
+		// cast-profile rides the same adapter pair: with the embedded default
+		// profile its decisions must agree across both halves exactly like
+		// the other policies' do.
+		{name: "cast-profile", new: func(seed uint64) *Bot {
+			b, err := NewCastProfileBot(seed)
+			if err != nil {
+				t.Fatalf("NewCastProfileBot: %v", err)
+			}
+			return b
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) { agreeOverWholeGame(t, tc.new) })
+	}
+}
+
+func agreeOverWholeGame(t testing.TB, newBot func(uint64) *Bot) {
+	t.Helper()
 	// Scenario 1: the historical SampleDecks(4) whole game -- every decision
 	// of a full four-seat Constructed game. Its decks carry no Aura/Equipment,
 	// so (op3) a second scenario below is what actually exercises Card.
@@ -233,7 +284,7 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 	// over the whole game, including an AttachedTo that stays at 0 on both
 	// halves (the agreement must still hold when the fact is "unattached").
 	names, decks := testutil.SampleDecks(t, 4)
-	agreeOverGame(t, names, decks, 0, false, false)
+	agreeOverGame(t, names, decks, 0, false, false, newBot)
 
 	// Scenario 1b (botcounter1, the counter identity): a two-seat mirror
 	// whose seat-1 list carries a real SP$ Counter (authored inline, no
@@ -243,7 +294,7 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 	// census go non-zero on BOTH adapter halves and are pinned equal on
 	// every intent.
 	namesC, decksC := counterMirrorDecks(t)
-	agreeOverGame(t, namesC, decksC, 5, false, true)
+	agreeOverGame(t, namesC, decksC, 5, false, true, newBot)
 
 	// Scenario 2 (op3, the attachment fact): a controlled two-seat game
 	// whose seat-0 deck includes two free Equip:0 Equipments (bareGreavesSrc,
@@ -256,7 +307,7 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 	// the wrong reason. agreeOverGame fails on any divergence between the two
 	// halves AND asserts the field actually went non-zero (wantAttached).
 	names2, decks2 := equippingDeck(t)
-	agreeOverGame(t, names2, decks2, 3, true, false)
+	agreeOverGame(t, names2, decks2, 3, true, false, newBot)
 }
 
 // TestOp3Seed13GreavesLoopTerminates is the measured op3 regression test: a
@@ -333,7 +384,7 @@ func equippingDeck(t testing.TB) ([]string, [][]*cards.Card) {
 // wantCounter does the same for the botcounter1 facts — a Card.Counter true
 // and a foreign stack spell for the decider — so a deck-set without a
 // counter cannot pass the C8-fact agreement vacuously.
-func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uint64, wantAttached, wantCounter bool) {
+func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uint64, wantAttached, wantCounter bool, newBot func(uint64) *Bot) {
 	t.Helper()
 	stackN, counterN, foreignSpellN := 0, 0, 0
 	cfg := rules.Config{Seed: seed, Names: names, Decks: decks}
@@ -341,8 +392,8 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 	eGame := rules.New(cfg)
 	eView.Advance()
 	eGame.Advance()
-	botView := NewBot(7)
-	botGame := rand.New(rand.NewPCG(7, 7^0x9e3779b97f4a7c15))
+	botView := newBot(7)
+	botGame := newBot(7)
 	attachedN := 0
 	poolN := 0
 	sawUnequalLife := false
@@ -433,7 +484,10 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 				attachedN++
 			}
 		}
-		inGame := botpolicy.Decide(boardGame, eGame.Pending(), botGame)
+		inGame, err := botGame.DecideBoard(context.Background(), boardGame, *eGame.Pending())
+		if err != nil {
+			t.Fatalf("intent %d: game-shaped DecideBoard: %v", n, err)
+		}
 		if inView.Seq != inGame.Seq || inView.Player != inGame.Player || !slices.Equal(inView.Choices, inGame.Choices) {
 			t.Fatalf("intent %d: adapters diverged: view %+v vs game %+v (step %s)", n, inView, inGame, eGame.G.Step)
 		}
