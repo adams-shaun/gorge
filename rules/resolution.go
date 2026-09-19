@@ -1019,6 +1019,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.Discard = ids
+		case "choosetype":
+			// A mid-resolution ChooseType ask (task ct1: SP$/AB$/DB$ ChooseType
+			// resolving outside the cast-time "as this enters" choice —
+			// Haunting Voyage's "Choose a creature type. Return ...") was
+			// answered. The chosen option is the cast-time ask's own "type"
+			// wire shape, so the Label IS the creature type the chooser
+			// picked. The re-entered effChooseType emits the one Choose event
+			// the fallback emits, with the answered type, so events.Apply
+			// records o.ChosenType exactly the way every downstream reader
+			// (Card.ChosenType / IsNotChosenType filters) already reads. The
+			// effect consumes and clears the field (fx42 scoping), so a nested
+			// ChooseType below poses its own ask.
+			if len(chosen) > 0 {
+				ctx.ChosenType = chosen[0].Label
+			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
 			// the concrete target shape rather than just an ObjID because player

@@ -31,6 +31,11 @@ type fakeHost struct {
 	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
 	// true branch (the real log-scan read is pinned in rules).
 	castFromHand bool
+	// typeChoices is the TypeChoices answer the double reports (nil by
+	// default): the effects-side ChooseType tests configure it to pose a
+	// real option list. Nil routes ChooseType through AskEmpty — the
+	// unchanged deterministic fallback.
+	typeChoices []decision.Option
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -172,6 +177,13 @@ func (h *fakeHost) IsCreature(id state.ObjID) bool {
 // is exactly today's no-ask behaviour, now with the engines it is a fallback
 // for clearly named (R-9).
 func (h *fakeHost) Ask(d *decision.Decision) bool { return false }
+
+// TypeChoices serves the double's configured typeChoices list (nil by
+// default): nil routes ChooseType through AskEmpty — the unchanged
+// deterministic fallback — so the existing fallback pins pass untouched.
+func (h *fakeHost) TypeChoices(_ state.PlayerID, _ string) []decision.Option {
+	return h.typeChoices
+}
 
 // Suspended reports false: an effects-package test double never actually
 // suspends a resolution (its Ask always returns false, so the asking effect
