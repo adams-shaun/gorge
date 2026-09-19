@@ -882,6 +882,8 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenName = e.Text
 			case "type":
 				o.ChosenType = e.Text
+			case "color":
+				o.ChosenColor = e.Text
 			case "number":
 				o.ChosenNumber = e.Amount
 			case "riot":
@@ -1544,7 +1546,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
-			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
+			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
 			o.Chosen = nil
 		}

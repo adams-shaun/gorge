@@ -225,6 +225,7 @@ type pendingCast struct {
 	etbName   string
 	etbType   string
 	etbNumber int32
+	etbColor  string
 
 	// altAddParts are the alternative parts of the card's
 	// AlternateAdditionalCost keyword ("As an additional cost to cast this
@@ -2344,7 +2345,8 @@ func (e *Engine) discardAsk() bool {
 
 // collectETBChoices walks pc.card's printed replacement lines and, for every
 // ETBReplacement Repl whose ReplaceWith$ resolves to a NameCard/ChooseType/
-// ChooseNumber ability, adds one etbChoice with its pre-built option list.
+// ChooseNumber/ChooseColor ability, adds one etbChoice with its pre-built
+// option list.
 // The list (not just the kind) is captured up front so the offered option and
 // the recorded choice always agree, and so the choice is the same whether it
 // is asked here (cast flow) or once the object has moved (a land's
@@ -2405,6 +2407,29 @@ func etbChoiceKind(api string) string {
 		return "type"
 	case "ChooseNumber":
 		return "number"
+	case "ChooseColor":
+		return "color"
+	}
+	return ""
+}
+
+// etbColourLabels pairs the WUBRG letter the Choose event records with the
+// option label the client shows, in fixed WUBRG order -- the same order every
+// colour choice in this build offers (askManaColor, triggeredManaColourChoice,
+// commanderIdentityColours). etbOptions and etbAnswer both read it, so the
+// option offered and the letter recorded always agree.
+var etbColourLabels = []struct{ letter, name string }{
+	{"W", "White"}, {"U", "Blue"}, {"B", "Black"}, {"R", "Red"}, {"G", "Green"},
+}
+
+// etbColourLetter maps an option label (or already-a-letter) back to the
+// WUBRG letter the event records; "" when the label is neither (an etbAnswer
+// caller only sees options etbOptions built, so the guard is defensive).
+func etbColourLetter(name string) string {
+	for _, cl := range etbColourLabels {
+		if strings.EqualFold(name, cl.name) || strings.EqualFold(name, cl.letter) {
+			return cl.letter
+		}
 	}
 	return ""
 }
@@ -2420,6 +2445,12 @@ func etbChoiceKind(api string) string {
 // (never from a map), numbers are ascending.
 func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory string) []decision.Option {
 	switch kind {
+	case "color":
+		out := make([]decision.Option, 0, len(etbColourLabels))
+		for _, cl := range etbColourLabels {
+			out = append(out, decision.Option{Index: len(out), Kind: "color", Label: cl.name})
+		}
+		return out
 	case "name":
 		if validCards == "" {
 			validCards = "Card.nonLand"
@@ -2537,6 +2568,8 @@ func etbChoicePrompt(kind string) string {
 		return " a card name"
 	case "type":
 		return " a creature type"
+	case "color":
+		return " a color"
 	case "riot":
 		return " how this creature enters (counter or haste)"
 	}
@@ -3360,8 +3393,8 @@ func (e *Engine) manaAsk() bool {
 // etbAnswer records one answered "as this enters" choice onto the card as a
 // Choose event, before the object is put on the stack (or, for a land, before
 // it moves to the battlefield), so the recorded value survives replay exactly
-// as the player chose it. The value rides on Option.Label (name/type) or
-// Option.Amount (number), not the choice index.
+// as the player chose it. The value rides on Option.Label (name/type/colour)
+// or Option.Amount (number), not the choice index.
 func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 	pc := e.cast
 	if pc == nil || len(chosen) != 1 {
@@ -3376,7 +3409,7 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 	// by a later answer and so a spell that never chose asks for no restore.
 	if !pc.etbChosen {
 		if o := e.G.Obj(pc.card); o != nil {
-			pc.etbName, pc.etbType, pc.etbNumber = o.ChosenName, o.ChosenType, o.ChosenNumber
+			pc.etbName, pc.etbType, pc.etbNumber, pc.etbColor = o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor
 		}
 		pc.etbChosen = true
 	}
@@ -3387,6 +3420,10 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "type", Text: opt.Label})
 	case "number":
 		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: int32(opt.Amount)})
+	case "color":
+		if letter := etbColourLetter(opt.Label); letter != "" {
+			e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "color", Text: letter})
+		}
 	case "riot":
 		choice := "haste"
 		if opt.Index == 0 {
@@ -4491,6 +4528,9 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 			}
 			if o.ChosenNumber != pc.etbNumber {
 				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: pc.etbNumber})
+			}
+			if o.ChosenColor != pc.etbColor {
+				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "color", Text: pc.etbColor})
 			}
 		}
 	}

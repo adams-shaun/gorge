@@ -1224,13 +1224,18 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.emitManaTap":             {"Mana"},
 	"Engine.isTriggeredManaAbility":  {"Mana"},
 	"triggeredManaColourChoice":      {"Mana"},
-	"Engine.resolveManaAbility":      {"Mana"},
-	"Engine.resolveManaEffect":       {"Mana"},
-	"manaColourPrompt":               {"Mana"},
-	"Engine.AvailableMana":           {"Mana"},
-	"addAvailable":                   {"Mana"},
-	"availableAmount":                {"Mana"},
-	"activatedMatchesValidSA":        {"Mana"},
+	// rewriteChosenMana (rules/mana_activation.go) executes only inside
+	// resolveTriggeredManaAbilities, so its Produced$ read belongs to
+	// api:Mana alone -- left in the generic union it would mask every
+	// other API's unread Produced$.
+	"Engine.rewriteChosenMana":  {"Mana"},
+	"Engine.resolveManaAbility": {"Mana"},
+	"Engine.resolveManaEffect":  {"Mana"},
+	"manaColourPrompt":          {"Mana"},
+	"Engine.AvailableMana":      {"Mana"},
+	"addAvailable":              {"Mana"},
+	"availableAmount":           {"Mana"},
+	"activatedMatchesValidSA":   {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
