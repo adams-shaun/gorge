@@ -113,6 +113,26 @@ func Describe(g *state.Game, ev events.Event) string {
 			return obj(g, ev.Obj) + " attacks " + player(g, state.PlayerID(firstID(ev.IDs)))
 		}
 		return obj(g, ev.Obj) + " attacks"
+	case events.CopyToken:
+		// DB$ CopyPermanent's mint (Flamerush Rider, Molten Echoes, populate):
+		// Obj is the COPIED card, so the line reads the copy's provenance;
+		// the entry itself is the follow-up MoveZone's own line. The
+		// entry-state riders (the Amount bitmask) are named when set.
+		text := obj(g, ev.Obj) + " creates a token copy"
+		if ev.Amount&events.CopyTokenTapped != 0 {
+			text += ", tapped"
+		}
+		if ev.Amount&events.CopyTokenAttacking != 0 {
+			if len(ev.IDs) > 0 {
+				text += " and attacking " + player(g, state.PlayerID(firstID(ev.IDs)))
+			} else {
+				text += " and attacking"
+			}
+		}
+		if ev.Amount&events.CopyTokenExileCombat != 0 {
+			text += " (exiled at end of combat)"
+		}
+		return text
 	case events.NoteNumber:
 		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
 	case events.MoveZone:

@@ -400,6 +400,20 @@ const (
 	// earlier Kind, so no earlier ordinal, hash chain or golden replay is
 	// affected.
 	ExtraPhase
+	// CopyToken mints a battlefield token that is a copy of the CARD object
+	// Obj names (DB$ CopyPermanent: Flamerush Rider, Molten Echoes, the
+	// populate family -- task copyp1). Like MyriadCopy it only MINTS the
+	// object, in the untracked ZLibrary state AddObject leaves it in; the
+	// caller follows with a genuine MoveZone, so the copy's battlefield
+	// entry stays a ChangesZone-matchable event every "a creature enters"
+	// trigger observes (the CardToken shape folds its own move, which the
+	// Myriad comment above records as entry-invisible). Player is the copy's
+	// controller and Amount is the entry-state rider bitmask the
+	// CopyToken* constants name; bit CopyTokenAttacking takes the defender
+	// it attacks from IDs[0] (a player number, the MyriadCopy/TokenAttacks
+	// precedent). Appended after ExtraPhase, still after every earlier
+	// Kind, so no earlier ordinal, hash chain or golden replay is affected.
+	CopyToken
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -410,7 +424,19 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(ExtraPhase) + 1
+	NumKinds = int(CopyToken) + 1
+)
+
+// CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
+// riders, folded in Apply so replay derives the identical object):
+// TokenTapped$ True, TokenAttacking$ True, and AtEOT$ ExileCombat -- the
+// latter flags the copy IsMyriad so the existing end-of-combat cleanup
+// (MyriadCleanup, CR 702.109a) exiles it with the same semantics every
+// Myriad token already had: end-of-combat exile, battlefield only.
+const (
+	CopyTokenTapped      int32 = 1
+	CopyTokenAttacking   int32 = 2
+	CopyTokenExileCombat int32 = 4
 )
 
 // ExtraPhaseRiders is the rider payload an api:AddPhase grant forwards for
@@ -479,7 +505,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase"}
+	"x_change", "note_number", "extra_phase", "copy_token"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
