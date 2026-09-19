@@ -153,6 +153,31 @@ Reading:
   greedy best-first casting only differs from any other order when mana
   runs out mid-turn.
 
+## L4 result (2026-09-19) — gate not passed
+
+Fit: `policytune` at `de72cf91` (float iterate, per-weight scale
+max(1,|w|/4), A=100, C=4), 300 iterations, 10 approved pairs × 100 games per
+head-to-head evaluation, dev seed block from 10,000,000, fitting CreatureBase,
+CreaturePower, NonCreatureCMC, CurveFit, ManaLeft, CreaturePrecombat,
+CreatureOppCreatures, NonCreatureOppCreatures, CreatureLifeDelta,
+InstantSpeedOffTurnHold, ReserveScale. ~14 min wall on 32 threads.
+
+In-fit bench vs `bot` (1,000 dev games each, ±1.6pp SE) every 50 iterations:
+50.8, 50.5, 50.4, 46.3, 49.5, 52.0 — a noise walk, no trend. Final profile
+moved CreatureBase 30→49, NonCreatureCMC 1→−2, ManaLeft 0→−2, the rest ±1.
+
+**Held-out gate** (seed 1,000,000, 400/pair, seats traded): fitted profile vs
+`bot` **2,037–1,963, 50.92%, 95% CI [49.38%, 52.47%]**, zero stalls; every
+pair within 193–211 of 400. Fails the +3pp gate. Not promoted, not committed
+as a profile.
+
+**Decision per R1 §4.3:** a fitted linear score over spell selection does not
+clear +3pp, so the band above the current casting rule is narrow on this
+suite; the L5/L6 network phases stay closed. Together with the early probes
+(reversal −8.4pp; small nudges inert) the current rule sits near the top of
+this feature family. The infrastructure (CastWeights, `cast-profile`,
+`policytune`) stays: it is the harness for any future feature family.
+
 ## Parallel (unchanged, lower priority)
 
 AR8 combined-attacker lethal, block assignment, trace-family comparison
