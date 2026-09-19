@@ -854,11 +854,18 @@ func Apply(g *state.Game, e Event) {
 			// X value (measured: no K:Replicate carrier's mana value carries
 			// {X}), so the flag routes the Amount into the count field instead
 			// of overwriting X.
+			// FlagMultikicked's Amount is CR 702.43's times-kicked count, never
+			// an X value: the count rides its own TRAILING pay-time CastInfo
+			// (rules/cast.go's payCast), so a multikicker carrier that pairs
+			// {X} with Multikicker (Comet Storm) keeps the two on separate
+			// events.
 			switch {
 			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
 				o.ConvergeColours = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
 				o.ReplicateTimes = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
+				o.TimesKicked = e.Amount
 			default:
 				o.X = e.Amount
 			}
@@ -1546,6 +1553,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
+			o.TimesKicked = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
 			o.Chosen = nil
@@ -1564,6 +1572,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
+			o.TimesKicked = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).

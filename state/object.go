@@ -123,6 +123,16 @@ const (
 	// face's (absent) spell ability. Appended per the enum's own
 	// append-only precedent.
 	FlagBestowed
+	// FlagMultikicked marks a cast whose pay-time CastInfo carries CR
+	// 702.43 multikicker provenance: the Amount is the number of times the
+	// multikicker cost was paid, routed into Object.TimesKicked. Any
+	// multikicked cast also sets FlagKicked (a multikicked cast IS a kicked
+	// cast -- the bare predicate and the Condition$ Kicked gate keep
+	// matching). Emitted only for a multikicked-mode cast with count > 0 or
+	// a plain-Kicker cast mode whose face carries a Count$TimesKicked SVar
+	// (rules/cast.go's faceWantsTimesKicked), so unrelated kicked casts stay
+	// byte-identical. Appended per the enum's own append-only precedent.
+	FlagMultikicked
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -237,6 +247,16 @@ type Object struct {
 	// provenance window as X/CastFlags and resets alongside them in
 	// events.Move; a copy of the spell was never cast and reads 0.
 	ConvergeColours int32
+	// TimesKicked is CR 702.43's count of times the spell's multikicker cost
+	// was paid as it was cast, carried by the pay-time CastInfo's
+	// FlagMultikicked Amount (the X-overwrite guard: the flag routes the
+	// Amount here instead of into X). A plain-Kicker cast mode's count (1,
+	// or 2 for a paid-both two-part Kicker) rides the same flag so the 11
+	// legacy Count$TimesKicked carriers read real counts. It rides the same
+	// provenance window as X/CastFlags and resets alongside them in
+	// events.Move; a COPY of the spell was never kicked and reads 0 (the
+	// same reading Count$ReplicatePaid documents).
+	TimesKicked int32
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number, a colour (the

@@ -648,6 +648,25 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.ReplicateTimes, true
 		}
 		return 0, true
+	case "TimesKicked":
+		// CR 702.43: the number of times the resolving spell's multikicker
+		// cost was paid as it was cast, carried by the pay-time CastInfo's
+		// FlagMultikicked Amount (rules/cast.go's multikickAsk and payCast).
+		// The same provenance read ReplicatePaid makes: read off the SOURCE
+		// (the cast spell on the stack; an ETB reader sees the PERMANENT it
+		// became -- the stack->battlefield move preserves the field -- so a
+		// replay derives the same count). A pending cast's count is seeded
+		// into ctx.TimesKicked by targetBoundCtx when the spell's own
+		// announcement ask reads a TimesKicked bound BEFORE payment has
+		// stamped the object (Comet Storm's TargetMin/Max$ TargetsNum); a
+		// COPY of the spell was never kicked and reads 0.
+		if c.TimesKicked != 0 {
+			return c.TimesKicked, true
+		}
+		if o := g.Obj(c.Source); o != nil {
+			return o.TimesKicked, true
+		}
+		return 0, true
 	case "Converge":
 		// CR 107.4f-family converge: the number of DISTINCT colours (WUBRG)
 		// of mana actually spent to cast the resolving spell, carried by the
@@ -1446,6 +1465,12 @@ func applyCountOp(n int32, op string) int32 {
 		}
 	case op == "Twice":
 		v *= 2
+	case op == "Thrice":
+		// Stronghold Arena's Count$TimesKicked/Thrice: the script writes its
+		// own arithmetic as the op suffix ("gain 3 life for each time it was
+		// kicked" = 3 x the kicks). rules/replacement.go's replCountOp
+		// already knows the word.
+		v *= 3
 	case op == "HalfDown":
 		v /= 2
 	case op == "HalfUp":
