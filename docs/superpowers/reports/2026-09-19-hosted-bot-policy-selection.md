@@ -94,10 +94,45 @@ and also passed at pre-feature commit `4afad4b`, so it is not evidence of a
 hosted-policy regression. The focused host migration test and `TestHeads`
 were green at `4fa8e00`.
 
-## Next experiment
+## Next experiments
 
-AR8 combined-attacker lethal pressure should remain a separate opt-in policy
-experiment. Evaluate it with the approved ten-pair development and held-out
-botbench matrices, pair-level intervals, starting-player splits, replay and
-stall/error status, and trace-family diagnostics before requesting any
-production promotion or golden update.
+These are experiments, not production-policy changes. Each candidate remains
+opt-in, uses only the deciding seat's legal view, records its reason through
+the existing decision trace, and must leave `bot` heads untouched unless a
+separate promotion and golden-update decision is approved.
+
+1. **AR8 combined-attacker lethal pressure.** Replace AR7's independent
+   attacker test with a deterministic subset search: evaluate one attacking
+   set against a defender's minimum legal blocking set. Rank only public
+   battlefield facts and use stable object-id tie breaks.
+2. **Mana and tap sequencing.** Decide whether to tap a source by the
+   best currently visible cast/activation it newly enables, preserving the
+   existing pool-only and own-zone information boundary. Do not infer
+   opponent hands, library order, or unprojected mana abilities.
+3. **Combat block assignment.** Extend the defender-side policy from
+   individual chump checks to legal blocker assignments, valuing survival,
+   trades, and immediately visible lethal prevention without predicting
+   hidden tricks.
+4. **Target and removal evaluation.** Broaden the current literal-damage
+   targeting heuristic only for effects whose public outcome is modelled;
+   unknown prevention, replacement, X, and dynamic-effect shapes remain
+   uninterpreted rather than guessed.
+5. **Mulligan policy.** Add an opt-in opening-hand evaluator based only on
+   the bot's own hand, its chosen deck's public identity, and visible format
+   rules. Keep London keep/bottom choices traceable and deterministic.
+6. **Trace-family diagnostics.** Turn decision-trace families into a
+   candidate-comparison report: quantify which policy reasons changed,
+   whether changes are concentrated in combat/casting/targeting, and whether
+   any family correlates with stalls or replay divergence.
+7. **Adverse-seed and watchdog search.** Sweep deterministic seeds and the
+   approved deck pairs specifically for high decision counts, repeated state
+   shapes, errors, and watchdog exits; a candidate with a reproducible stall
+   is diagnostic-only, never a normal hosted policy.
+8. **Promotion gate and rollback drill.** Before any default change, require
+   development (`seed 0`, 100 games/pair) and held-out (`seed 1,000,000`,
+   400 games/pair) matrices across all ten approved unordered pairs, with
+   pair-level results, starting-player splits, CIs, same-policy controls,
+   replay/stall/error counts, and trace diagnostics. A pooled win rate alone
+   is insufficient; promotion additionally requires explicit authorization
+   to update the three production heads. Verify that reverting the selected
+   table policy to `bot` restores the old deterministic behavior.
