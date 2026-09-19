@@ -1191,8 +1191,18 @@ func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 		}
 		if ti < k && tbmIdx[ti] == i {
 			saved := c.Targets
+			savedOffered := c.OfferedSA
 			c.Targets = []state.Target{c.Targets[base+ti]}
+			// The combined placement ask covered THIS mode's targeting (its
+			// assignment is positional); mark it so the generic ValidTgts$
+			// pre-ask does not re-pose the cross-mode question per mode --
+			// both on the initial pass (where the resolution-level marker's
+			// bool would also suppress it) and on a charm_rest resume, where
+			// the resume ctx carries only the FIRST chosen mode as OfferedSA
+			// (task mvts1).
+			c.OfferedSA = sub
 			Resolve(h, c, sub)
+			c.OfferedSA = savedOffered
 			c.Targets = saved
 			ti++
 		} else {
@@ -1249,9 +1259,39 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		if charmCrossModeRun(h, c, sa, names) {
 			return
 		}
-		for _, name := range names {
+		// Task mvts1, two guards the generic ValidTgts$ pre-ask needs here.
+		//
+		// Coverage: a placement-announced modal resolution asked every CHOSEN
+		// target-bearing mode's targeting in its placement ask (the combined
+		// per-mode ask), but a resume ctx carries only the FIRST of them as
+		// Ctx.OfferedSA (rules' offeredTargetSA returns the first
+		// target-bearing chosen mode). modalOffered detects that derivation
+		// -- OfferedSA set and NOT the Charm root itself -- and marks each
+		// target-bearing mode as covered while it dispatches, so the pre-ask
+		// cannot re-pose the placement question per mode. A mid-resolution
+		// Charm (its own KModes answered) has no modal derivation -- its
+		// OfferedSA is nil or the root's own covered SA -- and its
+		// target-bearing modes keep their real asks.
+		modalOffered := c.OfferedSA != nil && c.OfferedSA.Line != sa.Line
+		for i, name := range names {
 			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				savedOffered := c.OfferedSA
+				if modalOffered && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+					c.OfferedSA = sub
+				}
 				Resolve(h, c, sub)
+				c.OfferedSA = savedOffered
+			}
+			if h.Suspended() {
+				// A mode's own chain posed a mid-resolution ask: never run the
+				// remaining modes while a decision is pending (Engine.ask
+				// panics on the overwrite). Report the rest as a charm-rest
+				// continuation, the same report the cross-mode runner makes,
+				// so they run once the answer lands.
+				if rest := names[i+1:]; len(rest) > 0 {
+					h.SuspendCharmRest(sa, rest)
+				}
+				return
 			}
 		}
 		return

@@ -816,7 +816,18 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	2: "6085b337c4a4c0a1",
+	// 2 seats moved to 938816b6a03a9cfc (task mvts1, the trigger-chain
+	// ValidTgts$ pre-ask): Cabal Therapy (death-n-taxes, cast twice in this
+	// game). Its ability root is AB$ NameCard -- no ValidTgts$, so the
+	// announcement ask never covered it -- and its DB$ Discard | ValidTgts$
+	// Player SUB is the "target player" of "target player reveals their hand
+	// and discards all cards of that name"; pre-mvts1 that sub read an empty
+	// Ctx.Targets and the whole resolution was a silent no-op. It now poses
+	// its own KChoose (chosenTargetsFor), the bot answers option 0, and the
+	// discard resolution runs for real. Instrumented negative control: this
+	// is the ONLY ValidTgts$-carrying sub that poses in any of the four
+	// golden games (2/4/6/8-seat instrumented runs), and 4/6/8 are UNMOVED.
+	2: "938816b6a03a9cfc",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither

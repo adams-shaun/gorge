@@ -239,6 +239,7 @@ func TestAskingSitesResolveAnEmptyCandidateSetSilently(t *testing.T) {
 			noteFree: true,
 			run: func(t *testing.T, h *askHost, c *Ctx) {
 				c.Targets = []state.Target{{Player: 1, IsPlayer: true}}
+				c.TargetsOffered = true
 				s := sa(t, "SP$ Discard | ValidTgts$ Player | Mode$ RevealYouChoose | DiscardValid$ Creature | NumCards$ 1")
 				Resolve(h, c, s)
 			},
@@ -250,6 +251,7 @@ func TestAskingSitesResolveAnEmptyCandidateSetSilently(t *testing.T) {
 			noteFree: true,
 			run: func(t *testing.T, h *askHost, c *Ctx) {
 				c.Targets = []state.Target{{Player: 1, IsPlayer: true}}
+				c.TargetsOffered = true
 				s := sa(t, "SP$ Discard | ValidTgts$ Player | Mode$ TgtChoose | DiscardValid$ Card | NumCards$ 1")
 				Resolve(h, c, s)
 			},

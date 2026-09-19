@@ -3195,33 +3195,5 @@ func changeZoneChosenTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool
 		// Nothing eligible (or an explicitly zero bound): no ask, no move.
 		return nil, false
 	}
-	prompt := strings.TrimSpace(sa.Params["TgtPrompt"])
-	if prompt == "" {
-		prompt = "Choose target"
-	}
-	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
-		Min: int(min), Max: int(max), Source: c.Source,
-		ResumeKind: "choice", ResumeSA: sa,
-		ResumeRemembered: copyTargets(c.Remembered), Prompt: prompt}
-	for _, t := range candidates {
-		o := decision.Option{Index: len(d.Options)}
-		label := ""
-		if t.IsPlayer {
-			o.Kind, o.Player = "player", t.Player
-			if p := h.Game(); int(t.Player) < len(p.Players) {
-				label = p.Players[t.Player].Name
-			}
-		} else {
-			o.Kind, o.Obj = "card", t.Obj
-			if g := h.Game().Obj(t.Obj); g != nil && g.Face() != nil {
-				label = g.Face().Name
-			}
-		}
-		o.Label = label
-		d.Options = append(d.Options, o)
-	}
-	if Ask(h, d) == AskAsked {
-		return nil, true
-	}
-	return candidates[:max], true
+	return poseTargetsAsk(h, c, sa, chooser, candidates, min, max, "choice")
 }

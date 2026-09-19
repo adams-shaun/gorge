@@ -83,6 +83,14 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	// parent's targets says so explicitly (Defined$ Targeted /
 	// ParentTarget), which every script in the corpus does.
 	if _, targeted := sa.Params["ValidTgts"]; targeted {
+		// The generic pre-ask's answered set (task mvts1) outranks the
+		// resolution's own Ctx.Targets: this dispatch asked for and received
+		// ITS OWN targets, and the resolution-level list is either the outer
+		// SA's (the CLOBBER inherit) or empty. Non-nil (possibly empty) only
+		// while the pre-asked body dispatches; the wrapper clears it after.
+		if c.PickedTargets != nil {
+			return copyTargets(c.PickedTargets)
+		}
 		return copyTargets(c.Targets)
 	}
 	return []state.Target{{Obj: c.Source}}
