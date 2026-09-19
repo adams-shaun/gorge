@@ -1246,6 +1246,11 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id]}
+		// The placement ask (pushTrigger's ValidTgts$ read) offered exactly
+		// THIS SA's targeting -- the TargetsOffered marker that keeps
+		// effChangeZone's mid-resolution ask from re-posing it (a Min-0
+		// target the chooser elected zero of leaves o.Targets empty too).
+		ctx.TargetsOffered = strings.TrimSpace(o.Ability.Params["ValidTgts"]) != ""
 		if lki, ok := e.triggerLKI[id]; ok {
 			ctx.LKI = lki.object
 			ctx.LKIPower, ctx.LKIToughness, ctx.LKIPTValid =
@@ -1314,6 +1319,10 @@ func (e *Engine) resolveTop() {
 	f := o.Face()
 	sa := f.SpellAbility()
 	targets := o.Targets
+	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered
+	// (the modal declaration for a Charm, the SpellAbility itself otherwise);
+	// hoisted so the resolution ctx can carry the TargetsOffered marker.
+	targetSA := modalTargetSA(f, sa, o.ChosenModes)
 	// An overloaded spell affects the matching set as it resolves, never as
 	// targets chosen during announcement. This fresh non-target census means
 	// protection/hexproof do not apply and objects entering or changing
@@ -1322,7 +1331,6 @@ func (e *Engine) resolveTop() {
 	// different.
 	overloaded := o.CastFlags&state.FlagOverloaded != 0
 	if overloaded && sa != nil {
-		targetSA := modalTargetSA(f, sa, o.ChosenModes)
 		if targetSA != nil {
 			for _, cand := range e.affectedCandidates(o.Controller, id, id, targetSA) {
 				if cand.kind == "player" {
@@ -1337,8 +1345,7 @@ func (e *Engine) resolveTop() {
 		// A modal spell's target declaration lives on its announced mode SVar,
 		// not the outer Charm SA. Use the same selected declaration targetAsk
 		// used during CR 601.2c, so its targets receive the ordinary CR 608.2b
-		// legality recheck at resolution.
-		targetSA := modalTargetSA(f, sa, o.ChosenModes)
+		// legality recheck at resolution. (targetSA is hoisted above.)
 		// Fix round 2 (re-review N1), the same correction as the ability
 		// branch above, and the one that was actually reachable. Widening the
 		// departed-player release hook in fix round 1 turned a stall into a
@@ -1380,6 +1387,9 @@ func (e *Engine) resolveTop() {
 	if sa != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets}
+		// Same marker as the ability branch: the cast-flow target ask
+		// (targetAsk's targetSA) offered exactly this spell's targeting.
+		ctx.TargetsOffered = targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != ""
 		// CR 107.3i: X is the value the caster chose for the mana cost's {X},
 		// recorded on the stack object by commitCast's CastInfo (the same
 		// value the ETB/replacement path already reads as o.X). Without this

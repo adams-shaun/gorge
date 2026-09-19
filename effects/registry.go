@@ -273,6 +273,16 @@ type Ctx struct {
 	Controller state.PlayerID
 	Targets    []state.Target
 	Remembered []state.Target
+	// TargetsOffered marks that the resolution's OWN ValidTgts$ targeting was
+	// already offered at announcement (rules' resolveTop sets it on both the
+	// ability and the spell branch, exactly for the SA the placement ask
+	// covered). Without it a Min-0 target the chooser elected ZERO of would
+	// look identical to a targeting that was never offered (both leave
+	// Ctx.Targets empty), and effChangeZone's mid-resolution ask
+	// (changeZoneChosenTargets) would pose the same question twice. A fresh
+	// ctx rebuilt by a resume does not carry it -- a deeper sub's targeting
+	// was genuinely never offered, which is the ask's real population.
+	TargetsOffered bool
 	// Captured is the part of Remembered the resolution started with because
 	// its trigger, delayed trigger or replacement put the event's object there
 	// (this engine's stand-in for Forge's separate TriggeredCard), rather than

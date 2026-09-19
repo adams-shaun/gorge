@@ -3162,6 +3162,12 @@ func changeZoneChosenTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool
 		strings.TrimSpace(sa.Params["Defined"]) != "" {
 		return nil, false
 	}
+	if c.TargetsOffered {
+		// The announcement ask offered THIS SA's targeting (rules sets the
+		// marker on the ability/spell branch exactly for the resolving SA);
+		// the chosen-zero election must not be re-asked here.
+		return nil, false
+	}
 	if c.ChoiceDone {
 		ans := c.Choice
 		c.ChoiceDone, c.Choice = false, nil
