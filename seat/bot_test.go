@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
@@ -276,5 +277,41 @@ func TestBoardFromViewCommanderClockFill(t *testing.T) {
 	}
 	if bb.Damage[0] != 7 || len(bb.Damage) != 1 {
 		t.Errorf("seat 1's commander damage = %v, want {seat 0: 7}", bb.Damage)
+	}
+}
+
+// TestCombinedLethalBotForcesCombinedAttack pins the AR8 seat wiring: the
+// bench-only NewCombinedLethalBot answers a KAttackers decision through the
+// game-shaped adapter with the combined-attacker subset (the brief's board:
+// two 3/3s against 5 life and a lone 2/2 blocker), while the production bot
+// and the AR7 bot keep one 3/3 home (AR4 holds a blocker back when no single
+// attacker is lethal). This is the seat-level proof that the opt-in policy
+// reaches DecideBoard and that the default bot is untouched.
+func TestCombinedLethalBotForcesCombinedAttack(t *testing.T) {
+	brd := botpolicy.Board{
+		Creatures: map[state.ObjID]botpolicy.Creature{
+			101: {Power: 3, Toughness: 3, Controller: 0},
+			102: {Power: 3, Toughness: 3, Controller: 0},
+			201: {Power: 2, Toughness: 2, Controller: 1},
+		},
+		Life: map[state.PlayerID]int32{0: 20, 1: 5},
+	}
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Min: 0, Max: 2,
+		Options: []decision.Option{
+			{Index: 0, Kind: "attacker", Obj: 101, Player: 1},
+			{Index: 1, Kind: "attacker", Obj: 102, Player: 1},
+		}}
+	for _, tc := range []struct {
+		name string
+		bot  *Bot
+		want int
+	}{{"bot", NewBot(1), 1}, {"lethal-pressure", NewLethalPressureBot(1), 1}, {"ar8", NewCombinedLethalBot(1), 2}} {
+		in, err := tc.bot.DecideBoard(context.Background(), brd, d)
+		if err != nil {
+			t.Fatalf("%s: DecideBoard: %v", tc.name, err)
+		}
+		if len(in.Choices) != tc.want {
+			t.Fatalf("%s choices = %v, want %d choices", tc.name, in.Choices, tc.want)
+		}
 	}
 }

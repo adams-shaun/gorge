@@ -541,6 +541,16 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 //     defender's known life total attacks even when a cheaper blocker can
 //     kill it. The defender must spend a blocker or lose immediately. A
 //     missing life fact is unknown and never treated as zero/lethal.
+//   - AR8 (opt-in combined-attacker lethal pressure, AR7 implied): with
+//     combinedLethal set, each defender's offered attackers are searched for
+//     an attacking SUBSET whose damage, after the defender's minimum legal
+//     blocking response, still reaches the defender's known life -- even
+//     when no single attacker does -- and that subset is forced to attack.
+//     The search is deterministic (attackers sorted by power desc then ObjID
+//     asc, subsets in increasing bitmask order) and capped at
+//     ar8MaxAttackers, beyond which AR7's per-attacker test substitutes. A
+//     missing life fact means no AR8 effect at all; the option is OFF in the
+//     default Decide.
 //   - AR4 (leave a blocker): if attacking with the chosen set would leave
 //     the board with no untapped creature that can block (an attacker with
 //     Vigilance never taps and still blocks) while ANY opponent has a
@@ -556,10 +566,161 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 // game facts; the per-defender and per-opponent maps below are membership sets
 // and order-independent aggregates, never ranged into a choice).
 func (b Board) chooseAttackers(d *decision.Decision) []int {
-	return b.chooseAttackersMode(d, false)
+	return b.chooseAttackersMode(d, false, false)
 }
 
-func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure bool) []int {
+// ar8MaxAttackers is the subset search's ceiling: beyond this many offered
+// attackers against one defender the 2^n enumeration is abandoned and AR8
+// degrades to AR7's per-attacker test (2^12 = 4096 subsets, the brief's
+// cap). Deterministic, so the fallback is a function of the offered count
+// alone.
+const ar8MaxAttackers = 12
+
+// ar8Attacker is one offered (attacker, defender) pair during the AR8 subset
+// search: the attacker's object id and facts plus the option index that names
+// this defender.
+type ar8Attacker struct {
+	id state.ObjID
+	a  Creature
+	oi int
+}
+
+// ar8BlockAbsorbs reports whether a block by bl against at is one the
+// defender would keep: it must be legal (untapped and Flying/Reach-correct
+// via canBlockLike) and not a PURE CHUMP -- the blocker survives the strike
+// (its remaining toughness exceeds the attacker's power) or kills the
+// attacker outright (its power reaches the attacker's remaining toughness).
+// This is the policy's reading of the brief's "minimum legal blocking
+// response": the defender makes the blocks it wants (a trade or a
+// survive) and does not throw a creature away to a strictly bigger
+// attacker with nothing back. A pure chump therefore does NOT reduce the
+// damage that gets through, which is the aggressive direction the combined
+// lethal-pressure experiment deliberately takes (AR7 makes the same
+// attack-through-a-bad-block bet one attacker at a time).
+func ar8BlockAbsorbs(at, bl Creature) bool {
+	if at.Power <= 0 || !canBlockLike(at, bl) {
+		return false
+	}
+	return bl.remTough() > at.Power || bl.Power >= at.remTough()
+}
+
+// ar8DamageThrough is how much of the chosen attackers' power reaches the
+// defender under a MINIMUM legal blocking response: every untapped defender
+// creature can block at most one attacker (two against a Menace attacker,
+// which no lone blocker may stop), Flying/Reach gate which attackers a
+// blocker may legally block, each block absorbs one attacker whose block is
+// keepable (ar8BlockAbsorbs), and a blocker is never spent on a chump. The
+// response is greedy and DETERMINISTIC: it repeatedly absorbs the
+// largest-power still-reachable attacker (ties by ObjID asc), spending the
+// first free blockers that can legally block it, until no further keepable
+// block is possible. No map or ambient order reaches the result.
+func ar8DamageThrough(atks []ar8Attacker, blockers []blocker) int32 {
+	free := make([]blocker, 0, len(blockers))
+	for _, bl := range blockers {
+		if !bl.c.Tapped {
+			free = append(free, bl)
+		}
+	}
+	// Deterministic blocker order: ObjID asc.
+	sort.SliceStable(free, func(i, j int) bool { return free[i].id < free[j].id })
+	absorbed := make([]bool, len(atks))
+	used := make([]bool, len(free))
+
+	for {
+		bestAtk := -1
+		var bestPower int32
+		var bestNeed int
+		for i := range atks {
+			if absorbed[i] || atks[i].a.Power <= 0 {
+				continue
+			}
+			need := 1
+			if atks[i].a.hasKeyword("Menace") {
+				need = 2
+			}
+			avail := 0
+			for j := range free {
+				if !used[j] && ar8BlockAbsorbs(atks[i].a, free[j].c) {
+					avail++
+				}
+			}
+			if avail < need {
+				continue
+			}
+			if bestAtk == -1 || atks[i].a.Power > bestPower ||
+				(atks[i].a.Power == bestPower && atks[i].id < atks[bestAtk].id) {
+				bestAtk, bestPower, bestNeed = i, atks[i].a.Power, need
+			}
+		}
+		if bestAtk == -1 {
+			break
+		}
+		spent := 0
+		for j := range free {
+			if spent == bestNeed {
+				break
+			}
+			if !used[j] && ar8BlockAbsorbs(atks[bestAtk].a, free[j].c) {
+				used[j] = true
+				spent++
+			}
+		}
+		absorbed[bestAtk] = true
+	}
+
+	var through int32
+	for i := range atks {
+		if !absorbed[i] {
+			through += atks[i].a.Power
+		}
+	}
+	return through
+}
+
+// ar8LethalSubset searches the attacking subsets of atks for one whose
+// ar8DamageThrough reaches the defender's known life, returning that subset
+// (and true) or none. Deterministic: atks must already be sorted by power
+// desc then ObjID asc (the caller does), and masks are enumerated in
+// increasing numeric order, so the first lethal mask wins and ties in the
+// blocking response break on ObjID. A defender with no known life never
+// yields a subset (the missing fact is unknown, never zero). Beyond
+// ar8MaxAttackers the enumeration is skipped and the AR7 per-attacker test is
+// used instead: every attacker whose own unblocked power reaches life.
+func (b Board) ar8LethalSubset(defender state.PlayerID, atks []ar8Attacker, blockers []blocker) ([]ar8Attacker, bool) {
+	life, ok := b.Life[defender]
+	if !ok || life <= 0 {
+		return nil, false
+	}
+	if len(atks) > ar8MaxAttackers {
+		var force []ar8Attacker
+		for _, at := range atks {
+			if at.a.Power > 0 && at.a.Power >= life {
+				force = append(force, at)
+			}
+		}
+		if len(force) > 0 {
+			return force, true
+		}
+		return nil, false
+	}
+	chosen := make([]ar8Attacker, 0, len(atks))
+	for mask := 1; mask < (1 << len(atks)); mask++ {
+		chosen = chosen[:0]
+		for i := range atks {
+			if mask&(1<<i) != 0 {
+				chosen = append(chosen, atks[i])
+			}
+		}
+		if ar8DamageThrough(chosen, blockers) >= life {
+			out := make([]ar8Attacker, len(chosen))
+			copy(out, chosen)
+			return out, true
+		}
+	}
+	return nil, false
+}
+
+func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combinedLethal bool) []int {
 	if len(d.Options) == 0 {
 		return nil
 	}
@@ -656,10 +817,70 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure bool) []
 		return 1, true // blockable, but every block trades even-or-worse for them
 	}
 
+	// AR8 (opt-in combined-attacker lethal pressure): no single attacker may
+	// be lethal, but the attacking SET is. Search each defender's offered
+	// attackers for a subset whose damage survives the defender's minimum
+	// legal blocking response and reaches its known life; force that subset
+	// to attack that defender. ar8OptionFor maps an attacker to the option
+	// index AR8 chose for it, and ar8Forced marks those options so AR4 never
+	// holds one back. Empty when the option is off, no defender has known
+	// life, or no subset is lethal -- in which case AR7's per-attacker logic
+	// (below) still stands unchanged.
+	ar8OptionFor := make(map[state.ObjID]int)
+	ar8Forced := make(map[int]bool)
+	if combinedLethal {
+		// One offered pair set per defender, in a DETERMINISTIC defender order:
+		// first-seen option order (never map order), so which defender wins an
+		// attacker offered against several is a function of the offer list
+		// alone. Attackers are sorted by power desc then ObjID asc (the
+		// brief's order); options keep offered order for the ObjID tiebreak.
+		defAtks := make(map[state.PlayerID][]ar8Attacker, len(d.Options))
+		var defOrder []state.PlayerID
+		seenDef := make(map[state.PlayerID]bool, len(d.Options))
+		for _, at := range attackers {
+			for _, oi := range at.opts {
+				def := d.Options[oi].Player
+				if !seenDef[def] {
+					seenDef[def] = true
+					defOrder = append(defOrder, def)
+				}
+				defAtks[def] = append(defAtks[def], ar8Attacker{id: at.id, a: at.a, oi: oi})
+			}
+		}
+		for _, defender := range defOrder {
+			atks := defAtks[defender]
+			sort.SliceStable(atks, func(i, j int) bool {
+				if atks[i].a.Power != atks[j].a.Power {
+					return atks[i].a.Power > atks[j].a.Power
+				}
+				return atks[i].id < atks[j].id
+			})
+			subset, ok := b.ar8LethalSubset(defender, atks, defBlockers[defender])
+			if !ok {
+				continue
+			}
+			for _, at := range subset {
+				// First lethal defender to name this attacker wins, so an
+				// attacker offered against several defenders is deterministic.
+				if _, done := ar8OptionFor[at.id]; done {
+					continue
+				}
+				ar8OptionFor[at.id] = at.oi
+				ar8Forced[at.oi] = true
+			}
+		}
+	}
+
 	var chosen []int
 	for _, at := range attackers {
 		if at.a.Power <= 0 && !required[at.id] {
 			continue // AR1 (a required 0-power creature still attacks: the requirement is not a value judgement)
+		}
+		// AR8 forces this attacker's lethal-subset option; it skips the value
+		// tiers the same way a required attacker does.
+		if oi, ok := ar8OptionFor[at.id]; ok {
+			chosen = append(chosen, oi)
+			continue
 		}
 		best := -1
 		bestTier := -1
@@ -771,6 +992,11 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure bool) []
 			if lethalPressure && lethalToLife(d.Options[oi].Player, a.Power) {
 				continue
 			}
+			// AR8: part of a lethal attacking set -- held back would undo the
+			// combined pressure AR8 exists for.
+			if ar8Forced[oi] {
+				continue
+			}
 			if a.pt() > holdScore || (a.pt() == holdScore && d.Options[oi].Obj < holdID) {
 				hold, holdScore, holdID = j, a.pt(), d.Options[oi].Obj
 			}
@@ -790,12 +1016,12 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure bool) []
 	if d.Max < len(chosen) && d.Max >= 0 {
 		ordered := make([]int, 0, len(chosen))
 		for _, oi := range chosen {
-			if required[d.Options[oi].Obj] {
+			if required[d.Options[oi].Obj] || ar8Forced[oi] {
 				ordered = append(ordered, oi)
 			}
 		}
 		for _, oi := range chosen {
-			if !required[d.Options[oi].Obj] {
+			if !required[d.Options[oi].Obj] && !ar8Forced[oi] {
 				ordered = append(ordered, oi)
 			}
 		}

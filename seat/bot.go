@@ -30,6 +30,7 @@ import (
 type Bot struct {
 	r              *rand.Rand
 	lethalPressure bool
+	combinedLethal bool
 	// cast/castSet are the cast-profile policy's weights: when castSet is
 	// true every decision's Board gets brd.Cast = cast before the policy
 	// runs, so the cast scorer (cardWorth/castScore/chooseCast) dots its
@@ -67,6 +68,15 @@ func NewLethalPressureBot(seed uint64) *Bot {
 	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), lethalPressure: true}
 }
 
+// NewCombinedLethalBot returns the opt-in AR8 bench policy: the AR7
+// per-attacker lethal test plus the combined-attacker subset search
+// (botpolicy.CombinedLethalDecide). It is constructed only by cmd/botbench's
+// "ar8" policy entry -- it is deliberately absent from the hosted policy
+// vocabulary (host.NormalizeBotPolicy), so it can never reach a live table.
+func NewCombinedLethalBot(seed uint64) *Bot {
+	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), lethalPressure: true, combinedLethal: true}
+}
+
 // NewCastProfileBot returns the cast-profile policy playing the named
 // embedded profile (today: the default one). The only error is an embedded
 // profile that fails its own strict loader -- never reachable for a valid
@@ -93,6 +103,9 @@ func NewCastProfileBotWithWeights(seed uint64, w botpolicy.CastWeights) *Bot {
 func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent {
 	if b.castSet {
 		brd.Cast = b.cast
+	}
+	if b.combinedLethal {
+		return botpolicy.CombinedLethalDecide(brd, d, b.r)
 	}
 	if b.lethalPressure {
 		return botpolicy.LethalPressureDecide(brd, d, b.r)

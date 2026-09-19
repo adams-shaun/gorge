@@ -288,17 +288,27 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 // wire format allows, not only today's. Every access into d.Options remains
 // guarded against the list being empty.
 func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
-	return decide(b, d, r, false)
+	return decide(b, d, r, false, false)
 }
 
 // LethalPressureDecide is the measured opt-in policy used by botbench. It is
 // identical to Decide except that a combat attack which is lethal if
 // unblocked is made even when the defender can trade for it cheaply.
 func LethalPressureDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
-	return decide(b, d, r, true)
+	return decide(b, d, r, true, false)
 }
 
-func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure bool) decision.Intent {
+// CombinedLethalDecide is the opt-in AR8 bench policy: on top of the AR7
+// per-attacker lethal test (LethalPressureDecide), a combat attack whose
+// ATTACKING SET is lethal once the defender's minimum blocking response is
+// subtracted is made even when no single attacker would be. It is exposed to
+// cmd/botbench as the "ar8" policy and is NEVER wired into the hosted or
+// production bot (the default Decide is unchanged).
+func CombinedLethalDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
+	return decide(b, d, r, true, true)
+}
+
+func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combinedLethal bool) decision.Intent {
 	in := decision.Intent{Seq: d.Seq, Player: d.Player}
 	switch d.Kind {
 	case decision.KPriority:
@@ -380,7 +390,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure bool) de
 		return clamp(d, in)
 
 	case decision.KAttackers:
-		in.Choices = b.chooseAttackersMode(d, lethalPressure)
+		in.Choices = b.chooseAttackersMode(d, lethalPressure, combinedLethal)
 		return clamp(d, in)
 
 	case decision.KBlockers:

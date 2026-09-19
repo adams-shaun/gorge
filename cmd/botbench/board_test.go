@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
@@ -85,5 +86,22 @@ func TestPlayMatchUsesBoardSeatWithViewParity(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// TestAr8PolicyIsBenchedButNotHosted pins the brief's exposure rule: the
+// "ar8" policy is registered in the bench's policies map and builds a seat,
+// but host.NormalizeBotPolicy does NOT know the name -- the combined-attacker
+// experiment can only be benched, never hosted on a live table.
+func TestAr8PolicyIsBenchedButNotHosted(t *testing.T) {
+	newSeat, ok := policies["ar8"]
+	if !ok {
+		t.Fatal(`policies["ar8"] is not registered`)
+	}
+	if s := newSeat(1); s == nil {
+		t.Fatal("policies[\"ar8\"] built a nil seat")
+	}
+	if _, err := host.NormalizeBotPolicy("ar8"); err == nil {
+		t.Fatal("host.NormalizeBotPolicy accepted \"ar8\"; the ar8 policy must NOT be hosted")
 	}
 }

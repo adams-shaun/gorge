@@ -139,6 +139,13 @@ var policies = map[string]func(seed uint64) seat.Seat{
 	// Seat implementation.
 	"bot":             hostedPolicy(host.BotPolicy),
 	"lethal-pressure": hostedPolicy(host.LethalPressurePolicy),
+	// ar8 is the combined-attacker lethal-pressure experiment (AR7's
+	// per-attacker test plus the attacking-SET subset search). It is
+	// deliberately NOT a hosted policy -- host.NormalizeBotPolicy does not
+	// know the name -- so it can only be benched here, never hosted.
+	"ar8": func(seed uint64) seat.Seat {
+		return seat.NewCombinedLethalBot(seed)
+	},
 	// cast-profile plays the production bot with a learned cast profile
 	// (botpolicy.CastWeights): with the embedded default profile it is
 	// intent-identical to "bot" (the baseline equality the L2 tests pin),
