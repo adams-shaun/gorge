@@ -6281,3 +6281,108 @@ Deck
 1 Forest
 1 Forest
 1 Forest
+
+# --- Science! (pip commander precon, Dr. Madison Li) — census input, 2026-09-18 (this worktree) ---
+# Source: MTGGoldfish deck 6209010, fetched 2026-09-18. 100 cards incl. commander.
+# run: sed -n '/Science! (pip/,$p' deck.list | tail -n +4 > .ds4/scratch/pip-science.list
+Commander:
+1 Dr. Madison Li
+1x Liberty Prime, Recharged
+1x Automated Assembly Line
+1x Brotherhood Scribe
+1x Overencumbered
+1x The Prydwen, Steel Flagship
+1x Sentry Bot
+1x Vault 13: Dweller's Journey
+1x Curie, Emergent Intelligence
+1x James, Wandering Dad
+1x Nick Valentine, Private Eye
+1x Synth Infiltrator
+1x Assaultron Dominator
+1x The Motherlode, Excavator
+1x Plasma Caster
+1x Synth Eradicator
+1x Arcade Gannon
+1x Electrosiphon
+1x Red Death, Shipwrecker
+1x Rex, Cyber-Hound
+1x Sentinel Sarah Lyons
+1x Shaun, Father of Synths
+1x Vault 112: Sadistic Simulation
+1x Brotherhood Vertibird
+1x T-45 Power Armor
+1x Ferrous Lake
+1x HELIOS One
+1x Austere Command
+1x Open the Vaults
+1x Mechanized Production
+1x One with the Machine
+1x Wake the Past
+1x Mystic Forge
+1x Panharmonicon
+1x Solemn Simulacrum
+1x Steel Overseer
+1x Clifftop Retreat
+1x Exotic Orchard
+1x Glacial Fortress
+1x Irrigated Farmland
+1x Prairie Stream
+1x Skycloud Expanse
+1x Spire of Industry
+1x Sulfur Falls
+1x Temple of Enlightenment
+1x Temple of Epiphany
+1x Treasure Vault
+1x Paladin Danse, Steel Maverick
+1x Nerd Rage
+1x Robobrain War Mind
+1x Bottle-Cap Blast
+1x Elder Owyn Lyons
+1x Behemoth of Vault 0
+1x C.A.M.P.
+1x Endurance Bobblehead
+1x Expert-Level Safe
+1x Intelligence Bobblehead
+1x Nuka-Cola Vending Machine
+1x Crush Contraband
+1x Dispatch
+1x Swords to Plowshares
+1x Glimmer of Genius
+1x Thirst for Knowledge
+1x Whirler Rogue
+1x Loyal Apprentice
+1x Unexpected Windfall
+1x Arcane Signet
+1x Everflowing Chalice
+1x Lightning Greaves
+1x Mind Stone
+1x Sol Ring
+1x Talisman of Conviction
+1x Talisman of Creativity
+1x Talisman of Progress
+1x Thought Vessel
+1x Wayfarer's Bauble
+1x Ash Barrens
+1x Buried Ruin
+1x Command Tower
+1x Evolving Wilds
+1x Myriad Landscape
+1x Mystic Monastery
+1x Path of Ancestry
+1x Razortide Bridge
+1x Rustvale Bridge
+1x Silverbluff Bridge
+1x Terramorphic Expanse
+1x Island
+1x Island
+1x Island
+1x Island
+1x Island
+1x Mountain
+1x Mountain
+1x Mountain
+1x Mountain
+1x Plains
+1x Plains
+1x Plains
+1x Plains
