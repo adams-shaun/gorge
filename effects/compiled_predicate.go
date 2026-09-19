@@ -67,6 +67,7 @@ const (
 	predicateTermKicked
 	predicateTermSurged
 	predicateTermEscaped
+	predicateTermWasCastFromGraveyard
 	predicateTermColor
 	predicateTermType
 	predicateTermColorless
@@ -182,6 +183,13 @@ func compilePredicateTerm(term string) predicateTerm {
 		kind = predicateTermSurged
 	case "escaped":
 		kind = predicateTermEscaped
+	case "wasCastFromGraveyard":
+		// The graveyard-origin cast bits (FlagFlashback/FlagHarmonize/
+		// FlagEscaped) — the compiled twin of the filter.go "escaped"-style
+		// entry and of the Count$wasCastFromGraveyard branch head; an
+		// explicit case is required because predicateTermFromWord maps only
+		// the color/type/colorless word kinds.
+		kind = predicateTermWasCastFromGraveyard
 	case "EquippedBy", "EnchantedBy", "AttachedBy":
 		kind = predicateTermAttachedBy
 	default:
@@ -312,6 +320,8 @@ func matchesCompiledTerm(term predicateTerm, g *state.Game, o *state.Object, sc 
 		matched = o.CastFlags&state.FlagSurged != 0
 	case predicateTermEscaped:
 		matched = o.CastFlags&state.FlagEscaped != 0
+	case predicateTermWasCastFromGraveyard:
+		matched = o.CastFlags&(state.FlagFlashback|state.FlagHarmonize|state.FlagEscaped) != 0
 	case predicateTermColor:
 		matched = strings.Contains(ColorsOf(o), term.arg)
 	case predicateTermType:
