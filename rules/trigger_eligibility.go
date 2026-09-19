@@ -83,7 +83,7 @@ func compiledTriggerInterestAllows(interests cards.TriggerInterest, kind events.
 // adding a matcher cannot silently lose triggers before this table catches up.
 func triggerModeEvents(mode string) triggerEventMask {
 	switch mode {
-	case "ChangesZone":
+	case "ChangesZone", "ChangesZoneAll":
 		return 1<<events.MoveZone | 1<<events.Draw | 1<<events.PutOnStack
 	case "SpellCast":
 		return 1 << events.PutOnStack
