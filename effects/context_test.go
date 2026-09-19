@@ -196,7 +196,7 @@ func (h *fakeHost) SetDamageSource(id state.ObjID) state.ObjID {
 func (h *fakeHost) BatchDepartures(ids []state.ObjID) { h.batch = ids }
 func (h *fakeHost) EndBatchDepartures()               { h.batch = nil }
 
-func newHost(t *testing.T, seats int) *fakeHost {
+func newHost(t testing.TB, seats int) *fakeHost {
 	t.Helper()
 	return &fakeHost{g: state.NewGame(names(seats))}
 }
@@ -223,7 +223,7 @@ func names(n int) []string {
 	return out
 }
 
-func sa(t *testing.T, line string) *cards.SA {
+func sa(t testing.TB, line string) *cards.SA {
 	t.Helper()
 	src := "Name:T\nTypes:Sorcery\nA:" + line + "\nOracle:x\n"
 	c, d := cards.ParseBytes("t.txt", []byte(src))
@@ -413,6 +413,57 @@ func TestSupportedListsRegisteredAPIs(t *testing.T) {
 	}
 	if Supported()["api:NotRegistered"] {
 		t.Fatal("Supported listed an API that was never registered")
+	}
+}
+
+func TestCompiledAPIRegistryDispatchParity(t *testing.T) {
+	defer Register("Draw", effDraw)
+	defer unregister("TestCompiledUnknown")
+
+	bound := &cards.SA{Kind: "SP", API: "Draw"}
+	r := cards.NewRegistry()
+	r.Add(&cards.Card{Faces: []*cards.Face{{Abilities: []*cards.SA{bound}}}})
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	if bound.CompiledAPI() != cards.APIDraw {
+		t.Fatalf("compiled API = %d, want Draw", bound.CompiledAPI())
+	}
+
+	var first, second, unknown int
+	Register("Draw", func(Host, *Ctx, *cards.SA) { first++ })
+	snapshot := registry.load()
+	if snapshot.byName["Draw"] == nil || snapshot.byCode[cards.APIDraw] == nil {
+		t.Fatal("Draw registration was not published in both lookup views")
+	}
+	Resolve(newHost(t, 2), &Ctx{}, bound)
+	Resolve(newHost(t, 2), &Ctx{}, &cards.SA{Kind: "SP", API: "Draw"})
+	if first != 2 {
+		t.Fatalf("first Draw implementation ran %d times, want bound and textual dispatch", first)
+	}
+
+	Register("Draw", func(Host, *Ctx, *cards.SA) { second++ })
+	Resolve(newHost(t, 2), &Ctx{}, bound)
+	Resolve(newHost(t, 2), &Ctx{}, &cards.SA{Kind: "SP", API: "Draw"})
+	if second != 2 || first != 2 {
+		t.Fatalf("replacement dispatch: first=%d second=%d, want 2/2", first, second)
+	}
+
+	Register("TestCompiledUnknown", func(Host, *Ctx, *cards.SA) { unknown++ })
+	Resolve(newHost(t, 2), &Ctx{}, &cards.SA{Kind: "SP", API: "TestCompiledUnknown"})
+	if unknown != 1 {
+		t.Fatalf("registered unknown API ran %d times, want 1", unknown)
+	}
+
+	unregister("Draw", "TestCompiledUnknown")
+	snapshot = registry.load()
+	if snapshot.byName["Draw"] != nil || snapshot.byCode[cards.APIDraw] != nil {
+		t.Fatal("Draw unregistration was not published in both lookup views")
+	}
+	h := newHost(t, 2)
+	Resolve(h, &Ctx{}, bound)
+	if len(h.log) != 1 || h.log[0].Text != "unimplemented API Draw" {
+		t.Fatalf("unregistered compiled API log = %+v", h.log)
 	}
 }
 

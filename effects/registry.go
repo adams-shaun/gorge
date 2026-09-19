@@ -761,7 +761,66 @@ func (a *atomicMap[V]) delete(keys ...string) {
 	a.ptr.Store(&next)
 }
 
-var registry = newAtomicMap[Effect]()
+type effectRegistrySnapshot struct {
+	byName map[string]Effect
+	byCode []Effect
+}
+
+type effectRegistry struct {
+	mu  sync.Mutex
+	ptr atomic.Pointer[effectRegistrySnapshot]
+}
+
+func newEffectRegistry() *effectRegistry {
+	r := &effectRegistry{}
+	r.ptr.Store(&effectRegistrySnapshot{
+		byName: map[string]Effect{},
+		byCode: make([]Effect, int(cards.APICodeCount)),
+	})
+	return r
+}
+
+func (r *effectRegistry) load() *effectRegistrySnapshot { return r.ptr.Load() }
+
+func (r *effectRegistry) set(name string, effect Effect) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	old := r.ptr.Load()
+	next := &effectRegistrySnapshot{
+		byName: make(map[string]Effect, len(old.byName)+1),
+		byCode: append([]Effect(nil), old.byCode...),
+	}
+	for key, registered := range old.byName {
+		next.byName[key] = registered
+	}
+	next.byName[name] = effect
+	if code := cards.APICodeForName(name); code != cards.APIUnknown {
+		next.byCode[int(code)] = effect
+	}
+	r.ptr.Store(next)
+}
+
+func (r *effectRegistry) delete(names ...string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	old := r.ptr.Load()
+	next := &effectRegistrySnapshot{
+		byName: make(map[string]Effect, len(old.byName)),
+		byCode: append([]Effect(nil), old.byCode...),
+	}
+	for key, registered := range old.byName {
+		next.byName[key] = registered
+	}
+	for _, name := range names {
+		delete(next.byName, name)
+		if code := cards.APICodeForName(name); code != cards.APIUnknown {
+			next.byCode[int(code)] = nil
+		}
+	}
+	r.ptr.Store(next)
+}
+
+var registry = newEffectRegistry()
 
 // Register installs an implementation for a Forge API name. Called from init
 // functions in this package; re-registering replaces, which is what lets the
@@ -777,8 +836,8 @@ func unregister(apis ...string) { registry.delete(apis...) }
 func Supported() map[string]bool {
 	reg := registry.load()
 	non := supportedNonAPI.load()
-	out := make(map[string]bool, len(reg)+len(non))
-	for k := range reg {
+	out := make(map[string]bool, len(reg.byName)+len(non))
+	for k := range reg.byName {
 		out["api:"+k] = true
 	}
 	for k := range non {
@@ -826,8 +885,14 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 		}
-		fn, ok := reg[sa.API]
-		if !ok {
+		var fn Effect
+		if code := sa.CompiledAPI(); code != cards.APIUnknown && int(code) < len(reg.byCode) {
+			fn = reg.byCode[int(code)]
+		}
+		if fn == nil {
+			fn = reg.byName[sa.API]
+		}
+		if fn == nil {
 			// Unimplemented primitives must be loud but harmless: deck-build
 			// validation is supposed to have caught this already.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,

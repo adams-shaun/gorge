@@ -122,5 +122,5 @@ func (e *Engine) unlockRoomCost(o *state.Object) (Cost, bool) {
 	if f == nil {
 		return Cost{}, false
 	}
-	return ParseCost(f.ManaCost), true
+	return e.parseCost(f.ManaCost), true
 }

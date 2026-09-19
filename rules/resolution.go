@@ -894,7 +894,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// CR 702.21a activation window as an ordinary numeric Ward.
 			if len(chosen) == 1 && chosen[0].Kind == "ward_mana" {
 				_, manaRaw, _ := strings.Cut(rp.sa.Params["UnlessCost"], ">:")
-				cost := ParseCost(manaRaw)
+				cost := e.parseCost(manaRaw)
 				if e.payMana(chosen[0].Player, cost) {
 					ctx.UnlessPay = "pay"
 				} else if cost.hasManaPayment() && e.hasUntappedManaSource(chosen[0].Player) {

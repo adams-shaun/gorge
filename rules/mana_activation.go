@@ -179,7 +179,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		// [0] once per intent, +3 colourless per activation, forever. The
 		// ability offer (rules/legal.go) owns these abilities with the full
 		// CR 606.3 gates (sorcery timing, once per permanent per turn).
-		if isLoyaltyAbility(ma) {
+		if e.isLoyaltyAbility(ma) {
 			continue
 		}
 		// Activation$ (Mox Opal's "Activate only if you control three or more
@@ -249,7 +249,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			considerReflected(ma)
 			continue
 		}
-		if ma.API == "Mana" && !isLoyaltyAbility(ma) && abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
+		if ma.API == "Mana" && !e.isLoyaltyAbility(ma) && abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
 			e.manaActivationGateHolds(p, id, ma) {
 			out = append(out, ma)
 		}
@@ -265,7 +265,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			considerReflected(ga.sa)
 			continue
 		}
-		if ga.sa.API != "Mana" || isLoyaltyAbility(ga.sa) {
+		if ga.sa.API != "Mana" || e.isLoyaltyAbility(ga.sa) {
 			continue
 		}
 		if !abilityZoneOK(ga.sa, o.Zone) || abilityRestricted(ga.sa) || !e.manaAbilityPayable(p, id, ga.sa) ||
@@ -478,7 +478,7 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 	if o == nil || o.Face() == nil {
 		return false
 	}
-	cost := ParseCost(ma.Params["Cost"])
+	cost := e.parseCost(ma.Params["Cost"])
 	pool := e.manaAvailableFor(p, source, true)
 	if hyp != nil {
 		pool = *hyp
@@ -909,7 +909,7 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 			e.emit(events.Event{Kind: events.ManaActivate, Player: p, Obj: source, Amount: int32(idx)})
 		}
 	}
-	cost := ParseCost(ma.Params["Cost"])
+	cost := e.parseCost(ma.Params["Cost"])
 	sacs, _ := e.manaSacrifices(p, source, cost)
 	if len(cost.Discard) > 0 || len(cost.Exile) > 0 {
 		e.manaDiscardActivation = &manaDiscardActivation{player: p, source: source,
@@ -1207,7 +1207,7 @@ func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma
 	// replay chain head). A sacrifice-only KCI activation therefore identifies
 	// its source but is not tap-produced.
 	savedTap, savedProducer := e.manaFromTap, e.manaProducer
-	e.manaFromTap = ParseCost(ma.Params["Cost"]).Tap
+	e.manaFromTap = e.parseCost(ma.Params["Cost"]).Tap
 	e.manaProducer = source
 	e.resolveAbility(source, p, nil, &copy, o.Face().SVars)
 	e.manaFromTap, e.manaProducer = savedTap, savedProducer

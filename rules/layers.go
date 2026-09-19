@@ -279,7 +279,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 					// the outer spec no longer matches, grants nothing.
 					if name := strings.TrimSpace(st.Params["AddStaticAbility"]); name != "" && w.depth == 0 {
 						if inner, ok := cards.ParseStaticLine(fc.SVars[name]); ok && inner.Mode == "Continuous" &&
-							effects.MatchesSpecFrom(e.G, affects, id, o.Controller, id) {
+							e.matchesSpecFrom(affects, id, o.Controller, id) {
 							grantQueue = append(grantQueue, staticWork{st: inner, depth: w.depth + 1})
 						}
 					}
@@ -457,7 +457,7 @@ func (e *Engine) GrantedSVar(id state.ObjID, name string) (string, bool) {
 		if len(ce.AddSVars) == 0 {
 			continue
 		}
-		if v, ok := ce.AddSVars[name]; ok && effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+		if v, ok := ce.AddSVars[name]; ok && e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
 			return v, true
 		}
 	}
@@ -476,7 +476,7 @@ func (e *Engine) grantedSVarsFor(id state.ObjID) map[string]string {
 		if len(ce.AddSVars) == 0 {
 			continue
 		}
-		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+		if !e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
 			continue
 		}
 		if merged == nil {
@@ -503,7 +503,7 @@ func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
 		return false
 	}
 	for _, ce := range e.active() {
-		if ce.MayLookAt && effects.MatchesSpecFrom(e.G, ce.Affects, lib[0], ce.Controller, ce.Source) {
+		if ce.MayLookAt && e.matchesSpecFrom(ce.Affects, lib[0], ce.Controller, ce.Source) {
 			return true
 		}
 	}
@@ -1075,16 +1075,14 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 }
 
 func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []string, atStack state.Zone) bool {
-	return effects.MatchesSpecCtx(e.G, ce.Affects, id, effects.SpecContext{
-		You: ce.Controller, Source: ce.Source, AsStack: atStack != 0,
-		// ExtraTypes is the walk's types-so-far list for THIS object: a later
-		// layer-4 effect selects a creature an earlier one made a Goblin, and
-		// a layer-7 lord's Affected$ sees the derived type. A value slice,
-		// not a callable: a call made through a SpecContext field makes
-		// escape analysis leak the whole context (its Resolve closure
-		// included) to the heap on every hot-path construction.
-		ExtraTypes: types,
-	})
+	// ExtraTypes is the walk's types-so-far list for THIS object: a later
+	// layer-4 effect selects a creature an earlier one made a Goblin, and a
+	// layer-7 lord's Affected$ sees the derived type. A value slice, not a
+	// callable, keeps the context stack-allocated on this hot path.
+	sc := e.specCtx(ce.Source, ce.Controller)
+	sc.AsStack = atStack != 0
+	sc.ExtraTypes = types
+	return effects.MatchesSpecCtx(e.G, ce.Affects, id, sc)
 }
 
 // derivedScalar returns only an object's derived power and toughness — the
@@ -1500,7 +1498,7 @@ func (e *Engine) restrictionApplies(ce ContinuousEffect, id state.ObjID) bool {
 	if spec == "" {
 		return len(ce.Remembered) > 0
 	}
-	sc := effects.SpecContext{You: ce.Controller, Source: ce.Source}
+	sc := e.specCtx(ce.Source, ce.Controller)
 	for _, r := range ce.Remembered {
 		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 	}

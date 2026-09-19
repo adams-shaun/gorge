@@ -24,6 +24,7 @@ func (e *Engine) Clone() *Engine {
 	c := &Engine{
 		G:                   e.G.Clone(),
 		L:                   e.L.Clone(),
+		compiledText:        e.compiledText,
 		turnsTaken:          append([]int32(nil), e.turnsTaken...),
 		turnsTakenEpoch:     e.turnsTakenEpoch,
 		format:              e.format,
@@ -198,8 +199,9 @@ func (e *Engine) Clone() *Engine {
 			c.phaseUnknownNoted[k] = v
 		}
 	}
-	// phaseSpecs, triggerEventMasks and triggerObjectMasks are pure syntax caches. Leave them
-	// empty: each branch owns its writable maps, unlike diagnostic history.
+	// phaseSpecs, the unbound-face triggerEventMasks fallback and
+	// triggerObjectMasks are pure syntax caches. Leave them empty: each branch
+	// owns its writable caches, unlike diagnostic history.
 	c.triggerObjectMasks = nil
 	if e.triggerTurnFires != nil {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))

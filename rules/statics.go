@@ -164,9 +164,14 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 // restriction would be dead. The resolver closes over source/you -- both
 // plain scalars -- so it is deterministic and Clone-safe.
 func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecContext {
+	var predicates *effects.PredicatePrograms
+	if e.compiledText != nil {
+		predicates = e.compiledText.predicates
+	}
 	return effects.SpecContext{
-		You:    you,
-		Source: source,
+		You:               you,
+		Source:            source,
+		PredicatePrograms: predicates,
 		Resolve: func(name string) (int32, bool) {
 			o := e.G.Obj(source)
 			if o == nil {
@@ -393,7 +398,7 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 	if o == nil || o.Face() == nil {
 		return Cost{}
 	}
-	return e.costModifiers(p, id, spellScope("")).apply(ParseCost(o.Face().ManaCost))
+	return e.costModifiers(p, id, spellScope("")).apply(e.parseCost(o.Face().ManaCost))
 }
 
 // castWithFlash reports whether an active CastWithFlash static gives p
@@ -596,7 +601,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
 			continue
 		}
-		out = append(out, altCostView{cost: ParseCost(sv.Params["Cost"]),
+		out = append(out, altCostView{cost: e.parseCost(sv.Params["Cost"]),
 			announce: strings.TrimSpace(sv.Params["Announce"]), src: sv.Source})
 	}
 	if o := e.G.Obj(id); o != nil {
@@ -608,7 +613,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 				if !e.alternativeCostScopeOK(st.Params, id, id, p, o.Controller) {
 					continue
 				}
-				out = append(out, altCostView{cost: ParseCost(st.Params["Cost"]),
+				out = append(out, altCostView{cost: e.parseCost(st.Params["Cost"]),
 					announce: strings.TrimSpace(st.Params["Announce"]), src: id})
 			}
 		}
@@ -1859,7 +1864,7 @@ func (e *Engine) abilityConstraintMatches(scope costScope, p state.PlayerID, id 
 	case "!ManaAbility":
 		return ab.API != "Mana"
 	case "Loyalty":
-		return isLoyaltyAbility(ab)
+		return e.isLoyaltyAbility(ab)
 	case "YouCtrl":
 		o := e.G.Obj(id)
 		return o != nil && o.Controller == p

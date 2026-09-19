@@ -31,6 +31,12 @@ func TestCompileDirLoadsTokenScriptsByStem(t *testing.T) {
 	if _, ok := r.Lookup("Goblin Token"); ok {
 		t.Fatal("a token is not a card: Lookup must not find it")
 	}
+	cardID := r.Cards[0].Faces[0].CompiledID()
+	aID := r.Tokens["c_3_3_a_phyrexian_wurm_deathtouch"].Faces[0].CompiledID()
+	zID := r.Tokens["r_1_1_goblin"].Faces[0].CompiledID()
+	if cardID != 1 || aID != 2 || zID != 3 {
+		t.Fatalf("compiled face IDs card/a-token/z-token = %d/%d/%d, want 1/2/3", cardID, aID, zID)
+	}
 }
 
 func TestTokensSurviveTheCache(t *testing.T) {
@@ -49,6 +55,9 @@ func TestTokensSurviveTheCache(t *testing.T) {
 	if _, ok := back.Token("r_1_1_goblin"); !ok {
 		t.Fatal("token lost through Save/Load")
 	}
+	if back.Catalog() == nil || back.Tokens["r_1_1_goblin"].Faces[0].CompiledID() == 0 {
+		t.Fatal("loaded token has no compiled binding")
+	}
 }
 
 func TestCompileDirWithoutTokensStillCompiles(t *testing.T) {
@@ -60,5 +69,8 @@ func TestCompileDirWithoutTokensStillCompiles(t *testing.T) {
 	r, _, err := CompileDir(CorpusDir(dir))
 	if err != nil || len(r.Tokens) != 0 {
 		t.Fatalf("%v, %d tokens", err, len(r.Tokens))
+	}
+	if r.Catalog() == nil {
+		t.Fatal("CompileDir without tokens returned no catalog")
 	}
 }

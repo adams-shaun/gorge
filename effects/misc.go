@@ -1307,6 +1307,8 @@ func effReplaceMana(_ Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+var manaRuneNormalizer = strings.NewReplacer("{", "", "}", "", " ", "")
+
 func effMana(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
 	if produced == "" || produced == "Any" || produced == "Combo Any" {
@@ -1345,7 +1347,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// of them reaches the pool: ComboChosen/ChosenColor/Special ... values
 	// that do not name plain mana symbols fail closed instead of splitting
 	// into garbage.
-	runes := strings.NewReplacer("{", "", "}", "", " ", "").Replace(produced)
+	runes := manaRuneNormalizer.Replace(produced)
 	for _, r := range runes {
 		if !strings.ContainsRune(ManaSymbols, r) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,

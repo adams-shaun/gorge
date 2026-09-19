@@ -1281,9 +1281,11 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 	return false, false
 }
 
+var cmcBraceNormalizer = strings.NewReplacer("{", " ", "}", " ")
+
 // parseCMC counts a mana cost's converted value without importing rules.
 func parseCMC(cost string) int32 {
-	cost = strings.NewReplacer("{", " ", "}", " ").Replace(cost)
+	cost = cmcBraceNormalizer.Replace(cost)
 	if strings.EqualFold(strings.TrimSpace(cost), "no cost") {
 		return 0
 	}
@@ -1403,6 +1405,10 @@ type SpecContext struct {
 	You     state.PlayerID
 	Source  state.ObjID
 	Resolve func(name string) (int32, bool)
+	// PredicatePrograms is an optional immutable compiled-text sidecar. A nil
+	// value keeps the textual matcher authoritative for synthetic fixtures and
+	// dynamic source strings.
+	PredicatePrograms *PredicatePrograms
 	// ResolutionTargets are the state.Object.Targets of the spell or ability
 	// currently resolving. They are deliberately absent while a target offer is
 	// built: Targeted* is self-referential and cannot determine legality before
@@ -1456,6 +1462,23 @@ type SpecContext struct {
 // that has left the stack (CR 707.10h: a copy that changes zones ceases to
 // exist) never matches anything regardless of spec.
 func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
+	if o == nil {
+		return false
+	}
+	if ps := sc.PredicatePrograms; ps != nil {
+		switch ps.Evaluate(spec, g, o, sc) {
+		case PredicateYes:
+			return true
+		case PredicateNo:
+			return false
+		}
+	}
+	return matchesObjectText(g, spec, o, sc)
+}
+
+// matchesObjectText is the original textual filter evaluator. It remains the
+// oracle for unbound and partially compiled predicate programs.
+func matchesObjectText(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
 	if o == nil {
 		return false
 	}

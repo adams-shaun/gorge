@@ -161,7 +161,7 @@ func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.S
 	// the stack. A response may change control of the cumulative permanent,
 	// but it must not transfer the already-triggered payment decision.
 	cu := &cumulativeUpkeep{stackObj: stackObj, source: source, player: stack.Controller,
-		amount: scaleCost(ParseCost(label), o.Counter("AGE")), costLabel: label,
+		amount: scaleCost(e.parseCost(label), o.Counter("AGE")), costLabel: label,
 		actionRemaining: o.Counter("AGE")}
 	if actionOK {
 		cu.action = action
@@ -181,7 +181,7 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 	}
 	label := rp.sa.Params["Cost"]
 	e.triggerCost = &triggeredEffectCost{resume: rp, source: source,
-		player: o.Controller, amount: ParseCost(label), costLabel: label}
+		player: o.Controller, amount: e.parseCost(label), costLabel: label}
 	e.triggeredCostPaymentAsk()
 }
 

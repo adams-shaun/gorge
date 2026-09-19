@@ -15,8 +15,9 @@ import (
 
 // Registry is the compiled corpus: every card, indexed by normalised name.
 type Registry struct {
-	Cards  []*Card
-	byName map[string]*Card
+	Cards   []*Card
+	byName  map[string]*Card
+	catalog *CompiledCatalog
 
 	// Tokens holds compiled token scripts (forge-gui/res/tokenscripts),
 	// keyed by file stem — e.g. "r_1_1_goblin" — the name a card's
@@ -58,6 +59,7 @@ func NormalizeName(s string) string {
 }
 
 func (r *Registry) Add(c *Card) {
+	r.invalidateCatalog()
 	r.Cards = append(r.Cards, c)
 	if r.byName == nil {
 		r.byName = map[string]*Card{}
@@ -198,6 +200,9 @@ func LoadRegistry(path string) (*Registry, error) {
 			c.Link()
 		}
 	}
+	if err := r.CompileMetadata(); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 
@@ -229,6 +234,9 @@ func CompileDir(dir string) (*Registry, []Diag, error) {
 	}
 
 	if err := compileTokens(r, dir, &diags); err != nil {
+		return nil, nil, err
+	}
+	if err := r.CompileMetadata(); err != nil {
 		return nil, nil, err
 	}
 

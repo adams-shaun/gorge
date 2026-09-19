@@ -96,6 +96,7 @@ type triggerObjectLKI struct {
 type Engine struct {
 	G *state.Game
 	L *events.Log
+	compiledText *compiledText
 
 	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
 	// turnsTakenEpoch is the log length represented by the cache; emit advances
@@ -396,8 +397,9 @@ type Engine struct {
 	// phaseSpecs caches pure Phase$ parsing for both diagnostics and matching.
 	// It is scratch, not replay bookkeeping: clones start with an empty cache.
 	phaseSpecs map[string]parsedPhase
-	// triggerEventMasks caches only immutable face syntax, not live source
-	// membership. Like phaseSpecs, clones own fresh writable scratch.
+	// triggerEventMasks caches only immutable syntax for unbound fixture faces,
+	// not live source membership. Bound corpus faces use their catalog-owned
+	// trigger interests. Like phaseSpecs, clones own fresh writable scratch.
 	triggerEventMasks map[*cards.Face]triggerEventMask
 	// triggerObjectMasks is the dense object-walk form of triggerEventMasks.
 	// Entries validate their immutable face pointer and are scratch owned by
@@ -897,6 +899,7 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		rng:        random,
 		loop:       newLivelockWatcher(cfg.LoopGuard),
 		turnsTaken: make([]int32, len(cfg.Names)),
+		compiledText: newCompiledText(cfg),
 	}
 	e.G.Tokens = cfg.Tokens
 	e.format = cfg.Format
