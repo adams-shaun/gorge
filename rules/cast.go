@@ -677,7 +677,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 		var avail []state.ObjID
 		matchSpec := sacrificeMatchSpec(part.Spec)
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
-			if reserved[oid] { // an earlier Sac part already claimed this one
+			if reserved[oid] || e.SacrificeBlocked(oid) { // an earlier Sac part already claimed this one; a CantSacrifice-blocked one can never pay
 				continue
 			}
 			if effects.MatchesSpecFrom(e.G, matchSpec, oid, p, id) {
@@ -2179,6 +2179,9 @@ func (e *Engine) xAsk() bool {
 			matchSpec := sacrificeMatchSpec(part.Spec)
 			avail := int32(0)
 			for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
+				if e.SacrificeBlocked(oid) {
+					continue
+				}
 				if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
 					avail++
 				}
@@ -2361,6 +2364,9 @@ func (e *Engine) sacAsk() bool {
 		matchSpec := sacrificeMatchSpec(part.Spec)
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
+			if e.SacrificeBlocked(oid) {
+				continue
+			}
 			if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
 				already := false
 				for _, s := range pc.sacs {

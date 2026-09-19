@@ -1622,6 +1622,151 @@ func (e *Engine) restrictionActorMatches(ce ContinuousEffect, actor state.Player
 	return effects.MatchesPlayerSpec(e.G, spec, actor, ce.Controller)
 }
 
+// SacrificeBlocked implements effects.Host for the CantSacrifice restriction
+// (task combatrestriction1): reports whether id is forbidden from being
+// sacrificed at all — an Effect-registered CantSacrifice restriction (Call for
+// Aid's "You can't sacrifice those creatures this turn") or a face
+// CantSacrifice static (the simple Card.Self carriers). Consulted at every
+// sacrifice candidate choke point (effSacrifice's eligible pool and its
+// object-target paths, effSacrificeAll, and the cast/activation/mana/ward/
+// unless Sac-cost candidate walks), so a blocked permanent is never offered,
+// never asked, and never taken.
+func (e *Engine) SacrificeBlocked(id state.ObjID) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantSacrifice" {
+			continue
+		}
+		if e.restrictionApplies(ce, id) {
+			return true
+		}
+	}
+	for _, sv := range e.activeStatics("CantSacrifice") {
+		if !effects.CantRestrictionParamsReadable(sv.Params) {
+			continue
+		}
+		if spec := sv.Params["ValidCard"]; spec != "" &&
+			effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			return true
+		}
+	}
+	return false
+}
+
+// attackBlocked reports whether creature id is forbidden from being declared
+// attacking defender this combat — an Effect-registered CantAttack restriction
+// (Call for Aid's "You can't attack that player this turn") or a face
+// CantAttack static (the Vow cycle's "can't attack you"). A restriction with
+// no Target$ (the "Creatures can't attack." shapes) blocks every defender.
+// Consulted at the two (attacker, defender) enforcement points — askAttackers'
+// option filter and validateAttackers — and by mustAttackRequired's
+// attackPairAvailable gate (CR 508.1d's "if able").
+func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantAttack" {
+			continue
+		}
+		if !e.restrictionApplies(ce, id) {
+			continue
+		}
+		if !restrictionPlayerTargetMatches(e.G, ce.RestrictParams["Target"], defender, ce.Controller, ce.RememberedPlayers) {
+			continue
+		}
+		return true
+	}
+	for _, sv := range e.activeStatics("CantAttack") {
+		if !effects.CantRestrictionParamsReadable(sv.Params) {
+			continue
+		}
+		spec := sv.Params["ValidCard"]
+		if spec == "" || !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, nil) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// restrictionPlayerTargetMatches resolves a CantAttack restriction's Target$
+// player spec (the defender-side scoping: "can't attack THAT player") against
+// the defender under attack. The corpus spells it as a comma-separated list of
+// player specs ("You,Planeswalker.YouCtrl" — this build has no
+// planeswalker-attack path, so a walker clause is a player spec that matches
+// nobody and the You half carries the read); any part matching blocks the
+// pair. An absent Target$ applies to every defender.
+func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, rememberedPlayers []state.PlayerID) bool {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return true
+	}
+	for _, part := range strings.Split(spec, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		if restrictionPlayerSpecMatches(g, part, defender, controller, rememberedPlayers) {
+			return true
+		}
+	}
+	return false
+}
+
+// restrictionPlayerSpecMatches resolves ONE player spec of a restriction's
+// Target$ against the defender, with the one extension the ordinary
+// MatchesPlayerSpec grammar cannot answer: an IsRemembered clause (Player.
+// IsRemembered, and its ! negation and + compounds) resolves against the
+// registered effect's captured player set (state.ContinuousEffect.
+// RememberedPlayers — Call for Aid's RememberObjects$ TargetedPlayer), not
+// against a source object's event-backed list, which a one-shot sorcery
+// source does not carry. A face static passes an empty remembered set, so its
+// IsRemembered clauses match nobody (fail closed).
+func restrictionPlayerSpecMatches(g *state.Game, spec string, defender, controller state.PlayerID, rememberedPlayers []state.PlayerID) bool {
+	if !strings.Contains(spec, "IsRemembered") {
+		return effects.MatchesPlayerSpec(g, spec, defender, controller)
+	}
+	for _, clause := range strings.Split(spec, "+") {
+		clause = strings.TrimSpace(clause)
+		if clause == "" {
+			continue
+		}
+		if neg, has := clauseIsRemembered(clause); has {
+			found := false
+			for _, p := range rememberedPlayers {
+				if p == defender {
+					found = true
+					break
+				}
+			}
+			if found == neg {
+				return false
+			}
+			continue
+		}
+		if !effects.MatchesPlayerSpec(g, clause, defender, controller) {
+			return false
+		}
+	}
+	return true
+}
+
+// clauseIsRemembered reports whether one "+"-clause of a player spec carries
+// the IsRemembered qualifier (in either polarity, under the spec's own
+// dot-separated token grammar) and which polarity it is.
+func clauseIsRemembered(clause string) (neg, has bool) {
+	for _, tok := range strings.Split(clause, ".") {
+		tok = strings.TrimSpace(tok)
+		if strings.EqualFold(tok, "!IsRemembered") {
+			return true, true
+		}
+		if strings.EqualFold(tok, "IsRemembered") {
+			return false, true
+		}
+	}
+	return false, false
+}
+
 // Keywords exists for Ruling F2: Task 23's view.Chars interface needs a
 // Keywords(state.ObjID) []string method, and Engine.Derived already returns
 // a Derived struct — a method of the same name on Engine could not satisfy

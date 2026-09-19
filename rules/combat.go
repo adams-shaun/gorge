@@ -219,6 +219,13 @@ func (e *Engine) askAttackers() {
 			if !e.goadMayAttack(id, d) {
 				continue
 			}
+			// CR 508.1a per-pair CantAttack scoping: a creature a
+			// CantAttack static/restriction forbids attacking THIS defender is
+			// never offered the pair (and validateAttackers rejects it
+			// independently, so a hand-built intent cannot slip one in).
+			if e.attackBlocked(id, d) {
+				continue
+			}
 			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
 				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + seatFacingName(e.G, d),
 				Obj:   id, Player: d, Required: mustAtt[id]})
@@ -233,6 +240,16 @@ func (e *Engine) askAttackers() {
 	maxOpts := len(opts)
 	if ceil := e.maxAttackers(); ceil < maxOpts {
 		maxOpts = ceil
+	}
+	if len(opts) == 0 {
+		// Every (attacker, defender) pair is blocked — a CantAttack static or
+		// restriction covering the whole table. No declaration anyone could
+		// answer differently exists, so the step resolves silently with the
+		// empty declaration, the same no-decision path the no-attacker case
+		// above takes (asking KAttackers with only the empty answer legal is
+		// the forbidden wedge shape).
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(p)})
+		return
 	}
 	e.ask(&decision.Decision{Player: p, Kind: decision.KAttackers, Min: 0, Max: maxOpts,
 		Prompt: fmt.Sprintf("turn %d — declare attackers", e.G.Turn), Options: opts})
@@ -313,6 +330,9 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		if required, ok := e.encoreAttackDefender(o.Obj); ok && o.Player != required {
 			return fmt.Errorf("encore attacker %d must attack player %d", o.Obj, required)
 		}
+		if e.attackBlocked(o.Obj, o.Player) {
+			return fmt.Errorf("attacker %d cannot attack player %d", o.Obj, o.Player)
+		}
 		seen[o.Obj] = true
 	}
 	return e.validateAttackDeclaration(d, in)
@@ -326,7 +346,12 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 // not counted as required), which is the safe direction for a requirement —
 // erring toward requiring a creature that already attacks changes nothing,
 // while falsely requiring one that cannot legitimately attack would make a
-// legal declaration unanswerable.
+// legal declaration unanswerable. The walk is the board-wide activeStatics
+// scan (which includes the creature's own face, source-bound through the
+// same specCtx the face walk used), so an AURA-carried requirement — Fealty
+// to the Realm's `S:Mode$ MustAttack | ValidCreature$ Creature.EnchantedBy`,
+// the Vow cycle's shape — reaches the enchanted creature, not just its
+// bearer's own face.
 func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
@@ -336,32 +361,76 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	if f == nil || !e.canAttack(id) {
 		return false
 	}
+	// CR 508.1d counts a requirement only when the creature can actually
+	// satisfy it ("attack ... if able"): a creature whose every (attacker,
+	// defender) pair a CantAttack static/restriction blocks is NOT required,
+	// otherwise validateAttackDeclaration would reject every legal
+	// declaration and the KAttackers decision would have no legal answer.
+	// The MaxAttackers$ ceiling is deliberately not a pair gate: the
+	// requirement solver's maxReq (validateAttackDeclaration) already clamps
+	// to it, and a nonzero ceiling that merely caps the count still leaves
+	// the requirement binding.
+	if !e.attackPairAvailable(id) {
+		return false
+	}
 	if _, ok := e.encoreAttackDefender(id); ok {
 		return true
 	}
 	if e.hasActiveGoad(o) {
 		return true
 	}
-	for _, st := range f.Statics {
-		if st.Mode != "MustAttack" {
-			continue
-		}
+	for _, sv := range e.activeStatics("MustAttack") {
 		// A conditional or non-self requirement is out of scope for this
-		// solver: do not count it as required.
-		for k := range st.Params {
+		// solver: that STATIC is not counted (another static on the same or
+		// another permanent may still require).
+		deny := false
+		for k := range sv.Params {
 			switch k {
 			case "Mode", "ValidCreature", "Description":
 			default:
-				return false
+				deny = true
 			}
 		}
-		v := st.Params["ValidCreature"]
+		if deny {
+			continue
+		}
+		v := sv.Params["ValidCreature"]
 		if v == "" {
 			v = "Card.Self"
 		}
-		if effects.MatchesSpecCtx(e.G, v, id, e.specCtx(id, o.Controller)) {
+		if effects.MatchesSpecCtx(e.G, v, id, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
+	}
+	return false
+}
+
+// attackPairAvailable reports whether creature id has at least one legal
+// (attacker, defender) pair this combat under the requirements' own filters
+// (encore's fixed defender, goad's not-the-goaders rule) and the CantAttack
+// scoping (attackBlocked). The defender enumeration matches askAttackers'
+// (AliveFrom(0), controller excluded), so the solver and the option list can
+// never disagree about which pairs exist.
+func (e *Engine) attackPairAvailable(id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil {
+		return false
+	}
+	requiredDefender, required := e.encoreAttackDefender(id)
+	for _, d := range e.G.AliveFrom(0) {
+		if d == o.Controller {
+			continue
+		}
+		if required && d != requiredDefender {
+			continue
+		}
+		if !e.goadMayAttack(id, d) {
+			continue
+		}
+		if e.attackBlocked(id, d) {
+			continue
+		}
+		return true
 	}
 	return false
 }

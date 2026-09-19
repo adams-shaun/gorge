@@ -101,6 +101,12 @@ func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *
 // rather than inventing a registry it cannot answer for.
 func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 
+// SacrificeBlocked has no registry to consult here (the engine-side
+// restriction lives in rules.Engine), the same discipline as
+// RegenerationDisallowed above: the double reports false rather than
+// inventing a registry it cannot answer for.
+func (h *fakeHost) SacrificeBlocked(id state.ObjID) bool { return false }
+
 // The damage-batch bracket has nothing to latch here (no trigger machinery),
 // so the double reports no-ops; the dealDamage loops' bracketing still runs.
 func (h *fakeHost) BeginDamageBatch() {}

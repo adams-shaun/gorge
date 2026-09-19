@@ -103,6 +103,15 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 	if len(cost.Sac) == 1 {
 		part := cost.Sac[0]
 		ids := e.wardPermanents(payer, ctx.Source, sacrificeMatchSpec(part.Spec), false)
+		// A CantSacrifice restriction (Call for Aid) or face static: the
+		// permanent cannot pay the ward's sacrifice component.
+		var sacIDs []state.ObjID
+		for _, id := range ids {
+			if !e.SacrificeBlocked(id) {
+				sacIDs = append(sacIDs, id)
+			}
+		}
+		ids = sacIDs
 		if int32(len(ids)) < part.N {
 			return false, false
 		}
