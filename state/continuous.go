@@ -97,6 +97,15 @@ type ContinuousEffect struct {
 	// the face. A printed planeswalker's name-subtype ("Sarkhan") is stripped
 	// with the rest while the walker is animated as a creature.
 	RemoveCreatureTypes bool
+	// RemoveCardTypes is the S:Mode$ Continuous RemoveCardTypes$ True strip
+	// (Darksteel Mutation, Kenrith's Transformation, Witness Protection):
+	// while this effect applies, the affected object loses every card type
+	// AND every subtype -- subtypes are tied to their card types (CR
+	// 205.2-family), so the object keeps only its supertypes -- BEFORE this
+	// same effect's AddTypes apply (strip-before-add, like
+	// RemoveCreatureTypes). Set only by the static scanner today; the Animate
+	// primitive does not read RemoveCardTypes$ yet.
+	RemoveCardTypes bool
 	// AddAbilities is a layer-6 ability GRANT (CR 613.1f): the SVar names --
 	// on the SOURCE object's own face -- of the AB$ activated abilities the
 	// affected object gains for the effect's lifetime. Written only by the

@@ -161,6 +161,11 @@ var baseBuckets = map[string]bucket{
 	// modal one. The same cards.SA parameter map, so the same bucket as
 	// o.Ability.
 	"offeredSA": bSA,
+	// so.Ability is handleModes' placement branch's stack object (the local
+	// name for the same stack object o.Ability reads): the trigger Charm's
+	// resolved SA, whose full Choices$ list classifies the cross-mode
+	// TargetUnique family (effects.CharmCrossModeShape).
+	"so.Ability": bSA,
 	// index bases: candidates/rc.cands/matches are all []replMatch (the
 	// phase-replacement pipeline, its parked-choice resume, and the
 	// damage/counter/effect-created replacement match lists), so element

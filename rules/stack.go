@@ -851,6 +851,41 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 	return out
 }
 
+// askCrossModeCharmTargets poses the cross-mode TargetUnique family's ONE
+// combined target ask: Min == Max == the number of chosen target-bearing
+// modes, over the shared candidate pool of the modes' common ValidTgts$ spec,
+// with every option's Group naming its player — Decision.Validate's
+// mutual-exclusion rule (and botpolicy clamp's group discipline) enforce
+// "each mode must target a different player" on the wire, so an intent that
+// reuses a player is not merely wrong but impossible to submit. The answer
+// records onto the stack object in choice order, which is the chosen-mode
+// order, so the per-mode attribution is positional and replay-safe without
+// any new event kind or field. Returns false (nothing asked) when the legal
+// candidates are fewer than the modes that need them — the caller keeps the
+// historical first-mode narrowing, whose own insufficiency handling governs.
+func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, tbms []*cards.SA) bool {
+	k := len(tbms)
+	sub := tbms[0]
+	candidates := e.legalTargetCandidates(p, source, source, sub)
+	if len(candidates) < k {
+		return false
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: k, Max: k,
+		Prompt: fmt.Sprintf("Choose %d targets: one for each mode, each a different player", k),
+		Source: source, TargetEffect: describeTargetEffect(sub)}
+	for _, candidate := range candidates {
+		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player}
+		if candidate.kind == "player" {
+			o.Group = "charm-mode-player-" + strconv.Itoa(int(candidate.player))
+		}
+		d.Options = append(d.Options, o)
+	}
+	e.drainAwaitsTarget = true
+	e.ask(d)
+	return true
+}
+
 // askTarget offers every legal target for a spell or ability. It deliberately
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
