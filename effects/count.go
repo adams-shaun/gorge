@@ -1315,12 +1315,14 @@ func applyCountOp(n int32, op string) int32 {
 	case op == "Negative":
 		v = -v
 	case strings.HasPrefix(op, "DivideEvenlyDown."):
-		// Forge's AmountOperators.divideEvenlyDown: floor division by the named
+		// Forge's AmountOperators.divideEvenlyDown: division by the named
 		// divisor (Remembered$Amount/DivideEvenlyDown.2 -- the ImmediateTrigger
 		// "one instance per pair of remembered tokens" shape, diregraf_horde
 		// and faebloom_trick). A missing or non-positive divisor leaves the
-		// value unchanged rather than dividing by zero; the value was already
-		// an int64-clamped count, so the floor is the natural read.
+		// value unchanged rather than dividing by zero. NOTE this is Go's
+		// integer division, which TRUNCATES toward zero, not a true floor: the
+		// two differ only for negative operands (-3/2 = -1 here, floor -2),
+		// and every count this op reaches in the corpus is non-negative.
 		if x, err := strconv.Atoi(op[len("DivideEvenlyDown."):]); err == nil && x > 0 {
 			v /= int64(x)
 		}

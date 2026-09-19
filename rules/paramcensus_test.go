@@ -155,6 +155,12 @@ var baseBuckets = map[string]bucket{
 	// replacement dispatcher (continueCreateTokenReplacements /
 	// applyTokenReplacementToPlan read its Type$/Amount$/TokenScript$).
 	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA, "body": bSA,
+	// offeredSA is resolveTop's ability-branch marker derivation: the SA
+	// whose ValidTgts$ the placement ask actually covered -- o.Ability for a
+	// non-modal trigger, the first target-bearing chosen mode's sub for a
+	// modal one. The same cards.SA parameter map, so the same bucket as
+	// o.Ability.
+	"offeredSA": bSA,
 	// index bases: candidates/rc.cands/matches are all []replMatch (the
 	// phase-replacement pipeline, its parked-choice resume, and the
 	// damage/counter/effect-created replacement match lists), so element

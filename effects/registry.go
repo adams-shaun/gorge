@@ -282,6 +282,16 @@ type Ctx struct {
 	// (changeZoneChosenTargets) would pose the same question twice. A fresh
 	// ctx rebuilt by a resume does not carry it -- a deeper sub's targeting
 	// was genuinely never offered, which is the ask's real population.
+	//
+	// Boundary, stated honestly: the flag is copied into every same-pass
+	// nested sub ctx (the cc := *c copies each loop builds), so a deeper sub
+	// in the SAME resolution that carries its OWN never-offered ValidTgts$ is
+	// suppressed from asking whenever the outer targeting was offered and the
+	// resolution carries no targets. That is the pre-existing shape (such a
+	// sub moved nothing silently before the flag existed too) and no corpus
+	// line is measured in it; a genuinely-fresh ask -- a resume ctx, a new
+	// sub chain -- asks normally. A per-SVar-walk-level flag would fix the
+	// last corner but needs a plumb through every fresh-copy site.
 	TargetsOffered bool
 	// Captured is the part of Remembered the resolution started with because
 	// its trigger, delayed trigger or replacement put the event's object there

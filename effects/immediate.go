@@ -55,6 +55,13 @@ func init() { Register("ImmediateTrigger", effImmediateTrigger) }
 //     body's ChangeZone AttachedTo$ / Attach Object$ reads), and the instance
 //     count clamps to the remembered count when TriggerAmount$ exceeds it
 //     (never index-past-end);
+//   - RememberEach$ True with RememberObjects$ ABSENT takes the SAME
+//     per-object reading (a documented deviation from the brief's mapping
+//     table, which reserved absent for the whole-set arm): RememberEach
+//     itself implies per-object instances, and the three corpus carriers
+//     (dain_ironfoot, ratonhnhake_ton, forum_filibuster) all name
+//     RememberObjects$ Remembered alongside it, so the divergence is
+//     corpus-unreachable either way;
 //   - RememberObjects$ Remembered / RememberedLKI (or any Remembered...
 //     predicate form) without RememberEach$ — every instance sees the whole
 //     parent set;

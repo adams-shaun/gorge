@@ -1246,11 +1246,36 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id]}
-		// The placement ask (pushTrigger's ValidTgts$ read) offered exactly
-		// THIS SA's targeting -- the TargetsOffered marker that keeps
-		// effChangeZone's mid-resolution ask from re-posing it (a Min-0
-		// target the chooser elected zero of leaves o.Targets empty too).
-		ctx.TargetsOffered = strings.TrimSpace(o.Ability.Params["ValidTgts"]) != ""
+		// The SA whose targeting the placement ask actually offered, not
+		// blindly the resolving SA: for a non-modal ability that is the outer
+		// SA's own ValidTgts$ (pushTrigger's askTarget), for a modal one it is
+		// the first target-bearing CHOSEN MODE's sub -- handleModes' placement
+		// branch asks the mode sub and skips the outer ask entirely (a Charm's
+		// ValidTgts$ lives inside its modes, Kami of Restless Shadows'
+		// RaiseScoundrel). Deriving the marker from the outer SA alone left
+		// the modal shape unmarked, so a Min-0 mode target the chooser elected
+		// ZERO of was re-posed by effChangeZone's mid-resolution ask at
+		// resolution -- the exact duplicate-ask defect the marker exists to
+		// stop.
+		offeredSA := (*cards.SA)(nil)
+		if o.Ability != nil {
+			if len(o.ChosenModes) > 0 && strings.TrimSpace(o.Ability.Params["Choices"]) != "" {
+				if src := e.G.Obj(o.Source); src != nil && src.Face() != nil {
+					for _, name := range o.ChosenModes {
+						if sub := cards.ResolveSVar(src.Face().SVars, name); sub != nil &&
+							strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+							offeredSA = sub
+							break
+						}
+					}
+				}
+			} else {
+				offeredSA = o.Ability
+			}
+		}
+		if offeredSA != nil {
+			ctx.TargetsOffered = strings.TrimSpace(offeredSA.Params["ValidTgts"]) != ""
+		}
 		if lki, ok := e.triggerLKI[id]; ok {
 			ctx.LKI = lki.object
 			ctx.LKIPower, ctx.LKIToughness, ctx.LKIPTValid =
