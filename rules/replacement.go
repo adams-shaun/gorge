@@ -163,7 +163,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			return
 		}
 		for i := range f.Repls {
-			if f.Repls[i].Event != event {
+			if !replacementEventNameMatches(f.Repls[i].Event, event) {
 				continue
 			}
 			m := replMatch{id: id, face: f, repl: &f.Repls[i]}
@@ -568,6 +568,33 @@ func (e *Engine) forEachReplacementSource(fn func(id state.ObjID)) {
 	}
 }
 
+// replacementEventNameMatches compares a printed R:Event$ name with the
+// event name an engine event maps to. "DrawCards" is Forge's spelling of
+// the draw replacement event (Quantum Riddler's "you draw that many cards
+// plus one instead", Alms Collector's "if an opponent would draw two or
+// more cards"); the engine maps events.Draw to "Draw", so the alias reads
+// here rather than in the IR (two corpus carriers, both
+// CheckSVar$/Number$-gated).
+func replacementEventNameMatches(replEvent, event string) bool {
+	if replEvent == event {
+		return true
+	}
+	return event == "Draw" && replEvent == "DrawCards"
+}
+
+// drawMatchAmount is the replacement-CONTEXT amount of a Draw event: a
+// per-card Draw carries no Amount, and the body view of "the number of cards
+// this draw would draw" is 1 (Quantum Riddler's NumCards$
+// ReplaceCount$Number/Plus.1). The EMITTED event is never touched -- this is
+// a context read only -- which is what keeps every unrelated game's Draw
+// events byte-identical.
+func drawMatchAmount(ev events.Event) int32 {
+	if ev.Kind == events.Draw && ev.Amount == 0 {
+		return 1
+	}
+	return ev.Amount
+}
+
 // replacementEvent maps the event log's concrete events to Forge R:Event$
 // names. ManaAdd's producer and tap provenance live in synchronous Engine
 // scratch instead of its hash-chained fields; ProduceMana matching requires
@@ -906,13 +933,13 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	}
 	if o == nil {
 		ctx := &effects.Ctx{Source: m.id, ReplacementTarget: target,
-			ReplacementSource: e.protectionSource(e.damaging), ReplacementAmount: ev.Amount}
+			ReplacementSource: e.protectionSource(e.damaging), ReplacementAmount: drawMatchAmount(ev)}
 		e.seedEffectReplCtx(ctx, m)
 		return ctx
 	}
 	ctx := &effects.Ctx{Source: m.id, Controller: o.Controller,
 		ReplacementTarget: target, ReplacementSource: e.protectionSource(e.damaging),
-		ReplacementAmount: ev.Amount,
+		ReplacementAmount: drawMatchAmount(ev),
 		// X is the {X} paid for the moving object, so an ETB replacement that
 		// reads it (etbCounter's CounterNum$ X, e.g. Endless One / Walking
 		// Ballista / Chalice of the Void) sees the value the player actually
@@ -1246,7 +1273,14 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, scrip
 	if m.repl.With != nil {
 		if v := strings.TrimSpace(m.repl.With.Params["ValidCard"]); v != "" {
 			tok := e.tokenSnapshot(mint)
-			if tok == nil || !effects.MatchesObjectCtx(e.G, v, tok,
+			if tok == nil {
+				return false
+			}
+			// The provenance qualifier split applies here too (task castprov1):
+			// a would-be TOKEN was never cast at all, so an alternative carrying
+			// the qualifier is dropped for it.
+			spec, ok := e.castFromHandAdmits(v, tok.ID, e.controllerOf(m.id))
+			if !ok || !effects.MatchesObjectCtx(e.G, spec, tok,
 				e.rememberedSpecContext(e.controllerOf(m.id), m.id, m.remembered)) {
 				return false
 			}
@@ -1497,7 +1531,14 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			}
 		}
 		if v, ok := r.Params["ValidCard"]; ok {
-			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
+			// The bare wasCastFromYourHandByYou qualifier (epochrasite's
+			// etbCounter gate field `ValidCard$ Card.Self+
+			// !wasCastFromYourHandByYou`: "enters with three +1/+1 counters on
+			// it if you didn't cast it from your hand") is split out and
+			// evaluated against the log here (task castprov1); the remainder
+			// matches as before.
+			spec, ok2 := e.castFromHandAdmits(v, ev.Obj, you)
+			if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
 				return false
 			}
 		}
@@ -1633,7 +1674,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			}
 		}
 		return e.replacementConditionHolds(r, source, you)
-	case "Draw":
+	case "Draw", "DrawCards":
 		if ev.Kind != events.Draw {
 			return false
 		}
@@ -1645,7 +1686,13 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			!effects.MatchesPlayerSpec(e.G, v, ev.Player, you) {
 			return false
 		}
-		return true
+		// The shared condition gate (CheckSVar$/IsPresent$/Hellbent$/...) —
+		// every sibling case ends with it; the Draw class never read it, so
+		// Quantum Riddler's LE1-over-Count$ValidHand gate (and the Hellbent
+		// DrawTwo / library-empty Win carriers) fired unconditionally. No
+		// repo deck carries any of the class's 39 carriers, so no golden
+		// game changes (measured).
+		return e.replacementConditionHolds(r, source, you)
 	case "CreateToken":
 		// The token-creation replacement class (Divine Visitation, Doubling
 		// Season, Academy Manufactor, Xorn, ...). Applied by
@@ -1959,14 +2006,22 @@ func (e *Engine) replacementCheckValue(source state.ObjID, check string) int32 {
 		return 0
 	}
 	ctx := e.replCtx(replMatch{id: source}, events.Event{})
-	if check == "X" {
-		return o.X
-	}
+	// The face's own SVar table comes FIRST: a CheckSVar$ X gate whose face
+	// defines a real SVar:X body (Steel Exemplar's Count$Converge, Walking
+	// Dream's PlayerCountOpponents$ head, the multiclass_baldric and
+	// spirit_of_resistance bodies the switch below implements) must evaluate
+	// THAT body through the machinery below -- the announced-X shortcut is
+	// only the fallback for a face that defines no X. For a body that READS
+	// the announced X (banefire's Count$xPaid) the two coincide, so the
+	// reorder changes nothing for it.
 	body := check
 	if ctx.SVars != nil {
 		if v, ok := ctx.SVars[check]; ok {
 			body = v
 		}
+	}
+	if body == check && check == "X" {
+		return o.X
 	}
 	switch body {
 	case "Count$Party":

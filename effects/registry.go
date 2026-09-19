@@ -116,6 +116,16 @@ type Host interface {
 	// Count$ThisTurnCast_<spec> backing (the "first/second spell you cast"
 	// cost modifiers and triggers).
 	SpellsCastThisTurnMatching(you state.PlayerID, spec string) int
+	// SpellsCastThisTurnMatchingExcluding is SpellsCastThisTurnMatching with
+	// one object's own cast excluded from the count -- the bare !CastSaSource
+	// qualifier's engine reading. Every bare-form carrier's oracle says
+	// other/another (Hotheaded Giant's "unless you've cast another red spell
+	// this turn", Dream Thief's "another blue spell", Storm Entity's "each
+	// other spell cast this turn"), and the resolving spell's own
+	// PutOnStack is unavoidably in the window when an ETB gate reads the
+	// count, so the qualifier is the count's exclusion of its own ctx source.
+	// Derived from the event log like SpellsCastThisTurnMatching.
+	SpellsCastThisTurnMatchingExcluding(you state.PlayerID, spec string, exclude state.ObjID) int
 	// WasCastFromHandByYou reports whether card obj was cast from ITS OWN
 	// CONTROLLER's hand by that controller — the Count$wasCastFromYourHandByYou
 	// branch head backing (the Myojin cycle's etbCounter CheckSVar$ gate:

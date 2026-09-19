@@ -124,6 +124,12 @@ func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
 // SpellsCastThisTurnMatching has no event log here; the double reports zero.
 func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }
 
+// SpellsCastThisTurnMatchingExcluding has no event log here; the double
+// reports zero (the same conservative no-op as SpellsCastThisTurnMatching).
+func (h *fakeHost) SpellsCastThisTurnMatchingExcluding(_ state.PlayerID, _ string, _ state.ObjID) int {
+	return 0
+}
+
 // WasCastFromHandByYou has no cast log here; the double reports false (the
 // same conservative no-op as CastThisTurn), so the Count$
 // wasCastFromYourHandByYou branch head's fakeHost evals take the ifFalse

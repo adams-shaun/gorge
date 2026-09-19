@@ -275,7 +275,10 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// not only ReplaceEffect itself, sees the same in-flight value.
 	if body, ok := strings.CutPrefix(expr, "ReplaceCount$"); ok {
 		field, op, hasOp := strings.Cut(strings.TrimSpace(body), "/")
-		if field != "DamageAmount" && field != "Amount" {
+		// "Number" is Forge's DrawCards-replacement spelling of the same
+		// in-flight amount (Quantum Riddler's NumCards$
+		// ReplaceCount$Number/Plus.1 body; 8 corpus files carry the field).
+		if field != "DamageAmount" && field != "Amount" && field != "Number" {
 			return 0, false
 		}
 		n := c.ReplacementAmount
@@ -680,6 +683,24 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.ConvergeColours, true
 		}
 		return 0, true
+	case "CastTotalManaSpent":
+		// CR 601.2h's payment: the TOTAL mana actually spent to cast the
+		// resolving spell (the spent delta's pips summed over every slot),
+		// carried by the pay-time CastInfo's FlagManaSpent Amount
+		// (rules/cast.go's payCast capture -- the converge/replicate/
+		// multikick pattern; faceWantsCastSpend is the heads-safety gate).
+		// Same provenance read Converge makes -- the cast spell, and in the
+		// K:etbCounter ETB replacement the same object after the
+		// stack->battlefield move preserves it -- so a replay derives the
+		// same number; a copy of the spell was never cast and a cheated-in
+		// permanent reads 0. The ref-property readers of OTHER casts
+		// (TriggeredCard$CastTotalManaSpent, evalRefProperty) stay on the
+		// rv2b exotic-heads ledger -- they read a trigger context, not this
+		// field.
+		if o := g.Obj(c.Source); o != nil {
+			return o.ManaSpent, true
+		}
+		return 0, true
 	case "ChosenNumber":
 		// The Effect's SetChosenNumber$ binding (state.ContinuousEffect.ChosenNumber,
 		// threaded into Ctx by rules' replCtx for effect-created replacement
@@ -866,8 +887,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
 	// spec (Count$ThisTurnCast_Card.YouCtrl — the "first/second spell you
 	// cast" family): the caster scope is the controller when the spec carries
-	// a You* qualifier, everyone otherwise.
+	// a You* qualifier, everyone otherwise. The spec's bare !CastSaSource
+	// qualifier is Forge's "other than the spell being cast" device (every
+	// bare-form carrier's oracle says other/another), so the count excludes
+	// its own ctx source through the Host's Excluding read; the ARGUMENTED
+	// forms (!CastSaSource$CardManaCost, !CastSaSource/Plus.2) stay in place
+	// and keep failing closed downstream (no provenance grammar prices them).
 	if rest, ok := strings.CutPrefix(head, "ThisTurnCast_"); ok {
+		if stripped, selfExcl := stripBareCastSaSource(rest); selfExcl {
+			return int32(h.SpellsCastThisTurnMatchingExcluding(c.Controller, stripped, c.Source)), true
+		}
 		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest)), true
 	}
 
