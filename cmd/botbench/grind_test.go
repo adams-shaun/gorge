@@ -141,7 +141,7 @@ func TestGrindValidation(t *testing.T) {
 	if err := runGrind(0, "no-such-deck", 0, 1, dir, "constructed", 0, 0, &out, &prog); err == nil {
 		t.Error("an unknown deck must be an error")
 	}
-	code := mainExit("bot", "bot", 1, 0, 2, 0, "a:b", "constructed", "text", 0, 200, 20000, ".cards", false, false, "tron", 0, 0, "", "", "", "")
+	code := mainExit("bot", "bot", 1, 0, 2, 0, "a:b", "constructed", "text", 0, 200, 20000, ".cards", "", false, false, "tron", 0, 0, "", "", "", "")
 	if code == 0 {
 		t.Error("-grind with -pairs must exit non-zero")
 	}

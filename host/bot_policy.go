@@ -11,6 +11,12 @@ const (
 	BotPolicy = "bot"
 	// LethalPressurePolicy is the measured opt-in hosted experiment.
 	LethalPressurePolicy = "lethal-pressure"
+	// CastProfilePolicy plays the production bot with a learned cast profile
+	// (botpolicy.CastWeights) selected by name from the embedded profile set.
+	// With the embedded default profile it is intent-identical to BotPolicy;
+	// a tuned profile is how an experiment reaches a live table without a
+	// rebuild. cmd/botbench's -profile flag overrides the weights per run.
+	CastProfilePolicy = "cast-profile"
 )
 
 // NormalizeBotPolicy returns a hosted policy's stable name. An omitted name
@@ -22,10 +28,10 @@ func NormalizeBotPolicy(name string) (string, error) {
 		return BotPolicy, nil
 	}
 	switch name {
-	case BotPolicy, LethalPressurePolicy:
+	case BotPolicy, LethalPressurePolicy, CastProfilePolicy:
 		return name, nil
 	default:
-		return "", fmt.Errorf("host: unknown bot policy %q (known: bot, lethal-pressure)", name)
+		return "", fmt.Errorf("host: unknown bot policy %q (known: bot, lethal-pressure, cast-profile)", name)
 	}
 }
 
@@ -39,6 +45,13 @@ func NewBotPolicySeat(name string, seed uint64) (seat.Seat, error) {
 	}
 	if name == LethalPressurePolicy {
 		return seat.NewLethalPressureBot(seed), nil
+	}
+	if name == CastProfilePolicy {
+		b, err := seat.NewCastProfileBot(seed)
+		if err != nil {
+			return nil, err
+		}
+		return b, nil
 	}
 	return seat.NewBot(seed), nil
 }

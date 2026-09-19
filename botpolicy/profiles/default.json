@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "cast": {
+    "CreatureBase": 30,
+    "CreaturePower": 4,
+    "NonCreatureCMC": 1,
+    "Kicked": 6,
+    "Flashback": 4,
+    "ReserveScale": 5,
+    "CommanderTaxScale": 5,
+    "CastThreshold": -1073741824
+  }
+}

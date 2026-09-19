@@ -2,6 +2,7 @@ package seat
 
 import (
 	"context"
+	"fmt"
 	"math/rand/v2"
 	"strings"
 
@@ -29,6 +30,17 @@ import (
 type Bot struct {
 	r              *rand.Rand
 	lethalPressure bool
+	// cast/castSet are the cast-profile policy's weights: when castSet is
+	// true every decision's Board gets brd.Cast = cast before the policy
+	// runs, so the cast scorer (cardWorth/castScore/chooseCast) dots its
+	// features with the profile instead of the default. Set once at
+	// construction from a parsed profile; the Board refill (BoardFromGame /
+	// boardFromView) never touches Board.Cast, so the profile survives the
+	// reuse contract untouched. With the embedded default profile (whose
+	// weights equal DefaultCastWeights, pinned in botpolicy/profile_test.go)
+	// the decisions are identical to NewBot's by the L1 equivalence table.
+	cast    botpolicy.CastWeights
+	castSet bool
 }
 
 // M4: a compile-time assertion that Bot keeps satisfying Seat, since
@@ -55,7 +67,33 @@ func NewLethalPressureBot(seed uint64) *Bot {
 	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), lethalPressure: true}
 }
 
+// NewCastProfileBot returns the cast-profile policy playing the named
+// embedded profile (today: the default one). The only error is an embedded
+// profile that fails its own strict loader -- never reachable for a valid
+// committed file (pinned by botpolicy's profile tests), surfaced as an error
+// rather than a panic so the host factory can report it the same way it
+// reports an unknown policy name.
+func NewCastProfileBot(seed uint64) (*Bot, error) {
+	w, err := botpolicy.LoadCastProfile(botpolicy.DefaultCastProfileName)
+	if err != nil {
+		return nil, fmt.Errorf("seat: %w", err)
+	}
+	return NewCastProfileBotWithWeights(seed, w), nil
+}
+
+// NewCastProfileBotWithWeights returns the cast-profile policy playing the
+// given weights -- the shape botbench's -profile flag builds after parsing a
+// candidate file, so a profile is benched without a rebuild. Same PCG
+// derivation as NewBot, so a profile's RNG consumption matches the
+// production bot's exactly.
+func NewCastProfileBotWithWeights(seed uint64, w botpolicy.CastWeights) *Bot {
+	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), cast: w, castSet: true}
+}
+
 func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent {
+	if b.castSet {
+		brd.Cast = b.cast
+	}
 	if b.lethalPressure {
 		return botpolicy.LethalPressureDecide(brd, d, b.r)
 	}
