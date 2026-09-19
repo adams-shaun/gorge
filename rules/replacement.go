@@ -133,9 +133,10 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		}
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
-			if e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) {
+			if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
-					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+					chosen: ce.ChosenNumber,
+					key:    "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
 		} else if ce.ReplacementBody == "" && strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Layer"]), "CantHappen") {
 			// The Effect-created CantHappen form (Mistrise Village's AntiMagic:
@@ -143,7 +144,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			// ReplaceWith$ — stopping the event is the complete replacement,
 			// the same shape printed R: lines take (the With==nil arm below).
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
-			if e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) {
+			if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
 					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
@@ -261,8 +262,17 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
 		// CR 616.1e: after each modification, applicability is checked again
-		// against the changed event (not the original amount).
-		if !e.replacementMatches(*m.repl, m.id, ev) {
+		// against the changed event (not the original amount). The recheck
+		// uses the same matcher class the collection used (see
+		// applicableDamageReplacements): an Effect-created match is never
+		// re-gated on ActiveZones$.
+		matched := false
+		if m.key != "" {
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered)
+		} else {
+			matched = e.replacementMatches(*m.repl, m.id, ev)
+		}
+		if !matched {
 			continue
 		}
 		if ev.Kind == events.Damage && damageReplacementPrevents(*m.repl) {
@@ -325,7 +335,18 @@ func damageReplacementPrevents(r cards.Repl) bool {
 func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMatch) []replMatch {
 	out := matches[:0]
 	for _, m := range matches {
-		if !e.replacementMatches(*m.repl, m.id, ev) {
+		// CR 616.1's recheck must use the same matcher class the initial
+		// collection used: an Effect-created match's lifetime is active()'s,
+		// not its source's zone (task wildgrowth1), so re-gating it on
+		// ActiveZones$ here would silently drop every Effect-granted
+		// DamageDone replacement the scan just admitted (Taii Wakeen).
+		matched := false
+		if m.key != "" {
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered)
+		} else {
+			matched = e.replacementMatches(*m.repl, m.id, ev)
+		}
+		if !matched {
 			continue
 		}
 		if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.damaging, ev.Obj) {
@@ -362,6 +383,12 @@ type replMatch struct {
 	// its IsRemembered specs exactly as the initial match did. Printed
 	// replacements never carry one.
 	remembered []state.ObjID
+	// chosen carries the Effect-created replacement's SetChosenNumber$ binding
+	// (state.ContinuousEffect.ChosenNumber, task wildgrowth1): the number the
+	// Effect resolved at creation, which replCtx threads into the body Ctx so
+	// the body's Count$ChosenNumber head reads the frozen binding. Zero on
+	// every printed replacement (and on an Effect that bound nothing).
+	chosen int32
 }
 
 // rememberedSpecContext builds the match context a ValidCard$/ValidLKI$
@@ -832,6 +859,16 @@ func manaReplacementNeedsColor(m replMatch) bool {
 // seed was fx44's stand-in for the suspended-resolution case; the resume
 // thread carries the body's own Remembered instead (rules/resolution.go's
 // replacement branch).
+//
+// The rule is scoped to PRINTED replacements. An EFFECT-created replacement
+// (m.key != "", task wildgrowth1) is a different population: the effect's
+// registered Remembered list IS the intended binding -- the trigger captured
+// the cast spell with RememberObjects$ and the body's Remembered$ specs (the
+// runadi_behemoth_caller / gluttonous_hellkite CounterNum$ readers) read
+// exactly that -- and none of those bodies rides a competing Remember* rider,
+// so the double-counting defect the printed rule exists for cannot arise.
+// replCtx threads the effect's frozen SetChosenNumber$ binding alongside it
+// (replMatch.chosen), what the body's Count$ChosenNumber head reads.
 func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	o := e.G.Obj(m.id)
 	target := state.Target{Obj: ev.Obj}
@@ -839,8 +876,10 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		target = state.Target{Player: ev.Player, IsPlayer: true}
 	}
 	if o == nil {
-		return &effects.Ctx{Source: m.id, ReplacementTarget: target,
+		ctx := &effects.Ctx{Source: m.id, ReplacementTarget: target,
 			ReplacementSource: e.protectionSource(e.damaging), ReplacementAmount: ev.Amount}
+		e.seedEffectReplCtx(ctx, m)
+		return ctx
 	}
 	ctx := &effects.Ctx{Source: m.id, Controller: o.Controller,
 		ReplacementTarget: target, ReplacementSource: e.protectionSource(e.damaging),
@@ -877,7 +916,29 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	if f != nil {
 		effects.SetSVars(ctx, f.SVars)
 	}
+	e.seedEffectReplCtx(ctx, m)
 	return ctx
+}
+
+// seedEffectReplCtx threads an Effect-created match's own bindings into the
+// body Ctx: the frozen SetChosenNumber$ number and (key-only: never a printed
+// replacement) the effect's registered Remembered list. See replCtx's doc for
+// why the seed is scoped to effect-created matches. The Draw branch above
+// clears ctx.Remembered for the bodies that re-draw; no Draw body is ever
+// registered live (effects' registration gate keeps them on the loud Note),
+// so a live seed cannot be erased by that clearing on a registered shape.
+func (e *Engine) seedEffectReplCtx(ctx *effects.Ctx, m replMatch) {
+	ctx.ChosenNumber = m.chosen
+	// The bound flag is the Count$ChosenNumber head's verdict: effect-created
+	// only, so a printed or choose-event context stays UNRESOLVED and the
+	// EvalCountOK consumers keep their fail direction (see Ctx.ChosenNumberBound).
+	ctx.ChosenNumberBound = m.key != ""
+	if m.key == "" || len(m.remembered) == 0 {
+		return
+	}
+	for _, id := range m.remembered {
+		ctx.Remembered = append(ctx.Remembered, state.Target{Obj: id})
+	}
 }
 
 // runReplaceWith resolves one ReplaceWith$ body inside the replacement
@@ -937,6 +998,13 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		departing, link, controller := e.captureSourceLifelinkLKI(ev)
 		stored := events.Emit(e.G, e.L, ev)
 		e.loop.observe(stored)
+		// The move-driven Effect lifetimes (the ExileOnMoved$/ForgetOnMoved$
+		// sweep) run on Engine.emit's own MoveZone path right here in the
+		// ordering; the raw events.Emit above bypasses that path, so the sweep
+		// is replayed inline (task wildgrowth1: the "enters with N additional
+		// counters" Effect must end exactly after the one entry it upgraded,
+		// not linger to re-upgrade the same remembered card's next entry).
+		e.effectMoveSweep(ev)
 		e.checkTriggers(stored, nil, 0, 0, false)
 		e.finishSourceLifelinkLKI(ev, departing, link, controller)
 		e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
@@ -958,6 +1026,10 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 	departing, link, controller := e.captureSourceLifelinkLKI(ev)
 	stored := events.Emit(e.G, e.L, ev)
 	e.loop.observe(stored)
+	// The move-driven Effect lifetimes, replayed inline exactly as the
+	// single-match Updated branch does (the raw events.Emit above bypasses
+	// Engine.emit's own sweep point).
+	e.effectMoveSweep(ev)
 	e.checkTriggers(stored, nil, 0, 0, false)
 	e.finishSourceLifelinkLKI(ev, departing, link, controller)
 	for _, m := range matches {
@@ -1127,7 +1199,19 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []string, m r
 // the gate when present.
 func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, script string) bool {
 	mint := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: script}
-	if !e.replacementMatchesRemembered(*m.repl, m.id, mint, m.remembered) {
+	// The recheck uses the same matcher class the initial collection used:
+	// an effect-created match re-matches through the remembered-scoped effect
+	// matcher, a printed match through the ordinary one -- never the ungated
+	// effect matcher for a printed key. For a TokenCreate mint the two agree
+	// on every printed Repl today (the mint, like ev, carries no To), but the
+	// split keeps the recheck from ever widening what the initial gated
+	// collection admitted, the same discipline remainingDamageReplacements
+	// and counterReplacementMatchesAll follow.
+	if m.key != "" {
+		if !e.replacementMatchesEffectCreated(*m.repl, m.id, mint, m.remembered) {
+			return false
+		}
+	} else if !e.replacementMatches(*m.repl, m.id, mint) {
 		return false
 	}
 	if m.repl.With != nil {
@@ -1267,30 +1351,40 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 // binding; a spec carrying IsRemembered against an empty set fails closed,
 // the matcher's standing contract.
 func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID) bool {
-	// The generic object walk historically excludes the command zone. Its
-	// replacement-only extension admits command-zone sources, but only when
-	// the script explicitly declares that zone; this keeps ordinary card text
-	// parked there inert and does not change trigger discovery.
+	if !e.activeZonesGateOK(r, source, ev) {
+		return false
+	}
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered)
+}
+
+// activeZonesGateOK is the ActiveZones$ zone gate the PRINTED replacement
+// paths share:
+//
+//   - the generic object walk historically excludes the command zone; its
+//     replacement-only extension admits command-zone sources, but only when
+//     the script explicitly declares that zone; this keeps ordinary card
+//     text parked there inert and does not change trigger discovery.
+//
+//   - CR 611.3b/614.4: a static replacement only applies from one of its
+//     declared active zones. Accept the comma-separated list grammar used by
+//     other Forge zone parameters; the pinned corpus currently uses only
+//     singleton ActiveZones values. Replacements with no ActiveZones
+//     parameter apply from anywhere (the corpus does not thereby declare a
+//     zone, and historically this engine has allowed those from anywhere).
+//
+//   - A permanent's own entry replacement is active for the event that puts
+//     it into the declared zone even though the source has not arrived there
+//     yet (CR 614.12): the prospective ev.To clause. ev.To is only
+//     meaningful for a MoveZone; the other events leave it at its zero
+//     value, so the clause is MoveZone-only rather than reading a
+//     meaningless zero zone.
+func (e *Engine) activeZonesGateOK(r cards.Repl, source state.ObjID, ev events.Event) bool {
 	if o := e.G.Obj(source); o != nil && o.Zone == state.ZCommand {
 		active, ok := r.Params["ActiveZones"]
 		if !ok || !zoneSpecContains(active, state.ZCommand) {
 			return false
 		}
 	}
-	// CR 611.3b/614.4: a static replacement only applies from one of its
-	// declared active zones. Accept the comma-separated list grammar used by
-	// other Forge zone parameters; the pinned corpus currently uses only
-	// singleton ActiveZones values. Preserve replacements with no ActiveZones
-	// parameter: the corpus does not thereby declare a zone, and
-	// historically this engine has allowed those replacements from anywhere.
-	//
-	// A permanent's own entry replacement is active for the event that puts it
-	// into the declared zone even though the source has not arrived there yet
-	// (CR 614.12). Without the prospective ev.To check, ordinary "enters with"
-	// replacements would disable themselves while their source is in hand or
-	// on the stack. ev.To is only meaningful for a MoveZone; the other four
-	// events leave it at its zero value, so the prospective clause is
-	// MoveZone-only rather than reading a meaningless zero zone.
 	if active, ok := r.Params["ActiveZones"]; ok {
 		o := e.G.Obj(source)
 		currentlyActive := o != nil && zoneSpecContains(active, o.Zone)
@@ -1300,6 +1394,27 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 			return false
 		}
 	}
+	return true
+}
+
+// replacementMatchesEffectCreated is the matcher for an EFFECT-created
+// registration: same predicates as replacementMatchesRemembered, but the
+// ActiveZones$ gate is skipped — an Effect's lifetime is active()'s, not its
+// source's zone (the rule the bodyless Counter CantHappen branch already
+// documents). Forge registers an Effect SA's replacements as command-zone
+// entities, so their R: lines declare ActiveZones$ Command (Taii Wakeen's
+// RepDamage, 18 measured DamageDone carriers) while this engine holds the
+// registration in the continuous registry with the source on the battlefield
+// — gating on the source's zone would permanently silence every one of them
+// (task wildgrowth1). active() still ends the effect on its own lifetime.
+func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID) bool {
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered)
+}
+
+// replacementMatchesRememberedUngated is replacementMatchesRemembered's
+// predicate body without the ActiveZones$ gate; only the two wrappers above
+// reach it.
+func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID) bool {
 	you := e.controllerOf(source)
 	switch r.Event {
 	case "Counter":
@@ -2007,7 +2122,7 @@ func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replM
 			continue
 		}
 		r := cards.Repl{Event: "Counter", Params: ce.ReplacementParams}
-		if !e.replacementMatchesRemembered(r, ce.Source, events.Event{Obj: target}, ce.Remembered) {
+		if !e.replacementMatchesEffectCreated(r, ce.Source, events.Event{Obj: target}, ce.Remembered) {
 			continue
 		}
 		t := e.G.Obj(target)
@@ -2019,6 +2134,7 @@ func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replM
 			continue
 		}
 		matches = append(matches, replMatch{id: ce.Source, repl: &r,
+			remembered: ce.Remembered, chosen: ce.ChosenNumber,
 			key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 	}
 	e.forEachObject(func(source state.ObjID) {
@@ -2825,8 +2941,9 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
 			m := replMatch{id: ce.Source, repl: r,
+				remembered: ce.Remembered, chosen: ce.ChosenNumber,
 				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
-			if !alreadyUsed(m) && e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) &&
+			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) &&
 				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
 				out = append(out, m)
 			}

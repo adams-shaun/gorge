@@ -344,6 +344,26 @@ type Ctx struct {
 	// Both are bound by the rules package when it builds the context.
 	SVars map[string]string
 	X     int32
+	// ChosenNumber is the Effect's SetChosenNumber$ binding (task
+	// wildgrowth1): the number the Effect resolved at creation, threaded into
+	// a registered replacement's body Ctx by rules' replCtx so the body's
+	// Count$ChosenNumber head (evalCountBody) reads the frozen binding rather
+	// than re-deriving. Zero wherever nothing bound -- the same number a
+	// failed binding degrades to.
+	ChosenNumber int32
+	// ChosenNumberBound marks a Ctx whose ChosenNumber IS a real
+	// SetChosenNumber$ binding (rules' seedEffectReplCtx sets it exactly when
+	// the match is effect-created, m.key != ""). It is the Count$ChosenNumber
+	// head's verdict: bound means evaluated (the value reads, zero
+	// legitimately), unbound means the head is UNRESOLVED so the
+	// EvalCountOK consumers keep their pre-wildgrowth fail direction --
+	// CheckSVarHolds fails open, a numeric filter RHS (cmcEQX via
+	// resolveNumericRHS) never matches -- instead of enforcing a meaningless
+	// zero on the Choose-event corpus population (77 files whose binding
+	// lives on state.Object.ChosenNumber via effects/choose.go, never on
+	// Ctx). A zero binding with the flag set is still bound (torgal with no
+	// Dogs); only the flag distinguishes the two.
+	ChosenNumberBound bool
 	// Host is the engine driving this resolution, bound by effects.Resolve
 	// itself (it receives the host as its own parameter, so every walk that
 	// can reach a resolution-time filter evaluation has passed through one
