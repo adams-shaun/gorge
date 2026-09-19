@@ -64,19 +64,21 @@ func effAddTurn(h Host, c *Ctx, sa *cards.SA) {
 	// Alchemist's Gambit's DelTrig SVar) names the delayed trigger the
 	// granted turn registers. The Execute$ name already rides the event's
 	// Counter; the trigger's Phase$ rides IDs[0] (the state.Step ordinal,
-	// parsed from the named SVar's Phase$ through the ONE shared parser —
-	// state.ParsePhases — so the two ends cannot disagree), and
+	// parsed through delayedTriggerSpec — the ONE shared definition-body
+	// parser, which reads both the raw "Mode$ Phase | ..." shape and the
+	// DB$ DelayedTrigger-headed one — so the two ends cannot disagree), and
 	// events.Apply's registration consumes it instead of the hardcoded
-	// end step Final Fortune's body happened to name. An unresolvable SVar,
-	// an unparseable Phase$, or a multi-step set degrades to the old end
-	// step (IDs empty), which is what every already-logged grant carries.
+	// end step Final Fortune's body happened to name. An unresolvable SVar
+	// or an unparseable Phase$ degrades to the old end step (the body's
+	// default), which is what every already-logged grant carries — and what
+	// the raw-body reader used to degrade to for EVERY carrier before the
+	// parse existed (parseSA cannot read a definition body, so the old
+	// ResolveSVar path here never fired; Alchemist's Gambit's Upkeep
+	// registration is the live shape the reader fixes).
 	phase := state.StepEnd
-	if name := strings.TrimSpace(sa.Params["ExtraTurnDelayedTrigger"]); name != "" && c.SVars != nil {
-		if body := cards.ResolveSVar(c.SVars, name); body != nil {
-			set, unknown := state.ParsePhases(body.Params["Phase"])
-			if len(unknown) == 0 && !set.Empty() {
-				phase = set.Steps()[0]
-			}
+	if name := strings.TrimSpace(sa.Params["ExtraTurnDelayedTrigger"]); name != "" {
+		if p, _, ok := delayedTriggerSpec(c, name); ok {
+			phase = p
 		}
 	}
 	// NonBasicSpell$ True (Alchemist's Gambit's cleave leg): Forge marks the
@@ -95,20 +97,33 @@ func effAddTurn(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // effLosesGame implements DB$ LosesGame (53 corpus files): the Defined$
-// player (the resolving ability's controller by default) loses the game right
-// now, CR 104.2a -- the same PlayerLost event a 0-life elimination emits, so
+// player (the resolving ability's controller when the SA names NO Defined$ at
+// all -- Final Fortune's "you lose the game") loses the game right now, CR
+// 104.2a -- the same PlayerLost event a 0-life elimination emits, so
 // state-based actions sweep their permanents and the game-over check runs as
-// for any other loss. Final Fortune and Last Chance reach this through the
-// extra turn's delayed trigger; a seat that has already lost is skipped
-// (losing twice is not a second game event).
+// for any other loss. A seat that has already lost is skipped (losing twice
+// is not a second game event).
+//
+// A PRESENT Defined$ that resolves to no player target acts on NOBODY: the
+// controller default above is for the Defined$-less shape only. This is what
+// makes the empty-set semantics of a state qualifier's miss (Triskaidekaphobia's
+// Player.lifeEQ13 with no seat at 13 life) a no-op rather than killing the
+// resolving controller, and it is a behaviour change for any unmodelled
+// Defined$ spelling too -- those now fail closed here instead of falling
+// back to the controller (the chosen-targets fallback never had a player for
+// these lines anyway).
 func effLosesGame(h Host, c *Ctx, sa *cards.SA) {
 	player := c.Controller
 	if sa.Params["Defined"] != "" {
+		found := false
 		for _, t := range Defined(h, c, sa) {
 			if t.IsPlayer {
-				player = t.Player
+				player, found = t.Player, true
 				break
 			}
+		}
+		if !found {
+			return
 		}
 	}
 	g := h.Game()

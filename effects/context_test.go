@@ -27,6 +27,15 @@ type fakeHost struct {
 	n          int
 	dmgSrc     state.ObjID
 	batch      []state.ObjID
+	// castFromHand is the WasCastFromHandByYou answer the double reports;
+	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
+	// true branch (the real log-scan read is pinned in rules).
+	castFromHand bool
+	// typeChoices is the TypeChoices answer the double reports (nil by
+	// default): the effects-side ChooseType tests configure it to pose a
+	// real option list. Nil routes ChooseType through AskEmpty — the
+	// unchanged deterministic fallback.
+	typeChoices []decision.Option
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -92,6 +101,12 @@ func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *
 // rather than inventing a registry it cannot answer for.
 func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 
+// SacrificeBlocked has no registry to consult here (the engine-side
+// restriction lives in rules.Engine), the same discipline as
+// RegenerationDisallowed above: the double reports false rather than
+// inventing a registry it cannot answer for.
+func (h *fakeHost) SacrificeBlocked(id state.ObjID) bool { return false }
+
 // The damage-batch bracket has nothing to latch here (no trigger machinery),
 // so the double reports no-ops; the dealDamage loops' bracketing still runs.
 func (h *fakeHost) BeginDamageBatch() {}
@@ -115,6 +130,37 @@ func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
 // SpellsCastThisTurnMatching has no event log here; the double reports zero.
 func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }
 
+// SpellsCastThisTurnMatchingExcluding has no event log here; the double
+// reports zero (the same conservative no-op as SpellsCastThisTurnMatching).
+func (h *fakeHost) SpellsCastThisTurnMatchingExcluding(_ state.PlayerID, _ string, _ state.ObjID) int {
+	return 0
+}
+
+// EachSpellCastThisTurnMatching has no event log here; the double reports no
+// ids (the same conservative no-op as SpellsCastThisTurnMatching), so the
+// argumented !CastSaSource aggregate forms' fakeHost evals read an empty
+// cast set (their end-to-end pins live in rules).
+func (h *fakeHost) EachSpellCastThisTurnMatching(_ state.PlayerID, _ string, _ state.ObjID) []state.ObjID {
+	return nil
+}
+
+// WasCastFromHandByYou has no cast log here; the double reports false (the
+// same conservative no-op as CastThisTurn), so the Count$
+// wasCastFromYourHandByYou branch head's fakeHost evals take the ifFalse
+// branch; the true branch is pinned end to end on the real engine in rules
+// (the Myojin cycle's corpus tests).
+func (h *fakeHost) WasCastFromHandByYou(_ state.ObjID, _ state.PlayerID) bool { return h.castFromHand }
+
+// The bare wasCastFromYourHand family's read (castprov3): the fake has no
+// cast log either, so it reports the same single flag the ByYou double reads
+// — enough for the branch-head and ConditionPresent$ gate unit tests, whose
+// provenance is pinned end to end on the real engine in rules.
+func (h *fakeHost) WasCastFromHand(_ state.ObjID) bool { return h.castFromHand }
+
+// CommanderIdentityColourCount has no commander bookkeeping here; the double
+// reports zero (the same replay-derivable class as TurnsTaken above).
+func (h *fakeHost) CommanderIdentityColourCount(_ state.PlayerID) int { return 0 }
+
 // AttackersThisTurn has no combat log here; the double reports zero (the same
 // conservative no-op as CastThisTurn).
 func (h *fakeHost) AttackersThisTurn() int { return 0 }
@@ -126,6 +172,12 @@ func (h *fakeHost) HasKeyword(id state.ObjID, kw string) bool {
 	o := h.g.Obj(id)
 	return o != nil && o.Face() != nil && o.Face().HasKeyword(kw)
 }
+
+// UmbraArmorAura has no layer system to consult here either (Umbra Mystic's
+// grant is a rules-side derived keyword); the double reports none, so the
+// effects-package tests that drive ReplaceUmbraArmor directly must seed a
+// printed keyword on the Aura's face.
+func (h *fakeHost) UmbraArmorAura(_ state.ObjID) state.ObjID { return 0 }
 func (h *fakeHost) Power(id state.ObjID) int32 {
 	o := h.g.Obj(id)
 	if o == nil || o.Face() == nil {
@@ -151,6 +203,13 @@ func (h *fakeHost) IsCreature(id state.ObjID) bool {
 // is exactly today's no-ask behaviour, now with the engines it is a fallback
 // for clearly named (R-9).
 func (h *fakeHost) Ask(d *decision.Decision) bool { return false }
+
+// TypeChoices serves the double's configured typeChoices list (nil by
+// default): nil routes ChooseType through AskEmpty — the unchanged
+// deterministic fallback — so the existing fallback pins pass untouched.
+func (h *fakeHost) TypeChoices(_ state.PlayerID, _ string) []decision.Option {
+	return h.typeChoices
+}
 
 // Suspended reports false: an effects-package test double never actually
 // suspends a resolution (its Ask always returns false, so the asking effect
@@ -180,6 +239,9 @@ func (h *fakeHost) CounterAllowed(state.ObjID, state.ObjID) bool { return true }
 // SuspendRepeat is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
 
+// SuspendCharmRest is a no-op for the same reason as SuspendContinuation.
+func (h *fakeHost) SuspendCharmRest(*cards.SA, []string) {}
+
 // SetDamageSource records the published damage source on the double (the
 // last value wins) and returns the previous one, mirroring the engine's
 // set-and-restore contract so an emitter's restore is observable.
@@ -196,7 +258,7 @@ func (h *fakeHost) SetDamageSource(id state.ObjID) state.ObjID {
 func (h *fakeHost) BatchDepartures(ids []state.ObjID) { h.batch = ids }
 func (h *fakeHost) EndBatchDepartures()               { h.batch = nil }
 
-func newHost(t *testing.T, seats int) *fakeHost {
+func newHost(t testing.TB, seats int) *fakeHost {
 	t.Helper()
 	return &fakeHost{g: state.NewGame(names(seats))}
 }
@@ -223,7 +285,7 @@ func names(n int) []string {
 	return out
 }
 
-func sa(t *testing.T, line string) *cards.SA {
+func sa(t testing.TB, line string) *cards.SA {
 	t.Helper()
 	src := "Name:T\nTypes:Sorcery\nA:" + line + "\nOracle:x\n"
 	c, d := cards.ParseBytes("t.txt", []byte(src))
@@ -413,6 +475,57 @@ func TestSupportedListsRegisteredAPIs(t *testing.T) {
 	}
 	if Supported()["api:NotRegistered"] {
 		t.Fatal("Supported listed an API that was never registered")
+	}
+}
+
+func TestCompiledAPIRegistryDispatchParity(t *testing.T) {
+	defer Register("Draw", effDraw)
+	defer unregister("TestCompiledUnknown")
+
+	bound := &cards.SA{Kind: "SP", API: "Draw"}
+	r := cards.NewRegistry()
+	r.Add(&cards.Card{Faces: []*cards.Face{{Abilities: []*cards.SA{bound}}}})
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatal(err)
+	}
+	if bound.CompiledAPI() != cards.APIDraw {
+		t.Fatalf("compiled API = %d, want Draw", bound.CompiledAPI())
+	}
+
+	var first, second, unknown int
+	Register("Draw", func(Host, *Ctx, *cards.SA) { first++ })
+	snapshot := registry.load()
+	if snapshot.byName["Draw"] == nil || snapshot.byCode[cards.APIDraw] == nil {
+		t.Fatal("Draw registration was not published in both lookup views")
+	}
+	Resolve(newHost(t, 2), &Ctx{}, bound)
+	Resolve(newHost(t, 2), &Ctx{}, &cards.SA{Kind: "SP", API: "Draw"})
+	if first != 2 {
+		t.Fatalf("first Draw implementation ran %d times, want bound and textual dispatch", first)
+	}
+
+	Register("Draw", func(Host, *Ctx, *cards.SA) { second++ })
+	Resolve(newHost(t, 2), &Ctx{}, bound)
+	Resolve(newHost(t, 2), &Ctx{}, &cards.SA{Kind: "SP", API: "Draw"})
+	if second != 2 || first != 2 {
+		t.Fatalf("replacement dispatch: first=%d second=%d, want 2/2", first, second)
+	}
+
+	Register("TestCompiledUnknown", func(Host, *Ctx, *cards.SA) { unknown++ })
+	Resolve(newHost(t, 2), &Ctx{}, &cards.SA{Kind: "SP", API: "TestCompiledUnknown"})
+	if unknown != 1 {
+		t.Fatalf("registered unknown API ran %d times, want 1", unknown)
+	}
+
+	unregister("Draw", "TestCompiledUnknown")
+	snapshot = registry.load()
+	if snapshot.byName["Draw"] != nil || snapshot.byCode[cards.APIDraw] != nil {
+		t.Fatal("Draw unregistration was not published in both lookup views")
+	}
+	h := newHost(t, 2)
+	Resolve(h, &Ctx{}, bound)
+	if len(h.log) != 1 || h.log[0].Text != "unimplemented API Draw" {
+		t.Fatalf("unregistered compiled API log = %+v", h.log)
 	}
 }
 

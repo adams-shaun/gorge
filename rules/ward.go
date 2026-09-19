@@ -30,7 +30,7 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 	// discard one card OR pay {2}.
 	if i := strings.LastIndex(raw, ">:"); i >= 0 {
 		discardRaw, manaRaw := raw[:i+1], raw[i+2:]
-		cost := ParseCost(discardRaw)
+		cost := e.parseCost(discardRaw)
 		if len(cost.Discard) != 1 {
 			return false, false
 		}
@@ -42,7 +42,7 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "ward_discard", Obj: id,
 				Label: "Discard " + e.G.Obj(id).Face().Name})
 		}
-		mana := ParseCost(manaRaw)
+		mana := e.parseCost(manaRaw)
 		if mana.payable(e.G.Players[payer].Pool, e.G.Players[payer].Snow, e.G.Players[payer].Life) ||
 			(mana.hasManaPayment() && e.hasUntappedManaSource(payer)) {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "ward_mana", Amount: int(mana.Generic), Label: "Pay " + manaRaw})
@@ -89,7 +89,7 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 		}
 	}
 
-	cost := ParseCost(raw)
+	cost := e.parseCost(raw)
 	if strings.HasPrefix(raw, "PayLife<X/") {
 		life := e.Power(ctx.Source)
 		if life < 0 {
@@ -103,6 +103,15 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 	if len(cost.Sac) == 1 {
 		part := cost.Sac[0]
 		ids := e.wardPermanents(payer, ctx.Source, sacrificeMatchSpec(part.Spec), false)
+		// A CantSacrifice restriction (Call for Aid) or face static: the
+		// permanent cannot pay the ward's sacrifice component.
+		var sacIDs []state.ObjID
+		for _, id := range ids {
+			if !e.SacrificeBlocked(id) {
+				sacIDs = append(sacIDs, id)
+			}
+		}
+		ids = sacIDs
 		if int32(len(ids)) < part.N {
 			return false, false
 		}
@@ -221,7 +230,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		}
 		if chosen[0].Kind == "ward_mana" {
 			_, manaRaw, _ := strings.Cut(raw, ">:")
-			return e.payMana(payer, ParseCost(manaRaw))
+			return e.payMana(payer, e.parseCost(manaRaw))
 		}
 		if chosen[0].Kind != "ward_discard" || len(ids) != 1 || !slices.Contains(e.G.Zone(state.ZHand, payer), ids[0]) {
 			return false
@@ -274,7 +283,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		e.emit(events.Event{Kind: events.Tap, Obj: ids[0]})
 		return true
 	case "ward_sac", "ward_discard":
-		cost := ParseCost(raw)
+		cost := e.parseCost(raw)
 		var part CostPart
 		var zone state.Zone
 		if kind == "ward_sac" && len(cost.Sac) == 1 {

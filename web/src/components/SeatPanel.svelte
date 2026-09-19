@@ -9,6 +9,7 @@
   import { isSearchPick, searchCard, searchOptions } from '../lib/search';
   import { modalPickerOpen } from '../lib/modals';
   import ArrangeModal from './ArrangeModal.svelte';
+  import DiscardModal from './DiscardModal.svelte';
   import CardDetail from './CardDetail.svelte';
   import CardImage from './CardImage.svelte';
   import CardTile from './CardTile.svelte';
@@ -185,6 +186,16 @@
   function submitArrange(order: number[]): void {
     logic.arrangeOpen = false;
     logic.setPicked(order);
+    logic.submit();
+  }
+
+  /** openDiscard opens the discard-pick ask's big card view (fb-20260918T201739Z) — the affordance the arrange ask's button gives. */
+  function openDiscard(): void {
+    logic.discardOpen = true;
+  }
+  /** submitDiscard closes the popup and posts the picked set through the ordinary submit — the same one posting path the inline row uses. */
+  function submitDiscard(): void {
+    logic.discardOpen = false;
     logic.submit();
   }
 
@@ -535,8 +546,9 @@
               </button>
             {/each}
           </div>
-          {#if logic.showSubmit && placement !== 'strip'}
-            <div class="choices">
+          <div class="choices">
+            <button class="choice" type="button" data-discard-open onclick={openDiscard} disabled={logic.busy}>Open the card view</button>
+            {#if logic.showSubmit && placement !== 'strip'}
               <button
                 class="choice keep"
                 type="button"
@@ -544,8 +556,8 @@
                 onclick={() => logic.submit()}
                 disabled={!logic.canSubmit || logic.busy}
               >{discard.min === 0 ? 'Confirm' : discard.min === discard.max ? `Choose ${discard.min}` : `Choose ${discard.min}–${discard.max}`}</button>
-            </div>
-          {/if}
+            {/if}
+          </div>
           {#if discardHover.hover.show && discardHover.card && discardHover.anchor}<CardDetail card={discardHover.card} anchor={discardHover.anchor} />{/if}
         </div>
       {:else if search !== null}
@@ -686,6 +698,26 @@
 
   {#if logic.arrangeOpen && arrange !== null && placement !== 'strip'}
     <ArrangeModal open={logic.arrangeOpen} decision={arrange} seed={logic.picked} onSubmit={submitArrange} onClose={() => (logic.arrangeOpen = false)} />
+  {/if}
+
+  {#if logic.discardOpen && discard !== null && placement !== 'strip'}
+    <!-- The discard-pick modal (fb-20260918T201739Z): presentational only —
+         picks go through logic.click (a Min==Max==1 ask posts straight
+         through on the click, which also closes the ask and this modal),
+         submit goes through the ordinary logic.submit. The wire intent is
+         byte-identical to the inline strip's, because it IS the strip's
+         posting path. -->
+    <DiscardModal
+      open={logic.discardOpen}
+      decision={discard}
+      picked={logic.picked}
+      showSubmit={logic.showSubmit}
+      canSubmit={logic.canSubmit}
+      busy={logic.busy}
+      onPick={(index) => logic.click(index)}
+      onSubmit={submitDiscard}
+      onClose={() => (logic.discardOpen = false)}
+    />
   {/if}
 {/if}
 

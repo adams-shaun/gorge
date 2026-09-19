@@ -133,18 +133,26 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		}
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
-			if e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) {
-				matches = append(matches, replMatch{id: ce.Source, repl: r,
-					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+			if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) {
+				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
+					chosen: ce.ChosenNumber,
+					key:    "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
-		} else if ce.ReplacementBody == "" && strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Layer"]), "CantHappen") {
+		} else if ce.ReplacementBody == "" && (strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Layer"]), "CantHappen") ||
+			(event == "DamageDone" && strings.EqualFold(ce.ReplacementParams["Prevent"], "True"))) {
 			// The Effect-created CantHappen form (Mistrise Village's AntiMagic:
 			// "the next spell you cast this turn can't be countered"): no
 			// ReplaceWith$ — stopping the event is the complete replacement,
 			// the same shape printed R: lines take (the With==nil arm below).
+			// The bodyless Prevent$ True DamageDone form (Selfless Squire's
+			// RPrevent, task dponce1; the wider bodyless prevent family it
+			// belongs to) is the same idiom for damage: full prevention is the
+			// complete replacement, applied by the shared damage dispatch
+			// (applyNonMoveReplacements' Prevent$ arm) exactly as a printed R:
+			// line's would be.
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
-			if e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) {
-				matches = append(matches, replMatch{id: ce.Source, repl: r,
+			if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) {
+				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
 					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
 		}
@@ -155,7 +163,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			return
 		}
 		for i := range f.Repls {
-			if f.Repls[i].Event != event {
+			if !replacementEventNameMatches(f.Repls[i].Event, event) {
 				continue
 			}
 			m := replMatch{id: id, face: f, repl: &f.Repls[i]}
@@ -184,6 +192,8 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		return e.continuePhaseReplacements(ev, matches, nil)
 	case events.FlipFace:
 		return e.applyTransformReplacement(ev, matches)
+	case events.TokenCreate:
+		return e.continueCreateTokenReplacements(ev, matches)
 	case events.Damage:
 		matches = e.applicableDamageReplacements(ev, matches)
 		if len(matches) == 0 {
@@ -259,8 +269,17 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
 		// CR 616.1e: after each modification, applicability is checked again
-		// against the changed event (not the original amount).
-		if !e.replacementMatches(*m.repl, m.id, ev) {
+		// against the changed event (not the original amount). The recheck
+		// uses the same matcher class the collection used (see
+		// applicableDamageReplacements): an Effect-created match is never
+		// re-gated on ActiveZones$.
+		matched := false
+		if m.key != "" {
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered)
+		} else {
+			matched = e.replacementMatches(*m.repl, m.id, ev)
+		}
+		if !matched {
 			continue
 		}
 		if ev.Kind == events.Damage && damageReplacementPrevents(*m.repl) {
@@ -269,9 +288,18 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 				// may touch damage that cannot be prevented (Spider-Punk).
 				continue
 			}
-			if m.repl.Params["Prevent"] == "True" {
-				return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
-					Text: "damage prevented by replacement effect"}, true
+			if strings.EqualFold(m.repl.Params["Prevent"], "True") {
+				// Stored through a re-entrant emit (the ReplaceDamage arm's
+				// shape, task dponce1): the log record IS the prevention's
+				// occurrence, so Mode$ DamagePreventedOnce triggers fire off it
+				// -- Amount carries the prevented damage (Note is an Apply
+				// no-op marker; no reader of Note.Amount predates this). Obj is
+				// the damaged object (0 for a player hit) and Player the
+				// damaged player, the uniform shape every stored prevention
+				// Note keeps. The returned kind is still a Note, never a
+				// Damage: the combat assignment loop and speed.go read it.
+				return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+					Amount: ev.Amount, Text: "damage prevented by replacement effect"}), true
 			}
 			// a ReplaceDamage body falls through to its subtracting arm below
 		}
@@ -314,7 +342,13 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 // damage-replacement selection and application path classifies prevention
 // through this one predicate and cannot drift apart.
 func damageReplacementPrevents(r cards.Repl) bool {
-	if r.Params["Prevent"] == "True" {
+	// Case-insensitive (dponce1 r2): the registration (effEffect's
+	// replacementLinePrevents) and the collection
+	// (applyReplacementsDispatch) read the param with EqualFold, so this
+	// classifier must too — a non-canonical `Prevent$ true` bodyless
+	// registration would otherwise be admitted to the competition and then
+	// silently erased by the With==nil CantHappen drop arm.
+	if strings.EqualFold(r.Params["Prevent"], "True") {
 		return true
 	}
 	return r.With != nil && r.With.API == "ReplaceDamage"
@@ -323,7 +357,18 @@ func damageReplacementPrevents(r cards.Repl) bool {
 func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMatch) []replMatch {
 	out := matches[:0]
 	for _, m := range matches {
-		if !e.replacementMatches(*m.repl, m.id, ev) {
+		// CR 616.1's recheck must use the same matcher class the initial
+		// collection used: an Effect-created match's lifetime is active()'s,
+		// not its source's zone (task wildgrowth1), so re-gating it on
+		// ActiveZones$ here would silently drop every Effect-granted
+		// DamageDone replacement the scan just admitted (Taii Wakeen).
+		matched := false
+		if m.key != "" {
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered)
+		} else {
+			matched = e.replacementMatches(*m.repl, m.id, ev)
+		}
+		if !matched {
 			continue
 		}
 		if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.damaging, ev.Obj) {
@@ -355,6 +400,17 @@ type replMatch struct {
 	// key identifies an Effect-created replacement across active() rebuilds.
 	// Printed replacement pointers are immutable face entries and need no key.
 	key string
+	// remembered carries the Effect-created replacement's remembered ids so
+	// a per-mint re-match (continueCreateTokenReplacements) can re-evaluate
+	// its IsRemembered specs exactly as the initial match did. Printed
+	// replacements never carry one.
+	remembered []state.ObjID
+	// chosen carries the Effect-created replacement's SetChosenNumber$ binding
+	// (state.ContinuousEffect.ChosenNumber, task wildgrowth1): the number the
+	// Effect resolved at creation, which replCtx threads into the body Ctx so
+	// the body's Count$ChosenNumber head reads the frozen binding. Zero on
+	// every printed replacement (and on an Effect that bound nothing).
+	chosen int32
 }
 
 // rememberedSpecContext builds the match context a ValidCard$/ValidLKI$
@@ -459,8 +515,15 @@ func (e *Engine) applyReplaceDamageBody(ev *events.Event, m replMatch) bool {
 	if o := e.G.Obj(m.id); o != nil && o.Face() != nil && o.Face().Name != "" {
 		who = o.Face().Name
 	}
-	e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
-		Text: who + " prevented " + strconv.Itoa(int(prevented)) + " of the damage"})
+	e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+		Amount: prevented,
+		Text:   who + " prevented " + strconv.Itoa(int(prevented)) + " of the damage"})
+	// Obj carries the damaged object (0 for a player hit) like the full-
+	// prevention arm's Note above, not the preventing source: the log text
+	// names the preventer, and Mode$ DamagePreventedOnce triggers key their
+	// ValidTarget$ on the damaged side. (Prevention Notes carried no Amount
+	// before dponce1 and zero prevention-text events are logged in the
+	// golden-shape games, so the field's presence is stream-neutral there.)
 	return ev.Amount <= 0
 }
 
@@ -505,6 +568,33 @@ func (e *Engine) forEachReplacementSource(fn func(id state.ObjID)) {
 	}
 }
 
+// replacementEventNameMatches compares a printed R:Event$ name with the
+// event name an engine event maps to. "DrawCards" is Forge's spelling of
+// the draw replacement event (Quantum Riddler's "you draw that many cards
+// plus one instead", Alms Collector's "if an opponent would draw two or
+// more cards"); the engine maps events.Draw to "Draw", so the alias reads
+// here rather than in the IR (two corpus carriers, both
+// CheckSVar$/Number$-gated).
+func replacementEventNameMatches(replEvent, event string) bool {
+	if replEvent == event {
+		return true
+	}
+	return event == "Draw" && replEvent == "DrawCards"
+}
+
+// drawMatchAmount is the replacement-CONTEXT amount of a Draw event: a
+// per-card Draw carries no Amount, and the body view of "the number of cards
+// this draw would draw" is 1 (Quantum Riddler's NumCards$
+// ReplaceCount$Number/Plus.1). The EMITTED event is never touched -- this is
+// a context read only -- which is what keeps every unrelated game's Draw
+// events byte-identical.
+func drawMatchAmount(ev events.Event) int32 {
+	if ev.Kind == events.Draw && ev.Amount == 0 {
+		return 1
+	}
+	return ev.Amount
+}
+
 // replacementEvent maps the event log's concrete events to Forge R:Event$
 // names. ManaAdd's producer and tap provenance live in synchronous Engine
 // scratch instead of its hash-chained fields; ProduceMana matching requires
@@ -525,6 +615,8 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "DamageDone", true
 	case events.Draw:
 		return "Draw", true
+	case events.TokenCreate:
+		return "CreateToken", true
 	default:
 		return "", false
 	}
@@ -823,6 +915,16 @@ func manaReplacementNeedsColor(m replMatch) bool {
 // seed was fx44's stand-in for the suspended-resolution case; the resume
 // thread carries the body's own Remembered instead (rules/resolution.go's
 // replacement branch).
+//
+// The rule is scoped to PRINTED replacements. An EFFECT-created replacement
+// (m.key != "", task wildgrowth1) is a different population: the effect's
+// registered Remembered list IS the intended binding -- the trigger captured
+// the cast spell with RememberObjects$ and the body's Remembered$ specs (the
+// runadi_behemoth_caller / gluttonous_hellkite CounterNum$ readers) read
+// exactly that -- and none of those bodies rides a competing Remember* rider,
+// so the double-counting defect the printed rule exists for cannot arise.
+// replCtx threads the effect's frozen SetChosenNumber$ binding alongside it
+// (replMatch.chosen), what the body's Count$ChosenNumber head reads.
 func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	o := e.G.Obj(m.id)
 	target := state.Target{Obj: ev.Obj}
@@ -830,12 +932,14 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		target = state.Target{Player: ev.Player, IsPlayer: true}
 	}
 	if o == nil {
-		return &effects.Ctx{Source: m.id, ReplacementTarget: target,
-			ReplacementSource: e.protectionSource(e.damaging), ReplacementAmount: ev.Amount}
+		ctx := &effects.Ctx{Source: m.id, ReplacementTarget: target,
+			ReplacementSource: e.protectionSource(e.damaging), ReplacementAmount: drawMatchAmount(ev)}
+		e.seedEffectReplCtx(ctx, m)
+		return ctx
 	}
 	ctx := &effects.Ctx{Source: m.id, Controller: o.Controller,
 		ReplacementTarget: target, ReplacementSource: e.protectionSource(e.damaging),
-		ReplacementAmount: ev.Amount,
+		ReplacementAmount: drawMatchAmount(ev),
 		// X is the {X} paid for the moving object, so an ETB replacement that
 		// reads it (etbCounter's CounterNum$ X, e.g. Endless One / Walking
 		// Ballista / Chalice of the Void) sees the value the player actually
@@ -868,7 +972,29 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	if f != nil {
 		effects.SetSVars(ctx, f.SVars)
 	}
+	e.seedEffectReplCtx(ctx, m)
 	return ctx
+}
+
+// seedEffectReplCtx threads an Effect-created match's own bindings into the
+// body Ctx: the frozen SetChosenNumber$ number and (key-only: never a printed
+// replacement) the effect's registered Remembered list. See replCtx's doc for
+// why the seed is scoped to effect-created matches. The Draw branch above
+// clears ctx.Remembered for the bodies that re-draw; no Draw body is ever
+// registered live (effects' registration gate keeps them on the loud Note),
+// so a live seed cannot be erased by that clearing on a registered shape.
+func (e *Engine) seedEffectReplCtx(ctx *effects.Ctx, m replMatch) {
+	ctx.ChosenNumber = m.chosen
+	// The bound flag is the Count$ChosenNumber head's verdict: effect-created
+	// only, so a printed or choose-event context stays UNRESOLVED and the
+	// EvalCountOK consumers keep their fail direction (see Ctx.ChosenNumberBound).
+	ctx.ChosenNumberBound = m.key != ""
+	if m.key == "" || len(m.remembered) == 0 {
+		return
+	}
+	for _, id := range m.remembered {
+		ctx.Remembered = append(ctx.Remembered, state.Target{Obj: id})
+	}
 }
 
 // runReplaceWith resolves one ReplaceWith$ body inside the replacement
@@ -928,6 +1054,13 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		departing, link, controller := e.captureSourceLifelinkLKI(ev)
 		stored := events.Emit(e.G, e.L, ev)
 		e.loop.observe(stored)
+		// The move-driven Effect lifetimes (the ExileOnMoved$/ForgetOnMoved$
+		// sweep) run on Engine.emit's own MoveZone path right here in the
+		// ordering; the raw events.Emit above bypasses that path, so the sweep
+		// is replayed inline (task wildgrowth1: the "enters with N additional
+		// counters" Effect must end exactly after the one entry it upgraded,
+		// not linger to re-upgrade the same remembered card's next entry).
+		e.effectMoveSweep(ev)
 		e.checkTriggers(stored, nil, 0, 0, false)
 		e.finishSourceLifelinkLKI(ev, departing, link, controller)
 		e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
@@ -949,6 +1082,10 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 	departing, link, controller := e.captureSourceLifelinkLKI(ev)
 	stored := events.Emit(e.G, e.L, ev)
 	e.loop.observe(stored)
+	// The move-driven Effect lifetimes, replayed inline exactly as the
+	// single-match Updated branch does (the raw events.Emit above bypasses
+	// Engine.emit's own sweep point).
+	e.effectMoveSweep(ev)
 	e.checkTriggers(stored, nil, 0, 0, false)
 	e.finishSourceLifelinkLKI(ev, departing, link, controller)
 	for _, m := range matches {
@@ -958,6 +1095,237 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
 	}
 	return stored, true
+}
+
+// continueCreateTokenReplacements applies every applicable CreateToken
+// replacement to one TokenCreate event. The engine mints ONE token per
+// event, so the plan starts as that single mint. Each match applies at most
+// once, in deterministic scan order, and its ValidToken$ gate is re-checked
+// PER PLAN MINT — a later match sees the mints earlier matches produced
+// (Divine Visitation after a doubler replaces each doubled mint that is
+// still a creature token), which is CR 616.1's re-application over the
+// changed event. The final plan is emitted directly through events.Emit
+// (+ observe + checkTriggers per mint, the composeUpdatedReplacements
+// pattern), which BYPASSES applyReplacements: no mint can re-match, so a
+// doubler can never loop on its own output. The deviation from CR 616.1 is
+// deliberate and documented: competing CreateToken replacements apply in
+// scan order, NOT through a posed KReplacement order choice (non-commuting
+// compositions are reachable in Commander, but no repo deck carries any of
+// this family, so no golden game exercises one).
+func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	plan := []string{ev.Text}
+	for _, m := range matches {
+		body := m.repl.With
+		if body == nil || body.API != "ReplaceToken" {
+			// A body this dispatcher does not read leaves the plan untouched;
+			// the mint stands (the fail-safe direction).
+			continue
+		}
+		if strings.EqualFold(m.repl.Params["Optional"], "True") {
+			// The deterministic decline stand-in (the optional no-ask paths'
+			// contract): a "may" replacement with no chooser applies as if
+			// declined, the event stands verbatim.
+			continue
+		}
+		typ := strings.TrimSpace(body.Params["Type"])
+		if typ == "ReplaceController" {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "ReplaceToken Type$ ReplaceController is not implemented; the token is created unchanged"})
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(body.Params["TokenScript"]), "Chosen") ||
+			strings.TrimSpace(body.Params["ValidChoices"]) != "" {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "ReplaceToken ValidChoices (TokenScript$ Chosen) is not implemented; the token is created unchanged"})
+			continue
+		}
+		plan = e.applyTokenReplacementToPlan(ev, plan, m)
+	}
+	if len(plan) == 1 && plan[0] == ev.Text {
+		// No replacement changed the plan: the ordinary emit path logs the
+		// original event untouched (with its full LKI/trigger treatment).
+		return ev, false
+	}
+	if len(plan) == 0 {
+		// Every mint was removed (halving_season's HalfDown on a one-token
+		// event): the Note is the log's witness that nothing was created.
+		e.emit(events.Event{Kind: events.Note, Obj: 0, Player: ev.Player,
+			Text: "no tokens created (replacement effect rounded the creation down to zero)"})
+		return ev, true
+	}
+	var last events.Event
+	for _, script := range plan {
+		mint := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: script}
+		stored := events.Emit(e.G, e.L, mint)
+		e.loop.observe(stored)
+		e.checkTriggers(stored, nil, 0, 0, false)
+		last = stored
+	}
+	return last, true
+}
+
+// applyTokenReplacementToPlan transforms the plan by ONE match, per mint,
+// with the match's own ValidToken$ re-checked against each mint's script.
+func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []string, m replMatch) []string {
+	body := m.repl.With
+	switch strings.TrimSpace(body.Params["Type"]) {
+	case "ReplaceToken":
+		// "... instead create those tokens as <scripts>" — a pure rewrite:
+		// each matched mint is replaced by one mint per script in the CSV
+		// (Academy Manufactor's one Clue -> Clue+Food+Treasure; Divine
+		// Visitation's squirrel -> angel).
+		scripts := e.knownTokenScripts(m.id, body.Params["TokenScript"])
+		if len(scripts) == 0 {
+			return plan
+		}
+		out := make([]string, 0, len(plan)*len(scripts))
+		for _, mint := range plan {
+			if e.tokenReplacementMatchesMint(ev, m, mint) {
+				out = append(out, scripts...)
+			} else {
+				out = append(out, mint)
+			}
+		}
+		return out
+	case "AddToken":
+		// "... instead create those tokens plus N <script>" — the original
+		// mint stands and N extra mints of the named script join it.
+		n := int32(1)
+		if raw := strings.TrimSpace(body.Params["Amount"]); raw != "" {
+			v, ok := tokenReplaceCount(raw)
+			if !ok || v < 0 {
+				e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+					Text: "ReplaceToken Amount$ " + raw + " is not implemented; the token is created unchanged"})
+				return plan
+			}
+			n = v
+		}
+		extra := e.knownTokenScripts(m.id, body.Params["TokenScript"])
+		if len(extra) == 0 {
+			return plan
+		}
+		out := make([]string, 0, len(plan)+int(n)*len(extra))
+		for _, mint := range plan {
+			out = append(out, mint)
+			if e.tokenReplacementMatchesMint(ev, m, mint) {
+				for i := int32(0); i < n; i++ {
+					out = append(out, extra...)
+				}
+			}
+		}
+		return out
+	default:
+		// "Amount" (and an absent Type$ — the corpus always names one, Amount
+		// is the natural default for the "twice that many" doubler family):
+		// each matched mint becomes replCountOp(1, Amount$) copies of itself.
+		raw := strings.TrimSpace(body.Params["Amount"])
+		if raw == "" {
+			raw = "Twice"
+		}
+		n, ok := tokenReplaceCount(raw)
+		if !ok || n < 0 {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "ReplaceToken Amount$ " + raw + " is not implemented; the token is created unchanged"})
+			return plan
+		}
+		out := make([]string, 0, len(plan)*int(n)+1)
+		for _, mint := range plan {
+			if !e.tokenReplacementMatchesMint(ev, m, mint) {
+				out = append(out, mint)
+				continue
+			}
+			if n >= 1 {
+				for i := int32(0); i < n; i++ {
+					out = append(out, mint)
+				}
+				continue
+			}
+			// n == 0 (HalfDown against this engine's one-token events): the
+			// matched mint is not created. A halving composed AFTER a
+			// multiplier applies per mint rather than to the plan total — the
+			// documented composition approximation (see AGENTS.md).
+		}
+		return out
+	}
+}
+
+// tokenReplacementMatchesMint re-checks ONE replacement against ONE plan
+// mint (a would-be TokenCreate event over the mint's script). The body's
+// own ValidCard$ (stridehangar_automaton's redundant artifact gate) joins
+// the gate when present.
+func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, script string) bool {
+	mint := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: script}
+	// The recheck uses the same matcher class the initial collection used:
+	// an effect-created match re-matches through the remembered-scoped effect
+	// matcher, a printed match through the ordinary one -- never the ungated
+	// effect matcher for a printed key. For a TokenCreate mint the two agree
+	// on every printed Repl today (the mint, like ev, carries no To), but the
+	// split keeps the recheck from ever widening what the initial gated
+	// collection admitted, the same discipline remainingDamageReplacements
+	// and counterReplacementMatchesAll follow.
+	if m.key != "" {
+		if !e.replacementMatchesEffectCreated(*m.repl, m.id, mint, m.remembered) {
+			return false
+		}
+	} else if !e.replacementMatches(*m.repl, m.id, mint) {
+		return false
+	}
+	if m.repl.With != nil {
+		if v := strings.TrimSpace(m.repl.With.Params["ValidCard"]); v != "" {
+			tok := e.tokenSnapshot(mint)
+			if tok == nil {
+				return false
+			}
+			// The provenance qualifier split applies here too (task castprov1):
+			// a would-be TOKEN was never cast at all, so an alternative carrying
+			// the qualifier is dropped for it.
+			spec, ok := e.castProvenanceAdmits(v, tok.ID, e.controllerOf(m.id))
+			if !ok || !effects.MatchesObjectCtx(e.G, spec, tok,
+				e.rememberedSpecContext(e.controllerOf(m.id), m.id, m.remembered)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// knownTokenScripts splits a ReplaceToken body's TokenScript$ CSV and keeps
+// only the stems the game's token registry knows, one loud Note per unknown
+// stem. An empty result leaves the caller's plan untouched.
+func (e *Engine) knownTokenScripts(source state.ObjID, csv string) []string {
+	var out []string
+	for _, s := range strings.Split(csv, ",") {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		if _, ok := e.G.Tokens[s]; !ok {
+			e.emit(events.Event{Kind: events.Note, Obj: source,
+				Text: "unknown token script " + s})
+			continue
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+// tokenReplaceCount resolves a ReplaceToken body's Amount$: a literal
+// integer (the AddToken family's Amount$ 1) or one of replCountOp's word
+// ops read against the single-mint base (Twice -> 2, Thrice -> 3, HalfDown
+// -> 0 against the one-token event this engine mints — replCountOp is the
+// shared word-op parser). An unresolvable value (X, an SVar name) reports
+// not-ok and the match is dropped with a loud Note.
+func tokenReplaceCount(raw string) (int32, bool) {
+	if n, err := strconv.Atoi(raw); err == nil {
+		return int32(n), true
+	}
+	switch {
+	case raw == "Twice", raw == "Thrice", raw == "HalfDown", raw == "HalfUp",
+		strings.HasPrefix(raw, "Plus."), strings.HasPrefix(raw, "Minus."),
+		strings.HasPrefix(raw, "Times."):
+		return replCountOp(1, raw), true
+	}
+	return 0, false
 }
 
 // resolveReplacementWith runs a ReplaceWith$ effect with e.damaging set to
@@ -1046,30 +1414,40 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 // binding; a spec carrying IsRemembered against an empty set fails closed,
 // the matcher's standing contract.
 func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID) bool {
-	// The generic object walk historically excludes the command zone. Its
-	// replacement-only extension admits command-zone sources, but only when
-	// the script explicitly declares that zone; this keeps ordinary card text
-	// parked there inert and does not change trigger discovery.
+	if !e.activeZonesGateOK(r, source, ev) {
+		return false
+	}
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered)
+}
+
+// activeZonesGateOK is the ActiveZones$ zone gate the PRINTED replacement
+// paths share:
+//
+//   - the generic object walk historically excludes the command zone; its
+//     replacement-only extension admits command-zone sources, but only when
+//     the script explicitly declares that zone; this keeps ordinary card
+//     text parked there inert and does not change trigger discovery.
+//
+//   - CR 611.3b/614.4: a static replacement only applies from one of its
+//     declared active zones. Accept the comma-separated list grammar used by
+//     other Forge zone parameters; the pinned corpus currently uses only
+//     singleton ActiveZones values. Replacements with no ActiveZones
+//     parameter apply from anywhere (the corpus does not thereby declare a
+//     zone, and historically this engine has allowed those from anywhere).
+//
+//   - A permanent's own entry replacement is active for the event that puts
+//     it into the declared zone even though the source has not arrived there
+//     yet (CR 614.12): the prospective ev.To clause. ev.To is only
+//     meaningful for a MoveZone; the other events leave it at its zero
+//     value, so the clause is MoveZone-only rather than reading a
+//     meaningless zero zone.
+func (e *Engine) activeZonesGateOK(r cards.Repl, source state.ObjID, ev events.Event) bool {
 	if o := e.G.Obj(source); o != nil && o.Zone == state.ZCommand {
 		active, ok := r.Params["ActiveZones"]
 		if !ok || !zoneSpecContains(active, state.ZCommand) {
 			return false
 		}
 	}
-	// CR 611.3b/614.4: a static replacement only applies from one of its
-	// declared active zones. Accept the comma-separated list grammar used by
-	// other Forge zone parameters; the pinned corpus currently uses only
-	// singleton ActiveZones values. Preserve replacements with no ActiveZones
-	// parameter: the corpus does not thereby declare a zone, and
-	// historically this engine has allowed those replacements from anywhere.
-	//
-	// A permanent's own entry replacement is active for the event that puts it
-	// into the declared zone even though the source has not arrived there yet
-	// (CR 614.12). Without the prospective ev.To check, ordinary "enters with"
-	// replacements would disable themselves while their source is in hand or
-	// on the stack. ev.To is only meaningful for a MoveZone; the other four
-	// events leave it at its zero value, so the prospective clause is
-	// MoveZone-only rather than reading a meaningless zero zone.
 	if active, ok := r.Params["ActiveZones"]; ok {
 		o := e.G.Obj(source)
 		currentlyActive := o != nil && zoneSpecContains(active, o.Zone)
@@ -1079,6 +1457,27 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 			return false
 		}
 	}
+	return true
+}
+
+// replacementMatchesEffectCreated is the matcher for an EFFECT-created
+// registration: same predicates as replacementMatchesRemembered, but the
+// ActiveZones$ gate is skipped — an Effect's lifetime is active()'s, not its
+// source's zone (the rule the bodyless Counter CantHappen branch already
+// documents). Forge registers an Effect SA's replacements as command-zone
+// entities, so their R: lines declare ActiveZones$ Command (Taii Wakeen's
+// RepDamage, 18 measured DamageDone carriers) while this engine holds the
+// registration in the continuous registry with the source on the battlefield
+// — gating on the source's zone would permanently silence every one of them
+// (task wildgrowth1). active() still ends the effect on its own lifetime.
+func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID) bool {
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered)
+}
+
+// replacementMatchesRememberedUngated is replacementMatchesRemembered's
+// predicate body without the ActiveZones$ gate; only the two wrappers above
+// reach it.
+func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID) bool {
 	you := e.controllerOf(source)
 	switch r.Event {
 	case "Counter":
@@ -1132,7 +1531,14 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 			}
 		}
 		if v, ok := r.Params["ValidCard"]; ok {
-			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
+			// The bare wasCastFromYourHandByYou qualifier (epochrasite's
+			// etbCounter gate field `ValidCard$ Card.Self+
+			// !wasCastFromYourHandByYou`: "enters with three +1/+1 counters on
+			// it if you didn't cast it from your hand") is split out and
+			// evaluated against the log here (task castprov1); the remainder
+			// matches as before.
+			spec, ok2 := e.castProvenanceAdmits(v, ev.Obj, you)
+			if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
 				return false
 			}
 		}
@@ -1154,7 +1560,14 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 				return false
 			}
 		}
-		return true
+		// CheckSVar$/SVarCompare$ (kw:etbCounter's CheckSVar$ third field --
+		// Lupine Harbingers' "enters with X +1/+1 counters ... since it was
+		// foretold" gate) shares replacementConditionHolds with the
+		// damage/counter families. The comment above its own declaration used
+		// to say the Moved case never carries these gates in the corpus; the
+		// etbCounter passthrough is the one carrier, and the shared read is a
+		// no-op for every Moved line without the params.
+		return e.replacementConditionHolds(r, source, you)
 	case "Untap":
 		if ev.Kind != events.Untap {
 			return false
@@ -1261,7 +1674,7 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 			}
 		}
 		return e.replacementConditionHolds(r, source, you)
-	case "Draw":
+	case "Draw", "DrawCards":
 		if ev.Kind != events.Draw {
 			return false
 		}
@@ -1273,9 +1686,63 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 			!effects.MatchesPlayerSpec(e.G, v, ev.Player, you) {
 			return false
 		}
-		return true
+		// The shared condition gate (CheckSVar$/IsPresent$/Hellbent$/...) —
+		// every sibling case ends with it; the Draw class never read it, so
+		// Quantum Riddler's LE1-over-Count$ValidHand gate (and the Hellbent
+		// DrawTwo / library-empty Win carriers) fired unconditionally. No
+		// repo deck carries any of the class's 39 carriers, so no golden
+		// game changes (measured).
+		return e.replacementConditionHolds(r, source, you)
+	case "CreateToken":
+		// The token-creation replacement class (Divine Visitation, Doubling
+		// Season, Academy Manufactor, Xorn, ...). Applied by
+		// continueCreateTokenReplacements, which reads each body's Type$
+		// directly in rules — the replaceDamageAmount precedent — rather than
+		// dispatching through the effects registry (no api:ReplaceToken
+		// resolver exists; the census registers the name via RegisterNonAPI).
+		if ev.Kind != events.TokenCreate {
+			return false
+		}
+		// ValidToken$ names the WOULD-BE token, which does not exist yet: the
+		// match is taken against a shallow read-side snapshot built off the
+		// token script the event names (the same never-added-to-the-game
+		// discipline StackCopy's snapshot keeps). The spec's You-side
+		// predicates (YouCtrl, ...) read against the replacement SOURCE's
+		// controller, while the token's controller is ev.Player — exactly how
+		// Divine Visitation's "creature tokens under YOUR control" must read.
+		// An unknown token key fails closed to no match.
+		if v, ok := r.Params["ValidToken"]; ok {
+			tok := e.tokenSnapshot(ev)
+			if tok == nil || !effects.MatchesObjectCtx(e.G, v, tok,
+				e.rememberedSpecContext(you, source, remembered)) {
+				return false
+			}
+		}
+		if vp, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpecFrom(e.G, vp, ev.Player, you, source) {
+			return false
+		}
+		// EffectOnly$ True ("If an EFFECT would create ...", Doubling Season's
+		// family) is READ and held: the engine's only TokenCreate emitters are
+		// effect resolution (effects/token.go's effToken and effects/amass.go),
+		// so today every token creation IS effect-created and the gate is
+		// vacuously satisfiable. A cost-created-token provenance marker is a
+		// deliberate non-goal; when one lands, this gate must read it.
+		return e.replacementConditionHolds(r, source, you)
 	}
 	return false
+}
+
+// tokenSnapshot builds the would-be token a TokenCreate event would mint,
+// as a shallow read-side object for ValidToken$ matching. Never added to
+// the game — a value snapshot like StackCopy's discipline. A nil return
+// (unknown token key) fails the caller's match closed.
+func (e *Engine) tokenSnapshot(ev events.Event) *state.Object {
+	def := e.G.Tokens[ev.Text]
+	if def == nil {
+		return nil
+	}
+	return &state.Object{Card: def, IsToken: true, Owner: ev.Player, Controller: ev.Player}
 }
 
 // phaseStep maps a Forge Phase$ value on a BeginPhase replacement onto the
@@ -1539,14 +2006,22 @@ func (e *Engine) replacementCheckValue(source state.ObjID, check string) int32 {
 		return 0
 	}
 	ctx := e.replCtx(replMatch{id: source}, events.Event{})
-	if check == "X" {
-		return o.X
-	}
+	// The face's own SVar table comes FIRST: a CheckSVar$ X gate whose face
+	// defines a real SVar:X body (Steel Exemplar's Count$Converge, Walking
+	// Dream's PlayerCountOpponents$ head, the multiclass_baldric and
+	// spirit_of_resistance bodies the switch below implements) must evaluate
+	// THAT body through the machinery below -- the announced-X shortcut is
+	// only the fallback for a face that defines no X. For a body that READS
+	// the announced X (banefire's Count$xPaid) the two coincide, so the
+	// reorder changes nothing for it.
 	body := check
 	if ctx.SVars != nil {
 		if v, ok := ctx.SVars[check]; ok {
 			body = v
 		}
+	}
+	if body == check && check == "X" {
+		return o.X
 	}
 	switch body {
 	case "Count$Party":
@@ -1738,7 +2213,7 @@ func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replM
 			continue
 		}
 		r := cards.Repl{Event: "Counter", Params: ce.ReplacementParams}
-		if !e.replacementMatchesRemembered(r, ce.Source, events.Event{Obj: target}, ce.Remembered) {
+		if !e.replacementMatchesEffectCreated(r, ce.Source, events.Event{Obj: target}, ce.Remembered) {
 			continue
 		}
 		t := e.G.Obj(target)
@@ -1750,6 +2225,7 @@ func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replM
 			continue
 		}
 		matches = append(matches, replMatch{id: ce.Source, repl: &r,
+			remembered: ce.Remembered, chosen: ce.ChosenNumber,
 			key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 	}
 	e.forEachObject(func(source state.ObjID) {
@@ -2550,14 +3026,31 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 		return false
 	}
 	for _, ce := range e.active() {
-		if ce.ReplacementEvent == "" || ce.ReplacementBody == "" {
+		if ce.ReplacementEvent == "" {
 			continue
 		}
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
 			m := replMatch{id: ce.Source, repl: r,
+				remembered: ce.Remembered, chosen: ce.ChosenNumber,
 				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
-			if !alreadyUsed(m) && e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) &&
+			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) &&
+				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
+				out = append(out, m)
+			}
+		} else if ce.ReplacementBody == "" && ce.ReplacementEvent == "DamageDone" &&
+			strings.EqualFold(ce.ReplacementParams["Prevent"], "True") {
+			// Mirror applyReplacementsDispatch's bodyless-Prevent admission
+			// (dponce1 r2): after a first NONTERMINAL application (a partial
+			// DB$ ReplaceDamage body reduced the held event), the recomputed
+			// CR 616.1e candidate set must still hold the bodyless "prevent
+			// all" effect — otherwise the remaining damage the registration
+			// exists to prevent lands silently.
+			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
+			m := replMatch{id: ce.Source, repl: r,
+				remembered: ce.Remembered,
+				key:        "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) &&
 				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
 				out = append(out, m)
 			}
@@ -2595,7 +3088,18 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 	if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.damaging, ev.Obj) {
 		return false
 	}
-	if m.repl.Params["Prevent"] == "True" {
+	if strings.EqualFold(m.repl.Params["Prevent"], "True") {
+		// The ordered path's full prevention is terminal — the held event
+		// never lands — so this re-entrant Note is the prevention's only log
+		// record, the same shape applyNonMoveReplacements' Prevent$ arm
+		// stores (dponce1 r2: silently returning terminal recorded nothing,
+		// so no DamagePreventedOnce trigger could fire off a chosen
+		// prevention). Amount is the held event's REMAINING amount: a
+		// partial DB$ ReplaceDamage body may already have reduced it (CR
+		// 616.1e), and TriggerCount$DamageAmount reads the amount THIS
+		// prevention prevented.
+		e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+			Amount: ev.Amount, Text: "damage prevented by replacement effect"})
 		return true
 	}
 	if m.repl.With == nil {
@@ -3023,7 +3527,8 @@ func init() {
 	// and CounterAllowed respectively.
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
-		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter")
+		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
+		"repl:CreateToken", "api:ReplaceToken")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

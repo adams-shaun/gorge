@@ -59,6 +59,36 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		for _, t := range Defined(h, c, dd) {
 			candidates = append(candidates, t.Obj)
 		}
+		// The trigger-capture exclusion (task castprov2, Amped Raptor's
+		// gated DigUntil → DB$ Play chain): Forge's triggering objects never
+		// sit in the shared remembered list — they are "triggering objects",
+		// a separate channel — so a Play over a REMEMBERED population reads
+		// what this resolution chain itself remembered, never what the
+		// triggering event captured (Ctx.Captured is exactly that part of
+		// Remembered; the same exclusion immediate.go and the
+		// RememberChain$ False arm apply). Without it a gated-OFF DigUntil's
+		// play offered the triggering permanent itself, and a gated-in one
+		// offered it BESIDE the found card. Measured: zero corpus files
+		// combine a trigger/replacement RememberObjects$ capture with a
+		// DB$ Play | Defined$ Remembered, so no carrier loses a legitimate
+		// candidate to this read.
+		base := strings.Split(strings.TrimSpace(spec), ".")[0]
+		if base == "Remembered" || base == "RememberedLKI" || base == "RememberedCard" || base == "DirectRemembered" {
+			var kept []state.ObjID
+			for _, id := range candidates {
+				captured := false
+				for _, t := range c.Captured {
+					if t.Obj == id {
+						captured = true
+						break
+					}
+				}
+				if !captured {
+					kept = append(kept, id)
+				}
+			}
+			candidates = kept
+		}
 	} else {
 		// Population by Valid$ + ValidZone$.
 		valid := strings.TrimSpace(sa.Params["Valid"])

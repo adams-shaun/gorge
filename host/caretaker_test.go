@@ -2,15 +2,72 @@ package host
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/replay"
 	"github.com/adams-shaun/gorge/seat"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
+
+func TestHumanCaretakerUsesConfiguredPolicy(t *testing.T) {
+	o := testOptions(t)
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := r.AddTable(TableConfig{ID: "t1", Seats: 2, Decks: []string{"a", "b"}, Spectator: view.Public,
+		Humans: []int{0}, BotPolicy: LethalPressurePolicy}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	var hs *HumanSeat
+	deadline := time.Now().Add(2 * time.Second)
+	for hs == nil && time.Now().Before(deadline) {
+		r.mu.RLock()
+		tab := r.tables["t1"]
+		r.mu.RUnlock()
+		tab.mu.RLock()
+		if tab.cur != nil && len(tab.cur.slots) > 0 {
+			hs, _ = tab.cur.slots[0].(*HumanSeat)
+		}
+		tab.mu.RUnlock()
+		if hs == nil {
+			time.Sleep(time.Millisecond)
+		}
+	}
+	if hs == nil {
+		t.Fatal("human slot was not installed")
+	}
+	hs.mu.Lock()
+	caretaker := hs.caretaker
+	hs.mu.Unlock()
+	bot, ok := caretaker.(seat.BoardSeat)
+	if !ok {
+		t.Fatalf("caretaker %T does not expose the board adapter", caretaker)
+	}
+	board := botpolicy.NewBoard(2)
+	board.Life[1] = 10
+	board.Creatures[1] = botpolicy.Creature{Power: 10, Toughness: 1, Controller: 0}
+	board.Creatures[2] = botpolicy.Creature{Power: 1, Toughness: 1, Controller: 1}
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Max: 1,
+		Options: []decision.Option{{Index: 0, Obj: state.ObjID(1), Player: 1}}}
+	in, err := bot.DecideBoard(context.Background(), board, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(in.Choices, []int{0}) {
+		t.Fatalf("configured lethal-pressure caretaker chose %v, want [0]", in.Choices)
+	}
+}
 
 // TestThinkTimeoutCaretakerTurnsADecisionAndReplays is Task M2b-3's Step-1
 // end-to-end proof: a table whose seat 0 is a HumanSeat with a short

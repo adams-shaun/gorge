@@ -107,6 +107,16 @@ func StackKindTokenOf(t string) (StackKindToken, bool) {
 		tok.Kinds[StackKindSpell] = true
 		tok.Kinds[StackKindActivated] = true
 		tok.Kinds[StackKindTriggered] = true
+	case "Ability":
+		// Forge's alias for "activated + triggered ability objects" -- the
+		// mirror of SpellAbility minus Spell. Ulalek, Fused Atrocity's
+		// sub-copy is the corpus carrier (exactly 1 Defined$ ValidStack line;
+		// 0 TargetType$ lines carry the base, so the TargetType$ census is
+		// unmoved). Mana abilities need no exclusion here: this engine never
+		// puts a mana-ability wrapper on the stack (CR 605.3a -- the offer
+		// loop skips AB$ Mana), so Activated+Triggered coverage is exact.
+		tok.Kinds[StackKindActivated] = true
+		tok.Kinds[StackKindTriggered] = true
 	default:
 		return tok, false // a non-stack token never contributes a stack kind
 	}

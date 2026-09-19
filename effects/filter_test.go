@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func board(t *testing.T) (*state.Game, map[string]state.ObjID) {
+func board(t testing.TB) (*state.Game, map[string]state.ObjID) {
 	t.Helper()
 	g := state.NewGame([]string{"you", "them"})
 	mkIn := func(owner state.PlayerID, zone state.Zone, src string) state.ObjID {
@@ -203,6 +203,46 @@ func TestPlayerSpecs(t *testing.T) {
 	}
 }
 
+// TestPlayerSpecIsMonarchStateLocal pins the monarch qualifier (CR 716.2)
+// in the shared player-spec grammar: Player.isMonarch (the base the static
+// GainControl$ value and every other consumer resolve through) matches only
+// the seat holding the monarch designation, and the fx20 qualifiers that
+// need player-state machinery this grammar does not carry still fail closed.
+func TestPlayerSpecIsMonarchStateLocal(t *testing.T) {
+	g, _ := board(t)
+	g.HasMonarch, g.Monarch = true, 1
+	if !MatchesPlayerSpec(g, "Player.isMonarch", 1, 0) {
+		t.Error("Player.isMonarch must match the monarch")
+	}
+	if MatchesPlayerSpec(g, "Player.isMonarch", 0, 0) {
+		t.Error("Player.isMonarch must not match a non-monarch seat")
+	}
+	// you is irrelevant: the qualifier is a state read, not a relation.
+	if !MatchesPlayerSpec(g, "Player.isMonarch", 1, 1) {
+		t.Error("Player.isMonarch must match the monarch regardless of you")
+	}
+	// No monarch on the board: nobody matches.
+	g.HasMonarch = false
+	if MatchesPlayerSpec(g, "Player.isMonarch", 1, 0) {
+		t.Error("Player.isMonarch with no monarch must match nobody")
+	}
+	g.HasMonarch, g.Monarch = true, 1
+	// A qualified You/Opponent/Other base still fails closed (the fx20
+	// convention -- narrow is the contract, never silently widened).
+	if MatchesPlayerSpec(g, "You.isMonarch", 1, 1) {
+		t.Error("You.isMonarch must still fail closed")
+	}
+	if MatchesPlayerSpec(g, "Opponent.isMonarch", 0, 1) {
+		t.Error("Opponent.isMonarch must still fail closed")
+	}
+	// The neighbouring unimplemented qualifiers remain dead.
+	for _, spec := range []string{"Player.EnchantedBy", "Player.descended", "Player.Chosen", "Player.NonActive"} {
+		if MatchesPlayerSpec(g, spec, 1, 0) {
+			t.Errorf("%s must still fail closed", spec)
+		}
+	}
+}
+
 // twoSeatGame builds a fresh 2-seat game holding one object parsed from src,
 // owned by seat 0, for tests that need a plain board plus an unrelated
 // "source" object of their own (SpecContext.Source).
@@ -337,4 +377,109 @@ func TestPermanentOnlyMatchesBattlefield(t *testing.T) {
 	if !MatchesSpec(g, "Card", id["myBear"], 0) {
 		t.Error("card in graveyard should still match Card")
 	}
+}
+
+// TestCtxSpecContextResolvesXAndSVarNumericRHS extends the numeric-RHS
+// resolver contract to the SVar table -- the resolution-time path, not the
+// hand-built SpecContext of TestSpecContextResolvesNumericRHSAndChoices. A
+// Ctx whose Host is bound (exactly what effects.Resolve does on entry, the
+// engine satisfying effects.Host the way fixLifeXCost already passes it to
+// EvalCountOK) resolves the bare "X" per the two-shape SVar:X reading
+// (rules/mana.go's fixLifeXCost precedent), any other name through
+// EvalCountOK, and fails closed -- recognised shape, never matches -- on an
+// unresolvable body. A Ctx that never entered Resolve (Host nil, X unpaid,
+// no count-shaped SVar) keeps the resolver-free SpecContext it always built.
+func TestCtxSpecContextResolvesXAndSVarNumericRHS(t *testing.T) {
+	g, id := board(t)
+	h := &fakeHost{g: g}
+	// enterResolve mimics what effects.Resolve computes on entry (the Host
+	// binding and the numericRHS gate flag); a hand-built Ctx leaves both
+	// zero and stays resolver-free, which the gate assertions below pin.
+	enterResolve := func(c *Ctx) {
+		c.Host = h
+		c.numericRHS = c.X != 0 || len(c.SVars) > 0
+	}
+
+	// The paid X with no SVar:X at all: powerLTX/GTX read the paid value.
+	c := &Ctx{Source: id["myBear"], Controller: 0, X: 3}
+	enterResolve(c)
+	sc := c.SpecContext(0)
+	if !MatchesSpecCtx(g, "Creature.powerLTX", id["myBear"], sc) {
+		t.Error("bear (power 2) should match powerLTX with a paid X of 3")
+	}
+	if MatchesSpecCtx(g, "Creature.powerLTX", id["theirBig"], sc) {
+		t.Error("giant (power 5) should not match powerLTX with a paid X of 3")
+	}
+	if !MatchesSpecCtx(g, "Creature.powerGTX", id["theirBig"], sc) {
+		t.Error("giant (power 5) should match powerGTX with a paid X of 3")
+	}
+	if MatchesSpecCtx(g, "Creature.powerGTX", id["myBear"], sc) {
+		t.Error("bear (power 2) should not match powerGTX with a paid X of 3")
+	}
+
+	// SVar:X:Count$xPaid is the paid X itself (Whir of Invention's shape).
+	SetSVars(c, map[string]string{"X": "Count$xPaid"})
+	enterResolve(c)
+	if !MatchesSpecCtx(g, "Creature.powerLTX", id["myBear"], c.SpecContext(0)) {
+		t.Error("Count$xPaid must resolve to the paid X (bear matches powerLTX at 3)")
+	}
+
+	// SVar:X with any other RESOLVABLE body is a fixed value (Nightmare
+	// Unmaking's shape): Count$Valid Creature.YouCtrl counts seat 0's two
+	// creatures, so X is 2 and only the exactly-2-power bear is EQ.
+	SetSVars(c, map[string]string{"X": "Count$Valid Creature.YouCtrl"})
+	enterResolve(c)
+	sc = c.SpecContext(0)
+	if !MatchesSpecCtx(g, "Creature.powerEQX", id["myBear"], sc) {
+		t.Error("bear (power 2) should match powerEQX with X = the 2 controlled creatures")
+	}
+	if MatchesSpecCtx(g, "Creature.powerEQX", id["myFlier"], sc) {
+		t.Error("flier (power 1) should not match powerEQX with X = 2")
+	}
+
+	// An unresolvable SVar:X body fails closed: recognised shape, never
+	// matches -- the same verdict EvalCountOK reports, never a guessed zero.
+	SetSVars(c, map[string]string{"X": "Count$BogusHeadNoSuchCount"})
+	enterResolve(c)
+	sc = c.SpecContext(0)
+	if MatchesSpecCtx(g, "Creature.powerLTX", id["myBear"], sc) {
+		t.Error("an unresolvable SVar:X body must never match")
+	}
+	if MatchesSpecCtx(g, "Creature.powerGTX", id["theirBig"], sc) {
+		t.Error("an unresolvable SVar:X body must never match")
+	}
+
+	// A non-X SVar name resolves the same way: SVar:Y is a fixed count body.
+	SetSVars(c, map[string]string{"Y": "Count$Valid Creature.YouCtrl"})
+	enterResolve(c)
+	if !MatchesSpecCtx(g, "Creature.powerEQY", id["myBear"], c.SpecContext(0)) {
+		t.Error("bear (power 2) should match powerEQY with SVar:Y = 2")
+	}
+	if MatchesSpecCtx(g, "Creature.powerLTY", id["myBear"], c.SpecContext(0)) {
+		t.Error("bear (power 2) should not match powerLTY with SVar:Y = 2")
+	}
+
+	// The gate: a Ctx with a Host but neither a paid X nor a count-shaped
+	// SVar builds the plain resolver-free SpecContext -- no behaviour change
+	// for any card that does not carry one.
+	plain := &Ctx{Source: id["myBear"], Controller: 0, Host: h}
+	if sc := plain.SpecContext(0); sc.Resolve != nil {
+		t.Error("a Ctx with no paid X and no count SVar must not install a resolver")
+	}
+	// And a Ctx that never entered Resolve (Host nil) stays resolver-free
+	// even with a paid X -- the direct Num/EvalCount probe paths.
+	noHost := &Ctx{Source: id["myBear"], Controller: 0, X: 3}
+	if sc := noHost.SpecContext(0); sc.Resolve != nil {
+		t.Error("a Host-less Ctx must not install a resolver")
+	}
+
+	// The recursion guard: an SVar body that counts a spec carrying the same
+	// numeric RHS must terminate (deterministically, degraded to the count's
+	// zero) rather than overflow. Measured corpus-unreachable -- no SVar body
+	// counts a spec naming the SVar that would resolve it -- so this pins
+	// termination only.
+	SetSVars(c, map[string]string{"X": "Count$Valid Creature.powerGTX"})
+	enterResolve(c)
+	sc = c.SpecContext(0)
+	MatchesSpecCtx(g, "Creature.powerGTX", id["myBear"], sc) // must not hang
 }

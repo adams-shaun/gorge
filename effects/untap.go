@@ -15,6 +15,11 @@ func init() {
 	// ability resolves; registration keeps the expanded face's primitive set
 	// supported and the no-engine effects fallback harmless.
 	Register("CumulativeUpkeep", func(Host, *Ctx, *cards.SA) {})
+	// kw:Echo (CR 702.35a): same shape — rules intercepts the keyword
+	// expansion's DB$ Echo body while its triggered ability resolves
+	// (rules/echo.go); the stub keeps the expanded face's primitive set
+	// supported and the no-engine effects fallback harmless.
+	Register("Echo", func(Host, *Ctx, *cards.SA) {})
 }
 
 // TryUntap is the shared CR 122.1d event proposal for effects and the untap
@@ -39,10 +44,25 @@ func untapBattlefieldCondition(h Host, c *Ctx, sa *cards.SA) bool {
 	if len(UnknownPredicates(spec)) > 0 {
 		return false
 	}
+	// ConditionZone$ names the zone the ConditionPresent$ spec counts in
+	// (Animist's Awakening's "two or more instants/sorceries in your
+	// graveyard"). It defaults to the battlefield when absent or spelled
+	// "Battlefield"; an unparseable zone name fails closed like every other
+	// unresolvable gate input here. The shared conditionMet gate in
+	// conditions.go deliberately leaves ConditionZone$ unresolved and defers
+	// to this reader.
+	zone := state.ZBattlefield
+	if z := sa.Params["ConditionZone"]; z != "" {
+		parsed, ok := parseZone(z)
+		if !ok {
+			return false
+		}
+		zone = parsed
+	}
 	n := 0
 	g := h.Game()
 	for _, p := range g.AliveFrom(0) {
-		for _, id := range g.Zone(state.ZBattlefield, p) {
+		for _, id := range g.Zone(zone, p) {
 			o := g.Obj(id)
 			if o != nil && MatchesObjectCtx(g, spec, o, c.SpecContext(c.Controller)) {
 				n++

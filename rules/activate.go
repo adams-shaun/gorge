@@ -47,7 +47,7 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	// total by manaToPay when the cost is paid -- the same composition a
 	// spell's cast gets.
 	mods := e.costModifiers(p, opt.Obj, abilityScope(ab))
-	cost, ok := e.fixLifeXCost(p, opt.Obj, ParseCost(ab.Params["Cost"]))
+	cost, ok := e.fixLifeXCost(p, opt.Obj, e.parseCost(ab.Params["Cost"]))
 	if !ok {
 		// The offer gate (offerCastable's fixLifeXCost conversion) withheld this
 		// ability; a stale option that slips through degrades to a no-op.

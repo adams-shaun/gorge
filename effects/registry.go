@@ -61,6 +61,16 @@ type Host interface {
 	// continuous-effect registry; the effects test double scans its own
 	// recorded slice.
 	ContinuousNamed(controller state.PlayerID, name string) bool
+	// TypeChoices returns the creature-type option list a mid-resolution
+	// ChooseType ask offers its chooser (task ct1) — the SAME list the
+	// cast-time "as this enters" type ask builds (rules/etbOptions' "type"
+	// arm, which this method's rules implementation calls), so the two asks
+	// and the no-ask fallback can never disagree about what a creature-type
+	// choice ranges over. A category this build cannot enumerate (Basic
+	// Land, Card, ...) yields nil: the asking primitive never asks for one
+	// (it records the loud Note and the deterministic fallback), so nil is
+	// unreachable through the ask path.
+	TypeChoices(chooser state.PlayerID, category string) []decision.Option
 	// RegisterControl records one GainControl effect with the lifetime its
 	// LoseControl$ names (CR 611.2b "for as long as", CR 514.2 end of turn),
 	// so the engine can end it through a ControlChange event the moment that
@@ -78,10 +88,26 @@ type Host interface {
 	// Implemented by rules.Engine against its continuous-effect registry; the
 	// effects test double reports false (no engine to consult). Task ce1.
 	RegenerationDisallowed(id state.ObjID) bool
+	// SacrificeBlocked reports whether id is forbidden from being sacrificed
+	// at all this turn — an Effect-registered CantSacrifice restriction (Call
+	// for Aid's "You can't sacrifice those creatures this turn") or a face
+	// CantSacrifice static (the simple Card.Self carriers). Consulted at every
+	// sacrifice candidate choke point (effSacrifice's eligible pool and
+	// object-target paths, effSacrificeAll, the cast/activation/mana/ward/unless
+	// Sac-cost candidate walks) so a blocked permanent is never offered and
+	// never taken. Implemented by rules.Engine (rules/layers.go); the effects
+	// test double reports false (no engine to consult).
+	SacrificeBlocked(id state.ObjID) bool
 	// HasKeyword reports a DERIVED keyword — printed or granted by a
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.
 	HasKeyword(id state.ObjID, kw string) bool
+	// UmbraArmorAura returns the ObjID of the first attached Aura whose
+	// DERIVED keyword set carries "Umbra armor" (CR 702.90), in
+	// deterministic AliveFrom(0) × battlefield-slice order, or 0 if bearer id
+	// wears none. Derived, never the printed face: Umbra Mystic's and Dog
+	// Umbra's layer-6 grants must be seen. Consulted by ReplaceUmbraArmor.
+	UmbraArmorAura(id state.ObjID) state.ObjID
 	// Power, Toughness and IsCreature are current derived characteristics.
 	// Damage/count effects must not read a printed face when layers modify P/T
 	// or make a planeswalker a creature.
@@ -100,6 +126,53 @@ type Host interface {
 	// Count$ThisTurnCast_<spec> backing (the "first/second spell you cast"
 	// cost modifiers and triggers).
 	SpellsCastThisTurnMatching(you state.PlayerID, spec string) int
+	// SpellsCastThisTurnMatchingExcluding is SpellsCastThisTurnMatching with
+	// one object's own cast excluded from the count -- the bare !CastSaSource
+	// qualifier's engine reading. Every bare-form carrier's oracle says
+	// other/another (Hotheaded Giant's "unless you've cast another red spell
+	// this turn", Dream Thief's "another blue spell", Storm Entity's "each
+	// other spell cast this turn"), and the resolving spell's own
+	// PutOnStack is unavoidably in the window when an ETB gate reads the
+	// count, so the qualifier is the count's exclusion of its own ctx source.
+	// Derived from the event log like SpellsCastThisTurnMatching.
+	SpellsCastThisTurnMatchingExcluding(you state.PlayerID, spec string, exclude state.ObjID) int
+	// EachSpellCastThisTurnMatching is the ARGUMENTED !CastSaSource forms'
+	// engine side (task castprov2): the object ids of the spells put on the
+	// stack this turn matching spec (with the same You*-qualifier scoping
+	// and the same single-object exclusion as
+	// SpellsCastThisTurnMatchingExcluding), in reverse log order (newest
+	// first) — the order is irrelevant to the aggregate reads (a sum).
+	// Derived from the event log like SpellsCastThisTurnMatching.
+	EachSpellCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID
+	// WasCastFromHandByYou reports whether card obj was cast from ITS OWN
+	// CONTROLLER's hand by that controller — the Count$wasCastFromYourHandByYou
+	// branch head backing (the Myojin cycle's etbCounter CheckSVar$ gate:
+	// "enters with a divinity counter on it if you cast it from your hand")
+	// and the Card.wasCastFromYourHandByYou filter predicate the corpus's
+	// "if you cast it from your hand" ETB trigger specs read. An ordinary
+	// hand-origin cast carries no CastFlags bit (the flags mark alternative
+	// costs and origins only), so the answer is derived from the event log:
+	// the object's latest PutOnStack event names the cast that put it on the
+	// stack, whose From is the zone it was cast FROM and whose Player is the
+	// caster. Derived from the log like CastThisTurn, so a replay derives
+	// the same answer; a card never put on the stack (cheated into play)
+	// reads false.
+	WasCastFromHandByYou(obj state.ObjID, p state.PlayerID) bool
+	// WasCastFromHand reports whether card obj's LATEST cast came from a
+	// hand — ANY caster's hand — the bare wasCastFromYourHand filter family's
+	// backing (task castprov3: the "from anywhere other than your hand"
+	// carriers whose scripts spell the predicate without the ByYou suffix —
+	// Vega the Watcher's trigger, Otterball Antics' ConditionPresent$ gate,
+	// See the Truth's Count$ branch head, Approach of the Second Sun's
+	// Count$ValidStack). Every carrier that needs player scoping supplies it
+	// elsewhere (ValidActivatingPlayer$ You, YouCtrl, wasCastByYou in the
+	// same spec), measured over the 46 raw carrier files. Derived from the
+	// event log like WasCastFromHandByYou: the object's latest PutOnStack
+	// event names the cast that put it on the stack, whose From is the zone
+	// it was cast FROM; a copy was never cast (the same IsCopy guard the
+	// ByYou read takes); a card never put on the stack (cheated into play)
+	// reads false; latest-cast-wins.
+	WasCastFromHand(obj state.ObjID) bool
 	// LifeLostThisTurn reports the total life player p lost THIS TURN — the
 	// sum of every LifeChange below zero since the last TurnChange, derived
 	// from the event log so a replay derives the same number. This is the
@@ -128,6 +201,15 @@ type Host interface {
 	// turn" read: Bloodsoaked Champion's CheckSVar$ activation gate and ten
 	// ConditionCheckSVar$ bodies).
 	AttackersThisTurn() int
+	// CommanderIdentityColourCount reports how many colours seat p's
+	// commander colour identity names (the WUBRG-ordered union of every
+	// commander's Card.ColourIdentity, read off state.Player.Commanders —
+	// genesis bookkeeping the replay rebuilds in Config order, so the count
+	// is replay-derivable like TurnsTaken). This is the Count$ColorsColorIdentity
+	// backing (War Room's fixed "Pay life equal to the number of colors in
+	// your commanders' color identity"); an empty identity (no commander,
+	// or a colourless one) is a real, resolvable 0.
+	CommanderIdentityColourCount(p state.PlayerID) int
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
@@ -197,6 +279,17 @@ type Host interface {
 	// SuspendContinuation next; the host drops that report, because the loop
 	// frame re-enters the RepeatEach itself and so walks its Sub.
 	SuspendRepeat(RepeatSuspension)
+	// SuspendCharmRest reports that a cross-mode TargetUnique Charm's mode
+	// loop (effCharm's re-entry) suspended mid-mode with chosen modes still
+	// to run: sa is the Charm's own SA and rest the remaining chosen mode
+	// names in execution order. The host records a continuation that
+	// re-enters the Charm with Ctx.Modes = rest once the answered ask's own
+	// chain completes — the remaining modes must not run while the
+	// suspension is live. The Resolve loop enclosing the Charm reports that
+	// same SA through SuspendContinuation next; the host drops that report
+	// (the charm frame re-enters the Charm itself), which is why the reporter
+	// marks it the way SuspendRepeat marks a RepeatEach.
+	SuspendCharmRest(sa *cards.SA, rest []string)
 	// SetDamageSource overrides the in-flight damage source for the Damage
 	// events the caller is about to emit: the provenance rules' emit-side
 	// protection check (CR 702.16d) and DamageDone trigger matching read
@@ -264,6 +357,27 @@ type Ctx struct {
 	Controller state.PlayerID
 	Targets    []state.Target
 	Remembered []state.Target
+	// TargetsOffered marks that the resolution's OWN ValidTgts$ targeting was
+	// already offered at announcement (rules' resolveTop sets it on both the
+	// ability and the spell branch, exactly for the SA the placement ask
+	// covered). Without it a Min-0 target the chooser elected ZERO of would
+	// look identical to a targeting that was never offered (both leave
+	// Ctx.Targets empty), and effChangeZone's mid-resolution ask
+	// (changeZoneChosenTargets) would pose the same question twice. A fresh
+	// ctx rebuilt by a resume does not carry it -- a deeper sub's targeting
+	// was genuinely never offered, which is the ask's real population.
+	//
+	// Boundary, updated by task mvts1: the flag suppresses only the depth-0
+	// entry SA of an effects.Resolve call (chosenTargetsFor's atRoot arm) --
+	// the SA the placement/announcement ask actually covered. A deeper sub
+	// in the SAME resolution that carries its OWN never-offered ValidTgts$
+	// now poses its own ask there (the trigger "when you do" family: Mogg
+	// Bombers' DealDamage, Kor Outfitter's Attach); before mvts1 it either
+	// inherited the outer targets or moved nothing silently. A nested
+	// Resolve entry at depth 0 whose SA is genuinely never-covered (a
+	// RepeatEach iteration body) is also suppressed while the flag is set --
+	// the conservative direction, same as the pre-mvts1 ChangeZone shape.
+	TargetsOffered bool
 	// Captured is the part of Remembered the resolution started with because
 	// its trigger, delayed trigger or replacement put the event's object there
 	// (this engine's stand-in for Forge's separate TriggeredCard), rather than
@@ -299,10 +413,80 @@ type Ctx struct {
 	// directly so a SubAbility$ chained after it can read it. The
 	// Sacrificed$<Property> heads in count.go read it.
 	Sacrificed []state.SacrificedInfo
+	// ResolvingObj is the stack-object WRAPPER of the spell/ability currently
+	// resolving -- rules' e.resolvingObj (resolveTop's ability and spell
+	// branches) and rp.obj (resumeResolution) -- set at those two ctx
+	// construction sites. For an ability resolution Ctx.Source is the source
+	// PERMANENT (Ruling T20-b: Defined$ Self must resolve to something with a
+	// face), so a ValidStack qualifier that means "not the ability resolving
+	// right now" (Ulalek's `Ability.YouCtrl+otherAbility`) cannot anchor on
+	// Source: the permanent is not on the stack and excludes nothing. This
+	// field is resolution-scratch like Targets/SVars -- never event-encoded,
+	// a replay re-derives the same binding -- and zero on contexts built off
+	// the resolution path (hand-built test probes), where ValidStack's
+	// otherAbility falls back to Ctx.Source. Never widened.
+	ResolvingObj state.ObjID
 	// SVars is the resolving card's SVar table, and X the value paid for {X}.
 	// Both are bound by the rules package when it builds the context.
 	SVars map[string]string
 	X     int32
+	// TimesKicked is the pending cast's settled multikicker payment count
+	// (CR 702.43), seeded by rules' targetBoundCtx when the spell's OWN
+	// announcement ask resolves a Count$TimesKicked bound BEFORE payment has
+	// stamped the stack object (Comet Storm's TargetMin/Max$ TargetsNum).
+	// Everywhere else it is zero and the TimesKicked count head falls back to
+	// the source object's stamped field -- the same priority the xPaid head
+	// gives ctx.X over the object read.
+	TimesKicked int32
+	// ChosenNumber is the Effect's SetChosenNumber$ binding (task
+	// wildgrowth1): the number the Effect resolved at creation, threaded into
+	// a registered replacement's body Ctx by rules' replCtx so the body's
+	// Count$ChosenNumber head (evalCountBody) reads the frozen binding rather
+	// than re-deriving. Zero wherever nothing bound -- the same number a
+	// failed binding degrades to.
+	ChosenNumber int32
+	// ChosenNumberBound marks a Ctx whose ChosenNumber IS a real
+	// SetChosenNumber$ binding (rules' seedEffectReplCtx sets it exactly when
+	// the match is effect-created, m.key != ""). It is the Count$ChosenNumber
+	// head's verdict: bound means evaluated (the value reads, zero
+	// legitimately), unbound means the head is UNRESOLVED so the
+	// EvalCountOK consumers keep their pre-wildgrowth fail direction --
+	// CheckSVarHolds fails open, a numeric filter RHS (cmcEQX via
+	// resolveNumericRHS) never matches -- instead of enforcing a meaningless
+	// zero on the Choose-event corpus population (77 files whose binding
+	// lives on state.Object.ChosenNumber via effects/choose.go, never on
+	// Ctx). A zero binding with the flag set is still bound (torgal with no
+	// Dogs); only the flag distinguishes the two.
+	ChosenNumberBound bool
+	// Host is the engine driving this resolution, bound by effects.Resolve
+	// itself (it receives the host as its own parameter, so every walk that
+	// can reach a resolution-time filter evaluation has passed through one
+	// set here) rather than at every Ctx construction site. Ctx.SpecContext
+	// consults it to resolve a numeric filter RHS through the SVar table
+	// (EvalCountOK -- Nightmare Unmaking's Creature.powerGTX against
+	// SVar:X:Count$ValidHand Card.YouOwn, Whir of Invention's
+	// Artifact.cmcLEX against the paid X). It stays nil on contexts that
+	// never entered Resolve -- the direct Num/EvalCount probes -- which keeps
+	// those read-only and resolver-free exactly as they have always been.
+	Host Host
+	// numericRHS is the cheap gate SpecContext's resolver install reads:
+	// effects.Resolve computes it on entry (a paid X, or any SVar table at
+	// all -- the resolver itself decides per name and fails closed on a name
+	// with no resolvable body, so the broad flag never widens a match), so
+	// the gate at the SpecContext call site is one field read and that call
+	// site stays inside the inline budget the warm Derived escape-analysis
+	// pin (rules/layers_test.go) enforces. Hand-built contexts (the direct
+	// Num/EvalCount probes) leave it false and stay resolver-free.
+	numericRHS bool
+	// resolvingRHS is the one-level recursion guard on the SVar-body
+	// resolution SpecContext installs: an SVar body that itself counts a spec
+	// carrying the same numeric RHS (Count$Valid Creature.powerGTX named by
+	// the SVar that resolves powerGTX) would otherwise recurse unboundedly
+	// through SpecContext -> resolveNumericRHS -> EvalCountOK ->
+	// MatchesSpecCtx -> resolveNumericRHS. A re-entrant ask fails closed
+	// (never matches), the documented unresolvable-RHS contract. Not
+	// event-backed, not state: resolution-scratch like Targets or SVars.
+	resolvingRHS bool
 	// Replaced is the object the replaced event was about (Defined$ ReplacedCard):
 	// the card a "would go to the graveyard from anywhere, exile it instead"
 	// replacement is acting ON. Set by rules/replacement.go on the context it
@@ -368,6 +552,34 @@ type Ctx struct {
 	// empty optional choice from its first pass.
 	Choice     []state.Target
 	ChoiceDone bool
+	// TargetsPick is the answered target set of the generic ValidTgts$
+	// pre-ask (chosenTargetsFor, posed inside effects.Resolve's dispatch
+	// loop for a sub the placement/announcement ask never covered -- the
+	// trigger "when you do" family, task mvts1). rules' "tgts" resume arm
+	// fills it on the re-entered pass; the pre-ask consumes and clears it
+	// (fx42 scoping: each resume builds a fresh Ctx and re-enters exactly
+	// the asking SA, so nothing else can be holding it). The answer rides
+	// its own resume kind ("tgts") and its own Ctx transport rather than
+	// the shared Choice pair so another KChoose primitive resolving under
+	// the same SA can never steal it.
+	TargetsPick     []state.Target
+	TargetsPickDone bool
+	// OfferedSA is the SA whose ValidTgts$ targeting the placement or
+	// announcement ask actually covered (rules' resolveTop and
+	// resumeResolution both set it; chosenTargetsFor skips exactly that SA,
+	// matched by SA.Line -- ResolveSVar parses fresh on every call, so
+	// pointer identity does not hold between two derivations of the same
+	// body, the matching convention rules' charmModeTarget already
+	// established).
+	OfferedSA *cards.SA
+	// PickedTargets is the answering pre-ask's target set, made visible to
+	// Defined's ValidTgts$ fallthrough for exactly ONE dispatch (the
+	// wrapper clears it when the body returns). It must not be Ctx.Targets:
+	// a CLOBBER sub names its parent's target explicitly (Object$
+	// ParentTarget, Defined$ Targeted), and overwriting Ctx.Targets would
+	// point those referents at the sub's OWN answer instead of the outer
+	// target the script meant.
+	PickedTargets []state.Target
 	// ChoiceTarget is the index of the per-player chooser currently being
 	// resumed. It keeps multi-player ChooseCard/ChoosePlayer asks from
 	// returning to the first chooser after every answer.
@@ -407,6 +619,23 @@ type Ctx struct {
 	// its own confirm.
 	SearchShuffle      string
 	SearchShuffleMoved []state.ObjID
+	// AttachOpt is the answered Optional$ True attach election ("yes"/"no")
+	// on a re-entered Attach resolution (Ajani's Chosen's "you may attach it
+	// to the token", Cori-Steel Cutter's "you may attach this Equipment to
+	// it"): "yes" attaches, anything else declines. It rides the ask (the
+	// same runtime-continuation class as ResumeRemembered) and is consumed
+	// and cleared at the re-entry's top (fx42 scoping), so a nested Attach
+	// poses its own ask.
+	AttachOpt string
+	// PutOpt is the answered Optional$ True put-counter election ("yes"/"no")
+	// on a re-entered PutCounter resolution (Talus Paladin's "you may put a
+	// +1/+1 counter on CARDNAME", Black Widow's "You may put ... If you
+	// don't, ..."): "yes" places the counters through the ordinary path,
+	// anything else declines and the chained SubAbility$ still runs. It rides
+	// the ask (the same runtime-continuation class as ResumeRemembered) and
+	// is consumed and cleared at the re-entry's top (fx42 scoping), so a
+	// nested PutCounter poses its own ask.
+	PutOpt string
 	// Extort is the answered optional {W/B} payment on a re-entered Extort
 	// resolution (M2d-2): "pay" means the caster agreed to pay and the drain
 	// runs; anything else ("decline", first pass with a host that cannot ask)
@@ -452,6 +681,20 @@ type Ctx struct {
 	Dig       []state.ObjID
 	DigDone   bool
 	DigTarget int
+	// DigUntilMove is the answered DigUntil reveal-until OptionalFoundMove$
+	// election (task diguntil1; Songbirds' Blessing's "You may put that card
+	// onto the battlefield. If you don't, put it into your hand."): "yes"
+	// moves the found card(s) to FoundDestination$, "no" — the decline — to
+	// OptionalNoDestination$ when the SA carries one, else the found card
+	// joins the revealed pile (RevealedDestination$). rules' resumeResolution
+	// sets it from the recorded answer before re-running the suspended
+	// sub-ability, and DigUntilMoveDone distinguishes "answered" from the
+	// first pass (it also suppresses the reveal Note and the withheld-params
+	// Note a re-entry would otherwise re-emit). The asking effect consumes
+	// and clears both at the top of its own walk (the fx42 scoping
+	// discipline), so a nested DigUntil cannot inherit the outer answer.
+	DigUntilMove     string
+	DigUntilMoveDone bool
 	// CounterDist is the answered DividedAsYouChoose$ PutCounter pick
 	// (Vastwood Hydra's death trigger): the recipients the chooser picked out
 	// of the Choices$-eligible battlefield creatures, in answer order.
@@ -464,6 +707,19 @@ type Ctx struct {
 	// discipline), so a nested PutCounter cannot inherit the outer answer.
 	CounterDist     []state.ObjID
 	CounterDistDone bool
+	// CounterPick is the answered bare-Choices$ PutCounter pick (Promise of
+	// Loyalty's vow: the chooser picked the creature(s) — WITHOUT a
+	// DividedAsYouChoose$ total, so each chosen creature takes the full
+	// CounterNum$) out of the Choices$-eligible battlefield creatures, in
+	// answer order. rules' resume arm sets it before re-running the
+	// suspended sub-ability, so effPutCounter's re-entry places the counters
+	// on exactly the chosen creatures instead of asking again;
+	// CounterPickDone distinguishes "answered" from the first pass. The
+	// asking effect consumes and clears both at the top of its own walk (the
+	// fx42 scoping discipline), so a nested PutCounter cannot inherit the
+	// outer answer.
+	CounterPick     []state.ObjID
+	CounterPickDone bool
 	// UnlessNext is the index of the UnlessPayer$ payer whose answered
 	// unless-pay choice this re-entry applies (0 on a first pass). The
 	// unlessProceed gate (Resolve) consumes and clears it; rules' resume
@@ -588,6 +844,17 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// ChosenType is the answered mid-resolution ChooseType pick (task ct1):
+	// the creature type the chooser picked out of the TypeChoices list, set
+	// by rules' "choosetype" resume arm before the suspended sub-ability is
+	// re-run. effChooseType's re-entry emits the one Choose event the
+	// fallback would have emitted, with the answered type instead, so the
+	// downstream Card.ChosenType readers see exactly the shape they already
+	// read. A valid answer is never empty (the option list's last resort is
+	// "Human"), so non-empty IS the answered marker, and the asking effect
+	// consumes and clears it at the top of its walk (the fx42 scoping
+	// discipline), so a nested ChooseType cannot inherit the outer answer.
+	ChosenType string
 	// LookAck is the answered bare-look "Continue" ack (lookack, task
 	// fb-20260917T232325Z-35cfca4b): the looker acknowledged the private
 	// look a NoReveal$ / mandatory-Look$ Reveal-family effect is about to
@@ -732,7 +999,66 @@ func (a *atomicMap[V]) delete(keys ...string) {
 	a.ptr.Store(&next)
 }
 
-var registry = newAtomicMap[Effect]()
+type effectRegistrySnapshot struct {
+	byName map[string]Effect
+	byCode []Effect
+}
+
+type effectRegistry struct {
+	mu  sync.Mutex
+	ptr atomic.Pointer[effectRegistrySnapshot]
+}
+
+func newEffectRegistry() *effectRegistry {
+	r := &effectRegistry{}
+	r.ptr.Store(&effectRegistrySnapshot{
+		byName: map[string]Effect{},
+		byCode: make([]Effect, int(cards.APICodeCount)),
+	})
+	return r
+}
+
+func (r *effectRegistry) load() *effectRegistrySnapshot { return r.ptr.Load() }
+
+func (r *effectRegistry) set(name string, effect Effect) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	old := r.ptr.Load()
+	next := &effectRegistrySnapshot{
+		byName: make(map[string]Effect, len(old.byName)+1),
+		byCode: append([]Effect(nil), old.byCode...),
+	}
+	for key, registered := range old.byName {
+		next.byName[key] = registered
+	}
+	next.byName[name] = effect
+	if code := cards.APICodeForName(name); code != cards.APIUnknown {
+		next.byCode[int(code)] = effect
+	}
+	r.ptr.Store(next)
+}
+
+func (r *effectRegistry) delete(names ...string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	old := r.ptr.Load()
+	next := &effectRegistrySnapshot{
+		byName: make(map[string]Effect, len(old.byName)),
+		byCode: append([]Effect(nil), old.byCode...),
+	}
+	for key, registered := range old.byName {
+		next.byName[key] = registered
+	}
+	for _, name := range names {
+		delete(next.byName, name)
+		if code := cards.APICodeForName(name); code != cards.APIUnknown {
+			next.byCode[int(code)] = nil
+		}
+	}
+	r.ptr.Store(next)
+}
+
+var registry = newEffectRegistry()
 
 // Register installs an implementation for a Forge API name. Called from init
 // functions in this package; re-registering replaces, which is what lets the
@@ -748,8 +1074,8 @@ func unregister(apis ...string) { registry.delete(apis...) }
 func Supported() map[string]bool {
 	reg := registry.load()
 	non := supportedNonAPI.load()
-	out := make(map[string]bool, len(reg)+len(non))
-	for k := range reg {
+	out := make(map[string]bool, len(reg.byName)+len(non))
+	for k := range reg.byName {
 		out["api:"+k] = true
 	}
 	for k := range non {
@@ -778,23 +1104,41 @@ const maxChain = 32
 
 // Resolve runs an ability and every sub-ability chained beneath it.
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
+	if c != nil {
+		c.Host = h
+		c.numericRHS = c.X != 0 || len(c.SVars) > 0
+	}
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {
 		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
-		// is evaluated and not met is skipped and the chain continues. An
-		// unresolved shape (supported=false) runs unconditionally, the
-		// documented pre-gate behaviour — see conditions.go for the exact
-		// boundary and the counts behind it. A RepeatEach re-entered at its
-		// loop cursor already passed its gate when the loop began; its
-		// remaining iterations are part of that same resolution.
+		// is evaluated and not met is skipped and the chain continues — the
+		// per-SA read the corpus's own gated pairs rely on (Gruesome
+		// Discovery's morbid pair: the outer gated EQ0, the inner — its
+		// SubAbility — gated bare-Morbid; the "instead" branch only runs
+		// because the walk continues past a denial). A chain payload that
+		// must not run after its gated parent is kept out by its own
+		// population: the DigUntil's DB$ Play reads only what the chain
+		// remembered (effPlay's trigger-capture exclusion), never the
+		// triggering event's capture. An unresolved shape (supported=false)
+		// runs unconditionally, the documented pre-gate behaviour — see
+		// conditions.go for the exact boundary and the counts behind it. A
+		// RepeatEach re-entered at its loop cursor already passed its gate
+		// when the loop began; its remaining iterations are part of that
+		// same resolution.
 		resumingLoop := c.Repeat != nil && c.Repeat.SA == sa
 		if !resumingLoop {
 			if met, supported := conditionMet(h, c, sa); supported && !met {
 				continue
 			}
 		}
-		fn, ok := reg[sa.API]
-		if !ok {
+		var fn Effect
+		if code := sa.CompiledAPI(); code != cards.APIUnknown && int(code) < len(reg.byCode) {
+			fn = reg.byCode[int(code)]
+		}
+		if fn == nil {
+			fn = reg.byName[sa.API]
+		}
+		if fn == nil {
 			// Unimplemented primitives must be loud but harmless: deck-build
 			// validation is supposed to have caught this already.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -841,7 +1185,34 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			}
 			continue
 		}
-		fn(h, c, sa)
+		// The generic ValidTgts$ pre-ask (task mvts1): an SA the placement/
+		// announcement ask never covered -- a sub at depth >= 2 of a trigger's
+		// Execute chain (the "when you do" family: Mogg Bombers' DealDamage,
+		// Kor Outfitter's Attach, Rhino's second PutCounter) -- poses its own
+		// target ask here, before its body reads Defined's ValidTgts$
+		// fallthrough. The SA the placement ask covered (Ctx.OfferedSA) is
+		// skipped; an ANSWERED ask re-enters this same SA (the pending
+		// frame's ResumeSA), so the consumption inside chosenTargetsFor runs
+		// before any skip could suppress it. API$ ChangeZone is left to
+		// effChangeZone's own mid-resolution ask (changeZoneChosenTargets),
+		// which the closed ChangeZone slice owns.
+		if ts, done := chosenTargetsFor(h, c, sa, d == 0); done {
+			if ts == nil {
+				// The ask was posed and suspended the resolution: stop here
+				// exactly as an asking body would. The ask's ResumeSA is THIS
+				// SA, so the pending frame re-enters it (the innermost rule),
+				// the "tgts" arm fills Ctx.TargetsPick, and the re-entered
+				// pass consumes the answer and dispatches with it visible to
+				// Defined for this SA.
+				h.SuspendContinuation(sa)
+				return
+			}
+			c.PickedTargets = ts
+			fn(h, c, sa)
+			c.PickedTargets = nil
+		} else {
+			fn(h, c, sa)
+		}
 		imprint(h, c, sa)
 		if strings.EqualFold(sa.Params["ClearImprinted"], "True") && c.Source != 0 {
 			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})

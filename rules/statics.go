@@ -127,6 +127,11 @@ func (e *Engine) activeStatics(mode string) []staticView {
 			if f == nil {
 				continue
 			}
+			if e.faceDownPrintedHides(o) {
+				// CR 708.8: a face-down permanent's printed statics do not
+				// exist while it is face down (the shared gate in layers.go).
+				continue
+			}
 			for _, st := range f.Statics {
 				if st.Mode == mode {
 					out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params})
@@ -159,9 +164,14 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 // restriction would be dead. The resolver closes over source/you -- both
 // plain scalars -- so it is deterministic and Clone-safe.
 func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecContext {
+	var predicates *effects.PredicatePrograms
+	if e.compiledText != nil {
+		predicates = e.compiledText.predicates
+	}
 	return effects.SpecContext{
-		You:    you,
-		Source: source,
+		You:               you,
+		Source:            source,
+		PredicatePrograms: predicates,
 		Resolve: func(name string) (int32, bool) {
 			o := e.G.Obj(source)
 			if o == nil {
@@ -388,7 +398,7 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 	if o == nil || o.Face() == nil {
 		return Cost{}
 	}
-	return e.costModifiers(p, id, spellScope("")).apply(ParseCost(o.Face().ManaCost))
+	return e.costModifiers(p, id, spellScope("")).apply(e.parseCost(o.Face().ManaCost))
 }
 
 // castWithFlash reports whether an active CastWithFlash static gives p
@@ -465,7 +475,7 @@ func (e *Engine) staticTimingGate(sv staticView) bool {
 	case "Ferocious":
 		found := false
 		for _, id := range e.G.Zone(state.ZBattlefield, sv.Controller) {
-			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsCreature() && e.Derived(id).Power >= 4 {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsCreature() && !o.BestowedAttached() && e.Derived(id).Power >= 4 {
 				found = true
 				break
 			}
@@ -591,7 +601,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
 			continue
 		}
-		out = append(out, altCostView{cost: ParseCost(sv.Params["Cost"]),
+		out = append(out, altCostView{cost: e.parseCost(sv.Params["Cost"]),
 			announce: strings.TrimSpace(sv.Params["Announce"]), src: sv.Source})
 	}
 	if o := e.G.Obj(id); o != nil {
@@ -603,7 +613,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 				if !e.alternativeCostScopeOK(st.Params, id, id, p, o.Controller) {
 					continue
 				}
-				out = append(out, altCostView{cost: ParseCost(st.Params["Cost"]),
+				out = append(out, altCostView{cost: e.parseCost(st.Params["Cost"]),
 					announce: strings.TrimSpace(st.Params["Announce"]), src: id})
 			}
 		}
@@ -1324,6 +1334,8 @@ func (e *Engine) costModifiersWithTargetsX(p state.PlayerID, id state.ObjID, sco
 }
 
 func (e *Engine) costModifiersWithTargetsXUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32) costMods {
+	// The same per-pass provenance capture costModifiersWithTargetsUsing owns.
+	e.costProvenanceSeen = false
 	var mods costMods
 	xBound := x != 0
 	for _, group := range []struct {
@@ -1423,6 +1435,9 @@ func (e *Engine) costModifiersWithTargets(p state.PlayerID, id state.ObjID, scop
 }
 
 func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool) costMods {
+	// Each pass owns the provenance capture: cleared here, set by
+	// costStaticApplies when a ValidCard$ carries a cast-provenance token.
+	e.costProvenanceSeen = false
 	var mods costMods
 	for _, group := range []struct {
 		mode  string
@@ -1538,8 +1553,25 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 		// onlyFirstSpellUsed for the tracking.
 		return false
 	}
-	if spec, ok := sv.Params["ValidCard"]; ok && !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
-		return false
+	if spec, ok := sv.Params["ValidCard"]; ok {
+		// The provenance-keyed ValidCard$ (castprov3: Bilbo's
+		// "!wasCastFromYourHand" ReduceCost) is unresolvable while the priced
+		// object has no cast in the log yet — the offer walk and the
+		// option-selection snapshot both evaluate pre-push, where the negated
+		// spelling would wrongly hold for the hand cast it must not cover.
+		// Deny the modifier (full price, this gate chain's documented
+		// fail-closed direction); continueCast re-prices the pending cast
+		// right after CR 601.2a's push, once the PutOnStack is in the log.
+		// The capture (noCounterSpend's shape) tells the pending-cast flow a
+		// re-price is owed; the read stays inside the attributed cost-static
+		// pass, so the param census sees no new Params site.
+		if strings.Contains(spec, "wasCastFromYourHand") || strings.Contains(spec, "wasCastByYou") {
+			e.costProvenanceSeen = true
+		}
+		spec, ok2 := e.castProvenanceAdmitsPending(spec, id, sv.Controller)
+		if !ok2 || !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			return false
+		}
 	}
 	if vs, ok := sv.Params["ValidSpell"]; ok && !e.validSpellMatches(scope, p, id, vs) {
 		return false
@@ -1816,9 +1848,11 @@ func (e *Engine) spellConstraintMatches(scope costScope, id state.ObjID, constra
 		// The bare form is the single-cost Kicker's mode; the and/or
 		// two-part Kicker's per-part modes (kicked1/kicked2/kickedboth) are
 		// kicked casts too -- a cost static gated on "was this kicked" must
-		// not depend on WHICH part was paid.
+		// not depend on WHICH part was paid. A multikicked cast (CR 702.43's
+		// kicker variant) is a kicked cast the same way.
 		return scope.mode == "kicked" || scope.mode == "kicked1" ||
-			scope.mode == "kicked2" || scope.mode == "kickedboth"
+			scope.mode == "kicked2" || scope.mode == "kickedboth" ||
+			scope.mode == "multikicked"
 	case "Surged":
 		return scope.mode == "surged"
 	case "Miracle":
@@ -1854,7 +1888,7 @@ func (e *Engine) abilityConstraintMatches(scope costScope, p state.PlayerID, id 
 	case "!ManaAbility":
 		return ab.API != "Mana"
 	case "Loyalty":
-		return isLoyaltyAbility(ab)
+		return e.isLoyaltyAbility(ab)
 	case "YouCtrl":
 		o := e.G.Obj(id)
 		return o != nil && o.Controller == p
@@ -1897,7 +1931,68 @@ func parseAmount(s string, def int32) int32 {
 func init() {
 	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost", "stat:CastWithFlash",
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:CantBlock", "stat:CantBlockBy",
-		"stat:CantGainLife", "stat:Continuous", "stat:ManaConvert", "stat:NumLoyaltyAct")
+		"stat:CantGainLife", "stat:Continuous", "stat:ManaConvert", "stat:NumLoyaltyAct",
+		// combatrestriction1: the three combat/sacrifice restriction statics.
+		// CantAttack is enforced per (attacker, defender) pair
+		// (rules/layers.go attackBlocked, consulted by askAttackers /
+		// validateAttackers / mustAttackRequired's pair gate), CantSacrifice at
+		// every sacrifice candidate choke point (rules.Engine.SacrificeBlocked,
+		// the effects.Host method), and MustAttack by the board-wide
+		// activeStatics walk in mustAttackRequired. Only the whitelisted
+		// parameter shapes are enforced (cantRestrictionParamsReadable for the
+		// two Cant* statics; the Mode$/ValidCreature$/Description$ whitelist the
+		// requirement solver already carried for MustAttack) — the conditional
+		// shapes stay unregistered behaviour-wise and are ledgered in AGENTS.md.
+		"stat:CantAttack", "stat:CantSacrifice", "stat:MustAttack",
+		// exert1: CR 702.100's attack-time election.
+		"stat:OptionalAttackCost",
+		// The static's Cost$ Exert<1/CARDNAME> and Trigger$ rider are consumed
+		// by the declare-attackers offer (rules/combat.go's askNextExert) and
+		// the Exert-event trigger walker (rules/trigger_match.go
+		// checkExertTriggers); its IsPresent$ gate reuses the shared
+		// presentGate/countPresent grammar, whose filter now knows the
+		// notExertedThisTurn predicate (effects/filter.go).
+		// asunblk1: the combat-damage assignment election (rules/combat.go
+		// asUnblockedNeeding / damageStep's chosenElection case, CR 509's
+		// optional "assign as though it weren't blocked"). Only the printed
+		// S:Mode$ statics are read; the SVar:Static: family that rides the
+		// Effect path is a separate ledgered gap, and Ruxa's NoAbilities
+		// predicate stays an unknown that fails closed.
+		"stat:AssignCombatDamageAsUnblocked")
+}
+
+// asUnblockedStaticMatches reports whether any battlefield
+// AssignCombatDamageAsUnblocked static applies to candidate creature id, and
+// whether the matching static is MANDATORY (no Optional$, the auto-accept
+// reading) rather than the election-bearing Optional$ True every printed
+// corpus carrier spells. The match follows castRestrictedUsing's pattern:
+// ValidCard$ is resolved against the CANDIDATE (the attacking creature) with
+// the static's host as the spec SOURCE (Indomitable Might's Aura resolves
+// Creature.EnchantedBy against its own bearer), and the shared
+// restriction/condition gates run first so an unmodelled condition fails
+// closed rather than applying blanket. IsPresent$ gates on top through the
+// shared countPresent walk (Siege Behemoth's "Card.Self+attacking" — both
+// predicates are known), the same clause shape the trigger-side
+// presentCondition reader evaluates.
+func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bool) {
+	for _, sv := range e.activeStatics("AssignCombatDamageAsUnblocked") {
+		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+			continue
+		}
+		if spec := strings.TrimSpace(sv.Params["IsPresent"]); spec != "" {
+			if e.countPresent(spec, sv.Source, sv.Controller) <= 0 {
+				continue
+			}
+		}
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		matched = true
+		if strings.TrimSpace(sv.Params["Optional"]) != "True" {
+			return true, true
+		}
+	}
+	return matched, false
 }
 
 // altCostLabel names the nth (0-indexed) alternative-cost option for a
