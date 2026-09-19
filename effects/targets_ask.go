@@ -33,7 +33,18 @@ import (
 // keeps Defined's own behaviour.
 //
 // The ask never fires when the SA also carries Defined$ (an already-named
-// fetch list is Forge's no-ask shape), when it is an API$ ChangeZone body
+// fetch list is Forge's no-ask shape) -- with ONE carve-out: API$ Fight,
+// the one primitive whose SA carries TWO independent target lists
+// (Defined$ names the fighter(s), ValidTgts$ names the creature(s) they
+// fight). A Fight sub reached deeper in an Execute chain (Kraul
+// Harpooner's DB$ Pump | Defined$ Self | SubAbility$ DBFight) would
+// otherwise never be asked for its opponent, and its fight would stay
+// silently inert even with effFight implemented -- the placement ask
+// cannot reach a depth-2 sub. The execute-shaped Fight bodies (Warbriar
+// Blessing) and the modal Charm-mode ones (Voracious Hydra) are still
+// skipped below: their placement ask already ran and set OfferedSA, so
+// the Line match skips them before any ask is re-posed. When it is an
+// API$ ChangeZone body
 // (effChangeZone's own mid-resolution ask, changeZoneChosenTargets, owns
 // that shape -- the closed ChangeZone slice), when this is the depth-0
 // entry SA of a resolution whose TargetsOffered marker is set (the
@@ -52,7 +63,7 @@ import (
 // bounds, exactly like the placement ask does for the same parameters.
 func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target, bool) {
 	if strings.TrimSpace(sa.Params["ValidTgts"]) == "" ||
-		strings.TrimSpace(sa.Params["Defined"]) != "" {
+		(strings.TrimSpace(sa.Params["Defined"]) != "" && sa.API != "Fight") {
 		return nil, false
 	}
 	if sa.CompiledAPI() == cards.APIChangeZone || sa.API == "ChangeZone" {
