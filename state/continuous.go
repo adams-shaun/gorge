@@ -234,6 +234,27 @@ type ContinuousEffect struct {
 	// later CheckSVar$-style consumer of the affected object's variables
 	// reads. Nil on every effect that grants none.
 	AddSVars map[string]string
+	// GainControl is a control-change static (Mind Control's "You control
+	// enchanted creature", Fealty to the Realm's "The monarch controls
+	// enchanted creature"): the value is the GainControl$ parameter of an
+	// S:Mode$ Continuous static, and while the static is live every object
+	// its Affects spec matches is controlled by the player the value names.
+	// Like MayPlay it changes no characteristic and is not a CR 613 layer
+	// change -- it is a rules-mod realized by rules' static-control reconcile
+	// (rules/control_static.go), which registers a real tracked control grant
+	// (rules/control.go) and emits events.ControlChange, so triggers, the
+	// controller-reset semantics and the view all see the transfer through
+	// the ordinary path. The value resolves through the shared player-spec
+	// grammar: "You" is the static's controller, any other qualified player
+	// spec ("Player.isMonarch") resolves to the single seat the spec matches,
+	// and anything that names nobody (or several) fails closed -- no grant.
+	// The static's own "as long as" gate (IsPresent$/CheckSVar$) is the
+	// ordinary continuousGateHolds the scan runs for every static; the grant
+	// ends when the static stops being live (source left the battlefield,
+	// gate flipped, Aura moved bearers) or the resolved controller changes.
+	// Empty on every effect that grants no control.
+	GainControl string
+
 	// MayLookAt is a look-permission grant (MayLookAt$ on a Mode$
 	// Continuous static, e.g. Oracle of Mul Daya): while the static is live,
 	// the affected player may look at the object its Affected$ spec matches

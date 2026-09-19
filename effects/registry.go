@@ -61,6 +61,16 @@ type Host interface {
 	// continuous-effect registry; the effects test double scans its own
 	// recorded slice.
 	ContinuousNamed(controller state.PlayerID, name string) bool
+	// TypeChoices returns the creature-type option list a mid-resolution
+	// ChooseType ask offers its chooser (task ct1) — the SAME list the
+	// cast-time "as this enters" type ask builds (rules/etbOptions' "type"
+	// arm, which this method's rules implementation calls), so the two asks
+	// and the no-ask fallback can never disagree about what a creature-type
+	// choice ranges over. A category this build cannot enumerate (Basic
+	// Land, Card, ...) yields nil: the asking primitive never asks for one
+	// (it records the loud Note and the deterministic fallback), so nil is
+	// unreachable through the ask path.
+	TypeChoices(chooser state.PlayerID, category string) []decision.Option
 	// RegisterControl records one GainControl effect with the lifetime its
 	// LoseControl$ names (CR 611.2b "for as long as", CR 514.2 end of turn),
 	// so the engine can end it through a ControlChange event the moment that
@@ -779,6 +789,17 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// ChosenType is the answered mid-resolution ChooseType pick (task ct1):
+	// the creature type the chooser picked out of the TypeChoices list, set
+	// by rules' "choosetype" resume arm before the suspended sub-ability is
+	// re-run. effChooseType's re-entry emits the one Choose event the
+	// fallback would have emitted, with the answered type instead, so the
+	// downstream Card.ChosenType readers see exactly the shape they already
+	// read. A valid answer is never empty (the option list's last resort is
+	// "Human"), so non-empty IS the answered marker, and the asking effect
+	// consumes and clears it at the top of its walk (the fx42 scoping
+	// discipline), so a nested ChooseType cannot inherit the outer answer.
+	ChosenType string
 	// LookAck is the answered bare-look "Continue" ack (lookack, task
 	// fb-20260917T232325Z-35cfca4b): the looker acknowledged the private
 	// look a NoReveal$ / mandatory-Look$ Reveal-family effect is about to

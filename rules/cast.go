@@ -2652,41 +2652,9 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case "type":
-		// Type$ Creature (the corpus's dominant value) is exactly this list;
-		// an absent Type$ keeps the creature-type default. Any other category
-		// has no option builder in this build: the list stays the creature
-		// fallback and effects.effChooseType records the gap loudly at
-		// resolution time, so the limitation is never silent. The switch's
-		// only act would be a non-creature option list this build cannot
-		// build, so no branch -- the comment is the read.
-		seen := map[string]bool{}
-		types := []string{}
-		for i := range e.G.Objs {
-			o := &e.G.Objs[i]
-			if o.Owner != you {
-				continue
-			}
-			f := o.Face()
-			if f == nil || !isCreatureFace(f) {
-				continue
-			}
-			for _, t := range f.Types {
-				if !effects.CreatureTypeWords(t) || seen[t] {
-					continue
-				}
-				seen[t] = true
-				types = append(types, t)
-			}
-		}
-		if len(types) == 0 {
-			types = []string{"Human"}
-		}
-		sort.Strings(types)
-		out := make([]decision.Option, 0, len(types))
-		for _, t := range types {
-			out = append(out, decision.Option{Index: len(out), Kind: "type", Label: t})
-		}
-		return out
+		// The shared creature-type enumeration (creatureTypeOptions); the
+		// comment there is the read.
+		return e.creatureTypeOptions(you)
 	default: // "number"
 		out := make([]decision.Option, 0, 13)
 		for i := 0; i <= 12; i++ {
@@ -2706,6 +2674,58 @@ func isCreatureFace(f *cards.Face) bool {
 		}
 	}
 	return false
+}
+
+// creatureTypeOptions enumerates the creature-type option list the cast-time
+// "as this enters" ask (etbOptions' "type" arm) and the mid-resolution
+// ChooseType ask (Engine.TypeChoices, task ct1) BOTH offer, so the two asks
+// and the no-ask fallback can never disagree about what a creature-type
+// choice ranges over. The list is the distinct creature subtypes of every
+// object you OWN (all zones, object order), sorted alphabetically; the
+// "Human" tail keeps the list non-empty when you own no creature subtype,
+// the same totality rule the colour list carries.
+func (e *Engine) creatureTypeOptions(you state.PlayerID) []decision.Option {
+	seen := map[string]bool{}
+	types := []string{}
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner != you {
+			continue
+		}
+		f := o.Face()
+		if f == nil || !isCreatureFace(f) {
+			continue
+		}
+		for _, t := range f.Types {
+			if !effects.CreatureTypeWords(t) || seen[t] {
+				continue
+			}
+			seen[t] = true
+			types = append(types, t)
+		}
+	}
+	if len(types) == 0 {
+		types = []string{"Human"}
+	}
+	sort.Strings(types)
+	out := make([]decision.Option, 0, len(types))
+	for _, t := range types {
+		out = append(out, decision.Option{Index: len(out), Kind: "type", Label: t})
+	}
+	return out
+}
+
+// TypeChoices implements effects.Host.TypeChoices (task ct1): the option list
+// a mid-resolution ChooseType ask offers its chooser — the SAME enumeration
+// the cast-time "type" arm builds, so the two lists can never disagree. A
+// category this build cannot enumerate yields nil; the asking effect never
+// asks for one (it records the loud Note and the deterministic fallback), so
+// nil is unreachable through the ask path.
+func (e *Engine) TypeChoices(chooser state.PlayerID, category string) []decision.Option {
+	if category != "" && !strings.EqualFold(category, "Creature") {
+		return nil
+	}
+	return e.creatureTypeOptions(chooser)
 }
 
 // etbAsk asks the next unsettled "as this enters" choice (pc.etbs[pc.etbIdx]),
