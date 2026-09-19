@@ -370,14 +370,18 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 		return combine(conditionMetBattlefield(h, c, present, compare))
 	}
-	if defined != "Remembered" && defined != "Self" {
-		// Only the Remembered and Self families are in scope among DEFINED
-		// groups: the objects a walk carries in Ctx.Remembered, and — for
-		// Self — the resolving source object alone (the Addendum shape:
+	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" {
+		// Only the Remembered, Self and TriggeredCard families are in scope
+		// among DEFINED groups: the objects a walk carries in Ctx.Remembered,
+		// the resolving source object alone (the Addendum shape:
 		// ConditionDefined$ Self | ConditionPresent$ Card.wasCast holds only
 		// when the sub is reached through a cast of the source, which
 		// effects.Resolve's walk evaluates while the spell is still on the
-		// stack). Targeted, ChosenCard, Imprinted and the rest need Ctx
+		// stack), and — task castprov2 — the card the triggering event moved
+		// (Amped Raptor's `ConditionDefined$ TriggeredCard | ConditionPresent$
+		// Card.wasCastFromYourHandByYou`: the exile-until runs only when the
+		// entering permanent was cast from its controller's hand). Targeted,
+		// ChosenCard, Imprinted, the LKI-copy variants and the rest need Ctx
 		// state this gate does not model (and whose fail-closed skip would
 		// change unrelated cards).
 		return false, false
@@ -389,6 +393,39 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// Self is the source object ALONE — not rememberedWithSource's
 		// Source-union with the walk's remembered set.
 		group = []state.Target{{Obj: c.Source}}
+	}
+	if defined == "TriggeredCard" {
+		// The card the triggering event moved — the TriggerContext.TriggerCard
+		// role rules' triggerReferents captures for every mode that names one
+		// (ChangesZone, SpellCast, Drawn, ...). An ABSENT binding (a synthetic
+		// fixture, a hand-built context, a mode with no card role) leaves the
+		// gate UNSUPPORTED — the sub runs unconditionally, this file's
+		// documented convention — never a resolved-false, which would silently
+		// stop subs that ran before the group was enumerable. Measured corpus
+		// population of `ConditionDefined$ TriggeredCard` gates: 33 raw lines
+		// over 36 files, every one of which ran its sub unconditionally before.
+		if c.TriggerCard == 0 {
+			return false, false
+		}
+		group = []state.Target{{Obj: c.TriggerCard}}
+	}
+	// The wasCastFromYourHandByYou / !wasCastFromYourHandByYou qualifier
+	// (task castprov2, Amped Raptor's gate) is not a filter predicate: it is
+	// evaluated per member against the Host's log read (castFromHandAdmits
+	// Filter), the same split rules' castFromHandAdmits applies at the
+	// rules-side match sites. The UnknownPredicates guard below reads the
+	// token-STRIPPED spec — the token itself is unknown to the filter (that
+	// is the whole reason for the split), and an unreadable remainder must
+	// still be unresolved.
+	hasHandToken := strings.Contains(present, "wasCastFromYourHandByYou")
+	if present != "" {
+		check := present
+		if hasHandToken {
+			check = stripWasCastFromHandToken(present)
+		}
+		if len(UnknownPredicates(check)) > 0 {
+			return false, false
+		}
 	}
 	for _, t := range group {
 		if t.IsPlayer {
@@ -404,19 +441,17 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			count++
 			continue
 		}
-		if MatchesObjectCtx(g, present, o, sc) {
-			count++
+		memberSpec := present
+		if hasHandToken {
+			s, ok := castFromHandAdmitsFilter(h, present, t.Obj, c.Controller)
+			if !ok {
+				// This member fails its own provenance requirement.
+				continue
+			}
+			memberSpec = s
 		}
-	}
-	if present != "" {
-		// An unknown predicate in the spec cannot be evaluated: the whole
-		// gate is unresolved rather than counting a false-negative zero
-		// (which would silently stop subs that used to run — Skyclave
-		// Apparition's Card.ExiledWithSource). Checked once, outside the
-		// object loop: an EMPTY remembered set with an unreadable spec must
-		// also be unresolved, not a resolved "count 0".
-		if len(UnknownPredicates(present)) > 0 {
-			return false, false
+		if MatchesObjectCtx(g, memberSpec, o, sc) {
+			count++
 		}
 	}
 	return combine(evalConditionCount(count, compare))
@@ -564,4 +599,73 @@ func parseConditionCompare(v string) (op string, n int, ok bool) {
 		return "", 0, false
 	}
 	return op, n, true
+}
+
+// castFromHandAdmitsFilter evaluates the bare wasCastFromYourHandByYou /
+// !wasCastFromYourHandByYou qualifier of a Forge filter spec against ONE
+// object through the Host's log read (task castprov2, Amped Raptor's
+// `ConditionPresent$ Card.wasCastFromYourHandByYou` gate — the effects-side
+// twin of rules' castFromHandAdmits, which runs the same split at the
+// rules-side match sites where the Engine and its log are in scope). The
+// spec is split into its comma alternatives, every alternative CARRYING the
+// qualifier but failing the provenance test — the object was NOT cast from
+// you's hand by you, or the object is a copy (never cast, the same IsCopy
+// guard the Count$wasCastFromYourHandByYou head takes) — is dropped, and the
+// surviving alternatives are rejoined for the ordinary filter. ok is false
+// when no alternative survives: the spec matches nothing (this member fails
+// its own provenance requirement). A spec without the token is returned
+// unchanged, so every unrelated gate is byte-identical.
+func castFromHandAdmitsFilter(h Host, spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
+	if !strings.Contains(spec, "wasCastFromYourHandByYou") {
+		return spec, true
+	}
+	holds := false
+	if o := h.Game().Obj(objID); o != nil && !o.IsCopy {
+		holds = h.WasCastFromHandByYou(objID, you)
+	}
+	var b strings.Builder
+	first, alive := true, false
+	for alt := range FilterAlternatives(spec) {
+		s1, hadPos := StripPredicateToken(alt, "wasCastFromYourHandByYou")
+		s2, hadNeg := StripPredicateToken(s1, "!wasCastFromYourHandByYou")
+		// The positive spelling requires the provenance to HOLD; the negated
+		// spelling requires it to FAIL.
+		if (hadPos && !holds) || (hadNeg && holds) {
+			continue
+		}
+		if !first {
+			b.WriteByte(',')
+		}
+		b.WriteString(s2)
+		first = false
+		alive = true
+	}
+	if !alive {
+		return "", false
+	}
+	return b.String(), true
+}
+
+// stripWasCastFromHandToken removes both spellings of the
+// wasCastFromYourHandByYou qualifier from every comma alternative of a spec,
+// text-only and polarity-agnostic: the UnknownPredicates guard must read the
+// token-STRIPPED spec (the token itself is unknown to the filter — that is
+// the whole reason the split exists), while the per-member polarity lives in
+// castFromHandAdmitsFilter. A spec without the token is returned unchanged.
+func stripWasCastFromHandToken(spec string) string {
+	if !strings.Contains(spec, "wasCastFromYourHandByYou") {
+		return spec
+	}
+	var b strings.Builder
+	first := true
+	for alt := range FilterAlternatives(spec) {
+		s1, _ := StripPredicateToken(alt, "wasCastFromYourHandByYou")
+		s2, _ := StripPredicateToken(s1, "!wasCastFromYourHandByYou")
+		if !first {
+			b.WriteByte(',')
+		}
+		b.WriteString(s2)
+		first = false
+	}
+	return b.String()
 }
