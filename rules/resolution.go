@@ -1127,6 +1127,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.DigDone = true
 			ctx.DigTarget = rp.target
+		case "diguntil_move":
+			// A DigUntil reveal-until's OptionalFoundMove$ yes/no election was
+			// answered (task diguntil1; Songbirds' Blessing). The answer is a
+			// bare yes/no recorded as a marker the re-entered effect consumes
+			// and clears (fx42 scoping): "yes" moves the found card(s) to
+			// FoundDestination$, "no" — the decline — to OptionalNoDestination$
+			// or the revealed pile. A malformed or empty answer keeps the
+			// decline, the conservative read of an ambiguous one (the same
+			// attach_optional convention). DigUntilMoveDone also suppresses the
+			// re-entry's reveal Note, which the first pass already recorded.
+			ctx.DigUntilMove = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.DigUntilMove = "yes"
+			}
+			ctx.DigUntilMoveDone = true
 		case "counter_dist":
 			// A DividedAsYouChoose$ PutCounter distribution pick was answered
 			// (Vastwood Hydra): the chooser picked which of the Choices$

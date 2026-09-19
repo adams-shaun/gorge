@@ -597,6 +597,20 @@ type Ctx struct {
 	Dig       []state.ObjID
 	DigDone   bool
 	DigTarget int
+	// DigUntilMove is the answered DigUntil reveal-until OptionalFoundMove$
+	// election (task diguntil1; Songbirds' Blessing's "You may put that card
+	// onto the battlefield. If you don't, put it into your hand."): "yes"
+	// moves the found card(s) to FoundDestination$, "no" — the decline — to
+	// OptionalNoDestination$ when the SA carries one, else the found card
+	// joins the revealed pile (RevealedDestination$). rules' resumeResolution
+	// sets it from the recorded answer before re-running the suspended
+	// sub-ability, and DigUntilMoveDone distinguishes "answered" from the
+	// first pass (it also suppresses the reveal Note and the withheld-params
+	// Note a re-entry would otherwise re-emit). The asking effect consumes
+	// and clears both at the top of its own walk (the fx42 scoping
+	// discipline), so a nested DigUntil cannot inherit the outer answer.
+	DigUntilMove     string
+	DigUntilMoveDone bool
 	// CounterDist is the answered DividedAsYouChoose$ PutCounter pick
 	// (Vastwood Hydra's death trigger): the recipients the chooser picked out
 	// of the Choices$-eligible battlefield creatures, in answer order.
