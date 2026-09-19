@@ -1695,6 +1695,23 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 				}
 				continue
 			}
+			if rem, is := strings.CutPrefix(qualifier, "controlsCreature."); is {
+				// Forge's Player.controlsCreature.<objspec> / controlsPermanent.
+				// <objspec> property (PlayerControlsCreatures/Permanents): the
+				// seat qualifies when its battlefield holds an object matching
+				// <objspec> as an object filter, with an optional trailing
+				// _GE<n>-style count comparison. See playerControlsMatches.
+				if playerControlsMatches(g, p, you, source, "Creature", rem) {
+					return true
+				}
+				continue
+			}
+			if rem, is := strings.CutPrefix(qualifier, "controlsPermanent."); is {
+				if playerControlsMatches(g, p, you, source, "Permanent", rem) {
+					return true
+				}
+				continue
+			}
 			matchesBase = true
 		case "You":
 			matchesBase = p == you
@@ -1730,6 +1747,62 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 		}
 	}
 	return false
+}
+
+// splitCountCompare strips a trailing "_"-separated count comparison token
+// ("GE1", "LT3", ...) from an object-spec remainder. It returns the remainder
+// with the token removed, the comparison operator, the threshold, and whether
+// a count token was present at all. A trailing token that is not a count
+// comparison (e.g. the named-arg convention's "namedAether_Burst") stays part
+// of the object spec, and a remainder with no "_" at all is returned whole.
+func splitCountCompare(rem string) (string, string, int32, bool) {
+	i := strings.LastIndex(rem, "_")
+	if i < 0 {
+		return rem, "", 0, false
+	}
+	tok := rem[i+1:]
+	if len(tok) < len("GE0") {
+		return rem, "", 0, false
+	}
+	op, digits := tok[:2], tok[2:]
+	n, err := strconv.ParseInt(digits, 10, 32)
+	if err != nil {
+		return rem, "", 0, false
+	}
+	switch op {
+	case "GE", "GT", "EQ", "LE", "LT":
+		return rem[:i], op, int32(n), true
+	}
+	return rem, "", 0, false
+}
+
+// playerControlsMatches evaluates Forge's Player.controlsCreature.<spec> /
+// controlsPermanent.<spec> qualifiers (PlayerProperty's
+// PlayerControlsCreatures/PlayerControlsPermanents family): the seat
+// qualifies when the required number of its battlefield objects match
+// <spec> as an object filter. The count comparison rides a trailing
+// "_GE<n>"-style token and defaults to an existential _GE1; a spec with no
+// count token matches when at least one object does. The object filter is
+// evaluated with the same SpecContext binding MatchesPlayerSpecFrom carries
+// (the perspective seat and the source permanent), so the named<Name>,
+// MultiColor, IsRemembered and EnchantedBy object predicates all resolve
+// unchanged. A spec that matches nothing -- including one carrying an
+// unmodelled predicate, which fails closed inside the object matcher --
+// never matches for that seat.
+func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, source state.ObjID, objBase, rem string) bool {
+	spec, op, want, counted := splitCountCompare(rem)
+	spec = objBase + "." + spec
+	sc := SpecContext{You: you, Source: source}
+	n := int32(0)
+	for _, id := range g.Zone(state.ZBattlefield, p) {
+		if MatchesObjectCtx(g, spec, g.Obj(id), sc) {
+			n++
+		}
+	}
+	if !counted {
+		return n > 0
+	}
+	return playerCompare(n, op, want)
 }
 
 // playerHasMost is the shared evaluator for Forge's Player.withMost<kind>

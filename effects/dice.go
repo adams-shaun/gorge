@@ -95,20 +95,33 @@ func effAddTurn(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // effLosesGame implements DB$ LosesGame (53 corpus files): the Defined$
-// player (the resolving ability's controller by default) loses the game right
-// now, CR 104.2a -- the same PlayerLost event a 0-life elimination emits, so
+// player (the resolving ability's controller when the SA names NO Defined$ at
+// all -- Final Fortune's "you lose the game") loses the game right now, CR
+// 104.2a -- the same PlayerLost event a 0-life elimination emits, so
 // state-based actions sweep their permanents and the game-over check runs as
-// for any other loss. Final Fortune and Last Chance reach this through the
-// extra turn's delayed trigger; a seat that has already lost is skipped
-// (losing twice is not a second game event).
+// for any other loss. A seat that has already lost is skipped (losing twice
+// is not a second game event).
+//
+// A PRESENT Defined$ that resolves to no player target acts on NOBODY: the
+// controller default above is for the Defined$-less shape only. This is what
+// makes the empty-set semantics of a state qualifier's miss (Triskaidekaphobia's
+// Player.lifeEQ13 with no seat at 13 life) a no-op rather than killing the
+// resolving controller, and it is a behaviour change for any unmodelled
+// Defined$ spelling too -- those now fail closed here instead of falling
+// back to the controller (the chosen-targets fallback never had a player for
+// these lines anyway).
 func effLosesGame(h Host, c *Ctx, sa *cards.SA) {
 	player := c.Controller
 	if sa.Params["Defined"] != "" {
+		found := false
 		for _, t := range Defined(h, c, sa) {
 			if t.IsPlayer {
-				player = t.Player
+				player, found = t.Player, true
 				break
 			}
+		}
+		if !found {
+			return
 		}
 	}
 	g := h.Game()

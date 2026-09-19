@@ -459,6 +459,25 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return out, true
 	}
+	// Player.<state-qualifier>: a compound spelling this build's fixed cases
+	// do not name (Player.lifeEQ13, Player.controlsCreature.powerGE4_GE1,
+	// Player.withMostTypeCreature, ...) resolves through the trigger-side
+	// player-filter grammar (MatchesPlayerSpecFrom) over every living seat,
+	// the same bridge DamageAll's ValidPlayers$ resolution already uses
+	// (effects/damage.go's validPlayers). Qualifiers the grammar cannot
+	// evaluate fail closed INSIDE the filter -- every seat matches nothing --
+	// so this returns the empty set with ok=true: the effect acts on nobody
+	// rather than falling back to the spell's chosen (object) targets, which
+	// is the wrong set for a player-valued effect.
+	if base, _, _ := strings.Cut(spec, "."); base == "Player" {
+		var out []state.Target
+		for _, p := range g.AliveFrom(c.Controller) {
+			if MatchesPlayerSpecFrom(g, spec, p, c.Controller, c.Source) {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out, true
+	}
 	// Any Defined$ form this build does not model falls back to the chosen
 	// targets rather than silently acting on nothing (the caller decides via
 	// the bool whether that fallback is acceptable).
