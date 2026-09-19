@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -194,6 +195,129 @@ func TestDamagePreventedOnceValidTargetYouOnly(t *testing.T) {
 		t.Fatalf("seat 1's Squire has %d P1P1 counters, want 3", got)
 	}
 	replayCheck(t, e, cfg)
+}
+
+// pickOption submits the KReplacement answer whose option names obj.
+func pickOption(t *testing.T, e *Engine, obj state.ObjID) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement {
+		t.Fatalf("pending = %+v, want a CR 616.1 replacement-order choice", d)
+	}
+	for _, o := range d.Options {
+		if o.Obj == obj {
+			submitChoices(t, e, o.Index)
+			return
+		}
+	}
+	t.Fatalf("replacement-order options %+v do not offer object %d", d.Options, obj)
+}
+
+// TestSelflessSquireOrderedAfterPartialPrevention (r2 finding 1): Squire +
+// Thunderstaff, combat damage 3 to the controller, order answer =
+// Thunderstaff first. CR 616.1e recomputes applicability after each
+// modification, so the recomputed candidate set must STILL hold the Squire's
+// bodyless "prevent all": Thunderstaff prevents 1, the Squire prevents the
+// remaining 2, life is untouched and the Squire grows +1 then +2 = +3.
+func TestSelflessSquireOrderedAfterPartialPrevention(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := combatTriggerBoard(t, reg, []string{"Selfless Squire", "Thunderstaff"}, nil,
+		nil, []string{damagePreventedOnceAggressor})
+	squireTurn(t, e)
+	squire := findBattlefield(t, e, 0, "Selfless Squire", 0)
+	staff := findBattlefield(t, e, 0, "Thunderstaff", 0)
+	drainTriggeredAbilities(t, e)
+	src := findBattlefield(t, e, 1, "Aggressor", 0)
+	life0 := e.G.Players[0].Life
+	// Clear the parked priority ask first (replacement_damage_counter_test.go's
+	// device): poseDamageReplacementChoice only asks when e.pending is nil, so
+	// a raw emit under a parked priority decision parks the choice for
+	// askNextReplacementChoice instead of posing it now.
+	e.pending = nil
+	e.damaging, e.combatDamaging = src, true
+	e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 3})
+	e.damaging, e.combatDamaging = 0, false
+	pickOption(t, e, staff)
+	drainTriggeredAbilities(t, e)
+	if got := e.G.Players[0].Life; got != life0 {
+		t.Fatalf("seat 0 life = %d, want %d: the recomputed CR 616.1e candidate set dropped the Squire's still-applicable prevent-all", got, life0)
+	}
+	if countPreventionNotes(e, 1) != 1 || countPreventionNotes(e, 2) != 1 {
+		t.Fatalf("prevention Notes: amount 1 x%d, amount 2 x%d, want one of each",
+			countPreventionNotes(e, 1), countPreventionNotes(e, 2))
+	}
+	if countP1P1Changes(e, squire, 1) != 1 || countP1P1Changes(e, squire, 2) != 1 {
+		t.Fatalf("Squire CounterChanges: +1 x%d, +2 x%d, want one of each",
+			countP1P1Changes(e, squire, 1), countP1P1Changes(e, squire, 2))
+	}
+	if got := e.G.Obj(squire).Counter("P1P1"); got != 3 {
+		t.Fatalf("Squire P1P1 counters = %d, want 3 (1 + 2)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestSelflessSquireOrderedPathStoresPrevention (r2 finding 2): two
+// same-controller Squires, damage 3, order answer = candidate 0 — the
+// effect-created match a bot's clamp fallback picks. The chosen full
+// prevention is terminal (the held event never lands), so its re-entrant
+// prevention Note is the occurrence's only log record: BOTH Squires grow +3
+// off it and no damage reaches life.
+func TestSelflessSquireOrderedPathStoresPrevention(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := combatTriggerBoard(t, reg, []string{"Selfless Squire", "Selfless Squire"}, nil,
+		nil, []string{damagePreventedOnceAggressor})
+	squireTurn(t, e)
+	squire0 := findBattlefield(t, e, 0, "Selfless Squire", 0)
+	squire1 := findBattlefield(t, e, 0, "Selfless Squire", 1)
+	drainTriggeredAbilities(t, e)
+	src := findBattlefield(t, e, 1, "Aggressor", 0)
+	life0 := e.G.Players[0].Life
+	// Clear the parked priority ask first, so the order choice is posed now
+	// (poseDamageReplacementChoice asks only when e.pending is nil).
+	e.pending = nil
+	e.damaging, e.combatDamaging = src, false
+	e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 3})
+	e.damaging, e.combatDamaging = 0, false
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 2 {
+		t.Fatalf("pending = %+v, want a two-candidate CR 6.1 order choice", d)
+	}
+	submitChoices(t, e, 0)
+	drainTriggeredAbilities(t, e)
+	if got := e.G.Players[0].Life; got != life0 {
+		t.Fatalf("seat 0 life = %d, want %d", got, life0)
+	}
+	if c := countPreventionNotes(e, 3); c != 1 {
+		t.Fatalf("logged %d prevention Note(s) with amount 3, want 1: the ordered path's chosen prevention applied silently", c)
+	}
+	for _, s := range []state.ObjID{squire0, squire1} {
+		if c := countP1P1Changes(e, s, 3); c != 1 {
+			t.Fatalf("Squire %d logged %d CounterChange(P1P1, +3), want 1", s, c)
+		}
+		if got := e.G.Obj(s).Counter("P1P1"); got != 3 {
+			t.Fatalf("Squire %d has %d P1P1 counters, want 3", s, got)
+		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestDamageReplacementPreventsCaseInsensitive (r2 finding 3): the
+// registration (effEffect) and collection (applyReplacementsDispatch)
+// classifiers read the Prevent$ param case-insensitively, so the application
+// classifier (damageReplacementPrevents) and both full-prevention arms must
+// too — a non-canonical `Prevent$ true` bodyless registration must classify
+// as full prevention, never fall through to the silent With==nil drop arm.
+func TestDamageReplacementPreventsCaseInsensitive(t *testing.T) {
+	for _, v := range []string{"True", "true", "TRUE"} {
+		r := cards.Repl{Event: "DamageDone", Params: map[string]string{"Prevent": v}}
+		if !damageReplacementPrevents(r) {
+			t.Fatalf("damageReplacementPrevents(Prevent$ %q) = false, want true: the classifiers disagree on case", v)
+		}
+	}
+	neg := cards.Repl{Event: "DamageDone", Params: map[string]string{"Prevent": "False"}}
+	if damageReplacementPrevents(neg) {
+		t.Fatal("damageReplacementPrevents(Prevent$ False) = true, want false")
+	}
 }
 
 // TestDamagePreventedOnceIgnoresNonPreventionNotes: a stored Note that is not

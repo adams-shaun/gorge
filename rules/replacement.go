@@ -288,7 +288,7 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 				// may touch damage that cannot be prevented (Spider-Punk).
 				continue
 			}
-			if m.repl.Params["Prevent"] == "True" {
+			if strings.EqualFold(m.repl.Params["Prevent"], "True") {
 				// Stored through a re-entrant emit (the ReplaceDamage arm's
 				// shape, task dponce1): the log record IS the prevention's
 				// occurrence, so Mode$ DamagePreventedOnce triggers fire off it
@@ -342,7 +342,13 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 // damage-replacement selection and application path classifies prevention
 // through this one predicate and cannot drift apart.
 func damageReplacementPrevents(r cards.Repl) bool {
-	if r.Params["Prevent"] == "True" {
+	// Case-insensitive (dponce1 r2): the registration (effEffect's
+	// replacementLinePrevents) and the collection
+	// (applyReplacementsDispatch) read the param with EqualFold, so this
+	// classifier must too — a non-canonical `Prevent$ true` bodyless
+	// registration would otherwise be admitted to the competition and then
+	// silently erased by the With==nil CantHappen drop arm.
+	if strings.EqualFold(r.Params["Prevent"], "True") {
 		return true
 	}
 	return r.With != nil && r.With.API == "ReplaceDamage"
@@ -2958,7 +2964,7 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 		return false
 	}
 	for _, ce := range e.active() {
-		if ce.ReplacementEvent == "" || ce.ReplacementBody == "" {
+		if ce.ReplacementEvent == "" {
 			continue
 		}
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
@@ -2966,6 +2972,22 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			m := replMatch{id: ce.Source, repl: r,
 				remembered: ce.Remembered, chosen: ce.ChosenNumber,
 				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) &&
+				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
+				out = append(out, m)
+			}
+		} else if ce.ReplacementBody == "" && ce.ReplacementEvent == "DamageDone" &&
+			strings.EqualFold(ce.ReplacementParams["Prevent"], "True") {
+			// Mirror applyReplacementsDispatch's bodyless-Prevent admission
+			// (dponce1 r2): after a first NONTERMINAL application (a partial
+			// DB$ ReplaceDamage body reduced the held event), the recomputed
+			// CR 616.1e candidate set must still hold the bodyless "prevent
+			// all" effect — otherwise the remaining damage the registration
+			// exists to prevent lands silently.
+			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
+			m := replMatch{id: ce.Source, repl: r,
+				remembered: ce.Remembered,
+				key:        "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
 			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) &&
 				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
 				out = append(out, m)
@@ -3004,7 +3026,18 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 	if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.damaging, ev.Obj) {
 		return false
 	}
-	if m.repl.Params["Prevent"] == "True" {
+	if strings.EqualFold(m.repl.Params["Prevent"], "True") {
+		// The ordered path's full prevention is terminal — the held event
+		// never lands — so this re-entrant Note is the prevention's only log
+		// record, the same shape applyNonMoveReplacements' Prevent$ arm
+		// stores (dponce1 r2: silently returning terminal recorded nothing,
+		// so no DamagePreventedOnce trigger could fire off a chosen
+		// prevention). Amount is the held event's REMAINING amount: a
+		// partial DB$ ReplaceDamage body may already have reduced it (CR
+		// 616.1e), and TriggerCount$DamageAmount reads the amount THIS
+		// prevention prevented.
+		e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+			Amount: ev.Amount, Text: "damage prevented by replacement effect"})
 		return true
 	}
 	if m.repl.With == nil {
