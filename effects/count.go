@@ -932,8 +932,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// Count$<Predicate>.<yes>.<no> — Forge's yes/no branch heads: the value
 	// is the first number when the predicate holds, the second when it does
 	// not (Count$Morbid.1.0 ×33 and Count$Monarch.1.0 ×10 are the corpus's
-	// dominant spellings; the exotic predicates — Delirium, Blessing, Void,
-	// Adamant_<n>.<colour> — stay unmodelled and degrade to zero). Morbid is
+	// dominant spellings). wasCastFromGraveyard is modelled below — the
+	// resolving source's graveyard-origin cast bits (the Increasing cycle's
+	// Count$wasCastFromGraveyard.10.5, 11 corpus lines); the remaining
+	// exotic predicates — Delirium, Blessing, Void, Adamant_<n>.<colour> —
+	// stay unmodelled and degrade to zero. Morbid is
 	// CR 702.53's "a creature died this turn": a creature entered a graveyard
 	// FROM THE BATTLEFIELD this turn, folded off the same state.Entered list
 	// ThisTurnEntered_ reads (a battlefield→graveyard MoveZone is exactly a
@@ -942,6 +945,37 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// state g.IsMonarch answers for a CheckDefinedPlayer$ .isMonarch spec).
 	if dot := strings.IndexByte(head, '.'); dot > 0 {
 		switch head[:dot] {
+		case "wasCastFromGraveyard":
+			// The resolving source was CAST FROM A GRAVEYARD (CR 601.2b's
+			// alternative-cost provenance): any graveyard-origin cast bit —
+			// FlagFlashback, FlagHarmonize or FlagEscaped — holds it. This is
+			// the same bit test the Card.wasCastFromGraveyard filter predicate
+			// and its compiled twin share (effects/filter.go,
+			// effects/compiled_predicate.go); a nil/missing source reads
+			// false, and so does a stack copy (IsCopy — a copy was never cast,
+			// even though StackCopy preserves the original's flags). The
+			// branch tokens resolve through resolveCountOperand, not splitDot:
+			// the_final_days' YES branch is the SVar X
+			// (Count$wasCastFromGraveyard.X.2, X = Count$ValidGraveyard
+			// Creature.YouCtrl), the Compare head's evalCountOperand recursion
+			// precedent; an unresolvable token degrades to 0, never wedges.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			holds := false
+			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
+				holds = o.CastFlags&(state.FlagFlashback|state.FlagHarmonize|state.FlagEscaped) != 0
+			}
+			if holds {
+				y, ok := resolveCountOperand(h, c, yesTok, depth)
+				if !ok {
+					y = 0
+				}
+				return y, true
+			}
+			n, ok := resolveCountOperand(h, c, noTok, depth)
+			if !ok {
+				n = 0
+			}
+			return n, true
 		case "Morbid", "Monarch":
 			y, n := splitDot(head[dot+1:])
 			holds := false
