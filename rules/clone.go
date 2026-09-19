@@ -548,6 +548,10 @@ func cloneCombatRound(cr combatRound) combatRound {
 		}
 		cr.askOptions = table
 	}
+	// asunblk1: the as-unblocked election queues the same way.
+	cr.electQueue = append([]state.ObjID(nil), cr.electQueue...)
+	cr.doneElect = append([]state.ObjID(nil), cr.doneElect...)
+	// askElection is a plain bool, carried by the value copy.
 	return cr
 }
 

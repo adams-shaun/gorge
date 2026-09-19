@@ -974,6 +974,14 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// own resume. There is no trigger drain to resume (a division answer
 		// is never handed out from inside one).
 		e.handleDamageDivision(chosen)
+	case chooseAsUnblockedElection:
+		// asunblk1: the combat damage step's assign-as-unblocked election
+		// (stat:AssignCombatDamageAsUnblocked, CR 509) was answered.
+		// handleAsUnblockedElection records the accepted elections and then
+		// asks the next combat ask or deals the pass. There is no trigger
+		// drain to resume (an election answer is never handed out from
+		// inside one).
+		e.handleAsUnblockedElection(chosen)
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; Ward's

@@ -761,6 +761,25 @@ type combatRound struct {
 	// askOptions is parallel to the pending division Decision's Options:
 	// askOptions[i] is the per-blocker damage split the i-th option selects.
 	askOptions [][]int32
+
+	// electQueue lists this pass's attackers whose controller may elect to
+	// assign their combat damage as though they weren't blocked
+	// (stat:AssignCombatDamageAsUnblocked, CR 509's optional assignment
+	// election), in battlefield order. Elections are collected BEFORE the
+	// division queue: an accepted election routes the whole power to the
+	// defending player, so the attacker needs no division at all and is
+	// dropped from the queue when its election is accepted (a declined
+	// election leaves it in place for the ordinary division ask).
+	electQueue []state.ObjID
+	// doneElect holds the attackers of this pass whose as-unblocked election
+	// was ACCEPTED (or whose matching static is mandatory, auto-accepted
+	// without an ask -- all printed corpus carriers are Optional$ True, so
+	// the mandatory reading is comment-only today). damageStep consults it
+	// through chosenElection before the ordinary assignment switch.
+	doneElect []state.ObjID
+	// askElection marks the pending askAttacker ask as an election rather
+	// than a division, so the answer routes to the right handler.
+	askElection bool
 	// assignments and damageNext preserve a combat pass when a replacement
 	// order decision parks one assignment. The remaining simultaneous pass
 	// cannot run (nor can its SBA/regular pass) until that event settles.
@@ -807,12 +826,15 @@ func (e *Engine) combatStep() {
 func (e *Engine) beginCombatPass(pass bool) {
 	e.combatRound.pass = pass
 	e.combatRound.active = true
+	e.combatRound.electQueue = e.asUnblockedNeeding(pass)
+	e.combatRound.doneElect = nil
 	e.combatRound.queue = e.divisionNeeding(pass)
 	e.combatRound.done = nil
 	e.combatRound.askAttacker = 0
 	e.combatRound.askOptions = nil
-	if e.askNextDivision() {
-		return // a division decision is pending; Advance pauses on it
+	e.combatRound.askElection = false
+	if e.askNextCombatAsk() {
+		return // a combat decision is pending; Advance pauses on it
 	}
 	e.finishCombatPass()
 }
@@ -870,6 +892,129 @@ func (e *Engine) divisionCount(blockers []state.ObjID, power int32) int {
 		}
 	}
 	return int(res)
+}
+
+// askNextCombatAsk poses the combat damage pass's next pending controller
+// decision, or returns false when none remains (so the pass can be dealt).
+// Elections (as-unblocked, stat:AssignCombatDamageAsUnblocked) are asked
+// first, one at a time, then the damage-division decisions: an accepted
+// election removes its attacker from the division queue entirely (the whole
+// power goes to the defending player), so the two queues are drained in that
+// fixed order. Building the ask and asking in one go keeps the pending-ask
+// bookkeeping (askAttacker, askElection, askOptions) in lockstep with the
+// pending Decision.
+func (e *Engine) askNextCombatAsk() bool {
+	if len(e.combatRound.electQueue) > 0 {
+		a := e.combatRound.electQueue[0]
+		e.combatRound.askAttacker = a
+		e.combatRound.askElection = true
+		e.choosing = chooseAsUnblockedElection
+		e.ask(&decision.Decision{Player: e.G.Obj(a).Controller, Kind: decision.KChoose,
+			Min: 1, Max: 1,
+			Prompt: fmt.Sprintf("turn %d — have %s assign its combat damage as though it weren't blocked?",
+				e.G.Turn, e.G.Obj(a).Face().Name),
+			Options: []decision.Option{
+				{Index: 0, Kind: "asunblocked", Label: "assign normally (blocked)", Obj: a,
+					Player: e.G.Obj(a).Controller},
+				{Index: 1, Kind: "asunblocked", Label: "assign as though not blocked", Obj: a,
+					Player: e.G.Obj(a).Controller},
+			}, Source: a})
+		return true
+	}
+	e.combatRound.askElection = false
+	return e.askNextDivision()
+}
+
+// asUnblockedNeeding returns this pass's attacking creatures whose controller
+// is offered the stat:AssignCombatDamageAsUnblocked election (CR 509's
+// optional "assign as though it weren't blocked"): a creature that WAS
+// blocked (a genuinely unblocked creature's election is a no-op), with power
+// above zero (an election over zero damage is a decision nobody could answer
+// differently), not in the one shape where the outcome is already identical
+// (Trample with no live blocker left routes the whole power to the player
+// either way, Ruling T21-d), and whose static match is OPTIONAL (Optional$
+// True -- every printed corpus carrier). A mandatory match (no Optional$) is
+// auto-accepted into doneElect without an ask: the election is the
+// controller's only when the card says "may", and a mandatory reading
+// assigns as-unblocked unconditionally. No printed corpus static omits
+// Optional$, so the mandatory arm is dead code kept for the shape's
+// correctness (documented, deliberately untested -- out of scope per brief).
+// Battlefield order, deterministic.
+func (e *Engine) asUnblockedNeeding(pass bool) []state.ObjID {
+	var out []state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
+		a := e.G.Obj(id)
+		if a == nil || !a.IsAttacking || a.Zone != state.ZBattlefield {
+			continue
+		}
+		if !e.actsThisDamageStep(id, pass) {
+			continue
+		}
+		if len(a.BlockedBy) == 0 || e.Power(id) <= 0 {
+			continue
+		}
+		if e.HasKeyword(id, "Trample") && len(e.liveBlockers(a)) == 0 {
+			continue
+		}
+		matched, mandatory := e.asUnblockedStaticMatches(id)
+		if !matched {
+			continue
+		}
+		if mandatory {
+			e.combatRound.doneElect = append(e.combatRound.doneElect, id)
+			continue
+		}
+		out = append(out, id)
+	}
+	return out
+}
+
+// chosenElection reports whether attacker a's as-unblocked election was
+// accepted (or auto-accepted, mandatory) in the CURRENT pass, so damageStep
+// routes its whole power to the defending player.
+func (e *Engine) chosenElection(a state.ObjID) bool {
+	for _, id := range e.combatRound.doneElect {
+		if id == a {
+			return true
+		}
+	}
+	return false
+}
+
+// handleAsUnblockedElection applies an answered as-unblocked election: an
+// accepted election records the attacker in doneElect (so damageStep routes
+// its whole power to the defending player) and drops it from the division
+// queue; a declined election leaves the ordinary assignment path untouched.
+// It is the chooseAsUnblockedElection branch of handleChoose.
+func (e *Engine) handleAsUnblockedElection(chosen []decision.Option) {
+	// This flow consumed the pending choose: clear the marker so a later,
+	// unrelated KChoose answer is not routed back into the election path
+	// (the same reset handleDamageDivision performs).
+	e.choosing = chooseNone
+	if len(e.combatRound.electQueue) == 0 {
+		// No pending election to consume: fall through to the pass rather
+		// than stranding it (the same empty-answer fallback the division
+		// handler keeps).
+		e.finishCombatPass()
+		return
+	}
+	a := e.combatRound.electQueue[0]
+	e.combatRound.electQueue = e.combatRound.electQueue[1:]
+	e.combatRound.askAttacker = 0
+	e.combatRound.askElection = false
+	if len(chosen) > 0 && chosen[0].Index == 1 {
+		e.combatRound.doneElect = append(e.combatRound.doneElect, a)
+		for i, id := range e.combatRound.queue {
+			if id == a {
+				e.combatRound.queue = append(e.combatRound.queue[:i], e.combatRound.queue[i+1:]...)
+				break
+			}
+		}
+	}
+	if e.askNextCombatAsk() {
+		return
+	}
+	e.finishCombatPass()
 }
 
 // askNextDivision asks the controller for the next unanswered damage division
@@ -953,6 +1098,9 @@ func (e *Engine) completeCombatPass(pass bool) {
 	e.combatRound.done = nil
 	e.combatRound.askAttacker = 0
 	e.combatRound.askOptions = nil
+	e.combatRound.electQueue = nil
+	e.combatRound.doneElect = nil
+	e.combatRound.askElection = false
 	if pass {
 		e.combatRound.firstDone = true
 		e.combatRound.active = false
@@ -995,7 +1143,7 @@ func (e *Engine) handleDamageDivision(chosen []decision.Option) {
 	e.combatRound.queue = e.combatRound.queue[1:]
 	e.combatRound.askAttacker = 0
 	e.combatRound.askOptions = nil
-	if e.askNextDivision() {
+	if e.askNextCombatAsk() {
 		return
 	}
 	e.finishCombatPass()
@@ -1180,6 +1328,20 @@ func (e *Engine) damageStep(firstStrike bool) {
 				dt := e.HasKeyword(aid, "Deathtouch")
 				trample := e.HasKeyword(aid, "Trample")
 				switch {
+				case e.chosenElection(aid):
+					// stat:AssignCombatDamageAsUnblocked (CR 509's optional
+					// "assign as though it weren't blocked"): the controller's
+					// accepted election routes the WHOLE power to the defending
+					// player and nothing to any blocker -- the same shape an
+					// unblocked attacker takes. This case sits first so it also
+					// covers Ruling T21-d's blocked-but-blockers-all-left shape
+					// (an accepted election deals to the player even without
+					// Trample) and the ordinary blocked shape. The blockers
+					// still hit back below; only the ATTACKER's assignment is
+					// rerouted.
+					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
+						lifelink: a.Controller, hasLink: link, from: aid})
+
 				case len(a.BlockedBy) == 0:
 					// Genuinely unblocked: full damage to the defending player.
 					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
@@ -1507,6 +1669,17 @@ const chooseCleanup chooseFor = iota + 4
 // pairwise distinct from the shared package set (cast=1 / etb=2 / miracle=3 /
 // cleanup=4), and the exact numbers only need to differ.
 const chooseDamageDivision chooseFor = iota + 5
+
+// chooseAsUnblockedElection is the chooseFor for the combat damage step's
+// assign-as-unblocked election (stat:AssignCombatDamageAsUnblocked, CR
+// 509's optional "assign as though it weren't blocked"): it lets handleChoose
+// route the KChoose answer to handleAsUnblockedElection (combat.go). Like
+// its siblings it extends the chooseFor enum in combat.go; chooseEcho+1 is
+// pairwise distinct from the shared package set (cast=1 / etb=2 / miracle=3 /
+// cleanup=4 / division=5 / mana=6.. / opening=10 / suspend=12 / station=13 /
+// unlock=14 / cumulative=15 / triggeredcost=16 / manaunless=17 / riot=20 /
+// echo=21).
+const chooseAsUnblockedElection chooseFor = chooseEcho + 1
 
 // discardCleanup applies an answered CR 514.1 discard decision: each chosen
 // card moves from the active player's hand to their graveyard (a canonical
