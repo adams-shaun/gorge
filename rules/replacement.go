@@ -134,7 +134,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
 			if e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) {
-				matches = append(matches, replMatch{id: ce.Source, repl: r,
+				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
 					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
 		} else if ce.ReplacementBody == "" && strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Layer"]), "CantHappen") {
@@ -144,7 +144,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			// the same shape printed R: lines take (the With==nil arm below).
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
 			if e.replacementMatchesRemembered(*r, ce.Source, ev, ce.Remembered) {
-				matches = append(matches, replMatch{id: ce.Source, repl: r,
+				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
 					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
 		}
@@ -184,6 +184,8 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		return e.continuePhaseReplacements(ev, matches, nil)
 	case events.FlipFace:
 		return e.applyTransformReplacement(ev, matches)
+	case events.TokenCreate:
+		return e.continueCreateTokenReplacements(ev, matches)
 	case events.Damage:
 		matches = e.applicableDamageReplacements(ev, matches)
 		if len(matches) == 0 {
@@ -355,6 +357,11 @@ type replMatch struct {
 	// key identifies an Effect-created replacement across active() rebuilds.
 	// Printed replacement pointers are immutable face entries and need no key.
 	key string
+	// remembered carries the Effect-created replacement's remembered ids so
+	// a per-mint re-match (continueCreateTokenReplacements) can re-evaluate
+	// its IsRemembered specs exactly as the initial match did. Printed
+	// replacements never carry one.
+	remembered []state.ObjID
 }
 
 // rememberedSpecContext builds the match context a ValidCard$/ValidLKI$
@@ -525,6 +532,8 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "DamageDone", true
 	case events.Draw:
 		return "Draw", true
+	case events.TokenCreate:
+		return "CreateToken", true
 	default:
 		return "", false
 	}
@@ -960,6 +969,218 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 	return stored, true
 }
 
+// continueCreateTokenReplacements applies every applicable CreateToken
+// replacement to one TokenCreate event. The engine mints ONE token per
+// event, so the plan starts as that single mint. Each match applies at most
+// once, in deterministic scan order, and its ValidToken$ gate is re-checked
+// PER PLAN MINT — a later match sees the mints earlier matches produced
+// (Divine Visitation after a doubler replaces each doubled mint that is
+// still a creature token), which is CR 616.1's re-application over the
+// changed event. The final plan is emitted directly through events.Emit
+// (+ observe + checkTriggers per mint, the composeUpdatedReplacements
+// pattern), which BYPASSES applyReplacements: no mint can re-match, so a
+// doubler can never loop on its own output. The deviation from CR 616.1 is
+// deliberate and documented: competing CreateToken replacements apply in
+// scan order, NOT through a posed KReplacement order choice (non-commuting
+// compositions are reachable in Commander, but no repo deck carries any of
+// this family, so no golden game exercises one).
+func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	plan := []string{ev.Text}
+	for _, m := range matches {
+		body := m.repl.With
+		if body == nil || body.API != "ReplaceToken" {
+			// A body this dispatcher does not read leaves the plan untouched;
+			// the mint stands (the fail-safe direction).
+			continue
+		}
+		if strings.EqualFold(m.repl.Params["Optional"], "True") {
+			// The deterministic decline stand-in (the optional no-ask paths'
+			// contract): a "may" replacement with no chooser applies as if
+			// declined, the event stands verbatim.
+			continue
+		}
+		typ := strings.TrimSpace(body.Params["Type"])
+		if typ == "ReplaceController" {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "ReplaceToken Type$ ReplaceController is not implemented; the token is created unchanged"})
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(body.Params["TokenScript"]), "Chosen") ||
+			strings.TrimSpace(body.Params["ValidChoices"]) != "" {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "ReplaceToken ValidChoices (TokenScript$ Chosen) is not implemented; the token is created unchanged"})
+			continue
+		}
+		plan = e.applyTokenReplacementToPlan(ev, plan, m)
+	}
+	if len(plan) == 1 && plan[0] == ev.Text {
+		// No replacement changed the plan: the ordinary emit path logs the
+		// original event untouched (with its full LKI/trigger treatment).
+		return ev, false
+	}
+	if len(plan) == 0 {
+		// Every mint was removed (halving_season's HalfDown on a one-token
+		// event): the Note is the log's witness that nothing was created.
+		e.emit(events.Event{Kind: events.Note, Obj: 0, Player: ev.Player,
+			Text: "no tokens created (replacement effect rounded the creation down to zero)"})
+		return ev, true
+	}
+	var last events.Event
+	for _, script := range plan {
+		mint := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: script}
+		stored := events.Emit(e.G, e.L, mint)
+		e.loop.observe(stored)
+		e.checkTriggers(stored, nil, 0, 0, false)
+		last = stored
+	}
+	return last, true
+}
+
+// applyTokenReplacementToPlan transforms the plan by ONE match, per mint,
+// with the match's own ValidToken$ re-checked against each mint's script.
+func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []string, m replMatch) []string {
+	body := m.repl.With
+	switch strings.TrimSpace(body.Params["Type"]) {
+	case "ReplaceToken":
+		// "... instead create those tokens as <scripts>" — a pure rewrite:
+		// each matched mint is replaced by one mint per script in the CSV
+		// (Academy Manufactor's one Clue -> Clue+Food+Treasure; Divine
+		// Visitation's squirrel -> angel).
+		scripts := e.knownTokenScripts(m.id, body.Params["TokenScript"])
+		if len(scripts) == 0 {
+			return plan
+		}
+		out := make([]string, 0, len(plan)*len(scripts))
+		for _, mint := range plan {
+			if e.tokenReplacementMatchesMint(ev, m, mint) {
+				out = append(out, scripts...)
+			} else {
+				out = append(out, mint)
+			}
+		}
+		return out
+	case "AddToken":
+		// "... instead create those tokens plus N <script>" — the original
+		// mint stands and N extra mints of the named script join it.
+		n := int32(1)
+		if raw := strings.TrimSpace(body.Params["Amount"]); raw != "" {
+			v, ok := tokenReplaceCount(raw)
+			if !ok || v < 0 {
+				e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+					Text: "ReplaceToken Amount$ " + raw + " is not implemented; the token is created unchanged"})
+				return plan
+			}
+			n = v
+		}
+		extra := e.knownTokenScripts(m.id, body.Params["TokenScript"])
+		if len(extra) == 0 {
+			return plan
+		}
+		out := make([]string, 0, len(plan)+int(n)*len(extra))
+		for _, mint := range plan {
+			out = append(out, mint)
+			if e.tokenReplacementMatchesMint(ev, m, mint) {
+				for i := int32(0); i < n; i++ {
+					out = append(out, extra...)
+				}
+			}
+		}
+		return out
+	default:
+		// "Amount" (and an absent Type$ — the corpus always names one, Amount
+		// is the natural default for the "twice that many" doubler family):
+		// each matched mint becomes replCountOp(1, Amount$) copies of itself.
+		raw := strings.TrimSpace(body.Params["Amount"])
+		if raw == "" {
+			raw = "Twice"
+		}
+		n, ok := tokenReplaceCount(raw)
+		if !ok || n < 0 {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "ReplaceToken Amount$ " + raw + " is not implemented; the token is created unchanged"})
+			return plan
+		}
+		out := make([]string, 0, len(plan)*int(n)+1)
+		for _, mint := range plan {
+			if !e.tokenReplacementMatchesMint(ev, m, mint) {
+				out = append(out, mint)
+				continue
+			}
+			if n >= 1 {
+				for i := int32(0); i < n; i++ {
+					out = append(out, mint)
+				}
+				continue
+			}
+			// n == 0 (HalfDown against this engine's one-token events): the
+			// matched mint is not created. A halving composed AFTER a
+			// multiplier applies per mint rather than to the plan total — the
+			// documented composition approximation (see AGENTS.md).
+		}
+		return out
+	}
+}
+
+// tokenReplacementMatchesMint re-checks ONE replacement against ONE plan
+// mint (a would-be TokenCreate event over the mint's script). The body's
+// own ValidCard$ (stridehangar_automaton's redundant artifact gate) joins
+// the gate when present.
+func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, script string) bool {
+	mint := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: script}
+	if !e.replacementMatchesRemembered(*m.repl, m.id, mint, m.remembered) {
+		return false
+	}
+	if m.repl.With != nil {
+		if v := strings.TrimSpace(m.repl.With.Params["ValidCard"]); v != "" {
+			tok := e.tokenSnapshot(mint)
+			if tok == nil || !effects.MatchesObjectCtx(e.G, v, tok,
+				e.rememberedSpecContext(e.controllerOf(m.id), m.id, m.remembered)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// knownTokenScripts splits a ReplaceToken body's TokenScript$ CSV and keeps
+// only the stems the game's token registry knows, one loud Note per unknown
+// stem. An empty result leaves the caller's plan untouched.
+func (e *Engine) knownTokenScripts(source state.ObjID, csv string) []string {
+	var out []string
+	for _, s := range strings.Split(csv, ",") {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		if _, ok := e.G.Tokens[s]; !ok {
+			e.emit(events.Event{Kind: events.Note, Obj: source,
+				Text: "unknown token script " + s})
+			continue
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+// tokenReplaceCount resolves a ReplaceToken body's Amount$: a literal
+// integer (the AddToken family's Amount$ 1) or one of replCountOp's word
+// ops read against the single-mint base (Twice -> 2, Thrice -> 3, HalfDown
+// -> 0 against the one-token event this engine mints — replCountOp is the
+// shared word-op parser). An unresolvable value (X, an SVar name) reports
+// not-ok and the match is dropped with a loud Note.
+func tokenReplaceCount(raw string) (int32, bool) {
+	if n, err := strconv.Atoi(raw); err == nil {
+		return int32(n), true
+	}
+	switch {
+	case raw == "Twice", raw == "Thrice", raw == "HalfDown", raw == "HalfUp",
+		strings.HasPrefix(raw, "Plus."), strings.HasPrefix(raw, "Minus."),
+		strings.HasPrefix(raw, "Times."):
+		return replCountOp(1, raw), true
+	}
+	return 0, false
+}
+
 // resolveReplacementWith runs a ReplaceWith$ effect with e.damaging set to
 // the permanent that owns the replacement and then restores whatever it was
 // beforehand (Task 15 fix round 1, Important I3). A ReplaceWith$ resolves
@@ -1274,8 +1495,56 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 			return false
 		}
 		return true
+	case "CreateToken":
+		// The token-creation replacement class (Divine Visitation, Doubling
+		// Season, Academy Manufactor, Xorn, ...). Applied by
+		// continueCreateTokenReplacements, which reads each body's Type$
+		// directly in rules — the replaceDamageAmount precedent — rather than
+		// dispatching through the effects registry (no api:ReplaceToken
+		// resolver exists; the census registers the name via RegisterNonAPI).
+		if ev.Kind != events.TokenCreate {
+			return false
+		}
+		// ValidToken$ names the WOULD-BE token, which does not exist yet: the
+		// match is taken against a shallow read-side snapshot built off the
+		// token script the event names (the same never-added-to-the-game
+		// discipline StackCopy's snapshot keeps). The spec's You-side
+		// predicates (YouCtrl, ...) read against the replacement SOURCE's
+		// controller, while the token's controller is ev.Player — exactly how
+		// Divine Visitation's "creature tokens under YOUR control" must read.
+		// An unknown token key fails closed to no match.
+		if v, ok := r.Params["ValidToken"]; ok {
+			tok := e.tokenSnapshot(ev)
+			if tok == nil || !effects.MatchesObjectCtx(e.G, v, tok,
+				e.rememberedSpecContext(you, source, remembered)) {
+				return false
+			}
+		}
+		if vp, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpecFrom(e.G, vp, ev.Player, you, source) {
+			return false
+		}
+		// EffectOnly$ True ("If an EFFECT would create ...", Doubling Season's
+		// family) is READ and held: the engine's only TokenCreate emitters are
+		// effect resolution (effects/token.go's effToken and effects/amass.go),
+		// so today every token creation IS effect-created and the gate is
+		// vacuously satisfiable. A cost-created-token provenance marker is a
+		// deliberate non-goal; when one lands, this gate must read it.
+		return e.replacementConditionHolds(r, source, you)
 	}
 	return false
+}
+
+// tokenSnapshot builds the would-be token a TokenCreate event would mint,
+// as a shallow read-side object for ValidToken$ matching. Never added to
+// the game — a value snapshot like StackCopy's discipline. A nil return
+// (unknown token key) fails the caller's match closed.
+func (e *Engine) tokenSnapshot(ev events.Event) *state.Object {
+	def := e.G.Tokens[ev.Text]
+	if def == nil {
+		return nil
+	}
+	return &state.Object{Card: def, IsToken: true, Owner: ev.Player, Controller: ev.Player}
 }
 
 // phaseStep maps a Forge Phase$ value on a BeginPhase replacement onto the
@@ -3023,7 +3292,8 @@ func init() {
 	// and CounterAllowed respectively.
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
-		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter")
+		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
+		"repl:CreateToken", "api:ReplaceToken")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

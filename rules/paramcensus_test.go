@@ -150,8 +150,11 @@ var baseBuckets = map[string]bucket{
 	// as generic machinery), rp.sa the resume plan's SA, o.Ability the
 	// stack object's resolved SA, and d.ResumeSA the pending decision's
 	// resume SA (validateSearch's ShareLandType$ read — the same
-	// cards.SA the "search" resume arm re-enters).
-	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA,
+	// cards.SA the "search" resume arm re-enters). "body" is the same
+	// resolved ReplaceWith$ body under its local name in the CreateToken
+	// replacement dispatcher (continueCreateTokenReplacements /
+	// applyTokenReplacementToPlan read its Type$/Amount$/TokenScript$).
+	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA, "body": bSA,
 	// index bases: candidates/rc.cands/matches are all []replMatch (the
 	// phase-replacement pipeline, its parked-choice resume, and the
 	// damage/counter/effect-created replacement match lists), so element
@@ -1259,6 +1262,14 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.applyOpeningEffect":            {"ChangeZone", "PutCounter", "Effect"},
 	"Engine.registerOpeningEffectTriggers": {"ChangeZone", "PutCounter", "Effect"},
 	"Engine.handleOpening":                 {"ChangeZone", "PutCounter", "Effect"},
+	// The token-creation replacement dispatch: these read the ReplaceWith$
+	// body of an R:Event$ CreateToken replacement line ONLY -- the body is
+	// by definition a DB$ ReplaceToken SA, so the Type$/Amount$/TokenScript$/
+	// ValidChoices$ reads belong to api:ReplaceToken alone -- left in the
+	// generic union they would mask every other API's unread Amount$
+	// (measured: api:ChangeZone).
+	"Engine.continueCreateTokenReplacements": {"ReplaceToken"},
+	"Engine.applyTokenReplacementToPlan":     {"ReplaceToken"},
 }
 
 // apiSpecificRulesStat is the stat-bucket twin of apiSpecificRulesSA: it
