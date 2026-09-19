@@ -832,13 +832,21 @@ func Apply(g *state.Game, e Event) {
 	case CastInfo:
 		if o := g.Obj(e.Obj); o != nil {
 			o.CastFlags = FlagsFrom(e.Counter)
+			// FlagConverged's Amount is the distinct-colour spend count (CR
+			// 107.4f converge), never an X value: converge faces carrying their
+			// own {X} pip (Skyrider Elf) keep the two on separate pay-time
+			// CastInfo events, and the flag routes this Amount into the count
+			// field instead of overwriting X.
 			// FlagReplicated's Amount is the replicate payment count, never an
 			// X value (measured: no K:Replicate carrier's mana value carries
 			// {X}), so the flag routes the Amount into the count field instead
 			// of overwriting X.
-			if FlagsFrom(e.Counter)&state.FlagReplicated != 0 {
+			switch {
+			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
+				o.ConvergeColours = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
 				o.ReplicateTimes = e.Amount
-			} else {
+			default:
 				o.X = e.Amount
 			}
 		}
@@ -1504,6 +1512,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
+			o.ConvergeColours = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
 			o.LastNotedMana = ""
 			o.Chosen = nil
@@ -1521,6 +1530,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasStack {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
+			o.ConvergeColours = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).

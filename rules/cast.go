@@ -99,6 +99,16 @@ type pendingCast struct {
 	replicateTimes int32
 	replicateDone  bool
 
+	// converge (task converge1) is CR 107.4f-family's count of distinct
+	// colours (WUBRG) of mana actually spent to cast this spell, captured at
+	// payment from the full spent delta payManaCastSpent returns. convergeOn
+	// is the heads-safety face gate (faceWantsConverge): the pay-time
+	// CastInfo is emitted ONLY for faces carrying a Count$Converge SVar, so
+	// no game that casts no converge card changes an event. Plain data, so
+	// Clone copies it like replicateTimes.
+	convergeOn bool
+	converge   int32
+
 	sacs    []state.ObjID
 	sacPart int
 
@@ -2814,6 +2824,42 @@ func costAnnouncesPaidX(c Cost) bool {
 // manaToPayX is manaToPay with {X} folded to an explicit value.
 // paymentMana applies announced Convoke/Harmonize contributions to the
 // already-formed total. A stale answer can never make a requirement negative.
+// faceWantsConverge is the heads-safety gate for the pay-time converge
+// CastInfo: it reports whether the face carries a Count$Converge SVar body.
+// Without it a count>0-only gate would stamp a CastInfo onto EVERY
+// multicolour cast and move the chain heads; with it, no game that casts no
+// converge card changes an event (measured: no repo-deck card carries
+// Count$Converge, so TestHeads stays put). K:Sunburst's keyword expansion
+// (its own ledger entry) is the planned second consumer of this seam.
+func faceWantsConverge(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, v := range f.SVars {
+		if body, ok := strings.CutPrefix(v, "Count$"); ok && strings.EqualFold(strings.TrimSpace(body), "Converge") {
+			return true
+		}
+	}
+	return false
+}
+
+// convergeColours is CR 107.4f-family's converge count: the number of
+// DISTINCT colours among W,U,B,R,G actually spent to cast the spell.
+// Colourless/generic ({C}, generic pips) is not a colour and does not count;
+// snow mana spent as a colour lives in the colour buckets here, so the plain
+// per-colour delta is already right; mana conversion and the may-play
+// ignore-colour rider changed what was actually paid, which is exactly what
+// converge asks about.
+func convergeColours(spent state.Mana) int32 {
+	n := int32(0)
+	for i := state.MW; i <= state.MG; i++ {
+		if spent[i] > 0 {
+			n++
+		}
+	}
+	return n
+}
+
 func (e *Engine) paymentMana(pc *pendingCast) Cost {
 	return e.applyConvoke(pc, e.manaToPay(pc))
 }
@@ -3974,7 +4020,7 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		ok, spentMana := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
+		ok, _, spentMana := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
 		if !ok {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
@@ -4154,7 +4200,8 @@ func (e *Engine) payCast() {
 	if mana.Generic < 0 {
 		mana.Generic = 0
 	}
-	if !e.payManaCast(pc, mana) {
+	paid, spentMana := e.payManaCastSpent(pc, mana)
+	if !paid {
 		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
 		// than the shortfall needs, so the cast aborts with no state change
@@ -4168,6 +4215,10 @@ func (e *Engine) payCast() {
 		// the window ends or the mana/board changes).
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return
+	}
+	if f := e.G.Obj(pc.card).Face(); faceWantsConverge(f) {
+		pc.convergeOn = true
+		pc.converge = convergeColours(spentMana)
 	}
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
@@ -4295,6 +4346,19 @@ func (e *Engine) payCast() {
 			amt = repCount
 		}
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: amt, Counter: flags})
+	}
+	// Converge (CR 107.4f-family, task converge1): the distinct-colour spend
+	// count rides its own TRAILING pay-time CastInfo -- the flag routes the
+	// Amount into Object.ConvergeColours (events.Apply's CastInfo case), so
+	// this event never clobbers the X or replicate count an earlier event in
+	// this block set, and its Counter (flags + FlagConverged) leaves
+	// CastFlags carrying every earlier flag too. Emitted whenever the face
+	// carries a Count$Converge SVar, count 0 included (a colourless-only
+	// converge cast is a real zero, not an absent one); pc.convergeOn is the
+	// face gate, so no game that casts no converge card changes an event.
+	if pc.convergeOn {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagConverged)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.converge, Counter: flags})
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for.

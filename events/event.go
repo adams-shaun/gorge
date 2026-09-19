@@ -571,6 +571,10 @@ var flagNames = [...]struct {
 	// COUNT rides the same CastInfo's Amount. Appended at the end per the
 	// table's own ordering rule.
 	{"replicated", state.FlagReplicated},
+	// Converge's spend provenance (CR 107.4f-family); the distinct-colour
+	// COUNT rides the same CastInfo's Amount. Appended at the end per the
+	// table's own ordering rule.
+	{"converged", state.FlagConverged},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

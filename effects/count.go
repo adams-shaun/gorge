@@ -563,6 +563,19 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.ReplicateTimes, true
 		}
 		return 0, true
+	case "Converge":
+		// CR 107.4f-family converge: the number of DISTINCT colours (WUBRG)
+		// of mana actually spent to cast the resolving spell, carried by the
+		// pay-time CastInfo's FlagConverged Amount (rules/cast.go's
+		// payManaCastSpent capture and payCast's trailing CastInfo). Same
+		// provenance read ReplicatePaid makes -- the cast spell, and in the
+		// K:etbCounter ETB replacement the same object after the
+		// stack->battlefield move preserves it -- so a replay derives the
+		// same count; a copy of the spell was never cast and reads 0.
+		if o := g.Obj(c.Source); o != nil {
+			return o.ConvergeColours, true
+		}
+		return 0, true
 	case "YourLifeTotal":
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0, true
