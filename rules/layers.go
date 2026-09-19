@@ -341,6 +341,36 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							out = append(out, lv)
 						}
 					}
+					// A control-change static (Mind Control's "You control enchanted
+					// creature", Fealty to the Realm's "The monarch controls
+					// enchanted creature"): GainControl$ on a Mode$ Continuous static
+					// hands every object the Affected$ spec matches to the player the
+					// value names, for exactly as long as the static is live. Like
+					// MayPlay it changes no characteristic, so it is carried as a
+					// rules-mod (GainControl) and realized by rules'
+					// reconcileControlStatics (rules/control_static.go): that pass
+					// registers a real tracked control grant and emits
+					// events.ControlChange only where the object's controller
+					// actually differs, and the tracked grant's liveness (grantEnded)
+					// is this scan's own output, so an ended static -- source left,
+					// gate flipped, Aura moved bearers, named player changed -- hands
+					// the bearer back through expireControl's ordinary Previous
+					// chain. The VALUE itself is not validated here (the scan cannot
+					// resolve players): resolution happens in the reconcile, where a
+					// value that names nobody -- or several players -- yields no
+					// grant, the fail-closed direction. The static's "as long as"
+					// gate (IsPresent$/CheckSVar$) already ran above for every
+					// branch. Measured corpus population (GNU /usr/bin/grep): 42 raw
+					// S:Mode$ Continuous lines carrying GainControl$, every one
+					// shaped Mode/Affected/GainControl/Description with Affected$
+					// *.EnchantedBy and the value You (41) or Player.isMonarch (1,
+					// Fealty to the Realm); none is in any repo deck, so the golden
+					// heads and the ratchet are untouched by construction.
+					if raw := strings.TrimSpace(st.Params["GainControl"]); raw != "" {
+						gc := base
+						gc.GainControl = raw
+						out = append(out, gc)
+					}
 				}
 				e.staticQueueBuf = grantQueue
 			}
@@ -797,6 +827,7 @@ func (e *Engine) nextTurnFor(p state.PlayerID) int32 {
 // step.
 func (e *Engine) EndOfTurnCleanup() {
 	e.expireControl(controlAtCleanup)
+	e.reconcileControlStatics()
 	kept := e.continuous[:0]
 	for _, ce := range e.continuous {
 		// A Permanent one-shot survives cleanup (CR 611.2a).

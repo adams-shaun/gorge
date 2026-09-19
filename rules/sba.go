@@ -242,6 +242,10 @@ func (e *Engine) checkStateBased() {
 	// Safety net for a duration-ending change folded outside Engine.emit
 	// (the Updated replacement paths call events.Emit directly).
 	e.expireControl(controlOnEvent)
+	// The same safety for a static GainControl$ transfer: an SBA-pass change
+	// (e.g. a legend rule binning the Aura) can end or newly want a static
+	// grant without Engine.emit's tail having run the reconcile.
+	e.reconcileControlStatics()
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		changed := e.checkLoseConditions(tried)
 		if e.annihilateOppositeCounters() {

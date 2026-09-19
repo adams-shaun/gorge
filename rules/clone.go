@@ -235,7 +235,12 @@ func (e *Engine) Clone() *Engine {
 	// staticContinuous / staticEpoch are likewise deliberately NOT copied:
 	// staticEffects rebuilds into the memo's reusable outer storage, so each
 	// branch must own its backing array. The zero epoch forces a fresh scan
-	// of the cloned board on its first active() rebuild.
+	// of the cloned board on its first active() rebuild. The static-control
+	// reconcile (rules/control_static.go) derives its wanted set fresh from
+	// the same memo under the same epoch key, so it needs no copied cache
+	// either; reconcilingControlStatics (engine.go) is a transient re-entry
+	// guard, false at every intent boundary exactly like expiringControl,
+	// which Clone has never copied for the same reason.
 	//
 	// activeBuf / activeEpoch / activeVersion / activeDepth / continuousVersion
 	// (engine.go, layers.go) are likewise deliberately NOT copied, with the

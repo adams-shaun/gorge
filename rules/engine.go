@@ -138,6 +138,10 @@ type Engine struct {
 	// expiringControl guards expireControl against re-entry through the
 	// ControlChange events it emits.
 	expiringControl bool
+	// reconcilingControlStatics guards reconcileControlStatics (rules/
+	// control_static.go) against re-entry through the ControlChange events
+	// IT emits; the same intent-boundary discipline as expiringControl.
+	reconcilingControlStatics bool
 
 	// pregame is true while the London mulligan round runs, between the
 	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
@@ -1454,6 +1458,11 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// CR 611.2b: a "for as long as" control effect ends the moment its
 		// condition stops holding, not at the next state-based check.
 		e.expireControl(controlOnEvent)
+		// A GainControl$ static (Mind Control) is realized the same way:
+		// ending ran above (a static grant's grantEnded reads the fresh
+		// wanted set), this registers the transfers the live scan newly
+		// wants. Both are no-ops unless such a static is in play.
+		e.reconcileControlStatics()
 	}
 	return stored
 }

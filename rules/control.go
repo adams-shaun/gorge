@@ -16,6 +16,17 @@ type controlGrant struct {
 	// kwStamp is the timestamp of the AddKWs$ keyword grant registered with
 	// this control effect (0 for none); it is removed when the grant ends.
 	kwStamp uint32
+	// static marks a grant the static-control reconcile (rules/
+	// control_static.go) registered from an S:Mode$ Continuous GainControl$
+	// static (Mind Control's "You control enchanted creature"). Its Duration
+	// is the zero (Permanent) value: the grant ends not on a duration but
+	// when its static stops being live -- staticGrantLive re-derives the
+	// scan's wanted set (the source left the battlefield, the "as long as"
+	// gate flipped, the Aura moved bearers, the named player -- e.g. the
+	// monarch -- changed) and grantEnded reads it, so the bearer returns
+	// through expireControl's ordinary Previous chain exactly like an API
+	// grant ending.
+	static bool
 }
 
 // controlMoment says which fixed points of the turn are being passed when
@@ -75,6 +86,17 @@ func (e *Engine) grantEnded(g controlGrant, m controlMoment) bool {
 		if d.EndOfCombat {
 			return true
 		}
+	}
+	// A static-derived grant's lifetime is its static's liveness, not a
+	// duration: the zero Duration above never ends it, so this is the one
+	// check that can. staticControlWants re-derives the live scan's wanted
+	// set (cheap when no GainControl static is in play: the memo epoch
+	// guard plus a slice walk); a grant is live only while the SAME source
+	// object still carries the live static over the SAME bearer and the
+	// resolved controller has not moved (the monarch changed). The CR
+	// 800.4a check below still applies on top.
+	if g.static && !e.staticGrantLive(g) {
+		return true
 	}
 	// CR 800.4a: effects that give a player who left the game control end.
 	for _, p := range []state.PlayerID{g.Controller, g.You} {
