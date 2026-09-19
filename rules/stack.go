@@ -2050,7 +2050,7 @@ func (e *Engine) CastThisTurn() int {
 // carries a You* qualifier the count scopes to YOU's casts; otherwise it
 // counts everyone's. Derived from the event log like CastThisTurn.
 func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int {
-	return e.spellsCastThisTurnMatching(you, spec, 0)
+	return len(e.spellsCastThisTurnMatching(you, spec, 0))
 }
 
 // SpellsCastThisTurnMatchingExcluding is SpellsCastThisTurnMatching with one
@@ -2059,12 +2059,20 @@ func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int
 // stripBareCastSaSource strips the token and routes here with the ctx
 // source). Derived from the event log like CastThisTurn.
 func (e *Engine) SpellsCastThisTurnMatchingExcluding(you state.PlayerID, spec string, exclude state.ObjID) int {
+	return len(e.spellsCastThisTurnMatching(you, spec, exclude))
+}
+
+// EachSpellCastThisTurnMatching satisfies effects.Host's method of the same
+// name: the matching casts' OBJECT IDS (the ARGUMENTED !CastSaSource$<Prop>
+// aggregate forms' engine side; effects' aggregateCastProperty sums the
+// property over them). Derived from the event log like the count forms.
+func (e *Engine) EachSpellCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID {
 	return e.spellsCastThisTurnMatching(you, spec, exclude)
 }
 
-func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) int {
+func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID {
 	youScoped := strings.Contains(spec, "You")
-	n := 0
+	var out []state.ObjID
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
@@ -2082,16 +2090,17 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		// The bare wasCastFromYourHandByYou qualifier (the 5 end-step "if you
 		// haven't cast a spell from your hand this turn" carriers'
 		// Count$ThisTurnCast_Card.wasCastFromYourHandByYou bodies) is
-		// evaluated per cast event against the log (task castprov1).
-		matchSpec, ok := e.castFromHandAdmits(spec, ev.Obj, you)
+		// evaluated per cast event against the log (task castprov1); the
+		// wasCastByYou sibling (task castprov2) rides the same combined read.
+		matchSpec, ok := e.castProvenanceAdmits(spec, ev.Obj, you)
 		if !ok {
 			continue
 		}
 		if effects.MatchesSpecFrom(e.G, matchSpec, ev.Obj, you, ev.Obj) {
-			n++
+			out = append(out, ev.Obj)
 		}
 	}
-	return n
+	return out
 }
 
 // WasCastFromHandByYou satisfies effects.Host's WasCastFromHandByYou for the
@@ -2107,6 +2116,35 @@ func (e *Engine) WasCastFromHandByYou(obj state.ObjID, p state.PlayerID) bool {
 		ev := e.L.Events[i]
 		if ev.Kind == events.PutOnStack && ev.Obj == obj {
 			return ev.From == state.ZHand && ev.Player == p
+		}
+	}
+	return false
+}
+
+// WasCastByYou reports whether card obj was CAST AT ALL by player p — the
+// bare wasCastByYou qualifier's engine read (task castprov2: the "When
+// CARDNAME enters, if you cast it" ETB family — Zacama, Marina Vendrell's
+// Grimoire — and Nine-Lives Familiar's etbCounter gate field): the LATEST
+// PutOnStack event for this object names you as caster, whatever zone the
+// cast came from (a normal hand cast, a flashback, any origin — the oracle's
+// "if you cast it" does not care where from). LATEST-cast, not exists-anywhere:
+// the battlefield entry this gate answers for followed the latest cast, so
+// that cast is the provenance the oracle means; the corner this leaves is
+// you cast it, it left the battlefield again, and an OPPONENT later cast the
+// same object — the gate then reads false even though you did cast it
+// (measured: no corpus carrier exercises the corner; an exists-scan would
+// instead answer true for a card whose latest cast was an opponent's, the
+// wider wrong). Copies were never cast; the rules-side split
+// (castProvenanceAdmits) applies that guard, this read answers the log
+// question alone. Derived from the event log like WasCastFromHandByYou, so
+// a replay derives the same answer; a card never put on the stack (cheated
+// into play) reads false. Shared approximation with the hand read: the scan
+// cannot distinguish a cast from a later un-cast re-entry's provenance.
+func (e *Engine) WasCastByYou(obj state.ObjID, p state.PlayerID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return ev.Player == p
 		}
 	}
 	return false

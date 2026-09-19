@@ -136,6 +136,14 @@ func (h *fakeHost) SpellsCastThisTurnMatchingExcluding(_ state.PlayerID, _ strin
 	return 0
 }
 
+// EachSpellCastThisTurnMatching has no event log here; the double reports no
+// ids (the same conservative no-op as SpellsCastThisTurnMatching), so the
+// argumented !CastSaSource aggregate forms' fakeHost evals read an empty
+// cast set (their end-to-end pins live in rules).
+func (h *fakeHost) EachSpellCastThisTurnMatching(_ state.PlayerID, _ string, _ state.ObjID) []state.ObjID {
+	return nil
+}
+
 // WasCastFromHandByYou has no cast log here; the double reports false (the
 // same conservative no-op as CastThisTurn), so the Count$
 // wasCastFromYourHandByYou branch head's fakeHost evals take the ifFalse

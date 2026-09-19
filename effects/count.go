@@ -897,6 +897,24 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if stripped, selfExcl := stripBareCastSaSource(rest); selfExcl {
 			return int32(h.SpellsCastThisTurnMatchingExcluding(c.Controller, stripped, c.Source)), true
 		}
+		// The ARGUMENTED forms (task castprov2) peel the token and reuse the
+		// same Excluding read:
+		//
+		//   - !CastSaSource/<op> (thunder_salvo's /Plus.2): this form never
+		//     reaches this arm — evalCountExprOK's GENERIC /Op peel cuts the
+		//     body at the first "/" before the head parse, leaving the bare
+		//     !CastSaSource for the bare arm above and handing the op to the
+		//     ordinary applyCountOp — which is exactly the oracle's reading
+		//     (the exclusion count, then Plus.2). Pinned by
+		//     TestThunderSalvoXIsTwoPlusOtherSpellsCast.
+		//   - !CastSaSource$<Property> (call_forth_the_tempest's
+		//     $CardManaCost): the matching casts' objects, the property
+		//     AGGREGATED over them instead of counting 1 each (the zone-count
+		//     heads' `$Property` precedent). An unknown property fails closed
+		//     to (0, false), the unresolvable verdict.
+		if stripped, prop, ok2 := stripCastSaSourceAggregate(rest); ok2 {
+			return aggregateCastProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, c.Source), prop)
+		}
 		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest)), true
 	}
 
@@ -1646,4 +1664,32 @@ func SetSVars(c *Ctx, sv map[string]string) {
 		copied[k] = v
 	}
 	c.SVars = copied
+}
+
+// aggregateCastProperty sums one numeric property over the matching casts'
+// objects (the ARGUMENTED !CastSaSource$<Property> aggregate forms' shared
+// read; task castprov2). The property vocabulary is the zone-count heads':
+// CardManaCost sums the faces' converted costs, CardPower/CardToughness the
+// engine's derived (layer-aware) characteristics; any other property is
+// unresolvable (0, false) — the whole Count$ then degrades per its caller's
+// documented direction. Measured population: CardManaCost x1
+// (call_forth_the_tempest); the other two are supported for symmetry.
+func aggregateCastProperty(h Host, ids []state.ObjID, prop string) (int32, bool) {
+	g := h.Game()
+	var n int32
+	for _, id := range ids {
+		switch prop {
+		case "CardManaCost":
+			if o := g.Obj(id); o != nil && o.Face() != nil {
+				n += o.Face().Cmc()
+			}
+		case "CardPower":
+			n += h.Power(id)
+		case "CardToughness":
+			n += h.Toughness(id)
+		default:
+			return 0, false
+		}
+	}
+	return n, true
 }

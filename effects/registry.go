@@ -136,6 +136,14 @@ type Host interface {
 	// count, so the qualifier is the count's exclusion of its own ctx source.
 	// Derived from the event log like SpellsCastThisTurnMatching.
 	SpellsCastThisTurnMatchingExcluding(you state.PlayerID, spec string, exclude state.ObjID) int
+	// EachSpellCastThisTurnMatching is the ARGUMENTED !CastSaSource forms'
+	// engine side (task castprov2): the object ids of the spells put on the
+	// stack this turn matching spec (with the same You*-qualifier scoping
+	// and the same single-object exclusion as
+	// SpellsCastThisTurnMatchingExcluding), in reverse log order (newest
+	// first) — the order is irrelevant to the aggregate reads (a sum).
+	// Derived from the event log like SpellsCastThisTurnMatching.
+	EachSpellCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID
 	// WasCastFromHandByYou reports whether card obj was cast from ITS OWN
 	// CONTROLLER's hand by that controller — the Count$wasCastFromYourHandByYou
 	// branch head backing (the Myojin cycle's etbCounter CheckSVar$ gate:
@@ -1066,12 +1074,20 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {
 		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
-		// is evaluated and not met is skipped and the chain continues. An
-		// unresolved shape (supported=false) runs unconditionally, the
-		// documented pre-gate behaviour — see conditions.go for the exact
-		// boundary and the counts behind it. A RepeatEach re-entered at its
-		// loop cursor already passed its gate when the loop began; its
-		// remaining iterations are part of that same resolution.
+		// is evaluated and not met is skipped and the chain continues — the
+		// per-SA read the corpus's own gated pairs rely on (Gruesome
+		// Discovery's morbid pair: the outer gated EQ0, the inner — its
+		// SubAbility — gated bare-Morbid; the "instead" branch only runs
+		// because the walk continues past a denial). A chain payload that
+		// must not run after its gated parent is kept out by its own
+		// population: the DigUntil's DB$ Play reads only what the chain
+		// remembered (effPlay's trigger-capture exclusion), never the
+		// triggering event's capture. An unresolved shape (supported=false)
+		// runs unconditionally, the documented pre-gate behaviour — see
+		// conditions.go for the exact boundary and the counts behind it. A
+		// RepeatEach re-entered at its loop cursor already passed its gate
+		// when the loop began; its remaining iterations are part of that
+		// same resolution.
 		resumingLoop := c.Repeat != nil && c.Repeat.SA == sa
 		if !resumingLoop {
 			if met, supported := conditionMet(h, c, sa); supported && !met {
