@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
@@ -10,9 +11,10 @@ import (
 )
 
 // unlessPayment is the continuation between accepting an UnlessCost$ and
-// completing its non-mana Sac/Discard components. Unlike ordinary activation
-// costs, an unless cost is paid during a suspended resolution, so its choices
-// must retain that resolution rather than silently taking the first card.
+// completing its non-mana Sac/Discard/Reveal components. Unlike ordinary
+// activation costs, an unless cost is paid during a suspended resolution, so
+// its choices must retain that resolution rather than silently taking the
+// first card.
 type unlessPayment struct {
 	payer    state.PlayerID
 	cost     Cost
@@ -25,6 +27,12 @@ type unlessPayment struct {
 	part     int
 	sacs     []state.ObjID
 	discards []state.ObjID
+	// reveals holds the Reveal<N/Spec> picks (the hideaway-family ETB
+	// lands, Xyru Specter's Challenge): unlike a discard the revealed cards
+	// STAY in hand, so the dedup must be explicit — one card must not pay
+	// two parts — and the settled picks are announced with one public Note
+	// (the same event the cast flow's emitChoiceCosts emits).
+	reveals []state.ObjID
 }
 
 func cloneUnlessCtx(in effects.Ctx) effects.Ctx {
@@ -42,12 +50,37 @@ func cloneUnlessCtx(in effects.Ctx) effects.Ctx {
 	return out
 }
 
-// beginUnlessPayment begins a payer-selected payment. It owns all Sac and
-// Discard components, including the exact-candidate no-ask cases, so neither
-// this path nor a future sibling can fall back to a first-in-zone-order pick.
+// beginUnlessPayment begins a payer-selected payment. It owns all Sac,
+// Discard and Reveal components, including the exact-candidate no-ask cases,
+// so neither this path nor a future sibling can fall back to a
+// first-in-zone-order pick.
 func (e *Engine) beginUnlessPayment(payer state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID, rp *resumePoint) {
 	e.unlessPayment = &unlessPayment{payer: payer, cost: cost, ctx: cloneUnlessCtx(*ctx), stackObj: stackObj, rp: rp}
 	e.advanceUnlessPayment()
+}
+
+// unlessPartAt returns the cost component at flat index i across the
+// unlessPayment's Sac, Discard and Reveal lists, together with the zone its
+// candidates come from and the option kind the wire carries. The option kind
+// "revealcost" is the cast flow's own reveal-cost string (rules/cast.go), so
+// a client sees the same vocabulary for both paths.
+func unlessPartAt(cost Cost, i int) (CostPart, state.Zone, string) {
+	nSac, nDisc := len(cost.Sac), len(cost.Discard)
+	switch {
+	case i < nSac:
+		return cost.Sac[i], state.ZBattlefield, "sacrifice"
+	case i < nSac+nDisc:
+		return cost.Discard[i-nSac], state.ZHand, "discard"
+	default:
+		return cost.Reveal[i-nSac-nDisc], state.ZHand, "revealcost"
+	}
+}
+
+// paymentPartCount is the flat count of the choice-bearing components
+// (Sac, Discard, Reveal) the continuation walks before it settles the
+// synchronous ones.
+func (u *unlessPayment) paymentPartCount() int {
+	return len(u.cost.Sac) + len(u.cost.Discard) + len(u.cost.Reveal)
 }
 
 func (e *Engine) advanceUnlessPayment() {
@@ -61,29 +94,26 @@ func (e *Engine) advanceUnlessPayment() {
 		e.finishUnlessPayment(false)
 		return
 	}
-	for u.part < len(u.cost.Sac)+len(u.cost.Discard) {
-		zone, kind := state.ZBattlefield, "sacrifice"
-		var part CostPart
-		if u.part < len(u.cost.Sac) {
-			part = u.cost.Sac[u.part]
-		} else {
-			zone, kind = state.ZHand, "discard"
-			part = u.cost.Discard[u.part-len(u.cost.Sac)]
-		}
-		eligible := e.unlessPaymentCandidates(u, zone, part)
+	for u.part < u.paymentPartCount() {
+		part, zone, kind := unlessPartAt(u.cost, u.part)
+		eligible := e.unlessPaymentCandidates(u, zone, kind, part)
 		if int32(len(eligible)) < part.N {
 			e.finishUnlessPayment(false)
 			return
 		}
 		if int32(len(eligible)) == part.N {
-			e.recordUnlessPaymentPick(u, zone, eligible)
+			e.recordUnlessPaymentPick(u, kind, eligible)
 			u.part++
 			continue
+		}
+		prompt := fmt.Sprintf("Choose %d card(s) to %s to pay the cost", part.N, kind)
+		if kind == "revealcost" {
+			prompt = fmt.Sprintf("Choose %d card(s) to reveal to pay the cost", part.N)
 		}
 		d := &decision.Decision{Player: u.payer, Kind: decision.KChoose,
 			Min: int(part.N), Max: int(part.N), Source: u.ctx.Source,
 			ResumeKind: "unless_cost",
-			Prompt:     fmt.Sprintf("Choose %d card(s) to %s to pay the cost", part.N, kind)}
+			Prompt:     prompt}
 		for _, id := range eligible {
 			label := "a card"
 			if o := e.G.Obj(id); o != nil && o.Face() != nil {
@@ -120,6 +150,18 @@ func (e *Engine) advanceUnlessPayment() {
 		e.finishUnlessPayment(false)
 		return
 	}
+	// The settled reveal picks are announced exactly like the cast flow's
+	// emitChoiceCosts announces them: one public Note carrying the revealed
+	// ids (the cards STAY in hand), emitted only on the paid path.
+	if len(u.reveals) > 0 {
+		names := make([]string, 0, len(u.reveals))
+		for _, id := range u.reveals {
+			names = append(names, e.targetName(id))
+		}
+		e.emit(events.Event{Kind: events.Note, Player: u.payer, Obj: u.ctx.Source,
+			IDs:  append([]state.ObjID(nil), u.reveals...),
+			Text: "revealed " + strings.Join(names, ", ") + " as a cost"})
+	}
 	for _, id := range u.sacs {
 		e.emit(events.Sacrifice(id))
 	}
@@ -143,11 +185,17 @@ func (e *Engine) advanceUnlessPayment() {
 	e.finishUnlessPayment(true)
 }
 
-func (e *Engine) unlessPaymentCandidates(u *unlessPayment, zone state.Zone, part CostPart) []state.ObjID {
-	used := u.sacs
-	if zone == state.ZHand {
-		used = u.discards
-	}
+func (e *Engine) unlessPaymentCandidates(u *unlessPayment, zone state.Zone, kind string, part CostPart) []state.ObjID {
+	// The dedup is over the union of every component's picks, not just this
+	// one's list: one card must not pay two parts, and a card already
+	// sacrificed has left its zone anyway, so the wider union only ever
+	// removes an already-impossible candidate. Revealed cards are NOT
+	// removed from the hand, which is exactly why they need the explicit
+	// exclusion.
+	used := make([]state.ObjID, 0, len(u.sacs)+len(u.discards)+len(u.reveals))
+	used = append(used, u.sacs...)
+	used = append(used, u.discards...)
+	used = append(used, u.reveals...)
 	seen := make(map[state.ObjID]bool, len(used))
 	for _, id := range used {
 		seen[id] = true
@@ -162,10 +210,13 @@ func (e *Engine) unlessPaymentCandidates(u *unlessPayment, zone state.Zone, part
 	return out
 }
 
-func (e *Engine) recordUnlessPaymentPick(u *unlessPayment, zone state.Zone, ids []state.ObjID) {
-	if zone == state.ZBattlefield {
+func (e *Engine) recordUnlessPaymentPick(u *unlessPayment, kind string, ids []state.ObjID) {
+	switch kind {
+	case "sacrifice":
 		u.sacs = append(u.sacs, ids...)
-	} else {
+	case "revealcost":
+		u.reveals = append(u.reveals, ids...)
+	default:
 		u.discards = append(u.discards, ids...)
 	}
 }
@@ -199,13 +250,10 @@ func (e *Engine) unlessCountersAffordable(u *unlessPayment) bool {
 
 func (e *Engine) answerUnlessPayment(chosen []decision.Option) {
 	u := e.unlessPayment
-	if u == nil || u.part >= len(u.cost.Sac)+len(u.cost.Discard) {
+	if u == nil || u.part >= u.paymentPartCount() {
 		return
 	}
-	zone := state.ZBattlefield
-	if u.part >= len(u.cost.Sac) {
-		zone = state.ZHand
-	}
+	part, zone, kind := unlessPartAt(u.cost, u.part)
 	ids := make([]state.ObjID, 0, len(chosen))
 	for _, o := range chosen {
 		if o.Obj != 0 {
@@ -215,13 +263,7 @@ func (e *Engine) answerUnlessPayment(chosen []decision.Option) {
 	// Decision.Validate guaranteed the count and offered identity. Recheck the
 	// zone/filter against the current game before any event is emitted so a
 	// malformed resumed state declines rather than paying an illegal cost.
-	var part CostPart
-	if zone == state.ZBattlefield {
-		part = u.cost.Sac[u.part]
-	} else {
-		part = u.cost.Discard[u.part-len(u.cost.Sac)]
-	}
-	eligible := e.unlessPaymentCandidates(u, zone, part)
+	eligible := e.unlessPaymentCandidates(u, zone, kind, part)
 	allowed := make(map[state.ObjID]bool, len(eligible))
 	for _, id := range eligible {
 		allowed[id] = true
@@ -236,7 +278,7 @@ func (e *Engine) answerUnlessPayment(chosen []decision.Option) {
 			return
 		}
 	}
-	e.recordUnlessPaymentPick(u, zone, ids)
+	e.recordUnlessPaymentPick(u, kind, ids)
 	u.part++
 	e.choosing = chooseNone
 	e.advanceUnlessPayment()

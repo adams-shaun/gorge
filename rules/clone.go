@@ -292,8 +292,10 @@ func (e *Engine) Clone() *Engine {
 		u.cost.Discard = append([]CostPart(nil), e.unlessPayment.cost.Discard...)
 		u.cost.SubCounter = append([]CostPart(nil), e.unlessPayment.cost.SubCounter...)
 		u.cost.Draw = append([]CostPart(nil), e.unlessPayment.cost.Draw...)
+		u.cost.Reveal = append([]CostPart(nil), e.unlessPayment.cost.Reveal...)
 		u.sacs = append([]state.ObjID(nil), e.unlessPayment.sacs...)
 		u.discards = append([]state.ObjID(nil), e.unlessPayment.discards...)
+		u.reveals = append([]state.ObjID(nil), e.unlessPayment.reveals...)
 		u.ctx = cloneUnlessCtx(e.unlessPayment.ctx)
 		u.rp = cloneResume(e.unlessPayment.rp)
 		c.unlessPayment = &u

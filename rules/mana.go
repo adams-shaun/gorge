@@ -1636,13 +1636,15 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 // know to one generic mana, silently buying a dynamic or unmodelled cost for
 // {1} — this parser is total and strict: every token must be a mana symbol
 // (a WUBRGC letter or a numeric generic), a fixed PayLife<N>, or a
-// Sac<N/Spec>, Discard<N/Spec> or SubCounter<N/Kind> component. Anything
-// else — X, Y, Z (whose value is a cast choice or an SVar the unless-pay
-// answer does not carry), DamageYou<N>, PayEnergy<N>, Return<...>,
-// ExileFromGrave<...>, Reveal<...>, Draw<...>, LifeTotalHalfUp, DefinedCost_*,
-// CopyCost, or any prose — reports ok=false, and the unless-pay arm treats
-// that as a hard decline (the conservative read: a payer who "pays" a cost
-// the engine cannot price has not paid it).
+// Sac<N/Spec>, Discard<N/Spec>, SubCounter<N/Kind>, Draw<N/Spec> or
+// Reveal<N/Spec> component. Anything else — X, Y, Z (whose value is a cast
+// choice or an SVar the unless-pay answer does not carry), DamageYou<N>,
+// PayEnergy<N>, Return<...>, ExileFromGrave<...>, Behold<...>,
+// tapXType<...>, LifeTotalHalfUp, DefinedCost_*, CopyCost, or any prose —
+// reports ok=false, and the unless-pay arm treats that as a hard decline
+// (the conservative read: a payer who "pays" a cost the engine cannot price
+// has not paid it). A Reveal component is choice-bearing like Sac/Discard
+// and pays through the beginUnlessPayment continuation, never synchronously.
 func ParseUnlessCost(s string) (Cost, bool) {
 	s = strings.TrimSpace(s)
 	if s == "" || strings.EqualFold(s, "no cost") {
@@ -1694,6 +1696,24 @@ func ParseUnlessCost(s string) (Cost, bool) {
 				default:
 					c.SubCounter = append(c.SubCounter, part)
 				}
+				continue
+			}
+			// Reveal<N/Spec> is the hideaway-family choice-bearing unless cost
+			// (Primal Beyond, Port Town, Xyru Specter's Challenge): the payer
+			// reveals N hand cards matching the spec. It parses like the other
+			// component heads and PAYS through the beginUnlessPayment
+			// continuation (payUnlessCost refuses it, exactly like Sac/Discard).
+			// The other choiceCost heads, Behold<...> and tapXType<...>, stay
+			// hard declines — no corpus UnlessCost$ carries either.
+			if m := choiceCost.FindStringSubmatch(sym); m != nil {
+				if m[1] != "Reveal" {
+					return Cost{}, false
+				}
+				n, err := strconv.ParseInt(m[2], 10, 64)
+				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+					return Cost{}, false
+				}
+				c.Reveal = append(c.Reveal, CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ",")})
 				continue
 			}
 			// Every other token — a dynamic amount, an unmodelled cost verb,
