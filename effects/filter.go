@@ -882,6 +882,36 @@ func filterAlternatives(spec string) iter.Seq[string] {
 	}
 }
 
+// eachAlternatives recognises Forge's multi-type search grammar:
+// "EACH <typeA>[.preds] & <typeB>[.preds] ..." -- one pick of EACH listed
+// type (Krosan Verge's "EACH Forest & Plains", Conflux's five Card.<Colour>
+// clauses). The prefix is exactly Forge's spelling (the trimmed spec starts
+// with "EACH "); the remainder splits on '&' into sub-specs, each an
+// ORDINARY filter spec -- dots and '+' predicates intact. No type word, no
+// predicate token in this grammar is '&' or contains it, so a flat split is
+// the top-level split. An EACH spec matches a candidate when ANY listed
+// sub-spec matches it; the per-type one-pick structure lives with the
+// hidden-library search (effects/zone.go), which reads the sub-specs in
+// order to build its option Groups.
+func eachAlternatives(spec string) ([]string, bool) {
+	rest, ok := strings.CutPrefix(strings.TrimSpace(spec), "EACH ")
+	if !ok || strings.TrimSpace(rest) == "" {
+		return nil, false
+	}
+	parts := strings.Split(rest, "&")
+	subs := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			// A malformed EACH spec ("A & & B") is not split: it keeps the
+			// old whole-string behaviour rather than half-matching.
+			return nil, false
+		}
+		subs = append(subs, p)
+	}
+	return subs, true
+}
+
 // rawNameComma reports whether the comma after left belongs to the last
 // predicate of the current alternative. Once '+' has started another
 // predicate, a name argument is complete and cannot own a following comma.
@@ -1586,6 +1616,19 @@ func matchesObjectText(g *state.Game, spec string, o *state.Object, sc SpecConte
 	if resolve == nil {
 		resolve = noResolve
 	}
+	// Forge's EACH multi-type search grammar: the spec is a '&' list of
+	// ordinary sub-specs, and the union matches. Sub-specs are evaluated
+	// through this same oracle, so their own predicates and bases keep the
+	// ordinary semantics (a bare "EACH Forest & Plains" previously reached
+	// the type walk as ONE base and matched nothing).
+	if subs, ok := eachAlternatives(spec); ok {
+		for _, sub := range subs {
+			if matchesObjectText(g, sub, o, sc) {
+				return true
+			}
+		}
+		return false
+	}
 	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
@@ -2012,6 +2055,18 @@ func playerCompare(have int32, op string, want int32) bool {
 // Forge's `Mandatory$` parameter, which is recorded in AGENTS.md as
 // deliberately unread and is a different thing.
 func SearchStatesQuality(spec string) bool {
+	// An EACH spec states a quality when ANY listed sub-spec does -- every
+	// real carrier lists a named type, so an EACH library search keeps
+	// CR 701.23b's fail-to-find allowance. A quantity-only EACH (none in the
+	// corpus) would keep the mandatory-find reading of its sub-specs.
+	if subs, ok := eachAlternatives(spec); ok {
+		for _, sub := range subs {
+			if SearchStatesQuality(sub) {
+				return true
+			}
+		}
+		return false
+	}
 	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
@@ -2052,6 +2107,18 @@ func possessionPredicate(p string) bool {
 // card-validation pass uses it to refuse cards it would otherwise misplay.
 func UnknownPredicates(spec string) []string {
 	var out []string
+	// An EACH spec is split first: the sub-specs' unknowns are the union, so
+	// the census is truthful for the multi-type grammar (the dotted dotted
+	// form previously leaked the '&' join and every later clause as garbage
+	// predicate tokens; the bare form's unknown base was never checked at
+	// all, because a base-position token is not a predicate).
+	if subs, ok := eachAlternatives(spec); ok {
+		for _, sub := range subs {
+			out = append(out, UnknownPredicates(sub)...)
+		}
+		sort.Strings(out)
+		return out
+	}
 	for alt := range filterAlternatives(spec) {
 		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		for p := range strings.SplitSeq(rest, "+") {
