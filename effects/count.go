@@ -464,9 +464,17 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
 		return c.Targets, true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
-		"TriggeredSpellAbility", "TriggeredAttacker", "TriggeredAttackerLKICopy",
+		"TriggeredAttacker", "TriggeredAttackerLKICopy",
 		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
 		"DelayTriggerRememberedLKI", "RememberedLKI":
+		return c.Remembered, true
+	case "TriggeredSpellAbility":
+		// The activation arm (abcopy1): the fire-time TriggerAbility role is
+		// the exact referent (Remembered names the source permanent); the
+		// spell-cast arm and hand-built contexts keep the Remembered entry.
+		if c.TriggerAbility != 0 {
+			return []state.Target{{Obj: c.TriggerAbility}}, true
+		}
 		return c.Remembered, true
 	case "Remembered":
 		// Forge's plain Remembered$ form reads the executing ability's shared

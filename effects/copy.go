@@ -43,10 +43,20 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	var spell state.ObjID
 	switch strings.TrimSpace(sa.Params["Defined"]) {
 	case "TriggeredSpellAbility":
-		for _, t := range c.Remembered {
-			if !t.IsPlayer && t.Obj != 0 {
-				spell = t.Obj
-				break
+		// The activation arm (abcopy1): the trigger context's TriggerAbility
+		// names the minted ability wrapper -- an AbilityPush's Obj is the
+		// source permanent, so Remembered alone cannot identify it -- and the
+		// wrapper is on the stack, so the zone guard below passes and the copy
+		// actually resolves. Role absent (the spell arm, where Remembered IS
+		// the cast spell, and hand-built contexts) keeps the remembered entry.
+		if id := c.TriggerAbility; id != 0 {
+			spell = id
+		} else {
+			for _, t := range c.Remembered {
+				if !t.IsPlayer && t.Obj != 0 {
+					spell = t.Obj
+					break
+				}
 			}
 		}
 	case "Parent":
