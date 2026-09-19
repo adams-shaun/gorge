@@ -1921,7 +1921,48 @@ func init() {
 		// two Cant* statics; the Mode$/ValidCreature$/Description$ whitelist the
 		// requirement solver already carried for MustAttack) — the conditional
 		// shapes stay unregistered behaviour-wise and are ledgered in AGENTS.md.
-		"stat:CantAttack", "stat:CantSacrifice", "stat:MustAttack")
+		"stat:CantAttack", "stat:CantSacrifice", "stat:MustAttack",
+		// asunblk1: the combat-damage assignment election (rules/combat.go
+		// asUnblockedNeeding / damageStep's chosenElection case, CR 509's
+		// optional "assign as though it weren't blocked"). Only the printed
+		// S:Mode$ statics are read; the SVar:Static: family that rides the
+		// Effect path is a separate ledgered gap, and Ruxa's NoAbilities
+		// predicate stays an unknown that fails closed.
+		"stat:AssignCombatDamageAsUnblocked")
+}
+
+// asUnblockedStaticMatches reports whether any battlefield
+// AssignCombatDamageAsUnblocked static applies to candidate creature id, and
+// whether the matching static is MANDATORY (no Optional$, the auto-accept
+// reading) rather than the election-bearing Optional$ True every printed
+// corpus carrier spells. The match follows castRestrictedUsing's pattern:
+// ValidCard$ is resolved against the CANDIDATE (the attacking creature) with
+// the static's host as the spec SOURCE (Indomitable Might's Aura resolves
+// Creature.EnchantedBy against its own bearer), and the shared
+// restriction/condition gates run first so an unmodelled condition fails
+// closed rather than applying blanket. IsPresent$ gates on top through the
+// shared countPresent walk (Siege Behemoth's "Card.Self+attacking" — both
+// predicates are known), the same clause shape the trigger-side
+// presentCondition reader evaluates.
+func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bool) {
+	for _, sv := range e.activeStatics("AssignCombatDamageAsUnblocked") {
+		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+			continue
+		}
+		if spec := strings.TrimSpace(sv.Params["IsPresent"]); spec != "" {
+			if e.countPresent(spec, sv.Source, sv.Controller) <= 0 {
+				continue
+			}
+		}
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		matched = true
+		if strings.TrimSpace(sv.Params["Optional"]) != "True" {
+			return true, true
+		}
+	}
+	return matched, false
 }
 
 // altCostLabel names the nth (0-indexed) alternative-cost option for a
