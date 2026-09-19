@@ -163,8 +163,15 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						} else {
 							ty.AddTypes = nil
 						}
+						// The strip flags ride the AddType emission (measured: every
+						// corpus S: line carrying RemoveCardTypes$/RemoveCreatureTypes$
+						// also carries AddType$): a strip-only static -- an AddType$
+						// ChosenType the host has not resolved -- must still emit so
+						// the strip is not silently dropped.
+						ty.RemoveCardTypes = hasStat(st, "RemoveCardTypes")
+						ty.RemoveCreatureTypes = hasStat(st, "RemoveCreatureTypes")
 						ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-						if len(ty.AddTypes) > 0 {
+						if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes {
 							out = append(out, ty)
 						}
 					}
@@ -986,7 +993,23 @@ func (e *Engine) active() []ContinuousEffect {
 		if buf[i].Sub != buf[j].Sub {
 			return buf[i].Sub < buf[j].Sub
 		}
-		return buf[i].Timestamp < buf[j].Timestamp
+		if buf[i].Timestamp != buf[j].Timestamp {
+			return buf[i].Timestamp < buf[j].Timestamp
+		}
+		// A full tie inside layer 6 between an ability-REMOVING effect and an
+		// ability-granting one (a static line carrying both RemoveAllAbilities$
+		// True and AddKeyword$ -- Darksteel Mutation, Deep Freeze, Stasis Field,
+		// Spider-Man No More; measured 4 corpus files) applies removal first:
+		// the oracle's "loses all OTHER abilities" grants after stripping (CR
+		// 613.1f's removal-then-grant reading of a simultaneous pair). Without
+		// this tie-break the stable sort keeps the scanner's emission order and
+		// the removal wipes the very grant on its own line. Timestamps still
+		// dominate: a LATER removal (Humility entering after) still wipes an
+		// earlier grant.
+		if buf[i].Layer == LAbilities && buf[i].RemoveAbilities != buf[j].RemoveAbilities {
+			return buf[i].RemoveAbilities
+		}
+		return false
 	})
 	if e.activeDepth <= 1 {
 		// Keep the grown, sorted buffer on the Engine for the next build or
@@ -1059,6 +1082,20 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, zone)) {
 				continue
 			}
+		}
+		if ce.RemoveCardTypes {
+			// RemoveCardTypes$ keeps only the SUPERTYPES: a subtype is tied to
+			// its card type (CR 205.2-family), so losing the card type loses
+			// its subtypes, and the flat type list cannot attribute a subtype
+			// word to a surviving type. Both flags together are therefore
+			// "everything but supertypes" -- Darksteel Mutation's oracle.
+			kept := ty[:0]
+			for _, t := range ty {
+				if isSupertype(t) {
+					kept = append(kept, t)
+				}
+			}
+			ty = kept
 		}
 		if ce.RemoveCreatureTypes {
 			kept := ty[:0]
@@ -1423,6 +1460,17 @@ var (
 	cardTypeWords  = []string{"Artifact", "Battle", "Creature", "Enchantment", "Instant", "Land", "Planeswalker", "Sorcery", "Tribal"}
 	supertypeWords = []string{"Basic", "Legendary", "Ongoing", "Snow", "World"}
 )
+
+// isSupertype reports whether t is a supertype word (the only thing a
+// RemoveCardTypes strip keeps: card types and their subtypes go).
+func isSupertype(t string) bool {
+	for _, w := range supertypeWords {
+		if strings.EqualFold(w, t) {
+			return true
+		}
+	}
+	return false
+}
 
 // isCreatureSubtype reports whether t is a subtype word (a creature type
 // under RemoveCreatureTypes' reading): not a card type and not a supertype.
