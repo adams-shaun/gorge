@@ -231,11 +231,15 @@ type Object struct {
 	ConvergeColours int32
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
-	// effects: a card name, a creature type, a number. Reset alongside X/
-	// CastFlags when the object leaves the battlefield.
+	// effects: a card name, a creature type, a number, a colour (the
+	// K:ETBReplacement ChooseColor family -- Utopia Sprawl, Caged Sun,
+	// Quirion Elves; the letter the mana path reads when a Produced$ Chosen
+	// ability resolves). Reset alongside X/CastFlags when the object leaves
+	// the battlefield.
 	ChosenName   string
 	ChosenType   string
 	ChosenNumber int32
+	ChosenColor  string
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string

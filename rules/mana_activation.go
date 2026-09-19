@@ -819,11 +819,40 @@ func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast b
 		if src := e.G.Obj(pt.Source); src != nil && src.Face() != nil {
 			effects.SetSVars(&pt.Ctx, src.Face().SVars)
 		}
+		pt = e.rewriteChosenMana(pt)
 		if e.askTriggeredManaColor(pt, triggers[i+1:], cast) {
 			return
 		}
 		effects.Resolve(e, &pt.Ctx, pt.SA)
 	}
+}
+
+// rewriteChosenMana resolves a triggered Mana sub-ability's Produced$ Chosen
+// (Utopia Sprawl: "Whenever enchanted Forest is tapped for mana, its
+// controller adds an additional one mana of the chosen color"): the colour
+// was already chosen by the triggering source's as-enters ChooseColor choice
+// (state.Object.ChosenColor), so it is a read, not a choice -- the chain is
+// rewritten via withProduced so effMana sees a plain letter, and any later
+// genuinely-choice-valued sub still asks through askTriggeredManaColor. With
+// nothing recorded the chain is returned untouched and effMana keeps its
+// loud fail-closed (never invent a colour).
+func (e *Engine) rewriteChosenMana(pt pendingTrigger) pendingTrigger {
+	for sa, d := pt.SA, 0; sa != nil && d < 32; sa, d = sa.Sub, d+1 {
+		if sa.API != "Mana" || strings.TrimSpace(sa.Params["Produced"]) != "Chosen" {
+			continue
+		}
+		o := e.G.Obj(pt.Source)
+		if o == nil {
+			return pt
+		}
+		col := strings.TrimSpace(o.ChosenColor)
+		if len(col) != 1 || !strings.ContainsRune("WUBRG", rune(col[0])) {
+			return pt
+		}
+		pt.SA = withProduced(pt.SA, sa, col)
+		return pt
+	}
+	return pt
 }
 
 // askTriggeredManaColor poses the colour choice for the first colour-choice
@@ -943,6 +972,18 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		return
 	}
 	produced := strings.TrimSpace(ma.Params["Produced"])
+	// "Chosen" (Quirion Elves' second activation: "Add one mana of the chosen
+	// color") is a READ, not a choice: the colour was already chosen by the
+	// source's as-enters ChooseColor choice (state.Object.ChosenColor). With
+	// nothing recorded the local stays "Chosen" and the fall-through keeps
+	// effMana's loud fail-closed (never invent a colour).
+	if produced == "Chosen" {
+		if o := e.G.Obj(source); o != nil {
+			if col := strings.TrimSpace(o.ChosenColor); len(col) == 1 && strings.ContainsRune("WUBRG", rune(col[0])) {
+				produced = col
+			}
+		}
+	}
 	if ma.API == "ManaReflected" {
 		ctx := &effects.Ctx{Source: source, Controller: p,
 			SVars: func() map[string]string {

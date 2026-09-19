@@ -7,16 +7,31 @@ import (
 	"github.com/adams-shaun/gorge/events"
 )
 
-// ChooseType and ChooseNumber record an "as this enters" choice on the
-// source. The real choice is asked by rules at cast time and recorded with a
-// Choose event before this ever resolves (plan ruling R-6), so with a
-// choice already present these do nothing. Without one -- a script that uses
-// them outside an ETB replacement -- they record the deterministic fallback
-// (the first creature type the controller owns / 0) rather than asking,
-// which M2b's mid-resolution decisions replace.
+// ChooseType, ChooseNumber and ChooseColor record an "as this enters"
+// choice on the source. The real choice is asked by rules at cast time and
+// recorded with a Choose event before this ever resolves (plan ruling R-6),
+// so with a choice already present these do nothing. Without one -- a script
+// that uses them outside an ETB replacement -- they record the deterministic
+// fallback (the first creature type the controller owns / 0 / first-WUBRG
+// "W") rather than asking, which M2b's mid-resolution decisions replace.
 func init() {
 	Register("ChooseType", effChooseType)
 	Register("ChooseNumber", effChooseNumber)
+	Register("ChooseColor", effChooseColor)
+}
+
+// effChooseColor records a colour choice. With the source already carrying a
+// ChosenColor (the cast-time Choose "color" event set it) it is a no-op;
+// without one it records the deterministic first-WUBRG "W" -- the same
+// silent-fallback convention effChooseType applies, never a louder variant.
+// A SP$/AB$ ChooseColor mid-resolution ask (Wash Out, Nyx Lotus's devotion
+// ability) therefore resolves to W deterministically instead of the old
+// "unimplemented API" note: a silent-er degradation the ledger tracks.
+func effChooseColor(h Host, c *Ctx, _ *cards.SA) {
+	if o := h.Game().Obj(c.Source); o != nil && o.ChosenColor != "" {
+		return
+	}
+	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "color", Text: "W"})
 }
 
 // effChooseNumber records a number choice. With the source already carrying a
