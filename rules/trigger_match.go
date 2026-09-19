@@ -748,6 +748,73 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	if ev.Kind == events.DoorUnlock {
 		e.checkUnlockTriggers(ev)
 	}
+	// Exert's Trigger$ rider (task exert1, CR 702.100a): the static's named
+	// SVar body queues off the Exert event itself, with Source = the
+	// exerted permanent. The Amount -1 consume marker fires nothing: it is
+	// the untap-step scan's own bookkeeping fold.
+	if ev.Kind == events.Exert && ev.Amount >= 0 {
+		e.checkExertTriggers(ev)
+	}
+}
+
+// checkExertTriggers queues the Trigger$ rider of every offerable
+// stat:OptionalAttackCost static carried by the exerted permanent (task
+// exert1, CR 702.100a "When you do, ..."): a real triggered ability the
+// ordinary APNAP drain places with Source = the exerted permanent, resolving
+// with the registered APIs every rider body uses (UntapAll, AddPhase, Pump,
+// ... -- the triage census). The queue entry is the granted-trigger shape
+// (checkGrantedStaticTriggersUsing's precedent): the stack object is minted
+// inside events.Apply from the Execute$ SVar name resolved against the
+// exerted permanent's own table -- the same body grantedTriggerExecute links
+// here, so live queue and replayed log carry the identical SA. The gate
+// (ValidCard$, IsPresent$/...) is re-read per static exactly as the offer
+// walk (rules/combat.go exertOfferHolds) read it; the static's parameters a
+// fire-time re-check cannot evaluate fail closed and queue nothing. The walk
+// is the deterministic activeStatics order, never a map, and the cascade
+// bound is the granted slot's triggerKey (Source, Idx -1), the same key the
+// granted walk shares -- cascade bound only, never once-per-turn memory.
+func (e *Engine) checkExertTriggers(ev events.Event) {
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+		return
+	}
+	for _, sv := range e.activeStatics("OptionalAttackCost") {
+		if sv.Source != ev.Obj {
+			continue
+		}
+		if vc := sv.Params["ValidCard"]; vc != "" &&
+			!effects.MatchesSpecFrom(e.G, vc, ev.Obj, o.Controller, sv.Source) {
+			continue
+		}
+		exec := sv.Params["Trigger"]
+		if exec == "" {
+			continue
+		}
+		sa := grantedTriggerExecute(o, exec)
+		if sa == nil {
+			continue
+		}
+		key := triggerKey{Source: ev.Obj, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] >= maxTriggerFires {
+			continue // cascade bound: see maxTriggerFires.
+		}
+		e.triggerFireCount[key]++
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     ev.Obj,
+			Controller: o.Controller,
+			Idx:        -1,
+			SA:         sa,
+			Granted:    true,
+			Execute:    exec,
+			Ctx: effects.Ctx{
+				Source:     ev.Obj,
+				Controller: o.Controller,
+			},
+		})
+	}
 }
 
 // checkFaceTriggers separates the read-only matching board from the live

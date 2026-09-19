@@ -115,6 +115,18 @@ var predicates = map[string]predFn{
 	"wasCastFromGraveyard": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&(state.FlagFlashback|state.FlagHarmonize|state.FlagEscaped) != 0
 	},
+	// notExertedThisTurn is CR 702.100a's offer gate (task exert1): the
+	// object has NOT been exerted this turn. The event-backed read is
+	// events.Apply's Exert fold (state.Object.ExertedThisTurn). Combat
+	// Celebrant's `IsPresent$ Creature.Self+notExertedThisTurn` is the
+	// corpus's one carrier; the predicate is a recognised-shape entry (the
+	// compiled predicate layer marks an unlisted term `maybe` and falls
+	// through to this textual oracle, so no twin term is owed), and
+	// UnknownPredicates classifies it through the same predicates map, so
+	// the census and the matcher cannot disagree.
+	"notExertedThisTurn": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return !o.ExertedThisTurn
+	},
 }
 
 // colorLetter maps a colour's English name to its WUBRG letter -- note Blue

@@ -621,6 +621,10 @@ func Apply(g *state.Game, e Event) {
 				g.Objs[i].WasDealtDamageThisTurn = false
 				g.Objs[i].ActivatedThisTurn = 0
 				g.Objs[i].AttacksThisTurn = 0
+				// CR 702.100a: exerted is a per-turn fact. ExertSkipUntap is
+				// deliberately NOT reset here -- its window spans the turn
+				// boundary and is consumed at the next untap step instead.
+				g.Objs[i].ExertedThisTurn = false
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
@@ -1154,6 +1158,25 @@ func Apply(g *state.Game, e Event) {
 		if e.Amount&CopyTokenExileCombat != 0 {
 			o.IsMyriad = true
 		}
+
+	case Exert:
+		// CR 702.100's fold (task exert1). Amount >= 0 is the exert itself:
+		// both lifetimes stamp here -- ExertedThisTurn (the per-turn fact the
+		// notExertedThisTurn offer gate and the "as it attacks" walkers
+		// read) and ExertSkipUntap (the consumed-at-use no-untap window,
+		// cleared by the Amount -1 consume marker the untap-step scan emits
+		// when it passes the permanent). Totality: a missing object is a
+		// no-op, never a panic.
+		o := g.Obj(e.Obj)
+		if o == nil {
+			break
+		}
+		if e.Amount < 0 {
+			o.ExertSkipUntap = false
+			break
+		}
+		o.ExertedThisTurn = true
+		o.ExertSkipUntap = true
 
 	case KeywordTriggerPush:
 		if !validPlayer(g, e.Player) {
@@ -1721,6 +1744,10 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
 			o.Chosen = nil
+			// Exert state is the old permanent's, not the new object's
+			// (CR 400.7): a re-entering Combat Celebrant may exert again
+			// this turn and carries no untap-skip window.
+			o.ExertedThisTurn, o.ExertSkipUntap = false, false
 		}
 		// CR 107.3m: the paid X belongs to the spell on the stack and to the
 		// permanent the spell becomes, and to nothing else. An object leaving

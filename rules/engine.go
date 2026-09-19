@@ -169,6 +169,15 @@ type Engine struct {
 	// never a closure, so Clone copies it like the mulligan round.
 	blockerRound blockerRound
 
+	// exertAskState is the declare-attackers exert election's resumable
+	// state (rules/combat.go, task exert1): the deterministic offer list
+	// (attacking creatures carrying an offerable stat:OptionalAttackCost
+	// static, in declaration option order) plus the cursor of the ask
+	// currently outstanding. Plain-value state, so Clone copies it like
+	// blockerRound; a log-driven replay re-derives the same list when it
+	// re-runs the recorded KAttackers answer through handleAttackers.
+	exertAskState exertAsk
+
 	// stationing is the spacecraft a pending Station tap pick (rules/
 	// station.go) belongs to: the "station" priority option's object, held
 	// across the KChoose so the answer's charge counters land on the right
