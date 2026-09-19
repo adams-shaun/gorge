@@ -227,7 +227,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
 			})
 			registered = true
-		} else if event != "" && body == "" && replacementLineCantHappen(params) {
+		} else if event != "" && body == "" && (replacementLineCantHappen(params) ||
+			(event == "DamageDone" && replacementLinePrevents(params))) {
 			// The bodyless CantHappen form (Mistrise Village's AntiMagic: the
 			// Event$ Counter | ValidCard$ Card.IsRemembered | Layer$ CantHappen
 			// R: the delayed Effect registers): stopping the event is the
@@ -236,9 +237,24 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// set (the cast spell the trigger captured) rides the registration,
 			// so the ValidCard$ IsRemembered gate scopes the promise to the
 			// exact spell.
+			// The bodyless Prevent$ True DamageDone form is the same idiom for
+			// damage: full prevention IS the complete replacement (Selfless
+			// Squire's RPrevent, and the Fog family's DB$ Effect bodies -- 131
+			// measured carriers). The shared damage dispatch prevents through
+			// damageReplacementPrevents and stores the prevention Note whose
+			// Amount Mode$ DamagePreventedOnce triggers read.
+			untilEOT := effectUntilEOT(h, c.Source, dur)
+			if event == "DamageDone" && sa.Params["Duration"] == "" {
+				// This family's oracle text is always "this turn" (Selfless
+				// Squire, Kurbis, the Fog spells) and none of its bodyless lines
+				// names Duration$: a prevent from a PERMANENT source with no
+				// explicit Duration$ is a this-turn grant, not the Permanent
+				// default the other shapes keep. An explicit Duration$ wins.
+				untilEOT = true
+			}
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
-				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				UntilEOT: untilEOT, Duration: dur,
 				Name:             effectName,
 				Remembered:       remembered,
 				ReplacementEvent: event, ReplacementParams: params,
@@ -551,6 +567,17 @@ func replacementLineWith(params map[string]string) string {
 // local, the same shape replacementLineWith takes.
 func replacementLineCantHappen(params map[string]string) bool {
 	return strings.EqualFold(strings.TrimSpace(params["Layer"]), "CantHappen")
+}
+
+// replacementLinePrevents reports whether a parseReplacementLine-built
+// replacement body is the bodyless full-prevention form: Prevent$ True with
+// no ReplaceWith$ body of its own -- the complete replacement is stopping
+// the damage (Selfless Squire's RPrevent, task dponce1). Factored into its
+// own function so the paramcensus rot guard can classify the read through a
+// tracked helper parameter rather than an unclassified local, the same shape
+// replacementLineCantHappen takes.
+func replacementLinePrevents(params map[string]string) bool {
+	return strings.EqualFold(params["Prevent"], "True")
 }
 
 // replacementBodyAPI names the API a retained replacement body's head

@@ -1188,7 +1188,11 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.Damage && ev.Obj != 0 {
 		if src := e.inFlightDamageSource(); src != 0 && e.protectedFrom(ev.Obj, src) &&
 			!e.cantPreventDamage(src, ev.Obj) {
-			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "prevented: protection"})
+			// Amount rides the stored Note (task dponce1): a prevention is a
+			// game action a triggered ability can see, and Mode$
+			// DamagePreventedOnce keys on these Notes' Amount.
+			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+				Amount: ev.Amount, Text: "prevented: protection"})
 		}
 	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 &&

@@ -138,11 +138,18 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 					chosen: ce.ChosenNumber,
 					key:    "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
-		} else if ce.ReplacementBody == "" && strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Layer"]), "CantHappen") {
+		} else if ce.ReplacementBody == "" && (strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Layer"]), "CantHappen") ||
+			(event == "DamageDone" && strings.EqualFold(ce.ReplacementParams["Prevent"], "True"))) {
 			// The Effect-created CantHappen form (Mistrise Village's AntiMagic:
 			// "the next spell you cast this turn can't be countered"): no
 			// ReplaceWith$ — stopping the event is the complete replacement,
 			// the same shape printed R: lines take (the With==nil arm below).
+			// The bodyless Prevent$ True DamageDone form (Selfless Squire's
+			// RPrevent, task dponce1; the wider bodyless prevent family it
+			// belongs to) is the same idiom for damage: full prevention is the
+			// complete replacement, applied by the shared damage dispatch
+			// (applyNonMoveReplacements' Prevent$ arm) exactly as a printed R:
+			// line's would be.
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
 			if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
@@ -282,8 +289,17 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 				continue
 			}
 			if m.repl.Params["Prevent"] == "True" {
-				return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
-					Text: "damage prevented by replacement effect"}, true
+				// Stored through a re-entrant emit (the ReplaceDamage arm's
+				// shape, task dponce1): the log record IS the prevention's
+				// occurrence, so Mode$ DamagePreventedOnce triggers fire off it
+				// -- Amount carries the prevented damage (Note is an Apply
+				// no-op marker; no reader of Note.Amount predates this). Obj is
+				// the damaged object (0 for a player hit) and Player the
+				// damaged player, the uniform shape every stored prevention
+				// Note keeps. The returned kind is still a Note, never a
+				// Damage: the combat assignment loop and speed.go read it.
+				return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+					Amount: ev.Amount, Text: "damage prevented by replacement effect"}), true
 			}
 			// a ReplaceDamage body falls through to its subtracting arm below
 		}
@@ -493,8 +509,15 @@ func (e *Engine) applyReplaceDamageBody(ev *events.Event, m replMatch) bool {
 	if o := e.G.Obj(m.id); o != nil && o.Face() != nil && o.Face().Name != "" {
 		who = o.Face().Name
 	}
-	e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
-		Text: who + " prevented " + strconv.Itoa(int(prevented)) + " of the damage"})
+	e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+		Amount: prevented,
+		Text:   who + " prevented " + strconv.Itoa(int(prevented)) + " of the damage"})
+	// Obj carries the damaged object (0 for a player hit) like the full-
+	// prevention arm's Note above, not the preventing source: the log text
+	// names the preventer, and Mode$ DamagePreventedOnce triggers key their
+	// ValidTarget$ on the damaged side. (Prevention Notes carried no Amount
+	// before dponce1 and zero prevention-text events are logged in the
+	// golden-shape games, so the field's presence is stream-neutral there.)
 	return ev.Amount <= 0
 }
 

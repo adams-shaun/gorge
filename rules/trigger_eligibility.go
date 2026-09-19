@@ -107,6 +107,12 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.Tap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
 		return 1 << events.Damage
+	case "DamagePreventedOnce":
+		// The mode fires on the STORED prevention Note (rules/replacement.go's
+		// full-prevention arm and its ReplaceDamage/protection siblings), not
+		// on the Damage event the prevention replaces -- a prevented hit is a
+		// Note, never a Damage.
+		return 1 << events.Note
 	case "CounterAdded":
 		return 1 << events.CounterChange
 	case "TokenCreated", "TokenCreatedOnce":

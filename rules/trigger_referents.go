@@ -46,6 +46,16 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if o := e.G.Obj(e.inFlightDamageSource()); o != nil && o.IsAttacking {
 			c.DefendingPlayer = player(o.Attacking)
 		}
+	case "DamagePreventedOnce":
+		// The prevention Note carries the prevented damage in Amount and the
+		// damaged side in Obj/Player (rules/replacement.go's stored-prevention
+		// arms). TriggerCount$DamageAmount reads TriggerAmount when the
+		// trigger's DB$ PutCounter resolves (Selfless Squire's TrigPut).
+		c.TriggerAmount = ev.Amount
+		c.TriggerTarget = state.Target{Obj: ev.Obj}
+		if ev.Obj == 0 {
+			c.TriggerTarget = player(ev.Player)
+		}
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		c.DefendingPlayer = player(ev.Player)
 		c.AttackedTarget = player(ev.Player)
