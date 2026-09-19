@@ -4825,6 +4825,141 @@ Deck
 2x Swamp
 2x Mountain
 8x Forest
+
+# --- Wakanda Forever (msc commander precon, T'Challa, the Black Panther) — census input, 2026-09-19 (issue agent-20260918T211806Z-9633c5df) ---
+# run: sed -n '/Wakanda Forever (msc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/msc-wakanda-forever.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# 100/100 resolved; commander eligible. 2 new-gap tickets (.ds4/new-tickets/api-replace-damage.md,
+#   .ds4/new-tickets/compound-mode-statics.md) — deck file NOT added. CORRECTION (post-review): the
+#   api:ReplaceDamage ticket's "prevention never happens" premise was FALSE — DB$ ReplaceDamage prevention
+#   bodies are implemented (rules/replacement.go applyReplaceDamageBody, commits 0c83541f + 1b80b992, pinned
+#   by rules/replacement_damage_counter_test.go; Heart-Shaped Herb live-prevents 1 of N at this pin) and the
+#   real residual is census-token-only: .ds4/new-tickets/api-replace-damage-census-token.md (supersedes the
+#   ingested agent-20260919T000105Z-80411e9a). Behaviourally NEW is only the compound S:Mode$ static shape.
+# gap cards (each open unless marked NEW — issue ids in the census report): api:Fight (Fight for the Throne),
+#   api:PutCounterAll (Zuri, Warrior of Wakanda; Loyal Guardian), api:CopyPermanent (Helm of the Host),
+#   api:ReplaceToken+repl:CreateToken (Divine Visitation), trig:AttackerUnblockedOnce (Coveted Jewel),
+#   trig:ChangesZoneAll (Ingenious Smith), kw:Crew (Royal Talon Fighter Jet, N'Yami-Class Mother Ship,
+#   Vibranium Mining Mech), stat:CantAttack (Queen Mother Ramonda), stat:CantAttack,CantBlock compound (Bast,
+#   Panther Goddess); NEW: the compound S:Mode$ static shape itself; census-token-only (behaviour already
+#   implemented, see the correction above): api:ReplaceDamage (Heart-Shaped Herb).
+# commander note: T'Challa's Vibranium token mana carries AB$ Mana RestrictValid$ CantCastNonArtifactSpells —
+#   the restriction is unread (the known "RestrictValid$ spend restrictions are never read" approximation), so
+#   the token's {C} is spendable on anything in this build.
+# source: MTGJSON DeckList entry WakandaForever_MSC (mtgjson.com/api/v5/decks/WakandaForever_MSC.json;
+#   releaseDate 2026-06-26, type Commander Deck; its source field is the WotC article), fetched 2026-09-19,
+#   cross-checked card-for-card against the WotC decklist article
+#   (magic.wizards.com/en/news/announcements/marvel-super-heroes-commander-decklists): the only differences were
+#   line-wrap artifacts ("Zuri, Warrior of" / "Storm, Queen of") and the article's variant printings
+#   "Arcane Signet Wakanda"/"Sol Ring Wakanda"/"Command Tower Wakanda", whose card identity is the plain name
+#   the corpus carries. 12 Plains + 12 Forest.
+# commander fact-check: the issue's face-card hint (M'Baku cn 67, Bast cn 75, Black Panther, Most Dangerous cn 584)
+#   is wrong about the commander — the actual commander is T'Challa, the Black Panther; M'Baku and Bast are among
+#   the 99, Most Dangerous is not in the deck.
+Commander
+1 T'Challa, the Black Panther
+
+Deck
+1 Dora Milaje Elite
+1 Everett K. Ross, Hapless Attaché
+1 Hatut Zeraze Strike Force
+1 King Solomon's Frogs
+1 Midnight Angel Armor
+1 Queen Mother Ramonda
+1 Royal Talon Fighter Jet
+1 The Spear of Bashenga
+1 Ancestral Communion
+1 Fight for the Throne
+1 M'Baku, Jabari Chieftain
+1 Nakia, Wakandan Operative
+1 W'Kabi, Shield of the Nation
+1 Wakanda Forever!
+1 Zuri, Warrior of Wakanda
+1 Bast, Panther Goddess
+1 Okoye, Mighty and Adored
+1 Shuri, the Black Panther
+1 Storm, Queen of Wakanda
+1 T'Chaka, Venerable King
+1 Heart-Shaped Herb
+1 Kimoyo Beads
+1 N'Yami-Class Mother Ship
+1 Panther Habit
+1 Panther Robot
+1 Shuri's Fabricator
+1 Vibranium Mining Mech
+1 Vibranium Strike Gauntlets
+1 The Great Mound
+1 Divine Visitation
+1 Loyal Retainers
+1 Martial Coup
+1 Vanquish the Horde
+1 Birds of Paradise
+1 Conduit of Worlds
+1 Greater Good
+1 Nature's Lore
+1 Overwhelming Stampede
+1 Coveted Jewel
+1 Gilded Lotus
+1 Helm of the Host
+1 Metalwork Colossus
+1 Solemn Simulacrum
+1 Trading Post
+1 Bountiful Promenade
+1 Canopy Vista
+1 Fortified Village
+1 Razorverge Thicket
+1 Scattered Groves
+1 Scavenger Grounds
+1 Sungrass Prairie
+1 Sunpetal Grove
+1 Throne of the High City
+1 Scourglass
+1 Fleecemane Lion
+1 Hammer of Nazahn
+1 Mind's Eye
+1 Sword of the Animist
+1 Thran Dynamo
+1 Dispatch
+1 Generous Gift
+1 Ingenious Smith
+1 Palace Jailer
+1 Valorous Stance
+1 Beast Within
+1 Harmonize
+1 Loyal Guardian
+1 Arcane Signet
+1 Meteor Golem
+1 Sol Ring
+1 Whispersilk Cloak
+1 Command Tower
+1 Evolving Wilds
+1 Path of Ancestry
+1 Terramorphic Expanse
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Plains
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+1 Forest
+
 # --- Counter Intelligence (eoc commander precon, Inspirit, Flagship Vessel) — census input, 2026-09-19 ---
 # run: sed -n '/Counter Intelligence (eoc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/eoc-counter-intelligence.list
 # source: WotC official decklist article magic.wizards.com/en/news/announcements/edge-of-eternities-commander-decklists
