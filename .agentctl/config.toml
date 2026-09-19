@@ -105,9 +105,19 @@ cmd = ["go", "build", "./..."]
 timeout = 900
 
 [[gates]]
-name = "go test (core)"
-cmd = ["go", "test", "-count=1", "-skip", "^TestHeads$", "./effects", "./rules", "./cards"]
-timeout = 300
+name = "go vet"
+cmd = ["go", "vet", "./..."]
+timeout = 600
+
+# The whole module, not just ./effects ./rules ./cards: a merge that broke
+# internal/searchprobe and internal/archtest passed the old core-only gate
+# (2026-09-19, fixed in bd0f399e). -p=2 + GOMEMLIMIT: parallel package test
+# binaries across worktrees have exhausted this box's memory before.
+[[gates]]
+name = "go test (module)"
+cmd = ["go", "test", "-p=2", "-count=1", "-skip", "^TestHeads$", "./..."]
+timeout = 1200
+env = { GOMEMLIMIT = "5GiB" }
 
 [[gates]]
 name = "CR conformance"
