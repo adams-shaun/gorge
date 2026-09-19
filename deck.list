@@ -5368,3 +5368,154 @@ Deck
 4 Forest
 4 Forest
 0
+# --- Quandrix Unlimited (soc commander precon, Zimone, Infinite Analyst) — census input, 2026-09-19 (issue agent-20260918T211806Z-c9b53a54) ---
+# run: sed -n '/Quandrix Unlimited (soc/,$p' deck.list | tail -n +2 | grep -v '^#' | grep -v '^$' > .ds4/scratch/soc-quandrix-unlimited.list
+# (tail -n +2 keeps the Commander/Deck headers; the section re-imports standalone with the commander recorded)
+# source: WotC "Secrets of Strixhaven" Commander decklist announcement
+#   (magic.wizards.com/en/news/announcements/secrets-of-strixhaven-commander-decklists), the
+#   Quandrix Unlimited <deck-list> element, fetched 2026-09-19; the MTGJSON DeckList entry
+#   QuandrixUnlimited_SOC (type Commander Deck, releaseDate 2026-04-24) could NOT be fetched
+#   (mtgjson.com endpoints 404 from this box, same as the Silverquill Influence triage; MTGGoldfish
+#   search endpoints 404 too) — WotC article is the single usable source, verified by cmd/deckimport.
+# 100/100 resolved; commander eligible. Deck file NOT added — real new gaps remain (re-measured r1 with the
+#   deck temporarily present at internal/testutil/decks/quandrix-unlimited.json, then deleted: coverage
+#   ratchet 25 of 933 distinct repo-deck cards = 22 new + the 3 baseline table cards; param census
+#   35 of 933 = 10 new over the 25-card baseline; baseline green again after deletion).
+# Trap note: the deck carries THREE distinct Zimone cards — the commander Zimone, Infinite Analyst (soc
+#   cn 10), Zimone, All-Questioning (an STX-era card) and Zimone, Quandrix Prodigy — do not collapse or
+#   confuse them (same class of trap as Silverquill's two Killians, recorded in that section's header).
+# Commander note: BOTH face legends have CommBord printings in the WotC article's CIG grid
+#   (0010_MTGSOS_CommBord Zimone, Infinite Analyst; 0006_MTGSOS_CommBord Primo, the Unbounded) and
+#   neither card's oracle text carries "Partner" — the FIRST main-deck entry is recorded as the deck's
+#   commander per the Lorehold Spirit / Silverquill Influence convention; Primo rides in the Commander
+#   section like Excava, the Risen Past in Lorehold Spirit's.
+# Coverage-gap labels (22 cards, 14 distinct primitive labels; OPEN-ledger overlaps cited, not re-filed) —
+#   api:MultiplyCounter (Primordial Hydra, Kinetic Ooze, Fractal Harness, Tanazir Quandrix)
+#     -> agent-20260918T211806Z-b7050f99 et al.;
+#   api:ReplaceCounter + repl:AddCounter (Ozolith the Shattered Spire, Kami of Whispered Hopes,
+#     Hardened Scales, Benevolent Hydra) -> agent-20260918T224137Z-8327049c;
+#   api:Proliferate (Expansion Algorithm) -> agent-20260918T211806Z-b7050f99;
+#   api:GenericChoice (Zimone's Hypothesis) -> agent-20260918T225913Z-c3e84a8e;
+#   api:MoveCounter (Forgotten Ancient) -> agent-20260918T203713Z-68bb5f63;
+#   api:PutCounterAll (Oran-Rief, the Vastwood) -> agent-20260918T203713Z-3f821cde;
+#   api:Fight (Primal Might) -> agent-20260918T194906Z-071f79fe;
+#   kw:Skulk (Ingenious Prodigy) -> agent-20260918T202223Z-7b310f8b;
+#   trig:SpellCastOrCopy (Quandrix Apprentice; Deekah, Fractal Theorist) -> agent-20260918T203713Z-76174fbb;
+#   api:Clone (Altered Ego) + api:AlterAttribute (Yavimaya Bloomsage; Striding Shotcaller)
+#     -> agent-20260918T210307Z-f6df1b2f;
+#   api:AnimateAll (Biomass Mutation; Tanazir Quandrix) -> agent-20260918T201425Z-dffc06a3;
+#   api:DigUntil (Open the Way) -> agent-20260918T195920Z-e8579598.
+#   TRUE new coverage gap: api:ChangeX (Unbound Flourishing) -> deck-gap-api-changex.
+# New param tickets (4 filed in .ds4/new-tickets/):
+#   deck-gap-api-changex — api:ChangeX, Unbound Flourishing (DB$ ChangeX = 2 raw files);
+#   deck-gap-trig-hasxmanacost — param:trig:SpellCast.HasXManaCost +
+#     param:trig:SpellAbilityCast.HasXManaCost, Unbound Flourishing (HasXManaCost = 4 raw files);
+#   deck-gap-putcounter-optional — param:api:PutCounter.Optional, Zimone's Hypothesis (8 raw files);
+#   deck-gap-untap-conditionzone — param:api:Untap.ConditionZone, Animist's Awakening (1 raw file).
+# Cited param gaps NOT re-filed: ChangeZoneAll.RememberLKI + RepeatEach.ChangeZoneTable/UseImprinted
+#   (agent-20260918T203713Z-91eb9127); PutCounter.Placer (Silverquill ticket
+#   agent-20260918T211806Z-7f1829ef); Mana.AddsCounters (Dance of the Elements ticket
+#   agent-20260918T211806Z-862d474f); Mana.TriggersWhenSpent (Lorehold cited); the desc-only
+#   ValidTgtsDesc family (PutCounter/Counter/Destroy) and api:Dig.RestRandomOrder are named families
+#   of the AGENTS.md approximations table.
+Commander
+1x Zimone, Infinite Analyst
+1x Primo, the Unbounded
+1x Owlin Spiralmancer
+1x Expansion Algorithm
+1x Nexus Mentality
+1x Kinetic Ooze
+1x Lattice Library
+1x Nev, the Practical Dean
+1x Yavimaya Bloomsage
+1x Striding Shotcaller
+1x Brass Infiniscope
+1x Turbulent Wilderness
+1x Commander's Insight
+1x Ingenious Prodigy
+1x Pull from Tomorrow
+1x Benevolent Hydra
+1x Unbound Flourishing
+1x Fabled Passage
+1x Curse of the Swine
+1x Deekah, Fractal Theorist
+1x Entrancing Melody
+1x Perplexing Test
+1x Stroke of Genius
+1x Zimone's Hypothesis
+1x Animist's Awakening
+1x Forgotten Ancient
+1x Fractal Harness
+1x Goldvein Hydra
+1x Guardian Augmenter
+1x Hardened Scales
+1x Lifeblood Hydra
+1x Mana Bloom
+1x Open the Way
+1x Ozolith, the Shattered Spire
+1x Primal Might
+1x Primordial Hydra
+1x Silkguard
+1x Steelbane Hydra
+1x Altered Ego
+1x Biomass Mutation
+1x Elusive Otter
+1x The Goose Mother
+1x Hydroid Krasis
+1x Oversimplify
+1x Quandrix Command
+1x Tanazir Quandrix
+1x Zimone, All-Questioning
+1x Astral Cornucopia
+1x Elementalist's Palette
+1x Hangarback Walker
+1x Stonecoil Serpent
+1x Alchemist's Refuge
+1x Exotic Orchard
+1x Flooded Grove
+1x Hinterland Harbor
+1x Oran-Rief, the Vastwood
+1x Overflowing Basin
+1x Rain-Slicked Copse
+1x Sodden Verdure
+1x Temple of Mystery
+1x Vineglimmer Snarl
+1x Yavimaya Coast
+1x Arcane Signet
+1x Sol Ring
+1x Command Tower
+1x Quandrix Charm
+1x Paradox Gardens
+1x Terramorphic Expanse
+1x Rapid Hybridization
+1x Beast Within
+1x Kami of Whispered Hopes
+1x Nature's Lore
+1x Three Visits
+1x Tyvar's Stand
+1x Decisive Denial
+1x Eureka Moment
+1x Quandrix Apprentice
+1x Troyan, Gutsy Explorer
+1x Zimone, Quandrix Prodigy
+1x Opal Palace
+1x Path of Ancestry
+1x Quandrix Campus
+1x Reliquary Tower
+1x Rogue's Passage
+1x Study Hall
+1x Tangled Islet
+1x Temple of the False God
+1x Island
+1x Island
+1x Island
+1x Island
+1x Island
+1x Island
+1x Island
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
+1x Forest
