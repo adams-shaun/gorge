@@ -51,6 +51,21 @@ type TriggerContext struct {
 	// resolves. Zero is both a valid paid value and the value for a triggering
 	// card with no paid X.
 	TriggerPaidX int32
+	// TriggerAbility is the minted ability STACK OBJECT an AbilityCast /
+	// SpellAbilityCast trigger fired on (abcopy1). An AbilityPush event's Obj
+	// is the source PERMANENT -- events.Apply mints the ability's stack wrapper
+	// off the event -- so Remembered alone names the battlefield permanent and
+	// every Defined$ TriggeredSpellAbility consumer would resolve a non-stack
+	// object (effCopySpellAbility's stack zone guard then no-ops silently).
+	// Rules captures the wrapper id at fire time, when it is deterministically
+	// the topmost non-trigger ability wrapper whose Source is the triggering
+	// permanent (the same mechanism TriggerPaidX/TriggerConverge use: no event
+	// schema change, a log-only replay folds the same AbilityPush, mints the
+	// same id and re-runs the capture at the same point). Zero for a spell-cast
+	// trigger (the ev.Obj spell object is TriggerCard) and for every other
+	// mode. Unlike TriggerStack it is not a targeting event's object; it is
+	// the activation provenance the copy / ChangeX / counter family reads.
+	TriggerAbility state.ObjID
 	// TriggerConverge snapshots the CR 107.4f converge colour count of
 	// TriggerCard's cast when this trigger matched (rules/trigger_referents'
 	// capture beside TriggerPaidX, read by evalRefProperty's Converge

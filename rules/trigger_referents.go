@@ -92,6 +92,20 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// same ev.Player ValidActivatingPlayer$ is matched against
 		// (Tangleroot: "that player adds {G}").
 		c.TriggerActivator = player(ev.Player)
+		// The activation arm (abcopy1): an AbilityPush event's Obj is the
+		// SOURCE PERMANENT -- the ability's stack wrapper is minted inside
+		// events.Apply and never travels on the event, so Remembered names the
+		// battlefield permanent. Capture the minted wrapper here, at fire
+		// time, when it is deterministically the topmost non-trigger ability
+		// wrapper whose source is the triggering permanent (checkTriggers
+		// runs synchronously inside emit immediately after the AbilityPush
+		// applied, and a log-only replay folds the same AbilityPush, mints the
+		// same id and re-runs this capture at the same point -- no event
+		// schema change, the TriggerPaidX/TriggerConverge mechanism). Absent
+		// for PutOnStack: a spell cast's ev.Obj IS the spell object.
+		if ev.Kind == events.AbilityPush {
+			c.TriggerAbility = e.abilityCastStackObject(ev.Obj)
+		}
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
 	case "TapsForMana":
@@ -120,6 +134,26 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerConverge = card.ConvergeColours
 	}
 	return c
+}
+
+// abilityCastStackObject is the fire-time twin of effects.changeXAbilityObject's
+// scan (effects cannot import rules, so the scan is mirrored, not shared): the
+// topmost non-trigger ability wrapper on the stack whose Source is the
+// activating permanent. Called synchronously inside the AbilityPush emit,
+// when that wrapper is exactly the stack top; 0 when no such wrapper exists
+// (a stale registration) -- the role simply stays absent.
+func (e *Engine) abilityCastStackObject(perm state.ObjID) state.ObjID {
+	for i := len(e.G.Stack) - 1; i >= 0; i-- {
+		o := e.G.Obj(e.G.Stack[i])
+		if o == nil || o.Card != nil || o.Ability == nil || o.Source != perm {
+			continue
+		}
+		if _, isTrig := state.TriggerOf(e.G, o); isTrig {
+			continue
+		}
+		return o.ID
+	}
+	return 0
 }
 
 // targetSpecContext accepts the actual stack id, so simultaneous triggers of

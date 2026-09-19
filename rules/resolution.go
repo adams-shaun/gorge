@@ -786,7 +786,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// attempt the effect; payment is a separate resolution-time window with
 	// mana-ability opportunities. Direct mandatory triggers enter the same
 	// window from resolveTop.
-	if rp.kind == "optional" && rp.sa != nil && rp.sa.API == "Untap" && rp.sa.Params["Cost"] != "" {
+	if rp.kind == "optional" && rp.sa != nil && rp.sa.Params["Cost"] != "" &&
+		(rp.sa.API == "Untap" ||
+			// abcopy1: an OptionalDecider$ copy trigger's AB$ CopySpellAbility
+			// with a real Cost$ (Rings of Brighthearth, Battlemages' Bracers)
+			// pays through the same window; a copy without the activation role
+			// (a spell-cast arm) keeps the established free-executor semantics.
+			(rp.sa.API == "CopySpellAbility" && e.triggerContexts[rp.obj].TriggerAbility != 0)) {
 		e.startTriggeredEffectCost(rp, ctx.Source)
 		return
 	}

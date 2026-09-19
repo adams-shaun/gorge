@@ -282,7 +282,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// case), so this resolves the whole per-defender attacker group.
 		return objectsOf(c.Remembered), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
-		"TriggeredSpellAbility", "TriggeredSourceSA", "TriggeredAttacker",
+		"TriggeredSourceSA", "TriggeredAttacker",
 		"TriggeredAttackerLKICopy", "TriggeredTargetLKICopy",
 		"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
@@ -292,6 +292,18 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// trigger captured (Reality Smasher's counter, Kira's and the
 		// glasskite family's counters -- 18 corpus files); its Controller
 		// variant resolves in unlessPayerTargets, its object here.
+		return objectsOf(c.Remembered), true
+	case "TriggeredSpellAbility":
+		// The activation arm (abcopy1): an ability-cast trigger's Remembered
+		// names the SOURCE PERMANENT (an AbilityPush's Obj -- the minted
+		// ability wrapper never travels on the event), so the fire-time
+		// TriggerAbility role is the only exact referent: the wrapper is on
+		// the stack and a copy/counter/rewrite of it is stack-legal. The
+		// role-absent fallback (the spell-cast arm, where Remembered IS the
+		// cast spell, and hand-built contexts) keeps the Remembered entry.
+		if c.TriggerAbility != 0 {
+			return []state.Target{{Obj: c.TriggerAbility}}, true
+		}
 		return objectsOf(c.Remembered), true
 	case "TriggeredTarget":
 		// The object or player that received the triggering event. Spiteful

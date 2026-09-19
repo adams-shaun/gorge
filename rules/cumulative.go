@@ -436,6 +436,15 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	}
 	opts := []decision.Option{{Index: 0, Kind: "trigger_cost_pay", Obj: tc.source, Label: "Pay " + tc.costLabel},
 		{Index: 1, Kind: "trigger_cost_decline", Obj: tc.source, Label: "Do not pay"}}
+	if !tc.amount.Priceable() {
+		// An unpriceable cost (PayLife<X>, Verrak, Warped Sengir's copy
+		// trigger) is a hard decline per the ParseUnlessCost convention: the
+		// ask is still posed and the decision recorded, but "pay" is not an
+		// answerable option -- never a free copy through a zero-amount read.
+		// Options are renumbered: an ask's option Index must equal its
+		// position.
+		opts = []decision.Option{{Index: 0, Kind: "trigger_cost_decline", Obj: tc.source, Label: "Do not pay"}}
+	}
 	e.choosing = chooseTriggeredCost
 	e.ask(&decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: name + " — pay " + tc.costLabel + "?", Source: tc.source, Options: opts})
