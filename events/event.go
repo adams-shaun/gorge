@@ -343,6 +343,18 @@ const (
 	// prior Kind's own append-only precedent, so no earlier ordinal, hash
 	// chain or golden replay is affected.
 	ManaActivate
+	// TokenAttacks marks one token that entered the battlefield TAPPED AND
+	// ATTACKING (Mobilize, Kari Zev's "tapped and attacking" monkey -- the
+	// TokenAttacking$ True rider). It is NOT a mint: events.Apply's
+	// TokenCreate case already made the object, and Obj here is that
+	// already-existing battlefield token, Player its controller and IDs[0]
+	// the defender it attacks. MyriadCopy must not be reused for this: it
+	// mints a copy of the SOURCE card and flags IsMyriad, which
+	// MyriadCleanup exiles at end of combat -- wrong semantics for a script
+	// token a Sacrifice at the next end step owns. Appended here, after
+	// ManaActivate, following every prior Kind's own append-only precedent,
+	// so no earlier ordinal, hash chain or golden replay is affected.
+	TokenAttacks
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -353,7 +365,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(ManaActivate) + 1
+	NumKinds = int(TokenAttacks) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -369,7 +381,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
-	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate"}
+	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

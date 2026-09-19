@@ -866,9 +866,37 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	if vp := strings.TrimSpace(sa.Params["ValidPlayer"]); vp != "" {
 		text += "|VP=" + vp
 	}
+	// RememberChain$ False (this repo's own generated-SA param, the
+	// Annihilator$-marker precedent: no raw corpus card carries it, only
+	// cards/keywords.go's generated Mobilize delay SVar does): the
+	// registration keeps only what THIS resolving chain itself remembered
+	// beyond the referents its triggering event captured -- Ctx.Captured is
+	// exactly the part of Remembered the trigger put there (the attacking
+	// creature, the defending player), RememberTokens$ True put the minted
+	// tokens in the chain part -- so Mobilize's end-step sacrifice touches
+	// the Warrior tokens and never the creature that merely triggered. The
+	// default (absent) keeps the whole-chain capture every earlier
+	// registration had, byte for byte.
+	remembered := c.Remembered
+	if strings.EqualFold(strings.TrimSpace(sa.Params["RememberChain"]), "False") {
+		chain := make([]state.Target, 0, len(c.Remembered))
+		for _, t := range c.Remembered {
+			captured := false
+			for _, cp := range c.Captured {
+				if cp == t {
+					captured = true
+					break
+				}
+			}
+			if !captured {
+				chain = append(chain, t)
+			}
+		}
+		remembered = chain
+	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec, Amount: amount,
-		IDs: encodeRemembered(c.Remembered), Text: text})
+		IDs: encodeRemembered(remembered), Text: text})
 }
 
 // effDelayedTriggerSpellCast registers the event-matched delayed shape: a

@@ -38,8 +38,11 @@ func init() { Register("Token", effToken) }
 // emit for their own Tapped$ (an entry state, not the CR 701.21a event of
 // becoming tapped) lands right after each mint, so the token is on the
 // battlefield untapped for exactly one folded event and then tapped.
-// TokenAttacking$ (the Kari Zev / Kessig Cagebreakers attack rider) stays a
-// census-free gap outside this task.
+// TokenAttacking$ True (Mobilize, Kari Zev) makes every token this call
+// creates enter tapped and attacking the combat's defending player through
+// the appended events.TokenAttacks kind; see the implementation comment at
+// the read below for the no-defender degrade. The other TokenAttacking$
+// selector forms stay census-free gaps.
 //
 // TokenPower$/TokenToughness$ set the token's P/T from a dynamic value
 // (Skyclave Apparition's X/X Illusion, SVar:X:Remembered$CardManaCost): the
@@ -145,6 +148,37 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	}
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["TokenTapped"]), "True")
 
+	// TokenAttacking$ True (Mobilize, Kari Zev's "tapped and attacking"
+	// rider): every token this call creates enters attacking the combat's
+	// DEFENDING player, read from the firing Attacks trigger's own referent
+	// capture (rules/trigger_referents.go binds c.DefendingPlayer from the
+	// DeclareAttackers event; the defending player is ev.Player there --
+	// the engine batches attackers per defender). Only the literal True
+	// form is implemented: the corpus's other selector values (Remembered
+	// x5, RememberedPlayer x3, TriggeredAttackedTarget x4, TriggeredDefender
+	// x1) keep the census-free degrade they had, now named by ONE loud Note
+	// per call instead of silence. A True with NO defender in context (an
+	// ACTIVATED AB$ Token rider like kavaron_harrier or militias_pride -- no
+	// trigger context exists) still enters (tapped, when TokenTapped$ says
+	// so) but NOT attacking, under one deterministic Note: never a guessed
+	// defender. The mark itself rides the appended events.TokenAttacks kind
+	// (events/apply.go), so replay rebuilds it.
+	attackCtx := false
+	var attackDefender state.PlayerID
+	if attack := strings.TrimSpace(sa.Params["TokenAttacking"]); attack != "" {
+		switch {
+		case strings.EqualFold(attack, "True") && c.DefendingPlayer.IsPlayer:
+			attackCtx = true
+			attackDefender = c.DefendingPlayer.Player
+		case strings.EqualFold(attack, "True"):
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "TokenAttacking$ with no defending player in context; the token enters but does not attack"})
+		default:
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "TokenAttacking$ " + attack + " is not implemented; the token enters but does not attack"})
+		}
+	}
+
 	for _, key := range strings.Split(sa.Params["TokenScript"], ",") {
 		key = strings.TrimSpace(key)
 		if key == "" {
@@ -168,6 +202,10 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			}
 			if tapped && g.Obj(want) != nil {
 				h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: owner, Text: "entered tapped"})
+			}
+			if attackCtx && g.Obj(want) != nil {
+				h.Emit(events.Event{Kind: events.TokenAttacks, Obj: want, Player: owner,
+					IDs: []state.ObjID{state.ObjID(attackDefender)}, Text: "entered attacking"})
 			}
 			if (hasPow || hasTgh) && g.Obj(want) != nil && g.Obj(want).Face() != nil {
 				// The absent side keeps the token script's printed value. Every
