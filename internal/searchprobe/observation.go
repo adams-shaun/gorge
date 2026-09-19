@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/state"
@@ -154,6 +155,18 @@ func (c *Collector) Capture(e *rules.Engine, burst []events.Event) (Frame, error
 		p.Graveyard = c.cards(p.Graveyard)
 		p.Exile = c.cards(p.Exile)
 		p.Command = c.cards(p.Command)
+		// PotentialActions (the viewer's own offer walk, view/view.go) names
+		// its objects by engine ObjID like every other board field; left raw,
+		// a sampled world whose hidden objects were allocated different IDs
+		// can never serialize the same board, and every world is rejected at
+		// its first frame. Map them through the same observation refs.
+		if len(p.PotentialActions) > 0 {
+			pa := append([]decision.PotentialAction(nil), p.PotentialActions...)
+			for j := range pa {
+				pa[j].Obj = state.ObjID(c.ref(pa[j].Obj))
+			}
+			p.PotentialActions = pa
+		}
 	}
 	for i := range v.Stack {
 		s := &v.Stack[i]
