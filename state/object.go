@@ -140,6 +140,17 @@ type Object struct {
 	EnteredThisTurn        bool
 	EnteredFrom            Zone
 	WasDealtDamageThisTurn bool
+	// The control-acquisition tuple (AcqTurn, AcqStep) records WHEN this
+	// object last came under its current controller's control on the
+	// battlefield: stamped by events.Apply on every battlefield ENTRY (Move,
+	// a real CR 400.7 new-object zone change — a battlefield→battlefield
+	// stay is not a new acquisition) and on every battlefield ControlChange.
+	// kw:Echo's intervening-if (CR 702.35a) compares it against the
+	// controller's Player.LastUpkeepTurn. Written ONLY inside events.Apply
+	// so a live game and a replay derive it identically; Clone copies both
+	// with the struct.
+	AcqTurn int32
+	AcqStep Step
 	// ActivatedThisTurn counts the non-mana activated abilities whose
 	// activation minted an AbilityPush with this source this turn
 	// (events.Apply's AbilityPush case). Mana abilities never mint one (CR

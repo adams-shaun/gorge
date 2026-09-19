@@ -478,6 +478,10 @@ type Engine struct {
 	// carrying Cost$ (Mana Vault). Both are plain data and Clone-copied.
 	cumulative  *cumulativeUpkeep
 	triggerCost *triggeredEffectCost
+	// echo (rules/echo.go, kw:Echo): the pay-or-sacrifice election of a
+	// resolving echo keyword trigger. Same plain-data class as the two
+	// above; Clone-copied.
+	echo *echoFlow
 
 	// wardMana holds a CR 702.21a mana-payment window while a Ward trigger
 	// is resolving. It is plain data so Clone preserves the suspended choice.

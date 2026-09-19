@@ -115,9 +115,10 @@ const (
 	APIUntapAll              APICode = 72
 	APIVote                  APICode = 73
 	APIWard                  APICode = 74
+	APIEcho                  APICode = 75
 
 	// APICodeCount includes the zero/unknown slot and sizes dense dispatch.
-	APICodeCount = 75
+	APICodeCount = 76
 )
 
 // APICodeForName returns the stable opcode for an engine-owned effect API.
@@ -178,6 +179,8 @@ func APICodeForName(api string) APICode {
 		return APIDiscard
 	case "Draw":
 		return APIDraw
+	case "Echo":
+		return APIEcho
 	case "Effect":
 		return APIEffect
 	case "Encore":

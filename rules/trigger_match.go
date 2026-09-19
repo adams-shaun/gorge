@@ -1142,6 +1142,15 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.landPlayedMatches(t, source, ev)
 	case "Phase":
 		matched = e.phaseMatches(t, source, ev)
+		// kw:Echo (CR 702.35a) rides the Echo$ True marker on its generated
+		// keyword trigger the way Annihilator$ rides its own: the intervening-if
+		// must suppress the trigger BEFORE it stacks (a stacked-but-owed-nothing
+		// echo is an observable divergence). The gate reads the object's
+		// control-acquisition tuple (rules/echo.go) against the controller's
+		// most recent upkeep.
+		if matched && t.Params["Echo"] == "True" {
+			matched = e.echoGateHolds(source)
+		}
 	case "Always":
 		// CR 603.8 state trigger: the event under test is irrelevant; the
 		// trigger fires when its condition holds (see triggerConditionHolds)

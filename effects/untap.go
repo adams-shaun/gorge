@@ -15,6 +15,11 @@ func init() {
 	// ability resolves; registration keeps the expanded face's primitive set
 	// supported and the no-engine effects fallback harmless.
 	Register("CumulativeUpkeep", func(Host, *Ctx, *cards.SA) {})
+	// kw:Echo (CR 702.35a): same shape — rules intercepts the keyword
+	// expansion's DB$ Echo body while its triggered ability resolves
+	// (rules/echo.go); the stub keeps the expanded face's primitive set
+	// supported and the no-engine effects fallback harmless.
+	Register("Echo", func(Host, *Ctx, *cards.SA) {})
 }
 
 // TryUntap is the shared CR 122.1d event proposal for effects and the untap
