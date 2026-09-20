@@ -1627,6 +1627,14 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	answered := c.Votes
 	c.Votes = nil
 	counts := make([]int, len(choices))
+	// picks records each voter's answered option index (-1: an out-of-range
+	// answer, i.e. a vote for nothing) so the canonical vote-finished Note's
+	// same/diff split below reads the votes that were actually cast -- the
+	// same data the tally uses, never a second answer source.
+	picks := make([]int, len(voters))
+	for i := range picks {
+		picks[i] = -1
+	}
 	for i, t := range voters {
 		choice := 0
 		if answered != nil && i < len(answered) {
@@ -1636,6 +1644,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		if choice >= 0 && choice < len(choices) {
 			label = choices[choice]
 			counts[choice]++
+			picks[i] = choice
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}
@@ -1655,6 +1664,11 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
 		Resolve(h, c, sub)
 	}
+	// The canonical vote-finished carrier (trig:Vote, effects/vote.go):
+	// emitted AFTER the winning outcome resolved -- the vote (outcome
+	// included) finishes, then "whenever players finish voting" sees it.
+	same, diff := voteSameDiff(h.Game(), c.Controller, voters, picks)
+	emitVoteFinished(h, c, same, diff)
 }
 
 // voteWinner returns the index of the highest count and whether that count is
@@ -1719,7 +1733,9 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	}
 	counts := map[state.ObjID]int{}
 	max := 0
-	for _, t := range Defined(h, c, sa) {
+	voters := Defined(h, c, sa)
+	picks := make([]int, len(voters))
+	for i, t := range voters {
 		label := "nothing"
 		if len(options) > 0 {
 			if o := g.Obj(options[0]); o != nil && o.Face() != nil {
@@ -1729,6 +1745,9 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 			if counts[options[0]] > max {
 				max = counts[options[0]]
 			}
+			picks[i] = 0
+		} else {
+			picks[i] = -1
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}
@@ -1744,6 +1763,18 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 			Resolve(h, c, resolved)
 		}
 	}
+	// The canonical vote-finished carrier (trig:Vote, effects/vote.go),
+	// emitted after VoteSubAbility$ ran -- the same after-the-vote point the
+	// fixed-list shape emits at. The deterministic stand-in gives every voter
+	// the ballot's FIRST option, so with the caster among the voters (the
+	// corpus's Defined$ shapes put it there) every voting opponent voted for
+	// a choice the caster voted for: the same set is every voting opponent
+	// and the diff set is empty. A vote with no ballot option at all (an
+	// empty battlefield) had nobody vote for anything, so both sets are
+	// empty -- the trigger still fires and its same/diff bodies act on
+	// nobody, the same always-fire reading the fixed-list shape takes.
+	same, diff := voteSameDiff(g, c.Controller, voters, picks)
+	emitVoteFinished(h, c, same, diff)
 }
 
 // effBecomeMonarch records the game-level designation as an event so a

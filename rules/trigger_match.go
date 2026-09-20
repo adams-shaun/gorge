@@ -1526,6 +1526,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.damagePreventedMatches(t, source, ev)
 	case "FlippedCoin":
 		matched = e.flippedCoinMatches(t, source, ev)
+	case "Vote":
+		matched = e.voteMatches(t, source, ev)
 	case "Drawn":
 		matched = e.drawnMatches(t, source, ev)
 	case "LifeLost", "LifeLostAll":
@@ -3627,6 +3629,24 @@ func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev 
 	return true
 }
 
+// voteMatches implements Mode$ Vote (trig:Vote): the trigger fires on the
+// canonical vote-finished Note both api:Vote shapes emit (effects/vote.go),
+// the same carrier-event shape trig:FlippedCoin fires on. List$ is the
+// REFERENT SCOPE, not the firing condition: "Whenever players finish voting"
+// (Erestor of the Council, Model of Unity, Grudge Keeper -- the whole corpus
+// population) has no intervening-if, so the trigger fires whenever a vote
+// finishes, with an empty List$ set simply meaning its referents resolve to
+// nobody (Grudge Keeper stacks, its diff set is empty, and its body acts on
+// nobody). The capture side (triggerReferents' Vote case) applies List$ when
+// it binds the sets, so a body reading a spelling its own List$ does not name
+// gets the empty set -- the parameter is read, never silently inert.
+func (e *Engine) voteMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if _, _, _, ok := effects.VoteFinishedResult(ev); !ok {
+		return false
+	}
+	return true
+}
+
 func (e *Engine) flippedCoinMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	flipper, win, ok := effects.FlipNoteResult(ev)
 	if !ok {
@@ -4393,6 +4413,7 @@ func init() {
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
+		"trig:Vote",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",

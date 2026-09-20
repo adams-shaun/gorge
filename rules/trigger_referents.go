@@ -168,6 +168,23 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerSource = ev.Obj
 		c.TriggerMana = ev.Counter
 		c.TriggerAmount = ev.Amount
+	case "Vote":
+		// The canonical vote-finished carrier (effects/vote.go): the two
+		// List$ opponent sets ride the Note as player refs (IDs = same,
+		// Pairs = diff) and are bound here so the resolution-time spellings
+		// -- Defined$ TriggeredOpponentVotedSame/TriggeredOpponentVotedDiff
+		// and the count ref TriggeredPlayersOpponentVotedDiff$Amount -- read
+		// the sets long after the event, from this per-stack capture. List$
+		// gates the BINDING (the referent scope, never the firing -- see
+		// voteMatches): a spelling whose List$ does not name it binds empty.
+		if _, same, diff, ok := effects.VoteFinishedResult(ev); ok {
+			if listAdmits(t.Params["List"], "OppVotedSame") {
+				c.TriggeredOpponentsVotedSame = same
+			}
+			if listAdmits(t.Params["List"], "OppVotedDiff") {
+				c.TriggeredOpponentsVotedDiff = diff
+			}
+		}
 	}
 	// CR 107.3m binds X when the trigger fires, not when it resolves. In
 	// particular, an ETB trigger may remain on the stack after its permanent
@@ -184,6 +201,22 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerConverge = card.ConvergeColours
 	}
 	return c
+}
+
+// listAdmits reports whether a trigger's List$ scope admits one referent
+// token: an absent (or empty) List$ names every set, a present one must name
+// the token among its comma entries. Shared by the Vote capture only today.
+func listAdmits(list, token string) bool {
+	list = strings.TrimSpace(list)
+	if list == "" {
+		return true
+	}
+	for _, part := range strings.Split(list, ",") {
+		if strings.TrimSpace(part) == token {
+			return true
+		}
+	}
+	return false
 }
 
 // abilityCastStackObject is the fire-time twin of effects.changeXAbilityObject's

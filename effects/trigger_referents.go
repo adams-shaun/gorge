@@ -101,6 +101,19 @@ type TriggerContext struct {
 	// serialized into events.Event -- the per-stack-instance capture is
 	// rebuilt by the same replay re-derivation as TriggerPaidX/TriggerConverge.
 	TriggerBlocker state.ObjID
+	// TriggeredOpponentsVotedSame / TriggeredOpponentsVotedDiff are the two
+	// List$ opponent sets the canonical vote-finished carrier (effects/
+	// vote.go) encodes: the vote caster's opponents who voted for a choice
+	// the caster voted for / for a different one, in voter order. Captured
+	// by rules/trigger_referents' Vote case; the Defined$ spellings
+	// TriggeredOpponentVotedSame/TriggeredOpponentVotedDiff and the count
+	// ref TriggeredPlayersOpponentVotedDiff$Amount read them at resolution,
+	// long after the event. Not serialized into events.Event -- the sets
+	// live ON the carrier Note (IDs/Pairs) and the per-stack capture is
+	// rebuilt by the same replay re-derivation as TriggerPaidX/
+	// TriggerConverge. Both empty outside a Vote capture.
+	TriggeredOpponentsVotedSame []state.PlayerID
+	TriggeredOpponentsVotedDiff []state.PlayerID
 }
 
 // TriggeredCardController is the one resolver for "that card's controller"
