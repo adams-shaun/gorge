@@ -301,6 +301,53 @@ Two lessons, both now in `bot-l9b-fix-rank-collapse`:
 The teacher itself remains +5.8pp; nothing here disputes that. What is
 unproven is that a cheap scorer can absorb it.
 
+## Reference pass 2 (2026-09-20) — why the scorer collapsed, and what the field does
+
+Sources checked this round (V = read at source):
+
+- **LOCM PIMC distillation, arXiv 2609.06816** [V] — the closest published
+  analogue: PIMC over sampled opponent worlds, distilled into a network. They
+  train the policy head with **plain cross-entropy on the single action the
+  teacher chose** (not value regression), and report imitation alone recovers
+  most of the teacher's strength. They also keep search at decision time,
+  where it adds a further **+24.6pp** over the greedy network.
+- **Ranking-distillation collapse, arXiv 2505.21058** [V] — names our exact
+  pathology: when the teacher's within-group scores carry too little entropy,
+  the objective is trivially satisfied and training collapses.
+- **ADPO, arXiv 2510.18913** [V] — pointwise regression on absolute scores
+  "smears" probability and is fragile; group-relative (advantage) targets are
+  the stable form.
+- **Residual policy learning, arXiv 2004.05097** [S] — learn a correction on
+  top of a frozen base policy; the standard answer when the base is already
+  right most of the time (here: 74.5%).
+- **CRR / AWR** [S] — advantage-filtered imitation, i.e. weight the decisions
+  where the teacher actually disagreed.
+- **MageZero** [V] — updated since our April snapshot (commits through
+  2026-09-16; open issues #3 on MCTS/inference hot paths and #4 on hardening
+  search semantics). It gates gradients to one policy head per decision type
+  over a shared trunk, and documents no legal-action masking or visit-count
+  normalisation.
+- **MTG-Causal-RL, arXiv 2605.06066** [V] — a masked fixed 478-action space
+  with PPO; evidence that fixed masked action spaces, not pointer scoring,
+  are the field default. Not search distillation.
+
+**Diagnosis, measured, not inferred.** The teacher's candidate values inside
+one decision differ by a median of 0.062 = exactly 1/16, one sampled world at
+K=16 (mean 0.138). The absolute-value target is therefore near-constant and
+noise-dominated, and its minimiser is "predict the decision's mean" — the
+collapse we measured. Queued as `bot-l9b-fix2-argmax-ce`: drop the value
+term, train pure argmax cross-entropy with log-sum-exp stability, and only
+then consider a residual-on-the-heuristic head.
+
+**Deliberately NOT doing** soft-distribution (temperature/KL) targets yet:
+with a one-world median spread the soft target degenerates toward uniform,
+which is the failure we are escaping.
+
+**Standing caveat from the same literature**: LOCM's search still beat its own
+distilled network by a wide margin at decision time. If the student cannot
+absorb the teacher, the fallback is to make the teacher cheaper (MageZero's
+own open issue #3 is exactly that) rather than to keep distilling.
+
 ## Parallel (unchanged, lower priority)
 
 AR8 combined-attacker lethal, block assignment, trace-family comparison
