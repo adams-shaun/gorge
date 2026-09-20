@@ -230,6 +230,31 @@ func TestDerivedColorsSkipsMalformedColourElements(t *testing.T) {
 	}
 }
 
+// TestSetColorStaticAmpersandListMakesWitnessProtectionBearerGreenWhite pins
+// the second list separator the corpus uses. Witness Protection carries
+// `SetColor$ Green & White` -- a " & " list, the same grammar the SAME
+// static line's `AddType$ Creature & Citizen` uses and rules' statList
+// already splits -- so the enchanted creature is green AND white, not the
+// printed blue. Before the shared parser learned " & ", "Green & White" was
+// one unrecognised word, the read failed closed, and the bearer kept its
+// printed colour (the review's MAJOR finding).
+func TestSetColorStaticAmpersandListMakesWitnessProtectionBearerGreenWhite(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	witness := mustCorpusCard(t, reg, "Witness Protection")
+	elemental := mustCorpusCard(t, reg, "Air Elemental") // a blue creature
+	e := corpusEngine(t, reg, []*cards.Card{witness, elemental}, []*cards.Card{})
+
+	bearer := moveByName(t, e, 0, "Air Elemental", state.ZBattlefield)
+	if got := e.Colors(bearer); got != "U" {
+		t.Fatalf("Air Elemental colours before Witness Protection = %q, want \"U\"", got)
+	}
+	attachCorpusAura(t, e, 0, witness, bearer)
+
+	if got := e.Colors(bearer); got != "WG" {
+		t.Fatalf("enchanted permanent colours under SetColor$ Green & White = %q, want \"WG\"", got)
+	}
+}
+
 // TestSetColorStaticMakesImprisonedBearerColourless is the brief's card pin:
 // Imprisoned in the Moon's `SetColor$ Colorless` static is a layer-5 colour
 // SET, so the enchanted permanent's derived colours become the empty set (it
