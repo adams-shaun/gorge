@@ -56,15 +56,19 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	// The ability's own ReduceCost$ (Otawara's Channel): the same fold the
 	// offer gate in rules/legal.go applied, so the charge and the gate agree
 	// (CR 601.2f — a reduction applied to the stored cost exactly once).
-	if n := e.ownReduceCost(p, opt.Obj, ab); n > 0 {
-		if cost.Generic >= n {
-			cost.Generic -= n
+	// Targets do not exist yet (CR 601.2c runs after this), so a
+	// target-dependent body reads 0 here; repriceForTargets re-runs the
+	// evaluation with the answered targets and net-adjusts pc.ownReduce.
+	own := e.ownReduceCost(p, opt.Obj, ab, nil)
+	if own > 0 {
+		if cost.Generic >= own {
+			cost.Generic -= own
 		} else {
 			cost.Generic = 0
 		}
 	}
 	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: opt.Ability,
-		cost: cost, mods: mods}
+		cost: cost, mods: mods, ownReduce: own}
 	// TargetsWithSameController$ True (Lodestone Bauble): the pairwise
 	// same-owner constraint rides the transaction into handleTarget's
 	// Submit-time validator (the offered option list spans every player's

@@ -819,10 +819,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// OptionalDecider$ on "you may draw cards ... If you do, discard that
 	// many"): the yes answer re-enters here and pays the draw through the
 	// same window, rather than running the body for free.
+	//
+	// trigcost1: the shape test is the shared broadened gate
+	// (triggerBodyNeedsCostWindow -- any non-Mandatory Cost$ except Mana /
+	// CopySpellAbility), so a Kalastria Highborn `Cost$ B` pays through this
+	// arm instead of executing free. CopySpellAbility keeps its own
+	// event-role disjunct below.
 	tc := e.triggerContexts[rp.obj]
-	armed := rp.kind == "optional" && rp.sa != nil && rp.sa.Params["Cost"] != "" &&
-		(rp.sa.API == "Untap" ||
-			len(e.parseCost(rp.sa.Params["Cost"]).Draw) > 0 ||
+	armed := rp.kind == "optional" && rp.sa != nil &&
+		(e.triggerBodyNeedsCostWindow(rp.sa) ||
 			// abcopy1: an OptionalDecider$ copy trigger's AB$ CopySpellAbility
 			// with a real Cost$ (Rings of Brighthearth, Battlemages' Bracers,
 			// Mirari) pays through the same window whenever the trigger context
@@ -830,13 +835,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// the spell-cast arm's TriggerCard (a SpellCast fires on PutOnStack,
 			// whose Obj IS the cast spell; no ability wrapper is minted). Only
 			// a context-less synthetic push keeps the free-executor semantics.
-			(rp.sa.API == "CopySpellAbility" && (tc.TriggerAbility != 0 || tc.TriggerCard != 0)) ||
-			// The dynamic tapXType heads (tapXType<X/Spec>, tapXType<Any/Spec> --
-			// Myr Battlesphere's "you may tap X untapped Myr"): the tap election
-			// is the payment and the decline is the empty election, the same
-			// "you may pay; when you do" idiom the Untap/ImmediateTrigger shapes
-			// route through this window.
-			costCarriesDynTap(e.parseCost(rp.sa.Params["Cost"])))
+			(rp.sa.API == "CopySpellAbility" && rp.sa.Params["Cost"] != "" &&
+				(tc.TriggerAbility != 0 || tc.TriggerCard != 0)))
 	if armed {
 		e.startTriggeredEffectCost(rp, ctx.Source)
 		return
@@ -1065,6 +1065,23 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// ChooseType below poses its own ask.
 			if len(chosen) > 0 {
 				ctx.ChosenType = chosen[0].Label
+			}
+		case "taporuntap":
+			// A TapOrUntap's tap-vs-untap election (api:TapOrUntap, Merrow
+			// Reejerey / Twiddle) was answered. Each offered option carries the
+			// target it elected for in Obj and its choice in Kind ("tap" or
+			// "untap"), so the answer is read straight off option 0. An empty or
+			// malformed answer still sets the Done marker (the effect's Min 1/
+			// Max 1 ask always has a legal single-option answer, so an empty one
+			// is malformed, never a decline) and degrades to "tap" with no target
+			// named — the conservative read, which the re-entered effect applies
+			// to its first pending target. The effect consumes and clears all
+			// three fields at the point of application (fx42 scoping), so a
+			// later target poses its own ask.
+			ctx.TapOrUntapDone = true
+			if len(chosen) > 0 {
+				ctx.TapOrUntapObj = chosen[0].Obj
+				ctx.TapOrUntap = chosen[0].Kind
 			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep

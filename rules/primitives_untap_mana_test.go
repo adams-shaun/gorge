@@ -817,7 +817,17 @@ func TestPhyrexianSoulgorgerPaysCumulativeUpkeepWithAChosenCreature(t *testing.T
 	}
 }
 
-func TestUnrelatedTriggeredEffectCostIsNotIntercepted(t *testing.T) {
+// TestTriggerBodyCostDeclineOnlyOnMandatoryTrigger (trigcost1) replaces the
+// old TestUnrelatedTriggeredEffectCostIsNotIntercepted, which pinned the
+// pre-ticket free-executor semantics: every trigger body whose API was not in
+// the Untap/ImmediateTrigger/Draw allowlist ran its effect WITHOUT charging
+// its Cost$. Forge's `Cost$ <cost>` on a trigger body is the "you may pay
+// <cost>. If you do, ..." idiom, so the widened gate routes Keldon Raider's
+// mandatory ETB body (`AB$ Draw | Cost$ Discard<1/Card>`) through the same
+// window: the Discard component is unpriceable, so the window poses a
+// DECLINE-ONLY ask (never a free execution, never a zero-amount payment),
+// and the decline leaves the body unexecuted (no draw, no discard).
+func TestTriggerBodyCostDeclineOnlyOnMandatoryTrigger(t *testing.T) {
 	const keldonRaiderScript = "Name:Keldon Raider\nManaCost:2 R R\nTypes:Creature Human Warrior\nPT:4/3\n" +
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDiscard | TriggerDescription$ When CARDNAME enters, you may discard a card. If you do, draw a card.\n" +
 		"SVar:TrigDiscard:AB$ Draw | Cost$ Discard<1/Card>\nOracle:x\n"
@@ -828,11 +838,22 @@ func TestUnrelatedTriggeredEffectCostIsNotIntercepted(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: raider.ID, From: state.ZHand, To: state.ZBattlefield})
 	e.putTriggersOnStack()
 	e.resolveTop()
-	if e.triggerCost != nil || e.Pending() != nil && e.Pending().Prompt == "Keldon Raider — pay Discard<1/Card>?" {
-		t.Fatalf("unrelated Draw Cost$ entered Mana Vault's payment window: %+v", e.Pending())
+	d := e.Pending()
+	if d == nil || len(d.Options) != 1 || d.Options[0].Kind != "trigger_cost_decline" {
+		t.Fatalf("Keldon Raider's Cost$ body did not open a decline-only window: %+v", d)
 	}
-	if got := len(e.G.Zone(state.ZHand, 0)); got != 1 {
-		t.Fatalf("Keldon Raider's established trigger execution drew %d cards, want 1", got)
+	mark := len(e.L.Events)
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	passUntilStackEmpty(t, e, 20)
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.Draw {
+			t.Fatalf("a declined Cost$ body still drew: %+v", ev)
+		}
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != 0 {
+		t.Fatalf("hand holds %d cards after the declined body, want the untouched 0", got)
 	}
 }
 

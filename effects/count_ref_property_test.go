@@ -42,10 +42,19 @@ func TestRefPropertyCounts(t *testing.T) {
 		// unknown predicates inside the spec fail closed (never match).
 		{"Remembered$Valid Creature", 1},
 		{"Remembered$Valid NonexistentType", 0},
+		// AllTargeted$ binds this engine's Ctx.Targets (the root SA's chosen
+		// targets) -- the faithful-as-available reading of Forge's whole-chain
+		// union, whose sub-ability targets this engine defers to resolution
+		// (AGENTS.md's Known approximations). Rows share Targeted's fixture.
+		{"AllTargeted$CardPower", 3 + 2 + 1},
+		{"AllTargeted$CardManaCost", 2},
+		{"AllTargeted$Valid Creature.powerLE3", 1}, // Dork (1) matches, Ox (5) does not
+		{"AllTargeted$CardPower/Twice", (3 + 2 + 1) * 2},
 		// An unknown ref or property stays zero (the conservative no-op), and
 		// a /Op suffix applies through the ordinary arithmetic.
 		{"Remembered$ChromaSource", 0},
 		{"TriggeredTarget$LifeTotal", 0},
+		{"UnknownRef$CardPower", 0},
 		{"Targeted$CardPower/Twice", (3 + 2 + 1) * 2},
 	} {
 		if got := EvalCount(h, c, tc.expr); got != tc.want {

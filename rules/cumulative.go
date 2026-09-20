@@ -175,9 +175,48 @@ func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.S
 	e.cumulativePaymentAsk()
 }
 
+// triggerBodyNeedsCostWindow reports whether a trigger effect (or an accepted
+// optional trigger's body) found through findTriggerForAbility must enter the
+// triggered-cost pay/decline window (startTriggeredEffectCost) BEFORE its
+// body runs, rather than executing for free. Forge's `Cost$ <cost>` on a
+// trigger body is the "you may pay <cost>. If you do, ..." idiom, so ANY
+// non-Mandatory Cost$ arms the window -- not just the Untap / ImmediateTrigger /
+// Draw / dyn-tap shapes the original allowlist served. The window itself keeps
+// the split: a Priceable cost (plain mana, fixed PayLife<N>) offers a real
+// "pay"; everything else lands decline-only (the ParseUnlessCost hard-decline
+// convention -- never a free execution, never a zero-amount payment).
+//
+// Carve-outs, each deliberate:
+//   - API Mana: mana abilities have their own activation path.
+//   - API CopySpellAbility: its window arming needs the trigger context's
+//     event role (TriggerAbility/TriggerCard -- a context-less synthetic push
+//     keeps the free-executor semantics), so the call sites arm it separately.
+//   - a `Mandatory` cost prefix: the mandatory family (Cost$ Mandatory
+//     Sac<1/CARDNAME>, PayLife<X>, Exile<...>) is NOT the pay idiom -- its
+//     payment is a real non-mana settle rules does not yet run -- and the
+//     window could only offer decline-only, which for a mandatory payment
+//     would be the WORSE regression (the body would never run AND the payment
+//     would never happen). Those bodies keep the established free-executor
+//     semantics (follow-up ticket), EXCEPT the shapes the existing gate
+//     already served: the Untap/ImmediateTrigger APIs and the dynamic
+//     tapXType election (yotia_declares_war's "Mandatory tapXType<X/Artifact>")
+//     -- the tap election is the payment there, so the window stays right.
+func (e *Engine) triggerBodyNeedsCostWindow(sa *cards.SA) bool {
+	if sa == nil || sa.Params["Cost"] == "" || sa.API == "Mana" || sa.API == "CopySpellAbility" {
+		return false
+	}
+	if !strings.HasPrefix(sa.Params["Cost"], "Mandatory") {
+		return true
+	}
+	return sa.API == "Untap" || sa.API == "ImmediateTrigger" ||
+		// The dynamic tapXType heads (rules/mana.go's dynTapCost): the tap
+		// election is the payment, the empty election the decline.
+		costCarriesDynTap(e.parseCost(sa.Params["Cost"]))
+}
+
 // startTriggeredEffectCost parks Mana Vault's triggered Untap before it runs
 // and opens the same mana-ability-only payment window used by mana cumulative
-// upkeep. Callers gate this helper on API == Untap.
+// upkeep. Callers gate this helper on triggerBodyNeedsCostWindow.
 func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 	o := e.G.Obj(rp.obj)
 	if o == nil || o.Zone != state.ZStack || rp.sa == nil {

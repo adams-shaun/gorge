@@ -1512,6 +1512,15 @@ func (e *Engine) resolveTop() {
 		// is the same "you may pay; when you do" idiom, and without the window
 		// the body ran for free and no draw happened. The window's pay arm
 		// settles the draw, the decline arm leaves the body unexecuted.
+		//
+		// trigcost1: the gate is no longer an API allowlist. ANY Cost$-bearing
+		// trigger body enters the window (Kalastria Highborn's `Cost$ B`,
+		// Elenda and Azor's `Cost$ PayLife<4>`, ...): Forge's Cost$ on a trigger
+		// body is the "you may pay; if you do" idiom, so a body that never asks
+		// executes for free. The window keeps the split -- Priceable cost offers
+		// a real pay, everything else lands decline-only. Mandatory-prefixed
+		// costs and Mana/CopySpellAbility bodies are carved out inside
+		// triggerBodyNeedsCostWindow.
 		if o.Ability.API == "CumulativeUpkeep" {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
@@ -1526,16 +1535,7 @@ func (e *Engine) resolveTop() {
 			return
 		}
 		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
-			o.Ability.Params["Cost"] != "" &&
-			(o.Ability.API == "Untap" || o.Ability.API == "ImmediateTrigger" ||
-				len(e.parseCost(o.Ability.Params["Cost"]).Draw) > 0 ||
-				// The dynamic tapXType heads (rules/mana.go's dynTapCost): the
-				// tap election is the payment, the empty election the decline
-				// -- the mandatory ImmediateTrigger carrier (yotia_declares_war's
-				// "Mandatory tapXType<X/Artifact>") and any future one pay
-				// through the same window instead of a free (or {1}-bought)
-				// body.
-				costCarriesDynTap(e.parseCost(o.Ability.Params["Cost"]))) {
+			e.triggerBodyNeedsCostWindow(o.Ability) {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}

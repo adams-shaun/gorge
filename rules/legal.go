@@ -495,7 +495,14 @@ func (e *Engine) sVarGateOK(p state.PlayerID, id state.ObjID, ab *cards.SA) bool
 // stored cost, so the two can never disagree. Because the read applies to
 // every non-mana activation, it joins the census's generic rules-side SA
 // set, not one api's.
-func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA) int32 {
+//
+// targets are the chosen targets, carried on the Ctx so a target-dependent
+// body (Raft Security Officer's AllTargeted$Valid Creature.powerLE3) can
+// resolve. The offer/projection sites pass nil — targets do not exist yet
+// at offer time, so a target-dependent reduction reads 0 there (full price,
+// fail closed) — and repriceForTargets re-runs the evaluation with the
+// answered targets at CR 601.2c, before CR 601.2h pays.
+func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA, targets []state.Target) int32 {
 	v := strings.TrimSpace(ab.Params["ReduceCost"])
 	if v == "" {
 		return 0
@@ -514,7 +521,7 @@ func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA) i
 	if b, ok := o.Face().SVars[v]; ok {
 		body = b
 	}
-	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars, Targets: targets}
 	if n, ok := effects.EvalCountOK(e, ctx, body); ok && n > 0 {
 		return n
 	}
@@ -1718,7 +1725,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// The ability's own ReduceCost$ (Otawara's Channel): the CR
 				// 601.2f composition the offer gate and beginActivation's
 				// charge share, so an offered cost and the paid one agree.
-				if n := e.ownReduceCost(p, id, ab); n > 0 && cost.Generic >= n {
+				if n := e.ownReduceCost(p, id, ab, nil); n > 0 && cost.Generic >= n {
 					cost.Generic -= n
 				} else if n > 0 {
 					cost.Generic = 0
@@ -1791,7 +1798,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			cost := e.parseCost(ab.Params["Cost"])
 			// The granted twin of the printed loop's own ReduceCost$ fold.
-			if n := e.ownReduceCost(p, id, ab); n > 0 && cost.Generic >= n {
+			if n := e.ownReduceCost(p, id, ab, nil); n > 0 && cost.Generic >= n {
 				cost.Generic -= n
 			} else if n > 0 {
 				cost.Generic = 0

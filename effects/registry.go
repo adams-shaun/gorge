@@ -210,6 +210,15 @@ type Host interface {
 	// your commanders' color identity"); an empty identity (no commander,
 	// or a colourless one) is a real, resolvable 0.
 	CommanderIdentityColourCount(p state.PlayerID) int
+	// RevoltHolds reports CR 702.38's ability-word state: a permanent the
+	// controller CONTROLLED (not owned) left the battlefield this turn. This
+	// is the bare `Condition$ Revolt` gate (Decommission's DB$ GainLife) and
+	// the Count$Revolt.<yes>.<no> branch head (Lifecraft Cavalry's etbCounter
+	// gate, Fatal Push's destroy bound) backing; rules.Engine implements it
+	// as the same revoltThisTurn event-log scan its own replacement/trigger
+	// Revolt$ clauses read, so every spelling answers identically and a
+	// replay derives it from the log like the other this-turn helpers.
+	RevoltHolds(p state.PlayerID) bool
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
@@ -928,6 +937,19 @@ type Ctx struct {
 	// Consumed and cleared before the draw loop, so a nested optional draw
 	// in the same walk poses its own ask (fx42 scoping).
 	DrawOpt string
+	// TapOrUntap is the answered mid-resolution TapOrUntap election
+	// (api:TapOrUntap): the kind of the chosen option, "tap" or "untap". ""
+	// on the first pass, where effTapOrUntap poses the ask (or, when the host
+	// cannot ask, applies option 0 — the state-changing choice — silently,
+	// the R-9 stand-in). TapOrUntapObj is the target the answer was elected
+	// for (read off the answered option's Obj), and TapOrUntapDone is the
+	// answered marker: the ask's two options are both always legal, so the
+	// answered state cannot be inferred from the answer alone. Consumed and
+	// cleared at the point of application (fx42 scoping), so a later target
+	// poses its own ask and a nested TapOrUntap cannot inherit the answer.
+	TapOrUntap     string
+	TapOrUntapObj  state.ObjID
+	TapOrUntapDone bool
 	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
 	// resolution just made (effects/dice.go), under the SVar name its
 	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's
