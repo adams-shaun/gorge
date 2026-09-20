@@ -56,6 +56,10 @@ type triggeredEffectCost struct {
 	amount     Cost
 	costLabel  string
 	windowDone bool
+	// tapIdx is the next unsettled dynamic tapXType part (rules/mana.go's
+	// dynTapCost heads) of amount: the tap election is this window's payment
+	// for those parts, and the index keeps a multi-part cost asking in order.
+	tapIdx int
 }
 
 // scaleCost repeats every mana/life payment component once per age counter.
@@ -448,6 +452,31 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	if tc == nil {
 		return
 	}
+	// The dynamic tapXType heads (tapXType<X/Spec>, tapXType<Any/Spec>): the
+	// tap election IS their payment, so the window poses it directly instead
+	// of the pay/decline ask. It opens only when the non-tap rest is an EMPTY
+	// payment -- the corpus's dyn-tap trigger costs are all tap-only, and a
+	// cost that also charges mana or life alongside the election would
+	// otherwise risk a partially paid commitment -- anything else keeps the
+	// decline-only ask below (the ParseUnlessCost hard-decline convention).
+	// An empty election answer is the decline: tapping nothing does not pay
+	// an Any-form cost, and an X-form cost paid with zero taps runs a body
+	// scaled only by X at 0 -- the outcome a decline gives without emitting
+	// the no-op body's events.
+	if costCarriesDynTap(tc.amount) {
+		rest := withoutDynTaps(tc.amount)
+		if rest.Priceable() && !rest.hasManaPayment() && rest.Life == 0 && rest.Snow == 0 {
+			if e.paymentManaAsk(tc.player, tc.source, rest, tc.windowDone,
+				"Activate mana abilities to pay "+tc.costLabel, chooseTriggeredCost) {
+				return
+			}
+			if part, ok := e.nextDynTapPart(tc); ok {
+				e.triggeredTapAsk(tc, part)
+			}
+			return
+		}
+		// fall through: the unpayable-cost decline-only ask below
+	}
 	if e.paymentManaAsk(tc.player, tc.source, tc.amount, tc.windowDone,
 		"Activate mana abilities to pay "+tc.costLabel, chooseTriggeredCost) {
 		return
@@ -578,10 +607,18 @@ func (e *Engine) finishCumulative() {
 
 func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 	tc := e.triggerCost
-	if tc == nil || len(chosen) == 0 {
+	if tc == nil {
 		return
 	}
 	e.choosing = chooseNone
+	if len(chosen) == 0 {
+		// The empty answer of the Min-0 tap election (the dynamic tapXType
+		// window) is the decline: tapping nothing pays nothing. A Min-0 KChoose
+		// elsewhere (Dig's take-none) answers the same way, and the guard this
+		// branch replaces would have dropped the answer and wedged the window.
+		e.triggeredCostDecline(tc)
+		return
+	}
 	switch chosen[0].Kind {
 	case "activate":
 		e.activatePaymentMana(tc.player, chosen[0].Obj)
@@ -589,6 +626,9 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 	case "done":
 		tc.windowDone = true
 		e.triggeredCostPaymentAsk()
+		return
+	case "trigger_cost_tap":
+		e.triggeredTapAnswer(tc, chosen)
 		return
 	}
 	paid := false
@@ -621,12 +661,96 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		e.resumeResolution(rp, nil)
 		return
 	}
+	e.triggeredCostDecline(tc)
+}
+
+// triggeredCostDecline completes a declined window: the body never runs, and
+// the continuation is the outer frame when one is parked or the plain
+// resolution completion (the tail the decline option's answer has always
+// taken).
+func (e *Engine) triggeredCostDecline(tc *triggeredEffectCost) {
+	rp := tc.resume
+	e.triggerCost = nil
 	if rp.outer != nil {
 		e.resumeResolution(rp.outer, nil)
 		return
 	}
 	e.finishResumption(rp.obj)
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+}
+
+// nextDynTapPart returns the next unsettled dynamic tapXType part of the
+// window's cost.
+func (e *Engine) nextDynTapPart(tc *triggeredEffectCost) (CostPart, bool) {
+	dyn := dynTapParts(tc.amount)
+	if tc.tapIdx >= len(dyn) {
+		return CostPart{}, false
+	}
+	return dyn[tc.tapIdx], true
+}
+
+// triggeredTapAsk poses one dynamic tapXType part's tap election: a KChoose
+// over the untapped permanents matching the part's spec, Min 0 (the empty
+// answer is the decline), Max the candidate count. An X-form part's answered
+// count is the cost's announced {X} (rules/mana.go's dynTapCost doc); the
+// body the window then runs reads it through the resume point (rp.tapPaidX).
+func (e *Engine) triggeredTapAsk(tc *triggeredEffectCost, part CostPart) {
+	candidates := e.costCandidates(tc.player, tc.source, state.ZBattlefield, part.Spec, false, true)
+	if len(candidates) == 0 {
+		// No eligible permanent: an X-form election could only announce 0 and
+		// an Any-form part is not payable at all -- both are the decline, and
+		// a decision nobody could answer differently is never emitted (the
+		// strict-supersets convention).
+		e.triggeredCostDecline(tc)
+		return
+	}
+	name := "triggered ability"
+	if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	d := &decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 0, Max: len(candidates),
+		Prompt: name + " — " + tc.costLabel, Source: tc.source}
+	for _, id := range candidates {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "trigger_cost_tap", Obj: id, Label: e.targetName(id)})
+	}
+	e.choosing = chooseTriggeredCost
+	e.ask(d)
+}
+
+// triggeredTapAnswer settles one tap election: the chosen permanents tap
+// (the Tap events every other cost tap takes), and when every dynamic part
+// of the cost has settled the window's payment is complete and the parked
+// body resumes with the X-form count bound. The window is synchronous -- no
+// priority pass runs between its asks -- so the chosen objects cannot have
+// moved; the zone guard is the same read the cumulative actions take.
+func (e *Engine) triggeredTapAnswer(tc *triggeredEffectCost, chosen []decision.Option) {
+	dyn := dynTapParts(tc.amount)
+	idx := tc.tapIdx
+	if idx >= len(dyn) {
+		return
+	}
+	part := dyn[idx]
+	for _, o := range chosen {
+		if ob := e.G.Obj(o.Obj); ob != nil && ob.Zone == state.ZBattlefield {
+			e.emit(events.Event{Kind: events.Tap, Obj: o.Obj, Text: "tapped as a cost"})
+		}
+	}
+	rp := tc.resume
+	paidX := int32(0)
+	if part.Dyn == "X" {
+		paidX = int32(len(chosen))
+	}
+	tc.tapIdx++
+	if tc.tapIdx < len(dyn) {
+		e.triggeredCostPaymentAsk()
+		return
+	}
+	e.triggerCost = nil
+	if paidX != 0 {
+		rp.tapPaidX = paidX
+	}
+	rp.kind = "effect_paid"
+	e.resumeResolution(rp, nil)
 }
 
 func init() {
