@@ -778,6 +778,12 @@ var flagNames = [...]struct {
 	// unfiltered total. Appended at the end per the table's own ordering
 	// rule.
 	{"manasnowspent", state.FlagManaSnowSpent},
+	// The DB$ Play ReplaceGraveyard$ Exile rider (task replplay1): the Play
+	// SA's own provenance stamps its pay-time CastInfo with this flag, so
+	// spellRestZone/spellFizzleZone send the played card to exile instead
+	// of the graveyard. Appended at the end per the table's own ordering
+	// rule.
+	{"replacegraveyard", state.FlagReplaceGraveyard},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

@@ -66,6 +66,13 @@ type pendingCast struct {
 	// threading "mana of any type" through the same window and payment.
 	mayPlayIgnoreType bool
 
+	// replaceGraveyard is the Play SA's ReplaceGraveyard$ Exile rider
+	// (task replplay1): the played spell must not rest in the graveyard —
+	// payCast stamps state.FlagReplaceGraveyard onto the pay-time CastInfo
+	// and spellRestZone/spellFizzleZone read it. Per-SA provenance, so it
+	// rides pendingCast rather than the shared "play" mode.
+	replaceGraveyard bool
+
 	x     int32
 	xDone bool
 	// announceX is the alternative cost's Announce$ variable (the Shoal
@@ -1589,8 +1596,11 @@ func pricePlayCost(f *cards.Face, token string) (Cost, bool) {
 // only -- additional costs and cost modifiers ride exactly as an ordinary
 // cast's do (CR 118.9 / 601.2f). The card must still be on the stack of the
 // suspended Play resolution when this runs; a malformed answer degrades to a
-// logged no-op rather than panic.
-func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string) {
+// logged no-op rather than panic. replaceGraveyard carries the Play SA's
+// ReplaceGraveyard$ Exile rider (task replplay1): true stamps the played
+// spell's pay-time CastInfo with state.FlagReplaceGraveyard so the resolution
+// reader exiles it instead of the graveyard.
+func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string, replaceGraveyard bool) {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play found no card to play"})
@@ -1652,7 +1662,7 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	cost = converted
 	mods := e.costModifiers(p, id, spellScope(""))
 	e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "play", ability: -1,
-		cost: cost, mods: mods}
+		cost: cost, mods: mods, replaceGraveyard: replaceGraveyard}
 	e.collectETBChoices(p)
 	e.continueCast()
 }
@@ -5237,6 +5247,17 @@ func (e *Engine) payCast() {
 	flags := modeFlags(pc.mode)
 	if noCounter {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagNoCounter)
+	}
+	// DB$ Play's ReplaceGraveyard$ Exile rider (task replplay1): the played
+	// spell's provenance — "if that spell would be put into your graveyard
+	// this turn, exile it instead" — rides the same pay-time CastInfo every
+	// other mode flag uses. A free Play cast today satisfies neither the X
+	// gate nor a non-empty modeFlags above, so setting the bit is what makes
+	// the `flags != ""` emission arm below fire at all — exactly the event
+	// the resolution reader needs; a Play whose SA carries no rider keeps
+	// the byte-identical no-event shape.
+	if pc.replaceGraveyard {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagReplaceGraveyard)
 	}
 	// Replicate (CR 702.55a): the payment count rides the same pay-time
 	// CastInfo. modeFlags deliberately maps "replicated" to "" -- a DECLINED

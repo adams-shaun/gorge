@@ -165,6 +165,16 @@ const (
 	// FlagManaSpent's, so the two totals never share an event. Appended per
 	// the enum's own append-only precedent.
 	FlagManaSnowSpent
+	// FlagReplaceGraveyard marks a cast begun by a DB$ Play SA whose
+	// ReplaceGraveyard$ Exile rider says the played spell must not rest in
+	// the graveyard: "If that spell would be put into your graveyard this
+	// turn, exile it instead" (Goblin Dark-Dwellers). The provenance of a
+	// Play SA is cast-time (task replplay1), so the bit ORs into the same
+	// pay-time CastInfo every other mode flag rides, and the resolution
+	// reader spellRestZone (and the fizzle reader spellFizzleZone) uses it
+	// to send the played card to exile. Appended per the enum's own
+	// append-only precedent.
+	FlagReplaceGraveyard
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the

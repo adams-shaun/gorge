@@ -1812,7 +1812,7 @@ func (e *Engine) resolveTop() {
 // countered, so only this resolved-spell helper may return it to hand.
 func spellRestZone(o *state.Object) state.Zone {
 	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 ||
-		o.IsCopy || o.CastFlags&state.FlagAdventure != 0) {
+		o.IsCopy || o.CastFlags&state.FlagAdventure != 0 || o.CastFlags&state.FlagReplaceGraveyard != 0) {
 		return state.ZExile
 	}
 	if o != nil && o.CastFlags&state.FlagBuyback != 0 {
@@ -1825,7 +1825,8 @@ func spellRestZone(o *state.Object) state.Zone {
 // Harmonize and copies still use exile, but Buyback does not apply and the
 // card reaches its owner's graveyard.
 func spellFizzleZone(o *state.Object) state.Zone {
-	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy) {
+	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy ||
+		o.CastFlags&state.FlagReplaceGraveyard != 0) {
 		return state.ZExile
 	}
 	return state.ZGraveyard
