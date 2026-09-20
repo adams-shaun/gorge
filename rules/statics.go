@@ -7,6 +7,7 @@ package rules
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -1696,11 +1697,13 @@ func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Ta
 
 // costConditionHolds evaluates Condition$ on a cost-modifier static. The
 // implementable conditions: PlayerTurn / NotPlayerTurn (the caster is or is
-// not the active player — discontinuity's "During your turn") and Metalcraft
-// (three artifacts on the battlefield, evaluated through the Count$ machinery
-// so a replay derives it). An unimplementable condition (Delirium, Night)
-// DENIES: a conditional discount that silently always applies is a wrong
-// cost, the same fail-closed direction the ValidSpell$ shapes take.
+// not the active player -- discontinuity's "During your turn"), Metalcraft
+// (three artifacts on the battlefield, the shared metalcraftHolds read) and
+// Delirium (four or more distinct core card types in the caster's graveyard,
+// the shared graveyardCardTypeCount census -- drag_to_the_roots and its
+// cycle). An unimplementable condition (Night, Blessing) DENIES: a conditional
+// discount that silently always applies is a wrong cost, the same fail-closed
+// direction the ValidSpell$ shapes take.
 func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
 	cond, ok := sv.Params["Condition"]
 	if !ok {
@@ -1712,14 +1715,28 @@ func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
 	case "NotPlayerTurn":
 		return e.G.Active != p
 	case "Metalcraft":
-		o := e.G.Obj(sv.Source)
-		if o == nil {
-			return false
-		}
-		ctx := &effects.Ctx{Source: sv.Source, Controller: o.Controller, SVars: o.Face().SVars}
-		return effects.EvalCount(e, ctx, "Count$Valid Artifact.YouCtrl") >= 3
+		return e.metalcraftHolds(p)
+	case "Delirium":
+		// The same shared census the Continuous gate and the ability-offer
+		// gate (rules/legal.go's activationConditionOK) read.
+		return e.graveyardCardTypeCount(p) >= 4
 	}
 	return false
+}
+
+// metalcraftHolds is the shared Metalcraft read: three or more artifacts the
+// player controls, counted off the derived types so a layer-4 type grant is
+// seen (the same read rules/legal.go's activationConditionOK makes). Used by
+// the cost-modifier gate, the Continuous gate and any future condition reader
+// -- ONE census, so the three cannot drift apart.
+func (e *Engine) metalcraftHolds(p state.PlayerID) bool {
+	n := 0
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		if o := e.G.Obj(id); o != nil && slices.Contains(e.Derived(id).Types, "Artifact") {
+			n++
+		}
+	}
+	return n >= 3
 }
 
 // checkSVarHolds evaluates the CheckSVar$/SVarCompare$ intervening-if: the
