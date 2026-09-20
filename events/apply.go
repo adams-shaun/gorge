@@ -1696,10 +1696,11 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// here inside Apply keeps a log-only replay byte-identical with no
 		// new event. IsCopy is cleared at the same point: a resolved
 		// permanent copy is a token, not a CR 707.10h "copy that left the
-		// stack", and Ephemeral() treats ANY IsCopy object as
-		// ceased-to-exist regardless of zone -- without the clear the token
-		// would be skipped by every zone projection (view.cardViews,
-		// botpolicy combat) even though effects/filter.go's zone-aware
+		// stack" (the clear also keeps the cast-provenance readers, which
+		// gate on !IsCopy, reading a battlefield copy as never-cast). Note
+		// this clear is NOT what makes the resolved copy visible any more:
+		// state.Object.Ephemeral's IsCopy half is zone-aware and would show
+		// a battlefield copy regardless, and effects/filter.go's zone-aware
 		// CR 707.10h guard already matched it as a real permanent. A copy of
 		// an instant/sorcery never enters the battlefield, so its IsCopy and
 		// its exile rest zone are untouched.

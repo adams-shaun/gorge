@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
+	"github.com/adams-shaun/gorge/view"
 )
 
 // These tests pin task copyp1: the registered DB$ CopyPermanent primitive, on
@@ -236,6 +237,15 @@ func TestGrowingRanksPopulatesTheCreatureTokenYouControl(t *testing.T) {
 	}
 	if got := e.G.Obj(cid).Controller; got != 0 {
 		t.Fatalf("populated token controller = %d, want 0", got)
+	}
+	// The populated copy is a real battlefield permanent (CR 706.2):
+	// IsToken+IsCopy+ZBattlefield must not read as ephemeral, or the
+	// projection hides a token its controller controls.
+	if e.G.Obj(cid).Ephemeral() {
+		t.Fatalf("populated token %d reports Ephemeral(); a battlefield copy is a real permanent", cid)
+	}
+	if v := view.Project(e.G, nil, 0, nil); !viewShowsObject(v.Players[0].Battlefield, cid) {
+		t.Fatalf("populated token %d is missing from its controller's battlefield view", cid)
 	}
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "Populate$") {
