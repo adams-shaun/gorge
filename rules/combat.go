@@ -1630,19 +1630,31 @@ func (e *Engine) runCombatAssignments() {
 			prevented = ev.Kind != events.Damage
 			if !prevented {
 				dealt = ev.Amount
-				if e.format == FormatCommander && ev.Obj == 0 {
-					e.tallyCmdDamage(ev.Player, x.from, dealt)
+				// A damage-redirection replacement can rewrite this
+				// player-targeted event into a PERMANENT-targeted one
+				// (Protector of the Crown, Palisade Giant's `Affected$
+				// Self`/`Enchanted`/`Equipped` bodies): ev.Obj becomes the
+				// receiving permanent and ev.Player is zeroed. That is still
+				// a Damage event (so `prevented` is false), but NO player
+				// was dealt damage -- both the commander tally and the
+				// combat-hit ledger must skip it. Guarding on ev.Obj == 0
+				// also keeps recording a redirect that retargets TO a
+				// player (ev.Obj == 0, ev.Player = the new recipient).
+				if ev.Obj == 0 {
+					if e.format == FormatCommander {
+						e.tallyCmdDamage(ev.Player, x.from, dealt)
+					}
+					// The PlayerCountDefinedRegistered$HasPropertywasDealtCombatDam
+					// ageThisTurnBy ledger (effects.Host's
+					// CombatDamageToPlayersThisTurn): capture the LANDED hit with
+					// the dealing creature's stable *cards.Card face pointer, so a
+					// token that dies before the read point is still matchable.
+					// Engine-side and NO-EVENT -- a new event kind would move every
+					// chain head and diverge every stored log. Only the player
+					// branch records (the object branch above is untouched): the
+					// property is only ever read about players.
+					e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(ev.Player, x.from, dealt))
 				}
-				// The PlayerCountDefinedRegistered$HasPropertywasDealtCombatDam
-				// ageThisTurnBy ledger (effects.Host's
-				// CombatDamageToPlayersThisTurn): capture the LANDED hit with
-				// the dealing creature's stable *cards.Card face pointer, so a
-				// token that dies before the read point is still matchable.
-				// Engine-side and NO-EVENT -- a new event kind would move every
-				// chain head and diverge every stored log. Only the player
-				// branch records (the object branch above is untouched): the
-				// property is only ever read about players.
-				e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(ev.Player, x.from, dealt))
 			}
 		}
 		if x.hasLink && !prevented {

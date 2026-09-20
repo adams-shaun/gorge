@@ -153,11 +153,52 @@ func TestPlayerCountDefinedRegisteredCombatDamageProperty(t *testing.T) {
 		t.Errorf("RegisteredOpponents combat property = (%d, %v), want (1, true)", got, ok)
 	}
 
+	// A bare `Permanent` base reads the captured source's battlefield zone
+	// (the synthesized snapshot must carry Zone = ZBattlefield, or the base
+	// fails closed): the captured source dealt combat damage as a
+	// battlefield permanent.
+	h.combatHits = []CombatDamageHit{{Player: 1, Source: 7, Card: zombie, Controller: 1, Amount: 2}}
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy Permanent.Zombie GE1"); !ok || got != 1 {
+		t.Errorf("Permanent.Zombie GE1 = (%d, %v), want (1, true)", got, ok)
+	}
+
 	// An empty argument (the property with no spec at all) is unresolvable,
 	// never a match-everything.
 	h.combatHits = []CombatDamageHit{{Player: 1, Source: 7, Card: zombie, Controller: 1, Amount: 2}}
 	if got, ok := EvalCountOK(h, c, "Count$PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy"); ok {
 		t.Errorf("empty spec = (%d, %v), want unresolvable (0, false)", got, ok)
+	}
+}
+
+// TestPlayerCountDefinedRegisteredHasPropertyAcrossGroups pins the class
+// fix: the same HasPropertyLostLifeThisTurn property must resolve on the
+// Players$ and Opponents$ arms too (reapers_scythe, strefan_maurer_progenitor,
+// belbe_corrupted_observer), not just the new group -- before the fix those
+// arms fell through to playerCountExtreme and reported (0, false), so the
+// property resolved on one sibling group and failed closed on another. It
+// also pins Forge's /Op suffix (belbe's /Twice) through applyCountOp.
+func TestPlayerCountDefinedRegisteredHasPropertyAcrossGroups(t *testing.T) {
+	h, c := fixtureHost(t) // 2 seats, controller 0
+	h.lifeLost = map[state.PlayerID]int32{0: 0, 1: 3}
+
+	for _, body := range []string{
+		"Count$PlayerCountPlayers$HasPropertyLostLifeThisTurn",
+		"Count$PlayerCountOpponents$HasPropertyLostLifeThisTurn",
+		"Count$PlayerCountRegisteredOpponents$HasPropertyLostLifeThisTurn",
+		"Count$PlayerCountDefinedRegistered$HasPropertyLostLifeThisTurn",
+		"Count$PlayerCountDefinedRegistered.Other$HasPropertyLostLifeThisTurn",
+	} {
+		if got, ok := EvalCountOK(h, c, body); !ok || got != 1 {
+			t.Errorf("%s = (%d, %v), want (1, true)", body, got, ok)
+		}
+	}
+
+	// belbe_corrupted_observer's /Twice suffix doubles the count. The
+	// controller (seat 0) lost life too, but the opponents group excludes
+	// them, so the count is 1 then doubles to 2.
+	h.lifeLost = map[state.PlayerID]int32{0: 5, 1: 3}
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$HasPropertyLostLifeThisTurn/Twice"); !ok || got != 2 {
+		t.Errorf("Opponents HasPropertyLostLifeThisTurn/Twice = (%d, %v), want (2, true)", got, ok)
 	}
 }
 

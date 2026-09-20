@@ -222,3 +222,66 @@ func TestLudevicOtherLostLifeConditionEvaluates(t *testing.T) {
 		t.Fatalf("OtherLost after an opponent lost life = (holds=%v, evaluated=%v), want (true, true)", holds, evaluated)
 	}
 }
+
+// TestLedgerSkipsRedirectedPlayerCombatDamage is the class guard for the
+// combat-damage ledger's capture site: a damage-redirection replacement
+// (Protector of the Crown's `R:Event$ DamageDone | ValidTarget$ You |
+// DamageTarget$ Self` body) rewrites the held player-targeted Damage event
+// into a PERMANENT-targeted one — ev.Obj becomes the receiving permanent and
+// ev.Player is zeroed — yet the event Kind is still events.Damage, so the
+// capture must not record a hit for a player who was never dealt damage. The
+// commander tally two lines above the ledger already guards exactly this
+// (`ev.Obj == 0`); before this guard the ledger appended a false hit and made
+// Lost Monarch's intervening-if hold with no player damage.
+func TestLedgerSkipsRedirectedPlayerCombatDamage(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	// Seat 0: Lost Monarch (the rider reading the ledger). Seat 1: Protector
+	// of the Crown, whose controller is the redirected-to player.
+	deck0 := mountainDeck(t, 40)
+	for _, name := range []string{"Lost Monarch of Ifnir"} {
+		card, ok := reg.Lookup(name)
+		if !ok {
+			t.Fatalf("corpus fixture: %s missing", name)
+		}
+		deck0 = append(deck0, card)
+	}
+	deck1 := mountainDeck(t, 41)
+	prot, ok := reg.Lookup("Protector of the Crown")
+	if !ok {
+		t.Fatalf("corpus fixture: Protector of the Crown missing")
+	}
+	deck1 = append(deck1, prot)
+	e := New(seatZeroStart(Config{Seed: 42, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{deck0, deck1}}))
+	e.Advance()
+	monarch := crAbortMove(t, e, 0, "Lost Monarch of Ifnir", state.ZBattlefield)
+	protector := crAbortMove(t, e, 1, "Protector of the Crown", state.ZBattlefield)
+	e.pending = nil
+
+	// Combat damage aimed at seat 1 is redirected onto seat 1's Protector:
+	// no player is dealt damage, so the ledger stays empty and Lost Monarch's
+	// second-main trigger must not fire.
+	e.combatRound.assignments = []assignment{{toPlayer: 1, amount: 3, from: monarch}}
+	e.runCombatAssignments()
+	e.pendingTriggers = nil
+	if hits := e.CombatDamageToPlayersThisTurn(); len(hits) != 0 {
+		t.Fatalf("redirected combat damage recorded %d ledger hits, want 0: %+v", len(hits), hits)
+	}
+	if n := pcdrQueue(e, state.StepMain2, monarch); n != 0 {
+		t.Fatalf("second main queued %d triggers after redirected damage, want 0", n)
+	}
+
+	// Sanity: without the Protector (removed from the battlefield) the same
+	// assignment lands on seat 1 and the ledger records it.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: protector, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.pendingTriggers = nil
+	e.combatRound.assignments = []assignment{{toPlayer: 1, amount: 3, from: monarch}}
+	e.runCombatAssignments()
+	e.pendingTriggers = nil
+	if hits := e.CombatDamageToPlayersThisTurn(); len(hits) != 1 {
+		t.Fatalf("unredirected combat damage recorded %d ledger hits, want 1", len(hits))
+	}
+	if n := pcdrQueue(e, state.StepMain2, monarch); n != 1 {
+		t.Fatalf("second main queued %d triggers after landed Zombie damage, want 1", n)
+	}
+}

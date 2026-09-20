@@ -851,6 +851,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if n, ok2 := lifeExtreme(g, g.AliveFrom(0), rest); ok2 {
 			return n, true
 		}
+		if n, ok2 := hasPropertyLostLifeCount(h, g.AliveFrom(0), rest); ok2 {
+			return n, true
+		}
 		return playerCountExtreme(h, g, c, g.AliveFrom(0), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountRegisteredOpponents$"); ok {
@@ -867,6 +870,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
 		if n, ok2 := lifeExtreme(g, opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
+		if n, ok2 := hasPropertyLostLifeCount(h, opponentGroup(g, c), rest); ok2 {
 			return n, true
 		}
 		return playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
@@ -1468,19 +1474,27 @@ func opponentGroup(g *state.Game, c *Ctx) []state.PlayerID {
 // documented direction rather than enforcing a fake zero.
 func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.PlayerID, prop, arg string) (int32, bool) {
 	prop = strings.TrimSpace(prop)
+	// A `HasProperty…` head may carry Forge's /Op count suffix
+	// (belbe_corrupted_observer's `PlayerCountOpponents$HasPropertyLostLife
+	// ThisTurn/Twice`). Split it here so the property switch below reads the
+	// bare name; the suffix applies inside hasPropertyLostLifeCount.
+	base, _, _ := strings.Cut(prop, "/")
+	base = strings.TrimSpace(base)
 	if n, ok := lifeExtreme(g, group, prop); ok {
 		return n, true
 	}
-	switch prop {
+	switch base {
+	case "HighestLifeLostThisTurn", "LowestLifeLostThisTurn":
+		// The life-lost extremes — Knight of the Ebon Legion's and
+		// Y'shtola's gates. playerCountExtreme's LifeLostThisTurn arm is the
+		// Host's log-derived read.
+		return playerCountExtreme(h, g, c, group, prop, arg)
 	case "HasPropertyLostLifeThisTurn":
-		// "a player [other than you] lost life this turn" — the per-group
-		// count of members with any life loss. Shared with the
-		// PlayerCountRegisteredOpponents$ group through
-		// hasPropertyCount, so kaito_bane_of_nightmares's
-		// PlayerCountRegisteredOpponents$HasPropertyLostLifeThisTurn resolves
-		// too (the RegisteredOpponents arm routes its HasProperty shapes
-		// here).
-		return hasPropertyCount(group, func(p state.PlayerID) bool { return h.LifeLostThisTurn(p) > 0 }), true
+		// "a player [other than you] lost life this turn" — the shared read
+		// every group's HasPropertyLostLifeThisTurn carrier uses. Calling the
+		// helper (rather than inlining the count) is what keeps the property
+		// from resolving on one group and failing closed on its sibling.
+		return hasPropertyLostLifeCount(h, group, prop)
 	case "HasPropertywasDealtCombatDamageThisTurnBy":
 		spec, op, threshold, ok := splitPropertyThreshold(arg)
 		if !ok {
@@ -1495,7 +1509,11 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 				if hit.Player != p {
 					continue
 				}
-				o := &state.Object{ID: hit.Source, Card: hit.Card, FaceIdx: hit.FaceIdx, Controller: hit.Controller}
+				// Zone is set to the battlefield: Forge's bare `Permanent`
+				// base reads o.Zone == ZBattlefield (effects/filter.go's
+				// matchesBase), and the captured source WAS a permanent on
+				// the battlefield when it dealt the damage.
+				o := &state.Object{ID: hit.Source, Card: hit.Card, FaceIdx: hit.FaceIdx, Controller: hit.Controller, Zone: state.ZBattlefield}
 				if MatchesObjectCtx(g, spec, o, sc) {
 					got++
 				}
@@ -1506,10 +1524,30 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 		}
 		return n, true
 	}
-	// Fall back to playerCountExtreme so the zone-count extremes
-	// (HighestValid/LowestValid …) resolve over this group too, and anything
-	// else reports (0, false).
-	return playerCountExtreme(h, g, c, group, prop, arg)
+	// Any other property is NOT resolvable: (0, false), the documented
+	// fail-closed verdict. The HighestValid/LowestValid zone-count extremes
+	// of playerCountExtreme are deliberately not offered on this group (the
+	// brief names exactly the three properties above, and no corpus carrier
+	// reaches a zone-count extreme here); only the two LifeLostThisTurn
+	// extremes route into playerCountExtreme, above.
+	return 0, false
+}
+
+// hasPropertyLostLifeCount answers PlayerCount*$HasPropertyLostLifeThisTurn
+// over a group, honouring Forge's /Op suffix. It is the shared read the
+// Players$, Opponents$, RegisteredOpponents$ and DefinedRegistered[.Other]$
+// arms all use, so the property can never resolve on one group and fail
+// closed on its sibling (the class the fix closes).
+func hasPropertyLostLifeCount(h Host, group []state.PlayerID, prop string) (int32, bool) {
+	base, op, hasOp := strings.Cut(prop, "/")
+	if strings.TrimSpace(base) != "HasPropertyLostLifeThisTurn" {
+		return 0, false
+	}
+	n := hasPropertyCount(group, func(p state.PlayerID) bool { return h.LifeLostThisTurn(p) > 0 })
+	if hasOp {
+		n = applyCountOp(n, op)
+	}
+	return n, true
 }
 
 // hasPropertyCount counts the group members satisfying pred, in the group's
