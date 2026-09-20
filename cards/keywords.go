@@ -305,6 +305,13 @@ func (f *Face) expandKeywords() {
 		case "Storm":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Storm",
 				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnCast/Minus1 | MayChooseTarget$ True", has)
+		case "Gravestorm":
+			// CR 702.84: Storm's shape with a different amount -- one copy per
+			// permanent put into a graveyard from the battlefield this turn
+			// (Forge's CardFactoryUtil expansion). The count head resolves
+			// through effects.countEntered's zone-aware spec match.
+			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Gravestorm",
+				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent | MayChooseTarget$ True", has)
 		case "Replicate":
 			// CR 702.55a: "you may pay an additional [cost] any number of
 			// times as you cast this spell. If you do, copy it for each time

@@ -1677,7 +1677,14 @@ func countEntered(g *state.Game, c *Ctx, dest state.Zone, origin *state.Zone, va
 		if origin != nil && e.From != *origin {
 			continue
 		}
-		if MatchesSpecCtx(g, valid, e.Obj, c.SpecContext(c.Controller)) {
+		// Evaluate the spec in the entry's DESTINATION zone: an object that
+		// entered a non-battlefield zone has already left the battlefield,
+		// so the ordinary matcher's `Permanent` base (o.Zone ==
+		// ZBattlefield) would reject every such entry. matchesZoneSpecCtx
+		// reads a non-battlefield `Permanent` base as a permanent CARD
+		// (Forge's Card.isPermanent()), which is what Gravestorm's
+		// Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent needs.
+		if matchesZoneSpecCtx(g, valid, e.Obj, c.SpecContext(c.Controller), e.To) {
 			n++
 		}
 	}
