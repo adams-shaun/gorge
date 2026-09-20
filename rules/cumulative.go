@@ -71,6 +71,16 @@ type triggeredEffectCost struct {
 	// (mandatorySettleShape); everything else keeps the free-executor
 	// carve-out in triggerBodyNeedsCostWindow.
 	mandatory bool
+	// trig is the trigger context of the ability the window parks (exg1):
+	// a cost spec naming a trigger referent -- Forge's bare
+	// Card.TriggeredNewCard in the `Cost$ ExileAnyGrave<1/Card.
+	// TriggeredNewCard>` "you may exile it" family -- resolves against THIS
+	// context when the window's candidate walk evaluates the part's spec, so
+	// the cost exiles exactly the card the triggering event captured. Zero
+	// (every non-trigger use, a hand-built push) leaves the filter's
+	// fail-closed default: a referent-bearing spec matches nothing and the
+	// cost is unpayable. A value struct, so the window clone carries it.
+	trig effects.TriggerContext
 	// part is the cursor into the flat choice-bearing component list
 	// (triggeredMandatoryParts: Sac then Exile then Discard) a settle walks.
 	part int
@@ -344,7 +354,7 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 	label := rp.sa.Params["Cost"]
 	e.triggerCost = &triggeredEffectCost{resume: rp, source: source,
 		player: o.Controller, amount: e.parseCost(label), costLabel: label,
-		mandatory: strings.HasPrefix(label, "Mandatory")}
+		mandatory: strings.HasPrefix(label, "Mandatory"), trig: e.triggerContexts[rp.obj]}
 	if e.triggerCost.mandatory {
 		e.advanceTriggeredMandatory(e.triggerCost)
 		return
@@ -1195,6 +1205,11 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 		// NICKNAME is the same bare self-reference as CARDNAME.
 		spec = sacrificeMatchSpec(spec)
 	}
+	// exg1: the window's trigger context rides the spec evaluation, so a
+	// cost spec naming a trigger referent (Card.TriggeredNewCard -- the
+	// "you may exile it" family) resolves the card the triggering event
+	// captured. A zero context is the filter's fail-closed default.
+	sc := effects.SpecContext{You: tc.player, Source: tc.source, TriggerContext: tc.trig}
 	var out []state.ObjID
 	for _, id := range e.G.Zone(zone, tc.player) {
 		if used[id] {
@@ -1203,7 +1218,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 		if isSac && e.SacrificeBlocked(id) {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, spec, id, tc.player, tc.source) {
+		if effects.MatchesSpecCtx(e.G, spec, id, sc) {
 			out = append(out, id)
 		}
 	}

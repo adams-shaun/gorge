@@ -21,8 +21,9 @@ type CostPart struct {
 	N    int32
 	Spec string
 	// Zone is the zone an Exile cost part pays from: ZHand for an
-	// ExileFromHand token (the default zero value) or ZGraveyard for an
-	// ExileFromGrave token. Sac/Discard/SubCounter parts never read it.
+	// ExileFromHand token (the default zero value), ZGraveyard for an
+	// ExileFromGrave or ExileAnyGrave token. Sac/Discard/SubCounter parts
+	// never read it.
 	Zone state.Zone
 	// Announced marks the variable-count form of a Sac part (Sac<X/Spec> --
 	// Dargo's "sacrifice any number"): the player announces the count as the
@@ -208,15 +209,21 @@ var drawDynCost = regexp.MustCompile(`^Draw<([A-Za-z][A-Za-z0-9]*)/([^/>]+)(?:/[
 // costModifiers' SVar-aware amount read.
 var sacXCost = regexp.MustCompile(`^Sac<X/([^/>]+)(?:/[^>]*)?>$`)
 
-// exileCost matches Forge's ExileFromHand<N/Spec> and ExileFromGrave<N/Spec>
-// tokens -- exiling a matching card from the named zone as a cost payment
-// (CR 118.8 lists exiling a card from one's hand among the payment actions;
-// the graveyard form is the encore family's "exile this card from your
-// graveyard"). As with the other non-mana tokens the trailing
-// "/description" is dropped here and ";" alternations fold to ",".
-// ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...) and the
-// AlternateAdditionalCost ExileFromGrave line are the corpus users.
-var exileCost = regexp.MustCompile(`^ExileFrom(Hand|Grave)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+// exileCost matches Forge's ExileFromHand<N/Spec>, ExileFromGrave<N/Spec>
+// and ExileAnyGrave<N/Spec> tokens -- exiling a matching card from the named
+// zone as a cost payment (CR 118.8 lists exiling a card from one's hand among
+// the payment actions; the graveyard form is the encore family's "exile this
+// card from your graveyard"). AnyGrave is the same graveyard payment with the
+// "any card" shape -- the payer picks the card, and beyond the spec's own
+// predicates there is no zone provenance beyond "a graveyard" -- so it lands
+// on the identical Exile part with Zone ZGraveyard (exg1: the 18-carrier
+// Cavalier of Thorns / Thelon of Havenwood family). As with the other
+// non-mana tokens the trailing "/description" is dropped here and ";"
+// alternations fold to ",".
+// ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...), the
+// AlternateAdditionalCost ExileFromGrave line and the ExileAnyGrave
+// trigger-cost family are the corpus users.
+var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // addCounterCost matches Forge's AddCounter<N/LOYALTY> token -- the
 // planeswalker loyalty cost, and deliberately ONLY it (CR 107.4: the [+N]
@@ -546,7 +553,7 @@ func ParseCost(s string) Cost {
 				}
 				spec := strings.ReplaceAll(m[3], ";", ",")
 				part := CostPart{N: int32(n), Spec: spec}
-				if m[1] == "Grave" {
+				if m[1] != "FromHand" {
 					part.Zone = state.ZGraveyard
 				}
 				c.Exile = append(c.Exile, part)

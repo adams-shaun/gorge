@@ -338,7 +338,8 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerBearer}}, true
 		}
 		return objectsOf(c.Remembered), true
-	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
+	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCard",
+		"TriggeredNewCardLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
 		"TriggeredAttackerLKICopy", "TriggeredBlocker", "TriggeredBlockerLKICopy",
 		"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":

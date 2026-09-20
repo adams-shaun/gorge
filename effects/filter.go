@@ -1070,6 +1070,9 @@ func positiveRecognised(p string) bool {
 	if p == "IsRemembered" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
 		return true
 	}
+	if p == "TriggeredNewCard" || p == "TriggeredCard" {
+		return true
+	}
 	if positiveRecognisedWord(p) {
 		return true
 	}
@@ -1466,6 +1469,25 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// control" inside RepeatEach). Resolution-only; with no remembered
 		// player there is no binding, so it fails closed even beneath '!'.
 		return matchControlReferent(g, o, sc, "ControlledBy", "RememberedPlayer")
+	}
+	if p == "TriggeredNewCard" || p == "TriggeredCard" {
+		// Forge's bare TriggeredNewCard / TriggeredCard property
+		// (CardProperty "the card that triggered this ability") inside an
+		// ordinary filter spec -- the "you may exile it" cost idiom's
+		// `Cost$ ExileAnyGrave<1/Card.TriggeredNewCard>` (Cavalier of Thorns,
+		// Doombot Harbinger, Creeping Chill's TriggeredCard; exg1, 18 corpus
+		// carriers). Cost-part specs evaluate through this same grammar, so
+		// the binding arrives through SpecContext.TriggerContext: the
+		// triggered-cost window binds the resolving ability's trigger
+		// context, and the candidate matches exactly the card the triggering
+		// event captured. Everywhere else -- an activated ability's offer or
+		// ask, a static, a hand-built context -- the zero TriggerCard fails
+		// CLOSED (ok=false): the spec matches nothing, never an invented
+		// referent.
+		if sc.TriggerCard == 0 {
+			return false, false
+		}
+		return o.ID == sc.TriggerCard, true
 	}
 	if p == "blockingTriggeredAttacker" {
 		// Forge's Creature.blockingTriggeredAttacker (She-Hulk,
