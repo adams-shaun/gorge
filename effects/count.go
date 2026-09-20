@@ -1298,8 +1298,12 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// suffix /LimitMax.<n> (happily_ever_after) clamps the result. An
 	// unrecognised property keeps the whole token as the spec -- the
 	// pre-existing fail-closed behaviour, since such a token never matched
-	// anyway -- and the Greatest/Least/Different variants are still out of
-	// scope here. Colors's one corpus op suffix /LimitMax.<n> is honoured at
+	// anyway -- and the Different* distinct family is still out of scope
+	// here. The four extreme reductions (GreatestCardPower 64 files,
+	// GreatestCardManaCost 62, GreatestCardToughness 12, LeastCardPower 1;
+	// 136 files total) are read: the max (or min, for Least) of the
+	// property over the matches, with zero matches yielding 0 rather than a
+	// sentinel. Colors's one corpus op suffix /LimitMax.<n> is honoured at
 	// evalCountExprOK's generic /Op site (countColorsLimitMax), scoped to
 	// Colors bodies.
 	if zone, ok := countZone(head); ok {
@@ -1308,12 +1312,13 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			spec, prop = arg, ""
 		} else {
 			prop = strings.TrimSpace(prop)
-			switch prop {
-			case "CardPower", "CardToughness", "CardManaCost", "CardTypes", "Colors":
+			switch {
+			case prop == "CardPower" || prop == "CardToughness" || prop == "CardManaCost" ||
+				prop == "CardTypes" || prop == "Colors":
+			case isExtremeProperty(prop):
 			default:
-				// Not a recognised property (GreatestCardPower,
-				// DifferentNames, Least*, ...): keep the old whole-token
-				// spec read.
+				// Not a recognised property (DifferentNames,
+				// Different*, ...): keep the old whole-token spec read.
 				spec, prop = arg, ""
 			}
 		}
@@ -1352,9 +1357,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		}
 		// Colors folds each match's colour mask; read only through a
 		// popcount at the end, so no per-colour ordering ever reaches an
-		// event or a view.
+		// event or a view. An extreme property (Greatest*/Least*) folds a
+		// max/min over the matches instead of a sum, so it needs its own
+		// accumulator plus a seen flag -- zero matches must read 0, never
+		// an int-min/max sentinel.
 		var colorsSeen ColorMask
 		var n int32
+		extreme := isExtremeProperty(prop)
+		var best int32
+		var seen bool
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(zone, p) {
 				matchSpec := spec
@@ -1382,6 +1393,19 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				if o == nil || o.Face() == nil {
 					continue
 				}
+				if extreme {
+					// The DERIVED, layer-aware characteristic (h.Power/
+					// h.Toughness), not the printed face: Forge sizes
+					// "greatest power" from the game's actual power, so a
+					// lord's bonus or a -1/-1 counter counts. The sibling
+					// CardPower/... cases below keep the printed-face read;
+					// the divergence is recorded in the report.
+					v := extremePropertyValue(h, o, prop)
+					if !seen || (isLeastProperty(prop) && v < best) || (!isLeastProperty(prop) && v > best) {
+						best, seen = v, true
+					}
+					continue
+				}
 				switch prop {
 				case "CardPower":
 					n += int32(o.Face().Power()) + o.Counter("P1P1")
@@ -1399,6 +1423,14 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 					colorsSeen |= ColorMaskOf(o)
 				}
 			}
+		}
+		if extreme {
+			// A matched set with no members has no extreme: 0, per the
+			// seen guard, never an int-min/max sentinel.
+			if !seen {
+				return 0, true
+			}
+			return best, true
 		}
 		if prop == "CardTypes" {
 			return int32(len(seenCardTypes)), true
@@ -1907,6 +1939,47 @@ func countZone(head string) (state.Zone, bool) {
 		return state.ZStack, true
 	}
 	return 0, false
+}
+
+// isExtremeProperty reports whether prop is one of the four extreme-reduction
+// property suffixes (`Count$Valid <spec>$GreatestCardPower` and its siblings),
+// as opposed to the summed (CardPower/CardManaCost) or distinct-set
+// (CardTypes/Colors) properties. This is the ENTIRE extreme grammar: the
+// corpus carries no other spelling and no argument-less form. A property the
+// corpus writes but this build does not yet read -- the Different* distinct
+// family -- is deliberately NOT admitted here and keeps the whole-token
+// fail-closed read.
+func isExtremeProperty(prop string) bool {
+	switch prop {
+	case "GreatestCardPower", "GreatestCardToughness", "GreatestCardManaCost", "LeastCardPower":
+		return true
+	}
+	return false
+}
+
+// isLeastProperty reports whether an extreme property takes the MINIMUM over
+// the matches (Least*) rather than the maximum (Greatest*).
+func isLeastProperty(prop string) bool {
+	return prop == "LeastCardPower"
+}
+
+// extremePropertyValue reads one object's contribution to an extreme
+// property: the DERIVED, layer-aware power/toughness (h.Power/h.Toughness)
+// for the power/toughness extremes, so a lord's bonus or a -1/-1 counter is
+// seen the way Forge sizes "greatest power", and the printed mana value for
+// GreatestCardManaCost (the same read the summed CardManaCost case uses).
+// An unrecognised extreme reads 0 -- but isExtremeProperty admitted it, so a
+// missing case here is a compile-time-visible oversight, not a silent one.
+func extremePropertyValue(h Host, o *state.Object, prop string) int32 {
+	switch prop {
+	case "GreatestCardPower", "LeastCardPower":
+		return h.Power(o.ID)
+	case "GreatestCardToughness":
+		return h.Toughness(o.ID)
+	case "GreatestCardManaCost":
+		return o.Face().ManaValue()
+	}
+	return 0
 }
 
 // controlsAllUrzaLands reports whether the player controls at least one
