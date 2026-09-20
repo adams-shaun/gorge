@@ -216,6 +216,8 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			}
 		}
 		return e.applyNonMoveReplacements(ev, matches)
+	case events.CounterChange, events.PlayerCounterChange:
+		return e.applyAddCounterReplacements(ev, matches)
 	}
 
 	// CR 616.1: if two or more replacement effects would modify the way this
@@ -778,6 +780,15 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "CreateToken", true
 	case events.PlanarRoll:
 		return "RollPlanarDice", true
+	case events.CounterChange, events.PlayerCounterChange:
+		// The counter-placement replacement class (Hardened Scales, Branching
+		// Evolution, Doubling Season, Vorinclex): R:Event$ AddCounter modifies
+		// how many counters the event places, in place, exactly as DamageDone's
+		// ReplaceDamage bodies rewrite a held Damage amount. Both the object
+		// form (CounterChange) and the player form (PlayerCounterChange) share
+		// the class; the matcher splits them on ValidCard$/ValidObject$ vs
+		// ValidPlayer$.
+		return "AddCounter", true
 	default:
 		return "", false
 	}
@@ -1323,6 +1334,69 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 		last = stored
 	}
 	return last, true
+}
+
+// applyAddCounterReplacements rewrites a CounterChange/PlayerCounterChange
+// event's Amount through every applicable R:Event$ AddCounter replacement,
+// then returns the event UNHANDLED so emit's ordinary path logs and folds the
+// rewritten amount -- the in-place-rewrite shape the DamageDone ReplaceDamage
+// bodies use, one event kind over. Each match applies at most once, in
+// deterministic scan order, and each body's Amount$ reads the amount the
+// earlier matches produced (the running total, CR 616.1e), so Hardened Scales
+// then Branching Evolution composes 1 -> +1 -> double = 4 exactly as the two
+// cards' combined oracle reads. No predicate re-check is needed between
+// modifiers: this class's gates (ValidCounterType$/ValidCard$/ValidObject$/
+// ValidPlayer$) never depend on the amount, unlike CreateToken's per-mint
+// ValidToken$ re-check. The scan-order composition (rather than a posed CR
+// 616.1 order choice among non-commuting Plus/Twice matches) is the same
+// deliberate deviation continueCreateTokenReplacements documents.
+//
+// A body whose Amount$ this build cannot price, or whose resolved value is
+// negative, leaves the event verbatim -- never a silent zero or erase. A
+// resolved zero is likewise skipped: "instead put zero" would be a removal
+// the class does not express, and no corpus body carries one.
+func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	amount := ev.Amount
+	changed := false
+	for _, m := range matches {
+		body := m.repl.With
+		if body == nil || body.API != "ReplaceCounter" {
+			continue
+		}
+		// The body's own ValidCounterType$ narrows further (Melira's poison
+		// body on an unrestricted R: line); a mismatch skips this modifier.
+		if ct := strings.TrimSpace(body.Params["ValidCounterType"]); ct != "" && ct != ev.Counter {
+			continue
+		}
+		hold := ev
+		hold.Amount = amount
+		ctx := e.replCtx(m, hold)
+		n, ok := e.replaceCounterAmount(body, ctx, amount)
+		if !ok || n <= 0 || n == amount {
+			continue
+		}
+		amount = n
+		changed = true
+	}
+	if !changed {
+		return ev, false
+	}
+	ev.Amount = amount
+	return ev, false
+}
+
+// replaceCounterAmount resolves a DB$ ReplaceCounter body's new counter count
+// against the amount the event would place. Forge's corpus expresses it as
+// Amount$ X with X:ReplaceCount$CounterNum/Plus.1 (Hardened Scales, +1) or
+// X:ReplaceCount$CounterNum/Twice (Branching Evolution, double); the shared
+// numeric grammar resolves both once CounterNum is a recognised ReplaceCount
+// field (effects/count.go). The base is the HELD amount, not the original
+// event's, so a chain of modifiers reads the running total (CR 616.1e).
+// NumResolved's verdict distinguishes an unmodelled frame (fail the match)
+// from a legitimate zero.
+func (e *Engine) replaceCounterAmount(body *cards.SA, ctx *effects.Ctx, base int32) (int32, bool) {
+	ctx.ReplacementAmount = base
+	return effects.NumResolved(e, ctx, body, "Amount", base)
 }
 
 // planarDieFaceName names one planar-die roll result (CR 901.3a): the die
@@ -1972,6 +2046,69 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// so today every token creation IS effect-created and the gate is
 		// vacuously satisfiable. A cost-created-token provenance marker is a
 		// deliberate non-goal; when one lands, this gate must read it.
+		return e.replacementConditionHolds(r, source, you)
+	case "AddCounter":
+		// The counter-placement replacement class (Hardened Scales, Branching
+		// Evolution, Doubling Season, Vorinclex, ...). Applied by
+		// applyAddCounterReplacements, which reads each body's ReplaceCounter
+		// params directly in rules -- the ReplaceToken/replaceDamageAmount
+		// precedent -- rather than dispatching through the effects registry
+		// (no api:ReplaceCounter resolver exists; the census registers the
+		// name via RegisterNonAPI).
+		//
+		// Only a POSITIVE placement is replaceable: a CounterChange that
+		// removes counters (a SubCounter cost, a -1/-1 wipe) or that carries
+		// a status marker (regeneration's Shield, Deathtouched) is a counter
+		// REMOVAL/flag, never an AddCounter event.
+		if ev.Amount <= 0 {
+			return false
+		}
+		// ValidCounterType$ names the kind of counter being added and appears
+		// on the R: line (Hardened Scales) or the body (Melira). A line naming
+		// a kind other than the event's fails closed; an absent kind admits
+		// every kind (Winding Constrictor's "one or more counters").
+		if ct := strings.TrimSpace(r.Params["ValidCounterType"]); ct != "" && ct != ev.Counter {
+			return false
+		}
+		if vp, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+			return false
+		}
+		// ValidCard$/ValidObject$ name the counter RECIPIENT. The object form
+		// (CounterChange) matches it by that object's filter; the player form
+		// (PlayerCounterChange) carries no object, so an object-scoped line
+		// fails closed for it. A line with neither key applies to either form,
+		// which is what the "any counters / any permanent or player" shapes
+		// (Doubling Season's ValidCard$ Permanent, Vorinclex's ValidObject$)
+		// mean.
+		spec := strings.TrimSpace(r.Params["ValidCard"])
+		if spec == "" {
+			spec = strings.TrimSpace(r.Params["ValidObject"])
+		}
+		if spec != "" {
+			if ev.Kind != events.CounterChange {
+				return false
+			}
+			if !effects.MatchesSpecFrom(e.G, spec, ev.Obj, you, source) {
+				return false
+			}
+		}
+		// ValidSource$ You/Opponent names the player CAUSING the placement -- a
+		// role the CounterChange event does not carry (it records the recipient
+		// only).
+		// There is no engine-side "who is adding these counters" scratch, so a
+		// source-scoped line fails closed rather than matching every placement:
+		// the conservative direction (Vorinclex's "If you would put ...",
+		// Halving Season's opponent half). See the AddCounter row in AGENTS.md.
+		if strings.TrimSpace(r.Params["ValidSource"]) != "" ||
+			strings.TrimSpace(r.Params["ValidCause"]) != "" {
+			return false
+		}
+		// EffectOnly$ True (Doubling Season, Selesnya Loft Gardens) is READ and
+		// held: every CounterChange this engine emits is effect resolution
+		// (effects/counters.go), so the gate is vacuously satisfiable today.
+		// A cost-created-counter provenance marker, when one lands, must read
+		// it -- exactly the CreateToken row's contract.
 		return e.replacementConditionHolds(r, source, you)
 	case "RollPlanarDice":
 		// The planar-dice replacement class (Ichor Elixir, task rollplanar1):
@@ -3849,7 +3986,8 @@ func init() {
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
-		"repl:CreateToken", "repl:RollPlanarDice", "api:ReplaceToken")
+		"repl:CreateToken", "repl:RollPlanarDice", "api:ReplaceToken",
+		"repl:AddCounter", "api:ReplaceCounter")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the
