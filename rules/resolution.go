@@ -1357,6 +1357,25 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.CounterPickDone = true
+		case "blight":
+			// A Blight's per-player KChoose (CR 701.60: the blighting player
+			// chooses which of their own creatures takes the −1/−1 counters)
+			// was answered. The chosen options carry the object in Obj (the
+			// same shape the "sacrifice" and "counter_pick" arms read), so the
+			// id list goes straight to Ctx.BlightPicks in the player's answer
+			// order; BlightDone distinguishes "answered" from the first pass
+			// and BlightTarget keeps the answer attached to the exact Defined$
+			// target that asked. effBlight consumes and clears all three at the
+			// top of its own walk, so a nested blight cannot inherit the outer
+			// answer.
+			ctx.BlightPicks = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.BlightPicks = append(ctx.BlightPicks, o.Obj)
+				}
+			}
+			ctx.BlightDone = true
+			ctx.BlightTarget = rp.target
 		case "roll":
 			// A RollDice choose-one-result answer (effects/dice.go's
 			// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the chosen
