@@ -134,6 +134,16 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		}
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
+	case "Exerted":
+		// The Exert event names the exerted permanent (ev.Obj) and its
+		// controller at exert time (ev.Player). TriggerCard is the exerted
+		// permanent, so TriggeredCard/TriggeredCardLKICopy resolve against it
+		// (Rohirrim Chargers' AttachedTo$ TriggeredCardLKICopy rider and the
+		// general "that creature" spelling). triggerRemembered already seeds
+		// Remembered with ev.Obj for any non-zero ev.Obj, so this adds the
+		// dedicated role without changing the Remembered list.
+		c.TriggerCard = ev.Obj
+		c.TriggerPlayer = player(ev.Player)
 	case "TapsForMana":
 		// The ManaAdd event names the activating player, producing permanent,
 		// produced type and amount without overloading Remembered. This mode's
