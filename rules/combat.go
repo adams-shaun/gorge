@@ -578,18 +578,56 @@ func (e *Engine) goadMayAttack(id state.ObjID, defender state.PlayerID) bool {
 	return true
 }
 
+// staticGoaders returns the controllers of every live Mode$ Continuous
+// static with Goad$ True whose Affected$ spec matches o (CR 701.38b: a goad's
+// goader is the permanent's controller, so a static goad's goader is the
+// static's own controller). The static is a requirement, not a layer effect:
+// like every other S: restriction read by activeStatics it is re-derived on
+// demand from the current board (rebuilding on replay), so the goad ends when
+// the source leaves the battlefield, moves to another bearer, or an "as long
+// as" gate flips -- no lifetime bookkeeping. The Affected$ default is
+// Card.Self, mirroring staticEffects, so a Goad$ line without Affected$
+// fails closed to its own source rather than to every creature.
+//
+// Only the literal "True" is honoured; any other Goad$ value fails closed.
+// A granted static (AddStaticAbility$/StaticAbilities$ delivered by Clone or
+// Effect) is deliberately NOT expanded here -- those three corpus cards
+// (Mocking Doppelganger, Hot Pursuit, Immortal Obligation) stay un-goaded.
+func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
+	var out []state.PlayerID
+	for _, sv := range e.activeStatics("Continuous") {
+		if !strings.EqualFold(strings.TrimSpace(sv.Params["Goad"]), "True") {
+			continue
+		}
+		spec := sv.Params["Affected"]
+		if spec == "" {
+			spec = "Card.Self"
+		}
+		if !effects.MatchesSpecCtx(e.G, spec, o.ID, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		out = append(out, sv.Controller)
+	}
+	return out
+}
+
 func (e *Engine) hasActiveGoad(o *state.Object) bool {
 	for _, ge := range o.Goads {
 		if e.activeGoad(o, ge) {
 			return true
 		}
 	}
-	return false
+	return len(e.staticGoaders(o)) > 0
 }
 
 func (e *Engine) goadedBy(o *state.Object, p state.PlayerID) bool {
 	for _, ge := range o.Goads {
 		if ge.Player == p && e.activeGoad(o, ge) {
+			return true
+		}
+	}
+	for _, goader := range e.staticGoaders(o) {
+		if goader == p {
 			return true
 		}
 	}
