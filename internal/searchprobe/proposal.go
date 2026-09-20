@@ -35,15 +35,145 @@ func taggedSeed(base uint64, history [32]byte, attempt int, tag uint64, values .
 
 var errIncompatibleProposal = errors.New("incompatible hypothetical proposal")
 
+// feasibleExclusions translates each stored exclusion into the strongest
+// form the shuffle that will carry it can actually satisfy. A Cap derived
+// from a same-epoch deadline (exactly the observed copies) is first reduced
+// by the copies already in the pre-shuffle hand -- the same reduction the
+// deadline itself gets, so the two constraints stay consistent. Then a
+// window whose copies cannot all fit beyond it relaxes to exactly the
+// overflow (cap = copies beyond the tail's room): "no copy before Through"
+// is infeasible there (a 20-copy land excluded through position 40 of a
+// 53-card library), and a hard constraint would turn every attempt into an
+// incompatible proposal rather than a redraw. The relaxation keeps the
+// guarantee where it is affordable (a single-copy spell, the
+// PolicyCompetition shape the brief targets) and degrades a multi-copy
+// card's exclusion instead of wedging the counter. Copies already fixed into
+// the early positions are still counted by the constraint matcher, which is
+// why the relaxation compares against the whole deck slice, not the free
+// pool.
+func feasibleExclusions(exclusions []exclusionConstraint, cards []proposalCard, hand map[string]int) []exclusionConstraint {
+	if len(exclusions) == 0 {
+		return nil
+	}
+	copies := make(map[string]int)
+	for _, card := range cards {
+		copies[card.Name]++
+	}
+	out := make([]exclusionConstraint, 0, len(exclusions))
+	for _, e := range exclusions {
+		cap := e.Cap
+		if cap > 0 {
+			cap = max(0, cap-hand[e.Name])
+		}
+		through := e.Through
+		if through > len(cards) {
+			through = len(cards)
+		}
+		room := len(cards) - through
+		if overflow := copies[e.Name] - room; overflow > cap {
+			cap = overflow
+		}
+		out = append(out, exclusionConstraint{Through: through, Name: e.Name, Cap: cap})
+	}
+	return out
+}
+
+// exclusionStore carries PolicyCompetition exclusions learned by the probe
+// attempts into the plans of the attempts that follow. Each rejection names
+// one physical card the replay bot preferred over the observed cast; the
+// following plans must not let that card reach the offending seat's hand
+// before the observed cast, so the card is forbidden from the offending
+// epoch's early shuffle positions and from every earlier shuffle entirely
+// (recordCompetitionExclusion). The store is frozen before the sampling
+// phase: every sampling attempt then shares one proposal, so one kept world's
+// importance weight is drawn from the same distribution as the next's and the
+// ESS gate sees homogeneous weights. It is attempt-ordered and deterministic
+// -- Sample drives attempts sequentially and the seed stream already carries
+// the attempt index -- so worker allocation and call order cannot change
+// which exclusions exist when a plan runs.
+type exclusionStore struct {
+	byEpoch map[epochKey][]exclusionConstraint
+}
+
+func newExclusionStore() *exclusionStore {
+	return &exclusionStore{byEpoch: make(map[epochKey][]exclusionConstraint)}
+}
+
+// add records one exclusion. Duplicates (the same card excluded to the same
+// depth) collapse so a repeatedly rejected card does not accumulate unbounded
+// constraints; a deeper Through tightens an existing entry.
+func (s *exclusionStore) add(key epochKey, e exclusionConstraint) {
+	if s.byEpoch == nil {
+		s.byEpoch = make(map[epochKey][]exclusionConstraint)
+	}
+	list := s.byEpoch[key]
+	for i := range list {
+		if list[i].Name != e.Name {
+			continue
+		}
+		if e.Through > list[i].Through {
+			list[i].Through = e.Through
+		}
+		if e.Cap < list[i].Cap {
+			list[i].Cap = e.Cap
+		}
+		return
+	}
+	s.byEpoch[key] = append(list, e)
+}
+
+// size counts the stored constraints; zero means nothing was learned and the
+// sampling phase's proposal equals the probe rounds' (deadlines only).
+func (s *exclusionStore) size() int {
+	if s == nil {
+		return 0
+	}
+	total := 0
+	for _, list := range s.byEpoch {
+		total += len(list)
+	}
+	return total
+}
+
+// merge folds a probe round's learned exclusions into the store. add already
+// deduplicates by (epoch, name), so re-learning the same competing card is a
+// no-op and a deeper Through / tighter Cap only tightens.
+func (s *exclusionStore) merge(other *exclusionStore) {
+	if other == nil {
+		return
+	}
+	for key, list := range other.byEpoch {
+		for _, e := range list {
+			s.add(key, e)
+		}
+	}
+}
+
+// forEpoch returns the exclusions that apply when key's library is planned. The
+// slice is owned by the caller's plan cache (getWithExclusions copies it) and
+// must stay nil when nothing was excluded, so an unaffected game's constraint
+// problem -- and its weight -- is byte-identical to the pre-fix sampler.
+func (s *exclusionStore) forEpoch(player state.PlayerID, ordinal int) []exclusionConstraint {
+	if s == nil {
+		return nil
+	}
+	return s.byEpoch[epochKey{Player: player, Ordinal: ordinal}]
+}
+
 type proposalState struct {
-	epochs    map[epochKey]epochConstraints
-	logWeight float64
-	base      uint64
-	history   [32]byte
-	attempt   int
-	observer  *Collector
-	result    *SampleResult
-	plans     *constraintPlanCache
+	epochs     map[epochKey]epochConstraints
+	logWeight  float64
+	base       uint64
+	history    [32]byte
+	attempt    int
+	observer   *Collector
+	result     *SampleResult
+	plans      *constraintPlanCache
+	exclusions *exclusionStore
+	// staging collects this attempt's learned exclusions. Nil means the store
+	// is frozen (the sampling phase): a competition rejection is then counted
+	// as residual instead of taught.
+	staging *exclusionStore
 }
 
 func publicToss(setup PublicGame, h History) ([]rules.ChanceDraw, float64, error) {
@@ -87,7 +217,8 @@ func validateGenesis(setup PublicGame, epochs map[epochKey]epochConstraints) err
 func (p *proposalState) plan(ctx rules.ShuffleContext) ([]state.ObjID, error) {
 	ep := p.epochs[epochKey{Player: ctx.Player, Ordinal: ctx.Ordinal}]
 	p.result.UnguidedConstraints += len(ep.Unguided)
-	if len(ep.Positions) == 0 && len(ep.Deadlines) == 0 {
+	exclusions := p.exclusions.forEpoch(ctx.Player, ctx.Ordinal)
+	if len(ep.Positions) == 0 && len(ep.Deadlines) == 0 && len(exclusions) == 0 {
 		return nil, nil
 	}
 	cards := make([]proposalCard, len(ctx.Library))
@@ -130,7 +261,8 @@ func (p *proposalState) plan(ctx rules.ShuffleContext) ([]state.ObjID, error) {
 	if p.plans == nil {
 		p.plans = newConstraintPlanCache()
 	}
-	plan, err := p.plans.get(cards, positions, deadlines)
+	exclusions = feasibleExclusions(exclusions, cards, handCounts)
+	plan, err := p.plans.getWithExclusions(cards, positions, deadlines, exclusions)
 	if err != nil {
 		return nil, err
 	}

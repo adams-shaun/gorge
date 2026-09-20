@@ -54,6 +54,13 @@ type SampleResult struct {
 	WeightDiagnostics                                                                      WeightDiagnostics
 	HandToStackCauses                                                                      HandToStackCauses
 	StackRejectionContexts                                                                 []StackRejectionContext
+	// CompetitionExclusions counts PolicyCompetition rejections whose competing
+	// card was taught to the exclusion store (probe phases);
+	// CompetitionResidual counts competition rejections during the frozen
+	// sampling phase, which are counted but never taught (the store must stay
+	// put so the phase's proposals share one distribution); CompetitionUnguided
+	// counts hand_to_stack rejections no exclusion can express.
+	CompetitionExclusions, CompetitionResidual, CompetitionUnguided int
 }
 type RejectionBucket struct {
 	Frame            int
@@ -114,26 +121,38 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	var proposals []World
 	var logs []float64
 	plans := newConstraintPlanCache()
+	store := newExclusionStore()
+	drawStates := frameDrawStates(h)
 	prefixEvents := observedPrefixEvents(h)
-	for attempt := 0; attempt < opts.Attempts; attempt++ {
+	// runAttempt replays the observed history once under one proposal. store
+	// supplies the PolicyCompetition exclusions this attempt's plans honour;
+	// staging collects the exclusions its rejections teach (nil: the store is
+	// frozen and a competition rejection is only counted). The world is
+	// returned uncommitted: the caller decides whether it joins the pool, and
+	// the decision below keeps every kept world's proposal -- and therefore
+	// its importance weight -- drawn from ONE frozen exclusion set, because a
+	// pool that mixes proposals from different exclusion sets concentrates the
+	// weights and collapses the ESS gate (measured: covered decisions fell
+	// 185 -> 114 when exclusions accumulated attempt by attempt).
+	runAttempt := func(store *exclusionStore, staging *exclusionStore, attempt int) (World, float64, bool, error) {
 		result.Attempts++
 		seed := taggedSeed(opts.Seed, digest, attempt, seedEngine)
 		cfg := rules.Config{Seed: seed[0], Names: setup.Names, Decks: setup.Decks, Tokens: setup.Tokens, StartingLife: setup.StartingLife}
 		observer := NewCollector(h.Actor)
-		proposal := &proposalState{epochs: epochs, logWeight: tossWeight, base: opts.Seed, history: digest, attempt: attempt, observer: observer, result: &result, plans: plans}
+		proposal := &proposalState{epochs: epochs, logWeight: tossWeight, base: opts.Seed, history: digest, attempt: attempt, observer: observer, result: &result, plans: plans, exclusions: store, staging: staging}
 		e, err := rules.NewHypotheticalPlanned(cfg, tape, proposal.plan)
 		if errors.Is(err, errIncompatibleProposal) {
-			continue
+			return World{}, 0, false, nil
 		}
 		if err != nil {
-			return result, err
+			return World{}, 0, false, err
 		}
 		e.L.Reserve(prefixEvents)
 		if err := e.AdvanceHypothetical(); err != nil {
 			if errors.Is(err, errIncompatibleProposal) {
-				continue
+				return World{}, 0, false, nil
 			}
-			return result, err
+			return World{}, 0, false, err
 		}
 		bots := make([]*rand.Rand, len(setup.Names))
 		for i := range bots {
@@ -148,7 +167,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		for i, want := range h.Frames {
 			got, err := observer.Capture(e, e.L.Events[pos:])
 			if err != nil {
-				return result, err
+				return World{}, 0, false, err
 			}
 			for _, identity := range got.Identities {
 				knownGot[identity.ID] = identity
@@ -161,8 +180,19 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 				bucket := rejectionBucket(i, got, want)
 				addRejection(&result, bucket)
 				if bucket.Component == "identities" && bucket.Shape == "hand_to_stack" {
-					result.HandToStackCauses.add(handToStackCause(got, want, knownGot, knownWant))
+					cause := handToStackCause(got, want, knownGot, knownWant)
+					result.HandToStackCauses.add(cause)
 					addStackRejectionContext(&result, stackRejectionContext(got, want, knownGot, knownWant, stackConstraints[i]))
+					// Only a genuine competition is excludable: the replay cast a
+					// DIFFERENT card from the observed one. An observer-reference
+					// rejection names the observed card itself (excluding it would
+					// contradict the deadline) and an extra/missing cast has no
+					// competing preferred card to exclude.
+					if cause.PolicyCompetition > 0 {
+						proposal.recordCompetitionExclusion(i, got, knownGot, drawStates)
+					} else {
+						result.CompetitionUnguided++
+					}
 				}
 				if result.FirstRejection == "" {
 					result.FirstRejection = frameDifference(i, got, want)
@@ -192,7 +222,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 			if d.Player == h.Actor {
 				actions, ok := h.Answers[i]
 				if !ok {
-					return result, fmt.Errorf("missing actor answer at frame %d", i)
+					return World{}, 0, false, fmt.Errorf("missing actor answer at frame %d", i)
 				}
 				in, err = observer.Match(d, actions)
 				if err != nil {
@@ -215,14 +245,66 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 					accepted = false
 					break
 				}
-				return result, fmt.Errorf("reconstruction submit: %w", err)
+				return World{}, 0, false, fmt.Errorf("reconstruction submit: %w", err)
 			}
 		}
+		if !accepted {
+			return World{}, 0, false, nil
+		}
+		e.ClearHypotheticalPlanner()
+		return World{Config: cfg, Engine: e, Observer: observer}, proposal.logWeight, true, nil
+	}
+	// Probe rounds learn the competing names. Each round runs a few full
+	// replays under the exclusions learned so far, collects what its
+	// rejections teach into a staging store, and merges; the round is frozen
+	// while it runs, so a round's attempts share one proposal. A round that
+	// teaches nothing new ends the probing -- the last exclusion set is the
+	// frozen one, and every remaining attempt samples under it.
+	const probeRoundMax, probesPerRound = 2, 4
+	attemptsUsed := 0
+	var probeWorlds []World
+	var probeLogs []float64
+	for round := 0; round < probeRoundMax && attemptsUsed < opts.Attempts; round++ {
+		staging := newExclusionStore()
+		before := store.size()
+		for i := 0; i < probesPerRound && attemptsUsed < opts.Attempts; i++ {
+			world, lw, accepted, err := runAttempt(store, staging, attemptsUsed)
+			if err != nil {
+				return result, err
+			}
+			attemptsUsed++
+			if accepted {
+				probeWorlds = append(probeWorlds, world)
+				probeLogs = append(probeLogs, lw)
+			}
+		}
+		store.merge(staging)
+		if store.size() == before {
+			break
+		}
+	}
+	// Probe acceptances join the pool only when nothing was learned: their
+	// proposal is then identical to the sampling phase's and their weights
+	// homogeneous. When exclusions exist, the probe worlds carry the
+	// unconstrained proposal's much larger weight and would concentrate the
+	// pool, so they are dropped (bounded by the probe budget).
+	keepProbes := store.size() == 0
+	for ; attemptsUsed < opts.Attempts; attemptsUsed++ {
+		world, lw, accepted, err := runAttempt(store, nil, attemptsUsed)
+		if err != nil {
+			return result, err
+		}
 		if accepted {
-			e.ClearHypotheticalPlanner()
 			result.Accepted++
-			proposals = append(proposals, World{Config: cfg, Engine: e, Observer: observer})
-			logs = append(logs, proposal.logWeight)
+			proposals = append(proposals, world)
+			logs = append(logs, lw)
+		}
+	}
+	if keepProbes {
+		for i, world := range probeWorlds {
+			result.Accepted++
+			proposals = append(proposals, world)
+			logs = append(logs, probeLogs[i])
 		}
 	}
 	if len(proposals) == 0 {
@@ -269,6 +351,133 @@ func observedPrefixEvents(h History) int {
 		total += len(frame.Events)
 	}
 	return total
+}
+
+// frameDrawStates is the public draw ledger the exclusion derivation reads:
+// for every observed frame and seat, which shuffle that seat is drawing from
+// (its ordinal), how many cards it has drawn from the current shuffle, and
+// how many cards each already-COMPLETED shuffle yielded (completed[e] is the
+// total draws epoch e ever produced). Every input is an observed event
+// (Shuffle and Draw carry the seat), so the ledger is available to the
+// sampler without reading any hidden zone.
+type frameDrawState struct {
+	ordinal   int
+	draws     int
+	completed []int
+}
+
+func frameDrawStates(h History) []map[state.PlayerID]frameDrawState {
+	out := make([]map[state.PlayerID]frameDrawState, len(h.Frames))
+	current := make(map[state.PlayerID]frameDrawState)
+	for i, frame := range h.Frames {
+		for _, ev := range frame.Events {
+			s := current[ev.Player]
+			switch ev.Kind {
+			case events.Shuffle:
+				if s.ordinal > 0 {
+					// The shuffle closes epoch s.ordinal-1: everything drawn
+					// from it is now a finished, known count.
+					s.completed = append(s.completed, s.draws)
+				}
+				s.ordinal++
+				s.draws = 0
+			case events.Draw:
+				s.draws++
+			}
+			current[ev.Player] = s
+		}
+		snapshot := make(map[state.PlayerID]frameDrawState, len(current))
+		for player, s := range current {
+			snapshot[player] = s
+		}
+		out[i] = snapshot
+	}
+	return out
+}
+
+// recordCompetitionExclusion turns a PolicyCompetition rejection into
+// constraints for the attempts that follow. The card the replay bot cast
+// INSTEAD of the observed one must not reach that seat's hand before the
+// observed cast, so it is excluded from the cast's own shuffle up to the
+// observed draw count and from every EARLIER shuffle across that shuffle's
+// whole drawn window: a card drawn in a finished shuffle was in hand at the
+// cast point and the replay would deterministically have preferred it there,
+// which is exactly the divergence being repaired. Epochs whose compiled
+// constraints already place the named card in hand by an observation (a
+// deadline -- the seat was observed casting or publicly discarding it in that
+// shuffle) are skipped: excluding there would contradict the history, not
+// guide it. The competing card is the bot's own choice at the diverging
+// decision (it is the card the replay preferred), so the policy's ranking is
+// read from the engine that produced it rather than re-derived.
+//
+// Shapes that fall back to today's behaviour and are counted: a rejection
+// whose owner has not observed a shuffle, one whose competing card has no
+// observable name, one owned by the actor seat (the actor's frames replay
+// exactly, so no hand-completion choice is being repaired), and one learned
+// while the store is frozen (residual -- counted, never taught). So does a
+// plan whose exclusion turns out to be infeasible, which the counter reports
+// as an incompatible proposal.
+func (p *proposalState) recordCompetitionExclusion(frameIndex int, got Frame, known map[uint32]Identity, drawStates []map[state.PlayerID]frameDrawState) {
+	if p.staging == nil {
+		p.result.CompetitionResidual++
+		return
+	}
+	name, owner, ok := competingCast(got, known)
+	if !ok || owner == p.observer.actor {
+		p.result.CompetitionUnguided++
+		return
+	}
+	state, ok := drawStates[frameIndex][owner]
+	if !ok || state.ordinal <= 0 {
+		p.result.CompetitionUnguided++
+		return
+	}
+	for ordinal := 0; ordinal < state.ordinal-1; ordinal++ {
+		if ordinal >= len(state.completed) {
+			break
+		}
+		key := epochKey{Player: owner, Ordinal: ordinal}
+		ep := p.epochs[key]
+		p.staging.add(key, exclusionConstraint{Through: state.completed[ordinal], Name: name, Cap: epochDeadlineCountFor(ep, name)})
+	}
+	ep := p.epochs[epochKey{Player: owner, Ordinal: state.ordinal - 1}]
+	p.staging.add(epochKey{Player: owner, Ordinal: state.ordinal - 1}, exclusionConstraint{Through: state.draws, Name: name, Cap: epochDeadlineCountFor(ep, name)})
+	p.result.CompetitionExclusions++
+}
+
+// epochDeadlineCountFor is the number of copies of the named card the epoch's
+// compiled deadlines already require in hand by an observation -- the seat was
+// seen casting, discarding or otherwise publicly exiting that card in this
+// shuffle. Zero when the card was never observed exiting hand there. An
+// exclusion for such an epoch carries this count as its Cap instead of 0, so
+// it means "exactly the observed copies, no further draws of the card" rather
+// than contradicting the deadline outright.
+func epochDeadlineCountFor(ep epochConstraints, name string) int {
+	count := 0
+	for _, deadline := range ep.Deadlines {
+		if deadline.Name == name && deadline.Count > count {
+			count = deadline.Count
+		}
+	}
+	return count
+}
+
+// competingCast is the observed frame's hand-to-stack card: its name and the
+// seat that cast it. It fails closed when the frame holds no such move or the
+// identity was never observed, so an unnameable rejection is counted, never
+// guessed.
+func competingCast(frame Frame, known map[uint32]Identity) (string, state.PlayerID, bool) {
+	for _, event := range frame.Events {
+		if event.From != state.ZHand || event.To != state.ZStack {
+			continue
+		}
+		identity, ok := known[event.Obj]
+		if !ok || identity.Name == "" {
+			return "", 0, false
+		}
+		return identity.Name, identity.Owner, true
+	}
+	return "", 0, false
 }
 
 func newOpponentBoards(players int) []botpolicy.Board {
