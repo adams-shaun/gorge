@@ -1612,7 +1612,13 @@ func hasType(o *state.Object, t string) bool {
 			return true
 		}
 	}
-	return f.HasKeyword("Changeling") && changelingType(t)
+	// Intrinsic type-defining abilities, answered in every zone (CR 613.4a):
+	// Changeling's keyword and the characteristic-defining
+	// AddAllCreatureTypes$ True static (Mistform Ultimus). Both go through
+	// the positive subtype vocabulary, so a non-creature word (Arcane,
+	// Alara, Ajani) can never leak, and neither materialises subtypes into
+	// the derived type list.
+	return (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA()) && changelingType(t)
 }
 
 // typePredicate handles the legacy predicate-map entries whose meaning is a
