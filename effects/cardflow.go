@@ -703,12 +703,17 @@ func containsID(ids []state.ObjID, id state.ObjID) bool {
 }
 
 // effMill moves cards from the top of a player's library straight to their
-// graveyard -- Discard's sibling, minus the hand.
+// graveyard -- Discard's sibling, minus the hand. With RememberMilled$ True
+// every card it actually moves joins the resolution's remembered set, the
+// same both-halves recording discardAndRemember does, so a chained pickup
+// ("put a card from among them into your hand") filtering on IsRemembered
+// finds them instead of silently failing to find.
 func effMill(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumCards", 1)
 	if n < 0 {
 		n = 0
 	}
+	remember := strings.EqualFold(sa.Params["RememberMilled"], "True")
 	g := h.Game()
 	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
@@ -717,10 +722,25 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 			if len(lib) == 0 {
 				break
 			}
-			h.Emit(events.Event{Kind: events.MoveZone, Obj: lib[0],
+			id := lib[0]
+			h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 				From: state.ZLibrary, To: state.ZGraveyard, Player: p})
+			if remember {
+				rememberMilled(h, c, id)
+			}
 		}
 	}
+}
+
+// rememberMilled records one milled card in both halves of the remembered
+// state, exactly as discardAndRemember does for a discarded one: the
+// resolution's Ctx.Remembered set (what a chained sub-ability and an in-
+// flight hidden pick filter read this walk) and the source object's event-
+// backed Remembered list (what survives the resolution for a later
+// Card.IsRemembered / Count$RememberedSize read).
+func rememberMilled(h Host, c *Ctx, id state.ObjID) {
+	c.Remembered = append(c.Remembered, state.Target{Obj: id})
+	eventRemember(h, c, id)
 }
 
 // effDig implements Forge's Dig: look at the top DigNum cards of Defined$'s
