@@ -30,7 +30,7 @@ func TestCompiledCodeMappings(t *testing.T) {
 		// Every non-test effects.Register spelling. This literal inventory
 		// makes adding an effect without assigning a stable opcode fail here.
 		names := []string{
-			"AddTurn", "Amass", "Animate", "Attach", "BecomeMonarch", "Branch",
+			"AddTurn", "Amass", "Animate", "AnimateAll", "Attach", "BecomeMonarch", "Branch",
 			"ChangeTargets", "ChangeZone", "ChangeZoneAll", "Charm", "ChooseCard",
 			"ChangeX", "ChooseNumber", "ChoosePlayer", "ChooseType", "Cleanup",
 			"ControlSpell", "CopySpellAbility", "Counter", "CumulativeUpkeep", "DamageAll", "DealDamage",
