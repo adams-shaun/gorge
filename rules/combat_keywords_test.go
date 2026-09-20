@@ -20,7 +20,7 @@ func corpusKeywordCard(t *testing.T, name string) *cards.Card {
 	paths := map[string]string{
 		"Vein Ripper": "v/vein_ripper.txt", "Artisan of Kozilek": "a/artisan_of_kozilek.txt",
 		"Fury": "f/fury.txt", "Shriekmaw": "s/shriekmaw.txt", "Dauthi Voidwalker": "d/dauthi_voidwalker.txt",
-		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Emrakul, the Aeons Torn": "e/emrakul_the_aeons_torn.txt", "Geyadrone Dihada": "g/geyadrone_dihada.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Auntie Ool, Cursewretch": "a/auntie_ool_cursewretch.txt", "The Serpent Society": "t/the_serpent_society.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt", "Jon Irenicus, Shattered One": "j/jon_irenicus_shattered_one.txt", "Vislor Turlough": "v/vislor_turlough.txt",
+		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Emrakul, the Aeons Torn": "e/emrakul_the_aeons_torn.txt", "Geyadrone Dihada": "g/geyadrone_dihada.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Auntie Ool, Cursewretch": "a/auntie_ool_cursewretch.txt", "The Serpent Society": "t/the_serpent_society.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt", "Jon Irenicus, Shattered One": "j/jon_irenicus_shattered_one.txt", "Vislor Turlough": "v/vislor_turlough.txt", "Herald of Hoofbeats": "h/herald_of_hoofbeats.txt",
 	}
 	path, ok := paths[name]
 	if !ok {
@@ -265,6 +265,47 @@ func TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords(t *testing.T) {
 	e.G.Obj(voidwalker).IsAttacking, e.G.Obj(voidwalker).Attacking = true, 1
 	if e.canBlock(fearBlocker, voidwalker) {
 		t.Fatal("non-Shadow creature blocked Dauthi Voidwalker")
+	}
+}
+
+func TestHorsemanshipCanBlockOnlyHorsemanshipAttackers(t *testing.T) {
+	e := combatEngine(t)
+	// Herald of Hoofbeats is a real corpus carrier of the printed
+	// K:Horsemanship (CR 702.31). Seat 1 attacks seat 0, so seat 0's creatures
+	// are the prospective blockers.
+	plainBlocker := onBoard(t, e, 0, "Name:White\nManaCost:W\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	// A second real Herald on the defending side supplies a printed-
+	// horsemanship blocker, independent of the layer-7 grant.
+	horsemanshipBlocker := onBoardCard(t, e, 0, corpusKeywordCard(t, "Herald of Hoofbeats"))
+	// A Knight under seat 1's control, to exercise the Herald's layer-7 static
+	// (Knight.YouCtrl+Other) -- the grant the combat read depends on.
+	knight := onBoard(t, e, 1, "Name:Knight\nManaCost:W\nTypes:Creature Knight\nPT:2/2\nOracle:x\n")
+	heraid := onBoardCard(t, e, 1, corpusKeywordCard(t, "Herald of Hoofbeats"))
+	// Layer-7: the seat-1 Herald's static gives seat 1's other Knight
+	// horsemanship.
+	if !e.HasKeyword(knight, "Horsemanship") {
+		t.Fatal("Herald of Hoofbeats' static did not grant another Knight Horsemanship")
+	}
+	if !e.HasKeyword(heraid, "Horsemanship") {
+		t.Fatal("Herald of Hoofbeats does not have its own printed Horsemanship")
+	}
+	// CR 702.31b, direction 1: a creature without horsemanship cannot block a
+	// horsemanship attacker.
+	e.G.Obj(heraid).IsAttacking, e.G.Obj(heraid).Attacking = true, 0
+	if e.canBlock(plainBlocker, heraid) {
+		t.Fatal("plain creature blocked a horsemanship attacker")
+	}
+	// CR 702.31b, direction 2: a horsemanship creature can block a
+	// horsemanship attacker.
+	if !e.canBlock(horsemanshipBlocker, heraid) {
+		t.Fatal("horsemanship creature could not block a horsemanship attacker")
+	}
+	// CR 702.31b, direction 3 (the asymmetric half): a horsemanship creature
+	// can block a creature WITHOUT horsemanship.
+	plainAttacker := onBoard(t, e, 1, "Name:White\nManaCost:W\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	e.G.Obj(plainAttacker).IsAttacking, e.G.Obj(plainAttacker).Attacking = true, 0
+	if !e.canBlock(horsemanshipBlocker, plainAttacker) {
+		t.Fatal("horsemanship creature could not block a plain attacker (rule is asymmetric)")
 	}
 }
 
