@@ -281,3 +281,83 @@ func TestParseCostModelsDynamicTapXType(t *testing.T) {
 		t.Fatalf("formatCost = %q, want it to carry the Any token", got)
 	}
 }
+
+// TestTapXTypeXFormZeroCandidatesActivationResolvesXZero pins the
+// zero-candidate X-form election on the ACTIVATED-ABILITY path against a
+// real corpus card. Secluded Starforge's second ability is
+// "{2}, {T}, Tap X untapped artifacts you control: Target creature gets
+// +X/+0" -- with a creature to target but no artifacts on the board the
+// cost is payable at X=0 (CR 601.2b), so the ability is offered and the
+// election has no options. Posting a Min 0/Max 0 choose with zero options
+// panics rules/engine.go's ask, so the X=0 announcement must resolve
+// silently (mirroring rules/cumulative.go's triggeredTapAsk decline).
+func TestTapXTypeXFormZeroCandidatesActivationResolvesXZero(t *testing.T) {
+	e := handEngine(t)
+	forge := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Secluded Starforge"))
+	e.G.Obj(forge).SummonSick = false
+	// A creature to target; deliberately NO artifacts, so the X-form tap
+	// spec has zero candidates.
+	target := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	addMana(t, e, 0, "CC")
+	// Ability index 1 is the {2},{T} pump (index 0 is the mana ability).
+	opt := abilityOption(t, e, forge, 1)
+	submitChoices(t, e, opt.Index)
+	// No tap election may be posted (nobody could answer it differently).
+	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
+		t.Fatalf("zero-candidate X-form posted an election: %+v", d)
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("target ask %+v, want KTarget after the X=0 announce", d)
+	}
+	targetOpt := -1
+	for _, o := range d.Options {
+		if o.Obj == target {
+			targetOpt = o.Index
+		}
+	}
+	if targetOpt < 0 {
+		t.Fatalf("target ask offers no option for the creature: %+v", d.Options)
+	}
+	submitChoices(t, e, targetOpt)
+	passUntilStackEmpty(t, e, 20)
+	// X=0: no artifacts were tapped and the creature gets no pump.
+	if e.G.Obj(target).Tapped {
+		t.Fatal("X=0 tapped the target creature")
+	}
+	if got := e.Power(target); got != 2 {
+		t.Fatalf("target power = %d, want 2 (X=0 pump)", got)
+	}
+}
+
+// TestTapXTypeXFormZeroCandidatesCastResolvesXZero pins the zero-candidate
+// X-form election on the SPELL path against a real corpus card. Burn at the
+// Stake's cost is "{2}{R}{R}{R}, tap any number of untapped creatures you
+// control" -- with no creatures on board the spell is castable at X=0 (the
+// announcement), and selecting the cast must not panic.
+func TestTapXTypeXFormZeroCandidatesCastResolvesXZero(t *testing.T) {
+	e := handEngine(t, corpusAlternativeCard(t, "Burn at the Stake"))
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	addMana(t, e, 0, "RRRRR")
+	submitChoices(t, e, castOption(t, e, spell))
+	// No tap election: zero creatures, so the X=0 announce is silent.
+	for i := 0; i < 30; i++ {
+		d := e.Pending()
+		if d == nil {
+			break
+		}
+		if d.Kind == decision.KChoose {
+			t.Fatalf("zero-candidate X-form posted an election: %+v", d)
+		}
+		if d.Kind == decision.KTarget {
+			submitChoices(t, e, 0)
+			continue
+		}
+		break
+	}
+	passUntilStackEmpty(t, e, 20)
+	// X=0: the spell resolves and deals 0 damage to the target.
+	if e.G.Obj(spell).Zone != state.ZGraveyard {
+		t.Fatalf("spell zone=%s, want graveyard after resolving", e.G.Obj(spell).Zone)
+	}
+}

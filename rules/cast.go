@@ -1859,6 +1859,17 @@ func (e *Engine) tapPermanentCostAsk() bool {
 				e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
 				return true
 			}
+			// An X-form election with no eligible permanent can only announce
+			// X = 0 (CR 601.2b; the affordability gate agrees, so this is a
+			// board that changed under the offer). A decision nobody could
+			// answer differently is never emitted -- posting the Min 0/Max 0
+			// empty ask panics rules/engine.go's ask -- so resolve it silently
+			// with X = 0 and no taps, mirroring triggeredTapAsk's decline.
+			if part.Dyn == "X" && !pc.xDone && len(candidates) == 0 {
+				pc.x = 0
+				pc.tapPart++
+				continue
+			}
 			if part.Dyn == "X" && pc.xDone {
 				// The announced X settles exactly: no choice beyond which
 				// permanents, so a shortfall is the same unpayable abort.
