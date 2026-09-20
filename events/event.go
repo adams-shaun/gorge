@@ -424,6 +424,18 @@ const (
 	// own append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Exert
+	// PlanarRoll records one planar-dice roll (CR 901.3, task rollplanar1):
+	// Player is the roller, Obj the rolling source, Amount the number of
+	// dice rolled AFTER any planar-dice replacement rewrote the count, IDs
+	// the KEPT results (1-4 blank, 5 planeswalk, 6 chaos) in roll order and
+	// Counter the ignored-result count the replacement wrote ("" = none).
+	// It is an Apply no-op marker: no plane deck exists in this build, so a
+	// roll has no state to fold — the log line IS the record (one event per
+	// roll action), and replay re-derives the same rolls from the seeded rng.
+	// Appended here, after Exert, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	PlanarRoll
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -434,7 +446,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Exert) + 1
+	NumKinds = int(PlanarRoll) + 1
 )
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
@@ -515,7 +527,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase", "copy_token", "exert"}
+	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
