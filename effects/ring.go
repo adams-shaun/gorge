@@ -22,11 +22,12 @@ import (
 // creature emits the event with Obj 0: the temptation still counts and the
 // trigger still fires (CR 701.54d — "even if some were impossible").
 func effRingTemptsYou(h Host, c *Ctx, sa *cards.SA) {
+	// Measured corpus: none of the 49 raw RingTemptsYou SA lines carries
+	// Defined$/ValidTgts$, so the tempted player is always the resolving
+	// controller. A Defined$-driven path would be untested dead code whose
+	// PlayerOf behaviour on a non-player object reference is undefined for
+	// this shape -- it stays out deliberately.
 	p := c.Controller
-	targets := Defined(h, c, sa)
-	if len(targets) > 0 {
-		p = PlayerOf(h, c, targets[0])
-	}
 	g := h.Game()
 	bearer := state.ObjID(0)
 	if cur := g.Players[p].RingBearer; cur != 0 {

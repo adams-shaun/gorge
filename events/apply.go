@@ -468,8 +468,15 @@ func Apply(g *state.Game, e Event) {
 		// transient object state: a log-only replay sees the same PutOnStack,
 		// captures the same fields and consumes them on the reverse move.
 		wasStack := false
+		// The object's REAL pre-move zone, not Event.From: Move itself treats
+		// From as advisory (a malformed caller-supplied From must not corrupt
+		// state), and the Ring-bearer clear below must follow the same rule --
+		// otherwise a blob return/re-entry reusing the same ObjID could keep a
+		// stale designation.
+		wasBattlefield := false
 		if o := g.Obj(e.Obj); o != nil {
 			wasStack = o.Zone == state.ZStack
+			wasBattlefield = o.Zone == state.ZBattlefield
 			if e.To == state.ZStack {
 				o.PreStackEntryThisTurn = o.EnteredThisTurn
 				o.PreStackEntryFrom = o.EnteredFrom
@@ -579,7 +586,7 @@ func Apply(g *state.Game, e Event) {
 		// and requires the battlefield — the moment the object leaves, every
 		// seat's designation naming it is gone (the next battlefield entry is
 		// a new object and never inherits one).
-		if e.From == state.ZBattlefield && e.To != state.ZBattlefield {
+		if wasBattlefield && e.To != state.ZBattlefield {
 			clearRingBearers(g, e.Obj)
 		}
 

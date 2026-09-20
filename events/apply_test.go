@@ -879,6 +879,12 @@ func TestClockTickIncrementsClock(t *testing.T) {
 	}
 }
 
+func TestRingTemptsYouKindString(t *testing.T) {
+	if got, want := RingTemptsYou.String(), "ring_tempts_you"; got != want {
+		t.Fatalf("RingTemptsYou.String() = %q, want %q", got, want)
+	}
+}
+
 func TestClockTickKindString(t *testing.T) {
 	if got, want := ClockTick.String(), "clock_tick"; got != want {
 		t.Fatalf("ClockTick.String() = %q, want %q", got, want)
@@ -1391,6 +1397,19 @@ func TestRingTemptsYouFoldsCountBearerAndClears(t *testing.T) {
 	if g.Players[0].RingBearer != 0 || g.Players[0].RingTempted != 2 {
 		t.Fatalf("after the leave: bearer %d (want 0), count %d (want 2)",
 			g.Players[0].RingBearer, g.Players[0].RingTempted)
+	}
+	// The clear keys on the object's REAL pre-move zone, not Event.From:
+	// Move treats From as advisory, and a malformed caller-supplied From must
+	// not leave a stale designation that a blob return/re-entry reusing the
+	// same ObjID would then report through the IsRingbearer predicate.
+	Apply(g, Event{Kind: MoveZone, Obj: o.ID, From: state.ZGraveyard, To: state.ZBattlefield})
+	Apply(g, Event{Kind: RingTemptsYou, Player: 0, Obj: o.ID, Amount: 3})
+	if g.Players[0].RingBearer != o.ID {
+		t.Fatalf("bearer %d, want %d after the re-designation", g.Players[0].RingBearer, o.ID)
+	}
+	Apply(g, Event{Kind: MoveZone, Obj: o.ID, From: state.ZGraveyard, To: state.ZGraveyard})
+	if g.Players[0].RingBearer != 0 {
+		t.Fatalf("bearer %d survived a leave with a malformed caller-supplied From", g.Players[0].RingBearer)
 	}
 	// An out-of-range player must not panic — the same totality stance the
 	// MonarchChange/SpeedChange cases take.
