@@ -54,6 +54,17 @@ func ParseBytes(path string, src []byte) (*Card, []Diag) {
 			c.AlternateMode = val
 		case "Name":
 			cur.Name = val
+		case "Variant":
+			// Only the Universes-Within flavour-name alias carries a
+			// decklist-visible name. Every other Variant: value (Attraction
+			// lights, DFC face-variant metadata) stays ignored exactly like the
+			// other unrecognised keys below: it carries no rules meaning and
+			// turning it into a diag would only pollute the corpus diag count.
+			if alias, ok := strings.CutPrefix(val, "UniversesWithin:FlavorName:"); ok {
+				if alias = strings.TrimSpace(alias); alias != "" {
+					cur.Aliases = append(cur.Aliases, alias)
+				}
+			}
 		case "ManaCost":
 			cur.ManaCost = val
 		case "Types":
