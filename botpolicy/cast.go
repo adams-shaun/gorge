@@ -456,7 +456,7 @@ func (b Board) castScore(o decision.Option) int32 {
 	// net-upside optional additional cost the bot commits to when scored).
 	case "kicked", "kicked1", "kicked2", "kickedboth", "surged":
 		s += w.Kicked
-	case "flashback", "miracle":
+	case "flashback", "miracle", "aftermath":
 		s += w.Flashback
 	}
 	return s

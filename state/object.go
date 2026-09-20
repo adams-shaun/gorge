@@ -165,6 +165,13 @@ const (
 	// FlagManaSpent's, so the two totals never share an event. Appended per
 	// the enum's own append-only precedent.
 	FlagManaSnowSpent
+	// FlagAftermath marks a cast of a Split card's Aftermath alternate face
+	// from the graveyard (CR 702.85a; the Flashback convention): the flag is
+	// what the resolution reader (spellRestZone) and the fizzle reader
+	// (spellFizzleZone) read to exile the card instead of the graveyard,
+	// both on resolution and when countered. Appended per the enum's own
+	// append-only precedent.
+	FlagAftermath
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
