@@ -2425,6 +2425,15 @@ func (e *Engine) revoltThisTurn(controller state.PlayerID) bool {
 	return false
 }
 
+// RevoltHolds is the effects.Host bridge (the bare Condition$ Revolt gate in
+// effects/conditions.go and the Count$Revolt.<yes>.<no> branch head in
+// effects/count.go): the same revoltThisTurn scan the replacement path's
+// Revolt$ clause and the trigger path's Revolt$ clause read, so all four
+// spellings answer identically and a replay derives each from the log.
+func (e *Engine) RevoltHolds(controller state.PlayerID) bool {
+	return e.revoltThisTurn(controller)
+}
+
 func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {
 	seen := map[string]bool{}
 	for _, id := range e.G.Zone(state.ZGraveyard, controller) {

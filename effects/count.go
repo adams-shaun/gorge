@@ -1138,6 +1138,20 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				return y, true
 			}
 			return n, true
+		case "Revolt":
+			// CR 702.38's branch head (the corpus's two carriers: Lifecraft
+			// Cavalry's SVar:Revolt:Count$Revolt.1.0 etbCounter gate and
+			// Fatal Push's Count$Revolt.4.2 destroy bound): <yes> when a
+			// permanent the resolving CONTROLLER controlled left the
+			// battlefield this turn, else <no> -- the same Host predicate
+			// the bare Condition$ Revolt gate and the rules-side Revolt$
+			// clauses share, so the spellings cannot drift apart. Literal
+			// branches, the Morbid/Monarch precedent.
+			y, n := splitDot(head[dot+1:])
+			if h.RevoltHolds(c.Controller) {
+				return y, true
+			}
+			return n, true
 		}
 	}
 

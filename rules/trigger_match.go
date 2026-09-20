@@ -3436,6 +3436,35 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 			return false
 		}
 	}
+	if v, ok := t.Params["Revolt"]; ok {
+		// Revolt$ (the CR 702.38 ability word, "if a permanent you
+		// controlled left the battlefield this turn"): the SAME
+		// revoltThisTurn scan the replacement path's Revolt$ clause reads
+		// (rules/replacement.go), the one Engine.RevoltHolds -- effects'
+		// bare Condition$ Revolt gate and Count$Revolt branch head --
+		// delegates to, so the three spellings cannot drift apart. Measured
+		// over the corpus: 29 files carry Revolt$ True; 24 of its lines are
+		// triggers -- 16 Mode$ Phase end-step shapes (Aid from the Cowl,
+		// Hidden Stockpile, Krang) and 8 Mode$ ChangesZone ETBs (Airdrop
+		// Aeronauts, Vengeful Rebel, Deadeye Harpooner); the rest are a
+		// replacement line (Aether Revolt, already read on the replacement
+		// path) and non-trigger text. A value this build cannot read as
+		// True is an unreadable clause shape and fails closed like the
+		// Metalcraft$ clause above.
+		if !strings.EqualFold(strings.TrimSpace(v), "True") || !e.revoltThisTurn(you) {
+			return false
+		}
+	}
+	if strings.EqualFold(strings.TrimSpace(t.Params["Condition"]), "Revolt") {
+		// The bare-Condition$ spelling of the same gate. No corpus trigger
+		// carries it today (the one bare Condition$ Revolt carrier,
+		// Decommission, is a DB$ GainLife sub the effects condition gate
+		// reads), kept beside the bare Condition$ Metalcraft spelling so
+		// the two cannot drift apart.
+		if !e.revoltThisTurn(you) {
+			return false
+		}
+	}
 	if name, ok := t.Params["CheckSVar"]; ok {
 		// CheckSVar$/SVarCompare$ (Kozilek, the Great Distortion's cast
 		// trigger: "if you have fewer than seven cards in hand"): the

@@ -31,6 +31,10 @@ type fakeHost struct {
 	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
 	// true branch (the real log-scan read is pinned in rules).
 	castFromHand bool
+	// revolt is the RevoltHolds answer the double reports (the bare
+	// Condition$ Revolt gate and the Count$Revolt branch head read it; the
+	// real event-log scan is pinned in rules).
+	revolt bool
 	// typeChoices is the TypeChoices answer the double reports (nil by
 	// default): the effects-side ChooseType tests configure it to pose a
 	// real option list. Nil routes ChooseType through AskEmpty — the
@@ -126,6 +130,10 @@ func (h *fakeHost) LifeGainedThisTurn(_ state.PlayerID) int32 { return 0 }
 
 // TurnsTaken has no event log here; the double reports zero.
 func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
+
+// RevoltHolds has no event log here; the double reports the h.revolt flag
+// the eval-level tests flip (the real log-scan read is pinned in rules).
+func (h *fakeHost) RevoltHolds(_ state.PlayerID) bool { return h.revolt }
 
 // SpellsCastThisTurnMatching has no event log here; the double reports zero.
 func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }

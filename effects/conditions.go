@@ -42,10 +42,13 @@ import (
 //     fail OPEN (run-anyway), the statics wrapper fails CLOSED.
 //  4. a bare `Condition$` whose value is `Kicked` — the source was cast
 //     with its Kicker paid (Into the Roil's "If this spell was kicked,
-//     draw a card", the corpus's dominant bare-Condition value at 54 SAs).
-//     The other bare-Condition values (Delirium, OptionalCost, Bargain,
-//     Threshold, Blessing, Metalcraft, Foretold, Hellbent, Revolt, Surge —
-//     ~28 SAs) stay unresolved.
+//     draw a card", the corpus's dominant bare-Condition value at 54 SAs);
+//     `Foretold` — the FlagForetold cast provenance (Poison the Cup,
+//     Alrund's Epiphany); and `Revolt` — CR 702.38's "a permanent you
+//     controlled left the battlefield this turn" (Decommission's DB$
+//     GainLife), read through Host.RevoltHolds. The other bare-Condition
+//     values (Delirium, OptionalCost, Bargain, Threshold, Blessing,
+//     Metalcraft, Hellbent, Surge — ~25 SAs) stay unresolved.
 //  5. `ConditionDefined$ Imprinted` (34 corpus lines over 26 files) — the
 //     source card's persistent imprint list (state.Object.Imprinted, the
 //     events.Imprint associations: Chrome Mox's Imprint$ and now api:Play's
@@ -312,8 +315,9 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// A bare Condition$ is the cast-option family: Kicked and Foretold are
 	// evaluated over the source's CastFlags (the bit the Kicker payment / the
 	// Foretell action's CastInfo recorded -- the same provenance Count$
-	// Foretold reads); Delirium/OptionalCost/Bargain/Threshold/Blessing/
-	// Metalcraft/Hellbent/Revolt/Surge stay unresolved and run
+	// Foretold reads); Revolt is CR 702.38's leave-the-battlefield state
+	// through Host.RevoltHolds; Delirium/OptionalCost/Bargain/Threshold/
+	// Blessing/Metalcraft/Hellbent/Surge stay unresolved and run
 	// unconditionally. A bare Condition beside a group key or beside
 	// ConditionSVarCompare$ is a mixed shape no single evaluator covers (~11
 	// corpus SAs).
@@ -333,6 +337,14 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			// bare-Condition corpus carriers are exactly this shape.
 			o := h.Game().Obj(c.Source)
 			return o != nil && o.CastFlags&state.FlagForetold != 0, true
+		case strings.EqualFold(bare, "Revolt"):
+			// CR 702.38's ability-word gate (Decommission's DB$ GainLife |
+			// Condition$ Revolt -- the corpus's only bare-Condition$ Revolt
+			// line): a permanent the resolving controller controlled left
+			// the battlefield this turn, through the Host predicate the
+			// rules-side Revolt$ clauses and the Count$Revolt branch head
+			// share, so the spellings cannot drift apart.
+			return h.RevoltHolds(c.Controller), true
 		}
 		return false, false
 	}
