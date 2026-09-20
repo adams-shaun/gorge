@@ -850,3 +850,5 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-20T06:17Z | c2065108+ | 13.0 | 1730 | 1 | sadams |
 | 2026-09-20T06:43Z | ebc1fa52+ | 15.8 | 1739 | 1 | sadams |
 | 2026-09-20T07:00Z | 46ff9ecd+ | 17.2 | 1739 | 1 | sadams |
+| 2026-09-20T06:59Z | c28a1e29+ | 18.1 | 1742 | 1 | sadams |
+| 2026-09-20T07:24Z | 0bb54238+ | 15.5 | 1743 | 1 | sadams |

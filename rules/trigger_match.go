@@ -219,6 +219,43 @@ func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) b
 	return true
 }
 
+// resolvedLimitValue parses a trigger's ResolvedLimit$ param. ok is true only
+// when the param is present; a malformed value is reported as (0, true) so
+// the gate denies it (fail closed), matching triggerActivationLimitAllows's
+// malformed handling.
+func resolvedLimitValue(t cards.Trigger) (int, bool) {
+	raw, present := t.Params["ResolvedLimit"]
+	if !present {
+		return 0, false
+	}
+	limit, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || limit < 0 {
+		return 0, true // malformed: present, denies
+	}
+	return limit, true
+}
+
+// noteTriggerResolved increments source's per-turn resolution count for the
+// ResolvedLimit$ gate. Callers MUST have verified that the trigger line being
+// resolved itself carries ResolvedLimit$ (resolvedLimitValue on the trigger
+// findTriggerForAbility returned for the resolving ability) -- a mixed-line
+// source's OTHER trigger lines must never consume this line's limit (the
+// round-2 defect: sourceHasResolvedLimit potted any line of the source and
+// killed Cosmic Crucible's copy trigger every turn its mandatory Main1 mana
+// trigger resolved). The count self-resets when the turn changes, exactly as
+// triggerTurnFires does, so no reset hook is needed.
+func (e *Engine) noteTriggerResolved(source state.ObjID) {
+	if e.triggerTurnResolved == nil {
+		e.triggerTurnResolved = map[state.ObjID]turnFires{}
+	}
+	f := e.triggerTurnResolved[source]
+	if f.Turn != e.G.Turn {
+		f = turnFires{Turn: e.G.Turn}
+	}
+	f.N++
+	e.triggerTurnResolved[source] = f
+}
+
 // maxTriggerFires bounds how many times a single (source, trigger index)
 // pair may queue a pending trigger over the life of a match. Ordinary play
 // stays far below this -- even a trigger that fires every turn for a hundred
@@ -974,6 +1011,20 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 				if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 					continue // ActivationLimit$: already triggered enough this turn.
+				}
+				// ResolvedLimit$ ("Do this only once each turn."): scoped to EVERY
+				// trigger mode, not just actionTriggerModes -- ChangesZone and
+				// SpellCast, the two largest groups, are not in that set. The
+				// count is keyed by the SOURCE object so a card's paired lines
+				// share one limit; a malformed value denies (fail closed).
+				if limit, present := resolvedLimitValue(t); present {
+					f := e.triggerTurnResolved[id]
+					if f.Turn != e.G.Turn {
+						f = turnFires{Turn: e.G.Turn}
+					}
+					if int(f.N) >= limit {
+						continue // ResolvedLimit$: already resolved enough this turn.
+					}
 				}
 				if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
 					// The "Once" gate latches once per DAMAGE BATCH, not per turn

@@ -1442,8 +1442,9 @@ func (e *Engine) resolveTop() {
 		// abilities and mandatory triggers (findTriggerForAbility returns
 		// false for the former, or an OptionalDecider-less trigger for the
 		// latter) fall straight through to their effect below.
-		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
-			if spec := t.Params["OptionalDecider"]; spec != "" {
+		rt, triggered := e.findTriggerForAbility(o.Source, o.Ability)
+		if triggered {
+			if spec := rt.Params["OptionalDecider"]; spec != "" {
 				who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered, e.triggerContexts[id])
 				if !askable {
 					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
@@ -1452,8 +1453,24 @@ func (e *Engine) resolveTop() {
 						"ability ceased to exist (CR 800.4a) and was parked in exile")
 					return
 				}
-				e.askOptionalAtResolution(who, o, o.Ability, e.abilityLabel(o, t))
+				e.askOptionalAtResolution(who, o, o.Ability, e.abilityLabel(o, rt))
 				return
+			}
+		}
+		// ResolvedLimit$ ("Do this only once each turn."): a MANDATORY
+		// trigger that reaches this point is one whose effect is about to run
+		// (the optional gate above returned for every OptionalDecider$ shape),
+		// so consume its per-turn resolution count now -- before the
+		// CumulativeUpkeep/Echo/Cost$ dispatch below, which may open a
+		// pay/decline window but is still this ability resolving. A freshly
+		// accepted optional trigger is counted at resumeResolution's
+		// "optional" arm instead. The eligibility check is on the RESOLVED
+		// line's own param (rt), not on the source's other lines: a mixed-line
+		// carrier (Cosmic Crucible's mandatory Main1 mana trigger, no
+		// ResolvedLimit$) resolving first must not spend its sibling's limit.
+		if triggered {
+			if _, limited := resolvedLimitValue(rt); limited {
+				e.noteTriggerResolved(o.Source)
 			}
 		}
 		// Cumulative upkeep is an ordinary trigger through placement, but its

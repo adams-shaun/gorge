@@ -688,6 +688,12 @@ type Engine struct {
 	tapEntering         bool
 	tappedTurn          map[state.ObjID]int32
 	triggerTurnFires    map[triggerKey]turnFires
+	// triggerTurnResolved is ResolvedLimit$'s per-turn resolution count,
+	// keyed by the trigger's SOURCE object (not its triggerKey): Forge's
+	// TriggeredAbility.resolvedThisTurn caps how many times a T: line may
+	// RESOLVE each turn, and a ResolvedLimit$ card's paired lines (the
+	// corruption_of_towashi halves of one printed ability) must share it.
+	triggerTurnResolved map[state.ObjID]turnFires
 	dmgSrcOverride      state.ObjID
 	batchLifelink       map[state.ObjID]bool
 
