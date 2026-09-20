@@ -771,6 +771,13 @@ var flagNames = [...]struct {
 	// instead of overwriting X. Appended at the end per the table's own
 	// ordering rule.
 	{"manaspent", state.FlagManaSpent},
+	// The SNOW-unit part of the total-mana-spent capture (task castfilter1):
+	// a face whose SVar table reads the filtered Count$CastTotalManaSpent Snow
+	// head stamps its pay-time CastInfo with this flag too, so the Amount
+	// folds into Object.ManaSnowSpent instead of overwriting X or the
+	// unfiltered total. Appended at the end per the table's own ordering
+	// rule.
+	{"manasnowspent", state.FlagManaSnowSpent},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

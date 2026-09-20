@@ -724,20 +724,39 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return 0, true
 	case "CastTotalManaSpent":
 		// CR 601.2h's payment: the TOTAL mana actually spent to cast the
-		// resolving spell (the spent delta's pips summed over every slot),
-		// carried by the pay-time CastInfo's FlagManaSpent Amount
-		// (rules/cast.go's payCast capture -- the converge/replicate/
-		// multikick pattern; faceWantsCastSpend is the heads-safety gate).
-		// Same provenance read Converge makes -- the cast spell, and in the
-		// K:etbCounter ETB replacement the same object after the
-		// stack->battlefield move preserves it -- so a replay derives the
+		// resolving spell. The bare form (arg == "") is the spent delta's pips
+		// summed over every slot, carried by the pay-time CastInfo's
+		// FlagManaSpent Amount (rules/cast.go's payCast capture -- the
+		// converge/replicate/multikick pattern; faceWantsCastSpend is the
+		// heads-safety gate). Same provenance read Converge makes -- the cast
+		// spell, and in the K:etbCounter ETB replacement the same object after
+		// the stack->battlefield move preserves it -- so a replay derives the
 		// same number; a copy of the spell was never cast and a cheated-in
 		// permanent reads 0. The ref-property readers of OTHER casts
 		// (TriggeredCard$CastTotalManaSpent, evalRefProperty) stay on the
 		// rv2b exotic-heads ledger -- they read a trigger context, not this
 		// field.
+		//
+		// The FILTERED form `Count$CastTotalManaSpent <Type>` (task castfilter1)
+		// counts only the mana spent whose SOURCE was a permanent of <Type>.
+		// That per-unit producer-type provenance does not exist for an
+		// arbitrary <Type> -- the pool is a six-slot colour array with no
+		// producer record -- so only <Type> == "Snow" resolves, from the
+		// parallel snow tally the pool has always carried (CR 107.4h,
+		// Object.ManaSnowSpent). Treasure/Cave/Desert (Marut, Bat Colony,
+		// Cataclysmic Prospecting) cannot be answered without that machinery:
+		// they FAIL CLOSED to 0, which is strictly closer to the truth than
+		// the unfiltered total they used to return. Snow's own provenance is a
+		// real per-unit count, not an approximation.
 		if o := g.Obj(c.Source); o != nil {
-			return o.ManaSpent, true
+			switch arg {
+			case "":
+				return o.ManaSpent, true
+			case "Snow":
+				return o.ManaSnowSpent, true
+			default:
+				return 0, true
+			}
 		}
 		return 0, true
 	case "ChosenNumber":
