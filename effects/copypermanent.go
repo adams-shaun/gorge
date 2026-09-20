@@ -68,12 +68,19 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	//     ValidSupportedCopy$ 1.
 	//   - The unblocking families are the characteristic modifications this
 	//     round does not implement (brief scope item 5): the copy (when its
-	//     source IS reachable) still mints unmodified. Measured population:
-	//     AddTypes$ 39, SetPower$ 36, SetToughness$ 36, AddKeywords$ 16,
-	//     SetColor$ 11, NonLegendary$ 20, and SetCreatureTypes$/
-	//     RemoveCardTypes$/RemoveSubTypes$/AddTriggers$/AddSVars$/
-	//     PumpKeywords$/AddAbilities$/RemoveKeywords$/WithDifferentNames$/
-	//     AttachedTo$/Chooser$ in smaller counts.
+	//     source IS reachable) still mints unmodified. AddTypes$, SetPower$,
+	//     SetToughness$ and SetColor$ ARE implemented (the Embalm/Eternalize
+	//     family and the wider mod census); the remaining modifications
+	//     (NonLegendary$, SetCreatureTypes$, RemoveCardTypes$, RemoveSubTypes$,
+	//     RemoveCreatureTypes$, AddKeywords$, AddTriggers$, AddSVars$,
+	//     PumpKeywords$, AddAbilities$, RemoveKeywords$, WithDifferentNames$,
+	//     AttachedTo$, Chooser$) are noted and the copy keeps the original's
+	//     printed characteristics. Measured population over the 249 raw
+	//     DB$ CopyPermanent lines: AddTypes$ 39, SetPower$ 36, SetToughness$
+	//     36, AddKeywords$ 16, SetColor$ 11, NonLegendary$ 20, and
+	//     SetCreatureTypes$/RemoveCardTypes$/RemoveSubTypes$/AddTriggers$/
+	//     AddSVars$/PumpKeywords$/AddAbilities$/RemoveKeywords$/
+	//     WithDifferentNames$/AttachedTo$/Chooser$ in smaller counts.
 	var skipped []string
 	blocked := false
 	note := func(label string) { skipped = append(skipped, label) }
@@ -100,18 +107,6 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	if _, ok := sa.Params["ValidSupportedCopy"]; ok {
 		note("ValidSupportedCopy$")
 		blocked = true
-	}
-	if _, ok := sa.Params["AddTypes"]; ok {
-		note("AddTypes$")
-	}
-	if _, ok := sa.Params["SetPower"]; ok {
-		note("SetPower$")
-	}
-	if _, ok := sa.Params["SetToughness"]; ok {
-		note("SetToughness$")
-	}
-	if _, ok := sa.Params["SetColor"]; ok {
-		note("SetColor$")
 	}
 	if _, ok := sa.Params["SetCreatureTypes"]; ok {
 		note("SetCreatureTypes$")
@@ -172,6 +167,57 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	if atEOT != "" && atEOT != "Exile" && atEOT != "Sacrifice" && atEOT != "ExileCombat" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "AtEOT$ " + atEOT + " is not implemented; the copy stays on the battlefield"})
+	}
+
+	// Characteristic modifications (the Embalm/Eternalize family and the
+	// wider CopyPermanent mod census): AddTypes$, SetColor$, SetPower$ and
+	// SetToughness$. Each is applied as a tracked continuous effect sourced
+	// to the minted token itself (the effToken TokenPower$/TokenToughness$
+	// precedent), after the mint, so a replay re-derives the identical
+	// characteristics from the same AddContinuous calls. A value this build
+	// cannot resolve is one loud Note per call and the modification is
+	// skipped -- never a silent wrong characteristic.
+	var addTypes []string
+	if raw, ok := sa.Params["AddTypes"]; ok {
+		for _, t := range strings.Split(raw, ",") {
+			if t = strings.TrimSpace(t); t != "" {
+				addTypes = append(addTypes, t)
+			}
+		}
+		if len(addTypes) == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "AddTypes$ " + strings.TrimSpace(raw) + " resolved to no type; no type added"})
+		}
+	}
+	var addColors []string
+	setColor := false
+	if raw, ok := sa.Params["SetColor"]; ok {
+		cols, parsed := colorLetters(raw)
+		if parsed {
+			setColor = true
+			addColors = cols
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "SetColor$ " + strings.TrimSpace(raw) + " is not a colour; the copy keeps its printed colours"})
+		}
+	}
+	var setPow, setTgh int32
+	var hasSetPow, hasSetTgh bool
+	if raw, ok := sa.Params["SetPower"]; ok {
+		if v, resolved := NumResolved(h, c, sa, "SetPower", 0); resolved {
+			setPow, hasSetPow = v, true
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "SetPower$ " + strings.TrimSpace(raw) + " is not resolvable; the copy keeps its printed power"})
+		}
+	}
+	if raw, ok := sa.Params["SetToughness"]; ok {
+		if v, resolved := NumResolved(h, c, sa, "SetToughness", 0); resolved {
+			setTgh, hasSetTgh = v, true
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "SetToughness$ " + strings.TrimSpace(raw) + " is not resolvable; the copy keeps its printed toughness"})
+		}
 	}
 
 	// Entry-state riders.
@@ -313,6 +359,39 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: want,
 				From: state.ZLibrary, To: state.ZBattlefield})
+			// Characteristic modifications, scoped to the copy itself
+			// (Affects Card.Self, Source the token). Permanent so the effect
+			// outlives its one-shot resolution and lasts as long as the token;
+			// the layer system re-derives them from the same calls on replay.
+			if len(addTypes) > 0 {
+				h.AddContinuous(state.ContinuousEffect{
+					Source: want, Controller: owner, Affects: "Card.Self",
+					Layer: state.LType, AddTypes: addTypes, Permanent: true,
+				})
+			}
+			if setColor {
+				h.AddContinuous(state.ContinuousEffect{
+					Source: want, Controller: owner, Affects: "Card.Self",
+					Layer: state.LColor, AddColors: addColors, OverwriteColors: true, Permanent: true,
+				})
+			}
+			if hasSetPow || hasSetTgh {
+				pow, tgh := int32(0), int32(0)
+				if f := g.Obj(want).Face(); f != nil {
+					pow, tgh = int32(f.Power()), int32(f.Toughness())
+				}
+				if hasSetPow {
+					pow = setPow
+				}
+				if hasSetTgh {
+					tgh = setTgh
+				}
+				h.AddContinuous(state.ContinuousEffect{
+					Source: want, Controller: owner, Affects: "Card.Self",
+					Layer: state.LPT, Sub: state.SubSet,
+					SetPower: pow, SetToughness: tgh, HasSet: true, Permanent: true,
+				})
+			}
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: want})
 				eventRemember(h, c, want)

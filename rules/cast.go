@@ -5069,5 +5069,11 @@ func init() {
 		// kw:Affinity: CR 702.41, expanded by cards/keywords.go into the
 		// ordinary ReduceCost cost-static machinery (rules/statics.go's
 		// collectCostStatics) -- no separate cast path of its own.
-		"kw:Affinity")
+		"kw:Affinity",
+		// kw:Embalm / kw:Eternalize: CR 702.128 / 702.129, expanded by
+		// cards/keywords.go into one graveyard-zone CopyPermanent activation
+		// whose cost exiles the card itself (ExileFromGrave<1/CARDNAME>) and
+		// whose token copy carries the keyword's modified characteristics --
+		// the Encore graveyard-activation shape with a different effect.
+		"kw:Embalm", "kw:Eternalize")
 }
