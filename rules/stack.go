@@ -2247,6 +2247,30 @@ func (e *Engine) WasCastByYou(obj state.ObjID, p state.PlayerID) bool {
 	return false
 }
 
+// combatHit snapshots one landed combat-damage-to-player instance for the
+// per-turn ledger. The dealing object is read through g.Obj at damage time
+// (it is still on the battlefield then); its *cards.Card face pointer and
+// controller are copied into the hit so a later reader can match the spec
+// after the source has died, left the battlefield or been turned face down.
+func (e *Engine) combatHit(player state.PlayerID, source state.ObjID, amount int32) effects.CombatDamageHit {
+	hit := effects.CombatDamageHit{Player: player, Source: source, Amount: amount}
+	if o := e.G.Obj(source); o != nil {
+		hit.Card = o.Card
+		hit.FaceIdx = o.FaceIdx
+		hit.Controller = o.Controller
+	}
+	return hit
+}
+
+// CombatDamageToPlayersThisTurn satisfies effects.Host's
+// CombatDamageToPlayersThisTurn: every combat-damage instance dealt to a
+// player so far this turn, in assignment order, as captured at the combat
+// damage site (runCombatAssignments). Engine-side, NO-EVENT state that every
+// rebuild re-derives; emit clears it on TurnChange.
+func (e *Engine) CombatDamageToPlayersThisTurn() []effects.CombatDamageHit {
+	return e.combatHitsThisTurn
+}
+
 // LifeLostThisTurn satisfies effects.Host's LifeLostThisTurn for
 // Count$LifeOppsLostThisTurn (Rakdos, Lord of Riots' cost reduction): the
 // total life p lost this turn, summed from every LifeChange below zero since

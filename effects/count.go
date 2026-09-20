@@ -858,17 +858,40 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// start (Bloodchief Ascension's "if an opponent lost 2 or more life
 		// this turn" gate). No registered-membership list survives a replay
 		// here, so the group reads as the same living-opponent set
-		// PlayerCountOpponents$ counts; the property dispatch below is shared.
-		if n, ok2 := lifeExtreme(g, opponentGroup(g, c), rest); ok2 {
-			return n, true
-		}
-		return playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
+		// PlayerCountOpponents$ counts; the property dispatch below is shared
+		// with PlayerCountDefinedRegistered.Other$ (same group), so the
+		// HasPropertywasDealtCombatDamageThisTurnBy carriers on this group
+		// (Blitzball's legendary creature, Estinien Varlineau's
+		// Card.Self,Dragon) resolve through the same code.
+		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
 		if n, ok2 := lifeExtreme(g, opponentGroup(g, c), rest); ok2 {
 			return n, true
 		}
 		return playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
+	}
+	// PlayerCountDefinedRegistered$<Property> — the group of registered
+	// players. The two spellings are matched EXACTLY (never the wider
+	// PlayerCountDefined prefix: the corpus's other PlayerCountDefined*
+	// groups — DefinedRememberedOwner, DefinedNonTriggeredTarget,
+	// DefinedActivePlayer, … — need referent machinery this head does not
+	// build and stay fail-closed at the fallthrough below):
+	//
+	//   - PlayerCountDefinedRegistered$: every living player, the controller
+	//     INCLUDED (Knight of the Ebon Legion and Y'shtola say "if a PLAYER
+	//     lost 4 or more life this turn", not "an opponent"). No
+	//     registered-membership list survives a replay, so the group reads as
+	//     the same living set PlayerCountPlayers$ counts — the reading the
+	//     RegisteredOpponents$ arm above already documents.
+	//   - PlayerCountDefinedRegistered.Other$: living players minus the
+	//     resolving controller (Ludevic, Necro-Alchemist's "a player other
+	//     than you lost life this turn").
+	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedRegistered.Other$"); ok {
+		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
+	}
+	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedRegistered$"); ok {
+		return playerCountDefinedRegistered(h, g, c, g.AliveFrom(0), rest, arg)
 	}
 
 	// PlayerCountPropertyYou$<Property> — the single resolvable member of
@@ -1429,6 +1452,137 @@ func opponentGroup(g *state.Game, c *Ctx) []state.PlayerID {
 		}
 	}
 	return opps
+}
+
+// playerCountDefinedRegistered answers the PlayerCountDefinedRegistered[.Other]$
+// properties. The two life-extreme properties route through the shared
+// playerCountExtreme (whose LifeLostThisTurn arm is the Host's log-derived
+// read — Knight of the Ebon Legion's and Y'shtola's
+// HighestLifeLostThisTurn gates); HasPropertyLostLifeThisTurn counts the
+// group members who lost any life this turn; and
+// HasPropertywasDealtCombatDamageThisTurnBy <spec>[ <op><n>] counts the
+// group members who were dealt combat damage this turn by a source matching
+// the Forge spec (Lost Monarch of Ifnir's Zombie, Estinien Varlineau's
+// Card.Self,Dragon, Blitzball's Creature.Legendary). Anything else reports
+// (0, false) — unresolvable, so a gate over it fails per its caller's
+// documented direction rather than enforcing a fake zero.
+func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.PlayerID, prop, arg string) (int32, bool) {
+	prop = strings.TrimSpace(prop)
+	if n, ok := lifeExtreme(g, group, prop); ok {
+		return n, true
+	}
+	switch prop {
+	case "HasPropertyLostLifeThisTurn":
+		// "a player [other than you] lost life this turn" — the per-group
+		// count of members with any life loss. Shared with the
+		// PlayerCountRegisteredOpponents$ group through
+		// hasPropertyCount, so kaito_bane_of_nightmares's
+		// PlayerCountRegisteredOpponents$HasPropertyLostLifeThisTurn resolves
+		// too (the RegisteredOpponents arm routes its HasProperty shapes
+		// here).
+		return hasPropertyCount(group, func(p state.PlayerID) bool { return h.LifeLostThisTurn(p) > 0 }), true
+	case "HasPropertywasDealtCombatDamageThisTurnBy":
+		spec, op, threshold, ok := splitPropertyThreshold(arg)
+		if !ok {
+			return 0, false
+		}
+		hits := h.CombatDamageToPlayersThisTurn()
+		sc := c.SpecContext(c.Controller)
+		var n int32
+		for _, p := range group {
+			var got int32
+			for _, hit := range hits {
+				if hit.Player != p {
+					continue
+				}
+				o := &state.Object{ID: hit.Source, Card: hit.Card, FaceIdx: hit.FaceIdx, Controller: hit.Controller}
+				if MatchesObjectCtx(g, spec, o, sc) {
+					got++
+				}
+			}
+			if countOpHolds(op, threshold, got) {
+				n++
+			}
+		}
+		return n, true
+	}
+	// Fall back to playerCountExtreme so the zone-count extremes
+	// (HighestValid/LowestValid …) resolve over this group too, and anything
+	// else reports (0, false).
+	return playerCountExtreme(h, g, c, group, prop, arg)
+}
+
+// hasPropertyCount counts the group members satisfying pred, in the group's
+// own deterministic order.
+func hasPropertyCount(group []state.PlayerID, pred func(state.PlayerID) bool) int32 {
+	var n int32
+	for _, p := range group {
+		if pred(p) {
+			n++
+		}
+	}
+	return n
+}
+
+// splitPropertyThreshold parses a HasProperty<property> argument of the form
+// `<spec>[ <op><n>]` — the LAST space-separated token, when it matches a
+// Forge comparison op (GE/GT/LE/LT/EQ) followed by digits, is the threshold;
+// the remainder is the source spec. A missing threshold means "any hit"
+// (>= 1), which is what an empty argument and a spec-only argument both
+// mean. An empty spec fails closed (ok false) — a property with nothing to
+// match must not match everything.
+func splitPropertyThreshold(arg string) (spec, op string, threshold int32, ok bool) {
+	arg = strings.TrimSpace(arg)
+	spec = arg
+	op, threshold = "GE", 1
+	if fields := strings.Fields(arg); len(fields) > 1 {
+		last := fields[len(fields)-1]
+		if o, n, good := parseCountCompare(last); good {
+			op, threshold = o, n
+			spec = strings.TrimSpace(strings.TrimSuffix(arg, last))
+		}
+	}
+	if strings.TrimSpace(spec) == "" {
+		return "", "", 0, false
+	}
+	return spec, op, threshold, true
+}
+
+// parseCountCompare parses a Forge comparison token like GE1, GT2, EQ0,
+// LE3, LT4 into its operator and integer threshold.
+func parseCountCompare(tok string) (op string, threshold int32, ok bool) {
+	if len(tok) < 3 {
+		return "", 0, false
+	}
+	op = strings.ToUpper(tok[:2])
+	switch op {
+	case "GE", "GT", "LE", "LT", "EQ":
+	default:
+		return "", 0, false
+	}
+	n, err := strconv.ParseInt(tok[2:], 10, 32)
+	if err != nil {
+		return "", 0, false
+	}
+	return op, int32(n), true
+}
+
+// countOpHolds applies a comparison against a per-player hit count, the
+// same operator set parseCountCompare recognises.
+func countOpHolds(op string, threshold, got int32) bool {
+	switch op {
+	case "GE":
+		return got >= threshold
+	case "GT":
+		return got > threshold
+	case "LE":
+		return got <= threshold
+	case "LT":
+		return got < threshold
+	case "EQ":
+		return got == threshold
+	}
+	return false
 }
 
 // playerCountExtreme answers the PlayerCount<group>$<Property> properties

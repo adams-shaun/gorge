@@ -14,6 +14,23 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// CombatDamageHit is one instance of combat damage dealt to a player this
+// turn, as captured by the engine at the combat-damage site. Card/FaceIdx/
+// Controller describe the dealing creature as it was at damage time: the
+// face pointer is stable (a shared pointer out of the Config's decks), so a
+// token that died before the read point is still matchable, exactly the
+// shallow-snapshot precedent rules/replacement.go's tokenSnapshot takes.
+// Source is the dealing object's id, which anchors Forge's `Card.Self` spec
+// to the resolving trigger's source.
+type CombatDamageHit struct {
+	Player     state.PlayerID
+	Source     state.ObjID
+	Card       *cards.Card
+	FaceIdx    uint8
+	Controller state.PlayerID
+	Amount     int32
+}
+
 // Host is everything an effect may do to a game: read it, and propose events.
 // Deliberately tiny — an effect that needs more is a sign the primitive is
 // doing rules work that belongs in the rules package.
@@ -202,6 +219,24 @@ type Host interface {
 	// Accord, Resplendent Angel, Valkyrie Harbinger — whose CheckSVar$ gate
 	// reads the count), the mirror of LifeLostThisTurn.
 	LifeGainedThisTurn(p state.PlayerID) int32
+	// CombatDamageToPlayersThisTurn reports every instance of combat damage
+	// dealt to a PLAYER so far this turn, in assignment order. It is the
+	// PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
+	// backing (Lost Monarch of Ifnir's "if a player was dealt combat damage
+	// by a Zombie this turn", Estinien Varlineau's "the number of your
+	// opponents who were dealt combat damage by CARDNAME or a Dragon this
+	// turn", Blitzball's legendary-creature activation gate).
+	//
+	// A Damage event to a player carries no source (events.Event has no
+	// source field -- see the CmdDamage Kind's own note), so unlike the
+	// log-folded LifeLostThisTurn this cannot be derived from the event log;
+	// the engine captures it at the combat-damage site (rules/combat.go's
+	// runCombatAssignments), engine-side and NO-EVENT, and re-derives it
+	// identically on every rebuild path (replay, undo, DVR) because those
+	// re-execute the engine. Only damage that LANDED is recorded (a
+	// protection Note is not damage), and only the PLAYER branch: combat
+	// damage to a permanent is not the property any carrier reads.
+	CombatDamageToPlayersThisTurn() []CombatDamageHit
 	// TurnsTaken reports how many of the game's turns have begun with p as
 	// the active player, INCLUDING the turn in progress when it is p's —
 	// Forge's Player.getTurns backing (Serra Avenger's

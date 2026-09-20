@@ -1633,6 +1633,16 @@ func (e *Engine) runCombatAssignments() {
 				if e.format == FormatCommander && ev.Obj == 0 {
 					e.tallyCmdDamage(ev.Player, x.from, dealt)
 				}
+				// The PlayerCountDefinedRegistered$HasPropertywasDealtCombatDam
+				// ageThisTurnBy ledger (effects.Host's
+				// CombatDamageToPlayersThisTurn): capture the LANDED hit with
+				// the dealing creature's stable *cards.Card face pointer, so a
+				// token that dies before the read point is still matchable.
+				// Engine-side and NO-EVENT -- a new event kind would move every
+				// chain head and diverge every stored log. Only the player
+				// branch records (the object branch above is untouched): the
+				// property is only ever read about players.
+				e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(ev.Player, x.from, dealt))
 			}
 		}
 		if x.hasLink && !prevented {
