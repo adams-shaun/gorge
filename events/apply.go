@@ -1644,6 +1644,24 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Damage = 0
 		g.Clock++
 		o.Timestamp = g.Clock
+		// CR 707.10g: a copy of a permanent spell becomes a token. The pair
+		// enteredFrom == ZStack + o.IsCopy uniquely identifies a StackCopy
+		// mint resolving onto the battlefield (every other token mint routes
+		// through a token script from a non-stack zone), and folding the flag
+		// here inside Apply keeps a log-only replay byte-identical with no
+		// new event. IsCopy is cleared at the same point: a resolved
+		// permanent copy is a token, not a CR 707.10h "copy that left the
+		// stack", and Ephemeral() treats ANY IsCopy object as
+		// ceased-to-exist regardless of zone -- without the clear the token
+		// would be skipped by every zone projection (view.cardViews,
+		// botpolicy combat) even though effects/filter.go's zone-aware
+		// CR 707.10h guard already matched it as a real permanent. A copy of
+		// an instant/sorcery never enters the battlefield, so its IsCopy and
+		// its exile rest zone are untouched.
+		if enteredFrom == state.ZStack && o.IsCopy {
+			o.IsToken = true
+			o.IsCopy = false
+		}
 		// CR 306.5b: a planeswalker enters the battlefield with loyalty
 		// counters equal to its starting loyalty, however it entered (a
 		// resolving spell, a blink or re-entry, a search put it directly onto
