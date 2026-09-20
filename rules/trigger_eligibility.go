@@ -23,8 +23,21 @@ type objectTriggerEventMasks struct {
 
 const allTriggerEvents triggerEventMask = ^triggerEventMask(0)
 
+// triggerMaskKindBits is how many Kind ordinals triggerEventMask can encode,
+// one bit each. A kind at or beyond this ordinal (or any ordinal the mask
+// cannot represent) must fail OPEN to the full matcher, never be silently
+// truncated by a shift: the mask is an over-approximation, so allowing an
+// event the text may not need is safe, while rejecting one it does need would
+// drop a real trigger. Both the textual mask (allows) and the compiled
+// interest prefilter (compiledTriggerInterestAllows) use this ONE bound, so a
+// kind appended past the mask's reach fails open in both paths together
+// rather than one path rejecting what the other allows -- the divergence that
+// CombatRetarget (ordinal 64, the first kind past the old 64-bit mask)
+// exposed.
+const triggerMaskKindBits = 64
+
 func (m triggerEventMask) allows(kind events.Kind) bool {
-	return kind >= 64 || m&(1<<kind) != 0
+	return kind >= triggerMaskKindBits || m&(1<<kind) != 0
 }
 
 // eventTriggerInterest maps replay-stable event kinds to cards-owned semantic
@@ -67,7 +80,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
 		events.GrantTriggerPush, events.ManaActivate,
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
-		events.CopyToken, events.Exert, events.PlanarRoll:
+		events.CopyToken, events.Exert, events.PlanarRoll,
+		events.CombatRetarget:
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -79,6 +93,11 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 }
 
 func compiledTriggerInterestAllows(interests cards.TriggerInterest, kind events.Kind) bool {
+	// Kinds the 64-bit textual mask cannot encode fail open here too, or the
+	// compiled prefilter would reject an event the textual mask admits.
+	if kind >= triggerMaskKindBits {
+		return true
+	}
 	eventInterest := eventTriggerInterest(kind)
 	return interests&cards.TriggerInterestAny != 0 || eventInterest == cards.TriggerInterestAny || interests&eventInterest != 0
 }

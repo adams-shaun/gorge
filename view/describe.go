@@ -212,6 +212,11 @@ func Describe(g *state.Game, ev events.Event) string {
 		// public (the reveal Note that precedes the record), so the line
 		// names only the explorer.
 		return obj(g, ev.Obj) + " explores"
+	case events.CombatRetarget:
+		// api:ChangeCombatants's reselect: Obj the attacker, Player the new
+		// defender. The old defender needs no line (the re-pointed attack is
+		// unblocked, and the next combat-damage line shows where it went).
+		return obj(g, ev.Obj) + " now attacks " + player(g, ev.Player)
 	case events.DeclareAttackers:
 		if len(ev.IDs) == 0 {
 			return "No attackers"
