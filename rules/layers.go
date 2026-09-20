@@ -141,13 +141,20 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
 						out = append(out, kw)
 					}
-					if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
+					if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
 						ty := base
 						ty.Layer = LType
 						ty.AddTypes = statList(st, "AddTypes")
 						if len(ty.AddTypes) == 0 {
 							ty.AddTypes = statList(st, "AddType")
 						}
+						// AddAllCreatureTypes$ True (Maskwood Nexus's "creatures you
+						// control are every creature type", the manland family) rides
+						// the same LType emission as a flag, never a materialised
+						// type list: typeCharacteristics appends the CreatureTypeWords
+						// vocabulary for affected objects, so the answer stays live
+						// and no non-creature word (Arcane/Alara/Ajani) can leak.
+						ty.AddAllCreatureTypes = hasStat(st, "AddAllCreatureTypes")
 						// AddType$ ChosenType (22 corpus files: Adaptive Automaton's
 						// "CARDNAME is the chosen type in addition to its other
 						// types" and its siblings): the VALUE is the static's host
@@ -171,7 +178,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						ty.RemoveCardTypes = hasStat(st, "RemoveCardTypes")
 						ty.RemoveCreatureTypes = hasStat(st, "RemoveCreatureTypes")
 						ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-						if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes {
+						if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes || ty.AddAllCreatureTypes {
 							out = append(out, ty)
 						}
 					}
@@ -1173,8 +1180,28 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			ty = kept
 		}
 		ty = append(ty, ce.AddTypes...)
+		if ce.AddAllCreatureTypes {
+			ty = appendAllCreatureTypes(ty)
+		}
 	}
 	return bestowedTypeSwitch(o, ty)
+}
+
+// appendAllCreatureTypes materialises the layer-4 "all creature types"
+// grant (CR 613.1c alongside AddTypes) into the walk's type list: every
+// creature-subtype word the shared CreatureTypeWords vocabulary knows, in
+// sorted (deterministic) order. Duplicates of a word the printed face or an
+// earlier effect already carry are harmless -- every consumer reads the
+// list with EqualFold scans or Contains -- so the helper does not pay for
+// a dedupe pass. The effects filter's type predicates (hasTypeCtx) answer
+// every creature-subtype predicate and base from this list through
+// ExtraTypes, exactly as Changeling's intrinsic CDA is answered through
+// hasType.
+func appendAllCreatureTypes(types []string) []string {
+	for _, w := range effects.CreatureTypeWordList() {
+		types = append(types, w)
+	}
+	return types
 }
 
 // bestowedTypeSwitch applies CR 702.114e's type switch to a DERIVED type
