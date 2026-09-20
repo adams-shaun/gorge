@@ -131,6 +131,28 @@ var predicates = map[string]predFn{
 	"notExertedThisTurn": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !o.ExertedThisTurn
 	},
+	// Permanent is Forge's CardProperty.Permanent (card.isPermanent()): the
+	// printed face is a permanent type, in ANY zone (CR 109.2). This is the
+	// PREDICATE half of the pair; the bare `Permanent` BASE keeps the
+	// on-the-battlefield reading matchesBase gives it (Permanent.YouCtrl,
+	// `Affected$ Permanent`, the Count$Valid family all depend on that), and
+	// the two per-caller normalizers (effects/permanentCardSpec for Dig
+	// windows, rules' targetSpecForZone for target specs) keep rewriting the
+	// leading BASE `Permanent` -> `PermanentCard`. The word was previously
+	// classified unknown, so `Card.Permanent` and every `<base>.Permanent` /
+	// `<base>+Permanent` spelling failed closed and matched NOTHING -- 22
+	// corpus carriers (Badlands Revival's return-a-permanent-card, Deadly
+	// Brew's ConditionPresent$ gate, Auntie's Sentence's DiscardValid$, Six's
+	// retrace grant). isPermanentCard is the same reading the
+	// Targeted.Permanent+sameName contextual path already uses; the compiled
+	// predicate layer marks the unlisted term `maybe` and falls through to
+	// this textual oracle, so no twin term is owed (the
+	// notExertedThisTurn entry's contract, above), and UnknownPredicates
+	// classifies it through this same map, so census and matcher cannot
+	// disagree.
+	"Permanent": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return isPermanentCard(o)
+	},
 }
 
 // colorLetter maps a colour's English name to its WUBRG letter -- note Blue
