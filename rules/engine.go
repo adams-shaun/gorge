@@ -1506,6 +1506,17 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 		e.checkSpeedStart(ev.Obj)
 	}
+	// Ascend (CR 702.131a): the city's blessing's continuous re-check. A
+	// battlefield entry (the ordinary MoveZone), a token mint (TokenCreate/
+	// CardToken -- Apply mints those without a MoveZone event) or a control
+	// transfer can each push a seat's permanent count over ten; the scan
+	// only emits for an unblessed seat that newly qualifies, so every other
+	// event reaching here is inert (rules/ascend.go).
+	if (ev.Kind == events.MoveZone && ev.To == state.ZBattlefield) ||
+		ev.Kind == events.TokenCreate || ev.Kind == events.CardToken ||
+		ev.Kind == events.ControlChange {
+		e.checkBlessingGrants()
+	}
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
 	// see engine.go): a declined card's option comes back the moment the

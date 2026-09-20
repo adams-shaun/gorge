@@ -850,11 +850,25 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 // option generation and validation.
 func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 	for _, sv := range e.activeStatics("CantBlock") {
+		// Condition$ (and the rest of continuousGateHolds' shared gate) is
+		// evaluated per static: the Detective of the Month / Slippery
+		// Scoundrel family's Condition$ Blessing, Cephalid Inkmage's
+		// Threshold, Bilbo's Ring's PlayerTurn. Before this gate the
+		// restriction applied UNCONDITIONALLY (over-permissive); the shared
+		// evaluator's fail-closed direction (rules/layers.go) keeps an
+		// unimplementable condition denying instead.
+		if !e.continuousConditionHolds(sv) {
+			continue
+		}
 		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], blocker, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlockBy") {
+		// The same per-static condition gate as the CantBlock loop above.
+		if !e.continuousConditionHolds(sv) {
+			continue
+		}
 		// ValidAttacker$ is Forge's own spelling for the attacker side of a
 		// CantBlockBy static (Steel Leaf Champion's "Creature.Self", the
 		// Unblockable pump templates' "Card.IsRemembered", the blocker-side
@@ -1717,7 +1731,7 @@ func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Ta
 // (three artifacts on the battlefield, the shared metalcraftHolds read) and
 // Delirium (four or more distinct core card types in the caster's graveyard,
 // the shared graveyardCardTypeCount census -- drag_to_the_roots and its
-// cycle). An unimplementable condition (Night, Blessing) DENIES: a conditional
+// cycle). An unimplementable condition (Night) DENIES: a conditional
 // discount that silently always applies is a wrong cost, the same fail-closed
 // direction the ValidSpell$ shapes take.
 func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
