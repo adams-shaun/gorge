@@ -276,3 +276,72 @@ func TestNotFirstCardInDrawStepOnlyExemptsTheActivePlayersDraw(t *testing.T) {
 		t.Fatalf("seat0 hand delta = %d, want 2 (the non-active draw must be replaced by draw-two)", got)
 	}
 }
+
+// TestIslandSanctuaryActivePhasesDrawOnlyAppliesInDrawStep is the leaf for
+// ActivePhases$ on the Draw arm. Island Sanctuary ("If you would draw a card
+// during your draw step, instead you may skip that draw") is the corpus's
+// only ActivePhases$ carrier, and before the gate the parameter was unread:
+// the replacement applied in ANY step of its controller's turn (the
+// PlayerTurn$ True gate narrows it to the controller's turn and nothing
+// else), silently consuming a main-phase draw and registering the CantAttack
+// effect with no log line. stealEngine sits at Main 1, so the reported shape
+// is the pre-fix defect.
+func TestIslandSanctuaryActivePhasesDrawOnlyAppliesInDrawStep(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	sanctuary := mustCorpusCard(t, reg, "Island Sanctuary")
+	// Fixture guard: the real compiled replacement must carry the
+	// ActivePhases$ Draw spec this leaf turns on.
+	carries := false
+	for _, r := range sanctuary.Faces[0].Repls {
+		if r.Event == "Draw" && r.Params["ActivePhases"] == "Draw" {
+			carries = true
+		}
+	}
+	if !carries {
+		t.Fatal("Island Sanctuary seq 0: fixture changed (no ActivePhases$ Draw replacement)")
+	}
+
+	e := stealEngine(t, 743)
+	sid := onBoardCard(t, e, 0, sanctuary)
+	if e.G.Step == state.StepDraw {
+		t.Fatalf("precondition: step = %s, want a non-draw step", e.G.Step)
+	}
+	setupDrawLibrary(t, e, 0, mustCorpusCard(t, reg, "Grizzly Bears"))
+
+	draws := countDraw(e)
+	hand := len(e.G.Zone(state.ZHand, 0))
+	emitDraw(t, e, 0)
+	if got := countDraw(e) - draws; got != 1 {
+		t.Fatalf("draw delta outside the draw step = %d, want 1 (ActivePhases$ Draw must not apply)", got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 1 {
+		t.Fatalf("hand delta outside the draw step = %d, want 1", got)
+	}
+	for _, ce := range e.active() {
+		if ce.Source == sid {
+			t.Fatalf("continuous effect registered from Island Sanctuary outside the draw step: %+v", ce)
+		}
+	}
+}
+
+// TestIslandSanctuaryActivePhasesAppliesInDrawStep is the positive control
+// for the gate: the same setup in the controller's draw step DOES admit the
+// replacement, which consumes the draw (Optional$ is separately unread, so
+// no ask is asserted -- only that the replacement was applicable).
+func TestIslandSanctuaryActivePhasesAppliesInDrawStep(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 743)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Island Sanctuary"))
+	setupDrawLibrary(t, e, 0, mustCorpusCard(t, reg, "Grizzly Bears"))
+	e.G.Step = state.StepDraw
+
+	draws := countDraw(e)
+	hand := len(e.G.Zone(state.ZHand, 0))
+	emitDraw(t, e, 0)
+	if got := countDraw(e) - draws; got != 0 {
+		t.Fatalf("draw delta in the draw step = %d, want 0 (the replacement applies)", got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 0 {
+		t.Fatalf("hand delta in the draw step = %d, want 0", got)
+	}
+}

@@ -2015,6 +2015,22 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			e.pendingDrawIsFirstInDrawStep(ev.Player) {
 			return false
 		}
+		// ActivePhases$ <spec>: the step set the replacement is confined to
+		// (Island Sanctuary's "during your draw step", the class's one
+		// carrier). An unresolvable element or a step outside the set fails
+		// closed, never widened — the same shared, cached phase parser and
+		// idiom activationPhasesOK and phaseGate use, so the phase-name
+		// semantics cannot drift between the offer, trigger and replacement
+		// gates. Pure read: no event is emitted from a match.
+		if raw, ok := r.Params["ActivePhases"]; ok {
+			spec := strings.TrimSpace(raw)
+			if spec != "" {
+				pp := e.parsedPhaseSpec(spec)
+				if !pp.valid || pp.set.Empty() || !pp.set.Has(e.G.Step) {
+					return false
+				}
+			}
+		}
 		// The shared condition gate (CheckSVar$/IsPresent$/Hellbent$/...) —
 		// every sibling case ends with it; the Draw class never read it, so
 		// Quantum Riddler's LE1-over-Count$ValidHand gate (and the Hellbent

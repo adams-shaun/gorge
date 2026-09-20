@@ -10,6 +10,7 @@ import (
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -96,5 +97,46 @@ func TestCR616AffectedControllerChoosesReplacement(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: col, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	if d := e.Pending(); d == nil || d.Player != 0 || len(d.Options) < 2 || e.G.Obj(col).Zone != state.ZBattlefield {
 		t.Errorf("CR 616.1 Rest in Peace/Darksteel Colossus seq %d: affected controller got no replacement choice before relocation; zone=%s pending=%+v", len(e.L.Events), e.G.Obj(col).Zone, d)
+	}
+}
+
+// CR 614.4/614.5: a replacement whose applicability condition is not met does
+// not apply, so the event proceeds unchanged. Island Sanctuary's Draw
+// replacement is confined by ActivePhases$ Draw to its controller's draw
+// step; a draw in any other step must not be replaced (CR 614.4 — the
+// condition is one the replacement effect requires). Before the gate the
+// parameter was unread and the replacement applied in every step of the
+// controller's turn.
+func TestCR614ActivePhasesRestrictsDrawReplacement(t *testing.T) {
+	e := crResolutionEngine(t, []string{"Island Sanctuary"}, nil)
+	sanctuary := crAbortMove(t, e, 0, "Island Sanctuary", state.ZBattlefield)
+	guarded := false
+	for _, r := range e.G.Obj(sanctuary).Face().Repls {
+		if r.Event == "Draw" && r.Params["ActivePhases"] == "Draw" {
+			guarded = true
+		}
+	}
+	if !guarded || e.G.Obj(sanctuary).Zone != state.ZBattlefield {
+		t.Fatal("CR 614.4 Island Sanctuary seq 0: fixture changed")
+	}
+	if e.G.Step == state.StepDraw {
+		t.Fatalf("CR 614.4 Island Sanctuary seq 0: prerequisite step = %s, want a non-draw step", e.G.Step)
+	}
+	reg := testutil.CorpusRegistry(t)
+	setupDrawLibrary(t, e, 0, mustCorpusCard(t, reg, "Grizzly Bears"))
+	draws := countDraw(e)
+	hand := len(e.G.Zone(state.ZHand, 0))
+	e.emit(events.Event{Kind: events.Draw, Player: 0, Obj: e.G.Zone(state.ZLibrary, 0)[0],
+		From: state.ZLibrary, To: state.ZHand, Secret: true})
+	if got := countDraw(e) - draws; got != 1 {
+		t.Errorf("CR 614.4 Island Sanctuary seq %d: draw delta outside the draw step = %d, want 1 (ActivePhases$ Draw unmet, replacement must not apply)", len(e.L.Events), got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 1 {
+		t.Errorf("CR 614.4 Island Sanctuary seq %d: hand delta = %d, want 1", len(e.L.Events), got)
+	}
+	for _, ce := range e.active() {
+		if ce.Source == sanctuary {
+			t.Errorf("CR 614.4 Island Sanctuary seq %d: CantAttack effect registered outside the draw step", len(e.L.Events))
+		}
 	}
 }
