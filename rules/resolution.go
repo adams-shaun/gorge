@@ -165,9 +165,13 @@ type resumePoint struct {
 	loopBound      bool
 	loopRemembered []state.Target
 	// repeatSubject is the RepeatEach subject of the loop whose iteration
-	// this frame resumes inside (the Imprinted binding). It rides the frame
-	// so a resumed unless/dig/etc. ask re-enters with Ctx.RepeatSubject
-	// set; zero on frames outside any iteration.
+	// this frame resumes inside (the Imprinted binding). It is CAPTURED here
+	// so the subject survives the suspension -- but it is NOT yet restored
+	// into Ctx.RepeatSubject at the resume rebuild (the loopBound arm above
+	// restores only loopRemembered), so a resumed ask re-enters with
+	// Ctx.RepeatSubject still empty: a Defined$ RepeatSubject read after a
+	// suspension resolves fail-closed. Filed as
+	// repeat-subject-dies-on-suspension; zero on frames outside any iteration.
 	repeatSubject state.Target
 	// repeat is a kind "repeat" frame's loop cursor.
 	repeat *repeatCursor

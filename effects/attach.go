@@ -139,9 +139,21 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, obj)
 		}
 	}
-	// A Choices$ pool the controller picks from. With Object$ present the
-	// pool is the DESTINATION side; without it, the OBJECT side.
+	// A Choices$ pool the controller picks from: the battlefield sweep the
+	// filter admits, evaluated with the resolving controller as You. With
+	// Object$ present the pool is the DESTINATION side; without it, the
+	// OBJECT side. One sweep serves both the asking pass and the answered
+	// re-entry (a pure read: no event, and a suspension between the two
+	// changes no state, so the sweep is the same both times).
+	//
+	// Known limitation: the sweep is battlefield-only -- ChoiceZone$ (e.g.
+	// SVar:DBAttach:DB$ Attach | Choices$ Instant | ChoiceZone$ Graveyard)
+	// and Chooser$ (e.g. Chooser$ TriggeredCardController) are unread, so a
+	// card carrying either takes this branch, finds its wrong-zone or
+	// wrong-chooser pool empty, and emits the deterministic "cannot attach:
+	// no legal target" refusal -- silently inert, not working.
 	if spec := strings.TrimSpace(sa.Params["Choices"]); spec != "" {
+		pool := battlefieldValidTargets(h, c, spec)
 		// The answered attach_choice re-entry (fx42 scoping: already consumed
 		// and cleared at the top). With no Object$ the answer names the
 		// OBJECT to attach and the asking pass's resolved destination list
@@ -153,19 +165,44 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 			if len(answered) == 0 {
 				return
 			}
-			if _, hasObject := sa.Params["Object"]; !hasObject {
-				if len(answerDests) == 0 {
-					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot attach: no legal target"})
+			if _, hasObject := sa.Params["Object"]; hasObject {
+				// Object$ present: the answer names the DESTINATION. It is
+				// re-checked against the legal destination list recomputed
+				// here (the same rejections the asking pass applies), so a
+				// stale or malformed answer -- including one naming obj
+				// itself, which a raw battlefield sweep CAN admit -- is
+				// refused with no Attach (the malformed-answer conservative
+				// read) and the chain continues via Resolve.
+				legal := false
+				for _, t := range pool {
+					if t.Obj == obj {
+						continue
+					}
+					if !Attachable(h.Game(), obj, t.Obj) {
+						continue
+					}
+					if t.Obj == answered[0] {
+						legal = true
+					}
+				}
+				if !legal {
 					return
 				}
-				obj = answered[0]
-				attachTo(answerDests[0])
+				attachTo(answered[0])
 				return
 			}
-			attachTo(answered[0])
+			// No Object$: the answer names the OBJECT to attach, and the
+			// asking pass's resolved destination list rode Ctx.AttachDests
+			// (a RepeatEach body's Defined$ Imprinted binding does not
+			// survive the suspension, so the re-entry never re-derives it).
+			if len(answerDests) == 0 {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot attach: no legal target"})
+				return
+			}
+			obj = answered[0]
+			attachTo(answerDests[0])
 			return
 		}
-		pool := battlefieldValidTargets(h, c, spec)
 		if _, hasObject := sa.Params["Object"]; hasObject {
 			var dest []state.ObjID
 			for _, t := range pool {
@@ -193,8 +230,17 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 				Source: c.Source, ResumeKind: "attach_choice", ResumeSA: sa,
 				ResumeRemembered: copyTargets(c.Remembered),
 				Prompt:           choicePrompt(sa)}
-			for i, t := range pool {
-				d.Options = append(d.Options, decision.Option{Index: i, Kind: "card", Obj: t.Obj, Player: c.Controller})
+			// The options are the LEGAL destinations, not the raw pool sweep:
+			// the pool can hold objects destCandidates' rejection would refuse,
+			// including obj itself (aura_graft's Choices$ Permanent admits the
+			// attaching Aura, which IS a battlefield Permanent), and offering
+			// the object as its own attachment point would self-attach on a
+			// bot's option-0 answer (AttachChoice carries Option.Obj, so the
+			// re-entry's attachTo(answered[0]) would emit Attach{IDs:[obj]}).
+			// Indexing over dest keeps the auto-take above and the re-entry in
+			// agreement -- the source can never be offered or selected.
+			for i, t := range dest {
+				d.Options = append(d.Options, decision.Option{Index: i, Kind: "card", Obj: t, Player: c.Controller})
 			}
 			_ = Ask(h, d)
 			return

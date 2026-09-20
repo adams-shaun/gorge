@@ -261,9 +261,21 @@ func TestAttachChoicesSingleCandidateTakesItAndEmptyAnswerDeclines(t *testing.T)
 	c2.AttachChoiceDone = true // answered, nothing chosen
 	Resolve(h2, c2, sa(t, "DB$ Attach | Optional$ True | Choices$ Equipment.YouCtrl | Defined$ Remembered"))
 	for _, ev := range h2.log {
-		if ev.Kind == events.Attach || (ev.Kind == events.Note && hasNoteLike(h2.log, "no legal target")) {
-			t.Fatalf("decline must be silent: %+v", ev)
+		if ev.Kind == events.Attach {
+			t.Fatalf("decline must emit no Attach: %+v", ev)
 		}
+	}
+	// Count the notes the decline emitted; don't scan the whole log with
+	// hasNoteLike, which matches any note anywhere and would miss a spurious
+	// one outside this Resolve. The decline must be entirely silent.
+	notes := 0
+	for _, ev := range h2.log {
+		if ev.Kind == events.Note {
+			notes++
+		}
+	}
+	if notes != 0 {
+		t.Fatalf("decline must be silent, got %d note(s): %+v", notes, h2.log)
 	}
 }
 
@@ -278,5 +290,63 @@ func TestAttachChoicesDestinationPoolAttachesAndRemembersTheObject(t *testing.T)
 	}
 	if !objIDIn(c.Remembered, ids["eq"]) {
 		t.Fatalf("ctx Remembered = %+v, want the attached aura", c.Remembered)
+	}
+}
+
+// The destination ask's options must be the LEGAL destination list, never
+// the raw pool sweep: aura_graft's `Object$ Self | Choices$ Permanent`
+// admits the attaching Aura itself (it IS a battlefield Permanent), and
+// offering the source as its own destination self-attaches on a bot's
+// option-0 answer (AttachChoice carries Option.Obj, so the re-entry's
+// attachTo(answered[0]) emits Attach{IDs:[obj]} and events.Apply sets
+// obj.AttachedTo == obj). Pinned both ways: the source is not offered, and
+// a stale/malformed answer naming the source is refused.
+func TestAttachDestinationAskNeverOffersTheSourceAndRefusesAChosenSource(t *testing.T) {
+	h, c, ids := attachBoard(t)
+	// A second bear on the battlefield: with only one legal destination the
+	// auto-take fires and no ask is ever posed.
+	bearCard := mkCard(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	bear2 := h.g.AddObject(bearCard, 0)
+	h.g.Obj(bear2.ID).Zone = state.ZBattlefield
+	h.g.SetZone(state.ZBattlefield, 0, append(h.g.Zone(state.ZBattlefield, 0), bear2.ID))
+
+	ah := &askHost{fakeHost: *h}
+	Resolve(ah, c, sa(t, "DB$ Attach | Object$ Self | Choices$ Permanent"))
+	if ah.asked == nil {
+		t.Fatalf("expected a destination ask, none posed")
+	}
+	if len(ah.asked.Options) != 2 {
+		t.Fatalf("options = %+v, want the two bears", ah.asked.Options)
+	}
+	for _, o := range ah.asked.Options {
+		if o.Obj == ids["eq"] {
+			t.Fatalf("the attaching object was offered as its own destination: %+v", ah.asked.Options)
+		}
+		if o.Obj != ids["bear"] && o.Obj != bear2.ID {
+			t.Fatalf("unexpected option %+v in %+v", o, ah.asked.Options)
+		}
+	}
+
+	// An answer naming the source (a stale or malformed host-side answer)
+	// is refused: no Attach event, and no live self-attachment.
+	h2, c2, ids2 := attachBoard(t)
+	c2.AttachChoiceDone = true
+	c2.AttachChoice = []state.ObjID{ids2["eq"]}
+	Resolve(h2, c2, sa(t, "DB$ Attach | Object$ Self | Choices$ Permanent"))
+	for _, ev := range h2.log {
+		if ev.Kind == events.Attach {
+			t.Fatalf("a chosen source must be refused, got %+v", ev)
+		}
+	}
+	if h2.g.Obj(ids2["eq"]).AttachedTo != 0 {
+		t.Fatalf("source self-attached: AttachedTo = %d", h2.g.Obj(ids2["eq"]).AttachedTo)
+	}
+
+	// A well-formed answer naming a legal destination still attaches (the
+	// load-bearing direction).
+	c2.AttachChoice = []state.ObjID{ids2["bear"]}
+	Resolve(h2, c2, sa(t, "DB$ Attach | Object$ Self | Choices$ Permanent"))
+	if h2.g.Obj(ids2["eq"]).AttachedTo != ids2["bear"] {
+		t.Fatalf("legal destination answer did not attach: AttachedTo = %d", h2.g.Obj(ids2["eq"]).AttachedTo)
 	}
 }
