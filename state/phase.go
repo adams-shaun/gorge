@@ -56,6 +56,25 @@ func (s StepSet) Steps() []Step {
 	return out
 }
 
+// Ordinal returns step's 1-based position within the set in turn order
+// (untap .. cleanup), or 0 when step is not a member. This is the N a Forge
+// `PhaseCount$ N` gate compares against: `Phase$ Main` names both main
+// phases, so the second main phase is ordinal 2 of that set. A repeated step
+// (an api:AddPhase-spliced extra upkeep or combat) is counted once -- the
+// set's canonical turn order, not the turn's live phase history.
+func (s StepSet) Ordinal(step Step) int {
+	if !step.Valid() || !s.Has(step) {
+		return 0
+	}
+	n := 0
+	for i := 0; i <= int(step); i++ {
+		if s.Has(Step(i)) {
+			n++
+		}
+	}
+	return n
+}
+
 // AllSteps is every step of a turn -- what a `Phase$ All` gate and an absent
 // `Phase$` gate both mean.
 func AllSteps() StepSet { return (1 << uint(numSteps)) - 1 }

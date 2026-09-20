@@ -2308,7 +2308,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Earthbender Ascension":    {"param:api:PutCounter.RememberAmount"},
 	"Glacial Chasm":            {"param:api:Sacrifice.ChangeNum"},
 	"Green Sun's Zenith":       {"param:api:ChangeZone.AIXMax"},
-	"Kona, Rescue Beastie":     {"param:trig:Phase.PhaseCount"},
 	"Natural Order":            {"param:api:ChangeZone.AISearchGoal"},
 	"Nissa, Resurgent Animist": {"param:api:DigUntil.RevealRandomOrder"},
 	"Six":                      {"param:api:Mill.RememberMilled"},
