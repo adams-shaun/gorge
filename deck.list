@@ -8856,10 +8856,25 @@ Commander
 1 Forest
 # --- Blood Rites (lcc commander precon, Clavileño, First of the Blessed) — census input, 2026-09-20 (this worktree, issue agent-20260920T065240Z-8e856022) ---
 # 100/100 resolved, commander eligible. Deck file NOT added: new engine gaps remain.
-# Overlap with open tickets: kw:Ascend (issue-agent-20260918T204633Z-bda5dda9),
-# trig:LifeGained (issue-agent-20260918T202223Z-eb38487f).
-# New general gap filed as a ticket: api:ChangeText (+ sibling api:ExchangeTextBox)
-# -> .ds4/new-tickets/change-text-api.md (New Blood is the carrier).
+# PRIMITIVE ratchet gaps over these cards: api:ChangeText (New Blood),
+# trig:LifeGained (Elenda's Hierophant), kw:Ascend (Radiant Destiny, Twilight Prophet).
+# PARAMETER ratchet gaps (cards that are otherwise primitive-supported):
+#   Destroy.RememberTargets/ForgetOtherTargets (Sorin, Lord of Innistrad),
+#   Token.TokenRemembered (Timothar, Baron of Bats),
+#   trig:Phase.Blessing (Twilight Prophet), PutCounterAll.ValidCardsDesc (Indulgent Aristocrat),
+#   DigUntil.RevealRandomOrder (Heirloom Blade, a known AGENTS.md approximation).
+# Both ratchets FAIL with this deck present; the deck is therefore not added.
+# Overlap with open tickets: kw:Ascend (agent-20260918T204633Z-bda5dda9),
+#   trig:LifeGained (agent-20260918T202223Z-eb38487f),
+#   api:Animate.Triggers (agent-20260918T221252Z-86babb6f),
+#   api:Play.Controller/WithoutManaCost (agent-20260919T183249Z-42744815),
+#   cost:ExileAnyGrave (agent-20260918T234402Z-670f1b3f),
+#   Destroy.RememberDestroyed (agent-20260919T194848Z-a2b4e083).
+# New tickets filed: api:ChangeText -> .ds4/new-tickets/change-text-api.md.filed;
+#   Destroy.RememberTargets -> .ds4/new-tickets/destroy-remember-targets.md;
+#   Token.TokenRemembered -> .ds4/new-tickets/token-remembered.md;
+#   city's-blessing reads -> .ds4/new-tickets/citys-blessing-condition.md;
+#   ValidCardsDesc census hygiene -> .ds4/new-tickets/validcardsdesc-ignored.md.
 # Census report: .ds4/report-t1.md
 Commander
 1 Clavileño, First of the Blessed
