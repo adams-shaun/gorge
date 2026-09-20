@@ -1197,6 +1197,16 @@ func Apply(g *state.Game, e Event) {
 				sa = &cards.SA{Kind: "DB", API: "Ward",
 					Params: map[string]string{"UnlessCost": rest, "TriggerDescription": "Ward"}}
 			}
+			// A granted afflict (rules.pushTrigger's __kwAfflict: payload) has
+			// no SVar either: rebuilt structurally into the same
+			// DB$ LoseLife | Defined$ TriggeredDefendingPlayer body the printed
+			// K:Afflict expansion carries, so live game and replay mint
+			// identical objects from the event text alone.
+			if rest, ok := strings.CutPrefix(e.Counter, "__kwAfflict:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "LoseLife",
+					Params: map[string]string{"Defined": "TriggeredDefendingPlayer", "LifeAmount": rest,
+						"TriggerDescription": "Afflict"}}
+			}
 		}
 		if sa == nil {
 			break

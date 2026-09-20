@@ -296,12 +296,30 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
-	// Task 18: a Miracle offer is placed by casting the card for its miracle
-	// cost, not by minting a triggered-ability stack object. castMiracle
-	// verifies the card is still in the owner's hand, emits the reveal Note,
-	// and begins the ordinary cast flow; it may pause on an X/target decision
-	// of its own, which is exactly Task 7's drainAwaitsTarget continuation (see
-	// castMiracle's doc).
+	// A granted afflict (CR 702.130 via a layer-6 AddKeyword$ Afflict:<N> --
+	// Lost Monarch of Ifnir's "Other Zombies you control have afflict 3"):
+	// the Ward shape exactly. The trigger is mandatory; its Counter payload
+	// is the life amount, which events.Apply rebuilds into the same
+	// DB$ LoseLife body the printed K:Afflict expansion carries, and the
+	// captured TriggerContext (the blocked attacker's roles, including the
+	// defender Defined$ TriggeredDefendingPlayer reads) rides along.
+	if pt.Afflict != "" {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwAfflict:" + pt.Afflict, Text: "afflict ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// Task 18: a Miracle offer is placed by casting the card for its miracle
 	// cost, not by minting a triggered-ability stack object. castMiracle
 	// verifies the card is still in the owner's hand, emits the reveal Note,

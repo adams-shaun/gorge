@@ -154,6 +154,23 @@ func (f *Face) expandKeywords() {
 			// CR 702.105's event-relative life comparison is in attacksMatches.
 			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | Dethrone$ True | TriggerDescription$ Dethrone",
 				"DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1", has)
+		case "Afflict":
+			// CR 702.130: "Whenever this creature becomes blocked, defending
+			// player loses N life." The parameter is the life amount; every
+			// corpus K:Afflict line carries one (measured 10/10). The engine's
+			// become-blocked hook is trig:AttackerBlocked
+			// (checkAttackerBlockedTriggers), which queues one instance per
+			// blocked attacker and captures the defender as the trigger
+			// context's DefendingPlayer -- exactly the Defined$ the body reads.
+			// A keyword granted in a layer (AddKeyword$ Afflict:N, e.g. Lost
+			// Monarch of Ifnir's Zombie grant) needs no expansion here: rules'
+			// checkGrantedAfflictTriggers synthesizes the same trigger from the
+			// derived keyword list.
+			if strings.TrimSpace(param) == "" {
+				continue
+			}
+			f.addKeywordTrigger(head, k, "Mode$ AttackerBlocked | ValidCard$ Card.Self | TriggerDescription$ Afflict",
+				"DB$ LoseLife | Defined$ TriggeredDefendingPlayer | LifeAmount$ "+strings.TrimSpace(param), has)
 		case "Hideaway":
 			if has("R", k) {
 				continue
