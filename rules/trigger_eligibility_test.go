@@ -52,7 +52,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 				kind := events.Kind(k)
 				// Kinds beyond this representation must fail OPEN to the old
 				// matcher, never silently truncate a new event's eligibility.
-				want := tc.kinds == nil || k >= 64 || slices.Contains(tc.kinds, kind)
+				want := tc.kinds == nil || k >= triggerMaskKindBits || slices.Contains(tc.kinds, kind)
 				if got := mask.allows(kind); got != want {
 					t.Fatalf("%s kind %d: eligible=%v, want %v", tc.mode, k, got, want)
 				}
