@@ -40,6 +40,7 @@ func TestEtbCounterExpandsToAReplacement(t *testing.T) {
 func TestTriggerKeywordsExpandWithLinkedEffects(t *testing.T) {
 	cases := map[string]struct{ src, mode, api string }{
 		"Undying":           {"K:Undying", "ChangesZone", "ChangeZone"},
+		"Persist":           {"K:Persist", "ChangesZone", "ChangeZone"},
 		"Evolve":            {"K:Evolve", "ChangesZone", "PutCounter"},
 		"Exalted":           {"K:Exalted", "Attacks", "Pump"},
 		"Prowess":           {"K:Prowess", "SpellCast", "Pump"},

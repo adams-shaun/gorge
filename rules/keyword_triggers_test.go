@@ -1137,3 +1137,84 @@ func TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells(t *testing.
 	}
 	replayCheck(t, e2, cfg2)
 }
+
+// TestPersistUsesRealCorpusCard drives Safehold Elite's real compiled script
+// (K:Persist is its only non-printed line) through CR 702.77: it dies with no
+// -1/-1 counter and returns under its owner's control with one; the returned
+// 1/1 dies again and stays dead; and a copy that already carried a -1/-1
+// counter from another source never returns at all. Persist is the mirror of
+// Undying, so the dies-condition (counters_EQ0_M1M1) is read off the LKI by
+// the same trigger_match.go path TestUndyingReturnsOnceWithACounter pins.
+func TestPersistUsesRealCorpusCard(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	elite, ok := reg.Lookup("Safehold Elite")
+	if !ok {
+		t.Fatal("Safehold Elite missing from corpus")
+	}
+	if d := elite.Link(); len(d) != 0 {
+		t.Fatalf("link Safehold Elite: %v", d)
+	}
+	deck := make([]*cards.Card, 40)
+	for i := range deck {
+		deck[i] = elite
+	}
+	newElite := func(seed uint64) (*Engine, Config, state.ObjID) {
+		cfg := seatZeroStart(Config{Seed: seed, Names: []string{"elite", "other"}, Decks: [][]*cards.Card{deck, deck}})
+		e := New(cfg)
+		var id state.ObjID
+		for _, c := range e.G.Objs {
+			if c.Owner == 0 && c.Face() != nil && c.Face().Name == "Safehold Elite" {
+				id = c.ID
+				break
+			}
+		}
+		if id == 0 {
+			t.Fatal("Safehold Elite was not created")
+		}
+		return e, cfg, id
+	}
+
+	// Dies with no -1/-1 counter: returns to the battlefield with one, and
+	// the printed 2/2 is a 1/1 once the counter applies.
+	e, cfg, id := newElite(701)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+	e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: 2})
+	e.checkStateBased()
+	e.priorityRound()
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield || o.Owner != 0 || o.Counter("M1M1") != 1 {
+		t.Fatalf("after first death: zone %s owner %d counters %d, want battlefield/0/1", o.Zone, o.Owner, o.Counter("M1M1"))
+	}
+	if e.Power(id) != 1 || e.Toughness(id) != 1 {
+		t.Fatalf("persisted Safehold Elite = %d/%d, want 1/1", e.Power(id), e.Toughness(id))
+	}
+	// Dies again, this time carrying the -1/-1 counter: it stays dead.
+	e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: 1})
+	e.checkStateBased()
+	e.priorityRound()
+	passUntilStackEmpty(t, e, 20)
+	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+		t.Fatalf("persist returned a creature that had a -1/-1 counter: zone %s", z)
+	}
+	replayCheck(t, e, cfg)
+
+	// A -1/-1 counter from another source is the same condition: a Persist
+	// creature that already had one when it died does not return.
+	e2, cfg2, id2 := newElite(702)
+	e2.emit(events.Event{Kind: events.MoveZone, Obj: id2, From: state.ZLibrary, To: state.ZBattlefield})
+	e2.emit(events.Event{Kind: events.CounterChange, Obj: id2, Counter: "M1M1", Amount: 1})
+	if e2.Power(id2) != 1 || e2.Toughness(id2) != 1 {
+		t.Fatalf("Safehold Elite with a -1/-1 counter = %d/%d, want 1/1", e2.Power(id2), e2.Toughness(id2))
+	}
+	e2.emit(events.Event{Kind: events.Damage, Obj: id2, Amount: 1})
+	e2.checkStateBased()
+	e2.priorityRound()
+	passUntilStackEmpty(t, e2, 20)
+	// Counters fall off on the way to the graveyard (CR 400.7), so the zone
+	// is the whole assertion here: the Persist trigger read the -1/-1 counter
+	// off the LKI and did not fire.
+	if z := e2.G.Obj(id2).Zone; z != state.ZGraveyard {
+		t.Fatalf("persist returned a creature that already had a -1/-1 counter: zone %s", z)
+	}
+	replayCheck(t, e2, cfg2)
+}

@@ -18,6 +18,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Indestructible": "TestIndestructibleSurvivesLethalDamageAndDestroy",
 		"kw:Devoid":         "TestDevoidCreatureIsColourless",
 		"kw:Undying":        "TestUndyingReturnsOnceWithACounter",
+		"kw:Persist":        "TestPersistUsesRealCorpusCard",
 		"kw:Evolve":         "TestEvolveGrowsOnlyForBiggerCreatures",
 		"kw:Exalted":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
 		"kw:Dethrone":       "TestDethroneCountsOnlyTheAttackedPlayersLife",
