@@ -37,6 +37,23 @@ type Player struct {
 	// and a replay derives both identically.
 	Snow Mana
 
+	// TypedMana partitions the floating pool by the PRODUCER's type (task
+	// castfilter2): TypedMana[k][i] counts how many of the Pool[i] mana
+	// units were produced by a permanent of the k-th tagged producer type
+	// (0 Treasure, 1 Cave, 2 Desert — the TypedTreasure/TypedCave/
+	// TypedDesert constants, in TypedManaTags order).
+	// It is the per-unit producer provenance the filtered
+	// Count$CastTotalManaSpent Treasure/Cave/Desert heads read (Marut, Bat
+	// Colony, Cataclysmic Prospecting): the payment consumes a plain unit
+	// before a typed one and a typed one before snow, so the spent typed
+	// delta is exactly what the search did. Written only by the ManaAdd
+	// event's "<Tag><colour>" Counter form and cleared with the pool by
+	// ManaClear, so TypedMana[k][i] <= Pool[i] always holds and a replay
+	// derives both identically. Snow does NOT live here: it keeps its
+	// historical field and machinery untouched. A [3]Mana array is plain
+	// value data, so Clone's struct copy carries it for free.
+	TypedMana [3]Mana
+
 	// Commanders lists this seat's commanders, in Config order, sized at
 	// genesis and never grown. CmdCasts runs parallel to it: entry k counts
 	// how many times Commanders[k] has been cast from the command zone.

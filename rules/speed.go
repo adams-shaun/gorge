@@ -180,7 +180,7 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 	if !ok {
 		return
 	}
-	if !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].Life) {
+	if !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].TypedMana, e.G.Players[p].Life) {
 		return
 	}
 	if !e.payMana(p, cost) {

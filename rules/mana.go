@@ -1684,24 +1684,40 @@ func anyTypeAlts() []pipAlt {
 	return []pipAlt{{color: 'W'}, {color: 'U'}, {color: 'B'}, {color: 'R'}, {color: 'G'}, {color: 'C'}}
 }
 
-// manaPayment is what resolveMana found: the pool and snow tally after every
-// pip and the generic requirement were paid, and the life the fixed Life
-// component plus any Phyrexian face spent. Snow units are always consumed
-// alongside their pool slot (Snow[i] never exceeds Pool[i]).
+// manaPayment is what resolveMana found: the pool and its two parallel
+// tallies after every pip and the generic requirement were paid, plus any
+// Phyrexian face spent. Snow units are always consumed alongside their pool
+// slot (Snow[i] never exceeds Pool[i]); typed units (task castfilter2) are
+// consumed alongside theirs (TypedMana[k][i] never exceeds Pool[i]).
 type manaPayment struct {
 	pool      state.Mana
 	snow      state.Mana
+	typed     [3]state.Mana
 	lifeSpent int32
 }
 
-// takeUnit consumes one mana unit from slot i of rem/sn, preferring a
-// NON-snow unit when one exists so a snow unit stays available for a later
-// {S} pip; the backtracking search undoes the choice if the rest of the
-// cost cannot be paid that way.
-func takeUnit(rem, sn *state.Mana, i int) {
-	if (*rem)[i] > (*sn)[i] {
+// takeUnit consumes one mana unit from slot i of rem/sn/typed, preferring a
+// PLAIN unit when one exists, then the typed units in their fixed
+// Treasure > Cave > Desert order, and a SNOW unit LAST so a snow unit stays
+// available for a later {S} pip (typed units have no pips of their own, so
+// they go before snow but after plain); the backtracking search undoes the
+// choice if the rest of the cost cannot be paid that way. plain is the
+// slot's untagged remainder; each tally is <= the pool by construction.
+func takeUnit(rem, sn *state.Mana, typed *[3]state.Mana, i int) {
+	plain := (*rem)[i] - (*sn)[i]
+	for t := range *typed {
+		plain -= (*typed)[t][i]
+	}
+	if plain > 0 {
 		(*rem)[i]--
 		return
+	}
+	for t := range *typed {
+		if (*typed)[t][i] > 0 {
+			(*rem)[i]--
+			(*typed)[t][i]--
+			return
+		}
 	}
 	(*rem)[i]--
 	(*sn)[i]--
@@ -1725,8 +1741,8 @@ func takeUnit(rem, sn *state.Mana, i int) {
 // only as though it were colorless"). A nil conv is the plain exact-colour
 // match every pre-existing caller keeps, so games with no ManaConvert static
 // on the battlefield resolve byte-identically.
-func (c Cost) resolveMana(pool, snow state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
-	return c.resolveManaWith(pool, snow, life, false, pipRider{}, conv)
+func (c Cost) resolveMana(pool, snow state.Mana, typed [3]state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
+	return c.resolveManaWith(pool, snow, typed, life, false, pipRider{}, conv)
 }
 
 // resolveManaWith is resolveMana with the two payer-side grants applied:
@@ -1740,13 +1756,14 @@ func (c Cost) resolveMana(pool, snow state.Mana, life int32, conv *manaConv) (ma
 // never includes colourless. Both grants keep main search's deterministic
 // first-alternative preference; the expanded alternatives are tried in fixed
 // WUBRG order (see anyColorAlts).
-func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
+func (c Cost) resolveManaWith(pool, snow state.Mana, typed [3]state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
 	if life < c.Life {
 		return manaPayment{}, false
 	}
 	pips := c.costPips(bLifeOK, rider)
 	rem := pool
 	sn := snow
+	tp := typed
 	life -= c.Life
 	lifeSpent := c.Life
 	// pipExact reports whether col is one of the pip's colour alternatives
@@ -1817,12 +1834,12 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, r
 			case alt.color != 0:
 				di := state.ManaIndex(alt.color)
 				if rem[di] > 0 && pipAccepts(p, alt.color, di) {
-					before, beforeSnow := rem, sn
-					takeUnit(&rem, &sn, di)
+					beforeRem, beforeSn, beforeTyped := rem, sn, tp
+					takeUnit(&rem, &sn, &tp, di)
 					if rec(i+1, generic) {
 						return true
 					}
-					rem, sn = before, beforeSnow
+					rem, sn, tp = beforeRem, beforeSn, beforeTyped
 				}
 			case alt.generic > 0:
 				// A monocolour hybrid's generic face: this pip joins the
@@ -1848,13 +1865,13 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, r
 				// the tally).
 				for di, s := range sn {
 					if s > 0 {
-						before, beforeSnow := rem, sn
+						beforeRem, beforeSn, beforeTyped := rem, sn, tp
 						rem[di]--
 						sn[di]--
 						if rec(i+1, generic) {
 							return true
 						}
-						rem, sn = before, beforeSnow
+						rem, sn, tp = beforeRem, beforeSn, beforeTyped
 					}
 				}
 			}
@@ -1870,12 +1887,12 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, r
 			for di := range manaLetters {
 				col := manaLetters[di][0]
 				if !pipExact(p, col) && rem[di] > 0 && pipAccepts(p, col, di) {
-					before, beforeSnow := rem, sn
-					takeUnit(&rem, &sn, di)
+					beforeRem, beforeSn, beforeTyped := rem, sn, tp
+					takeUnit(&rem, &sn, &tp, di)
 					if rec(i+1, generic) {
 						return true
 					}
-					rem, sn = before, beforeSnow
+					rem, sn, tp = beforeRem, beforeSn, beforeTyped
 				}
 			}
 		}
@@ -1891,11 +1908,11 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, r
 	need := finalGeneric
 	for _, i := range [...]int{state.MC, state.MW, state.MU, state.MB, state.MR, state.MG} {
 		for need > 0 && rem[i] > 0 {
-			takeUnit(&rem, &sn, i)
+			takeUnit(&rem, &sn, &tp, i)
 			need--
 		}
 	}
-	return manaPayment{pool: rem, snow: sn, lifeSpent: lifeSpent}, true
+	return manaPayment{pool: rem, snow: sn, typed: tp, lifeSpent: lifeSpent}, true
 }
 
 // payable reports whether the cost's mana and fixed-life parts can be paid
@@ -1905,8 +1922,8 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, r
 // "is there ANY way this cost can be paid right now" -- the same resolveMana
 // the payment stage uses, so an offered cost and the cost it charges can
 // never disagree.
-func (c Cost) payable(pool, snow state.Mana, life int32) bool {
-	_, ok := c.resolveMana(pool, snow, life, nil)
+func (c Cost) payable(pool, snow state.Mana, typed [3]state.Mana, life int32) bool {
+	_, ok := c.resolveMana(pool, snow, typed, life, nil)
 	return ok
 }
 
@@ -1917,7 +1934,7 @@ func (c Cost) CanPay(p state.Mana) bool {
 	// here) and a {S} pip is unpayable. This is the pure pricing question the
 	// corpus invariants ask, and it never treats a hybrid as generic nor lets
 	// colourless `pay` it.
-	_, ok := c.resolveMana(p, state.Mana{}, 0, nil)
+	_, ok := c.resolveMana(p, state.Mana{}, [3]state.Mana{}, 0, nil)
 	return ok
 }
 
@@ -1934,7 +1951,7 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 	// a fully resolved cost here). resolveMana already reserves the coloured
 	// pips and deducts generic, so the returned pool is fully spent. A failed
 	// search returns the input pool untouched.
-	pay, ok := c.resolveMana(p, state.Mana{}, 0, nil)
+	pay, ok := c.resolveMana(p, state.Mana{}, [3]state.Mana{}, 0, nil)
 	if !ok {
 		return p, false
 	}

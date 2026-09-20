@@ -517,12 +517,18 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 		return false
 	}
 	cost := e.parseCost(ma.Params["Cost"])
-	pool := e.manaAvailableFor(p, source, true)
+	av := e.manaAvailableFor(p, source, true)
+	pool := av.pool
+	typed := av.typed
 	if hyp != nil {
 		pool = *hyp
+		// A hypothetical bound is a pure mana bound that may include
+		// restricted units, so its typed partition is the raw tally (the
+		// typed counts never affect payability anyway).
+		typed = e.G.Players[p].TypedMana
 	}
 	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.Behold) > 0 || len(cost.TapPermanent) > 0 ||
-		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayablePool(p, source, true, cost, pool) {
+		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayablePool(p, source, true, cost, pool, typed) {
 		return false
 	}
 	// The mana-activation path has no X ask and no mid-payment suspension, so

@@ -809,6 +809,15 @@ var flagNames = [...]struct {
 	// unfiltered total. Appended at the end per the table's own ordering
 	// rule.
 	{"manasnowspent", state.FlagManaSnowSpent},
+	// The TREASURE-/CAVE-/DESERT-sourced parts of the total-mana-spent
+	// capture (task castfilter2): a face whose SVar table reads the filtered
+	// Count$CastTotalManaSpent Treasure/Cave/Desert head stamps its pay-time
+	// CastInfo with these flags too, so each Amount folds into its own
+	// Object field instead of overwriting X, the total, or an earlier tag.
+	// Appended at the end per the table's own ordering rule.
+	{"manatreasurespent", state.FlagManaTreasureSpent},
+	{"manacavespent", state.FlagManaCaveSpent},
+	{"manadesertspent", state.FlagManaDesertSpent},
 	// The DB$ Play ReplaceGraveyard$ Exile rider (task replplay1): the Play
 	// SA's own provenance stamps its pay-time CastInfo with this flag, so
 	// spellRestZone/spellFizzleZone send the played card to exile instead
