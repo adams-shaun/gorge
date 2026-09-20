@@ -187,6 +187,53 @@ func TestExpansionIsIdempotentAndTagged(t *testing.T) {
 	}
 }
 
+// TestTypeCyclingExpandsToATypedLibrarySearch pins CR 702.28d: typed cycling
+// is a library SEARCH for the named type (not a draw), the trailing
+// description field after the cost is dropped, and a second Link does not
+// expand the line again (the KeywordLine idempotence contract the Affinity
+// case documents).
+func TestTypeCyclingExpandsToATypedLibrarySearch(t *testing.T) {
+	c, diags := ParseBytes("k.txt", []byte("Name:S\nManaCost:2\nTypes:Creature\nPT:1/1\nK:TypeCycling:Island:2\nOracle:x\n"))
+	if len(diags) > 0 {
+		t.Fatal(diags)
+	}
+	if d := c.Link(); len(d) > 0 {
+		t.Fatal(d)
+	}
+	f := c.Faces[0]
+	if len(f.Abilities) != 1 {
+		t.Fatalf("want 1 TypeCycling ability, got %+v", f.Abilities)
+	}
+	a := f.Abilities[0]
+	if a.API != "ChangeZone" {
+		t.Fatalf("API = %q, want ChangeZone (a search, not a draw)", a.API)
+	}
+	for k, want := range map[string]string{
+		"Origin": "Library", "Destination": "Hand",
+		"ChangeType": "Island", "ChangeNum": "1",
+		"Cost": "2 Discard<1/CARDNAME>", "KeywordLine": "TypeCycling:Island:2",
+	} {
+		if a.Params[k] != want {
+			t.Errorf("param %s = %q, want %q", k, a.Params[k], want)
+		}
+	}
+	// A trailing description field (Sojourner's Companion's
+	// K:TypeCycling:Land.Artifact:2:artifact land) is dropped: the type and
+	// cost are fields 0 and 1 only.
+	c2, _ := ParseBytes("k.txt", []byte("Name:S\nManaCost:2\nTypes:Creature\nPT:1/1\nK:TypeCycling:Land.Artifact:2:artifact land\nOracle:x\n"))
+	c2.Link()
+	if got := c2.Faces[0].Abilities[0].Params["ChangeType"]; got != "Land.Artifact" {
+		t.Fatalf("ChangeType with trailing description = %q, want Land.Artifact", got)
+	}
+	// Idempotence: a second Link (cards/registry.go re-links cached faces)
+	// must not append a second search.
+	n := len(f.Abilities)
+	c.Link()
+	if len(f.Abilities) != n {
+		t.Fatal("a second Link expanded K:TypeCycling again")
+	}
+}
+
 func TestUnexpandedKeywordsStayAlone(t *testing.T) {
 	f := expanded(t, "Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\nK:Flash\nK:Kicker:R\nK:Delve\nK:Protection from blue\nOracle:x\n")
 	if len(f.Triggers)+len(f.Repls)+len(f.Abilities) != 0 {
