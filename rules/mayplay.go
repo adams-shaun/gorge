@@ -155,11 +155,16 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 
 // mayPlayUnreadGates are the gating parameters a MayPlay$ static can carry
 // that this build neither implements nor can safely ignore. Each one either
-// further conditions the permission (ValidAfterStack$, the SVar condition
-// family, ValidSA$, ActivationZone$) -- and an unconditional gate is the
-// widening this file refuses: an offer the engine cannot evaluate must not
-// exist at all. Any of these present fails the static closed, so the card
-// is simply not offered. MayPlayAltManaCost$ is NOT in this list: it is
+// further conditions the permission (ValidAfterStack$, the residual SVar
+// condition family CheckSecondSVar$/CheckThirdSVar$/PresentCompare$, ValidSA$,
+// ActivationZone$) -- and an unconditional gate is the widening this file
+// refuses: an offer the engine cannot evaluate must not exist at all. Any of
+// these present fails the static closed, so the card is simply not offered.
+// CheckSVar$/SVarCompare$ LEFT this family (mayPlayConditionGateHolds now
+// evaluates them through the shared statics evaluator, exactly as
+// continuousGateHolds does for a generic Continuous static), which is what
+// lets Verge Rangers' opponent-ahead gate open its top-of-library permission.
+// MayPlayAltManaCost$ is NOT in this list: it is
 // genuinely consumed, but on a different path -- mayPlayAltCosts delivers it
 // for the ordinary cast walk (alternativeCosts), while the ZONE-permission
 // grant below still refuses a cost-carrying static that would have the
@@ -170,17 +175,18 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 // Only a raise ParseCost cannot price still fails the static closed (the
 // priceability check in mayPlayStatic), never an uncharged surcharge.
 var mayPlayUnreadGates = [...]string{
-	"ValidAfterStack", "SVarCompare", "CheckSecondSVar", "CheckThirdSVar",
+	"ValidAfterStack", "CheckSecondSVar", "CheckThirdSVar",
 	"PresentCompare", "ValidSA", "ActivationZone", "CharacteristicDefining",
 }
 
 // mayPlayGateRejected reports whether a MayPlay$ static carries one of the
 // gates this build cannot evaluate -- the mayPlayUnreadGates family plus
-// CheckSVar$ (a condition the grant is gated on, e.g. Windbrisk Heights'
-// attacker count on its own AB) and MayPlayPlayer$ (a beneficiary other than
-// the static's controller: ActivePlayer, CardOwner, Exiler, Player). The
-// static is withheld whole -- withholding the offer is the conservative
-// direction; both families are named in the AGENTS.md audit.
+// MayPlayPlayer$ (a beneficiary other than the static's controller:
+// ActivePlayer, CardOwner, Exiler, Player). The static is withheld whole --
+// withholding the offer is the conservative direction; both families are
+// named in the AGENTS.md audit. CheckSVar$/SVarCompare$ are NOT recognised
+// here any more: mayPlayConditionGateHolds evaluates them (fail closed on an
+// unreadable body) on every path this function guards.
 //
 // The literal per-key reads keep the parameter scan classifiable, but they
 // are a RECOGNITION, not a consumption: the static never grants, so the key
@@ -201,7 +207,7 @@ var mayPlayUnreadGates = [...]string{
 // MayPlayAltManaCost$ and RaiseCost$, so no alternative cost moves.
 func mayPlayGateRejected(params map[string]string) bool {
 	if strings.TrimSpace(params["ValidAfterStack"]) != "" ||
-		strings.TrimSpace(params["SVarCompare"]) != "" ||
+		strings.TrimSpace(params["CheckSecondSVar"]) != "" ||
 		strings.TrimSpace(params["CheckSecondSVar"]) != "" ||
 		strings.TrimSpace(params["CheckThirdSVar"]) != "" ||
 		strings.TrimSpace(params["PresentCompare"]) != "" ||
@@ -210,7 +216,32 @@ func mayPlayGateRejected(params map[string]string) bool {
 		strings.TrimSpace(params["CharacteristicDefining"]) != "" {
 		return true
 	}
-	return strings.TrimSpace(params["CheckSVar"]) != "" || strings.TrimSpace(params["MayPlayPlayer"]) != ""
+	return strings.TrimSpace(params["MayPlayPlayer"]) != ""
+}
+
+// mayPlayConditionGateHolds evaluates a MayPlay$ static's CheckSVar$ /
+// SVarCompare$ intervening-if through the ONE shared statics evaluator
+// (Engine.checkSVarHolds -> effects.CheckSVarHolds), the same machinery
+// rules/layers.go's continuousGateHolds runs for every generic Mode$
+// Continuous static. A static whose gate body this build cannot read fails
+// CLOSED -- the statics convention -- so an unmodelled count head still
+// withholds the permission rather than widening it.
+//
+// Every may-play path must run this before honouring a static: mayPlayStatic
+// (the zone-permission/raise-cost grant) and mayPlayAltCosts (the priced
+// alternative) both call it, which is why CheckSVar$/SVarCompare$ no longer
+// belong in mayPlayGateRejected -- removing them there without evaluating
+// them here would widen every CheckSVar-gated static on whichever path
+// forgot.
+func (e *Engine) mayPlayConditionGateHolds(params map[string]string, source state.ObjID, you state.PlayerID) bool {
+	ck := strings.TrimSpace(params["CheckSVar"])
+	cmpRaw := strings.TrimSpace(params["SVarCompare"])
+	if ck == "" {
+		// A bare SVarCompare$ with no CheckSVar$ is malformed (nothing to
+		// compare): refuse it rather than let it through unconditioned.
+		return cmpRaw == ""
+	}
+	return e.checkSVarHolds(staticView{Source: source, Controller: you, Params: params})
 }
 
 // mayPlayStatic evaluates one MayPlay$ static's parameters against the card
@@ -242,9 +273,16 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 		return false, false, false, Cost{}, false, false
 	}
 	// Fail closed on gates this build cannot evaluate: the
-	// mayPlayUnreadGates family plus CheckSVar$/MayPlayPlayer$ (see
+	// mayPlayUnreadGates family plus MayPlayPlayer$ (see
 	// mayPlayGateRejected's doc -- a recognition, not a consumption).
 	if mayPlayGateRejected(params) {
+		return false, false, false, Cost{}, false, false
+	}
+	// CheckSVar$/SVarCompare$ ("as long as an opponent controls more lands
+	// than you", Verge Rangers): a condition the grant is gated on, evaluated
+	// through the shared statics evaluator (fail closed on an unreadable
+	// body). This is the may-play path's counterpart to continuousGateHolds.
+	if !e.mayPlayConditionGateHolds(params, source, you) {
 		return false, false, false, Cost{}, false, false
 	}
 	// RaiseCost$ is a genuine consumption now (see mayPlayRaiseCost): parse
@@ -442,7 +480,8 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []Cost {
 	}
 	for _, sv := range statics {
 		raw := strings.TrimSpace(sv.Params["MayPlayAltManaCost"])
-		if raw == "" || strings.TrimSpace(sv.Params["MayPlay"]) != "True" || mayPlayGateRejected(sv.Params) {
+		if raw == "" || strings.TrimSpace(sv.Params["MayPlay"]) != "True" || mayPlayGateRejected(sv.Params) ||
+			!e.mayPlayConditionGateHolds(sv.Params, sv.Source, sv.Controller) {
 			continue
 		}
 		// Condition$ PlayerTurn ("during each of your turns"): the static's
