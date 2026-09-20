@@ -325,7 +325,8 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return objectsOf(c.Remembered), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
-		"TriggeredAttackerLKICopy", "DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
+		"TriggeredAttackerLKICopy", "TriggeredBlocker", "TriggeredBlockerLKICopy",
+		"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.

@@ -313,6 +313,7 @@ const (
 	TriggerModePhase                      TriggerModeCode = 24
 	TriggerModeAlways                     TriggerModeCode = 25
 	TriggerModeAttached                   TriggerModeCode = 26
+	TriggerModeAttackerBlockedByCreature  TriggerModeCode = 27
 )
 
 func triggerModeCode(mode string) TriggerModeCode {
@@ -333,6 +334,8 @@ func triggerModeCode(mode string) TriggerModeCode {
 		return TriggerModeAttackersDeclared
 	case "AttackerBlocked":
 		return TriggerModeAttackerBlocked
+	case "AttackerBlockedByCreature":
+		return TriggerModeAttackerBlockedByCreature
 	case "Sacrificed":
 		return TriggerModeSacrificed
 	case "Discarded":
@@ -786,7 +789,8 @@ func triggerInterestForMode(mode string) TriggerInterest {
 		return TriggerInterestStackPut
 	case "AbilityCast", "SpellAbilityCast":
 		return TriggerInterestAbilityPush
-	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked":
+	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked",
+		"AttackerBlockedByCreature":
 		return TriggerInterestAttackDeclaration
 	case "CommitCrime", "BecomesTarget":
 		return TriggerInterestTargetsChosen

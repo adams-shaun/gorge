@@ -2172,17 +2172,46 @@ func (e *Engine) attackerBlockedCandidates(t cards.Trigger, source state.ObjID, 
 	return out
 }
 
-// checkAttackerBlockedTriggers queues one trigger instance per matching
-// blocked attacker -- the per-candidate shape the ordinary face scan cannot
-// express (it queues at most one entry per trigger per event, and the
-// become-blocked referent is per attacker: She-Hulk's counter count is each
-// Hero's OWN blocker count). The same-scan-hook precedent is
+// attackerBlockedByPairCandidates lists the (attacker, blocker) pairs one
+// Forge Mode$ AttackerBlockedByCreature trigger fires for (kw:Flanking's
+// expansion, CR 702.25a: "whenever this creature becomes blocked by a
+// creature without flanking"). Each declared pair whose attacker matches
+// ValidCard$ and whose blocker matches ValidBlocker$ yields one instance;
+// a blocker WITH flanking matches nothing, so it debuffs nobody. ValidCard$
+// Card.Self works because the trigger's source IS the flanking attacker.
+func (e *Engine) attackerBlockedByPairCandidates(t cards.Trigger, source state.ObjID, ev events.Event) [][2]state.ObjID {
+	if ev.Kind != events.DeclareBlockers || len(ev.Pairs) == 0 {
+		return nil
+	}
+	ctrl := e.controllerOf(source)
+	var out [][2]state.ObjID
+	for _, pr := range ev.Pairs {
+		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[0], e.specCtx(source, ctrl)) {
+			continue
+		}
+		if v := t.Params["ValidBlocker"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[1], e.specCtx(source, ctrl)) {
+			continue
+		}
+		out = append(out, pr)
+	}
+	return out
+}
+
+// checkAttackerBlockedTriggers queues trigger instances off a DeclareBlockers
+// event for the two become-blocked modes the ordinary face scan cannot express
+// (it queues at most one entry per trigger per event, and both referents are
+// per-attacker or per-pair): Mode$ AttackerBlocked fires once per DISTINCT
+// matching blocked attacker (She-Hulk's counter count is each Hero's OWN
+// blocker count), and Forge Mode$ AttackerBlockedByCreature -- kw:Flanking's
+// expansion (CR 702.25a) is its only live carrier -- fires once per matching
+// (attacker, blocker) PAIR, the blocker remembered as the
+// TriggeredBlockerLKICopy referent. The same-scan-hook precedent is
 // checkChapterTriggers (rules/saga.go). The gates mirror the ordinary scan's
 // per-trigger sequence (zone, phase, fire-count bound, ActivationLimit$);
-// Secondary$ and the Once damage-batch gates do not exist on this mode.
-// The per-attacker ctx carries the blocked attacker as the Remembered
-// TriggeredAttackerLKICopy referent and as TriggerCard, so
-// Count$Valid Creature.blockingTriggeredAttacker counts that Hero's blockers.
+// Secondary$ and the Once damage-batch gates do not exist on these modes.
+// Each per-instance ctx carries the triggering objects as Remembered and as
+// TriggerCard, so Count$Valid Creature.blockingTriggeredAttacker counts that
+// Hero's blockers and Defined$ TriggeredBlockerLKICopy names the blocker.
 func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	if ev.Kind != events.DeclareBlockers {
 		return
@@ -2201,7 +2230,7 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			return
 		}
 		for ti, t := range f.Triggers {
-			if t.Mode != "AttackerBlocked" {
+			if t.Mode != "AttackerBlocked" && t.Mode != "AttackerBlockedByCreature" {
 				continue
 			}
 			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
@@ -2215,6 +2244,36 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 				continue // cascade bound: see maxTriggerFires.
 			}
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			if t.Mode == "AttackerBlockedByCreature" {
+				// CR 702.25a: one instance per (attacker, blocker) pair; the
+				// trigger's controller is the ATTACKER's controller, which the
+				// Source/Controller pair already are (the source is the
+				// flanking attacker itself).
+				for _, pr := range e.attackerBlockedByPairCandidates(t, id, ev) {
+					if t.Effect == nil {
+						break
+					}
+					bid := pr[1]
+					e.triggerFireCount[key]++
+					e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+						Source:     id,
+						Controller: o.Controller,
+						Idx:        ti,
+						SA:         t.Effect,
+						Ctx: effects.Ctx{
+							Source:     id,
+							Controller: o.Controller,
+							Remembered: []state.Target{{Obj: bid}},
+							Captured:   []state.Target{{Obj: bid}},
+							TriggerContext: effects.TriggerContext{
+								TriggerCard:   bid,
+								TriggerSource: pr[0],
+							},
+						},
+					})
+				}
 				continue
 			}
 			for _, aid := range e.attackerBlockedCandidates(t, id, ev) {
@@ -3498,7 +3557,7 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:Cycled", "trig:CounterAdded",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:Cycled", "trig:CounterAdded",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
@@ -3523,6 +3582,10 @@ func init() {
 		// (layer-6 AddKeyword$) form is synthesized by
 		// checkGrantedAfflictTriggers, the Dethrone precedent.
 		"kw:Afflict",
+		// Flanking's expansion (cards/keywords.go) is a become-blocked trigger
+		// on the new AttackerBlockedByCreature mode (CR 702.25a), one instance
+		// per non-flanking blocker, debuffing it -1/-1 until EOT via Pump.
+		"kw:Flanking",
 		// Afterlife's expansion (cards/keywords.go) is a ChangesZone death
 		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
 		"kw:Afterlife",
