@@ -105,6 +105,11 @@ func TestDigWithTotalCMCCapsCumulative(t *testing.T) {
 // TestDigWithTotalCMCNoAskWhenAllFit: when the whole affordable set fits under
 // the budget there is no choice to pose -- the forced greedy take consumes
 // every eligible card -- so no decision is emitted and every card moves.
+// This documents the shared no-ask precondition rather than guarding the
+// budget fix: no post-budget state is distinguishable here (taking all
+// equals the greedy take whenever no ask is warranted), so it is not by
+// itself a regression guard -- TestDigWithTotalCMCNarrowsEligible and
+// TestDigWithTotalCMCCapsCumulative are.
 func TestDigWithTotalCMCNoAskWhenAllFit(t *testing.T) {
 	h, ids := digBudgetFixture(t, 2, 2)
 	Resolve(h, &Ctx{Controller: 0}, sa(t,
@@ -137,5 +142,33 @@ func TestDigWithTotalCMCSVarSacrificedX(t *testing.T) {
 	}
 	if h.asked.MaxSum != 3 {
 		t.Fatalf("MaxSum = %d, want the resolved budget 3", h.asked.MaxSum)
+	}
+}
+
+// TestDigWithTotalCMCGreedySkipsNonFittingBeforeCap: the forced greedy take
+// is bounded by the running pick COUNT, not by the number of options scanned.
+// michelangelos_technique's real shape -- window [4,4,2], budget 6,
+// ChangeNum$ 2 -- takes the first 4 (fits), SKIPS the second 4 (would make 8),
+// and takes the 2 (sum 6). A scan bounded by index would stop at index 2
+// having taken only one card. Pinned on the no-host fallback (a plain
+// fakeHost whose Ask returns false), which is the take botpolicy's budget arm
+// mirrors.
+func TestDigWithTotalCMCGreedySkipsNonFittingBeforeCap(t *testing.T) {
+	h := &fakeHost{g: state.NewGame(names(2))}
+	ids := make([]state.ObjID, 0, 3)
+	for i, mv := range []int{4, 4, 2} {
+		pips := make([]string, 0, mv)
+		for j := 0; j < mv; j++ {
+			pips = append(pips, "{W}")
+		}
+		src := "Name:Artifact" + string(rune('A'+i)) + "\nTypes:Artifact\nManaCost:" +
+			strings.Join(pips, "") + "\nOracle:x\n"
+		ids = append(ids, h.g.AddObject(mkCard(t, src), 0).ID)
+	}
+	h.g.SetZone(state.ZLibrary, 0, ids)
+	Resolve(h, &Ctx{Controller: 0}, sa(t,
+		"DB$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 2 | ChangeValid$ Artifact | WithTotalCMC$ 6 | DestinationZone$ Hand"))
+	if hand := h.g.Zone(state.ZHand, 0); len(hand) != 2 || hand[0] != ids[0] || hand[1] != ids[2] {
+		t.Fatalf("hand = %v, want the greedy [%d %d] (4 fits, second 4 skipped, 2 fits)", hand, ids[0], ids[2])
 	}
 }

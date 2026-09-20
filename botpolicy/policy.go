@@ -505,12 +505,42 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// moves the same cards the no-host stand-in would.
 			if d.MaxSum > 0 {
 				sum := 0
-				for j := 0; j < len(d.Options) && j < d.Max; j++ {
+				// Bound by COUNT (len(in.Choices) < d.Max), not by index --
+				// the same run-length bound effDig's forced greedy take uses
+				// (effects/cardflow.go: `len(greedy) >= changeNum`). A
+				// non-fitting option sitting before the cap must be skipped
+				// and the scan continued, or the bot takes fewer cards than
+				// the no-choice stand-in it mirrors (michelangelos_technique:
+				// options [4,4,2], budget 6, Max 2 -> [0,2], not [0]).
+				for j := 0; j < len(d.Options) && len(in.Choices) < d.Max; j++ {
 					if sum+d.Options[j].Value > d.MaxSum {
 						continue
 					}
 					sum += d.Options[j].Value
 					in.Choices = append(in.Choices, d.Options[j].Index)
+				}
+				// A mandatory budget ask (Min > 0) whose greedy fill came up
+				// short must still satisfy Min -- but every top-up must fit the
+				// budget too, or Clamp's blind index-order padding (below)
+				// hands back an intent Validate rejects and the bot
+				// livelocks. effDig lowers Min to the forced affordable count
+				// for exactly this reason, so a satisfying set always exists.
+				if len(in.Choices) < d.Min {
+					have := make(map[int]bool, len(in.Choices))
+					for _, c := range in.Choices {
+						have[c] = true
+					}
+					for _, o := range d.Options {
+						if len(in.Choices) >= d.Min {
+							break
+						}
+						if have[o.Index] || sum+o.Value > d.MaxSum {
+							continue
+						}
+						have[o.Index] = true
+						sum += o.Value
+						in.Choices = append(in.Choices, o.Index)
+					}
 				}
 			} else {
 				for j := 0; j < len(d.Options) && j < d.Max; j++ {
@@ -701,19 +731,33 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 	if len(in.Choices) < min {
 		have := make(map[int]bool, len(in.Choices)) // membership only -- never ranged.
 		groups := make(map[string]bool)             // an option Group already represented.
+		sum := 0                                    // running MaxSum budget over the chosen set.
 		for _, c := range in.Choices {
 			have[c] = true
-			if c >= 0 && c < len(d.Options) && d.Options[c].Group != "" {
-				groups[d.Options[c].Group] = true
+			if c >= 0 && c < len(d.Options) {
+				if d.Options[c].Group != "" {
+					groups[d.Options[c].Group] = true
+				}
+				sum += d.Options[c].Value
 			}
+		}
+		// fits reports whether topping up with o keeps the intent within
+		// Decision.MaxSum. The budget applies only when MaxSum > 0; a budget-less
+		// decision keeps byte-identical top-up. This is the general fix for the
+		// livelock where a mandatory budget dig's Clamp padding ignored the cap
+		// and produced an intent Decision.Validate rejects.
+		fits := func(o decision.Option) bool { return d.MaxSum <= 0 || sum+o.Value <= d.MaxSum }
+		add := func(o decision.Option) {
+			have[o.Index] = true
+			sum += o.Value
+			in.Choices = append(in.Choices, o.Index)
 		}
 		for _, o := range d.Options {
 			if len(in.Choices) >= min {
 				break
 			}
-			if o.Kind == "pass" && !have[o.Index] {
-				have[o.Index] = true
-				in.Choices = append(in.Choices, o.Index)
+			if o.Kind == "pass" && !have[o.Index] && fits(o) {
+				add(o)
 			}
 		}
 		for _, o := range d.Options {
@@ -731,11 +775,13 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			if o.Group != "" && groups[o.Group] {
 				continue
 			}
-			have[o.Index] = true
+			if !fits(o) {
+				continue
+			}
 			if o.Group != "" {
 				groups[o.Group] = true
 			}
-			in.Choices = append(in.Choices, o.Index)
+			add(o)
 		}
 		// A Repeatable decision (a CanRepeatModes$ Charm, CR 601.2b) may need
 		// MORE picks than it has distinct options -- CharmNum$ 3 over 2 legal

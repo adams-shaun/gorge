@@ -1100,8 +1100,18 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				if o := g.Obj(id); o != nil && o.Face() != nil {
 					name = o.Face().Name
 				}
-				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-					Kind: "dig", Label: name, Obj: id, Player: p, Value: manaValue(id)})
+				opt := decision.Option{Index: len(d.Options),
+					Kind: "dig", Label: name, Obj: id, Player: p}
+				// Only a budget Dig carries a Value: Option.Value is
+				// omitempty, and setting it on a budget-less Dig would put a
+				// "value" field on the wire for every offered card although
+				// MaxSum is 0 and nothing reads it. Keeping it budget-only
+				// leaves every existing (non-budget) option list serialising
+				// byte-identically.
+				if hasBudget {
+					opt.Value = manaValue(id)
+				}
+				d.Options = append(d.Options, opt)
 			}
 			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters with Ctx.Dig set.
