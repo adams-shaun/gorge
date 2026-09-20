@@ -165,13 +165,12 @@ type resumePoint struct {
 	loopBound      bool
 	loopRemembered []state.Target
 	// repeatSubject is the RepeatEach subject of the loop whose iteration
-	// this frame resumes inside (the Imprinted binding). It is CAPTURED here
-	// so the subject survives the suspension -- but it is NOT yet restored
-	// into Ctx.RepeatSubject at the resume rebuild (the loopBound arm above
-	// restores only loopRemembered), so a resumed ask re-enters with
-	// Ctx.RepeatSubject still empty: a Defined$ RepeatSubject read after a
-	// suspension resolves fail-closed. Filed as
-	// repeat-subject-dies-on-suspension; zero on frames outside any iteration.
+	// this frame resumes inside (the Imprinted binding). SuspendRepeat
+	// captured it here so the subject survives the suspension, and the
+	// resume rebuild's loopBound arm below restores it into
+	// Ctx.RepeatSubject, so a Defined$ Imprinted / ImprintedController read
+	// after a suspension (definedSpec, unlessPayerTargets) re-binds the
+	// iteration's subject. Zero on frames outside any iteration.
 	repeatSubject state.Target
 	// repeat is a kind "repeat" frame's loop cursor.
 	repeat *repeatCursor
@@ -787,6 +786,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
+		if rp.repeatSubject != (state.Target{}) {
+			ctx.RepeatSubject = rp.repeatSubject
+		}
 	}
 	// A mid-resolution ask that rode the walk's Remembered (the hidden-library
 	// search sets ResumeRemembered -- a cast spell's Remembered lives only in
