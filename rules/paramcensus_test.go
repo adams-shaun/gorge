@@ -2860,6 +2860,20 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"Draw<1/You>", nil},
 		{"SubCounter<X/LOYALTY>", nil},
 		{"DamageYou<4>", nil},
+		// The PutCardToLibFrom<Zone> family (the printed activation costs of
+		// Timestream Navigator, Leashling, Battlefield Scrounger, Ardent
+		// Dustspeaker, Penance and friends): modelled for Hand, Grave and
+		// Battlefield. The first field is the count, the second the library
+		// position (-1 bottom / 0 top) and the third the filter spec.
+		{"2 U U T PutCardToLibFromBattlefield<1/-1/CARDNAME>", nil},
+		{"PutCardToLibFromGrave<3/-1/Card>", nil},
+		{"PutCardToLibFromGrave<1/-1/Sorcery;Instant>", nil},
+		{"PutCardToLibFromHand<1/0/Card>", nil},
+		// A recognised head whose INSTANCE this build cannot place (an
+		// out-of-range position) is still reported, and an unnamed zone head
+		// is not modelled.
+		{"PutCardToLibFromGrave<1/7/Card>", []string{"PutCardToLibFromGrave"}},
+		{"PutCardToLibFromExile<1/-1/Card>", []string{"PutCardToLibFromExile"}},
 		// Recognised heads whose INSTANCE is malformed or out of range: the
 		// head is known, the instance is not modelled -- reported too.
 		{"PayLife<99999999999999999999>", []string{"PayLife"}},

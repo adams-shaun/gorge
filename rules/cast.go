@@ -286,6 +286,15 @@ type pendingCast struct {
 	returns    []state.ObjID
 	returnPart int
 
+	// putToLibs / putToLibPart carry the PutToLib cost parts
+	// (PutCardToLibFrom<Zone><N/Pos/Spec> tokens: cards matching Spec moved
+	// from the payer's Hand/Graveyard/Battlefield to the top or bottom of
+	// their owner's library) through the same ask stage / commit shape the
+	// Return parts use. Nothing moves until payCast, so an abort cannot leave
+	// a partially paid library placement behind.
+	putToLibs    []state.ObjID
+	putToLibPart int
+
 	reveals, beholds, taps, blights             []state.ObjID
 	revealPart, beholdPart, tapPart, blightPart int
 	forageDone                                  bool
@@ -847,6 +856,37 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			reserved[avail[i]] = true
 		}
 	}
+	// PutToLib cost parts (PutCardToLibFrom<Zone><N/Pos/Spec>): the payer needs
+	// N matching cards in the part's zone. A Battlefield CARDNAME part is the
+	// source itself (Forge's payCostFromSource), which must still be on the
+	// battlefield. Cards are reserved against the earlier Sac/Exile/Return
+	// parts so two components cannot claim the same permanent. The library
+	// POSITION never affects payability.
+	for _, part := range cost.PutToLib {
+		spec := sacrificeMatchSpec(part.Spec)
+		if part.Zone == state.ZBattlefield && strings.EqualFold(spec, "CARDNAME") {
+			if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+				return false
+			}
+			reserved[id] = true
+			continue
+		}
+		var avail []state.ObjID
+		for _, oid := range e.G.Zone(part.Zone, p) {
+			if reserved[oid] {
+				continue
+			}
+			if effects.MatchesSpecFrom(e.G, spec, oid, p, id) {
+				avail = append(avail, oid)
+			}
+		}
+		if int32(len(avail)) < part.N {
+			return false
+		}
+		for i := int32(0); i < part.N; i++ {
+			reserved[avail[i]] = true
+		}
+	}
 	for _, part := range cost.Draw {
 		// Draw cost parts (Draw<N/Spec>): the cast flow draws the PAYER; a
 		// spec naming a trigger-only role (Player.TriggeredPlayer and friends)
@@ -934,6 +974,73 @@ func (e *Engine) payDrawCostParts(pc *pendingCast) {
 		for k := int32(0); k < n; k++ {
 			e.drawCostCard(drawer)
 		}
+	}
+}
+
+// settlePutToLibCost settles every PutToLib cost component of a cast or
+// activation payment (PutCardToLibFrom<Zone><N/Pos/Spec>): the chosen cards
+// move to their OWNER's library. MoveZone appends to the destination zone, so
+// a plain move lands at the bottom (Forge's Pos -1); a top placement (Pos 0)
+// follows the move with one LibraryOrder per owner putting the moved cards
+// back on top in the order they were chosen -- exactly the shape effects'
+// libraryOrderPlacement emits (the same private flag), re-derived here rather
+// than imported because effects must never be reached for a cost settle.
+func (e *Engine) settlePutToLibCost(pc *pendingCast) {
+	idx := 0
+	for _, part := range pc.cost.PutToLib {
+		n := int(part.N)
+		end := idx + n
+		if end > len(pc.putToLibs) {
+			end = len(pc.putToLibs)
+		}
+		picks := pc.putToLibs[idx:end]
+		idx = end
+		for _, id := range picks {
+			if o := e.G.Obj(id); o != nil {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZLibrary,
+					Text: "put on the library as a cost"})
+			}
+		}
+		if part.LibraryPos == 0 && len(picks) > 0 {
+			e.putLibPicksOnTop(picks)
+		}
+	}
+}
+
+// putLibPicksOnTop emits the LibraryOrder that lifts the just-moved picks to
+// the top of each owner's library, preserving pick order. MoveZone already
+// appended them to the bottom; the order carries the complete new library and
+// is Secret (a hidden zone must not leak). Grouped per owner in first-pick
+// order -- deterministic because the picks slice is -- so a pick owned by
+// another player lands in the right library (the zone owner Move already used).
+func (e *Engine) putLibPicksOnTop(picks []state.ObjID) {
+	byOwner := map[state.PlayerID][]state.ObjID{}
+	var owners []state.PlayerID
+	for _, id := range picks {
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZLibrary {
+			continue
+		}
+		if _, ok := byOwner[o.Owner]; !ok {
+			owners = append(owners, o.Owner)
+		}
+		byOwner[o.Owner] = append(byOwner[o.Owner], id)
+	}
+	for _, owner := range owners {
+		sel := byOwner[owner]
+		selected := make(map[state.ObjID]bool, len(sel))
+		for _, id := range sel {
+			selected[id] = true
+		}
+		lib := e.G.Zone(state.ZLibrary, owner)
+		order := make([]state.ObjID, 0, len(lib))
+		order = append(order, sel...)
+		for _, id := range lib {
+			if !selected[id] {
+				order = append(order, id)
+			}
+		}
+		e.emit(events.Event{Kind: events.LibraryOrder, Player: owner, IDs: order, Secret: true})
 	}
 }
 
@@ -1621,6 +1728,9 @@ func (e *Engine) continueCast() {
 	if e.returnAsk() {
 		return
 	}
+	if e.putToLibAsk() {
+		return
+	}
 	if e.etbAsk() {
 		return
 	}
@@ -2099,6 +2209,83 @@ func (e *Engine) returnAsk() bool {
 		return true
 	}
 	return false
+}
+
+// putToLibAsk offers the next unsettled PutToLib cost part
+// (PutCardToLibFrom<Zone><N/Pos/Spec>: cards matching Spec moved from the
+// payer's Hand, Graveyard or Battlefield to the top or bottom of their OWNER's
+// library -- Forge CostPutCardToLib.doPayment), walking pc.cost.PutToLib in
+// order (pc.putToLibPart) the way returnAsk walks pc.cost.Return. A Spec of
+// CARDNAME from the BATTLEFIELD is Forge's payCostFromSource: the resolving
+// permanent itself is the sole candidate (Timestream Navigator's "{2}{U}{U},
+// {T}, Put Timestream Navigator on the bottom of its owner's library"), so no
+// decision is posed. Any other zone/spec walks the payer's own zone (a hand
+// or graveyard cost may still name the source itself when the ability is
+// activated from there -- no corpus carrier does, but costCandidates resolves
+// it). The settle is payCast's: the chosen objects move to their owner's
+// library beside the other cost payments, so an abort cannot leave a
+// partially paid placement on the board.
+func (e *Engine) putToLibAsk() bool {
+	pc := e.cast
+	for pc.putToLibPart < len(pc.cost.PutToLib) {
+		part := pc.cost.PutToLib[pc.putToLibPart]
+		spec := sacrificeMatchSpec(part.Spec)
+		var candidates []state.ObjID
+		if part.Zone == state.ZBattlefield && strings.EqualFold(spec, "CARDNAME") {
+			if o := e.G.Obj(pc.card); o != nil && o.Zone == state.ZBattlefield {
+				candidates = append(candidates, pc.card)
+			}
+		} else {
+			candidates = e.costCandidates(pc.player, pc.card, part.Zone, spec, false, false)
+		}
+		n := int(part.N)
+		if n <= 0 || n > len(candidates) {
+			e.abortCast(pc, "put-to-library cost no longer payable; cast/activation aborted", true)
+			return true
+		}
+		// A singleton self-reference (CARDNAME from the battlefield) has no
+		// player choice, mirroring sacAsk/exAsk/returnAsk's CARDNAME rule.
+		if part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card &&
+			part.Zone == state.ZBattlefield && strings.EqualFold(spec, "CARDNAME") {
+			pc.putToLibs = append(pc.putToLibs, pc.card)
+			pc.putToLibPart++
+			continue
+		}
+		verb := "cast " + e.targetName(pc.card)
+		if pc.ability >= 0 {
+			verb = "activate"
+		}
+		dest := "the top of their owner's library"
+		if part.LibraryPos == -1 {
+			dest = "the bottom of their owner's library"
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
+			Prompt: "Put " + strconv.Itoa(n) + " card(s) from your " + putToLibZoneName(part.Zone) +
+				" on " + dest + " to " + verb,
+			Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "puttolibcost",
+				Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+// putToLibZoneName names a PutToLib part's origin zone in a human-readable
+// prompt. It is the cost-flow vocabulary, deliberately separate from
+// handDestPhrase/destinationPhrase in effects.
+func putToLibZoneName(z state.Zone) string {
+	switch z {
+	case state.ZHand:
+		return "hand"
+	case state.ZGraveyard:
+		return "graveyard"
+	default:
+		return "battlefield"
+	}
 }
 
 // castModeAsk poses CR 601.2b's mode announcement for a modal spell. It uses
@@ -4065,6 +4252,11 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.returns = append(pc.returns, o.Obj)
 		}
 		pc.returnPart++
+	case "puttolibcost":
+		for _, o := range chosen {
+			pc.putToLibs = append(pc.putToLibs, o.Obj)
+		}
+		pc.putToLibPart++
 	case "forage_exile":
 		pc.cost.Exile = append(pc.cost.Exile, CostPart{N: 3, Spec: "Card", Zone: state.ZGraveyard})
 	case "forage_food":
@@ -4762,6 +4954,7 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
 			}
 		}
+		e.settlePutToLibCost(pc)
 		e.emitChoiceCosts(pc)
 		if pc.cost.Tap {
 			// The {T} cost's payer taps the permanent (Forge CostTap).
@@ -4919,6 +5112,7 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
 		}
 	}
+	e.settlePutToLibCost(pc)
 	e.emitChoiceCosts(pc)
 	// Capture the sacrifice LKI before the MoveZones (see the ability branch's
 	// comment): the sacrificed permanents are still on the battlefield here.
