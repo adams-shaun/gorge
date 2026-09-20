@@ -11,7 +11,12 @@ import (
 
 func init() {
 	Register("Attach", effAttach)
-	RegisterNonAPI("kw:Equip", "kw:Enchant", "kw:Living Weapon")
+	// kw:For Mirrodin (CR 702.159) expands to exactly the Living Weapon
+	// shape in cards/keywords.go -- an enters-the-battlefield trigger that
+	// mints a token, remembers it and chains the Attach above -- so it is
+	// supported by the same code paths and must be registered here or the
+	// report's coverage still counts every carrier as missing a primitive.
+	RegisterNonAPI("kw:Equip", "kw:Enchant", "kw:Living Weapon", "kw:For Mirrodin")
 }
 
 // Attachable reports whether obj may legally be attached to target. Task 14
