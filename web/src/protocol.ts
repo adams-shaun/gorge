@@ -618,6 +618,16 @@ export interface Option {
    * byte-identically. omitempty: only a beyond-tap activation carries it.
    */
   cost?: string;
+  /**
+   * Value is the option's price under a decision carrying a cumulative
+   * budget (Decision.MaxSum): a Dig's WithTotalCMC$ cap sums the mana values
+   * of the picked cards, so each offered card names its own mana value here
+   * -- what lets Decision.Validate enforce "total mana value <= N" over the
+   * chosen set without learning what a card is. Zero (mana value 0, or a
+   * decision with no budget) omits the field, so every existing option list
+   * serialises byte-identically.
+   */
+  value?: number;
 }
 
   /**
@@ -665,6 +675,18 @@ export interface Decision {
   min: number;
   max: number;
   options: Option[];
+  /**
+   * MaxSum, when > 0, is a cumulative budget over the chosen options' Value
+   * fields: the sum of the picked options' Value must not exceed MaxSum.
+   * The engine's first user is a Dig's WithTotalCMC$ ("put any number of
+   * nonland permanent cards with total mana value 4 or less from among
+   * them"), which Option.Group's exclusivity cannot express -- a group says
+   * "not both of these", a budget says "not all of these". Validate enforces
+   * it as one more wire contract, so a rules-ignorant client can grey out an
+   * unaffordable pick without summing anything itself. 0 (no budget) omits
+   * the field, so every existing decision serialises byte-identically.
+   */
+  maxSum?: number;
   /**
    * Repeatable relaxes Validate's no-duplicate-index rule: when true the
    * SAME option index may be chosen more than once in one answer. It is
