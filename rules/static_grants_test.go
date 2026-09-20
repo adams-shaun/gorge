@@ -115,6 +115,166 @@ func TestHearthhullGrantSacrificeTriggerFires(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestVerdantEmbraceGrantTriggerFires is the CROSS-OBJECT AddTrigger$ leaf:
+// Verdant Embrace's "Enchanted creature ... has 'At the beginning of each
+// upkeep, create a 1/1 green Saproling creature token'" carries the Execute$
+// SVar (VerdantToken) on the AURA's face while the Affected$ is the BEARER,
+// so the grant only fires if the queue gate and events.Apply resolve the body
+// from the GRANTOR (the Aura) and not the affected object. The Aura's own id
+// rides the event's Amount; the minted stack object's Source stays the bearer.
+func TestVerdantEmbraceGrantTriggerFires(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	embrace := lookup(t, reg, "Verdant Embrace")
+	bears := lookup(t, reg, "Grizzly Bears")
+	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{embrace, bears}, nil)
+	bearID := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	auraID := attachCorpusAura(t, e, 0, embrace, bearID)
+	// The grant is live on the bearer (the +3/+3 half pins the Affected$
+	// match; the trigger half is what this leaf is about).
+	if got := e.Derived(bearID).Toughness; got != 5 {
+		t.Fatalf("bearer toughness = %d, want 5 (the +3/+3 grant)", got)
+	}
+	// Drive to the next upkeep: the granted "at the beginning of each
+	// upkeep" trigger fires for the bearer's controller. Stop the instant the
+	// grant event lands so the stack object it minted is still on the stack.
+	grant := driveToGrantTrigger(t, e)
+	if got := state.ObjID(grant.Amount); got != auraID {
+		t.Fatalf("grantor Amount = %d, want the Aura %d", got, auraID)
+	}
+	if grant.Obj != bearID {
+		t.Fatalf("grant recipient Obj = %d, want the bearer %d", grant.Obj, bearID)
+	}
+	// The minted stack object's Source is the RECIPIENT, never the grantor.
+	var minted *state.Object
+	for _, id := range e.G.Stack {
+		if o := e.G.Obj(id); o != nil && o.Ability != nil && o.Ability.Line != "" {
+			minted = o
+		}
+	}
+	if minted == nil {
+		t.Fatal("the granted trigger minted no stack object")
+	}
+	if minted.Source != bearID {
+		t.Fatalf("minted Source = %d, want the bearer %d", minted.Source, bearID)
+	}
+	// Resolve the trigger: one Saproling token under the bearer's controller.
+	passUntilStackEmpty(t, e, 30)
+	if got := countTokensNamedOnSeat(t, e, 0, "Saproling Token"); got != 1 {
+		t.Fatalf("granted trigger made %d Saproling Token(s), want 1", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestVerdantEmbraceGrantEndsWhenAuraLeaves is the negative half: once the
+// Aura has left the battlefield its static no longer grants the trigger, so
+// the next upkeep produces neither a GrantTriggerPush nor a token.
+func TestVerdantEmbraceGrantEndsWhenAuraLeaves(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	embrace := lookup(t, reg, "Verdant Embrace")
+	bears := lookup(t, reg, "Grizzly Bears")
+	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{embrace, bears}, nil)
+	bearID := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	auraID := attachCorpusAura(t, e, 0, embrace, bearID)
+	// The Aura leaves before any upkeep: its static stops matching the bearer.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: auraID, From: state.ZBattlefield, To: state.ZGraveyard})
+	drivePastNextUpkeep(t, e)
+	passUntilStackEmpty(t, e, 30)
+	if n := countEvents(e, func(ev events.Event) bool { return ev.Kind == events.GrantTriggerPush }); n != 0 {
+		t.Fatalf("a departed Aura still pushed %d GrantTriggerPush event(s), want 0", n)
+	}
+	if got := countTokensNamedOnSeat(t, e, 0, "Saproling Token"); got != 0 {
+		t.Fatalf("a departed Aura still made %d Saproling Token(s), want 0", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// drivePastNextUpkeep answers decisions (pass for priority, first option
+// otherwise) until the next turn's Main1 -- far enough past the upcoming
+// upkeep that a Verdant Embrace-style "at the beginning of each upkeep" grant
+// has fired. The upkeep step itself is never an observable stop (beginTurn
+// runs untap, upkeep and the opening priority inside one emit chain), so the
+// stop is Main1, the first resting point after it.
+func drivePastNextUpkeep(t *testing.T, e *Engine) {
+	t.Helper()
+	turn := e.G.Turn
+	for i := 0; i < 4000; i++ {
+		if e.G.Over {
+			t.Fatalf("game ended before reaching Main1 after turn %d", turn)
+		}
+		if e.G.Turn > turn && e.G.Step == state.StepMain1 {
+			return
+		}
+		d := e.Pending()
+		if d == nil {
+			// The setup emits (a MoveZone/Attach) consume the pending the
+			// fixture left; a fresh priority round is what reintroduces one.
+			e.priorityRound()
+			continue
+		}
+		if d.Kind == decision.KPriority {
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}); err != nil {
+						t.Fatalf("submit pass: %v", err)
+					}
+					break
+				}
+			}
+			continue
+		}
+		if len(d.Options) == 0 {
+			t.Fatalf("empty non-priority decision %+v while driving to upkeep", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+			t.Fatalf("submit: %v", err)
+		}
+	}
+	t.Fatalf("did not reach Main1 after turn %d", turn)
+}
+
+// driveToGrantTrigger answers decisions until a GrantTriggerPush event
+// appears in the log, then returns it -- the minted stack object is still on
+// the stack at that instant (a granted trigger with no targets waits for
+// priority before resolving). Bounded like every other driver here.
+func driveToGrantTrigger(t *testing.T, e *Engine) events.Event {
+	t.Helper()
+	turn := e.G.Turn
+	for i := 0; i < 4000; i++ {
+		if e.G.Over {
+			t.Fatalf("game ended before a GrantTriggerPush after turn %d", turn)
+		}
+		for _, ev := range e.L.Events {
+			if ev.Kind == events.GrantTriggerPush {
+				return ev
+			}
+		}
+		d := e.Pending()
+		if d == nil {
+			e.priorityRound()
+			continue
+		}
+		if d.Kind == decision.KPriority {
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}); err != nil {
+						t.Fatalf("submit pass: %v", err)
+					}
+					break
+				}
+			}
+			continue
+		}
+		if len(d.Options) == 0 {
+			t.Fatalf("empty non-priority decision %+v while driving to a grant", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+			t.Fatalf("submit: %v", err)
+		}
+	}
+	t.Fatalf("no GrantTriggerPush after turn %d", turn)
+	return events.Event{}
+}
+
 // TestSwordOfFireAndIceGrantsSVarToEquipped is Continuous.AddSVar's leaf:
 // the AddSVar$ value is Forge's "SVar:<Name>:<Value>" grant shape; the
 // equipped creature carries the granted variable while equipped and carries

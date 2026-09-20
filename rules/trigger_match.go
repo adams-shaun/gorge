@@ -68,12 +68,16 @@ type pendingTrigger struct {
 	DelayedID uint32
 	// Granted marks a static-grant's trigger (AddTrigger$ on a Mode$
 	// Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you sacrifice
-	// a land"): like a delayed trigger its Ability is an SVar-named body
-	// (the Execute$ name rides the GrantTriggerPush event for events.Apply
-	// to resolve from the affected object's SVar table), but unlike a
-	// delayed registration nothing is consumed -- the grant lives exactly as
-	// long as its granting static.
+	// a land"): like a delayed trigger its Ability is an SVar-named body (the
+	// Execute$ name rides the GrantTriggerPush event for events.Apply to
+	// resolve from the GRANTOR's SVar table), but unlike a delayed
+	// registration nothing is consumed -- the grant lives exactly as long as
+	// its granting static. Grantor is the object carrying the printed static
+	// (0 = the self-grant shape, where grantor == recipient); it rides the
+	// event's Amount so Apply resolves the Execute$ body from the same table
+	// this walk linked it from.
 	Granted bool
+	Grantor state.ObjID
 	Execute string
 	// Ward is a GRANTED ward keyword (a layer-6 AddKeyword$ Ward:<cost>, e.g.
 	// Hexing Squelcher's "Other creatures you control have 'Ward—Pay 2
@@ -1492,6 +1496,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.cycledMatches(t, source, ev, lki)
 	case "Explores":
 		matched = e.exploresMatches(t, source, ev, lki)
+	case "Investigated":
+		matched = e.investigatedMatches(t, source, ev, lki)
 	case "RingTemptsYou":
 		matched = e.ringTemptsMatches(t, source, ev)
 	case "CounterAdded":
@@ -2282,6 +2288,62 @@ func (e *Engine) exploresMatches(t cards.Trigger, source state.ObjID, ev events.
 	return true
 }
 
+// investigatedMatches implements the "whenever you investigate" trigger
+// family (Forge Mode$ Investigated, task investtrig1 -- Erdwal Illuminator,
+// Val, Marooned Surveyor; 2 files / 2 raw lines at the corpus pin). The
+// causing event is the completed events.Investigate record (a pure Apply
+// no-op marker emitted by effInvestigate beside each Clue mint, so a plain
+// Clue-token creation never fires it): Player is the investigating seat
+// (what ValidPlayer$ matches -- Erdwal's and Val's `ValidPlayer$ You`), Obj
+// the resolving source permanent (what a ValidCard$ spec would match; no
+// corpus carrier uses one, but the grammar is the exploresMatches shape).
+// FirstTime$ True is the per-player per-turn gate -- Erdwal's "for the
+// first time each turn" -- read from the log the firstLifeLossThisTurn way
+// so a log-only replay reconstructs the same answer (no side-map).
+func (e *Engine) investigatedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Investigate {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if strings.EqualFold(t.Params["FirstTime"], "True") && !e.firstInvestigateThisTurn(ev.Player) {
+		return false
+	}
+	return true
+}
+
+// firstInvestigateThisTurn is true only when the investigate event being
+// matched is the investigating player's first of the current turn: the
+// current event is already in the log when triggers match (the
+// firstLifeLossThisTurn contract), so scanning back past TurnChange and
+// finding exactly one Investigate record for p means this is the first.
+// TurnChange is the logged reset boundary for every other per-turn fact, so
+// the scan is replay-stable and cannot leak a mutable counter across Clone.
+func (e *Engine) firstInvestigateThisTurn(p state.PlayerID) bool {
+	seenCurrent := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		if ev.Kind != events.Investigate || ev.Player != p {
+			continue
+		}
+		if seenCurrent {
+			return false
+		}
+		seenCurrent = true
+	}
+	return seenCurrent
+}
+
 // counterAddedMatches implements the "when a counter is put on" trigger
 // family (Forge Mode$ CounterAdded; Shang-Chi and the Ten Rings' "When the
 // tenth +1/+1 counter is put on NICKNAME"). The gate is the CounterChange
@@ -3040,10 +3102,13 @@ func (e *Engine) drawnMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 	return true
 }
 
-// drawNumberThisTurn counts p's draws in the current turn, including the Draw
-// event currently being matched. The log is the replay-stable source of this
-// per-turn fact; each player has its own ordinal because "their second card"
-// must not count another seat's draw.
+// drawNumberThisTurn counts p's draws in the current turn. The log is the
+// replay-stable source of this per-turn fact; each player has its own ordinal
+// because "their second card" must not count another seat's draw. Callers
+// differ on whether the Draw currently being matched is already logged:
+// trigger matching runs POST-emit (the event is in the log), while
+// replacement matching runs PRE-emit (it is not), so a replacement matcher
+// must add the pending draw's own applicability itself.
 func (e *Engine) drawNumberThisTurn(p state.PlayerID) int {
 	n := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
@@ -3106,6 +3171,55 @@ func (e *Engine) pendingDrawIsFirstInDrawStep(p state.PlayerID) bool {
 		}
 	}
 	return false
+}
+
+// extraDrawsThisTurn counts p's draws in the current turn that are NOT the
+// CR 504.1 turn-based draw -- the first card p draws in p's OWN draw step
+// while p is the active player. That is the draw Reed Richards' "except the
+// first card you draw during each of your draw steps" clause exempts, so a
+// FirstExtraCardDrawnThisTurn$ True replacement must apply only when this
+// count is zero (CR 614.1a: one replacement per occasion, and only the first
+// such occasion each turn).
+//
+// It runs from replacement matching, which is PRE-emit: the pending Draw is
+// not yet in e.L.Events, so the caller adds the pending draw's own
+// applicability separately (see pendingDrawIsFirstInDrawStep, the pre-emit
+// twin of the exempt-draw test). The log -- not a mutable counter -- is the
+// source of this per-turn fact, so cloning and replay rebuild it without an
+// event-schema change.
+func (e *Engine) extraDrawsThisTurn(p state.PlayerID) int {
+	n := 0
+	start := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		if e.L.Events[i].Kind == events.TurnChange {
+			start = i
+			break
+		}
+	}
+	// step is the step the scan is currently inside; 255 is the uint8 sentinel
+	// for "before any StepChange this turn", which no real step equals.
+	step := state.Step(255)
+	drawsInStep := 0
+	for i := start; i < len(e.L.Events); i++ {
+		ev := e.L.Events[i]
+		switch ev.Kind {
+		case events.StepChange:
+			step = ev.Step
+			if ev.Step == state.StepDraw {
+				drawsInStep = 0
+			}
+		case events.Draw:
+			if ev.Player != p {
+				continue
+			}
+			if step == state.StepDraw && p == e.G.Active && drawsInStep == 0 {
+				drawsInStep++
+				continue
+			}
+			n++
+		}
+	}
+	return n
 }
 
 // lifeLoss names the player and positive magnitude of an event that lowers a
@@ -4187,7 +4301,7 @@ func init() {
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
-		"trig:Explores", "trig:Exerted",
+		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
@@ -4459,14 +4573,16 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // granted-keyword paths use, pushed through events.GrantTriggerPush.
 //
 // The queue gate is the live==replay contract: the stack object is minted
-// inside events.Apply, which can only resolve the Execute$ body from the
-// AFFECTED object's own SVar table, so the walk links the effect from that
-// same table (the resolveSVarAcrossFaces walk mirrored in
-// grantedTriggerExecute) and a grant whose body it cannot produce never
-// queues -- the conservative direction, matching the replayable-log
-// invariant rather than minting an ability a replay cannot rebuild. A
-// self-grant (Hearthhull) trivially satisfies it; the cross-object
-// aura-grants-its-own-SVar shape fails closed here.
+// inside events.Apply, which resolves the Execute$ body from the GRANTOR's
+// own SVar table (the object carrying the printed static, threaded to the
+// event as Amount; 0 = the self-grant shape, where grantor == recipient), so
+// the walk links the effect from that same table (the resolveSVarAcrossFaces
+// walk mirrored in grantedTriggerExecute) and a grant whose body it cannot
+// produce never queues -- the conservative direction, matching the
+// replayable-log invariant rather than minting an ability a replay cannot
+// rebuild. A self-grant (Hearthhull) trivially satisfies it, and so does a
+// cross-object grant (an Aura granting its enchanted creature a trigger): the
+// Execute$ SVar lives on the GRANTOR's face, which is ce.Source.
 //
 // Fire-count: like Ward and Dethrone, every granted trigger shares the
 // granted slot's triggerKey (Source, Idx -1) -- the cascade bound only, not
@@ -4488,10 +4604,15 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 		}
 		t := *ce.AddTrigger
 		// The live==replay gate: link the Execute$ body exactly the way
-		// events.Apply will (the affected object's own table); a body it
-		// cannot resolve never queues, and a same-named body it CAN resolve
-		// is by construction the same body a replay would resolve.
-		if t.Effect = grantedTriggerExecute(o, t.Params["Execute"]); t.Effect == nil {
+		// events.Apply will (the GRANTOR's own table -- ce.Source carries the
+		// printed static; a self-grant degenerates to the affected object); a
+		// body it cannot resolve never queues, and a same-named body it CAN
+		// resolve is by construction the same body a replay would resolve.
+		grantor := observer.G.Obj(ce.Source)
+		if grantor == nil || grantor.Face() == nil {
+			continue
+		}
+		if t.Effect = grantedTriggerExecute(grantor, t.Params["Execute"]); t.Effect == nil {
 			continue
 		}
 		// CR 603.8's outstanding-instance latch, mirrored from the face walk
@@ -4521,6 +4642,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 			Idx:        -1,
 			SA:         t.Effect,
 			Granted:    true,
+			Grantor:    ce.Source,
 			Execute:    t.Params["Execute"],
 			Ctx: effects.Ctx{
 				Source:         id,
@@ -4538,9 +4660,11 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 
 // grantedTriggerExecute mirrors events.Apply's GrantTriggerPush resolution
 // (the resolveSVarAcrossFaces walk): the granted body's Execute$ name is
-// resolved against the AFFECTED object's own SVar table -- current face
-// first, then every other face -- so the live queue links exactly the body a
-// replayed log will. nil when no face resolves it.
+// resolved against the GRANTOR's own SVar table -- current face first, then
+// every other face -- so the live queue links exactly the body a replayed
+// log will. (Apply resolves from the object Amount names when set; for the
+// self-grant shape grantor == recipient, so passing the grantor covers both
+// arms.) nil when no face resolves it.
 func grantedTriggerExecute(o *state.Object, execute string) *cards.SA {
 	if execute == "" {
 		return nil

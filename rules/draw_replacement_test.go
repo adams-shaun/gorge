@@ -345,3 +345,125 @@ func TestIslandSanctuaryActivePhasesAppliesInDrawStep(t *testing.T) {
 		t.Fatalf("hand delta in the draw step = %d, want 0", got)
 	}
 }
+
+// TestReedRichardsOnlyFirstExtraDrawIsReplaced pins
+// FirstExtraCardDrawnThisTurn$ True (Reed Richards, Smartest Man:
+// "The first time you would draw a card each turn except the first card you
+// draw during each of your draw steps, you draw four cards instead.").
+//
+// CR 614.1a: a replacement effect replaces a single event, and the card's
+// "the FIRST time each turn" clause means only the first non-exempt draw of
+// the turn is replaced. Before the gate the matcher read neither the
+// parameter nor any per-turn latch, so every extra draw of the turn was
+// replaced and three extra draws gave 4+4+4 instead of 4+1+1.
+//
+// stealEngine sits at Main 1 of turn 1 (seat 0 active), so each emitDraw is
+// an extra draw for seat 0 -- none of them is the exempt CR 504.1 turn-based
+// draw.
+func TestReedRichardsOnlyFirstExtraDrawIsReplaced(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 743)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Reed Richards, Smartest Man"))
+	if e.G.Step == state.StepDraw {
+		t.Fatal("precondition: expected to be outside the draw step at Main 1")
+	}
+
+	hand := len(e.G.Zone(state.ZHand, 0))
+	emitDraw(t, e, 0) // first extra draw of the turn: replaced, draws four
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 4 {
+		t.Fatalf("hand delta for the first extra draw = %d, want 4 (Reed Richards replaces it)", got)
+	}
+	hand = len(e.G.Zone(state.ZHand, 0))
+	emitDraw(t, e, 0) // second extra draw: no longer the first, unreplaced
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 1 {
+		t.Fatalf("hand delta for the second extra draw = %d, want 1 (only the first is replaced)", got)
+	}
+	hand = len(e.G.Zone(state.ZHand, 0))
+	emitDraw(t, e, 0) // third extra draw: still unreplaced
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 1 {
+		t.Fatalf("hand delta for the third extra draw = %d, want 1", got)
+	}
+}
+
+// TestReedRichardsDrawStepDrawIsExemptAndFirstExtraIsReplaced pins the
+// "except the first card you draw during each of your draw steps" half: the
+// CR 504.1 turn-based draw of the controller's own draw step is not the
+// "first time" the replacement waits for, so it is not replaced -- but the
+// FIRST extra draw in that same step is (it is the first non-exempt draw of
+// the turn), and the next one is not.
+func TestReedRichardsDrawStepDrawIsExemptAndFirstExtraIsReplaced(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 743)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Reed Richards, Smartest Man"))
+
+	// Seat 0 is the active player; drive into its own turn-3 draw step. The
+	// turn-based draw is a turn-based action on step entry, so it has already
+	// happened by the time we arrive -- and must not have been replaced.
+	driveToStep(t, e, 3, 0, state.StepDraw)
+	if e.G.Step != state.StepDraw || e.G.Active != 0 {
+		t.Fatalf("precondition: step=%s active=%d, want seat 0's draw step", e.G.Step, e.G.Active)
+	}
+
+	hand := len(e.G.Zone(state.ZHand, 0))
+	emitDraw(t, e, 0) // first extra draw in the draw step: replaced
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 4 {
+		t.Fatalf("hand delta for the first extra draw in the draw step = %d, want 4", got)
+	}
+	hand = len(e.G.Zone(state.ZHand, 0))
+	emitDraw(t, e, 0) // second extra draw in the draw step: unreplaced
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 1 {
+		t.Fatalf("hand delta for the second extra draw in the draw step = %d, want 1", got)
+	}
+}
+
+// TestReedRichardsDrawStepTurnBasedDrawNotReplaced is the direct exemption
+// guard: entering seat 0's own draw step makes its CR 504.1 turn-based draw,
+// which Reed Richards must leave alone (that is the card's explicit
+// "except ...", not the FirstExtraCardDrawnThisTurn latch -- the exempt draw
+// is the one pendingDrawIsFirstInDrawStep recognises).
+func TestReedRichardsDrawStepTurnBasedDrawNotReplaced(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 743)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Reed Richards, Smartest Man"))
+
+	driveToStep(t, e, 3, 0, state.StepUpkeep)
+	hand := len(e.G.Zone(state.ZHand, 0))
+	lib := len(e.G.Zone(state.ZLibrary, 0))
+	driveToStep(t, e, 3, 0, state.StepDraw)
+
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 1 {
+		t.Fatalf("hand delta over the draw step = %d, want 1 (the exempt turn-based draw)", got)
+	}
+	if got := len(e.G.Zone(state.ZLibrary, 0)) - lib; got != -1 {
+		t.Fatalf("library delta over the draw step = %d, want -1", got)
+	}
+}
+
+// TestReedRichardsExtraDrawOutsideStepIsFirstNotExempt guards against the
+// gate over-exempting: a non-active player's extra draw during another
+// player's draw step is NOT that player's own turn-based draw, so it is the
+// first extra draw of the turn for them and must be replaced -- mirroring
+// the active-player semantics of pendingDrawIsFirstInDrawStep.
+func TestReedRichardsExtraDrawOutsideStepIsFirstNotExempt(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 743)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Reed Richards, Smartest Man"))
+
+	// Seat 1's own turn-2 draw step: seat 1 is active, and a Draw for the
+	// NON-active seat 0 is not in seat 0's own draw step, so it is an extra
+	// draw for seat 0 and Reed Richards replaces it.
+	driveToStep(t, e, 2, 1, state.StepDraw)
+	if e.G.Step != state.StepDraw || e.G.Active != 1 {
+		t.Fatalf("precondition: step=%s active=%d, want seat 1's draw step", e.G.Step, e.G.Active)
+	}
+	hand := len(e.G.Zone(state.ZHand, 0))
+	emitDraw(t, e, 0) // seat 0's first extra draw this turn: replaced
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 4 {
+		t.Fatalf("hand delta for the non-active extra draw = %d, want 4", got)
+	}
+	hand = len(e.G.Zone(state.ZHand, 0))
+	emitDraw(t, e, 0) // now not the first: unreplaced
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 1 {
+		t.Fatalf("hand delta for the second non-active extra draw = %d, want 1", got)
+	}
+}

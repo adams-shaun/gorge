@@ -543,6 +543,51 @@ func (e *Engine) hasCastConvoke(id state.ObjID) bool {
 	return false
 }
 
+// hasCastImprovise reports whether the spell being cast carries Improvise
+// (CR 702.66), read the same way hasCastConvoke reads Convoke: the printed
+// keyword or a layer-6 grant reaching the cast spell. No corpus card grants
+// Improvise (measured), so the grant path is inert groundwork kept for
+// symmetry with the sibling reads.
+func (e *Engine) hasCastImprovise(id state.ObjID) bool {
+	for _, k := range e.derivedWith(id, state.ZStack).Keywords {
+		if strings.EqualFold(cardsKeywordHead(k), "Improvise") {
+			return true
+		}
+	}
+	return false
+}
+
+// improviseCost applies CR 702.66a greedily in stable battlefield order:
+// each untapped artifact controlled by p (not already committed by
+// convokeCost -- the two keywords never share a carrier today, but the
+// exclusion is structural) reduces the generic requirement by {1} and must
+// be tapped. Improvise never pays coloured pips, so nothing else is
+// consumed. It returns the reduced cost and exactly the artifacts that must
+// be tapped.
+func (e *Engine) improviseCost(p state.PlayerID, id state.ObjID, c Cost, committed []state.ObjID) (Cost, []state.ObjID) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil || !e.hasCastImprovise(id) {
+		return c, nil
+	}
+	skip := make(map[state.ObjID]bool, len(committed))
+	for _, cid := range committed {
+		skip[cid] = true
+	}
+	var tapped []state.ObjID
+	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
+		if c.Generic == 0 {
+			break
+		}
+		co := e.G.Obj(cid)
+		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsArtifact() || co.BestowedAttached() || skip[cid] {
+			continue
+		}
+		c.Generic--
+		tapped = append(tapped, cid)
+	}
+	return c, tapped
+}
+
 // suspendCost parses Forge's Suspend:<time>:<cost> keyword form. X-time
 // scripts put their lower bound in the leading XMin<N> cost token; the same
 // announced X pays the cost and becomes the number of TIME counters.
@@ -3971,6 +4016,8 @@ func (e *Engine) validateCastContributions(d *decision.Decision, in decision.Int
 		switch {
 		case o.Kind == "harmonize":
 			pays = append(pays, convokePayment{id: o.Obj, power: int32(o.Amount)})
+		case o.Kind == "improvise_generic":
+			pays = append(pays, convokePayment{id: o.Obj})
 		case strings.HasPrefix(o.Kind, "convoke_"):
 			color := byte(0)
 			if o.Kind != "convoke_generic" {
@@ -3999,7 +4046,8 @@ func (e *Engine) convokeAsk() bool {
 	pc.convokeDone = true
 	isConvoke := e.hasCastConvoke(pc.card)
 	isHarmonize := pc.mode == "harmonize"
-	if !isConvoke && !isHarmonize {
+	isImprovise := e.hasCastImprovise(pc.card)
+	if !isConvoke && !isHarmonize && !isImprovise {
 		return false
 	}
 	mana := e.manaToPay(pc)
@@ -4011,15 +4059,16 @@ func (e *Engine) convokeAsk() bool {
 	if !mana.hasManaPayment() && !hasX {
 		return false
 	}
-	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 0,
-		Prompt: "Choose creatures to help pay for " + e.G.Obj(pc.card).Face().Name, Source: pc.card}
+	name := e.G.Obj(pc.card).Face().Name
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 0, Source: pc.card}
+	sawCreature, sawArtifact := false, false
 	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil || !o.EffectiveIsCreature() || o.BestowedAttached() {
+		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
-		if isHarmonize && (mana.Generic > 0 || hasX) {
+		if isHarmonize && o.EffectiveIsCreature() && (mana.Generic > 0 || hasX) {
 			// The reduction offered is the creature's ACTUAL power (CR
 			// 702.46a), the same number harmonizePayment credits: a printed
 			// 1/1 currently boosted to 4 funds four generic, and a printed
@@ -4027,24 +4076,47 @@ func (e *Engine) convokeAsk() bool {
 			if p := e.Derived(id).Power; p > 0 {
 				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "harmonize", Obj: id,
 					Group: group, Amount: int(p), Label: "Tap " + o.Face().Name + " (reduce by " + strconv.Itoa(int(p)) + ")"})
+				sawCreature = true
 			}
 		}
-		if !isConvoke {
-			continue
-		}
-		for _, color := range []byte{'W', 'U', 'B', 'R', 'G'} {
-			if mana.Colored[state.ManaIndex(color)] > 0 && strings.Contains(e.objColors(o), string(color)) {
-				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_" + string(color), Obj: id,
-					Group: group, Label: "Tap " + o.Face().Name + " for " + string(color)})
+		if isConvoke && o.EffectiveIsCreature() {
+			for _, color := range []byte{'W', 'U', 'B', 'R', 'G'} {
+				if mana.Colored[state.ManaIndex(color)] > 0 && strings.Contains(e.objColors(o), string(color)) {
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_" + string(color), Obj: id,
+						Group: group, Label: "Tap " + o.Face().Name + " for " + string(color)})
+					sawCreature = true
+				}
+			}
+			if mana.Generic > 0 || hasX {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_generic", Obj: id,
+					Group: group, Label: "Tap " + o.Face().Name + " for 1"})
+				sawCreature = true
 			}
 		}
-		if mana.Generic > 0 || hasX {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_generic", Obj: id,
+		// CR 702.66a: Improvise's artifacts -- artifact creatures included,
+		// the card is an artifact independently of being a creature -- each
+		// pay one generic. The shared payment group makes the object's
+		// Convoke and Improvise options mutually exclusive, so one artifact
+		// can never be committed to both payments.
+		if isImprovise && o.EffectiveIsArtifact() && (mana.Generic > 0 || hasX) {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "improvise_generic", Obj: id,
 				Group: group, Label: "Tap " + o.Face().Name + " for 1"})
+			sawArtifact = true
 		}
 	}
 	if len(d.Options) == 0 {
 		return false
+	}
+	// The prompt names what is actually offered: a mixed Convoke/Improvise
+	// spell offers both creatures and artifacts, an Improvise-only one only
+	// artifacts, and the Convoke/Harmonize shapes only creatures.
+	switch {
+	case sawCreature && sawArtifact:
+		d.Prompt = "Choose permanents to help pay for " + name
+	case sawArtifact:
+		d.Prompt = "Choose artifacts to help pay for " + name
+	default:
+		d.Prompt = "Choose creatures to help pay for " + name
 	}
 	// The announcement cannot tap more creatures than the cost can absorb:
 	// each chosen contribution reduces exactly one outstanding slot (a
@@ -4462,10 +4534,10 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.payGeneric += int32(chosen[0].Amount)
 		}
 		pc.payIdx++
-	case "convoke_W", "convoke_U", "convoke_B", "convoke_R", "convoke_G", "convoke_generic":
+	case "convoke_W", "convoke_U", "convoke_B", "convoke_R", "convoke_G", "convoke_generic", "improvise_generic":
 		for _, choice := range chosen {
 			color := byte(0)
-			if choice.Kind != "convoke_generic" {
+			if choice.Kind != "convoke_generic" && choice.Kind != "improvise_generic" {
 				color = choice.Kind[len("convoke_")]
 			}
 			pc.convoke = append(pc.convoke, convokePayment{id: choice.Obj, color: color})
@@ -5824,6 +5896,11 @@ func init() {
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
+		// kw:Improvise: CR 702.66, the generic-only payment keyword -- its
+		// announcement over the caster's untapped artifacts (the improvise
+		// arm inside convokeAsk) and its greedy offer-gate credit
+		// (improviseCost) are the proof, in cast.go.
+		"kw:Improvise",
 		// kw:TypeCycling: CR 702.28d (typed cycling), expanded by
 		// cards/keywords.go into the Transmute-shaped library search
 		// (AB$ ChangeZone | Origin$ Library | Destination$ Hand |
@@ -5858,5 +5935,10 @@ func init() {
 		// whose cost exiles the card itself (ExileFromGrave<1/CARDNAME>) and
 		// whose token copy carries the keyword's modified characteristics --
 		// the Encore graveyard-activation shape with a different effect.
+		// kw:Gravestorm: CR 702.84, expanded by cards/keywords.go into the
+		// Storm-shaped copy trigger whose Amount$
+		// Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent reads the
+		// zone-aware count in effects.countEntered.
+		"kw:Gravestorm",
 		"kw:Embalm", "kw:Eternalize")
 }

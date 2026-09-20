@@ -235,6 +235,12 @@ func Describe(g *state.Game, ev events.Event) string {
 		// public (the reveal Note that precedes the record), so the line
 		// names only the explorer.
 		return obj(g, ev.Obj) + " explores"
+	case events.Investigate:
+		// The investigate record (CR 701.36a, task investtrig1) is a pure
+		// marker: the Clue-token mint is its own TokenCreate line, so this
+		// line names only the investigating seat (Player; Obj is the source
+		// permanent, which may be 0 for a game-rule investigate).
+		return player(g, ev.Player) + " investigates"
 	case events.CombatRetarget:
 		// api:ChangeCombatants's reselect: Obj the attacker, Player the new
 		// defender. The old defender needs no line (the re-pointed attack is

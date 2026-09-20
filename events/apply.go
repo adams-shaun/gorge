@@ -75,6 +75,13 @@ func Apply(g *state.Game, e Event) {
 		// controller, IDs[0] the revealed card, Amount 1 = land (went to
 		// hand) / 0 = nonland (counter put; card back on top or graveyard).
 
+	case Investigate:
+		// The investigate record (CR 701.36a, task investtrig1) is a pure
+		// marker, exactly like Explore: the investigate's own state change
+		// (the Clue token mint) is its own TokenCreate event that preceded
+		// this one, and the record is what trig:Investigated matches. Player
+		// is the investigating seat, Obj the resolving source permanent.
+
 	case Pair:
 		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
 		// IDs[0] its chosen partner; both fields are set reciprocally when
@@ -1619,13 +1626,22 @@ func Apply(g *state.Game, e Event) {
 		// minted here, inside Apply, so a log-only replay creates the same
 		// object a live game did. Like DelayedPush the Ability is not a face
 		// Triggers index: it is the granted trigger's Execute$ SVar-named
-		// body, resolved from the AFFECTED object's own SVar table. Rules'
-		// queue walk only queues a grant whose Execute$ body that table
-		// resolves to the exact body the granting face's table names (the
-		// self-grant shape -- Hearthhull grants its own trigger to itself),
-		// so this resolution reproduces the queue's SA. No registration is
-		// consumed: a granted trigger is fired by nothing and lives exactly
-		// as long as its granting static.
+		// body. The body lives on the GRANTOR's face (Forge defines the
+		// AddTrigger$-named SVar on the card carrying the static), while Obj
+		// is the AFFECTED recipient -- the two differ for a cross-object
+		// grant (an Aura granting its enchanted creature a trigger). The
+		// grantor rides Amount (0 = the historical self-grant shape, where
+		// grantor == recipient and the AFFECTED table is the right one):
+		// when set, the name resolves from the grantor's table -- the exact
+		// table rules' queue gate linked the body from -- else from the
+		// affected object's own table (the self-grant path, byte-identical
+		// for every already-logged event). A grantor that has left the
+		// battlefield, or whose face no longer resolves the name, mints
+		// nothing (the totality stance every SVar resolution takes).
+		// o.Source stays e.Obj: a granted body's `Defined$ Self`/`CARDNAME`
+		// names the recipient. No registration is consumed: a granted
+		// trigger is fired by nothing and lives exactly as long as its
+		// granting static.
 		if !validPlayer(g, e.Player) {
 			break
 		}
@@ -1633,7 +1649,15 @@ func Apply(g *state.Game, e Event) {
 		if src == nil || src.Face() == nil {
 			break
 		}
-		sa := resolveSVarAcrossFaces(src, e.Counter)
+		resolver := src
+		if e.Amount > 0 {
+			if grantor := g.Obj(state.ObjID(e.Amount)); grantor != nil && grantor.Face() != nil {
+				resolver = grantor
+			} else {
+				break
+			}
+		}
+		sa := resolveSVarAcrossFaces(resolver, e.Counter)
 		if sa == nil {
 			break
 		}
