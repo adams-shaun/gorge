@@ -639,15 +639,17 @@ func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
 // continuousGateHolds evaluates the "as long as" condition gates a Mode$
 // Continuous static can carry, the intervening-if that decides whether the
 // grant lives at this instant: IsPresent$/IsPresent2$ (an existence count over
-// every battlefield, PresentCompare$ pricing the count -- default GE1) and
+// every battlefield, PresentCompare$ pricing the count -- default GE1),
 // CheckSVar$/SVarCompare$ (the named SVar -- or inline Count$ expression --
-// compared under the threshold, no compare meaning "nonzero"). Both
-// evaluators are shared with the restriction/cost static gates
-// (rules/statics.go's presentGate and checkSVarHolds) so the ONE grammar
-// governs every static family. staticEffects re-runs once per emitted event,
-// so evaluating the gate there is the continuous recheck the grant needs. A
-// gate this build cannot evaluate fails closed -- the shipped statics
-// convention: an unreadable "as long as" must not silently always-apply.
+// compared under the threshold, no compare meaning "nonzero"), and
+// Condition$ (the ability-word condition family). Every evaluator is shared
+// with the restriction/cost/ability gates (rules/statics.go's presentGate,
+// checkSVarHolds and costConditionHolds; rules/legal.go's
+// activationConditionOK) so the ONE grammar governs every static family.
+// staticEffects re-runs once per emitted event, so evaluating the gate there
+// is the continuous recheck the grant needs. A gate this build cannot evaluate
+// fails closed -- the shipped statics convention: an unreadable "as long as"
+// must not silently always-apply.
 func (e *Engine) continuousGateHolds(sv staticView) bool {
 	if spec, ok := sv.Params["IsPresent"]; ok && !e.presentGate(sv, spec) {
 		return false
@@ -655,7 +657,57 @@ func (e *Engine) continuousGateHolds(sv staticView) bool {
 	if spec, ok := sv.Params["IsPresent2"]; ok && !e.presentGate(sv, spec) {
 		return false
 	}
+	if !e.continuousConditionHolds(sv) {
+		return false
+	}
 	return e.checkSVarHolds(sv)
+}
+
+// continuousConditionHolds evaluates Condition$ on a Mode$ Continuous static
+// -- the "Delirium --", "Threshold --", "Metalcraft --" ability-word family
+// whose grant lives only while the condition is met. The evaluable values map
+// onto the shared condition machinery the other static families already use:
+//
+//   - Delirium: the controller's graveyard holds 4+ distinct core card types
+//     (rules/replacement.go's graveyardCardTypeCount, the ONE census shared
+//     with rules/legal.go's activationConditionOK);
+//   - PlayerTurn / NotPlayerTurn: the static's controller is or is not the
+//     active player (the same reads rules/statics.go's costConditionHolds and
+//     restrictionGateHolds make);
+//   - Metalcraft: 3+ artifacts the controller controls (costConditionHolds'
+//     Count$ arm);
+//   - Threshold: 7+ cards in the controller's graveyard;
+//   - Hellbent: the controller's hand is empty.
+//
+// Every other value -- Blessing, EnduringStory, FatefulHour, Monarch, MaxSpeed
+// and anything new -- FAILS CLOSED (the gate never holds), matching every
+// sibling gate's documented deny direction. MaxSpeed is safe to deny here:
+// its statics carry only AddAbility$/AddStaticAbility$/AddTrigger$/
+// AddReplacementEffect$/AddSVar$, never a layer-walk key, and the speed family
+// is read separately by rules/speed.go's maxSpeedAbilities. An absent or empty
+// Condition$ keeps holding, as before.
+func (e *Engine) continuousConditionHolds(sv staticView) bool {
+	raw, ok := sv.Params["Condition"]
+	if !ok {
+		return true
+	}
+	switch strings.TrimSpace(raw) {
+	case "":
+		return true
+	case "Delirium":
+		return e.graveyardCardTypeCount(sv.Controller) >= 4
+	case "PlayerTurn":
+		return e.G.Active == sv.Controller
+	case "NotPlayerTurn":
+		return e.G.Active != sv.Controller
+	case "Metalcraft":
+		return e.metalcraftHolds(sv.Controller)
+	case "Threshold":
+		return len(e.G.Zone(state.ZGraveyard, sv.Controller)) >= 7
+	case "Hellbent":
+		return len(e.G.Zone(state.ZHand, sv.Controller)) == 0
+	}
+	return false
 }
 
 // adjustLandPlaysGrant reports whether a Mode$ Continuous static carries the
