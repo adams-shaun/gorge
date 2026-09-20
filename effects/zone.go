@@ -1157,6 +1157,12 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				moved = append(moved, id)
 			}
 			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			// AtEOT$ on the hand walk: the owner's answered batch is the
+			// affected set, scheduled per owner BEFORE the walk can suspend on a
+			// later owner's ask (a suspension must not lose this batch's
+			// registrations -- the re-entry skips already-answered owners and
+			// never re-schedules them).
+			scheduleAtEOT(h, c, sa, moved)
 			continue
 		}
 		n := count.fixed
@@ -1182,6 +1188,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				pool = append(pool[:j], pool[j+1:]...)
 			}
 			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			scheduleAtEOT(h, c, sa, moved)
 			continue
 		}
 		// NumInHand/HandSize means "all matching cards in that hand", an
@@ -1209,6 +1216,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				moved = append(moved, id)
 			}
 			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			scheduleAtEOT(h, c, sa, moved)
 			continue
 		}
 		chooser := owner
@@ -1260,6 +1268,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 			moved = append(moved, eligible[k])
 		}
 		handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+		scheduleAtEOT(h, c, sa, moved)
 	}
 }
 
@@ -1936,6 +1945,10 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 	if to == state.ZBattlefield && withKind != "" {
 		withAmt = withCounterAmount(h, c, sa)
 	}
+	// The AtEOT$ rider's affected set, collected across every fetch and
+	// scheduled by ONE call after the loop (one Note per call, never per
+	// owner).
+	var ateotMoved []state.ObjID
 	for i := range fetches {
 		f := &fetches[i]
 		moved := make([]state.ObjID, 0, len(f.ids))
@@ -1949,6 +1962,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 			settleChangeZoneMove(h, c, sa, id, state.ZLibrary, to, withKind, withAmt)
 			eventForgetChanged(h, c, sa, id)
 			moved = append(moved, id)
+			ateotMoved = append(ateotMoved, id)
 			if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: f.owner, Text: "entered tapped"})
 			}
@@ -1963,6 +1977,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 			h.Emit(events.Event{Kind: events.Note, Player: f.owner, IDs: moved})
 		}
 	}
+	scheduleAtEOT(h, c, sa, ateotMoved)
 	return true
 }
 
@@ -2376,6 +2391,10 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		if strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True") && len(moved) > 0 {
 			h.Emit(events.Event{Kind: events.Note, Player: owner, IDs: moved})
 		}
+		// AtEOT$ rides the pick's moved set as well (latent: no corpus carrier
+		// reaches the hidden pick with the param today, but a future one must
+		// not be dropped silently).
+		scheduleAtEOT(h, c, sa, moved)
 		return moved
 	}
 	for i, owner := range players {
@@ -2759,6 +2778,12 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		h.Emit(events.Event{Kind: events.Note, Player: owner, IDs: moved})
 	}
 
+	// AtEOT$ rides the search's moved set too. Scheduled BEFORE the
+	// may-shuffle confirm: a searchShuffleTail suspension is a tail-only
+	// re-entry (effSearchLibrary's SearchShuffle branch), which would never
+	// reach a schedule call placed after it -- the moved cards and their
+	// registrations are already game state by then.
+	scheduleAtEOT(h, c, sa, moved)
 	if searchShuffleTail(h, c, sa, owner, moved, to) {
 		return // the may-shuffle confirm suspended the resolution
 	}

@@ -363,3 +363,152 @@ func TestAtEOTOutOfScopeValueStaysLoud(t *testing.T) {
 		t.Fatalf("the out-of-scope AtEOT$ suppressed the token mint (objs %d -> %d)", before, len(e.G.Objs))
 	}
 }
+
+// TestAtEOTPurphorosHandMoveIsSacrificedAtEOT pins the exact-Hand ChangeZone
+// dispatch (the round-2 MAJOR finding): an AtEOT$ rider on an Origin$ Hand
+// ChangeZone with no object selector used to return through
+// effChangeZoneHand before any schedule call existed, dropping the rider
+// silently -- no DelayedRegister, no loud Note -- for four corpus carriers
+// (Kavaron Consumed, Ilharg, Purphoros, Planebound Accomplice). Purphoros's
+// printed {2}{R} ability ("put a red creature card ... onto the battlefield.
+// Sacrifice it at the beginning of the next end step") is the real carrier:
+// the hand_move ask is answered with a Goblin Piker, the piker enters, the
+// DelayedRegister is recorded for it, and the next end step sacrifices it
+// while Purphoros stays.
+func TestAtEOTPurphorosHandMoveIsSacrificedAtEOT(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := ateotEngine(t, reg, "Purphoros, Bronze-Blooded", "Goblin Piker")
+	purph := ateotFind(t, e, "Purphoros, Bronze-Blooded", 0)
+	ateotTo(t, e, purph, state.ZLibrary, state.ZBattlefield)
+	gob := ateotFind(t, e, "Goblin Piker", 0)
+	if e.G.Obj(gob).Zone != state.ZHand {
+		ateotTo(t, e, gob, state.ZLibrary, state.ZHand)
+	}
+
+	// Resolve the printed {2}{R} ability directly (the Feral Lightning
+	// style): the cost machinery is not what this pin exercises.
+	card := searchCorpusCard(t, reg, "Purphoros, Bronze-Blooded")
+	var sa *cards.SA
+	for _, ab := range card.Faces[0].Abilities {
+		if ab.API == "ChangeZone" {
+			sa = ab
+		}
+	}
+	if sa == nil {
+		t.Fatal("Purphoros has no ChangeZone ability")
+	}
+	effects.Resolve(e, &effects.Ctx{Source: purph, Controller: 0,
+		SVars: card.Faces[0].SVars}, sa)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hand_move" {
+		t.Fatalf("pending %+v, want the hand_move KChoose (Optional$ You keeps the ask alive)", d)
+	}
+	gidx := -1
+	for _, o := range d.Options {
+		if o.Obj == gob {
+			gidx = o.Index
+		}
+	}
+	if gidx < 0 {
+		t.Fatalf("Goblin Piker %d not offered: %+v", gob, d.Options)
+	}
+	submitChoices(t, e, gidx)
+	passUntilStackEmpty(t, e, 20)
+
+	if o := e.G.Obj(gob); o == nil || o.Zone != state.ZBattlefield || o.Controller != 0 {
+		t.Fatalf("the picked piker is %+v, want on seat 0's battlefield", o)
+	}
+	registrations := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.DelayedRegister && ev.Obj == gob {
+			registrations++
+		}
+	}
+	if registrations != 1 {
+		t.Fatalf("the hand move emitted %d DelayedRegister events for the piker, want exactly 1", registrations)
+	}
+	replayCheck(t, e, cfg)
+
+	// The next end step sacrifices the moved creature; Purphoros stays.
+	ateotDriveToStep(t, e, e.G.Turn, e.G.Active, state.StepEnd)
+	for e.putTriggersOnStack() {
+		answerTriggerOrders(t, e)
+		passUntilStackEmpty(t, e, 20)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if z := e.G.Obj(gob).Zone; z != state.ZGraveyard {
+		t.Fatalf("the hand-moved piker survived the end step (zone %s), want it sacrificed to the graveyard", z)
+	}
+	if z := e.G.Obj(purph).Zone; z != state.ZBattlefield {
+		t.Fatalf("Purphoros itself moved at the end step (zone %s), want it kept", z)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestAtEOTCrazedArmodonDestroysItself pins the Destroy rider, the one value
+// the shared reader needs a new builtin body for (__kwAtEOTDestroy): the
+// Armodon's {G} ability pumps itself (Defined$ Self) and destroys it at the
+// beginning of the next end step.
+func TestAtEOTCrazedArmodonDestroysItself(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := ateotEngine(t, reg, "Crazed Armodon")
+	arm := ateotFind(t, e, "Crazed Armodon", 0)
+	ateotTo(t, e, arm, state.ZLibrary, state.ZBattlefield)
+
+	addMana(t, e, 0, "G")
+	d := e.Pending()
+	aidx := -1
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == arm {
+			aidx = o.Index
+		}
+	}
+	if aidx < 0 {
+		t.Fatalf("no Crazed Armodon activation offered: %+v", d.Options)
+	}
+	submitChoices(t, e, aidx)
+	passUntilStackEmpty(t, e, 20)
+	if !e.HasKeyword(arm, "Trample") {
+		t.Fatal("the Armodon did not gain Trample from its pump")
+	}
+	replayCheck(t, e, cfg)
+
+	ateotDriveToStep(t, e, e.G.Turn, e.G.Active, state.StepEnd)
+	for e.putTriggersOnStack() {
+		answerTriggerOrders(t, e)
+		passUntilStackEmpty(t, e, 20)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if z := e.G.Obj(arm).Zone; z != state.ZGraveyard {
+		t.Fatalf("the Armodon survived the end step (zone %s), want it destroyed to the graveyard", z)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestAtEOTDestroyRegistrationTracksIncarnation pins the round-2 finding on
+// the fold: the __kwAtEOTDestroy promise must be incarnation-tracked like
+// the dash/warp bodies it sits beside (a Destroy-rider permanent that left
+// and returned as a new incarnation is not destroyed by the stale promise),
+// while the encore sacrifice body keeps its untracked convention.
+func TestAtEOTDestroyRegistrationTracksIncarnation(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := ateotEngine(t, reg)
+	id := e.G.Zone(state.ZHand, 0)[0]
+	inc := e.G.Obj(id).Incarnation
+	e.emit(events.Event{Kind: events.DelayedRegister, Obj: id, Player: 0,
+		Step: state.StepEnd, Counter: "__kwAtEOTDestroy"})
+	e.emit(events.Event{Kind: events.DelayedRegister, Obj: id, Player: 0,
+		Step: state.StepEnd, Counter: "__kwEncoreSacrifice"})
+	if len(e.G.Delayed) != 2 {
+		t.Fatalf("delayed registrations = %d, want 2", len(e.G.Delayed))
+	}
+	last := e.G.Delayed[len(e.G.Delayed)-2]
+	if last.Execute != "__kwAtEOTDestroy" || !last.TrackSource || last.SourceIncarnation != inc {
+		t.Fatalf("__kwAtEOTDestroy registration %+v, want incarnation-tracked (incarnation %d)", last, inc)
+	}
+	encore := e.G.Delayed[len(e.G.Delayed)-1]
+	if encore.Execute != "__kwEncoreSacrifice" || encore.TrackSource {
+		t.Fatalf("__kwEncoreSacrifice registration %+v, want untracked (the CopyPermanent convention)", encore)
+	}
+	replayCheck(t, e, cfg)
+}

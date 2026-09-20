@@ -197,6 +197,12 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	// so) but NOT attacking, under one deterministic Note: never a guessed
 	// defender. The mark itself rides the appended events.TokenAttacks kind
 	// (events/apply.go), so replay rebuilds it.
+	// The AtEOT$ rider's affected set is every mint the loop actually mints,
+	// collected here and scheduled by ONE scheduleAtEOT call after the loop:
+	// the call (and, for an out-of-scope value, its one loud Note) is per
+	// resolution, never per mint -- a multi-token body with an out-of-scope
+	// value must not emit one Note per token.
+	var minted []state.ObjID
 	attackCtx := false
 	var attackDefender state.PlayerID
 	if attack := strings.TrimSpace(sa.Params["TokenAttacking"]); attack != "" {
@@ -286,10 +292,11 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 			// AtEOT$ (Valduk, Zektar Shrine Expedition: "exile those tokens at
-			// the beginning of the next end step") schedules each mint through
-			// the shared reader, after the existing riders, with want as the
-			// predicted mint id (the CopyPermanent pattern).
-			scheduleAtEOT(h, c, sa, []state.ObjID{want})
+			// the beginning of the next end step"): remember the predicted mint
+			// id (the CopyPermanent pattern); the shared reader schedules the
+			// whole minted set in one call after the loop.
+			minted = append(minted, want)
 		}
 	}
+	scheduleAtEOT(h, c, sa, minted)
 }

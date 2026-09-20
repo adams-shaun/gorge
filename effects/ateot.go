@@ -35,42 +35,28 @@ import (
 // value, with the body still applied (the CopyPermanent convention). A value
 // is never silently dropped.
 func scheduleAtEOT(h Host, c *Ctx, sa *cards.SA, affected []state.ObjID) {
-	if len(affected) == 0 {
-		return
-	}
 	value := strings.TrimSpace(sa.Params["AtEOT"])
 	if value == "" {
 		return
 	}
-	// The in-scope value -> builtin body table. Reusing the existing
-	// dash/warp/encore bodies gives each family its established semantics for
-	// free: __kwWarpExile is incarnation-tracked (a copy that left the
-	// battlefield and returned as a new incarnation is not exiled by a stale
-	// promise), __kwEncoreSacrifice is not.
-	body := ""
-	switch value {
-	case "Exile", "YourExile":
-		body = "__kwWarpExile"
-	case "Sacrifice", "YourSacrifice", "SacrificeCtrl":
-		body = "__kwEncoreSacrifice"
-	case "Hand":
-		body = "__kwDashReturn"
-	case "Destroy":
-		body = "__kwAtEOTDestroy"
+	body := atEOTBody(value)
+	if body == "" {
+		// Out of scope (Library shuffle-into, the end-of-combat and
+		// next-upkeep families, an unrecognised spelling): one loud Note
+		// per call -- emitted even when the affected set is EMPTY, so a body
+		// carrying an unimplemented value is never dropped silently (the
+		// affected set is empty exactly when there is nothing to schedule,
+		// which is when a silent drop would be easiest to miss) -- and the
+		// body still stands.
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "AtEOT$ " + value + " is not implemented; the affected object stays on the battlefield (one Note per call)"})
+		return
 	}
 	// RememberChanged$'s Ledger of remembered ids is not consulted: the
 	// caller owns the moved set.
 	for _, id := range affected {
 		if h.Game().Obj(id) == nil {
 			continue // a caller may hand over an id that never resolved
-		}
-		if body == "" {
-			// Out of scope (Library shuffle-into, the end-of-combat and
-			// next-upkeep families, an unrecognised spelling): one loud Note
-			// per call, and the body still stands.
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-				Text: "AtEOT$ " + value + " is not implemented; the affected object stays on the battlefield (one Note per call)"})
-			return
 		}
 		// The registration's Source IS the affected object, so the builtin
 		// body's Defined$ Self resolves to it -- exactly the dash/warp/
@@ -81,6 +67,30 @@ func scheduleAtEOT(h Host, c *Ctx, sa *cards.SA, affected []state.ObjID) {
 	}
 }
 
+// atEOTBody maps an AtEOT$ value to the builtin SVar body its registration
+// fires. Reusing the existing dash/warp/encore bodies gives each family its
+// established semantics for free: __kwWarpExile is incarnation-tracked (a
+// card that left the battlefield and returned as a new incarnation is not
+// exiled by a stale promise; events/apply.go tracks the __kwWarp and
+// __kwAtEOT prefixes), __kwDashReturn and __kwAtEOTDestroy likewise.
+// __kwEncoreSacrifice is not tracked, the CopyPermanent convention. Every
+// off-battlefield stale promise is a no-op at fire time: warp/dash carry an
+// Origin$ Battlefield guard, and effSacrifice's object path skips an object
+// that is not on the battlefield.
+func atEOTBody(value string) string {
+	switch value {
+	case "Exile", "YourExile":
+		return "__kwWarpExile"
+	case "Sacrifice", "YourSacrifice", "SacrificeCtrl":
+		return "__kwEncoreSacrifice"
+	case "Hand":
+		return "__kwDashReturn"
+	case "Destroy":
+		return "__kwAtEOTDestroy"
+	}
+	return ""
+}
+
 // atEOTInclude decides whether id is part of an AtEOT$-bearing body's affected
 // set. For a `Defined$ Remembered` spec the engine seeds Ctx.Remembered with
 // the trigger REFERENT (rules.triggerRemembered returns the event's object),
@@ -89,6 +99,16 @@ func scheduleAtEOT(h Host, c *Ctx, sa *cards.SA, affected []state.ObjID) {
 // own persistent event-backed list genuinely remembered it (a
 // Self-remembering body), the rememberedWithSource convention
 // Count$RememberedSize and the condition grammar already read.
+//
+// KNOWN PARTIAL, not a fix of the underlying defect: the referent seeding is
+// why Puppeteer Clique's own `DB$ Animate | Defined$ Remembered` still grants
+// Haste to the Clique itself (the referent IS the Clique, so Defined() names
+// it as a target while this filter correctly withholds the rider) -- the
+// card behaves inconsistently (Clique hasty but not exiled). The proper fix
+// is in the resolver (match Forge's card remembered list the way
+// effChangeZone's O-Ring rescue does), which is engine-wide and its own
+// ticket; this guard only stops the wrongly-named object from also being
+// exiled by a stale promise. Ledgered in the task report's Issues.
 func atEOTInclude(h Host, c *Ctx, sa *cards.SA, id state.ObjID) bool {
 	if strings.TrimSpace(sa.Params["Defined"]) != "Remembered" || id != c.Source {
 		return true
