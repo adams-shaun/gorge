@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -15,6 +16,7 @@ func init() {
 	Register("PutCounterAll", effPutCounterAll)
 	Register("RemoveCounterAll", effRemoveCounterAll)
 	Register("MultiplyCounter", effMultiplyCounter)
+	Register("Proliferate", effProliferate)
 	Register("Regenerate", effRegenerate)
 }
 
@@ -856,6 +858,213 @@ func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: -amt})
 		}
+	}
+}
+
+// effProliferate implements Forge's Proliferate (CR 701.27): the resolving
+// player chooses any number of permanents and/or players that already have at
+// least one counter (of any kind), and gives each chosen recipient another
+// counter of EACH kind already there. A recipient carrying no counter of any
+// kind is not choosable (CR 701.27a's "that have a counter on them"), and
+// chooses nothing when no such recipient exists -- silently, with no ask and
+// no Note (the OnlyEmptyAnswer discipline: a Max-0 KChoose is never posted).
+//
+// The eligible population is the battlefield in seat order (g.AliveFrom, then
+// g.Zone per seat -- both deterministic slices, never a map walk) followed by
+// the alive players with a counter. The chooser is the resolving controller
+// (every corpus carrier proliferates for its own controller; Forge's
+// ProliferateEffect takes its chooser from the ability's controller).
+//
+// The ask is the any-number convention effDiscard's Optional$ shape uses, NOT
+// the strict-supersets gate putCounterChoose follows: Min 0 and Max the
+// eligible count is a REAL choice the moment one eligible recipient exists
+// ("{} vs {that one}" is a genuine election), so `len(eligible) < 2` does not
+// suppress it. Only zero eligible is a no-choice shape.
+//
+// Amount$ is the number of times to proliferate, resolved through Num (a
+// literal, an SVar or an inline Count$ expression). A value Num cannot resolve
+// (the corpus's X-on-a-non-cast and `Number$2/Minus.Y` bodies) loud-degrades
+// with one Note and proliferates nothing -- the documented fail-closed
+// direction, never a silent 1. Because proliferation adds +1 of each EXISTING
+// kind, N proliferations over one fixed recipient set equal one batch of +N;
+// this build poses ONE ask and applies +Amount per recipient (deterministic
+// and documented) rather than N sequential asks.
+//
+// The answer re-enters through ResumeKind "proliferate" with Ctx.Proliferate,
+// which carries BOTH shapes -- an object recipient (Obj) and a player
+// recipient (Player + IsPlayer) -- so the shared "counter_pick" arm, which
+// reads Obj only, is deliberately not reused. RememberPut$ True (Ripples of
+// Potential) remembers exactly the recipients that took a counter.
+func effProliferate(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	// fx42 scoping: capture and clear the answered pick BEFORE the walk, so a
+	// nested Proliferate below this one poses its own ask instead of
+	// inheriting the outer answer (the BlightPicks discipline).
+	picks := c.Proliferate
+	done := c.ProliferateDone
+	c.Proliferate, c.ProliferateDone = nil, false
+
+	// Loud-fail-closed on any parameter outside the whitelist (the effBlight
+	// case-whitelist shape): Amount$/RememberPut$ read here, Defined$/
+	// ValidTgts$ are inert on every corpus carrier, Cost$/SorcerySpeed$/
+	// Planeswalker$ are activation metadata the offer machinery already reads,
+	// the Condition* family is consumed by the shared SVar-condition gate in
+	// Resolve, SubAbility$ is chained by the ordinary walk, and the
+	// description keys are display-only. One Note names the first unknown key
+	// in sorted order (a map range must never reach an event unsorted) and the
+	// whole body no-ops -- so an unmodelled shape degrades loudly rather than
+	// silently guessing.
+	var unknown []string
+	for k := range sa.Params {
+		switch k {
+		case "Amount", "RememberPut", "Defined", "ValidTgts",
+			"Cost", "SorcerySpeed", "Planeswalker",
+			"ConditionCheckSVar", "ConditionSVarCompare",
+			"ConditionDefined", "ConditionPresent", "ConditionCompare",
+			"SubAbility", "SpellDescription", "StackDescription",
+			"TriggerDescription", "Description", "PrecostDesc", "CostDesc",
+			"ActivationZone", "AILogic", "AIPreference", "DeckHas", "DeckHints":
+		default:
+			unknown = append(unknown, k)
+		}
+	}
+	if len(unknown) > 0 {
+		sort.Strings(unknown)
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "Proliferate unmodelled parameter " + unknown[0]})
+		return
+	}
+
+	n, ok := NumResolved(h, c, sa, "Amount", 1)
+	if !ok {
+		// Num resolved an absent Amount$ to its default 1; a value that is
+		// PRESENT but unresolvable is the loud-degrade shape. NumResolved
+		// reports ok=false for both, so distinguish by presence.
+		if _, present := sa.Params["Amount"]; present {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Proliferate Amount$ unresolvable (" + sa.Params["Amount"] + ")"})
+			return
+		}
+		n = 1
+	}
+	// A bare `Amount$ X` resolves through the cast's own X, but an activated
+	// ability (Karn's Bastion-style `Cost$ 1 T | Amount$ X`) has no X to
+	// resolve -- Num returns the zero c.X, which is not a legitimate "zero
+	// times" but an unannounced count. Loud-degrade it (the same fail-closed
+	// direction as the unresolvable bodies) rather than silently proliferating
+	// nothing: the caller can tell an announced X (nonzero) from none.
+	if strings.TrimSpace(sa.Params["Amount"]) == "X" && n <= 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "Proliferate Amount$ X unresolvable (no X announced)"})
+		return
+	}
+	if n <= 0 {
+		return
+	}
+
+	if done {
+		applyProliferate(h, c, sa, picks, n)
+		return
+	}
+
+	// The eligible set: battlefield recipients in seat/zone order, then alive
+	// players with a counter. Both walks are deterministic slices.
+	var eligible []state.Target
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if o := g.Obj(id); o != nil && len(o.Counters) > 0 {
+				eligible = append(eligible, state.Target{Obj: id})
+			}
+		}
+	}
+	for _, p := range g.AliveFrom(0) {
+		if len(g.Players[p].Counters) > 0 {
+			eligible = append(eligible, state.Target{Player: p, IsPlayer: true})
+		}
+	}
+	if len(eligible) == 0 {
+		// Nothing carries a counter: no choice exists, so no ask (and no
+		// Note -- this is the correct resolution, not a degradation).
+		return
+	}
+
+	chooser := c.Controller
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+		Min:        0,
+		Max:        len(eligible),
+		Source:     c.Source,
+		ResumeKind: "proliferate",
+		ResumeSA:   sa,
+		Prompt:     "Proliferate: choose any number of permanents and/or players"}
+	for _, t := range eligible {
+		label := "a player"
+		if t.IsPlayer {
+			if t.Player >= 0 && int(t.Player) < len(g.Players) {
+				label = g.Players[t.Player].Name
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "proliferate", Label: label, Obj: 0, Player: t.Player})
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o != nil && o.Face() != nil {
+			label = o.Face().Name
+		}
+		owner := chooser
+		if o != nil {
+			owner = o.Controller
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "proliferate", Label: label, Obj: t.Obj, Player: owner})
+	}
+	if Ask(h, d) == AskAsked {
+		return // resolution suspended; the answer re-enters with Ctx.Proliferate set.
+	}
+	// The no-host (R-9) and empty-answer stand-in takes ALL eligible, the
+	// exact mirror of botpolicy's "proliferate" arm, so a bot-answered ask
+	// emits the same events the silent build would.
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+		Text: "proliferate resolved without a choice (no engine host to ask)"})
+	applyProliferate(h, c, sa, eligible, n)
+}
+
+// applyProliferate gives each live chosen recipient +n of each kind of
+// counter it already carries, one event per kind (objects -> CounterChange,
+// players -> PlayerCounterChange), then remembers the recipients when the SA
+// carries RememberPut$ True. A recipient that left the battlefield (or died)
+// while the decision was outstanding takes nothing -- the putCounterPickApply
+// zone-guard stance.
+func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target, n int32) {
+	g := h.Game()
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberPut"]), "True")
+	var placed []state.Target
+	for _, t := range picks {
+		if t.IsPlayer {
+			p := t.Player
+			if int(p) < 0 || int(p) >= len(g.Players) || g.Players[p].Lost {
+				continue
+			}
+			pl := &g.Players[p]
+			kinds := counterKinds("", len(pl.Counters), func(i int) string { return pl.Counters[i].Kind })
+			for _, k := range kinds {
+				h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+					Counter: k, Amount: n})
+			}
+			placed = append(placed, state.Target{Player: p, IsPlayer: true})
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		kinds := counterKinds("", len(o.Counters), func(i int) string { return o.Counters[i].Kind })
+		for _, k := range kinds {
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: n})
+		}
+		placed = append(placed, state.Target{Obj: o.ID})
+	}
+	if remember && len(placed) > 0 {
+		c.Remembered = append(c.Remembered, placed...)
 	}
 }
 
