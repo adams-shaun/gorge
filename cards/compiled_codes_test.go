@@ -60,7 +60,7 @@ func TestCompiledCodeMappings(t *testing.T) {
 	t.Run("trigger modes", func(t *testing.T) {
 		names := []string{
 			"ChangesZone", "SpellCast", "AbilityCast", "SpellAbilityCast", "Attacks",
-			"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "Sacrificed",
+			"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Sacrificed",
 			"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 			"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
 			"Drawn", "LifeLost", "LifeLostAll", "Phase", "Always", "Attached",
@@ -145,6 +145,7 @@ func TestCompiledTriggerInterests(t *testing.T) {
 		{"AttackersDeclared", TriggerInterestAttackDeclaration},
 		{"AttackersDeclaredOneTarget", TriggerInterestAttackDeclaration},
 		{"AttackerBlocked", TriggerInterestAttackDeclaration},
+		{"AttackerBlockedByCreature", TriggerInterestAttackDeclaration},
 		{"Sacrificed", TriggerInterestZoneChange},
 		{"Discarded", TriggerInterestZoneChange},
 		{"LandPlayed", TriggerInterestZoneChange},

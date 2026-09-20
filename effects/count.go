@@ -468,6 +468,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		return c.Targets, true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
 		"TriggeredAttacker", "TriggeredAttackerLKICopy",
+		"TriggeredBlocker", "TriggeredBlockerLKICopy",
 		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
 		"DelayTriggerRememberedLKI", "RememberedLKI":
 		return c.Remembered, true

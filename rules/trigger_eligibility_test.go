@@ -98,7 +98,7 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 func TestCompiledTriggerInterestParity(t *testing.T) {
 	modes := []string{
 		"ChangesZone", "SpellCast", "AbilityCast", "SpellAbilityCast", "Attacks",
-		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "Sacrificed",
+		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Sacrificed",
 		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
 		"Drawn", "LifeLost", "Phase", "Attached", "Always", "LifeLostAll", "FutureMode", "",

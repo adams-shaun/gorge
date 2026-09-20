@@ -38,6 +38,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Fear":           "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
 		"kw:Shadow":         "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
 		"kw:Protection":     "TestProtectionUsesAllLiveColourQualities",
+		"kw:Flanking":       "TestFlankingKnightOfTheHolyNimbusDebuffsBlockers",
 	} {
 		if !sup[kw] {
 			t.Errorf("%s is not registered (proof test: %s)", kw, proof)
