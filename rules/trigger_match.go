@@ -82,7 +82,14 @@ type pendingTrigger struct {
 	// KeywordTriggerPush whose __kwWard: payload events.Apply rebuilds the
 	// same DB$ Ward ability from. Idx and SA are unset for it.
 	Ward string
-	Ctx  effects.Ctx
+	// Afflict is a GRANTED afflict keyword (a layer-6 AddKeyword$
+	// Afflict:<N>, e.g. Lost Monarch of Ifnir's "Other Zombies you control
+	// have afflict 3"): the same shape as Ward -- the queue carries the life
+	// amount and the drain pushes a KeywordTriggerPush whose __kwAfflict:
+	// payload events.Apply rebuilds into the same DB$ LoseLife body the
+	// printed K:Afflict expansion carries. Idx and SA are unset for it.
+	Afflict string
+	Ctx     effects.Ctx
 }
 
 // triggerKey identifies one T: line: the object that carries it, plus that
@@ -919,6 +926,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 				case events.DeclareAttackers:
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
+				case events.DeclareBlockers:
+					e.checkGrantedAfflictTriggers(id, o, f, ev)
 				}
 			}
 			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
@@ -1147,6 +1156,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			}
 		}
 		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+		// A granted Afflict must fire even when the object's own printed
+		// triggers are live for this event (a Zombie with its own become-blocked
+		// trigger carrying the Monarch's grant) -- the early-return path above
+		// reaches this object through checkGrantedAfflictTriggers's own call.
+		e.checkGrantedAfflictTriggers(id, o, f, ev)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -3487,6 +3501,11 @@ func init() {
 		// since Task 11; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
 		"kw:Storm", "kw:Ward", "kw:Annihilator", "kw:Mobilize",
+		// Afflict's expansion (cards/keywords.go) is a become-blocked trigger
+		// (trig:AttackerBlocked) whose body drains the defender; the granted
+		// (layer-6 AddKeyword$) form is synthesized by
+		// checkGrantedAfflictTriggers, the Dethrone precedent.
+		"kw:Afflict",
 		// Afterlife's expansion (cards/keywords.go) is a ChangesZone death
 		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
 		"kw:Afterlife",
@@ -3540,6 +3559,112 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
 				Ctx: effects.Ctx{Source: id, Controller: o.Controller, Remembered: triggerRemembered(ev, id), LKI: objLKI,
 					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)}})
+		}
+	}
+}
+
+// checkGrantedAfflictTriggers synthesizes Afflict's become-blocked trigger
+// (CR 702.130) for a creature that currently HAS the keyword but does not
+// print it: a keyword granted in layer 6 (Lost Monarch of Ifnir's
+// "Other Zombies you control have afflict 3") has the same rules text as a
+// printed keyword, and the printed K:Afflict expansion (cards/keywords.go)
+// only covers printed lines. The synthesized trigger reuses the ordinary
+// AttackerBlocked machinery -- triggerModeEvents' DeclareBlockers entry,
+// zoneGate/phaseGate, attackerBlockedCandidates' dedup and fire-count bound
+// -- so its behaviour is byte-identical to the printed path's for
+// ValidCard$ Card.Self: one instance per distinct blocking declaration of
+// the granted creature itself, the defender captured as
+// TriggerContext.DefendingPlayer for the body's
+// Defined$ TriggeredDefendingPlayer. The granted amount is the FIRST
+// keyword granted in a layer never matches. The walk does NOT skip a card
+// that also prints Afflict: the granted amounts are every Afflict entry in
+// the derived list whose exact text no printed line already carries, so a
+// card printing K:Afflict:1 that is granted "Afflict 3" fires BOTH (printed
+// expansion for 1, this walk for 3), while a grant identical to a printed
+// line is skipped -- the printed expansion already owns it and the two are
+// indistinguishable as strings (a Monarch carrying another Monarch's
+// identical grant keeps its one printed instance; the conservative choice).
+// Every distinct grant queues its own instance, so two Monarchs on the
+// battlefield stack two afflict-3 instances on the same Zombie. Like
+// Dethrone's synthesis this is a read-only derived-characteristics check;
+// granting stays in the continuous-effect system.
+func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f *cards.Face, ev events.Event) {
+	if ev.Kind != events.DeclareBlockers {
+		return
+	}
+	if !e.HasKeyword(id, "Afflict") {
+		return
+	}
+	printed := map[string]bool{}
+	for _, k := range f.Keywords {
+		printed[strings.ToLower(k)] = true
+	}
+	var amounts []int
+	for _, k := range e.Derived(id).Keywords {
+		if !strings.EqualFold(cards.KeywordHead(k), "Afflict") || printed[strings.ToLower(k)] {
+			continue
+		}
+		param := ""
+		if j := strings.IndexByte(k, ':'); j >= 0 {
+			param = strings.TrimSpace(k[j+1:])
+		}
+		amount, err := strconv.Atoi(param)
+		if err != nil || amount <= 0 {
+			continue // a malformed or non-positive grant delivers no trigger.
+		}
+		amounts = append(amounts, amount)
+	}
+	if len(amounts) == 0 {
+		return
+	}
+	t := cards.Trigger{Mode: "AttackerBlocked", Params: map[string]string{
+		"Mode": "AttackerBlocked", "ValidCard": "Card.Self",
+	}}
+	if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
+		return
+	}
+	key := triggerKey{Source: id, Idx: -1}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	if e.triggerFireCount[key] >= maxTriggerFires {
+		return // cascade bound: see maxTriggerFires.
+	}
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	for _, aid := range e.attackerBlockedCandidates(t, id, ev) {
+		// ValidCard$ Card.Self admits only the granted creature itself;
+		// attackerBlockedCandidates still returns other attackers this event
+		// blocked, so skip anything that is not the source.
+		if aid != id {
+			continue
+		}
+		defender := pt(0)
+		if ao := e.G.Obj(aid); ao != nil {
+			defender = pt(ao.Attacking)
+		}
+		for _, amount := range amounts {
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     id,
+				Controller: o.Controller,
+				// The Ward shape: the body rides the push's __kwAfflict:
+				// payload for events.Apply to rebuild structurally -- a raw
+				// SA cannot cross the log, and the TriggerPush -1 index
+				// sentinel is Dethrone's own.
+				Afflict: strconv.Itoa(amount),
+				Ctx: effects.Ctx{
+					Source:     id,
+					Controller: o.Controller,
+					Remembered: []state.Target{{Obj: aid}},
+					Captured:   []state.Target{{Obj: aid}},
+					TriggerContext: effects.TriggerContext{
+						TriggerCard:     aid,
+						TriggerSource:   aid,
+						AttackingPlayer: pt(e.controllerOf(aid)),
+						DefendingPlayer: defender,
+					},
+				},
+			})
 		}
 	}
 }
