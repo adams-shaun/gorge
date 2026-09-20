@@ -1428,6 +1428,26 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 	if !matched {
 		return false
 	}
+	// FirstCombat$ True -- the "if it's the first combat phase of the turn"
+	// trigger gate (8 corpus T: lines: hexplate_wallbreaker, genji_glove,
+	// finest_hour, balthier_and_fran, raph_leo_sibling_rivals on Mode$ Attacks,
+	// karlach_fury_of_avernus on Mode$ AttackersDeclared,
+	// zariel_archduke_of_avernus and swinging_ship on Mode$ Phase) restricts
+	// the trigger to the FIRST combat phase begun this turn, so a trigger an
+	// extra combat (DB$ AddPhase) creates must not re-fire. The count is the
+	// event-folded state.Game.CombatsThisTurn (one increment per BeginCombat
+	// entry, reset at TurnChange), evaluated on the fold of the matching
+	// event: during the first combat it is 1 (its BeginCombat already
+	// folded), and every extra combat's BeginCombat has raised it to 2 -- so
+	// the test is count == 1, never 0. This is a SHARED gate in
+	// triggerMatches rather than a per-mode one because the key rides three
+	// different modes and means the same thing on every one; it is distinct
+	// from the Execute-side ConditionFirstCombat$ gate
+	// (effects/conditions.go, Raiyuu), which suppresses the BODY, not the
+	// trigger.
+	if strings.EqualFold(strings.TrimSpace(t.Params["FirstCombat"]), "True") && e.G.CombatsThisTurn != 1 {
+		return false
+	}
 	// PlayerTurn$ True: only during the turn of the source's controller
 	// (Forge Trigger.requirementsCheck), scoped to actionTriggerModes.
 	if actionTriggerModes[t.Mode] && strings.EqualFold(t.Params["PlayerTurn"], "True") &&
