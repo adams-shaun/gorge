@@ -2868,6 +2868,98 @@ func (e *Engine) discardCauseAdmits(spec string, source state.ObjID, ev events.E
 		o.Controller, e.controllerOf(source))
 }
 
+// cyclingCauseKeywords is the CR 702.28 cycling family: the plain Cycling
+// keyword and its typed form (TypeCycling), both of which Forge's `Cycling`
+// stack spec names. Exact membership -- a substring test would let
+// TypeCycling's own "Cycling" suffix admit the plain spec through a false
+// positive, and vice versa is impossible because the values are distinct.
+var cyclingCauseKeywords = map[string]bool{"Cycling": true, "TypeCycling": true}
+
+// drawCauseAdmits evaluates a ValidCause$ stack spec against the spell or
+// ability that caused Draw event ev, from source's controller's perspective.
+// It serves the Draw replacement arm (Unpredictable Cyclone, the corpus's
+// only Draw ValidCause$ carrier: "If a cycling ability of another nonland
+// card would cause you to draw a card, instead ...").
+//
+// The base kind and the controller / instant-sorcery restrictions are read
+// through state's shared classifier (StackKindTokenOf + StackKindAdmits), so
+// this cannot drift from TargetType$/ValidStack. But that classifier
+// DELIBERATELY ignores every other qualifier (its doc comment records the
+// widening), which is fine for a target offer but wrong here: a replacement
+// scoped by `Activated.Cycling+nonLand` must not apply to a draw caused by
+// ANY activated ability. The qualifiers this helper adds are the ones the one
+// Draw carrier needs -- `Cycling` (the cause ability carries the keyword) and
+// a card predicate such as `nonLand` (matched on the cause's SOURCE card
+// through the ordinary filter grammar). Any qualifier this helper does not
+// recognise FAILS CLOSED: a cause spec it cannot evaluate must never admit
+// the replacement (the repo's standing filter contract).
+//
+// Comma-separated alternatives are OR, matching ValidTgts$/ValidCause$
+// semantics elsewhere.
+func (e *Engine) drawCauseAdmits(spec string, source state.ObjID, ev events.Event) bool {
+	cause := e.actionCause()
+	if cause == 0 {
+		return false
+	}
+	o := e.G.Obj(cause)
+	if o == nil {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		if e.drawCauseTokenAdmits(strings.TrimSpace(alt), o, source) {
+			return true
+		}
+	}
+	return false
+}
+
+// drawCauseTokenAdmits evaluates ONE comma-separated token of a Draw
+// ValidCause$ spec (drawCauseAdmits's per-alternative worker). It recognises
+// a valid stack base, the shared controller / instant-sorcery qualifiers, the
+// `Cycling` keyword qualifier and a card-predicate qualifier (evaluated
+// against the cause's source card). Every other qualifier fails closed.
+func (e *Engine) drawCauseTokenAdmits(token string, o *state.Object, source state.ObjID) bool {
+	tok, ok := state.StackKindTokenOf(token)
+	if !ok {
+		return false
+	}
+	_, rest, _ := strings.Cut(strings.TrimSpace(token), ".")
+	for _, q := range strings.Split(rest, "+") {
+		q = strings.TrimSpace(q)
+		if q == "" {
+			continue
+		}
+		switch q {
+		case "YouCtrl", "OppCtrl", "Instant", "Sorcery":
+			// Read by StackKindAdmits below.
+		case "Cycling":
+			if o.Ability == nil || !cyclingCauseKeywords[o.Ability.Params["Keyword"]] {
+				return false
+			}
+		default:
+			// A card-predicate qualifier (nonLand, a colour, a type word,
+			// ...) on the cause's SOURCE card. Classify it with the SAME
+			// shared recognizer UnknownPredicates uses, so an unrecognised
+			// token fails closed rather than widening the match.
+			src := e.G.Obj(o.Source)
+			if src == nil {
+				return false
+			}
+			pred := "Card." + q
+			if len(effects.UnknownPredicates(pred)) != 0 {
+				return false
+			}
+			if !effects.MatchesObjectCtx(e.G, pred, src, effects.SpecContext{
+				You: e.controllerOf(source), Source: source,
+			}) {
+				return false
+			}
+		}
+	}
+	return state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindOf(e.G, o), o,
+		o.Controller, e.controllerOf(source))
+}
+
 // actionCause is the stack object whose resolving effect caused a synchronous
 // action event. Costs are paid before an activated ability exists on the stack,
 // so they deliberately have no cause and cannot satisfy ValidCause$. This is

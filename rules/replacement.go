@@ -2044,6 +2044,17 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 				return false
 			}
 		}
+		// ValidCause$ <stack spec>: the Draw replacement is confined to draws
+		// caused by a matching spell or ability (Unpredictable Cyclone's
+		// `Activated.Cycling+nonLand`, the class's only carrier). The cause is
+		// the top of the resolving stack -- a Draw emitted during an ability's
+		// resolution happens while that ability is still there. An absent or
+		// empty spec keeps the replacement unscoped; an ordinary draw with
+		// nothing on the stack is not caused by anything and so never admits.
+		if spec := strings.TrimSpace(r.Params["ValidCause"]); spec != "" &&
+			!e.drawCauseAdmits(spec, source, ev) {
+			return false
+		}
 		// The shared condition gate (CheckSVar$/IsPresent$/Hellbent$/...) —
 		// every sibling case ends with it; the Draw class never read it, so
 		// Quantum Riddler's LE1-over-Count$ValidHand gate (and the Hellbent
