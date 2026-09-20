@@ -337,7 +337,7 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 	}
 	switch arg {
 	case "RememberedCard", "Remembered", "RememberedLKI", "TriggeredCard",
-		"TriggeredCardLKICopy", "Targeted", "Self":
+		"TriggeredCardLKICopy", "Targeted", "Self", "Commander":
 		return name, arg, true
 	}
 	return "", "", false
@@ -347,9 +347,28 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 // sharesCardTypeWith/sharesCreatureTypeWith family into the live objects it
 // names (empty = an unbound referent; both callers fail closed on that), so
 // the two readings can never disagree about which objects <X> names.
-func sharesTypeReferents(sc SpecContext, ref string) []state.Target {
+func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Target {
 	var ts []state.Target
 	switch ref {
+	case "Commander":
+		// Forge's Commander referent: the resolving source's CONTROLLER's
+		// commanders (Path of Ancestry's "a creature spell that shares a
+		// creature type with your commander" -- the one corpus carrier). The
+		// commander list lives on the Players at genesis (wordIsCommander
+		// reads the same table). A source with no controller, or a seat with
+		// no commanders, binds nothing -- fail closed, never widened.
+		if sc.Source == 0 {
+			break
+		}
+		o := g.Obj(sc.Source)
+		if o == nil {
+			break
+		}
+		if int(o.Controller) < len(g.Players) {
+			for _, c := range g.Players[o.Controller].Commanders {
+				ts = append(ts, state.Target{Obj: c})
+			}
+		}
 	case "RememberedCard":
 		for _, t := range sc.Remembered {
 			if !t.IsPlayer {
@@ -386,7 +405,7 @@ func sharesTypeReferents(sc SpecContext, ref string) []state.Target {
 // power/toughness/counters, not types). An unbound referent matches
 // nothing — fail closed, never widened.
 func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
-	for _, t := range sharesTypeReferents(sc, ref) {
+	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
 			continue
 		}
@@ -413,7 +432,7 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 // which handles Changeling on the referent's side too). An unbound referent
 // matches nothing — fail closed, never widened.
 func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
-	for _, t := range sharesTypeReferents(sc, ref) {
+	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
 			continue
 		}

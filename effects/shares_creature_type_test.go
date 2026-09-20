@@ -31,7 +31,7 @@ func sharesCreatureTypeFixture(t *testing.T) (*state.Game, state.ObjID, state.Ob
 // silent to UnknownPredicates and everything else fail-closed-loud.
 func TestSharesCreatureTypeWithClassified(t *testing.T) {
 	for _, ref := range []string{"RememberedCard", "Remembered", "RememberedLKI",
-		"TriggeredCard", "TriggeredCardLKICopy", "Targeted", "Self"} {
+		"TriggeredCard", "TriggeredCardLKICopy", "Targeted", "Self", "Commander"} {
 		spec := "Creature.sharesCreatureTypeWith " + ref
 		if got := UnknownPredicates(spec); len(got) != 0 {
 			t.Errorf("UnknownPredicates(%q) = %v, want []", spec, got)
@@ -74,5 +74,44 @@ func TestSharesCreatureTypeWithMatchesTheTriggerCard(t *testing.T) {
 	// and Hill Giant are Creatures, so the CARD-type spec matches both.
 	if !MatchesSpecCtx(g, "Creature.sharesCardTypeWith TriggeredCardLKICopy", giant, sc) {
 		t.Errorf("Hill Giant shares the CARD type Creature with the dead Bear")
+	}
+}
+
+// TestSharesCreatureTypeWithCommander pins the Commander referent (Path of
+// Ancestry's "a creature spell that shares a creature type with your
+// commander", the corpus's only carrier): it resolves to the SOURCE's
+// controller's commanders, and an unbound source (or a seat with no
+// commanders) matches nothing -- fail closed, never widened.
+func TestSharesCreatureTypeWithCommander(t *testing.T) {
+	g := state.NewGame(names(2))
+	src := g.AddObject(mkCard(t, "Name:Path of Ancestry\nTypes:Land\nOracle:x\n"), 0)
+	cmdr := g.AddObject(mkCard(t, "Name:Goblin Commander\nTypes:Legendary Creature Goblin Shaman\nPT:2/2\nOracle:x\n"), 0)
+	g.Players[0].Commanders = []state.ObjID{cmdr.ID}
+	goblin := g.AddObject(mkCard(t, "Name:Goblin Guide\nTypes:Creature Goblin Scout\nPT:2/1\nOracle:x\n"), 0)
+	bear := g.AddObject(mkCard(t, "Name:Bear Cub\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+
+	// The reference is recognised as a known predicate (matcher and census
+	// share the classifier).
+	if got := UnknownPredicates("Creature.sharesCreatureTypeWith Commander"); len(got) != 0 {
+		t.Errorf("UnknownPredicates(Commander) = %v, want []", got)
+	}
+
+	sc := SpecContext{You: 0, Source: src.ID}
+	if !MatchesSpecCtx(g, "Creature.sharesCreatureTypeWith Commander", goblin.ID, sc) {
+		t.Errorf("Goblin Guide must share the Goblin commander's creature type")
+	}
+	if MatchesSpecCtx(g, "Creature.sharesCreatureTypeWith Commander", bear.ID, sc) {
+		t.Errorf("Bear Cub must not share the Goblin commander's creature type")
+	}
+
+	// An unbound source (no controller) binds nothing: fail closed.
+	if MatchesSpecCtx(g, "Creature.sharesCreatureTypeWith Commander", goblin.ID, SpecContext{You: 0}) {
+		t.Errorf("an unbound Commander source must match nothing (fail closed)")
+	}
+
+	// A source with no commanders (seat 1) also binds nothing.
+	src1 := g.AddObject(mkCard(t, "Name:Plain Land\nTypes:Land\nOracle:x\n"), 1)
+	if MatchesSpecCtx(g, "Creature.sharesCreatureTypeWith Commander", goblin.ID, SpecContext{You: 1, Source: src1.ID}) {
+		t.Errorf("a seat with no commanders must match nothing (fail closed)")
 	}
 }

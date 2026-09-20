@@ -5451,8 +5451,18 @@ func (e *Engine) payCast() {
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpentSnow, Counter: snowFlags})
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
-	// push, fires now -- only after the spell is paid for.
+	// push, fires now -- only after the spell is paid for. Capture the deferred
+	// PutOnStack event (and its LKI) BEFORE the call: fireDeferredCastTrigger
+	// nils them. The same event feeds the mana-spent riders below, which queue
+	// AFTER the deferred cast triggers (deterministic append).
+	var castEv events.Event
+	var castLKI *state.Object
+	if e.deferredPush != nil {
+		castEv = *e.deferredPush
+		castLKI = e.deferredPushLKI
+	}
 	e.fireDeferredCastTrigger()
+	e.fireManaSpentTriggers(castEv, castLKI)
 	e.cast, e.choosing = nil, chooseNone
 }
 
@@ -5582,6 +5592,108 @@ func (e *Engine) fireDeferredCastTrigger() {
 	lki := e.deferredPushLKI
 	e.deferredPushLKI = nil
 	e.checkTriggers(*ev, lki, 0, 0, false)
+}
+
+// fireManaSpentTriggers queues the TriggersWhenSpent$ rider of every mana
+// source whose provenance batch paid for the just-completed SPELL cast (the
+// rider's "when that mana is spent to cast ..." gift: Path of Ancestry's scry
+// 1, Lapis Orb's scry 2, Study Hall's commander scry). The consumed sources
+// were captured by emitRestrictedManaSpend during the payment; castEv is the
+// spell's PutOnStack event and castLKI its look-back snapshot. It queues
+// AFTER fireDeferredCastTrigger's ordinary cast triggers (deterministic
+// append order).
+//
+// A rider's SVar is a T:-shaped trigger body (Mode$ SpellCast | ValidCard$ ...
+// | Execute$ ...) that the ordinary trigger scan never walks -- it lives in
+// the face's SVar table, not its printed T: lines. So each is parsed by
+// cards.ParseTriggerLine and queued by hand, shaped exactly like the exert
+// rider (rules/trigger_match.go checkExertTriggers): Source = the mana
+// permanent, Idx -1, Granted=true with Execute = the body's Execute$ name and
+// SA = the resolved Execute body, so the live queue and a replayed log carry
+// the identical granted-trigger push (events.Apply resolves Execute from the
+// source's SVar table). A source that has left the battlefield, has no face,
+// or names no longer-resolvable body fails closed -- the rider belongs to the
+// permanent. Only Mode$ SpellCast is honoured (sunken_palace's
+// SpellAbilityCast "spell or activate an ability" is out of scope).
+func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
+	sources := e.manaSpentSources
+	e.manaSpentSources = nil
+	if len(sources) == 0 || ev.Kind != events.PutOnStack {
+		return
+	}
+	for _, src := range sources {
+		o := e.G.Obj(src)
+		if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+			continue
+		}
+		f := o.Face()
+		for _, ma := range f.ManaAbilities() {
+			rider := strings.TrimSpace(ma.Params["TriggersWhenSpent"])
+			if rider == "" {
+				continue
+			}
+			body := svarBodyForObject(o, rider)
+			if body == "" {
+				continue
+			}
+			t, ok := cards.ParseTriggerLine(body)
+			if !ok || t.Mode != "SpellCast" {
+				continue
+			}
+			if !e.zoneGate(t, src, ev) || !e.phaseGate(t) || !e.spellCastEval(t, src, ev) {
+				continue
+			}
+			exec := strings.TrimSpace(t.Params["Execute"])
+			sa := grantedTriggerExecute(o, exec)
+			if sa == nil {
+				continue
+			}
+			key := triggerKey{Source: src, Idx: -1}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue // cascade bound: see maxTriggerFires.
+			}
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     src,
+				Controller: o.Controller,
+				Idx:        -1,
+				SA:         sa,
+				Granted:    true,
+				Execute:    exec,
+				Ctx: effects.Ctx{
+					Source:         src,
+					Controller:     o.Controller,
+					TriggerContext: e.triggerReferents(t, src, ev, lki),
+				},
+			})
+		}
+	}
+}
+
+// svarBodyForObject resolves a raw SVar body by name against the object's own
+// face first, then every other face of its card (the resolveSVarAcrossFaces
+// walk events.Apply's granted-trigger push uses, so the queue and the replay
+// agree on which body a name links). Empty when no face declares it.
+func svarBodyForObject(o *state.Object, name string) string {
+	if o == nil || name == "" {
+		return ""
+	}
+	if f := o.Face(); f != nil {
+		if body, ok := f.SVars[name]; ok {
+			return body
+		}
+	}
+	if o.Card != nil {
+		for _, cf := range o.Card.Faces {
+			if body, ok := cf.SVars[name]; ok {
+				return body
+			}
+		}
+	}
+	return ""
 }
 
 // recordCmdCast increments the CmdCasts[k] bookkeeping parallel to

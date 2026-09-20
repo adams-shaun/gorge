@@ -2368,7 +2368,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Love on the Battlefield":        {"param:trig:AttackersDeclared.NoResolvingCheck"},
 	"Methods of the Mighty":          {"param:api:Destroy.ValidTgtsDesc"},
 	"Mogis, God of Slaughter":        {"param:stat:Continuous.RemoveType"},
-	"Path of Ancestry":               {"param:api:Mana.TriggersWhenSpent"},
 	"Patriot, Shield Wielder":        {"param:api:Pump.ValidTgtsDesc"},
 	"Photon, Mighty Marvel":          {"param:api:Mana.PersistentMana"},
 	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},
