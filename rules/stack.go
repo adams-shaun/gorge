@@ -927,6 +927,85 @@ type targetCandidate struct {
 // source is the object the spec's Self/Other predicates and the protection
 // test are resolved against (for an ability, the Source permanent).
 // excludeSelf is the object a prospective target may not equal -- the CR
+// playerTargetSpecMatches judges one candidate seat q against a ValidTgts$
+// player spec from the asker's (you) perspective. It is the ONE judge both
+// target sites go through -- the offer (candidatesFor) and the resolution
+// recheck (legalTargets) -- so the two cannot disagree (the one-definition
+// rule). Every ordinary alternative is judged by the shared
+// effects.MatchesPlayerSpecFrom grammar; an alternative whose qualifier names
+// a trigger role the ask's own TriggerContext carries (pg2 event roles) is
+// judged by triggerRolePlayerAlt below, because MatchesPlayerSpecFrom takes
+// no trigger context and fails closed on the role names -- which turned The
+// Lord of Pain's mandatory "choose another target player" trigger
+// (ValidTgts$ Player.!TriggeredActivator) into an ask with no legal target
+// and a silent fizzle. Forge's comma is OR: the spec matches when any one
+// alternative matches.
+func (e *Engine) playerTargetSpecMatches(sc effects.SpecContext, spec string, q, you state.PlayerID, source state.ObjID) bool {
+	for _, alt := range strings.Split(spec, ",") {
+		if matched, known := e.triggerRolePlayerAlt(sc, alt, q, you); known {
+			if matched {
+				return true
+			}
+			continue
+		}
+		if effects.MatchesPlayerSpecFrom(e.G, alt, q, you, source) {
+			return true
+		}
+	}
+	return false
+}
+
+// triggerRolePlayerAlt evaluates ONE comma-alternative of a ValidTgts$
+// player spec whose qualifier names a trigger role the ask's own
+// TriggerContext carries. The corpus writes exactly two such qualifiers on a
+// player alternative, both negated: Player.!TriggeredActivator (The Lord of
+// Pain) and Player.!TriggeredCardController (Lucy MacLean, Positively
+// Armed); a positive form resolves the same way. The binding rides the ask's
+// SpecContext (pg2); an absent binding matches NOBODY, including under !
+// (the documented pg2 absent-binding contract), so the fail-closed direction
+// is kept for every qualifier the context cannot answer. known=false when
+// the alternative does not name a trigger role at all, leaving it to the
+// shared grammar.
+func (e *Engine) triggerRolePlayerAlt(sc effects.SpecContext, alt string, q, you state.PlayerID) (bool, bool) {
+	base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
+	if !qualified {
+		return false, false
+	}
+	neg := strings.HasPrefix(qualifier, "!")
+	var role state.PlayerID
+	bound := false
+	switch strings.TrimPrefix(qualifier, "!") {
+	case "TriggeredActivator":
+		role, bound = sc.TriggerContext.TriggerActivator.Player, sc.TriggerContext.TriggerActivator.IsPlayer
+	case "TriggeredCardController":
+		// effects.TriggeredCardController is the one resolver -- Defined$,
+		// OptionalDecider$ and the targeting restriction all read it.
+		if p, ok := effects.TriggeredCardController(e.G, sc.TriggerContext, sc.Remembered); ok {
+			role, bound = p, true
+		}
+	default:
+		return false, false
+	}
+	// The base still applies to the role alternative, exactly as
+	// MatchesPlayerSpecFrom applies it to every other qualifier.
+	switch base {
+	case "Player", "Any":
+	case "You":
+		if q != you {
+			return false, true
+		}
+	case "Opponent", "Other":
+		if q == you {
+			return false, true
+		}
+	default:
+		// An object alternative (Creature.!TriggeredTarget, ...): not this
+		// helper's business -- the object arm judges it.
+		return false, false
+	}
+	return bound && ((q == role) != neg), true
+}
+
 // 115.5 self-targeting rule. It is separate from source because during a
 // cast/activation proposal the two diverge: a spell on the stack may not
 // target itself (excludeSelf == the card), while an activated ability CAN
@@ -981,7 +1060,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 	// player half's seats.
 	if len(zones) == 1 && zones[0] == state.ZBattlefield {
 		for _, q := range e.G.AliveFrom(0) {
-			if effects.MatchesPlayerSpecFrom(e.G, spec, q, p, specSrc) {
+			if e.playerTargetSpecMatches(sc, spec, q, p, specSrc) {
 				out = append(out, targetCandidate{kind: "player", player: q})
 			}
 		}
@@ -2038,11 +2117,13 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // matching askTarget's own simplification, so a spec that would filter on
 // Self/Other is exactly as (im)precise here as it was at cast time. A player
 // target is legal for as long as they are still in the game AND still match
-// the spec's player filter (effects.MatchesPlayerSpecFrom, from the
-// controller's perspective, against the same source the offer judged) -- the
-// same grammar askTarget's offer now applies, so offer and recheck cannot
-// disagree (the one-definition rule). A target whose qualifier the filter
-// cannot evaluate was never offered and is rejected here too, fail closed.
+// the spec's player filter (playerTargetSpecMatches -- the shared
+// MatchesPlayerSpecFrom grammar plus the trigger-role alternatives the ask's
+// own TriggerContext carries -- from the controller's perspective, against
+// the same source the offer judged) -- the same judge the offer applies, so
+// offer and recheck cannot disagree (the one-definition rule). A target
+// whose qualifier the filter cannot evaluate was never offered and is
+// rejected here too, fail closed.
 func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
 	var legal []state.Target
 	// The resolution recheck, unlike a target offer, has this stack object's
@@ -2062,7 +2143,7 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 	for _, t := range targets {
 		if t.IsPlayer {
 			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost &&
-				effects.MatchesPlayerSpecFrom(e.G, spec, t.Player, you, source) {
+				e.playerTargetSpecMatches(sc, spec, t.Player, you, source) {
 				legal = append(legal, t)
 			}
 			continue

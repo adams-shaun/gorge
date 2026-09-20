@@ -205,7 +205,9 @@ func TestLegalTargetsRecheckAppliesThePlayerSpec(t *testing.T) {
 
 // The corpus census over distinct pure-player ValidTgts$ values (every
 // comma-alternative's base is Player/Any/Opponent/You), classified
-// semantically: a value "offers a seat" when MatchesPlayerSpecFrom matches at
+// semantically: a value "offers a seat" when the offer/recheck judge
+// (e.playerTargetSpecMatches -- the shared MatchesPlayerSpecFrom grammar plus
+// the trigger-role alternatives the ask's TriggerContext carries) matches at
 // least one seat of a plain 2-seat game, else it fails closed (the AGENTS.md
 // MatchesPlayerSpec convention). The two sets are pinned so a corpus update
 // that adds an unhandled qualifier shape fails loudly here.
@@ -252,11 +254,20 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 		}
 	}
 	e := newSeats(t, 2)
+	// The role bindings an ask carries, bound the way a fired trigger's ask
+	// would: the census classifies through the same helper the offer and the
+	// recheck use, so the two trigger-role qualifiers (Player.!
+	// TriggeredActivator, Player.!TriggeredCardController) are judged with
+	// their binding present (seat 1's) instead of absent -- an absent binding
+	// fails closed by the pg2 contract and would classify them wrongly.
+	sc := effects.SpecContext{You: 0}
+	sc.TriggerContext.TriggerActivator = state.Target{Player: 1, IsPlayer: true}
+	sc.TriggerContext.TriggerCardController = state.Target{Player: 1, IsPlayer: true}
 	var offered, failClosed []string
 	for spec := range seen {
 		matched := false
 		for p := state.PlayerID(0); int(p) < len(e.G.Players); p++ {
-			if effects.MatchesPlayerSpecFrom(e.G, spec, p, 0, 0) {
+			if e.playerTargetSpecMatches(sc, spec, p, 0, 0) {
 				matched = true
 			}
 		}
@@ -273,12 +284,12 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// offers seats through its bare Player alternative (the unhandled
 	// NotDefinedParentTarget clause contributes nothing), so it is classified
 	// by behaviour, not by its first alternative.
-	wantOffered := []string{"Any", "Any.NotDefinedParentTarget,Player", "Opponent", "Player", "Player.Opponent", "Player.Other", "You"}
+	wantOffered := []string{"Any", "Any.NotDefinedParentTarget,Player", "Opponent", "Player",
+		"Player.!TriggeredActivator", "Player.!TriggeredCardController", "Player.Opponent", "Player.Other", "You"}
 	wantFailClosed := []string{
 		"Any.!Dinosaur", "Any.!Dragon", "Any.!IsCommander",
 		"Opponent.wasDealtDamageThisGameBy Self",
-		"Player.!CardOwner", "Player.!EnchantedBy", "Player.!TriggeredActivator",
-		"Player.!TriggeredCardController", "Player.LostLifeThisTurn",
+		"Player.!CardOwner", "Player.!EnchantedBy", "Player.LostLifeThisTurn",
 		"Player.Opponent+Active",
 		"Player.OpponentToActive+hasFewerCreaturesInYardThanActive",
 		"Player.OpponentToActive+hasMoreCardsInHandThanActive",
@@ -328,4 +339,64 @@ func equalStrings(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+// TestPlayerTargetAskTriggerRoleExcludesTheRolePlayer: a ValidTgts$
+// Player.!TriggeredCardController ask is judged through the ask's own
+// trigger context (pg2), not failed closed -- the entering creature's
+// controller (seat 0, the asker) is excluded and seat 1 offered. Before the
+// trigger-role arm existed this spec offered NO seat (MatchesPlayerSpecFrom
+// cannot see the context), which silenced mandatory trigger-target asks
+// (The Lord of Pain's real corpus shape is pinned end to end by
+// TestSpellCastActivatorThisTurnCastGatesTheTrigger).
+func TestPlayerTargetAskTriggerRoleExcludesTheRolePlayer(t *testing.T) {
+	e, self := etbTriggerEngine(t, 2, nil, etbGainControlCard(t, "NotControllerAgent", "Player.!TriggeredCardController"))
+	d := e.Pending()
+	if got := playerTargetOptions(t, d); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("!TriggeredCardController ask offered players %v, want exactly [1] (the token's/creature's controller 0 excluded)", got)
+	}
+	// The recheck agrees: answering seat 1 completes the ask, and once the
+	// parked priority is passed the trigger resolves and control transfers.
+	submitChoices(t, e, indexOfPlayerOption(d, 1))
+	for e.Pending() != nil && e.Pending().Kind == decision.KPriority {
+		submitChoicePass(t, e)
+	}
+	if e.G.Obj(self.ID).Controller != 1 {
+		t.Fatalf("controller = %d, want 1", e.G.Obj(self.ID).Controller)
+	}
+}
+
+// TestLegalTargetsRecheckAppliesTheTriggerRoleQualifier: the resolution
+// recheck judges a trigger-role qualifier through the same trigger context
+// the offer used -- the role's seat is dropped, the rest kept; with the
+// binding absent the qualifier fails closed (the pg2 absent-binding
+// contract) and drops every seat.
+func TestLegalTargetsRecheckAppliesTheTriggerRoleQualifier(t *testing.T) {
+	e := newSeats(t, 2)
+	both := []state.Target{{IsPlayer: true, Player: 0}, {IsPlayer: true, Player: 1}}
+	zones := []state.Zone{state.ZBattlefield}
+	kept := func(self state.ObjID) []state.PlayerID {
+		var got []state.PlayerID
+		for _, tg := range e.legalTargets(both, "Player.!TriggeredActivator", zones, 0, 0, self) {
+			if tg.IsPlayer {
+				got = append(got, tg.Player)
+			}
+		}
+		return got
+	}
+	// The ask's stack object 7 carries the fired trigger's role binding: the
+	// triggering cast's activator was seat 0, so the recheck keeps only 1.
+	// The map is created lazily by the trigger queue; a hand-built ask makes
+	// it here.
+	e.triggerContexts = map[state.ObjID]effects.TriggerContext{
+		7: {TriggerActivator: state.Target{Player: 0, IsPlayer: true}},
+	}
+	if got := kept(7); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("bound recheck kept players %v, want exactly [1]", got)
+	}
+	// An unbound stack object fails closed: the qualifier cannot be answered,
+	// so no seat is kept (and the offer would have posed no ask at all).
+	if got := kept(8); len(got) != 0 {
+		t.Fatalf("unbound recheck kept players %v, want none (fail closed)", got)
+	}
 }
