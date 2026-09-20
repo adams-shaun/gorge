@@ -604,8 +604,19 @@ func spellMatchesValidSA(f *cards.Face, raw string, id, staticSource state.ObjID
 // spellTimingOK is the one timing predicate for every zone which offers a
 // spell cast. CastWithFlash is a permission, not a hand-only property: it
 // also applies to Flashback, Harmonize, and command-zone casts.
+//
+// ActivationPhases$ and its rider qualifiers are consulted here too, so the
+// cast window binds to EVERY way the card is cast (hand, may-play, command
+// zone, flashback/harmonize/escape, adventure, foretell) rather than to the
+// hand walk alone. This is a pure read; the helper never emits.
 func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, sorcery bool) bool {
-	return sorcery || (f != nil && (f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)))
+	if f == nil {
+		return sorcery
+	}
+	if !e.activationPhasesOK(p, f.SpellAbility()) {
+		return false
+	}
+	return sorcery || (f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id))
 }
 
 // altCostView is one alternative-cost entry: the parsed cost plus the
