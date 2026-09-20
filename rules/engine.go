@@ -106,6 +106,18 @@ type Engine struct {
 	turnsTaken      []int32
 	turnsTakenEpoch int
 
+	// combatHitsThisTurn is the per-turn combat-damage-to-players ledger
+	// captured at the combat-damage site (rules/combat.go's
+	// runCombatAssignments). It is engine-side, NO-EVENT state -- deliberately
+	// not a new events.Kind, which would move every chain head and diverge
+	// every STORED log at its first combat assignment. Every rebuild path
+	// (replay, undo, DVR, restart) re-executes the engine and so re-derives
+	// the same slice, and emit clears it on TurnChange (the turnsTaken
+	// cache-advance site below). It carries only damage that LANDED and only
+	// damage to a PLAYER; the object branch of runCombatAssignments records
+	// nothing. See effects.Host's CombatDamageToPlayersThisTurn.
+	combatHitsThisTurn []effects.CombatDamageHit
+
 	// format is the construction format New was configured with (Config.
 	// Format). It is the explicit gate the Commander rules (the tax, CR
 	// 903.9, commander damage) check -- "in a non-Commander game none of
@@ -1369,6 +1381,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	} else {
 		e.turnsTaken = nil
 		e.turnsTakenEpoch = 0
+	}
+	// The per-turn combat-damage ledger expires with the turn (CR 514.2's
+	// "this turn" window): a TurnChange begins a fresh turn, so every hit
+	// captured during the turn that just ended is no longer "this turn".
+	if stored.Kind == events.TurnChange {
+		e.combatHitsThisTurn = nil
 	}
 	e.loop.observe(stored)
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {

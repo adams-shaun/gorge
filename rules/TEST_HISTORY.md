@@ -925,6 +925,9 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-20T10:21Z | 31622586+ | 8.9 | 1820 | 1 | sadams |
 | 2026-09-20T10:58Z | cac74854+ | 8.8 | 1821 | 1 | sadams |
 | 2026-09-20T11:36Z | 3dfef229+ | 8.8 | 1895 | 1 | sadams |
+| 2026-09-20T12:00Z | e221d869+ | 9.6 | 1900 | 1 | sadams |
+| 2026-09-20T12:22Z | d51ea8eb+ | 9.6 | 1901 | 1 | sadams |
+| 2026-09-20T12:50Z | ac1de794+ | 9.3 | 1902 | 1 | sadams |
 | 2026-09-20T11:39Z | 2901d265+ | 9.0 | 1889 | 1 | sadams |
 | 2026-09-20T11:46Z | e221d869+ | 9.3 | 1897 | 1 | sadams |
 | 2026-09-20T11:49Z | e221d869+ | 9.5 | 1897 | 1 | sadams |
@@ -944,3 +947,4 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-20T12:46Z | 236c4c22+ | 10.1 | 1941 | 1 | sadams |
 | 2026-09-20T12:44Z | 0eb29b94+ | 11.5 | 1927 | 1 | sadams |
 | 2026-09-20T12:50Z | 4fd8019b+ | 13.9 | 1935 | 1 | sadams |
+| 2026-09-20T13:05Z | 1982a9a6+ | 11.1 | 1965 | 1 | sadams |

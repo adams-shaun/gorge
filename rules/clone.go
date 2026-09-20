@@ -22,11 +22,15 @@ import (
 // start to answer "view at seq N" with at most one turn of replay.
 func (e *Engine) Clone() *Engine {
 	c := &Engine{
-		G:                   e.G.Clone(),
-		L:                   e.L.Clone(),
-		compiledText:        e.compiledText,
-		turnsTaken:          append([]int32(nil), e.turnsTaken...),
-		turnsTakenEpoch:     e.turnsTakenEpoch,
+		G:               e.G.Clone(),
+		L:               e.L.Clone(),
+		compiledText:    e.compiledText,
+		turnsTaken:      append([]int32(nil), e.turnsTaken...),
+		turnsTakenEpoch: e.turnsTakenEpoch,
+		// combatHitsThisTurn (the per-turn combat-damage ledger): a plain
+		// value slice, copied like turnsTaken so an undo/DVR clone owns its
+		// own ledger.
+		combatHitsThisTurn:  append([]effects.CombatDamageHit(nil), e.combatHitsThisTurn...),
 		format:              e.format,
 		rng:                 e.rng.clone(),
 		orderedTriggers:     e.orderedTriggers,

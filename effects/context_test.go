@@ -44,6 +44,18 @@ type fakeHost struct {
 	// real option list. Nil routes ChooseType through AskEmpty — the
 	// unchanged deterministic fallback.
 	typeChoices []decision.Option
+	// combatHits is the CombatDamageToPlayersThisTurn answer the double
+	// reports; the effects-level PlayerCountDefinedRegistered tests set it to
+	// drive the combat-damage property (the real engine capture is pinned in
+	// rules).
+	combatHits []CombatDamageHit
+	// lifeLost is the LifeLostThisTurn answer the double reports, keyed by
+	// player; a nil map (the default) reports zero for every player, the
+	// pre-existing no-op. The effects-level PlayerCountDefinedRegistered
+	// tests set it to drive the HighestLifeLostThisTurn and
+	// HasPropertyLostLifeThisTurn properties (the real log-scan read is
+	// pinned in rules).
+	lifeLost map[state.PlayerID]int32
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -130,13 +142,18 @@ func (h *fakeHost) EndDamageBatch()   {}
 // package tests set up their own boards, so the double reports zero.
 func (h *fakeHost) CastThisTurn() int { return 0 }
 
-// LifeLostThisTurn has no event log here; the double reports zero (the same
-// conservative no-op as CastThisTurn).
-func (h *fakeHost) LifeLostThisTurn(_ state.PlayerID) int32 { return 0 }
+// LifeLostThisTurn reports the h.lifeLost entry the effects-level
+// PlayerCountDefinedRegistered tests configure; a nil map reports zero (the
+// pre-existing conservative no-op, so every other test is unchanged).
+func (h *fakeHost) LifeLostThisTurn(p state.PlayerID) int32 { return h.lifeLost[p] }
 
 // LifeGainedThisTurn has no event log here; the double reports zero (the
 // same conservative no-op as LifeLostThisTurn).
 func (h *fakeHost) LifeGainedThisTurn(_ state.PlayerID) int32 { return 0 }
+
+// CombatDamageToPlayersThisTurn reports the h.combatHits slice the
+// effects-level PlayerCountDefinedRegistered tests configure.
+func (h *fakeHost) CombatDamageToPlayersThisTurn() []CombatDamageHit { return h.combatHits }
 
 // CardsDiscardedThisTurn has no event log here; the double reports zero (the
 // same conservative no-op as LifeLostThisTurn).
