@@ -40,3 +40,34 @@ func TestPrimitivesAreSortedAndDeduplicated(t *testing.T) {
 		t.Fatalf("got %v", got)
 	}
 }
+
+// TestPrimitivesFollowSVarNamingParams pins the reachability of a primitive
+// that only an SVar-naming PARAMETER names, never a SubAbility$ chain: the
+// Torment of Hailfire shape (Repeat's RepeatSubAbility$) and the Vision,
+// Synthezoid Avenger shape (Charm's Choices$). A Sub-only walk reports
+// neither, so the card reads as fully supported while half its behaviour is
+// an unregistered API. The probe API names are arbitrary: Primitives does
+// not know what is registered.
+func TestPrimitivesFollowSVarNamingParams(t *testing.T) {
+	src := `Name:PrimFixtures
+Types:Sorcery
+A:SP$ Repeat | RepeatNum$ 2 | RepeatSubAbility$ DBRepeatBody
+A:SP$ Charm | CharmNum$ 1 | Choices$ DBPutCounter,DBPhaseOut
+SVar:DBRepeatBody:DB$ GenericChoice | Choices$ DBSac
+SVar:DBSac:DB$ LoseLife | LifeAmount$ 3
+SVar:DBPutCounter:DB$ PutCounter | CounterType$ P1P1
+SVar:DBPhaseOut:DB$ CustomUnsupportedProbe
+SVar:CountOnly:Count$Valid Creature.YouCtrl
+Oracle:x
+`
+	c, _ := ParseBytes("p/prim_fixtures.txt", []byte(src))
+	c.Link()
+	got := c.Primitives()
+	want := []string{
+		"api:Charm", "api:CustomUnsupportedProbe", "api:GenericChoice",
+		"api:LoseLife", "api:PutCounter", "api:Repeat",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Primitives()\n got %v\nwant %v", got, want)
+	}
+}

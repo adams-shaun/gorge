@@ -2197,12 +2197,12 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			walk(r.With)
 		}
 		// SVar bodies the Link pass did not attach (see the comment above):
-		// one ResolveSVar per name; a body that is not an ability (Count$
-		// expressions behind ConditionCheckSVar$/SVarCompare$) fails parseSA
-		// and yields nil.
-		for name := range f.SVars {
-			walk(cards.ResolveSVar(f.SVars, name))
-		}
+		// one visit per name through the shared reachability rule, so this
+		// census and Face.Primitives cannot disagree about which SVar bodies
+		// are reachable. A body that is not an ability (Count$ expressions
+		// behind ConditionCheckSVar$/SVarCompare$) fails parseSA and yields
+		// nil, so EachSVarAbility never calls walk for it.
+		f.EachSVarAbility(func(sa *cards.SA) { walk(sa) })
 	}
 	out := make([]string, 0, len(labels))
 	for label := range labels {
