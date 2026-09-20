@@ -20,7 +20,7 @@ type TableID string
 // decks itself.
 //
 // Commanders is the flat indices into Cards that are this deck's
-// commanders, in the deck file's order (one today — deck.File.Commander);
+// commanders, in the deck file's order (one or two — deck.File.CommanderNames);
 // the engine places those objects in the command zone at genesis. nil for
 // a constructed deck. The loader — which owns the deck files — computes it
 // (deck.File.CommanderIndex, validated by deck.ValidateCommander), so the

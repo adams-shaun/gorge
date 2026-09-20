@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/deck"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 )
@@ -718,6 +719,51 @@ func TestCommanderConfig(t *testing.T) {
 	}
 	if len(cmd.Commanders) != 1 || len(cmd.Commanders[0]) != 1 || cmd.Commanders[0][0] != f.CommanderIndex() {
 		t.Errorf("commander indices = %v, want %q's CommanderIndex", cmd.Commanders, name)
+	}
+
+	// A partner-pair deck file (the CR 903.13 two-commander shape) carries
+	// BOTH commanders: File.CommanderIndices lists every commander in order,
+	// and buildGameConfig threads the list through untouched — the engine's
+	// legalCommandersFor is what validates the pair, not this layer.
+	pair := deck.File{
+		Name:       "pair",
+		Commanders: []string{"Amalia", "Ember Dragon"},
+		Cards: []deck.Entry{
+			{Name: "Amalia", Count: 1},
+			{Name: "Ember Dragon", Count: 1},
+			{Name: "Plains", Count: 98},
+		},
+	}
+	cmdPair := buildGameConfig(7, []string{"pair"}, nil, [][]int{pair.CommanderIndices()}, true)
+	if len(cmdPair.Commanders) != 1 || len(cmdPair.Commanders[0]) != 2 || cmdPair.Commanders[0][0] != 0 || cmdPair.Commanders[0][1] != 1 {
+		t.Errorf("partner command-zone indices = %v, want [0 1]", cmdPair.Commanders)
+	}
+}
+
+// TestCommanderDeckNamesGateIncludesPluralFiles pins the deck-pool gate on
+// the CommanderNames accessor, not the legacy singular field: a plural-only
+// partner-pair file (exactly the on-disk shape the deckimport writer produces
+// for a pair — no legacy "commander" key) is a commander deck, and a file
+// with neither designation is not. The pre-fix gate read f.Commander != "",
+// which silently classified every plural-only file constructed and dropped it
+// from the whole commander pool.
+func TestCommanderDeckNamesGateIncludesPluralFiles(t *testing.T) {
+	load := func(n string) (deck.File, error) {
+		switch n {
+		case "pair":
+			return deck.File{Commanders: []string{"Hobbit Warden", "Garden Keeper"}}, nil
+		case "single":
+			return deck.File{Commander: "Amalia"}, nil
+		default:
+			return deck.File{}, nil
+		}
+	}
+	got, err := commanderDeckNamesFrom([]string{"constructed", "pair", "single"}, load)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(got, ",") != "pair,single" {
+		t.Fatalf("commander deck pool = %v, want [pair single] (input order preserved)", got)
 	}
 }
 
