@@ -496,6 +496,19 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	RingEmblemPush
+	// Investigate records one completed investigate action (CR 701.36a, task
+	// investtrig1): Player is the investigating seat and Obj the resolving
+	// source permanent (0 for a source-less body). It is an Apply no-op
+	// marker, exactly like Explore: the investigate's own state change (the
+	// Clue token mint) is its own TokenCreate event that precedes this one,
+	// and the record is what trig:Investigated matches ("whenever you
+	// investigate" — Erdwal Illuminator, Val, Marooned Surveyor). The marker
+	// is separate from the mint so a plain Clue-token creation (DB$ Token |
+	// TokenScript$ c_a_clue_draw, no Investigate) never fires an investigate
+	// trigger. Appended here, after RingEmblemPush, following every prior
+	// Kind's own append-only precedent, so no earlier ordinal, hash chain or
+	// golden replay is affected.
+	Investigate
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -506,7 +519,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(RingEmblemPush) + 1
+	NumKinds = int(Investigate) + 1
 )
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state

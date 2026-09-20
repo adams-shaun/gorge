@@ -75,6 +75,13 @@ func Apply(g *state.Game, e Event) {
 		// controller, IDs[0] the revealed card, Amount 1 = land (went to
 		// hand) / 0 = nonland (counter put; card back on top or graveyard).
 
+	case Investigate:
+		// The investigate record (CR 701.36a, task investtrig1) is a pure
+		// marker, exactly like Explore: the investigate's own state change
+		// (the Clue token mint) is its own TokenCreate event that preceded
+		// this one, and the record is what trig:Investigated matches. Player
+		// is the investigating seat, Obj the resolving source permanent.
+
 	case Pair:
 		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
 		// IDs[0] its chosen partner; both fields are set reciprocally when

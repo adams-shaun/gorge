@@ -39,6 +39,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"BecomesTarget", []events.Kind{events.TargetsChosen}},
 		{"Attached", []events.Kind{events.Attach}},
 		{"Explores", []events.Kind{events.Explore}},
+		{"Investigated", []events.Kind{events.Investigate}},
 		{"Exerted", []events.Kind{events.Exert}},
 		{"LandPlayed", []events.Kind{events.MoveZone}},
 		{"Phase", []events.Kind{events.StepChange}},
@@ -89,6 +90,11 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			want = cards.TriggerInterestAttach
 		case events.Explore:
 			want = cards.TriggerInterestExplore
+		case events.Investigate:
+			// A trigger-relevant Kind past the 64-bit mask's reach: the
+			// conservative catch-all, and compiledTriggerInterestAllows fails
+			// open for it before this mapping is even consulted.
+			want = cards.TriggerInterestAny
 		}
 		if got := eventTriggerInterest(kind); got != want {
 			t.Fatalf("kind %s interest = %x, want %x", kind, got, want)
@@ -105,7 +111,7 @@ func TestCompiledTriggerInterestParity(t *testing.T) {
 		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Sacrificed",
 		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
-		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Always", "LifeLostAll", "FutureMode", "",
+		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Always", "LifeLostAll", "FutureMode", "",
 	}
 	card := &cards.Card{}
 	for _, mode := range modes {
