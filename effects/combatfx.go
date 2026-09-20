@@ -293,6 +293,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	att := Num(h, c, sa, "NumAtt", 0)
 	def := Num(h, c, sa, "NumDef", 0)
 	zone := strings.TrimSpace(sa.Params["PumpZone"])
+	var ateotIDs []state.ObjID
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -334,7 +335,11 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, t.Obj)
 		}
 		registerPumpEffects(h, c, o.ID, att, def, sa, zone, chosenKW)
+		if atEOTInclude(h, c, sa, o.ID) {
+			ateotIDs = append(ateotIDs, o.ID)
+		}
 	}
+	scheduleAtEOT(h, c, sa, ateotIDs)
 	// ForgetImprinted$ names (in the Defined$ grammar) the imprinted card(s)
 	// to forget (Chrome Mox's DBForget: the exiled card left exile): each is
 	// removed from the source's persistent Imprinted list. Forge's
@@ -378,6 +383,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	// only while the card sits there.
 	zone := strings.TrimSpace(sa.Params["PumpZone"])
 	g := h.Game()
+	var ateotIDs []state.ObjID
 	for _, p := range g.AliveFrom(0) {
 		if zone != "" {
 			zones, all, ok := ParseZones(zone)
@@ -399,6 +405,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 				for _, id := range g.Zone(z, p) {
 					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 						registerPumpEffects(h, c, id, att, def, sa, zone, nil)
+						ateotIDs = append(ateotIDs, id)
 					}
 				}
 			}
@@ -407,9 +414,11 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				registerPumpEffects(h, c, id, att, def, sa, "", nil)
+				ateotIDs = append(ateotIDs, id)
 			}
 		}
 	}
+	scheduleAtEOT(h, c, sa, ateotIDs)
 }
 
 // durationTiming maps a Pump/PumpAll Duration$ value to its expiry: an
@@ -489,6 +498,7 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 	// discipline effPumpAll's RememberTargets$ applies (eventRemember
 	// self-gates on a source-less ctx).
 	rememberAnimated := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAnimated"]), "True")
+	var ateotIDs []state.ObjID
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -502,7 +512,11 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, o.ID)
 		}
 		registerAnimateEffects(h, c, o.ID, ag)
+		if atEOTInclude(h, c, sa, o.ID) {
+			ateotIDs = append(ateotIDs, o.ID)
+		}
 	}
+	scheduleAtEOT(h, c, sa, ateotIDs)
 }
 
 // animateGrant is the per-object payload Animate and AnimateAll share: their
@@ -713,6 +727,7 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	ag := parseAnimateGrant(h, c, sa)
 	emitAnimateColorsNotes(h, c, ag, "AnimateAll")
 	animateAllUnreadNote(h, c, sa)
+	var ateotIDs []state.ObjID
 	spec := sa.Params["ValidCards"]
 	if spec == "" {
 		spec = "Creature"
@@ -738,6 +753,7 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 				for _, id := range g.Zone(z, p) {
 					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 						registerAnimateEffects(h, c, id, ag)
+						ateotIDs = append(ateotIDs, id)
 					}
 				}
 			}
@@ -746,9 +762,11 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				registerAnimateEffects(h, c, id, ag)
+				ateotIDs = append(ateotIDs, id)
 			}
 		}
 	}
+	scheduleAtEOT(h, c, sa, ateotIDs)
 }
 
 func effProtection(h Host, c *Ctx, sa *cards.SA) {

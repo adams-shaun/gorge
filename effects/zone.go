@@ -407,6 +407,11 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var imprinted []state.ObjID
+	// The objects the move loop actually moved, in move order: ChangeZone's
+	// AtEOT$ affected set is the MOVED objects (some carriers carry
+	// RememberChanged$ and some do not, so the moved set is collected here
+	// rather than read back out of Remembered).
+	var moved []state.ObjID
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -444,6 +449,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		applyFaceDownMarker(h, sa, c, &ev, to)
 		fromZone := o.Zone
 		h.Emit(ev)
+		moved = append(moved, o.ID)
 		exiledWithAssociation(h, c, o.ID, to)
 		if to == state.ZExile {
 			recordExileReturn(h, c, sa, o.ID, fromZone, to)
@@ -502,6 +508,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if len(imprinted) > 0 {
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
+	// AtEOT$ (Puppeteer Clique's reanimation: "at the beginning of your next
+	// end step, exile it"): schedule the end-step departure for every object
+	// this move actually moved.
+	scheduleAtEOT(h, c, sa, moved)
 }
 
 // changeZoneAttachedTo implements ChangeZone's AttachedTo$ param: "the moved
@@ -3005,6 +3015,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		ids   []state.ObjID
 	}
 	var placements []ownerMoved
+	// AtEOT$'s affected set for ChangeZoneAll is the objects the sweep
+	// actually moved, collected in move order.
+	var moved []state.ObjID
 	findOwnerMoved := func(owner state.PlayerID) *ownerMoved {
 		for i := range placements {
 			if placements[i].owner == owner {
@@ -3022,6 +3035,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 					h.Emit(moveZoneEvent(c, id, z, to))
+					moved = append(moved, id)
 					// Tapped$ True (Splendid Reclamation's "Return all land cards
 					// ... tapped"): a battlefield entry is followed by the same
 					// "entered tapped" Tap event every other Tapped$ zone-change
@@ -3087,6 +3101,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	scheduleAtEOT(h, c, sa, moved)
 }
 
 // effDestroy is a single-target removal effect: exactly the shape CR 608.2b

@@ -285,6 +285,11 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 					h.Emit(events.Event{Kind: events.Imprint, Obj: want, IDs: ids})
 				}
 			}
+			// AtEOT$ (Valduk, Zektar Shrine Expedition: "exile those tokens at
+			// the beginning of the next end step") schedules each mint through
+			// the shared reader, after the existing riders, with want as the
+			// predicted mint id (the CopyPermanent pattern).
+			scheduleAtEOT(h, c, sa, []state.ObjID{want})
 		}
 	}
 }
