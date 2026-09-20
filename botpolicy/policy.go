@@ -495,8 +495,27 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// moves for the ask alone. An Optional$ Min-0 ask still takes the
 			// full Max: the stand-in it mirrors plays "you may" as "do",
 			// deterministically.
-			for j := 0; j < len(d.Options) && j < d.Max; j++ {
-				in.Choices = append(in.Choices, d.Options[j].Index)
+			//
+			// A Dig carrying a cumulative budget (WithTotalCMC$, so
+			// d.MaxSum > 0) is the exception: a blind first-Max answer can
+			// exceed the sum cap, Decision.Validate rejects it, and the bot
+			// re-derives the same rejected answer forever. Fill greedily in
+			// offered order while the running Value sum fits the budget -- the
+			// exact mirror of effDig's forced greedy take, so a budget dig
+			// moves the same cards the no-host stand-in would.
+			if d.MaxSum > 0 {
+				sum := 0
+				for j := 0; j < len(d.Options) && j < d.Max; j++ {
+					if sum+d.Options[j].Value > d.MaxSum {
+						continue
+					}
+					sum += d.Options[j].Value
+					in.Choices = append(in.Choices, d.Options[j].Index)
+				}
+			} else {
+				for j := 0; j < len(d.Options) && j < d.Max; j++ {
+					in.Choices = append(in.Choices, d.Options[j].Index)
+				}
 			}
 		case "pay_life", "pay_W", "pay_U", "pay_B", "pay_R", "pay_G":
 			// A mana pip's payment alternatives (manaAsk): hybrid colours plus
