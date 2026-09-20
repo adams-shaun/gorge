@@ -570,28 +570,44 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 		}
 	}
 	// Every component outside the settleable set keeps the decline-only ask
-	// (PayEnergy, SubCounter, Return, PutToLib, Behold, Reveal, Forage, the
-	// dyn-tap election, a dynamic life/counter value) -- never a half-paid
-	// commitment (the ParseUnlessCost hard-decline convention).
+	// (PayEnergy, SubCounter, AddCounter, Return, PutToLib, Behold, Reveal,
+	// Forage, the dyn-tap election, a dynamic life/counter value) -- never a
+	// half-paid commitment (the ParseUnlessCost hard-decline convention).
+	// AddCounter is parsed into the Cost (rules/mana.go) but priced FREE for
+	// planeswalker activations; no settle reads it here, so it is rejected
+	// structurally rather than by population -- the corpus carries no trigger
+	// body with one today, and if one lands it must not be silently skipped.
 	if len(amt.SubCounter) > 0 || len(amt.Reveal) > 0 || len(amt.Behold) > 0 ||
 		len(amt.TapPermanent) > 0 || len(amt.Blight) > 0 || len(amt.Energy) > 0 ||
-		len(amt.Return) > 0 || len(amt.PutToLib) > 0 || len(amt.LifeX) > 0 ||
-		len(amt.DamageYou) > 0 || amt.Forage {
+		len(amt.AddCounter) > 0 || len(amt.Return) > 0 || len(amt.PutToLib) > 0 ||
+		len(amt.LifeX) > 0 || len(amt.DamageYou) > 0 || amt.Forage {
 		return false
 	}
 	if _, ok := e.triggeredCostDrawCounts(tc); !ok {
 		return false
 	}
 	parts := triggeredMandatoryParts(amt)
+	// Reserve candidates ACROSS parts while gating: parts sharing a pool must
+	// be payable TOGETHER, not each in isolation -- two Discard parts of one
+	// card over a one-card hand passed independently before and offered "pay"
+	// that the walk then declined at the second part (an offer that cannot be
+	// honoured). discardCostPayable's reservation walk is the model; the
+	// settle walk itself reserves the same way through tc's component lists.
+	reserved := map[state.ObjID]bool{}
 	for i, part := range parts {
 		if triggeredPartIsDiscard(amt, i) && strings.EqualFold(part.Spec, "Hand") {
-			// The Hand shape pays the whole hand: payable whenever the hand
-			// holds at least the token's count (a Discard<0/Hand> token pays
-			// even an empty hand; a Discard<1/Hand> one needs a card).
-			if part.N > 0 {
-				if n := len(e.discardCandidates(tc.player, tc.source, part, false, nil)); int32(n) < part.N {
-					return false
-				}
+			// The Hand shape pays the whole hand: every card the hand still
+			// holds is reserved and the token's count is satisfied whenever
+			// the hand holds at least that many -- a Discard<1/Hand> token
+			// needs a card; a Discard<0/Hand> one is payable with an empty
+			// hand (a free pay-nothing election, disclosed in the round-2
+			// report; no corpus carrier is measured for it in a window cost).
+			cands := e.triggeredMandatoryCandidatesWith(tc, i, part, reserved)
+			if part.N > 0 && int32(len(cands)) < part.N {
+				return false
+			}
+			for _, id := range cands {
+				reserved[id] = true
 			}
 			continue
 		}
@@ -600,9 +616,12 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 			// window declines rather than walking a degenerate ask.
 			return false
 		}
-		eligible := e.triggeredMandatoryCandidates(tc, i, part)
+		eligible := e.triggeredMandatoryCandidatesWith(tc, i, part, reserved)
 		if int32(len(eligible)) < part.N {
 			return false
+		}
+		for j := int32(0); j < part.N; j++ {
+			reserved[eligible[j]] = true
 		}
 	}
 	mana := amt
@@ -907,6 +926,15 @@ func triggeredMandatoryZone(part CostPart, isSac bool) state.Zone {
 // there), deduped against every component already settled so one object
 // cannot pay twice.
 func (e *Engine) triggeredMandatoryCandidates(tc *triggeredEffectCost, idx int, part CostPart) []state.ObjID {
+	return e.triggeredMandatoryCandidatesWith(tc, idx, part, nil)
+}
+
+// triggeredMandatoryCandidatesWith is triggeredMandatoryCandidates with an
+// EXTRA reservation set merged in beside the window's own component lists --
+// the offer-side gate uses it to reserve candidates ACROSS parts (two parts
+// over one shared pool must be payable together, not each in isolation),
+// while the settle walk passes nil and reserves through tc's lists alone.
+func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx int, part CostPart, extra map[state.ObjID]bool) []state.ObjID {
 	isSac := idx < len(tc.amount.Sac)
 	used := make(map[state.ObjID]bool, len(tc.sacs)+len(tc.exiles)+len(tc.discards))
 	for _, id := range tc.sacs {
@@ -916,6 +944,9 @@ func (e *Engine) triggeredMandatoryCandidates(tc *triggeredEffectCost, idx int, 
 		used[id] = true
 	}
 	for _, id := range tc.discards {
+		used[id] = true
+	}
+	for id := range extra {
 		used[id] = true
 	}
 	if triggeredPartIsDiscard(tc.amount, idx) {

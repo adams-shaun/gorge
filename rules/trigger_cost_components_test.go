@@ -407,3 +407,159 @@ func TestAmbergrisXCountsThePaidDiscard(t *testing.T) {
 		t.Fatalf("draw events = %d, want 2 (the cost's draw half)", draws)
 	}
 }
+
+// TestTriggerCostDiscardPartsReserveAcrossTheGate pins the gate's cross-part
+// reservation: two Discard parts of one card over a ONE-card hand pass no
+// part independently, so the window offers DECLINE ONLY (the walk would
+// decline at the second part -- an offer that cannot be honoured must never
+// exist); with two hand cards the same cost is payable.
+func TestTriggerCostDiscardPartsReserveAcrossTheGate(t *testing.T) {
+	const script = "Name:Twin Discarder\nManaCost:1 B\nTypes:Creature Zombie\nPT:1/1\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCost | TriggerDescription$ When CARDNAME enters, you may discard a card and discard a card. If you do, draw a card.\n" +
+		"SVar:TrigCost:AB$ Draw | Cost$ Discard<1/Card> Discard<1/Card> | NumCards$ 1\n" +
+		"Oracle:x\n"
+
+	e := handEngine(t, card(t, discardCostJunk))
+	d := etbCostWindow(t, e, script)
+	pay, decline := windowPayDecline(t, d)
+	if pay >= 0 {
+		t.Fatalf("a two-part Discard cost over one shared candidate was offered as payable: %+v", d.Options)
+	}
+	mark := len(e.L.Events)
+	submitChoices(t, e, decline)
+	passUntilStackEmpty(t, e, 20)
+	for _, ev := range e.L.Events[mark:] {
+		if events.IsDiscard(ev) || ev.Kind == events.Draw {
+			t.Fatalf("the unpayable cost still moved a card: %+v", ev)
+		}
+	}
+
+	// The payable twin: one candidate per part, and the walk asks for the
+	// first part (2 candidates > 1) while the second settles from what the
+	// first left.
+	e2 := handEngine(t, card(t, discardCostJunk), card(t, discardCostJunk))
+	d2 := etbCostWindow(t, e2, script)
+	pay2, _ := windowPayDecline(t, d2)
+	if pay2 < 0 {
+		t.Fatalf("the same cost over two candidates was not offered as payable: %+v", d2.Options)
+	}
+	mark2 := len(e2.L.Events)
+	submitChoices(t, e2, pay2)
+	pick := e2.Pending()
+	if pick == nil || pick.Kind != decision.KChoose || pick.Min != 1 || pick.Max != 1 || len(pick.Options) != 2 {
+		t.Fatalf("expected the first part's exact-1 pick over 2 candidates, got %+v", pick)
+	}
+	submitChoices(t, e2, pick.Options[0].Index)
+	passUntilStackEmpty(t, e2, 20)
+	if got := len(e2.G.Zone(state.ZHand, 0)); got != 1 {
+		t.Fatalf("hand after paying both parts = %d, want 1 (the body's draw)", got)
+	}
+	discards := 0
+	for _, ev := range e2.L.Events[mark2:] {
+		if events.IsDiscardCost(ev) {
+			discards++
+		}
+	}
+	if discards != 2 {
+		t.Fatalf("discard-cost events = %d, want 2 (one per part)", discards)
+	}
+}
+
+// TestTriggerCostAddCounterComponentDeclinesOnly pins the gate's structural
+// rejection of an AddCounter component: it IS parsed into the Cost (rules/
+// mana.go) but no settle reads it here, so a cost carrying one keeps the
+// decline-only ask rather than offering "pay" and silently skipping it --
+// the exact defect class this gate closes (corpus-unreachable today: every
+// non-Planeswalker$ Cost$ AddCounter line is an activation/cast cost, never
+// a trigger body).
+func TestTriggerCostAddCounterComponentDeclinesOnly(t *testing.T) {
+	const script = "Name:Loyalty Sinker\nManaCost:1 B\nTypes:Creature Zombie\nPT:1/1\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCost | TriggerDescription$ When CARDNAME enters, you may sacrifice a land and add two loyalty counters. If you do, draw a card.\n" +
+		"SVar:TrigCost:AB$ Draw | Cost$ Sac<1/Land> AddCounter<2/LOYALTY> | NumCards$ 1\n" +
+		"Oracle:x\n"
+	const landScript = "Name:Test Land\nTypes:Land\nOracle:x\n"
+	e := handEngine(t)
+	land := onBoard(t, e, 0, landScript)
+
+	d := etbCostWindow(t, e, script)
+	pay, decline := windowPayDecline(t, d)
+	if pay >= 0 {
+		t.Fatalf("a cost carrying an unsettleable AddCounter part was offered as payable: %+v", d.Options)
+	}
+	mark := len(e.L.Events)
+	submitChoices(t, e, decline)
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(land); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("the decline must move nothing, land zone = %v", o)
+	}
+	for _, ev := range e.L.Events[mark:] {
+		if events.IsSacrifice(ev) || ev.Kind == events.Draw {
+			t.Fatalf("the declined cost still moved a card: %+v", ev)
+		}
+	}
+}
+
+// TestCardsDiscardedThisTurnCostFormCountsTheOwnerOnly pins the cost-form
+// attribution fix: an events.DiscardCost carries NO Player field (every
+// emitter constructs it without one), so it must count toward the discarded
+// card's OWNER alone and never toward seat 0 -- before the fix the
+// "ev.Player == p" match counted every seat's cost discard toward seat 0.
+// Pinned live: seat 1 pays a window discard cost; seat 0's count stays 0.
+func TestCardsDiscardedThisTurnCostFormCountsTheOwnerOnly(t *testing.T) {
+	e := handEngine(t)
+
+	// Live half: seat 1 pays a Discard<1/Card> window cost.
+	const script = "Name:Seat One Discarder\nManaCost:1 B\nTypes:Creature Zombie\nPT:1/1\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCost | TriggerDescription$ When CARDNAME enters, you may discard a card. If you do, draw a card.\n" +
+		"SVar:TrigCost:AB$ Draw | Cost$ Discard<1/Card> | NumCards$ 1\n" +
+		"Oracle:x\n"
+	junk := e.G.AddObject(card(t, discardCostJunk), 1)
+	junk.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 1, append(e.G.Zone(state.ZHand, 1), junk.ID))
+	src := e.G.AddObject(card(t, script), 1)
+	src.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 1, append(e.G.Zone(state.ZHand, 1), src.ID))
+	e.emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZHand, To: state.ZBattlefield})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Player != 1 {
+		t.Fatalf("expected seat 1's trigger-cost window ask, got %+v", d)
+	}
+	pay, _ := windowPayDecline(t, d)
+	if pay < 0 {
+		t.Fatalf("seat 1's Discard<1/Card> cost was not offered as payable: %+v", d.Options)
+	}
+	submitChoices(t, e, pay)
+	passUntilStackEmpty(t, e, 20)
+
+	if got := e.CardsDiscardedThisTurn(0); got != 0 {
+		t.Fatalf("CardsDiscardedThisTurn(0) = %d after seat 1 paid a cost discard, want 0", got)
+	}
+	if got := e.CardsDiscardedThisTurn(1); got != 1 {
+		t.Fatalf("CardsDiscardedThisTurn(1) = %d, want 1 (its own paid cost discard)", got)
+	}
+
+	// The ordinary-form twins, on direct emissions: seat 1's ordinary
+	// discard counts for seat 1 only, and seat 0's own cost discard counts
+	// for seat 0.
+	e.emit(events.Discard(junk.ID, 1))
+	if got := e.CardsDiscardedThisTurn(1); got != 2 {
+		t.Fatalf("after seat 1's ordinary discard, count(1) = %d, want 2", got)
+	}
+	if got := e.CardsDiscardedThisTurn(0); got != 0 {
+		t.Fatalf("after seat 1's ordinary discard, count(0) = %d, want 0", got)
+	}
+	e.emit(events.DiscardCost(src.ID))
+	if got := e.CardsDiscardedThisTurn(0); got != 0 {
+		t.Fatalf("a seat-1-owned cost discard still counted toward seat 0: %d", got)
+	}
+	if got := e.CardsDiscardedThisTurn(1); got != 3 {
+		t.Fatalf("count(1) after the seat-1 cost discard = %d, want 3", got)
+	}
+	own := e.G.AddObject(card(t, discardCostJunk), 0)
+	e.emit(events.DiscardCost(own.ID))
+	if got := e.CardsDiscardedThisTurn(0); got != 1 {
+		t.Fatalf("seat 0's own cost discard must count for seat 0, count(0) = %d", got)
+	}
+}

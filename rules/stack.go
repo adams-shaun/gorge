@@ -2322,10 +2322,13 @@ func (e *Engine) LifeGainedThisTurn(p state.PlayerID) int32 {
 // PlayerCountPropertyYou$CardsDiscardedThisTurn (Ambergris Citadel Agent's
 // "X = cards you discarded this turn"): every events.IsDiscard move since
 // the last TurnChange naming p — the ordinary Discard form by its Player
-// field, the cost form (events.DiscardCost, which carries no Player) by the
-// discarded object's owner, since a cost discard is paid from the payer's
-// own hand (CR 118.2a). Derived from the event log like LifeLostThisTurn, so
-// a replay derives the same number.
+// field, the cost form (events.DiscardCost, which carries no Player — every
+// emitter constructs it without one, so the Player field is seat 0 regardless
+// of who paid) by the discarded object's owner alone, since a cost discard is
+// paid from the payer's own hand (CR 118.2a). Classifying by the marker and
+// not by "Player == 0 as a fallback" is what keeps seat 0's tally from
+// counting every other seat's cost discard. Derived from the event log like
+// LifeLostThisTurn, so a replay derives the same number.
 func (e *Engine) CardsDiscardedThisTurn(p state.PlayerID) int32 {
 	var n int32
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
@@ -2336,14 +2339,14 @@ func (e *Engine) CardsDiscardedThisTurn(p state.PlayerID) int32 {
 		if !events.IsDiscard(ev) {
 			continue
 		}
-		if ev.Player == p {
-			n++
-			continue
-		}
-		if ev.Player == 0 {
+		if events.IsDiscardCost(ev) {
 			if o := e.G.Obj(ev.Obj); o != nil && o.Owner == p {
 				n++
 			}
+			continue
+		}
+		if ev.Player == p {
+			n++
 		}
 	}
 	return n
