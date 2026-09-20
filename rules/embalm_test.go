@@ -137,3 +137,47 @@ func hasWord(words []string, want string) bool {
 	}
 	return false
 }
+
+// TestAppliedGeometryAddTypesMultiTypeToken pins the multi-type AddTypes$
+// reading in the shared CopyPermanent modification reader, via the real
+// corpus card: Forge's multi-type separator inside the comma-list is " & "
+// (the same grammar rules/layers.go's statList reads for the same parameter
+// on S: statics), so Applied Geometry's "Creature & Fractal" is TWO types,
+// and the minted copy of the Bear is a Fractal Creature (plus its copied
+// Creature Bear types), NOT a single garbage "Creature & Fractal" word.
+func TestAppliedGeometryAddTypesMultiTypeToken(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 1103, []string{"Applied Geometry"}, []string{altBearSrc}, nil)
+	bear := findCardObj(t, e, 0, "Bear", state.ZBattlefield)
+	ag := findCardObj(t, e, 0, "Applied Geometry", state.ZHand)
+	addMana(t, e, 0, "CCGU") // Applied Geometry {2}{G}{U}
+	submitChoices(t, e, castModeOption(t, e, ag, ""))
+	// The cast's one target ask: the Bear (ValidTgts$ Permanent.nonAura+YouCtrl).
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Applied Geometry target ask: %+v", d)
+	}
+	bearIdx := -1
+	for _, o := range d.Options {
+		if o.Obj == bear {
+			bearIdx = o.Index
+		}
+	}
+	if bearIdx < 0 {
+		t.Fatalf("Bear not offered as a CopyPermanent target: %+v", d.Options)
+	}
+	submitChoices(t, e, bearIdx)
+	passUntilStackEmpty(t, e, 40)
+
+	tokID := embalmToken(t, e, "Bear")
+	dv := e.Derived(tokID)
+	if !hasWord(dv.Types, "Fractal") || !hasWord(dv.Types, "Bear") || !hasWord(dv.Types, "Creature") {
+		t.Fatalf("copied Bear token types %v, want Creature Bear Fractal", dv.Types)
+	}
+	// The same resolution also carries SetPower$ 0 / SetToughness$ 0 and the
+	// chained DBPutCounter's six +1/+1 counters (RememberTokens$ True puts
+	// the mint into Remembered): 0/0 + six counters = 6/6.
+	if dv.Power != 6 || dv.Toughness != 6 {
+		t.Fatalf("copied Bear token P/T %d/%d, want 6/6 (0/0 plus six +1/+1)", dv.Power, dv.Toughness)
+	}
+	replayCheck(t, e, cfg)
+}

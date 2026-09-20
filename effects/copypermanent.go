@@ -77,7 +77,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	//     AttachedTo$, Chooser$) are noted and the copy keeps the original's
 	//     printed characteristics. Measured population over the 249 raw
 	//     DB$ CopyPermanent lines: AddTypes$ 39, SetPower$ 36, SetToughness$
-	//     36, AddKeywords$ 16, SetColor$ 11, NonLegendary$ 20, and
+	//     36, AddKeywords$ 16, SetColor$ 11, NonLegendary$ 23, and
 	//     SetCreatureTypes$/RemoveCardTypes$/RemoveSubTypes$/AddTriggers$/
 	//     AddSVars$/PumpKeywords$/AddAbilities$/RemoveKeywords$/
 	//     WithDifferentNames$/AttachedTo$/Chooser$ in smaller counts.
@@ -179,9 +179,15 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	// skipped -- never a silent wrong characteristic.
 	var addTypes []string
 	if raw, ok := sa.Params["AddTypes"]; ok {
+		// Forge's multi-type separator is " & " inside a comma-list element
+		// (rules/layers.go's statList is the established reader of the same
+		// parameter), so split both ways and trim each part: "Creature &
+		// Fractal" is TWO types, not one garbage word.
 		for _, t := range strings.Split(raw, ",") {
-			if t = strings.TrimSpace(t); t != "" {
-				addTypes = append(addTypes, t)
+			for _, part := range strings.Split(strings.TrimSpace(t), " & ") {
+				if part = strings.TrimSpace(part); part != "" {
+					addTypes = append(addTypes, part)
+				}
 			}
 		}
 		if len(addTypes) == 0 {
