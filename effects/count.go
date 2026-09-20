@@ -1191,6 +1191,23 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// still routes to its own helper's absence and fails closed as
 		// before, unchanged).
 		hasBareHand := !strings.Contains(spec, "wasCastFromYourHandByYou") && strings.Contains(spec, "wasCastFromYourHand")
+		// token$DifferentCardNames (Sandsteppe War Riders' "bolster X, where X
+		// is the number of differently named artifact tokens you control";
+		// also Gimbal Gremlin Prodigy, Audience with Trostani, Neriv Crackling
+		// Vanguard -- 4 raw corpus lines): a SET-level qualifier the
+		// per-object filter cannot express -- the count is the number of
+		// DISTINCT face names among the matching tokens, not the number of
+		// tokens. Stripped here and rewritten to the plain `token` predicate
+		// for the per-object match; the distinctness is a seen-names set at
+		// this count site (the CardTypes/Colors distinct-count precedent).
+		// The filter's own read (matchPositive's token$DifferentCardNames
+		// case) is the per-object half -- "is a token" -- so a non-count read
+		// of the qualifier admits every matching token and narrows nothing.
+		var seenTokenNames map[string]bool
+		if strings.Contains(spec, "token$DifferentCardNames") {
+			spec = strings.ReplaceAll(spec, "token$DifferentCardNames", "token")
+			seenTokenNames = make(map[string]bool)
+		}
 		// Colors folds each match's colour mask; read only through a
 		// popcount at the end, so no per-colour ordering ever reaches an
 		// event or a view.
@@ -1210,6 +1227,12 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 					continue
 				}
 				if prop == "" {
+					if seenTokenNames != nil {
+						if o := g.Obj(id); o != nil && o.Face() != nil {
+							seenTokenNames[o.Face().Name] = true
+						}
+						continue
+					}
 					n++
 					continue
 				}
@@ -1237,6 +1260,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		}
 		if prop == "CardTypes" {
 			return int32(len(seenCardTypes)), true
+		}
+		if seenTokenNames != nil {
+			return int32(len(seenTokenNames)), true
 		}
 		if prop == "Colors" {
 			n = int32(bits.OnesCount8(uint8(colorsSeen)))
