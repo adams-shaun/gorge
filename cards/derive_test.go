@@ -16,7 +16,15 @@ import (
 //
 // The fixture deliberately mixes plain P/T (2/2), a characteristic-defining
 // P/T (*), a hybrid-ish "1+*" P/T, a space-form and a brace-form cost, and a
-// "no cost" face, so every derive branch is exercised on both routes.
+// "no cost" face, so every derive branch is exercised on both routes. It also
+// carries a Mistform-Ultimus-shaped characteristic-defining
+// AddAllCreatureTypes$ static so the AllCreatureTypesCDA flag is proven to
+// survive both construction routes, and a Maskwood-shaped granted static
+// (Affected$ Creature.YouCtrl) so the Self gate is pinned.
+const allTypesFixtureText = "Name:AllTypes CDA\nManaCost:2 U\nTypes:Legendary Creature Illusion\nPT:3/3\nS:Mode$ Continuous | Affected$ Card.Self | CharacteristicDefining$ True | AddAllCreatureTypes$ True | Description$x\nOracle:x\n"
+
+const grantedFixtureText = "Name:Granted Nexus\nManaCost:3\nTypes:Legendary Enchantment\nS:Mode$ Continuous | Affected$ Creature.YouCtrl | AddAllCreatureTypes$ True | Description$x\nOracle:x\n"
+
 func TestDerivedConstructionRoutesAgree(t *testing.T) {
 	direct, _ := ParseBytes("s.txt", []byte(
 		"Name:Sample\n"+
@@ -29,6 +37,8 @@ func TestDerivedConstructionRoutesAgree(t *testing.T) {
 			"ManaCost:{2}{U}{U}\n"+
 			"Types:Creature\n"+
 			"PT:*/*\n"))
+	allTypes, _ := ParseBytes("a.txt", []byte(allTypesFixtureText))
+	granted, _ := ParseBytes("g.txt", []byte(grantedFixtureText))
 
 	// The non-trivial expectations are asserted explicitly so a regression
 	// that derives the *same wrong value on both routes* still fails: a face
@@ -39,10 +49,18 @@ func TestDerivedConstructionRoutesAgree(t *testing.T) {
 	if f := direct.Faces[1]; !f.CharacteristicDefining() || f.Power() != 0 || f.Toughness() != 0 || f.Cmc() != 4 {
 		t.Fatalf("alternate face derived wrong: power=%d tough=%d cmc=%d cd=%v", f.Power(), f.Toughness(), f.Cmc(), f.CharacteristicDefining())
 	}
+	if f := allTypes.Faces[0]; !f.AllCreatureTypesCDA() {
+		t.Fatalf("AddAllCreatureTypes$ True CharacteristicDefining$ Self static must set AllCreatureTypesCDA")
+	}
+	if f := granted.Faces[0]; f.AllCreatureTypesCDA() {
+		t.Fatalf("Affected$ Creature.YouCtrl grant static must NOT set AllCreatureTypesCDA")
+	}
 
 	// Round-trip the same card plus a token through the gob cache path.
 	r := NewRegistry()
 	r.Add(direct)
+	r.Add(allTypes)
+	r.Add(granted)
 	r.Tokens["tk"], _ = ParseBytes("t.txt", []byte("Name:Token\nManaCost:no cost\nTypes:Creature\nPT:1+*/0\n"))
 	dir := t.TempDir()
 	p := filepath.Join(dir, "ir.gob.gz")
@@ -68,8 +86,13 @@ func TestDerivedConstructionRoutesAgree(t *testing.T) {
 			if w.Cmc() != got[i].Cmc() {
 				t.Errorf("face %d: cmc %d != %d", i, w.Cmc(), got[i].Cmc())
 			}
+			if w.AllCreatureTypesCDA() != got[i].AllCreatureTypesCDA() {
+				t.Errorf("face %d: AllCreatureTypesCDA %v != %v", i, w.AllCreatureTypesCDA(), got[i].AllCreatureTypesCDA())
+			}
 		}
 	}
 	compare(direct.Faces, loaded.Cards[0].Faces)
+	compare(allTypes.Faces, loaded.Cards[1].Faces)
+	compare(granted.Faces, loaded.Cards[2].Faces)
 	compare(r.Tokens["tk"].Faces, loaded.Tokens["tk"].Faces)
 }
