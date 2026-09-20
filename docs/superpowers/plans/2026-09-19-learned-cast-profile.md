@@ -230,6 +230,24 @@ blocks as absorbing (the brief's literal reading) scored 50.85% [48.7, 53.0].
 Both noise: with AR7 in the default, combined-attacker lethal adds little on
 the mono suite. Not promoted.
 
+**BLK and L1c (merged opt-in, 2026-09-20)**: dev seed 20,000,000, 200/pair
+(2,000 games) vs the promoted `bot`. The `bot`-v-`bot` control on these exact
+seeds is 990-1010, so read every row against 49.5%, not 50%:
+
+| policy | pooled | vs control |
+|---|---|---|
+| `blocks` (whole-assignment defender) | 989-1011 (49.45%) | 1 game |
+| `cast-profile` SetValue=4 / 8 / 16 / 32 | 988 / 990 / 989 / 987 of 2000 | 0-3 games |
+
+Both are inert: the whole-assignment blocker reaches the same answer as the
+per-blocker rule in nearly every offered shape, and the mana-efficiency term
+almost never reorders a cast. Wiring verified (botbench `blocks` builds
+seat.NewBlocksBot; the profile path reaches `SetValue`), so this is a real
+measurement, not a dead flag. **The hand-heuristic ladder is exhausted on the
+mono suite** — AR8, BLK and L1c all land inside the control's noise, and the
+fitted profile failed the held-out gate. The search teacher (L7-L10) is the
+only track with measured headroom.
+
 ## Parallel (unchanged, lower priority)
 
 AR8 combined-attacker lethal, block assignment, trace-family comparison
