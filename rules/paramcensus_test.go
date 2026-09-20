@@ -2388,7 +2388,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Green Sun's Zenith":       {"param:api:ChangeZone.AIXMax"},
 	"Natural Order":            {"param:api:ChangeZone.AISearchGoal"},
 	"Nissa, Resurgent Animist": {"param:api:DigUntil.RevealRandomOrder"},
-	"Six":                      {"param:api:Mill.RememberMilled"},
 }
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across
