@@ -1196,6 +1196,16 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+// CharmRepeatModes reports whether a Charm's CanRepeatModes$ True grants
+// CR 601.2b's "you may choose the same mode more than once": the mode pick
+// becomes an ordered multiset over the distinct Choices$ modes, so the same
+// mode may fill several of the CharmNum$ slots. Measured at the corpus pin:
+// 23 files, every one api:Charm, every one the literal "True" (the Confluence
+// cycle, Fiery Confluence, Moment of Reckoning, the Commands cycle).
+func CharmRepeatModes(sa *cards.SA) bool {
+	return sa != nil && strings.EqualFold(strings.TrimSpace(sa.Params["CanRepeatModes"]), "True")
+}
+
 // CharmModeBounds resolves a Charm's selectable range. Forge defaults
 // MinCharmNum$ to CharmNum$, but an explicit MinCharmNum$ permits choosing
 // fewer modes. Both values use Num so literal, SVar, and inline Count$ forms
@@ -1204,7 +1214,15 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 // minimum to 0: the election is real, and choosing nothing is a legal answer
 // at every site that asks (the placement ask, the cast announcement and
 // effCharm's own mid-resolution ask all share this one helper).
-func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
+//
+// The third result is CanRepeatModes$: when it is set, max is NOT clamped to
+// the number of distinct modes (a repeatable CharmNum$ 5 over 3 modes is
+// legal -- the Commands cycle), and the caller must mark its decision
+// Repeatable so Decision.Validate permits the repeated index. The clamp is
+// what makes a non-repeatable CharmNum$ greater than its mode count degrade
+// to "pick every distinct mode" rather than demand an impossible answer.
+func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int, repeat bool) {
+	repeat = CharmRepeatModes(sa)
 	max = int(Num(h, c, sa, "CharmNum", 1))
 	if max < 1 {
 		max = 1
@@ -1216,13 +1234,13 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
 	if strings.EqualFold(sa.Params["Optional"], "True") {
 		min = 0
 	}
-	if max > choices {
+	if !repeat && max > choices {
 		max = choices
 	}
 	if min < 0 {
 		min = 0
 	}
-	return min, max
+	return min, max, repeat
 }
 
 // CharmUniqueNone/Supported/Unsupported classify a Charm's chosen-mode set
@@ -1494,14 +1512,16 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	for i, name := range choices {
 		subs[i] = cards.ResolveSVar(c.SVars, name)
 	}
-	min, max := CharmModeBounds(h, c, sa, len(choices))
-	if min > len(choices) {
+	min, max, repeat := CharmModeBounds(h, c, sa, len(choices))
+	if min > len(choices) && !repeat {
 		// Forge declines a Charm whose required minimum exceeds its available
-		// modes. A no-engine host must likewise make no arbitrary choice.
+		// modes. A repeatable Charm can always fill its slots by repeating a
+		// single mode, so it never declines on this ground. A no-engine host
+		// must likewise make no arbitrary choice.
 		return
 	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
-		Min: min, Max: max, Source: c.Source,
+		Min: min, Max: max, Source: c.Source, Repeatable: repeat,
 		ResumeKind: "modes", ResumeSA: sa,
 		Prompt: "Choose " + strconv.Itoa(min) + " to " + strconv.Itoa(max) + " mode(s)"}
 	for i, name := range choices {

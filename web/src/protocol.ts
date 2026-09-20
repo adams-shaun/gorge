@@ -666,6 +666,17 @@ export interface Decision {
   max: number;
   options: Option[];
   /**
+   * Repeatable relaxes Validate's no-duplicate-index rule: when true the
+   * SAME option index may be chosen more than once in one answer. It is
+   * set only by a modal (Charm) decision whose SA carries
+   * CanRepeatModes$ True -- CR 601.2b's "you may choose the same mode more
+   * than once" -- where the option list is the distinct modes and the
+   * answer is an ordered multiset of them. Every other decision keeps the
+   * strict rule. omitempty: a non-repeatable decision carries no field, so
+   * every existing payload serialises byte-identically.
+   */
+  repeatable?: boolean;
+  /**
    * Source names the object this decision resolves for -- the spell whose
    * {X} is being chosen, the card whose "as it enters" choice is pending
    * -- so a prompt can always name its source (survey #18) without the

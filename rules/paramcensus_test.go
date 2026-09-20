@@ -2620,7 +2620,7 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 		"Mana":             {"Amount": true, "Produced": true},
 		"Counter":          {"UnlessCost": true},
 		"CopySpellAbility": {"UnlessCost": true},
-		"Charm":            {"CharmNum": true, "Choices": true},
+		"Charm":            {"CharmNum": true, "Choices": true, "CanRepeatModes": true},
 		"Sacrifice":        {"Amount": true},
 	}
 	for api, keys := range want {
