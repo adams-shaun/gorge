@@ -186,6 +186,7 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 // spell's face (Boseiju's !Permanent).
 func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana) {
 	e.noCounterSpend = 0
+	e.manaSpentSources = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
 	// otherwise removing the first of two matching batches would make the
 	// live slice shift under this loop and could skip or double-spend one.
@@ -205,10 +206,31 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		if r.NoCounter != "" && !ability && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, id, r.NoCounter) {
 			e.noCounterSpend = id
 		}
+		// A consumed batch's producing source is what the spell's
+		// TriggersWhenSpent$ riders key on. Only a SPELL payment (the
+		// ability=false arm -- payManaCastSpent is its only caller) records
+		// it: an ability activation, the unless-pay arm and every other
+		// payment fire nothing (the rider is a cast-spend gate). Dedup keeps
+		// one entry per source when several batches from it pay one cast; the
+		// insertion-order append keeps the queue deterministic.
+		if !ability && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
+			e.manaSpentSources = append(e.manaSpentSources, r.Source)
+		}
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
 			Text: events.ManaRestrictionText(r.Valid, r.Source)})
 		spent[idx] -= used
 	}
+}
+
+// containsObjID reports whether id is already in ids (a small linear scan;
+// the list holds at most a handful of mana-production sources per cast).
+func containsObjID(ids []state.ObjID, id state.ObjID) bool {
+	for _, x := range ids {
+		if x == id {
+			return true
+		}
+	}
+	return false
 }
 
 // addsNoCounterHolds evaluates a consumed batch's AddsNoCounter$ condition

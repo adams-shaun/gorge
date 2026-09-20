@@ -2011,6 +2011,28 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	// TriggersWhenSpent$ <SVar> (Path of Ancestry, Lapis Orb of Dragonkind,
+	// Study Hall: "when that mana is spent to cast ..., ..."): the produced
+	// mana must be attributable to THIS source at spend time, so the add
+	// rides an UNRESTRICTED provenance batch -- an empty Valid is spendable
+	// anywhere (the Boseiju shape), so payment behaviour is unchanged while
+	// state.ManaRestriction.Source records which permanent's ability produced
+	// it. rules' spend path captures the source and queues the named SVar's
+	// trigger when the batch pays for a SPELL (the rider's "spent to cast"
+	// gate). No corpus carrier pairs the param with a restriction (measured:
+	// 0 of 13); if one ever does, the restriction encoding wins (spendability
+	// is load-bearing) and the provenance is lost with one loud Note rather
+	// than either encoding being silently dropped.
+	triggersWhenSpent := strings.TrimSpace(sa.Params["TriggersWhenSpent"])
+	provenanceOnly := false
+	if triggersWhenSpent != "" {
+		if restriction == "" && noCounter == "" {
+			provenanceOnly = true
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "TriggersWhenSpent$ " + triggersWhenSpent + " rides a restricted mana batch; its source attribution is dropped"})
+		}
+	}
 	for _, p := range ManaRecipients(h, c, sa) {
 		for _, r := range runes {
 			counter := string(r)
@@ -2023,6 +2045,8 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 				ev.Text = events.ManaRestrictionTextNC(restriction, c.Source, noCounter)
 			} else if restriction != "" {
 				ev.Text = events.ManaRestrictionText(restriction, c.Source)
+			} else if provenanceOnly {
+				ev.Text = events.ManaRestrictionText("", c.Source)
 			}
 			h.Emit(ev)
 		}
