@@ -315,3 +315,72 @@ func TestCombinedLethalBotForcesCombinedAttack(t *testing.T) {
 		}
 	}
 }
+
+// TestBlocksBotDeclinesTradeDown pins the BLK seat wiring: the bench-only
+// NewBlocksBot answers a KBlockers decision through the game-shaped adapter
+// with the whole-assignment heuristic, and the production bot is untouched.
+// The board: my 3/2 kills the attacking 2/3 but dies. BR1 counts an even
+// pt trade (both pt 5) as blockable, so the default bot blocks; B2's power
+// test (attacker power 2 < blocker power 3) declines it, so the blocks bot
+// leaves it home -- the two policies demonstrably differ.
+func TestBlocksBotDeclinesTradeDown(t *testing.T) {
+	brd := botpolicy.Board{
+		Creatures: map[state.ObjID]botpolicy.Creature{
+			101: {Power: 3, Toughness: 2, Controller: 0},
+			201: {Power: 2, Toughness: 3, Controller: 1},
+		},
+		Life: map[state.PlayerID]int32{0: 20, 1: 20},
+	}
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KBlockers, Min: 0, Max: 1,
+		Options: []decision.Option{{Index: 0, Kind: "block", Obj: 101, Attacker: 201, Player: 0}}}
+	for _, tc := range []struct {
+		name   string
+		bot    *Bot
+		chumps bool
+	}{{"bot", NewBot(1), true}, {"blocks", NewBlocksBot(1), false}} {
+		in, err := tc.bot.DecideBoard(context.Background(), brd, d)
+		if err != nil {
+			t.Fatalf("%s: DecideBoard: %v", tc.name, err)
+		}
+		got := len(in.Choices) > 0
+		if got != tc.chumps {
+			t.Errorf("%s blocked = %v, want %v", tc.name, got, tc.chumps)
+		}
+	}
+}
+
+// TestBlocksBotTakesLethalChumps pins the BLK seat wiring's lethal half:
+// facing lethal (6/6 + 3/3 against 5 life), NewBlocksBot chumps BOTH
+// attackers (the largest takes the cheapest chump, the second takes what
+// remains), while the per-blocker default (measured: choices [0]) chumps
+// only the 6/6 — BR2 recomputes the unblocked total after the first chump
+// and finds the 3/3 no longer lethal, so it leaves the second blocker
+// home. The whole assignment keeps 3 more life than the per-blocker one.
+func TestBlocksBotTakesLethalChumps(t *testing.T) {
+	brd := botpolicy.Board{
+		Creatures: map[state.ObjID]botpolicy.Creature{
+			101: {Power: 1, Toughness: 1, Controller: 0},
+			102: {Power: 2, Toughness: 2, Controller: 0},
+			201: {Power: 6, Toughness: 6, Controller: 1},
+			202: {Power: 3, Toughness: 3, Controller: 1},
+		},
+		Life: map[state.PlayerID]int32{0: 5, 1: 20},
+	}
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KBlockers, Min: 0, Max: 4,
+		Options: []decision.Option{
+			{Index: 0, Kind: "block", Obj: 101, Attacker: 201, Player: 0},
+			{Index: 1, Kind: "block", Obj: 102, Attacker: 201, Player: 0},
+			{Index: 2, Kind: "block", Obj: 101, Attacker: 202, Player: 0},
+			{Index: 3, Kind: "block", Obj: 102, Attacker: 202, Player: 0},
+		}}
+	in, err := NewBlocksBot(1).DecideBoard(context.Background(), brd, d)
+	if err != nil {
+		t.Fatalf("DecideBoard: %v", err)
+	}
+	if err := d.Validate(in); err != nil {
+		t.Errorf("blocks intent failed Validate: %v", err)
+	}
+	if len(in.Choices) != 2 {
+		t.Errorf("blocks lethal choices = %v, want both chumps", in.Choices)
+	}
+}
