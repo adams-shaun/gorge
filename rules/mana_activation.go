@@ -314,6 +314,16 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 // A gate this build cannot price fails closed: the ability is withheld from
 // the offer, the payment window and the activation alike, never widened.
 func (e *Engine) manaActivationGateHolds(p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
+	// ActivationPhases$ and its rider qualifiers (PlayerTurn$,
+	// OpponentTurn$, ActivationFirstCombat$, ActivationAfterBlockers$) are
+	// the same offer-time window a non-mana ability is gated by. This walk
+	// is a mana ability's ONLY eligibility gate, so reading the window here
+	// is what keeps one AB$ Mana carrier (a charge-counter source whose
+	// "any player may activate ... only during their turn before the end
+	// step" line was previously offered outside its window) bound to it.
+	if !e.activationPhasesOK(p, ma) {
+		return false
+	}
 	if spec, ok := ma.Params["IsPresent"]; ok && strings.TrimSpace(spec) != "" {
 		n := e.countPresent(strings.TrimSpace(spec), id, p)
 		if cmp := strings.TrimSpace(ma.Params["PresentCompare"]); cmp != "" {

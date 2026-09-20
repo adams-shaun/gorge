@@ -1682,8 +1682,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// PlayerTurn$ True (Wishclaw Talisman's "Activate only during
 				// your turn"): the ability is offered only while its
 				// controller is the active player. CR 602.1b would otherwise
-				// offer it on any player's priority.
-				if ab.Params["PlayerTurn"] == "True" && e.G.Active != p {
+				// offer it on any player's priority. ActivationPhases$ and the
+				// other window riders (OpponentTurn$, ActivationFirstCombat$,
+				// ActivationAfterBlockers$) ride the same shared
+				// offer-time gate, so one helper covers the cast and ability
+				// halves alike.
+				if !e.activationPhasesOK(p, ab) {
 					continue
 				}
 				// ActivationGameTypes$ (activationGameTypesOK, above): a comma
