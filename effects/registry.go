@@ -937,6 +937,19 @@ type Ctx struct {
 	// Consumed and cleared before the draw loop, so a nested optional draw
 	// in the same walk poses its own ask (fx42 scoping).
 	DrawOpt string
+	// TapOrUntap is the answered mid-resolution TapOrUntap election
+	// (api:TapOrUntap): the kind of the chosen option, "tap" or "untap". ""
+	// on the first pass, where effTapOrUntap poses the ask (or, when the host
+	// cannot ask, applies option 0 — the state-changing choice — silently,
+	// the R-9 stand-in). TapOrUntapObj is the target the answer was elected
+	// for (read off the answered option's Obj), and TapOrUntapDone is the
+	// answered marker: the ask's two options are both always legal, so the
+	// answered state cannot be inferred from the answer alone. Consumed and
+	// cleared at the point of application (fx42 scoping), so a later target
+	// poses its own ask and a nested TapOrUntap cannot inherit the answer.
+	TapOrUntap     string
+	TapOrUntapObj  state.ObjID
+	TapOrUntapDone bool
 	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
 	// resolution just made (effects/dice.go), under the SVar name its
 	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's

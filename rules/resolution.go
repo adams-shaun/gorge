@@ -1066,6 +1066,23 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 {
 				ctx.ChosenType = chosen[0].Label
 			}
+		case "taporuntap":
+			// A TapOrUntap's tap-vs-untap election (api:TapOrUntap, Merrow
+			// Reejerey / Twiddle) was answered. Each offered option carries the
+			// target it elected for in Obj and its choice in Kind ("tap" or
+			// "untap"), so the answer is read straight off option 0. An empty or
+			// malformed answer still sets the Done marker (the effect's Min 1/
+			// Max 1 ask always has a legal single-option answer, so an empty one
+			// is malformed, never a decline) and degrades to "tap" with no target
+			// named — the conservative read, which the re-entered effect applies
+			// to its first pending target. The effect consumes and clears all
+			// three fields at the point of application (fx42 scoping), so a
+			// later target poses its own ask.
+			ctx.TapOrUntapDone = true
+			if len(chosen) > 0 {
+				ctx.TapOrUntapObj = chosen[0].Obj
+				ctx.TapOrUntap = chosen[0].Kind
+			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
 			// the concrete target shape rather than just an ObjID because player
