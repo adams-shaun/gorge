@@ -54,325 +54,354 @@ import (
 // copies the effect values. Only the outer slots are overwritten here.
 func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 	out := dst[:0]
-	for _, p := range e.G.AliveFrom(0) {
-		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			o := e.G.Obj(id)
-			if o == nil {
+	for pi, p := range e.G.AliveFrom(0) {
+		// staticSourceZones (below) walks the battlefield FIRST so every
+		// battlefield static keeps today's relative emission order, then the
+		// non-battlefield zones an EffectZone$ can name. The shared stack is
+		// walked exactly once, under the first alive seat -- the same
+		// collectCostStatics discipline, which without it would collect each
+		// stack card's statics once per seat.
+		for _, z := range staticSourceZones {
+			if z == state.ZStack && pi > 0 {
 				continue
 			}
-			f := o.Face()
-			if f == nil {
-				continue
-			}
-			if e.faceDownPrintedHides(o) {
-				// CR 708.8: a face-down permanent's printed statics do not
-				// exist while it is face down (the one gate shared with
-				// activeStatics, the trigger scan and the offer loops).
-				continue
-			}
-			// Enchantment Rooms (rules/rooms.go): once the room's second door
-			// is unlocked, the ALTERNATE face's statics are live too -- a room
-			// permanent's rules text is both halves' combined after the
-			// unlock (CR 309.6), each face's Statics its own scan.
-			faces := []*cards.Face{f}
-			if o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
-				faces = append(faces, o.Card.Faces[1-int(o.FaceIdx)])
-			}
-			for _, fc := range faces {
-				// grantQueue is the AddStaticAbility$ work queue, REUSED across
-				// scans on the Engine's own buffer (staticQueueBuf): the face's
-				// own statics at depth 0, then every granted static appended with
-				// its depth, so a granted static's emission is the SAME body a
-				// printed one runs -- one grant grammar (task
-				// inbox-paramcensus-static-grant-misc). The depth-0 check below
-				// bounds the recursion; the warm-rescan allocation budget
-				// (static_effects_buffer_test) is why the buffer is reused,
-				// never re-made per face.
-				grantQueue := e.staticQueueBuf[:0]
-				for _, st := range fc.Statics {
-					grantQueue = append(grantQueue, staticWork{st: st})
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil {
+					continue
 				}
-				for qi := 0; qi < len(grantQueue); qi++ {
-					w := grantQueue[qi]
-					st := w.st
-					if st.Mode != "Continuous" {
-						continue
+				f := o.Face()
+				if f == nil {
+					continue
+				}
+				onBattlefield := z == state.ZBattlefield
+				if onBattlefield && e.faceDownPrintedHides(o) {
+					// CR 708.8: a face-down permanent's printed statics do not
+					// exist while it is face down (the one gate shared with
+					// activeStatics, the trigger scan and the offer loops).
+					continue
+				}
+				// Enchantment Rooms (rules/rooms.go): once the room's second door
+				// is unlocked, the ALTERNATE face's statics are live too -- a room
+				// permanent's rules text is both halves' combined after the
+				// unlock (CR 309.6), each face's Statics its own scan. A room's
+				// unlocked face exists only on the battlefield.
+				faces := []*cards.Face{f}
+				if onBattlefield && o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
+					faces = append(faces, o.Card.Faces[1-int(o.FaceIdx)])
+				}
+				for _, fc := range faces {
+					// grantQueue is the AddStaticAbility$ work queue, REUSED across
+					// scans on the Engine's own buffer (staticQueueBuf): the face's
+					// own statics at depth 0, then every granted static appended with
+					// its depth, so a granted static's emission is the SAME body a
+					// printed one runs -- one grant grammar (task
+					// inbox-paramcensus-static-grant-misc). The depth-0 check below
+					// bounds the recursion; the warm-rescan allocation budget
+					// (static_effects_buffer_test) is why the buffer is reused,
+					// never re-made per face.
+					grantQueue := e.staticQueueBuf[:0]
+					for _, st := range fc.Statics {
+						grantQueue = append(grantQueue, staticWork{st: st})
 					}
-					affects := st.Params["Affected"]
-					// Forge omits Affected$ on a self-only characteristic-defining
-					// static (Tarmogoyf, Krovikan Mist). Its default is the host
-					// card, not "no affected object".
-					if affects == "" {
-						affects = "Card.Self"
-					}
-					// The "as long as" recheck gates (Forge's intervening-if on a
-					// continuous static): IsPresent$/IsPresent2$ (an existence count
-					// over every battlefield, PresentCompare$ pricing the count with
-					// GE1 the default) and CheckSVar$/SVarCompare$ (the named SVar
-					// compared under the threshold). staticEffects re-runs once per
-					// emitted event (the staticContinuous memo's epoch key), so the
-					// gate is a genuine continuous recheck: the board moves, the
-					// grant follows -- Angelic Overseer's Human, Static Orb's
-					// untapped state, Auriok Steelshaper's equipped state, Kiyomaro's
-					// hand size. A gate this build cannot evaluate fails CLOSED
-					// (the shipped statics convention rules/statics.go's
-					// checkSVarHolds documents): the grant is withheld whole, never
-					// silently always-applied.
-					if !e.continuousGateHolds(staticView{Source: id, Controller: o.Controller, Params: st.Params}) {
-						continue
-					}
-					base := ContinuousEffect{
-						Source:     id,
-						Timestamp:  o.Timestamp,
-						Controller: o.Controller,
-						Affects:    affects,
-					}
-					if hasStat(st, "AddPower") || hasStat(st, "AddToughness") {
-						pt := base
-						pt.Layer, pt.Sub = LPT, SubModify
-						pt.AddPowerExpr = st.Params["AddPower"]
-						pt.AddToughnessExpr = st.Params["AddToughness"]
-						out = append(out, pt)
-					}
-					if hasStat(st, "AddKeyword") {
-						kw := base
-						kw.Layer = LAbilities
-						kw.AddKeywords = statKeywords(st)
-						kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-						out = append(out, kw)
-					}
-					if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
-						ty := base
-						ty.Layer = LType
-						ty.AddTypes = statList(st, "AddTypes")
-						if len(ty.AddTypes) == 0 {
-							ty.AddTypes = statList(st, "AddType")
+					for qi := 0; qi < len(grantQueue); qi++ {
+						w := grantQueue[qi]
+						st := w.st
+						if st.Mode != "Continuous" {
+							continue
 						}
-						// AddType$ ChosenType (22 corpus files: Adaptive Automaton's
-						// "CARDNAME is the chosen type in addition to its other
-						// types" and its siblings): the VALUE is the static's host
-						// object's own recorded "as this enters" choice, not a
-						// literal type word — resolve it against the host's
-						// ChosenType (staticContinuous re-runs once per event, so a
-						// later Choose event re-derives the grant live). A host with
-						// no recorded choice grants nothing: a chosen type this
-						// build cannot read must not leak a literal "ChosenType"
-						// type word onto the object.
-						if resolved, ok := resolveChosenTypes(ty.AddTypes, o); ok {
-							ty.AddTypes = resolved
-						} else {
-							ty.AddTypes = nil
+						// EffectZone$ -- the zone the static's SOURCE must sit in for
+						// it to be live (Forge's StaticAbilityContinuous EffectZone$,
+						// default the battlefield). This is the ONE read the other
+						// static families (CantBeCast, RaiseCost/ReduceCost/SetCost,
+						// the may-play walks) already make through effectZoneOK, and
+						// the Continuous path now shares it. A battlefield-scoped or
+						// default static keeps today's admission exactly; a
+						// graveyard/command/exile-scoped static stops wrongly
+						// applying while its source is on the battlefield (Anger's
+						// haste grant belongs to the graveyard alone) and is instead
+						// collected from the zone it names by the zone walk above.
+						// An unrecognised value denies -- the fail-closed direction
+						// effectZoneOK documents.
+						if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+							continue
 						}
-						// The strip flags ride the AddType emission (measured: every
-						// corpus S: line carrying RemoveCardTypes$/RemoveCreatureTypes$
-						// also carries AddType$): a strip-only static -- an AddType$
-						// ChosenType the host has not resolved -- must still emit so
-						// the strip is not silently dropped.
-						ty.RemoveCardTypes = hasStat(st, "RemoveCardTypes")
-						ty.RemoveCreatureTypes = hasStat(st, "RemoveCreatureTypes")
-						ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-						if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes {
-							out = append(out, ty)
+						affects := st.Params["Affected"]
+						// Forge omits Affected$ on a self-only characteristic-defining
+						// static (Tarmogoyf, Krovikan Mist). Its default is the host
+						// card, not "no affected object".
+						if affects == "" {
+							affects = "Card.Self"
 						}
-					}
-					// CR 613.1f / 613.4b (Humility): a base-setting static runs in
-					// layer 7b (SubSet), before the 7c modify a later Pump adds; and
-					// a RemoveAllAbilities static is a layer-6 ability removal.
-					// A P/T-setting characteristic-defining static (CharacteristicDefining$
-					// True) is NOT emitted from this scan: cdaSetPT reads it directly
-					// off the object's own face in derivedScalar, in EVERY zone
-					// (CR 604.3/208.2 -- the layer-7a base this battlefield-only walk
-					// cannot express), and emitting here too would apply the set
-					// twice. A CDA whose value this build cannot resolve keeps
-					// today's emission -- fail closed is the same degrade direction
-					// every static gate takes.
-					if hasStat(st, "SetPower") || hasStat(st, "SetToughness") {
-						skip := false
-						if strings.TrimSpace(st.Params["CharacteristicDefining"]) != "" {
-							if _, _, hp, ht := e.cdaPTStatic(st, &effects.Ctx{Source: id, Controller: o.Controller, SVars: fc.SVars}); hp || ht {
-								skip = true
+						// The "as long as" recheck gates (Forge's intervening-if on a
+						// continuous static): IsPresent$/IsPresent2$ (an existence count
+						// over every battlefield, PresentCompare$ pricing the count with
+						// GE1 the default) and CheckSVar$/SVarCompare$ (the named SVar
+						// compared under the threshold). staticEffects re-runs once per
+						// emitted event (the staticContinuous memo's epoch key), so the
+						// gate is a genuine continuous recheck: the board moves, the
+						// grant follows -- Angelic Overseer's Human, Static Orb's
+						// untapped state, Auriok Steelshaper's equipped state, Kiyomaro's
+						// hand size. A gate this build cannot evaluate fails CLOSED
+						// (the shipped statics convention rules/statics.go's
+						// checkSVarHolds documents): the grant is withheld whole, never
+						// silently always-applied.
+						if !e.continuousGateHolds(staticView{Source: id, Controller: o.Controller, Params: st.Params}) {
+							continue
+						}
+						base := ContinuousEffect{
+							Source:     id,
+							Timestamp:  o.Timestamp,
+							Controller: o.Controller,
+							Affects:    affects,
+						}
+						if hasStat(st, "AddPower") || hasStat(st, "AddToughness") {
+							pt := base
+							pt.Layer, pt.Sub = LPT, SubModify
+							pt.AddPowerExpr = st.Params["AddPower"]
+							pt.AddToughnessExpr = st.Params["AddToughness"]
+							out = append(out, pt)
+						}
+						if hasStat(st, "AddKeyword") {
+							kw := base
+							kw.Layer = LAbilities
+							kw.AddKeywords = statKeywords(st)
+							kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+							out = append(out, kw)
+						}
+						if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
+							ty := base
+							ty.Layer = LType
+							ty.AddTypes = statList(st, "AddTypes")
+							if len(ty.AddTypes) == 0 {
+								ty.AddTypes = statList(st, "AddType")
+							}
+							// AddType$ ChosenType (22 corpus files: Adaptive Automaton's
+							// "CARDNAME is the chosen type in addition to its other
+							// types" and its siblings): the VALUE is the static's host
+							// object's own recorded "as this enters" choice, not a
+							// literal type word — resolve it against the host's
+							// ChosenType (staticContinuous re-runs once per event, so a
+							// later Choose event re-derives the grant live). A host with
+							// no recorded choice grants nothing: a chosen type this
+							// build cannot read must not leak a literal "ChosenType"
+							// type word onto the object.
+							if resolved, ok := resolveChosenTypes(ty.AddTypes, o); ok {
+								ty.AddTypes = resolved
+							} else {
+								ty.AddTypes = nil
+							}
+							// The strip flags ride the AddType emission (measured: every
+							// corpus S: line carrying RemoveCardTypes$/RemoveCreatureTypes$
+							// also carries AddType$): a strip-only static -- an AddType$
+							// ChosenType the host has not resolved -- must still emit so
+							// the strip is not silently dropped.
+							ty.RemoveCardTypes = hasStat(st, "RemoveCardTypes")
+							ty.RemoveCreatureTypes = hasStat(st, "RemoveCreatureTypes")
+							ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+							if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes {
+								out = append(out, ty)
 							}
 						}
-						if !skip {
-							set := base
-							set.Layer, set.Sub = LPT, SubSet
-							if strings.EqualFold(st.Params["CharacteristicDefining"], "true") {
-								set.Sub = SubCDA
+						// CR 613.1f / 613.4b (Humility): a base-setting static runs in
+						// layer 7b (SubSet), before the 7c modify a later Pump adds; and
+						// a RemoveAllAbilities static is a layer-6 ability removal.
+						// A P/T-setting characteristic-defining static (CharacteristicDefining$
+						// True) is NOT emitted from this scan: cdaSetPT reads it directly
+						// off the object's own face in derivedScalar, in EVERY zone
+						// (CR 604.3/208.2 -- the layer-7a base this battlefield-only walk
+						// cannot express), and emitting here too would apply the set
+						// twice. A CDA whose value this build cannot resolve keeps
+						// today's emission -- fail closed is the same degrade direction
+						// every static gate takes.
+						if hasStat(st, "SetPower") || hasStat(st, "SetToughness") {
+							skip := false
+							if strings.TrimSpace(st.Params["CharacteristicDefining"]) != "" {
+								if _, _, hp, ht := e.cdaPTStatic(st, &effects.Ctx{Source: id, Controller: o.Controller, SVars: fc.SVars}); hp || ht {
+									skip = true
+								}
 							}
-							set.SetPowerExpr = st.Params["SetPower"]
-							set.SetToughnessExpr = st.Params["SetToughness"]
-							set.SetPowerPresent = hasStat(st, "SetPower")
-							set.SetToughnessPresent = hasStat(st, "SetToughness")
-							set.StaticSet = true
-							set.HasSet = true
-							out = append(out, set)
+							if !skip {
+								set := base
+								set.Layer, set.Sub = LPT, SubSet
+								if strings.EqualFold(st.Params["CharacteristicDefining"], "true") {
+									set.Sub = SubCDA
+								}
+								set.SetPowerExpr = st.Params["SetPower"]
+								set.SetToughnessExpr = st.Params["SetToughness"]
+								set.SetPowerPresent = hasStat(st, "SetPower")
+								set.SetToughnessPresent = hasStat(st, "SetToughness")
+								set.StaticSet = true
+								set.HasSet = true
+								out = append(out, set)
+							}
 						}
-					}
-					if hasStat(st, "RemoveAllAbilities") {
-						ra := base
-						ra.Layer = LAbilities
-						ra.RemoveAbilities = true
-						out = append(out, ra)
-					}
-					// A may-play-from-zone grant (M2d?): the "You may play lands from
-					// your graveyard" static (Conduit of Worlds, Crucible of Worlds,
-					// Ramunap Excavator, ...). It changes no characteristic, so it is
-					// NOT a layer effect and is carried as a rules-mod on the effect
-					// itself (MayPlay + AffectedZone) rather than as a layer mark;
-					// rules/legal.go's may-play walks consult it. The implemented
-					// shape is the unconditional MayPlay$ True grant plus its two
-					// readable riders (MayPlayIgnoreColor$ -- mana as any colour --
-					// and MayPlayLimit$ 1, the once-per-turn cap); the
-					// mayPlayShape guard rejects a richer grant (MayPlayIgnoreType$/
-					// MayPlayWithoutManaCost$/MayPlayText$, Condition$/
-					// ValidAfterStack$/Secondary$ qualifiers) so it fails closed
-					// (MayPlay stays false) rather than being silently over-applied
-					// against the ordinary LandsPlayed limit. Expiry is the ordinary
-					// source-leaves rule (CR 611.3b) via active()'s battlefield scan.
-					if mayPlayGrant(st) {
-						mp := base
-						mp.MayPlay = true
-						mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-						mp.MayPlayIgnoreColor, mp.MayPlayIgnoreType, mp.MayPlayLimit, mp.MayPlayPlayerTurn, _ = effects.MayPlayStaticParams(st.Params)
-						out = append(out, mp)
-					}
-					// An additional-land-drops grant (Azusa, Lost but Seeking's "You
-					// may play two additional lands on each of your turns", Oracle of
-					// Mul Daya, Exploration, Icetill Explorer). Like the may-play
-					// grant it changes no characteristic, so it is NOT a layer effect
-					// and is carried as a rules-mod on the effect itself
-					// (AdjustLandPlays); rules/legal.go's land-play gates consult it
-					// through Engine.adjustLandPlays. The implemented shape is the
-					// plain one -- a literal positive integer value and only display
-					// metadata around it; the Affects spec is evaluated at the gate
-					// with MatchesPlayerSpecFrom, whose own fail-closed rule (an
-					// unhandled qualifier matches nobody) rejects the richer
-					// Affected$ forms. A richer VALUE or rider fails closed here: an
-					// AdjustLandPlays$ Unlimited/Z (Fastbond, an X-driven grant)
-					// must not silently become "one more", and an IsPresent$/
-					// Secondary$ qualifier changes when the grant lives. The explicit
-					// whitelist, rather than a blacklist of currently-known gating
-					// keys, means a newly encountered semantic parameter also fails
-					// closed. Expiry is the ordinary source-leaves rule (CR 611.3b)
-					// via active()'s battlefield scan; the turn scoping ("each of
-					// your turns") is the offer gate itself -- a play_land option is
-					// only offered to the active player in a main phase -- and the
-					// per-turn reset stays events' TurnChange LandsPlayed = 0.
-					if n, ok := adjustLandPlaysGrant(st.Params); ok {
-						al := base
-						al.AdjustLandPlays = n
-						out = append(out, al)
-					}
-					// --- the four static-grant kinds the parameter census named
-					// (task inbox-paramcensus-static-grant-misc). Each reads its
-					// own key and fails closed on a shape it cannot evaluate, like
-					// every grant branch above. ---
+						if hasStat(st, "RemoveAllAbilities") {
+							ra := base
+							ra.Layer = LAbilities
+							ra.RemoveAbilities = true
+							out = append(out, ra)
+						}
+						// A may-play-from-zone grant (M2d?): the "You may play lands from
+						// your graveyard" static (Conduit of Worlds, Crucible of Worlds,
+						// Ramunap Excavator, ...). It changes no characteristic, so it is
+						// NOT a layer effect and is carried as a rules-mod on the effect
+						// itself (MayPlay + AffectedZone) rather than as a layer mark;
+						// rules/legal.go's may-play walks consult it. The implemented
+						// shape is the unconditional MayPlay$ True grant plus its two
+						// readable riders (MayPlayIgnoreColor$ -- mana as any colour --
+						// and MayPlayLimit$ 1, the once-per-turn cap); the
+						// mayPlayShape guard rejects a richer grant (MayPlayIgnoreType$/
+						// MayPlayWithoutManaCost$/MayPlayText$, Condition$/
+						// ValidAfterStack$/Secondary$ qualifiers) so it fails closed
+						// (MayPlay stays false) rather than being silently over-applied
+						// against the ordinary LandsPlayed limit. Expiry is the ordinary
+						// source-leaves rule (CR 611.3b) via active()'s battlefield scan.
+						if mayPlayGrant(st) {
+							mp := base
+							mp.MayPlay = true
+							mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+							mp.MayPlayIgnoreColor, mp.MayPlayIgnoreType, mp.MayPlayLimit, mp.MayPlayPlayerTurn, _ = effects.MayPlayStaticParams(st.Params)
+							out = append(out, mp)
+						}
+						// An additional-land-drops grant (Azusa, Lost but Seeking's "You
+						// may play two additional lands on each of your turns", Oracle of
+						// Mul Daya, Exploration, Icetill Explorer). Like the may-play
+						// grant it changes no characteristic, so it is NOT a layer effect
+						// and is carried as a rules-mod on the effect itself
+						// (AdjustLandPlays); rules/legal.go's land-play gates consult it
+						// through Engine.adjustLandPlays. The implemented shape is the
+						// plain one -- a literal positive integer value and only display
+						// metadata around it; the Affects spec is evaluated at the gate
+						// with MatchesPlayerSpecFrom, whose own fail-closed rule (an
+						// unhandled qualifier matches nobody) rejects the richer
+						// Affected$ forms. A richer VALUE or rider fails closed here: an
+						// AdjustLandPlays$ Unlimited/Z (Fastbond, an X-driven grant)
+						// must not silently become "one more", and an IsPresent$/
+						// Secondary$ qualifier changes when the grant lives. The explicit
+						// whitelist, rather than a blacklist of currently-known gating
+						// keys, means a newly encountered semantic parameter also fails
+						// closed. Expiry is the ordinary source-leaves rule (CR 611.3b)
+						// via active()'s battlefield scan; the turn scoping ("each of
+						// your turns") is the offer gate itself -- a play_land option is
+						// only offered to the active player in a main phase -- and the
+						// per-turn reset stays events' TurnChange LandsPlayed = 0.
+						if n, ok := adjustLandPlaysGrant(st.Params); ok {
+							al := base
+							al.AdjustLandPlays = n
+							out = append(out, al)
+						}
+						// --- the four static-grant kinds the parameter census named
+						// (task inbox-paramcensus-static-grant-misc). Each reads its
+						// own key and fails closed on a shape it cannot evaluate, like
+						// every grant branch above. ---
 
-					// A static-that-grants-a-static (Exploration Broodship's
-					// "STATION 3+"): AddStaticAbility$ names an SVar on the granting
-					// face whose body is itself a Mode$ Continuous static, granted
-					// for exactly as long as the OUTER static is live (its gate has
-					// already run above, and the inner static's own gate runs when
-					// its queue entry is emitted -- the same fail-closed rule). The
-					// grant's HOST is the object the OUTER Affected$ spec matches
-					// (the scan rebuilds per event, so the counters move, the grant
-					// follows); the inner static's own Affected$ scopes what IT
-					// affects, resolved against the host -- the Broodship's STATION
-					// 3+ grant is an AdjustLandPlays$ 1 to You, and You is the
-					// host's controller. cards.ParseStaticLine gives the body the
-					// same shape a printed S: line would have, so EVERY grant branch
-					// above applies to the inner static unchanged. A body this
-					// parser refuses, one whose mode is not Continuous, or a host
-					// the outer spec no longer matches, grants nothing.
-					if name := strings.TrimSpace(st.Params["AddStaticAbility"]); name != "" && w.depth == 0 {
-						if inner, ok := cards.ParseStaticLine(fc.SVars[name]); ok && inner.Mode == "Continuous" &&
-							e.matchesSpecFrom(affects, id, o.Controller, id) {
-							grantQueue = append(grantQueue, staticWork{st: inner, depth: w.depth + 1})
+						// A static-that-grants-a-static (Exploration Broodship's
+						// "STATION 3+"): AddStaticAbility$ names an SVar on the granting
+						// face whose body is itself a Mode$ Continuous static, granted
+						// for exactly as long as the OUTER static is live (its gate has
+						// already run above, and the inner static's own gate runs when
+						// its queue entry is emitted -- the same fail-closed rule). The
+						// grant's HOST is the object the OUTER Affected$ spec matches
+						// (the scan rebuilds per event, so the counters move, the grant
+						// follows); the inner static's own Affected$ scopes what IT
+						// affects, resolved against the host -- the Broodship's STATION
+						// 3+ grant is an AdjustLandPlays$ 1 to You, and You is the
+						// host's controller. cards.ParseStaticLine gives the body the
+						// same shape a printed S: line would have, so EVERY grant branch
+						// above applies to the inner static unchanged. A body this
+						// parser refuses, one whose mode is not Continuous, or a host
+						// the outer spec no longer matches, grants nothing.
+						if name := strings.TrimSpace(st.Params["AddStaticAbility"]); name != "" && w.depth == 0 {
+							if inner, ok := cards.ParseStaticLine(fc.SVars[name]); ok && inner.Mode == "Continuous" &&
+								e.matchesSpecFrom(affects, id, o.Controller, id) {
+								grantQueue = append(grantQueue, staticWork{st: inner, depth: w.depth + 1})
+							}
+						}
+						// A triggered-ability grant (Hearthhull's "STATION 8+ Whenever
+						// you sacrifice a land"): AddTrigger$ names an SVar on the
+						// granting face whose body is a T:-shaped trigger; the objects
+						// the static's Affected$ matches gain it while the static is
+						// live. cards.ParseTriggerLine gives the body the same shape a
+						// printed T: line would have; rules/trigger_match.go's granted-
+						// trigger walk (checkGrantedStaticTriggers, the granted-Ward/
+						// granted-Dethrone precedent) matches it like any other trigger
+						// and links its Execute$ from the AFFECTED object's own SVar
+						// table -- the table events.Apply's GrantTriggerPush resolves
+						// from, so the live queue and a replayed one mint the same stack
+						// object. A body that fails to parse grants nothing.
+						if name := strings.TrimSpace(st.Params["AddTrigger"]); name != "" {
+							if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
+								gt := base
+								gt.AddTrigger = &t
+								out = append(out, gt)
+							}
+						}
+						// A named-variable grant (Sword of Fire and Ice): AddSVar$ names an SVar
+						// on the granting face whose body is Forge's
+						// "SVar:<Name>:<Value>" grant shape -- the affected object GAINS
+						// that named variable while the static is live. The corpus's
+						// granted SVars are AI-evaluation hints (AE, AITap,
+						// MustBeBlocked) no rules consumer reads; the engine records the
+						// grant and resolves it through Engine.GrantedSVar, the lookup a
+						// later CheckSVar$-style consumer of the affected object's
+						// variables reads. A body in any other shape grants nothing.
+						if raw := strings.TrimSpace(st.Params["AddSVar"]); raw != "" {
+							if n, v, ok := parseSVarGrant(fc.SVars[raw]); ok {
+								gv := base
+								gv.AddSVars = map[string]string{n: v}
+								out = append(out, gv)
+							}
+						}
+						// A look-permission grant (Oracle of Mul Daya): MayLookAt$ says
+						// the affected player may look at the object the Affected$ spec
+						// matches -- in the corpus always the top card of the
+						// controller's own library (Affected$ Card.TopLibrary+YouCtrl,
+						// AffectedZone$ Library). The value names WHO may look:
+						// You/Player/True are all the static's controller in every
+						// corpus shape (73/34/1 raw lines at the pin); anything else
+						// fails closed. Consumed by Engine.MayLookAtLibraryTop, the
+						// view's reveal of that top card.
+						if raw := strings.TrimSpace(st.Params["MayLookAt"]); raw != "" {
+							if strings.EqualFold(raw, "You") || strings.EqualFold(raw, "Player") || strings.EqualFold(raw, "True") {
+								lv := base
+								lv.MayLookAt = true
+								out = append(out, lv)
+							}
+						}
+						// A control-change static (Mind Control's "You control enchanted
+						// creature", Fealty to the Realm's "The monarch controls
+						// enchanted creature"): GainControl$ on a Mode$ Continuous static
+						// hands every object the Affected$ spec matches to the player the
+						// value names, for exactly as long as the static is live. Like
+						// MayPlay it changes no characteristic, so it is carried as a
+						// rules-mod (GainControl) and realized by rules'
+						// reconcileControlStatics (rules/control_static.go): that pass
+						// registers a real tracked control grant and emits
+						// events.ControlChange only where the object's controller
+						// actually differs, and the tracked grant's liveness (grantEnded)
+						// is this scan's own output, so an ended static -- source left,
+						// gate flipped, Aura moved bearers, named player changed -- hands
+						// the bearer back through expireControl's ordinary Previous
+						// chain. The VALUE itself is not validated here (the scan cannot
+						// resolve players): resolution happens in the reconcile, where a
+						// value that names nobody -- or several players -- yields no
+						// grant, the fail-closed direction. The static's "as long as"
+						// gate (IsPresent$/CheckSVar$) already ran above for every
+						// branch. Measured corpus population (GNU /usr/bin/grep): 42 raw
+						// S:Mode$ Continuous lines carrying GainControl$, every one
+						// shaped Mode/Affected/GainControl/Description with Affected$
+						// *.EnchantedBy and the value You (41) or Player.isMonarch (1,
+						// Fealty to the Realm); none is in any repo deck, so the golden
+						// heads and the ratchet are untouched by construction.
+						if raw := strings.TrimSpace(st.Params["GainControl"]); raw != "" {
+							gc := base
+							gc.GainControl = raw
+							out = append(out, gc)
 						}
 					}
-					// A triggered-ability grant (Hearthhull's "STATION 8+ Whenever
-					// you sacrifice a land"): AddTrigger$ names an SVar on the
-					// granting face whose body is a T:-shaped trigger; the objects
-					// the static's Affected$ matches gain it while the static is
-					// live. cards.ParseTriggerLine gives the body the same shape a
-					// printed T: line would have; rules/trigger_match.go's granted-
-					// trigger walk (checkGrantedStaticTriggers, the granted-Ward/
-					// granted-Dethrone precedent) matches it like any other trigger
-					// and links its Execute$ from the AFFECTED object's own SVar
-					// table -- the table events.Apply's GrantTriggerPush resolves
-					// from, so the live queue and a replayed one mint the same stack
-					// object. A body that fails to parse grants nothing.
-					if name := strings.TrimSpace(st.Params["AddTrigger"]); name != "" {
-						if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
-							gt := base
-							gt.AddTrigger = &t
-							out = append(out, gt)
-						}
-					}
-					// A named-variable grant (Sword of Fire and Ice): AddSVar$ names an SVar
-					// on the granting face whose body is Forge's
-					// "SVar:<Name>:<Value>" grant shape -- the affected object GAINS
-					// that named variable while the static is live. The corpus's
-					// granted SVars are AI-evaluation hints (AE, AITap,
-					// MustBeBlocked) no rules consumer reads; the engine records the
-					// grant and resolves it through Engine.GrantedSVar, the lookup a
-					// later CheckSVar$-style consumer of the affected object's
-					// variables reads. A body in any other shape grants nothing.
-					if raw := strings.TrimSpace(st.Params["AddSVar"]); raw != "" {
-						if n, v, ok := parseSVarGrant(fc.SVars[raw]); ok {
-							gv := base
-							gv.AddSVars = map[string]string{n: v}
-							out = append(out, gv)
-						}
-					}
-					// A look-permission grant (Oracle of Mul Daya): MayLookAt$ says
-					// the affected player may look at the object the Affected$ spec
-					// matches -- in the corpus always the top card of the
-					// controller's own library (Affected$ Card.TopLibrary+YouCtrl,
-					// AffectedZone$ Library). The value names WHO may look:
-					// You/Player/True are all the static's controller in every
-					// corpus shape (73/34/1 raw lines at the pin); anything else
-					// fails closed. Consumed by Engine.MayLookAtLibraryTop, the
-					// view's reveal of that top card.
-					if raw := strings.TrimSpace(st.Params["MayLookAt"]); raw != "" {
-						if strings.EqualFold(raw, "You") || strings.EqualFold(raw, "Player") || strings.EqualFold(raw, "True") {
-							lv := base
-							lv.MayLookAt = true
-							out = append(out, lv)
-						}
-					}
-					// A control-change static (Mind Control's "You control enchanted
-					// creature", Fealty to the Realm's "The monarch controls
-					// enchanted creature"): GainControl$ on a Mode$ Continuous static
-					// hands every object the Affected$ spec matches to the player the
-					// value names, for exactly as long as the static is live. Like
-					// MayPlay it changes no characteristic, so it is carried as a
-					// rules-mod (GainControl) and realized by rules'
-					// reconcileControlStatics (rules/control_static.go): that pass
-					// registers a real tracked control grant and emits
-					// events.ControlChange only where the object's controller
-					// actually differs, and the tracked grant's liveness (grantEnded)
-					// is this scan's own output, so an ended static -- source left,
-					// gate flipped, Aura moved bearers, named player changed -- hands
-					// the bearer back through expireControl's ordinary Previous
-					// chain. The VALUE itself is not validated here (the scan cannot
-					// resolve players): resolution happens in the reconcile, where a
-					// value that names nobody -- or several players -- yields no
-					// grant, the fail-closed direction. The static's "as long as"
-					// gate (IsPresent$/CheckSVar$) already ran above for every
-					// branch. Measured corpus population (GNU /usr/bin/grep): 42 raw
-					// S:Mode$ Continuous lines carrying GainControl$, every one
-					// shaped Mode/Affected/GainControl/Description with Affected$
-					// *.EnchantedBy and the value You (41) or Player.isMonarch (1,
-					// Fealty to the Realm); none is in any repo deck, so the golden
-					// heads and the ratchet are untouched by construction.
-					if raw := strings.TrimSpace(st.Params["GainControl"]); raw != "" {
-						gc := base
-						gc.GainControl = raw
-						out = append(out, gc)
-					}
+					e.staticQueueBuf = grantQueue
 				}
-				e.staticQueueBuf = grantQueue
 			}
 		}
 	}
@@ -380,6 +409,19 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 		clear(dst[len(out):])
 	}
 	return out
+}
+
+// staticSourceZones is staticEffects' per-seat source walk, in one fixed
+// order: the battlefield (every default EffectZone$ static's zone), then the
+// non-battlefield zones a Continuous static's EffectZone$ can name. The
+// order mirrors collectCostStatics' (rules/statics.go) so the two
+// zone-scoped collectors cannot drift apart; hand and library are included
+// because Forge's EffectZone$ All statics (Chittering Illuminator's
+// may-play-from-top-of-library grant) are live there too, and the shared
+// stack is skipped for every seat after the first (see the walk).
+var staticSourceZones = []state.Zone{
+	state.ZBattlefield, state.ZStack, state.ZGraveyard,
+	state.ZHand, state.ZLibrary, state.ZExile, state.ZCommand,
 }
 
 // staticWork is one staticEffects queue entry: the static to emit and its
