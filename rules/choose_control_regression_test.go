@@ -162,6 +162,35 @@ func TestWishclawChosenPlayerGainsControl(t *testing.T) {
 	}
 }
 
+// TestSleeperAgentETBControlGoesToChosenOpponent drives Sleeper Agent's real
+// ETB (T:Mode$ ChangesZone ... Execute$ TrigGainControl: DB$ GainControl |
+// Defined$ Self | ValidTgts$ Opponent, no NewController$) end to end: the
+// ask offers the opponent, the answer binds the player on the resolution
+// ctx, and the PERMANENT changes controller -- the pre-fix engine recorded
+// the choice and handed control to nobody.
+func TestSleeperAgentETBControlGoesToChosenOpponent(t *testing.T) {
+	e := New(seatZeroStart(Config{Seed: 721, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}))
+	sleeper := e.G.AddObject(choiceCorpusCard(t, "Sleeper Agent"), 0)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: sleeper.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	e.Advance()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Sleeper ETB target ask = %+v", d)
+	}
+	idx := indexOfPlayerOption(d, 1)
+	if idx < 0 {
+		t.Fatalf("no opponent option: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	for e.Pending() != nil && e.Pending().Kind == decision.KPriority {
+		submitChoicePass(t, e)
+	}
+	if got := e.G.Obj(sleeper.ID).Controller; got != 1 {
+		t.Fatalf("Sleeper controller = %d, want 1 (the chosen opponent)", got)
+	}
+}
+
 func TestReboundTargetRestrictionOnlyOffersPlayers(t *testing.T) {
 	e := New(Config{Seed: 717, Names: []string{"a", "b"}, Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
 	spell := e.G.AddObject(card(t, "Name:Flexible\nTypes:Instant\nManaCost:R\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"), 1)
