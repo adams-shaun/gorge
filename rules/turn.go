@@ -984,6 +984,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// A Cost$ carried by a triggered effect (Mana Vault's pay-{4} untap)
 		// is paid during resolution rather than being silently ignored.
 		e.triggeredCostAnswer(chosen)
+	case chooseTriggeredMandatory:
+		// trigmand1: a `Cost$ Mandatory Sac<...>/Exile<...>` trigger body's
+		// choice-bearing component was answered. The component's picks are
+		// validated and settled; no pay/decline election is ever posed.
+		e.triggeredMandatoryAnswer(chosen)
 	case chooseEcho:
 		// kw:Echo's pay-or-sacrifice election (rules/echo.go) was answered.
 		e.echoAnswer(chosen)
