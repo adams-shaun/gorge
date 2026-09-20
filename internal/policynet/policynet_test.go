@@ -46,6 +46,7 @@ func goldenFixture() view.View {
 				Hand: []view.CardView{
 					{ID: 10, Name: "Thalia, Heretic Cathar", Types: "Creature Human", ManaCost: "1 W", Power: 2, Toughness: 1, Controller: 0, Owner: 0},
 					{ID: 11, Name: "Swords to Plowshares", Types: "Instant", ManaCost: "W", Controller: 0, Owner: 0},
+					{ID: 14, Name: "Forest", Types: "Land Basic Forest", ManaCost: "no cost", Controller: 0, Owner: 0},
 				},
 				Battlefield: []view.CardView{
 					{ID: 5, Name: "Plains", Types: "Land Basic Plains", Tapped: true, Controller: 0, Owner: 0},
@@ -96,6 +97,7 @@ var goldenRows = []struct {
 	{7364, "Island|t0|a0|s0|c-"},
 	{8208, "Thalia, Heretic Cathar|hand"},
 	{9753, "Thalia, Heretic Cathar|battlefield"},
+	{9813, "Forest|hand"},
 	{11520, "Grizzly Bears|t0|a1|s0|c-"},
 	{11589, "Grizzly Bears|battlefield-opp"},
 	{12262, "Thalia, Heretic Cathar|t0|a0|s0|cAGE=2,P1P1=1"},
@@ -218,7 +220,7 @@ func TestGoldenOptionEncoding(t *testing.T) {
 
 	opts := []decision.Option{
 		{Index: 0, Kind: "cast", Label: "Thalia, Heretic Cathar", Obj: 10, Player: 0},
-		{Index: 1, Kind: "play_land", Label: "Swords to Plowshares", Obj: 11, Player: 0},
+		{Index: 1, Kind: "play_land", Label: "Forest", Obj: 14, Player: 0},
 		{Index: 2, Kind: "pass", Label: "Pass", Player: 0},
 	}
 	// cast Thalia (a 2/1 creature in hand): kind one-hot "cast" (index 5),
@@ -232,17 +234,15 @@ func TestGoldenOptionEncoding(t *testing.T) {
 	castDense[odCostDelta] = -5 // 2 − (pool 3 + available 4)
 	castDense[odManaValue] = 2
 	landDense := make([]float32, OptionDenseWidth)
-	landDense[odCostTotal] = 1
-	landDense[odCostDelta] = -6
 	landDense[odIndex] = 0.5
-	landDense[odManaValue] = 1
+	// A real land: "no cost" prices to mana value 0, so no cost triple.
 	passDense := make([]float32, OptionDenseWidth)
 	passDense[odIndex] = 1
 	wants := []want{
 		{slots: []uint16{optKindOffset + 5, decKindOffset + 0, typeOffset + 1, colourOffset + 0, mvOffset + 2, modeOffset + 0, zoneOffset + 4 + zoneHand},
 			hashed: []uint16{7095, 8602, 3247}, dense: castDense},
-		{slots: []uint16{optKindOffset + 16, decKindOffset + 0, typeOffset + 4, colourOffset + 0, mvOffset + 1, modeOffset + 0, zoneOffset + 4 + zoneHand},
-			hashed: []uint16{8782, 11413, 154}, dense: landDense},
+		{slots: []uint16{optKindOffset + 16, decKindOffset + 0, typeOffset + 0, typeOffset + 9, mvOffset + 0, modeOffset + 0, zoneOffset + 4 + zoneHand},
+			hashed: []uint16{1188, 8823, 154}, dense: landDense},
 		{slots: []uint16{optKindOffset + 14, decKindOffset + 0, typeOffset + 11, mvOffset + 0, modeOffset + 0},
 			hashed: []uint16{15385}, dense: passDense},
 	}
@@ -522,5 +522,112 @@ func TestLoaderRejectsWrongSchema(t *testing.T) {
 func TestLoaderMissingFile(t *testing.T) {
 	if _, _, err := Load(filepath.Join(t.TempDir(), "absent.jsonl")); err == nil {
 		t.Fatal("missing corpus accepted")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Cost-parser parity and the two cost regressions the review caught.
+// ---------------------------------------------------------------------------
+
+// TestManaCostBitsMirrorsEngine pins the parser against cards.Face.ManaValue
+// semantics (cards/cmcFromManaCost) on the shapes the corpus carries: plain
+// pips, generic, X, hybrid (both the CR 202.3b and CR 202.4b rules),
+// Phyrexian, brace form, "no cost" and empty. The expected values are the
+// engine's own documented outputs, so a drift between this mirror and
+// cards/cmcFromManaCost fails here.
+func TestManaCostBitsMirrorsEngine(t *testing.T) {
+	cases := []struct {
+		cost string
+		mv   int
+		cols string // concatenated WUBRG then C bits, "" none
+	}{
+		{"", 0, ""},
+		{"no cost", 0, ""},
+		{"No Cost", 0, ""},
+		{"W", 1, "W"},
+		{"1 W", 2, "W"},
+		{"2 U U", 4, "U"},
+		{"{2}{U}{U}", 4, "U"},
+		{"X G", 1, "G"},  // {X}=0 off the stack
+		{"G/W", 1, "WG"}, // CR 202.3b: a two-colour hybrid is one
+		{"2/W", 2, "W"},  // CR 202.4b: monocolour hybrid is its generic face
+		{"2W", 2, "W"},   // concatenated monocolour hybrid
+		{"UP", 1, "U"},   // Phyrexian
+		{"5", 5, ""},
+		{"C", 1, "C"},
+	}
+	for _, c := range cases {
+		cols, mv := manaCostBits(c.cost)
+		if mv != c.mv {
+			t.Errorf("manaCostBits(%q) mv = %d, want %d", c.cost, mv, c.mv)
+		}
+		var got string
+		for _, i := range []int{0, 1, 2, 3, 4, 5} {
+			if cols[i] {
+				got += string("WUBRGC"[i])
+			}
+		}
+		if got != c.cols {
+			t.Errorf("manaCostBits(%q) colours = %q, want %q", c.cost, got, c.cols)
+		}
+	}
+}
+
+// TestActivateCostUsesOptionCost is the regression the review found: an
+// "activate" option's mana cost must come from the wire's Option.Cost (the
+// activation cost), NOT the source card's printed mana cost. A mana dork
+// with a printed cost and a bare-tap activation prices 0; an activation that
+// costs {3} prices 3 even when the card costs {1}{G}.
+func TestActivateCostUsesOptionCost(t *testing.T) {
+	v := goldenFixture()
+	// Thalia's printed cost is "1 W" (MV 2) but its activation is a bare tap
+	// (Option.Cost empty): the cost triple must be silent.
+	bare := EncodeOption(v, 0, decision.KPriority, decision.Option{Index: 0, Kind: "activate", Obj: 5, Player: 0}, 0, 1)
+	if bare.Dense[odCostTotal] != 0 || bare.Dense[odCostDelta] != 0 || bare.Dense[odTapOut] != 0 {
+		t.Fatalf("bare-tap activate cost triple = %g/%g/%g, want 0/0/0",
+			bare.Dense[odCostTotal], bare.Dense[odCostDelta], bare.Dense[odTapOut])
+	}
+	if bare.Dense[odManaValue] != 0 {
+		t.Fatalf("bare-tap activate mana value = %g, want 0 (Plains is a no-cost land)", bare.Dense[odManaValue])
+	}
+	// A printed-cost creature (Thalia, MV 2) whose activation costs {3}:
+	// the triple reads 3, not the card's 2.
+	costly := EncodeOption(v, 0, decision.KPriority, decision.Option{Index: 0, Kind: "activate", Obj: 6, Cost: "3", Player: 0}, 0, 1)
+	if costly.Dense[odCostTotal] != 3 {
+		t.Fatalf("activate costTotal = %g, want 3 (Option.Cost=3, card MV=2)", costly.Dense[odCostTotal])
+	}
+}
+
+// TestNoCostLandEncodesZero pins the "no cost" land shape end to end: a
+// Forest (ManaCost "no cost") has mana value 0 and no spurious tap-out
+// scalar, and a second copy with an empty ManaCost encodes identically.
+func TestNoCostLandEncodesZero(t *testing.T) {
+	v := goldenFixture()
+	noCost := EncodeOption(v, 0, decision.KPriority, decision.Option{Index: 0, Kind: "play_land", Obj: 14, Player: 0}, 0, 1)
+	if noCost.Dense[odManaValue] != 0 || noCost.Dense[odCostTotal] != 0 || noCost.Dense[odCostDelta] != 0 || noCost.Dense[odTapOut] != 0 {
+		t.Fatalf("no-cost land triple = mv %g total %g delta %g tapout %g, want all 0",
+			noCost.Dense[odManaValue], noCost.Dense[odCostTotal], noCost.Dense[odCostDelta], noCost.Dense[odTapOut])
+	}
+	for _, s := range noCost.Slots {
+		if s.Row >= colourOffset && s.Row < colourOffset+numColourSlots {
+			t.Fatalf("no-cost land set a colour bit (slot %d)", s.Row)
+		}
+	}
+}
+
+// TestLoaderRejectsMissingView pins the null/absent-view guard: a record
+// whose view is JSON null is a hard error, never an empty encoded state.
+func TestLoaderRejectsMissingView(t *testing.T) {
+	recs := fixtureRecords()
+	bad := recs[:1]
+	bad[0].View = []byte("null")
+	path := writeCorpus(t, bad, false)
+	if _, _, err := Load(path); err == nil {
+		t.Fatal("null view accepted")
+	}
+	bad[0].View = nil
+	path = writeCorpus(t, bad, false)
+	if _, _, err := Load(path); err == nil {
+		t.Fatal("absent view accepted")
 	}
 }

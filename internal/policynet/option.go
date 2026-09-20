@@ -356,8 +356,15 @@ func EncodeOption(v view.View, seat state.PlayerID, d decision.Kind, o decision.
 			}
 		}
 	}
+	// Cost pricing. An "activate" option's cost is the ACTIVATION cost the
+	// engine put on the wire in Option.Cost (bare taps omit it), never the
+	// source card's printed mana cost -- Llanowar Elves' tap ability costs
+	// nothing even though the card costs {G}. Only when Option.Cost is empty
+	// (every other option kind, and a bare-tap activate) does the card's own
+	// printed cost apply. This mirrors decision.Option.Cost's contract
+	// ("the activation cost of a priority-window activate option").
 	costTotal := float32(mvOf(cost))
-	if o.Kind == "activate" && cost == "" {
+	if o.Kind == "activate" {
 		costTotal = float32(mvOf(o.Cost))
 	}
 	if costTotal > 0 {
@@ -425,44 +432,132 @@ func hasTypeWord(types, word string) bool {
 	return false
 }
 
-// manaCostBits parses a Forge-notation mana cost ("1 W", "X G", "R G",
-// "G/W") into five colour booleans (WUBRG; index 5 = colourless {C}) and a
-// mana value: a digit token adds its value, an X/Y/Z token adds 0, any other
-// symbolic token adds one per '/'-separated pip. Colourless {C} is not a
-// colour bit for the five WUBRG slots; it gets its own.
+// manaBraceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
+// space-separated Forge notation this parser reads. It mirrors
+// cards.manaBraceForm exactly (cards/face.go), so a view that ever projects
+// brace-form costs is priced identically to the engine.
+var manaBraceForm = strings.NewReplacer("{", " ", "}", " ")
+
+// manaCostBits parses a Forge-notation mana cost ("1 W", "X G", "G/W",
+// "2/W", "UP") into six colour booleans (WUBRG; index 5 = colourless {C})
+// and the mana value. It is an exact mirror of the engine's canonical
+// conversion, cards/cmcFromManaCost (cards/face.go), because policynet must
+// not import rules and there is no exported entry point: the value rule is
+// repeated here, character for character, so the two cannot drift silently
+// -- and TestManaCostBitsMirrorsEngine pins the parity on the shapes the
+// corpus carries. A view's "no cost" (every land) or empty ManaCost is mana
+// value 0 with no colours, exactly as cards.Face.ManaValue reports it.
 func manaCostBits(cost string) ([6]bool, int) {
+	cost = strings.TrimSpace(manaBraceForm.Replace(cost))
 	var colours [6]bool
+	if cost == "" || strings.EqualFold(cost, "no cost") {
+		return colours, 0
+	}
 	mv := 0
 	for _, tok := range strings.Fields(cost) {
-		if n, err := strconv.Atoi(tok); err == nil {
+		// Colour bits come from the token's own colour letters: a plain pip,
+		// each '/'-separated face of a hybrid ("G/W"), or a twobrid's colour
+		// half ("2/W" -> W). X/Y/Z and pure-generic tokens carry none.
+		addColour(costTokenColours(tok), &colours)
+
+		if tok == "X" { // {X} is 0 off the stack
+			continue
+		}
+		if len(tok) == 1 && strings.ContainsRune("WUBRGC", rune(tok[0])) {
+			mv++
+			continue
+		}
+		if n, err := strconv.Atoi(tok); err == nil && n >= 0 {
 			mv += n
 			continue
 		}
-		switch tok {
-		case "X", "Y", "Z":
-			// unknown or variable — contributes 0
-		default:
-			parts := strings.Split(tok, "/")
-			for _, p := range parts {
-				switch p {
-				case "W":
-					colours[0] = true
-				case "U":
-					colours[1] = true
-				case "B":
-					colours[2] = true
-				case "R":
-					colours[3] = true
-				case "G":
-					colours[4] = true
-				case "C":
-					colours[5] = true
-				}
-				mv++
-			}
+		if v, ok := twobridManaValue(tok); ok {
+			// CR 202.4b: a monocolour hybrid's mana value is its generic
+			// face. {2/W} is mana value 2 whether it is paid with two mana
+			// or one white mana.
+			mv += v
+			continue
 		}
+		// Hybrid ("W/U"), Phyrexian ("UP"), and any other symbolic token:
+		// one generic pip.
+		mv++
 	}
 	return colours, mv
+}
+
+// costTokenColours returns the WUBRG C colour letters a mana-cost token
+// names: a plain pip ("W"), each face of a hybrid ("G/W" -> G,W), a
+// Phyrexian single colour ("UP" -> U), or a twobrid's colour half
+// ("2/W" -> W, "2W" -> W). Generic digits and X/Y/Z yield nothing.
+func costTokenColours(tok string) string {
+	var b strings.Builder
+	add := func(r rune) {
+		if strings.ContainsRune("WUBRGC", r) {
+			b.WriteRune(r)
+		}
+	}
+	if strings.ContainsRune(tok, '/') {
+		for _, p := range strings.Split(tok, "/") {
+			if len(p) == 1 {
+				add(rune(p[0]))
+			}
+		}
+		return b.String()
+	}
+	// Phyrexian: a GC/WUBRG-first, P-second spelling ("UP"); or a bare pip.
+	for i := 0; i < len(tok); i++ {
+		add(rune(tok[i]))
+	}
+	return b.String()
+}
+
+// addColour ORs a token's colour letters into the WUBRG C mask.
+func addColour(letters string, colours *[6]bool) {
+	for i := 0; i < len(letters); i++ {
+		switch letters[i] {
+		case 'W':
+			colours[0] = true
+		case 'U':
+			colours[1] = true
+		case 'B':
+			colours[2] = true
+		case 'R':
+			colours[3] = true
+		case 'G':
+			colours[4] = true
+		case 'C':
+			colours[5] = true
+		}
+	}
+}
+
+// twobridManaValue recognises Forge's concatenated ("2W") and slash
+// ("2/W") monocolour-hybrid spellings, returning the generic face — the
+// symbol's mana value. This is cards/twobridManaValue copied verbatim
+// (cards/face.go) so the two stay in lockstep; that one in turn mirrors
+// rules.ParseCost's twobrid parser without importing rules.
+func twobridManaValue(sym string) (int, bool) {
+	generic, col := "", ""
+	if left, right, ok := strings.Cut(sym, "/"); ok {
+		generic, col = left, right
+	} else {
+		i := 0
+		for i < len(sym) && sym[i] >= '0' && sym[i] <= '9' {
+			i++
+		}
+		if i == 0 {
+			return 0, false
+		}
+		generic, col = sym[:i], sym[i:]
+	}
+	if len(col) != 1 || !strings.ContainsRune("WUBRGC", rune(col[0])) {
+		return 0, false
+	}
+	v, err := strconv.Atoi(generic)
+	if err != nil || v < 0 {
+		return 0, false
+	}
+	return v, true
 }
 
 // mvOf is manaCostBits' mana-value half alone.

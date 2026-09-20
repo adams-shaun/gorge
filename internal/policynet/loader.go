@@ -2,6 +2,7 @@ package policynet
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
@@ -134,6 +135,9 @@ func Load(path string) ([]Example, Stats, error) {
 		if len(rec.Candidates) == 0 {
 			stats.Skipped++
 			continue
+		}
+		if len(rec.View) == 0 || bytes.Equal(bytes.TrimSpace(rec.View), []byte("null")) {
+			return nil, stats, fmt.Errorf("label corpus record %d: missing view", stats.Records)
 		}
 		var v view.View
 		if err := json.Unmarshal(rec.View, &v); err != nil {
