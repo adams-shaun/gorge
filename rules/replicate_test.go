@@ -146,11 +146,11 @@ func splitCSV(s string) []string {
 
 // TestReplicateChangingLoyaltyPaidOnceAttachesTheCopy is the Changing Loyalty
 // carrier (K:Replicate:2, CR 702.55a): the replicated cast option is offered,
-// the count ask is answered once, exactly one IsCopy stack object resolves on
+// the count ask is answered once, exactly one copy stack object resolves on
 // top of the original, and the copy — a permanent-spell copy — enters the
-// battlefield attached to the SAME creature the original enchants. A copy of
-// a permanent spell is a different object that resolves as itself (the
-// CR 706.10 token question is an engine-wide Storm-era gap, out of scope).
+// battlefield attached to the SAME creature the original enchants. Per
+// CR 707.10g a copy of a permanent spell becomes a token: the resolved copy
+// arrives as a token object (IsToken, not IsCopy), not a card copy.
 func TestReplicateChangingLoyaltyPaidOnceAttachesTheCopy(t *testing.T) {
 	e, cfg, _ := replicateEngine(t, "Changing Loyalty")
 	bear := castBear(t, e)
@@ -183,8 +183,12 @@ func TestReplicateChangingLoyaltyPaidOnceAttachesTheCopy(t *testing.T) {
 	copies := 0
 	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
 		c := e.G.Obj(id)
-		if c.IsCopy {
+		if id != hero && c.Face() != nil && c.Face().Name == "Changing Loyalty" {
 			copies++
+			// CR 707.10g: the copy of the permanent spell became a token.
+			if !c.IsToken || c.IsCopy {
+				t.Fatalf("copy %d: IsToken=%v IsCopy=%v, want a token", id, c.IsToken, c.IsCopy)
+			}
 			if c.AttachedTo != bear {
 				t.Fatalf("copy %d attached to %d, want the same bear %d", id, c.AttachedTo, bear)
 			}
