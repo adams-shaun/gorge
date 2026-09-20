@@ -156,6 +156,15 @@ const (
 	// emits the event, so every unrelated cast stays byte-identical.
 	// Appended per the enum's own append-only precedent.
 	FlagManaSpent
+	// FlagManaSnowSpent marks a cast whose pay-time CastInfo carries the
+	// SNOW-unit part of the total mana spent to cast it (CR 107.4h; task
+	// castfilter1's filtered Count$CastTotalManaSpent Snow capture, the
+	// FlagManaSpent pattern: the flag routes the Amount into
+	// Object.ManaSnowSpent instead of overwriting X or the unfiltered
+	// total). It rides its own trailing pay-time CastInfo immediately after
+	// FlagManaSpent's, so the two totals never share an event. Appended per
+	// the enum's own append-only precedent.
+	FlagManaSnowSpent
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -321,6 +330,18 @@ type Object struct {
 	// alongside them in events.Move; a copy of the spell was never cast and
 	// a cheated-in permanent reads 0.
 	ManaSpent int32
+	// ManaSnowSpent is the SNOW-unit part of ManaSpent: how many of the mana
+	// units the cast's payment spent were produced by a Snow permanent (CR
+	// 107.4h). It is carried by the pay-time CastInfo's FlagManaSnowSpent
+	// Amount (the X-overwrite guard: the flag routes the Amount here instead
+	// of into X), the filtered Count$CastTotalManaSpent Snow head's
+	// provenance. Snow units are consumed alongside their pool slot
+	// (resolveManaWith's parallel tally), so this never exceeds ManaSpent for
+	// the same slot; a cast that spent no snow mana is a real 0. It rides the
+	// same provenance window as ManaSpent and resets alongside it in
+	// events.Move; a copy of the spell was never cast and a cheated-in
+	// permanent reads 0.
+	ManaSnowSpent int32
 	// NotedNumber is the number a trigger's Execute$ body noted onto the
 	// CARD (Lupine Harbingers' T:Mode$ ChangesZone | Destination$ Exile
 	// trigger executing DB$ Pump | NoteNumber$ Count$YourTurns -- the

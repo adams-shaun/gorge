@@ -1043,6 +1043,8 @@ func Apply(g *state.Game, e Event) {
 				o.ReplicateTimes = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
 				o.TimesKicked = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaSnowSpent != 0:
+				o.ManaSnowSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaSpent != 0:
 				o.ManaSpent = e.Amount
 			default:
@@ -1842,6 +1844,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.ManaSpent = 0
+			o.ManaSnowSpent = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
@@ -1867,6 +1870,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.ManaSpent = 0
+			o.ManaSnowSpent = 0
 			o.NotedNumber = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or

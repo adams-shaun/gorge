@@ -128,9 +128,14 @@ type pendingCast struct {
 	// manaSpentOn is the heads-safety gate (faceWantsCastSpend): the pay-time
 	// CastInfo is emitted ONLY for a face whose SVar table reads the
 	// Count$CastTotalManaSpent head, so no game that casts no such card
-	// changes an event. Plain data, so Clone copies it like converge.
-	manaSpentOn bool
-	manaSpent   int32
+	// changes an event. manaSpentSnow (task castfilter1) is the SNOW-unit part
+	// of that same payment (CR 107.4h), the filtered
+	// Count$CastTotalManaSpent Snow form the six Snow carriers read; it rides
+	// the same emission gate, so the two totals never share an event. Plain
+	// data, so Clone copies it like converge.
+	manaSpentOn   bool
+	manaSpent     int32
+	manaSpentSnow int32
 
 	sacs    []state.ObjID
 	sacPart int
@@ -4908,7 +4913,7 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		ok, _, spentMana := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
+		ok, _, spentMana, _ := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
 		if !ok {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
@@ -5093,7 +5098,7 @@ func (e *Engine) payCast() {
 	if mana.Generic < 0 {
 		mana.Generic = 0
 	}
-	paid, spentMana := e.payManaCastSpent(pc, mana)
+	paid, spentMana, spentSnow := e.payManaCastSpent(pc, mana)
 	if !paid {
 		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
@@ -5116,6 +5121,7 @@ func (e *Engine) payCast() {
 	if f := e.G.Obj(pc.card).Face(); faceWantsCastSpend(f) {
 		pc.manaSpentOn = true
 		pc.manaSpent = manaSpentTotal(spentMana)
+		pc.manaSpentSnow = manaSpentTotal(spentSnow)
 	}
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
@@ -5314,6 +5320,16 @@ func (e *Engine) payCast() {
 	if pc.manaSpentOn {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSpent)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpent, Counter: flags})
+		// The SNOW-unit part of that same spend (task castfilter1) rides its
+		// own trailing CastInfo: the flag routes the Amount into
+		// Object.ManaSnowSpent, so it never clobbers the unfiltered total the
+		// event just set (the converge/multikick two-event split, applied one
+		// step further). Emitted unconditionally alongside the total -- a cast
+		// that spent no snow mana is a real zero, not an absent one -- so the
+		// filtered Count$CastTotalManaSpent Snow read is exact for the six
+		// Snow carriers without a second gate.
+		snowFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSnowSpent)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpentSnow, Counter: snowFlags})
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for.
