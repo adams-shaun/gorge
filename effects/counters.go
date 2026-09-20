@@ -14,6 +14,7 @@ func init() {
 	Register("PutCounter", effPutCounter)
 	Register("PutCounterAll", effPutCounterAll)
 	Register("RemoveCounterAll", effRemoveCounterAll)
+	Register("RemoveCounter", effRemoveCounter)
 	Register("MultiplyCounter", effMultiplyCounter)
 	Register("Regenerate", effRegenerate)
 }
@@ -857,6 +858,186 @@ func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: -amt})
 		}
 	}
+}
+
+// effRemoveCounter is Forge's RemoveCounterEffect: for each object or player
+// the Defined$ spec names (an ability with no Defined$ acts on its chosen
+// targets through Ctx.Targets; one that names neither acts on its source --
+// the ordinary Defined contract), remove CounterNum$ counters of CounterType$
+// from it. The corpus shape is overwhelmingly the chained DB$ sub-ability
+// (178 of 202 raw RemoveCounter lines), Self-dominated: Prize Pig's
+// "remove those counters and untap it" payoff is the pin.
+//
+// CounterNum$ resolves through the shared Num evaluator (a literal, an SVar
+// name such as the corpus's X/Y/SekkiX/Result/NumDmg, or an inline Count$);
+// "All" means every counter of that kind the object actually has -- the
+// AllCounters$ discipline effRemoveCounterAll uses, reading the count first
+// so the event's Amount never overstates. A literal n over an object holding
+// fewer also clamps to what is there (state.Object.AddCounter clamps at zero
+// either way; emitting -n would overstate). One events.CounterChange with a
+// signed negative Amount per (object, kind); an object with none of the kind
+// emits nothing (the zero-batch no-op discipline both siblings follow).
+//
+// CounterType$ All means EVERY kind the object holds, in its own
+// deterministic slice order (the counterKinds helper this file already
+// shares with MultiplyCounter), one CounterChange per kind present.
+//
+// RememberRemoved$ True records one remembered entry per removed counter on
+// the source's persistent (event-backed) remembered list -- one Choose
+// "remembered" event per (object, kind) batch, the object's id repeated once
+// per removed counter, so Count$RememberedSize (the HOST CARD's list,
+// effects/count.go) reads the truthful size. Prize Pig's untap gate is
+// ConditionCheckSVar$ X with SVar:X:Count$RememberedSize, so this rider is
+// load-bearing for it. Duplicates are deliberate: the only consumer measured
+// for this rider is a size count (and Cleanup's ClearRemembered$ clears the
+// list again), so one entry per counter is the honest encoding.
+//
+// Exotic shapes stay LOUD (the effPutCounterAll exotic pattern -- one Note
+// naming the shape, nothing moves): CounterType$ Any (a choose-which-kind
+// ask), Choices$/ChoiceOptional$ (a mid-resolution pick), UpTo$ (a bounded
+// election), CounterNum$ Any, CounterNumShared$, a TgtZone$ naming anything
+// but the battlefield (the suspended-TIME-counter family), RememberAmount$
+// (a removed NUMBER the remembered list has no honest channel for) and
+// Optional$ (a may-remove election). Registering the API removed the generic
+// "unimplemented API" fallback, so without these notes the shapes would
+// silently remove nothing.
+func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
+	var exotic []string
+	if strings.EqualFold(strings.TrimSpace(sa.Params["CounterType"]), "Any") {
+		exotic = append(exotic, "CounterType$ Any")
+	}
+	if strings.TrimSpace(sa.Params["Choices"]) != "" || strings.TrimSpace(sa.Params["ChoiceOptional"]) != "" {
+		exotic = append(exotic, "Choices$")
+	}
+	if strings.TrimSpace(sa.Params["UpTo"]) != "" {
+		exotic = append(exotic, "UpTo$")
+	}
+	if strings.EqualFold(strings.TrimSpace(sa.Params["CounterNum"]), "Any") {
+		exotic = append(exotic, "CounterNum$ Any")
+	}
+	if strings.TrimSpace(sa.Params["CounterNumShared"]) != "" {
+		exotic = append(exotic, "CounterNumShared$")
+	}
+	if zone := strings.TrimSpace(sa.Params["TgtZone"]); zone != "" && !strings.EqualFold(zone, "Battlefield") {
+		exotic = append(exotic, "TgtZone$ "+zone)
+	}
+	if strings.EqualFold(strings.TrimSpace(sa.Params["RememberAmount"]), "True") {
+		exotic = append(exotic, "RememberAmount$")
+	}
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
+		exotic = append(exotic, "Optional$")
+	}
+	if len(exotic) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented RemoveCounter shape: " + strings.Join(exotic, ", ")})
+		return
+	}
+	kind := strings.TrimSpace(sa.Params["CounterType"])
+	if kind == "" {
+		kind = "P1P1"
+	}
+	allKinds := strings.EqualFold(kind, "All")
+	numAll := false
+	n := int32(1)
+	if raw := strings.TrimSpace(sa.Params["CounterNum"]); raw != "" {
+		if strings.EqualFold(raw, "All") {
+			numAll = true
+		} else {
+			n = Num(h, c, sa, "CounterNum", 1)
+			if n < 0 {
+				n = 0
+			}
+		}
+	}
+	kindArg := kind
+	if allKinds {
+		kindArg = "" // counterKinds: every kind the carrier holds
+	}
+	g := h.Game()
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			p := PlayerOf(h, c, t)
+			if int(p) < 0 || int(p) >= len(g.Players) {
+				continue
+			}
+			pl := &g.Players[p]
+			for _, k := range dedupeKinds(counterKinds(kindArg, len(pl.Counters), func(i int) string { return pl.Counters[i].Kind })) {
+				count := pl.Counter(k)
+				amt := n
+				if numAll {
+					amt = count
+				}
+				removed := amt
+				if removed > count {
+					removed = count
+				}
+				if removed <= 0 {
+					continue
+				}
+				h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p, Counter: k, Amount: -removed})
+				rememberRemoved(h, c, sa, state.PlayerRef(p), removed)
+			}
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		for _, k := range dedupeKinds(counterKinds(kindArg, len(o.Counters), func(i int) string { return o.Counters[i].Kind })) {
+			count := o.Counter(k)
+			amt := n
+			if numAll {
+				amt = count
+			}
+			removed := amt
+			if removed > count {
+				removed = count
+			}
+			if removed <= 0 {
+				continue
+			}
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: -removed})
+			rememberRemoved(h, c, sa, o.ID, removed)
+		}
+	}
+}
+
+// dedupeKinds preserves first-occurrence order and drops repeats, so a
+// carrier whose Counters slice ever holds the same kind twice emits one
+// CounterChange per kind, never two.
+func dedupeKinds(kinds []string) []string {
+	if len(kinds) < 2 {
+		return kinds
+	}
+	seen := make(map[string]bool, len(kinds))
+	out := kinds[:0]
+	for _, k := range kinds {
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		out = append(out, k)
+	}
+	return out
+}
+
+// rememberRemoved records RememberRemoved$'s persistent half: one Choose
+// "remembered" event on the source object with the removed-from object's id
+// repeated once per removed counter (events.Apply appends each id, so the
+// source's event-backed Remembered -- Count$RememberedSize's read -- grows by
+// exactly the removed count). A player entry rides the PlayerRef encoding
+// rememberedFrom decodes. The ctx-level list is deliberately NOT touched:
+// the only consumer measured for this rider reads the persistent list, and a
+// ctx append would widen a chained Defined$ Remembered reader for free.
+func rememberRemoved(h Host, c *Ctx, sa *cards.SA, id state.ObjID, removed int32) {
+	if !strings.EqualFold(strings.TrimSpace(sa.Params["RememberRemoved"]), "True") || c.Source == 0 {
+		return
+	}
+	ids := make([]state.ObjID, 0, removed)
+	for i := int32(0); i < removed; i++ {
+		ids = append(ids, id)
+	}
+	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered", IDs: ids})
 }
 
 // effRegenerate grants a this-turn shield consumed by ReplaceDestruction.

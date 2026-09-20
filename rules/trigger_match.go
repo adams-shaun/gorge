@@ -1512,6 +1512,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.drawnMatches(t, source, ev)
 	case "LifeLost", "LifeLostAll":
 		matched = e.lifeLostMatches(t, source, ev)
+	case "LifeGained":
+		matched = e.lifeGainedMatches(t, source, ev)
 	case "BecomesTarget":
 		matched = e.becomesTargetMatches(t, source, ev)
 	case "LandPlayed":
@@ -3044,6 +3046,35 @@ func (e *Engine) lifeLostMatches(t cards.Trigger, source state.ObjID, ev events.
 	return true
 }
 
+// lifeGainedMatches implements Mode$ LifeGained ("whenever you gain life",
+// 99 raw corpus carrier files over 91 blocked cards; Prize Pig's ribbon
+// payoff is the pin): the event is a LifeChange with a POSITIVE Amount.
+// Damage can only lower life, so unlike LifeLost there is no damage arm --
+// a Damage event never gains life. ValidPlayer$ names the gainer (the same
+// MatchesPlayerSpec read lifeLostMatches uses); ValidAmountEach$ and
+// LifeAmount$ compare the gained magnitude the same way their LifeLost
+// twins do (On LifeGained, LifeAmount$ is likewise the amount just gained).
+func (e *Engine) lifeGainedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.LifeChange || ev.Amount <= 0 {
+		return false
+	}
+	p := ev.Player
+	if int(p) < 0 || int(p) >= len(e.G.Players) {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidPlayer"]; ok && !effects.MatchesPlayerSpec(e.G, v, p, ctrl) {
+		return false
+	}
+	if v, ok := t.Params["ValidAmountEach"]; ok && !compareLife(ev.Amount, v) {
+		return false
+	}
+	if v := t.Params["LifeAmount"]; v != "" && !compareLife(ev.Amount, v) {
+		return false
+	}
+	return true
+}
+
 // lifeLossCauseMatches recognizes the spell/ability cause grammar carried by
 // LifeLost triggers. Events intentionally do not encode an extra source field,
 // so a synchronous trigger read uses the Engine's in-flight resolving source;
@@ -3970,6 +4001,7 @@ func init() {
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
+		"trig:LifeGained",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
 		"trig:Explores", "trig:Exerted",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",

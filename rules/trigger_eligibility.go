@@ -169,6 +169,8 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.Draw
 	case "LifeLost":
 		return 1<<events.Damage | 1<<events.LifeChange
+	case "LifeGained":
+		return 1 << events.LifeChange
 	case "Phase":
 		return 1 << events.StepChange
 	default:
