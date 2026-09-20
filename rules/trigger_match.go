@@ -2836,6 +2836,35 @@ func (e *Engine) firstCardInDrawStep(p state.PlayerID) bool {
 	return false
 }
 
+// pendingDrawIsFirstInDrawStep reports whether a Draw about to be logged for
+// p is the first p draws since this turn entered its draw step. It is the
+// pre-emit twin of firstCardInDrawStep: replacement matching runs from
+// Engine.emit BEFORE the proposed Draw is appended to e.L.Events, so the
+// pending event itself is the "next" draw (draw count 0) rather than a
+// logged one (draw count 1). It requires p to be the ACTIVE player as well,
+// because the exempt draw CR 504.1 grants is that player's own turn-based
+// draw: a non-active player drawing during someone else's draw step is not
+// the first one they draw in each of their own draw steps, so Notion Thief
+// and Hullbreacher must still replace it. firstCardInDrawStep deliberately
+// omits that active-player test (a trigger reads whoever drew); the two
+// cannot share a body, so they are kept adjacent with identical log-scan
+// shapes to stop the pair drifting.
+func (e *Engine) pendingDrawIsFirstInDrawStep(p state.PlayerID) bool {
+	if e.G.Step != state.StepDraw || p != e.G.Active {
+		return false
+	}
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.Draw && ev.Player == p {
+			return false
+		}
+		if ev.Kind == events.StepChange {
+			return ev.Step == state.StepDraw
+		}
+	}
+	return false
+}
+
 // lifeLoss names the player and positive magnitude of an event that lowers a
 // player's life total. Damage to a player and a negative LifeChange are both
 // loss of life; damage to an object is not.

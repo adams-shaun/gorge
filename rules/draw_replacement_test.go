@@ -166,3 +166,113 @@ func TestZursWeirdingNonReplacedPlayerDeclines(t *testing.T) {
 		t.Fatalf("draw delta = %d, want 1 (the WhenNotPaid sub drew)", got)
 	}
 }
+
+// TestNotionThiefExemptsTheDrawStepDraw is the leaf for
+// NotFirstCardInDrawStep$ True: CR 504.1's turn-based draw is exactly the
+// first card the active player draws in their own draw step, so Notion Thief
+// ("except the first one they draw in each of their draw steps") must NOT
+// replace it. Before the gate this was the whole defect: the pending Draw
+// was matched with no notion of the draw step, the opponent's turn-based draw
+// was consumed, and seat 0 drew the card instead.
+func TestNotionThiefExemptsTheDrawStepDraw(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 743)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Notion Thief"))
+
+	// Seat 1 takes turn 2; drive into its draw step. The turn-based draw is a
+	// turn-based action on step entry, so it has already been proposed (and,
+	// before the fix, stolen) by the time we arrive.
+	driveToStep(t, e, 2, 1, state.StepUpkeep)
+	hand1 := len(e.G.Zone(state.ZHand, 1))
+	lib1 := len(e.G.Zone(state.ZLibrary, 1))
+	hand0 := len(e.G.Zone(state.ZHand, 0))
+	driveToStep(t, e, 2, 1, state.StepDraw)
+
+	if got := len(e.G.Zone(state.ZHand, 1)) - hand1; got != 1 {
+		t.Fatalf("seat1 hand delta over its draw step = %d, want 1 (the exempt turn-based draw)", got)
+	}
+	if got := len(e.G.Zone(state.ZLibrary, 1)) - lib1; got != -1 {
+		t.Fatalf("seat1 library delta over its draw step = %d, want -1", got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand0; got != 0 {
+		t.Fatalf("seat0 hand delta = %d, want 0 (Notion Thief must not steal the first draw)", got)
+	}
+}
+
+// TestNotionThiefRedirectsExtraDrawInDrawStep is the other half: a SECOND
+// draw in the same draw step is an extra draw, so it is still fully replaced
+// ("instead that player skips that draw and you draw a card").
+func TestNotionThiefRedirectsExtraDrawInDrawStep(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 743)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Notion Thief"))
+
+	driveToStep(t, e, 2, 1, state.StepDraw)
+	if e.G.Step != state.StepDraw {
+		t.Fatalf("step = %s, want the draw step", e.G.Step)
+	}
+	hand1 := len(e.G.Zone(state.ZHand, 1))
+	hand0 := len(e.G.Zone(state.ZHand, 0))
+	// The extra draw: a Draw for seat 1 emitted while still in seat 1's draw
+	// step. This is the second draw of the step, so Notion Thief replaces it.
+	emitDraw(t, e, 1)
+
+	if got := len(e.G.Zone(state.ZHand, 1)) - hand1; got != 0 {
+		t.Fatalf("seat1 hand delta for the replaced extra draw = %d, want 0", got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand0; got != 1 {
+		t.Fatalf("seat0 hand delta for the replaced extra draw = %d, want 1 (Notion Thief's controller draws)", got)
+	}
+}
+
+// TestNotFirstCardInDrawStepDoesNotOverRestrict is the over-reach guard: the
+// gate is keyed on the draw step, so a Draw outside any draw step is an extra
+// draw and must still be replaced. stealEngine sits at Main 1, so the
+// existing emitDraw helper runs there.
+func TestNotFirstCardInDrawStepDoesNotOverRestrict(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 743)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Notion Thief"))
+	if e.G.Step == state.StepDraw {
+		t.Fatal("precondition: expected to be outside the draw step at Main 1")
+	}
+
+	hand1 := len(e.G.Zone(state.ZHand, 1))
+	hand0 := len(e.G.Zone(state.ZHand, 0))
+	emitDraw(t, e, 1)
+
+	if got := len(e.G.Zone(state.ZHand, 1)) - hand1; got != 0 {
+		t.Fatalf("seat1 hand delta = %d, want 0 (outside the draw step the draw is replaced)", got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand0; got != 1 {
+		t.Fatalf("seat0 hand delta = %d, want 1", got)
+	}
+}
+
+// TestNotFirstCardInDrawStepOnlyExemptsTheActivePlayersDraw pins the
+// active-player half of the gate, which firstCardInDrawStep (the trigger
+// helper) does NOT require. Teferi's Ageless Insight replaces "you would draw
+// a card except the first one you draw in each of YOUR draw steps"
+// (ValidPlayer$ You), so during seat 1's own draw step a Draw for the
+// NON-active seat 0 is not in seat 0's own draw step and must still be
+// replaced -- with "draw two cards instead". Were the gate to follow the
+// trigger helper and drop p == e.G.Active, seat 0's draw would be wrongly
+// exempted and it would draw only one.
+func TestNotFirstCardInDrawStepOnlyExemptsTheActivePlayersDraw(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 743)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Teferi's Ageless Insight"))
+
+	// Seat 1's own turn-2 draw step (seat 0 started): seat 1 active.
+	driveToStep(t, e, 2, 1, state.StepDraw)
+	if e.G.Step != state.StepDraw || e.G.Active != 1 {
+		t.Fatalf("precondition: step=%s active=%d, want draw step with seat 1 active", e.G.Step, e.G.Active)
+	}
+	hand0 := len(e.G.Zone(state.ZHand, 0))
+	// A Draw for the NON-active seat 0 during seat 1's draw step is an extra
+	// draw for seat 0, so it is replaced by "draw two instead".
+	emitDraw(t, e, 0)
+	if got := len(e.G.Zone(state.ZHand, 0)) - hand0; got != 2 {
+		t.Fatalf("seat0 hand delta = %d, want 2 (the non-active draw must be replaced by draw-two)", got)
+	}
+}
