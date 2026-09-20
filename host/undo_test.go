@@ -806,19 +806,19 @@ func TestUndoStreamReceivesRewindThenConsistentFrames(t *testing.T) {
 	answerOnce(t, r, "t1")
 	waitIntents(t, r, "t1", 3)
 
-	// Drain everything so far and find the highest seq announced.
-	highest := uint64(0)
-drain:
-	for {
-		select {
-		case f := <-frames:
-			if f.Seq > highest {
-				highest = f.Seq
-			}
-		default:
-			break drain
-		}
-	}
+	// The pre-undo head, read from the live match under its lock. The
+	// subscriber's frame pump is asynchronous, so a non-blocking drain of
+	// the stream cannot serve as the measure: under load the drain samples
+	// before the last answer's event frames reach the channel, and the
+	// assertion then compared the rewind head against a stale maximum
+	// (sporadic "rewound head 36 is not below the pre-undo head 36" in
+	// full-module gate runs). Rewind snapshots carry fanout.go's head()
+	// — len(events)-1 — so this is the same measure, race-free, and the
+	// comparison is strictly stronger than the drained maximum ever was.
+	mm := liveMatch(t, r, "t1")
+	mm.mu.RLock()
+	preUndoHead := head(mm)
+	mm.mu.RUnlock()
 	if err := r.Undo("t1", 1, 0); err != nil {
 		t.Fatalf("Undo: %v", err)
 	}
@@ -835,8 +835,8 @@ drain:
 					t.Fatalf("rewind body: %v", err)
 				}
 				newHead = snap.Head
-				if newHead >= highest {
-					t.Fatalf("rewound head %d is not below the pre-undo head %d", newHead, highest)
+				if newHead >= preUndoHead {
+					t.Fatalf("rewound head %d is not below the pre-undo head %d", newHead, preUndoHead)
 				}
 				if len(snap.View.Players) == 0 {
 					t.Fatal("rewind snapshot carries no board")
