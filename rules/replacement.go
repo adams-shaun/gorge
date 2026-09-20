@@ -133,10 +133,11 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		}
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
-			if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) {
+			if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
-					chosen: ce.ChosenNumber,
-					key:    "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+					rememberedPlayers: ce.RememberedPlayers,
+					chosen:            ce.ChosenNumber,
+					key:               "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
 		} else if ce.ReplacementBody == "" && (strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Layer"]), "CantHappen") ||
 			(event == "DamageDone" && strings.EqualFold(ce.ReplacementParams["Prevent"], "True"))) {
@@ -151,9 +152,10 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			// (applyNonMoveReplacements' Prevent$ arm) exactly as a printed R:
 			// line's would be.
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
-			if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) {
+			if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
-					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+					rememberedPlayers: ce.RememberedPlayers,
+					key:               "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
 		}
 	}
@@ -282,7 +284,7 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 		// re-gated on ActiveZones$.
 		matched := false
 		if m.key != "" {
-			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered)
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers)
 		} else {
 			matched = e.replacementMatches(*m.repl, m.id, ev)
 		}
@@ -371,7 +373,7 @@ func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMat
 		// DamageDone replacement the scan just admitted (Taii Wakeen).
 		matched := false
 		if m.key != "" {
-			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered)
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers)
 		} else {
 			matched = e.replacementMatches(*m.repl, m.id, ev)
 		}
@@ -412,6 +414,12 @@ type replMatch struct {
 	// its IsRemembered specs exactly as the initial match did. Printed
 	// replacements never carry one.
 	remembered []state.ObjID
+	// rememberedPlayers is the player half of the same capture
+	// (state.ContinuousEffect.RememberedPlayers): a prevention shield's
+	// player recipients (effects' PreventDamage) scope their match by it
+	// through rules' damageReplacementMatches, the one damage gate that can
+	// see it. Printed replacements never carry one.
+	rememberedPlayers []state.PlayerID
 	// chosen carries the Effect-created replacement's SetChosenNumber$ binding
 	// (state.ContinuousEffect.ChosenNumber, task wildgrowth1): the number the
 	// Effect resolved at creation, which replCtx threads into the body Ctx so
@@ -525,6 +533,11 @@ func (e *Engine) applyReplaceDamageBody(ev *events.Event, m replMatch) bool {
 	e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
 		Amount: prevented,
 		Text:   who + " prevented " + strconv.Itoa(int(prevented)) + " of the damage"})
+	// The shield bookkeeping (effects' PreventDamage registration): deplete
+	// the matched shield's pool by what this application prevented and run
+	// its registered PreventionSubAbility$ rider. A PRINTED ReplaceDamage
+	// body (Thunderstaff) carries no pool and no rider: m.key is empty.
+	e.applyReplaceDamageTail(m, prevented, ev)
 	// Obj carries the damaged object (0 for a player hit) like the full-
 	// prevention arm's Note above, not the preventing source: the log text
 	// names the preventer, and Mode$ DamagePreventedOnce triggers key their
@@ -532,6 +545,145 @@ func (e *Engine) applyReplaceDamageBody(ev *events.Event, m replMatch) bool {
 	// before dponce1 and zero prevention-text events are logged in the
 	// golden-shape games, so the field's presence is stream-neutral there.)
 	return ev.Amount <= 0
+}
+
+// applyReplaceDamageTail is the bookkeeping an Effect-created prevention
+// shield owes after one application (a printed ReplaceDamage body carries no
+// pool and no rider and never reaches here -- m.key is empty):
+//
+//   - DEPLETION: "prevent the next N" is a total across events (CR 615), so
+//     the matched shield's ChosenNumber pool — the binding its body's
+//     Amount$ Count$ChosenNumber reads both at match time and at application
+//     time — is decremented by what this application prevented, and the
+//     shield is dropped from the registry the moment the pool is spent. The
+//     mutation is engine-runtime (like every ContinuousEffect field),
+//     deterministic, and rebuilt identically by replay's re-execution; the
+//     continuousVersion bump keeps active()'s cache honest for the CR 616.1e
+//     rechecks the same emit may still run.
+//
+//   - THE RIDER: a shield registered with PreventionSubAbility$ (Acolyte's
+//     Reward, Vengeful Archon) runs that sub once per application, with the
+//     amount this application prevented bound as NumDmg$ PreventedDamage and
+//     the parent SA's targets (ShieldEffectTarget$ ParentTarget) bound as
+//     the resolution's Remembered list (the sub's Defined$ ShieldEffectTarget
+//     is rewritten to the known Remembered selector). The sub runs inside
+//     the replacement re-entrancy guard, so its own emissions (the
+//     retribution DealDamage) are ordinary events: replacements and triggers
+//     see them, and a shield scoped to the rider's own recipient terminates
+//     because the pool it just spent does not refill.
+func (e *Engine) applyReplaceDamageTail(m replMatch, prevented int32, ev *events.Event) {
+	if m.key == "" || prevented <= 0 {
+		return
+	}
+	source, ts, ok := parseEffectKey(m.key)
+	if !ok {
+		return
+	}
+	rider := ""
+	var objs []state.ObjID
+	var players []state.PlayerID
+	idx := -1
+	for i := range e.continuous {
+		ce := &e.continuous[i]
+		if ce.Source != source || ce.Timestamp != ts || ce.ReplacementEvent != "DamageDone" ||
+			!strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["PreventionShield"]), "True") {
+			continue
+		}
+		idx = i
+		ce.ChosenNumber -= prevented
+		rider = strings.TrimSpace(ce.ReplacementParams["PreventionSubAbility"])
+		objs = append([]state.ObjID(nil), ce.ShieldTargets...)
+		players = append([]state.PlayerID(nil), ce.ShieldTargetPlayers...)
+		break
+	}
+	if idx < 0 {
+		return
+	}
+	if e.continuous[idx].ChosenNumber <= 0 {
+		e.continuous = append(e.continuous[:idx], e.continuous[idx+1:]...)
+	}
+	e.continuousVersion++
+	if rider == "" {
+		return
+	}
+	e.runPreventionShieldRider(m, rider, objs, players, prevented, ev)
+}
+
+// runPreventionShieldRider resolves one PreventionSubAbility$ application.
+// Only the corpus's DB$ DealDamage rider is resolved (both carriers:
+// Acolyte's Retribution, Archon's Vengeance); any other API is loud and the
+// shield's prevention itself stands.
+func (e *Engine) runPreventionShieldRider(m replMatch, name string,
+	objs []state.ObjID, players []state.PlayerID, prevented int32, ev *events.Event) {
+	f := m.face
+	if f == nil {
+		if o := e.G.Obj(m.id); o != nil {
+			f = o.Face()
+		}
+	}
+	if f == nil {
+		e.emit(events.Event{Kind: events.Note, Obj: m.id,
+			Text: "unimplemented PreventionSubAbility$ " + name + " (source face gone)"})
+		return
+	}
+	sub := cards.ResolveSVar(f.SVars, name)
+	if sub == nil {
+		e.emit(events.Event{Kind: events.Note, Obj: m.id,
+			Text: "unimplemented PreventionSubAbility$ " + name + " (SVar unresolved)"})
+		return
+	}
+	if sub.API != "DealDamage" {
+		e.emit(events.Event{Kind: events.Note, Obj: m.id,
+			Text: "unimplemented PreventionSubAbility$ " + name + " (" + sub.API + ")"})
+		return
+	}
+	// ResolveSVar parses fresh on every call, so the rewrite below cannot
+	// corrupt a shared parsed graph; the copy keeps that guarantee explicit.
+	rsub := *sub
+	rsub.Params = make(map[string]string, len(sub.Params))
+	for k, v := range sub.Params {
+		rsub.Params[k] = v
+	}
+	if strings.TrimSpace(rsub.Params["NumDmg"]) == "PreventedDamage" {
+		rsub.Params["NumDmg"] = strconv.Itoa(int(prevented))
+	}
+	if strings.TrimSpace(rsub.Params["Defined"]) == "ShieldEffectTarget" {
+		rsub.Params["Defined"] = "Remembered"
+	}
+	ctx := e.replCtx(m, *ev)
+	ctx.Remembered = nil
+	for _, id := range objs {
+		ctx.Remembered = append(ctx.Remembered, state.Target{Obj: id})
+	}
+	for _, p := range players {
+		ctx.Remembered = append(ctx.Remembered, state.Target{Player: p, IsPlayer: true})
+	}
+	// The rider's own emissions are ordinary events; nil ev (no action
+	// marker, no held-event rewrite surface) keeps them from reading the
+	// damage event this shield was applying to.
+	e.runReplaceWith(ctx, ev.Obj, &rsub, nil)
+}
+
+// parseEffectKey splits a replMatch's effect-created key
+// ("effect:<source>:<timestamp>") back into its parts.
+func parseEffectKey(key string) (state.ObjID, uint32, bool) {
+	rest, ok := strings.CutPrefix(key, "effect:")
+	if !ok {
+		return 0, 0, false
+	}
+	src, ts, ok := strings.Cut(rest, ":")
+	if !ok {
+		return 0, 0, false
+	}
+	id, err := strconv.ParseUint(src, 10, 32)
+	if err != nil {
+		return 0, 0, false
+	}
+	stamp, err := strconv.ParseUint(ts, 10, 32)
+	if err != nil {
+		return 0, 0, false
+	}
+	return state.ObjID(id), uint32(stamp), true
 }
 
 // replacementBodySA turns the body retained by an Effect-created replacement
@@ -1215,7 +1367,7 @@ func (e *Engine) continuePlanarRollReplacements(ev events.Event, matches []replM
 		// used — an Effect-created match is never re-gated on ActiveZones$.
 		matched := false
 		if m.key != "" {
-			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered)
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers)
 		} else {
 			matched = e.replacementMatches(*m.repl, m.id, ev)
 		}
@@ -1356,7 +1508,7 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, scrip
 	// collection admitted, the same discipline remainingDamageReplacements
 	// and counterReplacementMatchesAll follow.
 	if m.key != "" {
-		if !e.replacementMatchesEffectCreated(*m.repl, m.id, mint, m.remembered) {
+		if !e.replacementMatchesEffectCreated(*m.repl, m.id, mint, m.remembered, m.rememberedPlayers) {
 			return false
 		}
 	} else if !e.replacementMatches(*m.repl, m.id, mint) {
@@ -1494,7 +1646,7 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 // value this build cannot evaluate, the same contract filter.go's matcher
 // gives card filters.
 func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
-	return e.replacementMatchesRemembered(r, source, ev, nil)
+	return e.replacementMatchesRemembered(r, source, ev, nil, nil)
 }
 
 // replacementMatchesRemembered is replacementMatches with an optional
@@ -1505,11 +1657,11 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 // that set still lives. Printed R: lines pass nil and never see a remembered
 // binding; a spec carrying IsRemembered against an empty set fails closed,
 // the matcher's standing contract.
-func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID) bool {
+func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	if !e.activeZonesGateOK(r, source, ev) {
 		return false
 	}
-	return e.replacementMatchesRememberedUngated(r, source, ev, remembered)
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers)
 }
 
 // activeZonesGateOK is the ActiveZones$ zone gate the PRINTED replacement
@@ -1562,14 +1714,14 @@ func (e *Engine) activeZonesGateOK(r cards.Repl, source state.ObjID, ev events.E
 // registration in the continuous registry with the source on the battlefield
 // — gating on the source's zone would permanently silence every one of them
 // (task wildgrowth1). active() still ends the effect on its own lifetime.
-func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID) bool {
-	return e.replacementMatchesRememberedUngated(r, source, ev, remembered)
+func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers)
 }
 
 // replacementMatchesRememberedUngated is replacementMatchesRemembered's
 // predicate body without the ActiveZones$ gate; only the two wrappers above
 // reach it.
-func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID) bool {
+func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	you := e.controllerOf(source)
 	switch r.Event {
 	case "Counter":
@@ -1721,7 +1873,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		}
 		return e.replacementConditionHolds(r, source, you)
 	case "DamageDone":
-		if ev.Kind != events.Damage || !e.damageReplacementMatches(r, source, ev) {
+		if ev.Kind != events.Damage || !e.damageReplacementMatches(r, source, ev, remembered, rememberedPlayers) {
 			return false
 		}
 		if v, ok := r.Params["ValidCard"]; ok &&
@@ -1940,9 +2092,37 @@ func (e *Engine) replacementConditionHolds(r cards.Repl, source state.ObjID, you
 
 // damageReplacementMatches applies the damage-specific R: filters before the
 // common active-zone gate: source and target are the actual damage source and
-// recipient, and IsCombat$/DamageAmount$ describe this in-flight event.
-func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
+// recipient, and IsCombat$/DamageAmount$ describe this in-flight event. The
+// remembered/rememberedPlayers lists are an EFFECT-created match's own capture
+// (nil/nil for every printed line); a shield scopes by them directly, every
+// other filter evaluates as before.
+func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev events.Event,
+	remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	ctrl := e.controllerOf(source)
+	// A prevention shield (effects' PreventDamage registration, marker
+	// PreventionShield) scopes by ITS OWN captured recipients: membership in
+	// the registration's Remembered (objects) / RememberedPlayers (players)
+	// lists, never a ValidTarget$ filter spec. The filter grammar is
+	// deliberately bypassed — its IsRemembered predicate UNIONs the source's
+	// event-backed remembered list with the registration's capture, which
+	// would let unrelated remembered state widen the promise. A shield with
+	// neither list (unreachable from the registering primitive) fails closed.
+	if strings.EqualFold(strings.TrimSpace(r.Params["PreventionShield"]), "True") {
+		if ev.Obj != 0 {
+			for _, id := range remembered {
+				if id == ev.Obj {
+					return true
+				}
+			}
+			return false
+		}
+		for _, p := range rememberedPlayers {
+			if p == ev.Player {
+				return true
+			}
+		}
+		return false
+	}
 	if v := r.Params["ValidCause"]; v != "" && !e.replacementCauseMatches(v, source, e.damaging) {
 		return false
 	}
@@ -2353,7 +2533,7 @@ func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replM
 			continue
 		}
 		r := cards.Repl{Event: "Counter", Params: ce.ReplacementParams}
-		if !e.replacementMatchesEffectCreated(r, ce.Source, events.Event{Obj: target}, ce.Remembered) {
+		if !e.replacementMatchesEffectCreated(r, ce.Source, events.Event{Obj: target}, ce.Remembered, ce.RememberedPlayers) {
 			continue
 		}
 		t := e.G.Obj(target)
@@ -3172,9 +3352,10 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
 			m := replMatch{id: ce.Source, repl: r,
-				remembered: ce.Remembered, chosen: ce.ChosenNumber,
-				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
-			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) &&
+				remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
+				chosen: ce.ChosenNumber,
+				key:    "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) &&
 				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
 				out = append(out, m)
 			}
@@ -3188,9 +3369,9 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			// exists to prevent lands silently.
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
 			m := replMatch{id: ce.Source, repl: r,
-				remembered: ce.Remembered,
-				key:        "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
-			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered) &&
+				remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
+				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) &&
 				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
 				out = append(out, m)
 			}
