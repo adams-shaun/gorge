@@ -93,7 +93,7 @@ func (e *Engine) attachmentSBAs() bool {
 				changed = true
 				continue
 			}
-			if isEquipment(o) && bearer.Face() != nil && !bearer.Face().IsCreature() {
+			if isEquipment(o) && !bearer.EffectiveIsCreature() {
 				e.emit(events.Event{Kind: events.Attach, Obj: id,
 					Text: "Equipmentbearer is no longer a creature"})
 				changed = true

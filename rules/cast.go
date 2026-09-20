@@ -446,7 +446,7 @@ func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cos
 			break
 		}
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() || co.BestowedAttached() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() {
 			continue
 		}
 		// The reduction is the creature's ACTUAL power (CR 702.46a: "reduce
@@ -513,7 +513,7 @@ func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []
 	var tapped []state.ObjID
 	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() || co.BestowedAttached() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() {
 			continue
 		}
 		used := false
@@ -3631,7 +3631,7 @@ func (e *Engine) convokeAsk() bool {
 		Prompt: "Choose creatures to help pay for " + e.G.Obj(pc.card).Face().Name, Source: pc.card}
 	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil || !o.Face().IsCreature() || o.BestowedAttached() {
+		if o == nil || o.Tapped || o.Face() == nil || !o.EffectiveIsCreature() || o.BestowedAttached() {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)

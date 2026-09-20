@@ -1255,10 +1255,11 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	}
 	// CR 708.5: a face-down battlefield permanent's type set is exactly
 	// {Creature} -- its printed types do not exist while it is face down
-	// (even a manifested land). Layer-4 grants from other permanents still
-	// apply on top in the walk below.
+	// (even a manifested land) -- unless a ChangeZone FaceDownSetType$
+	// replaced the set (Yedora's face-down Forest). Layer-4 grants from other
+	// permanents still apply on top in the walk below.
 	if o.FaceDown && o.Zone == state.ZBattlefield {
-		return []string{"Creature"}
+		return o.FaceDownTypeWords()
 	}
 	zone := o.Zone
 	if atStack != 0 {
@@ -1409,9 +1410,17 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 	if o != nil && o.FaceDown && o.Zone == state.ZBattlefield {
 		// CR 708.5's base: a face-down battlefield permanent is a 2/2
 		// creature; its printed P/T and any printed characteristic-defining
-		// ability do not exist while it is face down. Layer-7 effects on top
-		// still apply in the walk below.
+		// ability do not exist while it is face down. A FaceDownSetType$ that
+		// does not include Creature derives 0/0 (Yedora's Forest land), and a
+		// FaceDownPower$/FaceDownToughness$ pair overrides the 2/2 default
+		// (Magar's 3/3). Layer-7 effects on top still apply in the walk below.
 		power, toughness = 2, 2
+		if !o.EffectiveIsCreature() {
+			power, toughness = 0, 0
+		}
+		if o.FaceDownHasPT {
+			power, toughness = o.FaceDownPower, o.FaceDownToughness
+		}
 	} else {
 		power, toughness = int32(f.Power()), int32(f.Toughness())
 		// Layer 7a (CR 613.4a): the object's own characteristic-defining ability

@@ -449,18 +449,31 @@ func Apply(g *state.Game, e Event) {
 		// INSIDE the Move below: Move's battlefield-entry grants read it (a
 		// manifested planeswalker enters as a 2/2 creature with no loyalty
 		// grant, a manifested Saga with no lore counter -- while face down it
-		// is neither), so the marker folds onto the object before the move
-		// and is re-asserted after it. A Counter value on the existing MoveZone
-		// decode: no new event kind, no Event field change. Cloak shares the
-		// face-down entry with a second Counter value; only the cloak marker
-		// sets Cloaked, the state rules/layers.go and trigger_match.go read
-		// for the ward {2}.
-		manifesting := e.Kind == MoveZone && e.To == state.ZBattlefield &&
-			(e.Counter == "entered_face_down" || e.Counter == "entered_cloaked")
+		// is neither), so the marker folds onto the object before the move and
+		// is re-asserted after it. A Counter value on the existing MoveZone
+		// decode: no new event kind, no Event field change. The same marker
+		// carries a ChangeZone FaceDown$ True entry's folded set type and
+		// power/toughness (FaceDownSetType$/FaceDownPower$/FaceDownToughness$)
+		// as an optional Counter payload; the bare marker is CR 708.5's plain
+		// 2/2 creature. Cloak shares the face-down entry with a second Counter
+		// value; only the cloak marker sets Cloaked, the state rules/layers.go
+		// and trigger_match.go read for the ward {2}.
+		setType, fdPower, fdTough, fdHasPT, manifesting := "", int32(0), int32(0), false, false
+		if e.Kind == MoveZone && e.To == state.ZBattlefield {
+			if e.Counter == "entered_cloaked" {
+				manifesting = true
+			} else {
+				setType, fdPower, fdTough, fdHasPT, manifesting = FaceDownEntryFields(e.Counter)
+			}
+		}
 		if manifesting {
 			if o := g.Obj(e.Obj); o != nil {
 				o.FaceDown = true
 				o.Cloaked = e.Counter == "entered_cloaked"
+				o.FaceDownSetType = setType
+				o.FaceDownPower = fdPower
+				o.FaceDownToughness = fdTough
+				o.FaceDownHasPT = fdHasPT
 			}
 		}
 		Move(g, e.Obj, e.From, e.To)
@@ -472,6 +485,13 @@ func Apply(g *state.Game, e Event) {
 					// rides in Amount, and FaceDown is state so a later projection
 					// knows not to reveal the card.
 					o.ExiledWith = state.ObjID(e.Amount)
+					o.FaceDown = true
+				case "face_down":
+					// A bare ChangeZone FaceDown$ True exile (Tezzeret's
+					// Reckoning): the card is put into exile face down WITHOUT
+					// claiming an ExiledWith association -- the line never named
+					// an exiling source, so none is invented. The default branch's
+					// own ExiledWith handling below is deliberately bypassed.
 					o.FaceDown = true
 				case "exiled_with":
 					o.ExiledWith = state.ObjID(e.Amount)
@@ -495,6 +515,10 @@ func Apply(g *state.Game, e Event) {
 				// through Move's own leave reset and the default branch.
 				o.ExiledWith = 0
 				o.FaceDown = true
+				o.FaceDownSetType = setType
+				o.FaceDownPower = fdPower
+				o.FaceDownToughness = fdTough
+				o.FaceDownHasPT = fdHasPT
 				o.Cloaked = e.Counter == "entered_cloaked"
 			} else {
 				o.ExiledWith = 0
@@ -1750,6 +1774,10 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.IntrinsicKeywords = nil
 		o.ExiledWith = 0
 		o.FaceDown = false
+		o.FaceDownSetType = ""
+		o.FaceDownPower = 0
+		o.FaceDownToughness = 0
+		o.FaceDownHasPT = false
 		o.Cloaked = false
 		o.RiotChoice = ""
 		o.IsMyriad = false

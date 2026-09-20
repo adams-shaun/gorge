@@ -543,7 +543,20 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 			f := o.Face()
 			// CR 702.114e: a bestowed-attached card is an Aura, not a creature,
 			// so the creature SBAs (lethal damage/toughness) do not hit it.
-			if f == nil || !f.IsCreature() || o.BestowedAttached() {
+			if f == nil || o.BestowedAttached() {
+				continue
+			}
+			// CR 708.5/708.8: a face-down permanent's printed face does not
+			// exist, so its creature-ness comes from its effective type set
+			// (the folded FaceDownSetType$, defaulting to Creature). A
+			// face-down Forest land (Yedora) is not a creature and must not be
+			// swept by the zero-toughness SBA even though its printed card is a
+			// 1/1 creature.
+			if e.faceDownPrintedHides(o) {
+				if !o.EffectiveIsCreature() {
+					continue
+				}
+			} else if !f.IsCreature() {
 				continue
 			}
 			if e.Toughness(id) <= 0 {
