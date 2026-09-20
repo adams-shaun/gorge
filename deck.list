@@ -8960,3 +8960,119 @@ Deck
 1 Unclaimed Territory
 8 Plains
 13 Swamp
+
+# --- Explorers of the Deep (lcc commander precon, Hakbal of the Surging Soul) — census input, 2026-09-20 (this worktree, issue agent-20260920T065240Z-eecc48b5) ---
+# run: go run ./cmd/deckimport -in .ds4/scratch/lcc-explorers-of-the-deep.list -out .ds4/deck-census.json -json -force
+# 100/100 resolved (82 distinct); commander eligible (Legendary Creature). Deck file NOT added: new engine gaps remain.
+# Gap primitives (21 of 82 distinct cards / measured by cards.Registry.Unsupported + effects.Supported):
+#   api:Explore (Hakbal of the Surging Soul, Topography Tracker) — 39 corpus cards;
+#   trig:Explores (Merfolk Cave-Diver, Nicanzil, Current Conductor) — NEW ticket;
+#   repl:Explore (Topography Tracker) — NEW ticket (with trig:Explores);
+#   api:Proliferate (Evolution Sage, Karn's Bastion, Merfolk Skydiver, Ripples of Potential) — 82;
+#   api:ReplaceCounter + repl:AddCounter (Hardened Scales, Branching Evolution) — repl:AddCounter NEW ticket;
+#   trig:CounterAddedOnce (Benthic Biomancer, Simic Ascendancy) — 46;
+#   api:WinsGame (Simic Ascendancy) — 40;
+#   api:Phases (Ripples of Potential) — 43;
+#   api:TapOrUntap (Merrow Reejerey) — NEW ticket, 48 files / 50 raw lines;
+#   kw:Level up (Coralhelm Commander) — NEW ticket, 26 files / 26 raw lines;
+#   kw:Landwalk (Cold-Eyed Selkie, Stonybrook Banneret) — 131;
+#   kw:Aftermath (Commit // Memory) — 27;
+#   kw:Mentor (Tributary Instructor) — 19;
+#   kw:Graft (Llanowar Reborn) — 13;
+#   kw:Changeling (Realmwalker) — registration false gap (implemented at effects/filter.go, RegisterNonAPI missing);
+#   kw:Foretell (Ravenform) — registration false gap (AGENTS.md approx-69; RegisterNonAPI missing).
+# Open-ledger overlaps (do not re-file): api:Explore = issue-agent-20260918T221252Z-2b8f933d + issue-agent-20260919T195359Z-01d586e1;
+#   api:Proliferate = a94a8ba5/c0df25bc/6fecf620/97db50af; api:ReplaceCounter = 8327049c/df0f6b91;
+#   trig:CounterAddedOnce = 44879b41; api:WinsGame = d5074403/9012fe5f; api:Phases = 1f98ae46/52a9b0d3/3cba0676/9db94175;
+#   kw:Landwalk = fdf6a215/3697857d; kw:Aftermath = 03627292; kw:Mentor = 8bb8886c; kw:Graft = e23bd9de;
+#   kw:Changeling = 3dbc83d7; kw:Foretell = 204b16f9/2b507a9c/c9501374.
+# New general gaps filed as tickets (.ds4/new-tickets/): api-taporuntap.md, kw-level-up.md,
+#   explore-trigger-replacement.md, repl-addcounter.md.
+# Census report: .ds4/report-t1.md
+Commander
+1 Hakbal of the Surging Soul
+
+Deck
+1 Xolatoyac, the Smiling Flood
+1 Mist Dancer
+1 Ripples of Potential
+1 Wave Goodbye
+1 Bygone Marvels
+1 Deeproot Historian
+1 Topography Tracker
+1 Tributary Instructor
+1 Singer of Swift Rivers
+1 Benthic Biomancer
+1 Commit // Memory
+1 Coralhelm Commander
+1 Curse of the Swine
+1 Emperor Mihail II
+1 Herald of Secret Streams
+1 Kindred Discovery
+1 Kopala, Warden of Waves
+1 Master of the Pearl Trident
+1 Merfolk Sovereign
+1 Reflections of Littjara
+1 Seafloor Oracle
+1 Surgespanner
+1 Svyelun of Sea and Sky
+1 Thassa, God of the Sea
+1 Thieving Skydiver
+1 Branching Evolution
+1 Deeproot Elite
+1 Hardened Scales
+1 Realmwalker
+1 Ruinous Intrusion
+1 Cold-Eyed Selkie
+1 Kumena, Tyrant of Orazca
+1 Prime Speaker Zegana
+1 Quandrix Command
+1 Simic Ascendancy
+1 Tishana, Voice of Thunder
+1 Vorel of the Hull Clade
+1 Zegana, Utopian Speaker
+1 Metallic Mimic
+1 Alchemist's Refuge
+1 Hinterland Harbor
+1 Karn's Bastion
+1 Mosswort Bridge
+1 Temple of Mystery
+1 Vineglimmer Snarl
+1 Merfolk Cave-Diver
+1 Aetherize
+1 Deeproot Waters
+1 Merrow Reejerey
+1 Rapid Hybridization
+1 Ravenform
+1 Sage of Fables
+1 Stonybrook Banneret
+1 Beast Within
+1 Nicanzil, Current Conductor
+1 Evolution Sage
+1 Explore
+1 Inspiring Call
+1 Kodama's Reach
+1 Growth Spiral
+1 Kiora's Follower
+1 Merfolk Mistbinder
+1 Merfolk Skydiver
+1 Tatyova, Benthic Druid
+1 Arcane Signet
+1 Commander's Sphere
+1 Simic Signet
+1 Sol Ring
+1 Swiftfoot Boots
+1 Command Tower
+1 Llanowar Reborn
+1 Myriad Landscape
+1 Path of Ancestry
+1 Reliquary Tower
+1 Rogue's Passage
+1 Secluded Courtyard
+1 Simic Growth Chamber
+1 Temple of the False God
+1 Unclaimed Territory
+4 Forest
+3 Forest
+7 Island
+6 Island
