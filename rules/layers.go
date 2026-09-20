@@ -1256,10 +1256,14 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	// CR 708.5: a face-down battlefield permanent's type set is exactly
 	// {Creature} -- its printed types do not exist while it is face down
 	// (even a manifested land) -- unless a ChangeZone FaceDownSetType$
-	// replaced the set (Yedora's face-down Forest). Layer-4 grants from other
-	// permanents still apply on top in the walk below.
+	// replaced the set (Yedora's face-down Forest). That set is the BASE the
+	// layer-4 walk below then modifies like any other type set (CR 613.1c):
+	// a Maskwood Nexus granting every creature type reaches a manifested
+	// 2/2 exactly as it reaches a face-up creature, while the printed face
+	// stays hidden (no printed word reappears merely from a type grant).
+	base := o.Face().Types
 	if o.FaceDown && o.Zone == state.ZBattlefield {
-		return o.FaceDownTypeWords()
+		base = o.FaceDownTypeWords()
 	}
 	zone := o.Zone
 	if atStack != 0 {
@@ -1279,9 +1283,9 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 		}
 	}
 	if !anyLType {
-		return bestowedTypeSwitch(o, o.Face().Types)
+		return bestowedTypeSwitch(o, base)
 	}
-	ty := append([]string(nil), o.Face().Types...)
+	ty := append([]string(nil), base...)
 	for _, ce := range e.active() {
 		if ce.Layer != LType || !e.matchesWithTypes(ce, id, ty, atStack) {
 			continue
@@ -1382,6 +1386,20 @@ func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []s
 	sc := e.specCtx(ce.Source, ce.Controller)
 	sc.AsStack = atStack != 0
 	sc.ExtraTypes = types
+	// The compiled predicate sidecar answers type and colour predicates
+	// against the PRINTED face (effects/compiled_predicate.go's
+	// matchesCompiledBase/matchesCompiledTerm call hasType/ColorsOf), so it
+	// cannot see ExtraTypes. Leaving it in place here would let it return
+	// PredicateNo before the textual oracle -- the one oracle whose hasTypeCtx
+	// reads ExtraTypes -- ever runs, so a layer-4 grant would silently miss
+	// every object whose printed face does not already carry the queried type
+	// (a manifested Forest under Maskwood Nexus is the measured case). The
+	// sidecar is a pure optimisation that falls back to the text path
+	// whenever it is unsure; clearing it for a derived-type match makes that
+	// fallback unconditional, so every compiled spec is judged by the
+	// ExtraTypes-aware oracle and no future compiled spec can miss the
+	// synthetic face-down base (CR 708.5) either.
+	sc.PredicatePrograms = nil
 	return effects.MatchesSpecCtx(e.G, affects, id, sc)
 }
 
