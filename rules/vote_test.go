@@ -331,3 +331,35 @@ func TestVoteFinishedCarrierGatedOnVoteTriggerFaces(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestGrudgeKeeperEmptyBallotDrainsNobody is the empty-ballot regression
+// (review finding) end to end on a real card-ballot cast: Council's Judgment
+// with NO eligible permanent on any opponent's battlefield (its VoteCard$
+// filters to a nonland permanent you don't control; the opponents control
+// only Mountains). Nobody could vote for anything, so both List$ sets are
+// empty and Grudge Keeper's Defined$ TriggeredOpponentVotedDiff acts on
+// nobody -- the trigger still fires (the canonical carrier is emitted), but
+// no opponent loses life. Before the fix every voting opponent landed in the
+// diff set and each drained 2.
+func TestGrudgeKeeperEmptyBallotDrainsNobody(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := miscHandsEngine(t, reg,
+		[]string{"Council's Judgment"}, nil,
+		[]string{"Grudge Keeper"}, nil)
+	addMana(t, e, 0, "CWW")
+	judgment := miscHandObj(t, e, 0, "Council's Judgment")
+	submitChoices(t, e, miscCastOption(t, e, judgment))
+	miscPass(t, e)
+	passUntilStackEmpty(t, e, 30)
+
+	if got := voteFinishedNotes(e); got != 1 {
+		t.Fatalf("%d canonical vote-finished Notes, want 1 (the trigger fires even with no ballot)", got)
+	}
+	for i := range e.G.Players {
+		if e.G.Players[i].Life != 20 {
+			t.Fatalf("seat %d life = %d after an empty-ballot vote, want 20 (diff set empty)",
+				i, e.G.Players[i].Life)
+		}
+	}
+	replayCheck(t, e, cfg)
+}

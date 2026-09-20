@@ -1648,26 +1648,28 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}
-	if len(choices) == 0 || len(voters) == 0 {
-		return
-	}
-	// The winner is the option with the most votes (ties: the first such
-	// option). When the top count is shared, VoteTiedAbility$ runs instead
-	// for the shapes that spell one (the Path cycle's DBChaos).
-	best, tied := voteWinner(counts)
-	name := choices[best]
-	if tied {
-		if alt := strings.TrimSpace(sa.Params["VoteTiedAbility"]); alt != "" {
-			name = alt
+	if len(choices) > 0 && len(voters) > 0 {
+		// The winner is the option with the most votes (ties: the first such
+		// option). When the top count is shared, VoteTiedAbility$ runs instead
+		// for the shapes that spell one (the Path cycle's DBChaos).
+		best, tied := voteWinner(counts)
+		name := choices[best]
+		if tied {
+			if alt := strings.TrimSpace(sa.Params["VoteTiedAbility"]); alt != "" {
+				name = alt
+			}
 		}
-	}
-	if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
-		Resolve(h, c, sub)
+		if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+			Resolve(h, c, sub)
+		}
 	}
 	// The canonical vote-finished carrier (trig:Vote, effects/vote.go):
 	// emitted AFTER the winning outcome resolved -- the vote (outcome
-	// included) finishes, then "whenever players finish voting" sees it.
-	same, diff := voteSameDiff(h.Game(), c.Controller, voters, picks)
+	// included) finishes, then "whenever players finish voting" sees it. It
+	// is emitted even when there was no ballot and/or no voter (empty sets),
+	// the same always-fire reading the card-ballot shape takes; "whenever
+	// players finish voting" has no intervening-if.
+	same, diff := voteSameDiff(h.Game(), c.Controller, voters, picks, len(choices) == 0)
 	emitVoteFinished(h, c, same, diff)
 }
 
@@ -1770,10 +1772,10 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	// corpus's Defined$ shapes put it there) every voting opponent voted for
 	// a choice the caster voted for: the same set is every voting opponent
 	// and the diff set is empty. A vote with no ballot option at all (an
-	// empty battlefield) had nobody vote for anything, so both sets are
-	// empty -- the trigger still fires and its same/diff bodies act on
+	// empty battlefield) had nobody vote for anything, so noChoices binds
+	// neither set -- the trigger still fires and its same/diff bodies act on
 	// nobody, the same always-fire reading the fixed-list shape takes.
-	same, diff := voteSameDiff(g, c.Controller, voters, picks)
+	same, diff := voteSameDiff(g, c.Controller, voters, picks, len(options) == 0)
 	emitVoteFinished(h, c, same, diff)
 }
 

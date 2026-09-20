@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
 )
 
 // TestBlankLineIsASilentNoOp pins the display spacer's contract: DB$ BlankLine
@@ -159,5 +160,33 @@ func TestVoteAnsweredTieRunsVoteTiedAbility(t *testing.T) {
 	}
 	if labels["votes for AChoice"] != 1 || labels["votes for BChoice"] != 1 {
 		t.Fatalf("vote Notes = %v, want one for each answered choice", labels)
+	}
+}
+
+// TestVoteSameDiffEmptyBallotBindsNeitherSet is the empty-ballot regression
+// (review finding): when a vote offered no ballot option at all -- a card
+// ballot whose VoteCard$ matched no permanent, or a fixed-list Vote with no
+// Choices$ -- no voter cast a real vote, so every picks[i] is -1. The
+// casterPick != -1 guard must NOT then route every voting opponent into the
+// diff set: "voted for a choice you didn't vote for" is false when there was
+// no choice. Without noChoices both sets read empty only by accident for a
+// one-voter table; with three voters the old path returned diff=[1 2].
+func TestVoteSameDiffEmptyBallotBindsNeitherSet(t *testing.T) {
+	g := &state.Game{Players: make([]state.Player, 3)}
+	voters := []state.Target{
+		{Player: 0, IsPlayer: true},
+		{Player: 1, IsPlayer: true},
+		{Player: 2, IsPlayer: true},
+	}
+	same, diff := voteSameDiff(g, 0, voters, []int{-1, -1, -1}, true)
+	if len(same) != 0 || len(diff) != 0 {
+		t.Fatalf("empty ballot: same=%v diff=%v, want both empty", same, diff)
+	}
+	// Control: a real ballot with the caster picking option 0 and both
+	// opponents choosing option 1 puts both opponents in the diff set -- the
+	// documented reading noChoices must not disturb.
+	same, diff = voteSameDiff(g, 0, voters, []int{0, 1, 1}, false)
+	if len(same) != 0 || len(diff) != 2 || diff[0] != 1 || diff[1] != 2 {
+		t.Fatalf("real ballot: same=%v diff=%v, want same=[] diff=[1 2]", same, diff)
 	}
 }
