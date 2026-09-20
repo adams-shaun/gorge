@@ -359,6 +359,7 @@ func (e *Engine) Clone() *Engine {
 		tc.amount.SubCounter = append([]CostPart(nil), e.triggerCost.amount.SubCounter...)
 		tc.amount.AddCounter = append([]CostPart(nil), e.triggerCost.amount.AddCounter...)
 		tc.amount.Exile = append([]CostPart(nil), e.triggerCost.amount.Exile...)
+		tc.amount.MoveToGrave = append([]CostPart(nil), e.triggerCost.amount.MoveToGrave...)
 		tc.amount.Reveal = append([]CostPart(nil), e.triggerCost.amount.Reveal...)
 		tc.amount.Behold = append([]CostPart(nil), e.triggerCost.amount.Behold...)
 		tc.amount.TapPermanent = append([]CostPart(nil), e.triggerCost.amount.TapPermanent...)
@@ -370,6 +371,7 @@ func (e *Engine) Clone() *Engine {
 		tc.amount.Unknown = append([]string(nil), e.triggerCost.amount.Unknown...)
 		tc.sacs = append([]state.ObjID(nil), e.triggerCost.sacs...)
 		tc.exiles = append([]state.ObjID(nil), e.triggerCost.exiles...)
+		tc.moveGraves = append([]state.ObjID(nil), e.triggerCost.moveGraves...)
 		c.triggerCost = &tc
 	}
 	if e.echo != nil {
@@ -402,6 +404,7 @@ func (e *Engine) Clone() *Engine {
 		pc.cost.Discard = append([]CostPart(nil), e.cast.cost.Discard...)
 		pc.cost.SubCounter = append([]CostPart(nil), e.cast.cost.SubCounter...)
 		pc.cost.Exile = append([]CostPart(nil), e.cast.cost.Exile...)
+		pc.cost.MoveToGrave = append([]CostPart(nil), e.cast.cost.MoveToGrave...)
 		pc.cost.Reveal = append([]CostPart(nil), e.cast.cost.Reveal...)
 		pc.cost.Behold = append([]CostPart(nil), e.cast.cost.Behold...)
 		pc.cost.TapPermanent = append([]CostPart(nil), e.cast.cost.TapPermanent...)
@@ -423,6 +426,7 @@ func (e *Engine) Clone() *Engine {
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
 		pc.exiles = append([]state.ObjID(nil), e.cast.exiles...)
 		pc.returns = append([]state.ObjID(nil), e.cast.returns...)
+		pc.moveGraves = append([]state.ObjID(nil), e.cast.moveGraves...)
 		pc.putToLibs = append([]state.ObjID(nil), e.cast.putToLibs...)
 		pc.reveals = append([]state.ObjID(nil), e.cast.reveals...)
 		pc.beholds = append([]state.ObjID(nil), e.cast.beholds...)
