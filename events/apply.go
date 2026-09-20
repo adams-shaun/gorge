@@ -66,6 +66,15 @@ func Apply(g *state.Game, e Event) {
 		// the kept results, Counter the ignored count the replacement wrote)
 		// and replay re-derives the same rolls from the seeded rng.
 
+	case Explore:
+		// The explore record (CR 701.35a, task explore1) is a pure marker,
+		// exactly like PlanarRoll: the explore's own state changes (the
+		// revealed card's move, the +1/+1 counter on the explorer) are their
+		// own MoveZone/CounterChange events that preceded this one, and the
+		// record is what trig:Explores matches. Obj the explorer, Player its
+		// controller, IDs[0] the revealed card, Amount 1 = land (went to
+		// hand) / 0 = nonland (counter put; card back on top or graveyard).
+
 	case Pair:
 		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
 		// IDs[0] its chosen partner; both fields are set reciprocally when

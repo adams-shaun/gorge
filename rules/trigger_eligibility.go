@@ -71,6 +71,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
+	case events.Explore:
+		return cards.TriggerInterestExplore
 	default:
 		return cards.TriggerInterestAny
 	}
@@ -104,6 +106,8 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.MoveZone
 	case "Cycled":
 		return 1 << events.MoveZone
+	case "Explores":
+		return 1 << events.Explore
 	case "CommitCrime", "BecomesTarget":
 		return 1 << events.TargetsChosen
 	case "Attached":

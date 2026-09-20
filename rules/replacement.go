@@ -203,6 +203,8 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		return e.applyTransformReplacement(ev, matches)
 	case events.TokenCreate:
 		return e.continueCreateTokenReplacements(ev, matches)
+	case events.Explore:
+		return e.continueExploreReplacements(ev, matches)
 	case events.Damage:
 		matches = e.applicableDamageReplacements(ev, matches)
 		if len(matches) == 0 {
@@ -776,6 +778,8 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "Draw", true
 	case events.TokenCreate:
 		return "CreateToken", true
+	case events.Explore:
+		return "Explore", true
 	case events.PlanarRoll:
 		return "RollPlanarDice", true
 	default:
@@ -1361,6 +1365,63 @@ func planarDieFaceName(result int32) string {
 // ignore Note are the log's other witnesses. A bodyless match (a
 // CantHappen planar replacement) has no corpus carrier and is skipped —
 // documented inertness, not modelled cancellation.
+
+// continueExploreReplacements is the events.Explore replacement dispatch.
+// Two event shapes reach it:
+//
+//   - the SYNTHETIC PROPOSAL effects/explore.go's ExploreReplaced hook builds
+//     (no revealed card yet — IDs empty): this is CR 701.35a's "would
+//     explore" moment, exactly the window CR 614.4 puts replacement
+//     effects in, and a matching replacement's ReplaceWith$ body replaces
+//     the whole explore process (reveal, counter, move) with its own
+//     resolution — run synchronously inside the hook's call, under the
+//     applyingReplacement guard (so the body's own fresh explores cannot
+//     re-match the same replacement, the CreateToken once-per-event
+//     discipline). The proposal is never logged, and the caller learns
+//     "replaced" from the hook's true return.
+//   - the COMPLETED RECORD (IDs carry the revealed card): the explore
+//     already happened, so nothing is replaceable — the record returns
+//     unhandled so the ordinary emit path logs it and trig:Explores
+//     matches it with its full trigger treatment.
+//
+// Multiple competing Explore replacements apply in deterministic scan order
+// (the first match wins), the same no-CR-616.1-order-choice stand-in the
+// CreateToken path documents; the corpus carries no competing pair.
+func (e *Engine) continueExploreReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	if len(ev.IDs) > 0 {
+		return ev, false
+	}
+	if len(matches) == 0 {
+		return ev, false
+	}
+	m := matches[0]
+	if m.repl.With != nil {
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
+	}
+	return ev, true
+}
+
+// ExploreReplaced is the effects.Host hook effects/explore.go consults before
+// it would process one explorer's explore (CR 614.4: the replacement window
+// is before the process). It builds the synthetic Explore proposal — Obj the
+// explorer, Player its controller, no revealed card (the replacee never
+// reveals) — and runs it through the ordinary replacement collection and
+// dispatch: a matching R:Event$ Explore replacement's body resolves
+// synchronously inside this call and the hook returns true, telling the
+// effect its explore was replaced whole. Mirrors emit's own guard: while a
+// replacement body is already resolving (applyingReplacement), no replacement
+// applies — the body's own explores are fresh, un-replaced events.
+func (e *Engine) ExploreReplaced(explorer state.ObjID) bool {
+	if e.applyingReplacement {
+		return false
+	}
+	o := e.G.Obj(explorer)
+	if o == nil {
+		return false
+	}
+	_, handled := e.applyReplacements(events.Event{Kind: events.Explore, Obj: explorer, Player: o.Controller})
+	return handled
+}
 func (e *Engine) continuePlanarRollReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
 		// CR 616.1e: the recheck uses the same matcher class the collection
@@ -1916,6 +1977,20 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			if !parsed || !applyCompare(int(ev.Amount), op, n) {
 				return false
 			}
+		}
+		return e.replacementConditionHolds(r, source, you)
+	case "Explore":
+		// The explore replacement (R:Event$ Explore, task explore1 —
+		// Topography Tracker, Twists and Turns). ValidExplorer$ names the
+		// creature that would explore (the synthetic proposal's Obj), matched
+		// with the replacement source's controller as You exactly like every
+		// other object-spec gate here.
+		if ev.Kind != events.Explore {
+			return false
+		}
+		if v, ok := r.Params["ValidExplorer"]; ok &&
+			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
 	case "Draw", "DrawCards":
@@ -3858,7 +3933,7 @@ func init() {
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
-		"repl:CreateToken", "repl:RollPlanarDice", "api:ReplaceToken")
+		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "api:ReplaceToken")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

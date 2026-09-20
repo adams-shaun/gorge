@@ -38,6 +38,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"LifeLostAll", nil},
 		{"BecomesTarget", []events.Kind{events.TargetsChosen}},
 		{"Attached", []events.Kind{events.Attach}},
+		{"Explores", []events.Kind{events.Explore}},
 		{"LandPlayed", []events.Kind{events.MoveZone}},
 		{"Phase", []events.Kind{events.StepChange}},
 		{"Always", nil},
@@ -85,6 +86,8 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			want = cards.TriggerInterestAbilityPush
 		case events.Attach:
 			want = cards.TriggerInterestAttach
+		case events.Explore:
+			want = cards.TriggerInterestExplore
 		}
 		if got := eventTriggerInterest(kind); got != want {
 			t.Fatalf("kind %s interest = %x, want %x", kind, got, want)
@@ -101,7 +104,7 @@ func TestCompiledTriggerInterestParity(t *testing.T) {
 		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Sacrificed",
 		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
-		"Drawn", "LifeLost", "Phase", "Attached", "Always", "LifeLostAll", "FutureMode", "",
+		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Always", "LifeLostAll", "FutureMode", "",
 	}
 	card := &cards.Card{}
 	for _, mode := range modes {

@@ -134,6 +134,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		}
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
+	case "Explores":
+		// The explore record's roles (task explore1): TriggerCard is the
+		// EXPLORER (what ValidCard$ matched), the same ChangesZone read.
+		// The revealed card rode the record's IDs, but every corpus body
+		// reads the trigger's own source or asks its own targets, so no
+		// separate referent field is minted for it.
+		c.TriggerCard = ev.Obj
 	case "TapsForMana":
 		// The ManaAdd event names the activating player, producing permanent,
 		// produced type and amount without overloading Remembered. This mode's

@@ -207,6 +207,11 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += "s"
 		}
 		return s
+	case events.Explore:
+		// The explore record (task explore1): the revealed card is already
+		// public (the reveal Note that precedes the record), so the line
+		// names only the explorer.
+		return obj(g, ev.Obj) + " explores"
 	case events.DeclareAttackers:
 		if len(ev.IDs) == 0 {
 			return "No attackers"

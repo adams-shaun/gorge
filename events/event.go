@@ -436,6 +436,20 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	PlanarRoll
+	// Explore records one completed explore action (CR 701.35a, task
+	// explore1): Obj is the exploring permanent, Player its controller
+	// (whose library was explored), IDs[0] the card the process revealed,
+	// and Amount the outcome -- 1 when the revealed card was a land and
+	// went to its owner's hand, 0 when it was a nonland (the +1/+1 counter
+	// went on the explorer and the card went back on top or into the
+	// graveyard per the LCI wording the corpus spells out). It is an Apply
+	// no-op marker, exactly like PlanarRoll: the explore's own state changes
+	// are their own MoveZone/CounterChange events, and the record is what
+	// trig:Explores matches and what makes the explore trigger- and
+	// replay-visible. Appended here, after PlanarRoll, following every prior
+	// Kind's own append-only precedent, so no earlier ordinal, hash chain or
+	// golden replay is affected.
+	Explore
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -446,7 +460,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(PlanarRoll) + 1
+	NumKinds = int(Explore) + 1
 )
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
@@ -527,7 +541,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll"}
+	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
