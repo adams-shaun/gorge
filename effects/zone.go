@@ -107,6 +107,25 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if from, present := sa.Params["Origin"]; present {
 		var valid bool
 		originZones, originAll, valid = ParseZones(from)
+		// OriginAlternative$ is Forge's "and/or" second origin: the zones
+		// named there join Origin$ into ONE candidate set at the
+		// choose-a-card-from-any-of-these-zones step ("search your graveyard,
+		// hand, and/or library"). Every one of the corpus's 62 carriers pairs
+		// it with Origin$ Library; without this merge the exact-Library branch
+		// below sees a library-only origin and silently searches just that.
+		// Parse with the same vocabulary as Origin$; an unknown alternative
+		// zone makes the whole origin set invalid, so the effect bails loudly
+		// (via `valid`) rather than silently dropping a named zone.
+		if alt, hasAlt := sa.Params["OriginAlternative"]; hasAlt {
+			altZones, altAll, altValid := ParseZones(alt)
+			for _, z := range altZones {
+				if !zoneIn(originZones, z) {
+					originZones = append(originZones, z)
+				}
+			}
+			originAll = originAll || altAll
+			valid = valid && altValid
+		}
 		hidden := strings.EqualFold(strings.TrimSpace(sa.Params["Hidden"]), "True")
 		// ... and the branch excludes every origin the dedicated walkers own:
 		// exactly-Library is the search below, exactly-Hand the hand movers,
@@ -161,21 +180,32 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 				Text: "unrecognised ChangeZone Origin " + from})
 			return
 		}
-		// A ChangeZone from exactly Library is a hidden-zone search, not a
-		// movement of objects already named by Defined$. The searching player
-		// may fail to find a card with the stated quality (Min is always zero),
-		// and the answer resumes this same effect before its SubAbility runs.
-		// Other origins keep the existing public-zone/object path below.
-		if len(originZones) == 1 && originZones[0] == state.ZLibrary && !originAll {
+		// A ChangeZone whose origin set includes Library and no other hidden
+		// walker's zone is the hidden-origin search, now spanning every zone
+		// Origin$ plus OriginAlternative$ named (the and/or shapes). The
+		// searching player may fail to find a card with the stated quality (Min
+		// is always zero), and the answer resumes this same effect before its
+		// SubAbility runs. The exact-Library spelling is the single-zone case of
+		// the same path; the alternatives are PUBLIC zones (Graveyard, Exile,
+		// Hand) whose candidates join the library's in one option list. A
+		// mixed-Hand alternative (Gate to the Afterlife's Graveyard,Hand) is
+		// deliberately OWNED here rather than by the mixed-origin note below,
+		// because the search IS the origin-aware chooser that note says does not
+		// exist: the fetch player sees their own hand, so no hidden information
+		// is exposed by offering it by name.
+		if zoneIn(originZones, state.ZLibrary) && !originAll &&
+			!zoneIn(originZones, state.ZBattlefield) {
 			// Forge treats a Defined$ that resolves to objects in a hidden
 			// library as the already-selected fetch list, not as the owner of a
 			// fresh whole-library search. This is structural rather than keyed to
 			// Remembered: ChosenCard, TopOfLibrary once resolved, and future
-			// object-valued Defined selectors share the same dispatcher.
-			if moveDefinedLibraryObjects(h, c, sa, to) {
+			// object-valued Defined selectors share the same dispatcher. Only the
+			// pure-library case takes it: a combined origin that names an object
+			// fetch is a fresh cross-zone pick, not an already-selected list.
+			if len(originZones) == 1 && moveDefinedLibraryObjects(h, c, sa, to) {
 				return
 			}
-			effSearchLibrary(h, c, sa, to)
+			effSearchLibrary(h, c, sa, to, originZones)
 			return
 		}
 		// A mixed origin which includes Hand needs one chooser over cards from
@@ -1445,12 +1475,19 @@ func withCounterAmount(h Host, c *Ctx, sa *cards.SA) int32 {
 // the answer is carried only as option indices and object ids through the
 // ordinary KChoose/resume mechanism.
 //
+// zones is the full origin set (Origin$ merged with OriginAlternative$):
+// Library is the hidden half, and any public zones in the set (Graveyard,
+// Exile, Hand) contribute their owner's matching cards to the SAME option
+// list, exactly Forge's choose-a-card-from-any-of-these-zones step. The
+// library is searched first in candidate order so a pure-library search's
+// option list -- and therefore its chain heads -- is unchanged.
+//
 // This round deliberately handles only the first resolved library when
 // DefinedPlayer$/Defined$ names several players. A single effect cannot yet
 // persist its place in a multi-player loop across more than one suspended ask;
 // restarting the primitive would otherwise re-ask the first library. The
 // narrowing and its measured corpus population are recorded in AGENTS.md.
-func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
+func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state.Zone) {
 	players := searchPlayers(h, c, sa)
 	if len(players) == 0 {
 		return
@@ -1474,7 +1511,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		// Scope the answer to this primitive. Any asking primitive reached by
 		// the SubAbility chain must pose its own decision.
 		c.Search, c.SearchDone = nil, false
-		applyLibrarySearch(h, c, sa, owner, to, chosen)
+		applyLibrarySearch(h, c, sa, owner, to, chosen, zones)
 		return
 	}
 
@@ -1482,10 +1519,31 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	if spec == "" {
 		spec = "Card"
 	}
+	// Candidate order: the library first (in library order), then each public
+	// origin zone in the order given by the parsed origin set. Dedupe across
+	// zones so a card can never be offered twice. `eligible` is the ordered
+	// list both the decision options and the R-9 stand-in read, so its order
+	// is load-bearing for determinism.
 	eligible := make([]state.ObjID, 0, len(lib))
+	seen := make(map[state.ObjID]bool, len(lib))
 	for _, id := range lib {
 		if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 			eligible = append(eligible, id)
+			seen[id] = true
+		}
+	}
+	for _, z := range zones {
+		if z == state.ZLibrary {
+			continue
+		}
+		for _, id := range zoneOf(g, z, owner) {
+			if seen[id] {
+				continue
+			}
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				eligible = append(eligible, id)
+				seen[id] = true
+			}
 		}
 	}
 	max := Num(h, c, sa, "ChangeNum", 1)
@@ -1514,7 +1572,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		// objects do not leak into its SubAbility chain. Preserve that existing
 		// continuation contract while omitting the otherwise meaningless ask.
 		c.Remembered = nil
-		applyLibrarySearch(h, c, sa, owner, to, nil)
+		applyLibrarySearch(h, c, sa, owner, to, nil, zones)
 		return
 	}
 	// The prompt must not offer a choice the decision will refuse. A
@@ -1684,7 +1742,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
 			Text: "finds no card (no engine host to ask)"})
 	}
-	applyLibrarySearch(h, c, sa, owner, to, picked)
+	applyLibrarySearch(h, c, sa, owner, to, picked, zones)
 }
 
 // libraryFetch is one owner and the direct-library objects moved for them.
@@ -2301,7 +2359,7 @@ func trimSharedLandTypes(g *state.Game, chosen []state.ObjID) []state.ObjID {
 	return out
 }
 
-func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID) {
+func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID, zones []state.Zone) {
 	// The search-control/replacement boundary (Opposition Agent's class):
 	// the moves this function emits are the moves OF A SEARCH, and the host
 	// that models that fact scopes its FoundSearchingLibrary$ replacements
@@ -2356,8 +2414,40 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	moved := make([]state.ObjID, 0, len(chosen))
 	for _, id := range chosen {
 		o := g.Obj(id)
-		if o == nil || o.Zone != state.ZLibrary || o.Owner != owner ||
+		if o == nil || o.Owner != owner || !zoneIn(zones, o.Zone) ||
 			!MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			continue
+		}
+		// A chosen candidate from a PUBLIC origin zone (OriginAlternative$
+		// Graveyard/Hand/Exile) moves through the ordinary cross-zone settle:
+		// no library shuffle or LibraryPosition$ placement follows it, and
+		// because it never left the library nothing here can disturb the
+		// library order. The library half keeps the existing direct emit, which
+		// is where the exile-provenance IDs and the Imprint rider live.
+		if o.Zone != state.ZLibrary {
+			withKind := ""
+			var withAmt int32
+			if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
+				withKind = sa.Params["WithCountersType"]
+				withAmt = withCounterAmount(h, c, sa)
+			}
+			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, owner, true)
+			moved = append(moved, id)
+			// settleChangeZoneMoveAs already appended the object to the
+			// resolution's Remembered for RememberChanged$; only the persistent
+			// event-backed half is left here. RememberSearched$ is not read
+			// there, so its ctx append is made here too.
+			if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+				eventRemember(h, c, id)
+			}
+			if strings.EqualFold(strings.TrimSpace(sa.Params["RememberSearched"]), "True") {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
+			eventForgetChanged(h, c, sa, id)
+			if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
+				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner, Text: "entered tapped"})
+			}
 			continue
 		}
 		ev := moveZoneEvent(c, id, state.ZLibrary, to)
