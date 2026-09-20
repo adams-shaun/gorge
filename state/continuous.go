@@ -233,6 +233,16 @@ type ContinuousEffect struct {
 	// log scan (rules' mayPlaysThisTurn), never a mutable field.
 	MayPlayLimit int32
 
+	// ShieldTargets/ShieldTargetPlayers carry a prevention shield's
+	// ShieldEffectTarget$ ParentTarget binding (Acolyte's Reward, Vengeful
+	// Archon): the PARENT SA's chosen targets, which the registered
+	// PreventionSubAbility$ rider's DB$ DealDamage hits with the amount each
+	// application prevented (rules' applyReplaceDamageTail). Objects only in
+	// the first, players only in the second. Engine-runtime only, rebuilt by
+	// re-execution on replay like every other continuous-effect field.
+	ShieldTargets       []ObjID
+	ShieldTargetPlayers []PlayerID
+
 	// MayPlayPlayerTurn marks the grant's Condition$ PlayerTurn rider (the
 	// Kess/Karador "during each of your turns" family): the grant is live
 	// only while its controller is the ACTIVE player. The walks check the
