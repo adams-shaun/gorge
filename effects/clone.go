@@ -159,7 +159,11 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	}
 
 	dur := strings.TrimSpace(sa.Params["Duration"])
-	permanent, untilEOT, untilTurn, untilUnattached, durNote := cloneDuration(dur)
+	// permanent is the "no Duration$/Permanent" classification; every clone
+	// effect is registered with Permanent=false (see reg below), so the flag
+	// itself is not carried onto the effects -- the no-duration case is simply
+	// a unit with no expiry field, kept until the become object leaves.
+	_, untilEOT, untilTurn, untilUnattached, durNote := cloneDuration(dur)
 	if durNote != "" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, Text: durNote})
 	}
@@ -196,13 +200,19 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			}
 
 			// Modifier layers, scoped to the become object (Card.Self with
-			// Source = its own id, the effPump convention).
+			// Source = its own id, the effPump convention). The lifetime is
+			// ALWAYS the source-leaves rule (Permanent=false): CR 400.7 makes
+			// the object a new object the instant it leaves the battlefield, so
+			// the copy and its modifiers must not follow it. active() drops the
+			// unit on the source-leaves check and effectMoveSweep removes it from
+			// e.continuous when the become object leaves (the CR 611.2a
+			// "Permanent" flag would keep it applying to a re-entered object).
 			reg := func(ce state.ContinuousEffect) {
 				ce.Source = b.Obj
 				ce.Affects = "Card.Self"
 				ce.Controller = c.Controller
 				ce.Duration = dur
-				ce.Permanent = permanent
+				ce.Permanent = false
 				ce.UntilEOT = untilEOT
 				ce.UntilTurn = untilTurn
 				ce.CloneTarget = b.Obj
@@ -227,10 +237,10 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			// The layer-1 LCopy MARKER owns the copy's lifetime. It is always
 			// registered (even when no modifier effect is), so rules' clone
 			// sweep has exactly one owner per copy to expire and can drop the
-			// marker's sibling effects with it. UntilUnattached keeps the
-			// source-presence fields (Permanent=false, UntilEOT=false,
-			// UntilTurn=0) and is enforced by the sweep's attached check, which
-			// the marker's Duration names.
+			// marker's sibling effects with it. UntilUnattached is enforced by
+			// EndOfTurnCleanup's attached check, which reads the marker's
+			// Duration; every other duration rides UntilEOT/UntilTurn or the
+			// source-leaves rule.
 			_ = untilUnattached
 			reg(state.ContinuousEffect{Layer: state.LCopy})
 		}
@@ -326,6 +336,15 @@ func clonePT(h Host, c *Ctx, sa *cards.SA, key string) (present bool, value int3
 // lifetime fields. untilTurn is left zero for the AddContinuous call to fill
 // from the live rotation (the UntilYourNextTurn path). durNote, when
 // non-empty, is the one loud Note for a duration this build cannot place.
+//
+// An UNKNOWN duration is deliberately NOT permanent: it gets the
+// source-leaves lifetime (until the become object leaves the battlefield)
+// rather than lasting for the rest of the game, so a value this build cannot
+// place never silently over-extends a copy. Measured corpus values at
+// FORGE_REF (raw `DB$ Clone` lines): UntilEndOfTurn 33, UntilYourNextTurn 5,
+// UntilUnattached 5, one each of UntilTargetedUntaps, UntilNextEndStep,
+// UntilHostLeavesPlay, UntilFacedown and EOT; 105 lines carry no Duration$
+// (a permanent copy).
 func cloneDuration(dur string) (permanent, untilEOT bool, untilTurn int32, untilUnattached bool, note string) {
 	switch strings.ToLower(strings.TrimSpace(dur)) {
 	case "", "permanent":
@@ -334,17 +353,30 @@ func cloneDuration(dur string) (permanent, untilEOT bool, untilTurn int32, until
 		// durationTiming's combat scope: dropped by EndOfTurnCleanup on the
 		// same turn (the engine's UntilEndOfCombat reclamation).
 		return false, false, 0, false, ""
-	case "untilendofyournextturn":
-		return false, false, 0, false, ""
-	case "untileadofturn", "untilendofturn":
+	case "untileadofturn", "untilendofturn", "eot":
 		return false, true, 0, false, ""
-	case "untilyournextturn", "untilyournextendstep", "untilnextendstep":
+	case "untilyournextturn", "untiltheendofyournextturn":
 		// AddContinuous computes the real turn boundary from Duration.
 		return false, false, 0, false, ""
+	case "untilyournextendstep", "untilnextendstep":
+		// The engine's until-next-end-step window is this turn's cleanup, the
+		// same mapping effects.effectUntilEOT uses for this spelling (the one
+		// corpus carrier is niko_light_of_hope).
+		return false, true, 0, false, ""
 	case "untilunattached":
 		return false, false, 0, true, ""
+	case "untilhostleavesplay":
+		// Exactly the source-leaves lifetime the default arm gives an unknown
+		// duration, so no Note is needed (secret_invasion).
+		return false, false, 0, false, ""
+	case "untilfacedown":
+		return false, false, 0, false,
+			"Clone Duration$ UntilFacedown is approximated as until the copy leaves the battlefield (no turn-face-down expiry)"
+	case "untiltargeteduntaps":
+		return false, false, 0, false,
+			"Clone Duration$ UntilTargetedUntaps is approximated as until the copy leaves the battlefield (no untap-tracked expiry)"
 	default:
-		return true, false, 0, false,
+		return false, false, 0, false,
 			"Clone Duration$ " + dur + " is not implemented; the copy lasts until the object leaves the battlefield"
 	}
 }

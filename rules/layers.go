@@ -936,6 +936,22 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {
+		// A clone unit -- the layer-1 LCopy marker and every sibling modifier
+		// effect, all carrying CloneTarget -- ends the instant the become
+		// object leaves the battlefield (CR 400.7: it is a new object and its
+		// CopyFace basis has already been cleared by Move). Dropping the whole
+		// unit here is the structural owner of a clone's source-leaves
+		// lifetime: without it a permanent copy's modifiers would keep applying
+		// to a re-entered object and e.continuous would grow unbounded. The
+		// expiring durations (UntilEOT / UntilTurn / until-combat /
+		// until-unattached) are still handled by EndOfTurnCleanup; this sweep
+		// adds the leave-the-battlefield case those branches cannot see.
+		if ce.CloneTarget != 0 {
+			if o := e.G.Obj(ce.CloneTarget); o == nil || o.Zone != state.ZBattlefield {
+				changed = true
+				continue
+			}
+		}
 		forget, exile := ce.ForgetOnMoved, ce.ExileOnMoved
 		if forget != "" && effects.ParseZone(forget) == ev.From && objIDIn(ce.Remembered, ev.Obj) {
 			ce.Remembered = objIDWithout(ce.Remembered, ev.Obj)

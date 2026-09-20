@@ -129,8 +129,8 @@ var knownUnsupported = map[string][]string{
 	// its Duration$ expiry and the NewName$/GainThisAbility$ riders, which
 	// is what licensed the shrink. (Vesuva's own ETB-replacement route is
 	// the open ETB-copy ticket; the primitive it names is registered.)
-	"Tireless Provisioner":         {"api:GenericChoice"},
-	"Famished Worldsire":           {"kw:Devour"},
+	"Tireless Provisioner": {"api:GenericChoice"},
+	"Famished Worldsire":   {"kw:Devour"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

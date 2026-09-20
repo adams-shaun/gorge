@@ -133,6 +133,14 @@ func Describe(g *state.Game, ev events.Event) string {
 			text += " (exiled at end of combat)"
 		}
 		return text
+	case events.ClonePermanent:
+		// CR 613.1a's layer-1 copy basis (api:Clone, task api-clone): Obj is
+		// the object that becomes the copy and IDs[0] the object copied from;
+		// a zero/absent id is the expiry/cleanup clear.
+		if len(ev.IDs) == 0 || ev.IDs[0] == 0 {
+			return obj(g, ev.Obj) + " stops being a copy"
+		}
+		return obj(g, ev.Obj) + " becomes a copy of " + obj(g, ev.IDs[0])
 	case events.Exert:
 		// CR 702.100 (task exert1): the exert itself, and the consume marker
 		// the untap-step scan emits as it passes an exerted permanent -- the

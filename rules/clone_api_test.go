@@ -197,3 +197,116 @@ func TestCloneNewNameAndGainThisAbility(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestPermanentCloneEndsWhenTheBecomeObjectLeaves is the CR 400.7 lifetime
+// pin: a no-Duration$ ("permanent") clone with an AddKeywords$ modifier stops
+// being a copy AND loses the modifier the moment the become object leaves the
+// battlefield, and the whole clone unit is removed from e.continuous rather
+// than lingering -- the modifier-leak class where a re-entered object used to
+// still carry the cloned Flying.
+func TestPermanentCloneEndsWhenTheBecomeObjectLeaves(t *testing.T) {
+	const src = "Name:Fixture Mimic\nManaCost:2\nTypes:Artifact\n" +
+		"A:AB$ Clone | Cost$ 1 | ValidTgts$ Creature | AddKeywords$ Flying | SpellDescription$ becomes a permanent copy.\n" +
+		"Oracle:x\n"
+	const bruiser = "Name:Fixture Bruiser\nManaCost:2 G\nTypes:Creature Beast\nPT:3/3\nOracle:x\n"
+	e, cfg, id := newFixtureDeck(t, 89, src, bruiser)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	bear := moveSeeded(t, e, 0, bruiser, state.ZBattlefield)
+	addMana(t, e, 0, "C")
+	activateCloneAbility(t, e, id, bear)
+	passUntilStackEmpty(t, e, 40)
+
+	if o := e.G.Obj(id); o.Face() == nil || o.Face().Name != "Fixture Bruiser" {
+		t.Fatalf("permanent copy name %v, want Fixture Bruiser", o.Face())
+	}
+	if !e.HasKeyword(id, "Flying") {
+		t.Fatalf("permanent copy keywords %v, want Flying", e.Derived(id).Keywords)
+	}
+	replayCheck(t, e, cfg)
+
+	// CR 400.7: leaving the battlefield makes it a new object, so the copy and
+	// its modifier both end, and the clone unit leaves e.continuous.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	if o := e.G.Obj(id); o.CopyFace != nil {
+		t.Fatal("copy basis survived leaving the battlefield")
+	}
+	for _, ce := range e.continuous {
+		if ce.CloneTarget == id {
+			t.Fatalf("clone effect lingered in e.continuous after the object left: %+v", ce)
+		}
+	}
+	// Re-entering must be the printed face, not a copy still carrying Flying.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZBattlefield})
+	if o := e.G.Obj(id); o.Face() == nil || o.Face().Name != "Fixture Mimic" {
+		t.Fatalf("re-entered object is %v, want Fixture Mimic", o.Face())
+	}
+	if e.HasKeyword(id, "Flying") {
+		t.Fatalf("re-entered object kept the cloned modifier: %v", e.Derived(id).Keywords)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestCloneUntilNextEndStepExpiresAtCleanup pins the duration that used to
+// become a PERMANENT copy: cloneDuration left every lifetime field zero for
+// UntilNextEndStep, so neither active() nor EndOfTurnCleanup ever dropped it.
+// The carrier is niko_light_of_hope.
+func TestCloneUntilNextEndStepExpiresAtCleanup(t *testing.T) {
+	const src = "Name:Fixture Stepclone\nManaCost:2\nTypes:Artifact\n" +
+		"A:AB$ Clone | Cost$ 1 | ValidTgts$ Creature | Duration$ UntilNextEndStep | SpellDescription$ becomes a copy until your next end step.\n" +
+		"Oracle:x\n"
+	const oxSrc = "Name:Fixture Ox\nManaCost:2 G\nTypes:Creature Ox\nPT:2/3\nOracle:x\n"
+	e, cfg, id := newFixtureDeck(t, 90, src, oxSrc)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	ox := moveSeeded(t, e, 0, oxSrc, state.ZBattlefield)
+	addMana(t, e, 0, "C")
+	activateCloneAbility(t, e, id, ox)
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(id); o.Face() == nil || o.Face().Name != "Fixture Ox" {
+		t.Fatalf("UntilNextEndStep copy name %v, want Fixture Ox", o.Face())
+	}
+	replayCheck(t, e, cfg)
+
+	e.pending = nil
+	e.setStep(state.StepCleanup)
+	e.priorityRound()
+	if o := e.G.Obj(id); o.Face() == nil || o.Face().Name != "Fixture Stepclone" {
+		t.Fatalf("after cleanup the object is %v, want Fixture Stepclone", o.Face())
+	}
+}
+
+// TestCloneUntilYourNextTurnSurvivesCleanupThenExpires pins the non-EOT
+// turn-boundary duration: the copy survives the turn it was made in (it is
+// NOT UntilEOT) and expires only at the controller's next turn's cleanup, via
+// the UntilTurn boundary AddContinuous computes.
+func TestCloneUntilYourNextTurnSurvivesCleanupThenExpires(t *testing.T) {
+	const src = "Name:Fixture Turnclone\nManaCost:2\nTypes:Artifact\n" +
+		"A:AB$ Clone | Cost$ 1 | ValidTgts$ Creature | Duration$ UntilYourNextTurn | AddKeywords$ Flying | SpellDescription$ becomes a copy until your next turn.\n" +
+		"Oracle:x\n"
+	const oxSrc = "Name:Fixture Ox\nManaCost:2 G\nTypes:Creature Ox\nPT:2/3\nOracle:x\n"
+	e, cfg, id := newFixtureDeck(t, 92, src, oxSrc)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	ox := moveSeeded(t, e, 0, oxSrc, state.ZBattlefield)
+	addMana(t, e, 0, "C")
+	activateCloneAbility(t, e, id, ox)
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(id); o.Face() == nil || o.Face().Name != "Fixture Ox" {
+		t.Fatalf("UntilYourNextTurn copy name %v, want Fixture Ox", o.Face())
+	}
+	replayCheck(t, e, cfg)
+
+	// It is not UntilEOT: this turn's cleanup keeps it.
+	e.pending = nil
+	e.setStep(state.StepCleanup)
+	e.priorityRound()
+	if o := e.G.Obj(id); o.Face() == nil || o.Face().Name != "Fixture Ox" {
+		t.Fatalf("UntilYourNextTurn copy expired a turn early at this cleanup: %v", o.Face())
+	}
+	// It expires at the controller's (seat 0's) next turn's cleanup.
+	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: 2})
+	e.EndOfTurnCleanup()
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 3})
+	e.EndOfTurnCleanup()
+	if o := e.G.Obj(id); o.Face() == nil || o.Face().Name != "Fixture Turnclone" {
+		t.Fatalf("UntilYourNextTurn copy survived the controller's next turn: %v", o.Face())
+	}
+}
