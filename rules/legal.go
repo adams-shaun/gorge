@@ -124,20 +124,36 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 		}
 		return false
 	}
+	// landGranted is the land walk's grant gate: the may-play permission AND
+	// no RaiseCost$ surcharge. A land play is FREE -- there is no cost site
+	// that could charge a surcharge -- so a granting static carrying ANY
+	// RaiseCost$ (priced or not) is withheld whole rather than granted
+	// uncharged, the widening direction this file refuses. Measured: no
+	// corpus RaiseCost$ carrier is a land, so this is a guard against the
+	// next one, not a live behaviour change.
+	landGranted := func(id state.ObjID) bool {
+		if _, ok := e.mayPlayGrant(p, id); !ok {
+			return false
+		}
+		if _, hasRaise, _ := e.mayPlayRaiseCost(p, id); hasRaise {
+			return false
+		}
+		return true
+	}
 	for _, z := range []state.Zone{state.ZGraveyard, state.ZExile} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
 			if o == nil || o.Face() == nil || !o.Face().IsLand() || o.Controller != p {
 				continue
 			}
-			if _, ok := e.mayPlayGrant(p, id); ok && !contains(id) {
+			if landGranted(id) && !contains(id) {
 				out = append(out, id)
 			}
 		}
 	}
 	if lib := e.G.Zone(state.ZLibrary, p); len(lib) > 0 {
 		if o := e.G.Obj(lib[0]); o != nil && o.Face() != nil && o.Face().IsLand() && o.Controller == p {
-			if _, ok := e.mayPlayGrant(p, lib[0]); ok && !contains(lib[0]) {
+			if landGranted(lib[0]) && !contains(lib[0]) {
 				out = append(out, lib[0])
 			}
 		}
@@ -1316,6 +1332,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			// mana part is free, exactly as beginCast's "mayplay" case will
 			// charge it; non-mana additional costs still apply (CR 118.9).
 			base = Cost{}
+		}
+		// CR 118.3a: the granting static's RaiseCost$ surcharge is added on
+		// top of the printed cost (Kotis, Sibsig Champion's "by exiling
+		// three other cards ... in addition to paying its other costs").
+		// Composed before offerCostFor so static cost modifiers apply to the
+		// raised cost, the CR 601.2f order; the affordability gate below then
+		// prices the whole cost against real state (nonManaCastable). A raise
+		// mayPlayStatic could not price never reaches here -- mayPlayGrant
+		// withholds the card -- but the defensive continue keeps the two
+		// sites agreeing if that ever changes.
+		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, id); hasRaise {
+			if !priced {
+				continue
+			}
+			base = base.Plus(raise)
 		}
 		cost := withSpellAbilityExtras(f, offerCostFor(p, id, base, spellScope("mayplay")))
 		if affordable(p, id, cost, false) {
