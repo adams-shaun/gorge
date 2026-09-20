@@ -967,11 +967,23 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 	zones := targetZones(sa)
 	var out []targetCandidate
 	// Players are offered only alongside the default battlefield search and
-	// only when the spec can name one. A spec that routes elsewhere
+	// only when the spec actually names a seat. A spec that routes elsewhere
 	// (TgtZone$ Graveyard/Hand/Exile) targets objects only -- never a player.
-	if len(zones) == 1 && zones[0] == state.ZBattlefield && targetsPlayers(spec) {
+	// Each candidate seat is judged by the SAME shared player filter the
+	// resolution recheck (legalTargets) applies, from the asker's perspective,
+	// so offer and recheck cannot disagree (the one-definition rule): a
+	// ValidTgts$ Opponent ask no longer offers the controller, ValidTgts$ You
+	// no longer offers opponents, and a spec whose qualifier the filter cannot
+	// evaluate fails closed to no seat (the AGENTS.md MatchesPlayerSpec
+	// convention). Note MatchesPlayerSpecFrom splits on ',' and skips
+	// alternatives whose base is not a player base, so a mixed
+	// `Creature,Opponent` spec keeps the object half and matches only the
+	// player half's seats.
+	if len(zones) == 1 && zones[0] == state.ZBattlefield {
 		for _, q := range e.G.AliveFrom(0) {
-			out = append(out, targetCandidate{kind: "player", player: q})
+			if effects.MatchesPlayerSpecFrom(e.G, spec, q, p, specSrc) {
+				out = append(out, targetCandidate{kind: "player", player: q})
+			}
 		}
 	}
 	// Resolve the source ONCE for the whole census -- for an ability this is
@@ -2025,12 +2037,12 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // offer it as an option in the first place: no self-relative source,
 // matching askTarget's own simplification, so a spec that would filter on
 // Self/Other is exactly as (im)precise here as it was at cast time. A player
-// target is legal for as long as they are still in the game; askTarget never
-// applies MatchesPlayerSpec's finer You/Opponent distinction when it first
-// offers every living player as an option (targetsPlayers below it), so this
-// does not either -- rechecking against a filter the engine never enforced
-// when the target was chosen would reject targets this build always
-// considered fine.
+// target is legal for as long as they are still in the game AND still match
+// the spec's player filter (effects.MatchesPlayerSpecFrom, from the
+// controller's perspective, against the same source the offer judged) -- the
+// same grammar askTarget's offer now applies, so offer and recheck cannot
+// disagree (the one-definition rule). A target whose qualifier the filter
+// cannot evaluate was never offered and is rejected here too, fail closed.
 func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
 	var legal []state.Target
 	// The resolution recheck, unlike a target offer, has this stack object's
@@ -2049,7 +2061,8 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 	sc.Resolving = true
 	for _, t := range targets {
 		if t.IsPlayer {
-			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost {
+			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost &&
+				effects.MatchesPlayerSpecFrom(e.G, spec, t.Player, you, source) {
 				legal = append(legal, t)
 			}
 			continue
