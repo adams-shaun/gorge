@@ -794,7 +794,7 @@ func triggerInterestForMode(mode string) TriggerInterest {
 	case "AbilityCast", "SpellAbilityCast":
 		return TriggerInterestAbilityPush
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked",
-		"AttackerBlockedByCreature":
+		"AttackerBlockedByCreature", "Blocks":
 		return TriggerInterestAttackDeclaration
 	case "CommitCrime", "BecomesTarget":
 		return TriggerInterestTargetsChosen

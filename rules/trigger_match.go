@@ -811,6 +811,7 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	// face scan cannot express (see checkAttackerBlockedTriggers).
 	if ev.Kind == events.DeclareBlockers {
 		e.checkAttackerBlockedTriggers(ev)
+		e.checkBlocksTriggers(ev)
 	}
 	// Rooms (CR 309.5): the unlocked half's "When you unlock this door"
 	// trigger queues off the DoorUnlock event itself -- its face is the
@@ -2562,6 +2563,131 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	})
 }
 
+// blocksCandidates lists the (attacker, blocker) pairs one Forge Mode$ Blocks
+// trigger fires for (task trig:Blocks; Savvy Hunter's "Whenever Savvy Hunter
+// attacks or blocks", Heat of Battle's "Whenever a creature blocks", Wand of
+// Orcus' bearer half). Each declared pair is evaluated per pair -- one
+// instance per matching pair, exactly Forge's per-block-event firing --
+// because the trigger's matching object is the pair's BLOCKER, not the
+// trigger's own source: ValidCard$ is read against the blocker (Card.Self
+// names the source-as-blocker; Card.AttachedBy/EquippedBy/EnchantedBy name
+// the bearer via the existing attachedBy predicate; the bare Creature spec
+// is the global-enchantment shape that fires for a blocker that is NOT the
+// source), and ValidBlocked$ is read against the pair's ATTACKER (Goblin
+// Cadets' becomes-blocked spelling ValidCard$ Creature | ValidBlocked$
+// Card.Self). A blocker appears in exactly one pair per event (CR 509.1a's
+// one-blocker-one-attacker pairing; Submit's validateBlockers rejects the
+// same ordinary blocker against multiple attackers), so no dedup is needed.
+func (e *Engine) blocksCandidates(t cards.Trigger, source state.ObjID, ev events.Event) [][2]state.ObjID {
+	if ev.Kind != events.DeclareBlockers || len(ev.Pairs) == 0 {
+		return nil
+	}
+	ctrl := e.controllerOf(source)
+	var out [][2]state.ObjID
+	for _, pr := range ev.Pairs {
+		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[1], e.specCtx(source, ctrl)) {
+			continue
+		}
+		if v := t.Params["ValidBlocked"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[0], e.specCtx(source, ctrl)) {
+			continue
+		}
+		out = append(out, pr)
+	}
+	return out
+}
+
+// checkBlocksTriggers queues trigger instances off a DeclareBlockers event
+// for Forge Mode$ Blocks (trig:Blocks): "whenever [this creature] blocks" and
+// its enchantment/equipment/global shapes. The ordinary per-face scan cannot
+// express it -- it queues at most one entry per trigger per event, and the
+// mode's matching object is the pair's BLOCKER while its referents split
+// between the blocker and the attacker (Godsend's Blocks half reads
+// DefinedCards$ TriggeredAttackers; Wand of Orcus' half pumps
+// TriggeredBlockerLKICopy) -- so it rides the same dedicated hook as
+// checkAttackerBlockedTriggers, with one instance per matching PAIR. The
+// gates mirror the ordinary scan's per-trigger sequence (zone, phase,
+// fire-count bound, the actionTriggerModes guard shape kept so a future
+// ActivationLimit$/PlayerTurn$ carrier joins with a one-word mode-row
+// change -- measured, no Blocks line carries either today) PLUS the shared
+// condition gate triggerConditionHoldsAs, which the AttackerBlocked hook
+// omits but the corpus's IsPresent$/PresentCompare$ Blocks lines need.
+// Each per-instance ctx: the ATTACKER as Remembered/Captured (Godsend's
+// TriggeredAttackers pool), the attacker as TriggerCard/TriggerSource, the
+// blocker in the new TriggerBlocker role (TriggeredBlockerLKICopy), both
+// combat players, and Source/Controller = the trigger face's own
+// object/controller (the enchantment/equipment, not the blocker).
+// Secondary$ needs no yield here: a Blocks half's paired primary is an
+// Attacks trigger, which can never match the same DeclareBlockers event, so
+// the secondary always fires on its own (the AttackerBlocked hook skips
+// secondaryYields for the same reason).
+func (e *Engine) checkBlocksTriggers(ev events.Event) {
+	if ev.Kind != events.DeclareBlockers {
+		return
+	}
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil {
+			return
+		}
+		f := o.Face()
+		if f == nil {
+			return
+		}
+		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
+			return
+		}
+		for ti, t := range f.Triggers {
+			if t.Mode != "Blocks" {
+				continue
+			}
+			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
+				continue
+			}
+			if !e.triggerConditionHoldsAs(t, id, o.Controller) {
+				continue
+			}
+			key := triggerKey{Source: id, Idx: ti}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue // cascade bound: see maxTriggerFires.
+			}
+			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			for _, pr := range e.blocksCandidates(t, id, ev) {
+				if t.Effect == nil {
+					break
+				}
+				attacker := pr[0]
+				defender := pt(ev.Player)
+				e.triggerFireCount[key]++
+				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+					Source:     id,
+					Controller: o.Controller,
+					Idx:        ti,
+					SA:         t.Effect,
+					Ctx: effects.Ctx{
+						Source:     id,
+						Controller: o.Controller,
+						Remembered: []state.Target{{Obj: attacker}},
+						Captured:   []state.Target{{Obj: attacker}},
+						TriggerContext: effects.TriggerContext{
+							TriggerCard:     attacker,
+							TriggerSource:   attacker,
+							TriggerBlocker:  pr[1],
+							AttackingPlayer: pt(e.controllerOf(attacker)),
+							DefendingPlayer: defender,
+						},
+					},
+				})
+			}
+		}
+	})
+}
+
 // exertedMatches is the trig:Exerted half of CR 702.100 (task exert1 built the
 // election and the static's own Trigger$ rider; this is the separate "whenever
 // you exert a creature" listener a different script line carries). The event is
@@ -4055,7 +4181,7 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:Cycled", "trig:CounterAdded", "trig:CounterRemoved",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterRemoved",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",

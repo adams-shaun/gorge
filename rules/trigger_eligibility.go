@@ -120,7 +120,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.AbilityPush
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers
-	case "AttackerBlocked", "AttackerBlockedByCreature":
+	case "AttackerBlocked", "AttackerBlockedByCreature", "Blocks":
 		return 1 << events.DeclareBlockers
 	case "Sacrificed", "Discarded", "LandPlayed":
 		return 1 << events.MoveZone

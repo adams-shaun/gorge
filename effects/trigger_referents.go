@@ -88,6 +88,19 @@ type TriggerContext struct {
 	// Zero is both a valid count and the value for a triggering card whose
 	// cast carried none.
 	TriggerConverge int32
+	// TriggerBlocker is the BLOCKING creature of the DeclareBlockers pair a
+	// Mode$ Blocks trigger fired for (rules/trigger_match.go's
+	// checkBlocksTriggers). A Blocks trigger's Remembered carries the pair's
+	// ATTACKER (Godsend's Blocks half reads DefinedCards$ TriggeredAttackers),
+	// so the blocker role is the only exact referent for the
+	// TriggeredBlockerLKICopy/TriggeredBlockerController spellings -- without
+	// it they resolve the remembered attacker. The role-absent fallback (the
+	// AttackerBlockedByCreature queue entries, whose Remembered IS the
+	// blocker, and hand-built contexts) keeps the old Remembered read, exactly
+	// like TriggerBearer's discipline. Zero outside a Blocks capture; not
+	// serialized into events.Event -- the per-stack-instance capture is
+	// rebuilt by the same replay re-derivation as TriggerPaidX/TriggerConverge.
+	TriggerBlocker state.ObjID
 }
 
 // TriggeredCardController is the one resolver for "that card's controller"
