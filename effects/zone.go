@@ -113,10 +113,21 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// hand, and/or library"). Every one of the corpus's 62 carriers pairs
 		// it with Origin$ Library; without this merge the exact-Library branch
 		// below sees a library-only origin and silently searches just that.
-		// Parse with the same vocabulary as Origin$; an unknown alternative
-		// zone makes the whole origin set invalid, so the effect bails loudly
-		// (via `valid`) rather than silently dropping a named zone.
+		// The merge is deliberately SCOPED to this parameter (altPresent below
+		// gates the widened search branch): a compound Origin$ WITHOUT an
+		// OriginAlternative$ keeps its pre-existing object path -- Eladamri,
+		// Korvecdal's `Defined$ ChosenCard | Origin$ Library,Hand` must move
+		// the already-chosen card, never pose a fresh whole-library pick.
+		// Parse with the same vocabulary as Origin$. A zone word ParseZones
+		// does not model (Sideboard) is noted loudly and dropped from the
+		// merged set while every KNOWN zone keeps searching -- bailing the
+		// whole effect (folding altValid into `valid`) would lose the library
+		// half of invasion_of_arcavios's "library, graveyard, and/or outside
+		// the game", a regression over the pre-OriginAlternative engine,
+		// which still searched the library.
+		var altPresent bool
 		if alt, hasAlt := sa.Params["OriginAlternative"]; hasAlt {
+			altPresent = true
 			altZones, altAll, altValid := ParseZones(alt)
 			for _, z := range altZones {
 				if !zoneIn(originZones, z) {
@@ -124,7 +135,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 			originAll = originAll || altAll
-			valid = valid && altValid
+			if !altValid {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "unrecognised ChangeZone OriginAlternative " + alt})
+			}
 		}
 		hidden := strings.EqualFold(strings.TrimSpace(sa.Params["Hidden"]), "True")
 		// ... and the branch excludes every origin the dedicated walkers own:
@@ -183,6 +197,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// A ChangeZone whose origin set includes Library and no other hidden
 		// walker's zone is the hidden-origin search, now spanning every zone
 		// Origin$ plus OriginAlternative$ named (the and/or shapes). The
+		// widened cross-zone shape fires ONLY when OriginAlternative$ is
+		// present: a compound Origin$ alone keeps its existing dispatcher, so
+		// a Defined$-bearing carrier (Eladamri, Korvecdal) still takes its
+		// already-chosen objects. The
 		// searching player may fail to find a card with the stated quality (Min
 		// is always zero), and the answer resumes this same effect before its
 		// SubAbility runs. The exact-Library spelling is the single-zone case of
@@ -194,14 +212,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// exist: the fetch player sees their own hand, so no hidden information
 		// is exposed by offering it by name.
 		if zoneIn(originZones, state.ZLibrary) && !originAll &&
-			!zoneIn(originZones, state.ZBattlefield) {
+			!zoneIn(originZones, state.ZBattlefield) &&
+			(altPresent || len(originZones) == 1) {
 			// Forge treats a Defined$ that resolves to objects in a hidden
 			// library as the already-selected fetch list, not as the owner of a
 			// fresh whole-library search. This is structural rather than keyed to
 			// Remembered: ChosenCard, TopOfLibrary once resolved, and future
 			// object-valued Defined selectors share the same dispatcher. Only the
-			// pure-library case takes it: a combined origin that names an object
-			// fetch is a fresh cross-zone pick, not an already-selected list.
+			// single-zone case takes it: with OriginAlternative$ present the
+			// corpus carries no Defined$ (measured 0 of 62), so this is latent
+			// rather than live.
 			if len(originZones) == 1 && moveDefinedLibraryObjects(h, c, sa, to) {
 				return
 			}
@@ -2432,6 +2452,15 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 				withAmt = withCounterAmount(h, c, sa)
 			}
 			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, owner, true)
+			// AttachedTo$ on an alternative-zone pick (Boonweaver Giant's "put
+			// it onto the battlefield attached to CARDNAME", Runed Crown, Arachnus
+			// Web): the same rider the library branch below applies -- without it
+			// an Aura found in the graveyard or hand enters unattached and the
+			// CR 704.5m SBA sweeps it. GainControl$/WithCounters*/Transformed$
+			// already ride settleChangeZoneMoveAs above.
+			if to == state.ZBattlefield {
+				changeZoneAttachedTo(h, c, sa, id)
+			}
 			moved = append(moved, id)
 			// settleChangeZoneMoveAs already appended the object to the
 			// resolution's Remembered for RememberChanged$; only the persistent
