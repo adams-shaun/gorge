@@ -893,6 +893,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			// carry triggered abilities.
 			return
 		}
+		// objLKI is the whole-event LKI snapshot, hoisted here because every
+		// trigger this loop matches for this event shares it (lki.ID == ev.Obj
+		// always holds when lki != nil -- see checkTriggers's own doc above; a
+		// defensive belt-and-braces check against a future emit change that
+		// might one day pass a mismatched lki). triggerMatches and the matched
+		// trigger's Ctx both read it. Hoisted above the face-down gate too: the
+		// cloaked ward walk below reads it as well.
+		var objLKI *state.Object
+		if lki != nil && lki.ID == ev.Obj {
+			objLKI = lki
+		}
 		if e.faceDownPrintedHides(o) {
 			// CR 708.8: a face-down permanent's printed triggers (and any
 			// granted walk keyed to it) do not exist while it is face down --
@@ -902,17 +913,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			// face down; the live walk matches leaves-triggers only through
 			// that observer or a TriggerZones the departed card no longer
 			// occupies).
+			// A CLOAKED face-down permanent is the one exception: its ward {2}
+			// is part of the cloak status itself (CR 708.5's cloak variant),
+			// not a printed ability -- the synthesized Ward trigger in
+			// checkGrantedWardTriggers (built from the derived keyword list
+			// layers.go appends for Cloaked objects) is what turns targeting
+			// it into the pay-or-counter ask. Only the granted-ward walk
+			// revives; the printed-face walk stays suppressed.
+			if o.Cloaked && ev.Kind == events.TargetsChosen {
+				e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			}
 			return
-		}
-		// objLKI is the whole-event LKI snapshot, hoisted here because every
-		// trigger this loop matches for this event shares it (lki.ID == ev.Obj
-		// always holds when lki != nil -- see checkTriggers's own doc above; a
-		// defensive belt-and-braces check against a future emit change that
-		// might one day pass a mismatched lki). triggerMatches and the matched
-		// trigger's Ctx both read it.
-		var objLKI *state.Object
-		if lki != nil && lki.ID == ev.Obj {
-			objLKI = lki
 		}
 		// Ordinary cards need no face-walk setup when their printed triggers
 		// cannot observe this event. An unlocked Room may still have an
@@ -3817,8 +3828,14 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 		return
 	}
 	printed := map[string]bool{}
-	for _, k := range f.Keywords {
-		printed[strings.ToLower(k)] = true
+	if !e.faceDownPrintedHides(o) {
+		// While the object is face down its printed face does not exist
+		// (CR 708.8): a cloaked card whose real face prints Ward must not
+		// suppress its own cloak-ward -- the derived list is the only
+		// keyword source on this path.
+		for _, k := range f.Keywords {
+			printed[strings.ToLower(k)] = true
+		}
 	}
 	for _, k := range observer.Derived(id).Keywords {
 		if printed[strings.ToLower(k)] {

@@ -596,6 +596,10 @@ const (
 	wordIsCommander
 	wordBlockingSource
 	wordBlockedBySource
+	// Forge's faceDown: a face-down battlefield permanent (a manifested or
+	// cloaked card). The game/state-aware family -- needs the object's own
+	// zone, classified here so matcher and UnknownPredicates agree.
+	wordFaceDown
 	// The resolution-only one-token TargetedPlayerCtrl grammar. Its target
 	// binding comes from SpecContext rather than a new state tracker.
 	wordTargetedPlayerCtrl
@@ -726,6 +730,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordActivePlayerCtrl, ""
 	case "TopLibrary":
 		return wordTopLibrary, ""
+	case "faceDown":
+		return wordFaceDown, ""
 	case "HasCounters":
 		return wordHasCounters, ""
 	case "Historic":
@@ -855,6 +861,12 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's ActivePlayerCtrl: the object is controlled by the active
 		// player -- the seat whose turn it is, g.Active.
 		return o.Controller == g.Active
+	case wordFaceDown:
+		// Forge's faceDown: the object is a face-down battlefield permanent
+		// (CR 708.5 -- a manifested or cloaked card). The same live state read
+		// the rules-side scans gate on (faceDownPrintedHides); a face-down
+		// EXILE (Hideaway) is not a permanent and never matches.
+		return o.FaceDown && o.Zone == state.ZBattlefield
 	case wordTopLibrary:
 		// Forge's TopLibrary: the object is the top card of its library --
 		// index 0 of the owner's library slice, the card the next draw takes

@@ -4121,6 +4121,13 @@ func (e *Engine) targetAsk() bool {
 		excludeSelf = pc.card
 	}
 	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
+	// Forge's TargetsForEachPlayer$ selection shape (one per player): the
+	// same bounds/group read the trigger-path askTarget uses, so a OneEach
+	// CAST ask (Unexplained Absence's "up to one target nonland permanent
+	// each player controls") offers the whole table's slots and the wire's
+	// mutual-exclusion rule enforces one pick per controller. Before this the
+	// cast-time ask ignored the shape and capped the ask at the plain Max.
+	min, max, _ = e.oneEachTargetBounds(sa, candidates, min, max)
 	// Overload changes the word "target" to "each". It makes no selection at
 	// announcement time: the current matching set is derived at resolution,
 	// so permanents entering or changing controller in response are handled.
@@ -4187,8 +4194,10 @@ func (e *Engine) targetAsk() bool {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
 		// TargetType$ Activated/Triggered census) can never nil-deref here.
 		label := e.targetOptionLabel(candidate)
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
-			Label: label, Obj: candidate.obj, Player: candidate.player})
+		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: label, Obj: candidate.obj, Player: candidate.player}
+		o.Group = e.oneEachTargetGroup(sa, candidate)
+		d.Options = append(d.Options, o)
 	}
 	e.ask(d)
 	return true
