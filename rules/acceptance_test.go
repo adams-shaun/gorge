@@ -110,8 +110,11 @@ var knownUnsupported = map[string][]string{
 	//
 	// The pro-shaper player-submitted Commander import (2026-09-18): the
 	// primitives this build does not implement that its cards need. Earthbend
-	// (7 cards) and Clone (2) are unregistered APIs; GenericChoice (1) and
-	// Devour (1) are unregistered primitives. kw:Hexproof was implemented in
+	// (7 cards) and Clone (2) are unregistered APIs; Devour (1) is an
+	// unregistered primitive. api:GenericChoice left this table when the
+	// primitive registered (effects/misc.go, GenericChoice -> effCharm) --
+	// Tireless Provisioner and Torment of Hailfire are fully supported now,
+	// pinned in rules/generic_choice_test.go. kw:Hexproof was implemented in
 	// the same change (rules/protection.go hexproofBlocksTarget, pinned in
 	// rules/hexproof_test.go), so its two carriers -- Lotus Field and Tectonic
 	// Split -- are deliberately absent here: they are fully supported now.
@@ -124,8 +127,6 @@ var knownUnsupported = map[string][]string{
 	"Toph, Hardheaded Teacher":     {"api:Earthbend"},
 	"Shifting Woodland":            {"api:Clone"},
 	"Vesuva":                       {"api:Clone"},
-	"Tireless Provisioner":         {"api:GenericChoice"},
-	"Torment of Hailfire":          {"api:GenericChoice"},
 	// The pro-shaper/Commander cards whose gap was previously invisible
 	// because Primitive() walked the Sub chain only: an SVar-naming
 	// parameter (Charm's Choices$, Repeat's RepeatSubAbility$) resolved
