@@ -74,6 +74,16 @@ var repoCommanderGames = []struct {
 	// live in these games; Rhystic Study/Mystic Remora's pay-or-draw asks
 	// run through the unless gate's resolved-on-suspension record.
 	{"vivi-ornitier-cedh", "foundations-wretched-ranks", 1019, 5008, []uint64{1019, 1024, 1038}},
+	// The Pro Shaper player-submitted Commander import (measured 2026-09-19,
+	// against the same slowest-foe pairing): its commander is Hearthhull, the
+	// Worldseed -- a legendary Spacecraft with a printed P/T box -- which the
+	// engine's old CR 903.3 predicate (no Vehicle/Spacecraft carve-out)
+	// rejected at genesis, leaving the command zone empty (CmdCasts length
+	// 0). The engine now delegates to deck.IsCommanderEligible, the predicate
+	// the deck validator itself uses, so the deck seats; a probe of seeds
+	// [1000,1060) with bot 5000+offset had 12/60 cast Hearthhull from the
+	// command zone, and the declared three are casting seeds.
+	{"pro-shaper", "foundations-wretched-ranks", 1000, 5000, []uint64{1000, 1013, 1019}},
 }
 
 // TestRepoCommanderDecksPlayAndCastTheirCommander is the m38 play evidence
