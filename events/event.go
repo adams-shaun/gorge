@@ -449,6 +449,23 @@ const (
 	// prior Kind's own append-only precedent, so no earlier ordinal, hash
 	// chain or golden replay is affected.
 	Mutate
+	// MergedTriggerPush mints a mutated pile's UNDER-CARD triggered ability
+	// (CR 702.140d: the permanent has all abilities of the cards beneath
+	// it, including their "whenever this creature mutates" triggers). Obj
+	// is the pile (the triggering source), Player the controller, Counter
+	// the Execute$ SVar name, Amount the under-card's pile index (its
+	// position in MergedCards, top-of-pile first), and IDs the Remembered
+	// capture the ordinary trigger push encodes. Apply resolves the name
+	// against THAT face's own SVar table -- never the whole face stack:
+	// the top face may define the same name with a different body (Cubwarden
+	// and Everquill Phoenix both name their token SVar TrigToken), and the
+	// DelayedPush by-name walk's top-first order would steal the under-card's
+	// body. It is a sibling of DelayedPush/GrantTriggerPush -- the minting
+	// shape is GrantTriggerPush's (no registration consumed) -- appended
+	// here, after Mutate, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	MergedTriggerPush
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -459,7 +476,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Mutate) + 1
+	NumKinds = int(MergedTriggerPush) + 1
 )
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
@@ -540,7 +557,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "mutate"}
+	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "mutate", "merged_trigger_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

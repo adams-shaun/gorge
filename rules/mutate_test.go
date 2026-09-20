@@ -280,3 +280,204 @@ func TestMutateOfferRequiresNonHumanYouOwn(t *testing.T) {
 		t.Fatal("the plain cast must remain offered")
 	}
 }
+
+// --- CR 702.140d: the under-card's trigger runs ITS OWN body ---
+
+// mutateDrain answers the trigger-drain decisions a pile with several Mutates
+// triggers poses: a CR 603.3b trigger_order ask is decided BEFORE placement,
+// while the stack is still empty, so passUntilStackEmpty's stack-depth gate
+// exits before it is ever answered. The ordering answer is the full offered
+// permutation in ascending order -- the recorded mirror of the engine-side
+// first-order stand-in, the same answer drainTriggerAsks gives. Priority is
+// passed; any other single-choice ask takes the first option.
+func mutateDrain(t *testing.T, e *Engine, limit int) {
+	t.Helper()
+	startTurn := e.G.Turn
+	for i := 0; i < limit && !e.G.Over && e.G.Turn == startTurn; i++ {
+		d := e.Pending()
+		if d == nil {
+			if len(e.G.Stack) == 0 {
+				return
+			}
+			t.Fatalf("no decision while draining the stack (depth %d)", len(e.G.Stack))
+		}
+		switch d.Kind {
+		case decision.KTriggerOrder:
+			idx := make([]int, 0, len(d.Options))
+			for _, o := range d.Options {
+				idx = append(idx, o.Index)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: idx}); err != nil {
+				t.Fatalf("submit trigger order: %v", err)
+			}
+		case decision.KPriority:
+			if len(e.G.Stack) == 0 {
+				// The mutation and every trigger it fired have fully resolved:
+				// priority is back with an empty stack. Stop here -- running on
+				// would walk into the end step and expire the very "until end
+				// of turn" pumps these assertions read.
+				return
+			}
+			passed := false
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}); err != nil {
+						t.Fatalf("submit pass: %v", err)
+					}
+					passed = true
+					break
+				}
+			}
+			if !passed {
+				t.Fatalf("priority decision with no pass option: %+v", d.Options)
+			}
+		default:
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+				t.Fatalf("submit %v: %v", d.Kind, err)
+			}
+		}
+	}
+	if e.G.Over {
+		return
+	}
+	if d := e.Pending(); d != nil && !(d.Kind == decision.KPriority && len(e.G.Stack) == 0) {
+		t.Fatalf("drain never cleared (pending %+v, stack depth %d)", d, len(e.G.Stack))
+	}
+}
+
+// TestMergedTriggerResolvesTheUnderCardsOwnBody is the finding-r2 regression:
+// the pile's top card and an under-card can both define an SVar of the SAME
+// name -- Forge's canonical token body name TrigToken -- and the under-card's
+// "whenever this creature mutates" trigger must run the UNDER-CARD's body,
+// never the top face's. Cubwarden (SVar:TrigToken = two 1/1 white Cat tokens
+// with lifelink) mutated under Everquill Phoenix (SVar:TrigToken = one Feather
+// artifact token) is the real collision pair: both placements must produce
+// exactly the bodies' own tokens and never a cross-body steal.
+//
+//   - Phoenix mutated ON TOP of Cubwarden: the top Phoenix's own trigger makes
+//     1 Feather, the under Cubwarden's makes 2 Cats (pre-fix: 0 Cats, 2
+//     Feathers -- the under-card's Execute$ resolved against the TOP face's
+//     TrigToken).
+//   - Cubwarden mutated ON TOP of the Phoenix: the top Cubwarden's own trigger
+//     makes 2 Cats, the under Phoenix's makes 1 Feather (pre-fix: 4 Cats, 0
+//     Feathers -- the under Phoenix ran the top Cubwarden's body twice).
+func TestMergedTriggerResolvesTheUnderCardsOwnBody(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	phoenix := mustCorpusCard(t, reg, "Everquill Phoenix")
+	cubwarden := mustCorpusCard(t, reg, "Cubwarden")
+
+	// Phoenix on top, Cubwarden under.
+	e, cfg := tokenReplGame(t, 306, phoenix, cubwarden)
+	cub := moveSeededCard(t, e, 0, cubwarden, state.ZBattlefield)
+	phoenixID := moveSeededCard(t, e, 0, phoenix, state.ZHand)
+	addMana(t, e, 0, "RRRR") // the mutate cost {3}{R}
+	mutateCastOnto(t, e, mutatedCastOption(t, e, phoenixID), cub, true)
+	mutateDrain(t, e, 40)
+	if got := battlefieldNamedCount(t, e, "Feather"); got != 1 {
+		t.Fatalf("top Phoenix's own trigger made %d Feather, want 1", got)
+	}
+	if got := battlefieldNamedCount(t, e, "Cat Token"); got != 2 {
+		t.Fatalf("under Cubwarden's trigger made %d Cat Token, want 2 (its own TrigToken body, not the top face's)", got)
+	}
+	replayCheck(t, e, cfg)
+
+	// Cubwarden on top, Phoenix under.
+	e2, cfg2 := tokenReplGame(t, 307, cubwarden, phoenix)
+	phx := moveSeededCard(t, e2, 0, phoenix, state.ZBattlefield)
+	cubID := moveSeededCard(t, e2, 0, cubwarden, state.ZHand)
+	addMana(t, e2, 0, "WWWW") // the mutate cost {2}{W}{W}
+	mutateCastOnto(t, e2, mutatedCastOption(t, e2, cubID), phx, true)
+	mutateDrain(t, e2, 40)
+	if got := battlefieldNamedCount(t, e2, "Cat Token"); got != 2 {
+		t.Fatalf("top Cubwarden's own trigger made %d Cat Token, want 2", got)
+	}
+	if got := battlefieldNamedCount(t, e2, "Feather"); got != 1 {
+		t.Fatalf("under Phoenix's trigger made %d Feather, want 1 (its own TrigToken body, not the top face's)", got)
+	}
+	replayCheck(t, e2, cfg2)
+}
+
+// TestCountTimesMutatedDrivesTheRealReader pins Count$TimesMutated end to end
+// on its real carrier Huntmaster Liger: "Whenever this creature mutates,
+// other creatures you control get +X/+X until end of turn, where X is the
+// number of times this creature has mutated." After the first mutation the
+// other bear is +1/+1 (X=1, not 0); after the second it has taken the second
+// mutation's +2/+2 from BOTH Mutates triggers the pile now carries (the top
+// Liger's and the newly merged one's, each reading X=2).
+func TestCountTimesMutatedDrivesTheRealReader(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	liger1 := mustCorpusCard(t, reg, "Huntmaster Liger")
+	liger2 := mustCorpusCard(t, reg, "Huntmaster Liger")
+	bears := mustCorpusCard(t, reg, "Grizzly Bears")
+	e, cfg := tokenReplGame(t, 308, liger1, liger2, bears)
+	first := moveSeededCard(t, e, 0, liger1, state.ZHand)
+	target := moveSeededCard(t, e, 0, bears, state.ZBattlefield)
+	other := putToken(t, e, 0, mutateBearSrc, state.ZBattlefield)
+	addMana(t, e, 0, "WWW") // the mutate cost {2}{W}
+	mutateCastOnto(t, e, mutatedCastOption(t, e, first), target, true)
+	mutateDrain(t, e, 40)
+
+	if got := e.G.Obj(target).TimesMutated; got != 1 {
+		t.Fatalf("after first mutate TimesMutated = %d, want 1", got)
+	}
+	if p, tt := e.Power(other), e.Toughness(other); p != 3 || tt != 3 {
+		t.Fatalf("other creature after first mutation = %d/%d, want 3/3 (X=1)", p, tt)
+	}
+
+	second := moveSeededCard(t, e, 0, liger2, state.ZHand)
+	addMana(t, e, 0, "WWW")
+	mutateCastOnto(t, e, mutatedCastOption(t, e, second), target, false)
+	mutateDrain(t, e, 40)
+
+	if got := e.G.Obj(target).TimesMutated; got != 2 {
+		t.Fatalf("after second mutate TimesMutated = %d, want 2", got)
+	}
+	// Both of the pile's Liger triggers fire on the second mutation and each
+	// reads X=2, so the other bear takes +2/+2 twice on top of the first +1/+1.
+	if p, tt := e.Power(other), e.Toughness(other); p != 7 || tt != 7 {
+		t.Fatalf("other creature after second mutation = %d/%d, want 7/7 (X=2 from both triggers)", p, tt)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestMutateCostIsPaidInsteadOfTheManaCost pins CR 702.140a's cost
+// substitution on a card where the two costs are distinguishable: Huntmaster
+// Liger's mutate cost is {2}{W} but its printed mana cost is {3}{W}, so a
+// WWW pool pays the mutate cast and can NOT pay the plain cast. The mutated
+// cast must be offered while the plain cast is withheld, the cast must
+// complete, and the mana actually spent must be the mutate cost's 3 (not the
+// printed cost's 4 -- the pre-fix engine charged the plain cost here and
+// aborted the cast as "cost no longer payable").
+func TestMutateCostIsPaidInsteadOfTheManaCost(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	liger := mustCorpusCard(t, reg, "Huntmaster Liger")
+	e, cfg := tokenReplGame(t, 309, liger)
+	ligerID := moveSeededCard(t, e, 0, liger, state.ZHand)
+	bear := putToken(t, e, 0, mutateBearSrc, state.ZBattlefield)
+	addMana(t, e, 0, "WWW") // pays the mutate cost {2}{W}; the plain {3}{W} is not payable
+
+	for _, o := range castOptions(t, e) {
+		if o.Obj == ligerID && o.Mode == "" {
+			t.Fatalf("plain cast offered from a pool that cannot pay the printed mana cost {3}{W}: %+v", o)
+		}
+	}
+	n0 := len(e.L.Events)
+	mutateCastOnto(t, e, mutatedCastOption(t, e, ligerID), bear, true)
+	mutateDrain(t, e, 40)
+
+	pile := e.G.Obj(bear)
+	if pile == nil || pile.Zone != state.ZBattlefield || pile.Face() == nil ||
+		pile.Face().Name != "Huntmaster Liger" {
+		t.Fatalf("mutated pile = %+v, want the Liger on top of the bear", pile)
+	}
+	spent := int32(0)
+	for _, ev := range e.L.Events[n0:] {
+		if ev.Kind == events.ManaAdd && ev.Amount < 0 {
+			spent += -ev.Amount
+		}
+	}
+	if spent != 3 {
+		t.Fatalf("mutate cast spent %d mana, want the mutate cost {2}{W}'s 3 (a plain-cost charge would be 4)", spent)
+	}
+	replayCheck(t, e, cfg)
+}

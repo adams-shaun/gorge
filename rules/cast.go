@@ -1293,6 +1293,23 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
+	case "mutated":
+		// Mutate (CR 702.140a): the mutate cast pays the MUTATE cost in place
+		// of the mana cost -- the same substitution the offer gate priced
+		// (legal.go's offerCastable(p, id, mc, spellScope("mutated"), ...)).
+		// Without this case the pendingCast charges the PLAIN mana cost, which
+		// only ever passes unnoticed when the two costs are payable from the
+		// same pool (Everquill Phoenix's {3}{R} mutate vs {2}{R}{R} plain, both
+		// payable from RRRR -- Huntmaster Liger's {2}{W} mutate vs {3}{W} plain
+		// aborts the cast at the target stage instead). mutateCost applies the
+		// same colon-cut and Unknown/X withhold the offer gate used; a stale
+		// option whose keyword is gone falls back to the empty cost like the
+		// keyword family above.
+		if mc, ok := mutateCost(f); ok {
+			cost = mc
+		} else {
+			cost = Cost{}
+		}
 	}
 	// CR 601.2b/f/h: a spell's own SpellAbility may carry an explicit Cost$
 	// (Forge's SP Cost) naming an additional cost -- most commonly a

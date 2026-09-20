@@ -45,9 +45,13 @@ func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 		}
 	}
 	// CR 702.140d: a mutated permanent has all abilities of the cards beneath
-	// its top card, so an under-card's Execute$ SVar must be resolvable here
-	// too (the by-name push triggerFacesWithMerged routes those triggers
-	// through). Top face first, then each merged card top-of-pile first.
+	// its top card, so an under-card's Execute$ SVar resolves here too, as a
+	// LAST-RESORT fall-through for the by-name siblings (DelayedPush,
+	// GrantTriggerPush) when the top card's own table lacks the name. The
+	// pile's under-card TRIGGERS do not use this walk any more -- they push
+	// MergedTriggerPush, which resolves the name against the exact under-card
+	// face, because this top-first walk would steal the body whenever the top
+	// face defines the same name (Cubwarden under Everquill Phoenix).
 	for i := range src.MergedCards {
 		if cf := src.MergedFaceAt(i); cf != nil {
 			if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
@@ -1508,6 +1512,38 @@ func Apply(g *state.Game, e Event) {
 		if registration != nil && registration.TrackSource {
 			o.SourceIncarnation = incarnation
 		}
+		o.Remembered = rememberedFrom(e.IDs)
+
+	case MergedTriggerPush:
+		// CR 702.140d: a mutated pile's under-card trigger fired and its
+		// ability object is minted here, inside Apply, so a log-only replay
+		// creates the same object a live game did (the Ruling T20-a/DelayedPush
+		// precedent). Unlike DelayedPush no registration is consumed -- the
+		// grant-trigger shape -- and unlike both by-name siblings the Execute$
+		// name (e.Counter) is resolved against the UNDER-CARD's own face,
+		// named by e.Amount (its pile index in MergedCards): the pile's top
+		// face may define the same name with a different body, and the
+		// top-first resolveSVarAcrossFaces walk would steal it (Cubwarden's
+		// two Cats must not become Everquill Phoenix's Feather).
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil {
+			break
+		}
+		f := src.MergedFaceAt(int(e.Amount))
+		if f == nil {
+			break
+		}
+		sa := cards.ResolveSVar(f.SVars, e.Counter)
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
 		o.Remembered = rememberedFrom(e.IDs)
 
 	case GrantTriggerPush:

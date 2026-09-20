@@ -24,7 +24,24 @@ type objectTriggerEventMasks struct {
 const allTriggerEvents triggerEventMask = ^triggerEventMask(0)
 
 func (m triggerEventMask) allows(kind events.Kind) bool {
-	return kind >= 64 || m&(1<<kind) != 0
+	if int(kind) < 64 {
+		return m&(1<<kind) != 0
+	}
+	// Past the uint64 mask's width only three cases reach here:
+	//   - a conservative catch-all mask (a Phase-bearing face's diagnostic
+	//     walk, or triggerModeEvents' unknown/future mode) retains EVERY
+	//     event, known or not;
+	//   - a kind this binary does not know (>= NumKinds -- a newer log's
+	//     event replayed by an older binary) fails open to the old matcher,
+	//     never silently truncated;
+	//   - a KNOWN kind past the width on an enumerated mask (MergedTrigger-
+	//     Push, ordinal 64, is the first) is checked exactly. The old bare
+	//     kind >= 64 catch-all made the textual side claim such an event
+	//     could fire ANY mode -- flowing it into matchers that assume their
+	//     own event kind's fields -- while the compiled prefilter correctly
+	//     rejected it; TestCompiledTriggerInterestParity holds the two
+	//     together.
+	return m == allTriggerEvents || int(kind) >= events.NumKinds
 }
 
 // eventTriggerInterest maps replay-stable event kinds to cards-owned semantic
@@ -67,7 +84,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
 		events.GrantTriggerPush, events.ManaActivate,
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
-		events.CopyToken, events.Exert, events.PlanarRoll, events.Mutate:
+		events.CopyToken, events.Exert, events.PlanarRoll, events.Mutate,
+		events.MergedTriggerPush:
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach

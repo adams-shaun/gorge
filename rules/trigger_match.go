@@ -66,6 +66,16 @@ type pendingTrigger struct {
 	// resolves from the source's SVar table).
 	Delayed   bool
 	DelayedID uint32
+	// Merged marks a mutated pile's under-card trigger (CR 702.140d): like
+	// a delayed trigger its Ability is the Execute$ SVar-named body, but the
+	// push must resolve that name against the UNDER-CARD's own face, never
+	// the pile's top face (whose same-named SVar -- Forge's canonical
+	// TrigToken -- would otherwise steal the body). The value is the
+	// under-card's pile index PLUS ONE, the same encoding triggerFace.merged
+	// uses, so the zero value always means "not a merged trigger". It rides
+	// the MergedTriggerPush event as Amount (minus one). It and Delayed are
+	// never both set.
+	Merged int
 	// Granted marks a static-grant's trigger (AddTrigger$ on a Mode$
 	// Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you sacrifice
 	// a land"): like a delayed trigger its Ability is an SVar-named body
@@ -1128,7 +1138,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// the object's active Face(), while the delayed push resolves the
 				// other face's Execute$ SVar directly. This is independent of
 				// whether CR 309.4b cast face 0 or face 1.
-				alt := !fc.active
+				//
+				// A MERGED under-card face (CR 702.140d) must NOT take that
+				// by-name path: resolveSVarAcrossFaces resolves top-face-first,
+				// so the pile's top card -- which can be ANY creature, and whose
+				// own token triggers canonically name their SVar TrigToken --
+				// would steal the under-card's body whenever both faces define
+				// the same name (Cubwarden mutated under Everquill Phoenix: the
+				// under-card's "create two Cats" resolved to the top Phoenix's
+				// "create a Feather"). MergedTriggerPush instead carries the
+				// under-card's pile index so events.Apply resolves the name
+				// against THAT face's own SVar table.
 				pt := pendingTrigger{
 					Source:     id,
 					Controller: controller,
@@ -1146,7 +1166,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 						TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 					},
 				}
-				if alt {
+				switch {
+				case fc.merged > 0:
+					pt.Merged = fc.merged
+					pt.Execute = t.Params["Execute"]
+				case !fc.active:
 					pt.Delayed = true
 					pt.DelayedID = ^uint32(0)
 					pt.Execute = t.Params["Execute"]
@@ -1183,11 +1207,15 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 // triggerFace is one face's trigger walk: its printed index keys fire-count
 // memory, and active says whether TriggerPush can re-derive it through the
 // object's current Face() (the other unlocked Room face must use a delayed
-// shape because Apply cannot select it).
+// shape because Apply cannot select it). merged is 0 for every real face;
+// a MERGED under-card face carries its pile index PLUS ONE so the zero
+// value can never alias pile index 0 (a forgotten field must always mean
+// "not merged", never "the first under-card").
 type triggerFace struct {
 	face    *cards.Face
 	faceIdx uint8
 	active  bool
+	merged  int
 }
 
 // roomTriggerFaces returns the faces whose Triggers a scan walks for object
@@ -1195,7 +1223,8 @@ type triggerFace struct {
 // FaceIdx need not be zero: CR 309.4b permits casting either Room door.
 func roomTriggerFaces(o *state.Object, active *cards.Face) ([2]triggerFace, int) {
 	// At most two faces, returned by value so the ordinary single-face walk
-	// never allocates a backing slice per object per event.
+	// never allocates a backing slice per object per event. merged is left 0
+	// ("not merged") on both.
 	out := [2]triggerFace{{face: active, faceIdx: o.FaceIdx, active: true}}
 	if o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
 		other := uint8(1 - int(o.FaceIdx))
@@ -1209,19 +1238,24 @@ func roomTriggerFaces(o *state.Object, active *cards.Face) ([2]triggerFace, int)
 // beneath a mutated permanent's top card (CR 702.140d's "all abilities of
 // the cards beneath it"). It allocates only for a mutated pile, so the
 // ordinary trigger scan keeps roomTriggerFaces' allocation-free fast path.
-// A merged face is marked active=false (like an unlocked Room's other face),
-// so the queue routes it through the by-name push: TriggerPush's Amount is an
-// index into the TOP face's Triggers, which cannot name an under-card's
-// trigger, but the by-name path resolves the Execute$ SVar from the object's
-// whole face stack (events.resolveSVarAcrossFaces). faceIdx 2+i sits outside
-// the two real card-face slots so its triggerKey/fire-count entries never
-// collide with the top card's.
+// A merged face is marked active=false AND carries its pile index (+1, the
+// encoding triggerFace.merged documents): the queue routes it through the
+// MergedTriggerPush push, which carries the pile index so events.Apply
+// resolves the under-card's Execute$ SVar against THAT face's table -- the
+// top face's same-named SVar must never steal the body. faceIdx 2+i sits
+// outside the two real card-face slots so its triggerKey/fire-count entries
+// never collide with the top card's; a pile big enough to overflow the byte
+// (254+ merged cards -- no real game reaches it; each merged card is one
+// full mutate cast and resolution) stops being walked rather than colliding.
 func triggerFacesWithMerged(o *state.Object, base []triggerFace) []triggerFace {
 	out := make([]triggerFace, 0, len(base)+len(o.MergedCards))
 	out = append(out, base...)
 	for i := range o.MergedCards {
+		if 2+i > 255 {
+			break
+		}
 		if face := o.MergedFaceAt(i); face != nil {
-			out = append(out, triggerFace{face: face, faceIdx: uint8(2 + i)})
+			out = append(out, triggerFace{face: face, faceIdx: uint8(2 + i), merged: i + 1})
 		}
 	}
 	return out

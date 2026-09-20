@@ -455,6 +455,11 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the granted body's own text is the resolving ability's line, not
 		// the push's, so saying what it will do twice would double-report it.
 		return obj(g, ev.Obj) + " triggers (granted)"
+	case events.MergedTriggerPush:
+		// A mutated pile's under-card trigger went on the stack (CR 702.140d):
+		// the same "triggers" phrasing -- the resolving ability's own line is
+		// what carries what it does.
+		return obj(g, ev.Obj) + " triggers (merged)"
 	case events.ManaActivate:
 		// The ActivationLimit$ scan marker for a mana ability's activation
 		// (events.ManaActivate's own comment). Obj is the source permanent.

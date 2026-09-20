@@ -48,9 +48,13 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 			mask := triggerModeEvents(tc.mode)
 			for k := 0; k < 256; k++ {
 				kind := events.Kind(k)
-				// Kinds beyond this representation must fail OPEN to the old
-				// matcher, never silently truncate a new event's eligibility.
-				want := tc.kinds == nil || k >= 64 || slices.Contains(tc.kinds, kind)
+				// Kinds this binary does not know (>= NumKinds -- the mask is a
+				// uint64 and MergedTriggerPush at ordinal 64 is the first known
+				// kind past it) must fail OPEN to the old matcher, never
+				// silently truncate a new event's eligibility. A KNOWN kind
+				// past the width is classified like every other kind: the
+				// mask names exactly the events the mode fires on.
+				want := tc.kinds == nil || k >= int(events.NumKinds) || slices.Contains(tc.kinds, kind)
 				if got := mask.allows(kind); got != want {
 					t.Fatalf("%s kind %d: eligible=%v, want %v", tc.mode, k, got, want)
 				}
