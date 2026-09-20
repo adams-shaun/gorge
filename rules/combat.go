@@ -77,8 +77,8 @@ func (e *Engine) encoreAttackDefender(id state.ObjID) (state.PlayerID, bool) {
 
 // canBlock reports whether blocker may be declared against attacker (CR
 // 509.1a): an untapped creature controlled by the defending player, gated by
-// Flying/Reach (CR 702.9b) and by any CantBlock/CantBlockBy static
-// (blockRestricted, statics.go).
+// Flying/Reach (CR 702.9b), Horsemanship (CR 702.31b), Fear, Shadow and by
+// any CantBlock/CantBlockBy static (blockRestricted, statics.go).
 func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	b, a := e.G.Obj(blocker), e.G.Obj(attacker)
 	if b == nil || a == nil || !a.IsAttacking {
@@ -106,6 +106,13 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 		return false
 	}
 	if e.HasKeyword(attacker, "Fear") && !bf.IsArtifact() && !strings.ContainsRune(e.objColors(b), 'B') {
+		return false
+	}
+	// CR 702.31b: a creature with horsemanship can be blocked only by a
+	// creature with horsemanship. The rule is asymmetric and attacker-keyed
+	// -- unlike Shadow, a horsemanship creature MAY block a creature without
+	// horsemanship -- so only the attacker side is gated here.
+	if e.HasKeyword(attacker, "Horsemanship") && !e.HasKeyword(blocker, "Horsemanship") {
 		return false
 	}
 	if e.HasKeyword(attacker, "Flying") && !e.HasKeyword(blocker, "Flying") && !e.HasKeyword(blocker, "Reach") {
@@ -1864,5 +1871,5 @@ func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
 		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike", "kw:Double Strike",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
-		"kw:Fear", "kw:Shadow")
+		"kw:Fear", "kw:Shadow", "kw:Horsemanship")
 }
