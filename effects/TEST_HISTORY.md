@@ -140,3 +140,7 @@ so the pre-perf calibration is not lost.
 | 2026-09-20T08:08Z | 6edbf7ff+ | 0.7 | 466 | 0 | sadams |
 | 2026-09-20T08:23Z | 2b075ecb+ | 0.7 | 468 | 0 | sadams |
 | 2026-09-20T08:44Z | 36ccf3fd+ | 0.6 | 468 | 0 | sadams |
+| 2026-09-20T09:21Z | 5d4c1c55+ | 0.6 | 469 | 0 | sadams |
+| 2026-09-20T09:28Z | 5d4c1c55+ | 0.7 | 469 | 0 | sadams |
+| 2026-09-20T09:28Z | 5d4c1c55+ | 0.7 | 469 | 0 | sadams |
+| 2026-09-20T09:30Z | 5d4c1c55+ | 0.7 | 469 | 0 | sadams |

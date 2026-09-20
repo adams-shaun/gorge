@@ -71,6 +71,25 @@ func flipperPlayers(h Host, c *Ctx, sa *cards.SA) (players []state.Target, named
 	return playersOf(ts), true
 }
 
+// rememberFlags names every present flip-memory parameter (Forge's per-flip
+// result/wins/loser memory a chained sub reads back). ONE list, so the
+// loud-note gate can never name some memory flags and silently drop others —
+// the sibling-completeness fix for the RememberLoser$ omission. Order is
+// fixed (not map range) so the Note text is deterministic and replayable.
+func rememberFlags(sa *cards.SA) []string {
+	var out []string
+	if sa.Params["RememberResult"] != "" {
+		out = append(out, "RememberResult$")
+	}
+	if sa.Params["RememberNumber"] != "" {
+		out = append(out, "RememberNumber$")
+	}
+	if sa.Params["RememberLoser"] != "" {
+		out = append(out, "RememberLoser$")
+	}
+	return out
+}
+
 // effFlipCoin implements DB$/SP$/AB$ FlipCoin (82 corpus files): flip a coin
 // through the engine's seeded generator (heads = win, tails = lose), record
 // each result on the canonical Note (FlipCoinNote — the encoding the
@@ -94,16 +113,24 @@ func flipperPlayers(h Host, c *Ctx, sa *cards.SA) (players []state.Target, named
 //     resolver (flipperPlayers). Absent, the resolving controller flips; a
 //     present spec that resolves to no player (or an unmodelled selector)
 //     flips nothing — the effLosesGame fail-closed convention.
-//   - FlipUntilYouLose$ True (6 corpus lines: Okaun, Zndrsplt, Toothy and
+//   - FlipUntilYouLose$ True (5 corpus lines: Okaun, Zndrsplt, Toothy and
 //     Zndrsplt, Crazed Firecat, Mirror March): flip until the first tails,
 //     running the win branch per winning flip and the lose branch once on
 //     the losing flip. Cheap as a loop, so it is implemented, not noted.
+//     Narrowing (corpus-unreachable): if a WIN branch suspends on an ask the
+//     whole loop is abandoned rather than resumed, because the resume
+//     re-enters the asking branch SA, not this primitive (the same class as
+//     the Amount$ > 1 + suspension drop; no until-lose carrier has an asking
+//     win branch).
 //
 // Unread, each loud when present (never silent): ForEachPlayer$ (one corpus
-// line — one flip instead of one per opponent), RememberResult$ /
-// RememberNumber$ (the per-flip result/wins memory a later sub reads back —
-// the flips run, the memory does not persist; the chained reader degrades
-// through definedSpec's FlippedHeads/FlippedTails fail-closed cases).
+// line — one flip instead of one per opponent), and the flip memory a later
+// sub reads back — RememberResult$ (2 lines) / RememberNumber$ (2) /
+// RememberLoser$ (1: Unleash the Flux's Repeat gates on the loser being you,
+// so with the memory dropped that loop never repeats — a named narrowing,
+// not a silent one). The flips still run; only the memory does not persist,
+// and the chained reader degrades through definedSpec's FlippedHeads/
+// FlippedTails fail-closed cases.
 func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 	flippers, named := flipperPlayers(h, c, sa)
 	if len(flippers) == 0 {
@@ -118,9 +145,9 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "FlipCoin ForEachPlayer$ unread: one flip instead of one per player"})
 	}
-	if sa.Params["RememberResult"] != "" || sa.Params["RememberNumber"] != "" {
+	if remember := rememberFlags(sa); len(remember) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "FlipCoin RememberResult$/RememberNumber$ unread: results not remembered"})
+			Text: "FlipCoin " + strings.Join(remember, "/") + " unread: result memory not recorded"})
 	}
 	untilLose := strings.EqualFold(sa.Params["FlipUntilYouLose"], "True")
 	amount := Num(h, c, sa, "Amount", 1)

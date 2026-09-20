@@ -199,16 +199,26 @@ func tokensNamed(e *Engine, p state.PlayerID, name string) int {
 	return n
 }
 
+// flipTrig records one resolved FlippedCoin trigger: the Execute$-resolved
+// body's TargetingPlayer$ value ("" for the win side, "Opponent" for the
+// lose side) and the target option the trigger's own target ask was answered
+// with (Obj/Player). Tying the recorded target to the trigger is what lets a
+// test assert the 1 damage landed where that side aimed, not merely that
+// SOME 1-damage hit happened (the review's MINOR on the Karplusan leaf).
+type flipTrig struct {
+	side   string
+	target decision.Option
+}
+
 // drainFlippedCoinTriggers resolves the n FlippedCoin triggers the n flips
 // just queued: the first trigger's target ask is already pending when the
 // paying submission returns (pushTrigger poses it right after the TriggerPush),
 // later ones surface as the stack drains. Handles the trigger-order ask when
 // several fired together, answers every target ask with its first option, and
-// returns one entry per resolved trigger — the resolved body's
-// TargetingPlayer$ value ("" for the win side, "Opponent" for the lose side).
-func drainFlippedCoinTriggers(t *testing.T, e *Engine, n int) []string {
+// returns one flipTrig per resolved trigger.
+func drainFlippedCoinTriggers(t *testing.T, e *Engine, n int) []flipTrig {
 	t.Helper()
-	var execs []string
+	var execs []flipTrig
 	for budget := 0; budget < 200; budget++ {
 		done := len(execs) >= n && len(e.G.Stack) == 0
 		d := e.Pending()
@@ -245,8 +255,13 @@ func drainFlippedCoinTriggers(t *testing.T, e *Engine, n int) []string {
 			// The pushed trigger's Ability is the Execute$-resolved body; the
 			// two sides' bodies differ exactly by the lose side's
 			// TargetingPlayer$ Opponent (the unread per-opponent-choice
-			// stand-in).
-			execs = append(execs, trig.Ability.Params["TargetingPlayer"])
+			// stand-in). The chosen option is the trigger's OWN target, so the
+			// damage it deals can be tied back to this side.
+			var chosen decision.Option
+			if len(d.Options) > 0 {
+				chosen = d.Options[0]
+			}
+			execs = append(execs, flipTrig{side: trig.Ability.Params["TargetingPlayer"], target: chosen})
 			submitChoices(t, e, 0)
 		case decision.KPriority:
 			passOnce(t, e)
@@ -258,16 +273,18 @@ func drainFlippedCoinTriggers(t *testing.T, e *Engine, n int) []string {
 	return nil
 }
 
-// execMultisetMatches reports whether execs (order-insensitive; each entry
-// is the resolved trigger body's TargetingPlayer$ value: "" for the win side,
-// "Opponent" for the lose side) are exactly one per flip, matched to the
-// flips' win flags.
-func execMultisetMatches(t *testing.T, execs []string, flips []bool) {
+// execMultisetMatches reports whether execs (order-insensitive; each entry's
+// side is "" for the win side, "Opponent" for the lose side) are exactly one
+// per flip, matched to the flips' win flags.
+func execMultisetMatches(t *testing.T, execs []flipTrig, flips []bool) {
 	t.Helper()
 	if len(execs) != len(flips) {
 		t.Fatalf("resolved %d FlippedCoin triggers for %d flips", len(execs), len(flips))
 	}
-	got := append([]string(nil), execs...)
+	got := make([]string, len(execs))
+	for i, x := range execs {
+		got[i] = x.side
+	}
 	sort.Strings(got)
 	var want []string
 	for _, win := range flips {
@@ -392,6 +409,27 @@ func TestFlippedCoinTavernScoundrel(t *testing.T) {
 	}
 }
 
+// hitsOn1 counts, over the whole log, every 1-damage Damage event aimed at the
+// target identity key: key[0] == -1 means a PLAYER target (key[1] is the
+// seat), otherwise key[0] is an object id. Used by the Karplusan leaf to tie
+// each FlippedCoin trigger's damage to the target that side aimed at.
+func hitsOn1(e *Engine, key [2]int32) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind != events.Damage || ev.Amount != 1 {
+			continue
+		}
+		if key[0] == -1 {
+			if ev.Obj == 0 && int32(ev.Player) == key[1] {
+				n++
+			}
+		} else if int32(ev.Obj) == key[0] {
+			n++
+		}
+	}
+	return n
+}
+
 // karplusanScenario drives seat 0's Karplusan Minotaur through three upkeeps
 // (1+2+3 = six cumulative-upkeep flips), paying every upkeep and resolving
 // every FlippedCoin trigger. Returns the engine and the config a same-seed
@@ -402,6 +440,14 @@ func karplusanScenario(t *testing.T, reg *cards.Registry) (*Engine, Config) {
 		[]*cards.Card{lookup(t, reg, "Karplusan Minotaur")}, []*cards.Card{})
 	moveByName(t, e, 0, "Karplusan Minotaur", state.ZBattlefield)
 	id := firstCreature(t, e, 0)
+	// chosenTotal accumulates, per target identity, how many triggers have
+	// chosen it across every turn so far. Every trigger deals exactly one
+	// 1-damage hit to its chosen target, so the all-time hit count on that
+	// target must equal this running total -- which is what ties each
+	// trigger's damage to the target ITS side aimed (win and lose both aim
+	// "any target", but only the lose side carries TargetingPlayer$
+	// Opponent).
+	chosenTotal := map[[2]int32]int{}
 	for turn := int32(2); turn <= 4; turn++ {
 		e.G.Turn = turn
 		e.beginTurn(0)
@@ -430,6 +476,37 @@ func karplusanScenario(t *testing.T, reg *cards.Registry) (*Engine, Config) {
 		if got := countDamageAmount(e, 1) - dmgBefore; got != len(flips) {
 			t.Fatalf("turn %d: the triggers dealt %d one-damage hits, want %d",
 				turn, got, len(flips))
+		}
+		// Tie each trigger's damage to the target that side's own target ask
+		// was answered with. Several triggers may be answered with the SAME
+		// target, so count the triggers per target and assert that target's
+		// all-time 1-damage total equals the running total of triggers that
+		// chose it -- each resolved body dealt its 1 to the target IT chose,
+		// not merely that len(flips) hits happened somewhere.
+		chosen := map[[2]int32]int{}
+		for _, x := range execs {
+			key := [2]int32{int32(x.target.Obj), int32(x.target.Player)}
+			if x.target.Obj == 0 {
+				key[0] = -1
+			}
+			chosen[key]++
+			chosenTotal[key]++
+		}
+		keys := make([][2]int32, 0, len(chosenTotal))
+		for key := range chosenTotal {
+			keys = append(keys, key)
+		}
+		sort.Slice(keys, func(i, j int) bool {
+			if keys[i][0] != keys[j][0] {
+				return keys[i][0] < keys[j][0]
+			}
+			return keys[i][1] < keys[j][1]
+		})
+		for _, key := range keys {
+			if got, want := hitsOn1(e, key), chosenTotal[key]; got != want {
+				t.Fatalf("turn %d: target %v has taken %d one-damage hits, want %d (one per trigger that chose it)",
+					turn, key, got, want)
+			}
 		}
 	}
 	if got := e.G.Obj(id).Counter("AGE"); got != 3 {
@@ -489,6 +566,43 @@ func TestFlipCoinManaCryptTriggerDriven(t *testing.T) {
 		if got := damageToPlayer(e, 0, 3); got != 1 {
 			t.Fatalf("losing flip did not deal exactly one 3-damage hit (got %d)", got)
 		}
+	}
+}
+
+// TestFlipCoinUntilYouLoseCrazedFirecat is the FlipUntilYouLose$ leaf (real
+// corpus Crazed Firecat): its ETB trigger resolves DB$ FlipCoin |
+// FlipUntilYouLose$ True | WinSubAbility$ DBPutCounter, so the loop keeps
+// flipping while it wins and stops on the FIRST loss. Pinned seeds: seed 21
+// flips three heads then a tail; seed 1 loses the opening flip. This is the
+// behaviour the FlipUntilYouLose$ loop adds and is asserted on the flip-Note
+// sequence itself (the win branch's CounterNum$ Wins reads the unread
+// remember-flip-count memory, so the counter is not the observable here --
+// the flips are).
+func TestFlipCoinUntilYouLoseCrazedFirecat(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	run := func(seed uint64) []bool {
+		e, _ := flipEngine(t, reg, seed,
+			[]*cards.Card{lookup(t, reg, "Crazed Firecat")}, []*cards.Card{})
+		moveByName(t, e, 0, "Crazed Firecat", state.ZBattlefield)
+		e.priorityRound()
+		passUntilStackEmpty(t, e, 80)
+		return flipNotes(e)
+	}
+	multi := run(21)
+	if len(multi) != 4 {
+		t.Fatalf("seed 21: want 4 flips (three wins then a loss), got %v", multi)
+	}
+	for i := 0; i < 3; i++ {
+		if !multi[i] {
+			t.Fatalf("seed 21: flip %d = tails, want the loop to keep flipping while winning: %v", i, multi)
+		}
+	}
+	if multi[3] {
+		t.Fatalf("seed 21: the loop did not stop on the first tails: %v", multi)
+	}
+	one := run(1)
+	if len(one) != 1 || one[0] {
+		t.Fatalf("seed 1: want exactly one (losing) flip, got %v", one)
 	}
 }
 
