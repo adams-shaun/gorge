@@ -822,6 +822,24 @@ func Apply(g *state.Game, e Event) {
 			a.BlockedBy = append(a.BlockedBy, pr[1])
 		}
 
+	case CombatRetarget:
+		// api:ChangeCombatants's reselect (Misleading Signpost, Portal Mage,
+		// Windshaper Planetar): the attack moves, nothing else. Obj is the
+		// attacker, Player the NEW defender. Deliberately narrower than
+		// DeclareAttackers (which must not be reused here -- its Apply case
+		// increments AttacksThisTurn and would refire every Attacks trigger on
+		// a reselect, and TokenAttacks taps too): IsAttacking is already true
+		// and stays true, only the defender and the block list move. The same
+		// defensive shape as DeclareAttackers' own case: the defender must be
+		// a valid seat, still in the game, and the attacker still on the
+		// battlefield and actually attacking -- anything else (a gone
+		// attacker, a fuzz event) is a no-op.
+		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && o.IsAttacking &&
+			validPlayer(g, e.Player) && !g.Players[e.Player].Lost {
+			o.Attacking = e.Player
+			o.BlockedBy = nil
+		}
+
 	case PlayerLost:
 		if validPlayer(g, e.Player) {
 			g.Players[e.Player].Lost = true
