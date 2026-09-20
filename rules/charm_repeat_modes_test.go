@@ -135,3 +135,151 @@ func modeChosenLabels(t *testing.T, e *Engine) []string {
 	}
 	return nil
 }
+
+// mysticConfluenceEngine seeds the REAL corpus Mystic Confluence into seat
+// 0's hand plus three Grizzly Bears (also corpus cards, so the exact shipped
+// ValidTgts$ Creature spec is what the resolution asks against), bridges the
+// bears onto the battlefield, and returns the engine, the Config its log
+// replays against, the spell's id and the three bears' ids in hand order.
+func mysticConfluenceEngine(t *testing.T, seed uint64) (*Engine, Config, state.ObjID, []state.ObjID) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	mystic, ok := reg.Lookup("Mystic Confluence")
+	if !ok {
+		t.Fatal("corpus missing Mystic Confluence")
+	}
+	bear, ok := reg.Lookup("Grizzly Bears")
+	if !ok {
+		t.Fatal("corpus missing Grizzly Bears")
+	}
+	cfg := Config{Seed: seed, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{
+			append([]*cards.Card{mystic, bear, bear, bear}, mountainDeck(t, 37)...),
+			mountainDeck(t, 40),
+		},
+		Tokens: map[string]*cards.Card{},
+	}
+	cfg = seatZeroStart(cfg)
+	e := New(cfg)
+	e.Advance()
+
+	var id state.ObjID
+	var bears []state.ObjID
+	var needHand, needBattle []state.ObjID
+	for _, zone := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, cand := range e.G.Zone(zone, 0) {
+			switch e.G.Obj(cand).Face().Name {
+			case "Mystic Confluence":
+				id = cand
+				if zone == state.ZLibrary {
+					needHand = append(needHand, cand)
+				}
+			case "Grizzly Bears":
+				bears = append(bears, cand)
+				if zone == state.ZLibrary {
+					needBattle = append(needBattle, cand)
+				}
+			}
+		}
+	}
+	if id == 0 || len(bears) != 3 {
+		t.Fatalf("fixture not dealt as expected: mystic %d bears %d", id, len(bears))
+	}
+	for _, b := range needHand {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: b, From: state.ZLibrary, To: state.ZHand})
+	}
+	for _, b := range needBattle {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: b, From: state.ZLibrary, To: state.ZBattlefield})
+	}
+	// Bears dealt straight into the opening hand move from there.
+	for _, b := range bears {
+		if o := e.G.Obj(b); o != nil && o.Zone == state.ZHand {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: b, From: state.ZHand, To: state.ZBattlefield})
+		}
+	}
+	e.pending = nil
+	e.Advance()
+	return e, cfg, id, bears
+}
+
+// TestMysticConfluenceRepeatsTargetedModeAsksPerInstance pins the finding the
+// Fiery Confluence pin could not reach: a REPEATED TARGET-BEARING mode. The
+// announcement ask covers the mode's FIRST instance (one creature target);
+// every later instance must keep its own targeting ask -- chosen per instance
+// -- rather than silently re-running against the one shared target (which
+// returned ONE bear for a three-pick answer). Three picks of the return mode
+// must return three distinct creatures.
+func TestMysticConfluenceRepeatsTargetedModeAsksPerInstance(t *testing.T) {
+	e, cfg, id, bears := mysticConfluenceEngine(t, 1)
+	addMana(t, e, 0, "UUUUU") // 3 U U
+
+	// Cast through the priority window's own offer; the cast-time ask that
+	// follows the KModes announcement is the mode's FIRST instance target.
+	d := castFixture(t, e, id, -1)
+	if d == nil || d.Kind != decision.KModes {
+		t.Fatalf("expected the cast-time KModes announcement, got %+v", d)
+	}
+	if !d.Repeatable {
+		t.Fatal("Mystic Confluence's cast-mode ask is not Repeatable")
+	}
+	ret := -1
+	for _, o := range d.Options {
+		if o.Label == "Return target creature to its owner's hand." {
+			ret = o.Index
+		}
+	}
+	if ret < 0 {
+		t.Fatalf("return mode not offered: %+v", d.Options)
+	}
+	// Three picks of the SAME target-bearing mode.
+	submitChoices(t, e, ret, ret, ret)
+
+	// Instance 1: the cast announcement's own target ask (KTarget).
+	dt := e.Pending()
+	if dt == nil || dt.Kind != decision.KTarget {
+		t.Fatalf("instance 1 ask = %+v, want the announcement KTarget", dt)
+	}
+	if dt.Min != 1 || dt.Max != 1 {
+		t.Fatalf("instance 1 bounds %d..%d, want 1..1 (single-target mode)", dt.Min, dt.Max)
+	}
+	bearIdx := func(d *decision.Decision, bear state.ObjID) int {
+		for _, o := range d.Options {
+			if o.Obj == bear {
+				return o.Index
+			}
+		}
+		return -1
+	}
+	i1 := bearIdx(dt, bears[0])
+	if i1 < 0 {
+		t.Fatalf("bear 0 not offered: %+v", dt.Options)
+	}
+	submitChoices(t, e, i1)
+
+	// Instances 2 and 3: their own mid-resolution asks (KChoose over the
+	// remaining battlefield creatures), one per instance, in walk order.
+	for k, bear := range []state.ObjID{bears[1], bears[2]} {
+		dc := passUntilAsk(t, e)
+		if dc == nil || dc.Kind != decision.KChoose {
+			t.Fatalf("instance %d ask = %+v, want a KChoose", k+2, dc)
+		}
+		idx := bearIdx(dc, bear)
+		if idx < 0 {
+			t.Fatalf("instance %d: bear %d not offered: %+v", k+2, k+1, dc.Options)
+		}
+		submitChoices(t, e, idx)
+	}
+
+	passUntilStackEmpty(t, e, 20)
+	// All three bears are back in seat 0's hand -- each instance returned its
+	// OWN target, not one shared target three times.
+	for k, bear := range bears {
+		if o := e.G.Obj(bear); o == nil || o.Zone != state.ZHand {
+			t.Fatalf("bear %d (obj %d) in %v, want Hand -- instance %d did not return its own target", k, bear, o, k+1)
+		}
+	}
+	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+		t.Errorf("Mystic Confluence resolved to %s, want Graveyard", z)
+	}
+	replayCheck(t, e, cfg)
+}

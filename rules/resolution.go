@@ -1586,6 +1586,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// assigns each target-bearing one the last targets of the original
 			// positional assignment, and nothing re-asks.
 			ctx.Modes = append([]string(nil), rp.charmRest...)
+			// CanRepeatModes$ (CR 601.2b): the rest is a suffix of the object's
+			// full ChosenModes (the walk only ever truncates a suffix), so the
+			// names the earlier passes consumed are derivable exactly. Seed
+			// them so effCharm's first-occurrence covered-marking knows which
+			// modes already ran -- a repeated target-bearing mode's later
+			// instance keeps its own ValidTgts$ pre-ask instead of inheriting
+			// the shared list a second time.
+			if o := e.G.Obj(rp.obj); o != nil && len(o.ChosenModes) > len(rp.charmRest) {
+				ctx.ModesSeen = append(ctx.ModesSeen,
+					o.ChosenModes[:len(o.ChosenModes)-len(rp.charmRest)]...)
+			}
 		case "optional":
 			// CR 603.5: the decider answered yes to applying this optional
 			// triggered ability's effect. The answer is a yes/no, not a mode
