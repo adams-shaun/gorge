@@ -1528,7 +1528,14 @@ func (e *Engine) resolveTop() {
 		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
 			o.Ability.Params["Cost"] != "" &&
 			(o.Ability.API == "Untap" || o.Ability.API == "ImmediateTrigger" ||
-				len(e.parseCost(o.Ability.Params["Cost"]).Draw) > 0) {
+				len(e.parseCost(o.Ability.Params["Cost"]).Draw) > 0 ||
+				// The dynamic tapXType heads (rules/mana.go's dynTapCost): the
+				// tap election is the payment, the empty election the decline
+				// -- the mandatory ImmediateTrigger carrier (yotia_declares_war's
+				// "Mandatory tapXType<X/Artifact>") and any future one pay
+				// through the same window instead of a free (or {1}-bought)
+				// body.
+				costCarriesDynTap(e.parseCost(o.Ability.Params["Cost"]))) {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}

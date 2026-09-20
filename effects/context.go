@@ -531,6 +531,24 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return out, true
 	}
+	// TriggeredDefender(.qualifier): the defending player the firing Attacks/
+	// AttackersDeclared trigger's event names (c.DefendingPlayer -- Myr
+	// Battlesphere's "deals X damage to the player or planeswalker it's
+	// attacking", whose script spells the referent TriggeredDefender while
+	// the engine's own binding is TriggeredDefendingPlayer). A qualifier is
+	// evaluated the same way the Player fallback below evaluates one; an
+	// unmet qualifier fails closed to the empty set, never a guessed
+	// fallback. Outside a combat trigger the role is absent and the set is
+	// empty.
+	if base, qual, _ := strings.Cut(spec, "."); base == "TriggeredDefender" && !strings.Contains(spec, " & ") {
+		if !c.DefendingPlayer.IsPlayer {
+			return nil, true
+		}
+		if qual != "" && !MatchesPlayerSpecFrom(g, qual, c.DefendingPlayer.Player, c.Controller, c.Source) {
+			return nil, true
+		}
+		return []state.Target{c.DefendingPlayer}, true
+	}
 	// Player.<state-qualifier>: a compound spelling this build's fixed cases
 	// do not name (Player.lifeEQ13, Player.controlsCreature.powerGE4_GE1,
 	// Player.withMostTypeCreature, ...) resolves through the trigger-side

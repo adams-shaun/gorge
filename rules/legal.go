@@ -773,8 +773,16 @@ func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID,
 // 601.2c).
 // costAnnouncesX reports whether the cost announces an X the cast or
 // activation chooses (CR 601.2b/107.3i): a printed {X} mana symbol, a
-// PayEnergy<X> part, an announced PayLife<X> payment or an announced
-// SubCounter<X/Kind> removal.
+// PayEnergy<X> part, an announced PayLife<X> payment, an announced
+// SubCounter<X/Kind> removal, or a tapXType<X/Spec> part whose tap election
+// announces it (the dynTapCost head). The tap-election clause does not add
+// the announced-Sac clause: this gate's callers treat a true answer as "the
+// X-bound targets are dynamic -- offer and evaluate at the ask", and the
+// tap election is announced BEFORE the target ask (the tap stage precedes
+// targetAsk in continueCast), so the bound is already fixed when targets
+// are chosen either way; the clause only stops the offer gate from
+// withholding the action on a bound whose value the tap election will
+// supply (Aryel's powerLEX).
 func costAnnouncesX(c Cost) bool {
 	if c.X > 0 {
 		return true
@@ -789,6 +797,11 @@ func costAnnouncesX(c Cost) bool {
 	}
 	for _, part := range c.SubCounter {
 		if part.Announced {
+			return true
+		}
+	}
+	for _, part := range c.TapPermanent {
+		if part.Dyn == "X" {
 			return true
 		}
 	}

@@ -128,6 +128,14 @@ type resumePoint struct {
 	// the re-entry pass consumes the marker instead of re-posing the pay
 	// ask, the asking-body-under-UnlessCost$ livelock fix (Rhystic Study).
 	unlessResolved string
+	// tapPaidX is the count the triggered-cost window's dynamic tapXType<X/
+	// Spec> election paid (rules/cumulative.go's triggeredTapAnswer): the
+	// number of permanents the payer tapped IS that cost's announced {X} (CR
+	// 601.2b through the window). It rides the frame because the trigger
+	// object was never paid an X and the source permanent's own X is its
+	// cast-time value, never this payment's; resumeResolution seeds Ctx.X
+	// from it so the body's Count$xPaid reads answer. Zero elsewhere.
+	tapPaidX int32
 	// charmRest carries the remaining chosen mode names of a cross-mode
 	// TargetUnique Charm's mode loop (SuspendCharmRest): the frame re-enters
 	// the Charm SA itself with Ctx.Modes = charmRest, so effCharm runs the
@@ -678,6 +686,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	} else if ctx.X == 0 {
 		ctx.X = e.triggerPaidX(rp.obj, o)
 	}
+	// The triggered-cost window's dynamic tapXType<X/Spec> payment (the
+	// Battlesphere/yotia shape): the election's tap count is the cost's
+	// announced X, carried on the resume point. It wins over both reads above
+	// -- the trigger object's own X is 0 and the source permanent's X is its
+	// cast-time value, not this payment's.
+	if rp.tapPaidX != 0 {
+		ctx.X = rp.tapPaidX
+	}
 	var svars map[string]string
 	if o.Ability != nil {
 		// A triggered or activated ability: mirror resolveTop's ability
@@ -810,7 +826,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// the spell-cast arm's TriggerCard (a SpellCast fires on PutOnStack,
 			// whose Obj IS the cast spell; no ability wrapper is minted). Only
 			// a context-less synthetic push keeps the free-executor semantics.
-			(rp.sa.API == "CopySpellAbility" && (tc.TriggerAbility != 0 || tc.TriggerCard != 0)))
+			(rp.sa.API == "CopySpellAbility" && (tc.TriggerAbility != 0 || tc.TriggerCard != 0)) ||
+			// The dynamic tapXType heads (tapXType<X/Spec>, tapXType<Any/Spec> --
+			// Myr Battlesphere's "you may tap X untapped Myr"): the tap election
+			// is the payment and the decline is the empty election, the same
+			// "you may pay; when you do" idiom the Untap/ImmediateTrigger shapes
+			// route through this window.
+			costCarriesDynTap(e.parseCost(rp.sa.Params["Cost"])))
 	if armed {
 		e.startTriggeredEffectCost(rp, ctx.Source)
 		return
