@@ -375,48 +375,92 @@ func TestDalekIntensiveCareMandatoryExileIsAChoice(t *testing.T) {
 }
 
 // Kuldotha Flamefiend's ETB body carries `Cost$ Sac<1/Artifact>` (a real
-// non-mana component payMana cannot charge). The optional yes reaches the
-// window, which must offer DECLINE ONLY -- no trigger_cost_pay option, never
-// a free execution -- and the decline runs neither the sacrifice nor the
-// damage.
-func TestUnpriceableOptionalBodyDeclineOnly(t *testing.T) {
+// non-mana component payMana cannot charge). trigcost2 makes it genuinely
+// payable: the window's pay arm walks the Sac component and settles it for
+// real. The PAY half pins: with an artifact on the battlefield the "pay"
+// answer sacrifices it (a real events.Sacrifice) BEFORE the body runs, and
+// the 4 damage (targeted at the opponent in the body's earlier target ask)
+// lands. No mana is charged -- the cost has none.
+func TestKuldothaFlamefiendOptionalSacCostPays(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, _ := searchEngine(t, reg, "Kuldotha Flamefiend")
 	id := searchMoveByName(t, e, "Kuldotha Flamefiend", state.ZBattlefield)
+	artifact := onBoard(t, e, 0, "Name:Test Bauble\nManaCost:0\nTypes:Artifact\nOracle:x\n")
+	oppLife := e.G.Players[1].Life
 
-	// The body's target ask (ValidTgts$ Any, TargetMin$ 0): answer empty.
+	// The body's target ask (ValidTgts$ Any): target the opponent so the
+	// paid damage is observable.
+	answerPlayerTargetAsk(t, e, 1)
+
 	d := passUntilNonPriority(t, e, 20)
-	if d.Kind != decision.KTarget {
-		t.Fatalf("expected Flamefiend's target ask, got %+v", d)
-	}
-	submitChoices(t, e)
-
-	d = passUntilNonPriority(t, e, 20)
 	if d.Kind != decision.KTriggerOptional {
 		t.Fatalf("expected the trigger_optional ask, got %+v", d)
 	}
 	submitChoices(t, e, 0) // yes, attempt the effect
 
-	pay, decline := triggerCostWindowAsk(t, e)
-	if pay >= 0 {
-		t.Fatalf("the unpriceable Sac<1/Artifact> cost was offered as payable: %+v", e.Pending().Options)
+	pay, _ := triggerCostWindowAsk(t, e)
+	if pay < 0 {
+		t.Fatalf("the settleable Sac<1/Artifact> cost was not offered as payable: %+v", e.Pending().Options)
 	}
+	mark := len(e.L.Events)
+	submitChoices(t, e, pay)
+	passUntilStackEmpty(t, e, 20)
+
+	if o := e.G.Obj(artifact); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("the paying artifact zone = %v, want the graveyard (the settled Sac cost)", o)
+	}
+	sawSac := false
+	for _, ev := range e.L.Events[mark:] {
+		if events.IsSacrifice(ev) && ev.Obj == artifact {
+			sawSac = true
+		}
+	}
+	if !sawSac {
+		t.Fatal("no events.Sacrifice for the paying artifact; the cost was never settled")
+	}
+	if got := e.G.Players[1].Life; got != oppLife-4 {
+		t.Fatalf("opponent life = %d, want %d (the paid body's damage)", got, oppLife-4)
+	}
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Flamefiend itself must stay on the battlefield (only the artifact pays)")
+	}
+}
+
+// TestKuldothaFlamefiendOptionalSacCostDeclineChangesNothing is the decline
+// half: a declined Sac-component body sacrifices nothing and deals nothing.
+func TestKuldothaFlamefiendOptionalSacCostDeclineChangesNothing(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Kuldotha Flamefiend")
+	id := searchMoveByName(t, e, "Kuldotha Flamefiend", state.ZBattlefield)
+	artifact := onBoard(t, e, 0, "Name:Test Bauble\nManaCost:0\nTypes:Artifact\nOracle:x\n")
+	oppLife := e.G.Players[1].Life
+
+	answerPlayerTargetAsk(t, e, 1)
+
+	d := passUntilNonPriority(t, e, 20)
+	if d.Kind != decision.KTriggerOptional {
+		t.Fatalf("expected the trigger_optional ask, got %+v", d)
+	}
+	submitChoices(t, e, 0)
+
+	_, decline := triggerCostWindowAsk(t, e)
 	mark := len(e.L.Events)
 	submitChoices(t, e, decline)
 	passUntilStackEmpty(t, e, 20)
 
 	for _, ev := range e.L.Events[mark:] {
-		if ev.Kind == events.Damage {
-			t.Fatalf("a declined unpriceable body still dealt damage: %+v", ev)
+		if events.IsSacrifice(ev) || ev.Kind == events.Damage {
+			t.Fatalf("a declined Sac-component body still moved or damaged: %+v", ev)
 		}
+	}
+	if o := e.G.Obj(artifact); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("the artifact must stay on the battlefield after a decline")
+	}
+	if got := e.G.Players[1].Life; got != oppLife {
+		t.Fatalf("opponent life = %d after a decline, want unchanged %d", got, oppLife)
 	}
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("Flamefiend left the battlefield on a declined cost")
-	}
-	for _, z := range e.G.Zone(state.ZGraveyard, 0) {
-		if o := e.G.Obj(z); o != nil && o.ID != id && o.Face() != nil && o.Face().Types[0] == "Artifact" {
-			t.Fatalf("an artifact was sacrificed on a declined cost")
-		}
 	}
 }
 
