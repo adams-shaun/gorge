@@ -159,3 +159,124 @@ func contains(s, sub string) bool {
 	}
 	return false
 }
+
+// RememberAttached$ True (all seven corpus carriers) puts the permanent just
+// attached into the ability's Remembered, both halves -- the ctx list a
+// chained SubAbility / RepeatEach fold reads and the source's event-backed
+// persistent list eventRemember writes -- the same two-half discipline
+// RememberTokens$ and RememberTargets$ apply.
+func TestAttachRememberAttachedJoinsBothHalves(t *testing.T) {
+	h, c, ids := attachBoard(t)
+	c.Remembered = []state.Target{{Obj: ids["bear"]}}
+	Resolve(h, c, sa(t, "SP$ Attach | Object$ Self | Defined$ Remembered | RememberAttached$ True"))
+
+	if h.g.Obj(ids["eq"]).AttachedTo != ids["bear"] {
+		t.Fatalf("setup: eq not attached to bear")
+	}
+	found := false
+	for _, t2 := range c.Remembered {
+		if !t2.IsPlayer && t2.Obj == ids["eq"] {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("ctx Remembered = %+v, want the attached equipment", c.Remembered)
+	}
+	if src := h.g.Obj(ids["eq"]); src == nil || !objIDIn(src.Remembered, ids["eq"]) {
+		t.Fatalf("source persistent Remembered = %+v, want the attached equipment", src.Remembered)
+	}
+	// The negative control: without the param neither half gains the entry.
+	h2, c2, ids2 := attachBoard(t)
+	c2.Remembered = []state.Target{{Obj: ids2["bear"]}}
+	Resolve(h2, c2, sa(t, "SP$ Attach | Object$ Self | Defined$ Remembered"))
+	for _, t2 := range c2.Remembered {
+		if !t2.IsPlayer && t2.Obj == ids2["eq"] {
+			t.Fatalf("unrequested remember: ctx Remembered = %+v", c2.Remembered)
+		}
+	}
+}
+
+func objIDIn(ts []state.Target, id state.ObjID) bool {
+	for _, t := range ts {
+		if !t.IsPlayer && t.Obj == id {
+			return true
+		}
+	}
+	return false
+}
+
+// Choices$ with no Object$ names the OBJECT to attach (Goldwardens' Gambit,
+// unexpected_request). The fake host cannot answer an ask (AskNoHost, the
+// R-9 decline stand-in), so a two-candidate pool attaches nothing; the
+// answered re-entry consumes Ctx.AttachChoice/AttachDests (fx42 scoping) and
+// attaches the chosen object, remembering it under RememberAttached$.
+func TestAttachChoicesObjectPoolAsksAndAnsweredReentryAttaches(t *testing.T) {
+	h, c, ids := attachBoard(t)
+	eq2 := h.g.AddObject(mkCard(t, "Name:Sword2\nManaCost:3\nTypes:Artifact Equipment\nOracle:x\n"), 0)
+	h.g.Obj(eq2.ID).Zone = state.ZBattlefield
+	h.g.SetZone(state.ZBattlefield, 0, append(h.g.Zone(state.ZBattlefield, 0), eq2.ID))
+
+	Resolve(h, c, sa(t, "DB$ Attach | Choices$ Equipment.YouCtrl+!IsRemembered | Defined$ Remembered | RememberAttached$ True"))
+	for _, ev := range h.log {
+		if ev.Kind == events.Attach {
+			t.Fatalf("unanswered ask must not attach: %+v", ev)
+		}
+	}
+
+	// The answered re-entry: the choice named eq2, the destination the bear.
+	c.AttachChoice = []state.ObjID{eq2.ID}
+	c.AttachChoiceDone = true
+	c.AttachDests = []state.ObjID{ids["bear"]}
+	Resolve(h, c, sa(t, "DB$ Attach | Choices$ Equipment.YouCtrl+!IsRemembered | Defined$ Remembered | RememberAttached$ True"))
+	var attachs []events.Event
+	for _, ev := range h.log {
+		if ev.Kind == events.Attach {
+			attachs = append(attachs, ev)
+		}
+	}
+	if len(attachs) != 1 || attachs[0].Obj != eq2.ID || attachs[0].IDs[0] != ids["bear"] {
+		t.Fatalf("attachs = %+v, want eq2->bear", attachs)
+	}
+	if !objIDIn(c.Remembered, eq2.ID) || h.g.Obj(eq2.ID) == nil {
+		t.Fatalf("ctx Remembered = %+v, want the chosen equipment", c.Remembered)
+	}
+	// fx42 scoping: the answer was consumed.
+	if c.AttachChoice != nil || c.AttachChoiceDone || c.AttachDests != nil {
+		t.Fatalf("answer fields not cleared: %+v done=%v dests=%v", c.AttachChoice, c.AttachChoiceDone, c.AttachDests)
+	}
+}
+
+// A mandatory Min-1 pool with exactly one candidate takes it without an ask
+// (the strict-supersets convention); a Min-0 Optional pool answered with
+// nothing chosen is the decline -- no Attach, no Note.
+func TestAttachChoicesSingleCandidateTakesItAndEmptyAnswerDeclines(t *testing.T) {
+	h, c, ids := attachBoard(t)
+	c.Remembered = []state.Target{{Obj: ids["bear"]}}
+	Resolve(h, c, sa(t, "DB$ Attach | Choices$ Equipment.YouCtrl | Defined$ Remembered | RememberAttached$ True"))
+	if h.g.Obj(ids["eq"]).AttachedTo != ids["bear"] {
+		t.Fatalf("single-candidate mandatory pool did not attach")
+	}
+
+	h2, c2, _ := attachBoard(t)
+	c2.AttachChoiceDone = true // answered, nothing chosen
+	Resolve(h2, c2, sa(t, "DB$ Attach | Optional$ True | Choices$ Equipment.YouCtrl | Defined$ Remembered"))
+	for _, ev := range h2.log {
+		if ev.Kind == events.Attach || (ev.Kind == events.Note && hasNoteLike(h2.log, "no legal target")) {
+			t.Fatalf("decline must be silent: %+v", ev)
+		}
+	}
+}
+
+// Choices$ WITH Object$ present names the DESTINATION pool (Breath of
+// Fury's "attach CARDNAME to a creature you control"): the aura attaches to
+// the single matching creature and RememberAttached$ remembers the AURA.
+func TestAttachChoicesDestinationPoolAttachesAndRemembersTheObject(t *testing.T) {
+	h, c, ids := attachBoard(t)
+	Resolve(h, c, sa(t, "DB$ Attach | Object$ Self | Choices$ Creature.YouCtrl | RememberAttached$ True"))
+	if h.g.Obj(ids["eq"]).AttachedTo != ids["bear"] {
+		t.Fatalf("destination pool did not attach to the bear")
+	}
+	if !objIDIn(c.Remembered, ids["eq"]) {
+		t.Fatalf("ctx Remembered = %+v, want the attached aura", c.Remembered)
+	}
+}

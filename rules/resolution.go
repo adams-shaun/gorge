@@ -1132,6 +1132,34 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.AttachOpt = "yes"
 			}
+		case "attach_choice":
+			// A Choices$ Attach's card choice was answered (Goldwardens'
+			// Gambit's "for each of those tokens, you may attach an Equipment
+			// you control to it", unexpected_request's "you may attach an
+			// Equipment you control", Breath of Fury's "attach CARDNAME to a
+			// creature you control"). The chosen card ids are recorded for the
+			// re-entered effect to consume and clear (fx42 scoping): with no
+			// Object$ the ids name the OBJECT to attach, with Object$ present
+			// they name the DESTINATION. An empty answer on the Min-0 Optional
+			// shape is a real decline, so AttachChoiceDone distinguishes it
+			// from an unanswered ask (the ctx.Search/SearchDone discipline).
+			// The asking pass's resolved destination list rides back in
+			// rp.choices (Decision.ResumeChoices) -- a RepeatEach body's
+			// Defined$ Imprinted binding does not survive the suspension, so
+			// the re-entry must not re-derive it.
+			ctx.AttachChoice = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.AttachChoice = append(ctx.AttachChoice, o.Obj)
+				}
+			}
+			ctx.AttachChoiceDone = true
+			ctx.AttachDests = make([]state.ObjID, 0, len(rp.choices))
+			for _, t := range rp.choices {
+				if !t.IsPlayer && t.Obj != 0 {
+					ctx.AttachDests = append(ctx.AttachDests, t.Obj)
+				}
+			}
 		case "put_optional":
 			// An Optional$ True PutCounter's yes/no election (Talus Paladin's
 			// "you may put a +1/+1 counter on CARDNAME", Black Widow's "You

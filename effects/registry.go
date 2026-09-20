@@ -627,6 +627,22 @@ type Ctx struct {
 	// and cleared at the re-entry's top (fx42 scoping), so a nested Attach
 	// poses its own ask.
 	AttachOpt string
+	// AttachChoice is the answered Attach object/destination choice on a
+	// re-entered Attach resolution (Goldwardens' Gambit's "you may attach an
+	// Equipment you control to it", unexpected_request's same shape, Breath of
+	// Fury's "attach CARDNAME to a creature you control"): with no Object$
+	// the chosen ids name the OBJECT to attach, with Object$ present they name
+	// the DESTINATION. AttachChoiceDone distinguishes "answered with nothing
+	// chosen" (a Min-0 Optional$ decline) from an unanswered ask; AttachDests
+	// carries the destination list the asking pass resolved (a RepeatEach
+	// body's Defined$ Imprinted binding does not survive the suspension, so
+	// the re-entry must not re-derive it). All three ride the ask (the same
+	// runtime-continuation class as ResumeRemembered) and are consumed and
+	// cleared at the re-entry's top (fx42 scoping), so a nested Attach poses
+	// its own ask.
+	AttachChoice     []state.ObjID
+	AttachChoiceDone bool
+	AttachDests      []state.ObjID
 	// PutOpt is the answered Optional$ True put-counter election ("yes"/"no")
 	// on a re-entered PutCounter resolution (Talus Paladin's "you may put a
 	// +1/+1 counter on CARDNAME", Black Widow's "You may put ... If you
