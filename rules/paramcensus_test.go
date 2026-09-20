@@ -995,17 +995,28 @@ var stringMapParams = map[string]string{
 	"effects:compoundRememberedSpec:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
 	// rules/mayplay.go mayPlayGateRejected: params IS a card Params map, but
 	// every key the function indexes is indexed ONLY to fail the MayPlay
-	// static closed (mayPlayUnreadGates + CheckSVar$/MayPlayPlayer$) -- a
-	// fail-closed gate is a RECOGNITION, not a consumption: the static is
-	// withheld whole and the key is never honoured. Whitelisting it keeps
-	// those indexes out of the read sets entirely; without it the keys would
-	// propagate into mayPlayStatic's reads (propagateKeyReads attributes a
-	// callee's indexed keys to the caller that passes the map) and mask the
-	// genuinely unread gate keys of every MayPlay static -- Evendo
-	// Brushrazer's CheckSVar$ was masked exactly this way (review round
-	// findings-sol1, MAJOR). A NEW fail-closed gate reader must be whitelisted
-	// here too, or its recognition reads mask real gaps.
-	"rules:mayPlayGateRejected:params": "fail-closed MayPlay gate recognition (mayPlayUnreadGates + CheckSVar$/MayPlayPlayer$) -- a rejection, never a consumption",
+	// static closed (mayPlayUnreadGates + MayPlayPlayer$) -- a fail-closed
+	// gate is a RECOGNITION, not a consumption: the static is withheld whole
+	// and the key is never honoured. CheckSVar$/SVarCompare$ are NOT in that
+	// set any more: they are genuinely consumed, via effects.CheckSVarHolds
+	// (Engine.mayPlayConditionGateHolds on the may-play family and
+	// continuousGateHolds on the generic Continuous bucket), so they
+	// correctly read. Whitelisting this function keeps its residual
+	// recognitions out of the read sets; without it the keys would propagate
+	// into mayPlayStatic's reads (propagateKeyReads attributes a callee's
+	// indexed keys to the caller that passes the map) and mask the
+	// genuinely unread gate keys of every MayPlay static. A NEW fail-closed
+	// gate reader must be whitelisted here too, or its recognition reads mask
+	// real gaps.
+	"rules:mayPlayGateRejected:params": "fail-closed MayPlay gate recognition (mayPlayUnreadGates + MayPlayPlayer$) -- a rejection, never a consumption",
+	// rules/mayplay.go mayPlayConditionGateHolds: params is a card Params map,
+	// but the helper only forwards it to Engine.checkSVarHolds, whose
+	// CheckSVar$/SVarCompare$ reads are already attributed through the generic
+	// Continuous bucket (continuousGateHolds -> checkSVarHolds) -- the
+	// whitelist keeps this forwarding call from being mistaken for an
+	// unclassified third argument. The MayPlay family's read set gains the
+	// keys via that same generic union, so this masks nothing.
+	"rules:Engine.mayPlayConditionGateHolds:params": "card Params map forwarded to checkSVarHolds; CheckSVar$/SVarCompare$ are read on the generic Continuous bucket",
 	// effects/misc.go MayPlayStaticParams: params is a map parseStaticLine
 	// built from one SVar static line (or the S: line's own Params map passed
 	// by rules/layers.go's mayPlayGrant) -- the MayPlay-family keys it
