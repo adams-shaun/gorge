@@ -248,6 +248,59 @@ mono suite** — AR8, BLK and L1c all land inside the control's noise, and the
 fitted profile failed the held-out gate. The search teacher (L7-L10) is the
 only track with measured headroom.
 
+## Label corpus + combined teacher (2026-09-20, after L7/L8 merged)
+
+`searchteacher -games 300 -seed 60000000 -worlds 16 -attempts 128 -min-ess 2
+-kinds attackers,cast -workers 14 -labels dev2.jsonl` (3,000 dev games, 46 min
+wall, 128 MB corpus):
+
+- **paired delta +5.80pp ± 1.25 (95%, n=3,000; 376 games changed outcome)** —
+  the two kinds TOGETHER, and the first significant margin in this programme.
+  The spike measured them apart (+2.8 attackers, +2.7 cast) and warned they
+  might not add; measured, they roughly do.
+- Sampler acceptance **17.41%** (was 9.92% before L7), coverage **44.9%** of
+  32,496 asked decisions (t01-06 81.4%, t07-12 33.2%, t13+ 14.5% — the late
+  game is still the hole).
+- Corpus: 14,588 labelled decisions (9,436 priority, 5,152 attackers), 57,060
+  scored candidate options, 3,723 teacher overrides, 881 of them above the
+  0.25 margin. Cost 2.28 s per labelled decision.
+- Corpus lives outside git (scratchpad); regenerate with the command above.
+
+This is the training signal for L9. A scorer that merely reproduces the
+teacher's covered decisions, at negligible inference cost, would be worth
+~+5.8pp before any iteration — provided it generalises to the 55% of
+decisions the sampler cannot cover, which is the open risk.
+
+## L9 first training run (2026-09-20) — the scorer does not learn to rank
+
+Trained the merged L9b trainer on the 14,588-decision corpus (29 s, 8 epochs).
+Measured per decision kind on multi-option labelled decisions, against
+baselines computed from the same corpus:
+
+| kind | trained model | copy the bot | first labelled | random |
+|---|---|---|---|---|
+| priority (cast) | 0.422 | 0.419 | **0.422** | 0.246 |
+| attackers | 0.802 | 0.802 | **0.802** | 0.906 |
+
+The model's agreement equals the first-labelled baseline exactly, for three
+hyperparameter settings and for a checkpoint trained only on overrides: the
+learned scores are CONSTANT across options. `-rank-weight` ≥ 10 NaNs.
+
+Two lessons, both now in `bot-l9b-fix-rank-collapse`:
+
+- **The blended top-1 the trainer prints is not a metric.** Random scores
+  0.906 on attackers (the teacher's preferred attacking SET covers most
+  offered options) and 0.246 on cast. Only per-kind numbers against the
+  bot-copy baseline mean anything.
+- **74.5% of labelled decisions are "the teacher agreed with the bot".**
+  Minimising a value loss over near-identical candidate means is solved by a
+  constant, and imitating the bot is the easy optimum. The signal is the
+  3,723 overrides (881 above margin 0.25); the fix centres value targets
+  within a decision, stabilises the ranking term, and weights overrides.
+
+The teacher itself remains +5.8pp; nothing here disputes that. What is
+unproven is that a cheap scorer can absorb it.
+
 ## Parallel (unchanged, lower priority)
 
 AR8 combined-attacker lethal, block assignment, trace-family comparison

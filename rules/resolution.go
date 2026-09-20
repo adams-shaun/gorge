@@ -794,9 +794,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// attempt the effect; payment is a separate resolution-time window with
 	// mana-ability opportunities. Direct mandatory triggers enter the same
 	// window from resolveTop.
+	//
+	// A Draw-bearing Cost$ joins the two named shapes (Hordewing Skaab's
+	// OptionalDecider$ on "you may draw cards ... If you do, discard that
+	// many"): the yes answer re-enters here and pays the draw through the
+	// same window, rather than running the body for free.
 	tc := e.triggerContexts[rp.obj]
 	armed := rp.kind == "optional" && rp.sa != nil && rp.sa.Params["Cost"] != "" &&
 		(rp.sa.API == "Untap" ||
+			len(e.parseCost(rp.sa.Params["Cost"]).Draw) > 0 ||
 			// abcopy1: an OptionalDecider$ copy trigger's AB$ CopySpellAbility
 			// with a real Cost$ (Rings of Brighthearth, Battlemages' Bracers,
 			// Mirari) pays through the same window whenever the trigger context

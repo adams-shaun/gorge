@@ -30,6 +30,14 @@ type CostPart struct {
 	// sacrificed; a ReduceCost static reading the paid X composes with it.
 	// N is unused for an Announced part.
 	Announced bool
+	// Dyn is the non-literal amount token of a Draw part (Forge's
+	// Draw<X/Spec>): N is unused and the count is resolved at payment from
+	// the resolving source's SVar table by the named token (SVar:X for
+	// Draw<X/...>), the way fixLifeXCost resolves an SVar-valued PayLife<X>.
+	// A part whose SVar is absent or unresolvable fails closed -- the cost is
+	// unpayable, never a silent zero draw. Empty for an ordinary literal
+	// Draw<N/Spec>.
+	Dyn string
 }
 
 // ManaPair is one two-face hybrid symbol: each face is a WUBRGC mana symbol,
@@ -140,6 +148,15 @@ type Cost struct {
 // description is dropped right here; the ";" alternation is folded to ","
 // (MatchesSpec's own separator) at the parse site. Ruling FL-54.
 var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard|Draw)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// drawDynCost matches Forge's non-literal Draw amount, Draw<X/Spec> -- the
+// Champion of Wits family's "you may draw cards equal to its power. If you
+// do, discard two cards" (Cost$ Draw<X/You> with SVar:X:Count$CardPower).
+// The first field is the SVar token the payment resolves against the
+// source's own SVar table; the second is the player spec ("You"). The
+// trailing ";" OR alternation folds to "," like every other non-mana head.
+// The literal form Draw<N/Spec> stays nonManaCost's.
+var drawDynCost = regexp.MustCompile(`^Draw<([A-Za-z][A-Za-z0-9]*)/([^/>]+)(?:/[^>]*)?>$`)
 
 // sacXCost matches the announced-count sacrifice form Sac<X/Spec> (Dargo, the
 // Shipwrecker's "sacrifice any number of artifacts and/or creatures"): the
@@ -343,6 +360,17 @@ func ParseCost(s string) Cost {
 				default:
 					c.SubCounter = append(c.SubCounter, part)
 				}
+				continue
+			}
+			if m := drawDynCost.FindStringSubmatch(sym); m != nil {
+				// The dynamic-amount Draw cost (Draw<X/Spec>): the count is not
+				// a literal but the source's SVar named by m[1], resolved at
+				// payment. Recorded with Dyn set and N unused -- the part is a
+				// real modelled cost, so the unrecognised-symbol fallback that
+				// used to substitute one generic mana (and report the head via
+				// reportUnknown, the census's cost:Draw label) never runs.
+				spec := strings.ReplaceAll(m[2], ";", ",")
+				c.Draw = append(c.Draw, CostPart{Spec: spec, Dyn: m[1]})
 				continue
 			}
 			if m := exileBattlefieldCost.FindStringSubmatch(sym); m != nil {
@@ -978,6 +1006,35 @@ func (e *Engine) fixLifeXCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, b
 	return out, true
 }
 
+// drawCostCount resolves one Draw cost part's count at payment time. A
+// literal part (Dyn == "") is simply N. A dynamic part (Forge's
+// Draw<X/Spec>, Champion of Wits' "draw cards equal to its power") reads the
+// source face's SVar table: the body named by part.Dyn (SVar:X for
+// Draw<X/...>) is evaluated exactly the way fixLifeXCost evaluates its
+// PayLife<X> body, with the source object bound as the count context so
+// Count$CardPower reads the drawing permanent's own power. ok=false means
+// the source face, the SVar, or the body is unavailable -- the cost is
+// unpayable (the fail-closed direction), never a silent zero draw.
+func (e *Engine) drawCostCount(id state.ObjID, you state.PlayerID, part CostPart) (int32, bool) {
+	if part.Dyn == "" {
+		return part.N, true
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0, false
+	}
+	body, present := o.Face().SVars[part.Dyn]
+	if !present {
+		return 0, false
+	}
+	ctx := &effects.Ctx{Source: id, Controller: you, SVars: o.Face().SVars}
+	n, resolvable := effects.EvalCountOK(e, ctx, body)
+	if !resolvable || n < 0 {
+		return 0, false
+	}
+	return n, true
+}
+
 // offerCastableUsing is offerCastable's core with the statics collected
 // once (the walk shares one collection) and the mana pool optionally
 // overridden: hyp nil is the ordinary real-pool gate, hyp non-nil prices the
@@ -1141,7 +1198,11 @@ func formatCost(c Cost) string {
 	}
 	appendCostParts := func(kind string, costs []CostPart) {
 		for _, part := range costs {
-			parts = append(parts, kind+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
+			n := strconv.FormatInt(int64(part.N), 10)
+			if part.Dyn != "" {
+				n = part.Dyn
+			}
+			parts = append(parts, kind+"<"+n+"/"+part.Spec+">")
 		}
 	}
 	appendCostParts("Sac", c.Sac)

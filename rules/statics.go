@@ -83,25 +83,51 @@ func (s *actionStaticSource) get() actionStaticViews {
 // seat, zone and parsed-static order while sharing a single membership walk.
 func (e *Engine) collectActionStatics() actionStaticViews {
 	var out actionStaticViews
-	for _, p := range e.G.AliveFrom(0) {
-		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil {
+	for pi, p := range e.G.AliveFrom(0) {
+		// Continuous statics are zone-scoped by their EffectZone$, so the
+		// membership walk mirrors collectCostStatics': every zone a source
+		// can sit in, one fixed order, the shared stack walked once under the
+		// first alive seat. The CantBeCast/CantBeActivated modes keep their
+		// battlefield-only membership (their readers gate EffectZone$
+		// downstream themselves and no corpus shape takes them off the
+		// battlefield).
+		for _, z := range staticSourceZones {
+			if z == state.ZStack && pi > 0 {
 				continue
 			}
-			for _, st := range o.Face().Statics {
-				var dst *[]staticView
-				switch st.Mode {
-				case "CantBeCast":
-					dst = &out.cantCast
-				case "CantBeActivated":
-					dst = &out.cantActivate
-				case "Continuous":
-					dst = &out.continuous
-				default:
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil {
 					continue
 				}
-				*dst = append(*dst, staticView{Source: id, Controller: o.Controller, Params: st.Params})
+				for _, st := range o.Face().Statics {
+					var dst *[]staticView
+					switch st.Mode {
+					case "CantBeCast":
+						if z != state.ZBattlefield {
+							continue
+						}
+						dst = &out.cantCast
+					case "CantBeActivated":
+						if z != state.ZBattlefield {
+							continue
+						}
+						dst = &out.cantActivate
+					case "Continuous":
+						// The EffectZone$ gate (the default is the battlefield,
+						// so every battlefield Continuous static keeps today's
+						// admission exactly): a static naming another zone is
+						// collected from THAT zone here and denied from the
+						// battlefield, the same gate staticEffects runs.
+						if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+							continue
+						}
+						dst = &out.continuous
+					default:
+						continue
+					}
+					*dst = append(*dst, staticView{Source: id, Controller: o.Controller, Params: st.Params})
+				}
 			}
 		}
 	}
@@ -134,6 +160,18 @@ func (e *Engine) activeStatics(mode string) []staticView {
 			}
 			for _, st := range f.Statics {
 				if st.Mode == mode {
+					// The battlefield-only walk honours each static's own
+					// EffectZone$: a static whose EffectZone$ excludes the
+					// battlefield (Anger's graveyard-scoped haste grant) must
+					// not apply while its source is on the battlefield, on
+					// every mode's consumer. The default and the explicit
+					// Battlefield/All values keep today's admission exactly;
+					// a static naming a hidden zone is collected from there by
+					// staticEffects/collectActionStatics/collectCostStatics
+					// instead.
+					if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+						continue
+					}
 					out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params})
 				}
 			}

@@ -821,9 +821,17 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 		// Draw cost parts (Draw<N/Spec>): the cast flow draws the PAYER; a
 		// spec naming a trigger-only role (Player.TriggeredPlayer and friends)
 		// has no binding here and is unpayable -- never offered -- rather than
-		// silently drawing nobody.
+		// silently drawing nobody. A dynamic part (Draw<X/Spec>) additionally
+		// needs its SVar-resolved count to evaluate at payment; an
+		// unresolvable body withholds the whole cost (fail closed, the
+		// fixLifeXCost direction), never an unpayable offer with a zero draw.
 		if _, ok := castFlowDrawPlayer(part.Spec, p); !ok {
 			return false
+		}
+		if part.Dyn != "" {
+			if _, ok := e.drawCostCount(id, p, part); !ok {
+				return false
+			}
 		}
 	}
 	if o := e.G.Obj(id); o != nil {
@@ -872,6 +880,31 @@ func (e *Engine) drawCostCard(p state.PlayerID) {
 	}
 	e.emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
 		From: state.ZLibrary, To: state.ZHand, Secret: true})
+}
+
+// payDrawCostParts settles every Draw cost component of a cast or activation
+// payment: one ordinary draw per card of the part's count, for the drawer the
+// part's spec names. The count is the literal N, or -- for the dynamic
+// Draw<X/Spec> form -- the source's SVar bound by part.Dyn, resolved here at
+// payment time (Champion of Wits' "draw cards equal to its power"). The
+// offer gate (nonManaCastable) already proved each part's drawer and dynamic
+// count resolvable, so a part that is somehow unresolvable at payment -- a
+// stale stored cost -- pays nothing rather than guessing a count; the whole
+// cost is never offered, so this is a belt-and-braces no-op, not a live path.
+func (e *Engine) payDrawCostParts(pc *pendingCast) {
+	for _, part := range pc.cost.Draw {
+		drawer, ok := castFlowDrawPlayer(part.Spec, pc.player)
+		if !ok {
+			continue
+		}
+		n, ok := e.drawCostCount(pc.card, pc.player, part)
+		if !ok {
+			continue
+		}
+		for k := int32(0); k < n; k++ {
+			e.drawCostCard(drawer)
+		}
+	}
 }
 
 // payDamageCost makes the payer take n damage from the source -- the
@@ -4538,13 +4571,7 @@ func (e *Engine) payCast() {
 		// dredge replacement is NOT posed here -- the cast-flow payment stage
 		// cannot re-enter mid-payment -- and no corpus card reaches a Draw
 		// cost payment with a dredger in the graveyard.
-		for _, part := range pc.cost.Draw {
-			if p, ok := castFlowDrawPlayer(part.Spec, pc.player); ok {
-				for n := int32(0); n < part.N; n++ {
-					e.drawCostCard(p)
-				}
-			}
-		}
+		e.payDrawCostParts(pc)
 		// Return cost parts: each chosen object moves to its OWNER's hand
 		// (Forge CostReturn.doPayment's moveToHand) beside the other payments.
 		for _, id := range pc.returns {
@@ -4702,13 +4729,7 @@ func (e *Engine) payCast() {
 	for _, part := range pc.cost.DamageYou {
 		e.payDamageCost(pc.player, part.N, pc.card)
 	}
-	for _, part := range pc.cost.Draw {
-		if p, ok := castFlowDrawPlayer(part.Spec, pc.player); ok {
-			for n := int32(0); n < part.N; n++ {
-				e.drawCostCard(p)
-			}
-		}
-	}
+	e.payDrawCostParts(pc)
 	// Return cost parts (see the ability branch above for the why).
 	for _, id := range pc.returns {
 		if o := e.G.Obj(id); o != nil {
@@ -5069,5 +5090,11 @@ func init() {
 		// kw:Affinity: CR 702.41, expanded by cards/keywords.go into the
 		// ordinary ReduceCost cost-static machinery (rules/statics.go's
 		// collectCostStatics) -- no separate cast path of its own.
-		"kw:Affinity")
+		"kw:Affinity",
+		// kw:Embalm / kw:Eternalize: CR 702.128 / 702.129, expanded by
+		// cards/keywords.go into one graveyard-zone CopyPermanent activation
+		// whose cost exiles the card itself (ExileFromGrave<1/CARDNAME>) and
+		// whose token copy carries the keyword's modified characteristics --
+		// the Encore graveyard-activation shape with a different effect.
+		"kw:Embalm", "kw:Eternalize")
 }

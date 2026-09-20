@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/seat
 
-budget_s: 30
+budget_s: 35
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -47,3 +47,6 @@ budget_s: 30
 | 2026-09-19T20:46Z | e0666a0c+ | 12.1 | 11 | 0 | sadams |
 | 2026-09-19T20:47Z | e0666a0c+ | 12.1 | 11 | 0 | sadams |
 | 2026-09-19T21:19Z | f0f59556+ | 11.9 | 14 | 0 | sadams |
+| 2026-09-20T08:28Z | 57c4217d+ | 30.3 | 19 | 0 | sadams |
+| 2026-09-20T08:28Z | 57c4217d+ | 25.0 | 19 | 0 | sadams |
+| 2026-09-20T08:48Z | bf0663b6+ | 15.7 | 19 | 0 | sadams |

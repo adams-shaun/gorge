@@ -154,6 +154,23 @@ func (f *Face) expandKeywords() {
 			// CR 702.105's event-relative life comparison is in attacksMatches.
 			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | Dethrone$ True | TriggerDescription$ Dethrone",
 				"DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1", has)
+		case "Afflict":
+			// CR 702.130: "Whenever this creature becomes blocked, defending
+			// player loses N life." The parameter is the life amount; every
+			// corpus K:Afflict line carries one (measured 10/10). The engine's
+			// become-blocked hook is trig:AttackerBlocked
+			// (checkAttackerBlockedTriggers), which queues one instance per
+			// blocked attacker and captures the defender as the trigger
+			// context's DefendingPlayer -- exactly the Defined$ the body reads.
+			// A keyword granted in a layer (AddKeyword$ Afflict:N, e.g. Lost
+			// Monarch of Ifnir's Zombie grant) needs no expansion here: rules'
+			// checkGrantedAfflictTriggers synthesizes the same trigger from the
+			// derived keyword list.
+			if strings.TrimSpace(param) == "" {
+				continue
+			}
+			f.addKeywordTrigger(head, k, "Mode$ AttackerBlocked | ValidCard$ Card.Self | TriggerDescription$ Afflict",
+				"DB$ LoseLife | Defined$ TriggeredDefendingPlayer | LifeAmount$ "+strings.TrimSpace(param), has)
 		case "Hideaway":
 			if has("R", k) {
 				continue
@@ -494,6 +511,40 @@ func (f *Face) expandKeywords() {
 			// report's Issues), the copy is otherwise exact.
 			cost, _, _ := strings.Cut(param, ":")
 			sa, _ := parseSA("", "AB$ Encore | Cost$ "+cost+" ExileFromGrave<1/CARDNAME> | ActivationZone$ Graveyard | SorcerySpeed$ True | Keyword$ Encore | SpellDescription$ Encore "+cost)
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
+		case "Embalm", "Eternalize":
+			if has("A", k) {
+				continue
+			}
+			// CR 702.128 (Embalm) / CR 702.129 (Eternalize): one activated
+			// ability the card offers from the graveyard, whose cost is the
+			// printed mana cost plus exiling the card itself, and whose effect
+			// is "create a token that's a copy of it, except ...". The two are
+			// one family: Embalm's token is a white Zombie in addition to its
+			// other types; Eternalize's is additionally a 4/4 black Zombie.
+			// The body is DB$ CopyPermanent (api CopyPermanent), whose
+			// characteristic modifications AddTypes$/SetColor$/SetPower$/
+			// SetToughness$ this build applies to the minted copy.
+			// ExileFromGrave<1/CARDNAME> is the shared graveyard self-exile
+			// cost Encore already uses, settled by the ordinary cast-flow
+			// exile stage; the whole keyword parameter is spliced verbatim
+			// into Cost$ so an extra cost component (Sinuous Striker's and
+			// Sunscourge Champion's "Discard<1/Card>") rides along. The
+			// token's "no mana cost" (Forge's RemoveCost$) is NOT modelled --
+			// this engine derives a copy's mana value from its printed card --
+			// so RemoveCost$ is deliberately not emitted (an unread param
+			// would only rot the parameter census); the divergence is recorded
+			// in the task report's Issues section.
+			body := "AB$ CopyPermanent | Cost$ " + param + " ExileFromGrave<1/CARDNAME> | ActivationZone$ Graveyard | SorcerySpeed$ True | Defined$ Self | SetColor$ "
+			if head == "Eternalize" {
+				body += "Black | AddTypes$ Zombie | SetPower$ 4 | SetToughness$ 4"
+			} else {
+				body += "White | AddTypes$ Zombie"
+			}
+			sa, _ := parseSA("", body+" | Keyword$ "+head+" | SpellDescription$ "+head+" "+param)
 			if sa != nil {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)
