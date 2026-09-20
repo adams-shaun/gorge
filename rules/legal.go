@@ -1118,7 +1118,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// Only the plain cast folds the extras, matching beginCast's own
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
-		convokeBase, _ := e.convokeCost(p, id, e.rawBaseCost(p, id))
+		convokeBase, convokeTaps := e.convokeCost(p, id, e.rawBaseCost(p, id))
+		// CR 702.66a: Improvise's artifacts credit the offer gate too, after
+		// Convoke's creatures, each reducing one generic; improviseCost
+		// excludes convokeTaps so one permanent is never committed twice.
+		convokeBase, _ = e.improviseCost(p, id, convokeBase, convokeTaps)
 		// An either-or additional cost (AlternateAdditionalCost) makes the
 		// plain cast's gate existential: the cast is offerable when AT LEAST
 		// ONE alternative part is payable (the choice itself is asked by the
