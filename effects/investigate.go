@@ -32,7 +32,9 @@ const clueTokenKey = "c_a_clue_draw"
 // Each Clue is one real TokenCreate event (owner = the investigating
 // player), so the mint rides events.Apply and fires trig:TokenCreated /
 // trig:TokenCreatedOnce (Mirkwood Bats et al.) exactly like effToken's
-// mints. No direct state.Game writes.
+// mints, and each investigate also emits one events.Investigate marker
+// (trig:Investigated matches it — Erdwal Illuminator; a plain Clue-token
+// creation never fires an investigate trigger). No direct state.Game writes.
 //
 // Optional$ True (2 files: will_the_wise, nick_valentine_private_eye) is
 // unread: a real mid-resolution yes/no ask needs a rules/resolution.go
@@ -62,6 +64,12 @@ func effInvestigate(h Host, c *Ctx, sa *cards.SA) {
 		p := PlayerOf(h, c, t)
 		for i := int32(0); i < n; i++ {
 			h.Emit(events.Event{Kind: events.TokenCreate, Player: p, Text: clueTokenKey})
+			// One investigate record per created Clue (CR 701.36a: each
+			// investigate is one Clue token, so Num$ 2 is two investigates).
+			// The marker is what trig:Investigated matches; emitting it only
+			// here (not on a plain DB$ Token Clue mint) keeps "create a Clue
+			// token" from firing "whenever you investigate" triggers.
+			h.Emit(events.Event{Kind: events.Investigate, Obj: c.Source, Player: p})
 		}
 	}
 }

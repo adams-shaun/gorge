@@ -1496,6 +1496,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.cycledMatches(t, source, ev, lki)
 	case "Explores":
 		matched = e.exploresMatches(t, source, ev, lki)
+	case "Investigated":
+		matched = e.investigatedMatches(t, source, ev, lki)
 	case "RingTemptsYou":
 		matched = e.ringTemptsMatches(t, source, ev)
 	case "CounterAdded":
@@ -2284,6 +2286,62 @@ func (e *Engine) exploresMatches(t cards.Trigger, source state.ObjID, ev events.
 		return false
 	}
 	return true
+}
+
+// investigatedMatches implements the "whenever you investigate" trigger
+// family (Forge Mode$ Investigated, task investtrig1 -- Erdwal Illuminator,
+// Val, Marooned Surveyor; 2 files / 2 raw lines at the corpus pin). The
+// causing event is the completed events.Investigate record (a pure Apply
+// no-op marker emitted by effInvestigate beside each Clue mint, so a plain
+// Clue-token creation never fires it): Player is the investigating seat
+// (what ValidPlayer$ matches -- Erdwal's and Val's `ValidPlayer$ You`), Obj
+// the resolving source permanent (what a ValidCard$ spec would match; no
+// corpus carrier uses one, but the grammar is the exploresMatches shape).
+// FirstTime$ True is the per-player per-turn gate -- Erdwal's "for the
+// first time each turn" -- read from the log the firstLifeLossThisTurn way
+// so a log-only replay reconstructs the same answer (no side-map).
+func (e *Engine) investigatedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Investigate {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if strings.EqualFold(t.Params["FirstTime"], "True") && !e.firstInvestigateThisTurn(ev.Player) {
+		return false
+	}
+	return true
+}
+
+// firstInvestigateThisTurn is true only when the investigate event being
+// matched is the investigating player's first of the current turn: the
+// current event is already in the log when triggers match (the
+// firstLifeLossThisTurn contract), so scanning back past TurnChange and
+// finding exactly one Investigate record for p means this is the first.
+// TurnChange is the logged reset boundary for every other per-turn fact, so
+// the scan is replay-stable and cannot leak a mutable counter across Clone.
+func (e *Engine) firstInvestigateThisTurn(p state.PlayerID) bool {
+	seenCurrent := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		if ev.Kind != events.Investigate || ev.Player != p {
+			continue
+		}
+		if seenCurrent {
+			return false
+		}
+		seenCurrent = true
+	}
+	return seenCurrent
 }
 
 // counterAddedMatches implements the "when a counter is put on" trigger
@@ -4191,7 +4249,7 @@ func init() {
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
-		"trig:Explores", "trig:Exerted",
+		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
