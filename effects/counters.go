@@ -145,6 +145,21 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			// ordinary placement paths.
 		}
 	}
+	// Bolster$ (CR 701.36's bolster keyword action; 24 raw corpus lines, every
+	// one of them a PutCounter SA -- SP/AB/DB heads alike -- so no separate
+	// DB$ Bolster API is needed): "choose a creature with the least toughness
+	// among creatures you control and put N +1/+1 counters on it." Bolster$
+	// names N (a literal, or an SVar -- Sandsteppe War Riders' Bolster$ X);
+	// the counter kind is the ordinary CounterType$ (default P1P1) computed
+	// above. fx42 scoping: consume and clear the answered tie pick first, so
+	// a nested PutCounter in the same chain cannot inherit it.
+	if _, ok := sa.Params["Bolster"]; ok {
+		pickAns := c.CounterPick
+		pickDone := c.CounterPickDone
+		c.CounterPick, c.CounterPickDone = nil, false
+		putCounterBolster(h, c, sa, kind, pickAns, pickDone)
+		return
+	}
 	// DividedAsYouChoose$ (Vastwood Hydra's "you may distribute a number of
 	// +1/+1 counters equal to the number of +1/+1 counters on CARDNAME among
 	// any number of creatures you control", 54 raw corpus PutCounter lines):
@@ -559,6 +574,78 @@ func putCounterPickApply(h Host, c *Ctx, sa *cards.SA, n int32, kind string, pic
 		placed = append(placed, state.Target{Obj: id})
 	}
 	rememberPlaced(c, sa, placed)
+}
+
+// putCounterBolster implements PutCounter's Bolster$ parameter (CR 701.36's
+// bolster keyword action): the bolstering player -- the resolving controller;
+// every corpus carrier bolsters "creatures you control" -- chooses a creature
+// with the LEAST toughness among their creatures and puts N +1/+1 counters
+// on it. The toughness read is the engine's effects-side P/T convention
+// (face toughness plus P1P1 counters, the Count$CardToughness read --
+// layer-derived toughness is not visible below rules). A tie at the minimum
+// is a real election (CR 701.36's "choose"): a KChoose over the tied
+// creatures answered through the shared "counter_pick" resume arm
+// (Ctx.CounterPick/CounterPickDone, consumed and cleared by the caller --
+// fx42); botpolicy's "counter_pick" arm takes the first option, so a
+// bot-answered game emits the same events the R-9 no-host fallback (the
+// first tied creature in zone order) does. RememberCards$ True rides
+// putCounterPickApply, exactly like the bare Choices$ pick.
+func putCounterBolster(h Host, c *Ctx, sa *cards.SA, kind string, ans []state.ObjID, done bool) {
+	n := Num(h, c, sa, "Bolster", 1)
+	if n < 0 {
+		n = 0
+	}
+	g := h.Game()
+	var cands []state.ObjID
+	best := int32(0)
+	for _, id := range g.Zone(state.ZBattlefield, c.Controller) {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil || !hasType(o, "Creature") {
+			continue
+		}
+		t := int32(o.Face().Toughness()) + o.Counter("P1P1")
+		if len(cands) == 0 || t < best {
+			best, cands = t, []state.ObjID{id}
+			continue
+		}
+		if t == best {
+			cands = append(cands, id)
+		}
+	}
+	if n == 0 || len(cands) == 0 {
+		// Nothing to place or nobody to place it on: bolstering zero is a
+		// no-op (the election and the decline would place the same thing).
+		return
+	}
+	if len(cands) == 1 {
+		putCounterPickApply(h, c, sa, n, kind, cands)
+		return
+	}
+	if done {
+		// Re-entry: the answered tie pick, applied as-is (a chosen creature
+		// that left the battlefield while the decision was outstanding takes
+		// nothing -- putCounterPickApply's zone guard).
+		putCounterPickApply(h, c, sa, n, kind, ans)
+		return
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+		Min: 1, Max: 1, Source: c.Source,
+		ResumeKind: "counter_pick", ResumeSA: sa,
+		Prompt: "Bolster " + strconv.Itoa(int(n)) + " — choose a creature with the least toughness"}
+	for _, id := range cands {
+		name := "a creature"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "counter_pick", Label: name, Obj: id, Player: c.Controller})
+	}
+	if Ask(h, d) == AskAsked {
+		return // resolution suspended; the answer re-enters with Ctx.CounterPick set.
+	}
+	// The R-9 no-host fallback: the first tied creature in zone order -- the
+	// exact mirror of botpolicy's "counter_pick" first-option answer.
+	putCounterPickApply(h, c, sa, n, kind, cands[:1])
 }
 
 // putCounterChooserFor resolves one Chooser$/Placer$ value of the bare-

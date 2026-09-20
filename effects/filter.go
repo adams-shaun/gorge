@@ -1028,7 +1028,7 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
-	if p == "IsRemembered" || strings.HasPrefix(p, "greatestPower") {
+	if p == "IsRemembered" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
 		return true
 	}
 	if positiveRecognisedWord(p) {
@@ -1393,6 +1393,18 @@ func sharesNameWithObject(o, src *state.Object) bool {
 // referent. The latter remains a recognised grammar shape for the census, but
 // cannot be negated into a match when its resolution context is absent.
 func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	if p == "token$DifferentCardNames" {
+		// Forge's token$DifferentCardNames set-level qualifier (Sandsteppe
+		// War Riders, Gimbal Gremlin Prodigy, Audience with Trostani, Neriv
+		// Crackling Vanguard -- "the number of differently named <X> tokens
+		// you control"). The distinctness is a COUNT-site read
+		// (evalCountBody's Count$Valid walk strips the qualifier and counts
+		// distinct face names over the matches); per object the recognised
+		// meaning is "is a token", so the matcher and UnknownPredicates
+		// agree the qualifier is known and a non-count read of it admits
+		// every matching token without the distinctness narrowing.
+		return o.IsToken, true
+	}
 	if p == "ChosenCard" || p == "nonChosenCard" {
 		if !sc.ChosenValid {
 			return false, true
