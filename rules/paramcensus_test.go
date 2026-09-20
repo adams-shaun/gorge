@@ -1385,7 +1385,14 @@ var handRoots = struct {
 		"RaiseCost":  {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
 		"ReduceCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
 		// staticEffects filters on st.Mode != "Continuous" before reading.
-		"Continuous": {"Engine.staticEffects", "warpGraveyardAllowed", "Engine.maxSpeedAbilities",
+		// activeStatics (the battlefield-only restriction collector) and
+		// collectActionStatics (the AddAbility$ mana-grant membership walk)
+		// now read the same statics' EffectZone$ through effectZoneOK -- the
+		// Continuous EffectZone$ gate shared with staticEffects and
+		// collectCostStatics -- so their reads are attributed here like the
+		// other direct-scan roots.
+		"Continuous": {"Engine.staticEffects", "Engine.activeStatics", "Engine.collectActionStatics",
+			"warpGraveyardAllowed", "Engine.maxSpeedAbilities",
 			// The may-play grant walks read the Continuous static's Params
 			// through mayPlayGrant over the face's Statics slice -- the same
 			// direct-scan shape warpGraveyardAllowed has (mayPlaySpellIds also
