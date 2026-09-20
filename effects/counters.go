@@ -14,7 +14,75 @@ func init() {
 	Register("PutCounter", effPutCounter)
 	Register("PutCounterAll", effPutCounterAll)
 	Register("RemoveCounterAll", effRemoveCounterAll)
+	Register("MultiplyCounter", effMultiplyCounter)
 	Register("Regenerate", effRegenerate)
+}
+
+// effMultiplyCounter is Forge's MultiplyCounterEffect: for each object or
+// player the Defined$/ValidTgts$ spec names, ADD (Multiplier-1) x the current
+// count of the affected counter kind(s) -- so the default Multiplier$ 2
+// exactly DOUBLES them. CounterType$ names the ONE kind to multiply; absent
+// ("double the number of EACH KIND of counter on target permanent",
+// Aetheric Amplifier, Deepglow Skate, The Thing, Miles Morales), every kind
+// the object already carries is multiplied. Multiplier$ resolves through Num,
+// so a literal (the whole corpus: Multiplier$ 2), an SVar or an inline
+// Count$ expression all price the same path; an absent Multiplier$ is 2.
+//
+// A target with no counters of the relevant kind(s) emits nothing -- adding
+// zero is a no-op and one CounterChange of Amount 0 would be log noise (the
+// effRemoveCounterAll discipline). One event per kind per target, so the
+// event stream records the real CounterChange/PlayerCounterChange the engine
+// folds, never a snapshot write.
+func effMultiplyCounter(h Host, c *Ctx, sa *cards.SA) {
+	mult := Num(h, c, sa, "Multiplier", 2)
+	if mult < 1 {
+		mult = 1
+	}
+	kind := strings.TrimSpace(sa.Params["CounterType"])
+	g := h.Game()
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			p := PlayerOf(h, c, t)
+			if int(p) < 0 || int(p) >= len(g.Players) {
+				continue
+			}
+			pl := &g.Players[p]
+			// Deterministic: the player's own counter slice order, which is
+			// insertion order and rebuilt identically on replay.
+			kinds := counterKinds(kind, len(pl.Counters), func(i int) string { return pl.Counters[i].Kind })
+			for _, k := range kinds {
+				if add := (mult - 1) * pl.Counter(k); add > 0 {
+					h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+						Counter: k, Amount: add})
+				}
+			}
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		kinds := counterKinds(kind, len(o.Counters), func(i int) string { return o.Counters[i].Kind })
+		for _, k := range kinds {
+			if add := (mult - 1) * o.Counter(k); add > 0 {
+				h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: add})
+			}
+		}
+	}
+}
+
+// counterKinds is the kind list MultiplyCounter multiplies: the single
+// CounterType$ when named, otherwise every kind the carrier already holds, in
+// its own deterministic slice order (never a map walk).
+func counterKinds(kind string, n int, at func(int) string) []string {
+	if kind != "" {
+		return []string{kind}
+	}
+	out := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		out = append(out, at(i))
+	}
+	return out
 }
 
 func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
