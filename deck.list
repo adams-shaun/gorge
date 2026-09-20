@@ -8854,3 +8854,109 @@ Commander
 1 Island
 2 Forest
 1 Forest
+# --- Blood Rites (lcc commander precon, Clavileño, First of the Blessed) — census input, 2026-09-20 (this worktree, issue agent-20260920T065240Z-8e856022) ---
+# 100/100 resolved, commander eligible. Deck file NOT added: new engine gaps remain.
+# PRIMITIVE ratchet gaps over these cards: api:ChangeText (New Blood),
+# trig:LifeGained (Elenda's Hierophant), kw:Ascend (Radiant Destiny, Twilight Prophet).
+# PARAMETER ratchet gaps (cards that are otherwise primitive-supported):
+#   Destroy.RememberTargets/ForgetOtherTargets (Sorin, Lord of Innistrad),
+#   Token.TokenRemembered (Timothar, Baron of Bats),
+#   trig:Phase.Blessing (Twilight Prophet), PutCounterAll.ValidCardsDesc (Indulgent Aristocrat),
+#   DigUntil.RevealRandomOrder (Heirloom Blade, a known AGENTS.md approximation).
+# Both ratchets FAIL with this deck present; the deck is therefore not added.
+# Overlap with open tickets: kw:Ascend (agent-20260918T204633Z-bda5dda9),
+#   trig:LifeGained (agent-20260918T202223Z-eb38487f),
+#   api:Animate.Triggers (agent-20260918T221252Z-86babb6f),
+#   api:Play.Controller/WithoutManaCost (agent-20260919T183249Z-42744815),
+#   cost:ExileAnyGrave (agent-20260918T234402Z-670f1b3f),
+#   Destroy.RememberDestroyed (agent-20260919T194848Z-a2b4e083).
+# New tickets filed: api:ChangeText -> .ds4/new-tickets/change-text-api.md.filed;
+#   Destroy.RememberTargets -> .ds4/new-tickets/destroy-remember-targets.md;
+#   Token.TokenRemembered -> .ds4/new-tickets/token-remembered.md;
+#   city's-blessing reads -> .ds4/new-tickets/citys-blessing-condition.md;
+#   ValidCardsDesc census hygiene -> .ds4/new-tickets/validcardsdesc-ignored.md.
+# Census report: .ds4/report-t1.md
+Commander
+1 Clavileño, First of the Blessed
+
+Deck
+1 Carmen, Cruel Skymarcher
+1 Charismatic Conqueror
+1 Elenda's Hierophant
+1 March of the Canonized
+1 Redemption Choir
+1 Dusk Legion Sergeant
+1 Master of Dark Rites
+1 Promise of Aclazotz // Foul Rebirth
+1 Order of Sacred Dusk
+1 Austere Command
+1 Kindred Boon
+1 Mavren Fein, Dusk Apostle
+1 Radiant Destiny
+1 Welcoming Vampire
+1 Bloodghast
+1 Bloodtracker
+1 Butcher of Malakir
+1 Champion of Dusk
+1 Cordial Vampire
+1 Crossway Troublemakers
+1 Damn
+1 Drana, Liberator of Malakir
+1 Exquisite Blood
+1 Glass-Cast Heart
+1 New Blood
+1 Nighthawk Scavenger
+1 Olivia's Wrath
+1 Pact of the Serpent
+1 Patron of the Vein
+1 Sanctum Seeker
+1 Timothar, Baron of Bats
+1 Twilight Prophet
+1 Yahenni, Undying Partisan
+1 Elenda, the Dusk Rose
+1 Sorin, Lord of Innistrad
+1 Utter End
+1 Vona, Butcher of Magan
+1 Blade of the Bloodchief
+1 Isolated Chapel
+1 Shineshadow Snarl
+1 Temple of Silence
+1 Vault of the Archangel
+1 Voldaren Estate
+1 Windbrisk Heights
+1 Martyr of Dusk
+1 Return to Dust
+1 Swords to Plowshares
+1 Blood Artist
+1 Bloodline Necromancer
+1 Dusk Legion Zealot
+1 Falkenrath Noble
+1 Indulgent Aristocrat
+1 Oathsworn Vampire
+1 Village Rites
+1 Viscera Seer
+1 Bartolomé del Presidio
+1 Cruel Celebrant
+1 Etchings of the Chosen
+1 Legion Lieutenant
+1 Arcane Signet
+1 Commander's Sphere
+1 Heirloom Blade
+1 Mind Stone
+1 Orzhov Signet
+1 Sol Ring
+1 Swiftfoot Boots
+1 Talisman of Hierarchy
+1 Wayfarer's Bauble
+1 Bojuka Bog
+1 Command Tower
+1 Myriad Landscape
+1 Orzhov Basilica
+1 Path of Ancestry
+1 Rogue's Passage
+1 Secluded Courtyard
+1 Tainted Field
+1 Temple of the False God
+1 Unclaimed Territory
+8 Plains
+13 Swamp
