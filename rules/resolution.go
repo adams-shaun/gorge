@@ -1443,6 +1443,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// effPlay sees the answer as consumed either way.
 			free := strings.EqualFold(rp.sa.Params["WithoutManaCost"], "True")
 			playCost := strings.TrimSpace(rp.sa.Params["PlayCost"])
+			// ImprintPlayed$ True (task imprintplayed: Rashmi and Ragavan,
+			// Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus
+			// files): every card the Play actually BEGINS to play is recorded
+			// as imprinted on the resolution's source (events.Imprint, the
+			// same association Chrome Mox's Imprint$ writes), so the chained
+			// ConditionDefined$ Imprinted gate (DBEffect's "did you cast it
+			// this way?" arm) reads a real answer. "Actually begins" is read
+			// from the card's zone: a begun cast pushes the card onto the
+			// stack (CR 601.2a) or moves it onward, while a declined Play — an
+			// unpayable alternative, a stale answer, a reversed cast — leaves
+			// it in its zone, and an aborted cast reverses it back to exactly
+			// the zone it started in. The emission sits before the suspension
+			// break so a cast suspended mid-transaction (a target ask inside
+			// the free cast) is still recorded as played.
+			imprintPlayed := strings.EqualFold(rp.sa.Params["ImprintPlayed"], "True")
 			var toPlay []state.ObjID
 			for _, ch := range chosen {
 				if ch.Obj != 0 {
@@ -1454,7 +1469,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if i == 0 {
 					ctx.Play = id
 				}
+				from := state.Zone(0)
+				if o := e.G.Obj(id); o != nil {
+					from = o.Zone
+				}
 				e.beginPlay(ctx.Controller, id, free, playCost)
+				if imprintPlayed && from.Valid() {
+					if o := e.G.Obj(id); o != nil && o.Zone != from {
+						e.emit(events.Event{Kind: events.Imprint, Obj: ctx.Source,
+							IDs: []state.ObjID{id}})
+					}
+				}
 				if e.Suspended() || e.cast != nil {
 					if rest := toPlay[i+1:]; len(rest) > 0 {
 						e.emit(events.Event{Kind: events.Note, Obj: rp.obj,
