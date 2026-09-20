@@ -2175,10 +2175,12 @@ func (e *Engine) attackerBlockedCandidates(t cards.Trigger, source state.ObjID, 
 // attackerBlockedByPairCandidates lists the (attacker, blocker) pairs one
 // Forge Mode$ AttackerBlockedByCreature trigger fires for (kw:Flanking's
 // expansion, CR 702.25a: "whenever this creature becomes blocked by a
-// creature without flanking"). Each declared pair whose attacker matches
-// ValidCard$ and whose blocker matches ValidBlocker$ yields one instance;
-// a blocker WITH flanking matches nothing, so it debuffs nobody. ValidCard$
-// Card.Self works because the trigger's source IS the flanking attacker.
+// creature without flanking"). Each declared pair whose ATTACKER is the
+// trigger's own source, matches ValidCard$, and whose blocker matches
+// ValidBlocker$ yields one instance; a blocker WITH flanking matches nothing,
+// so it debuffs nobody. ValidCard$ Card.Self works because the trigger's
+// source IS the flanking attacker. The sibling "blocks" half of Forge's mode
+// names the BLOCKER as its source and never reaches here (see the loop).
 func (e *Engine) attackerBlockedByPairCandidates(t cards.Trigger, source state.ObjID, ev events.Event) [][2]state.ObjID {
 	if ev.Kind != events.DeclareBlockers || len(ev.Pairs) == 0 {
 		return nil
@@ -2186,6 +2188,18 @@ func (e *Engine) attackerBlockedByPairCandidates(t cards.Trigger, source state.O
 	ctrl := e.controllerOf(source)
 	var out [][2]state.ObjID
 	for _, pr := range ev.Pairs {
+		// The trigger's SOURCE must be the pair's ATTACKER. This hook binds the
+		// blocker as the remembered object, so it is only correct for the
+		// "becomes blocked" half of Forge's mode (kw:Flanking is its only live
+		// carrier). The sibling "blocks" half spells its source as the BLOCKER
+		// (ValidCard$ Creature | ValidBlocker$ Card.Self) and names the attacker
+		// in its body (Defined$ TriggeredAttackerLKICopy); queueing it here would
+		// resolve that referent to the remembered BLOCKER -- the source itself --
+		// and make the creature damage/lose life to itself. That half stays inert
+		// (role-correct referents need a second remembered slot, a separate task).
+		if pr[0] != source {
+			continue
+		}
 		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[0], e.specCtx(source, ctrl)) {
 			continue
 		}

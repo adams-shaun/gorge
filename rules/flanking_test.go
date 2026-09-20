@@ -34,6 +34,9 @@ func TestFlankingKnightOfTheHolyNimbusDebuffsBlockers(t *testing.T) {
 	// Bear (no flanking) blocks first, Askari (flanking) second: both pairs
 	// carry the knight as attacker.
 	submitBlockersOnly(t, e, bear, askari)
+	if len(e.G.Stack) == 0 {
+		t.Fatal("flanking queued no trigger, want one per non-flanking blocker")
+	}
 	e.resolveTop()
 
 	if got := e.Power(bear); got != 1 || e.Toughness(bear) != 1 {
@@ -86,5 +89,42 @@ func TestFlankingKnightOfTheHolyNimbusDebuffsBlockers(t *testing.T) {
 	}
 	if got := e3.Power(b3); got != 2 || e3.Toughness(b3) != 2 {
 		t.Fatalf("unblocked flanking attacker debuffed the bear = %d/%d, want 2/2", e3.Power(b3), e3.Toughness(b3))
+	}
+}
+
+// TestAttackerBlockedByCreatureBlockerRoleStaysInert is the regression pin for
+// the pair hook's role gate. Forge's Mode$ AttackerBlockedByCreature has two
+// halves: the "becomes blocked" line (source = the ATTACKER, body names
+// Defined$ TriggeredBlockerLKICopy) and the "blocks" line (source = the
+// BLOCKER, spelled ValidCard$ Creature | ValidBlocker$ Card.Self, body names
+// Defined$ TriggeredAttackerLKICopy). The pair hook binds the blocker as the
+// remembered object, so it may only fire the attacker-role half; firing the
+// blocker-role half would resolve TriggeredAttackerLKICopy to the remembered
+// BLOCKER -- the source itself -- and make the blocking creature damage itself.
+// Ornery Goblin carries both halves ("blocks or becomes blocked"); when it
+// BLOCKS, only the self-source line matches and it must stay inert, leaving
+// both creatures undamaged.
+func TestAttackerBlockedByCreatureBlockerRoleStaysInert(t *testing.T) {
+	goblin := mshCorpusCardPath(t, "Ornery Goblin", "o/ornery_goblin.txt")
+	e := combatEngine(t)
+	bear := onBoardReady(t, e, 0, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	blocker := onBoardCard(t, e, 1, goblin)
+
+	e.askAttackers()
+	submitAttackersOnly(t, e, bear)
+	drainCombatPriority(t, e)
+	if d := e.Pending(); d == nil || d.Kind != decision.KBlockers {
+		t.Fatalf("expected a blockers decision, got %+v", d)
+	}
+	submitBlockersOnly(t, e, blocker)
+	if len(e.pendingTriggers) != 0 || len(e.G.Stack) != 0 {
+		t.Fatalf("blocker-role trigger queued %d triggers / %d stack objects, want 0",
+			len(e.pendingTriggers), len(e.G.Stack))
+	}
+	if got := e.G.Obj(blocker).Damage; got != 0 {
+		t.Fatalf("blocking creature took %d damage, want 0 (the blocks half must stay inert)", got)
+	}
+	if got := e.G.Obj(bear).Damage; got != 0 {
+		t.Fatalf("attacker took %d damage, want 0", got)
 	}
 }
