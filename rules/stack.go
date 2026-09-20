@@ -2218,6 +2218,32 @@ func (e *Engine) WasCastFromHand(obj state.ObjID) bool {
 	return false
 }
 
+// WasCast satisfies effects.Host's WasCast (Forge Card.wasCast():
+// castFrom != null), the Count$IfCastInOwnMainPhase third conjunct (task
+// ifcastmain1). The pending CR 601.2c announcement ask is a cast in progress:
+// pushCast runs AFTER targetAsk, so the log scan alone would misread Return
+// to Dust's own TargetMax$ X bound as uncast; the live pending cast closes
+// that window (Forge sets castFrom before setupTargets). e.cast.ability < 0
+// excludes an ACTIVATED-ABILITY activation, which Forge never treats as a
+// cast. A copy was never cast (IsCopy), and a card never put on the stack
+// (cheated into play) reads false. Derived from the event log plus the live
+// pending cast, so a replay derives the same answer.
+func (e *Engine) WasCast(obj state.ObjID) bool {
+	if e.cast != nil && e.cast.card == obj && e.cast.ability < 0 {
+		return true
+	}
+	if o := e.G.Obj(obj); o == nil || o.IsCopy {
+		return false
+	}
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return true
+		}
+	}
+	return false
+}
+
 // WasCastByYou reports whether card obj was CAST AT ALL by player p — the
 // bare wasCastByYou qualifier's engine read (task castprov2: the "When
 // CARDNAME enters, if you cast it" ETB family — Zacama, Marina Vendrell's

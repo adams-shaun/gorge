@@ -1156,6 +1156,52 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				n3 = 0
 			}
 			return n3, true
+		case "IfCastInOwnMainPhase", "InOwnMainPhase":
+			// CR "if you cast this spell during your main phase": the
+			// yes/no branch head Forge's AbilityUtils reads as
+			// Count$IfCastInOwnMainPhase.<numMain>.<numNotMain> (7 corpus
+			// carriers: Return to Dust's TargetMax$ X, Might of Old
+			// Krosa's NumAtt$/NumDef$, Haunting Hymn's and Careful
+			// Consideration's NumCards$, Sulfurous Blast's and Summary
+			// Judgment's NumDmg$). The reading is LIVE, matching
+			// Forge's game.getPhaseHandler(): the current step must be a
+			// main phase and the active player the resolving controller
+			// -- NOT a stamp of the cast's phase, which would diverge
+			// from Forge (a spell cast in a main phase but resolved in
+			// another reads the resolution phase). The two spellings
+			// differ only in the third conjunct: IfCastInOwnMainPhase
+			// additionally requires the source to have been CAST (Forge
+			// c.wasCast(), the Host.WasCast read -- the pending CR 601.2c
+			// announcement ask counts, since Forge sets castFrom before
+			// setupTargets), while bare InOwnMainPhase (Dose of Dawnglow's
+			// Count$InOwnMainPhase.0.1 blight gate) skips that conjunct.
+			// Branch tokens resolve through resolveCountOperand, the
+			// sibling cases' machinery; a missing/invalid token degrades
+			// to 0, never wedges.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			holds := g.Step.IsMain() && g.Active == c.Controller
+			if holds && head[:dot] == "IfCastInOwnMainPhase" {
+				// A copy was never cast (the sibling provenance cases' IsCopy
+				// guard); an absent source reads false too. The rules-side
+				// WasCast applies the same IsCopy guard, but the count head is
+				// reachable with a synthetic Host, so the guard lives here.
+				holds = false
+				if o := g.Obj(c.Source); o != nil && !o.IsCopy {
+					holds = h != nil && h.WasCast(c.Source)
+				}
+			}
+			if holds {
+				y, ok := resolveCountOperand(h, c, yesTok, depth)
+				if !ok {
+					y = 0
+				}
+				return y, true
+			}
+			n, ok := resolveCountOperand(h, c, noTok, depth)
+			if !ok {
+				n = 0
+			}
+			return n, true
 		case "Morbid", "Monarch":
 			y, n := splitDot(head[dot+1:])
 			holds := false

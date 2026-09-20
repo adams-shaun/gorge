@@ -188,6 +188,17 @@ type Host interface {
 	// ByYou read takes); a card never put on the stack (cheated into play)
 	// reads false; latest-cast-wins.
 	WasCastFromHand(obj state.ObjID) bool
+	// WasCast reports whether card obj is a CAST SPELL in the Forge
+	// Card.wasCast() sense (castFrom != null) -- the third conjunct of the
+	// Count$IfCastInOwnMainPhase branch head (task ifcastmain1). A card
+	// moved to the stack as part of casting is cast; a copy (IsCopy) is
+	// never cast; a permanent cheated into play reads false. Unlike the
+	// hand-provenance reads, an announced-but-not-yet-pushed cast IS cast:
+	// Forge sets castFrom BEFORE setupTargets evaluates TargetMax$, and the
+	// pending CR 601.2c announcement ask must therefore read true (the
+	// engine's pending-cast field covers that window). Derived from the event
+	// log plus the live pending cast, so a replay derives the same answer.
+	WasCast(obj state.ObjID) bool
 	// LifeLostThisTurn reports the total life player p lost THIS TURN — the
 	// sum of every LifeChange below zero since the last TurnChange, derived
 	// from the event log so a replay derives the same number. This is the
