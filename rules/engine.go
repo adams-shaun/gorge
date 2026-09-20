@@ -19,6 +19,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/deck"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -761,25 +762,21 @@ type chooseFor uint8
 const chooseNone chooseFor = iota
 
 // commanderCardLegal reports whether ONE card may be a commander under
-// CR 903.4: a legendary creature, or a card whose printed text says it can
-// be your commander (the "CARDNAME can be your commander." keyword, which is
-// how every planeswalker commander -- and Lord Windgrace -- reads in the
-// corpus). The face checked is the PRINTED face (Faces[0]): commander
-// legality is a property of the card as printed, not of a half.
+// CR 903.3. It DELEGATES to deck.IsCommanderEligible -- the one
+// implementation the deck validator (File.ValidateCommander) also uses -- so
+// the validator and the engine can never disagree about which cards seat:
+// a legendary creature, a legendary Vehicle, a legendary Spacecraft with a
+// printed power/toughness box (Hearthhull, the Worldseed), or a card whose
+// printed/Oracle text says it can be your commander (the planeswalker
+// commanders and the Partner/choose-a-background cases). The old inline
+// predicate here (a legendary creature on Faces[0], commander permission
+// read from Keywords only) was the stale half of a two-implementation
+// disagreement and rejected decks the validator accepted.
 func commanderCardLegal(c *cards.Card) bool {
 	if c == nil || len(c.Faces) == 0 {
 		return false
 	}
-	f := c.Faces[0]
-	if f.IsCreature() && f.IsLegendary() {
-		return true
-	}
-	for _, k := range f.Keywords {
-		if strings.EqualFold(cards.KeywordHead(k), "CARDNAME can be your commander.") {
-			return true
-		}
-	}
-	return false
+	return deck.IsCommanderEligible(c)
 }
 
 // partnerHead reports the Partner-family head c carries, "" for none: the
