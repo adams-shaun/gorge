@@ -186,12 +186,3 @@ func effPreventDamage(h Host, c *Ctx, sa *cards.SA) {
 		h.AddContinuous(ce)
 	}
 }
-
-// notePreventionShieldRider is the loud marker a shield application emits when
-// its registered PreventionSubAbility$ cannot be resolved from the source's
-// SVar table (a name the face does not define, or a rider API this build does
-// not run at application time). The shield itself still applies.
-func notePreventionShieldRider(h Host, c *Ctx, name, why string) {
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-		Text: "unimplemented PreventionSubAbility$ " + name + " (" + why + ")"})
-}

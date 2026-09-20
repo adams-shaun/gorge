@@ -1367,7 +1367,7 @@ func (e *Engine) continuePlanarRollReplacements(ev events.Event, matches []replM
 		// used — an Effect-created match is never re-gated on ActiveZones$.
 		matched := false
 		if m.key != "" {
-			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered)
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers)
 		} else {
 			matched = e.replacementMatches(*m.repl, m.id, ev)
 		}
