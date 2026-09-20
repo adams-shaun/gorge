@@ -77,16 +77,22 @@ type ContinuousEffect struct {
 
 	// AddColors is a layer-5 colour change (CR 613.1e): the WUBRG letters of
 	// the colours the affected object GAINS. Written by the continuous-effect
-	// primitives (effects' Animate Colors$ without OverwriteColors$), composed
-	// by rules' Derived in timestamp order. Empty on every effect that grants
-	// no colour. "All"/"Colorless" never reach this field: the registering
-	// primitive normalises them to "WUBRG" and the empty set respectively.
+	// primitives (effects' Animate Colors$ without OverwriteColors$) AND by
+	// rules' static scan for a Mode$ Continuous static's AddColor$ ("...in
+	// addition to its other colors", Blade of the Oni / Angelic Armaments),
+	// composed by rules' Derived in timestamp order. Empty on every effect
+	// that grants no colour. "All"/"Colorless" never reach this field: the
+	// registering path normalises them to "WUBRG" and the empty set
+	// respectively.
 	AddColors []string
 	// OverwriteColors marks a layer-5 colour SET (Forge's Animate
-	// OverwriteColors$ True with Colors$): while this effect applies, the
-	// affected object's colours are exactly AddColors -- replacing, never
-	// extending, the printed colours and every earlier layer-5 grant
-	// (CR 613.1e sets by timestamp order). With it false AddColors extends.
+	// OverwriteColors$ True with Colors$, and a Mode$ Continuous static's
+	// SetColor$ -- Imprisoned in the Moon's "is a colorless land",
+	// Kenrith's Transformation's green Elk, Leyline of the Guildpact's
+	// "is all colors"): while this effect applies, the affected object's
+	// colours are exactly AddColors -- replacing, never extending, the
+	// printed colours and every earlier layer-5 grant (CR 613.1e sets by
+	// timestamp order). With it false AddColors extends.
 	OverwriteColors bool
 	// RemoveCreatureTypes is Forge's Animate RemoveCreatureTypes$ True: while
 	// this effect applies, the affected object loses every creature-type
