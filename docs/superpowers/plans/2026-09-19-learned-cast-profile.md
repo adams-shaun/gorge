@@ -248,6 +248,29 @@ mono suite** — AR8, BLK and L1c all land inside the control's noise, and the
 fitted profile failed the held-out gate. The search teacher (L7-L10) is the
 only track with measured headroom.
 
+## Label corpus + combined teacher (2026-09-20, after L7/L8 merged)
+
+`searchteacher -games 300 -seed 60000000 -worlds 16 -attempts 128 -min-ess 2
+-kinds attackers,cast -workers 14 -labels dev2.jsonl` (3,000 dev games, 46 min
+wall, 128 MB corpus):
+
+- **paired delta +5.80pp ± 1.25 (95%, n=3,000; 376 games changed outcome)** —
+  the two kinds TOGETHER, and the first significant margin in this programme.
+  The spike measured them apart (+2.8 attackers, +2.7 cast) and warned they
+  might not add; measured, they roughly do.
+- Sampler acceptance **17.41%** (was 9.92% before L7), coverage **44.9%** of
+  32,496 asked decisions (t01-06 81.4%, t07-12 33.2%, t13+ 14.5% — the late
+  game is still the hole).
+- Corpus: 14,588 labelled decisions (9,436 priority, 5,152 attackers), 57,060
+  scored candidate options, 3,723 teacher overrides, 881 of them above the
+  0.25 margin. Cost 2.28 s per labelled decision.
+- Corpus lives outside git (scratchpad); regenerate with the command above.
+
+This is the training signal for L9. A scorer that merely reproduces the
+teacher's covered decisions, at negligible inference cost, would be worth
+~+5.8pp before any iteration — provided it generalises to the 55% of
+decisions the sampler cannot cover, which is the open risk.
+
 ## Parallel (unchanged, lower priority)
 
 AR8 combined-attacker lethal, block assignment, trace-family comparison
