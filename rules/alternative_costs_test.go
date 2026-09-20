@@ -312,6 +312,46 @@ func TestHarmonizeWildRideUsesAnnouncedPower(t *testing.T) {
 	}
 }
 
+// TestHarmonizeAnnouncementSkipsNonCreaturePower pins the creature gate on the
+// CR 601.2b announcement (convokeAsk): Harmonize's payment is creatures only
+// (CR 702.46a, harmonizePayment's own filter), so a non-creature permanent that
+// still carries a P/T -- an uncrewed Vehicle -- must be neither offered as a
+// harmonize payment nor credited by the offer gate (harmonizePayment), which
+// reads the same filter. A 5/3 Vehicle beside the 4/4 creature the existing
+// Wild Ride pin uses must be absent from the announcement and untapped after
+// payment.
+func TestHarmonizeAnnouncementSkipsNonCreaturePower(t *testing.T) {
+	e := handEngine(t, corpusAlternativeCard(t, "Wild Ride"))
+	vehicle := card(t, "Name:Test Vehicle\nTypes:Artifact Vehicle\nPT:5/3\nOracle:x\n")
+	vid := e.G.AddObject(vehicle, 0)
+	vid.Zone = state.ZBattlefield
+	creature := card(t, "Name:Four Power Druid\nTypes:Creature Elf\nPT:4/4\nA:AB$ Mana | Cost$ T | Produced$ R\nOracle:x\n")
+	cid := e.G.AddObject(creature, 0)
+	cid.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{vid.ID, cid.ID})
+	e.G.Players[0].Pool[state.MR] = 1
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	castMode(t, e, spell, "harmonize")
+	d := e.Pending()
+	if d == nil || d.Options[0].Kind != "harmonize" {
+		t.Fatalf("Harmonize did not announce its creature payment: %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Obj == vid.ID {
+			t.Fatalf("Harmonize announcement offered the non-creature Vehicle: %+v", o)
+		}
+		if o.Obj == cid.ID && o.Amount != 4 {
+			t.Fatalf("Harmonize offered the creature for the wrong power: %+v", o)
+		}
+	}
+	submitChoices(t, e, 0)
+	submitChoices(t, e, 0) // target the creature
+	if !e.G.Obj(cid.ID).Tapped || e.G.Obj(vid.ID).Tapped || e.G.Players[0].Pool[state.MR] != 0 {
+		t.Fatalf("Harmonize payment tapped the wrong permanents: creature=%v vehicle=%v pool=%v",
+			e.G.Obj(cid.ID).Tapped, e.G.Obj(vid.ID).Tapped, e.G.Players[0].Pool)
+	}
+}
+
 func TestConvokeOverSelectionIsRejectedAndResubmitted(t *testing.T) {
 	e := handEngine(t, corpusAlternativeCard(t, "Crowd's Favor"))
 	for i := 0; i < 2; i++ {

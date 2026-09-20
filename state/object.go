@@ -613,6 +613,27 @@ func (o *Object) EffectiveIsCreature() bool {
 	return f != nil && f.IsCreature()
 }
 
+// EffectiveIsArtifact reports whether this object is an artifact right now,
+// honouring CR 708.5 like EffectiveIsCreature: while a battlefield object is
+// face down its PRINTED face does not exist, so a manifested or cloaked
+// artifact reads its folded face-down type set (which never names Artifact
+// today, but the fold, not the corpus, decides). The Improvise announcement
+// and its offer-gate credit (rules/cast.go) are the readers; other artifact
+// reads (e.g. the Affinity keyword's Count$Valid spec path) go through the
+// ordinary filter grammar and do not call this.
+func (o *Object) EffectiveIsArtifact() bool {
+	if o.faceDownEffective() {
+		for _, w := range o.FaceDownTypeWords() {
+			if w == "Artifact" {
+				return true
+			}
+		}
+		return false
+	}
+	f := o.Face()
+	return f != nil && f.IsArtifact()
+}
+
 // Ephemeral reports whether this object has, right now, ceased to exist: a
 // copy of a spell or ability once it has LEFT THE STACK (CR 707.10h -- a copy
 // of a spell that has left the stack is a transient reference, not a real
