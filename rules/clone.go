@@ -357,6 +357,8 @@ func (e *Engine) Clone() *Engine {
 		tc.amount.HybridPhyrexian = append([]HybridPhyrexian(nil), e.triggerCost.amount.HybridPhyrexian...)
 		tc.amount.Phyrexian = append([]byte(nil), e.triggerCost.amount.Phyrexian...)
 		tc.amount.Unknown = append([]string(nil), e.triggerCost.amount.Unknown...)
+		tc.sacs = append([]state.ObjID(nil), e.triggerCost.sacs...)
+		tc.exiles = append([]state.ObjID(nil), e.triggerCost.exiles...)
 		c.triggerCost = &tc
 	}
 	if e.echo != nil {

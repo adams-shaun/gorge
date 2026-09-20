@@ -218,13 +218,14 @@ func triggerCostWindowAskDecision(t *testing.T, d *decision.Decision) (pay, decl
 	return pay, decline
 }
 
-// TestMandatoryCostBodyKeepsCurrentFreeExecution pins the carve-out: a
-// `Cost$ Mandatory Sac<1/CARDNAME>` body (Promise of Bunrei) still executes
-// its effect and is NOT turned into a decline-only ask -- the cost itself
-// stays uncharged on the current path (the real mandatory payment is a
-// follow-up ticket). Over-widening the gate onto this family would make the
-// body do NOTHING, which is the regression this test catches.
-func TestMandatoryCostBodyKeepsCurrentFreeExecution(t *testing.T) {
+// TestPromiseOfBunreiMandatorySacrificeChargesAndTokens replaces the old
+// TestMandatoryCostBodyKeepsCurrentFreeExecution, which pinned the defect: a
+// `Cost$ Mandatory Sac<1/CARDNAME>` body used to execute for FREE, leaving
+// Promise of Bunrei on the battlefield. trigmand1 settles the mandatory cost
+// for real -- the source is sacrificed (a real events.Sacrifice), and only
+// then does the body run and create its four 1/1 Spirits. No pay/decline
+// election is ever posed for a mandatory cost.
+func TestPromiseOfBunreiMandatorySacrificeChargesAndTokens(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, _ := searchEngine(t, reg, "Promise of Bunrei")
 	promise := searchMoveByName(t, e, "Promise of Bunrei", state.ZBattlefield)
@@ -240,23 +241,138 @@ func TestMandatoryCostBodyKeepsCurrentFreeExecution(t *testing.T) {
 		}
 	}
 	if tokens != 4 {
-		t.Fatalf("token_create events for c_1_1_spirit = %d, want 4 (the mandatory body still runs)", tokens)
+		t.Fatalf("token_create events for c_1_1_spirit = %d, want 4 (the paid body must run)", tokens)
 	}
-	if o := e.G.Obj(promise); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("Promise of Bunrei left the battlefield; the carve-out must keep today's free execution")
+	if o := e.G.Obj(promise); o == nil || o.Zone == state.ZBattlefield {
+		t.Fatalf("Promise of Bunrei is still on the battlefield; the Mandatory Sac cost must be charged")
 	}
-	d := e.Pending()
-	if d == nil {
-		t.Fatal("no decision pending after the mandatory trigger resolved")
+	if o := e.G.Obj(promise); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("Promise of Bunrei zone = %v, want the graveyard after being sacrificed", o)
 	}
-	for _, o := range d.Options {
-		if o.Kind == "trigger_cost_pay" || o.Kind == "trigger_cost_decline" {
-			t.Fatalf("the Mandatory body was routed into the pay window: %+v", d.Options)
+	sawSac := false
+	for _, ev := range e.L.Events {
+		if events.IsSacrifice(ev) && ev.Obj == promise {
+			sawSac = true
+		}
+	}
+	if !sawSac {
+		t.Fatalf("no events.Sacrifice for Promise of Bunrei; the cost was never settled")
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Choose && (ev.Text == "trigger_cost_pay" || ev.Text == "trigger_cost_decline") {
+			t.Fatalf("a mandatory cost posed a pay/decline election: %+v", ev)
 		}
 	}
 }
 
-// TestUnpriceableOptionalBodyDeclineOnly pins the window's unpriceable split:
+// TestMandatorySacUnpayableBodyDoesNotRun is a SYNTHETIC fixture (built inline,
+// no corpus script committed): a `Cost$ Mandatory Sac<1/Artifact>` trigger body
+// with zero artifacts on the battlefield cannot pay its cost, so the body must
+// be skipped -- the draw must not happen. This is the mandatory semantics'
+// second half: if the cost cannot be paid, the effect does not run.
+func TestMandatorySacUnpayableBodyDoesNotRun(t *testing.T) {
+	const script = "Name:Ingot Eater\nManaCost:1 R\nTypes:Creature Human Warrior\nPT:2/2\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigSac | TriggerDescription$ When CARDNAME enters, sacrifice an artifact. If you do, draw a card.\n" +
+		"SVar:TrigSac:AB$ Draw | Cost$ Mandatory Sac<1/Artifact> | NumCards$ 1\n" +
+		"Oracle:x\n"
+	e := handEngine(t)
+	src := e.G.AddObject(card(t, script), 0)
+	src.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, []state.ObjID{src.ID})
+	mark := len(e.L.Events)
+	// The ETB event fires the ChangesZone trigger; the board holds only the
+	// non-artifact source, so Sac<1/Artifact> has zero eligible candidates.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZHand, To: state.ZBattlefield})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	if d := e.Pending(); d != nil {
+		t.Fatalf("an unpayable mandatory cost posed a decision: %+v", d)
+	}
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.Draw {
+			t.Fatalf("the body ran even though the mandatory sacrifice was unpayable: %+v", ev)
+		}
+	}
+	if o := e.G.Obj(src.ID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("the source must not be sacrificed when the cost is unpayable")
+	}
+}
+
+// TestDalekIntensiveCareMandatoryExileIsAChoice covers the choice-bearing
+// mandatory component on Dalek Intensive Care's exact cost shape
+// (`Exile<1/Creature.nonDalek/non-Dalek creature>`): with two eligible
+// non-Dalek creatures the exile is a real KChoose (Min=Max=1), and the picked
+// creature moves to exile before the body runs -- no pay/decline election is
+// posed. The fixture carries Dalek's real cost spec verbatim; its trigger is
+// an ETB rather than the card's own upkeep line because forge's command-zone
+// TriggerZones$ is not scanned by this build's trigger walk (see the report's
+// ## Issues), so the real card cannot fire in a test. The cost settle under
+// test is exactly the real card's.
+func TestDalekIntensiveCareMandatoryExileIsAChoice(t *testing.T) {
+	const dalekCostScript = "Name:Dalek Intensive Care\nTypes:Plane Dalek\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile\n" +
+		"SVar:TrigExile:AB$ Draw | Cost$ Mandatory Exile<1/Creature.nonDalek/non-Dalek creature> | NumCards$ 1\n" +
+		"Oracle:x\n"
+	const bearScript = "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	e := handEngine(t)
+	src := e.G.AddObject(card(t, dalekCostScript), 0)
+	src.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, []state.ObjID{src.ID})
+	bearA := onBoard(t, e, 0, bearScript)
+	bearB := onBoard(t, e, 0, bearScript)
+
+	// The ETB fires the ChangesZone trigger; the window settles the mandatory
+	// Exile, which has two eligible non-Dalek creatures and therefore a real
+	// choice.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZHand, To: state.ZBattlefield})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("expected the mandatory exile KChoose, got %+v", d)
+	}
+	if d.Min != 1 || d.Max != 1 {
+		t.Fatalf("mandatory exile ask bounds = %d..%d, want 1..1", d.Min, d.Max)
+	}
+	if len(d.Options) != 2 {
+		t.Fatalf("mandatory exile ask options = %d, want the 2 eligible creatures", len(d.Options))
+	}
+	pick := -1
+	for _, o := range d.Options {
+		if o.Kind != "exile_cost" {
+			t.Fatalf("mandatory exile option kind = %q, want exile_cost", o.Kind)
+		}
+		if o.Obj == bearA {
+			pick = o.Index
+		}
+	}
+	if pick < 0 {
+		t.Fatalf("the exile ask does not offer the first eligible bear: %+v", d.Options)
+	}
+	mark := len(e.L.Events)
+	submitChoices(t, e, pick)
+	passUntilStackEmpty(t, e, 20)
+
+	if o := e.G.Obj(bearA); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("the picked creature zone = %v, want exile", o)
+	}
+	if o := e.G.Obj(bearB); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("the unpicked creature must stay on the battlefield")
+	}
+	if o := e.G.Obj(src.ID); o == nil || o.Zone == state.ZExile {
+		t.Fatalf("the non-creature source must not be exiled by Creature.nonDalek")
+	}
+	sawDraw := false
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.Draw {
+			sawDraw = true
+		}
+	}
+	if !sawDraw {
+		t.Fatal("the body did not run after the mandatory exile was paid")
+	}
+}
+
 // Kuldotha Flamefiend's ETB body carries `Cost$ Sac<1/Artifact>` (a real
 // non-mana component payMana cannot charge). The optional yes reaches the
 // window, which must offer DECLINE ONLY -- no trigger_cost_pay option, never
