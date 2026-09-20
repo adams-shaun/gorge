@@ -86,6 +86,10 @@ var predicates = map[string]predFn{
 		s := g.Obj(src)
 		return s != nil && s.ChosenType != "" && hasType(o, s.ChosenType)
 	},
+	"IsNotChosenType": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		s := g.Obj(src)
+		return s != nil && s.ChosenType != "" && !hasType(o, s.ChosenType)
+	},
 	// An object records this association in events.Apply when an effect moves
 	// it to exile with moveZoneEvent. Both spellings use the same tracked
 	// provenance; LKI refinements are outside this narrow association.
@@ -1637,6 +1641,9 @@ func typePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bo
 	case "ChosenType":
 		s := g.Obj(sc.Source)
 		return s != nil && s.ChosenType != "" && hasTypeCtx(o, s.ChosenType, sc), true
+	case "IsNotChosenType":
+		s := g.Obj(sc.Source)
+		return s != nil && s.ChosenType != "" && !hasTypeCtx(o, s.ChosenType, sc), true
 	}
 	return false, false
 }
