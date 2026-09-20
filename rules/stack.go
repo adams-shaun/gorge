@@ -1485,6 +1485,13 @@ func (e *Engine) resolveTop() {
 		// 603.5's "when you do" promises. The DB shape's optional payment stays
 		// the UnlessCost$ gate's (effects.unlessProceed); a plain Cost$ on a DB
 		// ImmediateTrigger remains the established free-executor semantics.
+		//
+		// A trigger effect whose Cost$ carries a Draw component joins them: the
+		// corpus's Draw<X/Spec> family (Champion of Wits' "you may draw cards
+		// equal to its power. If you do, discard two cards" -- Cost$ Draw<X/You>)
+		// is the same "you may pay; when you do" idiom, and without the window
+		// the body ran for free and no draw happened. The window's pay arm
+		// settles the draw, the decline arm leaves the body unexecuted.
 		if o.Ability.API == "CumulativeUpkeep" {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
@@ -1499,8 +1506,9 @@ func (e *Engine) resolveTop() {
 			return
 		}
 		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
-			(o.Ability.API == "Untap" || o.Ability.API == "ImmediateTrigger") &&
-			o.Ability.Params["Cost"] != "" {
+			o.Ability.Params["Cost"] != "" &&
+			(o.Ability.API == "Untap" || o.Ability.API == "ImmediateTrigger" ||
+				len(e.parseCost(o.Ability.Params["Cost"]).Draw) > 0) {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}

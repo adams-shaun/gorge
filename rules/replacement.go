@@ -182,6 +182,13 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if ev.Kind == events.ManaAdd {
 		return e.continueManaReplacements(ev, manaCandidates, nil, false, e.manaFromTap, e.manaProducer)
 	}
+	if ev.Kind == events.PlanarRoll {
+		// The planar-dice class (Ichor Elixir) and the bare roll BOTH run
+		// here: even with no replacement matching, the roll itself is the
+		// dispatch's job — the emitted event is the PROPOSAL (Amount$), the
+		// completed record (results in IDs) must exist either way.
+		return e.continuePlanarRollReplacements(ev, matches)
+	}
 	if len(matches) == 0 {
 		return ev, false
 	}
@@ -617,6 +624,8 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "Draw", true
 	case events.TokenCreate:
 		return "CreateToken", true
+	case events.PlanarRoll:
+		return "RollPlanarDice", true
 	default:
 		return "", false
 	}
@@ -1162,6 +1171,89 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 		last = stored
 	}
 	return last, true
+}
+
+// planarDieFaceName names one planar-die roll result (CR 901.3a): the die
+// is a six-sided die with four blank faces, one planeswalk face and one
+// chaos face. Forge rolls it as an ordinary d6 with the 5/6 split.
+func planarDieFaceName(result int32) string {
+	switch result {
+	case 5:
+		return "planeswalk"
+	case 6:
+		return "chaos"
+	default:
+		return "blank"
+	}
+}
+
+// continuePlanarRollReplacements applies every applicable planar-dice
+// replacement (the Ichor Elixir class: "if you would roll one or more
+// planar dice, instead roll that many planar dice plus one and ignore
+// one") to one PlanarRoll event, then performs the roll itself — the
+// emitted event is only the proposal (its Amount is the pre-replacement
+// count), so the dispatch is where the dice actually roll, through the
+// engine rng exactly like effRollDice's dice.
+//
+// Each match applies in deterministic scan order with a fresh recheck
+// (CR 616.1e, the applyNonMoveReplacements discipline), its ReplaceWith$
+// chain rewriting the held event's Number (Amount) and Ignore (Counter)
+// through ReplaceEvent. The dice then roll: one Note per die ("rolls the
+// planar die: chaos", the transcript's die roll), the ignored count is
+// recorded on the event's Counter and the KEPT results — the FIRST
+// count-ignore rolls, a deterministic stand-in for the roller's choice
+// (CR 901.4's ignore choice is vacuous here: no plane deck exists, so no
+// roll result differs in effect from any other) — ride IDs in roll order.
+// The completed event returns handled=false so the ordinary emit path
+// logs it with its full trigger treatment; the per-die Notes and the
+// ignore Note are the log's other witnesses. A bodyless match (a
+// CantHappen planar replacement) has no corpus carrier and is skipped —
+// documented inertness, not modelled cancellation.
+func (e *Engine) continuePlanarRollReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	for _, m := range matches {
+		// CR 616.1e: the recheck uses the same matcher class the collection
+		// used — an Effect-created match is never re-gated on ActiveZones$.
+		matched := false
+		if m.key != "" {
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered)
+		} else {
+			matched = e.replacementMatches(*m.repl, m.id, ev)
+		}
+		if !matched {
+			continue
+		}
+		if m.repl.With == nil {
+			continue
+		}
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, &ev)
+	}
+	count := ev.Amount
+	if count < 0 {
+		count = 0
+	}
+	ignore := int32(0)
+	if n, err := strconv.Atoi(ev.Counter); err == nil && n > 0 {
+		ignore = int32(n)
+	}
+	if ignore > count {
+		ignore = count
+	}
+	keep := count - ignore
+	results := make([]state.ObjID, 0, keep)
+	for i := int32(0); i < count; i++ {
+		die := int32(e.Rand(6)) + 1
+		e.emit(events.Event{Kind: events.Note, Obj: ev.Obj,
+			Text: "rolls the planar die: " + planarDieFaceName(die)})
+		if i < keep {
+			results = append(results, state.ObjID(die))
+		}
+	}
+	if ignore > 0 {
+		e.emit(events.Event{Kind: events.Note, Obj: ev.Obj,
+			Text: "ignores " + strconv.FormatInt(int64(count-keep), 10) + " planar-dice result(s)"})
+	}
+	ev.IDs = results
+	return ev, false
 }
 
 // applyTokenReplacementToPlan transforms the plan by ONE match, per mint,
@@ -1729,6 +1821,20 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// vacuously satisfiable. A cost-created-token provenance marker is a
 		// deliberate non-goal; when one lands, this gate must read it.
 		return e.replacementConditionHolds(r, source, you)
+	case "RollPlanarDice":
+		// The planar-dice replacement class (Ichor Elixir, task rollplanar1):
+		// "if you would roll one or more planar dice, instead roll that many
+		// planar dice plus one and ignore one". ValidPlayer$ scopes the roller
+		// the same way the Draw class reads it; the count/ignore rewrites are
+		// the With's own ReplaceEffect bodies (ReplaceEvent's PlanarRoll arm).
+		if ev.Kind != events.PlanarRoll {
+			return false
+		}
+		if vp, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
 	}
 	return false
 }
@@ -1924,7 +2030,41 @@ func (e *Engine) replacementAmountMatches(spec string, amount int32, c *effects.
 // the card than one that erases the damage or discards the event.
 func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
 	ev := e.replacingEvent
-	if ev == nil || ev.Kind != events.Damage {
+	if ev == nil {
+		return
+	}
+	if ev.Kind == events.PlanarRoll {
+		// The planar-dice rewrite (Ichor Elixir's ReplaceEffect pair): Number
+		// is the dice count (the held event's Amount), Ignore the ignored-
+		// result count (the held event's Counter, decimal; "" reads 0). A
+		// resolved literal value applies as-is; an unresolvable ReplaceCount
+		// body leaves the field alone, the same fail-closed direction the
+		// Damage arm keeps.
+		if body, ok := strings.CutPrefix(raw, "ReplaceCount$"); ok {
+			field, op, hasOp := strings.Cut(body, "/")
+			if !hasOp {
+				return
+			}
+			switch field {
+			case "Number":
+				ev.Amount = replCountOp(ev.Amount, op)
+			case "Ignore":
+				base := int32(0)
+				if n, err := strconv.Atoi(ev.Counter); err == nil {
+					base = int32(n)
+				}
+				ev.Counter = strconv.FormatInt(int64(replCountOp(base, op)), 10)
+			}
+			return
+		}
+		if name == "Number" && resolved > 0 {
+			ev.Amount = resolved
+		} else if name == "Ignore" && resolved > 0 {
+			ev.Counter = strconv.FormatInt(int64(resolved), 10)
+		}
+		return
+	}
+	if ev.Kind != events.Damage {
 		return
 	}
 	if body, ok := strings.CutPrefix(raw, "ReplaceCount$"); ok {
@@ -3528,7 +3668,7 @@ func init() {
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
-		"repl:CreateToken", "api:ReplaceToken")
+		"repl:CreateToken", "repl:RollPlanarDice", "api:ReplaceToken")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

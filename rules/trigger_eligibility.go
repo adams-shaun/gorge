@@ -67,7 +67,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
 		events.GrantTriggerPush, events.ManaActivate,
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
-		events.CopyToken, events.Exert:
+		events.CopyToken, events.Exert, events.PlanarRoll:
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -118,7 +118,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// on the Damage event the prevention replaces -- a prevented hit is a
 		// Note, never a Damage.
 		return 1 << events.Note
-	case "CounterAdded":
+	case "CounterAdded", "CounterRemoved":
 		return 1 << events.CounterChange
 	case "TokenCreated", "TokenCreatedOnce":
 		return 1 << events.TokenCreate

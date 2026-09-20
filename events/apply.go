@@ -59,6 +59,13 @@ func Apply(g *state.Game, e Event) {
 		// ManaActivate is the ActivationLimit$ scan marker (see the Kind's own
 		// comment): the mana itself lands through the nearby ManaAdd events.
 
+	case PlanarRoll:
+		// The planar-dice roll (CR 901.3, task rollplanar1) is a pure marker:
+		// no plane deck exists in this build, so a roll folds no state — the
+		// logged event is the record (Amount the post-replacement count, IDs
+		// the kept results, Counter the ignored count the replacement wrote)
+		// and replay re-derives the same rolls from the seeded rng.
+
 	case Pair:
 		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
 		// IDs[0] its chosen partner; both fields are set reciprocally when

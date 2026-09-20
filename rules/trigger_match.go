@@ -1358,6 +1358,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.cycledMatches(t, source, ev, lki)
 	case "CounterAdded":
 		matched = e.counterAddedMatches(t, source, ev, lki)
+	case "CounterRemoved":
+		matched = e.counterRemovedMatches(t, source, ev, lki)
 	case "Attached":
 		matched = e.attachedMatches(t, source, ev)
 	case "TokenCreated", "TokenCreatedOnce":
@@ -2137,6 +2139,47 @@ func (e *Engine) counterAddedMatches(t cards.Trigger, source state.ObjID, ev eve
 			if !applyCompare(int(after), op, n) {
 				return false
 			}
+		}
+	}
+	return true
+}
+
+// counterRemovedMatches is CounterAdded's mirror for Mode$ CounterRemoved
+// ("whenever a counter is removed from ~", "when the last <kind> counter is
+// removed from ~"): the event is a CounterChange with a NEGATIVE Amount
+// (effects/counters.go's removal primitives, rules/turn.go:64's suspend TIME
+// upkeep decrement), filtered by CounterType$ (case-insensitive, same as the
+// Added arm), ValidCard$/ValidPlayer$ and TriggerZones$ (the shared zoneGate
+// already ran). CounterChange carries no player field, so ValidPlayer$ is
+// matched against the object's controller -- the convention counterAddedMatches
+// uses. NewCounterAmount$ is Forge's "the LAST counter" gate: the post-event
+// total for the counter kind must equal the named value -- events.Apply folds
+// the removal before checkTriggers runs, so o.Counter(ev.Counter) is already
+// the total after. A malformed value fails closed (the Added arm's
+// strconv/splitCompare style). Fire-once semantics are the event granularity:
+// one Amount: -N batch removal is ONE trigger, exactly as CounterAdded fires
+// once per CounterChange; the Once batch modes are separate.
+func (e *Engine) counterRemovedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.CounterChange || ev.Amount >= 0 {
+		return false
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil {
+		return false
+	}
+	if kind := t.Params["CounterType"]; kind != "" && !strings.EqualFold(kind, ev.Counter) {
+		return false
+	}
+	if !e.eventCardAndPlayerMatch(t, source, ev.Obj, o.Controller) {
+		return false
+	}
+	if want := t.Params["NewCounterAmount"]; want != "" {
+		n, err := strconv.Atoi(strings.TrimSpace(want))
+		if err != nil {
+			return false
+		}
+		if o.Counter(ev.Counter) != int32(n) {
+			return false
 		}
 	}
 	return true
@@ -3571,7 +3614,7 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:Cycled", "trig:CounterAdded",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:Cycled", "trig:CounterAdded", "trig:CounterRemoved",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
