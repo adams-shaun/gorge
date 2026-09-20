@@ -35,6 +35,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"DamageDoneOnce", []events.Kind{events.Damage}},
 		{"Drawn", []events.Kind{events.Draw}},
 		{"LifeLost", []events.Kind{events.Damage, events.LifeChange}},
+		{"LifeGained", []events.Kind{events.LifeChange}},
 		{"LifeLostAll", nil},
 		{"BecomesTarget", []events.Kind{events.TargetsChosen}},
 		{"Attached", []events.Kind{events.Attach}},

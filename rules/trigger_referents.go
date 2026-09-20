@@ -95,6 +95,11 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerPlayer = player(p)
 			c.TriggerAmount = amount
 		}
+	case "LifeGained":
+		if p, amount, ok := lifeGain(ev); ok {
+			c.TriggerPlayer = player(p)
+			c.TriggerAmount = amount
+		}
 	case "SpellCast", "AbilityCast", "SpellAbilityCast":
 		c.TriggerCard = ev.Obj
 		c.TriggerSource = e.protectionSource(ev.Obj)
