@@ -1531,9 +1531,17 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 
 // effVote records one Note per voting player. Two shapes:
 //
-//   - the fixed-list shape (M1): Choices$ names entries, each player votes
-//     for the first, Notes record it, and nothing runs -- the stand-in this
-//     build keeps for every Vote that does not carry VoteCard$.
+//   - the fixed-list shape ("Will of the Planeswalkers", Expropriate):
+//     Choices$ names an SVar per ballot option, each player votes for the
+//     first (the deterministic stand-in), Notes record it, and the WINNING
+//     option's SVar runs. A tie runs VoteTiedAbility$ when the SA carries
+//     one, else the first tied option. Before this the fixed-list shape
+//     resolved nothing at all, so a Path of the Ghosthunter vote recorded
+//     its Notes and then did nothing -- the "chosen outcome" the brief
+//     expected to hit Planeswalk/ChaosEnsues never ran. The per-player
+//     vote CHOICE is still the deterministic no-ask stand-in (every voter
+//     takes the first option), so the outcome resolution is exact for
+//     today's model and a real ask slots in behind the same tally.
 //   - the card-ballot shape (Council's Judgment): VoteCard$ is a permanent
 //     filter, so the ballot is the battlefield permanents matching it
 //     (matched from the spell's controller: "a nonland permanent YOU don't
@@ -1551,13 +1559,80 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		effCardVote(h, c, sa, ballot)
 		return
 	}
-	first := ""
-	if choices := sa.Params["Choices"]; choices != "" {
-		first = strings.TrimSpace(strings.SplitN(choices, ",", 2)[0])
+	choices := voteChoiceNames(sa)
+	voters := Defined(h, c, sa)
+	// The deterministic stand-in: every voter takes the first option. The
+	// tally is general anyway so a future real per-player ask only has to
+	// fill counts; today counts[0] == len(voters) and every other entry 0.
+	counts := make([]int, len(choices))
+	for _, t := range voters {
+		label := ""
+		if len(choices) > 0 {
+			label = choices[0]
+			counts[0]++
+		}
+		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}
-	for _, t := range Defined(h, c, sa) {
-		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + first})
+	if len(choices) == 0 || len(voters) == 0 {
+		return
 	}
+	// The winner is the option with the most votes (ties: the first such
+	// option). When the top count is shared, VoteTiedAbility$ runs instead
+	// for the shapes that spell one (the Path cycle's DBChaos).
+	best, tied := voteWinner(counts)
+	name := choices[best]
+	if tied {
+		if alt := strings.TrimSpace(sa.Params["VoteTiedAbility"]); alt != "" {
+			name = alt
+		}
+	}
+	if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+		Resolve(h, c, sub)
+	}
+}
+
+// voteWinner returns the index of the highest count and whether that count is
+// shared by more than one option. It is a separate function (rather than
+// inline in effVote) so the tie branch is testable on its own: the current
+// deterministic stand-in gives every vote to option 0, so a real tie cannot
+// arise from a live resolution yet, and an untested branch would be dead code
+// waiting to rot. The first highest index wins the tie, matching the
+// oracle's "if X gets more votes" over "or the vote is tied" ordering.
+func voteWinner(counts []int) (int, bool) {
+	if len(counts) == 0 {
+		return 0, false
+	}
+	best := 0
+	for i, n := range counts {
+		if n > counts[best] {
+			best = i
+		}
+	}
+	tied := 0
+	for _, n := range counts {
+		if n == counts[best] {
+			tied++
+		}
+	}
+	return best, tied > 1
+}
+
+// voteChoiceNames splits a Vote's Choices$ into its SVar names, trimmed and
+// with empty entries dropped. Shared by both vote shapes so the option list
+// the tally indexes is parsed one way.
+func voteChoiceNames(sa *cards.SA) []string {
+	raw := sa.Params["Choices"]
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // effCardVote is effVote's card-ballot half: the battlefield permanents
