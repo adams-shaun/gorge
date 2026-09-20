@@ -50,17 +50,28 @@ type LabelRecord struct {
 	// Candidates is the evaluated candidate set in teacher order: index 0 is
 	// always the bot's answer.
 	Candidates []LabelCandidate `json:"candidates"`
-	// TeacherChoice is the winning candidate index (0 = the bot's answer was
-	// kept); BotIndex is the candidate index carrying the bot's answer (0 by
-	// construction). Margin is the best candidate mean minus the bot's mean
-	// (0 when the teacher kept the bot).
+	// TeacherChoice is the candidate the teacher chose: the argmax candidate
+	// index when its mean beats the bot's answer by more than the run's
+	// -margin, else 0 (the bot's answer kept). BotIndex is the candidate
+	// index carrying the bot's answer (0 by construction).
+	//
+	// Margin is the BEST candidate mean minus the bot's mean, over EVERY
+	// candidate and independent of TeacherChoice. In particular
+	// TeacherChoice == 0 does NOT imply Margin == 0: at -margin > 0 a
+	// candidate may have a strictly higher mean than the bot's answer, and so
+	// a nonzero Margin, while still not clearing the threshold, so the
+	// teacher keeps the bot (TeacherChoice == 0). The only direction that
+	// holds is TeacherChoice != 0 ⟹ Margin > 0.
 	TeacherChoice int     `json:"teacher_choice"`
 	BotIndex      int     `json:"bot_index"`
 	Margin        float64 `json:"margin"`
-	// Worlds is K, the number of sampled worlds every candidate was rolled on
-	// (1 in -oracle mode); Attempts/Accepted are this decision's sampler
-	// proposal attempts and acceptances (0 in -oracle mode); Horizon is the
-	// rollout horizon in engine turns (0 = game end).
+	// Worlds is K, the number of sampled worlds every candidate was rolled on;
+	// Attempts/Accepted are this decision's sampler proposal attempts and
+	// acceptances; Horizon is the rollout horizon in engine turns (0 = game
+	// end). Under -oracle NO WORLD IS SAMPLED: Worlds is 1, Attempts and
+	// Accepted are 0, and the single world is a CHEATING clone of the actual
+	// engine, so a consumer that filters on Attempts > 0 distinguishes the
+	// sampled corpus from the oracle ceiling.
 	Worlds   int   `json:"worlds"`
 	Attempts int   `json:"attempts"`
 	Accepted int   `json:"accepted"`

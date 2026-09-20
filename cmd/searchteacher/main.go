@@ -138,6 +138,14 @@ func run(args []string, stdout, progress io.Writer) error {
 			cfg.kinds[k] = true
 		}
 	}
+	if cfg.labelsPath != "" {
+		if err := checkLabelsDestination(cfg.labelsPath); err != nil {
+			return err
+		}
+	}
+	// Create -out only after every fail-fast check has passed: creating it
+	// earlier would leave an empty file behind on a run that refuses a
+	// -labels destination (or any later pre-flight failure).
 	var out *os.File
 	if *outPath != "" {
 		f, err := os.OpenFile(*outPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
@@ -150,11 +158,6 @@ func run(args []string, stdout, progress io.Writer) error {
 	reg, err := cards.OpenCorpus(*corpus)
 	if err != nil {
 		return err
-	}
-	if cfg.labelsPath != "" {
-		if err := checkLabelsDestination(cfg.labelsPath); err != nil {
-			return err
-		}
 	}
 	type pair struct{ a, b string }
 	var pairs []pair
@@ -353,17 +356,22 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 	}
 	dr := DecisionRecord{Kind: kind, Turn: e.G.Turn, Frames: len(h.Frames), Candidates: len(cands)}
 	defer func() { rec.Decisions = append(rec.Decisions, dr) }()
+	// The seat's redacted view must serialize before a label can exist; a
+	// failure is a real (if currently unreachable) drop path, so record it on
+	// the DecisionRecord and keep the bot's answer -- never build a partial
+	// LabelRecord and then dereference it (that would panic the whole
+	// multi-worker run where this branch means to degrade gracefully).
+	raw, err := seatView(e, d)
+	if err != nil {
+		dr.Fallback = "seat view: " + err.Error()
+		return bot, false
+	}
 	// lbl is appended to rec only when the teacher actually covers the
 	// decision (a record with no values is not a label); sampling and teacher
 	// failures drop it, leaving the fallback on the DecisionRecord only.
 	lbl := &LabelRecord{RecordType: "label-v1", SchemaVersion: labelSchemaVersion, Pair: rec.Pair, GameIndex: rec.GameIndex, Seed: rec.Seed,
 		Sequence: d.Seq, Seat: d.Player, Kind: d.Kind, Turn: e.G.Turn, Horizon: cfg.horizon, BotIndex: 0,
-		Board: traceboard.Project(b), Options: append([]decision.Option(nil), d.Options...)}
-	if raw, err := seatView(e, d); err == nil {
-		lbl.View = raw
-	} else {
-		lbl = nil
-	}
+		Board: traceboard.Project(b), View: raw, Options: append([]decision.Option(nil), d.Options...)}
 	lbl.Candidates = make([]LabelCandidate, len(cands))
 	for i, cand := range cands {
 		lc := LabelCandidate{Bot: i == 0}

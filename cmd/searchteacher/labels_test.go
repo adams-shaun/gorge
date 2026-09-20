@@ -107,8 +107,23 @@ func TestLabelsCorpus(t *testing.T) {
 			if r.TeacherChoice < 0 || r.TeacherChoice >= len(r.Candidates) || r.BotIndex != 0 {
 				t.Fatalf("record %d: teacher_choice %d / bot_index %d over %d candidates", i, r.TeacherChoice, r.BotIndex, len(r.Candidates))
 			}
-			if r.Margin != 0 && r.TeacherChoice == 0 {
-				t.Fatalf("record %d: nonzero margin %g with the bot kept", i, r.Margin)
+			// Margin is the best candidate mean minus the bot's mean over ALL
+			// candidates, independent of which one the teacher chose. A
+			// nonzero margin with the bot kept (TeacherChoice == 0) is legal at
+			// -margin > 0, so assert the real contract instead: margin is that
+			// difference, and the teacher only ever chooses the best mean.
+			best := r.Candidates[0].Value
+			for j := 1; j < len(r.Candidates); j++ {
+				if r.Candidates[j].Value > best {
+					best = r.Candidates[j].Value
+				}
+			}
+			if want := best - r.Candidates[0].Value; r.Margin != want {
+				t.Fatalf("record %d: margin %g, want best minus bot %g", i, r.Margin, want)
+			}
+			if r.TeacherChoice != 0 && r.Candidates[r.TeacherChoice].Value != best {
+				t.Fatalf("record %d: teacher chose candidate %d (value %g) but the best mean is %g",
+					i, r.TeacherChoice, r.Candidates[r.TeacherChoice].Value, best)
 			}
 		}
 	})
