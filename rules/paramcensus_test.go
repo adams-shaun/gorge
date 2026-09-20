@@ -1339,6 +1339,14 @@ var apiSpecificRulesStat = map[string]string{
 	// Continuous static.
 	"Engine.mayPlayGrant":  "Continuous.MayPlay",
 	"warpGraveyardAllowed": "Continuous.MayPlay",
+	// The raise walk (rules/mayplay.go's mayPlayRaiseCost, called from
+	// legal.go's may-play spell word and land walks and cast.go's "mayplay"
+	// cost case): it carries mayPlayStatic's propagated reads (RaiseCost$
+	// among them, the genuine consumption that replaced the old fail-closed
+	// recognition), so it is family-attributed exactly like the grant path --
+	// left generic it would mask a plain Continuous static's real unread
+	// keys.
+	"Engine.mayPlayRaiseCost": "Continuous.MayPlay",
 	// The alt-cost delivery path (rules/mayplay.go's mayPlayAltCosts, called
 	// from alternativeCosts): it reads MayPlay statics' MayPlayAltManaCost$
 	// live -- Darksteel Monolith's "pay {0} rather than the mana cost" --
@@ -2654,7 +2662,7 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// alt-cost delivery (mayPlayAltCosts genuinely offers the priced
 	// alternative -- Darksteel Monolith's "pay {0}") after having been a
 	// fail-closed recognition.
-	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit", "MayPlayAltManaCost"} {
+	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit", "MayPlayAltManaCost", "RaiseCost"} {
 		if !d.stat["Continuous.MayPlay"][key] {
 			t.Errorf("d.stat[Continuous.MayPlay][%q] = false -- the family attribution lost a real MayPlay-gate read", key)
 		}
@@ -2671,7 +2679,7 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// rules/layers.go's staticEffects reads it to place a Set static in the
 	// CR 613.4a CDA sublayer (Tarmogoyf, Krovikan Mist now derive their
 	// announced P/T), so the read is genuine on the generic bucket.
-	for _, key := range []string{"ValidAfterStack", "RaiseCost", "MayPlayPlayer"} {
+	for _, key := range []string{"ValidAfterStack", "MayPlayPlayer"} {
 		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
 			if d.stat[mode][key] {
 				t.Errorf("d.stat[%q][%q] = true -- the fail-closed recognition read still over-suppresses this key", mode, key)

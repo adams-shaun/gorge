@@ -721,15 +721,25 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 	}
 	// Exile cost parts (ExileFromHand/ExileFromGrave): each needs N matching
 	// cards still available in the part's zone, reserved against the earlier
-	// parts the same way the Sac parts above reserve against each other.
+	// parts the same way the Sac parts above reserve against each other. For a
+	// CAST (ability == false) the card being cast can never pay its own exile
+	// cost: at offer time it still sits in the part's zone, so without the
+	// self-skip below a Kotis with exactly Kotis+2 other cards would be
+	// offered and then abort at payment (only 2 "other" cards remain once the
+	// card is on the stack). An ability activation (ability == true) is
+	// untouched -- encore's Cost$ ExileFromGrave<1/CARDNAME> really does exile
+	// its own source. This also closes the same latent over-offer for an
+	// escape cast from the graveyard.
+	castObj := e.G.Obj(id)
 	for _, part := range cost.Exile {
 		zone := part.Zone
 		if zone == 0 {
 			zone = state.ZHand
 		}
+		selfInZone := !ability && castObj != nil && castObj.Zone == zone
 		var avail []state.ObjID
 		for _, oid := range e.G.Zone(zone, p) {
-			if reserved[oid] {
+			if reserved[oid] || (selfInZone && oid == id) {
 				continue
 			}
 			if effects.MatchesSpecFrom(e.G, part.Spec, oid, p, id) {
@@ -1392,9 +1402,17 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// static said MayPlayWithoutManaCost$ True, in which case the mana
 		// part is free while non-mana additional costs still apply
 		// (CR 118.9) -- so this mode folds into the withSpellAbilityExtras
-		// condition below, exactly like a plain cast.
+		// condition below, exactly like a plain cast. CR 118.3a: the
+		// granting static's RaiseCost$ surcharge is then added on top
+		// through the SAME helper the offer walk (legal.go's may-play spell
+		// walk) used, so the offered cost and the charged cost structurally
+		// cannot disagree. A raise the helper could not price leaves
+		// mayPlayGrant withholding the card; the cast never reaches here.
 		if free, ok := e.mayPlayGrant(p, id); ok && free {
 			cost = Cost{}
+		}
+		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, id); hasRaise && priced {
+			cost = cost.Plus(raise)
 		}
 	case "miracle":
 		// Task 18: a Miracle cast pays the printed Miracle cost (CR 702.93d) in
@@ -2111,6 +2129,17 @@ func (e *Engine) exAsk() bool {
 		}
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(zone, pc.player) {
+			// A CAST (pc.ability < 0) can never exile the card it is casting:
+			// the card sits in this zone until pushCast runs (CR 601.2a pushes
+			// AFTER the cost asks), so without this skip a `Card` spec would
+			// offer the cast card as its own ExileFromGrave fodder -- the
+			// payment side of the same self-exclusion nonManaCastable applies
+			// to the affordability walk. An ability activation (pc.ability >=
+			// 0) is untouched: encore's Cost$ ExileFromGrave<1/CARDNAME>
+			// really does exile its own source.
+			if pc.ability < 0 && oid == pc.card {
+				continue
+			}
 			match := effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card)
 			if sc != nil {
 				match = effects.MatchesSpecCtx(e.G, part.Spec, oid, *sc)
