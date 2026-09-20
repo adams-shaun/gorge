@@ -2015,6 +2015,19 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			e.pendingDrawIsFirstInDrawStep(ev.Player) {
 			return false
 		}
+		// FirstExtraCardDrawnThisTurn$ True (Reed Richards, Smartest Man) is
+		// CR 614.1a's "the first time each turn": the replacement applies to
+		// the first extra draw of the turn only. The pending draw is exempt if
+		// it is the CR 504.1 turn-based draw (pendingDrawIsFirstInDrawStep,
+		// the pre-emit test) OR if an earlier extra draw already happened this
+		// turn (extraDrawsThisTurn). The body's own re-draws run under the
+		// applyingReplacement guard and are not re-matched, so this counts only
+		// draws the player would otherwise make.
+		if strings.EqualFold(strings.TrimSpace(r.Params["FirstExtraCardDrawnThisTurn"]), "True") {
+			if e.pendingDrawIsFirstInDrawStep(ev.Player) || e.extraDrawsThisTurn(ev.Player) > 0 {
+				return false
+			}
+		}
 		// The shared condition gate (CheckSVar$/IsPresent$/Hellbent$/...) —
 		// every sibling case ends with it; the Draw class never read it, so
 		// Quantum Riddler's LE1-over-Count$ValidHand gate (and the Hellbent
