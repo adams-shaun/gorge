@@ -67,7 +67,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
 		events.GrantTriggerPush, events.ManaActivate,
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
-		events.CopyToken, events.Exert, events.PlanarRoll:
+		events.CopyToken, events.Exert, events.PlanarRoll, events.Mutate:
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -120,6 +120,10 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.Note
 	case "CounterAdded", "CounterRemoved":
 		return 1 << events.CounterChange
+	case "Mutates":
+		// CR 702.140f: "whenever this creature mutates". The event is the
+		// mutate-spell merge fold (events.Mutate), fired once per mutation.
+		return 1 << events.Mutate
 	case "TokenCreated", "TokenCreatedOnce":
 		return 1 << events.TokenCreate
 	case "Drawn":

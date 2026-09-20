@@ -436,6 +436,19 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	PlanarRoll
+	// Mutate records one mutate-spell resolution (CR 702.140): Obj is the
+	// TARGET permanent that survives and becomes the mutated pile, IDs[0] is
+	// the mutate card's object (the resolving spell), and Text is "top" when
+	// the mutating card is placed on top or "under" when it is placed beneath
+	// the target (CR 702.140b's choice). Apply folds the pile: the survivor's
+	// Card/FaceIdx always describe the top card and every under-card lands in
+	// its MergedCards (top-of-pile first), each parked in ZCeased, and
+	// TimesMutated advances by Amount. It is the provenance both the
+	// trig:Mutates fire and Count$TimesMutated read, so a replay rebuilds the
+	// pile identically. Appended here, after PlanarRoll, following every
+	// prior Kind's own append-only precedent, so no earlier ordinal, hash
+	// chain or golden replay is affected.
+	Mutate
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -446,7 +459,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(PlanarRoll) + 1
+	NumKinds = int(Mutate) + 1
 )
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
@@ -527,7 +540,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll"}
+	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "mutate"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -742,6 +755,11 @@ var flagNames = [...]struct {
 	// instead of overwriting X. Appended at the end per the table's own
 	// ordering rule.
 	{"manaspent", state.FlagManaSpent},
+	// Mutate's cast provenance (CR 702.140a), the placement choice riding
+	// FlagMutatedTop beside it. Appended at the end per the table's own
+	// ordering rule.
+	{"mutated", state.FlagMutated},
+	{"mutated top", state.FlagMutatedTop},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

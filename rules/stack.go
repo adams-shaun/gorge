@@ -1658,6 +1658,16 @@ func (e *Engine) resolveTop() {
 	if o.CastFlags&state.FlagBestowed != 0 {
 		sa = bestowedAttachSA()
 	}
+	// Mutate (CR 702.140d): a spell cast for its mutate cost does not become
+	// an independent permanent. It merges into its target, so resolution is
+	// diverted BEFORE the ordinary spell-block tail (which would move it to
+	// the battlefield): resolveMutate emits the Mutate fold, which parks this
+	// object off the stack. A mutate card carries no SP, so the spell block
+	// below would resolve nothing anyway.
+	if o.CastFlags&state.FlagMutated != 0 {
+		e.resolveMutate(o, o.Targets)
+		return
+	}
 	targets := o.Targets
 	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered
 	// (the modal declaration for a Charm, the SpellAbility itself otherwise);

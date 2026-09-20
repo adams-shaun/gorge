@@ -110,6 +110,12 @@ type pendingCast struct {
 	multikickTimes int32
 	multikickDone  bool
 
+	// Mutate (CR 702.140b): mutateTop is the answered over/under placement
+	// choice and mutatePlaceDone marks the one ask already posed. Plain data,
+	// so Clone copies them like the replicate/multikick fields above.
+	mutateTop       bool
+	mutatePlaceDone bool
+
 	// converge (task converge1) is CR 107.4f-family's count of distinct
 	// colours (WUBRG) of mana actually spent to cast this spell, captured at
 	// payment from the full spent delta payManaCastSpent returns. convergeOn
@@ -1546,6 +1552,12 @@ func (e *Engine) resumeOrdinaryDraw(p state.PlayerID) {
 // castAnswer's own guard.
 func (e *Engine) continueCast() {
 	if e.cast == nil {
+		return
+	}
+	// Mutate (CR 702.140b): the over/under placement choice is announced
+	// before payment the same way the replicate count is, so the pay-time
+	// CastInfo can carry FlagMutatedTop.
+	if e.mutatePlaceAsk() {
 		return
 	}
 	if e.altAddAsk() {
@@ -3847,6 +3859,12 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			}
 			pc.multikickTimes = n
 		}
+	case "mutate_place":
+		// CR 702.140b: the answered over/under placement. Option.Amount is 1
+		// for "on top", 0 for "under", so the answer is read positionally.
+		if len(chosen) > 0 {
+			pc.mutateTop = chosen[0].Amount == 1
+		}
 	case "exile":
 		for _, o := range chosen {
 			pc.delve = append(pc.delve, o.Obj)
@@ -4016,6 +4034,12 @@ func modeFlags(mode string) string {
 	// spell, and what keeps a bestowed cast distinguishable on the wire.
 	case "bestowed":
 		return events.FlagsString(state.FlagBestowed)
+	// Mutate (CR 702.140a): the flag is the provenance the resolution reader
+	// uses to merge the spell into its target. modeFlags maps "mutated" to
+	// the bare flag; payCast ORs FlagMutatedTop in when the answered placement
+	// put the mutating card on top (CR 702.140b).
+	case "mutated":
+		return events.FlagsString(state.FlagMutated)
 	// Multikicker (CR 702.43): the mode marks the INTENT to pay the
 	// optional multikicker cost, and the count ask (multikickAsk) can still
 	// answer 0 -- a DECLINED multikick must stay the byte-identical plain
@@ -4074,6 +4098,12 @@ func (e *Engine) targetAsk() bool {
 			// own, so the plain cast's no-SP shape says nothing about the
 			// bestowed one.
 			sa = bestowedAttachSA()
+		}
+		if sa == nil && pc.mode == "mutated" {
+			// Mutate (CR 702.140a): the mutate cast targets the non-Human
+			// creature it merges into through the synthesized Mutate SA -- the
+			// same no-SP shape bestow has.
+			sa = mutateTargetSA()
 		}
 	}
 	sa = modalTargetSA(f, sa, o.ChosenModes)
@@ -4801,6 +4831,9 @@ func (e *Engine) payCast() {
 	// reads the mode (e.g. "cast a kicked spell") sees it, because the flag
 	// is applied before the trigger fires next.
 	flags := modeFlags(pc.mode)
+	if pc.mode == "mutated" && pc.mutateTop {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagMutatedTop)
+	}
 	if noCounter {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagNoCounter)
 	}

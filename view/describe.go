@@ -158,6 +158,14 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " rolls the planar die"
 	case events.NoteNumber:
 		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
+	case events.Mutate:
+		// CR 702.140d: one mutating card merges into the surviving permanent.
+		// Text is "top" or "under" (CR 702.140b's placement).
+		place := "under"
+		if ev.Text == "top" {
+			place = "on top of"
+		}
+		return obj(g, ev.Obj) + " mutates with a card " + place + " it"
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:

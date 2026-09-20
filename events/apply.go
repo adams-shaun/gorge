@@ -37,12 +37,22 @@ func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 			return sa
 		}
 	}
-	if src.Card == nil {
-		return nil
+	if src.Card != nil {
+		for _, cf := range src.Card.Faces {
+			if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
+				return sa
+			}
+		}
 	}
-	for _, cf := range src.Card.Faces {
-		if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
-			return sa
+	// CR 702.140d: a mutated permanent has all abilities of the cards beneath
+	// its top card, so an under-card's Execute$ SVar must be resolvable here
+	// too (the by-name push triggerFacesWithMerged routes those triggers
+	// through). Top face first, then each merged card top-of-pile first.
+	for i := range src.MergedCards {
+		if cf := src.MergedFaceAt(i); cf != nil {
+			if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
+				return sa
+			}
 		}
 	}
 	return nil
@@ -58,6 +68,61 @@ func Apply(g *state.Game, e Event) {
 		// Apply writes nothing; the log lets replay re-derive the same branch.
 		// ManaActivate is the ActivationLimit$ scan marker (see the Kind's own
 		// comment): the mana itself lands through the nearby ManaAdd events.
+
+	case Mutate:
+		// CR 702.140d: a mutate-spell resolution merges the mutating card's
+		// card into the target permanent. Obj is the surviving target, IDs[0]
+		// the mutating card's object (the resolving spell), Text "top"/"under"
+		// the placement choice and Amount the mutated count to add. The
+		// survivor's Card/FaceIdx always describe the TOP card; every
+		// under-card lands in MergedCards, top-of-pile first, its object
+		// parked in ZCeased (no membership list, so no battlefield scan sees
+		// it as a second permanent). Nothing here reads a map or the clock, so
+		// a log-only replay rebuilds the identical pile.
+		survivor := g.Obj(e.Obj)
+		if len(e.IDs) == 0 || survivor == nil || survivor.Card == nil ||
+			survivor.Zone != state.ZBattlefield || e.Text == "" {
+			break
+		}
+		src := g.Obj(e.IDs[0])
+		if src == nil || src.Card == nil {
+			break
+		}
+		srcCard, srcFace := src.Card, src.FaceIdx
+		if e.Text == "top" {
+			// The survivor's current top card becomes an under-card. Its own
+			// card needs a parked object to move to a graveyard when the pile
+			// dies, and the survivor's ID must keep naming the pile, so mint
+			// one for the demoted card. Snapshot before AddObject (it may
+			// reallocate g.Objs).
+			oldCard, oldFace, owner := survivor.Card, survivor.FaceIdx, survivor.Owner
+			parked := g.AddObject(oldCard, owner)
+			parked.Zone = state.ZCeased
+			parkedID := parked.ID
+			survivor = g.Obj(e.Obj)
+			if survivor == nil {
+				break
+			}
+			survivor.Card, survivor.FaceIdx = srcCard, srcFace
+			under := state.MergedCard{Obj: parkedID, Card: oldCard, FaceIdx: oldFace}
+			survivor.MergedCards = append([]state.MergedCard{under}, survivor.MergedCards...)
+			// The mutating spell's object is now redundant (its card data was
+			// copied onto the survivor), so park it in ZCeased without adding
+			// it to the pile: moving it to a graveyard later would duplicate
+			// the top card.
+			Move(g, src.ID, src.Zone, state.ZCeased)
+		} else {
+			// The mutating card goes under the target: park its object and
+			// stack it beneath the survivor's existing cards (top-of-pile
+			// first, so the newest under-card goes last).
+			Move(g, src.ID, src.Zone, state.ZCeased)
+			survivor = g.Obj(e.Obj)
+			if survivor == nil {
+				break
+			}
+			survivor.MergedCards = append(survivor.MergedCards, state.MergedCard{Obj: e.IDs[0], Card: srcCard, FaceIdx: srcFace})
+		}
+		survivor.TimesMutated += e.Amount
 
 	case PlanarRoll:
 		// The planar-dice roll (CR 901.3, task rollplanar1) is a pure marker:
@@ -1602,6 +1667,25 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		}
 	}
 	remove(g, id, o.Zone, zoneOwner(o, o.Zone))
+	// CR 702.140e: when a mutated permanent leaves the battlefield, each card
+	// merged beneath its top card moves to the same zone -- the pile is one
+	// permanent, not a top plus orphans. The under-cards are parked in ZCeased
+	// (no membership list) each with its own object, and this is the one site
+	// that relocates them; a log-only replay runs the same Move. The pile
+	// marker clears with the departure so a permanent that returns later
+	// (CR 400.7) is a fresh, unmutated object. Recurse only into this
+	// battlefield-boundary arm: a parked object's own Move has
+	// wasBattlefield == false, so the walk cannot nest.
+	if wasBattlefield && to != state.ZBattlefield && len(o.MergedCards) > 0 {
+		merged := o.MergedCards
+		o.MergedCards = nil
+		o.TimesMutated = 0
+		for _, mc := range merged {
+			if mc.Obj != 0 {
+				Move(g, mc.Obj, state.ZCeased, to)
+			}
+		}
+	}
 	// CR 400.7: leaving the battlefield makes the object a new object in
 	// its next zone, so control-changing effects do not follow it. Reset
 	// before choosing the destination's zone owner: a later graveyard/hand

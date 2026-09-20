@@ -919,7 +919,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// eligible alternate face. Granted Ward is independent of both -- and
 		// so is a static-grant's trigger (AddTrigger$): the granted walk below
 		// runs on BOTH paths, like Ward and Dethrone do.
-		if !o.Unlocked && !e.objectFaceMayTrigger(id, o.FaceIdx, f, ev.Kind) {
+		if !o.Unlocked && len(o.MergedCards) == 0 && !e.objectFaceMayTrigger(id, o.FaceIdx, f, ev.Kind) {
 			if grantedKeywordTriggerEvent(ev.Kind) {
 				switch ev.Kind {
 				case events.TargetsChosen:
@@ -940,7 +940,19 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// cast face's same-index trigger. roomTriggerFaces returns the faces
 		// to walk, cast face first.
 		faces, n := roomTriggerFaces(o, f)
-		for _, fc := range faces[:n] {
+		walk := faces[:n]
+		if len(o.MergedCards) > 0 {
+			// CR 702.140d: a mutated permanent has all abilities of the cards
+			// beneath its top card, so their printed triggers must be walked
+			// too. triggerFacesWithMerged marks them active=false, which routes
+			// each through the by-name push (the Room alternate-face path) --
+			// TriggerPush can only name a trigger INDEX into the top face, so an
+			// under-card trigger must resolve its Execute$ SVar by name instead.
+			// Ordinary (unmutated) objects keep the allocation-free [2]array
+			// path above.
+			walk = triggerFacesWithMerged(o, faces[:n])
+		}
+		for _, fc := range walk {
 			if o.Unlocked && !e.objectFaceMayTrigger(id, fc.faceIdx, fc.face, ev.Kind) {
 				continue
 			}
@@ -1193,6 +1205,28 @@ func roomTriggerFaces(o *state.Object, active *cards.Face) ([2]triggerFace, int)
 	return out, 1
 }
 
+// triggerFacesWithMerged extends the room faces with every card stacked
+// beneath a mutated permanent's top card (CR 702.140d's "all abilities of
+// the cards beneath it"). It allocates only for a mutated pile, so the
+// ordinary trigger scan keeps roomTriggerFaces' allocation-free fast path.
+// A merged face is marked active=false (like an unlocked Room's other face),
+// so the queue routes it through the by-name push: TriggerPush's Amount is an
+// index into the TOP face's Triggers, which cannot name an under-card's
+// trigger, but the by-name path resolves the Execute$ SVar from the object's
+// whole face stack (events.resolveSVarAcrossFaces). faceIdx 2+i sits outside
+// the two real card-face slots so its triggerKey/fire-count entries never
+// collide with the top card's.
+func triggerFacesWithMerged(o *state.Object, base []triggerFace) []triggerFace {
+	out := make([]triggerFace, 0, len(base)+len(o.MergedCards))
+	out = append(out, base...)
+	for i := range o.MergedCards {
+		if face := o.MergedFaceAt(i); face != nil {
+			out = append(out, triggerFace{face: face, faceIdx: uint8(2 + i)})
+		}
+	}
+	return out
+}
+
 // openDamageBatch opens a damage batch: the Damage events emitted until the
 // matching closeDamageBatch are one simultaneous batch for the
 // DamageDealtOnce/DamageDoneOnce latch (CR 510.4; Forge dealAssignedDamage).
@@ -1397,6 +1431,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		if matched && t.Params["Echo"] == "True" {
 			matched = e.echoGateHolds(source)
 		}
+	case "Mutates":
+		matched = e.mutatesMatches(t, source, ev, lki)
 	case "Always":
 		// CR 603.8 state trigger: the event under test is irrelevant; the
 		// trigger fires when its condition holds (see triggerConditionHolds)
