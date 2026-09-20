@@ -31,6 +31,43 @@ func init() {
 	Register("Animate", effAnimate)
 	Register("AnimateAll", effAnimateAll)
 	Register("Protection", effProtection)
+	Register("RemoveFromCombat", effRemoveFromCombat)
+}
+
+// effRemoveFromCombat is Forge's RemoveFromCombatEffect (28 raw corpus lines:
+// Reconnaissance's {0}, Hollowhenge Spirit's ETB, the Gustcloak cycle,
+// Illusionist's Gambit): CR 506.4's "a spell or ability causes it to be
+// removed from combat". Each resolved object that is on the battlefield gets
+// one events.EndCombatReset{Obj: id} -- the exact event regeneration uses,
+// whose nonzero-Obj case clears IsAttacking/BlockedBy and leaves zero
+// tombstones in attackers' blocker lists (CR 509.1h: the attacker stays
+// blocked) -- and nothing else: the target stays tapped, and untapping is the
+// cards' own chained SubAbility (Reconnaissance's DBUntap). The target set is
+// the ordinary Defined walk, which already covers every census form --
+// Defined$ Self (11), Targeted (5), Enchanted (2), Remembered (1),
+// TriggeredAttackerLKICopy (5), TriggeredBlockerLKICopy (1) -- and the
+// source/ValidTgts/Valid fallbacks. RememberRemovedFromCombat$ True
+// (Illusionist's Gambit) remembers each removed object in both halves -- the
+// resolution's ctx set, so the chained `DB$ Untap | Defined$ Remembered`
+// untaps exactly the removed set, and the source's event-backed list, so
+// Card.IsRemembered reads it later. UnblockCreaturesBlockedOnlyBy$ (4 corpus
+// lines) is NOT read: making the attackers a removed blocker was blocking
+// become unblocked needs an operation no event currently expresses.
+func effRemoveFromCombat(h Host, c *Ctx, sa *cards.SA) {
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberRemovedFromCombat"]), "True")
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.EndCombatReset, Obj: t.Obj})
+		if remember {
+			c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
+			eventRemember(h, c, t.Obj)
+		}
+	}
 }
 
 // effTapAll is Forge's TapAllEffect (78 raw corpus lines, 75 files): the
