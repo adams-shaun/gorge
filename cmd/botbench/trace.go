@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/internal/traceboard"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -138,67 +138,10 @@ type traceOptionV1 struct {
 	AbilityIndex int            `json:"ability_index,omitempty"`
 }
 
-type traceBoardV1 struct {
-	SchemaVersion int                `json:"schema_version"`
-	IsMain        bool               `json:"is_main"`
-	Mana          [6]int32           `json:"mana_wubrgc"`
-	Cards         []traceCardV1      `json:"cards"`
-	Life          []traceLifeV1      `json:"life"`
-	Creatures     []traceCreatureV1  `json:"creatures"`
-	Commanders    []traceCommanderV1 `json:"commanders"`
-	Stack         []traceStackV1     `json:"stack"`
-}
-
-type traceCardV1 struct {
-	CardID        state.ObjID `json:"card_id"`
-	Creature      bool        `json:"creature"`
-	Power         int32       `json:"power"`
-	ManaValue     int32       `json:"mana_value"`
-	Basic         bool        `json:"basic"`
-	AttachedTo    state.ObjID `json:"attached_to,omitempty"`
-	Activated     int32       `json:"activated"`
-	ManaCost      string      `json:"mana_cost"`
-	Castable      bool        `json:"castable"`
-	OnBattlefield bool        `json:"on_battlefield"`
-	InstantSpeed  bool        `json:"instant_speed"`
-	Produces      [6]int32    `json:"produces_wubrgc"`
-	ProducesAny   bool        `json:"produces_any"`
-	Indeterminate bool        `json:"produces_indeterminate"`
-	Counter       bool        `json:"counter"`
-}
-
-type traceLifeV1 struct {
-	Player state.PlayerID `json:"player"`
-	Life   int32          `json:"life"`
-}
-
-type traceCreatureV1 struct {
-	Object     state.ObjID    `json:"object"`
-	Controller state.PlayerID `json:"controller"`
-	Power      int32          `json:"power"`
-	Toughness  int32          `json:"toughness"`
-	Damage     int32          `json:"damage"`
-	Tapped     bool           `json:"tapped"`
-	Keywords   []string       `json:"keywords"`
-}
-
-type traceCommanderDamageV1 struct {
-	Player state.PlayerID `json:"player"`
-	Damage int32          `json:"damage"`
-}
-
-type traceCommanderV1 struct {
-	Object        state.ObjID              `json:"object"`
-	Casts         int32                    `json:"casts"`
-	InCommandZone bool                     `json:"in_command_zone"`
-	Damage        []traceCommanderDamageV1 `json:"damage"`
-}
-
-type traceStackV1 struct {
-	Object     state.ObjID    `json:"object"`
-	Controller state.PlayerID `json:"controller"`
-	IsSpell    bool           `json:"is_spell"`
-}
+// traceBoardV1 aliases the shared board schema (internal/traceboard), the
+// one type every decision-trace and label-corpus consumer decodes; the
+// projection itself lives there too so the two writers cannot drift.
+type traceBoardV1 = traceboard.Board
 
 type traceGameV1 struct {
 	RecordType    string          `json:"record_type"`
@@ -367,52 +310,7 @@ func (g *gameTrace) record(d *decision.Decision, in decision.Intent, b *botpolic
 	return nil
 }
 
-func projectTraceBoard(b *botpolicy.Board) traceBoardV1 {
-	r := traceBoardV1{SchemaVersion: traceSchemaVersion, IsMain: b.IsMain, Mana: b.Pool}
-	cardIDs := sortedObjIDs(b.Cards)
-	for _, id := range cardIDs {
-		c := b.Cards[id]
-		r.Cards = append(r.Cards, traceCardV1{CardID: id, Creature: c.Creature, Power: c.Power, ManaValue: c.CMC, Basic: c.Basic, AttachedTo: c.AttachedTo, Activated: c.Activated, ManaCost: c.ManaCost, Castable: c.Castable, OnBattlefield: c.OnBattlefield, InstantSpeed: c.InstantSpeed, Produces: c.Produces.Colour, ProducesAny: c.Produces.Any, Indeterminate: c.Produces.Indeterminate, Counter: c.Counter})
-	}
-	players := make([]int, 0, len(b.Life))
-	for p := range b.Life {
-		players = append(players, int(p))
-	}
-	sort.Ints(players)
-	for _, p := range players {
-		r.Life = append(r.Life, traceLifeV1{Player: state.PlayerID(p), Life: b.Life[state.PlayerID(p)]})
-	}
-	for _, id := range sortedObjIDs(b.Creatures) {
-		c := b.Creatures[id]
-		r.Creatures = append(r.Creatures, traceCreatureV1{Object: id, Controller: c.Controller, Power: c.Power, Toughness: c.Toughness, Damage: c.Damage, Tapped: c.Tapped, Keywords: append([]string(nil), c.Keywords...)})
-	}
-	for _, id := range sortedObjIDs(b.Commanders) {
-		c := b.Commanders[id]
-		v := traceCommanderV1{Object: id, Casts: c.Casts, InCommandZone: c.InCommandZone}
-		ps := make([]int, 0, len(c.Damage))
-		for p := range c.Damage {
-			ps = append(ps, int(p))
-		}
-		sort.Ints(ps)
-		for _, p := range ps {
-			v.Damage = append(v.Damage, traceCommanderDamageV1{Player: state.PlayerID(p), Damage: c.Damage[state.PlayerID(p)]})
-		}
-		r.Commanders = append(r.Commanders, v)
-	}
-	for _, s := range b.Stack {
-		r.Stack = append(r.Stack, traceStackV1{Object: s.ID, Controller: s.Controller, IsSpell: s.IsSpell})
-	}
-	return r
-}
-
-func sortedObjIDs[V any](m map[state.ObjID]V) []state.ObjID {
-	ids := make([]state.ObjID, 0, len(m))
-	for id := range m {
-		ids = append(ids, id)
-	}
-	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
-	return ids
-}
+func projectTraceBoard(b *botpolicy.Board) traceBoardV1 { return traceboard.Project(b) }
 
 func validateTraceRecord(v any) error {
 	switch r := v.(type) {

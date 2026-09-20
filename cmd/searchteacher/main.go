@@ -25,6 +25,7 @@ import (
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/searchprobe"
 	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/internal/traceboard"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -47,6 +48,7 @@ type config struct {
 	sampleSeed               uint64
 	maxTurn                  int32
 	oracle, audit            bool
+	labelsPath               string
 }
 
 // DecisionRecord is one search-seat decision the teacher was asked about.
@@ -85,7 +87,12 @@ type GameRecord struct {
 	Overrides             int
 	Unsupported, Error    string
 	WallMS                float64
+	GameIndex             int
 	Decisions             []DecisionRecord
+	// Labels is the covered decisions' label corpus, published through
+	// -labels; it is deliberately excluded from the GameRecord JSON (the
+	// -out diagnostics and the training corpus are different files).
+	Labels []LabelRecord `json:"-"`
 }
 
 func run(args []string, stdout, progress io.Writer) error {
@@ -108,6 +115,7 @@ func run(args []string, stdout, progress io.Writer) error {
 	oracle := fs.Bool("oracle", false, "CHEATING ceiling: search one clone of the actual engine (true hidden zones and future chance) instead of sampled worlds")
 	pairsFlag := fs.String("pairs", "", "restrict to comma list of a:b pairs (default: the ten approved pairs)")
 	outPath := fs.String("out", "", "JSONL of GameRecords (new file)")
+	labelsPath := fs.String("labels", "", "JSONL label corpus of covered decisions (new file only, atomic publish)")
 	corpus := fs.String("cards", ".cards", "compiled corpus directory")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -120,7 +128,7 @@ func run(args []string, stdout, progress io.Writer) error {
 		return fmt.Errorf("seed range [%d,%d) overlaps held-out [1000000,2000000)", *seed, last)
 	}
 	cfg := config{kinds: map[string]bool{}, worlds: *worlds, attempts: *attempts, limit: *limit, minESS: *minESS, margin: *margin,
-		horizon: int32(*horizon), maxSubmits: *maxSubmits, sampleSeed: *sampleSeed, maxTurn: int32(*maxTurn), oracle: *oracle, audit: *audit}
+		horizon: int32(*horizon), maxSubmits: *maxSubmits, sampleSeed: *sampleSeed, maxTurn: int32(*maxTurn), oracle: *oracle, audit: *audit, labelsPath: *labelsPath}
 	for _, k := range strings.Split(*kinds, ",") {
 		k = strings.TrimSpace(k)
 		if k != "attackers" && k != "cast" && k != "" {
@@ -130,6 +138,14 @@ func run(args []string, stdout, progress io.Writer) error {
 			cfg.kinds[k] = true
 		}
 	}
+	if cfg.labelsPath != "" {
+		if err := checkLabelsDestination(cfg.labelsPath); err != nil {
+			return err
+		}
+	}
+	// Create -out only after every fail-fast check has passed: creating it
+	// earlier would leave an empty file behind on a run that refuses a
+	// -labels destination (or any later pre-flight failure).
 	var out *os.File
 	if *outPath != "" {
 		f, err := os.OpenFile(*outPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
@@ -182,8 +198,7 @@ func run(args []string, stdout, progress io.Writer) error {
 			defer wg.Done()
 			for j := range jobs {
 				s := *seed + uint64(j.pi**games+j.g)
-				rec := playPaired(setups[j.pi], s, j.g%2, cfg)
-				rec.Pair = pairs[j.pi].a + ":" + pairs[j.pi].b
+				rec := playPaired(setups[j.pi], s, j.g%2, cfg, pairs[j.pi].a+":"+pairs[j.pi].b, j.g)
 				results <- rec
 			}
 		}()
@@ -215,14 +230,19 @@ func run(args []string, stdout, progress io.Writer) error {
 			}
 		}
 	}
+	if cfg.labelsPath != "" {
+		if err := writeLabels(cfg.labelsPath, collectLabels(all)); err != nil {
+			return err
+		}
+	}
 	summarize(stdout, all, cfg, *seed, *games, time.Since(start))
 	return nil
 }
 
 // playPaired plays the seed once with the search seat and once bot-vs-bot.
-func playPaired(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg config) GameRecord {
+func playPaired(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg config, pair string, gameIndex int) GameRecord {
 	t0 := time.Now()
-	rec := GameRecord{Seed: seed, SearchSeat: searchSeat, SearchDeck: setup.Names[searchSeat]}
+	rec := GameRecord{Pair: pair, Seed: seed, GameIndex: gameIndex, SearchSeat: searchSeat, SearchDeck: setup.Names[searchSeat]}
 	base, err := playGame(setup, seed, searchSeat, cfg, false, nil)
 	if err != nil {
 		rec.Error = "baseline: " + err.Error()
@@ -270,7 +290,8 @@ func playGame(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg con
 		if d == nil {
 			return e, fmt.Errorf("missing decision")
 		}
-		in := botpolicy.Decide(botpolicy.BoardFromGameInto(e.G, e, d.Player, &board), d, rngs[d.Player])
+		b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
+		in := botpolicy.Decide(b, d, rngs[d.Player])
 		if observing {
 			f, err := collector.Capture(e, e.L.Events[pos:])
 			if err != nil {
@@ -280,7 +301,7 @@ func playGame(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg con
 				h.Frames = append(h.Frames, f)
 				if d.Player == actor {
 					if e.G.Turn <= cfg.maxTurn {
-						if chosen, ok := teach(setup, &h, collector, e, d, in, f, cfg, rec); ok {
+						if chosen, ok := teach(setup, &h, collector, e, d, in, f, cfg, rec, &b); ok {
 							in = chosen
 						}
 					}
@@ -301,8 +322,11 @@ func playGame(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg con
 }
 
 // teach runs the teacher at an eligible decision. It returns the intent to
-// play and true when the teacher overrode the bot.
-func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *searchprobe.Collector, e *rules.Engine, d *decision.Decision, bot decision.Intent, f searchprobe.Frame, cfg config, rec *GameRecord) (decision.Intent, bool) {
+// play and true when the teacher overrode the bot. b is the deciding seat's
+// board snapshot source (BoardFromGameInto built it for this decision and
+// BoardFromGameInto will overwrite it at the next one, so every board read
+// here is a synchronous copy).
+func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *searchprobe.Collector, e *rules.Engine, d *decision.Decision, bot decision.Intent, f searchprobe.Frame, cfg config, rec *GameRecord, b *botpolicy.Board) (decision.Intent, bool) {
 	var cands [][]searchprobe.Action
 	var kind string
 	switch {
@@ -332,7 +356,32 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 	}
 	dr := DecisionRecord{Kind: kind, Turn: e.G.Turn, Frames: len(h.Frames), Candidates: len(cands)}
 	defer func() { rec.Decisions = append(rec.Decisions, dr) }()
+	// The seat's redacted view must serialize before a label can exist; a
+	// failure is a real (if currently unreachable) drop path, so record it on
+	// the DecisionRecord and keep the bot's answer -- never build a partial
+	// LabelRecord and then dereference it (that would panic the whole
+	// multi-worker run where this branch means to degrade gracefully).
+	raw, err := seatView(e, d)
+	if err != nil {
+		dr.Fallback = "seat view: " + err.Error()
+		return bot, false
+	}
+	// lbl is appended to rec only when the teacher actually covers the
+	// decision (a record with no values is not a label); sampling and teacher
+	// failures drop it, leaving the fallback on the DecisionRecord only.
+	lbl := &LabelRecord{RecordType: "label-v1", SchemaVersion: labelSchemaVersion, Pair: rec.Pair, GameIndex: rec.GameIndex, Seed: rec.Seed,
+		Sequence: d.Seq, Seat: d.Player, Kind: d.Kind, Turn: e.G.Turn, Horizon: cfg.horizon, BotIndex: 0,
+		Board: traceboard.Project(b), View: raw, Options: append([]decision.Option(nil), d.Options...)}
+	lbl.Candidates = make([]LabelCandidate, len(cands))
+	for i, cand := range cands {
+		lc := LabelCandidate{Bot: i == 0}
+		if in, err := collector.Match(d, cand); err == nil {
+			lc.Choices = append([]int(nil), in.Choices...)
+		}
+		lbl.Candidates[i] = lc
+	}
 	if cfg.oracle {
+		lbl.Worlds = 1
 		t1 := time.Now()
 		tr, err := searchprobe.TeacherChoice([]searchprobe.World{{Engine: e.Clone(), Observer: collector}}, cands, searchprobe.TeacherOptions{Seed: cfg.sampleSeed ^ 0x5eed ^ uint64(e.G.Turn), HorizonTurns: cfg.horizon, MaxSubmits: cfg.maxSubmits, Margin: cfg.margin, Clairvoyant: true})
 		dr.SearchMS = float64(time.Since(t1).Microseconds()) / 1000
@@ -340,7 +389,7 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 			dr.Fallback = "teacher error: " + err.Error()
 			return bot, false
 		}
-		return applyTeacher(tr, &dr, collector, d, cands, bot, rec)
+		return applyTeacher(tr, &dr, collector, d, cands, bot, rec, lbl)
 	}
 	t0 := time.Now()
 	sr, err := searchprobe.Sample(setup, *h, searchprobe.SampleOptions{Seed: cfg.sampleSeed, Attempts: cfg.attempts, Worlds: cfg.worlds, MaxSubmits: cfg.maxSubmits, MinESS: cfg.minESS})
@@ -367,6 +416,7 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 		dr.Fallback = "insufficient worlds/ESS"
 		return bot, false
 	}
+	lbl.Worlds, lbl.Attempts, lbl.Accepted = len(sr.Worlds), sr.Attempts, sr.Accepted
 	t1 := time.Now()
 	tr, err := searchprobe.TeacherChoice(sr.Worlds, cands, searchprobe.TeacherOptions{Seed: cfg.sampleSeed ^ 0x5eed ^ uint64(e.G.Turn), HorizonTurns: cfg.horizon, MaxSubmits: cfg.maxSubmits, Margin: cfg.margin})
 	dr.SearchMS = float64(time.Since(t1).Microseconds()) / 1000
@@ -381,12 +431,27 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 			dr.OracleValues = or.Values
 		}
 	}
-	return applyTeacher(tr, &dr, collector, d, cands, bot, rec)
+	return applyTeacher(tr, &dr, collector, d, cands, bot, rec, lbl)
 }
 
-func applyTeacher(tr searchprobe.TeacherResult, dr *DecisionRecord, collector *searchprobe.Collector, d *decision.Decision, cands [][]searchprobe.Action, bot decision.Intent, rec *GameRecord) (decision.Intent, bool) {
+func applyTeacher(tr searchprobe.TeacherResult, dr *DecisionRecord, collector *searchprobe.Collector, d *decision.Decision, cands [][]searchprobe.Action, bot decision.Intent, rec *GameRecord, lbl *LabelRecord) (decision.Intent, bool) {
 	dr.Covered = true
 	dr.Index, dr.Values, dr.Rollouts, dr.Submits, dr.Terminal, dr.Capped = tr.Index, tr.Values, tr.Rollouts, tr.Submits, tr.Terminal, tr.Capped
+	if lbl != nil {
+		best := 0
+		for i := 1; i < len(tr.Values); i++ {
+			if tr.Values[i] > tr.Values[best] {
+				best = i
+			}
+		}
+		lbl.TeacherChoice = tr.Index
+		lbl.Margin = tr.Values[best] - tr.Values[0]
+		for i := range lbl.Candidates {
+			lbl.Candidates[i].Value = tr.Values[i]
+			lbl.Candidates[i].Worlds = lbl.Worlds
+		}
+		rec.Labels = append(rec.Labels, *lbl)
+	}
 	if tr.Index == 0 {
 		return bot, false
 	}
