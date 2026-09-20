@@ -1110,6 +1110,14 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			// the fail-closed verdict below — no group machinery here prices
 			// them, and a fake zero is worse.
 			return h.CardsDiscardedThisTurn(c.Controller), true
+		case "RingTemptedYou":
+			// The resolving controller's own "the Ring has tempted you" count
+			// (CR 701.54a, folded by events.Apply's RingTemptsYou case): what
+			// Frodo, Adventurous Hobbit / Frodo, Sauron's Bane's
+			// ConditionCheckSVar$ NumRingTempted reads (GE2 / GE4 level-ability
+			// gates). The raw count is never capped, so a gate compares, and
+			// a zero means "not yet tempted" — a real read, never a fake one.
+			return g.Players[c.Controller].RingTempted, true
 		}
 		return 0, false
 	}

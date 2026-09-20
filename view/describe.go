@@ -80,6 +80,14 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " " + verb + " " + itoa(int64(n)) + " speed (speed " + itoa(int64(speed)) + ")"
 	case events.MonarchChange:
 		return player(g, ev.Player) + " becomes the monarch"
+	case events.RingTemptsYou:
+		// CR 701.54: the temptation and the designation it made. A bearer of
+		// 0 is CR 701.54d's impossible-choice shape (no creature controlled):
+		// the temptation still happened, so the line still records it.
+		if ev.Obj == 0 {
+			return "The Ring tempts " + player(g, ev.Player)
+		}
+		return "The Ring tempts " + player(g, ev.Player) + " (" + obj(g, ev.Obj) + " is the Ring-bearer)"
 	case events.StartingPlayerChange:
 		return player(g, ev.Player) + " becomes the starting player"
 	case events.ControlChange:

@@ -1358,3 +1358,41 @@ func TestModeChosenIsAMarkerOnly(t *testing.T) {
 		t.Fatalf("ModeChosen.String() = %q, want %q", got, want)
 	}
 }
+
+// TestRingTemptsYouFoldsCountBearerAndClears is the CR 701.54 fold pin: the
+// count rises and the designation lands on the named permanent; the
+// designation's two derived clears (CR 701.54b "until another player gains
+// control of it", and the CR 400.7/701.54e battlefield requirement) both
+// derive from the log alone, and an out-of-range player is a no-op.
+func TestRingTemptsYouFoldsCountBearerAndClears(t *testing.T) {
+	g := state.NewGame([]string{"Ann", "Bob"})
+	o := g.AddObject(bearCard(), 0)
+	o.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{o.ID})
+	Apply(g, Event{Kind: RingTemptsYou, Player: 0, Obj: o.ID, Amount: 1})
+	if g.Players[0].RingTempted != 1 || g.Players[0].RingBearer != o.ID {
+		t.Fatalf("count %d bearer %d, want 1/%d", g.Players[0].RingTempted, g.Players[0].RingBearer, o.ID)
+	}
+	// A control change by another player ends the designation; the bearer's
+	// own seat regaining/keeping control must not.
+	Apply(g, Event{Kind: ControlChange, Obj: o.ID, Player: 1})
+	if g.Players[0].RingBearer != 0 {
+		t.Fatalf("bearer %d survived the control change", g.Players[0].RingBearer)
+	}
+	Apply(g, Event{Kind: RingTemptsYou, Player: 0, Obj: o.ID, Amount: 2})
+	Apply(g, Event{Kind: ControlChange, Obj: o.ID, Player: 0})
+	if g.Players[0].RingBearer != o.ID || g.Players[0].RingTempted != 2 {
+		t.Fatalf("own-control change kept bearer %d (want %d), count %d (want 2)",
+			g.Players[0].RingBearer, o.ID, g.Players[0].RingTempted)
+	}
+	// Leaving the battlefield is a new object (CR 400.7): the designation is
+	// gone, and the count is NOT.
+	Apply(g, Event{Kind: MoveZone, Obj: o.ID, From: state.ZBattlefield, To: state.ZGraveyard})
+	if g.Players[0].RingBearer != 0 || g.Players[0].RingTempted != 2 {
+		t.Fatalf("after the leave: bearer %d (want 0), count %d (want 2)",
+			g.Players[0].RingBearer, g.Players[0].RingTempted)
+	}
+	// An out-of-range player must not panic — the same totality stance the
+	// MonarchChange/SpeedChange cases take.
+	Apply(g, Event{Kind: RingTemptsYou, Player: 9, Obj: o.ID})
+}

@@ -465,6 +465,21 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	CombatRetarget
+	// RingTemptsYou records one "the Ring tempts you" action (CR 701.54a:
+	// each time the Ring tempts you, choose a creature you control; it
+	// becomes your Ring-bearer). Player is the tempted seat, Obj the
+	// designated Ring-bearer (0 when the player controls no creature — CR
+	// 701.54d: the "Whenever the Ring tempts you" trigger still fires when
+	// the actions complete even if some were impossible), and Amount the
+	// NEW tempt count, carried as a replay-visible marker. Apply folds the
+	// count increment and the designation; the designation's two clears (a
+	// control change, CR 701.54b, and the permanent leaving the battlefield,
+	// CR 400.7/701.54e) are derived in Apply's own ControlChange and
+	// MoveZone cases, so no second event is needed. Appended here, after
+	// CombatRetarget, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	RingTemptsYou
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -475,7 +490,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(CombatRetarget) + 1
+	NumKinds = int(RingTemptsYou) + 1
 )
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
