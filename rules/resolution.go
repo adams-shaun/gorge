@@ -165,9 +165,13 @@ type resumePoint struct {
 	loopBound      bool
 	loopRemembered []state.Target
 	// repeatSubject is the RepeatEach subject of the loop whose iteration
-	// this frame resumes inside (the Imprinted binding). It rides the frame
-	// so a resumed unless/dig/etc. ask re-enters with Ctx.RepeatSubject
-	// set; zero on frames outside any iteration.
+	// this frame resumes inside (the Imprinted binding). It is CAPTURED here
+	// so the subject survives the suspension -- but it is NOT yet restored
+	// into Ctx.RepeatSubject at the resume rebuild (the loopBound arm above
+	// restores only loopRemembered), so a resumed ask re-enters with
+	// Ctx.RepeatSubject still empty: a Defined$ RepeatSubject read after a
+	// suspension resolves fail-closed. Filed as
+	// repeat-subject-dies-on-suspension; zero on frames outside any iteration.
 	repeatSubject state.Target
 	// repeat is a kind "repeat" frame's loop cursor.
 	repeat *repeatCursor
@@ -1131,6 +1135,34 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.AttachOpt = "no"
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.AttachOpt = "yes"
+			}
+		case "attach_choice":
+			// A Choices$ Attach's card choice was answered (Goldwardens'
+			// Gambit's "for each of those tokens, you may attach an Equipment
+			// you control to it", unexpected_request's "you may attach an
+			// Equipment you control", Breath of Fury's "attach CARDNAME to a
+			// creature you control"). The chosen card ids are recorded for the
+			// re-entered effect to consume and clear (fx42 scoping): with no
+			// Object$ the ids name the OBJECT to attach, with Object$ present
+			// they name the DESTINATION. An empty answer on the Min-0 Optional
+			// shape is a real decline, so AttachChoiceDone distinguishes it
+			// from an unanswered ask (the ctx.Search/SearchDone discipline).
+			// The asking pass's resolved destination list rides back in
+			// rp.choices (Decision.ResumeChoices) -- a RepeatEach body's
+			// Defined$ Imprinted binding does not survive the suspension, so
+			// the re-entry must not re-derive it.
+			ctx.AttachChoice = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.AttachChoice = append(ctx.AttachChoice, o.Obj)
+				}
+			}
+			ctx.AttachChoiceDone = true
+			ctx.AttachDests = make([]state.ObjID, 0, len(rp.choices))
+			for _, t := range rp.choices {
+				if !t.IsPlayer && t.Obj != 0 {
+					ctx.AttachDests = append(ctx.AttachDests, t.Obj)
+				}
 			}
 		case "put_optional":
 			// An Optional$ True PutCounter's yes/no election (Talus Paladin's
