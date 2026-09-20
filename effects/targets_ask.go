@@ -62,8 +62,9 @@ import (
 // DividedAsYouChoose$ -- the ask offers the plain TargetMin$/TargetMax$
 // bounds, exactly like the placement ask does for the same parameters.
 func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target, bool) {
+	defined := strings.TrimSpace(sa.Params["Defined"])
 	if strings.TrimSpace(sa.Params["ValidTgts"]) == "" ||
-		(strings.TrimSpace(sa.Params["Defined"]) != "" && sa.API != "Fight") {
+		(defined != "" && definedIsTargetReuse(defined) && sa.API != "Fight") {
 		return nil, false
 	}
 	if sa.CompiledAPI() == cards.APIChangeZone || sa.API == "ChangeZone" {
@@ -107,6 +108,36 @@ func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target
 		return nil, false
 	}
 	return poseTargetsAsk(h, c, sa, chooser, candidates, min, max, "tgts")
+}
+
+// definedIsTargetReuse reports whether a Defined$ value names one of the
+// parent-target-reuse referents -- the documented reason the blanket
+// Defined$ suppression above exists (a sub that names its PARENT's target;
+// task tgtplayer1 narrowed the guard to exactly that shape). Any other
+// Defined$ value -- `You`, `Self`, a battlefield `Valid` sweep, a fire-time
+// `Triggered*` referent -- is the beneficiary/actor half of the SA, not its
+// targeting, so the SA's own ValidTgts$ is a REAL targeting this build must
+// ask (Knollspine Dragon's `DB$ Draw | Defined$ You | ValidTgts$ Opponent`:
+// the opponent is the magnitude's source, You only names the drawer --
+// suppressing the ask left the TargetedPlayer$ head over an empty target
+// list and the draw silently at zero). Dot-qualified variants of the same
+// referents (`Targeted.Creature`, `ThisTargetedCard.Creature`) reuse the
+// parent target just the same, so the classifier reads each comma token's
+// head before its first `.`; `TargetedController` and friends are NOT in
+// the set (they are derived referents this engine resolves through its own
+// machinery, measured corpus-unreachable at the reachable dispatch sites).
+func definedIsTargetReuse(defined string) bool {
+	for _, tok := range strings.Split(defined, ",") {
+		tok = strings.TrimSpace(tok)
+		if i := strings.IndexByte(tok, '.'); i >= 0 {
+			tok = tok[:i]
+		}
+		switch tok {
+		case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard", "AllTargeted":
+			return true
+		}
+	}
+	return false
 }
 
 // poseTargetsAsk is the shared tail of both ValidTgts$ mid-resolution asks

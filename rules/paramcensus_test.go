@@ -2368,7 +2368,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Love on the Battlefield":        {"param:trig:AttackersDeclared.NoResolvingCheck"},
 	"Methods of the Mighty":          {"param:api:Destroy.ValidTgtsDesc"},
 	"Mogis, God of Slaughter":        {"param:stat:Continuous.RemoveType"},
-	"Path of Ancestry":               {"param:api:Mana.TriggersWhenSpent"},
 	"Patriot, Shield Wielder":        {"param:api:Pump.ValidTgtsDesc"},
 	"Photon, Mighty Marvel":          {"param:api:Mana.PersistentMana"},
 	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},
@@ -3004,6 +3003,16 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"Sac</Creature>", []string{"Sac"}},
 		{"2 U U Sac<1/Creature>", nil},
 		{"AddCounter<1/M1M1>", []string{"AddCounter"}},
+		// The ExiledMoveToGrave family (the Eldrazi processor costs and
+		// Shelob, Dread Weaver's {2}{B} ability) is now MODELLED -- cards
+		// matching Spec move from exile to their owner's graveyard, with no
+		// phantom generic pip and no Unknown entry. The exact corpus
+		// spellings, including Forge's trailing description, plus the
+		// malformed-instance report of the recognised head.
+		{"2 B ExiledMoveToGrave<1/Creature.ExiledWithSource>", nil},
+		{"ExiledMoveToGrave<1/Card.OppOwn/card an opponent owns>", nil},
+		{"ExiledMoveToGrave<2/Card.OppOwn>", nil},
+		{"ExiledMoveToGrave<99999999999999999999/Creature>", []string{"ExiledMoveToGrave"}},
 		{"", nil},
 	}
 	for _, tc := range cases {

@@ -994,6 +994,25 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	return e.legalActionsPriced(p, nil)
 }
 
+// aftermathAlternateFace returns the Aftermath alternate face (face 1 --
+// ALTERNATE starts face 1 in cards/parse.go) of a two-face Split card whose
+// front face is current, or nil when the object is not a well-formed
+// aftermath carrier: AlternateMode must be Split (a Room is Split too, but
+// no Room half carries K:Aftermath, and the keyword gate is what keeps Rooms
+// and Adventures on their own paths), the object must have exactly two
+// faces, and the card must still be at its front face -- the aftermath half
+// is cast only from a graveyard card whose printed front is showing.
+func aftermathAlternateFace(o *state.Object) *cards.Face {
+	if o == nil || o.Card == nil || o.Card.AlternateMode != "Split" || len(o.Card.Faces) != 2 || int(o.FaceIdx) != 0 {
+		return nil
+	}
+	af := o.Card.Faces[1]
+	if af == nil || !af.HasKeyword("Aftermath") {
+		return nil
+	}
+	return af
+}
+
 // legalActionsPriced is legalActions with the mana affordability priced
 // against an OVERBOUND hypothetical pool instead of the seat's floating one:
 // hyp nil keeps the ordinary floating-pool pricing, hyp non-nil prices every
@@ -1457,6 +1476,35 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if fc := e.flashbackCost(id); offerCastable(p, id, fc, spellScope("flashback"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
+		}
+	}
+
+	// Aftermath (CR 702.85a): the alternate face of a Split card may be cast
+	// from its owner's graveyard for its printed mana cost (plus its own SP
+	// Cost$ additional parts -- start_finish's Sac<1/Creature>), then exiled.
+	// Gated on the ALTERNATE face's K:Aftermath, which is what excludes Rooms
+	// (both halves are Rooms, neither carries Aftermath) and Adventures
+	// (AlternateMode Adventure, not Split). Mode aftermath is consumed by
+	// beginCast, which records a FlipFace to the alternate face before the
+	// ordinary cast transaction -- rawBaseCost, targets and resolution then
+	// read the aftermath face. The withSpellAbilityExtras fold prices the
+	// face's own SP Cost$ parts exactly like the adventure_alt offer above:
+	// without it a Finish-shaped gate would offer an unpayable cast.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		af := aftermathAlternateFace(o)
+		if af == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !e.spellTimingOK(p, id, af, sorcery) {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, af.SpellAbility()) {
+			continue
+		}
+		if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + af.Name + " (aftermath)", Obj: id, Mode: "aftermath"})
 		}
 	}
 

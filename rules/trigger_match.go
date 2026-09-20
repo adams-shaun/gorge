@@ -1378,6 +1378,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.cycledMatches(t, source, ev, lki)
 	case "Explores":
 		matched = e.exploresMatches(t, source, ev, lki)
+	case "RingTemptsYou":
+		matched = e.ringTemptsMatches(t, source, ev)
 	case "CounterAdded":
 		matched = e.counterAddedMatches(t, source, ev, lki)
 	case "CounterRemoved":
@@ -3168,6 +3170,37 @@ func (e *Engine) attachedMatches(t cards.Trigger, source state.ObjID, ev events.
 		return effects.MatchesSpecCtx(e.G, v, ev.IDs[0], e.specCtx(source, ctrl))
 	}
 	return false
+}
+
+// ringTemptsMatches implements Mode$ RingTemptsYou (CR 701.54d): the trigger
+// fires when the Ring tempts its controller, "when the actions complete,
+// even if some were impossible" — an event with Obj 0 (no creature was
+// designated) still counts as a temptation. The tempted player is ev.Player;
+// ValidPlayer$ gates on the tempted player against the source's controller
+// (the corpus's only spelling, `ValidPlayer$ You`). ValidCard$ gates on the
+// chosen Ring-bearer with the source's controller as "you" and the source as
+// Other — the corpus's `Creature.YouCtrl+Other` shape ("a creature other than
+// CARDNAME") and the plain `Creature.YouCtrl` shape both resolve through it;
+// with no designated bearer a ValidCard$ trigger never fires.
+func (e *Engine) ringTemptsMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.RingTemptsYou {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidPlayer"]; ok {
+		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+			return false
+		}
+	}
+	if v := t.Params["ValidCard"]; v != "" {
+		if ev.Obj == 0 {
+			return false // no creature became the Ring-bearer
+		}
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+			return false
+		}
+	}
+	return true
 }
 
 // becomesTargetMatches implements Mode$ BecomesTarget: the trigger fires

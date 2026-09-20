@@ -210,6 +210,7 @@ func freezeCost(c Cost) Cost {
 	c.DamageYou = c.DamageYou[:len(c.DamageYou):len(c.DamageYou)]
 	c.Return = c.Return[:len(c.Return):len(c.Return)]
 	c.PutToLib = c.PutToLib[:len(c.PutToLib):len(c.PutToLib)]
+	c.MoveToGrave = c.MoveToGrave[:len(c.MoveToGrave):len(c.MoveToGrave)]
 	c.Unknown = c.Unknown[:len(c.Unknown):len(c.Unknown)]
 	return c
 }

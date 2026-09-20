@@ -652,6 +652,19 @@ type Engine struct {
 	// copies nothing of it.
 	noCounterSpend state.ObjID
 
+	// manaSpentSources is the transient capture of emitRestrictedManaSpend's
+	// SPELL arm: the deduplicated Source of every restriction batch consumed
+	// by the payment, in insertion order. payCast reads it once, synchronously,
+	// right after the payment and queues each source's TriggersWhenSpent$
+	// rider (Path of Ancestry's "when that mana is spent to cast ..."). Empty
+	// Valid provenance batches -- the Boseiju shape effMana emits for a rider'd
+	// mana ability -- are what make the attribution exact: emitRestrictedManaSpend
+	// consumes batches before ordinary mana. Nothing can suspend between the
+	// capture and the read (it emits, never asks), and Clone copies nothing of
+	// it (like noCounterSpend), so a replay re-derives the same list from the
+	// recorded ManaAdd events.
+	manaSpentSources []state.ObjID
+
 	// costProvenanceSeen is the transient capture of the last cost-modifier
 	// pass (castprov3): true when that pass evaluated a cost static whose
 	// ValidCard$ carries a cast-provenance token (Bilbo's
