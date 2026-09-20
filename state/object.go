@@ -442,7 +442,10 @@ type Object struct {
 	Paired ObjID
 
 	// IsToken and IsCopy mark an object that only ever exists on the stack
-	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
+	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). A token copy
+	// minted by Myriad (CR 702.109) or a "create a token copy" effect
+	// (CR 706.2, DB$ CopyPermanent) carries BOTH and legitimately lives on
+	// the battlefield. See Ephemeral.
 	IsToken  bool
 	IsCopy   bool
 	IsMyriad bool
@@ -541,17 +544,30 @@ func (o *Object) EffectiveIsCreature() bool {
 }
 
 // Ephemeral reports whether this object has, right now, ceased to exist: a
-// copy of a spell or ability (CR 707.10, gone the moment it leaves the
-// stack), a token (CR 111.7, gone once it leaves the battlefield -- so
-// IsToken alone is not enough, a token on the battlefield is a perfectly
-// real permanent), or an ability object (no card, Card == nil -- always
-// ephemeral, since it never legitimately exists off the stack at all).
+// copy of a spell or ability once it has LEFT THE STACK (CR 707.10h -- a copy
+// of a spell that has left the stack is a transient reference, not a real
+// object), a token once it has left the battlefield (CR 111.7 -- so IsToken
+// alone is not enough, a battlefield token is a perfectly real permanent),
+// or an ability object (no card, Card == nil -- always ephemeral, since it
+// never legitimately exists off the stack at all).
+//
+// The IsCopy half is therefore ZONE-AWARE, exactly like effects/filter.go's
+// own guard: a battlefield object carrying IsCopy is a real permanent --
+// Myriad (CR 702.109) and populate ("create a token copy", CR 706.2) mint
+// their tokens as IsToken+IsCopy and legitimately keep them on the
+// battlefield, and a copy of a permanent SPELL that has resolved onto the
+// battlefield (CR 707.10g, token1's stack-entry clear) is likewise real.
+// Only a copy that is neither on the stack (still a spell) nor on the
+// battlefield (still a permanent) has ceased to exist.
+//
 // This build parks such objects in exile rather than deleting them, and
 // callers (view.cardViews and any future zone-listing code) consult this
-// single definition instead of re-deriving it, so the "copy, or token off
-// the battlefield, or cardless" rule cannot drift between call sites.
+// single definition instead of re-deriving it, so the "copy off the stack
+// and battlefield, token off the battlefield, or cardless" rule cannot drift
+// between call sites.
 func (o *Object) Ephemeral() bool {
-	return o.IsCopy || (o.IsToken && o.Zone != ZBattlefield) || o.Card == nil
+	return (o.IsCopy && o.Zone != ZStack && o.Zone != ZBattlefield) ||
+		(o.IsToken && o.Zone != ZBattlefield) || o.Card == nil
 }
 
 func (o *Object) Counter(kind string) int32 {

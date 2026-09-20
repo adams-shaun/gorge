@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -91,6 +92,35 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			total = 0
 		}
 	}
+	// ExcessSVar$ <name> (CR 120.10): the damage this call deals BEYOND what
+	// was lethal to each permanent is published under <name> for the chained
+	// SubAbility$ to read (Bottle-Cap Blast's TokenAmount$ Excess, Cramped
+	// Vents' LifeAmount$ Excess, Nahiri's Warcrafting's DigNum$ X). The
+	// publication is a Ctx.SVars binding -- resolution-scoped scratch, never
+	// an event -- which every consumer (effects.Num, EvalCount's SVar$
+	// indirection, resolveNumericRHS, CheckSVarHolds) already reads. The
+	// condition gates it when present; a condition this build cannot
+	// evaluate fails CLOSED (no bind), the conservative direction.
+	excessName := strings.TrimSpace(sa.Params["ExcessSVar"])
+	excessCond := strings.TrimSpace(sa.Params["ExcessSVarCondition"])
+	// bindExcess publishes max(0, dealt - lethal) under the card's name.
+	// `lethal` is captured by the caller BEFORE the damage lands -- CR 120.10
+	// measures excess against the lethal amount, and marked damage counts
+	// toward it, so reading toughness/remaining loyalty after the hit would
+	// double-count the damage just dealt.
+	bindExcess := func(o *state.Object, lethal, dealt int32) {
+		if excessName == "" || o == nil {
+			return
+		}
+		if !excessConditionHolds(h, c, excessCond, o) {
+			return
+		}
+		excess := dealt - lethal
+		if excess < 0 {
+			excess = 0
+		}
+		c.SVars[excessName] = strconv.Itoa(int(excess))
+	}
 	// One DealDamage call is ONE damage batch (Forge dealDamage): the events
 	// this loop emits latch the DamageDealtOnce/DamageDoneOnce triggers
 	// together, so a multi-target hit triggers the source's DealtOnce ability
@@ -127,7 +157,13 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			r := rider
 			r.amount = amt
 			if t.obj != 0 {
-				emitObjectDamage(r, t.obj)
+				if o := h.Game().Obj(t.obj); o != nil {
+					lethal, ok := excessLethal(h, o)
+					dealt := emitObjectDamage(r, t.obj)
+					if ok {
+						bindExcess(o, lethal, dealt)
+					}
+				}
 				if remember {
 					c.Remembered = append(c.Remembered, state.Target{Obj: t.obj})
 					eventRemember(h, c, t.obj)
@@ -146,7 +182,11 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
-			emitObjectDamage(rider, t.Obj)
+			lethal, ok := excessLethal(h, o)
+			dealt := emitObjectDamage(rider, t.Obj)
+			if ok {
+				bindExcess(o, lethal, dealt)
+			}
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
 				eventRemember(h, c, t.Obj)
@@ -328,11 +368,11 @@ func payLifelinkRider(r damageRider, dealt int32) {
 // cannot discover the animation itself) so it gets marked damage as well as
 // loyalty loss; printed creatures and plain planeswalkers are unaffected by
 // the tag.
-func emitObjectDamage(r damageRider, target state.ObjID) {
+func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 	h := r.h
 	o := h.Game().Obj(target)
 	if o == nil {
-		return
+		return 0
 	}
 	ev := events.Event{Kind: events.Damage, Obj: target, Amount: r.amount}
 	if h.IsCreature(target) && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
@@ -348,6 +388,7 @@ func emitObjectDamage(r damageRider, target state.ObjID) {
 			Counter: "Deathtouched", Amount: 1})
 	}
 	payLifelinkRider(r, dealt)
+	return dealt
 }
 
 // emitPlayerDamage lands one non-combat Damage event on a player and pays the
@@ -359,6 +400,61 @@ func emitPlayerDamage(r damageRider, target state.PlayerID) {
 		dealt = applied.Amount
 	}
 	payLifelinkRider(r, dealt)
+}
+
+// excessLethal is the amount of damage that is LETHAL to one permanent, read
+// BEFORE the damage lands (CR 120.10 measures excess against the damage that
+// was lethal, and already-marked damage counts toward it): a creature's
+// derived toughness minus its marked damage, a planeswalker's remaining
+// loyalty. Anything else -- an artifact, land or enchantment has no lethal
+// threshold; a Battle's defence-counter threshold is not modelled here -- has
+// no excess computation, so ok is false and NO value is bound (the
+// conservative direction: the sub reads its own default rather than an
+// invented number). Damage to a PLAYER never reaches here: excess is not
+// defined against a player.
+func excessLethal(h Host, o *state.Object) (int32, bool) {
+	switch {
+	case h.IsCreature(o.ID):
+		lethal := h.Toughness(o.ID) - o.Damage
+		if lethal < 0 {
+			lethal = 0
+		}
+		return lethal, true
+	case o.Face() != nil && o.Face().IsPlaneswalker():
+		loyalty := o.Counter("LOYALTY")
+		if loyalty < 0 {
+			loyalty = 0
+		}
+		return loyalty, true
+	default:
+		return 0, false
+	}
+}
+
+// excessConditionHolds evaluates DealDamage's ExcessSVarCondition$ gate. The
+// corpus writes exactly three spellings; `targetedBy` is not part of the
+// general filter grammar, so the three are matched structurally and an
+// unrecognised condition fails CLOSED with one loud Note (no bind), rather
+// than binding an excess the card's clause never asked for.
+func excessConditionHolds(h Host, c *Ctx, cond string, o *state.Object) bool {
+	if cond == "" {
+		return true
+	}
+	switch cond {
+	case "Card.targetedBy", "Creature.targetedBy", "Permanent.targetedBy":
+		// The damaged object is necessarily a chosen target of this
+		// resolution (Defined resolves the targets effDealDamage damages),
+		// so the targetedBy half is structural truth here.
+		return true
+	case "Creature":
+		return h.IsCreature(o.ID)
+	case "Creature.targetedBy+OppCtrl":
+		return h.IsCreature(o.ID) && o.Controller != c.Controller
+	default:
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "unread DealDamage ExcessSVarCondition " + cond})
+		return false
+	}
 }
 
 // effFight implements "SP$/AB$/DB$ Fight" (CR 701.12): each fighter deals

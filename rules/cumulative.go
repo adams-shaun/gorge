@@ -72,13 +72,74 @@ type triggeredEffectCost struct {
 	// carve-out in triggerBodyNeedsCostWindow.
 	mandatory bool
 	// part is the cursor into the flat choice-bearing component list
-	// (triggeredMandatoryParts: Sac then Exile) a mandatory settle walks.
+	// (triggeredMandatoryParts: Sac then Exile then Discard) a settle walks.
 	part int
-	// sacs and exiles accumulate the settled picks (the same reservation
-	// list the unless-pay and cast flows keep) so one permanent cannot pay
-	// two parts and the settle can emit the exact events the picks name.
-	sacs   []state.ObjID
-	exiles []state.ObjID
+	// sacs, exiles and discards accumulate the settled picks (the same
+	// reservation list the unless-pay and cast flows keep) so one object
+	// cannot pay two parts and the settle can emit the exact events the
+	// picks name.
+	sacs     []state.ObjID
+	exiles   []state.ObjID
+	discards []state.ObjID
+	// xPaid is the X this window's cost carried after the X fold: the
+	// payer's announced value (the choose-X ask) or the face SVar:X's fixed
+	// resolved value. It rides the resume point (rp.winPaidX) into the body
+	// at the pay arm, so the body's Count$xPaid / NumCards$ X / TokenPower$ X
+	// reads THIS payment, never the source permanent's cast-time X (which is
+	// all o.X and triggerPaidX can supply for an attack, ETB or end-step
+	// trigger). Zero when the cost carries no unfolded X.
+	xPaid int32
+	// xDone guards the X arm's once-ness: triggeredCostPaymentAsk re-enters
+	// after every mana-ability window (the "done" continuation), and the
+	// choose-X ask must be posed exactly once -- after its answer (or the
+	// fixed fold) the cost carries no unfolded X any more, so the
+	// costCarriesUnfoldedX guard alone would suffice for the re-entries;
+	// the flag also keeps a payer-chooses ask from re-posing if a future
+	// call path re-enters while the announcement is still unanswered.
+	xDone bool
+}
+
+// xFoldBoundCap is the defensive ceiling on an announced trigger-cost X when
+// the potential pool is unbounded (an indeterminate source priced
+// potentialUnbounded saturates Mana.Total): every value up to the cap is
+// genuinely payable there, and no corpus X-fold carrier approaches it. The
+// same hard-cap shape the multikickAsk/replicateAsk loops use.
+const xFoldBoundCap int32 = 64
+
+// costCarriesUnfoldedX reports whether the cost carries an X the payment
+// cannot charge until it is folded: a printed {X} pip (Cost.X, Elenda and
+// Azor's "Cost$ X W U B") or an announced PayLife<X> part (LifeX Spec X,
+// Vizkopa Confessor's "pay any amount of life"). The other announced parts
+// (Sac<X/Spec>, PayEnergy<X>, SubCounter<X/Kind>) are NOT this shape: the
+// trigger window has no settle for them, and they keep the decline-only
+// hard-decline convention (the non-mana-settle follow-up family).
+func costCarriesUnfoldedX(c Cost) bool {
+	if c.X > 0 {
+		return true
+	}
+	for _, part := range c.LifeX {
+		if part.Spec == "X" {
+			return true
+		}
+	}
+	return false
+}
+
+// foldCostX folds a chosen X into the cost, once per unfolded shape: the
+// printed {X} pips become that much generic mana (Cost.WithX) and each
+// announced PayLife<X> part becomes that much fixed life, so the folded
+// cost is Priceable and payManaConv can charge it whole.
+func foldCostX(c Cost, x int32) Cost {
+	out := c.WithX(x)
+	if len(out.LifeX) > 0 {
+		for _, part := range out.LifeX {
+			if part.Spec == "X" {
+				out.Life = addClampedGeneric(out.Life, int64(x))
+			}
+		}
+		out.LifeX = nil
+	}
+	return out
 }
 
 // scaleCost repeats every mana/life payment component once per age counter.
@@ -202,7 +263,10 @@ func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.S
 // non-Mandatory Cost$ arms the window -- not just the Untap / ImmediateTrigger /
 // Draw / dyn-tap shapes the original allowlist served. The window itself keeps
 // the split: a Priceable cost (plain mana, fixed PayLife<N>) offers a real
-// "pay"; everything else lands decline-only (the ParseUnlessCost hard-decline
+// "pay"; a cost whose choice-bearing components are exactly Sac/Exile/Discard
+// parts and whose draws and mana half resolve offers a real pay and settles
+// the components for real (trigcost2, triggeredCostComponentsPayable);
+// everything else lands decline-only (the ParseUnlessCost hard-decline
 // convention -- never a free execution, never a zero-amount payment).
 //
 // Carve-outs, each deliberate:
@@ -540,6 +604,228 @@ func (e *Engine) triggeredCostDrawCounts(tc *triggeredEffectCost) ([]int32, bool
 	return out, true
 }
 
+// evalTriggerCostFixedX evaluates a FIXED X body (the source face's SVar:X
+// names a resolvable expression OTHER than Count$xPaid -- Tomakul Phoenix's
+// Count$CardPower, Tivash's Count$LifeYouGainedThisTurn), with the context
+// the body will see -- Source and Controller bound the way fixLifeXCost/
+// drawCostCount seed their evaluations, plus the trigger context the body's
+// own resolution will carry (the TriggeredCard$/Targeted$ referent family).
+// resolvable=false means the body is unresolvable (fail closed, the
+// decline-only hard-decline convention, never a silent zero).
+func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, o *state.Object, body string) (int32, bool) {
+	ctx := &effects.Ctx{Source: tc.source, Controller: tc.player, SVars: o.Face().SVars}
+	if tcx, ok := e.triggerContexts[tc.resume.obj]; ok {
+		ctx.TriggerContext = tcx
+	}
+	n, resolvable := effects.EvalCountOK(e, ctx, body)
+	if !resolvable || n < 0 {
+		return 0, false
+	}
+	return n, true
+}
+
+// triggeredCostXAsk is the X arm of the payment ask: a cost carrying an
+// unfolded {X} or PayLife<X> part needs its X announced BEFORE the mana
+// activations that cover it (CR 601.2b's announce-then-activate ordering;
+// the ordinary pay/decline election follows the fold). Two shapes:
+//
+//   - FIXED (SVar:X names a resolvable expression other than Count$xPaid):
+//     the value is folded into the cost once, no ask is posed, and the
+//     ordinary flow proceeds with the now-Priceable cost -- the corpus's
+//     "where X is CARDNAME's power" family. The value binds the body at the
+//     pay arm (rp.winPaidX).
+//   - PAYER-CHOOSES (SVar:X is Count$xPaid): a real KChoose over
+//     the payable values 0..bound in ASCENDING order, so option 0 -- what
+//     botpolicy's default arm and a headless host take -- stays the
+//     decline-equivalent (X = 0 pays only the cost's own pips). The bound is
+//     finite and every offered value is genuinely payable against the seat's
+//     potential pool (the floating pool plus every untapped source's
+//     production -- the window then opens paymentManaAsk, so the activations
+//     that cover X + pips are real): the payer's current life caps a
+//     PayLife<X> part, PotentialMana caps a mana {X}.
+//
+// A face with NO SVar:X, and a face whose SVar:X body is unresolvable (Tymna
+// the Weaver's head), both fail closed: no announcement ask, the amount stays
+// unfolded, and the ordinary unpriceable path below poses decline only -- the
+// no-SVar case is what keeps the synthetic copy-cost shapes (Verrak's
+// PayLife<X> copy execute) hard-decline as abcopy1 pinned them. Returns true
+// when the announcement ask was posed; the answer re-enters through
+// triggeredCostAnswer's trigger_cost_x arm.
+func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
+	if tc.xDone || costCarriesDynTap(tc.amount) || !costCarriesUnfoldedX(tc.amount) {
+		return false
+	}
+	// Never fold an X into a payment for a body this build cannot run: an
+	// unregistered body API (Maralen of the Mornsong Avatar's AB$ StoreSVar,
+	// the corpus's one X-fold carrier of the kind) would charge the payer
+	// real mana or life and then emit only the unimplemented-API Note -- the
+	// decline-only hard-decline below is the honest shape for it.
+	if tc.resume == nil || tc.resume.sa == nil || !effects.Supported()["api:"+tc.resume.sa.API] {
+		return false
+	}
+	tc.xDone = true
+	o := e.G.Obj(tc.source)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	body, present := o.Face().SVars["X"]
+	if !present {
+		// No SVar:X at all: nothing fixes the value AND nothing says the payer
+		// announces one -- the corpus's every X-fold carrier names an SVar:X
+		// (the census), and a synthetic no-SVar shape (Verrak's PayLife<X>
+		// copy execute) keeps today's decline-only hard-decline. Fail closed.
+		return false
+	}
+	if strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+		// Payer-chooses by construction: fall through to the ask.
+	} else if n, resolvable := e.evalTriggerCostFixedX(tc, o, body); !resolvable {
+		// A PRESENT but unresolvable SVar:X body (Tymna the Weaver's
+		// head) fails closed: no announcement ask, the amount stays
+		// unfolded, and the ordinary unpriceable path below poses the
+		// decline-only ask -- the same hard-decline convention the
+		// unpayable-cost arm takes, never a silent zero.
+		return false
+	} else {
+		tc.amount = foldCostX(tc.amount, n)
+		tc.xPaid = n
+		return false
+	}
+	// Payer-chooses (SVar:X is Count$xPaid): "you may pay {X}" is the
+	// payer's announcement (CR 601.2b's announce-then-activate ordering).
+	pot := e.PotentialMana(tc.player)
+	bound := int32(-1)
+	if tc.amount.X > 0 {
+		bound = pot.Total()
+		if bound > xFoldBoundCap {
+			bound = xFoldBoundCap
+		}
+	}
+	for _, part := range tc.amount.LifeX {
+		if part.Spec != "X" {
+			continue
+		}
+		if life := e.G.Players[tc.player].Life; bound < 0 || life < bound {
+			bound = life
+		}
+	}
+	if bound < 0 {
+		return false
+	}
+	var opts []decision.Option
+	for x := int32(0); x <= bound; x++ {
+		if !e.costPayablePool(tc.player, tc.source, false, foldCostX(tc.amount, x), pot) {
+			continue
+		}
+		opts = append(opts, decision.Option{Index: len(opts), Kind: "trigger_cost_x",
+			Label: "X = " + strconv.FormatInt(int64(x), 10), Amount: int(x), Obj: tc.source})
+	}
+	if len(opts) == 0 {
+		// No X value is payable at all: the cost can never be paid. The amount
+		// stays unfolded, so the ordinary unpriceable path below poses the
+		// decline-only ask -- the same shape an unresolvable fixed body takes.
+		return false
+	}
+	name := "triggered ability"
+	if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	e.choosing = chooseTriggeredCost
+	e.ask(&decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: name + " — choose a value for X", Source: tc.source, Options: opts})
+	return true
+}
+
+// triggeredCostComponentsPayable reports whether the window can settle a
+// non-Priceable cost's choice-bearing components for real (trigcost2): every
+// component is a Sac/Exile/Discard part (no Announced Sac -- the announced
+// count has no channel here), no OTHER non-mana component rides the cost,
+// no {X}/tap demand needs an announcement the window cannot make, every
+// Draw count resolves, every component is payable at ask time, and the
+// mana/life half is chargeable from the pool (pool-only: the window never
+// opens a mana-activation ask for a component cost, the same shape the
+// unless-pay arm keeps). A cost failing any of these keeps the decline-only
+// ask -- a half-paid commitment is unreachable, and so is the silent skip
+// this gate replaces.
+func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
+	amt := tc.amount
+	if len(amt.Sac)+len(amt.Discard)+len(amt.Exile) == 0 {
+		return false
+	}
+	if amt.Tap || amt.X != 0 {
+		return false
+	}
+	for _, part := range amt.Sac {
+		if part.Announced {
+			return false
+		}
+	}
+	// Every component outside the settleable set keeps the decline-only ask
+	// (PayEnergy, SubCounter, AddCounter, Return, PutToLib, Behold, Reveal,
+	// Forage, the dyn-tap election, a dynamic life/counter value) -- never a
+	// half-paid commitment (the ParseUnlessCost hard-decline convention).
+	// AddCounter is parsed into the Cost (rules/mana.go) but priced FREE for
+	// planeswalker activations; no settle reads it here, so it is rejected
+	// structurally rather than by population -- the corpus carries no trigger
+	// body with one today, and if one lands it must not be silently skipped.
+	if len(amt.SubCounter) > 0 || len(amt.Reveal) > 0 || len(amt.Behold) > 0 ||
+		len(amt.TapPermanent) > 0 || len(amt.Blight) > 0 || len(amt.Energy) > 0 ||
+		len(amt.AddCounter) > 0 || len(amt.Return) > 0 || len(amt.PutToLib) > 0 ||
+		len(amt.LifeX) > 0 || len(amt.DamageYou) > 0 || amt.Forage {
+		return false
+	}
+	if _, ok := e.triggeredCostDrawCounts(tc); !ok {
+		return false
+	}
+	parts := triggeredMandatoryParts(amt)
+	// Reserve candidates ACROSS parts while gating: parts sharing a pool must
+	// be payable TOGETHER, not each in isolation -- two Discard parts of one
+	// card over a one-card hand passed independently before and offered "pay"
+	// that the walk then declined at the second part (an offer that cannot be
+	// honoured). discardCostPayable's reservation walk is the model; the
+	// settle walk itself reserves the same way through tc's component lists.
+	reserved := map[state.ObjID]bool{}
+	for i, part := range parts {
+		if triggeredPartIsDiscard(amt, i) && strings.EqualFold(part.Spec, "Hand") {
+			// The Hand shape pays the whole hand: every card the hand still
+			// holds is reserved and the token's count is satisfied whenever
+			// the hand holds at least that many -- a Discard<1/Hand> token
+			// needs a card; a Discard<0/Hand> one is payable with an empty
+			// hand (a free pay-nothing election, disclosed in the round-2
+			// report; no corpus carrier is measured for it in a window cost).
+			cands := e.triggeredMandatoryCandidatesWith(tc, i, part, reserved)
+			if part.N > 0 && int32(len(cands)) < part.N {
+				return false
+			}
+			for _, id := range cands {
+				reserved[id] = true
+			}
+			continue
+		}
+		if part.N <= 0 {
+			// A zero-count ordinary component has no payment to settle; the
+			// window declines rather than walking a degenerate ask.
+			return false
+		}
+		eligible := e.triggeredMandatoryCandidatesWith(tc, i, part, reserved)
+		if int32(len(eligible)) < part.N {
+			return false
+		}
+		for j := int32(0); j < part.N; j++ {
+			reserved[eligible[j]] = true
+		}
+	}
+	mana := amt
+	mana.Sac, mana.Discard, mana.Exile, mana.Draw = nil, nil, nil, nil
+	if mana.hasManaPayment() || mana.Life > 0 || mana.Snow > 0 ||
+		len(mana.Hybrid) > 0 || len(mana.Phyrexian) > 0 ||
+		len(mana.Twobrid) > 0 || len(mana.HybridPhyrexian) > 0 {
+		if !e.costPayable(tc.player, tc.source, false, mana) {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *Engine) triggeredCostPaymentAsk() {
 	tc := e.triggerCost
 	if tc == nil {
@@ -557,6 +843,10 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	// scaled only by X at 0 -- the outcome a decline gives without emitting
 	// the no-op body's events.
 	if costCarriesDynTap(tc.amount) {
+		// The X fold is deliberately NOT reached from this branch: a cost
+		// carrying BOTH a dynamic tap election and an unfolded X keeps the
+		// decline-only ask below (the corpus's dyn-tap trigger costs are all
+		// tap-only), exactly as before the X fold existed.
 		rest := withoutDynTaps(tc.amount)
 		if rest.Priceable() && !rest.hasManaPayment() && rest.Life == 0 && rest.Snow == 0 {
 			if e.paymentManaAsk(tc.player, tc.source, rest, tc.windowDone,
@@ -569,6 +859,9 @@ func (e *Engine) triggeredCostPaymentAsk() {
 			return
 		}
 		// fall through: the unpayable-cost decline-only ask below
+	}
+	if e.triggeredCostXAsk(tc) {
+		return
 	}
 	if e.paymentManaAsk(tc.player, tc.source, tc.amount, tc.windowDone,
 		"Activate mana abilities to pay "+tc.costLabel, chooseTriggeredCost) {
@@ -587,7 +880,12 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	// count from the source's SVar table here, at the window, so an
 	// unresolvable body offers decline only.
 	payable := tc.amount.Priceable()
-	if !payable && len(tc.amount.Draw) > 0 {
+	if len(tc.amount.Sac)+len(tc.amount.Discard)+len(tc.amount.Exile) > 0 {
+		// A component-bearing cost is payable ONLY through the settle gate
+		// (trigcost2): the Draw arm alone would offer "pay" while silently
+		// skipping the components -- the defect this gate closes.
+		payable = e.triggeredCostComponentsPayable(tc)
+	} else if !payable && len(tc.amount.Draw) > 0 {
 		_, payable = e.triggeredCostDrawCounts(tc)
 	}
 	if !payable {
@@ -723,9 +1021,38 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 	case "trigger_cost_tap":
 		e.triggeredTapAnswer(tc, chosen)
 		return
+	case "trigger_cost_x":
+		// The X announcement's answer (the payer-chooses fold): the chosen
+		// value folds into the cost and the payment ask re-opens, now pricing
+		// the folded cost -- CR 601.2b's announce-then-activate ordering. The
+		// answer cannot name an unoffered value (Decision.Validate clamps to
+		// the offered indices); a chosen value the settle then cannot actually
+		// pay ends in the decline at the pay arm, never a wedge.
+		x := int32(0)
+		if len(chosen) > 0 {
+			x = int32(chosen[0].Amount)
+		}
+		tc.amount = foldCostX(tc.amount, x)
+		tc.xPaid = x
+		e.triggeredCostPaymentAsk()
+		return
 	}
 	paid := false
 	if chosen[0].Kind == "trigger_cost_pay" {
+		if len(tc.amount.Sac)+len(tc.amount.Discard)+len(tc.amount.Exile) > 0 {
+			// The settleable-component cost (trigcost2): the election is
+			// "pay"; walk the components (the mandatory walk's picks -- a
+			// real KChoose where a choice exists, the Hand/Random discard
+			// specials without one) and settle. The walk ends in
+			// settleTriggeredMandatory, which charges the stripped mana half,
+			// emits the component events, executes the draws and resumes the
+			// body. The gate offered "pay" only when every part was payable,
+			// and the window is synchronous -- no priority pass runs between
+			// its asks -- so a part the walk finds unpayable is the decline,
+			// with nothing yet moved to un-pay.
+			e.advanceTriggeredMandatory(tc)
+			return
+		}
 		if len(tc.amount.Draw) > 0 {
 			// The Draw-bearing cost: resolve every count (source SVar for the
 			// dynamic form), charge the mana half, then draw. The window's ask
@@ -750,6 +1077,13 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 	rp := tc.resume
 	e.triggerCost = nil
 	if paid {
+		// The X fold's binding: the announced (or fixed) value rides the
+		// frame into the body, the same channel the dyn-tap election's count
+		// takes (rp.tapPaidX). The body's Count$xPaid then reads THIS
+		// payment, not the source permanent's cast-time X.
+		if tc.xPaid != 0 {
+			rp.winPaidX = tc.xPaid
+		}
 		rp.kind = "effect_paid"
 		e.resumeResolution(rp, nil)
 		return
@@ -773,13 +1107,17 @@ func (e *Engine) triggeredCostDecline(tc *triggeredEffectCost) {
 }
 
 // triggeredMandatoryParts is the flat, ordered list of choice-bearing
-// components a mandatory settle walks: every Sac part, then every Exile
-// part. The order is deterministic (the cost grammar's own order) so a
-// replay settles the same picks in the same sequence.
+// components a settle walks: every Sac part, then every Exile part, then
+// every Discard part. The order is deterministic (the cost grammar's own
+// order, extended with Discard last) so a replay settles the same picks in
+// the same sequence. The mandatory walk only ever carries Sac/Exile
+// (mandatorySettleShape); the Discard range serves the optional window's
+// pay arm, which walks the same list after the pay election (trigcost2).
 func triggeredMandatoryParts(c Cost) []CostPart {
-	parts := make([]CostPart, 0, len(c.Sac)+len(c.Exile))
+	parts := make([]CostPart, 0, len(c.Sac)+len(c.Exile)+len(c.Discard))
 	parts = append(parts, c.Sac...)
 	parts = append(parts, c.Exile...)
+	parts = append(parts, c.Discard...)
 	return parts
 }
 
@@ -799,24 +1137,45 @@ func triggeredMandatoryZone(part CostPart, isSac bool) state.Zone {
 }
 
 // triggeredMandatoryCandidates returns the still-available objects that can
-// pay one mandatory component: the battlefield permanents a Sac part names
-// (never one a CantSacrifice restriction blocks, and never a source that has
-// left the battlefield) or the zone's cards an Exile part names, deduped
-// against every component already settled so one object cannot pay twice.
+// pay one component: the battlefield permanents a Sac part names (never one
+// a CantSacrifice restriction blocks, and never a source that has left the
+// battlefield), the zone's cards an Exile part names, or the hand cards a
+// Discard part names (through the cast flow's discardCandidates, so the
+// Hand all-candidates and Random seeded-selection specials read identically
+// there), deduped against every component already settled so one object
+// cannot pay twice.
 func (e *Engine) triggeredMandatoryCandidates(tc *triggeredEffectCost, idx int, part CostPart) []state.ObjID {
+	return e.triggeredMandatoryCandidatesWith(tc, idx, part, nil)
+}
+
+// triggeredMandatoryCandidatesWith is triggeredMandatoryCandidates with an
+// EXTRA reservation set merged in beside the window's own component lists --
+// the offer-side gate uses it to reserve candidates ACROSS parts (two parts
+// over one shared pool must be payable together, not each in isolation),
+// while the settle walk passes nil and reserves through tc's lists alone.
+func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx int, part CostPart, extra map[state.ObjID]bool) []state.ObjID {
 	isSac := idx < len(tc.amount.Sac)
-	zone := triggeredMandatoryZone(part, isSac)
-	spec := part.Spec
-	if isSac {
-		// NICKNAME is the same bare self-reference as CARDNAME.
-		spec = sacrificeMatchSpec(spec)
-	}
-	used := make(map[state.ObjID]bool, len(tc.sacs)+len(tc.exiles))
+	used := make(map[state.ObjID]bool, len(tc.sacs)+len(tc.exiles)+len(tc.discards))
 	for _, id := range tc.sacs {
 		used[id] = true
 	}
 	for _, id := range tc.exiles {
 		used[id] = true
+	}
+	for _, id := range tc.discards {
+		used[id] = true
+	}
+	for id := range extra {
+		used[id] = true
+	}
+	if triggeredPartIsDiscard(tc.amount, idx) {
+		return e.discardCandidates(tc.player, tc.source, part, false, used)
+	}
+	zone := triggeredMandatoryZone(part, isSac)
+	spec := part.Spec
+	if isSac {
+		// NICKNAME is the same bare self-reference as CARDNAME.
+		spec = sacrificeMatchSpec(spec)
 	}
 	var out []state.ObjID
 	for _, id := range e.G.Zone(zone, tc.player) {
@@ -833,30 +1192,67 @@ func (e *Engine) triggeredMandatoryCandidates(tc *triggeredEffectCost, idx int, 
 	return out
 }
 
+// triggeredPartIsDiscard reports whether the component at flat index idx of
+// c's triggeredMandatoryParts list is a Discard part (the list's third
+// range, after Sac and Exile).
+func triggeredPartIsDiscard(c Cost, idx int) bool {
+	return idx >= len(c.Sac)+len(c.Exile)
+}
+
 // recordTriggeredMandatoryPick appends one settled component's picks to the
 // window's reservation lists.
 func (tc *triggeredEffectCost) recordMandatoryPick(idx int, ids []state.ObjID) {
-	if idx < len(tc.amount.Sac) {
+	switch {
+	case idx < len(tc.amount.Sac):
 		tc.sacs = append(tc.sacs, ids...)
-		return
+	case idx < len(tc.amount.Sac)+len(tc.amount.Exile):
+		tc.exiles = append(tc.exiles, ids...)
+	default:
+		tc.discards = append(tc.discards, ids...)
 	}
-	tc.exiles = append(tc.exiles, ids...)
 }
 
-// advanceTriggeredMandatory settles every component of a mandatory cost in
-// order: a component with an exact-candidate count records its picks without
-// a decision (a decision nobody could answer differently is never emitted),
+// advanceTriggeredMandatory settles every component of a cost in order: a
+// component with an exact-candidate count records its picks without a
+// decision (a decision nobody could answer differently is never emitted),
 // a component with a genuine choice poses a real KChoose, and a component
 // that cannot be paid at all skips the parked body. No pay/decline election
-// is ever posed -- a mandatory cost has no "may".
+// is ever posed HERE -- for a mandatory cost there is no "may" (the window's
+// pay election, where one exists, was answered before this walk started),
+// and a Hand-spec Discard pays the whole hand and a Random-spec Discard pays
+// seeded picks without ever asking (the cast flow's discardAsk specials).
 func (e *Engine) advanceTriggeredMandatory(tc *triggeredEffectCost) {
 	parts := triggeredMandatoryParts(tc.amount)
 	for tc.part < len(parts) {
 		part := parts[tc.part]
+		isSac := tc.part < len(tc.amount.Sac)
+		isDiscard := triggeredPartIsDiscard(tc.amount, tc.part)
 		eligible := e.triggeredMandatoryCandidates(tc, tc.part, part)
+		if isDiscard && strings.EqualFold(part.Spec, "Hand") {
+			// Forge's "discard your hand" shape: every hand card pays,
+			// whatever count the token spells (the corpus writes the ignored
+			// count as both 0 and 1).
+			tc.recordMandatoryPick(tc.part, eligible)
+			tc.part++
+			continue
+		}
+		if isDiscard && strings.EqualFold(part.Spec, "Random") {
+			// A Random discard is a selection method, never a choice: the
+			// seeded picks the cast flow's discardAsk takes.
+			picks := make([]state.ObjID, 0, part.N)
+			for i := int32(0); i < part.N && len(eligible) > 0; i++ {
+				pick := e.Rand(len(eligible))
+				picks = append(picks, eligible[pick])
+				eligible = append(eligible[:pick], eligible[pick+1:]...)
+			}
+			tc.recordMandatoryPick(tc.part, picks)
+			tc.part++
+			continue
+		}
 		if int32(len(eligible)) < part.N {
 			// A component that cannot be fully paid skips the body; nothing
-			// has moved yet, so the skip leaves the board untouched.
+			// has moved yet (the settle emits every event only at the end),
+			// so the skip leaves the board untouched.
 			e.triggeredCostDecline(tc)
 			return
 		}
@@ -869,14 +1265,16 @@ func (e *Engine) advanceTriggeredMandatory(tc *triggeredEffectCost) {
 		if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
 			name = o.Face().Name
 		}
-		kind := "sacrifice"
-		verb := "sacrifice"
-		if tc.part >= len(tc.amount.Sac) {
-			kind, verb = "exile_cost", "exile"
+		kind, noun := "sacrifice", "permanent(s)"
+		switch {
+		case isDiscard:
+			kind, noun = "discard", "card(s)"
+		case !isSac:
+			kind, noun = "exile_cost", "card(s)"
 		}
 		d := &decision.Decision{Player: tc.player, Kind: decision.KChoose,
 			Min: int(part.N), Max: int(part.N), Source: tc.source,
-			Prompt: name + " — choose " + strconv.FormatInt(int64(part.N), 10) + " permanent(s) to " + verb}
+			Prompt: name + " — choose " + strconv.FormatInt(int64(part.N), 10) + " " + noun + " to " + kind}
 		for _, id := range eligible {
 			label := e.targetName(id)
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: kind, Obj: id, Label: label})
@@ -927,18 +1325,19 @@ func (e *Engine) triggeredMandatoryAnswer(chosen []decision.Option) {
 	e.advanceTriggeredMandatory(tc)
 }
 
-// settleTriggeredMandatory finishes a fully settled mandatory cost: the mana
-// half (if any) is charged, each picked object leaves its zone by the correct
-// event (events.Sacrifice for a Sac part, a MoveZone to exile for an Exile
-// part, the same events the cast flow emits), and the parked body resumes.
-// The mana charge is a totality guard -- mandatorySettleShape armed this
-// window only when the mana half is priceable, but a board that changed under
-// the walk could in principle leave it uncovered, in which case the body is
-// skipped rather than half paid.
+// settleTriggeredMandatory finishes a fully settled cost: the mana half (if
+// any) is charged, each picked object leaves its zone by the correct event
+// (events.Sacrifice for a Sac part, a MoveZone to exile for an Exile part,
+// events.DiscardCost for a Discard part -- the cast flow's provenance
+// marker, so discard triggers and the CardsDiscardedThisTurn count see cost
+// discards), the cost's own Draw components draw (the pay arm's draw half),
+// and the parked body resumes. The mana charge is a totality guard -- the
+// gates armed this window only when the mana half was chargeable, but a
+// board that changed under the walk could in principle leave it uncovered,
+// in which case the body is skipped rather than half paid.
 func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 	stripped := tc.amount
-	stripped.Sac = nil
-	stripped.Exile = nil
+	stripped.Sac, stripped.Discard, stripped.Exile, stripped.Draw = nil, nil, nil, nil
 	if (stripped.hasManaPayment() || stripped.Life > 0) &&
 		!e.payManaConv(tc.player, stripped, e.paymentConv(tc.player, tc.source, false)) {
 		e.triggeredCostDecline(tc)
@@ -955,6 +1354,32 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 	for _, id := range tc.exiles {
 		if o := e.G.Obj(id); o != nil {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
+		}
+	}
+	for _, id := range tc.discards {
+		if o := e.G.Obj(id); o != nil {
+			e.emit(events.DiscardCost(id))
+		}
+	}
+	// The cost's own Draw components (the pay arm's draw half -- Ambergris'
+	// "discard your hand. If you do, draw two cards"). The pay gate resolved
+	// every count before offering "pay", so the belt-and-braces re-resolution
+	// here failing is the decline: nothing to un-pay, the component events
+	// above are the payment and the body never runs.
+	if len(tc.amount.Draw) > 0 {
+		draws, ok := e.triggeredCostDrawCounts(tc)
+		if ok {
+			for i, part := range tc.amount.Draw {
+				if drawer, hasDrawer := castFlowDrawPlayer(part.Spec, tc.player); hasDrawer {
+					for n := int32(0); n < draws[i]; n++ {
+						e.drawCostCard(drawer)
+					}
+				}
+			}
+		}
+		if !ok {
+			e.triggeredCostDecline(tc)
+			return
 		}
 	}
 	rp.kind = "effect_paid"

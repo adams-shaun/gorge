@@ -117,9 +117,10 @@ const (
 	APIWard                  APICode = 74
 	APIEcho                  APICode = 75
 	APIChangeX               APICode = 76
+	APIAnimateAll            APICode = 77
 
 	// APICodeCount includes the zero/unknown slot and sizes dense dispatch.
-	APICodeCount = 77
+	APICodeCount = 78
 )
 
 // APICodeForName returns the stable opcode for an engine-owned effect API.
@@ -132,6 +133,8 @@ func APICodeForName(api string) APICode {
 		return APIAmass
 	case "Animate":
 		return APIAnimate
+	case "AnimateAll":
+		return APIAnimateAll
 	case "Attach":
 		return APIAttach
 	case "BecomeMonarch":

@@ -31,6 +31,10 @@ type fakeHost struct {
 	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
 	// true branch (the real log-scan read is pinned in rules).
 	castFromHand bool
+	// wasCast is the WasCast answer the double reports (task ifcastmain1):
+	// the eval-level Count$IfCastInOwnMainPhase tests flip it to pin the
+	// true/false branches independently of the live main-phase read.
+	wasCast bool
 	// revolt is the RevoltHolds answer the double reports (the bare
 	// Condition$ Revolt gate and the Count$Revolt branch head read it; the
 	// real event-log scan is pinned in rules).
@@ -151,6 +155,10 @@ func (h *fakeHost) LifeGainedThisTurn(_ state.PlayerID) int32 { return 0 }
 // effects-level PlayerCountDefinedRegistered tests configure.
 func (h *fakeHost) CombatDamageToPlayersThisTurn() []CombatDamageHit { return h.combatHits }
 
+// CardsDiscardedThisTurn has no event log here; the double reports zero (the
+// same conservative no-op as LifeLostThisTurn).
+func (h *fakeHost) CardsDiscardedThisTurn(_ state.PlayerID) int32 { return 0 }
+
 // TurnsTaken has no event log here; the double reports zero.
 func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
 
@@ -187,6 +195,11 @@ func (h *fakeHost) WasCastFromHandByYou(_ state.ObjID, _ state.PlayerID) bool { 
 // — enough for the branch-head and ConditionPresent$ gate unit tests, whose
 // provenance is pinned end to end on the real engine in rules.
 func (h *fakeHost) WasCastFromHand(_ state.ObjID) bool { return h.castFromHand }
+
+// WasCast is the Count$IfCastInOwnMainPhase third conjunct's read (task
+// ifcastmain1): the fake reports the flag, so the eval-level head tests pin
+// both branches by flipping it (the real engine read is pinned in rules).
+func (h *fakeHost) WasCast(_ state.ObjID) bool { return h.wasCast }
 
 // CommanderIdentityColourCount has no commander bookkeeping here; the double
 // reports zero (the same replay-derivable class as TurnsTaken above).

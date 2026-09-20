@@ -34,8 +34,10 @@ func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 // AffectedZone order, then the zone slice order -- never a map -- so the
 // resulting option list is reproducible run to run. Zones are deduplicated
 // per (zone, id) so two grants naming the same zone never offer the same land
-// twice. Only zones a land can meaningfully be played from (graveyard, exile)
-// are walked, since hand is covered by the normal walk and library is hidden.
+// twice. The zones walked are the graveyard and exile, plus the top card of
+// the library (the kw-mayplay fallback below): the hand is covered by the
+// normal walk, and a library card BELOW the top is hidden and cannot be
+// meaningfully named.
 func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 	if !e.sorcerySpeed(p) || e.G.Players[p].LandsPlayed >= int32(1+e.adjustLandPlays(p)) {
 		return nil

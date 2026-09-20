@@ -60,6 +60,7 @@ type Face struct {
 	power                  int32
 	toughness              int32
 	characteristicDefining bool
+	allCreatureTypesCDA    bool
 	cmc                    int32
 	manaProduction         ManaProduction
 

@@ -1212,7 +1212,15 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 			Min: min, Max: int(n), Source: c.Source,
 			ResumeKind: "hand_move", ResumeSA: sa, ResumeTarget: i,
-			Prompt: handMovePromptFor(sa, to, int(n), chooser == owner)}
+			// The re-entered walk revalidates the answered cards against the
+			// SAME filter it offered them under (Card.IsRemembered in Vizkopa
+			// Confessor's PickOne, whose remembered population is ctx-level
+			// only -- RememberRevealed$), so the ask must RIDE that set the way
+			// every other mid-resolution ask boundary does (attach.go,
+			// counters.go, play.go): without it the rebuild loses the ctx-level
+			// Remembered and the revalidation re-eligible-matches nothing.
+			ResumeRemembered: copyTargets(c.Remembered),
+			Prompt:           handMovePromptFor(sa, to, int(n), chooser == owner)}
 		for _, id := range eligible {
 			name := "a card"
 			if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -2412,8 +2420,12 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		}
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 			Min: 0, Max: int(m), Source: c.Source,
+			// The same remembered ride the hand_move ask carries: the
+			// re-entered effHiddenPick revalidates against ChangeType$, which
+			// can be a ctx-Remembered predicate.
 			ResumeKind: "hidden_pick", ResumeSA: sa, ResumeTarget: i,
-			Prompt: prompt}
+			ResumeRemembered: copyTargets(c.Remembered),
+			Prompt:           prompt}
 		if mandatory {
 			d.Min = int(m)
 		}

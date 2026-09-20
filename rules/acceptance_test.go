@@ -125,7 +125,14 @@ var knownUnsupported = map[string][]string{
 	"Shifting Woodland":            {"api:Clone"},
 	"Vesuva":                       {"api:Clone"},
 	"Tireless Provisioner":         {"api:GenericChoice"},
+	"Torment of Hailfire":          {"api:GenericChoice"},
 	"Famished Worldsire":           {"kw:Devour"},
+	// The pro-shaper/Commander cards whose gap was previously invisible
+	// because Primitive() walked the Sub chain only: an SVar-naming
+	// parameter (Charm's Choices$, Repeat's RepeatSubAbility$) resolved
+	// the body at runtime, so Face.Primitives never surfaced the API
+	// (prims1).
+	"Vision, Synthezoid Avenger": {"api:Phases"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

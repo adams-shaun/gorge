@@ -156,12 +156,30 @@ type Engine struct {
 	// IT emits; the same intent-boundary discipline as expiringControl.
 	reconcilingControlStatics bool
 
+	// mulligans is Config.Mulligans carried past genesis: the colour round's
+	// end (rules/commander_color.go) must re-enter the same mulligan/opening
+	// hand-off the genesis branch would have taken, and cfg is not otherwise
+	// retained. Plain int, so Clone copies it.
+	mulligans int
 	// pregame is true while the London mulligan round runs, between the
 	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
 	// dispatches to stepPregame (rules/mulligan.go) while it is true, and the
 	// round's end clears it and hands to beginTurn. Bool field, so Clone
 	// copies it like every other value field.
 	pregame bool
+	// coloring is true while the CR 903.4b commander colour-choice round runs,
+	// BEFORE the London mulligan round (the choice is made "before the game
+	// begins", and the mulligan round is also pregame). New sets it only when
+	// a seat's commander carries the characteristic-defining chosen-colour
+	// static; step() dispatches to stepColorRound (rules/commander_color.go)
+	// while it is true, and the round's end opens the mulligan/opening round
+	// exactly as if the colour round were absent. Bool field, so Clone copies
+	// it like pregame does.
+	coloring bool
+	// colorRound is the colour round's plain-value state (rules/
+	// commander_color.go): one qualifying (seat, commander) ask per entry and
+	// a cursor. Never a closure, so Clone copies it like the mulligan round.
+	colorRound colorRound
 	// mulligan is the round's plain-value state (rules/mulligan.go) -- seats,
 	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
 	// it like cast/choosing.
@@ -948,6 +966,7 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		loop:         newLivelockWatcher(cfg.LoopGuard),
 		turnsTaken:   make([]int32, len(cfg.Names)),
 		compiledText: newCompiledText(cfg),
+		mulligans:    cfg.Mulligans,
 	}
 	e.G.Tokens = cfg.Tokens
 	e.format = cfg.Format
@@ -1126,32 +1145,56 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		// preserving the historic event stream keeps recorded matches
 		// replayable), which is what view's pregame projection and the
 		// Count$StartingPlayer head read.
-		if cfg.Mulligans > 0 {
-			// Ruling R-8.4: the London mulligan round lives between the deal
-			// and turn 1. e.pregame makes step() dispatch to stepPregame
-			// (rules/mulligan.go) instead of the ordinary turn steps; the
-			// round's end calls beginTurn below. Over is already false (the
-			// per-seat deck-out guard above returned early) -- a game that
-			// ended during the deal never starts a round.
-			// CR 103.5: the starting player declares first, then each other
-			// player in turn order -- AliveFrom(e.G.StartingPlayer) is that
-			// order, which is also beginTurn's seat at the round's end. The
-			// opening-hand effects round runs after this round (a Gemstone
-			// Caverns may not be used from a hand its owner later mulliganed
-			// away), and an accepted Impatient Iguana there replaces the
-			// recorded designation before turn one.
-			e.pregame = true
-			e.mulligan = newMulliganRound(e.G.AliveFrom(e.G.StartingPlayer), cfg.Mulligans)
-		} else {
-			e.opening = e.newOpeningRound(e.G.StartingPlayer, 0)
-			if len(e.opening.effects) > 0 {
-				e.stepOpening()
-				return e
-			}
-			e.beginTurn(e.G.StartingPlayer)
-		}
+		e.startPostDealSetup()
 	}
 	return e
+}
+
+// startPostDealSetup opens the pregame rounds between the opening deal and
+// turn 1. The CR 903.4b commander colour-choice round runs FIRST when a
+// qualifying commander exists (the choice is made "before the game begins",
+// and the London mulligan round is also pregame); otherwise it hands straight
+// to startMulliganOrTurn. Both genesis and the colour round's end call it, so
+// a game with no qualifying commander is byte-identical to the pre-round
+// engine.
+func (e *Engine) startPostDealSetup() {
+	if round := e.newColorRound(); len(round.asks) > 0 {
+		e.coloring = true
+		e.colorRound = round
+		e.stepColorRound()
+		return
+	}
+	e.startMulliganOrTurn()
+}
+
+// startMulliganOrTurn opens whichever round follows the colour round: the
+// London mulligan round (Config.Mulligans > 0), the optional opening-hand
+// effects round, or turn 1 directly.
+func (e *Engine) startMulliganOrTurn() {
+	if e.mulligans > 0 {
+		// Ruling R-8.4: the London mulligan round lives between the deal
+		// and turn 1. e.pregame makes step() dispatch to stepPregame
+		// (rules/mulligan.go) instead of the ordinary turn steps; the
+		// round's end calls beginTurn below. Over is already false (the
+		// per-seat deck-out guard above returned early) -- a game that
+		// ended during the deal never starts a round.
+		// CR 103.5: the starting player declares first, then each other
+		// player in turn order -- AliveFrom(e.G.StartingPlayer) is that
+		// order, which is also beginTurn's seat at the round's end. The
+		// opening-hand effects round runs after this round (a Gemstone
+		// Caverns may not be used from a hand its owner later mulliganed
+		// away), and an accepted Impatient Iguana there replaces the
+		// recorded designation before turn one.
+		e.pregame = true
+		e.mulligan = newMulliganRound(e.G.AliveFrom(e.G.StartingPlayer), e.mulligans)
+	} else {
+		e.opening = e.newOpeningRound(e.G.StartingPlayer, 0)
+		if len(e.opening.effects) > 0 {
+			e.stepOpening()
+			return
+		}
+		e.beginTurn(e.G.StartingPlayer)
+	}
 }
 
 // finishTerminalGenesis finalizes a game whose opening deal left at most one

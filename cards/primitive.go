@@ -10,6 +10,18 @@ import "sort"
 // not just kw:Living Weapon and kw:Equip but also the api:Token, api:Attach
 // and trig:ChangesZone its expansion needs, exactly as if those lines had
 // been printed in the script by hand.
+//
+// The walk follows SubAbility$ chains AND every SVar body this face declares
+// (EachSVarAbility), because an effect primitive resolves some behaviour from
+// a PARAMETER that names an SVar rather than from its Sub chain — `Choices$`
+// (effCharm/effVote), `RepeatSubAbility$` (effRepeat), Branch's
+// True/FalseSubAbility$ (resumeResolution), a delayed trigger's `Execute$`.
+// Path of the Ghosthunter's api:Planeswalk/api:ChaosEnsues and Torment of
+// Hailfire's api:GenericChoice are reachable only that way; a Sub-only walk
+// would report the card as fully supported while those APIs are unregistered.
+// ResolveSVar returns nil for a body that does not parse as an ability (a
+// `Count$…` expression behind ConditionCheckSVar$/SVarCompare$), so value
+// bodies are not pulled in.
 func (f *Face) Primitives() []string {
 	set := map[string]struct{}{}
 	var walk func(sa *SA, depth int)
@@ -37,12 +49,36 @@ func (f *Face) Primitives() []string {
 	for _, k := range f.Keywords {
 		set["kw:"+KeywordHead(k)] = struct{}{}
 	}
+	// Blanket SVar walk: the shared reachability point so this coverage walk
+	// and rules' param census (cardCensusLabels) cannot disagree about which
+	// SVar bodies are reachable.
+	f.EachSVarAbility(func(sa *SA) { walk(sa, 0) })
 	out := make([]string, 0, len(set))
 	for k := range set {
 		out = append(out, k)
 	}
 	sort.Strings(out)
 	return out
+}
+
+// EachSVarAbility calls visit for every SVar body this face declares that
+// compiles to an ability. A body that is not an ability (a `Count$…`
+// expression behind ConditionCheckSVar$/SVarCompare$) makes ResolveSVar
+// return nil and is skipped, so value bodies are not visited. Each name is
+// resolved once; the returned *SA's own SubAbility$ chain is already resolved
+// by ResolveSVar, and its depth cap bounds a cyclic reference. This is the
+// one reachability rule for SVar-named ability chains: Face.Primitives (the
+// coverage walk) and rules' cardCensusLabels (the param census) both go
+// through it.
+func (f *Face) EachSVarAbility(visit func(sa *SA)) {
+	if visit == nil {
+		return
+	}
+	for name := range f.SVars {
+		if sa := ResolveSVar(f.SVars, name); sa != nil {
+			visit(sa)
+		}
+	}
 }
 
 // Primitives is the union across every face.

@@ -205,6 +205,17 @@ type Host interface {
 	// ByYou read takes); a card never put on the stack (cheated into play)
 	// reads false; latest-cast-wins.
 	WasCastFromHand(obj state.ObjID) bool
+	// WasCast reports whether card obj is a CAST SPELL in the Forge
+	// Card.wasCast() sense (castFrom != null) -- the third conjunct of the
+	// Count$IfCastInOwnMainPhase branch head (task ifcastmain1). A card
+	// moved to the stack as part of casting is cast; a copy (IsCopy) is
+	// never cast; a permanent cheated into play reads false. Unlike the
+	// hand-provenance reads, an announced-but-not-yet-pushed cast IS cast:
+	// Forge sets castFrom BEFORE setupTargets evaluates TargetMax$, and the
+	// pending CR 601.2c announcement ask must therefore read true (the
+	// engine's pending-cast field covers that window). Derived from the event
+	// log plus the live pending cast, so a replay derives the same answer.
+	WasCast(obj state.ObjID) bool
 	// LifeLostThisTurn reports the total life player p lost THIS TURN — the
 	// sum of every LifeChange below zero since the last TurnChange, derived
 	// from the event log so a replay derives the same number. This is the
@@ -237,6 +248,17 @@ type Host interface {
 	// protection Note is not damage), and only the PLAYER branch: combat
 	// damage to a permanent is not the property any carrier reads.
 	CombatDamageToPlayersThisTurn() []CombatDamageHit
+	// CardsDiscardedThisTurn reports how many cards player p discarded THIS
+	// TURN — every events.IsDiscard move since the last TurnChange, the cost
+	// form (events.DiscardCost) included, derived from the event log so a
+	// replay derives the same number. This is the
+	// PlayerCountPropertyYou$CardsDiscardedThisTurn backing (Ambergris
+	// Citadel Agent's "X = cards you discarded this turn" behind a
+	// Cost$ Discard<1/Hand> Draw<2/You> body). A cost-form discard event
+	// carries no Player field, so the fold reads the discarded object's
+	// owner there — a cost discard is paid from the payer's own hand (CR
+	// 118.2a), so the owner is the discarder.
+	CardsDiscardedThisTurn(p state.PlayerID) int32
 	// TurnsTaken reports how many of the game's turns have begun with p as
 	// the active player, INCLUDING the turn in progress when it is p's —
 	// Forge's Player.getTurns backing (Serra Avenger's
@@ -857,6 +879,18 @@ type Ctx struct {
 	// exactly Amount$. SacOptionalTarget identifies that player's target slot.
 	SacOptional       string
 	SacOptionalTarget int
+	// BlightPicks is the answered per-player blight choice on a re-entered
+	// Blight resolution (CR 701.60): the creature the blighting player chose
+	// to take the −1/−1 counters, in answer order. BlightDone distinguishes
+	// "answered" from the first pass and BlightTarget identifies the Defined$
+	// target index whose player posed that ask, so re-entry skips targets
+	// already processed before suspension and continues asking later targets
+	// (the SacPicks/SacDone/SacTarget discipline). The asking effect consumes
+	// and clears all three at the top of its own walk (the fx42 scoping
+	// discipline), so a nested blight cannot inherit the outer answer.
+	BlightPicks  []state.ObjID
+	BlightDone   bool
+	BlightTarget int
 	// UnlessElected is the answered UnlessType$ election of a Discard carrying
 	// UnlessType$ (Thirst for Knowledge's "discard two cards unless you
 	// discard an artifact card"): "unless" means the player elected the

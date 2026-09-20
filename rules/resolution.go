@@ -136,6 +136,19 @@ type resumePoint struct {
 	// cast-time value, never this payment's; resumeResolution seeds Ctx.X
 	// from it so the body's Count$xPaid reads answer. Zero elsewhere.
 	tapPaidX int32
+	// winPaidX is the X the triggered-cost window's X fold announced or
+	// fixed (rules/cumulative.go: the payer's choose-X answer, or the face
+	// SVar:X's fixed evaluated value) for a body whose `Cost$` carries an
+	// unfolded {X} (Elenda and Azor's "pay {X}{W}{U}{B}") or PayLife<X>
+	// part (Vizkopa Confessor's "pay any amount of life"). It rides the
+	// frame for the same reason tapPaidX does -- the trigger object was
+	// never paid an X, and o.X / triggerPaidX can only supply the source
+	// permanent's cast-time value, which for an attack, ETB or end-step
+	// trigger is nothing to do with this payment -- and it is set at the pay
+	// arm only, from the answered announcement decision or the evaluated
+	// fixed body, so a replay derives it exactly as tapPaidX does. Zero
+	// elsewhere (and zero on a declined window: the body never runs).
+	winPaidX int32
 	// charmRest carries the remaining chosen mode names of a cross-mode
 	// TargetUnique Charm's mode loop (SuspendCharmRest): the frame re-enters
 	// the Charm SA itself with Ctx.Modes = charmRest, so effCharm runs the
@@ -165,13 +178,12 @@ type resumePoint struct {
 	loopBound      bool
 	loopRemembered []state.Target
 	// repeatSubject is the RepeatEach subject of the loop whose iteration
-	// this frame resumes inside (the Imprinted binding). It is CAPTURED here
-	// so the subject survives the suspension -- but it is NOT yet restored
-	// into Ctx.RepeatSubject at the resume rebuild (the loopBound arm above
-	// restores only loopRemembered), so a resumed ask re-enters with
-	// Ctx.RepeatSubject still empty: a Defined$ RepeatSubject read after a
-	// suspension resolves fail-closed. Filed as
-	// repeat-subject-dies-on-suspension; zero on frames outside any iteration.
+	// this frame resumes inside (the Imprinted binding). SuspendRepeat
+	// captured it here so the subject survives the suspension, and the
+	// resume rebuild's loopBound arm below restores it into
+	// Ctx.RepeatSubject, so a Defined$ Imprinted / ImprintedController read
+	// after a suspension (definedSpec, unlessPayerTargets) re-binds the
+	// iteration's subject. Zero on frames outside any iteration.
 	repeatSubject state.Target
 	// repeat is a kind "repeat" frame's loop cursor.
 	repeat *repeatCursor
@@ -698,6 +710,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.tapPaidX != 0 {
 		ctx.X = rp.tapPaidX
 	}
+	// The trigger-cost window's X fold (the {X}/{PayLife<X>} announcement:
+	// Elenda and Azor, Vizkopa Confessor, Necrodominance): the announced or
+	// fixed value binds exactly like the dyn-tap count above, so the body's
+	// Count$xPaid / NumCards$ X / TokenPower$ X reads this payment.
+	if rp.winPaidX != 0 {
+		ctx.X = rp.winPaidX
+	}
 	var svars map[string]string
 	if o.Ability != nil {
 		// A triggered or activated ability: mirror resolveTop's ability
@@ -787,6 +806,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
+		if rp.repeatSubject != (state.Target{}) {
+			ctx.RepeatSubject = rp.repeatSubject
+		}
 	}
 	// A mid-resolution ask that rode the walk's Remembered (the hidden-library
 	// search sets ResumeRemembered -- a cast spell's Remembered lives only in
@@ -1335,6 +1357,25 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.CounterPickDone = true
+		case "blight":
+			// A Blight's per-player KChoose (CR 701.60: the blighting player
+			// chooses which of their own creatures takes the −1/−1 counters)
+			// was answered. The chosen options carry the object in Obj (the
+			// same shape the "sacrifice" and "counter_pick" arms read), so the
+			// id list goes straight to Ctx.BlightPicks in the player's answer
+			// order; BlightDone distinguishes "answered" from the first pass
+			// and BlightTarget keeps the answer attached to the exact Defined$
+			// target that asked. effBlight consumes and clears all three at the
+			// top of its own walk, so a nested blight cannot inherit the outer
+			// answer.
+			ctx.BlightPicks = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.BlightPicks = append(ctx.BlightPicks, o.Obj)
+				}
+			}
+			ctx.BlightDone = true
+			ctx.BlightTarget = rp.target
 		case "roll":
 			// A RollDice choose-one-result answer (effects/dice.go's
 			// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the chosen

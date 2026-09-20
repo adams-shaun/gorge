@@ -2218,6 +2218,32 @@ func (e *Engine) WasCastFromHand(obj state.ObjID) bool {
 	return false
 }
 
+// WasCast satisfies effects.Host's WasCast (Forge Card.wasCast():
+// castFrom != null), the Count$IfCastInOwnMainPhase third conjunct (task
+// ifcastmain1). The pending CR 601.2c announcement ask is a cast in progress:
+// pushCast runs AFTER targetAsk, so the log scan alone would misread Return
+// to Dust's own TargetMax$ X bound as uncast; the live pending cast closes
+// that window (Forge sets castFrom before setupTargets). e.cast.ability < 0
+// excludes an ACTIVATED-ABILITY activation, which Forge never treats as a
+// cast. A copy was never cast (IsCopy), and a card never put on the stack
+// (cheated into play) reads false. Derived from the event log plus the live
+// pending cast, so a replay derives the same answer.
+func (e *Engine) WasCast(obj state.ObjID) bool {
+	if e.cast != nil && e.cast.card == obj && e.cast.ability < 0 {
+		return true
+	}
+	if o := e.G.Obj(obj); o == nil || o.IsCopy {
+		return false
+	}
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return true
+		}
+	}
+	return false
+}
+
 // WasCastByYou reports whether card obj was CAST AT ALL by player p — the
 // bare wasCastByYou qualifier's engine read (task castprov2: the "When
 // CARDNAME enters, if you cast it" ETB family — Zacama, Marina Vendrell's
@@ -2311,6 +2337,40 @@ func (e *Engine) LifeGainedThisTurn(p state.PlayerID) int32 {
 		}
 		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount > 0 {
 			n += ev.Amount
+		}
+	}
+	return n
+}
+
+// CardsDiscardedThisTurn satisfies effects.Host's CardsDiscardedThisTurn for
+// PlayerCountPropertyYou$CardsDiscardedThisTurn (Ambergris Citadel Agent's
+// "X = cards you discarded this turn"): every events.IsDiscard move since
+// the last TurnChange naming p — the ordinary Discard form by its Player
+// field, the cost form (events.DiscardCost, which carries no Player — every
+// emitter constructs it without one, so the Player field is seat 0 regardless
+// of who paid) by the discarded object's owner alone, since a cost discard is
+// paid from the payer's own hand (CR 118.2a). Classifying by the marker and
+// not by "Player == 0 as a fallback" is what keeps seat 0's tally from
+// counting every other seat's cost discard. Derived from the event log like
+// LifeLostThisTurn, so a replay derives the same number.
+func (e *Engine) CardsDiscardedThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if !events.IsDiscard(ev) {
+			continue
+		}
+		if events.IsDiscardCost(ev) {
+			if o := e.G.Obj(ev.Obj); o != nil && o.Owner == p {
+				n++
+			}
+			continue
+		}
+		if ev.Player == p {
+			n++
 		}
 	}
 	return n
