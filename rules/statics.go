@@ -1727,8 +1727,9 @@ func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
 // metalcraftHolds is the shared Metalcraft read: three or more artifacts the
 // player controls, counted off the derived types so a layer-4 type grant is
 // seen (the same read rules/legal.go's activationConditionOK makes). Used by
-// the cost-modifier gate, the Continuous gate and any future condition reader
-// -- ONE census, so the three cannot drift apart.
+// the cost-modifier gate, the Continuous gate, the trigger condition gate
+// (triggerConditionHoldsAs' Metalcraft$ / bare-Condition$ Metalcraft clauses)
+// and any future condition reader -- ONE census, so none can drift apart.
 func (e *Engine) metalcraftHolds(p state.PlayerID) bool {
 	n := 0
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
