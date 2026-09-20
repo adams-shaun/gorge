@@ -3766,23 +3766,22 @@ func faceWantsCastSpend(f *cards.Face) bool {
 
 // faceWantsTimesKicked is the heads-safety gate for the pay-time multikick
 // CastInfo on a PLAIN-Kicker cast mode (the converge gate's shape): it
-// reports whether the face's SVar table reads the times-kicked count
-// anywhere (Count$TimesKicked, op suffix included). The 11 legacy
-// plain-Kicker carriers (Stronghold Arena, Urborg Lhurgoyf, ...) carry the
-// SVar and get a real count stamped; a kicker card without the SVar (Into
-// the Roil, Wastescape Battlemage) casts byte-identically to before. A
-// multikicked-mode cast needs no gate -- its count>0 emission is the
-// primitive itself.
+// reports whether anything on the face reads the times-kicked count
+// (Count$TimesKicked, op suffix included) -- an SVar value body, an ability
+// parameter (DestAltSVar$), a trigger/replacement body, a static parameter
+// or a keyword string. The 11 legacy plain-Kicker carriers read it from an
+// SVar and get a real count stamped; The Five Doctors reads it inline in its
+// ChangeZone's DestAltSVar$. A kicker card that never reads the count casts
+// byte-identically to before. A multikicked-mode cast needs no gate -- its
+// count>0 emission is the primitive itself.
+//
+// The walk is deliberately structural (cards.Face.Mentions scans every string
+// the face owns) rather than an SVar-table-only scan: the earlier SVar-only
+// form missed the inline parameter shape and would miss the next one (an
+// ability's ChangeNum$, NumDmg$, or any future count-reading param),
+// silently stamping no provenance for a script that reads it.
 func faceWantsTimesKicked(f *cards.Face) bool {
-	if f == nil {
-		return false
-	}
-	for _, v := range f.SVars {
-		if strings.Contains(v, "Count$TimesKicked") {
-			return true
-		}
-	}
-	return false
+	return f.Mentions("Count$TimesKicked")
 }
 
 // triggeredConvergeReaderOut is the capture gate's second arm: it reports

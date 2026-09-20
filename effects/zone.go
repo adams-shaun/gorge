@@ -101,8 +101,65 @@ func mixedOriginIncludesHand(zones []state.Zone, all bool) bool {
 	return !all && len(zones) > 1 && zoneIn(zones, state.ZHand)
 }
 
+// changeZoneAltDestination resolves ChangeZone's conditional alternate
+// destination (Forge's ChangeZoneEffect.handleAltDest): DestAltSVar$ names an
+// SVar (or inline count expression) evaluated against the resolving host card
+// and compared under DestAltSVarCompare$ (default GE1, i.e. truthy). When the
+// condition holds, the move takes DestinationAlternative$ instead of
+// Destination$.
+//
+// The optional "MANDATORY " prefix is stripped. Forge reads MANDATORY as the
+// difference between forcing the alternate and offering the player a
+// confirmAction; this engine has no destination-confirm ask, so BOTH branches
+// take the alternate deterministically when the condition holds, and the
+// non-mandatory shape records one Note disclosing the dropped confirm (the
+// expansion-specific riders of six corpus carriers, all Destination$ Hand ->
+// DestinationAlternative$ Battlefield). MANDATORY itself therefore changes no
+// behaviour today; it is parsed so the two spellings cannot drift.
+//
+// Unlike CheckSVarHolds's other call sites, an unreadable condition here fails
+// CLOSED to the primary destination (plus a Note): moving a card to a zone the
+// condition cannot justify would be a silently wrong board, whereas keeping
+// the primary is the pre-existing behaviour and therefore replay-safe.
+func changeZoneAltDestination(h Host, c *Ctx, sa *cards.SA, primary state.Zone) state.Zone {
+	cond := strings.TrimSpace(sa.Params["DestAltSVar"])
+	if cond == "" {
+		return primary
+	}
+	mandatory := false
+	if rest, ok := strings.CutPrefix(cond, "MANDATORY "); ok {
+		mandatory = true
+		cond = strings.TrimSpace(rest)
+	}
+	holds, evaluated := CheckSVarHolds(h, c, cond, strings.TrimSpace(sa.Params["DestAltSVarCompare"]))
+	if !evaluated {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "DestAltSVar$ " + strings.TrimSpace(sa.Params["DestAltSVar"]) +
+				" is not a condition this engine can evaluate; the move takes the primary destination"})
+		return primary
+	}
+	if !holds {
+		return primary
+	}
+	alt, ok := ParseZoneWord(sa.Params["DestinationAlternative"])
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "DestAltSVar$ " + strings.TrimSpace(sa.Params["DestAltSVar"]) +
+				" holds but DestinationAlternative$ " + strings.TrimSpace(sa.Params["DestinationAlternative"]) +
+				" is not a zone this engine models; the move takes the primary destination"})
+		return primary
+	}
+	if !mandatory {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "DestAltSVar$ " + strings.TrimSpace(sa.Params["DestAltSVar"]) +
+				" holds: the alternate destination " + strings.TrimSpace(sa.Params["DestinationAlternative"]) +
+				" is taken (Forge would ask which destination; this engine does not ask)"})
+	}
+	return alt
+}
+
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
-	to := ParseZone(sa.Params["Destination"])
+	to := changeZoneAltDestination(h, c, sa, ParseZone(sa.Params["Destination"]))
 	var originZones []state.Zone
 	var originAll bool
 	if from, present := sa.Params["Origin"]; present {
@@ -498,6 +555,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZBattlefield {
 			applyGainControl(h, c, sa, o.ID)
 			changeZoneAttachedTo(h, c, sa, o.ID)
+		}
+		// Tapped$ True (CR 110.5's entry state): the moved permanent enters
+		// tapped. The object path did not apply this rider before, so a
+		// targeted graveyard/exile return carrying it (Zuko's Conviction's
+		// kicked alternate, every "return it to the battlefield tapped"
+		// spell) entered untapped -- the same Tap event applyLibrarySearch
+		// and the hand movers emit, so the entry state is a real event and
+		// replay derives it.
+		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
+			h.Emit(events.Event{Kind: events.Tap, Obj: o.ID, Player: c.Controller, Text: "entered tapped"})
 		}
 		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
 			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
