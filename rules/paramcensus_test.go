@@ -2008,6 +2008,61 @@ var ignoredParamKeys = map[string]string{
 	"UnlessAI": "AI copy-eligibility hint; forge-ai/src/main/java/forge/ai/ability/CopySpellAbilityAi.java",
 }
 
+// ignoredStatParams scopes a presentation key to individual stat modes.
+// ignoredParamKeys is consulted with the BARE key in every bucket, so a key
+// some primitives genuinely read can never go in it. Secondary$ is that
+// key: on a static it is Forge's card-text dedup marker --
+// CardTraitBase.isSecondary()
+// (forge-game/src/main/java/forge/game/CardTraitBase.java:179) reads the
+// key, but every forge-game caller is Card.java's getText-family renderer
+// (forge-game/src/main/java/forge/game/card/Card.java lines
+// 2926/2958/2977/2993/3087/3096/3155/3291/3297/3303) and no
+// staticability/cost/spellability execution path gates on it. Gorge however
+// DOES read Secondary$ rules-side on two classes: the cost-modifier statics
+// (rules/statics.go costModifiers' paired-text skip) and every trigger
+// (rules/trigger_match.go secondaryYields -- the merged "one card text is
+// not two triggers" behaviour, pinned by rules/param_combat_triggers_test.go
+// and rules/magecraft_trigger_test.go). So the bare key stays out of
+// ignoredParamKeys -- the trigger and cost-modifier reads must stay
+// measurable (TestParamCensusDetectsADeletedConsumer's class) -- and the
+// presentation modes are ignored scoped, here.
+//
+// RaiseCost/ReduceCost statics are deliberately NOT listed: they carry the
+// live cost-modifier read, and the Continuous.MayPlay family's whitelist
+// fail-closes a Secondary$-carrying grant (rules/layers.go mayPlayGrant) --
+// a RECOGNITION the census keeps measurable exactly like MayPlayPlayer$.
+// The modes below are the REGISTERED stat modes the corpus carries
+// Secondary$ on (measured over the full corpus at the current pin); an
+// unregistered mode's params are the primitive ratchet's business.
+var statPresentationSecondary = []string{
+	"Continuous", "CantBlockBy", "MustAttack", "CantBlock", "MinMaxBlocker",
+	"CantBeActivated", "CantSacrifice", "CantBeCast", "CantAttack",
+	"CastWithFlash", "CantGainLife", "CantTarget", "Panharmonicon",
+}
+
+var ignoredStatParams = func() map[string]string {
+	const cite = "static text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179 (Card.java getText callers only)"
+	m := make(map[string]string, len(statPresentationSecondary))
+	for _, mode := range statPresentationSecondary {
+		m[mode+".Secondary"] = cite
+	}
+	return m
+}()
+
+// ignoredParam is the census's single classification point for a parameter
+// key: the key-global ignoredParamKeys table, then the stat-mode-scoped
+// overlay (consulted only for a "stat:" primitive, so trigger, SA and
+// replacement reads stay measurable no matter what lands in the overlay).
+func ignoredParam(prim, key string) bool {
+	if ignoredParamKeys[key] != "" {
+		return true
+	}
+	if mode, ok := strings.CutPrefix(prim, "stat:"); ok {
+		return ignoredStatParams[mode+"."+key] != ""
+	}
+	return false
+}
+
 // censusResult is one census run: per-card labels plus aggregate sets.
 type censusResult struct {
 	labels      map[string][]string // card (first-face name) -> sorted labels
@@ -2144,7 +2199,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 				if readSet == nil {
 					continue // unregistered primitive: ratchet 1 owns it
 				}
-				if structuralKeys["sa"][k] || ignoredParamKeys[k] != "" {
+				if structuralKeys["sa"][k] || ignoredParam(prim, k) {
 					continue
 				}
 				if !readSet[k] || drop != nil && drop[prim][k] {
@@ -2161,7 +2216,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			readSet := d.trig[tr.Mode]
 			if readSet != nil {
 				for k := range tr.Params {
-					if structuralKeys["trig"][k] || ignoredParamKeys[k] != "" {
+					if structuralKeys["trig"][k] || ignoredParam(prim, k) {
 						continue
 					}
 					if !readSet[k] || drop != nil && drop[prim][k] {
@@ -2184,7 +2239,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 				if readSet == nil {
 					continue // unregistered static mode: ratchet 1 owns it
 				}
-				if structuralKeys["stat"][k] || ignoredParamKeys[k] != "" {
+				if structuralKeys["stat"][k] || ignoredParam(prim, k) {
 					continue
 				}
 				if !readSet[k] || drop != nil && drop[prim][k] {
@@ -2197,7 +2252,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			readSet := d.repl[r.Event]
 			if readSet != nil {
 				for k := range r.Params {
-					if structuralKeys["repl"][k] || ignoredParamKeys[k] != "" {
+					if structuralKeys["repl"][k] || ignoredParam(prim, k) {
 						continue
 					}
 					if !readSet[k] || drop != nil && drop[prim][k] {
@@ -2280,7 +2335,7 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 //	                         generic mana for (e.g. cost:PayEnergy).
 //
 // Presentation/AI keys are never measured (ignoredParamKeys above, each with
-// its Forge citation). The table is checked in both directions -- a newly
+// its Forge citation; stat-mode-scoped ones through ignoredStatParams). The table is checked in both directions -- a newly
 // unread key is a regression; a stale entry means the key is now read and
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
@@ -2463,6 +2518,53 @@ func TestParamCensusDetectsADeletedConsumer(t *testing.T) {
 	}
 	if affected != len(carriers) {
 		t.Errorf("probe reported %d affected cards, %d carriers measured", affected, len(carriers))
+	}
+}
+
+// TestParamCensusScopesSecondaryByPrimitive pins the Secondary$ scoping:
+// on a stat the key is Forge's text-dedup marker, ignored mode-scoped via
+// ignoredStatParams (so a synthetic Secondary$ Continuous static labels
+// nothing even when the scan is told its read was deleted), while the
+// trigger read (rules/trigger_match.go secondaryYields) stays measurable --
+// dropping that read makes a synthetic Secondary$ trigger label. A bare
+// ignoredParamKeys["Secondary"] entry would have suppressed BOTH halves;
+// this probe fails if either side regresses.
+func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
+	t.Parallel()
+	_, d := measureParamCensus(t, nil)
+	if d.stat["Continuous"]["Secondary"] {
+		t.Fatalf("stat:Continuous now derives a Secondary$ read -- the ignoredStatParams classification is stale, delete the mode")
+	}
+	if !d.trig["Phase"]["Secondary"] {
+		t.Fatalf("trig:Phase no longer derives a Secondary$ read -- secondaryYields was deleted for real; fix the census or re-classify")
+	}
+	staticCard, diags := cards.ParseBytes("census-probe-static.txt", []byte(
+		"Name: Census Probe Static\nTypes: Creature\nS:Mode$ Continuous | Affected$ Card.Self | AddPower$ 1 | Secondary$ True\n"))
+	if len(diags) != 0 {
+		t.Fatalf("static probe card failed to parse: %v", diags)
+	}
+	trigCard, diags := cards.ParseBytes("census-probe-trig.txt", []byte(
+		"Name: Census Probe Trigger\nTypes: Creature\nT:Mode$ Phase | Phase$ End of Turn | TriggerDescription$ probe | Secondary$ True\n"))
+	if len(diags) != 0 {
+		t.Fatalf("trigger probe card failed to parse: %v", diags)
+	}
+	dropped := map[string]map[string]bool{
+		"stat:Continuous": {"Secondary": true},
+		"trig:Phase":      {"Secondary": true},
+	}
+	for _, l := range cardCensusLabels(staticCard, d, dropped) {
+		if l == "param:stat:Continuous.Secondary" {
+			t.Errorf("static Secondary$ labelled despite the mode-scoped ignore -- the classification is not consulted")
+		}
+	}
+	hit := false
+	for _, l := range cardCensusLabels(trigCard, d, dropped) {
+		if l == "param:trig:Phase.Secondary" {
+			hit = true
+		}
+	}
+	if !hit {
+		t.Errorf("dropped trigger Secondary read did not label param:trig:Phase.Secondary -- trigger Secondary$ measurability is broken")
 	}
 }
 
