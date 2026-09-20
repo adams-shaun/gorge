@@ -238,6 +238,15 @@ type Option struct {
 	// the engine's own derived-keyword facts and the stack -- a human
 	// client never sees it, so it is never on the wire.
 	Grant *Grant `json:"-"`
+	// GrantSource is server-side only (json:"-") and names the object that
+	// GRANTS an "ability" option's SVar body when that grantor differs from
+	// the option's Obj (the ability's own source/recipient). It is set by
+	// rules/legal.go's granted-ability offer loop from the granting static's
+	// source so rules/speed.go's beginGrantedActivation resolves the body
+	// from the grantor (events.GrantAbilityPush). Zero means no cross-object
+	// grantor: the option is a printed ability or a self-grant, and the body
+	// resolves from Obj. A human client never sees it.
+	GrantSource state.ObjID `json:"-"`
 }
 
 // Grant describes the idempotent keyword grant of one "ability" option

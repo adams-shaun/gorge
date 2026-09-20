@@ -762,7 +762,14 @@ func (e *Engine) boastGateOK(id state.ObjID, ability int, svar string) bool {
 			if svar == "" && ev.Amount == int32(ability) {
 				used++
 			}
-		case events.DelayedPush:
+		case events.DelayedPush, events.GrantAbilityPush:
+			// A granted activation's identity is its SVar name. A self-grant
+			// mints through DelayedPush (Counter = the name); a CROSS-object
+			// grant -- a printed Continuous AddAbility$ static such as
+			// Besieged Viking Village's "All creatures have 'Boast -- {1}: ...'"
+			// -- mints through GrantAbilityPush, whose Counter is the same
+			// name. Reading only DelayedPush would leave the granted Boast
+			// re-offered in every priority window of the turn it was used.
 			if svar != "" && ev.Counter == svar {
 				used++
 			}
@@ -922,8 +929,14 @@ func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *c
 // object right now: the parsed AB and the SVar name on the granting face's
 // table that re-resolves it.
 type grantedAbility struct {
-	sa   *cards.SA
-	svar string
+	sa *cards.SA
+	// source is the object the grant came from (state.ContinuousEffect.Source):
+	// the static's own permanent, which need not be the affected object the
+	// ability is activated from. It is threaded into decision.Option.GrantSource
+	// so the activation resolves the SVar body from here while the minted
+	// ability's Source stays the recipient.
+	source state.ObjID
+	svar   string
 }
 
 // grantedAbilities collects the activated abilities the battlefield's
@@ -953,7 +966,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 			if ab == nil || ab.Kind != "AB" {
 				continue
 			}
-			out = append(out, grantedAbility{sa: ab, svar: nm})
+			out = append(out, grantedAbility{sa: ab, source: ce.Source, svar: nm})
 		}
 	}
 	return out
@@ -1911,7 +1924,8 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				continue
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "ability",
-				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar})
+				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar,
+				GrantSource: ga.source})
 		}
 	}
 

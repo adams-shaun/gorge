@@ -1643,6 +1643,42 @@ func Apply(g *state.Game, e Event) {
 		o.Source = e.Obj
 		o.Remembered = rememberedFrom(e.IDs)
 
+	case GrantAbilityPush:
+		// A cross-object ability grant (CR 613.1f): the granting static's
+		// SOURCE resolves the SVar body (Counter), while the minted ability
+		// object's Source is the RECIPIENT (Obj). The DelayedPush/
+		// GrantTriggerPush precedent -- mint inside Apply so a log-only
+		// replay creates the identical object. IDs[0] is the granting
+		// object, carried here rather than on Obj because Obj must stay the
+		// recipient; it is NOT decoded into Remembered (the ability's
+		// Remembered set is unrelated to who granted it). A grantor that
+		// has left the battlefield, or whose face no longer resolves the
+		// name, mints nothing (the totality stance every SVar resolution
+		// takes). No registration is consumed: unlike a delayed trigger a
+		// grant lives exactly as long as its granting static, and rules
+		// re-derives the offer each priority window.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		if len(e.IDs) == 0 {
+			break
+		}
+		grantor := g.Obj(e.IDs[0])
+		if grantor == nil || grantor.Face() == nil {
+			break
+		}
+		if g.Obj(e.Obj) == nil {
+			break
+		}
+		sa := resolveSVarAcrossFaces(grantor, e.Counter)
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
+
 	case CmdDamage:
 		// Commander combat damage to a player (CR 903.10, Task m33): fold
 		// Amount into Player's cumulative tally at the source commander's
