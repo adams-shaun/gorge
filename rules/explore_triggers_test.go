@@ -418,3 +418,64 @@ func TestTopographyTrackerExploresTwice(t *testing.T) {
 		t.Fatalf("map token zone = %+v, want the sacrificed token ceased (a token that left the battlefield ceases to exist, CR 111.7)", got)
 	}
 }
+
+// TestTwistsAndTurnsScryThenExplore is the other repl:Explore body: "instead
+// you scry 1, then that creature explores" (ReplaceWith$ DBScry, body DB$ Scry
+// | SubAbility$ DBExplore). The replaced process performs nothing; the scry is
+// a real arrange ask posed INSIDE the replacement body, and the body's chained
+// explore is a fresh explore of the replaced card. The library top is arranged
+// to a land so the body's explore takes the land shape with no second ask.
+func TestTwistsAndTurnsScryThenExplore(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e := chainAskDeck(t, reg, "Wildgrowth Walker", "Twists and Turns")
+	walker := searchMoveByName(t, e, "Wildgrowth Walker", state.ZHand)
+	addMana(t, e, 0, "GG")
+	castCardByName(t, e, walker)
+	passUntil(t, e, func() bool {
+		o := e.G.Obj(walker)
+		return o != nil && o.Zone == state.ZBattlefield
+	})
+
+	top := arrangeLibraryTop(t, e, "Forest")
+	twists := searchMoveByName(t, e, "Twists and Turns", state.ZHand)
+	addMana(t, e, 0, "G")
+	castCardByName(t, e, twists)
+
+	// Twists' ETB asks its explore target.
+	d := passUntilAsk(t, e)
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("target ask = %+v, want KTarget", d)
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Obj == walker {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("the walker was not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+
+	// The replacement's scry ask, posed inside the replacement body.
+	de := passUntilAsk(t, e)
+	if de == nil || de.Kind != decision.KArrange {
+		t.Fatalf("arrange ask = %+v, want KArrange", de)
+	}
+	submitChoices(t, e, de.Options[len(de.Options)-1].Index) // bottom (decline-to-keep)
+
+	// The body's chained explore of the walker: the arranged Forest on top
+	// goes to the hand (land shape, no further ask), and the walker's own
+	// explore trigger fires off the record (+1/+1 counter and 3 life).
+	passUntil(t, e, func() bool { return counterOn(t, e, walker, "P1P1") == 1 })
+	recs := exploreRecords(e)
+	if recs[0].Obj != walker || recs[0].Amount != 1 || len(recs[0].IDs) != 1 || recs[0].IDs[0] != top[0] {
+		t.Fatalf("explore record = %+v, want the walker exploring the arranged Forest", recs[0])
+	}
+	if got := counterOn(t, e, walker, "P1P1"); got != 1 {
+		t.Fatalf("walker P1P1 counters = %d, want 1 (the explore trigger's)", got)
+	}
+	if got := e.G.Players[0].Life; got != int32(23) {
+		t.Fatalf("life = %d, want 23 (the walker's explore trigger gained 3)", got)
+	}
+}
