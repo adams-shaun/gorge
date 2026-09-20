@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -178,6 +179,83 @@ func TestCorpusLotusFieldHexproofWithholdsOpponent(t *testing.T) {
 	}
 	if e.hexproofBlocksTarget(lotusID, 1, 0) {
 		t.Fatalf("corpus Lotus Field blocked its own controller")
+	}
+}
+
+// TestGrantedHexproofBlocksOpponentNotController pins the GRANTED form end to
+// end on a real corpus static: Shalai, Voice of Plenty's
+// "Affected$ You,Planeswalker.YouCtrl,Creature.YouCtrl+Other | AddKeyword$
+// Hexproof" reaches a second creature through the layer-6 AddKeywords path
+// exactly as Lightning Greaves' granted Shroud does (shroud_test.go), so the
+// opponent's Shock is offered (Shalai itself is a legal target) but never
+// offers the granted-hexproof bear, while the controller's own Shock does —
+// the CR 702.11b asymmetry applied to the granted form. Before this test only
+// the printed and quality forms were pinned; the report's "the granted form
+// needs the keyword to exist before AddKeyword$ can convey it" is covered
+// here.
+func TestGrantedHexproofBlocksOpponentNotController(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _ := linkBoard(t, reg, []string{"Shalai, Voice of Plenty", "Grizzly Bears"}, []string{"Hill Giant"})
+	bear := findOnBoard(t, e, 0, "Grizzly Bears")
+	shalai := findOnBoard(t, e, 0, "Shalai, Voice of Plenty")
+
+	if !e.HasKeyword(bear, "Hexproof") {
+		t.Fatalf("Shalai's AddKeyword$ Hexproof did not reach the second creature (derived %v)", e.Keywords(bear))
+	}
+	if !e.hexproofBlocksTarget(bear, 1, 0) {
+		t.Fatalf("granted Hexproof not visible to the targeting gate helper (derived %v)", e.Keywords(bear))
+	}
+	if e.hexproofBlocksTarget(bear, 0, 0) {
+		t.Fatalf("granted Hexproof withheld its own controller's targeting (CR 702.11b asymmetry broken)")
+	}
+
+	// The opponent (seat 1): Shock is offered (Shalai is a legal target) but
+	// the granted-hexproof bear is never among the options.
+	sh1 := addShockToHand(t, e, 1)
+	addMana(t, e, 1, "R")
+	e.askPriority(1)
+	if d := e.Pending(); !castOffered(e, sh1) {
+		t.Fatalf("opponent's Shock not offered although Shalai is a legal target: %+v", d.Options)
+	}
+	castFirst(t, e, "cast")
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected Shock target decision, got %+v", d)
+	}
+	foundShalai := false
+	for _, o := range d.Options {
+		if o.Obj == bear {
+			t.Errorf("granted-hexproof creature offered as the opponent's Shock target")
+		}
+		if o.Obj == shalai {
+			foundShalai = true
+		}
+	}
+	if !foundShalai {
+		t.Fatalf("Shalai missing from the opponent's target options: %+v", d.Options)
+	}
+
+	// The controller (seat 0): its own Shock is offered and the
+	// granted-hexproof bear IS a legal target — the asymmetry.
+	sh0 := addShockToHand(t, e, 0)
+	addMana(t, e, 0, "R")
+	e.askPriority(0)
+	if d := e.Pending(); !castOffered(e, sh0) {
+		t.Fatalf("controller's own Shock not offered: %+v", d.Options)
+	}
+	castFirst(t, e, "cast")
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected controller's Shock target decision, got %+v", d)
+	}
+	found := false
+	for _, o := range d.Options {
+		if o.Obj == bear {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("controller's own Shock does not offer its granted-hexproof creature: %+v", d.Options)
 	}
 }
 
