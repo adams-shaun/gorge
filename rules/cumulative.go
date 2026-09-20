@@ -363,12 +363,13 @@ func (e *Engine) continueCumulativeAction() {
 		cu.actionRemaining = 0
 		e.finishCumulative()
 	case "FlipCoin":
+		// The canonical coin-flip result Note effects.FlipCoinNote emits —
+		// the ONE encoding the FlippedCoin trigger matcher
+		// (rules/trigger_match.go's flippedCoinMatches) reads, so a
+		// cost-side flip fires "whenever you win/lose a coin flip" exactly
+		// like an effect-side one (Karplusan Minotaur).
 		for i := 0; i < total; i++ {
-			outcome := "tails"
-			if e.Rand(2) == 0 {
-				outcome = "heads"
-			}
-			e.emit(events.Event{Kind: events.Note, Player: cu.player, Obj: cu.source, Text: "flips " + outcome})
+			e.emit(effects.FlipCoinNote(cu.source, cu.player, e.Rand(2) == 0))
 		}
 		cu.actionRemaining = 0
 		e.finishCumulative()

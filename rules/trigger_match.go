@@ -172,6 +172,15 @@ var actionTriggerModes = map[string]bool{
 	// other event mode. Membership also makes an unevaluable CheckDefinedPlayer$
 	// predicate fail closed for the mode, which is the conservative direction
 	// for a mode registered from the start.
+	// FlippedCoin joins them for the same reason: it is an event mode
+	// registered from the start (rules/trigger_match.go's
+	// flippedCoinMatches, firing off the canonical coin-flip result Note
+	// both api:FlipCoin and the cumulative-upkeep cost action emit), so the
+	// trigger-level parameters Forge scopes to every event mode --
+	// PlayerTurn$, ActivationLimit$, and an unevaluable CheckDefinedPlayer$
+	// predicate failing closed -- apply from day one. No Once latch: each
+	// flip result Note is one occurrence.
+	"FlippedCoin":    true,
 	"ChangesZoneAll": true,
 	// Attached is an event mode registered from the start
 	// (attachedMatches over events.Attach), so the trigger-level parameters
@@ -1376,6 +1385,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.damageMatches(t, source, ev)
 	case "DamagePreventedOnce":
 		matched = e.damagePreventedMatches(t, source, ev)
+	case "FlippedCoin":
+		matched = e.flippedCoinMatches(t, source, ev)
 	case "Drawn":
 		matched = e.drawnMatches(t, source, ev)
 	case "LifeLost", "LifeLostAll":
@@ -2855,6 +2866,34 @@ func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev 
 	return true
 }
 
+func (e *Engine) flippedCoinMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	flipper, win, ok := effects.FlipNoteResult(ev)
+	if !ok {
+		return false
+	}
+	// ValidResult$ gates the side: Win = heads (Amount 1), Lose = tails
+	// (Amount 0). Every corpus FlippedCoin line carries one; an absent
+	// ValidResult$ (no such line measured) would fire on both sides.
+	if res := strings.TrimSpace(t.Params["ValidResult"]); res != "" {
+		if strings.EqualFold(res, "Win") && !win {
+			return false
+		}
+		if strings.EqualFold(res, "Lose") && win {
+			return false
+		}
+	}
+	// ValidPlayer$ names the FLIPPER ("whenever YOU win a coin flip"): the
+	// Note's Player, through the shared player-spec grammar with the trigger's
+	// own controller as You. The two "whenever a player wins" lines carry no
+	// ValidPlayer$ and fire on any flipper.
+	if v, ok := t.Params["ValidPlayer"]; ok {
+		if !effects.MatchesPlayerSpecFrom(e.G, v, flipper, e.controllerOf(source), source) {
+			return false
+		}
+	}
+	return true
+}
+
 // attachedMatches implements Mode$ Attached: the trigger fires when an Aura,
 // Equipment or other attachment becomes attached to a permanent (CR
 // 701.3a's "becomes attached" -- the event the engine's one shared attach
@@ -3485,7 +3524,7 @@ func init() {
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
-		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached",
+		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
