@@ -695,6 +695,23 @@ type Ctx struct {
 	// discipline), so a nested DigUntil cannot inherit the outer answer.
 	DigUntilMove     string
 	DigUntilMoveDone bool
+	// TwoPiles is the answered Fact or Fiction pile-split pick (task
+	// twopiles1): the cards the Separator$ player picked into pile A, in the
+	// separator's answer order — the rest of the card set, in the order it
+	// was offered, is pile B. rules' resumeResolution sets it from the
+	// recorded answer before re-running the suspended sub-ability, and
+	// TwoPilesDone distinguishes "answered (possibly empty — piles can be
+	// empty)" from the first pass. TwoPilesPick is the answered pile pick:
+	// "a" means the chooser takes pile A (the ChosenPile$ body runs on pile
+	// A, UnchosenPile$ on pile B), "b" the reverse. TwoPilesPickDone
+	// distinguishes the second answer from the split answer. The asking
+	// effect consumes and clears all four at the top of its own walk (the
+	// fx42 scoping discipline), so a nested TwoPiles cannot inherit the
+	// outer answers.
+	TwoPiles         []state.ObjID
+	TwoPilesDone     bool
+	TwoPilesPick     string
+	TwoPilesPickDone bool
 	// CounterDist is the answered DividedAsYouChoose$ PutCounter pick
 	// (Vastwood Hydra's death trigger): the recipients the chooser picked out
 	// of the Choices$-eligible battlefield creatures, in answer order.

@@ -1156,6 +1156,42 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.DigDone = true
 			ctx.DigTarget = rp.target
+		case "twopiles_split":
+			// A TwoPiles pile split was answered (task twopiles1, Fact or
+			// Fiction): the separator picked pile A out of the card set, in
+			// answer order — the options carry the object in Obj (the same
+			// shape the "dig" arm reads). An empty answer is the legal "piles
+			// can be empty" answer, so TwoPilesDone is the answered marker,
+			// not len(chosen). The full card set rides the decision's
+			// ResumeRemembered (the ctx rebuild picks it up below, so the
+			// re-entered effect re-derives pile B); pile A re-rides the pick
+			// ask's ResumeChoices. effTwoPiles consumes and clears both fields
+			// at the top of its own walk (fx42 scoping).
+			ctx.TwoPiles = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.TwoPiles = append(ctx.TwoPiles, o.Obj)
+				}
+			}
+			ctx.TwoPilesDone = true
+		case "twopiles_pick":
+			// A TwoPiles pile pick was answered: the chooser picked which pile
+			// is the chosen one — option 0 Kind "pile-a" (pile A, the split
+			// ask's answer, rides ResumeChoices back as Ctx.TwoPiles), option 1
+			// Kind "pile-b". The ChosenPile$ body then runs on the chosen
+			// pile and UnchosenPile$ on the other. A malformed or empty answer
+			// keeps pile A (the deterministic clamp answer), the same
+			// conservative read the malformed yes/no answers take.
+			ctx.TwoPilesPick = "a"
+			if len(chosen) > 0 && chosen[0].Kind == "pile-b" {
+				ctx.TwoPilesPick = "b"
+			}
+			ctx.TwoPilesPickDone = true
+			for _, t := range rp.choices {
+				if !t.IsPlayer && t.Obj != 0 {
+					ctx.TwoPiles = append(ctx.TwoPiles, t.Obj)
+				}
+			}
 		case "diguntil_move":
 			// A DigUntil reveal-until's OptionalFoundMove$ yes/no election was
 			// answered (task diguntil1; Songbirds' Blessing). The answer is a
