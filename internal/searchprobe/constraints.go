@@ -29,6 +29,19 @@ type deadlineConstraint struct {
 	Count   int
 }
 
+// exclusionConstraint is the deadline's dual: at most Cap copies of Name may
+// occupy shuffle positions below Through. Cap 0 is the sampler's
+// PolicyCompetition lever -- the named card must not be drawn early enough to
+// fill the hand a bot prefers over the observed cast -- and Cap > 0 leaves
+// room for the copies that are already known to be in hand at plan time.
+// It is a hard feasibility constraint counted exactly like a deadline, so the
+// permutation sampler re-draws rather than merely penalising such an order.
+type exclusionConstraint struct {
+	Through int
+	Name    string
+	Cap     int
+}
+
 type proposalRandom interface {
 	Uint64() uint64
 }
@@ -43,18 +56,20 @@ type constraintCounter struct {
 	exactPrefix [][]int
 	initialFree []int
 	deadlines   []deadlineConstraint
+	exclusions  []exclusionConstraint
 	memo        map[string]*big.Int
 	factorials  []*big.Int
 }
 
 type constrainedPermutation struct {
-	cards     []proposalCard
-	positions []positionConstraint
-	deadlines []deadlineConstraint
-	counter   *constraintCounter
-	available []proposalCard
-	total     *big.Int
-	weight    float64
+	cards      []proposalCard
+	positions  []positionConstraint
+	deadlines  []deadlineConstraint
+	exclusions []exclusionConstraint
+	counter    *constraintCounter
+	available  []proposalCard
+	total      *big.Int
+	weight     float64
 }
 
 type constraintPlanCache struct {
@@ -64,12 +79,16 @@ type constraintPlanCache struct {
 func newConstraintPlanCache() *constraintPlanCache { return &constraintPlanCache{} }
 
 func (c *constraintPlanCache) get(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint) (*constrainedPermutation, error) {
+	return c.getWithExclusions(cards, positions, deadlines, nil)
+}
+
+func (c *constraintPlanCache) getWithExclusions(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint, exclusions []exclusionConstraint) (*constrainedPermutation, error) {
 	for _, plan := range c.plans {
-		if slices.Equal(plan.cards, cards) && slices.Equal(plan.positions, positions) && slices.Equal(plan.deadlines, deadlines) {
+		if slices.Equal(plan.cards, cards) && slices.Equal(plan.positions, positions) && slices.Equal(plan.deadlines, deadlines) && slices.Equal(plan.exclusions, exclusions) {
 			return plan, nil
 		}
 	}
-	plan, err := newConstrainedPermutation(cards, positions, deadlines)
+	plan, err := newConstrainedPermutation(cards, positions, deadlines, exclusions)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +96,8 @@ func (c *constraintPlanCache) get(cards []proposalCard, positions []positionCons
 	return plan, nil
 }
 
-func newConstrainedPermutation(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint) (*constrainedPermutation, error) {
-	counter, available, err := newConstraintCounter(cards, positions, deadlines)
+func newConstrainedPermutation(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint, exclusions []exclusionConstraint) (*constrainedPermutation, error) {
+	counter, available, err := newConstraintCounterWithExclusions(cards, positions, deadlines, exclusions)
 	if err != nil {
 		return nil, err
 	}
@@ -86,13 +105,14 @@ func newConstrainedPermutation(cards []proposalCard, positions []positionConstra
 	logFactorial, _ := math.Lgamma(float64(len(cards) + 1))
 	return &constrainedPermutation{
 		cards: append([]proposalCard(nil), cards...), positions: append([]positionConstraint(nil), positions...),
-		deadlines: append([]deadlineConstraint(nil), deadlines...), counter: counter,
+		deadlines: append([]deadlineConstraint(nil), deadlines...), exclusions: append([]exclusionConstraint(nil), exclusions...),
+		counter:   counter,
 		available: available, total: total, weight: logBigInt(total) - logFactorial,
 	}, nil
 }
 
 func sampleConstrainedPermutation(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint, r proposalRandom) ([]state.ObjID, float64, bool, error) {
-	plan, err := newConstrainedPermutation(cards, positions, deadlines)
+	plan, err := newConstrainedPermutation(cards, positions, deadlines, nil)
 	if err != nil {
 		return nil, 0, false, err
 	}
@@ -151,6 +171,10 @@ func (p *constrainedPermutation) sample(r proposalRandom) ([]state.ObjID, float6
 }
 
 func newConstraintCounter(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint) (*constraintCounter, []proposalCard, error) {
+	return newConstraintCounterWithExclusions(cards, positions, deadlines, nil)
+}
+
+func newConstraintCounterWithExclusions(cards []proposalCard, positions []positionConstraint, deadlines []deadlineConstraint, exclusions []exclusionConstraint) (*constraintCounter, []proposalCard, error) {
 	c := &constraintCounter{n: len(cards), fixedObj: make(map[int]proposalCard), fixedName: make(map[int]string), memo: make(map[string]*big.Int)}
 	c.factorials = make([]*big.Int, len(cards)+1)
 	c.factorials[0] = big.NewInt(1)
@@ -208,6 +232,15 @@ func newConstraintCounter(cards []proposalCard, positions []positionConstraint, 
 			c.stop = d.Through
 		}
 	}
+	for _, e := range exclusions {
+		if e.Through < 0 || e.Through > len(cards) || e.Name == "" || e.Cap < 0 {
+			return nil, nil, fmt.Errorf("invalid exclusion constraint %+v", e)
+		}
+		relevant[e.Name] = true
+		if e.Through > c.stop {
+			c.stop = e.Through
+		}
+	}
 	c.names = make([]string, 0, len(relevant))
 	for name := range relevant {
 		c.names = append(c.names, name)
@@ -239,6 +272,7 @@ func newConstraintCounter(cards []proposalCard, positions []positionConstraint, 
 		}
 	}
 	c.deadlines = append([]deadlineConstraint(nil), deadlines...)
+	c.exclusions = append([]exclusionConstraint(nil), exclusions...)
 	return c, available, nil
 }
 
@@ -248,7 +282,14 @@ func (c *constraintCounter) total(available []proposalCard) *big.Int {
 }
 
 func (c *constraintCounter) count(pos int, remaining []int, other int) *big.Int {
-	if !c.deadlinesHold(pos, remaining) {
+	// Past every constraint's Through the remaining suffix is unconstrained:
+	// a deadline is already satisfied or not, and an exclusion's window has
+	// closed. Returning here (before the checks below) keeps an unranking
+	// call at a position beyond stop from re-evaluating a closed window.
+	if pos > c.stop {
+		return c.factorials[c.n-pos]
+	}
+	if !c.constraintsHold(pos, remaining) {
 		return new(big.Int)
 	}
 	if pos >= c.stop {
@@ -288,7 +329,7 @@ func (c *constraintCounter) count(pos int, remaining []int, other int) *big.Int 
 	return total
 }
 
-func (c *constraintCounter) deadlinesHold(pos int, remaining []int) bool {
+func (c *constraintCounter) constraintsHold(pos int, remaining []int) bool {
 	for _, d := range c.deadlines {
 		if pos < d.Through {
 			continue
@@ -296,6 +337,21 @@ func (c *constraintCounter) deadlinesHold(pos int, remaining []int) bool {
 		i := c.nameIndex[d.Name]
 		placed := c.exactPrefix[pos][i] + c.initialFree[i] - remaining[i]
 		if placed < d.Count {
+			return false
+		}
+	}
+	for _, e := range c.exclusions {
+		// An exclusion is anti-monotone: "at most Cap copies before Through"
+		// can only be judged at exactly Through, because at a later position
+		// the placed count also includes cards placed after the window. The
+		// DFS visits every position up to stop, so each exclusion is judged
+		// once, at its own boundary.
+		if pos != e.Through {
+			continue
+		}
+		i := c.nameIndex[e.Name]
+		placed := c.exactPrefix[pos][i] + c.initialFree[i] - remaining[i]
+		if placed > e.Cap {
 			return false
 		}
 	}

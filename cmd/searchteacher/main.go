@@ -53,25 +53,29 @@ type config struct {
 
 // DecisionRecord is one search-seat decision the teacher was asked about.
 type DecisionRecord struct {
-	Kind                 string
-	Turn                 int32
-	Frames               int
-	Candidates           int
-	Attempts, Accepted   int
-	PrefixRejected       int
-	ESS                  float64
-	Duplicates           int
-	Covered              bool
-	Fallback             string
-	Index                int
-	Values               []float64
-	Rollouts, Submits    int
-	Terminal, Capped     int
-	SampleMS, SearchMS   float64
-	TopRejection         string
-	OracleValues         []float64 `json:",omitempty"`
-	HandToStack          searchprobe.HandToStackCauses
-	ChosenDiffersFromBot bool
+	Kind                  string
+	Turn                  int32
+	Frames                int
+	Candidates            int
+	Attempts, Accepted    int
+	PrefixRejected        int
+	ESS                   float64
+	Duplicates            int
+	Covered               bool
+	Fallback              string
+	Index                 int
+	Values                []float64
+	Rollouts, Submits     int
+	Terminal, Capped      int
+	SampleMS, SearchMS    float64
+	TopRejection          string
+	OracleValues          []float64 `json:",omitempty"`
+	HandToStack           searchprobe.HandToStackCauses
+	CompetitionExclusions int
+	CompetitionResidual   int
+	CompetitionUnguided   int
+	IncompatibleProposals int
+	ChosenDiffersFromBot  bool
 }
 
 // GameRecord is one seed: the search game and its bot-vs-bot twin.
@@ -396,6 +400,8 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 	dr.SampleMS = float64(time.Since(t0).Microseconds()) / 1000
 	dr.Attempts, dr.Accepted, dr.PrefixRejected, dr.ESS, dr.Duplicates = sr.Attempts, sr.Accepted, sr.PrefixRejected, sr.ESS, sr.Duplicates
 	dr.HandToStack = sr.HandToStackCauses
+	dr.CompetitionExclusions, dr.CompetitionResidual, dr.CompetitionUnguided = sr.CompetitionExclusions, sr.CompetitionResidual, sr.CompetitionUnguided
+	dr.IncompatibleProposals = sr.IncompatibleProposals
 	top := 0
 	for _, b := range sr.Rejections {
 		if b.Count > top {
@@ -495,6 +501,7 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 	var diffs []float64
 	byPair := map[string][3]float64{}
 	var nd, covered, overrides, accepted, attemptsN int
+	var compExclusions, compResidual, compUnguided int
 	var sampleMS, searchMS, coveredSampleMS, coveredSearchMS []float64
 	fallbacks := map[string]int{}
 	turnBuckets := map[string][2]int{}
@@ -523,6 +530,9 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 			nd++
 			accepted += d.Accepted
 			attemptsN += d.Attempts
+			compExclusions += d.CompetitionExclusions
+			compResidual += d.CompetitionResidual
+			compUnguided += d.CompetitionUnguided
 			sampleMS = append(sampleMS, d.SampleMS)
 			searchMS = append(searchMS, d.SearchMS)
 			bucket := "t01-06"
@@ -564,6 +574,7 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 	}
 	fmt.Fprintf(w, "decisions asked %d, covered %d (%.1f%%), overrides %d (%.1f%% of covered)\n", nd, covered, pct(covered, nd), overrides, pct(overrides, covered))
 	fmt.Fprintf(w, "sampler acceptance %d/%d (%.2f%%)\n", accepted, attemptsN, pct(accepted, attemptsN))
+	fmt.Fprintf(w, "  competition: exclusions taught %d, residual rejections %d, unguided %d\n", compExclusions, compResidual, compUnguided)
 	for _, b := range []string{"t01-06", "t07-12", "t13+"} {
 		tb := turnBuckets[b]
 		fmt.Fprintf(w, "  coverage %s: %d/%d (%.1f%%)\n", b, tb[1], tb[0], pct(tb[1], tb[0]))
