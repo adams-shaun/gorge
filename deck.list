@@ -9076,3 +9076,120 @@ Deck
 3 Forest
 7 Island
 6 Island
+# --- Timey-Wimey (WHO commander precon, The Tenth Doctor + Rose Tyler) — census input, 2026-09-20 (this worktree, issue agent-20260920T065240Z-bad9ebd3) ---
+# 100/100 resolved; commanders are a Doctor's-companion PAIR, so deckimport's single-commander
+# identity check fails (artifact). Deck file NOT added: new engine gaps remain (27 tickets in
+# this worktree's .ds4/new-tickets). Sibling-seat overlap (Masters of Evil, 2708fe3c): likely
+# duplicate tickets for api:Clone, kw:Crew, kw:Skulk, api:Phases, api:Investigate — dedupe.
+# New gaps this deck needs: api:TimeTravel (9 cards — the deck's namesake), api:Phases +
+# trig:PhaseOutAll (5), api:Clone (3), api:Investigate (3), api:Explore (2), kw:Crew (2),
+# kw:Vanishing (6), suspend GRANT + Card.suspended/withSuspend/withoutSuspend + PlayCost$
+# SuspendCost (7), kw:Emerge (1), split 2nd-face casting + kw:Fuse (2), kw:Skulk (1), kw:Escape
+# (1), trig:CounterRemoved/CounterRemovedOnce/CounterAddedOnce (3), trig:Untaps (1),
+# trig:LifeGained (1), api:AddOrRemoveCounter + api:RemoveCounter choice arm (2),
+# api:GenericChoice sub-chain (1), api:DamageResolve (1), api:Planeswalk (1), kw:Cascade (1),
+# untap-step election (1), Doctor's companion seating (4), TriggersWhenSpent (1),
+# Count$Valid...$CardCounters property (1), SetName$ + Attached replacement (1),
+# wasCastFromExile (1), GainsAbilitiesOf (1); known-approximation rows: dig DigNum$X /
+# RestRandomOrder / RevealRandomOrder / Choser$ (dig1+diguntil1), Effect Triggers$/
+# ReplacementEffects$ + CantBlockBy-static whitelist (ce1), player hexproof (P12/D2-a),
+# MatchesPlayerSpec compound fail-closed (fx20), mixed-origin-Hand ChangeZoneAll (Trenzalore),
+# ChooseColor silent + Combo/Chosen production (ct1, tap-gate), Imprint$ unread (search row).
+Commander
+1 The Tenth Doctor
+1 Rose Tyler
+1 Wilfred Mott
+1 Everybody Lives!
+1 Everything Comes to Dust
+1 Four Knocks
+1 The Pandorica
+1 The Wedding of River Song
+1 Adipose Offspring
+1 Astrid Peth
+1 Crack in Time
+1 The Girl in the Fireplace
+1 Martha Jones
+1 Nanogene Conversion
+1 Flesh Duplicate
+1 The Eleventh Hour
+1 All of History, All at Once
+1 Donna Noble
+1 Amy Pond
+1 Ecstatic Beauty
+1 RMS Titanic
+1 Coward // Killer
+1 The Parting of the Ways
+1 The Ninth Doctor
+1 Sally Sparrow
+1 Jenny, Generated Anomaly
+1 Rory Williams
+1 The Eleventh Doctor
+1 The War Doctor
+1 Regenerations Restored
+1 Idris, Soul of the TARDIS
+1 The Face of Boe
+1 Run for Your Life
+1 The Day of the Doctor
+1 Gallifrey Falls // No More
+1 Dinosaurs on a Spaceship
+1 Kate Stewart
+1 Rotating Fireplace
+1 The Moment
+1 Trenzalore Clocktower
+1 Grasp of Fate
+1 Farewell
+1 Out of Time
+1 Wedding Ring
+1 Inspiring Refrain
+1 As Foretold
+1 Fractured Identity
+1 Port Town
+1 Temple of Triumph
+1 Exotic Orchard
+1 Temple of Enlightenment
+1 Prairie Stream
+1 Irrigated Farmland
+1 Deserted Beach
+1 Glacial Fortress
+1 Skycloud Expanse
+1 Temple of Epiphany
+1 Frostboil Snarl
+1 Thespian's Stage
+1 Furycalm Snarl
+1 War Room
+1 Sunbaked Canyon
+1 Sundown Pass
+1 Stormcarved Coast
+1 Fiery Islet
+1 Atraxi Warden
+1 Wibbly-wobbly, Timey-wimey
+1 Time Beetle
+1 Star Whale
+1 Sibylline Soothsayer
+1 Judoon Enforcers
+1 Psychic Paper
+1 TARDIS
+1 Sonic Screwdriver
+1 Arcane Signet
+1 Sol Ring
+1 Clockspinning
+1 Thought Vessel
+1 Mind Stone
+1 Talisman of Creativity
+1 Lightning Greaves
+1 Talisman of Conviction
+1 Evolving Wilds
+1 Command Tower
+1 Path of Ancestry
+1 Temple of the False God
+1 Myriad Landscape
+1 Thriving Bluff
+1 Mystic Monastery
+1 Ominous Cemetery
+1 Rogue's Passage
+2 Plains
+1 Plains
+2 Island
+1 Island
+2 Mountain
+1 Mountain
