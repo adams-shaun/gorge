@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -19,8 +20,9 @@ import (
 // Snow, Blessing of Frost, Tundra Fumarole, Graven Lore, Search for Glory)
 // all read `Count$CastTotalManaSpent Snow`; before this fix the head returned
 // the UNFILTERED total (e.g. 5), and after it returns the snow-sourced count
-// (2). Producer-type provenance for Treasure/Cave/Desert does not exist, so
-// those fail closed to 0 -- pinned separately below on the ticket's own card.
+// (2). Task castfilter2 below gives Treasure/Cave/Desert the same per-unit
+// provenance through Player.TypedMana (Marut, Bat Colony, Cataclysmic
+// Prospecting).
 
 // TestCastTotalManaSpentSnowCountsOnlySnowEndToEnd casts Tundra Fumarole
 // (1 R R, "Add {C} for each {S} spent to cast this spell") from a pool of
@@ -77,15 +79,13 @@ func TestCastTotalManaSpentSnowCountsOnlySnowEndToEnd(t *testing.T) {
 }
 
 // TestCataclysmicProspectingCastTotalManaSpentFailsClosed pins the ticket's
-// named carrier. Cataclysmic Prospecting creates a tapped Treasure for each
-// mana from a DESERT spent to cast it (SVar:Y:Count$CastTotalManaSpent
-// Desert). Desert has no per-unit producer-type provenance, so the head fails
-// closed to 0 and the card creates NO Treasures -- the documented direction.
-// Before the fix it returned the UNFILTERED total and created too many; this
-// test FAILS on unmodified main (3 Treasures for the X=1, three-mana cast)
-// because the fail-closed 0 is the new, correct-direction behaviour. The
-// assertion is deliberately "0", never a guessed number. Uses the corpus
-// token registry so the real TokenScript$ (c_a_treasure_sac) resolves.
+// named carrier against PLAIN mana: Cataclysmic Prospecting creates a tapped
+// Treasure for each mana from a DESERT spent to cast it
+// (SVar:Y:Count$CastTotalManaSpent Desert), and an X=1 cast paid from three
+// PLAIN red units (no Desert units) reads 0 and creates NO Treasures. Before
+// the fix the head returned the UNFILTERED total (3 Treasures for the
+// three-mana cast); the direction -- only the named producer type counts --
+// is the contract both this pin and the castfilter2 Desert pin below assert.
 func TestCataclysmicProspectingCastTotalManaSpentFailsClosed(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -117,5 +117,230 @@ func TestCataclysmicProspectingCastTotalManaSpentFailsClosed(t *testing.T) {
 	}
 	if got := tokensNamed(e, 0, "Treasure"); got != 0 {
 		t.Fatalf("Cataclysmic Prospecting created %d Treasures, want 0 (no Desert provenance: fail closed, not the unfiltered total)", got)
+	}
+}
+
+// --- Task castfilter2: producer-type mana provenance ------------------------
+//
+// The filtered Count$CastTotalManaSpent Treasure/Cave/Desert forms now
+// resolve from Player.TypedMana, the per-unit producer tally the pool
+// carries beside Snow. Marut, Bat Colony and Cataclysmic Prospecting are
+// the brief's named carriers; the pins below assert the REAL derived effect
+// (tokens created), never the captured field alone.
+
+// drainEtb drains the resolution's queued triggers and the stack: the
+// ETB-trigger shape the Marut / Bat Colony / Cataclysmic Prospecting pins
+// resolve under. pendingTriggers must be pushed explicitly -- a bare
+// passUntilStackEmpty exits while the stack is empty but the trigger is
+// still queued, so the ETB body would never run.
+func drainEtb(t *testing.T, e *Engine) {
+	t.Helper()
+	for i := 0; i < 60; i++ {
+		if len(e.pendingTriggers) > 0 {
+			e.putTriggersOnStack()
+			continue
+		}
+		if len(e.G.Stack) == 0 {
+			return
+		}
+		d := e.Pending()
+		if d == nil {
+			e.resolveTop()
+			continue
+		}
+		if d.Kind == decision.KPriority {
+			idx := -1
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					idx = o.Index
+				}
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+				t.Fatalf("submit pass: %v", err)
+			}
+			continue
+		}
+		submitChoices(t, e, 0)
+	}
+	t.Fatalf("ETB drain did not settle: %d triggers pending, %d on the stack", len(e.pendingTriggers), len(e.G.Stack))
+}
+
+// TestCastTotalManaSpentTreasureMarutCreatesTreasureTokens: Marut ({8}) cast from a pool
+// of two Treasure-typed colourless units plus six plain ones creates exactly
+// 2 Treasure tokens -- one per mana from a Treasure spent to cast it, not
+// the total (8) and not the old fail-closed 0.
+func TestCastTotalManaSpentTreasureMarutCreatesTreasureTokens(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Marut"))
+	marut := e.G.Zone(state.ZHand, 0)[0]
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "TreasureC", Amount: 2})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 6})
+	castMode(t, e, marut, "")
+	finishCast(t, e, marut)
+	drainEtb(t, e)
+	if got := tokensNamed(e, 0, "Treasure"); got != 2 {
+		t.Fatalf("Marut created %d Treasure tokens, want 2 (two Treasure units of eight spent)", got)
+	}
+}
+
+// TestCastTotalManaSpentPlainOnlyCreatesNoTokens: the same cast from eight PLAIN
+// colourless units spends no Treasure mana, so the ETB trigger's
+// CheckSVar$ X gate reads 0 (nonzero truthiness) and denies -- no token at
+// all, not even the old fail-closed shape's silence-with-a-capture.
+func TestCastTotalManaSpentPlainOnlyCreatesNoTokens(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Marut"))
+	marut := e.G.Zone(state.ZHand, 0)[0]
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 8})
+	castMode(t, e, marut, "")
+	finishCast(t, e, marut)
+	drainEtb(t, e)
+	if got := tokensNamed(e, 0, "Treasure"); got != 0 {
+		t.Fatalf("plain-only Marut cast created %d Treasure tokens, want 0 (CheckSVar$ gate on the Treasure count)", got)
+	}
+}
+
+// TestCastTotalManaSpentTreasureExactnessOneOfEight: exactness, not the total --
+// one Treasure unit among eight creates exactly ONE token.
+func TestCastTotalManaSpentTreasureExactnessOneOfEight(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Marut"))
+	marut := e.G.Zone(state.ZHand, 0)[0]
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "TreasureC", Amount: 1})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 7})
+	castMode(t, e, marut, "")
+	finishCast(t, e, marut)
+	drainEtb(t, e)
+	if got := tokensNamed(e, 0, "Treasure"); got != 1 {
+		t.Fatalf("Marut created %d Treasure tokens, want 1 (one Treasure unit of eight spent)", got)
+	}
+}
+
+// TestCastTotalManaSpentMixedPoolCaptureSplitsEveryTag: one snow red, one Treasure
+// colourless and six plain colourless pay the {8}; the pay-time capture
+// splits the spend across ALL FOUR totals (8 / 1 / 1 / 0 / 0). The typed
+// consumption order (plain -> typed -> snow) is what puts the snow unit last,
+// so every split is exact and the CastInfo flag routing (each later event
+// carries all earlier flags; Apply checks Treasure, Cave, Desert, Snow, then
+// the total) can never route one tag's Amount into another's field.
+func TestCastTotalManaSpentMixedPoolCaptureSplitsEveryTag(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Marut"))
+	marut := e.G.Zone(state.ZHand, 0)[0]
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "SR", Amount: 1})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "TreasureC", Amount: 1})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 6})
+	castMode(t, e, marut, "")
+	finishCast(t, e, marut)
+	drainEtb(t, e)
+	o := e.G.Obj(marut)
+	if o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Marut not on the battlefield: %+v", o)
+	}
+	if got := o.ManaSpent; got != 8 {
+		t.Fatalf("ManaSpent = %d, want 8", got)
+	}
+	if got := o.ManaSnowSpent; got != 1 {
+		t.Fatalf("ManaSnowSpent = %d, want 1 (the snow unit is consumed last)", got)
+	}
+	if got := o.ManaTreasureSpent; got != 1 {
+		t.Fatalf("ManaTreasureSpent = %d, want 1", got)
+	}
+	if got := o.ManaCaveSpent; got != 0 {
+		t.Fatalf("ManaCaveSpent = %d, want 0", got)
+	}
+	if got := o.ManaDesertSpent; got != 0 {
+		t.Fatalf("ManaDesertSpent = %d, want 0", got)
+	}
+	if got := tokensNamed(e, 0, "Treasure"); got != 1 {
+		t.Fatalf("Marut created %d Treasure tokens, want 1 (the ETB read the Treasure split)", got)
+	}
+}
+
+// TestCastTotalManaSpentDesertCataclysmicProspectingCreatesTappedTreasures: the sorcery's
+// DBTreasure creates a TAPPED Treasure for each mana from a Desert spent
+// (SVar:Y:Count$CastTotalManaSpent Desert). X=2 announced over a pool of two
+// Desert-typed colourless units and two plain red: the {R}{R} pips take the
+// plain red units, X's {2} generic takes the typed units, so exactly 2
+// tapped Treasures -- the exact per-tag count, not the total (4).
+func TestCastTotalManaSpentDesertCataclysmicProspectingCreatesTappedTreasures(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Cataclysmic Prospecting"))
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "DesertC", Amount: 2})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 2})
+	castMode(t, e, spell, "")
+	// The {X} ask: announce X = 2.
+	if d := e.Pending(); d != nil && d.Kind == "choose" {
+		submitChoices(t, e, 2)
+	}
+	finishCast(t, e, spell)
+	drainEtb(t, e)
+	if got := tokensNamed(e, 0, "Treasure"); got != 2 {
+		t.Fatalf("Cataclysmic Prospecting created %d Treasures, want 2 (two Desert units of four spent)", got)
+	}
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		o := e.G.Obj(id)
+		if o != nil && o.IsToken && o.Face() != nil && strings.Contains(o.Face().Name, "Treasure") && !o.Tapped {
+			t.Fatalf("a created Treasure token entered untapped; TokenTapped$ True must tap it")
+		}
+	}
+}
+
+// TestCastTotalManaSpentCaveBatColonyCreatesBatTokens: Bat Colony ({2}{W}) cast from a
+// pool of two Cave-typed white units plus one plain white creates exactly 2
+// 1/1 black Bat tokens -- one per mana from a Cave spent to cast it.
+func TestCastTotalManaSpentCaveBatColonyCreatesBatTokens(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Bat Colony"))
+	bat := e.G.Zone(state.ZHand, 0)[0]
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "CaveW", Amount: 2})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "W", Amount: 1})
+	castMode(t, e, bat, "")
+	finishCast(t, e, bat)
+	drainEtb(t, e)
+	if got := tokensNamed(e, 0, "Bat"); got != 2 {
+		t.Fatalf("Bat Colony created %d Bat tokens, want 2 (two Cave units of three spent)", got)
+	}
+}
+
+// TestCastTotalManaSpentConsumesPlainBeforeTyped is the deterministic
+// consumption-order pin: a {1}{C} cast whose ETB draws
+// Count$CastTotalManaSpent Treasure cards. A pool of two PLAIN {C} and one
+// Treasure {C} spends both {C} units on the pip and the generic -- whichever
+// order the pool was seeded in -- so the Treasure count reads 0 (the
+// deterministic contract); two Treasure units alone must read 2.
+func TestCastTotalManaSpentConsumesPlainBeforeTyped(t *testing.T) {
+	fixture := "Name:Treasure Counter\nManaCost:1 C\nTypes:Creature\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw | TriggerDescription$x\n" +
+		"SVar:TrigDraw:DB$ Draw | NumCards$ X\n" +
+		"SVar:X:Count$CastTotalManaSpent Treasure\nOracle:x\n"
+	for _, tc := range []struct {
+		name      string
+		counters  []string // the Counter forms emitted, in order
+		wantDraws int
+		wantTyped int32
+	}{
+		{"plain first", []string{"C", "TreasureC", "C"}, 0, 0},
+		{"treasure first", []string{"TreasureC", "C", "C"}, 0, 0},
+		{"two treasures", []string{"TreasureC", "TreasureC"}, 2, 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			e := handEngineTokens(t, card(t, fixture))
+			spell := e.G.Zone(state.ZHand, 0)[0]
+			for _, counter := range tc.counters {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: counter, Amount: 1})
+			}
+			castMode(t, e, spell, "")
+			finishCast(t, e, spell)
+			drainEtb(t, e)
+			if got := e.G.Obj(spell).ManaTreasureSpent; got != tc.wantTyped {
+				t.Fatalf("ManaTreasureSpent = %d, want %d", got, tc.wantTyped)
+			}
+			if got := len(e.G.Zone(state.ZHand, 0)); got != tc.wantDraws {
+				t.Fatalf("drew %d cards, want %d (Treasure count %d)", got, tc.wantDraws, tc.wantTyped)
+			}
+		})
 	}
 }

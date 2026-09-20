@@ -624,6 +624,20 @@ func ManaRestrictionTextNC(valid string, source state.ObjID, cond string) string
 // remain unrestricted. A bare empty Valid with a condition still counts as a
 // restriction batch (the batch is unrestricted spend-wise but carries the
 // can't-be-countered provenance).
+// typedManaTagCounter parses a typed mana unit's Counter form
+// "<Tag><colour>" (task castfilter2: e.g. "TreasureC", "CaveW",// "DesertR"): it returns the tag word and its Player.TypedMana index when
+// the counter names exactly one tagged producer type plus one WUBRGC
+// letter. The fixed TypedManaTags order keeps the parse deterministic (no
+// map, no first-in-Types read).
+func typedManaTagCounter(counter string) (string, int, bool) {
+	for ti, tag := range state.TypedManaTags {
+		if strings.HasPrefix(counter, tag) && len(counter) == len(tag)+1 {
+			return tag, ti, true
+		}
+	}
+	return "", 0, false
+}
+
 func ManaRestrictionFromText(text string) (string, state.ObjID, string, bool) {
 	valid, ok := strings.CutPrefix(text, manaRestrictionPrefix)
 	if !ok || valid == "" {
@@ -778,6 +792,15 @@ var flagNames = [...]struct {
 	// unfiltered total. Appended at the end per the table's own ordering
 	// rule.
 	{"manasnowspent", state.FlagManaSnowSpent},
+	// The TREASURE-/CAVE-/DESERT-sourced parts of the total-mana-spent
+	// capture (task castfilter2): a face whose SVar table reads the filtered
+	// Count$CastTotalManaSpent Treasure/Cave/Desert head stamps its pay-time
+	// CastInfo with these flags too, so each Amount folds into its own
+	// Object field instead of overwriting X, the total, or an earlier tag.
+	// Appended at the end per the table's own ordering rule.
+	{"manatreasurespent", state.FlagManaTreasureSpent},
+	{"manacavespent", state.FlagManaCaveSpent},
+	{"manadesertspent", state.FlagManaDesertSpent},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

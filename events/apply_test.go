@@ -1358,3 +1358,57 @@ func TestModeChosenIsAMarkerOnly(t *testing.T) {
 		t.Fatalf("ModeChosen.String() = %q, want %q", got, want)
 	}
 }
+
+// TestTypedManaTallyMovesWithThePool (task castfilter2): the typed
+// "<Tag><colour>" ManaAdd Counter form moves the pool slot and the parallel
+// Player.TypedMana tally through one event, spend events (the negative
+// forms) move both back, and ManaClear empties the tally with the pool.
+// The historical two-char "S<colour>" form stays first and exact.
+func TestTypedManaTallyMovesWithThePool(t *testing.T) {
+	g, l := twoPlayer(t)
+	for _, tc := range []struct {
+		counter string
+		tag     int
+		idx     int
+	}{
+		{"TreasureC", state.TypedTreasure, state.MC},
+		{"CaveW", state.TypedCave, state.MW},
+		{"DesertR", state.TypedDesert, state.MR},
+	} {
+		Emit(g, l, Event{Kind: ManaAdd, Player: 0, Counter: tc.counter, Amount: 2})
+		if g.Players[0].Pool[tc.idx] != 2 || g.Players[0].TypedMana[tc.tag][tc.idx] != 2 {
+			t.Fatalf("%s add: pool=%v typed=%v", tc.counter, g.Players[0].Pool, g.Players[0].TypedMana)
+		}
+		Emit(g, l, Event{Kind: ManaAdd, Player: 0, Counter: tc.counter, Amount: -1})
+		if g.Players[0].Pool[tc.idx] != 1 || g.Players[0].TypedMana[tc.tag][tc.idx] != 1 {
+			t.Fatalf("%s spend: pool=%v typed=%v", tc.counter, g.Players[0].Pool, g.Players[0].TypedMana)
+		}
+	}
+	// The historical snow form is untouched by the typed parse.
+	Emit(g, l, Event{Kind: ManaAdd, Player: 0, Counter: "SG", Amount: 1})
+	if g.Players[0].Snow[state.MG] != 1 || g.Players[0].TypedMana[state.TypedDesert][state.MG] != 0 {
+		t.Fatalf("snow form: snow=%v typed=%v", g.Players[0].Snow, g.Players[0].TypedMana)
+	}
+	Emit(g, l, Event{Kind: ManaClear, Player: 0})
+	if g.Players[0].TypedMana != [3]state.Mana{} {
+		t.Fatalf("mana clear did not empty the typed tally: %v", g.Players[0].TypedMana)
+	}
+}
+
+// TestCastInfoTypedFlagsRouteNewestFirst (task castfilter2): one CastInfo per
+// captured total, each later event carrying all earlier flags, so the Apply
+// switch checks the NEWEST flag first (Desert, Cave, Treasure, Snow, then the
+// total) and every Amount lands in its own field.
+func TestCastInfoTypedFlagsRouteNewestFirst(t *testing.T) {
+	g, id := gameWithOneCard(t)
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 8, Counter: "manaspent"})
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 1, Counter: "manaspent,manasnowspent"})
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 2, Counter: "manaspent,manatreasurespent"})
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 0, Counter: "manaspent,manatreasurespent,manacavespent"})
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 3, Counter: "manaspent,manatreasurespent,manacavespent,manadesertspent"})
+	o := g.Obj(id)
+	if o.ManaSpent != 8 || o.ManaSnowSpent != 1 || o.ManaTreasureSpent != 2 || o.ManaCaveSpent != 0 || o.ManaDesertSpent != 3 {
+		t.Fatalf("typed CastInfo routing: spent=%d snow=%d treasure=%d cave=%d desert=%d",
+			o.ManaSpent, o.ManaSnowSpent, o.ManaTreasureSpent, o.ManaCaveSpent, o.ManaDesertSpent)
+	}
+}

@@ -165,6 +165,20 @@ const (
 	// FlagManaSpent's, so the two totals never share an event. Appended per
 	// the enum's own append-only precedent.
 	FlagManaSnowSpent
+	// FlagManaTreasureSpent / FlagManaCaveSpent / FlagManaDesertSpent mark a
+	// cast whose pay-time CastInfo carries the TREASURE-/CAVE-/DESERT-sourced
+	// part of the total mana spent to cast it (task castfilter2's filtered
+	// Count$CastTotalManaSpent <Type> captures, the FlagManaSnowSpent
+	// pattern: the flag routes the Amount into its Object field instead of
+	// overwriting X, the total or an earlier tag). Each rides its OWN
+	// trailing pay-time CastInfo immediately after the previous tag's, so
+	// the four totals never share an event, and events.Apply's CastInfo
+	// switch checks them in emission order (Treasure, Cave, Desert, then
+	// Snow, then the total) because every later event carries all earlier
+	// flags. Appended per the enum's own append-only precedent.
+	FlagManaTreasureSpent
+	FlagManaCaveSpent
+	FlagManaDesertSpent
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -342,6 +356,23 @@ type Object struct {
 	// events.Move; a copy of the spell was never cast and a cheated-in
 	// permanent reads 0.
 	ManaSnowSpent int32
+	// ManaTreasureSpent / ManaCaveSpent / ManaDesertSpent are the
+	// TREASURE-/CAVE-/DESERT-sourced parts of ManaSpent: how many of the
+	// mana units the cast's payment spent were produced by a permanent of
+	// that type (task castfilter2, the ManaSnowSpent pattern). They are
+	// carried by the pay-time CastInfo's FlagManaTreasureSpent /
+	// FlagManaCaveSpent / FlagManaDesertSpent Amounts (the X-overwrite
+	// guard: each flag routes its Amount here instead of into X, the total
+	// or an earlier tag). Typed units are consumed after plain ones and
+	// before snow (resolveManaWith's takeUnit order), so the typed splits
+	// never exceed ManaSpent for the same slot and never overlap the snow
+	// split; a cast that spent none of a tag is a real 0. They ride the
+	// same provenance window as ManaSpent and reset alongside it in
+	// events.Move; a copy of the spell was never cast and a cheated-in
+	// permanent reads 0.
+	ManaTreasureSpent int32
+	ManaCaveSpent     int32
+	ManaDesertSpent   int32
 	// NotedNumber is the number a trigger's Execute$ body noted onto the
 	// CARD (Lupine Harbingers' T:Mode$ ChangesZone | Destination$ Exile
 	// trigger executing DB$ Pump | NoteNumber$ Count$YourTurns -- the

@@ -742,6 +742,21 @@ func Apply(g *state.Game, e Event) {
 				g.Players[e.Player].Snow[idx] += e.Amount
 				break
 			}
+			// "<Tag><colour>" (e.g. "TreasureC", "CaveW", "DesertR") is a TYPED
+			// mana unit (task castfilter2): it lands in the colour's pool slot
+			// and is tallied in Player.TypedMana[tag] so the filtered
+			// Count$CastTotalManaSpent Treasure/Cave/Desert heads can read how
+			// much of a cast's spend came from a producer of that type. One
+			// event moves both counters, so a typed tally can never drift from
+			// the pool it parallels. The historical two-char "S" form above
+			// stays first and exact — recorded games carry it.
+			if tag, ti, ok := typedManaTagCounter(e.Counter); ok {
+				idx := state.ManaIndex(e.Counter[len(tag)])
+				player := &g.Players[e.Player]
+				player.Pool[idx] += e.Amount
+				player.TypedMana[ti][idx] += e.Amount
+				break
+			}
 			idx := state.MC
 			if e.Counter != "" {
 				idx = state.ManaIndex(e.Counter[0])
@@ -787,6 +802,7 @@ func Apply(g *state.Game, e Event) {
 			g.Players[e.Player].Pool = state.Mana{}
 			g.Players[e.Player].RestrictedMana = nil
 			g.Players[e.Player].Snow = state.Mana{}
+			g.Players[e.Player].TypedMana = [3]state.Mana{}
 		}
 
 	case CounterChange:
@@ -1043,6 +1059,17 @@ func Apply(g *state.Game, e Event) {
 				o.ReplicateTimes = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
 				o.TimesKicked = e.Amount
+			// One CastInfo per captured total, each LATER event carrying ALL
+			// earlier flags (payCast's flags |= accumulation), so this switch
+			// checks the NEWEST flag first -- the reverse of the emission
+			// order -- or every later event would route into the first tag's
+			// field: Desert, Cave, Treasure, then Snow, then the total.
+			case FlagsFrom(e.Counter)&state.FlagManaDesertSpent != 0:
+				o.ManaDesertSpent = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaCaveSpent != 0:
+				o.ManaCaveSpent = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaTreasureSpent != 0:
+				o.ManaTreasureSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaSnowSpent != 0:
 				o.ManaSnowSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaSpent != 0:
@@ -1845,6 +1872,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.TimesKicked = 0
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
+			o.ManaTreasureSpent = 0
+			o.ManaCaveSpent = 0
+			o.ManaDesertSpent = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
@@ -1871,6 +1901,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.TimesKicked = 0
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
+			o.ManaTreasureSpent = 0
+			o.ManaCaveSpent = 0
+			o.ManaDesertSpent = 0
 			o.NotedNumber = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or

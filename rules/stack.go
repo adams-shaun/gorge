@@ -62,41 +62,50 @@ func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, 
 // card is no longer in the granted zone, so re-deriving from the zone would
 // wrongly drop it.
 func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) bool {
-	ok, _, _, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
+	ok, _, _, _, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
 	return ok
 }
 
 // payManaForSpent is payManaFor with the payment's actually-spent mana
 // returned: the per-colour delta the negative ManaAdd events record (zero on
-// a failed payment). THREE deltas come back: `spentPlain` is the split the
+// a failed payment). FOUR deltas come back: `spentPlain` is the split the
 // payment emits (restricted batches already carved off by
 // emitRestrictedManaSpend, the delta RememberCostMana$ notes today), `spentAll`
 // is the FULL pool delta copied before that split -- the true "all mana spent
 // to pay this cost", which converge (CR 107.4f-family) counts from via
-// payManaCastSpent -- and `spentSnow` is the per-colour count of the spent
-// units that were SNOW units (CR 107.4h), the parallel-tally delta, which the
-// filtered Count$CastTotalManaSpent Snow head reads. The RememberCostMana$
-// payment site (Jeweled Amulet) keeps its existing split-based note; every
-// other caller keeps the bool-only payManaFor wrapper, so no other payment
-// site changes shape.
-func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana) {
+// payManaCastSpent -- `spentSnow` is the per-colour count of the spent
+// units that were SNOW units (CR 107.4h), the parallel-tally delta, and
+// `spentTyped` is the per-tag per-colour count of the spent units that were
+// TYPED units (task castfilter2: Treasure/Cave/Desert, the parallel
+// Player.TypedMana tally), which the filtered Count$CastTotalManaSpent
+// Treasure/Cave/Desert heads read. The RememberCostMana$ payment site
+// (Jeweled Amulet) keeps its existing split-based note; every other caller
+// keeps the bool-only payManaFor wrapper, so no other payment site changes
+// shape.
+func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
 	before := e.manaAvailableFor(p, id, ability)
 	beforeSnow := e.G.Players[p].Snow
-	pay, ok := cost.resolveManaWith(before, beforeSnow, e.G.Players[p].Life,
+	beforeTyped := e.G.Players[p].TypedMana
+	pay, ok := cost.resolveManaWith(before, beforeSnow, beforeTyped, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 	if !ok {
-		return false, state.Mana{}, state.Mana{}, state.Mana{}
+		return false, state.Mana{}, state.Mana{}, state.Mana{}, [3]state.Mana{}
 	}
-	after, afterSnow, lifeSpent := pay.pool, pay.snow, pay.lifeSpent
+	after, afterSnow, afterTyped, lifeSpent := pay.pool, pay.snow, pay.typed, pay.lifeSpent
 	spent := state.Mana{}
 	spentSnow := state.Mana{}
+	spentTyped := [3]state.Mana{}
 	for i := range before {
 		spent[i] = before[i] - after[i]
-		// The parallel snow tally's own delta: how many of the units that
-		// left slot i were snow units. resolveManaWith consumes a non-snow
-		// unit before a snow one wherever a choice existed, so this is
-		// exactly what the payment search did and never exceeds spent[i].
+		// The parallel tallies' own deltas: how many of the units that left
+		// slot i were snow / typed units. resolveManaWith consumes a plain
+		// unit before a typed one and a typed one before snow wherever a
+		// choice existed, so this is exactly what the payment search did and
+		// each tally never exceeds spent[i].
 		spentSnow[i] = beforeSnow[i] - afterSnow[i]
+		for t := range spentTyped {
+			spentTyped[t][i] = beforeTyped[t][i] - afterTyped[t][i]
+		}
 	}
 	// Converge counts ALL mana spent, restricted batches included -- Boseiju's
 	// {C} is not a colour, but a Tazri-restricted coloured unit IS the colour
@@ -108,45 +117,55 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 		if spent[i] == 0 {
 			continue
 		}
-		// A slot whose snow units were spent (all or part) emits the
-		// "S<colour>" Counter form so the parallel snow tally moves with the
-		// pool through the same events the adds used. resolveMana consumes a
-		// non-snow unit before a snow one wherever a choice existed, so the
-		// snow split here is exactly what the payment search did.
+		// A slot whose snow / typed units were spent (all or part) emits the
+		// "S<colour>" / "<Tag><colour>" Counter forms so the parallel tallies
+		// move with the pool through the same events the adds used.
+		// resolveMana consumes a plain unit before a typed one and a typed
+		// one before snow wherever a choice existed, so the split here is
+		// exactly what the payment search did. The emission order (plain,
+		// Treasure, Cave, Desert, snow) is fixed and deterministic.
 		snowSpent := beforeSnow[i] - afterSnow[i]
-		if snowSpent > 0 {
-			if plain := spent[i] - snowSpent; plain > 0 {
-				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -plain})
-			}
-			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: "S" + letter, Amount: -snowSpent})
-			continue
+		typedSpent := int32(0)
+		for t := range spentTyped {
+			typedSpent += spentTyped[t][i]
 		}
-		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent[i]})
+		if plain := spent[i] - snowSpent - typedSpent; plain > 0 {
+			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -plain})
+		}
+		for t, tag := range state.TypedManaTags {
+			if spentTyped[t][i] > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: tag + letter, Amount: -spentTyped[t][i]})
+			}
+		}
+		if snowSpent > 0 {
+			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: "S" + letter, Amount: -snowSpent})
+		}
 	}
 	// Fixed life costs and any Phyrexian pips paid with life are deducted
 	// through the ordinary LifeChange event so a replay learns them.
 	if lifeSpent != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
-	return true, spentAll, spent, spentSnow
+	return true, spentAll, spent, spentSnow, spentTyped
 }
 
 // payManaCastSpent is the spell-cost payment (the shared payManaFor core
 // with the cast's recorded may-play ignore-colour rider, CR 401.5's "spend
 // mana as though it were mana of any color to cast it") returning the FULL
 // spent delta: the pre-restriction-split per-colour pool delta converge
-// counts from (task converge1), plus the snow-unit delta the filtered
-// Count$CastTotalManaSpent Snow head reads (task castfilter1). The spell
-// arm's only ask stages have all completed by payment, so the deltas ride
-// pendingCast plain data to the pay-time CastInfo exactly like replicateTimes
-// does. The rider was proved by the offer gate while the card still sat in
-// the granted zone; the payment keeps it via pc.mayPlayIgnore because after
-// the push (CR 601.2a) the card is on the stack and a zone re-derivation
-// would wrongly drop the grant.
-func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana) {
-	ok, spentAll, _, spentSnow := e.payManaForSpent(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
+// counts from (task converge1), the snow-unit delta the filtered
+// Count$CastTotalManaSpent Snow head reads (task castfilter1), and the
+// per-tag typed deltas the filtered Treasure/Cave/Desert heads read (task
+// castfilter2). The spell arm's only ask stages have all completed by
+// payment, so the deltas ride pendingCast plain data to the pay-time
+// CastInfo exactly like replicateTimes does. The rider was proved by the
+// offer gate while the card still sat in the granted zone; the payment
+// keeps it via pc.mayPlayIgnore because after the push (CR 601.2a) the card
+// is on the stack and a zone re-derivation would wrongly drop the grant.
+func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [3]state.Mana) {
+	ok, spentAll, _, spentSnow, spentTyped := e.payManaForSpent(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
 		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
-	return ok, spentAll, spentSnow
+	return ok, spentAll, spentSnow, spentTyped
 }
 
 // payExtortPip charges the {W/B} hybrid pip (one mana of either W or B)
@@ -338,8 +357,8 @@ func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *ma
 // passed explicitly, for the payment sites that know the cast's recorded
 // rider and cannot re-derive it from the card's zone.
 func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool, cost Cost, rider pipRider) bool {
-	_, ok := cost.resolveManaWith(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].Life,
-		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
+	_, ok := cost.resolveManaWith(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].TypedMana,
+		e.G.Players[p].Life, e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 	return ok
 }
 
@@ -370,7 +389,7 @@ func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cos
 // modes, so a potential action and the payment it promises can never disagree
 // about what the pool may satisfy.
 func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana) bool {
-	_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, e.G.Players[p].Life,
+	_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, e.G.Players[p].TypedMana, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p),
 		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
 		e.paymentConv(p, id, ability))

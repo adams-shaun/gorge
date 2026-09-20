@@ -1039,7 +1039,7 @@ func (m costMods) hasFloor() bool {
 // resolves one pip per level in announcePip order and stops at the first
 // payable assignment, so a payable cost is found without visiting the whole
 // tree.
-func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider pipRider, conv *manaConv) bool {
+func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, typed [3]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider pipRider, conv *manaConv) bool {
 	composed := func(c Cost) bool {
 		cc := m.apply(c)
 		cc.Generic = addClampedGeneric(cc.Generic, int64(taxGeneric))
@@ -1048,7 +1048,7 @@ func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, d
 		} else {
 			cc.Generic = 0
 		}
-		_, ok := cc.resolveManaWith(pool, snow, life, bLifeOK, rider, conv)
+		_, ok := cc.resolveManaWith(pool, snow, typed, life, bLifeOK, rider, conv)
 		return ok
 	}
 	if !m.hasFloor() || c.annPipCount() == 0 {
@@ -1104,7 +1104,7 @@ func (e *Engine) manaFeasible(p state.PlayerID, id state.ObjID, ability bool, c 
 // K'rrik-shaped or MayPlayIgnoreColor$-shaped cost either.
 func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
 	pl := e.G.Players[p]
-	return mods.feasibleAny(c, e.manaAvailableFor(p, id, ability), pl.Snow, pl.Life, taxGeneric, delve,
+	return mods.feasibleAny(c, e.manaAvailableFor(p, id, ability), pl.Snow, pl.TypedMana, pl.Life, taxGeneric, delve,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 }
 
@@ -1118,7 +1118,7 @@ func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability boo
 // disagree about what the pool may satisfy.
 func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, pool state.Mana) bool {
 	pl := e.G.Players[p]
-	return mods.feasibleAny(c, pool, pl.Snow, pl.Life, taxGeneric, delve,
+	return mods.feasibleAny(c, pool, pl.Snow, pl.TypedMana, pl.Life, taxGeneric, delve,
 		e.payerGrantsPayLifeInsteadOfB(p),
 		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
 		e.paymentConv(p, id, ability))

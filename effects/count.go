@@ -737,23 +737,31 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// rv2b exotic-heads ledger -- they read a trigger context, not this
 		// field.
 		//
-		// The FILTERED form `Count$CastTotalManaSpent <Type>` (task castfilter1)
-		// counts only the mana spent whose SOURCE was a permanent of <Type>.
-		// That per-unit producer-type provenance does not exist for an
-		// arbitrary <Type> -- the pool is a six-slot colour array with no
-		// producer record -- so only <Type> == "Snow" resolves, from the
-		// parallel snow tally the pool has always carried (CR 107.4h,
-		// Object.ManaSnowSpent). Treasure/Cave/Desert (Marut, Bat Colony,
-		// Cataclysmic Prospecting) cannot be answered without that machinery:
-		// they FAIL CLOSED to 0, which is strictly closer to the truth than
-		// the unfiltered total they used to return. Snow's own provenance is a
-		// real per-unit count, not an approximation.
+		// The FILTERED form `Count$CastTotalManaSpent <Type>` (tasks
+		// castfilter1/castfilter2) counts only the mana spent whose SOURCE was
+		// a permanent of <Type>. That per-unit producer provenance is carried
+		// by the pool's parallel tallies and captured at payCast: <Type> ==
+		// "Snow" resolves from the snow tally the pool has always carried (CR
+		// 107.4h, Object.ManaSnowSpent), and <Type> == "Treasure"/"Cave"/
+		// "Desert" (task castfilter2 — Marut, Bat Colony, Cataclysmic
+		// Prospecting) resolves from Player.TypedMana's tagged units
+		// (Object.ManaTreasureSpent / ManaCaveSpent / ManaDesertSpent). An
+		// unknown <Type> — a producer type no tagging models — fails closed
+		// to 0, which is strictly closer to the truth than the unfiltered
+		// total the head used to return. Every resolved form is a real
+		// per-unit count, not an approximation.
 		if o := g.Obj(c.Source); o != nil {
 			switch arg {
 			case "":
 				return o.ManaSpent, true
 			case "Snow":
 				return o.ManaSnowSpent, true
+			case "Treasure":
+				return o.ManaTreasureSpent, true
+			case "Cave":
+				return o.ManaCaveSpent, true
+			case "Desert":
+				return o.ManaDesertSpent, true
 			default:
 				return 0, true
 			}

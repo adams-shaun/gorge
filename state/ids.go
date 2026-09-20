@@ -122,6 +122,33 @@ const (
 
 type Mana [numMana]int32
 
+// The tagged producer types Player.TypedMana indexes (task castfilter2):
+// the fixed precedence order a face carrying several tagged types resolves
+// in (measured at the corpus pin: no producer carries two).
+const (
+	TypedTreasure = 0
+	TypedCave     = 1
+	TypedDesert   = 2
+)
+
+// TypedManaTags is the tag word per TypedMana index, in the fixed
+// Treasure > Cave > Desert precedence; the ManaAdd event's
+// "<Tag><colour>" Counter form parses through it (a fixed slice, never a
+// map, so the parse order is deterministic).
+var TypedManaTags = [3]string{"Treasure", "Cave", "Desert"}
+
+// TypedManaIndex maps a Count$CastTotalManaSpent <Type> tag word to its
+// TypedMana slot; ok is false for a word the producer-type tagging does not
+// model (the head fails closed for those).
+func TypedManaIndex(word string) (int, bool) {
+	for i, tag := range TypedManaTags {
+		if word == tag {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
 // ManaIndex maps a WUBRGC symbol to its pool slot. Returns MC for anything
 // unrecognised, which is the safe default for colourless-producing lands.
 func ManaIndex(sym byte) int {
