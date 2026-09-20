@@ -118,7 +118,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// on the Damage event the prevention replaces -- a prevented hit is a
 		// Note, never a Damage.
 		return 1 << events.Note
-	case "CounterAdded":
+	case "CounterAdded", "CounterRemoved":
 		return 1 << events.CounterChange
 	case "TokenCreated", "TokenCreatedOnce":
 		return 1 << events.TokenCreate
