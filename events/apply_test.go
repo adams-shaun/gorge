@@ -1520,6 +1520,87 @@ func TestRingEmblemPushMintsAnAbilityInApply(t *testing.T) {
 	}
 }
 
+// TestGrantAbilityPushResolvesTheBodyFromTheGrantor pins the cross-object
+// ability grant's Apply case (CR 613.1f): Obj is the ability's own source (the
+// RECIPIENT), IDs[0] the granting object whose face resolves the SVar body
+// (Counter), and IDs must NOT leak into the minted ability's Remembered set --
+// the DelayedPush field-overload this distinct Kind exists to avoid.
+func TestGrantAbilityPushResolvesTheBodyFromTheGrantor(t *testing.T) {
+	g, l := twoPlayer(t)
+	grantorCard, d := cards.ParseBytes("g.txt", []byte("Name:Grantor\nManaCost:0\nTypes:Artifact\nSVar:Zap:AB$ Draw | NumCards$ 1\nOracle:x\n"))
+	if len(d) != 0 {
+		t.Fatalf("diags: %v", d)
+	}
+	grantorCard.Link()
+	grantor := g.AddObject(grantorCard, 0)
+	grantor.Zone = state.ZBattlefield
+	// The recipient bears no Zap SVar: if the body resolved from Obj it would
+	// mint nothing, which is exactly the pre-fix silent no-op.
+	recipient := g.Obj(g.Zone(state.ZLibrary, 0)[0])
+	recipient.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{grantor.ID, recipient.ID})
+
+	before := len(g.Objs)
+	Emit(g, l, Event{Kind: GrantAbilityPush, Player: 0, Obj: recipient.ID, Counter: "Zap", IDs: []state.ObjID{grantor.ID}})
+	if len(g.Objs) != before+1 {
+		t.Fatalf("object count = %d, want %d (one ability object created)", len(g.Objs), before+1)
+	}
+	if len(g.Stack) != 1 {
+		t.Fatalf("stack = %v, want the granted ability object", g.Stack)
+	}
+	ability := g.Obj(g.Stack[0])
+	if ability.Ability == nil || ability.Ability.API != "Draw" {
+		t.Fatalf("Ability = %+v, want the grantor's Zap SVar (a Draw SA)", ability.Ability)
+	}
+	if ability.Source != recipient.ID {
+		t.Fatalf("Source = %d, want %d (the recipient the ability was granted to), not the grantor %d", ability.Source, recipient.ID, grantor.ID)
+	}
+	if len(ability.Remembered) != 0 {
+		t.Fatalf("Remembered = %v, want empty (the grantor id in IDs must not become memory)", ability.Remembered)
+	}
+}
+
+// TestGrantAbilityPushDegradesGracefully covers totality: a missing IDS
+// grantor, a nonexistent recipient, and an unresolvable SVar name each no-op
+// rather than panic or mint a bogus ability.
+func TestGrantAbilityPushDegradesGracefully(t *testing.T) {
+	g, _ := twoPlayer(t)
+	cardFace := "Name:Grantor\nManaCost:0\nTypes:Artifact\nSVar:Zap:AB$ Draw | NumCards$ 1\nOracle:x\n"
+	gc, _ := cards.ParseBytes("g.txt", []byte(cardFace))
+	gc.Link()
+	grantor := g.AddObject(gc, 0)
+	grantor.Zone = state.ZBattlefield
+	recipient := g.Obj(g.Zone(state.ZLibrary, 0)[0])
+	recipient.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{grantor.ID, recipient.ID})
+
+	mints := 0
+	emit := func(e Event) {
+		before := len(g.Objs)
+		Apply(g, e)
+		if len(g.Objs) != before {
+			mints++
+		}
+	}
+	// No grantor in IDs.
+	emit(Event{Kind: GrantAbilityPush, Player: 0, Obj: recipient.ID, Counter: "Zap"})
+	// Grantor id names no object.
+	emit(Event{Kind: GrantAbilityPush, Player: 0, Obj: recipient.ID, Counter: "Zap", IDs: []state.ObjID{1 << 20}})
+	// Recipient id names no object.
+	emit(Event{Kind: GrantAbilityPush, Player: 0, Obj: 1 << 20, Counter: "Zap", IDs: []state.ObjID{grantor.ID}})
+	// The grantor's face has no such SVar.
+	emit(Event{Kind: GrantAbilityPush, Player: 0, Obj: recipient.ID, Counter: "NoSuchSVar", IDs: []state.ObjID{grantor.ID}})
+	if mints != 0 {
+		t.Fatalf("%d degenerate GrantAbilityPush events minted an object, want 0", mints)
+	}
+}
+
+func TestGrantAbilityPushKindString(t *testing.T) {
+	if got, want := GrantAbilityPush.String(), "grant_ability_push"; got != want {
+		t.Fatalf("GrantAbilityPush.String() = %q, want %q", got, want)
+	}
+}
+
 // itoa avoids importing strconv for one call in this file.
 func itoa(n int) string {
 	if n == 0 {
