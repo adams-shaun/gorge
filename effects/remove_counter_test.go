@@ -181,3 +181,31 @@ func TestRemoveCounterExoticShapesStayLoud(t *testing.T) {
 		t.Fatalf("Choices$ moved counters, want untouched at 2")
 	}
 }
+
+// A Defined$-named OBJECT that is not on the battlefield (the corpus's
+// RememberedLKI/Imprinted/ChosenCard defined sets can name a graveyard or
+// exile card) is skipped LOUDLY: one Note naming the skip, nothing moves.
+// The first round silently swallowed such targets; TgtZone$ naming a
+// non-battlefield zone is the only sanctioned off-battlefield family and it
+// already takes the exotic path above.
+func TestRemoveCounterOffBattlefieldTargetSkipsLoudly(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	g.Obj(ids["myBear"]).AddCounter("P1P1", 2)
+	g.Obj(ids["myBear"]).Zone = state.ZGraveyard
+	g.SetZone(state.ZGraveyard, 0, []state.ObjID{ids["myBear"]})
+	Resolve(h, &Ctx{Controller: 0, Source: ids["myBear"]},
+		sa(t, "DB$ RemoveCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ All"))
+	if got := g.Obj(ids["myBear"]).Counter("P1P1"); got != 2 {
+		t.Fatalf("off-battlefield target moved counters (%d left), want untouched", got)
+	}
+	notes := 0
+	for _, ev := range h.log {
+		if ev.Kind == events.Note {
+			notes++
+		}
+	}
+	if notes != 1 {
+		t.Fatalf("emitted %d Notes for the skipped off-battlefield target, want exactly 1: %+v", notes, h.log)
+	}
+}

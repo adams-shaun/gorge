@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -901,6 +902,13 @@ func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
 // Optional$ (a may-remove election). Registering the API removed the generic
 // "unimplemented API" fallback, so without these notes the shapes would
 // silently remove nothing.
+// One Note per Defined$-named OBJECT that is not on the battlefield (or no
+// longer exists) instead of the silent skip r1 shipped: the corpus's
+// RememberedLKI/Imprinted/ChosenCard defined sets can name a graveyard or
+// exile card, the TgtZone$ gate above is the only sanctioned off-battlefield
+// family, and swallowing a named target silently is an unledgered narrowing.
+// The note records the skip loudly; nothing moves (removal off-battlefield
+// stays a TgtZone$ task).
 func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 	var exotic []string
 	if strings.EqualFold(strings.TrimSpace(sa.Params["CounterType"]), "Any") {
@@ -980,7 +988,14 @@ func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		o := g.Obj(t.Obj)
-		if o == nil || o.Zone != state.ZBattlefield {
+		if o == nil {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: fmt.Sprintf("RemoveCounter target %d no longer exists; skipped", t.Obj)})
+			continue
+		}
+		if o.Zone != state.ZBattlefield {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: fmt.Sprintf("RemoveCounter target %d is not on the battlefield (zone %s); skipped", o.ID, o.Zone)})
 			continue
 		}
 		for _, k := range dedupeKinds(counterKinds(kindArg, len(o.Counters), func(i int) string { return o.Counters[i].Kind })) {
