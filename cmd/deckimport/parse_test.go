@@ -184,6 +184,44 @@ func TestParseCommanderSectionRejectsThreeNames(t *testing.T) {
 	}
 }
 
+func TestParseCommanderCountedPairNeedsABlankLine(t *testing.T) {
+	// A counted line after a counted commander with NO blank line before
+	// the next header is the legacy single-commander export shape — the
+	// second counted line is the start of the maindeck, exactly what the
+	// pre-pair parser did — not a partner pair. Lifting it would silently
+	// seat a spurious second commander (worst case: a plain-Partner card
+	// legitimately sitting in the 99, which even validates as a pair); a
+	// counted pair must be separated from the maindeck by a blank line,
+	// which every real partner export and the pinned pair shape above has.
+	d, err := parseDecklist([]byte("Commander\n1 Atraxa, Praetors' Voice\n1 Birds of Paradise\nDeck\n4 Llanowar Elves\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d.Commanders) != 1 || d.Commanders[0] != "Atraxa, Praetors' Voice" {
+		t.Fatalf("commanders = %v, want the single counted commander", d.Commanders)
+	}
+	if countOf(d, "Birds of Paradise") != 1 {
+		t.Fatalf("the second counted line must be maindeck: %+v", d.Cards)
+	}
+	if countOf(d, "Llanowar Elves") != 4 {
+		t.Fatalf("post-header cards must be maindeck: %+v", d.Cards)
+	}
+}
+
+func TestParseCommanderSectionRejectsDuplicateName(t *testing.T) {
+	// The section naming the SAME card twice is a hard error, never a
+	// "pair" of one card twice: CR 903.3 has one or two DISTINCT
+	// commanders, and a duplicated designation would seat the same object
+	// twice at genesis.
+	_, err := parseDecklist([]byte("Commander\nFrodo, Adventurous Hobbit\nFrodo, Adventurous Hobbit\n\nDeck\n1 Birds of Paradise\n"))
+	if err == nil {
+		t.Fatal("expected an error for a commander section naming one card twice")
+	}
+	if !strings.Contains(err.Error(), "Frodo, Adventurous Hobbit") || !strings.Contains(err.Error(), "twice") {
+		t.Fatalf("error should name the duplicated commander, got %v", err)
+	}
+}
+
 func TestParseCommanderSingletonPerName(t *testing.T) {
 	// reconcileCommander enforces ONE copy per named commander: a partner
 	// printed in the section AND again in the maindeck collapses to one

@@ -118,6 +118,7 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/deck"
 	"github.com/adams-shaun/gorge/host"
 	gbench "github.com/adams-shaun/gorge/internal/bench"
 	"github.com/adams-shaun/gorge/internal/policynet"
@@ -838,15 +839,24 @@ func fullPairs(names []string) []pairDef {
 // 100-card Commander list as a constructed pile -- exactly the defect part A
 // fixes. There are five (the foundations-* precon lists).
 func commanderDeckNames() ([]string, error) {
+	return commanderDeckNamesFrom(testutil.RepoDeckNames(), testutil.LoadRepoDeckFile)
+}
+
+// commanderDeckNamesFrom is the gate commanderDeckNames applies, separated
+// from the repo-deck loading so a test can exercise it on synthetic deck
+// files (no plural repo deck file exists yet — the partner-pair ticket's
+// brief excluded adding one).
+func commanderDeckNamesFrom(names []string, load func(string) (deck.File, error)) ([]string, error) {
 	var cmd []string
-	for _, n := range testutil.RepoDeckNames() {
-		f, err := testutil.LoadRepoDeckFile(n)
+	for _, n := range names {
+		f, err := load(n)
 		if err != nil {
 			return nil, err
 		}
-		if f.Commander != "" {
-			cmd = append(cmd, n)
+		if len(f.CommanderNames()) == 0 {
+			continue
 		}
+		cmd = append(cmd, n)
 	}
 	return cmd, nil
 }

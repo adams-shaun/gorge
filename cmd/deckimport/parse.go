@@ -79,10 +79,16 @@ var trailingSetRe = regexp.MustCompile(`\s+\([A-Za-z0-9]+\)(?:\s+[0-9*]+)?$`)
 // commander, or a partner pair of two (CR 903.13). The section ends at the
 // next section header, at a blank line that follows at least one commander
 // name, or at a counted line that follows a count-less commander line (the
-// bare-commander-then-maindeck export shape); a third commander name is a
-// hard error naming the line, because a deck may have at most two commanders.
-// Set/collector annotations after a name are stripped, because the card NAME
-// is what matters.
+// bare-commander-then-maindeck export shape). A counted line after a COUNTED
+// commander is ambiguous — it is the second commander of a pair only when a
+// blank line separates the section from the rest of the list (every real
+// partner export has one); a section that runs straight into the next header
+// or the end of the file takes the legacy single-commander reading, so the
+// second counted line is the start of the maindeck and never a spurious
+// second commander. The section never names the same card twice and a third
+// commander name is a hard error naming the line, because a deck may have at
+// most two commanders. Set/collector annotations after a name are stripped,
+// because the card NAME is what matters.
 //
 // A line that cannot be parsed into a (count, name) pair is an error naming
 // the line, never a silent skip: guessing a card name is exactly the failure
@@ -93,6 +99,7 @@ func parseDecklist(raw []byte) (*parsedDeck, error) {
 	inSideboard := false
 	expectCommander := false
 	sawCountlessCommander := false
+	sawCountedCommander := false
 	merged := map[string]int{} // normalised name -> index into d.Cards
 
 	for i, rawLine := range lines {
@@ -119,6 +126,8 @@ func parseDecklist(raw []byte) (*parsedDeck, error) {
 			case "commander", "commanders":
 				inSideboard = false
 				expectCommander = true
+				sawCountlessCommander = false
+				sawCountedCommander = false
 			default:
 				// main / maindeck / mainboard / deck, and the category
 				// headers (lands, creatures, ...) an export may interleave:
@@ -174,19 +183,39 @@ func parseDecklist(raw []byte) (*parsedDeck, error) {
 			// header), and every such line is maindeck, not a second commander.
 			if !countless && sawCountlessCommander {
 				expectCommander = false
+			} else if !countless && sawCountedCommander && !commanderSectionBlankDelimited(lines, i+1) {
+				// A counted line after a COUNTED commander with no blank line
+				// between the section and the rest of the list is the legacy
+				// single-commander export shape (the second counted line is the
+				// start of the maindeck), never a partner pair: lifting it
+				// would silently seat a spurious second commander — worst case
+				// a plain-Partner card legitimately sitting in the 99, which
+				// even validates as a pair. A counted PAIR therefore requires
+				// the blank line that separates it from the maindeck.
+				expectCommander = false
 			} else {
 				// The rest of the section is commanders: every card line until
-				// the next header/blank is one (a partner pair prints two). A
-				// deck may have at most two commanders (CR 903.13), so a third
-				// name is a hard error naming the line — never a silent fold
-				// into the maindeck, which is how a partner pair used to lose
-				// its second half.
+				// the next header/blank is one (a partner pair prints two). The
+				// section never names the same card twice — CR 903.3 has one or
+				// two DISTINCT commanders, and a duplicated designation would
+				// seat the same object twice — and a deck may have at most two
+				// commanders (CR 903.13), so a third name is a hard error naming
+				// the line — never a silent fold into the maindeck, which is
+				// how a partner pair used to lose its second half.
+				key := cards.NormalizeName(pc.Name)
+				for _, c := range d.Commanders {
+					if cards.NormalizeName(c) == key {
+						return nil, fmt.Errorf("line %d: the Commander section names %q twice; a Commander deck's commanders are one or two DISTINCT cards (CR 903.3)", i+1, pc.Name)
+					}
+				}
 				if len(d.Commanders) >= 2 {
 					return nil, fmt.Errorf("line %d: a Commander deck has at most two commanders (CR 903.13), but the Commander section already lists %q and %q before %q", i+1, d.Commanders[0], d.Commanders[1], pc.Name)
 				}
 				d.Commanders = append(d.Commanders, pc.Name)
 				if countless {
 					sawCountlessCommander = true
+				} else {
+					sawCountedCommander = true
 				}
 				continue
 			}
@@ -199,6 +228,37 @@ func parseDecklist(raw []byte) (*parsedDeck, error) {
 	}
 	reconcileCommander(d)
 	return d, nil
+}
+
+// commanderSectionBlankDelimited reports whether the commander section that
+// reaches line index from (0-based) is separated from the rest of the list by
+// a BLANK line, rather than running straight into the next section header or
+// the end of the file. This is the discriminator for the one genuinely
+// ambiguous export shape — a counted line after a counted commander: real
+// partner exports (and the pinned pair shapes) always blank-line the section
+// away from the maindeck, while the legacy single-commander exports run the
+// counted maindeck lines directly into the next header or the end of the
+// file. Comments count as blank for this purpose, matching the main loop.
+func commanderSectionBlankDelimited(lines []string, from int) bool {
+	for j := from; j < len(lines); j++ {
+		line := stripComment(lines[j])
+		if line == "" {
+			// A blank counts as a delimiter only when CONTENT follows it:
+			// a file's final newline produces a trailing empty line that
+			// separates nothing, so a commander section ending at EOF (the
+			// shape the counted-maindeck lists arrive in) is not delimited.
+			for k := j + 1; k < len(lines); k++ {
+				if stripComment(lines[k]) != "" {
+					return true
+				}
+			}
+			return false
+		}
+		if _, ok := headerKey(line); ok {
+			return false
+		}
+	}
+	return false
 }
 
 // reconcileCommander enforces that each named commander is exactly one copy.

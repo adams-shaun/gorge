@@ -268,6 +268,9 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 		cmdrs = append(cmdrs, c)
 		cmdrID |= c.ColourIdentity()
 	}
+	if len(cmdrs) == 2 && cards.NormalizeName(names[0]) == cards.NormalizeName(names[1]) {
+		return fmt.Errorf("commander deck invalid:\n  the commanders list names %q twice; a Commander deck's commanders are one or two DISTINCT cards (CR 903.3) — a duplicated designation would seat the same object twice", names[0])
+	}
 	if len(cmdrs) == 2 && !IsPartnerPair(cmdrs[0], cmdrs[1]) {
 		return fmt.Errorf("commander pair %q and %q is not a legal partner pair: each must carry Partner, or each must name the other with Partner with (CR 903.13)", names[0], names[1])
 	}

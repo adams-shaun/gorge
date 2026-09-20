@@ -131,9 +131,13 @@ func convert(input, corpusDir, name, format, out string, force bool, archetype, 
 	dr := analyzeDeck(inputLabel(input), name, format, p, r)
 
 	// Decide whether to write the deck file. It is written when -out names a
-	// destination and there is nothing worth refusing: no missing cards, or
-	// -force explicitly asked for the file anyway.
-	write := out != "" && (dr.Ok || force)
+	// destination and there is nothing worth refusing: no missing cards AND,
+	// for a deck that names a commander, no Commander-construction violation
+	// (deck.ValidateCommander's verdict — without this an ineligible or
+	// spurious-pair import would write a file that fails its own validation
+	// at every load). -force explicitly asks for the file anyway.
+	commanderOK := dr.CommanderOk == nil || *dr.CommanderOk
+	write := out != "" && ((dr.Ok && commanderOK) || force)
 	if write {
 		if err := writeDeckFile(out, dr, p, format, archetype, notes); err != nil {
 			return dr, err

@@ -125,6 +125,29 @@ func TestRoundTripWritesLoadableDeckFile(t *testing.T) {
 	}
 }
 
+func TestConvertRefusesToWriteAnIneligibleCommanderDeck(t *testing.T) {
+	corpusDir := testCorpusDir(t)
+	// A commander section whose card is not commander-eligible (Birds of
+	// Paradise is neither legendary nor marked): the deck is resolvable, so
+	// dr.Ok is true, but writing the file would produce a deck that fails
+	// deck.ValidateCommander at every load — without -force it is refused.
+	in := writeTempDecklist(t, "Commander\n1 Birds of Paradise\n4 Llanowar Elves\n")
+	out := filepath.Join(t.TempDir(), "c.json")
+	dr, err := convert(in, corpusDir, "", "", out, false, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dr.CommanderOk == nil || *dr.CommanderOk {
+		t.Fatalf("this list must report an ineligible commander, got %v (%v)", dr.CommanderOk, dr.CommanderWhy)
+	}
+	if dr.Written {
+		t.Fatal("an ineligible commander deck must not be written without -force")
+	}
+	if _, err := os.Stat(out); err == nil {
+		t.Fatal("deck file written for an ineligible commander")
+	}
+}
+
 func TestConvertCommanderSetsFieldAndChecksEligibility(t *testing.T) {
 	corpusDir := testCorpusDir(t)
 	in := writeTempDecklist(t, "Commander\nAtraxa, Praetors' Voice\n1 Birds of Paradise\n4 Llanowar Elves\n")

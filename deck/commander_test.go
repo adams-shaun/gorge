@@ -164,6 +164,24 @@ func TestValidateCommanderRejectsNonPartnerPair(t *testing.T) {
 // indices come back in CommanderNames order (here the pair is designated in
 // the reverse of file order, so the indices are [1 0]), and the legacy
 // singular spelling still resolves through CommanderIndex.
+// TestValidateCommanderRejectsDuplicateCommander pins CR 903.3's DISTINCT
+// half: two designations naming the SAME card are not a partner pair — the
+// engine's genesis would seat the same object twice. The pre-fix validator
+// accepted ["Plain Partner","Plain Partner"] (a plain Partner paired with
+// itself is IsPartnerPair-legal) and CommanderIndices came back [0 0].
+func TestValidateCommanderRejectsDuplicateCommander(t *testing.T) {
+	r := commanderFixture(t)
+	f := File{
+		Name:       "DUP",
+		Commanders: []string{"Plain Partner", "Plain Partner"},
+		Cards:      []Entry{{"Plain Partner", 1}, {"Plains", 99}},
+	}
+	err := f.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "Plain Partner") || !strings.Contains(err.Error(), "twice") {
+		t.Fatalf("want a duplicate-commander rejection naming the card, got %v", err)
+	}
+}
+
 func TestFileCommanderIndices(t *testing.T) {
 	pair := File{
 		Name:       "pair",
