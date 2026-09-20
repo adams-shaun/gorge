@@ -424,6 +424,15 @@ const (
 	// own append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Exert
+	// ClonePermanent folds a DB$ Clone copy basis onto an existing permanent
+	// (CR 613.1a's layer-1 copy): Obj is the object that BECOMES the copy,
+	// IDs[0] is the object copied FROM, Text is the copy's NewName$ (empty
+	// keeps the copied face's name), and Counter is "gain-this-ability" when
+	// the GainThisAbility$ True rider applies. An event with no IDs (or a
+	// zero id) CLEARS the copy -- the expiry and leave-the-battlefield path.
+	// Appended after Exert, still above NumKinds, so no earlier ordinal, hash
+	// chain or golden replay is affected.
+	ClonePermanent
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -434,7 +443,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Exert) + 1
+	NumKinds = int(ClonePermanent) + 1
 )
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
@@ -515,7 +524,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase", "copy_token", "exert"}
+	"x_change", "note_number", "extra_phase", "copy_token", "exert", "clone_permanent"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

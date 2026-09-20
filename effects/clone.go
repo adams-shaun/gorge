@@ -1,0 +1,365 @@
+package effects
+
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+func init() { Register("Clone", effClone) }
+
+// effClone implements DB$ Clone (api:Clone), CR 613.1a's layer-1 copy: an
+// EXISTING permanent becomes a copy of another object. It is the ONE
+// primitive both clone routes call -- the standalone "CARDNAME becomes a copy
+// of target creature" family (Vesuvan Doppelganger, Lazav, Body Double) and,
+// once the ETB-copy replacement ticket lands, the "you may have it enter as a
+// copy" family (Vizier of Many Faces), whose body is the same DB$ Clone with
+// CloneTarget$ ReplacedCard.
+//
+// Two operands, matching Forge's CloneEffect:
+//
+//   - the copy SOURCE, i.e. the object whose characteristics are copied:
+//     Defined$ when present, else the SA's own chosen targets (the
+//     ValidTgts$ "copy target creature" shape), else a Choices$ pick.
+//   - the BECOME operand, i.e. the object that turns into the copy:
+//     CloneTarget$ when present, else the SA's own source (Self) -- "this
+//     permanent becomes a copy".
+//
+// The copy itself is one events.ClonePermanent event, folded in Apply onto
+// the target object's CopyFace basis. Routing the basis through
+// state.Object.Face() is what makes every reader in the tree (name, types,
+// keywords, colours, P/T, abilities, triggers, statics, mana production) see
+// the copied characteristics by construction (CR 707.2) instead of each call
+// site having to consult the layer system.
+//
+// The characteristic EXCEPTIONS are separate continuous effects at their own
+// CR 613 layers, registered against the become object, so the copied face
+// stays the source's printed face and the walk settles the exceptions in
+// order: AddTypes$/RemoveCardTypes$/RemoveCreatureTypes$ are layer 4,
+// SetColor$ is layer 5, AddKeywords$ is layer 6, SetPower$/SetToughness$ are
+// layer 7b. NewName$ rides the event (the copy's name) and GainThisAbility$
+// True keeps the original object's own abilities and SVar table on the copy.
+//
+// Duration$ is honoured through the ordinary continuous-effect lifetime: a
+// permanent copy (no Duration$, or Permanent) is cleared by the become
+// object leaving the battlefield (CR 400.7, Move clears the basis); an
+// UntilEndOfTurn copy is cleared at that cleanup (EndOfTurnCleanup's
+// clone sweep); UntilYourNextTurn / UntilTheEndOfYourNextTurn use the
+// engine's turn boundary; UntilUnattached clears when the become object is no
+// longer attached (the clone sweep's attached check). A duration this build
+// cannot place gets one loud Note and the copy lasts until the object leaves
+// the battlefield.
+func effClone(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+
+	// Copy SOURCE.
+	var source []state.Target
+	spec := strings.TrimSpace(sa.Params["Defined"])
+	switch {
+	case spec != "":
+		ts, ok := knownDefinedTargets(h, c, spec)
+		if !ok {
+			// Fail closed: a source this build cannot resolve is one loud Note
+			// and NO copy, never a silent fall-through to a wrong object (the
+			// CopyPermanent convention -- a wrong copy is worse than none).
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Clone source " + spec + " is not resolvable; no copy"})
+			return
+		}
+		source = ts
+	case strings.TrimSpace(sa.Params["Choices"]) != "":
+		// Choices$ <filter> is Forge's mid-resolution chooser for the copy
+		// source. This build poses the deterministic first-eligible
+		// battlefield pick under one Note (the R-9 no-host contract; the
+		// real per-player ask is the overlap the ETB-copy ticket carries).
+		cs, ok := cloneChoiceSource(h, c, strings.TrimSpace(sa.Params["Choices"]))
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Clone Choices$ " + strings.TrimSpace(sa.Params["Choices"]) +
+					" has no eligible object; no copy"})
+			return
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "Clone Choices$ picks the first eligible object (no engine host to ask)"})
+		source = cs
+	default:
+		// No Defined$/Choices$: the SA's own chosen target is the object to
+		// copy (the "target creature you control becomes a copy of target
+		// creature" family has one target being both source and become).
+		for _, t := range c.Targets {
+			if !t.IsPlayer {
+				source = append(source, t)
+			}
+		}
+		if len(source) == 0 {
+			return
+		}
+	}
+
+	// BECOME operand(s).
+	become, ok := cloneBecome(h, c, sa)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "Clone CloneTarget$ " + strings.TrimSpace(sa.Params["CloneTarget"]) +
+				" is not resolvable; no copy"})
+		return
+	}
+	if len(become) == 0 {
+		return
+	}
+
+	// Optional$ True: the copier is the become object's controller (a
+	// clone has no separate decision host here). The deterministic stand-in
+	// is to take the copy -- "you may" that cannot ask resolves as "do", the
+	// same convention the optional-discard family records.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "Clone Optional$ resolved as take (no engine host to ask)"})
+	}
+
+	// Collect the modifier registrations once; every become object shares
+	// them. An unreadable modifier is one Note per call (never per object).
+	addTypes := splitAmp(strings.TrimSpace(sa.Params["AddTypes"]))
+	addKeywords := cards.SplitKeywordList(sa.Params["AddKeywords"])
+	newName := strings.TrimSpace(sa.Params["NewName"])
+	gainThisAbility := strings.EqualFold(strings.TrimSpace(sa.Params["GainThisAbility"]), "True")
+	removeCardTypes := strings.EqualFold(strings.TrimSpace(sa.Params["RemoveCardTypes"]), "True")
+	removeCreatureTypes := strings.EqualFold(strings.TrimSpace(sa.Params["RemoveCreatureTypes"]), "True")
+	setPowerPresent, setPower := clonePT(h, c, sa, "SetPower")
+	setToughPresent, setTough := clonePT(h, c, sa, "SetToughness")
+	intoPlayTapped := cloneParamValue(sa, "IntoPlayTapped") != ""
+	colorSpec := strings.TrimSpace(sa.Params["SetColor"])
+	var setColors []string
+	if colorSpec != "" {
+		letters, ok := colorLetters(colorSpec)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Clone SetColor$ " + colorSpec + " is not a colour this build can set; the copy keeps its colours"})
+		} else {
+			// SetColor$ is an overwrite (CR 613.1e "becomes"); an empty parse
+			// (Colorless) is an overwrite to colourless, which the layer walk
+			// honours through OverwriteColors with an empty AddColors.
+			setColors = letters
+		}
+	}
+	// Purely inert riders: one loud Note naming each, the copy proceeds
+	// without them (the digUntilParamValue convention: the key is the
+	// helper's own parameter, every call site a string literal).
+	var unread []string
+	for _, key := range cloneUnreadModifiers {
+		if v := cloneParamValue(sa, key); v != "" {
+			unread = append(unread, key+"$ "+v)
+		}
+	}
+	if len(unread) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "Clone does not read: " + strings.Join(unread, ", ")})
+	}
+
+	dur := strings.TrimSpace(sa.Params["Duration"])
+	permanent, untilEOT, untilTurn, untilUnattached, durNote := cloneDuration(dur)
+	if durNote != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, Text: durNote})
+	}
+
+	for _, t := range source {
+		if t.IsPlayer {
+			continue
+		}
+		srcObj := g.Obj(t.Obj)
+		if srcObj == nil || srcObj.Face() == nil {
+			continue
+		}
+		for _, b := range become {
+			if b.IsPlayer {
+				continue
+			}
+			obj := g.Obj(b.Obj)
+			if obj == nil || obj.Zone != state.ZBattlefield {
+				continue
+			}
+			// One ClonePermanent event per (source, become) pair; the fold
+			// snapshots the source's printed face onto the become object.
+			ev := events.Event{Kind: events.ClonePermanent, Obj: b.Obj,
+				IDs: []state.ObjID{t.Obj}, Player: c.Controller, Text: newName}
+			if gainThisAbility {
+				ev.Counter = "gain-this-ability"
+			}
+			h.Emit(ev)
+			if intoPlayTapped {
+				// IntoPlayTapped$ True (Vesuva, Echoing Deeps, Callidus
+				// Assassin -- all ETB-route bodies): the copy "enters tapped",
+				// so the become permanent is tapped as the copy is applied.
+				h.Emit(events.Event{Kind: events.Tap, Obj: b.Obj})
+			}
+
+			// Modifier layers, scoped to the become object (Card.Self with
+			// Source = its own id, the effPump convention).
+			reg := func(ce state.ContinuousEffect) {
+				ce.Source = b.Obj
+				ce.Affects = "Card.Self"
+				ce.Controller = c.Controller
+				ce.Duration = dur
+				ce.Permanent = permanent
+				ce.UntilEOT = untilEOT
+				ce.UntilTurn = untilTurn
+				ce.CloneTarget = b.Obj
+				h.AddContinuous(ce)
+			}
+			if len(addTypes) > 0 || removeCardTypes || removeCreatureTypes {
+				reg(state.ContinuousEffect{Layer: state.LType, AddTypes: addTypes,
+					RemoveCardTypes: removeCardTypes, RemoveCreatureTypes: removeCreatureTypes})
+			}
+			if len(setColors) > 0 {
+				reg(state.ContinuousEffect{Layer: state.LColor, AddColors: setColors, OverwriteColors: true})
+			}
+			if len(addKeywords) > 0 {
+				reg(state.ContinuousEffect{Layer: state.LAbilities, AddKeywords: addKeywords})
+			}
+			if setPowerPresent || setToughPresent {
+				reg(state.ContinuousEffect{Layer: state.LPT, Sub: state.SubSet, HasSet: true,
+					SetPower: setPower, SetToughness: setTough,
+					SetPowerPresent: setPowerPresent, SetToughnessPresent: setToughPresent,
+					StaticSet: true})
+			}
+			// The layer-1 LCopy MARKER owns the copy's lifetime. It is always
+			// registered (even when no modifier effect is), so rules' clone
+			// sweep has exactly one owner per copy to expire and can drop the
+			// marker's sibling effects with it. UntilUnattached keeps the
+			// source-presence fields (Permanent=false, UntilEOT=false,
+			// UntilTurn=0) and is enforced by the sweep's attached check, which
+			// the marker's Duration names.
+			_ = untilUnattached
+			reg(state.ContinuousEffect{Layer: state.LCopy})
+		}
+	}
+}
+
+// cloneUnreadModifiers are DB$ Clone modifier parameters this build records
+// but does not act on. Each present one lands in the single combined
+// loud Note per clone call so the parameter census stays honest; measured
+// corpus populations at FORGE_REF:
+// AddTriggers$ 3, AddStaticAbilities$ 1, AddAbilities$ 1, SetCreatureTypes$ 1,
+// RemoveSubTypes$ 1, NonLegendary$ 6, AddSVars$ (read only through
+// GainThisAbility's merged SVar table) 9, AttachedTo$/CopyFromChosenName$/
+// CloneZone$/FaceDown$ the remaining singletons.
+var cloneUnreadModifiers = []string{
+	"AddTriggers", "AddStaticAbilities", "AddAbilities", "AddSVars",
+	"SetCreatureTypes", "RemoveSubTypes", "NonLegendary", "AttachedTo",
+	"CopyFromChosenName", "CloneZone", "FaceDown", "KeepFacedown",
+}
+
+// cloneParamValue is the unread-modifier keys' trimmed value read (the
+// paramcensus's dynamic-key rule: the key is this helper's own parameter,
+// and every call site passes a string literal). Empty means absent-or-False.
+func cloneParamValue(sa *cards.SA, key string) string {
+	v := strings.TrimSpace(sa.Params[key])
+	if strings.EqualFold(v, "False") {
+		return ""
+	}
+	return v
+}
+
+// cloneBecome resolves CloneTarget$. Absent means Self (the resolving
+// ability's own source object) -- "this permanent becomes a copy". The
+// named forms reuse the same Defined$ referent grammar the source half uses.
+func cloneBecome(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
+	spec := strings.TrimSpace(sa.Params["CloneTarget"])
+	if spec == "" {
+		if c.Source == 0 {
+			return nil, true
+		}
+		return []state.Target{{Obj: c.Source}}, true
+	}
+	if strings.EqualFold(spec, "Self") {
+		return []state.Target{{Obj: c.Source}}, true
+	}
+	// CloneTarget$ Valid <spec>: every battlefield object the filter admits
+	// (the "each other creature you control becomes a copy" shape), through
+	// the same battlefield sweep Defined's Valid form uses.
+	if rest, ok := strings.CutPrefix(spec, "Valid "); ok {
+		return battlefieldValidTargets(h, c, strings.TrimSpace(rest)), true
+	}
+	return knownDefinedTargets(h, c, spec)
+}
+
+// cloneChoiceSource resolves a Choices$ <filter> pick to the first eligible
+// battlefield object in deterministic scan order. That is the R-9 no-host
+// stand-in for the real per-player choice; ok is false when nothing matches.
+func cloneChoiceSource(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	g := h.Game()
+	filter := spec
+	if !strings.Contains(filter, ".") && !strings.HasPrefix(filter, "Card") {
+		// A bare type word is a Card-basis filter ("Creature.Other" is
+		// already a basis; "Creature" alone is not).
+		filter = "Card." + filter
+	}
+	sc := c.SpecContext(c.Controller)
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			o := g.Obj(id)
+			if o == nil {
+				continue
+			}
+			if MatchesObjectCtx(g, filter, o, sc) {
+				return []state.Target{{Obj: id}}, true
+			}
+		}
+	}
+	return nil, false
+}
+
+// clonePT reads a SetPower$/SetToughness$ modifier through the shared numeric
+// grammar (literal, X, or an SVar name). present reports whether the
+// parameter was given at all, so a setter that names only one characteristic
+// leaves the other alone (the continuous-effect StaticSet contract).
+func clonePT(h Host, c *Ctx, sa *cards.SA, key string) (present bool, value int32) {
+	if _, ok := sa.Params[key]; !ok {
+		return false, 0
+	}
+	return true, Num(h, c, sa, key, 0)
+}
+
+// cloneDuration maps a DB$ Clone Duration$ value onto the continuous-effect
+// lifetime fields. untilTurn is left zero for the AddContinuous call to fill
+// from the live rotation (the UntilYourNextTurn path). durNote, when
+// non-empty, is the one loud Note for a duration this build cannot place.
+func cloneDuration(dur string) (permanent, untilEOT bool, untilTurn int32, untilUnattached bool, note string) {
+	switch strings.ToLower(strings.TrimSpace(dur)) {
+	case "", "permanent":
+		return true, false, 0, false, ""
+	case "untilendofcombat":
+		// durationTiming's combat scope: dropped by EndOfTurnCleanup on the
+		// same turn (the engine's UntilEndOfCombat reclamation).
+		return false, false, 0, false, ""
+	case "untilendofyournextturn":
+		return false, false, 0, false, ""
+	case "untileadofturn", "untilendofturn":
+		return false, true, 0, false, ""
+	case "untilyournextturn", "untilyournextendstep", "untilnextendstep":
+		// AddContinuous computes the real turn boundary from Duration.
+		return false, false, 0, false, ""
+	case "untilunattached":
+		return false, false, 0, true, ""
+	default:
+		return true, false, 0, false,
+			"Clone Duration$ " + dur + " is not implemented; the copy lasts until the object leaves the battlefield"
+	}
+}
+
+// splitAmp splits a Forge "&"-compound type list ("Shapeshifter & Rogue").
+func splitAmp(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, "&")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}

@@ -829,27 +829,79 @@ func (e *Engine) EndOfTurnCleanup() {
 	e.expireControl(controlAtCleanup)
 	e.reconcileControlStatics()
 	kept := e.continuous[:0]
+	// expiredClones collects the CopyFace basis ids whose LCopy marker this
+	// cleanup drops, so one ClonePermanent clear can drop the object's copy
+	// basis after the kept list is settled (task api-clone).
+	var expiredClones []state.ObjID
+	dropClone := func(id state.ObjID) {
+		for _, seen := range expiredClones {
+			if seen == id {
+				return
+			}
+		}
+		expiredClones = append(expiredClones, id)
+	}
 	for _, ce := range e.continuous {
-		// A Permanent one-shot survives cleanup (CR 611.2a).
+		// A Permanent one-shot survives cleanup (CR 611.2a). An LCopy
+		// marker, however, is never left to the generic rules alone: an
+		// UntilUnattached copy has no ordinary expiry field and must be
+		// tested live.
+		if ce.Layer == LCopy && ce.CloneTarget != 0 &&
+			strings.EqualFold(strings.TrimSpace(ce.Duration), "untilunattached") {
+			if o := e.G.Obj(ce.CloneTarget); o == nil || o.AttachedTo == 0 {
+				dropClone(ce.CloneTarget)
+				continue
+			}
+		}
 		if ce.Permanent {
 			kept = append(kept, ce)
 			continue
 		}
 		if ce.UntilEOT {
+			if ce.Layer == LCopy && ce.CloneTarget != 0 {
+				dropClone(ce.CloneTarget)
+			}
 			continue
 		}
 		if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
 			// CR 511.2: until-end-of-combat is an expired lifetime by the time
 			// this turn's cleanup runs, so it is reclaimed here rather than
 			// lingering in e.continuous forever.
+			if ce.Layer == LCopy && ce.CloneTarget != 0 {
+				dropClone(ce.CloneTarget)
+			}
 			continue
 		}
 		if ce.UntilTurn != 0 && ce.UntilTurn == e.G.Turn {
+			if ce.Layer == LCopy && ce.CloneTarget != 0 {
+				dropClone(ce.CloneTarget)
+			}
 			continue
 		}
 		kept = append(kept, ce)
 	}
+	if len(expiredClones) > 0 {
+		// Drop the whole clone unit: the marker's sibling modifier effects
+		// (same CloneTarget) go with it. A clone's modifiers and marker are
+		// created together and share the object, so this cannot remove an
+		// unrelated equal-source effect.
+		surviving := kept[:0]
+		for _, ce := range kept {
+			if ce.CloneTarget != 0 && objIDIn(expiredClones, ce.CloneTarget) {
+				continue
+			}
+			surviving = append(surviving, ce)
+		}
+		kept = surviving
+	}
 	e.continuous = kept
+	// Emit the basis clears AFTER e.continuous is rewritten so the emitted
+	// ClonePermanent events cannot re-enter this cleanup's list state (the
+	// emit below applies to G.Objs only). Each clear is one event, so the
+	// hash chain records the expiry exactly as it records the copy.
+	for _, id := range expiredClones {
+		e.emit(events.Event{Kind: events.ClonePermanent, Obj: id})
+	}
 	// Bump the version for the same reason AddContinuous does: the cache is
 	// keyed on continuousVersion, and this in-place rewrite (which emits no
 	// event and moves no log head) drops every UntilEOT pump and every

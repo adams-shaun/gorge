@@ -422,6 +422,26 @@ type Object struct {
 	IsCopy   bool
 	IsMyriad bool
 
+	// CopyFace is the CR 613.1a copy-effect basis for a permanent that became a
+	// copy of another (DB$ Clone): while non-nil, Face() returns THIS face
+	// instead of the object's own card face, so every read site -- name,
+	// abilities, keywords, types, colours, P/T, mana production -- sees the
+	// copied characteristics with no per-caller plumbing. It is set and cleared
+	// ONLY inside events.Apply (the ClonePermanent fold and Move's
+	// leaves-the-battlefield reset), so a live game and a replay derive it
+	// identically. The clone's modifier parameters (AddTypes$/SetColor$/
+	// AddKeywords$/SetPower$/SetToughness$) are separate layer-4/5/6/7
+	// continuous effects registered by the primitive, so this face stays the
+	// source's PRINTED face and the layer walk applies the exceptions in CR 613
+	// order on top. nil on every object that is not a copy.
+	CopyFace *cards.Face
+	// CopyGainThisAbility records the clone's GainThisAbility$ True rider: the
+	// synthetic CopyFace already carries the ORIGINAL object's abilities (and
+	// SVar table) so the ability that produced the copy survives the copy.
+	// Engine-runtime, rebuilt from the ClonePermanent event on replay like
+	// CopyFace.
+	CopyGainThisAbility bool
+
 	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
 	// room was CAST as is unlocked from entry; DoorUnlock (the unlock
 	// activation) flips this when the OTHER half's door is paid for. A
@@ -453,6 +473,13 @@ func (o *Object) BestowedAttached() bool {
 }
 
 func (o *Object) Face() *cards.Face {
+	// CR 613.1a: a copy effect is the FIRST layer, so while one applies the
+	// object's characteristics come from the copied face. Routing it here is
+	// what makes every Face() reader in the tree see the copy by construction
+	// (CR 707.2) rather than each call site having to ask the layer system.
+	if o.CopyFace != nil {
+		return o.CopyFace
+	}
 	if o.Card == nil || int(o.FaceIdx) >= len(o.Card.Faces) {
 		return nil
 	}

@@ -324,6 +324,18 @@ type ContinuousEffect struct {
 	// no additional drop.
 	AdjustLandPlays int32
 
+	// CloneTarget marks a continuous effect created by an api:Clone copy
+	// (DB$ Clone): the permanent that BECAME the copy. Every effect a single
+	// clone registered carries the same value -- the layer-1 LCopy marker
+	// (which owns the lifetime) and its layer-4/5/6/7 modifier effects (which
+	// share it), so rules' clone sweep can expire a copy as one unit: it
+	// drops the marker on the marker's own duration and removes every
+	// effect whose CloneTarget is the same object, emitting the ClonePermanent
+	// clear that drops the object's CopyFace basis. Zero on every other
+	// effect. Engine-runtime, rebuilt by re-execution on replay like the
+	// other resolution-created fields.
+	CloneTarget ObjID
+
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn
 	// (UntilYourNextTurn, UntilTheEndOfYourNextTurn). Computed at

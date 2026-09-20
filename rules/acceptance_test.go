@@ -122,8 +122,13 @@ var knownUnsupported = map[string][]string{
 	"The Boulder, Ready to Rumble": {"api:Earthbend"},
 	"Toph, Earthbending Master":    {"api:Earthbend"},
 	"Toph, Hardheaded Teacher":     {"api:Earthbend"},
-	"Shifting Woodland":            {"api:Clone"},
-	"Vesuva":                       {"api:Clone"},
+	// Shifting Woodland and Vesuva's api:Clone entries were deleted when
+	// api:Clone was registered (effects/clone.go): the real card test
+	// rules/clone_api_test.go's TestMirageMirrorBecomesACopyOfTargetCreature
+	// drives the standalone DB$ Clone through the layer-1 CopyFace basis,
+	// its Duration$ expiry and the NewName$/GainThisAbility$ riders, which
+	// is what licensed the shrink. (Vesuva's own ETB-replacement route is
+	// the open ETB-copy ticket; the primitive it names is registered.)
 	"Tireless Provisioner":         {"api:GenericChoice"},
 	"Famished Worldsire":           {"kw:Devour"},
 }
