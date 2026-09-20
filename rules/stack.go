@@ -2318,6 +2318,37 @@ func (e *Engine) LifeGainedThisTurn(p state.PlayerID) int32 {
 	return n
 }
 
+// CardsDiscardedThisTurn satisfies effects.Host's CardsDiscardedThisTurn for
+// PlayerCountPropertyYou$CardsDiscardedThisTurn (Ambergris Citadel Agent's
+// "X = cards you discarded this turn"): every events.IsDiscard move since
+// the last TurnChange naming p — the ordinary Discard form by its Player
+// field, the cost form (events.DiscardCost, which carries no Player) by the
+// discarded object's owner, since a cost discard is paid from the payer's
+// own hand (CR 118.2a). Derived from the event log like LifeLostThisTurn, so
+// a replay derives the same number.
+func (e *Engine) CardsDiscardedThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if !events.IsDiscard(ev) {
+			continue
+		}
+		if ev.Player == p {
+			n++
+			continue
+		}
+		if ev.Player == 0 {
+			if o := e.G.Obj(ev.Obj); o != nil && o.Owner == p {
+				n++
+			}
+		}
+	}
+	return n
+}
+
 // TurnsTaken satisfies effects.Host's TurnsTaken for Count$YourTurns (Serra
 // Avenger's "your first, second, or third turns of the game"): the number of
 // turns that have BEGUN with p as the active player, current turn included.

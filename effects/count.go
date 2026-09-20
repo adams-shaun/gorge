@@ -900,8 +900,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 
-	// PlayerCountPropertyYou$<Property> — the single resolvable member of
-	// Forge's PlayerCountProperty<group>$<Property> family (86 raw corpus
+	// PlayerCountPropertyYou$<Property> — resolvable members of Forge's
+	// PlayerCountProperty<group>$<Property> family (86 raw corpus
 	// files carry the family; the two HasPropertyActive files are Starting
 	// Town and Hylda's Crown of Winter). HasPropertyActive reads 1 when the
 	// RESOLVING controller is the active player, else 0 — Starting Town's
@@ -913,12 +913,27 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// fail-closed unresolvable verdict the general PlayerCount dispatch
 	// above documents, so a gate over one degrades per its caller's
 	// documented direction rather than enforcing a fake zero.
+	// CardsDiscardedThisTurn is the second resolvable member (trigcost2).
 	if rest, ok := strings.CutPrefix(head, "PlayerCountPropertyYou$"); ok {
-		if strings.TrimSpace(rest) == "HasPropertyActive" {
+		switch strings.TrimSpace(rest) {
+		case "HasPropertyActive":
 			if c.Controller == g.Active {
 				return 1, true
 			}
 			return 0, true
+		case "CardsDiscardedThisTurn":
+			// The log-derived discard count (trigcost2): how many cards the
+			// RESOLVING controller discarded this turn — every
+			// events.IsDiscard move naming p since the last TurnChange, the
+			// cost form included (Ambergris Citadel Agent's
+			// "SVar:X:PlayerCountPropertyYou$CardsDiscardedThisTurn" behind a
+			// Cost$ Discard<1/Hand> Draw<2/You> body reads the paid discard).
+			// Derived from the event log like LifeLostThisTurn, so a replay
+			// derives the same number. The OTHER group spellings of the same
+			// property (PlayerCountPlayers$/Opponents$/TargetedPlayer$) keep
+			// the fail-closed verdict below — no group machinery here prices
+			// them, and a fake zero is worse.
+			return h.CardsDiscardedThisTurn(c.Controller), true
 		}
 		return 0, false
 	}
