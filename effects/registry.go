@@ -844,6 +844,18 @@ type Ctx struct {
 	// exactly Amount$. SacOptionalTarget identifies that player's target slot.
 	SacOptional       string
 	SacOptionalTarget int
+	// BlightPicks is the answered per-player blight choice on a re-entered
+	// Blight resolution (CR 701.60): the creature the blighting player chose
+	// to take the −1/−1 counters, in answer order. BlightDone distinguishes
+	// "answered" from the first pass and BlightTarget identifies the Defined$
+	// target index whose player posed that ask, so re-entry skips targets
+	// already processed before suspension and continues asking later targets
+	// (the SacPicks/SacDone/SacTarget discipline). The asking effect consumes
+	// and clears all three at the top of its own walk (the fx42 scoping
+	// discipline), so a nested blight cannot inherit the outer answer.
+	BlightPicks  []state.ObjID
+	BlightDone   bool
+	BlightTarget int
 	// UnlessElected is the answered UnlessType$ election of a Discard carrying
 	// UnlessType$ (Thirst for Knowledge's "discard two cards unless you
 	// discard an artifact card"): "unless" means the player elected the
