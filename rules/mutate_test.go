@@ -440,6 +440,43 @@ func TestCountTimesMutatedDrivesTheRealReader(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestEssenceSymbioteWatchesATeamMutation is the round-3 regression for the
+// ONLY non-Card.Self Mutates carrier in the corpus: Essence Symbiote's
+// "Whenever a creature you control mutates, put a +1/+1 counter on that
+// creature and you gain 2 life." (ValidCard$ Creature.YouCtrl). The scanning
+// source for such a trigger is the Symbiote, while the events.Mutate event's
+// Obj is the mutated PILE, so a matcher requiring ev.Obj == source silently
+// dropped the trigger. This test mutates Everquill Phoenix onto a Bear with
+// the Symbiote on the battlefield and asserts BOTH halves of the Symbiote's
+// body ran on the pile: the +1/+1 counter (via Defined$ TriggeredCardLKICopy,
+// which triggerRemembered binds to the event's Obj) and the 2 life.
+func TestEssenceSymbioteWatchesATeamMutation(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	phoenix := mustCorpusCard(t, reg, "Everquill Phoenix")
+	symbiote := mustCorpusCard(t, reg, "Essence Symbiote")
+	e, cfg := tokenReplGame(t, 310, phoenix, symbiote)
+	phoenixID := moveSeededCard(t, e, 0, phoenix, state.ZHand)
+	moveSeededCard(t, e, 0, symbiote, state.ZBattlefield)
+	bear := putToken(t, e, 0, mutateBearSrc, state.ZBattlefield)
+	addMana(t, e, 0, "RRRR")
+
+	lifeBefore := e.G.Players[0].Life
+	mutateCastOnto(t, e, mutatedCastOption(t, e, phoenixID), bear, true)
+	mutateDrain(t, e, 40)
+
+	pile := e.G.Obj(bear)
+	if pile == nil || pile.Zone != state.ZBattlefield {
+		t.Fatalf("mutated pile = %+v, want it on the battlefield", pile)
+	}
+	if got := pile.Counter("P1P1"); got != 1 {
+		t.Fatalf("pile P1P1 counters = %d, want 1 (the Symbiote's counter, on the mutated creature)", got)
+	}
+	if got := e.G.Players[0].Life - lifeBefore; got != 2 {
+		t.Fatalf("life gain = %d, want 2 (the Symbiote's team-watcher trigger did not fire)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestMutateCostIsPaidInsteadOfTheManaCost pins CR 702.140a's cost
 // substitution on a card where the two costs are distinguishable: Huntmaster
 // Liger's mutate cost is {2}{W} but its printed mana cost is {3}{W}, so a
