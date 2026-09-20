@@ -1179,7 +1179,7 @@ func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
 		// The ability's own ReduceCost$ (Otawara's Channel): the same
 		// composition the offer gate and beginActivation's charge apply, so
 		// the decision's displayed cost is the cost the payment will charge.
-		if n := e.ownReduceCost(p, id, ab); n > 0 && cost.Generic >= n {
+		if n := e.ownReduceCost(p, id, ab, nil); n > 0 && cost.Generic >= n {
 			cost.Generic -= n
 		} else if n > 0 {
 			cost.Generic = 0
