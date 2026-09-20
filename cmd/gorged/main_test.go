@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/deck"
 	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/host/httpapi"
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -1033,5 +1034,38 @@ func TestVsBotGameHonoursRequestedMulliganAllowance(t *testing.T) {
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatalf("serve: %v", err)
+	}
+}
+
+// TestDeckLoaderSeatsEveryCommander pins the deck-file → host.Deck plumbing
+// for a partner pair (real corpus cards Frodo, Adventurous Hobbit + Sam,
+// Loyal Attendant — the Food and Fellowship partners): a two-commander deck
+// file seats BOTH flat indices on host.Deck.Commanders, the list genesis
+// moves into the command zone, and the same file passes ValidateCommander
+// because the identity is the CR 903.5 union {W}{B}{G}.
+func TestDeckLoaderSeatsEveryCommander(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	dir := t.TempDir()
+	src := `{"name":"pair","format":"commander","commanders":["Frodo, Adventurous Hobbit","Sam, Loyal Attendant"],"cards":[{"name":"Frodo, Adventurous Hobbit","count":1},{"name":"Sam, Loyal Attendant","count":1},{"name":"Plains","count":98}]}`
+	if err := os.WriteFile(filepath.Join(dir, "pair.json"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, "pair.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := deck.Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.ValidateCommander(reg); err != nil {
+		t.Fatalf("real-corpus partner pair rejected by the union-identity validator: %v", err)
+	}
+	d, err := deckLoader(reg, dir)("pair")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d.Commanders) != 2 || d.Commanders[0] != 0 || d.Commanders[1] != 1 {
+		t.Fatalf("deckLoader seated %v, want both partners [0 1]", d.Commanders)
 	}
 }

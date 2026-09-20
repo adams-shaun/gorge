@@ -458,13 +458,14 @@ func run(dir, spec string, games int, seed uint64, corpus bool, recompile bool, 
 			return err
 		}
 		cfg := rules.Config{Names: []string{name, name}, Decks: [][]*cards.Card{deck, deck}, Tokens: reg.Tokens}
-		if f.Commander != "" {
+		if len(f.CommanderNames()) > 0 {
 			if err := f.ValidateCommander(reg); err != nil {
 				return err
 			}
+			idxs := f.CommanderIndices()
 			cfg.Format = rules.FormatCommander
 			cfg.StartingLife = 40
-			cfg.Commanders = [][]int{{f.CommanderIndex()}, {f.CommanderIndex()}}
+			cfg.Commanders = [][]int{idxs, append([]int(nil), idxs...)}
 		}
 		t := tally{}
 		t.presence(deck)

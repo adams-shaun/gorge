@@ -17,17 +17,75 @@ import (
 )
 
 // File is the on-disk shape. Name and Format are authoring metadata,
-// Commander marks a deck as a Commander deck (see ValidateCommander), and
-// only Cards decides what is dealt. Commander is optional and additive: a
-// deck file written before it existed parses identically (Commander is just
-// empty, which means "constructed" — nothing changes for the repo's existing
-// deck files), so adding it never makes an old list invalid.
+// Commander/Commanders mark a deck as a Commander deck (see
+// ValidateCommander), and only Cards decides what is dealt. Both commander
+// fields are optional and additive: a deck file written before they existed
+// parses identically (both empty, which means "constructed" — nothing
+// changes for the repo's existing deck files), so adding them never makes an
+// old list invalid. Commanders is the CR 903.13 partner-pair list (one or
+// two names); Commander is the legacy singular field, still read for every
+// deck file that carries only it — CommanderNames() is the one accessor
+// every reader should use, so the two spellings can never disagree.
 type File struct {
-	Name      string  `json:"name"`
-	Format    string  `json:"format"`
-	Archetype string  `json:"archetype"`
-	Commander string  `json:"commander"`
-	Cards     []Entry `json:"cards"`
+	Name       string   `json:"name"`
+	Format     string   `json:"format"`
+	Archetype  string   `json:"archetype"`
+	Commander  string   `json:"commander"`
+	Commanders []string `json:"commanders,omitempty"`
+	Cards      []Entry  `json:"cards"`
+}
+
+// CommanderNames is the deck's commander designation as a list: the plural
+// Commanders field when the file carries one (the CR 903.13 partner-pair
+// shape), else the legacy singular Commander wrapped, else nil for a
+// constructed deck. Every gate that used to read f.Commander == "" reads
+// len(f.CommanderNames()) == 0 instead, so a plural-only file is a commander
+// deck too.
+func (f File) CommanderNames() []string {
+	if len(f.Commanders) > 0 {
+		return f.Commanders
+	}
+	if f.Commander != "" {
+		return []string{f.Commander}
+	}
+	return nil
+}
+
+// CommanderIndices returns every commander's flat index in the deck Resolve
+// produces, in CommanderNames order: the position each single copy (CR 903.4
+// singleton) lands at when entries are expanded by count in file order.
+// These are the indices rules.Config.Commanders expects — genesis moves
+// each named object to the command zone. A name that is not one of the
+// deck's entries contributes nothing (the result only makes sense for a deck
+// that passed ValidateCommander, which guarantees presence), and a deck with
+// no commander at all returns nil — callers gate on
+// len(f.CommanderNames()) == 0 before calling it.
+func (f File) CommanderIndices() []int {
+	names := f.CommanderNames()
+	if len(names) == 0 {
+		return nil
+	}
+	pos := make(map[string]int, len(names))
+	idx := 0
+	for _, e := range f.Cards {
+		key := cards.NormalizeName(e.Name)
+		if _, wanted := pos[key]; !wanted {
+			for _, n := range names {
+				if cards.NormalizeName(n) == key {
+					pos[key] = idx
+					break
+				}
+			}
+		}
+		idx += e.Count
+	}
+	var out []int
+	for _, n := range names {
+		if p, ok := pos[cards.NormalizeName(n)]; ok {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // Entry is one line of a deck list.
@@ -44,17 +102,26 @@ type Entry struct {
 // scripts.
 const commanderOraclePhrase = "can be your commander"
 
-// CommanderIndex returns the flat index of f.Commander's card in the deck
-// Resolve produces: the position its single copy (CR 903.4 singleton) lands
-// at when entries are expanded by count in file order. This is the index
-// rules.Config.Commanders expects — genesis moves that object to the
-// command zone instead of the library. Computed rather than assumed 0 so a
-// deck that does not print its commander first keeps working; the result is
-// only meaningful for a deck that passed ValidateCommander (which
-// guarantees the commander is one of the deck's entries), and a deck with
-// no commander at all returns the count-expanded length, which is why
-// callers gate on Commander != "" before calling it.
+// CommanderIndex returns the flat index of the deck's FIRST commander in
+// the deck Resolve produces. It is the singular compatibility shim over
+// CommanderIndices: every existing caller (and the tests that pin it) keeps
+// working unchanged, while partner-pair decks seat every commander through
+// CommanderIndices. The fallback for a deck whose first commander is not an
+// entry — the count-expanded length — matches the original walk exactly.
 func (f File) CommanderIndex() int {
+	if names := f.CommanderNames(); len(names) > 0 {
+		if idxs := f.CommanderIndices(); len(idxs) > 0 {
+			return idxs[0]
+		}
+	}
+	return f.firstCommanderIndex()
+}
+
+// firstCommanderIndex is the original singular walk over the legacy
+// Commander field: the position the first entry whose name matches lands at,
+// or the count-expanded length when no entry matches (which is why callers
+// gate on a commander designation being present).
+func (f File) firstCommanderIndex() int {
 	cmdr := cards.NormalizeName(f.Commander)
 	idx := 0
 	for _, e := range f.Cards {
@@ -171,23 +238,47 @@ func Stem(path string) string {
 // Every violation is reported together and each names the offending card (or
 // the commander).
 func (f File) ValidateCommander(r *cards.Registry) error {
-	if f.Commander == "" {
+	names := f.CommanderNames()
+	if len(names) == 0 {
 		return nil // constructed: no Commander rules apply
 	}
 
-	// Resolve the commander first: the whole check hangs off its identity and
-	// eligibility, so a missing or illegal commander is the first thing named.
-	cmdrKey := cards.NormalizeName(f.Commander)
-	cmdr, ok := r.Lookup(f.Commander)
-	if !ok {
-		return fmt.Errorf("commander %q is not in the registry", f.Commander)
+	// A Commander deck has one commander, or a partner pair of two (CR
+	// 903.13); anything more is not a deck shape the rules know.
+	if len(names) > 2 {
+		return fmt.Errorf("commander deck invalid:\n  %d commander designations (%s); a Commander deck has exactly one commander, or a partner pair of two (CR 903.13)", len(names), strings.Join(names, ", "))
 	}
-	if !IsCommanderEligible(cmdr) {
-		return fmt.Errorf("commander %q is not a legendary creature, a Vehicle, or a Spacecraft with a power/toughness box, or a card that says it can be your commander", f.Commander)
-	}
-	cmdrID := cmdr.ColourIdentity()
 
+	// Resolve every commander first: the whole check hangs off their
+	// identities and eligibility, so a missing or illegal commander is the
+	// first thing named. The colour identity is the CR 903.5 UNION over the
+	// commanders — what makes a partner pair's shared colours legal for the
+	// whole deck (each half alone would reject the other's colours).
+	var cmdrs []*cards.Card
 	var errs []string
+	cmdrID := uint8(0)
+	for _, n := range names {
+		c, ok := r.Lookup(n)
+		if !ok {
+			return fmt.Errorf("commander %q is not in the registry", n)
+		}
+		if !IsCommanderEligible(c) {
+			return fmt.Errorf("commander %q is not a legendary creature, a Vehicle, or a Spacecraft with a power/toughness box, or a card that says it can be your commander", n)
+		}
+		cmdrs = append(cmdrs, c)
+		cmdrID |= c.ColourIdentity()
+	}
+	if len(cmdrs) == 2 && !IsPartnerPair(cmdrs[0], cmdrs[1]) {
+		return fmt.Errorf("commander pair %q and %q is not a legal partner pair: each must carry Partner, or each must name the other with Partner with (CR 903.13)", names[0], names[1])
+	}
+
+	// The label the per-card messages name: the single commander, or the
+	// pair joined — both keep the "outside commander" message shape the
+	// existing assertions match.
+	label := names[0]
+	if len(names) == 2 {
+		label = names[0] + " & " + names[1]
+	}
 
 	// Resolve every entry once and, keyed by normalised name, remember it so
 	// the singleton and colour checks run once per distinct card.
@@ -210,9 +301,11 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 		errs = append(errs, fmt.Sprintf("%s: %d cards, but a Commander deck must have exactly 100 including the commander", f.Name, total))
 	}
 
-	// CR 903.4 — the commander must actually be one of the deck's 100 cards.
-	if _, isEntry := byName[cmdrKey]; !isEntry {
-		errs = append(errs, fmt.Sprintf("commander %q is not in the deck's card list", f.Commander))
+	// CR 903.4 — every commander must actually be one of the deck's 100 cards.
+	for _, n := range names {
+		if _, isEntry := byName[cards.NormalizeName(n)]; !isEntry {
+			errs = append(errs, fmt.Sprintf("commander %q is not in the deck's card list", n))
+		}
 	}
 
 	// CR 903.4 singleton (basic lands excepted), CR 903.5 colour identity,
@@ -234,11 +327,11 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 		}
 		if id := c.ColourIdentity(); id&^cmdrID != 0 {
 			errs = append(errs, fmt.Sprintf("card %q has colour identity {%s}, outside commander %q's {%s}",
-				e.Name, colourNames(id), f.Commander, colourNames(cmdrID)))
+				e.Name, colourNames(id), label, colourNames(cmdrID)))
 		}
 		if prod := basicLandCouldProduce(c); prod&^cmdrID != 0 {
 			errs = append(errs, fmt.Sprintf("card %q could produce {%s} mana, outside commander %q's {%s} (CR 903.5d)",
-				e.Name, colourNames(prod), f.Commander, colourNames(cmdrID)))
+				e.Name, colourNames(prod), label, colourNames(cmdrID)))
 		}
 	}
 

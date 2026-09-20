@@ -950,24 +950,25 @@ type pairResult struct {
 	totalTurns int64
 }
 
-// commanderIndex returns the command-zone index a deck names -- its File's
-// CommanderIndex -- validating the deck against the Commander deck rules
-// first (deck.ValidateCommander, the m35 CR 903.4/903.5 gate cmd/gorged
-// applies up front) so a commander bench never half-starts on an illegal
-// deck. A deck with no commander is an error, the same gate the deck-pool
-// selection enforces: a Commander game must seat commander decks.
-func commanderIndex(reg *cards.Registry, name string) (int, error) {
+// commanderIndices returns the command-zone indices a deck names -- its
+// File's CommanderIndices, one per commander (a CR 903.13 partner pair
+// lists two) -- validating the deck against the Commander deck rules first
+// (deck.ValidateCommander, the m35 CR 903.4/903.5 gate cmd/gorged applies
+// up front) so a commander bench never half-starts on an illegal deck. A
+// deck with no commander is an error, the same gate the deck-pool selection
+// enforces: a Commander game must seat commander decks.
+func commanderIndices(reg *cards.Registry, name string) ([]int, error) {
 	f, err := testutil.LoadRepoDeckFile(name)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	if f.Commander == "" {
-		return 0, fmt.Errorf("-format commander: deck %q is a repo deck but names no commander", name)
+	if len(f.CommanderNames()) == 0 {
+		return nil, fmt.Errorf("-format commander: deck %q is a repo deck but names no commander", name)
 	}
 	if verr := f.ValidateCommander(reg); verr != nil {
-		return 0, fmt.Errorf("commander deck %q: %w", name, verr)
+		return nil, fmt.Errorf("commander deck %q: %w", name, verr)
 	}
-	return f.CommanderIndex(), nil
+	return f.CommanderIndices(), nil
 }
 
 // parseGameFormat turns the -format flag's string into the commander flag
@@ -1501,7 +1502,7 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 	// half-starts on an illegal deck or a deck with no commander (which an
 	// explicit pair or the -seats path could otherwise slip past).
 	deckByName := make(map[string][]*cards.Card, len(pairs)*2)
-	cmdrByName := make(map[string]int, len(pairs)*2) // commander mode only
+	cmdrByName := make(map[string][]int, len(pairs)*2) // commander mode only
 	for _, pd := range pairs {
 		for _, name := range []string{pd.a, pd.b} {
 			if _, ok := deckByName[name]; ok {
@@ -1513,11 +1514,11 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 			}
 			deckByName[name] = d
 			if commander {
-				ci, err := commanderIndex(reg, name)
+				cis, err := commanderIndices(reg, name)
 				if err != nil {
 					return err
 				}
-				cmdrByName[name] = ci
+				cmdrByName[name] = cis
 			}
 		}
 	}
@@ -1548,7 +1549,7 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 		}
 		var commanders [][]int
 		if commander {
-			commanders = [][]int{{cmdrByName[pd.a]}, {cmdrByName[pd.b]}}
+			commanders = [][]int{cmdrByName[pd.a], cmdrByName[pd.b]}
 		}
 		cfg := buildGameConfig(seed, []string{pd.a, pd.b},
 			[][]*cards.Card{deckByName[pd.a], deckByName[pd.b]}, commanders, commander)
@@ -1686,11 +1687,11 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 		}
 		decks[s] = d
 		if commander {
-			ci, err := commanderIndex(reg, seated[s])
+			cis, err := commanderIndices(reg, seated[s])
 			if err != nil {
 				return err
 			}
-			commanders[s] = []int{ci}
+			commanders[s] = cis
 		}
 	}
 

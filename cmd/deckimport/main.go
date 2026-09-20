@@ -150,10 +150,18 @@ func writeDeckFile(path string, dr deckReport, p *parsedDeck, format, archetype,
 	f := deckFile{
 		Name:      dr.Name,
 		Format:    format,
-		Commander: p.Commander,
 		Archetype: archetype,
 		Notes:     notes,
 		Cards:     toEntries(p.Cards),
+	}
+	// A one-commander deck writes the legacy singular key so files written
+	// before the partner-pair field existed stay byte-identical; a partner
+	// pair writes the plural list (deck.Parse reads both, Commanders first).
+	switch len(p.Commanders) {
+	case 1:
+		f.Commander = p.Commanders[0]
+	case 2:
+		f.Commanders = p.Commanders
 	}
 	if f.Notes == "" {
 		f.Notes = autoNote(dr)

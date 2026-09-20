@@ -54,6 +54,15 @@ func commanderFixture(t *testing.T) *cards.Registry {
 		// commander no matter what its basic land type's intrinsic colour is.
 		"Painted Mountain": "Name:Painted Mountain\nTypes:Land Mountain\nOracle:Painted Mountain enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n",
 		"Painted Forest":   "Name:Painted Forest\nTypes:Land Forest\nOracle:Painted Forest enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n",
+		// A mutual "Partner with" pair in the Food and Fellowship shape (CR
+		// 903.13c): partner A is {W}{B}, partner B is {G}{W}, so the CR 903.5
+		// UNION identity is {W}{B}{G} — a green card is legal only because
+		// BOTH commanders count.
+		"Hobbit Warden": "Name:Hobbit Warden\nManaCost:W B\nTypes:Legendary Creature Halfling Scout\nK:Partner with:Garden Keeper\n",
+		"Garden Keeper": "Name:Garden Keeper\nManaCost:G W\nTypes:Legendary Creature Halfling Peasant\nK:Partner with:Hobbit Warden\n",
+		"Elk":           "Name:Elk\nManaCost:G\nTypes:Creature Elk\n",
+		// A plain-Partner card (CR 903.13a) for the non-pair rejection.
+		"Plain Partner": "Name:Plain Partner\nManaCost:W\nTypes:Legendary Creature Human Cleric\nK:Partner\n",
 	}
 	for name, src := range scripts {
 		c, diags := cards.ParseBytes("fixture.txt", []byte(src))
@@ -79,6 +88,130 @@ func legalMonoWhiteCommander() File {
 			{"Guard", 1},
 			{"Plains", 97},
 		},
+	}
+}
+
+// partnerPairDeck builds a CR-903.4-legal 100-card two-commander deck whose
+// partners are the fixture's mutual "Partner with" pair: the union identity
+// is {W}{B}{G}, which is the only reason Elk (green) and Forest are legal.
+func partnerPairDeck() File {
+	return File{
+		Name:       "FOOD",
+		Commanders: []string{"Hobbit Warden", "Garden Keeper"},
+		Cards: []Entry{
+			{"Hobbit Warden", 1},
+			{"Garden Keeper", 1},
+			{"Elk", 1},
+			{"Forest", 1},
+			{"Plains", 96},
+		},
+	}
+}
+
+// TestValidateCommanderPartnerPairUnionIdentity pins the CR 903.5 UNION
+// identity: a two-commander partner-pair deck validates against the union
+// of BOTH commanders' identities, so the pair's green half of the deck is
+// legal; remove one partner from the designation and the same deck is
+// rejected, because the green cards now sit outside the one remaining
+// commander's {W}{B}. (On the pre-fix validator this failed the other way
+// round: the pair itself was rejected.)
+func TestValidateCommanderPartnerPairUnionIdentity(t *testing.T) {
+	r := commanderFixture(t)
+	if err := partnerPairDeck().ValidateCommander(r); err != nil {
+		t.Fatalf("partner-pair deck rejected: %v", err)
+	}
+	f := partnerPairDeck()
+	f.Commanders = []string{"Hobbit Warden"}
+	err := f.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "Elk") || !strings.Contains(err.Error(), "outside commander") {
+		t.Fatalf("want the green cards rejected outside {white/black}, got %v", err)
+	}
+	// The legacy singular spelling of the same one-commander deck must
+	// behave identically.
+	legacy := partnerPairDeck()
+	legacy.Commanders = nil
+	legacy.Commander = "Hobbit Warden"
+	err = legacy.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "Elk") {
+		t.Fatalf("legacy singular spelling should reject the same deck, got %v", err)
+	}
+}
+
+func TestValidateCommanderRejectsThreeCommanders(t *testing.T) {
+	r := commanderFixture(t)
+	f := partnerPairDeck()
+	f.Commanders = []string{"Hobbit Warden", "Garden Keeper", "Amalia"}
+	err := f.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "903.13") || !strings.Contains(err.Error(), "Amalia") {
+		t.Fatalf("want a three-commanders rejection, got %v", err)
+	}
+}
+
+func TestValidateCommanderRejectsNonPartnerPair(t *testing.T) {
+	r := commanderFixture(t)
+	f := File{
+		Name:       "NOTPAIR",
+		Commanders: []string{"Amalia", "Plain Partner"},
+		Cards:      []Entry{{"Amalia", 1}, {"Plain Partner", 1}, {"Plains", 98}},
+	}
+	err := f.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "not a legal partner pair") {
+		t.Fatalf("want a not-a-partner-pair rejection, got %v", err)
+	}
+}
+
+// TestFileCommanderIndices pins the plural accessor: both commanders' flat
+// indices come back in CommanderNames order (here the pair is designated in
+// the reverse of file order, so the indices are [1 0]), and the legacy
+// singular spelling still resolves through CommanderIndex.
+func TestFileCommanderIndices(t *testing.T) {
+	pair := File{
+		Name:       "pair",
+		Commanders: []string{"Garden Keeper", "Hobbit Warden"},
+		Cards:      []Entry{{"Hobbit Warden", 1}, {"Garden Keeper", 1}, {"Plains", 98}},
+	}
+	got := pair.CommanderIndices()
+	if len(got) != 2 || got[0] != 1 || got[1] != 0 {
+		t.Fatalf("CommanderIndices = %v, want [1 0]", got)
+	}
+	if pair.CommanderIndex() != 1 {
+		t.Fatalf("CommanderIndex = %d, want the first designated commander's 1", pair.CommanderIndex())
+	}
+	single := File{Name: "single", Commander: "Hobbit Warden", Cards: pair.Cards}
+	if single.CommanderIndex() != 0 {
+		t.Fatalf("legacy singular CommanderIndex = %d, want 0", single.CommanderIndex())
+	}
+	if idxs := single.CommanderIndices(); len(idxs) != 1 || idxs[0] != 0 {
+		t.Fatalf("legacy singular CommanderIndices = %v, want [0]", idxs)
+	}
+	noCmdr := File{Cards: pair.Cards}
+	if idxs := noCmdr.CommanderIndices(); idxs != nil {
+		t.Fatalf("commander-less deck's CommanderIndices = %v, want nil", idxs)
+	}
+}
+
+// TestParseLegacySingleCommanderUnchanged pins the backwards compatibility
+// promise: a JSON that carries only the legacy singular "commander" key
+// parses exactly as before, and CommanderNames wraps it; a plural-only file
+// ("commanders", no "commander") is the partner-pair shape.
+func TestParseLegacySingleCommanderUnchanged(t *testing.T) {
+	raw := []byte(`{"name":"legacy","format":"commander","commander":"Amalia","cards":[{"name":"Amalia","count":1},{"name":"Plains","count":99}]}`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := f.CommanderNames()
+	if len(names) != 1 || names[0] != "Amalia" {
+		t.Fatalf("legacy file's CommanderNames = %v, want [Amalia]", names)
+	}
+	pair := []byte(`{"name":"pair","format":"commander","commanders":["Hobbit Warden","Garden Keeper"],"cards":[{"name":"Hobbit Warden","count":1},{"name":"Garden Keeper","count":1},{"name":"Plains","count":98}]}`)
+	pf, err := Parse(pair)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names = pf.CommanderNames()
+	if len(names) != 2 || names[0] != "Hobbit Warden" || names[1] != "Garden Keeper" {
+		t.Fatalf("plural file's CommanderNames = %v, want the pair", names)
 	}
 }
 

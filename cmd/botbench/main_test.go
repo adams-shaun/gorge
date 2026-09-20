@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/deck"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 )
@@ -718,6 +719,24 @@ func TestCommanderConfig(t *testing.T) {
 	}
 	if len(cmd.Commanders) != 1 || len(cmd.Commanders[0]) != 1 || cmd.Commanders[0][0] != f.CommanderIndex() {
 		t.Errorf("commander indices = %v, want %q's CommanderIndex", cmd.Commanders, name)
+	}
+
+	// A partner-pair deck file (the CR 903.13 two-commander shape) carries
+	// BOTH commanders: File.CommanderIndices lists every commander in order,
+	// and buildGameConfig threads the list through untouched — the engine's
+	// legalCommandersFor is what validates the pair, not this layer.
+	pair := deck.File{
+		Name:       "pair",
+		Commanders: []string{"Amalia", "Ember Dragon"},
+		Cards: []deck.Entry{
+			{Name: "Amalia", Count: 1},
+			{Name: "Ember Dragon", Count: 1},
+			{Name: "Plains", Count: 98},
+		},
+	}
+	cmdPair := buildGameConfig(7, []string{"pair"}, nil, [][]int{pair.CommanderIndices()}, true)
+	if len(cmdPair.Commanders) != 1 || len(cmdPair.Commanders[0]) != 2 || cmdPair.Commanders[0][0] != 0 || cmdPair.Commanders[0][1] != 1 {
+		t.Errorf("partner command-zone indices = %v, want [0 1]", cmdPair.Commanders)
 	}
 }
 
