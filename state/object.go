@@ -173,8 +173,9 @@ const (
 	// overwriting X, the total or an earlier tag). Each rides its OWN
 	// trailing pay-time CastInfo immediately after the previous tag's, so
 	// the four totals never share an event, and events.Apply's CastInfo
-	// switch checks them in emission order (Treasure, Cave, Desert, then
-	// Snow, then the total) because every later event carries all earlier
+	// switch checks the NEWEST flag first (Desert, Cave, Treasure, then
+	// Snow, then the total) because the emission order is total, snow,
+	// Treasure, Cave, Desert and every later event carries all earlier
 	// flags. Appended per the enum's own append-only precedent.
 	FlagManaTreasureSpent
 	FlagManaCaveSpent

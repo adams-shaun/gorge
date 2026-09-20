@@ -83,9 +83,10 @@ func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost
 // keeps the bool-only payManaFor wrapper, so no other payment site changes
 // shape.
 func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
-	before := e.manaAvailableFor(p, id, ability)
+	av := e.manaAvailableFor(p, id, ability)
+	before := av.pool
 	beforeSnow := e.G.Players[p].Snow
-	beforeTyped := e.G.Players[p].TypedMana
+	beforeTyped := av.typed
 	pay, ok := cost.resolveManaWith(before, beforeSnow, beforeTyped, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 	if !ok {
@@ -112,7 +113,16 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	// it was paid as -- so copy the full delta before emitRestrictedManaSpend
 	// carves the restricted batches out of `spent`.
 	spentAll := spent
-	e.emitRestrictedManaSpend(p, id, ability, &spent)
+	// emitSnow/emitTyped are the emission split's copies of the tallies.
+	// emitRestrictedManaSpend carves the restricted batches out of `spent`
+	// and emits their tagged/snow form DIRECTLY, so the tallies driving the
+	// remaining split must be carved alongside it -- otherwise a restricted
+	// TAGGED unit would be emitted once by the carve and again by the loop
+	// (double-decrementing TypedMana and the pool). The returned spentSnow /
+	// spentTyped keep the FULL deltas the pay-time capture reads.
+	emitSnow := spentSnow
+	emitTyped := spentTyped
+	e.emitRestrictedManaSpend(p, id, ability, &spent, &emitSnow, &emitTyped)
 	for i, letter := range manaLetters {
 		if spent[i] == 0 {
 			continue
@@ -124,17 +134,17 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 		// one before snow wherever a choice existed, so the split here is
 		// exactly what the payment search did. The emission order (plain,
 		// Treasure, Cave, Desert, snow) is fixed and deterministic.
-		snowSpent := beforeSnow[i] - afterSnow[i]
+		snowSpent := emitSnow[i]
 		typedSpent := int32(0)
-		for t := range spentTyped {
-			typedSpent += spentTyped[t][i]
+		for t := range emitTyped {
+			typedSpent += emitTyped[t][i]
 		}
 		if plain := spent[i] - snowSpent - typedSpent; plain > 0 {
 			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -plain})
 		}
 		for t, tag := range state.TypedManaTags {
-			if spentTyped[t][i] > 0 {
-				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: tag + letter, Amount: -spentTyped[t][i]})
+			if emitTyped[t][i] > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: tag + letter, Amount: -emitTyped[t][i]})
 			}
 		}
 		if snowSpent > 0 {
@@ -185,20 +195,40 @@ func (e *Engine) payExtortPip(p state.PlayerID) bool {
 	return false
 }
 
+// availableMana is the restriction-aware view of a seat's floating mana:
+// the pool minus every RestrictValid$ batch this payment cannot use, and the
+// typed producer tallies with those same batches removed. A restricted TYPED
+// unit (Echoing Cavern's Cave mana) must be invisible in BOTH: takeUnit
+// partitions a slot by the typed tally, so a typed unit left visible under
+// an unusable restriction could be consumed through that path although the
+// filter already hid it from the pool.
+type availableMana struct {
+	pool  state.Mana
+	typed [3]state.Mana
+}
+
 // manaAvailableFor removes every restricted batch from the visible pool, then
 // restores exactly the batches valid for this payment. This means a cast or a
 // nonmatching activation can never borrow Tazri-style mana merely because it
-// shares a colour bucket with unrestricted mana.
-func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool) state.Mana {
-	available := e.G.Players[p].Pool
-	for _, r := range e.G.Players[p].RestrictedMana {
-		idx := state.ManaIndex(r.Color[0])
-		available[idx] -= r.Amount
+// shares a colour bucket with unrestricted mana. The typed tallies are
+// filtered by the same rule, so a typed restricted unit can never be spent
+// through the typed consumption path either.
+func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool) availableMana {
+	pl := e.G.Players[p]
+	available := availableMana{pool: pl.Pool, typed: pl.TypedMana}
+	for _, r := range pl.RestrictedMana {
+		idx := state.ManaSlot(r.Color)
+		available.pool[idx] -= r.Amount
 		// An empty Valid is an UNRESTRICTED batch that carries only its
 		// AddsNoCounter$ provenance (Boseiju's plain {C}): it pays anything,
-		// exactly like ordinary pool mana.
+		// exactly like ordinary pool mana, so its units stay visible.
 		if r.Valid == "" || e.restrictValidMatches(p, id, ability, r.Valid, r.Source) {
-			available[idx] += r.Amount
+			available.pool[idx] += r.Amount
+			continue
+		}
+		// The batch is unusable here: hide its typed provenance too.
+		if tag, slot, ok := state.TypedManaCounter(r.Color); ok {
+			available.typed[tag][slot] -= r.Amount
 		}
 	}
 	return available
@@ -212,7 +242,7 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 // e.noCounterSpend for payCast to fold state.FlagNoCounter into the pay-time
 // CastInfo — with the batch's own condition evaluated against the paying
 // spell's face (Boseiju's !Permanent).
-func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana) {
+func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana) {
 	e.noCounterSpend = 0
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
 	// otherwise removing the first of two matching batches would make the
@@ -222,7 +252,7 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		if r.Amount <= 0 || (r.Valid != "" && !e.restrictValidMatches(p, id, ability, r.Valid, r.Source)) {
 			continue
 		}
-		idx := state.ManaIndex(r.Color[0])
+		idx := state.ManaSlot(r.Color)
 		used := spent[idx]
 		if used > r.Amount {
 			used = r.Amount
@@ -236,6 +266,14 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
 			Text: events.ManaRestrictionText(r.Valid, r.Source)})
 		spent[idx] -= used
+		// Carve the consumed units out of the emission split's tallies too:
+		// the carve emitted this batch's tagged/snow form directly, so the
+		// split loop must not emit it a second time.
+		if tag, slot, ok := state.TypedManaCounter(r.Color); ok {
+			emitTyped[tag][slot] -= used
+		} else if len(r.Color) == 2 && r.Color[0] == 'S' {
+			emitSnow[state.ManaIndex(r.Color[1])] -= used
+		}
 	}
 }
 
@@ -357,7 +395,8 @@ func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *ma
 // passed explicitly, for the payment sites that know the cast's recorded
 // rider and cannot re-derive it from the card's zone.
 func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool, cost Cost, rider pipRider) bool {
-	_, ok := cost.resolveManaWith(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].TypedMana,
+	av := e.manaAvailableFor(p, id, ability)
+	_, ok := cost.resolveManaWith(av.pool, e.G.Players[p].Snow, av.typed,
 		e.G.Players[p].Life, e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 	return ok
 }
@@ -388,8 +427,8 @@ func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cos
 // source. The payer grants and conversion shaping are the same reads in both
 // modes, so a potential action and the payment it promises can never disagree
 // about what the pool may satisfy.
-func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana) bool {
-	_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, e.G.Players[p].TypedMana, e.G.Players[p].Life,
+func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana, typed [3]state.Mana) bool {
+	_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, typed, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p),
 		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
 		e.paymentConv(p, id, ability))

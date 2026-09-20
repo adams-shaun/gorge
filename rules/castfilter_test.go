@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -221,8 +222,9 @@ func TestCastTotalManaSpentTreasureExactnessOneOfEight(t *testing.T) {
 // splits the spend across ALL FOUR totals (8 / 1 / 1 / 0 / 0). The typed
 // consumption order (plain -> typed -> snow) is what puts the snow unit last,
 // so every split is exact and the CastInfo flag routing (each later event
-// carries all earlier flags; Apply checks Treasure, Cave, Desert, Snow, then
-// the total) can never route one tag's Amount into another's field.
+// carries all earlier flags, so Apply checks the NEWEST flag first: Desert,
+// Cave, Treasure, Snow, then the total) can never route one tag's Amount into
+// another's field.
 func TestCastTotalManaSpentMixedPoolCaptureSplitsEveryTag(t *testing.T) {
 	t.Parallel()
 	e := handEngineTokens(t, corpusAlternativeCard(t, "Marut"))
@@ -342,5 +344,163 @@ func TestCastTotalManaSpentConsumesPlainBeforeTyped(t *testing.T) {
 				t.Fatalf("drew %d cards, want %d (Treasure count %d)", got, tc.wantDraws, tc.wantTyped)
 			}
 		})
+	}
+}
+
+// --- Restricted tagged mana: the restriction must survive the tag ----------
+//
+// A Treasure/Cave/Desert-typed producer can also carry RestrictValid$ (task
+// castfilter2's review fix). Registering the restriction batch only for the
+// PLAIN counter form silently dropped it for a tagged unit -- the ManaAdd
+// case's typed branch broke out before the registration block -- so Echoing
+// Cavern, Sunken Citadel (both Cave) and Bucolic Ranch (Desert) produced
+// unrestricted mana on main. The pins below cover both halves: the batch is
+// registered, and a TYPED unit under an unusable restriction is hidden from
+// the typed tally as well as the pool (takeUnit partitions a slot by the
+// tally, so a visible typed unit could otherwise be consumed through that
+// path).
+
+// TestBucolicRanchRestrictedDesertManaKeepsItsRestriction activates the real
+// corpus card's restricted mana ability and asserts the produced unit is BOTH
+// Desert-tagged AND restricted: the batch is registered, and its provenance
+// is admitted for a Mount spell and withheld -- in pool and in the typed
+// tally -- from a non-Mount.
+func TestBucolicRanchRestrictedDesertManaKeepsItsRestriction(t *testing.T) {
+	reg := searchTestRegistry(t)
+	mountain := searchCorpusCard(t, reg, "Mountain")
+	forest := searchCorpusCard(t, reg, "Forest")
+	bear := searchCorpusCard(t, reg, "Grizzly Bears")
+	walloper := card(t, "Name:Walloper\nManaCost:1\nTypes:Artifact Creature Golem\nPT:3/3\nOracle:x\n")
+	deck := []*cards.Card{searchCorpusCard(t, reg, "Bucolic Ranch"), searchCorpusCard(t, reg, "Bulwark Ox"), walloper}
+	for i := 0; i < 8; i++ {
+		deck = append(deck, forest, mountain)
+	}
+	for len(deck) < 40 {
+		deck = append(deck, bear)
+	}
+	opp := make([]*cards.Card, 40)
+	for i := range opp {
+		opp[i] = mountain
+	}
+	cfg := seatZeroStart(Config{Seed: 9211, Names: []string{"rancher", "opponent"},
+		Decks: [][]*cards.Card{deck, opp}, Tokens: reg.Tokens})
+	e := New(cfg)
+	e.Advance()
+	toMain1(t, e)
+
+	ranch := searchMoveByName(t, e, "Bucolic Ranch", state.ZBattlefield)
+	mountID := searchMoveByName(t, e, "Bulwark Ox", state.ZHand)
+	wallID := searchMoveByName(t, e, "Walloper", state.ZHand)
+	e.pending = nil
+	e.priorityRound()
+
+	// The restricted ability: {T}: Add one mana of any color. Spend this mana
+	// only to cast a Mount spell.
+	idx := -1
+	for i, ab := range e.G.Obj(ranch).Face().ManaAbilities() {
+		if ab.Params["RestrictValid"] != "" {
+			idx = i
+		}
+	}
+	if idx < 0 {
+		t.Fatal("Bucolic Ranch has no restricted mana ability")
+	}
+	act := -1
+	for _, o := range e.Pending().Options {
+		if o.Kind == "activate" && o.Obj == ranch {
+			act = o.Index
+		}
+	}
+	if act < 0 {
+		t.Fatalf("priority decision does not offer Bucolic Ranch's mana: %+v", e.Pending())
+	}
+	submitChoices(t, e, act)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("pending = %+v, want the mana-ability wheel", d)
+	}
+	wheel := -1
+	for _, o := range d.Options {
+		if o.Ability == idx {
+			wheel = o.Index
+		}
+	}
+	if wheel < 0 {
+		t.Fatalf("no wheel option for the restricted ability: %+v", d.Options)
+	}
+	submitChoices(t, e, wheel)
+	// The restricted "any color" ability asks which colour (the restriction
+	// needs a concrete pool slot); take white so a Mount spell can use it.
+	if cd := e.Pending(); cd != nil && cd.Kind == decision.KChoose {
+		submitChoices(t, e, 0)
+	}
+
+	// The batch exists AND carries the Desert tag (the regression: it was
+	// dropped, so this slice was empty).
+	restricted := e.G.Players[0].RestrictedMana
+	if len(restricted) != 1 || restricted[0].Amount != 1 ||
+		restricted[0].Color != "DesertW" || restricted[0].Valid != "Spell.Mount" {
+		t.Fatalf("restricted batches = %+v, want one DesertW batch valid for Spell.Mount", restricted)
+	}
+	if e.G.Players[0].TypedMana[state.TypedDesert][state.MW] != 1 {
+		t.Fatalf("Desert typed tally W = %d, want 1", e.G.Players[0].TypedMana[state.TypedDesert][state.MW])
+	}
+
+	// Admitted for the Mount spell, withheld from the non-Mount in BOTH the
+	// pool and the typed tally.
+	if av := e.manaAvailableFor(0, mountID, false); av.pool.Total() != 1 ||
+		av.typed[state.TypedDesert][state.MW] != 1 {
+		t.Fatalf("manaAvailableFor(Mount) = pool %d typed %d, want 1/1 (restriction admitted)",
+			av.pool.Total(), av.typed[state.TypedDesert][state.MW])
+	}
+	if av := e.manaAvailableFor(0, wallID, false); av.pool.Total() != 0 ||
+		av.typed[state.TypedDesert][state.MW] != 0 {
+		t.Fatalf("manaAvailableFor(non-Mount) = pool %d typed %d, want 0/0 (restriction withheld)",
+			av.pool.Total(), av.typed[state.TypedDesert][state.MW])
+	}
+
+	// Behavioural: the non-Mount {1} cast is not offered on the restricted-only
+	// pool; without the typed filter the search would reach the hidden unit
+	// through the typed tally and wrongly offer it.
+	e.pending = nil
+	e.priorityRound()
+	offered := map[string]bool{}
+	for _, o := range e.Pending().Options {
+		if o.Kind == "cast" {
+			offered[e.G.Obj(o.Obj).Face().Name] = true
+		}
+	}
+	if offered["Walloper"] {
+		t.Fatal("non-Mount cast offered on restricted-only pool -- the restriction is unread for a tagged unit")
+	}
+}
+
+// TestRestrictedTaggedManaSpendIsNotDoubleCounted pins the emission split for
+// a restricted TAGGED unit beside a plain one in the same slot. The carve
+// emits the tagged negative directly, so the split loop must not emit it
+// again: a double emit would drive TypedMana (and the pool) negative. A {2}
+// cost over one restricted Cave {C} and one plain {C} admits the restriction
+// for a Mount spell and spends both units.
+func TestRestrictedTaggedManaSpendIsNotDoubleCounted(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Bulwark Ox"))
+	mount := e.G.Zone(state.ZHand, 0)[0]
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "CaveC", Amount: 1,
+		Text: events.ManaRestrictionText("Spell.Mount", 0)})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 1})
+	if len(e.G.Players[0].RestrictedMana) != 1 {
+		t.Fatalf("restricted batch not registered: %+v", e.G.Players[0].RestrictedMana)
+	}
+	if ok, _, _, _, _ := e.payManaForSpent(0, mount, false, ParseCost("2"), nil, pipRider{}); !ok {
+		t.Fatal("payment refused: the restricted Cave unit is admitted for a Mount spell")
+	}
+	if got := e.G.Players[0].Pool[state.MC]; got != 0 {
+		t.Fatalf("pool MC = %d, want 0 (two units spent, each emitted once)", got)
+	}
+	if got := e.G.Players[0].TypedMana[state.TypedCave][state.MC]; got != 0 {
+		t.Fatalf("Cave typed tally MC = %d, want 0 (the carved tagged unit must not be re-emitted)", got)
+	}
+	if len(e.G.Players[0].RestrictedMana) != 0 {
+		t.Fatalf("restricted batches = %+v, want consumed", e.G.Players[0].RestrictedMana)
 	}
 }

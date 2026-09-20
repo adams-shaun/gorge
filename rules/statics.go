@@ -1104,7 +1104,8 @@ func (e *Engine) manaFeasible(p state.PlayerID, id state.ObjID, ability bool, c 
 // K'rrik-shaped or MayPlayIgnoreColor$-shaped cost either.
 func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
 	pl := e.G.Players[p]
-	return mods.feasibleAny(c, e.manaAvailableFor(p, id, ability), pl.Snow, pl.TypedMana, pl.Life, taxGeneric, delve,
+	av := e.manaAvailableFor(p, id, ability)
+	return mods.feasibleAny(c, av.pool, pl.Snow, av.typed, pl.Life, taxGeneric, delve,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 }
 
@@ -1116,9 +1117,9 @@ func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability boo
 // source. The payer grants and conversion shaping are the same reads in both
 // modes, so a potential action and the offer the walk mirrors can never
 // disagree about what the pool may satisfy.
-func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, pool state.Mana) bool {
+func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, pool state.Mana, typed [3]state.Mana) bool {
 	pl := e.G.Players[p]
-	return mods.feasibleAny(c, pool, pl.Snow, pl.TypedMana, pl.Life, taxGeneric, delve,
+	return mods.feasibleAny(c, pool, pl.Snow, typed, pl.Life, taxGeneric, delve,
 		e.payerGrantsPayLifeInsteadOfB(p),
 		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
 		e.paymentConv(p, id, ability))
@@ -1128,11 +1129,15 @@ func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool
 // ordinary real-pool gate, hyp non-nil prices the feasibility against the
 // potential walk's hypothetical bound (rules/legal.go legalActionsPriced).
 func (e *Engine) manaFeasiblePriced(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
-	pool := e.manaAvailableFor(p, id, ability)
+	av := e.manaAvailableFor(p, id, ability)
+	pool, typed := av.pool, av.typed
 	if hyp != nil {
 		pool = *hyp
+		// A hypothetical bound is a pure mana bound (see costPayablePool),
+		// so its typed partition is the raw tally.
+		typed = e.G.Players[p].TypedMana
 	}
-	return e.manaFeasiblePool(p, id, ability, c, mods, taxGeneric, delve, pool)
+	return e.manaFeasiblePool(p, id, ability, c, mods, taxGeneric, delve, pool, typed)
 }
 
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies

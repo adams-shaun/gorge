@@ -40,7 +40,8 @@ type Player struct {
 	// TypedMana partitions the floating pool by the PRODUCER's type (task
 	// castfilter2): TypedMana[k][i] counts how many of the Pool[i] mana
 	// units were produced by a permanent of the k-th tagged producer type
-	// (0 Treasure, 1 Cave, 2 Desert — TypedManaIndex maps the tag word).
+	// (0 Treasure, 1 Cave, 2 Desert — the TypedTreasure/TypedCave/
+	// TypedDesert constants, in TypedManaTags order).
 	// It is the per-unit producer provenance the filtered
 	// Count$CastTotalManaSpent Treasure/Cave/Desert heads read (Marut, Bat
 	// Colony, Cataclysmic Prospecting): the payment consumes a plain unit

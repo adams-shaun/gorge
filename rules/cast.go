@@ -695,7 +695,7 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, ability bool, pool state.Mana) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !e.costPayablePool(p, id, ability, mana, pool) {
+	if !e.costPayablePool(p, id, ability, mana, pool, e.G.Players[p].TypedMana) {
 		return false
 	}
 	return e.nonManaCastable(p, id, cost, ability)
@@ -5346,10 +5346,12 @@ func (e *Engine) payCast() {
 		// unconditionally alongside the total -- a cast that spent no mana of
 		// a tag is a real zero, not an absent one -- so the filtered
 		// Count$CastTotalManaSpent Treasure/Cave/Desert read is exact for
-		// their carriers without a second gate. events.Apply's CastInfo
-		// switch checks the flags in this emission order (Treasure, Cave,
-		// Desert, Snow, total) because each later event carries all earlier
-		// flags.
+		// their carriers without a second gate. The emission order is total,
+		// then Snow, then Treasure, then Cave, then Desert; since every later
+		// event carries all earlier flags, events.Apply's CastInfo switch
+		// checks the NEWEST flag first (Desert, Cave, Treasure, Snow, then
+		// the total) or every later event would route into the first tag's
+		// field.
 		typedAmounts := [3]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert}
 		typedFlags := [3]uint32{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent}
 		acc := events.FlagsFrom(flags)

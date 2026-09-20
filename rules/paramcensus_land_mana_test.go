@@ -126,10 +126,10 @@ func TestEldraziTempleRestrictValidGatesTheProducedMana(t *testing.T) {
 	// one source of truth away from payable — the {2}{C} needs three mana and
 	// the temple produces two.
 	addMana(t, e, 0, "C")
-	if got := e.manaAvailableFor(0, reshaper, false).Total(); got != 3 {
+	if got := e.manaAvailableFor(0, reshaper, false).pool.Total(); got != 3 {
 		t.Fatalf("manaAvailableFor(Matter Reshaper) = %d, want 3 (restriction admitted)", got)
 	}
-	if got := e.manaAvailableFor(0, wallID, false).Total(); got != 1 {
+	if got := e.manaAvailableFor(0, wallID, false).pool.Total(); got != 1 {
 		t.Fatalf("manaAvailableFor(Walloper) = %d, want 1 (restriction withheld)", got)
 	}
 

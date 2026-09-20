@@ -137,16 +137,36 @@ const (
 // map, so the parse order is deterministic).
 var TypedManaTags = [3]string{"Treasure", "Cave", "Desert"}
 
-// TypedManaIndex maps a Count$CastTotalManaSpent <Type> tag word to its
-// TypedMana slot; ok is false for a word the producer-type tagging does not
-// model (the head fails closed for those).
-func TypedManaIndex(word string) (int, bool) {
-	for i, tag := range TypedManaTags {
-		if word == tag {
-			return i, true
+// TypedManaCounter reports the TypedMana index and pool slot of a
+// "<Tag><colour>" tagged ManaAdd counter (ManaAdd's typed form: "TreasureC",
+// "CaveW", "DesertR"). ok is false for every other counter shape -- a bare
+// WUBRGC letter, the empty default, or the "S<colour>" snow form.
+func TypedManaCounter(counter string) (tag int, slot int, ok bool) {
+	for ti, t := range TypedManaTags {
+		if len(counter) == len(t)+1 && counter[:len(t)] == t {
+			return ti, ManaIndex(counter[len(t)]), true
 		}
 	}
-	return 0, false
+	return 0, 0, false
+}
+
+// ManaSlot maps a ManaAdd counter form to its pool slot: a bare WUBRGC
+// letter (or the empty default), a "S<colour>" snow unit, or a
+// "<Tag><colour>" typed unit. It is the ONE slot reader for a counter that
+// may carry any of the three historically encodable forms -- a restricted
+// batch stores its producing counter verbatim, so state.ManaIndex(c[0])
+// would read a tagged unit's type letter as a colour.
+func ManaSlot(counter string) int {
+	if counter == "" {
+		return MC
+	}
+	if len(counter) == 2 && counter[0] == 'S' {
+		return ManaIndex(counter[1])
+	}
+	if _, slot, ok := TypedManaCounter(counter); ok {
+		return slot
+	}
+	return ManaIndex(counter[0])
 }
 
 // ManaIndex maps a WUBRGC symbol to its pool slot. Returns MC for anything
