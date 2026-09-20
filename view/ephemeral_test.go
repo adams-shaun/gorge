@@ -60,3 +60,51 @@ func TestZoneListsSkipEphemeralObjects(t *testing.T) {
 		t.Fatalf("exile = %+v, want ephemeral objects (including the cardless ability object) skipped", ex)
 	}
 }
+
+// TestBattlefieldCopyIsNotEphemeral pins the zone-aware reading of
+// state.Object.Ephemeral that effects/filter.go's own guard already used: a
+// real permanent copy minted by Myriad (CR 702.109) or a "create a token
+// copy" effect (CR 706.2, DB$ CopyPermanent) carries BOTH IsToken and IsCopy
+// and legitimately lives on the battlefield, so it must appear in the
+// battlefield view exactly like any other permanent.  A copy parked in any
+// other zone is still gone (CR 707.10h -- a copy of a spell that has left
+// the stack), and that half is pinned by TestZoneListsSkipEphemeralObjects
+// above.
+func TestBattlefieldCopyIsNotEphemeral(t *testing.T) {
+	g := state.NewGame([]string{"a", "b"})
+	bear, d := cards.ParseBytes("b.txt", []byte("Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
+	if len(d) != 0 {
+		t.Fatalf("diags: %v", d)
+	}
+	bear.Link()
+
+	// A token copy ATTACKING on the battlefield: must appear.
+	copyTok := g.AddObject(bear, 0)
+	copyTok.IsToken = true
+	copyTok.IsCopy = true
+	copyTok.IsMyriad = true
+	copyTok.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{copyTok.ID})
+
+	if copyTok.Ephemeral() {
+		t.Fatalf("battlefield copy %d reports Ephemeral(); a battlefield copy is a real permanent", copyTok.ID)
+	}
+
+	v := Project(g, nil, 0, nil)
+	bf := v.Players[0].Battlefield
+	if len(bf) != 1 || bf[0].ID != copyTok.ID {
+		t.Fatalf("battlefield = %+v, want the battlefield copy %d", bf, copyTok.ID)
+	}
+
+	// Parked in exile it is gone, the same as any other copy or token.
+	g.SetZone(state.ZBattlefield, 0, nil)
+	copyTok.Zone = state.ZExile
+	g.SetZone(state.ZExile, 0, []state.ObjID{copyTok.ID})
+	if !copyTok.Ephemeral() {
+		t.Fatal("a copy parked in exile must still report Ephemeral()")
+	}
+	v = Project(g, nil, 0, nil)
+	if ex := v.Players[0].Exile; len(ex) != 0 {
+		t.Fatalf("exile = %+v, want the exiled copy skipped", ex)
+	}
+}

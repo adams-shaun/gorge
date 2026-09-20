@@ -179,13 +179,17 @@ func (b Board) cardScore(c Card) int32 {
 // (fail closed). The earlier fail-open read -- "unknown production, not
 // absent production" -- was written for the synthetic policy-test shapes and
 // presumed a real adapter never offers an activate option the Board lacks
-// facts for; that premise is false, measured: a battlefield COPY (Echoes of
-// Eternity's copy of a Dreamstone Hedron cast resolves onto the battlefield,
-// state.Object.Ephemeral's IsCopy half keeps it out of both adapters' Cards
-// tables) is a real offer with no facts, and the fail-open let the seed-1019
-// livelock's green-card tap target back in. Fail-closed errs toward passing:
-// the gate never taps a source it cannot price, the window falls through to
-// the land drop and the cast, and the game advances.
+// facts for. That premise is false: a battlefield copy (Echoes of Eternity's
+// copy of a Dreamstone Hedron) is a real offer with no facts, and the
+// fail-open let the seed-1019 livelock's green-card tap target back in. (The
+// older parenthetical here cited state.Object.Ephemeral's IsCopy half as
+// keeping such a copy out of the adapters' Cards tables; that is no longer
+// true -- token1 clears IsCopy when a stack copy resolves onto the
+// battlefield, and Ephemeral is zone-aware, so it hides NO battlefield
+// object. The fail-closed reading is independent of Ephemeral and stays.)
+// Fail-closed errs toward passing: the gate never taps a source it cannot
+// price, the window falls through to the land drop and the cast, and the
+// game advances.
 func (b Board) bestUnpayable(offered [5]bool) (state.ObjID, Card, bool) {
 	bestID := state.ObjID(0)
 	var best Card
