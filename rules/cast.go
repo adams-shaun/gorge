@@ -5503,6 +5503,14 @@ func init() {
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
+		// kw:TypeCycling: CR 702.28d (typed cycling), expanded by
+		// cards/keywords.go into the Transmute-shaped library search
+		// (AB$ ChangeZone | Origin$ Library | Destination$ Hand |
+		// ChangeType$ <type>), whose reveal comes from the search's own
+		// stated-quality default. Proof: TestTypeCyclingSearchesTheNamedType
+		// and TestTypeCyclingBasicLandSearchesAnyBasic in
+		// rules/alternative_costs_test.go.
+		"kw:TypeCycling",
 		// kw:Level up: CR 702.87, expanded by cards/keywords.go into an
 		// ordinary sorcery-speed PutCounter activation (CounterType$ LEVEL);
 		// the level-band statics read the counter through the existing
