@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/deck"
 )
 
 // mustParse reads and parses one testdata decklist, failing the test on error
@@ -114,6 +116,160 @@ func TestParseCommander(t *testing.T) {
 	}
 	if d.Sideboard != 1 {
 		t.Errorf("sideboard dropped = %d, want 1 (Wrath of God)", d.Sideboard)
+	}
+}
+
+func TestParseCommanderSectionTakesEveryName(t *testing.T) {
+	// A partner-pair export lists BOTH commanders in the Commander section
+	// (counted or bare); each is lifted into Commanders, Commander repeats
+	// the first (the legacy singular display field), and each stays one
+	// singleton copy in the card list while the deck header below starts the
+	// ordinary maindeck.
+	d, err := parseDecklist([]byte("Commander\n1 Frodo, Adventurous Hobbit\n1 Sam, Loyal Attendant\n\nDeck\n1 Birds of Paradise\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d.Commanders) != 2 || d.Commanders[0] != "Frodo, Adventurous Hobbit" || d.Commanders[1] != "Sam, Loyal Attendant" {
+		t.Fatalf("commanders = %v, want the pair", d.Commanders)
+	}
+	if d.Commander != "Frodo, Adventurous Hobbit" {
+		t.Fatalf("commander = %q, want the first partner", d.Commander)
+	}
+	if countOf(d, "Frodo, Adventurous Hobbit") != 1 || countOf(d, "Sam, Loyal Attendant") != 1 {
+		t.Fatalf("each commander must be a single copy: %+v", d.Cards)
+	}
+	if countOf(d, "Birds of Paradise") != 1 {
+		t.Fatalf("post-section card must be maindeck: %+v", d.Cards)
+	}
+}
+
+func TestParseCommanderSectionBareNames(t *testing.T) {
+	// The count-less spelling stays accepted for every section line.
+	d, err := parseDecklist([]byte("Commander:\nFrodo, Adventurous Hobbit\nSam, Loyal Attendant\n\nDeck\n4 Llanowar Elves\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d.Commanders) != 2 || d.Commanders[0] != "Frodo, Adventurous Hobbit" || d.Commanders[1] != "Sam, Loyal Attendant" {
+		t.Fatalf("commanders = %v, want the bare pair", d.Commanders)
+	}
+	if countOf(d, "Llanowar Elves") != 4 {
+		t.Fatalf("maindeck wrong: %+v", d.Cards)
+	}
+}
+
+func TestParseCommanderSectionEndsAtHeader(t *testing.T) {
+	// Without a blank line, the next section header ends the commander
+	// section; nothing after it is a commander.
+	d, err := parseDecklist([]byte("Commander\nAtraxa, Praetors' Voice\nDeck\n4 Birds of Paradise\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d.Commanders) != 1 || d.Commanders[0] != "Atraxa, Praetors' Voice" {
+		t.Fatalf("commanders = %v, want one", d.Commanders)
+	}
+	if countOf(d, "Birds of Paradise") != 4 {
+		t.Fatalf("maindeck wrong: %+v", d.Cards)
+	}
+}
+
+func TestParseCommanderSectionRejectsThreeNames(t *testing.T) {
+	// A deck may have at most two commanders (CR 903.13); a third name in
+	// the section is a hard error that names the line.
+	_, err := parseDecklist([]byte("Commander\nA\nB\nC\n"))
+	if err == nil {
+		t.Fatal("expected an error for a three-commander section")
+	}
+	if !strings.Contains(err.Error(), "line 4") || !strings.Contains(err.Error(), "at most two commanders") {
+		t.Fatalf("error should name the line and the two-commander limit, got %v", err)
+	}
+}
+
+func TestParseCommanderCountedPairNeedsABlankLine(t *testing.T) {
+	// A counted line after a counted commander with NO blank line before
+	// the next header is the legacy single-commander export shape — the
+	// second counted line is the start of the maindeck, exactly what the
+	// pre-pair parser did — not a partner pair. Lifting it would silently
+	// seat a spurious second commander (worst case: a plain-Partner card
+	// legitimately sitting in the 99, which even validates as a pair); a
+	// counted pair must be separated from the maindeck by a blank line,
+	// which every real partner export and the pinned pair shape above has.
+	d, err := parseDecklist([]byte("Commander\n1 Atraxa, Praetors' Voice\n1 Birds of Paradise\nDeck\n4 Llanowar Elves\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d.Commanders) != 1 || d.Commanders[0] != "Atraxa, Praetors' Voice" {
+		t.Fatalf("commanders = %v, want the single counted commander", d.Commanders)
+	}
+	if countOf(d, "Birds of Paradise") != 1 {
+		t.Fatalf("the second counted line must be maindeck: %+v", d.Cards)
+	}
+	if countOf(d, "Llanowar Elves") != 4 {
+		t.Fatalf("post-header cards must be maindeck: %+v", d.Cards)
+	}
+}
+
+func TestParseCommanderSectionRejectsDuplicateName(t *testing.T) {
+	// The section naming the SAME card twice is a hard error, never a
+	// "pair" of one card twice: CR 903.3 has one or two DISTINCT
+	// commanders, and a duplicated designation would seat the same object
+	// twice at genesis.
+	_, err := parseDecklist([]byte("Commander\nFrodo, Adventurous Hobbit\nFrodo, Adventurous Hobbit\n\nDeck\n1 Birds of Paradise\n"))
+	if err == nil {
+		t.Fatal("expected an error for a commander section naming one card twice")
+	}
+	if !strings.Contains(err.Error(), "Frodo, Adventurous Hobbit") || !strings.Contains(err.Error(), "twice") {
+		t.Fatalf("error should name the duplicated commander, got %v", err)
+	}
+}
+
+func TestParseCommanderSingletonPerName(t *testing.T) {
+	// reconcileCommander enforces ONE copy per named commander: a partner
+	// printed in the section AND again in the maindeck collapses to one
+	// copy, while the other partner is untouched.
+	d, err := parseDecklist([]byte("Commander\nFrodo, Adventurous Hobbit\nSam, Loyal Attendant\n\n1 Frodo, Adventurous Hobbit\n1 Sam, Loyal Attendant\n1 Birds of Paradise\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if countOf(d, "Frodo, Adventurous Hobbit") != 1 || countOf(d, "Sam, Loyal Attendant") != 1 {
+		t.Fatalf("each commander must be a single copy: %+v", d.Cards)
+	}
+	if countOf(d, "Birds of Paradise") != 1 {
+		t.Fatalf("maindeck wrong: %+v", d.Cards)
+	}
+}
+
+// TestPartnerDeckFileRoundTripsThroughDeckParse pins the on-disk shape the
+// importer writes for a partner pair: the plural "commanders" list (and no
+// legacy singular "commander" key), loadable back through deck.Parse with
+// both commanders resolvable to their flat indices.
+func TestPartnerDeckFileRoundTripsThroughDeckParse(t *testing.T) {
+	p, err := parseDecklist([]byte("Commander\n1 Frodo, Adventurous Hobbit\n1 Sam, Loyal Attendant\n\nDeck\n1 Birds of Paradise\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dr := deckReport{Name: "food-fellowship", Cards: 3, Resolved: 3, Percent: 100}
+	path := filepath.Join(t.TempDir(), "food.json")
+	if err := writeDeckFile(path, dr, p, "commander", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := deck.Parse(raw)
+	if err != nil {
+		t.Fatalf("written file does not re-parse: %v", err)
+	}
+	names := f.CommanderNames()
+	if len(names) != 2 || names[0] != "Frodo, Adventurous Hobbit" || names[1] != "Sam, Loyal Attendant" {
+		t.Fatalf("round-tripped CommanderNames = %v, want the pair", names)
+	}
+	if f.Commander != "" {
+		t.Fatalf("a partner-pair file must not carry a legacy singular commander, got %q", f.Commander)
+	}
+	idxs := f.CommanderIndices()
+	if len(idxs) != 2 || idxs[0] != 0 || idxs[1] != 1 {
+		t.Fatalf("round-tripped CommanderIndices = %v, want [0 1]", idxs)
 	}
 }
 

@@ -222,6 +222,15 @@ type Host interface {
 	// Count$LifeOppsLostThisTurn backing (Rakdos, Lord of Riots' cost
 	// reduction): the Count$ head sums it over the controller's opponents.
 	LifeLostThisTurn(p state.PlayerID) int32
+	// DamageTakenThisTurn reports the total damage player p was dealt THIS
+	// TURN — the sum of every player-targeted Damage event (Kind Damage
+	// with the recipient in Player and Obj 0) since the last TurnChange,
+	// derived from the event log so a replay derives the same number. This
+	// is the TargetedPlayer$DamageThisTurn backing (Knollspine Dragon's
+	// "draw cards equal to the damage dealt to target opponent this turn");
+	// damage a redirect moved onto a PERMANENT (ev.Obj != 0) reads nowhere
+	// here, exactly as it should not.
+	DamageTakenThisTurn(p state.PlayerID) int32
 	// LifeGainedThisTurn reports the total life player p GAINED this turn —
 	// the sum of every LifeChange above zero since the last TurnChange,
 	// derived from the event log so a replay derives the same number. This is

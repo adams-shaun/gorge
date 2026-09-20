@@ -138,11 +138,11 @@ func runGrind(baseSeed uint64, deck string, seconds float64, iters int, dir, for
 		}
 		decks[i] = d
 		if commander {
-			ci, err := commanderIndex(reg, name)
+			cis, err := commanderIndices(reg, name)
 			if err != nil {
 				return err
 			}
-			commanders[i] = []int{ci}
+			commanders[i] = cis
 		}
 	}
 

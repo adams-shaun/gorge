@@ -73,6 +73,24 @@ type Player struct {
 	// caps at 4 (max speed), and never resets. Written only by events.Apply's
 	// SpeedChange case, so a log-only reconstruction rebuilds it exactly.
 	Speed int32
+
+	// RingTempted is this seat's raw "the Ring has tempted you" count (CR
+	// 701.54a): it rises by one each time the Ring tempts this seat and is
+	// NOT capped — the Ring emblem's level abilities are gated on "tempted N
+	// or more times", so a future emblem reader compares, never clamps.
+	// Written only by events.Apply's RingTemptsYou case, so a log-only
+	// reconstruction rebuilds it exactly.
+	RingTempted int32
+
+	// RingBearer is the ObjID of this seat's Ring-bearer permanent (CR
+	// 701.54a/b: the creature chosen when the Ring last tempted this seat,
+	// which keeps the designation until another creature becomes the
+	// Ring-bearer, another player gains control of it, or it leaves the
+	// battlefield). Zero means this seat has no Ring-bearer. The
+	// designation's two event-derived clears live in events.Apply too
+	// (ControlChange and the battlefield-leave path), so a replay derives
+	// the designation identically.
+	RingBearer ObjID
 }
 
 // ExtraTurn is one pending CR 500.7 turn. It is deliberately a queue entry,
@@ -476,6 +494,15 @@ func (g *Game) AliveCount() int { return len(g.AliveFrom(0)) }
 
 // IsMonarch reports whether p currently holds the monarch designation.
 func (g *Game) IsMonarch(p PlayerID) bool { return g.HasMonarch && g.Monarch == p }
+
+// IsRingBearer reports whether id is p's Ring-bearer (CR 701.54e: the
+// creature is "your Ring-bearer" exactly while it is on the battlefield
+// under your control and carries the designation — the zone and control
+// halves are enforced by events.Apply's clears, so a live check is just the
+// id comparison, and a zero id is never a bearer).
+func (g *Game) IsRingBearer(p PlayerID, id ObjID) bool {
+	return id != 0 && g.Players[p].RingBearer == id
+}
 
 // IsStartingPlayer reports whether p currently holds the CR 103.1 first-turn
 // designation. The presence bit makes the zero seat unambiguous.

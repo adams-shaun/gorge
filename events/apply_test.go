@@ -879,6 +879,12 @@ func TestClockTickIncrementsClock(t *testing.T) {
 	}
 }
 
+func TestRingTemptsYouKindString(t *testing.T) {
+	if got, want := RingTemptsYou.String(), "ring_tempts_you"; got != want {
+		t.Fatalf("RingTemptsYou.String() = %q, want %q", got, want)
+	}
+}
+
 func TestClockTickKindString(t *testing.T) {
 	if got, want := ClockTick.String(), "clock_tick"; got != want {
 		t.Fatalf("ClockTick.String() = %q, want %q", got, want)
@@ -1411,4 +1417,120 @@ func TestCastInfoTypedFlagsRouteNewestFirst(t *testing.T) {
 		t.Fatalf("typed CastInfo routing: spent=%d snow=%d treasure=%d cave=%d desert=%d",
 			o.ManaSpent, o.ManaSnowSpent, o.ManaTreasureSpent, o.ManaCaveSpent, o.ManaDesertSpent)
 	}
+}
+
+// TestRingTemptsYouFoldsCountBearerAndClears is the CR 701.54 fold pin: the
+// count rises and the designation lands on the named permanent; the
+// designation's two derived clears (CR 701.54b "until another player gains
+// control of it", and the CR 400.7/701.54e battlefield requirement) both
+// derive from the log alone, and an out-of-range player is a no-op.
+func TestRingTemptsYouFoldsCountBearerAndClears(t *testing.T) {
+	g := state.NewGame([]string{"Ann", "Bob"})
+	o := g.AddObject(bearCard(), 0)
+	o.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{o.ID})
+	Apply(g, Event{Kind: RingTemptsYou, Player: 0, Obj: o.ID, Amount: 1})
+	if g.Players[0].RingTempted != 1 || g.Players[0].RingBearer != o.ID {
+		t.Fatalf("count %d bearer %d, want 1/%d", g.Players[0].RingTempted, g.Players[0].RingBearer, o.ID)
+	}
+	// A control change by another player ends the designation; the bearer's
+	// own seat regaining/keeping control must not.
+	Apply(g, Event{Kind: ControlChange, Obj: o.ID, Player: 1})
+	if g.Players[0].RingBearer != 0 {
+		t.Fatalf("bearer %d survived the control change", g.Players[0].RingBearer)
+	}
+	Apply(g, Event{Kind: RingTemptsYou, Player: 0, Obj: o.ID, Amount: 2})
+	Apply(g, Event{Kind: ControlChange, Obj: o.ID, Player: 0})
+	if g.Players[0].RingBearer != o.ID || g.Players[0].RingTempted != 2 {
+		t.Fatalf("own-control change kept bearer %d (want %d), count %d (want 2)",
+			g.Players[0].RingBearer, o.ID, g.Players[0].RingTempted)
+	}
+	// Leaving the battlefield is a new object (CR 400.7): the designation is
+	// gone, and the count is NOT.
+	Apply(g, Event{Kind: MoveZone, Obj: o.ID, From: state.ZBattlefield, To: state.ZGraveyard})
+	if g.Players[0].RingBearer != 0 || g.Players[0].RingTempted != 2 {
+		t.Fatalf("after the leave: bearer %d (want 0), count %d (want 2)",
+			g.Players[0].RingBearer, g.Players[0].RingTempted)
+	}
+	// The clear keys on the object's REAL pre-move zone, not Event.From:
+	// Move treats From as advisory, and a malformed caller-supplied From must
+	// not leave a stale designation that a blob return/re-entry reusing the
+	// same ObjID would then report through the IsRingbearer predicate.
+	Apply(g, Event{Kind: MoveZone, Obj: o.ID, From: state.ZGraveyard, To: state.ZBattlefield})
+	Apply(g, Event{Kind: RingTemptsYou, Player: 0, Obj: o.ID, Amount: 3})
+	if g.Players[0].RingBearer != o.ID {
+		t.Fatalf("bearer %d, want %d after the re-designation", g.Players[0].RingBearer, o.ID)
+	}
+	Apply(g, Event{Kind: MoveZone, Obj: o.ID, From: state.ZGraveyard, To: state.ZGraveyard})
+	if g.Players[0].RingBearer != 0 {
+		t.Fatalf("bearer %d survived a leave with a malformed caller-supplied From", g.Players[0].RingBearer)
+	}
+	// An out-of-range player must not panic — the same totality stance the
+	// MonarchChange/SpeedChange cases take.
+	Apply(g, Event{Kind: RingTemptsYou, Player: 9, Obj: o.ID})
+}
+
+// TestRingEmblemPushMintsAnAbilityInApply is the CR 701.54c / Ruling T20-a
+// fold pin: the Ring emblem has no object in any zone and no corpus script
+// text, so its four level abilities are minted by the RingEmblemPush event
+// inside Apply itself. Every level builds the same handful of hand-built
+// bodies, and applying the identical event to two fresh games must produce
+// byte-identical objects -- a log-only replay derives the mint rather than
+// learning an unlogged ObjID.
+func TestRingEmblemPushMintsAnAbilityInApply(t *testing.T) {
+	build := func() *state.Game {
+		g := state.NewGame([]string{"Ann", "Bob"})
+		Apply(g, Event{Kind: RingEmblemPush, Player: 0, Amount: 1, Counter: "__ring:1"})
+		return g
+	}
+	for _, level := range []int32{1, 2, 3, 4} {
+		g1 := state.NewGame([]string{"Ann", "Bob"})
+		Apply(g1, Event{Kind: RingEmblemPush, Player: 0, Amount: level,
+			Counter: "__ring:" + itoa(int(level))})
+		if len(g1.Stack) != 1 {
+			t.Fatalf("level %d minted %d stack objects, want 1", level, len(g1.Stack))
+		}
+		o := g1.Obj(g1.Stack[0])
+		if o == nil || o.Ability == nil || o.Card != nil || o.Source != 0 {
+			t.Fatalf("level %d stack object = %+v, want a face-less ability with no source", level, o)
+		}
+		if o.Controller != 0 || o.Zone != state.ZStack {
+			t.Fatalf("level %d object controller %d zone %v, want 0/stack", level, o.Controller, o.Zone)
+		}
+	}
+	// The payload is the source of truth (the emblem has no face to rebuild
+	// from): a Counter naming a different level than Amount overrides Amount.
+	g := state.NewGame([]string{"Ann", "Bob"})
+	Apply(g, Event{Kind: RingEmblemPush, Player: 0, Amount: 1, Counter: "__ring:4"})
+	o := g.Obj(g.Stack[0])
+	if o == nil || o.Ability == nil || o.Ability.API != "LoseLife" {
+		t.Fatalf("Counter-named level did not rebuild the level-4 body: %+v", o)
+	}
+	// Applying the same event to two fresh games is byte-identical.
+	a, b := build(), build()
+	if !reflect.DeepEqual(a.Objs, b.Objs) {
+		t.Fatalf("mint is not deterministic:\n%+v\n%+v", a.Objs, b.Objs)
+	}
+	// An out-of-range player is a no-op, the same totality stance the
+	// RingTemptsYou/MonarchChange cases take.
+	c := state.NewGame([]string{"Ann", "Bob"})
+	Apply(c, Event{Kind: RingEmblemPush, Player: 9, Amount: 1})
+	if len(c.Stack) != 0 {
+		t.Fatalf("out-of-range player minted %d stack objects", len(c.Stack))
+	}
+}
+
+// itoa avoids importing strconv for one call in this file.
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	var buf [20]byte
+	i := len(buf)
+	for n > 0 {
+		i--
+		buf[i] = byte('0' + n%10)
+		n /= 10
+	}
+	return string(buf[i:])
 }

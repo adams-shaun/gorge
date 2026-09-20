@@ -126,7 +126,6 @@ var knownUnsupported = map[string][]string{
 	"Vesuva":                       {"api:Clone"},
 	"Tireless Provisioner":         {"api:GenericChoice"},
 	"Torment of Hailfire":          {"api:GenericChoice"},
-	"Famished Worldsire":           {"kw:Devour"},
 	// The pro-shaper/Commander cards whose gap was previously invisible
 	// because Primitive() walked the Sub chain only: an SVar-naming
 	// parameter (Charm's Choices$, Repeat's RepeatSubAbility$) resolved

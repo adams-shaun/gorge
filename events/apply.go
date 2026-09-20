@@ -163,6 +163,17 @@ func Apply(g *state.Game, e Event) {
 	case ControlChange:
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {
+				// CR 701.54b: a Ring-bearer designation ends "until another
+				// player gains control of it" — the old controller is still
+				// on o.Controller here, so the seat losing the designation is
+				// the one naming the object that is not the new controller.
+				// (The new controller gaining control of their OWN bearer is
+				// not a change of controller for the designation and keeps it.)
+				for i := range g.Players {
+					if g.Players[i].RingBearer == o.ID && state.PlayerID(i) != e.Player {
+						g.Players[i].RingBearer = 0
+					}
+				}
 				changeControl(g, o, e.Player)
 				// An AsLongAsControl goad ends the moment its controller
 				// condition fails; pruning here keeps a later return of
@@ -439,14 +450,67 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case RingTemptsYou:
+		// One "the Ring tempts you" action (CR 701.54a): the count rises by
+		// one and the designated permanent becomes (or stays) this seat's
+		// Ring-bearer. An impossible bearer choice (no creature controlled)
+		// carries Obj 0 and still counts — CR 701.54d: the "Whenever the Ring
+		// tempts you" trigger fires when the actions complete even if some
+		// were impossible.
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].RingTempted++
+			g.Players[e.Player].RingBearer = e.Obj
+		}
+
+	case RingEmblemPush:
+		// One of the Ring emblem's four level abilities (CR 701.54c) being
+		// put on the stack. The ability is minted HERE, inside Apply, so a
+		// log-only replay creates the exact same object a live game did
+		// (Ruling T20-a, the KeywordTriggerPush precedent): the emblem has
+		// no object in any zone, so TriggerPush's face-index derivation
+		// cannot carry it and the "__ring:<level>" payload rebuilds the
+		// ability structurally from the event text alone.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		level := int(e.Amount)
+		if rest, ok := strings.CutPrefix(e.Counter, "__ring:"); ok {
+			if n, err := strconv.Atoi(rest); err == nil {
+				level = n
+			}
+		}
+		sa := ringEmblemAbility(level)
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		// The emblem is not an object, so there is no Source to carry: the
+		// hand-built bodies read only their controller (Defined$ You /
+		// Opponent) and the live Ring-bearer designation
+		// (Card.IsRingbearer+YouCtrl). A zero Source makes
+		// findTriggerForAbility false, so no intervening-if recheck and no
+		// OptionalDecider read runs on it -- exactly the mandatory shape
+		// CR 701.54c's "whenever" abilities are.
+		o.Source = 0
+		o.Remembered = rememberedFrom(e.IDs)
+
 	case MoveZone, Draw, PutOnStack:
 		// CR 733.1 reverses a proposed cast with a real logged stack->origin
 		// move. Preserve the entry history that preceded its stack proposal in
 		// transient object state: a log-only replay sees the same PutOnStack,
 		// captures the same fields and consumes them on the reverse move.
 		wasStack := false
+		// The object's REAL pre-move zone, not Event.From: Move itself treats
+		// From as advisory (a malformed caller-supplied From must not corrupt
+		// state), and the Ring-bearer clear below must follow the same rule --
+		// otherwise a blob return/re-entry reusing the same ObjID could keep a
+		// stale designation.
+		wasBattlefield := false
 		if o := g.Obj(e.Obj); o != nil {
 			wasStack = o.Zone == state.ZStack
+			wasBattlefield = o.Zone == state.ZBattlefield
 			if e.To == state.ZStack {
 				o.PreStackEntryThisTurn = o.EnteredThisTurn
 				o.PreStackEntryFrom = o.EnteredFrom
@@ -552,6 +616,13 @@ func Apply(g *state.Game, e Event) {
 		}
 		// Source-dependent goads end as soon as their source leaves play.
 		pruneGoads(g)
+		// CR 400.7 / 701.54e: a Ring-bearer designation lives on a permanent
+		// and requires the battlefield — the moment the object leaves, every
+		// seat's designation naming it is gone (the next battlefield entry is
+		// a new object and never inherits one).
+		if wasBattlefield && e.To != state.ZBattlefield {
+			clearRingBearers(g, e.Obj)
+		}
 
 	case LifeChange:
 		if validPlayer(g, e.Player) {
@@ -1639,6 +1710,56 @@ func rememberedFrom(ids []state.ObjID) []state.Target {
 	return out
 }
 
+// ringEmblemAbility rebuilds one of the Ring emblem's four level abilities
+// (CR 701.54c) from its level alone. The emblem has no corpus script text
+// and no object in any zone, so these bodies are hand-built here in events,
+// exactly as the granted ward/afflict payloads (KeywordTriggerPush) are:
+// Apply rebuilds from the "__ring:<level>" payload so a log-only replay
+// mints the identical ability object a live game did. Level N is active iff
+// the tempted seat's RingTempted >= N; lower levels stay active as the count
+// rises (the emitter gates, this function only builds).
+//
+//  1. "Whenever your Ring-bearer attacks, draw a card."
+//  2. "Whenever your Ring-bearer becomes blocked, discard a card. If you
+//     can't, sacrifice it." The discard is TgtChoose (the discarding
+//     player's own choice); its RememberDiscarded$ records what (if
+//     anything) went, and the chained Sacrifice is gated on that set being
+//     EMPTY (ConditionDefined$ Remembered | ConditionPresent$ Card |
+//     ConditionCompare$ EQ0) -- the corpus's exact "if you can't" shape
+//     (Davriel, Soul Broker). effDiscard's strict-supersets rule means an
+//     empty or too-small hand discards nothing and asks nothing, which IS
+//     the "can't" arm.
+//  3. "Whenever your Ring-bearer deals combat damage to a player,
+//     sacrifice it." The SacValid$ reads the LIVE designation, so a bearer
+//     already dead from the combat damage leaves nothing eligible: no ask,
+//     no-op ("sacrifice it" of something that no longer exists).
+//  4. "Whenever the Ring tempts you, each opponent loses 1 life."
+func ringEmblemAbility(level int) *cards.SA {
+	switch level {
+	case 1:
+		return &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
+			"Defined": "You",
+		}}
+	case 2:
+		sac := &cards.SA{Kind: "DB", API: "Sacrifice", Params: map[string]string{
+			"Defined": "You", "SacValid": "Card.IsRingbearer+YouCtrl", "Amount": "1",
+			"ConditionDefined": "Remembered", "ConditionPresent": "Card", "ConditionCompare": "EQ0",
+		}}
+		return &cards.SA{Kind: "DB", API: "Discard", Params: map[string]string{
+			"Defined": "You", "NumCards": "1", "Mode": "TgtChoose", "RememberDiscarded": "True",
+		}, Sub: sac}
+	case 3:
+		return &cards.SA{Kind: "DB", API: "Sacrifice", Params: map[string]string{
+			"Defined": "You", "SacValid": "Card.IsRingbearer+YouCtrl", "Amount": "1",
+		}}
+	case 4:
+		return &cards.SA{Kind: "DB", API: "LoseLife", Params: map[string]string{
+			"Defined": "Opponent", "LifeAmount": "1",
+		}}
+	}
+	return nil
+}
+
 // Move relocates an object between zones, preserving zone order and the
 // one-object-one-zone invariant.
 //
@@ -2014,6 +2135,21 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 // validPlayer reports whether p indexes an existing seat.
 func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
+}
+
+// clearRingBearers drops every seat's Ring-bearer designation naming id
+// (CR 701.54b/701.54e: the designation ends when the permanent leaves the
+// battlefield or another player gains control of it — the derived clear
+// events.Apply's ControlChange and battlefield-leave paths share).
+func clearRingBearers(g *state.Game, id state.ObjID) {
+	if id == 0 {
+		return
+	}
+	for i := range g.Players {
+		if g.Players[i].RingBearer == id {
+			g.Players[i].RingBearer = 0
+		}
+	}
 }
 
 // expireTurnGoads drops only default-duration relationships made by p.

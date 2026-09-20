@@ -21,8 +21,9 @@ type CostPart struct {
 	N    int32
 	Spec string
 	// Zone is the zone an Exile cost part pays from: ZHand for an
-	// ExileFromHand token (the default zero value) or ZGraveyard for an
-	// ExileFromGrave token. Sac/Discard/SubCounter parts never read it.
+	// ExileFromHand token (the default zero value), ZGraveyard for an
+	// ExileFromGrave or ExileAnyGrave token. Sac/Discard/SubCounter parts
+	// never read it.
 	Zone state.Zone
 	// Announced marks the variable-count form of a Sac part (Sac<X/Spec> --
 	// Dargo's "sacrifice any number"): the player announces the count as the
@@ -147,6 +148,22 @@ type Cost struct {
 	// (rules/cumulative.go), which is a keyword-expansion action rather than
 	// a parsed cost token. Zone is the origin, LibraryPos the position.
 	PutToLib []CostPart
+	// MoveToGrave carries ExiledMoveToGrave<N/Spec> tokens: N cards matching
+	// Spec move out of EXILE into their OWNER's graveyard as the payment
+	// (Forge CostExiledMoveToGrave; the Eldrazi processor family's "put a
+	// card an opponent owns from exile into that player's graveyard" and
+	// Shelob, Dread Weaver's "put a creature card exiled with Shelob into its
+	// owner's graveyard"). The origin is always every player's exile zone
+	// -- exiled cards live in their OWNER's exile zone (events/apply.go's
+	// zoneOwner), so a candidate scan iterates the players -- and the
+	// destination is the owner's graveyard, which is why this is its own
+	// slice rather than an Exile part (whose Zone is the ORIGIN and whose
+	// destination is always exile). The specs in measured use are
+	// Card.OppOwn (12 lines) and Card/Creature.ExiledWithSource (4 lines);
+	// both read through the ordinary filter grammar (effects/filter.go's
+	// OppOwn and ExiledWithSource predicates, bound to the PAYER and the
+	// ability's source).
+	MoveToGrave []CostPart
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
 	// A token lands here exactly when ParseCost could not give it real
@@ -192,15 +209,21 @@ var drawDynCost = regexp.MustCompile(`^Draw<([A-Za-z][A-Za-z0-9]*)/([^/>]+)(?:/[
 // costModifiers' SVar-aware amount read.
 var sacXCost = regexp.MustCompile(`^Sac<X/([^/>]+)(?:/[^>]*)?>$`)
 
-// exileCost matches Forge's ExileFromHand<N/Spec> and ExileFromGrave<N/Spec>
-// tokens -- exiling a matching card from the named zone as a cost payment
-// (CR 118.8 lists exiling a card from one's hand among the payment actions;
-// the graveyard form is the encore family's "exile this card from your
-// graveyard"). As with the other non-mana tokens the trailing
-// "/description" is dropped here and ";" alternations fold to ",".
-// ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...) and the
-// AlternateAdditionalCost ExileFromGrave line are the corpus users.
-var exileCost = regexp.MustCompile(`^ExileFrom(Hand|Grave)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+// exileCost matches Forge's ExileFromHand<N/Spec>, ExileFromGrave<N/Spec>
+// and ExileAnyGrave<N/Spec> tokens -- exiling a matching card from the named
+// zone as a cost payment (CR 118.8 lists exiling a card from one's hand among
+// the payment actions; the graveyard form is the encore family's "exile this
+// card from your graveyard"). AnyGrave is the same graveyard payment with the
+// "any card" shape -- the payer picks the card, and beyond the spec's own
+// predicates there is no zone provenance beyond "a graveyard" -- so it lands
+// on the identical Exile part with Zone ZGraveyard (exg1: the 18-carrier
+// Cavalier of Thorns / Thelon of Havenwood family). As with the other
+// non-mana tokens the trailing "/description" is dropped here and ";"
+// alternations fold to ",".
+// ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...), the
+// AlternateAdditionalCost ExileFromGrave line and the ExileAnyGrave
+// trigger-cost family are the corpus users.
+var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // addCounterCost matches Forge's AddCounter<N/LOYALTY> token -- the
 // planeswalker loyalty cost, and deliberately ONLY it (CR 107.4: the [+N]
@@ -291,6 +314,17 @@ var putCardToLibCost = regexp.MustCompile(`^PutCardToLibFrom(Hand|Grave|Battlefi
 // "/description" is dropped and ";" alternations fold to "," like every
 // other non-mana head.
 var exileBattlefieldCost = regexp.MustCompile(`^Exile<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// exiledMoveToGraveCost matches Forge's ExiledMoveToGrave<N/Spec> token --
+// moving N cards matching Spec from EXILE into their OWNER's graveyard as
+// the payment (the Eldrazi processor activation/trigger costs and Shelob,
+// Dread Weaver's {2}{B} ability; 16 corpus files). The trailing
+// "/description" is dropped and ";" alternations fold to "," like every
+// other non-mana head. Before the head existed the token hit the final
+// unrecognised-symbol fallback: a phantom {1} rode the price (a player with
+// exactly {2}{B} could not activate Shelob) and the cost's governing action
+// was silently dropped -- a fail-open defect.
+var exiledMoveToGraveCost = regexp.MustCompile(`^ExiledMoveToGrave<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // payLifeXCost matches Forge's announced life payment PayLife<X> (Toxic
 // Deluge's "pay X life", Necrodominance's end-step body): the cast announces
@@ -466,6 +500,20 @@ func ParseCost(s string) Cost {
 				c.Exile = append(c.Exile, CostPart{N: int32(n), Spec: spec, Zone: state.ZBattlefield})
 				continue
 			}
+			if m := exiledMoveToGraveCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				spec := strings.ReplaceAll(m[2], ";", ",")
+				c.MoveToGrave = append(c.MoveToGrave, CostPart{N: int32(n), Spec: spec})
+				continue
+			}
 			if m := payLifeXCost.FindStringSubmatch(sym); m != nil {
 				// The announced form: the cast announces X (bounded by the
 				// payer's life at the X ask) and the settle pays that much life.
@@ -505,7 +553,7 @@ func ParseCost(s string) Cost {
 				}
 				spec := strings.ReplaceAll(m[3], ";", ",")
 				part := CostPart{N: int32(n), Spec: spec}
-				if m[1] == "Grave" {
+				if m[1] != "FromHand" {
 					part.Zone = state.ZGraveyard
 				}
 				c.Exile = append(c.Exile, part)
@@ -902,6 +950,9 @@ func (c Cost) Plus(d Cost) Cost {
 	}
 	if len(d.Exile) > 0 {
 		c.Exile = append(append([]CostPart(nil), c.Exile...), d.Exile...)
+	}
+	if len(d.MoveToGrave) > 0 {
+		c.MoveToGrave = append(append([]CostPart(nil), c.MoveToGrave...), d.MoveToGrave...)
 	}
 	if len(d.Reveal) > 0 {
 		c.Reveal = append(append([]CostPart(nil), c.Reveal...), d.Reveal...)
@@ -1339,6 +1390,7 @@ func formatCost(c Cost) string {
 	}
 	appendCostParts("Reveal", c.Reveal)
 	appendCostParts("Behold", c.Behold)
+	appendCostParts("ExiledMoveToGrave", c.MoveToGrave)
 	appendCostParts("tapXType", c.TapPermanent)
 	for _, part := range c.Blight {
 		parts = append(parts, "Blight<"+strconv.FormatInt(int64(part.N), 10)+">")
@@ -1474,7 +1526,7 @@ func costAnnouncesCastX(c Cost) bool {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0 || len(c.MoveToGrave) > 0
 }
 
 // Priceable reports whether payMana can actually charge every part of this
@@ -1496,7 +1548,8 @@ func (c Cost) Priceable() bool {
 		len(c.Draw) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 &&
 		len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
-		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.PutToLib) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0
+		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.PutToLib) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0 &&
+		len(c.MoveToGrave) == 0
 }
 
 // pip is one flexible mana demand inside a cost's mana part, as a list of

@@ -337,7 +337,7 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 	}
 	switch arg {
 	case "RememberedCard", "Remembered", "RememberedLKI", "TriggeredCard",
-		"TriggeredCardLKICopy", "Targeted", "Self":
+		"TriggeredCardLKICopy", "Targeted", "Self", "Commander":
 		return name, arg, true
 	}
 	return "", "", false
@@ -347,9 +347,28 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 // sharesCardTypeWith/sharesCreatureTypeWith family into the live objects it
 // names (empty = an unbound referent; both callers fail closed on that), so
 // the two readings can never disagree about which objects <X> names.
-func sharesTypeReferents(sc SpecContext, ref string) []state.Target {
+func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Target {
 	var ts []state.Target
 	switch ref {
+	case "Commander":
+		// Forge's Commander referent: the resolving source's CONTROLLER's
+		// commanders (Path of Ancestry's "a creature spell that shares a
+		// creature type with your commander" -- the one corpus carrier). The
+		// commander list lives on the Players at genesis (wordIsCommander
+		// reads the same table). A source with no controller, or a seat with
+		// no commanders, binds nothing -- fail closed, never widened.
+		if sc.Source == 0 {
+			break
+		}
+		o := g.Obj(sc.Source)
+		if o == nil {
+			break
+		}
+		if int(o.Controller) < len(g.Players) {
+			for _, c := range g.Players[o.Controller].Commanders {
+				ts = append(ts, state.Target{Obj: c})
+			}
+		}
 	case "RememberedCard":
 		for _, t := range sc.Remembered {
 			if !t.IsPlayer {
@@ -386,7 +405,7 @@ func sharesTypeReferents(sc SpecContext, ref string) []state.Target {
 // power/toughness/counters, not types). An unbound referent matches
 // nothing — fail closed, never widened.
 func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
-	for _, t := range sharesTypeReferents(sc, ref) {
+	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
 			continue
 		}
@@ -413,7 +432,7 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 // which handles Changeling on the referent's side too). An unbound referent
 // matches nothing — fail closed, never widened.
 func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
-	for _, t := range sharesTypeReferents(sc, ref) {
+	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
 			continue
 		}
@@ -604,6 +623,11 @@ const (
 	// cloaked card). The game/state-aware family -- needs the object's own
 	// zone, classified here so matcher and UnknownPredicates agree.
 	wordFaceDown
+	// Forge's IsRingbearer (CR 701.54e): the object is its controller's
+	// Ring-bearer. Game/state-aware -- needs the object's zone and the
+	// players' designations -- classified here so matcher and
+	// UnknownPredicates agree.
+	wordRingBearer
 	// The resolution-only one-token TargetedPlayerCtrl grammar. Its target
 	// binding comes from SpecContext rather than a new state tracker.
 	wordTargetedPlayerCtrl
@@ -736,6 +760,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordTopLibrary, ""
 	case "faceDown":
 		return wordFaceDown, ""
+	case "IsRingbearer":
+		return wordRingBearer, ""
 	case "HasCounters":
 		return wordHasCounters, ""
 	case "Historic":
@@ -871,6 +897,15 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// the rules-side scans gate on (faceDownPrintedHides); a face-down
 		// EXILE (Hideaway) is not a permanent and never matches.
 		return o.FaceDown && o.Zone == state.ZBattlefield
+	case wordRingBearer:
+		// Forge's IsRingbearer (CR 701.54e): the object is its controller's
+		// Ring-bearer -- true exactly while it is on the battlefield under
+		// that player's control and carries the seat's designation. The
+		// designation's zone and control halves are enforced by events.Apply
+		// (the battlefield-leave and ControlChange clears), so the live check
+		// is the id comparison, and an object outside the battlefield (or an
+		// LKI of a moved one) never matches.
+		return o.Zone == state.ZBattlefield && g.IsRingBearer(o.Controller, o.ID)
 	case wordTopLibrary:
 		// Forge's TopLibrary: the object is the top card of its library --
 		// index 0 of the owner's library slice, the card the next draw takes
@@ -1033,6 +1068,9 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
 	if p == "IsRemembered" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
+		return true
+	}
+	if p == "TriggeredNewCard" || p == "TriggeredCard" {
 		return true
 	}
 	if positiveRecognisedWord(p) {
@@ -1431,6 +1469,25 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// control" inside RepeatEach). Resolution-only; with no remembered
 		// player there is no binding, so it fails closed even beneath '!'.
 		return matchControlReferent(g, o, sc, "ControlledBy", "RememberedPlayer")
+	}
+	if p == "TriggeredNewCard" || p == "TriggeredCard" {
+		// Forge's bare TriggeredNewCard / TriggeredCard property
+		// (CardProperty "the card that triggered this ability") inside an
+		// ordinary filter spec -- the "you may exile it" cost idiom's
+		// `Cost$ ExileAnyGrave<1/Card.TriggeredNewCard>` (Cavalier of Thorns,
+		// Doombot Harbinger, Creeping Chill's TriggeredCard; exg1, 18 corpus
+		// carriers). Cost-part specs evaluate through this same grammar, so
+		// the binding arrives through SpecContext.TriggerContext: the
+		// triggered-cost window binds the resolving ability's trigger
+		// context, and the candidate matches exactly the card the triggering
+		// event captured. Everywhere else -- an activated ability's offer or
+		// ask, a static, a hand-built context -- the zero TriggerCard fails
+		// CLOSED (ok=false): the spec matches nothing, never an invented
+		// referent.
+		if sc.TriggerCard == 0 {
+			return false, false
+		}
+		return o.ID == sc.TriggerCard, true
 	}
 	if p == "blockingTriggeredAttacker" {
 		// Forge's Creature.blockingTriggeredAttacker (She-Hulk,

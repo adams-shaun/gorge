@@ -465,6 +465,37 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	CombatRetarget
+	// RingTemptsYou records one "the Ring tempts you" action (CR 701.54a:
+	// each time the Ring tempts you, choose a creature you control; it
+	// becomes your Ring-bearer). Player is the tempted seat, Obj the
+	// designated Ring-bearer (0 when the player controls no creature — CR
+	// 701.54d: the "Whenever the Ring tempts you" trigger still fires when
+	// the actions complete even if some were impossible), and Amount the
+	// NEW tempt count, carried as a replay-visible marker. Apply folds the
+	// count increment and the designation; the designation's two clears (a
+	// control change, CR 701.54b, and the permanent leaving the battlefield,
+	// CR 400.7/701.54e) are derived in Apply's own ControlChange and
+	// MoveZone cases, so no second event is needed. Appended here, after
+	// CombatRetarget, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	RingTemptsYou
+	// RingEmblemPush mints one of the Ring emblem's four level abilities
+	// (CR 701.54c), which are engine-side abilities with no corpus script
+	// text and no object in any zone -- the temptation count folded by
+	// RingTemptsYou is their only state (state.Player.RingTempted). Player
+	// is the emblem's owner (the tempted seat), Amount the level (1..4) and
+	// Counter the canonical "__ring:<level>" payload events.Apply rebuilds
+	// the ability from, exactly as the granted ward/afflict
+	// KeywordTriggerPush payloads are rebuilt ("the same DB$ ... a printed
+	// trigger would have carried"). Obj carries the Ring-bearer the firing
+	// event named (0 for a level whose body needs no bearer). The mint lives
+	// in Apply because a direct unlogged Game.AddObject call would name an
+	// ObjID a log-only replay never learns about (Ruling T20-a). Appended
+	// here, after RingTemptsYou, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	RingEmblemPush
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -475,7 +506,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(CombatRetarget) + 1
+	NumKinds = int(RingEmblemPush) + 1
 )
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
@@ -556,7 +587,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget"}
+	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -787,6 +818,17 @@ var flagNames = [...]struct {
 	{"manatreasurespent", state.FlagManaTreasureSpent},
 	{"manacavespent", state.FlagManaCaveSpent},
 	{"manadesertspent", state.FlagManaDesertSpent},
+	// The DB$ Play ReplaceGraveyard$ Exile rider (task replplay1): the Play
+	// SA's own provenance stamps its pay-time CastInfo with this flag, so
+	// spellRestZone/spellFizzleZone send the played card to exile instead
+	// of the graveyard. Appended at the end per the table's own ordering
+	// rule.
+	{"replacegraveyard", state.FlagReplaceGraveyard},
+	// The Aftermath half's cast (CR 702.85a): the flag is what the resolution
+	// reader (spellRestZone) and the fizzle reader (spellFizzleZone) read to
+	// exile the card instead of the graveyard. Appended at the end per the
+	// table's own ordering rule.
+	{"aftermath", state.FlagAftermath},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

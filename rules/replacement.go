@@ -3955,7 +3955,7 @@ func init() {
 	// applyLifeReplacements. repl:DamageDone and repl:Counter are this
 	// ticket's own additions, matched by replacementMatches's DamageDone case
 	// and CounterAllowed respectively.
-	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement",
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "api:ReplaceToken")

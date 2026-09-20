@@ -23,6 +23,7 @@ func init() {
 	Register("Charm", effCharm)
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
+	Register("RingTemptsYou", effRingTemptsYou)
 	Register("RestartGame", effRestartGame)
 	Register("Goad", effGoad)
 	Register("Ward", effWard)
@@ -933,8 +934,10 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		// CR 702.34a: a flashback spell is exiled instead of going anywhere
 		// else when it leaves the stack -- but an explicit non-graveyard
 		// destination (Remand's hand) is that anywhere-else, so the override
-		// applies only on the graveyard/default path.
-		if o.CastFlags&state.FlagFlashback != 0 && to == state.ZGraveyard {
+		// applies only on the graveyard/default path. CR 702.85a: the same
+		// "then exile it" covers an Aftermath half's cast, every way it
+		// leaves the stack including being countered.
+		if o.CastFlags&(state.FlagFlashback|state.FlagAftermath) != 0 && to == state.ZGraveyard {
 			to = state.ZExile
 		}
 		if remember {
@@ -2037,6 +2040,28 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	// TriggersWhenSpent$ <SVar> (Path of Ancestry, Lapis Orb of Dragonkind,
+	// Study Hall: "when that mana is spent to cast ..., ..."): the produced
+	// mana must be attributable to THIS source at spend time, so the add
+	// rides an UNRESTRICTED provenance batch -- an empty Valid is spendable
+	// anywhere (the Boseiju shape), so payment behaviour is unchanged while
+	// state.ManaRestriction.Source records which permanent's ability produced
+	// it. rules' spend path captures the source and queues the named SVar's
+	// trigger when the batch pays for a SPELL (the rider's "spent to cast"
+	// gate). No corpus carrier pairs the param with a restriction (measured:
+	// 0 of 13); if one ever does, the restriction encoding wins (spendability
+	// is load-bearing) and the provenance is lost with one loud Note rather
+	// than either encoding being silently dropped.
+	triggersWhenSpent := strings.TrimSpace(sa.Params["TriggersWhenSpent"])
+	provenanceOnly := false
+	if triggersWhenSpent != "" {
+		if restriction == "" && noCounter == "" {
+			provenanceOnly = true
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "TriggersWhenSpent$ " + triggersWhenSpent + " rides a restricted mana batch; its source attribution is dropped"})
+		}
+	}
 	for _, p := range ManaRecipients(h, c, sa) {
 		for _, r := range runes {
 			counter := string(r)
@@ -2052,6 +2077,8 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 				ev.Text = events.ManaRestrictionTextNC(restriction, c.Source, noCounter)
 			} else if restriction != "" {
 				ev.Text = events.ManaRestrictionText(restriction, c.Source)
+			} else if provenanceOnly {
+				ev.Text = events.ManaRestrictionText("", c.Source)
 			}
 			h.Emit(ev)
 		}

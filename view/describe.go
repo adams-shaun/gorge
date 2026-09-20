@@ -80,6 +80,29 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " " + verb + " " + itoa(int64(n)) + " speed (speed " + itoa(int64(speed)) + ")"
 	case events.MonarchChange:
 		return player(g, ev.Player) + " becomes the monarch"
+	case events.RingTemptsYou:
+		// CR 701.54: the temptation and the designation it made. A bearer of
+		// 0 is CR 701.54d's impossible-choice shape (no creature controlled):
+		// the temptation still happened, so the line still records it.
+		if ev.Obj == 0 {
+			return "The Ring tempts " + player(g, ev.Player)
+		}
+		return "The Ring tempts " + player(g, ev.Player) + " (" + obj(g, ev.Obj) + " is the Ring-bearer)"
+	case events.RingEmblemPush:
+		// CR 701.54c: the Ring emblem's level abilities have no card and no
+		// object, so the line names the level's rules text (ringEmblemLabel's
+		// wording, duplicated here because view cannot import rules).
+		switch ev.Amount {
+		case 1:
+			return player(g, ev.Player) + " is tempted: the Ring emblem draws a card (Ring-bearer attacks)"
+		case 2:
+			return player(g, ev.Player) + " is tempted: the Ring emblem discards (Ring-bearer blocked)"
+		case 3:
+			return player(g, ev.Player) + " is tempted: the Ring emblem sacrifices its Ring-bearer (combat damage)"
+		case 4:
+			return player(g, ev.Player) + " is tempted: the Ring emblem drains each opponent (the Ring tempts you)"
+		}
+		return player(g, ev.Player) + " is tempted: a Ring emblem ability"
 	case events.StartingPlayerChange:
 		return player(g, ev.Player) + " becomes the starting player"
 	case events.ControlChange:

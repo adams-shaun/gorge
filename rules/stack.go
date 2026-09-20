@@ -257,6 +257,7 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 // search's plain-first consumption and keeps every emission tally >= 0.
 func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana) {
 	e.noCounterSpend = 0
+	e.manaSpentSources = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
 	// otherwise removing the first of two matching batches would make the
 	// live slice shift under this loop and could skip or double-spend one.
@@ -298,6 +299,16 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		if r.NoCounter != "" && !ability && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, id, r.NoCounter) {
 			e.noCounterSpend = id
 		}
+		// A consumed batch's producing source is what the spell's
+		// TriggersWhenSpent$ riders key on. Only a SPELL payment (the
+		// ability=false arm -- payManaCastSpent is its only caller) records
+		// it: an ability activation, the unless-pay arm and every other
+		// payment fire nothing (the rider is a cast-spend gate). Dedup keeps
+		// one entry per source when several batches from it pay one cast; the
+		// insertion-order append keeps the queue deterministic.
+		if !ability && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
+			e.manaSpentSources = append(e.manaSpentSources, r.Source)
+		}
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
 			Text: events.ManaRestrictionText(r.Valid, r.Source)})
 		spent[idx] -= used
@@ -311,6 +322,17 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 			emitSnow[state.ManaIndex(r.Color[1])] -= used
 		}
 	}
+}
+
+// containsObjID reports whether id is already in ids (a small linear scan;
+// the list holds at most a handful of mana-production sources per cast).
+func containsObjID(ids []state.ObjID, id state.ObjID) bool {
+	for _, x := range ids {
+		if x == id {
+			return true
+		}
+	}
+	return false
 }
 
 // addsNoCounterHolds evaluates a consumed batch's AddsNoCounter$ condition
@@ -1906,7 +1928,8 @@ func (e *Engine) resolveTop() {
 // countered, so only this resolved-spell helper may return it to hand.
 func spellRestZone(o *state.Object) state.Zone {
 	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 ||
-		o.IsCopy || o.CastFlags&state.FlagAdventure != 0) {
+		o.IsCopy || o.CastFlags&state.FlagAdventure != 0 || o.CastFlags&state.FlagReplaceGraveyard != 0 ||
+		o.CastFlags&state.FlagAftermath != 0) {
 		return state.ZExile
 	}
 	if o != nil && o.CastFlags&state.FlagBuyback != 0 {
@@ -1916,10 +1939,11 @@ func spellRestZone(o *state.Object) state.Zone {
 }
 
 // spellFizzleZone is the resting place when a spell never resolved. Flashback,
-// Harmonize and copies still use exile, but Buyback does not apply and the
-// card reaches its owner's graveyard.
+// Harmonize, Aftermath, the ReplaceGraveyard$ Play rider and copies still use
+// exile, but Buyback does not apply and the card reaches its owner's graveyard.
 func spellFizzleZone(o *state.Object) state.Zone {
-	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy) {
+	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 ||
+		o.IsCopy || o.CastFlags&state.FlagAftermath != 0 || o.CastFlags&state.FlagReplaceGraveyard != 0) {
 		return state.ZExile
 	}
 	return state.ZGraveyard
@@ -2417,6 +2441,30 @@ func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
 		}
 		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount < 0 {
 			n += -ev.Amount
+		}
+	}
+	return n
+}
+
+// DamageTakenThisTurn satisfies effects.Host's DamageTakenThisTurn for the
+// TargetedPlayer$DamageThisTurn count head (Knollspine Dragon's "draw cards
+// equal to the damage dealt to target opponent this turn"): the total damage
+// p was dealt this turn, summed from every player-targeted Damage event
+// since the last TurnChange. A player hit is Kind Damage with Player set
+// and Obj 0 — an object hit sets Obj and leaves Player 0 (seat 0 is a real
+// player, so the discriminator is Obj == 0, never Player != 0); a
+// replacement-rewritten Note never reaches this fold, and a redirect that
+// moved a hit onto a permanent reads there instead. Derived from the event
+// log like LifeLostThisTurn, so a replay derives the same number.
+func (e *Engine) DamageTakenThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.Damage && ev.Obj == 0 && ev.Player == p && ev.Amount > 0 {
+			n += ev.Amount
 		}
 	}
 	return n

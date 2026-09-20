@@ -66,6 +66,13 @@ type pendingCast struct {
 	// threading "mana of any type" through the same window and payment.
 	mayPlayIgnoreType bool
 
+	// replaceGraveyard is the Play SA's ReplaceGraveyard$ Exile rider
+	// (task replplay1): the played spell must not rest in the graveyard —
+	// payCast stamps state.FlagReplaceGraveyard onto the pay-time CastInfo
+	// and spellRestZone/spellFizzleZone read it. Per-SA provenance, so it
+	// rides pendingCast rather than the shared "play" mode.
+	replaceGraveyard bool
+
 	x     int32
 	xDone bool
 	// announceX is the alternative cost's Announce$ variable (the Shoal
@@ -297,6 +304,15 @@ type pendingCast struct {
 	// the same ask stage / commit shape the exile parts use.
 	returns    []state.ObjID
 	returnPart int
+
+	// moveGraves / moveGravePart carry the ExiledMoveToGrave cost parts
+	// (cards matching Spec moved from exile to their OWNER's graveyard --
+	// the Eldrazi processor family and Shelob, Dread Weaver's {2}{B}
+	// ability) through the same ask stage / commit shape the exile parts
+	// use. Nothing moves until payCast, so an abort cannot leave a partially
+	// paid graveyard move behind.
+	moveGraves    []state.ObjID
+	moveGravePart int
 
 	// putToLibs / putToLibPart carry the PutToLib cost parts
 	// (PutCardToLibFrom<Zone><N/Pos/Spec> tokens: cards matching Spec moved
@@ -758,6 +774,21 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 				avail = append(avail, oid)
 			}
 		}
+		if int32(len(avail)) < part.N {
+			return false
+		}
+		for i := int32(0); i < part.N; i++ {
+			reserved[avail[i]] = true
+		}
+	}
+	// ExiledMoveToGrave cost parts: each needs N matching cards still in
+	// ANY player's exile zone (exiled cards live in their OWNER's exile
+	// zone -- events/apply.go's zoneOwner -- so a controller-only scan
+	// finds nothing on the Shelob shape, where the exiled card is in the
+	// OPPONENT's exile zone), reserved against the earlier parts the same
+	// way the Sac/Exile parts above reserve against each other.
+	for _, part := range cost.MoveToGrave {
+		avail := e.moveToGraveCandidates(p, id, part.Spec, reserved)
 		if int32(len(avail)) < part.N {
 			return false
 		}
@@ -1230,6 +1261,9 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	if len(extra.Exile) > 0 {
 		cost.Exile = append(append([]CostPart(nil), cost.Exile...), extra.Exile...)
 	}
+	if len(extra.MoveToGrave) > 0 {
+		cost.MoveToGrave = append(append([]CostPart(nil), cost.MoveToGrave...), extra.MoveToGrave...)
+	}
 	if len(extra.Reveal) > 0 {
 		cost.Reveal = append(append([]CostPart(nil), cost.Reveal...), extra.Reveal...)
 	}
@@ -1299,6 +1333,22 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	}
 	if opt.Mode == "adventure_recast" {
 		if o.Zone != state.ZExile || adventureSpellFace(o) == nil || o.Face() != o.Card.Faces[1] {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	}
+	// CR 702.85a: the Aftermath half -- the alternate face of a Split card --
+	// is cast only from its owner's graveyard. From the graveyard the cast
+	// flips to the alternate face before the ordinary cast transaction;
+	// rawBaseCost, targets and resolution then read the aftermath face
+	// (rawBaseCost's default below already pays the FLIPPED face's printed
+	// mana cost, which is what aftermath charges). An aborted proposal
+	// restores the pre-flip face via pc.faceBefore (CR 733.1), the same
+	// reversal a Room or Adventure cast takes.
+	if opt.Mode == "aftermath" {
+		if o.Zone != state.ZGraveyard || aftermathAlternateFace(o) == nil {
 			return
 		}
 		before := o.FaceIdx
@@ -1470,7 +1520,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
 	// no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -1596,8 +1646,11 @@ func pricePlayCost(f *cards.Face, token string) (Cost, bool) {
 // only -- additional costs and cost modifiers ride exactly as an ordinary
 // cast's do (CR 118.9 / 601.2f). The card must still be on the stack of the
 // suspended Play resolution when this runs; a malformed answer degrades to a
-// logged no-op rather than panic.
-func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string) {
+// logged no-op rather than panic. replaceGraveyard carries the Play SA's
+// ReplaceGraveyard$ Exile rider (task replplay1): true stamps the played
+// spell's pay-time CastInfo with state.FlagReplaceGraveyard so the resolution
+// reader exiles it instead of the graveyard.
+func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string, replaceGraveyard bool) {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play found no card to play"})
@@ -1659,7 +1712,7 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	cost = converted
 	mods := e.costModifiers(p, id, spellScope(""))
 	e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "play", ability: -1,
-		cost: cost, mods: mods}
+		cost: cost, mods: mods, replaceGraveyard: replaceGraveyard}
 	e.collectETBChoices(p)
 	e.continueCast()
 }
@@ -1764,6 +1817,12 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.putToLibAsk() {
+		return
+	}
+	// CR 601.2b: the ExiledMoveToGrave cost pick (Shelob's "put a creature
+	// card exiled with Shelob into its owner's graveyard") runs beside the
+	// other non-mana component asks, after the PutToLib ask.
+	if e.moveGraveAsk() {
 		return
 	}
 	if e.etbAsk() {
@@ -2338,6 +2397,72 @@ func putToLibZoneName(z state.Zone) string {
 	default:
 		return "battlefield"
 	}
+}
+
+// moveToGraveCandidates returns the cards matching spec (you-relative to p,
+// source-relative to source) still available in ANY alive player's exile
+// zone, minus everything in reserved. Exiled cards live in their OWNER's
+// exile zone (events/apply.go's zoneOwner), so the scan iterates the
+// players rather than p's own zone: Shelob, Dread Weaver's exiles land in
+// the OPPONENT's exile zone, and a controller-only scan would find nothing.
+// Zone order is deterministic (players in seat order, each zone in list
+// order), so the candidate order -- and therefore every pick built from it
+// -- replays.
+func (e *Engine) moveToGraveCandidates(p state.PlayerID, source state.ObjID, spec string, reserved map[state.ObjID]bool) []state.ObjID {
+	var out []state.ObjID
+	for i := range e.G.Players {
+		if e.G.Players[i].Lost {
+			continue
+		}
+		for _, id := range e.G.Zone(state.ZExile, state.PlayerID(i)) {
+			if reserved[id] {
+				continue
+			}
+			if effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+				out = append(out, id)
+			}
+		}
+	}
+	return out
+}
+
+// moveGraveAsk offers the next unsettled ExiledMoveToGrave cost part, walking
+// pc.cost.MoveToGrave in order (pc.moveGravePart) the way exAsk walks
+// pc.cost.Exile. Candidates come from EVERY alive player's exile zone
+// (moveToGraveCandidates above -- the origin is always exile, the owner's
+// zone is where the card sits), filtered through MatchesSpecFrom so
+// Card.ExiledWithSource resolves against the ability's source. A part with
+// too few candidates aborts the whole cast (nothing has moved yet).
+func (e *Engine) moveGraveAsk() bool {
+	pc := e.cast
+	for pc.moveGravePart < len(pc.cost.MoveToGrave) {
+		part := pc.cost.MoveToGrave[pc.moveGravePart]
+		seen := make(map[state.ObjID]bool, len(pc.moveGraves))
+		for _, s := range pc.moveGraves {
+			seen[s] = true
+		}
+		candidates := e.moveToGraveCandidates(pc.player, pc.card, part.Spec, seen)
+		n := int(part.N)
+		if n <= 0 || n > len(candidates) {
+			e.abortCast(pc, "move-to-graveyard cost no longer payable; cast/activation aborted", true)
+			return true
+		}
+		verb := "cast " + e.targetName(pc.card)
+		if pc.ability >= 0 {
+			verb = "activate"
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
+			Prompt: "Move " + strconv.Itoa(n) + " card(s) from exile to their owner's graveyard to " + verb,
+			Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "movetogravecost",
+				Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
 }
 
 // castModeAsk poses CR 601.2b's mode announcement for a modal spell. It uses
@@ -4267,6 +4392,11 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.exiles = append(pc.exiles, o.Obj)
 		}
 		pc.exilePart++
+	case "movetogravecost":
+		for _, o := range chosen {
+			pc.moveGraves = append(pc.moveGraves, o.Obj)
+		}
+		pc.moveGravePart++
 	case "revealcost":
 		for _, o := range chosen {
 			pc.reveals = append(pc.reveals, o.Obj)
@@ -4381,6 +4511,13 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagSurged)
 	case "flashback":
 		return events.FlagsString(state.FlagFlashback)
+	// Aftermath (CR 702.85a): the flag is what the resolution reader
+	// (spellRestZone) and the fizzle reader (spellFizzleZone) read to exile
+	// the card instead of the graveyard -- on resolution AND when countered,
+	// the same "any time it would leave the stack" convention flashback's
+	// TestFlashbackedSpellCounteredGoesToExile pins.
+	case "aftermath":
+		return events.FlagsString(state.FlagAftermath)
 	case "miracle":
 		return events.FlagsString(state.FlagMiracle)
 	// The alternative-cost keyword family: the flag is what the ETB machinery
@@ -4966,6 +5103,15 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
 			}
 		}
+		// ExiledMoveToGrave cost parts: each chosen card leaves exile for
+		// its OWNER's graveyard (events.Move's zoneOwner already routes a
+		// non-battlefield move to the owner), and the ExiledWith provenance
+		// is cleared by the same move.
+		for _, id := range pc.moveGraves {
+			if o := e.G.Obj(id); o != nil {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZGraveyard, Text: "moved to its owner's graveyard as a cost"})
+			}
+		}
 		// Energy cost parts (PayEnergy<N>/<X>): the announced amount leaves
 		// the payer's energy pool as one PlayerCounterChange (a player
 		// counter, not an object's -- CR 118.2d). The X form spends exactly
@@ -5151,6 +5297,12 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
 		}
 	}
+	// ExiledMoveToGrave cost parts (see the ability branch above for the why).
+	for _, id := range pc.moveGraves {
+		if o := e.G.Obj(id); o != nil {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZGraveyard, Text: "moved to its owner's graveyard as a cost"})
+		}
+	}
 	// Energy cost parts (see the ability branch above for the why).
 	for _, part := range pc.cost.Energy {
 		amt := part.N
@@ -5247,6 +5399,17 @@ func (e *Engine) payCast() {
 	flags := modeFlags(pc.mode)
 	if noCounter {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagNoCounter)
+	}
+	// DB$ Play's ReplaceGraveyard$ Exile rider (task replplay1): the played
+	// spell's provenance — "if that spell would be put into your graveyard
+	// this turn, exile it instead" — rides the same pay-time CastInfo every
+	// other mode flag uses. A free Play cast today satisfies neither the X
+	// gate nor a non-empty modeFlags above, so setting the bit is what makes
+	// the `flags != ""` emission arm below fire at all — exactly the event
+	// the resolution reader needs; a Play whose SA carries no rider keeps
+	// the byte-identical no-event shape.
+	if pc.replaceGraveyard {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagReplaceGraveyard)
 	}
 	// Replicate (CR 702.55a): the payment count rides the same pay-time
 	// CastInfo. modeFlags deliberately maps "replicated" to "" -- a DECLINED
@@ -5362,8 +5525,18 @@ func (e *Engine) payCast() {
 		}
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
-	// push, fires now -- only after the spell is paid for.
+	// push, fires now -- only after the spell is paid for. Capture the deferred
+	// PutOnStack event (and its LKI) BEFORE the call: fireDeferredCastTrigger
+	// nils them. The same event feeds the mana-spent riders below, which queue
+	// AFTER the deferred cast triggers (deterministic append).
+	var castEv events.Event
+	var castLKI *state.Object
+	if e.deferredPush != nil {
+		castEv = *e.deferredPush
+		castLKI = e.deferredPushLKI
+	}
 	e.fireDeferredCastTrigger()
+	e.fireManaSpentTriggers(castEv, castLKI)
 	e.cast, e.choosing = nil, chooseNone
 }
 
@@ -5495,6 +5668,108 @@ func (e *Engine) fireDeferredCastTrigger() {
 	e.checkTriggers(*ev, lki, 0, 0, false)
 }
 
+// fireManaSpentTriggers queues the TriggersWhenSpent$ rider of every mana
+// source whose provenance batch paid for the just-completed SPELL cast (the
+// rider's "when that mana is spent to cast ..." gift: Path of Ancestry's scry
+// 1, Lapis Orb's scry 2, Study Hall's commander scry). The consumed sources
+// were captured by emitRestrictedManaSpend during the payment; castEv is the
+// spell's PutOnStack event and castLKI its look-back snapshot. It queues
+// AFTER fireDeferredCastTrigger's ordinary cast triggers (deterministic
+// append order).
+//
+// A rider's SVar is a T:-shaped trigger body (Mode$ SpellCast | ValidCard$ ...
+// | Execute$ ...) that the ordinary trigger scan never walks -- it lives in
+// the face's SVar table, not its printed T: lines. So each is parsed by
+// cards.ParseTriggerLine and queued by hand, shaped exactly like the exert
+// rider (rules/trigger_match.go checkExertTriggers): Source = the mana
+// permanent, Idx -1, Granted=true with Execute = the body's Execute$ name and
+// SA = the resolved Execute body, so the live queue and a replayed log carry
+// the identical granted-trigger push (events.Apply resolves Execute from the
+// source's SVar table). A source that has left the battlefield, has no face,
+// or names no longer-resolvable body fails closed -- the rider belongs to the
+// permanent. Only Mode$ SpellCast is honoured (sunken_palace's
+// SpellAbilityCast "spell or activate an ability" is out of scope).
+func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
+	sources := e.manaSpentSources
+	e.manaSpentSources = nil
+	if len(sources) == 0 || ev.Kind != events.PutOnStack {
+		return
+	}
+	for _, src := range sources {
+		o := e.G.Obj(src)
+		if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+			continue
+		}
+		f := o.Face()
+		for _, ma := range f.ManaAbilities() {
+			rider := strings.TrimSpace(ma.Params["TriggersWhenSpent"])
+			if rider == "" {
+				continue
+			}
+			body := svarBodyForObject(o, rider)
+			if body == "" {
+				continue
+			}
+			t, ok := cards.ParseTriggerLine(body)
+			if !ok || t.Mode != "SpellCast" {
+				continue
+			}
+			if !e.zoneGate(t, src, ev) || !e.phaseGate(t) || !e.spellCastEval(t, src, ev) {
+				continue
+			}
+			exec := strings.TrimSpace(t.Params["Execute"])
+			sa := grantedTriggerExecute(o, exec)
+			if sa == nil {
+				continue
+			}
+			key := triggerKey{Source: src, Idx: -1}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue // cascade bound: see maxTriggerFires.
+			}
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     src,
+				Controller: o.Controller,
+				Idx:        -1,
+				SA:         sa,
+				Granted:    true,
+				Execute:    exec,
+				Ctx: effects.Ctx{
+					Source:         src,
+					Controller:     o.Controller,
+					TriggerContext: e.triggerReferents(t, src, ev, lki),
+				},
+			})
+		}
+	}
+}
+
+// svarBodyForObject resolves a raw SVar body by name against the object's own
+// face first, then every other face of its card (the resolveSVarAcrossFaces
+// walk events.Apply's granted-trigger push uses, so the queue and the replay
+// agree on which body a name links). Empty when no face declares it.
+func svarBodyForObject(o *state.Object, name string) string {
+	if o == nil || name == "" {
+		return ""
+	}
+	if f := o.Face(); f != nil {
+		if body, ok := f.SVars[name]; ok {
+			return body
+		}
+	}
+	if o.Card != nil {
+		for _, cf := range o.Card.Faces {
+			if body, ok := cf.SVars[name]; ok {
+				return body
+			}
+		}
+	}
+	return ""
+}
+
 // recordCmdCast increments the CmdCasts[k] bookkeeping parallel to
 // Commanders[k] for a commander cast from the command zone. It is called by
 // commitCast only when a command-zone cast's PutOnStack was just appended, so
@@ -5536,7 +5811,7 @@ func (e *Engine) castSuppressed(p state.PlayerID, id state.ObjID) bool {
 }
 
 func init() {
-	effects.RegisterNonAPI("kw:Kicker", "kw:Surge", "kw:Flashback", "kw:Delve",
+	effects.RegisterNonAPI("kw:Kicker", "kw:Surge", "kw:Flashback", "kw:Aftermath", "kw:Delve",
 		// The alternative-cost keyword family (altcosts): each is implemented
 		// to its CR shape with a named proof test in altcast_test.go --
 		// kw:Evoke (alternative cast + ETB unconditional sacrifice), kw:Dash
