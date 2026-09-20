@@ -193,6 +193,21 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	if n, ok := evalRefProperty(h, c, expr); ok {
 		return n, true
 	}
+	// A TargetedPlayer$/ThisTargetedPlayer$ body answers a numeric question
+	// about the PLAYERS a target reference names (task tgtplayer1): the
+	// object-only evalRefProperty loop skips every IsPlayer target and its
+	// property switch is object-only, so these heads need their own arm --
+	// placed beside that call exactly like the Remembered$/Sacrificed$ arms
+	// above. The player list is the generic pre-ask's answered set
+	// (PickedTargets) when non-nil, else the resolution-level Ctx.Targets --
+	// the same precedence effects/context.go's Defined$ Targeted dispatch
+	// takes, so a count body can never name a different player than the
+	// body's own Defined$ would act on. Several player targets sum. An
+	// unmodelled property or ref returns false and falls through to the
+	// heads below, so every shape that was zero before stays zero.
+	if n, ok := evalPlayerRefProperty(h, c, expr); ok {
+		return n, true
+	}
 	// A <Ref>">Count$..."[/Op] indirection (Unbound Flourishing's Value$
 	// TriggeredSpellAbility>Count$xPaid/Twice): the ref names the objects and
 	// the right side is a Count$ expression evaluated against the FIRST
@@ -636,6 +651,119 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	return n, true
 }
 
+// evalPlayerRefProperty resolves one "TargetedPlayer$<Property>[...][/Op]"
+// (and the sibling "ThisTargetedPlayer$..." spelling) count body over the
+// PLAYERS a target reference names -- the <Ref>$<Property> family's
+// player-valued half, which evalRefProperty's object loop structurally
+// cannot serve (it `continue`s every IsPlayer target and its property
+// switch is object-only). The player list is the generic pre-ask's
+// answered set (Ctx.PickedTargets) when non-nil, else the resolution's own
+// Ctx.Targets, filtered to IsPlayer entries -- effects/context.go's
+// Defined$ Targeted precedence exactly, so the head answers the player the
+// resolving body acts on. The count of players can be several; Forge's own
+// Count sums over the referenced players the same way evalRefProperty sums
+// over referenced objects.
+//
+// Properties (the heads the 81-file corpus population is dominated by and
+// that are exactly definable today): LifeTotal (the player's current
+// life), CardsInHand/CardsInLibrary/CardsInGraveyard (zone sizes),
+// CreaturesInPlay (battlefield creatures the player controls), the Valid
+// head and its countZone family (Valid/ValidHand/ValidGraveyard/
+// ValidLibrary/ValidExile/ValidStack over a card spec; the referenced
+// player is the filter's You, so `TargetedPlayer$ValidGraveyard
+// Instant.YouOwn,Sorcery.YouOwn` counts the TARGET player's own
+// instants/sorceries in THEIR graveyard -- The Mouth of Sauron's head),
+// LifeLostThisTurn (the shared Host predicate), DamageThisTurn (the
+// Host's per-player damage-taken fold, implemented engine-side beside
+// LifeLostThisTurn) and Counters.Poison. The /Op suffix applies through
+// applyCountOp like every other head. A property this build does not
+// model (StartingLife, DomainPlayer, CardsDrawn, Amount, ...) or a ref
+// outside the two names returns false, and the caller degrades to zero
+// exactly as evalRefProperty's default always did. CardsDiscardedThisTurn
+// is the one optional head the brief allowed in: the shared Host predicate
+// already existed.
+func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
+	ref, prop, found := strings.Cut(expr, "$")
+	if !found || h == nil {
+		return 0, false
+	}
+	if ref != "TargetedPlayer" && ref != "ThisTargetedPlayer" {
+		return 0, false
+	}
+	prop, op, hasOp := strings.Cut(prop, "/")
+	prop = strings.TrimSpace(prop)
+	ts := c.Targets
+	if c.PickedTargets != nil {
+		ts = c.PickedTargets
+	}
+	g := h.Game()
+	var n int32
+	for _, t := range ts {
+		if !t.IsPlayer {
+			continue
+		}
+		p := t.Player
+		switch {
+		case prop == "LifeTotal":
+			n += g.Players[p].Life
+		case prop == "CardsInHand":
+			n += int32(len(g.Zone(state.ZHand, p)))
+		case prop == "CardsInLibrary":
+			n += int32(len(g.Zone(state.ZLibrary, p)))
+		case prop == "CardsInGraveyard":
+			n += int32(len(g.Zone(state.ZGraveyard, p)))
+		case prop == "LifeLostThisTurn":
+			n += h.LifeLostThisTurn(p)
+		case prop == "DamageThisTurn":
+			n += h.DamageTakenThisTurn(p)
+		case prop == "CardsDiscardedThisTurn":
+			n += h.CardsDiscardedThisTurn(p)
+		case prop == "Counters.Poison":
+			for _, pc := range g.Players[p].Counters {
+				if pc.Kind == "POISON" {
+					n += pc.N
+				}
+			}
+		case prop == "CreaturesInPlay":
+			// Battlefield creatures the referenced player controls, through
+			// the same spec matcher the Valid family uses.
+			for _, id := range g.Zone(state.ZBattlefield, p) {
+				if matchesZoneSpecCtx(g, "Creature", id, c.SpecContext(p), state.ZBattlefield) {
+					n++
+				}
+			}
+		default:
+			// The Valid head and its countZone family: "Valid <spec>",
+			// "ValidGraveyard <spec>", ... -- the exact template of the
+			// Count$Valid<zone> head, scoped to the referenced player's zone
+			// and matched with the referenced player as the filter's You.
+			head, spec, _ := strings.Cut(prop, " ")
+			spec = strings.TrimSpace(spec)
+			zone, ok := countZone(head)
+			if !ok {
+				return 0, false
+			}
+			if spec == "" {
+				// A head with no filter counts the zone itself (corpus:
+				// every TargetedPlayer$Valid... occurrence carries a spec;
+				// the bare form stays the honest reading rather than a
+				// fail-closed zero).
+				n += int32(len(g.Zone(zone, p)))
+				continue
+			}
+			for _, id := range g.Zone(zone, p) {
+				if matchesZoneSpecCtx(g, spec, id, c.SpecContext(p), zone) {
+					n++
+				}
+			}
+		}
+	}
+	if hasOp {
+		n = applyCountOp(n, op)
+	}
+	return n, true
+}
+
 // refPower/refToughness use rules' derived characteristics while a referenced
 // object is a battlefield permanent. A referred-to object that already left
 // keeps the LKI-compatible printed-plus-counters fallback: no live layer
@@ -724,20 +852,39 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return 0, true
 	case "CastTotalManaSpent":
 		// CR 601.2h's payment: the TOTAL mana actually spent to cast the
-		// resolving spell (the spent delta's pips summed over every slot),
-		// carried by the pay-time CastInfo's FlagManaSpent Amount
-		// (rules/cast.go's payCast capture -- the converge/replicate/
-		// multikick pattern; faceWantsCastSpend is the heads-safety gate).
-		// Same provenance read Converge makes -- the cast spell, and in the
-		// K:etbCounter ETB replacement the same object after the
-		// stack->battlefield move preserves it -- so a replay derives the
+		// resolving spell. The bare form (arg == "") is the spent delta's pips
+		// summed over every slot, carried by the pay-time CastInfo's
+		// FlagManaSpent Amount (rules/cast.go's payCast capture -- the
+		// converge/replicate/multikick pattern; faceWantsCastSpend is the
+		// heads-safety gate). Same provenance read Converge makes -- the cast
+		// spell, and in the K:etbCounter ETB replacement the same object after
+		// the stack->battlefield move preserves it -- so a replay derives the
 		// same number; a copy of the spell was never cast and a cheated-in
 		// permanent reads 0. The ref-property readers of OTHER casts
 		// (TriggeredCard$CastTotalManaSpent, evalRefProperty) stay on the
 		// rv2b exotic-heads ledger -- they read a trigger context, not this
 		// field.
+		//
+		// The FILTERED form `Count$CastTotalManaSpent <Type>` (task castfilter1)
+		// counts only the mana spent whose SOURCE was a permanent of <Type>.
+		// That per-unit producer-type provenance does not exist for an
+		// arbitrary <Type> -- the pool is a six-slot colour array with no
+		// producer record -- so only <Type> == "Snow" resolves, from the
+		// parallel snow tally the pool has always carried (CR 107.4h,
+		// Object.ManaSnowSpent). Treasure/Cave/Desert (Marut, Bat Colony,
+		// Cataclysmic Prospecting) cannot be answered without that machinery:
+		// they FAIL CLOSED to 0, which is strictly closer to the truth than
+		// the unfiltered total they used to return. Snow's own provenance is a
+		// real per-unit count, not an approximation.
 		if o := g.Obj(c.Source); o != nil {
-			return o.ManaSpent, true
+			switch arg {
+			case "":
+				return o.ManaSpent, true
+			case "Snow":
+				return o.ManaSnowSpent, true
+			default:
+				return 0, true
+			}
 		}
 		return 0, true
 	case "ChosenNumber":
@@ -963,6 +1110,14 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			// the fail-closed verdict below — no group machinery here prices
 			// them, and a fake zero is worse.
 			return h.CardsDiscardedThisTurn(c.Controller), true
+		case "RingTemptedYou":
+			// The resolving controller's own "the Ring has tempted you" count
+			// (CR 701.54a, folded by events.Apply's RingTemptsYou case): what
+			// Frodo, Adventurous Hobbit / Frodo, Sauron's Bane's
+			// ConditionCheckSVar$ NumRingTempted reads (GE2 / GE4 level-ability
+			// gates). The raw count is never capped, so a gate compares, and
+			// a zero means "not yet tempted" — a real read, never a fake one.
+			return g.Players[c.Controller].RingTempted, true
 		}
 		return 0, false
 	}

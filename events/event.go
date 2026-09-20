@@ -465,6 +465,21 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	CombatRetarget
+	// RingTemptsYou records one "the Ring tempts you" action (CR 701.54a:
+	// each time the Ring tempts you, choose a creature you control; it
+	// becomes your Ring-bearer). Player is the tempted seat, Obj the
+	// designated Ring-bearer (0 when the player controls no creature — CR
+	// 701.54d: the "Whenever the Ring tempts you" trigger still fires when
+	// the actions complete even if some were impossible), and Amount the
+	// NEW tempt count, carried as a replay-visible marker. Apply folds the
+	// count increment and the designation; the designation's two clears (a
+	// control change, CR 701.54b, and the permanent leaving the battlefield,
+	// CR 400.7/701.54e) are derived in Apply's own ControlChange and
+	// MoveZone cases, so no second event is needed. Appended here, after
+	// CombatRetarget, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	RingTemptsYou
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -475,7 +490,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(CombatRetarget) + 1
+	NumKinds = int(RingTemptsYou) + 1
 )
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
@@ -556,7 +571,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget"}
+	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -771,6 +786,13 @@ var flagNames = [...]struct {
 	// instead of overwriting X. Appended at the end per the table's own
 	// ordering rule.
 	{"manaspent", state.FlagManaSpent},
+	// The SNOW-unit part of the total-mana-spent capture (task castfilter1):
+	// a face whose SVar table reads the filtered Count$CastTotalManaSpent Snow
+	// head stamps its pay-time CastInfo with this flag too, so the Amount
+	// folds into Object.ManaSnowSpent instead of overwriting X or the
+	// unfiltered total. Appended at the end per the table's own ordering
+	// rule.
+	{"manasnowspent", state.FlagManaSnowSpent},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

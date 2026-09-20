@@ -128,9 +128,14 @@ type pendingCast struct {
 	// manaSpentOn is the heads-safety gate (faceWantsCastSpend): the pay-time
 	// CastInfo is emitted ONLY for a face whose SVar table reads the
 	// Count$CastTotalManaSpent head, so no game that casts no such card
-	// changes an event. Plain data, so Clone copies it like converge.
-	manaSpentOn bool
-	manaSpent   int32
+	// changes an event. manaSpentSnow (task castfilter1) is the SNOW-unit part
+	// of that same payment (CR 107.4h), the filtered
+	// Count$CastTotalManaSpent Snow form the six Snow carriers read; it rides
+	// the same emission gate, so the two totals never share an event. Plain
+	// data, so Clone copies it like converge.
+	manaSpentOn   bool
+	manaSpent     int32
+	manaSpentSnow int32
 
 	sacs    []state.ObjID
 	sacPart int
@@ -285,6 +290,15 @@ type pendingCast struct {
 	// the same ask stage / commit shape the exile parts use.
 	returns    []state.ObjID
 	returnPart int
+
+	// moveGraves / moveGravePart carry the ExiledMoveToGrave cost parts
+	// (cards matching Spec moved from exile to their OWNER's graveyard --
+	// the Eldrazi processor family and Shelob, Dread Weaver's {2}{B}
+	// ability) through the same ask stage / commit shape the exile parts
+	// use. Nothing moves until payCast, so an abort cannot leave a partially
+	// paid graveyard move behind.
+	moveGraves    []state.ObjID
+	moveGravePart int
 
 	// putToLibs / putToLibPart carry the PutToLib cost parts
 	// (PutCardToLibFrom<Zone><N/Pos/Spec> tokens: cards matching Spec moved
@@ -746,6 +760,21 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 				avail = append(avail, oid)
 			}
 		}
+		if int32(len(avail)) < part.N {
+			return false
+		}
+		for i := int32(0); i < part.N; i++ {
+			reserved[avail[i]] = true
+		}
+	}
+	// ExiledMoveToGrave cost parts: each needs N matching cards still in
+	// ANY player's exile zone (exiled cards live in their OWNER's exile
+	// zone -- events/apply.go's zoneOwner -- so a controller-only scan
+	// finds nothing on the Shelob shape, where the exiled card is in the
+	// OPPONENT's exile zone), reserved against the earlier parts the same
+	// way the Sac/Exile parts above reserve against each other.
+	for _, part := range cost.MoveToGrave {
+		avail := e.moveToGraveCandidates(p, id, part.Spec, reserved)
 		if int32(len(avail)) < part.N {
 			return false
 		}
@@ -1217,6 +1246,9 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	}
 	if len(extra.Exile) > 0 {
 		cost.Exile = append(append([]CostPart(nil), cost.Exile...), extra.Exile...)
+	}
+	if len(extra.MoveToGrave) > 0 {
+		cost.MoveToGrave = append(append([]CostPart(nil), cost.MoveToGrave...), extra.MoveToGrave...)
 	}
 	if len(extra.Reveal) > 0 {
 		cost.Reveal = append(append([]CostPart(nil), cost.Reveal...), extra.Reveal...)
@@ -1752,6 +1784,12 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.putToLibAsk() {
+		return
+	}
+	// CR 601.2b: the ExiledMoveToGrave cost pick (Shelob's "put a creature
+	// card exiled with Shelob into its owner's graveyard") runs beside the
+	// other non-mana component asks, after the PutToLib ask.
+	if e.moveGraveAsk() {
 		return
 	}
 	if e.etbAsk() {
@@ -2326,6 +2364,72 @@ func putToLibZoneName(z state.Zone) string {
 	default:
 		return "battlefield"
 	}
+}
+
+// moveToGraveCandidates returns the cards matching spec (you-relative to p,
+// source-relative to source) still available in ANY alive player's exile
+// zone, minus everything in reserved. Exiled cards live in their OWNER's
+// exile zone (events/apply.go's zoneOwner), so the scan iterates the
+// players rather than p's own zone: Shelob, Dread Weaver's exiles land in
+// the OPPONENT's exile zone, and a controller-only scan would find nothing.
+// Zone order is deterministic (players in seat order, each zone in list
+// order), so the candidate order -- and therefore every pick built from it
+// -- replays.
+func (e *Engine) moveToGraveCandidates(p state.PlayerID, source state.ObjID, spec string, reserved map[state.ObjID]bool) []state.ObjID {
+	var out []state.ObjID
+	for i := range e.G.Players {
+		if e.G.Players[i].Lost {
+			continue
+		}
+		for _, id := range e.G.Zone(state.ZExile, state.PlayerID(i)) {
+			if reserved[id] {
+				continue
+			}
+			if effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+				out = append(out, id)
+			}
+		}
+	}
+	return out
+}
+
+// moveGraveAsk offers the next unsettled ExiledMoveToGrave cost part, walking
+// pc.cost.MoveToGrave in order (pc.moveGravePart) the way exAsk walks
+// pc.cost.Exile. Candidates come from EVERY alive player's exile zone
+// (moveToGraveCandidates above -- the origin is always exile, the owner's
+// zone is where the card sits), filtered through MatchesSpecFrom so
+// Card.ExiledWithSource resolves against the ability's source. A part with
+// too few candidates aborts the whole cast (nothing has moved yet).
+func (e *Engine) moveGraveAsk() bool {
+	pc := e.cast
+	for pc.moveGravePart < len(pc.cost.MoveToGrave) {
+		part := pc.cost.MoveToGrave[pc.moveGravePart]
+		seen := make(map[state.ObjID]bool, len(pc.moveGraves))
+		for _, s := range pc.moveGraves {
+			seen[s] = true
+		}
+		candidates := e.moveToGraveCandidates(pc.player, pc.card, part.Spec, seen)
+		n := int(part.N)
+		if n <= 0 || n > len(candidates) {
+			e.abortCast(pc, "move-to-graveyard cost no longer payable; cast/activation aborted", true)
+			return true
+		}
+		verb := "cast " + e.targetName(pc.card)
+		if pc.ability >= 0 {
+			verb = "activate"
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
+			Prompt: "Move " + strconv.Itoa(n) + " card(s) from exile to their owner's graveyard to " + verb,
+			Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "movetogravecost",
+				Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
 }
 
 // castModeAsk poses CR 601.2b's mode announcement for a modal spell. It uses
@@ -4255,6 +4359,11 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.exiles = append(pc.exiles, o.Obj)
 		}
 		pc.exilePart++
+	case "movetogravecost":
+		for _, o := range chosen {
+			pc.moveGraves = append(pc.moveGraves, o.Obj)
+		}
+		pc.moveGravePart++
 	case "revealcost":
 		for _, o := range chosen {
 			pc.reveals = append(pc.reveals, o.Obj)
@@ -4908,7 +5017,7 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		ok, _, spentMana := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
+		ok, _, spentMana, _ := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
 		if !ok {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
@@ -4952,6 +5061,15 @@ func (e *Engine) payCast() {
 		for _, id := range pc.exiles {
 			if o := e.G.Obj(id); o != nil {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
+			}
+		}
+		// ExiledMoveToGrave cost parts: each chosen card leaves exile for
+		// its OWNER's graveyard (events.Move's zoneOwner already routes a
+		// non-battlefield move to the owner), and the ExiledWith provenance
+		// is cleared by the same move.
+		for _, id := range pc.moveGraves {
+			if o := e.G.Obj(id); o != nil {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZGraveyard, Text: "moved to its owner's graveyard as a cost"})
 			}
 		}
 		// Energy cost parts (PayEnergy<N>/<X>): the announced amount leaves
@@ -5093,7 +5211,7 @@ func (e *Engine) payCast() {
 	if mana.Generic < 0 {
 		mana.Generic = 0
 	}
-	paid, spentMana := e.payManaCastSpent(pc, mana)
+	paid, spentMana, spentSnow := e.payManaCastSpent(pc, mana)
 	if !paid {
 		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
@@ -5116,6 +5234,7 @@ func (e *Engine) payCast() {
 	if f := e.G.Obj(pc.card).Face(); faceWantsCastSpend(f) {
 		pc.manaSpentOn = true
 		pc.manaSpent = manaSpentTotal(spentMana)
+		pc.manaSpentSnow = manaSpentTotal(spentSnow)
 	}
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
@@ -5133,6 +5252,12 @@ func (e *Engine) payCast() {
 	for _, id := range pc.exiles {
 		if o := e.G.Obj(id); o != nil {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
+		}
+	}
+	// ExiledMoveToGrave cost parts (see the ability branch above for the why).
+	for _, id := range pc.moveGraves {
+		if o := e.G.Obj(id); o != nil {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZGraveyard, Text: "moved to its owner's graveyard as a cost"})
 		}
 	}
 	// Energy cost parts (see the ability branch above for the why).
@@ -5314,6 +5439,16 @@ func (e *Engine) payCast() {
 	if pc.manaSpentOn {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSpent)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpent, Counter: flags})
+		// The SNOW-unit part of that same spend (task castfilter1) rides its
+		// own trailing CastInfo: the flag routes the Amount into
+		// Object.ManaSnowSpent, so it never clobbers the unfiltered total the
+		// event just set (the converge/multikick two-event split, applied one
+		// step further). Emitted unconditionally alongside the total -- a cast
+		// that spent no snow mana is a real zero, not an absent one -- so the
+		// filtered Count$CastTotalManaSpent Snow read is exact for the six
+		// Snow carriers without a second gate.
+		snowFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSnowSpent)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpentSnow, Counter: snowFlags})
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for. Capture the deferred
@@ -5615,6 +5750,14 @@ func init() {
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
+		// kw:TypeCycling: CR 702.28d (typed cycling), expanded by
+		// cards/keywords.go into the Transmute-shaped library search
+		// (AB$ ChangeZone | Origin$ Library | Destination$ Hand |
+		// ChangeType$ <type>), whose reveal comes from the search's own
+		// stated-quality default. Proof: TestTypeCyclingSearchesTheNamedType
+		// and TestTypeCyclingBasicLandSearchesAnyBasic in
+		// rules/alternative_costs_test.go.
+		"kw:TypeCycling",
 		// kw:Level up: CR 702.87, expanded by cards/keywords.go into an
 		// ordinary sorcery-speed PutCounter activation (CounterType$ LEVEL);
 		// the level-band statics read the counter through the existing

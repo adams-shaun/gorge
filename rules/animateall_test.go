@@ -148,5 +148,65 @@ func TestVedalkenHumiliatorAnimateAllResolution(t *testing.T) {
 	}
 }
 
+// TestMirrorEntityAnimateAllBasePTExpiresAtEndOfTurn is the report's
+// acceptance half the other pins left implicit: an AnimateAll base-P/T grant
+// is UntilEOT (not Duration$ Permanent), so the real end-of-turn cleanup
+// (CR 514.2, rules.Engine.EndOfTurnCleanup) must drop it and the swept
+// creature must fall back to its printed P/T. It drives the same real-corpus
+// Mirror Entity activation as the grant pin above, but reads the derived P/T
+// AFTER the cleanup rather than only before it.
+func TestMirrorEntityAnimateAllBasePTExpiresAtEndOfTurn(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	me, ok := reg.Lookup("Mirror Entity")
+	if !ok {
+		t.Fatal("corpus fixture: Mirror Entity missing")
+	}
+	bear := card(t, vanillaBearSrc)
+	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{me, bear, bear}, []*cards.Card{bear})
+	meID := moveByName(t, e, 0, "Mirror Entity", state.ZBattlefield)
+	bearID := moveByName(t, e, 0, "Vanilla Bear", state.ZBattlefield)
+
+	addMana(t, e, 0, "CC")
+	opt := abilityOption(t, e, meID, 0)
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no decision after the ability option")
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "x" && o.Label == "X = 2" {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no X = 2 option: %+v", d)
+	}
+	submitChoices(t, e, idx)
+	passUntilStackEmpty(t, e, 20)
+
+	// While the turn is live the grant is on: base 2/2 on both creatures.
+	if dMe := e.Derived(meID); dMe.Power != 2 || dMe.Toughness != 2 {
+		t.Fatalf("Mirror Entity before cleanup = %d/%d, want base 2/2", dMe.Power, dMe.Toughness)
+	}
+	if dBear := e.Derived(bearID); dBear.Power != 2 || dBear.Toughness != 2 {
+		t.Fatalf("bear before cleanup = %d/%d, want base 2/2", dBear.Power, dBear.Toughness)
+	}
+
+	// CR 514.2: the UntilEOT base-P/T registration dies with the turn.
+	e.EndOfTurnCleanup()
+	if dMe := e.Derived(meID); dMe.Power != 1 || dMe.Toughness != 1 {
+		t.Fatalf("Mirror Entity after cleanup = %d/%d, want printed 1/1 (UntilEOT grant survived)",
+			dMe.Power, dMe.Toughness)
+	}
+	// The bear's printed P/T is 2/2, so its expiry is not observable through
+	// P/T alone; assert the cross-check that its base is now the PRINTED value
+	// by checking it is no longer base-set (a printed 2/2 base reads 2/2).
+	if dBear := e.Derived(bearID); dBear.Power != 2 || dBear.Toughness != 2 {
+		t.Fatalf("bear after cleanup = %d/%d, want printed 2/2", dBear.Power, dBear.Toughness)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestAnimateAllOpponentCreatureNeverSwept lives in effects/animateall_test.go
 // (unit level); this file carries the real-corpus end-to-end pins.

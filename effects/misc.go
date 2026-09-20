@@ -23,6 +23,7 @@ func init() {
 	Register("Charm", effCharm)
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
+	Register("RingTemptsYou", effRingTemptsYou)
 	Register("RestartGame", effRestartGame)
 	Register("Goad", effGoad)
 	Register("Ward", effWard)

@@ -623,6 +623,11 @@ const (
 	// cloaked card). The game/state-aware family -- needs the object's own
 	// zone, classified here so matcher and UnknownPredicates agree.
 	wordFaceDown
+	// Forge's IsRingbearer (CR 701.54e): the object is its controller's
+	// Ring-bearer. Game/state-aware -- needs the object's zone and the
+	// players' designations -- classified here so matcher and
+	// UnknownPredicates agree.
+	wordRingBearer
 	// The resolution-only one-token TargetedPlayerCtrl grammar. Its target
 	// binding comes from SpecContext rather than a new state tracker.
 	wordTargetedPlayerCtrl
@@ -755,6 +760,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordTopLibrary, ""
 	case "faceDown":
 		return wordFaceDown, ""
+	case "IsRingbearer":
+		return wordRingBearer, ""
 	case "HasCounters":
 		return wordHasCounters, ""
 	case "Historic":
@@ -890,6 +897,15 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// the rules-side scans gate on (faceDownPrintedHides); a face-down
 		// EXILE (Hideaway) is not a permanent and never matches.
 		return o.FaceDown && o.Zone == state.ZBattlefield
+	case wordRingBearer:
+		// Forge's IsRingbearer (CR 701.54e): the object is its controller's
+		// Ring-bearer -- true exactly while it is on the battlefield under
+		// that player's control and carries the seat's designation. The
+		// designation's zone and control halves are enforced by events.Apply
+		// (the battlefield-leave and ControlChange clears), so the live check
+		// is the id comparison, and an object outside the battlefield (or an
+		// LKI of a moved one) never matches.
+		return o.Zone == state.ZBattlefield && g.IsRingBearer(o.Controller, o.ID)
 	case wordTopLibrary:
 		// Forge's TopLibrary: the object is the top card of its library --
 		// index 0 of the owner's library slice, the card the next draw takes

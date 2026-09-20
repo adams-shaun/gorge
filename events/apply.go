@@ -163,6 +163,17 @@ func Apply(g *state.Game, e Event) {
 	case ControlChange:
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {
+				// CR 701.54b: a Ring-bearer designation ends "until another
+				// player gains control of it" — the old controller is still
+				// on o.Controller here, so the seat losing the designation is
+				// the one naming the object that is not the new controller.
+				// (The new controller gaining control of their OWN bearer is
+				// not a change of controller for the designation and keeps it.)
+				for i := range g.Players {
+					if g.Players[i].RingBearer == o.ID && state.PlayerID(i) != e.Player {
+						g.Players[i].RingBearer = 0
+					}
+				}
 				changeControl(g, o, e.Player)
 				// An AsLongAsControl goad ends the moment its controller
 				// condition fails; pruning here keeps a later return of
@@ -439,14 +450,33 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case RingTemptsYou:
+		// One "the Ring tempts you" action (CR 701.54a): the count rises by
+		// one and the designated permanent becomes (or stays) this seat's
+		// Ring-bearer. An impossible bearer choice (no creature controlled)
+		// carries Obj 0 and still counts — CR 701.54d: the "Whenever the Ring
+		// tempts you" trigger fires when the actions complete even if some
+		// were impossible.
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].RingTempted++
+			g.Players[e.Player].RingBearer = e.Obj
+		}
+
 	case MoveZone, Draw, PutOnStack:
 		// CR 733.1 reverses a proposed cast with a real logged stack->origin
 		// move. Preserve the entry history that preceded its stack proposal in
 		// transient object state: a log-only replay sees the same PutOnStack,
 		// captures the same fields and consumes them on the reverse move.
 		wasStack := false
+		// The object's REAL pre-move zone, not Event.From: Move itself treats
+		// From as advisory (a malformed caller-supplied From must not corrupt
+		// state), and the Ring-bearer clear below must follow the same rule --
+		// otherwise a blob return/re-entry reusing the same ObjID could keep a
+		// stale designation.
+		wasBattlefield := false
 		if o := g.Obj(e.Obj); o != nil {
 			wasStack = o.Zone == state.ZStack
+			wasBattlefield = o.Zone == state.ZBattlefield
 			if e.To == state.ZStack {
 				o.PreStackEntryThisTurn = o.EnteredThisTurn
 				o.PreStackEntryFrom = o.EnteredFrom
@@ -552,6 +582,13 @@ func Apply(g *state.Game, e Event) {
 		}
 		// Source-dependent goads end as soon as their source leaves play.
 		pruneGoads(g)
+		// CR 400.7 / 701.54e: a Ring-bearer designation lives on a permanent
+		// and requires the battlefield — the moment the object leaves, every
+		// seat's designation naming it is gone (the next battlefield entry is
+		// a new object and never inherits one).
+		if wasBattlefield && e.To != state.ZBattlefield {
+			clearRingBearers(g, e.Obj)
+		}
 
 	case LifeChange:
 		if validPlayer(g, e.Player) {
@@ -1043,6 +1080,8 @@ func Apply(g *state.Game, e Event) {
 				o.ReplicateTimes = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
 				o.TimesKicked = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaSnowSpent != 0:
+				o.ManaSnowSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaSpent != 0:
 				o.ManaSpent = e.Amount
 			default:
@@ -1842,6 +1881,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.ManaSpent = 0
+			o.ManaSnowSpent = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
@@ -1867,6 +1907,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.ManaSpent = 0
+			o.ManaSnowSpent = 0
 			o.NotedNumber = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
@@ -1970,6 +2011,21 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 // validPlayer reports whether p indexes an existing seat.
 func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
+}
+
+// clearRingBearers drops every seat's Ring-bearer designation naming id
+// (CR 701.54b/701.54e: the designation ends when the permanent leaves the
+// battlefield or another player gains control of it — the derived clear
+// events.Apply's ControlChange and battlefield-leave paths share).
+func clearRingBearers(g *state.Game, id state.ObjID) {
+	if id == 0 {
+		return
+	}
+	for i := range g.Players {
+		if g.Players[i].RingBearer == id {
+			g.Players[i].RingBearer = 0
+		}
+	}
 }
 
 // expireTurnGoads drops only default-duration relationships made by p.

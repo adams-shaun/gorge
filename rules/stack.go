@@ -62,33 +62,41 @@ func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, 
 // card is no longer in the granted zone, so re-deriving from the zone would
 // wrongly drop it.
 func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) bool {
-	ok, _, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
+	ok, _, _, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
 	return ok
 }
 
 // payManaForSpent is payManaFor with the payment's actually-spent mana
 // returned: the per-colour delta the negative ManaAdd events record (zero on
-// a failed payment). TWO deltas come back: `spentPlain` is the split the
+// a failed payment). THREE deltas come back: `spentPlain` is the split the
 // payment emits (restricted batches already carved off by
-// emitRestrictedManaSpend, the delta RememberCostMana$ notes today) and
-// `spentAll` is the FULL pool delta copied before that split -- the true
-// "all mana spent to pay this cost", which converge (CR 107.4f-family)
-// counts from via payManaCastSpent. The RememberCostMana$ payment site
-// (Jeweled Amulet) keeps its existing split-based note; every other caller
-// keeps the bool-only payManaFor wrapper, so no other payment site changes
-// shape.
-func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana) {
+// emitRestrictedManaSpend, the delta RememberCostMana$ notes today), `spentAll`
+// is the FULL pool delta copied before that split -- the true "all mana spent
+// to pay this cost", which converge (CR 107.4f-family) counts from via
+// payManaCastSpent -- and `spentSnow` is the per-colour count of the spent
+// units that were SNOW units (CR 107.4h), the parallel-tally delta, which the
+// filtered Count$CastTotalManaSpent Snow head reads. The RememberCostMana$
+// payment site (Jeweled Amulet) keeps its existing split-based note; every
+// other caller keeps the bool-only payManaFor wrapper, so no other payment
+// site changes shape.
+func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana) {
 	before := e.manaAvailableFor(p, id, ability)
 	beforeSnow := e.G.Players[p].Snow
 	pay, ok := cost.resolveManaWith(before, beforeSnow, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 	if !ok {
-		return false, state.Mana{}, state.Mana{}
+		return false, state.Mana{}, state.Mana{}, state.Mana{}
 	}
 	after, afterSnow, lifeSpent := pay.pool, pay.snow, pay.lifeSpent
 	spent := state.Mana{}
+	spentSnow := state.Mana{}
 	for i := range before {
 		spent[i] = before[i] - after[i]
+		// The parallel snow tally's own delta: how many of the units that
+		// left slot i were snow units. resolveManaWith consumes a non-snow
+		// unit before a snow one wherever a choice existed, so this is
+		// exactly what the payment search did and never exceeds spent[i].
+		spentSnow[i] = beforeSnow[i] - afterSnow[i]
 	}
 	// Converge counts ALL mana spent, restricted batches included -- Boseiju's
 	// {C} is not a colour, but a Tazri-restricted coloured unit IS the colour
@@ -120,24 +128,25 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	if lifeSpent != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
-	return true, spentAll, spent
+	return true, spentAll, spent, spentSnow
 }
 
 // payManaCastSpent is the spell-cost payment (the shared payManaFor core
 // with the cast's recorded may-play ignore-colour rider, CR 401.5's "spend
 // mana as though it were mana of any color to cast it") returning the FULL
 // spent delta: the pre-restriction-split per-colour pool delta converge
-// counts from (task converge1). The spell arm's only ask stages have all
-// completed by payment, so the delta rides pendingCast plain data to the
-// pay-time CastInfo exactly like replicateTimes does. The rider was proved
-// by the offer gate while the card still sat in the granted zone; the
-// payment keeps it via pc.mayPlayIgnore because after the push (CR 601.2a)
-// the card is on the stack and a zone re-derivation would wrongly drop the
-// grant.
-func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana) {
-	ok, spentAll, _ := e.payManaForSpent(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
+// counts from (task converge1), plus the snow-unit delta the filtered
+// Count$CastTotalManaSpent Snow head reads (task castfilter1). The spell
+// arm's only ask stages have all completed by payment, so the deltas ride
+// pendingCast plain data to the pay-time CastInfo exactly like replicateTimes
+// does. The rider was proved by the offer gate while the card still sat in
+// the granted zone; the payment keeps it via pc.mayPlayIgnore because after
+// the push (CR 601.2a) the card is on the stack and a zone re-derivation
+// would wrongly drop the grant.
+func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana) {
+	ok, spentAll, _, spentSnow := e.payManaForSpent(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
 		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
-	return ok, spentAll
+	return ok, spentAll, spentSnow
 }
 
 // payExtortPip charges the {W/B} hybrid pip (one mana of either W or B)
@@ -2336,6 +2345,30 @@ func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
 		}
 		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount < 0 {
 			n += -ev.Amount
+		}
+	}
+	return n
+}
+
+// DamageTakenThisTurn satisfies effects.Host's DamageTakenThisTurn for the
+// TargetedPlayer$DamageThisTurn count head (Knollspine Dragon's "draw cards
+// equal to the damage dealt to target opponent this turn"): the total damage
+// p was dealt this turn, summed from every player-targeted Damage event
+// since the last TurnChange. A player hit is Kind Damage with Player set
+// and Obj 0 — an object hit sets Obj and leaves Player 0 (seat 0 is a real
+// player, so the discriminator is Obj == 0, never Player != 0); a
+// replacement-rewritten Note never reaches this fold, and a redirect that
+// moved a hit onto a permanent reads there instead. Derived from the event
+// log like LifeLostThisTurn, so a replay derives the same number.
+func (e *Engine) DamageTakenThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.Damage && ev.Obj == 0 && ev.Player == p && ev.Amount > 0 {
+			n += ev.Amount
 		}
 	}
 	return n

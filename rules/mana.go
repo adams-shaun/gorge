@@ -147,6 +147,22 @@ type Cost struct {
 	// (rules/cumulative.go), which is a keyword-expansion action rather than
 	// a parsed cost token. Zone is the origin, LibraryPos the position.
 	PutToLib []CostPart
+	// MoveToGrave carries ExiledMoveToGrave<N/Spec> tokens: N cards matching
+	// Spec move out of EXILE into their OWNER's graveyard as the payment
+	// (Forge CostExiledMoveToGrave; the Eldrazi processor family's "put a
+	// card an opponent owns from exile into that player's graveyard" and
+	// Shelob, Dread Weaver's "put a creature card exiled with Shelob into its
+	// owner's graveyard"). The origin is always every player's exile zone
+	// -- exiled cards live in their OWNER's exile zone (events/apply.go's
+	// zoneOwner), so a candidate scan iterates the players -- and the
+	// destination is the owner's graveyard, which is why this is its own
+	// slice rather than an Exile part (whose Zone is the ORIGIN and whose
+	// destination is always exile). The specs in measured use are
+	// Card.OppOwn (12 lines) and Card/Creature.ExiledWithSource (4 lines);
+	// both read through the ordinary filter grammar (effects/filter.go's
+	// OppOwn and ExiledWithSource predicates, bound to the PAYER and the
+	// ability's source).
+	MoveToGrave []CostPart
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
 	// A token lands here exactly when ParseCost could not give it real
@@ -291,6 +307,17 @@ var putCardToLibCost = regexp.MustCompile(`^PutCardToLibFrom(Hand|Grave|Battlefi
 // "/description" is dropped and ";" alternations fold to "," like every
 // other non-mana head.
 var exileBattlefieldCost = regexp.MustCompile(`^Exile<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// exiledMoveToGraveCost matches Forge's ExiledMoveToGrave<N/Spec> token --
+// moving N cards matching Spec from EXILE into their OWNER's graveyard as
+// the payment (the Eldrazi processor activation/trigger costs and Shelob,
+// Dread Weaver's {2}{B} ability; 16 corpus files). The trailing
+// "/description" is dropped and ";" alternations fold to "," like every
+// other non-mana head. Before the head existed the token hit the final
+// unrecognised-symbol fallback: a phantom {1} rode the price (a player with
+// exactly {2}{B} could not activate Shelob) and the cost's governing action
+// was silently dropped -- a fail-open defect.
+var exiledMoveToGraveCost = regexp.MustCompile(`^ExiledMoveToGrave<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // payLifeXCost matches Forge's announced life payment PayLife<X> (Toxic
 // Deluge's "pay X life", Necrodominance's end-step body): the cast announces
@@ -464,6 +491,20 @@ func ParseCost(s string) Cost {
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
 				c.Exile = append(c.Exile, CostPart{N: int32(n), Spec: spec, Zone: state.ZBattlefield})
+				continue
+			}
+			if m := exiledMoveToGraveCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				spec := strings.ReplaceAll(m[2], ";", ",")
+				c.MoveToGrave = append(c.MoveToGrave, CostPart{N: int32(n), Spec: spec})
 				continue
 			}
 			if m := payLifeXCost.FindStringSubmatch(sym); m != nil {
@@ -903,6 +944,9 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Exile) > 0 {
 		c.Exile = append(append([]CostPart(nil), c.Exile...), d.Exile...)
 	}
+	if len(d.MoveToGrave) > 0 {
+		c.MoveToGrave = append(append([]CostPart(nil), c.MoveToGrave...), d.MoveToGrave...)
+	}
 	if len(d.Reveal) > 0 {
 		c.Reveal = append(append([]CostPart(nil), c.Reveal...), d.Reveal...)
 	}
@@ -1339,6 +1383,7 @@ func formatCost(c Cost) string {
 	}
 	appendCostParts("Reveal", c.Reveal)
 	appendCostParts("Behold", c.Behold)
+	appendCostParts("ExiledMoveToGrave", c.MoveToGrave)
 	appendCostParts("tapXType", c.TapPermanent)
 	for _, part := range c.Blight {
 		parts = append(parts, "Blight<"+strconv.FormatInt(int64(part.N), 10)+">")
@@ -1474,7 +1519,7 @@ func costAnnouncesCastX(c Cost) bool {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0 || len(c.MoveToGrave) > 0
 }
 
 // Priceable reports whether payMana can actually charge every part of this
@@ -1496,7 +1541,8 @@ func (c Cost) Priceable() bool {
 		len(c.Draw) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 &&
 		len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
-		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.PutToLib) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0
+		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.PutToLib) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0 &&
+		len(c.MoveToGrave) == 0
 }
 
 // pip is one flexible mana demand inside a cost's mana part, as a list of
