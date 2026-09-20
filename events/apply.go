@@ -445,18 +445,22 @@ func Apply(g *state.Game, e Event) {
 				o.HasPreStackEntry = true
 			}
 		}
-		// A manifest's face-down entry (CR 708.5) must be visible INSIDE the
-		// Move below: Move's battlefield-entry grants read it (a manifested
-		// planeswalker enters as a 2/2 creature with no loyalty grant, a
-		// manifested Saga with no lore counter -- while face down it is
-		// neither), so the marker folds onto the object before the move and
-		// is re-asserted after it. A Counter value on the existing MoveZone
-		// decode: no new event kind, no Event field change.
+		// A manifest's or cloak's face-down entry (CR 708.5) must be visible
+		// INSIDE the Move below: Move's battlefield-entry grants read it (a
+		// manifested planeswalker enters as a 2/2 creature with no loyalty
+		// grant, a manifested Saga with no lore counter -- while face down it
+		// is neither), so the marker folds onto the object before the move
+		// and is re-asserted after it. A Counter value on the existing MoveZone
+		// decode: no new event kind, no Event field change. Cloak shares the
+		// face-down entry with a second Counter value; only the cloak marker
+		// sets Cloaked, the state rules/layers.go and trigger_match.go read
+		// for the ward {2}.
 		manifesting := e.Kind == MoveZone && e.To == state.ZBattlefield &&
-			e.Counter == "entered_face_down"
+			(e.Counter == "entered_face_down" || e.Counter == "entered_cloaked")
 		if manifesting {
 			if o := g.Obj(e.Obj); o != nil {
 				o.FaceDown = true
+				o.Cloaked = e.Counter == "entered_cloaked"
 			}
 		}
 		Move(g, e.Obj, e.From, e.To)
@@ -485,12 +489,13 @@ func Apply(g *state.Game, e Event) {
 					o.FaceDown = false
 				}
 			} else if manifesting {
-				// CR 708.5: the manifested card stays state-face-down while it
-				// is on the battlefield (the view redacts it to everyone but
-				// its controller); leaving the battlefield clears it (CR 708.9)
+				// CR 708.5: the manifested or cloaked card stays state-face-down
+				// while it is on the battlefield (the view redacts it to everyone
+				// but its controller); leaving the battlefield clears it (CR 708.9)
 				// through Move's own leave reset and the default branch.
 				o.ExiledWith = 0
 				o.FaceDown = true
+				o.Cloaked = e.Counter == "entered_cloaked"
 			} else {
 				o.ExiledWith = 0
 				o.FaceDown = false
@@ -1745,6 +1750,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.IntrinsicKeywords = nil
 		o.ExiledWith = 0
 		o.FaceDown = false
+		o.Cloaked = false
 		o.RiotChoice = ""
 		o.IsMyriad = false
 		o.Paired = 0

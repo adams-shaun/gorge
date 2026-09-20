@@ -1517,6 +1517,19 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	}
 	kw = append(kw[:0], f.Keywords...)
 	kw = append(kw, o.IntrinsicKeywords...)
+	// CR 708.5's cloak variant: a CLOAKED face-down card is a 2/2 creature
+	// with ward {2} -- the ward is part of the cloak status itself, not a
+	// printed or granted ability (the printed face does not exist while face
+	// down, CR 708.8, and faceDownBasis carries no keywords). Appending it
+	// here -- ahead of the layer walk, exactly where a layer-6 grant would
+	// land -- is what feeds checkGrantedWardTriggers's derived-keyword scan
+	// (rules/trigger_match.go), so targeting a cloaked 2/2 meets the real
+	// pay-or-counter ask. Leaving the battlefield clears both flags together
+	// (events.Apply's Move reset), so the ward drops with the face-down
+	// status.
+	if faceDown && o.Cloaked {
+		kw = append(kw, "Ward:2")
+	}
 	// Layer 4 runs first through typeCharacteristics (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
 	// sees the derived type list, not the printed face.
