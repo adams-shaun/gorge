@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -26,10 +27,34 @@ import (
 // Night; Scholar of the Lost Trove) — left fail-closed: no flag, graveyard
 // resting place.
 //
-// Goblin Dark-Dwellers and Lightning Bolt are in NO repo deck and NO legacy
-// golden deck (measured: grepping the 34 Play-API carrier names against
-// internal/testutil/decks/*.json returns nothing), so TestHeads is safe by
-// construction; verified unmoved below anyway.
+// TestHeads safety: the 36 ReplaceGraveyard$ CARRIERS are in NO repo deck and
+// NO legacy golden deck (measured: grepping all 36 carrier card names against
+// internal/testutil/decks/*.json returns nothing), so no golden game exercises
+// the flag; verified unmoved below anyway. (Lightning Bolt itself IS in repo
+// decks — mono-red-goblins and ur-delver — but no deck plays it through a
+// ReplaceGraveyard$ Play, so its resting zone there is unchanged.)
+
+// negMoveByName moves the named card from player p's hand/library to `to`.
+// searchMoveByName is player-0-only; the negative and fizzle scenarios need
+// a card parked in seat 1's zones / on seat 1's battlefield.
+func negMoveByName(t *testing.T, e *Engine, p state.PlayerID, name string, to state.Zone) state.ObjID {
+	t.Helper()
+	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, id := range e.G.Zone(z, p) {
+			o := e.G.Obj(id)
+			if o != nil && o.Face() != nil && o.Face().Name == name {
+				if z != to {
+					e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
+				}
+				e.pending = nil
+				e.priorityRound()
+				return id
+			}
+		}
+	}
+	t.Fatalf("corpus fixture %q absent from player %d hand/library", name, p)
+	return 0
+}
 
 // gddEngine deals seat 0 a deck whose only non-mountain cards are a Goblin
 // Dark-Dwellers and a Lightning Bolt, seat 1 all mountains.
@@ -122,14 +147,92 @@ func TestGoblinDarkDwellersExilesThePlayedCard(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestGoblinDarkDwellersFizzleExilesThePlayedCard: the fizzle half of the
+// reader. A played spell that never resolves (CR 608.2b: every target illegal
+// at resolution) must also be exiled when its Play SA carried the rider —
+// spellFizzleZone reads the same flag. The played Bolt is aimed at a creature,
+// which leaves the battlefield before the Bolt resolves.
+func TestGoblinDarkDwellersFizzleExilesThePlayedCard(t *testing.T) {
+	reg := searchTestRegistry(t)
+	gdd := searchCorpusCard(t, reg, "Goblin Dark-Dwellers")
+	bolt := searchCorpusCard(t, reg, "Lightning Bolt")
+	bears := searchCorpusCard(t, reg, "Grizzly Bears")
+	mountain := searchCorpusCard(t, reg, "Mountain")
+	deck0 := []*cards.Card{gdd, bolt}
+	for len(deck0) < 40 {
+		deck0 = append(deck0, mountain)
+	}
+	deck1 := []*cards.Card{bears}
+	for len(deck1) < 40 {
+		deck1 = append(deck1, mountain)
+	}
+	cfg := seatZeroStart(Config{Seed: 7404, Names: []string{"dwellers", "opponent"},
+		Decks: [][]*cards.Card{deck0, deck1}, Tokens: reg.Tokens})
+	e := New(cfg)
+	e.Advance()
+	toMain1(t, e)
+	boltID := searchMoveByName(t, e, "Lightning Bolt", state.ZGraveyard)
+	// A creature for the Bolt to target, on seat 1's battlefield.
+	bearID := negMoveByName(t, e, 1, "Grizzly Bears", state.ZBattlefield)
+	searchMoveByName(t, e, "Goblin Dark-Dwellers", state.ZBattlefield)
+
+	// Walk to the played Bolt's own target ask, choosing the Bears.
+	chosen := false
+	for i := 0; i < 40 && !chosen; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no decision pending before the Bolt's target ask")
+		}
+		switch d.Kind {
+		case decision.KPriority:
+			submitPass(t, e)
+		case decision.KTarget:
+			idx := -1
+			for _, o := range d.Options {
+				if o.Obj == bearID {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				// The ETB trigger's graveyard target ask: pick the Bolt.
+				submitChoices(t, e, 0)
+				continue
+			}
+			submitChoices(t, e, idx)
+			chosen = true
+		case decision.KModes:
+			submitChoices(t, e, 0)
+		default:
+			t.Fatalf("unexpected decision %d: kind=%s resume=%q", i, d.Kind, d.ResumeKind)
+		}
+	}
+	if !chosen {
+		t.Fatal("the played Bolt never posed its target ask")
+	}
+	if o := e.G.Obj(boltID); o == nil || o.Zone != state.ZStack {
+		t.Fatalf("the played Bolt is in %v, want the stack after targeting", o)
+	}
+	// The target leaves; the Bolt fizzles at resolution.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bearID, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.resolveTop()
+	if o := e.G.Obj(boltID); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("the fizzled played Bolt rests in %v, want exile", o)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestPlayReplaceGraveyardDoesNotLeak: the flag is per-SA provenance, never
-// a Play-mode-wide default. Two shapes on the same cards must still rest in
-// the graveyard:
-//  1. an ORDINARY hand cast of the same Lightning Bolt;
-//  2. a Play cast whose SA carries NO ReplaceGraveyard$ — Jace's
-//     Mindseeker's FishyCast (mill five from the opponent, then cast a
-//     remembered instant/sorcery for free), driven end to end on the real
-//     corpus card.
+// a Play-mode-wide default. Two shapes on real corpus cards must still rest
+// in the graveyard:
+//  1. an ORDINARY hand cast of the same Lightning Bolt (no Play SA, no flag);
+//  2. a FREE Play cast whose SA carries NO ReplaceGraveyard$ — Chancellor of
+//     the Spires' ETB ("you may cast target instant or sorcery card from an
+//     opponent's graveyard without paying its mana cost"), the exact mirror
+//     of Goblin Dark-Dwellers' trigger shape with the rider omitted. The
+//     scenario ASSERTS a ResumeKind=="play" ask actually occurred, so a dead
+//     Play path can never masquerade as a passing negative (the round-1
+//     negative half used Jace's Mindseeker, whose RememberMilled$
+//     dependency is unimplemented, so its Play was never offered at all).
 func TestPlayReplaceGraveyardDoesNotLeak(t *testing.T) {
 	reg := searchTestRegistry(t)
 
@@ -165,35 +268,45 @@ func TestPlayReplaceGraveyardDoesNotLeak(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 
-	// (2) Jace's Mindseeker: the ETB trigger mills five from seat 1's
-	// library (the Bolt is parked on top), remembers them, and chains
-	// FishyCast — a DB$ Play | ValidZone$ Graveyard,Exile |
-	// Valid$ Instant.IsRemembered | WithoutManaCost$ True | Amount$ 1 with
-	// NO ReplaceGraveyard$. The played Bolt resolves and must rest in the
-	// graveyard.
-	jace := searchCorpusCard(t, reg, "Jace's Mindseeker")
+	// (2) Chancellor of the Spires: the ETB trigger poses a real KTarget ask
+	// over seat 1's graveyard (the Bolt is the only instant/sorcery there),
+	// then a free DB$ Play | TgtZone$ Graveyard | ValidTgts$ Instant.OppOwn,
+	// Sorcery.OppOwn | WithoutManaCost$ True | Optional$ True with NO
+	// ReplaceGraveyard$. The played Bolt resolves and must rest in the
+	// graveyard, and the scenario must have seen the Play ask at all.
+	chanc := searchCorpusCard(t, reg, "Chancellor of the Spires")
 	mountain := searchCorpusCard(t, reg, "Mountain")
-	deck0 := []*cards.Card{jace}
-	for len(deck0) < 40 {
-		deck0 = append(deck0, mountain)
+	deck0 := make([]*cards.Card, 40)
+	for i := range deck0 {
+		deck0[i] = mountain
 	}
-	deck1 := []*cards.Card{searchCorpusCard(t, reg, "Lightning Bolt")}
-	for len(deck1) < 40 {
-		deck1 = append(deck1, mountain)
+	deck0[0] = chanc
+	deck1 := make([]*cards.Card, 40)
+	for i := range deck1 {
+		deck1[i] = mountain
 	}
-	cfg2 := seatZeroStart(Config{Seed: 7403, Names: []string{"mindseeker", "opponent"},
+	deck1[0] = searchCorpusCard(t, reg, "Lightning Bolt")
+	cfg2 := seatZeroStart(Config{Seed: 7403, Names: []string{"chancellor", "opponent"},
 		Decks: [][]*cards.Card{deck0, deck1}, Tokens: reg.Tokens})
 	e2 := New(cfg2)
 	e2.Advance()
+	// Chancellor's MayEffectFromOpeningHand reveal: decline the pregame ask.
+	if d := e2.Pending(); d != nil && d.Kind == decision.KChoose {
+		submitChoices(t, e2, 1)
+	}
 	toMain1(t, e2)
-	bolt2 := seatLibraryTop(t, e2, 1, "Lightning Bolt")
-	searchMoveByName(t, e2, "Jace's Mindseeker", state.ZBattlefield)
-	for i := 0; i < 40; i++ {
+	// Park the Bolt in seat 1's graveyard (the Play's only legal target).
+	bolt2 := negMoveByName(t, e2, 1, "Lightning Bolt", state.ZGraveyard)
+	// Put the Chancellor onto seat 0's battlefield (may have been drawn).
+	searchMoveByName(t, e2, "Chancellor of the Spires", state.ZBattlefield)
+	playAsks := 0
+	for i := 0; i < 60; i++ {
 		d := e2.Pending()
 		if d == nil {
 			break
 		}
-		if o := e2.G.Obj(bolt2); o != nil && o.Zone == state.ZGraveyard &&
+		if o := e2.G.Obj(bolt2); o != nil && playAsks > 0 &&
+			(o.Zone == state.ZGraveyard || o.Zone == state.ZExile || o.Zone == state.ZHand) &&
 			(d.Kind == decision.KPriority || d.ResumeKind == "") && d.Kind != decision.KModes {
 			break
 		}
@@ -201,35 +314,23 @@ func TestPlayReplaceGraveyardDoesNotLeak(t *testing.T) {
 		case decision.KPriority:
 			submitPass(t, e2)
 		case decision.KTarget:
-			// The mill's target ask offers both seats; the scenario needs
-			// the opponent (the mill that remembers the parked Bolt).
-			idx := -1
-			for _, o := range d.Options {
-				if o.Player == 1 {
-					idx = o.Index
-				}
-			}
-			if idx < 0 {
-				t.Fatalf("no opponent target offered: %+v", d.Options)
-			}
-			submitChoices(t, e2, idx)
+			submitChoices(t, e2, 0)
 		case decision.KModes:
 			if d.ResumeKind == "play" {
-				submitChoices(t, e2, 0)
-			} else {
-				submitChoices(t, e2)
+				playAsks++
 			}
-		case decision.KChoose:
-			// The opponent's end-of-turn hand-size discard: the scenario is
-			// already settled (the Bolt rests), so answer it and stop.
 			submitChoices(t, e2, 0)
-			if o := e2.G.Obj(bolt2); o == nil || o.Zone != state.ZGraveyard {
-				t.Fatalf("unexpected choose mid-scenario: %+v", d)
-			}
-			return
+		case decision.KChoose:
+			submitChoices(t, e2, 0)
 		default:
 			t.Fatalf("unexpected decision %d: kind=%s resume=%q", i, d.Kind, d.ResumeKind)
 		}
+	}
+	// The negative is only meaningful if the Play path actually ran: assert
+	// the ResumeKind=="play" ask fired (round-1's Jace's Mindseeker half
+	// never offered one, so it could not fail).
+	if playAsks == 0 {
+		t.Fatal("the rider-less Play never posed a ResumeKind==\"play\" ask")
 	}
 	if o := e2.G.Obj(bolt2); o == nil || o.Zone != state.ZGraveyard {
 		t.Fatalf("the rider-less Play's Bolt rests in %v, want the graveyard", o)
