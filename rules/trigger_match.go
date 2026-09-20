@@ -3102,10 +3102,13 @@ func (e *Engine) drawnMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 	return true
 }
 
-// drawNumberThisTurn counts p's draws in the current turn, including the Draw
-// event currently being matched. The log is the replay-stable source of this
-// per-turn fact; each player has its own ordinal because "their second card"
-// must not count another seat's draw.
+// drawNumberThisTurn counts p's draws in the current turn. The log is the
+// replay-stable source of this per-turn fact; each player has its own ordinal
+// because "their second card" must not count another seat's draw. Callers
+// differ on whether the Draw currently being matched is already logged:
+// trigger matching runs POST-emit (the event is in the log), while
+// replacement matching runs PRE-emit (it is not), so a replacement matcher
+// must add the pending draw's own applicability itself.
 func (e *Engine) drawNumberThisTurn(p state.PlayerID) int {
 	n := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
@@ -3168,6 +3171,55 @@ func (e *Engine) pendingDrawIsFirstInDrawStep(p state.PlayerID) bool {
 		}
 	}
 	return false
+}
+
+// extraDrawsThisTurn counts p's draws in the current turn that are NOT the
+// CR 504.1 turn-based draw -- the first card p draws in p's OWN draw step
+// while p is the active player. That is the draw Reed Richards' "except the
+// first card you draw during each of your draw steps" clause exempts, so a
+// FirstExtraCardDrawnThisTurn$ True replacement must apply only when this
+// count is zero (CR 614.1a: one replacement per occasion, and only the first
+// such occasion each turn).
+//
+// It runs from replacement matching, which is PRE-emit: the pending Draw is
+// not yet in e.L.Events, so the caller adds the pending draw's own
+// applicability separately (see pendingDrawIsFirstInDrawStep, the pre-emit
+// twin of the exempt-draw test). The log -- not a mutable counter -- is the
+// source of this per-turn fact, so cloning and replay rebuild it without an
+// event-schema change.
+func (e *Engine) extraDrawsThisTurn(p state.PlayerID) int {
+	n := 0
+	start := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		if e.L.Events[i].Kind == events.TurnChange {
+			start = i
+			break
+		}
+	}
+	// step is the step the scan is currently inside; 255 is the uint8 sentinel
+	// for "before any StepChange this turn", which no real step equals.
+	step := state.Step(255)
+	drawsInStep := 0
+	for i := start; i < len(e.L.Events); i++ {
+		ev := e.L.Events[i]
+		switch ev.Kind {
+		case events.StepChange:
+			step = ev.Step
+			if ev.Step == state.StepDraw {
+				drawsInStep = 0
+			}
+		case events.Draw:
+			if ev.Player != p {
+				continue
+			}
+			if step == state.StepDraw && p == e.G.Active && drawsInStep == 0 {
+				drawsInStep++
+				continue
+			}
+			n++
+		}
+	}
+	return n
 }
 
 // lifeLoss names the player and positive magnitude of an event that lowers a
