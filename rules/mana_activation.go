@@ -1450,6 +1450,24 @@ func (e *Engine) commanderIdentityColours(p state.PlayerID) []string {
 			continue
 		}
 		m |= o.Card.ColourIdentity()
+		// CR 903.4b: a commander whose printed CDA says "choose a color before
+		// the game begins" derives its identity from the recorded choice. Gate
+		// on the CDA static, never the bare ChosenColor field: a commander with
+		// an ordinary "as this enters" colour choice must not leak its
+		// battlefield choice into its identity, and before the pregame answer
+		// (or for a non-commander) ChosenColor is empty anyway.
+		if o.Card.Faces[0] != nil && o.Card.Faces[0].CommanderColourChoiceCDA() {
+			if cols, ok := resolveChosenColors("ChosenColor", o); ok {
+				for _, l := range cols {
+					if len(l) == 0 {
+						continue
+					}
+					if i := strings.IndexByte("WUBRG", l[0]); i >= 0 {
+						m |= 1 << uint(i)
+					}
+				}
+			}
+		}
 	}
 	var cols []string
 	for i, sym := range []string{"W", "U", "B", "R", "G"} {

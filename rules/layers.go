@@ -221,13 +221,16 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// named ones. Both share the colour-word parser: a named colour, a
 						// comma list, "All" (every colour) and, for SetColor$, "Colorless"
 						// (the empty set, a real overwrite to colourless). A value it cannot
-						// fully parse (the corpus's "ChosenColor" family -- Faceless One,
-						// Alloy Golem, Clara Oswald, and AddColor$ ChosenColor -- which asks
-						// its controller for a colour before the game) fails CLOSED: no
-						// effect is emitted and the object keeps its printed colours, the
-						// same direction effAnimate's Colors$ gate takes. No Note is emitted
-						// because this scan re-runs on every event; a per-derivation Note
-						// would flood the log.
+						// fully parse declines through resolveChosenColors, which is the
+						// layer-5 twin of resolveChosenTypes: a value naming the host's
+						// recorded choice (the corpus's "ChosenColor" family -- Alloy
+						// Golem, Shifting Sky, Shimmerwilds Growth's AddColor siblings)
+						// resolves to the colour, while a host with NO recorded choice
+						// (an unanswered ETB ask, a non-commander CDA carrier) fails
+						// CLOSED: no effect is emitted and the object keeps its printed
+						// colours, the same direction effAnimate's Colors$ gate takes.
+						// No Note is emitted because this scan re-runs on every event;
+						// a per-derivation Note would flood the log.
 						if raw, isSet := st.Params["SetColor"]; isSet {
 							// A resolvable characteristic-defining self SetColor$ (the
 							// Transguild Courier / Sphinx of the Guildpact "CARDNAME is
@@ -239,14 +242,15 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							// withholding the P/T CDA below takes. The shared
 							// effects.CDASetColourClaimStatic classifier is what both
 							// paths read, so they cannot disagree. A CDA the helper
-							// rejects (the ChosenColor family) keeps today's behaviour:
-							// the ColorLetters ok gate already drops it. A CDA that
+							// rejects (the ChosenColor family) is NOT withheld: it
+							// flows to resolveChosenColors, which resolves it against
+							// the host's recorded choice or fails closed. A CDA that
 							// narrows itself with AffectedZone$ would be a different
 							// shape -- no corpus carrier carries one (measured), and a
 							// CDA's zone width is every zone by CR 604.3 anyway.
 							if _, isCDA, parsed := effects.CDASetColourClaimStatic(st); isCDA && parsed {
 								// withheld: the base read applies it in every zone
-							} else if cols, ok := effects.ColorLetters(raw); ok {
+							} else if cols, ok := resolveChosenColors(raw, o); ok {
 								sc := base
 								sc.Layer = LColor
 								sc.AddColors = cols
@@ -259,7 +263,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							if !isAdd {
 								raw = st.Params["AddColors"]
 							}
-							if cols, ok := effects.ColorLetters(raw); ok {
+							if cols, ok := resolveChosenColors(raw, o); ok {
 								sc := base
 								sc.Layer = LColor
 								sc.AddColors = cols
@@ -856,6 +860,38 @@ func resolveChosenTypes(list []string, o *state.Object) ([]string, bool) {
 		out = append(out, o.ChosenType)
 	}
 	return out, true
+}
+
+// resolveChosenColors resolves a SetColor$/AddColor$ value against the static
+// host's own recorded "as this enters, choose a color" / CR 903.4b pregame
+// choice (state.Object.ChosenColor, set by the Choose event the ask emitted).
+// It is the layer-5 twin of resolveChosenTypes. A value of "ChosenColor"
+// resolves to the host's recorded colour -- the event records a single WUBRG
+// letter (rules/cast.go etbAnswer), but a full colour word is accepted too so
+// the two spellings cannot drift -- and a host with NO recorded choice fails
+// closed: ok=false, the caller emits nothing and the object keeps its printed
+// colours (today's shipped behaviour for the whole family).
+//
+// Everything else passes through the ordinary colour-word parser. A bare
+// WUBRG letter is accepted directly (the layer-5 walk at ~1652 reads
+// strings.IndexByte("WUBRG", l[0]), so a letter element is already legal),
+// which is the shape the recorded choice itself carries; a value the parser
+// cannot fully recognise still fails closed, exactly as before.
+func resolveChosenColors(raw string, o *state.Object) ([]string, bool) {
+	if strings.EqualFold(strings.TrimSpace(raw), "ChosenColor") {
+		if o == nil || o.ChosenColor == "" {
+			return nil, false
+		}
+		if cols, ok := effects.ColorLetters(o.ChosenColor); ok && len(cols) > 0 {
+			return cols, true
+		}
+		// A bare WUBRG letter (the recorded form) bypasses the word parser.
+		if l := strings.ToUpper(strings.TrimSpace(o.ChosenColor)); len(l) == 1 && strings.IndexByte("WUBRG", l[0]) >= 0 {
+			return []string{l}, true
+		}
+		return nil, false
+	}
+	return effects.ColorLetters(raw)
 }
 
 // Layer, Sublayer and ContinuousEffect moved to state/continuous.go in Task
