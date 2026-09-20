@@ -40,6 +40,24 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		// suspension finish. Clearing Play keeps the answer scoped to this
 		// one resume: a nested Play reached below this one in the same walk
 		// must pose its own ask instead of inheriting the answered card.
+		//
+		// ForgetPlayed$ True (task param:api:Play.ForgetPlayed): a card the
+		// Play actually BEGAN to play has been cast/put onto the stack by the
+		// resume arm and must leave the remembered set now -- the chained
+		// "if you don't play it" arm (Vaan, Street Thief's ConditionDefined$
+		// Remembered Treasure gate) reads both remembered halves, and with
+		// the played card still remembered it fired even though the cast was
+		// taken. The decline leaves ctx.Play at 0 (the resume arm only sets
+		// it for a begun card), so the guard keeps the decline path untouched
+		// and the Treasure is created exactly when nothing was played. The
+		// forget shares ForgetChanged$'s body (context.go): a ctx filter AND
+		// the "forget-remembered" Choose event on the source, replay-safe
+		// with no new event kind. An Amount$ Play that begins SEVERAL cards
+		// still only forgets the first (ctx.Play holds one card) -- measured
+		// corpus-unreachable: every ForgetPlayed$ carrier plays one card.
+		if id := c.Play; id != 0 && strings.EqualFold(strings.TrimSpace(sa.Params["ForgetPlayed"]), "True") {
+			forgetRememberedOne(h, c, id)
+		}
 		c.PlayDone = false
 		c.Play = 0
 		return
