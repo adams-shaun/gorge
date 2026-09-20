@@ -301,3 +301,96 @@ func TestWastelandStranglerTriggerCostDeclineChangesNothing(t *testing.T) {
 		t.Fatalf("bear power = %d, want 2 (a decline never pumps)", got)
 	}
 }
+
+// TestProcessorAssaultSpellAdditionalCostMovesTheCard is the spell half of
+// the same token: Processor Assault's `A:SP$ DealDamage | Cost$ 1 R
+// ExiledMoveToGrave<1/Card.OppOwn/card an opponent owns>` carries the cost on
+// the SPELL's own Cost$ (an additional cost), folded in by
+// withSpellAbilityExtras. Before that fold the parsed Cost.MoveToGrave was
+// dropped on the floor for a spell, so the spell was offered, resolved, dealt
+// its 5 damage and left the opponent-owned exiled card untouched -- the same
+// fail-open defect the AB half closed, in its spell spelling.
+//
+// The offer itself is gated on a real candidate (an opponent-owned card in
+// exile); with one present the cast is offered at exactly {1}{R}, the cost
+// pick is a real KChoose over the exile zone, and paying moves the card to its
+// OWNER's graveyard before the damage resolves.
+func TestProcessorAssaultSpellAdditionalCostMovesTheCard(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := exileGraveEngine(t, reg, 4227, "Processor Assault", "Grizzly Bears")
+	spell := findCardByName(t, e, "Processor Assault")
+	if got := e.G.Obj(spell).Zone; got == state.ZLibrary {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: spell, From: state.ZLibrary, To: state.ZHand})
+		e.pending = nil
+	}
+	if got := e.G.Obj(spell).Zone; got != state.ZHand {
+		t.Fatalf("Processor Assault zone = %s, want Hand", got)
+	}
+	bear := searchMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)
+	victim := exileOpponentCard(t, e, spell)
+	addMana(t, e, 0, "CR") // exactly {1}{R}: the printed cost, no phantom {1}
+
+	// Offered only because an opponent-owned card sits in exile.
+	if !plainCastOffered(e, 0, spell) {
+		t.Fatalf("Processor Assault not offered at {1}{R} with an exile candidate: %+v", e.Pending())
+	}
+	opt := castOptionFor(t, e, spell)
+	submitChoices(t, e, opt.Index)
+
+	// The additional-cost pick: a real KChoose over the exile zone.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("expected the move-to-graveyard cost ask, got %+v", d)
+	}
+	found := -1
+	for _, o := range d.Options {
+		if o.Kind == "movetogravecost" && o.Obj == victim {
+			found = o.Index
+		}
+	}
+	if found < 0 {
+		t.Fatalf("cost ask does not offer the exiled card: %+v", d.Options)
+	}
+	submitChoices(t, e, found)
+
+	// The spell's target ask, then resolution.
+	d = passUntilNonPriority(t, e, 20)
+	if d.Kind != decision.KTarget {
+		t.Fatalf("expected the damage target ask, got %+v", d)
+	}
+	tidx := -1
+	for _, o := range d.Options {
+		if o.Obj == bear {
+			tidx = o.Index
+		}
+	}
+	if tidx < 0 {
+		t.Fatalf("damage target ask does not offer the bear: %+v", d.Options)
+	}
+	submitChoices(t, e, tidx)
+	passUntilStackEmpty(t, e, 20)
+
+	if got := e.G.Obj(victim).Zone; got != state.ZGraveyard {
+		t.Fatalf("paid card zone = %s, want Graveyard (the spell's additional cost)", got)
+	}
+	if !inOwnerGraveyard(e, victim) {
+		t.Fatalf("paid card is not in its OWNER's (seat 1's) graveyard")
+	}
+	if got := e.G.Obj(bear).Zone; got != state.ZGraveyard {
+		t.Fatalf("bear zone = %s, want Graveyard (died to Processor Assault's NumDmg$ 5 on a 2/2)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestProcessorAssaultWithheldWithoutAnExiledCandidate pins the spell offer
+// gate: no opponent-owned card in exile, no cast (the additional cost cannot
+// be paid).
+func TestProcessorAssaultWithheldWithoutAnExiledCandidate(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := exileGraveEngine(t, reg, 4228, "Processor Assault")
+	spell := findCardByName(t, e, "Processor Assault")
+	addMana(t, e, 0, "CR")
+	if plainCastOffered(e, 0, spell) {
+		t.Fatalf("Processor Assault offered with nothing in exile: %+v", e.Pending())
+	}
+}

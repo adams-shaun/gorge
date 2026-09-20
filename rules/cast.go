@@ -1247,6 +1247,9 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	if len(extra.Exile) > 0 {
 		cost.Exile = append(append([]CostPart(nil), cost.Exile...), extra.Exile...)
 	}
+	if len(extra.MoveToGrave) > 0 {
+		cost.MoveToGrave = append(append([]CostPart(nil), cost.MoveToGrave...), extra.MoveToGrave...)
+	}
 	if len(extra.Reveal) > 0 {
 		cost.Reveal = append(append([]CostPart(nil), cost.Reveal...), extra.Reveal...)
 	}
@@ -1743,9 +1746,6 @@ func (e *Engine) continueCast() {
 	if e.forageAsk() || e.revealCostAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
 		return
 	}
-	// CR 601.2b: the ExiledMoveToGrave cost pick (Shelob's "put a creature
-	// card exiled with Shelob into its owner's graveyard") runs beside the
-	// other non-mana component asks, after the PutToLib ask.
 	// CR 601.2b: the replicate count (CR 702.55a's optional additional cost,
 	// paid any number of times) is announced before Convoke/Harmonize and X,
 	// whose asks must see and bound against the composed total.
@@ -1786,6 +1786,9 @@ func (e *Engine) continueCast() {
 	if e.putToLibAsk() {
 		return
 	}
+	// CR 601.2b: the ExiledMoveToGrave cost pick (Shelob's "put a creature
+	// card exiled with Shelob into its owner's graveyard") runs beside the
+	// other non-mana component asks, after the PutToLib ask.
 	if e.moveGraveAsk() {
 		return
 	}
