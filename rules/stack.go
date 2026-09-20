@@ -1968,6 +1968,12 @@ func (e *Engine) resolveTop() {
 		}
 	}
 	e.emit(events.Event{Kind: events.Resolve, Obj: id, Text: f.Name})
+	// Ascend (CR 702.131a, the non-permanent case): an instant/sorcery with
+	// K:Ascend grants its controller the blessing BEFORE the spell's own
+	// body and condition checks read the latch (Forge's "do blessing there
+	// before condition checks"; rules/ascend.go). Permanent faces are
+	// excluded -- their grant is the emit-side continuous scan.
+	e.grantSpellBlessing(o, f)
 	if sa != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets,

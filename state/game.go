@@ -91,6 +91,16 @@ type Player struct {
 	// (ControlChange and the battlefield-leave path), so a replay derives
 	// the designation identically.
 	RingBearer ObjID
+
+	// Blessing is this seat's one-way "the city's blessing" latch (CR
+	// 702.131, Ascend): once true it stays true for the rest of the game
+	// -- CR 702.131a grants it when a player controls an Ascend permanent
+	// (or resolves an Ascend instant/sorcery) while controlling ten or
+	// more permanents, and nothing ever removes it. Written only by
+	// events.Apply's BlessingChange case, so a log-only reconstruction
+	// rebuilds it exactly. A plain bool is carried for free by Clone's
+	// per-player struct copy.
+	Blessing bool
 }
 
 // ExtraTurn is one pending CR 500.7 turn. It is deliberately a queue entry,

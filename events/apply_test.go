@@ -891,6 +891,12 @@ func TestInvestigateKindString(t *testing.T) {
 	}
 }
 
+func TestBlessingChangeKindString(t *testing.T) {
+	if got, want := BlessingChange.String(), "blessing_change"; got != want {
+		t.Fatalf("BlessingChange.String() = %q, want %q", got, want)
+	}
+}
+
 func TestClockTickKindString(t *testing.T) {
 	if got, want := ClockTick.String(), "clock_tick"; got != want {
 		t.Fatalf("ClockTick.String() = %q, want %q", got, want)

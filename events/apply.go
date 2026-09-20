@@ -162,6 +162,15 @@ func Apply(g *state.Game, e Event) {
 			g.Monarch, g.HasMonarch = e.Player, true
 		}
 
+	case BlessingChange:
+		// CR 702.131: the city's blessing is a one-way latch ("for the rest
+		// of the game"); the grant's ten-permanents gate is the EMITTER's
+		// (rules/ascend.go), so Apply folds the bit plainly. Idempotent by
+		// construction -- the emitter only emits for an unblessed seat.
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].Blessing = true
+		}
+
 	case StartingPlayerChange:
 		if validPlayer(g, e.Player) {
 			g.StartingPlayer, g.HasStartingPlayer = e.Player, true

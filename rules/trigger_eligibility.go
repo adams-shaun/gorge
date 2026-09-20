@@ -82,7 +82,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.GrantTriggerPush, events.ManaActivate,
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
 		events.CopyToken, events.Exert, events.PlanarRoll,
-		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush:
+		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
+		events.BlessingChange:
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach

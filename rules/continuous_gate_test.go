@@ -283,6 +283,9 @@ func TestContinuousConditionTable(t *testing.T) {
 		{"Hellbent",
 			func(e *Engine) { e.G.SetZone(state.ZHand, 0, nil); e.staticEpoch = -1 },
 			func(e *Engine) {}},
+		{"Blessing",
+			func(e *Engine) { e.emit(events.Event{Kind: events.BlessingChange, Player: 0}) },
+			func(e *Engine) {}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.cond+"/true", func(t *testing.T) {
@@ -309,13 +312,16 @@ func TestContinuousConditionTable(t *testing.T) {
 }
 
 // TestContinuousConditionUnknownNeverApplies pins the fail-closed direction: a
-// Condition$ value this gate does not implement (Blessing) never grants.
+// Condition$ value this gate does not implement (FatefulHour) never grants.
+// Blessing USED to be this test's unknown example and now reads the real
+// CR 702.131 latch (ascend1) -- see TestContinuousConditionTable's Blessing
+// entry and rules/ascend_test.go.
 func TestContinuousConditionUnknownNeverApplies(t *testing.T) {
 	e := layerEngine(t)
-	bear := onBoard(t, e, 0, "Name:Blessed Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\n"+
-		"S:Mode$ Continuous | Affected$ Card.Self | AddPower$ 2 | Condition$ Blessing | Description$ x\n"+
+	bear := onBoard(t, e, 0, "Name:Comatose Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\n"+
+		"S:Mode$ Continuous | Affected$ Card.Self | AddPower$ 2 | Condition$ FatefulHour | Description$ x\n"+
 		"Oracle:x\n")
 	if got := e.Power(bear); got != 2 {
-		t.Fatalf("unimplemented Condition$ Blessing granted (power %d, want 2 -- fail closed)", got)
+		t.Fatalf("unimplemented Condition$ FatefulHour granted (power %d, want 2 -- fail closed)", got)
 	}
 }
