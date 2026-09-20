@@ -81,7 +81,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.GrantTriggerPush, events.ManaActivate,
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
 		events.CopyToken, events.Exert, events.PlanarRoll,
-		events.CombatRetarget:
+		events.CombatRetarget, events.RingTemptsYou:
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -127,6 +127,14 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.MoveZone
 	case "Explores":
 		return 1 << events.Explore
+	case "RingTemptsYou":
+		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
+		// is not encodable, and allows() fails open for every kind at or past
+		// triggerMaskKindBits (the CombatRetarget lesson), so the mode is
+		// admitted through that fail-open path. Naming the mode here (rather
+		// than letting it fall to the allTriggerEvents default) keeps a
+		// RingTemptsYou-only face's mask narrow for every other kind.
+		return 0
 	case "CommitCrime", "BecomesTarget":
 		return 1 << events.TargetsChosen
 	case "Attached":
