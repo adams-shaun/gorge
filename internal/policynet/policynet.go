@@ -48,6 +48,14 @@ func hashID(s string) uint16 {
 	return uint16(h & rowMask)
 }
 
+// HashID is the exported form of the pinned FNV-1a-64-masked feature hash:
+// the same function the encoders use internally, for tools that must mint
+// feature rows against the same table (the trainer's synthetic corpora, a
+// future inference host). Its function, masking and string-format contract
+// are pinned by the encoding goldens; a checkpoint is worthless if this
+// moves.
+func HashID(s string) uint16 { return hashID(s) }
+
 // Feature is one sparse entry: a row in a fixed-width space and its value.
 // State sparse features live in the shared TableRows space; option slot
 // features live in OptionSlotWidth slots (a separate, dense one-hot space).
