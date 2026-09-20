@@ -299,6 +299,15 @@ type Decision struct {
 	Min     int            `json:"min"`
 	Max     int            `json:"max"`
 	Options []Option       `json:"options"`
+	// Repeatable relaxes Validate's no-duplicate-index rule: when true the
+	// SAME option index may be chosen more than once in one answer. It is
+	// set only by a modal (Charm) decision whose SA carries
+	// CanRepeatModes$ True -- CR 601.2b's "you may choose the same mode more
+	// than once" -- where the option list is the distinct modes and the
+	// answer is an ordered multiset of them. Every other decision keeps the
+	// strict rule. omitempty: a non-repeatable decision carries no field, so
+	// every existing payload serialises byte-identically.
+	Repeatable bool `json:"repeatable,omitempty"`
 	// Source names the object this decision resolves for -- the spell whose
 	// {X} is being chosen, the card whose "as it enters" choice is pending
 	// -- so a prompt can always name its source (survey #18) without the
@@ -407,7 +416,7 @@ func (d *Decision) Validate(in Intent) error {
 		if c < 0 || c >= len(d.Options) {
 			return fmt.Errorf("choice %d out of range (%d options)", c, len(d.Options))
 		}
-		if seen[c] {
+		if seen[c] && !d.Repeatable {
 			return fmt.Errorf("duplicate choice %d", c)
 		}
 		seen[c] = true

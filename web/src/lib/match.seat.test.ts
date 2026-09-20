@@ -18,7 +18,7 @@ const { MatchState } = await import('./match.svelte');
 
 const seat = { seat: 0, token: 'tok' } as const;
 
-const matchStart = (): MatchStart => ({ seats: [], seed: 1, spectator: '' });
+const matchStart = (): MatchStart => ({ seats: [], seed: 1, spectator: '', bot_policy: 'bot' });
 const spectatorView = (turn = 1): View => ({
   viewer: 99, visibility: 'omniscient', turn, round: turn, step: 'main', phase: 'main1', active: 0, priority: 0,
   over: false, draw: false, winner: null, players: [], stack: [], pending: [],

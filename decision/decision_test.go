@@ -47,6 +47,27 @@ func TestValidateRejectsOutOfRangeAndDuplicates(t *testing.T) {
 	}
 }
 
+// TestValidateAllowsRepeatsWhenRepeatable is the Repeatable relaxation of the
+// general no-duplicate rule: a modal ask carrying CanRepeatModes$ True (CR
+// 601.2b) picks the same option several times, and only that ask may. The
+// default stays strict -- the assertion above pins it -- so this flag is the
+// one thing standing between Fiery Confluence's repeated mode and a rejected
+// intent.
+func TestValidateAllowsRepeatsWhenRepeatable(t *testing.T) {
+	d := sample()
+	d.Min, d.Max = 0, 3
+	d.Repeatable = true
+	if err := d.Validate(Intent{Seq: 7, Player: 1, Choices: []int{1, 1, 1}}); err != nil {
+		t.Fatalf("Repeatable rejected a repeated choice: %v", err)
+	}
+	if err := d.Validate(Intent{Seq: 7, Player: 1, Choices: []int{2}}); err == nil {
+		t.Error("Repeatable must still reject out-of-range indices")
+	}
+	if err := d.Validate(Intent{Seq: 7, Player: 1, Choices: []int{0, 1, 0}}); err != nil {
+		t.Fatalf("Repeatable rejected a mixed repeat: %v", err)
+	}
+}
+
 func TestValidateEnforcesArity(t *testing.T) {
 	d := sample()
 	if err := d.Validate(Intent{Seq: 7, Player: 1, Choices: nil}); err == nil {

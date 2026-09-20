@@ -318,6 +318,24 @@ func TestEveryKind(t *testing.T) {
 		t.Errorf("modes = %+v, want the first Min options in order", in)
 	}
 
+	// A Repeatable modal ask (Fiery Confluence) may need MORE picks than it
+	// has distinct options: CharmNum$ 3 over 2 legal modes means one mode is
+	// repeated. The answer must satisfy Min by repetition and still pass
+	// Validate -- an under-filled intent is rejected by arity and would wedge
+	// the game.
+	repeat := decision.Decision{Seq: 10, Player: 0, Kind: decision.KModes, Min: 3, Max: 3,
+		Repeatable: true,
+		Options: []decision.Option{
+			{Index: 0, Kind: "mode"}, {Index: 1, Kind: "mode"},
+		}}
+	in := Decide(Board{}, &repeat, rng(1))
+	if err := repeat.Validate(in); err != nil {
+		t.Fatalf("repeatable modes failed Validate: %v (%+v)", err, in)
+	}
+	if len(in.Choices) != 3 {
+		t.Fatalf("repeatable modes = %+v, want three picks", in)
+	}
+
 	// Trigger order: whatever the rng draws, the answer must be a full
 	// permutation of the offered indices -- every trigger exactly once.
 	order := decision.Decision{Seq: 9, Player: 0, Kind: decision.KTriggerOrder, Min: 3, Max: 3,

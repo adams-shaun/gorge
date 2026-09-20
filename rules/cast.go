@@ -2366,16 +2366,17 @@ func (e *Engine) castModeAsk() bool {
 			legal = append(legal, name)
 		}
 	}
-	min, max := effects.CharmModeBounds(e, ctx, sa, len(legal))
-	if min > len(legal) {
+	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
+	if min > len(legal) && !repeat {
 		// No legal set of modes can complete its required target choices. This
 		// is the modal counterpart of targetAsk's no-legal-target reversal; use
 		// the no-progress suppression so an automated seat cannot propose the
-		// same impossible cast forever.
+		// same impossible cast forever. A repeatable Charm can fill its slots by
+		// repeating an eligible mode, so it never aborts here.
 		e.abortCast(pc, "cast aborted: no legal modal choice", true)
 		return true
 	}
-	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max)
+	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max, repeat)
 	d.ResumeKind = "cast_modes"
 	e.ask(d)
 	return true

@@ -717,6 +717,24 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			}
 			in.Choices = append(in.Choices, o.Index)
 		}
+		// A Repeatable decision (a CanRepeatModes$ Charm, CR 601.2b) may need
+		// MORE picks than it has distinct options -- CharmNum$ 3 over 2 legal
+		// modes is answered as one mode twice. The two loops above cannot
+		// exceed the option count, so fill the remaining slots by repeating an
+		// ungrouped option; Decision.Validate permits the duplicate for exactly
+		// this ask. Repeating a grouped option is never attempted: a repeatable
+		// modal ask carries no Groups, and a group's exclusivity outranks the
+		// arity nudge.
+		if d.Repeatable {
+			for _, o := range d.Options {
+				if len(in.Choices) >= min {
+					break
+				}
+				if o.Group == "" {
+					in.Choices = append(in.Choices, o.Index)
+				}
+			}
+		}
 	}
 	return in
 }
