@@ -136,3 +136,14 @@ func colorLetters(list string) ([]string, bool) {
 	}
 	return out, ok
 }
+
+// ColorLetters is colorLetters for callers outside this package (rules'
+// static scan reading a card's SetColor$). It is the same colour-word
+// vocabulary and the same fail-closed contract: ok=false means at least one
+// word was not recognised, so the caller must not overwrite the target's
+// colours with the partial prefix. "Colorless" parses to an empty set with
+// ok=true, which is a real overwrite-to-colourless for a SetColor$ grant
+// (Imprisoned in the Moon), distinct from the fail-closed arm.
+func ColorLetters(list string) ([]string, bool) {
+	return colorLetters(list)
+}

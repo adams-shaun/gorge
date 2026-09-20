@@ -210,6 +210,46 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 								out = append(out, ty)
 							}
 						}
+						// CR 613.1e colour static (Forge's SetColor$, Imprisoned in the Moon /
+						// Kenrith's Transformation / Leyline of the Guildpact): the affected
+						// object's colours are exactly the named set, REPLACING its printed
+						// colours and every earlier layer-5 grant in timestamp order
+						// (SetColor$ overwrites; it never extends). Its sibling AddColor$
+						// ("...in addition to its other colors", Blade of the Oni / Angelic
+						// Armaments / Deep Freeze) is the same layer-5 walk WITHOUT the
+						// overwrite, so the object keeps its printed colours and gains the
+						// named ones. Both share the colour-word parser: a named colour, a
+						// comma list, "All" (every colour) and, for SetColor$, "Colorless"
+						// (the empty set, a real overwrite to colourless). A value it cannot
+						// fully parse (the corpus's "ChosenColor" family -- Faceless One,
+						// Alloy Golem, Clara Oswald, and AddColor$ ChosenColor -- which asks
+						// its controller for a colour before the game) fails CLOSED: no
+						// effect is emitted and the object keeps its printed colours, the
+						// same direction effAnimate's Colors$ gate takes. No Note is emitted
+						// because this scan re-runs on every event; a per-derivation Note
+						// would flood the log.
+						if raw, isSet := st.Params["SetColor"]; isSet {
+							if cols, ok := effects.ColorLetters(raw); ok {
+								sc := base
+								sc.Layer = LColor
+								sc.AddColors = cols
+								sc.OverwriteColors = true
+								sc.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+								out = append(out, sc)
+							}
+						}
+						if raw, isAdd := st.Params["AddColor"]; isAdd || st.Params["AddColors"] != "" {
+							if !isAdd {
+								raw = st.Params["AddColors"]
+							}
+							if cols, ok := effects.ColorLetters(raw); ok {
+								sc := base
+								sc.Layer = LColor
+								sc.AddColors = cols
+								sc.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+								out = append(out, sc)
+							}
+						}
 						// CR 613.1f / 613.4b (Humility): a base-setting static runs in
 						// layer 7b (SubSet), before the 7c modify a later Pump adds; and
 						// a RemoveAllAbilities static is a layer-6 ability removal.
