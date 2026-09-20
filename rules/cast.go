@@ -4237,6 +4237,15 @@ func (e *Engine) pushCast() bool {
 	e.deferCastTrigger = true
 	e.emit(events.Event{Kind: events.PutOnStack, Obj: pc.card, Player: pc.player, From: pc.from, To: state.ZStack, Text: o.Face().Name})
 	e.deferCastTrigger = false
+	// CR 601.2a: the player who cast the spell is its controller. A card
+	// another seat controlled (Rashmi and Ragavan's exiled OPPONENT card,
+	// Gonti's stolen card, Intellect Devourer's may-play exile) comes under
+	// the caster's control the moment it is cast, and the resulting permanent
+	// enters the battlefield under the caster's control; an ordinary cast's
+	// card already answers to the caster, so no event rides those.
+	if o := e.G.Obj(pc.card); o != nil && o.Controller != pc.player {
+		e.emit(events.Event{Kind: events.ControlChange, Obj: pc.card, Player: pc.player})
+	}
 	pc.stackObj = pc.card
 	pc.pushed = true
 	// CR 903.8: the cast counter increments the INSTANT the spell is put on
