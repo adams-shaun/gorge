@@ -17,6 +17,7 @@ func init() {
 	Register("DestroyAll", effDestroyAll)
 	Register("Sacrifice", effSacrifice)
 	Register("Manifest", effManifest)
+	Register("Cloak", effCloak)
 }
 
 // ParseZone maps a Forge zone name to a state.Zone. Unknown names resolve to
@@ -2020,6 +2021,162 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: top, Player: p,
 				From: state.ZLibrary, To: state.ZBattlefield,
 				Counter: "entered_face_down", Secret: true})
+		}
+	}
+}
+
+// effCloak implements Forge's Cloak primitive (veiled_ascension's upkeep
+// trigger, unexplained_absence's per-player cloak, cryptic_coat's ETB cloak):
+// CR 708.5's cloak variant -- the named card objects move onto the
+// battlefield FACE DOWN as 2/2 creatures with ward {2}. The move is the REAL
+// card object, the effManifest shape with a different Counter value (one
+// Secret MoveZone per card, "entered_cloaked" instead of
+// "entered_face_down" -- the marker events/apply.go folds into
+// state.Object.Cloaked, which rules/layers.go and rules/trigger_match.go
+// read for the ward {2}; the view's FaceDown redaction covers both
+// variants). A cloak's Defined$ names card objects that may sit in the
+// library, exile or hand (the Remembered carriers move cards that just
+// arrived there), so unlike effManifest the object shapes resolve directly.
+//
+// Scope, measured over the corpus's 11 Cloak lines: the per-player top-card
+// shapes (DefinedPlayer$, or Defined$ TopOfLibrary whose listed player's OWN
+// library is taken -- never the resolver's), the ctx-Remembered object
+// shapes (become_anonymous, hide_in_plain_sight, expose_the_culprit), a
+// literal/SVar Amount$ (default 1; a value resolving to <= 0 cloaks
+// nothing, no event) and the riders Tapped$ (enter tapped, the
+// MoveZone-then-Tap pair), Shuffle$ (the standard Secret shuffle of each
+// affected player's library afterwards) and RememberCloaked$ (each cloaked
+// object joins the resolution's Remembered -- cryptic_coat's chained attach)
+// are implemented. SubAbility$ is free (the ordinary chain). Every other
+// shape -- the Choices$ cloak-from-hand chooser (vannifar), Defined$
+// ValidLibrary (etrata), an unresolvable Amount$ body -- emits the SAME loud
+// "unimplemented API Cloak" note the unimplemented fallback emits and moves
+// nothing: fail loud, never silently move the wrong card. Turning a cloaked
+// card face up (CR 708.6) is not implemented anywhere (the
+// Morph/Megamorph/Disguise ticket owns the shared turn-face-up path).
+func effCloak(h Host, c *Ctx, sa *cards.SA) {
+	loud := func() {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented API Cloak"})
+	}
+	defined := strings.TrimSpace(sa.Params["Defined"])
+	if strings.TrimSpace(sa.Params["Choices"]) != "" ||
+		strings.Contains(defined, "ValidLibrary") {
+		loud()
+		return
+	}
+	amount := int32(1)
+	if raw, present := sa.Params["Amount"]; present {
+		// X/Y (and any body Num's grammar cannot resolve) are out of scope:
+		// loud, never a degraded count silently moving a wrong number of
+		// cards.
+		if raw == "X" || raw == "Y" {
+			loud()
+			return
+		}
+		n, ok := NumResolved(h, c, sa, "Amount", 1)
+		if !ok {
+			loud()
+			return
+		}
+		amount = n
+	}
+	if amount <= 0 {
+		return
+	}
+	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
+	shuffle := strings.EqualFold(strings.TrimSpace(sa.Params["Shuffle"]), "True")
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCloaked"]), "True")
+	g := h.Game()
+	shuffled := make(map[state.PlayerID]bool)
+	cloak := func(id state.ObjID) {
+		o := g.Obj(id)
+		if o == nil || o.Zone == state.ZBattlefield {
+			// A missing object moves nothing; a card already on the
+			// battlefield is not a cloak candidate (every corpus shape sources
+			// from library/exile/hand).
+			return
+		}
+		from := o.Zone
+		// Player rides the CLOAKED card's controller: Secret is what keeps
+		// the event's Obj out of every other seat's projection (redaction
+		// rule 1), and the seat that may look at a face-down card is its
+		// controller (CR 708.5).
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, Player: o.Controller,
+			From: from, To: state.ZBattlefield,
+			Counter: "entered_cloaked", Secret: true})
+		if remember {
+			// RememberCloaked$ is ctx level (the cryptic_coat attach chain
+			// reads it within the same resolution); the persistent list is
+			// left alone, the RememberChanged$ convention.
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		}
+		if tapped {
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: o.Controller,
+				Text: "entered tapped"})
+		}
+		shuffled[o.Owner] = true
+	}
+	if strings.TrimSpace(sa.Params["DefinedPlayer"]) != "" {
+		// The per-player top-card shape (unexplained_absence's
+		// "Defined$ TopOfLibrary | DefinedPlayer$ RememberedController"):
+		// each listed player's OWN top Amount$ cards -- searchPlayers's
+		// DefinedPlayer$ precedence, the effManifest loop's move shape.
+		for _, p := range searchPlayers(h, c, sa) {
+			if int(p) >= len(g.Players) {
+				continue
+			}
+			n := amount
+			if l := int32(len(g.Zone(state.ZLibrary, p))); l < n {
+				n = l
+			}
+			for i := int32(0); i < n; i++ {
+				// Index 0 is the TOP of the library (the end a Draw takes).
+				// The MoveZone fold removes the object as it lands, so the
+				// zone is re-read each iteration.
+				top := g.Zone(state.ZLibrary, p)[0]
+				cloak(top)
+			}
+		}
+	} else {
+		switch defined {
+		case "", "TopOfLibrary":
+			// The bare top-card shape (veiled_ascension, ransom_note,
+			// cryptic_coat): the resolving controller's top card, the
+			// TopOfLibrary selector's own anchor (effects/context.go).
+			targets, ok := definedSpec(h, c, "TopOfLibrary")
+			if !ok {
+				loud()
+				return
+			}
+			for _, t := range targets {
+				if t.IsPlayer {
+					continue
+				}
+				cloak(t.Obj)
+			}
+		case "Remembered":
+			// The Remembered-object shape (become_anonymous,
+			// hide_in_plain_sight, expose_the_culprit): each remembered card
+			// object cloaks from wherever it sits now (library top, exile,
+			// hand).
+			for _, t := range objectsOf(copyTargets(c.Remembered)) {
+				cloak(t.Obj)
+			}
+		default:
+			loud()
+			return
+		}
+	}
+	if shuffle {
+		// Shuffle$ True: the standard Secret events.Shuffle for each player
+		// whose library lost a card (become_anonymous and expose_the_culprit
+		// carry it; the deterministic order comes from the host's own rng
+		// path every other library shuffle uses).
+		for _, p := range g.AliveFrom(c.Controller) {
+			if shuffled[p] {
+				shuffleLibraryOrder(h, p)
+			}
 		}
 	}
 }

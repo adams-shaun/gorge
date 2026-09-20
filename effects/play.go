@@ -40,6 +40,24 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		// suspension finish. Clearing Play keeps the answer scoped to this
 		// one resume: a nested Play reached below this one in the same walk
 		// must pose its own ask instead of inheriting the answered card.
+		//
+		// ForgetPlayed$ True (task param:api:Play.ForgetPlayed): a card the
+		// Play actually BEGAN to play has been cast/put onto the stack by the
+		// resume arm and must leave the remembered set now -- the chained
+		// "if you don't play it" arm (Vaan, Street Thief's ConditionDefined$
+		// Remembered Treasure gate) reads both remembered halves, and with
+		// the played card still remembered it fired even though the cast was
+		// taken. The decline leaves ctx.Play at 0 (the resume arm only sets
+		// it for a begun card), so the guard keeps the decline path untouched
+		// and the Treasure is created exactly when nothing was played. The
+		// forget shares ForgetChanged$'s body (context.go): a ctx filter AND
+		// the "forget-remembered" Choose event on the source, replay-safe
+		// with no new event kind. An Amount$ Play that begins SEVERAL cards
+		// still only forgets the first (ctx.Play holds one card) -- measured
+		// corpus-unreachable: every ForgetPlayed$ carrier plays one card.
+		if id := c.Play; id != 0 && strings.EqualFold(strings.TrimSpace(sa.Params["ForgetPlayed"]), "True") {
+			forgetRememberedOne(h, c, id)
+		}
 		c.PlayDone = false
 		c.Play = 0
 		return
@@ -106,10 +124,28 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		if len(zones) == 0 {
 			return
 		}
+		sc := c.SpecContext(c.Controller)
 		for _, zn := range zones {
-			for _, id := range g.Zone(zn, c.Controller) {
-				if MatchesSpecFrom(g, valid, id, c.Controller, c.Source) {
-					candidates = append(candidates, id)
+			// Exile and graveyard are public zones keyed by the card's OWNER;
+			// a Play can legitimately read a card another seat's slice holds
+			// (Rashmi and Ragavan's remembered exile of an OPPONENT's card),
+			// so a public zone is scanned across every alive seat in seat
+			// order and the spec's own ownership predicates decide -- the same
+			// all-seats walk mayPlaySpellIds uses. A private zone (hand,
+			// library) scans only the resolving controller's slice, so the
+			// hidden information never leaks into the option list.
+			seats := []state.PlayerID{c.Controller}
+			if zn == state.ZExile || zn == state.ZGraveyard {
+				seats = nil
+				for _, q := range g.AliveFrom(0) {
+					seats = append(seats, q)
+				}
+			}
+			for _, q := range seats {
+				for _, id := range g.Zone(zn, q) {
+					if MatchesSpecCtx(g, valid, id, sc) {
+						candidates = append(candidates, id)
+					}
 				}
 			}
 		}
@@ -128,11 +164,17 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 	// ("Spell" = a nonland card, "Instant,Sorcery", "Spell.cmcLE4", ...). It
 	// is OR over comma tokens and AND over the + parts of each token; a
 	// predicate the reader does not know fails that token closed, so an
-	// unknown shape never widens the offer.
+	// unknown shape never widens the offer. A non-literal cmc bound RHS (the
+	// cmcLTX/cmcLEX/cmcEQX spellings, 30 raw corpus lines) resolves through
+	// the context's numeric-RHS resolver -- the same one the general filter
+	// grammar's numericPred uses -- so Rashmi and Ragavan's
+	// `Spell.cmcLTX` reads the resolution's SVar:X (Count$Valid
+	// Artifact.YouCtrl) instead of failing every candidate closed.
 	if spec := strings.TrimSpace(sa.Params["ValidSA"]); spec != "" {
+		resolve := func(name string) (int32, bool) { return c.resolveNumericRHS(name) }
 		var kept []state.ObjID
 		for _, id := range uniq {
-			if o := g.Obj(id); o != nil && o.Face() != nil && validSAOK(o.Face(), spec) {
+			if o := g.Obj(id); o != nil && o.Face() != nil && validSAOK(o.Face(), spec, resolve) {
 				kept = append(kept, id)
 			}
 		}
@@ -169,7 +211,15 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
 		Min: min, Max: max, Source: c.Source, ResumeKind: "play",
-		ResumeSA: sa, Prompt: "Play a card from this zone"}
+		ResumeSA: sa, Prompt: "Play a card from this zone",
+		// The walk's remembered set rides the suspension (the targets_ask
+		// convention): the Dig's RememberChanged$ lives only in the resolving
+		// Ctx frame, so without the ride the resume rebuilds an empty set and
+		// the chain's later SubAbility$ (Rashmi and Ragavan's DBEffect
+		// RememberObjects$ RememberedCard) seeds the registered may-play
+		// grant from an empty list -- the "if you don't cast it this way"
+		// static would match nothing and never offer the fall-back cast.
+		ResumeRemembered: copyTargets(c.Remembered)}
 	for _, id := range candidates {
 		label := "Play it"
 		if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -201,11 +251,12 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 // vocabulary is the one the corpus' 253 ValidSA$ Play lines actually use:
 // Spell (a nonland card), SpellAbility (no card-shape meaning on its own),
 // Instant/Sorcery/Creature types, their non forms, the cmcLE/cmcLT/cmcEQ
-// comparisons against a literal or the letter X (unresolvable -- the SA
-// carries no X -- fails closed), and the pass-through markers MayPlaySource
+// comparisons against a literal or a single-letter non-literal (X, Y --
+// resolved through the context's numeric-RHS resolver, the SVar table and
+// the paid {X}; an unresolvable one fails closed), and the pass-through markers MayPlaySource
 // and YouOwn (provenance and ownership are already enforced by the
 // population path). Any other segment fails its part closed.
-func validSAOK(f *cards.Face, spec string) bool {
+func validSAOK(f *cards.Face, spec string, resolve func(string) (int32, bool)) bool {
 	for _, tok := range strings.Split(spec, ",") {
 		all := true
 		sawPart := false
@@ -232,10 +283,17 @@ func validSAOK(f *cards.Face, spec string) bool {
 					strings.HasPrefix(seg, "cmcEQ"):
 					n := -1
 					num := seg[5:]
-					if num != "X" {
-						if v, err := strconv.Atoi(num); err == nil {
-							n = v
+					if len(num) == 1 && num[0] >= 'A' && num[0] <= 'Z' {
+						// X / Y: the context's numeric RHS (the resolution's SVar
+						// table, the paid {X}, a published roll). Unresolvable
+						// stays fail closed, the shape-never-matches contract.
+						if resolve != nil {
+							if v, ok := resolve(num); ok {
+								n = int(v)
+							}
 						}
+					} else if v, err := strconv.Atoi(num); err == nil {
+						n = v
 					}
 					if n < 0 {
 						partOK = false // X or unresolvable: fail closed

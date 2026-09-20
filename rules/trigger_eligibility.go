@@ -118,6 +118,13 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// on the Damage event the prevention replaces -- a prevented hit is a
 		// Note, never a Damage.
 		return 1 << events.Note
+	case "FlippedCoin":
+		// The mode fires on the canonical coin-flip result Note both
+		// api:FlipCoin (effects/flipcoin.go) and the cumulative-upkeep FlipCoin
+		// cost action (rules/cumulative.go) emit -- one shared encoding, so a
+		// cost-side flip fires the trigger exactly like an effect-side one
+		// (Karplusan Minotaur).
+		return 1 << events.Note
 	case "CounterAdded", "CounterRemoved":
 		return 1 << events.CounterChange
 	case "TokenCreated", "TokenCreatedOnce":

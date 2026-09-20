@@ -46,12 +46,20 @@ import (
 //     The other bare-Condition values (Delirium, OptionalCost, Bargain,
 //     Threshold, Blessing, Metalcraft, Foretold, Hellbent, Revolt, Surge —
 //     ~28 SAs) stay unresolved.
+//  5. `ConditionDefined$ Imprinted` (34 corpus lines over 26 files) — the
+//     source card's persistent imprint list (state.Object.Imprinted, the
+//     events.Imprint associations: Chrome Mox's Imprint$ and now api:Play's
+//     ImprintPlayed$ recording, Rashmi and Ragavan's played-exiled-card
+//     marker). The group is exactly that list — never the remembered set —
+//     and a source-less context (c.Source 0, a synthetic fixture) leaves
+//     the gate unresolved, the fail-open run-anyway this file's convention.
 //
 // Deliberate scope (task fb-3f1cc033): the wider Condition vocabulary —
 // Condition$ beyond Kicked, ConditionZone$ (57), ConditionManaSpent$ (34),
-// the other ConditionDefined$ values (Targeted 161, ChosenCard 90,
-// Imprinted 34, ...), a bare ConditionCompare$ with no group, and
-// ConditionNotPresent$ (8) — is NOT implemented. A sub carrying any of
+// the other ConditionDefined$ values (Targeted 161, ChosenCard 90, ... —
+// Imprinted is IN since the ImprintPlayed task, shape 5 above), a bare
+// ConditionCompare$ with no group, and ConditionNotPresent$ (8) — is NOT
+// implemented. A sub carrying any of
 // those is UNRESOLVED: conditionMet reports resolved=false and Resolve's
 // walk runs the sub UNCONDITIONALLY, exactly as it did before this file
 // existed. That is the documented (not fail-closed) choice: fail-closed
@@ -370,20 +378,25 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 		return combine(conditionMetBattlefield(h, c, present, compare))
 	}
-	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" {
-		// Only the Remembered, Self and TriggeredCard families are in scope
-		// among DEFINED groups: the objects a walk carries in Ctx.Remembered,
-		// the resolving source object alone (the Addendum shape:
-		// ConditionDefined$ Self | ConditionPresent$ Card.wasCast holds only
-		// when the sub is reached through a cast of the source, which
+	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
+		defined != "Imprinted" {
+		// Only the Remembered, Self, TriggeredCard and Imprinted families are
+		// in scope among DEFINED groups: the objects a walk carries in
+		// Ctx.Remembered, the resolving source object alone (the Addendum
+		// shape: ConditionDefined$ Self | ConditionPresent$ Card.wasCast holds
+		// only when the sub is reached through a cast of the source, which
 		// effects.Resolve's walk evaluates while the spell is still on the
-		// stack), and — task castprov2 — the card the triggering event moved
-		// (Amped Raptor's `ConditionDefined$ TriggeredCard | ConditionPresent$
+		// stack), the card the triggering event moved (task castprov2,
+		// Amped Raptor's `ConditionDefined$ TriggeredCard | ConditionPresent$
 		// Card.wasCastFromYourHandByYou`: the exile-until runs only when the
-		// entering permanent was cast from its controller's hand). Targeted,
-		// ChosenCard, Imprinted, the LKI-copy variants and the rest need Ctx
-		// state this gate does not model (and whose fail-closed skip would
-		// change unrelated cards).
+		// entering permanent was cast from its controller's hand), and the
+		// source card's persistent imprint list (shape 5 above — Rashmi and
+		// Ragavan's `ConditionDefined$ Imprinted | ConditionPresent$ Card |
+		// ConditionCompare$ EQ0`: the MayPlay static registers only when the
+		// Play did NOT cast the card, the "if you don't cast it this way"
+		// branch). Targeted, ChosenCard, the LKI-copy variants and the rest
+		// need Ctx state this gate does not model (and whose fail-closed skip
+		// would change unrelated cards).
 		return false, false
 	}
 	sc := c.SpecContext(c.Controller)
@@ -393,6 +406,22 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// Self is the source object ALONE — not rememberedWithSource's
 		// Source-union with the walk's remembered set.
 		group = []state.Target{{Obj: c.Source}}
+	}
+	if defined == "Imprinted" {
+		// The source card's persistent imprint list (state.Object.Imprinted,
+		// the events.Imprint associations): the ONLY group for this family —
+		// never the remembered set. A source-less context is the one
+		// unresolved shape; a real source with an empty list is a resolved
+		// zero (Rashmi's EQ0 arm), never fail-open.
+		if c.Source == 0 {
+			return false, false
+		}
+		group = nil
+		if o := g.Obj(c.Source); o != nil {
+			for _, id := range o.Imprinted {
+				group = append(group, state.Target{Obj: id})
+			}
+		}
 	}
 	if defined == "TriggeredCard" {
 		// The card the triggering event moved — the TriggerContext.TriggerCard

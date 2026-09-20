@@ -132,3 +132,190 @@ func TestContinuousCheckSVarGateTurnsTheGrantOnAndOff(t *testing.T) {
 		t.Fatal("vigilance still applied with 3 cards in hand -- the CheckSVar$ gate did not re-check")
 	}
 }
+
+// deliriumPumpSrc is the synthetic shape every Delirium Continuous carrier
+// prints (Grim Flayer's line): a self-pump gated on Condition$ Delirium.
+const deliriumPumpSrc = "Name:Delirium Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\n" +
+	"S:Mode$ Continuous | Affected$ Card.Self | AddPower$ 2 | AddToughness$ 2 | Condition$ Delirium | Description$ Delirium -- CARDNAME gets +2/+2 as long as there are four or more card types in your graveyard.\n" +
+	"Oracle:x\n"
+
+// addToGraveyardType adds one fresh card of the named printed type line
+// straight to p's graveyard (eventless placement stales the memos the way
+// onBoard does) and returns its id.
+func addToGraveyardType(t testing.TB, e *Engine, p state.PlayerID, typeLine string) state.ObjID {
+	t.Helper()
+	o := e.G.AddObject(card(t, "Name:GY "+typeLine+"\nTypes:"+typeLine+"\nOracle:x\n"), p)
+	o.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZGraveyard, p, append(e.G.Zone(state.ZGraveyard, p), o.ID))
+	e.staticEpoch = -1
+	e.activeEpoch = -1
+	return o.ID
+}
+
+// TestContinuousConditionDeliriumTurnsTheGrantOnAndOff drives a synthetic
+// Condition$ Delirium Continuous static across a full off/on/off cycle: the
+// +2/+2 is absent with zero and with three distinct graveyard types, present
+// at four, and absent again the moment one type leaves the graveyard -- the
+// continuous recheck (the same on/off/off shape as the Angelic Overseer test).
+func TestContinuousConditionDeliriumTurnsTheGrantOnAndOff(t *testing.T) {
+	e := layerEngine(t)
+	bear := onBoard(t, e, 0, deliriumPumpSrc)
+	if got := e.Power(bear); got != 2 {
+		t.Fatalf("power with an empty graveyard = %d, want 2 (the Delirium grant must not apply)", got)
+	}
+	a := addToGraveyardType(t, e, 0, "Artifact")
+	_ = addToGraveyardType(t, e, 0, "Instant")
+	_ = addToGraveyardType(t, e, 0, "Sorcery")
+	if got := e.Power(bear); got != 2 {
+		t.Fatalf("power with three graveyard types = %d, want 2 (still below the Delirium threshold)", got)
+	}
+	_ = addToGraveyardType(t, e, 0, "Enchantment")
+	if got, tou := e.Power(bear), e.Toughness(bear); got != 4 || tou != 4 {
+		t.Fatalf("P/T with four graveyard types = %d/%d, want 4/4 (Delirium holds)", got, tou)
+	}
+	// One type leaves: the gate re-evaluates on the next emitted event and the
+	// grant turns back off -- a continuous recheck, not a registration.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: a, From: state.ZGraveyard, To: state.ZExile})
+	if got := e.Power(bear); got != 2 {
+		t.Fatalf("power after a type left the graveyard = %d, want 2 (gate re-checked)", got)
+	}
+}
+
+// TestContinuousConditionDeliriumRealCorpusCards asserts the SAME real corpus
+// cards BOTH ways -- the over-apply bug is invisible to a one-sided test.
+// Deathcap Cultivator has no deathtouch with an empty graveyard and has it at
+// four distinct core types; Grim Flayer is 2/2 vs 4/4 across the same swing.
+func TestContinuousConditionDeliriumRealCorpusCards(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	deathcap := searchCorpusCard(t, reg, "Deathcap Cultivator")
+	grim := searchCorpusCard(t, reg, "Grim Flayer")
+	e := layerEngine(t)
+	dc := onBoardCard(t, e, 0, deathcap)
+	gf := onBoardCard(t, e, 0, grim)
+	if e.HasKeyword(dc, "Deathtouch") {
+		t.Fatal("Deathcap Cultivator has deathtouch with an empty graveyard -- the Delirium gate was not read")
+	}
+	if got := e.Power(gf); got != 2 {
+		t.Fatalf("Grim Flayer power with an empty graveyard = %d, want 2", got)
+	}
+	types := []string{"Artifact", "Instant", "Sorcery", "Enchantment"}
+	for i, tl := range types {
+		addToGraveyardType(t, e, 0, tl)
+		if i < 3 {
+			if e.HasKeyword(dc, "Deathtouch") || e.Power(gf) != 2 {
+				t.Fatalf("delirium applied at %d graveyard types (want 4+): deathtouch %v power %d",
+					i+1, e.HasKeyword(dc, "Deathtouch"), e.Power(gf))
+			}
+		}
+	}
+	if !e.HasKeyword(dc, "Deathtouch") {
+		t.Fatal("Deathcap Cultivator has no deathtouch with four graveyard types -- Delirium did not hold")
+	}
+	if got, tou := e.Power(gf), e.Toughness(gf); got != 4 || tou != 4 {
+		t.Fatalf("Grim Flayer P/T at four types = %d/%d, want 4/4", got, tou)
+	}
+}
+
+// duskFeasterSrc is Dusk Feaster's real delirioum ReduceCost line; the {2}
+// discount must apply at four distinct core types and never below.
+const duskFeasterSrc = "Name:Dusk Feaster\nManaCost:5 B B\nTypes:Creature Vampire\nPT:4/5\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ 2 | EffectZone$ All | Condition$ Delirium | Description$ Delirium -- This spell costs {2} less to cast if there are four or more card types among cards in your graveyard.\n" +
+	"K:Flying\n" +
+	"Oracle:x\n"
+
+// TestContinuousConditionDeliriumReduceCostRealCarrier pins the cost direction
+// of the same defect: Dusk Feaster's ReduceCost with Condition$ Delirium
+// discounts {2} at four distinct types and not one mana below that. The
+// graveyard is filled by real seeded moves, so the whole scenario replays.
+func TestContinuousConditionDeliriumReduceCostRealCarrier(t *testing.T) {
+	types := []string{"Artifact", "Instant", "Sorcery", "Enchantment"}
+	extras := make([]string, len(types))
+	for i, tl := range types {
+		extras[i] = "Name:GY " + tl + "\nManaCost:1\nTypes:" + tl + "\nOracle:x\n"
+	}
+	e, cfg, feaster := newFixtureDeck(t, 77, duskFeasterSrc, extras...)
+	if got := reduceOf(t, e, 0, feaster); got != 0 {
+		t.Fatalf("Dusk Feaster reduction with an empty graveyard = %d, want 0", got)
+	}
+	for i, ex := range extras {
+		addToGraveyard(t, e, 0, ex)
+		if i < 3 {
+			if got := reduceOf(t, e, 0, feaster); got != 0 {
+				t.Fatalf("reduction at %d graveyard types = %d, want 0", i+1, got)
+			}
+		}
+	}
+	if got := reduceOf(t, e, 0, feaster); got != 2 {
+		t.Fatalf("Dusk Feaster reduction at four types = %d, want 2", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestContinuousConditionTable holds each implemented Condition$ value in its
+// true state and denies it in its false state, all through the one
+// continuousGateHolds switch.
+func TestContinuousConditionTable(t *testing.T) {
+	cases := []struct {
+		cond       string
+		setupTrue  func(e *Engine)
+		setupFalse func(e *Engine)
+	}{
+		{"PlayerTurn",
+			func(e *Engine) { e.G.Active = 0 },
+			func(e *Engine) { e.G.Active = 1 }},
+		{"NotPlayerTurn",
+			func(e *Engine) { e.G.Active = 1 },
+			func(e *Engine) { e.G.Active = 0 }},
+		{"Metalcraft",
+			func(e *Engine) {
+				for i := 0; i < 3; i++ {
+					onBoard(t, e, 0, "Name:Mox\nManaCost:0\nTypes:Artifact\nOracle:x\n")
+				}
+			},
+			func(e *Engine) {}},
+		{"Threshold",
+			func(e *Engine) {
+				for i := 0; i < 7; i++ {
+					addToGraveyardType(t, e, 0, "Sorcery")
+				}
+			},
+			func(e *Engine) {}},
+		{"Hellbent",
+			func(e *Engine) { e.G.SetZone(state.ZHand, 0, nil); e.staticEpoch = -1 },
+			func(e *Engine) {}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.cond+"/true", func(t *testing.T) {
+			e := layerEngine(t)
+			bear := onBoard(t, e, 0, "Name:Cond Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\n"+
+				"S:Mode$ Continuous | Affected$ Card.Self | AddPower$ 2 | Condition$ "+tc.cond+" | Description$ x\n"+
+				"Oracle:x\n")
+			tc.setupTrue(e)
+			if got := e.Power(bear); got != 4 {
+				t.Fatalf("%s: grant absent in the true state (power %d, want 4)", tc.cond, got)
+			}
+		})
+		t.Run(tc.cond+"/false", func(t *testing.T) {
+			e := layerEngine(t)
+			bear := onBoard(t, e, 0, "Name:Cond Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\n"+
+				"S:Mode$ Continuous | Affected$ Card.Self | AddPower$ 2 | Condition$ "+tc.cond+" | Description$ x\n"+
+				"Oracle:x\n")
+			tc.setupFalse(e)
+			if got := e.Power(bear); got != 2 {
+				t.Fatalf("%s: grant applied in the false state (power %d, want 2)", tc.cond, got)
+			}
+		})
+	}
+}
+
+// TestContinuousConditionUnknownNeverApplies pins the fail-closed direction: a
+// Condition$ value this gate does not implement (Blessing) never grants.
+func TestContinuousConditionUnknownNeverApplies(t *testing.T) {
+	e := layerEngine(t)
+	bear := onBoard(t, e, 0, "Name:Blessed Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\n"+
+		"S:Mode$ Continuous | Affected$ Card.Self | AddPower$ 2 | Condition$ Blessing | Description$ x\n"+
+		"Oracle:x\n")
+	if got := e.Power(bear); got != 2 {
+		t.Fatalf("unimplemented Condition$ Blessing granted (power %d, want 2 -- fail closed)", got)
+	}
+}

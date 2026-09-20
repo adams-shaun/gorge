@@ -748,9 +748,32 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 	// what the board could actually pay, and answering it aborted the cast
 	// at the payment stage (CR 733's clean reversal, but a needless one).
 	for _, part := range cost.TapPermanent {
+		if part.Dyn != "" {
+			// The dynamic tapXType heads (tapXType<X/Spec>, tapXType<Any/Spec>):
+			// the tap election resolves the count at payment. An X-form part is
+			// payable with zero candidates (X = 0 is a legal announcement); an
+			// Any-form part must tap at least one matching permanent the earlier
+			// parts have not already claimed, so a spec no unreserved candidate
+			// satisfies (Mossbridge Troll's withTotalPowerGE10 group predicate
+			// fails closed) leaves the cost unpayable rather than offering a
+			// zero-tap payment of an effect that does not scale with the taps.
+			if part.Dyn == "Any" {
+				avail := 0
+				for _, oid := range e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true) {
+					if reserved[oid] || (cost.Tap && oid == id) {
+						continue
+					}
+					avail++
+				}
+				if avail == 0 {
+					return false
+				}
+			}
+			continue
+		}
 		var avail []state.ObjID
 		for _, oid := range e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true) {
-			if reserved[oid] {
+			if reserved[oid] || (cost.Tap && oid == id) {
 				continue
 			}
 			avail = append(avail, oid)
@@ -1791,15 +1814,25 @@ func (e *Engine) tapPermanentCostAsk() bool {
 	for pc.tapPart < len(pc.cost.TapPermanent) {
 		part := pc.cost.TapPermanent[pc.tapPart]
 		candidates := e.costCandidates(pc.player, pc.card, state.ZBattlefield, part.Spec, false, true)
-		// An earlier part's recorded tap (taps settle together at payCast, so
-		// the state does not yet show it) has already claimed its permanent:
-		// the same reservation the affordability bound's nonManaCastable walk
-		// applies across the composed parts, honoured here so one permanent
-		// can never be chosen to pay two parts.
-		if len(pc.taps) > 0 {
-			taken := make(map[state.ObjID]bool, len(pc.taps))
+		// One permanent can never pay two parts of the same cost, so the
+		// candidate filter claims everything an earlier stage already recorded:
+		// an earlier tap part's choice (taps settle together at payCast, so the
+		// state does not yet show it), a Convoke/Harmonize creature announced
+		// for a spell whose dyn tap part deferred to xAsk (the settle runs
+		// after the announcement), and -- for every part, literal and dynamic
+		// alike -- the source itself when a {T} in the same cost will tap it at
+		// payCast (Forge CostTap): the {T} and the tapXType can never spend one
+		// permanent twice.
+		if len(pc.taps) > 0 || len(pc.convoke) > 0 || pc.cost.Tap {
+			taken := make(map[state.ObjID]bool, len(pc.taps)+len(pc.convoke)+1)
 			for _, id := range pc.taps {
 				taken[id] = true
+			}
+			for _, pay := range pc.convoke {
+				taken[pay.id] = true
+			}
+			if pc.cost.Tap {
+				taken[pc.card] = true
 			}
 			kept := make([]state.ObjID, 0, len(candidates))
 			for _, cid := range candidates {
@@ -1808,6 +1841,72 @@ func (e *Engine) tapPermanentCostAsk() bool {
 				}
 			}
 			candidates = kept
+		}
+		if part.Dyn != "" {
+			// The dynamic tapXType heads (dynTapCost's doc). An X-form part whose
+			// cost carries another announce-bearing part defers: xAsk (later in
+			// continueCast's stage order) announces the X the part settles
+			// exactly, so the ask must not run before the announcement exists
+			// (Necron Overlord's "{X}, tap X untapped artifacts"). xAsk's own
+			// bound caps the announced value by these candidates.
+			if part.Dyn == "X" && !pc.xDone && (costAnnouncesCastX(pc.cost) || pc.announceX != "") {
+				return false
+			}
+			// An Any-form part pays only by tapping at least one: no eligible
+			// permanent (the affordability gate agreed, so this is a board that
+			// changed under the offer) aborts the whole cast/activation.
+			if part.Dyn == "Any" && len(candidates) == 0 {
+				e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
+				return true
+			}
+			// An X-form election with no eligible permanent can only announce
+			// X = 0 (CR 601.2b; the affordability gate agrees, so this is a
+			// board that changed under the offer). A decision nobody could
+			// answer differently is never emitted -- posting the Min 0/Max 0
+			// empty ask panics rules/engine.go's ask -- so resolve it silently
+			// with X = 0 and no taps, mirroring triggeredTapAsk's decline.
+			if part.Dyn == "X" && !pc.xDone && len(candidates) == 0 {
+				pc.x = 0
+				pc.tapPart++
+				continue
+			}
+			if part.Dyn == "X" && pc.xDone {
+				// The announced X settles exactly: no choice beyond which
+				// permanents, so a shortfall is the same unpayable abort.
+				n := int(pc.x)
+				if n > len(candidates) {
+					e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
+					return true
+				}
+				if n > 0 {
+					d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
+						Prompt: "Choose permanents to tap", Source: pc.card}
+					for _, id := range candidates {
+						d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "tapcost", Obj: id, Label: e.targetName(id)})
+					}
+					e.choosing = chooseCast
+					e.ask(d)
+					return true
+				}
+				pc.tapPart++
+				continue
+			}
+			// The election announces the count: Min 0 for the X form (X = 0 is
+			// a legal announcement) and Min 1 for Any (a cost is not paid by
+			// tapping nothing). The answer records the taps and, for the X form,
+			// binds the cast's X to the chosen count (the "tapcost" answer arm).
+			min := int32(1)
+			if part.Dyn == "X" {
+				min = 0
+			}
+			d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(min), Max: len(candidates),
+				Prompt: "Choose permanents to tap", Source: pc.card}
+			for _, id := range candidates {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "tapcost", Obj: id, Label: e.targetName(id)})
+			}
+			e.choosing = chooseCast
+			e.ask(d)
+			return true
 		}
 		if len(candidates) < int(part.N) {
 			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
@@ -2302,6 +2401,32 @@ func (e *Engine) xAsk() bool {
 			} else if avail < bound {
 				bound = avail
 			}
+		}
+	}
+	// An X-form tapXType part settles exactly the announced X the same way a
+	// Sac<X/Spec> part's count does, so the announcement is bounded by the
+	// untapped permanents matching its spec (Necron Overlord's "{X}, tap X
+	// untapped artifacts": X beyond the artifact count could be announced but
+	// never settled). When the tap part is the ONLY announced X it IS the
+	// bound -- but that shape never reaches xAsk at all (the tap election
+	// announces it at the tap stage, before xAsk's guard sees no other reason
+	// and returns); this cap governs the composed shapes.
+	for _, part := range pc.cost.TapPermanent {
+		if part.Dyn != "X" {
+			continue
+		}
+		avail := int32(0)
+		for _, oid := range e.costCandidates(pc.player, pc.card, state.ZBattlefield, part.Spec, false, true) {
+			// The {T} in the same cost claims the source (see tapPermanentCostAsk).
+			if pc.cost.Tap && oid == pc.card {
+				continue
+			}
+			avail++
+		}
+		if pc.cost.X == 0 && !energyX && bound > avail {
+			bound = avail
+		} else if avail < bound {
+			bound = avail
 		}
 	}
 	// An announced SubCounter<X/Kind> part's bound is the number of counters
@@ -3157,6 +3282,14 @@ func costAnnouncesPaidX(c Cost) bool {
 			return true
 		}
 	}
+	// An X-form tapXType part binds the same X (the election announced it or
+	// the tap settle paid the announced value), so a ReduceCost static
+	// reading Count$xPaid is re-priced on it the same way.
+	for _, part := range c.TapPermanent {
+		if part.Dyn == "X" {
+			return true
+		}
+	}
 	return false
 }
 
@@ -3886,10 +4019,23 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		}
 		pc.beholdPart++
 	case "tapcost":
+		part := CostPart{}
+		if pc.tapPart < len(pc.cost.TapPermanent) {
+			part = pc.cost.TapPermanent[pc.tapPart]
+		}
 		for _, o := range chosen {
 			pc.taps = append(pc.taps, o.Obj)
 		}
 		pc.tapPart++
+		// A dynamic X-form part whose tap election ANNOUNCED the count (no other
+		// announce-bearing part ran xAsk first -- see tapPermanentCostAsk): the
+		// chosen count is the cast's {X} (CR 601.2b), which the pay-time
+		// CastInfo then carries to resolution and Count$xPaid reads. A part
+		// whose cost pre-announced the X (pc.xDone) settles exactly that value
+		// and must not overwrite it.
+		if part.Dyn == "X" && !pc.xDone {
+			pc.x = int32(len(chosen))
+		}
 	case "blightcost":
 		for _, o := range chosen {
 			pc.blights = append(pc.blights, o.Obj)
@@ -4121,6 +4267,13 @@ func (e *Engine) targetAsk() bool {
 		excludeSelf = pc.card
 	}
 	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
+	// Forge's TargetsForEachPlayer$ selection shape (one per player): the
+	// same bounds/group read the trigger-path askTarget uses, so a OneEach
+	// CAST ask (Unexplained Absence's "up to one target nonland permanent
+	// each player controls") offers the whole table's slots and the wire's
+	// mutual-exclusion rule enforces one pick per controller. Before this the
+	// cast-time ask ignored the shape and capped the ask at the plain Max.
+	min, max, _ = e.oneEachTargetBounds(sa, candidates, min, max)
 	// Overload changes the word "target" to "each". It makes no selection at
 	// announcement time: the current matching set is derived at resolution,
 	// so permanents entering or changing controller in response are handled.
@@ -4187,8 +4340,10 @@ func (e *Engine) targetAsk() bool {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
 		// TargetType$ Activated/Triggered census) can never nil-deref here.
 		label := e.targetOptionLabel(candidate)
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
-			Label: label, Obj: candidate.obj, Player: candidate.player})
+		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: label, Obj: candidate.obj, Player: candidate.player}
+		o.Group = e.oneEachTargetGroup(sa, candidate)
+		d.Options = append(d.Options, o)
 	}
 	e.ask(d)
 	return true
@@ -4237,6 +4392,15 @@ func (e *Engine) pushCast() bool {
 	e.deferCastTrigger = true
 	e.emit(events.Event{Kind: events.PutOnStack, Obj: pc.card, Player: pc.player, From: pc.from, To: state.ZStack, Text: o.Face().Name})
 	e.deferCastTrigger = false
+	// CR 601.2a: the player who cast the spell is its controller. A card
+	// another seat controlled (Rashmi and Ragavan's exiled OPPONENT card,
+	// Gonti's stolen card, Intellect Devourer's may-play exile) comes under
+	// the caster's control the moment it is cast, and the resulting permanent
+	// enters the battlefield under the caster's control; an ordinary cast's
+	// card already answers to the caster, so no event rides those.
+	if o := e.G.Obj(pc.card); o != nil && o.Controller != pc.player {
+		e.emit(events.Event{Kind: events.ControlChange, Obj: pc.card, Player: pc.player})
+	}
 	pc.stackObj = pc.card
 	pc.pushed = true
 	// CR 903.8: the cast counter increments the INSTANT the spell is put on

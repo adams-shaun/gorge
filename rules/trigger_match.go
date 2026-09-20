@@ -172,6 +172,15 @@ var actionTriggerModes = map[string]bool{
 	// other event mode. Membership also makes an unevaluable CheckDefinedPlayer$
 	// predicate fail closed for the mode, which is the conservative direction
 	// for a mode registered from the start.
+	// FlippedCoin joins them for the same reason: it is an event mode
+	// registered from the start (rules/trigger_match.go's
+	// flippedCoinMatches, firing off the canonical coin-flip result Note
+	// both api:FlipCoin and the cumulative-upkeep cost action emit), so the
+	// trigger-level parameters Forge scopes to every event mode --
+	// PlayerTurn$, ActivationLimit$, and an unevaluable CheckDefinedPlayer$
+	// predicate failing closed -- apply from day one. No Once latch: each
+	// flip result Note is one occurrence.
+	"FlippedCoin":    true,
 	"ChangesZoneAll": true,
 	// Attached is an event mode registered from the start
 	// (attachedMatches over events.Attach), so the trigger-level parameters
@@ -893,6 +902,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			// carry triggered abilities.
 			return
 		}
+		// objLKI is the whole-event LKI snapshot, hoisted here because every
+		// trigger this loop matches for this event shares it (lki.ID == ev.Obj
+		// always holds when lki != nil -- see checkTriggers's own doc above; a
+		// defensive belt-and-braces check against a future emit change that
+		// might one day pass a mismatched lki). triggerMatches and the matched
+		// trigger's Ctx both read it. Hoisted above the face-down gate too: the
+		// cloaked ward walk below reads it as well.
+		var objLKI *state.Object
+		if lki != nil && lki.ID == ev.Obj {
+			objLKI = lki
+		}
 		if e.faceDownPrintedHides(o) {
 			// CR 708.8: a face-down permanent's printed triggers (and any
 			// granted walk keyed to it) do not exist while it is face down --
@@ -902,17 +922,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			// face down; the live walk matches leaves-triggers only through
 			// that observer or a TriggerZones the departed card no longer
 			// occupies).
+			// A CLOAKED face-down permanent is the one exception: its ward {2}
+			// is part of the cloak status itself (CR 708.5's cloak variant),
+			// not a printed ability -- the synthesized Ward trigger in
+			// checkGrantedWardTriggers (built from the derived keyword list
+			// layers.go appends for Cloaked objects) is what turns targeting
+			// it into the pay-or-counter ask. Only the granted-ward walk
+			// revives; the printed-face walk stays suppressed.
+			if o.Cloaked && ev.Kind == events.TargetsChosen {
+				e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			}
 			return
-		}
-		// objLKI is the whole-event LKI snapshot, hoisted here because every
-		// trigger this loop matches for this event shares it (lki.ID == ev.Obj
-		// always holds when lki != nil -- see checkTriggers's own doc above; a
-		// defensive belt-and-braces check against a future emit change that
-		// might one day pass a mismatched lki). triggerMatches and the matched
-		// trigger's Ctx both read it.
-		var objLKI *state.Object
-		if lki != nil && lki.ID == ev.Obj {
-			objLKI = lki
 		}
 		// Ordinary cards need no face-walk setup when their printed triggers
 		// cannot observe this event. An unlocked Room may still have an
@@ -1378,6 +1398,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.damageMatches(t, source, ev)
 	case "DamagePreventedOnce":
 		matched = e.damagePreventedMatches(t, source, ev)
+	case "FlippedCoin":
+		matched = e.flippedCoinMatches(t, source, ev)
 	case "Drawn":
 		matched = e.drawnMatches(t, source, ev)
 	case "LifeLost", "LifeLostAll":
@@ -1404,6 +1426,26 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = true
 	}
 	if !matched {
+		return false
+	}
+	// FirstCombat$ True -- the "if it's the first combat phase of the turn"
+	// trigger gate (8 corpus T: lines: hexplate_wallbreaker, genji_glove,
+	// finest_hour, balthier_and_fran, raph_leo_sibling_rivals on Mode$ Attacks,
+	// karlach_fury_of_avernus on Mode$ AttackersDeclared,
+	// zariel_archduke_of_avernus and swinging_ship on Mode$ Phase) restricts
+	// the trigger to the FIRST combat phase begun this turn, so a trigger an
+	// extra combat (DB$ AddPhase) creates must not re-fire. The count is the
+	// event-folded state.Game.CombatsThisTurn (one increment per BeginCombat
+	// entry, reset at TurnChange), evaluated on the fold of the matching
+	// event: during the first combat it is 1 (its BeginCombat already
+	// folded), and every extra combat's BeginCombat has raised it to 2 -- so
+	// the test is count == 1, never 0. This is a SHARED gate in
+	// triggerMatches rather than a per-mode one because the key rides three
+	// different modes and means the same thing on every one; it is distinct
+	// from the Execute-side ConditionFirstCombat$ gate
+	// (effects/conditions.go, Raiyuu), which suppresses the BODY, not the
+	// trigger.
+	if strings.EqualFold(strings.TrimSpace(t.Params["FirstCombat"]), "True") && e.G.CombatsThisTurn != 1 {
 		return false
 	}
 	// PlayerTurn$ True: only during the turn of the source's controller
@@ -2971,6 +3013,34 @@ func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev 
 	return true
 }
 
+func (e *Engine) flippedCoinMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	flipper, win, ok := effects.FlipNoteResult(ev)
+	if !ok {
+		return false
+	}
+	// ValidResult$ gates the side: Win = heads (Amount 1), Lose = tails
+	// (Amount 0). Every corpus FlippedCoin line carries one; an absent
+	// ValidResult$ (no such line measured) would fire on both sides.
+	if res := strings.TrimSpace(t.Params["ValidResult"]); res != "" {
+		if strings.EqualFold(res, "Win") && !win {
+			return false
+		}
+		if strings.EqualFold(res, "Lose") && win {
+			return false
+		}
+	}
+	// ValidPlayer$ names the FLIPPER ("whenever YOU win a coin flip"): the
+	// Note's Player, through the shared player-spec grammar with the trigger's
+	// own controller as You. The two "whenever a player wins" lines carry no
+	// ValidPlayer$ and fire on any flipper.
+	if v, ok := t.Params["ValidPlayer"]; ok {
+		if !effects.MatchesPlayerSpecFrom(e.G, v, flipper, e.controllerOf(source), source) {
+			return false
+		}
+	}
+	return true
+}
+
 // attachedMatches implements Mode$ Attached: the trigger fires when an Aura,
 // Equipment or other attachment becomes attached to a permanent (CR
 // 701.3a's "becomes attached" -- the event the engine's one shared attach
@@ -3618,7 +3688,7 @@ func init() {
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
-		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached",
+		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
@@ -3817,8 +3887,14 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 		return
 	}
 	printed := map[string]bool{}
-	for _, k := range f.Keywords {
-		printed[strings.ToLower(k)] = true
+	if !e.faceDownPrintedHides(o) {
+		// While the object is face down its printed face does not exist
+		// (CR 708.8): a cloaked card whose real face prints Ward must not
+		// suppress its own cloak-ward -- the derived list is the only
+		// keyword source on this path.
+		for _, k := range f.Keywords {
+			printed[strings.ToLower(k)] = true
+		}
 	}
 	for _, k := range observer.Derived(id).Keywords {
 		if printed[strings.ToLower(k)] {

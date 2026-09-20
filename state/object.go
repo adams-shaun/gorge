@@ -413,6 +413,13 @@ type Object struct {
 	// rather than merely a Secret event flag, so later projections know not to
 	// reveal the card to another player.
 	FaceDown bool
+	// Cloaked records the cloak variant of the face-down battlefield entry
+	// (CR 708.5's cloak: a 2/2 creature with ward {2}, turn-face-up cost =
+	// the card's mana cost). It folds from the MoveZone Counter value
+	// "entered_cloaked" exactly as FaceDown folds from "entered_face_down"
+	// -- no new event kind, no Event field change -- and is cleared wherever
+	// FaceDown is (leaving the battlefield; a future turn-face-up path).
+	Cloaked bool
 
 	// FaceDownSetType is the face-down set type a ChangeZone FaceDownSetType$
 	// named (Yedora's "Land & Forest", Missy's "Artifact & Creature &

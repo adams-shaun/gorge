@@ -1066,35 +1066,63 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 	return true
 }
 
+// oneEachTargetBounds applies Forge's TargetsForEachPlayer$ selection shape
+// (TargetRestrictions.setForEachPlayer): the selected targets are limited to
+// one controlled by each player, and a TargetMin$/TargetMax$ spelled OneEach
+// asks for exactly the distinct-controller count. askTarget (this file) and
+// cast.go's targetAsk share it so the two ask sites cannot drift; the bool
+// reports whether the shape applies (the caller attaches the matching
+// Option.Group through oneEachTargetGroup).
+func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, bool) {
+	if !strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") {
+		return min, max, false
+	}
+	// Option.Group makes the one-per-player restriction part of the generic
+	// decision contract, so every target API consumes the same enforcement
+	// rather than each effect maintaining a picker.
+	groups := map[state.PlayerID]bool{}
+	for _, candidate := range candidates {
+		owner := candidate.player
+		if candidate.kind != "player" {
+			if o := e.G.Obj(candidate.obj); o != nil {
+				owner = o.Controller
+			}
+		}
+		groups[owner] = true
+	}
+	if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
+		min = len(groups)
+	}
+	if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
+		max = len(groups)
+	}
+	return min, max, true
+}
+
+// oneEachTargetGroup is the Option.Group label binding one OneEach selection
+// slot to its controller -- the same label both ask sites attach, so
+// Decision.Validate's mutual-exclusion rule enforces one pick per controller
+// on the wire.
+func (e *Engine) oneEachTargetGroup(sa *cards.SA, candidate targetCandidate) string {
+	if !strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") {
+		return ""
+	}
+	owner := candidate.player
+	if candidate.kind != "player" {
+		if o := e.G.Obj(candidate.obj); o != nil {
+			owner = o.Controller
+		}
+	}
+	return "target-controller-" + strconv.Itoa(int(owner))
+}
+
 // askTarget offers every legal target for a spell or ability. It deliberately
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
 	candidates := e.legalTargetCandidates(p, source, source, sa)
-	oneEach := strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True")
-	groups := map[state.PlayerID]bool{}
-	if oneEach {
-		// Forge TargetRestrictions.setForEachPlayer limits the selected targets
-		// to one controlled by each player. Option.Group makes that restriction
-		// part of the generic decision contract, so every target API consumes
-		// the same enforcement rather than each effect maintaining a picker.
-		for _, candidate := range candidates {
-			owner := candidate.player
-			if candidate.kind != "player" {
-				if o := e.G.Obj(candidate.obj); o != nil {
-					owner = o.Controller
-				}
-			}
-			groups[owner] = true
-		}
-		if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
-			min = len(groups)
-		}
-		if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
-			max = len(groups)
-		}
-	}
+	min, max, _ = e.oneEachTargetBounds(sa, candidates, min, max)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
@@ -1105,15 +1133,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		label := e.targetOptionLabel(candidate)
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
-		if oneEach {
-			owner := candidate.player
-			if candidate.kind != "player" {
-				if obj := e.G.Obj(candidate.obj); obj != nil {
-					owner = obj.Controller
-				}
-			}
-			o.Group = "target-controller-" + strconv.Itoa(int(owner))
-		}
+		o.Group = e.oneEachTargetGroup(sa, candidate)
 		d.Options = append(d.Options, o)
 	}
 	if min == 0 {
@@ -1508,7 +1528,14 @@ func (e *Engine) resolveTop() {
 		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
 			o.Ability.Params["Cost"] != "" &&
 			(o.Ability.API == "Untap" || o.Ability.API == "ImmediateTrigger" ||
-				len(e.parseCost(o.Ability.Params["Cost"]).Draw) > 0) {
+				len(e.parseCost(o.Ability.Params["Cost"]).Draw) > 0 ||
+				// The dynamic tapXType heads (rules/mana.go's dynTapCost): the
+				// tap election is the payment, the empty election the decline
+				// -- the mandatory ImmediateTrigger carrier (yotia_declares_war's
+				// "Mandatory tapXType<X/Artifact>") and any future one pay
+				// through the same window instead of a free (or {1}-bought)
+				// body.
+				costCarriesDynTap(e.parseCost(o.Ability.Params["Cost"]))) {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}

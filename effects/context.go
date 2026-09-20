@@ -211,6 +211,17 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			i = len(lib) - 1
 		}
 		return []state.Target{{Obj: lib[i]}}, true
+	case "FlippedHeads", "FlippedTails":
+		// Forge's RememberResult$ flip-result memory: DB$ FlipCoin |
+		// RememberResult$ True, then a chained sub reading Defined$
+		// FlippedHeads/FlippedTails (Goblin Assassin's tails sacrifice is the
+		// live carrier). This build does not persist the per-flip results the
+		// flag names — the flips run (effFlipCoin), the memory does not
+		// survive a suspension-bearing chain re-entry — so the reader resolves
+		// to the EMPTY set (ok=true, fail closed to nobody) rather than
+		// Defined's source fallback, which would act on the flipping ability's
+		// own source.
+		return nil, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
 	case "Imprinted", "ImprintedController":
@@ -524,6 +535,24 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return out, true
 	}
+	// TriggeredDefender(.qualifier): the defending player the firing Attacks/
+	// AttackersDeclared trigger's event names (c.DefendingPlayer -- Myr
+	// Battlesphere's "deals X damage to the player or planeswalker it's
+	// attacking", whose script spells the referent TriggeredDefender while
+	// the engine's own binding is TriggeredDefendingPlayer). A qualifier is
+	// evaluated the same way the Player fallback below evaluates one; an
+	// unmet qualifier fails closed to the empty set, never a guessed
+	// fallback. Outside a combat trigger the role is absent and the set is
+	// empty.
+	if base, qual, _ := strings.Cut(spec, "."); base == "TriggeredDefender" && !strings.Contains(spec, " & ") {
+		if !c.DefendingPlayer.IsPlayer {
+			return nil, true
+		}
+		if qual != "" && !MatchesPlayerSpecFrom(g, qual, c.DefendingPlayer.Player, c.Controller, c.Source) {
+			return nil, true
+		}
+		return []state.Target{c.DefendingPlayer}, true
+	}
 	// Player.<state-qualifier>: a compound spelling this build's fixed cases
 	// do not name (Player.lifeEQ13, Player.controlsCreature.powerGE4_GE1,
 	// Player.withMostTypeCreature, ...) resolves through the trigger-side
@@ -722,6 +751,17 @@ func eventForgetChanged(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
 	if !strings.EqualFold(strings.TrimSpace(sa.Params["ForgetChanged"]), "True") {
 		return
 	}
+	forgetRememberedOne(h, c, id)
+}
+
+// forgetRememberedOne drops ONE object from both halves of the remembered
+// state -- the resolution's Ctx.Remembered set and the source object's
+// persistent event-backed Remembered list (the "forget-remembered" Choose
+// event events/apply.go folds) -- and is the one shared body for every
+// forget rider: ForgetChanged$ (a zone change forgets what it moved) and
+// Play's ForgetPlayed$ (a card the Play actually began to play is no longer
+// a "you didn't play it" candidate). Callers own their own parameter gate.
+func forgetRememberedOne(h Host, c *Ctx, id state.ObjID) {
 	next := make([]state.Target, 0, len(c.Remembered))
 	for _, t := range c.Remembered {
 		if !t.IsPlayer && t.Obj == id {

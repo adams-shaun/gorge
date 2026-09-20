@@ -128,6 +128,14 @@ type resumePoint struct {
 	// the re-entry pass consumes the marker instead of re-posing the pay
 	// ask, the asking-body-under-UnlessCost$ livelock fix (Rhystic Study).
 	unlessResolved string
+	// tapPaidX is the count the triggered-cost window's dynamic tapXType<X/
+	// Spec> election paid (rules/cumulative.go's triggeredTapAnswer): the
+	// number of permanents the payer tapped IS that cost's announced {X} (CR
+	// 601.2b through the window). It rides the frame because the trigger
+	// object was never paid an X and the source permanent's own X is its
+	// cast-time value, never this payment's; resumeResolution seeds Ctx.X
+	// from it so the body's Count$xPaid reads answer. Zero elsewhere.
+	tapPaidX int32
 	// charmRest carries the remaining chosen mode names of a cross-mode
 	// TargetUnique Charm's mode loop (SuspendCharmRest): the frame re-enters
 	// the Charm SA itself with Ctx.Modes = charmRest, so effCharm runs the
@@ -678,6 +686,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	} else if ctx.X == 0 {
 		ctx.X = e.triggerPaidX(rp.obj, o)
 	}
+	// The triggered-cost window's dynamic tapXType<X/Spec> payment (the
+	// Battlesphere/yotia shape): the election's tap count is the cost's
+	// announced X, carried on the resume point. It wins over both reads above
+	// -- the trigger object's own X is 0 and the source permanent's X is its
+	// cast-time value, not this payment's.
+	if rp.tapPaidX != 0 {
+		ctx.X = rp.tapPaidX
+	}
 	var svars map[string]string
 	if o.Ability != nil {
 		// A triggered or activated ability: mirror resolveTop's ability
@@ -810,7 +826,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// the spell-cast arm's TriggerCard (a SpellCast fires on PutOnStack,
 			// whose Obj IS the cast spell; no ability wrapper is minted). Only
 			// a context-less synthetic push keeps the free-executor semantics.
-			(rp.sa.API == "CopySpellAbility" && (tc.TriggerAbility != 0 || tc.TriggerCard != 0)))
+			(rp.sa.API == "CopySpellAbility" && (tc.TriggerAbility != 0 || tc.TriggerCard != 0)) ||
+			// The dynamic tapXType heads (tapXType<X/Spec>, tapXType<Any/Spec> --
+			// Myr Battlesphere's "you may tap X untapped Myr"): the tap election
+			// is the payment and the decline is the empty election, the same
+			// "you may pay; when you do" idiom the Untap/ImmediateTrigger shapes
+			// route through this window.
+			costCarriesDynTap(e.parseCost(rp.sa.Params["Cost"])))
 	if armed {
 		e.startTriggeredEffectCost(rp, ctx.Source)
 		return
@@ -1443,6 +1465,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// effPlay sees the answer as consumed either way.
 			free := strings.EqualFold(rp.sa.Params["WithoutManaCost"], "True")
 			playCost := strings.TrimSpace(rp.sa.Params["PlayCost"])
+			// ImprintPlayed$ True (task imprintplayed: Rashmi and Ragavan,
+			// Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus
+			// files): every card the Play actually BEGINS to play is recorded
+			// as imprinted on the resolution's source (events.Imprint, the
+			// same association Chrome Mox's Imprint$ writes), so the chained
+			// ConditionDefined$ Imprinted gate (DBEffect's "did you cast it
+			// this way?" arm) reads a real answer. "Actually begins" is read
+			// from the card's zone: a begun cast pushes the card onto the
+			// stack (CR 601.2a) or moves it onward, while a declined Play — an
+			// unpayable alternative, a stale answer, a reversed cast — leaves
+			// it in its zone, and an aborted cast reverses it back to exactly
+			// the zone it started in. The emission sits before the suspension
+			// break so a cast suspended mid-transaction (a target ask inside
+			// the free cast) is still recorded as played.
+			imprintPlayed := strings.EqualFold(rp.sa.Params["ImprintPlayed"], "True")
 			var toPlay []state.ObjID
 			for _, ch := range chosen {
 				if ch.Obj != 0 {
@@ -1454,7 +1491,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if i == 0 {
 					ctx.Play = id
 				}
+				from := state.Zone(0)
+				if o := e.G.Obj(id); o != nil {
+					from = o.Zone
+				}
 				e.beginPlay(ctx.Controller, id, free, playCost)
+				if imprintPlayed && from.Valid() {
+					if o := e.G.Obj(id); o != nil && o.Zone != from {
+						e.emit(events.Event{Kind: events.Imprint, Obj: ctx.Source,
+							IDs: []state.ObjID{id}})
+					}
+				}
 				if e.Suspended() || e.cast != nil {
 					if rest := toPlay[i+1:]; len(rest) > 0 {
 						e.emit(events.Event{Kind: events.Note, Obj: rp.obj,

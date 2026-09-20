@@ -229,3 +229,123 @@ func TestDerivedColorsSkipsMalformedColourElements(t *testing.T) {
 		t.Fatalf("colours with malformed elements = %q, want \"UG\" (invalid elements skipped, U landed)", got)
 	}
 }
+
+// TestSetColorStaticAmpersandListMakesWitnessProtectionBearerGreenWhite pins
+// the second list separator the corpus uses. Witness Protection carries
+// `SetColor$ Green & White` -- a " & " list, the same grammar the SAME
+// static line's `AddType$ Creature & Citizen` uses and rules' statList
+// already splits -- so the enchanted creature is green AND white, not the
+// printed blue. Before the shared parser learned " & ", "Green & White" was
+// one unrecognised word, the read failed closed, and the bearer kept its
+// printed colour (the review's MAJOR finding).
+func TestSetColorStaticAmpersandListMakesWitnessProtectionBearerGreenWhite(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	witness := mustCorpusCard(t, reg, "Witness Protection")
+	elemental := mustCorpusCard(t, reg, "Air Elemental") // a blue creature
+	e := corpusEngine(t, reg, []*cards.Card{witness, elemental}, []*cards.Card{})
+
+	bearer := moveByName(t, e, 0, "Air Elemental", state.ZBattlefield)
+	if got := e.Colors(bearer); got != "U" {
+		t.Fatalf("Air Elemental colours before Witness Protection = %q, want \"U\"", got)
+	}
+	attachCorpusAura(t, e, 0, witness, bearer)
+
+	if got := e.Colors(bearer); got != "WG" {
+		t.Fatalf("enchanted permanent colours under SetColor$ Green & White = %q, want \"WG\"", got)
+	}
+}
+
+// TestSetColorStaticMakesImprisonedBearerColourless is the brief's card pin:
+// Imprisoned in the Moon's `SetColor$ Colorless` static is a layer-5 colour
+// SET, so the enchanted permanent's derived colours become the empty set (it
+// is colourless), and the change is visible to a real colour-based rules
+// path -- protection's sourceHasQuality reads the DERIVED colours through
+// e.objColors, so a black creature stops counting as black for a bearer with
+// "Protection from black". Before the SetColor$ read the enchanted creature
+// kept its printed black and White Knight's protection still applied.
+func TestSetColorStaticMakesImprisonedBearerColourless(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	imprisoned := mustCorpusCard(t, reg, "Imprisoned in the Moon")
+	specter := mustCorpusCard(t, reg, "Hypnotic Specter") // a black creature
+	knight := mustCorpusCard(t, reg, "White Knight")      // Protection from black
+	e := corpusEngine(t, reg, []*cards.Card{imprisoned, specter, knight}, []*cards.Card{})
+
+	bearer := moveByName(t, e, 0, "Hypnotic Specter", state.ZBattlefield)
+	wKnight := moveByName(t, e, 0, "White Knight", state.ZBattlefield)
+	if got := e.Colors(bearer); got != "B" {
+		t.Fatalf("Hypnotic Specter colours before Imprisoned = %q, want \"B\"", got)
+	}
+	if !e.protectedFrom(wKnight, bearer) {
+		t.Fatal("White Knight must be protected from the black Hypnotic Specter before Imprisoned")
+	}
+
+	attachCorpusAura(t, e, 0, imprisoned, bearer)
+
+	if got := e.Colors(bearer); got != "" {
+		t.Fatalf("enchanted permanent colours after Imprisoned SetColor$ Colorless = %q, want \"\" (colourless)", got)
+	}
+	if e.protectedFrom(wKnight, bearer) {
+		t.Fatal("White Knight must stop being protected from the now-colourless enchanted permanent")
+	}
+	// The layer-4 half of the same static still applies alongside the colour
+	// set: the permanent is a Land and has lost its card types.
+	if d := e.Derived(bearer); !slices.Contains(d.Types, "Land") {
+		t.Fatalf("enchanted permanent types = %v, want a Land among them", d.Types)
+	}
+}
+
+// TestSetColorAllStaticMakesLeylinePermanentsAllColours pins the other
+// vocabulary arm on a real corpus card: Leyline of the Guildpact's
+// `SetColor$ All` makes each nonland permanent its controller owns all five
+// colours (WUBRG), not just its printed ones.
+func TestSetColorAllStaticMakesLeylinePermanentsAllColours(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	leyline := mustCorpusCard(t, reg, "Leyline of the Guildpact")
+	bears := mustCorpusCard(t, reg, "Grizzly Bears")
+	e := corpusEngine(t, reg, []*cards.Card{leyline, bears}, []*cards.Card{})
+
+	moveByName(t, e, 0, "Leyline of the Guildpact", state.ZBattlefield)
+	id := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	if got := e.Colors(id); got != "WUBRG" {
+		t.Fatalf("Grizzly Bears under Leyline of the Guildpact = %q, want \"WUBRG\"", got)
+	}
+}
+
+// TestAddColorStaticExtendsColours pins the sibling parameter to SetColor$:
+// Angelic Armaments' `AddColor$ White` is a layer-5 colour ADD ("in
+// addition to its other colors"), so a green Grizzly Bears becomes green and
+// white rather than white alone. Before the AddColor$ read the equipment's
+// pump and keyword landed but the colour did nothing.
+func TestAddColorStaticExtendsColours(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	armaments := mustCorpusCard(t, reg, "Angelic Armaments")
+	bears := mustCorpusCard(t, reg, "Grizzly Bears")
+	e := corpusEngine(t, reg, []*cards.Card{armaments, bears}, []*cards.Card{})
+
+	bearer := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	if got := e.Colors(bearer); got != "G" {
+		t.Fatalf("Grizzly Bears colours before Armaments = %q, want \"G\"", got)
+	}
+	attachCorpusAura(t, e, 0, armaments, bearer)
+	if got := e.Colors(bearer); got != "WG" {
+		t.Fatalf("Grizzly Bears under AddColor$ White = %q, want \"WG\" (white added, green kept)", got)
+	}
+}
+
+// TestSetColorChosenColorStaticFailsClosed pins the unparseable arm: a
+// `SetColor$ ChosenColor` static (Alloy Golem, Faceless One, Clara Oswald --
+// they ask their controller for a colour before the game) must fail closed,
+// leaving the affected object's printed colours alone rather than
+// overwriting them with the parser's empty prefix. Authored inline so it
+// does not depend on a commander-pregame choice this build does not model.
+func TestSetColorChosenColorStaticFailsClosed(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	const src = "Name:Chosen Hue Bearer\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\n" +
+		"S:Mode$ Continuous | Affected$ Card.Self | SetColor$ ChosenColor | Description$ CARDNAME is the chosen color.\n" +
+		"Oracle:x\n"
+	e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Grizzly Bears")}, []*cards.Card{})
+	id := putToken(t, e, 0, src, state.ZBattlefield)
+	if got := e.Colors(id); got != "G" {
+		t.Fatalf("bearer under SetColor$ ChosenColor = %q, want \"G\" (printed colours kept, fail closed)", got)
+	}
+}

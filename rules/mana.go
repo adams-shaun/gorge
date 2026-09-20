@@ -37,6 +37,15 @@ type CostPart struct {
 	// A part whose SVar is absent or unresolvable fails closed -- the cost is
 	// unpayable, never a silent zero draw. Empty for an ordinary literal
 	// Draw<N/Spec>.
+	//
+	// On a TapPermanent part Dyn carries Forge's dynamic tapXType heads
+	// instead: "X" (tapXType<X/Spec> -- the tap count announces the cast's
+	// {X}, CR 601.2b: when the cost carries no other announce-bearing part
+	// the tap election IS the announcement and binds Count$xPaid through the
+	// pay-time CastInfo; when it does, the part settles exactly the announced
+	// X) and "Any" (tapXType<Any/Spec> -- a free count that binds nothing;
+	// paying the cost taps at least one matching permanent, so a spec no
+	// candidate satisfies leaves the cost unpayable). N is unused for both.
 	Dyn string
 }
 
@@ -196,6 +205,29 @@ var addCounterCost = regexp.MustCompile(`^AddCounter<(\d+)/(LOYALTY)(?:/[^>]*)?>
 var lifeCost = regexp.MustCompile(`^PayLife<(\d+)>$`)
 
 var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// dynTapCost matches Forge's dynamic tap-any-number tapXType tokens -- the
+// heads the literal choiceCost regex above cannot read:
+//
+//   - tapXType<X/Spec> (Myr Battlesphere's "tap X untapped Myr", Burn at the
+//     Stake's spell-cost form, Necron Overlord's "{X}, tap X artifacts"): the
+//     count IS the cast's {X}. When the cost carries another announce-bearing
+//     part (a printed {X}, PayEnergy<X>, Sac<X>, ...) xAsk announces it and
+//     the part settles exactly that value; when it does not, the tap election
+//     itself announces (CR 601.2b) and the paid count binds Count$xPaid
+//     through the pay-time CastInfo. A triggered ability carrying the head
+//     pays through the triggered-cost window (rules/cumulative.go), whose
+//     tap election is the payment and whose empty answer is the decline.
+//
+//   - tapXType<Any/Spec> (Mossbridge Troll): a free count that binds no X.
+//     Paying the cost still taps at least one matching permanent, so a spec
+//     the filter cannot admit any candidate for (Mossbridge's
+//     withTotalPowerGE10 group predicate fails closed) leaves the ability
+//     unpayable rather than offering a zero-tap payment.
+//
+// The trailing "/description" is dropped and ";" alternations fold to ","
+// like every other non-mana head.
+var dynTapCost = regexp.MustCompile(`^tapXType<(X|Any)/([^/>]+)(?:/[^>]*)?>$`)
 var blightCost = regexp.MustCompile(`^Blight<(\d+)>$`)
 
 // payEnergyCost matches Forge's PayEnergy<N> and PayEnergy<X> tokens --
@@ -277,6 +309,13 @@ func ParseCost(s string) Cost {
 			c.Snow++
 		case sym == "Forage":
 			c.Forage = true
+		case strings.EqualFold(sym, "Mandatory"):
+			// Forge's mandatory-payment marker (Cost$ Mandatory tapXType<X/...>,
+			// Mandatory Sac<...>, Mandatory PayEnergy<...> -- 31 raw cost
+			// occurrences): a payment-mode marker, not a payment. It priced one
+			// phantom generic mana before, so a Mandatory tapXType trigger cost
+			// was silently bought for {1}; skip the token and model the rest.
+			continue
 		case len(sym) == 1 && strings.ContainsAny(sym, "WUBRGC"):
 			c.Colored[state.ManaIndex(sym[0])]++
 		case isHybrid(sym):
@@ -288,6 +327,13 @@ func ParseCost(s string) Cost {
 		case isHybridPhyrexian(sym):
 			c.HybridPhyrexian = append(c.HybridPhyrexian, hybridPhyrexianPair(sym))
 		default:
+			if m := dynTapCost.FindStringSubmatch(sym); m != nil {
+				// The dynamic tapXType heads (see the regex's doc): a TapPermanent
+				// part whose count the tap election resolves at payment -- "X"
+				// announcing the cast's {X}, "Any" free. N is unused.
+				c.TapPermanent = append(c.TapPermanent, CostPart{Dyn: m[1], Spec: strings.ReplaceAll(m[2], ";", ",")})
+				continue
+			}
 			if m := choiceCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
@@ -1271,6 +1317,77 @@ func manaActivationCostMarker(abilities []*cards.SA) string {
 		}
 	}
 	return ""
+}
+
+// dynTapParts returns the dynamic (X/Any) TapPermanent parts of a cost --
+// the tapXType heads the tap election pays (dynTapCost's doc). The literal
+// tapXType<N/Spec> parts are ordinary fixed payments and never appear here.
+func dynTapParts(c Cost) []CostPart {
+	var out []CostPart
+	for _, part := range c.TapPermanent {
+		if part.Dyn != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
+// costCarriesDynTap reports whether a cost carries a dynamic tapXType part:
+// the trigger-cost window's arm condition and the announce carve-outs use
+// it, so a cost whose only X is a tapXType<X/Spec> election is treated the
+// way a printed {X} is everywhere the engine asks "does this announce an X".
+func costCarriesDynTap(c Cost) bool {
+	return len(dynTapParts(c)) > 0
+}
+
+// withoutDynTaps strips the dynamic tapXType parts from a cost, keeping the
+// literal ones (so a composed cost carrying both keeps its unpriceable half
+// unpriceable). The triggered-cost window prices the non-tap rest of a
+// dyn-tap cost with it.
+func withoutDynTaps(c Cost) Cost {
+	if !costCarriesDynTap(c) {
+		return c
+	}
+	kept := make([]CostPart, 0, len(c.TapPermanent))
+	for _, part := range c.TapPermanent {
+		if part.Dyn == "" {
+			kept = append(kept, part)
+		}
+	}
+	c.TapPermanent = kept
+	return c
+}
+
+// costAnnouncesCastX reports whether paying this cost announces a value for
+// {X} through an announce-bearing part OTHER than a tapXType<X/Spec>
+// election: a printed {X} mana symbol, a PayEnergy<X> part, an announced
+// Sac<X/Spec>, SubCounter<X/Kind> or PayLife<X> part. This mirrors xAsk's
+// own guard (the two must agree: the tap ask defers its X-form parts exactly
+// when this is true, and xAsk bounds the announced X by the tap candidates).
+// It deliberately does not fold into legal.go's costAnnouncesX, which omits
+// the announced-Sac clause -- the offer gate's carve-out and this defer
+// decision answer different questions and changing the offer gate's answer
+// for Sac<X> costs is not this work.
+func costAnnouncesCastX(c Cost) bool {
+	if c.X > 0 {
+		return true
+	}
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			return true
+		}
+	}
+	for _, part := range c.Sac {
+		if part.Announced {
+			return true
+		}
+	}
+	for _, part := range c.SubCounter {
+		if part.Announced {
+			return true
+		}
+	}
+	return len(c.LifeX) > 0
 }
 
 // HasNonMana reports whether paying this cost takes more than mana.
