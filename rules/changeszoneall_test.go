@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -253,18 +254,108 @@ func TestMorbidOpportunistDrawsOncePerTurn(t *testing.T) {
 	}
 }
 
+// TestMerryWardenOfIsengardBathesArtifactsOncePerTurn is the deck card the
+// original report named (issue agent-20260918T202223Z-7054b9c3): "Whenever
+// one or more artifacts you control enter, create a 1/1 white Soldier
+// creature token with lifelink. This ability triggers only once each
+// turn." -- ValidCards$ Artifact.YouCtrl | Destination$ Battlefield with
+// ActivationLimit$ 1, one of the 40 exact lines.
+//
+// Pinned, in order on one turn:
+//  1. TWO artifacts entering together create exactly ONE 1/1 white Soldier
+//     token with lifelink (the batch semantics -- one trigger per group,
+//     asserted by battlefield zone contents, not by a log string);
+//  2. a second artifact batch in the SAME turn creates no further token
+//     (the ActivationLimit$ 1 latch);
+//  3. an OPPONENT's artifact entering creates nothing (YouCtrl).
+func TestMerryWardenOfIsengardBathesArtifactsOncePerTurn(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := zallEngine(t, reg,
+		[]string{"Merry, Warden of Isengard", "Sol Ring", "Tormod's Crypt", "Mox Amber", "Forest"},
+		[]string{"Sol Ring", "Grizzly Bears", "Forest"})
+	zallEnter(t, e, 0, "Merry, Warden of Isengard")
+
+	// (1) two artifacts entering together -> exactly one token.
+	zallEnter(t, e, 0, "Sol Ring")
+	zallEnter(t, e, 0, "Tormod's Crypt")
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("two artifacts entering queued %d trigger(s), want 1 (one per batch)", len(e.pendingTriggers))
+	}
+	zallDrain(t, e)
+	if n := countTokensNamedOnSeat(t, e, 0, "Soldier Token"); n != 1 {
+		t.Fatalf("a two-artifact batch created %d Soldier token(s), want exactly 1", n)
+	}
+	var tok *state.Object
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Soldier Token" {
+			tok = o
+			break
+		}
+	}
+	if tok == nil {
+		t.Fatal("no Soldier Token object on seat 0's battlefield")
+	}
+	f := tok.Face()
+	if !slices.Contains(f.Types, "Creature") || !slices.Contains(f.Types, "Soldier") {
+		t.Fatalf("token types = %v, want Creature Soldier", f.Types)
+	}
+	if f.PT != "1/1" {
+		t.Fatalf("token PT = %q, want 1/1", f.PT)
+	}
+	if !slices.Contains(f.Keywords, "Lifelink") {
+		t.Fatalf("token keywords = %v, want Lifelink", f.Keywords)
+	}
+
+	// (2) a second artifact batch in the same turn is latched off.
+	zallEnter(t, e, 0, "Mox Amber")
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("ActivationLimit$ 1 did not latch: %d trigger(s) queued on the second batch", len(e.pendingTriggers))
+	}
+	zallDrain(t, e)
+	if n := countTokensNamedOnSeat(t, e, 0, "Soldier Token"); n != 1 {
+		t.Fatalf("after the second batch seat 0 holds %d Soldier token(s), want still 1", n)
+	}
+
+	// (3) an opponent's artifact entering is not "you control".
+	oppRing := zallEnter(t, e, 1, "Sol Ring")
+	zallDrain(t, e)
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("an opponent's artifact entering queued %d trigger(s), want 0", len(e.pendingTriggers))
+	}
+	if n := countTokensNamedOnSeat(t, e, 0, "Soldier Token"); n != 1 {
+		t.Fatalf("after the opponent's artifact seat 0 holds %d Soldier token(s), want still 1", n)
+	}
+	if got := e.G.Obj(oppRing).Zone; got != state.ZBattlefield {
+		t.Fatalf("opponent Sol Ring zone = %s, want battlefield", got)
+	}
+}
+
 // TestChangesZoneAllPrimitiveIsRegistered pins the census half of the fix:
-// the mode is declared supported and both pinned carriers carry no
-// unregistered primitive any more.
+// the mode is declared supported and all pinned carriers -- the two report
+// cards and Merry, Warden of Isengard, the deck card the original issue
+// named -- carry no unregistered primitive beyond what is recorded below.
+//
+// Merry carries the DECK-CONSTRUCTION keyword K:Partner with (CR 903.13c),
+// whose corpus shape the engine understands (rules/engine.go's
+// partnerHead/partnerPairOK seat the named pair) but whose primitive string
+// is not registered: effects.Supported() carries "kw:Partner" (the plain
+// alias, the trigger_match.go non-API list) but not its "Partner with"
+// sibling. Merry is therefore NOT fully playable by the census despite the
+// fix -- the one measured remainder, recorded in the report and ticketed.
+// The assertion below pins exactly that: every primitive supported except
+// the one known deck-construction keyword.
 func TestChangesZoneAllPrimitiveIsRegistered(t *testing.T) {
 	if !effects.Supported()["trig:ChangesZoneAll"] {
 		t.Fatal(`effects.Supported() is missing "trig:ChangesZoneAll"`)
 	}
 	reg := searchTestRegistry(t)
-	for _, name := range []string{"Tocasia's Welcome", "Morbid Opportunist"} {
+	for _, name := range []string{"Tocasia's Welcome", "Morbid Opportunist", "Merry, Warden of Isengard"} {
 		c := searchCorpusCard(t, reg, name)
 		for _, prim := range c.Primitives() {
 			if !effects.Supported()[prim] {
+				if name == "Merry, Warden of Isengard" && prim == "kw:Partner with" {
+					continue // the measured remainder; see the comment above
+				}
 				t.Fatalf("%s carries an unsupported primitive %q", name, prim)
 			}
 		}
