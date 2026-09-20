@@ -850,13 +850,16 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 // option generation and validation.
 func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 	for _, sv := range e.activeStatics("CantBlock") {
-		// Condition$ (and the rest of continuousGateHolds' shared gate) is
-		// evaluated per static: the Detective of the Month / Slippery
-		// Scoundrel family's Condition$ Blessing, Cephalid Inkmage's
-		// Threshold, Bilbo's Ring's PlayerTurn. Before this gate the
-		// restriction applied UNCONDITIONALLY (over-permissive); the shared
-		// evaluator's fail-closed direction (rules/layers.go) keeps an
-		// unimplementable condition denying instead.
+		// Condition$ is evaluated per static (continuousConditionHolds:
+		// the Detective of the Month / Slippery Scoundrel family's
+		// Condition$ Blessing, Cephalid Inkmage's Threshold, Bilbo's
+		// Ring's PlayerTurn). Before this gate the restriction applied
+		// UNCONDITIONALLY (over-permissive); the evaluator's fail-closed
+		// direction (rules/layers.go) keeps an unimplementable condition
+		// denying instead. Only Condition$ is read here, NOT the rest of
+		// continuousGateHolds (IsPresent$/IsPresent2$/CheckSVar$), so an
+		// IsPresent$- or CheckSVar$-gated CantBlock stays unconditional
+		// exactly as before.
 		if !e.continuousConditionHolds(sv) {
 			continue
 		}
