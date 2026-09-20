@@ -2583,6 +2583,72 @@ func libraryOrderPlacement(h Host, owner state.PlayerID, moved []state.ObjID, bo
 	h.Emit(events.Event{Kind: events.LibraryOrder, Player: owner, IDs: order, Secret: true})
 }
 
+// changeZoneAllPlayers resolves the player scope Forge's ChangeZoneAllEffect
+// applies. A card that says "exile all cards from target player's graveyard"
+// (Bojuka Bog, Tormod's Crypt, Nihil Spellbomb, ...) names ONE player and must
+// move only that player's cards; without this scope the effect swept every
+// player's zones. Forge's rule:
+//
+//	if ((!sa.usesTargeting() && !sa.hasParam("Defined")) || UseAllOriginZones$ True)
+//	    -> every player
+//	else
+//	    -> the chosen target players when the ability uses targeting, else the
+//	       Defined$ players (getTargetPlayers; targeting wins when both ride)
+//
+// Both scope forms resolve through the shared player-target vocabulary
+// (`Defined` / `definedSpec`), so `ValidTgts$ Player`, `ValidTgts$ Opponent`,
+// `Defined$ You`, `Defined$ TargetedController` and the rest all work without a
+// second spelling table. A selector we cannot resolve to a PLAYER (an unknown
+// spelling, or an object-only one) keeps the pre-fix all-players sweep rather
+// than silently moving nothing, and emits a Note saying so: the unscoped sweep
+// is the previous behaviour, so an unmodelled card is never quietly inert, and
+// a card we DO understand is correctly restricted. `Origin$` handling is not
+// touched -- ParseZones already splits `Hand,Graveyard` into two zones and the
+// Any/All wildcard is resolved by the caller before this runs.
+func changeZoneAllPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	g := h.Game()
+	if strings.EqualFold(strings.TrimSpace(sa.Params["UseAllOriginZones"]), "True") {
+		return g.AliveFrom(0)
+	}
+	_, targeting := sa.Params["ValidTgts"]
+	_, defined := sa.Params["Defined"]
+	if !targeting && !defined {
+		return g.AliveFrom(0)
+	}
+	var chosen []state.Target
+	if targeting {
+		// Forge's getTargetPlayers reads the SA's ANSWERED target players when
+		// it uses targeting, never Defined$; the pre-ask answered set outranks
+		// the resolution list exactly as Defined's own targeting branch does.
+		if c.PickedTargets != nil {
+			chosen = c.PickedTargets
+		} else {
+			chosen = c.Targets
+		}
+	} else {
+		chosen = Defined(h, c, sa)
+	}
+	seen := make(map[state.PlayerID]bool, len(chosen))
+	out := make([]state.PlayerID, 0, len(chosen))
+	for _, t := range chosen {
+		if !t.IsPlayer || seen[t.Player] {
+			continue
+		}
+		seen[t.Player] = true
+		out = append(out, t.Player)
+	}
+	if len(out) == 0 {
+		sel := sa.Params["Defined"]
+		if targeting {
+			sel = sa.Params["ValidTgts"]
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "ChangeZoneAll could not resolve a player scope from " + sel + "; sweeping all players"})
+		return g.AliveFrom(0)
+	}
+	return out
+}
+
 func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	from, all, valid := ParseZones(sa.Params["Origin"])
 	if !valid {
@@ -2628,8 +2694,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		placements = append(placements, ownerMoved{owner: owner})
 		return &placements[len(placements)-1]
 	}
+	players := changeZoneAllPlayers(h, c, sa)
 	for _, z := range from {
-		for _, p := range g.AliveFrom(0) {
+		for _, p := range players {
 			// Snapshot the zone: emitting move events mutates it underneath us.
 			ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 			for _, id := range ids {
