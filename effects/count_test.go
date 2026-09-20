@@ -436,3 +436,49 @@ func TestChosenNumberHeadReadsTheFrozenBinding(t *testing.T) {
 		t.Errorf("unbound Count$ChosenNumber = (%d, %v), want unresolved (0, false)", n, ok)
 	}
 }
+
+// TestThisTurnEnteredGraveyardCountsPermanentBase pins the Defect-2 fix in
+// countEntered: a spec's filter must be evaluated in the entry's DESTINATION
+// zone. A Grizzly Bears moved battlefield->graveyard this turn is no longer
+// on the battlefield, so the ordinary matcher's `Permanent` base
+// (o.Zone == ZBattlefield) rejects it and the count came back 0. The
+// zone-aware matcher reads a non-battlefield `Permanent` base as a permanent
+// CARD (Forge's Card.isPermanent()), which is what Gravestorm's
+// Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent needs.
+func TestThisTurnEnteredGraveyardCountsPermanentBase(t *testing.T) {
+	h := newHost(t, 2)
+	card := mkCard(t, "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	bear := h.g.AddObject(card, 0)
+	g := h.g
+	// Move the object out of the battlefield for real, mirroring events.Move:
+	// update the live zone lists, the object's Zone, and the per-add entry
+	// list the ThisTurnEntered heads fold.
+	g.SetZone(state.ZBattlefield, 0, nil)
+	g.SetZone(state.ZGraveyard, 0, append(g.Zone(state.ZGraveyard, 0), bear.ID))
+	bear.Zone = state.ZGraveyard
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: bear.ID, To: state.ZGraveyard, From: state.ZBattlefield})
+
+	c := &Ctx{Controller: 0}
+	for _, tc := range []struct {
+		body string
+		want int32
+	}{
+		// Permanent is the Defect-2 carrier: 0 before the fix.
+		{"Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent", 1},
+		// Creature/Card are type/identity tests and were already 1; they
+		// must stay 1 so the fix does not regress the common shape.
+		{"Count$ThisTurnEntered_Graveyard_from_Battlefield_Creature", 1},
+		{"Count$ThisTurnEntered_Graveyard_from_Battlefield_Card", 1},
+	} {
+		got, ok := EvalCountOK(h, c, tc.body)
+		if !ok || got != tc.want {
+			t.Errorf("%s = (%d, %v), want (%d, true)", tc.body, got, ok, tc.want)
+		}
+	}
+	// An unrelated permanent that never entered the graveyard must not
+	// change the count -- the fix must scope to the entry list, not widen.
+	h.g.AddObject(mkCard(t, "Name:Rock\nManaCost:1\nTypes:Artifact\nOracle:x\n"), 0)
+	if got, _ := EvalCountOK(h, c, "Count$ThisTurnEntered_Graveyard_from_Battlefield_Creature"); got != 1 {
+		t.Errorf("unrelated object changed the count to %d", got)
+	}
+}

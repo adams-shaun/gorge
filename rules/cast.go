@@ -5935,5 +5935,10 @@ func init() {
 		// whose cost exiles the card itself (ExileFromGrave<1/CARDNAME>) and
 		// whose token copy carries the keyword's modified characteristics --
 		// the Encore graveyard-activation shape with a different effect.
+		// kw:Gravestorm: CR 702.84, expanded by cards/keywords.go into the
+		// Storm-shaped copy trigger whose Amount$
+		// Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent reads the
+		// zone-aware count in effects.countEntered.
+		"kw:Gravestorm",
 		"kw:Embalm", "kw:Eternalize")
 }
