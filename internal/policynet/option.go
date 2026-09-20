@@ -132,18 +132,20 @@ const (
 	odAtkTough   = 9
 	odAtkDamage  = 10
 	odAtkDelta   = 11 // my toughness − attacker power (does the block survive?)
-	odCostTotal  = 12 // mana pips in the option's cost (X counts 0)
-	odCostDelta  = 13 // costTotal − (my pool + my available)
-	odTapOut     = 14 // costTotal > 0 && costTotal > available
-	odAmount     = 15 // Option.Amount (the X value an "x" option represents)
-	odAltCost    = 16 // AltCostIndex != 0
-	odRequired   = 17 // Option.Required (a must-attack creature)
-	odIndex      = 18 // idx/(n−1), 0 when n ≤ 1
-	odManaValue  = 19 // the option card's mana value
-	odActivated  = 20 // the option card's ActivatedThisTurn
-	odCounters   = 21 // total counters on the option card
-	odAttached   = 22 // AttachedTo != 0
-	odGroup      = 23 // Option.Group != ""
+	odCostTotal  = 12 // mana pips in the option's cost; X counts 0 and a
+	// non-mana component (Sac<...>, PayLife<...>, T, ...) contributes 0,
+	// never a phantom pip
+	odCostDelta = 13 // costTotal − (my pool + my available)
+	odTapOut    = 14 // costTotal > 0 && costTotal > available
+	odAmount    = 15 // Option.Amount (the X value an "x" option represents)
+	odAltCost   = 16 // AltCostIndex != 0
+	odRequired  = 17 // Option.Required (a must-attack creature)
+	odIndex     = 18 // idx/(n−1), 0 when n ≤ 1
+	odManaValue = 19 // the option card's mana value
+	odActivated = 20 // the option card's ActivatedThisTurn
+	odCounters  = 21 // total counters on the option card
+	odAttached  = 22 // AttachedTo != 0
+	odGroup     = 23 // Option.Group != ""
 )
 
 // cardRef is one view-resolved card: its CardView, which zone class it sits
@@ -363,9 +365,18 @@ func EncodeOption(v view.View, seat state.PlayerID, d decision.Kind, o decision.
 	// (every other option kind, and a bare-tap activate) does the card's own
 	// printed cost apply. This mirrors decision.Option.Cost's contract
 	// ("the activation cost of a priority-window activate option").
+	//
+	// Option.Cost is a formatCost rendering, NOT a bare mana cost: it mixes
+	// mana symbols with non-mana components (T, Sac<...>, PayLife<...>,
+	// Exile<...>, SubCounter<...>, PayEnergy<...>, and so on). Pricing the
+	// whole string with manaCostBits counted every such token as one generic
+	// pip, so e.g. "T Sac<1/CARDNAME>" priced 2 instead of 0. manaOnlyPips
+	// reads the mana tokens out of the marker and ignores every non-mana
+	// component, so the cost triple reflects only mana the payment actually
+	// charges.
 	costTotal := float32(mvOf(cost))
 	if o.Kind == "activate" {
-		costTotal = float32(mvOf(o.Cost))
+		costTotal = float32(manaOnlyPips(o.Cost))
 	}
 	if costTotal > 0 {
 		avail := availableTotal(v, seat)
@@ -454,7 +465,7 @@ func manaCostBits(cost string) ([6]bool, int) {
 		return colours, 0
 	}
 	mv := 0
-	for _, tok := range strings.Fields(cost) {
+	for _, tok := range costTokens(cost) {
 		// Colour bits come from the token's own colour letters: a plain pip,
 		// each '/'-separated face of a hybrid ("G/W"), or a twobrid's colour
 		// half ("2/W" -> W). X/Y/Z and pure-generic tokens carry none.
@@ -564,6 +575,167 @@ func twobridManaValue(sym string) (int, bool) {
 func mvOf(cost string) int {
 	_, mv := manaCostBits(cost)
 	return mv
+}
+
+// costTokens splits a cost string on whitespace but keeps each <...> group
+// atomic, so a Forge non-mana token whose trailing "/description" contains
+// spaces (e.g. "Sac<1/Creature.powerGE4/creature with power 4 or greater>")
+// is one token rather than several. This mirrors rules.splitCostTokens; a
+// plain strings.Fields would tear the description apart and mis-read its
+// stray digits as generic mana. A cost with no <...> group tokenises exactly
+// as Fields would.
+func costTokens(s string) []string {
+	var out []string
+	i := 0
+	for i < len(s) {
+		if isSpaceByte(s[i]) {
+			i++
+			continue
+		}
+		start, depth := i, 0
+		for i < len(s) {
+			if s[i] == '<' {
+				depth++
+			} else if s[i] == '>' && depth > 0 {
+				depth--
+			} else if isSpaceByte(s[i]) && depth == 0 {
+				break
+			}
+			i++
+		}
+		out = append(out, s[start:i])
+	}
+	return out
+}
+
+// isSpaceByte reports whether b is an ASCII whitespace byte. Forge costs are
+// ASCII; rules's iterator uses unicode.IsSpace, which agrees on every byte
+// that can appear in a cost string.
+func isSpaceByte(b byte) bool {
+	return b == ' ' || b == '\t' || b == '\n' || b == '\r' || b == '\v' || b == '\f'
+}
+
+// manaOnlyPips prices the MANA value of a formatCost rendering
+// (decision.Option.Cost), ignoring every non-mana component. It mirrors the
+// positive mana vocabulary of rules.ParseCost token by token: a token is
+// mana only when it is X, S, a single WUBRGC letter, a non-negative integer,
+// a hybrid, a Phyrexian, a twobrid or a hybrid-Phyrexian symbol. Anything
+// else -- T, Forage, and every <head><N/Spec> component (Sac, Discard,
+// Draw, SubCounter, AddCounter, Exile/ExileFromHand/ExileFromGrave, Reveal,
+// Behold, tapXType, Blight, Return, PayLife, LifeX, DamageYou, PayEnergy) --
+// is non-mana and contributes 0. Classifying by POSITIVE mana membership
+// (rather than enumerating non-mana heads) is deliberate: a future cost
+// component formatCost learns to render is priced 0 here unless it is also
+// real mana, so no new component can silently become a phantom pip.
+//
+// A malformed or unrecognised token is non-mana here. That cannot diverge
+// from the engine on real wire data: formatCost only ever emits recognised
+// mana symbols and the known non-mana heads (an unparseable raw token is
+// folded to generic mana before formatCost ever sees it), so every token in
+// a real marker classifies.
+func manaOnlyPips(cost string) int {
+	cost = strings.TrimSpace(manaBraceForm.Replace(cost))
+	if cost == "" || strings.EqualFold(cost, "no cost") {
+		return 0
+	}
+	mv := 0
+	for _, tok := range costTokens(cost) {
+		switch {
+		case tok == "X": // {X} is 0 off the stack
+		case tok == "S": // snow mana: one pip
+			mv++
+		case len(tok) == 1 && strings.ContainsRune("WUBRGC", rune(tok[0])):
+			mv++
+		case isPlainDigits(tok):
+			if n, err := strconv.Atoi(tok); err == nil {
+				mv += n
+			}
+		case isHybridSym(tok), isPhyrexianSym(tok), isHybridPhyrexianSym(tok):
+			mv++
+		default:
+			// Twobrid is the one mana symbol with a non-unit value; every
+			// other token here is a non-mana component and contributes 0.
+			if v, ok := twobridManaValue(tok); ok {
+				mv += v
+			}
+		}
+	}
+	return mv
+}
+
+// isPlainDigits reports whether s is a non-empty run of ASCII digits with no
+// sign or other character.
+func isPlainDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// isHybridSym mirrors rules.isHybrid: a two-colour hybrid pip, slash
+// ("W/U") or concatenated ("WU"), the two colours distinct and WUBRGC.
+func isHybridSym(sym string) bool {
+	var a, b byte
+	if len(sym) == 3 && sym[1] == '/' {
+		a, b = sym[0], sym[2]
+	} else if len(sym) == 2 && sym[1] != 'P' {
+		a, b = sym[0], sym[1]
+	} else {
+		return false
+	}
+	return a != b && strings.ContainsRune("WUBRGC", rune(a)) && strings.ContainsRune("WUBRGC", rune(b))
+}
+
+// isPhyrexianSym mirrors rules.isPhyrexian: a WUBRG colour then P, slash
+// ("W/P") or concatenated ("UP").
+func isPhyrexianSym(sym string) bool {
+	if len(sym) == 3 && sym[1] == '/' {
+		return strings.ContainsRune("WUBRG", rune(sym[0])) && sym[2] == 'P'
+	}
+	if len(sym) != 2 {
+		return false
+	}
+	return sym[1] == 'P' && strings.ContainsRune("WUBRG", rune(sym[0]))
+}
+
+// isHybridPhyrexianSym mirrors rules.isHybridPhyrexian: two distinct WUBRG
+// colours and P, in either spelling ("G/W/P", "GWP", the P-first "PRG").
+func isHybridPhyrexianSym(sym string) bool {
+	if a, b, ok := stringsCutSlash(sym); ok {
+		if len(a) != 1 || len(b) != 3 || b[1] != '/' {
+			return false
+		}
+		if a[0] == 'P' {
+			return b[0] != b[2] && strings.ContainsRune("WUBRG", rune(b[0])) &&
+				strings.ContainsRune("WUBRG", rune(b[2]))
+		}
+		return b[2] == 'P' && a[0] != b[0] && strings.ContainsRune("WUBRG", rune(a[0])) &&
+			strings.ContainsRune("WUBRG", rune(b[0]))
+	}
+	if len(sym) != 3 {
+		return false
+	}
+	if sym[0] == 'P' {
+		return sym[1] != sym[2] && strings.ContainsRune("WUBRG", rune(sym[1])) &&
+			strings.ContainsRune("WUBRG", rune(sym[2]))
+	}
+	return sym[2] == 'P' && sym[0] != sym[1] && strings.ContainsRune("WUBRG", rune(sym[0])) &&
+		strings.ContainsRune("WUBRG", rune(sym[1]))
+}
+
+// stringsCutSlash splits "a/b" at the first slash, returning ok=false when
+// the slash is absent or at either end -- rules.splitHybridSlash's contract.
+func stringsCutSlash(sym string) (a, b string, ok bool) {
+	i := strings.IndexByte(sym, '/')
+	if i <= 0 || i == len(sym)-1 {
+		return "", "", false
+	}
+	return sym[:i], sym[i+1:], true
 }
 
 // availableTotal sums the viewer seat's floating pool plus its available

@@ -503,6 +503,45 @@ func TestLoaderRoundTrip(t *testing.T) {
 	}
 }
 
+// TestLoaderPrefersTheTeachersCandidateValue pins the chosen-candidate
+// precedence: when the bot's candidate 0 and the teacher's chosen candidate
+// BOTH evaluate an option, the option's Value is the TEACHER's candidate
+// value, not the bot's. Candidate 0 is always the bot's answer (the writer's
+// contract), so a plain record-order first-wins would silently hand a
+// teacher-preferred option the bot's value and leave Target.Value and
+// Target.Preferred describing different candidates.
+func TestLoaderPrefersTheTeachersCandidateValue(t *testing.T) {
+	v := goldenFixture()
+	vb, _ := json.Marshal(v)
+	rec := labelRecord{
+		RecordType: LabelRecordType, SchemaVersion: LabelSchemaVersion,
+		Pair: "a-vs-b", GameIndex: 0, Seed: 1, Sequence: 1,
+		Seat: 0, Kind: decision.KPriority, Turn: 6,
+		Board: traceboardShim(),
+		View:  vb,
+		Options: []decision.Option{
+			{Index: 0, Kind: "cast", Label: "Thalia, Heretic Cathar", Obj: 10, Player: 0},
+			{Index: 1, Kind: "pass", Label: "Pass", Player: 0},
+		},
+		// candidate 0 (the bot) and candidate 1 (the teacher) BOTH evaluate
+		// option 0, with different means.
+		Candidates: []labelCandidate{
+			{Choices: []int{0}, Bot: true, Value: -0.9, Worlds: 16},
+			{Choices: []int{0}, Value: -0.1, Worlds: 16},
+		},
+		TeacherChoice: 1, BotIndex: 0, Margin: 0.8, Worlds: 16,
+	}
+	path := writeCorpus(t, []labelRecord{rec}, false)
+	examples, _, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := examples[0].Options[0].Target
+	if !got.Labelled || !got.Preferred || got.Value != -0.1 {
+		t.Fatalf("teacher-preferred option target = %+v, want {Labelled:true Preferred:true Value:-0.1}", got)
+	}
+}
+
 func TestLoaderRejectsWrongSchema(t *testing.T) {
 	recs := fixtureRecords()
 	bad := recs[:1]
@@ -595,6 +634,88 @@ func TestActivateCostUsesOptionCost(t *testing.T) {
 	costly := EncodeOption(v, 0, decision.KPriority, decision.Option{Index: 0, Kind: "activate", Obj: 6, Cost: "3", Player: 0}, 0, 1)
 	if costly.Dense[odCostTotal] != 3 {
 		t.Fatalf("activate costTotal = %g, want 3 (Option.Cost=3, card MV=2)", costly.Dense[odCostTotal])
+	}
+	// A REAL wire marker. Option.Cost is a formatCost rendering that mixes
+	// mana with non-mana components: "T Sac<1/CARDNAME>" is a bare tap plus
+	// a sacrifice, costs NO mana, and must price 0 -- pricing the whole
+	// marker as mana counted each component as a phantom pip. This is the
+	// defect the review found (79/83 real activate options mis-priced).
+	sac := EncodeOption(v, 0, decision.KPriority, decision.Option{
+		Index: 0, Kind: "activate", Obj: 6, Cost: "T Sac<1/CARDNAME>", Player: 0,
+	}, 0, 1)
+	if sac.Dense[odCostTotal] != 0 || sac.Dense[odCostDelta] != 0 || sac.Dense[odTapOut] != 0 {
+		t.Fatalf("'T Sac<1/CARDNAME>' cost triple = %g/%g/%g, want 0/0/0",
+			sac.Dense[odCostTotal], sac.Dense[odCostDelta], sac.Dense[odTapOut])
+	}
+	// A marker with BOTH mana and non-mana components: "2 W T" is two
+	// generic mana plus one white pip plus a tap -- 3 mana (the card's own
+	// printed MV is 2, so this also proves the marker wins over the card).
+	mixed := EncodeOption(v, 0, decision.KPriority, decision.Option{
+		Index: 0, Kind: "activate", Obj: 6, Cost: "2 W T", Player: 0,
+	}, 0, 1)
+	if mixed.Dense[odCostTotal] != 3 {
+		t.Fatalf("'2 W T' costTotal = %g, want 3", mixed.Dense[odCostTotal])
+	}
+}
+
+// TestManaOnlyPipsReadsOnlyMana pins the marker grammar that Option.Cost
+// carries: every non-mana component formatCost can render contributes 0, and
+// every mana symbol contributes its real pip count. The cases are the exact
+// forms measured over the corpus (a corpus census of formatCost-rendered
+// activation costs), so a future component formatCost learns to render is
+// pinned here as non-mana -- classified by positive mana membership, so it
+// cannot silently become a phantom pip.
+func TestManaOnlyPipsReadsOnlyMana(t *testing.T) {
+	cases := []struct {
+		cost string
+		want int
+	}{
+		// Pure mana symbols, including the exotic ones.
+		{"", 0},
+		{"no cost", 0},
+		{"W", 1},
+		{"1", 1},
+		{"3 U", 4},
+		{"X X T", 0}, // X is 0 off the stack; T is non-mana
+		{"2 U/B", 3},
+		{"2/W", 2},
+		{"UP", 1},
+		{"GWP", 1},
+		{"S", 1}, // snow
+		// Real non-mana components -- every one priced 0.
+		{"T Sac<1/CARDNAME>", 0},
+		// The review's exact real examples, all true mana value 0.
+		{"Sac<1/CARDNAME> Discard<0/Hand>", 0}, // Lion's Eye Diamond
+		{"PayLife<1> T", 0},                    // Mana Confluence
+		{"T Exile<1/CARDNAME>", 0},             // Black Tulip
+		{"T PayEnergy<1> PayEnergy<1/>", 0},    // Aether Hub
+		{"Sac<1/CARDNAME>", 0},
+		{"Discard<1/CARDNAME>", 0},
+		{"T PayEnergy<3> PayEnergy<3/>", 0},
+		{"PayLife<1>", 0},
+		{"T Exile<1/CARDNAME>", 0},
+		{"ExileFromHand<1/CARDNAME>", 0},
+		{"ExileFromGrave<1/CARDNAME>", 0},
+		{"SubCounter<1/FADE>", 0},
+		{"AddCounter<3/LOYALTY>", 0},
+		{"tapXType<2/Artifact,Creature>", 0},
+		{"Blight<1>", 0},
+		{"Return<1/CARDNAME>", 0},
+		{"Forage", 0},
+		// Mixed: only the mana part counts.
+		{"2 W T", 3},
+		{"2 W T Sac<1/CARDNAME>", 3},
+		{"B PayLife<1>", 1},
+		{"2 ExileFromHand<1/CARDNAME>", 2},
+		{"1 T Sac<1/Creature>", 1},
+		// A <...> group whose trailing description contains spaces is ONE
+		// token: the stray digits in "power 4 or greater" are not mana.
+		{"2 G G Sac<1/Creature.powerGE4/creature with power 4 or greater>", 4},
+	}
+	for _, c := range cases {
+		if got := manaOnlyPips(c.cost); got != c.want {
+			t.Errorf("manaOnlyPips(%q) = %d, want %d", c.cost, got, c.want)
+		}
 	}
 }
 

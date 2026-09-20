@@ -167,13 +167,19 @@ func Load(path string) ([]Example, Stats, error) {
 	return out, stats, nil
 }
 
-// optionTargets computes one OptionTarget per offered option: the FIRST
-// candidate (in record order) whose answer contains the option supplies the
-// value; the teacher's chosen candidate marks preferred. Deterministic —
-// record order, never a map.
+// optionTargets computes one OptionTarget per offered option. The teacher's
+// chosen candidate (candidates[teacher_choice], when in range) is visited
+// FIRST, so an option the teacher's own answer contains takes the TEACHER's
+// evaluated value and its Preferred mask describes that same candidate;
+// the remaining candidates then fill in any still-unlabelled option in
+// record order. This matters because candidate 0 is always the bot's answer
+// (the writer's contract), so a plain record-order first-wins would hand a
+// teacher-preferred option the bot's value and leave Target.Value and
+// Target.Preferred describing different candidates. Deterministic — record
+// order, never a map.
 func optionTargets(rec *labelRecord) []OptionTarget {
 	out := make([]OptionTarget, len(rec.Options))
-	for _, c := range rec.Candidates {
+	take := func(c labelCandidate) {
 		for _, j := range c.Choices {
 			if j < 0 || j >= len(out) {
 				continue
@@ -183,8 +189,19 @@ func optionTargets(rec *labelRecord) []OptionTarget {
 			}
 		}
 	}
+	preferred := -1
 	if rec.TeacherChoice >= 0 && rec.TeacherChoice < len(rec.Candidates) {
-		for _, j := range rec.Candidates[rec.TeacherChoice].Choices {
+		preferred = rec.TeacherChoice
+		take(rec.Candidates[preferred])
+	}
+	for i := range rec.Candidates {
+		if i == preferred {
+			continue
+		}
+		take(rec.Candidates[i])
+	}
+	if preferred >= 0 {
+		for _, j := range rec.Candidates[preferred].Choices {
 			if j >= 0 && j < len(out) {
 				out[j].Preferred = true
 			}
