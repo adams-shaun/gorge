@@ -1352,9 +1352,11 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 // deliberate deviation continueCreateTokenReplacements documents.
 //
 // A body whose Amount$ this build cannot price, or whose resolved value is
-// negative, leaves the event verbatim -- never a silent zero or erase. A
-// resolved zero is likewise skipped: "instead put zero" would be a removal
-// the class does not express, and no corpus body carries one.
+// negative, leaves the event verbatim -- never a silent erase. A resolved
+// zero IS applied, though: "instead put zero" is a legitimate replacement
+// result (Vizier of Remedies' Minus.1 on a single -1/-1 counter resolves to
+// zero, and the oracle's "that many minus one" then places none). An
+// unpriceable body is skipped, never read as zero.
 func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	amount := ev.Amount
 	changed := false
@@ -1372,7 +1374,10 @@ func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatc
 		hold.Amount = amount
 		ctx := e.replCtx(m, hold)
 		n, ok := e.replaceCounterAmount(body, ctx, amount)
-		if !ok || n <= 0 || n == amount {
+		// A negative result would be a counter REMOVAL, which this class
+		// does not express; leave the event verbatim. An unpriceable body
+		// (!ok) is likewise skipped, never read as zero.
+		if !ok || n < 0 || n == amount {
 			continue
 		}
 		amount = n
@@ -2041,11 +2046,12 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		// EffectOnly$ True ("If an EFFECT would create ...", Doubling Season's
-		// family) is READ and held: the engine's only TokenCreate emitters are
-		// effect resolution (effects/token.go's effToken and effects/amass.go),
-		// so today every token creation IS effect-created and the gate is
-		// vacuously satisfiable. A cost-created-token provenance marker is a
-		// deliberate non-goal; when one lands, this gate must read it.
+		// family) is held by construction: the engine's only TokenCreate
+		// emitters are effect resolution (effects/token.go's effToken and
+		// effects/amass.go), so every token creation IS effect-created and the
+		// gate is vacuously satisfiable. No code reads the param yet -- a
+		// cost-created-token provenance marker, when one lands, must read it
+		// here.
 		return e.replacementConditionHolds(r, source, you)
 	case "AddCounter":
 		// The counter-placement replacement class (Hardened Scales, Branching
@@ -2070,9 +2076,17 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		if ct := strings.TrimSpace(r.Params["ValidCounterType"]); ct != "" && ct != ev.Counter {
 			return false
 		}
-		if vp, ok := r.Params["ValidPlayer"]; ok &&
-			!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
-			return false
+		// ValidPlayer$ scopes the counter's RECIPIENT PLAYER, so it only
+		// applies to the player form (PlayerCounterChange). An object
+		// CounterChange leaves ev.Player at its zero value, so without this
+		// form gate a ValidPlayer$ You line reduces to ev.Player == you ->
+		// 0 == 0 -> true and fires on every object placement (Winding
+		// Constrictor has both an object line and a ValidPlayer$ You line).
+		if vp, ok := r.Params["ValidPlayer"]; ok {
+			if ev.Kind != events.PlayerCounterChange ||
+				!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+				return false
+			}
 		}
 		// ValidCard$/ValidObject$ name the counter RECIPIENT. The object form
 		// (CounterChange) matches it by that object's filter; the player form
@@ -2104,11 +2118,12 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			strings.TrimSpace(r.Params["ValidCause"]) != "" {
 			return false
 		}
-		// EffectOnly$ True (Doubling Season, Selesnya Loft Gardens) is READ and
-		// held: every CounterChange this engine emits is effect resolution
-		// (effects/counters.go), so the gate is vacuously satisfiable today.
-		// A cost-created-counter provenance marker, when one lands, must read
-		// it -- exactly the CreateToken row's contract.
+		// EffectOnly$ True (Doubling Season, Selesnya Loft Gardens) is held by
+		// construction: every CounterChange this engine emits is effect
+		// resolution (effects/counters.go), so the gate is vacuously
+		// satisfiable. No code reads the param yet -- a cost-created-counter
+		// provenance marker, when one lands, must read it here (exactly the
+		// CreateToken row's contract).
 		return e.replacementConditionHolds(r, source, you)
 	case "RollPlanarDice":
 		// The planar-dice replacement class (Ichor Elixir, task rollplanar1):

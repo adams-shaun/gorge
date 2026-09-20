@@ -184,3 +184,48 @@ func TestWindingConstrictorPlayerCounters(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestWindingConstrictorObjectCounters is the object-placement assertion the
+// player-form gate needs: Winding Constrictor has BOTH a ValidCard$ object
+// line and a ValidPlayer$ You line, and on an object CounterChange the
+// ValidPlayer$ line must NOT fire (the object event's Player field is the
+// zero value, so an ungated `ev.Player == you` read would collide with seat
+// zero). A single +1/+1 counter on a creature it controls is that many plus
+// one = 2, never the 3 two overlapping matches would give.
+func TestWindingConstrictorObjectCounters(t *testing.T) {
+	wc := tokenReplCorpusCard(t, "Winding Constrictor")
+	target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e, cfg := tokenReplGame(t, 91, wc, target)
+	moveSeededCard(t, e, 0, wc, state.ZBattlefield)
+	targetID := moveSeededCard(t, e, 0, target, state.ZBattlefield)
+	e.emit(events.Event{Kind: events.CounterChange, Obj: targetID, Counter: "P1P1", Amount: 1})
+	if got := e.G.Obj(targetID).Counter("P1P1"); got != 2 {
+		t.Fatalf("Winding Constrictor: 1 P1P1 placed on a controlled creature = %d, want 2 (object line only; the ValidPlayer$ line must not fire on an object event)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestVizierOfRemediesReplacesToZero pins the zero result: Vizier of
+// Remedies' Minus.1 body resolves "that many -1/-1 counters minus one" for a
+// single -1/-1 counter to exactly ZERO, and the placement must apply that
+// zero (place none) rather than skip the replacement and leave the 1 in
+// place. A 3-counter placement resolves 3 - 1 = 2 as a control.
+func TestVizierOfRemediesReplacesToZero(t *testing.T) {
+	for _, tc := range []struct {
+		placed, want int32
+	}{
+		{1, 0},
+		{3, 2},
+	} {
+		vizier := tokenReplCorpusCard(t, "Vizier of Remedies")
+		target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+		e, cfg := tokenReplGame(t, 93, vizier, target)
+		moveSeededCard(t, e, 0, vizier, state.ZBattlefield)
+		targetID := moveSeededCard(t, e, 0, target, state.ZBattlefield)
+		e.emit(events.Event{Kind: events.CounterChange, Obj: targetID, Counter: "M1M1", Amount: tc.placed})
+		if got := e.G.Obj(targetID).Counter("M1M1"); got != tc.want {
+			t.Fatalf("Vizier of Remedies: %d M1M1 placed -> %d counters, want %d (that many minus one)", tc.placed, got, tc.want)
+		}
+		replayCheck(t, e, cfg)
+	}
+}
