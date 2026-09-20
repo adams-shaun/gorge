@@ -3053,49 +3053,107 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		return &placements[len(placements)-1]
 	}
 	players := changeZoneAllPlayers(h, c, sa)
+	// RandomOrder$ True (task mordorparams1, Gríma, Saruman's Footman's
+	// "Then that player puts the exiled cards that weren't cast this way on
+	// the bottom of their library in a random order"): the destination
+	// placement order is a real shuffle, not the engine's scan order. The
+	// cards are COLLECTED first (the same zone-major/seat-minor scan, no
+	// emission), Fisher-Yates'd per destination-library owner through the
+	// seeded engine rng (the randomChoices/Host.Rand precedent — a replay
+	// re-derives the identical order), and only then emitted, so the
+	// MoveZone appends land the shuffled order at the bottom. The
+	// Dig/RestRandomOrder$/RevealRandomOrder$ variants are their own rows
+	// and are not touched here.
+	randomOrder := strings.EqualFold(strings.TrimSpace(sa.Params["RandomOrder"]), "True")
+	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
+		h.Emit(moveZoneEvent(c, id, z, to))
+		moved = append(moved, id)
+		// Tapped$ True (Splendid Reclamation's "Return all land cards
+		// ... tapped"): a battlefield entry is followed by the same
+		// "entered tapped" Tap event every other Tapped$ zone-change
+		// path emits -- an entry state, not the CR 701.21a event of
+		// becoming tapped.
+		if to == state.ZBattlefield && strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True") {
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
+		}
+		if to == state.ZExile {
+			recordExileReturn(h, c, sa, id, z, to)
+		}
+		// GainControl$ hands the moved object to the named player
+		// (Karn Liberated's ReturnFromExile, Cold Storage, Ghost
+		// Vacuum). Only a battlefield entry can carry a control
+		// change (CR 701.22a controls permanents), the same rule the
+		// ChangeZone path applies; the shared resolver is loud rather
+		// than silent on an unresolvable selector.
+		if to == state.ZBattlefield {
+			applyGainControl(h, c, sa, id)
+		}
+		if to == state.ZLibrary {
+			owner := p
+			if o := g.Obj(id); o != nil {
+				owner = o.Owner
+			}
+			findOwnerMoved(owner).ids = append(findOwnerMoved(owner).ids, id)
+		}
+		// ChangeZoneAll's remembered movement is needed for the
+		// exiled-with-this-source cleanup/tally shape (Valakut
+		// Exploration). Other ChangeZoneAll RememberChanged forms
+		// remain outside this narrow provenance feature.
+		if strings.EqualFold(sa.Params["RememberChanged"], "True") &&
+			strings.Contains(sa.Params["ChangeType"], "ExiledWithSource") {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		}
+	}
+	if randomOrder {
+		type pendingMove struct {
+			id state.ObjID
+			z  state.Zone
+			p  state.PlayerID
+		}
+		var owners []state.PlayerID
+		byOwner := make(map[state.PlayerID][]pendingMove)
+		for _, z := range from {
+			for _, p := range players {
+				// Snapshot the zone exactly like the emit loop does.
+				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
+				for _, id := range ids {
+					if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+						continue
+					}
+					owner := p
+					if o := g.Obj(id); o != nil {
+						owner = o.Owner
+					}
+					if _, seen := byOwner[owner]; !seen {
+						owners = append(owners, owner)
+					}
+					byOwner[owner] = append(byOwner[owner], pendingMove{id: id, z: z, p: p})
+				}
+			}
+		}
+		for _, owner := range owners {
+			list := byOwner[owner]
+			for i := len(list) - 1; i > 0; i-- {
+				j := h.Rand(i + 1)
+				list[i], list[j] = list[j], list[i]
+			}
+			byOwner[owner] = list
+		}
+		for _, owner := range owners {
+			for _, pm := range byOwner[owner] {
+				emitMove(pm.id, pm.z, pm.p)
+			}
+		}
+		scheduleAtEOT(h, c, sa, moved)
+		return
+	}
 	for _, z := range from {
 		for _, p := range players {
 			// Snapshot the zone: emitting move events mutates it underneath us.
 			ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-					h.Emit(moveZoneEvent(c, id, z, to))
-					moved = append(moved, id)
-					// Tapped$ True (Splendid Reclamation's "Return all land cards
-					// ... tapped"): a battlefield entry is followed by the same
-					// "entered tapped" Tap event every other Tapped$ zone-change
-					// path emits -- an entry state, not the CR 701.21a event of
-					// becoming tapped.
-					if to == state.ZBattlefield && strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True") {
-						h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
-					}
-					if to == state.ZExile {
-						recordExileReturn(h, c, sa, id, z, to)
-					}
-					// GainControl$ hands the moved object to the named player
-					// (Karn Liberated's ReturnFromExile, Cold Storage, Ghost
-					// Vacuum). Only a battlefield entry can carry a control
-					// change (CR 701.22a controls permanents), the same rule the
-					// ChangeZone path applies; the shared resolver is loud rather
-					// than silent on an unresolvable selector.
-					if to == state.ZBattlefield {
-						applyGainControl(h, c, sa, id)
-					}
-					if to == state.ZLibrary {
-						owner := p
-						if o := g.Obj(id); o != nil {
-							owner = o.Owner
-						}
-						findOwnerMoved(owner).ids = append(findOwnerMoved(owner).ids, id)
-					}
-					// ChangeZoneAll's remembered movement is needed for the
-					// exiled-with-this-source cleanup/tally shape (Valakut
-					// Exploration). Other ChangeZoneAll RememberChanged forms
-					// remain outside this narrow provenance feature.
-					if strings.EqualFold(sa.Params["RememberChanged"], "True") &&
-						strings.Contains(sa.Params["ChangeType"], "ExiledWithSource") {
-						c.Remembered = append(c.Remembered, state.Target{Obj: id})
-					}
+					emitMove(id, z, p)
 				}
 			}
 		}

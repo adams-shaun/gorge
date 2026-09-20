@@ -302,6 +302,14 @@ func (e *Engine) finishUnlessPayment(paid bool) {
 		} else {
 			u.rp.unlessPay = "decline"
 		}
+		// The settled Discard component's picks ride the resume point (task
+		// mordorparams1): the unless_pay arm hands them to the continuing
+		// walk as Ctx.UnlessDiscarded, the ConditionDefined$ Discarded group's
+		// mid-resolution channel. A paid payment without a Discard component
+		// sets nothing (the channel stays absent).
+		if paid && len(u.discards) > 0 {
+			u.rp.unlessDiscards = append([]state.ObjID(nil), u.discards...)
+		}
 		e.resumeResolution(u.rp, nil)
 		return
 	}

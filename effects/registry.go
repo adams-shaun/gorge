@@ -190,6 +190,14 @@ type Host interface {
 	// the same answer; a card never put on the stack (cheated into play)
 	// reads false.
 	WasCastFromHandByYou(obj state.ObjID, p state.PlayerID) bool
+	// DiscardedInWindow reports the object ids of the COST discards
+	// (events.DiscardCost) recorded in the activation window of the
+	// resolving object obj — the cost parts obj's own activation paid,
+	// read off the event log the way WasCastFromHandByYou reads cast
+	// provenance. The ConditionDefined$ Discarded group's cost-discard
+	// channel (Moria Scavenger). Empty when the window holds none; a
+	// replay derives the same answer from the same log.
+	DiscardedInWindow(obj state.ObjID) []state.ObjID
 	// WasCastFromHand reports whether card obj's LATEST cast came from a
 	// hand — ANY caster's hand — the bare wasCastFromYourHand filter family's
 	// backing (task castprov3: the "from anywhere other than your hand"
@@ -860,6 +868,17 @@ type Ctx struct {
 	// decision's ResumeTarget. A decline moves the gate on to payer idx+1,
 	// so a multi-payer UnlessPayer$ asks each payer in turn.
 	UnlessNext int
+	// UnlessDiscarded is the object list the settled unless-payment
+	// discarded (the UnlessCost$ Discard<...> component's picks): rules'
+	// unless_pay resume arm copies it off the resume point when the
+	// payment completed, so the continuing walk's ConditionDefined$
+	// Discarded gates (Argentum Masticore's "When you discard a card this
+	// way") see exactly the card(s) the payment discarded. It rides
+	// Ctx.UnlessPay's lifetime rather than being cleared at first read: the
+	// unless resolution's whole sub-chain may consult the group, and the
+	// fresh-per-resume Ctx already keeps it from leaking into any other
+	// resolution.
+	UnlessDiscarded []state.Target
 	// SacPicks is the answered per-player sacrifice choice on a re-entered
 	// Sacrifice resolution: the object(s) the sacrificing player chose to
 	// sacrifice, in the player's answer order. SacDone distinguishes
@@ -1029,6 +1048,19 @@ type Ctx struct {
 	// Consumed and cleared before the draw loop, so a nested optional draw
 	// in the same walk poses its own ask (fx42 scoping).
 	DrawOpt string
+	// DrawUptoIdx/DrawUptoCount/DrawUptoAnswered carry an Upto$ Draw's
+	// per-target continuation (Arcane Denial, Truce): Idx is the Defined$
+	// target index whose "draw up to N" ask or answered batch is in flight,
+	// Count the answered count for it, Answered distinguishes an answered
+	// ZERO (draw nothing) from a target not yet asked. rules' draw_upto
+	// resume arm sets all three from the recorded answer (Count = the
+	// number of chosen card options), and the dredge arm restores them
+	// across a Dredge choice parked inside the batch (riding the ask's
+	// ResumeUpto rider). effDraw consumes the three as it completes each
+	// target, so the next target poses its own ask (fx42 scoping).
+	DrawUptoIdx      int32
+	DrawUptoCount    int32
+	DrawUptoAnswered bool
 	// TapOrUntap is the answered mid-resolution TapOrUntap election
 	// (api:TapOrUntap): the kind of the chosen option, "tap" or "untap". ""
 	// on the first pass, where effTapOrUntap poses the ask (or, when the host

@@ -2340,8 +2340,12 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
-	"Ad Nauseam":       {"param:api:Repeat.RepeatOptional"},
-	"Arcane Denial":    {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
+	"Ad Nauseam": {"param:api:Repeat.RepeatOptional"},
+	// Arcane Denial's param:api:Draw.Upto entry was deleted when Upto$ read
+	// a real per-target "draw up to N" ask (task mordorparams1,
+	// effects/cardflow.go effDraw's upto branch, rules' draw_upto resume
+	// arm) — pinned by TestArcaneDenialSlowtripDrawsUpToTwo.
+	"Arcane Denial":    {"param:api:Counter.RememberTargets"},
 	"Avengers Quinjet": {"param:api:ChangeZone.ValidTgtsDesc"},
 	// Captain Marvel, Apex Avenger's param:api:PutCounter.Placer label was
 	// deleted when the bare-Choices$ PutCounter pick read Placer$ (task
@@ -2359,16 +2363,21 @@ var knownUnsupportedParams = map[string][]string{
 	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
 	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
 	// unread.
-	"Gift of Immortality":            {"param:api:ChangeZone.ForgetOtherRemembered"},
-	"Hercules, Olympian Hero":        {"param:trig:DamageDoneOnce.FirstTime"},
-	"Heroic Return":                  {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Heroic Sacrifice":               {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
-	"Iron Man, Armored Avenger":      {"param:api:PutCounter.ValidTgtsDesc"},
-	"Jocasta, Automaton Avenger":     {"param:api:ChangeZone.Attacking"},
-	"Love on the Battlefield":        {"param:trig:AttackersDeclared.NoResolvingCheck"},
-	"Methods of the Mighty":          {"param:api:Destroy.ValidTgtsDesc"},
-	"Mogis, God of Slaughter":        {"param:stat:Continuous.RemoveType"},
-	"Path of Ancestry":               {"param:api:Mana.TriggersWhenSpent"},
+	"Gift of Immortality": {"param:api:ChangeZone.ForgetOtherRemembered"},
+	// Hercules, Olympian Hero's param:trig:DamageDoneOnce.FirstTime label was
+	// deleted when the FirstTime$ read landed (rules/trigger_match.go's
+	// damageMatches gate): the once-per-turn damage trigger is now real.
+	"Heroic Return":              {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
+	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
+	"Love on the Battlefield":    {"param:trig:AttackersDeclared.NoResolvingCheck"},
+	"Methods of the Mighty":      {"param:api:Destroy.ValidTgtsDesc"},
+	"Mogis, God of Slaughter":    {"param:stat:Continuous.RemoveType"},
+	// Path of Ancestry's row was deleted when TriggersWhenSpent$ read real
+	// spend-time provenance and a queued "when you spend this mana" trigger
+	// (task mordorparams1, rules/whenspent.go) — pinned by
+	// TestPathOfAncestrySpentManaScrOne.
 	"Patriot, Shield Wielder":        {"param:api:Pump.ValidTgtsDesc"},
 	"Photon, Mighty Marvel":          {"param:api:Mana.PersistentMana"},
 	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},

@@ -586,6 +586,27 @@ const (
 	manaRestrictionNCNotPerm = " nc!Permanent"
 )
 
+// manaWhenspentSep opens the TriggersWhenSpent$ segment (task mordorparams1,
+// Path of Ancestry's "When that mana is spent to cast a creature spell that
+// shares a creature type with your commander, scry 1"): the SVar name of the
+// mana ability's trigger definition rides the batch's provenance, so the
+// spend-time queue (rules' whenspent capture) can evaluate the definition
+// against the paying cast. The segment is appended LAST (after the
+// AddsNoCounter$ suffixes) and only when the ability carries the parameter,
+// so every historical encoding stays byte-identical. An SVar name never
+// contains the separator.
+const manaWhenspentSep = " ws:"
+
+// ManaWhenspentTextNC is ManaRestrictionTextNC with a TriggersWhenSpent$
+// SVar name appended as the batch's final segment. An empty svar encodes
+// the historical shape byte-identically.
+func ManaWhenspentTextNC(valid string, source state.ObjID, cond, svar string) string {
+	if svar == "" {
+		return ManaRestrictionTextNC(valid, source, cond)
+	}
+	return ManaRestrictionTextNC(valid, source, cond) + manaWhenspentSep + svar
+}
+
 // ManaRestrictionTextNC is ManaRestrictionText for a batch whose producing
 // ability also carries AddsNoCounter$. cond is "True" (the plain flag) or
 // "NotPermanent" (AddsNoCounter$ !Permanent); an empty cond encodes the plain
@@ -604,15 +625,25 @@ func ManaRestrictionTextNC(valid string, source state.ObjID, cond string) string
 
 // ManaRestrictionFromText returns the constraint carried by a restricted
 // ManaAdd event, with the producing source id when the encoding carries one
-// (0 otherwise) and the AddsNoCounter$ condition when one is encoded (""). It
-// deliberately accepts no aliases: ordinary historical ManaAdd events must
-// remain unrestricted. A bare empty Valid with a condition still counts as a
+// (0 otherwise), the AddsNoCounter$ condition when one is encoded (""), and
+// the TriggersWhenSpent$ SVar name when one is encoded (""). It deliberately
+// accepts no aliases: ordinary historical ManaAdd events must remain
+// unrestricted. A bare empty Valid with a condition still counts as a
 // restriction batch (the batch is unrestricted spend-wise but carries the
 // can't-be-countered provenance).
-func ManaRestrictionFromText(text string) (string, state.ObjID, string, bool) {
+func ManaRestrictionFromText(text string) (string, state.ObjID, string, string, bool) {
 	valid, ok := strings.CutPrefix(text, manaRestrictionPrefix)
 	if !ok || valid == "" {
-		return "", 0, "", false
+		return "", 0, "", "", false
+	}
+	// The TriggersWhenSpent$ segment (task mordorparams1) is the LAST
+	// segment when present, so it is stripped before the AddsNoCounter$
+	// suffixes and the source segment. An SVar name never contains the
+	// separator.
+	whenspent := ""
+	if i := strings.LastIndex(valid, manaWhenspentSep); i >= 0 {
+		whenspent = valid[i+len(manaWhenspentSep):]
+		valid = valid[:i]
 	}
 	cond := ""
 	if s, found := strings.CutSuffix(valid, manaRestrictionNCNotPerm); found {
@@ -623,10 +654,10 @@ func ManaRestrictionFromText(text string) (string, state.ObjID, string, bool) {
 	if _, tail, found := strings.Cut(valid, " @"); found {
 		head, _, _ := strings.Cut(valid, " @")
 		if n, err := strconv.ParseUint(tail, 10, 64); err == nil {
-			return head, state.ObjID(n), cond, true
+			return head, state.ObjID(n), cond, whenspent, true
 		}
 	}
-	return valid, 0, cond, true
+	return valid, 0, cond, whenspent, true
 }
 
 type Event struct {

@@ -2011,6 +2011,25 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	// TriggersWhenSpent$ (task mordorparams1, Path of Ancestry, Gilanra,
+	// Pyromancer's Goggles): the SVar name of the mana ability's "when you
+	// spend this mana" trigger definition rides the batch's provenance on
+	// the ManaAdd Text (the restriction-encoding precedent), so the
+	// cast-payment capture (rules' emitRestrictedManaSpend ->
+	// payManaCastSpent) can evaluate the definition against the paying
+	// spell and queue the trigger. The batch stays an ordinary spendable
+	// batch (empty Valid, the Boseiju provenance shape) — the parameter
+	// gates only the FIRING, never the spendability. A SNOW producer's
+	// units are tagged in the Counter ("S<colour>"), whose Apply branch
+	// folds neither restriction nor when-spent provenance — measured 0
+	// corpus carriers — so one loud Note names the unmodelled combination
+	// instead of a silently lost trigger.
+	whenspent := strings.TrimSpace(sa.Params["TriggersWhenSpent"])
+	if whenspent != "" && snow {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unmodelled TriggersWhenSpent$ on a SNOW producer: the mana carries no when-spent provenance"})
+		whenspent = ""
+	}
 	for _, p := range ManaRecipients(h, c, sa) {
 		for _, r := range runes {
 			counter := string(r)
@@ -2019,10 +2038,8 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ev := events.Event{Kind: events.ManaAdd, Player: p,
 				Counter: counter, Amount: amt}
-			if noCounter != "" {
-				ev.Text = events.ManaRestrictionTextNC(restriction, c.Source, noCounter)
-			} else if restriction != "" {
-				ev.Text = events.ManaRestrictionText(restriction, c.Source)
+			if noCounter != "" || restriction != "" || whenspent != "" {
+				ev.Text = events.ManaWhenspentTextNC(restriction, c.Source, noCounter, whenspent)
 			}
 			h.Emit(ev)
 		}

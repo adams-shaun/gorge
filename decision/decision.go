@@ -358,6 +358,15 @@ type Decision struct {
 	// continuation state, never client input, the same class as
 	// ResumeRemembered.
 	ResumeMoved []state.ObjID `json:"-"`
+	// ResumeUptoIdx/ResumeUptoCount ride an Upto$ Draw's in-flight per-target
+	// state across a Dredge ask parked inside that target's answered batch
+	// (Arcane Denial's "may draw up to two"): the re-entering upto branch
+	// resumes exactly that target's remaining draws instead of re-asking a
+	// decision already answered. Idx -1 (the default every non-upto caller
+	// leaves) means no upto is in flight. Runtime continuation state, never
+	// client input, the same class as ResumeMoved.
+	ResumeUptoIdx   int   `json:"-"`
+	ResumeUptoCount int32 `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,

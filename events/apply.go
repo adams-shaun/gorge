@@ -748,11 +748,11 @@ func Apply(g *state.Game, e Event) {
 			}
 			player := &g.Players[e.Player]
 			player.Pool[idx] += e.Amount
-			if valid, srcID, cond, restricted := ManaRestrictionFromText(e.Text); restricted {
+			if valid, srcID, cond, whenspent, restricted := ManaRestrictionFromText(e.Text); restricted {
 				if e.Amount > 0 {
 					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
 						Color: e.Counter, Amount: e.Amount, Valid: valid, Source: srcID,
-						NoCounter: cond,
+						NoCounter: cond, WhenSpent: whenspent,
 					})
 				} else if e.Amount < 0 {
 					// A restricted spend event names exactly the restriction batch it
@@ -778,6 +778,37 @@ func Apply(g *state.Game, e Event) {
 						}
 						i++
 					}
+				}
+			} else if e.Amount < 0 {
+				// A PLAIN spend (no restriction encoding — extort's hybrid pip,
+				// any other direct pool drain) consumes when-spent provenance
+				// FIFO per colour, silently (task mordorparams1): the unit has
+				// left the pool, so its "when you spend this mana" trigger
+				// must not fire on some LATER cast. Only the cast-payment
+				// capture (rules' emitRestrictedManaSpend -> payManaCastSpent)
+				// queues the triggers; every managed payment carves its
+				// when-spent units first (Text events the restricted branch
+				// above consumes), so a plain event only ever reaches provenance
+				// a non-cast spend actually used. Restricted batches keep their
+				// existing consume-only-on-matching-Text rule.
+				need := -e.Amount
+				for i := 0; i < len(player.RestrictedMana) && need > 0; {
+					r := &player.RestrictedMana[i]
+					if r.WhenSpent == "" || r.Color != e.Counter {
+						i++
+						continue
+					}
+					used := r.Amount
+					if used > need {
+						used = need
+					}
+					r.Amount -= used
+					need -= used
+					if r.Amount == 0 {
+						player.RestrictedMana = append(player.RestrictedMana[:i], player.RestrictedMana[i+1:]...)
+						continue
+					}
+					i++
 				}
 			}
 		}

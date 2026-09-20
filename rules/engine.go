@@ -652,6 +652,21 @@ type Engine struct {
 	// copies nothing of it.
 	noCounterSpend state.ObjID
 
+	// whenspentSpend is the transient capture of emitRestrictedManaSpend
+	// (task mordorparams1): the when-spent batches (TriggersWhenSpent$ on
+	// the producing AB$ Mana — Path of Ancestry, Gilanra) the payment just
+	// consumed, in consumption order. payManaCastSpent drains it once,
+	// synchronously, right after the payment — no ask can suspend between
+	// the spend and the read (emitRestrictedManaSpend emits, never asks) —
+	// and queues each unit's trigger definition against the paying cast
+	// through the granted-trigger pipeline (rules/whenspent.go). A
+	// non-cast payment consumes its units silently (the definitions are
+	// Mode$ SpellCast). Every entry of the list is reset at the NEXT
+	// emitRestrictedManaSpend, so a stale list never reaches a later
+	// payment's read; Clone copies nothing of it, the same transient class
+	// as noCounterSpend.
+	whenspentSpend []whenspentUnit
+
 	// costProvenanceSeen is the transient capture of the last cost-modifier
 	// pass (castprov3): true when that pass evaluated a cost static whose
 	// ValidCard$ carries a cast-provenance token (Bilbo's
