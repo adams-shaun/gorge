@@ -1491,6 +1491,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// seeded from the stack object's ChosenModes by the o.Ability
 			// branch above, exactly as resolveTop's own first pass would
 			// have. The re-entry below just runs the ability's effect.
+			//
+			// ResolvedLimit$: an ACCEPTED optional trigger is one the effect
+			// runs for, so it consumes the per-turn resolution count here. A
+			// decline (handleTriggerOptional's finishResumption branch) never
+			// reaches resumeResolution and so never increments, exactly as the
+			// oracle's "you may ... do this only once" requires.
+			if o != nil {
+				e.noteTriggerResolved(o.Source)
+			}
 		default: // "modes", and "" (a pure outer continuation with no answer)
 			// A KWChoice$ pump's modes are keyword labels, not SVar names:
 			// when the asking SA carries no Choices$ but a KWChoice$, the

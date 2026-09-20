@@ -1456,6 +1456,17 @@ func (e *Engine) resolveTop() {
 				return
 			}
 		}
+		// ResolvedLimit$ ("Do this only once each turn."): a MANDATORY
+		// trigger that reaches this point is one whose effect is about to run
+		// (the optional gate above returned for every OptionalDecider$ shape),
+		// so consume its per-turn resolution count now -- before the
+		// CumulativeUpkeep/Echo/Cost$ dispatch below, which may open a
+		// pay/decline window but is still this ability resolving. A freshly
+		// accepted optional trigger is counted at resumeResolution's
+		// "optional" arm instead.
+		if _, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
+			e.noteTriggerResolved(o.Source)
+		}
 		// Cumulative upkeep is an ordinary trigger through placement, but its
 		// age/payment resolution needs rules' cost machinery. Mana Vault's
 		// triggered Untap is the one ordinary effect shape authorized to use
