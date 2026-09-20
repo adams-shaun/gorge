@@ -50,7 +50,7 @@ func (e *Engine) canAttack(id state.ObjID) bool {
 		return false
 	}
 	f := o.Face()
-	if f == nil || !f.IsCreature() || o.BestowedAttached() {
+	if f == nil || !o.EffectiveIsCreature() || o.BestowedAttached() {
 		return false
 	}
 	if o.Tapped || e.HasKeyword(id, "Defender") {
@@ -88,7 +88,7 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 		return false
 	}
 	bf := b.Face()
-	if bf == nil || !bf.IsCreature() || b.BestowedAttached() {
+	if bf == nil || !b.EffectiveIsCreature() || b.BestowedAttached() {
 		return false
 	}
 	if b.Tapped || b.Controller != a.Attacking {

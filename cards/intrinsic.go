@@ -8,6 +8,25 @@ var basicLandMana = []struct{ Subtype, Color string }{
 	{"Mountain", "R"}, {"Forest", "G"}, {"Wastes", "C"},
 }
 
+// IntrinsicManaAbility returns the intrinsic mana ability CR 305.6 grants a
+// permanent with the named basic land subtype ("Forest" -> an ability that
+// taps for {G}). The ability is freshly built per call so a caller can never
+// mutate the corpus's stored faces through it. ok is false for a non-basic
+// subtype. rules' face-down CR 305.6 read (Yedora's face-down Forest land)
+// and ApplyIntrinsics share this one table, so the two cannot drift.
+func IntrinsicManaAbility(subtype string) (ab *SA, ok bool) {
+	for _, b := range basicLandMana {
+		if b.Subtype == subtype {
+			return &SA{
+				Kind: "AB", API: "Mana",
+				Params: map[string]string{"Cost": "T", "Produced": b.Color, "Amount": "1"},
+				Line:   "intrinsic: basic land mana",
+			}, true
+		}
+	}
+	return nil, false
+}
+
 // ApplyIntrinsics adds abilities the engine grants rather than the script.
 // It is idempotent: calling it twice adds nothing the second time.
 func (f *Face) ApplyIntrinsics() {
@@ -35,10 +54,8 @@ func (f *Face) ApplyIntrinsics() {
 			continue
 		}
 		have[b.Color] = true
-		f.Abilities = append(f.Abilities, &SA{
-			Kind: "AB", API: "Mana",
-			Params: map[string]string{"Cost": "T", "Produced": b.Color, "Amount": "1"},
-			Line:   "intrinsic: basic land mana",
-		})
+		if ab, ok := IntrinsicManaAbility(b.Subtype); ok {
+			f.Abilities = append(f.Abilities, ab)
+		}
 	}
 }

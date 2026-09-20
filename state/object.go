@@ -1,6 +1,10 @@
 package state
 
-import "github.com/adams-shaun/gorge/cards"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/cards"
+)
 
 // Counter is one counter kind on an object. A slice, not a map: it clones by
 // copy and iterates in a fixed order.
@@ -410,6 +414,20 @@ type Object struct {
 	// reveal the card to another player.
 	FaceDown bool
 
+	// FaceDownSetType is the face-down set type a ChangeZone FaceDownSetType$
+	// named (Yedora's "Land & Forest", Missy's "Artifact & Creature &
+	// Cyberman"), stored raw as Forge writes it. Empty means CR 708.5's plain
+	// face: a vanilla 2/2 creature. While FaceDown and on the battlefield it
+	// replaces the synthetic {Creature} type set in the layer-4 derivation.
+	FaceDownSetType string
+	// FaceDownPower/FaceDownToughness and FaceDownHasPT carry the folded
+	// FaceDownPower$/FaceDownToughness$ pair (Magar's 3/3). HasPT reports
+	// whether a pair was named; without it a face-down Creature is CR 708.5's
+	// 2/2 and a non-Creature set type derives 0/0.
+	FaceDownPower     int32
+	FaceDownToughness int32
+	FaceDownHasPT     bool
+
 	// Paired is the permanent this Soulbond creature is paired with (CR 702.103):
 	// a creature its controller may pair it with when either enters an the
 	// battlefield, as long as the controller controls both. 0 means unpaired.
@@ -457,6 +475,62 @@ func (o *Object) Face() *cards.Face {
 		return nil
 	}
 	return o.Card.Faces[o.FaceIdx]
+}
+
+// faceDownEffective reports whether this object's face is currently hidden by
+// CR 708.5: it is FaceDown and on the battlefield. While so, every printed
+// characteristic is replaced by the face-down set.
+func (o *Object) faceDownEffective() bool {
+	return o.FaceDown && o.Zone == ZBattlefield
+}
+
+// FaceDownTypeWords is the effective base type set of a face-down battlefield
+// permanent (CR 708.5): {Creature} when no FaceDownSetType$ was folded, else
+// the set type split on Forge's " & " join. A non-face-down object returns
+// its printed types. It returns a fresh slice so a caller can append to it
+// (the layer-4 walk does) without aliasing stored state.
+func (o *Object) FaceDownTypeWords() []string {
+	if !o.faceDownEffective() {
+		if f := o.Face(); f != nil {
+			return append([]string(nil), f.Types...)
+		}
+		return nil
+	}
+	set := strings.TrimSpace(o.FaceDownSetType)
+	if set == "" {
+		return []string{"Creature"}
+	}
+	parts := strings.Split(set, " & ")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	if len(out) == 0 {
+		return []string{"Creature"}
+	}
+	return out
+}
+
+// EffectiveIsCreature reports whether this object is a creature right now,
+// honouring CR 708.5: while a battlefield object is face down its PRINTED face
+// does not exist, so creature-ness comes from the folded FaceDownSetType$
+// (default Creature). Every printed-face "is this a creature" read that gates
+// a creature rule (combat, the creature SBAs, convoke, protection) must go
+// through here, or a manifested non-creature or a face-down set type that
+// drops Creature reads the wrong answer.
+func (o *Object) EffectiveIsCreature() bool {
+	if o.faceDownEffective() {
+		for _, w := range o.FaceDownTypeWords() {
+			if w == "Creature" {
+				return true
+			}
+		}
+		return false
+	}
+	f := o.Face()
+	return f != nil && f.IsCreature()
 }
 
 // Ephemeral reports whether this object has, right now, ceased to exist: a

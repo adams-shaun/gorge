@@ -440,7 +440,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
 			ev.IDs = []state.ObjID{c.Source}
 		}
-		applyExileFaceDown(sa, c, &ev, to)
+		applyFaceDownMarker(h, sa, c, &ev, to)
 		fromZone := o.Zone
 		h.Emit(ev)
 		exiledWithAssociation(h, c, o.ID, to)
@@ -561,21 +561,53 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 	h.Emit(events.Event{Kind: events.Attach, Obj: moved, IDs: []state.ObjID{to}})
 }
 
-// applyExileFaceDown marks a just-built exile MoveZone face-down
-// (ExileFaceDown$ True, Necropotence's "exile the top card of your library
-// face down"): events.Apply's "exiled_with_face_down" decode sets
-// Object.FaceDown, which the view layer redacts to everyone but the
-// exiling controller, and records the exiling source as the ExiledWith
-// association -- the same encoding Hideaway's face-down exile uses. The IDs
-// provenance payload is cleared so the two carriers cannot disagree on one
-// event.
-func applyExileFaceDown(sa *cards.SA, c *Ctx, ev *events.Event, to state.Zone) {
-	if to != state.ZExile || !strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True") {
-		return
+// applyFaceDownMarker stamps a just-built ChangeZone MoveZone with the
+// face-down encoding the card text asks for. Two spellings reach it, and they
+// mean different CR things:
+//
+//   - ExileFaceDown$ True (Necropotence's "exile the top card of your library
+//     face down"): the "exiled_with_face_down" decode sets Object.FaceDown AND
+//     records the exiling source as the ExiledWith association -- the same
+//     encoding Hideaway's face-down exile uses. The IDs provenance payload is
+//     cleared so the two carriers cannot disagree on one event.
+//   - FaceDown$ True (Yedora, Grave Gardener; the manifest marker's own
+//     spelling) on a battlefield entry: the "entered_face_down" decode folds
+//     Object.FaceDown plus the optional FaceDownSetType$/FaceDownPower$/
+//     FaceDownToughness$ payload the card text names, exactly as a Manifest
+//     does. A hand/library-origin face-down entry is marked Secret (its face
+//     would otherwise leak through the transcript), matching the Manifest
+//     precedent; a graveyard-origin one stays public (CR 708.9 already
+//     revealed it on leaving the battlefield).
+//   - FaceDown$ True on an exile destination (Tezzeret's Reckoning): the card
+//     is put into exile face down WITHOUT an ExiledWith association, so the
+//     bare spelling uses its own "face_down" marker rather than borrowing
+//     ExileFaceDown$'s source-carrying one.
+//
+// It is called from every ChangeZone mover (the object path, the shared
+// settle helper the hand/library routes use, and applyLibrarySearch), so the
+// read composes with each without a second caller-side branch.
+func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to state.Zone) {
+	faceDown := strings.EqualFold(strings.TrimSpace(sa.Params["FaceDown"]), "True")
+	exileFaceDown := strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True")
+	switch {
+	case to == state.ZExile && exileFaceDown:
+		ev.Counter = "exiled_with_face_down"
+		ev.Amount = int32(c.Source)
+		ev.IDs = nil
+	case to == state.ZExile && faceDown:
+		ev.Counter = "face_down"
+		ev.Amount = 0
+		ev.IDs = nil
+	case to == state.ZBattlefield && faceDown:
+		setType := strings.TrimSpace(sa.Params["FaceDownSetType"])
+		power, hasPower := NumResolved(h, c, sa, "FaceDownPower", 0)
+		toughness, hasTough := NumResolved(h, c, sa, "FaceDownToughness", 0)
+		hasPT := hasPower || hasTough
+		ev.Counter = events.FaceDownEntryCounterFor(setType, power, toughness, hasPT)
+		if ev.From == state.ZHand || ev.From == state.ZLibrary {
+			ev.Secret = true
+		}
 	}
-	ev.Counter = "exiled_with_face_down"
-	ev.Amount = int32(c.Source)
-	ev.IDs = nil
 }
 
 // settleChangeZoneMove is the one settle path every ChangeZone mover shares:
@@ -716,7 +748,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if hasPlayer {
 		ev.Player = player
 	}
-	applyExileFaceDown(sa, c, &ev, to)
+	applyFaceDownMarker(h, sa, c, &ev, to)
 	h.Emit(ev)
 	if to == state.ZExile {
 		recordExileReturn(h, c, sa, id, from, to)
@@ -2481,7 +2513,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 		ev := moveZoneEvent(c, id, state.ZLibrary, to)
 		ev.Player = owner
-		applyExileFaceDown(sa, c, &ev, to)
+		applyFaceDownMarker(h, sa, c, &ev, to)
 		h.Emit(ev)
 		if to == state.ZExile && c.Source != 0 {
 			if o := g.Obj(id); o != nil && !o.IsToken {

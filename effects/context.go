@@ -184,13 +184,17 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	switch spec {
 	case "":
 		return nil, false
-	case "Self", "Parent", "EffectSource", "OriginalHost":
+	case "Self", "Parent", "EffectSource", "OriginalHost", "CorrectedSelf":
 		// EffectSource/OriginalHost name the ability's own source object --
 		// the permanent that pushed the resolving ability, or the card that
 		// originally generated it before any copies. newDamageRider unwraps
 		// an ability stack object to that source afterwards, so handing
 		// back the raw c.Source here is the same object every other
-		// source-defaulting path yields.
+		// source-defaulting path yields. CorrectedSelf is Forge's
+		// identity-corrected source (Shorecrasher Elemental's `DBReturn`
+		// re-fetches the card just exiled by its own cost): the object id is
+		// stable across that self-exile -- no zone change mints a new id --
+		// so the raw c.Source is already the corrected identity.
 		return []state.Target{{Obj: c.Source}}, true
 	case "You":
 		return []state.Target{{Player: c.Controller, IsPlayer: true}}, true

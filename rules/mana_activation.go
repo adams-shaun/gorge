@@ -155,21 +155,37 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 // activation rechecks discover fresh static membership.
 func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
-		// CR 708.8: a face-down permanent's printed mana abilities do not
-		// exist while it is face down.
+	if o == nil || o.Face() == nil {
 		return nil
 	}
-	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
+	f := o.Face()
+	// CR 708.8: a face-down permanent's printed mana abilities do not exist
+	// while it is face down. Its ONE exception is CR 305.6: a permanent
+	// whose set type includes a basic land subtype has that land's intrinsic
+	// mana ability, so Yedora's face-down Forest land taps for {G}. The set
+	// type comes from a ChangeZone FaceDownSetType$ (Object.FaceDownTypeWords);
+	// a plain CR 708.5 face-down 2/2 has no basic-land set type and
+	// contributes nothing.
+	faceDown := e.faceDownPrintedHides(o)
+	var manaAbilities []*cards.SA
+	if faceDown {
+		for _, w := range o.FaceDownTypeWords() {
+			if ab, ok := cards.IntrinsicManaAbility(w); ok {
+				manaAbilities = append(manaAbilities, ab)
+			}
+		}
+	} else {
+		manaAbilities = f.ManaAbilities()
+	}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
 	abilityRestricted := func(ma *cards.SA) bool {
 		if statics == nil {
 			return e.abilityRestricted(p, id, ma)
 		}
 		return e.abilityRestrictedUsing(statics.get().cantActivate, p, id, ma)
 	}
-	f := o.Face()
 	var out []*cards.SA
-	for _, ma := range f.ManaAbilities() {
+	for _, ma := range manaAbilities {
 		// CR 605.1b: an activated ability is a mana ability only when it is
 		// NOT a loyalty ability. A planeswalker's mana-producing loyalty
 		// ability (Koth's [+1], Ugin, Eye of the Storms' [0]: Add {C}{C}{C},
@@ -204,6 +220,12 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			}
 			out = append(out, ma)
 		}
+	}
+	if faceDown {
+		// Only the CR 305.6 intrinsics above exist on a face-down permanent:
+		// its printed ManaReflected abilities and any Continuous AddAbility$
+		// grant are hidden with the rest of its printed face (CR 708.8).
+		return out
 	}
 	// CR 605.2a: a mana ability functions only while its source object is in
 	// the zone its ActivationZone$ names -- the battlefield when printed

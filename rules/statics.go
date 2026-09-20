@@ -513,7 +513,7 @@ func (e *Engine) staticTimingGate(sv staticView) bool {
 	case "Ferocious":
 		found := false
 		for _, id := range e.G.Zone(state.ZBattlefield, sv.Controller) {
-			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsCreature() && !o.BestowedAttached() && e.Derived(id).Power >= 4 {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && e.Derived(id).Power >= 4 {
 				found = true
 				break
 			}
