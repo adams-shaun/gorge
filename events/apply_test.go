@@ -1415,3 +1415,68 @@ func TestRingTemptsYouFoldsCountBearerAndClears(t *testing.T) {
 	// MonarchChange/SpeedChange cases take.
 	Apply(g, Event{Kind: RingTemptsYou, Player: 9, Obj: o.ID})
 }
+
+// TestRingEmblemPushMintsAnAbilityInApply is the CR 701.54c / Ruling T20-a
+// fold pin: the Ring emblem has no object in any zone and no corpus script
+// text, so its four level abilities are minted by the RingEmblemPush event
+// inside Apply itself. Every level builds the same handful of hand-built
+// bodies, and applying the identical event to two fresh games must produce
+// byte-identical objects -- a log-only replay derives the mint rather than
+// learning an unlogged ObjID.
+func TestRingEmblemPushMintsAnAbilityInApply(t *testing.T) {
+	build := func() *state.Game {
+		g := state.NewGame([]string{"Ann", "Bob"})
+		Apply(g, Event{Kind: RingEmblemPush, Player: 0, Amount: 1, Counter: "__ring:1"})
+		return g
+	}
+	for _, level := range []int32{1, 2, 3, 4} {
+		g1 := state.NewGame([]string{"Ann", "Bob"})
+		Apply(g1, Event{Kind: RingEmblemPush, Player: 0, Amount: level,
+			Counter: "__ring:" + itoa(int(level))})
+		if len(g1.Stack) != 1 {
+			t.Fatalf("level %d minted %d stack objects, want 1", level, len(g1.Stack))
+		}
+		o := g1.Obj(g1.Stack[0])
+		if o == nil || o.Ability == nil || o.Card != nil || o.Source != 0 {
+			t.Fatalf("level %d stack object = %+v, want a face-less ability with no source", level, o)
+		}
+		if o.Controller != 0 || o.Zone != state.ZStack {
+			t.Fatalf("level %d object controller %d zone %v, want 0/stack", level, o.Controller, o.Zone)
+		}
+	}
+	// The payload is the source of truth (the emblem has no face to rebuild
+	// from): a Counter naming a different level than Amount overrides Amount.
+	g := state.NewGame([]string{"Ann", "Bob"})
+	Apply(g, Event{Kind: RingEmblemPush, Player: 0, Amount: 1, Counter: "__ring:4"})
+	o := g.Obj(g.Stack[0])
+	if o == nil || o.Ability == nil || o.Ability.API != "LoseLife" {
+		t.Fatalf("Counter-named level did not rebuild the level-4 body: %+v", o)
+	}
+	// Applying the same event to two fresh games is byte-identical.
+	a, b := build(), build()
+	if !reflect.DeepEqual(a.Objs, b.Objs) {
+		t.Fatalf("mint is not deterministic:\n%+v\n%+v", a.Objs, b.Objs)
+	}
+	// An out-of-range player is a no-op, the same totality stance the
+	// RingTemptsYou/MonarchChange cases take.
+	c := state.NewGame([]string{"Ann", "Bob"})
+	Apply(c, Event{Kind: RingEmblemPush, Player: 9, Amount: 1})
+	if len(c.Stack) != 0 {
+		t.Fatalf("out-of-range player minted %d stack objects", len(c.Stack))
+	}
+}
+
+// itoa avoids importing strconv for one call in this file.
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	var buf [20]byte
+	i := len(buf)
+	for n > 0 {
+		i--
+		buf[i] = byte('0' + n%10)
+		n /= 10
+	}
+	return string(buf[i:])
+}

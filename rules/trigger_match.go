@@ -89,7 +89,14 @@ type pendingTrigger struct {
 	// payload events.Apply rebuilds into the same DB$ LoseLife body the
 	// printed K:Afflict expansion carries. Idx and SA are unset for it.
 	Afflict string
-	Ctx     effects.Ctx
+	// RingEmblem is one of the Ring emblem's four level abilities (CR
+	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
+	// and no object in any zone, so like Ward/Afflict this entry carries
+	// only the LEVEL: pushTrigger mints a RingEmblemPush whose __ring:<level>
+	// payload events.Apply rebuilds the ability from. Source is 0 (there is
+	// no permanent), Controller the tempted seat.
+	RingEmblem int
+	Ctx        effects.Ctx
 }
 
 // triggerKey identifies one T: line: the object that carries it, plus that
@@ -808,6 +815,101 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	if ev.Kind == events.Exert && ev.Amount >= 0 {
 		e.checkExertTriggers(ev)
 	}
+	// The Ring emblem's four level abilities (CR 701.54c): engine-side
+	// "whenever" abilities with no corpus script text and no object in any
+	// zone, so the ordinary per-face walk above can never see them. The
+	// scan reads state.Player.RingTempted (the fold RingTemptsYou just made
+	// renders here BEFORE any trigger check, so level 4 sees its own
+	// temptation) and queues one entry per firing seat.
+	e.checkRingEmblemTriggers(ev)
+}
+
+// The Ring emblem's four level gates (CR 701.54c). Level N is active iff the
+// tempted seat's RingTempted >= N; the count is uncapped, so lower levels
+// stay active as it rises.
+const (
+	ringEmblemLevelDraw      = 1 // whenever your Ring-bearer attacks, draw a card
+	ringEmblemLevelBlocked   = 2 // whenever your Ring-bearer becomes blocked, discard a card; if you can't, sacrifice it
+	ringEmblemLevelCombatHit = 3 // whenever your Ring-bearer deals combat damage to a player, sacrifice it
+	ringEmblemLevelTempted   = 4 // whenever the Ring tempts you, each opponent loses 1 life
+)
+
+// checkRingEmblemTriggers queues the Ring emblem's level abilities (CR
+// 701.54c) for one event. The emblem is not an object in any zone, so the
+// ordinary per-face walk cannot reach it; this is the per-event synthetic
+// scan site (the checkAttackerBlockedTriggers / checkChapterTriggers
+// precedent). Each level names one event shape:
+//
+//	1  DeclareAttackers whose attacker list holds a seat's Ring-bearer
+//	2  DeclareBlockers whose blocked-attacker pairs hold a seat's Ring-bearer
+//	3  a COMBAT Damage event whose source is a seat's Ring-bearer and whose
+//	   recipient is a player (Obj 0 -- a hit redirected onto a permanent is
+//	   not "damage to a player")
+//	4  the RingTemptsYou event itself, for the tempted seat
+//
+// Because RingTemptsYou's own fold runs before checkTriggers, level 4's gate
+// reads the POST-fold count: the 4th temptation fires it and the 3rd does
+// not. The entries carry no Source (there is no permanent): pushTrigger mints
+// a RingEmblemPush whose payload events.Apply rebuilds the ability from.
+func (e *Engine) checkRingEmblemTriggers(ev events.Event) {
+	switch ev.Kind {
+	case events.DeclareAttackers, events.DeclareBlockers, events.Damage, events.RingTemptsYou:
+	default:
+		return
+	}
+	for p := state.PlayerID(0); int(p) < len(e.G.Players); p++ {
+		if e.G.Players[p].Lost {
+			continue
+		}
+		tempted := e.G.Players[p].RingTempted
+		if tempted <= 0 {
+			continue
+		}
+		bearer := e.G.Players[p].RingBearer
+		switch ev.Kind {
+		case events.RingTemptsYou:
+			if ev.Player == p && tempted >= ringEmblemLevelTempted {
+				e.queueRingEmblem(p, ringEmblemLevelTempted, bearer)
+			}
+		case events.DeclareAttackers:
+			if tempted >= ringEmblemLevelDraw && bearer != 0 && objIDIn(ev.IDs, bearer) {
+				e.queueRingEmblem(p, ringEmblemLevelDraw, bearer)
+			}
+		case events.DeclareBlockers:
+			if tempted >= ringEmblemLevelBlocked && bearer != 0 && blockedAttackerIn(ev.Pairs, bearer) {
+				e.queueRingEmblem(p, ringEmblemLevelBlocked, bearer)
+			}
+		case events.Damage:
+			if tempted >= ringEmblemLevelCombatHit && bearer != 0 && ev.Obj == 0 &&
+				e.combatDamaging && e.damaging == bearer {
+				e.queueRingEmblem(p, ringEmblemLevelCombatHit, bearer)
+			}
+		}
+	}
+}
+
+// queueRingEmblem appends one emblem level ability to the pending queue. The
+// TriggerCard role names the Ring-bearer the firing event was about so a
+// chained body that ever wants it can read it; the hand-built bodies read
+// only Defined$ You/Opponent and the live designation.
+func (e *Engine) queueRingEmblem(p state.PlayerID, level int, bearer state.ObjID) {
+	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		Controller: p,
+		RingEmblem: level,
+		Ctx: effects.Ctx{
+			Controller:     p,
+			TriggerContext: effects.TriggerContext{TriggerCard: bearer},
+		},
+	})
+}
+
+func blockedAttackerIn(pairs [][2]state.ObjID, id state.ObjID) bool {
+	for _, pr := range pairs {
+		if pr[0] == id {
+			return true
+		}
+	}
+	return false
 }
 
 // checkExertTriggers queues the Trigger$ rider of every offerable
