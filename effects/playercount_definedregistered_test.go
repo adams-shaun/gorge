@@ -223,6 +223,11 @@ func TestPlayerCountDefinedRegisteredUnknownPropertyFailsClosed(t *testing.T) {
 		// carries NonCombatDamageDealtThisTurn).
 		"Count$PlayerCountRegisteredOpponents$HasPropertywasDealtDamageThisTurn",
 		"Count$PlayerCountRegisteredOpponents$NonCombatDamageDealtThisTurn",
+		// The life-TOTAL extremes resolve on the Players$/Opponents$ arms but
+		// are NOT among the three properties this head offers — they stay
+		// (0, false) here (no corpus carrier reads one through this group).
+		"Count$PlayerCountDefinedRegistered$HighestLifeTotal",
+		"Count$PlayerCountDefinedRegistered$LowestLifeTotal",
 	} {
 		if got, ok := EvalCountOK(h, c, body); ok {
 			t.Errorf("%s reported EVALUATED as %d -- an unmodelled property/group must stay (0, false)", body, got)

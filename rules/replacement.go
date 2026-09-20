@@ -3535,8 +3535,23 @@ func (e *Engine) finishChosenDamage(rc replChoice) {
 	if rc.lifelink {
 		e.emit(events.Event{Kind: events.LifeChange, Player: e.controllerOf(rc.damaging), Amount: applied.Amount})
 	}
-	if rc.combat && applied.Obj == 0 && e.format == FormatCommander {
-		e.tallyCmdDamage(applied.Player, rc.damaging, applied.Amount)
+	if rc.combat && applied.Obj == 0 {
+		if e.format == FormatCommander {
+			e.tallyCmdDamage(applied.Player, rc.damaging, applied.Amount)
+		}
+		// The combat-damage ledger's SECOND append site, mirroring the
+		// commander tally's established twin path: runCombatAssignments parks
+		// any player-targeted combat damage whose CR 616.1 competition is
+		// posed (len(matches) > 1, or ANY Optional$ True damage replacement —
+		// Battletide Alchemist's "you may prevent X" alone) and never reaches
+		// its own append, so the parked event's resolution must record the hit
+		// here or a player who WAS dealt combat damage never enters the ledger
+		// and Lost Monarch of Ifnir's intervening-if reads 0. All terminal
+		// paths of handleDamageReplacementChoice route through here; a fully
+		// prevented/replaced event returned above (applied.Kind != Damage or
+		// Amount <= 0), and a redirect ONTO a permanent zeroes nothing but
+		// fails the Obj == 0 guard exactly as the capture site's guard does.
+		e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(applied.Player, rc.damaging, applied.Amount))
 	}
 }
 

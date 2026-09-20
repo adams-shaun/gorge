@@ -1480,9 +1480,13 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 	// bare name; the suffix applies inside hasPropertyLostLifeCount.
 	base, _, _ := strings.Cut(prop, "/")
 	base = strings.TrimSpace(base)
-	if n, ok := lifeExtreme(g, group, prop); ok {
-		return n, true
-	}
+	// Deliberately NO lifeExtreme call here: the brief names exactly three
+	// resolvable properties on this group, and the life-TOTAL extremes
+	// (HighestLifeTotal/LowestLifeTotal) are not among them — they stay
+	// (0, false) on DefinedRegistered[.Other]$ even though the sibling
+	// Players$/Opponents$ arms resolve them. No corpus carrier reads a life
+	// total extreme through this head; if one ever does, widening is a
+	// one-line change with its own pin.
 	switch base {
 	case "HighestLifeLostThisTurn", "LowestLifeLostThisTurn":
 		// The life-lost extremes — Knight of the Ebon Legion's and

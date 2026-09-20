@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -283,5 +284,87 @@ func TestLedgerSkipsRedirectedPlayerCombatDamage(t *testing.T) {
 	}
 	if n := pcdrQueue(e, state.StepMain2, monarch); n != 1 {
 		t.Fatalf("second main queued %d triggers after landed Zombie damage, want 1", n)
+	}
+}
+
+// TestLedgerRecordsParkedDamageReplacement is the class guard for the
+// ledger's SECOND append site (finishChosenDamage): a player-targeted combat
+// damage whose CR 616.1 competition is POSED — any Optional$ True damage
+// replacement alone qualifies, and Battletide Alchemist ("you may prevent X …
+// where X is the number of Clerics you control", here 0) is a real corpus
+// carrier — parks a KReplacement and returns a Note from runCombatAssignments,
+// so the capture site's append is SKIPPED for a hit that lands. Before the
+// finishChosenDamage append existed the parked hit never entered the ledger
+// and Lost Monarch's intervening-if read 0 in exactly the games this ticket
+// exists to fix.
+func TestLedgerRecordsParkedDamageReplacement(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	deck0 := mountainDeck(t, 40)
+	mon, ok := reg.Lookup("Lost Monarch of Ifnir")
+	if !ok {
+		t.Fatalf("corpus fixture: Lost Monarch of Ifnir missing")
+	}
+	deck0 = append(deck0, mon)
+	deck1 := mountainDeck(t, 41)
+	batt, ok := reg.Lookup("Battletide Alchemist")
+	if !ok {
+		t.Fatalf("corpus fixture: Battletide Alchemist missing")
+	}
+	deck1 = append(deck1, batt)
+	e := New(seatZeroStart(Config{Seed: 42, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{deck0, deck1}}))
+	e.Advance()
+	monarch := crAbortMove(t, e, 0, "Lost Monarch of Ifnir", state.ZBattlefield)
+	battletide := crAbortMove(t, e, 1, "Battletide Alchemist", state.ZBattlefield)
+	_ = battletide
+	e.pending = nil
+
+	// The assignment parks on the optional prevention ask (posed to seat 1,
+	// the Battletide's controller — OptionalDecider$ You), and the ledger is
+	// empty until the parked event is resolved.
+	e.combatRound.assignments = []assignment{{toPlayer: 1, amount: 3, from: monarch}}
+	e.runCombatAssignments()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || d.Player != 1 {
+		t.Fatalf("pending = %+v, want Battletide's optional-prevention ask to seat 1", d)
+	}
+	if hits := e.CombatDamageToPlayersThisTurn(); len(hits) != 0 {
+		t.Fatalf("parked combat damage recorded %d ledger hits before the answer, want 0", len(hits))
+	}
+
+	// DECLINE the ask ("do not apply an optional replacement"): the damage
+	// lands through finishChosenDamage, which must append the ledger hit the
+	// parked capture site skipped. The resumed pass's completion re-poses a
+	// priority ask (the same device damage_prevented_once_test.go clears);
+	// clear it the pcdr way so the later runs see no pending decision.
+	submitChoices(t, e, len(d.Options)-1)
+	e.pending = nil
+	e.pendingTriggers = nil
+	if hits := e.CombatDamageToPlayersThisTurn(); len(hits) != 1 {
+		t.Fatalf("declined-park combat damage recorded %d ledger hits, want 1: %+v", len(hits), hits)
+	}
+	if hits := e.CombatDamageToPlayersThisTurn(); len(hits) == 1 && (hits[0].Player != 1 || hits[0].Amount != 3) {
+		t.Fatalf("ledger hit = %+v, want {Player:1 Amount:3}", hits[0])
+	}
+	if n := pcdrQueue(e, state.StepMain2, monarch); n != 1 {
+		t.Fatalf("second main queued %d triggers after the parked hit landed, want 1", n)
+	}
+
+	// Control: choosing the replacement instead (0 Clerics = prevents 0) also
+	// lands the damage through the same finishChosenDamage path. A fresh
+	// turn's ledger starts empty, so this isolates the apply arm.
+	e.emit(events.Event{Kind: events.TurnChange, Player: 1})
+	e.pending = nil
+	e.pendingTriggers = nil
+	e.combatRound.assignments = []assignment{{toPlayer: 1, amount: 2, from: monarch}}
+	e.runCombatAssignments()
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KReplacement {
+		t.Fatalf("pending = %+v, want the optional-prevention ask again", d)
+	}
+	submitChoices(t, e, 0)
+	e.pendingTriggers = nil
+	if hits := e.CombatDamageToPlayersThisTurn(); len(hits) != 1 {
+		t.Fatalf("applied-park combat damage recorded %d ledger hits, want 1 (new turn, 0-Cleric prevention): %+v", len(hits), hits)
 	}
 }
