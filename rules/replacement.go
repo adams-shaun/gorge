@@ -2005,6 +2005,16 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			!effects.MatchesPlayerSpec(e.G, v, ev.Player, you) {
 			return false
 		}
+		// NotFirstCardInDrawStep$ True exempts the player's own turn-based
+		// draw (CR 504.1) — the "except the first one they draw in each of
+		// their draw steps" clause on Notion Thief, Hullbreacher, Chains of
+		// Mephistopheles and the other five carriers. Applied at match time,
+		// before the proposed Draw is logged, so the pre-emit helper is the
+		// one that can see it.
+		if strings.EqualFold(strings.TrimSpace(r.Params["NotFirstCardInDrawStep"]), "True") &&
+			e.pendingDrawIsFirstInDrawStep(ev.Player) {
+			return false
+		}
 		// The shared condition gate (CheckSVar$/IsPresent$/Hellbent$/...) —
 		// every sibling case ends with it; the Draw class never read it, so
 		// Quantum Riddler's LE1-over-Count$ValidHand gate (and the Hellbent
