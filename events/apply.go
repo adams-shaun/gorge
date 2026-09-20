@@ -462,6 +462,40 @@ func Apply(g *state.Game, e Event) {
 			g.Players[e.Player].RingBearer = e.Obj
 		}
 
+	case RingEmblemPush:
+		// One of the Ring emblem's four level abilities (CR 701.54c) being
+		// put on the stack. The ability is minted HERE, inside Apply, so a
+		// log-only replay creates the exact same object a live game did
+		// (Ruling T20-a, the KeywordTriggerPush precedent): the emblem has
+		// no object in any zone, so TriggerPush's face-index derivation
+		// cannot carry it and the "__ring:<level>" payload rebuilds the
+		// ability structurally from the event text alone.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		level := int(e.Amount)
+		if rest, ok := strings.CutPrefix(e.Counter, "__ring:"); ok {
+			if n, err := strconv.Atoi(rest); err == nil {
+				level = n
+			}
+		}
+		sa := ringEmblemAbility(level)
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		// The emblem is not an object, so there is no Source to carry: the
+		// hand-built bodies read only their controller (Defined$ You /
+		// Opponent) and the live Ring-bearer designation
+		// (Card.IsRingbearer+YouCtrl). A zero Source makes
+		// findTriggerForAbility false, so no intervening-if recheck and no
+		// OptionalDecider read runs on it -- exactly the mandatory shape
+		// CR 701.54c's "whenever" abilities are.
+		o.Source = 0
+		o.Remembered = rememberedFrom(e.IDs)
+
 	case MoveZone, Draw, PutOnStack:
 		// CR 733.1 reverses a proposed cast with a real logged stack->origin
 		// move. Preserve the entry history that preceded its stack proposal in
@@ -1640,6 +1674,56 @@ func rememberedFrom(ids []state.ObjID) []state.Target {
 		out = append(out, state.Target{Obj: id})
 	}
 	return out
+}
+
+// ringEmblemAbility rebuilds one of the Ring emblem's four level abilities
+// (CR 701.54c) from its level alone. The emblem has no corpus script text
+// and no object in any zone, so these bodies are hand-built here in events,
+// exactly as the granted ward/afflict payloads (KeywordTriggerPush) are:
+// Apply rebuilds from the "__ring:<level>" payload so a log-only replay
+// mints the identical ability object a live game did. Level N is active iff
+// the tempted seat's RingTempted >= N; lower levels stay active as the count
+// rises (the emitter gates, this function only builds).
+//
+//  1. "Whenever your Ring-bearer attacks, draw a card."
+//  2. "Whenever your Ring-bearer becomes blocked, discard a card. If you
+//     can't, sacrifice it." The discard is TgtChoose (the discarding
+//     player's own choice); its RememberDiscarded$ records what (if
+//     anything) went, and the chained Sacrifice is gated on that set being
+//     EMPTY (ConditionDefined$ Remembered | ConditionPresent$ Card |
+//     ConditionCompare$ EQ0) -- the corpus's exact "if you can't" shape
+//     (Davriel, Soul Broker). effDiscard's strict-supersets rule means an
+//     empty or too-small hand discards nothing and asks nothing, which IS
+//     the "can't" arm.
+//  3. "Whenever your Ring-bearer deals combat damage to a player,
+//     sacrifice it." The SacValid$ reads the LIVE designation, so a bearer
+//     already dead from the combat damage leaves nothing eligible: no ask,
+//     no-op ("sacrifice it" of something that no longer exists).
+//  4. "Whenever the Ring tempts you, each opponent loses 1 life."
+func ringEmblemAbility(level int) *cards.SA {
+	switch level {
+	case 1:
+		return &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
+			"Defined": "You",
+		}}
+	case 2:
+		sac := &cards.SA{Kind: "DB", API: "Sacrifice", Params: map[string]string{
+			"Defined": "You", "SacValid": "Card.IsRingbearer+YouCtrl", "Amount": "1",
+			"ConditionDefined": "Remembered", "ConditionPresent": "Card", "ConditionCompare": "EQ0",
+		}}
+		return &cards.SA{Kind: "DB", API: "Discard", Params: map[string]string{
+			"Defined": "You", "NumCards": "1", "Mode": "TgtChoose", "RememberDiscarded": "True",
+		}, Sub: sac}
+	case 3:
+		return &cards.SA{Kind: "DB", API: "Sacrifice", Params: map[string]string{
+			"Defined": "You", "SacValid": "Card.IsRingbearer+YouCtrl", "Amount": "1",
+		}}
+	case 4:
+		return &cards.SA{Kind: "DB", API: "LoseLife", Params: map[string]string{
+			"Defined": "Opponent", "LifeAmount": "1",
+		}}
+	}
+	return nil
 }
 
 // Move relocates an object between zones, preserving zone order and the

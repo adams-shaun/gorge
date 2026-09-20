@@ -9,6 +9,7 @@ package rules
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -17,6 +18,23 @@ import (
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
+
+// ringEmblemLabel names one of the Ring emblem's level abilities (CR
+// 701.54c) for an ordering ask or a log line. The emblem has no card to read
+// a name or TriggerDescription$ from, so the label is the rules text itself.
+func ringEmblemLabel(level int) string {
+	switch level {
+	case ringEmblemLevelDraw:
+		return "The Ring emblem: whenever your Ring-bearer attacks, draw a card"
+	case ringEmblemLevelBlocked:
+		return "The Ring emblem: whenever your Ring-bearer becomes blocked, discard a card; if you can't, sacrifice it"
+	case ringEmblemLevelCombatHit:
+		return "The Ring emblem: whenever your Ring-bearer deals combat damage to a player, sacrifice it"
+	case ringEmblemLevelTempted:
+		return "The Ring emblem: whenever the Ring tempts you, each opponent loses 1 life"
+	}
+	return "The Ring emblem ability"
+}
 
 // putTriggersOnStack drains pendingTriggers onto the stack, asking each
 // controller who has two or more of them for the order (CR 603.3b, user
@@ -317,6 +335,22 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
 		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
+	// One of the Ring emblem's four level abilities (CR 701.54c): the emblem
+	// has no object in any zone and no face, so its stack object is minted by
+	// a RingEmblemPush event whose "__ring:<level>" payload events.Apply
+	// rebuilds the hand-built body from (the granted ward/afflict shape). The
+	// ability is mandatory and targetless, so nothing here asks.
+	if pt.RingEmblem > 0 {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.RingEmblemPush, Player: pt.Controller,
+			Amount:  int32(pt.RingEmblem),
+			Counter: "__ring:" + strconv.Itoa(pt.RingEmblem),
+			Text:    ringEmblemLabel(pt.RingEmblem)})
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
@@ -719,6 +753,13 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 		}
 		return who, true, true
 	}
+	// The Ring emblem's level abilities are mandatory "whenever" triggers
+	// (CR 701.54c): there is no placement question and no resolution
+	// question, so this returns not-optional before triggerOf, which would
+	// fail for an entry that has no face.
+	if pt.RingEmblem > 0 {
+		return 0, false, false
+	}
 	if pt.Evoke || pt.Madness {
 		return 0, false, false
 	}
@@ -841,6 +882,11 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 	// and it is what askTriggerOptional shows inside its offer prompt.
 	// Madness and Evoke are mandatory keyword-triggered abilities; their labels
 	// may appear in an ordering ask beside ordinary simultaneous triggers.
+	// The emblem's own label, before triggerOf -- an emblem entry has no face
+	// to read a TriggerDescription$ from.
+	if pt.RingEmblem > 0 {
+		return ringEmblemLabel(pt.RingEmblem)
+	}
 	if pt.Ward != "" {
 		name := "a permanent"
 		if o := e.G.Obj(pt.Source); o != nil {

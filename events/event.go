@@ -480,6 +480,22 @@ const (
 	// precedent, so no earlier ordinal, hash chain or golden replay is
 	// affected.
 	RingTemptsYou
+	// RingEmblemPush mints one of the Ring emblem's four level abilities
+	// (CR 701.54c), which are engine-side abilities with no corpus script
+	// text and no object in any zone -- the temptation count folded by
+	// RingTemptsYou is their only state (state.Player.RingTempted). Player
+	// is the emblem's owner (the tempted seat), Amount the level (1..4) and
+	// Counter the canonical "__ring:<level>" payload events.Apply rebuilds
+	// the ability from, exactly as the granted ward/afflict
+	// KeywordTriggerPush payloads are rebuilt ("the same DB$ ... a printed
+	// trigger would have carried"). Obj carries the Ring-bearer the firing
+	// event named (0 for a level whose body needs no bearer). The mint lives
+	// in Apply because a direct unlogged Game.AddObject call would name an
+	// ObjID a log-only replay never learns about (Ruling T20-a). Appended
+	// here, after RingTemptsYou, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	RingEmblemPush
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -490,7 +506,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(RingTemptsYou) + 1
+	NumKinds = int(RingEmblemPush) + 1
 )
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
@@ -571,7 +587,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you"}
+	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
