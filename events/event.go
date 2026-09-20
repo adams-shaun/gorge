@@ -793,6 +793,12 @@ var flagNames = [...]struct {
 	// unfiltered total. Appended at the end per the table's own ordering
 	// rule.
 	{"manasnowspent", state.FlagManaSnowSpent},
+	// The DB$ Play ReplaceGraveyard$ Exile rider (task replplay1): the Play
+	// SA's own provenance stamps its pay-time CastInfo with this flag, so
+	// spellRestZone/spellFizzleZone send the played card to exile instead
+	// of the graveyard. Appended at the end per the table's own ordering
+	// rule.
+	{"replacegraveyard", state.FlagReplaceGraveyard},
 	// The Aftermath half's cast (CR 702.85a): the flag is what the resolution
 	// reader (spellRestZone) and the fizzle reader (spellFizzleZone) read to
 	// exile the card instead of the graveyard. Appended at the end per the

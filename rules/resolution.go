@@ -1575,6 +1575,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// effPlay sees the answer as consumed either way.
 			free := strings.EqualFold(rp.sa.Params["WithoutManaCost"], "True")
 			playCost := strings.TrimSpace(rp.sa.Params["PlayCost"])
+			// ReplaceGraveyard$ Exile (task replplay1): the Play SA's own
+			// rider — "if that spell would be put into your graveyard this
+			// turn, exile it instead" — stamps the played spell's pay-time
+			// CastInfo with state.FlagReplaceGraveyard so spellRestZone (and
+			// spellFizzleZone for a fizzled/countered play) exiles it. The
+			// conditional sibling ReplaceGraveyardValid$ (2 corpus files:
+			// Bilbo, Thief in the Night; Scholar of the Lost Trove) restricts
+			// the exile to named types and is unread — fail closed, keep the
+			// graveyard resting place for those.
+			replaceGraveyard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["ReplaceGraveyard"]), "Exile") &&
+				strings.TrimSpace(rp.sa.Params["ReplaceGraveyardValid"]) == ""
 			// ImprintPlayed$ True (task imprintplayed: Rashmi and Ragavan,
 			// Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus
 			// files): every card the Play actually BEGINS to play is recorded
@@ -1605,7 +1616,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if o := e.G.Obj(id); o != nil {
 					from = o.Zone
 				}
-				e.beginPlay(ctx.Controller, id, free, playCost)
+				e.beginPlay(ctx.Controller, id, free, playCost, replaceGraveyard)
 				if imprintPlayed && from.Valid() {
 					if o := e.G.Obj(id); o != nil && o.Zone != from {
 						e.emit(events.Event{Kind: events.Imprint, Obj: ctx.Source,
