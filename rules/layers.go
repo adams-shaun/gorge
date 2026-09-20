@@ -169,6 +169,30 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
 							out = append(out, kw)
 						}
+						// A printed Continuous AddAbility$ static (Ichormoon Gauntlet's
+						// "Planeswalkers you control have [0]: Proliferate", a lord
+						// granting an activated ability, an Equipment granting
+						// "{T}: deal 1 damage") is a layer-6 ability GRANT (CR
+						// 613.1f): one ContinuousEffect whose AddAbilities names the
+						// SVar bodies on THIS source's face, consumed by legal.go's
+						// grantedAbilities (the offer) and mana_activation.go's
+						// granted-mana loop (the tap gate and payment window). The
+						// grantor is base.Source and the recipient is whatever
+						// Affects matches, so the two may differ -- the whole point of
+						// a cross-object grant. statList splits the ` & ` and `,`
+						// multi-value forms (6 corpus carriers). An AddAbility$ name
+						// whose body is missing or is not an AB degrades to no grant
+						// in grantedAbilities (the same totality every SVar
+						// resolution takes), so no validation is needed here.
+						if hasStat(st, "AddAbility") {
+							ga := base
+							ga.Layer = LAbilities
+							ga.AddAbilities = statList(st, "AddAbility")
+							ga.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+							if len(ga.AddAbilities) > 0 {
+								out = append(out, ga)
+							}
+						}
 						if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
 							ty := base
 							ty.Layer = LType

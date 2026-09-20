@@ -84,10 +84,12 @@ func boastOffered(e *Engine, id state.ObjID) bool {
 // Viking Village's `SVar:ABBoast:AB$ PutCounter | ... | Boast$ True`,
 // reached through `AddAbility$`) is a GRANTED ability: a granted activation
 // mints a DelayedPush whose Counter names the SVar (rules/speed.go's
-// beginGrantedActivation), never an AbilityPush with an ability index. A gate
-// that matched only AbilityPush/Amount would not see a granted Boast and
-// would re-offer it every window. The test emits both marker shapes and
-// asserts the once-per-turn half keys on the right one.
+// beginGrantedActivation), never an AbilityPush with an ability index -- and
+// when the granting static is cross-object (the Village grants to ALL
+// creatures) it mints the GrantAbilityPush twin, whose Counter names the same
+// SVar. A gate that matched only AbilityPush/Amount would not see a granted
+// Boast and would re-offer it every window. The test emits all three marker
+// shapes and asserts the once-per-turn half keys on the right one.
 func TestBoastGateIdentities(t *testing.T) {
 	e, _, bomb := boastFixture(t, 925, 0)
 	if e.G.Obj(bomb).AttacksThisTurn != 0 {
@@ -119,6 +121,17 @@ func TestBoastGateIdentities(t *testing.T) {
 	e.emit(events.Event{Kind: events.DelayedPush, Obj: bomb, Player: 0, Amount: -1, Counter: "BoastGrant"})
 	if e.boastGateOK(bomb, -1, "BoastGrant") {
 		t.Fatal("granted identity not withheld after its own DelayedPush")
+	}
+	// A CROSS-object grant (a printed Continuous AddAbility$ static) mints
+	// through GrantAbilityPush, whose Counter names the same SVar; it must
+	// consume the granted identity exactly as DelayedPush does, or Besieged
+	// Viking Village's granted Boast is re-offered all turn.
+	if !e.boastGateOK(bomb, -1, "BoastCross") {
+		t.Fatal("a fresh cross-object granted identity should start open")
+	}
+	e.emit(events.Event{Kind: events.GrantAbilityPush, Obj: bomb, Player: 0, Counter: "BoastCross", IDs: []state.ObjID{bomb}})
+	if e.boastGateOK(bomb, -1, "BoastCross") {
+		t.Fatal("granted identity not withheld after its own GrantAbilityPush")
 	}
 }
 
