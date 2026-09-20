@@ -840,6 +840,11 @@ var flagNames = [...]struct {
 	// cast from exile (modeFlags). Appended at the end per the table's own
 	// ordering rule.
 	{"foretold", state.FlagForetold},
+	// Conspire's tap provenance (CR 702.78a): the flag is what the keyword
+	// expansion's copy trigger reads through Count$Conspired, so a declined
+	// Conspire emits no flag and resolves like the plain cast. Appended at
+	// the end per the table's own ordering rule.
+	{"conspired", state.FlagConspired},
 	// The total-mana-spent capture (task castprov1): a face whose SVar
 	// table reads the Count$CastTotalManaSpent head stamps its pay-time
 	// CastInfo with the flag, so the Amount folds into Object.ManaSpent

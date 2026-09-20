@@ -117,6 +117,17 @@ type pendingCast struct {
 	multikickTimes int32
 	multikickDone  bool
 
+	// Conspire (CR 702.78a) is a param-less keyword: the "conspired" cast
+	// mode marks the intent to tap two untapped creatures that share a colour
+	// with the spell, conspireDone marks the one election already posed, and
+	// conspirePaid records that the election's two taps were actually
+	// recorded (the payCast provenance gate: a board that changed under the
+	// proposal, or a declined/plain cast, leaves it false and the cast stays
+	// byte-identical). Plain data, so Clone copies it.
+	conspireSet  bool
+	conspireDone bool
+	conspirePaid bool
+
 	// converge (task converge1) is CR 107.4f-family's count of distinct
 	// colours (WUBRG) of mana actually spent to cast this spell, captured at
 	// payment from the full spent delta payManaCastSpent returns. convergeOn
@@ -555,6 +566,62 @@ func (e *Engine) hasCastImprovise(id state.ObjID) bool {
 		}
 	}
 	return false
+}
+
+// hasCastConspire reports whether the spell being cast carries Conspire
+// (CR 702.78a), read exactly the way hasCastConvoke reads Convoke: the
+// printed keyword or a layer-6 grant whose AffectedZone$ scope reaches the
+// cast spell. The announcement runs while the spell is still in hand, so
+// derivedWith overrides the zone to the stack (which is also what lets a
+// `wasCast` Affected$ grant like Wort, the Raidmother's or Raiding Schemes'
+// match). The offer gate and the provenance read share this one helper so
+// the two stages cannot disagree about whether the spell is conspirable.
+func (e *Engine) hasCastConspire(id state.ObjID) bool {
+	for _, k := range e.derivedWith(id, state.ZStack).Keywords {
+		if strings.EqualFold(cardsKeywordHead(k), "Conspire") {
+			return true
+		}
+	}
+	return false
+}
+
+// conspireCandidates returns the untapped creatures the caster controls that
+// share at least one colour with the spell being cast (CR 702.78a's "two
+// untapped creatures you control that share a color with it"). Order is the
+// deterministic battlefield zone order (costCandidates' own walk), so the
+// option list and a replay's re-derivation agree. A colourless spell has no
+// colour to share and returns an empty set -- the offer then never appears,
+// which is the correct reading of the rule for a Conspire carrier.
+func (e *Engine) conspireCandidates(p state.PlayerID, id state.ObjID) []state.ObjID {
+	spell := e.G.Obj(id)
+	if spell == nil || spell.Face() == nil {
+		return nil
+	}
+	want := e.Colors(spell.ID)
+	if want == "" {
+		want = effects.ColorsOf(spell)
+	}
+	if want == "" {
+		return nil
+	}
+	var out []state.ObjID
+	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
+		co := e.G.Obj(cid)
+		if co == nil || co.Tapped {
+			continue
+		}
+		if !effects.MatchesSpecFrom(e.G, "Creature.YouCtrl", cid, p, id) {
+			continue
+		}
+		colors := e.objColors(co)
+		for i := 0; i < len(colors); i++ {
+			if strings.ContainsRune(want, rune(colors[i])) {
+				out = append(out, cid)
+				break
+			}
+		}
+	}
+	return out
 }
 
 // improviseCost applies CR 702.66a greedily in stable battlefield order:
@@ -1647,6 +1714,14 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 			e.cast.multikickParam, e.cast.multikickSet = f.KeywordParam("Multikicker")
 		}
 	}
+	// Conspire (CR 702.78a) is param-less: the mode itself marks the intent
+	// and conspireSet records it for conspireAsk. The tap election is posed
+	// by conspireAsk (not a cost part -- the fixed "two creatures you control
+	// sharing a colour with the spell" has no Cost$ spelling), and the taps
+	// settle through pc.taps exactly like every other tap cost.
+	if opt.Mode == "conspired" {
+		e.cast.conspireSet = true
+	}
 	// CR 401.5's MayPlayIgnoreColor$ rider: "you may spend mana as though it
 	// were mana of any color to cast it". Recorded from the grant the offer
 	// gate consulted while the card was still in the granted zone.
@@ -1835,6 +1910,12 @@ func (e *Engine) continueCast() {
 	// carrier pairs both keywords (measured over the corpus), so the two
 	// asks never coexist on one cast.
 	if e.multikickAsk() {
+		return
+	}
+	// CR 702.78a: the Conspire tap election (two untapped creatures that
+	// share a colour with the spell) is posed before Convoke/X so an elected
+	// creature cannot also be announced as a payment source. See conspireAsk.
+	if e.conspireAsk() {
 		return
 	}
 	// CR 601.2b announces Convoke/Harmonize before X: an announced creature
@@ -2690,6 +2771,44 @@ func (e *Engine) multikickAsk() bool {
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "multikick",
 			Label: label, Amount: int(n)})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+// conspireAsk poses CR 702.78a's tap election for a "conspired" cast: tap two
+// untapped creatures you control that share a colour with the spell. A
+// dedicated ask (not a costCandidates-driven TapPermanent part) because the
+// eligibility is a COLOUR INTERSECTION with the spell itself, which no cost
+// spec in the filter vocabulary can express today (measured: no
+// sharesColorWith predicate). With exactly two eligible creatures the tap is
+// forced and no decision is posed (the strict-supersets convention); with
+// more, a Min==Max==2 KChoose is posed over exactly the eligible set. A board
+// that changed under the proposal (fewer than two eligible) degrades the
+// explicitly chosen "(conspired)" mode to the plain cast with a loud Note,
+// the replicateAsk/multikickAsk max==0 direction.
+func (e *Engine) conspireAsk() bool {
+	pc := e.cast
+	if pc.conspireDone || !pc.conspireSet {
+		return false
+	}
+	pc.conspireDone = true
+	candidates := e.conspireCandidates(pc.player, pc.card)
+	if len(candidates) < 2 {
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			Text: "conspire no longer payable; casting without conspire"})
+		return false
+	}
+	if len(candidates) == 2 {
+		pc.taps = append(pc.taps, candidates...)
+		pc.conspirePaid = true
+		return false
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 2, Max: 2,
+		Prompt: "Choose two creatures to tap for conspire", Source: pc.card}
+	for _, id := range candidates {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "conspire", Obj: id, Label: e.targetName(id)})
 	}
 	e.choosing = chooseCast
 	e.ask(d)
@@ -4435,6 +4554,17 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			}
 			pc.multikickTimes = n
 		}
+	case "conspire":
+		// CR 702.78a: the two chosen creatures are the tap the conspired cast
+		// pays. They settle through pc.taps (payCast taps them) and
+		// conspirePaid records that the provenance flag is owed. A Min==Max==2
+		// KChoose, so a well-formed answer is exactly two options.
+		for _, o := range chosen {
+			pc.taps = append(pc.taps, o.Obj)
+		}
+		if len(chosen) >= 2 {
+			pc.conspirePaid = true
+		}
 	case "exile":
 		for _, o := range chosen {
 			pc.delve = append(pc.delve, o.Obj)
@@ -4641,6 +4771,13 @@ func modeFlags(mode string) string {
 	// When a payment WAS made, payCast ORs bare FlagKicked (a multikicked
 	// cast IS a kicked cast) and FlagMultikicked onto the trailing CastInfo.
 	case "multikicked":
+		return ""
+	// Conspire (CR 702.78a): the mode marks the INTENT to tap two eligible
+	// creatures, and the offer can be taken only when they exist, but a
+	// DECLINED/plain cast must stay byte-identical -- no flag and no event,
+	// exactly the "replicated" contract above. When the tap WAS paid,
+	// payCast ORs FlagConspired onto a trailing CastInfo.
+	case "conspired":
 		return ""
 	}
 	return ""
@@ -5551,6 +5688,18 @@ func (e *Engine) payCast() {
 		mkFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagKicked | state.FlagMultikicked)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: mkCount, Counter: mkFlags})
 	}
+	// Conspire (CR 702.78a): the tap provenance rides its own trailing
+	// pay-time CastInfo -- FlagConspired routes the bool into
+	// Object.Conspired (events.Apply folds it outside the Amount switch, so
+	// no later event's routing is disturbed), and Count$Conspired reads it
+	// off the source. modeFlags deliberately maps "conspired" to "" -- a
+	// declined/plain cast (conspirePaid false) must stay the byte-identical
+	// plain cast, no flag and no event -- so the emission is gated on the
+	// tap having actually been paid.
+	if pc.conspirePaid {
+		cFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagConspired)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: 1, Counter: cFlags})
+	}
 	// Cast-spend (task castprov1): the TOTAL mana actually spent to cast the
 	// spell rides its own TRAILING pay-time CastInfo -- the flag routes the
 	// Amount into Object.ManaSpent (events.Apply's CastInfo case), so this
@@ -5925,6 +6074,12 @@ func init() {
 		// for the Count$TimesKicked head (effects/count.go). No keyword
 		// expansion: the K:Multikicker line is read directly.
 		"kw:Multikicker",
+		// kw:Conspire: CR 702.78, expanded by cards/keywords.go into the
+		// Storm-shaped copy trigger whose Amount$ Count$Conspired reads the
+		// pay-time CastInfo's flag; the cast flow's "conspired" offer
+		// (rules/legal.go) plus conspireAsk (rules/cast.go) pose and pay the
+		// two-creature tap.
+		"kw:Conspire",
 		// kw:Affinity: CR 702.41, expanded by cards/keywords.go into the
 		// ordinary ReduceCost cost-static machinery (rules/statics.go's
 		// collectCostStatics) -- no separate cast path of its own.

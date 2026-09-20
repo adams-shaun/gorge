@@ -197,6 +197,14 @@ const (
 	// both on resolution and when countered. Appended per the enum's own
 	// append-only precedent.
 	FlagAftermath
+	// FlagConspired marks a cast whose Conspire tap (CR 702.78a) was
+	// actually paid: as the spell was cast, two untapped creatures the
+	// caster controlled that shared a colour with it were tapped. The flag
+	// is the provenance the Conspire keyword expansion's copy trigger reads
+	// through Count$Conspired, so a DECLINED/plain cast (no tap paid) emits
+	// no flag and resolves exactly like the plain cast. Appended per the
+	// enum's own append-only precedent.
+	FlagConspired
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -352,6 +360,13 @@ type Object struct {
 	// events.Move; a COPY of the spell was never kicked and reads 0 (the
 	// same reading Count$ReplicatePaid documents).
 	TimesKicked int32
+	// Conspired is CR 702.78a's provenance that the spell's Conspire tap was
+	// paid as it was cast, carried by the pay-time CastInfo's FlagConspired
+	// (a bool, not a count: Conspire never copies more than once). It rides
+	// the same provenance window as X/CastFlags and resets alongside them in
+	// events.Move; a COPY of the spell was never cast and reads false (the
+	// same reading Count$ReplicatePaid documents).
+	Conspired bool
 	// ManaSpent is the TOTAL mana actually spent to cast the spell (CR
 	// 601.2h's payment -- the spent delta's pips summed over every slot),
 	// carried by the pay-time CastInfo's FlagManaSpent Amount (the
