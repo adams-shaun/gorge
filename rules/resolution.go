@@ -1496,9 +1496,18 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// runs for, so it consumes the per-turn resolution count here. A
 			// decline (handleTriggerOptional's finishResumption branch) never
 			// reaches resumeResolution and so never increments, exactly as the
-			// oracle's "you may ... do this only once" requires.
+			// oracle's "you may ... do this only once" requires. The eligibility
+			// check is on the RESOLVED line's own param (the trigger
+			// findTriggerForAbility matches for the resumed ability), never on
+			// the source's other lines -- accepting a sibling optional trigger
+			// (Tidus, Yuna's Guardian's non-RL BeginCombat line) must not spend
+			// the ResolvedLimit$ line's count.
 			if o != nil {
-				e.noteTriggerResolved(o.Source)
+				if t, ok := e.findTriggerForAbility(o.Source, rp.sa); ok {
+					if _, limited := resolvedLimitValue(t); limited {
+						e.noteTriggerResolved(o.Source)
+					}
+				}
 			}
 		default: // "modes", and "" (a pure outer continuation with no answer)
 			// A KWChoice$ pump's modes are keyword labels, not SVar names:

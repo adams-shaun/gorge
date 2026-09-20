@@ -211,6 +211,60 @@ func TestResolvedLimitMandatoryCarrierCounts(t *testing.T) {
 	}
 }
 
+// TestResolvedLimitMixedLineOtherTriggerDoesNotConsume pins the round-2
+// defect's exact shape on the real mixed-line carrier Cosmic Crucible: line 1
+// is a MANDATORY Main1 Phase trigger carrying NO ResolvedLimit$ ("add four
+// mana"), line 2 is the optional SpellCast copy trigger that does. Resolving
+// line 1 must not consume line 2's limit -- under the round-2 code the copy
+// trigger was dead EVERY turn, because the Main1 trigger resolved at the start
+// of every turn. After an ACCEPTED line-2 resolution the limit binds normally.
+func TestResolvedLimitMixedLineOtherTriggerDoesNotConsume(t *testing.T) {
+	crucible := mshCorpusCardPath(t, "Cosmic Crucible", "c/cosmic_crucible.txt")
+	e := combatEngine(t)
+	src := onBoardCard(t, e, 0, crucible)
+
+	// Line 1 (mandatory, no ResolvedLimit$): Main1 begins, the mana trigger
+	// queues and resolves (DB$ Mana adds to the pool; nothing asks).
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepMain1})
+	if len(e.pendingTriggers) == 0 {
+		t.Fatal("Cosmic Crucible's Main1 trigger did not queue")
+	}
+	e.putTriggersOnStack()
+	answerTriggerOrders(t, e)
+	e.resolveTop()
+	drainTriggerAsks(t, e, 10)
+	if n := pushCount(e, src); n != 1 {
+		t.Fatalf("Main1 trigger produced %d TriggerPush events, want 1", n)
+	}
+
+	// Line 2 (SpellCast, ResolvedLimit$ 1): cast a noncreature spell. The
+	// mandatory line-1 resolution must NOT have spent line 2's limit.
+	spell := putInHand(t, e, 0, card(t, "Name:Test Charm\nManaCost:1 U\nTypes:Instant\nOracle:x\n"))
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: spell, Player: 0, From: state.ZHand, To: state.ZStack})
+	if len(e.pendingTriggers) == 0 {
+		t.Fatal("the non-RL Main1 resolution consumed the copy trigger's ResolvedLimit; it must still queue")
+	}
+	e.putTriggersOnStack()
+	answerTriggerOrders(t, e)
+	e.resolveTop()
+	drainTriggerAsks(t, e, 30)
+	if n := pushCount(e, src); n != 2 {
+		t.Fatalf("accepted copy trigger produced %d TriggerPush events, want 2", n)
+	}
+
+	// The accepted line-2 resolution consumed ITS OWN limit: a second cast in
+	// the same turn queues nothing (line 1 resolving again is a different
+	// turn boundary away, but line 2 is spent for this turn).
+	spell2 := putInHand(t, e, 0, card(t, "Name:Test Charm Two\nManaCost:1 U\nTypes:Instant\nOracle:x\n"))
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: spell2, Player: 0, From: state.ZHand, To: state.ZStack})
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("second cast after an accepted copy resolution queued %d triggers, want 0", len(e.pendingTriggers))
+	}
+	if n := pushCount(e, src); n != 2 {
+		t.Fatalf("after the second cast, Crucible has %d TriggerPush events, want 2", n)
+	}
+}
+
 // TestResolvedLimitReplaysExactly clones the engine after the first resolution
 // and proves the clone's continued play is byte-identical -- the leaf that
 // catches a missing Engine.Clone copy of triggerTurnResolved (the clone would

@@ -136,7 +136,12 @@ var baseBuckets = map[string]bucket{
 	// sib is the paired sibling trigger secondaryYields (checkFaceTriggers'
 	// Secondary$ walk) scans the same face for: a cards.Trigger like t.
 	"sib": bTrig,
-	"s":   bStat, "st": bStat, "sv": bStat,
+	// rt is resolveTop's ability branch's findTriggerForAbility result (the
+	// trigger the resolving ability was fired from): a cards.Trigger like t,
+	// read for OptionalDecider$ (the resolution-time optional gate) and
+	// ResolvedLimit$ (the per-turn resolution cap's increment eligibility).
+	"rt": bTrig,
+	"s":  bStat, "st": bStat, "sv": bStat,
 	"r": bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	"targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,

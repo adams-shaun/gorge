@@ -235,38 +235,16 @@ func resolvedLimitValue(t cards.Trigger) (int, bool) {
 	return limit, true
 }
 
-// sourceHasResolvedLimit reports whether any T: line carried by source
-// declares ResolvedLimit$. The increment (noteTriggerResolved) is keyed by
-// source, so it asks the permanent rather than the resolved line: a card
-// whose paired halves both carry the param (corruption_of_towashi) shares
-// one count.
-func (e *Engine) sourceHasResolvedLimit(source state.ObjID) bool {
-	o := e.G.Obj(source)
-	if o == nil {
-		return false
-	}
-	f := o.Face()
-	if f == nil {
-		return false
-	}
-	for _, t := range f.Triggers {
-		if _, ok := t.Params["ResolvedLimit"]; ok {
-			return true
-		}
-	}
-	return false
-}
-
 // noteTriggerResolved increments source's per-turn resolution count for the
-// ResolvedLimit$ gate. It must be called ONLY where the trigger's effect
-// actually runs (a mandatory trigger's resolution, or an accepted optional
-// one) -- a declined instance must never consume the limit. The count
-// self-resets when the turn changes, exactly as triggerTurnFires does, so no
-// reset hook is needed.
+// ResolvedLimit$ gate. Callers MUST have verified that the trigger line being
+// resolved itself carries ResolvedLimit$ (resolvedLimitValue on the trigger
+// findTriggerForAbility returned for the resolving ability) -- a mixed-line
+// source's OTHER trigger lines must never consume this line's limit (the
+// round-2 defect: sourceHasResolvedLimit potted any line of the source and
+// killed Cosmic Crucible's copy trigger every turn its mandatory Main1 mana
+// trigger resolved). The count self-resets when the turn changes, exactly as
+// triggerTurnFires does, so no reset hook is needed.
 func (e *Engine) noteTriggerResolved(source state.ObjID) {
-	if !e.sourceHasResolvedLimit(source) {
-		return
-	}
 	if e.triggerTurnResolved == nil {
 		e.triggerTurnResolved = map[state.ObjID]turnFires{}
 	}
