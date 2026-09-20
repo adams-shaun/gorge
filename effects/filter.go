@@ -138,7 +138,7 @@ var colorLetter = map[string]string{"White": "W", "Blue": "U", "Black": "B", "Re
 func init() {
 	for _, kw := range [...]string{"Flying", "Trample", "Deathtouch", "Lifelink",
 		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Menace",
-		"Flanking"} {
+		"Flanking", "Horsemanship"} {
 		k := kw
 		predicates["with"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 			return o.Face() != nil && o.Face().HasKeyword(k)

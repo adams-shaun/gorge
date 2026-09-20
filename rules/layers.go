@@ -232,7 +232,25 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// No Note is emitted because this scan re-runs on every event;
 						// a per-derivation Note would flood the log.
 						if raw, isSet := st.Params["SetColor"]; isSet {
-							if cols, ok := resolveChosenColors(raw, o); ok {
+							// A resolvable characteristic-defining self SetColor$ (the
+							// Transguild Courier / Sphinx of the Guildpact "CARDNAME is
+							// all colors", Ghostfire "CARDNAME is colorless" class) is
+							// NOT emitted from this scan: a CDA works in EVERY zone
+							// (CR 604.3/208.2), so effects.ColorMaskOf's base read now
+							// applies the claim there and at the layer-5 base below,
+							// and emitting here too would apply it twice -- the same
+							// withholding the P/T CDA below takes. The shared
+							// effects.CDASetColourClaimStatic classifier is what both
+							// paths read, so they cannot disagree. A CDA the helper
+							// rejects (the ChosenColor family) is NOT withheld: it
+							// flows to resolveChosenColors, which resolves it against
+							// the host's recorded choice or fails closed. A CDA that
+							// narrows itself with AffectedZone$ would be a different
+							// shape -- no corpus carrier carries one (measured), and a
+							// CDA's zone width is every zone by CR 604.3 anyway.
+							if _, isCDA, parsed := effects.CDASetColourClaimStatic(st); isCDA && parsed {
+								// withheld: the base read applies it in every zone
+							} else if cols, ok := resolveChosenColors(raw, o); ok {
 								sc := base
 								sc.Layer = LColor
 								sc.AddColors = cols

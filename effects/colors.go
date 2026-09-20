@@ -3,6 +3,7 @@ package effects
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -86,7 +87,106 @@ func ColorMaskOf(o *state.Object) ColorMask {
 			}
 		}
 	}
+	// CR 604.3/208.2: a characteristic-defining ability works in EVERY zone,
+	// so a resolvable self SetColor$ CDA overwrites the printed colours here
+	// -- the same read that governs the battlefield layer-5 base (rules'
+	// derivedWith) and every off-battlefield consumer of this function.
+	// SetColor$ overwrites, it never extends (CR 613.1e), so the claim
+	// REPLACES the mask. rules' staticEffects withholds exactly the claim
+	// this helper resolves from its layer-5 scan emission (the P/T CDA skip
+	// discipline), so the battlefield read applies it once, and the
+	// off-battlefield reads (hand, stack, graveyard, library) get it too --
+	// Transguild Courier is all colours wherever it is, and Ghostfire is
+	// colourless ("" is a real overwrite, not a no-claim). The Devoid
+	// early-return above stays first: no corpus card carries both (measured
+	// over the corpus's CharacteristicDefining SetColor$ carriers), so their
+	// relative order is unmeasured and a combined card would need its own
+	// reading.
+	if claim, ok := CDASetColourClaim(f); ok {
+		mask = claim
+	}
 	return mask
+}
+
+// cdaSetColourClaimStatic reports one static's colour claim: (mask, isCDA,
+// ok). isCDA means the static passes the exact cdaSetColours gate cards'
+// colour-identity derivation uses -- Mode$ Continuous,
+// CharacteristicDefining$ True (exact case, the spelling every corpus CDA
+// carrier prints), Affected$ naming Self -- and carries a SetColor$ value;
+// ok then reports whether effects.ColorLetters parsed the value whole. The
+// two results are separate because the callers want different things:
+// ColorMaskOf acts only on (isCDA && ok) and keeps the printed colours
+// otherwise, while rules' staticEffects must distinguish "a resolvable CDA I
+// withhold from the scan" (isCDA && ok) from "a CDA static I keep emitting
+// like any other static" (isCDA && !ok -- the ChosenColor family's fail-closed
+// arm, where today's scan behaviour is no emission either way, but the shape
+// stays honest) from "not a CDA at all" (!isCDA).
+func cdaSetColourClaimStatic(s cards.Static) (ColorMask, bool, bool) {
+	if s.Mode != "Continuous" || s.Params["CharacteristicDefining"] != "True" {
+		return 0, false, false
+	}
+	if !strings.Contains(s.Params["Affected"], "Self") {
+		return 0, false, false
+	}
+	raw, isSet := s.Params["SetColor"]
+	if !isSet {
+		return 0, false, false
+	}
+	letters, ok := ColorLetters(raw)
+	if !ok {
+		return 0, true, false
+	}
+	var mask ColorMask
+	for _, l := range letters {
+		mask |= colorBit(l[0])
+	}
+	return mask, true, true
+}
+
+// CDASetColourClaimStatic is cdaSetColourClaimStatic for rules' static scan,
+// so the scan's withholding gate and this package's ColorMaskOf arm share
+// ONE classifier (the shared UnknownPredicates pattern) and the two colour
+// paths can never disagree about what is a CDA.
+func CDASetColourClaimStatic(s cards.Static) (ColorMask, bool, bool) {
+	return cdaSetColourClaimStatic(s)
+}
+
+// CDASetColourClaim folds the CDA SetColor$ statics of one face into the
+// single overwrite claim they make (Transguild Courier / Sphinx of the
+// Guildpact "CARDNAME is all colors", Ghostfire "CARDNAME is colorless"):
+// every static passing the cdaSetColours gate (Mode$ Continuous,
+// CharacteristicDefining$ True exact case, Affected$ naming Self) contributes
+// its parsed set OR-ed in, and ok reports whether EVERY such static parsed --
+// one the parser cannot read (ChosenColor) spoils the whole claim, the same
+// fail-closed direction the scan's own ok gate takes, so the caller keeps the
+// printed colours rather than applying a partial prefix. A face with no CDA
+// SetColor$ static is ok=false (no claim). "Colorless" parses to the empty
+// set with ok=true -- a real overwrite to colourless (Ghostfire) -- which is
+// why cards.cdaSetColours' uint8 return cannot be reused for this read: it
+// cannot distinguish an empty claim from no claim. ColorLetters' vocabulary
+// (comma lists, " & " lists, All) is a superset of cdaSetColours' single-word
+// switch; the corpus's CDA carriers print single words only, so on every real
+// carrier the two parsers agree.
+func CDASetColourClaim(f *cards.Face) (ColorMask, bool) {
+	if f == nil {
+		return 0, false
+	}
+	var mask ColorMask
+	ok := true
+	any := false
+	for _, s := range f.Statics {
+		m, isCDA, parsed := cdaSetColourClaimStatic(s)
+		if !isCDA {
+			continue
+		}
+		any = true
+		mask |= m
+		ok = ok && parsed
+	}
+	if !any || !ok {
+		return 0, false
+	}
+	return mask, true
 }
 
 // colorLetters turns a Forge colour-list parameter value (Animate's Colors$,
