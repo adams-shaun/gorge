@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Decision, Option } from '../protocol';
-import { pickOption } from './seatpanel.svelte';
+import { SeatPanelState, pickOption, unpickOption } from './seatpanel.svelte';
+
+const ctx = { seat: 0, token: 'tok' };
 
 // pickOption is the seat's pure selection logic, expressed entirely in terms
 // of the decision's own Option.Group field (R-E4-2): the panel never finds
@@ -81,5 +83,89 @@ describe('pickOption — exclusivity by Group', () => {
     };
     expect(pickOption(ungrouped, 0, [])).toEqual([0]);
     expect(pickOption(ungrouped, 1, [0])).toEqual([0, 1]);
+  });
+});
+
+// A repeatable modal ask (a CanRepeatModes$ Charm, CR 601.2b): the answer is
+// an ORDERED MULTISET over the distinct options, so the ask's Min may exceed
+// the option count — CharmNum$ 3 over 2 legal modes. The review-r2 wedge:
+// toggle-off on a re-click made len(picked) == min unreachable, so a human
+// seat could never enable the submit button on the engine's own shape.
+const repeatableModes = (seq: number, min = 3, max = 3, repeatable = true): Decision => ({
+  seq,
+  player: 0,
+  kind: 'modes',
+  prompt: 'Choose three. You may choose the same mode more than once.',
+  min,
+  max,
+  repeatable,
+  options: [
+    { index: 0, kind: 'mode', label: 'deals 1 damage to each creature', obj: undefined, player: 0 },
+    { index: 1, kind: 'mode', label: 'deals 2 damage to each opponent', obj: undefined, player: 0 },
+  ],
+});
+
+describe('pickOption — repeatable decisions', () => {
+  it('re-picking an already-picked option APPENDS another instance, never toggles off', () => {
+    const d = repeatableModes(9);
+    expect(pickOption(d, 1, [])).toEqual([1]);
+    expect(pickOption(d, 1, [1])).toEqual([1, 1]);
+    expect(pickOption(d, 0, [1, 1])).toEqual([1, 1, 0]);
+  });
+
+  it('the max caps the multiset; a full pick is a no-op', () => {
+    const d = repeatableModes(9);
+    expect(pickOption(d, 1, [1, 1, 1])).toEqual([1, 1, 1]);
+    expect(pickOption(d, 0, [0, 1, 1])).toEqual([0, 1, 1]);
+  });
+
+  it('a min lower than the option count still fills to min by repeating', () => {
+    const d = repeatableModes(9, 2, 5);
+    expect(pickOption(d, 0, [])).toEqual([0]);
+    expect(pickOption(d, 0, [0])).toEqual([0, 0]);
+  });
+});
+
+describe('unpickOption — removing one instance of a repeatable pick', () => {
+  it('removes the LAST occurrence and keeps the other instances in click order', () => {
+    expect(unpickOption(1, [1, 0, 1])).toEqual([1, 0]);
+    expect(unpickOption(0, [1, 0, 1])).toEqual([1, 1]);
+  });
+
+  it('an unpicked index is a no-op (never panics, never mutates)', () => {
+    expect(unpickOption(2, [1, 0, 1])).toEqual([1, 0, 1]);
+    expect(unpickOption(1, [])).toEqual([]);
+  });
+});
+
+// The seat panel's own state on the engine's real shape: the submit gate must
+// be reachable on a repeatable ask whose Min exceeds the option count.
+describe('SeatPanelState — a repeatable modal ask is answerable', () => {
+  it('three clicks of one mode reach canSubmit on Min 3 over 2 options; a chip click removes one', () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.adoptView(repeatableModes(9));
+    p.click(1);
+    p.click(1);
+    expect(p.canSubmit).toBe(false);
+    expect(p.picked).toEqual([1, 1]);
+    p.click(1);
+    expect(p.picked).toEqual([1, 1, 1]);
+    expect(p.canSubmit).toBe(true);
+    // The picked-so-far chips' remove affordance: one instance goes, and the
+    // gate re-locks until the slot is refilled.
+    p.unpick(1);
+    expect(p.picked).toEqual([1, 1]);
+    expect(p.canSubmit).toBe(false);
+    p.click(0);
+    expect(p.picked).toEqual([1, 1, 0]);
+    expect(p.canSubmit).toBe(true);
+  });
+
+  it('unpick is inert on a non-repeatable decision (toggle already owns removal there)', () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.adoptView(repeatableModes(9, 0, 2, false));
+    p.click(1);
+    p.unpick(1);
+    expect(p.picked).toEqual([1]);
   });
 });

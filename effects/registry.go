@@ -596,6 +596,14 @@ type Ctx struct {
 	// body, the matching convention rules' charmModeTarget already
 	// established).
 	OfferedSA *cards.SA
+	// ModesSeen names the chosen modes earlier passes of a CanRepeatModes$
+	// Charm's mode walk already ran (rules' charm_rest resume arm seeds it
+	// from the consumed prefix of the object's ChosenModes; a first pass has
+	// it nil). effCharm's re-entry marks a target-bearing mode as covered by
+	// the placement/announcement ask only for its FIRST occurrence across the
+	// FULL multiset -- a later occurrence must keep its own ValidTgts$
+	// pre-ask instead of inheriting the shared target list again.
+	ModesSeen []string
 	// PickedTargets is the answering pre-ask's target set, made visible to
 	// Defined's ValidTgts$ fallthrough for exactly ONE dispatch (the
 	// wrapper clears it when the body returns). It must not be Ctx.Targets:

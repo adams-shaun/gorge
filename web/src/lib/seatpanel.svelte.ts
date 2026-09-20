@@ -84,7 +84,15 @@ export function actedOption(d: Decision, choices: number[]): boolean {
  * (applied elsewhere) and the option Group field, never in terms of what a
  * Group's members are (R-E4-2) — the panel never learns what a blocker is.
  *
- *  - If the clicked option is already picked, it is removed (toggle off).
+ *  - A repeatable decision (`d.repeatable` — a CanRepeatModes$ Charm,
+ *    CR 601.2b) is an ORDERED MULTISET over the distinct options: clicking an
+ *    already-picked option appends another instance instead of toggling it
+ *    off, so with CharmNum$ 3 over 2 legal modes the same mode can fill all
+ *    three slots (the ask's Min may exceed the option count — exactly the
+ *    shape where toggle-off would make the submit gate unreachable). The max
+ *    is the only cap; a picked instance is removed through unpickOption.
+ *  - Otherwise, if the clicked option is already picked, it is removed (toggle
+ *    off).
  *  - Otherwise, if it carries a non-empty Group already represented in
  *    `picked`, that previously-picked group member is REPLACED by the new
  *    option: moving one blocker from attacker A to attacker B just works,
@@ -94,6 +102,10 @@ export function actedOption(d: Decision, choices: number[]): boolean {
 export function pickOption(d: Decision, index: number, picked: number[]): number[] {
   const opt = optionAt(d, index);
   if (opt === undefined) return [...picked];
+  if (d.repeatable) {
+    if (picked.length >= d.max) return [...picked];
+    return [...picked, index];
+  }
   const at = picked.indexOf(index);
   if (at >= 0) return picked.filter((i) => i !== index);
   const g = opt.group;
@@ -106,6 +118,18 @@ export function pickOption(d: Decision, index: number, picked: number[]): number
     }
   }
   return [...picked, index];
+}
+
+/**
+ * unpickOption removes ONE instance of an option from a repeatable pick
+ * multiset — the picked-so-far chips' remove affordance. The LAST occurrence
+ * in click order goes (the click that added it is the most recent intent),
+ * the other instances keep their order; an unpicked index is a no-op.
+ */
+export function unpickOption(index: number, picked: number[]): number[] {
+  const at = picked.lastIndexOf(index);
+  if (at < 0) return [...picked];
+  return picked.filter((_, i) => i !== at);
 }
 
 /** primaryOf resolves the "primary" option by kind — pass/resolve — never by position (R-E4-1). */
@@ -1810,6 +1834,21 @@ export class SeatPanelState {
     this.handAnswer();
     this.confirming = false;
     this.picked = pickOption(d, index, this.picked);
+  }
+
+  /**
+   * unpick removes ONE instance of an option from the picked multiset of a
+   * repeatable decision (a CanRepeatModes$ Charm) — the picked-so-far chips'
+   * remove affordance. On a non-repeatable decision it is inert: toggle()
+   * already owns removal there.
+   */
+  unpick(index: number) {
+    const d = this.pending;
+    if (d === null || d.seq === this.postedSeq || this.busy || !d.repeatable) return;
+    if (optionAt(d, index) === undefined) return;
+    this.handAnswer();
+    this.confirming = false;
+    this.picked = unpickOption(index, this.picked);
   }
 
   /**

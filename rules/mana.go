@@ -47,6 +47,12 @@ type CostPart struct {
 	// paying the cost taps at least one matching permanent, so a spec no
 	// candidate satisfies leaves the cost unpayable). N is unused for both.
 	Dyn string
+	// LibraryPos is the library slot a PutToLib cost part places the moved
+	// card(s) at, read from Forge's <N/Pos/Spec> middle field: -1 is the
+	// bottom (Forge CostPutCardToLib's "-1"), 0 is the top (its absent/
+	// "0" default). It is unused by every other cost head, whose zero value
+	// is inert.
+	LibraryPos int32
 }
 
 // ManaPair is one two-face hybrid symbol: each face is a WUBRGC mana symbol,
@@ -131,6 +137,16 @@ type Cost struct {
 	// (Forge CostReturn.moveToHand; CR 118.2a lists returning a permanent to
 	// its owner's hand among the payment actions).
 	Return []CostPart
+	// PutToLib carries PutCardToLibFrom<Zone><N/Pos/Spec> tokens: the payer
+	// moves N cards matching Spec from Zone (Spec's Forge head names Hand,
+	// Grave or Battlefield) to their OWN library at position Pos (-1 bottom,
+	// 0 top). It is Forge's CostPutCardToLib family -- the printed activation
+	// costs of Leashling, Ardent Dustspeaker, Battlefield Scrounger,
+	// Timestream Navigator and Penance/Tainted Specter's UnlessCost$ -- and
+	// is DISTINCT from the cumulative-upkeep PutCardToLibFromSameGrave action
+	// (rules/cumulative.go), which is a keyword-expansion action rather than
+	// a parsed cost token. Zone is the origin, LibraryPos the position.
+	PutToLib []CostPart
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
 	// A token lands here exactly when ParseCost could not give it real
@@ -248,6 +264,23 @@ var payEnergyCost = regexp.MustCompile(`^PayEnergy<([0-9]+|X)(?:/[^>]*)?>$`)
 // parsed one is 1). The trailing description is dropped, ";"
 // alternations fold to "," like every other non-mana head.
 var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// putCardToLibCost matches Forge's PutCardToLibFrom<Zone><N/Pos/Spec> cost
+// tokens -- moving N cards matching Spec from the payer's Hand, Graveyard or
+// Battlefield to the top (Pos "0") or bottom (Pos "-1") of their own library
+// as the payment (Forge CostPutCardToLib). The zone is the middle of the
+// head, never a parameter, and the second field is the library position:
+// Leashling/Penance/Tainted Specter place on TOP (Pos 0), the Born of the
+// Gods reflective-mage family (Ardent Dustspeaker) and Battlefield Scrounger
+// and Timestream Navigator put on the BOTTOM (Pos -1). The trailing
+// "/description" is dropped and ";" alternations fold to "," like every
+// other non-mana head. It is deliberately a POSITIVE zone list: a future
+// Forge zone name this regex does not name falls through to the
+// unrecognised-symbol fallback (the head is reported in Cost.Unknown, never
+// silently modelled as a different zone). The separate
+// PutCardToLibFromSameGrave cumulative-upkeep spelling is NOT matched here --
+// it is a keyword action, not a cost token.
+var putCardToLibCost = regexp.MustCompile(`^PutCardToLibFrom(Hand|Grave|Battlefield)<(\d+)/(-?\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // exileBattlefieldCost matches Forge's bare Exile<N/Spec> token -- exiling a
 // matching permanent from the BATTLEFIELD as the payment (Karn's Sylex's
@@ -526,6 +559,39 @@ func ParseCost(s string) Cost {
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
 				c.Return = append(c.Return, CostPart{N: int32(n), Spec: spec})
+				continue
+			}
+			if m := putCardToLibCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[2], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				pos, err := strconv.ParseInt(m[3], 10, 32)
+				if err != nil || (pos != 0 && pos != -1) {
+					// Only Forge's two modelled positions are real here: 0 (top)
+					// and -1 (bottom). Any other value is a recognised head whose
+					// instance this build cannot place, so it degrades and reports
+					// rather than silently landing somewhere.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				part := CostPart{N: int32(n), Spec: strings.ReplaceAll(m[4], ";", ","),
+					LibraryPos: int32(pos)}
+				switch m[1] {
+				case "Hand":
+					part.Zone = state.ZHand
+				case "Grave":
+					part.Zone = state.ZGraveyard
+				default: // Battlefield
+					part.Zone = state.ZBattlefield
+				}
+				c.PutToLib = append(c.PutToLib, part)
 				continue
 			}
 			// Try to parse as a numeric token. Negative and out-of-range values
@@ -854,6 +920,9 @@ func (c Cost) Plus(d Cost) Cost {
 	}
 	if len(d.Return) > 0 {
 		c.Return = append(append([]CostPart(nil), c.Return...), d.Return...)
+	}
+	if len(d.PutToLib) > 0 {
+		c.PutToLib = append(append([]CostPart(nil), c.PutToLib...), d.PutToLib...)
 	}
 	if len(d.Draw) > 0 {
 		c.Draw = append(append([]CostPart(nil), c.Draw...), d.Draw...)
@@ -1279,7 +1348,17 @@ func formatCost(c Cost) string {
 		parts = append(parts, "Forage")
 	}
 	appendCostParts("PayEnergy", c.Energy)
-	appendCostParts("Return", c.Return)
+	for _, part := range c.PutToLib {
+		zone := "Battlefield"
+		switch part.Zone {
+		case state.ZHand:
+			zone = "Hand"
+		case state.ZGraveyard:
+			zone = "Grave"
+		}
+		parts = append(parts, "PutCardToLibFrom"+zone+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+
+			strconv.FormatInt(int64(part.LibraryPos), 10)+"/"+part.Spec+">")
+	}
 	return strings.Join(parts, " ")
 }
 
@@ -1395,7 +1474,7 @@ func costAnnouncesCastX(c Cost) bool {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0
 }
 
 // Priceable reports whether payMana can actually charge every part of this
@@ -1417,7 +1496,7 @@ func (c Cost) Priceable() bool {
 		len(c.Draw) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 &&
 		len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
-		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0
+		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.PutToLib) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0
 }
 
 // pip is one flexible mana demand inside a cost's mana part, as a list of

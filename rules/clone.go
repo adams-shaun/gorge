@@ -357,6 +357,8 @@ func (e *Engine) Clone() *Engine {
 		tc.amount.HybridPhyrexian = append([]HybridPhyrexian(nil), e.triggerCost.amount.HybridPhyrexian...)
 		tc.amount.Phyrexian = append([]byte(nil), e.triggerCost.amount.Phyrexian...)
 		tc.amount.Unknown = append([]string(nil), e.triggerCost.amount.Unknown...)
+		tc.sacs = append([]state.ObjID(nil), e.triggerCost.sacs...)
+		tc.exiles = append([]state.ObjID(nil), e.triggerCost.exiles...)
 		c.triggerCost = &tc
 	}
 	if e.echo != nil {
@@ -398,6 +400,7 @@ func (e *Engine) Clone() *Engine {
 		pc.cost.DamageYou = append([]CostPart(nil), e.cast.cost.DamageYou...)
 		pc.cost.Energy = append([]CostPart(nil), e.cast.cost.Energy...)
 		pc.cost.Return = append([]CostPart(nil), e.cast.cost.Return...)
+		pc.cost.PutToLib = append([]CostPart(nil), e.cast.cost.PutToLib...)
 		pc.cost.Hybrid = append([]ManaPair(nil), e.cast.cost.Hybrid...)
 		pc.cost.Phyrexian = append([]byte(nil), e.cast.cost.Phyrexian...)
 		pc.cost.Twobrid = append([]Twobrid(nil), e.cast.cost.Twobrid...)
@@ -409,6 +412,7 @@ func (e *Engine) Clone() *Engine {
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
 		pc.exiles = append([]state.ObjID(nil), e.cast.exiles...)
 		pc.returns = append([]state.ObjID(nil), e.cast.returns...)
+		pc.putToLibs = append([]state.ObjID(nil), e.cast.putToLibs...)
 		pc.reveals = append([]state.ObjID(nil), e.cast.reveals...)
 		pc.beholds = append([]state.ObjID(nil), e.cast.beholds...)
 		pc.taps = append([]state.ObjID(nil), e.cast.taps...)

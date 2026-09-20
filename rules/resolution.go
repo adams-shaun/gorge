@@ -1606,6 +1606,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// assigns each target-bearing one the last targets of the original
 			// positional assignment, and nothing re-asks.
 			ctx.Modes = append([]string(nil), rp.charmRest...)
+			// CanRepeatModes$ (CR 601.2b): the rest is a suffix of the object's
+			// full ChosenModes (the walk only ever truncates a suffix), so the
+			// names the earlier passes consumed are derivable exactly. Seed
+			// them so effCharm's first-occurrence covered-marking knows which
+			// modes already ran -- a repeated target-bearing mode's later
+			// instance keeps its own ValidTgts$ pre-ask instead of inheriting
+			// the shared list a second time.
+			if o := e.G.Obj(rp.obj); o != nil && len(o.ChosenModes) > len(rp.charmRest) {
+				ctx.ModesSeen = append(ctx.ModesSeen,
+					o.ChosenModes[:len(o.ChosenModes)-len(rp.charmRest)]...)
+			}
 		case "optional":
 			// CR 603.5: the decider answered yes to applying this optional
 			// triggered ability's effect. The answer is a yes/no, not a mode
@@ -1929,25 +1940,31 @@ func chosenModeLabels(chosen []decision.Option) []string {
 
 // modeDecision builds the shared KModes option vocabulary used by spell
 // announcement and triggered-ability placement. min and max are resolved by
-// effects.CharmModeBounds against the caller's complete effects context.
-func modeDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, min, max int) *decision.Decision {
+// effects.CharmModeBounds against the caller's complete effects context, and
+// repeat is its CanRepeatModes$ result: when set, the decision permits the
+// same mode index more than once and max is NOT clamped to the distinct-mode
+// count.
+func modeDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, min, max int, repeat bool) *decision.Decision {
 	choices := strings.Split(sa.Params["Choices"], ",")
 	for i := range choices {
 		choices[i] = strings.TrimSpace(choices[i])
 	}
-	return modeDecisionForChoices(p, source, sa, svars, choices, min, max)
+	return modeDecisionForChoices(p, source, sa, svars, choices, min, max, repeat)
 }
 
 // modeDecisionForChoices is modeDecision over an explicit eligible subset.
 // Casting uses it to omit modes whose mandatory targets cannot be chosen;
 // ResumeModes preserves the SVar vocabulary server-side while Index stays
-// dense for the wire.
-func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, min, max int) *decision.Decision {
-	if max > len(choices) {
+// dense for the wire. repeat marks a CanRepeatModes$ Charm: the same eligible
+// mode may fill several slots, and the max clamp is skipped so a CharmNum$
+// larger than the eligible count is still satisfiable (by repetition).
+func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, min, max int, repeat bool) *decision.Decision {
+	if !repeat && max > len(choices) {
 		max = len(choices)
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KModes, Min: min, Max: max,
-		Source: source, ResumeKind: "modes", ResumeSA: sa,
+		Source: source, Repeatable: repeat,
+		ResumeKind: "modes", ResumeSA: sa,
 		ResumeModes: append([]string(nil), choices...),
 		Prompt:      "Choose " + strconv.Itoa(min) + " to " + strconv.Itoa(max) + " mode(s)"}
 	for i, name := range choices {

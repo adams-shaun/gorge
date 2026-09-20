@@ -22,8 +22,9 @@ import (
 // values are transient engine RAM — Clone copies the struct, no event or wire
 // field ever carries one — so the two windows move above the current highest.
 const (
-	chooseCumulative    chooseFor = chooseUnlock + 1
-	chooseTriggeredCost chooseFor = chooseUnlock + 2
+	chooseCumulative         chooseFor = chooseUnlock + 1
+	chooseTriggeredCost      chooseFor = chooseUnlock + 2
+	chooseTriggeredMandatory chooseFor = chooseExert + 1
 )
 
 type cumulativeAction struct {
@@ -60,6 +61,24 @@ type triggeredEffectCost struct {
 	// dynTapCost heads) of amount: the tap election is this window's payment
 	// for those parts, and the index keeps a multi-part cost asking in order.
 	tapIdx int
+	// mandatory marks a `Cost$ Mandatory <...>` body (TrigsMand1): a
+	// mandatory cost has no "may" and therefore no pay/decline election, so
+	// this window walks its choice-bearing non-mana components (Sac, Exile),
+	// poses a real pick where one exists and a no-ask settle where it does
+	// not, emits the settled events, and only then runs the parked body. A
+	// component that cannot be paid skips the body (Forge: the payment gates
+	// the effect). Only the Sac/Exile shapes enter this path
+	// (mandatorySettleShape); everything else keeps the free-executor
+	// carve-out in triggerBodyNeedsCostWindow.
+	mandatory bool
+	// part is the cursor into the flat choice-bearing component list
+	// (triggeredMandatoryParts: Sac then Exile) a mandatory settle walks.
+	part int
+	// sacs and exiles accumulate the settled picks (the same reservation
+	// list the unless-pay and cast flows keep) so one permanent cannot pay
+	// two parts and the settle can emit the exact events the picks name.
+	sacs   []state.ObjID
+	exiles []state.ObjID
 }
 
 // scaleCost repeats every mana/life payment component once per age counter.
@@ -208,10 +227,40 @@ func (e *Engine) triggerBodyNeedsCostWindow(sa *cards.SA) bool {
 	if !strings.HasPrefix(sa.Params["Cost"], "Mandatory") {
 		return true
 	}
-	return sa.API == "Untap" || sa.API == "ImmediateTrigger" ||
-		// The dynamic tapXType heads (rules/mana.go's dynTapCost): the tap
-		// election is the payment, the empty election the decline.
-		costCarriesDynTap(e.parseCost(sa.Params["Cost"]))
+	if sa.API == "Untap" || sa.API == "ImmediateTrigger" {
+		return true
+	}
+	c := e.parseCost(sa.Params["Cost"])
+	// The dynamic tapXType heads (rules/mana.go's dynTapCost): the tap
+	// election is the payment, the empty election the decline.
+	if costCarriesDynTap(c) {
+		return true
+	}
+	// trigmand1: the `Mandatory Sac<...>` / `Mandatory Exile<...>` shapes are
+	// now settled for real by the mandatory path in this window (a pick where
+	// a choice exists, the exact Sacrifice/Exile event otherwise), so they
+	// enter it. Any other mandatory component keeps the free-executor
+	// carve-out: a Mandatory PayLife<X>/PayEnergy/replacement body has no
+	// settle here (see the AGENTS.md approximation row), and arming it would
+	// only land it decline-only -- the WORSE regression.
+	return mandatorySettleShape(c)
+}
+
+// mandatorySettleShape reports whether a parsed `Mandatory` cost is one the
+// mandatory window can fully settle: its non-mana components are exactly the
+// choice-bearing Sac/Exile parts (settled with a real pick where a choice
+// exists) and everything else it carries is chargeable by payManaConv (plain
+// mana / fixed PayLife<N>). Any other component -- PayEnergy, PayLife<X>,
+// Discard, Reveal, Behold, SubCounter, a dynamic tap, ... -- returns false so
+// the body keeps today's free execution rather than a decline-only ask.
+func mandatorySettleShape(c Cost) bool {
+	if len(c.Sac) == 0 && len(c.Exile) == 0 {
+		return false
+	}
+	stripped := c
+	stripped.Sac = nil
+	stripped.Exile = nil
+	return stripped.Priceable()
 }
 
 // startTriggeredEffectCost parks Mana Vault's triggered Untap before it runs
@@ -224,7 +273,12 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 	}
 	label := rp.sa.Params["Cost"]
 	e.triggerCost = &triggeredEffectCost{resume: rp, source: source,
-		player: o.Controller, amount: e.parseCost(label), costLabel: label}
+		player: o.Controller, amount: e.parseCost(label), costLabel: label,
+		mandatory: strings.HasPrefix(label, "Mandatory")}
+	if e.triggerCost.mandatory {
+		e.advanceTriggeredMandatory(e.triggerCost)
+		return
+	}
 	e.triggeredCostPaymentAsk()
 }
 
@@ -716,6 +770,195 @@ func (e *Engine) triggeredCostDecline(tc *triggeredEffectCost) {
 	}
 	e.finishResumption(rp.obj)
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+}
+
+// triggeredMandatoryParts is the flat, ordered list of choice-bearing
+// components a mandatory settle walks: every Sac part, then every Exile
+// part. The order is deterministic (the cost grammar's own order) so a
+// replay settles the same picks in the same sequence.
+func triggeredMandatoryParts(c Cost) []CostPart {
+	parts := make([]CostPart, 0, len(c.Sac)+len(c.Exile))
+	parts = append(parts, c.Sac...)
+	parts = append(parts, c.Exile...)
+	return parts
+}
+
+// triggeredMandatoryZone is the zone a mandatory component's candidates
+// come from. A Sac part is always the battlefield; an Exile part carries its
+// own Zone (ZBattlefield for the bare Exile<N/Spec> token -- Dalek
+// Intensive Care's shape -- ZHand/ZGraveyard for the ExileFrom* heads), with
+// the zero value defaulting to hand, exactly as exAsk reads it.
+func triggeredMandatoryZone(part CostPart, isSac bool) state.Zone {
+	if isSac {
+		return state.ZBattlefield
+	}
+	if part.Zone == 0 {
+		return state.ZHand
+	}
+	return part.Zone
+}
+
+// triggeredMandatoryCandidates returns the still-available objects that can
+// pay one mandatory component: the battlefield permanents a Sac part names
+// (never one a CantSacrifice restriction blocks, and never a source that has
+// left the battlefield) or the zone's cards an Exile part names, deduped
+// against every component already settled so one object cannot pay twice.
+func (e *Engine) triggeredMandatoryCandidates(tc *triggeredEffectCost, idx int, part CostPart) []state.ObjID {
+	isSac := idx < len(tc.amount.Sac)
+	zone := triggeredMandatoryZone(part, isSac)
+	spec := part.Spec
+	if isSac {
+		// NICKNAME is the same bare self-reference as CARDNAME.
+		spec = sacrificeMatchSpec(spec)
+	}
+	used := make(map[state.ObjID]bool, len(tc.sacs)+len(tc.exiles))
+	for _, id := range tc.sacs {
+		used[id] = true
+	}
+	for _, id := range tc.exiles {
+		used[id] = true
+	}
+	var out []state.ObjID
+	for _, id := range e.G.Zone(zone, tc.player) {
+		if used[id] {
+			continue
+		}
+		if isSac && e.SacrificeBlocked(id) {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, spec, id, tc.player, tc.source) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// recordTriggeredMandatoryPick appends one settled component's picks to the
+// window's reservation lists.
+func (tc *triggeredEffectCost) recordMandatoryPick(idx int, ids []state.ObjID) {
+	if idx < len(tc.amount.Sac) {
+		tc.sacs = append(tc.sacs, ids...)
+		return
+	}
+	tc.exiles = append(tc.exiles, ids...)
+}
+
+// advanceTriggeredMandatory settles every component of a mandatory cost in
+// order: a component with an exact-candidate count records its picks without
+// a decision (a decision nobody could answer differently is never emitted),
+// a component with a genuine choice poses a real KChoose, and a component
+// that cannot be paid at all skips the parked body. No pay/decline election
+// is ever posed -- a mandatory cost has no "may".
+func (e *Engine) advanceTriggeredMandatory(tc *triggeredEffectCost) {
+	parts := triggeredMandatoryParts(tc.amount)
+	for tc.part < len(parts) {
+		part := parts[tc.part]
+		eligible := e.triggeredMandatoryCandidates(tc, tc.part, part)
+		if int32(len(eligible)) < part.N {
+			// A component that cannot be fully paid skips the body; nothing
+			// has moved yet, so the skip leaves the board untouched.
+			e.triggeredCostDecline(tc)
+			return
+		}
+		if int32(len(eligible)) == part.N {
+			tc.recordMandatoryPick(tc.part, eligible)
+			tc.part++
+			continue
+		}
+		name := "triggered ability"
+		if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		kind := "sacrifice"
+		verb := "sacrifice"
+		if tc.part >= len(tc.amount.Sac) {
+			kind, verb = "exile_cost", "exile"
+		}
+		d := &decision.Decision{Player: tc.player, Kind: decision.KChoose,
+			Min: int(part.N), Max: int(part.N), Source: tc.source,
+			Prompt: name + " — choose " + strconv.FormatInt(int64(part.N), 10) + " permanent(s) to " + verb}
+		for _, id := range eligible {
+			label := e.targetName(id)
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: kind, Obj: id, Label: label})
+		}
+		e.choosing = chooseTriggeredMandatory
+		e.ask(d)
+		return
+	}
+	e.settleTriggeredMandatory(tc)
+}
+
+// triggeredMandatoryAnswer validates one answered pick against the current
+// board and advances the walk (the unless-pay re-validation discipline).
+func (e *Engine) triggeredMandatoryAnswer(chosen []decision.Option) {
+	tc := e.triggerCost
+	if tc == nil {
+		return
+	}
+	e.choosing = chooseNone
+	parts := triggeredMandatoryParts(tc.amount)
+	if tc.part >= len(parts) {
+		return
+	}
+	part := parts[tc.part]
+	ids := make([]state.ObjID, 0, len(chosen))
+	for _, o := range chosen {
+		if o.Obj != 0 {
+			ids = append(ids, o.Obj)
+		}
+	}
+	eligible := e.triggeredMandatoryCandidates(tc, tc.part, part)
+	allowed := make(map[state.ObjID]bool, len(eligible))
+	for _, id := range eligible {
+		allowed[id] = true
+	}
+	if int32(len(ids)) != part.N {
+		e.triggeredCostDecline(tc)
+		return
+	}
+	for _, id := range ids {
+		if !allowed[id] {
+			e.triggeredCostDecline(tc)
+			return
+		}
+	}
+	tc.recordMandatoryPick(tc.part, ids)
+	tc.part++
+	e.advanceTriggeredMandatory(tc)
+}
+
+// settleTriggeredMandatory finishes a fully settled mandatory cost: the mana
+// half (if any) is charged, each picked object leaves its zone by the correct
+// event (events.Sacrifice for a Sac part, a MoveZone to exile for an Exile
+// part, the same events the cast flow emits), and the parked body resumes.
+// The mana charge is a totality guard -- mandatorySettleShape armed this
+// window only when the mana half is priceable, but a board that changed under
+// the walk could in principle leave it uncovered, in which case the body is
+// skipped rather than half paid.
+func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
+	stripped := tc.amount
+	stripped.Sac = nil
+	stripped.Exile = nil
+	if (stripped.hasManaPayment() || stripped.Life > 0) &&
+		!e.payManaConv(tc.player, stripped, e.paymentConv(tc.player, tc.source, false)) {
+		e.triggeredCostDecline(tc)
+		return
+	}
+	rp := tc.resume
+	e.triggerCost = nil
+	e.choosing = chooseNone
+	for _, id := range tc.sacs {
+		if o := e.G.Obj(id); o != nil && o.Zone == state.ZBattlefield {
+			e.emit(events.Sacrifice(id))
+		}
+	}
+	for _, id := range tc.exiles {
+		if o := e.G.Obj(id); o != nil {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
+		}
+	}
+	rp.kind = "effect_paid"
+	e.resumeResolution(rp, nil)
 }
 
 // nextDynTapPart returns the next unsettled dynamic tapXType part of the

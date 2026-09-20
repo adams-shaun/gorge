@@ -2,7 +2,7 @@
   import { onMount, onDestroy, untrack } from 'svelte';
   import type { CardView, Option, SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
-  import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
+  import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf, unpickOption } from '../lib/seatpanel.svelte';
   import { promptContext, promptContextText } from '../lib/prompt';
   import { arrangeCard } from '../lib/arrange';
   import { discardCard, isDiscardPick } from '../lib/discard';
@@ -666,9 +666,29 @@
               <span>Remember this answer for identical future prompts</span>
             </label>
           {/if}
+          {#if decision.repeatable && logic.picked.length > 0}
+            <!-- A repeatable modal ask (a CanRepeatModes$ Charm, CR 601.2b)
+                 is an ordered multiset: the list button APPENDS an instance
+                 (pickOption), so removal needs its own affordance — one chip
+                 per picked instance, in click order, each removing exactly
+                 that instance (unpick). -->
+            <div class="picked-chips" data-picked-modes>
+              {#each logic.picked as pi, i (i)}
+                {@const popt = decision.options.find((o) => o.index === pi)}
+                <button
+                  class="chip"
+                  type="button"
+                  data-picked-chip={i}
+                  onclick={() => logic.unpick(pi)}
+                  disabled={logic.busy}
+                >{popt?.label} ✕</button>
+              {/each}
+            </div>
+          {/if}
           <div class="list">
             {#each decision.options.filter((opt) => !isConcede(opt) && opt.index !== primary?.index) as opt (opt.index)}
               {@const pickedAt = logic.picked.indexOf(opt.index)}
+              {@const pickedCount = decision.repeatable ? logic.picked.filter((i) => i === opt.index).length : 0}
               <button
                 class="option"
                 class:picked={pickedAt >= 0}
@@ -677,7 +697,7 @@
                 onclick={(e) => logic.click(opt.index, { holdPriority: e.ctrlKey })}
                 disabled={logic.busy}
               >
-                {#if decision.max > 1 && pickedAt >= 0}<span class="order inline">{pickedAt + 1}</span>{/if}
+                {#if pickedAt >= 0 && (decision.max > 1 || decision.repeatable)}<span class="order inline">{decision.repeatable ? `×${pickedCount}` : pickedAt + 1}</span>{/if}
                 <span class="label">{opt.label}</span>
               </button>
             {/each}
@@ -1118,6 +1138,33 @@
   }
   .order.inline {
     flex: none;
+  }
+  /* A repeatable modal ask's picked-so-far chips (CanRepeatModes$): one chip
+     per picked instance in click order, each removing that instance. Styled
+     as quiet panel chrome matching the option rows. */
+  .picked-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+  .picked-chips .chip {
+    background: var(--instrument-raised);
+    color: var(--ink-inst);
+    border: 1px solid var(--edge-inst);
+    border-radius: var(--radius);
+    padding: 0 var(--sp-2);
+    font-family: var(--font-ui);
+    font-size: var(--t-11);
+    line-height: 1.6;
+    cursor: pointer;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .picked-chips .chip:hover {
+    color: var(--ink);
+    border-color: var(--ink-dim);
   }
 
   .submit {

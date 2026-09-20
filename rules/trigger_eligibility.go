@@ -112,6 +112,11 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.TargetsChosen
 	case "Attached":
 		return 1 << events.Attach
+	case "Exerted":
+		// The mode fires on the CR 702.100 exert itself (events.Exert with
+		// Amount >= 0); the Amount == -1 untap-step consume marker is the
+		// same Kind but rejected by exertedMatches, so the mask stays exact.
+		return 1 << events.Exert
 	case "Taps", "TapsForMana":
 		return 1 << events.Tap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":

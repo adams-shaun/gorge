@@ -957,11 +957,11 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	}
 	ctx := &effects.Ctx{Source: source, Controller: p, TriggerContext: e.triggerContexts[obj]}
 	effects.SetSVars(ctx, svars)
-	min, max := effects.CharmModeBounds(e, ctx, sa, len(choices))
-	if min > len(choices) {
+	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(choices))
+	if min > len(choices) && !repeat {
 		return true
 	}
-	e.ask(modeDecision(p, source, sa, svars, min, max))
+	e.ask(modeDecision(p, source, sa, svars, min, max, repeat))
 	return true
 }
 

@@ -1384,6 +1384,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.counterRemovedMatches(t, source, ev, lki)
 	case "Attached":
 		matched = e.attachedMatches(t, source, ev)
+	case "Exerted":
+		matched = e.exertedMatches(t, source, ev)
 	case "TokenCreated", "TokenCreatedOnce":
 		matched = e.tokenCreatedMatches(t, source, ev)
 	case "Sacrificed":
@@ -2441,6 +2443,29 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			}
 		}
 	})
+}
+
+// exertedMatches is the trig:Exerted half of CR 702.100 (task exert1 built the
+// election and the static's own Trigger$ rider; this is the separate "whenever
+// you exert a creature" listener a different script line carries). The event is
+// events.Exert: Obj is the permanent the controller exerted and Amount >= 0 is
+// the exert itself, while Amount == -1 is the untap-step consume marker
+// rules/turn.go's scan emits -- bookkeeping, never an exert, so it must not
+// fire. The exerted permanent is still on the battlefield at match time, so
+// ValidCard$ reads the live object against the trigger source's controller
+// ("you" = the listener's controller; all five corpus carriers write
+// Creature.YouCtrl). ValidPlayer$/ValidSource$ are not read: measured, none of
+// the five corpus lines carries either.
+func (e *Engine) exertedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Exert || ev.Amount < 0 {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	return true
 }
 
 // sacrificedMatches and discardedMatches identify the two actions from the
@@ -3782,7 +3807,7 @@ func init() {
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
-		"trig:Explores",
+		"trig:Explores", "trig:Exerted",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary

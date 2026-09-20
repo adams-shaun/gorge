@@ -1339,6 +1339,14 @@ var apiSpecificRulesStat = map[string]string{
 	// Continuous static.
 	"Engine.mayPlayGrant":  "Continuous.MayPlay",
 	"warpGraveyardAllowed": "Continuous.MayPlay",
+	// The raise walk (rules/mayplay.go's mayPlayRaiseCost, called from
+	// legal.go's may-play spell word and land walks and cast.go's "mayplay"
+	// cost case): it carries mayPlayStatic's propagated reads (RaiseCost$
+	// among them, the genuine consumption that replaced the old fail-closed
+	// recognition), so it is family-attributed exactly like the grant path --
+	// left generic it would mask a plain Continuous static's real unread
+	// keys.
+	"Engine.mayPlayRaiseCost": "Continuous.MayPlay",
 	// The alt-cost delivery path (rules/mayplay.go's mayPlayAltCosts, called
 	// from alternativeCosts): it reads MayPlay statics' MayPlayAltManaCost$
 	// live -- Darksteel Monolith's "pay {0} rather than the mana cost" --
@@ -2612,7 +2620,7 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 		"Mana":             {"Amount": true, "Produced": true},
 		"Counter":          {"UnlessCost": true},
 		"CopySpellAbility": {"UnlessCost": true},
-		"Charm":            {"CharmNum": true, "Choices": true},
+		"Charm":            {"CharmNum": true, "Choices": true, "CanRepeatModes": true},
 		"Sacrifice":        {"Amount": true},
 	}
 	for api, keys := range want {
@@ -2654,7 +2662,7 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// alt-cost delivery (mayPlayAltCosts genuinely offers the priced
 	// alternative -- Darksteel Monolith's "pay {0}") after having been a
 	// fail-closed recognition.
-	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit", "MayPlayAltManaCost"} {
+	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit", "MayPlayAltManaCost", "RaiseCost"} {
 		if !d.stat["Continuous.MayPlay"][key] {
 			t.Errorf("d.stat[Continuous.MayPlay][%q] = false -- the family attribution lost a real MayPlay-gate read", key)
 		}
@@ -2671,7 +2679,7 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// rules/layers.go's staticEffects reads it to place a Set static in the
 	// CR 613.4a CDA sublayer (Tarmogoyf, Krovikan Mist now derive their
 	// announced P/T), so the read is genuine on the generic bucket.
-	for _, key := range []string{"ValidAfterStack", "RaiseCost", "MayPlayPlayer"} {
+	for _, key := range []string{"ValidAfterStack", "MayPlayPlayer"} {
 		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
 			if d.stat[mode][key] {
 				t.Errorf("d.stat[%q][%q] = true -- the fail-closed recognition read still over-suppresses this key", mode, key)
@@ -2860,6 +2868,20 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"Draw<1/You>", nil},
 		{"SubCounter<X/LOYALTY>", nil},
 		{"DamageYou<4>", nil},
+		// The PutCardToLibFrom<Zone> family (the printed activation costs of
+		// Timestream Navigator, Leashling, Battlefield Scrounger, Ardent
+		// Dustspeaker, Penance and friends): modelled for Hand, Grave and
+		// Battlefield. The first field is the count, the second the library
+		// position (-1 bottom / 0 top) and the third the filter spec.
+		{"2 U U T PutCardToLibFromBattlefield<1/-1/CARDNAME>", nil},
+		{"PutCardToLibFromGrave<3/-1/Card>", nil},
+		{"PutCardToLibFromGrave<1/-1/Sorcery;Instant>", nil},
+		{"PutCardToLibFromHand<1/0/Card>", nil},
+		// A recognised head whose INSTANCE this build cannot place (an
+		// out-of-range position) is still reported, and an unnamed zone head
+		// is not modelled.
+		{"PutCardToLibFromGrave<1/7/Card>", []string{"PutCardToLibFromGrave"}},
+		{"PutCardToLibFromExile<1/-1/Card>", []string{"PutCardToLibFromExile"}},
 		// Recognised heads whose INSTANCE is malformed or out of range: the
 		// head is known, the instance is not modelled -- reported too.
 		{"PayLife<99999999999999999999>", []string{"PayLife"}},
