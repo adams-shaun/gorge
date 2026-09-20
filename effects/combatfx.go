@@ -495,6 +495,13 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	permanent := strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
+	// RememberAnimated$ True (Rise and Shine): every permanent this Animate
+	// affected joins the ability's Remembered, both halves -- the ctx list
+	// the chained SubAbility reads (DBPutCounter's Defined$ Remembered) and
+	// the source's event-backed persistent list -- the same two-half
+	// discipline effPumpAll's RememberTargets$ applies (eventRemember
+	// self-gates on a source-less ctx).
+	rememberAnimated := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAnimated"]), "True")
 	if colorsRaw != "" && !colorsOK {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "Animate Colors$ " + colorsRaw + " is not implemented; colours unchanged"})
@@ -509,6 +516,10 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 		o := h.Game().Obj(t.Obj)
 		if o == nil {
 			continue
+		}
+		if rememberAnimated {
+			c.Remembered = append(c.Remembered, t)
+			eventRemember(h, c, o.ID)
 		}
 		if hasPower || hasToughness {
 			h.AddContinuous(state.ContinuousEffect{
