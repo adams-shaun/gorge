@@ -496,7 +496,8 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// Prodigy's fight) therefore still reads 0 here; recorded in
 		// AGENTS.md's Known approximations.
 		return c.Targets, true
-	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
+	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCard",
+		"TriggeredNewCardLKICopy",
 		"TriggeredAttacker", "TriggeredAttackerLKICopy",
 		"TriggeredBlocker", "TriggeredBlockerLKICopy",
 		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
