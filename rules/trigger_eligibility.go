@@ -73,6 +73,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.EndCombatReset, events.CastInfo, events.Choose,
 		events.TokenCreate, events.StackCopy, events.ModeChosen,
 		events.CmdDamage, events.DelayedRegister, events.DelayedPush,
+		events.GrantAbilityPush,
 		events.LibraryOrder, events.ExtraTurn, events.DoorUnlock,
 		events.SpeedChange, events.MonarchChange, events.ControlChange,
 		events.CardToken, events.KeywordTriggerPush, events.Goad,
@@ -119,7 +120,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.AbilityPush
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers
-	case "AttackerBlocked", "AttackerBlockedByCreature":
+	case "AttackerBlocked", "AttackerBlockedByCreature", "Blocks":
 		return 1 << events.DeclareBlockers
 	case "Sacrificed", "Discarded", "LandPlayed":
 		return 1 << events.MoveZone
@@ -178,6 +179,8 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.Draw
 	case "LifeLost":
 		return 1<<events.Damage | 1<<events.LifeChange
+	case "LifeGained":
+		return 1 << events.LifeChange
 	case "Phase":
 		return 1 << events.StepChange
 	default:

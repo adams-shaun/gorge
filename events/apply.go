@@ -1626,13 +1626,22 @@ func Apply(g *state.Game, e Event) {
 		// minted here, inside Apply, so a log-only replay creates the same
 		// object a live game did. Like DelayedPush the Ability is not a face
 		// Triggers index: it is the granted trigger's Execute$ SVar-named
-		// body, resolved from the AFFECTED object's own SVar table. Rules'
-		// queue walk only queues a grant whose Execute$ body that table
-		// resolves to the exact body the granting face's table names (the
-		// self-grant shape -- Hearthhull grants its own trigger to itself),
-		// so this resolution reproduces the queue's SA. No registration is
-		// consumed: a granted trigger is fired by nothing and lives exactly
-		// as long as its granting static.
+		// body. The body lives on the GRANTOR's face (Forge defines the
+		// AddTrigger$-named SVar on the card carrying the static), while Obj
+		// is the AFFECTED recipient -- the two differ for a cross-object
+		// grant (an Aura granting its enchanted creature a trigger). The
+		// grantor rides Amount (0 = the historical self-grant shape, where
+		// grantor == recipient and the AFFECTED table is the right one):
+		// when set, the name resolves from the grantor's table -- the exact
+		// table rules' queue gate linked the body from -- else from the
+		// affected object's own table (the self-grant path, byte-identical
+		// for every already-logged event). A grantor that has left the
+		// battlefield, or whose face no longer resolves the name, mints
+		// nothing (the totality stance every SVar resolution takes).
+		// o.Source stays e.Obj: a granted body's `Defined$ Self`/`CARDNAME`
+		// names the recipient. No registration is consumed: a granted
+		// trigger is fired by nothing and lives exactly as long as its
+		// granting static.
 		if !validPlayer(g, e.Player) {
 			break
 		}
@@ -1640,7 +1649,15 @@ func Apply(g *state.Game, e Event) {
 		if src == nil || src.Face() == nil {
 			break
 		}
-		sa := resolveSVarAcrossFaces(src, e.Counter)
+		resolver := src
+		if e.Amount > 0 {
+			if grantor := g.Obj(state.ObjID(e.Amount)); grantor != nil && grantor.Face() != nil {
+				resolver = grantor
+			} else {
+				break
+			}
+		}
+		sa := resolveSVarAcrossFaces(resolver, e.Counter)
 		if sa == nil {
 			break
 		}
@@ -1649,6 +1666,42 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.Source = e.Obj
 		o.Remembered = rememberedFrom(e.IDs)
+
+	case GrantAbilityPush:
+		// A cross-object ability grant (CR 613.1f): the granting static's
+		// SOURCE resolves the SVar body (Counter), while the minted ability
+		// object's Source is the RECIPIENT (Obj). The DelayedPush/
+		// GrantTriggerPush precedent -- mint inside Apply so a log-only
+		// replay creates the identical object. IDs[0] is the granting
+		// object, carried here rather than on Obj because Obj must stay the
+		// recipient; it is NOT decoded into Remembered (the ability's
+		// Remembered set is unrelated to who granted it). A grantor that
+		// has left the battlefield, or whose face no longer resolves the
+		// name, mints nothing (the totality stance every SVar resolution
+		// takes). No registration is consumed: unlike a delayed trigger a
+		// grant lives exactly as long as its granting static, and rules
+		// re-derives the offer each priority window.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		if len(e.IDs) == 0 {
+			break
+		}
+		grantor := g.Obj(e.IDs[0])
+		if grantor == nil || grantor.Face() == nil {
+			break
+		}
+		if g.Obj(e.Obj) == nil {
+			break
+		}
+		sa := resolveSVarAcrossFaces(grantor, e.Counter)
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
 
 	case CmdDamage:
 		// Commander combat damage to a player (CR 903.10, Task m33): fold

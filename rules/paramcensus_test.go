@@ -2377,6 +2377,11 @@ var knownUnsupportedParams = map[string][]string{
 	"Spinerock Knoll":                {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"West Coast Expansion":           {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"World Shaper":                   {"param:api:Mill.Optional"},
+	// Torment of Hailfire's FallbackAbility$/TempRemember$ are unread
+	// everywhere: its DB$ GenericChoice now resolves through effCharm's
+	// modal ask (effects/misc.go), but these two params ride the ask and
+	// neither is read by any code (pinned in rules/generic_choice_test.go).
+	"Torment of Hailfire": {"param:api:GenericChoice.FallbackAbility", "param:api:GenericChoice.TempRemember"},
 	// The pro-shaper player-submitted Commander import (2026-09-18): the
 	// parameter reads its cards expose that this build does not implement.
 	// Each label is the unimplemented parameter on a fully-registered

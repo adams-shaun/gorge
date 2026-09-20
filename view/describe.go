@@ -430,6 +430,13 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the IR carries no ability names, so the source permanent is what
 		// a line can name.
 		return player(g, ev.Player) + " activates " + obj(g, ev.Obj)
+	case events.GrantAbilityPush:
+		// A cross-object ability grant's activation (CR 613.1f, the
+		// printed-Continuous AddAbility$ fix): Player is the activator and
+		// Obj is the RECIPIENT permanent -- the granted ability's own
+		// source -- so naming it reads the same way AbilityPush does. The
+		// parenthetical marks that another object granted it.
+		return player(g, ev.Player) + " activates " + obj(g, ev.Obj) + " (granted)"
 	case events.ModeChosen:
 		// A cast/placement mode announcement or mid-resolution modal answer.
 		// Player chose; Text carries the chosen option labels as csv. Mirrors

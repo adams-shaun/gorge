@@ -169,6 +169,30 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
 							out = append(out, kw)
 						}
+						// A printed Continuous AddAbility$ static (Ichormoon Gauntlet's
+						// "Planeswalkers you control have [0]: Proliferate", a lord
+						// granting an activated ability, an Equipment granting
+						// "{T}: deal 1 damage") is a layer-6 ability GRANT (CR
+						// 613.1f): one ContinuousEffect whose AddAbilities names the
+						// SVar bodies on THIS source's face, consumed by legal.go's
+						// grantedAbilities (the offer) and mana_activation.go's
+						// granted-mana loop (the tap gate and payment window). The
+						// grantor is base.Source and the recipient is whatever
+						// Affects matches, so the two may differ -- the whole point of
+						// a cross-object grant. statList splits the ` & ` and `,`
+						// multi-value forms (6 corpus carriers). An AddAbility$ name
+						// whose body is missing or is not an AB degrades to no grant
+						// in grantedAbilities (the same totality every SVar
+						// resolution takes), so no validation is needed here.
+						if hasStat(st, "AddAbility") {
+							ga := base
+							ga.Layer = LAbilities
+							ga.AddAbilities = statList(st, "AddAbility")
+							ga.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+							if len(ga.AddAbilities) > 0 {
+								out = append(out, ga)
+							}
+						}
 						if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
 							ty := base
 							ty.Layer = LType
@@ -394,10 +418,12 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// printed T: line would have; rules/trigger_match.go's granted-
 						// trigger walk (checkGrantedStaticTriggers, the granted-Ward/
 						// granted-Dethrone precedent) matches it like any other trigger
-						// and links its Execute$ from the AFFECTED object's own SVar
+						// and links its Execute$ from the GRANTING face's own SVar
 						// table -- the table events.Apply's GrantTriggerPush resolves
-						// from, so the live queue and a replayed one mint the same stack
-						// object. A body that fails to parse grants nothing.
+						// from (the grantor rides the event's Amount), so the live
+						// queue and a replayed one mint the same stack object. A
+						// self-grant degenerates to the affected object; a body that
+						// fails to parse grants nothing.
 						if name := strings.TrimSpace(st.Params["AddTrigger"]); name != "" {
 							if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
 								gt := base

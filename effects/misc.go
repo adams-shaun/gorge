@@ -21,6 +21,7 @@ func init() {
 	Register("DelayedTrigger", effDelayedTrigger)
 	Register("Repeat", effRepeat)
 	Register("Charm", effCharm)
+	Register("GenericChoice", effCharm)
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
 	Register("RingTemptsYou", effRingTemptsYou)

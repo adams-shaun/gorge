@@ -25,6 +25,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"SpellAbilityCast", []events.Kind{events.AbilityPush}},
 		{"Attacks", []events.Kind{events.DeclareAttackers}},
 		{"AttackersDeclaredOneTarget", []events.Kind{events.DeclareAttackers}},
+		{"Blocks", []events.Kind{events.DeclareBlockers}},
 		{"Sacrificed", []events.Kind{events.MoveZone}},
 		{"Discarded", []events.Kind{events.MoveZone}},
 		{"CommitCrime", []events.Kind{events.TargetsChosen}},
@@ -35,6 +36,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"DamageDoneOnce", []events.Kind{events.Damage}},
 		{"Drawn", []events.Kind{events.Draw}},
 		{"LifeLost", []events.Kind{events.Damage, events.LifeChange}},
+		{"LifeGained", []events.Kind{events.LifeChange}},
 		{"LifeLostAll", nil},
 		{"BecomesTarget", []events.Kind{events.TargetsChosen}},
 		{"Attached", []events.Kind{events.Attach}},
@@ -108,7 +110,7 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 func TestCompiledTriggerInterestParity(t *testing.T) {
 	modes := []string{
 		"ChangesZone", "SpellCast", "AbilityCast", "SpellAbilityCast", "Attacks",
-		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Sacrificed",
+		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Blocks", "Sacrificed",
 		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
 		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Always", "LifeLostAll", "FutureMode", "",

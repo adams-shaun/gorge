@@ -463,17 +463,46 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+// playerTargetIn returns the first player entry in ts, the same first-match
+// order Defined's own player resolvers use.
+func playerTargetIn(ts []state.Target) (state.PlayerID, bool) {
+	for _, t := range ts {
+		if t.IsPlayer {
+			return t.Player, true
+		}
+	}
+	return 0, false
+}
+
 // controlPlayer resolves NewController$, the player who gains control. ok is
 // false when the value names nobody this resolution can bind; the control
 // change then does not happen (Forge's getDefinedPlayers yields no player),
 // rather than silently handing control to the effect's own controller --
 // which for "that player gains control of CARDNAME" (Karona, Drooling Ogre,
 // Contested War Zone) is a no-op that looks like success.
+//
+// When NewController$ is ABSENT and the SA targeted a player (the
+// "target opponent gains control of CARDNAME" family: Sleeper Agent, Goblin
+// Cadets, Avarice Amulet, ...), Forge's GainControlEffect reads the targeted
+// player as the new controller; that player is bound on the Ctx as the ask's
+// answer (Ctx.PickedTargets for a pre-asked chained sub, Ctx.Targets for the
+// placement/announcement ask), never in Defined$'s own list, which names the
+// gained object (Defined$ Self). With no player target bound the default
+// stays the effect's controller -- the object-target steal shape ("gain
+// control of target creature"), where that is correct.
 func controlPlayer(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
 	g := h.Game()
 	v := strings.TrimSpace(sa.Params["NewController"])
 	switch v {
-	case "", "You", "True":
+	case "":
+		if p, ok := playerTargetIn(c.PickedTargets); ok {
+			return p, true
+		}
+		if p, ok := playerTargetIn(c.Targets); ok {
+			return p, true
+		}
+		return c.Controller, true
+	case "You", "True":
 		return c.Controller, true
 	case "ChosenPlayer", "Player.Chosen":
 		for _, t := range c.Chosen {
