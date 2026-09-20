@@ -864,8 +864,13 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 	// POSITION never affects payability.
 	for _, part := range cost.PutToLib {
 		spec := sacrificeMatchSpec(part.Spec)
-		if part.Zone == state.ZBattlefield && strings.EqualFold(spec, "CARDNAME") {
-			if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+		if part.N == 1 && part.Zone == state.ZBattlefield && strings.EqualFold(spec, "CARDNAME") {
+			// The singleton self-reference fast path only covers N=1; a larger
+			// N needs the general candidate walk below (it would otherwise be
+			// offered on the source alone and abort at payment time). The
+			// controller check matches putToLibAsk's candidates branch: a
+			// control-changed source is not a cost the payer can pay.
+			if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.Controller != p {
 				return false
 			}
 			reserved[id] = true
@@ -2232,7 +2237,13 @@ func (e *Engine) putToLibAsk() bool {
 		spec := sacrificeMatchSpec(part.Spec)
 		var candidates []state.ObjID
 		if part.Zone == state.ZBattlefield && strings.EqualFold(spec, "CARDNAME") {
-			if o := e.G.Obj(pc.card); o != nil && o.Zone == state.ZBattlefield {
+			// The source itself is the sole candidate (Forge's
+			// payCostFromSource) -- but only while the payer still controls it:
+			// a control-changed source is not a cost the payer can pay, so
+			// leaving it out sends the ability to the no-candidates abort
+			// below instead of paying with a permanent the payer does not own
+			// the choice over (0 corpus carriers; fail-closed).
+			if o := e.G.Obj(pc.card); o != nil && o.Zone == state.ZBattlefield && o.Controller == pc.player {
 				candidates = append(candidates, pc.card)
 			}
 		} else {
@@ -4954,12 +4965,22 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
 			}
 		}
-		e.settlePutToLibCost(pc)
 		e.emitChoiceCosts(pc)
 		if pc.cost.Tap {
-			// The {T} cost's payer taps the permanent (Forge CostTap).
+			// The {T} cost's payer taps the permanent (Forge CostTap). This
+			// MUST come before settlePutToLibCost: a self-placement cost that
+			// also carries {T} (Timestream Navigator's
+			// "{2}{U}{U}, {T}, Put Timestream Navigator on the bottom of its
+			// owner's library") moves the source off the battlefield, and
+			// tapping a library card is not a state that exists (CR 110.5) --
+			// a library tap would also survive a direct library→battlefield
+			// re-entry, whose Move entry arm does not clear Tapped. Emitted
+			// in this order the tap lands on the still-battlefield permanent
+			// and the move's leave-battlefield arm resets it.
 			e.emitTap(pc.card, pc.player, false)
 		}
+		// Settled after the {T} tap for the same reason (see above).
+		e.settlePutToLibCost(pc)
 		for _, part := range pc.cost.SubCounter {
 			amt := part.N
 			if part.Announced {

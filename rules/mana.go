@@ -1348,7 +1348,6 @@ func formatCost(c Cost) string {
 		parts = append(parts, "Forage")
 	}
 	appendCostParts("PayEnergy", c.Energy)
-	appendCostParts("Return", c.Return)
 	for _, part := range c.PutToLib {
 		zone := "Battlefield"
 		switch part.Zone {

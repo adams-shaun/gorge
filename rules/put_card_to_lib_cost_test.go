@@ -139,6 +139,41 @@ func TestPutCardToLibFromBattlefieldMovesSourceToBottom(t *testing.T) {
 	resolveAndReplay(t, e, cfg)
 }
 
+// TestPutCardToLibSelfCostLeavesNoStaleTap pins the ORDER of the {T} tap and
+// the self-placement settle: a cost carrying BOTH T and
+// PutCardToLibFromBattlefield<1/-1/CARDNAME> (the only corpus shape is
+// Timestream Navigator) must emit the tap while the source is still on the
+// battlefield. Settling first left the library card Tapped -- a state that
+// does not exist (CR 110.5) -- and because a Move's library→battlefield ENTRY
+// arm does not clear Tapped, a direct put-onto-battlefield later re-entered
+// the permanent TAPPED.
+func TestPutCardToLibSelfCostLeavesNoStaleTap(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := searchEngine(t, reg, "Timestream Navigator")
+	id := searchMoveByName(t, e, "Timestream Navigator", state.ZBattlefield)
+	addMana(t, e, 0, "UUUU")
+	idx := putToLibAbilityIndex(t, e, id)
+
+	e.beginActivation(0, decision.Option{Obj: id, Ability: idx})
+	if e.cast != nil {
+		t.Fatalf("activation did not complete payment in one pass: cast pending %+v", e.cast)
+	}
+	o := e.G.Obj(id)
+	if o.Zone != state.ZLibrary {
+		t.Fatalf("Timestream Navigator zone = %v, want library", o.Zone)
+	}
+	if o.Tapped {
+		t.Fatal("the moved library card is Tapped -- tapping a card in a library is not a state that exists (CR 110.5)")
+	}
+	// A direct library→battlefield move (any ChangeZone Origin$ Library
+	// Destination$ Battlefield) must not bring the permanent back in TAPPED.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+	if o := e.G.Obj(id); o.Tapped {
+		t.Fatal("STALE TAP: the permanent re-entered the battlefield Tapped after its self-placement cost")
+	}
+	resolveAndReplay(t, e, cfg)
+}
+
 // TestPutCardToLibFromHandChoosesCardAndPutsItOnTop pins Leashling's compiled
 // activation through the REAL offer/ask/pay flow: its cost is
 // PutCardToLibFromHand<1/0/Card> (no Activation$ gate), so the ability is
@@ -271,6 +306,13 @@ func TestPutCardToLibOfferGateRequiresCandidates(t *testing.T) {
 	}
 	if !e.nonManaCastable(0, id, ParseCost("PutCardToLibFromBattlefield<1/-1/CARDNAME>"), true) {
 		t.Fatal("withheld a self PutCardToLib cost while the source is in play")
+	}
+	// The singleton self-reference fast path only covers N=1: with a larger N
+	// the offer gate must fall through to the general candidate walk, which
+	// cannot supply CARDNAME twice, rather than offering on the source alone
+	// and aborting at payment time. (0 corpus carriers -- latent.)
+	if e.nonManaCastable(0, id, ParseCost("PutCardToLibFromBattlefield<2/-1/CARDNAME>"), true) {
+		t.Fatal("offered a self PutCardToLib cost needing 2 candidates when only the source matches CARDNAME")
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
 	if e.nonManaCastable(0, id, ParseCost("PutCardToLibFromBattlefield<1/-1/CARDNAME>"), true) {
