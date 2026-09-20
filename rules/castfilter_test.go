@@ -504,3 +504,146 @@ func TestRestrictedTaggedManaSpendIsNotDoubleCounted(t *testing.T) {
 		t.Fatalf("restricted batches = %+v, want consumed", e.G.Players[0].RestrictedMana)
 	}
 }
+
+// TestRestrictedTaggedManaSpendNeverOverSpends pins the shape the
+// double-count pin above cannot reach: a restricted TAGGED batch beside
+// PLAIN mana of the same colour and a pool STRICTLY LARGER than the cost.
+// The payment search (takeUnit) consumes a plain unit before a typed one,
+// so a {1}{W} cast over one restricted DesertW unit plus two plain W units
+// spends the two plain units and never touches the Desert unit. The carve
+// must therefore attribute the restricted batch zero units: attributing it
+// min(spent, batch.Amount) would drive the Desert emission tally negative,
+// and the split loop's `plain := spent - snow - typed` subtraction would be
+// inflated by the negative term -- the pool would lose three units for a
+// two-mana cost. The emitted spend events must sum to exactly the cost, and
+// the pay-time capture must agree with them (no Desert spend either way).
+func TestRestrictedTaggedManaSpendNeverOverSpends(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		counters []string // the Counter forms emitted, in order
+	}{
+		{"restricted first", []string{"DesertW", "W", "W"}},
+		{"plain first", []string{"W", "W", "DesertW"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			e := handEngineTokens(t, corpusAlternativeCard(t, "Bulwark Ox"))
+			mount := e.G.Zone(state.ZHand, 0)[0]
+			for _, counter := range tc.counters {
+				if counter == "DesertW" {
+					e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: counter, Amount: 1,
+						Text: events.ManaRestrictionText("Spell.Mount", 0)})
+				} else {
+					e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: counter, Amount: 1})
+				}
+			}
+			if len(e.G.Players[0].RestrictedMana) != 1 {
+				t.Fatalf("restricted batch not registered: %+v", e.G.Players[0].RestrictedMana)
+			}
+			before := e.G.Players[0].Pool.Total()
+			ok, _, _, _, typed := e.payManaForSpent(0, mount, false, ParseCost("1 W"), nil, pipRider{})
+			if !ok {
+				t.Fatal("payment refused: the restricted Desert unit is admitted for a Mount spell")
+			}
+			if got := before - e.G.Players[0].Pool.Total(); got != 2 {
+				t.Fatalf("pool lost %d mana paying {1}{W}, want exactly 2 (the search spends plain units, so the restricted tagged unit stays)", got)
+			}
+			if typed[state.TypedDesert][state.MW] != 0 {
+				t.Fatalf("Desert typed spend = %d, want 0 (plain units were consumed first)", typed[state.TypedDesert][state.MW])
+			}
+			if got := e.G.Players[0].TypedMana[state.TypedDesert][state.MW]; got != 1 {
+				t.Fatalf("Desert tally = %d, want 1 (an unspent restricted tagged unit keeps its provenance)", got)
+			}
+			if rest := e.G.Players[0].RestrictedMana; len(rest) != 1 || rest[0].Amount != 1 {
+				t.Fatalf("restricted batches = %+v, want one unspent DesertW batch", rest)
+			}
+		})
+	}
+}
+
+// TestRestrictedTaggedManaPartialConsumptionIsExact pins a PARTIAL carve: a
+// restricted DesertW batch of TWO units alone in its slot, paying a single
+// {W} pip. The search has no plain unit to prefer and consumes one typed
+// unit, so the carve takes exactly one of the batch's two units. The pool
+// loses exactly one, the Desert tally drops by one, one unit of the batch
+// remains, and the pay-time capture (ManaDesertSpent) agrees with the emitted
+// tally delta -- the carve's restricted-first attribution and the search's
+// consumption can never disagree.
+func TestRestrictedTaggedManaPartialConsumptionIsExact(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Bulwark Ox"))
+	mount := e.G.Zone(state.ZHand, 0)[0]
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "DesertW", Amount: 2,
+		Text: events.ManaRestrictionText("Spell.Mount", 0)})
+	if rest := e.G.Players[0].RestrictedMana; len(rest) != 1 || rest[0].Amount != 2 {
+		t.Fatalf("restricted batches = %+v, want one DesertW batch of 2", rest)
+	}
+	before := e.G.Players[0].Pool.Total()
+	ok, _, _, _, typed := e.payManaForSpent(0, mount, false, ParseCost("W"), nil, pipRider{})
+	if !ok {
+		t.Fatal("payment refused")
+	}
+	if got := before - e.G.Players[0].Pool.Total(); got != 1 {
+		t.Fatalf("pool lost %d mana paying {W}, want exactly 1", got)
+	}
+	if got := typed[state.TypedDesert][state.MW]; got != 1 {
+		t.Fatalf("Desert typed spend = %d, want 1 (one of the batch's two units)", got)
+	}
+	if got := e.G.Players[0].TypedMana[state.TypedDesert][state.MW]; got != 1 {
+		t.Fatalf("Desert tally = %d, want 1 (one of two units spent)", got)
+	}
+	if rest := e.G.Players[0].RestrictedMana; len(rest) != 1 || rest[0].Amount != 1 {
+		t.Fatalf("restricted batches = %+v, want one DesertW batch of 1 left", rest)
+	}
+}
+
+// TestEmitManaTagsTreasureProducerType pins the PRODUCER side of the typed
+// provenance end to end: every other leaf in this file seeds the pool with a
+// hand-written "TreasureC"/"CaveW"/"DesertR" Counter, so the effect-side
+// tagging (effMana reading the producing permanent's Face().Types) could
+// break without failing a single test. Here a real c_a_treasure_sac token is
+// created, its printed mana ability activated, and the produced unit
+// asserted to be BOTH in the pool AND in the Treasure tally.
+func TestEmitManaTagsTreasureProducerType(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Marut"))
+	e.emit(events.Event{Kind: events.TokenCreate, Player: 0, Text: "c_a_treasure_sac"})
+	var tok state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.IsToken {
+			tok = id
+		}
+	}
+	if tok == 0 {
+		t.Fatal("the Treasure token was not minted")
+	}
+	e.pending = nil
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no priority decision")
+	}
+	act := -1
+	for _, o := range d.Options {
+		if o.Kind == "activate" && o.Obj == tok {
+			act = o.Index
+		}
+	}
+	if act < 0 {
+		t.Fatalf("the Treasure token's mana ability is not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, act)
+	// "Add one mana of any color" asks which colour; take white.
+	if cd := e.Pending(); cd != nil && cd.Kind == decision.KChoose {
+		submitChoices(t, e, 0)
+	}
+	if got := e.G.Players[0].Pool[state.MW]; got != 1 {
+		t.Fatalf("pool W = %d, want 1 (the token's ability produced one white unit)", got)
+	}
+	if got := e.G.Players[0].TypedMana[state.TypedTreasure][state.MW]; got != 1 {
+		t.Fatalf("Treasure tally W = %d, want 1 (effMana must tag the unit from the producer's Types)", got)
+	}
+	if got := e.G.Players[0].Snow[state.MW]; got != 0 {
+		t.Fatalf("snow tally W = %d, want 0 (a Treasure is not snow)", got)
+	}
+}

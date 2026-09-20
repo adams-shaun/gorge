@@ -242,6 +242,19 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 // e.noCounterSpend for payCast to fold state.FlagNoCounter into the pay-time
 // CastInfo — with the batch's own condition evaluated against the paying
 // spell's face (Boseiju's !Permanent).
+//
+// The carve is capped by the units resolveMana's search ACTUALLY attributed to
+// the batch's provenance, not merely by the slot's total delta: the search's
+// takeUnit consumes a plain unit before a typed one and a typed one before
+// snow, so a restricted TAGGED batch beside plain mana of the same colour can
+// go entirely unspent even though the slot's delta exceeds its amount. Taking
+// the full min(spent[idx], r.Amount) would decrement the tag's emission tally
+// below what was spent, driving emitTyped negative; the split loop's
+// `plain := spent - snow - typed` subtraction would then be inflated by the
+// negative term and the pool would lose more units than the cost required.
+// Capping at the tag's (or snow tally's, or the slot's remaining plain units')
+// actual spend reconciles the carve's restricted-first attribution with the
+// search's plain-first consumption and keeps every emission tally >= 0.
 func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana) {
 	e.noCounterSpend = 0
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
@@ -257,7 +270,29 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		if used > r.Amount {
 			used = r.Amount
 		}
-		if used == 0 {
+		// Cap by the provenance the search actually spent in this slot. A
+		// tagged or snow batch can only carve the units whose parallel tally
+		// left the pool; a plain batch only the slot's remaining plain units
+		// (spent minus every tally still attributed to this slot).
+		if tag, slot, ok := state.TypedManaCounter(r.Color); ok {
+			if emitTyped[tag][slot] < used {
+				used = emitTyped[tag][slot]
+			}
+		} else if len(r.Color) == 2 && r.Color[0] == 'S' {
+			if s := emitSnow[state.ManaIndex(r.Color[1])]; s < used {
+				used = s
+			}
+		} else {
+			plain := spent[idx]
+			for t := range emitTyped {
+				plain -= emitTyped[t][idx]
+			}
+			plain -= emitSnow[idx]
+			if plain < used {
+				used = plain
+			}
+		}
+		if used <= 0 {
 			continue
 		}
 		if r.NoCounter != "" && !ability && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, id, r.NoCounter) {
@@ -268,7 +303,8 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		spent[idx] -= used
 		// Carve the consumed units out of the emission split's tallies too:
 		// the carve emitted this batch's tagged/snow form directly, so the
-		// split loop must not emit it a second time.
+		// split loop must not emit it a second time. The caps above guarantee
+		// neither tally can go below zero.
 		if tag, slot, ok := state.TypedManaCounter(r.Color); ok {
 			emitTyped[tag][slot] -= used
 		} else if len(r.Color) == 2 && r.Color[0] == 'S' {
