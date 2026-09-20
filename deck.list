@@ -9079,11 +9079,13 @@ Deck
 # --- Timey-Wimey (WHO commander precon, The Tenth Doctor + Rose Tyler) — census input, 2026-09-20 (this worktree, issue agent-20260920T065240Z-bad9ebd3) ---
 # 100/100 resolved; commanders are a Doctor's-companion PAIR, so deckimport's single-commander
 # identity check fails (artifact). Deck file NOT added: new engine gaps remain — backlog
-# tickets are in .ds4/new-tickets, round-2 audit in .ds4/report-r2.md. Sibling-seat overlap
+# tickets are in .ds4/new-tickets, round-3 audit in .ds4/report-sol1.md. Sibling-seat overlap
 # (Masters of Evil, 2708fe3c): likely duplicate tickets for api:Clone, kw:Crew, kw:Skulk,
 # api:Phases, api:Investigate — dedupe.
-# New gaps this deck needs (round-2 corrected census): api:TimeTravel (7+ cards — the deck's
-# namesake), api:Phases + trig:PhaseOutAll (6), api:Clone (3) plus CopyPermanent
+# New gaps this deck needs (round-3 corrected census, SVar-walking): api:TimeTravel (9 — the
+# deck's namesake: All of History, Coward // Killer, Rotating Fireplace, The Tenth Doctor,
+# The Girl in the Fireplace, The Parting of the Ways, The Wedding of River Song, Time Beetle,
+# Wibbly-wobbly), api:Phases + trig:PhaseOutAll (6), api:Clone (3) plus CopyPermanent
 # characteristic modifications (SetCreatureTypes$/AddTypes$/SetPower$/SetToughness$/
 # AddKeywords$/SetColor$/NonLegendary$ — the copy mints unmodified), the Controller$/Defined$
 # NonRememberedController selector family (Fractured Identity; 8 corpus files), the
@@ -9094,16 +9096,22 @@ Deck
 # trig:CounterRemoved/CounterRemovedOnce/CounterAddedOnce (3), trig:Untaps (2 — Rory Williams
 # AND The Ninth Doctor), trig:LifeGained (1), api:AddOrRemoveCounter + api:RemoveCounter
 # choice arm (2), api:GenericChoice sub-chain (1), api:DamageResolve (1), api:Planeswalk (1),
-# kw:Cascade (1), untap-step election (1), Doctor's companion seating (4), TriggersWhenSpent
-# (1), Count$Valid...$CardCounters property (3 — Kate Stewart, The Moment, The War Doctor),
+# kw:Cascade (1), untap-step election (1), Doctor's companion seating (4), kw:Partner with
+# (2 — Amy Pond, Rory Williams), stat:AttackRestrict (1 — Judoon Enforcers; the global
+# MaxAttackers$ read is unregistered and ValidDefender$ is unread), TriggersWhenSpent (1 —
+# Path of Ancestry), Count$Valid...$CardCounters property (3 — Kate Stewart, The Moment, The
+# War Doctor),
 # SetName$ + Attached replacement (1), wasCastFromExile (1), GainsAbilitiesOf (1).
 # Known-approximation rows this deck leans on: dig DigNum$X / RestRandomOrder /
 # RevealRandomOrder / Choser$ (dig1+diguntil1), Effect Triggers$/ReplacementEffects$ +
-# CantBlockBy whitelist (ce1), player hexproof (P12/D2-a), MatchesPlayerSpec compound
-# fail-closed (fx20), mixed-origin-Hand ChangeZoneAll (Trenzalore), ChooseColor silent + the
-# Combo production degenerate executor (ct1 + the M4 mana-choice row — every Combo U/R/...
-# mana source in the deck: both Talismans, the three Temples, the tri-lands, the fast lands,
-# the shock snarls, Mystic Monastery), Imprint$ unread (search row).
+# every other StaticAbilities$ mode incl. CantBlockBy/CantLoseLife (ce1), player hexproof
+# (P12/D2-a), MatchesPlayerSpec compound fail-closed (fx20), mixed-origin-Hand ChangeZoneAll
+# (Trenzalore), ChooseColor silent + the Combo production degenerate executor (ct1 + the M4
+# mana-choice row — the 16 Combo <colours>/<C> Chosen carriers: Port Town, Deserted Beach,
+# Glacial Fortress, Temple of Triumph, Temple of Enlightenment, Temple of Epiphany, Mystic
+# Monastery, Frostboil Snarl, Furycalm Snarl, Sunbaked Canyon, Sundown Pass, Stormcarved
+# Coast, Fiery Islet, Talisman of Creativity, Talisman of Conviction, Thriving Bluff),
+# ManaReflected colour-ask (Exotic Orchard), Imprint$ unread (search row).
 Commander
 1 The Tenth Doctor
 1 Rose Tyler
