@@ -2328,6 +2328,30 @@ func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
 	return n
 }
 
+// DamageTakenThisTurn satisfies effects.Host's DamageTakenThisTurn for the
+// TargetedPlayer$DamageThisTurn count head (Knollspine Dragon's "draw cards
+// equal to the damage dealt to target opponent this turn"): the total damage
+// p was dealt this turn, summed from every player-targeted Damage event
+// since the last TurnChange. A player hit is Kind Damage with Player set
+// and Obj 0 — an object hit sets Obj and leaves Player 0 (seat 0 is a real
+// player, so the discriminator is Obj == 0, never Player != 0); a
+// replacement-rewritten Note never reaches this fold, and a redirect that
+// moved a hit onto a permanent reads there instead. Derived from the event
+// log like LifeLostThisTurn, so a replay derives the same number.
+func (e *Engine) DamageTakenThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.Damage && ev.Obj == 0 && ev.Player == p && ev.Amount > 0 {
+			n += ev.Amount
+		}
+	}
+	return n
+}
+
 // LifeGainedThisTurn satisfies effects.Host's LifeGainedThisTurn for
 // Count$LifeYouGainedThisTurn (the "At the beginning of each end step, if you
 // gained 4 or more life this turn" family's CheckSVar$ gate — Angelic Accord,
