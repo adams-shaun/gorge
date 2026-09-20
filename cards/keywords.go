@@ -412,6 +412,28 @@ func (f *Face) expandKeywords() {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)
 			}
+		case "Level up":
+			if has("A", k) {
+				continue
+			}
+			// CR 702.87a: "Level up [cost]" means "[cost]: Put a level counter
+			// on this permanent. Activate only as a sorcery." It is an
+			// ordinary activated ability, so the counter placement goes through
+			// the existing PutCounter primitive and the level bands (ordinary
+			// layer-7 SetPower$/SetToughness$/AddKeyword$ statics gated on
+			// IsPresent$ Card.Self+counters_GE<n>_LEVEL) read the counter with
+			// no further machinery. SorcerySpeed$ True is the CR 702.87a
+			// sorcery-window restriction. param is the cost; any trailing
+			// fields after a second colon are display text (none in the
+			// measured 26-line corpus), exactly the trailing-field strip the
+			// etbCounter and Affinity cases do.
+			cost, _, _ := strings.Cut(param, ":")
+			cost = strings.TrimSpace(cost)
+			sa, _ := parseSA("", "AB$ PutCounter | Cost$ "+cost+" | Defined$ Self | CounterType$ LEVEL | CounterNum$ 1 | SorcerySpeed$ True | Keyword$ Level up | SpellDescription$ Level up "+cost)
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
 		case "Affinity":
 			// CR 702.41a: affinity for <spec> is a cost-reduction static, not an
 			// ability, so its idempotence key cannot use has() (which reads only

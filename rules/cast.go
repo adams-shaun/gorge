@@ -5258,6 +5258,11 @@ func init() {
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
+		// kw:Level up: CR 702.87, expanded by cards/keywords.go into an
+		// ordinary sorcery-speed PutCounter activation (CounterType$ LEVEL);
+		// the level-band statics read the counter through the existing
+		// counters_<CMP><n>_LEVEL predicate, so no separate path of its own.
+		"kw:Level up",
 		// kw:Replicate: CR 702.55, expanded by cards/keywords.go into the
 		// Storm-shaped copy trigger whose Amount$ Count$ReplicatePaid reads
 		// the pay-time CastInfo's count; the cast flow's replicateAsk poses
