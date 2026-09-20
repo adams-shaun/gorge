@@ -479,6 +479,69 @@ func TestChangeZoneAllSweepsMatchingLibraryCards(t *testing.T) {
 	}
 }
 
+// TestChangeZoneAllScope pins Forge ChangeZoneAllEffect's player scope: a
+// ChangeZoneAll that declares a target or a Defined$ acts only on those
+// players' zones; UseAllOriginZones$ True (and the no-target/no-Defined$
+// default) sweeps every player. Before the fix effChangeZoneAll always walked
+// g.AliveFrom(0), so "exile target player's graveyard" exiled every player's
+// graveyard. Both seats are stocked in every case.
+func TestChangeZoneAllScope(t *testing.T) {
+	stock := func(t *testing.T) (*fakeHost, map[state.PlayerID]state.ObjID) {
+		t.Helper()
+		h := newHost(t, 2)
+		card := mkCard(t, "Name:Relic\nTypes:Artifact\nOracle:x\n")
+		ids := make(map[state.PlayerID]state.ObjID, 2)
+		for p := state.PlayerID(0); p < 2; p++ {
+			o := h.g.AddObject(card, p)
+			o.Zone = state.ZGraveyard
+			h.g.SetZone(state.ZGraveyard, p, []state.ObjID{o.ID})
+			ids[p] = o.ID
+		}
+		return h, ids
+	}
+	cases := []struct {
+		name    string
+		line    string
+		targets []state.Target
+		moved   [2]bool // wanted: seat p's graveyard emptied?
+	}{
+		{"target player only",
+			"SP$ ChangeZoneAll | ValidTgts$ Player | Origin$ Graveyard | Destination$ Exile | ChangeType$ Card",
+			[]state.Target{{Player: 1, IsPlayer: true}}, [2]bool{false, true}},
+		{"defined you only",
+			"SP$ ChangeZoneAll | Defined$ You | Origin$ Graveyard | Destination$ Exile | ChangeType$ Card",
+			nil, [2]bool{true, false}},
+		{"flag sweeps all players",
+			"SP$ ChangeZoneAll | Origin$ Graveyard | Destination$ Exile | ChangeType$ Card | UseAllOriginZones$ True",
+			nil, [2]bool{true, true}},
+		{"no target no defined sweeps all players",
+			"SP$ ChangeZoneAll | Origin$ Graveyard | Destination$ Exile | ChangeType$ Card",
+			nil, [2]bool{true, true}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			h, ids := stock(t)
+			// TargetsOffered models the cast/trigger placement ask having
+			// already filled Ctx.Targets: without it the generic ValidTgts$
+			// pre-ask fires and its no-host stand-in picks candidate 0.
+			Resolve(h, &Ctx{Controller: 0, Targets: tc.targets, TargetsOffered: true}, sa(t, tc.line))
+			for p := state.PlayerID(0); p < 2; p++ {
+				left := len(h.g.Zone(state.ZGraveyard, p))
+				if tc.moved[p] {
+					if left != 0 {
+						t.Fatalf("seat %d graveyard not emptied: %d cards left", p, left)
+					}
+					if o := h.g.Obj(ids[p]); o == nil || o.Zone != state.ZExile {
+						t.Fatalf("seat %d card %d not exiled: %+v", p, ids[p], o)
+					}
+				} else if left != 1 {
+					t.Fatalf("seat %d graveyard over-swept: %d cards left, want 1 (card %d untouched)", p, left, ids[p])
+				}
+			}
+		})
+	}
+}
+
 func TestDestroyMovesToGraveyard(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
