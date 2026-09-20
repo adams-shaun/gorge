@@ -83,27 +83,43 @@ func heroismID(t *testing.T, e *Engine) state.ObjID {
 // Defined$ ImprintedController names the destroyed land's controller — the
 // same player the UnlessPayer$ asks.
 func TestImprintedControllerStenchOfEvil(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	e := handEngine(t, mustCorpusCard(t, reg, "Stench of Evil"))
-	plain := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Plains"))
-	addMana(t, e, 0, "BBBB")
-	addMana(t, e, 1, "CC") // the payer's {2}, for the pay branch
-	e.askPriority(0)
-	submitChoices(t, e, passToCast(t, e, handIDsByFace(e)["Stench of Evil"]))
-	d := passUntilNonPriority(t, e, 8)
-	if d == nil || d.ResumeKind != "unless_pay" || d.Player != 1 {
-		t.Fatalf("pending = %+v, want the destroyed plains' controller unless-pay ask for seat 1", d)
-	}
-	life := e.G.Players[1].Life
-	answerUnlessPay(t, e, true)
-	if e.G.Obj(plain).Zone != state.ZGraveyard {
-		t.Fatalf("plains zone = %v, want destroyed", e.G.Obj(plain).Zone)
-	}
-	if got := e.G.Players[1].Life; got != life {
-		t.Fatalf("seat 1 life = %d, want %d (paid, no damage)", got, life)
-	}
-	if got := e.G.Players[1].Pool[state.MC]; got != 0 {
-		t.Fatalf("seat 1 colourless pool = %d, want 0 (the {2} was charged)", got)
+	for _, tc := range []struct {
+		name       string
+		pay        bool
+		wantPool   int32
+		wantDamage bool
+	}{
+		{"pays", true, 0, false},
+		{"declines", false, 2, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			reg := testutil.CorpusRegistry(t)
+			e := handEngine(t, mustCorpusCard(t, reg, "Stench of Evil"))
+			plain := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Plains"))
+			addMana(t, e, 0, "BBBB")
+			addMana(t, e, 1, "CC") // the payer's {2}, for the pay branch
+			e.askPriority(0)
+			submitChoices(t, e, passToCast(t, e, handIDsByFace(e)["Stench of Evil"]))
+			d := passUntilNonPriority(t, e, 8)
+			if d == nil || d.ResumeKind != "unless_pay" || d.Player != 1 {
+				t.Fatalf("pending = %+v, want the destroyed plains' controller unless-pay ask for seat 1", d)
+			}
+			life := e.G.Players[1].Life
+			wantLife := life
+			if tc.wantDamage {
+				wantLife = life - 1
+			}
+			answerUnlessPay(t, e, tc.pay)
+			if e.G.Obj(plain).Zone != state.ZGraveyard {
+				t.Fatalf("plains zone = %v, want destroyed", e.G.Obj(plain).Zone)
+			}
+			if got := e.G.Players[1].Life; got != wantLife {
+				t.Fatalf("seat 1 life = %d, want %d", got, wantLife)
+			}
+			if got := e.G.Players[1].Pool[state.MC]; got != tc.wantPool {
+				t.Fatalf("seat 1 colourless pool = %d, want %d", got, tc.wantPool)
+			}
+		})
 	}
 }
 
