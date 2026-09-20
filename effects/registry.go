@@ -728,6 +728,17 @@ type Ctx struct {
 	TwoPilesDone     bool
 	TwoPilesPick     string
 	TwoPilesPickDone bool
+	// Votes is the answered per-voter choice of a fixed-list Vote (the
+	// Choices$ shape): one entry per voting player, in Defined$ order, giving
+	// the index into voteChoiceNames' option list that player voted for. It is
+	// what a real per-player vote ask will fill (today's deterministic
+	// stand-in gives every voter option 0, so no live resolution can tie);
+	// until that ask lands it is the seam that makes the tie branch --
+	// VoteTiedAbility$ -- reachable and testable against a real compiled SA
+	// rather than welded to the stand-in. effVote consumes and clears it at
+	// the top of its own walk (the fx42 scoping discipline), so a nested Vote
+	// poses its own tally; nil means "use the stand-in".
+	Votes []int
 	// CounterDist is the answered DividedAsYouChoose$ PutCounter pick
 	// (Vastwood Hydra's death trigger): the recipients the chooser picked out
 	// of the Choices$-eligible battlefield creatures, in answer order.
