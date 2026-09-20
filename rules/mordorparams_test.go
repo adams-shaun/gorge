@@ -558,6 +558,20 @@ func TestGrimaRestRandomOrderShufflesAndReplays(t *testing.T) {
 	if len(seen) != len(exiled) {
 		t.Fatalf("the bottom placement duplicated ids: %v", bottom)
 	}
+	// The shuffle must actually reorder: at this seed the returned order
+	// differs from the exile order. A permutation assertion alone passes
+	// even if RandomOrder$ is dropped (the scan order IS a permutation),
+	// so the shuffle is only pinned by demanding the divergence.
+	same := true
+	for i, tgt := range exiled {
+		if bottom[i] != tgt.Obj {
+			same = false
+			break
+		}
+	}
+	if same {
+		t.Fatalf("bottom order equals the exile order — RandomOrder$ did not shuffle: bottom=%v", bottom)
+	}
 	replayCheck(t, e, cfg)
 }
 
