@@ -85,8 +85,55 @@ func TestEvalCountValidSumsAPropertySuffix(t *testing.T) {
 	}
 	// An unrecognised property keeps the old whole-token spec read: it
 	// never matched anything, so it stays a zero count, not a widening.
-	if got := EvalCount(h, c, "Count$Valid Creature$GreatestCardPower"); got != 0 {
-		t.Errorf("GreatestCardPower token = %d, want 0 (out of scope, fail closed)", got)
+	// (The Greatest/Least reductions ARE read now -- see
+	// TestEvalCountValidExtremeProperties below.)
+	if got := EvalCount(h, c, "Count$Valid Creature$DifferentCardPower"); got != 0 {
+		t.Errorf("DifferentCardPower token = %d, want 0 (out of scope, fail closed)", got)
+	}
+}
+
+// TestEvalCountValidExtremeProperties pins the four extreme-reduction
+// property suffixes: the MAXIMUM (Greatest*) or MINIMUM (Least*) of the
+// property over the matches, not a sum. Several different values, because
+// the defect being fixed is a silent zero and a single-value test can pass
+// by coincidence.
+func TestEvalCountValidExtremeProperties(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	// Board: controller 0 has Bear 2/2 (MV 2) and Flier 1/1 (MV 2);
+	// controller 1 has the Giant 5/5 (MV 5).
+	cases := []struct {
+		expr string
+		want int32
+	}{
+		{"Count$Valid Creature$GreatestCardPower", 5},
+		{"Count$Valid Creature.YouCtrl$GreatestCardPower", 2},
+		{"Count$Valid Creature.YouCtrl$LeastCardPower", 1},
+		{"Count$Valid Creature$LeastCardPower", 1},
+		{"Count$Valid Creature$GreatestCardToughness", 5},
+		{"Count$Valid Creature.YouCtrl$GreatestCardToughness", 2},
+		// Bear MV 2, Giant MV 5: the greatest mana value, not the sum (9).
+		{"Count$Valid Creature$GreatestCardManaCost", 5},
+		{"Count$Valid Creature.YouCtrl$GreatestCardManaCost", 2},
+		// Zero matches -> 0, never an int-min/max sentinel.
+		{"Count$Valid Creature.YouCtrl+NonExistent$GreatestCardPower", 0},
+		{"Count$Valid Creature.YouCtrl+NonExistent$LeastCardPower", 0},
+	}
+	for _, tc := range cases {
+		if got := EvalCount(h, c, tc.expr); got != tc.want {
+			t.Errorf("%s = %d, want %d", tc.expr, got, tc.want)
+		}
+	}
+	// A second board strength so a hard-coded 5 cannot pass both: the
+	// DERIVED read must follow +1/+1 counters, not the printed face.
+	for _, id := range g.Zone(state.ZBattlefield, 0) {
+		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Bear" {
+			o.AddCounter("P1P1", 5)
+		}
+	}
+	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl$GreatestCardPower"); got != 7 {
+		t.Errorf("Creature.YouCtrl$GreatestCardPower after counters = %d, want 7", got)
 	}
 }
 
@@ -134,8 +181,8 @@ func TestEvalCountValidCountsDistinctColors(t *testing.T) {
 	if got := EvalCount(h, c, "Count$Valid Permanent.YouCtrl$Colors/Bogus.3"); got != 4 {
 		t.Errorf("Colors/Bogus.3 = %d, want 4 (unknown op ignored, plain Colors)", got)
 	}
-	if got := EvalCount(h, c, "Count$Valid Creature$GreatestCardPower"); got != 0 {
-		t.Errorf("GreatestCardPower token = %d, want 0 (out of scope, fail closed)", got)
+	if got := EvalCount(h, c, "Count$Valid Creature$DifferentCardPower"); got != 0 {
+		t.Errorf("DifferentCardPower token = %d, want 0 (out of scope, fail closed)", got)
 	}
 }
 
