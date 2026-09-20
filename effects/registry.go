@@ -98,6 +98,21 @@ type Host interface {
 	// never taken. Implemented by rules.Engine (rules/layers.go); the effects
 	// test double reports false (no engine to consult).
 	SacrificeBlocked(id state.ObjID) bool
+	// ExploreReplaced reports whether a replacement effect replaces the
+	// named explorer's explore (R:Event$ Explore — Topography Tracker's
+	// "instead it explores, then it explores again", Twists and Turns'
+	// "instead you scry 1, then that creature explores") and, when one
+	// does, RESOLVES that replacement body in place: the original explore
+	// is replaced whole (the caller must not reveal, counter or move
+	// anything for it) and the body's own explores run under the
+	// replacement guard, so they cannot re-match the same replacement (the
+	// same once-per-event discipline the CreateToken path applies).
+	// Rules-implemented because replacement matching lives in the rules
+	// tier; the effects test double reports false (no engine to consult).
+	// No replacement applies when the engine is already inside one (the
+	// emit path skips replacement application there, and the body's own
+	// explores are fresh events).
+	ExploreReplaced(explorer state.ObjID) bool
 	// HasKeyword reports a DERIVED keyword — printed or granted by a
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.
@@ -958,6 +973,22 @@ type Ctx struct {
 	TapOrUntap     string
 	TapOrUntapObj  state.ObjID
 	TapOrUntapDone bool
+	// ExploreObj/ExploreCard/ExploreChoice/ExploreDone carry one pending
+	// explore across the LCI destination ask (api:Explore): "...then put
+	// the card back or put it into your graveyard" (CR 701.35a). The
+	// nonland explore reveals its top card, poses the KChoose (option 0 is
+	// the state-changing "graveyard", option 1 "back on top", the
+	// TapOrUntap ordering discipline), and parks with ExploreObj the
+	// explorer and ExploreCard the revealed card. rules' "explore" resume
+	// arm re-enters with ExploreDone set, ExploreChoice the answered kind
+	// and ExploreCard/ExploreObj restored from the resume point. Consumed
+	// and cleared at the point of application (fx42 scoping), so the
+	// pending explorer's remaining explores and every later target pose
+	// their own fresh path.
+	ExploreObj    state.ObjID
+	ExploreCard   state.ObjID
+	ExploreChoice string
+	ExploreDone   bool
 	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
 	// resolution just made (effects/dice.go), under the SVar name its
 	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's

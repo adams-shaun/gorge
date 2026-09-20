@@ -1376,6 +1376,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.attackersDeclaredOneTargetMatches(t, source, ev)
 	case "Cycled":
 		matched = e.cycledMatches(t, source, ev, lki)
+	case "Explores":
+		matched = e.exploresMatches(t, source, ev, lki)
 	case "CounterAdded":
 		matched = e.counterAddedMatches(t, source, ev, lki)
 	case "CounterRemoved":
@@ -2126,6 +2128,40 @@ func (e *Engine) cycledMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 		return false
 	}
 	return e.eventCardAndPlayerMatch(t, source, ev.Obj, o.Controller)
+}
+
+// exploresMatches implements the "Whenever a creature you control explores
+// ..." trigger family (Forge Mode$ Explores, task explore1 — Merfolk
+// Cave-Diver, Nicanzil Current Conductor, Wildgrowth Walker, Lurking
+// Chupacabra, Shadowed Caravel; 5 files / 6 raw lines at the corpus pin).
+// The causing event is the completed events.Explore record: Obj is the
+// EXPLORER (what ValidCard$ matches, with the explorer's controller as the
+// event player — the same eventCardAndPlayerMatch read Sacrificed applies)
+// and IDs[0] is the card the process revealed, which ValidExplored$ narrows
+// ("explores a land card" / "explores a nonland card" — Nicanzil's pair).
+// The revealed card is matched in whatever zone the explore left it in (hand
+// or graveyard, or back on top): the plain type predicates both carriers use
+// are zone-independent, and the reveal Note that precedes the record already
+// made the card public, so no LKI capture is needed. A record with no
+// revealed card is unreachable (an empty library records nothing).
+func (e *Engine) exploresMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Explore || len(ev.IDs) == 0 {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v := t.Params["ValidExplored"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.IDs[0], e.specCtx(source, ctrl)) {
+		return false
+	}
+	return true
 }
 
 // counterAddedMatches implements the "when a counter is put on" trigger
@@ -3771,7 +3807,7 @@ func init() {
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
-		"trig:Exerted",
+		"trig:Explores", "trig:Exerted",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary

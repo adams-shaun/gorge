@@ -111,6 +111,12 @@ func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 // inventing a registry it cannot answer for.
 func (h *fakeHost) SacrificeBlocked(id state.ObjID) bool { return false }
 
+// ExploreReplaced has no replacement registry to consult here (the
+// replacement matching lives in rules.Engine), the same discipline as
+// SacrificeBlocked above: the double reports false rather than inventing a
+// registry it cannot answer for.
+func (h *fakeHost) ExploreReplaced(explorer state.ObjID) bool { return false }
+
 // The damage-batch bracket has nothing to latch here (no trigger machinery),
 // so the double reports no-ops; the dealDamage loops' bracketing still runs.
 func (h *fakeHost) BeginDamageBatch() {}

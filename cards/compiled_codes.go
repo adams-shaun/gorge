@@ -779,6 +779,7 @@ const (
 	TriggerInterestLifeChange
 	TriggerInterestStepChange
 	TriggerInterestAttach
+	TriggerInterestExplore
 )
 
 func triggerInterestForMode(mode string) TriggerInterest {
@@ -796,6 +797,8 @@ func triggerInterestForMode(mode string) TriggerInterest {
 		return TriggerInterestTargetsChosen
 	case "Attached":
 		return TriggerInterestAttach
+	case "Explores":
+		return TriggerInterestExplore
 	case "Taps", "TapsForMana":
 		return TriggerInterestTap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":

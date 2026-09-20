@@ -1083,6 +1083,26 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.TapOrUntapObj = chosen[0].Obj
 				ctx.TapOrUntap = chosen[0].Kind
 			}
+		case "explore":
+			// An Explore's LCI destination election (api:Explore, CR 701.35a:
+			// "put the card back or put it into your graveyard") was answered.
+			// The resume point carries the pending explorer (decision.ResumeTarget
+			// = the explorer's id) and the answered option carries the revealed
+			// card in Obj and the choice in Kind ("graveyard"/"top"), so the
+			// re-entered effExplore applies the counter and the destination move
+			// together, in CR order, then emits the record. An empty answer
+			// (malformed — the ask's two options are always legal, Min 1/Max 1)
+			// still sets the Done marker with no card: the effect's application
+			// path guards the card's absence, so the record never names a stale
+			// id. The effect consumes and clears all four fields at the point of
+			// application (fx42 scoping), so the pending explorer's remaining
+			// explores and every later target pose their own fresh path.
+			ctx.ExploreDone = true
+			ctx.ExploreObj = state.ObjID(rp.target)
+			if len(chosen) > 0 {
+				ctx.ExploreChoice = chosen[0].Kind
+				ctx.ExploreCard = chosen[0].Obj
+			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
 			// the concrete target shape rather than just an ObjID because player
