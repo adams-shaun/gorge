@@ -207,6 +207,17 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			i = len(lib) - 1
 		}
 		return []state.Target{{Obj: lib[i]}}, true
+	case "FlippedHeads", "FlippedTails":
+		// Forge's RememberResult$ flip-result memory: DB$ FlipCoin |
+		// RememberResult$ True, then a chained sub reading Defined$
+		// FlippedHeads/FlippedTails (Goblin Assassin's tails sacrifice is the
+		// live carrier). This build does not persist the per-flip results the
+		// flag names — the flips run (effFlipCoin), the memory does not
+		// survive a suspension-bearing chain re-entry — so the reader resolves
+		// to the EMPTY set (ok=true, fail closed to nobody) rather than
+		// Defined's source fallback, which would act on the flipping ability's
+		// own source.
+		return nil, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
 	case "Imprinted", "ImprintedController":
