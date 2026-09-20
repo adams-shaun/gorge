@@ -418,10 +418,12 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// printed T: line would have; rules/trigger_match.go's granted-
 						// trigger walk (checkGrantedStaticTriggers, the granted-Ward/
 						// granted-Dethrone precedent) matches it like any other trigger
-						// and links its Execute$ from the AFFECTED object's own SVar
+						// and links its Execute$ from the GRANTING face's own SVar
 						// table -- the table events.Apply's GrantTriggerPush resolves
-						// from, so the live queue and a replayed one mint the same stack
-						// object. A body that fails to parse grants nothing.
+						// from (the grantor rides the event's Amount), so the live
+						// queue and a replayed one mint the same stack object. A
+						// self-grant degenerates to the affected object; a body that
+						// fails to parse grants nothing.
 						if name := strings.TrimSpace(st.Params["AddTrigger"]); name != "" {
 							if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
 								gt := base

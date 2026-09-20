@@ -68,12 +68,16 @@ type pendingTrigger struct {
 	DelayedID uint32
 	// Granted marks a static-grant's trigger (AddTrigger$ on a Mode$
 	// Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you sacrifice
-	// a land"): like a delayed trigger its Ability is an SVar-named body
-	// (the Execute$ name rides the GrantTriggerPush event for events.Apply
-	// to resolve from the affected object's SVar table), but unlike a
-	// delayed registration nothing is consumed -- the grant lives exactly as
-	// long as its granting static.
+	// a land"): like a delayed trigger its Ability is an SVar-named body (the
+	// Execute$ name rides the GrantTriggerPush event for events.Apply to
+	// resolve from the GRANTOR's SVar table), but unlike a delayed
+	// registration nothing is consumed -- the grant lives exactly as long as
+	// its granting static. Grantor is the object carrying the printed static
+	// (0 = the self-grant shape, where grantor == recipient); it rides the
+	// event's Amount so Apply resolves the Execute$ body from the same table
+	// this walk linked it from.
 	Granted bool
+	Grantor state.ObjID
 	Execute string
 	// Ward is a GRANTED ward keyword (a layer-6 AddKeyword$ Ward:<cost>, e.g.
 	// Hexing Squelcher's "Other creatures you control have 'Ward—Pay 2
@@ -4459,14 +4463,16 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // granted-keyword paths use, pushed through events.GrantTriggerPush.
 //
 // The queue gate is the live==replay contract: the stack object is minted
-// inside events.Apply, which can only resolve the Execute$ body from the
-// AFFECTED object's own SVar table, so the walk links the effect from that
-// same table (the resolveSVarAcrossFaces walk mirrored in
-// grantedTriggerExecute) and a grant whose body it cannot produce never
-// queues -- the conservative direction, matching the replayable-log
-// invariant rather than minting an ability a replay cannot rebuild. A
-// self-grant (Hearthhull) trivially satisfies it; the cross-object
-// aura-grants-its-own-SVar shape fails closed here.
+// inside events.Apply, which resolves the Execute$ body from the GRANTOR's
+// own SVar table (the object carrying the printed static, threaded to the
+// event as Amount; 0 = the self-grant shape, where grantor == recipient), so
+// the walk links the effect from that same table (the resolveSVarAcrossFaces
+// walk mirrored in grantedTriggerExecute) and a grant whose body it cannot
+// produce never queues -- the conservative direction, matching the
+// replayable-log invariant rather than minting an ability a replay cannot
+// rebuild. A self-grant (Hearthhull) trivially satisfies it, and so does a
+// cross-object grant (an Aura granting its enchanted creature a trigger): the
+// Execute$ SVar lives on the GRANTOR's face, which is ce.Source.
 //
 // Fire-count: like Ward and Dethrone, every granted trigger shares the
 // granted slot's triggerKey (Source, Idx -1) -- the cascade bound only, not
@@ -4488,10 +4494,15 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 		}
 		t := *ce.AddTrigger
 		// The live==replay gate: link the Execute$ body exactly the way
-		// events.Apply will (the affected object's own table); a body it
-		// cannot resolve never queues, and a same-named body it CAN resolve
-		// is by construction the same body a replay would resolve.
-		if t.Effect = grantedTriggerExecute(o, t.Params["Execute"]); t.Effect == nil {
+		// events.Apply will (the GRANTOR's own table -- ce.Source carries the
+		// printed static; a self-grant degenerates to the affected object); a
+		// body it cannot resolve never queues, and a same-named body it CAN
+		// resolve is by construction the same body a replay would resolve.
+		grantor := observer.G.Obj(ce.Source)
+		if grantor == nil || grantor.Face() == nil {
+			continue
+		}
+		if t.Effect = grantedTriggerExecute(grantor, t.Params["Execute"]); t.Effect == nil {
 			continue
 		}
 		// CR 603.8's outstanding-instance latch, mirrored from the face walk
@@ -4521,6 +4532,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 			Idx:        -1,
 			SA:         t.Effect,
 			Granted:    true,
+			Grantor:    ce.Source,
 			Execute:    t.Params["Execute"],
 			Ctx: effects.Ctx{
 				Source:         id,
@@ -4538,9 +4550,11 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 
 // grantedTriggerExecute mirrors events.Apply's GrantTriggerPush resolution
 // (the resolveSVarAcrossFaces walk): the granted body's Execute$ name is
-// resolved against the AFFECTED object's own SVar table -- current face
-// first, then every other face -- so the live queue links exactly the body a
-// replayed log will. nil when no face resolves it.
+// resolved against the GRANTOR's own SVar table -- current face first, then
+// every other face -- so the live queue links exactly the body a replayed
+// log will. (Apply resolves from the object Amount names when set; for the
+// self-grant shape grantor == recipient, so passing the grantor covers both
+// arms.) nil when no face resolves it.
 func grantedTriggerExecute(o *state.Object, execute string) *cards.SA {
 	if execute == "" {
 		return nil

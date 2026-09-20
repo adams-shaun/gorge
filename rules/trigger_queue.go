@@ -370,11 +370,12 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// e.g. Hearthhull's "STATION 8+ Whenever you sacrifice a land"): its
 	// stack object is minted through the GrantTriggerPush event, whose shape
 	// is DelayedPush's minus the registration -- the fired event carries the
-	// Execute$ SVar name (Counter) for events.Apply to resolve from the
-	// AFFECTED object's SVar table (the queue walk's replayability gate
-	// established that this resolves to the exact body the granting face's
-	// table names), and the ability receives the same CR 603.3c mode/target
-	// placement asks a TriggerPush ability would.
+	// Execute$ SVar name (Counter) and the GRANTOR's object id (Amount; 0 for
+	// the self-grant shape) for events.Apply to resolve from the grantor's
+	// SVar table (the queue walk's replayability gate established that this
+	// resolves to the exact body the granting face's table names), and the
+	// ability receives the same CR 603.3c mode/target placement asks a
+	// TriggerPush ability would.
 	if pt.Granted {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
@@ -390,7 +391,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.GrantTriggerPush, Player: pt.Controller,
 			Obj: pt.Source, Counter: pt.Execute,
-			IDs: ids, Text: "granted trigger"})
+			Amount: int32(pt.Grantor), IDs: ids, Text: "granted trigger"})
 		if pt.SA != nil && len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {
