@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -40,6 +41,11 @@ func TestImproviseOrganicExtinctionAnnouncesArtifactsAndPays(t *testing.T) {
 	spell := e.G.Zone(state.ZHand, 0)[0]
 	if !e.HasKeyword(spell, "Improvise") {
 		t.Fatal("corpus Organic Extinction lost Improvise before cast")
+	}
+	// The registration is what unlocks the carriers in the coverage report;
+	// the cast path reads the printed keyword directly, so pin it here.
+	if !effects.Supported()["kw:Improvise"] {
+		t.Fatal("kw:Improvise not registered in effects.Supported()")
 	}
 	e.G.Players[0].Pool[state.MW] = 2
 	castMode(t, e, spell, "")

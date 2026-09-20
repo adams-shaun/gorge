@@ -4059,15 +4059,16 @@ func (e *Engine) convokeAsk() bool {
 	if !mana.hasManaPayment() && !hasX {
 		return false
 	}
-	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 0,
-		Prompt: "Choose creatures to help pay for " + e.G.Obj(pc.card).Face().Name, Source: pc.card}
+	name := e.G.Obj(pc.card).Face().Name
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 0, Source: pc.card}
+	sawCreature, sawArtifact := false, false
 	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
 		o := e.G.Obj(id)
 		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
-		if isHarmonize && (mana.Generic > 0 || hasX) {
+		if isHarmonize && o.EffectiveIsCreature() && (mana.Generic > 0 || hasX) {
 			// The reduction offered is the creature's ACTUAL power (CR
 			// 702.46a), the same number harmonizePayment credits: a printed
 			// 1/1 currently boosted to 4 funds four generic, and a printed
@@ -4075,9 +4076,11 @@ func (e *Engine) convokeAsk() bool {
 			if p := e.Derived(id).Power; p > 0 {
 				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "harmonize", Obj: id,
 					Group: group, Amount: int(p), Label: "Tap " + o.Face().Name + " (reduce by " + strconv.Itoa(int(p)) + ")"})
+				sawCreature = true
 			}
 		}
 		if isConvoke && o.EffectiveIsCreature() {
+			sawCreature = true
 			for _, color := range []byte{'W', 'U', 'B', 'R', 'G'} {
 				if mana.Colored[state.ManaIndex(color)] > 0 && strings.Contains(e.objColors(o), string(color)) {
 					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_" + string(color), Obj: id,
@@ -4097,10 +4100,22 @@ func (e *Engine) convokeAsk() bool {
 		if isImprovise && o.EffectiveIsArtifact() && (mana.Generic > 0 || hasX) {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "improvise_generic", Obj: id,
 				Group: group, Label: "Tap " + o.Face().Name + " for 1"})
+			sawArtifact = true
 		}
 	}
 	if len(d.Options) == 0 {
 		return false
+	}
+	// The prompt names what is actually offered: a mixed Convoke/Improvise
+	// spell offers both creatures and artifacts, an Improvise-only one only
+	// artifacts, and the Convoke/Harmonize shapes only creatures.
+	switch {
+	case sawCreature && sawArtifact:
+		d.Prompt = "Choose permanents to help pay for " + name
+	case sawArtifact:
+		d.Prompt = "Choose artifacts to help pay for " + name
+	default:
+		d.Prompt = "Choose creatures to help pay for " + name
 	}
 	// The announcement cannot tap more creatures than the cost can absorb:
 	// each chosen contribution reduces exactly one outstanding slot (a

@@ -617,9 +617,10 @@ func (o *Object) EffectiveIsCreature() bool {
 // honouring CR 708.5 like EffectiveIsCreature: while a battlefield object is
 // face down its PRINTED face does not exist, so a manifested or cloaked
 // artifact reads its folded face-down type set (which never names Artifact
-// today, but the fold, not the corpus, decides). Every printed-face "is this
-// an artifact" read that gates an artifact rule (improvise, affinity-style
-// counts) must go through here.
+// today, but the fold, not the corpus, decides). The Improvise announcement
+// and its offer-gate credit (rules/cast.go) are the readers; other artifact
+// reads (e.g. the Affinity keyword's Count$Valid spec path) go through the
+// ordinary filter grammar and do not call this.
 func (o *Object) EffectiveIsArtifact() bool {
 	if o.faceDownEffective() {
 		for _, w := range o.FaceDownTypeWords() {
