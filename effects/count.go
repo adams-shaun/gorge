@@ -724,6 +724,15 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	}
 	prop, op, hasOp := strings.Cut(prop, "/")
 	prop = strings.TrimSpace(prop)
+	// TriggeredPlayersOpponentVotedDiff is the canonical vote-finished
+	// carrier's diff set (trig:Vote); its ONLY documented property is Amount
+	// (Erestor's SVar:X, the scry size). Confine the head to it here, so the
+	// ref cannot silently inherit LifeTotal/CardsInHand/Valid... sums that
+	// belong to TargetedPlayer/ThisTargetedPlayer -- the contract the
+	// evalPlayerRefProperty doc states.
+	if ref == "TriggeredPlayersOpponentVotedDiff" && prop != "Amount" {
+		return 0, false
+	}
 	g := h.Game()
 	var n int32
 	for _, t := range ts {

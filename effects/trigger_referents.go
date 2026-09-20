@@ -103,15 +103,20 @@ type TriggerContext struct {
 	TriggerBlocker state.ObjID
 	// TriggeredOpponentsVotedSame / TriggeredOpponentsVotedDiff are the two
 	// List$ opponent sets the canonical vote-finished carrier (effects/
-	// vote.go) encodes: the vote caster's opponents who voted for a choice
-	// the caster voted for / for a different one, in voter order. Captured
-	// by rules/trigger_referents' Vote case; the Defined$ spellings
+	// vote.go) encodes: the players other than the TRIGGER SOURCE'S
+	// CONTROLLER who voted for a choice that controller voted for / for a
+	// different one, in voter order. The carrier Note carries the RAW ballots
+	// (each voter's player id + pick); rules/trigger_referents' Vote case
+	// re-splits them against the source's controller via the shared
+	// effects.VoteSplit -- the vote CASTER is irrelevant to the referent, so
+	// a vote cast by an opponent binds the sets exactly as one cast by the
+	// carrier's controller does. The Defined$ spellings
 	// TriggeredOpponentVotedSame/TriggeredOpponentVotedDiff and the count
 	// ref TriggeredPlayersOpponentVotedDiff$Amount read them at resolution,
-	// long after the event. Not serialized into events.Event -- the sets
-	// live ON the carrier Note (IDs/Pairs) and the per-stack capture is
-	// rebuilt by the same replay re-derivation as TriggerPaidX/
-	// TriggerConverge. Both empty outside a Vote capture.
+	// long after the event. Not serialized into events.Event -- the ballots
+	// live ON the carrier Note (Pairs) and the per-stack capture is rebuilt
+	// by the same replay re-derivation as TriggerPaidX/TriggerConverge. Both
+	// empty outside a Vote capture.
 	TriggeredOpponentsVotedSame []state.PlayerID
 	TriggeredOpponentsVotedDiff []state.PlayerID
 }

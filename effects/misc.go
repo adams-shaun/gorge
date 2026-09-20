@@ -1666,11 +1666,19 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	// The canonical vote-finished carrier (trig:Vote, effects/vote.go):
 	// emitted AFTER the winning outcome resolved -- the vote (outcome
 	// included) finishes, then "whenever players finish voting" sees it. It
-	// is emitted even when there was no ballot and/or no voter (empty sets),
-	// the same always-fire reading the card-ballot shape takes; "whenever
-	// players finish voting" has no intervening-if.
-	same, diff := voteSameDiff(h.Game(), c.Controller, voters, picks, len(choices) == 0)
-	emitVoteFinished(h, c, same, diff)
+	// carries the RAW ballots, not a pre-split: the List$ referent sets are
+	// relative to the TRIGGER SOURCE'S controller, which is only known on the
+	// rules side (rules/trigger_referents' Vote case re-splits with
+	// effects.VoteSplit against e.controllerOf(source)). It is emitted even
+	// when there was no ballot and/or no voter, the same always-fire reading
+	// the card-ballot shape takes; "whenever players finish voting" has no
+	// intervening-if. ballotExisted is false for an empty Choices$ ballot,
+	// which binds neither set.
+	ballots := make([]VoteBallot, len(voters))
+	for i, t := range voters {
+		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
+	}
+	emitVoteFinished(h, c, ballots, len(choices) > 0)
 }
 
 // voteWinner returns the index of the highest count and whether that count is
@@ -1767,16 +1775,19 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	}
 	// The canonical vote-finished carrier (trig:Vote, effects/vote.go),
 	// emitted after VoteSubAbility$ ran -- the same after-the-vote point the
-	// fixed-list shape emits at. The deterministic stand-in gives every voter
-	// the ballot's FIRST option, so with the caster among the voters (the
-	// corpus's Defined$ shapes put it there) every voting opponent voted for
-	// a choice the caster voted for: the same set is every voting opponent
-	// and the diff set is empty. A vote with no ballot option at all (an
-	// empty battlefield) had nobody vote for anything, so noChoices binds
-	// neither set -- the trigger still fires and its same/diff bodies act on
-	// nobody, the same always-fire reading the fixed-list shape takes.
-	same, diff := voteSameDiff(g, c.Controller, voters, picks, len(options) == 0)
-	emitVoteFinished(h, c, same, diff)
+	// fixed-list shape emits at. Like the fixed-list shape it carries the RAW
+	// ballots and the rules side re-splits against the carrier controller.
+	// The deterministic stand-in gives every voter the ballot's FIRST option,
+	// so a controller who voted sees every other voter in the same set. A
+	// vote with no ballot option at all (an empty battlefield) had nobody
+	// vote for anything, so ballotExisted=false binds neither set -- the
+	// trigger still fires and its same/diff bodies act on nobody, the same
+	// always-fire reading the fixed-list shape takes.
+	ballots := make([]VoteBallot, len(voters))
+	for i, t := range voters {
+		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
+	}
+	emitVoteFinished(h, c, ballots, len(options) > 0)
 }
 
 // effBecomeMonarch records the game-level designation as an event so a

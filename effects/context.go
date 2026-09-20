@@ -213,15 +213,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return []state.Target{{Obj: lib[i]}}, true
 	case "TriggeredOpponentVotedSame", "TriggeredOpponentVotedDiff":
 		// The canonical vote-finished carrier's two List$ referent sets
-		// (trig:Vote): the vote caster's opponents who voted for a choice the
-		// caster voted for / for a different one, captured by rules'
-		// triggerReferents from the carrier Note and rebuilt by replay from
-		// the same event bytes. The sets are already opponent-relative to the
-		// vote's caster -- the resolution's Ctx (Erestor's controller casting
-		// the vote) is the exact case. Absent (a non-vote context) they fail
-		// closed to the empty set, ok=true -- the same convention
-		// FlippedHeads/FlippedTails takes, so a reader acts on nobody rather
-		// than guessing at a fallback target.
+		// (trig:Vote): the players other than the TRIGGER SOURCE'S CONTROLLER
+		// who voted for a choice that controller voted for / for a different
+		// one. rules/trigger_referents' Vote case re-splits the carrier's raw
+		// ballots against e.controllerOf(source) -- the vote caster's own
+		// controller is never the anchor -- and the per-stack capture is
+		// rebuilt by replay from the same event bytes. Absent (a non-vote
+		// context) they fail closed to the empty set, ok=true -- the same
+		// convention FlippedHeads/FlippedTails takes, so a reader acts on
+		// nobody rather than guessing at a fallback target.
 		ps := c.TriggeredOpponentsVotedSame
 		if spec == "TriggeredOpponentVotedDiff" {
 			ps = c.TriggeredOpponentsVotedDiff

@@ -68,16 +68,27 @@ func voteSpell(t *testing.T) *cards.Card {
 }
 
 // resolveVote puts the synthetic vote spell on the stack and resolves it
-// with the given per-voter answers (voter order = AliveFrom(0) order:
+// with the given per-voter answers (voter order = AliveFrom(0) order: the
 // caster first), then pops the spent spell off the stack so the drain below
-// sees only the queued Vote trigger.
+// sees only the queued Vote trigger. The caster is seat 0.
 func resolveVote(t *testing.T, e *Engine, votes []int) {
 	t.Helper()
+	resolveVoteBy(t, e, 0, votes)
+}
+
+// resolveVoteBy is resolveVote with an explicit caster (the spell's
+// controller). It matters for trig:Vote: Defined$ Player resolves voters in
+// AliveFrom(caster) order, and the same/diff referents must anchor on the
+// CARRIER CONTROLLER, not this caster -- the ordinary multiplayer case is an
+// opponent casting the vote while you control Erestor/Model of Unity/Grudge
+// Keeper.
+func resolveVoteBy(t *testing.T, e *Engine, caster state.PlayerID, votes []int) {
+	t.Helper()
 	vc := voteSpell(t)
-	src := e.G.AddObject(vc, 0)
+	src := e.G.AddObject(vc, caster)
 	src.Zone = state.ZStack
-	e.G.SetZone(state.ZStack, 0, []state.ObjID{src.ID})
-	ctx := &effects.Ctx{Source: src.ID, Controller: 0,
+	e.G.SetZone(state.ZStack, caster, []state.ObjID{src.ID})
+	ctx := &effects.Ctx{Source: src.ID, Controller: caster,
 		SVars: vc.Faces[0].SVars, Votes: votes}
 	effects.Resolve(e, ctx, vc.Faces[0].Abilities[0])
 	e.emit(events.Event{Kind: events.MoveZone, Obj: src.ID,
@@ -278,6 +289,75 @@ func TestGrudgeKeeperDiffVotersLoseLife(t *testing.T) {
 	}
 	run([]int{0, 1, 0}, true)
 	run([]int{0, 0, 0}, false)
+}
+
+// TestErestorVoteReferentsAnchorOnCarrierController is the review's MAJOR
+// regression: the same/diff sets are relative to the TRIGGER SOURCE'S
+// CONTROLLER, never the vote caster. Erestor is controlled by seat 0 while
+// seat 1 casts the vote (the ordinary multiplayer case). Voter order is
+// AliveFrom(1) = [seat1, seat2, seat0]; Ctx.Votes = [1,0,1] means seat 1 and
+// Erestor's controller (seat 0) voted option 1 and seat 2 voted option 0.
+// The carrier controller's ballot (option 1) anchors the split: same = [seat1]
+// and diff = [seat2]. So exactly ONE Treasure is minted under seat 1 and the
+// scry reads X = 1. The caster-relative bug minted the Treasure under seat 0
+// (the controller, not an opponent) and none for the real like-voting
+// opponent, so this leaf FAILS against it. Control: an all-option-1 vote
+// makes both opponents same (two Treasures, no scry).
+func TestErestorVoteReferentsAnchorOnCarrierController(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	run := func(votes []int, wantTreasure [3]int, wantScry int) {
+		e, _ := voteCarrierEngine(t, reg, "Erestor of the Council")
+		carrier := enterCarrier(t, e, "Erestor of the Council")
+		resolveVoteBy(t, e, 1, votes)
+		scry := drainVoteTrigger(t, e, carrier)
+		for p, want := range wantTreasure {
+			if got := tokensNamed(e, state.PlayerID(p), "Treasure"); got != want {
+				t.Fatalf("votes %v: seat %d has %d Treasures, want %d", votes, p, got, want)
+			}
+		}
+		if wantScry == 0 {
+			if scry != nil {
+				t.Fatalf("votes %v: scry 0 posed an ask, want none", votes)
+			}
+		} else if scry == nil || len(scry.Options) != wantScry || scry.Player != 0 {
+			t.Fatalf("votes %v: scry ask = %+v, want %d option(s) for seat 0 (the diff count)",
+				votes, scry, wantScry)
+		}
+	}
+	// seat1 and the controller (seat0) voted 1, seat2 voted 0: same=[seat1],
+	// diff=[seat2].
+	run([]int{1, 0, 1}, [3]int{0, 1, 0}, 1)
+	// All voted option 1: same=[seat1, seat2], diff=[] -- a Treasure under each.
+	run([]int{1, 1, 1}, [3]int{0, 1, 1}, 0)
+}
+
+// TestGrudgeKeeperVoteReferentsAnchorOnCarrierController is the second
+// carrier under the same caster != controller shape: seat 1 casts, Grudge
+// Keeper is seat 0's. Voter order [seat1, seat2, seat0] with Ctx.Votes
+// [1,0,1]: the controller voted 1, seat 2 voted 0 -> diff=[seat2], so seat 2
+// loses 2 and nobody else does. The caster-relative bug drained seat 0 (the
+// controller) instead.
+func TestGrudgeKeeperVoteReferentsAnchorOnCarrierController(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _ := voteCarrierEngine(t, reg, "Grudge Keeper")
+	carrier := enterCarrier(t, e, "Grudge Keeper")
+	before := [3]int32{}
+	for i := range e.G.Players {
+		before[i] = e.G.Players[i].Life
+	}
+	resolveVoteBy(t, e, 1, []int{1, 0, 1})
+	drainVoteTrigger(t, e, carrier)
+	for i := range e.G.Players {
+		lost := before[i] - e.G.Players[i].Life
+		want := int32(0)
+		if i == 2 {
+			want = 2
+		}
+		if lost != want {
+			t.Fatalf("seat %d lost %d life, want %d (diff = [seat2] relative to Grudge Keeper's controller)",
+				i, lost, want)
+		}
+	}
 }
 
 // TestVoteFinishedCarrierGatedOnVoteTriggerFaces is the head-safety gate's

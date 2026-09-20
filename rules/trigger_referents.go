@@ -169,15 +169,21 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerMana = ev.Counter
 		c.TriggerAmount = ev.Amount
 	case "Vote":
-		// The canonical vote-finished carrier (effects/vote.go): the two
-		// List$ opponent sets ride the Note as player refs (IDs = same,
-		// Pairs = diff) and are bound here so the resolution-time spellings
-		// -- Defined$ TriggeredOpponentVotedSame/TriggeredOpponentVotedDiff
-		// and the count ref TriggeredPlayersOpponentVotedDiff$Amount -- read
-		// the sets long after the event, from this per-stack capture. List$
-		// gates the BINDING (the referent scope, never the firing -- see
-		// voteMatches): a spelling whose List$ does not name it binds empty.
-		if _, same, diff, ok := effects.VoteFinishedResult(ev); ok {
+		// The canonical vote-finished carrier (effects/vote.go): the raw
+		// ballots ride the Note as player refs (each Pair is
+		// [PlayerRef(voter), pick+1]) and are RE-SPLIT here against the
+		// trigger SOURCE'S controller -- "a choice you voted for" means the
+		// carrier permanent's controller's own ballot, never the vote
+		// caster's (the two differ whenever an opponent casts the vote, the
+		// ordinary multiplayer case). The resulting sets are bound so the
+		// resolution-time spellings -- Defined$
+		// TriggeredOpponentVotedSame/TriggeredOpponentVotedDiff and the count
+		// ref TriggeredPlayersOpponentVotedDiff$Amount -- read them long after
+		// the event, from this per-stack capture. List$ gates the BINDING (the
+		// referent scope, never the firing -- see voteMatches): a spelling
+		// whose List$ does not name it binds empty.
+		if _, ballots, ballotExisted, ok := effects.VoteFinishedResult(ev); ok {
+			same, diff := effects.VoteSplit(e.controllerOf(source), ballots, ballotExisted)
 			if listAdmits(t.Params["List"], "OppVotedSame") {
 				c.TriggeredOpponentsVotedSame = same
 			}
