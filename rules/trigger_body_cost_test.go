@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -416,5 +417,450 @@ func TestUnpriceableOptionalBodyDeclineOnly(t *testing.T) {
 		if o := e.G.Obj(z); o != nil && o.ID != id && o.Face() != nil && o.Face().Types[0] == "Artifact" {
 			t.Fatalf("an artifact was sacrificed on a declined cost")
 		}
+	}
+}
+
+// xFoldAskIndex returns the index of the choose-X option announcing the given
+// value within a pending KChoose (the trigger-cost window's payer-chooses X
+// announcement), failing the test when that value is not offered.
+func xFoldAskIndex(t *testing.T, d *decision.Decision, x int) int {
+	t.Helper()
+	for _, o := range d.Options {
+		if o.Kind == "trigger_cost_x" && o.Amount == x {
+			return o.Index
+		}
+	}
+	t.Fatalf("choose-X ask offers no X = %d option: %+v", x, d.Options)
+	return -1
+}
+
+// xFoldLand is an eventless fixture mana source for the window tests: mana
+// pools empty at every step boundary (CR 500.4), so a window cost with mana
+// in it is paid by activating untapped sources INSIDE the window
+// (paymentManaAsk), exactly as a real seat does.
+func xFoldLand(t *testing.T, e *Engine, name, produced string) state.ObjID {
+	t.Helper()
+	return onBoard(t, e, 0, "Name:"+name+"\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ "+produced+"\nOracle:x\n")
+}
+
+// activateWindowMana drives the payment window's mana-activation asks: every
+// pending KChoose carrying an "activate" option takes the first one, until
+// the cost is covered and the pending decision is no longer a mana ask.
+func activateWindowMana(t *testing.T, e *Engine) {
+	t.Helper()
+	for i := 0; i < 16; i++ {
+		d := e.Pending()
+		if d == nil {
+			return
+		}
+		act := -1
+		for _, o := range d.Options {
+			if o.Kind == "activate" {
+				act = o.Index
+				break
+			}
+		}
+		if act < 0 {
+			return
+		}
+		submitChoices(t, e, act)
+	}
+	t.Fatal("the mana-activation window never closed")
+}
+
+// TestElendaAndAzorAttackXFoldAnnouncesPaysAndDraws pins the payer-chooses X
+// fold on the real corpus attack trigger: Elenda and Azor attacks, the window
+// poses a real choose-X ask (X = 0 up to the payable bound, ascending), a
+// chosen X = 1 plus the {W}{U}{B} pips is charged from the pool, and the body
+// draws exactly 1 card (NumCards$ X reads the binding).
+func TestElendaAndAzorAttackXFoldAnnouncesPaysAndDraws(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Elenda and Azor")
+	id := searchMoveByName(t, e, "Elenda and Azor", state.ZBattlefield)
+	e.G.Obj(id).SummonSick = false
+	xFoldLand(t, e, "Test Plains", "W")
+	xFoldLand(t, e, "Test Island", "U")
+	xFoldLand(t, e, "Test Swamp", "B")
+	xFoldLand(t, e, "Test Mountain", "R")
+
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepDeclareAttackers)
+	submitAttackersOnly(t, e, id)
+
+	// The X announcement: ascending options, X = 0 first (the decline-
+	// equivalent a bot's default arm takes), and X = 1 payable against the
+	// seat's potential pool (the four sources' production).
+	d := passUntilNonPriority(t, e, 40)
+	if d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "trigger_cost_x" {
+		t.Fatalf("expected the choose-X announcement ask, got %+v", d)
+	}
+	if d.Options[0].Amount != 0 {
+		t.Fatalf("choose-X options must ascend from 0, first is %d: %+v", d.Options[0].Amount, d.Options)
+	}
+	submitChoices(t, e, xFoldAskIndex(t, d, 1))
+
+	// The window's mana activations: the pool is empty at the step boundary,
+	// so the folded cost (1 generic + W U B) is covered by tapping the
+	// sources inside the window.
+	activateWindowMana(t, e)
+	pay, _ := triggerCostWindowAsk(t, e)
+	if pay < 0 {
+		t.Fatalf("the folded X W U B cost was not offered as payable: %+v", e.Pending())
+	}
+	mark := len(e.L.Events)
+	submitChoices(t, e, pay)
+	passUntilStackEmpty(t, e, 20)
+
+	if got := e.G.Players[0].Pool; got != (state.Mana{}) {
+		t.Fatalf("pool = %v after paying X=1 + pips, want empty", got)
+	}
+	draws := 0
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.Draw && ev.Player == 0 {
+			draws++
+		}
+	}
+	if draws != 1 {
+		t.Fatalf("draw events for seat 0 = %d, want exactly 1 (NumCards$ X with the bound X)", draws)
+	}
+}
+
+// TestElendaAndAzorAttackXFoldDeclineDrawsNothing is the decline half of the
+// same leaf: choosing X = 1 does NOT charge anything by itself, and the
+// following pay/decline election's decline leaves the pool untouched and
+// draws nothing.
+func TestElendaAndAzorAttackXFoldDeclineDrawsNothing(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Elenda and Azor")
+	id := searchMoveByName(t, e, "Elenda and Azor", state.ZBattlefield)
+	e.G.Obj(id).SummonSick = false
+	xFoldLand(t, e, "Test Plains", "W")
+	xFoldLand(t, e, "Test Island", "U")
+	xFoldLand(t, e, "Test Swamp", "B")
+	xFoldLand(t, e, "Test Mountain", "R")
+
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepDeclareAttackers)
+	submitAttackersOnly(t, e, id)
+
+	d := passUntilNonPriority(t, e, 40)
+	submitChoices(t, e, xFoldAskIndex(t, d, 1))
+
+	// Pass the mana window unspent: the pending mana ask's "done".
+	md := passUntilNonPriority(t, e, 40)
+	done := -1
+	for _, o := range md.Options {
+		if o.Kind == "done" {
+			done = o.Index
+		}
+	}
+	if done < 0 {
+		t.Fatalf("expected the mana-activation ask with a done option, got %+v", md)
+	}
+	submitChoices(t, e, done)
+
+	mark := len(e.L.Events)
+	_, decline := triggerCostWindowAsk(t, e)
+	submitChoices(t, e, decline)
+	passUntilStackEmpty(t, e, 20)
+
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.Draw {
+			t.Fatalf("a declined X-fold window still drew: %+v", ev)
+		}
+	}
+	if got := e.G.Players[0].Pool; got != (state.Mana{}) {
+		t.Fatalf("pool = %v after the decline, want empty (nothing was floated)", got)
+	}
+	for _, tid := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(tid); o != nil && o.Face() != nil && len(o.Face().Types) > 0 && o.Face().Types[0] == "Land" && o.Tapped {
+			t.Fatalf("%s tapped on a declined cost", o.Face().Name)
+		}
+	}
+}
+
+// TestVizkopaConfessorETBChoosesLifeAndExilesRevealed pins the PayLife<X>
+// payer-chooses fold AND the binding together: the ETB asks how much life to
+// pay (bounded by the payer's life), a chosen X = 2 charges 2 life, the
+// targeted opponent reveals exactly 2 cards (NumCards$ X reads the binding),
+// and the follow-up pick exiles one of them.
+func TestVizkopaConfessorETBChoosesLifeAndExilesRevealed(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Vizkopa Confessor")
+	myLife := e.G.Players[0].Life
+	oppHand := len(e.G.Zone(state.ZHand, 1))
+
+	searchMoveByName(t, e, "Vizkopa Confessor", state.ZBattlefield)
+	answerPlayerTargetAsk(t, e, 1) // target the opponent
+
+	d := passUntilNonPriority(t, e, 40)
+	if d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "trigger_cost_x" {
+		t.Fatalf("expected the choose-X announcement ask, got %+v", d)
+	}
+	// The bound is the payer's life: every value 0..life must be offered.
+	if last := d.Options[len(d.Options)-1]; last.Amount != int(myLife) {
+		t.Fatalf("choose-X bound = %d, want the payer's life %d: %+v", last.Amount, myLife, d.Options)
+	}
+	submitChoices(t, e, xFoldAskIndex(t, d, 2))
+
+	pay, _ := triggerCostWindowAsk(t, e)
+	if pay < 0 {
+		t.Fatalf("the folded PayLife<2> cost was not offered as payable: %+v", e.Pending())
+	}
+	submitChoices(t, e, pay)
+
+	// The body: the opponent reveals 2 cards, then the pick asks over them.
+	d = passUntilNonPriority(t, e, 40)
+	if d.Kind != decision.KChoose || len(d.Options) != 2 {
+		t.Fatalf("expected the pick-one ask over exactly the 2 revealed cards, got %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	passUntilStackEmpty(t, e, 20)
+
+	if got := e.G.Players[0].Life; got != myLife-2 {
+		t.Fatalf("life = %d after paying X = 2, want %d", got, myLife-2)
+	}
+	if got := len(e.G.Zone(state.ZHand, 1)); got != oppHand-1 {
+		t.Fatalf("opponent hand = %d cards after the reveal-and-exile, want %d", got, oppHand-1)
+	}
+	exiled := 0
+	for _, id := range e.G.Zone(state.ZExile, 1) {
+		if o := e.G.Obj(id); o != nil && o.Owner == 1 {
+			exiled++
+		}
+	}
+	if exiled != 1 {
+		t.Fatalf("exiled opponent cards = %d, want exactly the picked 1", exiled)
+	}
+}
+
+// TestNecrodominanceEndStepPaysLifeAndDrawsThatMany pins the second PayLife<X>
+// payer-chooses carrier end to end: at the end step the window asks how much
+// life, a chosen X = 3 charges 3 life and draws exactly 3 cards.
+func TestNecrodominanceEndStepPaysLifeAndDrawsThatMany(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Necrodominance")
+	myLife := e.G.Players[0].Life
+
+	searchMoveByName(t, e, "Necrodominance", state.ZBattlefield)
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepEnd)
+
+	d := passUntilNonPriority(t, e, 40)
+	if d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "trigger_cost_x" {
+		t.Fatalf("expected the choose-X announcement ask, got %+v", d)
+	}
+	submitChoices(t, e, xFoldAskIndex(t, d, 3))
+
+	pay, _ := triggerCostWindowAsk(t, e)
+	if pay < 0 {
+		t.Fatalf("the folded PayLife<3> cost was not offered as payable: %+v", e.Pending())
+	}
+	mark := len(e.L.Events)
+	submitChoices(t, e, pay)
+	passUntilStackEmpty(t, e, 20)
+
+	if got := e.G.Players[0].Life; got != myLife-3 {
+		t.Fatalf("life = %d after paying X = 3, want %d", got, myLife-3)
+	}
+	draws := 0
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.Draw && ev.Player == 0 {
+			draws++
+		}
+	}
+	if draws != 3 {
+		t.Fatalf("draw events for seat 0 = %d, want exactly 3", draws)
+	}
+}
+
+// TestTomakulPhoenixFixedXNoAskPaysPowerAndReturns pins the FIXED X shape:
+// Tomakul Phoenix's `Cost$ X R` with SVar:X:Count$CardPower is evaluated once
+// at the window -- NO choose-X ask is ever posed -- and paying power + {R}
+// from the pool returns it from the graveyard to the battlefield. The paid
+// amount is read back off the pool delta, computed with the same evaluation
+// the window runs.
+func TestTomakulPhoenixFixedXNoAskPaysPowerAndReturns(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Tomakul Phoenix")
+	id := searchMoveByName(t, e, "Tomakul Phoenix", state.ZBattlefield)
+	for i := 0; i < 6; i++ {
+		xFoldLand(t, e, "Test Mountain", "R")
+	}
+
+	// The death fires the card's own (cost-less) Pump trigger too; after it
+	// drains, the phoenix sits in the graveyard and the BeginCombat trigger
+	// opens the window at the next combat beginning.
+	killOnBattlefield(t, e, id)
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("Tomakul Phoenix zone = %v, want the graveyard", o)
+	}
+	xWant, ok := effects.EvalCountOK(e, &effects.Ctx{Source: id, Controller: 0,
+		SVars: e.G.Obj(id).Face().SVars}, "Count$CardPower")
+	if !ok || xWant <= 0 {
+		t.Fatalf("Count$CardPower on the graveyarded phoenix = (%d, %v); the fixed X must resolve", xWant, ok)
+	}
+
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepBeginCombat)
+	d := passUntilNonPriority(t, e, 40)
+	if d.Kind != decision.KChoose {
+		t.Fatalf("expected the window's mana-activation ask, got %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind == "trigger_cost_x" {
+			t.Fatalf("a FIXED X shape posed a choose-X announcement ask: %+v", d.Options)
+		}
+	}
+	// The pool is empty at the step boundary, so the folded cost (X + {R})
+	// is covered by tapping X+1 sources inside the window; the fold itself
+	// was silent -- no announcement ask was ever posed.
+	activateWindowMana(t, e)
+	pay, _ := triggerCostWindowAsk(t, e)
+	if pay < 0 {
+		t.Fatalf("the covered fixed cost was not offered as payable: %+v", e.Pending())
+	}
+	submitChoices(t, e, pay)
+	passUntilStackEmpty(t, e, 20)
+
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Tomakul Phoenix zone = %v, want back on the battlefield (the paid body ran)", o)
+	}
+	tapped := 0
+	for _, tid := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(tid); o != nil && o.Face() != nil && len(o.Face().Types) > 0 &&
+			o.Face().Types[0] == "Land" && o.Tapped {
+			tapped++
+		}
+	}
+	if tapped != int(xWant)+1 {
+		t.Fatalf("lands tapped for the cost = %d, want X(%d)+1 (the {R} pip plus the X generic)", tapped, xWant)
+	}
+}
+
+// TestTivashGainedLifeFixedXNoAskTokensAtPower pins the fixed PayLife<X>
+// shape: Tivash's `Cost$ PayLife<X>` with SVar:X:Count$LifeYouGainedThisTurn
+// is evaluated once at the window (4 life gained => X = 4), no announcement
+// ask is posed, paying 4 life creates the Demon token with TokenPower$ X
+// reading 4.
+func TestTivashGainedLifeFixedXNoAskTokensAtPower(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Tivash, Gloom Summoner")
+	myLife := e.G.Players[0].Life
+
+	searchMoveByName(t, e, "Tivash, Gloom Summoner", state.ZBattlefield)
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 4})
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepEnd)
+
+	d := passUntilNonPriority(t, e, 40)
+	if d.Kind != decision.KChoose {
+		t.Fatalf("expected the trigger-cost window ask, got %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind == "trigger_cost_x" {
+			t.Fatalf("a FIXED PayLife<X> shape posed a choose-X announcement ask: %+v", d.Options)
+		}
+	}
+	pay := -1
+	for _, o := range d.Options {
+		if o.Kind == "trigger_cost_pay" {
+			pay = o.Index
+		}
+	}
+	if pay < 0 {
+		t.Fatalf("the fixed PayLife<4> cost was not offered as payable: %+v", d.Options)
+	}
+	submitChoices(t, e, pay)
+	passUntilStackEmpty(t, e, 20)
+
+	if got := e.G.Players[0].Life; got != myLife+4-4 {
+		t.Fatalf("life = %d after gaining 4 and paying X = 4, want %d", got, myLife)
+	}
+	var tok *state.Object
+	for _, tid := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(tid); o != nil && o.IsToken {
+			tok = o
+			break
+		}
+	}
+	if tok == nil {
+		t.Fatalf("no Demon token on the battlefield; events tail: %+v", e.L.Events[len(e.L.Events)-4:])
+	}
+	der := e.Derived(tok.ID)
+	if der.Power != 4 || der.Toughness != 4 {
+		t.Fatalf("Demon token derived P/T = %d/%d, want 4/4 (TokenPower$ X with the fixed X)", der.Power, der.Toughness)
+	}
+}
+
+// TestTymnaUnresolvableFixedXDeclineOnly pins the fail-closed direction: an
+// SVar:X body the count evaluator cannot resolve (Tymna the Weaver's
+// PlayerCountRegisteredOpponents$HasProperty… head) fixes nothing, poses NO
+// announcement ask, and the window offers DECLINE ONLY -- exactly the
+// pre-fold behaviour.
+func TestTymnaUnresolvableFixedXDeclineOnly(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Tymna the Weaver")
+	myLife := e.G.Players[0].Life
+
+	searchMoveByName(t, e, "Tymna the Weaver", state.ZBattlefield)
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepMain2)
+
+	d := passUntilNonPriority(t, e, 40)
+	if d.Kind != decision.KChoose {
+		t.Fatalf("expected the decline-only window ask, got %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind == "trigger_cost_pay" || o.Kind == "trigger_cost_x" {
+			t.Fatalf("an unresolvable SVar:X body offered more than the decline: %+v", d.Options)
+		}
+	}
+	if len(d.Options) != 1 || d.Options[0].Kind != "trigger_cost_decline" {
+		t.Fatalf("want exactly the decline option, got %+v", d.Options)
+	}
+	mark := len(e.L.Events)
+	submitChoices(t, e, 0)
+	passUntilStackEmpty(t, e, 20)
+
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.Draw || ev.Kind == events.LifeChange {
+			t.Fatalf("the unresolvable body ran or paid on the decline: %+v", ev)
+		}
+	}
+	if got := e.G.Players[0].Life; got != myLife {
+		t.Fatalf("life = %d after the decline, want unchanged %d", got, myLife)
+	}
+}
+
+// TestUnregisteredBodyXCostStaysDeclineOnly pins the registered-API gate: a
+// `Cost$ PayLife<X>` body whose API is not implemented (Maralen of the
+// Mornsong Avatar's AB$ StoreSVar shape) must NOT get the X fold -- posing
+// the choose-X ask would let the payer charge real life for a body that can
+// only emit the unimplemented-API Note. The window stays decline-only, the
+// pre-fold behaviour.
+func TestUnregisteredBodyXCostStaysDeclineOnly(t *testing.T) {
+	const script = "Name:Life Scribe\nManaCost:2 B\nTypes:Creature Human Cleric\nPT:2/2\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigPay | TriggerDescription$ When CARDNAME enters, pay any amount of life.\n" +
+		"SVar:TrigPay:AB$ StoreSVar | Cost$ PayLife<X> | SVar$ LifePaid | Type$ CountSVar | Expression$ X\n" +
+		"SVar:X:Count$xPaid\n" +
+		"Oracle:x\n"
+	e := handEngine(t)
+	src := e.G.AddObject(card(t, script), 0)
+	src.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, []state.ObjID{src.ID})
+	myLife := e.G.Players[0].Life
+	e.emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZHand, To: state.ZBattlefield})
+	e.putTriggersOnStack()
+	e.resolveTop()
+
+	d := passUntilNonPriority(t, e, 20)
+	if d.Kind != decision.KChoose {
+		t.Fatalf("expected the decline-only window ask, got %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind == "trigger_cost_pay" || o.Kind == "trigger_cost_x" {
+			t.Fatalf("an unimplemented body's X cost offered more than the decline: %+v", d.Options)
+		}
+	}
+	submitChoices(t, e, 0)
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Players[0].Life; got != myLife {
+		t.Fatalf("life = %d after the decline, want unchanged %d", got, myLife)
 	}
 }

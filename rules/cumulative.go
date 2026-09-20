@@ -79,6 +79,65 @@ type triggeredEffectCost struct {
 	// two parts and the settle can emit the exact events the picks name.
 	sacs   []state.ObjID
 	exiles []state.ObjID
+	// xPaid is the X this window's cost carried after the X fold: the
+	// payer's announced value (the choose-X ask) or the face SVar:X's fixed
+	// resolved value. It rides the resume point (rp.winPaidX) into the body
+	// at the pay arm, so the body's Count$xPaid / NumCards$ X / TokenPower$ X
+	// reads THIS payment, never the source permanent's cast-time X (which is
+	// all o.X and triggerPaidX can supply for an attack, ETB or end-step
+	// trigger). Zero when the cost carries no unfolded X.
+	xPaid int32
+	// xDone guards the X arm's once-ness: triggeredCostPaymentAsk re-enters
+	// after every mana-ability window (the "done" continuation), and the
+	// choose-X ask must be posed exactly once -- after its answer (or the
+	// fixed fold) the cost carries no unfolded X any more, so the
+	// costCarriesUnfoldedX guard alone would suffice for the re-entries;
+	// the flag also keeps a payer-chooses ask from re-posing if a future
+	// call path re-enters while the announcement is still unanswered.
+	xDone bool
+}
+
+// xFoldBoundCap is the defensive ceiling on an announced trigger-cost X when
+// the potential pool is unbounded (an indeterminate source priced
+// potentialUnbounded saturates Mana.Total): every value up to the cap is
+// genuinely payable there, and no corpus X-fold carrier approaches it. The
+// same hard-cap shape the multikickAsk/replicateAsk loops use.
+const xFoldBoundCap int32 = 64
+
+// costCarriesUnfoldedX reports whether the cost carries an X the payment
+// cannot charge until it is folded: a printed {X} pip (Cost.X, Elenda and
+// Azor's "Cost$ X W U B") or an announced PayLife<X> part (LifeX Spec X,
+// Vizkopa Confessor's "pay any amount of life"). The other announced parts
+// (Sac<X/Spec>, PayEnergy<X>, SubCounter<X/Kind>) are NOT this shape: the
+// trigger window has no settle for them, and they keep the decline-only
+// hard-decline convention (the non-mana-settle follow-up family).
+func costCarriesUnfoldedX(c Cost) bool {
+	if c.X > 0 {
+		return true
+	}
+	for _, part := range c.LifeX {
+		if part.Spec == "X" {
+			return true
+		}
+	}
+	return false
+}
+
+// foldCostX folds a chosen X into the cost, once per unfolded shape: the
+// printed {X} pips become that much generic mana (Cost.WithX) and each
+// announced PayLife<X> part becomes that much fixed life, so the folded
+// cost is Priceable and payManaConv can charge it whole.
+func foldCostX(c Cost, x int32) Cost {
+	out := c.WithX(x)
+	if len(out.LifeX) > 0 {
+		for _, part := range out.LifeX {
+			if part.Spec == "X" {
+				out.Life = addClampedGeneric(out.Life, int64(x))
+			}
+		}
+		out.LifeX = nil
+	}
+	return out
 }
 
 // scaleCost repeats every mana/life payment component once per age counter.
@@ -540,6 +599,137 @@ func (e *Engine) triggeredCostDrawCounts(tc *triggeredEffectCost) ([]int32, bool
 	return out, true
 }
 
+// evalTriggerCostFixedX evaluates a FIXED X body (the source face's SVar:X
+// names a resolvable expression OTHER than Count$xPaid -- Tomakul Phoenix's
+// Count$CardPower, Tivash's Count$LifeYouGainedThisTurn), with the context
+// the body will see -- Source and Controller bound the way fixLifeXCost/
+// drawCostCount seed their evaluations, plus the trigger context the body's
+// own resolution will carry (the TriggeredCard$/Targeted$ referent family).
+// resolvable=false means the body is unresolvable (fail closed, the
+// decline-only hard-decline convention, never a silent zero).
+func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, o *state.Object, body string) (int32, bool) {
+	ctx := &effects.Ctx{Source: tc.source, Controller: tc.player, SVars: o.Face().SVars}
+	if tcx, ok := e.triggerContexts[tc.resume.obj]; ok {
+		ctx.TriggerContext = tcx
+	}
+	n, resolvable := effects.EvalCountOK(e, ctx, body)
+	if !resolvable || n < 0 {
+		return 0, false
+	}
+	return n, true
+}
+
+// triggeredCostXAsk is the X arm of the payment ask: a cost carrying an
+// unfolded {X} or PayLife<X> part needs its X announced BEFORE the mana
+// activations that cover it (CR 601.2b's announce-then-activate ordering;
+// the ordinary pay/decline election follows the fold). Two shapes:
+//
+//   - FIXED (SVar:X names a resolvable expression other than Count$xPaid):
+//     the value is folded into the cost once, no ask is posed, and the
+//     ordinary flow proceeds with the now-Priceable cost -- the corpus's
+//     "where X is CARDNAME's power" family. The value binds the body at the
+//     pay arm (rp.winPaidX).
+//   - PAYER-CHOOSES (SVar:X is Count$xPaid): a real KChoose over
+//     the payable values 0..bound in ASCENDING order, so option 0 -- what
+//     botpolicy's default arm and a headless host take -- stays the
+//     decline-equivalent (X = 0 pays only the cost's own pips). The bound is
+//     finite and every offered value is genuinely payable against the seat's
+//     potential pool (the floating pool plus every untapped source's
+//     production -- the window then opens paymentManaAsk, so the activations
+//     that cover X + pips are real): the payer's current life caps a
+//     PayLife<X> part, PotentialMana caps a mana {X}.
+//
+// A face with NO SVar:X, and a face whose SVar:X body is unresolvable (Tymna
+// the Weaver's head), both fail closed: no announcement ask, the amount stays
+// unfolded, and the ordinary unpriceable path below poses decline only -- the
+// no-SVar case is what keeps the synthetic copy-cost shapes (Verrak's
+// PayLife<X> copy execute) hard-decline as abcopy1 pinned them. Returns true
+// when the announcement ask was posed; the answer re-enters through
+// triggeredCostAnswer's trigger_cost_x arm.
+func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
+	if tc.xDone || costCarriesDynTap(tc.amount) || !costCarriesUnfoldedX(tc.amount) {
+		return false
+	}
+	// Never fold an X into a payment for a body this build cannot run: an
+	// unregistered body API (Maralen of the Mornsong Avatar's AB$ StoreSVar,
+	// the corpus's one X-fold carrier of the kind) would charge the payer
+	// real mana or life and then emit only the unimplemented-API Note -- the
+	// decline-only hard-decline below is the honest shape for it.
+	if tc.resume == nil || tc.resume.sa == nil || !effects.Supported()["api:"+tc.resume.sa.API] {
+		return false
+	}
+	tc.xDone = true
+	o := e.G.Obj(tc.source)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	body, present := o.Face().SVars["X"]
+	if !present {
+		// No SVar:X at all: nothing fixes the value AND nothing says the payer
+		// announces one -- the corpus's every X-fold carrier names an SVar:X
+		// (the census), and a synthetic no-SVar shape (Verrak's PayLife<X>
+		// copy execute) keeps today's decline-only hard-decline. Fail closed.
+		return false
+	}
+	if strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+		// Payer-chooses by construction: fall through to the ask.
+	} else if n, resolvable := e.evalTriggerCostFixedX(tc, o, body); !resolvable {
+		// A PRESENT but unresolvable SVar:X body (Tymna the Weaver's
+		// head) fails closed: no announcement ask, the amount stays
+		// unfolded, and the ordinary unpriceable path below poses the
+		// decline-only ask -- the same hard-decline convention the
+		// unpayable-cost arm takes, never a silent zero.
+		return false
+	} else {
+		tc.amount = foldCostX(tc.amount, n)
+		tc.xPaid = n
+		return false
+	}
+	// Payer-chooses (SVar:X is Count$xPaid): "you may pay {X}" is the
+	// payer's announcement (CR 601.2b's announce-then-activate ordering).
+	pot := e.PotentialMana(tc.player)
+	bound := int32(-1)
+	if tc.amount.X > 0 {
+		bound = pot.Total()
+		if bound > xFoldBoundCap {
+			bound = xFoldBoundCap
+		}
+	}
+	for _, part := range tc.amount.LifeX {
+		if part.Spec != "X" {
+			continue
+		}
+		if life := e.G.Players[tc.player].Life; bound < 0 || life < bound {
+			bound = life
+		}
+	}
+	if bound < 0 {
+		return false
+	}
+	var opts []decision.Option
+	for x := int32(0); x <= bound; x++ {
+		if !e.costPayablePool(tc.player, tc.source, false, foldCostX(tc.amount, x), pot) {
+			continue
+		}
+		opts = append(opts, decision.Option{Index: len(opts), Kind: "trigger_cost_x",
+			Label: "X = " + strconv.FormatInt(int64(x), 10), Amount: int(x), Obj: tc.source})
+	}
+	if len(opts) == 0 {
+		// No X value is payable at all: the cost can never be paid. The amount
+		// stays unfolded, so the ordinary unpriceable path below poses the
+		// decline-only ask -- the same shape an unresolvable fixed body takes.
+		return false
+	}
+	name := "triggered ability"
+	if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	e.choosing = chooseTriggeredCost
+	e.ask(&decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: name + " — choose a value for X", Source: tc.source, Options: opts})
+	return true
+}
+
 func (e *Engine) triggeredCostPaymentAsk() {
 	tc := e.triggerCost
 	if tc == nil {
@@ -557,6 +747,10 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	// scaled only by X at 0 -- the outcome a decline gives without emitting
 	// the no-op body's events.
 	if costCarriesDynTap(tc.amount) {
+		// The X fold is deliberately NOT reached from this branch: a cost
+		// carrying BOTH a dynamic tap election and an unfolded X keeps the
+		// decline-only ask below (the corpus's dyn-tap trigger costs are all
+		// tap-only), exactly as before the X fold existed.
 		rest := withoutDynTaps(tc.amount)
 		if rest.Priceable() && !rest.hasManaPayment() && rest.Life == 0 && rest.Snow == 0 {
 			if e.paymentManaAsk(tc.player, tc.source, rest, tc.windowDone,
@@ -569,6 +763,9 @@ func (e *Engine) triggeredCostPaymentAsk() {
 			return
 		}
 		// fall through: the unpayable-cost decline-only ask below
+	}
+	if e.triggeredCostXAsk(tc) {
+		return
 	}
 	if e.paymentManaAsk(tc.player, tc.source, tc.amount, tc.windowDone,
 		"Activate mana abilities to pay "+tc.costLabel, chooseTriggeredCost) {
@@ -723,6 +920,21 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 	case "trigger_cost_tap":
 		e.triggeredTapAnswer(tc, chosen)
 		return
+	case "trigger_cost_x":
+		// The X announcement's answer (the payer-chooses fold): the chosen
+		// value folds into the cost and the payment ask re-opens, now pricing
+		// the folded cost -- CR 601.2b's announce-then-activate ordering. The
+		// answer cannot name an unoffered value (Decision.Validate clamps to
+		// the offered indices); a chosen value the settle then cannot actually
+		// pay ends in the decline at the pay arm, never a wedge.
+		x := int32(0)
+		if len(chosen) > 0 {
+			x = int32(chosen[0].Amount)
+		}
+		tc.amount = foldCostX(tc.amount, x)
+		tc.xPaid = x
+		e.triggeredCostPaymentAsk()
+		return
 	}
 	paid := false
 	if chosen[0].Kind == "trigger_cost_pay" {
@@ -750,6 +962,13 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 	rp := tc.resume
 	e.triggerCost = nil
 	if paid {
+		// The X fold's binding: the announced (or fixed) value rides the
+		// frame into the body, the same channel the dyn-tap election's count
+		// takes (rp.tapPaidX). The body's Count$xPaid then reads THIS
+		// payment, not the source permanent's cast-time X.
+		if tc.xPaid != 0 {
+			rp.winPaidX = tc.xPaid
+		}
 		rp.kind = "effect_paid"
 		e.resumeResolution(rp, nil)
 		return

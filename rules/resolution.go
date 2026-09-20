@@ -136,6 +136,19 @@ type resumePoint struct {
 	// cast-time value, never this payment's; resumeResolution seeds Ctx.X
 	// from it so the body's Count$xPaid reads answer. Zero elsewhere.
 	tapPaidX int32
+	// winPaidX is the X the triggered-cost window's X fold announced or
+	// fixed (rules/cumulative.go: the payer's choose-X answer, or the face
+	// SVar:X's fixed evaluated value) for a body whose `Cost$` carries an
+	// unfolded {X} (Elenda and Azor's "pay {X}{W}{U}{B}") or PayLife<X>
+	// part (Vizkopa Confessor's "pay any amount of life"). It rides the
+	// frame for the same reason tapPaidX does -- the trigger object was
+	// never paid an X, and o.X / triggerPaidX can only supply the source
+	// permanent's cast-time value, which for an attack, ETB or end-step
+	// trigger is nothing to do with this payment -- and it is set at the pay
+	// arm only, from the answered announcement decision or the evaluated
+	// fixed body, so a replay derives it exactly as tapPaidX does. Zero
+	// elsewhere (and zero on a declined window: the body never runs).
+	winPaidX int32
 	// charmRest carries the remaining chosen mode names of a cross-mode
 	// TargetUnique Charm's mode loop (SuspendCharmRest): the frame re-enters
 	// the Charm SA itself with Ctx.Modes = charmRest, so effCharm runs the
@@ -697,6 +710,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// cast-time value, not this payment's.
 	if rp.tapPaidX != 0 {
 		ctx.X = rp.tapPaidX
+	}
+	// The trigger-cost window's X fold (the {X}/{PayLife<X>} announcement:
+	// Elenda and Azor, Vizkopa Confessor, Necrodominance): the announced or
+	// fixed value binds exactly like the dyn-tap count above, so the body's
+	// Count$xPaid / NumCards$ X / TokenPower$ X reads this payment.
+	if rp.winPaidX != 0 {
+		ctx.X = rp.winPaidX
 	}
 	var svars map[string]string
 	if o.Ability != nil {
