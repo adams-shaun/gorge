@@ -337,7 +337,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// unmade taps instead of exhausted ones.
 			if pick := b.chooseTap(d); pick >= 0 {
 				in.Choices = []int{pick}
-				return clamp(d, in)
+				return Clamp(d, in)
 			}
 		}
 		// G0 (cast.go): the land drop ranks before the cast. A land drop is
@@ -351,11 +351,11 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// best spell.
 		if pick := b.chooseLand(d); pick >= 0 {
 			in.Choices = []int{pick}
-			return clamp(d, in)
+			return Clamp(d, in)
 		}
 		if pick := b.chooseCast(d); pick >= 0 {
 			in.Choices = []int{pick}
-			return clamp(d, in)
+			return Clamp(d, in)
 		}
 		// chooseAbility (ability.go, A1-A4) ranks the offered "ability"
 		// options by value instead of taking the first: a provable no-op
@@ -370,7 +370,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		if b.IsMain {
 			if pick := b.chooseAbility(d); pick >= 0 {
 				in.Choices = []int{pick}
-				return clamp(d, in)
+				return Clamp(d, in)
 			}
 		}
 		// Ruling T25-g (fix round 2): explicitly pass here, before clamp
@@ -394,17 +394,17 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		for _, o := range d.Options {
 			if o.Kind == "pass" {
 				in.Choices = []int{o.Index}
-				return clamp(d, in)
+				return Clamp(d, in)
 			}
 		}
 
 	case decision.KTarget:
 		in.Choices = b.chooseTargets(d)
-		return clamp(d, in)
+		return Clamp(d, in)
 
 	case decision.KAttackers:
 		in.Choices = b.chooseAttackersMode(d, lethalPressure, combinedLethal)
-		return clamp(d, in)
+		return Clamp(d, in)
 
 	case decision.KBlockers:
 		if blocksAssignment {
@@ -413,7 +413,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		} else {
 			in.Choices = b.chooseBlockers(d)
 		}
-		return clamp(d, in)
+		return Clamp(d, in)
 
 	case decision.KTriggerOrder:
 		// dp1: no more Fisher-Yates. The order the bot's own simultaneous
@@ -425,7 +425,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// the bench's confidence intervals is gone.
 		if n := len(d.Options); n > 0 {
 			in.Choices = b.chooseTriggerOrder(d)
-			return clamp(d, in)
+			return Clamp(d, in)
 		}
 
 	case decision.KTriggerOptional:
@@ -438,7 +438,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		if len(d.Options) > 0 && d.Options[0].Kind == "yes" {
 			in.Choices = []int{d.Options[0].Index}
 		}
-		return clamp(d, in)
+		return Clamp(d, in)
 
 	case decision.KCommanderZone:
 		// Share CR1's CMC-scaled penalty and its nonnegative acceptance
@@ -456,7 +456,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				}
 			}
 		}
-		return clamp(d, in)
+		return Clamp(d, in)
 
 	case decision.KChoose:
 		if len(d.Options) == 0 {
@@ -548,14 +548,14 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		default: // yes/no (yes is first), name, type, number: the first offer
 			in.Choices = []int{d.Options[0].Index}
 		}
-		return clamp(d, in)
+		return Clamp(d, in)
 
 	case decision.KMulligan:
 		// The London round, two shapes on one kind (rules/mulligan.go).
 		// Bottoming is a hand-retention decision, like discard.
 		if len(d.Options) > 0 && d.Options[0].Kind == "bottom" {
 			in.Choices = b.chooseDiscard(d)
-			return clamp(d, in)
+			return Clamp(d, in)
 		}
 		// Keep/mulligan: mulligan with probability 1/3 when one is offered
 		// (consuming the bot rng only where a real choice exists, the
@@ -564,13 +564,13 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			for _, o := range d.Options {
 				if o.Kind == "mulligan" && r.IntN(3) == 0 {
 					in.Choices = []int{o.Index}
-					return clamp(d, in)
+					return Clamp(d, in)
 				}
 			}
 		}
 		if len(d.Options) > 0 {
 			in.Choices = []int{d.Options[0].Index} // keep
-			return clamp(d, in)
+			return Clamp(d, in)
 		}
 
 	case decision.KModes:
@@ -581,7 +581,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// damage costs.
 		if c := b.unlessSacrificeOffer(d); c != nil {
 			in.Choices = c
-			return clamp(d, in)
+			return Clamp(d, in)
 		}
 		// A modal announcement or mid-resolution pick: choose the first Min options
 		// in order — the recorded mirror of the engine-side first-mode
@@ -594,7 +594,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		for j := 0; j < len(d.Options) && j < d.Min; j++ {
 			in.Choices = append(in.Choices, d.Options[j].Index)
 		}
-		return clamp(d, in)
+		return Clamp(d, in)
 	}
 
 	// Last resort: pass if Min == 0 and one is offered; clamp below handles
@@ -604,11 +604,11 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		for _, o := range d.Options {
 			if o.Kind == "pass" {
 				in.Choices = []int{o.Index}
-				return clamp(d, in)
+				return Clamp(d, in)
 			}
 		}
 	}
-	return clamp(d, in)
+	return Clamp(d, in)
 }
 
 // unlessSacrificeOffer answers the Sacrifice unless-pay damage offer —
@@ -648,12 +648,13 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 	return []int{d.Options[0].Index}
 }
 
-// clamp enforces [Min, Max] on top of whatever Decide's switch (or its
+// Clamp enforces [Min, Max] on top of whatever a policy's switch (or its
 // fallback) picked (Ruling T25-c): truncate to at most Max, in the order
 // already chosen, then -- if that leaves fewer than Min -- top up with the
-// lowest-index unused options until Min is reached or none remain. This is
-// the last thing every return in Decide does, so Decision.Validate's
-// Min..Max requirement holds for any shape the wire format allows, not only
+// lowest-index unused options until Min is reached or none remain. It is the
+// shared last resort every botpolicy return runs and the one seat.PolicyNetBot
+// reuses for its own scored answers (L9c), so no second clamp copy can drift
+// from it.
 // the ones reachable today.
 //
 // Ruling T25-g (fix round 2): the top-up prefers an unused "pass" option
@@ -665,7 +666,7 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 // "activate" option, before "pass". That is precisely how fix round 1's own
 // clamp reintroduced I-1(b): a Min:1 priority decision falling through with
 // nothing chosen got topped up into an activation instead of a pass.
-func clamp(d *decision.Decision, in decision.Intent) decision.Intent {
+func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 	max := d.Max
 	if max < 0 {
 		max = 0

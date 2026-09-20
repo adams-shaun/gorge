@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/cmd/botbench
 
-budget_s: 20
+budget_s: 24
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -88,3 +88,9 @@ budget_s: 20
 | 2026-09-19T20:47Z | e0666a0c+ | 12.9 | 74 | 0 | sadams |
 | 2026-09-19T21:19Z | f0f59556+ | 12.6 | 75 | 0 | sadams |
 | 2026-09-20T06:16Z | 345caf8e+ | 15.3 | 75 | 0 | sadams |
+| 2026-09-20T08:29Z | 7a0fe0d0+ | 20.5 | 77 | 0 | sadams |
+| 2026-09-20T08:29Z | 7a0fe0d0+ | 21.6 | 77 | 0 | sadams |
+| 2026-09-20T08:48Z | bf0663b6+ | 13.3 | 77 | 0 | sadams |
+| 2026-09-20T09:06Z | a997ec1c+ | 14.9 | 77 | 0 | sadams |
+| 2026-09-20T09:07Z | a997ec1c+ | 14.5 | 77 | 0 | sadams |
+| 2026-09-20T09:08Z | a997ec1c+ | 16.1 | 77 | 0 | sadams |

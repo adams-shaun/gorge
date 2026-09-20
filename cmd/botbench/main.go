@@ -120,6 +120,7 @@ import (
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/host"
 	gbench "github.com/adams-shaun/gorge/internal/bench"
+	"github.com/adams-shaun/gorge/internal/policynet"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
@@ -174,6 +175,22 @@ var policies = map[string]func(seed uint64) seat.Seat{
 	"legacy": func(seed uint64) seat.Seat {
 		return &legacySeat{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
 	},
+	// policynet is the L9c learned per-option policy (internal/policynet's
+	// trained scorer over the search-teacher label corpus): it answers the
+	// two kinds the teacher labelled (attackers, priority cast choice) and
+	// delegates everything else to the default bot (seat.PolicyNetBot's own
+	// delegation). Deliberately NOT a hosted policy -- host.NormalizeBotPolicy
+	// does not know the name -- so it can only be benched here, never hosted.
+	// The weights come from -checkpoint (no embedded checkpoint: this task
+	// commits no trained weights), loaded once before any game starts; the
+	// Model is read-only after load, so every seat of every game wraps it in
+	// its own single-threaded Scorer and no two games share scratch.
+	"policynet": func(seed uint64) seat.Seat {
+		if policynetModel == nil {
+			panic("botbench: policy policynet needs -checkpoint <path>")
+		}
+		return seat.NewPolicyNetBot(seed, policynet.NewScorer(policynetModel))
+	},
 }
 
 func hostedPolicy(name string) func(seed uint64) seat.Seat {
@@ -193,6 +210,13 @@ func hostedPolicy(name string) func(seed uint64) seat.Seat {
 // weights argument through run/runMatrix/playMatch; it is write-once
 // before any game starts and read-only afterwards.
 var castProfileOverride *botpolicy.CastWeights
+
+// policynetModel is the trained model -checkpoint names, loaded once by
+// mainExit before any game starts (nil = no checkpoint given). Same
+// write-once/read-only package-scope pattern as castProfileOverride: the
+// policies map's policynet entry reads it, and the Model itself is treated
+// as immutable by every seat built over it.
+var policynetModel *policynet.Model
 
 // castProfileWeightsForRun resolves the run's cast-profile weights: the
 // -profile file when one was given, else the embedded default profile.
@@ -1764,6 +1788,7 @@ func main() {
 	maxIntents := flag.Int("max-intents", 20000, "maximum intents per game before it ends as a stall (not a win, not a draw); catches a game whose turn count never advances but that keeps submitting intents; 0 = no cap")
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	profile := flag.String("profile", "", "path to a cast-profile weights JSON (schema {\"version\":1,\"cast\":{...}}) applied to any side named cast-profile; empty = the embedded default profile")
+	checkpoint := flag.String("checkpoint", "", "path to a trained policynet checkpoint (L9c binary format), required by any side named policynet; no embedded checkpoint exists")
 	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
 	actionCoverage := flag.Bool("action-coverage", false, "append the action-coverage completeness report (decision kinds / option rows never asked, offered-but-never-chosen shapes, cast shapes, cards and ability slots never fired, primitives never exercised) at the end of a run; default off so the normal report is unchanged")
 	decisionTrace := flag.String("decision-trace", "", "write an opt-in atomic JSONL decision trace to a new file (matrix mode only; parent must exist and destination must not)")
@@ -1778,7 +1803,7 @@ func main() {
 	actionCoverageEnabled = *actionCoverage
 
 	os.Exit(mainExit(*a, *b, *games, *seed, *seats, *rotate, *pairs, *format, *out, *workers,
-		*maxTurns, *maxIntents, *dir, *profile, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile, *decisionTrace, *analyzeTrace))
+		*maxTurns, *maxIntents, *dir, *profile, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile, *decisionTrace, *analyzeTrace, *checkpoint))
 }
 
 // mainExit is main's body with the exit code as its return, so the profiler
@@ -1786,7 +1811,7 @@ func main() {
 // profile is still readable evidence -- instead of being skipped by the
 // os.Exit calls a flag-error path used to make.
 func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pairs, format, out string, workers,
-	maxTurns, maxIntents int, dir, profile string, decisionStats, actionCoverage bool, grind string, grindSeconds float64, grindIters int, cpuprofile, memprofile, decisionTrace, analyzeTrace string) int {
+	maxTurns, maxIntents int, dir, profile string, decisionStats, actionCoverage bool, grind string, grindSeconds float64, grindIters int, cpuprofile, memprofile, decisionTrace, analyzeTrace, checkpoint string) int {
 	fail := func(err error) int {
 		fmt.Fprintln(os.Stderr, "botbench:", err)
 		return 1
@@ -1814,6 +1839,26 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 			return fail(err)
 		}
 		return 0
+	}
+
+	// The -checkpoint weights are loaded once before any game starts -- the
+	// full checkpoint gate (magic, schema version, encoder hash, geometry)
+	// runs here, so a drifted checkpoint fails the run at the front door
+	// instead of mid-game. A checkpoint is policynet's flag: required by
+	// any side named policynet, refused for a run that names none.
+	policynetSide := aName == "policynet" || bName == "policynet"
+	if checkpoint != "" {
+		m, err := policynet.LoadCheckpointFile(checkpoint)
+		if err != nil {
+			return fail(fmt.Errorf("-checkpoint %s: %w", checkpoint, err))
+		}
+		policynetModel = m
+	}
+	if policynetSide && checkpoint == "" {
+		return fail(fmt.Errorf("policy policynet requires -checkpoint <path> (there is no embedded checkpoint)"))
+	}
+	if !policynetSide && checkpoint != "" {
+		return fail(fmt.Errorf("-checkpoint was given but neither side is policynet"))
 	}
 
 	prof := &profiler{cpuPath: cpuprofile, memPath: memprofile}

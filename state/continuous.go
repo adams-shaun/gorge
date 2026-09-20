@@ -77,16 +77,22 @@ type ContinuousEffect struct {
 
 	// AddColors is a layer-5 colour change (CR 613.1e): the WUBRG letters of
 	// the colours the affected object GAINS. Written by the continuous-effect
-	// primitives (effects' Animate Colors$ without OverwriteColors$), composed
-	// by rules' Derived in timestamp order. Empty on every effect that grants
-	// no colour. "All"/"Colorless" never reach this field: the registering
-	// primitive normalises them to "WUBRG" and the empty set respectively.
+	// primitives (effects' Animate Colors$ without OverwriteColors$) AND by
+	// rules' static scan for a Mode$ Continuous static's AddColor$ ("...in
+	// addition to its other colors", Blade of the Oni / Angelic Armaments),
+	// composed by rules' Derived in timestamp order. Empty on every effect
+	// that grants no colour. "All"/"Colorless" never reach this field: the
+	// registering path normalises them to "WUBRG" and the empty set
+	// respectively.
 	AddColors []string
 	// OverwriteColors marks a layer-5 colour SET (Forge's Animate
-	// OverwriteColors$ True with Colors$): while this effect applies, the
-	// affected object's colours are exactly AddColors -- replacing, never
-	// extending, the printed colours and every earlier layer-5 grant
-	// (CR 613.1e sets by timestamp order). With it false AddColors extends.
+	// OverwriteColors$ True with Colors$, and a Mode$ Continuous static's
+	// SetColor$ -- Imprisoned in the Moon's "is a colorless land",
+	// Kenrith's Transformation's green Elk, Leyline of the Guildpact's
+	// "is all colors"): while this effect applies, the affected object's
+	// colours are exactly AddColors -- replacing, never extending, the
+	// printed colours and every earlier layer-5 grant (CR 613.1e sets by
+	// timestamp order). With it false AddColors extends.
 	OverwriteColors bool
 	// RemoveCreatureTypes is Forge's Animate RemoveCreatureTypes$ True: while
 	// this effect applies, the affected object loses every creature-type
@@ -97,6 +103,19 @@ type ContinuousEffect struct {
 	// the face. A printed planeswalker's name-subtype ("Sarkhan") is stripped
 	// with the rest while the walker is animated as a creature.
 	RemoveCreatureTypes bool
+	// AddAllCreatureTypes is Forge's AddAllCreatureTypes$ True (Maskwood
+	// Nexus's "creatures you control are every creature type", the manland
+	// family): while this effect applies, the affected object is EVERY
+	// creature subtype alongside whatever AddTypes grants (CR 613.1c's "all
+	// creature types" grant). The subtype vocabulary is deliberately NEVER
+	// materialised into AddTypes at registration: rules' typeCharacteristics
+	// appends effects.CreatureTypeWordList() into the walk's type list when
+	// the flag is set, so the effects filter's type predicates answer it
+	// through ExtraTypes exactly the way Changeling's intrinsic CDA answers
+	// through hasType. Set by the S:Mode$ Continuous scanner (rules'
+	// staticEffects) and the Animate primitive (AddAllCreatureTypes$ on
+	// Mutavault's animation line).
+	AddAllCreatureTypes bool
 	// RemoveCardTypes is the S:Mode$ Continuous RemoveCardTypes$ True strip
 	// (Darksteel Mutation, Kenrith's Transformation, Witness Protection):
 	// while this effect applies, the affected object loses every card type
@@ -219,6 +238,16 @@ type ContinuousEffect struct {
 	// THIS KIND of grant in one turn. Zero means unlimited. The count is a
 	// log scan (rules' mayPlaysThisTurn), never a mutable field.
 	MayPlayLimit int32
+
+	// ShieldTargets/ShieldTargetPlayers carry a prevention shield's
+	// ShieldEffectTarget$ ParentTarget binding (Acolyte's Reward, Vengeful
+	// Archon): the PARENT SA's chosen targets, which the registered
+	// PreventionSubAbility$ rider's DB$ DealDamage hits with the amount each
+	// application prevented (rules' applyReplaceDamageTail). Objects only in
+	// the first, players only in the second. Engine-runtime only, rebuilt by
+	// re-execution on replay like every other continuous-effect field.
+	ShieldTargets       []ObjID
+	ShieldTargetPlayers []PlayerID
 
 	// MayPlayPlayerTurn marks the grant's Condition$ PlayerTurn rider (the
 	// Kess/Karador "during each of your turns" family): the grant is live

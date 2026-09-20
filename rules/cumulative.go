@@ -422,6 +422,27 @@ func (e *Engine) continueCumulativeAction() {
 	}
 }
 
+// triggeredCostDrawCounts resolves every Draw component of a trigger's Cost$
+// at the window's source, so the ask can decide whether "pay" is answerable
+// and the pay arm can settle the draws without re-deriving them. ok=false
+// means a component is unpayable: a drawer spec with no binding in the cast
+// flow, or a dynamic Draw<X/Spec> whose source SVar is absent or
+// unresolvable (fail closed, the ParseUnlessCost hard-decline convention).
+func (e *Engine) triggeredCostDrawCounts(tc *triggeredEffectCost) ([]int32, bool) {
+	out := make([]int32, len(tc.amount.Draw))
+	for i, part := range tc.amount.Draw {
+		if _, ok := castFlowDrawPlayer(part.Spec, tc.player); !ok {
+			return nil, false
+		}
+		n, ok := e.drawCostCount(tc.source, tc.player, part)
+		if !ok {
+			return nil, false
+		}
+		out[i] = n
+	}
+	return out, true
+}
+
 func (e *Engine) triggeredCostPaymentAsk() {
 	tc := e.triggerCost
 	if tc == nil {
@@ -437,7 +458,17 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	}
 	opts := []decision.Option{{Index: 0, Kind: "trigger_cost_pay", Obj: tc.source, Label: "Pay " + tc.costLabel},
 		{Index: 1, Kind: "trigger_cost_decline", Obj: tc.source, Label: "Do not pay"}}
-	if !tc.amount.Priceable() {
+	// A Draw-bearing cost is Priceable()==false by construction (payMana
+	// cannot charge the draw), but it IS payable when every Draw component's
+	// count resolves and the mana half -- if any -- is covered. The dynamic
+	// Draw<X/Spec> form (Champion of Wits' Cost$ Draw<X/You>) resolves its
+	// count from the source's SVar table here, at the window, so an
+	// unresolvable body offers decline only.
+	payable := tc.amount.Priceable()
+	if !payable && len(tc.amount.Draw) > 0 {
+		_, payable = e.triggeredCostDrawCounts(tc)
+	}
+	if !payable {
 		// An unpriceable cost (PayLife<X>, Verrak, Warped Sengir's copy
 		// trigger) is a hard decline per the ParseUnlessCost convention: the
 		// ask is still posed and the decision recorded, but "pay" is not an
@@ -560,8 +591,29 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		e.triggeredCostPaymentAsk()
 		return
 	}
-	paid := chosen[0].Kind == "trigger_cost_pay" && tc.amount.Priceable() &&
-		e.payManaConv(tc.player, tc.amount, e.paymentConv(tc.player, tc.source, false))
+	paid := false
+	if chosen[0].Kind == "trigger_cost_pay" {
+		if len(tc.amount.Draw) > 0 {
+			// The Draw-bearing cost: resolve every count (source SVar for the
+			// dynamic form), charge the mana half, then draw. The window's ask
+			// offered "pay" only when this resolution succeeds, so the pay
+			// answer is never a partial payment.
+			draws, ok := e.triggeredCostDrawCounts(tc)
+			if ok && e.payManaConv(tc.player, tc.amount, e.paymentConv(tc.player, tc.source, false)) {
+				paid = true
+				for i, part := range tc.amount.Draw {
+					if drawer, ok := castFlowDrawPlayer(part.Spec, tc.player); ok {
+						for n := int32(0); n < draws[i]; n++ {
+							e.drawCostCard(drawer)
+						}
+					}
+				}
+			}
+		} else {
+			paid = tc.amount.Priceable() &&
+				e.payManaConv(tc.player, tc.amount, e.paymentConv(tc.player, tc.source, false))
+		}
+	}
 	rp := tc.resume
 	e.triggerCost = nil
 	if paid {

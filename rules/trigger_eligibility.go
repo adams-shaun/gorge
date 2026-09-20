@@ -67,7 +67,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
 		events.GrantTriggerPush, events.ManaActivate,
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
-		events.CopyToken, events.Exert:
+		events.CopyToken, events.Exert, events.PlanarRoll:
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -98,7 +98,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.AbilityPush
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers
-	case "AttackerBlocked":
+	case "AttackerBlocked", "AttackerBlockedByCreature":
 		return 1 << events.DeclareBlockers
 	case "Sacrificed", "Discarded", "LandPlayed":
 		return 1 << events.MoveZone
@@ -125,7 +125,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// cost-side flip fires the trigger exactly like an effect-side one
 		// (Karplusan Minotaur).
 		return 1 << events.Note
-	case "CounterAdded":
+	case "CounterAdded", "CounterRemoved":
 		return 1 << events.CounterChange
 	case "TokenCreated", "TokenCreatedOnce":
 		return 1 << events.TokenCreate

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
@@ -380,4 +381,153 @@ func TestEndToEndRunsTheCLIShape(t *testing.T) {
 	if code := run([]string{"-corpus", filepath.Join(t.TempDir(), "nope.jsonl"), "-out", out}, &stdout, &stderr); code == 0 {
 		t.Fatal("run with a missing corpus accepted")
 	}
+}
+
+// gridCorpus builds a compact synthetic corpus with real value signal (a
+// per-option value spread) and an option-discriminating feature, enough to
+// make the rank term and the value term both nonzero. Used by the numerical
+// stability gate.
+func gridCorpus(n, nopts int) []policynet.Example {
+	out := make([]policynet.Example, n)
+	for i := 0; i < n; i++ {
+		st := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+		st.Dense[0] = float32(i%5) * 0.2
+		st.Sparse = append(st.Sparse,
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("g|s|%d", i%7)), Value: 1},
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("g|b|%d", i%5)), Value: 1},
+		)
+		ex := policynet.Example{Kind: "attackers", Margin: 0.2, TeacherChoice: 1, BotIndex: 0, State: st}
+		pref := i % nopts
+		for j := 0; j < nopts; j++ {
+			o := policynet.Option{Dense: make([]float32, policynet.OptionDenseWidth)}
+			o.Hashed = append(o.Hashed, policynet.Feature{Row: policynet.HashID(fmt.Sprintf("g|p|%d", j)), Value: 1})
+			v := 0.5 + 0.05*float64(j)
+			if j == pref {
+				o.Hashed = append(o.Hashed, policynet.Feature{Row: policynet.HashID("g|good"), Value: 1})
+				v = 0.75
+			}
+			o.Target = policynet.OptionTarget{Labelled: true, Preferred: j == pref, Value: v}
+			ex.Options = append(ex.Options, o)
+		}
+		out[i] = ex
+	}
+	return out
+}
+
+// TestTrainerStableAcrossRankGrid is the numerical-stability gate the brief
+// names: every rank-weight/lr combination in the reported grid trains to a
+// finite loss and a finite checkpoint. The pre-fix loss is NaN at the top of
+// the grid (rank-weight 50) because its log-sum-exp saw raw ±Inf scores and
+// computed Inf − Inf; the score clamp plus the max-subtracting log-sum-exp
+// keep every value finite.
+func TestTrainerStableAcrossRankGrid(t *testing.T) {
+	corpus := gridCorpus(200, 3)
+	for _, rw := range []float64{5, 10, 25, 50} {
+		for _, lr := range []float64{0.1, 0.01, 0.001} {
+			cfg := Config{Epochs: 6, Batch: 32, LR: lr, Seed: 7, Holdout: 0.15,
+				Embed: 16, Hidden: 16, RankWeight: rw, HuberDelta: 0.1}
+			res, err := Train(corpus, cfg)
+			if err != nil {
+				t.Fatalf("rw=%v lr=%v: Train: %v", rw, lr, err)
+			}
+			for _, e := range res.Epochs {
+				if math.IsNaN(e.TrainLoss) || math.IsInf(e.TrainLoss, 0) ||
+					math.IsNaN(e.HoldoutLoss) || math.IsInf(e.HoldoutLoss, 0) ||
+					math.IsNaN(e.TrainTop1) || math.IsNaN(e.HoldoutTop1) {
+					t.Fatalf("rw=%v lr=%v epoch %d: non-finite stat %+v", rw, lr, e.Epoch, e)
+				}
+			}
+			params := [][]float32{res.Model.Table, res.Model.StateW, res.Model.StateB,
+				res.Model.HidW, res.Model.HidB, res.Model.OutW}
+			for name, p := range params {
+				for i, v := range p {
+					if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+						t.Fatalf("rw=%v lr=%v: non-finite parameter block %d [%d] = %v", rw, lr, name, i, v)
+					}
+				}
+			}
+			if math.IsNaN(float64(res.Model.OutB)) || math.IsInf(float64(res.Model.OutB), 0) {
+				t.Fatalf("rw=%v lr=%v: non-finite output bias %v", rw, lr, res.Model.OutB)
+			}
+		}
+	}
+}
+
+// TestTrainerLearnsOverridesOverBotImitation is the collapse regression gate.
+// The corpus: the teacher keeps the bot's answer (option 0) on 90% of
+// decisions and overrides to an option-feature-marked option on the other
+// 10%; the override decisions carry a tiny margin, so an unweighted trainer
+// drowns their rank signal and learns to copy the bot. The correct option is
+// determined by the option feature "bi|good" (gated by the "bi|ov" state
+// cue), and the first-labelled baseline is 0.90 because option 0 is first.
+//
+// Measured: unweighted (the pre-fix behaviour) holdout top-1 = 0.867, BELOW
+// the 0.900 first-labelled baseline — the collapse signature. With
+// -override-weight 1000 (the new signal weighting) it reaches 1.000, clearly
+// above the baseline. The chosen 1000 compensates the 200x margin ratio this
+// synthetic uses to stand in for the real corpus's 75%/25% agreement/override
+// split.
+func TestTrainerLearnsOverridesOverBotImitation(t *testing.T) {
+	corpus := botImitationTrainCorpus(600, 3, 0.9, 0.2, 0.001)
+
+	unweighted, err := Train(corpus, Config{Epochs: 30, Batch: 32, LR: 0.05, Seed: 7,
+		Holdout: 0.15, Embed: 32, Hidden: 64, RankWeight: 5, HuberDelta: 0.1, OverrideWeight: 1})
+	if err != nil {
+		t.Fatalf("Train (unweighted): %v", err)
+	}
+	weighted, err := Train(corpus, Config{Epochs: 30, Batch: 32, LR: 0.05, Seed: 7,
+		Holdout: 0.15, Embed: 32, Hidden: 64, RankWeight: 5, HuberDelta: 0.1, OverrideWeight: 1000})
+	if err != nil {
+		t.Fatalf("Train (weighted): %v", err)
+	}
+	u := unweighted.ByKind[0]
+	w := weighted.ByKind[0]
+	if w.Kind != u.Kind {
+		t.Fatalf("kind mismatch: %q vs %q", w.Kind, u.Kind)
+	}
+	if u.FirstTop1 < 0.85 || u.FirstTop1 > 0.95 {
+		t.Fatalf("first-labelled baseline %.3f outside the expected ~0.90", u.FirstTop1)
+	}
+	if u.ModelTop1 > u.FirstTop1 {
+		t.Fatalf("unweighted model top-1 %.3f should be at/below the first-labelled baseline %.3f (bot imitation)",
+			u.ModelTop1, u.FirstTop1)
+	}
+	if w.ModelTop1 <= w.FirstTop1 {
+		t.Fatalf("weighted model top-1 %.3f not above the first-labelled baseline %.3f", w.ModelTop1, w.FirstTop1)
+	}
+	if w.ModelTop1 < 0.95 {
+		t.Fatalf("weighted model top-1 %.3f < 0.95", w.ModelTop1)
+	}
+	t.Logf("first-labelled %.3f; unweighted %.3f; override-weighted %.3f", w.FirstTop1, u.ModelTop1, w.ModelTop1)
+}
+
+// botImitationTrainCorpus builds the bot-imitation corpus the regression gate
+// trains on (see TestTrainerLearnsOverridesOverBotImitation).
+func botImitationTrainCorpus(n, nopts int, keepFrac, keepMargin, ovMargin float64) []policynet.Example {
+	out := make([]policynet.Example, n)
+	for i := 0; i < n; i++ {
+		st := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+		st.Sparse = append(st.Sparse, policynet.Feature{Row: policynet.HashID(fmt.Sprintf("bi|s|%d", i%7)), Value: 1})
+		ex := policynet.Example{Kind: "attackers", Margin: keepMargin, BotIndex: 0, State: st}
+		override := float64(i)/float64(n) >= keepFrac
+		pref := 0
+		if override {
+			pref = 1
+			ex.TeacherChoice = 1
+			ex.Margin = ovMargin
+			st.Sparse = append(st.Sparse, policynet.Feature{Row: policynet.HashID("bi|ov"), Value: 1})
+			ex.State = st
+		}
+		for j := 0; j < nopts; j++ {
+			o := policynet.Option{Dense: make([]float32, policynet.OptionDenseWidth)}
+			o.Hashed = append(o.Hashed, policynet.Feature{Row: policynet.HashID(fmt.Sprintf("bi|p|%d", j)), Value: 1})
+			if j == 1 {
+				o.Hashed = append(o.Hashed, policynet.Feature{Row: policynet.HashID("bi|good"), Value: 1})
+			}
+			o.Target = policynet.OptionTarget{Labelled: true, Preferred: j == pref, Value: 0.5}
+			ex.Options = append(ex.Options, o)
+		}
+		out[i] = ex
+	}
+	return out
 }

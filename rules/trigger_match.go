@@ -902,6 +902,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			// carry triggered abilities.
 			return
 		}
+		// objLKI is the whole-event LKI snapshot, hoisted here because every
+		// trigger this loop matches for this event shares it (lki.ID == ev.Obj
+		// always holds when lki != nil -- see checkTriggers's own doc above; a
+		// defensive belt-and-braces check against a future emit change that
+		// might one day pass a mismatched lki). triggerMatches and the matched
+		// trigger's Ctx both read it. Hoisted above the face-down gate too: the
+		// cloaked ward walk below reads it as well.
+		var objLKI *state.Object
+		if lki != nil && lki.ID == ev.Obj {
+			objLKI = lki
+		}
 		if e.faceDownPrintedHides(o) {
 			// CR 708.8: a face-down permanent's printed triggers (and any
 			// granted walk keyed to it) do not exist while it is face down --
@@ -911,17 +922,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			// face down; the live walk matches leaves-triggers only through
 			// that observer or a TriggerZones the departed card no longer
 			// occupies).
+			// A CLOAKED face-down permanent is the one exception: its ward {2}
+			// is part of the cloak status itself (CR 708.5's cloak variant),
+			// not a printed ability -- the synthesized Ward trigger in
+			// checkGrantedWardTriggers (built from the derived keyword list
+			// layers.go appends for Cloaked objects) is what turns targeting
+			// it into the pay-or-counter ask. Only the granted-ward walk
+			// revives; the printed-face walk stays suppressed.
+			if o.Cloaked && ev.Kind == events.TargetsChosen {
+				e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			}
 			return
-		}
-		// objLKI is the whole-event LKI snapshot, hoisted here because every
-		// trigger this loop matches for this event shares it (lki.ID == ev.Obj
-		// always holds when lki != nil -- see checkTriggers's own doc above; a
-		// defensive belt-and-braces check against a future emit change that
-		// might one day pass a mismatched lki). triggerMatches and the matched
-		// trigger's Ctx both read it.
-		var objLKI *state.Object
-		if lki != nil && lki.ID == ev.Obj {
-			objLKI = lki
 		}
 		// Ordinary cards need no face-walk setup when their printed triggers
 		// cannot observe this event. An unlocked Room may still have an
@@ -1367,6 +1378,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.cycledMatches(t, source, ev, lki)
 	case "CounterAdded":
 		matched = e.counterAddedMatches(t, source, ev, lki)
+	case "CounterRemoved":
+		matched = e.counterRemovedMatches(t, source, ev, lki)
 	case "Attached":
 		matched = e.attachedMatches(t, source, ev)
 	case "TokenCreated", "TokenCreatedOnce":
@@ -2153,6 +2166,47 @@ func (e *Engine) counterAddedMatches(t cards.Trigger, source state.ObjID, ev eve
 	return true
 }
 
+// counterRemovedMatches is CounterAdded's mirror for Mode$ CounterRemoved
+// ("whenever a counter is removed from ~", "when the last <kind> counter is
+// removed from ~"): the event is a CounterChange with a NEGATIVE Amount
+// (effects/counters.go's removal primitives, rules/turn.go:64's suspend TIME
+// upkeep decrement), filtered by CounterType$ (case-insensitive, same as the
+// Added arm), ValidCard$/ValidPlayer$ and TriggerZones$ (the shared zoneGate
+// already ran). CounterChange carries no player field, so ValidPlayer$ is
+// matched against the object's controller -- the convention counterAddedMatches
+// uses. NewCounterAmount$ is Forge's "the LAST counter" gate: the post-event
+// total for the counter kind must equal the named value -- events.Apply folds
+// the removal before checkTriggers runs, so o.Counter(ev.Counter) is already
+// the total after. A malformed value fails closed (the Added arm's
+// strconv/splitCompare style). Fire-once semantics are the event granularity:
+// one Amount: -N batch removal is ONE trigger, exactly as CounterAdded fires
+// once per CounterChange; the Once batch modes are separate.
+func (e *Engine) counterRemovedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.CounterChange || ev.Amount >= 0 {
+		return false
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil {
+		return false
+	}
+	if kind := t.Params["CounterType"]; kind != "" && !strings.EqualFold(kind, ev.Counter) {
+		return false
+	}
+	if !e.eventCardAndPlayerMatch(t, source, ev.Obj, o.Controller) {
+		return false
+	}
+	if want := t.Params["NewCounterAmount"]; want != "" {
+		n, err := strconv.Atoi(strings.TrimSpace(want))
+		if err != nil {
+			return false
+		}
+		if o.Counter(ev.Counter) != int32(n) {
+			return false
+		}
+	}
+	return true
+}
+
 // attackerBlockedCandidates lists the attackers one become-blocked trigger
 // fires for (Forge Mode$ AttackerBlocked; She-Hulk, Wallbreaker's "Whenever
 // a Hero you control becomes blocked"). A DeclareBlockers event's Pairs
@@ -2183,17 +2237,60 @@ func (e *Engine) attackerBlockedCandidates(t cards.Trigger, source state.ObjID, 
 	return out
 }
 
-// checkAttackerBlockedTriggers queues one trigger instance per matching
-// blocked attacker -- the per-candidate shape the ordinary face scan cannot
-// express (it queues at most one entry per trigger per event, and the
-// become-blocked referent is per attacker: She-Hulk's counter count is each
-// Hero's OWN blocker count). The same-scan-hook precedent is
+// attackerBlockedByPairCandidates lists the (attacker, blocker) pairs one
+// Forge Mode$ AttackerBlockedByCreature trigger fires for (kw:Flanking's
+// expansion, CR 702.25a: "whenever this creature becomes blocked by a
+// creature without flanking"). Each declared pair whose ATTACKER is the
+// trigger's own source, matches ValidCard$, and whose blocker matches
+// ValidBlocker$ yields one instance; a blocker WITH flanking matches nothing,
+// so it debuffs nobody. ValidCard$ Card.Self works because the trigger's
+// source IS the flanking attacker. The sibling "blocks" half of Forge's mode
+// names the BLOCKER as its source and never reaches here (see the loop).
+func (e *Engine) attackerBlockedByPairCandidates(t cards.Trigger, source state.ObjID, ev events.Event) [][2]state.ObjID {
+	if ev.Kind != events.DeclareBlockers || len(ev.Pairs) == 0 {
+		return nil
+	}
+	ctrl := e.controllerOf(source)
+	var out [][2]state.ObjID
+	for _, pr := range ev.Pairs {
+		// The trigger's SOURCE must be the pair's ATTACKER. This hook binds the
+		// blocker as the remembered object, so it is only correct for the
+		// "becomes blocked" half of Forge's mode (kw:Flanking is its only live
+		// carrier). The sibling "blocks" half spells its source as the BLOCKER
+		// (ValidCard$ Creature | ValidBlocker$ Card.Self) and names the attacker
+		// in its body (Defined$ TriggeredAttackerLKICopy); queueing it here would
+		// resolve that referent to the remembered BLOCKER -- the source itself --
+		// and make the creature damage/lose life to itself. That half stays inert
+		// (role-correct referents need a second remembered slot, a separate task).
+		if pr[0] != source {
+			continue
+		}
+		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[0], e.specCtx(source, ctrl)) {
+			continue
+		}
+		if v := t.Params["ValidBlocker"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[1], e.specCtx(source, ctrl)) {
+			continue
+		}
+		out = append(out, pr)
+	}
+	return out
+}
+
+// checkAttackerBlockedTriggers queues trigger instances off a DeclareBlockers
+// event for the two become-blocked modes the ordinary face scan cannot express
+// (it queues at most one entry per trigger per event, and both referents are
+// per-attacker or per-pair): Mode$ AttackerBlocked fires once per DISTINCT
+// matching blocked attacker (She-Hulk's counter count is each Hero's OWN
+// blocker count), and Forge Mode$ AttackerBlockedByCreature -- kw:Flanking's
+// expansion (CR 702.25a) is its only live carrier -- fires once per matching
+// (attacker, blocker) PAIR, the blocker remembered as the
+// TriggeredBlockerLKICopy referent. The same-scan-hook precedent is
 // checkChapterTriggers (rules/saga.go). The gates mirror the ordinary scan's
 // per-trigger sequence (zone, phase, fire-count bound, ActivationLimit$);
-// Secondary$ and the Once damage-batch gates do not exist on this mode.
-// The per-attacker ctx carries the blocked attacker as the Remembered
-// TriggeredAttackerLKICopy referent and as TriggerCard, so
-// Count$Valid Creature.blockingTriggeredAttacker counts that Hero's blockers.
+// Secondary$ and the Once damage-batch gates do not exist on these modes.
+// Each per-instance ctx carries the triggering objects as Remembered and as
+// TriggerCard, so Count$Valid Creature.blockingTriggeredAttacker counts that
+// Hero's blockers and Defined$ TriggeredBlockerLKICopy names the blocker.
 func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	if ev.Kind != events.DeclareBlockers {
 		return
@@ -2212,7 +2309,7 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			return
 		}
 		for ti, t := range f.Triggers {
-			if t.Mode != "AttackerBlocked" {
+			if t.Mode != "AttackerBlocked" && t.Mode != "AttackerBlockedByCreature" {
 				continue
 			}
 			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
@@ -2226,6 +2323,36 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 				continue // cascade bound: see maxTriggerFires.
 			}
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			if t.Mode == "AttackerBlockedByCreature" {
+				// CR 702.25a: one instance per (attacker, blocker) pair; the
+				// trigger's controller is the ATTACKER's controller, which the
+				// Source/Controller pair already are (the source is the
+				// flanking attacker itself).
+				for _, pr := range e.attackerBlockedByPairCandidates(t, id, ev) {
+					if t.Effect == nil {
+						break
+					}
+					bid := pr[1]
+					e.triggerFireCount[key]++
+					e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+						Source:     id,
+						Controller: o.Controller,
+						Idx:        ti,
+						SA:         t.Effect,
+						Ctx: effects.Ctx{
+							Source:     id,
+							Controller: o.Controller,
+							Remembered: []state.Target{{Obj: bid}},
+							Captured:   []state.Target{{Obj: bid}},
+							TriggerContext: effects.TriggerContext{
+								TriggerCard:   bid,
+								TriggerSource: pr[0],
+							},
+						},
+					})
+				}
 				continue
 			}
 			for _, aid := range e.attackerBlockedCandidates(t, id, ev) {
@@ -3047,13 +3174,30 @@ func (e *Engine) parsedPhaseSpec(spec string) parsedPhase {
 // that invalid name once as a Note; this bool-only matcher does not emit
 // while it may be walking a scratch look-back observer. An absent Phase$
 // remains ungated, matching Forge's null validPhases.
+//
+// PhaseCount$ narrows a Phase$ set to the Nth member of that set in turn
+// order: `Phase$ Main | PhaseCount$ 2` is the SECOND main phase, so the gate
+// fails at the first. A non-positive or non-numeric value fails closed (the
+// conservative direction -- the trigger then fires at no step rather than
+// every matching one).
 func (e *Engine) phaseGate(t cards.Trigger) bool {
 	spec := t.Params["Phase"]
 	if strings.TrimSpace(spec) == "" {
 		return true
 	}
 	p := e.parsedPhaseSpec(spec)
-	return p.valid && p.set.Has(e.G.Step)
+	if !p.valid || !p.set.Has(e.G.Step) {
+		return false
+	}
+	count := strings.TrimSpace(t.Params["PhaseCount"])
+	if count == "" {
+		return true
+	}
+	n, err := strconv.Atoi(count)
+	if err != nil || n < 1 {
+		return false
+	}
+	return p.set.Ordinal(e.G.Step) == n
 }
 
 // phaseMatches implements Mode$ Phase after phaseGate has already checked
@@ -3520,7 +3664,7 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:Cycled", "trig:CounterAdded",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:Cycled", "trig:CounterAdded", "trig:CounterRemoved",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
@@ -3545,6 +3689,10 @@ func init() {
 		// (layer-6 AddKeyword$) form is synthesized by
 		// checkGrantedAfflictTriggers, the Dethrone precedent.
 		"kw:Afflict",
+		// Flanking's expansion (cards/keywords.go) is a become-blocked trigger
+		// on the new AttackerBlockedByCreature mode (CR 702.25a), one instance
+		// per non-flanking blocker, debuffing it -1/-1 until EOT via Pump.
+		"kw:Flanking",
 		// Afterlife's expansion (cards/keywords.go) is a ChangesZone death
 		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
 		"kw:Afterlife",
@@ -3719,8 +3867,14 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 		return
 	}
 	printed := map[string]bool{}
-	for _, k := range f.Keywords {
-		printed[strings.ToLower(k)] = true
+	if !e.faceDownPrintedHides(o) {
+		// While the object is face down its printed face does not exist
+		// (CR 708.8): a cloaked card whose real face prints Ward must not
+		// suppress its own cloak-ward -- the derived list is the only
+		// keyword source on this path.
+		for _, k := range f.Keywords {
+			printed[strings.ToLower(k)] = true
+		}
 	}
 	for _, k := range observer.Derived(id).Keywords {
 		if printed[strings.ToLower(k)] {

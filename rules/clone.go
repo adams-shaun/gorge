@@ -132,6 +132,9 @@ func (e *Engine) Clone() *Engine {
 				ce.RestrictParams = m
 			}
 			ce.Remembered = append([]state.ObjID(nil), ce.Remembered...)
+			ce.RememberedPlayers = append([]state.PlayerID(nil), ce.RememberedPlayers...)
+			ce.ShieldTargets = append([]state.ObjID(nil), ce.ShieldTargets...)
+			ce.ShieldTargetPlayers = append([]state.PlayerID(nil), ce.ShieldTargetPlayers...)
 			if ce.ReplacementParams != nil {
 				m := make(map[string]string, len(ce.ReplacementParams))
 				for k, v := range ce.ReplacementParams {

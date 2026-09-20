@@ -141,6 +141,21 @@ func Describe(g *state.Game, ev events.Event) string {
 			return obj(g, ev.Obj) + " skips its untap step (exerted)"
 		}
 		return obj(g, ev.Obj) + " is exerted"
+	case events.PlanarRoll:
+		// CR 901.3 (task rollplanar1): the roll record. The per-die faces ride
+		// the die-roll Notes rules emits beside this event; Amount > 1 names
+		// the post-replacement count (never render the face list here — the
+		// Describe-coverage fuzz carries arbitrary IDs values that are not
+		// results, so the faces are only ever read off the Notes). The ignored
+		// count rides Counter as its decimal; never say "ignoring 0".
+		if ev.Amount > 1 {
+			text := player(g, ev.Player) + " rolls " + itoa(int64(ev.Amount)) + " planar dice"
+			if n, err := strconv.Atoi(ev.Counter); err == nil && n > 0 {
+				text += " (ignoring " + itoa(int64(n)) + ")"
+			}
+			return text
+		}
+		return player(g, ev.Player) + " rolls the planar die"
 	case events.NoteNumber:
 		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
 	case events.MoveZone:

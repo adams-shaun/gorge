@@ -146,6 +146,11 @@ var baseBuckets = map[string]bucket{
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	"targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
 	"head": bSA, "ma": bSA, "pt.SA": bSA,
+	// rsub is runPreventionShieldRider's rewritten copy of the
+	// PreventionSubAbility$ rider (a shallow copy of a fresh ResolveSVar
+	// parse, whose NumDmg$/Defined$ the shield application binds): a
+	// *cards.SA value like the sub it copies.
+	"rsub": bSA,
 	// m.ability is manaUnlessActivation's resolved *cards.SA — the ability
 	// whose activation cost/UnlessCost$ the off-stack mana-activation
 	// window reads (resolveManaEffect / askManaUnless / the settle path).
@@ -2308,7 +2313,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Earthbender Ascension":    {"param:api:PutCounter.RememberAmount"},
 	"Glacial Chasm":            {"param:api:Sacrifice.ChangeNum"},
 	"Green Sun's Zenith":       {"param:api:ChangeZone.AIXMax"},
-	"Kona, Rescue Beastie":     {"param:trig:Phase.PhaseCount"},
 	"Natural Order":            {"param:api:ChangeZone.AISearchGoal"},
 	"Nissa, Resurgent Animist": {"param:api:DigUntil.RevealRandomOrder"},
 	"Six":                      {"param:api:Mill.RememberMilled"},

@@ -169,13 +169,20 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
 							out = append(out, kw)
 						}
-						if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
+						if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
 							ty := base
 							ty.Layer = LType
 							ty.AddTypes = statList(st, "AddTypes")
 							if len(ty.AddTypes) == 0 {
 								ty.AddTypes = statList(st, "AddType")
 							}
+							// AddAllCreatureTypes$ True (Maskwood Nexus's "creatures you
+							// control are every creature type", the manland family) rides
+							// the same LType emission as a flag, never a materialised
+							// type list: typeCharacteristics appends the CreatureTypeWords
+							// vocabulary for affected objects, so the answer stays live
+							// and no non-creature word (Arcane/Alara/Ajani) can leak.
+							ty.AddAllCreatureTypes = hasStat(st, "AddAllCreatureTypes")
 							// AddType$ ChosenType (22 corpus files: Adaptive Automaton's
 							// "CARDNAME is the chosen type in addition to its other
 							// types" and its siblings): the VALUE is the static's host
@@ -199,8 +206,48 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							ty.RemoveCardTypes = hasStat(st, "RemoveCardTypes")
 							ty.RemoveCreatureTypes = hasStat(st, "RemoveCreatureTypes")
 							ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-							if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes {
+							if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes || ty.AddAllCreatureTypes {
 								out = append(out, ty)
+							}
+						}
+						// CR 613.1e colour static (Forge's SetColor$, Imprisoned in the Moon /
+						// Kenrith's Transformation / Leyline of the Guildpact): the affected
+						// object's colours are exactly the named set, REPLACING its printed
+						// colours and every earlier layer-5 grant in timestamp order
+						// (SetColor$ overwrites; it never extends). Its sibling AddColor$
+						// ("...in addition to its other colors", Blade of the Oni / Angelic
+						// Armaments / Deep Freeze) is the same layer-5 walk WITHOUT the
+						// overwrite, so the object keeps its printed colours and gains the
+						// named ones. Both share the colour-word parser: a named colour, a
+						// comma list, "All" (every colour) and, for SetColor$, "Colorless"
+						// (the empty set, a real overwrite to colourless). A value it cannot
+						// fully parse (the corpus's "ChosenColor" family -- Faceless One,
+						// Alloy Golem, Clara Oswald, and AddColor$ ChosenColor -- which asks
+						// its controller for a colour before the game) fails CLOSED: no
+						// effect is emitted and the object keeps its printed colours, the
+						// same direction effAnimate's Colors$ gate takes. No Note is emitted
+						// because this scan re-runs on every event; a per-derivation Note
+						// would flood the log.
+						if raw, isSet := st.Params["SetColor"]; isSet {
+							if cols, ok := effects.ColorLetters(raw); ok {
+								sc := base
+								sc.Layer = LColor
+								sc.AddColors = cols
+								sc.OverwriteColors = true
+								sc.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+								out = append(out, sc)
+							}
+						}
+						if raw, isAdd := st.Params["AddColor"]; isAdd || st.Params["AddColors"] != "" {
+							if !isAdd {
+								raw = st.Params["AddColors"]
+							}
+							if cols, ok := effects.ColorLetters(raw); ok {
+								sc := base
+								sc.Layer = LColor
+								sc.AddColors = cols
+								sc.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+								out = append(out, sc)
 							}
 						}
 						// CR 613.1f / 613.4b (Humility): a base-setting static runs in
@@ -1215,8 +1262,28 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			ty = kept
 		}
 		ty = append(ty, ce.AddTypes...)
+		if ce.AddAllCreatureTypes {
+			ty = appendAllCreatureTypes(ty)
+		}
 	}
 	return bestowedTypeSwitch(o, ty)
+}
+
+// appendAllCreatureTypes materialises the layer-4 "all creature types"
+// grant (CR 613.1c alongside AddTypes) into the walk's type list: every
+// creature-subtype word the shared CreatureTypeWords vocabulary knows, in
+// sorted (deterministic) order. Duplicates of a word the printed face or an
+// earlier effect already carry are harmless -- every consumer reads the
+// list with EqualFold scans or Contains -- so the helper does not pay for
+// a dedupe pass. The effects filter's type predicates (hasTypeCtx) answer
+// every creature-subtype predicate and base from this list through
+// ExtraTypes, exactly as Changeling's intrinsic CDA is answered through
+// hasType.
+func appendAllCreatureTypes(types []string) []string {
+	for _, w := range effects.CreatureTypeWordList() {
+		types = append(types, w)
+	}
+	return types
 }
 
 // bestowedTypeSwitch applies CR 702.114e's type switch to a DERIVED type
@@ -1450,6 +1517,19 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	}
 	kw = append(kw[:0], f.Keywords...)
 	kw = append(kw, o.IntrinsicKeywords...)
+	// CR 708.5's cloak variant: a CLOAKED face-down card is a 2/2 creature
+	// with ward {2} -- the ward is part of the cloak status itself, not a
+	// printed or granted ability (the printed face does not exist while face
+	// down, CR 708.8, and faceDownBasis carries no keywords). Appending it
+	// here -- ahead of the layer walk, exactly where a layer-6 grant would
+	// land -- is what feeds checkGrantedWardTriggers's derived-keyword scan
+	// (rules/trigger_match.go), so targeting a cloaked 2/2 meets the real
+	// pay-or-counter ask. Leaving the battlefield clears both flags together
+	// (events.Apply's Move reset), so the ward drops with the face-down
+	// status.
+	if faceDown && o.Cloaked {
+		kw = append(kw, "Ward:2")
+	}
 	// Layer 4 runs first through typeCharacteristics (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
 	// sees the derived type list, not the printed face.

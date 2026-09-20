@@ -473,6 +473,11 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 	// (Mishra's Factory's land base carries none, but an animated creature or
 	// planeswalker face does) before this animation's own Types$ apply.
 	removeCreatureTypes := strings.EqualFold(strings.TrimSpace(sa.Params["RemoveCreatureTypes"]), "True")
+	// AddAllCreatureTypes$ True (Mutavault's "all creature types"): the
+	// same LType emission rides the flag, never a materialised type list --
+	// rules' typeCharacteristics appends the CreatureTypeWords vocabulary
+	// for affected objects (see state.ContinuousEffect.AddAllCreatureTypes).
+	allCreatureTypes := strings.EqualFold(strings.TrimSpace(sa.Params["AddAllCreatureTypes"]), "True")
 	// Abilities$ names the SVar bodies (comma-separated, on THIS face's table)
 	// the animated object gains -- Urza's Saga's chapters ("CARDNAME gains
 	// '{T}: Add {C}'.") are the corpus's flagship shape. The grant is a
@@ -490,6 +495,13 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	permanent := strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
+	// RememberAnimated$ True (Rise and Shine): every permanent this Animate
+	// affected joins the ability's Remembered, both halves -- the ctx list
+	// the chained SubAbility reads (DBPutCounter's Defined$ Remembered) and
+	// the source's event-backed persistent list -- the same two-half
+	// discipline effPumpAll's RememberTargets$ applies (eventRemember
+	// self-gates on a source-less ctx).
+	rememberAnimated := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAnimated"]), "True")
 	if colorsRaw != "" && !colorsOK {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "Animate Colors$ " + colorsRaw + " is not implemented; colours unchanged"})
@@ -505,17 +517,30 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil {
 			continue
 		}
+		if rememberAnimated {
+			c.Remembered = append(c.Remembered, t)
+			eventRemember(h, c, o.ID)
+		}
 		if hasPower || hasToughness {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
 				Layer: state.LPT, Sub: state.SubSet,
-				SetPower: pw, SetToughness: tf, HasSet: true, UntilEOT: true,
+				SetPower: pw, SetToughness: tf, HasSet: true,
+				// The P/T grant lives as long as the type grant: a
+				// Duration$ Permanent animation is WHOLLY permanent
+				// (Stalking Stones's 3/3 lasts indefinitely), never
+				// half-permanent — types kept while an UntilEOT P/T set
+				// strips them to an untransformed-basis 0/0 the CR 704.5f
+				// SBA destroys.
+				Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
 			})
 		}
-		if len(types) > 0 || removeCreatureTypes {
+		if len(types) > 0 || removeCreatureTypes || allCreatureTypes {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
-				Layer: state.LType, AddTypes: types, RemoveCreatureTypes: removeCreatureTypes, UntilEOT: true,
+				Layer: state.LType, AddTypes: types, RemoveCreatureTypes: removeCreatureTypes,
+				AddAllCreatureTypes: allCreatureTypes,
+				Duration:            sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
 			})
 		}
 		if colorsGrant {
@@ -536,7 +561,7 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
 				Layer: state.LAbilities, AddAbilities: abilities,
-				UntilEOT: !permanent,
+				Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
 			})
 		}
 	}
