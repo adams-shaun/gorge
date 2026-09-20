@@ -319,14 +319,17 @@ const (
 	// on a Mode$ Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you
 	// sacrifice a land") and places it on the stack, in one event. It mirrors
 	// DelayedPush's shape -- the Ability is not a face Triggers index but the
-	// granted trigger's Execute$ SVar-named body, resolved here from the
-	// AFFECTED object's own SVar table (rules' queue gate establishes that
-	// this resolves to the exact body the granting face's table names, so a
-	// replay reproduces the same stack object) -- minus the registration
+	// granted trigger's Execute$ SVar-named body -- minus the registration
 	// bookkeeping: a granted trigger is consumed by nothing and lives exactly
-	// as long as its granting static. Appended after MyriadCleanup, following
-	// every prior Kind's append-only precedent, so no earlier ordinal, hash
-	// chain or golden replay is affected.
+	// as long as its granting static. The Execute$ body lives on the GRANTOR's
+	// face (the card carrying the static), while Obj is the AFFECTED
+	// recipient; for a cross-object grant the grantor's object id rides
+	// Amount, and Apply resolves the name from the grantor's SVar table when
+	// it is set (0 = the historical self-grant shape, resolved from the
+	// affected object's own table). Rules' queue gate links the body from the
+	// same table, so a replay reproduces the same stack object. Appended after
+	// MyriadCleanup, following every prior Kind's append-only precedent, so no
+	// earlier ordinal, hash chain or golden replay is affected.
 	GrantTriggerPush
 	// ManaActivate records one activation of an AB$ Mana ability. It is a
 	// MARKER like Note: effMana's own ManaAdd events carry the mana that
