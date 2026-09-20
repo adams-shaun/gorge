@@ -97,6 +97,19 @@ type ContinuousEffect struct {
 	// the face. A printed planeswalker's name-subtype ("Sarkhan") is stripped
 	// with the rest while the walker is animated as a creature.
 	RemoveCreatureTypes bool
+	// AddAllCreatureTypes is Forge's AddAllCreatureTypes$ True (Maskwood
+	// Nexus's "creatures you control are every creature type", the manland
+	// family): while this effect applies, the affected object is EVERY
+	// creature subtype alongside whatever AddTypes grants (CR 613.1c's "all
+	// creature types" grant). The subtype vocabulary is deliberately NEVER
+	// materialised into AddTypes at registration: rules' typeCharacteristics
+	// appends effects.CreatureTypeWordList() into the walk's type list when
+	// the flag is set, so the effects filter's type predicates answer it
+	// through ExtraTypes exactly the way Changeling's intrinsic CDA answers
+	// through hasType. Set by the S:Mode$ Continuous scanner (rules'
+	// staticEffects) and the Animate primitive (AddAllCreatureTypes$ on
+	// Mutavault's animation line).
+	AddAllCreatureTypes bool
 	// RemoveCardTypes is the S:Mode$ Continuous RemoveCardTypes$ True strip
 	// (Darksteel Mutation, Kenrith's Transformation, Witness Protection):
 	// while this effect applies, the affected object loses every card type

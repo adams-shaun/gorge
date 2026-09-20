@@ -1,6 +1,9 @@
 package effects
 
-import "strings"
+import (
+	"sort"
+	"strings"
+)
 
 // creatureSubtypeWords is the authoritative corpus vocabulary of creature
 // subtype tokens. It is deliberately a positive set rather than the
@@ -50,6 +53,25 @@ Wraith Wurm Xindi Yeti Zombie Zubera
 	}
 	return out
 }()
+
+// creatureTypeWordList is the creature-subtype vocabulary as one sorted
+// slice, built once at package init (map range -> sort, so the order is
+// deterministic). rules' layer-4 "all creature types" grant (Maskwood
+// Nexus, the manland family) materialises this into the type walk's list;
+// a positive vocabulary keeps the grant from ever leaking a non-creature
+// word (Arcane/Alara/Ajani) onto an affected object.
+var creatureTypeWordList = func() []string {
+	out := make([]string, 0, len(creatureSubtypeWords))
+	for w := range creatureSubtypeWords {
+		out = append(out, w)
+	}
+	sort.Strings(out)
+	return out
+}()
+
+// CreatureTypeWordList returns every creature subtype word the filter
+// grammar knows, sorted (deterministic; the caller must not mutate it).
+func CreatureTypeWordList() []string { return creatureTypeWordList }
 
 // cardTypeWords is the CR 205.1 card-type vocabulary (including the retired
 // Tribal and Vanguard), the set Count$Valid...$CardTypes counts distinct
