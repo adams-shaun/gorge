@@ -499,9 +499,20 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCard",
 		"TriggeredNewCardLKICopy",
 		"TriggeredAttacker", "TriggeredAttackerLKICopy",
-		"TriggeredBlocker", "TriggeredBlockerLKICopy",
 		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
 		"DelayTriggerRememberedLKI", "RememberedLKI":
+		return c.Remembered, true
+	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
+		// The pair's BLOCKER (trig:Blocks): prefer the fire-time TriggerBlocker
+		// role when the Blocks capture set it (Remembered names the attacker
+		// there); the role-absent fallback keeps the old Remembered read --
+		// the AttackerBlockedByCreature queue entries and hand-built contexts,
+		// whose Remembered IS the blocker. This mirrors the shared case in
+		// effects/context.go's knownDefinedTargets so the two resolvers cannot
+		// disagree about one spelling.
+		if c.TriggerBlocker != 0 {
+			return []state.Target{{Obj: c.TriggerBlocker}}, true
+		}
 		return c.Remembered, true
 	case "TriggeredSpellAbility":
 		// The activation arm (abcopy1): the fire-time TriggerAbility role is
