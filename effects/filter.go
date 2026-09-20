@@ -918,8 +918,11 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return len(ids) > 0 && ids[0] == o.ID
 	case wordHasCounters:
 		// Forge's HasCounters: the object has at least one counter of any
-		// kind on it.
-		return len(o.Counters) > 0
+		// kind on it. Test the COUNT, not the slice length -- state's
+		// AddCounter clamps a drained kind at zero without pruning the slot
+		// (state/object.go), so a permanent whose counters were all removed
+		// still carries a zero-count entry and must not match.
+		return hasCounters(o.Counters)
 	case wordHistoric:
 		// Forge's Historic: artifact, legendary, or Saga (the reminder text
 		// on the Historic keyword).

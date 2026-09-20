@@ -258,6 +258,99 @@ func TestProliferateRememberPutRecordsRecipients(t *testing.T) {
 	}
 }
 
+func TestProliferateDrainedCounterSlotIsNotEligible(t *testing.T) {
+	// Regression: state's AddCounter clamps at 0 but never prunes the slice
+	// entry, so a permanent whose counters were removed down to zero keeps a
+	// zero-count slot. That slot must not make the permanent an eligible
+	// recipient (CR 701.27a) and must never receive +1 of the drained kind.
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	drained := h.g.AddObject(mkCard(t, "Name:Drained\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	drained.Zone = state.ZBattlefield
+	drained.AddCounter("P1P1", 1)
+	drained.AddCounter("P1P1", -1) // slot survives at N == 0
+	if len(drained.Counters) == 0 {
+		t.Fatal("precondition: the drained slot was pruned (state changed)")
+	}
+	if drained.Counter("P1P1") != 0 {
+		t.Fatal("precondition: P1P1 should be drained to zero")
+	}
+	mixed := h.g.AddObject(mkCard(t, "Name:Mixed\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	mixed.Zone = state.ZBattlefield
+	mixed.AddCounter("P1P1", 1)
+	mixed.AddCounter("CHARGE", 1)
+	mixed.AddCounter("CHARGE", -1) // drained kind alongside a live one
+	h.g.SetZone(state.ZBattlefield, 0, []state.ObjID{drained.ID, mixed.ID})
+
+	c := &Ctx{Source: mixed.ID, Controller: 0}
+	Resolve(h, c, proliferateSA(t, ""))
+	if h.asked == nil {
+		t.Fatal("the mixed permanent should be eligible and pose the ask")
+	}
+	for _, o := range h.asked.Options {
+		if o.Obj == drained.ID {
+			t.Fatal("a permanent whose counters were all removed was offered")
+		}
+	}
+	if len(h.asked.Options) != 1 || h.asked.Options[0].Obj != mixed.ID {
+		t.Fatalf("options = %+v, want only the mixed permanent", h.asked.Options)
+	}
+
+	// Applying the answer must add only the live kind, never the drained one.
+	rc := &Ctx{Source: mixed.ID, Controller: 0,
+		Proliferate: []state.Target{{Obj: mixed.ID}}, ProliferateDone: true}
+	Resolve(h, rc, proliferateSA(t, ""))
+	if got := mixed.Counter("P1P1"); got != 2 {
+		t.Fatalf("mixed P1P1 = %d, want 2 (+1 of the live kind)", got)
+	}
+	if got := mixed.Counter("CHARGE"); got != 0 {
+		t.Fatalf("mixed CHARGE = %d, want 0 (a drained kind must not receive +1)", got)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.CounterChange && ev.Counter == "CHARGE" {
+			t.Fatal("proliferate emitted a CounterChange for a drained kind")
+		}
+	}
+}
+
+func TestProliferateDrainedPlayerCounterSlotIsNotEligible(t *testing.T) {
+	// The player path has the same zero-count slot shape (Player.AddCounter
+	// clamps without pruning).
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	carrier := h.g.AddObject(mkCard(t, "Name:Carrier\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	carrier.Zone = state.ZBattlefield
+	carrier.AddCounter("P1P1", 1)
+	h.g.SetZone(state.ZBattlefield, 0, []state.ObjID{carrier.ID})
+	h.g.Players[1].AddCounter("POISON", 1)
+	h.g.Players[1].AddCounter("POISON", -1) // slot survives at N == 0
+	if len(h.g.Players[1].Counters) == 0 {
+		t.Fatal("precondition: the drained player slot was pruned (state changed)")
+	}
+
+	c := &Ctx{Source: carrier.ID, Controller: 0}
+	Resolve(h, c, proliferateSA(t, ""))
+	if h.asked == nil {
+		t.Fatal("the carrier should pose the ask")
+	}
+	for _, o := range h.asked.Options {
+		if o.Player == 1 {
+			t.Fatal("a player whose counters were all removed was offered")
+		}
+	}
+	rc := &Ctx{Source: carrier.ID, Controller: 0,
+		Proliferate: []state.Target{{Player: 1, IsPlayer: true}}, ProliferateDone: true}
+	Resolve(h, rc, proliferateSA(t, ""))
+	if got := h.g.Players[1].Counter("POISON"); got != 0 {
+		t.Fatalf("player POISON = %d, want 0 (a drained kind must not receive +1)", got)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.PlayerCounterChange && ev.Counter == "POISON" {
+			t.Fatal("proliferate emitted a PlayerCounterChange for a drained kind")
+		}
+	}
+}
+
 func TestProliferateUnknownParameterIsLoud(t *testing.T) {
 	h := &askHost{}
 	h.g = state.NewGame(names(2))

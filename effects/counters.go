@@ -51,7 +51,7 @@ func effMultiplyCounter(h Host, c *Ctx, sa *cards.SA) {
 			pl := &g.Players[p]
 			// Deterministic: the player's own counter slice order, which is
 			// insertion order and rebuilt identically on replay.
-			kinds := counterKinds(kind, len(pl.Counters), func(i int) string { return pl.Counters[i].Kind })
+			kinds := counterKinds(kind, len(pl.Counters), func(i int) string { return pl.Counters[i].Kind }, func(i int) int32 { return pl.Counters[i].N })
 			for _, k := range kinds {
 				if add := (mult - 1) * pl.Counter(k); add > 0 {
 					h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
@@ -64,7 +64,7 @@ func effMultiplyCounter(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		kinds := counterKinds(kind, len(o.Counters), func(i int) string { return o.Counters[i].Kind })
+		kinds := counterKinds(kind, len(o.Counters), func(i int) string { return o.Counters[i].Kind }, func(i int) int32 { return o.Counters[i].N })
 		for _, k := range kinds {
 			if add := (mult - 1) * o.Counter(k); add > 0 {
 				h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: add})
@@ -73,18 +73,42 @@ func effMultiplyCounter(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// counterKinds is the kind list MultiplyCounter multiplies: the single
+// counterKinds is the kind list a counter primitive walks: the single
 // CounterType$ when named, otherwise every kind the carrier already holds, in
 // its own deterministic slice order (never a map walk).
-func counterKinds(kind string, n int, at func(int) string) []string {
+//
+// It reports only kinds the carrier actually has a POSITIVE count of. A slot
+// can survive its counters being removed down to zero -- state's AddCounter
+// clamps at zero and never prunes the slice entry (state/object.go,
+// state/game.go) -- so a drained slot must not count as "has this kind":
+// proliferating onto it would add a counter of a kind that is no longer there
+// (CR 701.27a) and the eligibility gate below would offer a recipient with no
+// counters at all. Callers pass the per-index count so the one helper is the
+// single place that filters.
+func counterKinds(kind string, n int, at func(int) string, count func(int) int32) []string {
 	if kind != "" {
 		return []string{kind}
 	}
 	out := make([]string, 0, n)
 	for i := 0; i < n; i++ {
-		out = append(out, at(i))
+		if count(i) > 0 {
+			out = append(out, at(i))
+		}
 	}
 	return out
+}
+
+// hasCounters reports whether a counter carrier holds at least one counter of
+// ANY kind, testing the COUNT and not the slice length (a drained slot stays in
+// the slice at N == 0). This is the CR 701.27a eligibility gate, shared by the
+// object and player walks.
+func hasCounters(kinds []state.Counter) bool {
+	for i := range kinds {
+		if kinds[i].N > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
@@ -972,13 +996,13 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 	var eligible []state.Target
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
-			if o := g.Obj(id); o != nil && len(o.Counters) > 0 {
+			if o := g.Obj(id); o != nil && hasCounters(o.Counters) {
 				eligible = append(eligible, state.Target{Obj: id})
 			}
 		}
 	}
 	for _, p := range g.AliveFrom(0) {
-		if len(g.Players[p].Counters) > 0 {
+		if hasCounters(g.Players[p].Counters) {
 			eligible = append(eligible, state.Target{Player: p, IsPlayer: true})
 		}
 	}
@@ -1045,7 +1069,7 @@ func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target, n int3
 				continue
 			}
 			pl := &g.Players[p]
-			kinds := counterKinds("", len(pl.Counters), func(i int) string { return pl.Counters[i].Kind })
+			kinds := counterKinds("", len(pl.Counters), func(i int) string { return pl.Counters[i].Kind }, func(i int) int32 { return pl.Counters[i].N })
 			for _, k := range kinds {
 				h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
 					Counter: k, Amount: n})
@@ -1057,7 +1081,7 @@ func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target, n int3
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		kinds := counterKinds("", len(o.Counters), func(i int) string { return o.Counters[i].Kind })
+		kinds := counterKinds("", len(o.Counters), func(i int) string { return o.Counters[i].Kind }, func(i int) int32 { return o.Counters[i].N })
 		for _, k := range kinds {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: n})
 		}
