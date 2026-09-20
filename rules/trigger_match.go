@@ -3427,7 +3427,10 @@ func init() {
 		// ChangesZone / Attacks / SpellCast triggers routed through the modes
 		// above: Undying and Evolve are ChangesZone triggers, Exalted is
 		// (Alone$) Attacks, Prowess is SpellCast.
-		"kw:Undying", "kw:Evolve", "kw:Exalted", "kw:Dethrone", "kw:Prowess", "kw:Riot", "kw:Hideaway", "kw:Extort", "kw:Myriad", "kw:Soulbond", "kw:Dredge",
+		// Persist (CR 702.77) is Undying's mirror: the same ChangesZone
+		// dies-trigger shape, reading counters_EQ0_M1M1 off the LKI and
+		// returning the permanent with a -1/-1 counter.
+		"kw:Undying", "kw:Persist", "kw:Evolve", "kw:Exalted", "kw:Dethrone", "kw:Prowess", "kw:Riot", "kw:Hideaway", "kw:Extort", "kw:Myriad", "kw:Soulbond", "kw:Dredge",
 		// Task 17: Storm's expansion (cards/keywords.go) is a SpellCast
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its
