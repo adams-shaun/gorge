@@ -496,14 +496,32 @@ const skipAnomalyMargin = 0.06
 
 // Wall-time comparisons use rows whose test count is within 5% of this run,
 // avoiding false comparisons across historical suite-size changes. A run below
-// half the median wall time per test is refused — but only when the prior rows'
-// median wall (seconds, not per-test) is at least wallPredicateFloorS. This
-// preserves the measured honest rules spread (12.0-14.8s at 445-450 tests, under
-// 20% around its median) while decisively catching the measured 14.8s -> 3.0s
-// collapse.
+// wallCollapseRatio of the median wall time per test is refused — but only when
+// the prior rows' median wall (seconds, not per-test) is at least
+// wallPredicateFloorS.
+//
+// wallCollapseRatio is 0.30, from a measured three-point window (measured
+// 2026-09-20, agent issue agent-20260920T085811Z-3c9f9973; do not reset it to
+// 0.50 without re-measuring both bounds):
+//
+//   - rules missing-corpus collapse (documented 14.8s -> 3.0s, 450 tests):
+//     ratio-of-baseline 3.0/14.8 = 0.203 — the vacuous shape the predicate
+//     exists for, so the ratio must stay ABOVE 0.203.
+//   - view's honest run at the same commit (0.725s/97 tests) against its
+//     own bimodal comparable history (7 stale 0.1s rows + 41 real 1.1-2.2s
+//     rows, median ratio 0.01979 s/test): ratio-of-baseline 0.377 — the
+//     engine the view tests drive got faster, so the ratio must stay BELOW
+//     0.377 or every honest view run is refused (0.50 did exactly that).
+//   - view missing-corpus (0.1s/97, 3 skips): 0.052 — an order of magnitude
+//     under any candidate constant.
+//
+// 0.30 accepts view's honest run with ~26% headroom in the dangerous
+// direction (a SLOWER honest run) and still rejects the rules collapse with
+// ~32% headroom. The predicate is self-healing: each accepted run appends a
+// faster row, so the baseline drifts down and the margin only grows.
 const (
 	comparableTestMargin = 0.05
-	wallCollapseRatio    = 0.50
+	wallCollapseRatio    = 0.30
 )
 
 // wallPredicateFloorS is the smallest prior median WALL (seconds, not per-test)
