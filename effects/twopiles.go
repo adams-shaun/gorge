@@ -162,7 +162,7 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 		for _, id := range pile {
 			sc.Remembered = append(sc.Remembered, state.Target{Obj: id})
 		}
-		Resolve(h, sc, sub)
+		Resolve(h, sc, noShuffleBody(sub))
 	}
 
 	// Stage 3: the pick was answered (or taken by the stand-in). Run the
@@ -231,6 +231,44 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	}
 	runPile(chosenBody, ids[:1])
 	runPile(unchosenBody, nil)
+}
+
+// noShuffleBody is the pile body a pile movement actually resolves: the SVar
+// SA with NoShuffle$ True forced on, unless the script already spoke about
+// the shuffle itself.
+//
+// Every core carrier's pile bodies are library-origin movements (Fact or
+// Fiction's DBHand/DBGrave, Sphinx of Uthuun, Steam Augury, Epiphany at the
+// Drownyard, Intrude on the Mind, Unesh, Jace Architect of Thought's
+// DBLibraryBottom), and the shared Origin$ Library tail
+// (moveDefinedLibraryObjects / the ChangeZoneAll equivalent) fires the
+// default CR 701.23d *search* shuffle on the owner's library unless the SA
+// opts out. A pile split is not a search: not one of these oracle texts says
+// to shuffle, so an unsuppressed tail would shuffle the caster's remaining
+// library once per pile body — measured as two extra Secret Shuffle events
+// on the real Fact or Fiction flow before this suppression.
+//
+// The opt-out is only forced when the body itself is silent: Phyrexian
+// Portal's ChosenPile$ DBHand carries an explicit Shuffle$ True ("then
+// shuffle the rest of that pile into your library" is in its oracle text),
+// and a script that named either flag keeps what it named. Suppressing the
+// shuffle cannot disturb placement: placeLibraryObjects (the UnchosenPile$
+// DBLibraryBottom / LibraryPosition$ -1 shape) runs after the shuffle point,
+// so the bottom-of-library pile still lands in order.
+func noShuffleBody(sub *cards.SA) *cards.SA {
+	if sub == nil {
+		return nil
+	}
+	if strings.TrimSpace(sub.Params["Shuffle"]) != "" || strings.TrimSpace(sub.Params["NoShuffle"]) != "" {
+		return sub
+	}
+	cp := *sub
+	cp.Params = make(map[string]string, len(sub.Params)+1)
+	for k, v := range sub.Params {
+		cp.Params[k] = v
+	}
+	cp.Params["NoShuffle"] = "True"
+	return &cp
 }
 
 // twoPilesPosePick poses the two-option pile pick (KChoose Min 1 Max 1,

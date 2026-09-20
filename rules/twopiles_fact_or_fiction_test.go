@@ -138,6 +138,7 @@ func TestFactOrFictionSplitsAndMovesThePiles(t *testing.T) {
 		}
 	}
 	// Pile A = the first and third revealed cards.
+	start := len(e.L.Events)
 	submitChoices(t, e, d.Options[0].Index, d.Options[2].Index)
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "twopiles_pick" {
@@ -162,6 +163,20 @@ func TestFactOrFictionSplitsAndMovesThePiles(t *testing.T) {
 	}
 	if z := e.G.Obj(fofID).Zone; z != state.ZGraveyard {
 		t.Fatalf("Fact or Fiction zone = %s, want the graveyard after resolving", z)
+	}
+	// Fact or Fiction's oracle text instructs NO shuffle: the pile bodies are
+	// DB$ ChangeZone | Origin$ Library movements, and the shared
+	// moveDefinedLibraryObjects tail would otherwise fire its default
+	// CR 701.23d search shuffle once per pile body, destroying the order of
+	// the caster's remaining library (the same hazard for Sphinx of Uthuun,
+	// Steam Augury, Epiphany at the Drownyard, Jace Architect of Thought,
+	// Intrude on the Mind, Unesh — none of which shuffle either). The pile
+	// bodies run with NoShuffle forced on, so the whole resolution emits no
+	// events.Shuffle at all.
+	for _, ev := range e.L.Events[start:] {
+		if ev.Kind == events.Shuffle {
+			t.Fatalf("TwoPiles resolution emitted a Shuffle for player %d; Fact or Fiction never shuffles: %+v", ev.Player, e.L.Events[start:])
+		}
 	}
 	replayCheck(t, e, cfg)
 }
