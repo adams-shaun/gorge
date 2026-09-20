@@ -3008,13 +3008,30 @@ func (e *Engine) parsedPhaseSpec(spec string) parsedPhase {
 // that invalid name once as a Note; this bool-only matcher does not emit
 // while it may be walking a scratch look-back observer. An absent Phase$
 // remains ungated, matching Forge's null validPhases.
+//
+// PhaseCount$ narrows a Phase$ set to the Nth member of that set in turn
+// order: `Phase$ Main | PhaseCount$ 2` is the SECOND main phase, so the gate
+// fails at the first. A non-positive or non-numeric value fails closed (the
+// conservative direction -- the trigger then fires at no step rather than
+// every matching one).
 func (e *Engine) phaseGate(t cards.Trigger) bool {
 	spec := t.Params["Phase"]
 	if strings.TrimSpace(spec) == "" {
 		return true
 	}
 	p := e.parsedPhaseSpec(spec)
-	return p.valid && p.set.Has(e.G.Step)
+	if !p.valid || !p.set.Has(e.G.Step) {
+		return false
+	}
+	count := strings.TrimSpace(t.Params["PhaseCount"])
+	if count == "" {
+		return true
+	}
+	n, err := strconv.Atoi(count)
+	if err != nil || n < 1 {
+		return false
+	}
+	return p.set.Ordinal(e.G.Step) == n
 }
 
 // phaseMatches implements Mode$ Phase after phaseGate has already checked
