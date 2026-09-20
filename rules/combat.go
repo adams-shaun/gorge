@@ -1864,5 +1864,11 @@ func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
 		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike", "kw:Double Strike",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
-		"kw:Fear", "kw:Shadow")
+		"kw:Fear", "kw:Shadow",
+		// kw:Boast (CR 702.142) has no K: keyword line: Forge marks a Boast
+		// ability with a `Boast$ True` parameter on the activated ability
+		// itself, so Face.Primitives never surfaces it and this explicit
+		// registration is what puts it on the coverage report. The gate
+		// itself is the offer-time read in rules/legal.go's ability loop.
+		"kw:Boast")
 }
