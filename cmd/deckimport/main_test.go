@@ -94,6 +94,26 @@ func TestConvertReportsMissingAndForceStillWrites(t *testing.T) {
 	}
 }
 
+func TestDeckimportResolvesFlavorNameAlias(t *testing.T) {
+	corpusDir := testCorpusDir(t)
+	// Arvinox, the Mind Flail is the Universes-Within flavour name printed on
+	// Mind Flayer, the Shadow; the alias must resolve through the corpus
+	// registry exactly like the canonical name does.
+	in := writeTempDecklist(t, "1 Arvinox, the Mind Flail\n")
+	out := filepath.Join(t.TempDir(), "deck.json")
+
+	dr, err := convert(in, corpusDir, "", "", out, false, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !dr.Ok || dr.Resolved != 1 || dr.Cards != 1 {
+		t.Fatalf("Ok=%v resolved=%d cards=%d missing=%+v", dr.Ok, dr.Resolved, dr.Cards, dr.Missing)
+	}
+	if dr.Percent != 100 {
+		t.Fatalf("percent = %.2f, want 100", dr.Percent)
+	}
+}
+
 func TestRoundTripWritesLoadableDeckFile(t *testing.T) {
 	corpusDir := testCorpusDir(t)
 	in := writeTempDecklist(t, "4 Lightning Bolt\n4 Goblin Guide\n4 Monastery Swiftspear\n12 Mountain\n")
