@@ -118,6 +118,15 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	if e.HasKeyword(attacker, "Flying") && !e.HasKeyword(blocker, "Flying") && !e.HasKeyword(blocker, "Reach") {
 		return false
 	}
+	// CR 702.110a: a creature with skulk can't be blocked by creatures with
+	// greater power. Attacker-keyed and per-pair like Fear/Shadow; DERIVED
+	// power, never printed PT (a +1/+1'd or pumped blocker's real power is
+	// what the CR means). CR 509.1h: this is a declaration-legality rule,
+	// checked here at CR 509.1a -- a blocker's power growing past the
+	// attacker's after declaration does not unblock it, and no re-check runs.
+	if e.HasKeyword(attacker, "Skulk") && e.Derived(blocker).Power > e.Derived(attacker).Power {
+		return false
+	}
 	if e.blockRestricted(blocker, attacker) {
 		return false
 	}
@@ -1931,7 +1940,7 @@ func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
 		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike", "kw:Double Strike",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
-		"kw:Fear", "kw:Shadow", "kw:Horsemanship",
+		"kw:Fear", "kw:Shadow", "kw:Horsemanship", "kw:Skulk",
 		// kw:Boast (CR 702.142) has no K: keyword line: Forge marks a Boast
 		// ability with a `Boast$ True` parameter on the activated ability
 		// itself, so Face.Primitives never surfaces it and this explicit
