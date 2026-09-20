@@ -1325,6 +1325,22 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		faceBefore = &before
 		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
 	}
+	// CR 702.85a: the Aftermath half -- the alternate face of a Split card --
+	// is cast only from its owner's graveyard. From the graveyard the cast
+	// flips to the alternate face before the ordinary cast transaction;
+	// rawBaseCost, targets and resolution then read the aftermath face
+	// (rawBaseCost's default below already pays the FLIPPED face's printed
+	// mana cost, which is what aftermath charges). An aborted proposal
+	// restores the pre-flip face via pc.faceBefore (CR 733.1), the same
+	// reversal a Room or Adventure cast takes.
+	if opt.Mode == "aftermath" {
+		if o.Zone != state.ZGraveyard || aftermathAlternateFace(o) == nil {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	}
 	f := o.Face()
 	if f == nil {
 		return
@@ -1490,7 +1506,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
 	// no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -4478,6 +4494,13 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagSurged)
 	case "flashback":
 		return events.FlagsString(state.FlagFlashback)
+	// Aftermath (CR 702.85a): the flag is what the resolution reader
+	// (spellRestZone) and the fizzle reader (spellFizzleZone) read to exile
+	// the card instead of the graveyard -- on resolution AND when countered,
+	// the same "any time it would leave the stack" convention flashback's
+	// TestFlashbackedSpellCounteredGoesToExile pins.
+	case "aftermath":
+		return events.FlagsString(state.FlagAftermath)
 	case "miracle":
 		return events.FlagsString(state.FlagMiracle)
 	// The alternative-cost keyword family: the flag is what the ETB machinery
@@ -5737,7 +5760,7 @@ func (e *Engine) castSuppressed(p state.PlayerID, id state.ObjID) bool {
 }
 
 func init() {
-	effects.RegisterNonAPI("kw:Kicker", "kw:Surge", "kw:Flashback", "kw:Delve",
+	effects.RegisterNonAPI("kw:Kicker", "kw:Surge", "kw:Flashback", "kw:Aftermath", "kw:Delve",
 		// The alternative-cost keyword family (altcosts): each is implemented
 		// to its CR shape with a named proof test in altcast_test.go --
 		// kw:Evoke (alternative cast + ETB unconditional sacrifice), kw:Dash

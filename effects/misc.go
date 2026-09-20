@@ -934,8 +934,10 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		// CR 702.34a: a flashback spell is exiled instead of going anywhere
 		// else when it leaves the stack -- but an explicit non-graveyard
 		// destination (Remand's hand) is that anywhere-else, so the override
-		// applies only on the graveyard/default path.
-		if o.CastFlags&state.FlagFlashback != 0 && to == state.ZGraveyard {
+		// applies only on the graveyard/default path. CR 702.85a: the same
+		// "then exile it" covers an Aftermath half's cast, every way it
+		// leaves the stack including being countered.
+		if o.CastFlags&(state.FlagFlashback|state.FlagAftermath) != 0 && to == state.ZGraveyard {
 			to = state.ZExile
 		}
 		if remember {

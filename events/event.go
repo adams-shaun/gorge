@@ -793,6 +793,11 @@ var flagNames = [...]struct {
 	// unfiltered total. Appended at the end per the table's own ordering
 	// rule.
 	{"manasnowspent", state.FlagManaSnowSpent},
+	// The Aftermath half's cast (CR 702.85a): the flag is what the resolution
+	// reader (spellRestZone) and the fizzle reader (spellFizzleZone) read to
+	// exile the card instead of the graveyard. Appended at the end per the
+	// table's own ordering rule.
+	{"aftermath", state.FlagAftermath},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
