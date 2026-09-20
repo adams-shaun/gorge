@@ -729,6 +729,17 @@ func eventForgetChanged(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
 	if !strings.EqualFold(strings.TrimSpace(sa.Params["ForgetChanged"]), "True") {
 		return
 	}
+	forgetRememberedOne(h, c, id)
+}
+
+// forgetRememberedOne drops ONE object from both halves of the remembered
+// state -- the resolution's Ctx.Remembered set and the source object's
+// persistent event-backed Remembered list (the "forget-remembered" Choose
+// event events/apply.go folds) -- and is the one shared body for every
+// forget rider: ForgetChanged$ (a zone change forgets what it moved) and
+// Play's ForgetPlayed$ (a card the Play actually began to play is no longer
+// a "you didn't play it" candidate). Callers own their own parameter gate.
+func forgetRememberedOne(h Host, c *Ctx, id state.ObjID) {
 	next := make([]state.Target, 0, len(c.Remembered))
 	for _, t := range c.Remembered {
 		if !t.IsPlayer && t.Obj == id {
