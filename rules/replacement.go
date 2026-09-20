@@ -1365,10 +1365,26 @@ func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatc
 		if body == nil || body.API != "ReplaceCounter" {
 			continue
 		}
-		// The body's own ValidCounterType$ narrows further (Melira's poison
-		// body on an unrestricted R: line); a mismatch skips this modifier.
+		// A body's SubAbility$ chain is part of the replacement: Melira, the
+		// Living Cure's lock ("and you can't get additional poison counters
+		// this turn") rides SVar:OnlyOnePoison's SubAbility$ DBImmediateTrigger,
+		// which resolves an ImmediateTrigger | Execute$ TrigEffect |
+		// StaticAbilities$ CantPutCounter. Running it is not possible yet --
+		// the CantPutCounter restriction static is unimplemented (it is not a
+		// registered continuous restriction and has no enforcement point in
+		// the counter pipeline) -- so the drop is made LOUD rather than
+		// silent: one Note per applying body names the unsupported rider. That
+		// leaves Melira's lock absent (a second poison source the same turn
+		// places its counters), which is recorded as a known wrong result on
+		// exactly that one carrier in the AddCounter row of AGENTS.md.
+		// Placed after the counter-kind gate so a body that does not apply to
+		// this event never emits the Note.
 		if ct := strings.TrimSpace(body.Params["ValidCounterType"]); ct != "" && ct != ev.Counter {
 			continue
+		}
+		if body.Sub != nil {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "replacement body SubAbility$ not run (unsupported rider): " + body.API})
 		}
 		hold := ev
 		hold.Amount = amount
@@ -2118,12 +2134,23 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			strings.TrimSpace(r.Params["ValidCause"]) != "" {
 			return false
 		}
-		// EffectOnly$ True (Doubling Season, Selesnya Loft Gardens) is held by
-		// construction: every CounterChange this engine emits is effect
-		// resolution (effects/counters.go), so the gate is vacuously
-		// satisfiable. No code reads the param yet -- a cost-created-counter
-		// provenance marker, when one lands, must read it here (exactly the
-		// CreateToken row's contract).
+		// EffectOnly$ True (Doubling Season, Selesnya Loft Gardens) admits only
+		// placements that are the EFFECT of a resolving spell or ability ("If an
+		// EFFECT would put one or more counters ..."). It excludes a placement
+		// with no object on the stack: a turn-based action (a Saga's lore
+		// counter, rules/saga.go advanceSagas) and a cost (a planeswalker's [+N]
+		// loyalty counter, rules/cast.go emitChoiceCosts; a station counter,
+		// rules/station.go handleStation) are not effects, and admitting them
+		// doubled counters they must not touch. This is exactly the
+		// actionCause()==0 provenance the Moved case's EffectOnly$ gate reads
+		// (costs are paid before an activated ability exists on the stack, so
+		// they deliberately have no cause) -- one shared test, not a second
+		// hand-built identity stamp. A resolving TRIGGERED ability's instruction
+		// (a cumulative-upkeep age counter, rules/cumulative.go) IS an effect
+		// (CR 609.1), so it still qualifies.
+		if r.Params["EffectOnly"] == "True" && e.actionCause() == 0 {
+			return false
+		}
 		return e.replacementConditionHolds(r, source, you)
 	case "RollPlanarDice":
 		// The planar-dice replacement class (Ichor Elixir, task rollplanar1):

@@ -2,6 +2,7 @@ package rules
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -160,8 +161,13 @@ func TestAddCounterReplacementsComposeScanOrder(t *testing.T) {
 	targetID := moveSeededCard(t, e, 0, target, state.ZBattlefield)
 	activateCounterSource(t, e, sourceID, targetID)
 	got := e.G.Obj(targetID).Counter("P1P1")
-	if got != 3 && got != 4 {
-		t.Fatalf("Hardened Scales + Branching Evolution on a 1-counter placement = %d, want 3 or 4", got)
+	// Scan order is the battlefield order the MoveZone events create: hs was
+	// moved first, so it is scanned first and the running total is
+	// plus-then-double, 1 -> 2 -> 4. Pinned exactly (not a 3-or-4 union): a
+	// union cannot tell plus-then-double from double-then-plus and would pass
+	// for either order.
+	if got != 4 {
+		t.Fatalf("Hardened Scales + Branching Evolution (hs moved first) on a 1-counter placement = %d, want 4 (plus-then-double)", got)
 	}
 	replayCheck(t, e, cfg)
 }
@@ -205,11 +211,65 @@ func TestWindingConstrictorObjectCounters(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestVizierOfRemediesReplacesToZero pins the zero result: Vizier of
-// Remedies' Minus.1 body resolves "that many -1/-1 counters minus one" for a
-// single -1/-1 counter to exactly ZERO, and the placement must apply that
-// zero (place none) rather than skip the replacement and leave the 1 in
-// place. A 3-counter placement resolves 3 - 1 = 2 as a control.
+// TestDoublingSeasonEffectOnlyIgnoresNonEffectPlacement pins the EffectOnly$
+// gate the AddCounter matcher now reads. Doubling Season's oracle admits only
+// placements that are the effect of a resolving spell or ability. A placement
+// with NOTHING on the stack -- the turn-based-action shape (a Saga's lore
+// counter, rules/saga.go advanceSagas) and the cost shape (a planeswalker's
+// [+N] loyalty cost, rules/cast.go emitChoiceCosts) -- is not an effect, so
+// the doubled result it must not produce is the exact regression here; the
+// resolving-effect positive control follows.
+func TestDoublingSeasonEffectOnlyIgnoresNonEffectPlacement(t *testing.T) {
+	ds := tokenReplCorpusCard(t, "Doubling Season")
+	target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e, cfg := tokenReplGame(t, 97, ds, target)
+	moveSeededCard(t, e, 0, ds, state.ZBattlefield)
+	targetID := moveSeededCard(t, e, 0, target, state.ZBattlefield)
+	// Empty stack: a non-effect placement (the turn-based-action shape).
+	e.emit(events.Event{Kind: events.CounterChange, Obj: targetID, Counter: "P1P1", Amount: 2})
+	if got := e.G.Obj(targetID).Counter("P1P1"); got != 2 {
+		t.Fatalf("Doubling Season doubled a non-effect placement: 2 -> %d, want 2 (EffectOnly$ excludes turn-based actions and costs)", got)
+	}
+	replayCheck(t, e, cfg)
+
+	// Positive control: the SAME card with a REAL resolving ability (the
+	// authored PutCounter source) still doubles, 1 -> 2.
+	e2, cfg2, src, tgt := boardWithCounterReplacement(t, 99, "Doubling Season", 1)
+	activateCounterSource(t, e2, src, tgt)
+	if got := e2.G.Obj(tgt).Counter("P1P1"); got != 2 {
+		t.Fatalf("Doubling Season on a resolving 1-counter effect = %d, want 2", got)
+	}
+	replayCheck(t, e2, cfg2)
+}
+
+// TestCounterReplacementBodySubAbilityStaysLoud pins the explicit degradation
+// of a ReplaceCounter body's SubAbility$ chain. Melira, the Living Cure's
+// body is `Amount$ 1 | SubAbility$ DBImmediateTrigger` where
+// DBImmediateTrigger installs a CantPutCounter lock this build does not
+// implement; the chain is dropped, but the drop must be VISIBLE (one Note
+// naming the unsupported rider) rather than silently shipping the lock-less
+// result. The amount rewrite itself still happens (3 -> 1).
+func TestCounterReplacementBodySubAbilityStaysLoud(t *testing.T) {
+	melira := tokenReplCorpusCard(t, "Melira, the Living Cure")
+	e, cfg := tokenReplGame(t, 101, melira)
+	moveSeededCard(t, e, 0, melira, state.ZBattlefield)
+	before := len(e.L.Events)
+	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 3})
+	if got := e.G.Players[0].Counter("POISON"); got != 1 {
+		t.Fatalf("Melira: 3 poison -> %d, want 1 (Amount$ 1)", got)
+	}
+	n := 0
+	for _, ev := range e.L.Events[before:] {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "replacement body SubAbility$") {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("Melira: %d loud rider Notes, want exactly 1", n)
+	}
+	replayCheck(t, e, cfg)
+}
+
 func TestVizierOfRemediesReplacesToZero(t *testing.T) {
 	for _, tc := range []struct {
 		placed, want int32
