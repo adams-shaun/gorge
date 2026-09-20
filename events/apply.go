@@ -803,22 +803,44 @@ func Apply(g *state.Game, e Event) {
 
 	case ManaAdd:
 		if validPlayer(g, e.Player) {
-			// "S<colour>" (e.g. "SW") is a SNOW mana unit (CR 107.4h): it lands
-			// in the colour's pool slot and is tallied in Player.Snow so a {S}
-			// pip can be paid only from it. One event moves both counters, so
-			// the snow tally can never drift from the pool it parallels.
+			player := &g.Players[e.Player]
+			// One event moves the pool and its parallel producer tally, so a
+			// tally can never drift from the pool it partitions. Three counter
+			// forms exist, and all three land in the colour's pool slot:
+			//
+			//   "S<colour>"       -- a SNOW mana unit (CR 107.4h), tallied in
+			//                        Player.Snow so a {S} pip can be paid only
+			//                        from it. The historical two-char form stays
+			//                        first and exact: recorded games carry it.
+			//   "<Tag><colour>"   -- a TYPED mana unit (task castfilter2),
+			//                        tallied in Player.TypedMana[tag] so the
+			//                        filtered Count$CastTotalManaSpent
+			//                        Treasure/Cave/Desert heads can read how much
+			//                        of a cast's spend came from a producer of
+			//                        that type.
+			//   a bare WUBRGC letter (or the empty default) -- plain pool mana.
 			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
 				idx := state.ManaIndex(e.Counter[1])
-				g.Players[e.Player].Pool[idx] += e.Amount
-				g.Players[e.Player].Snow[idx] += e.Amount
-				break
+				player.Pool[idx] += e.Amount
+				player.Snow[idx] += e.Amount
+			} else if tag, slot, ok := state.TypedManaCounter(e.Counter); ok {
+				player.Pool[slot] += e.Amount
+				player.TypedMana[tag][slot] += e.Amount
+			} else {
+				idx := state.MC
+				if e.Counter != "" {
+					idx = state.ManaIndex(e.Counter[0])
+				}
+				player.Pool[idx] += e.Amount
 			}
-			idx := state.MC
-			if e.Counter != "" {
-				idx = state.ManaIndex(e.Counter[0])
-			}
-			player := &g.Players[e.Player]
-			player.Pool[idx] += e.Amount
+			// The RestrictValid$/AddsNoCounter$ provenance is registered for
+			// EVERY counter form, never only a plain one: a tagged restricted
+			// unit (Echoing Cavern's Cave mana, Sunken Citadel's, Bucolic
+			// Ranch's) keeps its restriction exactly like a plain one, and the
+			// matching spend event (which carries r.Color verbatim) consumes
+			// it here. Registering before the pool write would be equivalent
+			// for the ADD path; the consume path needs the batch list, which
+			// this block owns.
 			if valid, srcID, cond, restricted := ManaRestrictionFromText(e.Text); restricted {
 				if e.Amount > 0 {
 					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
@@ -858,6 +880,7 @@ func Apply(g *state.Game, e Event) {
 			g.Players[e.Player].Pool = state.Mana{}
 			g.Players[e.Player].RestrictedMana = nil
 			g.Players[e.Player].Snow = state.Mana{}
+			g.Players[e.Player].TypedMana = [3]state.Mana{}
 		}
 
 	case CounterChange:
@@ -1114,6 +1137,17 @@ func Apply(g *state.Game, e Event) {
 				o.ReplicateTimes = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
 				o.TimesKicked = e.Amount
+			// One CastInfo per captured total, each LATER event carrying ALL
+			// earlier flags (payCast's flags |= accumulation), so this switch
+			// checks the NEWEST flag first -- the reverse of the emission
+			// order -- or every later event would route into the first tag's
+			// field: Desert, Cave, Treasure, then Snow, then the total.
+			case FlagsFrom(e.Counter)&state.FlagManaDesertSpent != 0:
+				o.ManaDesertSpent = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaCaveSpent != 0:
+				o.ManaCaveSpent = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaTreasureSpent != 0:
+				o.ManaTreasureSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaSnowSpent != 0:
 				o.ManaSnowSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaSpent != 0:
@@ -1966,6 +2000,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.TimesKicked = 0
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
+			o.ManaTreasureSpent = 0
+			o.ManaCaveSpent = 0
+			o.ManaDesertSpent = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
@@ -1992,6 +2029,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.TimesKicked = 0
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
+			o.ManaTreasureSpent = 0
+			o.ManaCaveSpent = 0
+			o.ManaDesertSpent = 0
 			o.NotedNumber = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or

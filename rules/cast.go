@@ -137,12 +137,19 @@ type pendingCast struct {
 	// Count$CastTotalManaSpent head, so no game that casts no such card
 	// changes an event. manaSpentSnow (task castfilter1) is the SNOW-unit part
 	// of that same payment (CR 107.4h), the filtered
-	// Count$CastTotalManaSpent Snow form the six Snow carriers read; it rides
-	// the same emission gate, so the two totals never share an event. Plain
-	// data, so Clone copies it like converge.
-	manaSpentOn   bool
-	manaSpent     int32
-	manaSpentSnow int32
+	// Count$CastTotalManaSpent Snow form the six Snow carriers read;
+	// manaSpentTreasure/Cave/Desert (task castfilter2) are the TYPED parts of
+	// that same payment, the filtered Treasure/Cave/Desert forms Marut, Bat
+	// Colony and Cataclysmic Prospecting read. They ride the same emission
+	// gate, and each tag's total rides its OWN trailing CastInfo, so no two
+	// totals ever share an event. Plain data, so Clone copies it like
+	// converge.
+	manaSpentOn       bool
+	manaSpent         int32
+	manaSpentSnow     int32
+	manaSpentTreasure int32
+	manaSpentCave     int32
+	manaSpentDesert   int32
 
 	sacs    []state.ObjID
 	sacPart int
@@ -704,7 +711,7 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, ability bool, pool state.Mana) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !e.costPayablePool(p, id, ability, mana, pool) {
+	if !e.costPayablePool(p, id, ability, mana, pool, e.G.Players[p].TypedMana) {
 		return false
 	}
 	return e.nonManaCastable(p, id, cost, ability)
@@ -5050,7 +5057,7 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		ok, _, spentMana, _ := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
+		ok, _, spentMana, _, _ := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
 		if !ok {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
@@ -5244,7 +5251,7 @@ func (e *Engine) payCast() {
 	if mana.Generic < 0 {
 		mana.Generic = 0
 	}
-	paid, spentMana, spentSnow := e.payManaCastSpent(pc, mana)
+	paid, spentMana, spentSnow, spentTyped := e.payManaCastSpent(pc, mana)
 	if !paid {
 		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
@@ -5268,6 +5275,9 @@ func (e *Engine) payCast() {
 		pc.manaSpentOn = true
 		pc.manaSpent = manaSpentTotal(spentMana)
 		pc.manaSpentSnow = manaSpentTotal(spentSnow)
+		pc.manaSpentTreasure = manaSpentTotal(spentTyped[state.TypedTreasure])
+		pc.manaSpentCave = manaSpentTotal(spentTyped[state.TypedCave])
+		pc.manaSpentDesert = manaSpentTotal(spentTyped[state.TypedDesert])
 	}
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
@@ -5493,6 +5503,26 @@ func (e *Engine) payCast() {
 		// Snow carriers without a second gate.
 		snowFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSnowSpent)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpentSnow, Counter: snowFlags})
+		// The TYPED parts of that same spend (task castfilter2) ride their own
+		// trailing CastInfos, one per tag, each accumulating the earlier
+		// flags -- the same split, applied twice further. Emitted
+		// unconditionally alongside the total -- a cast that spent no mana of
+		// a tag is a real zero, not an absent one -- so the filtered
+		// Count$CastTotalManaSpent Treasure/Cave/Desert read is exact for
+		// their carriers without a second gate. The emission order is total,
+		// then Snow, then Treasure, then Cave, then Desert; since every later
+		// event carries all earlier flags, events.Apply's CastInfo switch
+		// checks the NEWEST flag first (Desert, Cave, Treasure, Snow, then
+		// the total) or every later event would route into the first tag's
+		// field.
+		typedAmounts := [3]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert}
+		typedFlags := [3]uint32{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent}
+		acc := events.FlagsFrom(flags)
+		for t := range typedFlags {
+			acc |= typedFlags[t]
+			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: typedAmounts[t],
+				Counter: events.FlagsString(acc)})
+		}
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for. Capture the deferred

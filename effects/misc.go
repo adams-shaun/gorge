@@ -2005,12 +2005,38 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// slot and the parallel snow tally move through one event and a replay
 	// derives both identically. The {S} pips a cost may carry are paid only
 	// from that tally (rules/mana.go's resolveMana).
+	//
+	// Task castfilter2: mana produced by a Treasure/Cave/Desert permanent is
+	// likewise tagged — Counter "<Tag><colour>" — into Player.TypedMana so
+	// the filtered Count$CastTotalManaSpent Treasure/Cave/Desert heads can
+	// read the per-unit producer provenance (Marut, Bat Colony, Cataclysmic
+	// Prospecting). The tag is COLOUR-INDEPENDENT of what the unit pays as:
+	// a Treasure token's Produced$ Any degrades to colourless (the M4
+	// stand-in) and lands in the MC slot, but the tag still names Treasure.
+	// Precedence is the fixed Treasure > Cave > Desert when a face carries
+	// several (measured: no corpus producer carries two); no corpus producer
+	// is both Snow and typed, and the tagged form takes the Counter (one
+	// encoding per unit) — the combination is unmeasured.
 	snow := false
+	tag := ""
 	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
-		for _, t := range o.Face().Types {
-			if t == "Snow" {
-				snow = true
+		for _, tagWord := range state.TypedManaTags {
+			for _, t := range o.Face().Types {
+				if t == tagWord {
+					tag = tagWord
+					break
+				}
+			}
+			if tag != "" {
 				break
+			}
+		}
+		if tag == "" {
+			for _, t := range o.Face().Types {
+				if t == "Snow" {
+					snow = true
+					break
+				}
 			}
 		}
 	}
@@ -2039,7 +2065,10 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	for _, p := range ManaRecipients(h, c, sa) {
 		for _, r := range runes {
 			counter := string(r)
-			if snow {
+			switch {
+			case tag != "":
+				counter = tag + counter
+			case snow:
 				counter = "S" + counter
 			}
 			ev := events.Event{Kind: events.ManaAdd, Player: p,

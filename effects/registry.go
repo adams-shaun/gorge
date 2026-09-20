@@ -862,6 +862,22 @@ type Ctx struct {
 	// outer answer.
 	CounterPick     []state.ObjID
 	CounterPickDone bool
+	// Proliferate is the answered Proliferate recipient pick (CR 701.27):
+	// the permanents and/or players the resolving controller chose to give
+	// another counter of each kind already there, in the player's answer
+	// order. An object recipient carries Obj; a player recipient carries
+	// Player with IsPlayer true (the same state.Target shape a KChoose's
+	// mixed option list decodes to, and why the shared "counter_pick" arm --
+	// which reads Obj only -- cannot be reused). rules' resume arm sets it
+	// before re-running the suspended sub-ability, so effProliferate's
+	// re-entry applies exactly the chosen recipients instead of asking again;
+	// ProliferateDone distinguishes "answered" from the first pass, so a
+	// Min-0 answer that chose nothing is not mistaken for the first pass and
+	// re-asked. The asking effect consumes and clears both at the top of its
+	// own walk (the fx42 scoping discipline), so a nested Proliferate cannot
+	// inherit the outer answer.
+	Proliferate     []state.Target
+	ProliferateDone bool
 	// UnlessNext is the index of the UnlessPayer$ payer whose answered
 	// unless-pay choice this re-entry applies (0 on a first pass). The
 	// unlessProceed gate (Resolve) consumes and clears it; rules' resume

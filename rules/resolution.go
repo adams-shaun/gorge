@@ -1357,6 +1357,29 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.CounterPickDone = true
+		case "proliferate":
+			// A Proliferate any-number recipient pick was answered (CR 701.27):
+			// the resolving controller chose which permanents and/or players
+			// take another counter of each kind already there. Unlike the
+			// "counter_pick" arm, the option list is MIXED -- an object
+			// recipient carries Obj, a player recipient carries Player with
+			// Obj 0 -- so both halves are decoded here into the state.Target
+			// shape Ctx.Proliferate carries. ProliferateDone distinguishes
+			// "answered, possibly with nothing" (a Min-0 decline) from the
+			// first pass, so a decline is not re-asked. effProliferate consumes
+			// and clears both at the top of its own walk (the fx42 scoping
+			// discipline), so a nested Proliferate cannot inherit the outer
+			// answer.
+			ctx.Proliferate = make([]state.Target, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.Proliferate = append(ctx.Proliferate, state.Target{Obj: o.Obj})
+					continue
+				}
+				ctx.Proliferate = append(ctx.Proliferate,
+					state.Target{Player: o.Player, IsPlayer: true})
+			}
+			ctx.ProliferateDone = true
 		case "blight":
 			// A Blight's per-player KChoose (CR 701.60: the blighting player
 			// chooses which of their own creatures takes the −1/−1 counters)

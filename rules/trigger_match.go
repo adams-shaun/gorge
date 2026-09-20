@@ -4098,13 +4098,17 @@ func init() {
 		//   - kw:Start your engines: the speed mechanic (rules/speed.go).
 		//   - stat:Panharmonicon: the trigger-doubling static (rules'
 		//     panharmoniconEchoes, consulted in checkFaceTriggers).
-		//   - kw:Partner and "kw:CARDNAME can be your commander." are
-		//     DECK-CONSTRUCTION keywords (CR 90.3a/702.129): the engine
-		//     already seats and casts commanders per Config, and nothing in
-		//     play reads them, so the registrations assert the corpus shape
-		//     is understood, not that play rules exist for it.
+		//   - kw:Partner, kw:Partner with and "kw:CARDNAME can be your
+		//     commander." are DECK-CONSTRUCTION keywords (CR 903.13a/b, the
+		//     CR 903.13c named-pair alias, and CR 903.4-style commander
+		//     eligibility): the engine already seats and casts commanders
+		//     per Config -- partnerPairOK -> deck.IsPartnerPair checks the
+		//     mutual named pair -- and nothing in play reads them, so the
+		//     registrations assert the corpus shape is understood, not that
+		//     play rules exist for it.
 		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
-		"stat:Panharmonicon", "kw:Partner", "kw:CARDNAME can be your commander.",
+		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
+		"kw:CARDNAME can be your commander.",
 	)
 }
 

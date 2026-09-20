@@ -89,7 +89,7 @@ func (e *Engine) advanceUnlessPayment() {
 		return
 	}
 	if int(u.payer) < 0 || int(u.payer) >= len(e.G.Players) ||
-		!u.cost.payable(e.G.Players[u.payer].Pool, e.G.Players[u.payer].Snow, e.G.Players[u.payer].Life) ||
+		!u.cost.payable(e.G.Players[u.payer].Pool, e.G.Players[u.payer].Snow, e.G.Players[u.payer].TypedMana, e.G.Players[u.payer].Life) ||
 		!e.unlessCountersAffordable(u) {
 		e.finishUnlessPayment(false)
 		return

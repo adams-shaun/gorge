@@ -333,17 +333,11 @@ func TestMerryWardenOfIsengardBathesArtifactsOncePerTurn(t *testing.T) {
 // TestChangesZoneAllPrimitiveIsRegistered pins the census half of the fix:
 // the mode is declared supported and all pinned carriers -- the two report
 // cards and Merry, Warden of Isengard, the deck card the original issue
-// named -- carry no unregistered primitive beyond what is recorded below.
-//
-// Merry carries the DECK-CONSTRUCTION keyword K:Partner with (CR 903.13c),
-// whose corpus shape the engine understands (rules/engine.go's
-// partnerHead/partnerPairOK seat the named pair) but whose primitive string
-// is not registered: effects.Supported() carries "kw:Partner" (the plain
-// alias, the trigger_match.go non-API list) but not its "Partner with"
-// sibling. Merry is therefore NOT fully playable by the census despite the
-// fix -- the one measured remainder, recorded in the report and ticketed.
-// The assertion below pins exactly that: every primitive supported except
-// the one known deck-construction keyword.
+// named -- carry no unregistered primitive at all. Merry's
+// DECK-CONSTRUCTION keyword K:Partner with (CR 903.13c) is registered
+// alongside its "kw:Partner" sibling in the trigger_match.go non-API list:
+// the engine's partnerHead/partnerPairOK seat the named pair, so the
+// registration asserts the corpus shape is understood.
 func TestChangesZoneAllPrimitiveIsRegistered(t *testing.T) {
 	if !effects.Supported()["trig:ChangesZoneAll"] {
 		t.Fatal(`effects.Supported() is missing "trig:ChangesZoneAll"`)
@@ -353,9 +347,6 @@ func TestChangesZoneAllPrimitiveIsRegistered(t *testing.T) {
 		c := searchCorpusCard(t, reg, name)
 		for _, prim := range c.Primitives() {
 			if !effects.Supported()[prim] {
-				if name == "Merry, Warden of Isengard" && prim == "kw:Partner with" {
-					continue // the measured remainder; see the comment above
-				}
 				t.Fatalf("%s carries an unsupported primitive %q", name, prim)
 			}
 		}
