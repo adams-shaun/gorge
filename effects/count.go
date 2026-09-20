@@ -464,7 +464,14 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 // exactly as evalRefProperty's default always did.
 func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 	switch ref {
-	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
+	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard", "AllTargeted":
+		// AllTargeted (task alltargeted1) is Forge's UNION of every targeting
+		// SA's targets down the root ability's sub-ability chain; the only
+		// binding this engine carries is the resolving SA's own chosen
+		// targets, so the faithful-as-available reading is Ctx.Targets -- the
+		// same list "Targeted" names. A sub-targeting chain (Wayta, Trainer
+		// Prodigy's fight) therefore still reads 0 here; recorded in
+		// AGENTS.md's Known approximations.
 		return c.Targets, true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
 		"TriggeredAttacker", "TriggeredAttackerLKICopy",
@@ -492,7 +499,9 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 
 // evalRefProperty resolves one "<Ref>$<Property>[...][/Op]" count body over
 // the objects a target reference names. Refs: Targeted/ParentTarget/
-// ThisTargetedCard name the resolving ability's chosen targets;
+// ThisTargetedCard/AllTargeted name the resolving ability's chosen targets
+// (AllTargeted is Forge's whole-chain union; see refTargets for the
+// available-binding narrowing);
 // TriggeredCard (and its LKI spellings) and TriggeredAttacker name the
 // objects the firing trigger remembered; Remembered is the plain form. A
 // property this build does not model (or a body with no $ at all -- every

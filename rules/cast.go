@@ -168,6 +168,13 @@ type pendingCast struct {
 	mods       costMods
 	taxGeneric int32
 
+	// ownReduce is the amount the ability's own ReduceCost$ parameter folded
+	// into pc.cost at beginActivation (nil targets there: CR 601.2c has not
+	// run). repriceForTargets recomputes it target-aware and net-adjusts
+	// cost.Generic by the delta, so the folded amount is never applied twice
+	// and the net form is idempotent across a mana-window resume.
+	ownReduce int32
+
 	// windowDone is set when the 601.2g mana window was answered "done", so
 	// payCast proceeds straight to payment instead of re-offering it.
 	windowDone bool
@@ -3093,7 +3100,19 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 		if pc.ability >= len(o.Face().Abilities) {
 			return
 		}
-		scope = abilityScope(o.Face().Abilities[pc.ability])
+		ab := o.Face().Abilities[pc.ability]
+		scope = abilityScope(ab)
+		// The ability's own target-dependent ReduceCost$ (Raft Security
+		// Officer's AllTargeted$Valid Creature.powerLE3): beginActivation
+		// folded pc.ownReduce with nil targets (full price at offer time,
+		// fail closed); now the CR 601.2c answer exists, so re-evaluate and
+		// net-adjust the generic by the delta. The net form is idempotent --
+		// a second pass computes delta 0 -- which matters because
+		// repriceForTargets can run again on a mana-window resume.
+		if n := e.ownReduceCost(pc.player, pc.card, ab, pc.targets); n != pc.ownReduce {
+			pc.cost.Generic = addClampedGeneric(pc.cost.Generic, int64(pc.ownReduce-n))
+			pc.ownReduce = n
+		}
 	}
 	pc.mods = e.costModifiersForTargets(pc.player, pc.card, scope, pc.targets)
 }
