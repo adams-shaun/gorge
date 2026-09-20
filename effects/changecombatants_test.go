@@ -96,6 +96,32 @@ func TestChangeCombatantsAnsweredRetargetsAndUnblocks(t *testing.T) {
 	}
 }
 
+// TestChangeCombatantsKeepCurrentDefenderIsATrueNoOp pins Forge's
+// addToCombat guard on the answered re-entry: answering the attacker's
+// CURRENT defender (blocked, per the attackingBoard fixture) emits NO
+// CombatRetarget and preserves BlockedBy — clearing it would silently
+// unblock an attack whose defender did not change and send its damage to
+// the player instead of the blocker.
+func TestChangeCombatantsKeepCurrentDefenderIsATrueNoOp(t *testing.T) {
+	h, att := attackingBoard(t)
+	before := att.BlockedBy
+	Resolve(h, &Ctx{Source: att.ID, Controller: 0,
+		Choice: []state.Target{{Player: 1, IsPlayer: true}}, ChoiceDone: true, ChoiceTarget: 0},
+		sa(t, "DB$ ChangeCombatants | Defined$ Self | Attacking$ True"))
+	if got := retargetEvents(h); len(got) != 0 {
+		t.Fatalf("keep-current answer emitted %+v, want no retarget event", got)
+	}
+	if att.Attacking != 1 {
+		t.Fatalf("attacker.Attacking = %d, want the original 1", att.Attacking)
+	}
+	if len(att.BlockedBy) != len(before) {
+		t.Fatalf("BlockedBy = %v, want unchanged %v", att.BlockedBy, before)
+	}
+	if got := noteTexts(h); len(got) != 0 {
+		t.Fatalf("keep-current answer emitted notes %q, want none", got)
+	}
+}
+
 // TestChangeCombatantsUnsupportedAttackingValueIsLoud pins the out-of-scope
 // Attacking$ shapes (midnight_crusader_shuttle's RememberedPlayer,
 // capricopian's Player.OpponentOf CardController, portal_manipulator's

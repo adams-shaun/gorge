@@ -29,9 +29,14 @@ func init() {
 //     getAllPossibleDefenders; planeswalker defenders are out of scope —
 //     walkers are not attackable in this build),
 //   - the resolving controller (Ctx.Controller) picks one per attacker; the
-//     answered re-entry emits one CombatRetarget per attacker, and the
-//     re-pointed attack is unblocked (the event's Apply case clears BlockedBy
-//     — Forge's removeFromCombat + addAttacker + setBlocked(false)),
+//     answered re-entry emits one CombatRetarget per attacker ONLY when the
+//     answer moves the attack — Forge's addToCombat acts only when the
+//     chosen defender does not already have this attacker
+//     (defender != nil && !combat.getAttackersOf(defender).contains(c)), so
+//     answering the attacker's CURRENT defender is a true no-op that keeps
+//     the existing block list intact — and the re-pointed attack is
+//     unblocked (the event's Apply case clears BlockedBy — Forge's
+//     removeFromCombat + addAttacker + setBlocked(false)),
 //   - the re-pointing fires NO new trigger and does not touch
 //     AttacksThisTurn: it is not a declaration (which is exactly why the new
 //     Kind exists instead of reusing DeclareAttackers/TokenAttacks).
@@ -107,10 +112,16 @@ func effChangeCombatants(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			if idx == answerIndex {
-				// Re-entry: emit the answered reselect exactly once. The
-				// answered player was one of the offered candidates; a
-				// malformed non-player answer keeps the original defender.
-				if len(answer) > 0 && answer[0].IsPlayer {
+				// Re-entry: emit the answered reselect exactly once, but only
+				// when it actually MOVES the attack — Forge's addToCombat acts
+				// only when the chosen defender does not already have this
+				// attacker (!combat.getAttackersOf(defender).contains(c)), so
+				// answering the current defender is a true no-op that preserves
+				// BlockedBy (clearing it would silently unblock an attack whose
+				// defender did not change). The answered player was one of the
+				// offered candidates; a malformed non-player answer also keeps
+				// the original defender.
+				if len(answer) > 0 && answer[0].IsPlayer && answer[0].Player != o.Attacking {
 					h.Emit(events.Event{Kind: events.CombatRetarget, Obj: o.ID, Player: answer[0].Player})
 				}
 				// Later attackers keep walking and pose their own asks.
@@ -159,8 +170,11 @@ func effChangeCombatants(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: o.Controller,
 				Text: "no engine host: " + objName(g, o.ID) + " keeps attacking its current defender"})
 		}
-		// AskEmpty is unreachable here (candidates >= 2 by the two guards
-		// above, Min 1), but if a future caller ever reaches it the loop
-		// simply keeps the original defender — the same conservative read.
+		// AskEmpty is unreachable when the guards leave len(candidates) >= 2
+		// (Min 1 has a non-empty option list); a SINGLETON candidate list
+		// different from the current defender (the two guards only exclude
+		// empty and current-defender singletons) still posts its one-option
+		// ask. If a future caller ever reaches AskEmpty the loop simply keeps
+		// the original defender — the same conservative read.
 	}
 }

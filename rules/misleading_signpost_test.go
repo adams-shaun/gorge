@@ -96,17 +96,27 @@ func TestMisleadingSignpostRetargetsAttackAfterAnsweredChoice(t *testing.T) {
 	}
 }
 
-// TestMisleadingSignpostOriginalDefenderOptionOffered pins that the ask lets
-// the chooser KEEP the current defender (Forge offers every possible
-// defender, and picking the current one is the legal no-op answer): here the
-// chooser answers seat 1, the attack stays, and no retarget event is emitted.
-func TestMisleadingSignpostOriginalDefenderOptionOffered(t *testing.T) {
+// TestMisleadingSignpostKeepCurrentDefenderPreservesTheBlock pins that the
+// ask lets the chooser KEEP the current defender (Forge offers every possible
+// defender) AND that answering it is a true no-op: Forge's addToCombat acts
+// only when the chosen defender does not already have the attacker, so the
+// keep answer must not emit a CombatRetarget and must not disturb an
+// existing block — clearing BlockedBy on a keep answer would silently
+// unblock a blocked attack and send its damage to the player instead of the
+// blocker (CR 506.3b / CR 509.1h shape).
+func TestMisleadingSignpostKeepCurrentDefenderPreservesTheBlock(t *testing.T) {
 	e := threeSeatEngine(t)
 	sp := onBoardCard(t, e, 0, choiceCorpusCard(t, "Misleading Signpost"))
 	e.G.Active = 0
 	e.G.Step = state.StepDeclareAttackers
 	gob := onBoardReady(t, e, 0, "Name:Grizzly Bears\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	blk := onBoard(t, e, 1, "Name:Memnite\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n")
 	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{gob}})
+	e.emit(events.Event{Kind: events.DeclareBlockers, Pairs: [][2]state.ObjID{{gob, blk}}})
+	if got := e.G.Obj(gob); !got.IsAttacking || got.Attacking != 1 || len(got.BlockedBy) != 1 {
+		t.Fatalf("setup attack = %+v attacking %d blocked by %v, want seat 1 blocked by %d",
+			got.IsAttacking, got.Attacking, got.BlockedBy, blk)
+	}
 	e.emit(events.Event{Kind: events.TriggerPush, Player: 0, Obj: sp, Amount: 0, Text: "triggered ability"})
 	wid := e.G.Stack[len(e.G.Stack)-1]
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: wid, IDs: []state.ObjID{gob}})
@@ -130,10 +140,26 @@ func TestMisleadingSignpostOriginalDefenderOptionOffered(t *testing.T) {
 	if keep < 0 {
 		t.Fatalf("the current defender (seat 1) was not offered: %+v", d.Options)
 	}
+	retargetsBefore := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.CombatRetarget {
+			retargetsBefore++
+		}
+	}
 	submitChoices(t, e, keep)
-	if got := e.G.Obj(gob); got.Attacking != 1 || len(got.BlockedBy) != 0 {
-		t.Fatalf("keep answer: attacking %d blocked by %v, want unchanged attack, no event",
-			got.Attacking, got.BlockedBy)
+	if got := e.G.Obj(gob); got.Attacking != 1 || len(got.BlockedBy) != 1 || got.BlockedBy[0] != blk {
+		t.Fatalf("keep answer: attacking %d blocked by %v, want attack on seat 1 with block %d intact",
+			got.Attacking, got.BlockedBy, blk)
+	}
+	retargetsAfter := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.CombatRetarget {
+			retargetsAfter++
+		}
+	}
+	if retargetsAfter != retargetsBefore {
+		t.Fatalf("keep answer emitted %d CombatRetarget events, want 0 (a true no-op)",
+			retargetsAfter-retargetsBefore)
 	}
 }
 
