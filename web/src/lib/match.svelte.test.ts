@@ -32,7 +32,7 @@ const view = (turn = 1): View => ({
   over: false, draw: false, winner: null, players: [], stack: [], pending: [],
 });
 
-const matchStart = (): MatchStart => ({ seats, seed: 1, spectator: '' });
+const matchStart = (): MatchStart => ({ seats, seed: 1, spectator: '', bot_policy: 'bot' });
 
 const ev = (seq: number, kind = 'tap'): EventBody => ({ event: { seq, kind, player: 0 }, line: `${kind} ${seq}` });
 
@@ -309,7 +309,7 @@ describe('MatchState — DVR cursor fetching (Task 21)', () => {
     fetchViewMock.mockReset();
     fetchEventsMock.mockReset();
     fetchMatchesMock.mockReset();
-    const info: MatchInfo = { table: 't1', match: 3, seed: 1, seats, state: 'finished', result: 'win', winner: 1, events: 6, turns: 2 };
+    const info: MatchInfo = { table: 't1', match: 3, seed: 1, seats, state: 'finished', result: 'win', winner: 1, events: 6, turns: 2, bot_policy: 'bot' };
     fetchMatchesMock.mockResolvedValue([info]);
     const all = [ev(0, 'turn'), ev(1), ev(2), ev(3, 'turn'), ev(4), ev(5)];
     fetchEventsMock.mockResolvedValue(all);
@@ -350,7 +350,7 @@ describe('MatchState — DVR cursor fetching (Task 21)', () => {
     fetchEventsMock.mockReset();
     fetchViewMock.mockReset();
     fetchMatchesMock.mockResolvedValueOnce([]).mockResolvedValue([
-      { table: 't9', match: 2, seed: 1, seats, state: 'finished', winner: 0, events: 2, turns: 1 } satisfies MatchInfo,
+      { table: 't9', match: 2, seed: 1, seats, state: 'finished', winner: 0, events: 2, turns: 1, bot_policy: 'bot' } satisfies MatchInfo,
     ]);
     fetchEventsMock.mockResolvedValue([ev(0, 'turn'), ev(1)]);
     fetchViewMock.mockImplementation((_t: string, _k: number, seq: number) => Promise.resolve(view(seq)));
