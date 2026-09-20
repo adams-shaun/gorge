@@ -394,6 +394,13 @@ func (e *Engine) step() {
 	if e.pending != nil {
 		return
 	}
+	// The CR 903.4b commander colour-choice round runs first: its answer must
+	// exist before the mulligan/opening rounds and turn 1. Like the mulligan
+	// round below, it must NOT leaf into the ordinary step switch.
+	if e.coloring {
+		e.stepColorRound()
+		return
+	}
 	// The London mulligan round (Config.Mulligans > 0) runs between the
 	// opening deal and turn 1. While e.pregame, stepPregame issues the single
 	// next round decision; it must NOT leaf into the ordinary step switch,
@@ -922,6 +929,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			e.resumeTriggerDrain()
 			return
 		}
+	case chooseCommanderColor:
+		// The CR 903.4b pregame colour choice was answered (rules/
+		// commander_color.go): record it on the commander object as the same
+		// Choose "color" event an as-enters ask uses, then advance the round.
+		e.answerCommanderColor(d, chosen)
 	case chooseRiot:
 		// Riot is an as-enters replacement for every MoveZone path, including
 		// reanimation and blink that never create pendingCast. Record the

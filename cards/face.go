@@ -297,6 +297,32 @@ func cdaAllCreatureTypes(sts []Static) bool {
 	return false
 }
 
+// CommanderColourChoiceCDA reports whether the face carries the CR 903.4b
+// "if CARDNAME is your commander, choose a color before the game begins"
+// characteristic-defining ability: a CharacteristicDefining$ True continuous
+// static affecting Self whose SetColor$ names the chosen colour. It is the
+// SAME gate cdaSetColours applies (and the one rules' layer-5 scan resolves
+// through resolveChosenColors), exported so the pregame ask in rules/ and the
+// identity derivation here cannot drift on what qualifies a commander for the
+// choice. cdaSetColours contributes nothing for the value at load time -- the
+// choice does not exist yet -- so this predicate is what the pregame round
+// keys on.
+func (f *Face) CommanderColourChoiceCDA() bool {
+	for _, s := range f.Statics {
+		if s.Mode != "Continuous" || !strings.EqualFold(strings.TrimSpace(s.Params["CharacteristicDefining"]), "True") {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(s.Params["SetColor"]), "ChosenColor") {
+			continue
+		}
+		if aff := strings.TrimSpace(s.Params["Affected"]); aff != "" && !strings.Contains(aff, "Self") {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 func cdaSetColours(sts []Static) uint8 {
 	var m uint8
 	for _, s := range sts {
