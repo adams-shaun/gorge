@@ -1535,13 +1535,14 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 //     Choices$ names an SVar per ballot option, each player votes for the
 //     first (the deterministic stand-in), Notes record it, and the WINNING
 //     option's SVar runs. A tie runs VoteTiedAbility$ when the SA carries
-//     one, else the first tied option. Before this the fixed-list shape
-//     resolved nothing at all, so a Path of the Ghosthunter vote recorded
-//     its Notes and then did nothing -- the "chosen outcome" the brief
-//     expected to hit Planeswalk/ChaosEnsues never ran. The per-player
-//     vote CHOICE is still the deterministic no-ask stand-in (every voter
-//     takes the first option), so the outcome resolution is exact for
-//     today's model and a real ask slots in behind the same tally.
+//     one (the path cycle's DBChaos), else the first tied option's SVar.
+//     Before this the fixed-list shape resolved nothing at all, so a Path
+//     of the Ghosthunter vote recorded its Notes and then did nothing --
+//     the "chosen outcome" the brief expected to hit Planeswalk/
+//     ChaosEnsues never ran. The tie branch takes its tally from Ctx.Votes
+//     when a caller has answered one (the seam a real per-player ask fills,
+//     and what lets the tie be pinned against a real compiled SA); absent,
+//     the deterministic stand-in applies.
 //   - the card-ballot shape (Council's Judgment): VoteCard$ is a permanent
 //     filter, so the ballot is the battlefield permanents matching it
 //     (matched from the spell's controller: "a nonland permanent YOU don't
@@ -1550,10 +1551,11 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 //     for VoteSubAbility$ (DBExile's ChangeZone Defined$ Remembered).
 //
 // The per-player vote CHOICE itself is still the deterministic no-ask
-// stand-in (every voter takes the ballot's first option, so the first
-// eligible permanent always wins unanimously): a real per-player vote ask
-// needs a resume arm of its own and stays in the approximations table.
-// Both VoteCard$ and VoteSubAbility$ are genuinely read on the ballot path.
+// stand-in (every voter takes the first option, so the first eligible
+// permanent always wins unanimously): a real per-player vote ask produces
+// Ctx.Votes and needs a resume arm of its own, and stays in the
+// approximations table. Both VoteCard$ and VoteSubAbility$ are genuinely
+// read on the ballot path.
 func effVote(h Host, c *Ctx, sa *cards.SA) {
 	if ballot := strings.TrimSpace(sa.Params["VoteCard"]); ballot != "" {
 		effCardVote(h, c, sa, ballot)
@@ -1561,15 +1563,24 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	}
 	choices := voteChoiceNames(sa)
 	voters := Defined(h, c, sa)
-	// The deterministic stand-in: every voter takes the first option. The
-	// tally is general anyway so a future real per-player ask only has to
-	// fill counts; today counts[0] == len(voters) and every other entry 0.
+	// Ctx.Votes is the answered per-voter choice list (a real per-player
+	// ask's result, or a test seam): one option index per voter, in voter
+	// order. It is consumed and cleared at the top of the walk so a nested
+	// Vote cannot inherit it (fx42), the same scoping every other asking
+	// primitive uses. Absent, the deterministic stand-in applies: every
+	// voter takes the first option.
+	answered := c.Votes
+	c.Votes = nil
 	counts := make([]int, len(choices))
-	for _, t := range voters {
+	for i, t := range voters {
+		choice := 0
+		if answered != nil && i < len(answered) {
+			choice = answered[i]
+		}
 		label := ""
-		if len(choices) > 0 {
-			label = choices[0]
-			counts[0]++
+		if choice >= 0 && choice < len(choices) {
+			label = choices[choice]
+			counts[choice]++
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}
