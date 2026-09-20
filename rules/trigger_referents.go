@@ -96,9 +96,11 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerAmount = amount
 		}
 	case "LifeGained":
-		if p, amount, ok := lifeGain(ev); ok {
-			c.TriggerPlayer = player(p)
-			c.TriggerAmount = amount
+		// The gaining player and the gained magnitude: TriggerCount$LifeAmount
+		// (Prize Pig's CounterNum$ Y) reads both off this context.
+		if ev.Kind == events.LifeChange && ev.Amount > 0 && int(ev.Player) >= 0 && int(ev.Player) < len(e.G.Players) {
+			c.TriggerPlayer = player(ev.Player)
+			c.TriggerAmount = ev.Amount
 		}
 	case "SpellCast", "AbilityCast", "SpellAbilityCast":
 		c.TriggerCard = ev.Obj
