@@ -482,3 +482,57 @@ func TestThisTurnEnteredGraveyardCountsPermanentBase(t *testing.T) {
 		t.Errorf("unrelated object changed the count to %d", got)
 	}
 }
+
+// TestThisTurnEnteredExileSkipsSpellCopies pins the CR 707.10h half of the
+// zone-aware matcher: a spell copy the engine parks in exile when it resolves
+// has ceased to exist (a copy that leaves the stack is a transient reference,
+// not a card), so every Count$ThisTurnEntered_<off-battlefield zone> head must
+// skip it. The Ennis, Debate Moderator end step reads
+// Count$ThisTurnEntered_Exile_Card.!token and was counting exiled Storm/
+// Gravestorm copies before the gate went into matchesZoneSpecCtx. A copy that
+// resolved onto the BATTLEFIELD (CR 707.10g) is a real permanent and must keep
+// counting.
+func TestThisTurnEnteredExileSkipsSpellCopies(t *testing.T) {
+	h := newHost(t, 2)
+	g := h.g
+
+	// A real card exiled this turn: the one honest entry.
+	real := g.AddObject(mkCard(t, "Name:Trick\nManaCost:U\nTypes:Instant\nOracle:x\n"), 0)
+	real.Zone = state.ZExile
+	g.SetZone(state.ZExile, 0, append(g.Zone(state.ZExile, 0), real.ID))
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: real.ID, To: state.ZExile, From: state.ZStack})
+
+	// A spell copy the engine parked in exile after resolution (IsCopy,
+	// live zone exile): ceased per CR 707.10h, must match nothing.
+	copyObj := g.AddObject(mkCard(t, "Name:Tendrils\nManaCost:2 B B\nTypes:Sorcery\nOracle:x\n"), 0)
+	copyObj.IsCopy = true
+	copyObj.Zone = state.ZExile
+	g.SetZone(state.ZExile, 0, append(g.Zone(state.ZExile, 0), copyObj.ID))
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: copyObj.ID, To: state.ZExile, From: state.ZStack})
+
+	// A copy of a permanent spell that resolved onto the battlefield
+	// (CR 707.10g): a real permanent, must still count.
+	permObj := g.AddObject(mkCard(t, "Name:Clone\nManaCost:2 U\nTypes:Creature Shapeshifter\nPT:0/0\nOracle:x\n"), 0)
+	permObj.IsCopy = true
+	permObj.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, append(g.Zone(state.ZBattlefield, 0), permObj.ID))
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: permObj.ID, To: state.ZBattlefield, From: state.ZStack})
+
+	c := &Ctx{Controller: 0}
+	for _, tc := range []struct {
+		body string
+		want int32
+	}{
+		// The Ennis head: 2 before the CR 707.10h gate (real card + exiled
+		// copy), 1 after.
+		{"Count$ThisTurnEntered_Exile_Card.!token", 1},
+		{"Count$ThisTurnEntered_Exile_Card", 1},
+		// The battlefield copy is real (CR 707.10g) and must count.
+		{"Count$ThisTurnEntered_Battlefield_Permanent", 1},
+	} {
+		got, ok := EvalCountOK(h, c, tc.body)
+		if !ok || got != tc.want {
+			t.Errorf("%s = (%d, %v), want (%d, true)", tc.body, got, ok, tc.want)
+		}
+	}
+}

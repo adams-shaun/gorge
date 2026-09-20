@@ -2188,10 +2188,23 @@ func MatchesSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext) 
 // base names a permanent card when a count already scoped the candidates to a
 // non-battlefield zone; it must not re-check the object's current zone and
 // reject every graveyard, hand, library, or exile card. All other bases and
-// predicates retain MatchesObjectCtx's ordinary semantics.
+// predicates retain MatchesObjectCtx's ordinary semantics -- including the
+// CR 707.10h IsCopy rejection below, which matchesObjectText applies on the
+// ordinary path and which this zone-aware path must not silently drop.
 func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext, zone state.Zone) bool {
 	o := g.Obj(id)
 	if o == nil {
+		return false
+	}
+	// CR 707.10h, the same rejection matchesObjectText applies: a copy that
+	// is neither on the stack (still a spell) nor on the battlefield (still
+	// a permanent, CR 707.10g) has ceased to exist and matches nothing,
+	// whatever the spec. Without it a resolving spell copy the engine parks
+	// in exile is counted by every Count$ThisTurnEntered_<off-battlefield
+	// zone> head (Ennis, Debate Moderator's Count$ThisTurnEntered_Exile_Card
+	// fired on exiled Storm copies). A battlefield copy is real and stays
+	// matchable -- Clone/Rite of Replication precedent.
+	if o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
 		return false
 	}
 	if zone == state.ZBattlefield {
