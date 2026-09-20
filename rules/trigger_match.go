@@ -3335,6 +3335,14 @@ func abilityCastValidSA(ab *cards.SA, validSA string) bool {
 //     total compared to n.
 //   - IsPresent$ <spec> with PresentCompare$ <op><n>: the count of objects
 //     matching <spec> compared to n.
+//   - Metalcraft$ True (and the bare-Condition$ Metalcraft spelling): the
+//     controller controls three or more artifacts -- the trigger-side named
+//     condition the ability word uses (6 corpus files: Vedalken Humiliator's
+//     attack pump, Blade-Tribe Berserkers' and Bleak Coven Vampires' ETBs,
+//     Lumengrid Drake's bounce, Inventors' Fair's upkeep lifegain, Screeching
+//     Silcaw's mill), read through the SAME metalcraftHolds census
+//     costConditionHolds' Condition$ Metalcraft case and the Continuous
+//     static gate read, so the three cannot drift apart.
 //
 // An absent clause is vacuously true. A clause whose shape this build cannot
 // evaluate FAILS CLOSED -- a false condition means the trigger simply does not
@@ -3406,6 +3414,26 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 				return false
 			}
 			return applyCompare(e.presentUnionCount(spec, spec2, source, you), op, n)
+		}
+	}
+	if v, ok := t.Params["Metalcraft"]; ok {
+		// The trigger-side named condition (task trig-attacks-metalcraft):
+		// a value this build cannot read as True is an unreadable clause
+		// shape and fails closed like the other clauses above.
+		if !strings.EqualFold(strings.TrimSpace(v), "True") || !e.metalcraftHolds(you) {
+			return false
+		}
+	}
+	if strings.EqualFold(strings.TrimSpace(t.Params["Condition"]), "Metalcraft") {
+		// The bare-Condition$ spelling of the same gate. The trigger path
+		// reads no OTHER bare Condition$ value (LifePaid, Evolve,
+		// Sacrificed and friends are matched by their own per-kind helpers
+		// or stay unread), and no corpus trigger carries this spelling
+		// today -- the bare Condition$ Metalcraft carriers are S: statics
+		// the Continuous gate already reads -- but the spelling is kept
+		// beside Metalcraft$ so the two cannot drift apart.
+		if !e.metalcraftHolds(you) {
+			return false
 		}
 	}
 	if name, ok := t.Params["CheckSVar"]; ok {
