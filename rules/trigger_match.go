@@ -1512,6 +1512,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.drawnMatches(t, source, ev)
 	case "LifeLost", "LifeLostAll":
 		matched = e.lifeLostMatches(t, source, ev)
+	case "LifeGained":
+		matched = e.lifeGainedMatches(t, source, ev)
 	case "BecomesTarget":
 		matched = e.becomesTargetMatches(t, source, ev)
 	case "LandPlayed":
@@ -3080,6 +3082,62 @@ func (e *Engine) lifeLossCauseMatches(spec string, you state.PlayerID) bool {
 	return false
 }
 
+// lifeGain names the player and positive magnitude of a life-gain event:
+// a positive LifeChange. Damage to an object and life loss are not gain.
+func lifeGain(ev events.Event) (state.PlayerID, int32, bool) {
+	if ev.Kind == events.LifeChange && ev.Amount > 0 {
+		return ev.Player, ev.Amount, true
+	}
+	return 0, 0, false
+}
+
+func (e *Engine) lifeGainedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	ctrl := e.controllerOf(source)
+	p, amount, ok := lifeGain(ev)
+	if !ok {
+		return false
+	}
+	if v, ok := t.Params["ValidPlayer"]; ok && !effects.MatchesPlayerSpec(e.G, v, p, ctrl) {
+		return false
+	}
+	if v := t.Params["LifeAmount"]; v != "" && !compareLife(amount, v) {
+		return false
+	}
+	if strings.EqualFold(t.Params["PlayerTurn"], "True") && e.G.Active != ctrl {
+		return false
+	}
+	if strings.EqualFold(t.Params["FirstTime"], "True") && !e.firstLifeGainThisTurn(p) {
+		return false
+	}
+	return true
+}
+
+// firstLifeGainThisTurn is true only for the newest life-gain event of p in
+// the current turn, the LifeLost mirror. emit logs the event BEFORE
+// checkTriggers runs, so at match time the current gain is already in the
+// log: the seenCurrent two-step is what keeps the FirstTime$ gate honest.
+// TurnChange is the logged reset boundary for every other per-turn fact, so
+// scanning back to it is replay-stable and cannot leak a mutable counter
+// across Clone.
+func (e *Engine) firstLifeGainThisTurn(p state.PlayerID) bool {
+	seenCurrent := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		q, _, ok := lifeGain(ev)
+		if !ok || q != p {
+			continue
+		}
+		if seenCurrent {
+			return false
+		}
+		seenCurrent = true
+	}
+	return seenCurrent
+}
+
 // firstLifeLossThisTurn is true only for the newest life-loss event of p in
 // the current turn. TurnChange is the logged reset boundary for every other
 // per-turn fact, so scanning back to it is replay-stable and cannot leak a
@@ -3970,6 +4028,7 @@ func init() {
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
+		"trig:LifeGained",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
 		"trig:Explores", "trig:Exerted",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
