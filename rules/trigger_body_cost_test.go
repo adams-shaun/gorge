@@ -908,3 +908,155 @@ func TestUnregisteredBodyXCostStaysDeclineOnly(t *testing.T) {
 		t.Fatalf("life = %d after the decline, want unchanged %d", got, myLife)
 	}
 }
+
+// monstrosityOpponents puts n opponent creatures on the battlefield (real
+// inline fixture cards, never corpus .txt) and returns their ids. The
+// trigger's ValidCards$ Creature.OppCtrl is relative to the resolving
+// controller, so these are exactly the victims.
+func monstrosityOpponents(t *testing.T, e *Engine, n int) []state.ObjID {
+	t.Helper()
+	const bearScript = "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	out := make([]state.ObjID, 0, n)
+	for i := 0; i < n; i++ {
+		out = append(out, onBoard(t, e, 1, bearScript))
+	}
+	return out
+}
+
+// Monstrosity of the Lake is the report's named deck card and the composition
+// the window had never been pinned through: an ETB trigger (no
+// OptionalDecider$, so there is NO trigger_optional ask) whose body is
+// `AB$ TapAll | Cost$ 5 | RememberTapped$ True | SubAbility$ DBStun`, a
+// chained `DB$ PutCounter | CounterType$ STUN | Defined$ Remembered` and a
+// trailing `DB$ Cleanup | ClearRemembered$ True`. The tap-all and the stun
+// counters must be gated behind the {5}.
+//
+// TestMonstrosityOfTheLakePayTapsStunsAndClears pins the pay arm: floating
+// {5}, a paid window drops the pool by exactly 5, every opponent creature is
+// tapped AND carries a STUN counter (the RememberTapped$ -> DBStun chain),
+// the seat's own creature is untouched, and DBCleanup cleared the source's
+// remembered list.
+func TestMonstrosityOfTheLakePayTapsStunsAndClears(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Monstrosity of the Lake")
+	opponents := monstrosityOpponents(t, e, 2)
+	mine := onBoard(t, e, 0, "Name:Test Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	addMana(t, e, 0, "CCCCC")
+	id := searchMoveByName(t, e, "Monstrosity of the Lake", state.ZBattlefield)
+
+	pay, _ := triggerCostWindowAsk(t, e)
+	if pay < 0 {
+		t.Fatalf("the Cost$ 5 body was not offered as payable: %+v", e.Pending())
+	}
+	submitChoices(t, e, pay)
+	passUntilStackEmpty(t, e, 20)
+
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("pool total = %d after paying {5}, want 0 (the cost must come OFF the pool)", got)
+	}
+	for _, oid := range opponents {
+		o := e.G.Obj(oid)
+		if o == nil || !o.Tapped {
+			t.Fatalf("opponent creature %d Tapped = %v, want true (the paid TapAll)", oid, o != nil && o.Tapped)
+		}
+		if got := o.Counter("STUN"); got != 1 {
+			t.Fatalf("opponent creature %d STUN counters = %d, want 1 (the Remembered -> DBStun chain)", oid, got)
+		}
+	}
+	if o := e.G.Obj(mine); o == nil || o.Tapped {
+		t.Fatalf("the resolving seat's own creature must be untouched (Creature.OppCtrl), Tapped = %v", o != nil && o.Tapped)
+	}
+	if o := e.G.Obj(id); o == nil || len(o.Remembered) != 0 {
+		t.Fatalf("source Remembered = %+v, want empty (DBCleanup's ClearRemembered$)", o)
+	}
+}
+
+// TestMonstrosityOfTheLakeDeclineChangesNothing pins the decline arm: with
+// {5} still floating, answering trigger_cost_decline leaves the pool
+// untouched, taps nothing, puts no STUN counter anywhere, and the source's
+// remembered list stays empty.
+func TestMonstrosityOfTheLakeDeclineChangesNothing(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Monstrosity of the Lake")
+	opponents := monstrosityOpponents(t, e, 2)
+	addMana(t, e, 0, "CCCCC")
+	id := searchMoveByName(t, e, "Monstrosity of the Lake", state.ZBattlefield)
+
+	_, decline := triggerCostWindowAsk(t, e)
+	mark := len(e.L.Events)
+	submitChoices(t, e, decline)
+	passUntilStackEmpty(t, e, 20)
+
+	if got := e.G.Players[0].Pool.Total(); got != 5 {
+		t.Fatalf("pool total = %d after declining, want the untouched 5", got)
+	}
+	for _, oid := range opponents {
+		if o := e.G.Obj(oid); o == nil || o.Tapped || o.Counter("STUN") != 0 {
+			t.Fatalf("a declined body still tapped/stunned opponent creature %d: %+v", oid, o)
+		}
+	}
+	if o := e.G.Obj(id); o == nil || len(o.Remembered) != 0 {
+		t.Fatalf("source Remembered = %+v after a decline, want empty", o)
+	}
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.CounterChange && ev.Counter == "STUN" {
+			t.Fatalf("a declined body still placed a stun counter: %+v", ev)
+		}
+	}
+}
+
+// TestMonstrosityOfTheLakeUnpayableIsDeclinedAtSettle pins the fail-closed
+// direction the report described ("pay refuses without {5} floating").
+//
+// Measured on current main, the anti-free-execution guard is NOT a
+// decline-only option list for a plain mana cost: with an empty pool and no
+// untapped mana source the window still OFFERS trigger_cost_pay
+// (triggeredCostPaymentAsk's `payable := tc.amount.Priceable()` -- the
+// cumulative-upkeep ask's `Priceable() && costPayable(...)` shape is not
+// copied there), and the guard lives in the ANSWER instead: the pay arm's
+// `paid := ... && e.payManaConv(...)` fails on the empty pool, so the body
+// is DECLINED at settle (triggeredCostAnswer -> triggeredCostDecline). The
+// card's tap-all never runs, so the old free-execution defect stays closed;
+// the offered-then-declined option shape is a separate, benign divergence
+// recorded in the report's ## Issues (not worth re-touching the merged
+// window for). This test pins the invariant that matters: a submitted pay
+// with NOTHING to pay from leaves the board untouched.
+func TestMonstrosityOfTheLakeUnpayableIsDeclinedAtSettle(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Monstrosity of the Lake")
+	opponents := monstrosityOpponents(t, e, 2)
+	// No addMana: the pool is empty and the only battlefields hold the
+	// (ability-less) creatures, so {5} cannot actually be paid.
+	id := searchMoveByName(t, e, "Monstrosity of the Lake", state.ZBattlefield)
+
+	d := passUntilNonPriority(t, e, 40)
+	if d.Kind != decision.KChoose {
+		t.Fatalf("expected the trigger-cost window ask, got %+v", d)
+	}
+	pay, decline := triggerCostWindowAskDecision(t, d)
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("fixture pool = %d, want 0 (the unpayable premise)", got)
+	}
+	// Take the pay option even though nothing can pay it: the settle must
+	// decline, never run the body for free. If the window is ever changed to
+	// decline-only for an unpayable plain cost, the other arm of this test
+	// still holds.
+	answer := pay
+	if answer < 0 {
+		answer = decline
+	}
+	submitChoices(t, e, answer)
+	passUntilStackEmpty(t, e, 20)
+
+	for _, oid := range opponents {
+		if o := e.G.Obj(oid); o == nil || o.Tapped || o.Counter("STUN") != 0 {
+			t.Fatalf("an unpayable body still tapped/stunned opponent creature %d: %+v", oid, o)
+		}
+	}
+	if got := e.G.Players[0].Pool; got != (state.Mana{}) {
+		t.Fatalf("pool = %v after an unpayable answer, want empty", got)
+	}
+	if o := e.G.Obj(id); o == nil || len(o.Remembered) != 0 {
+		t.Fatalf("source Remembered = %+v, want empty (the unpayable body never ran)", o)
+	}
+}
