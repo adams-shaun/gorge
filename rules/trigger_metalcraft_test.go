@@ -15,8 +15,9 @@ import (
 // trigger fired unconditionally.
 //
 // The real-card pin is Vedalken Humiliator: its TrigPump body is DB$ AnimateAll,
-// an API this build does not implement yet (separate open issue), so the test
-// pins the GATE -- the trigger queued on the stack, never its resolution.
+// implemented since the api-animateall task (effects/animateall_test.go +
+// rules/animateall_test.go, which resolves the trigger end to end and pins the
+// unread RemoveAllAbilities$ loud note); this test pins the GATE alone.
 
 // TestVedalkenHumiliatorMetalcraftGate declares the Humiliator attacking with
 // two artifacts controlled (no trigger) and then with three (one trigger).

@@ -137,7 +137,7 @@ func TestPrimitivesAreRegistered(t *testing.T) {
 		"ChangeZone", "ChangeZoneAll", "Destroy", "DestroyAll", "Sacrifice",
 		"GainLife", "LoseLife",
 		"PutCounter", "RemoveCounterAll", "Regenerate",
-		"Tap", "Pump", "PumpAll", "Animate", "Protection",
+		"Tap", "Pump", "PumpAll", "Animate", "AnimateAll", "Protection",
 		"Effect", "Cleanup", "SetState", "Counter", "DelayedTrigger", "Repeat",
 		"Charm", "Vote", "BecomeMonarch", "RestartGame",
 	} {
