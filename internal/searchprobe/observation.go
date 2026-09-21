@@ -47,7 +47,18 @@ type Collector struct {
 	redacted   []events.Event
 	// board is captureScratch's reusable encode buffer; see there.
 	board bytes.Buffer
+	// noPot is captureScratch's reusable Chars wrapper; see there.
+	noPot noPotentialChars
 }
+
+// noPotentialChars is a view.Chars whose seat projection carries no
+// potential_actions. The field is rules.PotentialActions -- a whole second
+// legal-offer walk per frame, priced against the hypothetical tapped-out pool
+// -- and it is the single most expensive derived fact in a capture. A replay
+// that only COMPARES its frames does not need it: see captureScratch.
+type noPotentialChars struct{ view.Chars }
+
+func (noPotentialChars) PotentialActions(state.PlayerID) []decision.PotentialAction { return nil }
 
 func NewCollector(actor state.PlayerID) *Collector {
 	return &Collector{actor: actor, known: make(map[state.ObjID]uint32), byRef: []state.ObjID{0}}
@@ -63,24 +74,42 @@ func (c *Collector) clone() *Collector {
 	return out
 }
 func (c *Collector) Capture(e *rules.Engine, burst []events.Event) (Frame, error) {
-	return c.capture(e, burst, false)
+	return c.capture(e, burst, false, true)
 }
 
 // captureScratch is Capture for a caller that only COMPARES the frame and
-// drops it before the next capture (the sampler's replay): Frame.Board aliases
-// the collector's reusable encode buffer instead of owning a fresh copy, which
-// is the largest single allocation of a capture. The bytes are identical to
-// Capture's. The frame must not be retained past the next capture on c.
-func (c *Collector) captureScratch(e *rules.Engine, burst []events.Event) (Frame, error) {
-	return c.capture(e, burst, true)
+// drops it before the next capture (the sampler's replay). Two things are
+// traded for the copy the caller does not need:
+//
+//   - Frame.Board aliases the collector's reusable encode buffer instead of
+//     owning a fresh copy, the largest single allocation of a capture. The
+//     frame must not be retained past the next capture on c.
+//   - The board carries no potential_actions: the seat's own legal-offer walk
+//     is skipped (noPotentialChars). The bytes are otherwise identical to
+//     Capture's, so a caller compares against stripPotentialActions of the
+//     observed board -- which is what Sample does, leaving the observed
+//     History (and therefore the sampler's seeds) byte for byte unchanged.
+//     Skipping the walk only preserves which worlds are accepted because no
+//     rejection is decided by that field alone. SampleOptions.
+//     ComparePotentialActions restores the walk and counts such rejections
+//     (SampleResult.BoardPotentialActionsOnly): measured 2026-09-21 over 300
+//     games of the ten approved pairs (3191 searched decisions, 204224
+//     attempts) the count is zero.
+func (c *Collector) captureScratch(e *rules.Engine, burst []events.Event, withPotential bool) (Frame, error) {
+	return c.capture(e, burst, true, withPotential)
 }
 
-func (c *Collector) capture(e *rules.Engine, burst []events.Event, scratch bool) (Frame, error) {
+func (c *Collector) capture(e *rules.Engine, burst []events.Event, scratch, withPotential bool) (Frame, error) {
 	if e == nil || int(c.actor) >= len(e.G.Players) {
 		return Frame{}, fmt.Errorf("invalid observation seat or engine")
 	}
 	c.introduced = nil
-	v := view.Project(e.G, e, c.actor, e.Pending())
+	var chars view.Chars = e
+	if !withPotential {
+		c.noPot.Chars = e
+		chars = &c.noPot
+	}
+	v := view.Project(e.G, chars, c.actor, e.Pending())
 	v.Round = view.RoundOf(e.G, e.L.Events)
 	// Introduce only cards explicitly displayed to this seat. Traversal order is
 	// fixed, so observed identities do not encode hidden arena allocation.
@@ -213,6 +242,77 @@ func (c *Collector) capture(e *rules.Engine, burst []events.Event, scratch bool)
 	}
 	frame.Board = c.board.Bytes()[:c.board.Len()-1]
 	return frame, nil
+}
+
+// stripPotentialActions removes every `"potential_actions"` member from a
+// marshalled view.View, yielding exactly the bytes the same view marshals to
+// when no seat carries the field (it is tagged omitempty, so a nil slice is an
+// absent key). The scan is string-aware, so a card name spelling the key is
+// not a member. TestStripPotentialActionsMatchesASkippedCapture pins the
+// equality against a real capture on every frame of the bench fixture.
+func stripPotentialActions(board []byte) []byte {
+	const key = `,"potential_actions":`
+	if !bytes.Contains(board, []byte(key)) {
+		return board
+	}
+	out := make([]byte, 0, len(board))
+	for i := 0; i < len(board); {
+		switch c := board[i]; {
+		case c == '"':
+			end := skipJSONString(board, i)
+			out = append(out, board[i:end]...)
+			i = end
+		case c == ',' && bytes.HasPrefix(board[i:], []byte(key)):
+			i = skipJSONValue(board, i+len(key))
+		default:
+			out = append(out, c)
+			i++
+		}
+	}
+	return out
+}
+
+// skipJSONString returns the index just past the string literal opening at i.
+func skipJSONString(b []byte, i int) int {
+	for i++; i < len(b); i++ {
+		switch b[i] {
+		case '\\':
+			i++
+		case '"':
+			return i + 1
+		}
+	}
+	return i
+}
+
+// skipJSONValue returns the index just past the value starting at i.
+func skipJSONValue(b []byte, i int) int {
+	depth := 0
+	for i < len(b) {
+		switch c := b[i]; c {
+		case '"':
+			i = skipJSONString(b, i)
+			if depth == 0 {
+				return i
+			}
+			continue
+		case '[', '{':
+			depth++
+		case ']', '}':
+			if depth--; depth <= 0 {
+				if depth < 0 {
+					return i
+				}
+				return i + 1
+			}
+		case ',':
+			if depth == 0 {
+				return i
+			}
+		}
+		i++
+	}
+	return i
 }
 
 func (c *Collector) introduce(e *rules.Engine, id state.ObjID) {

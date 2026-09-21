@@ -45,6 +45,14 @@ type SampleOptions struct {
 	// soundness test samples without it and checks that no accepted world
 	// falls in the region it removes. Production callers leave it false.
 	NoLandExclusion bool
+	// ComparePotentialActions restores the pre-optimisation replay: every
+	// scratch capture spends the seat's potential-action walk
+	// (rules.PotentialActions) and the observed board is compared with that
+	// field intact. It exists to MEASURE the skip -- with it set,
+	// BoardPotentialActionsOnly counts the rejections the field alone decided,
+	// and a run that reports zero says the skip accepts exactly the same
+	// worlds. Production callers leave it false.
+	ComparePotentialActions bool
 	// Parallelism is how many goroutines run the frozen sampling phase's
 	// attempts (<=1: sequential). It changes wall clock only, never the
 	// result. A caller that already saturates its cores with whole games
@@ -81,6 +89,14 @@ type SampleResult struct {
 	LandExclusions int `json:",omitempty"`
 	LandResidual   int `json:",omitempty"`
 	LandUnguided   int `json:",omitempty"`
+	// BoardPotentialActionsOnly counts, under SampleOptions.
+	// ComparePotentialActions only, the board rejections that vanish once the
+	// seat's potential_actions projection is stripped from both sides -- a
+	// world the replay rejected on nothing but that derived field. It is the
+	// measurement that licenses skipping the projection during replay: a
+	// non-zero count says the field decides acceptances and the skip would
+	// change which worlds are accepted.
+	BoardPotentialActionsOnly int `json:",omitempty"`
 }
 type RejectionBucket struct {
 	Frame            int
@@ -148,6 +164,18 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	if err := validateGenesis(setup, epochs); err != nil {
 		return result, err
 	}
+	// The replay compares against the observed frames with potential_actions
+	// stripped, because captureScratch does not spend the walk that produces
+	// it. The digest above was taken from the UNstripped history, so the
+	// sampler's seeds -- and every label they reach -- are untouched.
+	compare := h.Frames
+	if !opts.ComparePotentialActions {
+		compare = make([]Frame, len(h.Frames))
+		for i, frame := range h.Frames {
+			compare[i] = frame
+			compare[i].Board = stripPotentialActions(frame.Board)
+		}
+	}
 	stackConstraints := stackConstraintContexts(h, epochs)
 	tape, tossWeight, err := publicToss(setup, h)
 	if err != nil {
@@ -199,8 +227,8 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		accepted := true
 		knownGot := make(map[uint32]Identity)
 		knownWant := make(map[uint32]Identity)
-		for i, want := range h.Frames {
-			got, err := observer.captureScratch(e, e.L.Events[pos:])
+		for i, want := range compare {
+			got, err := observer.captureScratch(e, e.L.Events[pos:], opts.ComparePotentialActions)
 			if err != nil {
 				return World{}, 0, false, err
 			}
@@ -229,6 +257,9 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 						res.CompetitionUnguided++
 					}
 				}
+				if opts.ComparePotentialActions && bucket.Component == "board" && string(stripPotentialActions(got.Board)) == string(stripPotentialActions(want.Board)) {
+					res.BoardPotentialActionsOnly++
+				}
 				if bucket.Component == "identities" && bucket.Shape == "hand_to_battlefield" {
 					proposal.recordExtraLandExclusion(i, got, want, knownGot, drawStates)
 				}
@@ -238,7 +269,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 				accepted = false
 				break
 			}
-			if i == len(h.Frames)-1 {
+			if i == len(compare)-1 {
 				break
 			}
 			if submits >= opts.MaxSubmits {
@@ -977,4 +1008,5 @@ func (r *SampleResult) mergeAttempt(a SampleResult) {
 	r.LandExclusions += a.LandExclusions
 	r.LandResidual += a.LandResidual
 	r.LandUnguided += a.LandUnguided
+	r.BoardPotentialActionsOnly += a.BoardPotentialActionsOnly
 }
