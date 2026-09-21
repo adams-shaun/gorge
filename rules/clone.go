@@ -231,6 +231,12 @@ func (e *Engine) Clone() *Engine {
 			c.triggerTurnFires[k] = v
 		}
 	}
+	if e.unblockedOnceFired != nil {
+		c.unblockedOnceFired = make(map[triggerKey]combatFires, len(e.unblockedOnceFired))
+		for k, v := range e.unblockedOnceFired {
+			c.unblockedOnceFired[k] = v
+		}
+	}
 	if e.triggerTurnResolved != nil {
 		c.triggerTurnResolved = make(map[state.ObjID]turnFires, len(e.triggerTurnResolved))
 		for k, v := range e.triggerTurnResolved {

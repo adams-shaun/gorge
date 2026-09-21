@@ -1447,6 +1447,14 @@ var handRoots = struct {
 	trig: []string{"Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
 		"Engine.resolveTop", "Engine.isTriggeredManaAbility", "Engine.triggerReferents",
 		"Engine.StackOptional", "Engine.optionalDecider",
+		// checkAttackerUnblockedOnceTriggers is a dedicated hook queued from
+		// rules/turn.go's declare-blockers round-complete branch, NOT from
+		// checkTriggers (unlike checkAttackerBlockedTriggers / checkBlocksTriggers
+		// / checkChapterTriggers, which checkTriggers calls and so reach through
+		// Engine.triggerMatches). It reads its own mode's ValidDefenders$ /
+		// ValidAttackingPlayer$ directly, so the scan needs the explicit root to
+		// attribute those reads.
+		"Engine.checkAttackerUnblockedOnceTriggers",
 		// The static-grant's trigger walk (AddTrigger$): mode-SHARED machinery
 		// like the drain above -- a granted trigger of ANY mode matches through
 		// triggerMatches' own dispatch.
