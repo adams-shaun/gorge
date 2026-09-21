@@ -97,6 +97,12 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if e.applyRiotReplacement(ev) {
 		return ev, true
 	}
+	// CR 310.10: a Battle Siege's protector is chosen as it enters. Parked
+	// exactly like Riot above so every entry path records it; the parked move
+	// is emitted once the answer is logged.
+	if e.applySiegeProtector(ev) {
+		return ev, true
+	}
 	// CR 903.9 (Task m32): a commander about to be put into its owner's
 	// graveyard, hand or library from anywhere, or exiled from anywhere, may
 	// instead be put into the command zone by its OWNER. This is a
@@ -1693,6 +1699,68 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 			{Index: 1, Kind: "riot", Label: "Gain haste", Obj: o.ID, Player: o.Controller},
 		}}
 	e.choosing = chooseRiot
+	e.ask(d)
+	return true
+}
+
+// applySiegeProtector parks every non-cast Battle entry while its controller
+// makes the CR 310.10 Siege protector choice. CR 310.4/310.10: "As a Siege
+// enters, its controller chooses an opponent to protect it; that player is its
+// protector." The choice is a construct rule, not a card script -- none of the
+// 37 real Battle cards carries a GenericChoice/ChosenMode script -- so the
+// engine poses it here for every entry path, exactly as applyRiotReplacement
+// does for Riot. The parked move is emitted after handleChoose logs the choice
+// (a Choose "protector" event), so a log-only replay re-derives the protector
+// from the same event stream. Only the controller's LIVING opponents are
+// offered; a controller with no living opponent (a battle entering after
+// everyone else lost -- unreachable in a real match) is recorded with no
+// protector rather than parking on an unanswerable ask.
+func (e *Engine) applySiegeProtector(ev events.Event) bool {
+	// Same overwrite guard applyRiotReplacement documents: never park on an ask
+	// while another decision is outstanding.
+	if ev.To != state.ZBattlefield || e.siegeMove != nil || e.pending != nil {
+		return false
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil {
+		return false
+	}
+	if !o.Face().IsBattle() {
+		return false
+	}
+	// Battle Siege (CR 310.10) is the only battle type this build models and
+	// the only one whose construct rule names a protector. A future
+	// non-Siege battle gains no protector ask, so match the subtype rather
+	// than every Battle.
+	if !hasType(o, "Siege") {
+		return false
+	}
+	// A protector already recorded (a re-entering object keeps none -- Move
+	// resets it -- but an object parked twice in one entry sequence must not
+	// ask twice).
+	if o.ProtectorValid {
+		return false
+	}
+	var opts []decision.Option
+	idx := 0
+	for _, p := range e.G.AliveFrom(0) {
+		if p == o.Controller {
+			continue
+		}
+		opts = append(opts, decision.Option{Index: idx, Kind: "protector",
+			Label: e.G.Players[p].Name, Obj: o.ID, Player: p})
+		idx++
+	}
+	if len(opts) == 0 {
+		return false
+	}
+	move := ev
+	e.siegeMove = &move
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose,
+		Min: 1, Max: 1, Source: o.ID,
+		Prompt:  "Choose an opponent to protect this battle",
+		Options: opts}
+	e.choosing = chooseSiege
 	e.ask(d)
 	return true
 }

@@ -414,6 +414,15 @@ type Object struct {
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string
+	// Protector is the CR 310.10 Siege protector: the opponent its
+	// controller chose to protect this Battle as it entered. It is a property
+	// of the battle (not a counter), recorded through a Choose "protector"
+	// event so it is replay-derived, and reset when the object leaves the
+	// battlefield (a re-entering battle is protected afresh). ProtectorValid
+	// distinguishes "no protector chosen yet" from a real protector: seat 0
+	// is a legal opponent, so a zero Protector alone is ambiguous.
+	Protector      PlayerID
+	ProtectorValid bool
 	// LastNotedMana is the mana type the object's last RememberCostMana$
 	// activation paid with (Jeweled Amulet: "note the type of mana spent to
 	// pay this activation cost") — the colour letter(s) of the mana the

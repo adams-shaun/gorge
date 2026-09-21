@@ -1207,6 +1207,11 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenNumber = e.Amount
 			case "riot":
 				o.RiotChoice = e.Text
+			case "protector":
+				// CR 310.10: the Siege protector chosen as this Battle
+				// entered. Player carries the chosen opponent's seat.
+				o.Protector = e.Player
+				o.ProtectorValid = true
 			case "chosen":
 				o.Chosen = rememberedFrom(e.IDs)
 			case "remembered":
@@ -2012,6 +2017,22 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 					o.AddCounter("LORE", 1)
 				}
 			}
+			// CR 310.6/310.8: a Battle enters with defense counters equal to
+			// its printed Defense. Like the loyalty half above this is granted
+			// inside Move so EVERY entry path (cast, blink, search, reanimate,
+			// token) is covered by construction and a log-only replay
+			// re-derives it. Defense is a string in the IR: a positive integer
+			// grants, an absent/X/non-numeric value fails closed (the same
+			// totality stance the loyalty grant takes for a walker whose
+			// starting loyalty is unreadable). A face-down entry (a manifest)
+			// is a 2/2 creature, not a Battle (CR 708.5), and gains none.
+			if !o.FaceDown {
+				if f := o.Face(); f != nil && f.IsBattle() {
+					if n, err := strconv.Atoi(strings.TrimSpace(f.Defense)); err == nil && n > 0 {
+						o.AddCounter("DEFENSE", int32(n))
+					}
+				}
+			}
 		}
 	default:
 		// CR 702.103: a Soulbond pair ends when either member leaves the
@@ -2074,6 +2095,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ManaDesertSpent = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
+			o.Protector, o.ProtectorValid = 0, false
 			o.LastNotedMana = ""
 			o.Chosen = nil
 			// Exert state is the old permanent's, not the new object's

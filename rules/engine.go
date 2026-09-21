@@ -499,6 +499,12 @@ type Engine struct {
 	// Riot's as-enters choice. The event is emitted only after Choose records
 	// the answer, so every entry path reaches events.Move with RiotChoice set.
 	riotMove *events.Event
+	// siegeMove parks a non-cast Battle entry while its controller makes the
+	// CR 310.10 Siege protector choice. Same discipline as riotMove: the
+	// MoveZone is emitted only after the Choose "protector" event records the
+	// answer, so every entry path records the protector beside the entry and a
+	// log-only replay re-derives it. Clone-copied (clone.go).
+	siegeMove *events.Event
 	// suspendedCasts is the mandatory "cast it if able" trigger created when
 	// a real suspended card loses its final TIME counter. IDs are appended in
 	// exile order and consumed before priority; it is plain replayable engine

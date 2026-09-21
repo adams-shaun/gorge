@@ -40,6 +40,12 @@ const (
 	// 16, manaUnless/unlessCost 17-18): all pairwise-distinct consts in one
 	// switch table, so the exact numbers do matter inside the package.
 	chooseRiot chooseFor = 20
+	// chooseSiege is the CR 310.10 Siege protector choice, also parked as an
+	// as-enters replacement (applySiegeProtector) for every MoveZone entry
+	// path. 26 is the next free value after chooseCommanderColor (25) and the
+	// chooseRiot+1.. family; the numbers matter only inside this package's
+	// switch table.
+	chooseSiege chooseFor = 26
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and
