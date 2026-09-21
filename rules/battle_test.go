@@ -185,41 +185,98 @@ func TestSiegeEntryPosesProtectorChoice(t *testing.T) {
 // the FaceDown state is only folded by Apply's Move after the replacement
 // dispatch runs), and the CR 704.5h zero-defense SBA must not sweep it (it
 // has no defense counters by construction). Pins both face-down guards that
-// a manifested or cloaked Battle reaches in real play.
+// a manifested or cloaked Battle reaches in real play, over BOTH battlefield
+// face-down entry markers -- the manifest/FaceDown$ one and Cloak's, which
+// applySiegeProtector reaches through the shared events.IsFaceDownEntry.
 func TestBattleFaceDownEntryGrantsNothingAndDoesNotPark(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	battle := mustCorpusCard(t, reg, "Invasion of Tolvada")
-	deck := append([]*cards.Card{battle}, mountainDeck(t, 39)...)
-	cfg := Config{Seed: 31, Names: []string{"a", "b", "c", "d"},
-		Decks: [][]*cards.Card{deck, mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}
-	cfg = seatZeroStart(cfg)
-	e := New(cfg)
-	var id state.ObjID
-	for i := range e.G.Objs {
-		o := &e.G.Objs[i]
-		if o.Owner == 0 && o.Card == battle {
-			id = o.ID
-			break
-		}
+	for _, tc := range []struct{ name, counter string }{
+		{"manifest", events.FaceDownEntryCounter},
+		{"cloak", events.CloakEntryCounter},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			reg := testutil.CorpusRegistry(t)
+			battle := mustCorpusCard(t, reg, "Invasion of Tolvada")
+			deck := append([]*cards.Card{battle}, mountainDeck(t, 39)...)
+			cfg := Config{Seed: 31, Names: []string{"a", "b", "c", "d"},
+				Decks: [][]*cards.Card{deck, mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}
+			cfg = seatZeroStart(cfg)
+			e := New(cfg)
+			var id state.ObjID
+			for i := range e.G.Objs {
+				o := &e.G.Objs[i]
+				if o.Owner == 0 && o.Card == battle {
+					id = o.ID
+					break
+				}
+			}
+			if id == 0 {
+				t.Fatal("battle copy missing")
+			}
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
+				To: state.ZBattlefield, Counter: tc.counter})
+			if d := e.Pending(); d != nil {
+				t.Fatalf("face-down battle entry parked on a decision, want none: %+v", d)
+			}
+			o := e.G.Obj(id)
+			if !o.FaceDown {
+				t.Fatal("face-down entry did not fold FaceDown")
+			}
+			if got := o.Counter("DEFENSE"); got != 0 {
+				t.Fatalf("face-down battle entered with %d defense counters, want 0", got)
+			}
+			if o.ProtectorValid {
+				t.Fatalf("face-down battle recorded a protector (seat %d)", o.Protector)
+			}
+			e.checkStateBased()
+			if o.Zone != state.ZBattlefield {
+				t.Fatalf("face-down battle was swept to %v by the zero-defense SBA", o.Zone)
+			}
+		})
 	}
-	if id == 0 {
-		t.Fatal("battle copy missing")
-	}
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
-		To: state.ZBattlefield, Counter: events.FaceDownEntryCounter})
-	if d := e.Pending(); d != nil {
-		t.Fatalf("face-down battle entry parked on a decision, want none: %+v", d)
-	}
-	o := e.G.Obj(id)
-	if !o.FaceDown {
-		t.Fatal("face-down entry did not fold FaceDown")
-	}
-	if got := o.Counter("DEFENSE"); got != 0 {
-		t.Fatalf("face-down battle entered with %d defense counters, want 0", got)
-	}
-	e.checkStateBased()
-	if o.Zone != state.ZBattlefield {
-		t.Fatalf("face-down battle was swept to %v by the zero-defense SBA", o.Zone)
+}
+
+// TestBattleFaceDownEntryEmitsNoProtectorChoose is the transcript half of the
+// same boundary, and it is seat-count-independent: in a TWO-player game the
+// strict-supersets skip records the sole opponent through a Choose "protector"
+// event without an ask, and that event is not Secret -- view.Describe renders
+// the object's printed name -- so a face-down entry that reached the protector
+// code at all would leak the hidden card's identity into the public
+// transcript even though nothing parked. Both markers must emit nothing.
+func TestBattleFaceDownEntryEmitsNoProtectorChoose(t *testing.T) {
+	for _, tc := range []struct{ name, counter string }{
+		{"manifest", events.FaceDownEntryCounter},
+		{"cloak", events.CloakEntryCounter},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			reg := testutil.CorpusRegistry(t)
+			battle := mustCorpusCard(t, reg, "Invasion of Tolvada")
+			deck := append([]*cards.Card{battle}, mountainDeck(t, 39)...)
+			cfg := seatZeroStart(Config{Seed: 31, Names: []string{"a", "b"},
+				Decks: [][]*cards.Card{deck, mountainDeck(t, 40)}})
+			e := New(cfg)
+			var id state.ObjID
+			for i := range e.G.Objs {
+				o := &e.G.Objs[i]
+				if o.Owner == 0 && o.Card == battle {
+					id = o.ID
+					break
+				}
+			}
+			if id == 0 {
+				t.Fatal("battle copy missing")
+			}
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
+				To: state.ZBattlefield, Counter: tc.counter})
+			for _, ev := range e.L.Events {
+				if ev.Kind == events.Choose && ev.Obj == id && ev.Counter == "protector" {
+					t.Fatalf("face-down battle entry emitted a public Choose %q naming seat %d",
+						ev.Counter, ev.Player)
+				}
+			}
+			if o := e.G.Obj(id); o.ProtectorValid {
+				t.Fatalf("face-down battle recorded a protector (seat %d)", o.Protector)
+			}
+		})
 	}
 }
 

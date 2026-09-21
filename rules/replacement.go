@@ -1727,10 +1727,15 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	}
 	// A face-down entry is a vanilla 2/2 creature (CR 708.5), not a Battle;
 	// the entry grant grants it no defense counters, so it must not be parked
-	// on the CR 310.10 protector ask either. The FaceDown state is folded by
+	// on the CR 310.10 protector ask either -- and must not emit the
+	// Choose "protector" event at all, which is not Secret and would name the
+	// hidden card in the public transcript. The FaceDown state is folded by
 	// Apply's Move AFTER this replacement dispatch runs, so the incoming
 	// event's counter -- not o.FaceDown -- is what names the face-down entry.
-	if _, _, _, _, fd := events.FaceDownEntryFields(ev.Counter); fd {
+	// events.IsFaceDownEntry is the shared predicate covering BOTH markers,
+	// the manifest/FaceDown$ one and Cloak's, so this guard and Apply's own
+	// fold cannot disagree about which entries are face down.
+	if events.IsFaceDownEntry(ev.Counter) {
 		return false
 	}
 	if !o.Face().IsBattle() {

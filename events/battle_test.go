@@ -40,19 +40,56 @@ func TestBattleMoveGrantsDefenseCounters(t *testing.T) {
 	}
 }
 
-// TestBattleFaceDownEntryGrantsNothing is the manifest boundary: a face-down
-// entry (CR 708.5) is a 2/2 creature, not a Battle, and gains no defense
-// counters -- the same boundary the loyalty and lore grants document.
+// TestBattleFaceDownEntryGrantsNothing is the manifest/cloak boundary: a
+// face-down entry (CR 708.5) is a 2/2 creature, not a Battle, and gains no
+// defense counters -- the same boundary the loyalty and lore grants document.
+// Both battlefield face-down entry markers are pinned.
 func TestBattleFaceDownEntryGrantsNothing(t *testing.T) {
-	g, id := gameWithSiege(t)
-	Apply(g, Event{Kind: MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield,
-		Counter: FaceDownEntryCounter})
-	o := g.Obj(id)
-	if !o.FaceDown {
-		t.Fatal("face-down entry did not fold FaceDown")
+	for _, tc := range []struct {
+		name, counter string
+		cloaked       bool
+	}{
+		{"manifest", FaceDownEntryCounter, false},
+		{"cloak", CloakEntryCounter, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, id := gameWithSiege(t)
+			Apply(g, Event{Kind: MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield,
+				Counter: tc.counter})
+			o := g.Obj(id)
+			if !o.FaceDown {
+				t.Fatal("face-down entry did not fold FaceDown")
+			}
+			if o.Cloaked != tc.cloaked {
+				t.Fatalf("Cloaked=%v, want %v", o.Cloaked, tc.cloaked)
+			}
+			if got := o.Counter("DEFENSE"); got != 0 {
+				t.Fatalf("face-down battle entered with %d defense counters, want 0", got)
+			}
+		})
 	}
-	if got := o.Counter("DEFENSE"); got != 0 {
-		t.Fatalf("face-down battle entered with %d defense counters, want 0", got)
+}
+
+// TestIsFaceDownEntryCoversBothMarkers pins the shared predicate the rules
+// side reads when it must skip a face-down battlefield entry: BOTH markers
+// count (the payload-bearing manifest spellings too), and no other MoveZone
+// Counter value does. Without this, a consumer reaching only for
+// FaceDownEntryFields silently misses every cloak entry.
+func TestIsFaceDownEntryCoversBothMarkers(t *testing.T) {
+	for _, c := range []string{
+		FaceDownEntryCounter,
+		CloakEntryCounter,
+		FaceDownEntryCounterFor("Land & Forest", 0, 0, false),
+		FaceDownEntryCounterFor("", 3, 3, true),
+	} {
+		if !IsFaceDownEntry(c) {
+			t.Errorf("IsFaceDownEntry(%q) = false, want true", c)
+		}
+	}
+	for _, c := range []string{"", "exiled_with", "face_down", "exiled_with_face_down", "entered_cloaked_x"} {
+		if IsFaceDownEntry(c) {
+			t.Errorf("IsFaceDownEntry(%q) = true, want false", c)
+		}
 	}
 }
 

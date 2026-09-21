@@ -549,7 +549,7 @@ func Apply(g *state.Game, e Event) {
 		// and trigger_match.go read for the ward {2}.
 		setType, fdPower, fdTough, fdHasPT, manifesting := "", int32(0), int32(0), false, false
 		if e.Kind == MoveZone && e.To == state.ZBattlefield {
-			if e.Counter == "entered_cloaked" {
+			if e.Counter == CloakEntryCounter {
 				manifesting = true
 			} else {
 				setType, fdPower, fdTough, fdHasPT, manifesting = FaceDownEntryFields(e.Counter)
@@ -558,7 +558,7 @@ func Apply(g *state.Game, e Event) {
 		if manifesting {
 			if o := g.Obj(e.Obj); o != nil {
 				o.FaceDown = true
-				o.Cloaked = e.Counter == "entered_cloaked"
+				o.Cloaked = e.Counter == CloakEntryCounter
 				o.FaceDownSetType = setType
 				o.FaceDownPower = fdPower
 				o.FaceDownToughness = fdTough
@@ -608,7 +608,7 @@ func Apply(g *state.Game, e Event) {
 				o.FaceDownPower = fdPower
 				o.FaceDownToughness = fdTough
 				o.FaceDownHasPT = fdHasPT
-				o.Cloaked = e.Counter == "entered_cloaked"
+				o.Cloaked = e.Counter == CloakEntryCounter
 			} else {
 				o.ExiledWith = 0
 				o.FaceDown = false
