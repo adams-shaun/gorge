@@ -171,6 +171,15 @@ type turnFires struct {
 	N    int32
 }
 
+// combatFires is one T: line's once-per-combat latch stamp
+// (Engine.unblockedOnceFired): the (turn, combat-of-that-turn) pair that
+// uniquely names the combat the line last fired in. A new turn or a new
+// combat phase within it changes the stamp and re-arms the trigger.
+type combatFires struct {
+	Turn   int32
+	Combat int32
+}
+
 // actionTriggerModes are the event-trigger modes the sacrifice/discard/tap/
 // crime/attack-declaration ticket registered. The trigger-level parameters
 // only they honour -- ActivationLimit$, PlayerTurn$, and a CheckDefinedPlayer$
@@ -2714,6 +2723,137 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	})
 }
 
+// checkAttackerUnblockedOnceTriggers queues Mode$ AttackerUnblockedOnce
+// (Coveted Jewel's "Whenever one or more creatures an opponent controls attack
+// you and aren't blocked, that player draws three cards and gains control of
+// CARDNAME. Untap it."). It is a dedicated hook, like checkAttackerBlockedTriggers,
+// because the ordinary per-face scan cannot express it and the mode has no
+// triggerMatches case.
+//
+// It runs at the DECLARE-BLOCKERS ROUND COMPLETE instant (rules/turn.go's
+// StepDeclareBlockers completion branch), NOT per DeclareBlockers event: those
+// events are per-defender, and a defender with attackers but no legal blockers
+// is skipped with no event at all, so a per-event scan of battlefield-wide
+// unblocked attackers would see a later defender's not-yet-blocked attackers
+// as unblocked and latch the trigger wrongly early on a split attack. At the
+// completion instant every defender has answered (or been skipped), so the
+// battlefield's IsAttacking && no-BlockedBy objects are exactly the unblocked
+// attackers. The condition is evaluated once, here: an attacker that BECOMES
+// unblocked later (its blocker leaves combat, or a stat:AssignCombatDamageAsUnblocked
+// election) does not fire this trigger -- Forge checks at the end of declare
+// blockers too.
+//
+// Fire semantics (Forge's AttackerUnblockedOnce): ONE instance per trigger per
+// combat when at least one matching unblocked attacker exists -- "one or more
+// creatures ... and aren't blocked" -- even when several attackers match. The
+// latch (Engine.unblockedOnceFired) stamps (Turn, CombatsThisTurn) so an extra
+// combat re-arms it. The matching AttackingPlayer is the first matching
+// attacker's controller in the battlefield walk order.
+//
+// Gates mirror the AttackerBlocked hook's sequence (zone, phase, fire-count
+// bound, ActivationLimit$); ValidDefenders$ and ValidAttackingPlayer$ are the
+// two player specs this mode carries, both base-Player/You shapes
+// effects.MatchesPlayerSpec already evaluates. Secondary$ needs no yield: a
+// paired primary can never match a declare-blockers-derived condition.
+// OptionalDecider$ is not read -- no corpus carrier of the Once mode carries
+// it (the only carrier is Coveted Jewel).
+func (e *Engine) checkAttackerUnblockedOnceTriggers() {
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	stamp := combatFires{Turn: e.G.Turn, Combat: e.G.CombatsThisTurn}
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil {
+			return
+		}
+		f := o.Face()
+		if f == nil {
+			return
+		}
+		for ti, t := range f.Triggers {
+			if t.Mode != "AttackerUnblockedOnce" {
+				continue
+			}
+			if !o.Unlocked && !e.faceMayTrigger(f, events.DeclareBlockers) {
+				continue
+			}
+			if t.Effect == nil {
+				continue
+			}
+			if !e.zoneGate(t, id, events.Event{Kind: events.DeclareBlockers}) || !e.phaseGate(t) {
+				continue
+			}
+			key := triggerKey{Source: id, Idx: ti}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue // cascade bound: see maxTriggerFires.
+			}
+			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			if e.unblockedOnceFired == nil {
+				e.unblockedOnceFired = map[triggerKey]combatFires{}
+			}
+			if e.unblockedOnceFired[key] == stamp {
+				continue // already fired this combat.
+			}
+
+			// Scan the battlefield for the unblocked attackers this trigger's
+			// defender is being attacked by, whose controller is an opponent of
+			// the trigger controller. The first match decides the fire; the
+			// matching attackers (in battlefield walk order) are remembered.
+			defenderSpec := t.Params["ValidDefenders"]
+			attackerSpec := t.Params["ValidAttackingPlayer"]
+			var attackerIDs []state.ObjID
+			for _, p := range e.G.AliveFrom(0) {
+				for _, bid := range e.G.Zone(state.ZBattlefield, p) {
+					b := e.G.Obj(bid)
+					if b == nil || !b.IsAttacking || len(b.BlockedBy) != 0 {
+						continue
+					}
+					if defenderSpec != "" && !effects.MatchesPlayerSpec(e.G, defenderSpec, b.Attacking, o.Controller) {
+						continue
+					}
+					if attackerSpec != "" && !effects.MatchesPlayerSpec(e.G, attackerSpec, e.controllerOf(bid), o.Controller) {
+						continue
+					}
+					attackerIDs = append(attackerIDs, bid)
+				}
+			}
+			if len(attackerIDs) == 0 {
+				continue
+			}
+			firstCtrl := e.controllerOf(attackerIDs[0])
+
+			remembered := make([]state.Target, 0, len(attackerIDs))
+			for _, aid := range attackerIDs {
+				remembered = append(remembered, state.Target{Obj: aid})
+			}
+			e.unblockedOnceFired[key] = stamp
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     id,
+				Controller: o.Controller,
+				Idx:        ti,
+				SA:         t.Effect,
+				Ctx: effects.Ctx{
+					Source:     id,
+					Controller: o.Controller,
+					Remembered: remembered,
+					Captured:   remembered,
+					TriggerContext: effects.TriggerContext{
+						TriggerCard:     attackerIDs[0],
+						TriggerSource:   attackerIDs[0],
+						AttackingPlayer: pt(firstCtrl),
+						DefendingPlayer: pt(o.Controller),
+					},
+				},
+			})
+		}
+	})
+}
+
 // blocksCandidates lists the (attacker, blocker) pairs one Forge Mode$ Blocks
 // trigger fires for (task trig:Blocks; Savvy Hunter's "Whenever Savvy Hunter
 // attacks or blocks", Heat of Battle's "Whenever a creature blocks", Wand of
@@ -4504,7 +4644,7 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterRemoved",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterRemoved",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",

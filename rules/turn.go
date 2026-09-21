@@ -424,6 +424,13 @@ func (e *Engine) step() {
 		if e.declarationMadeThisStep(events.DeclareBlockers) &&
 			(e.blockerRound.order == nil || e.blockerRound.cursor >= len(e.blockerRound.order)) {
 			e.blockerRound = blockerRound{}
+			// The declare-blockers round is complete: every defender has
+			// answered (or been skipped). This is the one instant
+			// Mode$ AttackerUnblockedOnce's condition is evaluated -- see
+			// checkAttackerUnblockedOnceTriggers. Queued here, the trigger
+			// drains onto a stack at the priorityRound below (CR 509.2),
+			// before combat damage.
+			e.checkAttackerUnblockedOnceTriggers()
 			e.priorityRound()
 		} else {
 			e.askBlockers()
