@@ -129,9 +129,9 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	removeCreatureTypes := strings.EqualFold(strings.TrimSpace(sa.Params["RemoveCreatureTypes"]), "True")
 	setPowerPresent, setPower := clonePT(h, c, sa, "SetPower")
 	setToughPresent, setTough := clonePT(h, c, sa, "SetToughness")
-	intoPlayTapped := cloneParamValue(sa, "IntoPlayTapped") != ""
 	colorSpec := strings.TrimSpace(sa.Params["SetColor"])
 	var setColors []string
+	var setColorPresent bool
 	if colorSpec != "" {
 		letters, ok := colorLetters(colorSpec)
 		if !ok {
@@ -140,8 +140,12 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		} else {
 			// SetColor$ is an overwrite (CR 613.1e "becomes"); an empty parse
 			// (Colorless) is an overwrite to colourless, which the layer walk
-			// honours through OverwriteColors with an empty AddColors.
+			// honours through OverwriteColors with an empty AddColors. The
+			// PRESENCE bit is tracked separately from the letters for exactly
+			// that case: keying the registration on len(setColors) would make
+			// SetColor$ Colorless a silent no-op.
 			setColors = letters
+			setColorPresent = true
 		}
 	}
 	// Purely inert riders: one loud Note naming each, the copy proceeds
@@ -192,12 +196,6 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 				ev.Counter = "gain-this-ability"
 			}
 			h.Emit(ev)
-			if intoPlayTapped {
-				// IntoPlayTapped$ True (Vesuva, Echoing Deeps, Callidus
-				// Assassin -- all ETB-route bodies): the copy "enters tapped",
-				// so the become permanent is tapped as the copy is applied.
-				h.Emit(events.Event{Kind: events.Tap, Obj: b.Obj})
-			}
 
 			// Modifier layers, scoped to the become object (Card.Self with
 			// Source = its own id, the effPump convention). The lifetime is
@@ -222,7 +220,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 				reg(state.ContinuousEffect{Layer: state.LType, AddTypes: addTypes,
 					RemoveCardTypes: removeCardTypes, RemoveCreatureTypes: removeCreatureTypes})
 			}
-			if len(setColors) > 0 {
+			if setColorPresent {
 				reg(state.ContinuousEffect{Layer: state.LColor, AddColors: setColors, OverwriteColors: true})
 			}
 			if len(addKeywords) > 0 {
@@ -241,8 +239,14 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			// EndOfTurnCleanup's attached check, which reads the marker's
 			// Duration; every other duration rides UntilEOT/UntilTurn or the
 			// source-leaves rule.
+			//
+			// The marker also CARRIES the copy (source id, NewName$,
+			// GainThisAbility$) so that expiring one unit on an object that
+			// carries ANOTHER live unit re-bases the object onto the
+			// survivor instead of clearing the shared CopyFace basis.
 			_ = untilUnattached
-			reg(state.ContinuousEffect{Layer: state.LCopy})
+			reg(state.ContinuousEffect{Layer: state.LCopy, CloneSource: t.Obj,
+				CloneName: newName, CloneGainThisAbility: gainThisAbility})
 		}
 	}
 }
@@ -255,10 +259,19 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 // RemoveSubTypes$ 1, NonLegendary$ 6, AddSVars$ (read only through
 // GainThisAbility's merged SVar table) 9, AttachedTo$/CopyFromChosenName$/
 // CloneZone$/FaceDown$ the remaining singletons.
+// IntoPlayTapped$ is in this list deliberately. It means "the copy ENTERS
+// tapped", which only has a referent on the ETB-replacement route (Vesuva,
+// Echoing Deeps, Callidus Assassin -- every measured carrier is an
+// ETBReplacement body). On the STANDALONE route this build ships, the become
+// object is already on the battlefield and nothing is entering, so tapping it
+// would be an invented cost. No standalone corpus carrier passes the
+// parameter, so it is recorded and inert until the ETB-copy ticket lands and
+// can read it against real entry provenance.
 var cloneUnreadModifiers = []string{
 	"AddTriggers", "AddStaticAbilities", "AddAbilities", "AddSVars",
 	"SetCreatureTypes", "RemoveSubTypes", "NonLegendary", "AttachedTo",
 	"CopyFromChosenName", "CloneZone", "FaceDown", "KeepFacedown",
+	"IntoPlayTapped",
 }
 
 // cloneParamValue is the unread-modifier keys' trimmed value read (the

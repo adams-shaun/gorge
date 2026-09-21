@@ -336,6 +336,28 @@ type ContinuousEffect struct {
 	// other resolution-created fields.
 	CloneTarget ObjID
 
+	// CloneSource, CloneName and CloneGainThisAbility describe the copy the
+	// layer-1 LCopy MARKER of a clone unit owns: the object whose printed
+	// face the copy is taken from, the NewName$ rider (empty means the
+	// source's own name) and the GainThisAbility$ True rider. They exist so a
+	// unit's expiry can RE-BASE the become object onto whatever OTHER clone
+	// unit is still live on it (CR 613.1a applies copy effects in timestamp
+	// order, so the highest-timestamp survivor wins) instead of clearing the
+	// shared CopyFace basis outright. Set only on the marker (Layer LCopy)
+	// by effects' api:Clone; zero on its sibling modifier effects and on
+	// every non-clone effect. Engine-runtime, rebuilt by re-execution on
+	// replay like CloneTarget itself.
+	//
+	// The re-base re-snapshots the surviving source's face at expiry time
+	// rather than replaying the original snapshot, so a survivor whose own
+	// source has since changed re-bases onto the source's CURRENT printed
+	// face. Measured corpus-unreachable (no carrier stacks two clone units
+	// on one permanent and then mutates the older one's source), recorded in
+	// AGENTS.md's clone row.
+	CloneSource          ObjID
+	CloneName            string
+	CloneGainThisAbility bool
+
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn
 	// (UntilYourNextTurn, UntilTheEndOfYourNextTurn). Computed at

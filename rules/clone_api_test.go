@@ -123,7 +123,7 @@ func TestMirageMirrorBecomesACopyOfTargetCreature(t *testing.T) {
 // .cards/ file) so every modifier path is exercised deterministically.
 func TestCloneModifiersApplyAtTheirOwnLayers(t *testing.T) {
 	const src = "Name:Fixture Mimic\nManaCost:2\nTypes:Artifact\n" +
-		"A:AB$ Clone | Cost$ 1 | ValidTgts$ Creature | Duration$ UntilEndOfTurn | AddTypes$ Shapeshifter & Rogue | SetColor$ Blue | AddKeywords$ Flying | SetPower$ 4 | SetToughness$ 5 | IntoPlayTapped$ True | SpellDescription$ becomes a copy.\n" +
+		"A:AB$ Clone | Cost$ 1 | ValidTgts$ Creature | Duration$ UntilEndOfTurn | AddTypes$ Shapeshifter & Rogue | SetColor$ Blue | AddKeywords$ Flying | SetPower$ 4 | SetToughness$ 5 | SpellDescription$ becomes a copy.\n" +
 		"Oracle:x\n"
 	const bruiser = "Name:Fixture Bruiser\nManaCost:2 G\nTypes:Creature Beast\nPT:3/3\nOracle:x\n"
 	e, cfg, id := newFixtureDeck(t, 88, src, bruiser)
@@ -133,13 +133,9 @@ func TestCloneModifiersApplyAtTheirOwnLayers(t *testing.T) {
 	activateCloneAbility(t, e, id, bear)
 	passUntilStackEmpty(t, e, 40)
 
-	// IntoPlayTapped$ True (Vesuva, Echoing Deeps, Callidus Assassin -- all
-	// ETB-route bodies, exercised here on the standalone shape): the copy
-	// "enters tapped", so the become permanent is tapped as the copy lands.
-	if !e.G.Obj(id).Tapped {
-		t.Fatal("IntoPlayTapped$ copy is not tapped")
-	}
-
+	// IntoPlayTapped$ is deliberately NOT exercised here: it is an
+	// ETB-route-only parameter (see
+	// TestCloneIntoPlayTappedIsUnreadOnTheStandaloneRoute).
 	d := e.Derived(id)
 	if d.Power != 4 || d.Toughness != 5 {
 		t.Fatalf("modified copy P/T %d/%d, want 4/5", d.Power, d.Toughness)

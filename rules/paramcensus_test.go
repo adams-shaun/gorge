@@ -2290,7 +2290,15 @@ var knownUnsupportedParams = map[string][]string{
 	"Scarlet Witch, Chaotic Avenger": {"param:api:Dig.WithMayLook", "param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"Speed, Young Avenger":           {"param:api:Effect.ValidTgtsDesc"},
 	"Spinerock Knoll":                {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
-	"West Coast Expansion":           {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
+	// Vesuva's api:Clone body carries IntoPlayTapped$ True. The parameter
+	// means "the copy ENTERS tapped", which only has a referent on the
+	// ETB-replacement route -- the route Vesuva takes and the one this build
+	// does not implement yet (the open ETB-copy ticket). effClone records it
+	// as unread rather than tapping a permanent that never entered, so the
+	// label is honest until that ticket lands and can read it against real
+	// entry provenance.
+	"Vesuva":               {"param:api:Clone.IntoPlayTapped"},
+	"West Coast Expansion": {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"World Shaper":                   {"param:api:Mill.Optional"},
 	// The pro-shaper player-submitted Commander import (2026-09-18): the
 	// parameter reads its cards expose that this build does not implement.

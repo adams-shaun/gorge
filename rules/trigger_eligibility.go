@@ -67,7 +67,12 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
 		events.GrantTriggerPush, events.ManaActivate,
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
-		events.CopyToken, events.Exert:
+		events.CopyToken, events.Exert, events.ClonePermanent:
+		// ClonePermanent is a characteristic change (the api:Clone layer-1
+		// CopyFace basis), not a game event any trigger mode fires on -- the
+		// same reading FlipFace and CardToken get. Without it here the
+		// default arm gave the kind TriggerInterestAny, so every clone and
+		// every clone expiry ran a full trigger scan.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
