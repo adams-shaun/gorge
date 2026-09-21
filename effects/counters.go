@@ -17,6 +17,7 @@ func init() {
 	Register("PutCounterAll", effPutCounterAll)
 	Register("RemoveCounterAll", effRemoveCounterAll)
 	Register("RemoveCounter", effRemoveCounter)
+	Register("MoveCounter", effMoveCounter)
 	Register("MultiplyCounter", effMultiplyCounter)
 	Register("Proliferate", effProliferate)
 	Register("Regenerate", effRegenerate)
@@ -1060,6 +1061,388 @@ func dedupeKinds(kinds []string) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// effMoveCounter implements Forge's MoveCounterEffect: counters of
+// CounterType$ move from an ORIGIN set to a DESTINATION set -- a counter
+// leaves its origin once and lands ONCE (CR 122.5: a counter moves, it is
+// not copied and not removed-and-put; a multi-destination sweep DISTRIBUTES
+// the moved total across the destinations, round-robin in destination
+// order). `effects.Register("MoveCounter")` is what makes the ability offered
+// at all; before it every carrier fell to the generic
+// "unimplemented API MoveCounter" Note and moved nothing (Diamond City's
+// second ability, Weapon Rack, Aetherborn Marauder, Spike Cannibal, Bioshift,
+// ... -- 33 raw SA lines over 32 corpus files).
+//
+// Forge names the two sets with four params, and the corpus's own oracle text
+// disambiguates every combination:
+//
+//   - Origin = Source$ when present (a Defined$-style selector: Self is the
+//     ability's source, ParentTarget/Targeted the parent ability's chosen
+//     targets), else ValidSource$ (a battlefield filter sweep), else the
+//     chosen targets.
+//   - Destination = Defined$ when present, else ValidDefined$ (a sweep),
+//     else the chosen targets -- but when the origin ALSO came from the
+//     chosen targets (the 2-target "... onto another target ..." spells),
+//     target 0 is the origin and the REMAINING targets are the destinations.
+//
+// CounterType$: a literal kind (P1P1/LOYALTY/SHIELD/...), All (every kind the
+// carrier holds), EachNotOn (each kind the origin holds that the destination
+// does not -- Goldberry), or Any (a real "choose a kind" ask among the
+// distinct kinds the origin holds; a single-kind origin takes that kind with
+// no ask, the strict-supersets convention). CounterNum$: a literal, X, All
+// (everything of the kind on the origin), or Any (a real any-number ask up to
+// what the origin holds -- Min 0 is a legitimate decline).
+//
+// Riders: RememberPut$ True appends each DESTINATION that received a counter
+// to Ctx.Remembered (Goldberry's SVar:X:Remembered$Amount gate);
+// RememberAmount$ True appends the origin id once per counter moved, so the
+// engine's list-length channel (Count$RememberedNumber == len(Ctx.Remembered),
+// the same encoding rememberRemoved uses) reads the AMOUNT (Black Panther's
+// SVar:X:Count$RememberedNumber). An unresolvable CounterNum$ body, a
+// CounterNum$ Any riding a multi-kind CounterType$ (All/EachNotOn), a
+// TgtZone$ naming anything but the battlefield, and player origins or
+// destinations are LOUD-degraded -- one Note naming the shape, nothing moves
+// (the effPutCounterAll/effRemoveCounter exotic pattern). TargetUnique$ True
+// (one carrier, vacuous on a single-target ask) is tolerated silently.
+func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
+	// fx42 scoping: capture and clear the answered asks BEFORE the walk, so a
+	// nested MoveCounter below this one poses its own ask instead of
+	// inheriting the outer answer (the Proliferate discipline).
+	kindAns, kindDone := c.MoveCounterKind, c.MoveCounterKindDone
+	nAns, nDone := c.MoveCounterN, c.MoveCounterNDone
+	c.MoveCounterKind, c.MoveCounterKindDone = "", false
+	c.MoveCounterN, c.MoveCounterNDone = 0, false
+
+	kindParam := strings.TrimSpace(sa.Params["CounterType"])
+	numParam := strings.TrimSpace(sa.Params["CounterNum"])
+
+	// Loud-degrade the shapes the core cannot express, before anything moves.
+	var exotic []string
+	if zone := strings.TrimSpace(sa.Params["TgtZone"]); zone != "" && !strings.EqualFold(zone, "Battlefield") {
+		exotic = append(exotic, "TgtZone$ "+zone)
+	}
+	if raw, present := sa.Params["CounterNum"]; present && numParam != "" && !strings.EqualFold(numParam, "All") && !strings.EqualFold(numParam, "Any") {
+		if _, ok := NumResolved(h, c, sa, "CounterNum", 1); !ok {
+			// A body Num cannot price (a bare SVar name the face lacks, an
+			// exotic Count$ head) would silently move zero; name it instead.
+			exotic = append(exotic, "CounterNum$ "+raw)
+		}
+	}
+	if len(exotic) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented MoveCounter shape: " + strings.Join(exotic, ", ")})
+		return
+	}
+
+	origin, originFromTargets, ok := moveCounterOrigin(h, c, sa)
+	if !ok {
+		return // unresolvable Source$: fail closed (the definedSpec discipline)
+	}
+	if len(origin) == 0 {
+		return
+	}
+	dests := moveCounterDest(h, c, sa, originFromTargets)
+	if len(dests) == 0 {
+		return
+	}
+
+	// Player origins/destinations are out of scope (no corpus carrier needs
+	// PlayerCounterChange here); name the shape rather than invent a move.
+	for _, t := range origin {
+		if t.IsPlayer {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unimplemented MoveCounter shape: player origin"})
+			return
+		}
+	}
+	for _, t := range dests {
+		if t.IsPlayer {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unimplemented MoveCounter shape: player destination"})
+			return
+		}
+	}
+
+	g := h.Game()
+	// Resolve the origin object(s) once (a battlefield object that left while
+	// a nested ask was outstanding is skipped by the move walk below).
+	origins := make([]*state.Object, 0, len(origin))
+	for _, t := range origin {
+		if o := g.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			origins = append(origins, o)
+		}
+	}
+	if len(origins) == 0 {
+		return
+	}
+
+	// CounterType$ Any: a real kind pick over the distinct kinds the origins
+	// hold, when more than one kind is present (a single-kind origin takes
+	// that kind with no ask). A multi-origin Any shape has no single pick to
+	// pose; loud-degrade it.
+	chosenKind := kindParam
+	if strings.EqualFold(kindParam, "Any") {
+		if !kindDone {
+			if len(origins) != 1 {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "unimplemented MoveCounter shape: CounterType$ Any over multiple origins"})
+				return
+			}
+			kinds := moveCounterKindsOf(origins[0])
+			if len(kinds) >= 2 {
+				chooser := c.Controller
+				d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+					Min: 1, Max: 1, Source: c.Source, ResumeKind: "move_counter_kind", ResumeSA: sa,
+					Prompt: "MoveCounter: choose a counter kind to move"}
+				for _, k := range kinds {
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+						Kind: "move_counter_kind", Label: k})
+				}
+				if Ask(h, d) == AskAsked {
+					return
+				}
+				// No host (R-9): the deterministic first-kind stand-in, the same
+				// pick botpolicy's arm takes.
+				chosenKind = kinds[0]
+			} else if len(kinds) == 1 {
+				chosenKind = kinds[0]
+			} else {
+				return // origin holds no counters: nothing moves
+			}
+		} else {
+			chosenKind = kindAns
+			if chosenKind == "" {
+				return
+			}
+		}
+	}
+
+	// CounterNum$ All means "everything of the kind on the origin" -- resolved
+	// per origin below. A literal/X resolves once. CounterNum$ Any asks the
+	// amount: only a single-kind, single-origin shape can pose one ask.
+	numAll := strings.EqualFold(numParam, "All")
+	numAny := strings.EqualFold(numParam, "Any")
+	var num int32
+	if !numAll && !numAny {
+		num = Num(h, c, sa, "CounterNum", 1)
+		if num < 0 {
+			num = 0
+		}
+	}
+	if numAny {
+		if strings.EqualFold(kindParam, "All") || strings.EqualFold(kindParam, "EachNotOn") {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unimplemented MoveCounter shape: CounterNum$ Any over multiple kinds"})
+			return
+		}
+		if len(origins) != 1 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unimplemented MoveCounter shape: CounterNum$ Any over multiple origins"})
+			return
+		}
+		if !nDone {
+			maxN := origins[0].Counter(chosenKind)
+			if maxN > 0 {
+				chooser := c.Controller
+				d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+					Min: 0, Max: int(maxN), Source: c.Source, ResumeKind: "move_counter", ResumeSA: sa,
+					Prompt: "MoveCounter: choose how many counters to move"}
+				for i := 0; i <= int(maxN); i++ {
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+						Kind: "move_counter", Label: fmt.Sprintf("%d", i), Amount: i})
+				}
+				if Ask(h, d) == AskAsked {
+					return
+				}
+			}
+			// No host (R-9): the deterministic take-all stand-in.
+			num = maxN
+		} else {
+			num = nAns
+		}
+	}
+
+	// The move walk. Each origin loses `moved` of each kind; the moved total
+	// is DISTRIBUTED across the destinations (CR 122.5 -- see the walk).
+	// RememberPut$ appends the destinations that actually received a counter;
+	// RememberAmount$ appends the origin once per counter moved.
+	rememberPut := strings.EqualFold(strings.TrimSpace(sa.Params["RememberPut"]), "True")
+	rememberAmount := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAmount"]), "True")
+	var rememberedDests []state.Target
+	var amountIDs []state.ObjID
+	for _, o := range origins {
+		for _, k := range moveCounterKindsFor(chosenKind, o, dests, g) {
+			count := o.Counter(k)
+			if count <= 0 {
+				continue
+			}
+			moved := num
+			if numAll {
+				moved = count
+			}
+			if moved > count {
+				moved = count
+			}
+			if moved <= 0 {
+				continue
+			}
+			// The live destinations for this origin: on the battlefield and
+			// not the origin itself (moving a counter from a permanent to
+			// itself is a no-op, never a -/+ pair on the same id). Built BEFORE
+			// the origin's loss is emitted: an origin whose every destination
+			// left the battlefield (or was never live) keeps its counters.
+			live := make([]*state.Object, 0, len(dests))
+			for _, t := range dests {
+				if d := g.Obj(t.Obj); d != nil && d.Zone == state.ZBattlefield && d.ID != o.ID {
+					live = append(live, d)
+				}
+			}
+			if len(live) == 0 {
+				continue
+			}
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: -moved})
+			// CR 122.5: a moved counter leaves the origin once and lands ONCE
+			// -- a multi-destination sweep (Forgotten Ancient's "move any number
+			// of +1/+1 counters ... onto other creatures") DISTRIBUTES moved
+			// across the destinations, it never gives each destination the
+			// whole moved set (that would mint (M-1)*moved counters out of
+			// nothing). Distribution is the deterministic round-robin in
+			// destination order (a stand-in for the per-destination election
+			// the card text implies -- M4): destination j receives
+			// floor((moved+M-1-j)/M), so 2 over 2 creatures is 1 and 1, and a
+			// single-destination shape -- every other measured carrier -- is
+			// byte-identical to the whole-set move it had before.
+			m := int32(len(live))
+			for j, d := range live {
+				share := (moved + m - 1 - int32(j)) / m
+				if share <= 0 {
+					continue
+				}
+				h.Emit(events.Event{Kind: events.CounterChange, Obj: d.ID, Counter: k, Amount: share})
+				rememberedDests = append(rememberedDests, state.Target{Obj: d.ID})
+			}
+			for i := int32(0); i < moved; i++ {
+				amountIDs = append(amountIDs, o.ID)
+			}
+		}
+	}
+	if rememberPut && len(rememberedDests) > 0 {
+		c.Remembered = append(c.Remembered, rememberedDests...)
+	}
+	if rememberAmount && len(amountIDs) > 0 {
+		c.Remembered = append(c.Remembered, objTargets(amountIDs)...)
+	}
+}
+
+// moveCounterChosen is the chosen-target set a MoveCounter's origin/
+// destination defaults read: the generic ValidTgts$ pre-ask's ANSWER
+// (c.PickedTargets, mvts1) when one is outstanding, else the resolution's own
+// target list. Preferring PickedTargets is the established convention
+// (effects/context.go Defined, effects/damage.go, effects/zone.go): a sub the
+// pre-ask asked (Nesting Grounds' `Source$ ParentTarget | ValidTgts$
+// Permanent`, Rikku's, Black Panther's) must receive the sub's OWN chosen
+// targets, never the parent's (c.Targets), while a depth-0 shape the
+// placement/announcement ask covered (Bioshift's TargetMin$ 2, a Weapon Rack
+// activation) has PickedTargets nil and keeps c.Targets.
+func moveCounterChosen(c *Ctx) []state.Target {
+	if c.PickedTargets != nil {
+		return c.PickedTargets
+	}
+	return c.Targets
+}
+
+// moveCounterOrigin resolves the FROM set of a MoveCounter: Source$ (a
+// fail-closed Defined$-style selector), else ValidSource$ (a battlefield
+// filter sweep), else the chosen targets -- ALL of them when the SA names its
+// destination explicitly (Defined$/ValidDefined$, so the chosen targets are
+// only the origin half of a "target X, onto CARDNAME" shape), else only
+// target 0 (the 2-target "... onto another target ..." spells, where the
+// remaining targets are the destinations). originFromTargets reports the
+// 2-target branch so the destination default can drop target 0. ok is false
+// only for an explicit Source$ this build cannot resolve -- the fail-closed
+// direction, never a fallback to the source or the targets.
+func moveCounterOrigin(h Host, c *Ctx, sa *cards.SA) (ts []state.Target, fromTargets, ok bool) {
+	if src := strings.TrimSpace(sa.Params["Source"]); src != "" {
+		t, resolved := definedSpec(h, c, src)
+		return t, false, resolved
+	}
+	if filt := strings.TrimSpace(sa.Params["ValidSource"]); filt != "" {
+		return battlefieldValidTargets(h, c, filt), false, true
+	}
+	if moveCounterNamesDestination(sa) {
+		return copyTargets(moveCounterChosen(c)), false, true
+	}
+	chosen := moveCounterChosen(c)
+	if len(chosen) == 0 {
+		return nil, true, true
+	}
+	return copyTargets(chosen[:1]), true, true
+}
+
+// moveCounterNamesDestination reports whether the SA names its TO set
+// explicitly, which decides whether the chosen targets are the whole origin
+// set or just target 0.
+func moveCounterNamesDestination(sa *cards.SA) bool {
+	return strings.TrimSpace(sa.Params["Defined"]) != "" ||
+		strings.TrimSpace(sa.Params["ValidDefined"]) != ""
+}
+
+// moveCounterDest resolves the TO set: Defined$, else ValidDefined$, else the
+// chosen targets (moveCounterChosen: the pre-ask's answer when one is
+// outstanding) -- the remaining targets after target 0 when the origin also
+// came from the chosen targets (the 2-target shapes), else all of them.
+func moveCounterDest(h Host, c *Ctx, sa *cards.SA, originFromTargets bool) []state.Target {
+	if strings.TrimSpace(sa.Params["Defined"]) != "" {
+		return Defined(h, c, sa)
+	}
+	if filt := strings.TrimSpace(sa.Params["ValidDefined"]); filt != "" {
+		return battlefieldValidTargets(h, c, filt)
+	}
+	ts := moveCounterChosen(c)
+	if originFromTargets {
+		if len(ts) <= 1 {
+			return nil
+		}
+		return copyTargets(ts[1:])
+	}
+	return copyTargets(ts)
+}
+
+// moveCounterKindsOf lists the distinct counter kinds an object holds with a
+// POSITIVE count, in deterministic slice order (the counterKinds discipline).
+func moveCounterKindsOf(o *state.Object) []string {
+	return dedupeKinds(counterKinds("", len(o.Counters),
+		func(i int) string { return o.Counters[i].Kind },
+		func(i int) int32 { return o.Counters[i].N }))
+}
+
+// moveCounterKindsFor expands the CounterType$ parameter for one origin: a
+// literal or an Any pick is that one kind; All is every kind the origin
+// holds; EachNotOn is each kind the origin holds that NO destination already
+// has (Goldberry's "each kind not on CARDNAME").
+func moveCounterKindsFor(kind string, o *state.Object, dests []state.Target, g *state.Game) []string {
+	switch {
+	case strings.EqualFold(kind, "All"):
+		return moveCounterKindsOf(o)
+	case strings.EqualFold(kind, "EachNotOn"):
+		var out []string
+		for _, k := range moveCounterKindsOf(o) {
+			present := false
+			for _, t := range dests {
+				if d := g.Obj(t.Obj); d != nil && d.Counter(k) > 0 {
+					present = true
+					break
+				}
+			}
+			if !present {
+				out = append(out, k)
+			}
+		}
+		return out
+	default:
+		return []string{kind}
+	}
 }
 
 // rememberRemoved records RememberRemoved$'s persistent half: one Choose

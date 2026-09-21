@@ -139,7 +139,7 @@ func TestPrimitivesAreRegistered(t *testing.T) {
 		"PutCounter", "RemoveCounterAll", "Regenerate",
 		"Tap", "Pump", "PumpAll", "Animate", "AnimateAll", "Protection",
 		"Effect", "Cleanup", "SetState", "Counter", "DelayedTrigger", "Repeat",
-		"Charm", "Vote", "BecomeMonarch", "RestartGame",
+		"Charm", "Vote", "BecomeMonarch", "RestartGame", "Earthbend",
 	} {
 		if !sup["api:"+api] {
 			t.Fatalf("api:%s not registered", api)

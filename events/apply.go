@@ -1559,6 +1559,17 @@ func Apply(g *state.Game, e Event) {
 						"MayChooseTarget": "True"}}
 				conspire = ok
 			}
+			// A cascade trigger (rules.pushTrigger's __kwCascade payload) has
+			// no SVar either: rebuilt structurally into the DB$ Cascade body
+			// both a printed K:Cascade line and every layer-6 AddKeyword$
+			// Cascade grant share, so the live game and the replay mint
+			// identical objects from the event text alone. The trigger's
+			// Source (the cast spell) is what the effect reads its mana value
+			// off at resolution (CR 702.85a's "costs less" comparison).
+			if _, ok := strings.CutPrefix(e.Counter, "__kwCascade"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Cascade",
+					Params: map[string]string{"TriggerDescription": "Cascade"}}
+			}
 		}
 		if sa == nil {
 			break
@@ -1722,8 +1733,9 @@ func Apply(g *state.Game, e Event) {
 			text = text[:i]
 		}
 		mode, trigger := "", ""
-		if i := strings.Index(text, ":"); i > 0 && text[:i] == "SpellCast" {
-			mode, trigger = "SpellCast", text[i+1:]
+		if i := strings.Index(text, ":"); i > 0 &&
+			(text[:i] == "SpellCast" || text[:i] == "ChangesZone") {
+			mode, trigger = text[:i], text[i+1:]
 		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
 			ID:                g.DelayedNext,

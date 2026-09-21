@@ -84,6 +84,29 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if !ok {
 		return ev, false
 	}
+	// A CantPutCounter restriction swallows a counter placement outright
+	// (task cantputcounter1): the placement never happens, so neither the
+	// event nor any AddCounter replacement of it may run. This gate sits
+	// BEFORE the match collection (not at the CounterChange dispatch case)
+	// so a prohibition with no accompanying R:Event$ AddCounter line is
+	// still enforced -- Melira's second poison source, where the only match
+	// on the board is Melira's own R: line but the lock must stop the event
+	// even after that line's rider has replaced the first source. handled
+	// true returns the empty event, so emit's ordinary Apply path is bypassed
+	// and nothing is logged: the event is prevented, never folded.
+	//
+	// Only a POSITIVE placement of a real counter is subject to the
+	// restriction: a removal (Amount <= 0) is not a placement at all, and the
+	// engine's own status markers (regeneration's Shield, the Deathtouched
+	// mark) are not counters -- the same internalCounterMarker exclusion the
+	// AddCounter matcher keeps, so a "counters can't be put on it" static
+	// cannot stop a regeneration shield or a removal.
+	if (ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) &&
+		ev.Amount > 0 && !internalCounterMarker(ev.Counter) {
+		if e.PutCounterBlocked(ev.Counter, ev.Obj, ev.Player, ev.Kind == events.PlayerCounterChange) {
+			return events.Event{}, true
+		}
+	}
 	// Madness is an optional discard replacement and must park before either
 	// destination is logged. The guarded re-emit still permits ordinary card
 	// and format replacements on the chosen destination.
@@ -804,6 +827,42 @@ func replacementEvent(ev events.Event) (string, bool) {
 	}
 }
 
+// extraTurnSkipped reports whether a live R:Event$ BeginTurn replacement
+// would skip the extra turn `seat` is about to begin (Trouble in Pairs,
+// Stranglehold, Ugin's Nexus, Gerrard's Hourglass Pendant; CR 500.7's "that
+// player skips it instead" reading of R:Event$ BeginTurn | ExtraTurn$ True |
+// Skip$ True). There is no per-turn "would begin" log event to hang
+// replacement matching on, so the helper poses a SYNTHETIC
+// events.ExtraTurn{Amount: 0, Player: seat} event to the ordinary matcher --
+// the ActiveZones$ gate, the ValidPlayer$ read and replacementConditionHolds
+// are then the shared ones and cannot drift from the other replacement
+// families. The read is pure: it emits nothing, and the caller owns every
+// event (including the loud Note for a matched ExtraTurn$ line whose action
+// this build does not implement -- Skip$ absent, or a ReplaceWith$ body --
+// reported in the second return so the turn proceeds loudly rather than
+// being skipped silently).
+func (e *Engine) extraTurnSkipped(seat state.PlayerID) (skip, unsupported bool) {
+	ev := events.Event{Kind: events.ExtraTurn, Player: seat}
+	e.forEachReplacementSource(func(id state.ObjID) {
+		f := e.replacementFace(id, ev)
+		if f == nil {
+			return
+		}
+		for i := range f.Repls {
+			r := &f.Repls[i]
+			if r.Event != "BeginTurn" || !e.replacementMatches(*r, id, ev) {
+				continue
+			}
+			if r.Params["Skip"] == "True" && r.With == nil {
+				skip = true
+			} else {
+				unsupported = true
+			}
+		}
+	})
+	return skip, unsupported
+}
+
 // replacementFace returns the source face whose R: lines apply now. A
 // transform's "as this transforms into ..." replacement belongs to the
 // destination face, while every other replacement reads the source's current
@@ -1429,13 +1488,21 @@ func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatc
 		if !ok || n < 0 {
 			continue
 		}
-		// The body APPLIES from here on, so a dropped rider is announced now
-		// -- including when the rewrite is a no-op (n == amount, Melira's
-		// Amount$ 1 against a single poison counter): the lock is dropped
-		// there too, and the Note is the log's only witness of it.
+		// The body APPLIES from here on. A sub-ability chain on a ReplaceCounter
+		// body is part of the replacement (Forge resolves it as the replaced
+		// event happens): Melira, the Living Cure's lock ("and you can't get
+		// additional poison counters this turn") rides SVar:OnlyOnePoison's
+		// SubAbility$ DBImmediateTrigger, an
+		// ImmediateTrigger | Execute$ TrigEffect | StaticAbilities$ CantPutCounter
+		// that registers the real CantPutCounter restriction. Running the chain
+		// here -- through the same runReplaceWith / resolveReplacementWith machine
+		// every other ReplaceWith$ rider rides -- is what makes the lock real;
+		// its DBImmediateTrigger resolves the Effect inline, so the lock is
+		// installed before this function returns and before the replacement
+		// event's own fold. A body that only rewrites without a chain (Hardened
+		// Scales, Branching Evolution, Vizier of Remedies) is unchanged.
 		if body.Sub != nil {
-			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
-				Text: "replacement body SubAbility$ not run (unsupported rider): " + body.API})
+			e.runReplaceWith(ctx, m.id, body.Sub, nil)
 		}
 		if n == amount {
 			continue
@@ -2139,6 +2206,40 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
+	case "BeginTurn":
+		// The skip-an-extra-turn class (Trouble in Pairs, Stranglehold,
+		// Ugin's Nexus, Gerrard's Hourglass Pendant). Reached ONLY through the
+		// synthetic events.ExtraTurn{Amount: 0} event extraTurnSkipped poses
+		// at consumption time: no per-turn "would begin" log event exists, so
+		// replacementEvent deliberately maps none and applyReplacements never
+		// routes a BeginTurn replacement. The synthetic event carries Amount 0,
+		// which no real ExtraTurn event ever carries (grants are positive,
+		// consumptions -1), so the synthetic shape cannot collide with a real
+		// one even if one were ever scanned.
+		if ev.Kind != events.ExtraTurn || ev.Amount != 0 {
+			return false
+		}
+		// Requiring ExtraTurn$ True is what keeps Time Vault out: its R:
+		// Event$ BeginTurn line skips a NORMAL turn (Optional$ True, a
+		// ReplaceWith$ body, IsPresent$ Card.Self+tapped, no ExtraTurn$), a
+		// different shape this task deliberately does not implement -- a
+		// matcher without the requirement would change that card's behaviour
+		// without implementing it.
+		if r.Params["ExtraTurn"] != "True" {
+			return false
+		}
+		// ValidPlayer$ Opponent scopes the skip to opponents of the
+		// replacement's controller (Trouble in Pairs, Stranglehold); a line
+		// with no ValidPlayer$ (Ugin's Nexus, Gerrard's Hourglass Pendant)
+		// applies to ANY player's extra turn, the controller's own included.
+		if vp, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+			return false
+		}
+		// Optional$-gated and ReplaceWith$-bearing shapes are not implemented:
+		// extraTurnSkipped reports a matched line whose action is not Skip$
+		// True loudly instead of silently skipping, and never silently skips.
+		return e.replacementConditionHolds(r, source, you)
 	case "Transform":
 		if ev.Kind != events.FlipFace {
 			return false
@@ -2381,14 +2482,29 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		}
 		// ValidSource$ You/Opponent names the player CAUSING the placement -- a
 		// role the CounterChange event does not carry (it records the recipient
-		// only).
-		// There is no engine-side "who is adding these counters" scratch, so a
-		// source-scoped line fails closed rather than matching every placement:
-		// the conservative direction (Vorinclex's "If you would put ...",
-		// Halving Season's opponent half). See the AddCounter row in AGENTS.md.
-		if strings.TrimSpace(r.Params["ValidSource"]) != "" ||
-			strings.TrimSpace(r.Params["ValidCause"]) != "" {
-			return false
+		// only), so it is read from the engine's in-flight adder scratch
+		// (counterAdder, published at cost/turn-based sites) or, absent a
+		// publication, from the resolving ability's controller. When NEITHER is
+		// known (an SBA or other bare placement) the line fails closed rather
+		// than matching every placement -- the conservative direction
+		// (Vorinclex's "If you would put ...", Halving Season's opponent
+		// half). This is the Vorinclex source scope: one placement has exactly
+		// one adder, so its "you" and "opponent" lines are mutually exclusive
+		// and never compete.
+		if vs := strings.TrimSpace(r.Params["ValidSource"]); vs != "" {
+			adder, ok := e.inFlightCounterAdder()
+			if !ok || !effects.MatchesPlayerSpec(e.G, vs, adder, you) {
+				return false
+			}
+		}
+		// ValidCause$ names the object that caused the placement (Zabaz's
+		// "a modular triggered ability would put ..."): the resolving stack
+		// object, exactly the provenance the Moved case's ValidCause$ reads.
+		// An absent cause (0) fails closed in replacementCauseMatches.
+		if vc := strings.TrimSpace(r.Params["ValidCause"]); vc != "" {
+			if !e.replacementCauseMatches(vc, source, e.actionCause()) {
+				return false
+			}
 		}
 		// EffectOnly$ True (Doubling Season, Selesnya Loft Gardens) admits only
 		// placements that are the EFFECT of a resolving spell or ability ("If an
@@ -2909,6 +3025,15 @@ func (e *Engine) replacementCauseMatches(spec string, replacementSource, cause s
 		}
 	case "SpellAbility":
 		// Both spell cards and minted ability objects qualify.
+	case "Triggered":
+		// A triggered-ability wrapper (TriggerPush/DelayedPush). Classified
+		// through state.StackKindOf -- the ONE classifier view's
+		// StackView.Kind and rules' TargetType$ legality also use, so the
+		// three can never disagree (a delayed trigger counts as triggered,
+		// CR 603.7).
+		if state.StackKindOf(e.G, o) != state.StackKindTriggered {
+			return false
+		}
 	default:
 		return false
 	}
@@ -2928,6 +3053,17 @@ func (e *Engine) replacementCauseMatches(spec string, replacementSource, cause s
 		return o.Controller == e.controllerOf(replacementSource)
 	case "OppCtrl", "YouDontCtrl":
 		return o.Controller != e.controllerOf(replacementSource)
+	case "Modular":
+		// ValidCause$ Triggered.Modular names the modular keyword's own
+		// put-counters trigger (Zabaz, the Glimmerwasp): the wrapper's source
+		// card must carry K:Modular. HasKeyword reads the printed plus
+		// layer-6-granted keyword list, so a granted Modular qualifies too.
+		// An absent source, or any other keyword qualifier this build does
+		// not model, fails closed (the standing convention).
+		if o.Source == 0 {
+			return false
+		}
+		return e.HasKeyword(o.Source, "Modular")
 	}
 	return false
 }

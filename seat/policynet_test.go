@@ -35,9 +35,11 @@ import (
 
 // zeroCheckpoint builds a scorer from a genuinely ZERO-weight model pushed
 // through the real checkpoint format (write + load, so the encoder-hash and
-// geometry gates run): every option scores exactly OutB = 0, so the priority
-// argmax ties and breaks to the lowest offered cast/ability/pass index and
-// the attackers subset admits nothing.
+// geometry gates run): every option scores exactly OutB = 0, so every scored
+// decision is an EXACT TIE. attackersFromScores refuses a tie (no sign, no
+// ranking) and the seat falls back to the default bot's answer. The zero
+// model is why the original defect shipped — a `score > 0` vote on all-zeros
+// admits nothing, so the old pins only ever exercised the empty declaration.
 func zeroCheckpoint(t *testing.T) *policynet.Scorer {
 	t.Helper()
 	m := policynet.NewModel(policynet.TableRows, 8, 4, rand.New(rand.NewPCG(1, 1)))
@@ -181,8 +183,14 @@ func TestPolicyNetAttackersSubsetShapes(t *testing.T) {
 		Options: []decision.Option{atkOpt(0, 10, 1, false), atkOpt(1, 10, 2, false)}}
 	check("dedupe-keeps-best", d2, []float32{1, 3}, []int{1}, true, false)
 
-	// An exact tie admits the LOWEST option index (the brief's tie rule).
-	check("tie-lowest-index", d2, []float32{3, 3}, []int{0}, true, false)
+	// An exact tie carries NO information — not a calibrated sign (the tie is
+	// one-signed) and not a ranking. The seat refuses to answer and the caller
+	// falls back to the default bot's declaration, rather than declaring the
+	// whole mean-inclusive subset (which on a tie is every option — the all-in
+	// failure L9d exists to prevent, reached by another road).
+	if _, ok := attackersFromScores(d2, []float32{3, 3}); ok {
+		t.Fatal("tie: seat answered an exactly-tied decision; want delegation")
+	}
 
 	// A required attacker nothing admits still declares — its least-bad
 	// option — because a declaration omitting it is illegal outright.
@@ -190,16 +198,19 @@ func TestPolicyNetAttackersSubsetShapes(t *testing.T) {
 		Options: []decision.Option{atkOpt(0, 10, 1, true), atkOpt(1, 10, 2, true)}}
 	check("required-declares-when-vetoed", d3, []float32{-5, -2}, []int{1}, true, true)
 
-	// Two free attackers, only one may swing: truncation keeps the first.
+	// Two admitted free attackers, only one may swing: truncation keeps the
+	// first in OFFER order. Three options, because the mean reference always
+	// splits a two-option varying decision — admitting two takes a third,
+	// lower-scoring option to pull the mean below the leading pair.
 	d4 := &decision.Decision{Kind: decision.KAttackers, Min: 0, Max: 1, Seq: 4, Player: 0,
-		Options: []decision.Option{atkOpt(0, 10, 1, false), atkOpt(1, 11, 1, false)}}
-	check("max-truncates-free-first", d4, []float32{1, 1}, []int{0}, true, false)
+		Options: []decision.Option{atkOpt(0, 10, 1, false), atkOpt(1, 11, 1, false), atkOpt(2, 12, 1, false)}}
+	check("max-truncates-free-first", d4, []float32{5, 5, 1}, []int{0}, true, false)
 
-	// The same ceiling with the second attacker required: the required-first
-	// reorder keeps the requirement, not the free one.
+	// The same ceiling with a required attacker the ranking did NOT admit:
+	// the required-first reorder keeps the requirement, not the free options.
 	d5 := &decision.Decision{Kind: decision.KAttackers, Min: 0, Max: 1, Seq: 5, Player: 0,
-		Options: []decision.Option{atkOpt(0, 10, 1, false), atkOpt(1, 11, 1, true)}}
-	check("max-truncates-required-first", d5, []float32{1, 1}, []int{1}, true, true)
+		Options: []decision.Option{atkOpt(0, 10, 1, false), atkOpt(1, 11, 1, false), atkOpt(2, 12, 1, true)}}
+	check("max-truncates-required-first", d5, []float32{5, 5, 1}, []int{2}, true, true)
 
 	// Nothing admitted and nothing required: an empty declaration, which is
 	// a legal answer at Min 0.
@@ -217,7 +228,89 @@ func TestPolicyNetAttackersSubsetShapes(t *testing.T) {
 	}
 }
 
-// TestPolicyNetEmptySurfaceDelegates pins the encode-to-nothing fallback: a
+// TestPolicyNetAttackersAdmissionIsShiftInvariant is the L9d regression pin:
+// a checkpoint whose scores share a large offset — a softmax-CE head's output
+// is shift-invariant, measured at [11575, 15052] for every labelled attack
+// option — must not make the seat declare every legal attacker (all-in), and
+// the mirrored all-negative range must not make it declare none (empty). The
+// old rule (sigmoid(score) > 0.5, i.e. score > 0) admitted 100% of a positive
+// range, which is how the seat emptied its board into bad attacks and lost
+// 1000/1000 against the default bot.
+//
+// The scores are the controller's measured CE level (base 12000), not a zero
+// model: a zero model scores 0.0 and 0 > 0 is false, which is exactly why the
+// bug shipped past the pre-existing pins.
+func TestPolicyNetAttackersAdmissionIsShiftInvariant(t *testing.T) {
+	atkOpt := func(idx int, obj state.ObjID, def state.PlayerID, required bool) decision.Option {
+		return decision.Option{Index: idx, Kind: "attacker", Obj: obj, Player: def, Required: required}
+	}
+	// Four independent attackers against one defender, none required: the
+	// decision is a genuine subset selection, so "all-in" and "empty" are both
+	// observable non-answers.
+	d := &decision.Decision{Kind: decision.KAttackers, Min: 0, Max: 4, Seq: 11, Player: 0,
+		Options: []decision.Option{
+			atkOpt(0, 10, 1, false), atkOpt(1, 11, 1, false),
+			atkOpt(2, 12, 1, false), atkOpt(3, 13, 1, false),
+		}}
+	const base = 12000 // the CE checkpoint's measured level (L9d evidence)
+
+	pos := []float32{base, base + 1, base + 2, base + 3}
+	in, ok := attackersFromScores(d, pos)
+	if !ok {
+		t.Fatal("all-positive: no intent returned")
+	}
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("all-positive: Validate rejected: %v", err)
+	}
+	if len(in.Choices) == len(d.Options) {
+		t.Fatalf("all-positive: admitted all %d options — the offset was trusted as a calibrated sign (the L9d bug)", len(in.Choices))
+	}
+	if len(in.Choices) == 0 {
+		t.Fatalf("all-positive: admitted none of %d options — the shift-invariant fallback over-corrected", len(d.Options))
+	}
+
+	neg := []float32{-base - 3, -base - 2, -base - 1, -base}
+	in, ok = attackersFromScores(d, neg)
+	if !ok {
+		t.Fatal("all-negative: no intent returned")
+	}
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("all-negative: Validate rejected: %v", err)
+	}
+	if len(in.Choices) == 0 {
+		t.Fatalf("all-negative: admitted none of %d options — the offset was trusted as a calibrated sign (the mirrored L9d bug)", len(d.Options))
+	}
+	if len(in.Choices) == len(d.Options) {
+		t.Fatalf("all-negative: admitted all %d options", len(in.Choices))
+	}
+}
+
+// TestPolicyNetAttackersAdmissionKeepsCalibratedSign pins the other half of
+// the rule: when the decision's scores straddle zero (a per-option binary
+// head's calibrated output), admission is the trained sign — positive
+// declared, negative dropped — not a relative ranking.
+func TestPolicyNetAttackersAdmissionKeepsCalibratedSign(t *testing.T) {
+	atkOpt := func(idx int, obj state.ObjID, def state.PlayerID) decision.Option {
+		return decision.Option{Index: idx, Kind: "attacker", Obj: obj, Player: def}
+	}
+	d := &decision.Decision{Kind: decision.KAttackers, Min: 0, Max: 2, Seq: 12, Player: 0,
+		Options: []decision.Option{atkOpt(0, 10, 1), atkOpt(1, 11, 1)}}
+	in, ok := attackersFromScores(d, []float32{2, -2})
+	if !ok {
+		t.Fatal("straddle: no intent returned")
+	}
+	if !slices.Equal(in.Choices, []int{0}) {
+		t.Fatalf("straddle: choices %v, want [0] (the calibrated positive sign)", in.Choices)
+	}
+	in, ok = attackersFromScores(d, []float32{-2, 2})
+	if !ok {
+		t.Fatal("straddle (reversed): no intent returned")
+	}
+	if !slices.Equal(in.Choices, []int{1}) {
+		t.Fatalf("straddle (reversed): choices %v, want [1]", in.Choices)
+	}
+}
+
 // priority decision offering only options the teacher never labelled
 // (an "activate" tap) delegates to the default bot verbatim.
 func TestPolicyNetEmptySurfaceDelegates(t *testing.T) {
@@ -344,4 +437,157 @@ func asLivelock(err error, target **rules.LivelockError) bool {
 		*target = le
 	}
 	return ok
+}
+
+// TestPolicyNetDelegatesPriority pins the L9d bench result as a behaviour:
+// KPriority must reach the DEFAULT bot, not the scorer's argmax. This is not
+// tidy-up — it is the difference between winning 0/1000 and 474/1000 against
+// the default bot on the ten approved mono pairs (checkpoint bce-big.gpol,
+// 100 games/pair, seed 10000000; the 2x2 isolating it from the attackers
+// admission rule is in the L9d report). The priority head is trained (argmax
+// CE) and the scored path is a few lines away, so without a pin it is an easy
+// thing to switch back on by accident; re-enable it only behind a bench that
+// clears that bar.
+//
+// The checkpoint is a RANDOM one, not the zero model: its per-option scores
+// genuinely differ, so a scored priority path would argmax to some particular
+// cast/ability/pass option and this equality would break (verified: with
+// KPriority restored to scoredKind, this test fails).
+func TestPolicyNetDelegatesPriority(t *testing.T) {
+	if scoredKind(&decision.Decision{Kind: decision.KPriority}) {
+		t.Fatal("scoredKind admits KPriority: the scored priority path measures 0/1000 in play")
+	}
+	b := NewPolicyNetBot(3, randomCheckpoint(t, 4))
+	def := NewBot(3)
+	v := view.View{Viewer: 0, Active: 0, Phase: "main1"}
+	d := decision.Decision{Kind: decision.KPriority, Min: 1, Max: 1, Seq: 9, Player: 0,
+		Options: []decision.Option{
+			{Index: 0, Kind: "cast", Obj: 1},
+			{Index: 1, Kind: "cast", Obj: 2},
+			{Index: 2, Kind: "ability", Obj: 3},
+			{Index: 3, Kind: "pass"},
+		}}
+	got, err := b.Decide(context.Background(), v, d)
+	if err != nil {
+		t.Fatalf("policynet: %v", err)
+	}
+	want, err := def.Decide(context.Background(), v, d)
+	if err != nil {
+		t.Fatalf("default bot: %v", err)
+	}
+	if got.Seq != want.Seq || got.Player != want.Player || !slices.Equal(got.Choices, want.Choices) {
+		t.Fatalf("priority: policynet %+v, default %+v — the scored path answered", got, want)
+	}
+}
+
+// TestPolicyNetResidualReproducesTheBotInPlay pins the residual prior's
+// INFERENCE half end to end — the review finding the loader-only BotPick
+// made the prior a permanent no-op in play. A zero-head model carrying ONLY
+// the bot-prior residual weight (the deployment shape of
+// train.Config.ResidualInit under a schema that does not checkpoint the
+// weight) must answer every SCORED decision with exactly the wrapped
+// default bot's intent.
+//
+// L9d NOTE: this test was written when KPriority was a scored kind, and its
+// sharp half was priority — the bot's answer there is often a tap/land option
+// the scored argmax space excludes, so without priorityFromScores'
+// admitBotPicks admission the head's untrained noise would outvote the bot's
+// own action. KPriority now DELEGATES (it measures 0/1000 in play), so
+// priority reproduces the bot trivially and this pin now bites at ATTACKERS
+// instead: a zero-head model whose bot declared NO attacker marks no option
+// and ties every score, and attackersFromScores must refuse that tie rather
+// than declare the mean-inclusive subset (which on a tie is every option).
+// That is a real assertion — it failed before the tie arm was added. The
+// priority half returns the moment a ResidualW > 0 checkpoint re-enables the
+// scored kind in scoredKind.
+func TestPolicyNetResidualReproducesTheBotInPlay(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	const seed = 9
+	e := rules.New(rules.Config{Seed: seed, Names: names, Decks: decks})
+	e.Advance()
+
+	// The zero model the delegation test uses, plus the prior. Built
+	// in-process (NewScorer over the live Model): the v1 checkpoint body
+	// carries no residual weight, so this is exactly the channel an
+	// operator (or the v2-schema checkpoint, when the L9b-fix2 baseline
+	// branch lands it) would use.
+	newResidualBot := func(s uint64) *PolicyNetBot {
+		m := policynet.NewModel(policynet.TableRows, 8, 4, rand.New(rand.NewPCG(1, 1)))
+		for _, blk := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW} {
+			for i := range blk {
+				blk[i] = 0
+			}
+		}
+		m.OutB = 0
+		m.ResidualW = 3
+		return NewPolicyNetBot(s, policynet.NewScorer(m))
+	}
+	pns := map[state.PlayerID]*PolicyNetBot{}
+	for k := range decks {
+		pns[state.PlayerID(k)] = newResidualBot(seed ^ uint64(k+1))
+	}
+
+	compared := map[decision.Kind]int{}
+	priorityAdmissions := 0 // scored priority answers OUTSIDE cast/ability/pass
+	n := 0
+	for !e.G.Over && e.Pending() != nil && n < 20000 {
+		d := e.Pending()
+		v := view.Project(e.G, e, d.Player, d)
+		pnIn, err := pns[d.Player].Decide(context.Background(), v, *d)
+		if err != nil {
+			t.Fatalf("intent %d: policynet bot: %v", n, err)
+		}
+		def, err := pns[d.Player].def.Decide(context.Background(), v, *d)
+		if err != nil {
+			t.Fatalf("intent %d: default bot: %v", n, err)
+		}
+		if scoredKind(d) {
+			compared[d.Kind]++
+			// Attackers: the declaration is a set of (attacker, defender)
+			// options — compare the multiset, not the submission order.
+			a := append([]int(nil), pnIn.Choices...)
+			b := append([]int(nil), def.Choices...)
+			slices.Sort(a)
+			slices.Sort(b)
+			if pnIn.Seq != def.Seq || pnIn.Player != def.Player || !slices.Equal(a, b) {
+				t.Fatalf("intent %d (kind %q): residual policynet answered %+v, the bot-prior contract wants the default bot's %+v — the prior did not reproduce the bot",
+					n, d.Kind, pnIn, def)
+			}
+			if d.Kind == decision.KPriority {
+				for _, c := range pnIn.Choices {
+					if c >= 0 && c < len(d.Options) {
+						switch d.Options[c].Kind {
+						case "cast", "ability", "pass":
+						default:
+							priorityAdmissions++ // a tap/land answer the admission let through
+						}
+					}
+				}
+			}
+		}
+		if err := e.Submit(def); err != nil {
+			t.Fatalf("intent %d: submit: %v", n, err)
+		}
+		n++
+	}
+	if !e.G.Over {
+		t.Fatalf("game did not terminate after %d intents (turn %d)", n, e.G.Turn)
+	}
+	// The premise guards are scoped to the kinds scoredKind actually admits.
+	// KPriority is DELEGATED on this branch (it measures 0/1000 in play), so
+	// the priority arm of this pin is dormant, not deleted: restoring
+	// KPriority to scoredKind re-arms both guards unchanged.
+	if compared[decision.KAttackers] == 0 {
+		t.Fatalf("the game asked no scored attackers decision, so the prior is unpinned (%v)", compared)
+	}
+	if scoredKind(&decision.Decision{Kind: decision.KPriority}) {
+		if compared[decision.KPriority] == 0 {
+			t.Fatalf("KPriority is scored but the game asked none (%v)", compared)
+		}
+		if priorityAdmissions == 0 {
+			t.Fatal("every scored priority answer stayed inside the trained cast/ability/pass surface — the tap/land admission path never fired, so the pin does not cover the shape the review named")
+		}
+	} else if priorityAdmissions != 0 {
+		t.Fatalf("KPriority is delegated yet %d scored priority admissions were counted", priorityAdmissions)
+	}
 }

@@ -47,26 +47,6 @@ func (e *Engine) pileSVars(id state.ObjID, merged int) map[string]string {
 	return o.PileSVars(merged)
 }
 
-// pendingAbilitySA resolves a pendingCast's flat pile-ability index to the SA
-// and the merged ordinal of the face that carries it. ok is false for a spell
-// (ability < 0), a missing source, or a stale index -- every caller degrades
-// to its previous no-op behaviour rather than panicking the one driver
-// goroutine.
-func (e *Engine) pendingAbilitySA(pc *pendingCast) (*cards.SA, int, bool) {
-	if pc == nil || pc.ability < 0 {
-		return nil, 0, false
-	}
-	o := e.G.Obj(pc.card)
-	if o == nil {
-		return nil, 0, false
-	}
-	pa, ok := o.PileAbilityAt(pc.ability)
-	if !ok {
-		return nil, 0, false
-	}
-	return pa.SA, pa.Merged, true
-}
-
 // pileFaceForSA recovers the face that carries an activated ability of the
 // permanent source, by SA pointer identity, walking the pile top-first. It is
 // the activated-ability counterpart of findTriggerForAbilityFace: a resolving
@@ -116,4 +96,42 @@ func pileAbilityRefOf(o *state.Object, sa *cards.SA) (idx, merged int, ok bool) 
 		}
 	}
 	return 0, 0, false
+}
+
+// grantedSAFrom resolves an SVar-anchored GRANTED ability body (the
+// `AddAbility$ <name>` grant a Continuous static delivers) from the grantor's
+// rules text, falling back to the recipient when the grantor has left.
+//
+// The grantor may itself be a mutated pile whose GRANTING STATIC sits on an
+// under-card (CR 702.140d): the named body then lives on that under-card's own
+// SVar table, which is exactly where the offer side reads it -- legal.go's
+// grantedAbilities resolves the name against the emitting
+// ContinuousEffect.SVars, and rules/layers.go stamps a merged face's table
+// onto the effects it emits. If the ACTIVATION side read only the grantor's
+// active face, an option that was legally offered would resolve to nil and
+// the activation would silently no-op. So the faces are walked in the pile's
+// own deterministic order, top face first: a non-mutated grantor resolves
+// byte-identically to the old Face().SVars read, and the first face that
+// names the SVar with an AB body wins.
+//
+// Nothing here is an index decode: a granted activation carries ability == -1
+// and is anchored by NAME, so the flat pile-ability index never applies to it.
+func (e *Engine) grantedSAFrom(grantor, recipient state.ObjID, svar string) *cards.SA {
+	o := e.G.Obj(grantor)
+	if o == nil || o.Face() == nil {
+		o = e.G.Obj(recipient)
+	}
+	if o == nil || o.Face() == nil {
+		return nil
+	}
+	for i := 0; i < o.PileFaceCount(); i++ {
+		pf, ok := o.PileFaceAt(i)
+		if !ok {
+			continue
+		}
+		if ab := cards.ResolveSVar(pf.Face.SVars, svar); ab != nil && ab.Kind == "AB" {
+			return ab
+		}
+	}
+	return nil
 }

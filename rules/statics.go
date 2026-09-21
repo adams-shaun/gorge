@@ -2085,6 +2085,14 @@ func init() {
 		// requirement solver already carried for MustAttack) — the conditional
 		// shapes stay unregistered behaviour-wise and are ledgered in AGENTS.md.
 		"stat:CantAttack", "stat:CantSacrifice", "stat:MustAttack",
+		// cantputcounter1: the counter-placement restriction static
+		// (rules/layers.go PutCounterBlocked, consulted at the counter choke
+		// point in rules/replacement.go before any AddCounter replacement).
+		// Only the whitelisted parameter shapes are enforced
+		// (effects.CantPutCounterParamsReadable, shared with effEffect's
+		// registration gate); the conditional shapes stay unregistered
+		// behaviour-wise and are ledgered in AGENTS.md.
+		"stat:CantPutCounter",
 		// exert1: CR 702.100's attack-time election.
 		"stat:OptionalAttackCost",
 		// The static's Cost$ Exert<1/CARDNAME> and Trigger$ rider are consumed

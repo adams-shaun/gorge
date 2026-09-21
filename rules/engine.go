@@ -364,6 +364,24 @@ type Engine struct {
 	// own-source maps above, every waiting resolution receives departures: the
 	// named source can be TriggeredCard, Targeted, or Remembered.
 	damageSourceLKI map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI
+	// moveCounterAsk carries a MoveCounter resolution's ANSWERED asks across
+	// the later suspensions of the same SA (the movecounter1 livelock fix).
+	// A MoveCounter sub the placement/announcement ask never covered poses
+	// its own ValidTgts$ target ask (the mvts1 pre-ask) AND, for
+	// CounterType$ Any / CounterNum$ Any, asks of its own; every resume
+	// builds a fresh Ctx and re-enters the SA from its top, so an earlier
+	// round's answer (the target set, the chosen kind, the chosen amount)
+	// must be re-seeded into that Ctx or the two asks alternate forever and
+	// the resolution never drains (Nesting Grounds, Rikku, Goldberry's
+	// second ability). rules/resolution.go's "tgts", "move_counter_kind"
+	// and "move_counter" arms store their answers here and the re-entry
+	// seeds them into the fresh Ctx before effects.Resolve; the entry is
+	// deleted when the resolution completes. Decision-derived engine
+	// scratch, in the triggerLKI discipline: replay re-submits the recorded
+	// Intents through the same arms, so the map re-derives identically and
+	// no event carries it. Never nil-checked on read outside recordAsk
+	// (which lazy-inits).
+	moveCounterAsk map[state.ObjID]*moveCounterPending
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -755,6 +773,18 @@ type Engine struct {
 	dmgSrcOverride      state.ObjID
 	batchLifelink       map[state.ObjID]bool
 
+	// counterAdder is the player causing the CounterChange/PlayerCounterChange
+	// events currently in flight (the repl:AddCounter class's "who would put
+	// these counters" role), stored PLUS ONE so zero means "not published" --
+	// seat 0 is a valid adder, so a bare zero cannot double as absence. Read
+	// by inFlightCounterAdder, published by rules' cost/turn-based emitters
+	// through SetCounterAdder. Not copied by Clone, for exactly the reason
+	// the dmgSrcOverride/damaging fields above document: every publisher
+	// restores its previous value before returning, so the field is always
+	// the unpublished zero at a clone boundary. Replay rebuilds it because
+	// replay re-executes the same setters.
+	counterAdder state.PlayerID
+
 	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
 	// buffer. forEachObject copies each zone into it before walking it -- fn
 	// may move objects between zones (a trigger match putting something on
@@ -791,6 +821,56 @@ func (e *Engine) inFlightDamageSource() state.ObjID {
 func (e *Engine) SetDamageSource(id state.ObjID) state.ObjID {
 	prev := e.dmgSrcOverride
 	e.dmgSrcOverride = id
+	return prev
+}
+
+// inFlightCounterAdder is the one reader for AddCounter-replacement
+// provenance: the player causing the counter placement currently in flight,
+// and whether that attribution is known at all. A published override wins
+// (the cost/turn-based sites, where no stack cause exists yet). Otherwise the
+// controller of actionCause() -- the resolving spell or ability wrapper at
+// the top of the stack -- is the adder: a resolving spell, activated ability
+// or triggered-ability instruction IS the cause, and the counters it puts are
+// put by that ability's controller (Vorinclex's "If YOU would put", Halving
+// Season's "If an OPPONENT would put"). Zero with ok=false when neither is
+// available (an SBA or other bare placement): the AddCounter matcher then
+// fails a ValidSource$ line closed rather than guessing an adder.
+func (e *Engine) inFlightCounterAdder() (state.PlayerID, bool) {
+	if e.counterAdder != 0 {
+		return e.counterAdder - 1, true
+	}
+	if c := e.actionCause(); c != 0 {
+		return e.controllerOf(c), true
+	}
+	return 0, false
+}
+
+// counterAdderUnset is SetCounterAdder's opaque "no publication" token. It
+// is state.PlayerID(255), a seat no game can hold, so a caller can round-trip
+// the previous publication (including the absence of one) through the SAME
+// method without a second restore call: seat 0 is a legitimate adder, so a
+// bare 0 cannot double as the sentinel.
+const counterAdderUnset = state.PlayerID(255)
+
+// SetCounterAdder implements effects.Host: publish the player causing the
+// CounterChange/PlayerCounterChange events the caller is about to emit, and
+// return the previous publication -- a PlayerID, or counterAdderUnset when
+// none was published -- for the caller to pass straight back to restore it
+// (the SetDamageSource shape, extended with an explicit unset token so seat 0
+// round-trips correctly). rules is the only publisher: effect-resolution
+// sites are covered by inFlightCounterAdder's actionCause fallback, and only
+// a cost or turn-based placement (which has no stack cause) needs an
+// explicit publish.
+func (e *Engine) SetCounterAdder(p state.PlayerID) state.PlayerID {
+	prev := counterAdderUnset
+	if e.counterAdder != 0 {
+		prev = e.counterAdder - 1
+	}
+	if p == counterAdderUnset {
+		e.counterAdder = 0
+	} else {
+		e.counterAdder = p + 1
+	}
 	return prev
 }
 

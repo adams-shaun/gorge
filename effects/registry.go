@@ -399,6 +399,16 @@ type Host interface {
 	// (DealDamage/DamageAll never ask mid-loop, so nothing suspends inside
 	// the override window).
 	SetDamageSource(id state.ObjID) state.ObjID
+	// SetCounterAdder publishes the player causing the CounterChange /
+	// PlayerCounterChange events the caller is about to emit, so the
+	// repl:AddCounter class's ValidSource$ scope can be read. It mirrors
+	// SetDamageSource exactly: the return value is the previous (opaque)
+	// publication and the caller restores it before returning; zero restores
+	// "no override". The override is engine-transient state rebuilt by replay
+	// and never copied by Clone. Only a cost or turn-based placement publishes
+	// explicitly -- an effect-resolution placement is attributed to the
+	// resolving ability's controller by the engine's own fallback.
+	SetCounterAdder(p state.PlayerID) state.PlayerID
 	// BatchDepartures declares that the caller is about to emit MoveZone
 	// events for every object in ids as one simultaneous destruction batch
 	// (CR 704.3): the engine snapshots each object's derived lifelink
@@ -886,6 +896,22 @@ type Ctx struct {
 	// inherit the outer answer.
 	Proliferate     []state.Target
 	ProliferateDone bool
+	// MoveCounterKind is the answered CounterType$ Any kind pick of a
+	// MoveCounter resolution (task movecounter1): the counter kind the
+	// chooser picked to move out of the distinct kinds the origin holds, in
+	// the offered (deterministic) order. rules' resume arm sets it before
+	// re-running the suspended sub-ability; MoveCounterKindDone distinguishes
+	// "answered" from the first pass so an answered pick is never re-asked.
+	// MoveCounterN is the answered CounterNum$ Any amount of the same
+	// resolution: how many counters of the chosen kind(s) move, and
+	// MoveCounterNDone distinguishes "answered (possibly zero -- a Min-0
+	// decline)" from the first pass. effMoveCounter consumes and clears all
+	// four at the top of its own walk (the fx42 scoping discipline), so a
+	// nested MoveCounter cannot inherit the outer answers.
+	MoveCounterKind     string
+	MoveCounterKindDone bool
+	MoveCounterN        int32
+	MoveCounterNDone    bool
 	// UnlessNext is the index of the UnlessPayer$ payer whose answered
 	// unless-pay choice this re-entry applies (0 on a first pass). The
 	// unlessProceed gate (Resolve) consumes and clears it; rules' resume

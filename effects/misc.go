@@ -299,12 +299,44 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ForgetCounter = forgetCounter
 				h.AddContinuous(grant)
 				registered = true
+			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
+				// AddKeyword$ Cascade (task cascade1): the Effect-delivered
+				// cascade grant (TARDIS's GrantCascade, Dark Apostle's, Bigger
+				// on the Inside's), registered as a layer-6 keyword grant the
+				// same walk the printed S: statics feed (rules/layers.go's
+				// derivedWith), so rules' hasCastCascade — the one read both
+				// routes share — picks it up. The line must be fully readable:
+				// only AddKeyword$ values that are entirely Cascade, with no
+				// condition gate this registration path cannot evaluate, make
+				// it past the whitelist; anything else fails closed to the
+				// unimplemented Note below. The grant's lifetime is the Effect's
+				// own (the source-leaves/UntilEOT discipline every registration
+				// here uses) — the corpus's "the NEXT spell" precision is the
+				// Triggers$/ForgetOnCast$ rider, which stays unread (see the
+				// cascade row in AGENTS.md's Known approximations).
+				ce := state.ContinuousEffect{
+					Source:        c.Source,
+					Controller:    c.Controller,
+					Layer:         state.LAbilities,
+					Affects:       affected,
+					AffectedZone:  zone,
+					AddKeywords:   kws,
+					Name:          effectName,
+					UntilEOT:      effectUntilEOT(h, c.Source, dur),
+					Duration:      dur,
+					Remembered:    remembered,
+					ForgetOnMoved: forgetOn,
+					ExileOnMoved:  exileOn,
+					ForgetCounter: forgetCounter,
+				}
+				h.AddContinuous(ce)
+				registered = true
 			} else if len(params) > 0 {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -325,11 +357,35 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
+			if mode == "CantPutCounter" && !CantPutCounterParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			ceUntilEOT := effectUntilEOT(h, c.Source, dur)
+			if mode == "CantPutCounter" && sa.Params["Duration"] == "" {
+				// cantputcounter1-r2: a CantPutCounter lock with NO Duration$
+				// is the THIS-TURN lock the corpus's one Effect-delivered
+				// carrier writes (Melira, the Living Cure's "you can't get
+				// additional poison counters this turn", whose Description$
+				// states the lifetime the absent Duration$ leaves unstated).
+				// effEffect's plain absent-Duration default (Permanent, set at
+				// the top of this function) would never expire the lock and
+				// swallow every later turn's fresh poison outright -- the
+				// non-permissive direction for a restriction. An EXPLICIT
+				// Duration$ keeps the ordinary reading (Permanent stays
+				// permanent, this-turn spellings were already UntilEOT through
+				// effectUntilEOT). The DamageDone prevent precedent (this
+				// function) made the same absent-Duration read for the same
+				// reason.
+				ceUntilEOT = true
+			}
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
 				Name:           effectName,
-				UntilEOT:       effectUntilEOT(h, c.Source, dur),
+				UntilEOT:       ceUntilEOT,
 				Restriction:    mode,
 				RestrictParams: params,
 				Remembered:     remembered,
@@ -382,6 +438,40 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 // static line (an SVar static body effEffect registers, or the S: line rules
 // passes through MayPlayStaticParams). ok=false is the fail-closed grant:
 // nothing is registered rather than a half-read grant going live.
+//
+// cascadeKeywordGrantFromLine is the AddKeyword$ Cascade twin (task
+// cascade1): ok only when the line's AddKeyword$ value is entirely Cascade
+// tokens (the whitelist — a mixed Cascade & Haste grant or any other keyword
+// fails closed to the unimplemented Note) and carries no condition gate this
+// registration path cannot evaluate. Returns the granted keyword list (all
+// "Cascade", one entry per instance), the Affected$ spec (Forge's omitted
+// default is the controller's own cards, the same Card.Self default the
+// layer walk's static scan applies) and the AffectedZone$ value verbatim.
+func cascadeKeywordGrantFromLine(params map[string]string) (kws []string, affected, zone string, ok bool) {
+	raw := strings.TrimSpace(params["AddKeyword"])
+	if raw == "" {
+		return nil, "", "", false
+	}
+	for _, k := range cards.SplitKeywordList(raw) {
+		if !strings.EqualFold(cards.KeywordHead(k), "Cascade") {
+			return nil, "", "", false
+		}
+		kws = append(kws, "Cascade")
+	}
+	if len(kws) == 0 {
+		return nil, "", "", false
+	}
+	for _, key := range []string{"Condition", "CheckSVar", "SVarCompare", "IsPresent", "IsPresent2", "PresentCompare"} {
+		if strings.TrimSpace(params[key]) != "" {
+			return nil, "", "", false
+		}
+	}
+	affected = strings.TrimSpace(params["Affected"])
+	if affected == "" {
+		affected = "Card.Self"
+	}
+	return kws, affected, strings.TrimSpace(params["AffectedZone"]), true
+}
 func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
 	ignoreColor, ignoreType, limit, playerTurn, ok := MayPlayStaticParams(params)
 	if !ok {
@@ -635,6 +725,33 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CantPutCounterParamsReadable is the parameter whitelist a CantPutCounter
+// static must pass before this build enforces it -- used BOTH by the
+// face-static reader (rules/layers.go's PutCounterBlocked activeStatics walk)
+// and by effEffect's registration case, so the two paths cannot disagree about
+// what is readable. The readable parameters are the restriction's own mode and
+// scope (Mode$, the object spec ValidCard$/ValidObject$, the player spec
+// ValidPlayer$, the counter kind CounterType$), the AffectedZone$ rider the
+// Solemnity object line carries, and display text. Duration$ is readable: the
+// lock's own lifetime, consumed by effEffect's CantPutCounter arm (an absent
+// Duration$ there is the THIS-TURN lock the corpus's one Effect-delivered
+// carrier writes -- see that arm). A static carrying any other
+// parameter names a condition or scoping this build does not evaluate
+// (ActiveZones$, IsPresent$, CheckSVar$, ...) -- enforcing it blanket would
+// OVER-restrict, the permissive direction for a restriction -- so it is
+// skipped/reported. Secondary$ is allowed: a Forge-side duplicate for modifier
+// composition, and a boolean restriction cannot be applied twice.
+func CantPutCounterParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidObject", "ValidPlayer", "CounterType", "AffectedZone", "Duration", "Description", "Secondary":
 		default:
 			return false
 		}

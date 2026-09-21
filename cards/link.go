@@ -89,6 +89,17 @@ var builtinSVars = map[string]string{
 	// effects.scheduleAtEOT helper on Animate/Pump/PumpAll/Token/ChangeZone
 	// bodies): the registered source is the affected permanent itself.
 	"__kwAtEOTDestroy": "DB$ Destroy | Defined$ Self",
+	// Earthbend (effects/earthbend.go): the animated land's "when it dies or
+	// is exiled, return it to the battlefield tapped" promise. The
+	// registration's Source is the land itself, so Defined$ Self is it. The
+	// name deliberately carries none of the tracked prefixes above
+	// (__kwDash/__kwWarp/__kwAtEOT), so a re-entering land is NOT
+	// incarnation-tracked: the one-shot registration is consumed at its
+	// first fire, and the returned land is a plain tapped land whose
+	// counters were removed by CR 122.2. Origin$ is comma-split by
+	// effects.ParseZones at resolution, so the single body serves both the
+	// Graveyard and Exile registrations.
+	"__kwEarthbendReturn": "DB$ ChangeZone | Defined$ Self | Origin$ Graveyard,Exile | Destination$ Battlefield | Tapped$ True",
 }
 
 // ResolveSVar compiles the ability an SVar name refers to, recursively

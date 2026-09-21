@@ -2249,6 +2249,103 @@ func (e *Engine) SacrificeBlocked(id state.ObjID) bool {
 	return false
 }
 
+// PutCounterBlocked reports whether a counter of kind would be placed on obj
+// (object form) or player (player form) is forbidden -- a real CantPutCounter
+// restriction static (task cantputcounter1): an Effect-registered one (Melira,
+// the Living Cure's "you can't get additional poison counters this turn",
+// registered by effEffect from the Effect's StaticAbilities$ NoMorePoison) or
+// a face S:Mode$ CantPutCounter static (Solemnity, Melira's Keepers,
+// Blightbeetle, Darksteel Angel, Tatterkite, Melira Sylvok Outcast, Phila
+// Unsealed). Consulted at the counter-placement choke point in
+// rules/replacement.go, BEFORE any AddCounter replacement, so a prohibition
+// with no accompanying R:Event$ AddCounter line is still enforced and the
+// event is swallowed rather than folded.
+//
+// Reading (both forms fail closed on the other's event kind): CounterType$
+// names the kind (absent = all kinds), ValidPlayer$ scopes the player form,
+// ValidCard$/ValidObject$ scopes the object form. An unscoped line blocks
+// both forms. Both routes are consulted, mirroring SacrificeBlocked /
+// attackBlocked.
+func (e *Engine) PutCounterBlocked(kind string, obj state.ObjID, player state.PlayerID, playerForm bool) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantPutCounter" {
+			continue
+		}
+		if !counterKindMatches(ce.RestrictParams["CounterType"], kind) {
+			continue
+		}
+		if playerForm {
+			if spec := strings.TrimSpace(ce.RestrictParams["ValidPlayer"]); spec != "" {
+				if restrictionPlayerSpecMatches(e.G, spec, player, ce.Controller, ce.RememberedPlayers) {
+					return true
+				}
+				continue
+			}
+			if strings.TrimSpace(ce.RestrictParams["ValidCard"]) != "" || strings.TrimSpace(ce.RestrictParams["ValidObject"]) != "" {
+				continue
+			}
+			return true
+		}
+		objSpec := ce.RestrictParams["ValidCard"]
+		if objSpec == "" {
+			objSpec = ce.RestrictParams["ValidObject"]
+		}
+		if strings.TrimSpace(objSpec) != "" {
+			if e.restrictionApplies(ce, obj) {
+				return true
+			}
+			continue
+		}
+		if strings.TrimSpace(ce.RestrictParams["ValidPlayer"]) != "" {
+			continue
+		}
+		return true
+	}
+	for _, sv := range e.activeStatics("CantPutCounter") {
+		if !effects.CantPutCounterParamsReadable(sv.Params) {
+			continue
+		}
+		if !counterKindMatches(sv.Params["CounterType"], kind) {
+			continue
+		}
+		if playerForm {
+			if spec := strings.TrimSpace(sv.Params["ValidPlayer"]); spec != "" {
+				if restrictionPlayerSpecMatches(e.G, spec, player, sv.Controller, nil) {
+					return true
+				}
+				continue
+			}
+			if strings.TrimSpace(sv.Params["ValidCard"]) != "" || strings.TrimSpace(sv.Params["ValidObject"]) != "" {
+				continue
+			}
+			return true
+		}
+		spec := strings.TrimSpace(sv.Params["ValidCard"])
+		if spec == "" {
+			spec = strings.TrimSpace(sv.Params["ValidObject"])
+		}
+		if spec != "" {
+			if effects.MatchesSpecCtx(e.G, spec, obj, e.specCtx(sv.Source, sv.Controller)) {
+				return true
+			}
+			continue
+		}
+		if strings.TrimSpace(sv.Params["ValidPlayer"]) != "" {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// counterKindMatches implements a CantPutCounter line's CounterType$ gate: an
+// absent kind admits every counter kind, a stated kind matches only the event's
+// own, and anything else fails closed.
+func counterKindMatches(restriction, kind string) bool {
+	restriction = strings.TrimSpace(restriction)
+	return restriction == "" || restriction == kind
+}
+
 // attackBlocked reports whether creature id is forbidden from being declared
 // attacking defender this combat — an Effect-registered CantAttack restriction
 // (Call for Aid's "You can't attack that player this turn") or a face

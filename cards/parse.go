@@ -128,10 +128,29 @@ func parseSA(path, val string) (*SA, []Diag) {
 	for _, kind := range [...]string{"SP", "AB", "DB", "ST"} {
 		if api, ok := p[kind]; ok {
 			delete(p, kind)
+			normalizeImplicitTarget(api, p)
 			return &SA{Kind: kind, API: api, Params: p, Line: val}, nil
 		}
 	}
 	return nil, []Diag{{path, "ability with no SP$/AB$/DB$/ST$ head: " + val}}
+}
+
+// normalizeImplicitTarget supplies the target spec a keyword action's own
+// Forge effect class targets but the script omits, so the engine poses the
+// same target ask Forge does. It is the single structural home for the
+// rewrite: parseSA is the one constructor every printed A: line, every
+// link.go-resolved Execute$ SVar body and every runtime cards.ResolveSVar
+// reaches, so a DB$ Earthbend in any of those carriers is normalised here.
+//
+// Forge's EarthbendEffect (MagicCard.addAbility / EarthbendEffect) declares
+// its target as TargetLandYouControl: the script carries no ValidTgts$ of its
+// own because the keyword action owns it, and without the injection the
+// engine's Defined() falls through to c.Source -- the resolving card, not a
+// land -- so the animation and counters would land on the wrong object.
+func normalizeImplicitTarget(api string, p map[string]string) {
+	if api == "Earthbend" && p["ValidTgts"] == "" {
+		p["ValidTgts"] = "Land.YouCtrl"
+	}
 }
 
 // ParseStaticLine parses one static body — an S: line's text, or an

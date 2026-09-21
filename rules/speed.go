@@ -152,14 +152,23 @@ func (e *Engine) maxSpeedAbilities(p state.PlayerID, id state.ObjID) []*cards.SA
 // beginGrantedActivation activates an SVar-anchored granted ability: the
 // max-speed static's "granted" option (rules/speed.go's own offer) and the
 // AddAbilities grant's "ability" option (rules/legal.go, beginActivation's
-// SVar branch) both route here. It pays the granted ability's own Cost$
-// (mana through the ordinary payMana, the T part a Tap), mints the ability
-// object via the delayed-shape DelayedPush (whose Counter carries the SVar
-// name -- the one existing event whose Apply case can resolve an arbitrary
-// SVar-named ability onto the stack; the ^uint32(0) registration id matches
-// nothing, so nothing is removed), and asks the ability's targets exactly
-// the way a trigger's post-push ask does. A stale option degrades to a
-// no-op.
+// SVar branch) both route here. Task grantcost1: the activation is routed
+// through the SAME cast flow a printed activated ability uses
+// (pendingCast/continueCast/payCast) instead of a bespoke mana-only payment,
+// so every non-mana cost part (Sac, Discard, SubCounter, AddCounter, Exile,
+// Draw, Return, PayEnergy, Behold, Blight, Forage, ...) is asked and paid
+// exactly the way a printed ability's is (CR 602.2b -> 601.2h), with the
+// targets chosen before anything is paid (601.2c) and the CR 601.2g mana
+// window opening when the floating pool alone cannot pay. The pendingCast
+// carries the grant anchor (grantSource/grantSVar; ability stays -1), and
+// payCast's ability branch mints through the same two events this function
+// always minted: DelayedPush for a self-grant (Counter carries the SVar),
+// GrantAbilityPush for a cross-object grant (IDs[0] carries the grantor; the
+// minted ability's Source is the recipient -- so `Defined$ Self`/`CARDNAME`
+// in the body names the recipient, correctly, in the ~35% of carriers that
+// read it. Never DelayedPush for a cross-grant: its Apply case resolves from
+// e.Obj, the recipient's face, which has no such SVar). A stale option
+// degrades to a no-op.
 func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 	o := e.G.Obj(opt.Obj)
 	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
@@ -174,64 +183,42 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 	if grantor == 0 {
 		grantor = opt.Obj
 	}
-	gf := o.Face()
-	if grantor != opt.Obj {
-		g := e.G.Obj(grantor)
-		if g == nil || g.Face() == nil {
-			return
-		}
-		gf = g.Face()
-	}
-	ab := cards.ResolveSVar(gf.SVars, opt.SVar)
-	if ab == nil || ab.Kind != "AB" {
+	// The body is resolved through grantedSAFrom, which walks the grantor's
+	// whole pile top-first (CR 702.140d): a granting static may sit on a
+	// mutated pile's UNDER-CARD, and legal.go's grantedAbilities already
+	// offers such a grant off that face's own SVar table, so resolving only
+	// the grantor's active face here would no-op an option the offer loop
+	// legally produced. A non-mutated grantor resolves exactly as before.
+	// Note this is a NAME anchor, not the flat pile-ability index: a granted
+	// activation carries ability == -1 and decodes no index at all.
+	ab := e.grantedSAFrom(grantor, opt.Obj, opt.SVar)
+	if ab == nil {
 		return
 	}
-	cost := e.offerCostFor(p, opt.Obj, e.parseCost(ab.Params["Cost"]), costScope{kind: "Ability"})
-	// The SVar-fixed PayLife<X> conversion (fixLifeXCost): this path pays its
-	// own cost outside the cast flow, so the conversion is both the gate (an
-	// unresolvable SVar:X body is never activated -- before the conversion an
-	// announced LifeX part here was never settled at all) and the settle (the
-	// fixed value folds into Life, charged below).
-	cost, ok := e.fixLifeXCost(p, opt.Obj, cost)
+	cost, ok := e.fixLifeXCost(p, opt.Obj, e.parseCost(ab.Params["Cost"]))
 	if !ok {
 		return
 	}
-	if !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].TypedMana, e.G.Players[p].Life) {
-		return
-	}
-	if !e.payMana(p, cost) {
-		return
-	}
-	if cost.Life != 0 {
-		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -cost.Life})
-	}
-	if cost.Tap {
-		e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
-	}
-	if grantor == opt.Obj {
-		e.emit(events.Event{Kind: events.DelayedPush, Player: p, Obj: opt.Obj,
-			Amount: -1, Counter: opt.SVar, Text: "granted ability"})
-	} else {
-		// Cross-object grant: the granting object is carried in IDs[0] and the
-		// body resolves from there in Apply, while the minted ability's Source
-		// is opt.Obj (the recipient) -- so `Defined$ Self`/`CARDNAME` in the
-		// body names the recipient, correctly, in the ~35% of carriers that
-		// read it. Never DelayedPush here: its Apply case resolves from e.Obj
-		// (the recipient's face, which has no such SVar) and folds e.IDs into
-		// the ability's Remembered set.
-		e.emit(events.Event{Kind: events.GrantAbilityPush, Player: p, Obj: opt.Obj,
-			Counter: opt.SVar, IDs: []state.ObjID{grantor}})
-	}
-	if len(e.G.Stack) > 0 {
-		id := e.G.Stack[len(e.G.Stack)-1]
-		if so := e.G.Obj(id); so != nil && so.Ability != nil && so.Ability.Line == ab.Line && ab.Params["ValidTgts"] != "" {
-			// Line, not pointer identity: the mint re-parsed the SVar body into
-			// its own *cards.SA, so the freshly minted object carries a different
-			// pointer than this function's ab even though both parsed the same
-			// line. Line is the identity the two parses share.
-			e.askTarget(p, id, ab)
+	// The granted twin of the printed loop's own ReduceCost$ fold (the offer
+	// gate composed the same reduction): Targets do not exist yet (CR 601.2c
+	// runs later), so a target-dependent body reads 0 here and
+	// repriceForTargets re-runs the evaluation with the answered targets.
+	// merged 0: the ReduceCost$ SVar body is read off the RECIPIENT's table,
+	// and the granted offer gate (legal.go's granted arm) prices it against
+	// the recipient's top face too -- offer and activation must charge the
+	// same reduction.
+	own := e.ownReduceCost(p, opt.Obj, ab, nil, 0)
+	if own > 0 {
+		if cost.Generic >= own {
+			cost.Generic -= own
+		} else {
+			cost.Generic = 0
 		}
 	}
+	mods := e.costModifiers(p, opt.Obj, abilityScope(ab))
+	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: -1,
+		grantSVar: opt.SVar, grantSource: grantor, cost: cost, mods: mods, ownReduce: own}
+	e.continueCast()
 }
 
 // abSVarName returns the SVar table key whose raw body is exactly the line

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+
+	"github.com/adams-shaun/gorge/decision"
 )
 
 // This file is the model half of the learned per-option scorer (plan L9b,
@@ -64,6 +66,18 @@ const (
 	LossCE     LossMode = "ce"
 	LossHybrid LossMode = "hybrid"
 	LossValue  LossMode = "value"
+	// LossBCE is the per-option BINARY logistic loss: every labelled option is
+	// a positive example when the teacher's chosen declaration includes it and
+	// a negative example otherwise, trained as softplus(z) − t·z. Unlike the
+	// softmax cross-entropy (shift-invariant — only the ORDER within a decision
+	// is trained) and the value term, BCE trains the option's score LEVEL
+	// against an absolute 0/1 target, so score > 0 has a calibrated meaning
+	// ("sigmoid > 0.5, the teacher includes this option"). It is what the
+	// attackers seat's per-option admission rule assumes; see
+	// seat/policynet.go. A decision with a single labelled option, which the
+	// softmax loss cannot train at all (a one-option softmax has zero
+	// gradient), still contributes a full BCE gradient.
+	LossBCE LossMode = "bce"
 )
 
 // ParseLossMode maps the trainer flag's spelling onto a LossMode. An empty
@@ -74,10 +88,10 @@ func ParseLossMode(s string) (LossMode, error) {
 	switch LossMode(s) {
 	case "":
 		return LossHybrid, nil
-	case LossCE, LossHybrid, LossValue:
+	case LossCE, LossHybrid, LossValue, LossBCE:
 		return LossMode(s), nil
 	default:
-		return "", fmt.Errorf("unknown loss mode %q (want ce, hybrid or value)", s)
+		return "", fmt.Errorf("unknown loss mode %q (want ce, hybrid, value or bce)", s)
 	}
 }
 
@@ -88,7 +102,12 @@ type Model struct {
 	Rows   int // embedding table rows (TableRows for a checkpoint-rounded model)
 	H      int // embedding width
 	Hidden int // hidden layer width
-	InW    int // hidden input width = 2H + OptionSlotWidth + OptionDenseWidth
+	InW    int // hidden input width = 2H + OptionSlotWidth + OptionDenseWidth + ExtraW
+	// ExtraW is the experimental per-option augmentation width (Option.Extra).
+	// Zero for every encoder-produced model, so InW keeps the pinned geometry;
+	// a feature-family experiment sets it through NewModelExtra. Not part of
+	// EncoderHash and not checkpointable.
+	ExtraW int
 
 	Table  []float32 // Rows*H, row-major: Table[r*H+j]
 	StateW []float32 // DenseWidth*H, row-major: StateW[d*H+j]
@@ -121,11 +140,50 @@ type Model struct {
 // does". 1 means no reweighting, >1 up-weights the overrides, <= 0 is
 // treated as 1. Mode selects the term mix (see LossMode); the zero value is
 // hybrid — the pre-fix geometry — so existing callers keep today's loss.
+//
+// RankWeight is a TERM-MIX weight, not a step-size knob. In hybrid mode it
+// trades the rank term against the value term — two different gradient
+// directions — so it survives the per-batch gradient clip (Grads.Clip).
+// In pure CE mode (LossCE) the rank term IS the whole loss, so RankWeight
+// is a uniform scale on a single gradient direction: when the clip binds
+// it is divided back out, and with the clip disabled it is equivalent to
+// rescaling the learning rate. Either way it cannot change what the model
+// converges to — tune lr and the clip cap instead. RankWeight 0 remains
+// meaningful in CE mode: it switches the term (and the training) off
+// entirely. The trainer warns when a non-trivial RankWeight is set in CE
+// mode (cmd/policytrain Train's log).
 type LossConfig struct {
 	Mode           LossMode
 	HuberDelta     float64
 	RankWeight     float64
 	OverrideWeight float64
+	// KindModes overrides Mode for specific decision kinds: the two scored
+	// kinds take different inference paths (attackers admits options with an
+	// absolute per-option vote; priority argmaxes a shift-invariant softmax),
+	// so the loss each kind is trained with must match the rule its path
+	// assumes. A nil map (the zero value) applies Mode to every kind, so every
+	// existing caller keeps today's loss. A kind absent from the map also uses
+	// Mode. Lookups are map reads only — no iteration, so no order reaches a
+	// gradient.
+	KindModes map[decision.Kind]LossMode
+}
+
+// modeFor resolves the loss mode for one example: the per-kind override when
+// present, else the config's global Mode (with the "" zero value meaning
+// hybrid, the pre-fix geometry).
+func (lc LossConfig) modeFor(ex Example) LossMode {
+	m := lc.Mode
+	if o, ok := lc.KindModes[ex.Kind]; ok {
+		m = o
+	}
+	switch m {
+	case "":
+		return LossHybrid
+	case LossCE, LossHybrid, LossValue, LossBCE:
+		return m
+	default:
+		return LossHybrid
+	}
 }
 
 // Override reports whether the teacher's chosen candidate differed from the
@@ -181,11 +239,22 @@ type StepStat struct {
 // limits per block: the table small (a sum-pool of ~200 rows must start near
 // zero), the projections at sqrt(6/(fan_in+fan_out)).
 func NewModel(rows, h, hidden int, rng *rand.Rand) *Model {
+	return NewModelExtra(rows, h, hidden, 0, rng)
+}
+
+// NewModelExtra builds a model whose option input carries extraW experimental
+// augmentation floats after the encoded Dense block (Option.Extra). extraW 0
+// is exactly NewModel. Used only by feature-family experiments; the encoder's
+// pinned geometry is unchanged and no such model can be checkpointed (the
+// format has no ExtraW field) — it is a measurement vehicle, not a deployable
+// scorer.
+func NewModelExtra(rows, h, hidden, extraW int, rng *rand.Rand) *Model {
 	m := &Model{
 		Rows:   rows,
 		H:      h,
 		Hidden: hidden,
-		InW:    2*h + OptionSlotWidth + OptionDenseWidth,
+		ExtraW: extraW,
+		InW:    2*h + OptionSlotWidth + OptionDenseWidth + extraW,
 	}
 	m.Table = make([]float32, rows*h)
 	m.StateW = make([]float32, DenseWidth*h)
@@ -259,6 +328,10 @@ func (m *Model) inputVector(s []float32, o Option) []float32 {
 	}
 	off += OptionSlotWidth
 	copy(x[off:], o.Dense)
+	off += OptionDenseWidth
+	for i := 0; i < m.ExtraW && i < len(o.Extra); i++ {
+		x[off+i] = o.Extra[i]
+	}
 	return x
 }
 
@@ -432,11 +505,38 @@ func (g *Grads) Norm() float64 {
 	return math.Sqrt(sum)
 }
 
-// Clip rescales every gradient block so the global L2 norm is at most
-// maxNorm (a no-op when the norm is already inside; maxNorm <= 0 disables).
-// The rescale is exact division by norm/max — the same gradient direction,
-// bounded magnitude — so a diverged batch cannot throw a weight to ±Inf
-// through one oversized step.
+// Clip rescales the SUMMED batch gradient as ONE vector so its global L2
+// norm (Norm, over every parameter block) is at most maxNorm — a no-op when
+// the norm is already inside; maxNorm <= 0 disables. This is the
+// deliberate clip semantics, chosen over the alternatives (pinned by this
+// package's TestClipSemanticsIsPerBatchNotPerExample; ticket
+// policytrain-clip-rankweight-interaction):
+//
+//   - Per-batch, not per-example: the clip normalises only the batch
+//     gradient's MAGNITUDE and preserves its direction — the weighted mean
+//     of the per-example directions, so the direction-shaping weights
+//     (OverrideWeight per example, RankWeight·Margin in hybrid mode) keep
+//     their relative meaning. A per-example cap instead makes every
+//     saturating example contribute the same norm regardless of its
+//     weight, erasing exactly the per-example weights the loss defines,
+//     and multiplies the clip's cost by the batch size.
+//   - Global, not per-parameter-group: a per-block cap rescales blocks
+//     against each other and so distorts the update direction inside the
+//     step; the global cap keeps every block's share fixed.
+//   - Applied to the summed gradient BEFORE the LR/batch scale
+//     (ApplyGrads' scale), so the step's worst-case norm is
+//     lr·maxNorm/batchSize — one scalar the caller controls. A cap is a
+//     CAP, not a normaliser: batches whose summed gradient is already
+//     under maxNorm step at lr·‖mean grad‖ and see any uniform loss scale
+//     through (as an lr rescale); the clip erases a uniform scale exactly
+//     when it binds.
+//
+// The corollary is intentional and documented at LossConfig.RankWeight: a
+// UNIFORM scale on the whole loss (a single-term loss's weight) scales the
+// summed gradient's magnitude only, so when the clip binds it is divided
+// back out — the clip makes a pure-CE run invariant to the CE term's
+// absolute weight. Direction-carrying weights survive; magnitude-only
+// weights do not, and the magnitude knobs in CE mode are lr and the cap.
 func (g *Grads) Clip(maxNorm float64) {
 	if maxNorm <= 0 {
 		return
@@ -534,18 +634,13 @@ func (m *Model) forwardExample(ex Example) (labelled []int, trunk []float32, xs,
 func lossFromScores(lc LossConfig, ex Example, labelled []int, ys []float64) (parts LossParts, dys []float64) {
 	n := len(labelled)
 
-	mode := lc.Mode
-	switch mode {
-	case "", LossCE, LossHybrid, LossValue:
-		if mode == "" {
-			mode = LossHybrid
-		}
-	default:
-		mode = LossHybrid
-	}
+	// The loss mode is per-KIND when the config says so (KindModes), so the
+	// attackers kind can train with the binary logistic loss its admission rule
+	// assumes while priority keeps argmax CE.
+	mode := lc.modeFor(ex)
 
 	// Clamp every score the loss reads to a finite, well-inside-float64 range
-	// once, up front, and use the clamped values in BOTH terms. A diverged
+	// once, up front, and use the clamped values in every term. A diverged
 	// forward pass can hand back ±Inf/NaN; with the raw values, `Inf − Inf` in
 	// LSE(labelled) − LSE(preferred) is NaN (and Huber on ±Inf saturates to
 	// ±Inf), which then poisons every weight. The clamp keeps the arithmetic
@@ -560,6 +655,13 @@ func lossFromScores(lc LossConfig, ex Example, labelled []int, ys []float64) (pa
 	clamped := make([]float64, n)
 	for k := range clamped {
 		clamped[k] = clampScore(ys[k])
+	}
+
+	// BCE is a different objective entirely (an absolute per-option target,
+	// not a within-decision ranking), so it branches before the value/rank
+	// machinery below.
+	if mode == LossBCE {
+		return lossBCE(lc, ex, labelled, clamped)
 	}
 
 	// Within-decision mean of the teacher values (a constant); the value term
@@ -641,6 +743,84 @@ func lossFromScores(lc LossConfig, ex Example, labelled []int, ys []float64) (pa
 	parts.Total = parts.Value + parts.Rank
 	scaleGrads(dys, ow)
 	return parts, dys
+}
+
+// lossBCE is the per-option binary logistic loss: every labelled option is a
+// positive example when the teacher's chosen declaration contains it and a
+// negative example otherwise. With z the (clamped) score, t ∈ {0,1} the
+// target and w = RankWeight, the per-option loss is
+//
+//	w · (softplus(z) − t·z),  d/dz = w · (sigmoid(z) − t)
+//
+// summed over the labelled options and weighted once more by the override
+// weight. This trains an ABSOLUTE score level: score 0 is the decision
+// boundary (sigmoid 0.5), which is exactly the contract the attackers seat's
+// per-option admission rule reads. A single labelled option — the majority of
+// the label corpus's attackers decisions, where the softmax CE has zero
+// gradient because a one-option softmax is flat — trains here at full
+// strength, which is the whole point: the decision "attack with this creature
+// or not" is an absolute yes/no the softmax cannot express.
+//
+// parts.Value carries the BCE total (parts.Rank is 0) so the trainer's loss
+// readout stays one number; the gradient is written into dys. The total is
+// AVERAGED over the labelled options (unlike the rank term, which is a sum),
+// so a decision with many options does not dominate the batch purely by
+// option count; the per-option gradient carries RankWeight but not the
+// 1/len(labelled) average, matching the rank term's un-normalised gradient.
+//
+// RankWeight == 0 means UNWEIGHTED here (w = 1), deliberately NOT the "term
+// off" convention lossFromScores uses for the rank term. There the rank term
+// is one addend beside the value term, so switching it off still leaves a
+// loss to train; here BCE is the kind's ENTIRE loss, so honouring a zero as
+// "off" would make the attackers head silently untrainable — no loss and no
+// gradient — which is the failure mode this whole change exists to prevent.
+// A caller that wants the attackers head off selects a different kind mode,
+// it does not zero the shared rank weight.
+func lossBCE(lc LossConfig, ex Example, labelled []int, clamped []float64) (parts LossParts, dys []float64) {
+	dys = make([]float64, len(labelled))
+	w := lc.RankWeight
+	if w == 0 {
+		w = 1
+	}
+	total := 0.0
+	for k, i := range labelled {
+		t := 0.0
+		if ex.Options[i].Target.Preferred {
+			t = 1
+		}
+		z := clamped[k]
+		total += w * (softplus(z) - t*z)
+		dys[k] = w * (sigmoidFloat(z) - t)
+	}
+	parts.Value = total / float64(len(labelled))
+	ow := lc.exampleWeight(ex)
+	parts.Value *= ow
+	parts.Total = parts.Value
+	scaleGrads(dys, ow)
+	return parts, dys
+}
+
+// softplus is log(1 + e^z), computed stably: for large z it is z (so exp
+// never overflows), for very negative z it is exp(z) ≈ 0.
+func softplus(z float64) float64 {
+	if z > 30 {
+		return z
+	}
+	if z < -30 {
+		return math.Exp(z)
+	}
+	return math.Log1p(math.Exp(z))
+}
+
+// sigmoidFloat is the logistic function in float64, the BCE branch's own
+// helper (the seat package has its own float32 form for inference).
+func sigmoidFloat(z float64) float64 {
+	if z >= 0 {
+		e := math.Exp(-z)
+		return 1 / (1 + e)
+	}
+	e := math.Exp(z)
+	return e / (1 + e)
 }
 
 // scoreClamp bounds a score entering the loss arithmetic. Scores live in a
