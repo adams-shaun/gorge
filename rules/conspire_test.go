@@ -233,19 +233,15 @@ func TestConspireEligibilityBounds(t *testing.T) {
 	}
 }
 
-// TestConspireGrantedReachesOffer is the report's "a granted Conspire reaches
-// the cast offer" goal, minus Rassilon (whose wasCastFromExile grant
-// condition is a separate open issue). Raiding Schemes' static grants Conspire
-// to each noncreature spell seat 0 casts (Affected$
+// TestConspireGrantedOfferPayAndCopy is the grant proof: Raiding Schemes'
+// static grants Conspire to each noncreature spell seat 0 casts (Affected$
 // Card.nonCreature+YouCtrl+wasCast, AffectedZone$ Stack); Lightning Bolt has
 // no printed Conspire, so the conspired option appearing for it is the grant
-// at work, and with the enchantment absent the option is gone. The grant
-// reaches the OFFER and the tap is paid and flagged; the COPY trigger is
-// compiled only from a printed K:Conspire line (cards/keywords.go's
-// expandKeywords), so a granted Conspire does not copy -- a known, ledgered
-// gap named in the report's ## Issues section, and not the brief's scope
-// (which asks only that the grant reach the offer).
-func TestConspireGrantedReachesOffer(t *testing.T) {
+// at work, and with the enchantment absent the option is gone. The granted
+// cast pays the tap and is flagged, and the SYNTHESIZED copy trigger
+// (checkGrantedConspireTriggers, the Dethrone/Afflict synthesis pattern)
+// copies the spell exactly once: 3 damage twice = 6 damage, life 14.
+func TestConspireGrantedOfferPayAndCopy(t *testing.T) {
 	e, cfg, reg := conspireEngine(t, "Lightning Bolt")
 	seedBattlefield(t, e, reg, "Goblin Piker")
 	seedBattlefield(t, e, reg, "Goblin Piker")
@@ -271,14 +267,120 @@ func TestConspireGrantedReachesOffer(t *testing.T) {
 	chooseConspire(t, e, bf[0], bf[1])
 	chooseTargetPlayer(t, e, 1)
 	passUntilStackEmpty(t, e, 40)
-	if life := e.G.Players[1].Life; life != 17 {
-		t.Fatalf("opponent life %d, want 17 (3 damage once: the granted cast's offer/tap is real, its copy is not)", life)
+	if life := e.G.Players[1].Life; life != 14 {
+		t.Fatalf("opponent life %d, want 14 (3 damage twice: the granted cast's copy resolved)", life)
+	}
+	if n := countStackCopies(e, bolt); n != 1 {
+		t.Fatalf("granted conspired cast produced %d StackCopy events, want exactly 1", n)
 	}
 	if !e.G.Obj(bf[0]).Tapped || !e.G.Obj(bf[1]).Tapped {
 		t.Fatalf("granted conspire taps: bf[0]=%v bf[1]=%v", e.G.Obj(bf[0]).Tapped, e.G.Obj(bf[1]).Tapped)
 	}
 	if !logHasFlag(e, bolt, "conspired") {
 		t.Fatal("the granted conspired cast carries no flag")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// countStackCopies counts the StackCopy events naming id -- the copies a
+// copy trigger minted of that spell (events.Apply's StackCopy case rejects
+// anything off the stack, so ev.Obj is the ORIGINAL being copied).
+func countStackCopies(e *Engine, id state.ObjID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.StackCopy && ev.Obj == id {
+			n++
+		}
+	}
+	return n
+}
+
+// TestConspireGrantedPrintedFaceNotDoubled: a face that PRINTS K:Conspire
+// under a live grant keeps exactly ONE copy trigger -- the printed expansion
+// owns the line, and checkGrantedConspireTriggers skips f.HasKeyword
+// (the grant-identical-to-a-printed-line dedup). Burn Trail is a noncreature
+// spell, so Raiding Schemes' grant applies to it too; a conspired cast must
+// still copy once (life 14), never twice.
+func TestConspireGrantedPrintedFaceNotDoubled(t *testing.T) {
+	e, cfg, reg := conspireEngine(t, "Burn Trail")
+	seedBattlefield(t, e, reg, "Goblin Piker")
+	seedBattlefield(t, e, reg, "Goblin Piker")
+	seedBattlefield(t, e, reg, "Goblin Piker")
+	seedBattlefield(t, e, reg, "Raiding Schemes")
+
+	hero := searchMoveByName(t, e, "Burn Trail", state.ZHand)
+	addMana(t, e, 0, "RRRR")
+	opt := castOptMode(t, e.Pending().Options, hero, "conspired")
+	submitChoices(t, e, opt.Index)
+	bf := e.G.Zone(state.ZBattlefield, 0)
+	chooseConspire(t, e, bf[0], bf[1])
+	chooseTargetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 40)
+
+	if life := e.G.Players[1].Life; life != 14 {
+		t.Fatalf("opponent life %d, want 14 (3 damage twice: one copy, not two)", life)
+	}
+	if n := countStackCopies(e, hero); n != 1 {
+		t.Fatalf("printed face under a live grant produced %d StackCopy events, want exactly 1", n)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestConspireGrantedPlainCastCopiesNothing: the synthesized trigger fires
+// on EVERY cast of a granted spell (the printed path's own contract), and a
+// PLAIN cast resolves it with Amount$ Count$Conspired 0 -- the copy loop
+// emits nothing. Two eligible creatures sit untapped; nothing is tapped and
+// no copy resolves.
+func TestConspireGrantedPlainCastCopiesNothing(t *testing.T) {
+	e, cfg, reg := conspireEngine(t, "Lightning Bolt")
+	seedBattlefield(t, e, reg, "Goblin Piker")
+	seedBattlefield(t, e, reg, "Goblin Piker")
+	seedBattlefield(t, e, reg, "Raiding Schemes")
+
+	bolt := searchMoveByName(t, e, "Lightning Bolt", state.ZHand)
+	addMana(t, e, 0, "R")
+	opt := castOptMode(t, e.Pending().Options, bolt, "")
+	submitChoices(t, e, opt.Index)
+	chooseTargetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 40)
+
+	if life := e.G.Players[1].Life; life != 17 {
+		t.Fatalf("opponent life %d, want 17 (3 damage once: a plain cast copies nothing)", life)
+	}
+	if n := countStackCopies(e, bolt); n != 0 {
+		t.Fatalf("a granted plain cast produced %d StackCopy events, want 0", n)
+	}
+	if logHasFlag(e, bolt, "conspired") {
+		t.Fatal("a plain cast must not carry the conspired flag even under a grant")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestConspireNoGrantSilent: with no grant live, a cast of the same instant
+// is byte-identical to the pre-Conspire engine -- no conspired option, no
+// trigger, no copy.
+func TestConspireNoGrantSilent(t *testing.T) {
+	e, cfg, reg := conspireEngine(t, "Lightning Bolt")
+	seedBattlefield(t, e, reg, "Goblin Piker")
+	seedBattlefield(t, e, reg, "Goblin Piker")
+
+	bolt := searchMoveByName(t, e, "Lightning Bolt", state.ZHand)
+	addMana(t, e, 0, "R")
+	for _, o := range e.Pending().Options {
+		if o.Kind == "cast" && o.Obj == bolt && o.Mode == "conspired" {
+			t.Fatal("Lightning Bolt offered conspired without a grant")
+		}
+	}
+	opt := castOptMode(t, e.Pending().Options, bolt, "")
+	submitChoices(t, e, opt.Index)
+	chooseTargetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 40)
+
+	if life := e.G.Players[1].Life; life != 17 {
+		t.Fatalf("opponent life %d, want 17 (no grant, no copy)", life)
+	}
+	if n := countStackCopies(e, bolt); n != 0 {
+		t.Fatalf("a cast with no grant produced %d StackCopy events, want 0", n)
 	}
 	replayCheck(t, e, cfg)
 }
