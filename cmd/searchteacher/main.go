@@ -9,7 +9,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -24,6 +23,7 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/searchprobe"
+	"github.com/adams-shaun/gorge/internal/searchseat"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/internal/traceboard"
 	"github.com/adams-shaun/gorge/rules"
@@ -265,16 +265,6 @@ func playPaired(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg c
 	return rec
 }
 
-func castOptions(d *decision.Decision) int {
-	seen := map[state.ObjID]bool{}
-	for _, o := range d.Options {
-		if o.Kind == "cast" {
-			seen[o.Obj] = true
-		}
-	}
-	return len(seen)
-}
-
 func playGame(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg config, search bool, rec *GameRecord) (*rules.Engine, error) {
 	rcfg := rules.Config{Seed: seed, Names: setup.Names, Decks: setup.Decks, Tokens: setup.Tokens, StartingLife: setup.StartingLife}
 	e := rules.New(rcfg)
@@ -330,36 +320,74 @@ func playGame(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg con
 // board snapshot source (BoardFromGameInto built it for this decision and
 // BoardFromGameInto will overwrite it at the next one, so every board read
 // here is a synchronous copy).
+// teach runs the teacher at an eligible decision and emits this command's
+// label and diagnostics. It returns the intent to play and true when the
+// teacher overrode the bot.
+//
+// The DECISION itself lives in internal/searchseat: candidate building, world
+// sampling, teacher scoring and root matching are shared with any seat that
+// plays the teacher's answer, so the corpus a student learns from and the
+// policy that plays cannot drift. What stays here is label emission -- the
+// LabelRecord, the DecisionRecord, the seat view and the audit pass -- none of
+// which a playing seat needs.
+//
+// b is the deciding seat's board snapshot source (BoardFromGameInto built it
+// for this decision and will overwrite it at the next one, so every board read
+// here is a synchronous copy).
 func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *searchprobe.Collector, e *rules.Engine, d *decision.Decision, bot decision.Intent, f searchprobe.Frame, cfg config, rec *GameRecord, b *botpolicy.Board) (decision.Intent, bool) {
-	var cands [][]searchprobe.Action
-	var kind string
-	switch {
-	case d.Kind == decision.KAttackers && cfg.kinds["attackers"]:
-		kind = "attackers"
-		for _, in := range searchprobe.AttackCandidates(d, bot, cfg.limit) {
-			a, err := collector.Actions(d, in)
-			if err != nil {
-				return bot, false
-			}
-			cands = append(cands, a)
-		}
-	case d.Kind == decision.KPriority && cfg.kinds["cast"] && castOptions(d) >= 2:
-		kind = "cast"
-		a, err := collector.Actions(d, bot)
-		if err != nil || len(a) != 1 {
-			return bot, false
-		}
-		for _, c := range searchprobe.Candidates(f.Decision, a[0], cfg.limit) {
-			cands = append(cands, []searchprobe.Action{c})
-		}
-	default:
+	opts := searchseat.Options{
+		Kinds:        cfg.kinds,
+		Worlds:       cfg.worlds,
+		Attempts:     cfg.attempts,
+		MinESS:       cfg.minESS,
+		Limit:        cfg.limit,
+		Margin:       cfg.margin,
+		HorizonTurns: cfg.horizon,
+		MaxSubmits:   cfg.maxSubmits,
+		SampleSeed:   cfg.sampleSeed,
+		Clairvoyant:  cfg.oracle,
+	}
+	// The phase split is timed HERE, not in searchseat: internal/archtest
+	// allows the time import in host, host/httpapi and cmd/gorged only, so the
+	// search helper takes callbacks and this command, which already owns a
+	// clock, does the measuring.
+	var sampleMS, searchMS float64
+	t0 := time.Now()
+	opts.AfterSample = func() {
+		sampleMS = float64(time.Since(t0).Microseconds()) / 1000
+		t0 = time.Now()
+	}
+	opts.AfterSearch = func() {
+		searchMS = float64(time.Since(t0).Microseconds()) / 1000
+	}
+
+	// An ineligible decision, or one the candidate builder cannot open, emits
+	// nothing at all -- not even a DecisionRecord. That is the pre-extraction
+	// behaviour: dr was constructed only after the candidate check passed, so
+	// a decision the teacher never looked at leaves no trace in the corpus.
+	if !searchseat.Eligible(d, opts) {
 		return bot, false
 	}
-	if len(cands) < 2 {
+
+	in, overrode, tr := searchseat.Choose(setup, *h, collector, e, d, bot, f, opts)
+	if len(tr.Candidates) < 2 {
 		return bot, false
 	}
-	dr := DecisionRecord{Kind: kind, Turn: e.G.Turn, Frames: len(h.Frames), Candidates: len(cands)}
+
+	dr := DecisionRecord{Kind: tr.Kind, Turn: e.G.Turn, Frames: len(h.Frames), Candidates: len(tr.Candidates)}
 	defer func() { rec.Decisions = append(rec.Decisions, dr) }()
+	dr.SampleMS, dr.SearchMS = sampleMS, searchMS
+	dr.Attempts, dr.Accepted, dr.PrefixRejected, dr.ESS, dr.Duplicates = tr.Attempts, tr.Accepted, tr.PrefixRejected, tr.ESS, tr.Duplicates
+	dr.HandToStack = tr.HandToStack
+	dr.CompetitionExclusions, dr.CompetitionResidual, dr.CompetitionUnguided = tr.CompetitionExclusions, tr.CompetitionResidual, tr.CompetitionUnguided
+	dr.IncompatibleProposals = tr.IncompatibleProposals
+	dr.TopRejection = tr.TopRejection
+
+	if !tr.Covered {
+		dr.Fallback = tr.Fallback
+		return bot, false
+	}
+
 	// The seat's redacted view must serialize before a label can exist; a
 	// failure is a real (if currently unreachable) drop path, so record it on
 	// the DecisionRecord and keep the bot's answer -- never build a partial
@@ -370,100 +398,48 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 		dr.Fallback = "seat view: " + err.Error()
 		return bot, false
 	}
-	// lbl is appended to rec only when the teacher actually covers the
-	// decision (a record with no values is not a label); sampling and teacher
-	// failures drop it, leaving the fallback on the DecisionRecord only.
 	lbl := &LabelRecord{RecordType: "label-v1", SchemaVersion: labelSchemaVersion, Pair: rec.Pair, GameIndex: rec.GameIndex, Seed: rec.Seed,
 		Sequence: d.Seq, Seat: d.Player, Kind: d.Kind, Turn: e.G.Turn, Horizon: cfg.horizon, BotIndex: 0,
 		Board: traceboard.Project(b), View: raw, Options: append([]decision.Option(nil), d.Options...)}
-	lbl.Candidates = make([]LabelCandidate, len(cands))
-	for i, cand := range cands {
+	lbl.Worlds = tr.Worlds
+	lbl.Attempts, lbl.Accepted = tr.Attempts, tr.Accepted
+	lbl.Candidates = make([]LabelCandidate, len(tr.Candidates))
+	for i, cand := range tr.Candidates {
 		lc := LabelCandidate{Bot: i == 0}
-		if in, err := collector.Match(d, cand); err == nil {
-			lc.Choices = append([]int(nil), in.Choices...)
+		if m, err := collector.Match(d, cand); err == nil {
+			lc.Choices = append([]int(nil), m.Choices...)
 		}
 		lbl.Candidates[i] = lc
 	}
-	if cfg.oracle {
-		lbl.Worlds = 1
-		t1 := time.Now()
-		tr, err := searchprobe.TeacherChoice([]searchprobe.World{{Engine: e.Clone(), Observer: collector}}, cands, searchprobe.TeacherOptions{Seed: cfg.sampleSeed ^ 0x5eed ^ uint64(e.G.Turn), HorizonTurns: cfg.horizon, MaxSubmits: cfg.maxSubmits, Margin: cfg.margin, Clairvoyant: true})
-		dr.SearchMS = float64(time.Since(t1).Microseconds()) / 1000
-		if err != nil {
-			dr.Fallback = "teacher error: " + err.Error()
-			return bot, false
-		}
-		return applyTeacher(tr, &dr, collector, d, cands, bot, rec, lbl)
-	}
-	t0 := time.Now()
-	sr, err := searchprobe.Sample(setup, *h, searchprobe.SampleOptions{Seed: cfg.sampleSeed, Attempts: cfg.attempts, Worlds: cfg.worlds, MaxSubmits: cfg.maxSubmits, MinESS: cfg.minESS})
-	dr.SampleMS = float64(time.Since(t0).Microseconds()) / 1000
-	dr.Attempts, dr.Accepted, dr.PrefixRejected, dr.ESS, dr.Duplicates = sr.Attempts, sr.Accepted, sr.PrefixRejected, sr.ESS, sr.Duplicates
-	dr.HandToStack = sr.HandToStackCauses
-	dr.CompetitionExclusions, dr.CompetitionResidual, dr.CompetitionUnguided = sr.CompetitionExclusions, sr.CompetitionResidual, sr.CompetitionUnguided
-	dr.IncompatibleProposals = sr.IncompatibleProposals
-	top := 0
-	for _, b := range sr.Rejections {
-		if b.Count > top {
-			top = b.Count
-			dr.TopRejection = b.Component + "/" + b.Shape
-		}
-	}
-	if err != nil {
-		var fl *searchprobe.Failure
-		if errors.As(err, &fl) {
-			dr.Fallback = "sample " + fl.Kind
-		} else {
-			dr.Fallback = "sample error: " + err.Error()
-		}
-		return bot, false
-	}
-	if len(sr.Worlds) == 0 {
-		dr.Fallback = "insufficient worlds/ESS"
-		return bot, false
-	}
-	lbl.Worlds, lbl.Attempts, lbl.Accepted = len(sr.Worlds), sr.Attempts, sr.Accepted
-	t1 := time.Now()
-	tr, err := searchprobe.TeacherChoice(sr.Worlds, cands, searchprobe.TeacherOptions{Seed: cfg.sampleSeed ^ 0x5eed ^ uint64(e.G.Turn), HorizonTurns: cfg.horizon, MaxSubmits: cfg.maxSubmits, Margin: cfg.margin})
-	dr.SearchMS = float64(time.Since(t1).Microseconds()) / 1000
-	if err != nil {
-		dr.Fallback = "teacher error: " + err.Error()
-		return bot, false
-	}
-	if cfg.audit {
+
+	if cfg.audit && !cfg.oracle {
 		// Audit only: the clairvoyant values are recorded after the label is
-		// fixed and never reach the choice below.
-		if or, err := searchprobe.TeacherChoice([]searchprobe.World{{Engine: e.Clone(), Observer: collector}}, cands, searchprobe.TeacherOptions{Seed: cfg.sampleSeed ^ 0x5eed ^ uint64(e.G.Turn), MaxSubmits: cfg.maxSubmits, Clairvoyant: true}); err == nil {
+		// fixed and never reach the choice above.
+		if or, err := searchprobe.TeacherChoice([]searchprobe.World{{Engine: e.Clone(), Observer: collector}}, tr.Candidates, searchprobe.TeacherOptions{Seed: cfg.sampleSeed ^ 0x5eed ^ uint64(e.G.Turn), MaxSubmits: cfg.maxSubmits, Clairvoyant: true}); err == nil {
 			dr.OracleValues = or.Values
 		}
 	}
-	return applyTeacher(tr, &dr, collector, d, cands, bot, rec, lbl)
-}
 
-func applyTeacher(tr searchprobe.TeacherResult, dr *DecisionRecord, collector *searchprobe.Collector, d *decision.Decision, cands [][]searchprobe.Action, bot decision.Intent, rec *GameRecord, lbl *LabelRecord) (decision.Intent, bool) {
 	dr.Covered = true
 	dr.Index, dr.Values, dr.Rollouts, dr.Submits, dr.Terminal, dr.Capped = tr.Index, tr.Values, tr.Rollouts, tr.Submits, tr.Terminal, tr.Capped
-	if lbl != nil {
-		best := 0
-		for i := 1; i < len(tr.Values); i++ {
-			if tr.Values[i] > tr.Values[best] {
-				best = i
-			}
+	best := 0
+	for i := 1; i < len(tr.Values); i++ {
+		if tr.Values[i] > tr.Values[best] {
+			best = i
 		}
-		lbl.TeacherChoice = tr.Index
-		lbl.Margin = tr.Values[best] - tr.Values[0]
-		for i := range lbl.Candidates {
-			lbl.Candidates[i].Value = tr.Values[i]
-			lbl.Candidates[i].Worlds = lbl.Worlds
+	}
+	lbl.TeacherChoice = tr.Index
+	lbl.Margin = tr.Values[best] - tr.Values[0]
+	for i := range lbl.Candidates {
+		lbl.Candidates[i].Value = tr.Values[i]
+		lbl.Candidates[i].Worlds = lbl.Worlds
+	}
+	rec.Labels = append(rec.Labels, *lbl)
+
+	if !overrode {
+		if tr.Fallback != "" {
+			dr.Fallback = tr.Fallback
 		}
-		rec.Labels = append(rec.Labels, *lbl)
-	}
-	if tr.Index == 0 {
-		return bot, false
-	}
-	in, err := collector.Match(d, cands[tr.Index])
-	if err != nil {
-		dr.Fallback = "root match: " + err.Error()
 		return bot, false
 	}
 	dr.ChosenDiffersFromBot = true
