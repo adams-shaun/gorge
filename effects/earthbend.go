@@ -74,13 +74,15 @@ func effEarthbend(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // registerEarthbendReturn lays the land's "when it dies or is exiled, return
-// it to the battlefield tapped" promise. Two one-shot delayed registrations
-// are minted per affected land -- one per destination -- because the
-// engine's ChangesZone matcher reads Destination$ through the single-word
-// effects.ParseZone, so a combined "Graveyard,Exile" would only ever match
-// its first half (the engine-wide comma-Destination$ defect, ledgered
-// separately; this primitive deliberately sidesteps it rather than depending
-// on a fix that would move heads).
+// it to the battlefield tapped" promise. It mints ONE one-shot delayed
+// registration naming BOTH destinations in a comma-separated Destination$
+// clause; the delayed-trigger path's ChangesZone arm splits that list
+// (rules.zoneDelayedDestinationAdmits), so the promise is consumed exactly
+// once at its first fire. Registering two single-zone siblings instead is
+// the shape that looks safer but is wrong: the DelayedPush consumes only the
+// registration whose ID it carries, so the un-fired sibling survives and
+// returns the land a SECOND time when it later departs to the other zone.
+// One registration cannot have a leftover.
 //
 // The registration's Source is the land itself, so the builtin body's
 // Defined$ Self resolves to it; the registration's Counter names the builtin
@@ -91,13 +93,11 @@ func effEarthbend(h Host, c *Ctx, sa *cards.SA) {
 // incarnation tracking applies: the promise is consumed at its first fire
 // and an object that later returns is not acted on again.
 func registerEarthbendReturn(h Host, c *Ctx, id state.ObjID) {
-	for _, dest := range []string{"Graveyard", "Exile"} {
-		h.Emit(events.Event{
-			Kind: events.DelayedRegister, Obj: id,
-			Player: c.Controller, Step: h.Game().Step,
-			Counter: "__kwEarthbendReturn",
-			Text: "ChangesZone:Mode$ ChangesZone | Origin$ Battlefield | Destination$ " +
-				dest + " | ValidCard$ Card.Self",
-		})
-	}
+	h.Emit(events.Event{
+		Kind: events.DelayedRegister, Obj: id,
+		Player: c.Controller, Step: h.Game().Step,
+		Counter: "__kwEarthbendReturn",
+		Text: "ChangesZone:Mode$ ChangesZone | Origin$ Battlefield | " +
+			"Destination$ Graveyard,Exile | ValidCard$ Card.Self",
+	})
 }

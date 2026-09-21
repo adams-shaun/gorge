@@ -49,9 +49,7 @@ func earthbendTargetOption(t *testing.T, e *Engine, obj state.ObjID) int {
 // queue and the stack have emptied, so a trigger matched by a
 // directly-emitted move is pushed and resolved the way a live game would (the
 // engine drains pendingTriggers on the next priority round, not inside emit).
-// A leftover delayed registration (the one-shot promise's un-matched second
-// destination) is INERT and deliberately not waited on. It returns the number
-// of passes it made.
+// It returns the number of passes it made.
 func earthbendSettle(t *testing.T, e *Engine, limit int) int {
 	t.Helper()
 	n := 0
@@ -86,9 +84,7 @@ func earthbendSettle(t *testing.T, e *Engine, limit int) int {
 // and answers every target decision with the given land, until the queue and
 // the stack have emptied, so a trigger matched by a directly-emitted move is
 // pushed, asked and resolved the way a live game would (the engine drains
-// pendingTriggers on the next priority round, not inside emit). A leftover
-// delayed registration (the one-shot promise's un-matched second
-// destination) is INERT and deliberately not waited on.
+// pendingTriggers on the next priority round, not inside emit).
 func earthbendSettleAnswering(t *testing.T, e *Engine, forest state.ObjID, limit int) {
 	t.Helper()
 	for n := 0; n < limit; n++ {
@@ -186,6 +182,14 @@ func assertEarthbendAnimated(t *testing.T, e *Engine, id state.ObjID, num int32)
 // effect produces and asserts the one-shot promise returns the SAME land to
 // the battlefield tapped, as a plain land (its animation and counters are
 // gone per CR 122.2 -- a new object).
+//
+// This drives the MoveZone event directly (the event effects/zone.go's
+// Destroy and every exile effect emit), which is deliberate: it lets the
+// dynamic/literal-count leaves assert the whole return path without dragging
+// a removal spell into every fixture. TestEarthbendBaSingSeRealDestroy
+// exercises the same path through an actual Murder cast, so the "destroying
+// it returns it" half of the oracle is proven at the primitive, not only at
+// the event it emits.
 func assertEarthbendReturned(t *testing.T, e *Engine, id state.ObjID, dest state.Zone) {
 	t.Helper()
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: dest})
@@ -321,4 +325,82 @@ func TestEarthbendBadgermoleCubETBOne(t *testing.T) {
 	assertEarthbendAnimated(t, e, forest, 1)
 	assertEarthbendReturned(t, e, forest, state.ZGraveyard)
 	replayCheck(t, e, cfg)
+}
+
+// earthbendDepart emits the MoveZone a removal produces and drains the
+// trigger queue, without asserting anything about where the land ends up --
+// the shape the one-shot regression leaf needs when the correct outcome is
+// "it stays in the destination".
+func earthbendDepart(t *testing.T, e *Engine, id state.ObjID, dest state.Zone) {
+	t.Helper()
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: dest})
+	earthbendSettle(t, e, 30)
+}
+
+// TestEarthbendBaSingSeRealDestroy casts a real Sinkhole at the earthbent
+// land and asserts the promise returns it tapped. This drives the actual
+// Destroy primitive (effects/zone.go -> MoveZone), not the MoveZone the
+// helper emits, so the brief's "destroying it returns it to the battlefield
+// tapped" is proven at the primitive. Sinkhole ("destroy target land",
+// ValidTgts$ Land) is used rather than a creature-killer because the
+// engine's ordinary target filters read the PRINTED face (the documented
+// layer-4 filter limitation): the animated Forest is a creature only through
+// the layer walk, so no `ValidTgts$ Creature` spell sees it. A `ValidTgts$
+// Land` destruction still reaches it, and the Destroy fires the same
+// departure. (Lethal combat/damage cannot kill the animated land either --
+// rules/sba.go's destroyLethalDamage gates on the printed face being a
+// creature, so an animated land is damage-immortal; a pre-existing
+// engine-wide gap, disclosed in the report's Issues, not introduced here.)
+func TestEarthbendBaSingSeRealDestroy(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := searchEngine(t, reg, "Ba Sing Se", "Sinkhole", "Grizzly Bears")
+	_, forest := earthbendActivateBaSingSe(t, e, "Forest")
+	assertEarthbendAnimated(t, e, forest, 2)
+	sinkhole := searchMoveByName(t, e, "Sinkhole", state.ZHand)
+	addMana(t, e, 0, "BB")
+	castDestroyAt(t, e, sinkhole, forest)
+	o := e.G.Obj(forest)
+	if o == nil || o.Zone != state.ZBattlefield || !o.Tapped {
+		t.Fatalf("after a real Sinkhole the land must return tapped: zone=%v tapped=%v", o.Zone, o.Tapped)
+	}
+	if e.IsCreature(forest) {
+		t.Fatal("returned land is still a creature after the real destroy")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestEarthbendReturnIsOneShotAcrossDestinations is the regression leaf for
+// the two-sibling bug: the promise must fire ONCE, not once per destination.
+// A land earthbent, destroyed (returned), then exiled must STAY exiled -- the
+// mirror case (exile first, then destroy) must stay in the graveyard. With a
+// per-destination registration the un-fired sibling survives and returns the
+// land a second time.
+func TestEarthbendReturnIsOneShotAcrossDestinations(t *testing.T) {
+	t.Run("died-then-exiled-stays-exiled", func(t *testing.T) {
+		reg := testutil.CorpusRegistry(t)
+		e, cfg := searchEngine(t, reg, "Ba Sing Se", "Grizzly Bears")
+		_, forest := earthbendActivateBaSingSe(t, e, "Forest")
+		assertEarthbendAnimated(t, e, forest, 2)
+		assertEarthbendReturned(t, e, forest, state.ZGraveyard)
+		// The land is back and tapped; now exile it. The promise was consumed
+		// on the first departure, so it must NOT return a second time.
+		earthbendDepart(t, e, forest, state.ZExile)
+		if o := e.G.Obj(forest); o == nil || o.Zone != state.ZExile {
+			t.Fatalf("land returned a second time from exile: %+v", o)
+		}
+		replayCheck(t, e, cfg)
+	})
+	t.Run("exiled-then-died-stays-dead", func(t *testing.T) {
+		reg := testutil.CorpusRegistry(t)
+		e, cfg := searchEngine(t, reg, "Ba Sing Se", "Grizzly Bears")
+		_, forest := earthbendActivateBaSingSe(t, e, "Forest")
+		assertEarthbendAnimated(t, e, forest, 2)
+		assertEarthbendReturned(t, e, forest, state.ZExile)
+		// Mirror: a later death must not return it again.
+		earthbendDepart(t, e, forest, state.ZGraveyard)
+		if o := e.G.Obj(forest); o == nil || o.Zone != state.ZGraveyard {
+			t.Fatalf("land returned a second time from the graveyard: %+v", o)
+		}
+		replayCheck(t, e, cfg)
+	})
 }
