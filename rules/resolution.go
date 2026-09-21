@@ -1419,6 +1419,31 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					state.Target{Player: o.Player, IsPlayer: true})
 			}
 			ctx.ProliferateDone = true
+		case "move_counter_kind":
+			// A MoveCounter CounterType$ Any kind pick was answered: the
+			// chooser picked which counter kind to move, out of the distinct
+			// kinds the origin holds. The option's Label (the kind string) is
+			// the answer; an empty or malformed answer keeps the deterministic
+			// first-kind stand-in, the conservative read of an ambiguous one.
+			// effMoveCounter consumes and clears both fields at the top of its
+			// own walk (fx42 scoping), so a nested MoveCounter cannot inherit
+			// the answer.
+			ctx.MoveCounterKind = ""
+			if len(chosen) > 0 {
+				ctx.MoveCounterKind = chosen[0].Label
+			}
+			ctx.MoveCounterKindDone = true
+		case "move_counter":
+			// A MoveCounter CounterNum$ Any amount pick was answered: how many
+			// counters of the chosen kind to move. The option's Amount carries
+			// the number (0 is a legitimate decline); a malformed answer moves
+			// nothing. effMoveCounter consumes and clears both fields at the top
+			// of its own walk (fx42 scoping).
+			ctx.MoveCounterN = 0
+			if len(chosen) > 0 {
+				ctx.MoveCounterN = int32(chosen[0].Amount)
+			}
+			ctx.MoveCounterNDone = true
 		case "blight":
 			// A Blight's per-player KChoose (CR 701.60: the blighting player
 			// chooses which of their own creatures takes the −1/−1 counters)

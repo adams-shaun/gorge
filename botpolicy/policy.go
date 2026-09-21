@@ -480,7 +480,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			} else {
 				in.Choices = []int{d.Options[0].Index}
 			}
-		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "blight", "proliferate":
+		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "blight", "proliferate", "move_counter_kind":
 			// A Dig look-and-take, a "choose N matching cards from hand"
 			// ChangeZone (handmove1), a Hidden$ True public-origin pick
 			// (hiddenpick1), a DividedAsYouChoose$ PutCounter distribution
@@ -545,6 +545,24 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			} else {
 				for j := 0; j < len(d.Options) && j < d.Max; j++ {
 					in.Choices = append(in.Choices, d.Options[j].Index)
+				}
+			}
+		case "move_counter":
+			// A MoveCounter CounterNum$ Any amount pick: unlike the shared
+			// first-Max arm above, option 0 here means "move ZERO counters",
+			// not "take the first offered object". The R-9 no-host stand-in
+			// effMoveCounter takes is take-ALL, so the bot must answer the
+			// option whose Amount is the offered maximum, or a bot-answered
+			// ask would move fewer counters than the silent build and a golden
+			// game would move for the ask alone. The options are built 0..max
+			// in order, so the highest Amount wins (ties keep the earlier
+			// offer, deterministically).
+			in.Choices = []int{d.Options[0].Index}
+			best := d.Options[0].Amount
+			for _, o := range d.Options {
+				if o.Amount > best {
+					best = o.Amount
+					in.Choices = []int{o.Index}
 				}
 			}
 		case "pay_life", "pay_W", "pay_U", "pay_B", "pay_R", "pay_G":

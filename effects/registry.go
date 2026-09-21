@@ -896,6 +896,22 @@ type Ctx struct {
 	// inherit the outer answer.
 	Proliferate     []state.Target
 	ProliferateDone bool
+	// MoveCounterKind is the answered CounterType$ Any kind pick of a
+	// MoveCounter resolution (task movecounter1): the counter kind the
+	// chooser picked to move out of the distinct kinds the origin holds, in
+	// the offered (deterministic) order. rules' resume arm sets it before
+	// re-running the suspended sub-ability; MoveCounterKindDone distinguishes
+	// "answered" from the first pass so an answered pick is never re-asked.
+	// MoveCounterN is the answered CounterNum$ Any amount of the same
+	// resolution: how many counters of the chosen kind(s) move, and
+	// MoveCounterNDone distinguishes "answered (possibly zero -- a Min-0
+	// decline)" from the first pass. effMoveCounter consumes and clears all
+	// four at the top of its own walk (the fx42 scoping discipline), so a
+	// nested MoveCounter cannot inherit the outer answers.
+	MoveCounterKind     string
+	MoveCounterKindDone bool
+	MoveCounterN        int32
+	MoveCounterNDone    bool
 	// UnlessNext is the index of the UnlessPayer$ payer whose answered
 	// unless-pay choice this re-entry applies (0 on a first pass). The
 	// unlessProceed gate (Resolve) consumes and clears it; rules' resume
