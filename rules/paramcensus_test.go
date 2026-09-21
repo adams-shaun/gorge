@@ -1026,6 +1026,11 @@ var stringMapParams = map[string]string{
 	// built from one SVar static line -- the same SVar-body shape
 	// compoundRememberedSpec reads.
 	"effects:mayPlayGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// effects/misc.go cascadeKeywordGrantFromLine: params is the same
+	// parseStaticLine-built SVar static line (the AddKeyword$ Cascade grant
+	// arm's whitelist); its dynamic gate-key loop (Condition/CheckSVar/...) is
+	// a fail-closed recognition, never a consumption.
+	"effects:cascadeKeywordGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
 	// effects/misc.go parseReplacementLine: svars is the face's SVars table
 	// (an Effect's ReplacementEffects$ body lives behind an SVar name),
 	// mirroring parseStaticLine's svars -- not a card Params map.
