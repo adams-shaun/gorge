@@ -238,6 +238,23 @@ type Option struct {
 	// the engine's own derived-keyword facts and the stack -- a human
 	// client never sees it, so it is never on the wire.
 	Grant *Grant `json:"-"`
+	// GrantSource is server-side only (json:"-") and names the object that
+	// GRANTS an "ability" option's SVar body when that grantor differs from
+	// the option's Obj (the ability's own source/recipient). It is set by
+	// rules/legal.go's granted-ability offer loop from the granting static's
+	// source so rules/speed.go's beginGrantedActivation resolves the body
+	// from the grantor (events.GrantAbilityPush). Zero means no cross-object
+	// grantor: the option is a printed ability or a self-grant, and the body
+	// resolves from Obj. A human client never sees it.
+	GrantSource state.ObjID `json:"-"`
+	// Value is the option's price under a decision carrying a cumulative
+	// budget (Decision.MaxSum): a Dig's WithTotalCMC$ cap sums the mana values
+	// of the picked cards, so each offered card names its own mana value here
+	// -- what lets Decision.Validate enforce "total mana value <= N" over the
+	// chosen set without learning what a card is. Zero (mana value 0, or a
+	// decision with no budget) omits the field, so every existing option list
+	// serialises byte-identically.
+	Value int `json:"value,omitempty"`
 }
 
 // Grant describes the idempotent keyword grant of one "ability" option
@@ -299,6 +316,16 @@ type Decision struct {
 	Min     int            `json:"min"`
 	Max     int            `json:"max"`
 	Options []Option       `json:"options"`
+	// MaxSum, when > 0, is a cumulative budget over the chosen options' Value
+	// fields: the sum of the picked options' Value must not exceed MaxSum.
+	// The engine's first user is a Dig's WithTotalCMC$ ("put any number of
+	// nonland permanent cards with total mana value 4 or less from among
+	// them"), which Option.Group's exclusivity cannot express -- a group says
+	// "not both of these", a budget says "not all of these". Validate enforces
+	// it as one more wire contract, so a rules-ignorant client can grey out an
+	// unaffordable pick without summing anything itself. 0 (no budget) omits
+	// the field, so every existing decision serialises byte-identically.
+	MaxSum int `json:"maxSum,omitempty"`
 	// Repeatable relaxes Validate's no-duplicate-index rule: when true the
 	// SAME option index may be chosen more than once in one answer. It is
 	// set only by a modal (Charm) decision whose SA carries
@@ -438,6 +465,20 @@ func (d *Decision) Validate(in Intent) error {
 				return fmt.Errorf("choices %d and %d are mutually exclusive (group %q)", first, c, g)
 			}
 			seenGroups[g] = c
+		}
+	}
+	// The cumulative-budget rule (Decision.MaxSum): the chosen options'
+	// Value fields sum to at most MaxSum. This is a general wire contract --
+	// the field says nothing about cards or mana values, only that the picked
+	// set's total price is capped -- so a client can enforce it without
+	// learning any rules.
+	if d.MaxSum > 0 {
+		sum := 0
+		for _, c := range in.Choices {
+			sum += d.Options[c].Value
+		}
+		if sum > d.MaxSum {
+			return fmt.Errorf("choices total %d exceeds the budget %d", sum, d.MaxSum)
 		}
 	}
 	return nil

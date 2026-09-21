@@ -125,6 +125,15 @@ type ContinuousEffect struct {
 	// RemoveCreatureTypes). Set only by the static scanner today; the Animate
 	// primitive does not read RemoveCardTypes$ yet.
 	RemoveCardTypes bool
+	// RemoveLegendary is Forge's CopyPermanent NonLegendary$ True (the
+	// "except it isn't legendary" clause, e.g. Multiversal Recruitment): while
+	// this effect applies, the affected object loses the Legendary supertype
+	// from its layer-4 type list, leaving every other supertype in place.
+	// Honoured in rules' typeCharacteristics beside the RemoveCardTypes /
+	// RemoveCreatureTypes strips, and applied BEFORE this same effect's
+	// AddTypes (strip-before-add), so a copy that both strips Legendary and
+	// gains types keeps the base stripped first.
+	RemoveLegendary bool
 	// AddAbilities is a layer-6 ability GRANT (CR 613.1f): the SVar names --
 	// on the SOURCE object's own face -- of the AB$ activated abilities the
 	// affected object gains for the effect's lifetime. Written only by the
@@ -209,6 +218,15 @@ type ContinuousEffect struct {
 	// carries it, Derived clears the object's printed (and any earlier-granted)
 	// keywords/abilities before later layer-6 grants re-add any.
 	RemoveAbilities bool
+	// RemoveKeywords names keywords (matched by cards.KeywordHead, so a
+	// parameterised grant is removed by its head) that the affected object
+	// loses at layer 6 (CR 613.1f). Honoured in rules' LAbilities walk BEFORE
+	// AddKeywords on the SAME effect, so a modification that removes one
+	// keyword and grants another (CopyPermanent's RemoveKeywords$ Soulbond |
+	// AddKeywords$ Haste) applies in the order the card text reads whichever
+	// way the timestamps order independent effects. Empty on every effect
+	// that removes none.
+	RemoveKeywords []string
 	// MayPlay marks a may-play-from-zone grant (CR 401.5: "you may play
 	// cards of a certain kind from a zone other than the one they would
 	// normally be played from", e.g. Conduit of Worlds' "You may play lands

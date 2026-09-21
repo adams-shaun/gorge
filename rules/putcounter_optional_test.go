@@ -224,8 +224,11 @@ func TestSynthEradicatorMayPutEnergyDeclinePlacesNoneAndAcceptPlacesTwo(t *testi
 // carrier asks the ELECTION FIRST (accept -> the recipient pick ask; decline
 // -> neither), now that the bare-Choices$ pick machinery (task vow1) is
 // merged. The chained DBGenericChoice runs on BOTH paths (the chain is owned
-// by Resolve) and its loud unimplemented-API Note is the open GenericChoice
-// ticket, out of scope here.
+// by Resolve): api:GenericChoice is a registered primitive since it was
+// routed to effCharm (effects/misc.go, pinned in
+// rules/generic_choice_test.go), so after either answer the chain poses the
+// chained modal ask (Odd/Even, mid-resolution via effCharm) and the test
+// answers it so the stack drains.
 func TestZimonesHypothesisMayPutElectionWrapsThePick(t *testing.T) {
 	const bearSrc = "Name:Test Bear\nTypes:Creature\nPT:2/2\nOracle:x\n"
 	news := func(seed uint64) (*Engine, Config, state.ObjID, state.ObjID, state.ObjID) {
@@ -255,11 +258,25 @@ func TestZimonesHypothesisMayPutElectionWrapsThePick(t *testing.T) {
 		return e, cfg, zim, b1, b2
 	}
 
-	// Decline: no pick ask, no counter; the DBGenericChoice Note still runs.
+	// Decline: no pick ask, no counter; the chained DBGenericChoice modal
+	// ask (Odd/Even) follows the election, correctly mid-resolution now that
+	// the primitive is registered.
 	e, cfg, _, b1, b2 := news(917)
 	answerPutOptional(t, e, 1) // no
+	dDecline := e.Pending()
+	if dDecline == nil || dDecline.Kind != decision.KModes || dDecline.ResumeKind != "modes" {
+		t.Fatalf("pending after the decline = %+v, want the chained GenericChoice modes ask", dDecline)
+	}
+	labels := map[string]bool{}
+	for _, o := range dDecline.Options {
+		labels[o.Label] = true
+	}
+	if !labels["Odd"] || !labels["Even"] {
+		t.Fatalf("modal options = %+v, want Odd and Even", dDecline.Options)
+	}
+	submitChoices(t, e, 0) // Odd; the bodies are outside this test's scope
 	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
-		t.Fatalf("the decline re-posed a pick ask: %+v", d)
+		t.Fatalf("a non-priority decision is still pending after the decline: %+v", d)
 	}
 	for _, b := range []state.ObjID{b1, b2} {
 		if evs := counterChangeEventsFor(e, b); len(evs) != 0 {
@@ -292,6 +309,11 @@ func TestZimonesHypothesisMayPutElectionWrapsThePick(t *testing.T) {
 	if got := putCounterCountersOf(t, e2, c2); got != 0 {
 		t.Fatalf("unpicked bear P1P1 = %d, want 0", got)
 	}
+	dChain := e2.Pending()
+	if dChain == nil || dChain.Kind != decision.KModes || dChain.ResumeKind != "modes" {
+		t.Fatalf("pending after the accept = %+v, want the chained GenericChoice modes ask", dChain)
+	}
+	submitChoices(t, e2, 0)
 	passUntilStackEmpty(t, e2, 60)
 	replayCheck(t, e2, cfg2)
 }

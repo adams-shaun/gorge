@@ -118,6 +118,49 @@ func (f *Face) expandKeywords() {
 			}
 			p["KeywordLine"] = k
 			f.Repls = append(f.Repls, Repl{Event: "Moved", Params: p})
+		case "Devour":
+			if has("R", k) {
+				continue
+			}
+			// CR 702.83: "As <this> enters the battlefield, you may sacrifice
+			// any number of <type>s. This enters the battlefield with a +1/+1
+			// counter on it for each creature sacrificed this way." The
+			// parameter is "<amount>[:<valid>[:display-text]]" -- amount 1/2/3/X,
+			// valid defaults Creature (Feasting Hobbit's Food, Caprichrome's
+			// Artifact, Famished Worldsire's Land are the corpus's typed
+			// carriers); the trailing display fields are dropped. The expansion
+			// is Forge's CardFactoryUtil Devour shape verbatim: one ETB
+			// replacement whose body is an optional sacrifice ask (the batch is
+			// remembered onto the source object), then the counter put reading
+			// RememberedSize/Times.<amount>, then a cleanup clearing the memory.
+			// Count$RememberedSize reads the event-backed Remembered list the
+			// sacrifice primitive fills; /Times.N is the shared applyCountOp.
+			// A Devour X (Thromok the Insatiable) carries only the bare count --
+			// Times.X fails the op parser and leaves the count at one per
+			// devoured permanent, which is exactly the CR 702.83 X read.
+			amount, rest, _ := strings.Cut(param, ":")
+			valid, _, _ := strings.Cut(rest, ":")
+			amount, valid = strings.TrimSpace(amount), strings.TrimSpace(valid)
+			if valid == "" {
+				valid = "Creature"
+			}
+			sv := "__kwDevour" + strconv.Itoa(i)
+			sacX := "__kwDevourSacX" + strconv.Itoa(i)
+			cntX := "__kwDevourX" + strconv.Itoa(i)
+			cn := "__kwDevourCounter" + strconv.Itoa(i)
+			cl := "__kwDevourCleanup" + strconv.Itoa(i)
+			f.setSVar(sacX, "Count$Valid "+valid+".YouCtrl+Other")
+			f.setSVar(cntX, "Count$RememberedSize/Times."+amount)
+			f.setSVar(sv, "DB$ Sacrifice | Defined$ You | Amount$ "+sacX+
+				" | RememberSacrificed$ True | Optional$ True | SacValid$ "+valid+
+				".Other | SubAbility$ "+cn)
+			f.setSVar(cn, "DB$ PutCounter | ETB$ True | Defined$ Self | CounterType$ P1P1 | CounterNum$ "+cntX+
+				" | SubAbility$ "+cl)
+			f.setSVar(cl, "DB$ Cleanup | ClearRemembered$ True")
+			p := parseParams("Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self" +
+				" | ReplacementResult$ Updated | ReplaceWith$ " + sv + " | Keyword$ Devour")
+			p["KeywordLine"] = k
+			f.Repls = append(f.Repls, Repl{Event: "Moved", Params: p})
 		case "ETBReplacement":
 			if has("R", k) {
 				continue
@@ -262,6 +305,13 @@ func (f *Face) expandKeywords() {
 		case "Storm":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Storm",
 				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnCast/Minus1 | MayChooseTarget$ True", has)
+		case "Gravestorm":
+			// CR 702.84: Storm's shape with a different amount -- one copy per
+			// permanent put into a graveyard from the battlefield this turn
+			// (Forge's CardFactoryUtil expansion). The count head resolves
+			// through effects.countEntered's zone-aware spec match.
+			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Gravestorm",
+				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent | MayChooseTarget$ True", has)
 		case "Replicate":
 			// CR 702.55a: "you may pay an additional [cost] any number of
 			// times as you cast this spell. If you do, copy it for each time
@@ -275,6 +325,21 @@ func (f *Face) expandKeywords() {
 			// Storm-shaped stand-in the M4 copy-target task owns.
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Replicate",
 				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ReplicatePaid | MayChooseTarget$ True", has)
+		case "Conspire":
+			// CR 702.78a is two abilities: a static "as you cast this spell,
+			// you may tap two untapped creatures you control that share a color
+			// with it" (the cast flow's "conspired" offer + conspireAsk, which
+			// records the tap into the pending cast) and a triggered "when you
+			// do, copy it". This expansion is the second half, the Replicate
+			// shape verbatim except the amount head: Count$Conspired is 1 only
+			// when the tap was actually paid (the pay-time FlagConspired
+			// CastInfo), so a DECLINED/plain cast resolves the trigger with
+			// Amount 0 and effCopySpellAbility emits nothing. The copies keep
+			// their targets (MayChooseTarget$), the same Storm-shaped stand-in
+			// the M4 copy-target task owns.
+			f.addKeywordTrigger(head, k,
+				"Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Conspire",
+				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$Conspired | MayChooseTarget$ True", has)
 		case "Living Weapon":
 			if has("T", k) {
 				continue
@@ -408,6 +473,30 @@ func (f *Face) expandKeywords() {
 			}
 			cost := strings.TrimSpace(param)
 			sa, _ := parseSA("", "AB$ Draw | Cost$ "+cost+" Discard<1/CARDNAME> | ActivationZone$ Hand | NumCards$ 1 | Keyword$ Cycling | SpellDescription$ Cycling "+cost)
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
+		case "TypeCycling":
+			// CR 702.28d: typed cycling is an ordinary hand activation whose
+			// resolution is a LIBRARY SEARCH, not a draw -- "[cost], Discard this
+			// card: Search your library for a card with the [type] type, reveal
+			// it, put it into your hand, then shuffle." The shape is therefore
+			// Transmute's (search), never the plain Cycling case's AB$ Draw. The
+			// reveal is the search's own default for a stated-quality
+			// ChangeType$ (applyLibrarySearch's `spec != "Card"` arm), so no
+			// Reveal$ is needed. param is "<type>:<cost>[...]"; the type is
+			// fields[0] and the cost fields[1], with any trailing field a
+			// human-readable description dropped -- the Landfall/etbCounter/
+			// Equip trailing-field strip.
+			if has("A", k) {
+				continue
+			}
+			typeSpec, rest, _ := strings.Cut(param, ":")
+			typeSpec = strings.TrimSpace(typeSpec)
+			cost, _, _ := strings.Cut(rest, ":")
+			cost = strings.TrimSpace(cost)
+			sa, _ := parseSA("", "AB$ ChangeZone | Cost$ "+cost+" Discard<1/CARDNAME> | ActivationZone$ Hand | Origin$ Library | Destination$ Hand | ChangeType$ "+typeSpec+" | ChangeNum$ 1 | Keyword$ TypeCycling | SpellDescription$ "+typeSpec+"cycling "+cost)
 			if sa != nil {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)

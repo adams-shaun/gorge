@@ -312,6 +312,46 @@ func TestHarmonizeWildRideUsesAnnouncedPower(t *testing.T) {
 	}
 }
 
+// TestHarmonizeAnnouncementSkipsNonCreaturePower pins the creature gate on the
+// CR 601.2b announcement (convokeAsk): Harmonize's payment is creatures only
+// (CR 702.46a, harmonizePayment's own filter), so a non-creature permanent that
+// still carries a P/T -- an uncrewed Vehicle -- must be neither offered as a
+// harmonize payment nor credited by the offer gate (harmonizePayment), which
+// reads the same filter. A 5/3 Vehicle beside the 4/4 creature the existing
+// Wild Ride pin uses must be absent from the announcement and untapped after
+// payment.
+func TestHarmonizeAnnouncementSkipsNonCreaturePower(t *testing.T) {
+	e := handEngine(t, corpusAlternativeCard(t, "Wild Ride"))
+	vehicle := card(t, "Name:Test Vehicle\nTypes:Artifact Vehicle\nPT:5/3\nOracle:x\n")
+	vid := e.G.AddObject(vehicle, 0)
+	vid.Zone = state.ZBattlefield
+	creature := card(t, "Name:Four Power Druid\nTypes:Creature Elf\nPT:4/4\nA:AB$ Mana | Cost$ T | Produced$ R\nOracle:x\n")
+	cid := e.G.AddObject(creature, 0)
+	cid.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{vid.ID, cid.ID})
+	e.G.Players[0].Pool[state.MR] = 1
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	castMode(t, e, spell, "harmonize")
+	d := e.Pending()
+	if d == nil || d.Options[0].Kind != "harmonize" {
+		t.Fatalf("Harmonize did not announce its creature payment: %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Obj == vid.ID {
+			t.Fatalf("Harmonize announcement offered the non-creature Vehicle: %+v", o)
+		}
+		if o.Obj == cid.ID && o.Amount != 4 {
+			t.Fatalf("Harmonize offered the creature for the wrong power: %+v", o)
+		}
+	}
+	submitChoices(t, e, 0)
+	submitChoices(t, e, 0) // target the creature
+	if !e.G.Obj(cid.ID).Tapped || e.G.Obj(vid.ID).Tapped || e.G.Players[0].Pool[state.MR] != 0 {
+		t.Fatalf("Harmonize payment tapped the wrong permanents: creature=%v vehicle=%v pool=%v",
+			e.G.Obj(cid.ID).Tapped, e.G.Obj(vid.ID).Tapped, e.G.Players[0].Pool)
+	}
+}
+
 func TestConvokeOverSelectionIsRejectedAndResubmitted(t *testing.T) {
 	e := handEngine(t, corpusAlternativeCard(t, "Crowd's Favor"))
 	for i := 0; i < 2; i++ {
@@ -525,6 +565,110 @@ func TestTransmuteAndCyclingRealHandActivations(t *testing.T) {
 			t.Fatalf("Cycling did not draw: zone=%s", e.G.Obj(drawn).Zone)
 		}
 	})
+}
+
+// TestTypeCyclingSearchesTheNamedType is the CR 702.28d headline: typed
+// cycling is a LIBRARY SEARCH for a card of the named type, revealed and put
+// into hand -- NOT a draw. Monstrosity of the Lake prints "Islandcycling {2}"
+// (K:TypeCycling:Island:2), so it must find the seeded Island and not a
+// Mountain, and the stated-quality ChangeType$ must make the search reveal
+// the found card by default.
+func TestTypeCyclingSearchesTheNamedType(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Monstrosity of the Lake"))
+	island := card(t, "Name:Island\nTypes:Basic Land Island\nA:AB$ Mana | Cost$ T | Produced$ U\nOracle:x\n")
+	sObj := e.G.AddObject(island, 0)
+	e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{sObj.ID}, e.G.Zone(state.ZLibrary, 0)...))
+	wanted := sObj.ID
+	id := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MC] = 2
+	var opt decision.Option
+	for _, o := range e.legalActions(0) {
+		if o.Kind == "ability" && o.Obj == id {
+			opt = o
+			break
+		}
+	}
+	if opt.Kind != "ability" {
+		t.Fatal("Monstrosity of the Lake Islandcycling activation not offered")
+	}
+	e.beginActivation(0, opt)
+	submitChoices(t, e, 0) // discard Monstrosity of the Lake
+	if e.G.Obj(id).Zone != state.ZGraveyard {
+		t.Fatalf("TypeCycling discard zone=%s, want graveyard", e.G.Obj(id).Zone)
+	}
+	e.resolveTop()
+	d := e.Pending()
+	choice := -1
+	for i, o := range d.Options {
+		if o.Obj == wanted {
+			choice = i
+		}
+		// An Islandcycling search must not find a Mountain (a different land
+		// type). The library is otherwise all Mountains.
+		if o.Obj != wanted && e.G.Obj(o.Obj).Face().Name == "Mountain" {
+			t.Fatalf("Islandcycling offered a non-Island: %+v", o)
+		}
+	}
+	if choice < 0 {
+		t.Fatalf("TypeCycling did not offer the seeded Island: %+v", d)
+	}
+	submitChoices(t, e, choice)
+	if e.G.Obj(wanted).Zone != state.ZHand {
+		t.Fatalf("TypeCycling searched card zone=%s, want hand", e.G.Obj(wanted).Zone)
+	}
+	revealed := false
+	for _, ev := range revealNotes(e) {
+		for _, rid := range ev.IDs {
+			if rid == wanted {
+				revealed = true
+			}
+		}
+	}
+	if !revealed {
+		t.Fatal("TypeCycling search did not reveal the found card")
+	}
+}
+
+// TestTypeCyclingBasicLandSearchesAnyBasic covers the Basic base (CR 702.28d's
+// "Basic landcycling"): the filter must match ANY basic land card, not one
+// named type. Kree Sentinel prints K:TypeCycling:Basic:2.
+func TestTypeCyclingBasicLandSearchesAnyBasic(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Kree Sentinel"))
+	forest := card(t, "Name:Forest\nTypes:Basic Land Forest\nA:AB$ Mana | Cost$ T | Produced$ G\nOracle:x\n")
+	sObj := e.G.AddObject(forest, 0)
+	e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{sObj.ID}, e.G.Zone(state.ZLibrary, 0)...))
+	wanted := sObj.ID
+	id := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MC] = 2
+	var opt decision.Option
+	for _, o := range e.legalActions(0) {
+		if o.Kind == "ability" && o.Obj == id {
+			opt = o
+			break
+		}
+	}
+	if opt.Kind != "ability" {
+		t.Fatal("Kree Sentinel basic landcycling activation not offered")
+	}
+	e.beginActivation(0, opt)
+	submitChoices(t, e, 0) // discard Kree Sentinel
+	e.resolveTop()
+	d := e.Pending()
+	choice := -1
+	for i, o := range d.Options {
+		if o.Obj == wanted {
+			choice = i
+		}
+	}
+	if choice < 0 {
+		t.Fatalf("basic landcycling did not offer the seeded Forest: %+v", d)
+	}
+	submitChoices(t, e, choice)
+	if e.G.Obj(wanted).Zone != state.ZHand {
+		t.Fatalf("basic landcycling searched card zone=%s, want hand", e.G.Obj(wanted).Zone)
+	}
 }
 
 func TestCastWithFlashHonorsScriptGates(t *testing.T) {

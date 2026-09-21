@@ -156,6 +156,55 @@ const (
 	// emits the event, so every unrelated cast stays byte-identical.
 	// Appended per the enum's own append-only precedent.
 	FlagManaSpent
+	// FlagManaSnowSpent marks a cast whose pay-time CastInfo carries the
+	// SNOW-unit part of the total mana spent to cast it (CR 107.4h; task
+	// castfilter1's filtered Count$CastTotalManaSpent Snow capture, the
+	// FlagManaSpent pattern: the flag routes the Amount into
+	// Object.ManaSnowSpent instead of overwriting X or the unfiltered
+	// total). It rides its own trailing pay-time CastInfo immediately after
+	// FlagManaSpent's, so the two totals never share an event. Appended per
+	// the enum's own append-only precedent.
+	FlagManaSnowSpent
+	// FlagManaTreasureSpent / FlagManaCaveSpent / FlagManaDesertSpent mark a
+	// cast whose pay-time CastInfo carries the TREASURE-/CAVE-/DESERT-sourced
+	// part of the total mana spent to cast it (task castfilter2's filtered
+	// Count$CastTotalManaSpent <Type> captures, the FlagManaSnowSpent
+	// pattern: the flag routes the Amount into its Object field instead of
+	// overwriting X, the total or an earlier tag). Each rides its OWN
+	// trailing pay-time CastInfo immediately after the previous tag's, so
+	// the four totals never share an event, and events.Apply's CastInfo
+	// switch checks the NEWEST flag first (Desert, Cave, Treasure, then
+	// Snow, then the total) because the emission order is total, snow,
+	// Treasure, Cave, Desert and every later event carries all earlier
+	// flags. Appended per the enum's own append-only precedent.
+	FlagManaTreasureSpent
+	FlagManaCaveSpent
+	FlagManaDesertSpent
+	// FlagReplaceGraveyard marks a cast begun by a DB$ Play SA whose
+	// ReplaceGraveyard$ Exile rider says the played spell must not rest in
+	// the graveyard: "If that spell would be put into your graveyard this
+	// turn, exile it instead" (Goblin Dark-Dwellers). The provenance of a
+	// Play SA is cast-time (task replplay1), so the bit ORs into the same
+	// pay-time CastInfo every other mode flag rides, and the resolution
+	// reader spellRestZone (and the fizzle reader spellFizzleZone) uses it
+	// to send the played card to exile. Appended per the enum's own
+	// append-only precedent.
+	FlagReplaceGraveyard
+	// FlagAftermath marks a cast of a Split card's Aftermath alternate face
+	// from the graveyard (CR 702.85a; the Flashback convention): the flag is
+	// what the resolution reader (spellRestZone) and the fizzle reader
+	// (spellFizzleZone) read to exile the card instead of the graveyard,
+	// both on resolution and when countered. Appended per the enum's own
+	// append-only precedent.
+	FlagAftermath
+	// FlagConspired marks a cast whose Conspire tap (CR 702.78a) was
+	// actually paid: as the spell was cast, two untapped creatures the
+	// caster controlled that shared a colour with it were tapped. The flag
+	// is the provenance the Conspire keyword expansion's copy trigger reads
+	// through Count$Conspired, so a DECLINED/plain cast (no tap paid) emits
+	// no flag and resolves exactly like the plain cast. Appended per the
+	// enum's own append-only precedent.
+	FlagConspired
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -311,6 +360,13 @@ type Object struct {
 	// events.Move; a COPY of the spell was never kicked and reads 0 (the
 	// same reading Count$ReplicatePaid documents).
 	TimesKicked int32
+	// Conspired is CR 702.78a's provenance that the spell's Conspire tap was
+	// paid as it was cast, carried by the pay-time CastInfo's FlagConspired
+	// (a bool, not a count: Conspire never copies more than once). It rides
+	// the same provenance window as X/CastFlags and resets alongside them in
+	// events.Move; a COPY of the spell was never cast and reads false (the
+	// same reading Count$ReplicatePaid documents).
+	Conspired bool
 	// ManaSpent is the TOTAL mana actually spent to cast the spell (CR
 	// 601.2h's payment -- the spent delta's pips summed over every slot),
 	// carried by the pay-time CastInfo's FlagManaSpent Amount (the
@@ -321,6 +377,35 @@ type Object struct {
 	// alongside them in events.Move; a copy of the spell was never cast and
 	// a cheated-in permanent reads 0.
 	ManaSpent int32
+	// ManaSnowSpent is the SNOW-unit part of ManaSpent: how many of the mana
+	// units the cast's payment spent were produced by a Snow permanent (CR
+	// 107.4h). It is carried by the pay-time CastInfo's FlagManaSnowSpent
+	// Amount (the X-overwrite guard: the flag routes the Amount here instead
+	// of into X), the filtered Count$CastTotalManaSpent Snow head's
+	// provenance. Snow units are consumed alongside their pool slot
+	// (resolveManaWith's parallel tally), so this never exceeds ManaSpent for
+	// the same slot; a cast that spent no snow mana is a real 0. It rides the
+	// same provenance window as ManaSpent and resets alongside it in
+	// events.Move; a copy of the spell was never cast and a cheated-in
+	// permanent reads 0.
+	ManaSnowSpent int32
+	// ManaTreasureSpent / ManaCaveSpent / ManaDesertSpent are the
+	// TREASURE-/CAVE-/DESERT-sourced parts of ManaSpent: how many of the
+	// mana units the cast's payment spent were produced by a permanent of
+	// that type (task castfilter2, the ManaSnowSpent pattern). They are
+	// carried by the pay-time CastInfo's FlagManaTreasureSpent /
+	// FlagManaCaveSpent / FlagManaDesertSpent Amounts (the X-overwrite
+	// guard: each flag routes its Amount here instead of into X, the total
+	// or an earlier tag). Typed units are consumed after plain ones and
+	// before snow (resolveManaWith's takeUnit order), so the typed splits
+	// never exceed ManaSpent for the same slot and never overlap the snow
+	// split; a cast that spent none of a tag is a real 0. They ride the
+	// same provenance window as ManaSpent and reset alongside it in
+	// events.Move; a copy of the spell was never cast and a cheated-in
+	// permanent reads 0.
+	ManaTreasureSpent int32
+	ManaCaveSpent     int32
+	ManaDesertSpent   int32
 	// NotedNumber is the number a trigger's Execute$ body noted onto the
 	// CARD (Lupine Harbingers' T:Mode$ ChangesZone | Destination$ Exile
 	// trigger executing DB$ Pump | NoteNumber$ Count$YourTurns -- the
@@ -541,6 +626,27 @@ func (o *Object) EffectiveIsCreature() bool {
 	}
 	f := o.Face()
 	return f != nil && f.IsCreature()
+}
+
+// EffectiveIsArtifact reports whether this object is an artifact right now,
+// honouring CR 708.5 like EffectiveIsCreature: while a battlefield object is
+// face down its PRINTED face does not exist, so a manifested or cloaked
+// artifact reads its folded face-down type set (which never names Artifact
+// today, but the fold, not the corpus, decides). The Improvise announcement
+// and its offer-gate credit (rules/cast.go) are the readers; other artifact
+// reads (e.g. the Affinity keyword's Count$Valid spec path) go through the
+// ordinary filter grammar and do not call this.
+func (o *Object) EffectiveIsArtifact() bool {
+	if o.faceDownEffective() {
+		for _, w := range o.FaceDownTypeWords() {
+			if w == "Artifact" {
+				return true
+			}
+		}
+		return false
+	}
+	f := o.Face()
+	return f != nil && f.IsArtifact()
 }
 
 // Ephemeral reports whether this object has, right now, ceased to exist: a

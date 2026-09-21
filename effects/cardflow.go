@@ -807,12 +807,17 @@ func containsID(ids []state.ObjID, id state.ObjID) bool {
 }
 
 // effMill moves cards from the top of a player's library straight to their
-// graveyard -- Discard's sibling, minus the hand.
+// graveyard -- Discard's sibling, minus the hand. With RememberMilled$ True
+// every card it actually moves joins the resolution's remembered set, the
+// same both-halves recording discardAndRemember does, so a chained pickup
+// ("put a card from among them into your hand") filtering on IsRemembered
+// finds them instead of silently failing to find.
 func effMill(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumCards", 1)
 	if n < 0 {
 		n = 0
 	}
+	remember := strings.EqualFold(sa.Params["RememberMilled"], "True")
 	g := h.Game()
 	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
@@ -821,10 +826,25 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 			if len(lib) == 0 {
 				break
 			}
-			h.Emit(events.Event{Kind: events.MoveZone, Obj: lib[0],
+			id := lib[0]
+			h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 				From: state.ZLibrary, To: state.ZGraveyard, Player: p})
+			if remember {
+				rememberMilled(h, c, id)
+			}
 		}
 	}
+}
+
+// rememberMilled records one milled card in both halves of the remembered
+// state, exactly as discardAndRemember does for a discarded one: the
+// resolution's Ctx.Remembered set (what a chained sub-ability and an in-
+// flight hidden pick filter read this walk) and the source object's event-
+// backed Remembered list (what survives the resolution for a later
+// Card.IsRemembered / Count$RememberedSize read).
+func rememberMilled(h Host, c *Ctx, id state.ObjID) {
+	c.Remembered = append(c.Remembered, state.Target{Obj: id})
+	eventRemember(h, c, id)
 }
 
 // effDig implements Forge's Dig: look at the top DigNum cards of Defined$'s
@@ -943,6 +963,18 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if changeNum < 0 {
 		changeNum = 0
+	}
+	// WithTotalCMC$ is a cumulative mana-value budget over the picked cards
+	// ("put any number of nonland permanent cards with total mana value 4 or
+	// less"): a card whose own mana value exceeds it can never be picked, and
+	// the running sum of the picks must not exceed it either. Absent the
+	// param (the corpus default) the budget is 0 and every read below is a
+	// no-op, so a non-budget Dig emits byte-identically. Present but
+	// unresolvable degrades to budget 0 -- Num's documented convention, "the
+	// card does nothing" -- and takes nothing.
+	budget, hasBudget := NumResolved(h, c, sa, "WithTotalCMC", 0)
+	if budget < 0 {
+		budget = 0
 	}
 	spec := sa.Params["ChangeValid"]
 	if spec == "" {
@@ -1085,7 +1117,44 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				eligible = append(eligible, id)
 			}
 		}
-		if !digDone && changeNum > 0 && (int32(len(eligible)) > changeNum || anyNum && len(eligible) > 0) {
+		// affordable says whether a card may be picked at all under
+		// WithTotalCMC$: a card whose own mana value exceeds the budget can
+		// never fit, however few are taken.
+		affordable := func(id state.ObjID) bool { return !hasBudget || manaValueOf(g, id) <= int(budget) }
+		// budgetEligible is the pickable set: spec-matching AND individually
+		// affordable (no budget => identical to eligible).
+		budgetEligible := eligible
+		if hasBudget {
+			budgetEligible = make([]state.ObjID, 0, len(eligible))
+			for _, id := range eligible {
+				if affordable(id) {
+					budgetEligible = append(budgetEligible, id)
+				}
+			}
+		}
+		// greedy is the deterministic forced take under the cumulative budget:
+		// walk budgetEligible in zone order and take each card only while the
+		// running sum of mana values still fits. This is the exact take the
+		// no-choice tail and the R-9 no-host fallback apply, and it is also
+		// what decides whether a choice exists (below).
+		greedy := make([]state.ObjID, 0, len(budgetEligible))
+		running := 0
+		for _, id := range budgetEligible {
+			if int32(len(greedy)) >= changeNum {
+				break
+			}
+			mv := manaValueOf(g, id)
+			if hasBudget && running+mv > int(budget) {
+				continue
+			}
+			running += mv
+			greedy = append(greedy, id)
+		}
+		// forcedAll says the forced greedy take consumes every budget-eligible
+		// card, so the answer cannot differ from it and no ask is warranted.
+		forcedAll := len(greedy) == len(budgetEligible)
+		askBudget := hasBudget && len(budgetEligible) > 0 && !forcedAll
+		if !digDone && changeNum > 0 && ((int32(len(eligible)) > changeNum || anyNum && len(eligible) > 0) || askBudget) {
 			// A real choice: record the look, then ask the library's owner.
 			// Reveal$ True makes the record a PUBLIC reveal of the window (the
 			// same non-Secret ids-Note shape effReveal's public arm emits);
@@ -1099,41 +1168,62 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if !optional && !anyNum {
 				minv = changeNum
 			}
+			// A mandatory budget dig whose changeNum exceeds what the budget
+			// affords must not demand more picks than it can pay for: lower the
+			// Min to the forced affordable count so the ask can be satisfied.
+			// (Corpus carriers are all Min 0; this is general-correctness code.)
+			if hasBudget && minv > int32(len(greedy)) {
+				minv = int32(len(greedy))
+			}
 			verb := "you may put up to "
 			if !optional && !anyNum {
 				verb = "put "
 			}
+			prompt := "Look at the top " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+			if hasBudget {
+				prompt += " (total mana value " + strconv.Itoa(int(budget)) + " or less)"
+			}
 			d := &decision.Decision{Player: p, Kind: decision.KChoose,
 				Min:          int(minv),
 				Max:          int(changeNum),
+				MaxSum:       int(budget),
 				Source:       c.Source,
 				ResumeKind:   "dig",
 				ResumeSA:     sa,
 				ResumeTarget: targetIndex,
-				Prompt:       "Look at the top " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)}
-			for _, id := range eligible {
+				Prompt:       prompt}
+			for _, id := range budgetEligible {
 				name := "a card"
 				if o := g.Obj(id); o != nil && o.Face() != nil {
 					name = o.Face().Name
 				}
-				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-					Kind: "dig", Label: name, Obj: id, Player: p})
+				opt := decision.Option{Index: len(d.Options),
+					Kind: "dig", Label: name, Obj: id, Player: p}
+				// Only a budget Dig carries a Value: Option.Value is
+				// omitempty, and setting it on a budget-less Dig would put a
+				// "value" field on the wire for every offered card although
+				// MaxSum is 0 and nothing reads it. Keeping it budget-only
+				// leaves every existing (non-budget) option list serialising
+				// byte-identically.
+				if hasBudget {
+					opt.Value = manaValueOf(g, id)
+				}
+				d.Options = append(d.Options, opt)
 			}
 			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters with Ctx.Dig set.
 			}
-			// Fuzz/no-engine host: the deterministic stand-in (R-9) keeps
-			// today's behaviour -- the first ChangeNum eligible cards in zone
-			// order -- with the Note that records why the richer path did
-			// not run. AskEmpty is unreachable here by construction (the ask
-			// gate requires changeNum > 0 and strictly more eligible cards,
-			// so options >= 1), but the shared helper owns the guard either way.
+			// Fuzz/no-engine host: the deterministic stand-in (R-9) takes the
+			// greedy affordable set -- the exact mirror of the budget-aware bot
+			// arm -- with the Note that records why the richer path did not run.
+			// AskEmpty is unreachable here by construction (the ask gate requires
+			// options >= 1), but the shared helper owns the guard either way.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
 				Text: "takes the first matching card(s) (no engine host to ask)", Secret: true})
-			taken := make(map[state.ObjID]bool, changeNum)
-			for i := int32(0); i < changeNum && i < int32(len(eligible)); i++ {
-				take(eligible[i])
-				taken[eligible[i]] = true
+			taken := make(map[state.ObjID]bool, len(greedy))
+			for _, id := range greedy {
+				take(id)
+				taken[id] = true
 			}
 			restIDs := make([]state.ObjID, 0, len(top))
 			for _, id := range top {
@@ -1147,21 +1237,15 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// No choice to ask about: M1's silent behaviour for the no-variant
 		// cards -- only a Reveal$ window reveal, a Tapped$ Tap or a
 		// DestinationZone2$ remainder move can add an event, and only a card
-		// carrying those emits one. The first ChangeNum eligible cards move
-		// in window order; everything else in the window -- unmatched and
-		// beyond the cap alike -- goes to the second destination or stays
-		// exactly where it is.
+		// carrying those emits one. The forced greedy take moves in window
+		// order while the cumulative budget (WithTotalCMC$) allows; everything
+		// else in the window -- unmatched, over-budget and beyond the cap
+		// alike -- goes to the second destination or stays exactly where it is.
 		if revealWin && len(top) > 0 {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 		}
-		taken := make(map[state.ObjID]bool, changeNum)
-		for _, id := range top {
-			if int32(len(taken)) >= changeNum {
-				break
-			}
-			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				continue
-			}
+		taken := make(map[state.ObjID]bool, len(greedy))
+		for _, id := range greedy {
 			take(id)
 			taken[id] = true
 		}
@@ -1173,6 +1257,18 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		}
 		rest(restIDs)
 	}
+}
+
+// manaValueOf is the offered card's own mana value -- the same Face().Cmc()
+// read state.SacrificedInfoOf uses. It is the per-card price under a
+// WithTotalCMC$ cumulative budget (Decision.MaxSum): every budgeted picker
+// (Dig, the hidden pick, the library search, the Play grant) shares this one
+// read so the four cannot drift on what a card's mana value is.
+func manaValueOf(g *state.Game, id state.ObjID) int {
+	if o := g.Obj(id); o != nil && o.Face() != nil {
+		return int(o.Face().Cmc())
+	}
+	return 0
 }
 
 // digRemember honours a Dig's RememberChanged$ True: each card the dig moved
@@ -1219,6 +1315,33 @@ func permanentCardSpec(spec string) string {
 		switch spec[len("Permanent")] {
 		case '.', '+', ',':
 			return "PermanentCard" + spec[len("Permanent"):]
+		}
+	}
+	// Forge's OTHER spelling of the same base, `Card.Permanent[.rest|+pred]` (Ao,
+	// the Dawn Sky's `ChangeValid$ Card.Permanent+nonLand`): the shared
+	// matcher reads a `Permanent` PREDICATE as deliberately fail-closed
+	// (see matchesObjectText's contextualSameName comment), because a bare
+	// `Permanent` base already means an on-the-battlefield object -- a Dig
+	// window is always the library, so `Card.Permanent` there must mean
+	// Forge's permanent CARD. Rewrite the leading `Card.Permanent` to the
+	// internal `PermanentCard` base, moving the predicate separator to the
+	// dot the grammar requires (`Card.Permanent+nonLand` ->
+	// `PermanentCard.nonLand`; `Card.Permanent` -> `PermanentCard`).
+	if rest, ok := strings.CutPrefix(spec, "Card.Permanent"); ok {
+		switch {
+		case rest == "":
+			return "PermanentCard"
+		case rest[0] == '.':
+			return "PermanentCard" + rest
+		case rest[0] == '+', rest[0] == ',':
+			// The leading `Permanent` predicate (or OR alternative) is
+			// absorbed into the base: drop the consumed separator and
+			// re-join the tail with the dot the predicate grammar needs.
+			tail := rest[1:]
+			if rest[0] == ',' {
+				return "PermanentCard," + tail
+			}
+			return "PermanentCard." + tail
 		}
 	}
 	return spec

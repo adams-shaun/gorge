@@ -542,6 +542,74 @@ func cmcFromManaCost(mc string) int32 {
 	return n
 }
 
+// Mentions reports whether any script text on the face contains needle: every
+// SVar value body, every reachable ability parameter (abilities, their
+// SubAbility$ chains, trigger effects and replacement bodies), every static
+// parameter and every keyword string. It is the structural reader for
+// provenance gates that ask "does this face read X" -- a value search over
+// the whole script, not a keyed parameter read -- so it lives with the IR it
+// walks rather than in the key-census-scanned rule packages.
+func (f *Face) Mentions(needle string) bool {
+	if f == nil || needle == "" {
+		return false
+	}
+	for _, v := range f.SVars {
+		if strings.Contains(v, needle) {
+			return true
+		}
+	}
+	for _, k := range f.Keywords {
+		if strings.Contains(k, needle) {
+			return true
+		}
+	}
+	var walkSA func(sa *SA, depth int) bool
+	walkSA = func(sa *SA, depth int) bool {
+		if sa == nil || depth > 32 {
+			return false
+		}
+		for _, v := range sa.Params {
+			if strings.Contains(v, needle) {
+				return true
+			}
+		}
+		return walkSA(sa.Sub, depth+1)
+	}
+	for _, a := range f.Abilities {
+		if walkSA(a, 0) {
+			return true
+		}
+	}
+	for _, tr := range f.Triggers {
+		for _, v := range tr.Params {
+			if strings.Contains(v, needle) {
+				return true
+			}
+		}
+		if walkSA(tr.Effect, 0) {
+			return true
+		}
+	}
+	for _, r := range f.Repls {
+		for _, v := range r.Params {
+			if strings.Contains(v, needle) {
+				return true
+			}
+		}
+		if walkSA(r.With, 0) {
+			return true
+		}
+	}
+	for _, s := range f.Statics {
+		for _, v := range s.Params {
+			if strings.Contains(v, needle) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // twobridManaValue recognises Forge's concatenated ("2W") and slash
 // ("2/W") monocolour-hybrid spellings. It returns the generic face, which is
 // the symbol's mana value. This mirrors rules.ParseCost's twobrid parser

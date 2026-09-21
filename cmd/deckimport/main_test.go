@@ -94,6 +94,26 @@ func TestConvertReportsMissingAndForceStillWrites(t *testing.T) {
 	}
 }
 
+func TestDeckimportResolvesFlavorNameAlias(t *testing.T) {
+	corpusDir := testCorpusDir(t)
+	// Arvinox, the Mind Flail is the Universes-Within flavour name printed on
+	// Mind Flayer, the Shadow; the alias must resolve through the corpus
+	// registry exactly like the canonical name does.
+	in := writeTempDecklist(t, "1 Arvinox, the Mind Flail\n")
+	out := filepath.Join(t.TempDir(), "deck.json")
+
+	dr, err := convert(in, corpusDir, "", "", out, false, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !dr.Ok || dr.Resolved != 1 || dr.Cards != 1 {
+		t.Fatalf("Ok=%v resolved=%d cards=%d missing=%+v", dr.Ok, dr.Resolved, dr.Cards, dr.Missing)
+	}
+	if dr.Percent != 100 {
+		t.Fatalf("percent = %.2f, want 100", dr.Percent)
+	}
+}
+
 func TestRoundTripWritesLoadableDeckFile(t *testing.T) {
 	corpusDir := testCorpusDir(t)
 	in := writeTempDecklist(t, "4 Lightning Bolt\n4 Goblin Guide\n4 Monastery Swiftspear\n12 Mountain\n")
@@ -122,6 +142,29 @@ func TestRoundTripWritesLoadableDeckFile(t *testing.T) {
 	}
 	if len(cs) != 24 {
 		t.Fatalf("deck.Load gave %d cards, want 24", len(cs))
+	}
+}
+
+func TestConvertRefusesToWriteAnIneligibleCommanderDeck(t *testing.T) {
+	corpusDir := testCorpusDir(t)
+	// A commander section whose card is not commander-eligible (Birds of
+	// Paradise is neither legendary nor marked): the deck is resolvable, so
+	// dr.Ok is true, but writing the file would produce a deck that fails
+	// deck.ValidateCommander at every load — without -force it is refused.
+	in := writeTempDecklist(t, "Commander\n1 Birds of Paradise\n4 Llanowar Elves\n")
+	out := filepath.Join(t.TempDir(), "c.json")
+	dr, err := convert(in, corpusDir, "", "", out, false, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dr.CommanderOk == nil || *dr.CommanderOk {
+		t.Fatalf("this list must report an ineligible commander, got %v (%v)", dr.CommanderOk, dr.CommanderWhy)
+	}
+	if dr.Written {
+		t.Fatal("an ineligible commander deck must not be written without -force")
+	}
+	if _, err := os.Stat(out); err == nil {
+		t.Fatal("deck file written for an ineligible commander")
 	}
 }
 

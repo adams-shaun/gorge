@@ -338,9 +338,10 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerBearer}}, true
 		}
 		return objectsOf(c.Remembered), true
-	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
+	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCard",
+		"TriggeredNewCardLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
-		"TriggeredAttackerLKICopy", "TriggeredBlocker", "TriggeredBlockerLKICopy",
+		"TriggeredAttackerLKICopy",
 		"DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
@@ -349,6 +350,20 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// trigger captured (Reality Smasher's counter, Kira's and the
 		// glasskite family's counters -- 18 corpus files); its Controller
 		// variant resolves in unlessPayerTargets, its object here.
+		// The TriggeredBlocker spellings moved OUT of this case (trig:Blocks):
+		// a Blocks trigger's Remembered carries the pair's ATTACKER, so the
+		// blocker role is the only exact referent -- see the case below.
+		return objectsOf(c.Remembered), true
+	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
+		// The pair's BLOCKER (trig:Blocks): prefer the fire-time TriggerBlocker
+		// role when the Blocks capture set it (Remembered names the attacker
+		// there); the role-absent fallback -- the AttackerBlockedByCreature
+		// queue entries, whose Remembered IS the blocker, and hand-built
+		// contexts -- keeps the old Remembered read, so the Flanking shapes
+		// resolve exactly as before this field existed.
+		if c.TriggerBlocker != 0 {
+			return []state.Target{{Obj: c.TriggerBlocker}}, true
+		}
 		return objectsOf(c.Remembered), true
 	case "DelayTriggerRemembered":
 		// The delayed trigger's remembered set AS-IS, players included (task
@@ -491,6 +506,29 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return nil, true
 	case "TriggeredCardController":
+		if p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered); ok {
+			return []state.Target{{Player: p, IsPlayer: true}}, true
+		}
+		return nil, true
+	case "TriggeredAttackerController", "TriggeredBlockerController":
+		// The controller of the triggering event's attacker or blocker. The
+		// Blocks mode captures both roles per pair (rules/trigger_match.go's
+		// checkBlocksTriggers); TriggeredBlockerController prefers the
+		// captured TriggerBlocker and TriggeredAttackerController the captured
+		// AttackingPlayer role. The role-absent fallback is the remembered
+		// object's controller through the one shared TriggeredCardController
+		// resolver -- the AttackerBlockedByCreature queue entries (Remembered
+		// = the blocker) and hand-built contexts resolve exactly as before
+		// the Blocks capture existed.
+		if spec == "TriggeredBlockerController" && c.TriggerBlocker != 0 {
+			if o := g.Obj(c.TriggerBlocker); o != nil {
+				return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+			}
+			return nil, true
+		}
+		if spec == "TriggeredAttackerController" && c.AttackingPlayer.IsPlayer {
+			return []state.Target{{Player: c.AttackingPlayer.Player, IsPlayer: true}}, true
+		}
 		if p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered); ok {
 			return []state.Target{{Player: p, IsPlayer: true}}, true
 		}

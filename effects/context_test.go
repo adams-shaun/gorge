@@ -56,6 +56,14 @@ type fakeHost struct {
 	// HasPropertyLostLifeThisTurn properties (the real log-scan read is
 	// pinned in rules).
 	lifeLost map[state.PlayerID]int32
+	// dmgTaken is the DamageTakenThisTurn answer the double reports, keyed
+	// by player; a nil map (the default) reports zero for every player. The
+	// effects-level TargetedPlayer$DamageThisTurn tests set it; the real
+	// event-log fold is pinned in rules.
+	dmgTaken map[state.PlayerID]int32
+	// discarded is the CardsDiscardedThisTurn answer the double reports;
+	// a nil map keeps the pre-existing constant zero.
+	discarded map[state.PlayerID]int32
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -147,6 +155,8 @@ func (h *fakeHost) CastThisTurn() int { return 0 }
 // pre-existing conservative no-op, so every other test is unchanged).
 func (h *fakeHost) LifeLostThisTurn(p state.PlayerID) int32 { return h.lifeLost[p] }
 
+func (h *fakeHost) DamageTakenThisTurn(p state.PlayerID) int32 { return h.dmgTaken[p] }
+
 // LifeGainedThisTurn has no event log here; the double reports zero (the
 // same conservative no-op as LifeLostThisTurn).
 func (h *fakeHost) LifeGainedThisTurn(_ state.PlayerID) int32 { return 0 }
@@ -157,7 +167,12 @@ func (h *fakeHost) CombatDamageToPlayersThisTurn() []CombatDamageHit { return h.
 
 // CardsDiscardedThisTurn has no event log here; the double reports zero (the
 // same conservative no-op as LifeLostThisTurn).
-func (h *fakeHost) CardsDiscardedThisTurn(_ state.PlayerID) int32 { return 0 }
+func (h *fakeHost) CardsDiscardedThisTurn(p state.PlayerID) int32 {
+	if h.discarded == nil {
+		return 0
+	}
+	return h.discarded[p]
+}
 
 // TurnsTaken has no event log here; the double reports zero.
 func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }

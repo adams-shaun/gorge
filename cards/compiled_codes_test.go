@@ -146,6 +146,7 @@ func TestCompiledTriggerInterests(t *testing.T) {
 		{"AttackersDeclaredOneTarget", TriggerInterestAttackDeclaration},
 		{"AttackerBlocked", TriggerInterestAttackDeclaration},
 		{"AttackerBlockedByCreature", TriggerInterestAttackDeclaration},
+		{"Blocks", TriggerInterestAttackDeclaration},
 		{"Sacrificed", TriggerInterestZoneChange},
 		{"Discarded", TriggerInterestZoneChange},
 		{"LandPlayed", TriggerInterestZoneChange},

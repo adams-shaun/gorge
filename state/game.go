@@ -37,6 +37,23 @@ type Player struct {
 	// and a replay derives both identically.
 	Snow Mana
 
+	// TypedMana partitions the floating pool by the PRODUCER's type (task
+	// castfilter2): TypedMana[k][i] counts how many of the Pool[i] mana
+	// units were produced by a permanent of the k-th tagged producer type
+	// (0 Treasure, 1 Cave, 2 Desert — the TypedTreasure/TypedCave/
+	// TypedDesert constants, in TypedManaTags order).
+	// It is the per-unit producer provenance the filtered
+	// Count$CastTotalManaSpent Treasure/Cave/Desert heads read (Marut, Bat
+	// Colony, Cataclysmic Prospecting): the payment consumes a plain unit
+	// before a typed one and a typed one before snow, so the spent typed
+	// delta is exactly what the search did. Written only by the ManaAdd
+	// event's "<Tag><colour>" Counter form and cleared with the pool by
+	// ManaClear, so TypedMana[k][i] <= Pool[i] always holds and a replay
+	// derives both identically. Snow does NOT live here: it keeps its
+	// historical field and machinery untouched. A [3]Mana array is plain
+	// value data, so Clone's struct copy carries it for free.
+	TypedMana [3]Mana
+
 	// Commanders lists this seat's commanders, in Config order, sized at
 	// genesis and never grown. CmdCasts runs parallel to it: entry k counts
 	// how many times Commanders[k] has been cast from the command zone.
@@ -56,6 +73,34 @@ type Player struct {
 	// caps at 4 (max speed), and never resets. Written only by events.Apply's
 	// SpeedChange case, so a log-only reconstruction rebuilds it exactly.
 	Speed int32
+
+	// RingTempted is this seat's raw "the Ring has tempted you" count (CR
+	// 701.54a): it rises by one each time the Ring tempts this seat and is
+	// NOT capped — the Ring emblem's level abilities are gated on "tempted N
+	// or more times", so a future emblem reader compares, never clamps.
+	// Written only by events.Apply's RingTemptsYou case, so a log-only
+	// reconstruction rebuilds it exactly.
+	RingTempted int32
+
+	// RingBearer is the ObjID of this seat's Ring-bearer permanent (CR
+	// 701.54a/b: the creature chosen when the Ring last tempted this seat,
+	// which keeps the designation until another creature becomes the
+	// Ring-bearer, another player gains control of it, or it leaves the
+	// battlefield). Zero means this seat has no Ring-bearer. The
+	// designation's two event-derived clears live in events.Apply too
+	// (ControlChange and the battlefield-leave path), so a replay derives
+	// the designation identically.
+	RingBearer ObjID
+
+	// Blessing is this seat's one-way "the city's blessing" latch (CR
+	// 702.131, Ascend): once true it stays true for the rest of the game
+	// -- CR 702.131a grants it when a player controls an Ascend permanent
+	// (or resolves an Ascend instant/sorcery) while controlling ten or
+	// more permanents, and nothing ever removes it. Written only by
+	// events.Apply's BlessingChange case, so a log-only reconstruction
+	// rebuilds it exactly. A plain bool is carried for free by Clone's
+	// per-player struct copy.
+	Blessing bool
 }
 
 // ExtraTurn is one pending CR 500.7 turn. It is deliberately a queue entry,
@@ -459,6 +504,15 @@ func (g *Game) AliveCount() int { return len(g.AliveFrom(0)) }
 
 // IsMonarch reports whether p currently holds the monarch designation.
 func (g *Game) IsMonarch(p PlayerID) bool { return g.HasMonarch && g.Monarch == p }
+
+// IsRingBearer reports whether id is p's Ring-bearer (CR 701.54e: the
+// creature is "your Ring-bearer" exactly while it is on the battlefield
+// under your control and carries the designation — the zone and control
+// halves are enforced by events.Apply's clears, so a live check is just the
+// id comparison, and a zero id is never a bearer).
+func (g *Game) IsRingBearer(p PlayerID, id ObjID) bool {
+	return id != 0 && g.Players[p].RingBearer == id
+}
 
 // IsStartingPlayer reports whether p currently holds the CR 103.1 first-turn
 // designation. The presence bit makes the zero seat unambiguous.

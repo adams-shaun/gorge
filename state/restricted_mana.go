@@ -21,13 +21,4 @@ type ManaRestriction struct {
 	// segment). Zero for every historical batch and for source-less
 	// producers; the source-relative Valid predicates resolve against it.
 	Source ObjID
-	// WhenSpent is the TriggersWhenSpent$ SVar name of the producing
-	// ability's trigger definition (task mordorparams1, Path of Ancestry's
-	// "When that mana is spent to cast ... scry 1"): the batch is otherwise
-	// an ordinary spendable batch (an empty Valid, the Boseiju provenance
-	// shape), and rules' cast-payment path reads it off the consumed record
-	// to queue the "when you spend this mana" trigger against the paying
-	// spell. Empty for every historical batch and every ability without
-	// the parameter.
-	WhenSpent string
 }

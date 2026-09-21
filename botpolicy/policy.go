@@ -480,7 +480,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			} else {
 				in.Choices = []int{d.Options[0].Index}
 			}
-		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "blight":
+		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "blight", "proliferate":
 			// A Dig look-and-take, a "choose N matching cards from hand"
 			// ChangeZone (handmove1), a Hidden$ True public-origin pick
 			// (hiddenpick1), a DividedAsYouChoose$ PutCounter distribution
@@ -495,8 +495,57 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// moves for the ask alone. An Optional$ Min-0 ask still takes the
 			// full Max: the stand-in it mirrors plays "you may" as "do",
 			// deterministically.
-			for j := 0; j < len(d.Options) && j < d.Max; j++ {
-				in.Choices = append(in.Choices, d.Options[j].Index)
+			//
+			// A Dig carrying a cumulative budget (WithTotalCMC$, so
+			// d.MaxSum > 0) is the exception: a blind first-Max answer can
+			// exceed the sum cap, Decision.Validate rejects it, and the bot
+			// re-derives the same rejected answer forever. Fill greedily in
+			// offered order while the running Value sum fits the budget -- the
+			// exact mirror of effDig's forced greedy take, so a budget dig
+			// moves the same cards the no-host stand-in would.
+			if d.MaxSum > 0 {
+				sum := 0
+				// Bound by COUNT (len(in.Choices) < d.Max), not by index --
+				// the same run-length bound effDig's forced greedy take uses
+				// (effects/cardflow.go: `len(greedy) >= changeNum`). A
+				// non-fitting option sitting before the cap must be skipped
+				// and the scan continued, or the bot takes fewer cards than
+				// the no-choice stand-in it mirrors (michelangelos_technique:
+				// options [4,4,2], budget 6, Max 2 -> [0,2], not [0]).
+				for j := 0; j < len(d.Options) && len(in.Choices) < d.Max; j++ {
+					if sum+d.Options[j].Value > d.MaxSum {
+						continue
+					}
+					sum += d.Options[j].Value
+					in.Choices = append(in.Choices, d.Options[j].Index)
+				}
+				// A mandatory budget ask (Min > 0) whose greedy fill came up
+				// short must still satisfy Min -- but every top-up must fit the
+				// budget too, or Clamp's blind index-order padding (below)
+				// hands back an intent Validate rejects and the bot
+				// livelocks. effDig lowers Min to the forced affordable count
+				// for exactly this reason, so a satisfying set always exists.
+				if len(in.Choices) < d.Min {
+					have := make(map[int]bool, len(in.Choices))
+					for _, c := range in.Choices {
+						have[c] = true
+					}
+					for _, o := range d.Options {
+						if len(in.Choices) >= d.Min {
+							break
+						}
+						if have[o.Index] || sum+o.Value > d.MaxSum {
+							continue
+						}
+						have[o.Index] = true
+						sum += o.Value
+						in.Choices = append(in.Choices, o.Index)
+					}
+				}
+			} else {
+				for j := 0; j < len(d.Options) && j < d.Max; j++ {
+					in.Choices = append(in.Choices, d.Options[j].Index)
+				}
 			}
 		case "pay_life", "pay_W", "pay_U", "pay_B", "pay_R", "pay_G":
 			// A mana pip's payment alternatives (manaAsk): hybrid colours plus
@@ -519,6 +568,37 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				}
 			}
 		case "search":
+			// A budgeted search (WithTotalCMC$, so d.MaxSum > 0) mirrors its
+			// R-9 stand-in, which picks greedy[:min]: for a quantity-only
+			// filter the engine lowers Min to the forced greedy count (the
+			// mandatory-budget rule), so a fill up to d.Min IS the greedy set;
+			// for a stated-quality filter Min stays 0 and the stand-in finds
+			// nothing, so the empty decline is the mirror. The group skip
+			// below still applies (a DifferentNames search's options carry
+			// name Groups even under a budget; 0 corpus carriers combine
+			// them), so the fill cannot name one card twice and hand back an
+			// intent Validate's mutual-exclusion rule rejects.
+			if d.MaxSum > 0 {
+				sum := 0
+				groups := make(map[string]bool)
+				for _, o := range d.Options {
+					if len(in.Choices) >= d.Min {
+						break
+					}
+					if o.Group != "" && groups[o.Group] {
+						continue
+					}
+					if sum+o.Value > d.MaxSum {
+						continue
+					}
+					if o.Group != "" {
+						groups[o.Group] = true
+					}
+					sum += o.Value
+					in.Choices = append(in.Choices, o.Index)
+				}
+				break
+			}
 			// A hidden-library search whose options carry no Group keeps the
 			// first-offer answer it has always taken (Min 0, so one card). An
 			// EACH "EACH Forest & Plains" search (each1) builds one option per
@@ -592,6 +672,28 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// a copy", so the bot always offers to pay and the engine declines
 		// for it only when the payer's pool cannot cover the cost. No rng is
 		// consumed: the first modes are a fixed policy, not a coin.
+		//
+		// A KModes carrying a cumulative budget (WithTotalCMC$, so d.MaxSum >
+		// 0 -- a Play grant: Invoke Calamity, Rod of Absorption, Primeval
+		// Spawn) is the exception: a blind first-Min answer can exceed the
+		// sum cap, Decision.Validate rejects it, and the bot re-derives the
+		// same rejected answer forever. Fill greedily in offered order while
+		// the running Value sum fits -- the same fill the shared KChoose
+		// budget arm uses. A Min-0 (Optional$) budget ask picks nothing, so
+		// the decline stands-in unchanged; the engine lowers a mandatory
+		// budget ask's Min to what the budget affords, so a satisfying set
+		// always exists and Clamp's budget-aware top-up covers the rest.
+		if d.MaxSum > 0 {
+			sum := 0
+			for j := 0; j < len(d.Options) && len(in.Choices) < d.Min; j++ {
+				if sum+d.Options[j].Value > d.MaxSum {
+					continue
+				}
+				sum += d.Options[j].Value
+				in.Choices = append(in.Choices, d.Options[j].Index)
+			}
+			return Clamp(d, in)
+		}
 		for j := 0; j < len(d.Options) && j < d.Min; j++ {
 			in.Choices = append(in.Choices, d.Options[j].Index)
 		}
@@ -682,19 +784,33 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 	if len(in.Choices) < min {
 		have := make(map[int]bool, len(in.Choices)) // membership only -- never ranged.
 		groups := make(map[string]bool)             // an option Group already represented.
+		sum := 0                                    // running MaxSum budget over the chosen set.
 		for _, c := range in.Choices {
 			have[c] = true
-			if c >= 0 && c < len(d.Options) && d.Options[c].Group != "" {
-				groups[d.Options[c].Group] = true
+			if c >= 0 && c < len(d.Options) {
+				if d.Options[c].Group != "" {
+					groups[d.Options[c].Group] = true
+				}
+				sum += d.Options[c].Value
 			}
+		}
+		// fits reports whether topping up with o keeps the intent within
+		// Decision.MaxSum. The budget applies only when MaxSum > 0; a budget-less
+		// decision keeps byte-identical top-up. This is the general fix for the
+		// livelock where a mandatory budget dig's Clamp padding ignored the cap
+		// and produced an intent Decision.Validate rejects.
+		fits := func(o decision.Option) bool { return d.MaxSum <= 0 || sum+o.Value <= d.MaxSum }
+		add := func(o decision.Option) {
+			have[o.Index] = true
+			sum += o.Value
+			in.Choices = append(in.Choices, o.Index)
 		}
 		for _, o := range d.Options {
 			if len(in.Choices) >= min {
 				break
 			}
-			if o.Kind == "pass" && !have[o.Index] {
-				have[o.Index] = true
-				in.Choices = append(in.Choices, o.Index)
+			if o.Kind == "pass" && !have[o.Index] && fits(o) {
+				add(o)
 			}
 		}
 		for _, o := range d.Options {
@@ -712,11 +828,13 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			if o.Group != "" && groups[o.Group] {
 				continue
 			}
-			have[o.Index] = true
+			if !fits(o) {
+				continue
+			}
 			if o.Group != "" {
 				groups[o.Group] = true
 			}
-			in.Choices = append(in.Choices, o.Index)
+			add(o)
 		}
 		// A Repeatable decision (a CanRepeatModes$ Charm, CR 601.2b) may need
 		// MORE picks than it has distinct options -- CharmNum$ 3 over 2 legal

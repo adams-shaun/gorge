@@ -762,7 +762,14 @@ func (e *Engine) boastGateOK(id state.ObjID, ability int, svar string) bool {
 			if svar == "" && ev.Amount == int32(ability) {
 				used++
 			}
-		case events.DelayedPush:
+		case events.DelayedPush, events.GrantAbilityPush:
+			// A granted activation's identity is its SVar name. A self-grant
+			// mints through DelayedPush (Counter = the name); a CROSS-object
+			// grant -- a printed Continuous AddAbility$ static such as
+			// Besieged Viking Village's "All creatures have 'Boast -- {1}: ...'"
+			// -- mints through GrantAbilityPush, whose Counter is the same
+			// name. Reading only DelayedPush would leave the granted Boast
+			// re-offered in every priority window of the turn it was used.
 			if svar != "" && ev.Counter == svar {
 				used++
 			}
@@ -922,8 +929,14 @@ func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *c
 // object right now: the parsed AB and the SVar name on the granting face's
 // table that re-resolves it.
 type grantedAbility struct {
-	sa   *cards.SA
-	svar string
+	sa *cards.SA
+	// source is the object the grant came from (state.ContinuousEffect.Source):
+	// the static's own permanent, which need not be the affected object the
+	// ability is activated from. It is threaded into decision.Option.GrantSource
+	// so the activation resolves the SVar body from here while the minted
+	// ability's Source stays the recipient.
+	source state.ObjID
+	svar   string
 }
 
 // grantedAbilities collects the activated abilities the battlefield's
@@ -953,7 +966,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 			if ab == nil || ab.Kind != "AB" {
 				continue
 			}
-			out = append(out, grantedAbility{sa: ab, svar: nm})
+			out = append(out, grantedAbility{sa: ab, source: ce.Source, svar: nm})
 		}
 	}
 	return out
@@ -992,6 +1005,25 @@ func (e *Engine) adjustLandPlays(p state.PlayerID) int {
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	return e.legalActionsPriced(p, nil)
+}
+
+// aftermathAlternateFace returns the Aftermath alternate face (face 1 --
+// ALTERNATE starts face 1 in cards/parse.go) of a two-face Split card whose
+// front face is current, or nil when the object is not a well-formed
+// aftermath carrier: AlternateMode must be Split (a Room is Split too, but
+// no Room half carries K:Aftermath, and the keyword gate is what keeps Rooms
+// and Adventures on their own paths), the object must have exactly two
+// faces, and the card must still be at its front face -- the aftermath half
+// is cast only from a graveyard card whose printed front is showing.
+func aftermathAlternateFace(o *state.Object) *cards.Face {
+	if o == nil || o.Card == nil || o.Card.AlternateMode != "Split" || len(o.Card.Faces) != 2 || int(o.FaceIdx) != 0 {
+		return nil
+	}
+	af := o.Card.Faces[1]
+	if af == nil || !af.HasKeyword("Aftermath") {
+		return nil
+	}
+	return af
 }
 
 // legalActionsPriced is legalActions with the mana affordability priced
@@ -1086,7 +1118,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// Only the plain cast folds the extras, matching beginCast's own
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
-		convokeBase, _ := e.convokeCost(p, id, e.rawBaseCost(p, id))
+		convokeBase, convokeTaps := e.convokeCost(p, id, e.rawBaseCost(p, id))
+		// CR 702.66a: Improvise's artifacts credit the offer gate too, after
+		// Convoke's creatures, each reducing one generic; improviseCost
+		// excludes convokeTaps so one permanent is never committed twice.
+		convokeBase, _ = e.improviseCost(p, id, convokeBase, convokeTaps)
 		// An either-or additional cost (AlternateAdditionalCost) makes the
 		// plain cast's gate existential: the cast is offerable when AT LEAST
 		// ONE alternative part is payable (the choice itself is asked by the
@@ -1226,6 +1262,23 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			offerCastable(p, id, e.rawBaseCost(p, id).Plus(mkc), spellScope("multikicked"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (multikicked)", Obj: id, Mode: "multikicked"})
+		}
+		// Conspire (CR 702.78a): the conspired variant pays NO extra mana --
+		// the base cost is unchanged and the cost is the tap of two untapped
+		// creatures the caster controls that share a colour with the spell.
+		// So unlike the replicate/multikicker offers there is no cost to
+		// compose: the offer is gated on the same base cast being offerable
+		// (re-checked with the base cost, exactly what the plain offer used)
+		// AND on the derived-keyword read (hasCastConspire, the
+		// hasCastConvoke shape, so a layer-6 grant reaching the stack matches)
+		// AND on at least two eligible creatures existing. Do NOT route the
+		// tap through offerCastable with a fabricated cost -- the tap has no
+		// Cost$ representation; conspireAsk enforces it at announcement.
+		if targetsAvailable && e.hasCastConspire(id) &&
+			len(e.conspireCandidates(p, id)) >= 2 &&
+			offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (conspired)", Obj: id, Mode: "conspired"})
 		}
 		// The alternative-cost keyword family (altcosts), from the hand: evoke
 		// (CR 702), dash, overload and warp each become their own "cast" mode
@@ -1457,6 +1510,35 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if fc := e.flashbackCost(id); offerCastable(p, id, fc, spellScope("flashback"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
+		}
+	}
+
+	// Aftermath (CR 702.85a): the alternate face of a Split card may be cast
+	// from its owner's graveyard for its printed mana cost (plus its own SP
+	// Cost$ additional parts -- start_finish's Sac<1/Creature>), then exiled.
+	// Gated on the ALTERNATE face's K:Aftermath, which is what excludes Rooms
+	// (both halves are Rooms, neither carries Aftermath) and Adventures
+	// (AlternateMode Adventure, not Split). Mode aftermath is consumed by
+	// beginCast, which records a FlipFace to the alternate face before the
+	// ordinary cast transaction -- rawBaseCost, targets and resolution then
+	// read the aftermath face. The withSpellAbilityExtras fold prices the
+	// face's own SP Cost$ parts exactly like the adventure_alt offer above:
+	// without it a Finish-shaped gate would offer an unpayable cast.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		af := aftermathAlternateFace(o)
+		if af == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !e.spellTimingOK(p, id, af, sorcery) {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, af.SpellAbility()) {
+			continue
+		}
+		if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + af.Name + " (aftermath)", Obj: id, Mode: "aftermath"})
 		}
 	}
 
@@ -1863,7 +1945,8 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				continue
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "ability",
-				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar})
+				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar,
+				GrantSource: ga.source})
 		}
 	}
 

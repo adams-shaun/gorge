@@ -46,8 +46,10 @@ import (
 //     `Foretold` — the FlagForetold cast provenance (Poison the Cup,
 //     Alrund's Epiphany); and `Revolt` — CR 702.38's "a permanent you
 //     controlled left the battlefield this turn" (Decommission's DB$
-//     GainLife), read through Host.RevoltHolds. The other bare-Condition
-//     values (Delirium, OptionalCost, Bargain, Threshold, Blessing,
+//     GainLife), read through Host.RevoltHolds; and `Blessing` -- CR
+//     702.131's city's-blessing latch (state.Player.Blessing, granted by
+//     the Ascend machinery), read straight off the folded state. The other
+//     bare-Condition values (Delirium, OptionalCost, Bargain, Threshold,
 //     Metalcraft, Hellbent, Surge — ~25 SAs) stay unresolved.
 //  5. `ConditionDefined$ Imprinted` (34 corpus lines over 26 files) — the
 //     source card's persistent imprint list (state.Object.Imprinted, the
@@ -316,8 +318,9 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// evaluated over the source's CastFlags (the bit the Kicker payment / the
 	// Foretell action's CastInfo recorded -- the same provenance Count$
 	// Foretold reads); Revolt is CR 702.38's leave-the-battlefield state
-	// through Host.RevoltHolds; Delirium/OptionalCost/Bargain/Threshold/
-	// Blessing/Metalcraft/Hellbent/Surge stay unresolved and run
+	// through Host.RevoltHolds; Blessing is CR 702.131's city's-blessing
+	// latch (state.Player.Blessing); Delirium/OptionalCost/Bargain/Threshold/
+	// Metalcraft/Hellbent/Surge stay unresolved and run
 	// unconditionally. A bare Condition beside a group key or beside
 	// ConditionSVarCompare$ is a mixed shape no single evaluator covers (~11
 	// corpus SAs).
@@ -345,6 +348,18 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			// rules-side Revolt$ clauses and the Count$Revolt branch head
 			// share, so the spellings cannot drift apart.
 			return h.RevoltHolds(c.Controller), true
+		case strings.EqualFold(bare, "Blessing"):
+			// CR 702.131: the city's blessing (Ascend), read off the one-way
+			// latch state.Player.Blessing that events.Apply's BlessingChange
+			// fold writes (rules/ascend.go grants it). This is what makes
+			// ocelot_pride's DB$ CopyPermanent and the_golden_city_of_orazca's
+			// DB$ Draw condition-gated instead of run-anyway. An out-of-range
+			// controller denies -- the fail-closed direction a blessing gate
+			// that cannot name its seat must take.
+			if int(c.Controller) >= len(g.Players) {
+				return false, true
+			}
+			return g.Players[c.Controller].Blessing, true
 		}
 		return false, false
 	}

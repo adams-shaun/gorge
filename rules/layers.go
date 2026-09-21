@@ -169,6 +169,30 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
 							out = append(out, kw)
 						}
+						// A printed Continuous AddAbility$ static (Ichormoon Gauntlet's
+						// "Planeswalkers you control have [0]: Proliferate", a lord
+						// granting an activated ability, an Equipment granting
+						// "{T}: deal 1 damage") is a layer-6 ability GRANT (CR
+						// 613.1f): one ContinuousEffect whose AddAbilities names the
+						// SVar bodies on THIS source's face, consumed by legal.go's
+						// grantedAbilities (the offer) and mana_activation.go's
+						// granted-mana loop (the tap gate and payment window). The
+						// grantor is base.Source and the recipient is whatever
+						// Affects matches, so the two may differ -- the whole point of
+						// a cross-object grant. statList splits the ` & ` and `,`
+						// multi-value forms (6 corpus carriers). An AddAbility$ name
+						// whose body is missing or is not an AB degrades to no grant
+						// in grantedAbilities (the same totality every SVar
+						// resolution takes), so no validation is needed here.
+						if hasStat(st, "AddAbility") {
+							ga := base
+							ga.Layer = LAbilities
+							ga.AddAbilities = statList(st, "AddAbility")
+							ga.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+							if len(ga.AddAbilities) > 0 {
+								out = append(out, ga)
+							}
+						}
 						if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
 							ty := base
 							ty.Layer = LType
@@ -394,10 +418,12 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// printed T: line would have; rules/trigger_match.go's granted-
 						// trigger walk (checkGrantedStaticTriggers, the granted-Ward/
 						// granted-Dethrone precedent) matches it like any other trigger
-						// and links its Execute$ from the AFFECTED object's own SVar
+						// and links its Execute$ from the GRANTING face's own SVar
 						// table -- the table events.Apply's GrantTriggerPush resolves
-						// from, so the live queue and a replayed one mint the same stack
-						// object. A body that fails to parse grants nothing.
+						// from (the grantor rides the event's Amount), so the live
+						// queue and a replayed one mint the same stack object. A
+						// self-grant degenerates to the affected object; a body that
+						// fails to parse grants nothing.
 						if name := strings.TrimSpace(st.Params["AddTrigger"]); name != "" {
 							if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
 								gt := base
@@ -699,8 +725,11 @@ func (e *Engine) continuousGateHolds(sv staticView) bool {
 //     Count$ arm);
 //   - Threshold: 7+ cards in the controller's graveyard;
 //   - Hellbent: the controller's hand is empty.
+//   - Blessing: the controller holds the city's blessing (CR 702.131, the
+//     Ascend latch, state.Player.Blessing -- granted by rules/ascend.go's
+//     emit-side scan and spell-resolution grant).
 //
-// Every other value -- Blessing, EnduringStory, FatefulHour, Monarch, MaxSpeed
+// Every other value -- EnduringStory, FatefulHour, Monarch, MaxSpeed
 // and anything new -- FAILS CLOSED (the gate never holds), matching every
 // sibling gate's documented deny direction. MaxSpeed is safe to deny here:
 // its statics carry only AddAbility$/AddStaticAbility$/AddTrigger$/
@@ -727,6 +756,14 @@ func (e *Engine) continuousConditionHolds(sv staticView) bool {
 		return len(e.G.Zone(state.ZGraveyard, sv.Controller)) >= 7
 	case "Hellbent":
 		return len(e.G.Zone(state.ZHand, sv.Controller)) == 0
+	case "Blessing":
+		// CR 702.131: the city's blessing (Ascend). The latch is one-way
+		// and only ever written by events.Apply's BlessingChange fold, so
+		// the read is a plain state read.
+		if int(sv.Controller) >= len(e.G.Players) {
+			return false
+		}
+		return e.G.Players[sv.Controller].Blessing
 	}
 	return false
 }
@@ -1371,6 +1408,19 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			}
 			ty = kept
 		}
+		if ce.RemoveLegendary {
+			// NonLegendary$ True (CR 205.4's supertype): drop only the
+			// Legendary word, leaving every other supertype (Basic, Snow,
+			// World, Ongoing) in place -- distinct from RemoveCardTypes,
+			// which keeps supertypes and drops everything else.
+			kept := ty[:0]
+			for _, t := range ty {
+				if !strings.EqualFold(t, "Legendary") {
+					kept = append(kept, t)
+				}
+			}
+			ty = kept
+		}
 		ty = append(ty, ce.AddTypes...)
 		if ce.AddAllCreatureTypes {
 			ty = appendAllCreatureTypes(ty)
@@ -1698,6 +1748,23 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 			if ce.RemoveAbilities {
 				kw = kw[:0]
 			}
+			if len(ce.RemoveKeywords) > 0 {
+				// CR 613.1f: this effect's own named keywords leave the
+				// accumulated list BEFORE its AddKeywords append, so a
+				// single effect that both removes and grants (mirage
+				// phalanx's RemoveKeywords$ Soulbond | AddKeywords$ Haste)
+				// yields the card text's result regardless of how the
+				// timestamps order neighbour effects. A keyword is matched
+				// by its HEAD (cards.KeywordHead), so a parameterised print
+				// is removable by name.
+				keptKW := kw[:0]
+				for _, k := range kw {
+					if !containsKeywordHead(ce.RemoveKeywords, k) {
+						keptKW = append(keptKW, k)
+					}
+				}
+				kw = keptKW
+			}
 			kw = append(kw, ce.AddKeywords...)
 		case LType:
 			// Already applied in typeCharacteristics above — layer 4 must
@@ -1841,6 +1908,20 @@ func isCreatureSubtype(t string) bool {
 		}
 	}
 	return true
+}
+
+// containsKeywordHead reports whether the keyword k matches any name in
+// names by keyword HEAD (cards.KeywordHead strips a parameter tail), so
+// RemoveKeywords$ Protection removes a printed "Protection:..." grant and
+// RemoveKeywords$ Soulbond removes the bare keyword.
+func containsKeywordHead(names []string, k string) bool {
+	head := cards.KeywordHead(k)
+	for _, n := range names {
+		if strings.EqualFold(cards.KeywordHead(n), head) {
+			return true
+		}
+	}
+	return false
 }
 
 // RegenerationDisallowed implements effects.Host for the CantRegenerate

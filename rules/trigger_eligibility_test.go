@@ -25,6 +25,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"SpellAbilityCast", []events.Kind{events.AbilityPush}},
 		{"Attacks", []events.Kind{events.DeclareAttackers}},
 		{"AttackersDeclaredOneTarget", []events.Kind{events.DeclareAttackers}},
+		{"Blocks", []events.Kind{events.DeclareBlockers}},
 		{"Sacrificed", []events.Kind{events.MoveZone}},
 		{"Discarded", []events.Kind{events.MoveZone}},
 		{"CommitCrime", []events.Kind{events.TargetsChosen}},
@@ -35,10 +36,12 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"DamageDoneOnce", []events.Kind{events.Damage}},
 		{"Drawn", []events.Kind{events.Draw}},
 		{"LifeLost", []events.Kind{events.Damage, events.LifeChange}},
+		{"LifeGained", []events.Kind{events.LifeChange}},
 		{"LifeLostAll", nil},
 		{"BecomesTarget", []events.Kind{events.TargetsChosen}},
 		{"Attached", []events.Kind{events.Attach}},
 		{"Explores", []events.Kind{events.Explore}},
+		{"Investigated", []events.Kind{events.Investigate}},
 		{"Exerted", []events.Kind{events.Exert}},
 		{"LandPlayed", []events.Kind{events.MoveZone}},
 		{"Phase", []events.Kind{events.StepChange}},
@@ -52,7 +55,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 				kind := events.Kind(k)
 				// Kinds beyond this representation must fail OPEN to the old
 				// matcher, never silently truncate a new event's eligibility.
-				want := tc.kinds == nil || k >= 64 || slices.Contains(tc.kinds, kind)
+				want := tc.kinds == nil || k >= triggerMaskKindBits || slices.Contains(tc.kinds, kind)
 				if got := mask.allows(kind); got != want {
 					t.Fatalf("%s kind %d: eligible=%v, want %v", tc.mode, k, got, want)
 				}
@@ -89,6 +92,11 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			want = cards.TriggerInterestAttach
 		case events.Explore:
 			want = cards.TriggerInterestExplore
+		case events.Investigate:
+			// A trigger-relevant Kind past the 64-bit mask's reach: the
+			// conservative catch-all, and compiledTriggerInterestAllows fails
+			// open for it before this mapping is even consulted.
+			want = cards.TriggerInterestAny
 		}
 		if got := eventTriggerInterest(kind); got != want {
 			t.Fatalf("kind %s interest = %x, want %x", kind, got, want)
@@ -102,10 +110,10 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 func TestCompiledTriggerInterestParity(t *testing.T) {
 	modes := []string{
 		"ChangesZone", "SpellCast", "AbilityCast", "SpellAbilityCast", "Attacks",
-		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Sacrificed",
+		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Blocks", "Sacrificed",
 		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
-		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Always", "LifeLostAll", "FutureMode", "",
+		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Always", "LifeLostAll", "FutureMode", "",
 	}
 	card := &cards.Card{}
 	for _, mode := range modes {

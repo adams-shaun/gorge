@@ -16,11 +16,14 @@ type parsedCard struct {
 }
 
 // parsedDeck is the outcome of parsing a plain-text decklist. The sideboard
-// has already been dropped, the commander (if any) has been lifted into
-// Commander, and Cards is the merged maindeck in first-appearance order.
+// has already been dropped, every card in the Commander section (one, or a
+// CR 903.13 partner pair of two) has been lifted into Commanders — Commander
+// repeats the first, the legacy singular field the report displays — and
+// Cards is the merged maindeck in first-appearance order.
 type parsedDeck struct {
-	Commander string
-	Cards     []parsedCard
+	Commander  string
+	Commanders []string
+	Cards      []parsedCard
 	// Sideboard is the count of sideboard card copies dropped from the list
 	// (gorge has no sideboard concept), so the report can say how many.
 	Sideboard int
@@ -72,9 +75,20 @@ var trailingSetRe = regexp.MustCompile(`\s+\([A-Za-z0-9]+\)(?:\s+[0-9*]+)?$`)
 // lines with an optional "x" ("4 Lightning Bolt", "1x Lightning Bolt"),
 // `Sideboard`/`Sideboard:` (whose cards are dropped — gorge has no sideboard
 // concept and silently merging them makes a 75-card "60-card" deck), and a
-// `Commander`/`Commander:` section whose (single) card becomes the commander.
-// Set/collector annotations after a name are stripped, because the card NAME
-// is what matters.
+// `Commander`/`Commanders` section whose card lines become commanders — one
+// commander, or a partner pair of two (CR 903.13). The section ends at the
+// next section header, at a blank line that follows at least one commander
+// name, or at a counted line that follows a count-less commander line (the
+// bare-commander-then-maindeck export shape). A counted line after a COUNTED
+// commander is ambiguous — it is the second commander of a pair only when a
+// blank line separates the section from the rest of the list (every real
+// partner export has one); a section that runs straight into the next header
+// or the end of the file takes the legacy single-commander reading, so the
+// second counted line is the start of the maindeck and never a spurious
+// second commander. The section never names the same card twice and a third
+// commander name is a hard error naming the line, because a deck may have at
+// most two commanders. Set/collector annotations after a name are stripped,
+// because the card NAME is what matters.
 //
 // A line that cannot be parsed into a (count, name) pair is an error naming
 // the line, never a silent skip: guessing a card name is exactly the failure
@@ -84,11 +98,22 @@ func parseDecklist(raw []byte) (*parsedDeck, error) {
 	lines := strings.Split(string(raw), "\n")
 	inSideboard := false
 	expectCommander := false
+	sawCountlessCommander := false
+	sawCountedCommander := false
 	merged := map[string]int{} // normalised name -> index into d.Cards
 
 	for i, rawLine := range lines {
 		line := stripComment(rawLine)
 		if line == "" {
+			// A blank line ends the Commander section: exports separate the
+			// section from the maindeck with one ("Commander:\nAtraxa\n\n1
+			// Birds ..."), and without this the section would swallow the
+			// maindeck as further commanders. A blank line BEFORE any
+			// commander name keeps the section open (decorative leading
+			// blanks).
+			if expectCommander && len(d.Commanders) > 0 {
+				expectCommander = false
+			}
 			continue
 		}
 		if key, ok := headerKey(line); ok {
@@ -97,15 +122,19 @@ func parseDecklist(raw []byte) (*parsedDeck, error) {
 				// These sections are not maindeck: in this engine only the
 				// maindeck is dealt, so drop them.
 				inSideboard = true
+				expectCommander = false
 			case "commander", "commanders":
 				inSideboard = false
 				expectCommander = true
+				sawCountlessCommander = false
+				sawCountedCommander = false
 			default:
 				// main / maindeck / mainboard / deck, and the category
 				// headers (lands, creatures, ...) an export may interleave:
 				// they mark the start of (or a subdivision of) the maindeck,
 				// so stop dropping and keep parsing cards.
 				inSideboard = false
+				expectCommander = false
 			}
 			continue
 		}
@@ -125,6 +154,7 @@ func parseDecklist(raw []byte) (*parsedDeck, error) {
 		}
 
 		pc, err := parseCardLine(line)
+		countless := false
 		if err != nil {
 			if expectCommander {
 				// A commander section often prints the commander as a bare name
@@ -134,6 +164,7 @@ func parseDecklist(raw []byte) (*parsedDeck, error) {
 				if pc.Name == "" {
 					return nil, fmt.Errorf("line %d: %w", i+1, err)
 				}
+				countless = true
 			} else {
 				return nil, fmt.Errorf("line %d: %w (decklist line was %q)", i+1, err, line)
 			}
@@ -146,10 +177,48 @@ func parseDecklist(raw []byte) (*parsedDeck, error) {
 		}
 
 		if expectCommander {
-			if d.Commander == "" {
-				d.Commander = pc.Name
+			// A counted line AFTER a count-less commander line ends the
+			// section: that is the export shape whose bare commander is
+			// followed directly by the counted maindeck (no blank line, no
+			// header), and every such line is maindeck, not a second commander.
+			if !countless && sawCountlessCommander {
+				expectCommander = false
+			} else if !countless && sawCountedCommander && !commanderSectionBlankDelimited(lines, i+1) {
+				// A counted line after a COUNTED commander with no blank line
+				// between the section and the rest of the list is the legacy
+				// single-commander export shape (the second counted line is the
+				// start of the maindeck), never a partner pair: lifting it
+				// would silently seat a spurious second commander — worst case
+				// a plain-Partner card legitimately sitting in the 99, which
+				// even validates as a pair. A counted PAIR therefore requires
+				// the blank line that separates it from the maindeck.
+				expectCommander = false
+			} else {
+				// The rest of the section is commanders: every card line until
+				// the next header/blank is one (a partner pair prints two). The
+				// section never names the same card twice — CR 903.3 has one or
+				// two DISTINCT commanders, and a duplicated designation would
+				// seat the same object twice — and a deck may have at most two
+				// commanders (CR 903.13), so a third name is a hard error naming
+				// the line — never a silent fold into the maindeck, which is
+				// how a partner pair used to lose its second half.
+				key := cards.NormalizeName(pc.Name)
+				for _, c := range d.Commanders {
+					if cards.NormalizeName(c) == key {
+						return nil, fmt.Errorf("line %d: the Commander section names %q twice; a Commander deck's commanders are one or two DISTINCT cards (CR 903.3)", i+1, pc.Name)
+					}
+				}
+				if len(d.Commanders) >= 2 {
+					return nil, fmt.Errorf("line %d: a Commander deck has at most two commanders (CR 903.13), but the Commander section already lists %q and %q before %q", i+1, d.Commanders[0], d.Commanders[1], pc.Name)
+				}
+				d.Commanders = append(d.Commanders, pc.Name)
+				if countless {
+					sawCountlessCommander = true
+				} else {
+					sawCountedCommander = true
+				}
+				continue
 			}
-			expectCommander = false
 		}
 		addCard(d, pc, merged)
 	}
@@ -161,41 +230,81 @@ func parseDecklist(raw []byte) (*parsedDeck, error) {
 	return d, nil
 }
 
-// reconcileCommander enforces that the deck's commander is exactly one
-// copy. Some exports print the commander both in a Commander section and
-// again in the maindeck 100, and addCard would otherwise merge those into a
-// count of two; the commander is always a single singleton copy (CR 903.4),
-// so the first occurrence wins with count 1 and any duplicate is dropped. A
-// commander declared in a header but missing from the list is inserted at the
-// front. It is a no-op for a deck with no commander.
+// commanderSectionBlankDelimited reports whether the commander section that
+// reaches line index from (0-based) is separated from the rest of the list by
+// a BLANK line, rather than running straight into the next section header or
+// the end of the file. This is the discriminator for the one genuinely
+// ambiguous export shape — a counted line after a counted commander: real
+// partner exports (and the pinned pair shapes) always blank-line the section
+// away from the maindeck, while the legacy single-commander exports run the
+// counted maindeck lines directly into the next header or the end of the
+// file. Comments count as blank for this purpose, matching the main loop.
+func commanderSectionBlankDelimited(lines []string, from int) bool {
+	for j := from; j < len(lines); j++ {
+		line := stripComment(lines[j])
+		if line == "" {
+			// A blank counts as a delimiter only when CONTENT follows it:
+			// a file's final newline produces a trailing empty line that
+			// separates nothing, so a commander section ending at EOF (the
+			// shape the counted-maindeck lists arrive in) is not delimited.
+			for k := j + 1; k < len(lines); k++ {
+				if stripComment(lines[k]) != "" {
+					return true
+				}
+			}
+			return false
+		}
+		if _, ok := headerKey(line); ok {
+			return false
+		}
+	}
+	return false
+}
+
+// reconcileCommander enforces that each named commander is exactly one copy.
+// Some exports print a commander both in a Commander section and again in
+// the maindeck 100, and addCard would otherwise merge those into a count of
+// two; each commander is always a single singleton copy (CR 903.4), so the
+// first occurrence wins with count 1 and any duplicate is dropped. A
+// commander declared in a header but missing from the list is inserted at
+// the front (in declaration order). It is a no-op for a deck with no
+// commander, and it also back-fills the legacy singular Commander field with
+// the first commander for the report's display fields.
 func reconcileCommander(d *parsedDeck) {
-	if d.Commander == "" {
-		return
-	}
-	key := cards.NormalizeName(d.Commander)
-	first := -1
-	for i, c := range d.Cards {
-		if cards.NormalizeName(c.Name) == key {
-			first = i
-			break
+	var missing []string
+	for _, name := range d.Commanders {
+		key := cards.NormalizeName(name)
+		first := -1
+		for i, c := range d.Cards {
+			if cards.NormalizeName(c.Name) == key {
+				first = i
+				break
+			}
 		}
-	}
-	if first == -1 {
-		d.Cards = append([]parsedCard{{Name: d.Commander, Count: 1}}, d.Cards...)
-		return
-	}
-	out := d.Cards[:0]
-	for i, c := range d.Cards {
-		if i == first {
-			out = append(out, parsedCard{Name: d.Commander, Count: 1})
+		if first == -1 {
+			missing = append(missing, name)
 			continue
 		}
-		if cards.NormalizeName(c.Name) == key {
-			continue
+		out := d.Cards[:0]
+		for i, c := range d.Cards {
+			if i == first {
+				out = append(out, parsedCard{Name: name, Count: 1})
+				continue
+			}
+			if cards.NormalizeName(c.Name) == key {
+				continue
+			}
+			out = append(out, c)
 		}
-		out = append(out, c)
+		d.Cards = out
 	}
-	d.Cards = out
+	// Prepend in reverse so the declaration order survives at the front.
+	for i := len(missing) - 1; i >= 0; i-- {
+		d.Cards = append([]parsedCard{{Name: missing[i], Count: 1}}, d.Cards...)
+	}
+	if len(d.Commanders) > 0 {
+		d.Commander = d.Commanders[0]
+	}
 }
 
 // headerKey reports whether line is a bare section header and, if so, its

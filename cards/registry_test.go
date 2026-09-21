@@ -44,6 +44,77 @@ func TestRegistryLookupNormalisation(t *testing.T) {
 	}
 }
 
+// aliasFixture parses a card carrying a Universes-Within flavour name plus one
+// Attraction-style Variant: line, which must stay ignored.
+func aliasFixture(t *testing.T) *Card {
+	t.Helper()
+	src := "Name:Mind Flayer, the Shadow\n" +
+		"Variant:UniversesWithin:FlavorName:Arvinox, the Mind Flail\n" +
+		"Variant:C:Lights:2 5 6\n" +
+		"ManaCost:4 B B B\nTypes:Legendary Enchantment Creature Horror\nPT:9/9\nOracle:x\n"
+	c, diags := ParseBytes("alias.txt", []byte(src))
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diags: %+v", diags)
+	}
+	c.Link()
+	for _, f := range c.Faces {
+		f.ApplyIntrinsics()
+	}
+	return c
+}
+
+func TestVariantFlavorNameAliasResolves(t *testing.T) {
+	r := NewRegistry()
+	r.Add(aliasFixture(t))
+
+	// The canonical name still resolves and still names the same card.
+	canon, ok := r.Lookup("Mind Flayer, the Shadow")
+	if !ok || canon.Faces[0].Name != "Mind Flayer, the Shadow" {
+		t.Fatalf("canonical lookup = %v %v", canon, ok)
+	}
+	// The flavour name resolves to that card, exact and normalised.
+	for _, name := range []string{
+		"Arvinox, the Mind Flail", "arvinox the mind flail", "  Arvinox,  the Mind Flail ",
+	} {
+		got, ok := r.Lookup(name)
+		if !ok || got != canon {
+			t.Errorf("Lookup(%q) = %v, %v; want the canonical card", name, got, ok)
+		}
+	}
+	// The flavour name is NOT the card's printed name: nothing but the byName
+	// index may know it. Name-characteristic matching reads Face.Name.
+	if canon.Faces[0].Name == "Arvinox, the Mind Flail" {
+		t.Fatal("flavour name leaked into Face.Name")
+	}
+	// The Attraction Variant: line produced no alias and no diag.
+	if len(canon.Faces[0].Aliases) != 1 || canon.Faces[0].Aliases[0] != "Arvinox, the Mind Flail" {
+		t.Fatalf("aliases = %q", canon.Faces[0].Aliases)
+	}
+}
+
+func TestFlavorNameAliasSurvivesCacheRoundTrip(t *testing.T) {
+	r := NewRegistry()
+	r.Add(aliasFixture(t))
+	if err := r.CompileMetadata(); err != nil {
+		t.Fatalf("CompileMetadata: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "ir.gob.gz")
+	if err := r.Save(path); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	back, err := LoadRegistry(path)
+	if err != nil {
+		t.Fatalf("LoadRegistry: %v", err)
+	}
+	got, ok := back.Lookup("Arvinox, the Mind Flail")
+	if !ok || got.Faces[0].Name != "Mind Flayer, the Shadow" {
+		t.Fatalf("alias lookup after round trip = %v, %v", got, ok)
+	}
+	if _, ok := back.Lookup("Mind Flayer, the Shadow"); !ok {
+		t.Fatal("canonical name lost in round trip")
+	}
+}
+
 func TestRegistryCacheRoundTrip(t *testing.T) {
 	r := fixtureRegistry(t)
 	if err := r.CompileMetadata(); err != nil {

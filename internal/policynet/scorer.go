@@ -122,7 +122,7 @@ func (sc *Scorer) ScoreOption(o Option) float32 {
 	}
 	off += OptionSlotWidth
 	copy(x[off:], o.Dense)
-	return sc.scoreHead(x)
+	return sc.scoreHead(x) + m.residual(o)
 }
 
 // scoreHead runs the hidden layer + output scalar on one input vector, into

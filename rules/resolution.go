@@ -1388,6 +1388,29 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.CounterPickDone = true
+		case "proliferate":
+			// A Proliferate any-number recipient pick was answered (CR 701.27):
+			// the resolving controller chose which permanents and/or players
+			// take another counter of each kind already there. Unlike the
+			// "counter_pick" arm, the option list is MIXED -- an object
+			// recipient carries Obj, a player recipient carries Player with
+			// Obj 0 -- so both halves are decoded here into the state.Target
+			// shape Ctx.Proliferate carries. ProliferateDone distinguishes
+			// "answered, possibly with nothing" (a Min-0 decline) from the
+			// first pass, so a decline is not re-asked. effProliferate consumes
+			// and clears both at the top of its own walk (the fx42 scoping
+			// discipline), so a nested Proliferate cannot inherit the outer
+			// answer.
+			ctx.Proliferate = make([]state.Target, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.Proliferate = append(ctx.Proliferate, state.Target{Obj: o.Obj})
+					continue
+				}
+				ctx.Proliferate = append(ctx.Proliferate,
+					state.Target{Player: o.Player, IsPlayer: true})
+			}
+			ctx.ProliferateDone = true
 		case "blight":
 			// A Blight's per-player KChoose (CR 701.60: the blighting player
 			// chooses which of their own creatures takes the −1/−1 counters)
@@ -1617,6 +1640,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// effPlay sees the answer as consumed either way.
 			free := strings.EqualFold(rp.sa.Params["WithoutManaCost"], "True")
 			playCost := strings.TrimSpace(rp.sa.Params["PlayCost"])
+			// ReplaceGraveyard$ Exile (task replplay1): the Play SA's own
+			// rider — "if that spell would be put into your graveyard this
+			// turn, exile it instead" — stamps the played spell's pay-time
+			// CastInfo with state.FlagReplaceGraveyard so spellRestZone (and
+			// spellFizzleZone for a fizzled/countered play) exiles it. The
+			// conditional sibling ReplaceGraveyardValid$ (2 corpus files:
+			// Bilbo, Thief in the Night; Scholar of the Lost Trove) restricts
+			// the exile to named types and is unread — fail closed, keep the
+			// graveyard resting place for those.
+			replaceGraveyard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["ReplaceGraveyard"]), "Exile") &&
+				strings.TrimSpace(rp.sa.Params["ReplaceGraveyardValid"]) == ""
 			// ImprintPlayed$ True (task imprintplayed: Rashmi and Ragavan,
 			// Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus
 			// files): every card the Play actually BEGINS to play is recorded
@@ -1647,7 +1681,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if o := e.G.Obj(id); o != nil {
 					from = o.Zone
 				}
-				e.beginPlay(ctx.Controller, id, free, playCost)
+				e.beginPlay(ctx.Controller, id, free, playCost, replaceGraveyard)
 				if imprintPlayed && from.Valid() {
 					if o := e.G.Obj(id); o != nil && o.Zone != from {
 						e.emit(events.Event{Kind: events.Imprint, Obj: ctx.Source,

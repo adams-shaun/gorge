@@ -247,13 +247,22 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	// A Continuous static may grant an activated ability through AddAbility$.
 	// Resolve its named SVar from the static's source but activate it from id:
 	// Tazri's ManaReflected reads the recipient creature's colours and its own
-	// "another activated ability" condition, not Tazri's.
+	// "another activated ability" condition, not Tazri's. This direct scan is
+	// the mana path's membership AND ORDER source for printed Continuous
+	// statics: it follows collectActionStatics' seat/zone/static walk (the
+	// snapshot a legalActions pass shares), which
+	// TestActionStaticMembershipPreservesOrderAndActiveFace pins. The
+	// grantedAbilities loop below adds only grants this scan did not already
+	// produce -- an Animate's Abilities$ member such as Wrenn and One's
+	// "{T}: Add {G}" -- so a printed AddAbility$ is never offered twice (the
+	// duplicate-offer trap: staticEffects now emits it into AddAbilities too).
 	var continuous []staticView
 	if statics == nil {
 		continuous = e.activeStatics("Continuous")
 	} else {
 		continuous = statics.get().continuous
 	}
+	printed := make(map[string]bool)
 	for _, sv := range continuous {
 		name := strings.TrimSpace(sv.Params["AddAbility"])
 		if name == "" || !effects.MatchesSpecCtx(e.G, sv.Params["Affected"], id, e.specCtx(sv.Source, sv.Controller)) {
@@ -267,6 +276,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		if ma == nil || ma.Kind != "AB" {
 			continue
 		}
+		printed[ma.Line] = true
 		if ma.API == "ManaReflected" {
 			considerReflected(ma)
 			continue
@@ -277,12 +287,18 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		}
 	}
 	// Granted mana abilities (CR 613.1f, rules/legal.go's grantedAbilities):
-	// an AddAbilities grant's AB$ Mana members -- a Saga chapter's "gains
-	// '{T}: Add {C}'." -- are real mana abilities with the same eligibility
-	// gates, so the priority offer, the CR 601.2g payment window and the
-	// activation all see exactly one member set. A granted ManaReflected
-	// member goes through the same candidate/present gates as a printed one.
+	// an AddAbilities grant's AB$ Mana/ManaReflected member -- a Saga
+	// chapter's "gains '{T}: Add {C}'.", an Animate's Abilities$ member (Wrenn
+	// and One) -- is a real mana ability with the same eligibility gates, so
+	// the priority offer, the CR 601.2g payment window and the activation all
+	// see exactly one member set. A member the printed scan above already
+	// produced is skipped (it anchors the same activation); a granted
+	// ManaReflected member goes through the same candidate/present gates as a
+	// printed one.
 	for _, ga := range e.grantedAbilities(p, id) {
+		if printed[ga.sa.Line] {
+			continue
+		}
 		if ga.sa.API == "ManaReflected" {
 			considerReflected(ga.sa)
 			continue
@@ -517,12 +533,18 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 		return false
 	}
 	cost := e.parseCost(ma.Params["Cost"])
-	pool := e.manaAvailableFor(p, source, true)
+	av := e.manaAvailableFor(p, source, true)
+	pool := av.pool
+	typed := av.typed
 	if hyp != nil {
 		pool = *hyp
+		// A hypothetical bound is a pure mana bound that may include
+		// restricted units, so its typed partition is the raw tally (the
+		// typed counts never affect payability anyway).
+		typed = e.G.Players[p].TypedMana
 	}
 	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.Behold) > 0 || len(cost.TapPermanent) > 0 ||
-		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayablePool(p, source, true, cost, pool) {
+		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayablePool(p, source, true, cost, pool, typed) {
 		return false
 	}
 	// The mana-activation path has no X ask and no mid-payment suspension, so

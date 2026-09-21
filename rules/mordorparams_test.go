@@ -651,7 +651,10 @@ func TestGilanraCallerOfWirewoodSpentManaDraws(t *testing.T) {
 		e.priorityRound()
 		activateMana(t, e, gilanra)
 		recs := e.G.Players[0].RestrictedMana
-		if len(recs) != 1 || recs[0].Color != "G" || recs[0].WhenSpent != "TrigSpent" || recs[0].Source != gilanra {
+		// main's mtsp1 encoding: the rider'd ability emits a
+		// provenance-ONLY batch (empty Valid, spendable anywhere) whose
+		// Source is what the spend-time capture keys the trigger on.
+		if len(recs) != 1 || recs[0].Color != "G" || recs[0].Valid != "" || recs[0].Source != gilanra {
 			t.Fatalf("floating mana carries no when-spent provenance: %+v", recs)
 		}
 		addMana(t, e, 0, "GGGRR")
@@ -739,7 +742,7 @@ func TestPathOfAncestrySpentManaScrOne(t *testing.T) {
 		driveMordor(t, e, 3, 0, state.StepMain1)
 		activateMana(t, e, path)
 		recs := e.G.Players[0].RestrictedMana
-		if len(recs) != 1 || recs[0].Color != "G" || recs[0].WhenSpent != "TrigScry" || recs[0].Source != path {
+		if len(recs) != 1 || recs[0].Color != "G" || recs[0].Valid != "" || recs[0].Source != path {
 			t.Fatalf("floating mana carries no when-spent provenance: %+v", recs)
 		}
 		// The ws unit alone pays the Elves' {G}; the pool empties.

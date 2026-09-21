@@ -128,8 +128,9 @@ func RepoDeck(t testing.TB, r *cards.Registry, name string) []*cards.Card {
 
 // LoadRepoDeckFile reads and parses one embedded deck file un-resolved,
 // for non-test callers that need the deck.File shape (cmd/botbench's
-// commander mode needs CommanderIndex, and a deck that names a commander
-// carries it to tell a commander deck from a constructed one). It is
+// commander mode needs CommanderIndices — one flat index per commander, a
+// CR 903.13 partner pair naming two — and a deck that names a commander
+// carries them to tell a commander deck from a constructed one). It is
 // RepoDeckFile's non-test sibling, exactly as LoadRepoDeck is RepoDeck's.
 func LoadRepoDeckFile(name string) (deck.File, error) {
 	// embed.FS paths are always slash-separated regardless of host OS;

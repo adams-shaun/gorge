@@ -2363,21 +2363,15 @@ var knownUnsupportedParams = map[string][]string{
 	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
 	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
 	// unread.
-	"Gift of Immortality": {"param:api:ChangeZone.ForgetOtherRemembered"},
-	// Hercules, Olympian Hero's param:trig:DamageDoneOnce.FirstTime label was
-	// deleted when the FirstTime$ read landed (rules/trigger_match.go's
-	// damageMatches gate): the once-per-turn damage trigger is now real.
-	"Heroic Return":              {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
-	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
-	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
-	"Love on the Battlefield":    {"param:trig:AttackersDeclared.NoResolvingCheck"},
-	"Methods of the Mighty":      {"param:api:Destroy.ValidTgtsDesc"},
-	"Mogis, God of Slaughter":    {"param:stat:Continuous.RemoveType"},
-	// Path of Ancestry's row was deleted when TriggersWhenSpent$ read real
-	// spend-time provenance and a queued "when you spend this mana" trigger
-	// (task mordorparams1, rules/whenspent.go) — pinned by
-	// TestPathOfAncestrySpentManaScrOne.
+	"Gift of Immortality":            {"param:api:ChangeZone.ForgetOtherRemembered"},
+	"Hercules, Olympian Hero":        {"param:trig:DamageDoneOnce.FirstTime"},
+	"Heroic Return":                  {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Heroic Sacrifice":               {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Iron Man, Armored Avenger":      {"param:api:PutCounter.ValidTgtsDesc"},
+	"Jocasta, Automaton Avenger":     {"param:api:ChangeZone.Attacking"},
+	"Love on the Battlefield":        {"param:trig:AttackersDeclared.NoResolvingCheck"},
+	"Methods of the Mighty":          {"param:api:Destroy.ValidTgtsDesc"},
+	"Mogis, God of Slaughter":        {"param:stat:Continuous.RemoveType"},
 	"Patriot, Shield Wielder":        {"param:api:Pump.ValidTgtsDesc"},
 	"Photon, Mighty Marvel":          {"param:api:Mana.PersistentMana"},
 	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},
@@ -2387,6 +2381,11 @@ var knownUnsupportedParams = map[string][]string{
 	"Spinerock Knoll":                {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"West Coast Expansion":           {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"World Shaper":                   {"param:api:Mill.Optional"},
+	// Torment of Hailfire's FallbackAbility$/TempRemember$ are unread
+	// everywhere: its DB$ GenericChoice now resolves through effCharm's
+	// modal ask (effects/misc.go), but these two params ride the ask and
+	// neither is read by any code (pinned in rules/generic_choice_test.go).
+	"Torment of Hailfire": {"param:api:GenericChoice.FallbackAbility", "param:api:GenericChoice.TempRemember"},
 	// The pro-shaper player-submitted Commander import (2026-09-18): the
 	// parameter reads its cards expose that this build does not implement.
 	// Each label is the unimplemented parameter on a fully-registered
@@ -2398,7 +2397,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Green Sun's Zenith":       {"param:api:ChangeZone.AIXMax"},
 	"Natural Order":            {"param:api:ChangeZone.AISearchGoal"},
 	"Nissa, Resurgent Animist": {"param:api:DigUntil.RevealRandomOrder"},
-	"Six":                      {"param:api:Mill.RememberMilled"},
 }
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across
@@ -3013,6 +3011,16 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"Sac</Creature>", []string{"Sac"}},
 		{"2 U U Sac<1/Creature>", nil},
 		{"AddCounter<1/M1M1>", []string{"AddCounter"}},
+		// The ExiledMoveToGrave family (the Eldrazi processor costs and
+		// Shelob, Dread Weaver's {2}{B} ability) is now MODELLED -- cards
+		// matching Spec move from exile to their owner's graveyard, with no
+		// phantom generic pip and no Unknown entry. The exact corpus
+		// spellings, including Forge's trailing description, plus the
+		// malformed-instance report of the recognised head.
+		{"2 B ExiledMoveToGrave<1/Creature.ExiledWithSource>", nil},
+		{"ExiledMoveToGrave<1/Card.OppOwn/card an opponent owns>", nil},
+		{"ExiledMoveToGrave<2/Card.OppOwn>", nil},
+		{"ExiledMoveToGrave<99999999999999999999/Creature>", []string{"ExiledMoveToGrave"}},
 		{"", nil},
 	}
 	for _, tc := range cases {

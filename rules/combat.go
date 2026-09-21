@@ -118,6 +118,15 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	if e.HasKeyword(attacker, "Flying") && !e.HasKeyword(blocker, "Flying") && !e.HasKeyword(blocker, "Reach") {
 		return false
 	}
+	// CR 702.110a: a creature with skulk can't be blocked by creatures with
+	// greater power. Attacker-keyed and per-pair like Fear/Shadow; DERIVED
+	// power, never printed PT (a +1/+1'd or pumped blocker's real power is
+	// what the CR means). CR 509.1h: this is a declaration-legality rule,
+	// checked here at CR 509.1a -- a blocker's power growing past the
+	// attacker's after declaration does not unblock it, and no re-check runs.
+	if e.HasKeyword(attacker, "Skulk") && e.Derived(blocker).Power > e.Derived(attacker).Power {
+		return false
+	}
 	if e.blockRestricted(blocker, attacker) {
 		return false
 	}
@@ -578,18 +587,56 @@ func (e *Engine) goadMayAttack(id state.ObjID, defender state.PlayerID) bool {
 	return true
 }
 
+// staticGoaders returns the controllers of every live Mode$ Continuous
+// static with Goad$ True whose Affected$ spec matches o (CR 701.38b: a goad's
+// goader is the permanent's controller, so a static goad's goader is the
+// static's own controller). The static is a requirement, not a layer effect:
+// like every other S: restriction read by activeStatics it is re-derived on
+// demand from the current board (rebuilding on replay), so the goad ends when
+// the source leaves the battlefield, moves to another bearer, or an "as long
+// as" gate flips -- no lifetime bookkeeping. The Affected$ default is
+// Card.Self, mirroring staticEffects, so a Goad$ line without Affected$
+// fails closed to its own source rather than to every creature.
+//
+// Only the literal "True" is honoured; any other Goad$ value fails closed.
+// A granted static (AddStaticAbility$/StaticAbilities$ delivered by Clone or
+// Effect) is deliberately NOT expanded here -- those three corpus cards
+// (Mocking Doppelganger, Hot Pursuit, Immortal Obligation) stay un-goaded.
+func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
+	var out []state.PlayerID
+	for _, sv := range e.activeStatics("Continuous") {
+		if !strings.EqualFold(strings.TrimSpace(sv.Params["Goad"]), "True") {
+			continue
+		}
+		spec := sv.Params["Affected"]
+		if spec == "" {
+			spec = "Card.Self"
+		}
+		if !effects.MatchesSpecCtx(e.G, spec, o.ID, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		out = append(out, sv.Controller)
+	}
+	return out
+}
+
 func (e *Engine) hasActiveGoad(o *state.Object) bool {
 	for _, ge := range o.Goads {
 		if e.activeGoad(o, ge) {
 			return true
 		}
 	}
-	return false
+	return len(e.staticGoaders(o)) > 0
 }
 
 func (e *Engine) goadedBy(o *state.Object, p state.PlayerID) bool {
 	for _, ge := range o.Goads {
 		if ge.Player == p && e.activeGoad(o, ge) {
+			return true
+		}
+	}
+	for _, goader := range e.staticGoaders(o) {
+		if goader == p {
 			return true
 		}
 	}
@@ -1893,7 +1940,7 @@ func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
 		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike", "kw:Double Strike",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
-		"kw:Fear", "kw:Shadow", "kw:Horsemanship",
+		"kw:Fear", "kw:Shadow", "kw:Horsemanship", "kw:Skulk",
 		// kw:Boast (CR 702.142) has no K: keyword line: Forge marks a Boast
 		// ability with a `Boast$ True` parameter on the activated ability
 		// itself, so Face.Primitives never surfaces it and this explicit
