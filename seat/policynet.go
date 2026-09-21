@@ -22,7 +22,14 @@ package seat
 //     their scores are untrained, so the kind falls back to the default bot
 //     the moment no cast/ability/pass option is offered (and the default
 //     bot's tap gate and land drop keep answering every decision this bot
-//     delegates).
+//     delegates). ONE exception, the residual prior's inference half: when
+//     the model carries a positive bot-prior residual weight
+//     (Scorer.ResidualWeight, train.Config.ResidualInit), the default bot's
+//     own answer is marked (Option.BotPick) and admitted into the argmax
+//     even when it is a tap/land option — the untrained noise on those
+//     options must not outvote the bot's own action, or the prior's
+//     "starts at the bot baseline" contract breaks exactly on the decisions
+//     the head was never trained for.
 //
 // Every other decision kind delegates to the current default bot (NewBot,
 // same seed derivation) UNCHANGED — so the policy consumes no rng of its
@@ -30,6 +37,19 @@ package seat
 // no scorer, no cast/ability/pass option at priority) falls back too.
 // Deterministic: no wall clock, no map-iteration order in any answer; ties
 // break on option index everywhere.
+//
+// The residual prior at INFERENCE (the train/eval symmetry the L9b-fix2
+// follow-up review demanded): for a scored kind this bot first asks the
+// wrapped default bot the same question and marks its answer's options
+// (Option.BotPick) before scoring, so a model trained with a positive
+// ResidualInit scores the same contract it trained under and reproduces the
+// bot baseline unless the learned head overrides. Neither scored kind
+// consumes the default bot's rng (both answers are pure functions of the
+// offered options and the board facts), so the marking changes no rng
+// stream. With the prior inactive (ResidualWeight 0 — every checkpoint the
+// v1 schema carries) the mark is a no-op: scores and answers are exactly
+// the pre-wiring ones, and the residual is then honestly a train/eval-only
+// device with the ok==false delegation path as the deployed fallback.
 
 import (
 	"context"
@@ -89,26 +109,54 @@ func (b *PolicyNetBot) encode(v view.View, d *decision.Decision) (policynet.Stat
 }
 
 // Decide answers d: the two scored kinds above, the default bot for
-// everything else.
+// everything else. For a scored kind the wrapped default bot is asked FIRST
+// (its answer marks the residual prior's BotPick and is the fallback when
+// the scored surface cannot answer) — see the residual-prior paragraph
+// above for the determinism and no-op-when-inactive contract.
 func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
 	if scoredKind(&d) {
+		botIn, err := b.def.Decide(ctx, v, d)
+		if err != nil {
+			return decision.Intent{}, err
+		}
 		st, opts, ok := b.encode(v, &d)
 		if ok {
+			markBotPicks(&d, opts, botIn)
 			scores := b.scorer.Score(st, opts)
 			var in decision.Intent
-			var ok bool
+			var scored bool
 			switch d.Kind {
 			case decision.KAttackers:
-				in, ok = attackersFromScores(&d, scores)
+				in, scored = attackersFromScores(&d, scores)
 			case decision.KPriority:
-				in, ok = priorityFromScores(&d, scores)
+				in, scored = priorityFromScores(&d, opts, scores, b.scorer.ResidualWeight() > 0)
 			}
-			if ok {
+			if scored {
 				return in, nil
 			}
 		}
+		return botIn, nil
 	}
 	return b.def.Decide(ctx, v, d)
+}
+
+// markBotPicks sets Option.BotPick on every option whose Index the given
+// intent chose — the inference half of the residual prior's "the bot's own
+// answer" definition (loader.botPicks is the training half, from the label
+// corpus's bot candidate). Choices carry option Index values (rules/legal.go
+// builds every option with Index == its position and both bots answer in
+// those terms), so a membership set over the intent's choices is the whole
+// map. Deterministic: the map is only ever probed, never ranged.
+func markBotPicks(d *decision.Decision, opts []policynet.Option, in decision.Intent) {
+	picked := make(map[int]bool, len(in.Choices))
+	for _, c := range in.Choices {
+		picked[c] = true
+	}
+	for i := range opts {
+		if picked[d.Options[i].Index] {
+			opts[i].BotPick = true
+		}
+	}
 }
 
 // attackersFromScores turns the per-option scores into a legal attack
@@ -208,10 +256,16 @@ func attackersFromScores(d *decision.Decision, scores []float32) (decision.Inten
 // priorityFromScores turns the per-option scores into the scored cast
 // choice: argmax over the options the teacher's candidate space covered
 // (cast / ability / pass — searchprobe.Candidates' pool), ties on the
-// lowest option index. ok is false when the decision offers none of those —
-// the untrained-surface shape that delegates to the default bot (whose tap
-// gate and land drop then answer, as they do for every delegated kind).
-func priorityFromScores(d *decision.Decision, scores []float32) (decision.Intent, bool) {
+// lowest option index. When admitBotPicks is set (the residual prior is
+// active), an option marked BotPick — the wrapped default bot's own answer,
+// marked by markBotPicks — is admissible in the argmax EVEN when its Kind is
+// the untrained tap/land surface: with the prior on, the bot's own action
+// carries the prior and wins unless the head overrides it; without the
+// prior, the untrained surface stays excluded exactly as before. ok is
+// false when the decision offers none of those — the untrained-surface
+// shape that falls back to the already-computed default-bot answer (whose
+// tap gate and land drop answer, as they do for every delegated kind).
+func priorityFromScores(d *decision.Decision, opts []policynet.Option, scores []float32, admitBotPicks bool) (decision.Intent, bool) {
 	if len(d.Options) == 0 || len(scores) != len(d.Options) {
 		return decision.Intent{}, false
 	}
@@ -221,7 +275,9 @@ func priorityFromScores(d *decision.Decision, scores []float32) (decision.Intent
 		switch d.Options[i].Kind {
 		case "cast", "ability", "pass":
 		default:
-			continue
+			if !(admitBotPicks && opts[i].BotPick) {
+				continue
+			}
 		}
 		if best == -1 || scores[i] > bestScore {
 			best, bestScore = i, scores[i]

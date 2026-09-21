@@ -144,6 +144,7 @@ func Load(path string) ([]Example, Stats, error) {
 			return nil, stats, fmt.Errorf("label corpus record %d: decoding view: %w", stats.Records, err)
 		}
 		targets := optionTargets(&rec)
+		botPicks := botPicks(&rec)
 		ex := Example{
 			Pair:          rec.Pair,
 			GameIndex:     rec.GameIndex,
@@ -161,10 +162,30 @@ func Load(path string) ([]Example, Stats, error) {
 		for i := range rec.Options {
 			ex.Options[i] = EncodeOption(v, rec.Seat, rec.Kind, rec.Options[i], i, len(rec.Options))
 			ex.Options[i].Target = targets[i]
+			ex.Options[i].BotPick = botPicks[i]
 		}
 		out = append(out, ex)
 	}
 	return out, stats, nil
+}
+
+// botPicks marks the options the BOT's own answer contains (candidate
+// BotIndex, which the writer always emits first, so BotIndex is 0 by
+// construction — but the field is read rather than assumed, so a future
+// writer that reorders candidates cannot silently mark the wrong option).
+// An out-of-range index marks nothing. Deterministic: one pass over the
+// bot candidate's Choices, never a map.
+func botPicks(rec *labelRecord) []bool {
+	out := make([]bool, len(rec.Options))
+	if rec.BotIndex < 0 || rec.BotIndex >= len(rec.Candidates) {
+		return out
+	}
+	for _, j := range rec.Candidates[rec.BotIndex].Choices {
+		if j >= 0 && j < len(out) {
+			out[j] = true
+		}
+	}
+	return out
 }
 
 // optionTargets computes one OptionTarget per offered option. The teacher's

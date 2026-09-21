@@ -39,13 +39,30 @@ type Config struct {
 	Holdout    float64 // fraction of examples held out of the update, [0, 1)
 	Embed      int     // H, the shared embedding width
 	Hidden     int     // hidden layer width
+	Mode       policynet.LossMode
 	RankWeight float64
 	HuberDelta float64
+	// ResidualInit is the fixed weight of the bot-prior residual head
+	// (policynet.Model.ResidualW): an option the bot's own answer contains
+	// scores ResidualInit higher for the whole run, so with a positive value
+	// the model starts at the bot baseline and the learned head only supplies
+	// the overrides. 0 disables the residual (pure CE / hybrid / value). It is
+	// a PRIOR, never trained, so it cannot be decayed away by the loss.
+	ResidualInit float64
+	// Clip is the global-L2-norm cap applied to each batch's accumulated
+	// gradient before it is applied (<= 0 disables; the CLI default is 1).
+	Clip float64
 	// OverrideWeight multiplies every example whose label records a teacher
 	// override of the bot (Example.TeacherChoice != Example.BotIndex): the
 	// decisions that carry information. 1 means no reweighting, >1 up-weights
 	// the overrides, and <= 0 is treated as 1.
 	OverrideWeight float64
+	// ExtraW is the experimental per-option augmentation width (Option.Extra):
+	// 0 reproduces the shipped encoder geometry byte for byte; a feature-family
+	// experiment sets it to the width of the augmentation it built. Such a
+	// model cannot be checkpointed (the format has no ExtraW field), which is
+	// deliberate -- it is a measurement vehicle, not a deployable scorer.
+	ExtraW int
 	// Log receives one line per epoch (nil discards).
 	Log io.Writer
 }
@@ -109,7 +126,14 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 		return nil, fmt.Errorf("policytrain: geometry embed %d hidden %d", cfg.Embed, cfg.Hidden)
 	case cfg.Holdout < 0 || cfg.Holdout >= 1:
 		return nil, fmt.Errorf("policytrain: holdout fraction %g outside [0,1)", cfg.Holdout)
+	case cfg.ResidualInit < 0:
+		return nil, fmt.Errorf("policytrain: residual init %g < 0 (a positive bot-prior weight is the residual; 0 disables)", cfg.ResidualInit)
 	}
+	mode, err := policynet.ParseLossMode(string(cfg.Mode))
+	if err != nil {
+		return nil, fmt.Errorf("policytrain: %v", err)
+	}
+	cfg.Mode = mode
 
 	// Examples with no labelled option cannot contribute to either loss
 	// term; drop them up front and count them.
@@ -138,9 +162,10 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 	rng := rand.New(rand.NewPCG(uint64(cfg.Seed), 0x9E3779B97F4A7C15^uint64(cfg.Seed)))
 	sp := splitCorpus(usable, cfg.Holdout, rng)
 
-	model := policynet.NewModel(policynet.TableRows, cfg.Embed, cfg.Hidden, rng)
+	model := policynet.NewModelExtra(policynet.TableRows, cfg.Embed, cfg.Hidden, cfg.ExtraW, rng)
+	model.ResidualW = float32(cfg.ResidualInit)
 	grads := model.NewGrads()
-	lc := policynet.LossConfig{HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight}
+	lc := policynet.LossConfig{Mode: cfg.Mode, HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight}
 
 	res := &Result{Model: model, TrainN: len(sp.train), HoldoutN: len(sp.hold), Skipped: skipped}
 	order := make([]int, len(sp.train))
@@ -165,6 +190,9 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 						agree++
 					}
 				}
+			}
+			if cfg.Clip > 0 {
+				grads.Clip(cfg.Clip)
 			}
 			model.ApplyGrads(grads, float32(cfg.LR/float64(end-base)))
 			sum += batchLoss / float64(end-base)

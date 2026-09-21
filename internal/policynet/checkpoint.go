@@ -30,14 +30,19 @@ import (
 //	float32 × hidden          HidB
 //	float32 × hidden          OutW
 //	float32 × 1               OutB
+//	float32 × 1               ResidualW (schema version 2+)
 //
 // The loader rejects a wrong magic, an unknown version, an encoder-hash
 // mismatch, a geometry that does not match the encoder contract (rows must
 // be TableRows; the dense/slot widths are encoder constants) and a truncated
 // or overlong body.
+//
+// Schema version 2 appends ResidualW (the bot-prior residual weight).
+// Version 1 checkpoints are refused rather than silently loaded with
+// ResidualW 0: the version bump is the tripwire that says the body grew.
 const (
 	CheckpointMagic   = "GPOL"
-	CheckpointVersion = 1
+	CheckpointVersion = 2
 )
 
 // EncoderHash is the encoder contract's golden hash id: a FNV-1a 64 over
@@ -113,7 +118,7 @@ func WriteCheckpoint(m *Model, w io.Writer) error {
 			return err
 		}
 	}
-	for _, block := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW, {m.OutB}} {
+	for _, block := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW, {m.OutB}, {m.ResidualW}} {
 		if err := writeFloats(bw, block); err != nil {
 			return err
 		}
@@ -216,6 +221,7 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 		{"hidden bias", hidden, func(fs []float32) { m.HidB = fs }},
 		{"output", hidden, func(fs []float32) { m.OutW = fs }},
 		{"output bias", 1, func(fs []float32) { m.OutB = fs[0] }},
+		{"residual weight", 1, func(fs []float32) { m.ResidualW = fs[0] }},
 	}
 	for _, blk := range blocks {
 		fs, err := readFloats(br, blk.n)

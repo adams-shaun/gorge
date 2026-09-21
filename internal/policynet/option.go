@@ -26,11 +26,38 @@ type Option struct {
 	Hashed []Feature
 	// Dense is the fixed 24-wide scalar vector documented at EncodeOption.
 	Dense []float32
+	// Extra is an EXPERIMENTAL per-option dense augmentation appended after
+	// Dense in the hidden-layer input. It is NOT produced by EncodeOption and
+	// NOT part of the pinned encoder geometry (EncoderHash and the golden
+	// encodings are unchanged): it exists so a feature-family experiment can
+	// extend an option's input without moving the shipped encoder. A model
+	// trained with a non-zero ExtraW cannot be checkpointed (WriteCheckpoint
+	// has no field for the width) and must not be: it is a measurement
+	// vehicle, not a deployable scorer.
+	Extra []float32
 	// Target is the per-option label target: the candidate value when the
 	// teacher evaluated an answer containing this option, the
 	// teacher-preferred mask, and the unlabelled flag. Zero value =
 	// unlabelled, never silently zero-valued.
 	Target OptionTarget
+	// BotPick is true when this option is part of the BOT's own answer for
+	// the decision: at TRAINING time the loader marks the label record's bot
+	// candidate's Choices (candidate BotIndex — the writer emits the bot's
+	// answer first, Example.BotIndex == 0 by construction); at INFERENCE the
+	// seat's PolicyNetBot marks the wrapped default bot's own answer for the
+	// same decision (seat.markBotPicks), so a model trained with a positive
+	// residual prior scores under the contract it trained under. It is the
+	// training/inference-side "bot score" the residual head adds at a fixed
+	// weight (Model.ResidualW): with a large prior the model starts at the
+	// bot baseline, so reproducing the bot costs nothing and capacity goes
+	// to the overrides. It is NOT part of the encoded feature geometry — it
+	// is not in Slots/Dense — so it never moves EncoderHash; the checkpoint
+	// schema version is what carries the residual weight (a v1 checkpoint is
+	// refused, not silently loaded; until a checkpoint carries a non-zero
+	// weight the prior is a train/eval device and the deployed fallback is
+	// the delegation path). Set by the loader and the seat's Decide, never by
+	// EncodeOption.
+	BotPick bool
 }
 
 // OptionTarget is one option's training target from the label record.
