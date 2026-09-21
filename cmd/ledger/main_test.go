@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // A lane's meaning depends entirely on counting LEAVES. A parent test that
@@ -253,4 +254,118 @@ func TestIssueEntriesWhereIsRelativeToAnAbsoluteRoot(t *testing.T) {
 	if want := ".ds4/issues/fb-abs.md"; got[0].Where != want {
 		t.Fatalf("Where = %q, want %q (relative to the root, never absolute)", got[0].Where, want)
 	}
+}
+
+// Priority and dependency paths (2026-09-15). A ledger row is a work item, and
+// a reader deciding what to do next needs two things the files already imply
+// but the ledger never surfaced: how urgent the item is, and what is actually
+// holding it up. Depends-On lines live in the issue BODY, not the frontmatter.
+
+func TestIssueEntriesReadsPriorityWithADefault(t *testing.T) {
+	dir := t.TempDir()
+	writeIssue(t, dir, "a.md", "---\nid: p1\ntitle: urgent\nstatus: new\npriority: 1\n---\n## Report\nx\n")
+	writeIssue(t, dir, "b.md", "---\nid: nop\ntitle: unset\nstatus: new\n---\n## Report\nx\n")
+	writeIssue(t, dir, "c.md", "---\nid: junk\ntitle: bad\nstatus: new\npriority: not-a-number\n---\n## Report\nx\n")
+	got, err := issueEntries(dir, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	by := map[string]Entry{}
+	for _, e := range got {
+		by[e.ID] = e
+	}
+	if by["issue-p1"].Priority != 1 {
+		t.Errorf("explicit priority = %d, want 1", by["issue-p1"].Priority)
+	}
+	if by["issue-nop"].Priority != defaultPriority {
+		t.Errorf("missing priority = %d, want the %d default", by["issue-nop"].Priority, defaultPriority)
+	}
+	if by["issue-junk"].Priority != defaultPriority {
+		t.Errorf("unparseable priority = %d, want the %d default", by["issue-junk"].Priority, defaultPriority)
+	}
+}
+
+func TestIssueEntriesRecordsTheDependencyPathToTheRootBlocker(t *testing.T) {
+	dir := t.TempDir()
+	// c depends on b, b depends on a; a is still open, so c is blocked through b.
+	writeIssue(t, dir, "a.md", "---\nid: a\ntitle: root\nstatus: dispatched\n---\n## Report\nwork\n")
+	writeIssue(t, dir, "b.md", "---\nid: b\ntitle: middle\nstatus: new\n---\n## Report\nDepends-On: a\n")
+	writeIssue(t, dir, "c.md", "---\nid: c\ntitle: leaf\nstatus: new\n---\n## Report\nDepends-On: b\n")
+	// d's dependency is already merged, so nothing blocks it.
+	writeIssue(t, dir, "m.md", "---\nid: m\ntitle: done\nstatus: merged\ncommits: abc123\n---\n## Report\nx\n")
+	writeIssue(t, dir, "d.md", "---\nid: d\ntitle: free\nstatus: new\n---\n## Report\nDepends-On: m\n")
+	got, err := issueEntries(dir, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	by := map[string]Entry{}
+	for _, e := range got {
+		by[e.ID] = e
+	}
+	if want := []string{"b"}; !equalStrings(by["issue-c"].DependsOn, want) {
+		t.Errorf("c DependsOn = %v, want %v", by["issue-c"].DependsOn, want)
+	}
+	if want := []string{"b"}; !equalStrings(by["issue-c"].BlockedBy, want) {
+		t.Errorf("c BlockedBy = %v, want %v", by["issue-c"].BlockedBy, want)
+	}
+	if want := []string{"c", "b", "a"}; !equalStrings(by["issue-c"].DependencyPath, want) {
+		t.Errorf("c DependencyPath = %v, want %v", by["issue-c"].DependencyPath, want)
+	}
+	if len(by["issue-d"].BlockedBy) != 0 {
+		t.Errorf("d BlockedBy = %v, want none (dependency merged)", by["issue-d"].BlockedBy)
+	}
+	if len(by["issue-d"].DependencyPath) != 0 {
+		t.Errorf("d DependencyPath = %v, want none", by["issue-d"].DependencyPath)
+	}
+	if len(by["issue-a"].DependsOn) != 0 {
+		t.Errorf("a DependsOn = %v, want none", by["issue-a"].DependsOn)
+	}
+}
+
+func TestIssueEntriesSurvivesADependencyCycle(t *testing.T) {
+	dir := t.TempDir()
+	writeIssue(t, dir, "x.md", "---\nid: x\ntitle: x\nstatus: new\n---\n## Report\nDepends-On: y\n")
+	writeIssue(t, dir, "y.md", "---\nid: y\ntitle: y\nstatus: new\n---\n## Report\nDepends-On: x\n")
+	done := make(chan []Entry, 1)
+	go func() {
+		got, err := issueEntries(dir, dir)
+		if err != nil {
+			t.Error(err)
+		}
+		done <- got
+	}()
+	select {
+	case got := <-done:
+		for _, e := range got {
+			if len(e.DependencyPath) > 4 {
+				t.Errorf("%s DependencyPath = %v, want the walk to stop at the cycle", e.ID, e.DependencyPath)
+			}
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("issueEntries hung on a dependency cycle")
+	}
+}
+
+func TestIssueEntriesNamesAMissingDependency(t *testing.T) {
+	dir := t.TempDir()
+	writeIssue(t, dir, "g.md", "---\nid: g\ntitle: g\nstatus: new\n---\n## Report\nDepends-On: nosuch\n")
+	got, err := issueEntries(dir, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"nosuch"}; !equalStrings(got[0].BlockedBy, want) {
+		t.Errorf("BlockedBy = %v, want %v (an unknown dependency blocks, it does not vanish)", got[0].BlockedBy, want)
+	}
+}
+
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

@@ -37,6 +37,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -49,6 +50,19 @@ type Entry struct {
 	Title       string `json:"title"`
 	Where       string `json:"where"`
 	Disposition string `json:"disposition"`
+	// Priority orders the work: 1 is most urgent, defaultPriority when a file
+	// says nothing. Only issue rows carry one; lane and approximation rows
+	// leave it zero, which sorts ahead of nothing and is ignored by readers.
+	Priority int `json:"priority,omitempty"`
+	// DependsOn is every id this item declares a Depends-On line for.
+	// BlockedBy is the subset still open (an unknown id blocks too -- a
+	// dependency nobody can find is not a satisfied one). DependencyPath is
+	// this item followed by the chain of still-open dependencies down to the
+	// root blocker, so a reader sees WHY an item cannot start, not just that
+	// it cannot. Empty on an unblocked item.
+	DependsOn      []string `json:"depends_on,omitempty"`
+	BlockedBy      []string `json:"blocked_by,omitempty"`
+	DependencyPath []string `json:"dependency_path,omitempty"`
 }
 
 // Ledger is the whole document the dashboard reads.
@@ -151,7 +165,18 @@ func issueEntries(dir, root string) ([]Entry, error) {
 		}
 		return nil, err
 	}
-	var out []Entry
+	// First pass: every issue's status and declared dependencies, so the second
+	// pass can resolve a chain. A dependency path cannot be computed from one
+	// file alone -- it needs the whole set.
+	type issueFile struct {
+		path string
+		fm   map[string]string
+		body string
+	}
+	var files []issueFile
+	closed := map[string]bool{}
+	known := map[string]bool{}
+	deps := map[string][]string{}
 	for _, fi := range fis {
 		if fi.IsDir() || !strings.HasSuffix(fi.Name(), ".md") {
 			continue
@@ -166,6 +191,29 @@ func issueEntries(dir, root string) ([]Entry, error) {
 		if id == "" {
 			continue // a malformed file in a human drop zone is skipped, not fatal
 		}
+		files = append(files, issueFile{p, fm, string(b)})
+		known[id] = true
+		closed[id] = fm["status"] == "merged" || fm["status"] == "superseded"
+		deps[id] = dependsOn(string(b))
+	}
+
+	// blockers returns the dependencies of id that are not closed. An id no
+	// file declares counts as blocking: a dependency nobody can find is not a
+	// satisfied one, and saying so is how a typo gets noticed.
+	blockers := func(id string) []string {
+		var out []string
+		for _, d := range deps[id] {
+			if !known[d] || !closed[d] {
+				out = append(out, d)
+			}
+		}
+		return out
+	}
+
+	var out []Entry
+	for _, f := range files {
+		p, fm := f.path, f.fm
+		id := fm["id"]
 		e := Entry{
 			// The issue- prefix keeps a report out of the way of lane-test names
 			// and approx-NN ids, so the caller's dedup map needs no change.
@@ -174,6 +222,33 @@ func issueEntries(dir, root string) ([]Entry, error) {
 			Title:  strings.Join(strings.Fields(fm["title"]), " "),
 			Where:  issueWhere(p, root),
 			Status: "open",
+		}
+		e.Priority = defaultPriority
+		if v := strings.TrimSpace(fm["priority"]); v != "" {
+			if n, err := strconv.Atoi(v); err == nil {
+				e.Priority = n
+			}
+		}
+		e.DependsOn = deps[id]
+		e.BlockedBy = blockers(id)
+		if len(e.BlockedBy) > 0 {
+			// Walk the first unmet blocker down to the root, stopping on a
+			// repeat so a dependency cycle terminates instead of hanging.
+			seen := map[string]bool{id: true}
+			path := []string{id}
+			for cur := e.BlockedBy[0]; ; {
+				path = append(path, cur)
+				if seen[cur] {
+					break
+				}
+				seen[cur] = true
+				next := blockers(cur)
+				if len(next) == 0 {
+					break
+				}
+				cur = next[0]
+			}
+			e.DependencyPath = path
 		}
 		// merged -> closed; every other value -> open. A human_needed defect is
 		// still an UNFIXED defect — it needs a human, which is what the
@@ -244,6 +319,33 @@ func frontmatter(s string) map[string]string {
 			continue
 		}
 		out[strings.TrimSpace(l[:i])] = strings.TrimSpace(l[i+1:])
+	}
+	return out
+}
+
+// defaultPriority is what an issue file with no (or an unparseable) priority
+// line gets: the middle of the 1..5 band, so an unprioritised item neither
+// jumps the queue nor sinks below everything that was triaged.
+const defaultPriority = 3
+
+// dependsOnLine matches the Depends-On line the daemon already honours
+// (orchestrator/daemon.py `_unmet_dependency`). It lives in the issue BODY --
+// inbox tickets carry it in the report, triage copies it into the brief -- so
+// it is parsed from the whole file, not from the frontmatter.
+var dependsOnLine = regexp.MustCompile(`(?mi)^[ \t]*Depends-On:[ \t]*(.+)$`)
+
+func dependsOn(body string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, m := range dependsOnLine.FindAllStringSubmatch(body, -1) {
+		for _, part := range strings.Split(m[1], ",") {
+			id := strings.TrimSpace(part)
+			if id == "" || seen[id] {
+				continue
+			}
+			seen[id] = true
+			out = append(out, id)
+		}
 	}
 	return out
 }
