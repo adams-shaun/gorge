@@ -1,0 +1,236 @@
+// Life-total trigger modes.
+//
+// Mode$ LifeLost, LifeLostAll and LifeGained.
+//
+// Split out of trigger_match.go so tickets touching different modes stop
+// colliding on one file. Registration is at the bottom; a duplicate mode
+// panics (registerTrigMatcher).
+
+package rules
+
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// lifeLoss names the player and positive magnitude of an event that lowers a
+// player's life total. Damage to a player and a negative LifeChange are both
+// loss of life; damage to an object is not.
+func lifeLoss(ev events.Event) (state.PlayerID, int32, bool) {
+	switch ev.Kind {
+	case events.Damage:
+		if ev.Obj == 0 && ev.Amount > 0 {
+			return ev.Player, ev.Amount, true
+		}
+	case events.LifeChange:
+		if ev.Amount < 0 {
+			return ev.Player, -ev.Amount, true
+		}
+	}
+	return 0, 0, false
+}
+
+// lifeGain names the player and positive magnitude of an event that raises a
+// player's life total (the mirror of lifeLoss). Damage can only lower life,
+// so only a positive LifeChange qualifies.
+func lifeGain(ev events.Event) (state.PlayerID, int32, bool) {
+	if ev.Kind == events.LifeChange && ev.Amount > 0 {
+		return ev.Player, ev.Amount, true
+	}
+	return 0, 0, false
+}
+
+// lifeLostMatches implements Mode$ LifeLost and LifeLostAll. LifeLost sees
+// each losing player. LifeLostAll is deferred by Begin/EndLifeLossBatch and
+// matches exactly once after adding every serialized loss for each player in
+// the simultaneous group. A combat assignment may serialize two one-damage
+// hits to one player, but that player lost two life in the one event.
+func (e *Engine) lifeLostMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	ctrl := e.controllerOf(source)
+	if t.Mode == "LifeLostAll" && e.finishingLifeLossBatch {
+		amounts := make([]int32, len(e.G.Players))
+		for _, be := range e.lifeLossBatch {
+			p, amount, ok := lifeLoss(be)
+			if ok && int(p) < len(amounts) {
+				amounts[p] += amount
+			}
+		}
+		matched := false
+		for p, amount := range amounts {
+			if amount == 0 {
+				continue
+			}
+			player := state.PlayerID(p)
+			if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, player, ctrl) {
+				continue
+			}
+			if v := t.Params["ValidAmountEach"]; v != "" && !compareLife(amount, v) {
+				return false
+			}
+			matched = true
+		}
+		return matched
+	}
+	p, amount, ok := lifeLoss(ev)
+	if !ok {
+		return false
+	}
+	if v, ok := t.Params["ValidPlayer"]; ok && !effects.MatchesPlayerSpec(e.G, v, p, ctrl) {
+		return false
+	}
+	if v, ok := t.Params["ValidAmountEach"]; ok && !compareLife(amount, v) {
+		return false
+	}
+	// On LifeLost, LifeAmount$ describes the amount just lost, not the
+	// LifeTotal$ intervening-if grammar used by other trigger modes.
+	if v := t.Params["LifeAmount"]; v != "" && !compareLife(amount, v) {
+		return false
+	}
+	if strings.EqualFold(t.Params["PlayerTurn"], "True") && e.G.Active != ctrl {
+		return false
+	}
+	if v := t.Params["ValidCause"]; v != "" && !e.lifeLossCauseMatches(v, ctrl) {
+		return false
+	}
+	if strings.EqualFold(t.Params["FirstTime"], "True") && !e.firstLifeLossThisTurn(p) {
+		return false
+	}
+	return true
+}
+
+// lifeGainedMatches implements Mode$ LifeGained ("whenever you gain life",
+// 99 raw corpus carrier files over 91 blocked cards; Prize Pig's ribbon
+// payoff is the pin): the event is a LifeChange with a POSITIVE Amount.
+// Damage can only lower life, so unlike LifeLost there is no damage arm --
+// a Damage event never gains life. ValidPlayer$ names the gainer (the same
+// MatchesPlayerSpec read lifeLostMatches uses); ValidAmountEach$ and
+// LifeAmount$ compare the gained magnitude the same way their LifeLost
+// twins do (On LifeGained, LifeAmount$ is likewise the amount just gained).
+// PlayerTurn$ True and FirstTime$ True mirror the gates lifeLostMatches
+// implements: PlayerTurn$ (5 corpus lines) fires only during the source
+// controller's turn; FirstTime$ (8 lines over 7 files, e.g. Attended Healer's
+// "for the first time each turn") admits only the FIRST life-gain event of
+// that player this turn. Both are additionally covered by the generic
+// actionTriggerModes gates (PlayerTurn$ at queue time, ActivationLimit$),
+// since the mode joined that set.
+func (e *Engine) lifeGainedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.LifeChange || ev.Amount <= 0 {
+		return false
+	}
+	p := ev.Player
+	if int(p) < 0 || int(p) >= len(e.G.Players) {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidPlayer"]; ok && !effects.MatchesPlayerSpec(e.G, v, p, ctrl) {
+		return false
+	}
+	if v, ok := t.Params["ValidAmountEach"]; ok && !compareLife(ev.Amount, v) {
+		return false
+	}
+	if v := t.Params["LifeAmount"]; v != "" && !compareLife(ev.Amount, v) {
+		return false
+	}
+	if strings.EqualFold(t.Params["PlayerTurn"], "True") && e.G.Active != ctrl {
+		return false
+	}
+	if strings.EqualFold(t.Params["FirstTime"], "True") && !e.firstLifeGainThisTurn(p) {
+		return false
+	}
+	return true
+}
+
+// lifeLossCauseMatches recognizes the spell/ability cause grammar carried by
+// LifeLost triggers. Events intentionally do not encode an extra source field,
+// so a synchronous trigger read uses the Engine's in-flight resolving source;
+// it is set around every stack resolution and cleared afterward, and thus
+// replay derives the same answer. Combat damage is a creature cause, not a
+// SpellAbility cause.
+func (e *Engine) lifeLossCauseMatches(spec string, you state.PlayerID) bool {
+	if e.combatDamaging || e.damaging == 0 {
+		return false
+	}
+	cause := e.G.Obj(e.damaging)
+	if cause == nil {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
+		if base != "SpellAbility" {
+			continue
+		}
+		if !qualified || qualifier == "" {
+			return true
+		}
+		switch qualifier {
+		case "YouCtrl":
+			if cause.Controller == you {
+				return true
+			}
+		case "OppCtrl":
+			if cause.Controller != you {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// firstLifeLossThisTurn is true only for the newest life-loss event of p in
+// the current turn. TurnChange is the logged reset boundary for every other
+// per-turn fact, so scanning back to it is replay-stable and cannot leak a
+// mutable counter across Clone.
+func (e *Engine) firstLifeLossThisTurn(p state.PlayerID) bool {
+	seenCurrent := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		q, _, ok := lifeLoss(ev)
+		if !ok || q != p {
+			continue
+		}
+		if seenCurrent {
+			return false
+		}
+		seenCurrent = true
+	}
+	return seenCurrent
+}
+
+// firstLifeGainThisTurn is the LifeGained mirror of firstLifeLossThisTurn:
+// true only for the newest life-GAIN event of p in the current turn, so a
+// FirstTime$ True trigger (8 corpus lines) admits exactly the first gain of
+// that player's turn. Same replay-stable log scan, no mutable counter.
+func (e *Engine) firstLifeGainThisTurn(p state.PlayerID) bool {
+	seenCurrent := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		q, _, ok := lifeGain(ev)
+		if !ok || q != p {
+			continue
+		}
+		if seenCurrent {
+			return false
+		}
+		seenCurrent = true
+	}
+	return seenCurrent
+}
+
+func init() {
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.lifeLostMatches(t, source, ev)
+	}, "LifeLost", "LifeLostAll")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.lifeGainedMatches(t, source, ev)
+	}, "LifeGained")
+}

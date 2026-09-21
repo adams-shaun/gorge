@@ -685,81 +685,102 @@ func (s *scan) collectAliases(body *ast.BlockStmt, fi *fnInfo, otherAliases, loc
 	})
 }
 
-// scanDispatchSwitch derives the trigger Mode$ dispatch from
-// Engine.triggerMatches' switch: case literal -> the callee the case body
-// calls. Hand-listing the mode functions here would be exactly the hand list
-// this census must not keep.
+// scanDispatchSwitch derives the trigger Mode$ dispatch from the
+// registerTrigMatcher calls the per-mode trigmatch_*.go files make: mode
+// literal -> the matcher registered for it. It used to read Engine.
+// triggerMatches' switch; that switch became a table when the modes were split
+// into their own files, so the same fact is now read from the registration.
+// Hand-listing the mode functions here would be exactly the hand list this
+// census must not keep.
+//
+// Two registration shapes carry a callee:
+//
+//	registerTrigMatcher((*Engine).zoneChangeMatches, "ChangesZone", ...)
+//	registerTrigMatcher(func(e *Engine, ...) bool { return e.attacksMatches(...) }, "Attacks")
+//
+// A func literal that calls nothing (Mode$ Always returns true inline) reads
+// only the shared set, exactly as its switch arm did.
 func (s *scan) scanDispatchSwitch(t *testing.T, fset *token.FileSet, fd *ast.FuncDecl, pkg string) {
-	if pkg != "rules" || fd.Recv == nil || fd.Name.Name != "triggerMatches" {
-		// Only triggerMatches' switch IS the mode dispatch; a switch on
-		// t.Mode elsewhere (e.g. trigger_referents' referent bindings) is not.
+	if pkg != "rules" {
 		return
 	}
 	ast.Inspect(fd.Body, func(n ast.Node) bool {
-		sw, ok := n.(*ast.SwitchStmt)
+		ce, ok := n.(*ast.CallExpr)
 		if !ok {
 			return true
 		}
-		tag, ok := sw.Tag.(*ast.SelectorExpr)
-		if !ok || tag.Sel.Name != "Mode" {
+		id, ok := ce.Fun.(*ast.Ident)
+		if !ok || id.Name != "registerTrigMatcher" || len(ce.Args) < 2 {
 			return true
 		}
-		if id, ok := tag.X.(*ast.Ident); !ok || id.Name != "t" {
-			return true
+		var modes []string
+		for _, a := range ce.Args[1:] {
+			if lit, ok := a.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				if v, err := strconv.Unquote(lit.Value); err == nil {
+					modes = append(modes, v)
+				}
+			}
 		}
-		for _, c := range sw.Body.List {
-			cc, ok := c.(*ast.CaseClause)
-			if !ok {
-				continue
+		if len(modes) == 0 {
+			s.failf(t, fset.Position(ce.Pos()), "registerTrigMatcher call names no mode literal")
+			return false
+		}
+		callee := trigMatcherCallee(ce.Args[0])
+		if callee == "" {
+			if len(modes) == 1 && modes[0] == "Always" {
+				// Always' matcher returns true inline; its reads are the
+				// shared set, as its switch arm's were.
+				return false
 			}
-			var modes []string
-			for _, e := range cc.List {
-				if lit, ok := e.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-					if v, err := strconv.Unquote(lit.Value); err == nil {
-						modes = append(modes, v)
-					}
-				}
+			s.failf(t, fset.Position(ce.Pos()), "registerTrigMatcher for %v names no local function", modes)
+			return false
+		}
+		for _, m := range modes {
+			if m != "Always" {
+				s.modeFns[m] = callee
 			}
-			if len(modes) == 0 {
-				continue
-			}
-			var callee string
-			ast.Inspect(cc, func(m ast.Node) bool {
-				if callee != "" {
-					return false
-				}
-				if ce, ok := m.(*ast.CallExpr); ok {
-					if sel, ok := ce.Fun.(*ast.SelectorExpr); ok {
-						if id, ok := sel.X.(*ast.Ident); ok && id.Name == "e" {
-							callee = "Engine." + sel.Sel.Name
-							return false
-						}
-					}
-					if id, ok := ce.Fun.(*ast.Ident); ok {
-						callee = id.Name
-						return false
-					}
-				}
-				return true
-			})
-			if callee == "" {
-				if len(modes) == 1 && modes[0] == "Always" {
-					// Always' arm sets matched = true inline; its reads are
-					// the shared set.
-					continue
-				}
-				s.failf(t, fset.Position(cc.Pos()), "trigger dispatch case %v calls no local function", modes)
-				continue
-			}
-			for _, m := range modes {
-				if m != "Always" { // Always' arm reads nothing mode-specific
-					s.modeFns[m] = callee
-				}
-				s.dispatchFns[callee] = true
-			}
+			s.dispatchFns[callee] = true
 		}
 		return false
 	})
+}
+
+// trigMatcherCallee names the matcher a registerTrigMatcher first argument
+// installs: the method of a method expression, or the first Engine method a
+// func literal calls.
+func trigMatcherCallee(arg ast.Expr) string {
+	// (*Engine).zoneChangeMatches
+	if sel, ok := arg.(*ast.SelectorExpr); ok {
+		if _, isParen := sel.X.(*ast.ParenExpr); isParen {
+			return "Engine." + sel.Sel.Name
+		}
+	}
+	fl, ok := arg.(*ast.FuncLit)
+	if !ok {
+		return ""
+	}
+	var callee string
+	ast.Inspect(fl.Body, func(m ast.Node) bool {
+		if callee != "" {
+			return false
+		}
+		ce, ok := m.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		if sel, ok := ce.Fun.(*ast.SelectorExpr); ok {
+			if id, ok := sel.X.(*ast.Ident); ok && id.Name == "e" {
+				callee = "Engine." + sel.Sel.Name
+				return false
+			}
+		}
+		if id, ok := ce.Fun.(*ast.Ident); ok {
+			callee = id.Name
+			return false
+		}
+		return true
+	})
+	return callee
 }
 
 // scanCall records package-local calls (with literal args for key

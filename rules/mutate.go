@@ -190,4 +190,5 @@ func init() {
 	// pile and the Mutates trigger all live in rules), and the trigger mode is
 	// registered so a Mode$ Mutates line no longer reports unsupported.
 	effects.RegisterNonAPI("kw:Mutate", "trig:Mutates")
+	registerTrigMatcher((*Engine).mutatesMatches, "Mutates")
 }

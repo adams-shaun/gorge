@@ -1,0 +1,761 @@
+// Combat trigger modes.
+//
+// Mode$ Attacks, AttackersDeclared(OneTarget), Blocks, AttackerBlocked(ByCreature),
+// AttackerUnblockedOnce, Exerted, DamageDone/DamageDealtOnce/DamageDoneOnce and
+// DamagePreventedOnce.
+//
+// Split out of trigger_match.go so tickets touching different modes stop
+// colliding on one file. Registration is at the bottom; a duplicate mode
+// panics (registerTrigMatcher).
+
+package rules
+
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// attacksMatches implements Mode$ Attacks against a DeclareAttackers event.
+// DeclareAttackers carries the attackers declared against ONE defending
+// player in one event (IDs; Task m34 emits one event per defender), so like
+// every other mode here it fires at most once per event -- a creature
+// attacking a single opponent therefore fires exactly once, in its own
+// defender's event.
+//
+// Alone$ True (Exalted's expansion, cards/keywords.go -- Ruling FL-48, which
+// was previously a known approximation here) gates the trigger to "exactly
+// one attacker declared this combat": Exalted must pump only a single lone
+// attacker, and with several declared it must not fire at all. Because this
+// fires once per event, the lone-attacker check is len(IDs)==1 and the rest
+// of the matching selects that one attacker against ValidCard.
+func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.DeclareAttackers {
+		return false
+	}
+	if strings.EqualFold(strings.TrimSpace(t.Params["Myriad"]), "True") {
+		// Myriad$ True is the myriad keyword expansion's own marker
+		// (cards/keywords.go addKeywordTrigger): the per-other-opponent token
+		// copies are the DB$ Myriad body, so the marker requires the
+		// trigger's Execute sub to resolve to exactly that body -- a
+		// mismatched or unresolvable expansion must not fire.
+		src := e.G.Obj(source)
+		if src == nil || src.Face() == nil {
+			return false
+		}
+		sa := cards.ResolveSVar(src.Face().SVars, t.Params["Execute"])
+		if sa == nil || sa.API != "Myriad" {
+			return false
+		}
+	}
+	if v, ok := t.Params["Alone"]; ok && strings.EqualFold(v, "True") && len(ev.IDs) != 1 {
+		return false
+	}
+	// Dethrone (CR 702.105) fires only when the attacked player has the
+	// greatest life total (tied is enough) among ALL players. Comparing only
+	// the attacker and its defender is wrong in multiplayer: a third player
+	// with more life prevents the trigger even though it was not attacked.
+	if v, ok := t.Params["Dethrone"]; ok && strings.EqualFold(v, "True") {
+		if int(ev.Player) >= len(e.G.Players) || e.G.Players[ev.Player].Lost {
+			return false
+		}
+		life := e.G.Players[ev.Player].Life
+		for i := range e.G.Players {
+			if !e.G.Players[i].Lost && e.G.Players[i].Life > life {
+				return false
+			}
+		}
+	}
+	// FirstAttack$ True (Aurelia the Warleader, Godo Bandit Warlord, Scourge
+	// of the Throne, Fear of Missing Out -- the four corpus carriers, all the
+	// plain True spelling) gates the trigger to the attacker's FIRST attack
+	// this turn (CR 603.2e's "for the first time each turn"). The count is
+	// event-folded state (Object.AttacksThisTurn, reset at TurnChange -- an
+	// extra combat inside the same turn does not reset it), and trigger
+	// matching runs on the FOLDED event, so the test is count == 1, never 0.
+	// A non-first attacker must not veto the match either: an event may name
+	// several attackers and another one may still be first.
+	spec, ok := t.Params["ValidCard"]
+	if !ok {
+		for _, id := range ev.IDs {
+			if id == source {
+				return e.firstAttackOK(t, id)
+			}
+		}
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	for _, id := range ev.IDs {
+		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, ctrl)) && e.firstAttackOK(t, id) {
+			return true
+		}
+	}
+	return false
+}
+
+// firstAttackOK reports whether the matched attacker passes the trigger's
+// FirstAttack$ gate (nil-safe: a trigger without the param always passes).
+func (e *Engine) firstAttackOK(t cards.Trigger, id state.ObjID) bool {
+	if v, ok := t.Params["FirstAttack"]; !ok || !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return true
+	}
+	o := e.G.Obj(id)
+	return o != nil && o.AttacksThisTurn == 1
+}
+
+// attackersDeclaredOneTargetMatches implements the "whenever [one or more]
+// creatures attack a player" trigger (Forge Mode$ AttackersDeclaredOneTarget)
+// and, routed to the same matcher, the batch "whenever you attack" trigger
+// (Forge Mode$ AttackersDeclared) -- both read the same per-defender
+// DeclareAttackers event the engine emits, and both admit exactly the same
+// trigger-level parameters (AttackingPlayer$, AttackedTarget$,
+// ValidAttackers$, ValidAttackersAmount$). handleAttackers emits one
+// DeclareAttackers event per defender, so this fires once for each attacked
+// player, not once for every attacker in that group. A batch AttackersDeclared
+// trigger therefore fires once per attacked player on a split attack (one
+// declare step, several events) -- the known limitation recorded in
+// AGENTS.md's approximations table, not silently.
+func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.DeclareAttackers || len(ev.IDs) == 0 {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	attacker := e.controllerOf(ev.IDs[0])
+	if v := t.Params["AttackingPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, attacker, ctrl) {
+		return false
+	}
+	if v := t.Params["AttackedTarget"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	matches := 0
+	for _, id := range ev.IDs {
+		if v := t.Params["ValidAttackers"]; v == "" || effects.MatchesSpecCtx(e.G, v, id, e.specCtx(source, ctrl)) {
+			matches++
+		}
+	}
+	if matches == 0 {
+		return false
+	}
+	if v := t.Params["ValidAttackersAmount"]; v != "" && !comparePresent(matches, v) {
+		return false
+	}
+	return true
+}
+
+// attackerBlockedCandidates lists the attackers one become-blocked trigger
+// fires for (Forge Mode$ AttackerBlocked; She-Hulk, Wallbreaker's "Whenever
+// a Hero you control becomes blocked"). A DeclareBlockers event's Pairs
+// name exactly the attacker-blocker assignments this defender's declaration
+// just made -- an attacker already carrying blockers is never re-paired, so
+// the declared pairs ARE the became-blocked transition, and a trigger fires
+// once per DISTINCT matching attacker (two Heroes blocked by one
+// declaration are two trigger instances, CR 603.2c). Deterministic order:
+// the event's own pair order, deduplicated.
+func (e *Engine) attackerBlockedCandidates(t cards.Trigger, source state.ObjID, ev events.Event) []state.ObjID {
+	if ev.Kind != events.DeclareBlockers || len(ev.Pairs) == 0 {
+		return nil
+	}
+	ctrl := e.controllerOf(source)
+	seen := map[state.ObjID]bool{}
+	var out []state.ObjID
+	for _, pr := range ev.Pairs {
+		a := pr[0]
+		if seen[a] {
+			continue
+		}
+		seen[a] = true
+		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, a, e.specCtx(source, ctrl)) {
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+// attackerBlockedByPairCandidates lists the (attacker, blocker) pairs one
+// Forge Mode$ AttackerBlockedByCreature trigger fires for (kw:Flanking's
+// expansion, CR 702.25a: "whenever this creature becomes blocked by a
+// creature without flanking"). Each declared pair whose ATTACKER is the
+// trigger's own source, matches ValidCard$, and whose blocker matches
+// ValidBlocker$ yields one instance; a blocker WITH flanking matches nothing,
+// so it debuffs nobody. ValidCard$ Card.Self works because the trigger's
+// source IS the flanking attacker. The sibling "blocks" half of Forge's mode
+// names the BLOCKER as its source and never reaches here (see the loop).
+func (e *Engine) attackerBlockedByPairCandidates(t cards.Trigger, source state.ObjID, ev events.Event) [][2]state.ObjID {
+	if ev.Kind != events.DeclareBlockers || len(ev.Pairs) == 0 {
+		return nil
+	}
+	ctrl := e.controllerOf(source)
+	var out [][2]state.ObjID
+	for _, pr := range ev.Pairs {
+		// The trigger's SOURCE must be the pair's ATTACKER. This hook binds the
+		// blocker as the remembered object, so it is only correct for the
+		// "becomes blocked" half of Forge's mode (kw:Flanking is its only live
+		// carrier). The sibling "blocks" half spells its source as the BLOCKER
+		// (ValidCard$ Creature | ValidBlocker$ Card.Self) and names the attacker
+		// in its body (Defined$ TriggeredAttackerLKICopy); queueing it here would
+		// resolve that referent to the remembered BLOCKER -- the source itself --
+		// and make the creature damage/lose life to itself. That half stays inert
+		// (role-correct referents need a second remembered slot, a separate task).
+		if pr[0] != source {
+			continue
+		}
+		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[0], e.specCtx(source, ctrl)) {
+			continue
+		}
+		if v := t.Params["ValidBlocker"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[1], e.specCtx(source, ctrl)) {
+			continue
+		}
+		out = append(out, pr)
+	}
+	return out
+}
+
+// checkAttackerBlockedTriggers queues trigger instances off a DeclareBlockers
+// event for the two become-blocked modes the ordinary face scan cannot express
+// (it queues at most one entry per trigger per event, and both referents are
+// per-attacker or per-pair): Mode$ AttackerBlocked fires once per DISTINCT
+// matching blocked attacker (She-Hulk's counter count is each Hero's OWN
+// blocker count), and Forge Mode$ AttackerBlockedByCreature -- kw:Flanking's
+// expansion (CR 702.25a) is its only live carrier -- fires once per matching
+// (attacker, blocker) PAIR, the blocker remembered as the
+// TriggeredBlockerLKICopy referent. The same-scan-hook precedent is
+// checkChapterTriggers (rules/saga.go). The gates mirror the ordinary scan's
+// per-trigger sequence (zone, phase, fire-count bound, ActivationLimit$);
+// Secondary$ and the Once damage-batch gates do not exist on these modes.
+// Each per-instance ctx carries the triggering objects as Remembered and as
+// TriggerCard, so Count$Valid Creature.blockingTriggeredAttacker counts that
+// Hero's blockers and Defined$ TriggeredBlockerLKICopy names the blocker.
+func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
+	if ev.Kind != events.DeclareBlockers {
+		return
+	}
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil {
+			return
+		}
+		f := o.Face()
+		if f == nil {
+			return
+		}
+		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
+			return
+		}
+		for ti, t := range f.Triggers {
+			if t.Mode != "AttackerBlocked" && t.Mode != "AttackerBlockedByCreature" {
+				continue
+			}
+			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
+				continue
+			}
+			key := triggerKey{Source: id, Idx: ti}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue // cascade bound: see maxTriggerFires.
+			}
+			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			if t.Mode == "AttackerBlockedByCreature" {
+				// CR 702.25a: one instance per (attacker, blocker) pair; the
+				// trigger's controller is the ATTACKER's controller, which the
+				// Source/Controller pair already are (the source is the
+				// flanking attacker itself).
+				for _, pr := range e.attackerBlockedByPairCandidates(t, id, ev) {
+					if t.Effect == nil {
+						break
+					}
+					bid := pr[1]
+					e.triggerFireCount[key]++
+					e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+						Source:     id,
+						Controller: o.Controller,
+						Idx:        ti,
+						SA:         t.Effect,
+						Ctx: effects.Ctx{
+							Source:     id,
+							Controller: o.Controller,
+							Remembered: []state.Target{{Obj: bid}},
+							Captured:   []state.Target{{Obj: bid}},
+							TriggerContext: effects.TriggerContext{
+								TriggerCard:   bid,
+								TriggerSource: pr[0],
+							},
+						},
+					})
+				}
+				continue
+			}
+			for _, aid := range e.attackerBlockedCandidates(t, id, ev) {
+				if t.Effect == nil {
+					break
+				}
+				defender := pt(0)
+				if ao := e.G.Obj(aid); ao != nil {
+					defender = pt(ao.Attacking)
+				}
+				e.triggerFireCount[key]++
+				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+					Source:     id,
+					Controller: o.Controller,
+					Idx:        ti,
+					SA:         t.Effect,
+					Ctx: effects.Ctx{
+						Source:     id,
+						Controller: o.Controller,
+						Remembered: []state.Target{{Obj: aid}},
+						Captured:   []state.Target{{Obj: aid}},
+						TriggerContext: effects.TriggerContext{
+							TriggerCard:     aid,
+							TriggerSource:   aid,
+							AttackingPlayer: pt(e.controllerOf(aid)),
+							DefendingPlayer: defender,
+						},
+					},
+				})
+			}
+		}
+	})
+}
+
+// checkAttackerUnblockedOnceTriggers queues Mode$ AttackerUnblockedOnce
+// (Coveted Jewel's "Whenever one or more creatures an opponent controls attack
+// you and aren't blocked, that player draws three cards and gains control of
+// CARDNAME. Untap it."). It is a dedicated hook, like checkAttackerBlockedTriggers,
+// because the ordinary per-face scan cannot express it and the mode has no
+// triggerMatches case.
+//
+// It runs at the DECLARE-BLOCKERS ROUND COMPLETE instant (rules/turn.go's
+// StepDeclareBlockers completion branch), NOT per DeclareBlockers event: those
+// events are per-defender, and a defender with attackers but no legal blockers
+// is skipped with no event at all, so a per-event scan of battlefield-wide
+// unblocked attackers would see a later defender's not-yet-blocked attackers
+// as unblocked and latch the trigger wrongly early on a split attack. At the
+// completion instant every defender has answered (or been skipped), so the
+// battlefield's IsAttacking && no-BlockedBy objects are exactly the unblocked
+// attackers. The condition is evaluated once, here: an attacker that BECOMES
+// unblocked later (its blocker leaves combat, or a stat:AssignCombatDamageAsUnblocked
+// election) does not fire this trigger -- Forge checks at the end of declare
+// blockers too.
+//
+// Fire semantics (Forge's AttackerUnblockedOnce): ONE instance per trigger per
+// combat when at least one matching unblocked attacker exists -- "one or more
+// creatures ... and aren't blocked" -- even when several attackers match. The
+// latch (Engine.unblockedOnceFired) stamps (Turn, CombatsThisTurn) so an extra
+// combat re-arms it. The matching AttackingPlayer is the first matching
+// attacker's controller in the battlefield walk order.
+//
+// Gates mirror the AttackerBlocked hook's sequence (zone, phase, fire-count
+// bound, ActivationLimit$); ValidDefenders$ and ValidAttackingPlayer$ are the
+// two player specs this mode carries, both base-Player/You shapes
+// effects.MatchesPlayerSpec already evaluates. Secondary$ needs no yield: a
+// paired primary can never match a declare-blockers-derived condition.
+// OptionalDecider$ is not read -- no corpus carrier of the Once mode carries
+// it (the only carrier is Coveted Jewel).
+func (e *Engine) checkAttackerUnblockedOnceTriggers() {
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	stamp := combatFires{Turn: e.G.Turn, Combat: e.G.CombatsThisTurn}
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil {
+			return
+		}
+		f := o.Face()
+		if f == nil {
+			return
+		}
+		if !o.Unlocked && !e.faceMayTrigger(f, events.DeclareBlockers) {
+			return
+		}
+		for ti, t := range f.Triggers {
+			if t.Mode != "AttackerUnblockedOnce" {
+				continue
+			}
+			if t.Effect == nil {
+				continue
+			}
+			if !e.zoneGate(t, id, events.Event{Kind: events.DeclareBlockers}) || !e.phaseGate(t) {
+				continue
+			}
+			key := triggerKey{Source: id, Idx: ti}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue // cascade bound: see maxTriggerFires.
+			}
+			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			if e.unblockedOnceFired == nil {
+				e.unblockedOnceFired = map[triggerKey]combatFires{}
+			}
+			if e.unblockedOnceFired[key] == stamp {
+				continue // already fired this combat.
+			}
+
+			// Scan the battlefield for the unblocked attackers this trigger's
+			// defender is being attacked by, whose controller is an opponent of
+			// the trigger controller. The first match decides the fire; the
+			// matching attackers (in battlefield walk order) are remembered.
+			defenderSpec := t.Params["ValidDefenders"]
+			attackerSpec := t.Params["ValidAttackingPlayer"]
+			var attackerIDs []state.ObjID
+			for _, p := range e.G.AliveFrom(0) {
+				for _, bid := range e.G.Zone(state.ZBattlefield, p) {
+					b := e.G.Obj(bid)
+					if b == nil || !b.IsAttacking || len(b.BlockedBy) != 0 {
+						continue
+					}
+					if defenderSpec != "" && !effects.MatchesPlayerSpec(e.G, defenderSpec, b.Attacking, o.Controller) {
+						continue
+					}
+					if attackerSpec != "" && !effects.MatchesPlayerSpec(e.G, attackerSpec, e.controllerOf(bid), o.Controller) {
+						continue
+					}
+					attackerIDs = append(attackerIDs, bid)
+				}
+			}
+			if len(attackerIDs) == 0 {
+				continue
+			}
+			firstCtrl := e.controllerOf(attackerIDs[0])
+
+			remembered := make([]state.Target, 0, len(attackerIDs))
+			for _, aid := range attackerIDs {
+				remembered = append(remembered, state.Target{Obj: aid})
+			}
+			e.unblockedOnceFired[key] = stamp
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     id,
+				Controller: o.Controller,
+				Idx:        ti,
+				SA:         t.Effect,
+				Ctx: effects.Ctx{
+					Source:     id,
+					Controller: o.Controller,
+					Remembered: remembered,
+					Captured:   remembered,
+					TriggerContext: effects.TriggerContext{
+						TriggerCard:     attackerIDs[0],
+						TriggerSource:   attackerIDs[0],
+						AttackingPlayer: pt(firstCtrl),
+						DefendingPlayer: pt(o.Controller),
+					},
+				},
+			})
+		}
+	})
+}
+
+// blocksCandidates lists the (attacker, blocker) pairs one Forge Mode$ Blocks
+// trigger fires for (task trig:Blocks; Savvy Hunter's "Whenever Savvy Hunter
+// attacks or blocks", Heat of Battle's "Whenever a creature blocks", Wand of
+// Orcus' bearer half). Each declared pair is evaluated per pair -- one
+// instance per matching pair, exactly Forge's per-block-event firing --
+// because the trigger's matching object is the pair's BLOCKER, not the
+// trigger's own source: ValidCard$ is read against the blocker (Card.Self
+// names the source-as-blocker; Card.AttachedBy/EquippedBy/EnchantedBy name
+// the bearer via the existing attachedBy predicate; the bare Creature spec
+// is the global-enchantment shape that fires for a blocker that is NOT the
+// source), and ValidBlocked$ is read against the pair's ATTACKER (Goblin
+// Cadets' becomes-blocked spelling ValidCard$ Creature | ValidBlocked$
+// Card.Self). A blocker appears in exactly one pair per event (CR 509.1a's
+// one-blocker-one-attacker pairing; Submit's validateBlockers rejects the
+// same ordinary blocker against multiple attackers), so no dedup is needed.
+func (e *Engine) blocksCandidates(t cards.Trigger, source state.ObjID, ev events.Event) [][2]state.ObjID {
+	if ev.Kind != events.DeclareBlockers || len(ev.Pairs) == 0 {
+		return nil
+	}
+	ctrl := e.controllerOf(source)
+	var out [][2]state.ObjID
+	for _, pr := range ev.Pairs {
+		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[1], e.specCtx(source, ctrl)) {
+			continue
+		}
+		if v := t.Params["ValidBlocked"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[0], e.specCtx(source, ctrl)) {
+			continue
+		}
+		out = append(out, pr)
+	}
+	return out
+}
+
+// checkBlocksTriggers queues trigger instances off a DeclareBlockers event
+// for Forge Mode$ Blocks (trig:Blocks): "whenever [this creature] blocks" and
+// its enchantment/equipment/global shapes. The ordinary per-face scan cannot
+// express it -- it queues at most one entry per trigger per event, and the
+// mode's matching object is the pair's BLOCKER while its referents split
+// between the blocker and the attacker (Godsend's Blocks half reads
+// DefinedCards$ TriggeredAttackers; Wand of Orcus' half pumps
+// TriggeredBlockerLKICopy) -- so it rides the same dedicated hook as
+// checkAttackerBlockedTriggers, with one instance per matching PAIR. The
+// gates mirror the ordinary scan's per-trigger sequence (zone, phase,
+// fire-count bound, the actionTriggerModes guard shape kept so a future
+// ActivationLimit$/PlayerTurn$ carrier joins with a one-word mode-row
+// change -- measured, no Blocks line carries either today) PLUS the shared
+// condition gate triggerConditionHoldsAs, which the AttackerBlocked hook
+// omits but the corpus's IsPresent$/PresentCompare$ Blocks lines need.
+// Each per-instance ctx: the ATTACKER as Remembered/Captured (Godsend's
+// TriggeredAttackers pool), the attacker as TriggerCard/TriggerSource, the
+// blocker in the new TriggerBlocker role (TriggeredBlockerLKICopy), both
+// combat players, and Source/Controller = the trigger face's own
+// object/controller (the enchantment/equipment, not the blocker).
+// Secondary$ needs no yield here: a Blocks half's paired primary is an
+// Attacks trigger, which can never match the same DeclareBlockers event, so
+// the secondary always fires on its own (the AttackerBlocked hook skips
+// secondaryYields for the same reason).
+func (e *Engine) checkBlocksTriggers(ev events.Event) {
+	if ev.Kind != events.DeclareBlockers {
+		return
+	}
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil {
+			return
+		}
+		f := o.Face()
+		if f == nil {
+			return
+		}
+		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
+			return
+		}
+		for ti, t := range f.Triggers {
+			if t.Mode != "Blocks" {
+				continue
+			}
+			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
+				continue
+			}
+			if !e.triggerConditionHoldsAs(t, id, o.Controller) {
+				continue
+			}
+			key := triggerKey{Source: id, Idx: ti}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue // cascade bound: see maxTriggerFires.
+			}
+			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			for _, pr := range e.blocksCandidates(t, id, ev) {
+				if t.Effect == nil {
+					break
+				}
+				attacker := pr[0]
+				defender := pt(ev.Player)
+				e.triggerFireCount[key]++
+				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+					Source:     id,
+					Controller: o.Controller,
+					Idx:        ti,
+					SA:         t.Effect,
+					Ctx: effects.Ctx{
+						Source:     id,
+						Controller: o.Controller,
+						Remembered: []state.Target{{Obj: attacker}},
+						Captured:   []state.Target{{Obj: attacker}},
+						TriggerContext: effects.TriggerContext{
+							TriggerCard:     attacker,
+							TriggerSource:   attacker,
+							TriggerBlocker:  pr[1],
+							AttackingPlayer: pt(e.controllerOf(attacker)),
+							DefendingPlayer: defender,
+						},
+					},
+				})
+			}
+		}
+	})
+}
+
+// exertedMatches is the trig:Exerted half of CR 702.100 (task exert1 built the
+// election and the static's own Trigger$ rider; this is the separate "whenever
+// you exert a creature" listener a different script line carries). The event is
+// events.Exert: Obj is the permanent the controller exerted and Amount >= 0 is
+// the exert itself, while Amount == -1 is the untap-step consume marker
+// rules/turn.go's scan emits -- bookkeeping, never an exert, so it must not
+// fire. The exerted permanent is still on the battlefield at match time, so
+// ValidCard$ reads the live object against the trigger source's controller
+// ("you" = the listener's controller; all five corpus carriers write
+// Creature.YouCtrl). ValidPlayer$/ValidSource$ are not read: measured, none of
+// the five corpus lines carries either.
+func (e *Engine) exertedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Exert || ev.Amount < 0 {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	return true
+}
+
+func blockedAttackerIn(pairs [][2]state.ObjID, id state.ObjID) bool {
+	for _, pr := range pairs {
+		if pr[0] == id {
+			return true
+		}
+	}
+	return false
+}
+
+// damageMatches implements Mode$ DamageDone, DamageDealtOnce and
+// DamageDoneOnce (the once-per-damage-batch gate itself lives in
+// checkTriggers, alongside the cascade bound; this is purely the per-event
+// parameter match, shared by all three modes).
+func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Damage {
+		return false
+	}
+	// CombatDamage$ splits the mode between combat and noncombat damage
+	// (CR 702.1x: combat damage is what the combat damage step's attackers
+	// and blockers assign -- a DealDamage cast during that step is still not
+	// combat damage). events.Event deliberately carries no such flag -- its
+	// binary encoding is hash-chained and replayed -- so the distinction is
+	// e.combatDamaging (engine.go), set only around dealCombatDamage's
+	// assignment loop (combat.go) and read here synchronously inside emit's
+	// checkTriggers; replay rebuilds it by re-executing the same setter.
+	// CombatDamage$ False is the complement (16 corpus trigger lines): only
+	// noncombat damage, so an in-flight combat assignment fails it. Before
+	// the flag existed True returned false unconditionally (978 dead corpus
+	// trigger lines, Umezawa's Jitte among them) and False fell through and
+	// matched everything.
+	switch cd := t.Params["CombatDamage"]; {
+	case strings.EqualFold(cd, "True") && !e.combatDamaging:
+		return false
+	case strings.EqualFold(cd, "False") && e.combatDamaging:
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidSource"]; ok {
+		// The damage's source, in priority order:
+		//  1. an explicit published override (rules.Engine.SetDamageSource --
+		//     DamageSource$ names the PERMANENT that dealt it, never the
+		//     ability wrapper resolving it) -- authoritative whenever an
+		//     emitter set one, combat included.
+		//  2. during combat's assignment loop, e.damaging (the actual
+		//     attacker/blocker dealing this hit). The stack is USUALLY empty
+		//     during combat, but not always -- the between-passes priority
+		//     round (CR 510.3/4) can leave a first-strike trigger on the
+		//     stack while the regular pass deals (measured:
+		//     TestUmezawasJitteGainsChargeCountersPerDamageStep's bearer
+		//     deals in both passes with the first pass's trigger unresolved
+		//     on the stack) -- so combat damage must prefer e.damaging over
+		//     the stack top, or every ValidSource$ CombatDamage$ trigger
+		//     (Umezawa's Jitte's ValidSource$ Creature.EquippedBy among them)
+		//     goes dead for the second pass.
+		//  3. otherwise, the resolving spell or ability while it is the
+		//     stack top (damageSource).
+		src := e.dmgSrcOverride
+		if src == 0 {
+			if e.combatDamaging {
+				src = e.damaging
+			} else {
+				src = e.damageSource()
+			}
+		}
+		if src == 0 || !effects.MatchesSpecCtx(e.G, v, src, e.specCtx(source, ctrl)) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidTarget"]; ok {
+		if ev.Obj != 0 {
+			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+				return false
+			}
+		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
+			return false
+		}
+	}
+	return true
+}
+
+// damagePreventedMatches implements Mode$ DamagePreventedOnce (task dponce1):
+// the trigger fires on a STORED prevention Note -- the re-entrant Note the
+// full-prevention replacement arm (rules/replacement.go
+// applyNonMoveReplacements) and the ReplaceDamage/protection siblings emit
+// when damage is prevented. The Note carries the prevented damage in Amount
+// (0 for Fog's whole-pass statement, which is deliberately excluded -- a
+// whole-turn statement is not "damage that would be dealt to you is
+// prevented") and names the damaged side in Obj/Player exactly like the
+// DamageDone trigger's event does, so ValidTarget$ reads the same grammar:
+// the damaged object when the hit was object-directed, the damaged player
+// otherwise. There is no Once latch: each stored prevention Note is one
+// occurrence, so two prevented hits in one turn fire twice, each with its
+// own amount.
+func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Note || ev.Amount <= 0 {
+		return false
+	}
+	if !strings.Contains(strings.ToLower(ev.Text), "prevent") {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidTarget"]; ok {
+		if ev.Obj != 0 {
+			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+				return false
+			}
+		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
+			return false
+		}
+	}
+	return true
+}
+
+// damageSource identifies who dealt a just-emitted Damage event, for
+// ValidSource$ matching. events.Event carries no explicit source field for
+// Damage -- every Damage event this build emits (effects/damage.go's
+// DealDamage/DamageAll) comes from a primitive running inside Resolve,
+// called only from resolveTop while the resolving spell or ability is still
+// the top of the stack (resolveTop pops it only after Resolve returns), so
+// the current stack top is that source for every code path this build has
+// today. Two overrides win over the stack top, both rebuilt by replay
+// because replay re-executes the same setter: the published damage-source
+// override (rules.Engine.SetDamageSource -- DamageSource$ and the unwrapped
+// ability source, so a ValidSource$ trigger matches the PERMANENT that dealt
+// it, never the ability wrapper the stack top names) and the dealing
+// creature during combat's assignment loop (e.damaging). Any Damage emission
+// outside ability resolution would need Event to carry an explicit source
+// instead of relying on this.
+func (e *Engine) damageSource() state.ObjID {
+	if e.dmgSrcOverride != 0 {
+		return e.dmgSrcOverride
+	}
+	if len(e.G.Stack) == 0 {
+		return 0
+	}
+	return e.G.Stack[len(e.G.Stack)-1]
+}
+
+func init() {
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.attacksMatches(t, source, ev)
+	}, "Attacks")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.attackersDeclaredOneTargetMatches(t, source, ev)
+	}, "AttackersDeclared", "AttackersDeclaredOneTarget")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.exertedMatches(t, source, ev)
+	}, "Exerted")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.damageMatches(t, source, ev)
+	}, "DamageDone", "DamageDealtOnce", "DamageDoneOnce")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.damagePreventedMatches(t, source, ev)
+	}, "DamagePreventedOnce")
+}
