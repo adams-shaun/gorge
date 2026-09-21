@@ -1013,17 +1013,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				eligible = append(eligible, id)
 			}
 		}
-		// manaValue is the offered card's own mana value -- the same Face().Cmc
-		// read state.SacrificedInfoOf uses -- and affordable says whether that
-		// card may be picked at all under WithTotalCMC$: a card whose own mana
-		// value exceeds the budget can never fit, however few are taken.
-		manaValue := func(id state.ObjID) int {
-			if o := g.Obj(id); o != nil && o.Face() != nil {
-				return int(o.Face().Cmc())
-			}
-			return 0
-		}
-		affordable := func(id state.ObjID) bool { return !hasBudget || manaValue(id) <= int(budget) }
+		// affordable says whether a card may be picked at all under
+		// WithTotalCMC$: a card whose own mana value exceeds the budget can
+		// never fit, however few are taken.
+		affordable := func(id state.ObjID) bool { return !hasBudget || manaValueOf(g, id) <= int(budget) }
 		// budgetEligible is the pickable set: spec-matching AND individually
 		// affordable (no budget => identical to eligible).
 		budgetEligible := eligible
@@ -1046,7 +1039,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if int32(len(greedy)) >= changeNum {
 				break
 			}
-			mv := manaValue(id)
+			mv := manaValueOf(g, id)
 			if hasBudget && running+mv > int(budget) {
 				continue
 			}
@@ -1109,7 +1102,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				// leaves every existing (non-budget) option list serialising
 				// byte-identically.
 				if hasBudget {
-					opt.Value = manaValue(id)
+					opt.Value = manaValueOf(g, id)
 				}
 				d.Options = append(d.Options, opt)
 			}
@@ -1160,6 +1153,18 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		}
 		rest(restIDs)
 	}
+}
+
+// manaValueOf is the offered card's own mana value -- the same Face().Cmc()
+// read state.SacrificedInfoOf uses. It is the per-card price under a
+// WithTotalCMC$ cumulative budget (Decision.MaxSum): every budgeted picker
+// (Dig, the hidden pick, the library search, the Play grant) shares this one
+// read so the four cannot drift on what a card's mana value is.
+func manaValueOf(g *state.Game, id state.ObjID) int {
+	if o := g.Obj(id); o != nil && o.Face() != nil {
+		return int(o.Face().Cmc())
+	}
+	return 0
 }
 
 // digRemember honours a Dig's RememberChanged$ True: each card the dig moved

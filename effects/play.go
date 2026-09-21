@@ -182,6 +182,31 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 	}
 	candidates = uniq
 
+	// WithTotalCMC$ is the cumulative mana-value budget over the played
+	// cards (Invoke Calamity, Rod of Absorption, Primeval Spawn: "you may
+	// cast up to N spells with total mana value M or less"), the exact
+	// parameter effDig reads on its own window. A card whose own mana value
+	// exceeds the budget can never be played, and the running sum of the
+	// plays must not exceed it either; the mechanics mirror effDig's
+	// (affordable filter, Decision.MaxSum + Option.Value on the wire). The
+	// R-9 no-host stand-in below plays one card, so the affordable filter
+	// alone bounds it. Absent the param the budget is 0 and every read is a
+	// no-op, so a non-budget Play emits byte-identically. Present but
+	// unresolvable degrades to budget 0 -- Num's documented convention.
+	budget, hasBudget := NumResolved(h, c, sa, "WithTotalCMC", 0)
+	if budget < 0 {
+		budget = 0
+	}
+	if hasBudget {
+		kept := make([]state.ObjID, 0, len(candidates))
+		for _, id := range candidates {
+			if manaValueOf(g, id) <= int(budget) {
+				kept = append(kept, id)
+			}
+		}
+		candidates = kept
+	}
+
 	// Optional$ True makes the whole ask declinable (Min 0: the empty answer
 	// is a decline). Amount$ sizes the ask: the default (and an unparseable
 	// value, which stays conservative) is one card; a literal N offers up to
@@ -209,8 +234,12 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		max = min
 	}
 
+	maxSum := 0
+	if hasBudget {
+		maxSum = int(budget)
+	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
-		Min: min, Max: max, Source: c.Source, ResumeKind: "play",
+		Min: min, Max: max, MaxSum: maxSum, Source: c.Source, ResumeKind: "play",
 		ResumeSA: sa, Prompt: "Play a card from this zone",
 		// The walk's remembered set rides the suspension (the targets_ask
 		// convention): the Dig's RememberChanged$ lives only in the resolving
@@ -225,8 +254,14 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		if o := g.Obj(id); o != nil && o.Face() != nil {
 			label = "Play " + o.Face().Name
 		}
+		optValue := 0
+		if hasBudget {
+			// Only a budget Play carries a Value: Option.Value is omitempty, so
+			// a non-budget Play's option list serialises byte-identically.
+			optValue = manaValueOf(g, id)
+		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mode",
-			Label: label, Obj: id, Player: c.Controller})
+			Label: label, Obj: id, Player: c.Controller, Value: optValue})
 	}
 	if len(d.Options) == 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,

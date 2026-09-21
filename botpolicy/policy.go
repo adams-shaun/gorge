@@ -641,6 +641,28 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// a copy", so the bot always offers to pay and the engine declines
 		// for it only when the payer's pool cannot cover the cost. No rng is
 		// consumed: the first modes are a fixed policy, not a coin.
+		//
+		// A KModes carrying a cumulative budget (WithTotalCMC$, so d.MaxSum >
+		// 0 -- a Play grant: Invoke Calamity, Rod of Absorption, Primeval
+		// Spawn) is the exception: a blind first-Min answer can exceed the
+		// sum cap, Decision.Validate rejects it, and the bot re-derives the
+		// same rejected answer forever. Fill greedily in offered order while
+		// the running Value sum fits -- the same fill the shared KChoose
+		// budget arm uses. A Min-0 (Optional$) budget ask picks nothing, so
+		// the decline stands-in unchanged; the engine lowers a mandatory
+		// budget ask's Min to what the budget affords, so a satisfying set
+		// always exists and Clamp's budget-aware top-up covers the rest.
+		if d.MaxSum > 0 {
+			sum := 0
+			for j := 0; j < len(d.Options) && len(in.Choices) < d.Min; j++ {
+				if sum+d.Options[j].Value > d.MaxSum {
+					continue
+				}
+				sum += d.Options[j].Value
+				in.Choices = append(in.Choices, d.Options[j].Index)
+			}
+			return Clamp(d, in)
+		}
 		for j := 0; j < len(d.Options) && j < d.Min; j++ {
 			in.Choices = append(in.Choices, d.Options[j].Index)
 		}
