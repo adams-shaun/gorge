@@ -304,7 +304,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -320,6 +320,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// blanket — it is reported unimplemented instead, so the two
 			// registration paths cannot disagree about what is readable.
 			if (mode == "CantAttack" || mode == "CantSacrifice") && !CantRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantPutCounter" && !CantPutCounterParamsReadable(params) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -635,6 +641,30 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CantPutCounterParamsReadable is the parameter whitelist a CantPutCounter
+// static must pass before this build enforces it -- used BOTH by the
+// face-static reader (rules/layers.go's PutCounterBlocked activeStatics walk)
+// and by effEffect's registration case, so the two paths cannot disagree about
+// what is readable. The readable parameters are the restriction's own mode and
+// scope (Mode$, the object spec ValidCard$/ValidObject$, the player spec
+// ValidPlayer$, the counter kind CounterType$), the AffectedZone$ rider the
+// Solemnity object line carries, and display text. A static carrying any other
+// parameter names a condition or scoping this build does not evaluate
+// (ActiveZones$, IsPresent$, CheckSVar$, ...) -- enforcing it blanket would
+// OVER-restrict, the permissive direction for a restriction -- so it is
+// skipped/reported. Secondary$ is allowed: a Forge-side duplicate for modifier
+// composition, and a boolean restriction cannot be applied twice.
+func CantPutCounterParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidObject", "ValidPlayer", "CounterType", "AffectedZone", "Description", "Secondary":
 		default:
 			return false
 		}

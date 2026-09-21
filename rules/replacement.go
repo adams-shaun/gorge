@@ -84,6 +84,29 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if !ok {
 		return ev, false
 	}
+	// A CantPutCounter restriction swallows a counter placement outright
+	// (task cantputcounter1): the placement never happens, so neither the
+	// event nor any AddCounter replacement of it may run. This gate sits
+	// BEFORE the match collection (not at the CounterChange dispatch case)
+	// so a prohibition with no accompanying R:Event$ AddCounter line is
+	// still enforced -- Melira's second poison source, where the only match
+	// on the board is Melira's own R: line but the lock must stop the event
+	// even after that line's rider has replaced the first source. handled
+	// true returns the empty event, so emit's ordinary Apply path is bypassed
+	// and nothing is logged: the event is prevented, never folded.
+	//
+	// Only a POSITIVE placement of a real counter is subject to the
+	// restriction: a removal (Amount <= 0) is not a placement at all, and the
+	// engine's own status markers (regeneration's Shield, the Deathtouched
+	// mark) are not counters -- the same internalCounterMarker exclusion the
+	// AddCounter matcher keeps, so a "counters can't be put on it" static
+	// cannot stop a regeneration shield or a removal.
+	if (ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) &&
+		ev.Amount > 0 && !internalCounterMarker(ev.Counter) {
+		if e.PutCounterBlocked(ev.Counter, ev.Obj, ev.Player, ev.Kind == events.PlayerCounterChange) {
+			return events.Event{}, true
+		}
+	}
 	// Madness is an optional discard replacement and must park before either
 	// destination is logged. The guarded re-emit still permits ordinary card
 	// and format replacements on the chosen destination.
@@ -1423,13 +1446,21 @@ func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatc
 		if !ok || n < 0 {
 			continue
 		}
-		// The body APPLIES from here on, so a dropped rider is announced now
-		// -- including when the rewrite is a no-op (n == amount, Melira's
-		// Amount$ 1 against a single poison counter): the lock is dropped
-		// there too, and the Note is the log's only witness of it.
+		// The body APPLIES from here on. A sub-ability chain on a ReplaceCounter
+		// body is part of the replacement (Forge resolves it as the replaced
+		// event happens): Melira, the Living Cure's lock ("and you can't get
+		// additional poison counters this turn") rides SVar:OnlyOnePoison's
+		// SubAbility$ DBImmediateTrigger, an
+		// ImmediateTrigger | Execute$ TrigEffect | StaticAbilities$ CantPutCounter
+		// that registers the real CantPutCounter restriction. Running the chain
+		// here -- through the same runReplaceWith / resolveReplacementWith machine
+		// every other ReplaceWith$ rider rides -- is what makes the lock real;
+		// its DBImmediateTrigger resolves the Effect inline, so the lock is
+		// installed before this function returns and before the replacement
+		// event's own fold. A body that only rewrites without a chain (Hardened
+		// Scales, Branching Evolution, Vizier of Remedies) is unchanged.
 		if body.Sub != nil {
-			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
-				Text: "replacement body SubAbility$ not run (unsupported rider): " + body.API})
+			e.runReplaceWith(ctx, m.id, body.Sub, nil)
 		}
 		if n == amount {
 			continue

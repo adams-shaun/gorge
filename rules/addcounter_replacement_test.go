@@ -242,14 +242,16 @@ func TestDoublingSeasonEffectOnlyIgnoresNonEffectPlacement(t *testing.T) {
 	replayCheck(t, e2, cfg2)
 }
 
-// TestCounterReplacementBodySubAbilityStaysLoud pins the explicit degradation
-// of a ReplaceCounter body's SubAbility$ chain. Melira, the Living Cure's
-// body is `Amount$ 1 | SubAbility$ DBImmediateTrigger` where
-// DBImmediateTrigger installs a CantPutCounter lock this build does not
-// implement; the chain is dropped, but the drop must be VISIBLE (one Note
-// naming the unsupported rider) rather than silently shipping the lock-less
-// result. The amount rewrite itself still happens (3 -> 1).
-func TestCounterReplacementBodySubAbilityStaysLoud(t *testing.T) {
+// TestMeliraReplacementBodySubAbilityRunsTheLock pins that a ReplaceCounter
+// body's SubAbility$ chain now RUNS: Melira, the Living Cure's body is
+// `Amount$ 1 | SubAbility$ DBImmediateTrigger`, whose ImmediateTrigger
+// resolves `DB$ Effect | StaticAbilities$ NoMorePoison`, a real
+// `Mode$ CantPutCounter | ValidPlayer$ You | CounterType$ POISON` lock. Before
+// cantputcounter1 the chain was dropped (one loud Note); now the lock is
+// installed, so a SECOND poison source in the same turn places nothing. The
+// amount rewrite itself still happens on the first source (3 -> 1). No loud
+// rider Note may survive.
+func TestMeliraReplacementBodySubAbilityRunsTheLock(t *testing.T) {
 	melira := tokenReplCorpusCard(t, "Melira, the Living Cure")
 	e, cfg := tokenReplGame(t, 101, melira)
 	moveSeededCard(t, e, 0, melira, state.ZBattlefield)
@@ -258,14 +260,21 @@ func TestCounterReplacementBodySubAbilityStaysLoud(t *testing.T) {
 	if got := e.G.Players[0].Counter("POISON"); got != 1 {
 		t.Fatalf("Melira: 3 poison -> %d, want 1 (Amount$ 1)", got)
 	}
+	// The lock the rider installed must now swallow a SECOND source of MORE
+	// than one counter -- a single-counter second source could pass by
+	// coincidence.
+	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 2})
+	if got := e.G.Players[0].Counter("POISON"); got != 1 {
+		t.Fatalf("Melira: a second source of 2 poison -> %d, want 1 (the lock: you can't get additional poison counters this turn)", got)
+	}
 	n := 0
 	for _, ev := range e.L.Events[before:] {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "replacement body SubAbility$") {
 			n++
 		}
 	}
-	if n != 1 {
-		t.Fatalf("Melira: %d loud rider Notes, want exactly 1", n)
+	if n != 0 {
+		t.Fatalf("Melira: %d loud rider Notes survived, want 0 (the rider now runs)", n)
 	}
 	replayCheck(t, e, cfg)
 }
@@ -351,12 +360,12 @@ func TestCounterReplacementIgnoresDeathtouchedMarker(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestCounterReplacementBodySubAbilityLoudOnNoOpRewrite pins the rider Note's
-// new placement: it is emitted when the body APPLIES, which includes the
-// no-op rewrite. Melira's Amount$ 1 against a SINGLE poison counter leaves
-// the count at 1, but the dropped CantPutCounter lock is just as absent as in
-// the 3 -> 1 case, so the log must still say so.
-func TestCounterReplacementBodySubAbilityLoudOnNoOpRewrite(t *testing.T) {
+// TestCounterReplacementBodySubAbilityNoOpStillLocks pins the rider on a
+// no-op rewrite: Melira's Amount$ 1 against a SINGLE poison counter leaves
+// the count at 1, but the lock is installed just the same, so a second
+// source the same turn still places nothing. No loud-rider Note may remain
+// (the chain now runs).
+func TestCounterReplacementBodySubAbilityNoOpStillLocks(t *testing.T) {
 	melira := tokenReplCorpusCard(t, "Melira, the Living Cure")
 	e, cfg := tokenReplGame(t, 109, melira)
 	moveSeededCard(t, e, 0, melira, state.ZBattlefield)
@@ -365,14 +374,18 @@ func TestCounterReplacementBodySubAbilityLoudOnNoOpRewrite(t *testing.T) {
 	if got := e.G.Players[0].Counter("POISON"); got != 1 {
 		t.Fatalf("Melira: 1 poison -> %d, want 1", got)
 	}
+	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 2})
+	if got := e.G.Players[0].Counter("POISON"); got != 1 {
+		t.Fatalf("Melira on a no-op rewrite: second source of 2 -> %d, want 1 (the lock still installs)", got)
+	}
 	n := 0
 	for _, ev := range e.L.Events[before:] {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "replacement body SubAbility$") {
 			n++
 		}
 	}
-	if n != 1 {
-		t.Fatalf("Melira on a no-op rewrite: %d loud rider Notes, want exactly 1", n)
+	if n != 0 {
+		t.Fatalf("Melira on a no-op rewrite: %d loud rider Notes, want 0", n)
 	}
 	replayCheck(t, e, cfg)
 }
