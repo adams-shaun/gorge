@@ -325,6 +325,21 @@ func (f *Face) expandKeywords() {
 			// Storm-shaped stand-in the M4 copy-target task owns.
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Replicate",
 				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ReplicatePaid | MayChooseTarget$ True", has)
+		case "Conspire":
+			// CR 702.78a is two abilities: a static "as you cast this spell,
+			// you may tap two untapped creatures you control that share a color
+			// with it" (the cast flow's "conspired" offer + conspireAsk, which
+			// records the tap into the pending cast) and a triggered "when you
+			// do, copy it". This expansion is the second half, the Replicate
+			// shape verbatim except the amount head: Count$Conspired is 1 only
+			// when the tap was actually paid (the pay-time FlagConspired
+			// CastInfo), so a DECLINED/plain cast resolves the trigger with
+			// Amount 0 and effCopySpellAbility emits nothing. The copies keep
+			// their targets (MayChooseTarget$), the same Storm-shaped stand-in
+			// the M4 copy-target task owns.
+			f.addKeywordTrigger(head, k,
+				"Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Conspire",
+				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$Conspired | MayChooseTarget$ True", has)
 		case "Living Weapon":
 			if has("T", k) {
 				continue

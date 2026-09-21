@@ -849,6 +849,18 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.TimesKicked, true
 		}
 		return 0, true
+	case "Conspired":
+		// CR 702.78a: 1 when the resolving spell's Conspire tap was actually
+		// paid as it was cast, else 0. Carried by the pay-time CastInfo's
+		// FlagConspired (rules/cast.go's conspireAsk/payCast). Same provenance
+		// read ReplicatePaid makes -- the cast spell, the SOURCE -- so a
+		// replay derives the same answer; a COPY of the spell was never cast
+		// and reads 0. The keyword expansion's copy trigger uses this as its
+		// Amount, so a declined Conspire (false) emits nothing.
+		if o := g.Obj(c.Source); o != nil && o.Conspired {
+			return 1, true
+		}
+		return 0, true
 	case "Converge":
 		// CR 107.4f-family converge: the number of DISTINCT colours (WUBRG)
 		// of mana actually spent to cast the resolving spell, carried by the

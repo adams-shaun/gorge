@@ -1146,7 +1146,26 @@ func Apply(g *state.Game, e Event) {
 			// TRAILING pay-time CastInfo (rules/cast.go's payCast), so a
 			// carrier that pairs {X} with the read (none measured) keeps the
 			// two on separate events.
+			// Conspire (CR 702.78a) is a BOOL fold, not an amount: it is set
+			// whenever the resolved cast's pay-time CastInfo carries
+			// FlagConspired, whatever other tags ride the same event. Folded
+			// OUTSIDE the exclusive switch below so a later event carrying the
+			// flag (each later event accumulates all earlier flags) cannot
+			// steal that event's Amount from its own routing case.
+			if FlagsFrom(e.Counter)&state.FlagConspired != 0 {
+				o.Conspired = true
+			}
 			switch {
+			// Conspire's Amount is a marker, never data: the bool was folded
+			// above, and the flag rides a LOCAL counter at the emission site
+			// (rules/cast.go's payCast never ORs FlagConspired into the
+			// accumulating flags), so no later CastInfo carries it and this
+			// arm's position in the newest-flag-first ordering is
+			// order-independent. The arm exists to CONSUME the Amount: without
+			// it the event fell through to default and wrote o.X = 1 onto every
+			// conspired cast (and StackCopy propagated that onto its copies).
+			case FlagsFrom(e.Counter)&state.FlagConspired != 0:
+				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
 				o.ConvergeColours = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
@@ -2067,6 +2086,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
+			o.Conspired = false
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0
@@ -2096,6 +2116,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
+			o.Conspired = false
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0
