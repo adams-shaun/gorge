@@ -24,6 +24,9 @@ func jewelAttackFixture(t *testing.T) (*Engine, state.ObjID, state.ObjID) {
 	jewel := mshCorpusCardPath(t, "Coveted Jewel", "c/coveted_jewel.txt")
 	e := combatEngine(t)
 	jewelID := onBoardCard(t, e, 1, jewel)
+	// The Jewel enters tapped so the trigger's Untap$ True has observable
+	// work to do; an untapped start would make the untap assertion vacuous.
+	e.emit(events.Event{Kind: events.Tap, Obj: jewelID})
 	// A blocker candidate so seat 1 is offered a KBlockers decision; an
 	// EMPTY intent is a real declaration (handleBlockers' own comment).
 	onBoard(t, e, 1, "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n")
@@ -59,6 +62,12 @@ func TestCovetedJewelUnblockedAttackHandsItOver(t *testing.T) {
 		declareUnblocked(t, eng)
 		if len(eng.G.Stack) != 1 {
 			t.Fatalf("stack depth after the declare-blockers round = %d, want 1 (the trigger)", len(eng.G.Stack))
+		}
+		// Non-vacuity guard: the Jewel is still tapped with the trigger on the
+		// stack, so the untap assertion below can only pass because the
+		// trigger's Untap$ True fired.
+		if !eng.G.Obj(jewelID).Tapped {
+			t.Fatal("Coveted Jewel was already untapped before the trigger resolved")
 		}
 		eng.resolveTop()
 	}
@@ -120,6 +129,7 @@ func TestCovetedJewelOneTriggerPerCombatNotPerAttacker(t *testing.T) {
 	jewel := mshCorpusCardPath(t, "Coveted Jewel", "c/coveted_jewel.txt")
 	e := combatEngine(t)
 	jewelID := onBoardCard(t, e, 1, jewel)
+	e.emit(events.Event{Kind: events.Tap, Obj: jewelID})
 	onBoard(t, e, 1, "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n")
 	a1 := onBoardReady(t, e, 0, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	a2 := onBoardReady(t, e, 0, "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")

@@ -2769,11 +2769,11 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 		if f == nil {
 			return
 		}
+		if !o.Unlocked && !e.faceMayTrigger(f, events.DeclareBlockers) {
+			return
+		}
 		for ti, t := range f.Triggers {
 			if t.Mode != "AttackerUnblockedOnce" {
-				continue
-			}
-			if !o.Unlocked && !e.faceMayTrigger(f, events.DeclareBlockers) {
 				continue
 			}
 			if t.Effect == nil {
