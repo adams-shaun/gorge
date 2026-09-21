@@ -174,6 +174,8 @@ type proposalState struct {
 	// is frozen (the sampling phase): a competition rejection is then counted
 	// as residual instead of taught.
 	staging *exclusionStore
+	// noLandExclusion mirrors SampleOptions.NoLandExclusion.
+	noLandExclusion bool
 }
 
 func publicToss(setup PublicGame, h History) ([]rules.ChanceDraw, float64, error) {

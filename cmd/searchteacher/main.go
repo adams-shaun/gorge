@@ -48,6 +48,8 @@ type config struct {
 	sampleSeed               uint64
 	maxTurn                  int32
 	oracle, audit            bool
+	decisionWorkers          int
+	noLandExclusion          bool
 	labelsPath               string
 }
 
@@ -115,8 +117,10 @@ func run(args []string, stdout, progress io.Writer) error {
 	sampleSeed := fs.Uint64("sample-seed", 54321, "fixed sampler seed base")
 	maxTurn := fs.Int("max-turn", 200, "only search decisions at engine turn <= this")
 	workers := fs.Int("workers", 16, "parallel games")
+	decisionWorkers := fs.Int("decision-workers", 1, "goroutines WITHIN one searched decision (sampling attempts and rollouts); latency only, never changes a label. Keep 1 when -workers already fills the cores")
 	audit := fs.Bool("audit", false, "measurement only: at every covered decision also score the candidates on one clone of the actual engine (never used to choose)")
 	oracle := fs.Bool("oracle", false, "CHEATING ceiling: search one clone of the actual engine (true hidden zones and future chance) instead of sampled worlds")
+	noLandExclusion := fs.Bool("no-land-exclusion", false, "measurement only: sample without the declined-land-drop exclusion (the pre-2026-09-21 proposal; reproduces that sampler's label corpus byte for byte)")
 	pairsFlag := fs.String("pairs", "", "restrict to comma list of a:b pairs (default: the ten approved pairs)")
 	outPath := fs.String("out", "", "JSONL of GameRecords (new file)")
 	labelsPath := fs.String("labels", "", "JSONL label corpus of covered decisions (new file only, atomic publish)")
@@ -143,7 +147,7 @@ func run(args []string, stdout, progress io.Writer) error {
 		return fmt.Errorf("seed range [%d,%d) overlaps held-out [1000000,2000000)", *seed, last)
 	}
 	cfg := config{kinds: map[string]bool{}, worlds: *worlds, attempts: *attempts, limit: *limit, minESS: *minESS, margin: *margin,
-		horizon: int32(*horizon), maxSubmits: *maxSubmits, sampleSeed: *sampleSeed, maxTurn: int32(*maxTurn), oracle: *oracle, audit: *audit, labelsPath: *labelsPath}
+		horizon: int32(*horizon), maxSubmits: *maxSubmits, sampleSeed: *sampleSeed, maxTurn: int32(*maxTurn), oracle: *oracle, audit: *audit, labelsPath: *labelsPath, decisionWorkers: *decisionWorkers, noLandExclusion: *noLandExclusion}
 	for _, k := range strings.Split(*kinds, ",") {
 		k = strings.TrimSpace(k)
 		if k != "attackers" && k != "cast" && k != "" {
@@ -357,6 +361,9 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 		MaxSubmits:   cfg.maxSubmits,
 		SampleSeed:   cfg.sampleSeed,
 		Clairvoyant:  cfg.oracle,
+		Parallelism:  cfg.decisionWorkers,
+
+		NoLandExclusion: cfg.noLandExclusion,
 	}
 	// The phase split is timed HERE, not in searchseat: internal/archtest
 	// allows the time import in host, host/httpapi and cmd/gorged only, so the

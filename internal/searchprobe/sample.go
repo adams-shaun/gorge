@@ -8,6 +8,8 @@ import (
 	"math/rand/v2"
 	"reflect"
 	"sort"
+	"sync"
+	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
@@ -38,6 +40,17 @@ type SampleOptions struct {
 	// caller (the search-teacher spike) resample Worlds with replacement from a
 	// thinner accepted pool; duplicates are then counted in Duplicates.
 	MinESS float64
+	// NoLandExclusion turns off the declined-land-drop exclusion
+	// (recordExtraLandExclusion). It exists to MEASURE that exclusion: the
+	// soundness test samples without it and checks that no accepted world
+	// falls in the region it removes. Production callers leave it false.
+	NoLandExclusion bool
+	// Parallelism is how many goroutines run the frozen sampling phase's
+	// attempts (<=1: sequential). It changes wall clock only, never the
+	// result. A caller that already saturates its cores with whole games
+	// (cmd/searchteacher -workers) leaves it at 1; a live seat answering one
+	// decision at a time is what it is for.
+	Parallelism int
 }
 type World struct {
 	Config   rules.Config
@@ -61,6 +74,13 @@ type SampleResult struct {
 	// put so the phase's proposals share one distribution); CompetitionUnguided
 	// counts hand_to_stack rejections no exclusion can express.
 	CompetitionExclusions, CompetitionResidual, CompetitionUnguided int
+	// LandExclusions counts declined-land-drop rejections taught to the
+	// exclusion store (recordExtraLandExclusion); LandResidual those met while
+	// the store was frozen; LandUnguided those the inference could not soundly
+	// express.
+	LandExclusions int `json:",omitempty"`
+	LandResidual   int `json:",omitempty"`
+	LandUnguided   int `json:",omitempty"`
 }
 type RejectionBucket struct {
 	Frame            int
@@ -149,12 +169,12 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	// pool that mixes proposals from different exclusion sets concentrates the
 	// weights and collapses the ESS gate (measured: covered decisions fell
 	// 185 -> 114 when exclusions accumulated attempt by attempt).
-	runAttempt := func(store *exclusionStore, staging *exclusionStore, attempt int) (World, float64, bool, error) {
-		result.Attempts++
+	runAttempt := func(res *SampleResult, plans *constraintPlanCache, store *exclusionStore, staging *exclusionStore, attempt int) (World, float64, bool, error) {
+		res.Attempts++
 		seed := taggedSeed(opts.Seed, digest, attempt, seedEngine)
 		cfg := rules.Config{Seed: seed[0], Names: setup.Names, Decks: setup.Decks, Tokens: setup.Tokens, StartingLife: setup.StartingLife}
 		observer := NewCollector(h.Actor)
-		proposal := &proposalState{epochs: epochs, logWeight: tossWeight, base: opts.Seed, history: digest, attempt: attempt, observer: observer, result: &result, plans: plans, exclusions: store, staging: staging}
+		proposal := &proposalState{epochs: epochs, logWeight: tossWeight, base: opts.Seed, history: digest, attempt: attempt, observer: observer, result: res, plans: plans, exclusions: store, staging: staging, noLandExclusion: opts.NoLandExclusion}
 		e, err := rules.NewHypotheticalPlanned(cfg, tape, proposal.plan)
 		if errors.Is(err, errIncompatibleProposal) {
 			return World{}, 0, false, nil
@@ -180,7 +200,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		knownGot := make(map[uint32]Identity)
 		knownWant := make(map[uint32]Identity)
 		for i, want := range h.Frames {
-			got, err := observer.Capture(e, e.L.Events[pos:])
+			got, err := observer.captureScratch(e, e.L.Events[pos:])
 			if err != nil {
 				return World{}, 0, false, err
 			}
@@ -191,13 +211,13 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 				knownWant[identity.ID] = identity
 			}
 			if !reflect.DeepEqual(got, want) {
-				result.PrefixRejected++
+				res.PrefixRejected++
 				bucket := rejectionBucket(i, got, want)
-				addRejection(&result, bucket)
+				addRejection(res, bucket)
 				if bucket.Component == "identities" && bucket.Shape == "hand_to_stack" {
 					cause := handToStackCause(got, want, knownGot, knownWant)
-					result.HandToStackCauses.add(cause)
-					addStackRejectionContext(&result, stackRejectionContext(got, want, knownGot, knownWant, stackConstraints[i]))
+					res.HandToStackCauses.add(cause)
+					addStackRejectionContext(res, stackRejectionContext(got, want, knownGot, knownWant, stackConstraints[i]))
 					// Only a genuine competition is excludable: the replay cast a
 					// DIFFERENT card from the observed one. An observer-reference
 					// rejection names the observed card itself (excluding it would
@@ -206,11 +226,14 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 					if cause.PolicyCompetition > 0 {
 						proposal.recordCompetitionExclusion(i, got, knownGot, drawStates)
 					} else {
-						result.CompetitionUnguided++
+						res.CompetitionUnguided++
 					}
 				}
-				if result.FirstRejection == "" {
-					result.FirstRejection = frameDifference(i, got, want)
+				if bucket.Component == "identities" && bucket.Shape == "hand_to_battlefield" {
+					proposal.recordExtraLandExclusion(i, got, want, knownGot, drawStates)
+				}
+				if res.FirstRejection == "" {
+					res.FirstRejection = frameDifference(i, got, want)
 				}
 				accepted = false
 				break
@@ -219,16 +242,16 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 				break
 			}
 			if submits >= opts.MaxSubmits {
-				result.BudgetExhausted++
+				res.BudgetExhausted++
 				accepted = false
 				break
 			}
 			d := e.Pending()
 			if d == nil {
-				result.PrefixRejected++
-				addRejection(&result, RejectionBucket{Frame: i, Component: "decision", Shape: "missing"})
-				if result.FirstRejection == "" {
-					result.FirstRejection = fmt.Sprintf("frame %d missing pending decision", i)
+				res.PrefixRejected++
+				addRejection(res, RejectionBucket{Frame: i, Component: "decision", Shape: "missing"})
+				if res.FirstRejection == "" {
+					res.FirstRejection = fmt.Sprintf("frame %d missing pending decision", i)
 				}
 				accepted = false
 				break
@@ -241,10 +264,10 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 				}
 				in, err = observer.Match(d, actions)
 				if err != nil {
-					result.PrefixRejected++
-					addRejection(&result, RejectionBucket{Frame: i, Component: "action", Shape: "mismatch"})
-					if result.FirstRejection == "" {
-						result.FirstRejection = fmt.Sprintf("frame %d action mismatch: %v", i, err)
+					res.PrefixRejected++
+					addRejection(res, RejectionBucket{Frame: i, Component: "action", Shape: "mismatch"})
+					if res.FirstRejection == "" {
+						res.FirstRejection = fmt.Sprintf("frame %d action mismatch: %v", i, err)
 					}
 					accepted = false
 					break
@@ -254,7 +277,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 			}
 			pos = len(e.L.Events)
 			submits++
-			result.Submits++
+			res.Submits++
 			if err := e.SubmitHypothetical(in); err != nil {
 				if errors.Is(err, errIncompatibleProposal) {
 					accepted = false
@@ -301,7 +324,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		before := store.size()
 		roundStart := len(probeWorlds)
 		for i := 0; i < probesPerRound && attemptsUsed < probeCap && opts.Attempts-attemptsUsed > 1; i++ {
-			world, lw, accepted, err := runAttempt(store, staging, attemptsUsed)
+			world, lw, accepted, err := runAttempt(&result, plans, store, staging, attemptsUsed)
 			if err != nil {
 				return result, err
 			}
@@ -317,15 +340,78 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 			break
 		}
 	}
-	for ; attemptsUsed < opts.Attempts; attemptsUsed++ {
-		world, lw, accepted, err := runAttempt(store, nil, attemptsUsed)
-		if err != nil {
-			return result, err
+	// The frozen phase. Every attempt is a pure function of (history, seed,
+	// attempt index, frozen store): nothing it reads is written by another
+	// attempt, so the attempts may run on several goroutines. Each writes its
+	// own SampleResult and the results are folded in ATTEMPT ORDER below, which
+	// makes the output byte-identical to the sequential loop whatever the
+	// scheduling (pinned by TestSampleParallelismIsInvisible).
+	type frozenOutcome struct {
+		res      SampleResult
+		world    World
+		lw       float64
+		accepted bool
+		err      error
+		panicked any
+	}
+	frozen := make([]frozenOutcome, opts.Attempts-attemptsUsed)
+	// The plan cache memoises as it samples, so it is not shared between
+	// goroutines: each worker owns one (worker 0 inherits the probe rounds').
+	// A cache only saves rebuilding a plan; a plan is a pure function of its
+	// constraints, so which cache served an attempt cannot change its draw.
+	runFrozen := func(i int, plans *constraintPlanCache) {
+		o := &frozen[i]
+		defer func() {
+			if p := recover(); p != nil {
+				o.panicked = p
+			}
+		}()
+		o.world, o.lw, o.accepted, o.err = runAttempt(&o.res, plans, store, nil, attemptsUsed+i)
+	}
+	if workers := min(opts.Parallelism, len(frozen)); workers > 1 {
+		var wg sync.WaitGroup
+		var next atomic.Int64
+		for w := 0; w < workers; w++ {
+			workerPlans := plans
+			if w > 0 {
+				workerPlans = newConstraintPlanCache()
+			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for {
+					i := int(next.Add(1)) - 1
+					if i >= len(frozen) {
+						return
+					}
+					runFrozen(i, workerPlans)
+				}
+			}()
 		}
-		if accepted {
+		wg.Wait()
+	} else {
+		for i := range frozen {
+			runFrozen(i, plans)
+			if frozen[i].err != nil || frozen[i].panicked != nil {
+				break
+			}
+		}
+	}
+	for i := range frozen {
+		o := &frozen[i]
+		if o.panicked != nil {
+			// Surface a worker's panic on the caller's goroutine, at the
+			// attempt the sequential loop would have met it.
+			panic(o.panicked)
+		}
+		result.mergeAttempt(o.res)
+		if o.err != nil {
+			return result, o.err
+		}
+		if o.accepted {
 			result.Accepted++
-			proposals = append(proposals, world)
-			logs = append(logs, lw)
+			proposals = append(proposals, o.world)
+			logs = append(logs, o.lw)
 		}
 	}
 	if keepFrom >= 0 {
@@ -458,10 +544,22 @@ func (p *proposalState) recordCompetitionExclusion(frameIndex int, got Frame, kn
 		p.result.CompetitionUnguided++
 		return
 	}
-	state, ok := drawStates[frameIndex][owner]
-	if !ok || state.ordinal <= 0 {
+	if !p.teachExclusion(frameIndex, name, owner, drawStates) {
 		p.result.CompetitionUnguided++
 		return
+	}
+	p.result.CompetitionExclusions++
+}
+
+// teachExclusion stages "name must not be in owner's hand at frameIndex" as
+// shuffle constraints: excluded from the current shuffle up to the observed
+// draw count and from every finished shuffle across its whole drawn window,
+// each capped at the copies that shuffle's deadlines already require. It
+// reports false when the seat has not observed a shuffle.
+func (p *proposalState) teachExclusion(frameIndex int, name string, owner state.PlayerID, drawStates []map[state.PlayerID]frameDrawState) bool {
+	state, ok := drawStates[frameIndex][owner]
+	if !ok || state.ordinal <= 0 {
+		return false
 	}
 	for ordinal := 0; ordinal < state.ordinal-1; ordinal++ {
 		if ordinal >= len(state.completed) {
@@ -473,7 +571,75 @@ func (p *proposalState) recordCompetitionExclusion(frameIndex int, got Frame, kn
 	}
 	ep := p.epochs[epochKey{Player: owner, Ordinal: state.ordinal - 1}]
 	p.staging.add(epochKey{Player: owner, Ordinal: state.ordinal - 1}, exclusionConstraint{Through: state.draws, Name: name, Cap: epochDeadlineCountFor(ep, name)})
-	p.result.CompetitionExclusions++
+	return true
+}
+
+// recordExtraLandExclusion teaches the NEGATIVE observation a declined land
+// drop carries. The replay's opponent played a land in a frame where the
+// observed opponent made no hand-to-battlefield move at all. The public state
+// up to that frame is identical in every world that gets this far (the prefix
+// matched), so the land drop the replay took was open to the observed seat
+// too -- and the replay policy never passes main-phase priority while a
+// play_land option is offered (botpolicy decide: chooseTap, then chooseLand,
+// both before any pass). Every world that holds a spare copy of that land at
+// this frame is therefore rejected with probability one, and removing those
+// worlds from the proposal leaves the accepted-world distribution exactly
+// what it was: the importance weight of each surviving world is computed
+// under the constrained plan, the same way a cast exclusion's is.
+//
+// "Spare" is what Cap expresses: the copies the shuffle's deadlines already
+// place in hand (observed plays of the same land) stay allowed. A Cap that
+// counts a play observed AFTER this frame only loosens the constraint, which
+// costs acceptance, never correctness.
+//
+// It fails closed -- counted, never taught -- when the inference is not
+// airtight: the frozen phase, a frame where the observed seat DID move a card
+// from hand to the battlefield (a different-land competition depends on
+// chooseLand's hand-dependent ranking, not on a fixed preference), a replay
+// move that was not a land play, the actor's own seat, and any shuffle of
+// that seat carrying an unguided library mutation (a hidden hand-to-library
+// channel such as Brainstorm could have put the land back, so "drawn" would
+// no longer imply "in hand").
+func (p *proposalState) recordExtraLandExclusion(frameIndex int, got, want Frame, known map[uint32]Identity, drawStates []map[state.PlayerID]frameDrawState) {
+	if p.noLandExclusion {
+		return
+	}
+	if p.staging == nil {
+		p.result.LandResidual++
+		return
+	}
+	for _, event := range want.Events {
+		if event.From == state.ZHand && event.To == state.ZBattlefield {
+			p.result.LandUnguided++
+			return
+		}
+	}
+	landPlayed := false
+	var obj uint32
+	for _, event := range got.Events {
+		if event.Kind == events.LandPlayed {
+			landPlayed = true
+		}
+		if obj == 0 && event.From == state.ZHand && event.To == state.ZBattlefield {
+			obj = event.Obj
+		}
+	}
+	identity, ok := known[obj]
+	if !landPlayed || !ok || identity.Name == "" || identity.Owner == p.observer.actor {
+		p.result.LandUnguided++
+		return
+	}
+	for key, ep := range p.epochs {
+		if key.Player == identity.Owner && len(ep.Unguided) > 0 {
+			p.result.LandUnguided++
+			return
+		}
+	}
+	if !p.teachExclusion(frameIndex, identity.Name, identity.Owner, drawStates) {
+		p.result.LandUnguided++
+		return
+	}
+	p.result.LandExclusions++
 }
 
 // epochDeadlineCountFor is the number of copies of the named card the epoch's
@@ -773,4 +939,42 @@ func frameDifference(i int, got, want Frame) string {
 		part = "board"
 	}
 	return fmt.Sprintf("frame %d %s", i, part)
+}
+
+// mergeAttempt folds one attempt's private counters into r. Folding attempts
+// in attempt order reproduces exactly what the attempts would have written to
+// one shared result in sequence: the counters add, FirstRejection keeps the
+// earliest, and the two bucket lists are keyed sets kept sorted by key.
+func (r *SampleResult) mergeAttempt(a SampleResult) {
+	r.Attempts += a.Attempts
+	r.PrefixRejected += a.PrefixRejected
+	r.BudgetExhausted += a.BudgetExhausted
+	r.Submits += a.Submits
+	if r.FirstRejection == "" {
+		r.FirstRejection = a.FirstRejection
+	}
+	for _, b := range a.Rejections {
+		for n := 0; n < b.Count; n++ {
+			addRejection(r, b)
+		}
+	}
+	r.GuidedGenesis += a.GuidedGenesis
+	r.GuidedLater += a.GuidedLater
+	r.ArrangeWindows += a.ArrangeWindows
+	r.UnguidedConstraints += a.UnguidedConstraints
+	r.IncompatibleProposals += a.IncompatibleProposals
+	r.HandToStackCauses.add(a.HandToStackCauses)
+	for _, c := range a.StackRejectionContexts {
+		for n := 0; n < c.Count; n++ {
+			one := c
+			one.Count = 1
+			addStackRejectionContext(r, one)
+		}
+	}
+	r.CompetitionExclusions += a.CompetitionExclusions
+	r.CompetitionResidual += a.CompetitionResidual
+	r.CompetitionUnguided += a.CompetitionUnguided
+	r.LandExclusions += a.LandExclusions
+	r.LandResidual += a.LandResidual
+	r.LandUnguided += a.LandUnguided
 }

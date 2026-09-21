@@ -173,3 +173,22 @@ func TestCompiledTriggerInterests(t *testing.T) {
 		})
 	}
 }
+
+// keywordMaskFor's case-insensitive fallback is on the legal-offer walk's hot
+// path (every Face.HasKeyword of an unmasked keyword reaches it); it must not
+// allocate, and must keep folding exactly as strings.ToLower did.
+func TestKeywordMaskForFallbackDoesNotAllocate(t *testing.T) {
+	for _, head := range []string{"Flying", "HASTE", "fLaShBaCk", "MayEffectFromOpeningHand", "AKeywordLongerThanEveryMaskedKeywordName"} {
+		head := head
+		if n := testing.AllocsPerRun(100, func() { _ = keywordMaskFor(head) }); n != 0 {
+			t.Errorf("keywordMaskFor(%q) allocates %v times", head, n)
+		}
+	}
+	if keywordMaskFor("fLaShBaCk") != KeywordFlashback || keywordMaskFor("SUSPEND") != KeywordSuspend {
+		t.Fatal("ASCII fold lost a masked keyword")
+	}
+	// U+212A KELVIN SIGN lower-cases to ASCII 'k': the Unicode path is kept.
+	if keywordMaskFor("Kicker") != KeywordKicker {
+		t.Fatal("non-ASCII head no longer folds through strings.ToLower")
+	}
+}

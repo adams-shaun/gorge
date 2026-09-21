@@ -111,19 +111,47 @@ func worldsDigest(tb testing.TB, r SampleResult) string {
 // to be justified as such, not as an optimisation.
 func TestSampleRealDeckGolden(t *testing.T) {
 	f := benchRoot(t)
-	opts := benchSampleOptions()
-	opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
-	res, err := Sample(f.setup, f.h, opts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res.Accepted == 0 || len(res.Worlds) == 0 {
-		t.Fatalf("fixture accepts no world: %+v", res)
-	}
-	const want = "91def6c77533be19728e00036cb9373dab3eb53a4424bc38ae13e5d0c89655bd"
-	if got := worldsDigest(t, res); got != want {
-		t.Fatalf("sampler output moved: digest %s, want %s (frames %d attempts %d accepted %d worlds %d ESS %.3f)",
-			got, want, len(f.h.Frames), res.Attempts, res.Accepted, len(res.Worlds), res.ESS)
+	for _, tc := range []struct {
+		name            string
+		noLandExclusion bool
+		want            string
+	}{
+		// The digest taken at 0b6e568b, before any of the performance work:
+		// with the one distribution-preserving proposal change switched off,
+		// the sampler still draws byte-identical worlds.
+		{"pre-optimisation sampler", true, "91def6c77533be19728e00036cb9373dab3eb53a4424bc38ae13e5d0c89655bd"},
+		// With the declined-land-drop exclusion: different proposals (so
+		// different worlds for a seed), same target distribution -- see
+		// TestLandExclusionRemovesOnlyRejectedWorlds.
+		{"land exclusion", false, "28f7e01f514af2149efa054856204aa34c4d0a030d552178647d3365a31254ee"},
+	} {
+		opts := benchSampleOptions()
+		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
+		opts.NoLandExclusion = tc.noLandExclusion
+		res, err := Sample(f.setup, f.h, opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.Accepted == 0 || len(res.Worlds) == 0 {
+			t.Fatalf("%s: fixture accepts no world: %+v", tc.name, res)
+		}
+		if got := worldsDigest(t, res); got != tc.want {
+			t.Errorf("%s: sampler output moved: digest %s, want %s (frames %d attempts %d accepted %d worlds %d ESS %.3f)",
+				tc.name, got, tc.want, len(f.h.Frames), res.Attempts, res.Accepted, len(res.Worlds), res.ESS)
+		}
+		// Parallelism is wall clock only. (Checked on the live proposal; the
+		// teacher golden covers the rollout side.)
+		if tc.noLandExclusion {
+			continue
+		}
+		opts.Parallelism = 4
+		par, err := Sample(f.setup, f.h, opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := worldsDigest(t, par); got != tc.want {
+			t.Errorf("%s: Parallelism 4 changed the sampler's output: %s", tc.name, got)
+		}
 	}
 }
 
@@ -177,6 +205,9 @@ func benchTeacherInputs(tb testing.TB) ([]World, [][]Action) {
 	f := benchRoot(tb)
 	opts := benchSampleOptions()
 	opts.MinESS = 1
+	// The pre-optimisation proposal, so the teacher golden below is comparable
+	// with the digest taken before the performance work.
+	opts.NoLandExclusion = true
 	res, err := Sample(f.setup, f.h, opts)
 	if err != nil {
 		tb.Fatal(err)
@@ -219,14 +250,42 @@ func BenchmarkTeacherChoiceRealDecks(b *testing.B) {
 // fixture: a rollout-side optimisation must not move any candidate's value.
 func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	worlds, cands := benchTeacherInputs(t)
-	res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000})
-	if err != nil {
-		t.Fatal(err)
-	}
-	raw, _ := json.Marshal(res)
-	sum := sha256.Sum256(raw)
+	// The digest taken at 0b6e568b, before the performance work.
 	const want = "71d2a8f07a7532c0a7b867d871b0c54ba424a429701600e13382c776fe081ddf"
-	if got := hex.EncodeToString(sum[:]); got != want {
-		t.Fatalf("teacher output moved: digest %s, want %s: %s", got, want, raw)
+	for _, parallelism := range []int{0, 4} {
+		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, _ := json.Marshal(res)
+		sum := sha256.Sum256(raw)
+		if got := hex.EncodeToString(sum[:]); got != want {
+			t.Errorf("Parallelism %d: teacher output moved: digest %s, want %s: %s", parallelism, got, want, raw)
+		}
+	}
+}
+
+func BenchmarkSampleRealDecksParallel4(b *testing.B) {
+	f := benchRoot(b)
+	opts := benchSampleOptions()
+	opts.Parallelism = 4
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := Sample(f.setup, f.h, opts); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkTeacherChoiceRealDecksParallel4(b *testing.B) {
+	worlds, cands := benchTeacherInputs(b)
+	opts := TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: 4}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := TeacherChoice(worlds, cands, opts); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
