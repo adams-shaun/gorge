@@ -406,7 +406,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		return combine(conditionMetBattlefield(h, c, present, compare))
 	}
 	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
-		defined != "Imprinted" {
+		defined != "Imprinted" && defined != "Discarded" {
 		// Only the Remembered, Self, TriggeredCard and Imprinted families are
 		// in scope among DEFINED groups: the objects a walk carries in
 		// Ctx.Remembered, the resolving source object alone (the Addendum
@@ -429,6 +429,26 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	sc := c.SpecContext(c.Controller)
 	count := 0
 	group := rememberedWithSource(h, c)
+	if defined == "Discarded" {
+		// ConditionDefined$ Discarded (task mordorparams1: Moria Scavenger's
+		// "If the discarded card was a creature card, amass Orcs 1",
+		// Argentum Masticore's "When you discard a card this way, destroy
+		// ..."): Forge's group is the cards the resolving chain discarded.
+		// Two provenance channels enumerate it: the unless-payment's settled
+		// Discard<...> component (Ctx.UnlessDiscarded, set by rules'
+		// unless_pay resume arm — the mid-resolution channel), and the
+		// resolving object's own activation cost discards read off the log
+		// (Host.DiscardedInWindow — Moria's channel; the cost discard is
+		// emitted at activation, the sub runs at resolution). Both channels
+		// empty leaves the gate UNRESOLVED — the sub runs unconditionally,
+		// this file's documented fail-open — never a resolved-false that
+		// would silently stop subs that ran before this read existed.
+		var grpOK bool
+		group, grpOK = discardedGroup(h, c)
+		if !grpOK {
+			return false, false
+		}
+	}
 	if defined == "Self" {
 		// Self is the source object ALONE — not rememberedWithSource's
 		// Source-union with the walk's remembered set.
@@ -522,6 +542,37 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 	}
 	return combine(evalConditionCount(count, compare))
+}
+
+// discardedGroup enumerates the ConditionDefined$ Discarded group: the
+// cards the resolving chain discarded, over the two provenance channels
+// conditionMet's Discarded branch documents. The log-scan channel is scoped
+// to c.ResolvingObj — the wrapper whose resolution is walking — so another
+// activation's cost discard cannot bleed in; a wrapper-less context (a
+// hand-built one) has no window to scan. Both channels empty is UNRESOLVED
+// (false), never a resolved-empty: the fail-open convention must not turn
+// into a resolved gate just because no channel carried evidence.
+func discardedGroup(h Host, c *Ctx) ([]state.Target, bool) {
+	var out []state.Target
+	seen := make(map[state.ObjID]bool, len(c.UnlessDiscarded)+4)
+	add := func(id state.ObjID) {
+		if id != 0 && !seen[id] {
+			seen[id] = true
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	for _, t := range c.UnlessDiscarded {
+		add(t.Obj)
+	}
+	if c.ResolvingObj != 0 {
+		for _, id := range h.DiscardedInWindow(c.ResolvingObj) {
+			add(id)
+		}
+	}
+	if len(out) == 0 {
+		return nil, false
+	}
+	return out, true
 }
 
 // conditionMetBattlefield resolves a ConditionPresent$ (with an optional

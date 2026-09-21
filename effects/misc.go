@@ -1627,6 +1627,14 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	answered := c.Votes
 	c.Votes = nil
 	counts := make([]int, len(choices))
+	// picks records each voter's answered option index (-1: an out-of-range
+	// answer, i.e. a vote for nothing) so the canonical vote-finished Note's
+	// same/diff split below reads the votes that were actually cast -- the
+	// same data the tally uses, never a second answer source.
+	picks := make([]int, len(voters))
+	for i := range picks {
+		picks[i] = -1
+	}
 	for i, t := range voters {
 		choice := 0
 		if answered != nil && i < len(answered) {
@@ -1636,25 +1644,41 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		if choice >= 0 && choice < len(choices) {
 			label = choices[choice]
 			counts[choice]++
+			picks[i] = choice
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}
-	if len(choices) == 0 || len(voters) == 0 {
-		return
-	}
-	// The winner is the option with the most votes (ties: the first such
-	// option). When the top count is shared, VoteTiedAbility$ runs instead
-	// for the shapes that spell one (the Path cycle's DBChaos).
-	best, tied := voteWinner(counts)
-	name := choices[best]
-	if tied {
-		if alt := strings.TrimSpace(sa.Params["VoteTiedAbility"]); alt != "" {
-			name = alt
+	if len(choices) > 0 && len(voters) > 0 {
+		// The winner is the option with the most votes (ties: the first such
+		// option). When the top count is shared, VoteTiedAbility$ runs instead
+		// for the shapes that spell one (the Path cycle's DBChaos).
+		best, tied := voteWinner(counts)
+		name := choices[best]
+		if tied {
+			if alt := strings.TrimSpace(sa.Params["VoteTiedAbility"]); alt != "" {
+				name = alt
+			}
+		}
+		if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+			Resolve(h, c, sub)
 		}
 	}
-	if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
-		Resolve(h, c, sub)
+	// The canonical vote-finished carrier (trig:Vote, effects/vote.go):
+	// emitted AFTER the winning outcome resolved -- the vote (outcome
+	// included) finishes, then "whenever players finish voting" sees it. It
+	// carries the RAW ballots, not a pre-split: the List$ referent sets are
+	// relative to the TRIGGER SOURCE'S controller, which is only known on the
+	// rules side (rules/trigger_referents' Vote case re-splits with
+	// effects.VoteSplit against e.controllerOf(source)). It is emitted even
+	// when there was no ballot and/or no voter, the same always-fire reading
+	// the card-ballot shape takes; "whenever players finish voting" has no
+	// intervening-if. ballotExisted is false for an empty Choices$ ballot,
+	// which binds neither set.
+	ballots := make([]VoteBallot, len(voters))
+	for i, t := range voters {
+		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
 	}
+	emitVoteFinished(h, c, ballots, len(choices) > 0)
 }
 
 // voteWinner returns the index of the highest count and whether that count is
@@ -1719,7 +1743,9 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	}
 	counts := map[state.ObjID]int{}
 	max := 0
-	for _, t := range Defined(h, c, sa) {
+	voters := Defined(h, c, sa)
+	picks := make([]int, len(voters))
+	for i, t := range voters {
 		label := "nothing"
 		if len(options) > 0 {
 			if o := g.Obj(options[0]); o != nil && o.Face() != nil {
@@ -1729,6 +1755,9 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 			if counts[options[0]] > max {
 				max = counts[options[0]]
 			}
+			picks[i] = 0
+		} else {
+			picks[i] = -1
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}
@@ -1744,6 +1773,21 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 			Resolve(h, c, resolved)
 		}
 	}
+	// The canonical vote-finished carrier (trig:Vote, effects/vote.go),
+	// emitted after VoteSubAbility$ ran -- the same after-the-vote point the
+	// fixed-list shape emits at. Like the fixed-list shape it carries the RAW
+	// ballots and the rules side re-splits against the carrier controller.
+	// The deterministic stand-in gives every voter the ballot's FIRST option,
+	// so a controller who voted sees every other voter in the same set. A
+	// vote with no ballot option at all (an empty battlefield) had nobody
+	// vote for anything, so ballotExisted=false binds neither set -- the
+	// trigger still fires and its same/diff bodies act on nobody, the same
+	// always-fire reading the fixed-list shape takes.
+	ballots := make([]VoteBallot, len(voters))
+	for i, t := range voters {
+		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
+	}
+	emitVoteFinished(h, c, ballots, len(options) > 0)
 }
 
 // effBecomeMonarch records the game-level designation as an event so a

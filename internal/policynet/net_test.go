@@ -416,6 +416,97 @@ func TestOverrideWeightScalesExample(t *testing.T) {
 	}
 }
 
+// TestLossModeSwitchPinsTermMix pins the L9b-fix2 mode contract at the loss
+// level: CE contributes ONLY the rank term (Parts.Value exactly 0) and its
+// per-example weight ignores the margin (pure imitation: a one-world margin
+// must not silence the CE signal the way it silenced the margin-weighted rank
+// term); value contributes ONLY the Huber term (Parts.Rank exactly 0); and
+// the zero Mode ("", every pre-existing caller) is byte-equal to the explicit
+// hybrid.
+func TestLossModeSwitchPinsTermMix(t *testing.T) {
+	rng := rand.New(rand.NewPCG(43, 43+1))
+	m, ex := tiedExample(rng)
+	// Untie the values so the value term is active in every mode, and keep a
+	// preferred option so the rank term is active too.
+	for i := range ex.Options {
+		ex.Options[i].Target.Value = 0.5 + 0.1*float64(i)
+	}
+	ex.Margin = 0.001 // the noise-dominated scale: a hundredth of one world
+
+	ceLo := m.Loss(ex, LossConfig{Mode: LossCE, HuberDelta: 0.1, RankWeight: 1})
+	exHi := ex
+	exHi.Margin = 10
+	ceHi := m.Loss(exHi, LossConfig{Mode: LossCE, HuberDelta: 0.1, RankWeight: 1})
+	if ceLo.Parts.Value != 0 {
+		t.Fatalf("CE carries a value term: %g", ceLo.Parts.Value)
+	}
+	if ceLo.Parts.Rank <= 0 {
+		t.Fatalf("CE carries no rank term: %g", ceLo.Parts.Rank)
+	}
+	if ceLo.Parts.Total != ceHi.Parts.Total {
+		t.Fatalf("CE loss follows the margin (%g at margin 0.001 vs %g at 10) — the CE weight must not be margin-scaled",
+			ceLo.Parts.Total, ceHi.Parts.Total)
+	}
+
+	val := m.Loss(ex, LossConfig{Mode: LossValue, HuberDelta: 0.1, RankWeight: 1})
+	if val.Parts.Rank != 0 {
+		t.Fatalf("value mode carries a rank term: %g", val.Parts.Rank)
+	}
+	if val.Parts.Value <= 0 {
+		t.Fatalf("value mode carries no value term: %g", val.Parts.Value)
+	}
+
+	hybZero := m.Loss(ex, LossConfig{HuberDelta: 0.1, RankWeight: 1})
+	hybNamed := m.Loss(ex, LossConfig{Mode: LossHybrid, HuberDelta: 0.1, RankWeight: 1})
+	if hybZero.Parts != hybNamed.Parts {
+		t.Fatalf("zero Mode is not hybrid: %+v vs %+v", hybZero.Parts, hybNamed.Parts)
+	}
+	if hybNamed.Parts.Value <= 0 || hybNamed.Parts.Rank <= 0 {
+		t.Fatalf("hybrid lost one of its terms: %+v", hybNamed.Parts)
+	}
+}
+
+// TestResidualIsAFixedBotPrior pins the L9b-fix2 item-3 residual head: an
+// option in the bot's own answer (Option.BotPick) scores exactly Model.ResidualW
+// higher and nothing else moves; ResidualW is a constant prior, never a
+// trained parameter (no Grads field touches it); and ResidualW 0 makes the
+// residual a no-op, so pure CE is byte-identical to the pre-residual build.
+func TestResidualIsAFixedBotPrior(t *testing.T) {
+	rng := rand.New(rand.NewPCG(11, 12))
+	m := NewModel(256, 8, 8, rng)
+	st := State{Dense: make([]float32, DenseWidth)}
+	opts := []Option{
+		{Dense: make([]float32, OptionDenseWidth), BotPick: true},
+		{Dense: make([]float32, OptionDenseWidth)},
+	}
+	base := m.Score(st, opts)
+	if base[0] != base[1] {
+		t.Fatalf("identical options scored differently: %g vs %g", base[0], base[1])
+	}
+	m.ResidualW = 3
+	got := m.Score(st, opts)
+	if got[1] != base[1] {
+		t.Fatalf("non-bot option moved under the residual: %g -> %g", base[1], got[1])
+	}
+	if d := float64(got[0] - base[0]); d < 2.999 || d > 3.001 {
+		t.Fatalf("bot option residual = %g, want +3", d)
+	}
+
+	// The prior is not a gradient block: a forward/backward that reads the
+	// residual must leave ResidualW untouched (it lives on the Model).
+	for i := range opts {
+		opts[i].Target = OptionTarget{Labelled: true, Value: 0.5, Preferred: i == 1}
+	}
+	ex := Example{Kind: "attackers", State: st, Options: opts}
+	before := m.ResidualW
+	g := m.NewGrads()
+	m.LossGrad(ex, LossConfig{Mode: LossCE, RankWeight: 1}, g)
+	g.Reset()
+	if m.ResidualW != before {
+		t.Fatalf("ResidualW changed during a loss step: %g -> %g", before, m.ResidualW)
+	}
+}
+
 // TestLossFiniteOnDivergedScores pins the numerical-stability contract: the
 // loss and its score gradient stay finite even when the forward pass hands
 // back ±Inf/NaN scores (a diverged run). The pre-fix loss fed the raw scores

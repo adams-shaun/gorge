@@ -83,7 +83,20 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
 		events.CopyToken, events.Exert, events.PlanarRoll,
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
-		events.BlessingChange:
+		events.BlessingChange, events.ClonePermanent,
+		events.Mutate, events.MergedTriggerPush:
+		// ClonePermanent is a characteristic change (the api:Clone layer-1
+		// CopyFace basis), not a game event any trigger mode fires on -- the
+		// same reading FlipFace and CardToken get. Without it here the
+		// default arm gave the kind TriggerInterestAny, so every clone and
+		// every clone expiry ran a full trigger scan.
+		//
+		// Mutate and MergedTriggerPush are named for the same documentary
+		// reason even though both currently sit PAST triggerMaskKindBits, so
+		// both classifiers fail open before this map is consulted: Mutate is
+		// matched by trig:Mutates through the full matcher (mutatesMatches),
+		// and MergedTriggerPush is a mint marker no mode fires on. Naming
+		// them keeps the audit complete if the bound ever widens.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -172,8 +185,26 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// cost-side flip fires the trigger exactly like an effect-side one
 		// (Karplusan Minotaur).
 		return 1 << events.Note
+	case "Vote":
+		// The mode fires on the canonical vote-finished Note (effects/
+		// vote.go) both api:Vote shapes emit once a vote fully finishes --
+		// the exact carrier-event shape FlippedCoin shares, with the two
+		// List$ opponent sets riding IDs/Pairs as player refs.
+		return 1 << events.Note
 	case "CounterAdded", "CounterRemoved":
 		return 1 << events.CounterChange
+	case "Mutates":
+		// CR 702.140f: "whenever this creature mutates". The event is the
+		// mutate-spell merge fold (events.Mutate), fired once per mutation --
+		// whose ordinal (71) is past the 64-bit mask's reach, the
+		// RingTemptsYou/Investigated shape: a mask bit is not encodable and
+		// allows() fails open for every kind at or past triggerMaskKindBits
+		// (the CombatRetarget lesson), so the mode is admitted through that
+		// fail-open path and gated by the full matcher (mutatesMatches).
+		// Naming the mode here rather than letting it fall to the
+		// allTriggerEvents default keeps a Mutates-only face's mask narrow
+		// for every other kind.
+		return 0
 	case "TokenCreated", "TokenCreatedOnce":
 		return 1 << events.TokenCreate
 	case "Drawn":
@@ -192,7 +223,8 @@ func triggerModeEvents(mode string) triggerEventMask {
 }
 
 func grantedKeywordTriggerEvent(kind events.Kind) bool {
-	return kind == events.TargetsChosen || kind == events.DeclareAttackers || kind == events.DeclareBlockers
+	return kind == events.TargetsChosen || kind == events.DeclareAttackers || kind == events.DeclareBlockers ||
+		kind == events.PutOnStack
 }
 
 func triggerMaskForFace(f *cards.Face) triggerEventMask {

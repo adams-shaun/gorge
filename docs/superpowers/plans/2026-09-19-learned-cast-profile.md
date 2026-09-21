@@ -422,3 +422,62 @@ External pass, 2026-09-19. [V] = read at source; [S] = search/secondary only.
    determinization** (resample hidden zones per determinization, shallow
    search, profile-policy rollouts), never the single cheating clone R1
    measured.
+
+## L9 measured on the full corpus (controller, 2026-09-20, main @ b007b396)
+
+`bot-l9b-fix2-argmax-ce` merged (b007b396): pure argmax cross-entropy is the
+default loss, with an optional fixed bot-prior residual (`-residual-init`).
+The value-regression collapse is genuinely fixed — the model now learns.
+
+The seat measured on a 1,426-decision fallback corpus, because the
+pi-agent jail cannot read the controller's scratchpad
+(`[[pi-agent-jail-blocks-tmp]]`). Re-measured here on the real 14,588-record
+dev2 corpus (13,130 train / 1,458 holdout), 30 epochs, seed 1, per-kind
+top-1 among labelled options:
+
+| config | attackers | priority |
+|---|---|---|
+| bot baseline | 0.887 | 0.678 |
+| first-option baseline | 0.897 | 0.425 |
+| `-loss ce` (lr 0.1) | 0.924 | 0.355 |
+| `-loss ce -lr 0.01` | 0.926 | 0.362 |
+| `-loss ce -lr 0.003` | 0.921 | 0.371 |
+| `-loss ce -residual-init 2` | **0.968** | 0.669 |
+
+Two conclusions, both confirming the seat at 10x the corpus:
+
+1. **`attackers` is learnable** and beats the bot baseline by 4-8pp.
+2. **`priority` is not** — flat at 0.355-0.371 across three orders of
+   magnitude of learning rate, so it is not a learning-rate artefact; with
+   the residual prior it recovers to the bot baseline and supplies nothing
+   beyond it. The seat's hypothesis (the teacher's override is a property of
+   the PIMC rollout, and the option encoding carries only static board
+   facts) survives the bigger corpus. Owned by
+   `agent-20260921T012459Z-cb7a7077`.
+
+### The L9c inference path is broken — 0/1000 in play
+
+Neither checkpoint can play. Ten approved pairs, 100 games/pair, dev seed
+10,000,000: **policynet 0 wins, bot 1000**, on the CE checkpoint AND the
+residual one.
+
+Cause: `seat/policynet.go`'s `attackersFromScores` admits an option at
+`score > 0` (the value-regression era's calibrated sigmoid). A CE-trained
+score is a softmax logit — shift-invariant, absolute level untrained.
+Measured over the 5,152 labelled attackers decisions (9,016 options), the
+scorer's range is [11575, 15052] and **100% of options score > 0**, preferred
+and not alike, so the seat declares every legal attacker every combat and
+empties its board into bad attacks (`-decision-stats`, 20 games: 68 attackers
+decisions at 100% first-option, zero blockers decisions, 78 `choose/discard`,
+against 256 / 38.7% / 90 / 0 for the bot self-control).
+
+Neither gate caught it: the holdout metric is an argmax (shift-invariant, so
+it measures exactly what CE trains and reports 0.968 for a checkpoint that
+loses every game), and `seat/policynet_test.go`'s `zeroCheckpoint` scores
+every option 0.0, where `0 > 0` is false — the tests only ever exercised the
+empty declaration.
+
+Filed as `bot-l9d-attack-admission` (P1). Until it lands, **no policynet
+checkpoint can be benched or gated**, so L9's promotion question is not yet
+askable. The `+5.80pp ± 1.25` combined-teacher result is unaffected — it was
+measured with the teacher itself in the loop, not a distilled checkpoint.

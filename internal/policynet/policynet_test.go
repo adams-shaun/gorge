@@ -478,6 +478,21 @@ func TestLoaderRoundTrip(t *testing.T) {
 		if first.Margin != 0.3 || first.TeacherChoice != 1 || first.BotIndex != 0 {
 			t.Fatalf("label metadata lost: %+v", first)
 		}
+		// BotPick marks the BOT candidate's own options (candidate 0's
+		// Choices, the residual head's prior): record 0's bot answer is
+		// option 2 only.
+		for j := range first.Options {
+			wantPick := j == 2
+			if first.Options[j].BotPick != wantPick {
+				t.Fatalf("gzip=%v record 0 option %d BotPick = %v, want %v", gz, j, first.Options[j].BotPick, wantPick)
+			}
+		}
+		if !examples[1].Options[0].BotPick || examples[1].Options[1].BotPick {
+			t.Fatalf("gzip=%v teacher-kept record BotPick not on the bot's option 0", gz)
+		}
+		if examples[2].Options[0].BotPick || !examples[2].Options[1].BotPick {
+			t.Fatalf("gzip=%v out-of-range record BotPick not on the bot's option 1", gz)
+		}
 		// the encoded state matches a direct encode of the fixture view
 		var v view.View
 		if err := json.Unmarshal(fixtureRecords()[0].View, &v); err != nil {

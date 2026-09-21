@@ -161,3 +161,35 @@ func TestVoteAnsweredTieRunsVoteTiedAbility(t *testing.T) {
 		t.Fatalf("vote Notes = %v, want one for each answered choice", labels)
 	}
 }
+
+// TestVoteSplitEmptyBallotBindsNeitherSet is the empty-ballot regression
+// (review finding): when a vote offered no ballot option at all -- a card
+// ballot whose VoteCard$ matched no permanent, or a fixed-list Vote with no
+// Choices$ -- no voter cast a real vote, so every pick is -1. The anchorPick
+// != -1 guard must NOT then route every voting opponent into the diff set:
+// "voted for a choice you didn't vote for" is false when there was no
+// choice. Without ballotExisted both sets read empty only by accident for a
+// one-voter table; with three voters the old path returned diff=[1 2].
+func TestVoteSplitEmptyBallotBindsNeitherSet(t *testing.T) {
+	ballots := []VoteBallot{
+		{Player: 0, Pick: -1},
+		{Player: 1, Pick: -1},
+		{Player: 2, Pick: -1},
+	}
+	same, diff := VoteSplit(0, ballots, false)
+	if len(same) != 0 || len(diff) != 0 {
+		t.Fatalf("empty ballot: same=%v diff=%v, want both empty", same, diff)
+	}
+	// Control: a real ballot with the anchor picking option 0 and both
+	// opponents choosing option 1 puts both opponents in the diff set -- the
+	// documented reading ballotExisted must not disturb.
+	ballots = []VoteBallot{
+		{Player: 0, Pick: 0},
+		{Player: 1, Pick: 1},
+		{Player: 2, Pick: 1},
+	}
+	same, diff = VoteSplit(0, ballots, true)
+	if len(same) != 0 || len(diff) != 2 || diff[0] != 1 || diff[1] != 2 {
+		t.Fatalf("real ballot: same=%v diff=%v, want same=[] diff=[1 2]", same, diff)
+	}
+}

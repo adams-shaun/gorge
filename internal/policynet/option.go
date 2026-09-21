@@ -31,6 +31,17 @@ type Option struct {
 	// teacher-preferred mask, and the unlabelled flag. Zero value =
 	// unlabelled, never silently zero-valued.
 	Target OptionTarget
+	// BotPick is true when this option is part of the BOT's own answer for
+	// the decision (candidate 0's Choices — the writer emits the bot's answer
+	// first, Example.BotIndex == 0 by construction). It is the training-side
+	// "bot score" the residual head adds at a fixed weight (Model.ResidualW):
+	// with a large prior the model starts at the bot baseline, so reproducing
+	// the bot costs nothing and capacity goes to the overrides. It is NOT
+	// part of the encoded feature geometry — it is not in Slots/Dense — so it
+	// never moves EncoderHash; the checkpoint schema version is what carries
+	// the residual weight (a v1 checkpoint is refused, not silently loaded).
+	// Set by the loader, never by EncodeOption.
+	BotPick bool
 }
 
 // OptionTarget is one option's training target from the label record.
