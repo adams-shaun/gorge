@@ -3,9 +3,12 @@ package searchprobe
 import (
 	"fmt"
 	"math"
+	"sync"
+	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
@@ -34,6 +37,9 @@ type TeacherOptions struct {
 	// zones and future chance included). It exists only to measure the ceiling
 	// of rollout search at a decision kind; labels made this way cheat.
 	Clairvoyant bool
+	// Parallelism is how many goroutines run the rollouts (<=1: sequential).
+	// Wall clock only: the result is identical whatever it is set to.
+	Parallelism int
 }
 
 // TeacherResult reports per-candidate mean values in [0,1] from the deciding
@@ -82,52 +88,124 @@ func TeacherChoice(worlds []World, candidates [][]Action, opts TeacherOptions) (
 	if len(candidates) < 2 || len(worlds) == 0 || opts.MaxSubmits < 1 {
 		return res, fmt.Errorf("teacher needs >=2 candidates, >=1 world and a submit budget")
 	}
-	for wi, w := range worlds {
-		for ci, cand := range candidates {
-			e := w.Engine.Clone()
-			d := e.Pending()
-			if d == nil {
-				return res, fmt.Errorf("world has no pending root decision")
+	// One rollout per (world, candidate). Each is a pure function of its own
+	// engine clone, its candidate and the world's seed, so the rollouts may
+	// run on several goroutines; the clones are taken up front on the caller's
+	// goroutine (Clone reads the shared source engine) and the outcomes are
+	// folded in the sequential loop's own (world, candidate) order, so every
+	// float sum and the first error are exactly the sequential ones.
+	type rollout struct {
+		submits   int
+		over, won bool
+		capped    bool
+		value     float64
+		err       error
+		panicked  any
+		done      bool
+	}
+	outs := make([]rollout, len(worlds)*len(candidates))
+	run := func(k int, e *rules.Engine) {
+		o := &outs[k]
+		defer func() {
+			if p := recover(); p != nil {
+				o.panicked = p
 			}
-			in, err := w.Observer.Match(d, cand)
-			if err != nil {
-				return res, fmt.Errorf("candidate %d does not map into world %d: %w", ci, wi, err)
-			}
-			actor, turn := d.Player, e.G.Turn
-			submit := e.SubmitHypothetical
-			if opts.Clairvoyant {
-				submit = e.Submit
-			}
-			if err := submit(in); err != nil {
-				return res, err
-			}
-			submits := 1
-			rngs := BotRandoms(opts.Seed^uint64(wi+1), len(e.G.Players))
-			board := botpolicy.NewBoard(len(rngs))
-			for !e.G.Over && submits < opts.MaxSubmits && (opts.HorizonTurns == 0 || e.G.Turn < turn+opts.HorizonTurns) {
-				pd := e.Pending()
-				if pd == nil {
-					return res, fmt.Errorf("rollout has no pending decision")
-				}
-				rin := botpolicy.Decide(botpolicy.BoardFromGameInto(e.G, e, pd.Player, &board), pd, rngs[pd.Player])
-				if err := submit(rin); err != nil {
-					return res, err
-				}
-				submits++
-			}
-			res.Rollouts++
-			res.Submits += submits
-			if e.G.Over {
-				res.Terminal++
-				res.TerminalByCandidate[ci]++
-				if !e.G.Draw && e.G.Winner == actor {
-					res.WinsByCandidate[ci]++
-				}
-			} else if submits >= opts.MaxSubmits {
-				res.Capped++
-			}
-			res.Values[ci] += LeafValue(view.Project(e.G, e, actor, e.Pending()), actor) / float64(len(worlds))
+		}()
+		o.done = true
+		wi, ci := k/len(candidates), k%len(candidates)
+		w, cand := worlds[wi], candidates[ci]
+		d := e.Pending()
+		if d == nil {
+			o.err = fmt.Errorf("world has no pending root decision")
+			return
 		}
+		in, err := w.Observer.Match(d, cand)
+		if err != nil {
+			o.err = fmt.Errorf("candidate %d does not map into world %d: %w", ci, wi, err)
+			return
+		}
+		actor, turn := d.Player, e.G.Turn
+		submit := e.SubmitHypothetical
+		if opts.Clairvoyant {
+			submit = e.Submit
+		}
+		if o.err = submit(in); o.err != nil {
+			return
+		}
+		o.submits = 1
+		rngs := BotRandoms(opts.Seed^uint64(wi+1), len(e.G.Players))
+		board := botpolicy.NewBoard(len(rngs))
+		for !e.G.Over && o.submits < opts.MaxSubmits && (opts.HorizonTurns == 0 || e.G.Turn < turn+opts.HorizonTurns) {
+			pd := e.Pending()
+			if pd == nil {
+				o.err = fmt.Errorf("rollout has no pending decision")
+				return
+			}
+			rin := botpolicy.Decide(botpolicy.BoardFromGameInto(e.G, e, pd.Player, &board), pd, rngs[pd.Player])
+			if o.err = submit(rin); o.err != nil {
+				return
+			}
+			o.submits++
+		}
+		o.over = e.G.Over
+		o.won = e.G.Over && !e.G.Draw && e.G.Winner == actor
+		o.capped = !e.G.Over && o.submits >= opts.MaxSubmits
+		o.value = LeafValue(view.Project(e.G, e, actor, e.Pending()), actor)
+	}
+	if workers := min(opts.Parallelism, len(outs)); workers > 1 {
+		engines := make([]*rules.Engine, len(outs))
+		for k := range engines {
+			engines[k] = worlds[k/len(candidates)].Engine.Clone()
+		}
+		var wg sync.WaitGroup
+		var next atomic.Int64
+		for w := 0; w < workers; w++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for {
+					k := int(next.Add(1)) - 1
+					if k >= len(outs) {
+						return
+					}
+					run(k, engines[k])
+					engines[k] = nil
+				}
+			}()
+		}
+		wg.Wait()
+	} else {
+		for k := range outs {
+			run(k, worlds[k/len(candidates)].Engine.Clone())
+			if outs[k].err != nil || outs[k].panicked != nil {
+				break
+			}
+		}
+	}
+	for k := range outs {
+		o := &outs[k]
+		if o.panicked != nil {
+			panic(o.panicked) // recovered into err by the deferred handler above
+		}
+		if !o.done {
+			break
+		}
+		if o.err != nil {
+			return res, o.err
+		}
+		ci := k % len(candidates)
+		res.Rollouts++
+		res.Submits += o.submits
+		if o.over {
+			res.Terminal++
+			res.TerminalByCandidate[ci]++
+			if o.won {
+				res.WinsByCandidate[ci]++
+			}
+		} else if o.capped {
+			res.Capped++
+		}
+		res.Values[ci] += o.value / float64(len(worlds))
 	}
 	best := 0
 	for i := 1; i < len(res.Values); i++ {

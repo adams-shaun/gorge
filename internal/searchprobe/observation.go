@@ -1,6 +1,7 @@
 package searchprobe
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -44,6 +45,8 @@ type Collector struct {
 	byRef      []state.ObjID
 	introduced []Identity
 	redacted   []events.Event
+	// board is captureScratch's reusable encode buffer; see there.
+	board bytes.Buffer
 }
 
 func NewCollector(actor state.PlayerID) *Collector {
@@ -60,6 +63,19 @@ func (c *Collector) clone() *Collector {
 	return out
 }
 func (c *Collector) Capture(e *rules.Engine, burst []events.Event) (Frame, error) {
+	return c.capture(e, burst, false)
+}
+
+// captureScratch is Capture for a caller that only COMPARES the frame and
+// drops it before the next capture (the sampler's replay): Frame.Board aliases
+// the collector's reusable encode buffer instead of owning a fresh copy, which
+// is the largest single allocation of a capture. The bytes are identical to
+// Capture's. The frame must not be retained past the next capture on c.
+func (c *Collector) captureScratch(e *rules.Engine, burst []events.Event) (Frame, error) {
+	return c.capture(e, burst, true)
+}
+
+func (c *Collector) capture(e *rules.Engine, burst []events.Event, scratch bool) (Frame, error) {
 	if e == nil || int(c.actor) >= len(e.G.Players) {
 		return Frame{}, fmt.Errorf("invalid observation seat or engine")
 	}
@@ -184,8 +200,19 @@ func (c *Collector) Capture(e *rules.Engine, burst []events.Event) (Frame, error
 	for i := range v.Pending {
 		v.Pending[i].Source = state.ObjID(c.ref(v.Pending[i].Source))
 	}
-	frame.Board, err = json.Marshal(v)
-	return frame, err
+	if !scratch {
+		frame.Board, err = json.Marshal(v)
+		return frame, err
+	}
+	// json.Marshal encodes into a pooled buffer and then copies the result
+	// out; an Encoder writes the same bytes (same HTML escaping, same field
+	// order) plus one trailing newline straight into a buffer we keep.
+	c.board.Reset()
+	if err := json.NewEncoder(&c.board).Encode(v); err != nil {
+		return Frame{}, err
+	}
+	frame.Board = c.board.Bytes()[:c.board.Len()-1]
+	return frame, nil
 }
 
 func (c *Collector) introduce(e *rules.Engine, id state.ObjID) {
@@ -231,13 +258,19 @@ func (c *Collector) card(card view.CardView) view.CardView {
 	return card
 }
 
+// cards rewrites a projected zone in place. view.Project builds every zone
+// slice (and every CardView.BlockedBy) fresh per call and hands ownership to
+// the caller, so there is nothing to alias; the copy this used to make was the
+// second largest allocation of a capture.
 func (c *Collector) cards(cards []view.CardView) []view.CardView {
-	if cards == nil {
-		return nil
+	for i := range cards {
+		card := &cards[i]
+		card.ID = state.ObjID(c.ref(card.ID))
+		card.Token = ""
+		card.AttachedTo = state.ObjID(c.ref(card.AttachedTo))
+		for j := range card.BlockedBy {
+			card.BlockedBy[j] = state.ObjID(c.ref(card.BlockedBy[j]))
+		}
 	}
-	out := make([]view.CardView, len(cards))
-	for i, card := range cards {
-		out[i] = c.card(card)
-	}
-	return out
+	return cards
 }

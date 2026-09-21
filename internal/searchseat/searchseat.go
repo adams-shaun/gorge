@@ -88,6 +88,16 @@ type Options struct {
 	// inputs whether or not they are set, which is what lets a seat play this
 	// and stay replayable.
 	AfterSample, AfterSearch func()
+	// Parallelism is how many goroutines one decision's sampling attempts and
+	// rollouts may use (<=1: sequential). It buys latency for a caller that
+	// answers one decision at a time -- a live seat -- and nothing for one that
+	// already fills its cores with whole games. It never changes the answer:
+	// searchprobe folds the parallel work in its sequential order.
+	Parallelism int
+	// NoLandExclusion is searchprobe.SampleOptions.NoLandExclusion: a
+	// measurement switch that restores the sampler's pre-exclusion proposal.
+	// A playing seat leaves it false.
+	NoLandExclusion bool
 	// Clairvoyant searches one clone of the ACTUAL engine instead of sampled
 	// worlds. It cheats by construction and exists only as a measurement
 	// ceiling (cmd/searchteacher's -oracle); a playing seat must leave it
@@ -225,6 +235,7 @@ func Choose(
 		MaxSubmits:   opts.MaxSubmits,
 		Margin:       opts.Margin,
 		Clairvoyant:  opts.Clairvoyant,
+		Parallelism:  opts.Parallelism,
 	})
 	if opts.AfterSearch != nil {
 		opts.AfterSearch()
@@ -299,11 +310,14 @@ func sampleWorlds(setup searchprobe.PublicGame, h searchprobe.History, collector
 		return []searchprobe.World{{Engine: e.Clone(), Observer: collector}}, searchprobe.SampleResult{}, nil
 	}
 	sr, err := searchprobe.Sample(setup, h, searchprobe.SampleOptions{
-		Seed:       opts.SampleSeed,
-		Attempts:   opts.Attempts,
-		Worlds:     opts.Worlds,
-		MaxSubmits: opts.MaxSubmits,
-		MinESS:     opts.MinESS,
+		Seed:        opts.SampleSeed,
+		Attempts:    opts.Attempts,
+		Worlds:      opts.Worlds,
+		MaxSubmits:  opts.MaxSubmits,
+		MinESS:      opts.MinESS,
+		Parallelism: opts.Parallelism,
+
+		NoLandExclusion: opts.NoLandExclusion,
 	})
 	// The result is returned even on error: its rejection buckets are the
 	// diagnostics that explain the failure, and dropping them would make a

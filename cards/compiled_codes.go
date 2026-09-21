@@ -686,7 +686,39 @@ func keywordMaskFor(head string) KeywordMask {
 	case "Suspend":
 		return KeywordSuspend
 	}
-	switch strings.ToLower(head) {
+	// Case-insensitive fallback. Most lookups land here -- every keyword with
+	// no mask ("Flying", "Haste", ...) misses the exact switch above -- and
+	// strings.ToLower allocates for any head carrying an upper-case letter,
+	// which made this the single largest allocation site under the legal-offer
+	// walk. ASCII heads are folded into a stack buffer instead (switching on
+	// string(buf) does not allocate); a non-ASCII head keeps strings.ToLower so
+	// Unicode folding (U+212A KELVIN SIGN -> 'k') is byte-for-byte unchanged.
+	var buf [len("mayeffectfromopeninghand")]byte
+	ascii := true
+	for i := 0; i < len(head); i++ {
+		if head[i] >= 0x80 {
+			ascii = false
+			break
+		}
+	}
+	if !ascii {
+		return keywordMaskForLower(strings.ToLower(head))
+	}
+	if len(head) > len(buf) {
+		return 0
+	}
+	for i := 0; i < len(head); i++ {
+		c := head[i]
+		if 'A' <= c && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		buf[i] = c
+	}
+	return keywordMaskForLower(string(buf[:len(head)]))
+}
+
+func keywordMaskForLower(lower string) KeywordMask {
+	switch lower {
 	case "alternateadditionalcost":
 		return KeywordAlternateAdditionalCost
 	case "buyback":
