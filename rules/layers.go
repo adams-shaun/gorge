@@ -1408,6 +1408,19 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			}
 			ty = kept
 		}
+		if ce.RemoveLegendary {
+			// NonLegendary$ True (CR 205.4's supertype): drop only the
+			// Legendary word, leaving every other supertype (Basic, Snow,
+			// World, Ongoing) in place -- distinct from RemoveCardTypes,
+			// which keeps supertypes and drops everything else.
+			kept := ty[:0]
+			for _, t := range ty {
+				if !strings.EqualFold(t, "Legendary") {
+					kept = append(kept, t)
+				}
+			}
+			ty = kept
+		}
 		ty = append(ty, ce.AddTypes...)
 		if ce.AddAllCreatureTypes {
 			ty = appendAllCreatureTypes(ty)
@@ -1735,6 +1748,23 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 			if ce.RemoveAbilities {
 				kw = kw[:0]
 			}
+			if len(ce.RemoveKeywords) > 0 {
+				// CR 613.1f: this effect's own named keywords leave the
+				// accumulated list BEFORE its AddKeywords append, so a
+				// single effect that both removes and grants (mirage
+				// phalanx's RemoveKeywords$ Soulbond | AddKeywords$ Haste)
+				// yields the card text's result regardless of how the
+				// timestamps order neighbour effects. A keyword is matched
+				// by its HEAD (cards.KeywordHead), so a parameterised print
+				// is removable by name.
+				keptKW := kw[:0]
+				for _, k := range kw {
+					if !containsKeywordHead(ce.RemoveKeywords, k) {
+						keptKW = append(keptKW, k)
+					}
+				}
+				kw = keptKW
+			}
 			kw = append(kw, ce.AddKeywords...)
 		case LType:
 			// Already applied in typeCharacteristics above — layer 4 must
@@ -1878,6 +1908,20 @@ func isCreatureSubtype(t string) bool {
 		}
 	}
 	return true
+}
+
+// containsKeywordHead reports whether the keyword k matches any name in
+// names by keyword HEAD (cards.KeywordHead strips a parameter tail), so
+// RemoveKeywords$ Protection removes a printed "Protection:..." grant and
+// RemoveKeywords$ Soulbond removes the bare keyword.
+func containsKeywordHead(names []string, k string) bool {
+	head := cards.KeywordHead(k)
+	for _, n := range names {
+		if strings.EqualFold(cards.KeywordHead(n), head) {
+			return true
+		}
+	}
+	return false
 }
 
 // RegenerationDisallowed implements effects.Host for the CantRegenerate
