@@ -13,10 +13,10 @@
  * toggling in one does not flip the other.
  *
  * The storage handle is the ONE shared guard (lib/storage.ts) since
- * fb-20260917T232814Z — this module used to carry its own private copy.
+ * fb-20260917T232814Z — this module used to carry its own private copy. The
+ * handle is passed IN by the caller (routes/Table.svelte calls safeStorage()
+ * at each call site), so this module imports nothing from storage.ts itself.
  */
-
-import { safeStorage } from './storage';
 
 const PREFIX = 'gorge.log.';
 

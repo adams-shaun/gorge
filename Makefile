@@ -3,7 +3,15 @@ BIN_DIR    := bin
 # Go tooling must never see web/node_modules (stray .go files from
 # transitive npm deps) or .worktrees (sibling task checkouts): go's ./...
 # skips dot-directories and stops at web/go.mod, but find/gofmt do not.
-GO_FILES   := find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print
+#
+# .ds4 and .superpowers are pruned for the same reason: both are agent scratch
+# trees, neither carries a single TRACKED .go file (verified: `git ls-files
+# '.ds4/**/*.go' '.superpowers/**/*.go'` is empty), and both are gitignored.
+# Without the prune `make lint` fails on the formatting of files nobody can
+# commit -- an archived agent's scratch main.go was enough to turn the lane
+# red -- and GO_SRC picks them up as build dependencies, so dropping a stray
+# .go file into a scratch directory needlessly rebuilds every binary.
+GO_FILES   := find . \( -name node_modules -o -name .worktrees -o -name .ds4 -o -name .superpowers \) -prune -o -type f -name '*.go' -print
 GO_SRC     := $(shell $(GO_FILES) 2>/dev/null) go.mod
 
 # Resource caps for every Go invocation below. `go test ./...` defaults -p to

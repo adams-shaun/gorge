@@ -1,0 +1,440 @@
+// Card-flow trigger modes.
+//
+// Mode$ Drawn, Discarded, Cycled, Explores and Investigated, with the
+// cause-admission and first-of-turn bookkeeping they need.
+//
+// Split out of trigger_match.go so tickets touching different modes stop
+// colliding on one file. Registration is at the bottom; a duplicate mode
+// panics (registerTrigMatcher).
+
+package rules
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// cycledMatches implements the "when you cycle [this card]" trigger (CR
+// 702.78d's cycling trigger, Forge Mode$ Cycled -- Dismantling Wave, 77
+// corpus files). The engine's cycle activation discards the card as its
+// cost, so the causing event is that cost discard (events.DiscardCost's
+// canonical hand-to-graveyard move), and the moved card's PRINTED Cycling
+// keyword is what makes a cost discard a cycle: an ordinary discard (a
+// Wheel effect) is not one, and neither is a cycling card discarded as the
+// cost of a different card's ability. The printed-keyword limit is the same
+// one the granted-keyword Dethrone check documents: a card whose cycling is
+// granted in a layer rather than printed never matches. ValidCard$ is
+// matched against the moved card's LKI -- the card is already in its
+// destination zone when triggers are checked, exactly like Sacrificed.
+// The cycler is the moved card's controller: a card in a hand is controlled
+// by its owner, and DiscardCost carries no player field to read instead.
+func (e *Engine) cycledMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if !events.IsDiscardCost(ev) {
+		return false
+	}
+	o := lki
+	if o == nil {
+		o = e.G.Obj(ev.Obj)
+	}
+	if o == nil || o.Face() == nil || !o.Face().HasKeyword("Cycling") {
+		return false
+	}
+	return e.eventCardAndPlayerMatch(t, source, ev.Obj, o.Controller)
+}
+
+// exploresMatches implements the "Whenever a creature you control explores
+// ..." trigger family (Forge Mode$ Explores, task explore1 — Merfolk
+// Cave-Diver, Nicanzil Current Conductor, Wildgrowth Walker, Lurking
+// Chupacabra, Shadowed Caravel; 5 files / 6 raw lines at the corpus pin).
+// The causing event is the completed events.Explore record: Obj is the
+// EXPLORER (what ValidCard$ matches, with the explorer's controller as the
+// event player — the same eventCardAndPlayerMatch read Sacrificed applies)
+// and IDs[0] is the card the process revealed, which ValidExplored$ narrows
+// ("explores a land card" / "explores a nonland card" — Nicanzil's pair).
+// The revealed card is matched in whatever zone the explore left it in (hand
+// or graveyard, or back on top): the plain type predicates both carriers use
+// are zone-independent, and the reveal Note that precedes the record already
+// made the card public, so no LKI capture is needed. A record with no
+// revealed card is unreachable (an empty library records nothing).
+func (e *Engine) exploresMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Explore || len(ev.IDs) == 0 {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v := t.Params["ValidExplored"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.IDs[0], e.specCtx(source, ctrl)) {
+		return false
+	}
+	return true
+}
+
+// investigatedMatches implements the "whenever you investigate" trigger
+// family (Forge Mode$ Investigated, task investtrig1 -- Erdwal Illuminator,
+// Val, Marooned Surveyor; 2 files / 2 raw lines at the corpus pin). The
+// causing event is the completed events.Investigate record (a pure Apply
+// no-op marker emitted by effInvestigate beside each Clue mint, so a plain
+// Clue-token creation never fires it): Player is the investigating seat
+// (what ValidPlayer$ matches -- Erdwal's and Val's `ValidPlayer$ You`), Obj
+// the resolving source permanent (what a ValidCard$ spec would match; no
+// corpus carrier uses one, but the grammar is the exploresMatches shape).
+// FirstTime$ True is the per-player per-turn gate -- Erdwal's "for the
+// first time each turn" -- read from the log the firstLifeLossThisTurn way
+// so a log-only replay reconstructs the same answer (no side-map).
+func (e *Engine) investigatedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Investigate {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if strings.EqualFold(t.Params["FirstTime"], "True") && !e.firstInvestigateThisTurn(ev.Player) {
+		return false
+	}
+	return true
+}
+
+// firstInvestigateThisTurn is true only when the investigate event being
+// matched is the investigating player's first of the current turn: the
+// current event is already in the log when triggers match (the
+// firstLifeLossThisTurn contract), so scanning back past TurnChange and
+// finding exactly one Investigate record for p means this is the first.
+// TurnChange is the logged reset boundary for every other per-turn fact, so
+// the scan is replay-stable and cannot leak a mutable counter across Clone.
+func (e *Engine) firstInvestigateThisTurn(p state.PlayerID) bool {
+	seenCurrent := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		if ev.Kind != events.Investigate || ev.Player != p {
+			continue
+		}
+		if seenCurrent {
+			return false
+		}
+		seenCurrent = true
+	}
+	return seenCurrent
+}
+
+func (e *Engine) discardedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if !events.IsDiscard(ev) ||
+		!e.eventCardAndPlayerMatch(t, source, ev.Obj, e.controllerOf(ev.Obj)) {
+		return false
+	}
+	if spec := t.Params["ValidCause"]; spec != "" && !e.discardCauseAdmits(spec, source, ev) {
+		return false
+	}
+	return true
+}
+
+// discardCauseAdmits evaluates a ValidCause$ stack spec against the spell or
+// ability that caused discard ev, from source's controller's perspective. It
+// serves both the Discarded trigger and a Discard$ True replacement.
+func (e *Engine) discardCauseAdmits(spec string, source state.ObjID, ev events.Event) bool {
+	// A discard paid as a cost has no causing spell or ability. In
+	// particular, do not misattribute it to an unrelated object that was
+	// already on the stack when a player activated in response.
+	if events.IsDiscardCost(ev) {
+		return false
+	}
+	cause := e.actionCause()
+	if cause == 0 {
+		return false
+	}
+	o := e.G.Obj(cause)
+	return o != nil && state.StackKindAdmits(state.StackKindTokens(spec), state.StackKindOf(e.G, o), o,
+		o.Controller, e.controllerOf(source))
+}
+
+// cyclingCauseKeywords is the CR 702.28 cycling family: the plain Cycling
+// keyword and its typed form (TypeCycling), both of which Forge's `Cycling`
+// stack spec names. Exact membership -- a substring test would let
+// TypeCycling's own "Cycling" suffix admit the plain spec through a false
+// positive, and vice versa is impossible because the values are distinct.
+var cyclingCauseKeywords = map[string]bool{"Cycling": true, "TypeCycling": true}
+
+// drawnMatches implements Mode$ Drawn. A Draw event moves exactly one card
+// from a library to its controller's hand, so ValidCard$ is tested against the
+// drawn object and TriggeredPlayer is that event's Player. FirstCardInDrawStep$
+// is derived from the ordered log after the event has landed: only the first
+// Draw between entry to the draw step and its next StepChange qualifies.
+func (e *Engine) drawnMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Draw {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidCard"]; ok && !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v := t.Params["Number"]; v != "" {
+		want, err := strconv.Atoi(v)
+		if err != nil || e.drawNumberThisTurn(ev.Player) != want {
+			return false
+		}
+	}
+	// PlayerTurn$ is the trigger controller's turn, not the drawing player's:
+	// Keranos's "on each of your turns" must reject an opponent's first draw.
+	if strings.EqualFold(t.Params["PlayerTurn"], "True") && e.G.Active != ctrl {
+		return false
+	}
+	if v, ok := t.Params["FirstCardInDrawStep"]; ok {
+		first := e.firstCardInDrawStep(ev.Player)
+		if (strings.EqualFold(v, "True") && !first) || (strings.EqualFold(v, "False") && first) {
+			return false
+		}
+	}
+	return true
+}
+
+// drawCauseAdmits evaluates a ValidCause$ stack spec against the spell or
+// ability that caused Draw event ev, from source's controller's perspective.
+// It serves the Draw replacement arm (Unpredictable Cyclone, the corpus's
+// only Draw ValidCause$ carrier: "If a cycling ability of another nonland
+// card would cause you to draw a card, instead ...").
+//
+// The base kind and the controller / instant-sorcery restrictions are read
+// through state's shared classifier (StackKindTokenOf + StackKindAdmits), so
+// this cannot drift from TargetType$/ValidStack. But that classifier
+// DELIBERATELY ignores every other qualifier (its doc comment records the
+// widening), which is fine for a target offer but wrong here: a replacement
+// scoped by `Activated.Cycling+nonLand` must not apply to a draw caused by
+// ANY activated ability. The qualifiers this helper adds are the ones the one
+// Draw carrier needs -- `Cycling` (the cause ability carries the keyword) and
+// a card predicate such as `nonLand` (matched on the cause's SOURCE card
+// through the ordinary filter grammar). Any qualifier this helper does not
+// recognise FAILS CLOSED: a cause spec it cannot evaluate must never admit
+// the replacement (the repo's standing filter contract).
+//
+// Comma-separated alternatives are OR, matching ValidTgts$/ValidCause$
+// semantics elsewhere.
+func (e *Engine) drawCauseAdmits(spec string, source state.ObjID, ev events.Event) bool {
+	cause := e.actionCause()
+	if cause == 0 {
+		return false
+	}
+	o := e.G.Obj(cause)
+	if o == nil {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		if e.drawCauseTokenAdmits(strings.TrimSpace(alt), o, source) {
+			return true
+		}
+	}
+	return false
+}
+
+// drawCauseTokenAdmits evaluates ONE comma-separated token of a Draw
+// ValidCause$ spec (drawCauseAdmits's per-alternative worker). It recognises
+// a valid stack base, the shared controller / instant-sorcery qualifiers, the
+// `Cycling` keyword qualifier and a card-predicate qualifier (evaluated
+// against the cause's source card). Every other qualifier fails closed.
+func (e *Engine) drawCauseTokenAdmits(token string, o *state.Object, source state.ObjID) bool {
+	tok, ok := state.StackKindTokenOf(token)
+	if !ok {
+		return false
+	}
+	_, rest, _ := strings.Cut(strings.TrimSpace(token), ".")
+	for _, q := range strings.Split(rest, "+") {
+		q = strings.TrimSpace(q)
+		if q == "" {
+			continue
+		}
+		switch q {
+		case "YouCtrl", "OppCtrl", "Instant", "Sorcery":
+			// Read by StackKindAdmits below.
+		case "Cycling":
+			if o.Ability == nil || !cyclingCauseKeywords[o.Ability.Params["Keyword"]] {
+				return false
+			}
+		default:
+			// A card-predicate qualifier (nonLand, a colour, a type word,
+			// ...) on the cause's SOURCE card. Classify it with the SAME
+			// shared recognizer UnknownPredicates uses, so an unrecognised
+			// token fails closed rather than widening the match.
+			src := e.G.Obj(o.Source)
+			if src == nil {
+				return false
+			}
+			pred := "Card." + q
+			if len(effects.UnknownPredicates(pred)) != 0 {
+				return false
+			}
+			if !effects.MatchesObjectCtx(e.G, pred, src, effects.SpecContext{
+				You: e.controllerOf(source), Source: source,
+			}) {
+				return false
+			}
+		}
+	}
+	return state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindOf(e.G, o), o,
+		o.Controller, e.controllerOf(source))
+}
+
+// drawNumberThisTurn counts p's draws in the current turn. The log is the
+// replay-stable source of this per-turn fact; each player has its own ordinal
+// because "their second card" must not count another seat's draw. Callers
+// differ on whether the Draw currently being matched is already logged:
+// trigger matching runs POST-emit (the event is in the log), while
+// replacement matching runs PRE-emit (it is not), so a replacement matcher
+// must add the pending draw's own applicability itself.
+func (e *Engine) drawNumberThisTurn(p state.PlayerID) int {
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.Draw && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
+// firstCardInDrawStep reports whether the most recently emitted Draw for p is
+// the first draw since this turn entered its draw step. The log, rather than a
+// mutable counter, is the source of this ephemeral fact so cloning and replay
+// rebuild it without an event-schema change.
+func (e *Engine) firstCardInDrawStep(p state.PlayerID) bool {
+	if e.G.Step != state.StepDraw {
+		return false
+	}
+	draws := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.Draw && ev.Player == p {
+			draws++
+		}
+		if ev.Kind == events.StepChange {
+			return ev.Step == state.StepDraw && draws == 1
+		}
+	}
+	return false
+}
+
+// pendingDrawIsFirstInDrawStep reports whether a Draw about to be logged for
+// p is the first p draws since this turn entered its draw step. It is the
+// pre-emit twin of firstCardInDrawStep: replacement matching runs from
+// Engine.emit BEFORE the proposed Draw is appended to e.L.Events, so the
+// pending event itself is the "next" draw (draw count 0) rather than a
+// logged one (draw count 1). It requires p to be the ACTIVE player as well,
+// because the exempt draw CR 504.1 grants is that player's own turn-based
+// draw: a non-active player drawing during someone else's draw step is not
+// the first one they draw in each of their own draw steps, so Notion Thief
+// and Hullbreacher must still replace it. firstCardInDrawStep deliberately
+// omits that active-player test (a trigger reads whoever drew); the two
+// cannot share a body, so they are kept adjacent with identical log-scan
+// shapes to stop the pair drifting.
+func (e *Engine) pendingDrawIsFirstInDrawStep(p state.PlayerID) bool {
+	if e.G.Step != state.StepDraw || p != e.G.Active {
+		return false
+	}
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.Draw && ev.Player == p {
+			return false
+		}
+		if ev.Kind == events.StepChange {
+			return ev.Step == state.StepDraw
+		}
+	}
+	return false
+}
+
+// extraDrawsThisTurn counts p's draws in the current turn that are NOT the
+// CR 504.1 turn-based draw -- the first card p draws in p's OWN draw step
+// while p is the active player. That is the draw Reed Richards' "except the
+// first card you draw during each of your draw steps" clause exempts, so a
+// FirstExtraCardDrawnThisTurn$ True replacement must apply only when this
+// count is zero (CR 614.1a: one replacement per occasion, and only the first
+// such occasion each turn).
+//
+// It runs from replacement matching, which is PRE-emit: the pending Draw is
+// not yet in e.L.Events, so the caller adds the pending draw's own
+// applicability separately (see pendingDrawIsFirstInDrawStep, the pre-emit
+// twin of the exempt-draw test). The log -- not a mutable counter -- is the
+// source of this per-turn fact, so cloning and replay rebuild it without an
+// event-schema change.
+func (e *Engine) extraDrawsThisTurn(p state.PlayerID) int {
+	n := 0
+	start := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		if e.L.Events[i].Kind == events.TurnChange {
+			start = i
+			break
+		}
+	}
+	// step is the step the scan is currently inside; 255 is the uint8 sentinel
+	// for "before any StepChange this turn", which no real step equals.
+	step := state.Step(255)
+	drawsInStep := 0
+	for i := start; i < len(e.L.Events); i++ {
+		ev := e.L.Events[i]
+		switch ev.Kind {
+		case events.StepChange:
+			step = ev.Step
+			if ev.Step == state.StepDraw {
+				drawsInStep = 0
+			}
+		case events.Draw:
+			if ev.Player != p {
+				continue
+			}
+			if step == state.StepDraw && p == e.G.Active && drawsInStep == 0 {
+				drawsInStep++
+				continue
+			}
+			n++
+		}
+	}
+	return n
+}
+
+// actionCause is the stack object whose resolving effect caused a synchronous
+// action event. Costs are paid before an activated ability exists on the stack,
+// so they deliberately have no cause and cannot satisfy ValidCause$. This is
+// replay-safe: action triggers are checked synchronously inside emit, while
+// the resolving object is still at the top of the replayed stack.
+func (e *Engine) actionCause() state.ObjID {
+	if len(e.G.Stack) == 0 {
+		return 0
+	}
+	return e.G.Stack[len(e.G.Stack)-1]
+}
+
+func init() {
+	registerTrigMatcher((*Engine).cycledMatches, "Cycled")
+	registerTrigMatcher((*Engine).exploresMatches, "Explores")
+	registerTrigMatcher((*Engine).investigatedMatches, "Investigated")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.discardedMatches(t, source, ev)
+	}, "Discarded")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.drawnMatches(t, source, ev)
+	}, "Drawn")
+}

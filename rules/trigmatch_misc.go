@@ -1,0 +1,406 @@
+// The remaining single-event trigger modes.
+//
+// Mode$ CommitCrime, Vote, FlippedCoin, Attached, RingTemptsYou, BecomesTarget,
+// LandPlayed and Phase.
+//
+// Split out of trigger_match.go so tickets touching different modes stop
+// colliding on one file. Registration is at the bottom; a duplicate mode
+// panics (registerTrigMatcher).
+
+package rules
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// commitCrimeMatches implements CR 700.13: targeting an opponent, a
+// permanent they control, or a card in their graveyard commits one crime.
+// A multi-target spell produces one TargetsChosen event per target. After
+// Apply, append events can inspect the prior targets already on the stack;
+// only the first criminal target may fire this trigger.
+func (e *Engine) commitCrimeMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.TargetsChosen {
+		return false
+	}
+	actor := e.controllerOf(ev.Obj)
+	if !e.targetEventCommitsCrime(ev, actor) {
+		return false
+	}
+	if o := e.G.Obj(ev.Obj); o != nil && (ev.Amount == 2 || ev.Amount == 3) {
+		for _, target := range o.Targets[:len(o.Targets)-1] {
+			if e.targetCommitsCrime(target, actor) {
+				return false
+			}
+		}
+	}
+	if v := t.Params["ValidPlayer"]; v != "" {
+		return effects.MatchesPlayerSpec(e.G, v, actor, e.controllerOf(source))
+	}
+	return true
+}
+
+func (e *Engine) targetEventCommitsCrime(ev events.Event, actor state.PlayerID) bool {
+	if ev.Amount == 1 || ev.Amount == 3 {
+		return e.targetCommitsCrime(state.Target{Player: ev.Player, IsPlayer: true}, actor)
+	}
+	return len(ev.IDs) == 1 && e.targetCommitsCrime(state.Target{Obj: ev.IDs[0]}, actor)
+}
+
+// targetCommitsCrime is CR 700.13's list, and only that list: an opponent; a
+// permanent or a spell or ability on the stack an opponent controls; or a card
+// in an opponent's graveyard, which is judged by its owner (CR 108.4a: a card
+// that is not a permanent or spell has no controller). A card in exile, a
+// hand or a library is none of these, whoever owns it.
+func (e *Engine) targetCommitsCrime(target state.Target, actor state.PlayerID) bool {
+	if target.IsPlayer {
+		return target.Player != actor && int(target.Player) < len(e.G.Players)
+	}
+	o := e.G.Obj(target.Obj)
+	if o == nil {
+		return false
+	}
+	switch o.Zone {
+	case state.ZBattlefield, state.ZStack:
+		return o.Controller != actor
+	case state.ZGraveyard:
+		return o.Owner != actor
+	}
+	return false
+}
+
+// eventCardAndPlayerMatch applies the shared ValidCard$/ValidPlayer$ clauses
+// on action triggers. The player is the player who performed the action.
+func (e *Engine) eventCardAndPlayerMatch(t cards.Trigger, source, card state.ObjID, player state.PlayerID) bool {
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, card, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, player, ctrl) {
+		return false
+	}
+	return true
+}
+
+// voteMatches implements Mode$ Vote (trig:Vote): the trigger fires on the
+// canonical vote-finished Note both api:Vote shapes emit (effects/vote.go),
+// the same carrier-event shape trig:FlippedCoin fires on. List$ is the
+// REFERENT SCOPE, not the firing condition: "Whenever players finish voting"
+// (Erestor of the Council, Model of Unity, Grudge Keeper -- the whole corpus
+// population) has no intervening-if, so the trigger fires whenever a vote
+// finishes, with an empty List$ set simply meaning its referents resolve to
+// nobody (Grudge Keeper stacks, its diff set is empty, and its body acts on
+// nobody). The capture side (triggerReferents' Vote case) applies List$ when
+// it binds the sets, so a body reading a spelling its own List$ does not name
+// gets the empty set -- the parameter is read, never silently inert.
+func (e *Engine) voteMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if _, _, _, ok := effects.VoteFinishedResult(ev); !ok {
+		return false
+	}
+	return true
+}
+
+func (e *Engine) flippedCoinMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	flipper, win, ok := effects.FlipNoteResult(ev)
+	if !ok {
+		return false
+	}
+	// ValidResult$ gates the side: Win = heads (Amount 1), Lose = tails
+	// (Amount 0). Every corpus FlippedCoin line carries one; an absent
+	// ValidResult$ (no such line measured) would fire on both sides.
+	if res := strings.TrimSpace(t.Params["ValidResult"]); res != "" {
+		if strings.EqualFold(res, "Win") && !win {
+			return false
+		}
+		if strings.EqualFold(res, "Lose") && win {
+			return false
+		}
+	}
+	// ValidPlayer$ names the FLIPPER ("whenever YOU win a coin flip"): the
+	// Note's Player, through the shared player-spec grammar with the trigger's
+	// own controller as You. The two "whenever a player wins" lines carry no
+	// ValidPlayer$ and fire on any flipper.
+	if v, ok := t.Params["ValidPlayer"]; ok {
+		if !effects.MatchesPlayerSpecFrom(e.G, v, flipper, e.controllerOf(source), source) {
+			return false
+		}
+	}
+	return true
+}
+
+// attachedMatches implements Mode$ Attached: the trigger fires when an Aura,
+// Equipment or other attachment becomes attached to a permanent (CR
+// 701.3a's "becomes attached" -- the event the engine's one shared attach
+// emit site, effects/attach.go's effAttach, publishes for the cast, equip
+// and ETB-attached shapes alike). events.Attach with len(ev.IDs) > 0 carries
+// the attachment in ev.Obj and the bearer in ev.IDs[0]; the no-IDs emits are
+// the detach state-based actions (rules/attach.go), which are NOT "becomes
+// attached" and never match, and an emit with no attachment object (Obj == 0)
+// has nothing to bind ValidSource$ against, so it never matches either.
+// Forge's ValidSource$ names the ATTACHING
+// object (Siona's Aura.YouCtrl, Enormous Energy Blade's Card.Self) and
+// ValidTarget$ names the BEARER (Brood Keeper's Card.Self reads Self as the
+// trigger's source through the same specCtx becomesTargetMatches uses).
+// A trigger with NO ValidTarget$ never fires: Eriette's line names only
+// TargetRelativeToSource$, a parameter this build does not read anywhere,
+// so firing without the bearer restriction would over-fire on every Aura
+// attach. The Static$ True guard keeps Forge's "static effect expressed as
+// a trigger" lines (Metamorphic Alteration, Paleontologist's Pick-Axe --
+// Execute$ DBClone continuous shapes with no static-trigger machinery here)
+// from firing a clone on every attach.
+func (e *Engine) attachedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Attach || len(ev.IDs) == 0 || ev.Obj == 0 {
+		return false
+	}
+	if t.Params["Static"] == "True" {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidSource"]; ok {
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidTarget"]; ok {
+		return effects.MatchesSpecCtx(e.G, v, ev.IDs[0], e.specCtx(source, ctrl))
+	}
+	return false
+}
+
+// ringTemptsMatches implements Mode$ RingTemptsYou (CR 701.54d): the trigger
+// fires when the Ring tempts its controller, "when the actions complete,
+// even if some were impossible" — an event with Obj 0 (no creature was
+// designated) still counts as a temptation. The tempted player is ev.Player;
+// ValidPlayer$ gates on the tempted player against the source's controller
+// (the corpus's only spelling, `ValidPlayer$ You`). ValidCard$ gates on the
+// chosen Ring-bearer with the source's controller as "you" and the source as
+// Other — the corpus's `Creature.YouCtrl+Other` shape ("a creature other than
+// CARDNAME") and the plain `Creature.YouCtrl` shape both resolve through it;
+// with no designated bearer a ValidCard$ trigger never fires.
+func (e *Engine) ringTemptsMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.RingTemptsYou {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidPlayer"]; ok {
+		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+			return false
+		}
+	}
+	if v := t.Params["ValidCard"]; v != "" {
+		if ev.Obj == 0 {
+			return false // no creature became the Ring-bearer
+		}
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+			return false
+		}
+	}
+	return true
+}
+
+// becomesTargetMatches implements Mode$ BecomesTarget: the trigger fires
+// when one of the chosen targets recorded by a TargetsChosen event
+// (rules.handleTarget -- "the target decision being answered") matches its
+// ValidTarget$ -- or, with no ValidTarget$, when its own source is among the
+// targets. Forge's ValidTarget$ names the TARGETED object: the self-shapes
+// (ValidTarget$ Card.Self, the ward family, Reality Smasher) match their own
+// source that way, and the "a Dragon you control becomes the target" shapes
+// (Thunderbreak Regent) match a target their source merely watches -- the
+// 50 non-self corpus lines of the 132-line mode.
+func (e *Engine) becomesTargetMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.TargetsChosen {
+		return false
+	}
+	if v, ok := t.Params["ValidSource"]; ok {
+		// ValidSource$ names the spell or ability doing the targeting: the
+		// TargetsChosen event's Obj, the stack object whose target decision
+		// this event answers (commitCrimeMatches reads the same field as the
+		// targeting actor). Reality Smasher's "spell an opponent controls"
+		// (Spell.OppCtrl) and Thunderbreak Regent's "spell or ability"
+		// (SpellAbility.OppCtrl) both resolve against that stack object; an
+		// event carrying no targeting object can never match.
+		if ev.Obj == 0 || !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidTarget"]; ok {
+		for _, id := range ev.IDs {
+			if effects.MatchesSpecCtx(e.G, v, id, e.specCtx(source, e.controllerOf(source))) {
+				// CR 702.21a compares the Ward permanent's controller with the
+				// controller of the targeting spell or ability ON THE STACK
+				// (the same ev.Obj ValidSource$ reads above). For an ability,
+				// protectionSource would unwrap ev.Obj to its source permanent,
+				// whose controller may have changed since activation. Every
+				// ward trigger targets only itself (the synthesized shape,
+				// trigger_match.go's ward expansion), so this gate runs on the
+				// self match.
+				if t.Params["Ward"] == "True" &&
+					(ev.Obj == 0 || e.controllerOf(ev.Obj) == e.controllerOf(source)) {
+					return false
+				}
+				return true
+			}
+		}
+		return false
+	}
+	targeted := false
+	for _, id := range ev.IDs {
+		if id == source {
+			targeted = true
+			break
+		}
+	}
+	if targeted && t.Params["Ward"] == "True" &&
+		(ev.Obj == 0 || e.controllerOf(ev.Obj) == e.controllerOf(source)) {
+		// The ValidTarget$ branch's ward gate, applied to the bare
+		// self-targeted fallback: a ward trigger never fires for its own
+		// controller's targeting (CR 702.21a compares the ward permanent's
+		// controller with the targeting spell or ability's, the same ev.Obj
+		// ValidSource$ reads above). Unreachable in the current corpus --
+		// every ward trigger is keyword-synthesized with ValidTarget$
+		// Card.Self (cards/keywords.go, 0 raw Ward$ True lines) -- kept so
+		// a future ward trigger without ValidTarget$ cannot fire for its
+		// own controller.
+		return false
+	}
+	return targeted
+}
+
+// landPlayedMatches implements Mode$ LandPlayed. This fires on the MoveZone
+// hand->battlefield of a land specifically -- not on the separate LandPlayed
+// event legal.go's "play_land" case also emits, which carries only a Player
+// (no Obj), and so has nothing ValidCard$ could ever match against.
+func (e *Engine) landPlayedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.MoveZone || ev.From != state.ZHand || ev.To != state.ZBattlefield {
+		return false
+	}
+	obj := e.G.Obj(ev.Obj)
+	if obj == nil || obj.Face() == nil || !obj.Face().IsLand() {
+		return false
+	}
+	if v, ok := t.Params["ValidCard"]; ok {
+		return effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source)))
+	}
+	return true
+}
+
+type parsedPhase struct {
+	set   state.StepSet
+	valid bool
+}
+
+// parsedPhaseSpec caches syntax only, never whether the current step matches.
+// Diagnostic scans and live/look-back matchers use the same parse semantics;
+// only the live scan emits Notes, tracked separately in phaseUnknownNoted.
+func (e *Engine) parsedPhaseSpec(spec string) parsedPhase {
+	if p, ok := e.phaseSpecs[spec]; ok {
+		return p
+	}
+	set, unknown := state.ParsePhases(spec)
+	p := parsedPhase{set: set, valid: len(unknown) == 0}
+	if e.phaseSpecs == nil {
+		e.phaseSpecs = make(map[string]parsedPhase)
+	}
+	e.phaseSpecs[spec] = p
+	return p
+}
+
+// phaseGate applies Forge's Phase$ (validPhases) uniformly to every trigger
+// mode. It is deliberately before the mode switch in triggerMatches: a
+// ChangesZone or SpellCast trigger with Phase$ Main1 must not fire during an
+// upkeep, and an unresolvable name fails closed. checkFaceTriggers reports
+// that invalid name once as a Note; this bool-only matcher does not emit
+// while it may be walking a scratch look-back observer. An absent Phase$
+// remains ungated, matching Forge's null validPhases.
+//
+// PhaseCount$ narrows a Phase$ set to the Nth member of that set in turn
+// order: `Phase$ Main | PhaseCount$ 2` is the SECOND main phase, so the gate
+// fails at the first. A non-positive or non-numeric value fails closed (the
+// conservative direction -- the trigger then fires at no step rather than
+// every matching one).
+func (e *Engine) phaseGate(t cards.Trigger) bool {
+	spec := t.Params["Phase"]
+	if strings.TrimSpace(spec) == "" {
+		return true
+	}
+	p := e.parsedPhaseSpec(spec)
+	if !p.valid || !p.set.Has(e.G.Step) {
+		return false
+	}
+	count := strings.TrimSpace(t.Params["PhaseCount"])
+	if count == "" {
+		return true
+	}
+	n, err := strconv.Atoi(count)
+	if err != nil || n < 1 {
+		return false
+	}
+	return p.set.Ordinal(e.G.Step) == n
+}
+
+// phaseMatches implements Mode$ Phase after phaseGate has already checked
+// its Phase$ parameter. The mode itself is only a StepChange event plus its
+// optional ValidPlayer$ restriction.
+func (e *Engine) phaseMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.StepChange {
+		return false
+	}
+	if v, ok := t.Params["ValidPlayer"]; ok {
+		// StepChange carries no Player of its own -- a step always belongs
+		// to the current active player.
+		if !effects.MatchesPlayerSpec(e.G, v, e.G.Active, e.controllerOf(source)) {
+			return false
+		}
+	}
+	return true
+}
+
+func init() {
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.commitCrimeMatches(t, source, ev)
+	}, "CommitCrime")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.voteMatches(t, source, ev)
+	}, "Vote")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.flippedCoinMatches(t, source, ev)
+	}, "FlippedCoin")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.attachedMatches(t, source, ev)
+	}, "Attached")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.ringTemptsMatches(t, source, ev)
+	}, "RingTemptsYou")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.becomesTargetMatches(t, source, ev)
+	}, "BecomesTarget")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.landPlayedMatches(t, source, ev)
+	}, "LandPlayed")
+	registerTrigMatcher((*Engine).phaseTriggerMatches, "Phase")
+}
+
+// phaseTriggerMatches is Mode$ Phase plus the echo gate.
+//
+// kw:Echo (CR 702.35a) rides the Echo$ True marker on its generated keyword
+// trigger the way Annihilator$ rides its own: the intervening-if must suppress
+// the trigger BEFORE it stacks (a stacked-but-owed-nothing echo is an
+// observable divergence). The gate reads the object's control-acquisition
+// tuple (rules/echo.go) against the controller's most recent upkeep.
+//
+// Named rather than a closure in init() so the param census attributes the
+// Echo$ read to a matcher it can reach from the registration, not to init.
+func (e *Engine) phaseTriggerMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	if !e.phaseMatches(t, source, ev) {
+		return false
+	}
+	if t.Params["Echo"] == "True" {
+		return e.echoGateHolds(source)
+	}
+	return true
+}
