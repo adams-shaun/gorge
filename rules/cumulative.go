@@ -553,7 +553,12 @@ func (e *Engine) continueCumulativeAction() {
 	case "AddCounter":
 		counter, targetSpec, targeted := strings.Cut(a.spec, "/")
 		if !targeted {
+			// A cumulative-upkeep action cost is paid by cu.player, and this
+			// window has no usable stack cause for the AddCounter class, so
+			// publish the payer as the adder explicitly.
+			prevAdder := e.SetCounterAdder(cu.player)
 			e.emit(events.Event{Kind: events.CounterChange, Obj: cu.source, Counter: counter, Amount: int32(total)})
+			e.SetCounterAdder(prevAdder)
 			cu.actionRemaining = 0
 			e.finishCumulative()
 			return
@@ -964,7 +969,9 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 		return
 	case "cumulative_action_counter":
 		counter, _, _ := strings.Cut(cu.action.spec, "/")
+		prevAdder := e.SetCounterAdder(cu.player)
 		e.emit(events.Event{Kind: events.CounterChange, Obj: chosen[0].Obj, Counter: counter, Amount: cu.action.n})
+		e.SetCounterAdder(prevAdder)
 		cu.actionRemaining--
 		e.continueCumulativeAction()
 		return

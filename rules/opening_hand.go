@@ -160,7 +160,11 @@ func (e *Engine) applyOpeningEffect(ef openingEffect) {
 	sub := sa.Sub
 	if sub != nil && sub.API == "PutCounter" {
 		n := effects.Num(e, &effects.Ctx{Source: ef.card, Controller: ef.player}, sub, "CounterNum", 1)
+		// A pregame opening-hand counter is put by the effect's player, with
+		// no stack cause: publish the adder for the AddCounter class.
+		prevAdder := e.SetCounterAdder(ef.player)
 		e.emit(events.Event{Kind: events.CounterChange, Obj: ef.card, Counter: sub.Params["CounterType"], Amount: n})
+		e.SetCounterAdder(prevAdder)
 		sa = sub
 		sub = sub.Sub
 	}
