@@ -280,20 +280,70 @@ var actionCoverageEnabled bool
 // the two cannot drift apart.
 func aPlaysSeat(game, seat int) bool { return gbench.PlaysSeat(game, seat) }
 
-// resolvePolicy looks a -a/-b name up in the policies table. The error
-// message lists the known names sorted, so it is deterministic like every
-// other output the bench prints.
-func resolvePolicy(name string) (func(seed uint64) seat.Seat, error) {
-	p, ok := policies[name]
-	if !ok {
-		known := make([]string, 0, len(policies))
-		for k := range policies {
-			known = append(known, k)
-		}
-		sort.Strings(known)
-		return nil, fmt.Errorf("unknown policy %q (known: %s)", name, strings.Join(known, ", "))
+// builtinPolicyNames is the sorted built-in policy vocabulary, for an error
+// message. Sorted because the message reaches an operator and a map range
+// would reorder it between runs.
+func builtinPolicyNames() []string {
+	out := make([]string, 0, len(policies))
+	for k := range policies {
+		out = append(out, k)
 	}
-	return p, nil
+	sort.Strings(out)
+	return out
+}
+
+// seatCtorForDeck resolves ONE SEAT's policy name against the deck that seat
+// plays, which is what makes a policy a property of the deck rather than of
+// the bench invocation.
+//
+// A built-in name always wins. That ordering is deliberate and not merely
+// convenient: every existing invocation (-a bot -b policynet, the ten
+// approved mono pairs, the acceptance runs) must keep resolving to exactly
+// the seat it resolves to today, or the measured baselines stop comparing.
+// deckPolicyShadowCheck rejects a deck that tries to redefine a built-in
+// name, so the precedence can never silently discard a deck author's policy.
+//
+// Anything else must be a policy the SEAT'S OWN deck declares. A missing name
+// is a hard error (deck.File.Policy builds it, listing what the deck does
+// have) rather than a fall back to the default bot: a silent fallback would
+// make side A identical to side B for exactly the decks missing the policy
+// under test, and the run would report "no effect" when the truth is "the
+// policy was never loaded".
+func seatCtorForDeck(name string, f deck.File) (func(seed uint64) seat.Seat, error) {
+	if c, ok := policies[name]; ok {
+		return c, nil
+	}
+	raw, err := f.Policy(name)
+	if err != nil {
+		return nil, fmt.Errorf("%w; built-in policies: %s", err, strings.Join(builtinPolicyNames(), ", "))
+	}
+	ps, err := botpolicy.ParseDeckPolicy(raw)
+	if err != nil {
+		return nil, fmt.Errorf("deck %q policy %q: %w", f.Name, name, err)
+	}
+	if !ps.CastSet {
+		// The document parsed, but every class it sets is one this build
+		// cannot read. Saying so is the point: silently seating the default
+		// bot would look like the policy ran.
+		return nil, fmt.Errorf("deck %q policy %q sets no decision class this build reads (unread classes: %s)",
+			f.Name, name, strings.Join(ps.UnknownClasses, ", "))
+	}
+	w := ps.Cast
+	return func(seed uint64) seat.Seat { return seat.NewCastProfileBotWithWeights(seed, w) }, nil
+}
+
+// deckPolicyShadowCheck rejects a deck whose declared policy name collides
+// with a built-in. Built-ins take precedence (see seatCtorForDeck), so
+// without this check the deck's policy would be silently unreachable -- the
+// failure mode where a bench run looks like it exercised a tuned profile and
+// actually re-ran the stock bot.
+func deckPolicyShadowCheck(f deck.File) error {
+	for _, name := range f.PolicyNames() {
+		if _, ok := policies[name]; ok {
+			return fmt.Errorf("deck %q declares a policy named %q, which is a built-in policy name; rename it (built-ins take precedence and the deck's would never be selected)", f.Name, name)
+		}
+	}
+	return nil
 }
 
 // gameOutcome is one bench game's result: the policy that won and the seat
@@ -1013,8 +1063,8 @@ func pdToBench(pd pairDef) gbench.PairDef { return gbench.PairDef{A: pd.a, B: pd
 // A name in the policies table uses that policy's real constructor; any other
 // name (a synthetic test player) gets a nil-returning ctor, because the
 // synthetic player reads the policy names, not the built seats. The real run
-// path validates names with resolvePolicy before any game starts, so a typo
-// never reaches here.
+// path resolves every (policy, seated deck) pair through seatCtorForDeck
+// before any game starts, so a typo never reaches here.
 func seatCtorFor(name string) gbench.SeatCtor {
 	if c, ok := policies[name]; ok {
 		return gbench.SeatCtor(c)
@@ -1141,8 +1191,9 @@ func runPairs(baseSeed uint64, games int, aName, bName string, pairs []pairDef, 
 	// gbench's scheduler builds that game's two seats from them (PlaysSeat
 	// decides which side sits where). A synthetic `play` (the tests inject
 	// one with fake names like "a"/"b") never reads the seats, so an unknown
-	// name maps to a nil-returning ctor rather than an error: the real run's
-	// resolvePolicy validates names before any game starts.
+	// name maps to a nil-returning ctor rather than an error: the real run
+	// resolves every (policy, seated deck) pair through seatCtorForDeck
+	// before any game starts.
 	aCtor := seatCtorFor(aName)
 	bCtor := seatCtorFor(bName)
 	var progress gbench.Progress
@@ -1491,12 +1542,12 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 	if format != "text" && format != "json" {
 		return fmt.Errorf("-out must be \"text\" or \"json\", got %q", format)
 	}
-	if _, err := resolvePolicy(aName); err != nil {
-		return err
-	}
-	if _, err := resolvePolicy(bName); err != nil {
-		return err
-	}
+	// Policy names are NOT validated here any more: a name may be a built-in
+	// or a policy one of the seated decks declares, and which decks are
+	// seated is not known until they are loaded below. Both paths resolve
+	// every (policy, seated deck) pair through seatCtorForDeck before any
+	// game starts, and its error names the deck and the policies that deck
+	// does declare -- strictly more validation than this check, not less.
 
 	reg, err := testutil.OpenCorpusRegistry(dir)
 	if err != nil {
@@ -1512,6 +1563,12 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 	// half-starts on an illegal deck or a deck with no commander (which an
 	// explicit pair or the -seats path could otherwise slip past).
 	deckByName := make(map[string][]*cards.Card, len(pairs)*2)
+	// deckFileByName carries the parsed deck FILE beside its resolved cards,
+	// because a deck's named bot policies (deck.File.Policies) are read from
+	// it at seat construction. Keyed like deckByName and likewise never
+	// ranged in the reporting path, so its iteration order cannot reach the
+	// output.
+	deckFileByName := make(map[string]deck.File, len(pairs)*2)
 	cmdrByName := make(map[string][]int, len(pairs)*2) // commander mode only
 	for _, pd := range pairs {
 		for _, name := range []string{pd.a, pd.b} {
@@ -1523,6 +1580,14 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 				return err
 			}
 			deckByName[name] = d
+			df, err := testutil.LoadRepoDeckFile(name)
+			if err != nil {
+				return err
+			}
+			if err := deckPolicyShadowCheck(df); err != nil {
+				return err
+			}
+			deckFileByName[name] = df
 			if commander {
 				cis, err := commanderIndices(reg, name)
 				if err != nil {
@@ -1549,13 +1614,43 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 		traces = make([]*gameTrace, len(pairs)*games)
 	}
 
+	// Resolve every (policy name, seated deck) pair ONCE, before any game
+	// starts, so a name no deck declares fails the run immediately instead of
+	// panicking inside a worker mid-matrix. The map is keyed by the pair the
+	// resolution depends on; a built-in name resolves identically for every
+	// deck, a deck policy only for the deck that declares it.
+	seatCtors := make(map[[2]string]func(seed uint64) seat.Seat, len(pairs)*4)
+	for _, pd := range pairs {
+		for _, deckName := range []string{pd.a, pd.b} {
+			for _, polName := range []string{aName, bName} {
+				key := [2]string{polName, deckName}
+				if _, ok := seatCtors[key]; ok {
+					continue
+				}
+				c, err := seatCtorForDeck(polName, deckFileByName[deckName])
+				if err != nil {
+					return err
+				}
+				seatCtors[key] = c
+			}
+		}
+	}
+
 	play := func(pos int, seed uint64, pols []string) (gameOutcome, error) {
 		pd := pairs[pos]
+		deckNames := [2]string{pd.a, pd.b}
 		botSeats := make([]seat.Seat, 2)
 		for seat := 0; seat < 2; seat++ {
 			// Same per-seat seed derivation as run(): policy RNG is distinct
 			// from the engine's and from every other seat's.
-			botSeats[seat] = policies[pols[seat]](seed ^ uint64(seat+1))
+			//
+			// The policy is resolved against the deck THIS SEAT plays, which
+			// is what per-deck policy means: policies still trade seats every
+			// game (aPlaysSeat) while decks stay pinned to seats, so side A
+			// picks up deck 0's policy in the games it sits at seat 0 and deck
+			// 1's in the games it sits at seat 1. The pre-resolved table above
+			// means this hot path does no parsing.
+			botSeats[seat] = seatCtors[[2]string{pols[seat], deckNames[seat]}](seed ^ uint64(seat+1))
 		}
 		var commanders [][]int
 		if commander {
@@ -1649,12 +1744,12 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 	if rotate < 0 || rotate >= seats {
 		return fmt.Errorf("-rotate must be in [0,%d) with %d seats, got %d", seats, seats, rotate)
 	}
-	if _, err := resolvePolicy(aName); err != nil {
-		return err
-	}
-	if _, err := resolvePolicy(bName); err != nil {
-		return err
-	}
+	// Policy names are NOT validated here any more: a name may be a built-in
+	// or a policy one of the seated decks declares, and which decks are
+	// seated is not known until they are loaded below. Both paths resolve
+	// every (policy, seated deck) pair through seatCtorForDeck before any
+	// game starts, and its error names the deck and the policies that deck
+	// does declare -- strictly more validation than this check, not less.
 
 	reg, err := testutil.OpenCorpusRegistry(dir)
 	if err != nil {
@@ -1689,6 +1784,11 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 	// changes.
 	seated := seatedDeckNames(names[:seats], rotate)
 	decks := make([][]*cards.Card, seats)
+	// seatCtor[s] is the constructor for the policy sitting at seat s,
+	// resolved against the deck seat s holds. Built per seat rather than per
+	// policy name because a deck policy is a property of the deck: two seats
+	// answering to the same -a name can hold different weights.
+	seatCtor := make([]map[string]func(seed uint64) seat.Seat, seats)
 	commanders := make([][]int, seats) // commander mode only
 	for s := 0; s < seats; s++ {
 		d, err := testutil.LoadRepoDeck(reg, seated[s])
@@ -1696,6 +1796,26 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 			return err
 		}
 		decks[s] = d
+		df, err := testutil.LoadRepoDeckFile(seated[s])
+		if err != nil {
+			return err
+		}
+		if err := deckPolicyShadowCheck(df); err != nil {
+			return err
+		}
+		// Resolve both policy names against this seat's deck up front, so a
+		// name no deck declares fails the run before any game is played.
+		seatCtor[s] = make(map[string]func(seed uint64) seat.Seat, 2)
+		for _, polName := range []string{aName, bName} {
+			if _, ok := seatCtor[s][polName]; ok {
+				continue
+			}
+			c, err := seatCtorForDeck(polName, df)
+			if err != nil {
+				return err
+			}
+			seatCtor[s][polName] = c
+		}
 		if commander {
 			cis, err := commanderIndices(reg, seated[s])
 			if err != nil {
@@ -1732,7 +1852,9 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 			// One bot per seat, each seeded from the game's seed the same
 			// way host/defaultSeats does (seed ^ seat+1) so a policy's RNG
 			// is distinct from the engine's and from every other seat's.
-			botSeats[seat] = policies[pols[seat]](s ^ uint64(seat+1))
+			// The constructor was resolved against the deck THIS seat holds,
+			// so a deck's own named policy is what plays it.
+			botSeats[seat] = seatCtor[seat][pols[seat]](s ^ uint64(seat+1))
 		}
 		cfg := buildGameConfig(s, seated, decks, commanders, commander)
 		cfg.Tokens = reg.Tokens
