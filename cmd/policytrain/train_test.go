@@ -531,3 +531,205 @@ func botImitationTrainCorpus(n, nopts int, keepFrac, keepMargin, ovMargin float6
 	}
 	return out
 }
+
+// argmaxCECorpus is the L9b-fix2 gate corpus: the correct option is
+// determined ENTIRELY by the option feature "ce|good" (every third decision's
+// option 2 carries it, and the teacher always overrides to it), the labelled
+// values are ALL TIED at 0.5 (the value term is skipped — no within-decision
+// preference signal at all), and the override margin is 0.001, a hundredth of
+// ONE sampled world (the measured real-corpus scale: median within-decision
+// value spread 0.062 = 1/16, dominated by rollout noise). Under the pre-fix
+// default loss (hybrid: margin-weighted rank + value) the rank signal is
+// scaled by that 0.001 margin and the trainer ends BELOW the first-option
+// baseline; under pure argmax CE (weight RankWeight, margin not applied) the
+// feature is learned to saturation.
+func argmaxCECorpus(n, nopts int, margin float64) []policynet.Example {
+	out := make([]policynet.Example, n)
+	for i := 0; i < n; i++ {
+		st := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+		st.Sparse = append(st.Sparse,
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("ce|s|%d", i%7)), Value: 1})
+		marked := i%3 == 0
+		pref := 0
+		if marked {
+			pref = 2
+		}
+		ex := policynet.Example{Kind: "attackers", TeacherChoice: pref, BotIndex: 0, State: st}
+		if marked {
+			ex.Margin = margin
+		}
+		for j := 0; j < nopts; j++ {
+			o := policynet.Option{Dense: make([]float32, policynet.OptionDenseWidth)}
+			o.Hashed = append(o.Hashed,
+				policynet.Feature{Row: policynet.HashID(fmt.Sprintf("ce|p|%d", j)), Value: 1})
+			if marked && j == 2 {
+				o.Hashed = append(o.Hashed,
+					policynet.Feature{Row: policynet.HashID("ce|good"), Value: 1})
+			}
+			o.Target = policynet.OptionTarget{Labelled: true, Preferred: j == pref, Value: 0.5}
+			ex.Options = append(ex.Options, o)
+		}
+		out[i] = ex
+	}
+	return out
+}
+
+// TestTrainerArgmaxCEBeatsValueRegression is the brief's gate: on the corpus
+// above, the pure-CE default must reach holdout per-kind top-1 CLEARLY above
+// the first-option baseline while the pre-fix default loss (the zero Mode =
+// hybrid arm, exactly today's pre-change default) stays at or below it.
+//
+// Measured at seed 7 (deterministic): first-labelled baseline 0.600,
+// hybrid 0.167, value-only 0.167, pure CE 1.000. The hybrid arm FAILS ON
+// TODAY'S DEFAULT LOSS — the assertion on it is the part that could not even
+// be expressed before the mode existed, and it is the collapse reproduced in
+// miniature: the margin-weighted rank term is silenced by a one-world margin
+// and the value term (tied values here) carries nothing.
+func TestTrainerArgmaxCEBeatsValueRegression(t *testing.T) {
+	corpus := argmaxCECorpus(600, 3, 0.001)
+	run := func(mode policynet.LossMode) KindStat {
+		t.Helper()
+		cfg := Config{Epochs: 10, Batch: 32, LR: 0.1, Seed: 7, Holdout: 0.15,
+			Embed: 32, Hidden: 64, Mode: mode, RankWeight: 1, HuberDelta: 0.1}
+		res, err := Train(corpus, cfg)
+		if err != nil {
+			t.Fatalf("mode %q: Train: %v", mode, err)
+		}
+		if len(res.ByKind) != 1 {
+			t.Fatalf("mode %q: %d kinds, want 1", mode, len(res.ByKind))
+		}
+		return res.ByKind[0]
+	}
+
+	ce := run(policynet.LossCE)
+	if ce.FirstTop1 < 0.5 || ce.FirstTop1 > 0.7 {
+		t.Fatalf("first-option baseline %.3f outside the expected ~0.667", ce.FirstTop1)
+	}
+	if ce.ModelTop1 < 0.95 {
+		t.Fatalf("pure-CE top-1 %.3f not clearly above the first-option baseline %.3f (want >= 0.95)",
+			ce.ModelTop1, ce.FirstTop1)
+	}
+	hybrid := run("") // the pre-fix default geometry, byte-equal to LossHybrid
+	if hybrid.ModelTop1 > hybrid.FirstTop1 {
+		t.Fatalf("pre-fix default loss top-1 %.3f beat the baseline %.3f — the gate corpus no longer reproduces the collapse",
+			hybrid.ModelTop1, hybrid.FirstTop1)
+	}
+	if ce.ModelTop1 < hybrid.ModelTop1+0.3 {
+		t.Fatalf("pure CE %.3f not clearly above the pre-fix default %.3f", ce.ModelTop1, hybrid.ModelTop1)
+	}
+	t.Logf("first-option %.3f | pre-fix default (hybrid) %.3f | value-only %.3f | pure CE %.3f",
+		hybrid.FirstTop1, hybrid.ModelTop1, run(policynet.LossValue).ModelTop1, ce.ModelTop1)
+}
+
+// TestTrainerCENoNaNGrid is the brief's stability grid under the NEW default
+// loss (pure CE): every rank-weight {0,5,20,50} × lr {0.001,0.01,0.1}
+// combination trains to a finite loss, finite per-epoch statistics and a
+// finite checkpoint, with the global gradient clip active (the CLI default).
+// rank-weight 0 makes the CE term identically zero — the degenerate corner —
+// and must still come out finite and (trivially) NaN-free.
+func TestTrainerCENoNaNGrid(t *testing.T) {
+	corpus := gridCorpus(200, 3)
+	for _, rw := range []float64{0, 5, 20, 50} {
+		for _, lr := range []float64{0.001, 0.01, 0.1} {
+			cfg := Config{Epochs: 6, Batch: 32, LR: lr, Seed: 7, Holdout: 0.15,
+				Embed: 16, Hidden: 16, Mode: policynet.LossCE, RankWeight: rw, HuberDelta: 0.1, Clip: 1}
+			res, err := Train(corpus, cfg)
+			if err != nil {
+				t.Fatalf("rw=%v lr=%v: Train: %v", rw, lr, err)
+			}
+			for _, e := range res.Epochs {
+				if math.IsNaN(e.TrainLoss) || math.IsInf(e.TrainLoss, 0) ||
+					math.IsNaN(e.HoldoutLoss) || math.IsInf(e.HoldoutLoss, 0) ||
+					math.IsNaN(e.TrainTop1) || math.IsNaN(e.HoldoutTop1) {
+					t.Fatalf("rw=%v lr=%v epoch %d: non-finite stat %+v", rw, lr, e.Epoch, e)
+				}
+			}
+			params := [][]float32{res.Model.Table, res.Model.StateW, res.Model.StateB,
+				res.Model.HidW, res.Model.HidB, res.Model.OutW}
+			for name, p := range params {
+				for i, v := range p {
+					if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+						t.Fatalf("rw=%v lr=%v: non-finite parameter block %d [%d] = %v", rw, lr, name, i, v)
+					}
+				}
+			}
+			if math.IsNaN(float64(res.Model.OutB)) || math.IsInf(float64(res.Model.OutB), 0) {
+				t.Fatalf("rw=%v lr=%v: non-finite output bias %v", rw, lr, res.Model.OutB)
+			}
+			if rw == 0 {
+				// Degenerate corner: zero CE weight ⇒ zero loss, zero movement.
+				if res.Epochs[0].TrainLoss != 0 {
+					t.Fatalf("rw=0: train loss %g, want identically 0", res.Epochs[0].TrainLoss)
+				}
+			}
+		}
+	}
+}
+
+// TestTrainerResidualPriorDoesNotBlockLearningOverrides is the L9b-fix2
+// item-3 gate at the trainer level: the residual prior is a fixed +ResidualInit
+// on the BOT's option (here the WRONG one on the feature-decided decisions),
+// and CE must still learn the feature-determined override on top of it. A
+// prior that blocked learning would cap this at the bot baseline; the
+// measured top-1 is ~1.000.
+func TestTrainerResidualPriorDoesNotBlockLearningOverrides(t *testing.T) {
+	corpus := argmaxCECorpus(600, 3, 0.001)
+	bot := 0
+	for i := range corpus {
+		corpus[i].Options[bot].BotPick = true // the bot's answer is always option 0
+	}
+	res, err := Train(corpus, Config{Epochs: 8, Batch: 32, LR: 0.1, Seed: 7, Holdout: 0.15,
+		Embed: 32, Hidden: 64, Mode: policynet.LossCE, RankWeight: 1, HuberDelta: 0.1, ResidualInit: 5})
+	if err != nil {
+		t.Fatalf("Train: %v", err)
+	}
+	k := res.ByKind[0]
+	if res.Model.ResidualW != 5 {
+		t.Fatalf("ResidualW = %g, want the configured prior 5", res.Model.ResidualW)
+	}
+	if k.ModelTop1 < 0.95 {
+		t.Fatalf("model top-1 %.3f: the residual prior blocked the feature-determined override (want >= 0.95)", k.ModelTop1)
+	}
+	t.Logf("residual prior 5 on the wrong option: model %.3f, first %.3f, bot %.3f", k.ModelTop1, k.FirstTop1, k.BotTop1)
+}
+
+// TestTrainerResidualReproducesBotWhenNothingIsLearnable pins the residual's
+// purpose: when the bot's own option IS the teacher's choice and no feature
+// separates the options, the model reproduces the bot baseline exactly. The
+// bot option is option 1 (NOT the first option) and carries no discriminating
+// feature, so the teacher-kept baseline is a non-trivial 1.0 that a
+// featureless head cannot reach; the prior alone does. ResidualInit 0 is
+// measurably worse, proving the wiring is live rather than a coincidence.
+func TestTrainerResidualReproducesBotWhenNothingIsLearnable(t *testing.T) {
+	corpus := make([]policynet.Example, 300)
+	for i := range corpus {
+		st := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+		st.Sparse = append(st.Sparse,
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("nothing|s|%d", i%7)), Value: 1})
+		ex := policynet.Example{Kind: "attackers", TeacherChoice: 0, BotIndex: 0, State: st}
+		for j := 0; j < 3; j++ {
+			o := policynet.Option{Dense: make([]float32, policynet.OptionDenseWidth)}
+			// No feature distinguishes the options: the only signal is the prior.
+			o.Target = policynet.OptionTarget{Labelled: true, Value: 0.5, Preferred: j == 1}
+			o.BotPick = j == 1 // the bot's answer is a non-first option
+			ex.Options = append(ex.Options, o)
+		}
+		corpus[i] = ex
+	}
+	run := func(ri float64) KindStat {
+		t.Helper()
+		res, err := Train(corpus, Config{Epochs: 6, Batch: 32, LR: 0.1, Seed: 7, Holdout: 0.15,
+			Embed: 32, Hidden: 64, Mode: policynet.LossCE, RankWeight: 1, HuberDelta: 0.1, ResidualInit: ri})
+		if err != nil {
+			t.Fatalf("Train (residual %g): %v", ri, err)
+		}
+		return res.ByKind[0]
+	}
+	on := run(5)
+	if on.BotTop1 != 1 || on.ModelTop1 != 1 {
+		t.Fatalf("residual 5: bot %.3f model %.3f, want both 1.000 (the prior alone must reproduce the bot)", on.BotTop1, on.ModelTop1)
+	}
+	if off := run(0); off.ModelTop1 == 1 {
+		t.Fatalf("residual 0 model top-1 1.000 — the no-prior arm should not already be perfect, or the wiring is not being exercised")
+	}
+}
