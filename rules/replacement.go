@@ -2482,14 +2482,29 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		}
 		// ValidSource$ You/Opponent names the player CAUSING the placement -- a
 		// role the CounterChange event does not carry (it records the recipient
-		// only).
-		// There is no engine-side "who is adding these counters" scratch, so a
-		// source-scoped line fails closed rather than matching every placement:
-		// the conservative direction (Vorinclex's "If you would put ...",
-		// Halving Season's opponent half). See the AddCounter row in AGENTS.md.
-		if strings.TrimSpace(r.Params["ValidSource"]) != "" ||
-			strings.TrimSpace(r.Params["ValidCause"]) != "" {
-			return false
+		// only), so it is read from the engine's in-flight adder scratch
+		// (counterAdder, published at cost/turn-based sites) or, absent a
+		// publication, from the resolving ability's controller. When NEITHER is
+		// known (an SBA or other bare placement) the line fails closed rather
+		// than matching every placement -- the conservative direction
+		// (Vorinclex's "If you would put ...", Halving Season's opponent
+		// half). This is the Vorinclex source scope: one placement has exactly
+		// one adder, so its "you" and "opponent" lines are mutually exclusive
+		// and never compete.
+		if vs := strings.TrimSpace(r.Params["ValidSource"]); vs != "" {
+			adder, ok := e.inFlightCounterAdder()
+			if !ok || !effects.MatchesPlayerSpec(e.G, vs, adder, you) {
+				return false
+			}
+		}
+		// ValidCause$ names the object that caused the placement (Zabaz's
+		// "a modular triggered ability would put ..."): the resolving stack
+		// object, exactly the provenance the Moved case's ValidCause$ reads.
+		// An absent cause (0) fails closed in replacementCauseMatches.
+		if vc := strings.TrimSpace(r.Params["ValidCause"]); vc != "" {
+			if !e.replacementCauseMatches(vc, source, e.actionCause()) {
+				return false
+			}
 		}
 		// EffectOnly$ True (Doubling Season, Selesnya Loft Gardens) admits only
 		// placements that are the EFFECT of a resolving spell or ability ("If an
@@ -3010,6 +3025,15 @@ func (e *Engine) replacementCauseMatches(spec string, replacementSource, cause s
 		}
 	case "SpellAbility":
 		// Both spell cards and minted ability objects qualify.
+	case "Triggered":
+		// A triggered-ability wrapper (TriggerPush/DelayedPush). Classified
+		// through state.StackKindOf -- the ONE classifier view's
+		// StackView.Kind and rules' TargetType$ legality also use, so the
+		// three can never disagree (a delayed trigger counts as triggered,
+		// CR 603.7).
+		if state.StackKindOf(e.G, o) != state.StackKindTriggered {
+			return false
+		}
 	default:
 		return false
 	}
@@ -3029,6 +3053,17 @@ func (e *Engine) replacementCauseMatches(spec string, replacementSource, cause s
 		return o.Controller == e.controllerOf(replacementSource)
 	case "OppCtrl", "YouDontCtrl":
 		return o.Controller != e.controllerOf(replacementSource)
+	case "Modular":
+		// ValidCause$ Triggered.Modular names the modular keyword's own
+		// put-counters trigger (Zabaz, the Glimmerwasp): the wrapper's source
+		// card must carry K:Modular. HasKeyword reads the printed plus
+		// layer-6-granted keyword list, so a granted Modular qualifies too.
+		// An absent source, or any other keyword qualifier this build does
+		// not model, fails closed (the standing convention).
+		if o.Source == 0 {
+			return false
+		}
+		return e.HasKeyword(o.Source, "Modular")
 	}
 	return false
 }

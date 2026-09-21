@@ -119,6 +119,11 @@ func (e *Engine) handleStation(spacecraft state.ObjID, chosen []decision.Option)
 	if o == nil || o.Zone != state.ZBattlefield || o.Tapped {
 		return
 	}
+	// The stationing player puts the CHARGE counters, and this is a
+	// turn-based special action with no stack cause, so publish the adder
+	// explicitly (chosen[0].Player is the station ask's own player).
+	prevAdder := e.SetCounterAdder(chosen[0].Player)
+	defer e.SetCounterAdder(prevAdder)
 	n := e.Power(id)
 	e.emit(events.Event{Kind: events.Tap, Obj: id})
 	if n > 0 {
