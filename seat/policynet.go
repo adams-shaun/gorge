@@ -6,32 +6,48 @@ package seat
 // internal/archtest), so the encoder — which reads a projected view.View —
 // is reached from here, where the view is already in hand.
 //
-// What the policy answers itself is ONLY what the search teacher labelled
-// (cmd/searchteacher's kinds):
+// What the policy answers itself is ONLY the KAttackers subset. Every other
+// kind — KPriority included — delegates to the default bot.
 //
-//   - KAttackers: one scored subset — an independent per-option inclusion
-//     vote (admissionThreshold: the calibrated sigmoid boundary 0 when the
-//     decision's scores straddle it, else the decision's own mean, so the
-//     vote never degenerates to all-in or empty on an untrusted offset),
-//     then the legality repair chooseAttackersMode already does: one option
-//     per attacker (CR 506.2), every required attacker declared (CR 508.1d)
-//     and the Max ceiling applied required-first (CR 508.1j);
-//   - KPriority: the scored cast choice — argmax over the options the
-//     teacher's candidate space covered (cast / ability / pass, the exact
-//     space searchprobe.Candidates drew its labelled candidates from), ties
-//     on option index. The scored surface deliberately does NOT include the
-//     tap ("activate") and play_land options the teacher never labelled:
-//     their scores are untrained, so the kind falls back to the default bot
-//     the moment no cast/ability/pass option is offered (and the default
-//     bot's tap gate and land drop keep answering every decision this bot
-//     delegates).
+//   - KAttackers: one scored subset. The per-option inclusion vote compares
+//     each score against admissionThreshold's per-decision reference: the
+//     calibrated boundary 0 when the decision's scores STRADDLE it, else the
+//     decision's own mean. The absolute boundary is meaningful only because
+//     the attackers kind is now trained with a per-option binary (BCE) loss
+//     that calibrates score 0 at inclusion probability 0.5 (LossBCE, the
+//     -kind-loss attackers=bce default); the mean is the fallback for a
+//     checkpoint whose offset is NOT trustworthy — a softmax cross-entropy
+//     head is shift-invariant, so a one-signed range carries no absolute
+//     information and the vote falls back to the within-decision ranking.
+//     Neither arm can turn a multi-option decision all-in or empty purely on
+//     the checkpoint's offset, which is the L9d defect this rule replaced.
+//     The admitted subset is then repaired the way chooseAttackersMode
+//     repairs it: one option per attacker (CR 506.2), every required attacker
+//     declared (CR 508.1d) and the Max ceiling applied required-first
+//     (CR 508.1j).
+//   - KPriority: DELEGATED, and delegation is load-bearing, not a tidy-up.
+//     The head is trained (argmax CE) and the scored path is a few lines
+//     away, but it is measured to be catastrophic in play: with the attackers
+//     fix in place and priority SCORED the seat wins 0/1000 against the
+//     default bot; with priority DELEGATED and nothing else changed it wins
+//     474/1000 (47.4%) against the bot self-control's 51.5%. (Controller's
+//     ten approved mono pairs, 100 games/pair, seed 10000000, checkpoint
+//     bce-big.gpol; the 2x2 that isolates it is in the L9d report.) Two
+//     reasons it loses: the scored surface omits the tap ("activate") and
+//     play_land options the teacher never labelled, so the argmax cannot
+//     answer the whole decision; and the head is worse than the bot even at
+//     the cast/ability/pass ternary it does cover (0.355-0.371 top-1 vs a
+//     0.678 bot baseline). In play it vetoes the bot's own casts and starves
+//     its development. Re-enable the scored path only behind a bench that
+//     clears this bar; the head's learnability is owned by
+//     agent-20260921T012459Z-cb7a7077, and see
+//     docs/superpowers/plans/2026-09-19-learned-cast-profile.md.
 //
 // Every other decision kind delegates to the current default bot (NewBot,
 // same seed derivation) UNCHANGED — so the policy consumes no rng of its
 // own, and a decision whose scored surface encodes to nothing (no options,
-// no scorer, no cast/ability/pass option at priority) falls back too.
-// Deterministic: no wall clock, no map-iteration order in any answer; ties
-// break on option index everywhere.
+// no scorer) falls back too. Deterministic: no wall clock, no map-iteration
+// order in any answer; ties break on option index everywhere.
 
 import (
 	"context"
@@ -69,9 +85,11 @@ func NewPolicyNetBot(seed uint64, sc *policynet.Scorer) *PolicyNetBot {
 	return &PolicyNetBot{def: NewBot(seed), scorer: sc}
 }
 
-// scoredKinds reports whether the scorer answers this decision kind.
+// scoredKind reports whether the scorer answers this decision kind. Only
+// KAttackers: KPriority is trained but delegated, because the scored path
+// measures 0/1000 in play (see the package comment).
 func scoredKind(d *decision.Decision) bool {
-	return d.Kind == decision.KAttackers || d.Kind == decision.KPriority
+	return d.Kind == decision.KAttackers
 }
 
 // encode runs the fixed encoder over the seat's view and the offered
@@ -90,22 +108,14 @@ func (b *PolicyNetBot) encode(v view.View, d *decision.Decision) (policynet.Stat
 	return st, opts, true
 }
 
-// Decide answers d: the two scored kinds above, the default bot for
-// everything else.
+// Decide answers d: the one scored kind above (KAttackers), the default
+// bot for everything else.
 func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
 	if scoredKind(&d) {
 		st, opts, ok := b.encode(v, &d)
 		if ok {
 			scores := b.scorer.Score(st, opts)
-			var in decision.Intent
-			var ok bool
-			switch d.Kind {
-			case decision.KAttackers:
-				in, ok = attackersFromScores(&d, scores)
-			case decision.KPriority:
-				in, ok = priorityFromScores(&d, scores)
-			}
-			if ok {
+			if in, ok := attackersFromScores(&d, scores); ok {
 				return in, nil
 			}
 		}
@@ -226,35 +236,6 @@ func attackersFromScores(d *decision.Decision, scores []float32) (decision.Inten
 		chosen = ordered[:d.Max]
 	}
 	return botpolicy.Clamp(d, decision.Intent{Seq: d.Seq, Player: d.Player, Choices: chosen}), true
-}
-
-// priorityFromScores turns the per-option scores into the scored cast
-// choice: argmax over the options the teacher's candidate space covered
-// (cast / ability / pass — searchprobe.Candidates' pool), ties on the
-// lowest option index. ok is false when the decision offers none of those —
-// the untrained-surface shape that delegates to the default bot (whose tap
-// gate and land drop then answer, as they do for every delegated kind).
-func priorityFromScores(d *decision.Decision, scores []float32) (decision.Intent, bool) {
-	if len(d.Options) == 0 || len(scores) != len(d.Options) {
-		return decision.Intent{}, false
-	}
-	best := -1
-	var bestScore float32
-	for i := range d.Options {
-		switch d.Options[i].Kind {
-		case "cast", "ability", "pass":
-		default:
-			continue
-		}
-		if best == -1 || scores[i] > bestScore {
-			best, bestScore = i, scores[i]
-		}
-	}
-	if best == -1 {
-		return decision.Intent{}, false
-	}
-	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[best].Index}}
-	return botpolicy.Clamp(d, in), true
 }
 
 // admissionThreshold returns the reference score for the per-option admission

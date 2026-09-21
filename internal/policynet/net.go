@@ -703,7 +703,20 @@ func lossFromScores(lc LossConfig, ex Example, labelled []int, ys []float64) (pa
 // or not" is an absolute yes/no the softmax cannot express.
 //
 // parts.Value carries the BCE total (parts.Rank is 0) so the trainer's loss
-// readout stays one number; the gradient is written into dys.
+// readout stays one number; the gradient is written into dys. The total is
+// AVERAGED over the labelled options (unlike the rank term, which is a sum),
+// so a decision with many options does not dominate the batch purely by
+// option count; the per-option gradient carries RankWeight but not the
+// 1/len(labelled) average, matching the rank term's un-normalised gradient.
+//
+// RankWeight == 0 means UNWEIGHTED here (w = 1), deliberately NOT the "term
+// off" convention lossFromScores uses for the rank term. There the rank term
+// is one addend beside the value term, so switching it off still leaves a
+// loss to train; here BCE is the kind's ENTIRE loss, so honouring a zero as
+// "off" would make the attackers head silently untrainable — no loss and no
+// gradient — which is the failure mode this whole change exists to prevent.
+// A caller that wants the attackers head off selects a different kind mode,
+// it does not zero the shared rank weight.
 func lossBCE(lc LossConfig, ex Example, labelled []int, clamped []float64) (parts LossParts, dys []float64) {
 	dys = make([]float64, len(labelled))
 	w := lc.RankWeight

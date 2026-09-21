@@ -429,3 +429,44 @@ func asLivelock(err error, target **rules.LivelockError) bool {
 	}
 	return ok
 }
+
+// TestPolicyNetDelegatesPriority pins the L9d bench result as a behaviour:
+// KPriority must reach the DEFAULT bot, not the scorer's argmax. This is not
+// tidy-up — it is the difference between winning 0/1000 and 474/1000 against
+// the default bot on the ten approved mono pairs (checkpoint bce-big.gpol,
+// 100 games/pair, seed 10000000; the 2x2 isolating it from the attackers
+// admission rule is in the L9d report). The priority head is trained (argmax
+// CE) and the scored path is a few lines away, so without a pin it is an easy
+// thing to switch back on by accident; re-enable it only behind a bench that
+// clears that bar.
+//
+// The checkpoint is a RANDOM one, not the zero model: its per-option scores
+// genuinely differ, so a scored priority path would argmax to some particular
+// cast/ability/pass option and this equality would break (verified: with
+// KPriority restored to scoredKind, this test fails).
+func TestPolicyNetDelegatesPriority(t *testing.T) {
+	if scoredKind(&decision.Decision{Kind: decision.KPriority}) {
+		t.Fatal("scoredKind admits KPriority: the scored priority path measures 0/1000 in play")
+	}
+	b := NewPolicyNetBot(3, randomCheckpoint(t, 4))
+	def := NewBot(3)
+	v := view.View{Viewer: 0, Active: 0, Phase: "main1"}
+	d := decision.Decision{Kind: decision.KPriority, Min: 1, Max: 1, Seq: 9, Player: 0,
+		Options: []decision.Option{
+			{Index: 0, Kind: "cast", Obj: 1},
+			{Index: 1, Kind: "cast", Obj: 2},
+			{Index: 2, Kind: "ability", Obj: 3},
+			{Index: 3, Kind: "pass"},
+		}}
+	got, err := b.Decide(context.Background(), v, d)
+	if err != nil {
+		t.Fatalf("policynet: %v", err)
+	}
+	want, err := def.Decide(context.Background(), v, d)
+	if err != nil {
+		t.Fatalf("default bot: %v", err)
+	}
+	if got.Seq != want.Seq || got.Player != want.Player || !slices.Equal(got.Choices, want.Choices) {
+		t.Fatalf("priority: policynet %+v, default %+v — the scored path answered", got, want)
+	}
+}
