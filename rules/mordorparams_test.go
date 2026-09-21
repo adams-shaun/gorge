@@ -376,131 +376,161 @@ func TestMoriaScavengerAmassesOnlyOnCreatureDiscard(t *testing.T) {
 
 // --- item 1: Upto$ True on DB$ Draw ---
 
-// TestArcaneDenialSlowtripDrawsUpToTwo counters a spell with the real corpus
-// card and drives to the next turn's upkeep: the delayed trigger asks the
-// countered spell's controller Min 0 / Max 2 over their own library's top
-// cards; answering both cards draws 2 and answering none draws 0 — both
-// asserted, since a single-value answer can pass by coincidence. A library
-// with one card caps the ask at 1.
+// TestArcaneDenialSlowtripDrawsUpToTwo drives Arcane Denial's real compiled
+// DrawTwo SVar ("Its controller may draw up to two cards") against a delayed
+// trigger whose remembered set names the countered spell's CONTROLLER — seat
+// 1 here, never the resolving controller — the way the Gríma test drives
+// DBRestRandomOrder. Two reads are pinned at once:
+//
+//   - `Defined$ DelayTriggerRemembered` hands the remembered PLAYER through,
+//     so the ask and the draws belong to seat 1 (definedSpec's own case; an
+//     objects-only read, or a case that falls out of the switch, retargets
+//     the whole draw at the resolving source's controller);
+//   - `Upto$ True` poses a real Min 0 / Max 2 KChoose over the TARGET's own
+//     library top, and both answers are asserted — answering both draws 2,
+//     answering none draws 0, since a single-value answer can pass by
+//     coincidence. A library with one card caps the ask at 1.
+//
+// The full Arcane Denial chain cannot deliver the remembered controller
+// today: the SP$ Counter's `RememberTargets$ True` is the census-tracked
+// `param:api:Counter.RememberTargets` gap, so the registration remembers
+// nobody. That gap is this test's reason for driving the SVar directly —
+// it is NOT worked around by pinning the wrong-seat fallback.
 func TestArcaneDenialSlowtripDrawsUpToTwo(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
+	denial := searchCorpusCard(t, reg, "Arcane Denial")
+	drawTwo := cards.ResolveSVar(denial.Faces[0].SVars, "DrawTwo")
+	if drawTwo == nil {
+		t.Fatal("Arcane Denial's DrawTwo SVar did not resolve")
+	}
 
-	newGame := func(seed uint64, oppDeck []*cards.Card) (*Engine, Config) {
+	// setup builds a two-seat game, parks a source permanent on seat 0's
+	// battlefield and returns the delayed trigger's resolution context: the
+	// remembered set is seat 1, the countered spell's controller.
+	setup := func(t *testing.T, seed uint64) (*Engine, Config, *effects.Ctx) {
 		t.Helper()
-		deck0 := []*cards.Card{searchCorpusCard(t, reg, "Arcane Denial")}
-		deck0 = append(deck0, mountainDeck(t, 39)...)
-		cfg := seatZeroStart(Config{Seed: seed, Names: []string{"denial", "victim"},
-			Decks: [][]*cards.Card{deck0, oppDeck}, Tokens: reg.Tokens})
-		e := New(cfg)
-		e.Advance()
-		toMain1(t, e)
-		return e, cfg
+		e, cfg := mordorEngine(t, reg, seed, "Grizzly Bears")
+		src := moveToBattlefieldByName(t, e, 0, "Grizzly Bears")
+		e.priorityRound()
+		ctx := &effects.Ctx{Source: src, Controller: 0, ResolvingObj: src,
+			Remembered: []state.Target{{Player: 1, IsPlayer: true}}}
+		return e, cfg, ctx
 	}
-	oppDeck := func(extra ...*cards.Card) []*cards.Card {
-		deck := append([](*cards.Card)(nil), extra...)
-		deck = append(deck, searchCorpusCard(t, reg, "Grizzly Bears"))
-		deck = append(deck, mountainDeck(t, 40-len(deck))...)
-		return deck
-	}
-	// counterBears runs the shared shape: turn 2, seat 1 casts the Bears on
-	// its own turn, seat 0 responds with the real Arcane Denial (an instant
-	// may be cast on another seat's turn), both pass, the Bears is countered.
-	counterBears := func(t *testing.T, seed uint64) (*Engine, Config) {
+	// uptoAsk resolves DrawTwo and returns the posed ask, asserting the
+	// shape every subtest shares.
+	uptoAsk := func(t *testing.T, e *Engine, ctx *effects.Ctx, wantMax int) *decision.Decision {
 		t.Helper()
-		e, cfg := newGame(seed, oppDeck())
-		driveMordor(t, e, 2, 1, state.StepMain1)
-		bears := mordorMove(t, e, 1, "Grizzly Bears", state.ZHand)
-		addMana(t, e, 1, "GG")
-		castNoDrain(t, e, bears)
-		passOnce(t, e) // seat 1 passes back -> seat 0's priority
-		denial := mordorMove(t, e, 0, "Arcane Denial", state.ZHand)
-		addMana(t, e, 0, "UU")
-		castNoDrain(t, e, denial) // targets the Bears spell
-		passUntilStackEmpty(t, e, 20)
-		if e.G.Obj(bears).Zone != state.ZGraveyard {
-			t.Fatalf("the Bears spell was not countered: zone %s", e.G.Obj(bears).Zone)
+		effects.Resolve(e, ctx, drawTwo)
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != wantMax {
+			t.Fatalf("upto ask = %+v, want KChoose Min 0 Max %d", d, wantMax)
 		}
-		return e, cfg
+		if d.Player != 1 {
+			t.Fatalf("upto ask player = %d, want the remembered seat 1 "+
+				"(Defined$ DelayTriggerRemembered dropped the player)", d.Player)
+		}
+		return d
 	}
 
 	t.Run("answer two draws two", func(t *testing.T) {
-		e, cfg := counterBears(t, 4103)
-		// Turn 3 is seat 0's; the slowtrip fires at its upkeep (the first
-		// upkeep after the turn-2 registration). The DrawTwo target (the
-		// countered spell's controller) cannot resolve through the real
-		// chain today — the SP$ Counter's RememberTargets$ read is the
-		// census-tracked param:api:Counter.RememberTargets gap, so the
-		// registration remembered nobody and Defined$ DelayTriggerRemembered
-		// falls back to the delay's own controller — so the ask (and its
-		// draws) belong to whoever the engine names, and the test pins the
-		// UPTO mechanics against that player's own library.
-		driveMordor(t, e, 3, 0, state.StepUpkeep)
-		p0 := drainTriggersThenAsk(t, e, 20)
-		if p0 == nil || p0.Kind != decision.KChoose || p0.Min != 0 || p0.Max != 2 {
-			t.Fatalf("upto ask = %+v, want KChoose Min 0 Max 2", p0)
+		e, cfg, ctx := setup(t, 4103)
+		lib := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 1)...)
+		before := countDrawFor(e, 1)
+		d := uptoAsk(t, e, ctx, 2)
+		if len(d.Options) != 2 || d.Options[0].Kind != "card" {
+			t.Fatalf("upto ask shape = %+v, want two card options", d.Options)
 		}
-		// Both delayed triggers' draws fall back to the delay's controller —
-		// the Denial caster, seat 0 — so the upkeep's seat-0 draws are
-		// exactly 1 (the mandatory slowtrip draw) plus the answered count;
-		// the DrawTwo trigger resolves first (it was pushed second), so the
-		// pre-ask count excludes the slowtrip draw.
-		if p0.Player != 0 {
-			t.Fatalf("upto ask player = %d, want the delay's controller (seat 0)", p0.Player)
-		}
-		drawsBefore := countDrawFor(e, 0)
-		if len(p0.Options) != 2 || p0.Options[0].Kind != "card" {
-			t.Fatalf("upto ask shape = %+v", p0)
-		}
-		lib := e.G.Zone(state.ZLibrary, 0)
-		for i, o := range p0.Options {
+		// The options are the TARGET's own library top, in library order.
+		for i, o := range d.Options {
 			if o.Obj != lib[i] {
-				t.Fatalf("option %d = %d, want the library's top card %d", i, o.Obj, lib[i])
+				t.Fatalf("option %d = %d, want seat 1's library top card %d", i, o.Obj, lib[i])
 			}
 		}
-		submitChoices(t, e, 0, 1)
-		passUntilStackEmpty(t, e, 30)
-		if got := countDrawFor(e, 0) - drawsBefore; got != 3 {
-			t.Fatalf("answering both drew %d (2 upto + 1 slowtrip), want 3", got)
+		submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
+		if got := countDrawFor(e, 1) - before; got != 2 {
+			t.Fatalf("answering both drew %d for seat 1, want 2", got)
 		}
 		replayCheck(t, e, cfg)
 	})
 
 	t.Run("answer none draws none", func(t *testing.T) {
-		e, cfg := counterBears(t, 4104)
-		driveMordor(t, e, 3, 0, state.StepUpkeep)
-		p0 := drainTriggersThenAsk(t, e, 20)
-		if p0 == nil || p0.Kind != decision.KChoose || p0.Min != 0 || p0.Max != 2 {
-			t.Fatalf("upto ask = %+v", p0)
-		}
-		if p0.Player != 0 {
-			t.Fatalf("upto ask player = %d, want the delay's controller (seat 0)", p0.Player)
-		}
-		drawsBefore := countDrawFor(e, 0)
+		e, cfg, ctx := setup(t, 4104)
+		before := countDrawFor(e, 1)
+		beforeSeat0 := countDrawFor(e, 0)
+		uptoAsk(t, e, ctx, 2)
 		submitChoices(t, e) // the empty answer, legal at Min 0
-		passUntilStackEmpty(t, e, 30)
-		if got := countDrawFor(e, 0) - drawsBefore; got != 1 {
-			t.Fatalf("answering none drew %d (0 upto + 1 slowtrip), want 1", got)
+		if got := countDrawFor(e, 1) - before; got != 0 {
+			t.Fatalf("answering none drew %d for seat 1, want 0", got)
+		}
+		if got := countDrawFor(e, 0) - beforeSeat0; got != 0 {
+			t.Fatalf("the declined upto draw drew %d for the resolving controller", got)
 		}
 		replayCheck(t, e, cfg)
 	})
 
 	t.Run("one card left caps the ask at one", func(t *testing.T) {
-		e, cfg := counterBears(t, 4105)
-		// Shrink the ASKER's (seat 0's) library to one card via logged
-		// moves, so the ask caps at Min 0 / Max 1 with one option.
-		for len(e.G.Zone(state.ZLibrary, 0)) > 1 {
-			id := e.G.Zone(state.ZLibrary, 0)[0]
+		e, cfg, ctx := setup(t, 4105)
+		// Shrink the ASKED seat's library to one card through logged moves,
+		// so the ask caps at Min 0 / Max 1 with one option.
+		for len(e.G.Zone(state.ZLibrary, 1)) > 1 {
+			id := e.G.Zone(state.ZLibrary, 1)[0]
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZGraveyard})
 		}
-		driveMordor(t, e, 3, 0, state.StepUpkeep)
-		d := drainTriggersThenAsk(t, e, 20)
-		if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 || len(d.Options) != 1 {
-			t.Fatalf("capped upto ask = %+v, want Min 0 Max 1 with one option", d)
+		before := countDrawFor(e, 1)
+		d := uptoAsk(t, e, ctx, 1)
+		if len(d.Options) != 1 {
+			t.Fatalf("capped upto ask = %+v, want one option", d.Options)
 		}
-		submitChoices(t, e, 0)
-		passUntilStackEmpty(t, e, 30)
+		submitChoices(t, e, d.Options[0].Index)
+		if got := countDrawFor(e, 1) - before; got != 1 {
+			t.Fatalf("the capped answer drew %d, want 1", got)
+		}
 		replayCheck(t, e, cfg)
 	})
+}
+
+// TestTruceOffersEachPlayerAnUptoDraw drives the SAME Upto$ read through a
+// real cast end to end: Truce's `SP$ Draw | Defined$ Player | Upto$ True |
+// NumCards$ 2` asks EACH player in turn, and the two answers are different —
+// seat 0 takes both cards, seat 1 declines — so a per-target count that was
+// applied to the wrong target, or a single shared answer, fails here. The
+// Arcane Denial test above pins the same primitive against a remembered
+// PLAYER target; this one pins it against the multi-target Defined$ walk and
+// through the ordinary stack resolution.
+func TestTruceOffersEachPlayerAnUptoDraw(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := mordorEngine(t, reg, 4107, "Truce")
+	truce := searchMoveByName(t, e, "Truce", state.ZHand)
+	addMana(t, e, 0, "WWW")
+	before0, before1 := countDrawFor(e, 0), countDrawFor(e, 1)
+	lib0 := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
+	castNoDrain(t, e, truce)
+
+	// Seat 0 (the controller, first in APNAP order) is asked first.
+	d := drainPriorities(t, e, 20)
+	if d == nil || d.Kind != decision.KChoose || d.Player != 0 || d.Min != 0 || d.Max != 2 {
+		t.Fatalf("seat 0 upto ask = %+v, want KChoose Min 0 Max 2 for seat 0", d)
+	}
+	if len(d.Options) != 2 || d.Options[0].Kind != "card" || d.Options[0].Obj != lib0[0] {
+		t.Fatalf("seat 0 upto options = %+v, want its own library top", d.Options)
+	}
+	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
+
+	// Seat 1 is asked next and declines — the empty answer, legal at Min 0.
+	d = drainPriorities(t, e, 20)
+	if d == nil || d.Kind != decision.KChoose || d.Player != 1 || d.Min != 0 || d.Max != 2 {
+		t.Fatalf("seat 1 upto ask = %+v, want KChoose Min 0 Max 2 for seat 1", d)
+	}
+	submitChoices(t, e)
+	passUntilStackEmpty(t, e, 30)
+
+	if got := countDrawFor(e, 0) - before0; got != 2 {
+		t.Fatalf("seat 0 answered both and drew %d, want 2", got)
+	}
+	if got := countDrawFor(e, 1) - before1; got != 0 {
+		t.Fatalf("seat 1 declined and drew %d, want 0", got)
+	}
+	replayCheck(t, e, cfg)
 }
 
 func countDrawFor(e *Engine, p state.PlayerID) int {

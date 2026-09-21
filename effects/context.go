@@ -361,6 +361,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// no-oped. Object-remembered registrations are unchanged (the set is
 		// passed through verbatim); the LKI forms above keep the objects-only
 		// read their LKI semantics name.
+		return copyTargets(c.Remembered), true
 	case "TriggeredSpellAbility":
 		// The activation arm (abcopy1): an ability-cast trigger's Remembered
 		// names the SOURCE PERMANENT (an AbilityPush's Obj -- the minted

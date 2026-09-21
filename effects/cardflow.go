@@ -276,7 +276,19 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 				}
 				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 0, Max: int(m),
 					ResumeKind: "draw_upto", ResumeSA: sa, ResumeTarget: idx, Source: c.Source,
-					Prompt: "Draw up to " + strconv.Itoa(int(n)) + " card(s)?"}
+					// The walk's Remembered rides the ask (the hidden-library
+					// search's ResumeRemembered precedent): the re-entered
+					// effDraw recomputes `targets` from Defined$, and for the
+					// Remembered-valued selectors -- Arcane Denial's
+					// `Defined$ DelayTriggerRemembered` is the corpus shape --
+					// a resume that rebuilt an empty set would resolve a
+					// DIFFERENT target list than the one the cursor indexes,
+					// so the answered count would be drawn for the wrong
+					// player or for nobody. The ability-object resume path
+					// restores the same set from o.Remembered; this covers
+					// every other frame.
+					ResumeRemembered: append([]state.Target(nil), c.Remembered...),
+					Prompt:           "Draw up to " + strconv.Itoa(int(n)) + " card(s)?"}
 				for i := int32(0); i < m; i++ {
 					id := lib[i]
 					label := "a card"
