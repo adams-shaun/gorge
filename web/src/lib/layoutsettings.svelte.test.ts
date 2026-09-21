@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LayoutStore, layoutStore } from './layoutsettings.svelte';
-import { defaultLayout, LAYOUT_KEY, SCALE_MAX, SCALE_MIN, withHandPeek, withScale, withSteppers } from './layoutsettings';
+import { defaultLayout, LAYOUT_KEY, SCALE_MAX, SCALE_MIN, withHandPeek, withScale } from './layoutsettings';
 
 /**
  * The reactive shell (layoutsettings.svelte.ts) is tested with its timers

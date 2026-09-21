@@ -68,7 +68,12 @@ describe('MatchState', () => {
     const assign = vi.fn();
     vi.stubGlobal('location', { assign });
     const m = new MatchState('g1', { seat: 0, token: 'old-token' });
-    (m as any).leaveRejectedSeatClaim(new ApiErrorMock(403));
+    // leaveRejectedSeatClaim is private; the test drives it directly because
+    // the 403 it reacts to arrives from the stream, not from a public call.
+    // Cast to the one method being reached rather than to `any`, so a rename
+    // or a signature change fails the build here instead of silently making
+    // this test call nothing.
+    (m as unknown as { leaveRejectedSeatClaim(e: unknown): void }).leaveRejectedSeatClaim(new ApiErrorMock(403));
     expect(assign).toHaveBeenCalledWith('/');
     vi.unstubAllGlobals();
   });
