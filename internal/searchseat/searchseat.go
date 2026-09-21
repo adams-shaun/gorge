@@ -98,6 +98,11 @@ type Options struct {
 	// measurement switch that restores the sampler's pre-exclusion proposal.
 	// A playing seat leaves it false.
 	NoLandExclusion bool
+	// ComparePotentialActions is searchprobe.SampleOptions'
+	// ComparePotentialActions: a measurement switch that restores the
+	// replay's potential-action walk and counts the rejections it alone
+	// decides (Trace.BoardPotentialActionsOnly). A playing seat leaves it false.
+	ComparePotentialActions bool
 	// Clairvoyant searches one clone of the ACTUAL engine instead of sampled
 	// worlds. It cheats by construction and exists only as a measurement
 	// ceiling (cmd/searchteacher's -oracle); a playing seat must leave it
@@ -144,6 +149,7 @@ type Trace struct {
 	CompetitionExclusions                          int
 	CompetitionResidual                            int
 	CompetitionUnguided                            int
+	BoardPotentialActionsOnly                      int
 	IncompatibleProposals                          int
 
 	// Teacher result. Index 0 is the bot's own answer.
@@ -317,7 +323,8 @@ func sampleWorlds(setup searchprobe.PublicGame, h searchprobe.History, collector
 		MinESS:      opts.MinESS,
 		Parallelism: opts.Parallelism,
 
-		NoLandExclusion: opts.NoLandExclusion,
+		NoLandExclusion:         opts.NoLandExclusion,
+		ComparePotentialActions: opts.ComparePotentialActions,
 	})
 	// The result is returned even on error: its rejection buckets are the
 	// diagnostics that explain the failure, and dropping them would make a
@@ -343,6 +350,7 @@ func recordSample(tr *Trace, sr searchprobe.SampleResult) {
 	tr.HandToStack = sr.HandToStackCauses
 	tr.CompetitionExclusions, tr.CompetitionResidual = sr.CompetitionExclusions, sr.CompetitionResidual
 	tr.CompetitionUnguided, tr.IncompatibleProposals = sr.CompetitionUnguided, sr.IncompatibleProposals
+	tr.BoardPotentialActionsOnly = sr.BoardPotentialActionsOnly
 	top := 0
 	for _, b := range sr.Rejections {
 		if b.Count > top {

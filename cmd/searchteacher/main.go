@@ -50,6 +50,7 @@ type config struct {
 	oracle, audit            bool
 	decisionWorkers          int
 	noLandExclusion          bool
+	comparePotential         bool
 	labelsPath               string
 }
 
@@ -76,6 +77,7 @@ type DecisionRecord struct {
 	CompetitionExclusions int
 	CompetitionResidual   int
 	CompetitionUnguided   int
+	BoardPAOnly           int
 	IncompatibleProposals int
 	ChosenDiffersFromBot  bool
 }
@@ -120,6 +122,7 @@ func run(args []string, stdout, progress io.Writer) error {
 	decisionWorkers := fs.Int("decision-workers", 1, "goroutines WITHIN one searched decision (sampling attempts and rollouts); latency only, never changes a label. Keep 1 when -workers already fills the cores")
 	audit := fs.Bool("audit", false, "measurement only: at every covered decision also score the candidates on one clone of the actual engine (never used to choose)")
 	oracle := fs.Bool("oracle", false, "CHEATING ceiling: search one clone of the actual engine (true hidden zones and future chance) instead of sampled worlds")
+	comparePotential := fs.Bool("compare-potential-actions", false, "measurement only: replay with the seat's potential-action walk (the pre-2026-09-21 capture) and report the rejections it alone decides; the labels are byte-identical either way")
 	noLandExclusion := fs.Bool("no-land-exclusion", false, "measurement only: sample without the declined-land-drop exclusion (the pre-2026-09-21 proposal; reproduces that sampler's label corpus byte for byte)")
 	pairsFlag := fs.String("pairs", "", "restrict to comma list of a:b pairs (default: the ten approved pairs)")
 	outPath := fs.String("out", "", "JSONL of GameRecords (new file)")
@@ -147,7 +150,7 @@ func run(args []string, stdout, progress io.Writer) error {
 		return fmt.Errorf("seed range [%d,%d) overlaps held-out [1000000,2000000)", *seed, last)
 	}
 	cfg := config{kinds: map[string]bool{}, worlds: *worlds, attempts: *attempts, limit: *limit, minESS: *minESS, margin: *margin,
-		horizon: int32(*horizon), maxSubmits: *maxSubmits, sampleSeed: *sampleSeed, maxTurn: int32(*maxTurn), oracle: *oracle, audit: *audit, labelsPath: *labelsPath, decisionWorkers: *decisionWorkers, noLandExclusion: *noLandExclusion}
+		horizon: int32(*horizon), maxSubmits: *maxSubmits, sampleSeed: *sampleSeed, maxTurn: int32(*maxTurn), oracle: *oracle, audit: *audit, labelsPath: *labelsPath, decisionWorkers: *decisionWorkers, noLandExclusion: *noLandExclusion, comparePotential: *comparePotential}
 	for _, k := range strings.Split(*kinds, ",") {
 		k = strings.TrimSpace(k)
 		if k != "attackers" && k != "cast" && k != "" {
@@ -363,7 +366,8 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 		Clairvoyant:  cfg.oracle,
 		Parallelism:  cfg.decisionWorkers,
 
-		NoLandExclusion: cfg.noLandExclusion,
+		NoLandExclusion:         cfg.noLandExclusion,
+		ComparePotentialActions: cfg.comparePotential,
 	}
 	// The phase split is timed HERE, not in searchseat: internal/archtest
 	// allows the time import in host, host/httpapi and cmd/gorged only, so the
@@ -399,6 +403,7 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 	dr.HandToStack = tr.HandToStack
 	dr.CompetitionExclusions, dr.CompetitionResidual, dr.CompetitionUnguided = tr.CompetitionExclusions, tr.CompetitionResidual, tr.CompetitionUnguided
 	dr.IncompatibleProposals = tr.IncompatibleProposals
+	dr.BoardPAOnly = tr.BoardPotentialActionsOnly
 	dr.TopRejection = tr.TopRejection
 
 	if !tr.Covered {
@@ -495,7 +500,7 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 	var diffs []float64
 	byPair := map[string][3]float64{}
 	var nd, covered, overrides, accepted, attemptsN int
-	var compExclusions, compResidual, compUnguided int
+	var compExclusions, compResidual, compUnguided, boardPAOnly int
 	var sampleMS, searchMS, coveredSampleMS, coveredSearchMS []float64
 	fallbacks := map[string]int{}
 	turnBuckets := map[string][2]int{}
@@ -527,6 +532,7 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 			compExclusions += d.CompetitionExclusions
 			compResidual += d.CompetitionResidual
 			compUnguided += d.CompetitionUnguided
+			boardPAOnly += d.BoardPAOnly
 			sampleMS = append(sampleMS, d.SampleMS)
 			searchMS = append(searchMS, d.SearchMS)
 			bucket := "t01-06"
@@ -569,6 +575,9 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 	fmt.Fprintf(w, "decisions asked %d, covered %d (%.1f%%), overrides %d (%.1f%% of covered)\n", nd, covered, pct(covered, nd), overrides, pct(overrides, covered))
 	fmt.Fprintf(w, "sampler acceptance %d/%d (%.2f%%)\n", accepted, attemptsN, pct(accepted, attemptsN))
 	fmt.Fprintf(w, "  competition: exclusions taught %d, residual rejections %d, unguided %d\n", compExclusions, compResidual, compUnguided)
+	if cfg.comparePotential {
+		fmt.Fprintf(w, "  rejections decided by potential_actions alone: %d\n", boardPAOnly)
+	}
 	for _, b := range []string{"t01-06", "t07-12", "t13+"} {
 		tb := turnBuckets[b]
 		fmt.Fprintf(w, "  coverage %s: %d/%d (%.1f%%)\n", b, tb[1], tb[0], pct(tb[1], tb[0]))
