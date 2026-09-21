@@ -108,23 +108,20 @@ var knownUnsupported = map[string][]string{
 	// pays its AB Cost$ 1 through the triggered-cost window and executes
 	// TrigEffect, which is what licensed the shrink.
 	//
-	// The pro-shaper player-submitted Commander import (2026-09-18): the
-	// primitives this build does not implement that its cards need. Earthbend
-	// (7 cards) and Clone (2) are unregistered APIs; Devour (1) is an
-	// unregistered primitive. api:GenericChoice left this table when the
-	// primitive registered (effects/misc.go, GenericChoice -> effCharm) --
-	// Tireless Provisioner and Torment of Hailfire are fully supported now,
-	// pinned in rules/generic_choice_test.go. kw:Hexproof was implemented in
-	// the same change (rules/protection.go hexproofBlocksTarget, pinned in
+	// The pro-shaper player-submitted Commander import (2026-09-18): Earthbend
+	// (7 cards) and Clone (2) were unregistered APIs; Devour (1) is an
+	// unregistered primitive. api:Earthbend's seven carriers left this table
+	// when the primitive registered (effects/earthbend.go): the real card
+	// tests rules/earthbend_test.go drive Ba Sing Se's own AB$ Earthbend and
+	// the trigger-Execute carriers end to end, which is what licensed the
+	// shrink. Clone's two left earlier (effects/clone.go). api:GenericChoice
+	// left when the primitive registered (effects/misc.go,
+	// GenericChoice -> effCharm) -- Tireless Provisioner and Torment of
+	// Hailfire are fully supported now, pinned in
+	// rules/generic_choice_test.go. kw:Hexproof was implemented in the same
+	// change (rules/protection.go hexproofBlocksTarget, pinned in
 	// rules/hexproof_test.go), so its two carriers -- Lotus Field and Tectonic
 	// Split -- are deliberately absent here: they are fully supported now.
-	"Ba Sing Se":                   {"api:Earthbend"},
-	"Badgermole Cub":               {"api:Earthbend"},
-	"Beifong's Bounty Hunters":     {"api:Earthbend"},
-	"Earthbender Ascension":        {"api:Earthbend"},
-	"The Boulder, Ready to Rumble": {"api:Earthbend"},
-	"Toph, Earthbending Master":    {"api:Earthbend"},
-	"Toph, Hardheaded Teacher":     {"api:Earthbend"},
 	// Shifting Woodland and Vesuva's api:Clone entries were deleted when
 	// api:Clone was registered (effects/clone.go): the real card test
 	// rules/clone_api_test.go's TestMirageMirrorBecomesACopyOfTargetCreature

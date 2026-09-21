@@ -1715,8 +1715,9 @@ func Apply(g *state.Game, e Event) {
 			text = text[:i]
 		}
 		mode, trigger := "", ""
-		if i := strings.Index(text, ":"); i > 0 && text[:i] == "SpellCast" {
-			mode, trigger = "SpellCast", text[i+1:]
+		if i := strings.Index(text, ":"); i > 0 &&
+			(text[:i] == "SpellCast" || text[:i] == "ChangesZone") {
+			mode, trigger = text[:i], text[i+1:]
 		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
 			ID:                g.DelayedNext,

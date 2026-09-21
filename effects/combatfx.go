@@ -540,6 +540,16 @@ type animateGrant struct {
 	duration            string
 	permanent           bool
 	zone                string
+	// endOnLeave ends the grant the moment the animated object leaves the
+	// battlefield, regardless of Duration$. registerAnimateEffects expresses
+	// it through the existing move-driven lifetime (ExileOnMoved$ + the
+	// object's own id in Remembered, effectMoveSweep's end-the-effect
+	// clause), so a Duration$ Permanent animation that must NOT survive a
+	// zone round-trip -- api:Earthbend's "becomes a 0/0 creature ... When it
+	// dies or is exiled, return it to the battlefield tapped"; the returned
+	// land is a plain land -- is built on the same path as Stalking
+	// Stones's genuinely forever grant, never a second animator.
+	endOnLeave bool
 }
 
 // parseAnimateGrant reads the shared Animate/AnimateAll parameter set. See
@@ -636,6 +646,17 @@ func emitAnimateColorsNotes(h Host, c *Ctx, ag animateGrant, api string) {
 // never named avoids polluting Engine.continuous with an effect that would
 // never do anything.
 func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
+	// The move-driven lifetime (ag.endOnLeave): the animated object's own id
+	// rides Remembered and ExileOnMoved$ names the battlefield, so
+	// effectMoveSweep ends EVERY half of the grant on the departure Move --
+	// a returned object is a plain permanent again, not a re-activated
+	// animation.
+	var exileOn string
+	var remembered []state.ObjID
+	if ag.endOnLeave {
+		exileOn = "Battlefield"
+		remembered = []state.ObjID{id}
+	}
 	if ag.hasPower || ag.hasTough {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
@@ -648,6 +669,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			// strips them to an untransformed-basis 0/0 the CR 704.5f
 			// SBA destroys.
 			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
 	}
@@ -658,6 +680,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			RemoveCreatureTypes: ag.removeCreatureTypes,
 			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
 			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
 	}
@@ -666,6 +689,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LColor, AddColors: ag.colors, OverwriteColors: ag.overwriteColors,
 			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
 	}
@@ -674,6 +698,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: ag.kws,
 			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
 	}
@@ -682,6 +707,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddAbilities: ag.abilities,
 			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
 	}

@@ -561,11 +561,15 @@ type delayedSpellCastFire struct {
 	static     bool
 }
 
-func (e *Engine) checkEventDelayedTriggers(ev events.Event) {
+func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 	var fires []delayedSpellCastFire
 	for i := range e.G.Delayed {
 		dt := &e.G.Delayed[i]
-		if dt.EventMode != "SpellCast" {
+		// The event-matched modes: SpellCast (a spell's PutOnStack) and
+		// ChangesZone (a move, the Earthbend return promise). A Mode$ Phase
+		// registration carries no EventMode at all and is owned by
+		// checkDelayedTriggers at its phase occurrence.
+		if dt.EventMode != "SpellCast" && dt.EventMode != "ChangesZone" {
 			continue
 		}
 		// The ThisTurn$ mirror: a registration whose expiry turn has passed
@@ -584,17 +588,29 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event) {
 		// rules.registerOpeningEffectTriggers mints) resolves against the
 		// source's own table; an inline body (effDelayedTrigger's Mode$
 		// SpellCast branch, a face Ability's DelayedTrigger with no SVar name
-		// of its own — Mistrise Village) is stored raw and parses directly.
-		// The two carriers cannot collide: no SVar name starts "Mode$".
+		// of its own — Mistrise Village — or an Earthbend registration's
+		// stored "Mode$ ChangesZone | ..." body) is stored raw and parses
+		// directly. The two carriers cannot collide: no SVar name starts
+		// "Mode$".
 		raw := dt.Trigger
 		if !strings.HasPrefix(raw, "Mode$") {
 			raw = src.Face().SVars[raw]
 		}
 		t, ok := cards.ParseTriggerLine(raw)
-		if !ok || t.Mode != "SpellCast" {
+		if !ok || t.Mode != dt.EventMode {
 			continue
 		}
-		if !e.eventDelayedSpellCastMatches(t, dt, ev) {
+		if dt.EventMode == "ChangesZone" {
+			// The Earthbend return promise. zoneChangeMatches reads
+			// Origin$/Destination$/ValidCard$ (Card.Self against the moved
+			// object) and the trigger's own source movement; lki is threaded
+			// from checkTriggers so a departing source's last battlefield
+			// characteristics are read (CR 603.10a), the same snapshot the
+			// face-trigger walk uses.
+			if !e.zoneChangeMatches(t, dt.Source, ev, lki) {
+				continue
+			}
+		} else if !e.eventDelayedSpellCastMatches(t, dt, ev) {
 			continue
 		}
 		if !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
@@ -608,7 +624,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event) {
 			dt:         *dt,
 			sa:         sa,
 			remembered: triggerRemembered(ev, dt.Source),
-			referents:  e.triggerReferents(t, dt.Source, ev, nil),
+			referents:  e.triggerReferents(t, dt.Source, ev, lki),
 			svars:      src.Face().SVars,
 			static:     strings.TrimSpace(t.Params["Static"]) != "",
 		})
@@ -815,8 +831,8 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
 	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
-	if ev.Kind == events.PutOnStack {
-		e.checkEventDelayedTriggers(ev)
+	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone {
+		e.checkEventDelayedTriggers(ev, lki)
 	}
 	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the
 	// two events that place lore counters -- the battlefield-entry Move
