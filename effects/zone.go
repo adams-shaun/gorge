@@ -1693,12 +1693,36 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			}
 		}
 	}
+	// WithTotalCMC$ is the cumulative mana-value budget over the found cards
+	// (Protean Hulk: "any number of creature cards with total mana value 6 or
+	// less"), the exact parameter effDig reads on its own window. A card
+	// whose own mana value exceeds the budget can never be found, and the
+	// running sum of the picks must not exceed it either; the mechanics
+	// mirror effDig's (affordable filter, Decision.MaxSum + Option.Value on
+	// the wire, a greedy stand-in). Absent the param the budget is 0,
+	// budgetEligible == eligible and every read below is a no-op, so a
+	// non-budget search emits byte-identically. The CR 701.23b/701.23d Min
+	// semantics below are unchanged; only the affordable pool they are read
+	// over is narrowed.
+	budget, hasBudget := NumResolved(h, c, sa, "WithTotalCMC", 0)
+	if budget < 0 {
+		budget = 0
+	}
+	budgetEligible := eligible
+	if hasBudget {
+		budgetEligible = make([]state.ObjID, 0, len(eligible))
+		for _, id := range eligible {
+			if manaValueOf(g, id) <= int(budget) {
+				budgetEligible = append(budgetEligible, id)
+			}
+		}
+	}
 	max := Num(h, c, sa, "ChangeNum", 1)
 	if max < 0 {
 		max = 0
 	}
-	if max > int32(len(eligible)) {
-		max = int32(len(eligible))
+	if max > int32(len(budgetEligible)) {
+		max = int32(len(budgetEligible))
 	}
 	// CR 701.23b/701.23d decide the minimum: a search whose card filter states
 	// only a quantity must find that many (or as many as the zone holds), so
@@ -1721,6 +1745,38 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		c.Remembered = nil
 		applyLibrarySearch(h, c, sa, owner, to, nil, zones)
 		return
+	}
+	// greedy is the deterministic stand-in take under the cumulative budget
+	// (bound by the ChangeNum cap): with no budget every card fits and greedy
+	// is exactly the first max cards of eligible -- the take the pre-budget
+	// stand-in applied -- so the R-9 fallback stays byte-identical there. It
+	// is computed before the Min below is finalised, because the budget can
+	// strand a quantity-only search's forced Min.
+	greedy := make([]state.ObjID, 0, len(budgetEligible))
+	running := 0
+	for _, id := range budgetEligible {
+		if int32(len(greedy)) >= max {
+			break
+		}
+		mv := manaValueOf(g, id)
+		if hasBudget && running+mv > int(budget) {
+			continue
+		}
+		running += mv
+		greedy = append(greedy, id)
+	}
+	// A budget can strand a quantity-only search's forced Min: max was
+	// clamped to len(budgetEligible), but the running sum may fit fewer than
+	// that (library [3MV, 4MV], ChangeNum 2, WithTotalCMC 6 -- the greedy
+	// take is one card), so Min == Max == 2 would pose an ask Decision
+	// .Validate rejects for EVERY 2-pick -- a real host could never submit
+	// and the match stalls. Lower the Min to the greedy count -- effDig's
+	// mandatory-budget rule (cardflow.go), which its sibling effHiddenPick
+	// applies too -- so a satisfying answer always exists. (Measured 0
+	// corpus carriers combine a quantity-only filter with WithTotalCMC$;
+	// this is general-correctness code in the direction of no wedge.)
+	if hasBudget && min > int32(len(greedy)) {
+		min = int32(len(greedy))
 	}
 	// The prompt must not offer a choice the decision will refuse. A
 	// quantity-only search has Min == Max, so "up to" would be a lie the
@@ -1761,7 +1817,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	eachSubs, isEach := eachAlternatives(spec)
 	eachStructured := isEach && max <= 1 && SearchStatesQuality(spec)
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
-		Min: int(min), Max: int(max), Source: c.Source,
+		Min: int(min), Max: int(max), MaxSum: int(budget), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
 		// The walk's Remembered rides the ask (rules restores it on the
 		// resume) so the re-entered eligibility recheck and the SubAbility$
@@ -1801,6 +1857,13 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		}
 		d.Min, d.Max = 0, groups
 		d.Prompt = "Search a library: choose one card of each listed type"
+		// The budget is NOT enforced on the structured branch (its options
+		// carry no Value, so a MaxSum the wire advertises would be a cap
+		// Validate sums to 0 over -- meaningless, and misleading to a
+		// consumer). Clear it: 0 corpus carriers combine EACH with
+		// WithTotalCMC$, and a future one needs per-type budget mechanics
+		// designed, not a silent half-read.
+		d.MaxSum = 0
 	} else {
 		if isEach {
 			// A measured-absent shape kept loud rather than silently wrong:
@@ -1810,7 +1873,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "EACH ChangeType with per-type count above 1 resolves as a flat count"})
 		}
-		for _, id := range eligible {
+		for _, id := range budgetEligible {
 			name := "a card"
 			var cardName string
 			if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -1821,6 +1884,11 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			}
 			opt := decision.Option{Index: len(d.Options),
 				Kind: "search", Label: name, Obj: id, Player: owner}
+			// Only a budget search carries a Value: Option.Value is omitempty,
+			// so a non-budget search's option list serialises byte-identically.
+			if hasBudget {
+				opt.Value = manaValueOf(g, id)
+			}
 			if differentNames && cardName != "" {
 				opt.Group = cardName
 			}
@@ -1853,15 +1921,17 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	var picked []state.ObjID
 	if !SearchStatesQuality(spec) {
 		n := int(min)
-		if n > len(eligible) {
-			n = len(eligible)
+		if n > len(greedy) {
+			n = len(greedy)
 		}
 		if n > 0 {
 			// DifferentNames$ True makes the stand-in distinct-name aware too:
 			// a first-Min run over duplicate names would move two same-named
 			// cards the apply side would then have to silently drop under the
-			// Min the decision promised.
-			if differentNames {
+			// Min the decision promised. (No corpus card pairs DifferentNames$
+			// with WithTotalCMC$, so the budget greedy and this walk never
+			// compete; the budget's greedy is the pick when both are present.)
+			if differentNames && !hasBudget {
 				seen := make(map[string]bool, n)
 				for _, id := range eligible {
 					if len(picked) >= n {
@@ -1878,7 +1948,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 					picked = append(picked, id)
 				}
 			} else {
-				picked = append(picked, eligible[:n]...)
+				picked = append(picked, greedy[:n]...)
 			}
 		}
 		if oc == AskNoHost {
@@ -2430,6 +2500,22 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	if to == state.ZBattlefield && withKind != "" {
 		withAmt = withCounterAmount(h, c, sa)
 	}
+	// WithTotalCMC$ is the cumulative mana-value budget over the picked cards
+	// (Lively Dirge's DBReturn, Technomancer, Legion's Chant, Pair o' Dice
+	// Lost: "return up to N creature cards with total mana value M or less"),
+	// the exact parameter effDig reads on its own window. A card whose own
+	// mana value exceeds the budget can never be picked, and the running sum
+	// of the picks must not exceed it either; the mechanics below mirror
+	// effDig's (affordable filter, Decision.MaxSum + Option.Value on the wire,
+	// a greedy stand-in take, a mandatory Min lowered to what the budget
+	// affords). Absent the param the budget is 0, budgetEligible == eligible
+	// and every read below is a no-op, so a non-budget pick emits
+	// byte-identically. Present but unresolvable degrades to budget 0 --
+	// Num's documented convention.
+	budget, hasBudget := NumResolved(h, c, sa, "WithTotalCMC", 0)
+	if budget < 0 {
+		budget = 0
+	}
 	apply := func(owner state.PlayerID, ids []state.ObjID) []state.ObjID {
 		g := h.Game()
 		moved := make([]state.ObjID, 0, len(ids))
@@ -2490,9 +2576,39 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 				addPool(h.Game().Zone(z, owner))
 			}
 		}
+		// budgetEligible is the pickable set: spec-matching AND individually
+		// affordable under WithTotalCMC$ (no budget => identical to eligible).
+		budgetEligible := eligible
+		if hasBudget {
+			budgetEligible = make([]state.ObjID, 0, len(eligible))
+			for _, id := range eligible {
+				if manaValueOf(h.Game(), id) <= int(budget) {
+					budgetEligible = append(budgetEligible, id)
+				}
+			}
+		}
 		m := max
-		if m > int32(len(eligible)) {
-			m = int32(len(eligible))
+		if m > int32(len(budgetEligible)) {
+			m = int32(len(budgetEligible))
+		}
+		// greedy is the deterministic stand-in take under the cumulative
+		// budget: walk budgetEligible in pool order and take each card only
+		// while the running sum still fits, bounded by the pick count m. With
+		// no budget every card fits and greedy is exactly the first m cards of
+		// eligible -- the take the pre-budget stand-in applied -- so the R-9
+		// fallback stays byte-identical there.
+		greedy := make([]state.ObjID, 0, len(budgetEligible))
+		running := 0
+		for _, id := range budgetEligible {
+			if int32(len(greedy)) >= m {
+				break
+			}
+			mv := manaValueOf(h.Game(), id)
+			if hasBudget && running+mv > int(budget) {
+				continue
+			}
+			running += mv
+			greedy = append(greedy, id)
 		}
 		if done && i < cursor {
 			// This fetch player answered on an earlier pass, before a later
@@ -2503,7 +2619,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			apply(owner, ans)
 			continue
 		}
-		if len(eligible) == 0 || m == 0 {
+		if len(budgetEligible) == 0 || m == 0 {
 			// No eligible card, or an empty-only ChangeNum$ 0 pick: both
 			// complete silently before optionality can matter, and a public
 			// origin has no shuffle to fail to perform.
@@ -2515,7 +2631,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			prompt = "Choose up to " + strconv.Itoa(int(m)) + " card(s)"
 		}
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
-			Min: 0, Max: int(m), Source: c.Source,
+			Min: 0, Max: int(m), MaxSum: int(budget), Source: c.Source,
 			// The same remembered ride the hand_move ask carries: the
 			// re-entered effHiddenPick revalidates against ChangeType$, which
 			// can be a ctx-Remembered predicate.
@@ -2525,23 +2641,39 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		if mandatory {
 			d.Min = int(m)
 		}
-		for _, id := range eligible {
+		// A mandatory budget pick whose m exceeds what the budget affords must
+		// not demand more picks than it can pay for: lower the Min to the
+		// forced greedy count so the ask can be satisfied (effDig's rule).
+		if hasBudget && d.Min > len(greedy) {
+			d.Min = len(greedy)
+		}
+		for _, id := range budgetEligible {
 			name := "a card"
 			if o := h.Game().Obj(id); o != nil && o.Face() != nil && !noLooking {
 				name = o.Face().Name
 			}
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-				Kind: "hidden_pick", Label: name, Obj: id, Player: owner})
+			opt := decision.Option{Index: len(d.Options),
+				Kind: "hidden_pick", Label: name, Obj: id, Player: owner}
+			// Only a budget pick carries a Value: Option.Value is omitempty, so
+			// a non-budget pick's option list serialises byte-identically.
+			if hasBudget {
+				opt.Value = manaValueOf(h.Game(), id)
+			}
+			d.Options = append(d.Options, opt)
 		}
 		oc := Ask(h, d)
 		if oc == AskAsked {
 			return
 		}
 		// R-9: a host without a decision channel cannot ask, so it takes the
-		// first m eligible cards -- distinct-named first when DifferentNames$
-		// True -- in the ordered eligible list the options were built from.
+		// forced greedy take over the budget-eligible pool -- under a budget
+		// the cumulative cap decides which cards fit (effDig's exact mirror);
+		// without one greedy is the first m eligible cards, and the
+		// DifferentNames$ variant below keeps its distinct-named-first walk
+		// (no corpus card carries DifferentNames$ beside WithTotalCMC$, so the
+		// two stand-ins never compete).
 		var picked []state.ObjID
-		if differentNamesEnabled(sa) {
+		if differentNamesEnabled(sa) && !hasBudget {
 			seen := make(map[string]bool, m)
 			for _, id := range eligible {
 				if len(picked) >= int(m) {
@@ -2558,7 +2690,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 				picked = append(picked, id)
 			}
 		} else {
-			picked = append(picked, eligible[:int(m)]...)
+			picked = append(picked, greedy...)
 		}
 		if oc == AskNoHost {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
