@@ -879,6 +879,17 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.TimesKicked, true
 		}
 		return 0, true
+	case "TimesMutated":
+		// CR 702.140f: how many times the SOURCE permanent has mutated, folded
+		// by events.Apply's Mutate case onto state.Object.TimesMutated and reset
+		// when the pile leaves the battlefield. The "this creature" readers
+		// (Vadrok, Apex of Thunder's "where X is the number of times this
+		// creature has mutated") resolve against the mutated permanent, which
+		// is c.Source at resolution.
+		if o := g.Obj(c.Source); o != nil {
+			return o.TimesMutated, true
+		}
+		return 0, true
 	case "Conspired":
 		// CR 702.78a: 1 when the resolving spell's Conspire tap was actually
 		// paid as it was cast, else 0. Carried by the pay-time CastInfo's

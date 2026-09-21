@@ -592,7 +592,17 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		return nil, false
 	}
 	ctx.Source = o.Source
-	effects.SetSVars(ctx, src.Face().SVars)
+	// A mutated pile's under-card triggered ability (CR 702.140d) reads its
+	// OWN face's SVar table, not the pile's top card's: Archipelagoe and
+	// Nethroi, Apex of Death both bound their targeting with TargetMax$ X,
+	// and the pile's top card can be any creature (with no X at all). The
+	// owning face comes from the compiled trigger pointer; an ordinary
+	// trigger's owning face is the top face, so nothing else moves.
+	if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
+		effects.SetSVars(ctx, mf.SVars)
+	} else {
+		effects.SetSVars(ctx, src.Face().SVars)
+	}
 	return ctx, true
 }
 
@@ -1787,9 +1797,24 @@ func (e *Engine) resolveTop() {
 		// (or ceased to exist) has nothing to read here and degrades to a
 		// nil SVar table, same as before this ability object existed at
 		// all, rather than panicking.
+		//
+		// A mutated pile (CR 702.140d) makes "the source's current Face" the
+		// wrong table for an UNDER-card's ability: Face() on a pile is always
+		// its TOP card, whose SVar table the under-card's body never meant --
+		// Huntmaster Liger mutated under a Grizzly Bears read the Bears' (
+		// empty) table for its own "NumAtt$ +X | SVar:X:Count$TimesMutated"
+		// and pumped by 0. The owning face is the one that carries the
+		// resolving trigger, which findTriggerForAbilityFace recovers by the
+		// compiled trigger pointer -- the whole reason MergedTriggerPush mints
+		// f.Triggers[i].Effect rather than a freshly parsed SVar body. An
+		// ordinary trigger finds its own (top) face there, so its table is
+		// unchanged, and an activated ability finds no trigger at all and
+		// falls through to Face() exactly as before.
 		var svars map[string]string
 		if src := e.G.Obj(o.Source); src != nil {
-			if sf := src.Face(); sf != nil {
+			if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
+				svars = mf.SVars
+			} else if sf := src.Face(); sf != nil {
 				svars = sf.SVars
 			}
 		}
@@ -1900,6 +1925,16 @@ func (e *Engine) resolveTop() {
 	// provenance modeFlags("bestowed") rode.
 	if o.CastFlags&state.FlagBestowed != 0 {
 		sa = bestowedAttachSA()
+	}
+	// Mutate (CR 702.140d): a spell cast for its mutate cost does not become
+	// an independent permanent. It merges into its target, so resolution is
+	// diverted BEFORE the ordinary spell-block tail (which would move it to
+	// the battlefield): resolveMutate emits the Mutate fold, which parks this
+	// object off the stack. A mutate card carries no SP, so the spell block
+	// below would resolve nothing anyway.
+	if o.CastFlags&state.FlagMutated != 0 {
+		e.resolveMutate(o, o.Targets)
+		return
 	}
 	targets := o.Targets
 	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered

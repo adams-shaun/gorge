@@ -205,6 +205,16 @@ const (
 	// no flag and resolves exactly like the plain cast. Appended per the
 	// enum's own append-only precedent.
 	FlagConspired
+	// FlagMutated marks a spell cast for its Mutate cost (CR 702.140a). It is
+	// the provenance rules/stack.go's resolution reader uses to merge the
+	// spell's card into its target instead of moving it to the battlefield as
+	// an ordinary permanent. FlagMutatedTop carries CR 702.140b's placement
+	// choice (the mutating card goes on TOP of the target); its absence means
+	// the mutating card goes UNDER. Both are set by the pay-time CastInfo the
+	// cast's mutate-placement answer rides, so the choice is replay-derived.
+	// Appended per the enum's own append-only precedent.
+	FlagMutated
+	FlagMutatedTop
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -482,6 +492,19 @@ type Object struct {
 	// "until-host-leaves" Text discriminator.
 	ExileReturn []ExileReturnEntry
 
+	// MergedCards holds the cards stacked BENEATH a mutated permanent's top
+	// card (CR 702.140d), top-of-pile first. Card/FaceIdx on the object always
+	// describe the TOP card; each entry here is one card that mutated below it.
+	// A merged-under card is not an independent permanent: its object is parked
+	// in ZCeased (which has no membership list, so no battlefield scan sees it)
+	// and only the pile's own departure moves it (events.Move), which is
+	// CR 702.140e's "each card that's merged ... moves to its owner's
+	// graveyard" -- and the same move for every other zone. TimesMutated is
+	// CR 702.140f's count of how many times this permanent has mutated, read by
+	// Count$TimesMutated.
+	MergedCards  []MergedCard
+	TimesMutated int32
+
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
 	// means unattached. Reset whenever the object itself leaves the
 	// battlefield (events.Move) -- an Aura or Equipment cannot stay
@@ -562,6 +585,17 @@ type Object struct {
 	// halves' rules text is live (rules-side scans consult this field). Only
 	// events.Apply writes it, so a replay rebuilds it.
 	Unlocked bool
+}
+
+// MergedCard is one card stacked beneath a mutated permanent's top card
+// (CR 702.140d). Obj names the card's parked object (in ZCeased); Card and
+// FaceIdx are the card's identity, carried on the value so the ability scans
+// can read it without a second object lookup and so a parked object that is
+// somehow gone still leaves the card's abilities live.
+type MergedCard struct {
+	Obj     ObjID
+	Card    *cards.Card
+	FaceIdx uint8
 }
 
 // ExileReturnEntry is one ChangeZone Duration$ UntilHostLeavesPlay exile:
@@ -676,6 +710,21 @@ func (o *Object) EffectiveIsArtifact() bool {
 	return f != nil && f.IsArtifact()
 }
 
+// MergedFaceAt returns the face of the i-th card stacked beneath the top card
+// (0 is the first under-card), or nil when i is out of range. It is the one
+// accessor the ability scans use so a merged card's face is resolved the same
+// way everywhere.
+func (o *Object) MergedFaceAt(i int) *cards.Face {
+	if i < 0 || i >= len(o.MergedCards) {
+		return nil
+	}
+	mc := &o.MergedCards[i]
+	if mc.Card == nil || int(mc.FaceIdx) >= len(mc.Card.Faces) {
+		return nil
+	}
+	return mc.Card.Faces[mc.FaceIdx]
+}
+
 // Ephemeral reports whether this object has, right now, ceased to exist: a
 // copy of a spell or ability once it has LEFT THE STACK (CR 707.10h -- a copy
 // of a spell that has left the stack is a transient reference, not a real
@@ -753,6 +802,7 @@ func (o *Object) CloneDeep() Object {
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
+	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)
 	return c
 }
 

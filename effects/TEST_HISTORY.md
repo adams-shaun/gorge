@@ -152,6 +152,8 @@ so the pre-perf calibration is not lost.
 | 2026-09-20T08:57Z | 6db7ff5a+ | 0.9 | 468 | 0 | sadams |
 | 2026-09-20T08:57Z | 6db7ff5a+ | 0.7 | 468 | 0 | sadams |
 | 2026-09-20T08:57Z | 6db7ff5a+ | 0.7 | 468 | 0 | sadams |
+| 2026-09-20T09:30Z | 0573a2c2+ | 0.7 | 468 | 0 | sadams |
+| 2026-09-20T09:31Z | 0573a2c2+ | 0.7 | 468 | 0 | sadams |
 | 2026-09-20T09:06Z | a997ec1c+ | 0.6 | 468 | 0 | sadams |
 | 2026-09-20T09:07Z | a997ec1c+ | 0.6 | 468 | 0 | sadams |
 | 2026-09-20T09:08Z | a997ec1c+ | 1.2 | 468 | 0 | sadams |
@@ -259,3 +261,5 @@ so the pre-perf calibration is not lost.
 | 2026-09-20T22:50Z | d3f79ab8+ | 0.9 | 558 | 0 | sadams |
 | 2026-09-20T23:13Z | 40e21394+ | 1.5 | 559 | 0 | sadams |
 | 2026-09-20T23:33Z | bb92d851+ | 0.7 | 559 | 0 | sadams |
+| 2026-09-21T02:10Z | 6e68b529+ | 1.1 | 577 | 0 | sadams |
+| 2026-09-21T02:12Z | 6e68b529+ | 0.9 | 577 | 0 | sadams |

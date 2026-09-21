@@ -192,6 +192,14 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " rolls the planar die"
 	case events.NoteNumber:
 		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
+	case events.Mutate:
+		// CR 702.140d: one mutating card merges into the surviving permanent.
+		// Text is "top" or "under" (CR 702.140b's placement).
+		place := "under"
+		if ev.Text == "top" {
+			place = "on top of"
+		}
+		return obj(g, ev.Obj) + " mutates with a card " + place + " it"
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:
@@ -504,6 +512,11 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the granted body's own text is the resolving ability's line, not
 		// the push's, so saying what it will do twice would double-report it.
 		return obj(g, ev.Obj) + " triggers (granted)"
+	case events.MergedTriggerPush:
+		// A mutated pile's under-card trigger went on the stack (CR 702.140d):
+		// the same "triggers" phrasing -- the resolving ability's own line is
+		// what carries what it does.
+		return obj(g, ev.Obj) + " triggers (merged)"
 	case events.ManaActivate:
 		// The ActivationLimit$ scan marker for a mana ability's activation
 		// (events.ManaActivate's own comment). Obj is the source permanent.

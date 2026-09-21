@@ -115,6 +115,12 @@ func TestDescribeTemplates(t *testing.T) {
 		{"flip", events.Event{Kind: events.FlipFace, Obj: bear, Amount: 1}, "Bear #1 turns to face 1"},
 		{"clock", events.Event{Kind: events.ClockTick}, ""},
 		{"trigger", events.Event{Kind: events.TriggerPush, Player: 0, Obj: bear}, "Bear #1 triggers"},
+		// The mutate fold and its under-card trigger push (CR 702.140): Text
+		// is the placement choice; the merged push reads like the delayed and
+		// granted pushes -- the resolving ability's own line says what it does.
+		{"mutate top", events.Event{Kind: events.Mutate, Obj: bear, IDs: []state.ObjID{bolt}, Text: "top"}, "Bear #1 mutates with a card on top of it"},
+		{"mutate under", events.Event{Kind: events.Mutate, Obj: bear, IDs: []state.ObjID{bolt}, Text: "under"}, "Bear #1 mutates with a card under it"},
+		{"merged trigger", events.Event{Kind: events.MergedTriggerPush, Player: 0, Obj: bear}, "Bear #1 triggers (merged)"},
 		{"end combat", events.Event{Kind: events.EndCombatReset}, "Combat ends"},
 		{"cast info x", events.Event{Kind: events.CastInfo, Obj: bolt, Amount: 3}, "Bob casts Bolt #2 (X = 3)"},
 		{"cast info mode", events.Event{Kind: events.CastInfo, Obj: bolt, Counter: "kicked"}, "Bob casts Bolt #2 (kicked)"},

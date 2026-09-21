@@ -113,6 +113,8 @@ func TestCompiledTriggerInterestParity(t *testing.T) {
 		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Blocks", "Sacrificed",
 		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
+		"CounterRemoved", "DamagePreventedOnce", "TokenCreated", "TokenCreatedOnce",
+		"ChangesZoneAll", "SpellCastOrCopy", "SpellCopy", "Mutates",
 		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Always", "LifeLostAll", "FutureMode", "",
 	}
 	card := &cards.Card{}
@@ -387,6 +389,62 @@ func TestTriggerEligibilityKeepsRoomAlternateFace(t *testing.T) {
 		e.checkFaceTriggers(e, ev, nil, 0, 0, false, false, false)
 		if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != id || !e.pendingTriggers[0].Delayed {
 			t.Fatalf("cast face %d: queue = %+v, want alternate-face trigger", face, e.pendingTriggers)
+		}
+	}
+}
+
+// TestTriggerEventMaskAndPrefilterAgreePastTheMaskWidth pins the ONE bound
+// both trigger-eligibility classifiers share. triggerEventMask is a uint64, so
+// triggerMaskKindBits (64) is the last ordinal it can encode; a kind at or past
+// it must fail OPEN -- to the full matcher, never silently truncated by a
+// shift -- in the TEXTUAL mask (allows) and in the COMPILED interest prefilter
+// (compiledTriggerInterestAllows) alike. One path rejecting what the other
+// admits is the divergence CombatRetarget (the first kind past the bound)
+// exposed, and it is what this test exists to keep closed.
+//
+// Measured ordinals at this merge: Explore 63 is the last kind INSIDE the
+// mask; CombatRetarget 64 is the first past it, and everything after --
+// RingTemptsYou 65, RingEmblemPush 66, GrantAbilityPush 67, Investigate 68,
+// BlessingChange 69, ClonePermanent 70, Mutate 71, MergedTriggerPush 72
+// (NumKinds 73) -- is past it too. So mutate's two kinds are NOT a special
+// case: they fail open like every other kind past the bound, and trig:Mutates
+// is gated by the full matcher (mutatesMatches), not by the mask. An earlier
+// version of this test asserted the opposite contract (an enumerated mask
+// classifying a known kind past the width EXACTLY, with the compiled side left
+// wider); main has since resolved the same question the other way, symmetric
+// across both paths, and this test follows main rather than re-litigating it.
+func TestTriggerEventMaskAndPrefilterAgreePastTheMaskWidth(t *testing.T) {
+	if int(events.NumKinds) <= triggerMaskKindBits {
+		t.Skipf("no kind past the mask bound yet (NumKinds %d, bound %d): the "+
+			"fail-open branch below is unreachable and the exactness question returns",
+			int(events.NumKinds), triggerMaskKindBits)
+	}
+	// Inside the bound an enumerated mask is still exact.
+	drawn := triggerModeEvents("Drawn")
+	if !drawn.allows(events.Draw) || drawn.allows(events.Tap) {
+		t.Fatal("inside the mask width an enumerated mode mask must name exactly its own events")
+	}
+	// At and past it, both classifiers fail open -- for an enumerated mask and
+	// for an empty compiled interest set alike.
+	mutates := triggerModeEvents("Mutates")
+	for k := triggerMaskKindBits; k < int(events.NumKinds); k++ {
+		kind := events.Kind(k)
+		if !mutates.allows(kind) {
+			t.Fatalf("kind %s (ordinal %d) is past the mask bound and must fail open textually", kind, k)
+		}
+		if !compiledTriggerInterestAllows(0, kind) {
+			t.Fatalf("kind %s (ordinal %d) is past the mask bound and must fail open in the compiled prefilter", kind, k)
+		}
+	}
+	if !allTriggerEvents.allows(events.MergedTriggerPush) {
+		t.Fatal("the conservative catch-all mask dropped a kind past the mask width")
+	}
+	// The compiled prefilter is never the narrower side, for any kind.
+	e := &Engine{}
+	face := &cards.Face{Triggers: []cards.Trigger{{Mode: "Mutates"}}}
+	for kind := events.Kind(0); int(kind) < events.NumKinds; kind++ {
+		if mutates.allows(kind) && !e.faceMayTrigger(face, kind) {
+			t.Fatalf("kind %s: compiled prefilter rejected a textual candidate", kind)
 		}
 	}
 }

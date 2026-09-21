@@ -768,8 +768,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// NESTED answer) only for a nested "modes" resume, which is the
 		// correct scoping -- a nested Charm below this one poses its own ask.
 		ctx.Modes = o.ChosenModes
+		// The same owning-face read resolveTop's ability branch makes: a
+		// mutated pile's under-card ability (CR 702.140d) must resume on the
+		// UNDER-CARD's SVar table, not the pile's top card's. An ordinary
+		// trigger's owning face IS the top face, and an activated ability
+		// matches no trigger and falls through to Face(), so both are
+		// unchanged.
 		if src := e.G.Obj(o.Source); src != nil {
-			if sf := src.Face(); sf != nil {
+			if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
+				svars = mf.SVars
+			} else if sf := src.Face(); sf != nil {
 				svars = sf.SVars
 			}
 		}
