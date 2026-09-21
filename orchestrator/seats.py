@@ -27,6 +27,7 @@ from . import config, pi
 TRIAGE_TAIL = config.DISPATCH_DIR / "triage-tail.md"
 IMPL_TAIL_TEMPLATE = config.DISPATCH_DIR / "implementer-tail-template.md"
 REVIEWER_TAIL = config.DISPATCH_DIR / "reviewer-tail.md"
+MERGE_TAIL = config.DISPATCH_DIR / "merge-resolver-tail.md"
 
 
 def _combined_system(tail_text: str) -> str:
@@ -97,7 +98,7 @@ def implementer_status_path(wt: Path, tag: str) -> Path:
 
 def launch_implementer(
     issue_id: str, wt: Path, tag: str, brief_text: str, escalated: bool, findings_text: str | None,
-    overflow: bool = False,
+    overflow: bool = False, local_escalated: bool = False,
 ) -> tuple[subprocess.Popen, Path]:
     ds4 = wt / ".ds4"
     ds4.mkdir(parents=True, exist_ok=True)
@@ -110,7 +111,13 @@ def launch_implementer(
         findings_path.write_text(findings_text)
         message_rel = str(findings_path.relative_to(wt))
     status_path = implementer_status_path(wt, tag)
-    if escalated:
+    if escalated and local_escalated:
+        # The paid plan is out (e.g. a week-long subscription block): run the
+        # escalation round on the local seat instead of parking it in
+        # `waiting` until the plan resets. Still counts against the
+        # escalation ladder (MAX_ESCALATED_ROUNDS) -- only the backend differs.
+        provider, model, thinking = config.LOCAL_PROVIDER, config.LOCAL_MODEL, config.LOCAL_THINKING
+    elif escalated:
         provider, model, thinking = config.IMPLEMENTER_ESCALATED_PROVIDER, config.IMPLEMENTER_ESCALATED_MODEL, "high"
     elif overflow:
         provider, model, thinking = config.OVERFLOW_PROVIDER, config.OVERFLOW_MODEL, config.OVERFLOW_THINKING
@@ -126,6 +133,47 @@ def launch_implementer(
     return proc, status_path
 
 
+def merge_resolver_name(issue_id: str, tag: str) -> str:
+    return f"mergefix-{issue_id}-{tag}"
+
+
+def merge_resolver_status_path(wt: Path, tag: str) -> Path:
+    return wt / ".ds4" / f"status-merge-{tag}.json"
+
+
+def launch_merge_resolver(
+    issue_id: str, wt: Path, tag: str, conflict_text: str,
+) -> tuple[subprocess.Popen, Path]:
+    """Resolve a rebase/merge conflict in the issue's EXISTING worktree: no
+    new worktree, no new branch — the approved branch itself is completed
+    in place so the daemon's normal gate-and-merge path can re-run on it.
+    The conflict output plus the ground rules go in as the task brief."""
+    ds4 = wt / ".ds4"
+    ds4.mkdir(parents=True, exist_ok=True)
+    task_path = ds4 / f"merge-conflict-{tag}.md"
+    task_path.write_text(
+        f"# Merge conflict on branch wt/{issue_id}\n\n"
+        f"The daemon's attempt to integrate main failed with:\n\n"
+        f"```\n{conflict_text[-6000:]}\n```\n\n"
+        f"Resolve it in THIS worktree per your instructions, complete the git "
+        f"operation, and commit.\n"
+    )
+    tail = MERGE_TAIL.read_text().replace("{ID}", issue_id).replace("{TAG}", tag)
+    system_path = ds4 / f"system-merge-{tag}.md"
+    system_path.write_text(_combined_system(tail))
+    status_path = merge_resolver_status_path(wt, tag)
+    proc = pi.launch(
+        name=merge_resolver_name(issue_id, tag),
+        cwd=wt,
+        brief_rel=str(task_path.relative_to(wt)), system_rel=str(system_path.relative_to(wt)),
+        report_rel=f".ds4/report-merge-{tag}.md",
+        out_path=status_path,
+        provider=config.LOCAL_PROVIDER, model=config.LOCAL_MODEL,
+        thinking=config.LOCAL_THINKING,
+    )
+    return proc, status_path
+
+
 def review_name(issue_id: str, tag: str) -> str:
     return f"review-{issue_id}-{tag}"
 
@@ -134,13 +182,16 @@ def review_status_path(wt: Path, tag: str) -> Path:
     return wt / ".ds4" / f"review-status-{tag}.json"
 
 
-def launch_review(issue_id: str, wt: Path, tag: str) -> tuple[subprocess.Popen, Path]:
+def launch_review(issue_id: str, wt: Path, tag: str, local: bool = False) -> tuple[subprocess.Popen, Path]:
     ds4 = wt / ".ds4"
     diff = subprocess.run(
         ["git", "diff", "main...HEAD"], cwd=str(wt), capture_output=True, text=True,
     ).stdout
     diff_path = ds4 / f"diff-{tag}.txt"
     diff_path.write_text(diff)
+    touched = subprocess.run(
+        ["git", "diff", "--stat", "main...HEAD"], cwd=str(wt), capture_output=True, text=True,
+    ).stdout.strip()
     tail = REVIEWER_TAIL.read_text().replace("{ID}", issue_id)
     system_path = ds4 / f"review-system-{tag}.md"
     system_path.write_text(_combined_system(tail))
@@ -156,7 +207,11 @@ def launch_review(issue_id: str, wt: Path, tag: str) -> tuple[subprocess.Popen, 
         if findings.exists() else ""
     )
     task_path.write_text(
-        f"Read .ds4/brief.md, .ds4/report-{tag}.md and .ds4/diff-{tag}.txt.{ruling} "
+        f"Read .ds4/brief.md, .ds4/report-{tag}.md and .ds4/diff-{tag}.txt.{ruling}\n\n"
+        f"Touched files (git diff --stat main...HEAD) -- this is the whole scope of the diff; "
+        f"treat any file not listed here as untouched, and use this list directly for the "
+        f"attack plan's scope and regression-surface steps instead of re-deriving it:\n\n"
+        f"{touched}\n\n"
         f"Write your verdict to {verdict_path.relative_to(wt)}.\n"
     )
     proc = pi.launch(
@@ -165,8 +220,9 @@ def launch_review(issue_id: str, wt: Path, tag: str) -> tuple[subprocess.Popen, 
         brief_rel=str(task_path.relative_to(wt)), system_rel=str(system_path.relative_to(wt)),
         report_rel=f".ds4/review-report-{tag}.md",
         out_path=status_path,
-        provider=config.REVIEWER_PROVIDER, model=config.REVIEWER_MODEL,
-        thinking=config.REVIEWER_THINKING,
+        provider=config.LOCAL_PROVIDER if local else config.REVIEWER_PROVIDER,
+        model=config.LOCAL_MODEL if local else config.REVIEWER_MODEL,
+        thinking=config.REVIEW_LOCAL_THINKING if local else config.REVIEWER_THINKING,
     )
     return proc, status_path
 

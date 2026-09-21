@@ -38,10 +38,14 @@ STATUSES = (
     "waiting",         # a fix round is due but no seat slot is free
     "review",          # a reviewer seat is running or just finished
     "gate",            # local deterministic gates are running
+    "merge_fix",       # a merge-conflict resolver seat is running (rebase/merge hit conflicts)
     "merged",          # landed on main, pushed, deployed
     "superseded",      # reviewer approved a no-diff outcome (covered elsewhere)
     "human_needed",    # the ladder ran out; a person must look
 )
+
+
+_DEPENDS_RE = re.compile(r"^[ \t]*Depends-On:[ \t]*(.+)$", re.MULTILINE | re.IGNORECASE)
 
 
 def _now() -> str:
@@ -56,9 +60,14 @@ class Issue:
     status: str = "new"
     created: str = field(default_factory=_now)
     updated: str = field(default_factory=_now)
+    # 1 is most urgent, 5 least; 3 is the unprioritised middle. Priority orders
+    # what a free seat picks up WITHIN a status -- it never lets new work
+    # overtake a review or a merge (see daemon._dispatch_order).
+    priority: int = 3
     seat_kind: str = ""       # "" | "local" | "escalated"
     local_rounds: int = 0
     escalated_rounds: int = 0
+    merge_rounds: int = 0     # resolver rounds spent on THIS merge attempt (reset on hand-back)
     worktree: str = ""
     branch: str = ""
     commits: str = ""         # space-joined shas, kept flat (no lists in frontmatter)
@@ -106,9 +115,14 @@ class Issue:
             sections[current.lower()] = "\n".join(buf).strip()
         known = {f.name for f in cls.__dataclass_fields__.values()}
         fields = {k: v for k, v in fields.items() if k in known}
-        for k in ("local_rounds", "escalated_rounds"):
+        for k in ("local_rounds", "escalated_rounds", "merge_rounds", "priority"):
             if k in fields:
-                fields[k] = int(fields[k])
+                try:
+                    fields[k] = int(fields[k])
+                except ValueError:
+                    # A hand-edited file must not wedge the loop: fall back to
+                    # the dataclass default rather than raising.
+                    del fields[k]
         return cls(**fields, **sections)
 
     def save(self, path: Optional[Path] = None) -> Path:
@@ -126,6 +140,22 @@ class Issue:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
         return path
+
+    @property
+    def depends_on(self) -> list[str]:
+        """Ids this issue declares Depends-On for, in report and brief order.
+
+        Inbox tickets carry the line in the report; triage copies it into the
+        brief. One definition, so the daemon's blocking check and cmd/ledger's
+        dependency paths cannot drift apart.
+        """
+        out: list[str] = []
+        for m in _DEPENDS_RE.finditer(f"{self.report}\n{self.brief or ''}"):
+            for part in m.group(1).split(","):
+                dep = part.strip()
+                if dep and dep not in out:
+                    out.append(dep)
+        return out
 
     def log(self, message: str) -> None:
         line = f"- {_now()} {message}"
@@ -192,4 +222,60 @@ def new_from_inbox(md_path: Path) -> Issue:
         report=text,
     )
     issue.log(f"noticed in inbox/{md_path.name}")
+    return issue
+
+
+def new_from_agent_ticket(parent_id: str, path: Path) -> Issue:
+    """An implementer/investigative seat filed this itself, mid-task, into its
+    own worktree at `.ds4/new-tickets/<slug>.md` -- a defect it found outside
+    its brief's scope, a follow-up, or one slice of a brief it judged too big
+    to do in one round. A seat is jailed to its worktree and cannot write
+    `.ds4/issues/inbox/` directly (that lives in the main checkout only, see
+    gorge-context.md's fresh-worktree-has-no-.ds4-contents rule) -- this is
+    the one door back out.
+
+    `Priority: N` and `Depends-On: <id>[, <id>]` header lines are recognised
+    (case-insensitive, first match wins) and stripped from the body; a
+    `Depends-On` line surviving into `report` is enough on its own for the
+    existing dependency gate (`_DEPENDS_RE` in `daemon.py`) to hold the new
+    ticket until the named issue(s) close, so no extra wiring is needed here
+    beyond passing it through.
+
+    The id embeds the parent issue and a short hash of the filename+content so
+    two different seats (or two rounds of the same seat) filing unrelated
+    tickets never collide, while re-scanning the SAME file (a tick that reads
+    it before the caller renames it aside) is idempotent."""
+    import hashlib
+    import re
+
+    text = path.read_text().strip()
+    priority = 3
+    depends_on = None
+    body_lines = []
+    for line in text.splitlines():
+        m = re.match(r"^\s*Priority:\s*([1-5])\s*$", line, re.IGNORECASE)
+        if m and priority == 3:
+            priority = int(m.group(1))
+            continue
+        m = re.match(r"^\s*Depends-On:\s*(.+)$", line, re.IGNORECASE)
+        if m and depends_on is None:
+            depends_on = m.group(1).strip()
+            continue
+        body_lines.append(line)
+    body = "\n".join(body_lines).strip()
+    title_line = next((l for l in body.splitlines() if l.strip()), path.stem)
+
+    digest = hashlib.sha1(f"{parent_id}:{path.name}:{text}".encode()).hexdigest()[:8]
+    report = f"Filed by {parent_id} ({path.name}) mid-task.\n\n{body}"
+    if depends_on:
+        report += f"\n\nDepends-On: {depends_on}"
+
+    issue = Issue(
+        id=f"agent-{_now().replace(':', '').replace('-', '')}-{digest}",
+        title=title_line.lstrip("#").strip()[:80],
+        source="agent",
+        priority=priority,
+        report=report,
+    )
+    issue.log(f"filed by {parent_id} from .ds4/new-tickets/{path.name}")
     return issue

@@ -92,6 +92,49 @@ def remove_worktree(issue_id: str) -> None:
     _run(["git", "branch", "-D", f"wt/{issue_id}"], check=False)
 
 
+def prune_worktrees() -> None:
+    """Drop git's own stale worktree metadata (a directory that was deleted
+    by hand, or by another worktree's own removal nesting one inside it, so
+    `git worktree list` still shows it as 'prunable'). Cheap and always safe:
+    this touches only git's administrative records, never a real directory."""
+    _run(["git", "worktree", "prune"], check=False)
+
+
+def list_worktree_dirs() -> list[Path]:
+    """Every `.worktrees/<name>` directory `git worktree list` currently
+    considers real (post-prune), excluding the main checkout itself."""
+    r = _run(["git", "worktree", "list", "--porcelain"], check=False)
+    dirs = []
+    for line in r.stdout.splitlines():
+        if line.startswith("worktree "):
+            p = Path(line.split(" ", 1)[1])
+            if p != config.REPO and p.is_relative_to(config.WORKTREES_DIR):
+                dirs.append(p)
+    return dirs
+
+
+def worktree_dirty(path: Path) -> bool:
+    r = _run(["git", "status", "--porcelain"], cwd=path, check=False)
+    return bool(r.stdout.strip())
+
+
+def commits_ahead_of_main(path: Path) -> int:
+    """-1 if it cannot be determined (no `main` reachable from this worktree,
+    e.g. a shallow or detached oddity) -- callers must treat that as 'unknown,
+    do not touch', not as zero."""
+    r = _run(["git", "rev-list", "--count", "main..HEAD"], cwd=path, check=False)
+    text = r.stdout.strip()
+    return int(text) if r.returncode == 0 and text.isdigit() else -1
+
+
+def force_remove_worktree_and_branch(path: Path) -> None:
+    branch_r = _run(["git", "-C", str(path), "rev-parse", "--abbrev-ref", "HEAD"], check=False)
+    branch = branch_r.stdout.strip()
+    _run(["git", "worktree", "remove", "--force", str(path)], check=False)
+    if branch and branch != "HEAD":
+        _run(["git", "branch", "-D", branch], check=False)
+
+
 def rebase_onto_main(wt: Path) -> tuple[bool, str]:
     r = _run(["git", "rebase", "main"], cwd=wt, check=False)
     if r.returncode == 0:

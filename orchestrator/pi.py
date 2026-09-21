@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import subprocess
 import time
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -107,6 +108,30 @@ def is_terminal(status: Optional[dict]) -> bool:
     return bool(status) and status.get("status") in TERMINAL_STATUSES
 
 
+def session_too_large_to_reuse(status: Optional[dict]) -> bool:
+    """True if the round that produced `status` already grew past
+    `config.MAX_SESSION_TOKENS_FOR_REUSE` tokens of context.
+
+    Nothing in this codebase resumes a session today -- see the config
+    constant's docstring. This exists so that, the day something DOES try to
+    continue a prior round's session (instead of starting fresh), the check
+    is one call away rather than something that has to be reinvented and
+    might be forgotten. Any future resume path must call this BEFORE passing
+    `--continue`/`--resume`/`--session <id>` to `pi`, and fall back to a
+    brand-new session when it returns True.
+
+    `status["tokens"]["prompt"]` is pi-agent's own last-recorded context size
+    for that round (input + cacheRead on the final assistant turn) -- see
+    `bin/pi-agent`'s STATUS.json writer. A missing/malformed field reads as
+    "not too large" (fail open to resuming) rather than raising, matching
+    every other status-field reader in this module."""
+    from . import config
+    if not status:
+        return False
+    tokens = (status.get("tokens") or {}).get("prompt")
+    return isinstance(tokens, (int, float)) and tokens > config.MAX_SESSION_TOKENS_FOR_REUSE
+
+
 def events_age_seconds(status: dict) -> Optional[float]:
     """How long since the transcript last grew -- the one thing that proves
     a dispatch is genuinely alive rather than a process that died silently
@@ -117,11 +142,26 @@ def events_age_seconds(status: dict) -> Optional[float]:
     return time.time() - Path(events).stat().st_mtime
 
 
-def running_names(*models: str) -> set[str]:
-    """--name of every live pi-agent process running any of `models`, any repo.
-    pi-agent forks several processes per run, so names are de-duplicated."""
+def running_names(*models: str, repo: Optional[Path] = None, proc: Path = Path("/proc")) -> set[str]:
+    """--name of every live pi-agent process running any of `models`.
+    pi-agent forks several processes per run, so names are de-duplicated.
+
+    With `repo`, only processes working inside that repository count: their
+    `--cwd` argument or their actual working directory is `repo` or below it.
+    The local-seat cap is per-repo -- another repo's fleet on the same local
+    model must not consume this repo's slots. Without `repo`, every seat on
+    the box counts (the paid cap, which shares one plan, and dead-seat lookup).
+    """
+    root = Path(repo).resolve() if repo is not None else None
+
+    def inside(path: str) -> bool:
+        try:
+            return Path(path).resolve().is_relative_to(root)
+        except (OSError, ValueError):
+            return False
+
     names: set[str] = set()
-    for d in Path("/proc").iterdir():
+    for d in proc.iterdir():
         if not d.name.isdigit():
             continue
         try:
@@ -131,6 +171,14 @@ def running_names(*models: str) -> set[str]:
         args = [a.decode(errors="replace") for a in argv]
         if not any(m in args for m in models):
             continue
+        if root is not None:
+            cwd_arg = next((args[i + 1] for i, a in enumerate(args[:-1]) if a == "--cwd"), None)
+            try:
+                proc_cwd = os.readlink(d / "cwd")
+            except OSError:
+                proc_cwd = None
+            if not ((cwd_arg and inside(cwd_arg)) or (proc_cwd and inside(proc_cwd))):
+                continue
         for i, a in enumerate(args[:-1]):
             if a == "--name":
                 names.add(args[i + 1])

@@ -19,8 +19,10 @@ restarts either process if it dies.
 
 from __future__ import annotations
 
+import fcntl
 import json
 import logging
+import re
 import shutil
 import signal
 import sys
@@ -32,6 +34,10 @@ from . import config, gates, git_ops, issues, pi, seats
 log = logging.getLogger("orchestrator")
 
 _running = True
+
+# Held for the daemon's whole life. See acquire_single_instance_lock.
+LOCK_FILE = config.ORCH_STATE_DIR / "daemon.lock"
+_lock_handle = None
 
 
 def _handle_stop(signum, frame):
@@ -74,26 +80,125 @@ def discover_new_issues() -> None:
         log.info("new issue %s from inbox: %s", issue.id, issue.title)
 
 
-_DEPENDS_RE = None
+def _worktree_cleanup_due() -> bool:
+    """Once per calendar day is plenty -- a `git status`/`rev-list` per
+    worktree every 60s tick would spam the log with the same 'left for
+    manual review' line on every orphan forever, for zero new information."""
+    marker = config.ORCH_STATE_DIR / "worktree-cleanup-last-run"
+    try:
+        age = time.time() - marker.stat().st_mtime
+    except OSError:
+        age = float("inf")
+    if age < 86400:
+        return False
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(issues._now())
+    return True
 
 
-def _unmet_dependency(text: str) -> str | None:
-    """Inbox tickets may carry `Depends-On: <issue-id>[, <issue-id>]` lines.
-    The issue is created (so it shows in the ledger) at once, but is not
-    triaged -- triage reads main -- until every named issue is `merged`. This is how tickets that share hot files
-    are serialized: parallel seats editing the same module make every
-    rebase and review after the first one worthless."""
-    import re
-    global _DEPENDS_RE
-    if _DEPENDS_RE is None:
-        _DEPENDS_RE = re.compile(r"^Depends-On:\s*(.+)$", re.MULTILINE)
-    for m in _DEPENDS_RE.finditer(text):
-        for dep in (x.strip() for x in m.group(1).split(",")):
-            if not dep:
-                continue
-            found = issues.find(dep)
-            if found is None or found.status not in ("merged", "superseded"):
-                return dep
+def cleanup_orphaned_worktrees() -> None:
+    """A `.worktrees/<name>` directory the ledger no longer references (its
+    issue merged/superseded and its worktree field is now stale, or someone
+    made a one-off investigation worktree by hand and forgot it) never gets
+    cleaned up on its own -- git and the orchestrator both leave it in place
+    forever.
+
+    Removal is deliberately conservative: a directory is only ever force-
+    removed when ALL of these hold --
+      - no OPEN issue's `worktree:` field names it (an issue still using it
+        is obviously not orphaned), AND
+      - its directory name does not appear anywhere in any open issue's
+        brief/report/history text either -- this is what protects an
+        archived salvage copy like `<id>-v1` that a brief points back to by
+        name for cherry-picking (see inbox-rv2d-static-pt-variable-and-
+        derived-types' own v1/v2 split, 2026-09-17): the field is empty (the
+        LIVE worktree took over that field) but the text reference is real
+        and must not be swept, AND
+      - `git status --porcelain` in it is completely clean (an uncommitted
+        change is exactly the kind of thing 'seats finish uncommitted' warns
+        never to discard silently), AND
+      - it carries zero commits `main` does not already have (a clean tree
+        with unique commits nobody has looked at yet is still real, unmerged
+        work -- just not linked from the ledger; a human decides its fate,
+        not a nightly sweep).
+    Anything failing any of these is logged and left exactly where it is."""
+    if not _worktree_cleanup_due():
+        return
+    git_ops.prune_worktrees()
+
+    referenced_names = set()
+    text_blob_parts = []
+    for issue in issues.open_issues():
+        if issue.worktree:
+            referenced_names.add(Path(issue.worktree).name)
+        text_blob_parts.extend([issue.report, issue.brief, issue.history])
+    text_blob = "\n".join(text_blob_parts)
+
+    for path in git_ops.list_worktree_dirs():
+        name = path.name
+        if name in referenced_names or name in text_blob:
+            continue
+        if git_ops.worktree_dirty(path):
+            log.warning("orphaned worktree %s has uncommitted changes; left for manual review", name)
+            continue
+        ahead = git_ops.commits_ahead_of_main(path)
+        if ahead != 0:
+            log.warning("orphaned worktree %s: %s commit(s) vs main (0=none unique, -1=undetermined); left for manual review",
+                        name, ahead)
+            continue
+        git_ops.force_remove_worktree_and_branch(path)
+        log.info("removed orphaned worktree %s (unreferenced, clean, no unique commits)", name)
+
+
+def discover_agent_filed_tickets() -> None:
+    """A seat is jailed to its own worktree and cannot write
+    `.ds4/issues/inbox/` directly, so it files a new ticket, a story split, or
+    a follow-up by dropping a file at `.ds4/new-tickets/*.md` inside ITS OWN
+    worktree instead. Scan every open issue with a worktree on disk for such
+    files each tick, turn each into a real issue, and set the source file
+    aside (never delete -- it is the audit trail of what a seat asked for)
+    so it is never re-ingested.
+
+    Runs over `issues.open_issues()`, not just dispatched ones: a seat's own
+    report/status write and this ticket file can land in the same turn, and
+    the parent issue may already have moved to review/gate by the next tick.
+    """
+    for parent in issues.open_issues():
+        if not parent.worktree:
+            continue
+        new_dir = config.REPO / parent.worktree / ".ds4" / "new-tickets"
+        if not new_dir.is_dir():
+            continue
+        for path in sorted(new_dir.glob("*.md")):
+            issue = issues.new_from_agent_ticket(parent.id, path)
+            issue.save()
+            parent.log(f"filed follow-up ticket {issue.id}: {issue.title}")
+            parent.save()
+            # ".filed" appended, not replacing ".md" -- the glob above is
+            # "*.md" and must never re-match its own already-ingested output.
+            path.rename(path.with_name(path.name + ".filed"))
+            log.info("new issue %s filed by %s: %s", issue.id, parent.id, issue.title)
+
+
+def _unmet_dependency(issue: issues.Issue) -> str | None:
+    """The first dependency of `issue` that has not closed yet, or None.
+
+    Inbox tickets may carry `Depends-On: <issue-id>[, <issue-id>]` lines. The
+    issue is created (so it shows in the ledger) at once, but is not triaged --
+    triage reads main -- until every named issue is `merged` or `superseded`.
+    This is how tickets that share hot files are serialized: parallel seats
+    editing the same module make every rebase and review after the first one
+    worthless.
+
+    The ids come from Issue.depends_on, the same parse cmd/ledger uses for the
+    ledger's dependency paths, so a blocked item and the reason shown for it
+    can never disagree. An id no issue file declares counts as unmet: a
+    dependency nobody can find is not a satisfied one.
+    """
+    for dep in issue.depends_on:
+        found = issues.find(dep)
+        if found is None or found.status not in ("merged", "superseded"):
+            return dep
     return None
 
 
@@ -107,6 +212,9 @@ def _slot_free(issue: issues.Issue, paid: bool, what: str) -> bool:
         running = pi.running_names(config.IMPLEMENTER_ESCALATED_MODEL, config.REVIEWER_MODEL, config.OVERFLOW_MODEL)
         cap = config.MAX_PAID_SEATS
     else:
+        # Box-wide: 2026-09-15 lockup traced to per-repo scoping letting other
+        # repos' fleets stack unbounded (repeated cgroup OOM kills of glm
+        # "main" processes, 13:03-14:10, eventually took out redis too).
         running = pi.running_names(config.LOCAL_MODEL)
         cap = config.MAX_LOCAL_SEATS
     if len(running) < cap:
@@ -226,24 +334,32 @@ def _relaunch_implementer_round(issue: issues.Issue, wt: Path, tag: str, why: st
     findings stay in the worktree."""
     kind = issue.seat_kind
     paid = kind in ("escalated", "overflow")
-    if not _slot_free(issue, paid, f"rerun {tag}"):
+    local_escalated = False
+    if paid and not _slot_free(issue, True, f"rerun {tag}"):
+        if kind == "escalated" and config.ESCALATION_LOCAL_FALLBACK and _local_slot_free(issue, f"rerun {tag} (escalation, local fallback)"):
+            local_escalated = True
+        else:
+            return
+    elif not paid and not _slot_free(issue, False, f"rerun {tag}"):
         return
     findings_path = wt / ".ds4" / f"findings-{tag}.md"
     prior = findings_path.read_text() if findings_path.exists() else ""
     note = (f"NOTE: an earlier run of round {tag} was lost ({why}) before it reported. Any uncommitted work "
             "it left is still in the worktree: check `git status`, keep what is sound, and finish the brief.\n\n")
     seats.launch_implementer(issue.id, wt, tag, issue.brief, escalated=(kind == "escalated"),
-                             findings_text=note + prior, overflow=(kind == "overflow"))
+                             findings_text=note + prior, overflow=(kind == "overflow"), local_escalated=local_escalated)
     issue.log(f"implementer {tag} relaunched ({why}); round not counted")
     issue.save()
 
 
 def advance_new(issue: issues.Issue) -> None:
-    if issue.source == "inbox" and "## Done means" in issue.report:
+    if issue.source in ("inbox", "agent") and "## Done means" in issue.report:
         # A hand-authored ticket that is already a full brief (it carries a
         # "Done means" checklist) goes straight to implementation: a triage
-        # rewrite by the local seat can only lose fidelity.
-        issue.brief = issue.report
+        # rewrite by the local seat can only lose fidelity. This also covers
+        # agent-filed tickets whose body IS a brief (a shard/enumerator seat
+        # filing deck-census tickets through .ds4/new-tickets/): same
+        # reasoning -- the seat authored the brief; triage can only lose it.
         issue.status = "briefed"
         issue.log("inbox ticket is already a brief; triage skipped")
         issue.save()
@@ -297,12 +413,38 @@ def advance_new(issue: issues.Issue) -> None:
 
 
 def advance_briefed(issue: issues.Issue) -> None:
+    # tag is always "r1" here (issue.local_rounds is about to be (re)set to 1
+    # below), so a controller reset back to "briefed" for redispatch -- not
+    # just the ordinary first-ever triage->briefed transition -- can find an
+    # "r1" launch marker still sitting from days-old original attempt. Without
+    # this check that marker makes every tick's already_launched() true
+    # forever: no error, no history line, no dispatch -- a silent permanent
+    # stall (seen live 2026-09-17 on inbox-rv2c/-rv2d after a manual reset).
+    name = seats.implementer_name(issue.id, "r1")
+    if pi.already_launched(name) and _seat_dead(name, pi.read_status(
+        seats.implementer_status_path(config.WORKTREES_DIR / issue.id, "r1"))):
+        _set_aside(pi.launch_log_path(name))
+        _set_aside(seats.implementer_status_path(config.WORKTREES_DIR / issue.id, "r1"))
+        issue.log("stale r1 launch marker from a prior attempt set aside; redispatching fresh")
+        issue.save()
+        return
     seat = _local_tier_seat(issue, "implementer round 1")
     if seat is None:
         return
     wt = git_ops.create_worktree(issue.id)
     issue.worktree = str(wt.relative_to(config.REPO))
-    issue.branch = f"wt/{issue.id}"
+    # Don't clobber a deliberately-set custom branch: a controller reset can
+    # point `worktree` at a path that's actually checked out on a differently
+    # -named branch (e.g. inbox-rv2d-...-v2, cut fresh from main after the
+    # original wt/inbox-rv2d-... was abandoned 459 commits stale with an
+    # unresolved conflict, 2026-09-17). Overwriting `branch` back to the
+    # default `wt/{id}` here left the issue record pointing at the WRONG,
+    # abandoned branch while the worktree itself was on the right one --
+    # caught only because the eventual merge attempt would have merged
+    # whichever branch that stale field named, not what was actually
+    # reviewed and gated.
+    if not issue.branch:
+        issue.branch = f"wt/{issue.id}"
     issue.seat_kind = seat
     issue.local_rounds = 1
     tag = seats.round_tag(issue)
@@ -323,8 +465,15 @@ def _pending_findings_path(issue: issues.Issue) -> Path:
 def _redispatch_implementer(issue: issues.Issue, findings: str) -> None:
     escalated = issue.seat_kind == "escalated"
     will_escalate = escalated or issue.local_rounds + 1 > config.MAX_LOCAL_ROUNDS
+    local_escalated = False
     if will_escalate:
-        seat = "escalated" if _slot_free(issue, True, "redispatch") else None
+        if _slot_free(issue, True, "redispatch"):
+            seat = "escalated"
+        elif config.ESCALATION_LOCAL_FALLBACK and _local_slot_free(issue, "redispatch (escalation, local fallback)"):
+            seat = "escalated"
+            local_escalated = True
+        else:
+            seat = None
     else:
         seat = _local_tier_seat(issue, "redispatch")
     if seat is None:
@@ -352,16 +501,29 @@ def _redispatch_implementer(issue: issues.Issue, findings: str) -> None:
     tag = seats.round_tag(issue)
     name = seats.implementer_name(issue.id, tag)
     if pi.already_launched(name):
-        issue.status = "dispatched"
-        issue.log(f"redispatch to {tag} skipped: a launch marker for {name} already exists (manual reset?) -- will poll its existing status file")
-        issue.save()
-        return
+        stale_status = seats.implementer_status_path(config.REPO / issue.worktree, tag)
+        if pi.is_terminal(pi.read_status(stale_status)):
+            # A FINISHED round already owns this name, so it cannot be a launch
+            # that is still starting up. That happens when an issue's round
+            # counters roll back -- on 2026-09-14 duplicate daemons saved stale
+            # copies of five issues -- and polling the old status would replay
+            # an old round instead of ever running a new one. Set it aside,
+            # exactly as a provider cut-off does, and launch this round fresh.
+            _set_aside(stale_status)
+            _set_aside(pi.launch_log_path(name))
+            issue.log(f"round {tag} name was held by an already-finished run; set it aside, relaunching fresh")
+        else:
+            issue.status = "dispatched"
+            issue.log(f"redispatch to {tag} skipped: a launch marker for {name} already exists (manual reset?) -- will poll its existing status file")
+            issue.save()
+            return
     wt = config.REPO / issue.worktree
     overflow = issue.seat_kind == "overflow"
     seats.launch_implementer(issue.id, wt, tag, issue.brief, escalated=escalated, findings_text=findings,
-                             overflow=overflow)
+                             overflow=overflow, local_escalated=local_escalated)
     issue.status = "dispatched"
-    issue.log(f"implementer redispatched ({'escalated/sol' if escalated else 'terra overflow' if overflow else 'local'}, {tag})")
+    issue.log(f"implementer redispatched ("
+              f"{'escalated/local, paid seats unavailable' if local_escalated else 'escalated/sol' if escalated else 'terra overflow' if overflow else 'local'}, {tag})")
     issue.save()
 
 
@@ -408,14 +570,37 @@ def advance_dispatched(issue: issues.Issue) -> None:
                 return
         review_name = seats.review_name(issue.id, tag)
         if pi.already_launched(review_name):
-            issue.status = "review"
-            issue.save()
-            return
+            stale_review_status = seats.review_status_path(wt, tag)
+            if pi.is_terminal(pi.read_status(stale_review_status)):
+                # Same class of bug as the implementer-side stale marker (see
+                # _redispatch_implementer): a round-tag is reused across
+                # cycles, so a FINISHED review from a previous cycle looks
+                # like "already reviewing" and its stale verdict gets read as
+                # this cycle's answer. Caught 2026-09-14 on
+                # inbox-fbrepro2-repro-cli: the ladder logged
+                # escalation-exhausted using a verdict.md from 8 hours
+                # earlier while the current round's own report said DONE with
+                # no concerns. Set the stale verdict aside and review fresh.
+                _set_aside(stale_review_status)
+                _set_aside(wt / ".ds4" / f"verdict-{tag}.md")
+                _set_aside(pi.launch_log_path(review_name))
+                issue.log(f"review {tag} name was held by an already-finished run; set it aside, reviewing fresh")
+            else:
+                issue.status = "review"
+                issue.save()
+                return
+        local_review = False
         if not _slot_free(issue, True, "review"):
-            return  # stays dispatched; the terminal status is re-read next tick
-        seats.launch_review(issue.id, wt, tag)
+            # The paid plan is spent or busy. Rather than park a finished round
+            # in `dispatched` until the plan resets, review it on the local
+            # seat -- the hard gates are identical either way.
+            if not (config.REVIEW_LOCAL_FALLBACK and _local_slot_free(issue, "review (local fallback)")):
+                return  # stays dispatched; the terminal status is re-read next tick
+            local_review = True
+        seats.launch_review(issue.id, wt, tag, local=local_review)
         issue.status = "review"
-        issue.log(f"implementer {outcome} ({tag}), review dispatched (terra)")
+        issue.log(f"implementer {outcome} ({tag}), review dispatched "
+                  f"({'local, paid seats unavailable' if local_review else 'terra'})")
         issue.save()
     elif outcome == "NEEDS_CONTEXT":
         issue.status = "human_needed"
@@ -561,7 +746,10 @@ def _run_gates_and_merge(issue: issues.Issue, wt: Path) -> None:
         return
     ok, rebase_out = git_ops.rebase_onto_main(wt)
     if not ok:
-        _handle_gate_or_review_failure(issue, f"rebase onto main conflicted:\n{rebase_out[-3000:]}")
+        if "conflict" not in rebase_out.lower():
+            _handle_gate_or_review_failure(issue, f"rebase onto main failed:\n{rebase_out[-3000:]}")
+        else:
+            _dispatch_merge_resolver(issue, wt, f"rebase onto main conflicted:\n{rebase_out[-3000:]}")
         return
     git_ops.link_node_modules(wt)
     passed, results = gates.run_all(wt)
@@ -606,15 +794,94 @@ def _apply_head_moves(issue: issues.Issue, wt: Path, heads_output: str) -> None:
         issue.log(f"auto-accepted {seat_count}-seat head move to {new_hash}")
 
 
+def _dispatch_merge_resolver(issue: issues.Issue, wt: Path, conflict_text: str) -> None:
+    """Hand a rebase/merge conflict to a resolver seat in the issue's own
+    worktree. Bounded by MAX_MERGE_ROUNDS; when the rounds run out the issue
+    hands back to the implementer escalation ladder (which may actually need
+    code changes to unstick the semantic half of the conflict), resetting
+    the merge counter so a later conflict after a fresh fix gets its own
+    budget. Runs synchronously from the gate path, so it can briefly exceed
+    MAX_LOCAL_SEATS -- acceptable: conflicts are rare and resolvers are short
+    (the alternative is the whole merge lane blocking behind a parked
+    human_needed)."""
+    if issue.merge_rounds >= config.MAX_MERGE_ROUNDS:
+        issue.merge_rounds = 0
+        issue.log("merge resolver budget spent; handing back to the implementer ladder")
+        _handle_gate_or_review_failure(issue, f"merge conflicts a resolver could not settle:\n{conflict_text[-2000:]}")
+        return
+    issue.merge_rounds += 1
+    tag = f"mrg{issue.merge_rounds}"
+    name = seats.merge_resolver_name(issue.id, tag)
+    if pi.already_launched(name):
+        stale = seats.merge_resolver_status_path(wt, tag)
+        if pi.is_terminal(pi.read_status(stale)):
+            _set_aside(stale)
+            _set_aside(pi.launch_log_path(name))
+            issue.log(f"merge resolver {tag} name was held by an already-finished run; set it aside, relaunching fresh")
+        else:
+            issue.status = "merge_fix"
+            issue.save()
+            return
+    seats.launch_merge_resolver(issue.id, wt, tag, conflict_text)
+    issue.status = "merge_fix"
+    issue.log(f"merge resolver dispatched ({tag})")
+    issue.save()
+
+
+def advance_merge_fix(issue: issues.Issue) -> None:
+    wt = config.REPO / issue.worktree
+    tag = f"mrg{issue.merge_rounds}"
+    name = seats.merge_resolver_name(issue.id, tag)
+    status_path = seats.merge_resolver_status_path(wt, tag)
+    st = pi.read_status(status_path)
+    if _seat_dead(name, st):
+        _set_aside(pi.launch_log_path(name))
+        _set_aside(status_path)
+        issue.log(f"merge resolver {tag} seat died without a result")
+        issue.save()
+    if not pi.is_terminal(st) and not pi.already_launched(name):
+        seats.launch_merge_resolver(issue.id, wt, tag,
+                                    "the previous resolver run died without writing a status; "
+                                    "re-run the resolution from the current tree state")
+        issue.log(f"merge resolver {tag} relaunched (seat died or never started)")
+        issue.save()
+        return
+    if not pi.is_terminal(st):
+        return
+    outcome = st.get("status")
+    if outcome in ("DONE", "DONE_WITH_CONCERNS"):
+        commits = " ".join(st.get("commits", []))
+        if commits:
+            issue.commits = commits
+        issue.merge_rounds = 0
+        issue.status = "review"
+        issue.log(f"merge resolver {tag} DONE; re-running the gate-and-merge path")
+        issue.save()
+        _run_gates_and_merge(issue, wt)
+        return
+    report = wt / ".ds4" / f"report-merge-{tag}.md"
+    detail = report.read_text()[-1500:] if report.exists() else "(no resolver report)"
+    issue.merge_rounds = 0
+    issue.log(f"merge resolver {tag} ended {outcome}\n{detail}")
+    _handle_gate_or_review_failure(issue, f"merge resolver {tag} ended {outcome}:\n{detail}")
+
+
 def _merge_push_deploy(issue: issues.Issue, wt: Path) -> None:
     sha = git_ops.head_sha(wt)
     # The commit-msg hook requires a Test-Budget-Approved trailer on any
     # commit whose diff raises a budget_s -- including this merge commit, which
     # carries the branch's raise. Re-state every such trailer the branch's own
     # commits already carry (never invent one).
+    # issue.branch may not be the default `wt/{id}` -- a controller reset can
+    # point a worktree at a differently-named branch (see advance_briefed's
+    # "don't clobber a deliberately-set custom branch" comment); merging the
+    # default name here would silently merge whatever stale/wrong branch
+    # happens to still exist under that name instead of what was actually
+    # reviewed and gated.
+    branch = issue.branch or f"wt/{issue.id}"
     import subprocess as _sp
     trailers = sorted(set(l.strip() for l in _sp.run(
-        ["git", "log", "--format=%B", f"main..wt/{issue.id}"], cwd=str(config.REPO),
+        ["git", "log", "--format=%B", f"main..{branch}"], cwd=str(config.REPO),
         capture_output=True, text=True).stdout.splitlines() if l.startswith("Test-Budget-Approved:")))
     message = (
         f"merge({issue.id}): {issue.title[:72]}\n\n"
@@ -625,8 +892,16 @@ def _merge_push_deploy(issue: issues.Issue, wt: Path) -> None:
     )
     if trailers:
         message += "\n" + "\n".join(trailers) + "\n"
-    ok, out = git_ops.merge_to_main(f"wt/{issue.id}", message)
+    ok, out = git_ops.merge_to_main(branch, message)
     if not ok:
+        # A conflict at the final merge (main moved between the gates and the
+        # merge) used to park the issue on a human with the whole approved fix
+        # hostage to a mechanical conflict. Offload the resolution to a seat;
+        # the gates re-run afterwards either way. A non-conflict failure (a
+        # commit hook refusing the merge commit, say) is not a resolver's job.
+        if "conflict" in out.lower():
+            _dispatch_merge_resolver(issue, wt, f"merge to main failed:\n{out[-3000:]}")
+            return
         issue.status = "human_needed"
         issue.log(f"merge failed:\n{out[-2000:]}")
         issue.save()
@@ -664,7 +939,19 @@ ADVANCERS = {
     "dispatched": advance_dispatched,
     "waiting": advance_waiting,
     "review": advance_review,
+    "merge_fix": advance_merge_fix,
 }
+
+
+# In-flight work claims a free seat before new work does; priority orders items
+# WITHIN a status. Putting priority first would let a P1 newcomer overtake the
+# reviews and merges that free the seats it needs.
+_STATUS_ORDER = {"review": 0, "gate": 0, "merge_fix": 0, "dispatched": 1, "waiting": 2, "briefed": 3, "new": 4}
+
+
+def _dispatch_order(issue: issues.Issue) -> tuple[int, int, str]:
+    """Sort key for one tick's dispatch pass: status, then priority, then id."""
+    return (_STATUS_ORDER.get(issue.status, 5), getattr(issue, "priority", 3), issue.id)
 
 
 def tick() -> None:
@@ -672,16 +959,16 @@ def tick() -> None:
         log.debug("paused (touch %s to resume)", config.PAUSE_FILE)
         return
     discover_new_issues()
-    # In-flight tickets claim free seat slots before new work does.
-    order = {"review": 0, "dispatched": 1, "waiting": 2, "briefed": 3, "new": 4}
-    for issue in sorted(issues.open_issues(), key=lambda i: order.get(i.status, 5)):
+    discover_agent_filed_tickets()
+    cleanup_orphaned_worktrees()
+    for issue in sorted(issues.open_issues(), key=_dispatch_order):
         advancer = ADVANCERS.get(issue.status)
         if advancer is None:
             continue
         # Inbox tickets carry Depends-On in the report; triage writes it into
         # the brief. Either one holds the issue until the dependency closes.
         if issue.status in ("new", "briefed"):
-            blocker = _unmet_dependency(issue.report + "\n" + (issue.brief or ""))
+            blocker = _unmet_dependency(issue)
             if blocker:
                 continue
         try:
@@ -690,7 +977,116 @@ def tick() -> None:
             log.exception("issue %s: advancer for status=%s raised", issue.id, issue.status)
 
 
+def acquire_single_instance_lock(path):
+    """Take the one-daemon lock, or return None if another daemon holds it.
+
+    A kernel flock, not a PID file: the lock is held on the file itself, so it
+    is honoured across PID namespaces. On 2026-09-14 supervisors running inside
+    Codex sandboxes could not see each other's daemon PIDs, each concluded the
+    daemon was dead, and 49 daemons ended up dispatching and merging from the
+    same state. Returns the open handle; the lock lasts as long as it stays open.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle = open(path, "a+")
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        handle.close()
+        return None
+    return handle
+
+
+def _last_reason(issue: issues.Issue) -> str:
+    # History entries are logged with `- <ts> <message>` but the message
+    # itself may contain embedded newlines (e.g. findings text), so the
+    # last physical LINE is not the last ENTRY -- split on the "- "
+    # prefix instead, or a truncated log's tail word looks like the
+    # whole reason (e.g. "th", "confli").
+    entries = re.split(r"\n(?=- \d{4}-\d\d-\d\dT)", issue.history.strip())
+    if not entries or not entries[0]:
+        return "(no history)"
+    entry = entries[-1].split(" ", 2)
+    text = entry[2] if len(entry) > 2 else entries[-1]
+    text = text.replace("\n", " ")
+    return text[:300]
+
+
+def status_snapshot() -> dict:
+    """The daemon's live state as plain data: `python3 -m orchestrator.daemon
+    status` renders this as text, and `orchestrator.dashboard` serves it as
+    JSON. One source, so the two views cannot drift. Read-only: takes no
+    lock, safe to run alongside a live daemon.
+    """
+    from collections import Counter
+
+    all_issues = issues.all_issues()
+    counts = Counter(i.status for i in all_issues)
+
+    def row(i: issues.Issue) -> dict:
+        return {
+            "id": i.id,
+            "title": i.title,
+            "status": i.status,
+            "seat_kind": i.seat_kind,
+            "local_rounds": i.local_rounds,
+            "max_local_rounds": config.MAX_LOCAL_ROUNDS,
+            "escalated_rounds": i.escalated_rounds,
+            "max_escalated_rounds": config.MAX_ESCALATED_ROUNDS,
+            "updated": i.updated,
+            "reason": _last_reason(i),
+        }
+
+    human_needed = [row(i) for i in sorted(
+        (i for i in all_issues if i.status == "human_needed"), key=lambda i: i.updated, reverse=True)]
+    active = [row(i) for i in sorted(
+        (i for i in all_issues if i.status in ("new", "briefed", "dispatched", "waiting", "review", "gate")),
+        key=lambda i: i.updated, reverse=True)]
+
+    return {
+        "generated": issues._now(),
+        "counts": {k: counts[k] for k in issues.STATUSES if counts[k]},
+        "paid_off": config.PAID_OFF_FILE.exists(),
+        "paid_off_reason": config.PAID_OFF_FILE.read_text().strip() if config.PAID_OFF_FILE.exists() else "",
+        "human_needed": human_needed,
+        "active": active,
+    }
+
+
+def print_status() -> None:
+    """`python3 -m orchestrator.daemon status` -- a structured snapshot of the
+    queue, meant to answer "why is this stuck" without grepping daemon.log.
+    """
+    snap = status_snapshot()
+    print("queue: " + " ".join(f"{k}={v}" for k, v in snap["counts"].items()))
+    if snap["paid_off"]:
+        print(f"paid seats: OFF -- {snap['paid_off_reason']}")
+    else:
+        print("paid seats: on")
+
+    if snap["human_needed"]:
+        print(f"\nhuman_needed ({len(snap['human_needed'])}):")
+        for i in snap["human_needed"]:
+            rounds = f"{i['local_rounds']}/{i['max_local_rounds']} local, {i['escalated_rounds']}/{i['max_escalated_rounds']} esc"
+            print(f"  {i['id']}  ({rounds})\n    {i['reason']}")
+
+    if snap["active"]:
+        print(f"\nactive ({len(snap['active'])}):")
+        for i in snap["active"]:
+            rounds = f"{i['local_rounds']}/{i['max_local_rounds']} local, {i['escalated_rounds']}/{i['max_escalated_rounds']} esc"
+            print(f"  {i['id']}  status={i['status']} seat={i['seat_kind'] or '-'}  ({rounds})\n    {i['reason']}")
+
+
 def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] == "status":
+        print_status()
+        return
+    global _lock_handle
+    _lock_handle = acquire_single_instance_lock(LOCK_FILE)
+    if _lock_handle is None:
+        # Not an error worth a traceback: something already runs the pipeline.
+        print(f"orchestrator: another daemon holds {LOCK_FILE}; exiting", file=sys.stderr)
+        sys.exit(3)
     setup_logging()
     signal.signal(signal.SIGTERM, _handle_stop)
     signal.signal(signal.SIGINT, _handle_stop)
