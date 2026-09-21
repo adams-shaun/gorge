@@ -146,6 +146,11 @@ var baseBuckets = map[string]bucket{
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	"targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
 	"head": bSA, "ma": bSA, "pt.SA": bSA,
+	// rsub is runPreventionShieldRider's rewritten copy of the
+	// PreventionSubAbility$ rider (a shallow copy of a fresh ResolveSVar
+	// parse, whose NumDmg$/Defined$ the shield application binds): a
+	// *cards.SA value like the sub it copies.
+	"rsub": bSA,
 	// m.ability is manaUnlessActivation's resolved *cards.SA — the ability
 	// whose activation cost/UnlessCost$ the off-stack mana-activation
 	// window reads (resolveManaEffect / askManaUnless / the settle path).
@@ -990,17 +995,28 @@ var stringMapParams = map[string]string{
 	"effects:compoundRememberedSpec:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
 	// rules/mayplay.go mayPlayGateRejected: params IS a card Params map, but
 	// every key the function indexes is indexed ONLY to fail the MayPlay
-	// static closed (mayPlayUnreadGates + CheckSVar$/MayPlayPlayer$) -- a
-	// fail-closed gate is a RECOGNITION, not a consumption: the static is
-	// withheld whole and the key is never honoured. Whitelisting it keeps
-	// those indexes out of the read sets entirely; without it the keys would
-	// propagate into mayPlayStatic's reads (propagateKeyReads attributes a
-	// callee's indexed keys to the caller that passes the map) and mask the
-	// genuinely unread gate keys of every MayPlay static -- Evendo
-	// Brushrazer's CheckSVar$ was masked exactly this way (review round
-	// findings-sol1, MAJOR). A NEW fail-closed gate reader must be whitelisted
-	// here too, or its recognition reads mask real gaps.
-	"rules:mayPlayGateRejected:params": "fail-closed MayPlay gate recognition (mayPlayUnreadGates + CheckSVar$/MayPlayPlayer$) -- a rejection, never a consumption",
+	// static closed (mayPlayUnreadGates + MayPlayPlayer$) -- a fail-closed
+	// gate is a RECOGNITION, not a consumption: the static is withheld whole
+	// and the key is never honoured. CheckSVar$/SVarCompare$ are NOT in that
+	// set any more: they are genuinely consumed, via effects.CheckSVarHolds
+	// (Engine.mayPlayConditionGateHolds on the may-play family and
+	// continuousGateHolds on the generic Continuous bucket), so they
+	// correctly read. Whitelisting this function keeps its residual
+	// recognitions out of the read sets; without it the keys would propagate
+	// into mayPlayStatic's reads (propagateKeyReads attributes a callee's
+	// indexed keys to the caller that passes the map) and mask the
+	// genuinely unread gate keys of every MayPlay static. A NEW fail-closed
+	// gate reader must be whitelisted here too, or its recognition reads mask
+	// real gaps.
+	"rules:mayPlayGateRejected:params": "fail-closed MayPlay gate recognition (mayPlayUnreadGates + MayPlayPlayer$) -- a rejection, never a consumption",
+	// rules/mayplay.go mayPlayConditionGateHolds: params is a card Params map,
+	// but the helper only forwards it to Engine.checkSVarHolds, whose
+	// CheckSVar$/SVarCompare$ reads are already attributed through the generic
+	// Continuous bucket (continuousGateHolds -> checkSVarHolds) -- the
+	// whitelist keeps this forwarding call from being mistaken for an
+	// unclassified third argument. The MayPlay family's read set gains the
+	// keys via that same generic union, so this masks nothing.
+	"rules:Engine.mayPlayConditionGateHolds:params": "card Params map forwarded to checkSVarHolds; CheckSVar$/SVarCompare$ are read on the generic Continuous bucket",
 	// effects/misc.go MayPlayStaticParams: params is a map parseStaticLine
 	// built from one SVar static line (or the S: line's own Params map passed
 	// by rules/layers.go's mayPlayGrant) -- the MayPlay-family keys it
@@ -1334,6 +1350,14 @@ var apiSpecificRulesStat = map[string]string{
 	// Continuous static.
 	"Engine.mayPlayGrant":  "Continuous.MayPlay",
 	"warpGraveyardAllowed": "Continuous.MayPlay",
+	// The raise walk (rules/mayplay.go's mayPlayRaiseCost, called from
+	// legal.go's may-play spell word and land walks and cast.go's "mayplay"
+	// cost case): it carries mayPlayStatic's propagated reads (RaiseCost$
+	// among them, the genuine consumption that replaced the old fail-closed
+	// recognition), so it is family-attributed exactly like the grant path --
+	// left generic it would mask a plain Continuous static's real unread
+	// keys.
+	"Engine.mayPlayRaiseCost": "Continuous.MayPlay",
 	// The alt-cost delivery path (rules/mayplay.go's mayPlayAltCosts, called
 	// from alternativeCosts): it reads MayPlay statics' MayPlayAltManaCost$
 	// live -- Darksteel Monolith's "pay {0} rather than the mana cost" --
@@ -1984,6 +2008,61 @@ var ignoredParamKeys = map[string]string{
 	"UnlessAI": "AI copy-eligibility hint; forge-ai/src/main/java/forge/ai/ability/CopySpellAbilityAi.java",
 }
 
+// ignoredStatParams scopes a presentation key to individual stat modes.
+// ignoredParamKeys is consulted with the BARE key in every bucket, so a key
+// some primitives genuinely read can never go in it. Secondary$ is that
+// key: on a static it is Forge's card-text dedup marker --
+// CardTraitBase.isSecondary()
+// (forge-game/src/main/java/forge/game/CardTraitBase.java:179) reads the
+// key, but every forge-game caller is Card.java's getText-family renderer
+// (forge-game/src/main/java/forge/game/card/Card.java lines
+// 2926/2958/2977/2993/3087/3096/3155/3291/3297/3303) and no
+// staticability/cost/spellability execution path gates on it. Gorge however
+// DOES read Secondary$ rules-side on two classes: the cost-modifier statics
+// (rules/statics.go costModifiers' paired-text skip) and every trigger
+// (rules/trigger_match.go secondaryYields -- the merged "one card text is
+// not two triggers" behaviour, pinned by rules/param_combat_triggers_test.go
+// and rules/magecraft_trigger_test.go). So the bare key stays out of
+// ignoredParamKeys -- the trigger and cost-modifier reads must stay
+// measurable (TestParamCensusDetectsADeletedConsumer's class) -- and the
+// presentation modes are ignored scoped, here.
+//
+// RaiseCost/ReduceCost statics are deliberately NOT listed: they carry the
+// live cost-modifier read, and the Continuous.MayPlay family's whitelist
+// fail-closes a Secondary$-carrying grant (rules/layers.go mayPlayGrant) --
+// a RECOGNITION the census keeps measurable exactly like MayPlayPlayer$.
+// The modes below are the REGISTERED stat modes the corpus carries
+// Secondary$ on (measured over the full corpus at the current pin); an
+// unregistered mode's params are the primitive ratchet's business.
+var statPresentationSecondary = []string{
+	"Continuous", "CantBlockBy", "MustAttack", "CantBlock", "MinMaxBlocker",
+	"CantBeActivated", "CantSacrifice", "CantBeCast", "CantAttack",
+	"CastWithFlash", "CantGainLife", "CantTarget", "Panharmonicon",
+}
+
+var ignoredStatParams = func() map[string]string {
+	const cite = "static text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179 (Card.java getText callers only)"
+	m := make(map[string]string, len(statPresentationSecondary))
+	for _, mode := range statPresentationSecondary {
+		m[mode+".Secondary"] = cite
+	}
+	return m
+}()
+
+// ignoredParam is the census's single classification point for a parameter
+// key: the key-global ignoredParamKeys table, then the stat-mode-scoped
+// overlay (consulted only for a "stat:" primitive, so trigger, SA and
+// replacement reads stay measurable no matter what lands in the overlay).
+func ignoredParam(prim, key string) bool {
+	if ignoredParamKeys[key] != "" {
+		return true
+	}
+	if mode, ok := strings.CutPrefix(prim, "stat:"); ok {
+		return ignoredStatParams[mode+"."+key] != ""
+	}
+	return false
+}
+
 // censusResult is one census run: per-card labels plus aggregate sets.
 type censusResult struct {
 	labels      map[string][]string // card (first-face name) -> sorted labels
@@ -2120,7 +2199,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 				if readSet == nil {
 					continue // unregistered primitive: ratchet 1 owns it
 				}
-				if structuralKeys["sa"][k] || ignoredParamKeys[k] != "" {
+				if structuralKeys["sa"][k] || ignoredParam(prim, k) {
 					continue
 				}
 				if !readSet[k] || drop != nil && drop[prim][k] {
@@ -2137,7 +2216,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			readSet := d.trig[tr.Mode]
 			if readSet != nil {
 				for k := range tr.Params {
-					if structuralKeys["trig"][k] || ignoredParamKeys[k] != "" {
+					if structuralKeys["trig"][k] || ignoredParam(prim, k) {
 						continue
 					}
 					if !readSet[k] || drop != nil && drop[prim][k] {
@@ -2160,7 +2239,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 				if readSet == nil {
 					continue // unregistered static mode: ratchet 1 owns it
 				}
-				if structuralKeys["stat"][k] || ignoredParamKeys[k] != "" {
+				if structuralKeys["stat"][k] || ignoredParam(prim, k) {
 					continue
 				}
 				if !readSet[k] || drop != nil && drop[prim][k] {
@@ -2173,7 +2252,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			readSet := d.repl[r.Event]
 			if readSet != nil {
 				for k := range r.Params {
-					if structuralKeys["repl"][k] || ignoredParamKeys[k] != "" {
+					if structuralKeys["repl"][k] || ignoredParam(prim, k) {
 						continue
 					}
 					if !readSet[k] || drop != nil && drop[prim][k] {
@@ -2184,12 +2263,12 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			walk(r.With)
 		}
 		// SVar bodies the Link pass did not attach (see the comment above):
-		// one ResolveSVar per name; a body that is not an ability (Count$
-		// expressions behind ConditionCheckSVar$/SVarCompare$) fails parseSA
-		// and yields nil.
-		for name := range f.SVars {
-			walk(cards.ResolveSVar(f.SVars, name))
-		}
+		// one visit per name through the shared reachability rule, so this
+		// census and Face.Primitives cannot disagree about which SVar bodies
+		// are reachable. A body that is not an ability (Count$ expressions
+		// behind ConditionCheckSVar$/SVarCompare$) fails parseSA and yields
+		// nil, so EachSVarAbility never calls walk for it.
+		f.EachSVarAbility(func(sa *cards.SA) { walk(sa) })
 	}
 	out := make([]string, 0, len(labels))
 	for label := range labels {
@@ -2256,7 +2335,7 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 //	                         generic mana for (e.g. cost:PayEnergy).
 //
 // Presentation/AI keys are never measured (ignoredParamKeys above, each with
-// its Forge citation). The table is checked in both directions -- a newly
+// its Forge citation; stat-mode-scoped ones through ignoredStatParams). The table is checked in both directions -- a newly
 // unread key is a regression; a stale entry means the key is now read and
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
@@ -2289,7 +2368,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Love on the Battlefield":        {"param:trig:AttackersDeclared.NoResolvingCheck"},
 	"Methods of the Mighty":          {"param:api:Destroy.ValidTgtsDesc"},
 	"Mogis, God of Slaughter":        {"param:stat:Continuous.RemoveType"},
-	"Path of Ancestry":               {"param:api:Mana.TriggersWhenSpent"},
 	"Patriot, Shield Wielder":        {"param:api:Pump.ValidTgtsDesc"},
 	"Photon, Mighty Marvel":          {"param:api:Mana.PersistentMana"},
 	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},
@@ -2297,8 +2375,21 @@ var knownUnsupportedParams = map[string][]string{
 	"Scarlet Witch, Chaotic Avenger": {"param:api:Dig.WithMayLook", "param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"Speed, Young Avenger":           {"param:api:Effect.ValidTgtsDesc"},
 	"Spinerock Knoll":                {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
-	"West Coast Expansion":           {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
-	"World Shaper":                   {"param:api:Mill.Optional"},
+	// Vesuva's api:Clone body carries IntoPlayTapped$ True. The parameter
+	// means "the copy ENTERS tapped", which only has a referent on the
+	// ETB-replacement route -- the route Vesuva takes and the one this build
+	// does not implement yet (the open ETB-copy ticket). effClone records it
+	// as unread rather than tapping a permanent that never entered, so the
+	// label is honest until that ticket lands and can read it against real
+	// entry provenance.
+	"Vesuva":               {"param:api:Clone.IntoPlayTapped"},
+	"West Coast Expansion": {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
+	"World Shaper":         {"param:api:Mill.Optional"},
+	// Torment of Hailfire's FallbackAbility$/TempRemember$ are unread
+	// everywhere: its DB$ GenericChoice now resolves through effCharm's
+	// modal ask (effects/misc.go), but these two params ride the ask and
+	// neither is read by any code (pinned in rules/generic_choice_test.go).
+	"Torment of Hailfire": {"param:api:GenericChoice.FallbackAbility", "param:api:GenericChoice.TempRemember"},
 	// The pro-shaper player-submitted Commander import (2026-09-18): the
 	// parameter reads its cards expose that this build does not implement.
 	// Each label is the unimplemented parameter on a fully-registered
@@ -2310,7 +2401,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Green Sun's Zenith":       {"param:api:ChangeZone.AIXMax"},
 	"Natural Order":            {"param:api:ChangeZone.AISearchGoal"},
 	"Nissa, Resurgent Animist": {"param:api:DigUntil.RevealRandomOrder"},
-	"Six":                      {"param:api:Mill.RememberMilled"},
 }
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across
@@ -2439,6 +2529,53 @@ func TestParamCensusDetectsADeletedConsumer(t *testing.T) {
 	}
 	if affected != len(carriers) {
 		t.Errorf("probe reported %d affected cards, %d carriers measured", affected, len(carriers))
+	}
+}
+
+// TestParamCensusScopesSecondaryByPrimitive pins the Secondary$ scoping:
+// on a stat the key is Forge's text-dedup marker, ignored mode-scoped via
+// ignoredStatParams (so a synthetic Secondary$ Continuous static labels
+// nothing even when the scan is told its read was deleted), while the
+// trigger read (rules/trigger_match.go secondaryYields) stays measurable --
+// dropping that read makes a synthetic Secondary$ trigger label. A bare
+// ignoredParamKeys["Secondary"] entry would have suppressed BOTH halves;
+// this probe fails if either side regresses.
+func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
+	t.Parallel()
+	_, d := measureParamCensus(t, nil)
+	if d.stat["Continuous"]["Secondary"] {
+		t.Fatalf("stat:Continuous now derives a Secondary$ read -- the ignoredStatParams classification is stale, delete the mode")
+	}
+	if !d.trig["Phase"]["Secondary"] {
+		t.Fatalf("trig:Phase no longer derives a Secondary$ read -- secondaryYields was deleted for real; fix the census or re-classify")
+	}
+	staticCard, diags := cards.ParseBytes("census-probe-static.txt", []byte(
+		"Name: Census Probe Static\nTypes: Creature\nS:Mode$ Continuous | Affected$ Card.Self | AddPower$ 1 | Secondary$ True\n"))
+	if len(diags) != 0 {
+		t.Fatalf("static probe card failed to parse: %v", diags)
+	}
+	trigCard, diags := cards.ParseBytes("census-probe-trig.txt", []byte(
+		"Name: Census Probe Trigger\nTypes: Creature\nT:Mode$ Phase | Phase$ End of Turn | TriggerDescription$ probe | Secondary$ True\n"))
+	if len(diags) != 0 {
+		t.Fatalf("trigger probe card failed to parse: %v", diags)
+	}
+	dropped := map[string]map[string]bool{
+		"stat:Continuous": {"Secondary": true},
+		"trig:Phase":      {"Secondary": true},
+	}
+	for _, l := range cardCensusLabels(staticCard, d, dropped) {
+		if l == "param:stat:Continuous.Secondary" {
+			t.Errorf("static Secondary$ labelled despite the mode-scoped ignore -- the classification is not consulted")
+		}
+	}
+	hit := false
+	for _, l := range cardCensusLabels(trigCard, d, dropped) {
+		if l == "param:trig:Phase.Secondary" {
+			hit = true
+		}
+	}
+	if !hit {
+		t.Errorf("dropped trigger Secondary read did not label param:trig:Phase.Secondary -- trigger Secondary$ measurability is broken")
 	}
 }
 
@@ -2607,7 +2744,7 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 		"Mana":             {"Amount": true, "Produced": true},
 		"Counter":          {"UnlessCost": true},
 		"CopySpellAbility": {"UnlessCost": true},
-		"Charm":            {"CharmNum": true, "Choices": true},
+		"Charm":            {"CharmNum": true, "Choices": true, "CanRepeatModes": true},
 		"Sacrifice":        {"Amount": true},
 	}
 	for api, keys := range want {
@@ -2649,7 +2786,7 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// alt-cost delivery (mayPlayAltCosts genuinely offers the priced
 	// alternative -- Darksteel Monolith's "pay {0}") after having been a
 	// fail-closed recognition.
-	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit", "MayPlayAltManaCost"} {
+	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit", "MayPlayAltManaCost", "RaiseCost"} {
 		if !d.stat["Continuous.MayPlay"][key] {
 			t.Errorf("d.stat[Continuous.MayPlay][%q] = false -- the family attribution lost a real MayPlay-gate read", key)
 		}
@@ -2666,7 +2803,7 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// rules/layers.go's staticEffects reads it to place a Set static in the
 	// CR 613.4a CDA sublayer (Tarmogoyf, Krovikan Mist now derive their
 	// announced P/T), so the read is genuine on the generic bucket.
-	for _, key := range []string{"ValidAfterStack", "RaiseCost", "MayPlayPlayer"} {
+	for _, key := range []string{"ValidAfterStack", "MayPlayPlayer"} {
 		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
 			if d.stat[mode][key] {
 				t.Errorf("d.stat[%q][%q] = true -- the fail-closed recognition read still over-suppresses this key", mode, key)
@@ -2855,6 +2992,20 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"Draw<1/You>", nil},
 		{"SubCounter<X/LOYALTY>", nil},
 		{"DamageYou<4>", nil},
+		// The PutCardToLibFrom<Zone> family (the printed activation costs of
+		// Timestream Navigator, Leashling, Battlefield Scrounger, Ardent
+		// Dustspeaker, Penance and friends): modelled for Hand, Grave and
+		// Battlefield. The first field is the count, the second the library
+		// position (-1 bottom / 0 top) and the third the filter spec.
+		{"2 U U T PutCardToLibFromBattlefield<1/-1/CARDNAME>", nil},
+		{"PutCardToLibFromGrave<3/-1/Card>", nil},
+		{"PutCardToLibFromGrave<1/-1/Sorcery;Instant>", nil},
+		{"PutCardToLibFromHand<1/0/Card>", nil},
+		// A recognised head whose INSTANCE this build cannot place (an
+		// out-of-range position) is still reported, and an unnamed zone head
+		// is not modelled.
+		{"PutCardToLibFromGrave<1/7/Card>", []string{"PutCardToLibFromGrave"}},
+		{"PutCardToLibFromExile<1/-1/Card>", []string{"PutCardToLibFromExile"}},
 		// Recognised heads whose INSTANCE is malformed or out of range: the
 		// head is known, the instance is not modelled -- reported too.
 		{"PayLife<99999999999999999999>", []string{"PayLife"}},
@@ -2864,6 +3015,16 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"Sac</Creature>", []string{"Sac"}},
 		{"2 U U Sac<1/Creature>", nil},
 		{"AddCounter<1/M1M1>", []string{"AddCounter"}},
+		// The ExiledMoveToGrave family (the Eldrazi processor costs and
+		// Shelob, Dread Weaver's {2}{B} ability) is now MODELLED -- cards
+		// matching Spec move from exile to their owner's graveyard, with no
+		// phantom generic pip and no Unknown entry. The exact corpus
+		// spellings, including Forge's trailing description, plus the
+		// malformed-instance report of the recognised head.
+		{"2 B ExiledMoveToGrave<1/Creature.ExiledWithSource>", nil},
+		{"ExiledMoveToGrave<1/Card.OppOwn/card an opponent owns>", nil},
+		{"ExiledMoveToGrave<2/Card.OppOwn>", nil},
+		{"ExiledMoveToGrave<99999999999999999999/Creature>", []string{"ExiledMoveToGrave"}},
 		{"", nil},
 	}
 	for _, tc := range cases {

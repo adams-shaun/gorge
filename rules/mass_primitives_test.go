@@ -1212,21 +1212,55 @@ func TestIllegalCommanderConfigurationIsRejected(t *testing.T) {
 	}
 }
 
-// TestLegendaryNoncreatureSpacecraftIsNotCommander ensures Station's later
-// creature state never widens Commander deck construction: a legendary
-// Spacecraft without the printed commander permission remains illegal under
-// CR 903.3/903.4. This is an authored fixture because the assertion is about
-// the absent permission, not a corpus card's script.
-func TestLegendaryNoncreatureSpacecraftIsNotCommander(t *testing.T) {
+// TestLegendarySpacecraftCommanderLegalityFollowsPTBox pins the CR 903.3
+// Spacecraft carve-out the engine now shares with the deck validator (the
+// engine delegates to deck.IsCommanderEligible): a legendary Spacecraft with
+// a printed power/toughness box (Hearthhull, the Worldseed -- authored
+// fixture for the shape) IS commander-legal, while a P/T-less legendary
+// Spacecraft (the corpus's real The Eternity Elevator) stays illegal. The
+// old engine predicate had no Spacecraft carve-out at all and rejected the
+// P/T half, so pro-shaper's commander never reached the command zone.
+func TestLegendarySpacecraftCommanderLegalityFollowsPTBox(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	craft := card(t, "Name:Legendary Test Craft\nTypes:Legendary Artifact Spacecraft\nPT:4/4\n")
-	if commanderCardLegal(craft) {
-		t.Fatal("a legendary noncreature Spacecraft without commander permission is legal")
+	if !commanderCardLegal(craft) {
+		t.Fatal("a legendary Spacecraft with a printed power/toughness box is not commander-legal")
 	}
-	e := New(commanderConfig(t, reg, []*cards.Card{craft}, []int{0}))
+	ptless := lookup(t, reg, "The Eternity Elevator")
+	if commanderCardLegal(ptless) {
+		t.Fatal("a P/T-less legendary Spacecraft is commander-legal")
+	}
+	e := New(commanderConfig(t, reg, []*cards.Card{ptless}, []int{0}))
 	e.Advance()
 	if got := e.G.Players[0].Commanders; len(got) != 0 {
-		t.Fatalf("legendary noncreature Spacecraft seated %d commander(s), want 0", len(got))
+		t.Fatalf("P/T-less legendary Spacecraft seated %d commander(s), want 0", len(got))
+	}
+}
+
+// TestLegendarySpacecraftWithPTIsSeatedAsCommander is the leaf for the
+// pro-shaper genesis rejection (fb-20260918T194005Z-e4e743e1): a real corpus
+// Hearthhull, the Worldseed (legendary Spacecraft, printed P/T) must be
+// SEATED as seat 0's commander -- one Commanders entry, the object in the
+// command zone -- and the CR 903 rejection Note must be absent.
+func TestLegendarySpacecraftWithPTIsSeatedAsCommander(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	h := lookup(t, reg, "Hearthhull, the Worldseed")
+	if !commanderCardLegal(h) {
+		t.Fatal("Hearthhull, the Worldseed is not commander-legal (deck.IsCommanderEligible says it is)")
+	}
+	e := New(commanderConfig(t, reg, []*cards.Card{h}, []int{0}))
+	e.Advance()
+	cmds := e.G.Players[0].Commanders
+	if len(cmds) != 1 {
+		t.Fatalf("Hearthhull seated %d commander(s), want 1", len(cmds))
+	}
+	if o := e.G.Obj(cmds[0]); o == nil || o.Zone != state.ZCommand {
+		t.Fatalf("the seated commander is not in the command zone (obj %v)", cmds[0])
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "commander configuration rejected under CR 903") {
+			t.Fatal("the CR 903 rejection Note is on the log for a legal commander")
+		}
 	}
 }
 

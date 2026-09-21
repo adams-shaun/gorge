@@ -155,21 +155,37 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 // activation rechecks discover fresh static membership.
 func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
-		// CR 708.8: a face-down permanent's printed mana abilities do not
-		// exist while it is face down.
+	if o == nil || o.Face() == nil {
 		return nil
 	}
-	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
+	f := o.Face()
+	// CR 708.8: a face-down permanent's printed mana abilities do not exist
+	// while it is face down. Its ONE exception is CR 305.6: a permanent
+	// whose set type includes a basic land subtype has that land's intrinsic
+	// mana ability, so Yedora's face-down Forest land taps for {G}. The set
+	// type comes from a ChangeZone FaceDownSetType$ (Object.FaceDownTypeWords);
+	// a plain CR 708.5 face-down 2/2 has no basic-land set type and
+	// contributes nothing.
+	faceDown := e.faceDownPrintedHides(o)
+	var manaAbilities []*cards.SA
+	if faceDown {
+		for _, w := range o.FaceDownTypeWords() {
+			if ab, ok := cards.IntrinsicManaAbility(w); ok {
+				manaAbilities = append(manaAbilities, ab)
+			}
+		}
+	} else {
+		manaAbilities = f.ManaAbilities()
+	}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
 	abilityRestricted := func(ma *cards.SA) bool {
 		if statics == nil {
 			return e.abilityRestricted(p, id, ma)
 		}
 		return e.abilityRestrictedUsing(statics.get().cantActivate, p, id, ma)
 	}
-	f := o.Face()
 	var out []*cards.SA
-	for _, ma := range f.ManaAbilities() {
+	for _, ma := range manaAbilities {
 		// CR 605.1b: an activated ability is a mana ability only when it is
 		// NOT a loyalty ability. A planeswalker's mana-producing loyalty
 		// ability (Koth's [+1], Ugin, Eye of the Storms' [0]: Add {C}{C}{C},
@@ -205,6 +221,12 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			out = append(out, ma)
 		}
 	}
+	if faceDown {
+		// Only the CR 305.6 intrinsics above exist on a face-down permanent:
+		// its printed ManaReflected abilities and any Continuous AddAbility$
+		// grant are hidden with the rest of its printed face (CR 708.8).
+		return out
+	}
 	// CR 605.2a: a mana ability functions only while its source object is in
 	// the zone its ActivationZone$ names -- the battlefield when printed
 	// none is. The plain AB$ Mana branch above gates on abilityZoneOK; this
@@ -225,13 +247,22 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	// A Continuous static may grant an activated ability through AddAbility$.
 	// Resolve its named SVar from the static's source but activate it from id:
 	// Tazri's ManaReflected reads the recipient creature's colours and its own
-	// "another activated ability" condition, not Tazri's.
+	// "another activated ability" condition, not Tazri's. This direct scan is
+	// the mana path's membership AND ORDER source for printed Continuous
+	// statics: it follows collectActionStatics' seat/zone/static walk (the
+	// snapshot a legalActions pass shares), which
+	// TestActionStaticMembershipPreservesOrderAndActiveFace pins. The
+	// grantedAbilities loop below adds only grants this scan did not already
+	// produce -- an Animate's Abilities$ member such as Wrenn and One's
+	// "{T}: Add {G}" -- so a printed AddAbility$ is never offered twice (the
+	// duplicate-offer trap: staticEffects now emits it into AddAbilities too).
 	var continuous []staticView
 	if statics == nil {
 		continuous = e.activeStatics("Continuous")
 	} else {
 		continuous = statics.get().continuous
 	}
+	printed := make(map[string]bool)
 	for _, sv := range continuous {
 		name := strings.TrimSpace(sv.Params["AddAbility"])
 		if name == "" || !effects.MatchesSpecCtx(e.G, sv.Params["Affected"], id, e.specCtx(sv.Source, sv.Controller)) {
@@ -245,6 +276,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		if ma == nil || ma.Kind != "AB" {
 			continue
 		}
+		printed[ma.Line] = true
 		if ma.API == "ManaReflected" {
 			considerReflected(ma)
 			continue
@@ -255,12 +287,18 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		}
 	}
 	// Granted mana abilities (CR 613.1f, rules/legal.go's grantedAbilities):
-	// an AddAbilities grant's AB$ Mana members -- a Saga chapter's "gains
-	// '{T}: Add {C}'." -- are real mana abilities with the same eligibility
-	// gates, so the priority offer, the CR 601.2g payment window and the
-	// activation all see exactly one member set. A granted ManaReflected
-	// member goes through the same candidate/present gates as a printed one.
+	// an AddAbilities grant's AB$ Mana/ManaReflected member -- a Saga
+	// chapter's "gains '{T}: Add {C}'.", an Animate's Abilities$ member (Wrenn
+	// and One) -- is a real mana ability with the same eligibility gates, so
+	// the priority offer, the CR 601.2g payment window and the activation all
+	// see exactly one member set. A member the printed scan above already
+	// produced is skipped (it anchors the same activation); a granted
+	// ManaReflected member goes through the same candidate/present gates as a
+	// printed one.
 	for _, ga := range e.grantedAbilities(p, id) {
+		if printed[ga.sa.Line] {
+			continue
+		}
 		if ga.sa.API == "ManaReflected" {
 			considerReflected(ga.sa)
 			continue
@@ -292,6 +330,16 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 // A gate this build cannot price fails closed: the ability is withheld from
 // the offer, the payment window and the activation alike, never widened.
 func (e *Engine) manaActivationGateHolds(p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
+	// ActivationPhases$ and its rider qualifiers (PlayerTurn$,
+	// OpponentTurn$, ActivationFirstCombat$, ActivationAfterBlockers$) are
+	// the same offer-time window a non-mana ability is gated by. This walk
+	// is a mana ability's ONLY eligibility gate, so reading the window here
+	// is what keeps one AB$ Mana carrier (a charge-counter source whose
+	// "any player may activate ... only during their turn before the end
+	// step" line was previously offered outside its window) bound to it.
+	if !e.activationPhasesOK(p, ma) {
+		return false
+	}
 	if spec, ok := ma.Params["IsPresent"]; ok && strings.TrimSpace(spec) != "" {
 		n := e.countPresent(strings.TrimSpace(spec), id, p)
 		if cmp := strings.TrimSpace(ma.Params["PresentCompare"]); cmp != "" {
@@ -485,12 +533,18 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 		return false
 	}
 	cost := e.parseCost(ma.Params["Cost"])
-	pool := e.manaAvailableFor(p, source, true)
+	av := e.manaAvailableFor(p, source, true)
+	pool := av.pool
+	typed := av.typed
 	if hyp != nil {
 		pool = *hyp
+		// A hypothetical bound is a pure mana bound that may include
+		// restricted units, so its typed partition is the raw tally (the
+		// typed counts never affect payability anyway).
+		typed = e.G.Players[p].TypedMana
 	}
 	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.Behold) > 0 || len(cost.TapPermanent) > 0 ||
-		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayablePool(p, source, true, cost, pool) {
+		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayablePool(p, source, true, cost, pool, typed) {
 		return false
 	}
 	// The mana-activation path has no X ask and no mid-payment suspension, so
@@ -1427,6 +1481,24 @@ func (e *Engine) commanderIdentityColours(p state.PlayerID) []string {
 			continue
 		}
 		m |= o.Card.ColourIdentity()
+		// CR 903.4b: a commander whose printed CDA says "choose a color before
+		// the game begins" derives its identity from the recorded choice. Gate
+		// on the CDA static, never the bare ChosenColor field: a commander with
+		// an ordinary "as this enters" colour choice must not leak its
+		// battlefield choice into its identity, and before the pregame answer
+		// (or for a non-commander) ChosenColor is empty anyway.
+		if o.Card.Faces[0] != nil && o.Card.Faces[0].CommanderColourChoiceCDA() {
+			if cols, ok := resolveChosenColors("ChosenColor", o); ok {
+				for _, l := range cols {
+					if len(l) == 0 {
+						continue
+					}
+					if i := strings.IndexByte("WUBRG", l[0]); i >= 0 {
+						m |= 1 << uint(i)
+					}
+				}
+			}
+		}
 	}
 	var cols []string
 	for i, sym := range []string{"W", "U", "B", "R", "G"} {

@@ -29,7 +29,45 @@ func init() {
 	Register("Pump", effPump)
 	Register("PumpAll", effPumpAll)
 	Register("Animate", effAnimate)
+	Register("AnimateAll", effAnimateAll)
 	Register("Protection", effProtection)
+	Register("RemoveFromCombat", effRemoveFromCombat)
+}
+
+// effRemoveFromCombat is Forge's RemoveFromCombatEffect (28 raw corpus lines:
+// Reconnaissance's {0}, Hollowhenge Spirit's ETB, the Gustcloak cycle,
+// Illusionist's Gambit): CR 506.4's "a spell or ability causes it to be
+// removed from combat". Each resolved object that is on the battlefield gets
+// one events.EndCombatReset{Obj: id} -- the exact event regeneration uses,
+// whose nonzero-Obj case clears IsAttacking/BlockedBy and leaves zero
+// tombstones in attackers' blocker lists (CR 509.1h: the attacker stays
+// blocked) -- and nothing else: the target stays tapped, and untapping is the
+// cards' own chained SubAbility (Reconnaissance's DBUntap). The target set is
+// the ordinary Defined walk, which already covers every census form --
+// Defined$ Self (11), Targeted (5), Enchanted (2), Remembered (1),
+// TriggeredAttackerLKICopy (5), TriggeredBlockerLKICopy (1) -- and the
+// source/ValidTgts/Valid fallbacks. RememberRemovedFromCombat$ True
+// (Illusionist's Gambit) remembers each removed object in both halves -- the
+// resolution's ctx set, so the chained `DB$ Untap | Defined$ Remembered`
+// untaps exactly the removed set, and the source's event-backed list, so
+// Card.IsRemembered reads it later. UnblockCreaturesBlockedOnlyBy$ (4 corpus
+// lines) is NOT read: making the attackers a removed blocker was blocking
+// become unblocked needs an operation no event currently expresses.
+func effRemoveFromCombat(h Host, c *Ctx, sa *cards.SA) {
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberRemovedFromCombat"]), "True")
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.EndCombatReset, Obj: t.Obj})
+		if remember {
+			c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
+			eventRemember(h, c, t.Obj)
+		}
+	}
 }
 
 // effTapAll is Forge's TapAllEffect (78 raw corpus lines, 75 files): the
@@ -255,6 +293,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	att := Num(h, c, sa, "NumAtt", 0)
 	def := Num(h, c, sa, "NumDef", 0)
 	zone := strings.TrimSpace(sa.Params["PumpZone"])
+	var ateotIDs []state.ObjID
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -296,7 +335,11 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, t.Obj)
 		}
 		registerPumpEffects(h, c, o.ID, att, def, sa, zone, chosenKW)
+		if atEOTInclude(h, c, sa, o.ID) {
+			ateotIDs = append(ateotIDs, o.ID)
+		}
 	}
+	scheduleAtEOT(h, c, sa, ateotIDs)
 	// ForgetImprinted$ names (in the Defined$ grammar) the imprinted card(s)
 	// to forget (Chrome Mox's DBForget: the exiled card left exile): each is
 	// removed from the source's persistent Imprinted list. Forge's
@@ -340,6 +383,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	// only while the card sits there.
 	zone := strings.TrimSpace(sa.Params["PumpZone"])
 	g := h.Game()
+	var ateotIDs []state.ObjID
 	for _, p := range g.AliveFrom(0) {
 		if zone != "" {
 			zones, all, ok := ParseZones(zone)
@@ -361,6 +405,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 				for _, id := range g.Zone(z, p) {
 					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 						registerPumpEffects(h, c, id, att, def, sa, zone, nil)
+						ateotIDs = append(ateotIDs, id)
 					}
 				}
 			}
@@ -369,9 +414,11 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				registerPumpEffects(h, c, id, att, def, sa, "", nil)
+				ateotIDs = append(ateotIDs, id)
 			}
 		}
 	}
+	scheduleAtEOT(h, c, sa, ateotIDs)
 }
 
 // durationTiming maps a Pump/PumpAll Duration$ value to its expiry: an
@@ -442,11 +489,73 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 // default would otherwise turn every one of those into "becomes a 0/0",
 // silently killing the very creature the card was granting an ability to.
 func effAnimate(h Host, c *Ctx, sa *cards.SA) {
-	_, hasPower := sa.Params["Power"]
-	_, hasToughness := sa.Params["Toughness"]
-	pw := Num(h, c, sa, "Power", 0)
-	tf := Num(h, c, sa, "Toughness", 0)
-	types := strings.Fields(strings.ReplaceAll(sa.Params["Types"], ",", " "))
+	ag := parseAnimateGrant(h, c, sa)
+	emitAnimateColorsNotes(h, c, ag, "Animate")
+	// RememberAnimated$ True (Rise and Shine): every permanent this Animate
+	// affected joins the ability's Remembered, both halves -- the ctx list
+	// the chained SubAbility reads (DBPutCounter's Defined$ Remembered) and
+	// the source's event-backed persistent list -- the same two-half
+	// discipline effPumpAll's RememberTargets$ applies (eventRemember
+	// self-gates on a source-less ctx).
+	rememberAnimated := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAnimated"]), "True")
+	var ateotIDs []state.ObjID
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		o := h.Game().Obj(t.Obj)
+		if o == nil {
+			continue
+		}
+		if rememberAnimated {
+			c.Remembered = append(c.Remembered, t)
+			eventRemember(h, c, o.ID)
+		}
+		registerAnimateEffects(h, c, o.ID, ag)
+		if atEOTInclude(h, c, sa, o.ID) {
+			ateotIDs = append(ateotIDs, o.ID)
+		}
+	}
+	scheduleAtEOT(h, c, sa, ateotIDs)
+}
+
+// animateGrant is the per-object payload Animate and AnimateAll share: their
+// Forge bodies read the identical parameter set and differ only in the
+// affected-set selector (Defined$/chosen targets vs the ValidCards$ sweep),
+// so one parser and one per-object registration path serve both and the two
+// primitives can never drift.
+type animateGrant struct {
+	pw, tf              int32
+	hasPower, hasTough  bool
+	types               []string
+	removeCreatureTypes bool
+	allCreatureTypes    bool
+	removeCardTypes     bool
+	colorsRaw           string
+	colors              []string
+	overwriteColors     bool
+	colorsGrant         bool
+	kws                 []string
+	abilities           []string
+	duration            string
+	permanent           bool
+	zone                string
+}
+
+// parseAnimateGrant reads the shared Animate/AnimateAll parameter set. See
+// effAnimate's doc for the layer assignment (base P/T = 7b SubSet, types = 4,
+// colours = 5, keywords/abilities = 6) and for the no-P/T guard.
+func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
+	ag := animateGrant{
+		duration:  sa.Params["Duration"],
+		colorsRaw: strings.TrimSpace(sa.Params["Colors"]),
+		zone:      strings.TrimSpace(sa.Params["Zone"]),
+	}
+	_, ag.hasPower = sa.Params["Power"]
+	_, ag.hasTough = sa.Params["Toughness"]
+	ag.pw = Num(h, c, sa, "Power", 0)
+	ag.tf = Num(h, c, sa, "Toughness", 0)
+	ag.types = strings.Fields(strings.ReplaceAll(sa.Params["Types"], ",", " "))
 	// Colors$ names the colour set the animated object carries; with
 	// OverwriteColors$ True it REPLACES the object's colours (the manland
 	// family -- Celestial Colonnade's "white and blue" -- where the land's
@@ -462,22 +571,26 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 	// empty set, a no-op whose corpus lines (raging_spirit) intend "becomes
 	// colourless" -- is noted and skipped rather than silently registering a
 	// dead effect.
-	colorsRaw := strings.TrimSpace(sa.Params["Colors"])
 	colors, colorsOK := colorLetters(sa.Params["Colors"])
-	overwrite := colorsRaw != "" && strings.EqualFold(strings.TrimSpace(sa.Params["OverwriteColors"]), "True")
-	colorsGrant := colorsRaw != "" && colorsOK && (len(colors) > 0 || overwrite)
+	ag.colors = colors
+	ag.overwriteColors = ag.colorsRaw != "" && strings.EqualFold(strings.TrimSpace(sa.Params["OverwriteColors"]), "True")
+	ag.colorsGrant = ag.colorsRaw != "" && colorsOK && (len(colors) > 0 || ag.overwriteColors)
 	// Keywords$ is a "&"-separated keyword list (Celestial Colonnade's
 	// "Flying & Vigilance"), the same grammar Pump's KW$ uses.
-	kws := cards.SplitKeywordList(sa.Params["Keywords"])
+	ag.kws = cards.SplitKeywordList(sa.Params["Keywords"])
 	// RemoveCreatureTypes$ True strips the object's creature-type subtypes
 	// (Mishra's Factory's land base carries none, but an animated creature or
 	// planeswalker face does) before this animation's own Types$ apply.
-	removeCreatureTypes := strings.EqualFold(strings.TrimSpace(sa.Params["RemoveCreatureTypes"]), "True")
+	ag.removeCreatureTypes = strings.EqualFold(strings.TrimSpace(sa.Params["RemoveCreatureTypes"]), "True")
 	// AddAllCreatureTypes$ True (Mutavault's "all creature types"): the
 	// same LType emission rides the flag, never a materialised type list --
 	// rules' typeCharacteristics appends the CreatureTypeWords vocabulary
 	// for affected objects (see state.ContinuousEffect.AddAllCreatureTypes).
-	allCreatureTypes := strings.EqualFold(strings.TrimSpace(sa.Params["AddAllCreatureTypes"]), "True")
+	ag.allCreatureTypes = strings.EqualFold(strings.TrimSpace(sa.Params["AddAllCreatureTypes"]), "True")
+	// RemoveCardTypes$ True (state.ContinuousEffect.RemoveCardTypes, the
+	// Darksteel Mutation strip) keeps only the object's supertypes in the
+	// layer-4 walk -- one line on the shared path, so both primitives read it.
+	ag.removeCardTypes = strings.EqualFold(strings.TrimSpace(sa.Params["RemoveCardTypes"]), "True")
 	// Abilities$ names the SVar bodies (comma-separated, on THIS face's table)
 	// the animated object gains -- Urza's Saga's chapters ("CARDNAME gains
 	// '{T}: Add {C}'.") are the corpus's flagship shape. The grant is a
@@ -488,72 +601,172 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 	// also what the object's own text obeys); any other Duration -- the
 	// corpus's animate-a-land-for-a-turn lines -- keeps the ordinary
 	// until-end-of-turn lifetime.
-	var abilities []string
 	for _, nm := range strings.Split(sa.Params["Abilities"], ",") {
 		if nm = strings.TrimSpace(nm); nm != "" {
-			abilities = append(abilities, nm)
+			ag.abilities = append(ag.abilities, nm)
 		}
 	}
-	permanent := strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
-	if colorsRaw != "" && !colorsOK {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "Animate Colors$ " + colorsRaw + " is not implemented; colours unchanged"})
-	} else if colorsRaw != "" && !colorsGrant {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "Animate Colors$ Colorless without OverwriteColors$ is not implemented; colours unchanged"})
+	ag.permanent = strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
+	return ag
+}
+
+// emitAnimateColorsNotes is the shared Colors$ fail-closed surface: the two
+// loud notes effAnimate has always emitted, one per unimplementable shape.
+func emitAnimateColorsNotes(h Host, c *Ctx, ag animateGrant, api string) {
+	if ag.colorsRaw != "" && ag.colorsGrant {
+		return
 	}
-	for _, t := range Defined(h, c, sa) {
-		if t.IsPlayer {
+	if ag.colorsRaw == "" {
+		return
+	}
+	_, colorsOK := colorLetters(ag.colorsRaw)
+	if !colorsOK {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: api + " Colors$ " + ag.colorsRaw + " is not implemented; colours unchanged"})
+		return
+	}
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+		Text: api + " Colors$ Colorless without OverwriteColors$ is not implemented; colours unchanged"})
+}
+
+// registerAnimateEffects is Animate and AnimateAll's sole per-object
+// registration path: id is the animated object itself (Source = affected
+// object, Controller = the granting controller, Affects Card.Self, the same
+// one-shot-sweep shape registerPumpEffects uses). Skipping a half the SA
+// never named avoids polluting Engine.continuous with an effect that would
+// never do anything.
+func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
+	if ag.hasPower || ag.hasTough {
+		h.AddContinuous(state.ContinuousEffect{
+			Source: id, Affects: "Card.Self", Controller: c.Controller,
+			Layer: state.LPT, Sub: state.SubSet,
+			SetPower: ag.pw, SetToughness: ag.tf, HasSet: true,
+			// The P/T grant lives as long as the type grant: a
+			// Duration$ Permanent animation is WHOLLY permanent
+			// (Stalking Stones's 3/3 lasts indefinitely), never
+			// half-permanent — types kept while an UntilEOT P/T set
+			// strips them to an untransformed-basis 0/0 the CR 704.5f
+			// SBA destroys.
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			AffectedZone: ag.zone,
+		})
+	}
+	if len(ag.types) > 0 || ag.removeCreatureTypes || ag.allCreatureTypes || ag.removeCardTypes {
+		h.AddContinuous(state.ContinuousEffect{
+			Source: id, Affects: "Card.Self", Controller: c.Controller,
+			Layer: state.LType, AddTypes: ag.types,
+			RemoveCreatureTypes: ag.removeCreatureTypes,
+			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			AffectedZone: ag.zone,
+		})
+	}
+	if ag.colorsGrant {
+		h.AddContinuous(state.ContinuousEffect{
+			Source: id, Affects: "Card.Self", Controller: c.Controller,
+			Layer: state.LColor, AddColors: ag.colors, OverwriteColors: ag.overwriteColors,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			AffectedZone: ag.zone,
+		})
+	}
+	if len(ag.kws) > 0 {
+		h.AddContinuous(state.ContinuousEffect{
+			Source: id, Affects: "Card.Self", Controller: c.Controller,
+			Layer: state.LAbilities, AddKeywords: ag.kws,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			AffectedZone: ag.zone,
+		})
+	}
+	if len(ag.abilities) > 0 {
+		h.AddContinuous(state.ContinuousEffect{
+			Source: id, Affects: "Card.Self", Controller: c.Controller,
+			Layer: state.LAbilities, AddAbilities: ag.abilities,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			AffectedZone: ag.zone,
+		})
+	}
+}
+
+// animateAllUnreadNote names, in ONE loud note, every parameter the SA carries
+// that neither Animate nor AnimateAll reads (RemoveKeywords$/RemoveAllAbilities$/
+// staticAbilities$/Triggers$/Replacements$/CantHaveKeyword$/RemoveLandTypes$ --
+// the shared pre-existing Animate gaps, so the gap stays visible instead of
+// silently doing nothing), then the supported parameters still apply.
+func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
+	var unread []string
+	for _, key := range []struct{ name, val string }{
+		{"RemoveKeywords$", sa.Params["RemoveKeywords"]},
+		{"RemoveAllAbilities$", sa.Params["RemoveAllAbilities"]},
+		{"staticAbilities$", sa.Params["staticAbilities"]},
+		{"Triggers$", sa.Params["Triggers"]},
+		{"Replacements$", sa.Params["Replacements"]},
+		{"CantHaveKeyword$", sa.Params["CantHaveKeyword"]},
+		{"RemoveLandTypes$", sa.Params["RemoveLandTypes"]},
+	} {
+		if strings.TrimSpace(key.val) != "" {
+			unread = append(unread, key.name)
+		}
+	}
+	if len(unread) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "AnimateAll " + strings.Join(unread, "/") + " not implemented; ignored"})
+	}
+}
+
+// effAnimateAll is Animate's ValidCards$ sweep: the identical per-object
+// registration, but the affected set is baked at resolution time by walking
+// AliveFrom(0)'s fixed APNAP seat order and each seat's zone slice in its
+// existing registration order, never a map (the effPumpAll pattern, CR 611.2c:
+// such an effect applies only to the objects matching the filter when the
+// ability resolves), filtered with MatchesSpecCtx against ValidCards$ (default
+// "Creature") rather than taken from Defined$/chosen targets. Zone$ widens
+// the walk the way PumpAll's PumpZone$ does, and the registered effects carry
+// the AffectedZone scope so a non-battlefield grant applies only while the
+// card sits there.
+func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
+	ag := parseAnimateGrant(h, c, sa)
+	emitAnimateColorsNotes(h, c, ag, "AnimateAll")
+	animateAllUnreadNote(h, c, sa)
+	var ateotIDs []state.ObjID
+	spec := sa.Params["ValidCards"]
+	if spec == "" {
+		spec = "Creature"
+	}
+	g := h.Game()
+	for _, p := range g.AliveFrom(0) {
+		if ag.zone != "" {
+			zones, all, ok := ParseZones(ag.zone)
+			if !ok {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "AnimateAll Zone$ " + ag.zone + " is not a zone list this engine can ask; the animation is skipped"})
+				break
+			}
+			if all {
+				// "All": every public game zone plus the owner-private ones
+				// g.Zone covers; ZCeased has no membership list (see
+				// state/ids.go) so it is skipped. ZStack is included: an
+				// object on the stack is a real animation target.
+				zones = []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield,
+					state.ZGraveyard, state.ZExile, state.ZStack, state.ZCommand}
+			}
+			for _, z := range zones {
+				for _, id := range g.Zone(z, p) {
+					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+						registerAnimateEffects(h, c, id, ag)
+						ateotIDs = append(ateotIDs, id)
+					}
+				}
+			}
 			continue
 		}
-		o := h.Game().Obj(t.Obj)
-		if o == nil {
-			continue
-		}
-		if hasPower || hasToughness {
-			h.AddContinuous(state.ContinuousEffect{
-				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
-				Layer: state.LPT, Sub: state.SubSet,
-				SetPower: pw, SetToughness: tf, HasSet: true,
-				// The P/T grant lives as long as the type grant: a
-				// Duration$ Permanent animation is WHOLLY permanent
-				// (Stalking Stones's 3/3 lasts indefinitely), never
-				// half-permanent — types kept while an UntilEOT P/T set
-				// strips them to an untransformed-basis 0/0 the CR 704.5f
-				// SBA destroys.
-				Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
-			})
-		}
-		if len(types) > 0 || removeCreatureTypes || allCreatureTypes {
-			h.AddContinuous(state.ContinuousEffect{
-				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
-				Layer: state.LType, AddTypes: types, RemoveCreatureTypes: removeCreatureTypes,
-				AddAllCreatureTypes: allCreatureTypes,
-				Duration:            sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
-			})
-		}
-		if colorsGrant {
-			h.AddContinuous(state.ContinuousEffect{
-				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
-				Layer: state.LColor, AddColors: colors, OverwriteColors: overwrite,
-				Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
-			})
-		}
-		if len(kws) > 0 {
-			h.AddContinuous(state.ContinuousEffect{
-				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
-				Layer: state.LAbilities, AddKeywords: kws,
-				Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
-			})
-		}
-		if len(abilities) > 0 {
-			h.AddContinuous(state.ContinuousEffect{
-				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
-				Layer: state.LAbilities, AddAbilities: abilities,
-				Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: !permanent,
-			})
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				registerAnimateEffects(h, c, id, ag)
+				ateotIDs = append(ateotIDs, id)
+			}
 		}
 	}
+	scheduleAtEOT(h, c, sa, ateotIDs)
 }
 
 func effProtection(h Host, c *Ctx, sa *cards.SA) {

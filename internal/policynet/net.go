@@ -1,6 +1,7 @@
 package policynet
 
 import (
+	"fmt"
 	"math"
 	"math/rand/v2"
 )
@@ -38,6 +39,48 @@ const (
 	DefaultRankWeight = 1.0
 )
 
+// LossMode selects which loss terms train. The measured collapse driver
+// (L9b-fix2) is the VALUE term: the teacher's candidate values inside one
+// decision differ by a median of one sampled world (0.062 at K=16), so
+// regressing the absolute value is minimised by predicting the decision
+// mean — every option scores alike and the argmax collapses onto the
+// option-order baseline. The modes:
+//
+//   - LossCE — PURE argmax cross-entropy (the trainer's default, the
+//     L9b-fix2 control): only the softmax cross-entropy over the labelled
+//     options toward the teacher-preferred set, LSE(z) − LSE(z_pref), with
+//     the max-subtracting log-sum-exp; the Huber value term is OFF. The
+//     per-example weight is RankWeight alone — NOT scaled by Margin, so a
+//     tiny-margin decision trains at full imitation strength. This is what
+//     the closest published analogue (LOCM PIMC distillation) trains.
+//   - LossHybrid — the pre-fix behaviour: value term + margin-weighted rank
+//     term (RankWeight·Margin). LossConfig's zero Mode means hybrid, so
+//     every existing caller and test keeps today's geometry.
+//   - LossValue — the value term only (the diagnosis arm: the collapse
+//     reproduced with the rank term removed).
+type LossMode string
+
+const (
+	LossCE     LossMode = "ce"
+	LossHybrid LossMode = "hybrid"
+	LossValue  LossMode = "value"
+)
+
+// ParseLossMode maps the trainer flag's spelling onto a LossMode. An empty
+// string is the LossConfig zero value and means hybrid (the pre-fix
+// default); anything else is an error so a typo'd flag cannot silently train
+// the wrong loss.
+func ParseLossMode(s string) (LossMode, error) {
+	switch LossMode(s) {
+	case "":
+		return LossHybrid, nil
+	case LossCE, LossHybrid, LossValue:
+		return LossMode(s), nil
+	default:
+		return "", fmt.Errorf("unknown loss mode %q (want ce, hybrid or value)", s)
+	}
+}
+
 // Model is the per-option scorer. The parameter blocks are exactly the four
 // the finite-difference test exercises: the embedding table, the state dense
 // projection, the hidden layer and the output layer.
@@ -54,22 +97,63 @@ type Model struct {
 	HidB   []float32 // Hidden
 	OutW   []float32 // Hidden
 	OutB   float32
+	// ResidualW is the fixed weight of the bot-prior residual: an option the
+	// bot's own answer contains (Option.BotPick) scores ResidualW higher, so
+	// with a large prior the model starts at the bot baseline and the learned
+	// head only has to supply the overrides (residual policy learning,
+	// L9b-fix2 item 3). It is NOT a trained parameter — it is a prior the
+	// trainer sets once from Config.ResidualInit — so the CE gradient can
+	// never decay the baseline away. Zero (the default) makes the residual a
+	// no-op and reproduces pure CE byte for byte. Not covered by EncoderHash
+	// (BotPick is not an encoded feature); the checkpoint carries it.
+	ResidualW float32
 }
 
-// LossConfig carries the loss weights. HuberDelta is the Huber loss's
-// transition point in value units (the teacher's candidate means live in
-// [0,1]); RankWeight scales the margin-weighted ranking term against the
-// value term. The ranking term's per-example weight is
-// RankWeight · Example.Margin — a decision the teacher covered with a large
-// margin pulls harder. Defaults are DefaultHuberDelta / DefaultRankWeight.
+// LossConfig carries the loss weights and the mode. HuberDelta is the Huber
+// loss's transition point in value units (the teacher's candidate means live
+// in [0,1]); RankWeight scales the ranking term against the value term —
+// in hybrid mode through the per-example margin (RankWeight · Example.Margin,
+// a decision the teacher covered with a large margin pulls harder), in CE
+// mode directly (RankWeight per example, margin not applied). OverrideWeight
+// multiplies every example whose label records a teacher OVERRIDE of the bot
+// (Example.TeacherChoice != Example.BotIndex): those are the decisions that
+// carry the information, while agreeing examples only teach "do what the bot
+// does". 1 means no reweighting, >1 up-weights the overrides, <= 0 is
+// treated as 1. Mode selects the term mix (see LossMode); the zero value is
+// hybrid — the pre-fix geometry — so existing callers keep today's loss.
 type LossConfig struct {
-	HuberDelta float64
-	RankWeight float64
+	Mode           LossMode
+	HuberDelta     float64
+	RankWeight     float64
+	OverrideWeight float64
 }
 
-// DefaultLossConfig returns the default loss weights.
+// Override reports whether the teacher's chosen candidate differed from the
+// bot's answer: the only examples in the corpus that teach the model
+// anything the default policy did not already do (the writer's contract is
+// candidates[BotIndex], BotIndex == 0 by construction, is the bot answer).
+func (ex Example) Override() bool { return ex.TeacherChoice != ex.BotIndex }
+
+// exampleWeight is the multiplier applied to an example's whole loss (value
+// and ranking terms) — OverrideWeight for an override, 1 otherwise.
+func (lc LossConfig) exampleWeight(ex Example) float64 {
+	if !ex.Override() {
+		return 1
+	}
+	if lc.OverrideWeight <= 0 {
+		return 1
+	}
+	return lc.OverrideWeight
+}
+
+// DefaultLossConfig returns the default loss weights in the DEFAULT mode,
+// pure argmax CE (the L9b-fix2 control: the value term is what collapses).
+// Note the distinction: the Go zero value of LossConfig (Mode "") is the
+// pre-fix hybrid geometry, kept so every caller that does not opt in keeps
+// today's loss; the DEFAULT — what the trainer and this constructor hand a
+// fresh run — is CE.
 func DefaultLossConfig() LossConfig {
-	return LossConfig{HuberDelta: DefaultHuberDelta, RankWeight: DefaultRankWeight}
+	return LossConfig{Mode: LossCE, HuberDelta: DefaultHuberDelta, RankWeight: DefaultRankWeight, OverrideWeight: 1}
 }
 
 // LossParts is one example's loss broken into its two terms. Total is the
@@ -202,6 +286,17 @@ func (m *Model) forwardHead(x []float32) (y float32, a []float32) {
 	return y, a
 }
 
+// residual returns the fixed bot-prior score for one option: Model.ResidualW
+// when the option is part of the bot's own answer, else 0. It is added to
+// the head's output (never fed through the head), so it is a constant prior
+// the learned weights cannot erase.
+func (m *Model) residual(o Option) float32 {
+	if o.BotPick {
+		return m.ResidualW
+	}
+	return 0
+}
+
 // Score scores every offered option (the inference path, L9c's entry point):
 // the state trunk is computed once, then each option gets its own head
 // forward. The returned slice parallels opts.
@@ -211,7 +306,7 @@ func (m *Model) Score(st State, opts []Option) []float32 {
 	for i := range opts {
 		x := m.inputVector(s, opts[i])
 		y, _ := m.forwardHead(x)
-		out[i] = y
+		out[i] = y + m.residual(opts[i])
 	}
 	return out
 }
@@ -316,6 +411,55 @@ func (m *Model) ApplyGrads(g *Grads, scale float32) {
 	m.OutB -= scale * g.OutB
 }
 
+// Norm returns the gradient's global L2 norm over every parameter block.
+func (g *Grads) Norm() float64 {
+	sum := 0.0
+	for _, r := range g.touched {
+		base := int(r) * g.m.H
+		for j := 0; j < g.m.H; j++ {
+			v := float64(g.Table[base+j])
+			sum += v * v
+		}
+	}
+	for _, blk := range [][]float32{g.StateW, g.StateB, g.HidW, g.HidB, g.OutW} {
+		for _, v := range blk {
+			x := float64(v)
+			sum += x * x
+		}
+	}
+	x := float64(g.OutB)
+	sum += x * x
+	return math.Sqrt(sum)
+}
+
+// Clip rescales every gradient block so the global L2 norm is at most
+// maxNorm (a no-op when the norm is already inside; maxNorm <= 0 disables).
+// The rescale is exact division by norm/max — the same gradient direction,
+// bounded magnitude — so a diverged batch cannot throw a weight to ±Inf
+// through one oversized step.
+func (g *Grads) Clip(maxNorm float64) {
+	if maxNorm <= 0 {
+		return
+	}
+	n := g.Norm()
+	if n <= maxNorm || n == 0 {
+		return
+	}
+	scale := float32(maxNorm / n)
+	for _, r := range g.touched {
+		base := int(r) * g.m.H
+		for j := 0; j < g.m.H; j++ {
+			g.Table[base+j] *= scale
+		}
+	}
+	for _, blk := range [][]float32{g.StateW, g.StateB, g.HidW, g.HidB, g.OutW} {
+		for i := range blk {
+			blk[i] *= scale
+		}
+	}
+	g.OutB *= scale
+}
+
 func zero(w []float32) {
 	for i := range w {
 		w[i] = 0
@@ -347,32 +491,106 @@ func (m *Model) forwardExample(ex Example) (labelled []int, trunk []float32, xs,
 		labelled = append(labelled, i)
 		xs = append(xs, x)
 		as = append(as, a)
-		ys = append(ys, float64(y))
+		ys = append(ys, float64(y)+float64(m.residual(ex.Options[i])))
 	}
 	return labelled, s, xs, as, ys
 }
 
 // lossFromScores computes the combined loss and the per-labelled-option
-// score gradient, given the forward pass. The ranking term is a softmax
-// cross-entropy over the LABELLED options toward the teacher-preferred set
-// (uniform over that set via the log-sum-exp form
-// LSE(labelled) − LSE(preferred)), weighted by RankWeight·margin. An example
-// with no preferred option, or a single labelled option, contributes only
-// the value term (a one-option softmax has zero gradient — the only legal
-// answer is the only answer).
+// score gradient, given the forward pass.
+//
+// The value term regresses the WITHIN-DECISION CENTRED target
+// (Target.Value − mean of this decision's labelled values) against the raw
+// score. That centring is the fix for the constant-score collapse: the raw
+// teacher candidate means are near-identical inside one decision (a
+// decision's value is dominated by the position, not the choice), so a
+// value term anchored to their absolute level is minimised by every option
+// scoring the same — a strong local optimum the ranking term alone could not
+// escape on the real corpus. Removing the decision's shared level leaves
+// only the within-decision value differences, which is exactly the quantity
+// an argmax-over-options scorer can use (the absolute level shifts every
+// option equally and so cannot change the argmax). When every labelled value
+// in a decision is tied the centred targets are all zero, so the value term
+// carries no preference signal and is skipped rather than teaching the model
+// to flatten every option's score — 42% of the real corpus's covered
+// decisions are exactly tied and would otherwise spend their gradient
+// erasing option-discriminating features.
+//
+// The ranking term is a softmax cross-entropy over the LABELLED options
+// toward the teacher-preferred set (LSE(labelled) − LSE(preferred)) — for a
+// single preferred candidate exactly the argmax CE logsumexp(z) − z_pref the
+// L9b-fix2 brief names. Its preferred-side gradient is the uniform −w used
+// since the trainer's first version: for a multi-option preferred set (the
+// attackers decisions, where the teacher's answer commits several
+// creatures) the exact softmax-over-preferred gradient concentrates on the
+// currently-highest preferred score and empirically trains worse than the
+// uniform push; the uniform form is the deliberate set-preference loss. An
+// example with no preferred option, or a single labelled option, contributes
+// only the value term (a one-option softmax has zero gradient — the only
+// legal answer is the only answer).
+//
+// The whole example (both terms and every gradient) is scaled by the
+// override weight when the teacher overrode the bot.
 func lossFromScores(lc LossConfig, ex Example, labelled []int, ys []float64) (parts LossParts, dys []float64) {
 	n := len(labelled)
-	parts.Value = 0
-	for k, i := range labelled {
-		e := ys[k] - ex.Options[i].Target.Value
-		parts.Value += huber(e, lc.HuberDelta)
+
+	mode := lc.Mode
+	switch mode {
+	case "", LossCE, LossHybrid, LossValue:
+		if mode == "" {
+			mode = LossHybrid
+		}
+	default:
+		mode = LossHybrid
 	}
-	parts.Value /= float64(n)
+
+	// Clamp every score the loss reads to a finite, well-inside-float64 range
+	// once, up front, and use the clamped values in BOTH terms. A diverged
+	// forward pass can hand back ±Inf/NaN; with the raw values, `Inf − Inf` in
+	// LSE(labelled) − LSE(preferred) is NaN (and Huber on ±Inf saturates to
+	// ±Inf), which then poisons every weight. The clamp keeps the arithmetic
+	// finite and the gradient bounded even when the weights are already huge
+	// (a finite ±1e6 mask, never ±Inf), and `logSumExp` additionally subtracts
+	// the max, so exp never overflows and the CE is computed as
+	// logsumexp(z) − z_pref with max subtraction. Together they make every
+	// term NaN-free across the rank-weight/lr grid the trainer is run at (see
+	// cmd/policytrain's TestTrainerStableAcrossRankGrid,
+	// TestTrainerCENoNaNGrid and this package's
+	// TestLossFiniteOnDivergedScores).
+	clamped := make([]float64, n)
+	for k := range clamped {
+		clamped[k] = clampScore(ys[k])
+	}
+
+	// Within-decision mean of the teacher values (a constant); the value term
+	// regresses the centred target against the raw score. In CE mode the value
+	// term is OFF entirely (LossCE's contract): the value target is the
+	// measured collapse driver, and CE trains only the classification signal.
+	var tMean float64
+	for _, i := range labelled {
+		tMean += ex.Options[i].Target.Value
+	}
+	tMean /= float64(n)
+
+	// A decision whose labelled values are ALL tied carries no within-decision
+	// preference signal; skip the value term for it (see the doc comment).
+	tied := true
+	for _, i := range labelled {
+		if ex.Options[i].Target.Value != ex.Options[labelled[0]].Target.Value {
+			tied = false
+			break
+		}
+	}
 
 	dys = make([]float64, n)
-	for k := range dys {
-		e := ys[k] - ex.Options[labelled[k]].Target.Value
-		dys[k] += huberGrad(e, lc.HuberDelta) / float64(n)
+	parts.Value = 0
+	if mode != LossCE && !tied {
+		for k, i := range labelled {
+			r := clamped[k] - (ex.Options[i].Target.Value - tMean)
+			parts.Value += huber(r, lc.HuberDelta)
+			dys[k] = huberGrad(r, lc.HuberDelta) / float64(n)
+		}
+		parts.Value /= float64(n)
 	}
 
 	pref := make([]int, 0, 2)
@@ -382,29 +600,75 @@ func lossFromScores(lc LossConfig, ex Example, labelled []int, ys []float64) (pa
 		}
 	}
 	if len(pref) == 0 || n <= 1 {
+		ow := lc.exampleWeight(ex)
+		parts.Value *= ow
 		parts.Total = parts.Value
+		scaleGrads(dys, ow)
 		return parts, dys
 	}
-	w := lc.RankWeight * ex.Margin
-	if w == 0 {
+	// The rank term's per-example weight. Hybrid keeps the margin weighting
+	// (RankWeight·Margin); CE deliberately does NOT apply the margin — pure
+	// imitation trains every labelled decision at RankWeight strength, so a
+	// one-world margin cannot silence the CE signal the way it silenced the
+	// margin-weighted rank term on the real corpus.
+	w := lc.RankWeight
+	if mode == LossHybrid {
+		w = lc.RankWeight * ex.Margin
+	}
+	if mode == LossValue || w == 0 {
+		ow := lc.exampleWeight(ex)
+		parts.Value *= ow
 		parts.Total = parts.Value
+		scaleGrads(dys, ow)
 		return parts, dys
 	}
-	lseAll := logSumExp(ys)
+	lseAll := logSumExp(clamped)
 	prefYs := make([]float64, len(pref))
 	for i, k := range pref {
-		prefYs[i] = ys[k]
+		prefYs[i] = clamped[k]
 	}
 	lsePref := logSumExp(prefYs)
 	parts.Rank = w * (lseAll - lsePref)
 	for k := range dys {
-		dys[k] += w * math.Exp(ys[k]-lseAll)
+		dys[k] += w * math.Exp(clamped[k]-lseAll)
 	}
 	for _, k := range pref {
 		dys[k] -= w
 	}
+	ow := lc.exampleWeight(ex)
+	parts.Value *= ow
+	parts.Rank *= ow
 	parts.Total = parts.Value + parts.Rank
+	scaleGrads(dys, ow)
 	return parts, dys
+}
+
+// scoreClamp bounds a score entering the loss arithmetic. Scores live in a
+// few units for a converged model; 1e6 is far above that and far below
+// float64 overflow, so a diverged ±Inf forward pass becomes ±1e6 instead of
+// NaN.
+const scoreClamp = 1e6
+
+func clampScore(y float64) float64 {
+	if math.IsNaN(y) {
+		return 0
+	}
+	if y > scoreClamp {
+		return scoreClamp
+	}
+	if y < -scoreClamp {
+		return -scoreClamp
+	}
+	return y
+}
+
+func scaleGrads(dys []float64, w float64) {
+	if w == 1 {
+		return
+	}
+	for i := range dys {
+		dys[i] *= w
+	}
 }
 
 // Loss evaluates the example's loss (forward only — no gradients).
@@ -555,12 +819,30 @@ func huberGrad(e, delta float64) float64 {
 	return e
 }
 
+// logSumExp returns log(Σ exp(v[i])) with the max subtracted first, so no
+// term overflows: exp(v[i] − max) ≤ 1 always. Non-finite inputs are
+// handled explicitly — a diverged forward pass may hand back ±Inf, and the
+// naive form would compute exp(Inf − Inf) = NaN and poison the loss. The
+// clampScore callers already bound their inputs, so this is defence in
+// depth rather than the primary guard.
 func logSumExp(v []float64) float64 {
+	if len(v) == 0 {
+		return math.Inf(-1)
+	}
 	max := v[0]
 	for _, x := range v[1:] {
 		if x > max {
 			max = x
 		}
+	}
+	if math.IsInf(max, 1) {
+		return math.Inf(1)
+	}
+	if math.IsInf(max, -1) {
+		return math.Inf(-1)
+	}
+	if math.IsNaN(max) {
+		return 0
 	}
 	sum := 0.0
 	for _, x := range v {

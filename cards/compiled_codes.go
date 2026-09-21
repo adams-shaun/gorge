@@ -117,9 +117,10 @@ const (
 	APIWard                  APICode = 74
 	APIEcho                  APICode = 75
 	APIChangeX               APICode = 76
+	APIAnimateAll            APICode = 77
 
 	// APICodeCount includes the zero/unknown slot and sizes dense dispatch.
-	APICodeCount = 77
+	APICodeCount = 78
 )
 
 // APICodeForName returns the stable opcode for an engine-owned effect API.
@@ -132,6 +133,8 @@ func APICodeForName(api string) APICode {
 		return APIAmass
 	case "Animate":
 		return APIAnimate
+	case "AnimateAll":
+		return APIAnimateAll
 	case "Attach":
 		return APIAttach
 	case "BecomeMonarch":
@@ -313,6 +316,7 @@ const (
 	TriggerModePhase                      TriggerModeCode = 24
 	TriggerModeAlways                     TriggerModeCode = 25
 	TriggerModeAttached                   TriggerModeCode = 26
+	TriggerModeAttackerBlockedByCreature  TriggerModeCode = 27
 )
 
 func triggerModeCode(mode string) TriggerModeCode {
@@ -333,6 +337,8 @@ func triggerModeCode(mode string) TriggerModeCode {
 		return TriggerModeAttackersDeclared
 	case "AttackerBlocked":
 		return TriggerModeAttackerBlocked
+	case "AttackerBlockedByCreature":
+		return TriggerModeAttackerBlockedByCreature
 	case "Sacrificed":
 		return TriggerModeSacrificed
 	case "Discarded":
@@ -776,6 +782,7 @@ const (
 	TriggerInterestLifeChange
 	TriggerInterestStepChange
 	TriggerInterestAttach
+	TriggerInterestExplore
 )
 
 func triggerInterestForMode(mode string) TriggerInterest {
@@ -786,12 +793,15 @@ func triggerInterestForMode(mode string) TriggerInterest {
 		return TriggerInterestStackPut
 	case "AbilityCast", "SpellAbilityCast":
 		return TriggerInterestAbilityPush
-	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked":
+	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked",
+		"AttackerBlockedByCreature", "Blocks":
 		return TriggerInterestAttackDeclaration
 	case "CommitCrime", "BecomesTarget":
 		return TriggerInterestTargetsChosen
 	case "Attached":
 		return TriggerInterestAttach
+	case "Explores":
+		return TriggerInterestExplore
 	case "Taps", "TapsForMana":
 		return TriggerInterestTap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":

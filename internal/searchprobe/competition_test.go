@@ -120,18 +120,22 @@ func TestSamplerCompetitionExclusionKeepsPreferredCardOutOfHand(t *testing.T) {
 	// The probe rounds run unconstrained first: each rejecting probe teaches
 	// the competing card (Strong Fixture, which the replay bot casts instead
 	// of the observed Weak Fixture) into the exclusion store, and the frozen
-	// sampling phase that follows is accepted attempt after attempt. The
-	// structure is 2 probe rounds x 4 probes (the second round, holding the
-	// exclusion, accepts and teaches nothing) plus the remaining 16 attempts
-	// under the frozen store, so exactly 16 worlds can be accepted.
+	// sampling phase that follows is accepted attempt after attempt. At 24
+	// attempts the adaptive probe budget is still the historical 2x4 floor,
+	// and the second round -- holding the exclusion, accepting every probe
+	// and teaching nothing -- is the teach-nothing exit, so its 4 accepted
+	// probes join the pool beside the remaining 16 frozen attempts: exactly
+	// 24-4 = 20 worlds. (Before the final-round keep rule this pin was
+	// Attempts-8: the teach-nothing round's probes were dropped even though
+	// they were proposed under the final store.)
 	if result.CompetitionExclusions == 0 || result.HandToStackCauses.PolicyCompetition == 0 {
 		t.Fatalf("fixture never produced a policy competition: excl=%d causes=%+v", result.CompetitionExclusions, result.HandToStackCauses)
 	}
 	if result.CompetitionExclusions > 4 || result.CompetitionUnguided != 0 || result.CompetitionResidual != 0 {
 		t.Fatalf("unexpected teaching shape: excl=%d unguided=%d residual=%d", result.CompetitionExclusions, result.CompetitionUnguided, result.CompetitionResidual)
 	}
-	if result.Accepted != result.Attempts-8 {
-		t.Fatalf("frozen sampling phase did not recover its attempts: accepted=%d attempts=%d excl=%d unguided=%d rejected=%d first=%s",
+	if result.Accepted != result.Attempts-4 {
+		t.Fatalf("probe keep + frozen sampling did not recover its attempts: accepted=%d attempts=%d excl=%d unguided=%d rejected=%d first=%s",
 			result.Accepted, result.Attempts, result.CompetitionExclusions, result.CompetitionUnguided, result.PrefixRejected, result.FirstRejection)
 	}
 	// The observed cast must never be reproduced by a world that also holds
@@ -146,6 +150,41 @@ func TestSamplerCompetitionExclusionKeepsPreferredCardOutOfHand(t *testing.T) {
 			if o.Card.Faces[0].Name == "Strong Fixture" {
 				t.Fatal("accepted world put the preferred card in the opponent hand before the observed cast")
 			}
+		}
+	}
+}
+
+// TestSamplerCompetitionTinyBudgetKeepsAWorld pins the sampling-phase
+// reserve plus the final-round keep rule at a budget too small for the
+// historical structure: with Attempts=6 the probes spend at most 5 attempts
+// (the last is reserved for the frozen phase), so the frozen loop always
+// runs at least once, and the final round's accepted probes join the pool --
+// today's pre-reserve sampler returned zero worlds at this budget when the
+// store grew. MinESS 1 mirrors the teacher's thin-pool contract; the default
+// calibration gate (ESS >= Worlds) could not be met by a 2-world pool.
+func TestSamplerCompetitionTinyBudgetKeepsAWorld(t *testing.T) {
+	setup, h := competitionHistory(t)
+	result, err := Sample(setup, h, SampleOptions{Seed: 4242, Attempts: 6, Worlds: 1, MinESS: 1, MaxSubmits: 500})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Accepted < 1 || len(result.Worlds) < 1 {
+		t.Fatalf("tiny budget sampled nothing: accepted=%d worlds=%d excl=%d rejected=%d",
+			result.Accepted, len(result.Worlds), result.CompetitionExclusions, result.PrefixRejected)
+	}
+	if result.CompetitionExclusions == 0 {
+		t.Fatalf("tiny budget never learned an exclusion: causes=%+v", result.HandToStackCauses)
+	}
+}
+
+// TestProbeAttemptBudget pins the adaptive probe-cap arithmetic: the 2x4
+// historical floor holds for small budgets, and larger budgets spend a
+// quarter of their attempts probing (24 stays at the floor because 24/4 = 6
+// < 8, so the existing fixture shapes keep today's structure).
+func TestProbeAttemptBudget(t *testing.T) {
+	for attempts, want := range map[int]int{1: 8, 7: 8, 8: 8, 24: 8, 31: 8, 32: 8, 33: 8, 128: 32, 512: 128} {
+		if got := probeAttemptBudget(attempts); got != want {
+			t.Fatalf("probeAttemptBudget(%d) = %d, want %d", attempts, got, want)
 		}
 	}
 }

@@ -135,6 +135,22 @@ func Apply(g *state.Game, e Event) {
 		// the kept results, Counter the ignored count the replacement wrote)
 		// and replay re-derives the same rolls from the seeded rng.
 
+	case Explore:
+		// The explore record (CR 701.35a, task explore1) is a pure marker,
+		// exactly like PlanarRoll: the explore's own state changes (the
+		// revealed card's move, the +1/+1 counter on the explorer) are their
+		// own MoveZone/CounterChange events that preceded this one, and the
+		// record is what trig:Explores matches. Obj the explorer, Player its
+		// controller, IDs[0] the revealed card, Amount 1 = land (went to
+		// hand) / 0 = nonland (counter put; card back on top or graveyard).
+
+	case Investigate:
+		// The investigate record (CR 701.36a, task investtrig1) is a pure
+		// marker, exactly like Explore: the investigate's own state change
+		// (the Clue token mint) is its own TokenCreate event that preceded
+		// this one, and the record is what trig:Investigated matches. Player
+		// is the investigating seat, Obj the resolving source permanent.
+
 	case Pair:
 		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
 		// IDs[0] its chosen partner; both fields are set reciprocally when
@@ -215,6 +231,15 @@ func Apply(g *state.Game, e Event) {
 			g.Monarch, g.HasMonarch = e.Player, true
 		}
 
+	case BlessingChange:
+		// CR 702.131: the city's blessing is a one-way latch ("for the rest
+		// of the game"); the grant's ten-permanents gate is the EMITTER's
+		// (rules/ascend.go), so Apply folds the bit plainly. Idempotent by
+		// construction -- the emitter only emits for an unblessed seat.
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].Blessing = true
+		}
+
 	case StartingPlayerChange:
 		if validPlayer(g, e.Player) {
 			g.StartingPlayer, g.HasStartingPlayer = e.Player, true
@@ -223,6 +248,17 @@ func Apply(g *state.Game, e Event) {
 	case ControlChange:
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {
+				// CR 701.54b: a Ring-bearer designation ends "until another
+				// player gains control of it" — the old controller is still
+				// on o.Controller here, so the seat losing the designation is
+				// the one naming the object that is not the new controller.
+				// (The new controller gaining control of their OWN bearer is
+				// not a change of controller for the designation and keeps it.)
+				for i := range g.Players {
+					if g.Players[i].RingBearer == o.ID && state.PlayerID(i) != e.Player {
+						g.Players[i].RingBearer = 0
+					}
+				}
 				changeControl(g, o, e.Player)
 				// An AsLongAsControl goad ends the moment its controller
 				// condition fails; pruning here keeps a later return of
@@ -499,14 +535,67 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case RingTemptsYou:
+		// One "the Ring tempts you" action (CR 701.54a): the count rises by
+		// one and the designated permanent becomes (or stays) this seat's
+		// Ring-bearer. An impossible bearer choice (no creature controlled)
+		// carries Obj 0 and still counts — CR 701.54d: the "Whenever the Ring
+		// tempts you" trigger fires when the actions complete even if some
+		// were impossible.
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].RingTempted++
+			g.Players[e.Player].RingBearer = e.Obj
+		}
+
+	case RingEmblemPush:
+		// One of the Ring emblem's four level abilities (CR 701.54c) being
+		// put on the stack. The ability is minted HERE, inside Apply, so a
+		// log-only replay creates the exact same object a live game did
+		// (Ruling T20-a, the KeywordTriggerPush precedent): the emblem has
+		// no object in any zone, so TriggerPush's face-index derivation
+		// cannot carry it and the "__ring:<level>" payload rebuilds the
+		// ability structurally from the event text alone.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		level := int(e.Amount)
+		if rest, ok := strings.CutPrefix(e.Counter, "__ring:"); ok {
+			if n, err := strconv.Atoi(rest); err == nil {
+				level = n
+			}
+		}
+		sa := ringEmblemAbility(level)
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		// The emblem is not an object, so there is no Source to carry: the
+		// hand-built bodies read only their controller (Defined$ You /
+		// Opponent) and the live Ring-bearer designation
+		// (Card.IsRingbearer+YouCtrl). A zero Source makes
+		// findTriggerForAbility false, so no intervening-if recheck and no
+		// OptionalDecider read runs on it -- exactly the mandatory shape
+		// CR 701.54c's "whenever" abilities are.
+		o.Source = 0
+		o.Remembered = rememberedFrom(e.IDs)
+
 	case MoveZone, Draw, PutOnStack:
 		// CR 733.1 reverses a proposed cast with a real logged stack->origin
 		// move. Preserve the entry history that preceded its stack proposal in
 		// transient object state: a log-only replay sees the same PutOnStack,
 		// captures the same fields and consumes them on the reverse move.
 		wasStack := false
+		// The object's REAL pre-move zone, not Event.From: Move itself treats
+		// From as advisory (a malformed caller-supplied From must not corrupt
+		// state), and the Ring-bearer clear below must follow the same rule --
+		// otherwise a blob return/re-entry reusing the same ObjID could keep a
+		// stale designation.
+		wasBattlefield := false
 		if o := g.Obj(e.Obj); o != nil {
 			wasStack = o.Zone == state.ZStack
+			wasBattlefield = o.Zone == state.ZBattlefield
 			if e.To == state.ZStack {
 				o.PreStackEntryThisTurn = o.EnteredThisTurn
 				o.PreStackEntryFrom = o.EnteredFrom
@@ -514,18 +603,35 @@ func Apply(g *state.Game, e Event) {
 				o.HasPreStackEntry = true
 			}
 		}
-		// A manifest's face-down entry (CR 708.5) must be visible INSIDE the
-		// Move below: Move's battlefield-entry grants read it (a manifested
-		// planeswalker enters as a 2/2 creature with no loyalty grant, a
-		// manifested Saga with no lore counter -- while face down it is
-		// neither), so the marker folds onto the object before the move and
+		// A manifest's or cloak's face-down entry (CR 708.5) must be visible
+		// INSIDE the Move below: Move's battlefield-entry grants read it (a
+		// manifested planeswalker enters as a 2/2 creature with no loyalty
+		// grant, a manifested Saga with no lore counter -- while face down it
+		// is neither), so the marker folds onto the object before the move and
 		// is re-asserted after it. A Counter value on the existing MoveZone
-		// decode: no new event kind, no Event field change.
-		manifesting := e.Kind == MoveZone && e.To == state.ZBattlefield &&
-			e.Counter == "entered_face_down"
+		// decode: no new event kind, no Event field change. The same marker
+		// carries a ChangeZone FaceDown$ True entry's folded set type and
+		// power/toughness (FaceDownSetType$/FaceDownPower$/FaceDownToughness$)
+		// as an optional Counter payload; the bare marker is CR 708.5's plain
+		// 2/2 creature. Cloak shares the face-down entry with a second Counter
+		// value; only the cloak marker sets Cloaked, the state rules/layers.go
+		// and trigger_match.go read for the ward {2}.
+		setType, fdPower, fdTough, fdHasPT, manifesting := "", int32(0), int32(0), false, false
+		if e.Kind == MoveZone && e.To == state.ZBattlefield {
+			if e.Counter == "entered_cloaked" {
+				manifesting = true
+			} else {
+				setType, fdPower, fdTough, fdHasPT, manifesting = FaceDownEntryFields(e.Counter)
+			}
+		}
 		if manifesting {
 			if o := g.Obj(e.Obj); o != nil {
 				o.FaceDown = true
+				o.Cloaked = e.Counter == "entered_cloaked"
+				o.FaceDownSetType = setType
+				o.FaceDownPower = fdPower
+				o.FaceDownToughness = fdTough
+				o.FaceDownHasPT = fdHasPT
 			}
 		}
 		Move(g, e.Obj, e.From, e.To)
@@ -537,6 +643,13 @@ func Apply(g *state.Game, e Event) {
 					// rides in Amount, and FaceDown is state so a later projection
 					// knows not to reveal the card.
 					o.ExiledWith = state.ObjID(e.Amount)
+					o.FaceDown = true
+				case "face_down":
+					// A bare ChangeZone FaceDown$ True exile (Tezzeret's
+					// Reckoning): the card is put into exile face down WITHOUT
+					// claiming an ExiledWith association -- the line never named
+					// an exiling source, so none is invented. The default branch's
+					// own ExiledWith handling below is deliberately bypassed.
 					o.FaceDown = true
 				case "exiled_with":
 					o.ExiledWith = state.ObjID(e.Amount)
@@ -554,12 +667,17 @@ func Apply(g *state.Game, e Event) {
 					o.FaceDown = false
 				}
 			} else if manifesting {
-				// CR 708.5: the manifested card stays state-face-down while it
-				// is on the battlefield (the view redacts it to everyone but
-				// its controller); leaving the battlefield clears it (CR 708.9)
+				// CR 708.5: the manifested or cloaked card stays state-face-down
+				// while it is on the battlefield (the view redacts it to everyone
+				// but its controller); leaving the battlefield clears it (CR 708.9)
 				// through Move's own leave reset and the default branch.
 				o.ExiledWith = 0
 				o.FaceDown = true
+				o.FaceDownSetType = setType
+				o.FaceDownPower = fdPower
+				o.FaceDownToughness = fdTough
+				o.FaceDownHasPT = fdHasPT
+				o.Cloaked = e.Counter == "entered_cloaked"
 			} else {
 				o.ExiledWith = 0
 				o.FaceDown = false
@@ -583,6 +701,13 @@ func Apply(g *state.Game, e Event) {
 		}
 		// Source-dependent goads end as soon as their source leaves play.
 		pruneGoads(g)
+		// CR 400.7 / 701.54e: a Ring-bearer designation lives on a permanent
+		// and requires the battlefield — the moment the object leaves, every
+		// seat's designation naming it is gone (the next battlefield entry is
+		// a new object and never inherits one).
+		if wasBattlefield && e.To != state.ZBattlefield {
+			clearRingBearers(g, e.Obj)
+		}
 
 	case LifeChange:
 		if validPlayer(g, e.Player) {
@@ -763,22 +888,44 @@ func Apply(g *state.Game, e Event) {
 
 	case ManaAdd:
 		if validPlayer(g, e.Player) {
-			// "S<colour>" (e.g. "SW") is a SNOW mana unit (CR 107.4h): it lands
-			// in the colour's pool slot and is tallied in Player.Snow so a {S}
-			// pip can be paid only from it. One event moves both counters, so
-			// the snow tally can never drift from the pool it parallels.
+			player := &g.Players[e.Player]
+			// One event moves the pool and its parallel producer tally, so a
+			// tally can never drift from the pool it partitions. Three counter
+			// forms exist, and all three land in the colour's pool slot:
+			//
+			//   "S<colour>"       -- a SNOW mana unit (CR 107.4h), tallied in
+			//                        Player.Snow so a {S} pip can be paid only
+			//                        from it. The historical two-char form stays
+			//                        first and exact: recorded games carry it.
+			//   "<Tag><colour>"   -- a TYPED mana unit (task castfilter2),
+			//                        tallied in Player.TypedMana[tag] so the
+			//                        filtered Count$CastTotalManaSpent
+			//                        Treasure/Cave/Desert heads can read how much
+			//                        of a cast's spend came from a producer of
+			//                        that type.
+			//   a bare WUBRGC letter (or the empty default) -- plain pool mana.
 			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
 				idx := state.ManaIndex(e.Counter[1])
-				g.Players[e.Player].Pool[idx] += e.Amount
-				g.Players[e.Player].Snow[idx] += e.Amount
-				break
+				player.Pool[idx] += e.Amount
+				player.Snow[idx] += e.Amount
+			} else if tag, slot, ok := state.TypedManaCounter(e.Counter); ok {
+				player.Pool[slot] += e.Amount
+				player.TypedMana[tag][slot] += e.Amount
+			} else {
+				idx := state.MC
+				if e.Counter != "" {
+					idx = state.ManaIndex(e.Counter[0])
+				}
+				player.Pool[idx] += e.Amount
 			}
-			idx := state.MC
-			if e.Counter != "" {
-				idx = state.ManaIndex(e.Counter[0])
-			}
-			player := &g.Players[e.Player]
-			player.Pool[idx] += e.Amount
+			// The RestrictValid$/AddsNoCounter$ provenance is registered for
+			// EVERY counter form, never only a plain one: a tagged restricted
+			// unit (Echoing Cavern's Cave mana, Sunken Citadel's, Bucolic
+			// Ranch's) keeps its restriction exactly like a plain one, and the
+			// matching spend event (which carries r.Color verbatim) consumes
+			// it here. Registering before the pool write would be equivalent
+			// for the ADD path; the consume path needs the batch list, which
+			// this block owns.
 			if valid, srcID, cond, restricted := ManaRestrictionFromText(e.Text); restricted {
 				if e.Amount > 0 {
 					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
@@ -818,6 +965,7 @@ func Apply(g *state.Game, e Event) {
 			g.Players[e.Player].Pool = state.Mana{}
 			g.Players[e.Player].RestrictedMana = nil
 			g.Players[e.Player].Snow = state.Mana{}
+			g.Players[e.Player].TypedMana = [3]state.Mana{}
 		}
 
 	case CounterChange:
@@ -851,6 +999,24 @@ func Apply(g *state.Game, e Event) {
 				continue
 			}
 			a.BlockedBy = append(a.BlockedBy, pr[1])
+		}
+
+	case CombatRetarget:
+		// api:ChangeCombatants's reselect (Misleading Signpost, Portal Mage,
+		// Windshaper Planetar): the attack moves, nothing else. Obj is the
+		// attacker, Player the NEW defender. Deliberately narrower than
+		// DeclareAttackers (which must not be reused here -- its Apply case
+		// increments AttacksThisTurn and would refire every Attacks trigger on
+		// a reselect, and TokenAttacks taps too): IsAttacking is already true
+		// and stays true, only the defender and the block list move. The same
+		// defensive shape as DeclareAttackers' own case: the defender must be
+		// a valid seat, still in the game, and the attacker still on the
+		// battlefield and actually attacking -- anything else (a gone
+		// attacker, a fuzz event) is a no-op.
+		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && o.IsAttacking &&
+			validPlayer(g, e.Player) && !g.Players[e.Player].Lost {
+			o.Attacking = e.Player
+			o.BlockedBy = nil
 		}
 
 	case PlayerLost:
@@ -1049,13 +1215,45 @@ func Apply(g *state.Game, e Event) {
 			// TRAILING pay-time CastInfo (rules/cast.go's payCast), so a
 			// carrier that pairs {X} with the read (none measured) keeps the
 			// two on separate events.
+			// Conspire (CR 702.78a) is a BOOL fold, not an amount: it is set
+			// whenever the resolved cast's pay-time CastInfo carries
+			// FlagConspired, whatever other tags ride the same event. Folded
+			// OUTSIDE the exclusive switch below so a later event carrying the
+			// flag (each later event accumulates all earlier flags) cannot
+			// steal that event's Amount from its own routing case.
+			if FlagsFrom(e.Counter)&state.FlagConspired != 0 {
+				o.Conspired = true
+			}
 			switch {
+			// Conspire's Amount is a marker, never data: the bool was folded
+			// above, and the flag rides a LOCAL counter at the emission site
+			// (rules/cast.go's payCast never ORs FlagConspired into the
+			// accumulating flags), so no later CastInfo carries it and this
+			// arm's position in the newest-flag-first ordering is
+			// order-independent. The arm exists to CONSUME the Amount: without
+			// it the event fell through to default and wrote o.X = 1 onto every
+			// conspired cast (and StackCopy propagated that onto its copies).
+			case FlagsFrom(e.Counter)&state.FlagConspired != 0:
+				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
 				o.ConvergeColours = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
 				o.ReplicateTimes = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
 				o.TimesKicked = e.Amount
+			// One CastInfo per captured total, each LATER event carrying ALL
+			// earlier flags (payCast's flags |= accumulation), so this switch
+			// checks the NEWEST flag first -- the reverse of the emission
+			// order -- or every later event would route into the first tag's
+			// field: Desert, Cave, Treasure, then Snow, then the total.
+			case FlagsFrom(e.Counter)&state.FlagManaDesertSpent != 0:
+				o.ManaDesertSpent = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaCaveSpent != 0:
+				o.ManaCaveSpent = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaTreasureSpent != 0:
+				o.ManaTreasureSpent = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagManaSnowSpent != 0:
+				o.ManaSnowSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaSpent != 0:
 				o.ManaSpent = e.Amount
 			default:
@@ -1235,6 +1433,64 @@ func Apply(g *state.Game, e Event) {
 			o.IsMyriad = true
 		}
 
+	case ClonePermanent:
+		// CR 613.1a's layer-1 copy basis (DB$ Clone, api:Clone). Obj is the
+		// object that becomes the copy and IDs[0] the object copied from; an
+		// empty or zero id CLEARS the basis. The synthetic face is a value
+		// copy of the source's PRINTED face taken here, inside Apply, so a
+		// replay derives the identical characteristics from the same event.
+		// Modifier parameters (AddTypes$/SetColor$/AddKeywords$/SetPower$/
+		// SetToughness$/RemoveCardTypes$/RemoveCreatureTypes$) are separate
+		// layer-4/5/6/7 continuous effects the primitive registered; they are
+		// deliberately NOT folded into this face, so the CR 613 layer walk
+		// stays the one place exceptions settle. NewName$ rides Text and the
+		// GainThisAbility$ rider rides Counter.
+		o := g.Obj(e.Obj)
+		if o == nil {
+			break
+		}
+		if len(e.IDs) == 0 || e.IDs[0] == 0 {
+			o.CopyFace = nil
+			o.CopyGainThisAbility = false
+			break
+		}
+		src := g.Obj(e.IDs[0])
+		if src == nil || src.Face() == nil {
+			break
+		}
+		sf := *src.Face()
+		if e.Text != "" {
+			sf.Name = e.Text
+		}
+		// GainThisAbility$ True: "...except it has this ability" (Lazav,
+		// Vesuvan Doppelganger). The original object's own abilities and SVar
+		// table are appended/merged onto the copied face so the ability that
+		// produced the copy survives it. Appending the original face's whole
+		// ability list is the structural approximation recorded in AGENTS.md:
+		// for the corpus's clone carriers the clone ability IS the card's only
+		// other ability, so this is exact for them.
+		if e.Counter == "gain-this-ability" {
+			if of := o.Face(); of != nil {
+				if len(of.Abilities) > 0 {
+					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities...)
+				}
+				if len(of.SVars) > 0 {
+					merged := make(map[string]string, len(sf.SVars)+len(of.SVars))
+					for k, v := range sf.SVars {
+						merged[k] = v
+					}
+					for k, v := range of.SVars {
+						merged[k] = v
+					}
+					sf.SVars = merged
+				}
+			}
+			o.CopyGainThisAbility = true
+		} else {
+			o.CopyGainThisAbility = false
+		}
+		o.CopyFace = &sf
+
 	case Exert:
 		// CR 702.100's fold (task exert1). Amount >= 0 is the exert itself:
 		// both lifetimes stamp here -- ExertedThisTurn (the per-turn fact the
@@ -1390,12 +1646,17 @@ func Apply(g *state.Game, e Event) {
 		}
 		src := g.Obj(e.Obj)
 		// Dash and Warp refer to the exact permanent that received their
-		// keyword promise. Encore's grouped delayed trigger does not: CR
+		// keyword promise, and so does the AtEOT$ end-of-turn rider family
+		// (effects/atEOTBody reuses the warp body for Exile and mints its
+		// own __kwAtEOTDestroy for Destroy): a copy that left the battlefield
+		// and returned as a new incarnation is NOT acted on by the stale
+		// promise. Encore's grouped delayed trigger does not: CR
 		// 603.7 leaves it independent of the card that created it, and it
 		// must sacrifice its remembered token group even if that card later
 		// changes zones and returns as a new incarnation.
 		track := strings.HasPrefix(e.Counter, "__kwDash") ||
-			strings.HasPrefix(e.Counter, "__kwWarp")
+			strings.HasPrefix(e.Counter, "__kwWarp") ||
+			strings.HasPrefix(e.Counter, "__kwAtEOT")
 		// Event-matched (non-phase) registrations encode
 		// "<Mode$ value>:<trigger SVar name>" in Text. The DelayedRegister
 		// event gains no field of its own (Ruling T20-a's field-reuse
@@ -1567,13 +1828,22 @@ func Apply(g *state.Game, e Event) {
 		// minted here, inside Apply, so a log-only replay creates the same
 		// object a live game did. Like DelayedPush the Ability is not a face
 		// Triggers index: it is the granted trigger's Execute$ SVar-named
-		// body, resolved from the AFFECTED object's own SVar table. Rules'
-		// queue walk only queues a grant whose Execute$ body that table
-		// resolves to the exact body the granting face's table names (the
-		// self-grant shape -- Hearthhull grants its own trigger to itself),
-		// so this resolution reproduces the queue's SA. No registration is
-		// consumed: a granted trigger is fired by nothing and lives exactly
-		// as long as its granting static.
+		// body. The body lives on the GRANTOR's face (Forge defines the
+		// AddTrigger$-named SVar on the card carrying the static), while Obj
+		// is the AFFECTED recipient -- the two differ for a cross-object
+		// grant (an Aura granting its enchanted creature a trigger). The
+		// grantor rides Amount (0 = the historical self-grant shape, where
+		// grantor == recipient and the AFFECTED table is the right one):
+		// when set, the name resolves from the grantor's table -- the exact
+		// table rules' queue gate linked the body from -- else from the
+		// affected object's own table (the self-grant path, byte-identical
+		// for every already-logged event). A grantor that has left the
+		// battlefield, or whose face no longer resolves the name, mints
+		// nothing (the totality stance every SVar resolution takes).
+		// o.Source stays e.Obj: a granted body's `Defined$ Self`/`CARDNAME`
+		// names the recipient. No registration is consumed: a granted
+		// trigger is fired by nothing and lives exactly as long as its
+		// granting static.
 		if !validPlayer(g, e.Player) {
 			break
 		}
@@ -1581,7 +1851,15 @@ func Apply(g *state.Game, e Event) {
 		if src == nil || src.Face() == nil {
 			break
 		}
-		sa := resolveSVarAcrossFaces(src, e.Counter)
+		resolver := src
+		if e.Amount > 0 {
+			if grantor := g.Obj(state.ObjID(e.Amount)); grantor != nil && grantor.Face() != nil {
+				resolver = grantor
+			} else {
+				break
+			}
+		}
+		sa := resolveSVarAcrossFaces(resolver, e.Counter)
 		if sa == nil {
 			break
 		}
@@ -1590,6 +1868,42 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.Source = e.Obj
 		o.Remembered = rememberedFrom(e.IDs)
+
+	case GrantAbilityPush:
+		// A cross-object ability grant (CR 613.1f): the granting static's
+		// SOURCE resolves the SVar body (Counter), while the minted ability
+		// object's Source is the RECIPIENT (Obj). The DelayedPush/
+		// GrantTriggerPush precedent -- mint inside Apply so a log-only
+		// replay creates the identical object. IDs[0] is the granting
+		// object, carried here rather than on Obj because Obj must stay the
+		// recipient; it is NOT decoded into Remembered (the ability's
+		// Remembered set is unrelated to who granted it). A grantor that
+		// has left the battlefield, or whose face no longer resolves the
+		// name, mints nothing (the totality stance every SVar resolution
+		// takes). No registration is consumed: unlike a delayed trigger a
+		// grant lives exactly as long as its granting static, and rules
+		// re-derives the offer each priority window.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		if len(e.IDs) == 0 {
+			break
+		}
+		grantor := g.Obj(e.IDs[0])
+		if grantor == nil || grantor.Face() == nil {
+			break
+		}
+		if g.Obj(e.Obj) == nil {
+			break
+		}
+		sa := resolveSVarAcrossFaces(grantor, e.Counter)
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
 
 	case CmdDamage:
 		// Commander combat damage to a player (CR 903.10, Task m33): fold
@@ -1656,6 +1970,56 @@ func rememberedFrom(ids []state.ObjID) []state.Target {
 		out = append(out, state.Target{Obj: id})
 	}
 	return out
+}
+
+// ringEmblemAbility rebuilds one of the Ring emblem's four level abilities
+// (CR 701.54c) from its level alone. The emblem has no corpus script text
+// and no object in any zone, so these bodies are hand-built here in events,
+// exactly as the granted ward/afflict payloads (KeywordTriggerPush) are:
+// Apply rebuilds from the "__ring:<level>" payload so a log-only replay
+// mints the identical ability object a live game did. Level N is active iff
+// the tempted seat's RingTempted >= N; lower levels stay active as the count
+// rises (the emitter gates, this function only builds).
+//
+//  1. "Whenever your Ring-bearer attacks, draw a card."
+//  2. "Whenever your Ring-bearer becomes blocked, discard a card. If you
+//     can't, sacrifice it." The discard is TgtChoose (the discarding
+//     player's own choice); its RememberDiscarded$ records what (if
+//     anything) went, and the chained Sacrifice is gated on that set being
+//     EMPTY (ConditionDefined$ Remembered | ConditionPresent$ Card |
+//     ConditionCompare$ EQ0) -- the corpus's exact "if you can't" shape
+//     (Davriel, Soul Broker). effDiscard's strict-supersets rule means an
+//     empty or too-small hand discards nothing and asks nothing, which IS
+//     the "can't" arm.
+//  3. "Whenever your Ring-bearer deals combat damage to a player,
+//     sacrifice it." The SacValid$ reads the LIVE designation, so a bearer
+//     already dead from the combat damage leaves nothing eligible: no ask,
+//     no-op ("sacrifice it" of something that no longer exists).
+//  4. "Whenever the Ring tempts you, each opponent loses 1 life."
+func ringEmblemAbility(level int) *cards.SA {
+	switch level {
+	case 1:
+		return &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
+			"Defined": "You",
+		}}
+	case 2:
+		sac := &cards.SA{Kind: "DB", API: "Sacrifice", Params: map[string]string{
+			"Defined": "You", "SacValid": "Card.IsRingbearer+YouCtrl", "Amount": "1",
+			"ConditionDefined": "Remembered", "ConditionPresent": "Card", "ConditionCompare": "EQ0",
+		}}
+		return &cards.SA{Kind: "DB", API: "Discard", Params: map[string]string{
+			"Defined": "You", "NumCards": "1", "Mode": "TgtChoose", "RememberDiscarded": "True",
+		}, Sub: sac}
+	case 3:
+		return &cards.SA{Kind: "DB", API: "Sacrifice", Params: map[string]string{
+			"Defined": "You", "SacValid": "Card.IsRingbearer+YouCtrl", "Amount": "1",
+		}}
+	case 4:
+		return &cards.SA{Kind: "DB", API: "LoseLife", Params: map[string]string{
+			"Defined": "Opponent", "LifeAmount": "1",
+		}}
+	}
+	return nil
 }
 
 // Move relocates an object between zones, preserving zone order and the
@@ -1793,10 +2157,11 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// here inside Apply keeps a log-only replay byte-identical with no
 		// new event. IsCopy is cleared at the same point: a resolved
 		// permanent copy is a token, not a CR 707.10h "copy that left the
-		// stack", and Ephemeral() treats ANY IsCopy object as
-		// ceased-to-exist regardless of zone -- without the clear the token
-		// would be skipped by every zone projection (view.cardViews,
-		// botpolicy combat) even though effects/filter.go's zone-aware
+		// stack" (the clear also keeps the cast-provenance readers, which
+		// gate on !IsCopy, reading a battlefield copy as never-cast). Note
+		// this clear is NOT what makes the resolved copy visible any more:
+		// state.Object.Ephemeral's IsCopy half is zone-aware and would show
+		// a battlefield copy regardless, and effects/filter.go's zone-aware
 		// CR 707.10h guard already matched it as a real permanent. A copy of
 		// an instant/sorcery never enters the battlefield, so its IsCopy and
 		// its exile rest zone are untouched.
@@ -1880,8 +2245,20 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.IntrinsicKeywords = nil
 		o.ExiledWith = 0
 		o.FaceDown = false
+		o.FaceDownSetType = ""
+		o.FaceDownPower = 0
+		o.FaceDownToughness = 0
+		o.FaceDownHasPT = false
+		o.Cloaked = false
 		o.RiotChoice = ""
 		o.IsMyriad = false
+		// CR 400.7: leaving the battlefield makes the object a new object, so
+		// a layer-1 copy effect does not follow it. The ClonePermanent basis
+		// is battlefield-only state and is cleared here (its continuous-effect
+		// bookkeeping is dropped by active()/cleanup, since the effect's
+		// source -- this same object -- is no longer on the battlefield).
+		o.CopyFace = nil
+		o.CopyGainThisAbility = false
 		o.Paired = 0
 		o.Targets = nil
 		// o.Remembered is deliberately NOT reset here: a card's remembered
@@ -1909,7 +2286,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
+			o.Conspired = false
 			o.ManaSpent = 0
+			o.ManaSnowSpent = 0
+			o.ManaTreasureSpent = 0
+			o.ManaCaveSpent = 0
+			o.ManaDesertSpent = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.LastNotedMana = ""
@@ -1934,7 +2316,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
+			o.Conspired = false
 			o.ManaSpent = 0
+			o.ManaSnowSpent = 0
+			o.ManaTreasureSpent = 0
+			o.ManaCaveSpent = 0
+			o.ManaDesertSpent = 0
 			o.NotedNumber = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
@@ -2038,6 +2425,21 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 // validPlayer reports whether p indexes an existing seat.
 func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
+}
+
+// clearRingBearers drops every seat's Ring-bearer designation naming id
+// (CR 701.54b/701.54e: the designation ends when the permanent leaves the
+// battlefield or another player gains control of it — the derived clear
+// events.Apply's ControlChange and battlefield-leave paths share).
+func clearRingBearers(g *state.Game, id state.ObjID) {
+	if id == 0 {
+		return
+	}
+	for i := range g.Players {
+		if g.Players[i].RingBearer == id {
+			g.Players[i].RingBearer = 0
+		}
+	}
 }
 
 // expireTurnGoads drops only default-duration relationships made by p.

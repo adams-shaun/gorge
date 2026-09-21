@@ -95,6 +95,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerPlayer = player(p)
 			c.TriggerAmount = amount
 		}
+	case "LifeGained":
+		// The gaining player and the gained magnitude: TriggerCount$LifeAmount
+		// (Prize Pig's CounterNum$ Y) reads both off this context.
+		if ev.Kind == events.LifeChange && ev.Amount > 0 && int(ev.Player) >= 0 && int(ev.Player) < len(e.G.Players) {
+			c.TriggerPlayer = player(ev.Player)
+			c.TriggerAmount = ev.Amount
+		}
 	case "SpellCast", "AbilityCast", "SpellAbilityCast":
 		c.TriggerCard = ev.Obj
 		c.TriggerSource = e.protectionSource(ev.Obj)
@@ -134,6 +141,23 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		}
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
+	case "Explores":
+		// The explore record's roles (task explore1): TriggerCard is the
+		// EXPLORER (what ValidCard$ matched), the same ChangesZone read.
+		// The revealed card rode the record's IDs, but every corpus body
+		// reads the trigger's own source or asks its own targets, so no
+		// separate referent field is minted for it.
+		c.TriggerCard = ev.Obj
+	case "Exerted":
+		// The Exert event names the exerted permanent (ev.Obj) and its
+		// controller at exert time (ev.Player). TriggerCard is the exerted
+		// permanent, so TriggeredCard/TriggeredCardLKICopy resolve against it
+		// (Rohirrim Chargers' AttachedTo$ TriggeredCardLKICopy rider and the
+		// general "that creature" spelling). triggerRemembered already seeds
+		// Remembered with ev.Obj for any non-zero ev.Obj, so this adds the
+		// dedicated role without changing the Remembered list.
+		c.TriggerCard = ev.Obj
+		c.TriggerPlayer = player(ev.Player)
 	case "TapsForMana":
 		// The ManaAdd event names the activating player, producing permanent,
 		// produced type and amount without overloading Remembered. This mode's

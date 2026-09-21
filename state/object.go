@@ -1,6 +1,10 @@
 package state
 
-import "github.com/adams-shaun/gorge/cards"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/cards"
+)
 
 // Counter is one counter kind on an object. A slice, not a map: it clones by
 // copy and iterates in a fixed order.
@@ -152,6 +156,55 @@ const (
 	// emits the event, so every unrelated cast stays byte-identical.
 	// Appended per the enum's own append-only precedent.
 	FlagManaSpent
+	// FlagManaSnowSpent marks a cast whose pay-time CastInfo carries the
+	// SNOW-unit part of the total mana spent to cast it (CR 107.4h; task
+	// castfilter1's filtered Count$CastTotalManaSpent Snow capture, the
+	// FlagManaSpent pattern: the flag routes the Amount into
+	// Object.ManaSnowSpent instead of overwriting X or the unfiltered
+	// total). It rides its own trailing pay-time CastInfo immediately after
+	// FlagManaSpent's, so the two totals never share an event. Appended per
+	// the enum's own append-only precedent.
+	FlagManaSnowSpent
+	// FlagManaTreasureSpent / FlagManaCaveSpent / FlagManaDesertSpent mark a
+	// cast whose pay-time CastInfo carries the TREASURE-/CAVE-/DESERT-sourced
+	// part of the total mana spent to cast it (task castfilter2's filtered
+	// Count$CastTotalManaSpent <Type> captures, the FlagManaSnowSpent
+	// pattern: the flag routes the Amount into its Object field instead of
+	// overwriting X, the total or an earlier tag). Each rides its OWN
+	// trailing pay-time CastInfo immediately after the previous tag's, so
+	// the four totals never share an event, and events.Apply's CastInfo
+	// switch checks the NEWEST flag first (Desert, Cave, Treasure, then
+	// Snow, then the total) because the emission order is total, snow,
+	// Treasure, Cave, Desert and every later event carries all earlier
+	// flags. Appended per the enum's own append-only precedent.
+	FlagManaTreasureSpent
+	FlagManaCaveSpent
+	FlagManaDesertSpent
+	// FlagReplaceGraveyard marks a cast begun by a DB$ Play SA whose
+	// ReplaceGraveyard$ Exile rider says the played spell must not rest in
+	// the graveyard: "If that spell would be put into your graveyard this
+	// turn, exile it instead" (Goblin Dark-Dwellers). The provenance of a
+	// Play SA is cast-time (task replplay1), so the bit ORs into the same
+	// pay-time CastInfo every other mode flag rides, and the resolution
+	// reader spellRestZone (and the fizzle reader spellFizzleZone) uses it
+	// to send the played card to exile. Appended per the enum's own
+	// append-only precedent.
+	FlagReplaceGraveyard
+	// FlagAftermath marks a cast of a Split card's Aftermath alternate face
+	// from the graveyard (CR 702.85a; the Flashback convention): the flag is
+	// what the resolution reader (spellRestZone) and the fizzle reader
+	// (spellFizzleZone) read to exile the card instead of the graveyard,
+	// both on resolution and when countered. Appended per the enum's own
+	// append-only precedent.
+	FlagAftermath
+	// FlagConspired marks a cast whose Conspire tap (CR 702.78a) was
+	// actually paid: as the spell was cast, two untapped creatures the
+	// caster controlled that shared a colour with it were tapped. The flag
+	// is the provenance the Conspire keyword expansion's copy trigger reads
+	// through Count$Conspired, so a DECLINED/plain cast (no tap paid) emits
+	// no flag and resolves exactly like the plain cast. Appended per the
+	// enum's own append-only precedent.
+	FlagConspired
 	// FlagMutated marks a spell cast for its Mutate cost (CR 702.140a). It is
 	// the provenance rules/stack.go's resolution reader uses to merge the
 	// spell's card into its target instead of moving it to the battlefield as
@@ -317,6 +370,13 @@ type Object struct {
 	// events.Move; a COPY of the spell was never kicked and reads 0 (the
 	// same reading Count$ReplicatePaid documents).
 	TimesKicked int32
+	// Conspired is CR 702.78a's provenance that the spell's Conspire tap was
+	// paid as it was cast, carried by the pay-time CastInfo's FlagConspired
+	// (a bool, not a count: Conspire never copies more than once). It rides
+	// the same provenance window as X/CastFlags and resets alongside them in
+	// events.Move; a COPY of the spell was never cast and reads false (the
+	// same reading Count$ReplicatePaid documents).
+	Conspired bool
 	// ManaSpent is the TOTAL mana actually spent to cast the spell (CR
 	// 601.2h's payment -- the spent delta's pips summed over every slot),
 	// carried by the pay-time CastInfo's FlagManaSpent Amount (the
@@ -327,6 +387,35 @@ type Object struct {
 	// alongside them in events.Move; a copy of the spell was never cast and
 	// a cheated-in permanent reads 0.
 	ManaSpent int32
+	// ManaSnowSpent is the SNOW-unit part of ManaSpent: how many of the mana
+	// units the cast's payment spent were produced by a Snow permanent (CR
+	// 107.4h). It is carried by the pay-time CastInfo's FlagManaSnowSpent
+	// Amount (the X-overwrite guard: the flag routes the Amount here instead
+	// of into X), the filtered Count$CastTotalManaSpent Snow head's
+	// provenance. Snow units are consumed alongside their pool slot
+	// (resolveManaWith's parallel tally), so this never exceeds ManaSpent for
+	// the same slot; a cast that spent no snow mana is a real 0. It rides the
+	// same provenance window as ManaSpent and resets alongside it in
+	// events.Move; a copy of the spell was never cast and a cheated-in
+	// permanent reads 0.
+	ManaSnowSpent int32
+	// ManaTreasureSpent / ManaCaveSpent / ManaDesertSpent are the
+	// TREASURE-/CAVE-/DESERT-sourced parts of ManaSpent: how many of the
+	// mana units the cast's payment spent were produced by a permanent of
+	// that type (task castfilter2, the ManaSnowSpent pattern). They are
+	// carried by the pay-time CastInfo's FlagManaTreasureSpent /
+	// FlagManaCaveSpent / FlagManaDesertSpent Amounts (the X-overwrite
+	// guard: each flag routes its Amount here instead of into X, the total
+	// or an earlier tag). Typed units are consumed after plain ones and
+	// before snow (resolveManaWith's takeUnit order), so the typed splits
+	// never exceed ManaSpent for the same slot and never overlap the snow
+	// split; a cast that spent none of a tag is a real 0. They ride the
+	// same provenance window as ManaSpent and reset alongside it in
+	// events.Move; a copy of the spell was never cast and a cheated-in
+	// permanent reads 0.
+	ManaTreasureSpent int32
+	ManaCaveSpent     int32
+	ManaDesertSpent   int32
 	// NotedNumber is the number a trigger's Execute$ body noted onto the
 	// CARD (Lupine Harbingers' T:Mode$ ChangesZone | Destination$ Exile
 	// trigger executing DB$ Pump | NoteNumber$ Count$YourTurns -- the
@@ -432,6 +521,27 @@ type Object struct {
 	// rather than merely a Secret event flag, so later projections know not to
 	// reveal the card to another player.
 	FaceDown bool
+	// Cloaked records the cloak variant of the face-down battlefield entry
+	// (CR 708.5's cloak: a 2/2 creature with ward {2}, turn-face-up cost =
+	// the card's mana cost). It folds from the MoveZone Counter value
+	// "entered_cloaked" exactly as FaceDown folds from "entered_face_down"
+	// -- no new event kind, no Event field change -- and is cleared wherever
+	// FaceDown is (leaving the battlefield; a future turn-face-up path).
+	Cloaked bool
+
+	// FaceDownSetType is the face-down set type a ChangeZone FaceDownSetType$
+	// named (Yedora's "Land & Forest", Missy's "Artifact & Creature &
+	// Cyberman"), stored raw as Forge writes it. Empty means CR 708.5's plain
+	// face: a vanilla 2/2 creature. While FaceDown and on the battlefield it
+	// replaces the synthetic {Creature} type set in the layer-4 derivation.
+	FaceDownSetType string
+	// FaceDownPower/FaceDownToughness and FaceDownHasPT carry the folded
+	// FaceDownPower$/FaceDownToughness$ pair (Magar's 3/3). HasPT reports
+	// whether a pair was named; without it a face-down Creature is CR 708.5's
+	// 2/2 and a non-Creature set type derives 0/0.
+	FaceDownPower     int32
+	FaceDownToughness int32
+	FaceDownHasPT     bool
 
 	// Paired is the permanent this Soulbond creature is paired with (CR 702.103):
 	// a creature its controller may pair it with when either enters an the
@@ -440,10 +550,33 @@ type Object struct {
 	Paired ObjID
 
 	// IsToken and IsCopy mark an object that only ever exists on the stack
-	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
+	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). A token copy
+	// minted by Myriad (CR 702.109) or a "create a token copy" effect
+	// (CR 706.2, DB$ CopyPermanent) carries BOTH and legitimately lives on
+	// the battlefield. See Ephemeral.
 	IsToken  bool
 	IsCopy   bool
 	IsMyriad bool
+
+	// CopyFace is the CR 613.1a copy-effect basis for a permanent that became a
+	// copy of another (DB$ Clone): while non-nil, Face() returns THIS face
+	// instead of the object's own card face, so every read site -- name,
+	// abilities, keywords, types, colours, P/T, mana production -- sees the
+	// copied characteristics with no per-caller plumbing. It is set and cleared
+	// ONLY inside events.Apply (the ClonePermanent fold and Move's
+	// leaves-the-battlefield reset), so a live game and a replay derive it
+	// identically. The clone's modifier parameters (AddTypes$/SetColor$/
+	// AddKeywords$/SetPower$/SetToughness$) are separate layer-4/5/6/7
+	// continuous effects registered by the primitive, so this face stays the
+	// source's PRINTED face and the layer walk applies the exceptions in CR 613
+	// order on top. nil on every object that is not a copy.
+	CopyFace *cards.Face
+	// CopyGainThisAbility records the clone's GainThisAbility$ True rider: the
+	// synthetic CopyFace already carries the ORIGINAL object's abilities (and
+	// SVar table) so the ability that produced the copy survives the copy.
+	// Engine-runtime, rebuilt from the ClonePermanent event on replay like
+	// CopyFace.
+	CopyGainThisAbility bool
 
 	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
 	// room was CAST as is unlocked from entry; DoorUnlock (the unlock
@@ -487,10 +620,94 @@ func (o *Object) BestowedAttached() bool {
 }
 
 func (o *Object) Face() *cards.Face {
+	// CR 613.1a: a copy effect is the FIRST layer, so while one applies the
+	// object's characteristics come from the copied face. Routing it here is
+	// what makes every Face() reader in the tree see the copy by construction
+	// (CR 707.2) rather than each call site having to ask the layer system.
+	if o.CopyFace != nil {
+		return o.CopyFace
+	}
 	if o.Card == nil || int(o.FaceIdx) >= len(o.Card.Faces) {
 		return nil
 	}
 	return o.Card.Faces[o.FaceIdx]
+}
+
+// faceDownEffective reports whether this object's face is currently hidden by
+// CR 708.5: it is FaceDown and on the battlefield. While so, every printed
+// characteristic is replaced by the face-down set.
+func (o *Object) faceDownEffective() bool {
+	return o.FaceDown && o.Zone == ZBattlefield
+}
+
+// FaceDownTypeWords is the effective base type set of a face-down battlefield
+// permanent (CR 708.5): {Creature} when no FaceDownSetType$ was folded, else
+// the set type split on Forge's " & " join. A non-face-down object returns
+// its printed types. It returns a fresh slice so a caller can append to it
+// (the layer-4 walk does) without aliasing stored state.
+func (o *Object) FaceDownTypeWords() []string {
+	if !o.faceDownEffective() {
+		if f := o.Face(); f != nil {
+			return append([]string(nil), f.Types...)
+		}
+		return nil
+	}
+	set := strings.TrimSpace(o.FaceDownSetType)
+	if set == "" {
+		return []string{"Creature"}
+	}
+	parts := strings.Split(set, " & ")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	if len(out) == 0 {
+		return []string{"Creature"}
+	}
+	return out
+}
+
+// EffectiveIsCreature reports whether this object is a creature right now,
+// honouring CR 708.5: while a battlefield object is face down its PRINTED face
+// does not exist, so creature-ness comes from the folded FaceDownSetType$
+// (default Creature). Every printed-face "is this a creature" read that gates
+// a creature rule (combat, the creature SBAs, convoke, protection) must go
+// through here, or a manifested non-creature or a face-down set type that
+// drops Creature reads the wrong answer.
+func (o *Object) EffectiveIsCreature() bool {
+	if o.faceDownEffective() {
+		for _, w := range o.FaceDownTypeWords() {
+			if w == "Creature" {
+				return true
+			}
+		}
+		return false
+	}
+	f := o.Face()
+	return f != nil && f.IsCreature()
+}
+
+// EffectiveIsArtifact reports whether this object is an artifact right now,
+// honouring CR 708.5 like EffectiveIsCreature: while a battlefield object is
+// face down its PRINTED face does not exist, so a manifested or cloaked
+// artifact reads its folded face-down type set (which never names Artifact
+// today, but the fold, not the corpus, decides). The Improvise announcement
+// and its offer-gate credit (rules/cast.go) are the readers; other artifact
+// reads (e.g. the Affinity keyword's Count$Valid spec path) go through the
+// ordinary filter grammar and do not call this.
+func (o *Object) EffectiveIsArtifact() bool {
+	if o.faceDownEffective() {
+		for _, w := range o.FaceDownTypeWords() {
+			if w == "Artifact" {
+				return true
+			}
+		}
+		return false
+	}
+	f := o.Face()
+	return f != nil && f.IsArtifact()
 }
 
 // MergedFaceAt returns the face of the i-th card stacked beneath the top card
@@ -509,17 +726,30 @@ func (o *Object) MergedFaceAt(i int) *cards.Face {
 }
 
 // Ephemeral reports whether this object has, right now, ceased to exist: a
-// copy of a spell or ability (CR 707.10, gone the moment it leaves the
-// stack), a token (CR 111.7, gone once it leaves the battlefield -- so
-// IsToken alone is not enough, a token on the battlefield is a perfectly
-// real permanent), or an ability object (no card, Card == nil -- always
-// ephemeral, since it never legitimately exists off the stack at all).
+// copy of a spell or ability once it has LEFT THE STACK (CR 707.10h -- a copy
+// of a spell that has left the stack is a transient reference, not a real
+// object), a token once it has left the battlefield (CR 111.7 -- so IsToken
+// alone is not enough, a battlefield token is a perfectly real permanent),
+// or an ability object (no card, Card == nil -- always ephemeral, since it
+// never legitimately exists off the stack at all).
+//
+// The IsCopy half is therefore ZONE-AWARE, exactly like effects/filter.go's
+// own guard: a battlefield object carrying IsCopy is a real permanent --
+// Myriad (CR 702.109) and populate ("create a token copy", CR 706.2) mint
+// their tokens as IsToken+IsCopy and legitimately keep them on the
+// battlefield, and a copy of a permanent SPELL that has resolved onto the
+// battlefield (CR 707.10g, token1's stack-entry clear) is likewise real.
+// Only a copy that is neither on the stack (still a spell) nor on the
+// battlefield (still a permanent) has ceased to exist.
+//
 // This build parks such objects in exile rather than deleting them, and
 // callers (view.cardViews and any future zone-listing code) consult this
-// single definition instead of re-deriving it, so the "copy, or token off
-// the battlefield, or cardless" rule cannot drift between call sites.
+// single definition instead of re-deriving it, so the "copy off the stack
+// and battlefield, token off the battlefield, or cardless" rule cannot drift
+// between call sites.
 func (o *Object) Ephemeral() bool {
-	return o.IsCopy || (o.IsToken && o.Zone != ZBattlefield) || o.Card == nil
+	return (o.IsCopy && o.Zone != ZStack && o.Zone != ZBattlefield) ||
+		(o.IsToken && o.Zone != ZBattlefield) || o.Card == nil
 }
 
 func (o *Object) Counter(kind string) int32 {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -418,6 +419,65 @@ const botpolicyShapedHistory = "# Test history — botpolicy\n\nbudget_s: 5\n\n|
 	"| 2026-09-10T20:28Z | fa4da46+ | 0.0 | 102 | 3 | sadams |\n" +
 	"| 2026-09-07T23:52Z | 6d295c0+ | 0.1 | 114 | sadams |\n"
 
+// viewShapedHistory mirrors the measured bimodal shape of view/TEST_HISTORY.md
+// at agent-20260920T085811Z-3c9f9973: seven stale 0.1s rows (the rounding
+// artifact wallPredicateFloorS's derivation describes), a few rows at older
+// suite sizes that the comparableTestMargin filter must discard, and the
+// 2026-09-16..19 "real" rows at 96-97 tests running 1.1-2.2s. The comparable
+// population is exactly 41 rows whose median wall is 1.9s (at 96 tests,
+// 0.01979 s/test) — the same baseline the honest 2026-09-20 run was refused
+// against at wallCollapseRatio 0.50.
+const viewShapedHistory = "# Test history — view\n\nbudget_s: 10\n\n| date (UTC) | commit | wall_s | tests | skipped | runner |\n|---|---|---|---|---|---|\n" +
+	// stale 0.1s rows, comparable at 96-97 tests
+	"| 2026-09-14T17:21Z | c9c2c65+ | 0.1 | 97 | 0 | sadams |\n" +
+	"| 2026-09-14T17:24Z | c9c2c65+ | 0.1 | 97 | 0 | sadams |\n" +
+	"| 2026-09-14T17:27Z | c9c2c65+ | 0.1 | 97 | 0 | sadams |\n" +
+	"| 2026-09-14T17:30Z | c9c2c65+ | 0.1 | 97 | 0 | sadams |\n" +
+	"| 2026-09-15T09:03Z | 5bece96+ | 0.1 | 96 | 0 | sadams |\n" +
+	"| 2026-09-15T09:06Z | 5bece96+ | 0.1 | 96 | 0 | sadams |\n" +
+	"| 2026-09-15T09:09Z | 5bece96+ | 0.1 | 96 | 0 | sadams |\n" +
+	// older suite sizes: outside the 5% comparable margin, must be discarded
+	"| 2026-09-14T20:02Z | 8c7335e+ | 0.0 | 86 | 0 | sadams |\n" +
+	"| 2026-09-15T10:07Z | 5bece96+ | 1.0 | 89 | 0 | sadams |\n" +
+	"| 2026-09-16T03:06Z | c39fa4e+ | 2.3 | 89 | 0 | sadams |\n" +
+	// the real 1.1-2.2s rows at 96-97 tests (shapes taken from the measured
+	// history tail at e0666a0c and its 2026-09-16/17 predecessors)
+	"| 2026-09-16T19:49Z | 87fe417+ | 1.2 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T20:07Z | 87fe417+ | 1.2 | 96 | 0 | sadams |\n" +
+	"| 2026-09-17T13:26Z | d9d41ba4+ | 1.1 | 96 | 0 | sadams |\n" +
+	"| 2026-09-19T20:15Z | e0666a0c+ | 1.4 | 97 | 0 | sadams |\n" +
+	"| 2026-09-19T20:19Z | e0666a0c+ | 1.5 | 97 | 0 | sadams |\n" +
+	"| 2026-09-19T20:22Z | e0666a0c+ | 1.5 | 97 | 0 | sadams |\n" +
+	"| 2026-09-19T20:38Z | e0666a0c+ | 1.7 | 97 | 0 | sadams |\n" +
+	"| 2026-09-16T16:51Z | 5ab219e+ | 1.8 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T16:56Z | 5ab219e+ | 1.8 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T17:05Z | c39fa4e+ | 1.9 | 89 | 0 | sadams |\n" +
+	"| 2026-09-16T07:31Z | 7641842+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T07:36Z | 7641842+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T07:09Z | 151c357+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T07:13Z | 151c357+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T08:50Z | 1b80b99+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-17T00:42Z | 33b2976a+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-17T00:59Z | 33b2976a+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T18:23Z | 7afccef+ | 2.2 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T18:29Z | 7afccef+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T18:34Z | 7afccef+ | 2.0 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T18:40Z | 7afccef+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T20:22Z | 16bf402+ | 2.2 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T20:27Z | 16bf402+ | 2.1 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T21:57Z | c311b1f6+ | 2.0 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T22:45Z | c311b1f6+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T22:49Z | c311b1f6+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T22:54Z | c311b1f6+ | 1.9 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T21:23Z | 726f1c8f+ | 2.0 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T21:28Z | 726f1c8f+ | 2.0 | 96 | 0 | sadams |\n" +
+	"| 2026-09-16T21:07Z | 48fb508+ | 2.0 | 96 | 0 | sadams |\n" +
+	"| 2026-09-17T01:34Z | 13134e1e+ | 2.1 | 96 | 0 | sadams |\n" +
+	"| 2026-09-17T01:41Z | 54969611+ | 2.0 | 96 | 0 | sadams |\n" +
+	"| 2026-09-17T02:39Z | fcdf249f+ | 2.1 | 96 | 0 | sadams |\n" +
+	"| 2026-09-17T06:17Z | 75485128+ | 2.1 | 96 | 0 | sadams |\n" +
+	"| 2026-09-17T06:23Z | 75485128+ | 2.1 | 96 | 0 | sadams |\n"
+
 // TestWallPredicateIgnoresSubResolutionHistory is the point of the task: a
 // suite whose prior comparable rows' median wall is under wallPredicateFloorS
 // (recording-resolution noise — every row is a rounded 0.0 or 0.1) must never
@@ -505,8 +565,12 @@ func TestWallPredicateFloorBoundary(t *testing.T) {
 		if !have {
 			t.Fatal("1.1s median wall must arm the wall predicate")
 		}
-		if !wallAnomalous(0.4, 450, have, baseline) {
-			t.Error("0.4s run against 1.1s median must be anomalous")
+		// 0.2s/450 is 0.18 of the 1.1s baseline — below wallCollapseRatio (0.30
+		// since the view false-positive fix; the old 0.4s collapse point sat at
+		// 0.36 of baseline, inside the measured honest-vs-vacuous window, so it
+		// moved down with the constant).
+		if !wallAnomalous(0.2, 450, have, baseline) {
+			t.Error("0.2s run against 1.1s median must be anomalous")
 		}
 		if wallAnomalous(1.1, 450, have, baseline) {
 			t.Error("honest 1.1s run must not be anomalous")
@@ -542,6 +606,54 @@ func TestHistoryWallBaselineAndAnomaly(t *testing.T) {
 	if wallAnomalous(0.1, 450, false, 1) {
 		t.Error("first measurement must not be anomalous")
 	}
+}
+
+// TestWallPredicateViewHonest is the regression test for the 2026-09-20 view
+// false positive (agent issue agent-20260920T085811Z-3c9f9973): the view
+// suite's comparable history is bimodal (stale 0.1s rows plus real 1.1-2.2s
+// rows, median ratio 0.01979 s/test) and the rules engine its game-driving
+// tests replay got faster, so an honest 0.725s/97 run came in at 0.377 of the
+// baseline — refused at wallCollapseRatio 0.50, accepted at 0.30. The vacuous
+// missing-corpus shape (0.1s/97, 0.052 of the baseline) must still be refused,
+// and so must the measured rules collapse (0.203, pinned by
+// TestHistoryWallBaselineAndAnomaly).
+func TestWallPredicateViewHonest(t *testing.T) {
+	t.Run("honest 0.725s/97 accepted, vacuous 0.1s/97 refused", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "TEST_HISTORY.md")
+		if err := os.WriteFile(path, []byte(viewShapedHistory), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		have, baseline := historyWallBaseline(path, 97)
+		if !have {
+			t.Fatal("view-shaped bimodal history must arm the wall predicate (median wall 1.9s > wallPredicateFloorS)")
+		}
+		if math.Abs(baseline-1.9/96) > 1e-9 {
+			t.Errorf("view-shaped baseline = %g s/test, want 1.9/96 = %g", baseline, 1.9/96)
+		}
+		if wallAnomalous(0.725, 97, have, baseline) {
+			t.Errorf("honest 0.725s/97 run refused at ratio %g (baseline %g s/test)", wallCollapseRatio, baseline)
+		}
+		if !wallAnomalous(0.1, 97, have, baseline) {
+			t.Error("vacuous missing-corpus 0.1s/97 run must be refused")
+		}
+	})
+
+	t.Run("end to end: honest view-shaped run writes a row", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "TEST_HISTORY.md")
+		if err := os.WriteFile(path, []byte(viewShapedHistory), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		before, _ := os.ReadFile(path)
+		contrib, wrote := measurePackage("view", path, "example.com/gorge/view",
+			"2026-09-20T09:00Z", "ee55555", "sadams", testResult{elapsed: 0.725, tests: 97, skipped: 0})
+		if !wrote || contrib != 0 {
+			t.Errorf("honest 0.725s/97 run wrote=%v contrib=%d, want true/0", wrote, contrib)
+		}
+		after, _ := os.ReadFile(path)
+		if string(after) == string(before) {
+			t.Error("accepted run did not append a row")
+		}
+	})
 }
 
 // TestSkipFraction guards the divide-by-zero edge: a run with no tests reported

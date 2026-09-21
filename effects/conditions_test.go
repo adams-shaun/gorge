@@ -226,3 +226,34 @@ func TestResolveSkipsAnUnmetConditionGate(t *testing.T) {
 		t.Fatalf("the met gate did not flip exactly once: %d FlipFace events", flips)
 	}
 }
+
+// TestConditionBareBlessingReadsTheLatch pins the bare-Condition$ Blessing
+// arm against the three corpus carriers the brief names (ocelot_pride /
+// a-ocelot_pride's DB$ CopyPermanent, the_golden_city_of_orazca's DB$ Draw):
+// the gate is met exactly when the resolving controller's seat holds the
+// city's blessing -- the one-way latch state.Player.Blessing that
+// events.Apply's BlessingChange fold writes -- and, crucially, it RESOLVES
+// (so an unmet gate SKIPS the sub) rather than falling through unresolved to
+// the run-anyway default.
+func TestConditionBareBlessingReadsTheLatch(t *testing.T) {
+	h, ids := conditionBoard(t)
+	gate := sa(t, "DB$ Draw | Condition$ Blessing")
+	ctx := &Ctx{Controller: 0, Source: ids[3]}
+
+	// Unblessed: resolved and unmet, so the sub is skipped.
+	if met, resolved := conditionMet(h, ctx, gate); !resolved || met {
+		t.Fatalf("unblessed seat: met=%v resolved=%v, want false true", met, resolved)
+	}
+
+	// Blessed (the latch the fold sets): resolved and met.
+	h.g.Players[0].Blessing = true
+	if met, resolved := conditionMet(h, ctx, gate); !resolved || !met {
+		t.Fatalf("blessed seat: met=%v resolved=%v, want true true", met, resolved)
+	}
+
+	// The latch is per-seat: the other controller stays unmet.
+	ctx.Controller = 1
+	if met, resolved := conditionMet(h, ctx, gate); !resolved || met {
+		t.Fatalf("unblessed other seat: met=%v resolved=%v, want false true", met, resolved)
+	}
+}

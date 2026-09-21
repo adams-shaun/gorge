@@ -14,6 +14,23 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// CombatDamageHit is one instance of combat damage dealt to a player this
+// turn, as captured by the engine at the combat-damage site. Card/FaceIdx/
+// Controller describe the dealing creature as it was at damage time: the
+// face pointer is stable (a shared pointer out of the Config's decks), so a
+// token that died before the read point is still matchable, exactly the
+// shallow-snapshot precedent rules/replacement.go's tokenSnapshot takes.
+// Source is the dealing object's id, which anchors Forge's `Card.Self` spec
+// to the resolving trigger's source.
+type CombatDamageHit struct {
+	Player     state.PlayerID
+	Source     state.ObjID
+	Card       *cards.Card
+	FaceIdx    uint8
+	Controller state.PlayerID
+	Amount     int32
+}
+
 // Host is everything an effect may do to a game: read it, and propose events.
 // Deliberately tiny — an effect that needs more is a sign the primitive is
 // doing rules work that belongs in the rules package.
@@ -98,6 +115,21 @@ type Host interface {
 	// never taken. Implemented by rules.Engine (rules/layers.go); the effects
 	// test double reports false (no engine to consult).
 	SacrificeBlocked(id state.ObjID) bool
+	// ExploreReplaced reports whether a replacement effect replaces the
+	// named explorer's explore (R:Event$ Explore — Topography Tracker's
+	// "instead it explores, then it explores again", Twists and Turns'
+	// "instead you scry 1, then that creature explores") and, when one
+	// does, RESOLVES that replacement body in place: the original explore
+	// is replaced whole (the caller must not reveal, counter or move
+	// anything for it) and the body's own explores run under the
+	// replacement guard, so they cannot re-match the same replacement (the
+	// same once-per-event discipline the CreateToken path applies).
+	// Rules-implemented because replacement matching lives in the rules
+	// tier; the effects test double reports false (no engine to consult).
+	// No replacement applies when the engine is already inside one (the
+	// emit path skips replacement application there, and the body's own
+	// explores are fresh events).
+	ExploreReplaced(explorer state.ObjID) bool
 	// HasKeyword reports a DERIVED keyword — printed or granted by a
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.
@@ -173,12 +205,32 @@ type Host interface {
 	// ByYou read takes); a card never put on the stack (cheated into play)
 	// reads false; latest-cast-wins.
 	WasCastFromHand(obj state.ObjID) bool
+	// WasCast reports whether card obj is a CAST SPELL in the Forge
+	// Card.wasCast() sense (castFrom != null) -- the third conjunct of the
+	// Count$IfCastInOwnMainPhase branch head (task ifcastmain1). A card
+	// moved to the stack as part of casting is cast; a copy (IsCopy) is
+	// never cast; a permanent cheated into play reads false. Unlike the
+	// hand-provenance reads, an announced-but-not-yet-pushed cast IS cast:
+	// Forge sets castFrom BEFORE setupTargets evaluates TargetMax$, and the
+	// pending CR 601.2c announcement ask must therefore read true (the
+	// engine's pending-cast field covers that window). Derived from the event
+	// log plus the live pending cast, so a replay derives the same answer.
+	WasCast(obj state.ObjID) bool
 	// LifeLostThisTurn reports the total life player p lost THIS TURN — the
 	// sum of every LifeChange below zero since the last TurnChange, derived
 	// from the event log so a replay derives the same number. This is the
 	// Count$LifeOppsLostThisTurn backing (Rakdos, Lord of Riots' cost
 	// reduction): the Count$ head sums it over the controller's opponents.
 	LifeLostThisTurn(p state.PlayerID) int32
+	// DamageTakenThisTurn reports the total damage player p was dealt THIS
+	// TURN — the sum of every player-targeted Damage event (Kind Damage
+	// with the recipient in Player and Obj 0) since the last TurnChange,
+	// derived from the event log so a replay derives the same number. This
+	// is the TargetedPlayer$DamageThisTurn backing (Knollspine Dragon's
+	// "draw cards equal to the damage dealt to target opponent this turn");
+	// damage a redirect moved onto a PERMANENT (ev.Obj != 0) reads nowhere
+	// here, exactly as it should not.
+	DamageTakenThisTurn(p state.PlayerID) int32
 	// LifeGainedThisTurn reports the total life player p GAINED this turn —
 	// the sum of every LifeChange above zero since the last TurnChange,
 	// derived from the event log so a replay derives the same number. This is
@@ -187,6 +239,35 @@ type Host interface {
 	// Accord, Resplendent Angel, Valkyrie Harbinger — whose CheckSVar$ gate
 	// reads the count), the mirror of LifeLostThisTurn.
 	LifeGainedThisTurn(p state.PlayerID) int32
+	// CombatDamageToPlayersThisTurn reports every instance of combat damage
+	// dealt to a PLAYER so far this turn, in assignment order. It is the
+	// PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
+	// backing (Lost Monarch of Ifnir's "if a player was dealt combat damage
+	// by a Zombie this turn", Estinien Varlineau's "the number of your
+	// opponents who were dealt combat damage by CARDNAME or a Dragon this
+	// turn", Blitzball's legendary-creature activation gate).
+	//
+	// A Damage event to a player carries no source (events.Event has no
+	// source field -- see the CmdDamage Kind's own note), so unlike the
+	// log-folded LifeLostThisTurn this cannot be derived from the event log;
+	// the engine captures it at the combat-damage site (rules/combat.go's
+	// runCombatAssignments), engine-side and NO-EVENT, and re-derives it
+	// identically on every rebuild path (replay, undo, DVR) because those
+	// re-execute the engine. Only damage that LANDED is recorded (a
+	// protection Note is not damage), and only the PLAYER branch: combat
+	// damage to a permanent is not the property any carrier reads.
+	CombatDamageToPlayersThisTurn() []CombatDamageHit
+	// CardsDiscardedThisTurn reports how many cards player p discarded THIS
+	// TURN — every events.IsDiscard move since the last TurnChange, the cost
+	// form (events.DiscardCost) included, derived from the event log so a
+	// replay derives the same number. This is the
+	// PlayerCountPropertyYou$CardsDiscardedThisTurn backing (Ambergris
+	// Citadel Agent's "X = cards you discarded this turn" behind a
+	// Cost$ Discard<1/Hand> Draw<2/You> body). A cost-form discard event
+	// carries no Player field, so the fold reads the discarded object's
+	// owner there — a cost discard is paid from the payer's own hand (CR
+	// 118.2a), so the owner is the discarder.
+	CardsDiscardedThisTurn(p state.PlayerID) int32
 	// TurnsTaken reports how many of the game's turns have begun with p as
 	// the active player, INCLUDING the turn in progress when it is p's —
 	// Forge's Player.getTurns backing (Serra Avenger's
@@ -210,6 +291,15 @@ type Host interface {
 	// your commanders' color identity"); an empty identity (no commander,
 	// or a colourless one) is a real, resolvable 0.
 	CommanderIdentityColourCount(p state.PlayerID) int
+	// RevoltHolds reports CR 702.38's ability-word state: a permanent the
+	// controller CONTROLLED (not owned) left the battlefield this turn. This
+	// is the bare `Condition$ Revolt` gate (Decommission's DB$ GainLife) and
+	// the Count$Revolt.<yes>.<no> branch head (Lifecraft Cavalry's etbCounter
+	// gate, Fatal Push's destroy bound) backing; rules.Engine implements it
+	// as the same revoltThisTurn event-log scan its own replacement/trigger
+	// Revolt$ clauses read, so every spelling answers identically and a
+	// replay derives it from the log like the other this-turn helpers.
+	RevoltHolds(p state.PlayerID) bool
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
@@ -572,6 +662,14 @@ type Ctx struct {
 	// body, the matching convention rules' charmModeTarget already
 	// established).
 	OfferedSA *cards.SA
+	// ModesSeen names the chosen modes earlier passes of a CanRepeatModes$
+	// Charm's mode walk already ran (rules' charm_rest resume arm seeds it
+	// from the consumed prefix of the object's ChosenModes; a first pass has
+	// it nil). effCharm's re-entry marks a target-bearing mode as covered by
+	// the placement/announcement ask only for its FIRST occurrence across the
+	// FULL multiset -- a later occurrence must keep its own ValidTgts$
+	// pre-ask instead of inheriting the shared target list again.
+	ModesSeen []string
 	// PickedTargets is the answering pre-ask's target set, made visible to
 	// Defined's ValidTgts$ fallthrough for exactly ONE dispatch (the
 	// wrapper clears it when the body returns). It must not be Ctx.Targets:
@@ -627,6 +725,22 @@ type Ctx struct {
 	// and cleared at the re-entry's top (fx42 scoping), so a nested Attach
 	// poses its own ask.
 	AttachOpt string
+	// AttachChoice is the answered Attach object/destination choice on a
+	// re-entered Attach resolution (Goldwardens' Gambit's "you may attach an
+	// Equipment you control to it", unexpected_request's same shape, Breath of
+	// Fury's "attach CARDNAME to a creature you control"): with no Object$
+	// the chosen ids name the OBJECT to attach, with Object$ present they name
+	// the DESTINATION. AttachChoiceDone distinguishes "answered with nothing
+	// chosen" (a Min-0 Optional$ decline) from an unanswered ask; AttachDests
+	// carries the destination list the asking pass resolved (a RepeatEach
+	// body's Defined$ Imprinted binding does not survive the suspension, so
+	// the re-entry must not re-derive it). All three ride the ask (the same
+	// runtime-continuation class as ResumeRemembered) and are consumed and
+	// cleared at the re-entry's top (fx42 scoping), so a nested Attach poses
+	// its own ask.
+	AttachChoice     []state.ObjID
+	AttachChoiceDone bool
+	AttachDests      []state.ObjID
 	// PutOpt is the answered Optional$ True put-counter election ("yes"/"no")
 	// on a re-entered PutCounter resolution (Talus Paladin's "you may put a
 	// +1/+1 counter on CARDNAME", Black Widow's "You may put ... If you
@@ -712,6 +826,17 @@ type Ctx struct {
 	TwoPilesDone     bool
 	TwoPilesPick     string
 	TwoPilesPickDone bool
+	// Votes is the answered per-voter choice of a fixed-list Vote (the
+	// Choices$ shape): one entry per voting player, in Defined$ order, giving
+	// the index into voteChoiceNames' option list that player voted for. It is
+	// what a real per-player vote ask will fill (today's deterministic
+	// stand-in gives every voter option 0, so no live resolution can tie);
+	// until that ask lands it is the seam that makes the tie branch --
+	// VoteTiedAbility$ -- reachable and testable against a real compiled SA
+	// rather than welded to the stand-in. effVote consumes and clears it at
+	// the top of its own walk (the fx42 scoping discipline), so a nested Vote
+	// poses its own tally; nil means "use the stand-in".
+	Votes []int
 	// CounterDist is the answered DividedAsYouChoose$ PutCounter pick
 	// (Vastwood Hydra's death trigger): the recipients the chooser picked out
 	// of the Choices$-eligible battlefield creatures, in answer order.
@@ -737,6 +862,22 @@ type Ctx struct {
 	// outer answer.
 	CounterPick     []state.ObjID
 	CounterPickDone bool
+	// Proliferate is the answered Proliferate recipient pick (CR 701.27):
+	// the permanents and/or players the resolving controller chose to give
+	// another counter of each kind already there, in the player's answer
+	// order. An object recipient carries Obj; a player recipient carries
+	// Player with IsPlayer true (the same state.Target shape a KChoose's
+	// mixed option list decodes to, and why the shared "counter_pick" arm --
+	// which reads Obj only -- cannot be reused). rules' resume arm sets it
+	// before re-running the suspended sub-ability, so effProliferate's
+	// re-entry applies exactly the chosen recipients instead of asking again;
+	// ProliferateDone distinguishes "answered" from the first pass, so a
+	// Min-0 answer that chose nothing is not mistaken for the first pass and
+	// re-asked. The asking effect consumes and clears both at the top of its
+	// own walk (the fx42 scoping discipline), so a nested Proliferate cannot
+	// inherit the outer answer.
+	Proliferate     []state.Target
+	ProliferateDone bool
 	// UnlessNext is the index of the UnlessPayer$ payer whose answered
 	// unless-pay choice this re-entry applies (0 on a first pass). The
 	// unlessProceed gate (Resolve) consumes and clears it; rules' resume
@@ -763,6 +904,18 @@ type Ctx struct {
 	// exactly Amount$. SacOptionalTarget identifies that player's target slot.
 	SacOptional       string
 	SacOptionalTarget int
+	// BlightPicks is the answered per-player blight choice on a re-entered
+	// Blight resolution (CR 701.60): the creature the blighting player chose
+	// to take the −1/−1 counters, in answer order. BlightDone distinguishes
+	// "answered" from the first pass and BlightTarget identifies the Defined$
+	// target index whose player posed that ask, so re-entry skips targets
+	// already processed before suspension and continues asking later targets
+	// (the SacPicks/SacDone/SacTarget discipline). The asking effect consumes
+	// and clears all three at the top of its own walk (the fx42 scoping
+	// discipline), so a nested blight cannot inherit the outer answer.
+	BlightPicks  []state.ObjID
+	BlightDone   bool
+	BlightTarget int
 	// UnlessElected is the answered UnlessType$ election of a Discard carrying
 	// UnlessType$ (Thirst for Knowledge's "discard two cards unless you
 	// discard an artifact card"): "unless" means the player elected the
@@ -901,6 +1054,35 @@ type Ctx struct {
 	// Consumed and cleared before the draw loop, so a nested optional draw
 	// in the same walk poses its own ask (fx42 scoping).
 	DrawOpt string
+	// TapOrUntap is the answered mid-resolution TapOrUntap election
+	// (api:TapOrUntap): the kind of the chosen option, "tap" or "untap". ""
+	// on the first pass, where effTapOrUntap poses the ask (or, when the host
+	// cannot ask, applies option 0 — the state-changing choice — silently,
+	// the R-9 stand-in). TapOrUntapObj is the target the answer was elected
+	// for (read off the answered option's Obj), and TapOrUntapDone is the
+	// answered marker: the ask's two options are both always legal, so the
+	// answered state cannot be inferred from the answer alone. Consumed and
+	// cleared at the point of application (fx42 scoping), so a later target
+	// poses its own ask and a nested TapOrUntap cannot inherit the answer.
+	TapOrUntap     string
+	TapOrUntapObj  state.ObjID
+	TapOrUntapDone bool
+	// ExploreObj/ExploreCard/ExploreChoice/ExploreDone carry one pending
+	// explore across the LCI destination ask (api:Explore): "...then put
+	// the card back or put it into your graveyard" (CR 701.35a). The
+	// nonland explore reveals its top card, poses the KChoose (option 0 is
+	// the state-changing "graveyard", option 1 "back on top", the
+	// TapOrUntap ordering discipline), and parks with ExploreObj the
+	// explorer and ExploreCard the revealed card. rules' "explore" resume
+	// arm re-enters with ExploreDone set, ExploreChoice the answered kind
+	// and ExploreCard/ExploreObj restored from the resume point. Consumed
+	// and cleared at the point of application (fx42 scoping), so the
+	// pending explorer's remaining explores and every later target pose
+	// their own fresh path.
+	ExploreObj    state.ObjID
+	ExploreCard   state.ObjID
+	ExploreChoice string
+	ExploreDone   bool
 	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
 	// resolution just made (effects/dice.go), under the SVar name its
 	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's

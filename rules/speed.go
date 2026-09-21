@@ -165,8 +165,24 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
 		return
 	}
-	f := o.Face()
-	ab := cards.ResolveSVar(f.SVars, opt.SVar)
+	// The body resolves from the GRANTOR (a printed static's own permanent),
+	// never from the recipient: Opt.GrantSource is set by the granted-ability
+	// offer loop, and a zero value means a self-grant (the max-speed static,
+	// an Animate) where the two objects are the same. Falling back to opt.Obj
+	// keeps every existing self-grant path byte-identical.
+	grantor := opt.GrantSource
+	if grantor == 0 {
+		grantor = opt.Obj
+	}
+	gf := o.Face()
+	if grantor != opt.Obj {
+		g := e.G.Obj(grantor)
+		if g == nil || g.Face() == nil {
+			return
+		}
+		gf = g.Face()
+	}
+	ab := cards.ResolveSVar(gf.SVars, opt.SVar)
 	if ab == nil || ab.Kind != "AB" {
 		return
 	}
@@ -180,7 +196,7 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 	if !ok {
 		return
 	}
-	if !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].Life) {
+	if !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].TypedMana, e.G.Players[p].Life) {
 		return
 	}
 	if !e.payMana(p, cost) {
@@ -192,8 +208,20 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 	if cost.Tap {
 		e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
 	}
-	e.emit(events.Event{Kind: events.DelayedPush, Player: p, Obj: opt.Obj,
-		Amount: -1, Counter: opt.SVar, Text: "granted ability"})
+	if grantor == opt.Obj {
+		e.emit(events.Event{Kind: events.DelayedPush, Player: p, Obj: opt.Obj,
+			Amount: -1, Counter: opt.SVar, Text: "granted ability"})
+	} else {
+		// Cross-object grant: the granting object is carried in IDs[0] and the
+		// body resolves from there in Apply, while the minted ability's Source
+		// is opt.Obj (the recipient) -- so `Defined$ Self`/`CARDNAME` in the
+		// body names the recipient, correctly, in the ~35% of carriers that
+		// read it. Never DelayedPush here: its Apply case resolves from e.Obj
+		// (the recipient's face, which has no such SVar) and folds e.IDs into
+		// the ability's Remembered set.
+		e.emit(events.Event{Kind: events.GrantAbilityPush, Player: p, Obj: opt.Obj,
+			Counter: opt.SVar, IDs: []state.ObjID{grantor}})
+	}
 	if len(e.G.Stack) > 0 {
 		id := e.G.Stack[len(e.G.Stack)-1]
 		if so := e.G.Obj(id); so != nil && so.Ability != nil && so.Ability.Line == ab.Line && ab.Params["ValidTgts"] != "" {

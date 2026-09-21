@@ -7,6 +7,7 @@ package rules
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -513,7 +514,7 @@ func (e *Engine) staticTimingGate(sv staticView) bool {
 	case "Ferocious":
 		found := false
 		for _, id := range e.G.Zone(state.ZBattlefield, sv.Controller) {
-			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsCreature() && !o.BestowedAttached() && e.Derived(id).Power >= 4 {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && e.Derived(id).Power >= 4 {
 				found = true
 				break
 			}
@@ -603,8 +604,19 @@ func spellMatchesValidSA(f *cards.Face, raw string, id, staticSource state.ObjID
 // spellTimingOK is the one timing predicate for every zone which offers a
 // spell cast. CastWithFlash is a permission, not a hand-only property: it
 // also applies to Flashback, Harmonize, and command-zone casts.
+//
+// ActivationPhases$ and its rider qualifiers are consulted here too, so the
+// cast window binds to EVERY way the card is cast (hand, may-play, command
+// zone, flashback/harmonize/escape, adventure, foretell) rather than to the
+// hand walk alone. This is a pure read; the helper never emits.
 func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, sorcery bool) bool {
-	return sorcery || (f != nil && (f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)))
+	if f == nil {
+		return sorcery
+	}
+	if !e.activationPhasesOK(p, f.SpellAbility()) {
+		return false
+	}
+	return sorcery || (f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id))
 }
 
 // altCostView is one alternative-cost entry: the parsed cost plus the
@@ -838,11 +850,28 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 // option generation and validation.
 func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 	for _, sv := range e.activeStatics("CantBlock") {
+		// Condition$ is evaluated per static (continuousConditionHolds:
+		// the Detective of the Month / Slippery Scoundrel family's
+		// Condition$ Blessing, Cephalid Inkmage's Threshold, Bilbo's
+		// Ring's PlayerTurn). Before this gate the restriction applied
+		// UNCONDITIONALLY (over-permissive); the evaluator's fail-closed
+		// direction (rules/layers.go) keeps an unimplementable condition
+		// denying instead. Only Condition$ is read here, NOT the rest of
+		// continuousGateHolds (IsPresent$/IsPresent2$/CheckSVar$), so an
+		// IsPresent$- or CheckSVar$-gated CantBlock stays unconditional
+		// exactly as before.
+		if !e.continuousConditionHolds(sv) {
+			continue
+		}
 		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], blocker, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlockBy") {
+		// The same per-static condition gate as the CantBlock loop above.
+		if !e.continuousConditionHolds(sv) {
+			continue
+		}
 		// ValidAttacker$ is Forge's own spelling for the attacker side of a
 		// CantBlockBy static (Steel Leaf Champion's "Creature.Self", the
 		// Unblockable pump templates' "Card.IsRemembered", the blocker-side
@@ -1027,7 +1056,7 @@ func (m costMods) hasFloor() bool {
 // resolves one pip per level in announcePip order and stops at the first
 // payable assignment, so a payable cost is found without visiting the whole
 // tree.
-func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider pipRider, conv *manaConv) bool {
+func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, typed [3]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider pipRider, conv *manaConv) bool {
 	composed := func(c Cost) bool {
 		cc := m.apply(c)
 		cc.Generic = addClampedGeneric(cc.Generic, int64(taxGeneric))
@@ -1036,7 +1065,7 @@ func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, d
 		} else {
 			cc.Generic = 0
 		}
-		_, ok := cc.resolveManaWith(pool, snow, life, bLifeOK, rider, conv)
+		_, ok := cc.resolveManaWith(pool, snow, typed, life, bLifeOK, rider, conv)
 		return ok
 	}
 	if !m.hasFloor() || c.annPipCount() == 0 {
@@ -1092,7 +1121,8 @@ func (e *Engine) manaFeasible(p state.PlayerID, id state.ObjID, ability bool, c 
 // K'rrik-shaped or MayPlayIgnoreColor$-shaped cost either.
 func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
 	pl := e.G.Players[p]
-	return mods.feasibleAny(c, e.manaAvailableFor(p, id, ability), pl.Snow, pl.Life, taxGeneric, delve,
+	av := e.manaAvailableFor(p, id, ability)
+	return mods.feasibleAny(c, av.pool, pl.Snow, av.typed, pl.Life, taxGeneric, delve,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 }
 
@@ -1104,9 +1134,9 @@ func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability boo
 // source. The payer grants and conversion shaping are the same reads in both
 // modes, so a potential action and the offer the walk mirrors can never
 // disagree about what the pool may satisfy.
-func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, pool state.Mana) bool {
+func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, pool state.Mana, typed [3]state.Mana) bool {
 	pl := e.G.Players[p]
-	return mods.feasibleAny(c, pool, pl.Snow, pl.Life, taxGeneric, delve,
+	return mods.feasibleAny(c, pool, pl.Snow, typed, pl.Life, taxGeneric, delve,
 		e.payerGrantsPayLifeInsteadOfB(p),
 		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
 		e.paymentConv(p, id, ability))
@@ -1116,11 +1146,15 @@ func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool
 // ordinary real-pool gate, hyp non-nil prices the feasibility against the
 // potential walk's hypothetical bound (rules/legal.go legalActionsPriced).
 func (e *Engine) manaFeasiblePriced(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
-	pool := e.manaAvailableFor(p, id, ability)
+	av := e.manaAvailableFor(p, id, ability)
+	pool, typed := av.pool, av.typed
 	if hyp != nil {
 		pool = *hyp
+		// A hypothetical bound is a pure mana bound (see costPayablePool),
+		// so its typed partition is the raw tally.
+		typed = e.G.Players[p].TypedMana
 	}
-	return e.manaFeasiblePool(p, id, ability, c, mods, taxGeneric, delve, pool)
+	return e.manaFeasiblePool(p, id, ability, c, mods, taxGeneric, delve, pool, typed)
 }
 
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies
@@ -1696,11 +1730,13 @@ func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Ta
 
 // costConditionHolds evaluates Condition$ on a cost-modifier static. The
 // implementable conditions: PlayerTurn / NotPlayerTurn (the caster is or is
-// not the active player — discontinuity's "During your turn") and Metalcraft
-// (three artifacts on the battlefield, evaluated through the Count$ machinery
-// so a replay derives it). An unimplementable condition (Delirium, Night)
-// DENIES: a conditional discount that silently always applies is a wrong
-// cost, the same fail-closed direction the ValidSpell$ shapes take.
+// not the active player -- discontinuity's "During your turn"), Metalcraft
+// (three artifacts on the battlefield, the shared metalcraftHolds read) and
+// Delirium (four or more distinct core card types in the caster's graveyard,
+// the shared graveyardCardTypeCount census -- drag_to_the_roots and its
+// cycle). An unimplementable condition (Night) DENIES: a conditional
+// discount that silently always applies is a wrong cost, the same fail-closed
+// direction the ValidSpell$ shapes take.
 func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
 	cond, ok := sv.Params["Condition"]
 	if !ok {
@@ -1712,14 +1748,29 @@ func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
 	case "NotPlayerTurn":
 		return e.G.Active != p
 	case "Metalcraft":
-		o := e.G.Obj(sv.Source)
-		if o == nil {
-			return false
-		}
-		ctx := &effects.Ctx{Source: sv.Source, Controller: o.Controller, SVars: o.Face().SVars}
-		return effects.EvalCount(e, ctx, "Count$Valid Artifact.YouCtrl") >= 3
+		return e.metalcraftHolds(p)
+	case "Delirium":
+		// The same shared census the Continuous gate and the ability-offer
+		// gate (rules/legal.go's activationConditionOK) read.
+		return e.graveyardCardTypeCount(p) >= 4
 	}
 	return false
+}
+
+// metalcraftHolds is the shared Metalcraft read: three or more artifacts the
+// player controls, counted off the derived types so a layer-4 type grant is
+// seen (the same read rules/legal.go's activationConditionOK makes). Used by
+// the cost-modifier gate, the Continuous gate, the trigger condition gate
+// (triggerConditionHoldsAs' Metalcraft$ / bare-Condition$ Metalcraft clauses)
+// and any future condition reader -- ONE census, so none can drift apart.
+func (e *Engine) metalcraftHolds(p state.PlayerID) bool {
+	n := 0
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		if o := e.G.Obj(id); o != nil && slices.Contains(e.Derived(id).Types, "Artifact") {
+			n++
+		}
+	}
+	return n >= 3
 }
 
 // checkSVarHolds evaluates the CheckSVar$/SVarCompare$ intervening-if: the

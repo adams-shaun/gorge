@@ -80,6 +80,32 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " " + verb + " " + itoa(int64(n)) + " speed (speed " + itoa(int64(speed)) + ")"
 	case events.MonarchChange:
 		return player(g, ev.Player) + " becomes the monarch"
+	case events.BlessingChange:
+		// CR 702.131: the one-way latch -- folded state always shows it set.
+		return player(g, ev.Player) + " gets the city's blessing"
+	case events.RingTemptsYou:
+		// CR 701.54: the temptation and the designation it made. A bearer of
+		// 0 is CR 701.54d's impossible-choice shape (no creature controlled):
+		// the temptation still happened, so the line still records it.
+		if ev.Obj == 0 {
+			return "The Ring tempts " + player(g, ev.Player)
+		}
+		return "The Ring tempts " + player(g, ev.Player) + " (" + obj(g, ev.Obj) + " is the Ring-bearer)"
+	case events.RingEmblemPush:
+		// CR 701.54c: the Ring emblem's level abilities have no card and no
+		// object, so the line names the level's rules text (ringEmblemLabel's
+		// wording, duplicated here because view cannot import rules).
+		switch ev.Amount {
+		case 1:
+			return player(g, ev.Player) + " is tempted: the Ring emblem draws a card (Ring-bearer attacks)"
+		case 2:
+			return player(g, ev.Player) + " is tempted: the Ring emblem discards (Ring-bearer blocked)"
+		case 3:
+			return player(g, ev.Player) + " is tempted: the Ring emblem sacrifices its Ring-bearer (combat damage)"
+		case 4:
+			return player(g, ev.Player) + " is tempted: the Ring emblem drains each opponent (the Ring tempts you)"
+		}
+		return player(g, ev.Player) + " is tempted: a Ring emblem ability"
 	case events.StartingPlayerChange:
 		return player(g, ev.Player) + " becomes the starting player"
 	case events.ControlChange:
@@ -133,6 +159,14 @@ func Describe(g *state.Game, ev events.Event) string {
 			text += " (exiled at end of combat)"
 		}
 		return text
+	case events.ClonePermanent:
+		// CR 613.1a's layer-1 copy basis (api:Clone, task api-clone): Obj is
+		// the object that becomes the copy and IDs[0] the object copied from;
+		// a zero/absent id is the expiry/cleanup clear.
+		if len(ev.IDs) == 0 || ev.IDs[0] == 0 {
+			return obj(g, ev.Obj) + " stops being a copy"
+		}
+		return obj(g, ev.Obj) + " becomes a copy of " + obj(g, ev.IDs[0])
 	case events.Exert:
 		// CR 702.100 (task exert1): the exert itself, and the consume marker
 		// the untap-step scan emits as it passes an exerted permanent -- the
@@ -215,6 +249,22 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += "s"
 		}
 		return s
+	case events.Explore:
+		// The explore record (task explore1): the revealed card is already
+		// public (the reveal Note that precedes the record), so the line
+		// names only the explorer.
+		return obj(g, ev.Obj) + " explores"
+	case events.Investigate:
+		// The investigate record (CR 701.36a, task investtrig1) is a pure
+		// marker: the Clue-token mint is its own TokenCreate line, so this
+		// line names only the investigating seat (Player; Obj is the source
+		// permanent, which may be 0 for a game-rule investigate).
+		return player(g, ev.Player) + " investigates"
+	case events.CombatRetarget:
+		// api:ChangeCombatants's reselect: Obj the attacker, Player the new
+		// defender. The old defender needs no line (the re-pointed attack is
+		// unblocked, and the next combat-damage line shows where it went).
+		return obj(g, ev.Obj) + " now attacks " + player(g, ev.Player)
 	case events.DeclareAttackers:
 		if len(ev.IDs) == 0 {
 			return "No attackers"
@@ -399,6 +449,13 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the IR carries no ability names, so the source permanent is what
 		// a line can name.
 		return player(g, ev.Player) + " activates " + obj(g, ev.Obj)
+	case events.GrantAbilityPush:
+		// A cross-object ability grant's activation (CR 613.1f, the
+		// printed-Continuous AddAbility$ fix): Player is the activator and
+		// Obj is the RECIPIENT permanent -- the granted ability's own
+		// source -- so naming it reads the same way AbilityPush does. The
+		// parenthetical marks that another object granted it.
+		return player(g, ev.Player) + " activates " + obj(g, ev.Obj) + " (granted)"
 	case events.ModeChosen:
 		// A cast/placement mode announcement or mid-resolution modal answer.
 		// Player chose; Text carries the chosen option labels as csv. Mirrors

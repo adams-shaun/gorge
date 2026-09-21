@@ -916,6 +916,16 @@ func passToDecision(t *testing.T, e *Engine, limit int) *decision.Decision {
 	return e.Pending()
 }
 
+// viewShowsObject reports whether any projected card view carries id.
+func viewShowsObject(cards []view.CardView, id state.ObjID) bool {
+	for _, c := range cards {
+		if c.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
 func TestMyriadUsesRealCorpusCard(t *testing.T) {
 	e, cfg, _ := myriadCombat(t, 3)
 	// Dispatcher attacks seat 1; in a 3-seat game there are TWO other
@@ -932,13 +942,24 @@ func TestMyriadUsesRealCorpusCard(t *testing.T) {
 	// Expect one MyriadCopy token attacking seat 2 created (the defender is
 	// seat 1, excluded).
 	tokens := 0
+	var tokenID state.ObjID
 	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
 		if e.G.Obj(id).IsToken && e.G.Obj(id).IsCopy {
 			tokens++
+			tokenID = id
 		}
 	}
 	if tokens != 1 {
 		t.Fatalf("Myriad created %d attacker tokens, want 1", tokens)
+	}
+	// The mint is a real battlefield permanent, not an ephemeral copy:
+	// state.Object.Ephemeral must not hide it (it is IsCopy+ZBattlefield),
+	// and the projection must show it on the attacking seat's battlefield.
+	if e.G.Obj(tokenID).Ephemeral() {
+		t.Fatalf("Myriad token %d reports Ephemeral(); a battlefield copy is a real permanent", tokenID)
+	}
+	if v := view.Project(e.G, nil, 0, nil); !viewShowsObject(v.Players[0].Battlefield, tokenID) {
+		t.Fatalf("Myriad token %d is missing from the attacking seat's battlefield view", tokenID)
 	}
 	// CR 702.109a exiles Myriad tokens as the end-of-combat step ends.
 	// passUntilStackEmpty leaves the end-of-combat priority ask outstanding;

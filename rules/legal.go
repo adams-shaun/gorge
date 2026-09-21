@@ -34,8 +34,10 @@ func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 // AffectedZone order, then the zone slice order -- never a map -- so the
 // resulting option list is reproducible run to run. Zones are deduplicated
 // per (zone, id) so two grants naming the same zone never offer the same land
-// twice. Only zones a land can meaningfully be played from (graveyard, exile)
-// are walked, since hand is covered by the normal walk and library is hidden.
+// twice. The zones walked are the graveyard and exile, plus the top card of
+// the library (the kw-mayplay fallback below): the hand is covered by the
+// normal walk, and a library card BELOW the top is hidden and cannot be
+// meaningfully named.
 func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 	if !e.sorcerySpeed(p) || e.G.Players[p].LandsPlayed >= int32(1+e.adjustLandPlays(p)) {
 		return nil
@@ -124,20 +126,36 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 		}
 		return false
 	}
+	// landGranted is the land walk's grant gate: the may-play permission AND
+	// no RaiseCost$ surcharge. A land play is FREE -- there is no cost site
+	// that could charge a surcharge -- so a granting static carrying ANY
+	// RaiseCost$ (priced or not) is withheld whole rather than granted
+	// uncharged, the widening direction this file refuses. Measured: no
+	// corpus RaiseCost$ carrier is a land, so this is a guard against the
+	// next one, not a live behaviour change.
+	landGranted := func(id state.ObjID) bool {
+		if _, ok := e.mayPlayGrant(p, id); !ok {
+			return false
+		}
+		if _, hasRaise, _ := e.mayPlayRaiseCost(p, id); hasRaise {
+			return false
+		}
+		return true
+	}
 	for _, z := range []state.Zone{state.ZGraveyard, state.ZExile} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
 			if o == nil || o.Face() == nil || !o.Face().IsLand() || o.Controller != p {
 				continue
 			}
-			if _, ok := e.mayPlayGrant(p, id); ok && !contains(id) {
+			if landGranted(id) && !contains(id) {
 				out = append(out, id)
 			}
 		}
 	}
 	if lib := e.G.Zone(state.ZLibrary, p); len(lib) > 0 {
 		if o := e.G.Obj(lib[0]); o != nil && o.Face() != nil && o.Face().IsLand() && o.Controller == p {
-			if _, ok := e.mayPlayGrant(p, lib[0]); ok && !contains(lib[0]) {
+			if landGranted(lib[0]) && !contains(lib[0]) {
 				out = append(out, lib[0])
 			}
 		}
@@ -495,7 +513,14 @@ func (e *Engine) sVarGateOK(p state.PlayerID, id state.ObjID, ab *cards.SA) bool
 // stored cost, so the two can never disagree. Because the read applies to
 // every non-mana activation, it joins the census's generic rules-side SA
 // set, not one api's.
-func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA) int32 {
+//
+// targets are the chosen targets, carried on the Ctx so a target-dependent
+// body (Raft Security Officer's AllTargeted$Valid Creature.powerLE3) can
+// resolve. The offer/projection sites pass nil — targets do not exist yet
+// at offer time, so a target-dependent reduction reads 0 there (full price,
+// fail closed) — and repriceForTargets re-runs the evaluation with the
+// answered targets at CR 601.2c, before CR 601.2h pays.
+func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA, targets []state.Target) int32 {
 	v := strings.TrimSpace(ab.Params["ReduceCost"])
 	if v == "" {
 		return 0
@@ -514,7 +539,7 @@ func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA) i
 	if b, ok := o.Face().SVars[v]; ok {
 		body = b
 	}
-	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars, Targets: targets}
 	if n, ok := effects.EvalCountOK(e, ctx, body); ok && n > 0 {
 		return n
 	}
@@ -699,6 +724,60 @@ func (e *Engine) activationLimitReached(id state.ObjID, p state.PlayerID, abilit
 	return used >= limit
 }
 
+// boastGateOK implements CR 702.142's Boast activation restriction for an
+// ability whose SA carries Boast$ True: the ability may be activated only if
+// its source creature attacked this turn, and only once each turn. Both
+// halves are read from replay-derivable state: "attacked this turn" is the
+// event-folded Object.AttacksThisTurn (events.Apply's DeclareAttackers case,
+// reset in TurnChange's per-object loop -- the same fact the Raid gate's
+// Count$AttackersDeclared and the FirstAttack$ trigger gate read), and
+// "already used this turn" is the activation-event scan the ActivationLimit$
+// gate uses, with one extension.
+//
+// The extension is the granted-ability identity. A PRINTED AB$ mints an
+// AbilityPush whose Amount is the ability's face index (events.Apply's
+// AbilityPush case); a GRANTED AB$ (Besieged Viking Village's AddAbility$
+// ABBoast) goes through beginGrantedActivation, which mints a DelayedPush
+// whose Amount is -1 and whose Counter names the granting SVar instead
+// (rules/speed.go). A scan that only looked at AbilityPush/Amount --
+// activationLimitReached's shape -- could not see a granted Boast at all and
+// would re-offer it every window. Matching either identity closes that: the
+// printed form matches on index, the granted form on the SVar name.
+func (e *Engine) boastGateOK(id state.ObjID, ability int, svar string) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.AttacksThisTurn == 0 {
+		return false
+	}
+	used := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Obj != id {
+			continue
+		}
+		switch ev.Kind {
+		case events.AbilityPush:
+			if svar == "" && ev.Amount == int32(ability) {
+				used++
+			}
+		case events.DelayedPush, events.GrantAbilityPush:
+			// A granted activation's identity is its SVar name. A self-grant
+			// mints through DelayedPush (Counter = the name); a CROSS-object
+			// grant -- a printed Continuous AddAbility$ static such as
+			// Besieged Viking Village's "All creatures have 'Boast -- {1}: ...'"
+			// -- mints through GrantAbilityPush, whose Counter is the same
+			// name. Reading only DelayedPush would leave the granted Boast
+			// re-offered in every priority window of the turn it was used.
+			if svar != "" && ev.Counter == svar {
+				used++
+			}
+		}
+	}
+	return used == 0
+}
+
 // resolveActivationLimit interprets an ActivationLimit$ value. A literal
 // integer is used directly. A non-literal value is resolved through the
 // Count$/SVar evaluator the rest of the tree uses (effects.EvalCount), bound
@@ -773,8 +852,16 @@ func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID,
 // 601.2c).
 // costAnnouncesX reports whether the cost announces an X the cast or
 // activation chooses (CR 601.2b/107.3i): a printed {X} mana symbol, a
-// PayEnergy<X> part, an announced PayLife<X> payment or an announced
-// SubCounter<X/Kind> removal.
+// PayEnergy<X> part, an announced PayLife<X> payment, an announced
+// SubCounter<X/Kind> removal, or a tapXType<X/Spec> part whose tap election
+// announces it (the dynTapCost head). The tap-election clause does not add
+// the announced-Sac clause: this gate's callers treat a true answer as "the
+// X-bound targets are dynamic -- offer and evaluate at the ask", and the
+// tap election is announced BEFORE the target ask (the tap stage precedes
+// targetAsk in continueCast), so the bound is already fixed when targets
+// are chosen either way; the clause only stops the offer gate from
+// withholding the action on a bound whose value the tap election will
+// supply (Aryel's powerLEX).
 func costAnnouncesX(c Cost) bool {
 	if c.X > 0 {
 		return true
@@ -789,6 +876,11 @@ func costAnnouncesX(c Cost) bool {
 	}
 	for _, part := range c.SubCounter {
 		if part.Announced {
+			return true
+		}
+	}
+	for _, part := range c.TapPermanent {
+		if part.Dyn == "X" {
 			return true
 		}
 	}
@@ -837,8 +929,14 @@ func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *c
 // object right now: the parsed AB and the SVar name on the granting face's
 // table that re-resolves it.
 type grantedAbility struct {
-	sa   *cards.SA
-	svar string
+	sa *cards.SA
+	// source is the object the grant came from (state.ContinuousEffect.Source):
+	// the static's own permanent, which need not be the affected object the
+	// ability is activated from. It is threaded into decision.Option.GrantSource
+	// so the activation resolves the SVar body from here while the minted
+	// ability's Source stays the recipient.
+	source state.ObjID
+	svar   string
 }
 
 // grantedAbilities collects the activated abilities the battlefield's
@@ -868,7 +966,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 			if ab == nil || ab.Kind != "AB" {
 				continue
 			}
-			out = append(out, grantedAbility{sa: ab, svar: nm})
+			out = append(out, grantedAbility{sa: ab, source: ce.Source, svar: nm})
 		}
 	}
 	return out
@@ -907,6 +1005,25 @@ func (e *Engine) adjustLandPlays(p state.PlayerID) int {
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	return e.legalActionsPriced(p, nil)
+}
+
+// aftermathAlternateFace returns the Aftermath alternate face (face 1 --
+// ALTERNATE starts face 1 in cards/parse.go) of a two-face Split card whose
+// front face is current, or nil when the object is not a well-formed
+// aftermath carrier: AlternateMode must be Split (a Room is Split too, but
+// no Room half carries K:Aftermath, and the keyword gate is what keeps Rooms
+// and Adventures on their own paths), the object must have exactly two
+// faces, and the card must still be at its front face -- the aftermath half
+// is cast only from a graveyard card whose printed front is showing.
+func aftermathAlternateFace(o *state.Object) *cards.Face {
+	if o == nil || o.Card == nil || o.Card.AlternateMode != "Split" || len(o.Card.Faces) != 2 || int(o.FaceIdx) != 0 {
+		return nil
+	}
+	af := o.Card.Faces[1]
+	if af == nil || !af.HasKeyword("Aftermath") {
+		return nil
+	}
+	return af
 }
 
 // legalActionsPriced is legalActions with the mana affordability priced
@@ -1001,7 +1118,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// Only the plain cast folds the extras, matching beginCast's own
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
-		convokeBase, _ := e.convokeCost(p, id, e.rawBaseCost(p, id))
+		convokeBase, convokeTaps := e.convokeCost(p, id, e.rawBaseCost(p, id))
+		// CR 702.66a: Improvise's artifacts credit the offer gate too, after
+		// Convoke's creatures, each reducing one generic; improviseCost
+		// excludes convokeTaps so one permanent is never committed twice.
+		convokeBase, _ = e.improviseCost(p, id, convokeBase, convokeTaps)
 		// An either-or additional cost (AlternateAdditionalCost) makes the
 		// plain cast's gate existential: the cast is offerable when AT LEAST
 		// ONE alternative part is payable (the choice itself is asked by the
@@ -1142,6 +1263,23 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (multikicked)", Obj: id, Mode: "multikicked"})
 		}
+		// Conspire (CR 702.78a): the conspired variant pays NO extra mana --
+		// the base cost is unchanged and the cost is the tap of two untapped
+		// creatures the caster controls that share a colour with the spell.
+		// So unlike the replicate/multikicker offers there is no cost to
+		// compose: the offer is gated on the same base cast being offerable
+		// (re-checked with the base cost, exactly what the plain offer used)
+		// AND on the derived-keyword read (hasCastConspire, the
+		// hasCastConvoke shape, so a layer-6 grant reaching the stack matches)
+		// AND on at least two eligible creatures existing. Do NOT route the
+		// tap through offerCastable with a fabricated cost -- the tap has no
+		// Cost$ representation; conspireAsk enforces it at announcement.
+		if targetsAvailable && e.hasCastConspire(id) &&
+			len(e.conspireCandidates(p, id)) >= 2 &&
+			offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (conspired)", Obj: id, Mode: "conspired"})
+		}
 		// The alternative-cost keyword family (altcosts), from the hand: evoke
 		// (CR 702), dash, overload and warp each become their own "cast" mode
 		// option paying the printed keyword cost in place of the mana cost.
@@ -1259,6 +1397,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			// charge it; non-mana additional costs still apply (CR 118.9).
 			base = Cost{}
 		}
+		// CR 118.3a: the granting static's RaiseCost$ surcharge is added on
+		// top of the printed cost (Kotis, Sibsig Champion's "by exiling
+		// three other cards ... in addition to paying its other costs").
+		// Composed before offerCostFor so static cost modifiers apply to the
+		// raised cost, the CR 601.2f order; the affordability gate below then
+		// prices the whole cost against real state (nonManaCastable). A raise
+		// mayPlayStatic could not price never reaches here -- mayPlayGrant
+		// withholds the card -- but the defensive continue keeps the two
+		// sites agreeing if that ever changes.
+		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, id); hasRaise {
+			if !priced {
+				continue
+			}
+			base = base.Plus(raise)
+		}
 		cost := withSpellAbilityExtras(f, offerCostFor(p, id, base, spellScope("mayplay")))
 		if affordable(p, id, cost, false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
@@ -1374,6 +1527,35 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if fc := e.flashbackCost(id); offerCastable(p, id, fc, spellScope("flashback"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
+		}
+	}
+
+	// Aftermath (CR 702.85a): the alternate face of a Split card may be cast
+	// from its owner's graveyard for its printed mana cost (plus its own SP
+	// Cost$ additional parts -- start_finish's Sac<1/Creature>), then exiled.
+	// Gated on the ALTERNATE face's K:Aftermath, which is what excludes Rooms
+	// (both halves are Rooms, neither carries Aftermath) and Adventures
+	// (AlternateMode Adventure, not Split). Mode aftermath is consumed by
+	// beginCast, which records a FlipFace to the alternate face before the
+	// ordinary cast transaction -- rawBaseCost, targets and resolution then
+	// read the aftermath face. The withSpellAbilityExtras fold prices the
+	// face's own SP Cost$ parts exactly like the adventure_alt offer above:
+	// without it a Finish-shaped gate would offer an unpayable cast.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		af := aftermathAlternateFace(o)
+		if af == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !e.spellTimingOK(p, id, af, sorcery) {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, af.SpellAbility()) {
+			continue
+		}
+		if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + af.Name + " (aftermath)", Obj: id, Mode: "aftermath"})
 		}
 	}
 
@@ -1599,8 +1781,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// PlayerTurn$ True (Wishclaw Talisman's "Activate only during
 				// your turn"): the ability is offered only while its
 				// controller is the active player. CR 602.1b would otherwise
-				// offer it on any player's priority.
-				if ab.Params["PlayerTurn"] == "True" && e.G.Active != p {
+				// offer it on any player's priority. ActivationPhases$ and the
+				// other window riders (OpponentTurn$, ActivationFirstCombat$,
+				// ActivationAfterBlockers$) ride the same shared
+				// offer-time gate, so one helper covers the cast and ability
+				// halves alike.
+				if !e.activationPhasesOK(p, ab) {
 					continue
 				}
 				// ActivationGameTypes$ (activationGameTypesOK, above): a comma
@@ -1663,11 +1849,19 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if raw, ok := ab.Params["ActivationLimit"]; ok && e.activationLimitReached(id, p, i, raw) {
 					continue
 				}
+				// kw:Boast (CR 702.142): a Boast ability (Forge's `Boast$ True`
+				// parameter on the AB, not a K: keyword line) may be activated
+				// only if the source creature attacked this turn, and only once
+				// each turn. The once-per-turn half folds into the same
+				// activation-event scan the ActivationLimit$ gate uses.
+				if strings.EqualFold(strings.TrimSpace(ab.Params["Boast"]), "True") && !e.boastGateOK(id, i, "") {
+					continue
+				}
 				cost := e.parseCost(ab.Params["Cost"])
 				// The ability's own ReduceCost$ (Otawara's Channel): the CR
 				// 601.2f composition the offer gate and beginActivation's
 				// charge share, so an offered cost and the paid one agree.
-				if n := e.ownReduceCost(p, id, ab); n > 0 && cost.Generic >= n {
+				if n := e.ownReduceCost(p, id, ab, nil); n > 0 && cost.Generic >= n {
 					cost.Generic -= n
 				} else if n > 0 {
 					cost.Generic = 0
@@ -1740,7 +1934,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			cost := e.parseCost(ab.Params["Cost"])
 			// The granted twin of the printed loop's own ReduceCost$ fold.
-			if n := e.ownReduceCost(p, id, ab); n > 0 && cost.Generic >= n {
+			if n := e.ownReduceCost(p, id, ab, nil); n > 0 && cost.Generic >= n {
 				cost.Generic -= n
 			} else if n > 0 {
 				cost.Generic = 0
@@ -1760,8 +1954,16 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if !e.abilityPresentHolds(p, id, ab) {
 				continue
 			}
+			// kw:Boast (CR 702.142): the granted twin of the printed loop's
+			// Boast gate. The identity is the SVar name the grant anchored on,
+			// because beginGrantedActivation mints a DelayedPush rather than an
+			// AbilityPush (boastGateOK reads both).
+			if strings.EqualFold(strings.TrimSpace(ab.Params["Boast"]), "True") && !e.boastGateOK(id, -1, ga.svar) {
+				continue
+			}
 			out = append(out, decision.Option{Index: len(out), Kind: "ability",
-				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar})
+				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar,
+				GrantSource: ga.source})
 		}
 	}
 
@@ -1835,9 +2037,17 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if !e.abilityPresentHolds(p, id, ab) {
 				continue
 			}
+			// kw:Boast (CR 702.142): the max-speed grant is a third offer site
+			// for an SVar-anchored ability, so it shares the Boast gate. The
+			// identity is the SVar name beginGrantedActivation mints its
+			// DelayedPush with (abSVarName), never a face index.
+			sv := abSVarName(o.Face(), ab)
+			if strings.EqualFold(strings.TrimSpace(ab.Params["Boast"]), "True") && !e.boastGateOK(id, -1, sv) {
+				continue
+			}
 			out = append(out, decision.Option{Index: len(out), Kind: "granted",
 				Label: o.Face().Name + ": " + ab.Params["SpellDescription"],
-				Obj:   id, SVar: abSVarName(o.Face(), ab)})
+				Obj:   id, SVar: sv})
 		}
 	}
 

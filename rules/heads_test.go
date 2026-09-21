@@ -1110,7 +1110,11 @@ var acceptanceHeads = map[int]string{
 	// AR7 promotion (2026-09-19): the default bot now attacks with a creature
 	// that is lethal to its defender if unblocked even into an unfavourable
 	// block (botpolicy lethal pressure; held-out 2,066-1,934 vs the old bot).
-	8: "ad8f88a9bc9aa060",
+	// 8 seats moved to 2fe007e9f370364c (autonomous orchestrator): resolving agent-20260920T221158Z-37697abf (Player-target offers ignore the player spec's You/Opponent qualifier)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "2fe007e9f370364c",
 }
 
 func TestHeads(t *testing.T) {

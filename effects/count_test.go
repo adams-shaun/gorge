@@ -85,8 +85,55 @@ func TestEvalCountValidSumsAPropertySuffix(t *testing.T) {
 	}
 	// An unrecognised property keeps the old whole-token spec read: it
 	// never matched anything, so it stays a zero count, not a widening.
-	if got := EvalCount(h, c, "Count$Valid Creature$GreatestCardPower"); got != 0 {
-		t.Errorf("GreatestCardPower token = %d, want 0 (out of scope, fail closed)", got)
+	// (The Greatest/Least reductions ARE read now -- see
+	// TestEvalCountValidExtremeProperties below.)
+	if got := EvalCount(h, c, "Count$Valid Creature$DifferentCardPower"); got != 0 {
+		t.Errorf("DifferentCardPower token = %d, want 0 (out of scope, fail closed)", got)
+	}
+}
+
+// TestEvalCountValidExtremeProperties pins the four extreme-reduction
+// property suffixes: the MAXIMUM (Greatest*) or MINIMUM (Least*) of the
+// property over the matches, not a sum. Several different values, because
+// the defect being fixed is a silent zero and a single-value test can pass
+// by coincidence.
+func TestEvalCountValidExtremeProperties(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	// Board: controller 0 has Bear 2/2 (MV 2) and Flier 1/1 (MV 2);
+	// controller 1 has the Giant 5/5 (MV 5).
+	cases := []struct {
+		expr string
+		want int32
+	}{
+		{"Count$Valid Creature$GreatestCardPower", 5},
+		{"Count$Valid Creature.YouCtrl$GreatestCardPower", 2},
+		{"Count$Valid Creature.YouCtrl$LeastCardPower", 1},
+		{"Count$Valid Creature$LeastCardPower", 1},
+		{"Count$Valid Creature$GreatestCardToughness", 5},
+		{"Count$Valid Creature.YouCtrl$GreatestCardToughness", 2},
+		// Bear MV 2, Giant MV 5: the greatest mana value, not the sum (9).
+		{"Count$Valid Creature$GreatestCardManaCost", 5},
+		{"Count$Valid Creature.YouCtrl$GreatestCardManaCost", 2},
+		// Zero matches -> 0, never an int-min/max sentinel.
+		{"Count$Valid Creature.YouCtrl+NonExistent$GreatestCardPower", 0},
+		{"Count$Valid Creature.YouCtrl+NonExistent$LeastCardPower", 0},
+	}
+	for _, tc := range cases {
+		if got := EvalCount(h, c, tc.expr); got != tc.want {
+			t.Errorf("%s = %d, want %d", tc.expr, got, tc.want)
+		}
+	}
+	// A second board strength so a hard-coded 5 cannot pass both: the
+	// DERIVED read must follow +1/+1 counters, not the printed face.
+	for _, id := range g.Zone(state.ZBattlefield, 0) {
+		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Bear" {
+			o.AddCounter("P1P1", 5)
+		}
+	}
+	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl$GreatestCardPower"); got != 7 {
+		t.Errorf("Creature.YouCtrl$GreatestCardPower after counters = %d, want 7", got)
 	}
 }
 
@@ -134,8 +181,8 @@ func TestEvalCountValidCountsDistinctColors(t *testing.T) {
 	if got := EvalCount(h, c, "Count$Valid Permanent.YouCtrl$Colors/Bogus.3"); got != 4 {
 		t.Errorf("Colors/Bogus.3 = %d, want 4 (unknown op ignored, plain Colors)", got)
 	}
-	if got := EvalCount(h, c, "Count$Valid Creature$GreatestCardPower"); got != 0 {
-		t.Errorf("GreatestCardPower token = %d, want 0 (out of scope, fail closed)", got)
+	if got := EvalCount(h, c, "Count$Valid Creature$DifferentCardPower"); got != 0 {
+		t.Errorf("DifferentCardPower token = %d, want 0 (out of scope, fail closed)", got)
 	}
 }
 
@@ -387,5 +434,105 @@ func TestChosenNumberHeadReadsTheFrozenBinding(t *testing.T) {
 	unbound := &Ctx{}
 	if n, ok := EvalCountOK(h, unbound, "Count$ChosenNumber"); ok {
 		t.Errorf("unbound Count$ChosenNumber = (%d, %v), want unresolved (0, false)", n, ok)
+	}
+}
+
+// TestThisTurnEnteredGraveyardCountsPermanentBase pins the Defect-2 fix in
+// countEntered: a spec's filter must be evaluated in the entry's DESTINATION
+// zone. A Grizzly Bears moved battlefield->graveyard this turn is no longer
+// on the battlefield, so the ordinary matcher's `Permanent` base
+// (o.Zone == ZBattlefield) rejects it and the count came back 0. The
+// zone-aware matcher reads a non-battlefield `Permanent` base as a permanent
+// CARD (Forge's Card.isPermanent()), which is what Gravestorm's
+// Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent needs.
+func TestThisTurnEnteredGraveyardCountsPermanentBase(t *testing.T) {
+	h := newHost(t, 2)
+	card := mkCard(t, "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	bear := h.g.AddObject(card, 0)
+	g := h.g
+	// Move the object out of the battlefield for real, mirroring events.Move:
+	// update the live zone lists, the object's Zone, and the per-add entry
+	// list the ThisTurnEntered heads fold.
+	g.SetZone(state.ZBattlefield, 0, nil)
+	g.SetZone(state.ZGraveyard, 0, append(g.Zone(state.ZGraveyard, 0), bear.ID))
+	bear.Zone = state.ZGraveyard
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: bear.ID, To: state.ZGraveyard, From: state.ZBattlefield})
+
+	c := &Ctx{Controller: 0}
+	for _, tc := range []struct {
+		body string
+		want int32
+	}{
+		// Permanent is the Defect-2 carrier: 0 before the fix.
+		{"Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent", 1},
+		// Creature/Card are type/identity tests and were already 1; they
+		// must stay 1 so the fix does not regress the common shape.
+		{"Count$ThisTurnEntered_Graveyard_from_Battlefield_Creature", 1},
+		{"Count$ThisTurnEntered_Graveyard_from_Battlefield_Card", 1},
+	} {
+		got, ok := EvalCountOK(h, c, tc.body)
+		if !ok || got != tc.want {
+			t.Errorf("%s = (%d, %v), want (%d, true)", tc.body, got, ok, tc.want)
+		}
+	}
+	// An unrelated permanent that never entered the graveyard must not
+	// change the count -- the fix must scope to the entry list, not widen.
+	h.g.AddObject(mkCard(t, "Name:Rock\nManaCost:1\nTypes:Artifact\nOracle:x\n"), 0)
+	if got, _ := EvalCountOK(h, c, "Count$ThisTurnEntered_Graveyard_from_Battlefield_Creature"); got != 1 {
+		t.Errorf("unrelated object changed the count to %d", got)
+	}
+}
+
+// TestThisTurnEnteredExileSkipsSpellCopies pins the CR 707.10h half of the
+// zone-aware matcher: a spell copy the engine parks in exile when it resolves
+// has ceased to exist (a copy that leaves the stack is a transient reference,
+// not a card), so every Count$ThisTurnEntered_<off-battlefield zone> head must
+// skip it. The Ennis, Debate Moderator end step reads
+// Count$ThisTurnEntered_Exile_Card.!token and was counting exiled Storm/
+// Gravestorm copies before the gate went into matchesZoneSpecCtx. A copy that
+// resolved onto the BATTLEFIELD (CR 707.10g) is a real permanent and must keep
+// counting.
+func TestThisTurnEnteredExileSkipsSpellCopies(t *testing.T) {
+	h := newHost(t, 2)
+	g := h.g
+
+	// A real card exiled this turn: the one honest entry.
+	real := g.AddObject(mkCard(t, "Name:Trick\nManaCost:U\nTypes:Instant\nOracle:x\n"), 0)
+	real.Zone = state.ZExile
+	g.SetZone(state.ZExile, 0, append(g.Zone(state.ZExile, 0), real.ID))
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: real.ID, To: state.ZExile, From: state.ZStack})
+
+	// A spell copy the engine parked in exile after resolution (IsCopy,
+	// live zone exile): ceased per CR 707.10h, must match nothing.
+	copyObj := g.AddObject(mkCard(t, "Name:Tendrils\nManaCost:2 B B\nTypes:Sorcery\nOracle:x\n"), 0)
+	copyObj.IsCopy = true
+	copyObj.Zone = state.ZExile
+	g.SetZone(state.ZExile, 0, append(g.Zone(state.ZExile, 0), copyObj.ID))
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: copyObj.ID, To: state.ZExile, From: state.ZStack})
+
+	// A copy of a permanent spell that resolved onto the battlefield
+	// (CR 707.10g): a real permanent, must still count.
+	permObj := g.AddObject(mkCard(t, "Name:Clone\nManaCost:2 U\nTypes:Creature Shapeshifter\nPT:0/0\nOracle:x\n"), 0)
+	permObj.IsCopy = true
+	permObj.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, append(g.Zone(state.ZBattlefield, 0), permObj.ID))
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: permObj.ID, To: state.ZBattlefield, From: state.ZStack})
+
+	c := &Ctx{Controller: 0}
+	for _, tc := range []struct {
+		body string
+		want int32
+	}{
+		// The Ennis head: 2 before the CR 707.10h gate (real card + exiled
+		// copy), 1 after.
+		{"Count$ThisTurnEntered_Exile_Card.!token", 1},
+		{"Count$ThisTurnEntered_Exile_Card", 1},
+		// The battlefield copy is real (CR 707.10g) and must count.
+		{"Count$ThisTurnEntered_Battlefield_Permanent", 1},
+	} {
+		got, ok := EvalCountOK(h, c, tc.body)
+		if !ok || got != tc.want {
+			t.Errorf("%s = (%d, %v), want (%d, true)", tc.body, got, ok, tc.want)
+		}
 	}
 }

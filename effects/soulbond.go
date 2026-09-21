@@ -85,5 +85,5 @@ func soulbondPartner(src, partner *state.Object, controller state.PlayerID) bool
 }
 
 func isBattlefieldCreature(o *state.Object) bool {
-	return o != nil && o.Zone == state.ZBattlefield && o.Face() != nil && o.Face().IsCreature()
+	return o != nil && o.Zone == state.ZBattlefield && o.EffectiveIsCreature()
 }

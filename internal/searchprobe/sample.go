@@ -77,6 +77,21 @@ type StackRejectionContext struct {
 	Count                                   int
 }
 
+// probeAttemptBudget is the total number of probe attempts Sample may spend
+// learning exclusions: the historical 2x4 structure as a floor, raised to a
+// quarter of the attempt budget so probing can continue past the first two
+// rounds while each round still teaches something. Rounds are
+// budget/probesPerRound; the frozen sampling phase always keeps the budget's
+// last attempt regardless of what probing learned.
+func probeAttemptBudget(attempts int) int {
+	const probesPerRound, baseRounds = 4, 2
+	cap := baseRounds * probesPerRound
+	if c := attempts / 4; c > cap {
+		cap = c
+	}
+	return cap
+}
+
 func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, err error) {
 	defer func() {
 		var f *Failure
@@ -260,14 +275,32 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	// while it runs, so a round's attempts share one proposal. A round that
 	// teaches nothing new ends the probing -- the last exclusion set is the
 	// frozen one, and every remaining attempt samples under it.
-	const probeRoundMax, probesPerRound = 2, 4
+	//
+	// The probe budget is adaptive: baseRounds*probesPerRound (the historical
+	// 2x4 structure) is the floor, raised to a quarter of the attempt budget
+	// so that rounds may keep probing while each one still teaches something
+	// -- the deeper preference layers the first rounds cannot observe. The
+	// inner loop also never spends the budget's last attempt: the frozen
+	// sampling phase always keeps at least one.
+	const probesPerRound, baseRounds = 4, 2
+	probeCap := probeAttemptBudget(opts.Attempts)
+	probeRounds := probeCap / probesPerRound
 	attemptsUsed := 0
 	var probeWorlds []World
 	var probeLogs []float64
-	for round := 0; round < probeRoundMax && attemptsUsed < opts.Attempts; round++ {
+	// keepFrom records where the final (teach-nothing) round's accepted probe
+	// worlds begin. That round ran under the FINAL store -- the same
+	// distribution as the frozen phase -- so its accepted worlds are
+	// homogeneous with the frozen pool and are kept even when the store is
+	// non-empty. Rounds that exited at the cap taught something; their
+	// accepted worlds were proposed under an earlier, smaller store and keep
+	// the old drop rule (keepFrom stays -1).
+	keepFrom := -1
+	for round := 0; round < probeRounds && attemptsUsed < probeCap; round++ {
 		staging := newExclusionStore()
 		before := store.size()
-		for i := 0; i < probesPerRound && attemptsUsed < opts.Attempts; i++ {
+		roundStart := len(probeWorlds)
+		for i := 0; i < probesPerRound && attemptsUsed < probeCap && opts.Attempts-attemptsUsed > 1; i++ {
 			world, lw, accepted, err := runAttempt(store, staging, attemptsUsed)
 			if err != nil {
 				return result, err
@@ -280,15 +313,10 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		}
 		store.merge(staging)
 		if store.size() == before {
+			keepFrom = roundStart
 			break
 		}
 	}
-	// Probe acceptances join the pool only when nothing was learned: their
-	// proposal is then identical to the sampling phase's and their weights
-	// homogeneous. When exclusions exist, the probe worlds carry the
-	// unconstrained proposal's much larger weight and would concentrate the
-	// pool, so they are dropped (bounded by the probe budget).
-	keepProbes := store.size() == 0
 	for ; attemptsUsed < opts.Attempts; attemptsUsed++ {
 		world, lw, accepted, err := runAttempt(store, nil, attemptsUsed)
 		if err != nil {
@@ -300,12 +328,15 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 			logs = append(logs, lw)
 		}
 	}
-	if keepProbes {
-		for i, world := range probeWorlds {
+	if keepFrom >= 0 {
+		for i := keepFrom; i < len(probeWorlds); i++ {
 			result.Accepted++
-			proposals = append(proposals, world)
+			proposals = append(proposals, probeWorlds[i])
 			logs = append(logs, probeLogs[i])
 		}
+	}
+	if len(proposals) == 0 {
+		return result, nil
 	}
 	if len(proposals) == 0 {
 		return result, nil

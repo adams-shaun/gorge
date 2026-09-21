@@ -30,7 +30,7 @@ func TestCompiledCodeMappings(t *testing.T) {
 		// Every non-test effects.Register spelling. This literal inventory
 		// makes adding an effect without assigning a stable opcode fail here.
 		names := []string{
-			"AddTurn", "Amass", "Animate", "Attach", "BecomeMonarch", "Branch",
+			"AddTurn", "Amass", "Animate", "AnimateAll", "Attach", "BecomeMonarch", "Branch",
 			"ChangeTargets", "ChangeZone", "ChangeZoneAll", "Charm", "ChooseCard",
 			"ChangeX", "ChooseNumber", "ChoosePlayer", "ChooseType", "Cleanup",
 			"ControlSpell", "CopySpellAbility", "Counter", "CumulativeUpkeep", "DamageAll", "DealDamage",
@@ -60,7 +60,7 @@ func TestCompiledCodeMappings(t *testing.T) {
 	t.Run("trigger modes", func(t *testing.T) {
 		names := []string{
 			"ChangesZone", "SpellCast", "AbilityCast", "SpellAbilityCast", "Attacks",
-			"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "Sacrificed",
+			"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Sacrificed",
 			"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 			"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
 			"Drawn", "LifeLost", "LifeLostAll", "Phase", "Always", "Attached",
@@ -145,6 +145,8 @@ func TestCompiledTriggerInterests(t *testing.T) {
 		{"AttackersDeclared", TriggerInterestAttackDeclaration},
 		{"AttackersDeclaredOneTarget", TriggerInterestAttackDeclaration},
 		{"AttackerBlocked", TriggerInterestAttackDeclaration},
+		{"AttackerBlockedByCreature", TriggerInterestAttackDeclaration},
+		{"Blocks", TriggerInterestAttackDeclaration},
 		{"Sacrificed", TriggerInterestZoneChange},
 		{"Discarded", TriggerInterestZoneChange},
 		{"LandPlayed", TriggerInterestZoneChange},

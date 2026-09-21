@@ -31,11 +31,39 @@ type fakeHost struct {
 	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
 	// true branch (the real log-scan read is pinned in rules).
 	castFromHand bool
+	// wasCast is the WasCast answer the double reports (task ifcastmain1):
+	// the eval-level Count$IfCastInOwnMainPhase tests flip it to pin the
+	// true/false branches independently of the live main-phase read.
+	wasCast bool
+	// revolt is the RevoltHolds answer the double reports (the bare
+	// Condition$ Revolt gate and the Count$Revolt branch head read it; the
+	// real event-log scan is pinned in rules).
+	revolt bool
 	// typeChoices is the TypeChoices answer the double reports (nil by
 	// default): the effects-side ChooseType tests configure it to pose a
 	// real option list. Nil routes ChooseType through AskEmpty — the
 	// unchanged deterministic fallback.
 	typeChoices []decision.Option
+	// combatHits is the CombatDamageToPlayersThisTurn answer the double
+	// reports; the effects-level PlayerCountDefinedRegistered tests set it to
+	// drive the combat-damage property (the real engine capture is pinned in
+	// rules).
+	combatHits []CombatDamageHit
+	// lifeLost is the LifeLostThisTurn answer the double reports, keyed by
+	// player; a nil map (the default) reports zero for every player, the
+	// pre-existing no-op. The effects-level PlayerCountDefinedRegistered
+	// tests set it to drive the HighestLifeLostThisTurn and
+	// HasPropertyLostLifeThisTurn properties (the real log-scan read is
+	// pinned in rules).
+	lifeLost map[state.PlayerID]int32
+	// dmgTaken is the DamageTakenThisTurn answer the double reports, keyed
+	// by player; a nil map (the default) reports zero for every player. The
+	// effects-level TargetedPlayer$DamageThisTurn tests set it; the real
+	// event-log fold is pinned in rules.
+	dmgTaken map[state.PlayerID]int32
+	// discarded is the CardsDiscardedThisTurn answer the double reports;
+	// a nil map keeps the pre-existing constant zero.
+	discarded map[state.PlayerID]int32
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -107,6 +135,12 @@ func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 // inventing a registry it cannot answer for.
 func (h *fakeHost) SacrificeBlocked(id state.ObjID) bool { return false }
 
+// ExploreReplaced has no replacement registry to consult here (the
+// replacement matching lives in rules.Engine), the same discipline as
+// SacrificeBlocked above: the double reports false rather than inventing a
+// registry it cannot answer for.
+func (h *fakeHost) ExploreReplaced(explorer state.ObjID) bool { return false }
+
 // The damage-batch bracket has nothing to latch here (no trigger machinery),
 // so the double reports no-ops; the dealDamage loops' bracketing still runs.
 func (h *fakeHost) BeginDamageBatch() {}
@@ -116,16 +150,36 @@ func (h *fakeHost) EndDamageBatch()   {}
 // package tests set up their own boards, so the double reports zero.
 func (h *fakeHost) CastThisTurn() int { return 0 }
 
-// LifeLostThisTurn has no event log here; the double reports zero (the same
-// conservative no-op as CastThisTurn).
-func (h *fakeHost) LifeLostThisTurn(_ state.PlayerID) int32 { return 0 }
+// LifeLostThisTurn reports the h.lifeLost entry the effects-level
+// PlayerCountDefinedRegistered tests configure; a nil map reports zero (the
+// pre-existing conservative no-op, so every other test is unchanged).
+func (h *fakeHost) LifeLostThisTurn(p state.PlayerID) int32 { return h.lifeLost[p] }
+
+func (h *fakeHost) DamageTakenThisTurn(p state.PlayerID) int32 { return h.dmgTaken[p] }
 
 // LifeGainedThisTurn has no event log here; the double reports zero (the
 // same conservative no-op as LifeLostThisTurn).
 func (h *fakeHost) LifeGainedThisTurn(_ state.PlayerID) int32 { return 0 }
 
+// CombatDamageToPlayersThisTurn reports the h.combatHits slice the
+// effects-level PlayerCountDefinedRegistered tests configure.
+func (h *fakeHost) CombatDamageToPlayersThisTurn() []CombatDamageHit { return h.combatHits }
+
+// CardsDiscardedThisTurn has no event log here; the double reports zero (the
+// same conservative no-op as LifeLostThisTurn).
+func (h *fakeHost) CardsDiscardedThisTurn(p state.PlayerID) int32 {
+	if h.discarded == nil {
+		return 0
+	}
+	return h.discarded[p]
+}
+
 // TurnsTaken has no event log here; the double reports zero.
 func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
+
+// RevoltHolds has no event log here; the double reports the h.revolt flag
+// the eval-level tests flip (the real log-scan read is pinned in rules).
+func (h *fakeHost) RevoltHolds(_ state.PlayerID) bool { return h.revolt }
 
 // SpellsCastThisTurnMatching has no event log here; the double reports zero.
 func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }
@@ -156,6 +210,11 @@ func (h *fakeHost) WasCastFromHandByYou(_ state.ObjID, _ state.PlayerID) bool { 
 // — enough for the branch-head and ConditionPresent$ gate unit tests, whose
 // provenance is pinned end to end on the real engine in rules.
 func (h *fakeHost) WasCastFromHand(_ state.ObjID) bool { return h.castFromHand }
+
+// WasCast is the Count$IfCastInOwnMainPhase third conjunct's read (task
+// ifcastmain1): the fake reports the flag, so the eval-level head tests pin
+// both branches by flipping it (the real engine read is pinned in rules).
+func (h *fakeHost) WasCast(_ state.ObjID) bool { return h.wasCast }
 
 // CommanderIdentityColourCount has no commander bookkeeping here; the double
 // reports zero (the same replay-derivable class as TurnsTaken above).

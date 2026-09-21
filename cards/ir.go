@@ -46,6 +46,7 @@ type Face struct {
 	Colors    string
 	Oracle    string
 	Keywords  []string
+	Aliases   []string // Universes-Within flavour names a decklist may use
 	Abilities []*SA
 	Triggers  []Trigger
 	Statics   []Static
@@ -60,6 +61,7 @@ type Face struct {
 	power                  int32
 	toughness              int32
 	characteristicDefining bool
+	allCreatureTypesCDA    bool
 	cmc                    int32
 	manaProduction         ManaProduction
 

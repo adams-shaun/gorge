@@ -21,8 +21,10 @@ func init() {
 	Register("DelayedTrigger", effDelayedTrigger)
 	Register("Repeat", effRepeat)
 	Register("Charm", effCharm)
+	Register("GenericChoice", effCharm)
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
+	Register("RingTemptsYou", effRingTemptsYou)
 	Register("RestartGame", effRestartGame)
 	Register("Goad", effGoad)
 	Register("Ward", effWard)
@@ -933,8 +935,10 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		// CR 702.34a: a flashback spell is exiled instead of going anywhere
 		// else when it leaves the stack -- but an explicit non-graveyard
 		// destination (Remand's hand) is that anywhere-else, so the override
-		// applies only on the graveyard/default path.
-		if o.CastFlags&state.FlagFlashback != 0 && to == state.ZGraveyard {
+		// applies only on the graveyard/default path. CR 702.85a: the same
+		// "then exile it" covers an Aftermath half's cast, every way it
+		// leaves the stack including being countered.
+		if o.CastFlags&(state.FlagFlashback|state.FlagAftermath) != 0 && to == state.ZGraveyard {
 			to = state.ZExile
 		}
 		if remember {
@@ -1196,6 +1200,16 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+// CharmRepeatModes reports whether a Charm's CanRepeatModes$ True grants
+// CR 601.2b's "you may choose the same mode more than once": the mode pick
+// becomes an ordered multiset over the distinct Choices$ modes, so the same
+// mode may fill several of the CharmNum$ slots. Measured at the corpus pin:
+// 23 files, every one api:Charm, every one the literal "True" (the Confluence
+// cycle, Fiery Confluence, Moment of Reckoning, the Commands cycle).
+func CharmRepeatModes(sa *cards.SA) bool {
+	return sa != nil && strings.EqualFold(strings.TrimSpace(sa.Params["CanRepeatModes"]), "True")
+}
+
 // CharmModeBounds resolves a Charm's selectable range. Forge defaults
 // MinCharmNum$ to CharmNum$, but an explicit MinCharmNum$ permits choosing
 // fewer modes. Both values use Num so literal, SVar, and inline Count$ forms
@@ -1204,7 +1218,15 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 // minimum to 0: the election is real, and choosing nothing is a legal answer
 // at every site that asks (the placement ask, the cast announcement and
 // effCharm's own mid-resolution ask all share this one helper).
-func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
+//
+// The third result is CanRepeatModes$: when it is set, max is NOT clamped to
+// the number of distinct modes (a repeatable CharmNum$ 5 over 3 modes is
+// legal -- the Commands cycle), and the caller must mark its decision
+// Repeatable so Decision.Validate permits the repeated index. The clamp is
+// what makes a non-repeatable CharmNum$ greater than its mode count degrade
+// to "pick every distinct mode" rather than demand an impossible answer.
+func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int, repeat bool) {
+	repeat = CharmRepeatModes(sa)
 	max = int(Num(h, c, sa, "CharmNum", 1))
 	if max < 1 {
 		max = 1
@@ -1216,13 +1238,13 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
 	if strings.EqualFold(sa.Params["Optional"], "True") {
 		min = 0
 	}
-	if max > choices {
+	if !repeat && max > choices {
 		max = choices
 	}
 	if min < 0 {
 		min = 0
 	}
-	return min, max
+	return min, max, repeat
 }
 
 // CharmUniqueNone/Supported/Unsupported classify a Charm's chosen-mode set
@@ -1463,14 +1485,45 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		// OfferedSA is nil or the root's own covered SA -- and its
 		// target-bearing modes keep their real asks.
 		modalOffered := c.OfferedSA != nil && c.OfferedSA.Line != sa.Line
+		// CanRepeatModes$ (CR 601.2b): the covering ask -- the cast
+		// announcement's or the placement ask's ONE target list -- covers the
+		// FIRST occurrence of each target-bearing mode only. A later occurrence
+		// of the same mode must keep its own targeting: OfferedSA is dropped
+		// for the dispatch (chosenTargetsFor's Line match would otherwise skip
+		// it) and the root TargetsOffered marker is shed for it (both pre-ask
+		// gates read it at depth 0), so the mode's own mid-resolution ask --
+		// chosenTargetsFor's for every API, changeZoneChosenTargets's for an
+		// API$ ChangeZone body, which also needs the shared list out of sight
+		// (its len(c.Targets) > 0 placement guard) -- poses for THIS instance.
+		// "Return target creature to its owner's hand" chosen three times then
+		// asks three targets and returns three creatures, instead of silently
+		// re-running the mode against the one shared target. The seen-set is
+		// seeded from Ctx.ModesSeen (rules' charm_rest arm): after a suspension
+		// the re-entry walks only the REST of the multiset, so "first occurrence
+		// in this walk" alone cannot see the instances the earlier passes
+		// already ran.
+		seen := make(map[string]bool, len(names))
+		for _, n := range c.ModesSeen {
+			seen[n] = true
+		}
 		for i, name := range names {
 			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
-				savedOffered := c.OfferedSA
+				savedOffered, savedTargets, savedMark := c.OfferedSA, c.Targets, c.TargetsOffered
+				first := !seen[name]
+				seen[name] = true
 				if modalOffered && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
-					c.OfferedSA = sub
+					if first {
+						c.OfferedSA = sub
+					} else {
+						c.OfferedSA = nil
+						c.TargetsOffered = false
+						if sub.CompiledAPI() == cards.APIChangeZone || sub.API == "ChangeZone" {
+							c.Targets = nil
+						}
+					}
 				}
 				Resolve(h, c, sub)
-				c.OfferedSA = savedOffered
+				c.OfferedSA, c.Targets, c.TargetsOffered = savedOffered, savedTargets, savedMark
 			}
 			if h.Suspended() {
 				// A mode's own chain posed a mid-resolution ask: never run the
@@ -1494,14 +1547,16 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	for i, name := range choices {
 		subs[i] = cards.ResolveSVar(c.SVars, name)
 	}
-	min, max := CharmModeBounds(h, c, sa, len(choices))
-	if min > len(choices) {
+	min, max, repeat := CharmModeBounds(h, c, sa, len(choices))
+	if min > len(choices) && !repeat {
 		// Forge declines a Charm whose required minimum exceeds its available
-		// modes. A no-engine host must likewise make no arbitrary choice.
+		// modes. A repeatable Charm can always fill its slots by repeating a
+		// single mode, so it never declines on this ground. A no-engine host
+		// must likewise make no arbitrary choice.
 		return
 	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
-		Min: min, Max: max, Source: c.Source,
+		Min: min, Max: max, Source: c.Source, Repeatable: repeat,
 		ResumeKind: "modes", ResumeSA: sa,
 		Prompt: "Choose " + strconv.Itoa(min) + " to " + strconv.Itoa(max) + " mode(s)"}
 	for i, name := range choices {
@@ -1531,9 +1586,18 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 
 // effVote records one Note per voting player. Two shapes:
 //
-//   - the fixed-list shape (M1): Choices$ names entries, each player votes
-//     for the first, Notes record it, and nothing runs -- the stand-in this
-//     build keeps for every Vote that does not carry VoteCard$.
+//   - the fixed-list shape ("Will of the Planeswalkers", Expropriate):
+//     Choices$ names an SVar per ballot option, each player votes for the
+//     first (the deterministic stand-in), Notes record it, and the WINNING
+//     option's SVar runs. A tie runs VoteTiedAbility$ when the SA carries
+//     one (the path cycle's DBChaos), else the first tied option's SVar.
+//     Before this the fixed-list shape resolved nothing at all, so a Path
+//     of the Ghosthunter vote recorded its Notes and then did nothing --
+//     the "chosen outcome" the brief expected to hit Planeswalk/
+//     ChaosEnsues never ran. The tie branch takes its tally from Ctx.Votes
+//     when a caller has answered one (the seam a real per-player ask fills,
+//     and what lets the tie be pinned against a real compiled SA); absent,
+//     the deterministic stand-in applies.
 //   - the card-ballot shape (Council's Judgment): VoteCard$ is a permanent
 //     filter, so the ballot is the battlefield permanents matching it
 //     (matched from the spell's controller: "a nonland permanent YOU don't
@@ -1542,22 +1606,99 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 //     for VoteSubAbility$ (DBExile's ChangeZone Defined$ Remembered).
 //
 // The per-player vote CHOICE itself is still the deterministic no-ask
-// stand-in (every voter takes the ballot's first option, so the first
-// eligible permanent always wins unanimously): a real per-player vote ask
-// needs a resume arm of its own and stays in the approximations table.
-// Both VoteCard$ and VoteSubAbility$ are genuinely read on the ballot path.
+// stand-in (every voter takes the first option, so the first eligible
+// permanent always wins unanimously): a real per-player vote ask produces
+// Ctx.Votes and needs a resume arm of its own, and stays in the
+// approximations table. Both VoteCard$ and VoteSubAbility$ are genuinely
+// read on the ballot path.
 func effVote(h Host, c *Ctx, sa *cards.SA) {
 	if ballot := strings.TrimSpace(sa.Params["VoteCard"]); ballot != "" {
 		effCardVote(h, c, sa, ballot)
 		return
 	}
-	first := ""
-	if choices := sa.Params["Choices"]; choices != "" {
-		first = strings.TrimSpace(strings.SplitN(choices, ",", 2)[0])
+	choices := voteChoiceNames(sa)
+	voters := Defined(h, c, sa)
+	// Ctx.Votes is the answered per-voter choice list (a real per-player
+	// ask's result, or a test seam): one option index per voter, in voter
+	// order. It is consumed and cleared at the top of the walk so a nested
+	// Vote cannot inherit it (fx42), the same scoping every other asking
+	// primitive uses. Absent, the deterministic stand-in applies: every
+	// voter takes the first option.
+	answered := c.Votes
+	c.Votes = nil
+	counts := make([]int, len(choices))
+	for i, t := range voters {
+		choice := 0
+		if answered != nil && i < len(answered) {
+			choice = answered[i]
+		}
+		label := ""
+		if choice >= 0 && choice < len(choices) {
+			label = choices[choice]
+			counts[choice]++
+		}
+		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}
-	for _, t := range Defined(h, c, sa) {
-		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + first})
+	if len(choices) == 0 || len(voters) == 0 {
+		return
 	}
+	// The winner is the option with the most votes (ties: the first such
+	// option). When the top count is shared, VoteTiedAbility$ runs instead
+	// for the shapes that spell one (the Path cycle's DBChaos).
+	best, tied := voteWinner(counts)
+	name := choices[best]
+	if tied {
+		if alt := strings.TrimSpace(sa.Params["VoteTiedAbility"]); alt != "" {
+			name = alt
+		}
+	}
+	if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+		Resolve(h, c, sub)
+	}
+}
+
+// voteWinner returns the index of the highest count and whether that count is
+// shared by more than one option. It is a separate function (rather than
+// inline in effVote) so the tie branch is testable on its own: the current
+// deterministic stand-in gives every vote to option 0, so a real tie cannot
+// arise from a live resolution yet, and an untested branch would be dead code
+// waiting to rot. The first highest index wins the tie, matching the
+// oracle's "if X gets more votes" over "or the vote is tied" ordering.
+func voteWinner(counts []int) (int, bool) {
+	if len(counts) == 0 {
+		return 0, false
+	}
+	best := 0
+	for i, n := range counts {
+		if n > counts[best] {
+			best = i
+		}
+	}
+	tied := 0
+	for _, n := range counts {
+		if n == counts[best] {
+			tied++
+		}
+	}
+	return best, tied > 1
+}
+
+// voteChoiceNames splits a Vote's Choices$ into its SVar names, trimmed and
+// with empty entries dropped. Shared by both vote shapes so the option list
+// the tally indexes is parsed one way.
+func voteChoiceNames(sa *cards.SA) []string {
+	raw := sa.Params["Choices"]
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // effCardVote is effVote's card-ballot half: the battlefield permanents
@@ -1865,19 +2006,70 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// slot and the parallel snow tally move through one event and a replay
 	// derives both identically. The {S} pips a cost may carry are paid only
 	// from that tally (rules/mana.go's resolveMana).
+	//
+	// Task castfilter2: mana produced by a Treasure/Cave/Desert permanent is
+	// likewise tagged — Counter "<Tag><colour>" — into Player.TypedMana so
+	// the filtered Count$CastTotalManaSpent Treasure/Cave/Desert heads can
+	// read the per-unit producer provenance (Marut, Bat Colony, Cataclysmic
+	// Prospecting). The tag is COLOUR-INDEPENDENT of what the unit pays as:
+	// a Treasure token's Produced$ Any degrades to colourless (the M4
+	// stand-in) and lands in the MC slot, but the tag still names Treasure.
+	// Precedence is the fixed Treasure > Cave > Desert when a face carries
+	// several (measured: no corpus producer carries two); no corpus producer
+	// is both Snow and typed, and the tagged form takes the Counter (one
+	// encoding per unit) — the combination is unmeasured.
 	snow := false
+	tag := ""
 	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
-		for _, t := range o.Face().Types {
-			if t == "Snow" {
-				snow = true
+		for _, tagWord := range state.TypedManaTags {
+			for _, t := range o.Face().Types {
+				if t == tagWord {
+					tag = tagWord
+					break
+				}
+			}
+			if tag != "" {
 				break
 			}
+		}
+		if tag == "" {
+			for _, t := range o.Face().Types {
+				if t == "Snow" {
+					snow = true
+					break
+				}
+			}
+		}
+	}
+	// TriggersWhenSpent$ <SVar> (Path of Ancestry, Lapis Orb of Dragonkind,
+	// Study Hall: "when that mana is spent to cast ..., ..."): the produced
+	// mana must be attributable to THIS source at spend time, so the add
+	// rides an UNRESTRICTED provenance batch -- an empty Valid is spendable
+	// anywhere (the Boseiju shape), so payment behaviour is unchanged while
+	// state.ManaRestriction.Source records which permanent's ability produced
+	// it. rules' spend path captures the source and queues the named SVar's
+	// trigger when the batch pays for a SPELL (the rider's "spent to cast"
+	// gate). No corpus carrier pairs the param with a restriction (measured:
+	// 0 of 13); if one ever does, the restriction encoding wins (spendability
+	// is load-bearing) and the provenance is lost with one loud Note rather
+	// than either encoding being silently dropped.
+	triggersWhenSpent := strings.TrimSpace(sa.Params["TriggersWhenSpent"])
+	provenanceOnly := false
+	if triggersWhenSpent != "" {
+		if restriction == "" && noCounter == "" {
+			provenanceOnly = true
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "TriggersWhenSpent$ " + triggersWhenSpent + " rides a restricted mana batch; its source attribution is dropped"})
 		}
 	}
 	for _, p := range ManaRecipients(h, c, sa) {
 		for _, r := range runes {
 			counter := string(r)
-			if snow {
+			switch {
+			case tag != "":
+				counter = tag + counter
+			case snow:
 				counter = "S" + counter
 			}
 			ev := events.Event{Kind: events.ManaAdd, Player: p,
@@ -1886,6 +2078,8 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 				ev.Text = events.ManaRestrictionTextNC(restriction, c.Source, noCounter)
 			} else if restriction != "" {
 				ev.Text = events.ManaRestrictionText(restriction, c.Source)
+			} else if provenanceOnly {
+				ev.Text = events.ManaRestrictionText("", c.Source)
 			}
 			h.Emit(ev)
 		}

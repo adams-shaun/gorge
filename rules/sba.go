@@ -281,7 +281,11 @@ func (e *Engine) checkStateBased() {
 
 // legendCasualties collects CR 704.5j: if two or more legendary permanents with
 // the same name are controlled by the same player, all but one are put into
-// their owners' graveyards. This build has no player-facing "which one do you
+// their owners' graveyards. "Legendary" is a CHARACTERISTIC the layer system
+// can change -- CopyPermanent's NonLegendary$ True strips the supertype at
+// layer 4 -- so the check reads the DERIVED type list (typeCharacteristics),
+// never just the printed face: a non-legendary copy of a legend must not be
+// binned against its original. This build has no player-facing "which one do you
 // keep" chooser (the engine can only ask decisions a seat answers, and this
 // SBA is not one of them), so the first such permanent in battlefield order is
 // kept and the rest are put into their owners' graveyards deterministically.
@@ -300,6 +304,9 @@ func (e *Engine) legendCasualties() []casualty {
 			if o == nil || o.Face() == nil || !o.Face().IsLegendary() {
 				continue
 			}
+			if !legendaryUnderLayers(e, id) {
+				continue
+			}
 			name := o.Face().Name
 			if seen[name] {
 				dead = append(dead, casualty{id, "legend rule"})
@@ -309,6 +316,18 @@ func (e *Engine) legendCasualties() []casualty {
 		}
 	}
 	return dead
+}
+
+// legendaryUnderLayers reports whether the object's DERIVED type list still
+// carries the Legendary supertype. A printed legend whose layer-4 effects
+// strip it (CopyPermanent's NonLegendary$) is not legendary for CR 704.5j.
+func legendaryUnderLayers(e *Engine, id state.ObjID) bool {
+	for _, t := range e.typeCharacteristics(id, 0) {
+		if strings.EqualFold(t, "Legendary") {
+			return true
+		}
+	}
+	return false
 }
 
 // annihilateOppositeCounters applies CR 704.5q to permanents in fixed seat
@@ -543,7 +562,20 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 			f := o.Face()
 			// CR 702.114e: a bestowed-attached card is an Aura, not a creature,
 			// so the creature SBAs (lethal damage/toughness) do not hit it.
-			if f == nil || !f.IsCreature() || o.BestowedAttached() {
+			if f == nil || o.BestowedAttached() {
+				continue
+			}
+			// CR 708.5/708.8: a face-down permanent's printed face does not
+			// exist, so its creature-ness comes from its effective type set
+			// (the folded FaceDownSetType$, defaulting to Creature). A
+			// face-down Forest land (Yedora) is not a creature and must not be
+			// swept by the zero-toughness SBA even though its printed card is a
+			// 1/1 creature.
+			if e.faceDownPrintedHides(o) {
+				if !o.EffectiveIsCreature() {
+					continue
+				}
+			} else if !f.IsCreature() {
 				continue
 			}
 			if e.Toughness(id) <= 0 {

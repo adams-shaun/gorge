@@ -167,6 +167,17 @@ func (f *Face) Cmc() int32 { return f.cmc }
 // for these and layer 7a (in rules) supplies the real value.
 func (f *Face) CharacteristicDefining() bool { return f.characteristicDefining }
 
+// AllCreatureTypesCDA reports whether the face prints its own
+// characteristic-defining "is every creature type" ability — the
+// AddAllCreatureTypes$ True static on a CharacteristicDefining$ True,
+// Affected$ Self line (Mistform Ultimus). This is the intrinsic CDA sibling
+// of Changeling's keyword: like Changeling, it is answered by the type
+// filter's positive subtype vocabulary (effects' changelingType), never by
+// materialising hundreds of subtypes into the derived type list. Derived
+// once at load; a granted static (Maskwood Nexus's Affected$ Creature.YouCtrl)
+// does not set it — grants stay in the rules layer walk.
+func (f *Face) AllCreatureTypesCDA() bool { return f.allCreatureTypesCDA }
+
 // Colour identity is a bitmask over the five colours packed into one byte. A
 // bitmask is the natural representation: identity is used as a set-membership
 // question ("commander identity must be a superset of this card's identity")
@@ -199,6 +210,7 @@ func (f *Face) ColourIdentity() uint8 { return f.colourIdentity }
 // error anywhere.
 func (f *Face) derive() {
 	f.power, f.toughness, f.characteristicDefining = parsePT(f.PT)
+	f.allCreatureTypesCDA = cdaAllCreatureTypes(f.Statics)
 	f.cmc = cmcFromManaCost(f.ManaCost)
 	f.manaProduction = ManaProduction{}
 	for _, a := range f.ManaAbilities() {
@@ -261,6 +273,56 @@ func (f *Face) deriveColourIdentity() uint8 {
 // colours but is itself green) or that is not characteristic-defining
 // (Fallaji Wayfarer's "doesn't affect its color identity") is not the card's
 // identity and must be ignored.
+// cdaAllCreatureTypes reports whether the face's own statics carry a
+// characteristic-defining AddAllCreatureTypes$ True affecting the card
+// itself. Mirrors cdaSetColours' gate shape: the static must be a Continuous
+// one marked CharacteristicDefining$ True and must name Self in its Affected$
+// (an empty Affected$ counts as self-scoped for a printed CDA; a static that
+// affects OTHER permanents — Maskwood Nexus's Affected$ Creature.YouCtrl
+// grant, handled by the rules layer walk — is not the card's own type and
+// must not set the intrinsic flag).
+func cdaAllCreatureTypes(sts []Static) bool {
+	for _, s := range sts {
+		if s.Mode != "Continuous" || !strings.EqualFold(strings.TrimSpace(s.Params["CharacteristicDefining"]), "True") {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(s.Params["AddAllCreatureTypes"]), "True") {
+			continue
+		}
+		if aff := strings.TrimSpace(s.Params["Affected"]); aff != "" && !strings.Contains(aff, "Self") {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// CommanderColourChoiceCDA reports whether the face carries the CR 903.4b
+// "if CARDNAME is your commander, choose a color before the game begins"
+// characteristic-defining ability: a CharacteristicDefining$ True continuous
+// static affecting Self whose SetColor$ names the chosen colour. It is the
+// SAME gate cdaSetColours applies (and the one rules' layer-5 scan resolves
+// through resolveChosenColors), exported so the pregame ask in rules/ and the
+// identity derivation here cannot drift on what qualifies a commander for the
+// choice. cdaSetColours contributes nothing for the value at load time -- the
+// choice does not exist yet -- so this predicate is what the pregame round
+// keys on.
+func (f *Face) CommanderColourChoiceCDA() bool {
+	for _, s := range f.Statics {
+		if s.Mode != "Continuous" || !strings.EqualFold(strings.TrimSpace(s.Params["CharacteristicDefining"]), "True") {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(s.Params["SetColor"]), "ChosenColor") {
+			continue
+		}
+		if aff := strings.TrimSpace(s.Params["Affected"]); aff != "" && !strings.Contains(aff, "Self") {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 func cdaSetColours(sts []Static) uint8 {
 	var m uint8
 	for _, s := range sts {
@@ -478,6 +540,74 @@ func cmcFromManaCost(mc string) int32 {
 		n++
 	}
 	return n
+}
+
+// Mentions reports whether any script text on the face contains needle: every
+// SVar value body, every reachable ability parameter (abilities, their
+// SubAbility$ chains, trigger effects and replacement bodies), every static
+// parameter and every keyword string. It is the structural reader for
+// provenance gates that ask "does this face read X" -- a value search over
+// the whole script, not a keyed parameter read -- so it lives with the IR it
+// walks rather than in the key-census-scanned rule packages.
+func (f *Face) Mentions(needle string) bool {
+	if f == nil || needle == "" {
+		return false
+	}
+	for _, v := range f.SVars {
+		if strings.Contains(v, needle) {
+			return true
+		}
+	}
+	for _, k := range f.Keywords {
+		if strings.Contains(k, needle) {
+			return true
+		}
+	}
+	var walkSA func(sa *SA, depth int) bool
+	walkSA = func(sa *SA, depth int) bool {
+		if sa == nil || depth > 32 {
+			return false
+		}
+		for _, v := range sa.Params {
+			if strings.Contains(v, needle) {
+				return true
+			}
+		}
+		return walkSA(sa.Sub, depth+1)
+	}
+	for _, a := range f.Abilities {
+		if walkSA(a, 0) {
+			return true
+		}
+	}
+	for _, tr := range f.Triggers {
+		for _, v := range tr.Params {
+			if strings.Contains(v, needle) {
+				return true
+			}
+		}
+		if walkSA(tr.Effect, 0) {
+			return true
+		}
+	}
+	for _, r := range f.Repls {
+		for _, v := range r.Params {
+			if strings.Contains(v, needle) {
+				return true
+			}
+		}
+		if walkSA(r.With, 0) {
+			return true
+		}
+	}
+	for _, s := range f.Statics {
+		for _, v := range s.Params {
+			if strings.Contains(v, needle) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // twobridManaValue recognises Forge's concatenated ("2W") and slash

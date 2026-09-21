@@ -25,7 +25,8 @@ type deckReport struct {
 	Input        string        `json:"input"`
 	Name         string        `json:"name"`
 	Format       string        `json:"format"`
-	Commander    string        `json:"commander,omitempty"`
+	Commander    string        `json:"commander,omitempty"`          // the first commander (legacy singular display field)
+	Commanders   []string      `json:"commanders,omitempty"`         // every commander, in order (a partner pair lists two)
 	Cards        int           `json:"cards"`                        // total count, and cards included in the deck
 	Resolved     int           `json:"resolved"`                     // count of cards that resolved to a corpus card
 	Percent      float64       `json:"resolution_percent"`           // resolved / cards * 100
@@ -45,22 +46,26 @@ type report struct {
 
 // deckFile is the on-disk repo deck-file shape: a {name, format, cards}
 // list with the authoring-metadata fields the repo's own deck files carry
-// (commander, archetype, notes). It is written to the same {name, count}
-// card list that deck.Parse reads, so a deck file it produces loads back
-// through deck.Load unchanged; the extra fields ride along and are ignored
-// by deck.Parse (which only models Name/Format/Commander/Cards).
+// (commander/commanders, archetype, notes). It is written to the same
+// {name, count} card list that deck.Parse reads, so a deck file it produces
+// loads back through deck.Load unchanged; the extra fields ride along and
+// are read by deck.Parse.
 //
-// Commander carries omitempty so a constructed deck — matching the repo's
-// existing constructed deck files — does not emit an empty "commander" key
+// A one-commander deck writes the legacy singular "commander" key — so
+// files written before the partner-pair field existed are byte-identical
+// under this writer — and a partner pair writes the plural "commanders"
+// list instead. Both carry omitempty so a constructed deck — matching the
+// repo's existing constructed deck files — does not emit an empty key
 // (which is precisely how splitDecks tells a commander deck from a
 // constructed one: presence-of-field, not non-empty value).
 type deckFile struct {
-	Name      string       `json:"name"`
-	Format    string       `json:"format"`
-	Commander string       `json:"commander,omitempty"`
-	Archetype string       `json:"archetype,omitempty"`
-	Notes     string       `json:"notes,omitempty"`
-	Cards     []deck.Entry `json:"cards"`
+	Name       string       `json:"name"`
+	Format     string       `json:"format"`
+	Commander  string       `json:"commander,omitempty"`
+	Commanders []string     `json:"commanders,omitempty"`
+	Archetype  string       `json:"archetype,omitempty"`
+	Notes      string       `json:"notes,omitempty"`
+	Cards      []deck.Entry `json:"cards"`
 }
 
 // analyzeDeck turns a parsed deck and the corpus into the findings. It never
@@ -72,8 +77,9 @@ func analyzeDeck(input, name, format string, p *parsedDeck, r *cards.Registry) d
 		Name:   name,
 		Format: format,
 	}
-	if p.Commander != "" {
-		dr.Commander = p.Commander
+	if len(p.Commanders) > 0 {
+		dr.Commanders = p.Commanders
+		dr.Commander = p.Commanders[0]
 	}
 
 	total := 0
@@ -110,7 +116,7 @@ func analyzeDeck(input, name, format string, p *parsedDeck, r *cards.Registry) d
 	dr.Ok = len(dr.Missing) == 0
 
 	// Commander eligibility: only meaningful when the deck names a commander.
-	if p.Commander != "" {
+	if len(p.Commanders) > 0 {
 		ok, why := commanderEligibility(p, r)
 		dr.CommanderOk = &ok
 		dr.CommanderWhy = why
@@ -124,9 +130,9 @@ func analyzeDeck(input, name, format string, p *parsedDeck, r *cards.Registry) d
 // "not eligible" but "the deck has 99 cards" or "X has a colour identity
 // outside the commander's".
 func commanderEligibility(p *parsedDeck, r *cards.Registry) (bool, []string) {
-	f := deck.File{Name: "imported", Cards: toEntries(p.Cards)}
-	if p.Commander != "" {
-		f.Commander = p.Commander
+	f := deck.File{Name: "imported", Cards: toEntries(p.Cards), Commanders: p.Commanders}
+	if len(p.Commanders) > 0 {
+		f.Commander = p.Commanders[0]
 	}
 	// The eligibility check itself (IsCommanderEligible) is what the brief
 	// asks about; ValidateCommander is its superset (it also checks 100-card
@@ -145,6 +151,15 @@ func toEntries(pc []parsedCard) []deck.Entry {
 		out = append(out, deck.Entry{Name: c.Name, Count: c.Count})
 	}
 	return out
+}
+
+// commanderLabel is the commander line the text report prints: the pair
+// joined with " & " when the deck carries two, else the first commander.
+func commanderLabel(d deckReport) string {
+	if len(d.Commanders) > 0 {
+		return strings.Join(d.Commanders, " & ")
+	}
+	return d.Commander
 }
 
 // splitReasons breaks a multi-line ValidateCommander error into its individual
@@ -175,8 +190,8 @@ func renderText(w io.Writer, rep report) {
 			fmt.Fprintln(w)
 		}
 		fmt.Fprintf(w, "== %s (%s) ==\n", d.Name, d.Format)
-		if d.Commander != "" {
-			fmt.Fprintf(w, "commander: %s\n", d.Commander)
+		if label := commanderLabel(d); label != "" {
+			fmt.Fprintf(w, "commander: %s\n", label)
 		}
 		fmt.Fprintf(w, "cards:   %d   resolved: %d   (%.1f%%)\n", d.Cards, d.Resolved, d.Percent)
 		if d.Dropped > 0 {

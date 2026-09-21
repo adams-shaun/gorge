@@ -21,8 +21,9 @@ type CostPart struct {
 	N    int32
 	Spec string
 	// Zone is the zone an Exile cost part pays from: ZHand for an
-	// ExileFromHand token (the default zero value) or ZGraveyard for an
-	// ExileFromGrave token. Sac/Discard/SubCounter parts never read it.
+	// ExileFromHand token (the default zero value), ZGraveyard for an
+	// ExileFromGrave or ExileAnyGrave token. Sac/Discard/SubCounter parts
+	// never read it.
 	Zone state.Zone
 	// Announced marks the variable-count form of a Sac part (Sac<X/Spec> --
 	// Dargo's "sacrifice any number"): the player announces the count as the
@@ -37,7 +38,22 @@ type CostPart struct {
 	// A part whose SVar is absent or unresolvable fails closed -- the cost is
 	// unpayable, never a silent zero draw. Empty for an ordinary literal
 	// Draw<N/Spec>.
+	//
+	// On a TapPermanent part Dyn carries Forge's dynamic tapXType heads
+	// instead: "X" (tapXType<X/Spec> -- the tap count announces the cast's
+	// {X}, CR 601.2b: when the cost carries no other announce-bearing part
+	// the tap election IS the announcement and binds Count$xPaid through the
+	// pay-time CastInfo; when it does, the part settles exactly the announced
+	// X) and "Any" (tapXType<Any/Spec> -- a free count that binds nothing;
+	// paying the cost taps at least one matching permanent, so a spec no
+	// candidate satisfies leaves the cost unpayable). N is unused for both.
 	Dyn string
+	// LibraryPos is the library slot a PutToLib cost part places the moved
+	// card(s) at, read from Forge's <N/Pos/Spec> middle field: -1 is the
+	// bottom (Forge CostPutCardToLib's "-1"), 0 is the top (its absent/
+	// "0" default). It is unused by every other cost head, whose zero value
+	// is inert.
+	LibraryPos int32
 }
 
 // ManaPair is one two-face hybrid symbol: each face is a WUBRGC mana symbol,
@@ -122,6 +138,32 @@ type Cost struct {
 	// (Forge CostReturn.moveToHand; CR 118.2a lists returning a permanent to
 	// its owner's hand among the payment actions).
 	Return []CostPart
+	// PutToLib carries PutCardToLibFrom<Zone><N/Pos/Spec> tokens: the payer
+	// moves N cards matching Spec from Zone (Spec's Forge head names Hand,
+	// Grave or Battlefield) to their OWN library at position Pos (-1 bottom,
+	// 0 top). It is Forge's CostPutCardToLib family -- the printed activation
+	// costs of Leashling, Ardent Dustspeaker, Battlefield Scrounger,
+	// Timestream Navigator and Penance/Tainted Specter's UnlessCost$ -- and
+	// is DISTINCT from the cumulative-upkeep PutCardToLibFromSameGrave action
+	// (rules/cumulative.go), which is a keyword-expansion action rather than
+	// a parsed cost token. Zone is the origin, LibraryPos the position.
+	PutToLib []CostPart
+	// MoveToGrave carries ExiledMoveToGrave<N/Spec> tokens: N cards matching
+	// Spec move out of EXILE into their OWNER's graveyard as the payment
+	// (Forge CostExiledMoveToGrave; the Eldrazi processor family's "put a
+	// card an opponent owns from exile into that player's graveyard" and
+	// Shelob, Dread Weaver's "put a creature card exiled with Shelob into its
+	// owner's graveyard"). The origin is always every player's exile zone
+	// -- exiled cards live in their OWNER's exile zone (events/apply.go's
+	// zoneOwner), so a candidate scan iterates the players -- and the
+	// destination is the owner's graveyard, which is why this is its own
+	// slice rather than an Exile part (whose Zone is the ORIGIN and whose
+	// destination is always exile). The specs in measured use are
+	// Card.OppOwn (12 lines) and Card/Creature.ExiledWithSource (4 lines);
+	// both read through the ordinary filter grammar (effects/filter.go's
+	// OppOwn and ExiledWithSource predicates, bound to the PAYER and the
+	// ability's source).
+	MoveToGrave []CostPart
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
 	// A token lands here exactly when ParseCost could not give it real
@@ -167,15 +209,21 @@ var drawDynCost = regexp.MustCompile(`^Draw<([A-Za-z][A-Za-z0-9]*)/([^/>]+)(?:/[
 // costModifiers' SVar-aware amount read.
 var sacXCost = regexp.MustCompile(`^Sac<X/([^/>]+)(?:/[^>]*)?>$`)
 
-// exileCost matches Forge's ExileFromHand<N/Spec> and ExileFromGrave<N/Spec>
-// tokens -- exiling a matching card from the named zone as a cost payment
-// (CR 118.8 lists exiling a card from one's hand among the payment actions;
-// the graveyard form is the encore family's "exile this card from your
-// graveyard"). As with the other non-mana tokens the trailing
-// "/description" is dropped here and ";" alternations fold to ",".
-// ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...) and the
-// AlternateAdditionalCost ExileFromGrave line are the corpus users.
-var exileCost = regexp.MustCompile(`^ExileFrom(Hand|Grave)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+// exileCost matches Forge's ExileFromHand<N/Spec>, ExileFromGrave<N/Spec>
+// and ExileAnyGrave<N/Spec> tokens -- exiling a matching card from the named
+// zone as a cost payment (CR 118.8 lists exiling a card from one's hand among
+// the payment actions; the graveyard form is the encore family's "exile this
+// card from your graveyard"). AnyGrave is the same graveyard payment with the
+// "any card" shape -- the payer picks the card, and beyond the spec's own
+// predicates there is no zone provenance beyond "a graveyard" -- so it lands
+// on the identical Exile part with Zone ZGraveyard (exg1: the 18-carrier
+// Cavalier of Thorns / Thelon of Havenwood family). As with the other
+// non-mana tokens the trailing "/description" is dropped here and ";"
+// alternations fold to ",".
+// ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...), the
+// AlternateAdditionalCost ExileFromGrave line and the ExileAnyGrave
+// trigger-cost family are the corpus users.
+var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // addCounterCost matches Forge's AddCounter<N/LOYALTY> token -- the
 // planeswalker loyalty cost, and deliberately ONLY it (CR 107.4: the [+N]
@@ -196,6 +244,29 @@ var addCounterCost = regexp.MustCompile(`^AddCounter<(\d+)/(LOYALTY)(?:/[^>]*)?>
 var lifeCost = regexp.MustCompile(`^PayLife<(\d+)>$`)
 
 var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// dynTapCost matches Forge's dynamic tap-any-number tapXType tokens -- the
+// heads the literal choiceCost regex above cannot read:
+//
+//   - tapXType<X/Spec> (Myr Battlesphere's "tap X untapped Myr", Burn at the
+//     Stake's spell-cost form, Necron Overlord's "{X}, tap X artifacts"): the
+//     count IS the cast's {X}. When the cost carries another announce-bearing
+//     part (a printed {X}, PayEnergy<X>, Sac<X>, ...) xAsk announces it and
+//     the part settles exactly that value; when it does not, the tap election
+//     itself announces (CR 601.2b) and the paid count binds Count$xPaid
+//     through the pay-time CastInfo. A triggered ability carrying the head
+//     pays through the triggered-cost window (rules/cumulative.go), whose
+//     tap election is the payment and whose empty answer is the decline.
+//
+//   - tapXType<Any/Spec> (Mossbridge Troll): a free count that binds no X.
+//     Paying the cost still taps at least one matching permanent, so a spec
+//     the filter cannot admit any candidate for (Mossbridge's
+//     withTotalPowerGE10 group predicate fails closed) leaves the ability
+//     unpayable rather than offering a zero-tap payment.
+//
+// The trailing "/description" is dropped and ";" alternations fold to ","
+// like every other non-mana head.
+var dynTapCost = regexp.MustCompile(`^tapXType<(X|Any)/([^/>]+)(?:/[^>]*)?>$`)
 var blightCost = regexp.MustCompile(`^Blight<(\d+)>$`)
 
 // payEnergyCost matches Forge's PayEnergy<N> and PayEnergy<X> tokens --
@@ -217,6 +288,23 @@ var payEnergyCost = regexp.MustCompile(`^PayEnergy<([0-9]+|X)(?:/[^>]*)?>$`)
 // alternations fold to "," like every other non-mana head.
 var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
+// putCardToLibCost matches Forge's PutCardToLibFrom<Zone><N/Pos/Spec> cost
+// tokens -- moving N cards matching Spec from the payer's Hand, Graveyard or
+// Battlefield to the top (Pos "0") or bottom (Pos "-1") of their own library
+// as the payment (Forge CostPutCardToLib). The zone is the middle of the
+// head, never a parameter, and the second field is the library position:
+// Leashling/Penance/Tainted Specter place on TOP (Pos 0), the Born of the
+// Gods reflective-mage family (Ardent Dustspeaker) and Battlefield Scrounger
+// and Timestream Navigator put on the BOTTOM (Pos -1). The trailing
+// "/description" is dropped and ";" alternations fold to "," like every
+// other non-mana head. It is deliberately a POSITIVE zone list: a future
+// Forge zone name this regex does not name falls through to the
+// unrecognised-symbol fallback (the head is reported in Cost.Unknown, never
+// silently modelled as a different zone). The separate
+// PutCardToLibFromSameGrave cumulative-upkeep spelling is NOT matched here --
+// it is a keyword action, not a cost token.
+var putCardToLibCost = regexp.MustCompile(`^PutCardToLibFrom(Hand|Grave|Battlefield)<(\d+)/(-?\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
 // exileBattlefieldCost matches Forge's bare Exile<N/Spec> token -- exiling a
 // matching permanent from the BATTLEFIELD as the payment (Karn's Sylex's
 // "{X}, {T}, Exile Karn's Sylex", Mechtitan Core's "Exile CARDNAME and four
@@ -226,6 +314,17 @@ var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 // "/description" is dropped and ";" alternations fold to "," like every
 // other non-mana head.
 var exileBattlefieldCost = regexp.MustCompile(`^Exile<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// exiledMoveToGraveCost matches Forge's ExiledMoveToGrave<N/Spec> token --
+// moving N cards matching Spec from EXILE into their OWNER's graveyard as
+// the payment (the Eldrazi processor activation/trigger costs and Shelob,
+// Dread Weaver's {2}{B} ability; 16 corpus files). The trailing
+// "/description" is dropped and ";" alternations fold to "," like every
+// other non-mana head. Before the head existed the token hit the final
+// unrecognised-symbol fallback: a phantom {1} rode the price (a player with
+// exactly {2}{B} could not activate Shelob) and the cost's governing action
+// was silently dropped -- a fail-open defect.
+var exiledMoveToGraveCost = regexp.MustCompile(`^ExiledMoveToGrave<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // payLifeXCost matches Forge's announced life payment PayLife<X> (Toxic
 // Deluge's "pay X life", Necrodominance's end-step body): the cast announces
@@ -277,6 +376,13 @@ func ParseCost(s string) Cost {
 			c.Snow++
 		case sym == "Forage":
 			c.Forage = true
+		case strings.EqualFold(sym, "Mandatory"):
+			// Forge's mandatory-payment marker (Cost$ Mandatory tapXType<X/...>,
+			// Mandatory Sac<...>, Mandatory PayEnergy<...> -- 31 raw cost
+			// occurrences): a payment-mode marker, not a payment. It priced one
+			// phantom generic mana before, so a Mandatory tapXType trigger cost
+			// was silently bought for {1}; skip the token and model the rest.
+			continue
 		case len(sym) == 1 && strings.ContainsAny(sym, "WUBRGC"):
 			c.Colored[state.ManaIndex(sym[0])]++
 		case isHybrid(sym):
@@ -288,6 +394,13 @@ func ParseCost(s string) Cost {
 		case isHybridPhyrexian(sym):
 			c.HybridPhyrexian = append(c.HybridPhyrexian, hybridPhyrexianPair(sym))
 		default:
+			if m := dynTapCost.FindStringSubmatch(sym); m != nil {
+				// The dynamic tapXType heads (see the regex's doc): a TapPermanent
+				// part whose count the tap election resolves at payment -- "X"
+				// announcing the cast's {X}, "Any" free. N is unused.
+				c.TapPermanent = append(c.TapPermanent, CostPart{Dyn: m[1], Spec: strings.ReplaceAll(m[2], ";", ",")})
+				continue
+			}
 			if m := choiceCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
@@ -387,6 +500,20 @@ func ParseCost(s string) Cost {
 				c.Exile = append(c.Exile, CostPart{N: int32(n), Spec: spec, Zone: state.ZBattlefield})
 				continue
 			}
+			if m := exiledMoveToGraveCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				spec := strings.ReplaceAll(m[2], ";", ",")
+				c.MoveToGrave = append(c.MoveToGrave, CostPart{N: int32(n), Spec: spec})
+				continue
+			}
 			if m := payLifeXCost.FindStringSubmatch(sym); m != nil {
 				// The announced form: the cast announces X (bounded by the
 				// payer's life at the X ask) and the settle pays that much life.
@@ -426,7 +553,7 @@ func ParseCost(s string) Cost {
 				}
 				spec := strings.ReplaceAll(m[3], ";", ",")
 				part := CostPart{N: int32(n), Spec: spec}
-				if m[1] == "Grave" {
+				if m[1] != "FromHand" {
 					part.Zone = state.ZGraveyard
 				}
 				c.Exile = append(c.Exile, part)
@@ -480,6 +607,39 @@ func ParseCost(s string) Cost {
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
 				c.Return = append(c.Return, CostPart{N: int32(n), Spec: spec})
+				continue
+			}
+			if m := putCardToLibCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[2], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				pos, err := strconv.ParseInt(m[3], 10, 32)
+				if err != nil || (pos != 0 && pos != -1) {
+					// Only Forge's two modelled positions are real here: 0 (top)
+					// and -1 (bottom). Any other value is a recognised head whose
+					// instance this build cannot place, so it degrades and reports
+					// rather than silently landing somewhere.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				part := CostPart{N: int32(n), Spec: strings.ReplaceAll(m[4], ";", ","),
+					LibraryPos: int32(pos)}
+				switch m[1] {
+				case "Hand":
+					part.Zone = state.ZHand
+				case "Grave":
+					part.Zone = state.ZGraveyard
+				default: // Battlefield
+					part.Zone = state.ZBattlefield
+				}
+				c.PutToLib = append(c.PutToLib, part)
 				continue
 			}
 			// Try to parse as a numeric token. Negative and out-of-range values
@@ -791,6 +951,9 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Exile) > 0 {
 		c.Exile = append(append([]CostPart(nil), c.Exile...), d.Exile...)
 	}
+	if len(d.MoveToGrave) > 0 {
+		c.MoveToGrave = append(append([]CostPart(nil), c.MoveToGrave...), d.MoveToGrave...)
+	}
 	if len(d.Reveal) > 0 {
 		c.Reveal = append(append([]CostPart(nil), c.Reveal...), d.Reveal...)
 	}
@@ -808,6 +971,9 @@ func (c Cost) Plus(d Cost) Cost {
 	}
 	if len(d.Return) > 0 {
 		c.Return = append(append([]CostPart(nil), c.Return...), d.Return...)
+	}
+	if len(d.PutToLib) > 0 {
+		c.PutToLib = append(append([]CostPart(nil), c.PutToLib...), d.PutToLib...)
 	}
 	if len(d.Draw) > 0 {
 		c.Draw = append(append([]CostPart(nil), c.Draw...), d.Draw...)
@@ -1133,7 +1299,7 @@ func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
 		// The ability's own ReduceCost$ (Otawara's Channel): the same
 		// composition the offer gate and beginActivation's charge apply, so
 		// the decision's displayed cost is the cost the payment will charge.
-		if n := e.ownReduceCost(p, id, ab); n > 0 && cost.Generic >= n {
+		if n := e.ownReduceCost(p, id, ab, nil); n > 0 && cost.Generic >= n {
 			cost.Generic -= n
 		} else if n > 0 {
 			cost.Generic = 0
@@ -1224,6 +1390,7 @@ func formatCost(c Cost) string {
 	}
 	appendCostParts("Reveal", c.Reveal)
 	appendCostParts("Behold", c.Behold)
+	appendCostParts("ExiledMoveToGrave", c.MoveToGrave)
 	appendCostParts("tapXType", c.TapPermanent)
 	for _, part := range c.Blight {
 		parts = append(parts, "Blight<"+strconv.FormatInt(int64(part.N), 10)+">")
@@ -1233,7 +1400,17 @@ func formatCost(c Cost) string {
 		parts = append(parts, "Forage")
 	}
 	appendCostParts("PayEnergy", c.Energy)
-	appendCostParts("Return", c.Return)
+	for _, part := range c.PutToLib {
+		zone := "Battlefield"
+		switch part.Zone {
+		case state.ZHand:
+			zone = "Hand"
+		case state.ZGraveyard:
+			zone = "Grave"
+		}
+		parts = append(parts, "PutCardToLibFrom"+zone+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+
+			strconv.FormatInt(int64(part.LibraryPos), 10)+"/"+part.Spec+">")
+	}
 	return strings.Join(parts, " ")
 }
 
@@ -1273,12 +1450,83 @@ func manaActivationCostMarker(abilities []*cards.SA) string {
 	return ""
 }
 
+// dynTapParts returns the dynamic (X/Any) TapPermanent parts of a cost --
+// the tapXType heads the tap election pays (dynTapCost's doc). The literal
+// tapXType<N/Spec> parts are ordinary fixed payments and never appear here.
+func dynTapParts(c Cost) []CostPart {
+	var out []CostPart
+	for _, part := range c.TapPermanent {
+		if part.Dyn != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
+// costCarriesDynTap reports whether a cost carries a dynamic tapXType part:
+// the trigger-cost window's arm condition and the announce carve-outs use
+// it, so a cost whose only X is a tapXType<X/Spec> election is treated the
+// way a printed {X} is everywhere the engine asks "does this announce an X".
+func costCarriesDynTap(c Cost) bool {
+	return len(dynTapParts(c)) > 0
+}
+
+// withoutDynTaps strips the dynamic tapXType parts from a cost, keeping the
+// literal ones (so a composed cost carrying both keeps its unpriceable half
+// unpriceable). The triggered-cost window prices the non-tap rest of a
+// dyn-tap cost with it.
+func withoutDynTaps(c Cost) Cost {
+	if !costCarriesDynTap(c) {
+		return c
+	}
+	kept := make([]CostPart, 0, len(c.TapPermanent))
+	for _, part := range c.TapPermanent {
+		if part.Dyn == "" {
+			kept = append(kept, part)
+		}
+	}
+	c.TapPermanent = kept
+	return c
+}
+
+// costAnnouncesCastX reports whether paying this cost announces a value for
+// {X} through an announce-bearing part OTHER than a tapXType<X/Spec>
+// election: a printed {X} mana symbol, a PayEnergy<X> part, an announced
+// Sac<X/Spec>, SubCounter<X/Kind> or PayLife<X> part. This mirrors xAsk's
+// own guard (the two must agree: the tap ask defers its X-form parts exactly
+// when this is true, and xAsk bounds the announced X by the tap candidates).
+// It deliberately does not fold into legal.go's costAnnouncesX, which omits
+// the announced-Sac clause -- the offer gate's carve-out and this defer
+// decision answer different questions and changing the offer gate's answer
+// for Sac<X> costs is not this work.
+func costAnnouncesCastX(c Cost) bool {
+	if c.X > 0 {
+		return true
+	}
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			return true
+		}
+	}
+	for _, part := range c.Sac {
+		if part.Announced {
+			return true
+		}
+	}
+	for _, part := range c.SubCounter {
+		if part.Announced {
+			return true
+		}
+	}
+	return len(c.LifeX) > 0
+}
+
 // HasNonMana reports whether paying this cost takes more than mana.
 // AddCounter counts (the part is settled by the cast flow beside SubCounter,
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0 || len(c.MoveToGrave) > 0
 }
 
 // Priceable reports whether payMana can actually charge every part of this
@@ -1300,7 +1548,8 @@ func (c Cost) Priceable() bool {
 		len(c.Draw) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 &&
 		len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
-		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0
+		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.PutToLib) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0 &&
+		len(c.MoveToGrave) == 0
 }
 
 // pip is one flexible mana demand inside a cost's mana part, as a list of
@@ -1435,24 +1684,40 @@ func anyTypeAlts() []pipAlt {
 	return []pipAlt{{color: 'W'}, {color: 'U'}, {color: 'B'}, {color: 'R'}, {color: 'G'}, {color: 'C'}}
 }
 
-// manaPayment is what resolveMana found: the pool and snow tally after every
-// pip and the generic requirement were paid, and the life the fixed Life
-// component plus any Phyrexian face spent. Snow units are always consumed
-// alongside their pool slot (Snow[i] never exceeds Pool[i]).
+// manaPayment is what resolveMana found: the pool and its two parallel
+// tallies after every pip and the generic requirement were paid, plus any
+// Phyrexian face spent. Snow units are always consumed alongside their pool
+// slot (Snow[i] never exceeds Pool[i]); typed units (task castfilter2) are
+// consumed alongside theirs (TypedMana[k][i] never exceeds Pool[i]).
 type manaPayment struct {
 	pool      state.Mana
 	snow      state.Mana
+	typed     [3]state.Mana
 	lifeSpent int32
 }
 
-// takeUnit consumes one mana unit from slot i of rem/sn, preferring a
-// NON-snow unit when one exists so a snow unit stays available for a later
-// {S} pip; the backtracking search undoes the choice if the rest of the
-// cost cannot be paid that way.
-func takeUnit(rem, sn *state.Mana, i int) {
-	if (*rem)[i] > (*sn)[i] {
+// takeUnit consumes one mana unit from slot i of rem/sn/typed, preferring a
+// PLAIN unit when one exists, then the typed units in their fixed
+// Treasure > Cave > Desert order, and a SNOW unit LAST so a snow unit stays
+// available for a later {S} pip (typed units have no pips of their own, so
+// they go before snow but after plain); the backtracking search undoes the
+// choice if the rest of the cost cannot be paid that way. plain is the
+// slot's untagged remainder; each tally is <= the pool by construction.
+func takeUnit(rem, sn *state.Mana, typed *[3]state.Mana, i int) {
+	plain := (*rem)[i] - (*sn)[i]
+	for t := range *typed {
+		plain -= (*typed)[t][i]
+	}
+	if plain > 0 {
 		(*rem)[i]--
 		return
+	}
+	for t := range *typed {
+		if (*typed)[t][i] > 0 {
+			(*rem)[i]--
+			(*typed)[t][i]--
+			return
+		}
 	}
 	(*rem)[i]--
 	(*sn)[i]--
@@ -1476,8 +1741,8 @@ func takeUnit(rem, sn *state.Mana, i int) {
 // only as though it were colorless"). A nil conv is the plain exact-colour
 // match every pre-existing caller keeps, so games with no ManaConvert static
 // on the battlefield resolve byte-identically.
-func (c Cost) resolveMana(pool, snow state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
-	return c.resolveManaWith(pool, snow, life, false, pipRider{}, conv)
+func (c Cost) resolveMana(pool, snow state.Mana, typed [3]state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
+	return c.resolveManaWith(pool, snow, typed, life, false, pipRider{}, conv)
 }
 
 // resolveManaWith is resolveMana with the two payer-side grants applied:
@@ -1491,13 +1756,14 @@ func (c Cost) resolveMana(pool, snow state.Mana, life int32, conv *manaConv) (ma
 // never includes colourless. Both grants keep main search's deterministic
 // first-alternative preference; the expanded alternatives are tried in fixed
 // WUBRG order (see anyColorAlts).
-func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
+func (c Cost) resolveManaWith(pool, snow state.Mana, typed [3]state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
 	if life < c.Life {
 		return manaPayment{}, false
 	}
 	pips := c.costPips(bLifeOK, rider)
 	rem := pool
 	sn := snow
+	tp := typed
 	life -= c.Life
 	lifeSpent := c.Life
 	// pipExact reports whether col is one of the pip's colour alternatives
@@ -1568,12 +1834,12 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, r
 			case alt.color != 0:
 				di := state.ManaIndex(alt.color)
 				if rem[di] > 0 && pipAccepts(p, alt.color, di) {
-					before, beforeSnow := rem, sn
-					takeUnit(&rem, &sn, di)
+					beforeRem, beforeSn, beforeTyped := rem, sn, tp
+					takeUnit(&rem, &sn, &tp, di)
 					if rec(i+1, generic) {
 						return true
 					}
-					rem, sn = before, beforeSnow
+					rem, sn, tp = beforeRem, beforeSn, beforeTyped
 				}
 			case alt.generic > 0:
 				// A monocolour hybrid's generic face: this pip joins the
@@ -1599,13 +1865,13 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, r
 				// the tally).
 				for di, s := range sn {
 					if s > 0 {
-						before, beforeSnow := rem, sn
+						beforeRem, beforeSn, beforeTyped := rem, sn, tp
 						rem[di]--
 						sn[di]--
 						if rec(i+1, generic) {
 							return true
 						}
-						rem, sn = before, beforeSnow
+						rem, sn, tp = beforeRem, beforeSn, beforeTyped
 					}
 				}
 			}
@@ -1621,12 +1887,12 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, r
 			for di := range manaLetters {
 				col := manaLetters[di][0]
 				if !pipExact(p, col) && rem[di] > 0 && pipAccepts(p, col, di) {
-					before, beforeSnow := rem, sn
-					takeUnit(&rem, &sn, di)
+					beforeRem, beforeSn, beforeTyped := rem, sn, tp
+					takeUnit(&rem, &sn, &tp, di)
 					if rec(i+1, generic) {
 						return true
 					}
-					rem, sn = before, beforeSnow
+					rem, sn, tp = beforeRem, beforeSn, beforeTyped
 				}
 			}
 		}
@@ -1642,11 +1908,11 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, r
 	need := finalGeneric
 	for _, i := range [...]int{state.MC, state.MW, state.MU, state.MB, state.MR, state.MG} {
 		for need > 0 && rem[i] > 0 {
-			takeUnit(&rem, &sn, i)
+			takeUnit(&rem, &sn, &tp, i)
 			need--
 		}
 	}
-	return manaPayment{pool: rem, snow: sn, lifeSpent: lifeSpent}, true
+	return manaPayment{pool: rem, snow: sn, typed: tp, lifeSpent: lifeSpent}, true
 }
 
 // payable reports whether the cost's mana and fixed-life parts can be paid
@@ -1656,8 +1922,8 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, life int32, bLifeOK bool, r
 // "is there ANY way this cost can be paid right now" -- the same resolveMana
 // the payment stage uses, so an offered cost and the cost it charges can
 // never disagree.
-func (c Cost) payable(pool, snow state.Mana, life int32) bool {
-	_, ok := c.resolveMana(pool, snow, life, nil)
+func (c Cost) payable(pool, snow state.Mana, typed [3]state.Mana, life int32) bool {
+	_, ok := c.resolveMana(pool, snow, typed, life, nil)
 	return ok
 }
 
@@ -1668,7 +1934,7 @@ func (c Cost) CanPay(p state.Mana) bool {
 	// here) and a {S} pip is unpayable. This is the pure pricing question the
 	// corpus invariants ask, and it never treats a hybrid as generic nor lets
 	// colourless `pay` it.
-	_, ok := c.resolveMana(p, state.Mana{}, 0, nil)
+	_, ok := c.resolveMana(p, state.Mana{}, [3]state.Mana{}, 0, nil)
 	return ok
 }
 
@@ -1685,7 +1951,7 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 	// a fully resolved cost here). resolveMana already reserves the coloured
 	// pips and deducts generic, so the returned pool is fully spent. A failed
 	// search returns the input pool untouched.
-	pay, ok := c.resolveMana(p, state.Mana{}, 0, nil)
+	pay, ok := c.resolveMana(p, state.Mana{}, [3]state.Mana{}, 0, nil)
 	if !ok {
 		return p, false
 	}

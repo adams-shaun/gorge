@@ -171,6 +171,78 @@ func TestEquipExpandsEachDistinctKeywordLine(t *testing.T) {
 	}
 }
 
+// TestDevourExpandsToETBSacrificeAndCounterChain pins the K:Devour expansion
+// (CR 702.83): one Moved→Battlefield replacement whose body is the Forge
+// CardFactoryUtil chain -- optional sacrifice ask (remembered), then a
+// PutCounter reading RememberedSize/Times.<amount>, then a Cleanup clearing
+// the memory -- plus the two SVars the body reads by name.
+func TestDevourExpandsToETBSacrificeAndCounterChain(t *testing.T) {
+	f := expanded(t, "Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\nK:Devour:1\nOracle:x\n")
+	if len(f.Repls) != 1 {
+		t.Fatalf("%d repls, want 1", len(f.Repls))
+	}
+	r := f.Repls[0]
+	if r.Event != "Moved" || r.Params["Destination"] != "Battlefield" ||
+		r.Params["Keyword"] != "Devour" || r.Params["KeywordLine"] != "Devour:1" ||
+		r.Params["ReplacementResult"] != "Updated" || r.With == nil {
+		t.Fatalf("entry replacement: %+v", r)
+	}
+	w := r.With
+	if w.API != "Sacrifice" || w.Params["Defined"] != "You" || w.Params["Optional"] != "True" ||
+		w.Params["RememberSacrificed"] != "True" || w.Params["SacValid"] != "Creature.Other" ||
+		w.Params["Amount"] != "__kwDevourSacX0" {
+		t.Fatalf("sacrifice body: %+v", w)
+	}
+	if got := f.SVars["__kwDevourSacX0"]; got != "Count$Valid Creature.YouCtrl+Other" {
+		t.Fatalf("DevourSacX = %q", got)
+	}
+	cn := w.Sub
+	if cn == nil || cn.API != "PutCounter" || cn.Params["ETB"] != "True" ||
+		cn.Params["Defined"] != "Self" || cn.Params["CounterType"] != "P1P1" ||
+		cn.Params["CounterNum"] != "__kwDevourX0" {
+		t.Fatalf("counter body: %+v", cn)
+	}
+	if got := f.SVars["__kwDevourX0"]; got != "Count$RememberedSize/Times.1" {
+		t.Fatalf("DevourX = %q", got)
+	}
+	cl := cn.Sub
+	if cl == nil || cl.API != "Cleanup" || cl.Params["ClearRemembered"] != "True" {
+		t.Fatalf("cleanup body: %+v", cl)
+	}
+}
+
+// TestDevourTypedAndXParams pins the parameter grammar: the second colon
+// field is the devoured type (default Creature), a Devour X keeps the bare
+// RememberedSize count -- Times.X fails the count-op parser and the X read
+// of CR 702.83 IS one counter per devoured permanent -- and the trailing
+// display field (Thromok's ", where X is ...") is dropped. A second Link
+// never re-expands the line.
+func TestDevourTypedAndXParams(t *testing.T) {
+	f := expanded(t, "Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\nK:Devour:3:Food\nOracle:x\n")
+	w := f.Repls[0].With
+	if w.Params["SacValid"] != "Food.Other" || f.SVars["__kwDevourSacX0"] != "Count$Valid Food.YouCtrl+Other" ||
+		f.SVars["__kwDevourX0"] != "Count$RememberedSize/Times.3" {
+		t.Fatalf("typed Devour: sacvalid %q sacX %q cntX %q", w.Params["SacValid"],
+			f.SVars["__kwDevourSacX0"], f.SVars["__kwDevourX0"])
+	}
+
+	f2 := expanded(t, "Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\nK:Devour:X::, where X is the number of creatures devoured this way\nOracle:x\n")
+	r2 := f2.Repls[0]
+	if r2.Params["KeywordLine"] != "Devour:X::, where X is the number of creatures devoured this way" {
+		t.Fatalf("KeywordLine = %q (idempotence tag must be the whole original line)", r2.Params["KeywordLine"])
+	}
+	w2 := r2.With
+	if w2.Params["SacValid"] != "Creature.Other" || f2.SVars["__kwDevourX0"] != "Count$RememberedSize/Times.X" {
+		t.Fatalf("X Devour: sacvalid %q cntX %q", w2.Params["SacValid"], f2.SVars["__kwDevourX0"])
+	}
+
+	n := len(f2.Repls)
+	f2.expandKeywords()
+	if len(f2.Repls) != n {
+		t.Fatal("a second expansion re-expanded the Devour line")
+	}
+}
+
 func TestExpansionIsIdempotentAndTagged(t *testing.T) {
 	c, _ := ParseBytes("k.txt", []byte("Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\nK:Prowess\nK:Equip:1\nOracle:x\n"))
 	c.Link()
@@ -184,6 +256,53 @@ func TestExpansionIsIdempotentAndTagged(t *testing.T) {
 		if !contains(prims, want) {
 			t.Errorf("primitives lack %s: %v", want, prims)
 		}
+	}
+}
+
+// TestTypeCyclingExpandsToATypedLibrarySearch pins CR 702.28d: typed cycling
+// is a library SEARCH for the named type (not a draw), the trailing
+// description field after the cost is dropped, and a second Link does not
+// expand the line again (the KeywordLine idempotence contract the Affinity
+// case documents).
+func TestTypeCyclingExpandsToATypedLibrarySearch(t *testing.T) {
+	c, diags := ParseBytes("k.txt", []byte("Name:S\nManaCost:2\nTypes:Creature\nPT:1/1\nK:TypeCycling:Island:2\nOracle:x\n"))
+	if len(diags) > 0 {
+		t.Fatal(diags)
+	}
+	if d := c.Link(); len(d) > 0 {
+		t.Fatal(d)
+	}
+	f := c.Faces[0]
+	if len(f.Abilities) != 1 {
+		t.Fatalf("want 1 TypeCycling ability, got %+v", f.Abilities)
+	}
+	a := f.Abilities[0]
+	if a.API != "ChangeZone" {
+		t.Fatalf("API = %q, want ChangeZone (a search, not a draw)", a.API)
+	}
+	for k, want := range map[string]string{
+		"Origin": "Library", "Destination": "Hand",
+		"ChangeType": "Island", "ChangeNum": "1",
+		"Cost": "2 Discard<1/CARDNAME>", "KeywordLine": "TypeCycling:Island:2",
+	} {
+		if a.Params[k] != want {
+			t.Errorf("param %s = %q, want %q", k, a.Params[k], want)
+		}
+	}
+	// A trailing description field (Sojourner's Companion's
+	// K:TypeCycling:Land.Artifact:2:artifact land) is dropped: the type and
+	// cost are fields 0 and 1 only.
+	c2, _ := ParseBytes("k.txt", []byte("Name:S\nManaCost:2\nTypes:Creature\nPT:1/1\nK:TypeCycling:Land.Artifact:2:artifact land\nOracle:x\n"))
+	c2.Link()
+	if got := c2.Faces[0].Abilities[0].Params["ChangeType"]; got != "Land.Artifact" {
+		t.Fatalf("ChangeType with trailing description = %q, want Land.Artifact", got)
+	}
+	// Idempotence: a second Link (cards/registry.go re-links cached faces)
+	// must not append a second search.
+	n := len(f.Abilities)
+	c.Link()
+	if len(f.Abilities) != n {
+		t.Fatal("a second Link expanded K:TypeCycling again")
 	}
 }
 

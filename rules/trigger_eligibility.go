@@ -23,25 +23,21 @@ type objectTriggerEventMasks struct {
 
 const allTriggerEvents triggerEventMask = ^triggerEventMask(0)
 
+// triggerMaskKindBits is how many Kind ordinals triggerEventMask can encode,
+// one bit each. A kind at or beyond this ordinal (or any ordinal the mask
+// cannot represent) must fail OPEN to the full matcher, never be silently
+// truncated by a shift: the mask is an over-approximation, so allowing an
+// event the text may not need is safe, while rejecting one it does need would
+// drop a real trigger. Both the textual mask (allows) and the compiled
+// interest prefilter (compiledTriggerInterestAllows) use this ONE bound, so a
+// kind appended past the mask's reach fails open in both paths together
+// rather than one path rejecting what the other allows -- the divergence that
+// CombatRetarget (ordinal 64, the first kind past the old 64-bit mask)
+// exposed.
+const triggerMaskKindBits = 64
+
 func (m triggerEventMask) allows(kind events.Kind) bool {
-	if int(kind) < 64 {
-		return m&(1<<kind) != 0
-	}
-	// Past the uint64 mask's width only three cases reach here:
-	//   - a conservative catch-all mask (a Phase-bearing face's diagnostic
-	//     walk, or triggerModeEvents' unknown/future mode) retains EVERY
-	//     event, known or not;
-	//   - a kind this binary does not know (>= NumKinds -- a newer log's
-	//     event replayed by an older binary) fails open to the old matcher,
-	//     never silently truncated;
-	//   - a KNOWN kind past the width on an enumerated mask (MergedTrigger-
-	//     Push, ordinal 64, is the first) is checked exactly. The old bare
-	//     kind >= 64 catch-all made the textual side claim such an event
-	//     could fire ANY mode -- flowing it into matchers that assume their
-	//     own event kind's fields -- while the compiled prefilter correctly
-	//     rejected it; TestCompiledTriggerInterestParity holds the two
-	//     together.
-	return m == allTriggerEvents || int(kind) >= events.NumKinds
+	return kind >= triggerMaskKindBits || m&(1<<kind) != 0
 }
 
 // eventTriggerInterest maps replay-stable event kinds to cards-owned semantic
@@ -77,6 +73,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.EndCombatReset, events.CastInfo, events.Choose,
 		events.TokenCreate, events.StackCopy, events.ModeChosen,
 		events.CmdDamage, events.DelayedRegister, events.DelayedPush,
+		events.GrantAbilityPush,
 		events.LibraryOrder, events.ExtraTurn, events.DoorUnlock,
 		events.SpeedChange, events.MonarchChange, events.ControlChange,
 		events.CardToken, events.KeywordTriggerPush, events.Goad,
@@ -84,17 +81,38 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
 		events.GrantTriggerPush, events.ManaActivate,
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
-		events.CopyToken, events.Exert, events.PlanarRoll, events.Mutate,
-		events.MergedTriggerPush:
+		events.CopyToken, events.Exert, events.PlanarRoll,
+		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
+		events.BlessingChange, events.ClonePermanent,
+		events.Mutate, events.MergedTriggerPush:
+		// ClonePermanent is a characteristic change (the api:Clone layer-1
+		// CopyFace basis), not a game event any trigger mode fires on -- the
+		// same reading FlipFace and CardToken get. Without it here the
+		// default arm gave the kind TriggerInterestAny, so every clone and
+		// every clone expiry ran a full trigger scan.
+		//
+		// Mutate and MergedTriggerPush are named for the same documentary
+		// reason even though both currently sit PAST triggerMaskKindBits, so
+		// both classifiers fail open before this map is consulted: Mutate is
+		// matched by trig:Mutates through the full matcher (mutatesMatches),
+		// and MergedTriggerPush is a mint marker no mode fires on. Naming
+		// them keeps the audit complete if the bound ever widens.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
+	case events.Explore:
+		return cards.TriggerInterestExplore
 	default:
 		return cards.TriggerInterestAny
 	}
 }
 
 func compiledTriggerInterestAllows(interests cards.TriggerInterest, kind events.Kind) bool {
+	// Kinds the 64-bit textual mask cannot encode fail open here too, or the
+	// compiled prefilter would reject an event the textual mask admits.
+	if kind >= triggerMaskKindBits {
+		return true
+	}
 	eventInterest := eventTriggerInterest(kind)
 	return interests&cards.TriggerInterestAny != 0 || eventInterest == cards.TriggerInterestAny || interests&eventInterest != 0
 }
@@ -116,16 +134,40 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.AbilityPush
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers
-	case "AttackerBlocked":
+	case "AttackerBlocked", "AttackerBlockedByCreature", "Blocks":
 		return 1 << events.DeclareBlockers
 	case "Sacrificed", "Discarded", "LandPlayed":
 		return 1 << events.MoveZone
 	case "Cycled":
 		return 1 << events.MoveZone
+	case "Explores":
+		return 1 << events.Explore
+	case "Investigated":
+		// The Kind's ordinal (67) is past the 64-bit mask's reach, the
+		// RingTemptsYou shape: a mask bit is not encodable and allows()
+		// fails open for every kind at or past triggerMaskKindBits, so the
+		// mode is admitted through that fail-open path. Naming the mode here
+		// (rather than letting it fall to the allTriggerEvents default)
+		// keeps an Investigated-only face's mask narrow for every other
+		// kind.
+		return 0
+	case "RingTemptsYou":
+		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
+		// is not encodable, and allows() fails open for every kind at or past
+		// triggerMaskKindBits (the CombatRetarget lesson), so the mode is
+		// admitted through that fail-open path. Naming the mode here (rather
+		// than letting it fall to the allTriggerEvents default) keeps a
+		// RingTemptsYou-only face's mask narrow for every other kind.
+		return 0
 	case "CommitCrime", "BecomesTarget":
 		return 1 << events.TargetsChosen
 	case "Attached":
 		return 1 << events.Attach
+	case "Exerted":
+		// The mode fires on the CR 702.100 exert itself (events.Exert with
+		// Amount >= 0); the Amount == -1 untap-step consume marker is the
+		// same Kind but rejected by exertedMatches, so the mask stays exact.
+		return 1 << events.Exert
 	case "Taps", "TapsForMana":
 		return 1 << events.Tap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
@@ -136,18 +178,35 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// on the Damage event the prevention replaces -- a prevented hit is a
 		// Note, never a Damage.
 		return 1 << events.Note
+	case "FlippedCoin":
+		// The mode fires on the canonical coin-flip result Note both
+		// api:FlipCoin (effects/flipcoin.go) and the cumulative-upkeep FlipCoin
+		// cost action (rules/cumulative.go) emit -- one shared encoding, so a
+		// cost-side flip fires the trigger exactly like an effect-side one
+		// (Karplusan Minotaur).
+		return 1 << events.Note
 	case "CounterAdded", "CounterRemoved":
 		return 1 << events.CounterChange
 	case "Mutates":
 		// CR 702.140f: "whenever this creature mutates". The event is the
-		// mutate-spell merge fold (events.Mutate), fired once per mutation.
-		return 1 << events.Mutate
+		// mutate-spell merge fold (events.Mutate), fired once per mutation --
+		// whose ordinal (71) is past the 64-bit mask's reach, the
+		// RingTemptsYou/Investigated shape: a mask bit is not encodable and
+		// allows() fails open for every kind at or past triggerMaskKindBits
+		// (the CombatRetarget lesson), so the mode is admitted through that
+		// fail-open path and gated by the full matcher (mutatesMatches).
+		// Naming the mode here rather than letting it fall to the
+		// allTriggerEvents default keeps a Mutates-only face's mask narrow
+		// for every other kind.
+		return 0
 	case "TokenCreated", "TokenCreatedOnce":
 		return 1 << events.TokenCreate
 	case "Drawn":
 		return 1 << events.Draw
 	case "LifeLost":
 		return 1<<events.Damage | 1<<events.LifeChange
+	case "LifeGained":
+		return 1 << events.LifeChange
 	case "Phase":
 		return 1 << events.StepChange
 	default:

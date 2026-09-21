@@ -301,6 +301,53 @@ Two lessons, both now in `bot-l9b-fix-rank-collapse`:
 The teacher itself remains +5.8pp; nothing here disputes that. What is
 unproven is that a cheap scorer can absorb it.
 
+## Reference pass 2 (2026-09-20) — why the scorer collapsed, and what the field does
+
+Sources checked this round (V = read at source):
+
+- **LOCM PIMC distillation, arXiv 2609.06816** [V] — the closest published
+  analogue: PIMC over sampled opponent worlds, distilled into a network. They
+  train the policy head with **plain cross-entropy on the single action the
+  teacher chose** (not value regression), and report imitation alone recovers
+  most of the teacher's strength. They also keep search at decision time,
+  where it adds a further **+24.6pp** over the greedy network.
+- **Ranking-distillation collapse, arXiv 2505.21058** [V] — names our exact
+  pathology: when the teacher's within-group scores carry too little entropy,
+  the objective is trivially satisfied and training collapses.
+- **ADPO, arXiv 2510.18913** [V] — pointwise regression on absolute scores
+  "smears" probability and is fragile; group-relative (advantage) targets are
+  the stable form.
+- **Residual policy learning, arXiv 2004.05097** [S] — learn a correction on
+  top of a frozen base policy; the standard answer when the base is already
+  right most of the time (here: 74.5%).
+- **CRR / AWR** [S] — advantage-filtered imitation, i.e. weight the decisions
+  where the teacher actually disagreed.
+- **MageZero** [V] — updated since our April snapshot (commits through
+  2026-09-16; open issues #3 on MCTS/inference hot paths and #4 on hardening
+  search semantics). It gates gradients to one policy head per decision type
+  over a shared trunk, and documents no legal-action masking or visit-count
+  normalisation.
+- **MTG-Causal-RL, arXiv 2605.06066** [V] — a masked fixed 478-action space
+  with PPO; evidence that fixed masked action spaces, not pointer scoring,
+  are the field default. Not search distillation.
+
+**Diagnosis, measured, not inferred.** The teacher's candidate values inside
+one decision differ by a median of 0.062 = exactly 1/16, one sampled world at
+K=16 (mean 0.138). The absolute-value target is therefore near-constant and
+noise-dominated, and its minimiser is "predict the decision's mean" — the
+collapse we measured. Queued as `bot-l9b-fix2-argmax-ce`: drop the value
+term, train pure argmax cross-entropy with log-sum-exp stability, and only
+then consider a residual-on-the-heuristic head.
+
+**Deliberately NOT doing** soft-distribution (temperature/KL) targets yet:
+with a one-world median spread the soft target degenerates toward uniform,
+which is the failure we are escaping.
+
+**Standing caveat from the same literature**: LOCM's search still beat its own
+distilled network by a wide margin at decision time. If the student cannot
+absorb the teacher, the fallback is to make the teacher cheaper (MageZero's
+own open issue #3 is exactly that) rather than to keep distilling.
+
 ## Parallel (unchanged, lower priority)
 
 AR8 combined-attacker lethal, block assignment, trace-family comparison
@@ -375,3 +422,62 @@ External pass, 2026-09-19. [V] = read at source; [S] = search/secondary only.
    determinization** (resample hidden zones per determinization, shallow
    search, profile-policy rollouts), never the single cheating clone R1
    measured.
+
+## L9 measured on the full corpus (controller, 2026-09-20, main @ b007b396)
+
+`bot-l9b-fix2-argmax-ce` merged (b007b396): pure argmax cross-entropy is the
+default loss, with an optional fixed bot-prior residual (`-residual-init`).
+The value-regression collapse is genuinely fixed — the model now learns.
+
+The seat measured on a 1,426-decision fallback corpus, because the
+pi-agent jail cannot read the controller's scratchpad
+(`[[pi-agent-jail-blocks-tmp]]`). Re-measured here on the real 14,588-record
+dev2 corpus (13,130 train / 1,458 holdout), 30 epochs, seed 1, per-kind
+top-1 among labelled options:
+
+| config | attackers | priority |
+|---|---|---|
+| bot baseline | 0.887 | 0.678 |
+| first-option baseline | 0.897 | 0.425 |
+| `-loss ce` (lr 0.1) | 0.924 | 0.355 |
+| `-loss ce -lr 0.01` | 0.926 | 0.362 |
+| `-loss ce -lr 0.003` | 0.921 | 0.371 |
+| `-loss ce -residual-init 2` | **0.968** | 0.669 |
+
+Two conclusions, both confirming the seat at 10x the corpus:
+
+1. **`attackers` is learnable** and beats the bot baseline by 4-8pp.
+2. **`priority` is not** — flat at 0.355-0.371 across three orders of
+   magnitude of learning rate, so it is not a learning-rate artefact; with
+   the residual prior it recovers to the bot baseline and supplies nothing
+   beyond it. The seat's hypothesis (the teacher's override is a property of
+   the PIMC rollout, and the option encoding carries only static board
+   facts) survives the bigger corpus. Owned by
+   `agent-20260921T012459Z-cb7a7077`.
+
+### The L9c inference path is broken — 0/1000 in play
+
+Neither checkpoint can play. Ten approved pairs, 100 games/pair, dev seed
+10,000,000: **policynet 0 wins, bot 1000**, on the CE checkpoint AND the
+residual one.
+
+Cause: `seat/policynet.go`'s `attackersFromScores` admits an option at
+`score > 0` (the value-regression era's calibrated sigmoid). A CE-trained
+score is a softmax logit — shift-invariant, absolute level untrained.
+Measured over the 5,152 labelled attackers decisions (9,016 options), the
+scorer's range is [11575, 15052] and **100% of options score > 0**, preferred
+and not alike, so the seat declares every legal attacker every combat and
+empties its board into bad attacks (`-decision-stats`, 20 games: 68 attackers
+decisions at 100% first-option, zero blockers decisions, 78 `choose/discard`,
+against 256 / 38.7% / 90 / 0 for the bot self-control).
+
+Neither gate caught it: the holdout metric is an argmax (shift-invariant, so
+it measures exactly what CE trains and reports 0.968 for a checkpoint that
+loses every game), and `seat/policynet_test.go`'s `zeroCheckpoint` scores
+every option 0.0, where `0 > 0` is false — the tests only ever exercised the
+empty declaration.
+
+Filed as `bot-l9d-attack-admission` (P1). Until it lands, **no policynet
+checkpoint can be benched or gated**, so L9's promotion question is not yet
+askable. The `+5.80pp ± 1.25` combined-teacher result is unaffected — it was
+measured with the teacher itself in the loop, not a distilled checkpoint.

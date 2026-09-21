@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
+	"github.com/adams-shaun/gorge/view"
 )
 
 // These tests pin task copyp1: the registered DB$ CopyPermanent primitive, on
@@ -153,8 +154,9 @@ func TestFlamerushRiderCopiesTheOtherAttackerExiledAtEndOfCombat(t *testing.T) {
 // TriggeredCardLKICopy source and the AtEOT$ Exile delayed registration: a
 // nontoken Bear entering under a Molten Echoes whose chosen type is Bear
 // creates a token copy of it, which the next end step's delayed trigger
-// exiles. The PumpKeywords$ Haste rider is modification-family (out of
-// scope): the copy mints WITHOUT haste and the one per-call note names it.
+// exiles. The PumpKeywords$ Haste rider is now implemented: the copy mints
+// WITH haste (PumpKeywords$ with no PumpDuration$ = for as long as the copy
+// exists) and no per-call skip note names the family.
 func TestMoltenEchoesCopiesEnteringCreatureExilesAtNextEndStep(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := searchEngine(t, reg, "Molten Echoes")
@@ -176,26 +178,25 @@ func TestMoltenEchoesCopiesEnteringCreatureExilesAtNextEndStep(t *testing.T) {
 		t.Fatalf("Molten Echoes copy: controller=%d zone=%s tapped=%v attacking=%v",
 			o.Controller, o.Zone, o.Tapped, o.IsAttacking)
 	}
-	// The PumpKeywords$ Haste rider is modification-family (out of scope):
-	// the copy mints with the bear's own printed keyword set -- no Haste
-	// grant reached it -- and the skipped note named the family.
-	if o.Face().HasKeyword("Haste") {
-		t.Fatal("the skipped PumpKeywords$ Haste rider reached the copy anyway")
+	// The PumpKeywords$ Haste rider is implemented: the copy's derived
+	// keyword set carries Haste for as long as the copy exists (no
+	// PumpDuration$), and no skip note named the family.
+	if !e.HasKeyword(cid, "Haste") {
+		t.Fatal("the PumpKeywords$ Haste rider did not reach the copy")
 	}
-	noted := false
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "PumpKeywords$") {
-			noted = true
+			t.Fatalf("implemented PumpKeywords$ rider still named by a skip note: %q", ev.Text)
 		}
-	}
-	if !noted {
-		t.Fatal("the skipped PumpKeywords$ rider was not named by the per-call note")
 	}
 	noUnimplementedCopyPermanent(t, e)
 
 	// AtEOT$ Exile: the delayed registration fires at the beginning of the
-	// next end step and exiles the copy.
-	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepEnd)
+	// next end step and exiles the copy. The copy now HAS Haste (the
+	// implemented PumpKeywords$ rider), so it is a legal attacker this turn
+	// -- driveToStepAll exists precisely for the combat asks a live
+	// creature introduces, declining to attack.
+	driveToStepAll(t, e, e.G.Turn, e.G.Active, state.StepEnd)
 	passUntilStackEmpty(t, e, 20)
 	exiledTo(t, e, cid)
 	if got := e.G.Obj(bear).Zone; got != state.ZBattlefield {
@@ -236,6 +237,15 @@ func TestGrowingRanksPopulatesTheCreatureTokenYouControl(t *testing.T) {
 	}
 	if got := e.G.Obj(cid).Controller; got != 0 {
 		t.Fatalf("populated token controller = %d, want 0", got)
+	}
+	// The populated copy is a real battlefield permanent (CR 706.2):
+	// IsToken+IsCopy+ZBattlefield must not read as ephemeral, or the
+	// projection hides a token its controller controls.
+	if e.G.Obj(cid).Ephemeral() {
+		t.Fatalf("populated token %d reports Ephemeral(); a battlefield copy is a real permanent", cid)
+	}
+	if v := view.Project(e.G, nil, 0, nil); !viewShowsObject(v.Players[0].Battlefield, cid) {
+		t.Fatalf("populated token %d is missing from its controller's battlefield view", cid)
 	}
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "Populate$") {

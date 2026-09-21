@@ -312,6 +312,69 @@ func TestGainControlEmrakulCorpusSA(t *testing.T) {
 	}
 }
 
+// TestGainControlPlayerTargetBecomesController pins the "target opponent
+// gains control of CARDNAME" family (Sleeper Agent, Goblin Cadets, Avarice
+// Amulet, ...): NewController$ is ABSENT and the new controller is the
+// player the ask chose, bound on the Ctx -- never the effect's controller.
+func TestGainControlPlayerTargetBecomesController(t *testing.T) {
+	_, sa := corpusSA(t, "Goblin Cadets", "ChangeControl")
+	if sa.API != "GainControl" || sa.Params["NewController"] != "" || sa.Params["ValidTgts"] != "Opponent" {
+		t.Fatalf("unexpected SA: %+v", sa)
+	}
+	g, _ := board(t)
+	src := g.AddObject(mkCard(t, "Name:Cadet\nManaCost:R\nTypes:Creature Goblin\nPT:2/1\nOracle:x\n"), 0)
+	src.Zone = state.ZBattlefield
+	h := &fakeHost{g: g}
+	effGainControl(h, &Ctx{Controller: 0, Source: src.ID, Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa)
+	if g.Obj(src.ID).Controller != 1 {
+		t.Fatalf("Goblin Cadets controller = %d, want 1 (the asked opponent)", g.Obj(src.ID).Controller)
+	}
+	if len(h.controls) != 1 || h.controls[0].Controller != 1 || h.controls[0].Obj != src.ID {
+		t.Fatalf("control grant = %+v", h.controls)
+	}
+}
+
+// TestGainControlPickedTargetsPlayerBecomesController covers the depth>=2
+// pre-ask arm (Humble Defector's activated SubAbility$): the answered player
+// target arrives as Ctx.PickedTargets, not Ctx.Targets.
+func TestGainControlPickedTargetsPlayerBecomesController(t *testing.T) {
+	_, sa := corpusSA(t, "Goblin Cadets", "ChangeControl")
+	g, _ := board(t)
+	src := g.AddObject(mkCard(t, "Name:Cadet\nManaCost:R\nTypes:Creature Goblin\nPT:2/1\nOracle:x\n"), 0)
+	src.Zone = state.ZBattlefield
+	h := &fakeHost{g: g}
+	effGainControl(h, &Ctx{Controller: 0, Source: src.ID, PickedTargets: []state.Target{{Player: 1, IsPlayer: true}}}, sa)
+	if g.Obj(src.ID).Controller != 1 {
+		t.Fatalf("Goblin Cadets controller = %d, want 1 (the pre-asked opponent)", g.Obj(src.ID).Controller)
+	}
+}
+
+// TestGainControlNoPlayerTargetDefaultsToController preserves the fallback:
+// with no player bound on the Ctx the absent NewController$ still means the
+// effect's controller (the object-target steal shape), and an explicit
+// NewController$ You ignores a player target entirely.
+func TestGainControlNoPlayerTargetDefaultsToController(t *testing.T) {
+	_, cadets := corpusSA(t, "Goblin Cadets", "ChangeControl")
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	// An object-targeted resolution (Ctx.Targets names an object, not a
+	// player) keeps the controller default.
+	effGainControl(h, &Ctx{Controller: 0, Source: ids["myBear"], Targets: []state.Target{{Obj: ids["myFlier"]}}}, cadets)
+	if g.Obj(ids["myBear"]).Controller != 0 {
+		t.Fatalf("no player target: controller = %d, want 0", g.Obj(ids["myBear"]).Controller)
+	}
+	if len(h.controls) != 1 || h.controls[0].Controller != 0 {
+		t.Fatalf("control grant = %+v", h.controls)
+	}
+	// An explicit NewController$ You beats a bound player target.
+	saYou := sa(t, "DB$ GainControl | Defined$ Self | NewController$ You")
+	h2 := &fakeHost{g: g}
+	effGainControl(h2, &Ctx{Controller: 0, Source: ids["myLand"], Targets: []state.Target{{Player: 1, IsPlayer: true}}}, saYou)
+	if g.Obj(ids["myLand"]).Controller != 0 || len(h2.controls) != 1 || h2.controls[0].Controller != 0 {
+		t.Fatalf("NewController$ You changed hands: ctrl=%d grants=%+v", g.Obj(ids["myLand"]).Controller, h2.controls)
+	}
+}
+
 // TestGainControlKeywordListReaderUsesSharedParser covers GainControl's
 // AddKWs$ reader, the keyword-list path separate from Pump/PumpAll. The first
 // keyword deliberately carries commas in its parameters: ampersands divide

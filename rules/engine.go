@@ -19,6 +19,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/deck"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -105,6 +106,18 @@ type Engine struct {
 	turnsTaken      []int32
 	turnsTakenEpoch int
 
+	// combatHitsThisTurn is the per-turn combat-damage-to-players ledger
+	// captured at the combat-damage site (rules/combat.go's
+	// runCombatAssignments). It is engine-side, NO-EVENT state -- deliberately
+	// not a new events.Kind, which would move every chain head and diverge
+	// every STORED log at its first combat assignment. Every rebuild path
+	// (replay, undo, DVR, restart) re-executes the engine and so re-derives
+	// the same slice, and emit clears it on TurnChange (the turnsTaken
+	// cache-advance site below). It carries only damage that LANDED and only
+	// damage to a PLAYER; the object branch of runCombatAssignments records
+	// nothing. See effects.Host's CombatDamageToPlayersThisTurn.
+	combatHitsThisTurn []effects.CombatDamageHit
+
 	// format is the construction format New was configured with (Config.
 	// Format). It is the explicit gate the Commander rules (the tax, CR
 	// 903.9, commander damage) check -- "in a non-Commander game none of
@@ -143,12 +156,30 @@ type Engine struct {
 	// IT emits; the same intent-boundary discipline as expiringControl.
 	reconcilingControlStatics bool
 
+	// mulligans is Config.Mulligans carried past genesis: the colour round's
+	// end (rules/commander_color.go) must re-enter the same mulligan/opening
+	// hand-off the genesis branch would have taken, and cfg is not otherwise
+	// retained. Plain int, so Clone copies it.
+	mulligans int
 	// pregame is true while the London mulligan round runs, between the
 	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
 	// dispatches to stepPregame (rules/mulligan.go) while it is true, and the
 	// round's end clears it and hands to beginTurn. Bool field, so Clone
 	// copies it like every other value field.
 	pregame bool
+	// coloring is true while the CR 903.4b commander colour-choice round runs,
+	// BEFORE the London mulligan round (the choice is made "before the game
+	// begins", and the mulligan round is also pregame). New sets it only when
+	// a seat's commander carries the characteristic-defining chosen-colour
+	// static; step() dispatches to stepColorRound (rules/commander_color.go)
+	// while it is true, and the round's end opens the mulligan/opening round
+	// exactly as if the colour round were absent. Bool field, so Clone copies
+	// it like pregame does.
+	coloring bool
+	// colorRound is the colour round's plain-value state (rules/
+	// commander_color.go): one qualifying (seat, commander) ask per entry and
+	// a cursor. Never a closure, so Clone copies it like the mulligan round.
+	colorRound colorRound
 	// mulligan is the round's plain-value state (rules/mulligan.go) -- seats,
 	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
 	// it like cast/choosing.
@@ -621,6 +652,19 @@ type Engine struct {
 	// copies nothing of it.
 	noCounterSpend state.ObjID
 
+	// manaSpentSources is the transient capture of emitRestrictedManaSpend's
+	// SPELL arm: the deduplicated Source of every restriction batch consumed
+	// by the payment, in insertion order. payCast reads it once, synchronously,
+	// right after the payment and queues each source's TriggersWhenSpent$
+	// rider (Path of Ancestry's "when that mana is spent to cast ..."). Empty
+	// Valid provenance batches -- the Boseiju shape effMana emits for a rider'd
+	// mana ability -- are what make the attribution exact: emitRestrictedManaSpend
+	// consumes batches before ordinary mana. Nothing can suspend between the
+	// capture and the read (it emits, never asks), and Clone copies nothing of
+	// it (like noCounterSpend), so a replay re-derives the same list from the
+	// recorded ManaAdd events.
+	manaSpentSources []state.ObjID
+
 	// costProvenanceSeen is the transient capture of the last cost-modifier
 	// pass (castprov3): true when that pass evaluated a cost static whose
 	// ValidCard$ carries a cast-provenance token (Bilbo's
@@ -761,82 +805,32 @@ type chooseFor uint8
 const chooseNone chooseFor = iota
 
 // commanderCardLegal reports whether ONE card may be a commander under
-// CR 903.4: a legendary creature, or a card whose printed text says it can
-// be your commander (the "CARDNAME can be your commander." keyword, which is
-// how every planeswalker commander -- and Lord Windgrace -- reads in the
-// corpus). The face checked is the PRINTED face (Faces[0]): commander
-// legality is a property of the card as printed, not of a half.
+// CR 903.3. It DELEGATES to deck.IsCommanderEligible -- the one
+// implementation the deck validator (File.ValidateCommander) also uses -- so
+// the validator and the engine can never disagree about which cards seat:
+// a legendary creature, a legendary Vehicle, a legendary Spacecraft with a
+// printed power/toughness box (Hearthhull, the Worldseed), or a card whose
+// printed/Oracle text says it can be your commander (the planeswalker
+// commanders and the Partner/choose-a-background cases). The old inline
+// predicate here (a legendary creature on Faces[0], commander permission
+// read from Keywords only) was the stale half of a two-implementation
+// disagreement and rejected decks the validator accepted.
 func commanderCardLegal(c *cards.Card) bool {
 	if c == nil || len(c.Faces) == 0 {
 		return false
 	}
-	f := c.Faces[0]
-	if f.IsCreature() && f.IsLegendary() {
-		return true
-	}
-	for _, k := range f.Keywords {
-		if strings.EqualFold(cards.KeywordHead(k), "CARDNAME can be your commander.") {
-			return true
-		}
-	}
-	return false
-}
-
-// partnerHead reports the Partner-family head c carries, "" for none: the
-// plain Partner ability (whose "Friends forever" alias spells K:Partner:...
-// and shares the head, CR 903.13a), or "Partner with" (the CR 903.13c named
-// pair).
-func partnerHead(c *cards.Card) string {
-	if c == nil || len(c.Faces) == 0 {
-		return ""
-	}
-	for _, k := range c.Faces[0].Keywords {
-		h := cards.KeywordHead(k)
-		if h == "Partner" || h == "Partner with" {
-			return h
-		}
-	}
-	return ""
+	return deck.IsCommanderEligible(c)
 }
 
 // partnerPairOK reports whether two cards may be a commander PAIR: each
 // carries a Partner-family ability and either both are plain Partners, or
-// each "Partner with" the other by printed name (CR 903.13a/c). A plain
-// Partner paired with a Partner-with card is not a legal pair (each half of
-// a named pair names its own partner); a Partner-with card paired with a
-// plain Partner fails the same way.
+// each "Partner with" the other by printed name (CR 903.13a/c). The check
+// itself lives in deck.IsPartnerPair — the same package that owns
+// IsCommanderEligible (which commanderCardLegal above already delegates to),
+// so the deck-file validator and the engine's seating gate cannot disagree
+// about what a legal pair is.
 func partnerPairOK(a, b *cards.Card) bool {
-	ha, hb := partnerHead(a), partnerHead(b)
-	if ha == "" || hb == "" {
-		return false
-	}
-	if ha == "Partner" && hb == "Partner" {
-		return true
-	}
-	return partnerWithNames(a, b.Faces[0].Name) && partnerWithNames(b, a.Faces[0].Name)
-}
-
-// partnerWithNames reports whether c carries a "Partner with" whose named
-// partner is other (the corpus form is "Partner with:<name>[:<display>]";
-// the first colon-field is the name).
-func partnerWithNames(c *cards.Card, other string) bool {
-	if c == nil || len(c.Faces) == 0 {
-		return false
-	}
-	for _, k := range c.Faces[0].Keywords {
-		if cards.KeywordHead(k) != "Partner with" {
-			continue
-		}
-		_, rest, ok := strings.Cut(k, ":")
-		if !ok {
-			continue
-		}
-		name, _, _ := strings.Cut(rest, ":")
-		if strings.EqualFold(strings.TrimSpace(name), other) {
-			return true
-		}
-	}
-	return false
+	return deck.IsPartnerPair(a, b)
 }
 
 // legalCommandersFor validates seat i's configured commander list against
@@ -939,6 +933,7 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		loop:         newLivelockWatcher(cfg.LoopGuard),
 		turnsTaken:   make([]int32, len(cfg.Names)),
 		compiledText: newCompiledText(cfg),
+		mulligans:    cfg.Mulligans,
 	}
 	e.G.Tokens = cfg.Tokens
 	e.format = cfg.Format
@@ -1117,32 +1112,56 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		// preserving the historic event stream keeps recorded matches
 		// replayable), which is what view's pregame projection and the
 		// Count$StartingPlayer head read.
-		if cfg.Mulligans > 0 {
-			// Ruling R-8.4: the London mulligan round lives between the deal
-			// and turn 1. e.pregame makes step() dispatch to stepPregame
-			// (rules/mulligan.go) instead of the ordinary turn steps; the
-			// round's end calls beginTurn below. Over is already false (the
-			// per-seat deck-out guard above returned early) -- a game that
-			// ended during the deal never starts a round.
-			// CR 103.5: the starting player declares first, then each other
-			// player in turn order -- AliveFrom(e.G.StartingPlayer) is that
-			// order, which is also beginTurn's seat at the round's end. The
-			// opening-hand effects round runs after this round (a Gemstone
-			// Caverns may not be used from a hand its owner later mulliganed
-			// away), and an accepted Impatient Iguana there replaces the
-			// recorded designation before turn one.
-			e.pregame = true
-			e.mulligan = newMulliganRound(e.G.AliveFrom(e.G.StartingPlayer), cfg.Mulligans)
-		} else {
-			e.opening = e.newOpeningRound(e.G.StartingPlayer, 0)
-			if len(e.opening.effects) > 0 {
-				e.stepOpening()
-				return e
-			}
-			e.beginTurn(e.G.StartingPlayer)
-		}
+		e.startPostDealSetup()
 	}
 	return e
+}
+
+// startPostDealSetup opens the pregame rounds between the opening deal and
+// turn 1. The CR 903.4b commander colour-choice round runs FIRST when a
+// qualifying commander exists (the choice is made "before the game begins",
+// and the London mulligan round is also pregame); otherwise it hands straight
+// to startMulliganOrTurn. Both genesis and the colour round's end call it, so
+// a game with no qualifying commander is byte-identical to the pre-round
+// engine.
+func (e *Engine) startPostDealSetup() {
+	if round := e.newColorRound(); len(round.asks) > 0 {
+		e.coloring = true
+		e.colorRound = round
+		e.stepColorRound()
+		return
+	}
+	e.startMulliganOrTurn()
+}
+
+// startMulliganOrTurn opens whichever round follows the colour round: the
+// London mulligan round (Config.Mulligans > 0), the optional opening-hand
+// effects round, or turn 1 directly.
+func (e *Engine) startMulliganOrTurn() {
+	if e.mulligans > 0 {
+		// Ruling R-8.4: the London mulligan round lives between the deal
+		// and turn 1. e.pregame makes step() dispatch to stepPregame
+		// (rules/mulligan.go) instead of the ordinary turn steps; the
+		// round's end calls beginTurn below. Over is already false (the
+		// per-seat deck-out guard above returned early) -- a game that
+		// ended during the deal never starts a round.
+		// CR 103.5: the starting player declares first, then each other
+		// player in turn order -- AliveFrom(e.G.StartingPlayer) is that
+		// order, which is also beginTurn's seat at the round's end. The
+		// opening-hand effects round runs after this round (a Gemstone
+		// Caverns may not be used from a hand its owner later mulliganed
+		// away), and an accepted Impatient Iguana there replaces the
+		// recorded designation before turn one.
+		e.pregame = true
+		e.mulligan = newMulliganRound(e.G.AliveFrom(e.G.StartingPlayer), e.mulligans)
+	} else {
+		e.opening = e.newOpeningRound(e.G.StartingPlayer, 0)
+		if len(e.opening.effects) > 0 {
+			e.stepOpening()
+			return
+		}
+		e.beginTurn(e.G.StartingPlayer)
+	}
 }
 
 // finishTerminalGenesis finalizes a game whose opening deal left at most one
@@ -1330,6 +1349,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.turnsTaken = nil
 		e.turnsTakenEpoch = 0
 	}
+	// The per-turn combat-damage ledger expires with the turn (CR 514.2's
+	// "this turn" window): a TurnChange begins a fresh turn, so every hit
+	// captured during the turn that just ended is no longer "this turn".
+	if stored.Kind == events.TurnChange {
+		e.combatHitsThisTurn = nil
+	}
 	e.loop.observe(stored)
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
 		copyID := e.G.Stack[len(e.G.Stack)-1]
@@ -1480,6 +1505,17 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 		e.checkSpeedStart(ev.Obj)
+	}
+	// Ascend (CR 702.131a): the city's blessing's continuous re-check. A
+	// battlefield entry (the ordinary MoveZone), a token mint (TokenCreate/
+	// CardToken -- Apply mints those without a MoveZone event) or a control
+	// transfer can each push a seat's permanent count over ten; the scan
+	// only emits for an unblessed seat that newly qualifies, so every other
+	// event reaching here is inert (rules/ascend.go).
+	if (ev.Kind == events.MoveZone && ev.To == state.ZBattlefield) ||
+		ev.Kind == events.TokenCreate || ev.Kind == events.CardToken ||
+		ev.Kind == events.ControlChange {
+		e.checkBlessingGrants()
 	}
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,

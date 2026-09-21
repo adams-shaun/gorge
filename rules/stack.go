@@ -62,82 +62,120 @@ func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, 
 // card is no longer in the granted zone, so re-deriving from the zone would
 // wrongly drop it.
 func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) bool {
-	ok, _, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
+	ok, _, _, _, _ := e.payManaForSpent(p, id, ability, cost, conv, rider)
 	return ok
 }
 
 // payManaForSpent is payManaFor with the payment's actually-spent mana
 // returned: the per-colour delta the negative ManaAdd events record (zero on
-// a failed payment). TWO deltas come back: `spentPlain` is the split the
+// a failed payment). FOUR deltas come back: `spentPlain` is the split the
 // payment emits (restricted batches already carved off by
-// emitRestrictedManaSpend, the delta RememberCostMana$ notes today) and
-// `spentAll` is the FULL pool delta copied before that split -- the true
-// "all mana spent to pay this cost", which converge (CR 107.4f-family)
-// counts from via payManaCastSpent. The RememberCostMana$ payment site
+// emitRestrictedManaSpend, the delta RememberCostMana$ notes today), `spentAll`
+// is the FULL pool delta copied before that split -- the true "all mana spent
+// to pay this cost", which converge (CR 107.4f-family) counts from via
+// payManaCastSpent -- `spentSnow` is the per-colour count of the spent
+// units that were SNOW units (CR 107.4h), the parallel-tally delta, and
+// `spentTyped` is the per-tag per-colour count of the spent units that were
+// TYPED units (task castfilter2: Treasure/Cave/Desert, the parallel
+// Player.TypedMana tally), which the filtered Count$CastTotalManaSpent
+// Treasure/Cave/Desert heads read. The RememberCostMana$ payment site
 // (Jeweled Amulet) keeps its existing split-based note; every other caller
 // keeps the bool-only payManaFor wrapper, so no other payment site changes
 // shape.
-func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana) {
-	before := e.manaAvailableFor(p, id, ability)
+func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
+	av := e.manaAvailableFor(p, id, ability)
+	before := av.pool
 	beforeSnow := e.G.Players[p].Snow
-	pay, ok := cost.resolveManaWith(before, beforeSnow, e.G.Players[p].Life,
+	beforeTyped := av.typed
+	pay, ok := cost.resolveManaWith(before, beforeSnow, beforeTyped, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 	if !ok {
-		return false, state.Mana{}, state.Mana{}
+		return false, state.Mana{}, state.Mana{}, state.Mana{}, [3]state.Mana{}
 	}
-	after, afterSnow, lifeSpent := pay.pool, pay.snow, pay.lifeSpent
+	after, afterSnow, afterTyped, lifeSpent := pay.pool, pay.snow, pay.typed, pay.lifeSpent
 	spent := state.Mana{}
+	spentSnow := state.Mana{}
+	spentTyped := [3]state.Mana{}
 	for i := range before {
 		spent[i] = before[i] - after[i]
+		// The parallel tallies' own deltas: how many of the units that left
+		// slot i were snow / typed units. resolveManaWith consumes a plain
+		// unit before a typed one and a typed one before snow wherever a
+		// choice existed, so this is exactly what the payment search did and
+		// each tally never exceeds spent[i].
+		spentSnow[i] = beforeSnow[i] - afterSnow[i]
+		for t := range spentTyped {
+			spentTyped[t][i] = beforeTyped[t][i] - afterTyped[t][i]
+		}
 	}
 	// Converge counts ALL mana spent, restricted batches included -- Boseiju's
 	// {C} is not a colour, but a Tazri-restricted coloured unit IS the colour
 	// it was paid as -- so copy the full delta before emitRestrictedManaSpend
 	// carves the restricted batches out of `spent`.
 	spentAll := spent
-	e.emitRestrictedManaSpend(p, id, ability, &spent)
+	// emitSnow/emitTyped are the emission split's copies of the tallies.
+	// emitRestrictedManaSpend carves the restricted batches out of `spent`
+	// and emits their tagged/snow form DIRECTLY, so the tallies driving the
+	// remaining split must be carved alongside it -- otherwise a restricted
+	// TAGGED unit would be emitted once by the carve and again by the loop
+	// (double-decrementing TypedMana and the pool). The returned spentSnow /
+	// spentTyped keep the FULL deltas the pay-time capture reads.
+	emitSnow := spentSnow
+	emitTyped := spentTyped
+	e.emitRestrictedManaSpend(p, id, ability, &spent, &emitSnow, &emitTyped)
 	for i, letter := range manaLetters {
 		if spent[i] == 0 {
 			continue
 		}
-		// A slot whose snow units were spent (all or part) emits the
-		// "S<colour>" Counter form so the parallel snow tally moves with the
-		// pool through the same events the adds used. resolveMana consumes a
-		// non-snow unit before a snow one wherever a choice existed, so the
-		// snow split here is exactly what the payment search did.
-		snowSpent := beforeSnow[i] - afterSnow[i]
-		if snowSpent > 0 {
-			if plain := spent[i] - snowSpent; plain > 0 {
-				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -plain})
-			}
-			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: "S" + letter, Amount: -snowSpent})
-			continue
+		// A slot whose snow / typed units were spent (all or part) emits the
+		// "S<colour>" / "<Tag><colour>" Counter forms so the parallel tallies
+		// move with the pool through the same events the adds used.
+		// resolveMana consumes a plain unit before a typed one and a typed
+		// one before snow wherever a choice existed, so the split here is
+		// exactly what the payment search did. The emission order (plain,
+		// Treasure, Cave, Desert, snow) is fixed and deterministic.
+		snowSpent := emitSnow[i]
+		typedSpent := int32(0)
+		for t := range emitTyped {
+			typedSpent += emitTyped[t][i]
 		}
-		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent[i]})
+		if plain := spent[i] - snowSpent - typedSpent; plain > 0 {
+			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -plain})
+		}
+		for t, tag := range state.TypedManaTags {
+			if emitTyped[t][i] > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: tag + letter, Amount: -emitTyped[t][i]})
+			}
+		}
+		if snowSpent > 0 {
+			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: "S" + letter, Amount: -snowSpent})
+		}
 	}
 	// Fixed life costs and any Phyrexian pips paid with life are deducted
 	// through the ordinary LifeChange event so a replay learns them.
 	if lifeSpent != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
-	return true, spentAll, spent
+	return true, spentAll, spent, spentSnow, spentTyped
 }
 
 // payManaCastSpent is the spell-cost payment (the shared payManaFor core
 // with the cast's recorded may-play ignore-colour rider, CR 401.5's "spend
 // mana as though it were mana of any color to cast it") returning the FULL
 // spent delta: the pre-restriction-split per-colour pool delta converge
-// counts from (task converge1). The spell arm's only ask stages have all
-// completed by payment, so the delta rides pendingCast plain data to the
-// pay-time CastInfo exactly like replicateTimes does. The rider was proved
-// by the offer gate while the card still sat in the granted zone; the
-// payment keeps it via pc.mayPlayIgnore because after the push (CR 601.2a)
-// the card is on the stack and a zone re-derivation would wrongly drop the
-// grant.
-func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana) {
-	ok, spentAll, _ := e.payManaForSpent(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
+// counts from (task converge1), the snow-unit delta the filtered
+// Count$CastTotalManaSpent Snow head reads (task castfilter1), and the
+// per-tag typed deltas the filtered Treasure/Cave/Desert heads read (task
+// castfilter2). The spell arm's only ask stages have all completed by
+// payment, so the deltas ride pendingCast plain data to the pay-time
+// CastInfo exactly like replicateTimes does. The rider was proved by the
+// offer gate while the card still sat in the granted zone; the payment
+// keeps it via pc.mayPlayIgnore because after the push (CR 601.2a) the card
+// is on the stack and a zone re-derivation would wrongly drop the grant.
+func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [3]state.Mana) {
+	ok, spentAll, _, spentSnow, spentTyped := e.payManaForSpent(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
 		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
-	return ok, spentAll
+	return ok, spentAll, spentSnow, spentTyped
 }
 
 // payExtortPip charges the {W/B} hybrid pip (one mana of either W or B)
@@ -157,20 +195,40 @@ func (e *Engine) payExtortPip(p state.PlayerID) bool {
 	return false
 }
 
+// availableMana is the restriction-aware view of a seat's floating mana:
+// the pool minus every RestrictValid$ batch this payment cannot use, and the
+// typed producer tallies with those same batches removed. A restricted TYPED
+// unit (Echoing Cavern's Cave mana) must be invisible in BOTH: takeUnit
+// partitions a slot by the typed tally, so a typed unit left visible under
+// an unusable restriction could be consumed through that path although the
+// filter already hid it from the pool.
+type availableMana struct {
+	pool  state.Mana
+	typed [3]state.Mana
+}
+
 // manaAvailableFor removes every restricted batch from the visible pool, then
 // restores exactly the batches valid for this payment. This means a cast or a
 // nonmatching activation can never borrow Tazri-style mana merely because it
-// shares a colour bucket with unrestricted mana.
-func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool) state.Mana {
-	available := e.G.Players[p].Pool
-	for _, r := range e.G.Players[p].RestrictedMana {
-		idx := state.ManaIndex(r.Color[0])
-		available[idx] -= r.Amount
+// shares a colour bucket with unrestricted mana. The typed tallies are
+// filtered by the same rule, so a typed restricted unit can never be spent
+// through the typed consumption path either.
+func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool) availableMana {
+	pl := e.G.Players[p]
+	available := availableMana{pool: pl.Pool, typed: pl.TypedMana}
+	for _, r := range pl.RestrictedMana {
+		idx := state.ManaSlot(r.Color)
+		available.pool[idx] -= r.Amount
 		// An empty Valid is an UNRESTRICTED batch that carries only its
 		// AddsNoCounter$ provenance (Boseiju's plain {C}): it pays anything,
-		// exactly like ordinary pool mana.
+		// exactly like ordinary pool mana, so its units stay visible.
 		if r.Valid == "" || e.restrictValidMatches(p, id, ability, r.Valid, r.Source) {
-			available[idx] += r.Amount
+			available.pool[idx] += r.Amount
+			continue
+		}
+		// The batch is unusable here: hide its typed provenance too.
+		if tag, slot, ok := state.TypedManaCounter(r.Color); ok {
+			available.typed[tag][slot] -= r.Amount
 		}
 	}
 	return available
@@ -184,8 +242,22 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 // e.noCounterSpend for payCast to fold state.FlagNoCounter into the pay-time
 // CastInfo — with the batch's own condition evaluated against the paying
 // spell's face (Boseiju's !Permanent).
-func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana) {
+//
+// The carve is capped by the units resolveMana's search ACTUALLY attributed to
+// the batch's provenance, not merely by the slot's total delta: the search's
+// takeUnit consumes a plain unit before a typed one and a typed one before
+// snow, so a restricted TAGGED batch beside plain mana of the same colour can
+// go entirely unspent even though the slot's delta exceeds its amount. Taking
+// the full min(spent[idx], r.Amount) would decrement the tag's emission tally
+// below what was spent, driving emitTyped negative; the split loop's
+// `plain := spent - snow - typed` subtraction would then be inflated by the
+// negative term and the pool would lose more units than the cost required.
+// Capping at the tag's (or snow tally's, or the slot's remaining plain units')
+// actual spend reconciles the carve's restricted-first attribution with the
+// search's plain-first consumption and keeps every emission tally >= 0.
+func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana) {
 	e.noCounterSpend = 0
+	e.manaSpentSources = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
 	// otherwise removing the first of two matching batches would make the
 	// live slice shift under this loop and could skip or double-spend one.
@@ -194,21 +266,73 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		if r.Amount <= 0 || (r.Valid != "" && !e.restrictValidMatches(p, id, ability, r.Valid, r.Source)) {
 			continue
 		}
-		idx := state.ManaIndex(r.Color[0])
+		idx := state.ManaSlot(r.Color)
 		used := spent[idx]
 		if used > r.Amount {
 			used = r.Amount
 		}
-		if used == 0 {
+		// Cap by the provenance the search actually spent in this slot. A
+		// tagged or snow batch can only carve the units whose parallel tally
+		// left the pool; a plain batch only the slot's remaining plain units
+		// (spent minus every tally still attributed to this slot).
+		if tag, slot, ok := state.TypedManaCounter(r.Color); ok {
+			if emitTyped[tag][slot] < used {
+				used = emitTyped[tag][slot]
+			}
+		} else if len(r.Color) == 2 && r.Color[0] == 'S' {
+			if s := emitSnow[state.ManaIndex(r.Color[1])]; s < used {
+				used = s
+			}
+		} else {
+			plain := spent[idx]
+			for t := range emitTyped {
+				plain -= emitTyped[t][idx]
+			}
+			plain -= emitSnow[idx]
+			if plain < used {
+				used = plain
+			}
+		}
+		if used <= 0 {
 			continue
 		}
 		if r.NoCounter != "" && !ability && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, id, r.NoCounter) {
 			e.noCounterSpend = id
 		}
+		// A consumed batch's producing source is what the spell's
+		// TriggersWhenSpent$ riders key on. Only a SPELL payment (the
+		// ability=false arm -- payManaCastSpent is its only caller) records
+		// it: an ability activation, the unless-pay arm and every other
+		// payment fire nothing (the rider is a cast-spend gate). Dedup keeps
+		// one entry per source when several batches from it pay one cast; the
+		// insertion-order append keeps the queue deterministic.
+		if !ability && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
+			e.manaSpentSources = append(e.manaSpentSources, r.Source)
+		}
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
 			Text: events.ManaRestrictionText(r.Valid, r.Source)})
 		spent[idx] -= used
+		// Carve the consumed units out of the emission split's tallies too:
+		// the carve emitted this batch's tagged/snow form directly, so the
+		// split loop must not emit it a second time. The caps above guarantee
+		// neither tally can go below zero.
+		if tag, slot, ok := state.TypedManaCounter(r.Color); ok {
+			emitTyped[tag][slot] -= used
+		} else if len(r.Color) == 2 && r.Color[0] == 'S' {
+			emitSnow[state.ManaIndex(r.Color[1])] -= used
+		}
 	}
+}
+
+// containsObjID reports whether id is already in ids (a small linear scan;
+// the list holds at most a handful of mana-production sources per cast).
+func containsObjID(ids []state.ObjID, id state.ObjID) bool {
+	for _, x := range ids {
+		if x == id {
+			return true
+		}
+	}
+	return false
 }
 
 // addsNoCounterHolds evaluates a consumed batch's AddsNoCounter$ condition
@@ -329,8 +453,9 @@ func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *ma
 // passed explicitly, for the payment sites that know the cast's recorded
 // rider and cannot re-derive it from the card's zone.
 func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool, cost Cost, rider pipRider) bool {
-	_, ok := cost.resolveManaWith(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].Life,
-		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
+	av := e.manaAvailableFor(p, id, ability)
+	_, ok := cost.resolveManaWith(av.pool, e.G.Players[p].Snow, av.typed,
+		e.G.Players[p].Life, e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 	return ok
 }
 
@@ -360,8 +485,8 @@ func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cos
 // source. The payer grants and conversion shaping are the same reads in both
 // modes, so a potential action and the payment it promises can never disagree
 // about what the pool may satisfy.
-func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana) bool {
-	_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, e.G.Players[p].Life,
+func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana, typed [3]state.Mana) bool {
+	_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, typed, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p),
 		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
 		e.paymentConv(p, id, ability))
@@ -812,6 +937,85 @@ type targetCandidate struct {
 // source is the object the spec's Self/Other predicates and the protection
 // test are resolved against (for an ability, the Source permanent).
 // excludeSelf is the object a prospective target may not equal -- the CR
+// playerTargetSpecMatches judges one candidate seat q against a ValidTgts$
+// player spec from the asker's (you) perspective. It is the ONE judge both
+// target sites go through -- the offer (candidatesFor) and the resolution
+// recheck (legalTargets) -- so the two cannot disagree (the one-definition
+// rule). Every ordinary alternative is judged by the shared
+// effects.MatchesPlayerSpecFrom grammar; an alternative whose qualifier names
+// a trigger role the ask's own TriggerContext carries (pg2 event roles) is
+// judged by triggerRolePlayerAlt below, because MatchesPlayerSpecFrom takes
+// no trigger context and fails closed on the role names -- which turned The
+// Lord of Pain's mandatory "choose another target player" trigger
+// (ValidTgts$ Player.!TriggeredActivator) into an ask with no legal target
+// and a silent fizzle. Forge's comma is OR: the spec matches when any one
+// alternative matches.
+func (e *Engine) playerTargetSpecMatches(sc effects.SpecContext, spec string, q, you state.PlayerID, source state.ObjID) bool {
+	for _, alt := range strings.Split(spec, ",") {
+		if matched, known := e.triggerRolePlayerAlt(sc, alt, q, you); known {
+			if matched {
+				return true
+			}
+			continue
+		}
+		if effects.MatchesPlayerSpecFrom(e.G, alt, q, you, source) {
+			return true
+		}
+	}
+	return false
+}
+
+// triggerRolePlayerAlt evaluates ONE comma-alternative of a ValidTgts$
+// player spec whose qualifier names a trigger role the ask's own
+// TriggerContext carries. The corpus writes exactly two such qualifiers on a
+// player alternative, both negated: Player.!TriggeredActivator (The Lord of
+// Pain) and Player.!TriggeredCardController (Lucy MacLean, Positively
+// Armed); a positive form resolves the same way. The binding rides the ask's
+// SpecContext (pg2); an absent binding matches NOBODY, including under !
+// (the documented pg2 absent-binding contract), so the fail-closed direction
+// is kept for every qualifier the context cannot answer. known=false when
+// the alternative does not name a trigger role at all, leaving it to the
+// shared grammar.
+func (e *Engine) triggerRolePlayerAlt(sc effects.SpecContext, alt string, q, you state.PlayerID) (bool, bool) {
+	base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
+	if !qualified {
+		return false, false
+	}
+	neg := strings.HasPrefix(qualifier, "!")
+	var role state.PlayerID
+	bound := false
+	switch strings.TrimPrefix(qualifier, "!") {
+	case "TriggeredActivator":
+		role, bound = sc.TriggerContext.TriggerActivator.Player, sc.TriggerContext.TriggerActivator.IsPlayer
+	case "TriggeredCardController":
+		// effects.TriggeredCardController is the one resolver -- Defined$,
+		// OptionalDecider$ and the targeting restriction all read it.
+		if p, ok := effects.TriggeredCardController(e.G, sc.TriggerContext, sc.Remembered); ok {
+			role, bound = p, true
+		}
+	default:
+		return false, false
+	}
+	// The base still applies to the role alternative, exactly as
+	// MatchesPlayerSpecFrom applies it to every other qualifier.
+	switch base {
+	case "Player", "Any":
+	case "You":
+		if q != you {
+			return false, true
+		}
+	case "Opponent", "Other":
+		if q == you {
+			return false, true
+		}
+	default:
+		// An object alternative (Creature.!TriggeredTarget, ...): not this
+		// helper's business -- the object arm judges it.
+		return false, false
+	}
+	return bound && ((q == role) != neg), true
+}
+
 // 115.5 self-targeting rule. It is separate from source because during a
 // cast/activation proposal the two diverge: a spell on the stack may not
 // target itself (excludeSelf == the card), while an activated ability CAN
@@ -852,11 +1056,23 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 	zones := targetZones(sa)
 	var out []targetCandidate
 	// Players are offered only alongside the default battlefield search and
-	// only when the spec can name one. A spec that routes elsewhere
+	// only when the spec actually names a seat. A spec that routes elsewhere
 	// (TgtZone$ Graveyard/Hand/Exile) targets objects only -- never a player.
-	if len(zones) == 1 && zones[0] == state.ZBattlefield && targetsPlayers(spec) {
+	// Each candidate seat is judged by the SAME shared player filter the
+	// resolution recheck (legalTargets) applies, from the asker's perspective,
+	// so offer and recheck cannot disagree (the one-definition rule): a
+	// ValidTgts$ Opponent ask no longer offers the controller, ValidTgts$ You
+	// no longer offers opponents, and a spec whose qualifier the filter cannot
+	// evaluate fails closed to no seat (the AGENTS.md MatchesPlayerSpec
+	// convention). Note MatchesPlayerSpecFrom splits on ',' and skips
+	// alternatives whose base is not a player base, so a mixed
+	// `Creature,Opponent` spec keeps the object half and matches only the
+	// player half's seats.
+	if len(zones) == 1 && zones[0] == state.ZBattlefield {
 		for _, q := range e.G.AliveFrom(0) {
-			out = append(out, targetCandidate{kind: "player", player: q})
+			if e.playerTargetSpecMatches(sc, spec, q, p, specSrc) {
+				out = append(out, targetCandidate{kind: "player", player: q})
+			}
 		}
 	}
 	// Resolve the source ONCE for the whole census -- for an ability this is
@@ -1076,35 +1292,63 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 	return true
 }
 
+// oneEachTargetBounds applies Forge's TargetsForEachPlayer$ selection shape
+// (TargetRestrictions.setForEachPlayer): the selected targets are limited to
+// one controlled by each player, and a TargetMin$/TargetMax$ spelled OneEach
+// asks for exactly the distinct-controller count. askTarget (this file) and
+// cast.go's targetAsk share it so the two ask sites cannot drift; the bool
+// reports whether the shape applies (the caller attaches the matching
+// Option.Group through oneEachTargetGroup).
+func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, bool) {
+	if !strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") {
+		return min, max, false
+	}
+	// Option.Group makes the one-per-player restriction part of the generic
+	// decision contract, so every target API consumes the same enforcement
+	// rather than each effect maintaining a picker.
+	groups := map[state.PlayerID]bool{}
+	for _, candidate := range candidates {
+		owner := candidate.player
+		if candidate.kind != "player" {
+			if o := e.G.Obj(candidate.obj); o != nil {
+				owner = o.Controller
+			}
+		}
+		groups[owner] = true
+	}
+	if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
+		min = len(groups)
+	}
+	if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
+		max = len(groups)
+	}
+	return min, max, true
+}
+
+// oneEachTargetGroup is the Option.Group label binding one OneEach selection
+// slot to its controller -- the same label both ask sites attach, so
+// Decision.Validate's mutual-exclusion rule enforces one pick per controller
+// on the wire.
+func (e *Engine) oneEachTargetGroup(sa *cards.SA, candidate targetCandidate) string {
+	if !strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") {
+		return ""
+	}
+	owner := candidate.player
+	if candidate.kind != "player" {
+		if o := e.G.Obj(candidate.obj); o != nil {
+			owner = o.Controller
+		}
+	}
+	return "target-controller-" + strconv.Itoa(int(owner))
+}
+
 // askTarget offers every legal target for a spell or ability. It deliberately
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
 	candidates := e.legalTargetCandidates(p, source, source, sa)
-	oneEach := strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True")
-	groups := map[state.PlayerID]bool{}
-	if oneEach {
-		// Forge TargetRestrictions.setForEachPlayer limits the selected targets
-		// to one controlled by each player. Option.Group makes that restriction
-		// part of the generic decision contract, so every target API consumes
-		// the same enforcement rather than each effect maintaining a picker.
-		for _, candidate := range candidates {
-			owner := candidate.player
-			if candidate.kind != "player" {
-				if o := e.G.Obj(candidate.obj); o != nil {
-					owner = o.Controller
-				}
-			}
-			groups[owner] = true
-		}
-		if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
-			min = len(groups)
-		}
-		if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
-			max = len(groups)
-		}
-	}
+	min, max, _ = e.oneEachTargetBounds(sa, candidates, min, max)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
@@ -1115,15 +1359,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		label := e.targetOptionLabel(candidate)
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
-		if oneEach {
-			owner := candidate.player
-			if candidate.kind != "player" {
-				if obj := e.G.Obj(candidate.obj); obj != nil {
-					owner = obj.Controller
-				}
-			}
-			o.Group = "target-controller-" + strconv.Itoa(int(owner))
-		}
+		o.Group = e.oneEachTargetGroup(sa, candidate)
 		d.Options = append(d.Options, o)
 	}
 	if min == 0 {
@@ -1502,6 +1738,15 @@ func (e *Engine) resolveTop() {
 		// is the same "you may pay; when you do" idiom, and without the window
 		// the body ran for free and no draw happened. The window's pay arm
 		// settles the draw, the decline arm leaves the body unexecuted.
+		//
+		// trigcost1: the gate is no longer an API allowlist. ANY Cost$-bearing
+		// trigger body enters the window (Kalastria Highborn's `Cost$ B`,
+		// Elenda and Azor's `Cost$ PayLife<4>`, ...): Forge's Cost$ on a trigger
+		// body is the "you may pay; if you do" idiom, so a body that never asks
+		// executes for free. The window keeps the split -- Priceable cost offers
+		// a real pay, everything else lands decline-only. Mandatory-prefixed
+		// costs and Mana/CopySpellAbility bodies are carved out inside
+		// triggerBodyNeedsCostWindow.
 		if o.Ability.API == "CumulativeUpkeep" {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
@@ -1516,9 +1761,7 @@ func (e *Engine) resolveTop() {
 			return
 		}
 		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
-			o.Ability.Params["Cost"] != "" &&
-			(o.Ability.API == "Untap" || o.Ability.API == "ImmediateTrigger" ||
-				len(e.parseCost(o.Ability.Params["Cost"]).Draw) > 0) {
+			e.triggerBodyNeedsCostWindow(o.Ability) {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}
@@ -1760,6 +2003,12 @@ func (e *Engine) resolveTop() {
 		}
 	}
 	e.emit(events.Event{Kind: events.Resolve, Obj: id, Text: f.Name})
+	// Ascend (CR 702.131a, the non-permanent case): an instant/sorcery with
+	// K:Ascend grants its controller the blessing BEFORE the spell's own
+	// body and condition checks read the latch (Forge's "do blessing there
+	// before condition checks"; rules/ascend.go). Permanent faces are
+	// excluded -- their grant is the emit-side continuous scan.
+	e.grantSpellBlessing(o, f)
 	if sa != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets,
@@ -1811,7 +2060,8 @@ func (e *Engine) resolveTop() {
 // countered, so only this resolved-spell helper may return it to hand.
 func spellRestZone(o *state.Object) state.Zone {
 	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 ||
-		o.IsCopy || o.CastFlags&state.FlagAdventure != 0) {
+		o.IsCopy || o.CastFlags&state.FlagAdventure != 0 || o.CastFlags&state.FlagReplaceGraveyard != 0 ||
+		o.CastFlags&state.FlagAftermath != 0) {
 		return state.ZExile
 	}
 	if o != nil && o.CastFlags&state.FlagBuyback != 0 {
@@ -1821,10 +2071,11 @@ func spellRestZone(o *state.Object) state.Zone {
 }
 
 // spellFizzleZone is the resting place when a spell never resolved. Flashback,
-// Harmonize and copies still use exile, but Buyback does not apply and the
-// card reaches its owner's graveyard.
+// Harmonize, Aftermath, the ReplaceGraveyard$ Play rider and copies still use
+// exile, but Buyback does not apply and the card reaches its owner's graveyard.
 func spellFizzleZone(o *state.Object) state.Zone {
-	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy) {
+	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 ||
+		o.IsCopy || o.CastFlags&state.FlagAftermath != 0 || o.CastFlags&state.FlagReplaceGraveyard != 0) {
 		return state.ZExile
 	}
 	return state.ZGraveyard
@@ -1906,12 +2157,14 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // offer it as an option in the first place: no self-relative source,
 // matching askTarget's own simplification, so a spec that would filter on
 // Self/Other is exactly as (im)precise here as it was at cast time. A player
-// target is legal for as long as they are still in the game; askTarget never
-// applies MatchesPlayerSpec's finer You/Opponent distinction when it first
-// offers every living player as an option (targetsPlayers below it), so this
-// does not either -- rechecking against a filter the engine never enforced
-// when the target was chosen would reject targets this build always
-// considered fine.
+// target is legal for as long as they are still in the game AND still match
+// the spec's player filter (playerTargetSpecMatches -- the shared
+// MatchesPlayerSpecFrom grammar plus the trigger-role alternatives the ask's
+// own TriggerContext carries -- from the controller's perspective, against
+// the same source the offer judged) -- the same judge the offer applies, so
+// offer and recheck cannot disagree (the one-definition rule). A target
+// whose qualifier the filter cannot evaluate was never offered and is
+// rejected here too, fail closed.
 func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
 	var legal []state.Target
 	// The resolution recheck, unlike a target offer, has this stack object's
@@ -1930,7 +2183,8 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 	sc.Resolving = true
 	for _, t := range targets {
 		if t.IsPlayer {
-			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost {
+			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost &&
+				e.playerTargetSpecMatches(sc, spec, t.Player, you, source) {
 				legal = append(legal, t)
 			}
 			continue
@@ -2226,6 +2480,32 @@ func (e *Engine) WasCastFromHand(obj state.ObjID) bool {
 	return false
 }
 
+// WasCast satisfies effects.Host's WasCast (Forge Card.wasCast():
+// castFrom != null), the Count$IfCastInOwnMainPhase third conjunct (task
+// ifcastmain1). The pending CR 601.2c announcement ask is a cast in progress:
+// pushCast runs AFTER targetAsk, so the log scan alone would misread Return
+// to Dust's own TargetMax$ X bound as uncast; the live pending cast closes
+// that window (Forge sets castFrom before setupTargets). e.cast.ability < 0
+// excludes an ACTIVATED-ABILITY activation, which Forge never treats as a
+// cast. A copy was never cast (IsCopy), and a card never put on the stack
+// (cheated into play) reads false. Derived from the event log plus the live
+// pending cast, so a replay derives the same answer.
+func (e *Engine) WasCast(obj state.ObjID) bool {
+	if e.cast != nil && e.cast.card == obj && e.cast.ability < 0 {
+		return true
+	}
+	if o := e.G.Obj(obj); o == nil || o.IsCopy {
+		return false
+	}
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return true
+		}
+	}
+	return false
+}
+
 // WasCastByYou reports whether card obj was CAST AT ALL by player p — the
 // bare wasCastByYou qualifier's engine read (task castprov2: the "When
 // CARDNAME enters, if you cast it" ETB family — Zacama, Marina Vendrell's
@@ -2255,6 +2535,30 @@ func (e *Engine) WasCastByYou(obj state.ObjID, p state.PlayerID) bool {
 	return false
 }
 
+// combatHit snapshots one landed combat-damage-to-player instance for the
+// per-turn ledger. The dealing object is read through g.Obj at damage time
+// (it is still on the battlefield then); its *cards.Card face pointer and
+// controller are copied into the hit so a later reader can match the spec
+// after the source has died, left the battlefield or been turned face down.
+func (e *Engine) combatHit(player state.PlayerID, source state.ObjID, amount int32) effects.CombatDamageHit {
+	hit := effects.CombatDamageHit{Player: player, Source: source, Amount: amount}
+	if o := e.G.Obj(source); o != nil {
+		hit.Card = o.Card
+		hit.FaceIdx = o.FaceIdx
+		hit.Controller = o.Controller
+	}
+	return hit
+}
+
+// CombatDamageToPlayersThisTurn satisfies effects.Host's
+// CombatDamageToPlayersThisTurn: every combat-damage instance dealt to a
+// player so far this turn, in assignment order, as captured at the combat
+// damage site (runCombatAssignments). Engine-side, NO-EVENT state that every
+// rebuild re-derives; emit clears it on TurnChange.
+func (e *Engine) CombatDamageToPlayersThisTurn() []effects.CombatDamageHit {
+	return e.combatHitsThisTurn
+}
+
 // LifeLostThisTurn satisfies effects.Host's LifeLostThisTurn for
 // Count$LifeOppsLostThisTurn (Rakdos, Lord of Riots' cost reduction): the
 // total life p lost this turn, summed from every LifeChange below zero since
@@ -2272,6 +2576,30 @@ func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
 		}
 		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount < 0 {
 			n += -ev.Amount
+		}
+	}
+	return n
+}
+
+// DamageTakenThisTurn satisfies effects.Host's DamageTakenThisTurn for the
+// TargetedPlayer$DamageThisTurn count head (Knollspine Dragon's "draw cards
+// equal to the damage dealt to target opponent this turn"): the total damage
+// p was dealt this turn, summed from every player-targeted Damage event
+// since the last TurnChange. A player hit is Kind Damage with Player set
+// and Obj 0 — an object hit sets Obj and leaves Player 0 (seat 0 is a real
+// player, so the discriminator is Obj == 0, never Player != 0); a
+// replacement-rewritten Note never reaches this fold, and a redirect that
+// moved a hit onto a permanent reads there instead. Derived from the event
+// log like LifeLostThisTurn, so a replay derives the same number.
+func (e *Engine) DamageTakenThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.Damage && ev.Obj == 0 && ev.Player == p && ev.Amount > 0 {
+			n += ev.Amount
 		}
 	}
 	return n
@@ -2295,6 +2623,40 @@ func (e *Engine) LifeGainedThisTurn(p state.PlayerID) int32 {
 		}
 		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount > 0 {
 			n += ev.Amount
+		}
+	}
+	return n
+}
+
+// CardsDiscardedThisTurn satisfies effects.Host's CardsDiscardedThisTurn for
+// PlayerCountPropertyYou$CardsDiscardedThisTurn (Ambergris Citadel Agent's
+// "X = cards you discarded this turn"): every events.IsDiscard move since
+// the last TurnChange naming p — the ordinary Discard form by its Player
+// field, the cost form (events.DiscardCost, which carries no Player — every
+// emitter constructs it without one, so the Player field is seat 0 regardless
+// of who paid) by the discarded object's owner alone, since a cost discard is
+// paid from the payer's own hand (CR 118.2a). Classifying by the marker and
+// not by "Player == 0 as a fallback" is what keeps seat 0's tally from
+// counting every other seat's cost discard. Derived from the event log like
+// LifeLostThisTurn, so a replay derives the same number.
+func (e *Engine) CardsDiscardedThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if !events.IsDiscard(ev) {
+			continue
+		}
+		if events.IsDiscardCost(ev) {
+			if o := e.G.Obj(ev.Obj); o != nil && o.Owner == p {
+				n++
+			}
+			continue
+		}
+		if ev.Player == p {
+			n++
 		}
 	}
 	return n

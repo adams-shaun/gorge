@@ -313,3 +313,236 @@ func TestLossShapes(t *testing.T) {
 		t.Fatalf("no-labelled example moved the output-bias grad: %g", gF.OutB)
 	}
 }
+
+// tiedExample builds a fully-labelled example whose options all share the
+// same teacher value (the real corpus's 42%-tied decision shape) and whose
+// teacher kept the bot (Margin 0, so the rank term is off). The value term
+// must contribute NOTHING to such a decision: regressing a score on a
+// constant is minimised by flattening every option's score, which is exactly
+// how option-discriminating features get erased.
+func tiedExample(rng *rand.Rand) (*Model, Example) {
+	m := NewModel(64, 8, 8, rng)
+	st := State{Dense: make([]float32, DenseWidth)}
+	st.Dense[0] = 0.7
+	ex := Example{Kind: "attackers", Margin: 0, TeacherChoice: 0, BotIndex: 0, State: st}
+	for j := 0; j < 3; j++ {
+		o := Option{Dense: make([]float32, OptionDenseWidth)}
+		o.Hashed = []Feature{{Row: uint16(10 + j), Value: 1}}
+		o.Target = OptionTarget{Labelled: true, Value: 0.5, Preferred: j == 0}
+		ex.Options = append(ex.Options, o)
+	}
+	return m, ex
+}
+
+// TestValueTermSkipsTiedDecisions pins the anti-collapse contract at the loss
+// level: a decision whose labelled values are all tied contributes zero value
+// loss and zero gradient, so training it cannot drive option-discriminating
+// features toward zero. A raw-target value term (the pre-fix behaviour) gives
+// this example a nonzero loss and a nonzero output-bias gradient, which is
+// precisely the collapse the trainer fix removes.
+func TestValueTermSkipsTiedDecisions(t *testing.T) {
+	rng := rand.New(rand.NewPCG(31, 31+1))
+	m, ex := tiedExample(rng)
+	lc := LossConfig{HuberDelta: 0.1, RankWeight: 5}
+
+	st := m.Loss(ex, lc)
+	if st.Parts.Value != 0 || st.Parts.Total != 0 || st.Loss != 0 {
+		t.Fatalf("tied decision carries value loss %g (total %g): the value term is trying to flatten the options",
+			st.Parts.Value, st.Parts.Total)
+	}
+
+	g := m.NewGrads()
+	g.Zero()
+	m.LossGrad(ex, lc, g)
+	if g.OutB != 0 {
+		t.Fatalf("tied decision moved the output-bias gradient: %g", g.OutB)
+	}
+	for i := range g.OutW {
+		if g.OutW[i] != 0 {
+			t.Fatalf("tied decision moved the output weight gradient [%d]: %g", i, g.OutW[i])
+		}
+	}
+	for i := range g.HidB {
+		if g.HidB[i] != 0 {
+			t.Fatalf("tied decision moved the hidden-bias gradient [%d]: %g", i, g.HidB[i])
+		}
+	}
+}
+
+// TestOverrideWeightScalesExample pins the signal-weighting contract: an
+// example whose label records a teacher override (TeacherChoice != BotIndex)
+// is scaled by LossConfig.OverrideWeight in BOTH its loss and its gradients,
+// while an agreeing example is untouched. That is the lever that stops the
+// 75% of decisions where the teacher merely agrees with the bot from drowning
+// the 25% that carry the information.
+func TestOverrideWeightScalesExample(t *testing.T) {
+	rng := rand.New(rand.NewPCG(41, 41+1))
+	m, base := tiedExample(rng)
+	// Give the example real signal so loss and gradient are nonzero.
+	for i := range base.Options {
+		base.Options[i].Target.Value = 0.5 + 0.2*float64(i)
+	}
+	base.Margin = 0.3
+
+	agree := base
+	agree.TeacherChoice = 0
+	agree.BotIndex = 0
+	override := base
+	override.TeacherChoice = 1
+	override.BotIndex = 0
+	if !override.Override() {
+		t.Fatal("override example not recognised as an override")
+	}
+
+	lc := LossConfig{HuberDelta: 0.1, RankWeight: 1, OverrideWeight: 4}
+	agreeStat := m.Loss(agree, lc)
+	overStat := m.Loss(override, lc)
+	if want := agreeStat.Parts.Total * 4; math.Abs(overStat.Parts.Total-want) > 1e-9 {
+		t.Fatalf("override loss %.6g, want 4x the agreeing loss %.6g", overStat.Parts.Total, want)
+	}
+
+	gA, gO := m.NewGrads(), m.NewGrads()
+	gA.Zero()
+	m.LossGrad(agree, lc, gA)
+	gO.Zero()
+	m.LossGrad(override, lc, gO)
+	for i := range gA.OutW {
+		if math.Abs(float64(gO.OutW[i]-4*gA.OutW[i])) > 1e-6 {
+			t.Fatalf("override output-weight grad [%d] = %g, want 4x agreeing %g", i, gO.OutW[i], gA.OutW[i])
+		}
+	}
+	if math.Abs(float64(gO.OutB-4*gA.OutB)) > 1e-6 {
+		t.Fatalf("override output-bias grad = %g, want 4x agreeing %g", gO.OutB, gA.OutB)
+	}
+}
+
+// TestLossModeSwitchPinsTermMix pins the L9b-fix2 mode contract at the loss
+// level: CE contributes ONLY the rank term (Parts.Value exactly 0) and its
+// per-example weight ignores the margin (pure imitation: a one-world margin
+// must not silence the CE signal the way it silenced the margin-weighted rank
+// term); value contributes ONLY the Huber term (Parts.Rank exactly 0); and
+// the zero Mode ("", every pre-existing caller) is byte-equal to the explicit
+// hybrid.
+func TestLossModeSwitchPinsTermMix(t *testing.T) {
+	rng := rand.New(rand.NewPCG(43, 43+1))
+	m, ex := tiedExample(rng)
+	// Untie the values so the value term is active in every mode, and keep a
+	// preferred option so the rank term is active too.
+	for i := range ex.Options {
+		ex.Options[i].Target.Value = 0.5 + 0.1*float64(i)
+	}
+	ex.Margin = 0.001 // the noise-dominated scale: a hundredth of one world
+
+	ceLo := m.Loss(ex, LossConfig{Mode: LossCE, HuberDelta: 0.1, RankWeight: 1})
+	exHi := ex
+	exHi.Margin = 10
+	ceHi := m.Loss(exHi, LossConfig{Mode: LossCE, HuberDelta: 0.1, RankWeight: 1})
+	if ceLo.Parts.Value != 0 {
+		t.Fatalf("CE carries a value term: %g", ceLo.Parts.Value)
+	}
+	if ceLo.Parts.Rank <= 0 {
+		t.Fatalf("CE carries no rank term: %g", ceLo.Parts.Rank)
+	}
+	if ceLo.Parts.Total != ceHi.Parts.Total {
+		t.Fatalf("CE loss follows the margin (%g at margin 0.001 vs %g at 10) — the CE weight must not be margin-scaled",
+			ceLo.Parts.Total, ceHi.Parts.Total)
+	}
+
+	val := m.Loss(ex, LossConfig{Mode: LossValue, HuberDelta: 0.1, RankWeight: 1})
+	if val.Parts.Rank != 0 {
+		t.Fatalf("value mode carries a rank term: %g", val.Parts.Rank)
+	}
+	if val.Parts.Value <= 0 {
+		t.Fatalf("value mode carries no value term: %g", val.Parts.Value)
+	}
+
+	hybZero := m.Loss(ex, LossConfig{HuberDelta: 0.1, RankWeight: 1})
+	hybNamed := m.Loss(ex, LossConfig{Mode: LossHybrid, HuberDelta: 0.1, RankWeight: 1})
+	if hybZero.Parts != hybNamed.Parts {
+		t.Fatalf("zero Mode is not hybrid: %+v vs %+v", hybZero.Parts, hybNamed.Parts)
+	}
+	if hybNamed.Parts.Value <= 0 || hybNamed.Parts.Rank <= 0 {
+		t.Fatalf("hybrid lost one of its terms: %+v", hybNamed.Parts)
+	}
+}
+
+// TestResidualIsAFixedBotPrior pins the L9b-fix2 item-3 residual head: an
+// option in the bot's own answer (Option.BotPick) scores exactly Model.ResidualW
+// higher and nothing else moves; ResidualW is a constant prior, never a
+// trained parameter (no Grads field touches it); and ResidualW 0 makes the
+// residual a no-op, so pure CE is byte-identical to the pre-residual build.
+func TestResidualIsAFixedBotPrior(t *testing.T) {
+	rng := rand.New(rand.NewPCG(11, 12))
+	m := NewModel(256, 8, 8, rng)
+	st := State{Dense: make([]float32, DenseWidth)}
+	opts := []Option{
+		{Dense: make([]float32, OptionDenseWidth), BotPick: true},
+		{Dense: make([]float32, OptionDenseWidth)},
+	}
+	base := m.Score(st, opts)
+	if base[0] != base[1] {
+		t.Fatalf("identical options scored differently: %g vs %g", base[0], base[1])
+	}
+	m.ResidualW = 3
+	got := m.Score(st, opts)
+	if got[1] != base[1] {
+		t.Fatalf("non-bot option moved under the residual: %g -> %g", base[1], got[1])
+	}
+	if d := float64(got[0] - base[0]); d < 2.999 || d > 3.001 {
+		t.Fatalf("bot option residual = %g, want +3", d)
+	}
+
+	// The prior is not a gradient block: a forward/backward that reads the
+	// residual must leave ResidualW untouched (it lives on the Model).
+	for i := range opts {
+		opts[i].Target = OptionTarget{Labelled: true, Value: 0.5, Preferred: i == 1}
+	}
+	ex := Example{Kind: "attackers", State: st, Options: opts}
+	before := m.ResidualW
+	g := m.NewGrads()
+	m.LossGrad(ex, LossConfig{Mode: LossCE, RankWeight: 1}, g)
+	g.Reset()
+	if m.ResidualW != before {
+		t.Fatalf("ResidualW changed during a loss step: %g -> %g", before, m.ResidualW)
+	}
+}
+
+// TestLossFiniteOnDivergedScores pins the numerical-stability contract: the
+// loss and its score gradient stay finite even when the forward pass hands
+// back ±Inf/NaN scores (a diverged run). The pre-fix loss fed the raw scores
+// to logSumExp, so an Inf made `LSE(labelled) − LSE(preferred)` compute
+// Inf − Inf = NaN, which then poisoned every weight; the score clamp plus the
+// max-subtracting log-sum-exp keep the whole term finite.
+func TestLossFiniteOnDivergedScores(t *testing.T) {
+	ex := Example{Kind: "attackers", Margin: 0.3, TeacherChoice: 1, BotIndex: 0,
+		State: State{Dense: make([]float32, DenseWidth)}}
+	for j := 0; j < 3; j++ {
+		o := Option{Dense: make([]float32, OptionDenseWidth)}
+		o.Target = OptionTarget{Labelled: true, Value: 0.2 + 0.3*float64(j), Preferred: j == 1}
+		ex.Options = append(ex.Options, o)
+	}
+	labelled := []int{0, 1, 2}
+	lc := LossConfig{HuberDelta: 0.1, RankWeight: 50}
+	for _, name := range []string{"+Inf", "-Inf", "NaN"} {
+		ys := []float64{1, 2, 3}
+		switch name {
+		case "+Inf":
+			ys[2] = math.Inf(1)
+		case "-Inf":
+			ys[1] = math.Inf(-1)
+		case "NaN":
+			ys[0] = math.NaN()
+		}
+		parts, dys := lossFromScores(lc, ex, labelled, ys)
+		if math.IsNaN(parts.Total) || math.IsInf(parts.Total, 0) ||
+			math.IsNaN(parts.Value) || math.IsInf(parts.Value, 0) ||
+			math.IsNaN(parts.Rank) || math.IsInf(parts.Rank, 0) {
+			t.Fatalf("%s scores: non-finite loss %+v", name, parts)
+		}
+		for k, d := range dys {
+			if math.IsNaN(d) || math.IsInf(d, 0) {
+				t.Fatalf("%s scores: non-finite score gradient [%d] = %g", name, k, d)
+			}
+		}
+	}
+}

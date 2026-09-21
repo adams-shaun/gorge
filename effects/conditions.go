@@ -42,16 +42,29 @@ import (
 //     fail OPEN (run-anyway), the statics wrapper fails CLOSED.
 //  4. a bare `Condition$` whose value is `Kicked` — the source was cast
 //     with its Kicker paid (Into the Roil's "If this spell was kicked,
-//     draw a card", the corpus's dominant bare-Condition value at 54 SAs).
-//     The other bare-Condition values (Delirium, OptionalCost, Bargain,
-//     Threshold, Blessing, Metalcraft, Foretold, Hellbent, Revolt, Surge —
-//     ~28 SAs) stay unresolved.
+//     draw a card", the corpus's dominant bare-Condition value at 54 SAs);
+//     `Foretold` — the FlagForetold cast provenance (Poison the Cup,
+//     Alrund's Epiphany); and `Revolt` — CR 702.38's "a permanent you
+//     controlled left the battlefield this turn" (Decommission's DB$
+//     GainLife), read through Host.RevoltHolds; and `Blessing` -- CR
+//     702.131's city's-blessing latch (state.Player.Blessing, granted by
+//     the Ascend machinery), read straight off the folded state. The other
+//     bare-Condition values (Delirium, OptionalCost, Bargain, Threshold,
+//     Metalcraft, Hellbent, Surge — ~25 SAs) stay unresolved.
+//  5. `ConditionDefined$ Imprinted` (34 corpus lines over 26 files) — the
+//     source card's persistent imprint list (state.Object.Imprinted, the
+//     events.Imprint associations: Chrome Mox's Imprint$ and now api:Play's
+//     ImprintPlayed$ recording, Rashmi and Ragavan's played-exiled-card
+//     marker). The group is exactly that list — never the remembered set —
+//     and a source-less context (c.Source 0, a synthetic fixture) leaves
+//     the gate unresolved, the fail-open run-anyway this file's convention.
 //
 // Deliberate scope (task fb-3f1cc033): the wider Condition vocabulary —
 // Condition$ beyond Kicked, ConditionZone$ (57), ConditionManaSpent$ (34),
-// the other ConditionDefined$ values (Targeted 161, ChosenCard 90,
-// Imprinted 34, ...), a bare ConditionCompare$ with no group, and
-// ConditionNotPresent$ (8) — is NOT implemented. A sub carrying any of
+// the other ConditionDefined$ values (Targeted 161, ChosenCard 90, ... —
+// Imprinted is IN since the ImprintPlayed task, shape 5 above), a bare
+// ConditionCompare$ with no group, and ConditionNotPresent$ (8) — is NOT
+// implemented. A sub carrying any of
 // those is UNRESOLVED: conditionMet reports resolved=false and Resolve's
 // walk runs the sub UNCONDITIONALLY, exactly as it did before this file
 // existed. That is the documented (not fail-closed) choice: fail-closed
@@ -304,8 +317,10 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// A bare Condition$ is the cast-option family: Kicked and Foretold are
 	// evaluated over the source's CastFlags (the bit the Kicker payment / the
 	// Foretell action's CastInfo recorded -- the same provenance Count$
-	// Foretold reads); Delirium/OptionalCost/Bargain/Threshold/Blessing/
-	// Metalcraft/Hellbent/Revolt/Surge stay unresolved and run
+	// Foretold reads); Revolt is CR 702.38's leave-the-battlefield state
+	// through Host.RevoltHolds; Blessing is CR 702.131's city's-blessing
+	// latch (state.Player.Blessing); Delirium/OptionalCost/Bargain/Threshold/
+	// Metalcraft/Hellbent/Surge stay unresolved and run
 	// unconditionally. A bare Condition beside a group key or beside
 	// ConditionSVarCompare$ is a mixed shape no single evaluator covers (~11
 	// corpus SAs).
@@ -325,6 +340,26 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			// bare-Condition corpus carriers are exactly this shape.
 			o := h.Game().Obj(c.Source)
 			return o != nil && o.CastFlags&state.FlagForetold != 0, true
+		case strings.EqualFold(bare, "Revolt"):
+			// CR 702.38's ability-word gate (Decommission's DB$ GainLife |
+			// Condition$ Revolt -- the corpus's only bare-Condition$ Revolt
+			// line): a permanent the resolving controller controlled left
+			// the battlefield this turn, through the Host predicate the
+			// rules-side Revolt$ clauses and the Count$Revolt branch head
+			// share, so the spellings cannot drift apart.
+			return h.RevoltHolds(c.Controller), true
+		case strings.EqualFold(bare, "Blessing"):
+			// CR 702.131: the city's blessing (Ascend), read off the one-way
+			// latch state.Player.Blessing that events.Apply's BlessingChange
+			// fold writes (rules/ascend.go grants it). This is what makes
+			// ocelot_pride's DB$ CopyPermanent and the_golden_city_of_orazca's
+			// DB$ Draw condition-gated instead of run-anyway. An out-of-range
+			// controller denies -- the fail-closed direction a blessing gate
+			// that cannot name its seat must take.
+			if int(c.Controller) >= len(g.Players) {
+				return false, true
+			}
+			return g.Players[c.Controller].Blessing, true
 		}
 		return false, false
 	}
@@ -370,20 +405,25 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 		return combine(conditionMetBattlefield(h, c, present, compare))
 	}
-	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" {
-		// Only the Remembered, Self and TriggeredCard families are in scope
-		// among DEFINED groups: the objects a walk carries in Ctx.Remembered,
-		// the resolving source object alone (the Addendum shape:
-		// ConditionDefined$ Self | ConditionPresent$ Card.wasCast holds only
-		// when the sub is reached through a cast of the source, which
+	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
+		defined != "Imprinted" {
+		// Only the Remembered, Self, TriggeredCard and Imprinted families are
+		// in scope among DEFINED groups: the objects a walk carries in
+		// Ctx.Remembered, the resolving source object alone (the Addendum
+		// shape: ConditionDefined$ Self | ConditionPresent$ Card.wasCast holds
+		// only when the sub is reached through a cast of the source, which
 		// effects.Resolve's walk evaluates while the spell is still on the
-		// stack), and — task castprov2 — the card the triggering event moved
-		// (Amped Raptor's `ConditionDefined$ TriggeredCard | ConditionPresent$
+		// stack), the card the triggering event moved (task castprov2,
+		// Amped Raptor's `ConditionDefined$ TriggeredCard | ConditionPresent$
 		// Card.wasCastFromYourHandByYou`: the exile-until runs only when the
-		// entering permanent was cast from its controller's hand). Targeted,
-		// ChosenCard, Imprinted, the LKI-copy variants and the rest need Ctx
-		// state this gate does not model (and whose fail-closed skip would
-		// change unrelated cards).
+		// entering permanent was cast from its controller's hand), and the
+		// source card's persistent imprint list (shape 5 above — Rashmi and
+		// Ragavan's `ConditionDefined$ Imprinted | ConditionPresent$ Card |
+		// ConditionCompare$ EQ0`: the MayPlay static registers only when the
+		// Play did NOT cast the card, the "if you don't cast it this way"
+		// branch). Targeted, ChosenCard, the LKI-copy variants and the rest
+		// need Ctx state this gate does not model (and whose fail-closed skip
+		// would change unrelated cards).
 		return false, false
 	}
 	sc := c.SpecContext(c.Controller)
@@ -393,6 +433,22 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// Self is the source object ALONE — not rememberedWithSource's
 		// Source-union with the walk's remembered set.
 		group = []state.Target{{Obj: c.Source}}
+	}
+	if defined == "Imprinted" {
+		// The source card's persistent imprint list (state.Object.Imprinted,
+		// the events.Imprint associations): the ONLY group for this family —
+		// never the remembered set. A source-less context is the one
+		// unresolved shape; a real source with an empty list is a resolved
+		// zero (Rashmi's EQ0 arm), never fail-open.
+		if c.Source == 0 {
+			return false, false
+		}
+		group = nil
+		if o := g.Obj(c.Source); o != nil {
+			for _, id := range o.Imprinted {
+				group = append(group, state.Target{Obj: id})
+			}
+		}
 	}
 	if defined == "TriggeredCard" {
 		// The card the triggering event moved — the TriggerContext.TriggerCard

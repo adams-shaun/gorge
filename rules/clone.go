@@ -22,11 +22,15 @@ import (
 // start to answer "view at seq N" with at most one turn of replay.
 func (e *Engine) Clone() *Engine {
 	c := &Engine{
-		G:                   e.G.Clone(),
-		L:                   e.L.Clone(),
-		compiledText:        e.compiledText,
-		turnsTaken:          append([]int32(nil), e.turnsTaken...),
-		turnsTakenEpoch:     e.turnsTakenEpoch,
+		G:               e.G.Clone(),
+		L:               e.L.Clone(),
+		compiledText:    e.compiledText,
+		turnsTaken:      append([]int32(nil), e.turnsTaken...),
+		turnsTakenEpoch: e.turnsTakenEpoch,
+		// combatHitsThisTurn (the per-turn combat-damage ledger): a plain
+		// value slice, copied like turnsTaken so an undo/DVR clone owns its
+		// own ledger.
+		combatHitsThisTurn:  append([]effects.CombatDamageHit(nil), e.combatHitsThisTurn...),
 		format:              e.format,
 		rng:                 e.rng.clone(),
 		orderedTriggers:     e.orderedTriggers,
@@ -70,6 +74,13 @@ func (e *Engine) Clone() *Engine {
 		pregame:  e.pregame,
 		mulligan: cloneMulligan(e.mulligan),
 		opening:  cloneOpening(e.opening),
+		// coloring / colorRound / mulligans (rules/commander_color.go): the
+		// CR 903.4b pregame colour round's state and the carried Mulligans
+		// limit. colorRound.asks is never mutated (only the cursor advances),
+		// so sharing the reference is safe -- the blockerRound class.
+		coloring:   e.coloring,
+		colorRound: e.colorRound,
+		mulligans:  e.mulligans,
 		// E2 held-out cast suppression (cast.go): the set of card ids whose
 		// cast option is held out of the current window after an unpayable
 		// decline. A clone taken at any intent boundary carries it forward so
@@ -132,6 +143,9 @@ func (e *Engine) Clone() *Engine {
 				ce.RestrictParams = m
 			}
 			ce.Remembered = append([]state.ObjID(nil), ce.Remembered...)
+			ce.RememberedPlayers = append([]state.PlayerID(nil), ce.RememberedPlayers...)
+			ce.ShieldTargets = append([]state.ObjID(nil), ce.ShieldTargets...)
+			ce.ShieldTargetPlayers = append([]state.PlayerID(nil), ce.ShieldTargetPlayers...)
 			if ce.ReplacementParams != nil {
 				m := make(map[string]string, len(ce.ReplacementParams))
 				for k, v := range ce.ReplacementParams {
@@ -345,6 +359,7 @@ func (e *Engine) Clone() *Engine {
 		tc.amount.SubCounter = append([]CostPart(nil), e.triggerCost.amount.SubCounter...)
 		tc.amount.AddCounter = append([]CostPart(nil), e.triggerCost.amount.AddCounter...)
 		tc.amount.Exile = append([]CostPart(nil), e.triggerCost.amount.Exile...)
+		tc.amount.MoveToGrave = append([]CostPart(nil), e.triggerCost.amount.MoveToGrave...)
 		tc.amount.Reveal = append([]CostPart(nil), e.triggerCost.amount.Reveal...)
 		tc.amount.Behold = append([]CostPart(nil), e.triggerCost.amount.Behold...)
 		tc.amount.TapPermanent = append([]CostPart(nil), e.triggerCost.amount.TapPermanent...)
@@ -354,6 +369,9 @@ func (e *Engine) Clone() *Engine {
 		tc.amount.HybridPhyrexian = append([]HybridPhyrexian(nil), e.triggerCost.amount.HybridPhyrexian...)
 		tc.amount.Phyrexian = append([]byte(nil), e.triggerCost.amount.Phyrexian...)
 		tc.amount.Unknown = append([]string(nil), e.triggerCost.amount.Unknown...)
+		tc.sacs = append([]state.ObjID(nil), e.triggerCost.sacs...)
+		tc.exiles = append([]state.ObjID(nil), e.triggerCost.exiles...)
+		tc.moveGraves = append([]state.ObjID(nil), e.triggerCost.moveGraves...)
 		c.triggerCost = &tc
 	}
 	if e.echo != nil {
@@ -386,6 +404,7 @@ func (e *Engine) Clone() *Engine {
 		pc.cost.Discard = append([]CostPart(nil), e.cast.cost.Discard...)
 		pc.cost.SubCounter = append([]CostPart(nil), e.cast.cost.SubCounter...)
 		pc.cost.Exile = append([]CostPart(nil), e.cast.cost.Exile...)
+		pc.cost.MoveToGrave = append([]CostPart(nil), e.cast.cost.MoveToGrave...)
 		pc.cost.Reveal = append([]CostPart(nil), e.cast.cost.Reveal...)
 		pc.cost.Behold = append([]CostPart(nil), e.cast.cost.Behold...)
 		pc.cost.TapPermanent = append([]CostPart(nil), e.cast.cost.TapPermanent...)
@@ -395,6 +414,7 @@ func (e *Engine) Clone() *Engine {
 		pc.cost.DamageYou = append([]CostPart(nil), e.cast.cost.DamageYou...)
 		pc.cost.Energy = append([]CostPart(nil), e.cast.cost.Energy...)
 		pc.cost.Return = append([]CostPart(nil), e.cast.cost.Return...)
+		pc.cost.PutToLib = append([]CostPart(nil), e.cast.cost.PutToLib...)
 		pc.cost.Hybrid = append([]ManaPair(nil), e.cast.cost.Hybrid...)
 		pc.cost.Phyrexian = append([]byte(nil), e.cast.cost.Phyrexian...)
 		pc.cost.Twobrid = append([]Twobrid(nil), e.cast.cost.Twobrid...)
@@ -406,6 +426,8 @@ func (e *Engine) Clone() *Engine {
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
 		pc.exiles = append([]state.ObjID(nil), e.cast.exiles...)
 		pc.returns = append([]state.ObjID(nil), e.cast.returns...)
+		pc.moveGraves = append([]state.ObjID(nil), e.cast.moveGraves...)
+		pc.putToLibs = append([]state.ObjID(nil), e.cast.putToLibs...)
 		pc.reveals = append([]state.ObjID(nil), e.cast.reveals...)
 		pc.beholds = append([]state.ObjID(nil), e.cast.beholds...)
 		pc.taps = append([]state.ObjID(nil), e.cast.taps...)

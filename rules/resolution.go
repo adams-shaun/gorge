@@ -128,6 +128,27 @@ type resumePoint struct {
 	// the re-entry pass consumes the marker instead of re-posing the pay
 	// ask, the asking-body-under-UnlessCost$ livelock fix (Rhystic Study).
 	unlessResolved string
+	// tapPaidX is the count the triggered-cost window's dynamic tapXType<X/
+	// Spec> election paid (rules/cumulative.go's triggeredTapAnswer): the
+	// number of permanents the payer tapped IS that cost's announced {X} (CR
+	// 601.2b through the window). It rides the frame because the trigger
+	// object was never paid an X and the source permanent's own X is its
+	// cast-time value, never this payment's; resumeResolution seeds Ctx.X
+	// from it so the body's Count$xPaid reads answer. Zero elsewhere.
+	tapPaidX int32
+	// winPaidX is the X the triggered-cost window's X fold announced or
+	// fixed (rules/cumulative.go: the payer's choose-X answer, or the face
+	// SVar:X's fixed evaluated value) for a body whose `Cost$` carries an
+	// unfolded {X} (Elenda and Azor's "pay {X}{W}{U}{B}") or PayLife<X>
+	// part (Vizkopa Confessor's "pay any amount of life"). It rides the
+	// frame for the same reason tapPaidX does -- the trigger object was
+	// never paid an X, and o.X / triggerPaidX can only supply the source
+	// permanent's cast-time value, which for an attack, ETB or end-step
+	// trigger is nothing to do with this payment -- and it is set at the pay
+	// arm only, from the answered announcement decision or the evaluated
+	// fixed body, so a replay derives it exactly as tapPaidX does. Zero
+	// elsewhere (and zero on a declined window: the body never runs).
+	winPaidX int32
 	// charmRest carries the remaining chosen mode names of a cross-mode
 	// TargetUnique Charm's mode loop (SuspendCharmRest): the frame re-enters
 	// the Charm SA itself with Ctx.Modes = charmRest, so effCharm runs the
@@ -157,9 +178,12 @@ type resumePoint struct {
 	loopBound      bool
 	loopRemembered []state.Target
 	// repeatSubject is the RepeatEach subject of the loop whose iteration
-	// this frame resumes inside (the Imprinted binding). It rides the frame
-	// so a resumed unless/dig/etc. ask re-enters with Ctx.RepeatSubject
-	// set; zero on frames outside any iteration.
+	// this frame resumes inside (the Imprinted binding). SuspendRepeat
+	// captured it here so the subject survives the suspension, and the
+	// resume rebuild's loopBound arm below restores it into
+	// Ctx.RepeatSubject, so a Defined$ Imprinted / ImprintedController read
+	// after a suspension (definedSpec, unlessPayerTargets) re-binds the
+	// iteration's subject. Zero on frames outside any iteration.
 	repeatSubject state.Target
 	// repeat is a kind "repeat" frame's loop cursor.
 	repeat *repeatCursor
@@ -678,6 +702,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	} else if ctx.X == 0 {
 		ctx.X = e.triggerPaidX(rp.obj, o)
 	}
+	// The triggered-cost window's dynamic tapXType<X/Spec> payment (the
+	// Battlesphere/yotia shape): the election's tap count is the cost's
+	// announced X, carried on the resume point. It wins over both reads above
+	// -- the trigger object's own X is 0 and the source permanent's X is its
+	// cast-time value, not this payment's.
+	if rp.tapPaidX != 0 {
+		ctx.X = rp.tapPaidX
+	}
+	// The trigger-cost window's X fold (the {X}/{PayLife<X>} announcement:
+	// Elenda and Azor, Vizkopa Confessor, Necrodominance): the announced or
+	// fixed value binds exactly like the dyn-tap count above, so the body's
+	// Count$xPaid / NumCards$ X / TokenPower$ X reads this payment.
+	if rp.winPaidX != 0 {
+		ctx.X = rp.winPaidX
+	}
 	var svars map[string]string
 	if o.Ability != nil {
 		// A triggered or activated ability: mirror resolveTop's ability
@@ -775,6 +814,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
+		if rp.repeatSubject != (state.Target{}) {
+			ctx.RepeatSubject = rp.repeatSubject
+		}
 	}
 	// A mid-resolution ask that rode the walk's Remembered (the hidden-library
 	// search sets ResumeRemembered -- a cast spell's Remembered lives only in
@@ -807,10 +849,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// OptionalDecider$ on "you may draw cards ... If you do, discard that
 	// many"): the yes answer re-enters here and pays the draw through the
 	// same window, rather than running the body for free.
+	//
+	// trigcost1: the shape test is the shared broadened gate
+	// (triggerBodyNeedsCostWindow -- any non-Mandatory Cost$ except Mana /
+	// CopySpellAbility), so a Kalastria Highborn `Cost$ B` pays through this
+	// arm instead of executing free. CopySpellAbility keeps its own
+	// event-role disjunct below.
 	tc := e.triggerContexts[rp.obj]
-	armed := rp.kind == "optional" && rp.sa != nil && rp.sa.Params["Cost"] != "" &&
-		(rp.sa.API == "Untap" ||
-			len(e.parseCost(rp.sa.Params["Cost"]).Draw) > 0 ||
+	armed := rp.kind == "optional" && rp.sa != nil &&
+		(e.triggerBodyNeedsCostWindow(rp.sa) ||
 			// abcopy1: an OptionalDecider$ copy trigger's AB$ CopySpellAbility
 			// with a real Cost$ (Rings of Brighthearth, Battlemages' Bracers,
 			// Mirari) pays through the same window whenever the trigger context
@@ -818,7 +865,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// the spell-cast arm's TriggerCard (a SpellCast fires on PutOnStack,
 			// whose Obj IS the cast spell; no ability wrapper is minted). Only
 			// a context-less synthetic push keeps the free-executor semantics.
-			(rp.sa.API == "CopySpellAbility" && (tc.TriggerAbility != 0 || tc.TriggerCard != 0)))
+			(rp.sa.API == "CopySpellAbility" && rp.sa.Params["Cost"] != "" &&
+				(tc.TriggerAbility != 0 || tc.TriggerCard != 0)))
 	if armed {
 		e.startTriggeredEffectCost(rp, ctx.Source)
 		return
@@ -1048,6 +1096,43 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 {
 				ctx.ChosenType = chosen[0].Label
 			}
+		case "taporuntap":
+			// A TapOrUntap's tap-vs-untap election (api:TapOrUntap, Merrow
+			// Reejerey / Twiddle) was answered. Each offered option carries the
+			// target it elected for in Obj and its choice in Kind ("tap" or
+			// "untap"), so the answer is read straight off option 0. An empty or
+			// malformed answer still sets the Done marker (the effect's Min 1/
+			// Max 1 ask always has a legal single-option answer, so an empty one
+			// is malformed, never a decline) and degrades to "tap" with no target
+			// named — the conservative read, which the re-entered effect applies
+			// to its first pending target. The effect consumes and clears all
+			// three fields at the point of application (fx42 scoping), so a
+			// later target poses its own ask.
+			ctx.TapOrUntapDone = true
+			if len(chosen) > 0 {
+				ctx.TapOrUntapObj = chosen[0].Obj
+				ctx.TapOrUntap = chosen[0].Kind
+			}
+		case "explore":
+			// An Explore's LCI destination election (api:Explore, CR 701.35a:
+			// "put the card back or put it into your graveyard") was answered.
+			// The resume point carries the pending explorer (decision.ResumeTarget
+			// = the explorer's id) and the answered option carries the revealed
+			// card in Obj and the choice in Kind ("graveyard"/"top"), so the
+			// re-entered effExplore applies the counter and the destination move
+			// together, in CR order, then emits the record. An empty answer
+			// (malformed — the ask's two options are always legal, Min 1/Max 1)
+			// still sets the Done marker with no card: the effect's application
+			// path guards the card's absence, so the record never names a stale
+			// id. The effect consumes and clears all four fields at the point of
+			// application (fx42 scoping), so the pending explorer's remaining
+			// explores and every later target pose their own fresh path.
+			ctx.ExploreDone = true
+			ctx.ExploreObj = state.ObjID(rp.target)
+			if len(chosen) > 0 {
+				ctx.ExploreChoice = chosen[0].Kind
+				ctx.ExploreCard = chosen[0].Obj
+			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
 			// the concrete target shape rather than just an ObjID because player
@@ -1117,6 +1202,34 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.AttachOpt = "no"
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.AttachOpt = "yes"
+			}
+		case "attach_choice":
+			// A Choices$ Attach's card choice was answered (Goldwardens'
+			// Gambit's "for each of those tokens, you may attach an Equipment
+			// you control to it", unexpected_request's "you may attach an
+			// Equipment you control", Breath of Fury's "attach CARDNAME to a
+			// creature you control"). The chosen card ids are recorded for the
+			// re-entered effect to consume and clear (fx42 scoping): with no
+			// Object$ the ids name the OBJECT to attach, with Object$ present
+			// they name the DESTINATION. An empty answer on the Min-0 Optional
+			// shape is a real decline, so AttachChoiceDone distinguishes it
+			// from an unanswered ask (the ctx.Search/SearchDone discipline).
+			// The asking pass's resolved destination list rides back in
+			// rp.choices (Decision.ResumeChoices) -- a RepeatEach body's
+			// Defined$ Imprinted binding does not survive the suspension, so
+			// the re-entry must not re-derive it.
+			ctx.AttachChoice = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.AttachChoice = append(ctx.AttachChoice, o.Obj)
+				}
+			}
+			ctx.AttachChoiceDone = true
+			ctx.AttachDests = make([]state.ObjID, 0, len(rp.choices))
+			for _, t := range rp.choices {
+				if !t.IsPlayer && t.Obj != 0 {
+					ctx.AttachDests = append(ctx.AttachDests, t.Obj)
+				}
 			}
 		case "put_optional":
 			// An Optional$ True PutCounter's yes/no election (Talus Paladin's
@@ -1252,6 +1365,48 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.CounterPickDone = true
+		case "proliferate":
+			// A Proliferate any-number recipient pick was answered (CR 701.27):
+			// the resolving controller chose which permanents and/or players
+			// take another counter of each kind already there. Unlike the
+			// "counter_pick" arm, the option list is MIXED -- an object
+			// recipient carries Obj, a player recipient carries Player with
+			// Obj 0 -- so both halves are decoded here into the state.Target
+			// shape Ctx.Proliferate carries. ProliferateDone distinguishes
+			// "answered, possibly with nothing" (a Min-0 decline) from the
+			// first pass, so a decline is not re-asked. effProliferate consumes
+			// and clears both at the top of its own walk (the fx42 scoping
+			// discipline), so a nested Proliferate cannot inherit the outer
+			// answer.
+			ctx.Proliferate = make([]state.Target, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.Proliferate = append(ctx.Proliferate, state.Target{Obj: o.Obj})
+					continue
+				}
+				ctx.Proliferate = append(ctx.Proliferate,
+					state.Target{Player: o.Player, IsPlayer: true})
+			}
+			ctx.ProliferateDone = true
+		case "blight":
+			// A Blight's per-player KChoose (CR 701.60: the blighting player
+			// chooses which of their own creatures takes the −1/−1 counters)
+			// was answered. The chosen options carry the object in Obj (the
+			// same shape the "sacrifice" and "counter_pick" arms read), so the
+			// id list goes straight to Ctx.BlightPicks in the player's answer
+			// order; BlightDone distinguishes "answered" from the first pass
+			// and BlightTarget keeps the answer attached to the exact Defined$
+			// target that asked. effBlight consumes and clears all three at the
+			// top of its own walk, so a nested blight cannot inherit the outer
+			// answer.
+			ctx.BlightPicks = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.BlightPicks = append(ctx.BlightPicks, o.Obj)
+				}
+			}
+			ctx.BlightDone = true
+			ctx.BlightTarget = rp.target
 		case "roll":
 			// A RollDice choose-one-result answer (effects/dice.go's
 			// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the chosen
@@ -1451,6 +1606,32 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// effPlay sees the answer as consumed either way.
 			free := strings.EqualFold(rp.sa.Params["WithoutManaCost"], "True")
 			playCost := strings.TrimSpace(rp.sa.Params["PlayCost"])
+			// ReplaceGraveyard$ Exile (task replplay1): the Play SA's own
+			// rider — "if that spell would be put into your graveyard this
+			// turn, exile it instead" — stamps the played spell's pay-time
+			// CastInfo with state.FlagReplaceGraveyard so spellRestZone (and
+			// spellFizzleZone for a fizzled/countered play) exiles it. The
+			// conditional sibling ReplaceGraveyardValid$ (2 corpus files:
+			// Bilbo, Thief in the Night; Scholar of the Lost Trove) restricts
+			// the exile to named types and is unread — fail closed, keep the
+			// graveyard resting place for those.
+			replaceGraveyard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["ReplaceGraveyard"]), "Exile") &&
+				strings.TrimSpace(rp.sa.Params["ReplaceGraveyardValid"]) == ""
+			// ImprintPlayed$ True (task imprintplayed: Rashmi and Ragavan,
+			// Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus
+			// files): every card the Play actually BEGINS to play is recorded
+			// as imprinted on the resolution's source (events.Imprint, the
+			// same association Chrome Mox's Imprint$ writes), so the chained
+			// ConditionDefined$ Imprinted gate (DBEffect's "did you cast it
+			// this way?" arm) reads a real answer. "Actually begins" is read
+			// from the card's zone: a begun cast pushes the card onto the
+			// stack (CR 601.2a) or moves it onward, while a declined Play — an
+			// unpayable alternative, a stale answer, a reversed cast — leaves
+			// it in its zone, and an aborted cast reverses it back to exactly
+			// the zone it started in. The emission sits before the suspension
+			// break so a cast suspended mid-transaction (a target ask inside
+			// the free cast) is still recorded as played.
+			imprintPlayed := strings.EqualFold(rp.sa.Params["ImprintPlayed"], "True")
 			var toPlay []state.ObjID
 			for _, ch := range chosen {
 				if ch.Obj != 0 {
@@ -1462,7 +1643,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if i == 0 {
 					ctx.Play = id
 				}
-				e.beginPlay(ctx.Controller, id, free, playCost)
+				from := state.Zone(0)
+				if o := e.G.Obj(id); o != nil {
+					from = o.Zone
+				}
+				e.beginPlay(ctx.Controller, id, free, playCost, replaceGraveyard)
+				if imprintPlayed && from.Valid() {
+					if o := e.G.Obj(id); o != nil && o.Zone != from {
+						e.emit(events.Event{Kind: events.Imprint, Obj: ctx.Source,
+							IDs: []state.ObjID{id}})
+					}
+				}
 				if e.Suspended() || e.cast != nil {
 					if rest := toPlay[i+1:]; len(rest) > 0 {
 						e.emit(events.Event{Kind: events.Note, Obj: rp.obj,
@@ -1498,6 +1689,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// assigns each target-bearing one the last targets of the original
 			// positional assignment, and nothing re-asks.
 			ctx.Modes = append([]string(nil), rp.charmRest...)
+			// CanRepeatModes$ (CR 601.2b): the rest is a suffix of the object's
+			// full ChosenModes (the walk only ever truncates a suffix), so the
+			// names the earlier passes consumed are derivable exactly. Seed
+			// them so effCharm's first-occurrence covered-marking knows which
+			// modes already ran -- a repeated target-bearing mode's later
+			// instance keeps its own ValidTgts$ pre-ask instead of inheriting
+			// the shared list a second time.
+			if o := e.G.Obj(rp.obj); o != nil && len(o.ChosenModes) > len(rp.charmRest) {
+				ctx.ModesSeen = append(ctx.ModesSeen,
+					o.ChosenModes[:len(o.ChosenModes)-len(rp.charmRest)]...)
+			}
 		case "optional":
 			// CR 603.5: the decider answered yes to applying this optional
 			// triggered ability's effect. The answer is a yes/no, not a mode
@@ -1821,25 +2023,31 @@ func chosenModeLabels(chosen []decision.Option) []string {
 
 // modeDecision builds the shared KModes option vocabulary used by spell
 // announcement and triggered-ability placement. min and max are resolved by
-// effects.CharmModeBounds against the caller's complete effects context.
-func modeDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, min, max int) *decision.Decision {
+// effects.CharmModeBounds against the caller's complete effects context, and
+// repeat is its CanRepeatModes$ result: when set, the decision permits the
+// same mode index more than once and max is NOT clamped to the distinct-mode
+// count.
+func modeDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, min, max int, repeat bool) *decision.Decision {
 	choices := strings.Split(sa.Params["Choices"], ",")
 	for i := range choices {
 		choices[i] = strings.TrimSpace(choices[i])
 	}
-	return modeDecisionForChoices(p, source, sa, svars, choices, min, max)
+	return modeDecisionForChoices(p, source, sa, svars, choices, min, max, repeat)
 }
 
 // modeDecisionForChoices is modeDecision over an explicit eligible subset.
 // Casting uses it to omit modes whose mandatory targets cannot be chosen;
 // ResumeModes preserves the SVar vocabulary server-side while Index stays
-// dense for the wire.
-func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, min, max int) *decision.Decision {
-	if max > len(choices) {
+// dense for the wire. repeat marks a CanRepeatModes$ Charm: the same eligible
+// mode may fill several slots, and the max clamp is skipped so a CharmNum$
+// larger than the eligible count is still satisfiable (by repetition).
+func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, min, max int, repeat bool) *decision.Decision {
+	if !repeat && max > len(choices) {
 		max = len(choices)
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KModes, Min: min, Max: max,
-		Source: source, ResumeKind: "modes", ResumeSA: sa,
+		Source: source, Repeatable: repeat,
+		ResumeKind: "modes", ResumeSA: sa,
 		ResumeModes: append([]string(nil), choices...),
 		Prompt:      "Choose " + strconv.Itoa(min) + " to " + strconv.Itoa(max) + " mode(s)"}
 	for i, name := range choices {

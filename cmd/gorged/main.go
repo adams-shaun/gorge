@@ -449,7 +449,7 @@ func splitDecks(reg *cards.Registry, dir string) (commander, constructed []strin
 		if lerr != nil {
 			return nil, nil, lerr
 		}
-		if f.Commander == "" {
+		if len(f.CommanderNames()) == 0 {
 			constructed = append(constructed, n)
 			continue
 		}
@@ -495,7 +495,10 @@ func loadDeckCatalogue(dir string, commander, constructed []string) ([]httpapi.D
 		if name == "" {
 			name = id
 		}
-		out = append(out, httpapi.DeckInfo{ID: id, Name: name, Format: format.String(), Archetype: f.Archetype, Commander: f.Commander})
+		// The wire's DeckInfo.Commander stays a single string: a partner pair
+		// is joined with " & " so the existing field needs no schema change
+		// and the web client renders it as-is.
+		out = append(out, httpapi.DeckInfo{ID: id, Name: name, Format: format.String(), Archetype: f.Archetype, Commander: strings.Join(f.CommanderNames(), " & ")})
 	}
 	return out, nil
 }
@@ -605,7 +608,9 @@ func deckCardNames(dir string) ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", filepath.Join(dir, stem+".json"), err)
 		}
-		add(f.Commander)
+		for _, n := range f.CommanderNames() {
+			add(n)
+		}
 		for _, e := range f.Cards {
 			add(e.Name)
 		}
@@ -653,8 +658,8 @@ func deckLoader(reg *cards.Registry, dir string) func(string) (host.Deck, error)
 			return host.Deck{}, err
 		}
 		d := host.Deck{Name: name, Cards: cs}
-		if f.Commander != "" {
-			d.Commanders = []int{f.CommanderIndex()}
+		if names := f.CommanderNames(); len(names) > 0 {
+			d.Commanders = f.CommanderIndices()
 		}
 		cache[name] = d
 		return d, nil

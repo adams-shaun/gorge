@@ -347,6 +347,144 @@ func TestKaZarGrantsPlayLandFromTopOfLibrary(t *testing.T) {
 	}
 }
 
+// TestVergeRangersOffersTopLibraryLandWhenOpponentAhead drives Verge Rangers'
+// real static -- S:Mode$ Continuous | Affected$ Land.TopLibrary+YouCtrl |
+// AffectedZone$ Library | MayPlay$ True | CheckSVar$ X | SVarCompare$ GTY,
+// X = PlayerCountOpponents$HighestValid Land.YouCtrl, Y = Count$Valid
+// Land.YouCtrl -- through the priority walk. The static's SVar gate is an
+// intervening-if the may-play path must EVALUATE, not withhold: with an
+// opponent controlling more lands the top-of-library land is offered, played
+// and consumes the land drop; with no opponent ahead the same board offers
+// nothing. Before the fix mayPlayGateRejected rejected the whole static on
+// CheckSVar$/SVarCompare$ and the top card was never offered.
+func TestVergeRangersOffersTopLibraryLandWhenOpponentAhead(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	rangers, ok := reg.Lookup("Verge Rangers")
+	if !ok {
+		t.Fatal("Verge Rangers missing from corpus")
+	}
+	if d := rangers.Link(); len(d) != 0 {
+		t.Fatalf("link Verge Rangers: %v", d)
+	}
+
+	// Positive arm: seat 1 controls more lands than seat 0, so the gate holds
+	// and the top library land is offered.
+	e, _, _ := newFixtureDeck(t, 217, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	ro := e.G.AddObject(rangers, 0)
+	ro.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), ro.ID))
+	// Seat 1 is ahead 2-0 on lands (two Mountains to none).
+	for i := 0; i < 2; i++ {
+		m := e.G.AddObject(mountainCard(t), 1)
+		m.Zone = state.ZBattlefield
+		e.G.SetZone(state.ZBattlefield, 1, append(e.G.Zone(state.ZBattlefield, 1), m.ID))
+	}
+	top := e.G.AddObject(mountainCard(t), 0)
+	beneath := e.G.AddObject(card(t, "Name:Forest\nTypes:Land Forest\nOracle:x\n"), 0)
+	e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{top.ID, beneath.ID},
+		e.G.Zone(state.ZLibrary, 0)...))
+	e.G.Step, e.G.Active, e.G.Priority, e.G.Turn = state.StepMain1, 0, 0, 1
+	e.pending = nil
+	e.Advance()
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("priority = %+v, want priority for seat 0", d)
+	}
+	playIdx := -1
+	for _, o := range d.Options {
+		if o.Kind == "play_land" && o.Obj == top.ID {
+			playIdx = o.Index
+		}
+		if o.Kind == "play_land" && o.Obj == beneath.ID {
+			t.Fatalf("non-top library card offered: %+v", o)
+		}
+	}
+	if playIdx < 0 {
+		t.Fatalf("opponent ahead 2-0: top-of-library land not offered: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{playIdx}}); err != nil {
+		t.Fatalf("submit play_land: %v", err)
+	}
+	if top.Zone != state.ZBattlefield {
+		t.Fatalf("land zone %v, want battlefield (played from the library)", top.Zone)
+	}
+	if e.G.Players[0].LandsPlayed != 1 {
+		t.Fatalf("LandsPlayed = %d, want 1 (the granted play is the land drop)", e.G.Players[0].LandsPlayed)
+	}
+	// The land drop is spent: no further play_land is offered.
+	d = e.Pending()
+	if d == nil {
+		t.Fatal("no pending decision after the land play")
+	}
+	for _, o := range d.Options {
+		if o.Kind == "play_land" {
+			t.Fatalf("play_land still offered after the drop: %+v", o)
+		}
+	}
+
+	// Negative arm: seat 0 now controls as many lands as seat 1, so the gate
+	// fails and the top library land must NOT be offered.
+	e2, _, _ := newFixtureDeck(t, 217, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	ro2 := e2.G.AddObject(rangers, 0)
+	ro2.Zone = state.ZBattlefield
+	e2.G.SetZone(state.ZBattlefield, 0, append(e2.G.Zone(state.ZBattlefield, 0), ro2.ID))
+	for i := 0; i < 2; i++ {
+		m := e2.G.AddObject(mountainCard(t), 1)
+		m.Zone = state.ZBattlefield
+		e2.G.SetZone(state.ZBattlefield, 1, append(e2.G.Zone(state.ZBattlefield, 1), m.ID))
+	}
+	for i := 0; i < 2; i++ {
+		m := e2.G.AddObject(mountainCard(t), 0)
+		m.Zone = state.ZBattlefield
+		e2.G.SetZone(state.ZBattlefield, 0, append(e2.G.Zone(state.ZBattlefield, 0), m.ID))
+	}
+	top2 := e2.G.AddObject(mountainCard(t), 0)
+	e2.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{top2.ID}, e2.G.Zone(state.ZLibrary, 0)...))
+	e2.G.Step, e2.G.Active, e2.G.Priority, e2.G.Turn = state.StepMain1, 0, 0, 1
+	e2.pending = nil
+	e2.Advance()
+	d2 := e2.Pending()
+	if d2 == nil {
+		t.Fatal("no pending decision for the negative arm")
+	}
+	for _, o := range d2.Options {
+		if o.Kind == "play_land" && o.Obj == top2.ID {
+			t.Fatalf("lands tied 2-2: top-of-library land offered but the SVar gate is false: %+v", o)
+		}
+	}
+}
+
+// TestVergeRangersUnreadableSVarGateStaysClosed pins the fail-closed direction
+// of the new CheckSVar evaluation: a may-play static whose named SVar has no
+// body (or an unmodelled count head) must stay withheld, so the fix cannot
+// widen a gate this build cannot read.
+func TestVergeRangersUnreadableSVarGateStaysClosed(t *testing.T) {
+	e, _, _ := newFixtureDeck(t, 219, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	// A synthetic static with the same shape as Verge Rangers' but a CheckSVar$
+	// naming an SVar the face does not define.
+	src := "Name:Gate Probe\nTypes:Creature Human\nPT:2/2\n" +
+		"S:Mode$ Continuous | Affected$ Land.TopLibrary+YouCtrl | AffectedZone$ Library | MayPlay$ True | CheckSVar$ Q | SVarCompare$ GT0\n" +
+		"Oracle:x\n"
+	probe := e.G.AddObject(card(t, src), 0)
+	probe.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), probe.ID))
+	top := e.G.AddObject(mountainCard(t), 0)
+	e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{top.ID}, e.G.Zone(state.ZLibrary, 0)...))
+	e.G.Step, e.G.Active, e.G.Priority, e.G.Turn = state.StepMain1, 0, 0, 1
+	e.pending = nil
+	e.Advance()
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no pending decision")
+	}
+	for _, o := range d.Options {
+		if o.Kind == "play_land" && o.Obj == top.ID {
+			t.Fatalf("unreadable CheckSVar$ body widened the grant: %+v", o)
+		}
+	}
+}
+
 // TestKorlessaCastsDragonFromTopOfLibrary drives Korlessa, Scale Singer's
 // real static -- S:Mode$ Continuous | Affected$ Dragon.TopLibrary+YouCtrl+
 // nonLand | AffectedZone$ Library | MayPlay$ True -- end to end: a Dragon on

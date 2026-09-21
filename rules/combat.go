@@ -50,7 +50,7 @@ func (e *Engine) canAttack(id state.ObjID) bool {
 		return false
 	}
 	f := o.Face()
-	if f == nil || !f.IsCreature() || o.BestowedAttached() {
+	if f == nil || !o.EffectiveIsCreature() || o.BestowedAttached() {
 		return false
 	}
 	if o.Tapped || e.HasKeyword(id, "Defender") {
@@ -77,8 +77,8 @@ func (e *Engine) encoreAttackDefender(id state.ObjID) (state.PlayerID, bool) {
 
 // canBlock reports whether blocker may be declared against attacker (CR
 // 509.1a): an untapped creature controlled by the defending player, gated by
-// Flying/Reach (CR 702.9b) and by any CantBlock/CantBlockBy static
-// (blockRestricted, statics.go).
+// Flying/Reach (CR 702.9b), Horsemanship (CR 702.31b), Fear, Shadow and by
+// any CantBlock/CantBlockBy static (blockRestricted, statics.go).
 func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	b, a := e.G.Obj(blocker), e.G.Obj(attacker)
 	if b == nil || a == nil || !a.IsAttacking {
@@ -88,7 +88,7 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 		return false
 	}
 	bf := b.Face()
-	if bf == nil || !bf.IsCreature() || b.BestowedAttached() {
+	if bf == nil || !b.EffectiveIsCreature() || b.BestowedAttached() {
 		return false
 	}
 	if b.Tapped || b.Controller != a.Attacking {
@@ -108,7 +108,23 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	if e.HasKeyword(attacker, "Fear") && !bf.IsArtifact() && !strings.ContainsRune(e.objColors(b), 'B') {
 		return false
 	}
+	// CR 702.31b: a creature with horsemanship can be blocked only by a
+	// creature with horsemanship. The rule is asymmetric and attacker-keyed
+	// -- unlike Shadow, a horsemanship creature MAY block a creature without
+	// horsemanship -- so only the attacker side is gated here.
+	if e.HasKeyword(attacker, "Horsemanship") && !e.HasKeyword(blocker, "Horsemanship") {
+		return false
+	}
 	if e.HasKeyword(attacker, "Flying") && !e.HasKeyword(blocker, "Flying") && !e.HasKeyword(blocker, "Reach") {
+		return false
+	}
+	// CR 702.110a: a creature with skulk can't be blocked by creatures with
+	// greater power. Attacker-keyed and per-pair like Fear/Shadow; DERIVED
+	// power, never printed PT (a +1/+1'd or pumped blocker's real power is
+	// what the CR means). CR 509.1h: this is a declaration-legality rule,
+	// checked here at CR 509.1a -- a blocker's power growing past the
+	// attacker's after declaration does not unblock it, and no re-check runs.
+	if e.HasKeyword(attacker, "Skulk") && e.Derived(blocker).Power > e.Derived(attacker).Power {
 		return false
 	}
 	if e.blockRestricted(blocker, attacker) {
@@ -571,18 +587,56 @@ func (e *Engine) goadMayAttack(id state.ObjID, defender state.PlayerID) bool {
 	return true
 }
 
+// staticGoaders returns the controllers of every live Mode$ Continuous
+// static with Goad$ True whose Affected$ spec matches o (CR 701.38b: a goad's
+// goader is the permanent's controller, so a static goad's goader is the
+// static's own controller). The static is a requirement, not a layer effect:
+// like every other S: restriction read by activeStatics it is re-derived on
+// demand from the current board (rebuilding on replay), so the goad ends when
+// the source leaves the battlefield, moves to another bearer, or an "as long
+// as" gate flips -- no lifetime bookkeeping. The Affected$ default is
+// Card.Self, mirroring staticEffects, so a Goad$ line without Affected$
+// fails closed to its own source rather than to every creature.
+//
+// Only the literal "True" is honoured; any other Goad$ value fails closed.
+// A granted static (AddStaticAbility$/StaticAbilities$ delivered by Clone or
+// Effect) is deliberately NOT expanded here -- those three corpus cards
+// (Mocking Doppelganger, Hot Pursuit, Immortal Obligation) stay un-goaded.
+func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
+	var out []state.PlayerID
+	for _, sv := range e.activeStatics("Continuous") {
+		if !strings.EqualFold(strings.TrimSpace(sv.Params["Goad"]), "True") {
+			continue
+		}
+		spec := sv.Params["Affected"]
+		if spec == "" {
+			spec = "Card.Self"
+		}
+		if !effects.MatchesSpecCtx(e.G, spec, o.ID, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		out = append(out, sv.Controller)
+	}
+	return out
+}
+
 func (e *Engine) hasActiveGoad(o *state.Object) bool {
 	for _, ge := range o.Goads {
 		if e.activeGoad(o, ge) {
 			return true
 		}
 	}
-	return false
+	return len(e.staticGoaders(o)) > 0
 }
 
 func (e *Engine) goadedBy(o *state.Object, p state.PlayerID) bool {
 	for _, ge := range o.Goads {
 		if ge.Player == p && e.activeGoad(o, ge) {
+			return true
+		}
+	}
+	for _, goader := range e.staticGoaders(o) {
+		if goader == p {
 			return true
 		}
 	}
@@ -1623,8 +1677,30 @@ func (e *Engine) runCombatAssignments() {
 			prevented = ev.Kind != events.Damage
 			if !prevented {
 				dealt = ev.Amount
-				if e.format == FormatCommander && ev.Obj == 0 {
-					e.tallyCmdDamage(ev.Player, x.from, dealt)
+				// A damage-redirection replacement can rewrite this
+				// player-targeted event into a PERMANENT-targeted one
+				// (Protector of the Crown, Palisade Giant's `Affected$
+				// Self`/`Enchanted`/`Equipped` bodies): ev.Obj becomes the
+				// receiving permanent and ev.Player is zeroed. That is still
+				// a Damage event (so `prevented` is false), but NO player
+				// was dealt damage -- both the commander tally and the
+				// combat-hit ledger must skip it. Guarding on ev.Obj == 0
+				// also keeps recording a redirect that retargets TO a
+				// player (ev.Obj == 0, ev.Player = the new recipient).
+				if ev.Obj == 0 {
+					if e.format == FormatCommander {
+						e.tallyCmdDamage(ev.Player, x.from, dealt)
+					}
+					// The PlayerCountDefinedRegistered$HasPropertywasDealtCombatDam
+					// ageThisTurnBy ledger (effects.Host's
+					// CombatDamageToPlayersThisTurn): capture the LANDED hit with
+					// the dealing creature's stable *cards.Card face pointer, so a
+					// token that dies before the read point is still matchable.
+					// Engine-side and NO-EVENT -- a new event kind would move every
+					// chain head and diverge every stored log. Only the player
+					// branch records (the object branch above is untouched): the
+					// property is only ever read about players.
+					e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(ev.Player, x.from, dealt))
 				}
 			}
 		}
@@ -1864,5 +1940,11 @@ func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
 		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike", "kw:Double Strike",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
-		"kw:Fear", "kw:Shadow")
+		"kw:Fear", "kw:Shadow", "kw:Horsemanship", "kw:Skulk",
+		// kw:Boast (CR 702.142) has no K: keyword line: Forge marks a Boast
+		// ability with a `Boast$ True` parameter on the activated ability
+		// itself, so Face.Primitives never surfaces it and this explicit
+		// registration is what puts it on the coverage report. The gate
+		// itself is the offer-time read in rules/legal.go's ability loop.
+		"kw:Boast")
 }

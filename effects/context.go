@@ -184,13 +184,17 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	switch spec {
 	case "":
 		return nil, false
-	case "Self", "Parent", "EffectSource", "OriginalHost":
+	case "Self", "Parent", "EffectSource", "OriginalHost", "CorrectedSelf":
 		// EffectSource/OriginalHost name the ability's own source object --
 		// the permanent that pushed the resolving ability, or the card that
 		// originally generated it before any copies. newDamageRider unwraps
 		// an ability stack object to that source afterwards, so handing
 		// back the raw c.Source here is the same object every other
-		// source-defaulting path yields.
+		// source-defaulting path yields. CorrectedSelf is Forge's
+		// identity-corrected source (Shorecrasher Elemental's `DBReturn`
+		// re-fetches the card just exiled by its own cost): the object id is
+		// stable across that self-exile -- no zone change mints a new id --
+		// so the raw c.Source is already the corrected identity.
 		return []state.Target{{Obj: c.Source}}, true
 	case "You":
 		return []state.Target{{Player: c.Controller, IsPlayer: true}}, true
@@ -207,6 +211,17 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			i = len(lib) - 1
 		}
 		return []state.Target{{Obj: lib[i]}}, true
+	case "FlippedHeads", "FlippedTails":
+		// Forge's RememberResult$ flip-result memory: DB$ FlipCoin |
+		// RememberResult$ True, then a chained sub reading Defined$
+		// FlippedHeads/FlippedTails (Goblin Assassin's tails sacrifice is the
+		// live carrier). This build does not persist the per-flip results the
+		// flag names — the flips run (effFlipCoin), the memory does not
+		// survive a suspension-bearing chain re-entry — so the reader resolves
+		// to the EMPTY set (ok=true, fail closed to nobody) rather than
+		// Defined's source fallback, which would act on the flipping ability's
+		// own source.
+		return nil, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
 	case "Imprinted", "ImprintedController":
@@ -323,9 +338,11 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerBearer}}, true
 		}
 		return objectsOf(c.Remembered), true
-	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
+	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCard",
+		"TriggeredNewCardLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
-		"TriggeredAttackerLKICopy", "DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
+		"TriggeredAttackerLKICopy",
+		"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
@@ -333,6 +350,20 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// trigger captured (Reality Smasher's counter, Kira's and the
 		// glasskite family's counters -- 18 corpus files); its Controller
 		// variant resolves in unlessPayerTargets, its object here.
+		// The TriggeredBlocker spellings moved OUT of this case (trig:Blocks):
+		// a Blocks trigger's Remembered carries the pair's ATTACKER, so the
+		// blocker role is the only exact referent -- see the case below.
+		return objectsOf(c.Remembered), true
+	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
+		// The pair's BLOCKER (trig:Blocks): prefer the fire-time TriggerBlocker
+		// role when the Blocks capture set it (Remembered names the attacker
+		// there); the role-absent fallback -- the AttackerBlockedByCreature
+		// queue entries, whose Remembered IS the blocker, and hand-built
+		// contexts -- keeps the old Remembered read, so the Flanking shapes
+		// resolve exactly as before this field existed.
+		if c.TriggerBlocker != 0 {
+			return []state.Target{{Obj: c.TriggerBlocker}}, true
+		}
 		return objectsOf(c.Remembered), true
 	case "TriggeredSpellAbility":
 		// The activation arm (abcopy1): an ability-cast trigger's Remembered
@@ -467,6 +498,29 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: p, IsPlayer: true}}, true
 		}
 		return nil, true
+	case "TriggeredAttackerController", "TriggeredBlockerController":
+		// The controller of the triggering event's attacker or blocker. The
+		// Blocks mode captures both roles per pair (rules/trigger_match.go's
+		// checkBlocksTriggers); TriggeredBlockerController prefers the
+		// captured TriggerBlocker and TriggeredAttackerController the captured
+		// AttackingPlayer role. The role-absent fallback is the remembered
+		// object's controller through the one shared TriggeredCardController
+		// resolver -- the AttackerBlockedByCreature queue entries (Remembered
+		// = the blocker) and hand-built contexts resolve exactly as before
+		// the Blocks capture existed.
+		if spec == "TriggeredBlockerController" && c.TriggerBlocker != 0 {
+			if o := g.Obj(c.TriggerBlocker); o != nil {
+				return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+			}
+			return nil, true
+		}
+		if spec == "TriggeredAttackerController" && c.AttackingPlayer.IsPlayer {
+			return []state.Target{{Player: c.AttackingPlayer.Player, IsPlayer: true}}, true
+		}
+		if p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered); ok {
+			return []state.Target{{Player: p, IsPlayer: true}}, true
+		}
+		return nil, true
 	case "ExiledWith":
 		var out []state.Target
 		for _, id := range g.Zone(state.ZExile, c.Controller) {
@@ -518,6 +572,24 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			out = append(out, state.Target{Player: p, IsPlayer: true})
 		}
 		return out, true
+	}
+	// TriggeredDefender(.qualifier): the defending player the firing Attacks/
+	// AttackersDeclared trigger's event names (c.DefendingPlayer -- Myr
+	// Battlesphere's "deals X damage to the player or planeswalker it's
+	// attacking", whose script spells the referent TriggeredDefender while
+	// the engine's own binding is TriggeredDefendingPlayer). A qualifier is
+	// evaluated the same way the Player fallback below evaluates one; an
+	// unmet qualifier fails closed to the empty set, never a guessed
+	// fallback. Outside a combat trigger the role is absent and the set is
+	// empty.
+	if base, qual, _ := strings.Cut(spec, "."); base == "TriggeredDefender" && !strings.Contains(spec, " & ") {
+		if !c.DefendingPlayer.IsPlayer {
+			return nil, true
+		}
+		if qual != "" && !MatchesPlayerSpecFrom(g, qual, c.DefendingPlayer.Player, c.Controller, c.Source) {
+			return nil, true
+		}
+		return []state.Target{c.DefendingPlayer}, true
 	}
 	// Player.<state-qualifier>: a compound spelling this build's fixed cases
 	// do not name (Player.lifeEQ13, Player.controlsCreature.powerGE4_GE1,
@@ -717,6 +789,17 @@ func eventForgetChanged(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
 	if !strings.EqualFold(strings.TrimSpace(sa.Params["ForgetChanged"]), "True") {
 		return
 	}
+	forgetRememberedOne(h, c, id)
+}
+
+// forgetRememberedOne drops ONE object from both halves of the remembered
+// state -- the resolution's Ctx.Remembered set and the source object's
+// persistent event-backed Remembered list (the "forget-remembered" Choose
+// event events/apply.go folds) -- and is the one shared body for every
+// forget rider: ForgetChanged$ (a zone change forgets what it moved) and
+// Play's ForgetPlayed$ (a card the Play actually began to play is no longer
+// a "you didn't play it" candidate). Callers own their own parameter gate.
+func forgetRememberedOne(h Host, c *Ctx, id state.ObjID) {
 	next := make([]state.Target, 0, len(c.Remembered))
 	for _, t := range c.Remembered {
 		if !t.IsPlayer && t.Obj == id {

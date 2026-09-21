@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"math/rand/v2"
+	"sort"
 
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/policynet"
 )
 
@@ -37,8 +39,24 @@ type Config struct {
 	Holdout    float64 // fraction of examples held out of the update, [0, 1)
 	Embed      int     // H, the shared embedding width
 	Hidden     int     // hidden layer width
+	Mode       policynet.LossMode
 	RankWeight float64
 	HuberDelta float64
+	// ResidualInit is the fixed weight of the bot-prior residual head
+	// (policynet.Model.ResidualW): an option the bot's own answer contains
+	// scores ResidualInit higher for the whole run, so with a positive value
+	// the model starts at the bot baseline and the learned head only supplies
+	// the overrides. 0 disables the residual (pure CE / hybrid / value). It is
+	// a PRIOR, never trained, so it cannot be decayed away by the loss.
+	ResidualInit float64
+	// Clip is the global-L2-norm cap applied to each batch's accumulated
+	// gradient before it is applied (<= 0 disables; the CLI default is 1).
+	Clip float64
+	// OverrideWeight multiplies every example whose label records a teacher
+	// override of the bot (Example.TeacherChoice != Example.BotIndex): the
+	// decisions that carry information. 1 means no reweighting, >1 up-weights
+	// the overrides, and <= 0 is treated as 1.
+	OverrideWeight float64
 	// Log receives one line per epoch (nil discards).
 	Log io.Writer
 }
@@ -59,6 +77,25 @@ type Result struct {
 	TrainN   int
 	HoldoutN int
 	Skipped  int // examples with no labelled option (never trained on)
+	// ByKind is the honest per-decision-kind readout on the HOLDOUT split:
+	// the model's top-1 agreement beside the three baselines computed from
+	// the same split. Sorted by kind name. The blended EpochStat.Top1 mixes
+	// kinds whose difficulty differs wildly (an attackers decision where a
+	// first-index pick already agrees most of the time, a cast decision where
+	// it does not), so it must be labelled as blended wherever it is shown.
+	ByKind []KindStat
+}
+
+// KindStat is one decision kind's holdout agreement and the baselines it
+// must beat. Eligible counts the examples with a teacher-preferred option
+// (a decision with none can neither agree nor disagree).
+type KindStat struct {
+	Kind       decision.Kind
+	Eligible   int
+	ModelTop1  float64 // argmax over labelled options is teacher-preferred
+	BotTop1    float64 // pick the bot's candidate: teacher kept the bot
+	FirstTop1  float64 // pick the first labelled option
+	RandomTop1 float64 // expected agreement of a uniform pick; #pref/#labelled averaged
 }
 
 type split struct {
@@ -83,7 +120,14 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 		return nil, fmt.Errorf("policytrain: geometry embed %d hidden %d", cfg.Embed, cfg.Hidden)
 	case cfg.Holdout < 0 || cfg.Holdout >= 1:
 		return nil, fmt.Errorf("policytrain: holdout fraction %g outside [0,1)", cfg.Holdout)
+	case cfg.ResidualInit < 0:
+		return nil, fmt.Errorf("policytrain: residual init %g < 0 (a positive bot-prior weight is the residual; 0 disables)", cfg.ResidualInit)
 	}
+	mode, err := policynet.ParseLossMode(string(cfg.Mode))
+	if err != nil {
+		return nil, fmt.Errorf("policytrain: %v", err)
+	}
+	cfg.Mode = mode
 
 	// Examples with no labelled option cannot contribute to either loss
 	// term; drop them up front and count them.
@@ -113,8 +157,9 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 	sp := splitCorpus(usable, cfg.Holdout, rng)
 
 	model := policynet.NewModel(policynet.TableRows, cfg.Embed, cfg.Hidden, rng)
+	model.ResidualW = float32(cfg.ResidualInit)
 	grads := model.NewGrads()
-	lc := policynet.LossConfig{HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight}
+	lc := policynet.LossConfig{Mode: cfg.Mode, HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight}
 
 	res := &Result{Model: model, TrainN: len(sp.train), HoldoutN: len(sp.hold), Skipped: skipped}
 	order := make([]int, len(sp.train))
@@ -140,6 +185,9 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 					}
 				}
 			}
+			if cfg.Clip > 0 {
+				grads.Clip(cfg.Clip)
+			}
 			model.ApplyGrads(grads, float32(cfg.LR/float64(end-base)))
 			sum += batchLoss / float64(end-base)
 		}
@@ -157,6 +205,7 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 				epoch, cfg.Epochs, trainLoss, trainTop1, holdLoss, holdTop1)
 		}
 	}
+	res.ByKind = evaluateByKind(model, usable, sp.hold, lc)
 	return res, nil
 }
 
@@ -198,4 +247,77 @@ func ratio(a, b int) float64 {
 		return 0
 	}
 	return float64(a) / float64(b)
+}
+
+// evaluateByKind computes the honest per-kind holdout readout: the model's
+// top-1 agreement and the bot-copy, first-labelled and random-pick baselines,
+// all over the same eligible examples. An example is eligible when it has a
+// teacher-preferred option (nothing to agree or disagree with otherwise).
+// Kinds are visited in sorted order so the output never depends on map
+// iteration order.
+func evaluateByKind(m *policynet.Model, examples []policynet.Example, idx []int, lc policynet.LossConfig) []KindStat {
+	type acc struct {
+		eligible int
+		model    int
+		bot      int
+		first    int
+		random   float64
+	}
+	byKind := map[decision.Kind]*acc{}
+	for _, ix := range idx {
+		ex := examples[ix]
+		labelled := make([]int, 0, len(ex.Options))
+		for i := range ex.Options {
+			if ex.Options[i].Target.Labelled {
+				labelled = append(labelled, i)
+			}
+		}
+		prefLabelled, prefTotal := 0, 0
+		hasPref := false
+		for _, i := range labelled {
+			prefTotal++
+			if ex.Options[i].Target.Preferred {
+				prefLabelled++
+				hasPref = true
+			}
+		}
+		if len(labelled) == 0 || !hasPref {
+			continue
+		}
+		a := byKind[ex.Kind]
+		if a == nil {
+			a = &acc{}
+			byKind[ex.Kind] = a
+		}
+		a.eligible++
+		st := m.Loss(ex, lc)
+		if st.Agree {
+			a.model++
+		}
+		if ex.TeacherChoice == ex.BotIndex {
+			a.bot++
+		}
+		if ex.Options[labelled[0]].Target.Preferred {
+			a.first++
+		}
+		a.random += ratio(prefLabelled, prefTotal)
+	}
+	kinds := make([]decision.Kind, 0, len(byKind))
+	for k := range byKind {
+		kinds = append(kinds, k)
+	}
+	sort.Slice(kinds, func(i, j int) bool { return kinds[i] < kinds[j] })
+	out := make([]KindStat, 0, len(kinds))
+	for _, k := range kinds {
+		a := byKind[k]
+		out = append(out, KindStat{
+			Kind:       k,
+			Eligible:   a.eligible,
+			ModelTop1:  ratio(a.model, a.eligible),
+			BotTop1:    ratio(a.bot, a.eligible),
+			FirstTop1:  ratio(a.first, a.eligible),
+			RandomTop1: a.random / float64(a.eligible),
+		})
+	}
+	return out
 }

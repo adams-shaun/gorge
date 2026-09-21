@@ -62,6 +62,12 @@ review_local_fallback = true
 review_local_thinking = "high"
 escalation_local_fallback = true
 local_endpoint_probe = true
+# 2026-09-20 (operator): "stop taking all new tickets into local or paid jobs
+# until needs-human or blocked jobs are resolved". While any ticket sits in
+# human_needed, no `new` or `briefed` ticket starts; in-flight work still
+# advances, so the fleet drains instead of growing.
+hold_new_while_parked = true
+
 max_local_rounds = 2
 # 2026-09-19 (operator): the escalated tier is held for Claude. 0 means ONE
 # DeepSeek escalated round after the local rounds (the ladder launches the first

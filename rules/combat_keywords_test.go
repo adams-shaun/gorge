@@ -20,7 +20,7 @@ func corpusKeywordCard(t *testing.T, name string) *cards.Card {
 	paths := map[string]string{
 		"Vein Ripper": "v/vein_ripper.txt", "Artisan of Kozilek": "a/artisan_of_kozilek.txt",
 		"Fury": "f/fury.txt", "Shriekmaw": "s/shriekmaw.txt", "Dauthi Voidwalker": "d/dauthi_voidwalker.txt",
-		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Emrakul, the Aeons Torn": "e/emrakul_the_aeons_torn.txt", "Geyadrone Dihada": "g/geyadrone_dihada.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Auntie Ool, Cursewretch": "a/auntie_ool_cursewretch.txt", "The Serpent Society": "t/the_serpent_society.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt", "Jon Irenicus, Shattered One": "j/jon_irenicus_shattered_one.txt", "Vislor Turlough": "v/vislor_turlough.txt",
+		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Emrakul, the Aeons Torn": "e/emrakul_the_aeons_torn.txt", "Geyadrone Dihada": "g/geyadrone_dihada.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Auntie Ool, Cursewretch": "a/auntie_ool_cursewretch.txt", "The Serpent Society": "t/the_serpent_society.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt", "Jon Irenicus, Shattered One": "j/jon_irenicus_shattered_one.txt", "Vislor Turlough": "v/vislor_turlough.txt", "Herald of Hoofbeats": "h/herald_of_hoofbeats.txt", "Gollum, Obsessed Stalker": "g/gollum_obsessed_stalker.txt", "Behind the Scenes": "b/behind_the_scenes.txt",
 	}
 	path, ok := paths[name]
 	if !ok {
@@ -268,6 +268,47 @@ func TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords(t *testing.T) {
 	}
 }
 
+func TestHorsemanshipCanBlockOnlyHorsemanshipAttackers(t *testing.T) {
+	e := combatEngine(t)
+	// Herald of Hoofbeats is a real corpus carrier of the printed
+	// K:Horsemanship (CR 702.31). Seat 1 attacks seat 0, so seat 0's creatures
+	// are the prospective blockers.
+	plainBlocker := onBoard(t, e, 0, "Name:White\nManaCost:W\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	// A second real Herald on the defending side supplies a printed-
+	// horsemanship blocker, independent of the layer-7 grant.
+	horsemanshipBlocker := onBoardCard(t, e, 0, corpusKeywordCard(t, "Herald of Hoofbeats"))
+	// A Knight under seat 1's control, to exercise the Herald's layer-7 static
+	// (Knight.YouCtrl+Other) -- the grant the combat read depends on.
+	knight := onBoard(t, e, 1, "Name:Knight\nManaCost:W\nTypes:Creature Knight\nPT:2/2\nOracle:x\n")
+	heraid := onBoardCard(t, e, 1, corpusKeywordCard(t, "Herald of Hoofbeats"))
+	// Layer-7: the seat-1 Herald's static gives seat 1's other Knight
+	// horsemanship.
+	if !e.HasKeyword(knight, "Horsemanship") {
+		t.Fatal("Herald of Hoofbeats' static did not grant another Knight Horsemanship")
+	}
+	if !e.HasKeyword(heraid, "Horsemanship") {
+		t.Fatal("Herald of Hoofbeats does not have its own printed Horsemanship")
+	}
+	// CR 702.31b, direction 1: a creature without horsemanship cannot block a
+	// horsemanship attacker.
+	e.G.Obj(heraid).IsAttacking, e.G.Obj(heraid).Attacking = true, 0
+	if e.canBlock(plainBlocker, heraid) {
+		t.Fatal("plain creature blocked a horsemanship attacker")
+	}
+	// CR 702.31b, direction 2: a horsemanship creature can block a
+	// horsemanship attacker.
+	if !e.canBlock(horsemanshipBlocker, heraid) {
+		t.Fatal("horsemanship creature could not block a horsemanship attacker")
+	}
+	// CR 702.31b, direction 3 (the asymmetric half): a horsemanship creature
+	// can block a creature WITHOUT horsemanship.
+	plainAttacker := onBoard(t, e, 1, "Name:White\nManaCost:W\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	e.G.Obj(plainAttacker).IsAttacking, e.G.Obj(plainAttacker).Attacking = true, 0
+	if !e.canBlock(horsemanshipBlocker, plainAttacker) {
+		t.Fatal("horsemanship creature could not block a plain attacker (rule is asymmetric)")
+	}
+}
+
 func TestProtectionUsesAllLiveColourQualities(t *testing.T) {
 	e := combatEngine(t)
 	emrakul := onBoardCard(t, e, 0, corpusKeywordCard(t, "Emrakul, the World Anew"))
@@ -466,5 +507,89 @@ func TestAttackersMaxExposesTheCeiling(t *testing.T) {
 	one := decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}
 	if err := e.Submit(one); err != nil {
 		t.Fatalf("a one-attacker declaration rejected under its own ceiling: %v", err)
+	}
+}
+
+func TestSkulkBlocksOnlyGreaterPowerBlockers(t *testing.T) {
+	// Gollum, Obsessed Stalker is a real corpus carrier of the printed
+	// K:Skulk (CR 702.110a: a creature with skulk can't be blocked by
+	// creatures with greater power). Seat 1 attacks seat 0, so seat 0's
+	// creatures are the prospective blockers.
+	e := combatEngine(t)
+	gollum := onBoardCard(t, e, 1, corpusKeywordCard(t, "Gollum, Obsessed Stalker"))
+	e.G.Obj(gollum).IsAttacking, e.G.Obj(gollum).Attacking = true, 0
+	if !e.HasKeyword(gollum, "Skulk") {
+		t.Fatal("Gollum, Obsessed Stalker does not read as carrying printed Skulk")
+	}
+	// The equality boundary is the one a naive >= write breaks: CR 702.110a
+	// bars only GREATER power, so an equal-power creature blocks freely.
+	equal := onBoard(t, e, 0, "Name:Equal\nManaCost:1\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	lesser := onBoard(t, e, 0, "Name:Lesser\nManaCost:1\nTypes:Creature\nPT:0/5\nOracle:x\n")
+	greater := onBoard(t, e, 0, "Name:Greater\nManaCost:3\nTypes:Creature\nPT:5/5\nOracle:x\n")
+	if e.canBlock(greater, gollum) {
+		t.Fatal("a 5/5 blocked a 1/1 attacker with skulk")
+	}
+	if !e.canBlock(equal, gollum) {
+		t.Fatal("an equal-power creature could not block a skulk attacker")
+	}
+	if !e.canBlock(lesser, gollum) {
+		t.Fatal("a lesser-power creature could not block a skulk attacker")
+	}
+	// Derived power, not printed PT: a 1/1 printed blocker holding three
+	// +1/+1 counters is a 4/4 for CR 702.110a's comparison and must be
+	// refused (printed PT alone would still admit it).
+	e.emit(events.Event{Kind: events.CounterChange, Obj: equal, Counter: "P1P1", Amount: 3})
+	if e.canBlock(equal, gollum) {
+		t.Fatal("printed PT compared instead of derived power (a 1/1 with three +1/+1 counters still blocked)")
+	}
+	// And the attacker side is derived too: grow the 1/1 attacker to a 5/5
+	// with four counters and the same 5/5 blocker is suddenly legal, because
+	// its power no longer EXCEEDS the attacker's.
+	e.emit(events.Event{Kind: events.CounterChange, Obj: gollum, Counter: "P1P1", Amount: 4})
+	if !e.canBlock(greater, gollum) {
+		t.Fatal("a 5/5 could not block a grown-to-5/5 skulk attacker")
+	}
+	// The 4/4 blocker is no longer excluded either: CR 702.110a bars only
+	// GREATER power, and 4 < 5.
+	if !e.canBlock(equal, gollum) {
+		t.Fatal("a 4/4 could not block a grown-to-5/5 skulk attacker")
+	}
+}
+
+func TestGrantedSkulkStaticBlocksGreaterPowerBlockers(t *testing.T) {
+	// Behind the Scenes is a real corpus carrier of the layer-7 grant
+	// (S:AddKeyword$ Skulk); HasKeyword reads the layer-derived keyword
+	// list, so a granted skulk needs no path of its own beyond canBlock.
+	e := combatEngine(t)
+	onBoardCard(t, e, 1, corpusKeywordCard(t, "Behind the Scenes"))
+	smalls := onBoard(t, e, 1, "Name:Small\nManaCost:1\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	e.G.Obj(smalls).IsAttacking, e.G.Obj(smalls).Attacking = true, 0
+	if !e.HasKeyword(smalls, "Skulk") {
+		t.Fatal("Behind the Scenes' static did not grant another creature Skulk")
+	}
+	// A seat-0 creature (not a Knight, so Behind the Scenes' Knight static
+	// does not also apply) with greater power must be refused; an equal-power
+	// one admitted.
+	big := onBoard(t, e, 0, "Name:Big\nManaCost:3\nTypes:Creature\nPT:5/5\nOracle:x\n")
+	tiny := onBoard(t, e, 0, "Name:Tiny\nManaCost:1\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	if e.canBlock(big, smalls) {
+		t.Fatal("a greater-power creature blocked a small creature granted skulk by Behind the Scenes")
+	}
+	if !e.canBlock(tiny, smalls) {
+		t.Fatal("an equal-power creature could not block a creature granted skulk")
+	}
+	// The granting enchantment leaving the battlefield ends the grant: the
+	// static is re-derived per read, so the bigger creature can block again.
+	enchanter := e.G.Zone(state.ZBattlefield, 1)
+	for _, id := range enchanter {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Behind the Scenes" {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+		}
+	}
+	if e.HasKeyword(smalls, "Skulk") {
+		t.Fatal("skulk survived its granting enchantment leaving the battlefield")
+	}
+	if !e.canBlock(big, smalls) {
+		t.Fatal("a greater-power creature still blocked after the grant ended")
 	}
 }

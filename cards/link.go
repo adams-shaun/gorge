@@ -85,6 +85,10 @@ var builtinSVars = map[string]string{
 	// Each token registers its own delayed trigger, so Self is that token.
 	"__kwEncoreSacrifice":      "DB$ Sacrifice | Defined$ Self",
 	"__kwEncoreSacrificeGroup": "DB$ Sacrifice | Defined$ DelayTriggerRememberedLKI",
+	// AtEOT$ Destroy (the end-of-turn rider's destroy arm, read by the shared
+	// effects.scheduleAtEOT helper on Animate/Pump/PumpAll/Token/ChangeZone
+	// bodies): the registered source is the affected permanent itself.
+	"__kwAtEOTDestroy": "DB$ Destroy | Defined$ Self",
 }
 
 // ResolveSVar compiles the ability an SVar name refers to, recursively

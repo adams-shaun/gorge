@@ -86,6 +86,10 @@ var predicates = map[string]predFn{
 		s := g.Obj(src)
 		return s != nil && s.ChosenType != "" && hasType(o, s.ChosenType)
 	},
+	"IsNotChosenType": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		s := g.Obj(src)
+		return s != nil && s.ChosenType != "" && !hasType(o, s.ChosenType)
+	},
 	// An object records this association in events.Apply when an effect moves
 	// it to exile with moveZoneEvent. Both spellings use the same tracked
 	// provenance; LKI refinements are outside this narrow association.
@@ -127,6 +131,28 @@ var predicates = map[string]predFn{
 	"notExertedThisTurn": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !o.ExertedThisTurn
 	},
+	// Permanent is Forge's CardProperty.Permanent (card.isPermanent()): the
+	// printed face is a permanent type, in ANY zone (CR 109.2). This is the
+	// PREDICATE half of the pair; the bare `Permanent` BASE keeps the
+	// on-the-battlefield reading matchesBase gives it (Permanent.YouCtrl,
+	// `Affected$ Permanent`, the Count$Valid family all depend on that), and
+	// the two per-caller normalizers (effects/permanentCardSpec for Dig
+	// windows, rules' targetSpecForZone for target specs) keep rewriting the
+	// leading BASE `Permanent` -> `PermanentCard`. The word was previously
+	// classified unknown, so `Card.Permanent` and every `<base>.Permanent` /
+	// `<base>+Permanent` spelling failed closed and matched NOTHING -- 22
+	// corpus carriers (Badlands Revival's return-a-permanent-card, Deadly
+	// Brew's ConditionPresent$ gate, Auntie's Sentence's DiscardValid$, Six's
+	// retrace grant). isPermanentCard is the same reading the
+	// Targeted.Permanent+sameName contextual path already uses; the compiled
+	// predicate layer marks the unlisted term `maybe` and falls through to
+	// this textual oracle, so no twin term is owed (the
+	// notExertedThisTurn entry's contract, above), and UnknownPredicates
+	// classifies it through this same map, so census and matcher cannot
+	// disagree.
+	"Permanent": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return isPermanentCard(o)
+	},
 }
 
 // colorLetter maps a colour's English name to its WUBRG letter -- note Blue
@@ -137,7 +163,8 @@ var colorLetter = map[string]string{"White": "W", "Blue": "U", "Black": "B", "Re
 
 func init() {
 	for _, kw := range [...]string{"Flying", "Trample", "Deathtouch", "Lifelink",
-		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Menace"} {
+		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Menace",
+		"Flanking", "Horsemanship"} {
 		k := kw
 		predicates["with"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 			return o.Face() != nil && o.Face().HasKeyword(k)
@@ -332,7 +359,7 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 	}
 	switch arg {
 	case "RememberedCard", "Remembered", "RememberedLKI", "TriggeredCard",
-		"TriggeredCardLKICopy", "Targeted", "Self":
+		"TriggeredCardLKICopy", "Targeted", "Self", "Commander":
 		return name, arg, true
 	}
 	return "", "", false
@@ -342,9 +369,28 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 // sharesCardTypeWith/sharesCreatureTypeWith family into the live objects it
 // names (empty = an unbound referent; both callers fail closed on that), so
 // the two readings can never disagree about which objects <X> names.
-func sharesTypeReferents(sc SpecContext, ref string) []state.Target {
+func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Target {
 	var ts []state.Target
 	switch ref {
+	case "Commander":
+		// Forge's Commander referent: the resolving source's CONTROLLER's
+		// commanders (Path of Ancestry's "a creature spell that shares a
+		// creature type with your commander" -- the one corpus carrier). The
+		// commander list lives on the Players at genesis (wordIsCommander
+		// reads the same table). A source with no controller, or a seat with
+		// no commanders, binds nothing -- fail closed, never widened.
+		if sc.Source == 0 {
+			break
+		}
+		o := g.Obj(sc.Source)
+		if o == nil {
+			break
+		}
+		if int(o.Controller) < len(g.Players) {
+			for _, c := range g.Players[o.Controller].Commanders {
+				ts = append(ts, state.Target{Obj: c})
+			}
+		}
 	case "RememberedCard":
 		for _, t := range sc.Remembered {
 			if !t.IsPlayer {
@@ -381,7 +427,7 @@ func sharesTypeReferents(sc SpecContext, ref string) []state.Target {
 // power/toughness/counters, not types). An unbound referent matches
 // nothing — fail closed, never widened.
 func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
-	for _, t := range sharesTypeReferents(sc, ref) {
+	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
 			continue
 		}
@@ -408,7 +454,7 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 // which handles Changeling on the referent's side too). An unbound referent
 // matches nothing — fail closed, never widened.
 func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
-	for _, t := range sharesTypeReferents(sc, ref) {
+	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
 			continue
 		}
@@ -595,6 +641,15 @@ const (
 	wordIsCommander
 	wordBlockingSource
 	wordBlockedBySource
+	// Forge's faceDown: a face-down battlefield permanent (a manifested or
+	// cloaked card). The game/state-aware family -- needs the object's own
+	// zone, classified here so matcher and UnknownPredicates agree.
+	wordFaceDown
+	// Forge's IsRingbearer (CR 701.54e): the object is its controller's
+	// Ring-bearer. Game/state-aware -- needs the object's zone and the
+	// players' designations -- classified here so matcher and
+	// UnknownPredicates agree.
+	wordRingBearer
 	// The resolution-only one-token TargetedPlayerCtrl grammar. Its target
 	// binding comes from SpecContext rather than a new state tracker.
 	wordTargetedPlayerCtrl
@@ -725,6 +780,10 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordActivePlayerCtrl, ""
 	case "TopLibrary":
 		return wordTopLibrary, ""
+	case "faceDown":
+		return wordFaceDown, ""
+	case "IsRingbearer":
+		return wordRingBearer, ""
 	case "HasCounters":
 		return wordHasCounters, ""
 	case "Historic":
@@ -854,6 +913,21 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's ActivePlayerCtrl: the object is controlled by the active
 		// player -- the seat whose turn it is, g.Active.
 		return o.Controller == g.Active
+	case wordFaceDown:
+		// Forge's faceDown: the object is a face-down battlefield permanent
+		// (CR 708.5 -- a manifested or cloaked card). The same live state read
+		// the rules-side scans gate on (faceDownPrintedHides); a face-down
+		// EXILE (Hideaway) is not a permanent and never matches.
+		return o.FaceDown && o.Zone == state.ZBattlefield
+	case wordRingBearer:
+		// Forge's IsRingbearer (CR 701.54e): the object is its controller's
+		// Ring-bearer -- true exactly while it is on the battlefield under
+		// that player's control and carries the seat's designation. The
+		// designation's zone and control halves are enforced by events.Apply
+		// (the battlefield-leave and ControlChange clears), so the live check
+		// is the id comparison, and an object outside the battlefield (or an
+		// LKI of a moved one) never matches.
+		return o.Zone == state.ZBattlefield && g.IsRingBearer(o.Controller, o.ID)
 	case wordTopLibrary:
 		// Forge's TopLibrary: the object is the top card of its library --
 		// index 0 of the owner's library slice, the card the next draw takes
@@ -866,8 +940,11 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return len(ids) > 0 && ids[0] == o.ID
 	case wordHasCounters:
 		// Forge's HasCounters: the object has at least one counter of any
-		// kind on it.
-		return len(o.Counters) > 0
+		// kind on it. Test the COUNT, not the slice length -- state's
+		// AddCounter clamps a drained kind at zero without pruning the slot
+		// (state/object.go), so a permanent whose counters were all removed
+		// still carries a zero-count entry and must not match.
+		return hasCounters(o.Counters)
 	case wordHistoric:
 		// Forge's Historic: artifact, legendary, or Saga (the reminder text
 		// on the Historic keyword).
@@ -1015,7 +1092,10 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
-	if p == "IsRemembered" || strings.HasPrefix(p, "greatestPower") {
+	if p == "IsRemembered" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
+		return true
+	}
+	if p == "TriggeredNewCard" || p == "TriggeredCard" {
 		return true
 	}
 	if positiveRecognisedWord(p) {
@@ -1380,6 +1460,18 @@ func sharesNameWithObject(o, src *state.Object) bool {
 // referent. The latter remains a recognised grammar shape for the census, but
 // cannot be negated into a match when its resolution context is absent.
 func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	if p == "token$DifferentCardNames" {
+		// Forge's token$DifferentCardNames set-level qualifier (Sandsteppe
+		// War Riders, Gimbal Gremlin Prodigy, Audience with Trostani, Neriv
+		// Crackling Vanguard -- "the number of differently named <X> tokens
+		// you control"). The distinctness is a COUNT-site read
+		// (evalCountBody's Count$Valid walk strips the qualifier and counts
+		// distinct face names over the matches); per object the recognised
+		// meaning is "is a token", so the matcher and UnknownPredicates
+		// agree the qualifier is known and a non-count read of it admits
+		// every matching token without the distinctness narrowing.
+		return o.IsToken, true
+	}
 	if p == "ChosenCard" || p == "nonChosenCard" {
 		if !sc.ChosenValid {
 			return false, true
@@ -1402,6 +1494,25 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// control" inside RepeatEach). Resolution-only; with no remembered
 		// player there is no binding, so it fails closed even beneath '!'.
 		return matchControlReferent(g, o, sc, "ControlledBy", "RememberedPlayer")
+	}
+	if p == "TriggeredNewCard" || p == "TriggeredCard" {
+		// Forge's bare TriggeredNewCard / TriggeredCard property
+		// (CardProperty "the card that triggered this ability") inside an
+		// ordinary filter spec -- the "you may exile it" cost idiom's
+		// `Cost$ ExileAnyGrave<1/Card.TriggeredNewCard>` (Cavalier of Thorns,
+		// Doombot Harbinger, Creeping Chill's TriggeredCard; exg1, 18 corpus
+		// carriers). Cost-part specs evaluate through this same grammar, so
+		// the binding arrives through SpecContext.TriggerContext: the
+		// triggered-cost window binds the resolving ability's trigger
+		// context, and the candidate matches exactly the card the triggering
+		// event captured. Everywhere else -- an activated ability's offer or
+		// ask, a static, a hand-built context -- the zero TriggerCard fails
+		// CLOSED (ok=false): the spec matches nothing, never an invented
+		// referent.
+		if sc.TriggerCard == 0 {
+			return false, false
+		}
+		return o.ID == sc.TriggerCard, true
 	}
 	if p == "blockingTriggeredAttacker" {
 		// Forge's Creature.blockingTriggeredAttacker (She-Hulk,
@@ -1587,7 +1698,13 @@ func hasType(o *state.Object, t string) bool {
 			return true
 		}
 	}
-	return f.HasKeyword("Changeling") && changelingType(t)
+	// Intrinsic type-defining abilities, answered in every zone (CR 613.4a):
+	// Changeling's keyword and the characteristic-defining
+	// AddAllCreatureTypes$ True static (Mistform Ultimus). Both go through
+	// the positive subtype vocabulary, so a non-creature word (Arcane,
+	// Alara, Ajani) can never leak, and neither materialises subtypes into
+	// the derived type list.
+	return (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA()) && changelingType(t)
 }
 
 // typePredicate handles the legacy predicate-map entries whose meaning is a
@@ -1606,6 +1723,9 @@ func typePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bo
 	case "ChosenType":
 		s := g.Obj(sc.Source)
 		return s != nil && s.ChosenType != "" && hasTypeCtx(o, s.ChosenType, sc), true
+	case "IsNotChosenType":
+		s := g.Obj(sc.Source)
+		return s != nil && s.ChosenType != "" && !hasTypeCtx(o, s.ChosenType, sc), true
 	}
 	return false, false
 }
@@ -2090,10 +2210,23 @@ func MatchesSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext) 
 // base names a permanent card when a count already scoped the candidates to a
 // non-battlefield zone; it must not re-check the object's current zone and
 // reject every graveyard, hand, library, or exile card. All other bases and
-// predicates retain MatchesObjectCtx's ordinary semantics.
+// predicates retain MatchesObjectCtx's ordinary semantics -- including the
+// CR 707.10h IsCopy rejection below, which matchesObjectText applies on the
+// ordinary path and which this zone-aware path must not silently drop.
 func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext, zone state.Zone) bool {
 	o := g.Obj(id)
 	if o == nil {
+		return false
+	}
+	// CR 707.10h, the same rejection matchesObjectText applies: a copy that
+	// is neither on the stack (still a spell) nor on the battlefield (still
+	// a permanent, CR 707.10g) has ceased to exist and matches nothing,
+	// whatever the spec. Without it a resolving spell copy the engine parks
+	// in exile is counted by every Count$ThisTurnEntered_<off-battlefield
+	// zone> head (Ennis, Debate Moderator's Count$ThisTurnEntered_Exile_Card
+	// fired on exiled Storm copies). A battlefield copy is real and stays
+	// matchable -- Clone/Rite of Replication precedent.
+	if o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
 		return false
 	}
 	if zone == state.ZBattlefield {

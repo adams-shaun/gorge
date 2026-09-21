@@ -78,12 +78,16 @@ type pendingTrigger struct {
 	Merged int
 	// Granted marks a static-grant's trigger (AddTrigger$ on a Mode$
 	// Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you sacrifice
-	// a land"): like a delayed trigger its Ability is an SVar-named body
-	// (the Execute$ name rides the GrantTriggerPush event for events.Apply
-	// to resolve from the affected object's SVar table), but unlike a
-	// delayed registration nothing is consumed -- the grant lives exactly as
-	// long as its granting static.
+	// a land"): like a delayed trigger its Ability is an SVar-named body (the
+	// Execute$ name rides the GrantTriggerPush event for events.Apply to
+	// resolve from the GRANTOR's SVar table), but unlike a delayed
+	// registration nothing is consumed -- the grant lives exactly as long as
+	// its granting static. Grantor is the object carrying the printed static
+	// (0 = the self-grant shape, where grantor == recipient); it rides the
+	// event's Amount so Apply resolves the Execute$ body from the same table
+	// this walk linked it from.
 	Granted bool
+	Grantor state.ObjID
 	Execute string
 	// Ward is a GRANTED ward keyword (a layer-6 AddKeyword$ Ward:<cost>, e.g.
 	// Hexing Squelcher's "Other creatures you control have 'Ward—Pay 2
@@ -99,7 +103,14 @@ type pendingTrigger struct {
 	// payload events.Apply rebuilds into the same DB$ LoseLife body the
 	// printed K:Afflict expansion carries. Idx and SA are unset for it.
 	Afflict string
-	Ctx     effects.Ctx
+	// RingEmblem is one of the Ring emblem's four level abilities (CR
+	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
+	// and no object in any zone, so like Ward/Afflict this entry carries
+	// only the LEVEL: pushTrigger mints a RingEmblemPush whose __ring:<level>
+	// payload events.Apply rebuilds the ability from. Source is 0 (there is
+	// no permanent), Controller the tempted seat.
+	RingEmblem int
+	Ctx        effects.Ctx
 }
 
 // triggerKey identifies one T: line: the object that carries it, plus that
@@ -182,6 +193,15 @@ var actionTriggerModes = map[string]bool{
 	// other event mode. Membership also makes an unevaluable CheckDefinedPlayer$
 	// predicate fail closed for the mode, which is the conservative direction
 	// for a mode registered from the start.
+	// FlippedCoin joins them for the same reason: it is an event mode
+	// registered from the start (rules/trigger_match.go's
+	// flippedCoinMatches, firing off the canonical coin-flip result Note
+	// both api:FlipCoin and the cumulative-upkeep cost action emit), so the
+	// trigger-level parameters Forge scopes to every event mode --
+	// PlayerTurn$, ActivationLimit$, and an unevaluable CheckDefinedPlayer$
+	// predicate failing closed -- apply from day one. No Once latch: each
+	// flip result Note is one occurrence.
+	"FlippedCoin":    true,
 	"ChangesZoneAll": true,
 	// Attached is an event mode registered from the start
 	// (attachedMatches over events.Attach), so the trigger-level parameters
@@ -189,6 +209,17 @@ var actionTriggerModes = map[string]bool{
 	// an unevaluable CheckDefinedPlayer$ predicate failing closed -- apply
 	// from day one (Inchblade Companion carries ActivationLimit$ 1).
 	"Attached": true,
+	// LifeGained joins them for the same reason: it is an event mode
+	// registered from the start (lifeGainedMatches over events.LifeChange,
+	// the api:RemoveCounter ticket's Prize Pig pin), so the trigger-level
+	// parameters Forge scopes to every event mode -- PlayerTurn$ (5 corpus
+	// lines: Vampire Scrivener, Wax//Wane Witness, Moonstone Harbinger,
+	// Cat Collector), ActivationLimit$ (2 lines) and an unevaluable
+	// CheckDefinedPlayer$ predicate failing closed -- apply. lifeGainedMatches
+	// itself reads FirstTime$ (8 lines over 7 files: Attended Healer,
+	// Deathless Knight, Vanguard Seraph, Gourmand's Talent, ...), the
+	// once-per-turn latch lifeLostMatches implements without the map.
+	"LifeGained": true,
 }
 
 // triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
@@ -794,6 +825,7 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	// face scan cannot express (see checkAttackerBlockedTriggers).
 	if ev.Kind == events.DeclareBlockers {
 		e.checkAttackerBlockedTriggers(ev)
+		e.checkBlocksTriggers(ev)
 	}
 	// Rooms (CR 309.5): the unlocked half's "When you unlock this door"
 	// trigger queues off the DoorUnlock event itself -- its face is the
@@ -809,6 +841,101 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	if ev.Kind == events.Exert && ev.Amount >= 0 {
 		e.checkExertTriggers(ev)
 	}
+	// The Ring emblem's four level abilities (CR 701.54c): engine-side
+	// "whenever" abilities with no corpus script text and no object in any
+	// zone, so the ordinary per-face walk above can never see them. The
+	// scan reads state.Player.RingTempted (the fold RingTemptsYou just made
+	// renders here BEFORE any trigger check, so level 4 sees its own
+	// temptation) and queues one entry per firing seat.
+	e.checkRingEmblemTriggers(ev)
+}
+
+// The Ring emblem's four level gates (CR 701.54c). Level N is active iff the
+// tempted seat's RingTempted >= N; the count is uncapped, so lower levels
+// stay active as it rises.
+const (
+	ringEmblemLevelDraw      = 1 // whenever your Ring-bearer attacks, draw a card
+	ringEmblemLevelBlocked   = 2 // whenever your Ring-bearer becomes blocked, discard a card; if you can't, sacrifice it
+	ringEmblemLevelCombatHit = 3 // whenever your Ring-bearer deals combat damage to a player, sacrifice it
+	ringEmblemLevelTempted   = 4 // whenever the Ring tempts you, each opponent loses 1 life
+)
+
+// checkRingEmblemTriggers queues the Ring emblem's level abilities (CR
+// 701.54c) for one event. The emblem is not an object in any zone, so the
+// ordinary per-face walk cannot reach it; this is the per-event synthetic
+// scan site (the checkAttackerBlockedTriggers / checkChapterTriggers
+// precedent). Each level names one event shape:
+//
+//	1  DeclareAttackers whose attacker list holds a seat's Ring-bearer
+//	2  DeclareBlockers whose blocked-attacker pairs hold a seat's Ring-bearer
+//	3  a COMBAT Damage event whose source is a seat's Ring-bearer and whose
+//	   recipient is a player (Obj 0 -- a hit redirected onto a permanent is
+//	   not "damage to a player")
+//	4  the RingTemptsYou event itself, for the tempted seat
+//
+// Because RingTemptsYou's own fold runs before checkTriggers, level 4's gate
+// reads the POST-fold count: the 4th temptation fires it and the 3rd does
+// not. The entries carry no Source (there is no permanent): pushTrigger mints
+// a RingEmblemPush whose payload events.Apply rebuilds the ability from.
+func (e *Engine) checkRingEmblemTriggers(ev events.Event) {
+	switch ev.Kind {
+	case events.DeclareAttackers, events.DeclareBlockers, events.Damage, events.RingTemptsYou:
+	default:
+		return
+	}
+	for p := state.PlayerID(0); int(p) < len(e.G.Players); p++ {
+		if e.G.Players[p].Lost {
+			continue
+		}
+		tempted := e.G.Players[p].RingTempted
+		if tempted <= 0 {
+			continue
+		}
+		bearer := e.G.Players[p].RingBearer
+		switch ev.Kind {
+		case events.RingTemptsYou:
+			if ev.Player == p && tempted >= ringEmblemLevelTempted {
+				e.queueRingEmblem(p, ringEmblemLevelTempted, bearer)
+			}
+		case events.DeclareAttackers:
+			if tempted >= ringEmblemLevelDraw && bearer != 0 && objIDIn(ev.IDs, bearer) {
+				e.queueRingEmblem(p, ringEmblemLevelDraw, bearer)
+			}
+		case events.DeclareBlockers:
+			if tempted >= ringEmblemLevelBlocked && bearer != 0 && blockedAttackerIn(ev.Pairs, bearer) {
+				e.queueRingEmblem(p, ringEmblemLevelBlocked, bearer)
+			}
+		case events.Damage:
+			if tempted >= ringEmblemLevelCombatHit && bearer != 0 && ev.Obj == 0 &&
+				e.combatDamaging && e.damaging == bearer {
+				e.queueRingEmblem(p, ringEmblemLevelCombatHit, bearer)
+			}
+		}
+	}
+}
+
+// queueRingEmblem appends one emblem level ability to the pending queue. The
+// TriggerCard role names the Ring-bearer the firing event was about so a
+// chained body that ever wants it can read it; the hand-built bodies read
+// only Defined$ You/Opponent and the live designation.
+func (e *Engine) queueRingEmblem(p state.PlayerID, level int, bearer state.ObjID) {
+	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		Controller: p,
+		RingEmblem: level,
+		Ctx: effects.Ctx{
+			Controller:     p,
+			TriggerContext: effects.TriggerContext{TriggerCard: bearer},
+		},
+	})
+}
+
+func blockedAttackerIn(pairs [][2]state.ObjID, id state.ObjID) bool {
+	for _, pr := range pairs {
+		if pr[0] == id {
+			return true
+		}
+	}
+	return false
 }
 
 // checkExertTriggers queues the Trigger$ rider of every offerable
@@ -903,6 +1030,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			// carry triggered abilities.
 			return
 		}
+		// objLKI is the whole-event LKI snapshot, hoisted here because every
+		// trigger this loop matches for this event shares it (lki.ID == ev.Obj
+		// always holds when lki != nil -- see checkTriggers's own doc above; a
+		// defensive belt-and-braces check against a future emit change that
+		// might one day pass a mismatched lki). triggerMatches and the matched
+		// trigger's Ctx both read it. Hoisted above the face-down gate too: the
+		// cloaked ward walk below reads it as well.
+		var objLKI *state.Object
+		if lki != nil && lki.ID == ev.Obj {
+			objLKI = lki
+		}
 		if e.faceDownPrintedHides(o) {
 			// CR 708.8: a face-down permanent's printed triggers (and any
 			// granted walk keyed to it) do not exist while it is face down --
@@ -912,17 +1050,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			// face down; the live walk matches leaves-triggers only through
 			// that observer or a TriggerZones the departed card no longer
 			// occupies).
+			// A CLOAKED face-down permanent is the one exception: its ward {2}
+			// is part of the cloak status itself (CR 708.5's cloak variant),
+			// not a printed ability -- the synthesized Ward trigger in
+			// checkGrantedWardTriggers (built from the derived keyword list
+			// layers.go appends for Cloaked objects) is what turns targeting
+			// it into the pay-or-counter ask. Only the granted-ward walk
+			// revives; the printed-face walk stays suppressed.
+			if o.Cloaked && ev.Kind == events.TargetsChosen {
+				e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			}
 			return
-		}
-		// objLKI is the whole-event LKI snapshot, hoisted here because every
-		// trigger this loop matches for this event shares it (lki.ID == ev.Obj
-		// always holds when lki != nil -- see checkTriggers's own doc above; a
-		// defensive belt-and-braces check against a future emit change that
-		// might one day pass a mismatched lki). triggerMatches and the matched
-		// trigger's Ctx both read it.
-		var objLKI *state.Object
-		if lki != nil && lki.ID == ev.Obj {
-			objLKI = lki
 		}
 		// Ordinary cards need no face-walk setup when their printed triggers
 		// cannot observe this event. An unlocked Room may still have an
@@ -1424,12 +1562,20 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.attackersDeclaredOneTargetMatches(t, source, ev)
 	case "Cycled":
 		matched = e.cycledMatches(t, source, ev, lki)
+	case "Explores":
+		matched = e.exploresMatches(t, source, ev, lki)
+	case "Investigated":
+		matched = e.investigatedMatches(t, source, ev, lki)
+	case "RingTemptsYou":
+		matched = e.ringTemptsMatches(t, source, ev)
 	case "CounterAdded":
 		matched = e.counterAddedMatches(t, source, ev, lki)
 	case "CounterRemoved":
 		matched = e.counterRemovedMatches(t, source, ev, lki)
 	case "Attached":
 		matched = e.attachedMatches(t, source, ev)
+	case "Exerted":
+		matched = e.exertedMatches(t, source, ev)
 	case "TokenCreated", "TokenCreatedOnce":
 		matched = e.tokenCreatedMatches(t, source, ev)
 	case "Sacrificed":
@@ -1446,10 +1592,14 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.damageMatches(t, source, ev)
 	case "DamagePreventedOnce":
 		matched = e.damagePreventedMatches(t, source, ev)
+	case "FlippedCoin":
+		matched = e.flippedCoinMatches(t, source, ev)
 	case "Drawn":
 		matched = e.drawnMatches(t, source, ev)
 	case "LifeLost", "LifeLostAll":
 		matched = e.lifeLostMatches(t, source, ev)
+	case "LifeGained":
+		matched = e.lifeGainedMatches(t, source, ev)
 	case "BecomesTarget":
 		matched = e.becomesTargetMatches(t, source, ev)
 	case "LandPlayed":
@@ -1474,6 +1624,26 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = true
 	}
 	if !matched {
+		return false
+	}
+	// FirstCombat$ True -- the "if it's the first combat phase of the turn"
+	// trigger gate (8 corpus T: lines: hexplate_wallbreaker, genji_glove,
+	// finest_hour, balthier_and_fran, raph_leo_sibling_rivals on Mode$ Attacks,
+	// karlach_fury_of_avernus on Mode$ AttackersDeclared,
+	// zariel_archduke_of_avernus and swinging_ship on Mode$ Phase) restricts
+	// the trigger to the FIRST combat phase begun this turn, so a trigger an
+	// extra combat (DB$ AddPhase) creates must not re-fire. The count is the
+	// event-folded state.Game.CombatsThisTurn (one increment per BeginCombat
+	// entry, reset at TurnChange), evaluated on the fold of the matching
+	// event: during the first combat it is 1 (its BeginCombat already
+	// folded), and every extra combat's BeginCombat has raised it to 2 -- so
+	// the test is count == 1, never 0. This is a SHARED gate in
+	// triggerMatches rather than a per-mode one because the key rides three
+	// different modes and means the same thing on every one; it is distinct
+	// from the Execute-side ConditionFirstCombat$ gate
+	// (effects/conditions.go, Raiyuu), which suppresses the BODY, not the
+	// trigger.
+	if strings.EqualFold(strings.TrimSpace(t.Params["FirstCombat"]), "True") && e.G.CombatsThisTurn != 1 {
 		return false
 	}
 	// PlayerTurn$ True: only during the turn of the source's controller
@@ -2154,6 +2324,96 @@ func (e *Engine) cycledMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 	return e.eventCardAndPlayerMatch(t, source, ev.Obj, o.Controller)
 }
 
+// exploresMatches implements the "Whenever a creature you control explores
+// ..." trigger family (Forge Mode$ Explores, task explore1 — Merfolk
+// Cave-Diver, Nicanzil Current Conductor, Wildgrowth Walker, Lurking
+// Chupacabra, Shadowed Caravel; 5 files / 6 raw lines at the corpus pin).
+// The causing event is the completed events.Explore record: Obj is the
+// EXPLORER (what ValidCard$ matches, with the explorer's controller as the
+// event player — the same eventCardAndPlayerMatch read Sacrificed applies)
+// and IDs[0] is the card the process revealed, which ValidExplored$ narrows
+// ("explores a land card" / "explores a nonland card" — Nicanzil's pair).
+// The revealed card is matched in whatever zone the explore left it in (hand
+// or graveyard, or back on top): the plain type predicates both carriers use
+// are zone-independent, and the reveal Note that precedes the record already
+// made the card public, so no LKI capture is needed. A record with no
+// revealed card is unreachable (an empty library records nothing).
+func (e *Engine) exploresMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Explore || len(ev.IDs) == 0 {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v := t.Params["ValidExplored"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.IDs[0], e.specCtx(source, ctrl)) {
+		return false
+	}
+	return true
+}
+
+// investigatedMatches implements the "whenever you investigate" trigger
+// family (Forge Mode$ Investigated, task investtrig1 -- Erdwal Illuminator,
+// Val, Marooned Surveyor; 2 files / 2 raw lines at the corpus pin). The
+// causing event is the completed events.Investigate record (a pure Apply
+// no-op marker emitted by effInvestigate beside each Clue mint, so a plain
+// Clue-token creation never fires it): Player is the investigating seat
+// (what ValidPlayer$ matches -- Erdwal's and Val's `ValidPlayer$ You`), Obj
+// the resolving source permanent (what a ValidCard$ spec would match; no
+// corpus carrier uses one, but the grammar is the exploresMatches shape).
+// FirstTime$ True is the per-player per-turn gate -- Erdwal's "for the
+// first time each turn" -- read from the log the firstLifeLossThisTurn way
+// so a log-only replay reconstructs the same answer (no side-map).
+func (e *Engine) investigatedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Investigate {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if strings.EqualFold(t.Params["FirstTime"], "True") && !e.firstInvestigateThisTurn(ev.Player) {
+		return false
+	}
+	return true
+}
+
+// firstInvestigateThisTurn is true only when the investigate event being
+// matched is the investigating player's first of the current turn: the
+// current event is already in the log when triggers match (the
+// firstLifeLossThisTurn contract), so scanning back past TurnChange and
+// finding exactly one Investigate record for p means this is the first.
+// TurnChange is the logged reset boundary for every other per-turn fact, so
+// the scan is replay-stable and cannot leak a mutable counter across Clone.
+func (e *Engine) firstInvestigateThisTurn(p state.PlayerID) bool {
+	seenCurrent := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		if ev.Kind != events.Investigate || ev.Player != p {
+			continue
+		}
+		if seenCurrent {
+			return false
+		}
+		seenCurrent = true
+	}
+	return seenCurrent
+}
+
 // counterAddedMatches implements the "when a counter is put on" trigger
 // family (Forge Mode$ CounterAdded; Shang-Chi and the Ten Rings' "When the
 // tenth +1/+1 counter is put on NICKNAME"). The gate is the CounterChange
@@ -2285,17 +2545,60 @@ func (e *Engine) attackerBlockedCandidates(t cards.Trigger, source state.ObjID, 
 	return out
 }
 
-// checkAttackerBlockedTriggers queues one trigger instance per matching
-// blocked attacker -- the per-candidate shape the ordinary face scan cannot
-// express (it queues at most one entry per trigger per event, and the
-// become-blocked referent is per attacker: She-Hulk's counter count is each
-// Hero's OWN blocker count). The same-scan-hook precedent is
+// attackerBlockedByPairCandidates lists the (attacker, blocker) pairs one
+// Forge Mode$ AttackerBlockedByCreature trigger fires for (kw:Flanking's
+// expansion, CR 702.25a: "whenever this creature becomes blocked by a
+// creature without flanking"). Each declared pair whose ATTACKER is the
+// trigger's own source, matches ValidCard$, and whose blocker matches
+// ValidBlocker$ yields one instance; a blocker WITH flanking matches nothing,
+// so it debuffs nobody. ValidCard$ Card.Self works because the trigger's
+// source IS the flanking attacker. The sibling "blocks" half of Forge's mode
+// names the BLOCKER as its source and never reaches here (see the loop).
+func (e *Engine) attackerBlockedByPairCandidates(t cards.Trigger, source state.ObjID, ev events.Event) [][2]state.ObjID {
+	if ev.Kind != events.DeclareBlockers || len(ev.Pairs) == 0 {
+		return nil
+	}
+	ctrl := e.controllerOf(source)
+	var out [][2]state.ObjID
+	for _, pr := range ev.Pairs {
+		// The trigger's SOURCE must be the pair's ATTACKER. This hook binds the
+		// blocker as the remembered object, so it is only correct for the
+		// "becomes blocked" half of Forge's mode (kw:Flanking is its only live
+		// carrier). The sibling "blocks" half spells its source as the BLOCKER
+		// (ValidCard$ Creature | ValidBlocker$ Card.Self) and names the attacker
+		// in its body (Defined$ TriggeredAttackerLKICopy); queueing it here would
+		// resolve that referent to the remembered BLOCKER -- the source itself --
+		// and make the creature damage/lose life to itself. That half stays inert
+		// (role-correct referents need a second remembered slot, a separate task).
+		if pr[0] != source {
+			continue
+		}
+		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[0], e.specCtx(source, ctrl)) {
+			continue
+		}
+		if v := t.Params["ValidBlocker"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[1], e.specCtx(source, ctrl)) {
+			continue
+		}
+		out = append(out, pr)
+	}
+	return out
+}
+
+// checkAttackerBlockedTriggers queues trigger instances off a DeclareBlockers
+// event for the two become-blocked modes the ordinary face scan cannot express
+// (it queues at most one entry per trigger per event, and both referents are
+// per-attacker or per-pair): Mode$ AttackerBlocked fires once per DISTINCT
+// matching blocked attacker (She-Hulk's counter count is each Hero's OWN
+// blocker count), and Forge Mode$ AttackerBlockedByCreature -- kw:Flanking's
+// expansion (CR 702.25a) is its only live carrier -- fires once per matching
+// (attacker, blocker) PAIR, the blocker remembered as the
+// TriggeredBlockerLKICopy referent. The same-scan-hook precedent is
 // checkChapterTriggers (rules/saga.go). The gates mirror the ordinary scan's
 // per-trigger sequence (zone, phase, fire-count bound, ActivationLimit$);
-// Secondary$ and the Once damage-batch gates do not exist on this mode.
-// The per-attacker ctx carries the blocked attacker as the Remembered
-// TriggeredAttackerLKICopy referent and as TriggerCard, so
-// Count$Valid Creature.blockingTriggeredAttacker counts that Hero's blockers.
+// Secondary$ and the Once damage-batch gates do not exist on these modes.
+// Each per-instance ctx carries the triggering objects as Remembered and as
+// TriggerCard, so Count$Valid Creature.blockingTriggeredAttacker counts that
+// Hero's blockers and Defined$ TriggeredBlockerLKICopy names the blocker.
 func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	if ev.Kind != events.DeclareBlockers {
 		return
@@ -2314,7 +2617,7 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			return
 		}
 		for ti, t := range f.Triggers {
-			if t.Mode != "AttackerBlocked" {
+			if t.Mode != "AttackerBlocked" && t.Mode != "AttackerBlockedByCreature" {
 				continue
 			}
 			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
@@ -2328,6 +2631,36 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 				continue // cascade bound: see maxTriggerFires.
 			}
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			if t.Mode == "AttackerBlockedByCreature" {
+				// CR 702.25a: one instance per (attacker, blocker) pair; the
+				// trigger's controller is the ATTACKER's controller, which the
+				// Source/Controller pair already are (the source is the
+				// flanking attacker itself).
+				for _, pr := range e.attackerBlockedByPairCandidates(t, id, ev) {
+					if t.Effect == nil {
+						break
+					}
+					bid := pr[1]
+					e.triggerFireCount[key]++
+					e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+						Source:     id,
+						Controller: o.Controller,
+						Idx:        ti,
+						SA:         t.Effect,
+						Ctx: effects.Ctx{
+							Source:     id,
+							Controller: o.Controller,
+							Remembered: []state.Target{{Obj: bid}},
+							Captured:   []state.Target{{Obj: bid}},
+							TriggerContext: effects.TriggerContext{
+								TriggerCard:   bid,
+								TriggerSource: pr[0],
+							},
+						},
+					})
+				}
 				continue
 			}
 			for _, aid := range e.attackerBlockedCandidates(t, id, ev) {
@@ -2360,6 +2693,154 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			}
 		}
 	})
+}
+
+// blocksCandidates lists the (attacker, blocker) pairs one Forge Mode$ Blocks
+// trigger fires for (task trig:Blocks; Savvy Hunter's "Whenever Savvy Hunter
+// attacks or blocks", Heat of Battle's "Whenever a creature blocks", Wand of
+// Orcus' bearer half). Each declared pair is evaluated per pair -- one
+// instance per matching pair, exactly Forge's per-block-event firing --
+// because the trigger's matching object is the pair's BLOCKER, not the
+// trigger's own source: ValidCard$ is read against the blocker (Card.Self
+// names the source-as-blocker; Card.AttachedBy/EquippedBy/EnchantedBy name
+// the bearer via the existing attachedBy predicate; the bare Creature spec
+// is the global-enchantment shape that fires for a blocker that is NOT the
+// source), and ValidBlocked$ is read against the pair's ATTACKER (Goblin
+// Cadets' becomes-blocked spelling ValidCard$ Creature | ValidBlocked$
+// Card.Self). A blocker appears in exactly one pair per event (CR 509.1a's
+// one-blocker-one-attacker pairing; Submit's validateBlockers rejects the
+// same ordinary blocker against multiple attackers), so no dedup is needed.
+func (e *Engine) blocksCandidates(t cards.Trigger, source state.ObjID, ev events.Event) [][2]state.ObjID {
+	if ev.Kind != events.DeclareBlockers || len(ev.Pairs) == 0 {
+		return nil
+	}
+	ctrl := e.controllerOf(source)
+	var out [][2]state.ObjID
+	for _, pr := range ev.Pairs {
+		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[1], e.specCtx(source, ctrl)) {
+			continue
+		}
+		if v := t.Params["ValidBlocked"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[0], e.specCtx(source, ctrl)) {
+			continue
+		}
+		out = append(out, pr)
+	}
+	return out
+}
+
+// checkBlocksTriggers queues trigger instances off a DeclareBlockers event
+// for Forge Mode$ Blocks (trig:Blocks): "whenever [this creature] blocks" and
+// its enchantment/equipment/global shapes. The ordinary per-face scan cannot
+// express it -- it queues at most one entry per trigger per event, and the
+// mode's matching object is the pair's BLOCKER while its referents split
+// between the blocker and the attacker (Godsend's Blocks half reads
+// DefinedCards$ TriggeredAttackers; Wand of Orcus' half pumps
+// TriggeredBlockerLKICopy) -- so it rides the same dedicated hook as
+// checkAttackerBlockedTriggers, with one instance per matching PAIR. The
+// gates mirror the ordinary scan's per-trigger sequence (zone, phase,
+// fire-count bound, the actionTriggerModes guard shape kept so a future
+// ActivationLimit$/PlayerTurn$ carrier joins with a one-word mode-row
+// change -- measured, no Blocks line carries either today) PLUS the shared
+// condition gate triggerConditionHoldsAs, which the AttackerBlocked hook
+// omits but the corpus's IsPresent$/PresentCompare$ Blocks lines need.
+// Each per-instance ctx: the ATTACKER as Remembered/Captured (Godsend's
+// TriggeredAttackers pool), the attacker as TriggerCard/TriggerSource, the
+// blocker in the new TriggerBlocker role (TriggeredBlockerLKICopy), both
+// combat players, and Source/Controller = the trigger face's own
+// object/controller (the enchantment/equipment, not the blocker).
+// Secondary$ needs no yield here: a Blocks half's paired primary is an
+// Attacks trigger, which can never match the same DeclareBlockers event, so
+// the secondary always fires on its own (the AttackerBlocked hook skips
+// secondaryYields for the same reason).
+func (e *Engine) checkBlocksTriggers(ev events.Event) {
+	if ev.Kind != events.DeclareBlockers {
+		return
+	}
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil {
+			return
+		}
+		f := o.Face()
+		if f == nil {
+			return
+		}
+		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
+			return
+		}
+		for ti, t := range f.Triggers {
+			if t.Mode != "Blocks" {
+				continue
+			}
+			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
+				continue
+			}
+			if !e.triggerConditionHoldsAs(t, id, o.Controller) {
+				continue
+			}
+			key := triggerKey{Source: id, Idx: ti}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue // cascade bound: see maxTriggerFires.
+			}
+			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			for _, pr := range e.blocksCandidates(t, id, ev) {
+				if t.Effect == nil {
+					break
+				}
+				attacker := pr[0]
+				defender := pt(ev.Player)
+				e.triggerFireCount[key]++
+				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+					Source:     id,
+					Controller: o.Controller,
+					Idx:        ti,
+					SA:         t.Effect,
+					Ctx: effects.Ctx{
+						Source:     id,
+						Controller: o.Controller,
+						Remembered: []state.Target{{Obj: attacker}},
+						Captured:   []state.Target{{Obj: attacker}},
+						TriggerContext: effects.TriggerContext{
+							TriggerCard:     attacker,
+							TriggerSource:   attacker,
+							TriggerBlocker:  pr[1],
+							AttackingPlayer: pt(e.controllerOf(attacker)),
+							DefendingPlayer: defender,
+						},
+					},
+				})
+			}
+		}
+	})
+}
+
+// exertedMatches is the trig:Exerted half of CR 702.100 (task exert1 built the
+// election and the static's own Trigger$ rider; this is the separate "whenever
+// you exert a creature" listener a different script line carries). The event is
+// events.Exert: Obj is the permanent the controller exerted and Amount >= 0 is
+// the exert itself, while Amount == -1 is the untap-step consume marker
+// rules/turn.go's scan emits -- bookkeeping, never an exert, so it must not
+// fire. The exerted permanent is still on the battlefield at match time, so
+// ValidCard$ reads the live object against the trigger source's controller
+// ("you" = the listener's controller; all five corpus carriers write
+// Creature.YouCtrl). ValidPlayer$/ValidSource$ are not read: measured, none of
+// the five corpus lines carries either.
+func (e *Engine) exertedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Exert || ev.Amount < 0 {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	return true
 }
 
 // sacrificedMatches and discardedMatches identify the two actions from the
@@ -2454,6 +2935,98 @@ func (e *Engine) discardCauseAdmits(spec string, source state.ObjID, ev events.E
 	}
 	o := e.G.Obj(cause)
 	return o != nil && state.StackKindAdmits(state.StackKindTokens(spec), state.StackKindOf(e.G, o), o,
+		o.Controller, e.controllerOf(source))
+}
+
+// cyclingCauseKeywords is the CR 702.28 cycling family: the plain Cycling
+// keyword and its typed form (TypeCycling), both of which Forge's `Cycling`
+// stack spec names. Exact membership -- a substring test would let
+// TypeCycling's own "Cycling" suffix admit the plain spec through a false
+// positive, and vice versa is impossible because the values are distinct.
+var cyclingCauseKeywords = map[string]bool{"Cycling": true, "TypeCycling": true}
+
+// drawCauseAdmits evaluates a ValidCause$ stack spec against the spell or
+// ability that caused Draw event ev, from source's controller's perspective.
+// It serves the Draw replacement arm (Unpredictable Cyclone, the corpus's
+// only Draw ValidCause$ carrier: "If a cycling ability of another nonland
+// card would cause you to draw a card, instead ...").
+//
+// The base kind and the controller / instant-sorcery restrictions are read
+// through state's shared classifier (StackKindTokenOf + StackKindAdmits), so
+// this cannot drift from TargetType$/ValidStack. But that classifier
+// DELIBERATELY ignores every other qualifier (its doc comment records the
+// widening), which is fine for a target offer but wrong here: a replacement
+// scoped by `Activated.Cycling+nonLand` must not apply to a draw caused by
+// ANY activated ability. The qualifiers this helper adds are the ones the one
+// Draw carrier needs -- `Cycling` (the cause ability carries the keyword) and
+// a card predicate such as `nonLand` (matched on the cause's SOURCE card
+// through the ordinary filter grammar). Any qualifier this helper does not
+// recognise FAILS CLOSED: a cause spec it cannot evaluate must never admit
+// the replacement (the repo's standing filter contract).
+//
+// Comma-separated alternatives are OR, matching ValidTgts$/ValidCause$
+// semantics elsewhere.
+func (e *Engine) drawCauseAdmits(spec string, source state.ObjID, ev events.Event) bool {
+	cause := e.actionCause()
+	if cause == 0 {
+		return false
+	}
+	o := e.G.Obj(cause)
+	if o == nil {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		if e.drawCauseTokenAdmits(strings.TrimSpace(alt), o, source) {
+			return true
+		}
+	}
+	return false
+}
+
+// drawCauseTokenAdmits evaluates ONE comma-separated token of a Draw
+// ValidCause$ spec (drawCauseAdmits's per-alternative worker). It recognises
+// a valid stack base, the shared controller / instant-sorcery qualifiers, the
+// `Cycling` keyword qualifier and a card-predicate qualifier (evaluated
+// against the cause's source card). Every other qualifier fails closed.
+func (e *Engine) drawCauseTokenAdmits(token string, o *state.Object, source state.ObjID) bool {
+	tok, ok := state.StackKindTokenOf(token)
+	if !ok {
+		return false
+	}
+	_, rest, _ := strings.Cut(strings.TrimSpace(token), ".")
+	for _, q := range strings.Split(rest, "+") {
+		q = strings.TrimSpace(q)
+		if q == "" {
+			continue
+		}
+		switch q {
+		case "YouCtrl", "OppCtrl", "Instant", "Sorcery":
+			// Read by StackKindAdmits below.
+		case "Cycling":
+			if o.Ability == nil || !cyclingCauseKeywords[o.Ability.Params["Keyword"]] {
+				return false
+			}
+		default:
+			// A card-predicate qualifier (nonLand, a colour, a type word,
+			// ...) on the cause's SOURCE card. Classify it with the SAME
+			// shared recognizer UnknownPredicates uses, so an unrecognised
+			// token fails closed rather than widening the match.
+			src := e.G.Obj(o.Source)
+			if src == nil {
+				return false
+			}
+			pred := "Card." + q
+			if len(effects.UnknownPredicates(pred)) != 0 {
+				return false
+			}
+			if !effects.MatchesObjectCtx(e.G, pred, src, effects.SpecContext{
+				You: e.controllerOf(source), Source: source,
+			}) {
+				return false
+			}
+		}
+	}
+	return state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindOf(e.G, o), o,
 		o.Controller, e.controllerOf(source))
 }
 
@@ -2691,10 +3264,13 @@ func (e *Engine) drawnMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 	return true
 }
 
-// drawNumberThisTurn counts p's draws in the current turn, including the Draw
-// event currently being matched. The log is the replay-stable source of this
-// per-turn fact; each player has its own ordinal because "their second card"
-// must not count another seat's draw.
+// drawNumberThisTurn counts p's draws in the current turn. The log is the
+// replay-stable source of this per-turn fact; each player has its own ordinal
+// because "their second card" must not count another seat's draw. Callers
+// differ on whether the Draw currently being matched is already logged:
+// trigger matching runs POST-emit (the event is in the log), while
+// replacement matching runs PRE-emit (it is not), so a replacement matcher
+// must add the pending draw's own applicability itself.
 func (e *Engine) drawNumberThisTurn(p state.PlayerID) int {
 	n := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
@@ -2730,6 +3306,84 @@ func (e *Engine) firstCardInDrawStep(p state.PlayerID) bool {
 	return false
 }
 
+// pendingDrawIsFirstInDrawStep reports whether a Draw about to be logged for
+// p is the first p draws since this turn entered its draw step. It is the
+// pre-emit twin of firstCardInDrawStep: replacement matching runs from
+// Engine.emit BEFORE the proposed Draw is appended to e.L.Events, so the
+// pending event itself is the "next" draw (draw count 0) rather than a
+// logged one (draw count 1). It requires p to be the ACTIVE player as well,
+// because the exempt draw CR 504.1 grants is that player's own turn-based
+// draw: a non-active player drawing during someone else's draw step is not
+// the first one they draw in each of their own draw steps, so Notion Thief
+// and Hullbreacher must still replace it. firstCardInDrawStep deliberately
+// omits that active-player test (a trigger reads whoever drew); the two
+// cannot share a body, so they are kept adjacent with identical log-scan
+// shapes to stop the pair drifting.
+func (e *Engine) pendingDrawIsFirstInDrawStep(p state.PlayerID) bool {
+	if e.G.Step != state.StepDraw || p != e.G.Active {
+		return false
+	}
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.Draw && ev.Player == p {
+			return false
+		}
+		if ev.Kind == events.StepChange {
+			return ev.Step == state.StepDraw
+		}
+	}
+	return false
+}
+
+// extraDrawsThisTurn counts p's draws in the current turn that are NOT the
+// CR 504.1 turn-based draw -- the first card p draws in p's OWN draw step
+// while p is the active player. That is the draw Reed Richards' "except the
+// first card you draw during each of your draw steps" clause exempts, so a
+// FirstExtraCardDrawnThisTurn$ True replacement must apply only when this
+// count is zero (CR 614.1a: one replacement per occasion, and only the first
+// such occasion each turn).
+//
+// It runs from replacement matching, which is PRE-emit: the pending Draw is
+// not yet in e.L.Events, so the caller adds the pending draw's own
+// applicability separately (see pendingDrawIsFirstInDrawStep, the pre-emit
+// twin of the exempt-draw test). The log -- not a mutable counter -- is the
+// source of this per-turn fact, so cloning and replay rebuild it without an
+// event-schema change.
+func (e *Engine) extraDrawsThisTurn(p state.PlayerID) int {
+	n := 0
+	start := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		if e.L.Events[i].Kind == events.TurnChange {
+			start = i
+			break
+		}
+	}
+	// step is the step the scan is currently inside; 255 is the uint8 sentinel
+	// for "before any StepChange this turn", which no real step equals.
+	step := state.Step(255)
+	drawsInStep := 0
+	for i := start; i < len(e.L.Events); i++ {
+		ev := e.L.Events[i]
+		switch ev.Kind {
+		case events.StepChange:
+			step = ev.Step
+			if ev.Step == state.StepDraw {
+				drawsInStep = 0
+			}
+		case events.Draw:
+			if ev.Player != p {
+				continue
+			}
+			if step == state.StepDraw && p == e.G.Active && drawsInStep == 0 {
+				drawsInStep++
+				continue
+			}
+			n++
+		}
+	}
+	return n
+}
+
 // lifeLoss names the player and positive magnitude of an event that lowers a
 // player's life total. Damage to a player and a negative LifeChange are both
 // loss of life; damage to an object is not.
@@ -2743,6 +3397,16 @@ func lifeLoss(ev events.Event) (state.PlayerID, int32, bool) {
 		if ev.Amount < 0 {
 			return ev.Player, -ev.Amount, true
 		}
+	}
+	return 0, 0, false
+}
+
+// lifeGain names the player and positive magnitude of an event that raises a
+// player's life total (the mirror of lifeLoss). Damage can only lower life,
+// so only a positive LifeChange qualifies.
+func lifeGain(ev events.Event) (state.PlayerID, int32, bool) {
+	if ev.Kind == events.LifeChange && ev.Amount > 0 {
+		return ev.Player, ev.Amount, true
 	}
 	return 0, 0, false
 }
@@ -2805,6 +3469,48 @@ func (e *Engine) lifeLostMatches(t cards.Trigger, source state.ObjID, ev events.
 	return true
 }
 
+// lifeGainedMatches implements Mode$ LifeGained ("whenever you gain life",
+// 99 raw corpus carrier files over 91 blocked cards; Prize Pig's ribbon
+// payoff is the pin): the event is a LifeChange with a POSITIVE Amount.
+// Damage can only lower life, so unlike LifeLost there is no damage arm --
+// a Damage event never gains life. ValidPlayer$ names the gainer (the same
+// MatchesPlayerSpec read lifeLostMatches uses); ValidAmountEach$ and
+// LifeAmount$ compare the gained magnitude the same way their LifeLost
+// twins do (On LifeGained, LifeAmount$ is likewise the amount just gained).
+// PlayerTurn$ True and FirstTime$ True mirror the gates lifeLostMatches
+// implements: PlayerTurn$ (5 corpus lines) fires only during the source
+// controller's turn; FirstTime$ (8 lines over 7 files, e.g. Attended Healer's
+// "for the first time each turn") admits only the FIRST life-gain event of
+// that player this turn. Both are additionally covered by the generic
+// actionTriggerModes gates (PlayerTurn$ at queue time, ActivationLimit$),
+// since the mode joined that set.
+func (e *Engine) lifeGainedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.LifeChange || ev.Amount <= 0 {
+		return false
+	}
+	p := ev.Player
+	if int(p) < 0 || int(p) >= len(e.G.Players) {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidPlayer"]; ok && !effects.MatchesPlayerSpec(e.G, v, p, ctrl) {
+		return false
+	}
+	if v, ok := t.Params["ValidAmountEach"]; ok && !compareLife(ev.Amount, v) {
+		return false
+	}
+	if v := t.Params["LifeAmount"]; v != "" && !compareLife(ev.Amount, v) {
+		return false
+	}
+	if strings.EqualFold(t.Params["PlayerTurn"], "True") && e.G.Active != ctrl {
+		return false
+	}
+	if strings.EqualFold(t.Params["FirstTime"], "True") && !e.firstLifeGainThisTurn(p) {
+		return false
+	}
+	return true
+}
+
 // lifeLossCauseMatches recognizes the spell/ability cause grammar carried by
 // LifeLost triggers. Events intentionally do not encode an extra source field,
 // so a synchronous trigger read uses the Engine's in-flight resolving source;
@@ -2853,6 +3559,29 @@ func (e *Engine) firstLifeLossThisTurn(p state.PlayerID) bool {
 			return seenCurrent
 		}
 		q, _, ok := lifeLoss(ev)
+		if !ok || q != p {
+			continue
+		}
+		if seenCurrent {
+			return false
+		}
+		seenCurrent = true
+	}
+	return seenCurrent
+}
+
+// firstLifeGainThisTurn is the LifeGained mirror of firstLifeLossThisTurn:
+// true only for the newest life-GAIN event of p in the current turn, so a
+// FirstTime$ True trigger (8 corpus lines) admits exactly the first gain of
+// that player's turn. Same replay-stable log scan, no mutable counter.
+func (e *Engine) firstLifeGainThisTurn(p state.PlayerID) bool {
+	seenCurrent := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return seenCurrent
+		}
+		q, _, ok := lifeGain(ev)
 		if !ok || q != p {
 			continue
 		}
@@ -2968,6 +3697,34 @@ func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev 
 	return true
 }
 
+func (e *Engine) flippedCoinMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	flipper, win, ok := effects.FlipNoteResult(ev)
+	if !ok {
+		return false
+	}
+	// ValidResult$ gates the side: Win = heads (Amount 1), Lose = tails
+	// (Amount 0). Every corpus FlippedCoin line carries one; an absent
+	// ValidResult$ (no such line measured) would fire on both sides.
+	if res := strings.TrimSpace(t.Params["ValidResult"]); res != "" {
+		if strings.EqualFold(res, "Win") && !win {
+			return false
+		}
+		if strings.EqualFold(res, "Lose") && win {
+			return false
+		}
+	}
+	// ValidPlayer$ names the FLIPPER ("whenever YOU win a coin flip"): the
+	// Note's Player, through the shared player-spec grammar with the trigger's
+	// own controller as You. The two "whenever a player wins" lines carry no
+	// ValidPlayer$ and fire on any flipper.
+	if v, ok := t.Params["ValidPlayer"]; ok {
+		if !effects.MatchesPlayerSpecFrom(e.G, v, flipper, e.controllerOf(source), source) {
+			return false
+		}
+	}
+	return true
+}
+
 // attachedMatches implements Mode$ Attached: the trigger fires when an Aura,
 // Equipment or other attachment becomes attached to a permanent (CR
 // 701.3a's "becomes attached" -- the event the engine's one shared attach
@@ -3005,6 +3762,37 @@ func (e *Engine) attachedMatches(t cards.Trigger, source state.ObjID, ev events.
 		return effects.MatchesSpecCtx(e.G, v, ev.IDs[0], e.specCtx(source, ctrl))
 	}
 	return false
+}
+
+// ringTemptsMatches implements Mode$ RingTemptsYou (CR 701.54d): the trigger
+// fires when the Ring tempts its controller, "when the actions complete,
+// even if some were impossible" — an event with Obj 0 (no creature was
+// designated) still counts as a temptation. The tempted player is ev.Player;
+// ValidPlayer$ gates on the tempted player against the source's controller
+// (the corpus's only spelling, `ValidPlayer$ You`). ValidCard$ gates on the
+// chosen Ring-bearer with the source's controller as "you" and the source as
+// Other — the corpus's `Creature.YouCtrl+Other` shape ("a creature other than
+// CARDNAME") and the plain `Creature.YouCtrl` shape both resolve through it;
+// with no designated bearer a ValidCard$ trigger never fires.
+func (e *Engine) ringTemptsMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.RingTemptsYou {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidPlayer"]; ok {
+		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+			return false
+		}
+	}
+	if v := t.Params["ValidCard"]; v != "" {
+		if ev.Obj == 0 {
+			return false // no creature became the Ring-bearer
+		}
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+			return false
+		}
+	}
+	return true
 }
 
 // becomesTargetMatches implements Mode$ BecomesTarget: the trigger fires
@@ -3262,6 +4050,14 @@ func abilityCastValidSA(ab *cards.SA, validSA string) bool {
 //     total compared to n.
 //   - IsPresent$ <spec> with PresentCompare$ <op><n>: the count of objects
 //     matching <spec> compared to n.
+//   - Metalcraft$ True (and the bare-Condition$ Metalcraft spelling): the
+//     controller controls three or more artifacts -- the trigger-side named
+//     condition the ability word uses (6 corpus files: Vedalken Humiliator's
+//     attack pump, Blade-Tribe Berserkers' and Bleak Coven Vampires' ETBs,
+//     Lumengrid Drake's bounce, Inventors' Fair's upkeep lifegain, Screeching
+//     Silcaw's mill), read through the SAME metalcraftHolds census
+//     costConditionHolds' Condition$ Metalcraft case and the Continuous
+//     static gate read, so the three cannot drift apart.
 //
 // An absent clause is vacuously true. A clause whose shape this build cannot
 // evaluate FAILS CLOSED -- a false condition means the trigger simply does not
@@ -3277,9 +4073,10 @@ func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool
 // which can differ from the source card's own controller -- see
 // checkEventDelayedTriggers.
 func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID) bool {
-	// LifeLost's LifeAmount$ is matched against the causing loss by
-	// lifeLostMatches, rather than against a player's current life total.
-	if v, ok := t.Params["LifeAmount"]; ok && t.Mode != "LifeLost" && t.Mode != "LifeLostAll" {
+	// LifeLost's and LifeGained's LifeAmount$ are matched against the causing
+	// loss/gain by their matchers (lifeLostMatches/lifeGainedMatches), rather
+	// than against a player's current life total.
+	if v, ok := t.Params["LifeAmount"]; ok && t.Mode != "LifeLost" && t.Mode != "LifeLostAll" && t.Mode != "LifeGained" {
 		if !e.lifeConditionHoldsAs(t, you, v) {
 			return false
 		}
@@ -3333,6 +4130,55 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 				return false
 			}
 			return applyCompare(e.presentUnionCount(spec, spec2, source, you), op, n)
+		}
+	}
+	if v, ok := t.Params["Metalcraft"]; ok {
+		// The trigger-side named condition (task trig-attacks-metalcraft):
+		// a value this build cannot read as True is an unreadable clause
+		// shape and fails closed like the other clauses above.
+		if !strings.EqualFold(strings.TrimSpace(v), "True") || !e.metalcraftHolds(you) {
+			return false
+		}
+	}
+	if strings.EqualFold(strings.TrimSpace(t.Params["Condition"]), "Metalcraft") {
+		// The bare-Condition$ spelling of the same gate. The trigger path
+		// reads no OTHER bare Condition$ value (LifePaid, Evolve,
+		// Sacrificed and friends are matched by their own per-kind helpers
+		// or stay unread), and no corpus trigger carries this spelling
+		// today -- the bare Condition$ Metalcraft carriers are S: statics
+		// the Continuous gate already reads -- but the spelling is kept
+		// beside Metalcraft$ so the two cannot drift apart.
+		if !e.metalcraftHolds(you) {
+			return false
+		}
+	}
+	if v, ok := t.Params["Revolt"]; ok {
+		// Revolt$ (the CR 702.38 ability word, "if a permanent you
+		// controlled left the battlefield this turn"): the SAME
+		// revoltThisTurn scan the replacement path's Revolt$ clause reads
+		// (rules/replacement.go), the one Engine.RevoltHolds -- effects'
+		// bare Condition$ Revolt gate and Count$Revolt branch head --
+		// delegates to, so the three spellings cannot drift apart. Measured
+		// over the corpus: 29 files carry Revolt$ True; 24 of its lines are
+		// triggers -- 16 Mode$ Phase end-step shapes (Aid from the Cowl,
+		// Hidden Stockpile, Krang) and 8 Mode$ ChangesZone ETBs (Airdrop
+		// Aeronauts, Vengeful Rebel, Deadeye Harpooner); the rest are a
+		// replacement line (Aether Revolt, already read on the replacement
+		// path) and non-trigger text. A value this build cannot read as
+		// True is an unreadable clause shape and fails closed like the
+		// Metalcraft$ clause above.
+		if !strings.EqualFold(strings.TrimSpace(v), "True") || !e.revoltThisTurn(you) {
+			return false
+		}
+	}
+	if strings.EqualFold(strings.TrimSpace(t.Params["Condition"]), "Revolt") {
+		// The bare-Condition$ spelling of the same gate. No corpus trigger
+		// carries it today (the one bare Condition$ Revolt carrier,
+		// Decommission, is a DB$ GainLife sub the effects condition gate
+		// reads), kept beside the bare Condition$ Metalcraft spelling so
+		// the two cannot drift apart.
+		if !e.revoltThisTurn(you) {
+			return false
 		}
 	}
 	if name, ok := t.Params["CheckSVar"]; ok {
@@ -3621,11 +4467,13 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:Cycled", "trig:CounterAdded", "trig:CounterRemoved",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterRemoved",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
-		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached",
+		"trig:LifeGained",
+		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
+		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
@@ -3646,6 +4494,10 @@ func init() {
 		// (layer-6 AddKeyword$) form is synthesized by
 		// checkGrantedAfflictTriggers, the Dethrone precedent.
 		"kw:Afflict",
+		// Flanking's expansion (cards/keywords.go) is a become-blocked trigger
+		// on the new AttackerBlockedByCreature mode (CR 702.25a), one instance
+		// per non-flanking blocker, debuffing it -1/-1 until EOT via Pump.
+		"kw:Flanking",
 		// Afterlife's expansion (cards/keywords.go) is a ChangesZone death
 		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
 		"kw:Afterlife",
@@ -3658,13 +4510,17 @@ func init() {
 		//   - kw:Start your engines: the speed mechanic (rules/speed.go).
 		//   - stat:Panharmonicon: the trigger-doubling static (rules'
 		//     panharmoniconEchoes, consulted in checkFaceTriggers).
-		//   - kw:Partner and "kw:CARDNAME can be your commander." are
-		//     DECK-CONSTRUCTION keywords (CR 90.3a/702.129): the engine
-		//     already seats and casts commanders per Config, and nothing in
-		//     play reads them, so the registrations assert the corpus shape
-		//     is understood, not that play rules exist for it.
+		//   - kw:Partner, kw:Partner with and "kw:CARDNAME can be your
+		//     commander." are DECK-CONSTRUCTION keywords (CR 903.13a/b, the
+		//     CR 903.13c named-pair alias, and CR 903.4-style commander
+		//     eligibility): the engine already seats and casts commanders
+		//     per Config -- partnerPairOK -> deck.IsPartnerPair checks the
+		//     mutual named pair -- and nothing in play reads them, so the
+		//     registrations assert the corpus shape is understood, not that
+		//     play rules exist for it.
 		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
-		"stat:Panharmonicon", "kw:Partner", "kw:CARDNAME can be your commander.",
+		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
+		"kw:CARDNAME can be your commander.",
 	)
 }
 
@@ -3820,8 +4676,14 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 		return
 	}
 	printed := map[string]bool{}
-	for _, k := range f.Keywords {
-		printed[strings.ToLower(k)] = true
+	if !e.faceDownPrintedHides(o) {
+		// While the object is face down its printed face does not exist
+		// (CR 708.8): a cloaked card whose real face prints Ward must not
+		// suppress its own cloak-ward -- the derived list is the only
+		// keyword source on this path.
+		for _, k := range f.Keywords {
+			printed[strings.ToLower(k)] = true
+		}
 	}
 	for _, k := range observer.Derived(id).Keywords {
 		if printed[strings.ToLower(k)] {
@@ -3883,14 +4745,16 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // granted-keyword paths use, pushed through events.GrantTriggerPush.
 //
 // The queue gate is the live==replay contract: the stack object is minted
-// inside events.Apply, which can only resolve the Execute$ body from the
-// AFFECTED object's own SVar table, so the walk links the effect from that
-// same table (the resolveSVarAcrossFaces walk mirrored in
-// grantedTriggerExecute) and a grant whose body it cannot produce never
-// queues -- the conservative direction, matching the replayable-log
-// invariant rather than minting an ability a replay cannot rebuild. A
-// self-grant (Hearthhull) trivially satisfies it; the cross-object
-// aura-grants-its-own-SVar shape fails closed here.
+// inside events.Apply, which resolves the Execute$ body from the GRANTOR's
+// own SVar table (the object carrying the printed static, threaded to the
+// event as Amount; 0 = the self-grant shape, where grantor == recipient), so
+// the walk links the effect from that same table (the resolveSVarAcrossFaces
+// walk mirrored in grantedTriggerExecute) and a grant whose body it cannot
+// produce never queues -- the conservative direction, matching the
+// replayable-log invariant rather than minting an ability a replay cannot
+// rebuild. A self-grant (Hearthhull) trivially satisfies it, and so does a
+// cross-object grant (an Aura granting its enchanted creature a trigger): the
+// Execute$ SVar lives on the GRANTOR's face, which is ce.Source.
 //
 // Fire-count: like Ward and Dethrone, every granted trigger shares the
 // granted slot's triggerKey (Source, Idx -1) -- the cascade bound only, not
@@ -3912,10 +4776,15 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 		}
 		t := *ce.AddTrigger
 		// The live==replay gate: link the Execute$ body exactly the way
-		// events.Apply will (the affected object's own table); a body it
-		// cannot resolve never queues, and a same-named body it CAN resolve
-		// is by construction the same body a replay would resolve.
-		if t.Effect = grantedTriggerExecute(o, t.Params["Execute"]); t.Effect == nil {
+		// events.Apply will (the GRANTOR's own table -- ce.Source carries the
+		// printed static; a self-grant degenerates to the affected object); a
+		// body it cannot resolve never queues, and a same-named body it CAN
+		// resolve is by construction the same body a replay would resolve.
+		grantor := observer.G.Obj(ce.Source)
+		if grantor == nil || grantor.Face() == nil {
+			continue
+		}
+		if t.Effect = grantedTriggerExecute(grantor, t.Params["Execute"]); t.Effect == nil {
 			continue
 		}
 		// CR 603.8's outstanding-instance latch, mirrored from the face walk
@@ -3945,6 +4814,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 			Idx:        -1,
 			SA:         t.Effect,
 			Granted:    true,
+			Grantor:    ce.Source,
 			Execute:    t.Params["Execute"],
 			Ctx: effects.Ctx{
 				Source:         id,
@@ -3962,9 +4832,11 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 
 // grantedTriggerExecute mirrors events.Apply's GrantTriggerPush resolution
 // (the resolveSVarAcrossFaces walk): the granted body's Execute$ name is
-// resolved against the AFFECTED object's own SVar table -- current face
-// first, then every other face -- so the live queue links exactly the body a
-// replayed log will. nil when no face resolves it.
+// resolved against the GRANTOR's own SVar table -- current face first, then
+// every other face -- so the live queue links exactly the body a replayed
+// log will. (Apply resolves from the object Amount names when set; for the
+// self-grant shape grantor == recipient, so passing the grantor covers both
+// arms.) nil when no face resolves it.
 func grantedTriggerExecute(o *state.Object, execute string) *cards.SA {
 	if execute == "" {
 		return nil

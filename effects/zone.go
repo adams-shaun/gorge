@@ -17,6 +17,7 @@ func init() {
 	Register("DestroyAll", effDestroyAll)
 	Register("Sacrifice", effSacrifice)
 	Register("Manifest", effManifest)
+	Register("Cloak", effCloak)
 }
 
 // ParseZone maps a Forge zone name to a state.Zone. Unknown names resolve to
@@ -100,8 +101,65 @@ func mixedOriginIncludesHand(zones []state.Zone, all bool) bool {
 	return !all && len(zones) > 1 && zoneIn(zones, state.ZHand)
 }
 
+// changeZoneAltDestination resolves ChangeZone's conditional alternate
+// destination (Forge's ChangeZoneEffect.handleAltDest): DestAltSVar$ names an
+// SVar (or inline count expression) evaluated against the resolving host card
+// and compared under DestAltSVarCompare$ (default GE1, i.e. truthy). When the
+// condition holds, the move takes DestinationAlternative$ instead of
+// Destination$.
+//
+// The optional "MANDATORY " prefix is stripped. Forge reads MANDATORY as the
+// difference between forcing the alternate and offering the player a
+// confirmAction; this engine has no destination-confirm ask, so BOTH branches
+// take the alternate deterministically when the condition holds, and the
+// non-mandatory shape records one Note disclosing the dropped confirm (the
+// expansion-specific riders of six corpus carriers, all Destination$ Hand ->
+// DestinationAlternative$ Battlefield). MANDATORY itself therefore changes no
+// behaviour today; it is parsed so the two spellings cannot drift.
+//
+// Unlike CheckSVarHolds's other call sites, an unreadable condition here fails
+// CLOSED to the primary destination (plus a Note): moving a card to a zone the
+// condition cannot justify would be a silently wrong board, whereas keeping
+// the primary is the pre-existing behaviour and therefore replay-safe.
+func changeZoneAltDestination(h Host, c *Ctx, sa *cards.SA, primary state.Zone) state.Zone {
+	cond := strings.TrimSpace(sa.Params["DestAltSVar"])
+	if cond == "" {
+		return primary
+	}
+	mandatory := false
+	if rest, ok := strings.CutPrefix(cond, "MANDATORY "); ok {
+		mandatory = true
+		cond = strings.TrimSpace(rest)
+	}
+	holds, evaluated := CheckSVarHolds(h, c, cond, strings.TrimSpace(sa.Params["DestAltSVarCompare"]))
+	if !evaluated {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "DestAltSVar$ " + strings.TrimSpace(sa.Params["DestAltSVar"]) +
+				" is not a condition this engine can evaluate; the move takes the primary destination"})
+		return primary
+	}
+	if !holds {
+		return primary
+	}
+	alt, ok := ParseZoneWord(sa.Params["DestinationAlternative"])
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "DestAltSVar$ " + strings.TrimSpace(sa.Params["DestAltSVar"]) +
+				" holds but DestinationAlternative$ " + strings.TrimSpace(sa.Params["DestinationAlternative"]) +
+				" is not a zone this engine models; the move takes the primary destination"})
+		return primary
+	}
+	if !mandatory {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "DestAltSVar$ " + strings.TrimSpace(sa.Params["DestAltSVar"]) +
+				" holds: the alternate destination " + strings.TrimSpace(sa.Params["DestinationAlternative"]) +
+				" is taken (Forge would ask which destination; this engine does not ask)"})
+	}
+	return alt
+}
+
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
-	to := ParseZone(sa.Params["Destination"])
+	to := changeZoneAltDestination(h, c, sa, ParseZone(sa.Params["Destination"]))
 	var originZones []state.Zone
 	var originAll bool
 	if from, present := sa.Params["Origin"]; present {
@@ -406,6 +464,11 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var imprinted []state.ObjID
+	// The objects the move loop actually moved, in move order: ChangeZone's
+	// AtEOT$ affected set is the MOVED objects (some carriers carry
+	// RememberChanged$ and some do not, so the moved set is collected here
+	// rather than read back out of Remembered).
+	var moved []state.ObjID
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -440,9 +503,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
 			ev.IDs = []state.ObjID{c.Source}
 		}
-		applyExileFaceDown(sa, c, &ev, to)
+		applyFaceDownMarker(h, sa, c, &ev, to)
 		fromZone := o.Zone
 		h.Emit(ev)
+		moved = append(moved, o.ID)
 		exiledWithAssociation(h, c, o.ID, to)
 		if to == state.ZExile {
 			recordExileReturn(h, c, sa, o.ID, fromZone, to)
@@ -492,6 +556,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			applyGainControl(h, c, sa, o.ID)
 			changeZoneAttachedTo(h, c, sa, o.ID)
 		}
+		// Tapped$ True (CR 110.5's entry state): the moved permanent enters
+		// tapped. The object path did not apply this rider before, so a
+		// targeted graveyard/exile return carrying it (Zuko's Conviction's
+		// kicked alternate, every "return it to the battlefield tapped"
+		// spell) entered untapped -- the same Tap event applyLibrarySearch
+		// and the hand movers emit, so the entry state is a real event and
+		// replay derives it.
+		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
+			h.Emit(events.Event{Kind: events.Tap, Obj: o.ID, Player: c.Controller, Text: "entered tapped"})
+		}
 		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
 			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
 				imprinted = append(imprinted, o.ID)
@@ -501,6 +575,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if len(imprinted) > 0 {
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
+	// AtEOT$ (Puppeteer Clique's reanimation: "at the beginning of your next
+	// end step, exile it"): schedule the end-step departure for every object
+	// this move actually moved.
+	scheduleAtEOT(h, c, sa, moved)
 }
 
 // changeZoneAttachedTo implements ChangeZone's AttachedTo$ param: "the moved
@@ -561,21 +639,53 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 	h.Emit(events.Event{Kind: events.Attach, Obj: moved, IDs: []state.ObjID{to}})
 }
 
-// applyExileFaceDown marks a just-built exile MoveZone face-down
-// (ExileFaceDown$ True, Necropotence's "exile the top card of your library
-// face down"): events.Apply's "exiled_with_face_down" decode sets
-// Object.FaceDown, which the view layer redacts to everyone but the
-// exiling controller, and records the exiling source as the ExiledWith
-// association -- the same encoding Hideaway's face-down exile uses. The IDs
-// provenance payload is cleared so the two carriers cannot disagree on one
-// event.
-func applyExileFaceDown(sa *cards.SA, c *Ctx, ev *events.Event, to state.Zone) {
-	if to != state.ZExile || !strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True") {
-		return
+// applyFaceDownMarker stamps a just-built ChangeZone MoveZone with the
+// face-down encoding the card text asks for. Two spellings reach it, and they
+// mean different CR things:
+//
+//   - ExileFaceDown$ True (Necropotence's "exile the top card of your library
+//     face down"): the "exiled_with_face_down" decode sets Object.FaceDown AND
+//     records the exiling source as the ExiledWith association -- the same
+//     encoding Hideaway's face-down exile uses. The IDs provenance payload is
+//     cleared so the two carriers cannot disagree on one event.
+//   - FaceDown$ True (Yedora, Grave Gardener; the manifest marker's own
+//     spelling) on a battlefield entry: the "entered_face_down" decode folds
+//     Object.FaceDown plus the optional FaceDownSetType$/FaceDownPower$/
+//     FaceDownToughness$ payload the card text names, exactly as a Manifest
+//     does. A hand/library-origin face-down entry is marked Secret (its face
+//     would otherwise leak through the transcript), matching the Manifest
+//     precedent; a graveyard-origin one stays public (CR 708.9 already
+//     revealed it on leaving the battlefield).
+//   - FaceDown$ True on an exile destination (Tezzeret's Reckoning): the card
+//     is put into exile face down WITHOUT an ExiledWith association, so the
+//     bare spelling uses its own "face_down" marker rather than borrowing
+//     ExileFaceDown$'s source-carrying one.
+//
+// It is called from every ChangeZone mover (the object path, the shared
+// settle helper the hand/library routes use, and applyLibrarySearch), so the
+// read composes with each without a second caller-side branch.
+func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to state.Zone) {
+	faceDown := strings.EqualFold(strings.TrimSpace(sa.Params["FaceDown"]), "True")
+	exileFaceDown := strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True")
+	switch {
+	case to == state.ZExile && exileFaceDown:
+		ev.Counter = "exiled_with_face_down"
+		ev.Amount = int32(c.Source)
+		ev.IDs = nil
+	case to == state.ZExile && faceDown:
+		ev.Counter = "face_down"
+		ev.Amount = 0
+		ev.IDs = nil
+	case to == state.ZBattlefield && faceDown:
+		setType := strings.TrimSpace(sa.Params["FaceDownSetType"])
+		power, hasPower := NumResolved(h, c, sa, "FaceDownPower", 0)
+		toughness, hasTough := NumResolved(h, c, sa, "FaceDownToughness", 0)
+		hasPT := hasPower || hasTough
+		ev.Counter = events.FaceDownEntryCounterFor(setType, power, toughness, hasPT)
+		if ev.From == state.ZHand || ev.From == state.ZLibrary {
+			ev.Secret = true
+		}
 	}
-	ev.Counter = "exiled_with_face_down"
-	ev.Amount = int32(c.Source)
-	ev.IDs = nil
 }
 
 // settleChangeZoneMove is the one settle path every ChangeZone mover shares:
@@ -716,7 +826,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if hasPlayer {
 		ev.Player = player
 	}
-	applyExileFaceDown(sa, c, &ev, to)
+	applyFaceDownMarker(h, sa, c, &ev, to)
 	h.Emit(ev)
 	if to == state.ZExile {
 		recordExileReturn(h, c, sa, id, from, to)
@@ -1114,6 +1224,12 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				moved = append(moved, id)
 			}
 			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			// AtEOT$ on the hand walk: the owner's answered batch is the
+			// affected set, scheduled per owner BEFORE the walk can suspend on a
+			// later owner's ask (a suspension must not lose this batch's
+			// registrations -- the re-entry skips already-answered owners and
+			// never re-schedules them).
+			scheduleAtEOT(h, c, sa, moved)
 			continue
 		}
 		n := count.fixed
@@ -1139,6 +1255,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				pool = append(pool[:j], pool[j+1:]...)
 			}
 			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			scheduleAtEOT(h, c, sa, moved)
 			continue
 		}
 		// NumInHand/HandSize means "all matching cards in that hand", an
@@ -1166,6 +1283,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				moved = append(moved, id)
 			}
 			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			scheduleAtEOT(h, c, sa, moved)
 			continue
 		}
 		chooser := owner
@@ -1179,7 +1297,15 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 			Min: min, Max: int(n), Source: c.Source,
 			ResumeKind: "hand_move", ResumeSA: sa, ResumeTarget: i,
-			Prompt: handMovePromptFor(sa, to, int(n), chooser == owner)}
+			// The re-entered walk revalidates the answered cards against the
+			// SAME filter it offered them under (Card.IsRemembered in Vizkopa
+			// Confessor's PickOne, whose remembered population is ctx-level
+			// only -- RememberRevealed$), so the ask must RIDE that set the way
+			// every other mid-resolution ask boundary does (attach.go,
+			// counters.go, play.go): without it the rebuild loses the ctx-level
+			// Remembered and the revalidation re-eligible-matches nothing.
+			ResumeRemembered: copyTargets(c.Remembered),
+			Prompt:           handMovePromptFor(sa, to, int(n), chooser == owner)}
 		for _, id := range eligible {
 			name := "a card"
 			if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -1209,6 +1335,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 			moved = append(moved, eligible[k])
 		}
 		handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+		scheduleAtEOT(h, c, sa, moved)
 	}
 }
 
@@ -1566,12 +1693,36 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			}
 		}
 	}
+	// WithTotalCMC$ is the cumulative mana-value budget over the found cards
+	// (Protean Hulk: "any number of creature cards with total mana value 6 or
+	// less"), the exact parameter effDig reads on its own window. A card
+	// whose own mana value exceeds the budget can never be found, and the
+	// running sum of the picks must not exceed it either; the mechanics
+	// mirror effDig's (affordable filter, Decision.MaxSum + Option.Value on
+	// the wire, a greedy stand-in). Absent the param the budget is 0,
+	// budgetEligible == eligible and every read below is a no-op, so a
+	// non-budget search emits byte-identically. The CR 701.23b/701.23d Min
+	// semantics below are unchanged; only the affordable pool they are read
+	// over is narrowed.
+	budget, hasBudget := NumResolved(h, c, sa, "WithTotalCMC", 0)
+	if budget < 0 {
+		budget = 0
+	}
+	budgetEligible := eligible
+	if hasBudget {
+		budgetEligible = make([]state.ObjID, 0, len(eligible))
+		for _, id := range eligible {
+			if manaValueOf(g, id) <= int(budget) {
+				budgetEligible = append(budgetEligible, id)
+			}
+		}
+	}
 	max := Num(h, c, sa, "ChangeNum", 1)
 	if max < 0 {
 		max = 0
 	}
-	if max > int32(len(eligible)) {
-		max = int32(len(eligible))
+	if max > int32(len(budgetEligible)) {
+		max = int32(len(budgetEligible))
 	}
 	// CR 701.23b/701.23d decide the minimum: a search whose card filter states
 	// only a quantity must find that many (or as many as the zone holds), so
@@ -1594,6 +1745,38 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		c.Remembered = nil
 		applyLibrarySearch(h, c, sa, owner, to, nil, zones)
 		return
+	}
+	// greedy is the deterministic stand-in take under the cumulative budget
+	// (bound by the ChangeNum cap): with no budget every card fits and greedy
+	// is exactly the first max cards of eligible -- the take the pre-budget
+	// stand-in applied -- so the R-9 fallback stays byte-identical there. It
+	// is computed before the Min below is finalised, because the budget can
+	// strand a quantity-only search's forced Min.
+	greedy := make([]state.ObjID, 0, len(budgetEligible))
+	running := 0
+	for _, id := range budgetEligible {
+		if int32(len(greedy)) >= max {
+			break
+		}
+		mv := manaValueOf(g, id)
+		if hasBudget && running+mv > int(budget) {
+			continue
+		}
+		running += mv
+		greedy = append(greedy, id)
+	}
+	// A budget can strand a quantity-only search's forced Min: max was
+	// clamped to len(budgetEligible), but the running sum may fit fewer than
+	// that (library [3MV, 4MV], ChangeNum 2, WithTotalCMC 6 -- the greedy
+	// take is one card), so Min == Max == 2 would pose an ask Decision
+	// .Validate rejects for EVERY 2-pick -- a real host could never submit
+	// and the match stalls. Lower the Min to the greedy count -- effDig's
+	// mandatory-budget rule (cardflow.go), which its sibling effHiddenPick
+	// applies too -- so a satisfying answer always exists. (Measured 0
+	// corpus carriers combine a quantity-only filter with WithTotalCMC$;
+	// this is general-correctness code in the direction of no wedge.)
+	if hasBudget && min > int32(len(greedy)) {
+		min = int32(len(greedy))
 	}
 	// The prompt must not offer a choice the decision will refuse. A
 	// quantity-only search has Min == Max, so "up to" would be a lie the
@@ -1634,7 +1817,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	eachSubs, isEach := eachAlternatives(spec)
 	eachStructured := isEach && max <= 1 && SearchStatesQuality(spec)
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
-		Min: int(min), Max: int(max), Source: c.Source,
+		Min: int(min), Max: int(max), MaxSum: int(budget), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
 		// The walk's Remembered rides the ask (rules restores it on the
 		// resume) so the re-entered eligibility recheck and the SubAbility$
@@ -1674,6 +1857,13 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		}
 		d.Min, d.Max = 0, groups
 		d.Prompt = "Search a library: choose one card of each listed type"
+		// The budget is NOT enforced on the structured branch (its options
+		// carry no Value, so a MaxSum the wire advertises would be a cap
+		// Validate sums to 0 over -- meaningless, and misleading to a
+		// consumer). Clear it: 0 corpus carriers combine EACH with
+		// WithTotalCMC$, and a future one needs per-type budget mechanics
+		// designed, not a silent half-read.
+		d.MaxSum = 0
 	} else {
 		if isEach {
 			// A measured-absent shape kept loud rather than silently wrong:
@@ -1683,7 +1873,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "EACH ChangeType with per-type count above 1 resolves as a flat count"})
 		}
-		for _, id := range eligible {
+		for _, id := range budgetEligible {
 			name := "a card"
 			var cardName string
 			if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -1694,6 +1884,11 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			}
 			opt := decision.Option{Index: len(d.Options),
 				Kind: "search", Label: name, Obj: id, Player: owner}
+			// Only a budget search carries a Value: Option.Value is omitempty,
+			// so a non-budget search's option list serialises byte-identically.
+			if hasBudget {
+				opt.Value = manaValueOf(g, id)
+			}
 			if differentNames && cardName != "" {
 				opt.Group = cardName
 			}
@@ -1726,15 +1921,17 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	var picked []state.ObjID
 	if !SearchStatesQuality(spec) {
 		n := int(min)
-		if n > len(eligible) {
-			n = len(eligible)
+		if n > len(greedy) {
+			n = len(greedy)
 		}
 		if n > 0 {
 			// DifferentNames$ True makes the stand-in distinct-name aware too:
 			// a first-Min run over duplicate names would move two same-named
 			// cards the apply side would then have to silently drop under the
-			// Min the decision promised.
-			if differentNames {
+			// Min the decision promised. (No corpus card pairs DifferentNames$
+			// with WithTotalCMC$, so the budget greedy and this walk never
+			// compete; the budget's greedy is the pick when both are present.)
+			if differentNames && !hasBudget {
 				seen := make(map[string]bool, n)
 				for _, id := range eligible {
 					if len(picked) >= n {
@@ -1751,7 +1948,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 					picked = append(picked, id)
 				}
 			} else {
-				picked = append(picked, eligible[:n]...)
+				picked = append(picked, greedy[:n]...)
 			}
 		}
 		if oc == AskNoHost {
@@ -1885,6 +2082,10 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 	if to == state.ZBattlefield && withKind != "" {
 		withAmt = withCounterAmount(h, c, sa)
 	}
+	// The AtEOT$ rider's affected set, collected across every fetch and
+	// scheduled by ONE call after the loop (one Note per call, never per
+	// owner).
+	var ateotMoved []state.ObjID
 	for i := range fetches {
 		f := &fetches[i]
 		moved := make([]state.ObjID, 0, len(f.ids))
@@ -1898,6 +2099,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 			settleChangeZoneMove(h, c, sa, id, state.ZLibrary, to, withKind, withAmt)
 			eventForgetChanged(h, c, sa, id)
 			moved = append(moved, id)
+			ateotMoved = append(ateotMoved, id)
 			if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: f.owner, Text: "entered tapped"})
 			}
@@ -1912,6 +2114,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 			h.Emit(events.Event{Kind: events.Note, Player: f.owner, IDs: moved})
 		}
 	}
+	scheduleAtEOT(h, c, sa, ateotMoved)
 	return true
 }
 
@@ -1988,6 +2191,162 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: top, Player: p,
 				From: state.ZLibrary, To: state.ZBattlefield,
 				Counter: "entered_face_down", Secret: true})
+		}
+	}
+}
+
+// effCloak implements Forge's Cloak primitive (veiled_ascension's upkeep
+// trigger, unexplained_absence's per-player cloak, cryptic_coat's ETB cloak):
+// CR 708.5's cloak variant -- the named card objects move onto the
+// battlefield FACE DOWN as 2/2 creatures with ward {2}. The move is the REAL
+// card object, the effManifest shape with a different Counter value (one
+// Secret MoveZone per card, "entered_cloaked" instead of
+// "entered_face_down" -- the marker events/apply.go folds into
+// state.Object.Cloaked, which rules/layers.go and rules/trigger_match.go
+// read for the ward {2}; the view's FaceDown redaction covers both
+// variants). A cloak's Defined$ names card objects that may sit in the
+// library, exile or hand (the Remembered carriers move cards that just
+// arrived there), so unlike effManifest the object shapes resolve directly.
+//
+// Scope, measured over the corpus's 11 Cloak lines: the per-player top-card
+// shapes (DefinedPlayer$, or Defined$ TopOfLibrary whose listed player's OWN
+// library is taken -- never the resolver's), the ctx-Remembered object
+// shapes (become_anonymous, hide_in_plain_sight, expose_the_culprit), a
+// literal/SVar Amount$ (default 1; a value resolving to <= 0 cloaks
+// nothing, no event) and the riders Tapped$ (enter tapped, the
+// MoveZone-then-Tap pair), Shuffle$ (the standard Secret shuffle of each
+// affected player's library afterwards) and RememberCloaked$ (each cloaked
+// object joins the resolution's Remembered -- cryptic_coat's chained attach)
+// are implemented. SubAbility$ is free (the ordinary chain). Every other
+// shape -- the Choices$ cloak-from-hand chooser (vannifar), Defined$
+// ValidLibrary (etrata), an unresolvable Amount$ body -- emits the SAME loud
+// "unimplemented API Cloak" note the unimplemented fallback emits and moves
+// nothing: fail loud, never silently move the wrong card. Turning a cloaked
+// card face up (CR 708.6) is not implemented anywhere (the
+// Morph/Megamorph/Disguise ticket owns the shared turn-face-up path).
+func effCloak(h Host, c *Ctx, sa *cards.SA) {
+	loud := func() {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented API Cloak"})
+	}
+	defined := strings.TrimSpace(sa.Params["Defined"])
+	if strings.TrimSpace(sa.Params["Choices"]) != "" ||
+		strings.Contains(defined, "ValidLibrary") {
+		loud()
+		return
+	}
+	amount := int32(1)
+	if raw, present := sa.Params["Amount"]; present {
+		// X/Y (and any body Num's grammar cannot resolve) are out of scope:
+		// loud, never a degraded count silently moving a wrong number of
+		// cards.
+		if raw == "X" || raw == "Y" {
+			loud()
+			return
+		}
+		n, ok := NumResolved(h, c, sa, "Amount", 1)
+		if !ok {
+			loud()
+			return
+		}
+		amount = n
+	}
+	if amount <= 0 {
+		return
+	}
+	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
+	shuffle := strings.EqualFold(strings.TrimSpace(sa.Params["Shuffle"]), "True")
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCloaked"]), "True")
+	g := h.Game()
+	shuffled := make(map[state.PlayerID]bool)
+	cloak := func(id state.ObjID) {
+		o := g.Obj(id)
+		if o == nil || o.Zone == state.ZBattlefield {
+			// A missing object moves nothing; a card already on the
+			// battlefield is not a cloak candidate (every corpus shape sources
+			// from library/exile/hand).
+			return
+		}
+		from := o.Zone
+		// Player rides the CLOAKED card's controller: Secret is what keeps
+		// the event's Obj out of every other seat's projection (redaction
+		// rule 1), and the seat that may look at a face-down card is its
+		// controller (CR 708.5).
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, Player: o.Controller,
+			From: from, To: state.ZBattlefield,
+			Counter: "entered_cloaked", Secret: true})
+		if remember {
+			// RememberCloaked$ is ctx level (the cryptic_coat attach chain
+			// reads it within the same resolution); the persistent list is
+			// left alone, the RememberChanged$ convention.
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		}
+		if tapped {
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: o.Controller,
+				Text: "entered tapped"})
+		}
+		shuffled[o.Owner] = true
+	}
+	if strings.TrimSpace(sa.Params["DefinedPlayer"]) != "" {
+		// The per-player top-card shape (unexplained_absence's
+		// "Defined$ TopOfLibrary | DefinedPlayer$ RememberedController"):
+		// each listed player's OWN top Amount$ cards -- searchPlayers's
+		// DefinedPlayer$ precedence, the effManifest loop's move shape.
+		for _, p := range searchPlayers(h, c, sa) {
+			if int(p) >= len(g.Players) {
+				continue
+			}
+			n := amount
+			if l := int32(len(g.Zone(state.ZLibrary, p))); l < n {
+				n = l
+			}
+			for i := int32(0); i < n; i++ {
+				// Index 0 is the TOP of the library (the end a Draw takes).
+				// The MoveZone fold removes the object as it lands, so the
+				// zone is re-read each iteration.
+				top := g.Zone(state.ZLibrary, p)[0]
+				cloak(top)
+			}
+		}
+	} else {
+		switch defined {
+		case "", "TopOfLibrary":
+			// The bare top-card shape (veiled_ascension, ransom_note,
+			// cryptic_coat): the resolving controller's top card, the
+			// TopOfLibrary selector's own anchor (effects/context.go).
+			targets, ok := definedSpec(h, c, "TopOfLibrary")
+			if !ok {
+				loud()
+				return
+			}
+			for _, t := range targets {
+				if t.IsPlayer {
+					continue
+				}
+				cloak(t.Obj)
+			}
+		case "Remembered":
+			// The Remembered-object shape (become_anonymous,
+			// hide_in_plain_sight, expose_the_culprit): each remembered card
+			// object cloaks from wherever it sits now (library top, exile,
+			// hand).
+			for _, t := range objectsOf(copyTargets(c.Remembered)) {
+				cloak(t.Obj)
+			}
+		default:
+			loud()
+			return
+		}
+	}
+	if shuffle {
+		// Shuffle$ True: the standard Secret events.Shuffle for each player
+		// whose library lost a card (become_anonymous and expose_the_culprit
+		// carry it; the deterministic order comes from the host's own rng
+		// path every other library shuffle uses).
+		for _, p := range g.AliveFrom(c.Controller) {
+			if shuffled[p] {
+				shuffleLibraryOrder(h, p)
+			}
 		}
 	}
 }
@@ -2141,6 +2500,22 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	if to == state.ZBattlefield && withKind != "" {
 		withAmt = withCounterAmount(h, c, sa)
 	}
+	// WithTotalCMC$ is the cumulative mana-value budget over the picked cards
+	// (Lively Dirge's DBReturn, Technomancer, Legion's Chant, Pair o' Dice
+	// Lost: "return up to N creature cards with total mana value M or less"),
+	// the exact parameter effDig reads on its own window. A card whose own
+	// mana value exceeds the budget can never be picked, and the running sum
+	// of the picks must not exceed it either; the mechanics below mirror
+	// effDig's (affordable filter, Decision.MaxSum + Option.Value on the wire,
+	// a greedy stand-in take, a mandatory Min lowered to what the budget
+	// affords). Absent the param the budget is 0, budgetEligible == eligible
+	// and every read below is a no-op, so a non-budget pick emits
+	// byte-identically. Present but unresolvable degrades to budget 0 --
+	// Num's documented convention.
+	budget, hasBudget := NumResolved(h, c, sa, "WithTotalCMC", 0)
+	if budget < 0 {
+		budget = 0
+	}
 	apply := func(owner state.PlayerID, ids []state.ObjID) []state.ObjID {
 		g := h.Game()
 		moved := make([]state.ObjID, 0, len(ids))
@@ -2169,6 +2544,10 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		if strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True") && len(moved) > 0 {
 			h.Emit(events.Event{Kind: events.Note, Player: owner, IDs: moved})
 		}
+		// AtEOT$ rides the pick's moved set as well (latent: no corpus carrier
+		// reaches the hidden pick with the param today, but a future one must
+		// not be dropped silently).
+		scheduleAtEOT(h, c, sa, moved)
 		return moved
 	}
 	for i, owner := range players {
@@ -2197,9 +2576,39 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 				addPool(h.Game().Zone(z, owner))
 			}
 		}
+		// budgetEligible is the pickable set: spec-matching AND individually
+		// affordable under WithTotalCMC$ (no budget => identical to eligible).
+		budgetEligible := eligible
+		if hasBudget {
+			budgetEligible = make([]state.ObjID, 0, len(eligible))
+			for _, id := range eligible {
+				if manaValueOf(h.Game(), id) <= int(budget) {
+					budgetEligible = append(budgetEligible, id)
+				}
+			}
+		}
 		m := max
-		if m > int32(len(eligible)) {
-			m = int32(len(eligible))
+		if m > int32(len(budgetEligible)) {
+			m = int32(len(budgetEligible))
+		}
+		// greedy is the deterministic stand-in take under the cumulative
+		// budget: walk budgetEligible in pool order and take each card only
+		// while the running sum still fits, bounded by the pick count m. With
+		// no budget every card fits and greedy is exactly the first m cards of
+		// eligible -- the take the pre-budget stand-in applied -- so the R-9
+		// fallback stays byte-identical there.
+		greedy := make([]state.ObjID, 0, len(budgetEligible))
+		running := 0
+		for _, id := range budgetEligible {
+			if int32(len(greedy)) >= m {
+				break
+			}
+			mv := manaValueOf(h.Game(), id)
+			if hasBudget && running+mv > int(budget) {
+				continue
+			}
+			running += mv
+			greedy = append(greedy, id)
 		}
 		if done && i < cursor {
 			// This fetch player answered on an earlier pass, before a later
@@ -2210,7 +2619,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			apply(owner, ans)
 			continue
 		}
-		if len(eligible) == 0 || m == 0 {
+		if len(budgetEligible) == 0 || m == 0 {
 			// No eligible card, or an empty-only ChangeNum$ 0 pick: both
 			// complete silently before optionality can matter, and a public
 			// origin has no shuffle to fail to perform.
@@ -2222,29 +2631,49 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			prompt = "Choose up to " + strconv.Itoa(int(m)) + " card(s)"
 		}
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
-			Min: 0, Max: int(m), Source: c.Source,
+			Min: 0, Max: int(m), MaxSum: int(budget), Source: c.Source,
+			// The same remembered ride the hand_move ask carries: the
+			// re-entered effHiddenPick revalidates against ChangeType$, which
+			// can be a ctx-Remembered predicate.
 			ResumeKind: "hidden_pick", ResumeSA: sa, ResumeTarget: i,
-			Prompt: prompt}
+			ResumeRemembered: copyTargets(c.Remembered),
+			Prompt:           prompt}
 		if mandatory {
 			d.Min = int(m)
 		}
-		for _, id := range eligible {
+		// A mandatory budget pick whose m exceeds what the budget affords must
+		// not demand more picks than it can pay for: lower the Min to the
+		// forced greedy count so the ask can be satisfied (effDig's rule).
+		if hasBudget && d.Min > len(greedy) {
+			d.Min = len(greedy)
+		}
+		for _, id := range budgetEligible {
 			name := "a card"
 			if o := h.Game().Obj(id); o != nil && o.Face() != nil && !noLooking {
 				name = o.Face().Name
 			}
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-				Kind: "hidden_pick", Label: name, Obj: id, Player: owner})
+			opt := decision.Option{Index: len(d.Options),
+				Kind: "hidden_pick", Label: name, Obj: id, Player: owner}
+			// Only a budget pick carries a Value: Option.Value is omitempty, so
+			// a non-budget pick's option list serialises byte-identically.
+			if hasBudget {
+				opt.Value = manaValueOf(h.Game(), id)
+			}
+			d.Options = append(d.Options, opt)
 		}
 		oc := Ask(h, d)
 		if oc == AskAsked {
 			return
 		}
 		// R-9: a host without a decision channel cannot ask, so it takes the
-		// first m eligible cards -- distinct-named first when DifferentNames$
-		// True -- in the ordered eligible list the options were built from.
+		// forced greedy take over the budget-eligible pool -- under a budget
+		// the cumulative cap decides which cards fit (effDig's exact mirror);
+		// without one greedy is the first m eligible cards, and the
+		// DifferentNames$ variant below keeps its distinct-named-first walk
+		// (no corpus card carries DifferentNames$ beside WithTotalCMC$, so the
+		// two stand-ins never compete).
 		var picked []state.ObjID
-		if differentNamesEnabled(sa) {
+		if differentNamesEnabled(sa) && !hasBudget {
 			seen := make(map[string]bool, m)
 			for _, id := range eligible {
 				if len(picked) >= int(m) {
@@ -2261,7 +2690,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 				picked = append(picked, id)
 			}
 		} else {
-			picked = append(picked, eligible[:int(m)]...)
+			picked = append(picked, greedy...)
 		}
 		if oc == AskNoHost {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
@@ -2481,7 +2910,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 		ev := moveZoneEvent(c, id, state.ZLibrary, to)
 		ev.Player = owner
-		applyExileFaceDown(sa, c, &ev, to)
+		applyFaceDownMarker(h, sa, c, &ev, to)
 		h.Emit(ev)
 		if to == state.ZExile && c.Source != 0 {
 			if o := g.Obj(id); o != nil && !o.IsToken {
@@ -2548,6 +2977,12 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		h.Emit(events.Event{Kind: events.Note, Player: owner, IDs: moved})
 	}
 
+	// AtEOT$ rides the search's moved set too. Scheduled BEFORE the
+	// may-shuffle confirm: a searchShuffleTail suspension is a tail-only
+	// re-entry (effSearchLibrary's SearchShuffle branch), which would never
+	// reach a schedule call placed after it -- the moved cards and their
+	// registrations are already game state by then.
+	scheduleAtEOT(h, c, sa, moved)
 	if searchShuffleTail(h, c, sa, owner, moved, to) {
 		return // the may-shuffle confirm suspended the resolution
 	}
@@ -2804,6 +3239,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		ids   []state.ObjID
 	}
 	var placements []ownerMoved
+	// AtEOT$'s affected set for ChangeZoneAll is the objects the sweep
+	// actually moved, collected in move order.
+	var moved []state.ObjID
 	findOwnerMoved := func(owner state.PlayerID) *ownerMoved {
 		for i := range placements {
 			if placements[i].owner == owner {
@@ -2821,6 +3259,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 					h.Emit(moveZoneEvent(c, id, z, to))
+					moved = append(moved, id)
 					// Tapped$ True (Splendid Reclamation's "Return all land cards
 					// ... tapped"): a battlefield entry is followed by the same
 					// "entered tapped" Tap event every other Tapped$ zone-change
@@ -2886,6 +3325,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	scheduleAtEOT(h, c, sa, moved)
 }
 
 // effDestroy is a single-target removal effect: exactly the shape CR 608.2b

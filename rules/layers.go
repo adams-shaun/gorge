@@ -169,6 +169,30 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
 							out = append(out, kw)
 						}
+						// A printed Continuous AddAbility$ static (Ichormoon Gauntlet's
+						// "Planeswalkers you control have [0]: Proliferate", a lord
+						// granting an activated ability, an Equipment granting
+						// "{T}: deal 1 damage") is a layer-6 ability GRANT (CR
+						// 613.1f): one ContinuousEffect whose AddAbilities names the
+						// SVar bodies on THIS source's face, consumed by legal.go's
+						// grantedAbilities (the offer) and mana_activation.go's
+						// granted-mana loop (the tap gate and payment window). The
+						// grantor is base.Source and the recipient is whatever
+						// Affects matches, so the two may differ -- the whole point of
+						// a cross-object grant. statList splits the ` & ` and `,`
+						// multi-value forms (6 corpus carriers). An AddAbility$ name
+						// whose body is missing or is not an AB degrades to no grant
+						// in grantedAbilities (the same totality every SVar
+						// resolution takes), so no validation is needed here.
+						if hasStat(st, "AddAbility") {
+							ga := base
+							ga.Layer = LAbilities
+							ga.AddAbilities = statList(st, "AddAbility")
+							ga.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+							if len(ga.AddAbilities) > 0 {
+								out = append(out, ga)
+							}
+						}
 						if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
 							ty := base
 							ty.Layer = LType
@@ -208,6 +232,67 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
 							if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes || ty.AddAllCreatureTypes {
 								out = append(out, ty)
+							}
+						}
+						// CR 613.1e colour static (Forge's SetColor$, Imprisoned in the Moon /
+						// Kenrith's Transformation / Leyline of the Guildpact): the affected
+						// object's colours are exactly the named set, REPLACING its printed
+						// colours and every earlier layer-5 grant in timestamp order
+						// (SetColor$ overwrites; it never extends). Its sibling AddColor$
+						// ("...in addition to its other colors", Blade of the Oni / Angelic
+						// Armaments / Deep Freeze) is the same layer-5 walk WITHOUT the
+						// overwrite, so the object keeps its printed colours and gains the
+						// named ones. Both share the colour-word parser: a named colour, a
+						// comma list, "All" (every colour) and, for SetColor$, "Colorless"
+						// (the empty set, a real overwrite to colourless). A value it cannot
+						// fully parse declines through resolveChosenColors, which is the
+						// layer-5 twin of resolveChosenTypes: a value naming the host's
+						// recorded choice (the corpus's "ChosenColor" family -- Alloy
+						// Golem, Shifting Sky, Shimmerwilds Growth's AddColor siblings)
+						// resolves to the colour, while a host with NO recorded choice
+						// (an unanswered ETB ask, a non-commander CDA carrier) fails
+						// CLOSED: no effect is emitted and the object keeps its printed
+						// colours, the same direction effAnimate's Colors$ gate takes.
+						// No Note is emitted because this scan re-runs on every event;
+						// a per-derivation Note would flood the log.
+						if raw, isSet := st.Params["SetColor"]; isSet {
+							// A resolvable characteristic-defining self SetColor$ (the
+							// Transguild Courier / Sphinx of the Guildpact "CARDNAME is
+							// all colors", Ghostfire "CARDNAME is colorless" class) is
+							// NOT emitted from this scan: a CDA works in EVERY zone
+							// (CR 604.3/208.2), so effects.ColorMaskOf's base read now
+							// applies the claim there and at the layer-5 base below,
+							// and emitting here too would apply it twice -- the same
+							// withholding the P/T CDA below takes. The shared
+							// effects.CDASetColourClaimStatic classifier is what both
+							// paths read, so they cannot disagree. A CDA the helper
+							// rejects (the ChosenColor family) is NOT withheld: it
+							// flows to resolveChosenColors, which resolves it against
+							// the host's recorded choice or fails closed. A CDA that
+							// narrows itself with AffectedZone$ would be a different
+							// shape -- no corpus carrier carries one (measured), and a
+							// CDA's zone width is every zone by CR 604.3 anyway.
+							if _, isCDA, parsed := effects.CDASetColourClaimStatic(st); isCDA && parsed {
+								// withheld: the base read applies it in every zone
+							} else if cols, ok := resolveChosenColors(raw, o); ok {
+								sc := base
+								sc.Layer = LColor
+								sc.AddColors = cols
+								sc.OverwriteColors = true
+								sc.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+								out = append(out, sc)
+							}
+						}
+						if raw, isAdd := st.Params["AddColor"]; isAdd || st.Params["AddColors"] != "" {
+							if !isAdd {
+								raw = st.Params["AddColors"]
+							}
+							if cols, ok := resolveChosenColors(raw, o); ok {
+								sc := base
+								sc.Layer = LColor
+								sc.AddColors = cols
+								sc.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+								out = append(out, sc)
 							}
 						}
 						// CR 613.1f / 613.4b (Humility): a base-setting static runs in
@@ -333,10 +418,12 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// printed T: line would have; rules/trigger_match.go's granted-
 						// trigger walk (checkGrantedStaticTriggers, the granted-Ward/
 						// granted-Dethrone precedent) matches it like any other trigger
-						// and links its Execute$ from the AFFECTED object's own SVar
+						// and links its Execute$ from the GRANTING face's own SVar
 						// table -- the table events.Apply's GrantTriggerPush resolves
-						// from, so the live queue and a replayed one mint the same stack
-						// object. A body that fails to parse grants nothing.
+						// from (the grantor rides the event's Amount), so the live
+						// queue and a replayed one mint the same stack object. A
+						// self-grant degenerates to the affected object; a body that
+						// fails to parse grants nothing.
 						if name := strings.TrimSpace(st.Params["AddTrigger"]); name != "" {
 							if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
 								gt := base
@@ -599,15 +686,17 @@ func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
 // continuousGateHolds evaluates the "as long as" condition gates a Mode$
 // Continuous static can carry, the intervening-if that decides whether the
 // grant lives at this instant: IsPresent$/IsPresent2$ (an existence count over
-// every battlefield, PresentCompare$ pricing the count -- default GE1) and
+// every battlefield, PresentCompare$ pricing the count -- default GE1),
 // CheckSVar$/SVarCompare$ (the named SVar -- or inline Count$ expression --
-// compared under the threshold, no compare meaning "nonzero"). Both
-// evaluators are shared with the restriction/cost static gates
-// (rules/statics.go's presentGate and checkSVarHolds) so the ONE grammar
-// governs every static family. staticEffects re-runs once per emitted event,
-// so evaluating the gate there is the continuous recheck the grant needs. A
-// gate this build cannot evaluate fails closed -- the shipped statics
-// convention: an unreadable "as long as" must not silently always-apply.
+// compared under the threshold, no compare meaning "nonzero"), and
+// Condition$ (the ability-word condition family). Every evaluator is shared
+// with the restriction/cost/ability gates (rules/statics.go's presentGate,
+// checkSVarHolds and costConditionHolds; rules/legal.go's
+// activationConditionOK) so the ONE grammar governs every static family.
+// staticEffects re-runs once per emitted event, so evaluating the gate there
+// is the continuous recheck the grant needs. A gate this build cannot evaluate
+// fails closed -- the shipped statics convention: an unreadable "as long as"
+// must not silently always-apply.
 func (e *Engine) continuousGateHolds(sv staticView) bool {
 	if spec, ok := sv.Params["IsPresent"]; ok && !e.presentGate(sv, spec) {
 		return false
@@ -615,7 +704,68 @@ func (e *Engine) continuousGateHolds(sv staticView) bool {
 	if spec, ok := sv.Params["IsPresent2"]; ok && !e.presentGate(sv, spec) {
 		return false
 	}
+	if !e.continuousConditionHolds(sv) {
+		return false
+	}
 	return e.checkSVarHolds(sv)
+}
+
+// continuousConditionHolds evaluates Condition$ on a Mode$ Continuous static
+// -- the "Delirium --", "Threshold --", "Metalcraft --" ability-word family
+// whose grant lives only while the condition is met. The evaluable values map
+// onto the shared condition machinery the other static families already use:
+//
+//   - Delirium: the controller's graveyard holds 4+ distinct core card types
+//     (rules/replacement.go's graveyardCardTypeCount, the ONE census shared
+//     with rules/legal.go's activationConditionOK);
+//   - PlayerTurn / NotPlayerTurn: the static's controller is or is not the
+//     active player (the same reads rules/statics.go's costConditionHolds and
+//     restrictionGateHolds make);
+//   - Metalcraft: 3+ artifacts the controller controls (costConditionHolds'
+//     Count$ arm);
+//   - Threshold: 7+ cards in the controller's graveyard;
+//   - Hellbent: the controller's hand is empty.
+//   - Blessing: the controller holds the city's blessing (CR 702.131, the
+//     Ascend latch, state.Player.Blessing -- granted by rules/ascend.go's
+//     emit-side scan and spell-resolution grant).
+//
+// Every other value -- EnduringStory, FatefulHour, Monarch, MaxSpeed
+// and anything new -- FAILS CLOSED (the gate never holds), matching every
+// sibling gate's documented deny direction. MaxSpeed is safe to deny here:
+// its statics carry only AddAbility$/AddStaticAbility$/AddTrigger$/
+// AddReplacementEffect$/AddSVar$, never a layer-walk key, and the speed family
+// is read separately by rules/speed.go's maxSpeedAbilities. An absent or empty
+// Condition$ keeps holding, as before.
+func (e *Engine) continuousConditionHolds(sv staticView) bool {
+	raw, ok := sv.Params["Condition"]
+	if !ok {
+		return true
+	}
+	switch strings.TrimSpace(raw) {
+	case "":
+		return true
+	case "Delirium":
+		return e.graveyardCardTypeCount(sv.Controller) >= 4
+	case "PlayerTurn":
+		return e.G.Active == sv.Controller
+	case "NotPlayerTurn":
+		return e.G.Active != sv.Controller
+	case "Metalcraft":
+		return e.metalcraftHolds(sv.Controller)
+	case "Threshold":
+		return len(e.G.Zone(state.ZGraveyard, sv.Controller)) >= 7
+	case "Hellbent":
+		return len(e.G.Zone(state.ZHand, sv.Controller)) == 0
+	case "Blessing":
+		// CR 702.131: the city's blessing (Ascend). The latch is one-way
+		// and only ever written by events.Apply's BlessingChange fold, so
+		// the read is a plain state read.
+		if int(sv.Controller) >= len(e.G.Players) {
+			return false
+		}
+		return e.G.Players[sv.Controller].Blessing
+	}
+	return false
 }
 
 // adjustLandPlaysGrant reports whether a Mode$ Continuous static carries the
@@ -749,6 +899,38 @@ func resolveChosenTypes(list []string, o *state.Object) ([]string, bool) {
 	return out, true
 }
 
+// resolveChosenColors resolves a SetColor$/AddColor$ value against the static
+// host's own recorded "as this enters, choose a color" / CR 903.4b pregame
+// choice (state.Object.ChosenColor, set by the Choose event the ask emitted).
+// It is the layer-5 twin of resolveChosenTypes. A value of "ChosenColor"
+// resolves to the host's recorded colour -- the event records a single WUBRG
+// letter (rules/cast.go etbAnswer), but a full colour word is accepted too so
+// the two spellings cannot drift -- and a host with NO recorded choice fails
+// closed: ok=false, the caller emits nothing and the object keeps its printed
+// colours (today's shipped behaviour for the whole family).
+//
+// Everything else passes through the ordinary colour-word parser. A bare
+// WUBRG letter is accepted directly (the layer-5 walk at ~1652 reads
+// strings.IndexByte("WUBRG", l[0]), so a letter element is already legal),
+// which is the shape the recorded choice itself carries; a value the parser
+// cannot fully recognise still fails closed, exactly as before.
+func resolveChosenColors(raw string, o *state.Object) ([]string, bool) {
+	if strings.EqualFold(strings.TrimSpace(raw), "ChosenColor") {
+		if o == nil || o.ChosenColor == "" {
+			return nil, false
+		}
+		if cols, ok := effects.ColorLetters(o.ChosenColor); ok && len(cols) > 0 {
+			return cols, true
+		}
+		// A bare WUBRG letter (the recorded form) bypasses the word parser.
+		if l := strings.ToUpper(strings.TrimSpace(o.ChosenColor)); len(l) == 1 && strings.IndexByte("WUBRG", l[0]) >= 0 {
+			return []string{l}, true
+		}
+		return nil, false
+	}
+	return effects.ColorLetters(raw)
+}
+
 // Layer, Sublayer and ContinuousEffect moved to state/continuous.go in Task
 // 19c, so effects primitives (which sit below rules and must never import
 // it) can build a ContinuousEffect and hand it to this engine through
@@ -878,33 +1060,186 @@ func (e *Engine) EndOfTurnCleanup() {
 	e.expireControl(controlAtCleanup)
 	e.reconcileControlStatics()
 	kept := e.continuous[:0]
+	// expiredClones collects the clone UNITS whose LCopy marker this cleanup
+	// drops, so the object's CopyFace basis can be settled after the kept
+	// list is rewritten (task api-clone).
+	//
+	// A unit is keyed by (become object, expiry moment) rather than by the
+	// become object alone: several clone units may be live on ONE permanent
+	// (Mirage Mirror activated twice, a permanent copy plus a temporary one),
+	// and dropping them all because one expired both wipes a still-live
+	// unit's modifiers and destroys its copy. Two units that share the whole
+	// key expire at the same instant by construction, so grouping by it can
+	// never separate a marker from its own siblings nor merge two units whose
+	// lifetimes differ.
+	var expiredClones []cloneExpiry
+	dropClone := func(ce ContinuousEffect) {
+		k := cloneExpiryOf(ce)
+		for _, seen := range expiredClones {
+			if seen == k {
+				return
+			}
+		}
+		expiredClones = append(expiredClones, k)
+	}
 	for _, ce := range e.continuous {
-		// A Permanent one-shot survives cleanup (CR 611.2a).
+		// A Permanent one-shot survives cleanup (CR 611.2a). An LCopy
+		// marker, however, is never left to the generic rules alone: an
+		// UntilUnattached copy has no ordinary expiry field and must be
+		// tested live.
+		if ce.Layer == LCopy && ce.CloneTarget != 0 &&
+			strings.EqualFold(strings.TrimSpace(ce.Duration), "untilunattached") {
+			if o := e.G.Obj(ce.CloneTarget); o == nil || o.AttachedTo == 0 {
+				dropClone(ce)
+				continue
+			}
+		}
 		if ce.Permanent {
 			kept = append(kept, ce)
 			continue
 		}
 		if ce.UntilEOT {
+			if ce.Layer == LCopy && ce.CloneTarget != 0 {
+				dropClone(ce)
+			}
 			continue
 		}
 		if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
 			// CR 511.2: until-end-of-combat is an expired lifetime by the time
 			// this turn's cleanup runs, so it is reclaimed here rather than
 			// lingering in e.continuous forever.
+			if ce.Layer == LCopy && ce.CloneTarget != 0 {
+				dropClone(ce)
+			}
 			continue
 		}
 		if ce.UntilTurn != 0 && ce.UntilTurn == e.G.Turn {
+			if ce.Layer == LCopy && ce.CloneTarget != 0 {
+				dropClone(ce)
+			}
 			continue
 		}
 		kept = append(kept, ce)
 	}
+	if len(expiredClones) > 0 {
+		// Drop the whole clone unit: the marker's sibling modifier effects
+		// go with it. The match is the FULL unit key, not the become object,
+		// so a second clone unit still live on the same permanent keeps its
+		// own modifiers (the two-overlapping-clones defect).
+		surviving := kept[:0]
+		for _, ce := range kept {
+			if ce.CloneTarget != 0 && cloneExpiryIn(expiredClones, cloneExpiryOf(ce)) {
+				continue
+			}
+			surviving = append(surviving, ce)
+		}
+		kept = surviving
+	}
 	e.continuous = kept
+	// Settle each affected object's CopyFace basis AFTER e.continuous is
+	// rewritten so the emitted ClonePermanent events cannot re-enter this
+	// cleanup's list state (the emit below applies to G.Objs only). Each
+	// settle is one event, so the hash chain records the expiry exactly as it
+	// records the copy.
+	e.settleExpiredClones(expiredClones)
 	// Bump the version for the same reason AddContinuous does: the cache is
 	// keyed on continuousVersion, and this in-place rewrite (which emits no
 	// event and moves no log head) drops every UntilEOT pump and every
 	// expired UntilTurn effect. Without the bump, a stale active() cache
 	// would keep reporting a dead pump's P/T.
 	e.continuousVersion++
+}
+
+// cloneExpiry identifies ONE clone unit (task api-clone): the permanent that
+// became a copy, together with the moment that copy's lifetime ends. A single
+// permanent may carry several live clone units at once -- Mirage Mirror
+// activated twice in a turn, or a permanent copy under a temporary one -- and
+// every effect a unit registers (the layer-1 LCopy marker and its layer-4/5/6/7
+// modifier siblings) is registered with the SAME lifetime fields, so this key
+// separates the units without any per-unit identifier riding the effects.
+//
+// Two units that share the whole key expire at the same instant, so treating
+// them as one is behaviourally identical; two units whose lifetimes differ
+// differ in at least one field, so one can never drop the other.
+type cloneExpiry struct {
+	Target    state.ObjID
+	Duration  string
+	UntilEOT  bool
+	UntilTurn int32
+}
+
+func cloneExpiryOf(ce ContinuousEffect) cloneExpiry {
+	return cloneExpiry{Target: ce.CloneTarget,
+		Duration:  strings.ToLower(strings.TrimSpace(ce.Duration)),
+		UntilEOT:  ce.UntilEOT,
+		UntilTurn: ce.UntilTurn}
+}
+
+func cloneExpiryIn(keys []cloneExpiry, k cloneExpiry) bool {
+	for _, x := range keys {
+		if x == k {
+			return true
+		}
+	}
+	return false
+}
+
+// settleExpiredClones rewrites the CopyFace basis of every permanent whose
+// clone units this cleanup just dropped from e.continuous.
+//
+// The basis is a SINGLE field on the object (state.Object.CopyFace) while a
+// permanent may carry several clone units, so an expiry cannot simply clear
+// it: the object must be re-based onto whichever unit is still live. CR
+// 613.1a applies copy effects in timestamp order, so the survivor that wins
+// is the highest-timestamp LCopy marker left for that object; with none left
+// the basis is cleared, which is the single-unit case and therefore emits
+// exactly the event stream this cleanup emitted before overlapping units were
+// modelled (heads unmoved for every game with at most one copy per object).
+//
+// The re-base is one ClonePermanent naming the survivor's own source, name
+// and GainThisAbility$ rider, so it goes through events.Apply like every
+// other state change and a replay derives the identical face.
+func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
+	if len(expired) == 0 {
+		return
+	}
+	// Deterministic order: the expiry keys are collected in e.continuous scan
+	// order, and each object is settled once, on its first appearance.
+	var done []state.ObjID
+	for _, k := range expired {
+		if k.Target == 0 || objIDIn(done, k.Target) {
+			continue
+		}
+		done = append(done, k.Target)
+		var survivor *ContinuousEffect
+		for i := range e.continuous {
+			ce := &e.continuous[i]
+			if ce.Layer != LCopy || ce.CloneTarget != k.Target {
+				continue
+			}
+			if survivor == nil || ce.Timestamp > survivor.Timestamp {
+				survivor = ce
+			}
+		}
+		// Clear first, unconditionally. With no survivor that is the whole
+		// settle (the single-unit case, byte-identical to the pre-overlap
+		// build). With one, it puts the object back on its PRINTED face
+		// before the re-base, which is what the survivor's copy is taken
+		// against -- notably GainThisAbility$, whose fold appends the become
+		// object's own current face abilities and would otherwise append the
+		// EXPIRING copy's.
+		e.emit(events.Event{Kind: events.ClonePermanent, Obj: k.Target})
+		if survivor == nil {
+			continue
+		}
+		ev := events.Event{Kind: events.ClonePermanent, Obj: k.Target,
+			IDs: []state.ObjID{survivor.CloneSource}, Player: survivor.Controller,
+			Text: survivor.CloneName}
+		if survivor.CloneGainThisAbility {
+			ev.Counter = "gain-this-ability"
+		}
+		e.emit(ev)
+	}
 }
 
 // effectMoveSweep is the move-driven lifetime of Effect-created continuous
@@ -933,6 +1268,22 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {
+		// A clone unit -- the layer-1 LCopy marker and every sibling modifier
+		// effect, all carrying CloneTarget -- ends the instant the become
+		// object leaves the battlefield (CR 400.7: it is a new object and its
+		// CopyFace basis has already been cleared by Move). Dropping the whole
+		// unit here is the structural owner of a clone's source-leaves
+		// lifetime: without it a permanent copy's modifiers would keep applying
+		// to a re-entered object and e.continuous would grow unbounded. The
+		// expiring durations (UntilEOT / UntilTurn / until-combat /
+		// until-unattached) are still handled by EndOfTurnCleanup; this sweep
+		// adds the leave-the-battlefield case those branches cannot see.
+		if ce.CloneTarget != 0 {
+			if o := e.G.Obj(ce.CloneTarget); o == nil || o.Zone != state.ZBattlefield {
+				changed = true
+				continue
+			}
+		}
 		forget, exile := ce.ForgetOnMoved, ce.ExileOnMoved
 		if forget != "" && effects.ParseZone(forget) == ev.From && objIDIn(ce.Remembered, ev.Obj) {
 			ce.Remembered = objIDWithout(ce.Remembered, ev.Obj)
@@ -1163,10 +1514,15 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	}
 	// CR 708.5: a face-down battlefield permanent's type set is exactly
 	// {Creature} -- its printed types do not exist while it is face down
-	// (even a manifested land). Layer-4 grants from other permanents still
-	// apply on top in the walk below.
+	// (even a manifested land) -- unless a ChangeZone FaceDownSetType$
+	// replaced the set (Yedora's face-down Forest). That set is the BASE the
+	// layer-4 walk below then modifies like any other type set (CR 613.1c):
+	// a Maskwood Nexus granting every creature type reaches a manifested
+	// 2/2 exactly as it reaches a face-up creature, while the printed face
+	// stays hidden (no printed word reappears merely from a type grant).
+	base := o.Face().Types
 	if o.FaceDown && o.Zone == state.ZBattlefield {
-		return []string{"Creature"}
+		base = o.FaceDownTypeWords()
 	}
 	zone := o.Zone
 	if atStack != 0 {
@@ -1186,9 +1542,9 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 		}
 	}
 	if !anyLType {
-		return bestowedTypeSwitch(o, o.Face().Types)
+		return bestowedTypeSwitch(o, base)
 	}
-	ty := append([]string(nil), o.Face().Types...)
+	ty := append([]string(nil), base...)
 	for _, ce := range e.active() {
 		if ce.Layer != LType || !e.matchesWithTypes(ce, id, ty, atStack) {
 			continue
@@ -1216,6 +1572,19 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			kept := ty[:0]
 			for _, t := range ty {
 				if !isCreatureSubtype(t) {
+					kept = append(kept, t)
+				}
+			}
+			ty = kept
+		}
+		if ce.RemoveLegendary {
+			// NonLegendary$ True (CR 205.4's supertype): drop only the
+			// Legendary word, leaving every other supertype (Basic, Snow,
+			// World, Ongoing) in place -- distinct from RemoveCardTypes,
+			// which keeps supertypes and drops everything else.
+			kept := ty[:0]
+			for _, t := range ty {
+				if !strings.EqualFold(t, "Legendary") {
 					kept = append(kept, t)
 				}
 			}
@@ -1289,6 +1658,20 @@ func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []s
 	sc := e.specCtx(ce.Source, ce.Controller)
 	sc.AsStack = atStack != 0
 	sc.ExtraTypes = types
+	// The compiled predicate sidecar answers type and colour predicates
+	// against the PRINTED face (effects/compiled_predicate.go's
+	// matchesCompiledBase/matchesCompiledTerm call hasType/ColorsOf), so it
+	// cannot see ExtraTypes. Leaving it in place here would let it return
+	// PredicateNo before the textual oracle -- the one oracle whose hasTypeCtx
+	// reads ExtraTypes -- ever runs, so a layer-4 grant would silently miss
+	// every object whose printed face does not already carry the queried type
+	// (a manifested Forest under Maskwood Nexus is the measured case). The
+	// sidecar is a pure optimisation that falls back to the text path
+	// whenever it is unsure; clearing it for a derived-type match makes that
+	// fallback unconditional, so every compiled spec is judged by the
+	// ExtraTypes-aware oracle and no future compiled spec can miss the
+	// synthetic face-down base (CR 708.5) either.
+	sc.PredicatePrograms = nil
 	return effects.MatchesSpecCtx(e.G, affects, id, sc)
 }
 
@@ -1317,9 +1700,17 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 	if o != nil && o.FaceDown && o.Zone == state.ZBattlefield {
 		// CR 708.5's base: a face-down battlefield permanent is a 2/2
 		// creature; its printed P/T and any printed characteristic-defining
-		// ability do not exist while it is face down. Layer-7 effects on top
-		// still apply in the walk below.
+		// ability do not exist while it is face down. A FaceDownSetType$ that
+		// does not include Creature derives 0/0 (Yedora's Forest land), and a
+		// FaceDownPower$/FaceDownToughness$ pair overrides the 2/2 default
+		// (Magar's 3/3). Layer-7 effects on top still apply in the walk below.
 		power, toughness = 2, 2
+		if !o.EffectiveIsCreature() {
+			power, toughness = 0, 0
+		}
+		if o.FaceDownHasPT {
+			power, toughness = o.FaceDownPower, o.FaceDownToughness
+		}
 	} else {
 		power, toughness = int32(f.Power()), int32(f.Toughness())
 		// Layer 7a (CR 613.4a): the object's own characteristic-defining ability
@@ -1477,6 +1868,19 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	}
 	kw = append(kw[:0], f.Keywords...)
 	kw = append(kw, o.IntrinsicKeywords...)
+	// CR 708.5's cloak variant: a CLOAKED face-down card is a 2/2 creature
+	// with ward {2} -- the ward is part of the cloak status itself, not a
+	// printed or granted ability (the printed face does not exist while face
+	// down, CR 708.8, and faceDownBasis carries no keywords). Appending it
+	// here -- ahead of the layer walk, exactly where a layer-6 grant would
+	// land -- is what feeds checkGrantedWardTriggers's derived-keyword scan
+	// (rules/trigger_match.go), so targeting a cloaked 2/2 meets the real
+	// pay-or-counter ask. Leaving the battlefield clears both flags together
+	// (events.Apply's Move reset), so the ward drops with the face-down
+	// status.
+	if faceDown && o.Cloaked {
+		kw = append(kw, "Ward:2")
+	}
 	// Layer 4 runs first through typeCharacteristics (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
 	// sees the derived type list, not the printed face.
@@ -1512,6 +1916,23 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 			// later layer-6 grants re-add anything.
 			if ce.RemoveAbilities {
 				kw = kw[:0]
+			}
+			if len(ce.RemoveKeywords) > 0 {
+				// CR 613.1f: this effect's own named keywords leave the
+				// accumulated list BEFORE its AddKeywords append, so a
+				// single effect that both removes and grants (mirage
+				// phalanx's RemoveKeywords$ Soulbond | AddKeywords$ Haste)
+				// yields the card text's result regardless of how the
+				// timestamps order neighbour effects. A keyword is matched
+				// by its HEAD (cards.KeywordHead), so a parameterised print
+				// is removable by name.
+				keptKW := kw[:0]
+				for _, k := range kw {
+					if !containsKeywordHead(ce.RemoveKeywords, k) {
+						keptKW = append(keptKW, k)
+					}
+				}
+				kw = keptKW
 			}
 			kw = append(kw, ce.AddKeywords...)
 		case LType:
@@ -1656,6 +2077,20 @@ func isCreatureSubtype(t string) bool {
 		}
 	}
 	return true
+}
+
+// containsKeywordHead reports whether the keyword k matches any name in
+// names by keyword HEAD (cards.KeywordHead strips a parameter tail), so
+// RemoveKeywords$ Protection removes a printed "Protection:..." grant and
+// RemoveKeywords$ Soulbond removes the bare keyword.
+func containsKeywordHead(names []string, k string) bool {
+	head := cards.KeywordHead(k)
+	for _, n := range names {
+		if strings.EqualFold(cards.KeywordHead(n), head) {
+			return true
+		}
+	}
+	return false
 }
 
 // RegenerationDisallowed implements effects.Host for the CantRegenerate

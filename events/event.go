@@ -319,14 +319,17 @@ const (
 	// on a Mode$ Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you
 	// sacrifice a land") and places it on the stack, in one event. It mirrors
 	// DelayedPush's shape -- the Ability is not a face Triggers index but the
-	// granted trigger's Execute$ SVar-named body, resolved here from the
-	// AFFECTED object's own SVar table (rules' queue gate establishes that
-	// this resolves to the exact body the granting face's table names, so a
-	// replay reproduces the same stack object) -- minus the registration
+	// granted trigger's Execute$ SVar-named body -- minus the registration
 	// bookkeeping: a granted trigger is consumed by nothing and lives exactly
-	// as long as its granting static. Appended after MyriadCleanup, following
-	// every prior Kind's append-only precedent, so no earlier ordinal, hash
-	// chain or golden replay is affected.
+	// as long as its granting static. The Execute$ body lives on the GRANTOR's
+	// face (the card carrying the static), while Obj is the AFFECTED
+	// recipient; for a cross-object grant the grantor's object id rides
+	// Amount, and Apply resolves the name from the grantor's SVar table when
+	// it is set (0 = the historical self-grant shape, resolved from the
+	// affected object's own table). Rules' queue gate links the body from the
+	// same table, so a replay reproduces the same stack object. Appended after
+	// MyriadCleanup, following every prior Kind's append-only precedent, so no
+	// earlier ordinal, hash chain or golden replay is affected.
 	GrantTriggerPush
 	// ManaActivate records one activation of an AB$ Mana ability. It is a
 	// MARKER like Note: effMana's own ManaAdd events carry the mana that
@@ -436,6 +439,116 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	PlanarRoll
+	// Explore records one completed explore action (CR 701.35a, task
+	// explore1): Obj is the exploring permanent, Player its controller
+	// (whose library was explored), IDs[0] the card the process revealed,
+	// and Amount the outcome -- 1 when the revealed card was a land and
+	// went to its owner's hand, 0 when it was a nonland (the +1/+1 counter
+	// went on the explorer and the card went back on top or into the
+	// graveyard per the LCI wording the corpus spells out). It is an Apply
+	// no-op marker, exactly like PlanarRoll: the explore's own state changes
+	// are their own MoveZone/CounterChange events, and the record is what
+	// trig:Explores matches and what makes the explore trigger- and
+	// replay-visible. Appended here, after PlanarRoll, following every prior
+	// Kind's own append-only precedent, so no earlier ordinal, hash chain or
+	// golden replay is affected.
+	Explore
+	// CombatRetarget re-points an already-attacking creature at a new defender
+	// mid-combat (api:ChangeCombatants's Attacking$ True shape -- Misleading
+	// Signpost, Portal Mage, Windshaper Planetar): Obj is the attacker, Player
+	// the NEW defender. It deliberately is NOT DeclareAttackers, whose Apply
+	// case increments AttacksThisTurn and would refire every Attacks trigger --
+	// a reselect changes no declaration, only which seat the existing attack
+	// is pointed at (CR 506.3b: only within the attacker's controller's own
+	// combat, which is why the same event also clears BlockedBy: Forge's
+	// removeFromCombat + addAttacker leaves the old blockers behind, and the
+	// re-pointed attack is unblocked -- the blocker lists of the OLD blockers
+	// are attacker-side only, so clearing BlockedBy is the whole unlink).
+	// Appended here, after Explore, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	CombatRetarget
+	// RingTemptsYou records one "the Ring tempts you" action (CR 701.54a:
+	// each time the Ring tempts you, choose a creature you control; it
+	// becomes your Ring-bearer). Player is the tempted seat, Obj the
+	// designated Ring-bearer (0 when the player controls no creature — CR
+	// 701.54d: the "Whenever the Ring tempts you" trigger still fires when
+	// the actions complete even if some were impossible), and Amount the
+	// NEW tempt count, carried as a replay-visible marker. Apply folds the
+	// count increment and the designation; the designation's two clears (a
+	// control change, CR 701.54b, and the permanent leaving the battlefield,
+	// CR 400.7/701.54e) are derived in Apply's own ControlChange and
+	// MoveZone cases, so no second event is needed. Appended here, after
+	// CombatRetarget, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	RingTemptsYou
+	// RingEmblemPush mints one of the Ring emblem's four level abilities
+	// (CR 701.54c), which are engine-side abilities with no corpus script
+	// text and no object in any zone -- the temptation count folded by
+	// RingTemptsYou is their only state (state.Player.RingTempted). Player
+	// is the emblem's owner (the tempted seat), Amount the level (1..4) and
+	// Counter the canonical "__ring:<level>" payload events.Apply rebuilds
+	// the ability from, exactly as the granted ward/afflict
+	// KeywordTriggerPush payloads are rebuilt ("the same DB$ ... a printed
+	// trigger would have carried"). Obj carries the Ring-bearer the firing
+	// event named (0 for a level whose body needs no bearer). The mint lives
+	// in Apply because a direct unlogged Game.AddObject call would name an
+	// ObjID a log-only replay never learns about (Ruling T20-a). Appended
+	// here, after RingTemptsYou, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	RingEmblemPush
+	// GrantAbilityPush mints an activated ability GRANTED to one permanent
+	// by another (CR 613.1f): a printed `S:Mode$ Continuous | Affected$
+	// <spec> | AddAbility$ <SVar>` static (Ichormoon Gauntlet's "Planeswalkers
+	// you control have [0]: Proliferate", a lord granting an activated
+	// ability, an Equipment granting "{T}: deal 1 damage") whose grantor is
+	// the static's source and whose recipient is the affected permanent.
+	// Obj is the ability's own SOURCE -- the RECIPIENT, so the minted stack
+	// object's Source (and every `Defined$ Self`/`CARDNAME` body that reads
+	// it) is the affected permanent, not the granting static. Counter names
+	// the SVar body on the GRANTOR's face; IDs[0] is the granting object id,
+	// resolved from there by Apply. The DelayedPush precedent is why this is
+	// a distinct Kind rather than an overload: DelayedPush resolves its body
+	// from e.Obj and decodes e.IDs into the ability's Remembered set, which
+	// is exactly wrong for a cross-object grant. Self-grants (Animate, the
+	// max-speed static) still mint through DelayedPush, byte-identically.
+	// Appended after RingEmblemPush (main's own later append), still after
+	// every earlier Kind, so no earlier ordinal, hash chain or golden replay
+	// is affected.
+	GrantAbilityPush
+	// Investigate records one completed investigate action (CR 701.36a, task
+	// investtrig1): Player is the investigating seat and Obj the resolving
+	// source permanent (0 for a source-less body). It is an Apply no-op
+	// marker, exactly like Explore: the investigate's own state change (the
+	// Clue token mint) is its own TokenCreate event that precedes this one,
+	// and the record is what trig:Investigated matches ("whenever you
+	// investigate" — Erdwal Illuminator, Val, Marooned Surveyor). The marker
+	// is separate from the mint so a plain Clue-token creation (DB$ Token |
+	// TokenScript$ c_a_clue_draw, no Investigate) never fires an investigate
+	// trigger. Appended after GrantAbilityPush (the branch's own append, moved
+	// one ordinal by the merge with main's GrantAbilityPush), still after
+	// every earlier Kind, so no earlier ordinal, hash chain or golden replay
+	// is affected.
+	Investigate
+	// BlessingChange records a seat GAINING the city's blessing (CR
+	// 702.131d, task ascend1): Player is the seat. It is one-way -- Apply
+	// sets the latch and nothing ever clears it (CR 702.131a: "for the
+	// rest of the game") -- and the grant's continuous re-check lives in
+	// the rules emitter (rules/ascend.go), so Apply folds the bit plainly.
+	// Appended after Investigate, still after every earlier Kind, so no
+	// earlier ordinal, hash chain or golden replay is affected.
+	BlessingChange
+	// ClonePermanent folds a DB$ Clone copy basis onto an existing permanent
+	// (CR 613.1a's layer-1 copy): Obj is the object that BECOMES the copy,
+	// IDs[0] is the object copied FROM, Text is the copy's NewName$ (empty
+	// keeps the copied face's name), and Counter is "gain-this-ability" when
+	// the GainThisAbility$ True rider applies. An event with no IDs (or a
+	// zero id) CLEARS the copy -- the expiry and leave-the-battlefield path.
+	// Appended after BlessingChange, still above NumKinds, so no earlier ordinal, hash
+	// chain or golden replay is affected.
+	ClonePermanent
 	// Mutate records one mutate-spell resolution (CR 702.140): Obj is the
 	// TARGET permanent that survives and becomes the mutated pile, IDs[0] is
 	// the mutate card's object (the resolving spell), and Text is "top" when
@@ -445,9 +558,9 @@ const (
 	// its MergedCards (top-of-pile first), each parked in ZCeased, and
 	// TimesMutated advances by Amount. It is the provenance both the
 	// trig:Mutates fire and Count$TimesMutated read, so a replay rebuilds the
-	// pile identically. Appended here, after PlanarRoll, following every
-	// prior Kind's own append-only precedent, so no earlier ordinal, hash
-	// chain or golden replay is affected.
+	// pile identically. Appended here, after ClonePermanent -- the last Kind
+	// main holds -- following every prior Kind's own append-only precedent,
+	// so no earlier ordinal, hash chain or golden replay is affected.
 	Mutate
 	// MergedTriggerPush mints a mutated pile's UNDER-CARD triggered ability
 	// (CR 702.140d: the permanent has all abilities of the cards beneath
@@ -601,7 +714,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "mutate", "merged_trigger_push"}
+	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -810,12 +923,44 @@ var flagNames = [...]struct {
 	// cast from exile (modeFlags). Appended at the end per the table's own
 	// ordering rule.
 	{"foretold", state.FlagForetold},
+	// Conspire's tap provenance (CR 702.78a): the flag is what the keyword
+	// expansion's copy trigger reads through Count$Conspired, so a declined
+	// Conspire emits no flag and resolves like the plain cast. Appended at
+	// the end per the table's own ordering rule.
+	{"conspired", state.FlagConspired},
 	// The total-mana-spent capture (task castprov1): a face whose SVar
 	// table reads the Count$CastTotalManaSpent head stamps its pay-time
 	// CastInfo with the flag, so the Amount folds into Object.ManaSpent
 	// instead of overwriting X. Appended at the end per the table's own
 	// ordering rule.
 	{"manaspent", state.FlagManaSpent},
+	// The SNOW-unit part of the total-mana-spent capture (task castfilter1):
+	// a face whose SVar table reads the filtered Count$CastTotalManaSpent Snow
+	// head stamps its pay-time CastInfo with this flag too, so the Amount
+	// folds into Object.ManaSnowSpent instead of overwriting X or the
+	// unfiltered total. Appended at the end per the table's own ordering
+	// rule.
+	{"manasnowspent", state.FlagManaSnowSpent},
+	// The TREASURE-/CAVE-/DESERT-sourced parts of the total-mana-spent
+	// capture (task castfilter2): a face whose SVar table reads the filtered
+	// Count$CastTotalManaSpent Treasure/Cave/Desert head stamps its pay-time
+	// CastInfo with these flags too, so each Amount folds into its own
+	// Object field instead of overwriting X, the total, or an earlier tag.
+	// Appended at the end per the table's own ordering rule.
+	{"manatreasurespent", state.FlagManaTreasureSpent},
+	{"manacavespent", state.FlagManaCaveSpent},
+	{"manadesertspent", state.FlagManaDesertSpent},
+	// The DB$ Play ReplaceGraveyard$ Exile rider (task replplay1): the Play
+	// SA's own provenance stamps its pay-time CastInfo with this flag, so
+	// spellRestZone/spellFizzleZone send the played card to exile instead
+	// of the graveyard. Appended at the end per the table's own ordering
+	// rule.
+	{"replacegraveyard", state.FlagReplaceGraveyard},
+	// The Aftermath half's cast (CR 702.85a): the flag is what the resolution
+	// reader (spellRestZone) and the fizzle reader (spellFizzleZone) read to
+	// exile the card instead of the graveyard. Appended at the end per the
+	// table's own ordering rule.
+	{"aftermath", state.FlagAftermath},
 	// Mutate's cast provenance (CR 702.140a), the placement choice riding
 	// FlagMutatedTop beside it. Appended at the end per the table's own
 	// ordering rule.

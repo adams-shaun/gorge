@@ -879,6 +879,24 @@ func TestClockTickIncrementsClock(t *testing.T) {
 	}
 }
 
+func TestRingTemptsYouKindString(t *testing.T) {
+	if got, want := RingTemptsYou.String(), "ring_tempts_you"; got != want {
+		t.Fatalf("RingTemptsYou.String() = %q, want %q", got, want)
+	}
+}
+
+func TestInvestigateKindString(t *testing.T) {
+	if got, want := Investigate.String(), "investigate"; got != want {
+		t.Fatalf("Investigate.String() = %q, want %q", got, want)
+	}
+}
+
+func TestBlessingChangeKindString(t *testing.T) {
+	if got, want := BlessingChange.String(), "blessing_change"; got != want {
+		t.Fatalf("BlessingChange.String() = %q, want %q", got, want)
+	}
+}
+
 func TestClockTickKindString(t *testing.T) {
 	if got, want := ClockTick.String(), "clock_tick"; got != want {
 		t.Fatalf("ClockTick.String() = %q, want %q", got, want)
@@ -1357,4 +1375,255 @@ func TestModeChosenIsAMarkerOnly(t *testing.T) {
 	if got, want := ModeChosen.String(), "mode_chosen"; got != want {
 		t.Fatalf("ModeChosen.String() = %q, want %q", got, want)
 	}
+}
+
+// TestTypedManaTallyMovesWithThePool (task castfilter2): the typed
+// "<Tag><colour>" ManaAdd Counter form moves the pool slot and the parallel
+// Player.TypedMana tally through one event, spend events (the negative
+// forms) move both back, and ManaClear empties the tally with the pool.
+// The historical two-char "S<colour>" form stays first and exact.
+func TestTypedManaTallyMovesWithThePool(t *testing.T) {
+	g, l := twoPlayer(t)
+	for _, tc := range []struct {
+		counter string
+		tag     int
+		idx     int
+	}{
+		{"TreasureC", state.TypedTreasure, state.MC},
+		{"CaveW", state.TypedCave, state.MW},
+		{"DesertR", state.TypedDesert, state.MR},
+	} {
+		Emit(g, l, Event{Kind: ManaAdd, Player: 0, Counter: tc.counter, Amount: 2})
+		if g.Players[0].Pool[tc.idx] != 2 || g.Players[0].TypedMana[tc.tag][tc.idx] != 2 {
+			t.Fatalf("%s add: pool=%v typed=%v", tc.counter, g.Players[0].Pool, g.Players[0].TypedMana)
+		}
+		Emit(g, l, Event{Kind: ManaAdd, Player: 0, Counter: tc.counter, Amount: -1})
+		if g.Players[0].Pool[tc.idx] != 1 || g.Players[0].TypedMana[tc.tag][tc.idx] != 1 {
+			t.Fatalf("%s spend: pool=%v typed=%v", tc.counter, g.Players[0].Pool, g.Players[0].TypedMana)
+		}
+	}
+	// The historical snow form is untouched by the typed parse.
+	Emit(g, l, Event{Kind: ManaAdd, Player: 0, Counter: "SG", Amount: 1})
+	if g.Players[0].Snow[state.MG] != 1 || g.Players[0].TypedMana[state.TypedDesert][state.MG] != 0 {
+		t.Fatalf("snow form: snow=%v typed=%v", g.Players[0].Snow, g.Players[0].TypedMana)
+	}
+	Emit(g, l, Event{Kind: ManaClear, Player: 0})
+	if g.Players[0].TypedMana != [3]state.Mana{} {
+		t.Fatalf("mana clear did not empty the typed tally: %v", g.Players[0].TypedMana)
+	}
+}
+
+// TestCastInfoTypedFlagsRouteNewestFirst (task castfilter2): one CastInfo per
+// captured total, each later event carrying all earlier flags, so the Apply
+// switch checks the NEWEST flag first (Desert, Cave, Treasure, Snow, then the
+// total) and every Amount lands in its own field.
+func TestCastInfoTypedFlagsRouteNewestFirst(t *testing.T) {
+	g, id := gameWithOneCard(t)
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 8, Counter: "manaspent"})
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 1, Counter: "manaspent,manasnowspent"})
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 2, Counter: "manaspent,manatreasurespent"})
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 0, Counter: "manaspent,manatreasurespent,manacavespent"})
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 3, Counter: "manaspent,manatreasurespent,manacavespent,manadesertspent"})
+	o := g.Obj(id)
+	if o.ManaSpent != 8 || o.ManaSnowSpent != 1 || o.ManaTreasureSpent != 2 || o.ManaCaveSpent != 0 || o.ManaDesertSpent != 3 {
+		t.Fatalf("typed CastInfo routing: spent=%d snow=%d treasure=%d cave=%d desert=%d",
+			o.ManaSpent, o.ManaSnowSpent, o.ManaTreasureSpent, o.ManaCaveSpent, o.ManaDesertSpent)
+	}
+}
+
+// TestRingTemptsYouFoldsCountBearerAndClears is the CR 701.54 fold pin: the
+// count rises and the designation lands on the named permanent; the
+// designation's two derived clears (CR 701.54b "until another player gains
+// control of it", and the CR 400.7/701.54e battlefield requirement) both
+// derive from the log alone, and an out-of-range player is a no-op.
+func TestRingTemptsYouFoldsCountBearerAndClears(t *testing.T) {
+	g := state.NewGame([]string{"Ann", "Bob"})
+	o := g.AddObject(bearCard(), 0)
+	o.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{o.ID})
+	Apply(g, Event{Kind: RingTemptsYou, Player: 0, Obj: o.ID, Amount: 1})
+	if g.Players[0].RingTempted != 1 || g.Players[0].RingBearer != o.ID {
+		t.Fatalf("count %d bearer %d, want 1/%d", g.Players[0].RingTempted, g.Players[0].RingBearer, o.ID)
+	}
+	// A control change by another player ends the designation; the bearer's
+	// own seat regaining/keeping control must not.
+	Apply(g, Event{Kind: ControlChange, Obj: o.ID, Player: 1})
+	if g.Players[0].RingBearer != 0 {
+		t.Fatalf("bearer %d survived the control change", g.Players[0].RingBearer)
+	}
+	Apply(g, Event{Kind: RingTemptsYou, Player: 0, Obj: o.ID, Amount: 2})
+	Apply(g, Event{Kind: ControlChange, Obj: o.ID, Player: 0})
+	if g.Players[0].RingBearer != o.ID || g.Players[0].RingTempted != 2 {
+		t.Fatalf("own-control change kept bearer %d (want %d), count %d (want 2)",
+			g.Players[0].RingBearer, o.ID, g.Players[0].RingTempted)
+	}
+	// Leaving the battlefield is a new object (CR 400.7): the designation is
+	// gone, and the count is NOT.
+	Apply(g, Event{Kind: MoveZone, Obj: o.ID, From: state.ZBattlefield, To: state.ZGraveyard})
+	if g.Players[0].RingBearer != 0 || g.Players[0].RingTempted != 2 {
+		t.Fatalf("after the leave: bearer %d (want 0), count %d (want 2)",
+			g.Players[0].RingBearer, g.Players[0].RingTempted)
+	}
+	// The clear keys on the object's REAL pre-move zone, not Event.From:
+	// Move treats From as advisory, and a malformed caller-supplied From must
+	// not leave a stale designation that a blob return/re-entry reusing the
+	// same ObjID would then report through the IsRingbearer predicate.
+	Apply(g, Event{Kind: MoveZone, Obj: o.ID, From: state.ZGraveyard, To: state.ZBattlefield})
+	Apply(g, Event{Kind: RingTemptsYou, Player: 0, Obj: o.ID, Amount: 3})
+	if g.Players[0].RingBearer != o.ID {
+		t.Fatalf("bearer %d, want %d after the re-designation", g.Players[0].RingBearer, o.ID)
+	}
+	Apply(g, Event{Kind: MoveZone, Obj: o.ID, From: state.ZGraveyard, To: state.ZGraveyard})
+	if g.Players[0].RingBearer != 0 {
+		t.Fatalf("bearer %d survived a leave with a malformed caller-supplied From", g.Players[0].RingBearer)
+	}
+	// An out-of-range player must not panic — the same totality stance the
+	// MonarchChange/SpeedChange cases take.
+	Apply(g, Event{Kind: RingTemptsYou, Player: 9, Obj: o.ID})
+}
+
+// TestRingEmblemPushMintsAnAbilityInApply is the CR 701.54c / Ruling T20-a
+// fold pin: the Ring emblem has no object in any zone and no corpus script
+// text, so its four level abilities are minted by the RingEmblemPush event
+// inside Apply itself. Every level builds the same handful of hand-built
+// bodies, and applying the identical event to two fresh games must produce
+// byte-identical objects -- a log-only replay derives the mint rather than
+// learning an unlogged ObjID.
+func TestRingEmblemPushMintsAnAbilityInApply(t *testing.T) {
+	build := func() *state.Game {
+		g := state.NewGame([]string{"Ann", "Bob"})
+		Apply(g, Event{Kind: RingEmblemPush, Player: 0, Amount: 1, Counter: "__ring:1"})
+		return g
+	}
+	for _, level := range []int32{1, 2, 3, 4} {
+		g1 := state.NewGame([]string{"Ann", "Bob"})
+		Apply(g1, Event{Kind: RingEmblemPush, Player: 0, Amount: level,
+			Counter: "__ring:" + itoa(int(level))})
+		if len(g1.Stack) != 1 {
+			t.Fatalf("level %d minted %d stack objects, want 1", level, len(g1.Stack))
+		}
+		o := g1.Obj(g1.Stack[0])
+		if o == nil || o.Ability == nil || o.Card != nil || o.Source != 0 {
+			t.Fatalf("level %d stack object = %+v, want a face-less ability with no source", level, o)
+		}
+		if o.Controller != 0 || o.Zone != state.ZStack {
+			t.Fatalf("level %d object controller %d zone %v, want 0/stack", level, o.Controller, o.Zone)
+		}
+	}
+	// The payload is the source of truth (the emblem has no face to rebuild
+	// from): a Counter naming a different level than Amount overrides Amount.
+	g := state.NewGame([]string{"Ann", "Bob"})
+	Apply(g, Event{Kind: RingEmblemPush, Player: 0, Amount: 1, Counter: "__ring:4"})
+	o := g.Obj(g.Stack[0])
+	if o == nil || o.Ability == nil || o.Ability.API != "LoseLife" {
+		t.Fatalf("Counter-named level did not rebuild the level-4 body: %+v", o)
+	}
+	// Applying the same event to two fresh games is byte-identical.
+	a, b := build(), build()
+	if !reflect.DeepEqual(a.Objs, b.Objs) {
+		t.Fatalf("mint is not deterministic:\n%+v\n%+v", a.Objs, b.Objs)
+	}
+	// An out-of-range player is a no-op, the same totality stance the
+	// RingTemptsYou/MonarchChange cases take.
+	c := state.NewGame([]string{"Ann", "Bob"})
+	Apply(c, Event{Kind: RingEmblemPush, Player: 9, Amount: 1})
+	if len(c.Stack) != 0 {
+		t.Fatalf("out-of-range player minted %d stack objects", len(c.Stack))
+	}
+}
+
+// TestGrantAbilityPushResolvesTheBodyFromTheGrantor pins the cross-object
+// ability grant's Apply case (CR 613.1f): Obj is the ability's own source (the
+// RECIPIENT), IDs[0] the granting object whose face resolves the SVar body
+// (Counter), and IDs must NOT leak into the minted ability's Remembered set --
+// the DelayedPush field-overload this distinct Kind exists to avoid.
+func TestGrantAbilityPushResolvesTheBodyFromTheGrantor(t *testing.T) {
+	g, l := twoPlayer(t)
+	grantorCard, d := cards.ParseBytes("g.txt", []byte("Name:Grantor\nManaCost:0\nTypes:Artifact\nSVar:Zap:AB$ Draw | NumCards$ 1\nOracle:x\n"))
+	if len(d) != 0 {
+		t.Fatalf("diags: %v", d)
+	}
+	grantorCard.Link()
+	grantor := g.AddObject(grantorCard, 0)
+	grantor.Zone = state.ZBattlefield
+	// The recipient bears no Zap SVar: if the body resolved from Obj it would
+	// mint nothing, which is exactly the pre-fix silent no-op.
+	recipient := g.Obj(g.Zone(state.ZLibrary, 0)[0])
+	recipient.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{grantor.ID, recipient.ID})
+
+	before := len(g.Objs)
+	Emit(g, l, Event{Kind: GrantAbilityPush, Player: 0, Obj: recipient.ID, Counter: "Zap", IDs: []state.ObjID{grantor.ID}})
+	if len(g.Objs) != before+1 {
+		t.Fatalf("object count = %d, want %d (one ability object created)", len(g.Objs), before+1)
+	}
+	if len(g.Stack) != 1 {
+		t.Fatalf("stack = %v, want the granted ability object", g.Stack)
+	}
+	ability := g.Obj(g.Stack[0])
+	if ability.Ability == nil || ability.Ability.API != "Draw" {
+		t.Fatalf("Ability = %+v, want the grantor's Zap SVar (a Draw SA)", ability.Ability)
+	}
+	if ability.Source != recipient.ID {
+		t.Fatalf("Source = %d, want %d (the recipient the ability was granted to), not the grantor %d", ability.Source, recipient.ID, grantor.ID)
+	}
+	if len(ability.Remembered) != 0 {
+		t.Fatalf("Remembered = %v, want empty (the grantor id in IDs must not become memory)", ability.Remembered)
+	}
+}
+
+// TestGrantAbilityPushDegradesGracefully covers totality: a missing IDS
+// grantor, a nonexistent recipient, and an unresolvable SVar name each no-op
+// rather than panic or mint a bogus ability.
+func TestGrantAbilityPushDegradesGracefully(t *testing.T) {
+	g, _ := twoPlayer(t)
+	cardFace := "Name:Grantor\nManaCost:0\nTypes:Artifact\nSVar:Zap:AB$ Draw | NumCards$ 1\nOracle:x\n"
+	gc, _ := cards.ParseBytes("g.txt", []byte(cardFace))
+	gc.Link()
+	grantor := g.AddObject(gc, 0)
+	grantor.Zone = state.ZBattlefield
+	recipient := g.Obj(g.Zone(state.ZLibrary, 0)[0])
+	recipient.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{grantor.ID, recipient.ID})
+
+	mints := 0
+	emit := func(e Event) {
+		before := len(g.Objs)
+		Apply(g, e)
+		if len(g.Objs) != before {
+			mints++
+		}
+	}
+	// No grantor in IDs.
+	emit(Event{Kind: GrantAbilityPush, Player: 0, Obj: recipient.ID, Counter: "Zap"})
+	// Grantor id names no object.
+	emit(Event{Kind: GrantAbilityPush, Player: 0, Obj: recipient.ID, Counter: "Zap", IDs: []state.ObjID{1 << 20}})
+	// Recipient id names no object.
+	emit(Event{Kind: GrantAbilityPush, Player: 0, Obj: 1 << 20, Counter: "Zap", IDs: []state.ObjID{grantor.ID}})
+	// The grantor's face has no such SVar.
+	emit(Event{Kind: GrantAbilityPush, Player: 0, Obj: recipient.ID, Counter: "NoSuchSVar", IDs: []state.ObjID{grantor.ID}})
+	if mints != 0 {
+		t.Fatalf("%d degenerate GrantAbilityPush events minted an object, want 0", mints)
+	}
+}
+
+func TestGrantAbilityPushKindString(t *testing.T) {
+	if got, want := GrantAbilityPush.String(), "grant_ability_push"; got != want {
+		t.Fatalf("GrantAbilityPush.String() = %q, want %q", got, want)
+	}
+}
+
+// itoa avoids importing strconv for one call in this file.
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	var buf [20]byte
+	i := len(buf)
+	for n > 0 {
+		i--
+		buf[i] = byte('0' + n%10)
+		n /= 10
+	}
+	return string(buf[i:])
 }

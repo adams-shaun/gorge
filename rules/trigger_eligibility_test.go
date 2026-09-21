@@ -25,6 +25,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"SpellAbilityCast", []events.Kind{events.AbilityPush}},
 		{"Attacks", []events.Kind{events.DeclareAttackers}},
 		{"AttackersDeclaredOneTarget", []events.Kind{events.DeclareAttackers}},
+		{"Blocks", []events.Kind{events.DeclareBlockers}},
 		{"Sacrificed", []events.Kind{events.MoveZone}},
 		{"Discarded", []events.Kind{events.MoveZone}},
 		{"CommitCrime", []events.Kind{events.TargetsChosen}},
@@ -35,9 +36,13 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"DamageDoneOnce", []events.Kind{events.Damage}},
 		{"Drawn", []events.Kind{events.Draw}},
 		{"LifeLost", []events.Kind{events.Damage, events.LifeChange}},
+		{"LifeGained", []events.Kind{events.LifeChange}},
 		{"LifeLostAll", nil},
 		{"BecomesTarget", []events.Kind{events.TargetsChosen}},
 		{"Attached", []events.Kind{events.Attach}},
+		{"Explores", []events.Kind{events.Explore}},
+		{"Investigated", []events.Kind{events.Investigate}},
+		{"Exerted", []events.Kind{events.Exert}},
 		{"LandPlayed", []events.Kind{events.MoveZone}},
 		{"Phase", []events.Kind{events.StepChange}},
 		{"Always", nil},
@@ -48,13 +53,9 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 			mask := triggerModeEvents(tc.mode)
 			for k := 0; k < 256; k++ {
 				kind := events.Kind(k)
-				// Kinds this binary does not know (>= NumKinds -- the mask is a
-				// uint64 and MergedTriggerPush at ordinal 64 is the first known
-				// kind past it) must fail OPEN to the old matcher, never
-				// silently truncate a new event's eligibility. A KNOWN kind
-				// past the width is classified like every other kind: the
-				// mask names exactly the events the mode fires on.
-				want := tc.kinds == nil || k >= int(events.NumKinds) || slices.Contains(tc.kinds, kind)
+				// Kinds beyond this representation must fail OPEN to the old
+				// matcher, never silently truncate a new event's eligibility.
+				want := tc.kinds == nil || k >= triggerMaskKindBits || slices.Contains(tc.kinds, kind)
 				if got := mask.allows(kind); got != want {
 					t.Fatalf("%s kind %d: eligible=%v, want %v", tc.mode, k, got, want)
 				}
@@ -89,6 +90,13 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			want = cards.TriggerInterestAbilityPush
 		case events.Attach:
 			want = cards.TriggerInterestAttach
+		case events.Explore:
+			want = cards.TriggerInterestExplore
+		case events.Investigate:
+			// A trigger-relevant Kind past the 64-bit mask's reach: the
+			// conservative catch-all, and compiledTriggerInterestAllows fails
+			// open for it before this mapping is even consulted.
+			want = cards.TriggerInterestAny
 		}
 		if got := eventTriggerInterest(kind); got != want {
 			t.Fatalf("kind %s interest = %x, want %x", kind, got, want)
@@ -102,12 +110,12 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 func TestCompiledTriggerInterestParity(t *testing.T) {
 	modes := []string{
 		"ChangesZone", "SpellCast", "AbilityCast", "SpellAbilityCast", "Attacks",
-		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "Sacrificed",
+		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "Blocks", "Sacrificed",
 		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
 		"CounterRemoved", "DamagePreventedOnce", "TokenCreated", "TokenCreatedOnce",
 		"ChangesZoneAll", "SpellCastOrCopy", "SpellCopy", "Mutates",
-		"Drawn", "LifeLost", "Phase", "Attached", "Always", "LifeLostAll", "FutureMode", "",
+		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Always", "LifeLostAll", "FutureMode", "",
 	}
 	card := &cards.Card{}
 	for _, mode := range modes {
@@ -385,42 +393,53 @@ func TestTriggerEligibilityKeepsRoomAlternateFace(t *testing.T) {
 	}
 }
 
-// TestTriggerEventMaskClassifiesKnownKindsPastTheMaskWidth pins the rule
-// triggerEventMask.allows documents at the uint64 boundary, which mutate was
-// the first feature to cross (events.Mutate and events.MergedTriggerPush are
-// ordinals 64 and 65). An enumerated mask must classify a KNOWN kind past the
-// width EXACTLY -- the old bare "kind >= 64 is allowed" catch-all would have
-// claimed a Mode$ Mutates face could fire on any future event, flowing events
-// into matchers that assume their own kind's fields -- while an UNKNOWN kind
-// (a newer log replayed by an older binary) must still fail open to the full
-// matcher, and the conservative catch-all mask must still retain everything.
+// TestTriggerEventMaskAndPrefilterAgreePastTheMaskWidth pins the ONE bound
+// both trigger-eligibility classifiers share. triggerEventMask is a uint64, so
+// triggerMaskKindBits (64) is the last ordinal it can encode; a kind at or past
+// it must fail OPEN -- to the full matcher, never silently truncated by a
+// shift -- in the TEXTUAL mask (allows) and in the COMPILED interest prefilter
+// (compiledTriggerInterestAllows) alike. One path rejecting what the other
+// admits is the divergence CombatRetarget (the first kind past the bound)
+// exposed, and it is what this test exists to keep closed.
 //
-// The compiled prefilter stays deliberately WIDER here (Mutates has no
-// cards.TriggerInterest of its own, so it compiles to TriggerInterestAny):
-// TestCompiledTriggerInterestParity, whose mode list now carries "Mutates",
-// holds that one direction -- compiled never rejects a textual candidate.
-func TestTriggerEventMaskClassifiesKnownKindsPastTheMaskWidth(t *testing.T) {
-	// events.Mutate is ordinal 63 -- the last kind INSIDE the mask -- and
-	// events.MergedTriggerPush is 64, the first one past it. Only the second
-	// exercises the branch below the shift, so it is the one to gate on.
-	if int(events.MergedTriggerPush) < 64 {
-		t.Skipf("events.MergedTriggerPush is ordinal %d, still inside the uint64 mask",
-			int(events.MergedTriggerPush))
+// Measured ordinals at this merge: Explore 63 is the last kind INSIDE the
+// mask; CombatRetarget 64 is the first past it, and everything after --
+// RingTemptsYou 65, RingEmblemPush 66, GrantAbilityPush 67, Investigate 68,
+// BlessingChange 69, ClonePermanent 70, Mutate 71, MergedTriggerPush 72
+// (NumKinds 73) -- is past it too. So mutate's two kinds are NOT a special
+// case: they fail open like every other kind past the bound, and trig:Mutates
+// is gated by the full matcher (mutatesMatches), not by the mask. An earlier
+// version of this test asserted the opposite contract (an enumerated mask
+// classifying a known kind past the width EXACTLY, with the compiled side left
+// wider); main has since resolved the same question the other way, symmetric
+// across both paths, and this test follows main rather than re-litigating it.
+func TestTriggerEventMaskAndPrefilterAgreePastTheMaskWidth(t *testing.T) {
+	if int(events.NumKinds) <= triggerMaskKindBits {
+		t.Skipf("no kind past the mask bound yet (NumKinds %d, bound %d): the "+
+			"fail-open branch below is unreachable and the exactness question returns",
+			int(events.NumKinds), triggerMaskKindBits)
 	}
+	// Inside the bound an enumerated mask is still exact.
+	drawn := triggerModeEvents("Drawn")
+	if !drawn.allows(events.Draw) || drawn.allows(events.Tap) {
+		t.Fatal("inside the mask width an enumerated mode mask must name exactly its own events")
+	}
+	// At and past it, both classifiers fail open -- for an enumerated mask and
+	// for an empty compiled interest set alike.
 	mutates := triggerModeEvents("Mutates")
-	if !mutates.allows(events.Mutate) {
-		t.Fatal("Mode$ Mutates rejects its own event kind")
-	}
-	if mutates.allows(events.MergedTriggerPush) {
-		t.Fatal("Mode$ Mutates accepts an unrelated known kind past the mask width")
-	}
-	if !mutates.allows(events.Kind(events.NumKinds)) {
-		t.Fatal("an unknown (future) kind must fail open to the full matcher")
+	for k := triggerMaskKindBits; k < int(events.NumKinds); k++ {
+		kind := events.Kind(k)
+		if !mutates.allows(kind) {
+			t.Fatalf("kind %s (ordinal %d) is past the mask bound and must fail open textually", kind, k)
+		}
+		if !compiledTriggerInterestAllows(0, kind) {
+			t.Fatalf("kind %s (ordinal %d) is past the mask bound and must fail open in the compiled prefilter", kind, k)
+		}
 	}
 	if !allTriggerEvents.allows(events.MergedTriggerPush) {
 		t.Fatal("the conservative catch-all mask dropped a kind past the mask width")
 	}
-	// The compiled prefilter is the wider side of the pair, for every kind.
+	// The compiled prefilter is never the narrower side, for any kind.
 	e := &Engine{}
 	face := &cards.Face{Triggers: []cards.Trigger{{Mode: "Mutates"}}}
 	for kind := events.Kind(0); int(kind) < events.NumKinds; kind++ {
