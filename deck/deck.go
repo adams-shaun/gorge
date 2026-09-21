@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -33,6 +34,22 @@ type File struct {
 	Commander  string   `json:"commander"`
 	Commanders []string `json:"commanders,omitempty"`
 	Cards      []Entry  `json:"cards"`
+	// Policies is the deck's named bot policies, keyed by policy name. A
+	// value is one policy DOCUMENT, kept as raw JSON here deliberately: this
+	// package is deck data and knows nothing about bot behaviour, so the
+	// weights are parsed by whoever owns them (botpolicy.ParseDeckPolicy)
+	// rather than imported into the deck schema. That keeps the dependency
+	// pointing one way -- botpolicy may read a deck, a deck never reads
+	// botpolicy -- and it means a policy class this build does not implement
+	// yet is carried through untouched instead of failing the deck load.
+	//
+	// The map is nil for every deck that declares none, which is every deck
+	// in the repo today. A nil map must stay behaviourally inert: nothing
+	// applies a deck's policy unless a caller names one, because the golden
+	// acceptance games in rules/heads_test.go are bot-answered and three of
+	// the twelve legacy golden decks are also botbench decks. Auto-applying a
+	// deck policy would move all four pinned chain heads.
+	Policies map[string]json.RawMessage `json:"policies,omitempty"`
 }
 
 // CommanderNames is the deck's commander designation as a list: the plural
@@ -184,7 +201,75 @@ func Parse(raw []byte) (File, error) {
 			return File{}, fmt.Errorf("deck: %q has count %d", e.Name, e.Count)
 		}
 	}
+	// A declared policy is rejected here only for the shapes that would fail
+	// later in a less obvious place -- an unnamed policy (unselectable, since
+	// selection is by name) and a value that is not a JSON object (every
+	// policy document is an object). The WEIGHTS are not validated here: this
+	// package does not own them, and a policy class this build cannot read
+	// yet must still load. PolicyNames() is the sorted accessor; ranging the
+	// map directly is a determinism bug waiting to happen.
+	for name, raw := range f.Policies {
+		if strings.TrimSpace(name) == "" {
+			return File{}, fmt.Errorf("deck: a policy has an empty name")
+		}
+		if !isJSONObject(raw) {
+			return File{}, fmt.Errorf("deck: policy %q is not a JSON object", name)
+		}
+	}
 	return f, nil
+}
+
+// isJSONObject reports whether raw is a JSON object, ignoring leading
+// whitespace. json.RawMessage keeps the bytes verbatim, so the check is on
+// the first significant byte rather than a full decode: a malformed body is
+// the weight parser's error to report, with its own message.
+func isJSONObject(raw json.RawMessage) bool {
+	for _, b := range raw {
+		switch b {
+		case ' ', '\t', '\r', '\n':
+			continue
+		case '{':
+			return true
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+// Policy returns the named policy document. A name the deck does not declare
+// is a HARD ERROR listing what it does declare, never a silent fallback to a
+// default: a fallback would make two bench sides identical for exactly the
+// decks missing the name under test, which reads as "the policy had no
+// effect" when the truth is "the policy was never loaded". The caller parses
+// the document (botpolicy.ParseDeckPolicy); this package only finds it.
+func (f File) Policy(name string) (json.RawMessage, error) {
+	raw, ok := f.Policies[name]
+	if !ok {
+		have := f.PolicyNames()
+		if len(have) == 0 {
+			return nil, fmt.Errorf("deck %q: no policy %q (the deck declares none)", f.Name, name)
+		}
+		return nil, fmt.Errorf("deck %q: no policy %q (declared: %s)", f.Name, name, strings.Join(have, ", "))
+	}
+	return raw, nil
+}
+
+// PolicyNames is the deck's declared policy names, sorted. Every reader uses
+// it instead of ranging Policies: a map range whose order can reach a
+// decision, an event or an error message is a replay bug (AGENTS.md's
+// no-nondeterminism rule), and an error listing the available names is
+// exactly such a message.
+func (f File) PolicyNames() []string {
+	if len(f.Policies) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(f.Policies))
+	for name := range f.Policies {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // Resolve looks every entry up in r (which normalises names itself) and
