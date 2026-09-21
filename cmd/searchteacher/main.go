@@ -121,9 +121,20 @@ func run(args []string, stdout, progress io.Writer) error {
 	outPath := fs.String("out", "", "JSONL of GameRecords (new file)")
 	labelsPath := fs.String("labels", "", "JSONL label corpus of covered decisions (new file only, atomic publish)")
 	corpus := fs.String("cards", ".cards", "compiled corpus directory")
+	cpuprofile := fs.String("cpuprofile", "", "write a CPU profile to this pprof file over the whole run (empty = off)")
+	memprofile := fs.String("memprofile", "", "write a heap profile to this pprof file after the last game (empty = off)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	prof := &profiler{cpuPath: *cpuprofile, memPath: *memprofile}
+	if err := prof.start(); err != nil {
+		return err
+	}
+	defer func() {
+		if err := prof.finish(); err != nil {
+			fmt.Fprintln(progress, err)
+		}
+	}()
 	if *games < 1 || *worlds < 1 || *attempts < 1 || *workers < 1 || *limit < 2 {
 		return fmt.Errorf("games, worlds, attempts, workers must be >0 and candidates >=2")
 	}
