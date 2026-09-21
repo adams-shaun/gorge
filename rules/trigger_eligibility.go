@@ -177,6 +177,12 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// cost-side flip fires the trigger exactly like an effect-side one
 		// (Karplusan Minotaur).
 		return 1 << events.Note
+	case "Vote":
+		// The mode fires on the canonical vote-finished Note (effects/
+		// vote.go) both api:Vote shapes emit once a vote fully finishes --
+		// the exact carrier-event shape FlippedCoin shares, with the two
+		// List$ opponent sets riding IDs/Pairs as player refs.
+		return 1 << events.Note
 	case "CounterAdded", "CounterRemoved":
 		return 1 << events.CounterChange
 	case "TokenCreated", "TokenCreatedOnce":

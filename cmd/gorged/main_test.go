@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -496,14 +497,43 @@ const playDeadline = 60 * time.Second
 // trigger order) the first Min indices are a legal permutation, so this
 // prefix is a legal answer to every kind the engine can ask — a
 // rules-ignorant client, exactly like the seat panel.
+//
+// It answers each decision exactly once. A 204 on the intent means only that
+// the parked seat received the answer, not that the match goroutine has woken
+// and cleared its pending slot (host.HumanSeat.submit returns as soon as the
+// send lands; the slot is cleared by the parked await's defer — pinned by
+// host's TestPendingStillReportsAnAnsweredDecisionBeforeAwaitWakes). So a GET
+// issued immediately after that 204 can hand back the decision just answered.
+// Re-posting that echo is a 409 whenever the seat has meanwhile moved on to
+// the next decision or has no slot at all, which is the load-dependent flake
+// this driver used to fail with. answeredSeq is the exact fence: rules'
+// Engine.ask stamps d.Seq with the log length and then appends its own
+// DecisionAsk event, so every decision's Seq is strictly greater than the
+// previous one's and "Seq <= answeredSeq" can only be the echo, never a live
+// decision.
 func playMatchToCompletion(t *testing.T, url, seat, tok string) (census map[decision.Kind]int, answers int, conceded bool) {
 	t.Helper()
 	pendingURL := url + "/api/tables/t1/matches/1/pending"
 	intentURL := url + "/api/tables/t1/matches/1/intent"
 	census = make(map[decision.Kind]int)
 	deadline := time.Now().Add(playDeadline)
+	answered := false
+	var answeredSeq uint64
 	for {
 		d, status := decisionOnce(t, pendingURL, seat, tok)
+		// The echo of the decision this driver just answered: poll again
+		// rather than re-post it. The window is the instant between the
+		// intent's 204 and the match goroutine waking, so the retry is short
+		// — a 50ms wait per answer would eat the whole playDeadline on a
+		// loaded box — and the deadline still governs.
+		if status == http.StatusOK && answered && d.Seq <= answeredSeq {
+			if time.Now().After(deadline) {
+				t.Fatalf("still echoing the answered decision (seq %d) after %s: %d answers, census %v",
+					d.Seq, playDeadline, answers, census)
+			}
+			time.Sleep(time.Millisecond)
+			continue
+		}
 		if status == http.StatusOK {
 			in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: make([]int, d.Min)}
 			for i := range in.Choices {
@@ -531,15 +561,20 @@ func playMatchToCompletion(t *testing.T, url, seat, tok string) (census map[deci
 			if err != nil {
 				t.Fatalf("intent post: %v", err)
 			}
+			rejection, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
-			// The intent is built from the decision just offered, and the
-			// engine parks on it, so a rejection here is a real bug — a
-			// stale seq, wrong player or bad index — never a transient.
+			// The intent is built from a decision this driver has not
+			// answered before, and the engine parks on it, so a rejection
+			// here is a real bug — a wrong player or a bad index — never a
+			// transient. The rejection body names the reason, which is the
+			// difference between a stale seq and a malformed answer.
 			if resp.StatusCode != http.StatusNoContent {
-				t.Fatalf("intent for %s seq %d answered %d, want 204", d.Kind, d.Seq, resp.StatusCode)
+				t.Fatalf("intent for %s seq %d answered %d, want 204: %s",
+					d.Kind, d.Seq, resp.StatusCode, bytes.TrimSpace(rejection))
 			}
 			census[d.Kind]++
 			answers++
+			answered, answeredSeq = true, d.Seq
 			continue // the engine is waiting on this seat: poll again now
 		}
 		// No decision parked: the other seat is deciding, or the match is

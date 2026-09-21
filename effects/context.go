@@ -211,6 +211,26 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			i = len(lib) - 1
 		}
 		return []state.Target{{Obj: lib[i]}}, true
+	case "TriggeredOpponentVotedSame", "TriggeredOpponentVotedDiff":
+		// The canonical vote-finished carrier's two List$ referent sets
+		// (trig:Vote): the players other than the TRIGGER SOURCE'S CONTROLLER
+		// who voted for a choice that controller voted for / for a different
+		// one. rules/trigger_referents' Vote case re-splits the carrier's raw
+		// ballots against e.controllerOf(source) -- the vote caster's own
+		// controller is never the anchor -- and the per-stack capture is
+		// rebuilt by replay from the same event bytes. Absent (a non-vote
+		// context) they fail closed to the empty set, ok=true -- the same
+		// convention FlippedHeads/FlippedTails takes, so a reader acts on
+		// nobody rather than guessing at a fallback target.
+		ps := c.TriggeredOpponentsVotedSame
+		if spec == "TriggeredOpponentVotedDiff" {
+			ps = c.TriggeredOpponentsVotedDiff
+		}
+		out := make([]state.Target, 0, len(ps))
+		for _, p := range ps {
+			out = append(out, state.Target{Player: p, IsPlayer: true})
+		}
+		return out, true
 	case "FlippedHeads", "FlippedTails":
 		// Forge's RememberResult$ flip-result memory: DB$ FlipCoin |
 		// RememberResult$ True, then a chained sub reading Defined$

@@ -692,8 +692,10 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // Host's per-player damage-taken fold, implemented engine-side beside
 // LifeLostThisTurn) and Counters.Poison. The /Op suffix applies through
 // applyCountOp like every other head. A property this build does not
-// model (StartingLife, DomainPlayer, CardsDrawn, Amount, ...) or a ref
-// outside the two names returns false, and the caller degrades to zero
+// model (StartingLife, DomainPlayer, CardsDrawn, ...) or a ref
+// outside the two names plus the vote-carrier ref
+// TriggeredPlayersOpponentVotedDiff (trig:Vote; its only property is
+// Amount) returns false, and the caller degrades to zero
 // exactly as evalRefProperty's default always did. CardsDiscardedThisTurn
 // is the one optional head the brief allowed in: the shared Host predicate
 // already existed.
@@ -702,14 +704,37 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	if !found || h == nil {
 		return 0, false
 	}
-	if ref != "TargetedPlayer" && ref != "ThisTargetedPlayer" {
+	var ts []state.Target
+	switch ref {
+	case "TargetedPlayer", "ThisTargetedPlayer":
+		ts = c.Targets
+		if c.PickedTargets != nil {
+			ts = c.PickedTargets
+		}
+	case "TriggeredPlayersOpponentVotedDiff":
+		// The canonical vote-finished carrier's diff set (trig:Vote): the
+		// fire-time referent capture is the ONLY binding, so a count read
+		// outside a Vote resolution fails closed to the empty list -- the
+		// same convention the vote's own Defined$ spellings take. Amount is
+		// the count of those opponents (Erestor's SVar:X, the scry size),
+		// added ONLY for this ref: TargetedPlayer$Amount stays unmodelled,
+		// its doc-listed degrade unchanged.
+		for _, p := range c.TriggeredOpponentsVotedDiff {
+			ts = append(ts, state.Target{Player: p, IsPlayer: true})
+		}
+	default:
 		return 0, false
 	}
 	prop, op, hasOp := strings.Cut(prop, "/")
 	prop = strings.TrimSpace(prop)
-	ts := c.Targets
-	if c.PickedTargets != nil {
-		ts = c.PickedTargets
+	// TriggeredPlayersOpponentVotedDiff is the canonical vote-finished
+	// carrier's diff set (trig:Vote); its ONLY documented property is Amount
+	// (Erestor's SVar:X, the scry size). Confine the head to it here, so the
+	// ref cannot silently inherit LifeTotal/CardsInHand/Valid... sums that
+	// belong to TargetedPlayer/ThisTargetedPlayer -- the contract the
+	// evalPlayerRefProperty doc states.
+	if ref == "TriggeredPlayersOpponentVotedDiff" && prop != "Amount" {
+		return 0, false
 	}
 	g := h.Game()
 	var n int32
@@ -747,6 +772,8 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 					n++
 				}
 			}
+		case prop == "Amount" && ref == "TriggeredPlayersOpponentVotedDiff":
+			n++
 		default:
 			// The Valid head and its countZone family: "Valid <spec>",
 			// "ValidGraveyard <spec>", ... -- the exact template of the

@@ -168,6 +168,29 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerSource = ev.Obj
 		c.TriggerMana = ev.Counter
 		c.TriggerAmount = ev.Amount
+	case "Vote":
+		// The canonical vote-finished carrier (effects/vote.go): the raw
+		// ballots ride the Note as player refs (each Pair is
+		// [PlayerRef(voter), pick+1]) and are RE-SPLIT here against the
+		// trigger SOURCE'S controller -- "a choice you voted for" means the
+		// carrier permanent's controller's own ballot, never the vote
+		// caster's (the two differ whenever an opponent casts the vote, the
+		// ordinary multiplayer case). The resulting sets are bound so the
+		// resolution-time spellings -- Defined$
+		// TriggeredOpponentVotedSame/TriggeredOpponentVotedDiff and the count
+		// ref TriggeredPlayersOpponentVotedDiff$Amount -- read them long after
+		// the event, from this per-stack capture. List$ gates the BINDING (the
+		// referent scope, never the firing -- see voteMatches): a spelling
+		// whose List$ does not name it binds empty.
+		if _, ballots, ballotExisted, ok := effects.VoteFinishedResult(ev); ok {
+			same, diff := effects.VoteSplit(e.controllerOf(source), ballots, ballotExisted)
+			if listAdmits(t.Params["List"], "OppVotedSame") {
+				c.TriggeredOpponentsVotedSame = same
+			}
+			if listAdmits(t.Params["List"], "OppVotedDiff") {
+				c.TriggeredOpponentsVotedDiff = diff
+			}
+		}
 	}
 	// CR 107.3m binds X when the trigger fires, not when it resolves. In
 	// particular, an ETB trigger may remain on the stack after its permanent
@@ -184,6 +207,22 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerConverge = card.ConvergeColours
 	}
 	return c
+}
+
+// listAdmits reports whether a trigger's List$ scope admits one referent
+// token: an absent (or empty) List$ names every set, a present one must name
+// the token among its comma entries. Shared by the Vote capture only today.
+func listAdmits(list, token string) bool {
+	list = strings.TrimSpace(list)
+	if list == "" {
+		return true
+	}
+	for _, part := range strings.Split(list, ",") {
+		if strings.TrimSpace(part) == token {
+			return true
+		}
+	}
+	return false
 }
 
 // abilityCastStackObject is the fire-time twin of effects.changeXAbilityObject's
