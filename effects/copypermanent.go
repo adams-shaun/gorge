@@ -66,21 +66,19 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	//     raw DB$ CopyPermanent lines: Choices$ 9, DefinedName$ 8, Pawprint$ 1,
 	//     RandomCopied$+RandomNum$ 1 (one RandomCopied line),
 	//     ValidSupportedCopy$ 1.
-	//   - The unblocking families are the characteristic modifications this
-	//     round does not implement (brief scope item 5): the copy (when its
-	//     source IS reachable) still mints unmodified. AddTypes$, SetPower$,
-	//     SetToughness$ and SetColor$ ARE implemented (the Embalm/Eternalize
-	//     family and the wider mod census); the remaining modifications
-	//     (NonLegendary$, SetCreatureTypes$, RemoveCardTypes$, RemoveSubTypes$,
-	//     RemoveCreatureTypes$, AddKeywords$, AddTriggers$, AddSVars$,
-	//     PumpKeywords$, AddAbilities$, RemoveKeywords$, WithDifferentNames$,
-	//     AttachedTo$, Chooser$) are noted and the copy keeps the original's
-	//     printed characteristics. Measured population over the 249 raw
-	//     DB$ CopyPermanent lines: AddTypes$ 39, SetPower$ 36, SetToughness$
-	//     36, AddKeywords$ 16, SetColor$ 11, NonLegendary$ 23, and
-	//     SetCreatureTypes$/RemoveCardTypes$/RemoveSubTypes$/AddTriggers$/
-	//     AddSVars$/PumpKeywords$/AddAbilities$/RemoveKeywords$/
-	//     WithDifferentNames$/AttachedTo$/Chooser$ in smaller counts.
+	//   - The unblocking families are the characteristic modifications: when
+	//     the source IS reachable the copy mints and these are applied to it.
+	//     AddTypes$, SetPower$, SetToughness$, SetColor$, SetCreatureTypes$,
+	//     RemoveCardTypes$, RemoveCreatureTypes$, AddKeywords$, PumpKeywords$,
+	//     RemoveKeywords$ and NonLegendary$ ARE implemented (applied to the
+	//     mint as tracked continuous effects below); the remaining
+	//     modifications that need real ability/name/attachment machinery --
+	//     AddTriggers$, AddSVars$, AddAbilities$, WithDifferentNames$,
+	//     AttachedTo$, Chooser$ -- are noted and the copy keeps the original's
+	//     printed characteristics. RemoveSubTypes$ is subsumed by
+	//     RemoveCardTypes$ (state.ContinuousEffect's strip keeps only
+	//     supertypes, so a subtype is already gone) and is accepted without a
+	//     note.
 	var skipped []string
 	blocked := false
 	note := func(label string) { skipped = append(skipped, label) }
@@ -108,38 +106,14 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		note("ValidSupportedCopy$")
 		blocked = true
 	}
-	if _, ok := sa.Params["SetCreatureTypes"]; ok {
-		note("SetCreatureTypes$")
-	}
-	if _, ok := sa.Params["RemoveCardTypes"]; ok {
-		note("RemoveCardTypes$")
-	}
-	if _, ok := sa.Params["RemoveSubTypes"]; ok {
-		note("RemoveSubTypes$")
-	}
-	if _, ok := sa.Params["RemoveCreatureTypes"]; ok {
-		note("RemoveCreatureTypes$")
-	}
-	if _, ok := sa.Params["AddKeywords"]; ok {
-		note("AddKeywords$")
-	}
 	if _, ok := sa.Params["AddTriggers"]; ok {
 		note("AddTriggers$")
 	}
 	if _, ok := sa.Params["AddSVars"]; ok {
 		note("AddSVars$")
 	}
-	if _, ok := sa.Params["PumpKeywords"]; ok {
-		note("PumpKeywords$")
-	}
 	if _, ok := sa.Params["AddAbilities"]; ok {
 		note("AddAbilities$")
-	}
-	if _, ok := sa.Params["RemoveKeywords"]; ok {
-		note("RemoveKeywords$")
-	}
-	if _, ok := sa.Params["NonLegendary"]; ok {
-		note("NonLegendary$")
 	}
 	if _, ok := sa.Params["WithDifferentNames"]; ok {
 		note("WithDifferentNames$")
@@ -183,13 +157,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		// (rules/layers.go's statList is the established reader of the same
 		// parameter), so split both ways and trim each part: "Creature &
 		// Fractal" is TWO types, not one garbage word.
-		for _, t := range strings.Split(raw, ",") {
-			for _, part := range strings.Split(strings.TrimSpace(t), " & ") {
-				if part = strings.TrimSpace(part); part != "" {
-					addTypes = append(addTypes, part)
-				}
-			}
-		}
+		addTypes = copyTypeList(raw)
 		if len(addTypes) == 0 {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 				Text: "AddTypes$ " + strings.TrimSpace(raw) + " resolved to no type; no type added"})
@@ -223,6 +191,91 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 				Text: "SetToughness$ " + strings.TrimSpace(raw) + " is not resolvable; the copy keeps its printed toughness"})
+		}
+	}
+
+	// SetCreatureTypes$ replaces the copy's creature types exactly (Croaking
+	// Counterpart's "except it's a Frog", The Eleventh Hour's Alien): the
+	// value is split like AddTypes$ (comma / " & ") and applied as ONE LType
+	// effect that strips the printed creature subtypes BEFORE adding the named
+	// list, which is what makes the result exactly the named list rather than
+	// an addition. An unresolvable value (nothing after the split) keeps the
+	// loud-Note-skip so no silent wrong type lands.
+	var setCreatureTypes []string
+	if raw, ok := sa.Params["SetCreatureTypes"]; ok {
+		setCreatureTypes = copyTypeList(raw)
+		if len(setCreatureTypes) == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "SetCreatureTypes$ " + strings.TrimSpace(raw) + " resolved to no type; no creature type set"})
+		}
+	}
+	// RemoveCardTypes$ / RemoveSubTypes$ / RemoveCreatureTypes$ are always
+	// True in the corpus. RemoveSubTypes$ is subsumed by RemoveCardTypes$
+	// (its strip keeps only supertypes, so every subtype is already gone),
+	// but a RemoveSubTypes$ WITHOUT RemoveCardTypes$ still needs the creature
+	// strip below, so both feed RemoveCreatureTypes when the types are being
+	// set or removed. A non-True value is one loud note and no strip. Each
+	// parameter is read through its LITERAL Params key (the param census
+	// rejects a dynamic key read), the value then tested by the shared
+	// stripTrue helper.
+	stripTrue := func(label, raw string) bool {
+		if strings.EqualFold(strings.TrimSpace(raw), "True") {
+			return true
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: label + " " + strings.TrimSpace(raw) + " is not implemented; the copy keeps its printed types"})
+		return false
+	}
+	removeCardTypes := false
+	if raw, ok := sa.Params["RemoveCardTypes"]; ok {
+		removeCardTypes = stripTrue("RemoveCardTypes$", raw)
+	}
+	removeCreatureTypes := len(setCreatureTypes) > 0
+	if raw, ok := sa.Params["RemoveCreatureTypes"]; ok {
+		removeCreatureTypes = stripTrue("RemoveCreatureTypes$", raw) || removeCreatureTypes
+	}
+	if raw, ok := sa.Params["RemoveSubTypes"]; ok {
+		removeCreatureTypes = stripTrue("RemoveSubTypes$", raw) || removeCreatureTypes
+	}
+	// NonLegendary$ True drops just the Legendary supertype (Multiversal
+	// Recruitment's "except it's not legendary"); always True in the corpus.
+	removeLegendary := false
+	if raw, ok := sa.Params["NonLegendary"]; ok {
+		removeLegendary = stripTrue("NonLegendary$", raw)
+	}
+
+	// AddKeywords$ and PumpKeywords$ (the temporary-keyword body): both are
+	// ampersand-joined keyword lists cards.SplitKeywordList reads ("Flying &
+	// Haste" is two). RemoveKeywords$ names keywords lost at layer 6. All three
+	// ride ONE LAbilities effect per mint so RemoveKeywords applies BEFORE the
+	// same effect's AddKeywords, whatever the timestamps order neighbours.
+	addKeywords := cards.SplitKeywordList(sa.Params["AddKeywords"])
+	pumpKeywords := cards.SplitKeywordList(sa.Params["PumpKeywords"])
+	removeKeywords := cards.SplitKeywordList(sa.Params["RemoveKeywords"])
+	if _, ok := sa.Params["AddKeywords"]; ok && len(addKeywords) == 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "AddKeywords$ " + strings.TrimSpace(sa.Params["AddKeywords"]) + " resolved to no keyword; none added"})
+	}
+	// PumpDuration$ governs the PumpKeywords$ lifetime: absent means "for as
+	// long as the copy exists" (Permanent); EOT/EndOfTurn is dropped at this
+	// turn's cleanup; the next-turn forms get the ordinary UntilTurn boundary.
+	// An unresolvable duration is one loud note and the grant is Permanent.
+	pumpDuration := strings.TrimSpace(sa.Params["PumpDuration"])
+	pumpPermanent := len(pumpKeywords) == 0
+	pumpUntilEOT := false
+	if len(pumpKeywords) > 0 {
+		switch {
+		case pumpDuration == "":
+			pumpPermanent = true
+		case IsNextTurnDuration(pumpDuration):
+			// AddContinuous derives the UntilTurn boundary from the live rotation.
+		case strings.EqualFold(pumpDuration, "EOT") || strings.EqualFold(pumpDuration, "EndOfTurn") ||
+			strings.EqualFold(pumpDuration, "UntilEndOfTurn"):
+			pumpUntilEOT = true
+		default:
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "PumpDuration$ " + pumpDuration + " is not implemented; the copy keeps the keyword"})
+			pumpPermanent = true
 		}
 	}
 
@@ -369,10 +422,17 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			// (Affects Card.Self, Source the token). Permanent so the effect
 			// outlives its one-shot resolution and lasts as long as the token;
 			// the layer system re-derives them from the same calls on replay.
-			if len(addTypes) > 0 {
+			// One LType effect carries every type modification so the
+			// strip-before-add order is guaranteed within the effect: the
+			// printed creature subtypes leave BEFORE SetCreatureTypes$/AddTypes$
+			// land, and RemoveCardTypes$/RemoveLegendary strip the base first.
+			allTypes := append(append([]string(nil), addTypes...), setCreatureTypes...)
+			if len(allTypes) > 0 || removeCardTypes || removeCreatureTypes || removeLegendary {
 				h.AddContinuous(state.ContinuousEffect{
 					Source: want, Controller: owner, Affects: "Card.Self",
-					Layer: state.LType, AddTypes: addTypes, Permanent: true,
+					Layer: state.LType, AddTypes: allTypes,
+					RemoveCardTypes: removeCardTypes, RemoveCreatureTypes: removeCreatureTypes,
+					RemoveLegendary: removeLegendary, Permanent: true,
 				})
 			}
 			if setColor {
@@ -396,6 +456,25 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 					Source: want, Controller: owner, Affects: "Card.Self",
 					Layer: state.LPT, Sub: state.SubSet,
 					SetPower: pow, SetToughness: tgh, HasSet: true, Permanent: true,
+				})
+			}
+			// Keywords: RemoveKeywords$ applies BEFORE AddKeywords$ within
+			// this one effect (CR 613.1f), so Mirage Phalanx's copy loses
+			// Soulbond and gains Haste. PumpKeywords$ is the temporary body:
+			// its own effect carries the PumpDuration$ lifetime.
+			kwGrant := addKeywords
+			if len(kwGrant) > 0 || len(removeKeywords) > 0 {
+				h.AddContinuous(state.ContinuousEffect{
+					Source: want, Controller: owner, Affects: "Card.Self",
+					Layer: state.LAbilities, AddKeywords: kwGrant,
+					RemoveKeywords: removeKeywords, Permanent: true,
+				})
+			}
+			if len(pumpKeywords) > 0 {
+				h.AddContinuous(state.ContinuousEffect{
+					Source: want, Controller: owner, Affects: "Card.Self",
+					Layer: state.LAbilities, AddKeywords: pumpKeywords,
+					Duration: pumpDuration, Permanent: pumpPermanent, UntilEOT: pumpUntilEOT,
 				})
 			}
 			if remember {
@@ -423,4 +502,18 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+}
+
+// copyTypeList parses Forge's multi-type grammar the way rules' statList
+// reads AddTypes$: comma separates list elements and " & " separates
+// alternatives inside one element, so "Creature & Fractal, Artifact" is three
+// type words. Whitespace is trimmed and empty members dropped; an absent or
+// empty list yields nil. (SplitKeywordList alone would keep a comma as part
+// of the same word, which is right for keywords and wrong here.)
+func copyTypeList(list string) []string {
+	var out []string
+	for _, part := range strings.Split(list, ",") {
+		out = append(out, cards.SplitKeywordList(part)...)
+	}
+	return out
 }
