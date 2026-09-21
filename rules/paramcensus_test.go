@@ -2340,8 +2340,12 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
-	"Ad Nauseam":       {"param:api:Repeat.RepeatOptional"},
-	"Arcane Denial":    {"param:api:Counter.RememberTargets", "param:api:Draw.Upto"},
+	"Ad Nauseam": {"param:api:Repeat.RepeatOptional"},
+	// Arcane Denial's param:api:Draw.Upto entry was deleted when Upto$ read
+	// a real per-target "draw up to N" ask (task mordorparams1,
+	// effects/cardflow.go effDraw's upto branch, rules' draw_upto resume
+	// arm) — pinned by TestArcaneDenialSlowtripDrawsUpToTwo.
+	"Arcane Denial":    {"param:api:Counter.RememberTargets"},
 	"Avengers Quinjet": {"param:api:ChangeZone.ValidTgtsDesc"},
 	// Captain Marvel, Apex Avenger's param:api:PutCounter.Placer label was
 	// deleted when the bare-Choices$ PutCounter pick read Placer$ (task

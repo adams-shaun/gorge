@@ -342,7 +342,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		"TriggeredNewCardLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
 		"TriggeredAttackerLKICopy",
-		"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
+		"DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
@@ -365,6 +365,18 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerBlocker}}, true
 		}
 		return objectsOf(c.Remembered), true
+	case "DelayTriggerRemembered":
+		// The delayed trigger's remembered set AS-IS, players included (task
+		// mordorparams1): a DelayedTrigger registration that remembered a
+		// PLAYER (Arcane Denial's RememberObjects$ RememberedController —
+		// "Its controller may draw up to two cards" names the countered
+		// spell's CONTROLLER, a player, never an object) must resolve to
+		// that player for the Draw the Execute$ runs; the objectsOf read the
+		// M1 comment describes dropped the entry and the whole draw silently
+		// no-oped. Object-remembered registrations are unchanged (the set is
+		// passed through verbatim); the LKI forms above keep the objects-only
+		// read their LKI semantics name.
+		return copyTargets(c.Remembered), true
 	case "TriggeredSpellAbility":
 		// The activation arm (abcopy1): an ability-cast trigger's Remembered
 		// names the SOURCE PERMANENT (an AbilityPush's Obj -- the minted

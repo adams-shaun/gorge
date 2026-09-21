@@ -2445,6 +2445,68 @@ func (e *Engine) WasCastFromHand(obj state.ObjID) bool {
 	return false
 }
 
+// DiscardedInWindow satisfies effects.Host's DiscardedInWindow for the
+// ConditionDefined$ Discarded group's cost-discard channel (task
+// mordorparams1, Moria Scavenger's "If the discarded card was a creature
+// card"): the events.DiscardCost records of obj's own activation, read off
+// the log. The window walks BACKWARD from the log end and stops at the
+// first event that proves a different resolution boundary — another
+// wrapper's push (a different activation's AbilityPush/PutOnStack/trigger
+// push), a step or turn change, a pool clear or a player loss — while
+// crossing obj's OWN push events, because the two cost orderings share the
+// one rule: an ability's cost parts are paid BEFORE its AbilityPush mints
+// the wrapper (rules/cast.go's activation branch), a spell's AFTER its
+// PutOnStack (the spell branch), and no other wrapper's push can sit
+// between a cost discard and the resolution that follows it. Priority
+// passes are deliberately NOT a boundary: an activated ability can sit on
+// the stack across any number of passes before it resolves, and the
+// discard it paid belongs to exactly that resolution. Derived from the log
+// the way WasCastFromHandByYou is, so a replay derives the same answer.
+func (e *Engine) DiscardedInWindow(obj state.ObjID) []state.ObjID {
+	if obj == 0 {
+		return nil
+	}
+	// An ability wrapper's AbilityPush carries the SOURCE permanent's id
+	// (events.Apply mints the wrapper; Event.Obj names its source), so the
+	// scan crosses its own push by wrapper id or source id alike.
+	var src state.ObjID
+	if o := e.G.Obj(obj); o != nil {
+		src = o.Source
+	}
+	var out []state.ObjID
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		switch ev.Kind {
+		case events.MoveZone:
+			if events.IsDiscardCost(ev) {
+				out = append(out, ev.Obj)
+				continue
+			}
+			// An ordinary move inside the window is not a boundary — an
+			// ability's payment can move several cards (exile parts, tapped
+			// entries) between its discard and its push.
+			continue
+		case events.PutOnStack, events.AbilityPush, events.TriggerPush,
+			events.DelayedPush, events.GrantTriggerPush:
+			if ev.Obj == obj || (src != 0 && ev.Obj == src) {
+				continue // the resolving object's own push: cross it
+			}
+			return reverseIDs(out)
+		case events.StepChange, events.TurnChange, events.ManaClear, events.PlayerLost:
+			return reverseIDs(out)
+		}
+	}
+	return reverseIDs(out)
+}
+
+// reverseIDs restores log order to a backward scan's collection.
+func reverseIDs(in []state.ObjID) []state.ObjID {
+	for i, j := 0, len(in)-1; i < j; i, j = i+1, j-1 {
+		in[i], in[j] = in[j], in[i]
+	}
+	return in
+}
+
 // WasCast satisfies effects.Host's WasCast (Forge Card.wasCast():
 // castFrom != null), the Count$IfCastInOwnMainPhase third conjunct (task
 // ifcastmain1). The pending CR 601.2c announcement ask is a cast in progress:

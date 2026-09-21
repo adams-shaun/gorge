@@ -121,6 +121,21 @@ type resumePoint struct {
 	// completed. It prevents the resumed `unless_pay` arm from charging that
 	// payment a second time.
 	unlessPay string
+	// unlessDiscards is the object list the settled unless-payment discarded
+	// (the UnlessCost$ Discard<...> component's picks), stashed by
+	// finishUnlessPayment beside the unlessPay outcome: the unless_pay arm
+	// hands it to the continuing walk as Ctx.UnlessDiscarded, the
+	// ConditionDefined$ Discarded group's mid-resolution channel (Argentum
+	// Masticore). Nil for every other payment.
+	unlessDiscards []state.ObjID
+	// uptoIdx/uptoCount ride an Upto$ Draw's in-flight per-target state
+	// across a Dredge ask parked inside that target's answered batch (the
+	// Decision.ResumeUpto rider, Ask copies them here): the dredge arm
+	// restores Ctx.DrawUptoIdx/Count/Answered from them so effDraw's upto
+	// branch continues the batch. uptoIdx -1 (the default every non-upto
+	// ask leaves) means no upto is in flight.
+	uptoIdx   int
+	uptoCount int32
 	// unlessResolved is the unless-cost outcome the suspended pass recorded
 	// through Host.SuspendUnless (effects.Resolve: the gate had resolved
 	// when the SA's own body posed the pending ask). "resolved-pay" and
@@ -302,7 +317,8 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
-		moved: append([]state.ObjID(nil), d.ResumeMoved...)}
+		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
+		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount}
 	return true
 }
 
@@ -876,6 +892,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				e.resumeOrdinaryDraw(rp.player)
 			}
 			ctx.DrawDone = int32(rp.target + 1)
+			if rp.uptoIdx >= 0 {
+				// An Upto$ Draw's answered batch parked on this Dredge ask: the
+				// rider (Decision.ResumeUptoIdx/Count -> the resume point)
+				// restores the in-flight target so effDraw's upto branch
+				// continues it instead of re-asking its decision.
+				ctx.DrawUptoIdx = int32(rp.uptoIdx)
+				ctx.DrawUptoCount = rp.uptoCount
+				ctx.DrawUptoAnswered = true
+			}
 		case "repeat":
 			// A RepeatEach loop re-entered after one of its iterations
 			// suspended: no answer, just the cursor (CR 608.2c).
@@ -887,6 +912,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if rp.unlessPay != "" {
 				ctx.UnlessPay = rp.unlessPay
 				ctx.UnlessNext = rp.target
+				if len(rp.unlessDiscards) > 0 {
+					ctx.UnlessDiscarded = make([]state.Target, 0, len(rp.unlessDiscards))
+					for _, id := range rp.unlessDiscards {
+						ctx.UnlessDiscarded = append(ctx.UnlessDiscarded, state.Target{Obj: id})
+					}
+				}
 				break
 			}
 			// The payer agreed to pay (option 0 is "Pay …") or not. Payment
@@ -1561,6 +1592,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// re-posed the last target's ack forever.
 			ctx.LookAck = true
 			ctx.LookAckTarget = rp.target
+		case "draw_upto":
+			// Upto$ Draw (Arcane Denial, Truce): the per-target count ask was
+			// answered — the count is the number of chosen card options (the
+			// options are the top cards of the target's own library; an empty
+			// answer, legal at Min 0, is a draw-nothing decline, the point of
+			// Upto$). The re-entered effDraw consumes the answer for exactly
+			// the target the ask named (ResumeTarget, fx42 scoping), draws it,
+			// then poses the next target's own ask.
+			ctx.DrawUptoIdx = int32(rp.target)
+			ctx.DrawUptoCount = int32(len(chosen))
+			ctx.DrawUptoAnswered = true
 		case "draw_optional":
 			// OptionalDecider$ Draw (Mystic Remora, Rhystic Study): the
 			// decider's yes/no was answered. Option 0 is "yes" (draw the
