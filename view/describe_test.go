@@ -115,12 +115,22 @@ func TestDescribeTemplates(t *testing.T) {
 		{"flip", events.Event{Kind: events.FlipFace, Obj: bear, Amount: 1}, "Bear #1 turns to face 1"},
 		{"clock", events.Event{Kind: events.ClockTick}, ""},
 		{"trigger", events.Event{Kind: events.TriggerPush, Player: 0, Obj: bear}, "Bear #1 triggers"},
+		// The mutate fold and its under-card trigger push (CR 702.140): Text
+		// is the placement choice; the merged push reads like the delayed and
+		// granted pushes -- the resolving ability's own line says what it does.
+		{"mutate top", events.Event{Kind: events.Mutate, Obj: bear, IDs: []state.ObjID{bolt}, Text: "top"}, "Bear #1 mutates with a card on top of it"},
+		{"mutate under", events.Event{Kind: events.Mutate, Obj: bear, IDs: []state.ObjID{bolt}, Text: "under"}, "Bear #1 mutates with a card under it"},
+		{"merged trigger", events.Event{Kind: events.MergedTriggerPush, Player: 0, Obj: bear}, "Bear #1 triggers (merged)"},
 		{"end combat", events.Event{Kind: events.EndCombatReset}, "Combat ends"},
 		{"cast info x", events.Event{Kind: events.CastInfo, Obj: bolt, Amount: 3}, "Bob casts Bolt #2 (X = 3)"},
 		{"cast info mode", events.Event{Kind: events.CastInfo, Obj: bolt, Counter: "kicked"}, "Bob casts Bolt #2 (kicked)"},
 		{"choose name", events.Event{Kind: events.Choose, Obj: bolt, Counter: "name", Text: "Giant Growth"}, "Bob chooses the name Giant Growth for Bolt #2"},
 		{"choose type", events.Event{Kind: events.Choose, Obj: bolt, Counter: "type", Text: "Elf"}, "Bob chooses the type Elf for Bolt #2"},
 		{"choose number", events.Event{Kind: events.Choose, Obj: bolt, Counter: "number", Amount: 3}, "Bob chooses the number 3 for Bolt #2"},
+		// CR 310.10: the protector Choose carries the chosen opponent's seat
+		// on Player, so the transcript names that opponent rather than the
+		// card's controller (which the generic wordings read).
+		{"choose protector", events.Event{Kind: events.Choose, Obj: bolt, Counter: "protector", Player: 0}, "Ann protects Bolt #2 (chosen by Bob)"},
 		{"token", events.Event{Kind: events.TokenCreate, Player: 1, Text: "r_1_1_goblin"}, "Bob creates a Goblin token"},
 		{"token unknown script", events.Event{Kind: events.TokenCreate, Player: 1, Text: "nope"}, "Bob creates a token"},
 		{"copy", events.Event{Kind: events.StackCopy, Obj: bolt, Player: 0}, "Ann copies Bolt #2"},

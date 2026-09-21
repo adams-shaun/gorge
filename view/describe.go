@@ -159,6 +159,14 @@ func Describe(g *state.Game, ev events.Event) string {
 			text += " (exiled at end of combat)"
 		}
 		return text
+	case events.ClonePermanent:
+		// CR 613.1a's layer-1 copy basis (api:Clone, task api-clone): Obj is
+		// the object that becomes the copy and IDs[0] the object copied from;
+		// a zero/absent id is the expiry/cleanup clear.
+		if len(ev.IDs) == 0 || ev.IDs[0] == 0 {
+			return obj(g, ev.Obj) + " stops being a copy"
+		}
+		return obj(g, ev.Obj) + " becomes a copy of " + obj(g, ev.IDs[0])
 	case events.Exert:
 		// CR 702.100 (task exert1): the exert itself, and the consume marker
 		// the untap-step scan emits as it passes an exerted permanent -- the
@@ -184,6 +192,14 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " rolls the planar die"
 	case events.NoteNumber:
 		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
+	case events.Mutate:
+		// CR 702.140d: one mutating card merges into the surviving permanent.
+		// Text is "top" or "under" (CR 702.140b's placement).
+		place := "under"
+		if ev.Text == "top" {
+			place = "on top of"
+		}
+		return obj(g, ev.Obj) + " mutates with a card " + place + " it"
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:
@@ -376,11 +392,17 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.Choose:
 		// Records an "as this enters, choose ..." answer (etbAsk/etbAnswer):
 		// Counter discriminates the shape ("name", "type", "number"; the
-		// chosen name/type rides on Text, the number on Amount). Like
-		// CastInfo it carries no Player field, so the chooser is the card's
-		// controller. An unrecognized Counter (a fuzz event, a future
-		// shape) degrades to a generic "chooses a value" line rather than
-		// inventing a field.
+		// chosen name/type rides on Text, the number on Amount). The
+		// "protector" shape (CR 310.10) instead carries the chosen
+		// opponent's seat on Player, so it names that seat rather than the
+		// card's controller. Every other shape carries no Player field, so
+		// the chooser is the card's controller. An unrecognized Counter (a
+		// fuzz event, a future shape) degrades to a generic "chooses a
+		// value" line rather than inventing a field.
+		if ev.Counter == "protector" {
+			return player(g, ev.Player) + " protects " + obj(g, ev.Obj) +
+				" (chosen by " + player(g, objController(g, ev.Obj)) + ")"
+		}
 		what := "a value"
 		switch ev.Counter {
 		case "name":
@@ -496,6 +518,11 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the granted body's own text is the resolving ability's line, not
 		// the push's, so saying what it will do twice would double-report it.
 		return obj(g, ev.Obj) + " triggers (granted)"
+	case events.MergedTriggerPush:
+		// A mutated pile's under-card trigger went on the stack (CR 702.140d):
+		// the same "triggers" phrasing -- the resolving ability's own line is
+		// what carries what it does.
+		return obj(g, ev.Obj) + " triggers (merged)"
 	case events.ManaActivate:
 		// The ActivationLimit$ scan marker for a mana ability's activation
 		// (events.ManaActivate's own comment). Obj is the source permanent.

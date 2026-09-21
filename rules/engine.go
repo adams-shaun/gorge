@@ -416,6 +416,14 @@ type Engine struct {
 	// own bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
 	// once-per-damage-batch gate); see there.
 	triggerFireCount map[triggerKey]int32
+	// unblockedOnceFired latches an AttackerUnblockedOnce trigger to ONE fire
+	// per combat (rules.trigger_match.go's checkAttackerUnblockedOnceTriggers):
+	// Forge's Mode$ AttackerUnblockedOnce fires once for the whole
+	// declare-blockers round complete even when several attackers match, and
+	// the Once means once per COMBAT, not per game -- an extra combat fires it
+	// again. The stamp is (Turn, CombatsThisTurn), the event-folded per-turn
+	// combat count, so it uniquely names a combat and needs no reset hook.
+	unblockedOnceFired map[triggerKey]combatFires
 	// A damage batch is the set of Damage events dealt simultaneously: one
 	// combat-damage pass (rules/combat.go damageStep), or the Damage events
 	// one dealDamage-style effect call deals (effects/damage.go brackets each
@@ -499,6 +507,12 @@ type Engine struct {
 	// Riot's as-enters choice. The event is emitted only after Choose records
 	// the answer, so every entry path reaches events.Move with RiotChoice set.
 	riotMove *events.Event
+	// siegeMove parks a non-cast Battle entry while its controller makes the
+	// CR 310.10 Siege protector choice. Same discipline as riotMove: the
+	// MoveZone is emitted only after the Choose "protector" event records the
+	// answer, so every entry path records the protector beside the entry and a
+	// log-only replay re-derives it. Clone-copied (clone.go).
+	siegeMove *events.Event
 	// suspendedCasts is the mandatory "cast it if able" trigger created when
 	// a real suspended card loses its final TIME counter. IDs are appended in
 	// exile order and consumed before priority; it is plain replayable engine

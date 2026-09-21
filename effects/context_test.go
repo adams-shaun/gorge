@@ -210,6 +210,12 @@ func (h *fakeHost) EachSpellCastThisTurnMatching(_ state.PlayerID, _ string, _ s
 // (the Myojin cycle's corpus tests).
 func (h *fakeHost) WasCastFromHandByYou(_ state.ObjID, _ state.PlayerID) bool { return h.castFromHand }
 
+// DiscardedInWindow: the fake has no event log, so the ConditionDefined$
+// Discarded group's cost-discard channel is always empty (the gate stays
+// unresolved, its fail-open); the channel is pinned end to end on the real
+// engine in rules (Moria Scavenger's corpus test).
+func (h *fakeHost) DiscardedInWindow(_ state.ObjID) []state.ObjID { return nil }
+
 // The bare wasCastFromYourHand family's read (castprov3): the fake has no
 // cast log either, so it reports the same single flag the ByYou double reads
 // — enough for the branch-head and ConditionPresent$ gate unit tests, whose

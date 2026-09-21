@@ -733,3 +733,59 @@ func TestTrainerResidualReproducesBotWhenNothingIsLearnable(t *testing.T) {
 		t.Fatalf("residual 0 model top-1 1.000 — the no-prior arm should not already be perfect, or the wiring is not being exercised")
 	}
 }
+
+func extraFeatureCorpus(n, nopts int) []policynet.Example {
+	out := make([]policynet.Example, n)
+	for i := 0; i < n; i++ {
+		st := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+		st.Sparse = append(st.Sparse,
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("xf|s|%d", i%7)), Value: 1})
+		marked := i%3 == 0
+		pref := 0
+		if marked {
+			pref = 2
+		}
+		ex := policynet.Example{Kind: "attackers", TeacherChoice: pref, BotIndex: 0, Margin: 0.02, State: st}
+		for j := 0; j < nopts; j++ {
+			o := policynet.Option{Dense: make([]float32, policynet.OptionDenseWidth), Extra: []float32{0}}
+			o.Hashed = append(o.Hashed,
+				policynet.Feature{Row: policynet.HashID(fmt.Sprintf("xf|p|%d", j)), Value: 1})
+			if marked && j == 2 {
+				o.Extra[0] = 1
+			}
+			o.Target = policynet.OptionTarget{Labelled: true, Preferred: j == pref, Value: 0.5}
+			ex.Options = append(ex.Options, o)
+		}
+		out[i] = ex
+	}
+	return out
+}
+
+// TestTrainerLearnsFromExtraFeature proves the Extra channel is a trainable
+// input, not inert plumbing: on a corpus whose ONLY discriminative signal is
+// Option.Extra[0], pure CE must fit it to saturation. This is the synthetic
+// control for the real-corpus result that even a leaky Extra feature is not
+// exploited — if this test passes, the real-corpus underfit is a data/
+// optimisation interaction, not a broken augmentation path.
+func TestTrainerLearnsFromExtraFeature(t *testing.T) {
+	corpus := extraFeatureCorpus(600, 3)
+	res, err := Train(corpus, Config{Epochs: 10, Batch: 32, LR: 0.1, Seed: 7, Holdout: 0.15,
+		Embed: 32, Hidden: 64, Mode: policynet.LossCE, RankWeight: 1, HuberDelta: 0.1, ExtraW: 1})
+	if err != nil {
+		t.Fatalf("Train: %v", err)
+	}
+	if len(res.ByKind) != 1 {
+		t.Fatalf("%d kinds, want 1", len(res.ByKind))
+	}
+	k := res.ByKind[0]
+	if k.FirstTop1 < 0.5 || k.FirstTop1 > 0.7 {
+		t.Fatalf("first-option baseline %.3f outside the expected ~0.667", k.FirstTop1)
+	}
+	if k.ModelTop1 < 0.95 {
+		t.Fatalf("pure CE on an Extra-only signal: top-1 %.3f < 0.95 — the Extra channel is not trainable", k.ModelTop1)
+	}
+	if res.Model.ExtraW != 1 || res.Model.InW != 2*32+128+24+1 {
+		t.Fatalf("model geometry: ExtraW=%d InW=%d, want 1 / %d", res.Model.ExtraW, res.Model.InW, 2*32+128+24+1)
+	}
+	t.Logf("first-option %.3f | Extra-only pure CE %.3f", k.FirstTop1, k.ModelTop1)
+}

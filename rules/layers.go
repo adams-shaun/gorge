@@ -1060,33 +1060,186 @@ func (e *Engine) EndOfTurnCleanup() {
 	e.expireControl(controlAtCleanup)
 	e.reconcileControlStatics()
 	kept := e.continuous[:0]
+	// expiredClones collects the clone UNITS whose LCopy marker this cleanup
+	// drops, so the object's CopyFace basis can be settled after the kept
+	// list is rewritten (task api-clone).
+	//
+	// A unit is keyed by (become object, expiry moment) rather than by the
+	// become object alone: several clone units may be live on ONE permanent
+	// (Mirage Mirror activated twice, a permanent copy plus a temporary one),
+	// and dropping them all because one expired both wipes a still-live
+	// unit's modifiers and destroys its copy. Two units that share the whole
+	// key expire at the same instant by construction, so grouping by it can
+	// never separate a marker from its own siblings nor merge two units whose
+	// lifetimes differ.
+	var expiredClones []cloneExpiry
+	dropClone := func(ce ContinuousEffect) {
+		k := cloneExpiryOf(ce)
+		for _, seen := range expiredClones {
+			if seen == k {
+				return
+			}
+		}
+		expiredClones = append(expiredClones, k)
+	}
 	for _, ce := range e.continuous {
-		// A Permanent one-shot survives cleanup (CR 611.2a).
+		// A Permanent one-shot survives cleanup (CR 611.2a). An LCopy
+		// marker, however, is never left to the generic rules alone: an
+		// UntilUnattached copy has no ordinary expiry field and must be
+		// tested live.
+		if ce.Layer == LCopy && ce.CloneTarget != 0 &&
+			strings.EqualFold(strings.TrimSpace(ce.Duration), "untilunattached") {
+			if o := e.G.Obj(ce.CloneTarget); o == nil || o.AttachedTo == 0 {
+				dropClone(ce)
+				continue
+			}
+		}
 		if ce.Permanent {
 			kept = append(kept, ce)
 			continue
 		}
 		if ce.UntilEOT {
+			if ce.Layer == LCopy && ce.CloneTarget != 0 {
+				dropClone(ce)
+			}
 			continue
 		}
 		if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
 			// CR 511.2: until-end-of-combat is an expired lifetime by the time
 			// this turn's cleanup runs, so it is reclaimed here rather than
 			// lingering in e.continuous forever.
+			if ce.Layer == LCopy && ce.CloneTarget != 0 {
+				dropClone(ce)
+			}
 			continue
 		}
 		if ce.UntilTurn != 0 && ce.UntilTurn == e.G.Turn {
+			if ce.Layer == LCopy && ce.CloneTarget != 0 {
+				dropClone(ce)
+			}
 			continue
 		}
 		kept = append(kept, ce)
 	}
+	if len(expiredClones) > 0 {
+		// Drop the whole clone unit: the marker's sibling modifier effects
+		// go with it. The match is the FULL unit key, not the become object,
+		// so a second clone unit still live on the same permanent keeps its
+		// own modifiers (the two-overlapping-clones defect).
+		surviving := kept[:0]
+		for _, ce := range kept {
+			if ce.CloneTarget != 0 && cloneExpiryIn(expiredClones, cloneExpiryOf(ce)) {
+				continue
+			}
+			surviving = append(surviving, ce)
+		}
+		kept = surviving
+	}
 	e.continuous = kept
+	// Settle each affected object's CopyFace basis AFTER e.continuous is
+	// rewritten so the emitted ClonePermanent events cannot re-enter this
+	// cleanup's list state (the emit below applies to G.Objs only). Each
+	// settle is one event, so the hash chain records the expiry exactly as it
+	// records the copy.
+	e.settleExpiredClones(expiredClones)
 	// Bump the version for the same reason AddContinuous does: the cache is
 	// keyed on continuousVersion, and this in-place rewrite (which emits no
 	// event and moves no log head) drops every UntilEOT pump and every
 	// expired UntilTurn effect. Without the bump, a stale active() cache
 	// would keep reporting a dead pump's P/T.
 	e.continuousVersion++
+}
+
+// cloneExpiry identifies ONE clone unit (task api-clone): the permanent that
+// became a copy, together with the moment that copy's lifetime ends. A single
+// permanent may carry several live clone units at once -- Mirage Mirror
+// activated twice in a turn, or a permanent copy under a temporary one -- and
+// every effect a unit registers (the layer-1 LCopy marker and its layer-4/5/6/7
+// modifier siblings) is registered with the SAME lifetime fields, so this key
+// separates the units without any per-unit identifier riding the effects.
+//
+// Two units that share the whole key expire at the same instant, so treating
+// them as one is behaviourally identical; two units whose lifetimes differ
+// differ in at least one field, so one can never drop the other.
+type cloneExpiry struct {
+	Target    state.ObjID
+	Duration  string
+	UntilEOT  bool
+	UntilTurn int32
+}
+
+func cloneExpiryOf(ce ContinuousEffect) cloneExpiry {
+	return cloneExpiry{Target: ce.CloneTarget,
+		Duration:  strings.ToLower(strings.TrimSpace(ce.Duration)),
+		UntilEOT:  ce.UntilEOT,
+		UntilTurn: ce.UntilTurn}
+}
+
+func cloneExpiryIn(keys []cloneExpiry, k cloneExpiry) bool {
+	for _, x := range keys {
+		if x == k {
+			return true
+		}
+	}
+	return false
+}
+
+// settleExpiredClones rewrites the CopyFace basis of every permanent whose
+// clone units this cleanup just dropped from e.continuous.
+//
+// The basis is a SINGLE field on the object (state.Object.CopyFace) while a
+// permanent may carry several clone units, so an expiry cannot simply clear
+// it: the object must be re-based onto whichever unit is still live. CR
+// 613.1a applies copy effects in timestamp order, so the survivor that wins
+// is the highest-timestamp LCopy marker left for that object; with none left
+// the basis is cleared, which is the single-unit case and therefore emits
+// exactly the event stream this cleanup emitted before overlapping units were
+// modelled (heads unmoved for every game with at most one copy per object).
+//
+// The re-base is one ClonePermanent naming the survivor's own source, name
+// and GainThisAbility$ rider, so it goes through events.Apply like every
+// other state change and a replay derives the identical face.
+func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
+	if len(expired) == 0 {
+		return
+	}
+	// Deterministic order: the expiry keys are collected in e.continuous scan
+	// order, and each object is settled once, on its first appearance.
+	var done []state.ObjID
+	for _, k := range expired {
+		if k.Target == 0 || objIDIn(done, k.Target) {
+			continue
+		}
+		done = append(done, k.Target)
+		var survivor *ContinuousEffect
+		for i := range e.continuous {
+			ce := &e.continuous[i]
+			if ce.Layer != LCopy || ce.CloneTarget != k.Target {
+				continue
+			}
+			if survivor == nil || ce.Timestamp > survivor.Timestamp {
+				survivor = ce
+			}
+		}
+		// Clear first, unconditionally. With no survivor that is the whole
+		// settle (the single-unit case, byte-identical to the pre-overlap
+		// build). With one, it puts the object back on its PRINTED face
+		// before the re-base, which is what the survivor's copy is taken
+		// against -- notably GainThisAbility$, whose fold appends the become
+		// object's own current face abilities and would otherwise append the
+		// EXPIRING copy's.
+		e.emit(events.Event{Kind: events.ClonePermanent, Obj: k.Target})
+		if survivor == nil {
+			continue
+		}
+		ev := events.Event{Kind: events.ClonePermanent, Obj: k.Target,
+			IDs: []state.ObjID{survivor.CloneSource}, Player: survivor.Controller,
+			Text: survivor.CloneName}
+		if survivor.CloneGainThisAbility {
+			ev.Counter = "gain-this-ability"
+		}
+		e.emit(ev)
+	}
 }
 
 // effectMoveSweep is the move-driven lifetime of Effect-created continuous
@@ -1115,6 +1268,22 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {
+		// A clone unit -- the layer-1 LCopy marker and every sibling modifier
+		// effect, all carrying CloneTarget -- ends the instant the become
+		// object leaves the battlefield (CR 400.7: it is a new object and its
+		// CopyFace basis has already been cleared by Move). Dropping the whole
+		// unit here is the structural owner of a clone's source-leaves
+		// lifetime: without it a permanent copy's modifiers would keep applying
+		// to a re-entered object and e.continuous would grow unbounded. The
+		// expiring durations (UntilEOT / UntilTurn / until-combat /
+		// until-unattached) are still handled by EndOfTurnCleanup; this sweep
+		// adds the leave-the-battlefield case those branches cannot see.
+		if ce.CloneTarget != 0 {
+			if o := e.G.Obj(ce.CloneTarget); o == nil || o.Zone != state.ZBattlefield {
+				changed = true
+				continue
+			}
+		}
 		forget, exile := ce.ForgetOnMoved, ce.ExileOnMoved
 		if forget != "" && effects.ParseZone(forget) == ev.From && objIDIn(ce.Remembered, ev.Obj) {
 			ce.Remembered = objIDWithout(ce.Remembered, ev.Obj)
@@ -2030,6 +2199,103 @@ func (e *Engine) SacrificeBlocked(id state.ObjID) bool {
 		}
 	}
 	return false
+}
+
+// PutCounterBlocked reports whether a counter of kind would be placed on obj
+// (object form) or player (player form) is forbidden -- a real CantPutCounter
+// restriction static (task cantputcounter1): an Effect-registered one (Melira,
+// the Living Cure's "you can't get additional poison counters this turn",
+// registered by effEffect from the Effect's StaticAbilities$ NoMorePoison) or
+// a face S:Mode$ CantPutCounter static (Solemnity, Melira's Keepers,
+// Blightbeetle, Darksteel Angel, Tatterkite, Melira Sylvok Outcast, Phila
+// Unsealed). Consulted at the counter-placement choke point in
+// rules/replacement.go, BEFORE any AddCounter replacement, so a prohibition
+// with no accompanying R:Event$ AddCounter line is still enforced and the
+// event is swallowed rather than folded.
+//
+// Reading (both forms fail closed on the other's event kind): CounterType$
+// names the kind (absent = all kinds), ValidPlayer$ scopes the player form,
+// ValidCard$/ValidObject$ scopes the object form. An unscoped line blocks
+// both forms. Both routes are consulted, mirroring SacrificeBlocked /
+// attackBlocked.
+func (e *Engine) PutCounterBlocked(kind string, obj state.ObjID, player state.PlayerID, playerForm bool) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantPutCounter" {
+			continue
+		}
+		if !counterKindMatches(ce.RestrictParams["CounterType"], kind) {
+			continue
+		}
+		if playerForm {
+			if spec := strings.TrimSpace(ce.RestrictParams["ValidPlayer"]); spec != "" {
+				if restrictionPlayerSpecMatches(e.G, spec, player, ce.Controller, ce.RememberedPlayers) {
+					return true
+				}
+				continue
+			}
+			if strings.TrimSpace(ce.RestrictParams["ValidCard"]) != "" || strings.TrimSpace(ce.RestrictParams["ValidObject"]) != "" {
+				continue
+			}
+			return true
+		}
+		objSpec := ce.RestrictParams["ValidCard"]
+		if objSpec == "" {
+			objSpec = ce.RestrictParams["ValidObject"]
+		}
+		if strings.TrimSpace(objSpec) != "" {
+			if e.restrictionApplies(ce, obj) {
+				return true
+			}
+			continue
+		}
+		if strings.TrimSpace(ce.RestrictParams["ValidPlayer"]) != "" {
+			continue
+		}
+		return true
+	}
+	for _, sv := range e.activeStatics("CantPutCounter") {
+		if !effects.CantPutCounterParamsReadable(sv.Params) {
+			continue
+		}
+		if !counterKindMatches(sv.Params["CounterType"], kind) {
+			continue
+		}
+		if playerForm {
+			if spec := strings.TrimSpace(sv.Params["ValidPlayer"]); spec != "" {
+				if restrictionPlayerSpecMatches(e.G, spec, player, sv.Controller, nil) {
+					return true
+				}
+				continue
+			}
+			if strings.TrimSpace(sv.Params["ValidCard"]) != "" || strings.TrimSpace(sv.Params["ValidObject"]) != "" {
+				continue
+			}
+			return true
+		}
+		spec := strings.TrimSpace(sv.Params["ValidCard"])
+		if spec == "" {
+			spec = strings.TrimSpace(sv.Params["ValidObject"])
+		}
+		if spec != "" {
+			if effects.MatchesSpecCtx(e.G, spec, obj, e.specCtx(sv.Source, sv.Controller)) {
+				return true
+			}
+			continue
+		}
+		if strings.TrimSpace(sv.Params["ValidPlayer"]) != "" {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// counterKindMatches implements a CantPutCounter line's CounterType$ gate: an
+// absent kind admits every counter kind, a stated kind matches only the event's
+// own, and anything else fails closed.
+func counterKindMatches(restriction, kind string) bool {
+	restriction = strings.TrimSpace(restriction)
+	return restriction == "" || restriction == kind
 }
 
 // attackBlocked reports whether creature id is forbidden from being declared

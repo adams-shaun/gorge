@@ -211,6 +211,26 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			i = len(lib) - 1
 		}
 		return []state.Target{{Obj: lib[i]}}, true
+	case "TriggeredOpponentVotedSame", "TriggeredOpponentVotedDiff":
+		// The canonical vote-finished carrier's two List$ referent sets
+		// (trig:Vote): the players other than the TRIGGER SOURCE'S CONTROLLER
+		// who voted for a choice that controller voted for / for a different
+		// one. rules/trigger_referents' Vote case re-splits the carrier's raw
+		// ballots against e.controllerOf(source) -- the vote caster's own
+		// controller is never the anchor -- and the per-stack capture is
+		// rebuilt by replay from the same event bytes. Absent (a non-vote
+		// context) they fail closed to the empty set, ok=true -- the same
+		// convention FlippedHeads/FlippedTails takes, so a reader acts on
+		// nobody rather than guessing at a fallback target.
+		ps := c.TriggeredOpponentsVotedSame
+		if spec == "TriggeredOpponentVotedDiff" {
+			ps = c.TriggeredOpponentsVotedDiff
+		}
+		out := make([]state.Target, 0, len(ps))
+		for _, p := range ps {
+			out = append(out, state.Target{Player: p, IsPlayer: true})
+		}
+		return out, true
 	case "FlippedHeads", "FlippedTails":
 		// Forge's RememberResult$ flip-result memory: DB$ FlipCoin |
 		// RememberResult$ True, then a chained sub reading Defined$
@@ -342,7 +362,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		"TriggeredNewCardLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
 		"TriggeredAttackerLKICopy",
-		"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "RememberedLKI":
+		"DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
@@ -365,6 +385,18 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerBlocker}}, true
 		}
 		return objectsOf(c.Remembered), true
+	case "DelayTriggerRemembered":
+		// The delayed trigger's remembered set AS-IS, players included (task
+		// mordorparams1): a DelayedTrigger registration that remembered a
+		// PLAYER (Arcane Denial's RememberObjects$ RememberedController —
+		// "Its controller may draw up to two cards" names the countered
+		// spell's CONTROLLER, a player, never an object) must resolve to
+		// that player for the Draw the Execute$ runs; the objectsOf read the
+		// M1 comment describes dropped the entry and the whole draw silently
+		// no-oped. Object-remembered registrations are unchanged (the set is
+		// passed through verbatim); the LKI forms above keep the objects-only
+		// read their LKI semantics name.
+		return copyTargets(c.Remembered), true
 	case "TriggeredSpellAbility":
 		// The activation arm (abcopy1): an ability-cast trigger's Remembered
 		// names the SOURCE PERMANENT (an AbilityPush's Obj -- the minted

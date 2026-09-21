@@ -846,11 +846,10 @@ func (e *Engine) emitManaTap(p state.PlayerID, source state.ObjID, sa *cards.SA)
 // the linked effect chain keeps the trigger on the stack, as CR 605.1b
 // requires a mana ability not to require a target.
 func (e *Engine) isTriggeredManaAbility(pt pendingTrigger) bool {
-	o := e.G.Obj(pt.Source)
-	if o == nil || o.Face() == nil || pt.Idx < 0 || pt.Idx >= len(o.Face().Triggers) {
+	t, ok := e.triggerOf(pt)
+	if !ok {
 		return false
 	}
-	t := o.Face().Triggers[pt.Idx]
 	if t.Mode != "TapsForMana" || !strings.EqualFold(t.Params["Static"], "True") {
 		return false
 	}

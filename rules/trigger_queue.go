@@ -338,6 +338,39 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A granted Conspire (CR 702.78a's copy trigger via a layer-6 AddKeyword$
+	// Conspire -- Wort, the Raidmother / Raiding Schemes): the Ward shape.
+	// The trigger is mandatory; its Counter payload "__kwConspire" is what
+	// events.Apply rebuilds into the same DB$ CopySpellAbility body the
+	// printed K:Conspire expansion carries, and the cast spell rides IDs as
+	// Remembered because Defined$ TriggeredSpellAbility reads the triggering
+	// spell off it (the same IDs encoding the ordinary TriggerPush path
+	// uses, which is also what a replay needs).
+	if pt.Conspire {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+				continue
+			}
+			ids = append(ids, tgt.Obj)
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwConspire", IDs: ids, Text: "conspire ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// One of the Ring emblem's four level abilities (CR 701.54c): the emblem
 	// has no object in any zone and no face, so its stack object is minted by
 	// a RingEmblemPush event whose "__ring:<level>" payload events.Apply
@@ -423,7 +456,29 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// target (Flickerwisp re-derives its referent from
 	// DelayTriggerRememberedLKI), but a Room's UnlockDoor trigger reaches its
 	// alternate-face Execute$ SVar through this path and may target.
-	if pt.Delayed {
+	// A mutated pile's under-card trigger (CR 702.140d) shares the delayed
+	// shape -- the ability is minted inside events.Apply from data the log
+	// carries -- but its event names the UNDER-CARD's pile index AND that
+	// face's own Triggers index (packed into MergedTriggerPush's Amount), so
+	// Apply mints the face's COMPILED trigger effect, the same pointer
+	// f.Triggers[i].Effect an ordinary TriggerPush mints. A by-name SVar
+	// resolution would be wrong twice over: the top face's same-named SVar
+	// (Forge's canonical TrigToken) would steal the body -- the pile's top
+	// card can be any non-Human creature, and Cubwarden under Everquill
+	// Phoenix is the real collision pair -- and a freshly parsed SA has no
+	// pointer identity with the compiled trigger, which is how
+	// findTriggerForAbilityFace (and through it the OptionalDecider$ gate,
+	// the intervening-if recheck, the ResolvedLimit$ count, the label and
+	// the resolution-time SVar table) recovers the owning line.
+	if pt.Delayed || pt.Merged > 0 {
+		kind, amount, text := events.DelayedPush, int32(pt.DelayedID), "delayed trigger"
+		if pt.Merged > 0 {
+			kind, amount, text = events.MergedTriggerPush,
+				events.MergedTriggerAmount(pt.Merged-1, pt.Idx), "merged trigger"
+			if amount < 0 {
+				return
+			}
+		}
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
@@ -436,9 +491,9 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			ids = append(ids, tgt.Obj)
 		}
 		stackLen := len(e.G.Stack)
-		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller,
-			Obj: pt.Source, Amount: int32(pt.DelayedID), Counter: pt.Execute,
-			IDs: ids, Text: "delayed trigger"})
+		e.emit(events.Event{Kind: kind, Player: pt.Controller,
+			Obj: pt.Source, Amount: amount, Counter: pt.Execute,
+			IDs: ids, Text: text})
 		if pt.SA != nil && len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {
@@ -601,7 +656,17 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 	if o == nil {
 		return cards.Trigger{}, false
 	}
-	f := o.Face()
+	// A mutated pile's under-card trigger is keyed to the UNDER-CARD's face:
+	// pt.Idx indexes that face's Triggers, and reading the TOP face at the
+	// same index would hand back a different trigger line entirely (both its
+	// description and its OptionalDecider$) -- the same top-face steal the
+	// MergedTriggerPush body resolution exists to prevent.
+	var f *cards.Face
+	if pt.Merged > 0 {
+		f = o.MergedFaceAt(pt.Merged - 1)
+	} else {
+		f = o.Face()
+	}
 	if f == nil || pt.Idx < 0 || pt.Idx >= len(f.Triggers) {
 		return cards.Trigger{}, false
 	}
@@ -660,23 +725,64 @@ func (e *Engine) triggerPaidX(stack state.ObjID, o *state.Object) int32 {
 }
 
 func (e *Engine) findTriggerForAbility(source state.ObjID, sa *cards.SA) (cards.Trigger, bool) {
+	t, _, ok := e.findTriggerForAbilityFace(source, sa)
+	return t, ok
+}
+
+// findTriggerForAbilityFace is findTriggerForAbility plus the face that owns
+// the matched trigger. A mutated pile's under-card trigger lives on a MERGED
+// face (CR 702.140d), so the scan walks the top face first and then every
+// merged face -- pointer equality identifies the line wherever it lives, and
+// callers that label the ability (abilityLabel) need the owning face's name,
+// never the pile's top face's.
+func (e *Engine) findTriggerForAbilityFace(source state.ObjID, sa *cards.SA) (cards.Trigger, *cards.Face, bool) {
 	if sa == nil {
-		return cards.Trigger{}, false
+		return cards.Trigger{}, nil, false
 	}
 	o := e.G.Obj(source)
 	if o == nil {
-		return cards.Trigger{}, false
+		return cards.Trigger{}, nil, false
 	}
 	f := o.Face()
 	if f == nil {
-		return cards.Trigger{}, false
+		return cards.Trigger{}, nil, false
 	}
 	for _, t := range f.Triggers {
 		if t.Effect == sa {
-			return t, true
+			return t, f, true
 		}
 	}
-	return cards.Trigger{}, false
+	for i := range o.MergedCards {
+		mf := o.MergedFaceAt(i)
+		if mf == nil {
+			continue
+		}
+		for _, t := range mf.Triggers {
+			if t.Effect == sa {
+				return t, mf, true
+			}
+		}
+	}
+	return cards.Trigger{}, nil, false
+}
+
+// faceOwningTrigger returns the face of source that carries t: its top face
+// when t is an ordinary printed trigger, or the merged face beneath it when t
+// belongs to a card stacked under a mutated pile's top card (CR 702.140d).
+// The compiled Effect pointer is the identity -- cards.Link parses one *SA per
+// T: line, so no two lines share it -- and a trigger with no compiled body has
+// nothing to run and no face to name. nil means "not found"; callers keep
+// whatever they read from the top face, which for every non-merged object is
+// the same face this would return.
+func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.Face {
+	if t.Effect == nil {
+		return nil
+	}
+	_, f, ok := e.findTriggerForAbilityFace(source, t.Effect)
+	if !ok {
+		return nil
+	}
+	return f
 }
 
 // optionalDecider reports whether pt is an optional trigger, which seat gets
@@ -897,6 +1003,15 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		}
 		return name + ": ward (" + pt.Ward + ")"
 	}
+	if pt.Conspire {
+		name := "a spell"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		return name + ": conspire copy trigger"
+	}
 	if pt.Miracle || pt.Madness || pt.Evoke {
 		name := "it"
 		if o := e.G.Obj(pt.Source); o != nil {
@@ -945,6 +1060,12 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 		if f := src.Face(); f != nil && f.Name != "" {
 			name = f.Name
 		}
+		// A mutated pile's under-card ability is labelled with the UNDER-CARD's
+		// own name: the ability belongs to the card beneath the top card
+		// (CR 702.140d), and the pile's top face can be any creature.
+		if _, mf, ok := e.findTriggerForAbilityFace(o.Source, t.Effect); ok && mf != nil && mf.Name != "" {
+			name = mf.Name
+		}
 	}
 	if desc := t.Params["TriggerDescription"]; desc != "" {
 		return name + ": " + desc
@@ -992,7 +1113,15 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 		source = so.Source
 	}
 	if so := e.G.Obj(source); so != nil {
-		if sf := so.Face(); sf != nil {
+		// The modal SVar names resolve against the face that OWNS the trigger
+		// (the compiled SA pointer identifies it): a mutated pile's under-card
+		// modal trigger must not read the pile's top face's same-named SVar --
+		// the same top-face steal the MergedTriggerPush body resolution
+		// prevents. Ordinary triggers find their own face (the top one) and
+		// behave exactly as before.
+		if _, mf, ok := e.findTriggerForAbilityFace(source, sa); ok && mf != nil {
+			svars = mf.SVars
+		} else if sf := so.Face(); sf != nil {
 			svars = sf.SVars
 		}
 	}
