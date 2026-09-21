@@ -51,7 +51,6 @@ package seat
 
 import (
 	"context"
-	"math"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
@@ -289,13 +288,4 @@ func admissionThreshold(scores []float32) (float32, bool) {
 		sum += float64(s)
 	}
 	return float32(sum / float64(len(scores))), true
-}
-
-// sigmoid is the logistic function in float64 over the float32 score —
-// deterministic. Retained for callers that reason about the calibrated
-// probability directly (and for the tests that pin the 0.5 boundary); the
-// admission rule itself now compares against admissionThreshold rather than
-// an absolute zero.
-func sigmoid(x float32) float64 {
-	return 1 / (1 + math.Exp(-float64(x)))
 }
