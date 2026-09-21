@@ -547,6 +547,98 @@ func TestLossFiniteOnDivergedScores(t *testing.T) {
 	}
 }
 
+// TestClipCapsTheNormAndPreservesDirection pins the per-batch global-L2
+// clip's contract (ticket policytrain-clip-rankweight-interaction): when the
+// summed gradient's norm exceeds the cap, EVERY block is rescaled by the
+// SAME factor (the direction — and with it every direction-carrying weight,
+// per-example or per-term — is untouched) and the norm lands exactly on the
+// cap; when the norm is already inside, Clip is a no-op; maxNorm <= 0
+// disables.
+func TestClipCapsTheNormAndPreservesDirection(t *testing.T) {
+	rng := rand.New(rand.NewPCG(23, 24))
+	m, ex, lc := gradFixture(rng)
+	ex2 := ex
+	ex2.State = State{Dense: make([]float32, DenseWidth)}
+	for i := range ex2.State.Dense {
+		ex2.State.Dense[i] = float32(rng.NormFloat64()) * 0.7
+	}
+	for i := 0; i < 40; i++ {
+		ex2.State.Sparse = append(ex2.State.Sparse, Feature{Row: uint16(rng.IntN(64)), Value: 1})
+	}
+
+	g := m.NewGrads()
+	g.Zero()
+	m.LossGrad(ex, lc, g)
+	m.LossGrad(ex2, lc, g)
+	before := g.Norm()
+	if before == 0 {
+		t.Fatal("fixture gradient is identically zero")
+	}
+
+	// copy each distinct block before the clip
+	cp := func(v []float32) []float32 {
+		out := make([]float32, len(v))
+		copy(out, v)
+		return out
+	}
+	pre := [][]float32{cp(g.Table), cp(g.StateW), cp(g.StateB), cp(g.HidW), cp(g.HidB), cp(g.OutW)}
+
+	g.Clip(0.5)
+	after := g.Norm()
+	if math.Abs(after-0.5) > 1e-6 {
+		t.Fatalf("norm after clip = %g, want 0.5 (before %g)", after, before)
+	}
+	// One shared scale: every block's after/before ratio must be the same
+	// constant (measured on several non-zero entries per block).
+	scales := []float64{}
+	for bi, blk := range pre {
+		got := [][]float32{g.Table, g.StateW, g.StateB, g.HidW, g.HidB, g.OutW}[bi]
+		n := 0
+		for i := range blk {
+			if blk[i] != 0 {
+				r := float64(got[i]) / float64(blk[i])
+				scales = append(scales, r)
+				if n++; n >= 8 {
+					break
+				}
+			}
+		}
+	}
+	if len(scales) < 6 {
+		t.Fatalf("only %d blocks had non-zero entries to compare", len(scales))
+	}
+	for _, r := range scales {
+		if math.Abs(r-scales[0]) > 1e-6 {
+			t.Fatalf("clip rescaled blocks by different factors: %g vs %g — the update direction moved", r, scales[0])
+		}
+	}
+	if scales[0] >= 1 {
+		t.Fatalf("clip scale %g not < 1", scales[0])
+	}
+
+	// Under the cap: a no-op, byte for byte.
+	snap := cp(g.Table)
+	snapW := cp(g.OutW)
+	g.Clip(1e30)
+	for i := range snap {
+		if g.Table[i] != snap[i] {
+			t.Fatalf("Clip with norm under the cap changed Table[%d]", i)
+		}
+	}
+	for i := range snapW {
+		if g.OutW[i] != snapW[i] {
+			t.Fatalf("Clip with norm under the cap changed OutW[%d]", i)
+		}
+	}
+	// Disabled: also a no-op.
+	g.Clip(0)
+	for i := range snap {
+		if g.Table[i] != snap[i] {
+			t.Fatalf("Clip(0) changed Table[%d]", i)
+		}
+	}
+}
+
 // TestNewModelExtraFeedsTheExtraBlock pins the experiment plumbing: extraW 0
 // is exactly NewModel (the pinned geometry), and a non-zero extraW widens InW
 // by exactly extraW and lets Option.Extra reach the hidden input, so an option
