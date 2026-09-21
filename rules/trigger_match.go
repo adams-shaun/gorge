@@ -4730,6 +4730,14 @@ func init() {
 		// TestSpellCopyPrimarySilentOnAPlainCast. Implemented but never
 		// registered, so the ratchet read them as gaps.
 		"trig:SpellCopy", "trig:SpellCastOrCopy",
+		// The rest of the same registration class, found by sweeping the
+		// modes triggerModeEvents maps against this list: each matches and
+		// carries its own proof file, and none was registered.
+		// trig:DamagePreventedOnce (damagePreventedMatches,
+		// damage_prevented_once_test.go: TestDamagePreventedOnceFiresPer
+		// Prevention) and trig:RingTemptsYou (ring_test.go:
+		// TestCR701RingTemptsYouCallOfTheRingUpkeep).
+		"trig:DamagePreventedOnce", "trig:RingTemptsYou",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
 		// ChangesZone / Attacks / SpellCast triggers routed through the modes
