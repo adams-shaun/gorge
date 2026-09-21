@@ -299,6 +299,38 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ForgetCounter = forgetCounter
 				h.AddContinuous(grant)
 				registered = true
+			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
+				// AddKeyword$ Cascade (task cascade1): the Effect-delivered
+				// cascade grant (TARDIS's GrantCascade, Dark Apostle's, Bigger
+				// on the Inside's), registered as a layer-6 keyword grant the
+				// same walk the printed S: statics feed (rules/layers.go's
+				// derivedWith), so rules' hasCastCascade — the one read both
+				// routes share — picks it up. The line must be fully readable:
+				// only AddKeyword$ values that are entirely Cascade, with no
+				// condition gate this registration path cannot evaluate, make
+				// it past the whitelist; anything else fails closed to the
+				// unimplemented Note below. The grant's lifetime is the Effect's
+				// own (the source-leaves/UntilEOT discipline every registration
+				// here uses) — the corpus's "the NEXT spell" precision is the
+				// Triggers$/ForgetOnCast$ rider, which stays unread (see the
+				// cascade row in AGENTS.md's Known approximations).
+				ce := state.ContinuousEffect{
+					Source:        c.Source,
+					Controller:    c.Controller,
+					Layer:         state.LAbilities,
+					Affects:       affected,
+					AffectedZone:  zone,
+					AddKeywords:   kws,
+					Name:          effectName,
+					UntilEOT:      effectUntilEOT(h, c.Source, dur),
+					Duration:      dur,
+					Remembered:    remembered,
+					ForgetOnMoved: forgetOn,
+					ExileOnMoved:  exileOn,
+					ForgetCounter: forgetCounter,
+				}
+				h.AddContinuous(ce)
+				registered = true
 			} else if len(params) > 0 {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
@@ -406,6 +438,40 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 // static line (an SVar static body effEffect registers, or the S: line rules
 // passes through MayPlayStaticParams). ok=false is the fail-closed grant:
 // nothing is registered rather than a half-read grant going live.
+//
+// cascadeKeywordGrantFromLine is the AddKeyword$ Cascade twin (task
+// cascade1): ok only when the line's AddKeyword$ value is entirely Cascade
+// tokens (the whitelist — a mixed Cascade & Haste grant or any other keyword
+// fails closed to the unimplemented Note) and carries no condition gate this
+// registration path cannot evaluate. Returns the granted keyword list (all
+// "Cascade", one entry per instance), the Affected$ spec (Forge's omitted
+// default is the controller's own cards, the same Card.Self default the
+// layer walk's static scan applies) and the AffectedZone$ value verbatim.
+func cascadeKeywordGrantFromLine(params map[string]string) (kws []string, affected, zone string, ok bool) {
+	raw := strings.TrimSpace(params["AddKeyword"])
+	if raw == "" {
+		return nil, "", "", false
+	}
+	for _, k := range cards.SplitKeywordList(raw) {
+		if !strings.EqualFold(cards.KeywordHead(k), "Cascade") {
+			return nil, "", "", false
+		}
+		kws = append(kws, "Cascade")
+	}
+	if len(kws) == 0 {
+		return nil, "", "", false
+	}
+	for _, key := range []string{"Condition", "CheckSVar", "SVarCompare", "IsPresent", "IsPresent2", "PresentCompare"} {
+		if strings.TrimSpace(params[key]) != "" {
+			return nil, "", "", false
+		}
+	}
+	affected = strings.TrimSpace(params["Affected"])
+	if affected == "" {
+		affected = "Card.Self"
+	}
+	return kws, affected, strings.TrimSpace(params["AffectedZone"]), true
+}
 func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
 	ignoreColor, ignoreType, limit, playerTurn, ok := MayPlayStaticParams(params)
 	if !ok {
