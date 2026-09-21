@@ -6226,6 +6226,13 @@ func init() {
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
+		// kw:Escape: CR 702.135, the graveyard cast with its exile cost, read
+		// off the K: line by derivedKeywordParam and gated in legal.go's
+		// cast walk -- proved by TestUnderworldBreachGrantsEscapeAndTheEscape
+		// CastResolves and TestKroxaEscapeCastDoesNotSacrificeOnETB. It was
+		// implemented without being registered, so the coverage ratchet read
+		// it as a gap.
+		"kw:Escape",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
 		// kw:Cascade: CR 702.85, the cast trigger read directly off the K:
 		// line (no keyword expansion — the printed K:Cascade and every

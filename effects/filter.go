@@ -162,6 +162,13 @@ var predicates = map[string]predFn{
 var colorLetter = map[string]string{"White": "W", "Blue": "U", "Black": "B", "Red": "R", "Green": "G"}
 
 func init() {
+	// kw:Changeling (CR 702.73) is a characteristic-defining type grant, not an
+	// effect: it is answered in changelingSubtype below, in every zone, and
+	// proved by TestMistformUltimusIsEveryCreatureTypeInEveryZone. It was
+	// implemented without being registered, so the coverage ratchet read it as
+	// a gap on every changeling carrier.
+	RegisterNonAPI("kw:Changeling")
+
 	for _, kw := range [...]string{"Flying", "Trample", "Deathtouch", "Lifelink",
 		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Menace",
 		"Flanking", "Horsemanship"} {

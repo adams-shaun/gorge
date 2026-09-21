@@ -4723,6 +4723,13 @@ func init() {
 		"trig:Vote",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
+		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
+		// SpellCastOrCopy matches either half (magecraft). Both are matched
+		// above and gated in trigger_eligibility.go -- proved by
+		// TestMagecraftSpellCastOrCopyFiresOnACast, ...FiresOnACopy and
+		// TestSpellCopyPrimarySilentOnAPlainCast. Implemented but never
+		// registered, so the ratchet read them as gaps.
+		"trig:SpellCopy", "trig:SpellCastOrCopy",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
 		// ChangesZone / Attacks / SpellCast triggers routed through the modes
