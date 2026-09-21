@@ -394,6 +394,35 @@ port` prints a free one in your range.
 
 ## Working in a task worktree
 
+**Every change is made in its own worktree, and `main`'s checkout is left
+clean.** This is not only for dispatched seats -- it applies to an operator
+session's own hand work too, including a one-line fix. Merge into `main`, then
+remove the worktree immediately: a stale worktree is what makes the next
+agent's `git grep` and `find` return duplicate hits from a sibling checkout.
+
+The reason is that several sessions share the one `/home/sadams/projects/gorge`
+checkout, and a working tree has exactly ONE HEAD, so anything done to it
+happens to everyone:
+
+- `git checkout -b` in the main checkout to commit your own work switches the
+  shared tree. A peer switching back to `main` then reverts your edited files
+  out from under you mid-task.
+- `git reset` and branch switches are worse than dirty files: they move HEAD
+  for the other session too, so a peer's next commit lands on a base it never
+  chose.
+- A peer mid-refactor leaves the shared tree not compiling. That has produced
+  19 build failures in `go test ./...` belonging to nobody in the room. **In a
+  shared checkout a red suite is not evidence about your own change**: check
+  `git status` for untracked or modified files you did not write, and their
+  mtimes -- a file seconds old is a peer mid-edit, not a defect to fix, and not
+  yours to fix. (Red that is genuinely committed on `main` is still yours to
+  bisect and fix in the same turn.)
+
+So, in the main checkout: never `git checkout`, `git switch`, `git reset` or
+bare `git stash`, and never `git checkout` inside another worktree either (it
+discards that seat's uncommitted work). Stage explicit paths and never
+`git add -A`, which sweeps up a peer's in-flight files.
+
 Task worktrees are created with `scripts/agent-worktree.sh <id> [base] [--web]`,
 never with a bare `git worktree add`. A worktree carries only tracked files, and
 this repo needs one untracked thing to test honestly: the `.cards` corpus. Without
