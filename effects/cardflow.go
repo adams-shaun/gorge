@@ -46,12 +46,24 @@ func zoneOf(g *state.Game, z state.Zone, p state.PlayerID) []state.ObjID {
 
 // DrawFor is exported so the rules package can use the same code path for the
 // draw step. Drawing from an empty library is a loss, checked by SBAs.
-func DrawFor(h Host, p state.PlayerID) { drawFor(h, p, -1, nil) }
+func DrawFor(h Host, p state.PlayerID) { drawFor(h, p, -1, nil, drawUptoRider{}) }
+
+// drawUptoRider is the Upto$ Draw continuation an in-flight upto batch
+// carries across a Dredge ask (Arcane Denial's "may draw up to two" whose
+// draw parks on a Dredge replacement): idx is the Defined$ target index
+// whose batch is in flight (-1 = no upto in flight, the zero value every
+// non-upto caller passes) and count the answered count for it. It rides the
+// ask as Decision.ResumeUptoIdx/ResumeUptoCount; rules' dredge arm restores
+// the Ctx fields from them.
+type drawUptoRider struct {
+	idx   int
+	count int32
+}
 
 // drawFor is DrawFor with an optional enclosing Draw cursor. A nonnegative
 // cursor is recorded on a dredge decision so rules can continue that exact
 // multi-card resolution after its replacement is answered.
-func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA) {
+func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA, upto drawUptoRider) {
 	g := h.Game()
 	lib := zoneOf(g, state.ZLibrary, p)
 	if len(lib) == 0 {
@@ -83,8 +95,16 @@ func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA) {
 	if candidates := dredgeCandidates(g, p); len(candidates) > 0 {
 		// Pose every legal replacement plus the ordinary draw. A player with
 		// several dredgers chooses which replacement applies (CR 616.1).
+		// The upto rider travels so the dredge resume restores the answered
+		// up-to batch instead of re-asking its decision.
+		riderIdx, riderCount := -1, int32(0)
+		if upto.idx >= 0 {
+			riderIdx, riderCount = upto.idx, upto.count
+		}
 		d := &decision.Decision{Player: p, Kind: decision.KModes, Min: 1, Max: 1,
-			ResumeKind: "dredge", ResumeTarget: cursor, ResumeSA: resumeSA, Prompt: "Replace draw with Dredge?"}
+			ResumeKind: "dredge", ResumeTarget: cursor, ResumeSA: resumeSA,
+			ResumeUptoIdx: riderIdx, ResumeUptoCount: riderCount,
+			Prompt: "Replace draw with Dredge?"}
 		for _, candidate := range candidates {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "dredge",
 				Label: "Dredge " + strconv.Itoa(int(candidate.n)) + " (mill, then return " + objName(g, candidate.id) + " to hand)", Obj: candidate.id, Player: p})
@@ -223,13 +243,97 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
+	// Upto$ True (task mordorparams1: Arcane Denial's "Its controller may
+	// draw up to two cards at the beginning of the next turn's upkeep",
+	// Truce's "Each player may draw up to two cards"): the draw is a real
+	// per-target COUNT choice, one KChoose per Defined$ target before that
+	// target's draws, Min 0, Max min(NumCards, the target's library size),
+	// options the top cards of the TARGET's own library (the library-search
+	// ask's private card options — a decision is visible only to
+	// Decision.Player, so no leak). Answered through rules' "draw_upto"
+	// resume arm into Ctx.DrawUptoIdx/Count/Answered (the DrawOpt pattern,
+	// fx42-scoped per target); a batch that parks on a Dredge choice
+	// re-enters through the dredge arm, which restores the in-flight
+	// target's cursor from the ask's ResumeUpto rider. A host that cannot
+	// ask keeps the pre-ask mandatory draw (the R-9 degradation every
+	// effDraw arm takes). A library with fewer than n cards caps the ask at
+	// what is there; an empty library is a no-op (never a decision whose
+	// only answer is empty — OnlyEmptyAnswer refuses it — and never a
+	// mandatory draw event that would mill a player the card only offered
+	// to draw).
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Upto"]), "True") {
+		for idx := int(c.DrawUptoIdx); idx < len(targets); idx++ {
+			p := PlayerOf(h, c, targets[idx])
+			if !c.DrawUptoAnswered {
+				lib := zoneOf(h.Game(), state.ZLibrary, p)
+				m := n
+				if int32(len(lib)) < m {
+					m = int32(len(lib))
+				}
+				if m <= 0 {
+					c.DrawUptoIdx = int32(idx + 1)
+					continue
+				}
+				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 0, Max: int(m),
+					ResumeKind: "draw_upto", ResumeSA: sa, ResumeTarget: idx, Source: c.Source,
+					// The walk's Remembered rides the ask (the hidden-library
+					// search's ResumeRemembered precedent): the re-entered
+					// effDraw recomputes `targets` from Defined$, and for the
+					// Remembered-valued selectors -- Arcane Denial's
+					// `Defined$ DelayTriggerRemembered` is the corpus shape --
+					// a resume that rebuilt an empty set would resolve a
+					// DIFFERENT target list than the one the cursor indexes,
+					// so the answered count would be drawn for the wrong
+					// player or for nobody. The ability-object resume path
+					// restores the same set from o.Remembered; this covers
+					// every other frame.
+					ResumeRemembered: append([]state.Target(nil), c.Remembered...),
+					Prompt:           "Draw up to " + strconv.Itoa(int(n)) + " card(s)?"}
+				for i := int32(0); i < m; i++ {
+					id := lib[i]
+					label := "a card"
+					if o := h.Game().Obj(id); o != nil && o.Face() != nil {
+						label = o.Face().Name
+					}
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+						Kind: "card", Label: label, Obj: id, Player: p})
+				}
+				if Ask(h, d) == AskAsked {
+					return
+				}
+				// No-host (R-9): the pre-ask mandatory draw of what was offered.
+				c.DrawUptoCount, c.DrawUptoAnswered = m, true
+			}
+			for c.DrawDone < c.DrawUptoCount {
+				var lib []state.ObjID
+				if remember {
+					lib = zoneOf(h.Game(), state.ZLibrary, p)
+				}
+				drawFor(h, p, int(c.DrawDone), sa, drawUptoRider{idx: idx, count: c.DrawUptoCount})
+				if h.Suspended() {
+					// A Dredge choice is between individual draws. Its resume
+					// point restores this target's cursor (idx, answered count
+					// and DrawDone); do not run later targets yet.
+					return
+				}
+				if remember && len(lib) > 0 {
+					c.Remembered = append(c.Remembered, state.Target{Obj: lib[0]})
+				}
+				c.DrawDone++
+			}
+			c.DrawDone = 0
+			c.DrawUptoIdx = int32(idx + 1)
+			c.DrawUptoCount, c.DrawUptoAnswered = 0, false
+		}
+		return
+	}
 	for c.DrawDone < total {
 		p := PlayerOf(h, c, targets[c.DrawDone/n])
 		var lib []state.ObjID
 		if remember {
 			lib = zoneOf(h.Game(), state.ZLibrary, p)
 		}
-		drawFor(h, p, int(c.DrawDone), sa)
+		drawFor(h, p, int(c.DrawDone), sa, drawUptoRider{})
 		if h.Suspended() {
 			// A Dredge choice is between individual draws. Its resume point
 			// carries this cursor; do not run later draws, Remembered or

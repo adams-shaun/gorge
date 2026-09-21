@@ -197,6 +197,24 @@ const (
 	// both on resolution and when countered. Appended per the enum's own
 	// append-only precedent.
 	FlagAftermath
+	// FlagConspired marks a cast whose Conspire tap (CR 702.78a) was
+	// actually paid: as the spell was cast, two untapped creatures the
+	// caster controlled that shared a colour with it were tapped. The flag
+	// is the provenance the Conspire keyword expansion's copy trigger reads
+	// through Count$Conspired, so a DECLINED/plain cast (no tap paid) emits
+	// no flag and resolves exactly like the plain cast. Appended per the
+	// enum's own append-only precedent.
+	FlagConspired
+	// FlagMutated marks a spell cast for its Mutate cost (CR 702.140a). It is
+	// the provenance rules/stack.go's resolution reader uses to merge the
+	// spell's card into its target instead of moving it to the battlefield as
+	// an ordinary permanent. FlagMutatedTop carries CR 702.140b's placement
+	// choice (the mutating card goes on TOP of the target); its absence means
+	// the mutating card goes UNDER. Both are set by the pay-time CastInfo the
+	// cast's mutate-placement answer rides, so the choice is replay-derived.
+	// Appended per the enum's own append-only precedent.
+	FlagMutated
+	FlagMutatedTop
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -352,6 +370,13 @@ type Object struct {
 	// events.Move; a COPY of the spell was never kicked and reads 0 (the
 	// same reading Count$ReplicatePaid documents).
 	TimesKicked int32
+	// Conspired is CR 702.78a's provenance that the spell's Conspire tap was
+	// paid as it was cast, carried by the pay-time CastInfo's FlagConspired
+	// (a bool, not a count: Conspire never copies more than once). It rides
+	// the same provenance window as X/CastFlags and resets alongside them in
+	// events.Move; a COPY of the spell was never cast and reads false (the
+	// same reading Count$ReplicatePaid documents).
+	Conspired bool
 	// ManaSpent is the TOTAL mana actually spent to cast the spell (CR
 	// 601.2h's payment -- the spent delta's pips summed over every slot),
 	// carried by the pay-time CastInfo's FlagManaSpent Amount (the
@@ -414,6 +439,15 @@ type Object struct {
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string
+	// Protector is the CR 310.10 Siege protector: the opponent its
+	// controller chose to protect this Battle as it entered. It is a property
+	// of the battle (not a counter), recorded through a Choose "protector"
+	// event so it is replay-derived, and reset when the object leaves the
+	// battlefield (a re-entering battle is protected afresh). ProtectorValid
+	// distinguishes "no protector chosen yet" from a real protector: seat 0
+	// is a legal opponent, so a zero Protector alone is ambiguous.
+	Protector      PlayerID
+	ProtectorValid bool
 	// LastNotedMana is the mana type the object's last RememberCostMana$
 	// activation paid with (Jeweled Amulet: "note the type of mana spent to
 	// pay this activation cost") — the colour letter(s) of the mana the
@@ -466,6 +500,19 @@ type Object struct {
 	// effect's business. Event-backed through the Imprint kind's
 	// "until-host-leaves" Text discriminator.
 	ExileReturn []ExileReturnEntry
+
+	// MergedCards holds the cards stacked BENEATH a mutated permanent's top
+	// card (CR 702.140d), top-of-pile first. Card/FaceIdx on the object always
+	// describe the TOP card; each entry here is one card that mutated below it.
+	// A merged-under card is not an independent permanent: its object is parked
+	// in ZCeased (which has no membership list, so no battlefield scan sees it)
+	// and only the pile's own departure moves it (events.Move), which is
+	// CR 702.140e's "each card that's merged ... moves to its owner's
+	// graveyard" -- and the same move for every other zone. TimesMutated is
+	// CR 702.140f's count of how many times this permanent has mutated, read by
+	// Count$TimesMutated.
+	MergedCards  []MergedCard
+	TimesMutated int32
 
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
 	// means unattached. Reset whenever the object itself leaves the
@@ -520,6 +567,26 @@ type Object struct {
 	IsCopy   bool
 	IsMyriad bool
 
+	// CopyFace is the CR 613.1a copy-effect basis for a permanent that became a
+	// copy of another (DB$ Clone): while non-nil, Face() returns THIS face
+	// instead of the object's own card face, so every read site -- name,
+	// abilities, keywords, types, colours, P/T, mana production -- sees the
+	// copied characteristics with no per-caller plumbing. It is set and cleared
+	// ONLY inside events.Apply (the ClonePermanent fold and Move's
+	// leaves-the-battlefield reset), so a live game and a replay derive it
+	// identically. The clone's modifier parameters (AddTypes$/SetColor$/
+	// AddKeywords$/SetPower$/SetToughness$) are separate layer-4/5/6/7
+	// continuous effects registered by the primitive, so this face stays the
+	// source's PRINTED face and the layer walk applies the exceptions in CR 613
+	// order on top. nil on every object that is not a copy.
+	CopyFace *cards.Face
+	// CopyGainThisAbility records the clone's GainThisAbility$ True rider: the
+	// synthetic CopyFace already carries the ORIGINAL object's abilities (and
+	// SVar table) so the ability that produced the copy survives the copy.
+	// Engine-runtime, rebuilt from the ClonePermanent event on replay like
+	// CopyFace.
+	CopyGainThisAbility bool
+
 	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
 	// room was CAST as is unlocked from entry; DoorUnlock (the unlock
 	// activation) flips this when the OTHER half's door is paid for. A
@@ -527,6 +594,17 @@ type Object struct {
 	// halves' rules text is live (rules-side scans consult this field). Only
 	// events.Apply writes it, so a replay rebuilds it.
 	Unlocked bool
+}
+
+// MergedCard is one card stacked beneath a mutated permanent's top card
+// (CR 702.140d). Obj names the card's parked object (in ZCeased); Card and
+// FaceIdx are the card's identity, carried on the value so the ability scans
+// can read it without a second object lookup and so a parked object that is
+// somehow gone still leaves the card's abilities live.
+type MergedCard struct {
+	Obj     ObjID
+	Card    *cards.Card
+	FaceIdx uint8
 }
 
 // ExileReturnEntry is one ChangeZone Duration$ UntilHostLeavesPlay exile:
@@ -551,6 +629,13 @@ func (o *Object) BestowedAttached() bool {
 }
 
 func (o *Object) Face() *cards.Face {
+	// CR 613.1a: a copy effect is the FIRST layer, so while one applies the
+	// object's characteristics come from the copied face. Routing it here is
+	// what makes every Face() reader in the tree see the copy by construction
+	// (CR 707.2) rather than each call site having to ask the layer system.
+	if o.CopyFace != nil {
+		return o.CopyFace
+	}
 	if o.Card == nil || int(o.FaceIdx) >= len(o.Card.Faces) {
 		return nil
 	}
@@ -634,6 +719,21 @@ func (o *Object) EffectiveIsArtifact() bool {
 	return f != nil && f.IsArtifact()
 }
 
+// MergedFaceAt returns the face of the i-th card stacked beneath the top card
+// (0 is the first under-card), or nil when i is out of range. It is the one
+// accessor the ability scans use so a merged card's face is resolved the same
+// way everywhere.
+func (o *Object) MergedFaceAt(i int) *cards.Face {
+	if i < 0 || i >= len(o.MergedCards) {
+		return nil
+	}
+	mc := &o.MergedCards[i]
+	if mc.Card == nil || int(mc.FaceIdx) >= len(mc.Card.Faces) {
+		return nil
+	}
+	return mc.Card.Faces[mc.FaceIdx]
+}
+
 // Ephemeral reports whether this object has, right now, ceased to exist: a
 // copy of a spell or ability once it has LEFT THE STACK (CR 707.10h -- a copy
 // of a spell that has left the stack is a transient reference, not a real
@@ -711,6 +811,7 @@ func (o *Object) CloneDeep() Object {
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
+	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)
 	return c
 }
 

@@ -1263,6 +1263,23 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (multikicked)", Obj: id, Mode: "multikicked"})
 		}
+		// Conspire (CR 702.78a): the conspired variant pays NO extra mana --
+		// the base cost is unchanged and the cost is the tap of two untapped
+		// creatures the caster controls that share a colour with the spell.
+		// So unlike the replicate/multikicker offers there is no cost to
+		// compose: the offer is gated on the same base cast being offerable
+		// (re-checked with the base cost, exactly what the plain offer used)
+		// AND on the derived-keyword read (hasCastConspire, the
+		// hasCastConvoke shape, so a layer-6 grant reaching the stack matches)
+		// AND on at least two eligible creatures existing. Do NOT route the
+		// tap through offerCastable with a fabricated cost -- the tap has no
+		// Cost$ representation; conspireAsk enforces it at announcement.
+		if targetsAvailable && e.hasCastConspire(id) &&
+			len(e.conspireCandidates(p, id)) >= 2 &&
+			offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (conspired)", Obj: id, Mode: "conspired"})
+		}
 		// The alternative-cost keyword family (altcosts), from the hand: evoke
 		// (CR 702), dash, overload and warp each become their own "cast" mode
 		// option paying the printed keyword cost in place of the mana cost.
@@ -1294,6 +1311,15 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			offerCastable(p, id, ba, spellScope("bestowed"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (bestowed)", Obj: id, Mode: "bestowed"})
+		}
+		// Mutate (CR 702.140a): the mutate cast pays the mutate cost in place
+		// of the mana cost and targets a non-Human creature its controller
+		// owns. Like bestow, the gate is the SYNTHESIZED target SA's
+		// feasibility -- the creature face has no SP for the mutation.
+		if mc, ok := mutateCost(f); ok && e.castTargetsAvailable(p, id, mutateTargetSA()) &&
+			offerCastable(p, id, mc, spellScope("mutated"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (mutated)", Obj: id, Mode: "mutated"})
 		}
 		if bc, ok := buybackCost(f); ok && offerCastable(p, id, e.rawBaseCost(p, id).Plus(bc), spellScope("buyback"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (buyback)", Obj: id, Mode: "buyback"})
@@ -1447,6 +1473,14 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			offerCastable(p, id, ba, spellScope("bestowed"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (bestowed)", Obj: id, Mode: "bestowed"})
+		}
+		// Mutate (CR 702.140a), the command-zone half (a commander printed
+		// with mutate may be cast for its mutate cost, CR 903.3d): the same
+		// synthesized-target-SA gate the hand walk applies.
+		if mc, ok := mutateCost(f); ok && e.castTargetsAvailable(p, id, mutateTargetSA()) &&
+			offerCastable(p, id, mc, spellScope("mutated"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (mutated)", Obj: id, Mode: "mutated"})
 		}
 	}
 

@@ -37,12 +37,26 @@ func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 			return sa
 		}
 	}
-	if src.Card == nil {
-		return nil
+	if src.Card != nil {
+		for _, cf := range src.Card.Faces {
+			if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
+				return sa
+			}
+		}
 	}
-	for _, cf := range src.Card.Faces {
-		if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
-			return sa
+	// CR 702.140d: a mutated permanent has all abilities of the cards beneath
+	// its top card, so an under-card's Execute$ SVar resolves here too, as a
+	// LAST-RESORT fall-through for the by-name siblings (DelayedPush,
+	// GrantTriggerPush) when the top card's own table lacks the name. The
+	// pile's under-card TRIGGERS do not use this walk any more -- they push
+	// MergedTriggerPush, which resolves the name against the exact under-card
+	// face, because this top-first walk would steal the body whenever the top
+	// face defines the same name (Cubwarden under Everquill Phoenix).
+	for i := range src.MergedCards {
+		if cf := src.MergedFaceAt(i); cf != nil {
+			if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
+				return sa
+			}
 		}
 	}
 	return nil
@@ -58,6 +72,61 @@ func Apply(g *state.Game, e Event) {
 		// Apply writes nothing; the log lets replay re-derive the same branch.
 		// ManaActivate is the ActivationLimit$ scan marker (see the Kind's own
 		// comment): the mana itself lands through the nearby ManaAdd events.
+
+	case Mutate:
+		// CR 702.140d: a mutate-spell resolution merges the mutating card's
+		// card into the target permanent. Obj is the surviving target, IDs[0]
+		// the mutating card's object (the resolving spell), Text "top"/"under"
+		// the placement choice and Amount the mutated count to add. The
+		// survivor's Card/FaceIdx always describe the TOP card; every
+		// under-card lands in MergedCards, top-of-pile first, its object
+		// parked in ZCeased (no membership list, so no battlefield scan sees
+		// it as a second permanent). Nothing here reads a map or the clock, so
+		// a log-only replay rebuilds the identical pile.
+		survivor := g.Obj(e.Obj)
+		if len(e.IDs) == 0 || survivor == nil || survivor.Card == nil ||
+			survivor.Zone != state.ZBattlefield || e.Text == "" {
+			break
+		}
+		src := g.Obj(e.IDs[0])
+		if src == nil || src.Card == nil {
+			break
+		}
+		srcCard, srcFace := src.Card, src.FaceIdx
+		if e.Text == "top" {
+			// The survivor's current top card becomes an under-card. Its own
+			// card needs a parked object to move to a graveyard when the pile
+			// dies, and the survivor's ID must keep naming the pile, so mint
+			// one for the demoted card. Snapshot before AddObject (it may
+			// reallocate g.Objs).
+			oldCard, oldFace, owner := survivor.Card, survivor.FaceIdx, survivor.Owner
+			parked := g.AddObject(oldCard, owner)
+			parked.Zone = state.ZCeased
+			parkedID := parked.ID
+			survivor = g.Obj(e.Obj)
+			if survivor == nil {
+				break
+			}
+			survivor.Card, survivor.FaceIdx = srcCard, srcFace
+			under := state.MergedCard{Obj: parkedID, Card: oldCard, FaceIdx: oldFace}
+			survivor.MergedCards = append([]state.MergedCard{under}, survivor.MergedCards...)
+			// The mutating spell's object is now redundant (its card data was
+			// copied onto the survivor), so park it in ZCeased without adding
+			// it to the pile: moving it to a graveyard later would duplicate
+			// the top card.
+			Move(g, src.ID, src.Zone, state.ZCeased)
+		} else {
+			// The mutating card goes under the target: park its object and
+			// stack it beneath the survivor's existing cards (top-of-pile
+			// first, so the newest under-card goes last).
+			Move(g, src.ID, src.Zone, state.ZCeased)
+			survivor = g.Obj(e.Obj)
+			if survivor == nil {
+				break
+			}
+			survivor.MergedCards = append(survivor.MergedCards, state.MergedCard{Obj: e.IDs[0], Card: srcCard, FaceIdx: srcFace})
+		}
+		survivor.TimesMutated += e.Amount
 
 	case PlanarRoll:
 		// The planar-dice roll (CR 901.3, task rollplanar1) is a pure marker:
@@ -549,7 +618,7 @@ func Apply(g *state.Game, e Event) {
 		// and trigger_match.go read for the ward {2}.
 		setType, fdPower, fdTough, fdHasPT, manifesting := "", int32(0), int32(0), false, false
 		if e.Kind == MoveZone && e.To == state.ZBattlefield {
-			if e.Counter == "entered_cloaked" {
+			if e.Counter == CloakEntryCounter {
 				manifesting = true
 			} else {
 				setType, fdPower, fdTough, fdHasPT, manifesting = FaceDownEntryFields(e.Counter)
@@ -558,7 +627,7 @@ func Apply(g *state.Game, e Event) {
 		if manifesting {
 			if o := g.Obj(e.Obj); o != nil {
 				o.FaceDown = true
-				o.Cloaked = e.Counter == "entered_cloaked"
+				o.Cloaked = e.Counter == CloakEntryCounter
 				o.FaceDownSetType = setType
 				o.FaceDownPower = fdPower
 				o.FaceDownToughness = fdTough
@@ -608,7 +677,7 @@ func Apply(g *state.Game, e Event) {
 				o.FaceDownPower = fdPower
 				o.FaceDownToughness = fdTough
 				o.FaceDownHasPT = fdHasPT
-				o.Cloaked = e.Counter == "entered_cloaked"
+				o.Cloaked = e.Counter == CloakEntryCounter
 			} else {
 				o.ExiledWith = 0
 				o.FaceDown = false
@@ -1146,7 +1215,26 @@ func Apply(g *state.Game, e Event) {
 			// TRAILING pay-time CastInfo (rules/cast.go's payCast), so a
 			// carrier that pairs {X} with the read (none measured) keeps the
 			// two on separate events.
+			// Conspire (CR 702.78a) is a BOOL fold, not an amount: it is set
+			// whenever the resolved cast's pay-time CastInfo carries
+			// FlagConspired, whatever other tags ride the same event. Folded
+			// OUTSIDE the exclusive switch below so a later event carrying the
+			// flag (each later event accumulates all earlier flags) cannot
+			// steal that event's Amount from its own routing case.
+			if FlagsFrom(e.Counter)&state.FlagConspired != 0 {
+				o.Conspired = true
+			}
 			switch {
+			// Conspire's Amount is a marker, never data: the bool was folded
+			// above, and the flag rides a LOCAL counter at the emission site
+			// (rules/cast.go's payCast never ORs FlagConspired into the
+			// accumulating flags), so no later CastInfo carries it and this
+			// arm's position in the newest-flag-first ordering is
+			// order-independent. The arm exists to CONSUME the Amount: without
+			// it the event fell through to default and wrote o.X = 1 onto every
+			// conspired cast (and StackCopy propagated that onto its copies).
+			case FlagsFrom(e.Counter)&state.FlagConspired != 0:
+				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
 				o.ConvergeColours = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
@@ -1207,6 +1295,11 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenNumber = e.Amount
 			case "riot":
 				o.RiotChoice = e.Text
+			case "protector":
+				// CR 310.10: the Siege protector chosen as this Battle
+				// entered. Player carries the chosen opponent's seat.
+				o.Protector = e.Player
+				o.ProtectorValid = true
 			case "chosen":
 				o.Chosen = rememberedFrom(e.IDs)
 			case "remembered":
@@ -1345,6 +1438,64 @@ func Apply(g *state.Game, e Event) {
 			o.IsMyriad = true
 		}
 
+	case ClonePermanent:
+		// CR 613.1a's layer-1 copy basis (DB$ Clone, api:Clone). Obj is the
+		// object that becomes the copy and IDs[0] the object copied from; an
+		// empty or zero id CLEARS the basis. The synthetic face is a value
+		// copy of the source's PRINTED face taken here, inside Apply, so a
+		// replay derives the identical characteristics from the same event.
+		// Modifier parameters (AddTypes$/SetColor$/AddKeywords$/SetPower$/
+		// SetToughness$/RemoveCardTypes$/RemoveCreatureTypes$) are separate
+		// layer-4/5/6/7 continuous effects the primitive registered; they are
+		// deliberately NOT folded into this face, so the CR 613 layer walk
+		// stays the one place exceptions settle. NewName$ rides Text and the
+		// GainThisAbility$ rider rides Counter.
+		o := g.Obj(e.Obj)
+		if o == nil {
+			break
+		}
+		if len(e.IDs) == 0 || e.IDs[0] == 0 {
+			o.CopyFace = nil
+			o.CopyGainThisAbility = false
+			break
+		}
+		src := g.Obj(e.IDs[0])
+		if src == nil || src.Face() == nil {
+			break
+		}
+		sf := *src.Face()
+		if e.Text != "" {
+			sf.Name = e.Text
+		}
+		// GainThisAbility$ True: "...except it has this ability" (Lazav,
+		// Vesuvan Doppelganger). The original object's own abilities and SVar
+		// table are appended/merged onto the copied face so the ability that
+		// produced the copy survives it. Appending the original face's whole
+		// ability list is the structural approximation recorded in AGENTS.md:
+		// for the corpus's clone carriers the clone ability IS the card's only
+		// other ability, so this is exact for them.
+		if e.Counter == "gain-this-ability" {
+			if of := o.Face(); of != nil {
+				if len(of.Abilities) > 0 {
+					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities...)
+				}
+				if len(of.SVars) > 0 {
+					merged := make(map[string]string, len(sf.SVars)+len(of.SVars))
+					for k, v := range sf.SVars {
+						merged[k] = v
+					}
+					for k, v := range of.SVars {
+						merged[k] = v
+					}
+					sf.SVars = merged
+				}
+			}
+			o.CopyGainThisAbility = true
+		} else {
+			o.CopyGainThisAbility = false
+		}
+		o.CopyFace = &sf
+
 	case Exert:
 		// CR 702.100's fold (task exert1). Amount >= 0 is the exert itself:
 		// both lifetimes stamp here -- ExertedThisTurn (the per-turn fact the
@@ -1373,6 +1524,7 @@ func Apply(g *state.Game, e Event) {
 			break
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
+		conspire := false
 		if sa == nil {
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
@@ -1393,6 +1545,20 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "TriggeredDefendingPlayer", "LifeAmount": rest,
 						"TriggerDescription": "Afflict"}}
 			}
+			// A granted Conspire (rules.pushTrigger's __kwConspire payload)
+			// has no SVar either: rebuilt structurally into the same
+			// DB$ CopySpellAbility body the printed K:Conspire expansion
+			// carries, so the live game and the replay mint identical
+			// objects from the event text alone. The triggering spell rides
+			// Remembered (IDs) -- Defined$ TriggeredSpellAbility reads it
+			// there, exactly as the printed expansion's own TriggerPush
+			// entries carry it.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwConspire"); ok {
+				sa = &cards.SA{Kind: "DB", API: "CopySpellAbility",
+					Params: map[string]string{"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired",
+						"MayChooseTarget": "True"}}
+				conspire = ok
+			}
 		}
 		if sa == nil {
 			break
@@ -1403,6 +1569,9 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
+		if conspire {
+			o.Remembered = rememberedFrom(e.IDs)
+		}
 
 	case StackCopy:
 		if !validPlayer(g, e.Player) {
@@ -1627,6 +1796,53 @@ func Apply(g *state.Game, e Event) {
 		if registration != nil && registration.TrackSource {
 			o.SourceIncarnation = incarnation
 		}
+		o.Remembered = rememberedFrom(e.IDs)
+
+	case MergedTriggerPush:
+		// CR 702.140d: a mutated pile's under-card trigger fired and its
+		// ability object is minted here, inside Apply, so a log-only replay
+		// creates the same object a live game did (the Ruling T20-a/DelayedPush
+		// precedent). Unlike DelayedPush no registration is consumed -- the
+		// grant-trigger shape -- and unlike both by-name siblings the ability
+		// is minted from the UNDER-CARD's own COMPILED trigger, named by
+		// e.Amount (the packed pair: its pile index in MergedCards, and that
+		// face's Triggers index), exactly as TriggerPush mints from the top
+		// face's. Not a by-name SVar walk, for two reasons: the pile's top
+		// face may define the same Execute$ name with a different body
+		// (Cubwarden's two Cats must not become Everquill Phoenix's Feather),
+		// and cards.ResolveSVar parses a fresh *SA whose pointer matches no
+		// compiled cards.Trigger -- which is how every consumer that recovers
+		// a resolving ability's owning trigger (findTriggerForAbilityFace:
+		// the OptionalDecider$ gate, the intervening-if recheck, the
+		// ResolvedLimit$ count, the label, the merged-face SVar table)
+		// identifies it. e.Counter carries the Execute$ name as the log's
+		// readable provenance and is checked against the trigger line here,
+		// so a truncated or tampered log mints nothing rather than the wrong
+		// ability.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil {
+			break
+		}
+		mergedIdx, trigIdx, ok := MergedTriggerIndexes(e.Amount)
+		if !ok {
+			break
+		}
+		f := src.MergedFaceAt(mergedIdx)
+		if f == nil || trigIdx >= len(f.Triggers) {
+			break
+		}
+		tr := f.Triggers[trigIdx]
+		if tr.Effect == nil || tr.Params["Execute"] != e.Counter {
+			break
+		}
+		sa := tr.Effect
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
 		o.Remembered = rememberedFrom(e.IDs)
 
 	case GrantTriggerPush:
@@ -1889,6 +2105,25 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		}
 	}
 	remove(g, id, o.Zone, zoneOwner(o, o.Zone))
+	// CR 702.140e: when a mutated permanent leaves the battlefield, each card
+	// merged beneath its top card moves to the same zone -- the pile is one
+	// permanent, not a top plus orphans. The under-cards are parked in ZCeased
+	// (no membership list) each with its own object, and this is the one site
+	// that relocates them; a log-only replay runs the same Move. The pile
+	// marker clears with the departure so a permanent that returns later
+	// (CR 400.7) is a fresh, unmutated object. Recurse only into this
+	// battlefield-boundary arm: a parked object's own Move has
+	// wasBattlefield == false, so the walk cannot nest.
+	if wasBattlefield && to != state.ZBattlefield && len(o.MergedCards) > 0 {
+		merged := o.MergedCards
+		o.MergedCards = nil
+		o.TimesMutated = 0
+		for _, mc := range merged {
+			if mc.Obj != 0 {
+				Move(g, mc.Obj, state.ZCeased, to)
+			}
+		}
+	}
 	// CR 400.7: leaving the battlefield makes the object a new object in
 	// its next zone, so control-changing effects do not follow it. Reset
 	// before choosing the destination's zone owner: a later graveyard/hand
@@ -2012,6 +2247,22 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 					o.AddCounter("LORE", 1)
 				}
 			}
+			// CR 310.6/310.8: a Battle enters with defense counters equal to
+			// its printed Defense. Like the loyalty half above this is granted
+			// inside Move so EVERY entry path (cast, blink, search, reanimate,
+			// token) is covered by construction and a log-only replay
+			// re-derives it. Defense is a string in the IR: a positive integer
+			// grants, an absent/X/non-numeric value fails closed (the same
+			// totality stance the loyalty grant takes for a walker whose
+			// starting loyalty is unreadable). A face-down entry (a manifest)
+			// is a 2/2 creature, not a Battle (CR 708.5), and gains none.
+			if !o.FaceDown {
+				if f := o.Face(); f != nil && f.IsBattle() {
+					if n, err := strconv.Atoi(strings.TrimSpace(f.Defense)); err == nil && n > 0 {
+						o.AddCounter("DEFENSE", int32(n))
+					}
+				}
+			}
 		}
 	default:
 		// CR 702.103: a Soulbond pair ends when either member leaves the
@@ -2040,6 +2291,13 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Cloaked = false
 		o.RiotChoice = ""
 		o.IsMyriad = false
+		// CR 400.7: leaving the battlefield makes the object a new object, so
+		// a layer-1 copy effect does not follow it. The ClonePermanent basis
+		// is battlefield-only state and is cleared here (its continuous-effect
+		// bookkeeping is dropped by active()/cleanup, since the effect's
+		// source -- this same object -- is no longer on the battlefield).
+		o.CopyFace = nil
+		o.CopyGainThisAbility = false
 		o.Paired = 0
 		o.Targets = nil
 		// o.Remembered is deliberately NOT reset here: a card's remembered
@@ -2067,6 +2325,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
+			o.Conspired = false
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0
@@ -2074,6 +2333,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ManaDesertSpent = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
+			o.Protector, o.ProtectorValid = 0, false
 			o.LastNotedMana = ""
 			o.Chosen = nil
 			// Exert state is the old permanent's, not the new object's
@@ -2096,6 +2356,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
+			o.Conspired = false
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0
