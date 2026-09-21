@@ -1156,6 +1156,16 @@ func Apply(g *state.Game, e Event) {
 				o.Conspired = true
 			}
 			switch {
+			// Conspire's Amount is a marker, never data: the bool was folded
+			// above, and the flag rides a LOCAL counter at the emission site
+			// (rules/cast.go's payCast never ORs FlagConspired into the
+			// accumulating flags), so no later CastInfo carries it and this
+			// arm's position in the newest-flag-first ordering is
+			// order-independent. The arm exists to CONSUME the Amount: without
+			// it the event fell through to default and wrote o.X = 1 onto every
+			// conspired cast (and StackCopy propagated that onto its copies).
+			case FlagsFrom(e.Counter)&state.FlagConspired != 0:
+				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
 				o.ConvergeColours = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:

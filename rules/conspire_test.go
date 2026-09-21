@@ -158,6 +158,15 @@ func TestConspirePrintedOfferPayAndCopy(t *testing.T) {
 	// Burn Trail targets any target; the copy keeps the original's target
 	// (the MayChooseTarget$ stand-in), so answer the opponent.
 	chooseTargetPlayer(t, e, 1)
+
+	// Regression (r3 review): the conspire provenance CastInfo carries
+	// Amount 1 as a marker; Apply's CastInfo switch must consume it in its
+	// FlagConspired arm, never fall through to the default that would write
+	// o.X = 1 onto the stack spell (and StackCopy would propagate that onto
+	// the copy).
+	if o := e.G.Obj(hero); o != nil && o.X != 0 {
+		t.Fatalf("conspired cast left X=%d on the stack spell, want 0", o.X)
+	}
 	passUntilStackEmpty(t, e, 40)
 
 	if !e.G.Obj(g1).Tapped || !e.G.Obj(g2).Tapped {

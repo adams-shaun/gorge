@@ -1628,11 +1628,13 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// The mana part of that Cost$ REPLACES the printed mana (it is the same
 	// cost the card already charges), so only its non-mana parts
 	// (Sac/Discard/SubCounter/Tap) are additional and fold into the total cost here; a
-	// re-added mana part would double charge. Only a plain cast reaches this
-	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
-	// no SP Cost$ contributes nothing.
+	// re-added mana part would double charge. Only a plain cast (and the
+	// "conspired" mode, whose offer gate priced the same extras -- the
+	// replicated/multikicked modes keep the older no-fold divergence) reaches
+	// this (pc.ability < 0 and no alternative/flashback recast), and a spell
+	// with no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "conspired") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -4182,7 +4184,7 @@ func (e *Engine) convokeAsk() bool {
 	sawCreature, sawArtifact := false, false
 	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() {
+		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || e.convokeCommitted(pc, id) {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
@@ -5136,9 +5138,20 @@ func (e *Engine) manaWindowAsk() bool {
 	return true
 }
 
+// convokeCommitted reports whether id is already committed to this cast's
+// payment: a Convoke/Harmonize/Improvise election (pc.convoke) or a Conspire
+// tap election (pc.taps -- the election records the creatures before payCast's
+// emitChoiceCosts taps them, so an elected creature must be excluded from the
+// mana window and from a later convoke announcement, or it could be activated
+// for mana and then tapped a second time).
 func (e *Engine) convokeCommitted(pc *pendingCast, id state.ObjID) bool {
 	for _, pay := range pc.convoke {
 		if pay.id == id {
+			return true
+		}
+	}
+	for _, tid := range pc.taps {
+		if tid == id {
 			return true
 		}
 	}
