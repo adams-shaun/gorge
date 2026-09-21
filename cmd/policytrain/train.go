@@ -79,6 +79,12 @@ type Config struct {
 	// decisions that carry information. 1 means no reweighting, >1 up-weights
 	// the overrides, and <= 0 is treated as 1.
 	OverrideWeight float64
+	// ExtraW is the experimental per-option augmentation width (Option.Extra):
+	// 0 reproduces the shipped encoder geometry byte for byte; a feature-family
+	// experiment sets it to the width of the augmentation it built. Such a
+	// model cannot be checkpointed (the format has no ExtraW field), which is
+	// deliberate -- it is a measurement vehicle, not a deployable scorer.
+	ExtraW int
 	// Log receives one line per epoch (nil discards).
 	Log io.Writer
 }
@@ -153,13 +159,13 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 
 	// The rank-weight/CE contract (ticket policytrain-clip-rankweight-
 	// interaction): in pure CE mode a non-trivial RankWeight is a uniform
-	// scale on the single gradient direction — under an active per-batch
-	// clip it is normalised away, without the clip it only rescales the
-	// step like lr would. It cannot tune anything, so say so rather than
-	// let a user burn a grid on it. 0 (the off switch) and 1 (the default)
-	// are distinct and never warned about.
-	if cfg.Mode == policynet.LossCE && cfg.RankWeight != 0 && cfg.RankWeight != 1 && cfg.Log != nil {
-		fmt.Fprintf(cfg.Log, "policytrain: note: -rank-weight %g is inert in pure CE mode — the per-batch gradient clip normalises any uniform loss scale away whenever the cap binds (batches under the cap see it through as an lr rescale). Tune -lr and -clip instead; RankWeight is a term-mix weight and CE has one term.\n", cfg.RankWeight)
+	// scale on the single gradient direction. Under an active per-batch clip
+	// it is normalised away; with the clip DISABLED (-clip 0) it merely
+	// rescales the step like lr would, so it is NOT inert there and is not
+	// warned about. 0 (the off switch) and 1 (the default) are distinct and
+	// never warned about either.
+	if cfg.Mode == policynet.LossCE && cfg.Clip > 0 && cfg.RankWeight != 0 && cfg.RankWeight != 1 && cfg.Log != nil {
+		fmt.Fprintf(cfg.Log, "policytrain: note: -rank-weight %g is inert in pure CE mode while the per-batch gradient clip is active — the clip normalises any uniform loss scale away whenever the cap binds (batches under the cap see it through as an lr rescale). Tune -lr and -clip instead; RankWeight is a term-mix weight and CE has one term.\n", cfg.RankWeight)
 	}
 
 	// Examples with no labelled option cannot contribute to either loss
@@ -189,7 +195,7 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 	rng := rand.New(rand.NewPCG(uint64(cfg.Seed), 0x9E3779B97F4A7C15^uint64(cfg.Seed)))
 	sp := splitCorpus(usable, cfg.Holdout, rng)
 
-	model := policynet.NewModel(policynet.TableRows, cfg.Embed, cfg.Hidden, rng)
+	model := policynet.NewModelExtra(policynet.TableRows, cfg.Embed, cfg.Hidden, cfg.ExtraW, rng)
 	model.ResidualW = float32(cfg.ResidualInit)
 	grads := model.NewGrads()
 	lc := policynet.LossConfig{Mode: cfg.Mode, HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight}

@@ -127,6 +127,10 @@ func TestDescribeTemplates(t *testing.T) {
 		{"choose name", events.Event{Kind: events.Choose, Obj: bolt, Counter: "name", Text: "Giant Growth"}, "Bob chooses the name Giant Growth for Bolt #2"},
 		{"choose type", events.Event{Kind: events.Choose, Obj: bolt, Counter: "type", Text: "Elf"}, "Bob chooses the type Elf for Bolt #2"},
 		{"choose number", events.Event{Kind: events.Choose, Obj: bolt, Counter: "number", Amount: 3}, "Bob chooses the number 3 for Bolt #2"},
+		// CR 310.10: the protector Choose carries the chosen opponent's seat
+		// on Player, so the transcript names that opponent rather than the
+		// card's controller (which the generic wordings read).
+		{"choose protector", events.Event{Kind: events.Choose, Obj: bolt, Counter: "protector", Player: 0}, "Ann protects Bolt #2 (chosen by Bob)"},
 		{"token", events.Event{Kind: events.TokenCreate, Player: 1, Text: "r_1_1_goblin"}, "Bob creates a Goblin token"},
 		{"token unknown script", events.Event{Kind: events.TokenCreate, Player: 1, Text: "nope"}, "Bob creates a token"},
 		{"copy", events.Event{Kind: events.StackCopy, Obj: bolt, Player: 0}, "Ann copies Bolt #2"},

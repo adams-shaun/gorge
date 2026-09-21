@@ -345,3 +345,95 @@ func asLivelock(err error, target **rules.LivelockError) bool {
 	}
 	return ok
 }
+
+// TestPolicyNetResidualReproducesTheBotInPlay pins the residual prior's
+// INFERENCE half end to end — the review finding the loader-only BotPick
+// made the prior a permanent no-op in play. A zero-head model carrying ONLY
+// the bot-prior residual weight (the deployment shape of
+// train.Config.ResidualInit under a schema that does not checkpoint the
+// weight) must answer every SCORED decision with exactly the wrapped
+// default bot's intent. Priority is the sharp half: the bot's answer there
+// is often a tap/land option the scored argmax space excludes, so without
+// priorityFromScores' admitBotPicks admission the head's untrained noise
+// would outvote the bot's own action and this pin would fail — it cannot
+// pass on wiring alone, the marking must reach the scorer.
+func TestPolicyNetResidualReproducesTheBotInPlay(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	const seed = 9
+	e := rules.New(rules.Config{Seed: seed, Names: names, Decks: decks})
+	e.Advance()
+
+	// The zero model the delegation test uses, plus the prior. Built
+	// in-process (NewScorer over the live Model): the v1 checkpoint body
+	// carries no residual weight, so this is exactly the channel an
+	// operator (or the v2-schema checkpoint, when the L9b-fix2 baseline
+	// branch lands it) would use.
+	newResidualBot := func(s uint64) *PolicyNetBot {
+		m := policynet.NewModel(policynet.TableRows, 8, 4, rand.New(rand.NewPCG(1, 1)))
+		for _, blk := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW} {
+			for i := range blk {
+				blk[i] = 0
+			}
+		}
+		m.OutB = 0
+		m.ResidualW = 3
+		return NewPolicyNetBot(s, policynet.NewScorer(m))
+	}
+	pns := map[state.PlayerID]*PolicyNetBot{}
+	for k := range decks {
+		pns[state.PlayerID(k)] = newResidualBot(seed ^ uint64(k+1))
+	}
+
+	compared := map[decision.Kind]int{}
+	priorityAdmissions := 0 // scored priority answers OUTSIDE cast/ability/pass
+	n := 0
+	for !e.G.Over && e.Pending() != nil && n < 20000 {
+		d := e.Pending()
+		v := view.Project(e.G, e, d.Player, d)
+		pnIn, err := pns[d.Player].Decide(context.Background(), v, *d)
+		if err != nil {
+			t.Fatalf("intent %d: policynet bot: %v", n, err)
+		}
+		def, err := pns[d.Player].def.Decide(context.Background(), v, *d)
+		if err != nil {
+			t.Fatalf("intent %d: default bot: %v", n, err)
+		}
+		if scoredKind(d) {
+			compared[d.Kind]++
+			// Attackers: the declaration is a set of (attacker, defender)
+			// options — compare the multiset, not the submission order.
+			a := append([]int(nil), pnIn.Choices...)
+			b := append([]int(nil), def.Choices...)
+			slices.Sort(a)
+			slices.Sort(b)
+			if pnIn.Seq != def.Seq || pnIn.Player != def.Player || !slices.Equal(a, b) {
+				t.Fatalf("intent %d (kind %q): residual policynet answered %+v, the bot-prior contract wants the default bot's %+v — the prior did not reproduce the bot",
+					n, d.Kind, pnIn, def)
+			}
+			if d.Kind == decision.KPriority {
+				for _, c := range pnIn.Choices {
+					if c >= 0 && c < len(d.Options) {
+						switch d.Options[c].Kind {
+						case "cast", "ability", "pass":
+						default:
+							priorityAdmissions++ // a tap/land answer the admission let through
+						}
+					}
+				}
+			}
+		}
+		if err := e.Submit(def); err != nil {
+			t.Fatalf("intent %d: submit: %v", n, err)
+		}
+		n++
+	}
+	if !e.G.Over {
+		t.Fatalf("game did not terminate after %d intents (turn %d)", n, e.G.Turn)
+	}
+	if compared[decision.KPriority] == 0 || compared[decision.KAttackers] == 0 {
+		t.Fatalf("the game asked too few scored kinds to pin the prior (%v)", compared)
+	}
+	if priorityAdmissions == 0 {
+		t.Fatal("every scored priority answer stayed inside the trained cast/ability/pass surface — the tap/land admission path never fired, so the pin does not cover the shape the review named")
+	}
+}

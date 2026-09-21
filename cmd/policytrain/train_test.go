@@ -852,7 +852,10 @@ func modelRelDiff(a, b *policynet.Model) float64 {
 func TestCERankWeightInertWhileTheClipBinds(t *testing.T) {
 	corpus := clipPinCorpus(600)
 	cfg := Config{Epochs: 2, Batch: 64, LR: 0.1, Seed: 1, Holdout: 0.15,
-		Embed: 32, Hidden: 64, HuberDelta: 0.1, Clip: 0.5}
+		Embed: 32, Hidden: 64, HuberDelta: 0.1, Mode: policynet.LossCE, RankWeight: 1, Clip: 0.5}
+	// The premise helper measures the gradients the pin actually trains on,
+	// so its LossConfig must carry the same mode and weight the primary run
+	// arm chooses (CE at rank-weight 1, the shipped default).
 	minB, maxB := clipPinBinding(t, corpus, cfg, 0.5)
 	t.Logf("batch gradient norms over the measured window: [%.3g, %.3g], cap 0.5", minB, maxB)
 
@@ -884,6 +887,13 @@ func TestCERankWeightInertWhileTheClipBinds(t *testing.T) {
 	relFree := modelRelDiff(ce1, ce20Free)
 	if relFree < 0.05 {
 		t.Fatalf("with the cap DISABLED, CE rank-weight 20 landed only %.3g from rank-weight 1 — the corpus no longer separates the two settings, so this pin proves nothing", relFree)
+	}
+	// The warning is scoped to the clip-active arm: with -clip 0 a uniform
+	// RankWeight is a real lr rescale and must NOT be called inert.
+	logBuf.Reset()
+	_ = run(20, policynet.LossCE, 0, &logBuf)
+	if strings.Contains(logBuf.String(), "inert in pure CE mode") {
+		t.Fatalf("rank-weight 20 with -clip 0 must not warn (it is an lr rescale there, not inert); log:\n%s", logBuf.String())
 	}
 	t.Logf("CE rank-weight 1 vs 20: cap on %.2g apart, cap off %.3g apart — the clip erases the uniform scale", modelRelDiff(ce1, ce20), relFree)
 
@@ -1005,4 +1015,60 @@ func TestClipZeroDivergesToTheFirstOptionBaseline(t *testing.T) {
 	}
 	t.Logf("clip=0: %d non-finite params, model %.3f == first %.3f (dead) | clip=1: finite, model %.3f > first %.3f",
 		nonFinite(dead.Model), dead.ByKind[0].ModelTop1, dead.ByKind[0].FirstTop1, k.ModelTop1, k.FirstTop1)
+}
+
+func extraFeatureCorpus(n, nopts int) []policynet.Example {
+	out := make([]policynet.Example, n)
+	for i := 0; i < n; i++ {
+		st := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+		st.Sparse = append(st.Sparse,
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("xf|s|%d", i%7)), Value: 1})
+		marked := i%3 == 0
+		pref := 0
+		if marked {
+			pref = 2
+		}
+		ex := policynet.Example{Kind: "attackers", TeacherChoice: pref, BotIndex: 0, Margin: 0.02, State: st}
+		for j := 0; j < nopts; j++ {
+			o := policynet.Option{Dense: make([]float32, policynet.OptionDenseWidth), Extra: []float32{0}}
+			o.Hashed = append(o.Hashed,
+				policynet.Feature{Row: policynet.HashID(fmt.Sprintf("xf|p|%d", j)), Value: 1})
+			if marked && j == 2 {
+				o.Extra[0] = 1
+			}
+			o.Target = policynet.OptionTarget{Labelled: true, Preferred: j == pref, Value: 0.5}
+			ex.Options = append(ex.Options, o)
+		}
+		out[i] = ex
+	}
+	return out
+}
+
+// TestTrainerLearnsFromExtraFeature proves the Extra channel is a trainable
+// input, not inert plumbing: on a corpus whose ONLY discriminative signal is
+// Option.Extra[0], pure CE must fit it to saturation. This is the synthetic
+// control for the real-corpus result that even a leaky Extra feature is not
+// exploited — if this test passes, the real-corpus underfit is a data/
+// optimisation interaction, not a broken augmentation path.
+func TestTrainerLearnsFromExtraFeature(t *testing.T) {
+	corpus := extraFeatureCorpus(600, 3)
+	res, err := Train(corpus, Config{Epochs: 10, Batch: 32, LR: 0.1, Seed: 7, Holdout: 0.15,
+		Embed: 32, Hidden: 64, Mode: policynet.LossCE, RankWeight: 1, HuberDelta: 0.1, ExtraW: 1})
+	if err != nil {
+		t.Fatalf("Train: %v", err)
+	}
+	if len(res.ByKind) != 1 {
+		t.Fatalf("%d kinds, want 1", len(res.ByKind))
+	}
+	k := res.ByKind[0]
+	if k.FirstTop1 < 0.5 || k.FirstTop1 > 0.7 {
+		t.Fatalf("first-option baseline %.3f outside the expected ~0.667", k.FirstTop1)
+	}
+	if k.ModelTop1 < 0.95 {
+		t.Fatalf("pure CE on an Extra-only signal: top-1 %.3f < 0.95 — the Extra channel is not trainable", k.ModelTop1)
+	}
+	if res.Model.ExtraW != 1 || res.Model.InW != 2*32+128+24+1 {
+		t.Fatalf("model geometry: ExtraW=%d InW=%d, want 1 / %d", res.Model.ExtraW, res.Model.InW, 2*32+128+24+1)
+	}
+	t.Logf("first-option %.3f | Extra-only pure CE %.3f", k.FirstTop1, k.ModelTop1)
 }

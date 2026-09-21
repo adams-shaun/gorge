@@ -304,7 +304,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -325,11 +325,35 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
+			if mode == "CantPutCounter" && !CantPutCounterParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			ceUntilEOT := effectUntilEOT(h, c.Source, dur)
+			if mode == "CantPutCounter" && sa.Params["Duration"] == "" {
+				// cantputcounter1-r2: a CantPutCounter lock with NO Duration$
+				// is the THIS-TURN lock the corpus's one Effect-delivered
+				// carrier writes (Melira, the Living Cure's "you can't get
+				// additional poison counters this turn", whose Description$
+				// states the lifetime the absent Duration$ leaves unstated).
+				// effEffect's plain absent-Duration default (Permanent, set at
+				// the top of this function) would never expire the lock and
+				// swallow every later turn's fresh poison outright -- the
+				// non-permissive direction for a restriction. An EXPLICIT
+				// Duration$ keeps the ordinary reading (Permanent stays
+				// permanent, this-turn spellings were already UntilEOT through
+				// effectUntilEOT). The DamageDone prevent precedent (this
+				// function) made the same absent-Duration read for the same
+				// reason.
+				ceUntilEOT = true
+			}
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
 				Name:           effectName,
-				UntilEOT:       effectUntilEOT(h, c.Source, dur),
+				UntilEOT:       ceUntilEOT,
 				Restriction:    mode,
 				RestrictParams: params,
 				Remembered:     remembered,
@@ -635,6 +659,33 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CantPutCounterParamsReadable is the parameter whitelist a CantPutCounter
+// static must pass before this build enforces it -- used BOTH by the
+// face-static reader (rules/layers.go's PutCounterBlocked activeStatics walk)
+// and by effEffect's registration case, so the two paths cannot disagree about
+// what is readable. The readable parameters are the restriction's own mode and
+// scope (Mode$, the object spec ValidCard$/ValidObject$, the player spec
+// ValidPlayer$, the counter kind CounterType$), the AffectedZone$ rider the
+// Solemnity object line carries, and display text. Duration$ is readable: the
+// lock's own lifetime, consumed by effEffect's CantPutCounter arm (an absent
+// Duration$ there is the THIS-TURN lock the corpus's one Effect-delivered
+// carrier writes -- see that arm). A static carrying any other
+// parameter names a condition or scoping this build does not evaluate
+// (ActiveZones$, IsPresent$, CheckSVar$, ...) -- enforcing it blanket would
+// OVER-restrict, the permissive direction for a restriction -- so it is
+// skipped/reported. Secondary$ is allowed: a Forge-side duplicate for modifier
+// composition, and a boolean restriction cannot be applied twice.
+func CantPutCounterParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidObject", "ValidPlayer", "CounterType", "AffectedZone", "Duration", "Description", "Secondary":
 		default:
 			return false
 		}

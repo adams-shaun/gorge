@@ -109,6 +109,10 @@ func (e *Engine) Clone() *Engine {
 		ev := *e.riotMove
 		c.riotMove = &ev
 	}
+	if e.siegeMove != nil {
+		ev := *e.siegeMove
+		c.siegeMove = &ev
+	}
 	if e.pending != nil {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)
@@ -225,6 +229,12 @@ func (e *Engine) Clone() *Engine {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
 		for k, v := range e.triggerTurnFires {
 			c.triggerTurnFires[k] = v
+		}
+	}
+	if e.unblockedOnceFired != nil {
+		c.unblockedOnceFired = make(map[triggerKey]combatFires, len(e.unblockedOnceFired))
+		for k, v := range e.unblockedOnceFired {
+			c.unblockedOnceFired[k] = v
 		}
 	}
 	if e.triggerTurnResolved != nil {
