@@ -301,7 +301,10 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		// "Number" is Forge's DrawCards-replacement spelling of the same
 		// in-flight amount (Quantum Riddler's NumCards$
 		// ReplaceCount$Number/Plus.1 body; 8 corpus files carry the field).
-		if field != "DamageAmount" && field != "Amount" && field != "Number" {
+		// "CounterNum" is the AddCounter class's spelling (Hardened Scales'
+		// X:ReplaceCount$CounterNum/Plus.1, Branching Evolution's /Twice): the
+		// number of counters the held CounterChange would place.
+		if field != "DamageAmount" && field != "Amount" && field != "Number" && field != "CounterNum" {
 			return 0, false
 		}
 		n := c.ReplacementAmount

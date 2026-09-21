@@ -218,6 +218,8 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			}
 		}
 		return e.applyNonMoveReplacements(ev, matches)
+	case events.CounterChange, events.PlayerCounterChange:
+		return e.applyAddCounterReplacements(ev, matches)
 	}
 
 	// CR 616.1: if two or more replacement effects would modify the way this
@@ -782,6 +784,15 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "Explore", true
 	case events.PlanarRoll:
 		return "RollPlanarDice", true
+	case events.CounterChange, events.PlayerCounterChange:
+		// The counter-placement replacement class (Hardened Scales, Branching
+		// Evolution, Doubling Season, Vorinclex): R:Event$ AddCounter modifies
+		// how many counters the event places, in place, exactly as DamageDone's
+		// ReplaceDamage bodies rewrite a held Damage amount. Both the object
+		// form (CounterChange) and the player form (PlayerCounterChange) share
+		// the class; the matcher splits them on ValidCard$/ValidObject$ vs
+		// ValidPlayer$.
+		return "AddCounter", true
 	default:
 		return "", false
 	}
@@ -1327,6 +1338,124 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 		last = stored
 	}
 	return last, true
+}
+
+// internalCounterMarker reports whether a counter name is one of the engine's
+// own status markers rather than a counter a card could name. Both ride an
+// ordinary CounterChange -- the engine has no per-object status field, so a
+// marker is recorded as a counter -- and both are SET with Amount 1, so the
+// AddCounter matcher's positive-amount guard does not exclude them:
+//
+//   - "Shield", the this-turn regeneration shield (effects/counters.go's
+//     effRegenerate sets it, effects/regeneration.go reads it back, and
+//     rules/combat.go consumes one per destruction);
+//   - "Deathtouched", the CR 702.2b lethal mark (rules/combat.go's combat
+//     assignment, this file's replacement-applied damage, effects/damage.go),
+//     read by rules/sba.go's destruction check.
+//
+// A counter doubler whose R: line names no ValidCounterType$ -- Doubling
+// Season, Winding Constrictor's object line, Loading Zone, Pir, Selesnya Loft
+// Gardens -- matches any counter kind, so without this gate one Regenerate
+// would grant TWO regeneration shields. Excluding the markers by name is safe:
+// every counter kind the corpus scripts is upper-case (P1P1, LORE, AGE, TIME,
+// STUN, CHARGE, ENERGY, POISON, LOYALTY, ...), so no real kind can collide
+// with either mixed-case marker name, and a removal of a marker was already
+// excluded by the sign guard.
+func internalCounterMarker(name string) bool {
+	return name == "Shield" || name == "Deathtouched"
+}
+
+// applyAddCounterReplacements rewrites a CounterChange/PlayerCounterChange
+// event's Amount through every applicable R:Event$ AddCounter replacement,
+// then returns the event UNHANDLED so emit's ordinary path logs and folds the
+// rewritten amount -- the in-place-rewrite shape the DamageDone ReplaceDamage
+// bodies use, one event kind over. Each match applies at most once, in
+// deterministic scan order, and each body's Amount$ reads the amount the
+// earlier matches produced (the running total, CR 616.1e), so Hardened Scales
+// then Branching Evolution composes 1 -> +1 -> double = 4 exactly as the two
+// cards' combined oracle reads. No predicate re-check is needed between
+// modifiers: this class's gates (ValidCounterType$/ValidCard$/ValidObject$/
+// ValidPlayer$) never depend on the amount, unlike CreateToken's per-mint
+// ValidToken$ re-check. The scan-order composition (rather than a posed CR
+// 616.1 order choice among non-commuting Plus/Twice matches) is the same
+// deliberate deviation continueCreateTokenReplacements documents.
+//
+// A body whose Amount$ this build cannot price, or whose resolved value is
+// negative, leaves the event verbatim -- never a silent erase. A resolved
+// zero IS applied, though: "instead put zero" is a legitimate replacement
+// result (Vizier of Remedies' Minus.1 on a single -1/-1 counter resolves to
+// zero, and the oracle's "that many minus one" then places none). An
+// unpriceable body is skipped, never read as zero.
+func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	amount := ev.Amount
+	changed := false
+	for _, m := range matches {
+		body := m.repl.With
+		if body == nil || body.API != "ReplaceCounter" {
+			continue
+		}
+		// A body's SubAbility$ chain is part of the replacement: Melira, the
+		// Living Cure's lock ("and you can't get additional poison counters
+		// this turn") rides SVar:OnlyOnePoison's SubAbility$ DBImmediateTrigger,
+		// which resolves an ImmediateTrigger | Execute$ TrigEffect |
+		// StaticAbilities$ CantPutCounter. Running it is not possible yet --
+		// the CantPutCounter restriction static is unimplemented (it is not a
+		// registered continuous restriction and has no enforcement point in
+		// the counter pipeline) -- so the drop is made LOUD rather than
+		// silent: one Note per applying body names the unsupported rider. That
+		// leaves Melira's lock absent (a second poison source the same turn
+		// places its counters), which is recorded as a known wrong result on
+		// exactly that one carrier in the AddCounter row of AGENTS.md.
+		// Emitted AFTER the priceability verdict below, not here: a body that
+		// passes the counter-kind gate but whose Amount$ this build cannot
+		// price does not apply at all, and must not announce a rider it never
+		// reached.
+		if ct := strings.TrimSpace(body.Params["ValidCounterType"]); ct != "" && ct != ev.Counter {
+			continue
+		}
+		hold := ev
+		hold.Amount = amount
+		ctx := e.replCtx(m, hold)
+		n, ok := e.replaceCounterAmount(body, ctx, amount)
+		// A negative result would be a counter REMOVAL, which this class
+		// does not express; leave the event verbatim. An unpriceable body
+		// (!ok) is likewise skipped, never read as zero.
+		if !ok || n < 0 {
+			continue
+		}
+		// The body APPLIES from here on, so a dropped rider is announced now
+		// -- including when the rewrite is a no-op (n == amount, Melira's
+		// Amount$ 1 against a single poison counter): the lock is dropped
+		// there too, and the Note is the log's only witness of it.
+		if body.Sub != nil {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "replacement body SubAbility$ not run (unsupported rider): " + body.API})
+		}
+		if n == amount {
+			continue
+		}
+		amount = n
+		changed = true
+	}
+	if !changed {
+		return ev, false
+	}
+	ev.Amount = amount
+	return ev, false
+}
+
+// replaceCounterAmount resolves a DB$ ReplaceCounter body's new counter count
+// against the amount the event would place. Forge's corpus expresses it as
+// Amount$ X with X:ReplaceCount$CounterNum/Plus.1 (Hardened Scales, +1) or
+// X:ReplaceCount$CounterNum/Twice (Branching Evolution, double); the shared
+// numeric grammar resolves both once CounterNum is a recognised ReplaceCount
+// field (effects/count.go). The base is the HELD amount, not the original
+// event's, so a chain of modifiers reads the running total (CR 616.1e).
+// NumResolved's verdict distinguishes an unmodelled frame (fail the match)
+// from a legitimate zero.
+func (e *Engine) replaceCounterAmount(body *cards.SA, ctx *effects.Ctx, base int32) (int32, bool) {
+	ctx.ReplacementAmount = base
+	return effects.NumResolved(e, ctx, body, "Amount", base)
 }
 
 // planarDieFaceName names one planar-die roll result (CR 901.3a): the die
@@ -2092,11 +2221,103 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		// EffectOnly$ True ("If an EFFECT would create ...", Doubling Season's
-		// family) is READ and held: the engine's only TokenCreate emitters are
-		// effect resolution (effects/token.go's effToken and effects/amass.go),
-		// so today every token creation IS effect-created and the gate is
-		// vacuously satisfiable. A cost-created-token provenance marker is a
-		// deliberate non-goal; when one lands, this gate must read it.
+		// family) is held by construction: the engine's only TokenCreate
+		// emitters are effect resolution (effects/token.go's effToken and
+		// effects/amass.go), so every token creation IS effect-created and the
+		// gate is vacuously satisfiable. No code reads the param yet -- a
+		// cost-created-token provenance marker, when one lands, must read it
+		// here. This "vacuously satisfiable" reading is the TOKEN class's
+		// alone: the AddCounter case below DOES read EffectOnly$, because
+		// CounterChange has non-effect emitters (turn-based actions, costs).
+		return e.replacementConditionHolds(r, source, you)
+	case "AddCounter":
+		// The counter-placement replacement class (Hardened Scales, Branching
+		// Evolution, Doubling Season, Vorinclex, ...). Applied by
+		// applyAddCounterReplacements, which reads each body's ReplaceCounter
+		// params directly in rules -- the ReplaceToken/replaceDamageAmount
+		// precedent -- rather than dispatching through the effects registry
+		// (no api:ReplaceCounter resolver exists; the census registers the
+		// name via RegisterNonAPI).
+		//
+		// Only a POSITIVE placement is replaceable: a CounterChange that
+		// removes counters (a SubCounter cost, a -1/-1 wipe) is never an
+		// AddCounter event.
+		if ev.Amount <= 0 {
+			return false
+		}
+		// ... and neither is one of the engine's own status markers, which
+		// ride a CounterChange for want of a status field and are emitted
+		// with a POSITIVE amount, so the sign guard above does not exclude
+		// them. See internalCounterMarker.
+		if internalCounterMarker(ev.Counter) {
+			return false
+		}
+		// ValidCounterType$ names the kind of counter being added and appears
+		// on the R: line (Hardened Scales) or the body (Melira). A line naming
+		// a kind other than the event's fails closed; an absent kind admits
+		// every kind (Winding Constrictor's "one or more counters").
+		if ct := strings.TrimSpace(r.Params["ValidCounterType"]); ct != "" && ct != ev.Counter {
+			return false
+		}
+		// ValidPlayer$ scopes the counter's RECIPIENT PLAYER, so it only
+		// applies to the player form (PlayerCounterChange). An object
+		// CounterChange leaves ev.Player at its zero value, so without this
+		// form gate a ValidPlayer$ You line reduces to ev.Player == you ->
+		// 0 == 0 -> true and fires on every object placement (Winding
+		// Constrictor has both an object line and a ValidPlayer$ You line).
+		if vp, ok := r.Params["ValidPlayer"]; ok {
+			if ev.Kind != events.PlayerCounterChange ||
+				!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+				return false
+			}
+		}
+		// ValidCard$/ValidObject$ name the counter RECIPIENT. The object form
+		// (CounterChange) matches it by that object's filter; the player form
+		// (PlayerCounterChange) carries no object, so an object-scoped line
+		// fails closed for it. A line with neither key applies to either form,
+		// which is what the "any counters / any permanent or player" shapes
+		// (Doubling Season's ValidCard$ Permanent, Vorinclex's ValidObject$)
+		// mean.
+		spec := strings.TrimSpace(r.Params["ValidCard"])
+		if spec == "" {
+			spec = strings.TrimSpace(r.Params["ValidObject"])
+		}
+		if spec != "" {
+			if ev.Kind != events.CounterChange {
+				return false
+			}
+			if !effects.MatchesSpecFrom(e.G, spec, ev.Obj, you, source) {
+				return false
+			}
+		}
+		// ValidSource$ You/Opponent names the player CAUSING the placement -- a
+		// role the CounterChange event does not carry (it records the recipient
+		// only).
+		// There is no engine-side "who is adding these counters" scratch, so a
+		// source-scoped line fails closed rather than matching every placement:
+		// the conservative direction (Vorinclex's "If you would put ...",
+		// Halving Season's opponent half). See the AddCounter row in AGENTS.md.
+		if strings.TrimSpace(r.Params["ValidSource"]) != "" ||
+			strings.TrimSpace(r.Params["ValidCause"]) != "" {
+			return false
+		}
+		// EffectOnly$ True (Doubling Season, Selesnya Loft Gardens) admits only
+		// placements that are the EFFECT of a resolving spell or ability ("If an
+		// EFFECT would put one or more counters ..."). It excludes a placement
+		// with no object on the stack: a turn-based action (a Saga's lore
+		// counter, rules/saga.go advanceSagas) and a cost (a planeswalker's [+N]
+		// loyalty counter, rules/cast.go emitChoiceCosts; a station counter,
+		// rules/station.go handleStation) are not effects, and admitting them
+		// doubled counters they must not touch. This is exactly the
+		// actionCause()==0 provenance the Moved case's EffectOnly$ gate reads
+		// (costs are paid before an activated ability exists on the stack, so
+		// they deliberately have no cause) -- one shared test, not a second
+		// hand-built identity stamp. A resolving TRIGGERED ability's instruction
+		// (a cumulative-upkeep age counter, rules/cumulative.go) IS an effect
+		// (CR 609.1), so it still qualifies.
+		if r.Params["EffectOnly"] == "True" && e.actionCause() == 0 {
+			return false
+		}
 		return e.replacementConditionHolds(r, source, you)
 	case "RollPlanarDice":
 		// The planar-dice replacement class (Ichor Elixir, task rollplanar1):
@@ -3998,7 +4219,8 @@ func init() {
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
-		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "api:ReplaceToken")
+		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "api:ReplaceToken",
+		"repl:AddCounter", "api:ReplaceCounter")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

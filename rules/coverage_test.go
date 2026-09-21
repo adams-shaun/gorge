@@ -79,6 +79,24 @@ func TestTokenReplacementPrimitivesAreRegistered(t *testing.T) {
 	}
 }
 
+// TestAddCounterReplacementPrimitivesAreRegistered pins the support
+// declaration for the counter-placement replacement class (Hardened Scales,
+// Branching Evolution, Doubling Season, Vorinclex, ...): cards' census
+// derives repl:AddCounter from the R: line and api:ReplaceCounter from the
+// ReplaceWith$ body, and rules/replacement.go's init registers both now that
+// replacementMatchesRemembered's AddCounter case and
+// applyAddCounterReplacements implement the class. Omitting either would
+// leave all 30 corpus carrier cards unplayable.
+func TestAddCounterReplacementPrimitivesAreRegistered(t *testing.T) {
+	supported := effects.Supported()
+	if !supported["repl:AddCounter"] {
+		t.Fatal(`effects.Supported() is missing "repl:AddCounter"`)
+	}
+	if !supported["api:ReplaceCounter"] {
+		t.Fatal(`effects.Supported() is missing "api:ReplaceCounter"`)
+	}
+}
+
 // TestForgecBinaryImportsRules is the second assertion path: a static check,
 // independent of anything already loaded into this test binary, that
 // cmd/forgec's own dependency graph includes package rules. `go list -deps`
