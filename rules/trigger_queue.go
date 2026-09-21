@@ -338,6 +338,39 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A granted Conspire (CR 702.78a's copy trigger via a layer-6 AddKeyword$
+	// Conspire -- Wort, the Raidmother / Raiding Schemes): the Ward shape.
+	// The trigger is mandatory; its Counter payload "__kwConspire" is what
+	// events.Apply rebuilds into the same DB$ CopySpellAbility body the
+	// printed K:Conspire expansion carries, and the cast spell rides IDs as
+	// Remembered because Defined$ TriggeredSpellAbility reads the triggering
+	// spell off it (the same IDs encoding the ordinary TriggerPush path
+	// uses, which is also what a replay needs).
+	if pt.Conspire {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+				continue
+			}
+			ids = append(ids, tgt.Obj)
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwConspire", IDs: ids, Text: "conspire ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// One of the Ring emblem's four level abilities (CR 701.54c): the emblem
 	// has no object in any zone and no face, so its stack object is minted by
 	// a RingEmblemPush event whose "__ring:<level>" payload events.Apply
@@ -896,6 +929,15 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 			}
 		}
 		return name + ": ward (" + pt.Ward + ")"
+	}
+	if pt.Conspire {
+		name := "a spell"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		return name + ": conspire copy trigger"
 	}
 	if pt.Miracle || pt.Madness || pt.Evoke {
 		name := "it"

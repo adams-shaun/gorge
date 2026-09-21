@@ -1450,6 +1450,7 @@ func Apply(g *state.Game, e Event) {
 			break
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
+		conspire := false
 		if sa == nil {
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
@@ -1470,6 +1471,20 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "TriggeredDefendingPlayer", "LifeAmount": rest,
 						"TriggerDescription": "Afflict"}}
 			}
+			// A granted Conspire (rules.pushTrigger's __kwConspire payload)
+			// has no SVar either: rebuilt structurally into the same
+			// DB$ CopySpellAbility body the printed K:Conspire expansion
+			// carries, so the live game and the replay mint identical
+			// objects from the event text alone. The triggering spell rides
+			// Remembered (IDs) -- Defined$ TriggeredSpellAbility reads it
+			// there, exactly as the printed expansion's own TriggerPush
+			// entries carry it.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwConspire"); ok {
+				sa = &cards.SA{Kind: "DB", API: "CopySpellAbility",
+					Params: map[string]string{"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired",
+						"MayChooseTarget": "True"}}
+				conspire = ok
+			}
 		}
 		if sa == nil {
 			break
@@ -1480,6 +1495,9 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
+		if conspire {
+			o.Remembered = rememberedFrom(e.IDs)
+		}
 
 	case StackCopy:
 		if !validPlayer(g, e.Player) {

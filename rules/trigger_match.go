@@ -93,6 +93,16 @@ type pendingTrigger struct {
 	// payload events.Apply rebuilds into the same DB$ LoseLife body the
 	// printed K:Afflict expansion carries. Idx and SA are unset for it.
 	Afflict string
+	// Conspire is a GRANTED conspire keyword (a layer-6 AddKeyword$
+	// Conspire -- Wort, the Raidmother's "each red or green instant or
+	// sorcery spell you cast has conspire", Raiding Schemes' noncreature
+	// arm): the same shape as Ward/Afflict -- the queue carries no
+	// parameter (the copy trigger has none) and the drain pushes a
+	// KeywordTriggerPush whose __kwConspire payload events.Apply rebuilds
+	// into the same DB$ CopySpellAbility body the printed K:Conspire
+	// expansion carries, with the cast spell riding IDs as Remembered.
+	// Idx and SA are unset for it.
+	Conspire bool
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
@@ -1066,6 +1076,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
 				case events.DeclareBlockers:
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
+				case events.PutOnStack:
+					e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
 			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
@@ -1299,6 +1311,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// trigger carrying the Monarch's grant) -- the early-return path above
 		// reaches this object through checkGrantedAfflictTriggers's own call.
 		e.checkGrantedAfflictTriggers(id, o, f, ev)
+		// A granted Conspire must fire even when the object's own printed
+		// triggers are live for this event (a spell with its own cast trigger
+		// carrying a Conspire grant) -- the early-return path above reaches this
+		// object through checkGrantedConspireTriggers's own call.
+		e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -4442,6 +4459,74 @@ func init() {
 		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
 		"kw:CARDNAME can be your commander.",
 	)
+}
+
+// checkGrantedConspireTriggers synthesizes Conspire's copy trigger (CR
+// 702.78a's second ability) for a spell that currently HAS the keyword but
+// does not print it: a layer-6 grant (Wort, the Raidmother's "each red or
+// green instant or sorcery spell you cast has conspire", Raiding Schemes'
+// noncreature arm) gives the spell the same rules text as a printed keyword,
+// and the printed K:Conspire expansion (cards/keywords.go) only covers
+// printed lines. Without this walk the granted spell's cast flow still
+// offers the conspired cast, still asks the tap and still pays it (the
+// derived-keyword read the offer uses), but nothing copies -- the player pays
+// an unrecoverable cost for nothing. The synthesized trigger reuses the
+// printed expansion's exact trigger/body shape (Mode$ SpellCast, ValidCard$
+// Card.Self, TriggerZones$ Stack; DB$ CopySpellAbility over
+// Defined$ TriggeredSpellAbility with Amount$ Count$Conspired), so its
+// behaviour is byte-identical to the printed path's: it fires on EVERY cast
+// of the granted spell (the deferred CR 601.2i walk, so the pay-time
+// FlagConspired CastInfo has already folded Object.Conspired) and resolves
+// to a no-op when the tap was declined (Amount 0, effCopySpellAbility's
+// loop emits nothing). A copy emits StackCopy, not PutOnStack, so the
+// synthesis cannot double-fire on its own output. The walk skips a face that
+// PRINTS Conspire (the printed expansion already owns the line -- the same
+// grant-identical-to-a-printed-line dedup Afflict keeps). Like Dethrone's
+// synthesis this is a read-only derived-characteristics check; granting
+// stays in the continuous-effect system. It runs on the faceMayTrigger
+// early-return path too (a granted keyword is independent of printed
+// triggers, the same shape Dethrone/Afflict are), and its gate is ordered
+// cheap-first -- event kind, then object identity, one integer compare each
+// on the hot per-event walk -- before the derived keyword scan allocates.
+func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	if ev.Kind != events.PutOnStack || id != ev.Obj {
+		return
+	}
+	if !e.HasKeyword(id, "Conspire") || f.HasKeyword("Conspire") {
+		return
+	}
+	t := cards.Trigger{Mode: "SpellCast", Params: map[string]string{
+		"Mode": "SpellCast", "ValidCard": "Card.Self", "TriggerZones": "Stack", "TriggerDescription": "Conspire",
+	}, Effect: &cards.SA{Kind: "DB", API: "CopySpellAbility", Params: map[string]string{
+		"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired", "MayChooseTarget": "True",
+	}}}
+	if observer.triggerMatches(t, id, ev, objLKI) {
+		key := triggerKey{Source: id, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] < maxTriggerFires {
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     id,
+				Controller: o.Controller,
+				// The Ward shape: the body rides the push's __kwConspire
+				// payload for events.Apply to rebuild structurally -- a raw
+				// SA cannot cross the log, and the TriggerPush -1 index
+				// sentinel is Dethrone's own. The cast spell rides
+				// Remembered because Defined$ TriggeredSpellAbility reads
+				// the triggering spell off it.
+				Conspire: true,
+				Ctx: effects.Ctx{
+					Source:         id,
+					Controller:     o.Controller,
+					Remembered:     triggerRemembered(ev, id),
+					LKI:            objLKI,
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+				},
+			})
+		}
+	}
 }
 
 // checkGrantedDethroneTriggers synthesizes Dethrone's ordinary attack trigger
