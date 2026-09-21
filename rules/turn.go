@@ -424,6 +424,13 @@ func (e *Engine) step() {
 		if e.declarationMadeThisStep(events.DeclareBlockers) &&
 			(e.blockerRound.order == nil || e.blockerRound.cursor >= len(e.blockerRound.order)) {
 			e.blockerRound = blockerRound{}
+			// The declare-blockers round is complete: every defender has
+			// answered (or been skipped). This is the one instant
+			// Mode$ AttackerUnblockedOnce's condition is evaluated -- see
+			// checkAttackerUnblockedOnceTriggers. Queued here, the trigger
+			// drains onto a stack at the priorityRound below (CR 509.2),
+			// before combat damage.
+			e.checkAttackerUnblockedOnceTriggers()
 			e.priorityRound()
 		} else {
 			e.askBlockers()
@@ -952,6 +959,24 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.Choose, Obj: e.riotMove.Obj, Counter: "riot", Text: choice})
 		move := *e.riotMove
 		e.riotMove = nil
+		e.choosing = chooseNone
+		e.emit(move)
+	case chooseSiege:
+		// CR 310.10: the Battle Siege protector choice was answered. Record
+		// the chosen opponent through a Choose "protector" event (so the
+		// protector is replay-derived, never a direct field write), then
+		// re-emit the parked entry -- Apply consumes the choice on entry.
+		if e.siegeMove == nil || len(chosen) != 1 {
+			e.siegeMove = nil
+			e.choosing = chooseNone
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "Siege protector answered with no entry pending"})
+			return
+		}
+		move := *e.siegeMove
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj,
+			Counter: "protector", Player: chosen[0].Player})
+		e.siegeMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
 	case chooseOpening:

@@ -257,6 +257,9 @@ func (e *Engine) checkStateBased() {
 		if e.planeswalkerZeroLoyalty(tried) {
 			changed = true
 		}
+		if e.battleZeroDefense(tried) {
+			changed = true
+		}
 		if e.ceaseDeadTokens(tried) {
 			changed = true
 		}
@@ -714,6 +717,63 @@ func (e *Engine) planeswalkerZeroLoyalty(tried *sbaAttempts) bool {
 	// departure -- 3 queued triggers where CR 603.10a requires 4;
 	// TestPlaneswalkerSBABatchUsesPreDepartureBoard pins it). The snapshot
 	// never receives mutations, and the log retains ordinary MoveZone events.
+	before := e.triggerBefore
+	e.triggerBefore = e.snapshotTriggerBoard()
+	defer func() { e.triggerBefore = before }()
+	for _, c := range dead {
+		tried.objs[c.id] = true
+		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
+	}
+	return true
+}
+
+// battleZeroDefense is CR 704.5h: a battle with no defense counters is put
+// into its owner's graveyard. Modeled line-for-line on planeswalkerZeroLoyalty
+// above (CR 704.5i): same tried-set, same AliveFrom(0) battlefield-slice
+// determinism, same pre-departure trigger-board snapshot so a batch of battles
+// reaching zero in one pass all observe the same board (CR 704.3/603.10a). The
+// move is not destruction: no ReplaceDestruction, no regeneration shield
+// consulted -- exactly the zero-loyalty/zero-toughness treatment.
+//
+// The "defeated" exile-then-transform behaviour in a Siege's oracle stamp
+// belongs to the ATTACK leg (CR 310.11), not this SBA: this build does not
+// model attacking a battle, so a battle that reaches zero defense here goes to
+// the graveyard.
+func (e *Engine) battleZeroDefense(tried *sbaAttempts) bool {
+	tried.rearm(e.G.AliveCount())
+	var dead []casualty
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if tried.objs[id] {
+				continue
+			}
+			o := e.G.Obj(id)
+			if o == nil {
+				continue
+			}
+			// A face-down card is a vanilla 2/2 creature (CR 708.5), never a
+			// Battle: Face() returns the printed front face regardless of
+			// FaceDown (and the entry grant above grants a face-down entry
+			// no defense counters), so without this guard a manifested or
+			// cloaked Battle would be swept into its owner's graveyard the
+			// instant it entered.
+			if o.FaceDown {
+				continue
+			}
+			f := o.Face()
+			if f == nil || !f.IsBattle() {
+				continue
+			}
+			if o.Counter("DEFENSE") > 0 {
+				continue
+			}
+			dead = append(dead, casualty{id, "zero defense"})
+		}
+	}
+	if len(dead) == 0 {
+		return false
+	}
 	before := e.triggerBefore
 	e.triggerBefore = e.snapshotTriggerBoard()
 	defer func() { e.triggerBefore = before }()

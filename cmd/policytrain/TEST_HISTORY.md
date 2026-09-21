@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/cmd/policytrain
 
-budget_s: 7
+budget_s: 14
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -13,3 +13,10 @@ budget_s: 7
 | 2026-09-20T22:40Z | c4b22899+ | 9.8 | 8 | 0 | sadams |
 | 2026-09-21T00:15Z | c4b22899+ | 6.2 | 10 | 0 | sadams |
 | 2026-09-21T00:22Z | c4b22899+ | 5.7 | 10 | 0 | sadams |
+| 2026-09-21T02:01Z | 485a4f6d+ | 12.5 | 10 | 0 | sadams |
+| 2026-09-21T02:02Z | 485a4f6d+ | 6.1 | 10 | 0 | sadams |
+| 2026-09-21T02:04Z | 485a4f6d+ | 6.2 | 10 | 0 | sadams |
+| 2026-09-21T02:10Z | 6e68b529+ | 8.5 | 10 | 0 | sadams |
+| 2026-09-21T02:12Z | 6e68b529+ | 7.4 | 10 | 0 | sadams |
+| 2026-09-21T02:13Z | 6e68b529+ | 7.4 | 10 | 0 | sadams |
+| 2026-09-21T02:45Z | 6afe22ab+ | 6.0 | 10 | 0 | sadams |

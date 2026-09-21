@@ -33,11 +33,11 @@ func TestTriggerReferentsUseEventRoles(t *testing.T) {
 		{"AttackersDeclaredOneTarget", events.Event{Kind: events.DeclareAttackers, IDs: []state.ObjID{other}, Player: 1}, effects.TriggerContext{DefendingPlayer: state.Target{IsPlayer: true, Player: 1}, AttackingPlayer: state.Target{IsPlayer: true, Player: 1}, AttackedTarget: state.Target{IsPlayer: true, Player: 1}}},
 		{"Always", events.Event{Kind: events.Damage, Obj: other}, effects.TriggerContext{}},
 	} {
-		if got := e.triggerReferents(cards.Trigger{Mode: tt.mode}, source, tt.ev, nil); got != tt.want {
+		if got := e.triggerReferents(cards.Trigger{Mode: tt.mode}, source, tt.ev, nil); !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("%s: got %+v, want %+v", tt.mode, got, tt.want)
 		}
 	}
-	if sc := e.specCtx(source, 0); sc.TriggerContext != (effects.TriggerContext{}) {
+	if sc := e.specCtx(source, 0); !reflect.DeepEqual(sc.TriggerContext, effects.TriggerContext{}) {
 		t.Fatal("ordinary static/trigger-match context inherited damage provenance")
 	}
 }
@@ -142,11 +142,11 @@ Oracle:synthetic context probe
 	original := e.G.Stack[len(e.G.Stack)-1]
 	e.emit(events.Event{Kind: events.StackCopy, Obj: original, Player: 0})
 	copyID := e.G.Stack[len(e.G.Stack)-1]
-	if copyID == original || e.triggerContexts[copyID] != tc {
+	if copyID == original || !reflect.DeepEqual(e.triggerContexts[copyID], tc) {
 		t.Fatal("stack copy lost trigger provenance")
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: copyID, From: state.ZStack, To: state.ZExile})
-	if len(e.triggerContexts) != 1 || e.triggerContexts[original] != tc {
+	if len(e.triggerContexts) != 1 || !reflect.DeepEqual(e.triggerContexts[original], tc) {
 		t.Fatal("removing copy damaged original trigger context")
 	}
 	e.resolveTop()
