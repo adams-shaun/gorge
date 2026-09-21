@@ -2375,8 +2375,16 @@ var knownUnsupportedParams = map[string][]string{
 	"Scarlet Witch, Chaotic Avenger": {"param:api:Dig.WithMayLook", "param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
 	"Speed, Young Avenger":           {"param:api:Effect.ValidTgtsDesc"},
 	"Spinerock Knoll":                {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
-	"West Coast Expansion":           {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
-	"World Shaper":                   {"param:api:Mill.Optional"},
+	// Vesuva's api:Clone body carries IntoPlayTapped$ True. The parameter
+	// means "the copy ENTERS tapped", which only has a referent on the
+	// ETB-replacement route -- the route Vesuva takes and the one this build
+	// does not implement yet (the open ETB-copy ticket). effClone records it
+	// as unread rather than tapping a permanent that never entered, so the
+	// label is honest until that ticket lands and can read it against real
+	// entry provenance.
+	"Vesuva":               {"param:api:Clone.IntoPlayTapped"},
+	"West Coast Expansion": {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
+	"World Shaper":         {"param:api:Mill.Optional"},
 	// Torment of Hailfire's FallbackAbility$/TempRemember$ are unread
 	// everywhere: its DB$ GenericChoice now resolves through effCharm's
 	// modal ask (effects/misc.go), but these two params ride the ask and
