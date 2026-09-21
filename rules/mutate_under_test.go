@@ -82,6 +82,87 @@ func TestMutatedPilePorcuparrotUnderOffersAndResolvesActivatedAbility(t *testing
 	replayCheck(t, e, cfg)
 }
 
+// --- CR 702.140d: an under-card activation is an ability cast for triggers ---
+
+// TestMutatedPileUnderCardActivationMatchesAbilityCastTrigger is the
+// regression for the AbilityPush Amount consumer that still read the pile
+// TOP face: an AbilityPush records the FLAT pile-ability index, so an
+// under-card activation sits past the top face's (here empty) ability list.
+// reading obj.Face().Abilities[ev.Amount] failed the bounds check, so a
+// ValidSA$-narrowed Mode$ AbilityCast trigger silently never fired on any
+// under-card activation (and a HasXManaCost$ gate degraded to the pile
+// TOP's printed cost).
+//
+// Enigma Jewel / Locus of Enlightenment's verbatim trigger
+// ("Whenever you activate an ability that isn't a mana ability, copy it",
+// ValidSA$ SpellAbility.!ManaAbility) sits on the battlefield; Porcuparrot's
+// {T} ping is mutated UNDER a Bear, so the activation is unambiguously the
+// under-card's. The trigger must fire and copy it -- one StackCopy and TWO
+// damage (the ability plus its copy), not the one the unfixed engine dealt.
+func TestMutatedPileUnderCardActivationMatchesAbilityCastTrigger(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	parrot := mustCorpusCard(t, reg, "Porcuparrot")
+	// The enigmaJewelAbilityCopySrc fixture (rules/ability_copy_test.go)
+	// carries the_enigma_jewel_locus_of_enlightenment's T: line and TrigCopy
+	// SVar VERBATIM; parsed here so the trigger's ValidSA$ grammar is the real
+	// corpus one, not a hand-written approximation.
+	jewel := card(t, enigmaJewelAbilityCopySrc)
+	e, cfg := tokenReplGame(t, 411, parrot, jewel)
+	moveSeededCard(t, e, 0, jewel, state.ZBattlefield)
+	parrotID := moveSeededCard(t, e, 0, parrot, state.ZHand)
+	bear := putToken(t, e, 0, mutateBearSrc, state.ZBattlefield)
+	addMana(t, e, 0, "RRR") // the mutate cost {2}{R}
+
+	// Place the Parrot UNDER the Bear: the pile's top card stays the vanilla
+	// Bear, so the only activated ability the pile has is Porcuparrot's.
+	mutateCastOnto(t, e, mutatedCastOption(t, e, parrotID), bear, false)
+	mutateDrain(t, e, 40)
+
+	pile := e.G.Obj(bear)
+	if pile == nil || pile.Face() == nil || pile.Face().Name != "Mutate Bear" {
+		t.Fatalf("pile top card = %+v, want the Bear on top", pile)
+	}
+
+	// The pile's {T} cost needs a non-summoning-sick source (CR 302.6); the
+	// Bear entered this turn, so advance past it (two turns keeps seat 0 active).
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: e.G.Turn + 2})
+
+	addMana(t, e, 0, "") // fresh priority decision
+	opt := abilityOption(t, e, bear, 0)
+
+	lifeBefore := e.G.Players[1].Life
+	submitChoices(t, e, opt.Index)
+	// The ability's own target ask (ValidTgts$ Any) -- answer the opponent.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Porcuparrot's ability did not ask for its target: %+v", d)
+	}
+	opp := -1
+	for _, o := range d.Options {
+		if o.Kind == "player" && o.Player == 1 {
+			opp = o.Index
+		}
+	}
+	if opp < 0 {
+		t.Fatalf("target ask offers no opponent face: %+v", d.Options)
+	}
+	submitChoices(t, e, opp)
+	// The copy trigger's copy asks its own MayChooseTarget$ target (option 0
+	// through drainTriggerAsks); drain the ability, its copied wrapper and
+	// every resolution.
+	drainTriggerAsks(t, e, 60)
+
+	if got := len(allStackCopies(e)); got != 1 {
+		t.Fatalf("under-card activation produced %d StackCopy events, want exactly one "+
+			"(the ValidSA$ AbilityCast trigger must fire on a flat under-card index): %v",
+			got, allStackCopies(e))
+	}
+	if got := lifeBefore - e.G.Players[1].Life; got != 2 {
+		t.Fatalf("under-card ability plus its copy dealt %d damage, want 2 (the trigger fired and copied)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // --- CR 702.140d: an under-card MANA ability ---
 
 // mutateManaDorkSrc is an authored fixture mutate creature carrying a mana

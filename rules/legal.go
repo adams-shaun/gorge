@@ -680,25 +680,20 @@ func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
 	return base + additional
 }
 
-// activationLimitReached reports whether this object has already activated the
-// indexed ability as many times as its ActivationLimit permits this turn.
-// AbilityPush records both pieces of identity (Obj and Amount); scanning
-// backward to the latest TurnChange keeps the count derived entirely from the
-// replayable event log. The limit itself is resolved by resolveActivationLimit:
-// a literal integer is used directly, and a computed expression (an SVar name
-// or an inline Count$...) is evaluated through the effects count path, so a
-// limit such as Withering Wisps' "number of snow Swamps you control" is
-// enforced rather than silently ignored. A limit that resolves to zero or to
-// fewer activations than have already been used withholds the offer. An
-// expression that genuinely cannot be resolved stays unenforced (today's
-// behaviour): resolveActivationLimit reports ok=false.
-func (e *Engine) activationLimitReached(id state.ObjID, p state.PlayerID, ability int, raw string) bool {
-	return e.activationLimitReachedAt(id, p, ability, raw, 0)
-}
-
-// activationLimitReachedAt is activationLimitReached with the ability's own
-// pile position: ability is the FLAT pile index events now record, and merged
-// selects the face whose SVar table a computed limit resolves against.
+// activationLimitReachedAt reports whether this object has already activated
+// the ability at the FLAT pile index ability as many times as its
+// ActivationLimit permits this turn. AbilityPush records both pieces of
+// identity (Obj and Amount); scanning backward to the latest TurnChange keeps
+// the count derived entirely from the replayable event log. merged selects
+// the face whose SVar table a computed limit resolves against (0 = the top
+// face). The limit itself is resolved by resolveActivationLimitAt: a literal
+// integer is used directly, and a computed expression (an SVar name or an
+// inline Count$...) is evaluated through the effects count path, so a limit
+// such as Withering Wisps' "number of snow Swamps you control" is enforced
+// rather than silently ignored. A limit that resolves to zero or to fewer
+// activations than have already been used withholds the offer. An expression
+// that genuinely cannot be resolved stays unenforced (today's behaviour):
+// resolveActivationLimitAt reports ok=false.
 func (e *Engine) activationLimitReachedAt(id state.ObjID, p state.PlayerID, ability int, raw string, merged int) bool {
 	limit, ok := e.resolveActivationLimitAt(id, p, raw, merged)
 	if !ok || limit < 0 {
@@ -772,44 +767,15 @@ func (e *Engine) boastGateOK(id state.ObjID, ability int, svar string) bool {
 	return used == 0
 }
 
-// resolveActivationLimit interprets an ActivationLimit$ value. A literal
+// resolveActivationLimitAt interprets an ActivationLimit$ value. A literal
 // integer is used directly. A non-literal value is resolved through the
 // Count$/SVar evaluator the rest of the tree uses (effects.EvalCount), bound
-// to the source object and its SVar table, so a computed limit is enforced
-// rather than silently ignored. ok reports whether the limit was resolvable at
-// all: false keeps the pre-fix behaviour of leaving the limit unenforced, which
-// is also what a value that is neither a literal nor an SVar reference (such
-// as a description-suffixed literal from a keyword template) gets.
-func (e *Engine) resolveActivationLimit(id state.ObjID, p state.PlayerID, raw string) (int, bool) {
-	raw = strings.TrimSpace(raw)
-	if n, err := strconv.Atoi(raw); err == nil {
-		return n, true
-	}
-	o := e.G.Obj(id)
-	if o == nil {
-		return 0, false
-	}
-	// A literal is resolved without a face; an SVar-named value resolves
-	// against the TOP face's table. An UNDER-card ability with a computed
-	// limit resolves through its own caller's face-aware variant below.
-	f := o.Face()
-	if f == nil {
-		return 0, false
-	}
-	ctx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
-	if strings.HasPrefix(raw, "Count$") {
-		return int(effects.EvalCount(e, ctx, raw)), true
-	}
-	if body, ok := f.SVars[raw]; ok {
-		return int(effects.EvalCount(e, ctx, body)), true
-	}
-	return 0, false
-}
-
-// resolveActivationLimitAt is resolveActivationLimit with the ability's own
-// pile position: an under-card ability whose ActivationLimit$ names an SVar
-// resolves it against the under-card's table (CR 702.140d), not the pile's
-// top face -- the same face-ownership rule the mana path applies.
+// to the source object and the SVar table of the face at pile position merged
+// (0 = the top face), so a computed limit is enforced rather than silently
+// ignored. ok reports whether the limit was resolvable at all: false keeps the
+// pre-fix behaviour of leaving the limit unenforced, which is also what a
+// value that is neither a literal nor an SVar reference (such as a
+// description-suffixed literal from a keyword template) gets.
 func (e *Engine) resolveActivationLimitAt(id state.ObjID, p state.PlayerID, raw string, merged int) (int, bool) {
 	raw = strings.TrimSpace(raw)
 	if n, err := strconv.Atoi(raw); err == nil {

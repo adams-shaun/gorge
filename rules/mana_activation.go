@@ -888,8 +888,14 @@ func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast b
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			continue
 		}
-		if src := e.G.Obj(pt.Source); src != nil && src.Face() != nil {
-			effects.SetSVars(&pt.Ctx, src.Face().SVars)
+		if src := e.G.Obj(pt.Source); src != nil {
+			// CR 702.140d: a triggered mana ability's SVar table is the
+			// table of the face that carries its SA, not the pile top.
+			if f, ok := e.pileFaceForSA(pt.Source, pt.SA); ok {
+				effects.SetSVars(&pt.Ctx, f.SVars)
+			} else if src.Face() != nil {
+				effects.SetSVars(&pt.Ctx, src.Face().SVars)
+			}
 		}
 		pt = e.rewriteChosenMana(pt)
 		if e.askTriggeredManaColor(pt, triggers[i+1:], cast) {
@@ -1124,13 +1130,22 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		produced = substituteChosenProduced(produced, col)
 	}
 	if ma.API == "ManaReflected" {
-		ctx := &effects.Ctx{Source: source, Controller: p,
-			SVars: func() map[string]string {
-				if o := e.G.Obj(source); o != nil && o.Face() != nil {
+		// CR 702.140d: resolve against the face that CARRIES this ability,
+		// not the pile top -- an under-card mana ability's Reflected SVars
+		// live on its own face. A granted/non-printed ability keeps the
+		// top-face fallback (pileFaceForSA reports ok=false).
+		svars := func() map[string]string {
+			if o := e.G.Obj(source); o != nil {
+				if f, ok := e.pileFaceForSA(source, ma); ok {
+					return f.SVars
+				}
+				if o.Face() != nil {
 					return o.Face().SVars
 				}
-				return nil
-			}()}
+			}
+			return nil
+		}()
+		ctx := &effects.Ctx{Source: source, Controller: p, SVars: svars}
 		for _, id := range sacs {
 			ctx.Remembered = append(ctx.Remembered, state.Target{Obj: id})
 		}
