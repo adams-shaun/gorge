@@ -1364,6 +1364,64 @@ func Apply(g *state.Game, e Event) {
 			o.IsMyriad = true
 		}
 
+	case ClonePermanent:
+		// CR 613.1a's layer-1 copy basis (DB$ Clone, api:Clone). Obj is the
+		// object that becomes the copy and IDs[0] the object copied from; an
+		// empty or zero id CLEARS the basis. The synthetic face is a value
+		// copy of the source's PRINTED face taken here, inside Apply, so a
+		// replay derives the identical characteristics from the same event.
+		// Modifier parameters (AddTypes$/SetColor$/AddKeywords$/SetPower$/
+		// SetToughness$/RemoveCardTypes$/RemoveCreatureTypes$) are separate
+		// layer-4/5/6/7 continuous effects the primitive registered; they are
+		// deliberately NOT folded into this face, so the CR 613 layer walk
+		// stays the one place exceptions settle. NewName$ rides Text and the
+		// GainThisAbility$ rider rides Counter.
+		o := g.Obj(e.Obj)
+		if o == nil {
+			break
+		}
+		if len(e.IDs) == 0 || e.IDs[0] == 0 {
+			o.CopyFace = nil
+			o.CopyGainThisAbility = false
+			break
+		}
+		src := g.Obj(e.IDs[0])
+		if src == nil || src.Face() == nil {
+			break
+		}
+		sf := *src.Face()
+		if e.Text != "" {
+			sf.Name = e.Text
+		}
+		// GainThisAbility$ True: "...except it has this ability" (Lazav,
+		// Vesuvan Doppelganger). The original object's own abilities and SVar
+		// table are appended/merged onto the copied face so the ability that
+		// produced the copy survives it. Appending the original face's whole
+		// ability list is the structural approximation recorded in AGENTS.md:
+		// for the corpus's clone carriers the clone ability IS the card's only
+		// other ability, so this is exact for them.
+		if e.Counter == "gain-this-ability" {
+			if of := o.Face(); of != nil {
+				if len(of.Abilities) > 0 {
+					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities...)
+				}
+				if len(of.SVars) > 0 {
+					merged := make(map[string]string, len(sf.SVars)+len(of.SVars))
+					for k, v := range sf.SVars {
+						merged[k] = v
+					}
+					for k, v := range of.SVars {
+						merged[k] = v
+					}
+					sf.SVars = merged
+				}
+			}
+			o.CopyGainThisAbility = true
+		} else {
+			o.CopyGainThisAbility = false
+		}
+		o.CopyFace = &sf
+
 	case Exert:
 		// CR 702.100's fold (task exert1). Amount >= 0 is the exert itself:
 		// both lifetimes stamp here -- ExertedThisTurn (the per-turn fact the
@@ -2059,6 +2117,13 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Cloaked = false
 		o.RiotChoice = ""
 		o.IsMyriad = false
+		// CR 400.7: leaving the battlefield makes the object a new object, so
+		// a layer-1 copy effect does not follow it. The ClonePermanent basis
+		// is battlefield-only state and is cleared here (its continuous-effect
+		// bookkeeping is dropped by active()/cleanup, since the effect's
+		// source -- this same object -- is no longer on the battlefield).
+		o.CopyFace = nil
+		o.CopyGainThisAbility = false
 		o.Paired = 0
 		o.Targets = nil
 		// o.Remembered is deliberately NOT reset here: a card's remembered
