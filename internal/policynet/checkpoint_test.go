@@ -10,7 +10,9 @@ import (
 // fullModel builds a checkpoint-rounded model (Rows = TableRows, the shape a
 // real training run produces) for the round-trip tests.
 func fullModel() *Model {
-	return NewModel(TableRows, 8, 4, rand.New(rand.NewPCG(3, 4)))
+	m := NewModel(TableRows, 8, 4, rand.New(rand.NewPCG(3, 4)))
+	m.ResidualW = 2.5 // a non-zero prior so the round trip proves it is carried
+	return m
 }
 
 func TestCheckpointRoundTrip(t *testing.T) {
@@ -39,7 +41,7 @@ func TestCheckpointRoundTrip(t *testing.T) {
 	}
 	if !slices.Equal(m.Table, m2.Table) || !slices.Equal(m.StateW, m2.StateW) ||
 		!slices.Equal(m.StateB, m2.StateB) || !slices.Equal(m.HidW, m2.HidW) ||
-		!slices.Equal(m.HidB, m2.HidB) || !slices.Equal(m.OutW, m2.OutW) || m.OutB != m2.OutB {
+		!slices.Equal(m.HidB, m2.HidB) || !slices.Equal(m.OutW, m2.OutW) || m.OutB != m2.OutB || m.ResidualW != m2.ResidualW {
 		t.Fatal("round trip changed at least one weight")
 	}
 	got := m2.Score(st, opts)
@@ -94,7 +96,7 @@ func TestCheckpointRejections(t *testing.T) {
 		t.Fatalf("bad-magic error should name the magic, got: %v", err)
 	}
 
-	if _, err := LoadCheckpoint(bytes.NewReader(patchHeader(t, m, 4, []byte{2, 0, 0, 0}))); err == nil {
+	if _, err := LoadCheckpoint(bytes.NewReader(patchHeader(t, m, 4, []byte{byte(CheckpointVersion + 1), 0, 0, 0}))); err == nil {
 		t.Fatal("wrong schema version accepted")
 	} else if !bytes.Contains([]byte(err.Error()), []byte("version")) {
 		t.Fatalf("version error should name the version, got: %v", err)
