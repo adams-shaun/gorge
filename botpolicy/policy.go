@@ -568,6 +568,37 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				}
 			}
 		case "search":
+			// A budgeted search (WithTotalCMC$, so d.MaxSum > 0) mirrors its
+			// R-9 stand-in, which picks greedy[:min]: for a quantity-only
+			// filter the engine lowers Min to the forced greedy count (the
+			// mandatory-budget rule), so a fill up to d.Min IS the greedy set;
+			// for a stated-quality filter Min stays 0 and the stand-in finds
+			// nothing, so the empty decline is the mirror. The group skip
+			// below still applies (a DifferentNames search's options carry
+			// name Groups even under a budget; 0 corpus carriers combine
+			// them), so the fill cannot name one card twice and hand back an
+			// intent Validate's mutual-exclusion rule rejects.
+			if d.MaxSum > 0 {
+				sum := 0
+				groups := make(map[string]bool)
+				for _, o := range d.Options {
+					if len(in.Choices) >= d.Min {
+						break
+					}
+					if o.Group != "" && groups[o.Group] {
+						continue
+					}
+					if sum+o.Value > d.MaxSum {
+						continue
+					}
+					if o.Group != "" {
+						groups[o.Group] = true
+					}
+					sum += o.Value
+					in.Choices = append(in.Choices, o.Index)
+				}
+				break
+			}
 			// A hidden-library search whose options carry no Group keeps the
 			// first-offer answer it has always taken (Min 0, so one card). An
 			// EACH "EACH Forest & Plains" search (each1) builds one option per

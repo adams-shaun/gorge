@@ -279,6 +279,82 @@ func TestInvokeCalamityPlayBudgetNarrowsAndCaps(t *testing.T) {
 	}
 }
 
+// TestQuantityOnlyBudgetSearchLowersMin: a quantity-only search (a bare
+// `ChangeType$ Card` states no quality, so CR 701.23d forces Min = Max)
+// carrying WithTotalCMC$ must not demand more picks than the budget affords:
+// max is clamped to the affordable count, but the running sum can fit fewer
+// than that, and a Min == Max the budget cannot meet is an ask
+// Decision.Validate rejects for EVERY Max-pick -- a real host could never
+// submit and the match stalls. Library [3MV, 4MV], ChangeNum 2 (both
+// individually affordable under budget 6): the greedy take is one card
+// (3+4 = 7 > 6), so Min lowers to 1 and the single pick validates.
+func TestQuantityOnlyBudgetSearchLowersMin(t *testing.T) {
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	ids := make([]state.ObjID, 0, 2)
+	for i, mv := range []int{3, 4} {
+		ids = append(ids, h.g.AddObject(budgetCard(t,
+			"Thing"+string(rune('A'+i)), "Creature", mv), 0).ID)
+	}
+	h.g.SetZone(state.ZLibrary, 0, ids)
+	Resolve(h, &Ctx{Controller: 0}, sa(t,
+		"DB$ ChangeZone | Origin$ Library | Destination$ Battlefield | "+
+			"WithTotalCMC$ 6 | ChangeNum$ 2 | ChangeType$ Card"))
+	if h.asked == nil {
+		t.Fatal("no decision posed")
+	}
+	d := h.asked
+	if d.ResumeKind != "search" {
+		t.Fatalf("ResumeKind = %q, want search", d.ResumeKind)
+	}
+	if d.Min != 1 {
+		t.Fatalf("Min = %d, want 1 (the greedy count under the budget 6; an unlowered Min 2 is an ask Validate rejects for every 2-pick)", d.Min)
+	}
+	if d.Max != 2 || d.MaxSum != 6 {
+		t.Fatalf("Max = %d MaxSum = %d, want Max 2 (the ChangeNum) and MaxSum 6", d.Max, d.MaxSum)
+	}
+	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("the greedy single pick was rejected: %v", err)
+	}
+}
+
+// TestEachStructuredSearchCarriesNoBudgetWire: the eachStructured (EACH
+// ChangeType$) search branch does not enforce the budget -- its options
+// carry no Value and its one-pick-per-type structure cannot express a
+// running sum -- so the branch clears Decision.MaxSum instead of
+// advertising a cap Validate would sum to 0 over, and it does not narrow
+// its options either (a 7-MV Forest is still offered under budget 6).
+// Measured 0 corpus carriers combine the two shapes.
+func TestEachStructuredSearchCarriesNoBudgetWire(t *testing.T) {
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	ids := make([]state.ObjID, 0, 2)
+	for i, mv := range []int{2, 7} {
+		ids = append(ids, h.g.AddObject(budgetCard(t,
+			"Forest"+string(rune('A'+i)), "Land Forest", mv), 0).ID)
+	}
+	h.g.SetZone(state.ZLibrary, 0, ids)
+	Resolve(h, &Ctx{Controller: 0}, sa(t,
+		"DB$ ChangeZone | Origin$ Library | Destination$ Battlefield | "+
+			"WithTotalCMC$ 6 | ChangeType$ EACH Forest & Plains"))
+	if h.asked == nil {
+		t.Fatal("no decision posed")
+	}
+	d := h.asked
+	if d.MaxSum != 0 {
+		t.Fatalf("EACH search MaxSum = %d, want 0 (the structured branch cannot express a running sum)", d.MaxSum)
+	}
+	if len(d.Options) != 2 {
+		t.Fatalf("options = %+v, want both Forests (the structured branch does not narrow by the budget)", d.Options)
+	}
+	for _, o := range d.Options {
+		if o.Value != 0 {
+			t.Fatalf("structured option %+v carries Value %d", o, o.Value)
+		}
+	}
+}
+
 // TestBudgetlessBodiesCarryNoBudgetWire: without WithTotalCMC$ the three
 // pickers keep their exact pre-budget wire shape -- Decision.MaxSum 0 and
 // Option.Value 0 (omitempty drops both fields, so existing decision

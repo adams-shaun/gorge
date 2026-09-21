@@ -1746,6 +1746,38 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		applyLibrarySearch(h, c, sa, owner, to, nil, zones)
 		return
 	}
+	// greedy is the deterministic stand-in take under the cumulative budget
+	// (bound by the ChangeNum cap): with no budget every card fits and greedy
+	// is exactly the first max cards of eligible -- the take the pre-budget
+	// stand-in applied -- so the R-9 fallback stays byte-identical there. It
+	// is computed before the Min below is finalised, because the budget can
+	// strand a quantity-only search's forced Min.
+	greedy := make([]state.ObjID, 0, len(budgetEligible))
+	running := 0
+	for _, id := range budgetEligible {
+		if int32(len(greedy)) >= max {
+			break
+		}
+		mv := manaValueOf(g, id)
+		if hasBudget && running+mv > int(budget) {
+			continue
+		}
+		running += mv
+		greedy = append(greedy, id)
+	}
+	// A budget can strand a quantity-only search's forced Min: max was
+	// clamped to len(budgetEligible), but the running sum may fit fewer than
+	// that (library [3MV, 4MV], ChangeNum 2, WithTotalCMC 6 -- the greedy
+	// take is one card), so Min == Max == 2 would pose an ask Decision
+	// .Validate rejects for EVERY 2-pick -- a real host could never submit
+	// and the match stalls. Lower the Min to the greedy count -- effDig's
+	// mandatory-budget rule (cardflow.go), which its sibling effHiddenPick
+	// applies too -- so a satisfying answer always exists. (Measured 0
+	// corpus carriers combine a quantity-only filter with WithTotalCMC$;
+	// this is general-correctness code in the direction of no wedge.)
+	if hasBudget && min > int32(len(greedy)) {
+		min = int32(len(greedy))
+	}
 	// The prompt must not offer a choice the decision will refuse. A
 	// quantity-only search has Min == Max, so "up to" would be a lie the
 	// player only discovers when their answer is rejected.
@@ -1784,23 +1816,6 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	// pick is the one the player cannot make.
 	eachSubs, isEach := eachAlternatives(spec)
 	eachStructured := isEach && max <= 1 && SearchStatesQuality(spec)
-	// greedy is the deterministic stand-in take under the cumulative budget
-	// (bound by the ChangeNum cap): with no budget every card fits and greedy
-	// is exactly the first max cards of eligible -- the take the pre-budget
-	// stand-in applied -- so the R-9 fallback stays byte-identical there.
-	greedy := make([]state.ObjID, 0, len(budgetEligible))
-	running := 0
-	for _, id := range budgetEligible {
-		if int32(len(greedy)) >= max {
-			break
-		}
-		mv := manaValueOf(g, id)
-		if hasBudget && running+mv > int(budget) {
-			continue
-		}
-		running += mv
-		greedy = append(greedy, id)
-	}
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), MaxSum: int(budget), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
@@ -1842,6 +1857,13 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		}
 		d.Min, d.Max = 0, groups
 		d.Prompt = "Search a library: choose one card of each listed type"
+		// The budget is NOT enforced on the structured branch (its options
+		// carry no Value, so a MaxSum the wire advertises would be a cap
+		// Validate sums to 0 over -- meaningless, and misleading to a
+		// consumer). Clear it: 0 corpus carriers combine EACH with
+		// WithTotalCMC$, and a future one needs per-type budget mechanics
+		// designed, not a silent half-read.
+		d.MaxSum = 0
 	} else {
 		if isEach {
 			// A measured-absent shape kept loud rather than silently wrong:
