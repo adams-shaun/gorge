@@ -12,6 +12,7 @@
 package rules
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -600,7 +601,60 @@ func (e *Engine) mayPlayKinds(p state.PlayerID, id state.ObjID) (plain, mutate b
 			mutate = mutate || mu
 		}
 	}
+	// The THIRD source mayPlaySpellIds reads: an EFFECT-delivered grant, the
+	// ContinuousEffect a `DB$ Effect` "you may play that card this turn"
+	// leaves behind (Atsushi's exile-and-play, Rakdos, Patron of Chaos'
+	// MuscleSac, Rashmi's declined free cast). Those two walks must agree on
+	// membership or this classifier VETOES a permission it cannot see: a
+	// ContinuousEffect carries no ValidSA$ at all (state.ContinuousEffect has
+	// no such field -- the grant is delivered as a matched card set, not as a
+	// spell-shape predicate), so an effect grant is always the ORDINARY cast
+	// permission and can never be the mutate-only one.
+	if !plain && e.mayPlayEffectGrantsCast(p, o) {
+		plain = true
+	}
 	return plain, mutate
+}
+
+// mayPlayEffectGrantsCast reports whether an active EFFECT-delivered may-play
+// grant (a ContinuousEffect with MayPlay set) covers card o for player p
+// right now. It is the single-card form of the `e.active()` walk at the foot
+// of legal.go's mayPlaySpellIds and runs the SAME gates in the same order --
+// controller, the Condition$ PlayerTurn rider, the MayPlayLimit$ cap, the
+// parsed AffectedZone$, and the Affects spec with the delivering effect's
+// Remembered set loaded -- so a card the offer walk enumerated is never then
+// classified as ungranted. Only the public zones that walk covers
+// (graveyard, exile) can match; the library self-grant is a static, never an
+// effect.
+func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool {
+	if o.Zone != state.ZGraveyard && o.Zone != state.ZExile {
+		return false
+	}
+	limited := e.mayPlaysThisTurn(p)
+	for _, ce := range e.active() {
+		if !ce.MayPlay || ce.Controller != p {
+			continue
+		}
+		if ce.MayPlayPlayerTurn && e.G.Active != p {
+			continue
+		}
+		if ce.MayPlayLimit > 0 && int32(limited) >= ce.MayPlayLimit {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if !ok && !all {
+			continue
+		}
+		if !all && !slices.Contains(zones, o.Zone) {
+			continue
+		}
+		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
+			Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+		if effects.MatchesSpecCtx(e.G, ce.Affects, o.ID, sc) {
+			return true
+		}
+	}
+	return false
 }
 
 // mayPlayValidSAKinds splits one may-play permission's ValidSA$ into its

@@ -152,28 +152,30 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	// a plain CR 708.5 face-down 2/2 has no basic-land set type and
 	// contributes nothing.
 	faceDown := e.faceDownPrintedHides(o)
-	type pileManaAbility struct {
-		ma   *cards.SA
-		face *cards.Face
-	}
-	var manaAbilities []pileManaAbility
-	if faceDown {
+	var manaAbilities []*cards.SA
+	switch {
+	case faceDown:
 		for _, w := range o.FaceDownTypeWords() {
 			if ab, ok := cards.IntrinsicManaAbility(w); ok {
-				manaAbilities = append(manaAbilities, pileManaAbility{ma: ab, face: f})
+				manaAbilities = append(manaAbilities, ab)
 			}
 		}
-	} else {
+	case len(o.MergedCards) == 0:
+		// The overwhelmingly common case: a permanent that is not a mutated
+		// pile has exactly one face, so its own ManaAbilities slice IS the
+		// walk -- no second collection, which is what keeps this walk at its
+		// pre-mutate allocation cost (internal/searchprobe's Capture budget
+		// runs legalActions over every object on every pass).
+		manaAbilities = f.ManaAbilities()
+	default:
 		// CR 702.140d: a mutated pile's under-card mana abilities are live
-		// too; each resolves its own face's SVar table (the ctx below).
+		// too. Only the pile pays for the flattening.
 		for i := 0; i < o.PileFaceCount(); i++ {
 			pf, ok := o.PileFaceAt(i)
 			if !ok {
 				continue
 			}
-			for _, ma := range pf.Face.ManaAbilities() {
-				manaAbilities = append(manaAbilities, pileManaAbility{ma: ma, face: pf.Face})
-			}
+			manaAbilities = append(manaAbilities, pf.Face.ManaAbilities()...)
 		}
 	}
 	recipientCtx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
@@ -184,8 +186,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		return e.abilityRestrictedUsing(statics.get().cantActivate, p, id, ma)
 	}
 	var out []*cards.SA
-	for _, pma := range manaAbilities {
-		ma := pma.ma
+	for _, ma := range manaAbilities {
 		// CR 605.1b: an activated ability is a mana ability only when it is
 		// NOT a loyalty ability. A planeswalker's mana-producing loyalty
 		// ability (Koth's [+1], Ugin, Eye of the Storms' [0]: Add {C}{C}{C},
@@ -249,8 +250,17 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		if !ok {
 			continue
 		}
-		faceCtx := &effects.Ctx{Source: id, Controller: p, SVars: pf.Face.SVars}
+		// The per-face Ctx is minted only when the face actually prints a
+		// ManaReflected ability (measured: no repo-deck card does), so an
+		// ordinary permanent's offer pass allocates nothing here.
+		var faceCtx *effects.Ctx
 		for _, ma := range pf.Face.Abilities {
+			if ma.API != "ManaReflected" {
+				continue
+			}
+			if faceCtx == nil {
+				faceCtx = &effects.Ctx{Source: id, Controller: p, SVars: pf.Face.SVars}
+			}
 			considerReflected(ma, faceCtx)
 		}
 	}
@@ -890,8 +900,19 @@ func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast b
 		}
 		if src := e.G.Obj(pt.Source); src != nil {
 			// CR 702.140d: a triggered mana ability's SVar table is the
-			// table of the face that carries its SA, not the pile top.
-			if f, ok := e.pileFaceForSA(pt.Source, pt.SA); ok {
+			// table of the face that carries its SA, not the pile top. The
+			// SA here is a Trigger.Effect body minted from a face's Triggers
+			// list, which is NEVER in that face's Abilities, so the owning
+			// face is recovered by findTriggerForAbilityFace (the trigger
+			// scan) -- pileFaceForSA, which searches Abilities, can only ever
+			// report ok=false for a trigger body. pileFaceForSA stays as the
+			// second try for the rare SA that IS a printed activated ability
+			// arriving through this queue; the pile-top fallback is last, the
+			// same three-step order rules/stack.go's resolving-object SVar
+			// resolution uses.
+			if _, f, ok := e.findTriggerForAbilityFace(pt.Source, pt.SA); ok && f != nil {
+				effects.SetSVars(&pt.Ctx, f.SVars)
+			} else if f, ok := e.pileFaceForSA(pt.Source, pt.SA); ok {
 				effects.SetSVars(&pt.Ctx, f.SVars)
 			} else if src.Face() != nil {
 				effects.SetSVars(&pt.Ctx, src.Face().SVars)

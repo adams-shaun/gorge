@@ -6,8 +6,10 @@ import (
 )
 
 // This file owns the face-aware plumbing for a MUTATED pile (CR 702.140d).
-// state.Object.PileAbilities/PileFaces/PileStatics give the one flat view of a
-// permanent's rules text; these helpers thread the owning face's SVar table
+// state.Object's PileAbilityCount/At, PileFaceCount/At and PileStaticCount/At
+// give the one flat view of a permanent's rules text (index-based, because
+// every one of those walks runs per object per legal-actions pass and the
+// repo's allocation budgets forbid a per-object slice); these helpers thread the owning face's SVar table
 // through the rules-side reads that used to assume the top face, and resolve a
 // pendingCast's flat ability index back to its SA and owning face.
 //
@@ -104,7 +106,11 @@ func pileAbilityRefOf(o *state.Object, sa *cards.SA) (idx, merged int, ok bool) 
 	if o == nil || sa == nil {
 		return 0, 0, false
 	}
-	for i, pa := range o.PileAbilities() {
+	for i, n := 0, o.PileAbilityCount(); i < n; i++ {
+		pa, at := o.PileAbilityAt(i)
+		if !at {
+			continue
+		}
 		if pa.SA == sa {
 			return i, pa.Merged, true
 		}

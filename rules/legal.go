@@ -1776,8 +1776,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			// index. abFace is the face that carries the ability -- an
 			// under-card's label and SVar table must be its own, never the
 			// pile top's.
-			pabils := o.PileAbilities()
-			for i, pa := range pabils {
+			for i, pn := 0, o.PileAbilityCount(); i < pn; i++ {
+				pa, okAb := o.PileAbilityAt(i)
+				if !okAb {
+					continue
+				}
 				ab := pa.SA
 				abFace := o.PileFaceFor(pa.Merged)
 				if abFace == nil {

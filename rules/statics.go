@@ -109,7 +109,11 @@ func (e *Engine) collectActionStatics() actionStaticViews {
 				if o == nil || o.Face() == nil {
 					continue
 				}
-				for _, pst := range o.PileStatics() {
+				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
+					pst, ok := o.PileStaticAt(si)
+					if !ok {
+						continue
+					}
 					st := pst.Static
 					var dst *[]staticView
 					switch st.Mode {
@@ -168,7 +172,11 @@ func (e *Engine) activeStatics(mode string) []staticView {
 				// exist while it is face down (the shared gate in layers.go).
 				continue
 			}
-			for _, pst := range o.PileStatics() {
+			for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
+				pst, ok := o.PileStaticAt(si)
+				if !ok {
+					continue
+				}
 				st := pst.Static
 				if st.Mode == mode {
 					// The battlefield-only walk honours each static's own
@@ -1255,7 +1263,11 @@ func (e *Engine) collectCostStatics() costStaticViews {
 		if f == nil {
 			return
 		}
-		for _, pst := range o.PileStatics() {
+		for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
+			pst, ok := o.PileStaticAt(si)
+			if !ok {
+				continue
+			}
 			st := pst.Static
 			var dst *[]staticView
 			switch st.Mode {

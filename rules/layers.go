@@ -20,6 +20,12 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// emptySVars is the shared empty SVar table a merged under-card face with no
+// SVars of its own is stamped with, so ContinuousEffect.SVars stays non-nil
+// for every merged face (nil means "read the source object's active face"
+// downstream). It is never written to.
+var emptySVars = map[string]string{}
+
 // staticEffects reads every battlefield permanent's own S:Mode$ Continuous
 // statics into ContinuousEffects, so a card whose entire rules text is a
 // static (an Equipment's EquippedBy pump, an Aura's EnchantedBy pump, a
@@ -96,6 +102,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 				// face, which is itself the top card's other half), so the
 				// emission order -- and therefore every timestamp tie-break -- is
 				// deterministic. A merged card exists only on the battlefield.
+				mergedFrom := len(faces)
 				if onBattlefield {
 					for i := range o.MergedCards {
 						if mf := o.MergedFaceAt(i); mf != nil {
@@ -103,7 +110,30 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						}
 					}
 				}
-				for _, fc := range faces {
+				for fi, fc := range faces {
+					// ContinuousEffect.SVars carries a table ONLY for a merged
+					// under-card face -- a face that is a DIFFERENT CARD from the
+					// one o.Face() resolves, so every downstream SVar read
+					// (staticAmount, grantedAbilities' AddAbility$ body, the
+					// staticView specCtx) would otherwise silently read the pile
+					// TOP's table. The pile's own top face and an unlocked Room's
+					// alternate face are faces of the SAME card and stay nil, so
+					// those readers keep their o.Face() fallback: an alternate
+					// face's grant resolves against the ACTIVE face's table
+					// exactly as it did before merged faces joined this walk
+					// (TestActionStaticMembershipPreservesOrderAndActiveFace locks
+					// that -- the back face's `AddAbility$ Back` must not mint a
+					// live {B} mana ability while the front face is up). A merged
+					// face with no SVar table of its own gets an empty one rather
+					// than nil, so "the under-card has no such SVar" resolves to
+					// no grant instead of falling back to the top card's body.
+					var faceSVars map[string]string
+					if fi >= mergedFrom {
+						faceSVars = fc.SVars
+						if faceSVars == nil {
+							faceSVars = emptySVars
+						}
+					}
 					// grantQueue is the AddStaticAbility$ work queue, REUSED across
 					// scans on the Engine's own buffer (staticQueueBuf): the face's
 					// own statics at depth 0, then every granted static appended with
@@ -159,7 +189,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// (the shipped statics convention rules/statics.go's
 						// checkSVarHolds documents): the grant is withheld whole, never
 						// silently always-applied.
-						if !e.continuousGateHolds(staticView{Source: id, Controller: o.Controller, Params: st.Params, SVars: fc.SVars}) {
+						if !e.continuousGateHolds(staticView{Source: id, Controller: o.Controller, Params: st.Params, SVars: faceSVars}) {
 							continue
 						}
 						base := ContinuousEffect{
@@ -167,7 +197,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							Timestamp:  o.Timestamp,
 							Controller: o.Controller,
 							Affects:    affects,
-							SVars:      fc.SVars,
+							SVars:      faceSVars,
 						}
 						if hasStat(st, "AddPower") || hasStat(st, "AddToughness") {
 							pt := base

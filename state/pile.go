@@ -27,23 +27,6 @@ type PileFace struct {
 	Merged int
 }
 
-// PileFaces returns the pile's faces top-first, then each under-card in pile
-// order, skipping any face that cannot be resolved. It allocates only for a
-// mutated pile (a plain permanent yields a one-element slice); callers on a
-// hot path that must stay allocation-free use PileFaceCount/PileFaceAt.
-func (o *Object) PileFaces() []PileFace {
-	out := make([]PileFace, 0, 1+len(o.MergedCards))
-	if f := o.Face(); f != nil {
-		out = append(out, PileFace{Face: f})
-	}
-	for i := range o.MergedCards {
-		if f := o.MergedFaceAt(i); f != nil {
-			out = append(out, PileFace{Face: f, Merged: i + 1})
-		}
-	}
-	return out
-}
-
 // PileFaceAt returns the face at pile position i without allocating: i == 0
 // is the top face, i in [1, len(MergedCards)] is the (i-1)-th under-card. A
 // position that does not resolve (nil face) reports ok=false; a caller that
@@ -78,12 +61,13 @@ type PileAbility struct {
 	Merged int
 }
 
-// PileAbilities returns every face's activated ability list flattened
-// top-first: the top face's Abilities in order, then each under-card's. It is
-// the ONE enumeration the offer loop, the activation flow, the event fold and
-// the activation-limit census share, so a flat index means the same ability
-// everywhere.
-func (o *Object) PileAbilities() []PileAbility {
+// PileAbilityCount is the number of activated abilities across the whole
+// pile -- the walk bound for PileAbilityAt. Count/At is the allocation-free
+// form of PileAbilities, which the offer loop needs: legalActionsPriced runs
+// this walk for every object in every zone on every pass, and
+// internal/searchprobe's Capture allocation budget holds that walk to its
+// pre-mutate cost (a non-mutated permanent must allocate nothing here).
+func (o *Object) PileAbilityCount() int {
 	n := 0
 	if f := o.Face(); f != nil {
 		n += len(f.Abilities)
@@ -93,20 +77,7 @@ func (o *Object) PileAbilities() []PileAbility {
 			n += len(f.Abilities)
 		}
 	}
-	out := make([]PileAbility, 0, n)
-	if f := o.Face(); f != nil {
-		for _, ab := range f.Abilities {
-			out = append(out, PileAbility{SA: ab})
-		}
-	}
-	for i := range o.MergedCards {
-		if f := o.MergedFaceAt(i); f != nil {
-			for _, ab := range f.Abilities {
-				out = append(out, PileAbility{SA: ab, Merged: i + 1})
-			}
-		}
-	}
-	return out
+	return n
 }
 
 // PileAbilityAt resolves one flat pile-ability index without allocating. ok is
@@ -197,9 +168,20 @@ type PileStatic struct {
 	Face   *cards.Face
 }
 
-// PileStatics returns every face's static list flattened top-first, each with
-// the face that carries it.
-func (o *Object) PileStatics() []PileStatic {
+// PileStaticCount is the number of statics the whole pile carries: the top
+// face's list, then each resolvable under-card's, in pile order. It is the
+// walk bound for PileStaticAt.
+//
+// Count/At rather than a returned slice because the static collectors
+// (rules/statics.go's collectActionStatics, activeStatics and
+// collectCostStatics) run this walk for EVERY object on EVERY legal-actions
+// pass -- the repo's allocation-budget tests
+// (TestLegalActionsReusesActionStaticMembership,
+// TestLegalActionsReusesCostStaticMembership) hold that hot path to at most
+// one call-scoped collection, so a per-object slice is not affordable there.
+// A non-mutated permanent walks its top face's list directly and allocates
+// nothing at all.
+func (o *Object) PileStaticCount() int {
 	n := 0
 	if f := o.Face(); f != nil {
 		n += len(f.Statics)
@@ -209,20 +191,33 @@ func (o *Object) PileStatics() []PileStatic {
 			n += len(f.Statics)
 		}
 	}
-	out := make([]PileStatic, 0, n)
-	if f := o.Face(); f != nil {
-		for _, st := range f.Statics {
-			out = append(out, PileStatic{Static: st, Face: f})
-		}
+	return n
+}
+
+// PileStaticAt returns the i-th static of the pile in the flat order
+// PileStaticCount bounds: the top face's statics first (so a non-mutated
+// permanent's indices are exactly its face's), then each under-card's in
+// pile order. A face that does not resolve contributes no entries, so the
+// flat index never has a gap; an out-of-range index reports ok=false.
+func (o *Object) PileStaticAt(i int) (PileStatic, bool) {
+	if i < 0 {
+		return PileStatic{}, false
 	}
-	for i := range o.MergedCards {
-		f := o.MergedFaceAt(i)
+	if f := o.Face(); f != nil {
+		if i < len(f.Statics) {
+			return PileStatic{Static: f.Statics[i], Face: f}, true
+		}
+		i -= len(f.Statics)
+	}
+	for j := range o.MergedCards {
+		f := o.MergedFaceAt(j)
 		if f == nil {
 			continue
 		}
-		for _, st := range f.Statics {
-			out = append(out, PileStatic{Static: st, Merged: i + 1, Face: f})
+		if i < len(f.Statics) {
+			return PileStatic{Static: f.Statics[i], Merged: j + 1, Face: f}, true
 		}
+		i -= len(f.Statics)
 	}
-	return out
+	return PileStatic{}, false
 }
