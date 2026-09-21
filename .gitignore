@@ -34,3 +34,26 @@ web/playwright-report/
 gorged-data/
 __pycache__/
 *.pyc
+
+# `go build ./cmd/<x>` with no -o drops the binary at the repo root, where it is
+# untracked and dirties the base checkout. That is not cosmetic: the daemon's
+# landing check holds any branch touching an uncommitted base path, so one
+# stray 11 MB botbench (2026-09-21) can block merges until someone notices.
+# One line per command in cmd/, anchored to the root so a real package of the
+# same name is unaffected.
+/allocgate
+/botbench
+/deckimport
+/forgec
+/gcgate
+/gentypes
+/gorged
+/keywordbench
+/ledger
+/mtgsim
+/policytrain
+/policytune
+/repro
+/searchprobe
+/searchteacher
+/testtime
