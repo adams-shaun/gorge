@@ -131,3 +131,50 @@ func TestACancelledDecisionDoesNotAnswerTheNextOne(t *testing.T) {
 		t.Fatal("Decide did not return after submitting d2's intent")
 	}
 }
+
+// TestPendingStillReportsAnAnsweredDecisionBeforeAwaitWakes pins the window a
+// polling client must tolerate, and that the gorged end-to-end driver did not:
+// submit() hands the intent to the parked slot's channel and returns as soon
+// as the send lands, but the slot itself is only cleared when the parked
+// await() wakes up and runs its defer. Between those two moments the decision
+// has been answered and pending() still reports it.
+//
+// A client that POSTs an intent (204) and immediately GETs /pending can
+// therefore be handed the decision it just answered. Re-posting that echo is
+// what the cmd/gorged driver did, and by the time the second POST arrived the
+// seat had either moved on to the next decision or had no slot at all -- a
+// 409 either way, the load-dependent flake this pins the cause of. A client
+// must skip a decision whose Seq it has already answered; Engine.ask makes
+// that exact, since it stamps d.Seq with the log length and then appends its
+// own DecisionAsk event, so every decision's Seq is strictly greater than the
+// one before it.
+//
+// park() without await() is the window held open deliberately: it is the same
+// slot state the real loop is in for the instant between the send and the
+// wake-up, made deterministic.
+func TestPendingStillReportsAnAnsweredDecisionBeforeAwaitWakes(t *testing.T) {
+	s := NewHumanSeat()
+	d := decision.Decision{Seq: 11, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
+		Options: []decision.Option{{Index: 0, Label: "pass"}}}
+	p := s.park(context.Background(), view.View{}, d, nil)
+	if err := s.submit(decision.Intent{Seq: 11, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("submit: %v", err)
+	}
+	// The answer is delivered, but nothing has awaited it yet: the slot is
+	// still installed and pending() hands the answered decision back.
+	ok, got := s.pending()
+	if !ok || got.Seq != 11 {
+		t.Fatalf("pending() = %v, %+v: the echo window this test pins is gone -- if the slot is now cleared on submit, delete this test and the driver's skip with it", ok, got)
+	}
+	// Draining it is what clears the slot, after which the same Seq is
+	// refused: exactly the 409 a re-posted echo meets.
+	if in, err := p.await(); err != nil || in.Seq != 11 {
+		t.Fatalf("await = %+v, %v", in, err)
+	}
+	if ok, _ := s.pending(); ok {
+		t.Fatal("await did not clear the answered slot")
+	}
+	if err := s.submit(decision.Intent{Seq: 11, Player: 0, Choices: []int{0}}); err == nil {
+		t.Fatal("a re-posted echo of an answered decision was accepted")
+	}
+}
