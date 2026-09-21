@@ -85,3 +85,26 @@ func FaceDownEntryFields(counter string) (setType string, power, toughness int32
 	}
 	return setType, power, toughness, hasPT, true
 }
+
+// CloakEntryCounter is the MoveZone Counter value that marks a card entering
+// the battlefield face down via Cloak (CR 708.5's cloak variant: a 2/2 with
+// ward {2}). It is the second of the two battlefield face-down entry markers;
+// unlike FaceDownEntryCounter it carries no payload grammar, so it is compared
+// exactly rather than by prefix.
+const CloakEntryCounter = "entered_cloaked"
+
+// IsFaceDownEntry reports whether a MoveZone Counter value is EITHER of the
+// two battlefield face-down entry markers -- the manifest/FaceDown$ marker
+// FaceDownEntryFields parses (bare or payload-bearing) or the cloak marker.
+// It is the one predicate every consumer that only needs "did this entry put
+// the card onto the battlefield face down?" must use, so the fold in Apply and
+// the rules-side guards that must skip a face-down entry cannot disagree about
+// which markers count. Callers that need the folded set type or P/T still call
+// FaceDownEntryFields; a cloak entry carries neither.
+func IsFaceDownEntry(counter string) bool {
+	if counter == CloakEntryCounter {
+		return true
+	}
+	_, _, _, _, ok := FaceDownEntryFields(counter)
+	return ok
+}

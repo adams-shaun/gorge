@@ -48,6 +48,18 @@ func NewScorer(m *Model) *Scorer {
 	}
 }
 
+// ResidualWeight reports the model's fixed bot-prior residual weight
+// (Model.ResidualW, the train Config.ResidualInit the model was trained
+// with). The seat-side bot reads it to decide whether the residual prior is
+// ACTIVE at inference: positive means the wrapped default bot's own answer
+// is marked (Option.BotPick) and admitted into the priority argmax, so the
+// scorer scores under the contract it trained under; zero — the weight a
+// pre-baseline checkpoint loads — makes the mark a no-op and the scored
+// answers byte-identical to the pre-wiring build.
+func (sc *Scorer) ResidualWeight() float32 {
+	return sc.m.ResidualW
+}
+
 // LoadScorer reads a checkpoint (the full LoadCheckpoint gate: magic, schema
 // version, encoder hash, geometry, exact body length) and wraps it for
 // inference.

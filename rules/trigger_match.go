@@ -66,6 +66,16 @@ type pendingTrigger struct {
 	// resolves from the source's SVar table).
 	Delayed   bool
 	DelayedID uint32
+	// Merged marks a mutated pile's under-card trigger (CR 702.140d): like
+	// a delayed trigger its Ability is the Execute$ SVar-named body, but the
+	// push must resolve that name against the UNDER-CARD's own face, never
+	// the pile's top face (whose same-named SVar -- Forge's canonical
+	// TrigToken -- would otherwise steal the body). The value is the
+	// under-card's pile index PLUS ONE, the same encoding triggerFace.merged
+	// uses, so the zero value always means "not a merged trigger". It rides
+	// the MergedTriggerPush event as Amount (minus one). It and Delayed are
+	// never both set.
+	Merged int
 	// Granted marks a static-grant's trigger (AddTrigger$ on a Mode$
 	// Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you sacrifice
 	// a land"): like a delayed trigger its Ability is an SVar-named body (the
@@ -93,6 +103,24 @@ type pendingTrigger struct {
 	// payload events.Apply rebuilds into the same DB$ LoseLife body the
 	// printed K:Afflict expansion carries. Idx and SA are unset for it.
 	Afflict string
+	// Conspire is a GRANTED conspire keyword (a layer-6 AddKeyword$
+	// Conspire -- Wort, the Raidmother's "each red or green instant or
+	// sorcery spell you cast has conspire", Raiding Schemes' noncreature
+	// arm): the same shape as Ward/Afflict -- the queue carries no
+	// parameter (the copy trigger has none) and the drain pushes a
+	// KeywordTriggerPush whose __kwConspire payload events.Apply rebuilds
+	// into the same DB$ CopySpellAbility body the printed K:Conspire
+	// expansion carries, with the cast spell riding IDs as Remembered.
+	// Idx and SA are unset for it.
+	Conspire bool
+	// Cascade is a printed-or-granted cascade keyword (CR 702.85, task
+	// cascade1): the queue carries no parameter (the trigger body is the
+	// same DB$ Cascade body whichever route granted the keyword) and the
+	// drain pushes a KeywordTriggerPush whose __kwCascade payload
+	// events.Apply rebuilds structurally -- the Ward shape. The trigger's
+	// Source is the CAST SPELL (the stack object), whose face's mana value
+	// the effect reads at resolution. Idx and SA are unset for it.
+	Cascade bool
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
@@ -149,6 +177,15 @@ type damageBatchEntry struct {
 type turnFires struct {
 	Turn int32
 	N    int32
+}
+
+// combatFires is one T: line's once-per-combat latch stamp
+// (Engine.unblockedOnceFired): the (turn, combat-of-that-turn) pair that
+// uniquely names the combat the line last fired in. A new turn or a new
+// combat phase within it changes the stamp and re-arms the trigger.
+type combatFires struct {
+	Turn   int32
+	Combat int32
 }
 
 // actionTriggerModes are the event-trigger modes the sacrifice/discard/tap/
@@ -1057,7 +1094,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// eligible alternate face. Granted Ward is independent of both -- and
 		// so is a static-grant's trigger (AddTrigger$): the granted walk below
 		// runs on BOTH paths, like Ward and Dethrone do.
-		if !o.Unlocked && !e.objectFaceMayTrigger(id, o.FaceIdx, f, ev.Kind) {
+		if !o.Unlocked && len(o.MergedCards) == 0 && !e.objectFaceMayTrigger(id, o.FaceIdx, f, ev.Kind) {
 			if grantedKeywordTriggerEvent(ev.Kind) {
 				switch ev.Kind {
 				case events.TargetsChosen:
@@ -1066,6 +1103,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
 				case events.DeclareBlockers:
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
+				case events.PutOnStack:
+					e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
 			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
@@ -1078,7 +1117,19 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// cast face's same-index trigger. roomTriggerFaces returns the faces
 		// to walk, cast face first.
 		faces, n := roomTriggerFaces(o, f)
-		for _, fc := range faces[:n] {
+		walk := faces[:n]
+		if len(o.MergedCards) > 0 {
+			// CR 702.140d: a mutated permanent has all abilities of the cards
+			// beneath its top card, so their printed triggers must be walked
+			// too. triggerFacesWithMerged marks them active=false, which routes
+			// each through the by-name push (the Room alternate-face path) --
+			// TriggerPush can only name a trigger INDEX into the top face, so an
+			// under-card trigger must resolve its Execute$ SVar by name instead.
+			// Ordinary (unmutated) objects keep the allocation-free [2]array
+			// path above.
+			walk = triggerFacesWithMerged(o, faces[:n])
+		}
+		for _, fc := range walk {
 			if o.Unlocked && !e.objectFaceMayTrigger(id, fc.faceIdx, fc.face, ev.Kind) {
 				continue
 			}
@@ -1254,7 +1305,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// the object's active Face(), while the delayed push resolves the
 				// other face's Execute$ SVar directly. This is independent of
 				// whether CR 309.4b cast face 0 or face 1.
-				alt := !fc.active
+				//
+				// A MERGED under-card face (CR 702.140d) must NOT take that
+				// by-name path: resolveSVarAcrossFaces resolves top-face-first,
+				// so the pile's top card -- which can be ANY creature, and whose
+				// own token triggers canonically name their SVar TrigToken --
+				// would steal the under-card's body whenever both faces define
+				// the same name (Cubwarden mutated under Everquill Phoenix: the
+				// under-card's "create two Cats" resolved to the top Phoenix's
+				// "create a Feather"). MergedTriggerPush instead carries the
+				// under-card's pile index so events.Apply resolves the name
+				// against THAT face's own SVar table.
 				pt := pendingTrigger{
 					Source:     id,
 					Controller: controller,
@@ -1272,7 +1333,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 						TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 					},
 				}
-				if alt {
+				switch {
+				case fc.merged > 0:
+					pt.Merged = fc.merged
+					pt.Execute = t.Params["Execute"]
+				case !fc.active:
 					pt.Delayed = true
 					pt.DelayedID = ^uint32(0)
 					pt.Execute = t.Params["Execute"]
@@ -1299,6 +1364,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// trigger carrying the Monarch's grant) -- the early-return path above
 		// reaches this object through checkGrantedAfflictTriggers's own call.
 		e.checkGrantedAfflictTriggers(id, o, f, ev)
+		// A granted Conspire must fire even when the object's own printed
+		// triggers are live for this event (a spell with its own cast trigger
+		// carrying a Conspire grant) -- the early-return path above reaches this
+		// object through checkGrantedConspireTriggers's own call.
+		e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -1309,11 +1379,15 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 // triggerFace is one face's trigger walk: its printed index keys fire-count
 // memory, and active says whether TriggerPush can re-derive it through the
 // object's current Face() (the other unlocked Room face must use a delayed
-// shape because Apply cannot select it).
+// shape because Apply cannot select it). merged is 0 for every real face;
+// a MERGED under-card face carries its pile index PLUS ONE so the zero
+// value can never alias pile index 0 (a forgotten field must always mean
+// "not merged", never "the first under-card").
 type triggerFace struct {
 	face    *cards.Face
 	faceIdx uint8
 	active  bool
+	merged  int
 }
 
 // roomTriggerFaces returns the faces whose Triggers a scan walks for object
@@ -1321,7 +1395,8 @@ type triggerFace struct {
 // FaceIdx need not be zero: CR 309.4b permits casting either Room door.
 func roomTriggerFaces(o *state.Object, active *cards.Face) ([2]triggerFace, int) {
 	// At most two faces, returned by value so the ordinary single-face walk
-	// never allocates a backing slice per object per event.
+	// never allocates a backing slice per object per event. merged is left 0
+	// ("not merged") on both.
 	out := [2]triggerFace{{face: active, faceIdx: o.FaceIdx, active: true}}
 	if o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
 		other := uint8(1 - int(o.FaceIdx))
@@ -1329,6 +1404,33 @@ func roomTriggerFaces(o *state.Object, active *cards.Face) ([2]triggerFace, int)
 		return out, 2
 	}
 	return out, 1
+}
+
+// triggerFacesWithMerged extends the room faces with every card stacked
+// beneath a mutated permanent's top card (CR 702.140d's "all abilities of
+// the cards beneath it"). It allocates only for a mutated pile, so the
+// ordinary trigger scan keeps roomTriggerFaces' allocation-free fast path.
+// A merged face is marked active=false AND carries its pile index (+1, the
+// encoding triggerFace.merged documents): the queue routes it through the
+// MergedTriggerPush push, which carries the pile index so events.Apply
+// resolves the under-card's Execute$ SVar against THAT face's table -- the
+// top face's same-named SVar must never steal the body. faceIdx 2+i sits
+// outside the two real card-face slots so its triggerKey/fire-count entries
+// never collide with the top card's; a pile big enough to overflow the byte
+// (254+ merged cards -- no real game reaches it; each merged card is one
+// full mutate cast and resolution) stops being walked rather than colliding.
+func triggerFacesWithMerged(o *state.Object, base []triggerFace) []triggerFace {
+	out := make([]triggerFace, 0, len(base)+len(o.MergedCards))
+	out = append(out, base...)
+	for i := range o.MergedCards {
+		if 2+i > 255 {
+			break
+		}
+		if face := o.MergedFaceAt(i); face != nil {
+			out = append(out, triggerFace{face: face, faceIdx: uint8(2 + i), merged: i + 1})
+		}
+	}
+	return out
 }
 
 // openDamageBatch opens a damage batch: the Damage events emitted until the
@@ -1526,6 +1628,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.damagePreventedMatches(t, source, ev)
 	case "FlippedCoin":
 		matched = e.flippedCoinMatches(t, source, ev)
+	case "Vote":
+		matched = e.voteMatches(t, source, ev)
 	case "Drawn":
 		matched = e.drawnMatches(t, source, ev)
 	case "LifeLost", "LifeLostAll":
@@ -1547,6 +1651,8 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		if matched && t.Params["Echo"] == "True" {
 			matched = e.echoGateHolds(source)
 		}
+	case "Mutates":
+		matched = e.mutatesMatches(t, source, ev, lki)
 	case "Always":
 		// CR 603.8 state trigger: the event under test is irrelevant; the
 		// trigger fires when its condition holds (see triggerConditionHolds)
@@ -2625,6 +2731,137 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	})
 }
 
+// checkAttackerUnblockedOnceTriggers queues Mode$ AttackerUnblockedOnce
+// (Coveted Jewel's "Whenever one or more creatures an opponent controls attack
+// you and aren't blocked, that player draws three cards and gains control of
+// CARDNAME. Untap it."). It is a dedicated hook, like checkAttackerBlockedTriggers,
+// because the ordinary per-face scan cannot express it and the mode has no
+// triggerMatches case.
+//
+// It runs at the DECLARE-BLOCKERS ROUND COMPLETE instant (rules/turn.go's
+// StepDeclareBlockers completion branch), NOT per DeclareBlockers event: those
+// events are per-defender, and a defender with attackers but no legal blockers
+// is skipped with no event at all, so a per-event scan of battlefield-wide
+// unblocked attackers would see a later defender's not-yet-blocked attackers
+// as unblocked and latch the trigger wrongly early on a split attack. At the
+// completion instant every defender has answered (or been skipped), so the
+// battlefield's IsAttacking && no-BlockedBy objects are exactly the unblocked
+// attackers. The condition is evaluated once, here: an attacker that BECOMES
+// unblocked later (its blocker leaves combat, or a stat:AssignCombatDamageAsUnblocked
+// election) does not fire this trigger -- Forge checks at the end of declare
+// blockers too.
+//
+// Fire semantics (Forge's AttackerUnblockedOnce): ONE instance per trigger per
+// combat when at least one matching unblocked attacker exists -- "one or more
+// creatures ... and aren't blocked" -- even when several attackers match. The
+// latch (Engine.unblockedOnceFired) stamps (Turn, CombatsThisTurn) so an extra
+// combat re-arms it. The matching AttackingPlayer is the first matching
+// attacker's controller in the battlefield walk order.
+//
+// Gates mirror the AttackerBlocked hook's sequence (zone, phase, fire-count
+// bound, ActivationLimit$); ValidDefenders$ and ValidAttackingPlayer$ are the
+// two player specs this mode carries, both base-Player/You shapes
+// effects.MatchesPlayerSpec already evaluates. Secondary$ needs no yield: a
+// paired primary can never match a declare-blockers-derived condition.
+// OptionalDecider$ is not read -- no corpus carrier of the Once mode carries
+// it (the only carrier is Coveted Jewel).
+func (e *Engine) checkAttackerUnblockedOnceTriggers() {
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	stamp := combatFires{Turn: e.G.Turn, Combat: e.G.CombatsThisTurn}
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil {
+			return
+		}
+		f := o.Face()
+		if f == nil {
+			return
+		}
+		if !o.Unlocked && !e.faceMayTrigger(f, events.DeclareBlockers) {
+			return
+		}
+		for ti, t := range f.Triggers {
+			if t.Mode != "AttackerUnblockedOnce" {
+				continue
+			}
+			if t.Effect == nil {
+				continue
+			}
+			if !e.zoneGate(t, id, events.Event{Kind: events.DeclareBlockers}) || !e.phaseGate(t) {
+				continue
+			}
+			key := triggerKey{Source: id, Idx: ti}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue // cascade bound: see maxTriggerFires.
+			}
+			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			if e.unblockedOnceFired == nil {
+				e.unblockedOnceFired = map[triggerKey]combatFires{}
+			}
+			if e.unblockedOnceFired[key] == stamp {
+				continue // already fired this combat.
+			}
+
+			// Scan the battlefield for the unblocked attackers this trigger's
+			// defender is being attacked by, whose controller is an opponent of
+			// the trigger controller. The first match decides the fire; the
+			// matching attackers (in battlefield walk order) are remembered.
+			defenderSpec := t.Params["ValidDefenders"]
+			attackerSpec := t.Params["ValidAttackingPlayer"]
+			var attackerIDs []state.ObjID
+			for _, p := range e.G.AliveFrom(0) {
+				for _, bid := range e.G.Zone(state.ZBattlefield, p) {
+					b := e.G.Obj(bid)
+					if b == nil || !b.IsAttacking || len(b.BlockedBy) != 0 {
+						continue
+					}
+					if defenderSpec != "" && !effects.MatchesPlayerSpec(e.G, defenderSpec, b.Attacking, o.Controller) {
+						continue
+					}
+					if attackerSpec != "" && !effects.MatchesPlayerSpec(e.G, attackerSpec, e.controllerOf(bid), o.Controller) {
+						continue
+					}
+					attackerIDs = append(attackerIDs, bid)
+				}
+			}
+			if len(attackerIDs) == 0 {
+				continue
+			}
+			firstCtrl := e.controllerOf(attackerIDs[0])
+
+			remembered := make([]state.Target, 0, len(attackerIDs))
+			for _, aid := range attackerIDs {
+				remembered = append(remembered, state.Target{Obj: aid})
+			}
+			e.unblockedOnceFired[key] = stamp
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     id,
+				Controller: o.Controller,
+				Idx:        ti,
+				SA:         t.Effect,
+				Ctx: effects.Ctx{
+					Source:     id,
+					Controller: o.Controller,
+					Remembered: remembered,
+					Captured:   remembered,
+					TriggerContext: effects.TriggerContext{
+						TriggerCard:     attackerIDs[0],
+						TriggerSource:   attackerIDs[0],
+						AttackingPlayer: pt(firstCtrl),
+						DefendingPlayer: pt(o.Controller),
+					},
+				},
+			})
+		}
+	})
+}
+
 // blocksCandidates lists the (attacker, blocker) pairs one Forge Mode$ Blocks
 // trigger fires for (task trig:Blocks; Savvy Hunter's "Whenever Savvy Hunter
 // attacks or blocks", Heat of Battle's "Whenever a creature blocks", Wand of
@@ -3627,6 +3864,24 @@ func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev 
 	return true
 }
 
+// voteMatches implements Mode$ Vote (trig:Vote): the trigger fires on the
+// canonical vote-finished Note both api:Vote shapes emit (effects/vote.go),
+// the same carrier-event shape trig:FlippedCoin fires on. List$ is the
+// REFERENT SCOPE, not the firing condition: "Whenever players finish voting"
+// (Erestor of the Council, Model of Unity, Grudge Keeper -- the whole corpus
+// population) has no intervening-if, so the trigger fires whenever a vote
+// finishes, with an empty List$ set simply meaning its referents resolve to
+// nobody (Grudge Keeper stacks, its diff set is empty, and its body acts on
+// nobody). The capture side (triggerReferents' Vote case) applies List$ when
+// it binds the sets, so a body reading a spelling its own List$ does not name
+// gets the empty set -- the parameter is read, never silently inert.
+func (e *Engine) voteMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if _, _, _, ok := effects.VoteFinishedResult(ev); !ok {
+		return false
+	}
+	return true
+}
+
 func (e *Engine) flippedCoinMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	flipper, win, ok := effects.FlipNoteResult(ev)
 	if !ok {
@@ -4124,7 +4379,17 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 		if src == nil || src.Face() == nil {
 			return false
 		}
-		ctx := &effects.Ctx{Source: source, Controller: you, SVars: src.Face().SVars}
+		// A mutated pile's under-card trigger (CR 702.140d) is gated by the
+		// UNDER-CARD's own SVar table: Face() on a pile is always its top
+		// card, and the top card of a mutate pile can be any creature, so
+		// reading its table would evaluate the gate against a body it never
+		// defined (failing closed, i.e. silently never firing). An ordinary
+		// trigger's owning face IS the top face, so nothing else moves.
+		svars := src.Face().SVars
+		if mf := e.faceOwningTrigger(source, t); mf != nil {
+			svars = mf.SVars
+		}
+		ctx := &effects.Ctx{Source: source, Controller: you, SVars: svars}
 		holds, evaluated := effects.CheckSVarHolds(e, ctx, name, strings.TrimSpace(t.Params["SVarCompare"]))
 		if !evaluated || !holds {
 			return false
@@ -4387,12 +4652,13 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterRemoved",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterRemoved",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
+		"trig:Vote",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
@@ -4442,6 +4708,74 @@ func init() {
 		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
 		"kw:CARDNAME can be your commander.",
 	)
+}
+
+// checkGrantedConspireTriggers synthesizes Conspire's copy trigger (CR
+// 702.78a's second ability) for a spell that currently HAS the keyword but
+// does not print it: a layer-6 grant (Wort, the Raidmother's "each red or
+// green instant or sorcery spell you cast has conspire", Raiding Schemes'
+// noncreature arm) gives the spell the same rules text as a printed keyword,
+// and the printed K:Conspire expansion (cards/keywords.go) only covers
+// printed lines. Without this walk the granted spell's cast flow still
+// offers the conspired cast, still asks the tap and still pays it (the
+// derived-keyword read the offer uses), but nothing copies -- the player pays
+// an unrecoverable cost for nothing. The synthesized trigger reuses the
+// printed expansion's exact trigger/body shape (Mode$ SpellCast, ValidCard$
+// Card.Self, TriggerZones$ Stack; DB$ CopySpellAbility over
+// Defined$ TriggeredSpellAbility with Amount$ Count$Conspired), so its
+// behaviour is byte-identical to the printed path's: it fires on EVERY cast
+// of the granted spell (the deferred CR 601.2i walk, so the pay-time
+// FlagConspired CastInfo has already folded Object.Conspired) and resolves
+// to a no-op when the tap was declined (Amount 0, effCopySpellAbility's
+// loop emits nothing). A copy emits StackCopy, not PutOnStack, so the
+// synthesis cannot double-fire on its own output. The walk skips a face that
+// PRINTS Conspire (the printed expansion already owns the line -- the same
+// grant-identical-to-a-printed-line dedup Afflict keeps). Like Dethrone's
+// synthesis this is a read-only derived-characteristics check; granting
+// stays in the continuous-effect system. It runs on the faceMayTrigger
+// early-return path too (a granted keyword is independent of printed
+// triggers, the same shape Dethrone/Afflict are), and its gate is ordered
+// cheap-first -- event kind, then object identity, one integer compare each
+// on the hot per-event walk -- before the derived keyword scan allocates.
+func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	if ev.Kind != events.PutOnStack || id != ev.Obj {
+		return
+	}
+	if !e.HasKeyword(id, "Conspire") || f.HasKeyword("Conspire") {
+		return
+	}
+	t := cards.Trigger{Mode: "SpellCast", Params: map[string]string{
+		"Mode": "SpellCast", "ValidCard": "Card.Self", "TriggerZones": "Stack", "TriggerDescription": "Conspire",
+	}, Effect: &cards.SA{Kind: "DB", API: "CopySpellAbility", Params: map[string]string{
+		"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired", "MayChooseTarget": "True",
+	}}}
+	if observer.triggerMatches(t, id, ev, objLKI) {
+		key := triggerKey{Source: id, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] < maxTriggerFires {
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     id,
+				Controller: o.Controller,
+				// The Ward shape: the body rides the push's __kwConspire
+				// payload for events.Apply to rebuild structurally -- a raw
+				// SA cannot cross the log, and the TriggerPush -1 index
+				// sentinel is Dethrone's own. The cast spell rides
+				// Remembered because Defined$ TriggeredSpellAbility reads
+				// the triggering spell off it.
+				Conspire: true,
+				Ctx: effects.Ctx{
+					Source:         id,
+					Controller:     o.Controller,
+					Remembered:     triggerRemembered(ev, id),
+					LKI:            objLKI,
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+				},
+			})
+		}
+	}
 }
 
 // checkGrantedDethroneTriggers synthesizes Dethrone's ordinary attack trigger

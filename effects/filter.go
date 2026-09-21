@@ -369,6 +369,9 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 // sharesCardTypeWith/sharesCreatureTypeWith family into the live objects it
 // names (empty = an unbound referent; both callers fail closed on that), so
 // the two readings can never disagree about which objects <X> names.
+// "Commander" (task mordorparams1, Path of Ancestry's "shares a creature
+// type with your commander") names the commanders, read live like every
+// other referent.
 func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Target {
 	var ts []state.Target
 	switch ref {

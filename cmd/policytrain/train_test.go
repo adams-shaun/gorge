@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"math/rand/v2"
 	"os"
@@ -733,6 +734,344 @@ func TestTrainerResidualReproducesBotWhenNothingIsLearnable(t *testing.T) {
 	if off := run(0); off.ModelTop1 == 1 {
 		t.Fatalf("residual 0 model top-1 1.000 — the no-prior arm should not already be perfect, or the wiring is not being exercised")
 	}
+}
+
+// clipPinCorpus builds a corpus for the clip-semantics pins: per-example
+// gradient norms straddle the pin cap, the per-batch summed norm exceeds it
+// on every batch (asserted in the tests), values are untied so the hybrid
+// value term carries signal (CE does not read values at all).
+func clipPinCorpus(n int) []policynet.Example {
+	out := make([]policynet.Example, n)
+	rng := rand.New(rand.NewPCG(11, 7))
+	for i := 0; i < n; i++ {
+		st := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+		for d := 0; d < 6; d++ {
+			st.Dense[d] = float32(rng.NormFloat64())
+		}
+		st.Sparse = append(st.Sparse,
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("cp|s|%d", i%11)), Value: 2},
+			policynet.Feature{Row: policynet.HashID("cp|shared"), Value: 1},
+		)
+		pref := i % 3
+		ex := policynet.Example{Kind: "attackers", TeacherChoice: pref, BotIndex: 0, State: st, Margin: 0.2}
+		for j := 0; j < 3; j++ {
+			o := policynet.Option{Dense: make([]float32, policynet.OptionDenseWidth)}
+			for d := 0; d < 6; d++ {
+				o.Dense[d] = float32(rng.NormFloat64())
+			}
+			o.Hashed = append(o.Hashed,
+				policynet.Feature{Row: policynet.HashID(fmt.Sprintf("cp|p|%d", j)), Value: 2})
+			if j == pref {
+				o.Hashed = append(o.Hashed, policynet.Feature{Row: policynet.HashID("cp|good"), Value: 2})
+			}
+			o.Target = policynet.OptionTarget{Labelled: true, Preferred: j == pref, Value: 0.5 + 0.05*float64(j)}
+			ex.Options = append(ex.Options, o)
+		}
+		out[i] = ex
+	}
+	return out
+}
+
+// clipPinBinding exercises two epochs of updates and reports the batch
+// gradient norms over that window, so the test can assert the cap actually
+// binds on live gradients (maxBatch > cap) and log the observed range.
+func clipPinBinding(t *testing.T, examples []policynet.Example, cfg Config, cap float64) (minBatch, maxBatch float64) {
+	t.Helper()
+	m := policynet.NewModel(policynet.TableRows, cfg.Embed, cfg.Hidden, rand.New(rand.NewPCG(5, 6)))
+	grads := m.NewGrads()
+	lc := policynet.LossConfig{Mode: cfg.Mode, HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight}
+	minBatch = math.Inf(1)
+	for epoch := 0; epoch < 2; epoch++ {
+		for base := 0; base < len(examples); base += cfg.Batch {
+			end := base + cfg.Batch
+			if end > len(examples) {
+				end = len(examples)
+			}
+			grads.Reset()
+			for _, ex := range examples[base:end] {
+				m.LossGrad(ex, lc, grads)
+			}
+			if n := grads.Norm(); n < minBatch {
+				minBatch = n
+			}
+			if n := grads.Norm(); n > maxBatch {
+				maxBatch = n
+			}
+			m.ApplyGrads(grads, float32(cfg.LR/float64(end-base)))
+		}
+	}
+	if maxBatch <= cap {
+		t.Fatalf("pin premise lost: largest batch gradient norm %.3g <= cap %g over the measured window — the corpus no longer exercises the binding regime", maxBatch, cap)
+	}
+	return minBatch, maxBatch
+}
+
+// modelRelDiff is the largest over-blocks of (max|a−b| / max|a|) — the
+// scale on which two trained models are compared here.
+func modelRelDiff(a, b *policynet.Model) float64 {
+	worst := 0.0
+	for _, pair := range [][2][]float32{
+		{a.Table, b.Table}, {a.StateW, b.StateW}, {a.StateB, b.StateB},
+		{a.HidW, b.HidW}, {a.HidB, b.HidB}, {a.OutW, b.OutW},
+	} {
+		ma, md := 0.0, 0.0
+		for i := range pair[0] {
+			if v := math.Abs(float64(pair[0][i])); v > ma {
+				ma = v
+			}
+			if d := math.Abs(float64(pair[0][i]) - float64(pair[1][i])); d > md {
+				md = d
+			}
+		}
+		if ma > 0 {
+			if r := md / ma; r > worst {
+				worst = r
+			}
+		}
+	}
+	return worst
+}
+
+// TestCERankWeightInertWhileTheClipBinds pins the rank-weight/clip
+// interaction (ticket policytrain-clip-rankweight-interaction). The corpus
+// is one where the two settings MUST differ — with the cap disabled, on
+// live gradients, rank-weight 20 takes twenty-fold steps and lands far from
+// rank-weight 1 — and the pin is that the per-batch clip erases exactly
+// that difference:
+//
+//   - In pure CE mode a uniform RankWeight scales the single term's
+//     gradient only; the per-batch clip divides that back out whenever it
+//     binds, so with the cap on, rank-weight 1 and 20 must land on the same
+//     model — to float32 rounding, ~1e-7 measured (NOT byte-identical: the
+//     fused multiply-add in the gradient accumulation rounds differently
+//     for a scaled addend; the ulp bound is the honest one).
+//   - The same flag in hybrid mode IS a direction knob (the rank-vs-value
+//     term mix; the value term runs here because the values are untied), so
+//     the two weights must land on clearly different models — the flag is
+//     not globally dead, only CE-inert.
+//   - The trainer logs its warning on the inert setting.
+func TestCERankWeightInertWhileTheClipBinds(t *testing.T) {
+	corpus := clipPinCorpus(600)
+	cfg := Config{Epochs: 2, Batch: 64, LR: 0.1, Seed: 1, Holdout: 0.15,
+		Embed: 32, Hidden: 64, HuberDelta: 0.1, Mode: policynet.LossCE, RankWeight: 1, Clip: 0.5}
+	// The premise helper measures the gradients the pin actually trains on,
+	// so its LossConfig must carry the same mode and weight the primary run
+	// arm chooses (CE at rank-weight 1, the shipped default).
+	minB, maxB := clipPinBinding(t, corpus, cfg, 0.5)
+	t.Logf("batch gradient norms over the measured window: [%.3g, %.3g], cap 0.5", minB, maxB)
+
+	run := func(rw float64, mode policynet.LossMode, clip float64, log io.Writer) *policynet.Model {
+		t.Helper()
+		c := cfg
+		c.Mode, c.RankWeight, c.Clip, c.Log = mode, rw, clip, log
+		res, err := Train(corpus, c)
+		if err != nil {
+			t.Fatalf("Train(rw=%v mode=%v clip=%v): %v", rw, mode, clip, err)
+		}
+		return res.Model
+	}
+	var logBuf bytes.Buffer
+	ce1 := run(1, policynet.LossCE, 0.5, nil)
+	ce20 := run(20, policynet.LossCE, 0.5, &logBuf)
+	if rel := modelRelDiff(ce1, ce20); rel > 1e-5 {
+		t.Fatalf("CE rank-weight 1 vs 20 landed %.3g apart with the cap active — the uniform scale leaked into the step", rel)
+	}
+	if !strings.Contains(logBuf.String(), "inert in pure CE mode") {
+		t.Fatalf("rank-weight 20 in CE mode produced no inertness warning; log:\n%s", logBuf.String())
+	}
+	logBuf.Reset()
+	_ = run(1, policynet.LossCE, 0.5, &logBuf)
+	if strings.Contains(logBuf.String(), "inert in pure CE mode") {
+		t.Fatalf("rank-weight 1 (the default) must not warn; log:\n%s", logBuf.String())
+	}
+	ce20Free := run(20, policynet.LossCE, 0, nil)
+	relFree := modelRelDiff(ce1, ce20Free)
+	if relFree < 0.05 {
+		t.Fatalf("with the cap DISABLED, CE rank-weight 20 landed only %.3g from rank-weight 1 — the corpus no longer separates the two settings, so this pin proves nothing", relFree)
+	}
+	// The warning is scoped to the clip-active arm: with -clip 0 a uniform
+	// RankWeight is a real lr rescale and must NOT be called inert.
+	logBuf.Reset()
+	_ = run(20, policynet.LossCE, 0, &logBuf)
+	if strings.Contains(logBuf.String(), "inert in pure CE mode") {
+		t.Fatalf("rank-weight 20 with -clip 0 must not warn (it is an lr rescale there, not inert); log:\n%s", logBuf.String())
+	}
+	t.Logf("CE rank-weight 1 vs 20: cap on %.2g apart, cap off %.3g apart — the clip erases the uniform scale", modelRelDiff(ce1, ce20), relFree)
+
+	h1 := run(1, policynet.LossHybrid, 0.5, nil)
+	h20 := run(20, policynet.LossHybrid, 0.5, nil)
+	relHybrid := modelRelDiff(h1, h20)
+	if relHybrid < 0.05 {
+		t.Fatalf("hybrid rank-weight 1 vs 20 landed only %.3g apart — the term-mix weight should steer a hybrid run visibly", relHybrid)
+	}
+	t.Logf("hybrid rank-weight 1 vs 20 (term mix): %.3g apart — the flag steers a hybrid run", relHybrid)
+}
+
+// collapseCorpus is the divergence pin's corpus: the preferred option is
+// always the marker-carrying option 2 EXCEPT on conflict examples, whose
+// inputs are identical to their neighbours' shape but whose label differs —
+// an irreducible CE floor, the persistent gradient that keeps the
+// uncapped embedding→hidden→embedding feedback loop compounding instead of
+// starving it the way a converging corpus does.
+func collapseCorpus(n int) []policynet.Example {
+	out := make([]policynet.Example, n)
+	rng := rand.New(rand.NewPCG(11, 7))
+	for i := 0; i < n; i++ {
+		st := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+		for d := 0; d < 6; d++ {
+			st.Dense[d] = float32(rng.NormFloat64())
+		}
+		st.Sparse = append(st.Sparse,
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("x|s|%d", i%11)), Value: 2},
+			policynet.Feature{Row: policynet.HashID("x|shared"), Value: 1},
+		)
+		conflict := rng.Float64() < 0.3
+		marker := 2
+		pref := marker
+		if conflict {
+			pref = i % 2
+		}
+		ex := policynet.Example{Kind: "attackers", TeacherChoice: pref, BotIndex: 0, State: st, Margin: 0.2}
+		nopts := 3 + i%3
+		for j := 0; j < nopts; j++ {
+			o := policynet.Option{Dense: make([]float32, policynet.OptionDenseWidth)}
+			for d := 0; d < 6; d++ {
+				o.Dense[d] = float32(rng.NormFloat64())
+			}
+			o.Hashed = append(o.Hashed,
+				policynet.Feature{Row: policynet.HashID(fmt.Sprintf("x|p|%d", j)), Value: 2})
+			if j == marker {
+				o.Hashed = append(o.Hashed, policynet.Feature{Row: policynet.HashID("x|good"), Value: 2})
+			}
+			o.Target = policynet.OptionTarget{Labelled: true, Preferred: j == pref, Value: 0.5}
+			ex.Options = append(ex.Options, o)
+		}
+		out[i] = ex
+	}
+	for i := range out {
+		for j := range out[i].Options {
+			for k := range out[i].Options[j].Hashed {
+				out[i].Options[j].Hashed[k].Value *= 2
+			}
+		}
+	}
+	return out
+}
+
+// TestClipZeroDivergesToTheFirstOptionBaseline is the -clip 0 collapse's
+// mechanism pin (ticket policytrain-clip-rankweight-interaction): with the
+// cap disabled, the uncapped CE batch gradient drives a SUPER-CRITICAL
+// feedback loop (backprop through the hidden layer multiplies the table's
+// and HidW's magnitudes into each other — on the real corpus the batch
+// gradient norm is 90 at batch 0 and 2.3e24 by batch 12), the weights
+// overflow float32, every score the dead model computes is NaN, the argmax
+// comparison `ys[k] > ys[best]` never fires on NaN and the tie-break is the
+// FIRST labelled option — so holdout top-1 equals the first-option baseline
+// EXACTLY. The model has not overfit the option index; it is dead. The same
+// config with the cap at 1 stays finite and learns. This is the answer to
+// "is the default clip principled or a lucky constant": principled — it
+// bounds the feedback loop's per-step gain; the value 1 itself is the
+// stability constant that keeps the real corpus's lr·‖g‖ inside the
+// sub-critical region.
+func TestClipZeroDivergesToTheFirstOptionBaseline(t *testing.T) {
+	corpus := collapseCorpus(600)
+	cfg := Config{Epochs: 12, Batch: 64, LR: 1, Seed: 1, Holdout: 0.15,
+		Embed: 32, Hidden: 64, Mode: policynet.LossCE, RankWeight: 1, HuberDelta: 0.1}
+	run := func(clip float64) *Result {
+		t.Helper()
+		c := cfg
+		c.Clip = clip
+		res, err := Train(corpus, c)
+		if err != nil {
+			t.Fatalf("Train(clip=%v): %v", clip, err)
+		}
+		return res
+	}
+	nonFinite := func(m *policynet.Model) int {
+		n := 0
+		for _, blk := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW} {
+			for _, v := range blk {
+				if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+					n++
+				}
+			}
+		}
+		return n
+	}
+	dead := run(0)
+	if n := nonFinite(dead.Model); n == 0 {
+		t.Fatalf("clip=0: no non-finite parameter — the corpus/config no longer reproduces the uncapped divergence")
+	}
+	k := dead.ByKind[0]
+	if k.ModelTop1 != k.FirstTop1 {
+		t.Fatalf("clip=0: model top-1 %.4f != first-option baseline %.4f — the dead-model signature moved", k.ModelTop1, k.FirstTop1)
+	}
+	alive := run(1)
+	if n := nonFinite(alive.Model); n != 0 {
+		t.Fatalf("clip=1: %d non-finite parameters — the cap stopped protecting the run", n)
+	}
+	k = alive.ByKind[0]
+	if k.ModelTop1 < k.FirstTop1+0.2 {
+		t.Fatalf("clip=1: model top-1 %.3f not clearly above the first-option baseline %.3f", k.ModelTop1, k.FirstTop1)
+	}
+	t.Logf("clip=0: %d non-finite params, model %.3f == first %.3f (dead) | clip=1: finite, model %.3f > first %.3f",
+		nonFinite(dead.Model), dead.ByKind[0].ModelTop1, dead.ByKind[0].FirstTop1, k.ModelTop1, k.FirstTop1)
+}
+
+func extraFeatureCorpus(n, nopts int) []policynet.Example {
+	out := make([]policynet.Example, n)
+	for i := 0; i < n; i++ {
+		st := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+		st.Sparse = append(st.Sparse,
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("xf|s|%d", i%7)), Value: 1})
+		marked := i%3 == 0
+		pref := 0
+		if marked {
+			pref = 2
+		}
+		ex := policynet.Example{Kind: "attackers", TeacherChoice: pref, BotIndex: 0, Margin: 0.02, State: st}
+		for j := 0; j < nopts; j++ {
+			o := policynet.Option{Dense: make([]float32, policynet.OptionDenseWidth), Extra: []float32{0}}
+			o.Hashed = append(o.Hashed,
+				policynet.Feature{Row: policynet.HashID(fmt.Sprintf("xf|p|%d", j)), Value: 1})
+			if marked && j == 2 {
+				o.Extra[0] = 1
+			}
+			o.Target = policynet.OptionTarget{Labelled: true, Preferred: j == pref, Value: 0.5}
+			ex.Options = append(ex.Options, o)
+		}
+		out[i] = ex
+	}
+	return out
+}
+
+// TestTrainerLearnsFromExtraFeature proves the Extra channel is a trainable
+// input, not inert plumbing: on a corpus whose ONLY discriminative signal is
+// Option.Extra[0], pure CE must fit it to saturation. This is the synthetic
+// control for the real-corpus result that even a leaky Extra feature is not
+// exploited — if this test passes, the real-corpus underfit is a data/
+// optimisation interaction, not a broken augmentation path.
+func TestTrainerLearnsFromExtraFeature(t *testing.T) {
+	corpus := extraFeatureCorpus(600, 3)
+	res, err := Train(corpus, Config{Epochs: 10, Batch: 32, LR: 0.1, Seed: 7, Holdout: 0.15,
+		Embed: 32, Hidden: 64, Mode: policynet.LossCE, RankWeight: 1, HuberDelta: 0.1, ExtraW: 1})
+	if err != nil {
+		t.Fatalf("Train: %v", err)
+	}
+	if len(res.ByKind) != 1 {
+		t.Fatalf("%d kinds, want 1", len(res.ByKind))
+	}
+	k := res.ByKind[0]
+	if k.FirstTop1 < 0.5 || k.FirstTop1 > 0.7 {
+		t.Fatalf("first-option baseline %.3f outside the expected ~0.667", k.FirstTop1)
+	}
+	if k.ModelTop1 < 0.95 {
+		t.Fatalf("pure CE on an Extra-only signal: top-1 %.3f < 0.95 — the Extra channel is not trainable", k.ModelTop1)
+	}
+	if res.Model.ExtraW != 1 || res.Model.InW != 2*32+128+24+1 {
+		t.Fatalf("model geometry: ExtraW=%d InW=%d, want 1 / %d", res.Model.ExtraW, res.Model.InW, 2*32+128+24+1)
+	}
+	t.Logf("first-option %.3f | Extra-only pure CE %.3f", k.FirstTop1, k.ModelTop1)
 }
 
 // bceCalibrationCorpus builds the shape the attackers head must learn: ONE

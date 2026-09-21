@@ -102,7 +102,12 @@ type Model struct {
 	Rows   int // embedding table rows (TableRows for a checkpoint-rounded model)
 	H      int // embedding width
 	Hidden int // hidden layer width
-	InW    int // hidden input width = 2H + OptionSlotWidth + OptionDenseWidth
+	InW    int // hidden input width = 2H + OptionSlotWidth + OptionDenseWidth + ExtraW
+	// ExtraW is the experimental per-option augmentation width (Option.Extra).
+	// Zero for every encoder-produced model, so InW keeps the pinned geometry;
+	// a feature-family experiment sets it through NewModelExtra. Not part of
+	// EncoderHash and not checkpointable.
+	ExtraW int
 
 	Table  []float32 // Rows*H, row-major: Table[r*H+j]
 	StateW []float32 // DenseWidth*H, row-major: StateW[d*H+j]
@@ -135,6 +140,18 @@ type Model struct {
 // does". 1 means no reweighting, >1 up-weights the overrides, <= 0 is
 // treated as 1. Mode selects the term mix (see LossMode); the zero value is
 // hybrid — the pre-fix geometry — so existing callers keep today's loss.
+//
+// RankWeight is a TERM-MIX weight, not a step-size knob. In hybrid mode it
+// trades the rank term against the value term — two different gradient
+// directions — so it survives the per-batch gradient clip (Grads.Clip).
+// In pure CE mode (LossCE) the rank term IS the whole loss, so RankWeight
+// is a uniform scale on a single gradient direction: when the clip binds
+// it is divided back out, and with the clip disabled it is equivalent to
+// rescaling the learning rate. Either way it cannot change what the model
+// converges to — tune lr and the clip cap instead. RankWeight 0 remains
+// meaningful in CE mode: it switches the term (and the training) off
+// entirely. The trainer warns when a non-trivial RankWeight is set in CE
+// mode (cmd/policytrain Train's log).
 type LossConfig struct {
 	Mode           LossMode
 	HuberDelta     float64
@@ -222,11 +239,22 @@ type StepStat struct {
 // limits per block: the table small (a sum-pool of ~200 rows must start near
 // zero), the projections at sqrt(6/(fan_in+fan_out)).
 func NewModel(rows, h, hidden int, rng *rand.Rand) *Model {
+	return NewModelExtra(rows, h, hidden, 0, rng)
+}
+
+// NewModelExtra builds a model whose option input carries extraW experimental
+// augmentation floats after the encoded Dense block (Option.Extra). extraW 0
+// is exactly NewModel. Used only by feature-family experiments; the encoder's
+// pinned geometry is unchanged and no such model can be checkpointed (the
+// format has no ExtraW field) — it is a measurement vehicle, not a deployable
+// scorer.
+func NewModelExtra(rows, h, hidden, extraW int, rng *rand.Rand) *Model {
 	m := &Model{
 		Rows:   rows,
 		H:      h,
 		Hidden: hidden,
-		InW:    2*h + OptionSlotWidth + OptionDenseWidth,
+		ExtraW: extraW,
+		InW:    2*h + OptionSlotWidth + OptionDenseWidth + extraW,
 	}
 	m.Table = make([]float32, rows*h)
 	m.StateW = make([]float32, DenseWidth*h)
@@ -300,6 +328,10 @@ func (m *Model) inputVector(s []float32, o Option) []float32 {
 	}
 	off += OptionSlotWidth
 	copy(x[off:], o.Dense)
+	off += OptionDenseWidth
+	for i := 0; i < m.ExtraW && i < len(o.Extra); i++ {
+		x[off+i] = o.Extra[i]
+	}
 	return x
 }
 
@@ -473,11 +505,38 @@ func (g *Grads) Norm() float64 {
 	return math.Sqrt(sum)
 }
 
-// Clip rescales every gradient block so the global L2 norm is at most
-// maxNorm (a no-op when the norm is already inside; maxNorm <= 0 disables).
-// The rescale is exact division by norm/max — the same gradient direction,
-// bounded magnitude — so a diverged batch cannot throw a weight to ±Inf
-// through one oversized step.
+// Clip rescales the SUMMED batch gradient as ONE vector so its global L2
+// norm (Norm, over every parameter block) is at most maxNorm — a no-op when
+// the norm is already inside; maxNorm <= 0 disables. This is the
+// deliberate clip semantics, chosen over the alternatives (pinned by this
+// package's TestClipSemanticsIsPerBatchNotPerExample; ticket
+// policytrain-clip-rankweight-interaction):
+//
+//   - Per-batch, not per-example: the clip normalises only the batch
+//     gradient's MAGNITUDE and preserves its direction — the weighted mean
+//     of the per-example directions, so the direction-shaping weights
+//     (OverrideWeight per example, RankWeight·Margin in hybrid mode) keep
+//     their relative meaning. A per-example cap instead makes every
+//     saturating example contribute the same norm regardless of its
+//     weight, erasing exactly the per-example weights the loss defines,
+//     and multiplies the clip's cost by the batch size.
+//   - Global, not per-parameter-group: a per-block cap rescales blocks
+//     against each other and so distorts the update direction inside the
+//     step; the global cap keeps every block's share fixed.
+//   - Applied to the summed gradient BEFORE the LR/batch scale
+//     (ApplyGrads' scale), so the step's worst-case norm is
+//     lr·maxNorm/batchSize — one scalar the caller controls. A cap is a
+//     CAP, not a normaliser: batches whose summed gradient is already
+//     under maxNorm step at lr·‖mean grad‖ and see any uniform loss scale
+//     through (as an lr rescale); the clip erases a uniform scale exactly
+//     when it binds.
+//
+// The corollary is intentional and documented at LossConfig.RankWeight: a
+// UNIFORM scale on the whole loss (a single-term loss's weight) scales the
+// summed gradient's magnitude only, so when the clip binds it is divided
+// back out — the clip makes a pure-CE run invariant to the CE term's
+// absolute weight. Direction-carrying weights survive; magnitude-only
+// weights do not, and the magnitude knobs in CE mode are lr and the cap.
 func (g *Grads) Clip(maxNorm float64) {
 	if maxNorm <= 0 {
 		return

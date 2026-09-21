@@ -79,17 +79,36 @@ func init() { Register("Token", effToken) }
 func effToken(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	n := Num(h, c, sa, "TokenAmount", 1)
-	owner := c.Controller
+	// owners is the per-mint owner list: one entry for every shape the
+	// switch resolves, so the mint loop below can give EACH owner its own
+	// tokens when a spelling names several (trig:Vote's
+	// TokenOwner$ TriggeredOpponentVotedSame -- "each opponent who voted
+	// ... creates a Treasure"). Every pre-existing shape resolves exactly
+	// one owner, so the loop is byte-identical for them.
+	owners := []state.PlayerID{c.Controller}
 	switch v := sa.Params["TokenOwner"]; v {
 	case "", "You":
 		// The default: the controller, already set above.
 	case "Opponent":
 		for _, p := range g.AliveFrom(c.Controller) {
 			if p != c.Controller {
-				owner = p
+				owners = []state.PlayerID{p}
 				break
 			}
 		}
+	case "TriggeredOpponentVotedSame", "TriggeredOpponentVotedDiff":
+		// The vote-carrier referent (trig:Vote): each player in the List$
+		// set the firing trigger captured creates its own token. An EMPTY
+		// set creates nothing -- "each opponent who voted ..." is vacuous
+		// when nobody did, never a token for the controller (the old
+		// unrecognised-owner fallback would have minted a wrong one and
+		// noted).
+		ps := c.TriggeredOpponentsVotedSame
+		if v == "TriggeredOpponentVotedDiff" {
+			ps = c.TriggeredOpponentsVotedDiff
+		}
+		owners = make([]state.PlayerID, 0, len(ps))
+		owners = append(owners, ps...)
 	case "RememberedOwner":
 		// The owner of the first remembered OBJECT (Skyclave Apparition's
 		// "the exiled card's owner creates the token"). The same group the
@@ -101,7 +120,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		for _, t := range rememberedWithSource(h, c) {
 			if !t.IsPlayer {
 				if o := g.Obj(t.Obj); o != nil {
-					owner = o.Owner
+					owners = []state.PlayerID{o.Owner}
 					break
 				}
 			}
@@ -118,7 +137,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		// other miss cases here take.
 		for _, t := range c.Targets {
 			if t.IsPlayer {
-				owner = t.Player
+				owners = []state.PlayerID{t.Player}
 				break
 			}
 		}
@@ -228,74 +247,76 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "unknown token script " + key})
 			continue
 		}
-		for i := int32(0); i < n; i++ {
-			// want is the ID the new object will get if TokenCreate's own
-			// Apply case actually mints one (state.Game.AddObject assigns
-			// NextID, then increments it) -- a direct, positive identity
-			// check, rather than inferring a mint happened from g.Objs
-			// having grown by watching its length before and after.
-			want := g.NextID
-			h.Emit(events.Event{Kind: events.TokenCreate, Player: owner, Text: key})
-			if remember && g.Obj(want) != nil {
-				c.Remembered = append(c.Remembered, state.Target{Obj: want})
-				eventRemember(h, c, want)
-			}
-			if tapped && g.Obj(want) != nil {
-				h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: owner, Text: "entered tapped"})
-			}
-			if attackCtx && g.Obj(want) != nil {
-				h.Emit(events.Event{Kind: events.TokenAttacks, Obj: want, Player: owner,
-					IDs: []state.ObjID{state.ObjID(attackDefender)}, Text: "entered attacking"})
-			}
-			if (hasPow || hasTgh) && g.Obj(want) != nil && g.Obj(want).Face() != nil {
-				// The absent side keeps the token script's printed value. Every
-				// corpus script a dynamic side rides (u_x_x_illusion, ...) is a
-				// characteristic-defining */* whose printed read is 0, so both
-				// sides are effectively always named together.
-				pow, tgh := int32(g.Obj(want).Face().Power()), int32(g.Obj(want).Face().Toughness())
-				if hasPow {
-					pow = setPow
+		for _, owner := range owners {
+			for i := int32(0); i < n; i++ {
+				// want is the ID the new object will get if TokenCreate's own
+				// Apply case actually mints one (state.Game.AddObject assigns
+				// NextID, then increments it) -- a direct, positive identity
+				// check, rather than inferring a mint happened from g.Objs
+				// having grown by watching its length before and after.
+				want := g.NextID
+				h.Emit(events.Event{Kind: events.TokenCreate, Player: owner, Text: key})
+				if remember && g.Obj(want) != nil {
+					c.Remembered = append(c.Remembered, state.Target{Obj: want})
+					eventRemember(h, c, want)
 				}
-				if hasTgh {
-					tgh = setTgh
+				if tapped && g.Obj(want) != nil {
+					h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: owner, Text: "entered tapped"})
 				}
-				h.AddContinuous(state.ContinuousEffect{
-					Source:       want,
-					Controller:   owner,
-					Affects:      "Card.Self",
-					Layer:        state.LPT,
-					Sub:          state.SubSet,
-					SetPower:     pow,
-					SetToughness: tgh,
-					HasSet:       true,
-					Permanent:    true,
-				})
-			}
-			if attachTo != 0 && g.Obj(want) != nil && g.Obj(attachTo) != nil {
-				h.Emit(events.Event{Kind: events.Attach, Obj: want, IDs: []state.ObjID{attachTo}})
-			}
-			if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintTokens"]), "True") && g.Obj(want) != nil {
-				// ImprintTokens$ True (Ugin, the Ineffable's [+1] spirit token):
-				// the created token is IMPRINTED with the cards the resolution
-				// remembered -- the face-down-exiled card the preceding Dig
-				// captured -- so Card.IsImprinted matches the token exactly as
-				// Forge's imprintedCards association would. An empty remembered
-				// set records nothing: an imprint of nothing is not an imprint.
-				ids := make([]state.ObjID, 0, len(c.Remembered))
-				for _, t := range c.Remembered {
-					if !t.IsPlayer && t.Obj != 0 {
-						ids = append(ids, t.Obj)
+				if attackCtx && g.Obj(want) != nil {
+					h.Emit(events.Event{Kind: events.TokenAttacks, Obj: want, Player: owner,
+						IDs: []state.ObjID{state.ObjID(attackDefender)}, Text: "entered attacking"})
+				}
+				if (hasPow || hasTgh) && g.Obj(want) != nil && g.Obj(want).Face() != nil {
+					// The absent side keeps the token script's printed value. Every
+					// corpus script a dynamic side rides (u_x_x_illusion, ...) is a
+					// characteristic-defining */* whose printed read is 0, so both
+					// sides are effectively always named together.
+					pow, tgh := int32(g.Obj(want).Face().Power()), int32(g.Obj(want).Face().Toughness())
+					if hasPow {
+						pow = setPow
+					}
+					if hasTgh {
+						tgh = setTgh
+					}
+					h.AddContinuous(state.ContinuousEffect{
+						Source:       want,
+						Controller:   owner,
+						Affects:      "Card.Self",
+						Layer:        state.LPT,
+						Sub:          state.SubSet,
+						SetPower:     pow,
+						SetToughness: tgh,
+						HasSet:       true,
+						Permanent:    true,
+					})
+				}
+				if attachTo != 0 && g.Obj(want) != nil && g.Obj(attachTo) != nil {
+					h.Emit(events.Event{Kind: events.Attach, Obj: want, IDs: []state.ObjID{attachTo}})
+				}
+				if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintTokens"]), "True") && g.Obj(want) != nil {
+					// ImprintTokens$ True (Ugin, the Ineffable's [+1] spirit token):
+					// the created token is IMPRINTED with the cards the resolution
+					// remembered -- the face-down-exiled card the preceding Dig
+					// captured -- so Card.IsImprinted matches the token exactly as
+					// Forge's imprintedCards association would. An empty remembered
+					// set records nothing: an imprint of nothing is not an imprint.
+					ids := make([]state.ObjID, 0, len(c.Remembered))
+					for _, t := range c.Remembered {
+						if !t.IsPlayer && t.Obj != 0 {
+							ids = append(ids, t.Obj)
+						}
+					}
+					if len(ids) > 0 {
+						h.Emit(events.Event{Kind: events.Imprint, Obj: want, IDs: ids})
 					}
 				}
-				if len(ids) > 0 {
-					h.Emit(events.Event{Kind: events.Imprint, Obj: want, IDs: ids})
-				}
+				// AtEOT$ (Valduk, Zektar Shrine Expedition: "exile those tokens at
+				// the beginning of the next end step"): remember the predicted mint
+				// id (the CopyPermanent pattern); the shared reader schedules the
+				// whole minted set in one call after the loop.
+				minted = append(minted, want)
 			}
-			// AtEOT$ (Valduk, Zektar Shrine Expedition: "exile those tokens at
-			// the beginning of the next end step"): remember the predicted mint
-			// id (the CopyPermanent pattern); the shared reader schedules the
-			// whole minted set in one call after the loop.
-			minted = append(minted, want)
 		}
 	}
 	scheduleAtEOT(h, c, sa, minted)

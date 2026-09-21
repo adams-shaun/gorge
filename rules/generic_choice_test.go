@@ -6,8 +6,11 @@ package rules
 // ability bodies — and since it registered onto the same handler
 // (effects/misc.go: GenericChoice -> effCharm) both of its paths resolve:
 // a trigger body poses the CR 603.3c placement KModes ask (askTriggerModes,
-// rules/trigger_queue.go) and a DB$ reached mid-resolution poses effCharm's
-// own KModes ask.
+// rules/trigger_queue.go), a DB$ reached mid-resolution poses effCharm's own
+// KModes ask, and a DB$ reached as a CHAINED SubAbility$ is dispatched by
+// effects.Resolve's chain walk exactly like any other registered API — pinned
+// by TestDayOfTheDoctorChapterIVAsks on the real corpus carrier (The Day of
+// the Doctor's saga chapter IV).
 //
 // The Tireless Provisioner pins inline the REAL tireless_provisioner.txt
 // script (never a .cards file — the licensing rule) so the corpus carrier's
@@ -22,9 +25,12 @@ package rules
 // is by TestGenericChoiceSpellAsksMidResolution.
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -106,6 +112,74 @@ func TestTirelessProvisionerLandfallCreatesChosenTreasure(t *testing.T) {
 	}
 	if findByName(e, "Food Token", 0) != 0 {
 		t.Fatal("the Treasure answer created a Food token anyway")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestDayOfTheDoctorChapterIVAsks pins the third dispatch path — the one the
+// duplicate report worried about (a GenericChoice reached as a chained
+// SubAbility$): The Day of the Doctor's saga chapter IV is
+// `SVar:DBChoose: DB$ ChooseCard … | SubAbility$ DBGenericChoice`, where
+// DBGenericChoice is `DB$ GenericChoice | Choices$ DBExileAll,DBCleanupBis`.
+// effects.Resolve's chain walk (effects/registry.go) dispatches every
+// registered API — with GenericChoice registered the chained SA reaches
+// effCharm and poses its KModes ask with the two Choices$ bodies' labels; it
+// must never hit the "unimplemented API GenericChoice" Note.
+func TestDayOfTheDoctorChapterIVAsks(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := corpusEngineCfg(t, reg,
+		[]*cards.Card{lookup(t, reg, "The Day of the Doctor")},
+		[]*cards.Card{})
+	saga := moveByName(t, e, 0, "The Day of the Doctor", state.ZBattlefield)
+
+	// The saga enters with one LORE counter, so chapter I (a DigUntil with no
+	// legendary card in the deck) settles quietly; one emitted CounterChange
+	// per later chapter, the same drive copypermanent_mods_test.go uses for
+	// The Eleventh Hour. Chapters I-III resolve under answerQuiet.
+	for i := 0; i < 3; i++ {
+		answerQuiet(t, e, 120)
+		e.emit(events.Event{Kind: events.CounterChange, Obj: saga, Counter: "LORE", Amount: 1})
+	}
+	if o := e.G.Obj(saga); o == nil || o.Face() == nil || o.Face().Name != "The Day of the Doctor" {
+		t.Fatalf("saga object gone or renamed before chapter IV: %+v", o)
+	}
+
+	// Chapter IV: the fourth LORE counter queues DBChoose. It finds no Doctor
+	// (the deck is Mountains) and poses no ask, then its chained
+	// SubAbility$ DBGenericChoice poses effCharm's KModes ask.
+	life0 := e.G.Players[0].Life
+	e.putTriggersOnStack()
+	d := passUntilAskKind(t, e, decision.KModes, 200)
+	if d.ResumeKind != "modes" {
+		t.Fatalf("resume kind = %q, want modes", d.ResumeKind)
+	}
+	if len(d.Options) != 2 {
+		t.Fatalf("mode options = %d, want the two Choices$ candidates", len(d.Options))
+	}
+	exileAll, dont := false, false
+	for _, o := range d.Options {
+		switch {
+		case strings.Contains(o.Label, "Exile all other creatures"):
+			exileAll = true
+		case strings.Contains(o.Label, "Don't exile all other creatures"):
+			dont = true
+		}
+	}
+	if !exileAll || !dont {
+		t.Fatalf("modal labels %+v, want the two Choices$ bodies' SpellDescription$ strings", d.Options)
+	}
+	submitChoices(t, e, 0) // Exile all other creatures — the chosen body runs
+	passUntilStackEmpty(t, e, 200)
+	if got := e.G.Players[0].Life; got != life0-13 {
+		t.Fatalf("player 0 life = %d, want %d (the chosen ExileAll body deals its 13)", got, life0-13)
+	}
+	if o := e.G.Obj(saga); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("saga after chapter IV = %+v, want it in the graveyard", o)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented API GenericChoice") {
+			t.Fatalf("chained GenericChoice hit the unimplemented-API note: %q", ev.Text)
+		}
 	}
 	replayCheck(t, e, cfg)
 }

@@ -32,14 +32,25 @@ import (
 
 // Config is one training run's knobs — the cmd/policytrain flag surface.
 type Config struct {
-	Epochs     int
-	Batch      int
-	LR         float64
-	Seed       int64
-	Holdout    float64 // fraction of examples held out of the update, [0, 1)
-	Embed      int     // H, the shared embedding width
-	Hidden     int     // hidden layer width
-	Mode       policynet.LossMode
+	Epochs  int
+	Batch   int
+	LR      float64
+	Seed    int64
+	Holdout float64 // fraction of examples held out of the update, [0, 1)
+	Embed   int     // H, the shared embedding width
+	Hidden  int     // hidden layer width
+	Mode    policynet.LossMode
+	// RankWeight is the ranking term's weight against the value term (a
+	// TERM-MIX weight, see policynet.LossConfig). In pure CE mode the rank
+	// term is the whole loss, so a non-zero, non-one RankWeight is a uniform
+	// scale on a single gradient direction: the per-batch clip normalises
+	// it away whenever the cap binds (batches under the cap see it through
+	// as an lr rescale on that batch), and with the clip disabled it is
+	// equivalent to rescaling lr. Either way it cannot tune anything, so
+	// Train WARNS when it is set in CE mode; RankWeight 0 (the off switch)
+	// and 1 (the default) are the only settings with a distinct meaning
+	// there. In hybrid mode the weight is a real direction knob and is never
+	// warned about. Pin: TestCERankWeightInertWhileTheClipBinds.
 	RankWeight float64
 	HuberDelta float64
 	// ResidualInit is the fixed weight of the bot-prior residual head
@@ -49,8 +60,19 @@ type Config struct {
 	// the overrides. 0 disables the residual (pure CE / hybrid / value). It is
 	// a PRIOR, never trained, so it cannot be decayed away by the loss.
 	ResidualInit float64
-	// Clip is the global-L2-norm cap applied to each batch's accumulated
-	// gradient before it is applied (<= 0 disables; the CLI default is 1).
+	// Clip is the per-batch GLOBAL-L2 cap on the summed gradient, applied
+	// before the lr/batch scale (Grads.Clip; <= 0 disables; the CLI default
+	// is 1). Direction-preserving by design: when the cap binds, every
+	// uniform loss scale is normalised away and the step's worst-case norm
+	// is lr·cap/batchSize (batches already under the cap see a uniform
+	// scale through, as an lr rescale on that batch). The cap is not
+	// cosmetic: an uncapped CE run drives an
+	// exponential embedding→hidden→embedding feedback loop (backprop
+	// through the hidden layer multiplies the two blocks' magnitudes into
+	// each other), the weights overflow float32 within the epoch budget,
+	// and the diverged model's NaN scores tie-break to the first option on
+	// every decision — exactly the first-option baseline. Pin:
+	// TestClipZeroDivergesToTheFirstOptionBaseline.
 	Clip float64
 	// OverrideWeight multiplies every example whose label records a teacher
 	// override of the bot (Example.TeacherChoice != Example.BotIndex): the
@@ -63,6 +85,13 @@ type Config struct {
 	// reads; priority keeps argmax CE. A nil map applies Mode to every kind.
 	// cmd/policytrain's default is {"attackers": LossBCE} under the global `ce`.
 	KindModes map[decision.Kind]policynet.LossMode
+
+	// ExtraW is the experimental per-option augmentation width (Option.Extra):
+	// 0 reproduces the shipped encoder geometry byte for byte; a feature-family
+	// experiment sets it to the width of the augmentation it built. Such a
+	// model cannot be checkpointed (the format has no ExtraW field), which is
+	// deliberate -- it is a measurement vehicle, not a deployable scorer.
+	ExtraW int
 	// Log receives one line per epoch (nil discards).
 	Log io.Writer
 }
@@ -135,6 +164,17 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 	}
 	cfg.Mode = mode
 
+	// The rank-weight/CE contract (ticket policytrain-clip-rankweight-
+	// interaction): in pure CE mode a non-trivial RankWeight is a uniform
+	// scale on the single gradient direction. Under an active per-batch clip
+	// it is normalised away; with the clip DISABLED (-clip 0) it merely
+	// rescales the step like lr would, so it is NOT inert there and is not
+	// warned about. 0 (the off switch) and 1 (the default) are distinct and
+	// never warned about either.
+	if cfg.Mode == policynet.LossCE && cfg.Clip > 0 && cfg.RankWeight != 0 && cfg.RankWeight != 1 && cfg.Log != nil {
+		fmt.Fprintf(cfg.Log, "policytrain: note: -rank-weight %g is inert in pure CE mode while the per-batch gradient clip is active — the clip normalises any uniform loss scale away whenever the cap binds (batches under the cap see it through as an lr rescale). Tune -lr and -clip instead; RankWeight is a term-mix weight and CE has one term.\n", cfg.RankWeight)
+	}
+
 	// Examples with no labelled option cannot contribute to either loss
 	// term; drop them up front and count them.
 	usable := make([]policynet.Example, 0, len(examples))
@@ -162,7 +202,7 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 	rng := rand.New(rand.NewPCG(uint64(cfg.Seed), 0x9E3779B97F4A7C15^uint64(cfg.Seed)))
 	sp := splitCorpus(usable, cfg.Holdout, rng)
 
-	model := policynet.NewModel(policynet.TableRows, cfg.Embed, cfg.Hidden, rng)
+	model := policynet.NewModelExtra(policynet.TableRows, cfg.Embed, cfg.Hidden, cfg.ExtraW, rng)
 	model.ResidualW = float32(cfg.ResidualInit)
 	grads := model.NewGrads()
 	lc := policynet.LossConfig{Mode: cfg.Mode, HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight, KindModes: cfg.KindModes}

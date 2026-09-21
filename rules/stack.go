@@ -592,7 +592,17 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		return nil, false
 	}
 	ctx.Source = o.Source
-	effects.SetSVars(ctx, src.Face().SVars)
+	// A mutated pile's under-card triggered ability (CR 702.140d) reads its
+	// OWN face's SVar table, not the pile's top card's: Archipelagoe and
+	// Nethroi, Apex of Death both bound their targeting with TargetMax$ X,
+	// and the pile's top card can be any creature (with no X at all). The
+	// owning face comes from the compiled trigger pointer; an ordinary
+	// trigger's owning face is the top face, so nothing else moves.
+	if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
+		effects.SetSVars(ctx, mf.SVars)
+	} else {
+		effects.SetSVars(ctx, src.Face().SVars)
+	}
 	return ctx, true
 }
 
@@ -1414,7 +1424,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		pc := e.cast
 		pc.targets = targetOptions(chosen)
 		e.repriceForTargets(pc)
-		if pc.ability < 0 {
+		if !pc.isAbility() {
 			if pc.stackObj != 0 {
 				e.recordChosenTargets(pc.stackObj, chosen)
 			}
@@ -1787,9 +1797,24 @@ func (e *Engine) resolveTop() {
 		// (or ceased to exist) has nothing to read here and degrades to a
 		// nil SVar table, same as before this ability object existed at
 		// all, rather than panicking.
+		//
+		// A mutated pile (CR 702.140d) makes "the source's current Face" the
+		// wrong table for an UNDER-card's ability: Face() on a pile is always
+		// its TOP card, whose SVar table the under-card's body never meant --
+		// Huntmaster Liger mutated under a Grizzly Bears read the Bears' (
+		// empty) table for its own "NumAtt$ +X | SVar:X:Count$TimesMutated"
+		// and pumped by 0. The owning face is the one that carries the
+		// resolving trigger, which findTriggerForAbilityFace recovers by the
+		// compiled trigger pointer -- the whole reason MergedTriggerPush mints
+		// f.Triggers[i].Effect rather than a freshly parsed SVar body. An
+		// ordinary trigger finds its own (top) face there, so its table is
+		// unchanged, and an activated ability finds no trigger at all and
+		// falls through to Face() exactly as before.
 		var svars map[string]string
 		if src := e.G.Obj(o.Source); src != nil {
-			if sf := src.Face(); sf != nil {
+			if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
+				svars = mf.SVars
+			} else if sf := src.Face(); sf != nil {
 				svars = sf.SVars
 			}
 		}
@@ -1900,6 +1925,16 @@ func (e *Engine) resolveTop() {
 	// provenance modeFlags("bestowed") rode.
 	if o.CastFlags&state.FlagBestowed != 0 {
 		sa = bestowedAttachSA()
+	}
+	// Mutate (CR 702.140d): a spell cast for its mutate cost does not become
+	// an independent permanent. It merges into its target, so resolution is
+	// diverted BEFORE the ordinary spell-block tail (which would move it to
+	// the battlefield): resolveMutate emits the Mutate fold, which parks this
+	// object off the stack. A mutate card carries no SP, so the spell block
+	// below would resolve nothing anyway.
+	if o.CastFlags&state.FlagMutated != 0 {
+		e.resolveMutate(o, o.Targets)
+		return
 	}
 	targets := o.Targets
 	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered
@@ -2445,18 +2480,81 @@ func (e *Engine) WasCastFromHand(obj state.ObjID) bool {
 	return false
 }
 
+// DiscardedInWindow satisfies effects.Host's DiscardedInWindow for the
+// ConditionDefined$ Discarded group's cost-discard channel (task
+// mordorparams1, Moria Scavenger's "If the discarded card was a creature
+// card"): the events.DiscardCost records of obj's own activation, read off
+// the log. The window walks BACKWARD from the log end and stops at the
+// first event that proves a different resolution boundary — another
+// wrapper's push (a different activation's AbilityPush/PutOnStack/trigger
+// push), a step or turn change, a pool clear or a player loss — while
+// crossing obj's OWN push events, because the two cost orderings share the
+// one rule: an ability's cost parts are paid BEFORE its AbilityPush mints
+// the wrapper (rules/cast.go's activation branch), a spell's AFTER its
+// PutOnStack (the spell branch), and no other wrapper's push can sit
+// between a cost discard and the resolution that follows it. Priority
+// passes are deliberately NOT a boundary: an activated ability can sit on
+// the stack across any number of passes before it resolves, and the
+// discard it paid belongs to exactly that resolution. Derived from the log
+// the way WasCastFromHandByYou is, so a replay derives the same answer.
+func (e *Engine) DiscardedInWindow(obj state.ObjID) []state.ObjID {
+	if obj == 0 {
+		return nil
+	}
+	// An ability wrapper's AbilityPush carries the SOURCE permanent's id
+	// (events.Apply mints the wrapper; Event.Obj names its source), so the
+	// scan crosses its own push by wrapper id or source id alike.
+	var src state.ObjID
+	if o := e.G.Obj(obj); o != nil {
+		src = o.Source
+	}
+	var out []state.ObjID
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		switch ev.Kind {
+		case events.MoveZone:
+			if events.IsDiscardCost(ev) {
+				out = append(out, ev.Obj)
+				continue
+			}
+			// An ordinary move inside the window is not a boundary — an
+			// ability's payment can move several cards (exile parts, tapped
+			// entries) between its discard and its push.
+			continue
+		case events.PutOnStack, events.AbilityPush, events.TriggerPush,
+			events.DelayedPush, events.GrantTriggerPush:
+			if ev.Obj == obj || (src != 0 && ev.Obj == src) {
+				continue // the resolving object's own push: cross it
+			}
+			return reverseIDs(out)
+		case events.StepChange, events.TurnChange, events.ManaClear, events.PlayerLost:
+			return reverseIDs(out)
+		}
+	}
+	return reverseIDs(out)
+}
+
+// reverseIDs restores log order to a backward scan's collection.
+func reverseIDs(in []state.ObjID) []state.ObjID {
+	for i, j := 0, len(in)-1; i < j; i, j = i+1, j-1 {
+		in[i], in[j] = in[j], in[i]
+	}
+	return in
+}
+
 // WasCast satisfies effects.Host's WasCast (Forge Card.wasCast():
 // castFrom != null), the Count$IfCastInOwnMainPhase third conjunct (task
 // ifcastmain1). The pending CR 601.2c announcement ask is a cast in progress:
 // pushCast runs AFTER targetAsk, so the log scan alone would misread Return
 // to Dust's own TargetMax$ X bound as uncast; the live pending cast closes
-// that window (Forge sets castFrom before setupTargets). e.cast.ability < 0
-// excludes an ACTIVATED-ABILITY activation, which Forge never treats as a
-// cast. A copy was never cast (IsCopy), and a card never put on the stack
-// (cheated into play) reads false. Derived from the event log plus the live
-// pending cast, so a replay derives the same answer.
+// that window (Forge sets castFrom before setupTargets). !e.cast.isAbility()
+// excludes an ACTIVATED-ABILITY activation (printed or granted, task
+// grantcost1), which Forge never treats as a cast. A copy was never cast
+// (IsCopy), and a card never put on the stack (cheated into play) reads
+// false. Derived from the event log plus the live pending cast, so a replay
+// derives the same answer.
 func (e *Engine) WasCast(obj state.ObjID) bool {
-	if e.cast != nil && e.cast.card == obj && e.cast.ability < 0 {
+	if e.cast != nil && e.cast.card == obj && !e.cast.isAbility() {
 		return true
 	}
 	if o := e.G.Obj(obj); o == nil || o.IsCopy {

@@ -19,14 +19,19 @@ import (
 // can only assert on what got registered, not on its downstream effect; the
 // two engine-level end-to-end tests in rules/layers_pump_test.go are what
 // check the actual computed result.
+// counterAdderUnsetFake mirrors rules' counterAdderUnset token for the
+// effects-package double (seat 255 cannot exist).
+const counterAdderUnsetFake = state.PlayerID(255)
+
 type fakeHost struct {
-	g          *state.Game
-	log        []events.Event
-	continuous []state.ContinuousEffect
-	controls   []ControlGrant
-	n          int
-	dmgSrc     state.ObjID
-	batch      []state.ObjID
+	g            *state.Game
+	log          []events.Event
+	continuous   []state.ContinuousEffect
+	controls     []ControlGrant
+	n            int
+	dmgSrc       state.ObjID
+	counterAdder state.PlayerID
+	batch        []state.ObjID
 	// castFromHand is the WasCastFromHandByYou answer the double reports;
 	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
 	// true branch (the real log-scan read is pinned in rules).
@@ -205,6 +210,12 @@ func (h *fakeHost) EachSpellCastThisTurnMatching(_ state.PlayerID, _ string, _ s
 // (the Myojin cycle's corpus tests).
 func (h *fakeHost) WasCastFromHandByYou(_ state.ObjID, _ state.PlayerID) bool { return h.castFromHand }
 
+// DiscardedInWindow: the fake has no event log, so the ConditionDefined$
+// Discarded group's cost-discard channel is always empty (the gate stays
+// unresolved, its fail-open); the channel is pinned end to end on the real
+// engine in rules (Moria Scavenger's corpus test).
+func (h *fakeHost) DiscardedInWindow(_ state.ObjID) []state.ObjID { return nil }
+
 // The bare wasCastFromYourHand family's read (castprov3): the fake has no
 // cast log either, so it reports the same single flag the ByYou double reads
 // — enough for the branch-head and ConditionPresent$ gate unit tests, whose
@@ -307,6 +318,22 @@ func (h *fakeHost) SuspendCharmRest(*cards.SA, []string) {}
 func (h *fakeHost) SetDamageSource(id state.ObjID) state.ObjID {
 	prev := h.dmgSrc
 	h.dmgSrc = id
+	return prev
+}
+
+// SetCounterAdder is the AddCounter counterpart of SetDamageSource; the
+// effects package never publishes one (rules owns that), so the double only
+// needs the round-trip contract, including the unset sentinel.
+func (h *fakeHost) SetCounterAdder(p state.PlayerID) state.PlayerID {
+	prev := counterAdderUnsetFake
+	if h.counterAdder != 0 {
+		prev = h.counterAdder - 1
+	}
+	if p == counterAdderUnsetFake {
+		h.counterAdder = 0
+	} else {
+		h.counterAdder = p + 1
+	}
 	return prev
 }
 
