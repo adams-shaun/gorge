@@ -57,6 +57,12 @@ type Config struct {
 	// decisions that carry information. 1 means no reweighting, >1 up-weights
 	// the overrides, and <= 0 is treated as 1.
 	OverrideWeight float64
+	// KindModes overrides Mode for specific decision kinds. The attackers kind
+	// is trained with the binary logistic loss (LossBCE) so its score level is
+	// calibrated at 0, which is what the seat's per-option admission rule
+	// reads; priority keeps argmax CE. A nil map applies Mode to every kind.
+	// cmd/policytrain's default is {"attackers": LossBCE} under the global `ce`.
+	KindModes map[decision.Kind]policynet.LossMode
 	// Log receives one line per epoch (nil discards).
 	Log io.Writer
 }
@@ -159,7 +165,7 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 	model := policynet.NewModel(policynet.TableRows, cfg.Embed, cfg.Hidden, rng)
 	model.ResidualW = float32(cfg.ResidualInit)
 	grads := model.NewGrads()
-	lc := policynet.LossConfig{Mode: cfg.Mode, HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight}
+	lc := policynet.LossConfig{Mode: cfg.Mode, HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight, KindModes: cfg.KindModes}
 
 	res := &Result{Model: model, TrainN: len(sp.train), HoldoutN: len(sp.hold), Skipped: skipped}
 	order := make([]int, len(sp.train))

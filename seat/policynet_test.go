@@ -37,7 +37,9 @@ import (
 // through the real checkpoint format (write + load, so the encoder-hash and
 // geometry gates run): every option scores exactly OutB = 0, so the priority
 // argmax ties and breaks to the lowest offered cast/ability/pass index and
-// the attackers subset admits nothing.
+// the attackers vote falls to the exactly-tied branch of admissionThreshold
+// (the decision's own mean, inclusive — every option is declared when nothing
+// distinguishes them, never an empty declaration).
 func zeroCheckpoint(t *testing.T) *policynet.Scorer {
 	t.Helper()
 	m := policynet.NewModel(policynet.TableRows, 8, 4, rand.New(rand.NewPCG(1, 1)))
@@ -217,7 +219,89 @@ func TestPolicyNetAttackersSubsetShapes(t *testing.T) {
 	}
 }
 
-// TestPolicyNetEmptySurfaceDelegates pins the encode-to-nothing fallback: a
+// TestPolicyNetAttackersAdmissionIsShiftInvariant is the L9d regression pin:
+// a checkpoint whose scores share a large offset — a softmax-CE head's output
+// is shift-invariant, measured at [11575, 15052] for every labelled attack
+// option — must not make the seat declare every legal attacker (all-in), and
+// the mirrored all-negative range must not make it declare none (empty). The
+// old rule (sigmoid(score) > 0.5, i.e. score > 0) admitted 100% of a positive
+// range, which is how the seat emptied its board into bad attacks and lost
+// 1000/1000 against the default bot.
+//
+// The scores are the controller's measured CE level (base 12000), not a zero
+// model: a zero model scores 0.0 and 0 > 0 is false, which is exactly why the
+// bug shipped past the pre-existing pins.
+func TestPolicyNetAttackersAdmissionIsShiftInvariant(t *testing.T) {
+	atkOpt := func(idx int, obj state.ObjID, def state.PlayerID, required bool) decision.Option {
+		return decision.Option{Index: idx, Kind: "attacker", Obj: obj, Player: def, Required: required}
+	}
+	// Four independent attackers against one defender, none required: the
+	// decision is a genuine subset selection, so "all-in" and "empty" are both
+	// observable non-answers.
+	d := &decision.Decision{Kind: decision.KAttackers, Min: 0, Max: 4, Seq: 11, Player: 0,
+		Options: []decision.Option{
+			atkOpt(0, 10, 1, false), atkOpt(1, 11, 1, false),
+			atkOpt(2, 12, 1, false), atkOpt(3, 13, 1, false),
+		}}
+	const base = 12000 // the CE checkpoint's measured level (L9d evidence)
+
+	pos := []float32{base, base + 1, base + 2, base + 3}
+	in, ok := attackersFromScores(d, pos)
+	if !ok {
+		t.Fatal("all-positive: no intent returned")
+	}
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("all-positive: Validate rejected: %v", err)
+	}
+	if len(in.Choices) == len(d.Options) {
+		t.Fatalf("all-positive: admitted all %d options — the offset was trusted as a calibrated sign (the L9d bug)", len(in.Choices))
+	}
+	if len(in.Choices) == 0 {
+		t.Fatalf("all-positive: admitted none of %d options — the shift-invariant fallback over-corrected", len(d.Options))
+	}
+
+	neg := []float32{-base - 3, -base - 2, -base - 1, -base}
+	in, ok = attackersFromScores(d, neg)
+	if !ok {
+		t.Fatal("all-negative: no intent returned")
+	}
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("all-negative: Validate rejected: %v", err)
+	}
+	if len(in.Choices) == 0 {
+		t.Fatalf("all-negative: admitted none of %d options — the offset was trusted as a calibrated sign (the mirrored L9d bug)", len(d.Options))
+	}
+	if len(in.Choices) == len(d.Options) {
+		t.Fatalf("all-negative: admitted all %d options", len(in.Choices))
+	}
+}
+
+// TestPolicyNetAttackersAdmissionKeepsCalibratedSign pins the other half of
+// the rule: when the decision's scores straddle zero (a per-option binary
+// head's calibrated output), admission is the trained sign — positive
+// declared, negative dropped — not a relative ranking.
+func TestPolicyNetAttackersAdmissionKeepsCalibratedSign(t *testing.T) {
+	atkOpt := func(idx int, obj state.ObjID, def state.PlayerID) decision.Option {
+		return decision.Option{Index: idx, Kind: "attacker", Obj: obj, Player: def}
+	}
+	d := &decision.Decision{Kind: decision.KAttackers, Min: 0, Max: 2, Seq: 12, Player: 0,
+		Options: []decision.Option{atkOpt(0, 10, 1), atkOpt(1, 11, 1)}}
+	in, ok := attackersFromScores(d, []float32{2, -2})
+	if !ok {
+		t.Fatal("straddle: no intent returned")
+	}
+	if !slices.Equal(in.Choices, []int{0}) {
+		t.Fatalf("straddle: choices %v, want [0] (the calibrated positive sign)", in.Choices)
+	}
+	in, ok = attackersFromScores(d, []float32{-2, 2})
+	if !ok {
+		t.Fatal("straddle (reversed): no intent returned")
+	}
+	if !slices.Equal(in.Choices, []int{1}) {
+		t.Fatalf("straddle (reversed): choices %v, want [1]", in.Choices)
+	}
+}
+
 // priority decision offering only options the teacher never labelled
 // (an "activate" tap) delegates to the default bot verbatim.
 func TestPolicyNetEmptySurfaceDelegates(t *testing.T) {

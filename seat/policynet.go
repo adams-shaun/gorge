@@ -9,8 +9,10 @@ package seat
 // What the policy answers itself is ONLY what the search teacher labelled
 // (cmd/searchteacher's kinds):
 //
-//   - KAttackers: one scored subset — an independent sigmoid per offered
-//     (attacker, defender) option, admitted at sigmoid > 0.5 (score > 0),
+//   - KAttackers: one scored subset — an independent per-option inclusion
+//     vote (admissionThreshold: the calibrated sigmoid boundary 0 when the
+//     decision's scores straddle it, else the decision's own mean, so the
+//     vote never degenerates to all-in or empty on an untrusted offset),
 //     then the legality repair chooseAttackersMode already does: one option
 //     per attacker (CR 506.2), every required attacker declared (CR 508.1d)
 //     and the Max ceiling applied required-first (CR 508.1j);
@@ -112,9 +114,10 @@ func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decis
 }
 
 // attackersFromScores turns the per-option scores into a legal attack
-// declaration: the sigmoid subset (score > 0 per option) plus the legality
-// repair chooseAttackersMode already does. ok is false only when no option
-// was scored (the empty decision).
+// declaration: the per-option inclusion vote (dropping every option at or
+// below the decision's admission threshold) plus the legality repair
+// chooseAttackersMode already does. ok is false only when no option was
+// scored (the empty decision).
 func attackersFromScores(d *decision.Decision, scores []float32) (decision.Intent, bool) {
 	if len(d.Options) == 0 || len(scores) != len(d.Options) {
 		return decision.Intent{}, false
@@ -128,6 +131,18 @@ func attackersFromScores(d *decision.Decision, scores []float32) (decision.Inten
 			required[d.Options[i].Obj] = true
 		}
 	}
+	// The per-decision admission threshold: the calibrated sigmoid boundary
+	// (0) when the decision holds options on BOTH sides of it — the head can
+	// and does separate included from excluded — else the decision's own mean,
+	// a reference shift-invariant like the loss, so a checkpoint whose scores
+	// are all one sign (the measured failure this rule exists to stop) ranks
+	// options against each other instead of admitting every one or none.
+	// inclusive is true only on the mean fallback: an exactly-tied decision has
+	// no ranking to break the tie, so an option at the mean is declared rather
+	// than dropped (the calibrated sign stays strict, so an exactly-zero vote
+	// is not declared).
+	threshold, inclusive := admissionThreshold(scores)
+
 	// Group the options by attacker in first-seen (offer) order; the map is
 	// only ever read by key, never ranged.
 	type atk struct{ opts []int }
@@ -170,9 +185,17 @@ func attackersFromScores(d *decision.Decision, scores []float32) (decision.Inten
 		return best
 	}
 	admitted := func(s float32) bool {
-		// The per-option sigmoid gate, at the 0.5 boundary: the trained
-		// scorer's independent per-option inclusion vote.
-		return sigmoid(s) > 0.5
+		// The per-option inclusion vote, relative to a shift-invariant
+		// reference (admissionThreshold): an absolute score > 0 means "the
+		// teacher includes this option" only for a head whose loss trains the
+		// score LEVEL (lossBCE); a head trained with argmax CE is a softmax
+		// logit — shift-invariant, absolute level untrained — so when the whole
+		// decision lands on one side of zero the sign carries no information
+		// and the vote falls back to the decision's own ranking.
+		if inclusive {
+			return s >= threshold
+		}
+		return s > threshold
 	}
 	chosen := make([]int, 0, len(order))
 	for _, obj := range order {
@@ -234,10 +257,64 @@ func priorityFromScores(d *decision.Decision, scores []float32) (decision.Intent
 	return botpolicy.Clamp(d, in), true
 }
 
+// admissionThreshold returns the reference score for the per-option admission
+// vote and whether the comparison against it is inclusive.
+//
+// The seat's admission is a per-option inclusion vote. Its historical form —
+// sigmoid(score) > 0.5, i.e. score > 0 — is correct only when the scorer's
+// absolute level is trained: a per-option binary (BCE) head calibrates score
+// 0 at the inclusion probability 0.5. A softmax cross-entropy head trains
+// only the ORDER inside a decision (its loss is shift-invariant), so its
+// output has no calibrated zero and score > 0 admits everything — measured
+// on the controller's dev2 checkpoint, 100% of 9,016 labelled attack options
+// scored in [11575, 15052], so the seat declared every legal attacker every
+// combat.
+//
+// The threshold is therefore chosen to be a no-op under shift:
+//
+//   - a decision whose options straddle zero uses the calibrated boundary 0
+//     (strict), which is the trained vote for a BCE head and a harmless
+//     ordering centre for any head;
+//   - a decision whose options all share one sign uses the decision's own
+//     mean (inclusive), so an uncalibrated offset shifts every option equally
+//     and the vote is decided by the within-decision ranking instead of the
+//     untrusted absolute level. Inclusive because an exactly-tied decision
+//     has no ranking to break the tie, so its options are declared rather
+//     than dropped.
+//
+// Both branches use only within-decision structure, so neither can admit
+// every option of a multi-option decision solely because the checkpoint's
+// offset is positive, nor admit none solely because it is negative.
+func admissionThreshold(scores []float32) (float32, bool) {
+	if len(scores) <= 1 {
+		// A single option offers no within-decision ranking, so the calibrated
+		// sign is the only vote there is: a lone positive score is declared and
+		// a lone negative one is not (the shapes seat/policynet_test.go pins).
+		return 0, false
+	}
+	pos, neg := 0, 0
+	for _, s := range scores {
+		if s > 0 {
+			pos++
+		} else {
+			neg++
+		}
+	}
+	if pos > 0 && neg > 0 {
+		return 0, false
+	}
+	sum := float64(0)
+	for _, s := range scores {
+		sum += float64(s)
+	}
+	return float32(sum / float64(len(scores))), true
+}
+
 // sigmoid is the logistic function in float64 over the float32 score —
-// deterministic, and exactly 0.5 at score 0 (so the > 0.5 admission gate
-// excludes an exactly-zero vote: an option the trained scorer cannot
-// distinguish from nothing is not declared).
+// deterministic. Retained for callers that reason about the calibrated
+// probability directly (and for the tests that pin the 0.5 boundary); the
+// admission rule itself now compares against admissionThreshold rather than
+// an absolute zero.
 func sigmoid(x float32) float64 {
 	return 1 / (1 + math.Exp(-float64(x)))
 }
