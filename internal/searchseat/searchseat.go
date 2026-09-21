@@ -1,0 +1,339 @@
+// Package searchseat is the PIMC search teacher's decision function, shared by
+// the label-corpus generator (cmd/searchteacher) and any seat that plays the
+// teacher's answer.
+//
+// It exists so the two cannot drift. Before it, the whole of candidate
+// building, world sampling, teacher scoring and root matching lived inside
+// cmd/searchteacher's teach(), entangled with label emission -- so a seat that
+// wanted to PLAY the teacher's answer had to reimplement it, and a
+// reimplementation that disagreed anywhere would invalidate the corpus the
+// student learns from. Here the decision is one function; the generator adds
+// label emission around it and reads the diagnostics off Trace.
+//
+// # What a caller must supply, and why a plain seat cannot
+//
+// Choose needs a searchprobe.History, and History is not something a
+// seat.Seat can build. Measured against the sampler's actual requirements:
+//
+//   - searchprobe.Collector.Capture takes a *rules.Engine. Its own doc says
+//     "Collector alone can read a source engine": it projects the actor's view
+//     off e.G, reads e.L.Events for the round fold and e.Pending() for the
+//     decision, and needs the raw []events.Event burst since the previous
+//     capture. A seat is handed a PROJECTED view.View and a decision.Decision
+//     -- never the engine, never the event log, never the burst.
+//   - Capture runs at EVERY decision, every player's, not just the actor's
+//     (cmd/searchteacher's loop). A seat is invoked only at its own decisions,
+//     so it could not assemble the same Frames list even with engine access.
+//
+// So the history must come from whoever drives the engine, which is why
+// Choose takes the history, the collector and the engine as arguments instead
+// of reading them off a view. Wiring a driver to maintain them and feed a
+// seat is the same idiom seat.BoardSeat already uses: a seat variant the
+// driver detects and feeds richer inputs than the plain Seat interface
+// carries. That wiring is not in this package.
+//
+// The alternative -- a seat reconstructing history from successive views --
+// was rejected on measurement, not taste: without the event bursts there are
+// no epoch constraints, so Sample would draw from the wrong world
+// distribution and the teacher's measured edge would not survive.
+package searchseat
+
+import (
+	"errors"
+
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/internal/searchprobe"
+	"github.com/adams-shaun/gorge/rules"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// Options are the search knobs, defaulted by Defaults() to cmd/searchteacher's
+// own flag defaults so a seat and the generator search identically unless a
+// caller deliberately differs.
+type Options struct {
+	// Kinds gates which decision kinds the teacher answers. The implemented
+	// set is "attackers" and "cast" (a KPriority decision offering two or more
+	// distinct castable objects); every other decision delegates.
+	Kinds map[string]bool
+	// Worlds is K, the sampled worlds per decision; Attempts the sampler's
+	// proposal attempts; MinESS the effective-sample-size gate (0 keeps the
+	// calibration contract ESS >= Worlds).
+	Worlds, Attempts int
+	MinESS           float64
+	// Limit caps candidates per decision, the bot's own answer first.
+	Limit int
+	// Margin is the mean-value margin a candidate must beat the bot's answer
+	// by before the teacher overrides it.
+	Margin float64
+	// HorizonTurns is the rollout horizon in engine turns after the root; 0
+	// rolls to game end. It is int32 to match TeacherOptions, whose turn
+	// counts are engine turns (state.Game.Turn is int32). MaxSubmits caps
+	// submits per rollout and per sample attempt.
+	HorizonTurns int32
+	MaxSubmits   int
+	// SampleSeed is the fixed sampler seed base. The teacher's own seed is
+	// derived from it per decision exactly as cmd/searchteacher derives it, so
+	// a seat and the generator score a given decision identically.
+	SampleSeed uint64
+	// AfterSample and AfterSearch, when non-nil, are called immediately after
+	// the two expensive phases. They exist so a caller can TIME the phases
+	// without this package reading a clock: internal/archtest's
+	// TestTimeIsImportedOnlyByTheHost allows the time import in host,
+	// host/httpapi and cmd/gorged only, and a search helper is none of those.
+	// The cost per searched decision is the number that decides whether the
+	// teacher's edge is affordable, so the split has to be measurable
+	// somewhere -- it is measured by whoever already owns a clock.
+	//
+	// They are diagnostics only. Choose's answer is a pure function of its
+	// inputs whether or not they are set, which is what lets a seat play this
+	// and stay replayable.
+	AfterSample, AfterSearch func()
+	// Clairvoyant searches one clone of the ACTUAL engine instead of sampled
+	// worlds. It cheats by construction and exists only as a measurement
+	// ceiling (cmd/searchteacher's -oracle); a playing seat must leave it
+	// false.
+	Clairvoyant bool
+}
+
+// Defaults are cmd/searchteacher's flag defaults, which are also the knobs the
+// +5.80pp +/- 1.25 paired-dev measurement was taken with. A seat starts here
+// so "the seat plays the teacher" means the teacher that was measured.
+func Defaults() Options {
+	return Options{
+		Kinds:      map[string]bool{"attackers": true, "cast": true},
+		Worlds:     8,
+		Attempts:   64,
+		MinESS:     0,
+		Limit:      6,
+		Margin:     0,
+		MaxSubmits: 5000,
+		SampleSeed: 54321,
+	}
+}
+
+// Trace is everything a caller might want to record about one Choose call. It
+// is diagnostics only: nothing here feeds back into the decision, so a caller
+// that ignores it plays identically to one that records all of it.
+//
+// Covered reports that the teacher actually scored the decision. Fallback
+// names why it did not, when it did not -- the strings are the same ones
+// cmd/searchteacher has always written to its DecisionRecord, so its corpus
+// is unchanged by the extraction.
+type Trace struct {
+	Kind       string
+	Covered    bool
+	Fallback   string
+	Candidates [][]searchprobe.Action
+	Worlds     int
+
+	// Sample diagnostics, zero when the clairvoyant path skipped sampling.
+	Attempts, Accepted, PrefixRejected, Duplicates int
+	ESS                                            float64
+	TopRejection                                   string
+	HandToStack                                    searchprobe.HandToStackCauses
+	CompetitionExclusions                          int
+	CompetitionResidual                            int
+	CompetitionUnguided                            int
+	IncompatibleProposals                          int
+
+	// Teacher result. Index 0 is the bot's own answer.
+	Index    int
+	Values   []float64
+	Rollouts int
+	Submits  int
+	Terminal int
+	Capped   int
+	HasValue bool
+}
+
+// Eligible reports whether Choose would attempt this decision at all, without
+// paying for sampling. A caller that must decide cheaply whether a decision is
+// worth observing (or whether to charge a search budget) asks this first.
+// It is deliberately the same test Choose applies.
+func Eligible(d *decision.Decision, opts Options) bool {
+	switch {
+	case d.Kind == decision.KAttackers && opts.Kinds["attackers"]:
+		return true
+	case d.Kind == decision.KPriority && opts.Kinds["cast"] && CastOptions(d) >= 2:
+		return true
+	}
+	return false
+}
+
+// CastOptions counts the DISTINCT castable objects a priority decision offers.
+// Distinct objects, not options: one card can be offered several ways (an
+// alternative cost, a kicked mode), and those are the same choice of card for
+// candidate purposes.
+func CastOptions(d *decision.Decision) int {
+	seen := map[state.ObjID]bool{}
+	for _, o := range d.Options {
+		if o.Kind == "cast" {
+			seen[o.Obj] = true
+		}
+	}
+	return len(seen)
+}
+
+// Choose runs the teacher at one decision and returns the intent to play.
+//
+// It returns (bot, false, trace) whenever the teacher does not cover the
+// decision or anything fails -- an ineligible kind, fewer than two
+// candidates, a sampler failure, no accepted worlds, a teacher error, or a
+// root match that cannot be translated back into an intent. Every failure
+// path is a DELEGATION to the wrapped bot's own answer, never a dropped or
+// invented decision: a search teacher that cannot search must still play
+// legally.
+//
+// h is passed by value because Sample takes it by value; the caller keeps
+// ownership of the frame history and keeps appending to it.
+func Choose(
+	setup searchprobe.PublicGame,
+	h searchprobe.History,
+	collector *searchprobe.Collector,
+	e *rules.Engine,
+	d *decision.Decision,
+	bot decision.Intent,
+	f searchprobe.Frame,
+	opts Options,
+) (decision.Intent, bool, Trace) {
+	var tr Trace
+
+	cands, kind, ok := candidates(collector, d, bot, f, opts)
+	tr.Kind, tr.Candidates = kind, cands
+	if !ok || len(cands) < 2 {
+		return bot, false, tr
+	}
+
+	worlds, sample, err := sampleWorlds(setup, h, collector, e, opts)
+	if opts.AfterSample != nil {
+		opts.AfterSample()
+	}
+	recordSample(&tr, sample)
+	if err != nil {
+		tr.Fallback = sampleFallback(err)
+		return bot, false, tr
+	}
+	if len(worlds) == 0 {
+		tr.Fallback = "insufficient worlds/ESS"
+		return bot, false, tr
+	}
+	tr.Worlds = len(worlds)
+
+	res, err := searchprobe.TeacherChoice(worlds, cands, searchprobe.TeacherOptions{
+		Seed:         teacherSeed(opts.SampleSeed, e),
+		HorizonTurns: opts.HorizonTurns,
+		MaxSubmits:   opts.MaxSubmits,
+		Margin:       opts.Margin,
+		Clairvoyant:  opts.Clairvoyant,
+	})
+	if opts.AfterSearch != nil {
+		opts.AfterSearch()
+	}
+	if err != nil {
+		tr.Fallback = "teacher error: " + err.Error()
+		return bot, false, tr
+	}
+	tr.Covered = true
+	tr.HasValue = true
+	tr.Index, tr.Values, tr.Rollouts = res.Index, res.Values, res.Rollouts
+	tr.Submits, tr.Terminal, tr.Capped = res.Submits, res.Terminal, res.Capped
+
+	// Index 0 IS the bot's answer, so the teacher agreeing is not an override
+	// and must return the bot's own intent rather than a re-matched copy of
+	// it: the two are equal in effect, and returning the original keeps the
+	// no-override path byte-identical to a game the teacher never touched.
+	if res.Index == 0 {
+		return bot, false, tr
+	}
+	in, err := collector.Match(d, cands[res.Index])
+	if err != nil {
+		tr.Fallback = "root match: " + err.Error()
+		return bot, false, tr
+	}
+	return in, true, tr
+}
+
+// teacherSeed derives the per-decision teacher seed. It is deliberately the
+// expression cmd/searchteacher has always used, turn included, so extracting
+// this function changed no scored decision.
+func teacherSeed(base uint64, e *rules.Engine) uint64 {
+	return base ^ 0x5eed ^ uint64(e.G.Turn)
+}
+
+// candidates builds the candidate list, the bot's own answer first. The
+// attackers arm enumerates attack subsets; the cast arm asks searchprobe for
+// alternatives to the bot's single chosen action. A collector that cannot
+// translate the bot's own intent into actions is a hard stop: without the
+// baseline at index 0 the teacher has nothing to beat.
+func candidates(collector *searchprobe.Collector, d *decision.Decision, bot decision.Intent, f searchprobe.Frame, opts Options) ([][]searchprobe.Action, string, bool) {
+	switch {
+	case d.Kind == decision.KAttackers && opts.Kinds["attackers"]:
+		var out [][]searchprobe.Action
+		for _, in := range searchprobe.AttackCandidates(d, bot, opts.Limit) {
+			a, err := collector.Actions(d, in)
+			if err != nil {
+				return nil, "attackers", false
+			}
+			out = append(out, a)
+		}
+		return out, "attackers", true
+	case d.Kind == decision.KPriority && opts.Kinds["cast"] && CastOptions(d) >= 2:
+		a, err := collector.Actions(d, bot)
+		if err != nil || len(a) != 1 {
+			return nil, "cast", false
+		}
+		var out [][]searchprobe.Action
+		for _, c := range searchprobe.Candidates(f.Decision, a[0], opts.Limit) {
+			out = append(out, []searchprobe.Action{c})
+		}
+		return out, "cast", true
+	}
+	return nil, "", false
+}
+
+// sampleWorlds returns the worlds to search. The clairvoyant ceiling skips
+// sampling entirely and searches one clone of the real engine; the honest path
+// samples hidden worlds consistent with the observed history.
+func sampleWorlds(setup searchprobe.PublicGame, h searchprobe.History, collector *searchprobe.Collector, e *rules.Engine, opts Options) ([]searchprobe.World, searchprobe.SampleResult, error) {
+	if opts.Clairvoyant {
+		return []searchprobe.World{{Engine: e.Clone(), Observer: collector}}, searchprobe.SampleResult{}, nil
+	}
+	sr, err := searchprobe.Sample(setup, h, searchprobe.SampleOptions{
+		Seed:       opts.SampleSeed,
+		Attempts:   opts.Attempts,
+		Worlds:     opts.Worlds,
+		MaxSubmits: opts.MaxSubmits,
+		MinESS:     opts.MinESS,
+	})
+	// The result is returned even on error: its rejection buckets are the
+	// diagnostics that explain the failure, and dropping them would make a
+	// sampler fallback unexplainable.
+	return sr.Worlds, sr, err
+}
+
+// sampleFallback classifies a sampler error into the fallback string. A
+// structured searchprobe.Failure reports its own Kind, which is what makes a
+// fallback census (the "insufficient worlds/ESS" tally the generator prints)
+// aggregatable; anything else keeps its message verbatim.
+func sampleFallback(err error) string {
+	var fl *searchprobe.Failure
+	if errors.As(err, &fl) {
+		return "sample " + fl.Kind
+	}
+	return "sample error: " + err.Error()
+}
+
+func recordSample(tr *Trace, sr searchprobe.SampleResult) {
+	tr.Attempts, tr.Accepted, tr.PrefixRejected = sr.Attempts, sr.Accepted, sr.PrefixRejected
+	tr.ESS, tr.Duplicates = sr.ESS, sr.Duplicates
+	tr.HandToStack = sr.HandToStackCauses
+	tr.CompetitionExclusions, tr.CompetitionResidual = sr.CompetitionExclusions, sr.CompetitionResidual
+	tr.CompetitionUnguided, tr.IncompatibleProposals = sr.CompetitionUnguided, sr.IncompatibleProposals
+	top := 0
+	for _, b := range sr.Rejections {
+		if b.Count > top {
+			top = b.Count
+			tr.TopRejection = b.Component + "/" + b.Shape
+		}
+	}
+}
