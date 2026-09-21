@@ -47,6 +47,10 @@ func chapterCount(o *state.Object) int {
 // battlefield order, so the chapter triggers queue in the same deterministic
 // order.
 func (e *Engine) advanceSagas(p state.PlayerID) {
+	// The turn-based lore counter is put by the Saga's controller, with no
+	// stack cause, so publish the adder for the AddCounter class.
+	prevAdder := e.SetCounterAdder(p)
+	defer e.SetCounterAdder(prevAdder)
 	ids := append([]state.ObjID(nil), e.G.Zone(state.ZBattlefield, p)...)
 	for _, id := range ids {
 		o := e.G.Obj(id)

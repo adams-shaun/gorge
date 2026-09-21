@@ -391,6 +391,16 @@ type Host interface {
 	// (DealDamage/DamageAll never ask mid-loop, so nothing suspends inside
 	// the override window).
 	SetDamageSource(id state.ObjID) state.ObjID
+	// SetCounterAdder publishes the player causing the CounterChange /
+	// PlayerCounterChange events the caller is about to emit, so the
+	// repl:AddCounter class's ValidSource$ scope can be read. It mirrors
+	// SetDamageSource exactly: the return value is the previous (opaque)
+	// publication and the caller restores it before returning; zero restores
+	// "no override". The override is engine-transient state rebuilt by replay
+	// and never copied by Clone. Only a cost or turn-based placement publishes
+	// explicitly -- an effect-resolution placement is attributed to the
+	// resolving ability's controller by the engine's own fallback.
+	SetCounterAdder(p state.PlayerID) state.PlayerID
 	// BatchDepartures declares that the caller is about to emit MoveZone
 	// events for every object in ids as one simultaneous destruction batch
 	// (CR 704.3): the engine snapshots each object's derived lifelink

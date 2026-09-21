@@ -59,7 +59,15 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 		n, _ := strconv.Atoi(m[2])
 		switch m[1] {
 		case "AddCounterYou":
+			// The ward cost's poison counters are put by the PAYER, not by
+			// the ward permanent's controller (which is the triggering
+			// ward ability's controller, so inFlightCounterAdder's
+			// actionCause fallback would attribute them to the wrong
+			// player). A cost is paid before any stack object owns it, so
+			// publish the payer explicitly, the cost-site precedent.
+			prevAdder := e.SetCounterAdder(payer)
 			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: payer, Counter: "POISON", Amount: int32(n)})
+			e.SetCounterAdder(prevAdder)
 			return true, false
 		case "Blight":
 			// Blight's cost is "a creature you control gets -N/-N"; unlike
@@ -243,7 +251,13 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		}
 		m := wardSpecialCost.FindStringSubmatch(raw)
 		n, _ := strconv.Atoi(m[2])
+		// The blight -1/-1 counters are put by the PAYER (a ward cost),
+		// not by the ward permanent's controller, so publish the payer
+		// explicitly rather than letting the actionCause fallback
+		// attribute them to the wrong player.
+		prevAdder := e.SetCounterAdder(payer)
 		e.emit(events.Event{Kind: events.CounterChange, Obj: ids[0], Counter: "M1M1", Amount: int32(n)})
+		e.SetCounterAdder(prevAdder)
 		return true
 	case "ward_evidence":
 		for _, id := range ids {

@@ -5244,6 +5244,15 @@ func (e *Engine) payCast() {
 		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
 		return
 	}
+	// Publish the counter adder for the whole payment. A counter a COST places
+	// (a blight M1M1, a planeswalker's [+N] loyalty counter, Suspend's TIME
+	// counters) is put by the paying player, and an activated ability's cost is
+	// paid before its wrapper exists on the stack -- so actionCause cannot
+	// attribute it and the AddCounter class's ValidSource$ would fail closed.
+	// A spell is already on the stack here, but the payer is its adder too, so
+	// the one publish covers every cost site in both branches.
+	prevAdder := e.SetCounterAdder(pc.player)
+	defer e.SetCounterAdder(prevAdder)
 	// The flow is now past the 601.2c target choice (either it was asked and
 	// answered, or the SA has no target), so a mana-window resume through
 	// continueCast must not re-ask for one.
