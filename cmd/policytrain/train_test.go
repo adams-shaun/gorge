@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/policynet"
 )
 
@@ -1071,4 +1072,91 @@ func TestTrainerLearnsFromExtraFeature(t *testing.T) {
 		t.Fatalf("model geometry: ExtraW=%d InW=%d, want 1 / %d", res.Model.ExtraW, res.Model.InW, 2*32+128+24+1)
 	}
 	t.Logf("first-option %.3f | Extra-only pure CE %.3f", k.FirstTop1, k.ModelTop1)
+}
+
+// bceCalibrationCorpus builds the shape the attackers head must learn: ONE
+// labelled option per decision (the majority of the label corpus's attackers
+// decisions), whose inclusion the teacher decides from an option feature. A
+// softmax loss has ZERO gradient on a one-option decision (the softmax over a
+// single score is flat), so the absolute level is untrained and the seat has
+// no calibrated zero; the per-option binary loss trains it directly.
+func bceCalibrationCorpus(n int) []policynet.Example {
+	out := make([]policynet.Example, n)
+	for i := 0; i < n; i++ {
+		st := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+		// A state feature correlated with the label, so the model has something
+		// to condition the absolute score on (a bias alone cannot separate the
+		// classes on the holdout).
+		cls := i % 2
+		st.Sparse = append(st.Sparse,
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("bce|s|%d", cls)), Value: 1})
+		ex := policynet.Example{Kind: "attackers", TeacherChoice: 0, BotIndex: 0, State: st}
+		o := policynet.Option{Dense: make([]float32, policynet.OptionDenseWidth)}
+		o.Hashed = append(o.Hashed,
+			policynet.Feature{Row: policynet.HashID(fmt.Sprintf("bce|p|%d", cls)), Value: 1})
+		o.Target = policynet.OptionTarget{Labelled: true, Preferred: cls == 1, Value: 0.5}
+		ex.Options = []policynet.Option{o}
+		out[i] = ex
+	}
+	return out
+}
+
+// TestTrainerBCEAttackersHeadIsCalibratedAtZero is the trainer half of the
+// L9d gate. On the one-option corpus above, an attackers head trained with
+// the per-kind binary loss (KindModes: attackers=bce) must produce a score
+// SIGN that separates the classes: preferred options above 0, non-preferred
+// below. That is the calibrated boundary the seat's admission rule reads.
+//
+// The plain-ce arm is the same corpus under today's loss: a one-option
+// softmax is flat, so it cannot move the absolute level and its score range
+// stays one-signed — the state that made `score > 0` meaningless and shipped
+// the L9d bug.
+func TestTrainerBCEAttackersHeadIsCalibratedAtZero(t *testing.T) {
+	corpus := bceCalibrationCorpus(400)
+	train := func(kindModes map[decision.Kind]policynet.LossMode) *policynet.Model {
+		t.Helper()
+		res, err := Train(corpus, Config{Epochs: 30, Batch: 32, LR: 0.1, Seed: 7, Holdout: 0.15,
+			Embed: 32, Hidden: 64, Mode: policynet.LossCE, RankWeight: 1, HuberDelta: 0.1,
+			KindModes: kindModes})
+		if err != nil {
+			t.Fatalf("Train: %v", err)
+		}
+		return res.Model
+	}
+	sep := func(m *policynet.Model) (posPreferred, posOther int) {
+		for i := range corpus {
+			s := m.Score(corpus[i].State, corpus[i].Options)[0]
+			if corpus[i].Options[0].Target.Preferred {
+				if s > 0 {
+					posPreferred++
+				}
+			} else if s > 0 {
+				posOther++
+			}
+		}
+		return posPreferred, posOther
+	}
+
+	bce := train(map[decision.Kind]policynet.LossMode{decision.KAttackers: policynet.LossBCE})
+	bp, bo := sep(bce)
+	if bp < len(corpus)/2 {
+		t.Fatalf("bce head: only %d of %d preferred options scored > 0 — the absolute level is not calibrated at zero", bp, len(corpus)/2)
+	}
+	if bo > len(corpus)/10 {
+		t.Fatalf("bce head: %d of %d NON-preferred options scored > 0 — the calibrated boundary does not separate", bo, len(corpus)/2)
+	}
+
+	ce := train(nil) // today's loss: the softmax cannot train a one-option decision
+	cp, co := sep(ce)
+	// The CE arm CANNOT separate the classes: with a one-option softmax there
+	// is no within-decision gradient, so the absolute level is whatever the
+	// shared trunk happens to be and every option lands on one side of zero.
+	// That is the L9d state reproduced.
+	half := len(corpus) / 2
+	if cp > 8*half/10 && co < half/10 {
+		t.Fatalf("plain-ce arm: preferred>0 %d/%d, other>0 %d/%d — the one-option softmax separated the classes, so this gate no longer pins the L9d state",
+			cp, half, co, half)
+	}
+	t.Logf("bce: preferred>0 %d/%d, other>0 %d/%d | ce (one-signed): preferred>0 %d/%d, other>0 %d/%d",
+		bp, half, bo, half, cp, half, co, half)
 }
