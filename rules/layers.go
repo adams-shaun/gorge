@@ -81,6 +81,13 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 					continue
 				}
 				onBattlefield := z == state.ZBattlefield
+				if !onBattlefield && len(f.Statics) == 0 {
+					// Off the battlefield only the object's own face is walked
+					// (an unlocked Room face and a mutated pile's under-cards
+					// are battlefield-only, below), so a face printing no
+					// statics emits nothing. Most of every library is this.
+					continue
+				}
 				if onBattlefield && e.faceDownPrintedHides(o) {
 					// CR 708.8: a face-down permanent's printed statics do not
 					// exist while it is face down (the one gate shared with

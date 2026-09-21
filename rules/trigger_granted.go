@@ -98,7 +98,14 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 // keyword is independent of printed triggers, the same shape Granted Ward
 // is), so it is called once per object before that gate.
 func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
-	if ev.Kind != events.DeclareAttackers || e.HasKeyword(id, "Dethrone") && f.HasKeyword("Dethrone") {
+	// The synthesized trigger is Attacks + ValidCard$ Card.Self, so only an
+	// object this declaration names as an attacker can match it. Apply that
+	// gate before deriving characteristics for every object in every zone,
+	// as the granted Ward walk does; visitation and queue order are unchanged.
+	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
+		return
+	}
+	if e.HasKeyword(id, "Dethrone") && f.HasKeyword("Dethrone") {
 		return
 	}
 	if !e.HasKeyword(id, "Dethrone") || f.HasKeyword("Dethrone") {
@@ -150,6 +157,19 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 // granting stays in the continuous-effect system.
 func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f *cards.Face, ev events.Event) {
 	if ev.Kind != events.DeclareBlockers {
+		return
+	}
+	// Only this declaration's blocked attackers can fire (the candidate walk
+	// below keeps aid == id among ev.Pairs' attackers), so gate on that before
+	// deriving characteristics for every object in every zone.
+	blocked := false
+	for _, pr := range ev.Pairs {
+		if pr[0] == id {
+			blocked = true
+			break
+		}
+	}
+	if !blocked {
 		return
 	}
 	if !e.HasKeyword(id, "Afflict") {
