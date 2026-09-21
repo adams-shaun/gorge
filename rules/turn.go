@@ -954,6 +954,24 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.riotMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
+	case chooseSiege:
+		// CR 310.10: the Battle Siege protector choice was answered. Record
+		// the chosen opponent through a Choose "protector" event (so the
+		// protector is replay-derived, never a direct field write), then
+		// re-emit the parked entry -- Apply consumes the choice on entry.
+		if e.siegeMove == nil || len(chosen) != 1 {
+			e.siegeMove = nil
+			e.choosing = chooseNone
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "Siege protector answered with no entry pending"})
+			return
+		}
+		move := *e.siegeMove
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj,
+			Counter: "protector", Player: chosen[0].Player})
+		e.siegeMove = nil
+		e.choosing = chooseNone
+		e.emit(move)
 	case chooseOpening:
 		e.handleOpening(d, in)
 	case chooseSuspendCast:

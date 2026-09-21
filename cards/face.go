@@ -33,6 +33,7 @@ func (f *Face) IsSpacecraft() bool   { return f.hasType("Spacecraft") }
 func (f *Face) IsVehicle() bool      { return f.hasType("Vehicle") }
 func (f *Face) IsEnchantment() bool  { return f.hasType("Enchantment") }
 func (f *Face) IsPlaneswalker() bool { return f.hasType("Planeswalker") }
+func (f *Face) IsBattle() bool       { return f.hasType("Battle") }
 func (f *Face) IsRoom() bool         { return f.hasType("Room") }
 
 // IsPermanent reports whether resolving this face puts it onto the battlefield.

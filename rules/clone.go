@@ -109,6 +109,10 @@ func (e *Engine) Clone() *Engine {
 		ev := *e.riotMove
 		c.riotMove = &ev
 	}
+	if e.siegeMove != nil {
+		ev := *e.siegeMove
+		c.siegeMove = &ev
+	}
 	if e.pending != nil {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)
