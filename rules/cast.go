@@ -596,6 +596,34 @@ func (e *Engine) hasCastConspire(id state.ObjID) bool {
 	return false
 }
 
+// hasCastCascade reports whether the spell being cast carries Cascade
+// (CR 702.85), read the way hasCastConvoke reads Convoke: the printed K:
+// line, or a layer-6 grant (the printed S: statics the layer walk emits and
+// the DB$ Effect-delivered statics effEffect registers — TARDIS's "the next
+// spell you cast this turn has cascade") whose AffectedZone$ scope reaches
+// the cast spell. The queue that mints the cast trigger counts INSTANCES
+// (cascadeInstances), because CR 702.85b gives a spell with two cascade
+// abilities two triggers (Maelstrom Wanderer's "cascade, cascade").
+func (e *Engine) hasCastCascade(id state.ObjID) bool {
+	return e.cascadeInstances(id) > 0
+}
+
+// cascadeInstances counts the spell's Cascade instances: one per printed
+// K:Cascade line plus one per layer-6 AddKeyword$ Cascade grant whose
+// AffectedZone$ scope reaches the spell, evaluated against the stack the way
+// hasCastConvoke's read is (derivedWith's zone override; the spell is on the
+// stack by the time the cast is paid for, so the override and the live zone
+// agree here).
+func (e *Engine) cascadeInstances(id state.ObjID) int {
+	n := 0
+	for _, k := range e.derivedWith(id, state.ZStack).Keywords {
+		if strings.EqualFold(cardsKeywordHead(k), "Cascade") {
+			n++
+		}
+	}
+	return n
+}
+
 // conspireCandidates returns the untapped creatures the caster controls that
 // share at least one colour with the spell being cast (CR 702.78a's "two
 // untapped creatures you control that share a color with it"). Order is the
@@ -5834,6 +5862,12 @@ func (e *Engine) payCast() {
 	}
 	e.fireDeferredCastTrigger()
 	e.fireManaSpentTriggers(castEv, castLKI)
+	// Cascade (CR 702.85, task cascade1): one cast trigger per Cascade
+	// instance, queued AFTER the ordinary cast triggers (deterministic
+	// append; the drain's APNAP ordering places them). The queue emits
+	// nothing and asks nothing, so no game without a cascade carrier
+	// changes an event.
+	e.queueCascadeTriggers(pc.stackObj, pc.player)
 	e.cast, e.choosing = nil, chooseNone
 }
 
@@ -6121,6 +6155,17 @@ func init() {
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
+		// kw:Cascade: CR 702.85, the cast trigger read directly off the K:
+		// line (no keyword expansion — the printed K:Cascade and every
+		// layer-6 AddKeyword$ Cascade grant reach hasCastCascade through the
+		// one derived-keyword read, so the printed and granted routes cannot
+		// disagree). The trigger is a real KeywordTriggerPush stack object;
+		// its resolution is effects' Cascade primitive. Proof:
+		// TestBloodbraidElfCascadeExilesUntilLesserAndOffersFreeCast,
+		// TestCascadeDeclinedFoundCardGoesToBottom,
+		// TestDarkApostleGrantedCascadeRegistersAndOffers in
+		// rules/cascade_test.go.
+		"kw:Cascade",
 		// kw:Improvise: CR 702.66, the generic-only payment keyword -- its
 		// announcement over the caster's untapped artifacts (the improvise
 		// arm inside convokeAsk) and its greedy offer-gate credit

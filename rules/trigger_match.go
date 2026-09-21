@@ -113,6 +113,14 @@ type pendingTrigger struct {
 	// expansion carries, with the cast spell riding IDs as Remembered.
 	// Idx and SA are unset for it.
 	Conspire bool
+	// Cascade is a printed-or-granted cascade keyword (CR 702.85, task
+	// cascade1): the queue carries no parameter (the trigger body is the
+	// same DB$ Cascade body whichever route granted the keyword) and the
+	// drain pushes a KeywordTriggerPush whose __kwCascade payload
+	// events.Apply rebuilds structurally -- the Ward shape. The trigger's
+	// Source is the CAST SPELL (the stack object), whose face's mana value
+	// the effect reads at resolution. Idx and SA are unset for it.
+	Cascade bool
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
