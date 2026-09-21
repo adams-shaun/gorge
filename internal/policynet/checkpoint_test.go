@@ -140,3 +140,24 @@ func TestCheckpointRejections(t *testing.T) {
 		t.Fatal("overlong checkpoint accepted")
 	}
 }
+
+// TestCheckpointV1Refused pins the schema-bump tripwire the doc comment
+// claims: a genuine version-1 checkpoint (the pre-residual format — version
+// field 1, body WITHOUT the trailing ResidualW float) is refused, never
+// silently loaded with ResidualW 0. Built by truncating a real v2
+// serialization's trailing float and setting the version field to 1 —
+// exactly the bytes the v1 writer produced.
+func TestCheckpointV1Refused(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteCheckpoint(fullModel(), &buf); err != nil {
+		t.Fatalf("WriteCheckpoint: %v", err)
+	}
+	b := buf.Bytes()
+	copy(b[4:8], []byte{1, 0, 0, 0})
+	v1 := b[:len(b)-4] // the v1 body ends at OutB; ResidualW is the v2 tail
+	if _, err := LoadCheckpoint(bytes.NewReader(v1)); err == nil {
+		t.Fatal("a version-1 checkpoint was silently accepted — the doc's refusal claim is unpinned")
+	} else if !bytes.Contains([]byte(err.Error()), []byte("version")) {
+		t.Fatalf("v1 refusal should name the version, got: %v", err)
+	}
+}

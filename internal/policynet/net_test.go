@@ -546,3 +546,36 @@ func TestLossFiniteOnDivergedScores(t *testing.T) {
 		}
 	}
 }
+
+// TestNewModelExtraFeedsTheExtraBlock pins the experiment plumbing: extraW 0
+// is exactly NewModel (the pinned geometry), and a non-zero extraW widens InW
+// by exactly extraW and lets Option.Extra reach the hidden input, so an option
+// carrying a different Extra scores differently. This is the guarantee the
+// feature-family experiment rests on: when a family's Extra is present, the
+// model reads it.
+func TestNewModelExtraFeedsTheExtraBlock(t *testing.T) {
+	rng := rand.New(rand.NewPCG(7, 8))
+	base := NewModel(64, 4, 3, rng)
+	if base.ExtraW != 0 || base.InW != 2*4+OptionSlotWidth+OptionDenseWidth {
+		t.Fatalf("NewModel geometry drifted: ExtraW=%d InW=%d", base.ExtraW, base.InW)
+	}
+	rng2 := rand.New(rand.NewPCG(7, 8))
+	extra := NewModelExtra(64, 4, 3, 5, rng2)
+	if extra.ExtraW != 5 || extra.InW != base.InW+5 {
+		t.Fatalf("NewModelExtra geometry: ExtraW=%d InW=%d, want 5 / %d", extra.ExtraW, extra.InW, base.InW+5)
+	}
+	// Wire hidden unit 0 to read ONLY the extra block's first float, so a high
+	// Extra must raise the score.
+	for i := range extra.HidW {
+		extra.HidW[i] = 0
+	}
+	extra.HidW[0*extra.InW+extra.InW-5] = 1
+	extra.OutW[0] = 1
+	st := State{Dense: make([]float32, DenseWidth)}
+	lo := Option{Dense: make([]float32, OptionDenseWidth), Extra: []float32{0, 0, 0, 0, 0}}
+	hi := Option{Dense: make([]float32, OptionDenseWidth), Extra: []float32{9, 0, 0, 0, 0}}
+	ys := extra.Score(st, []Option{lo, hi})
+	if !(ys[1] > ys[0]) {
+		t.Fatalf("Extra did not reach the head: scores %v, want the option with Extra 9 above the one with 0", ys)
+	}
+}

@@ -57,6 +57,12 @@ type Config struct {
 	// decisions that carry information. 1 means no reweighting, >1 up-weights
 	// the overrides, and <= 0 is treated as 1.
 	OverrideWeight float64
+	// ExtraW is the experimental per-option augmentation width (Option.Extra):
+	// 0 reproduces the shipped encoder geometry byte for byte; a feature-family
+	// experiment sets it to the width of the augmentation it built. Such a
+	// model cannot be checkpointed (the format has no ExtraW field), which is
+	// deliberate -- it is a measurement vehicle, not a deployable scorer.
+	ExtraW int
 	// Log receives one line per epoch (nil discards).
 	Log io.Writer
 }
@@ -156,7 +162,7 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 	rng := rand.New(rand.NewPCG(uint64(cfg.Seed), 0x9E3779B97F4A7C15^uint64(cfg.Seed)))
 	sp := splitCorpus(usable, cfg.Holdout, rng)
 
-	model := policynet.NewModel(policynet.TableRows, cfg.Embed, cfg.Hidden, rng)
+	model := policynet.NewModelExtra(policynet.TableRows, cfg.Embed, cfg.Hidden, cfg.ExtraW, rng)
 	model.ResidualW = float32(cfg.ResidualInit)
 	grads := model.NewGrads()
 	lc := policynet.LossConfig{Mode: cfg.Mode, HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight}

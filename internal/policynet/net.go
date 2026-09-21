@@ -88,7 +88,12 @@ type Model struct {
 	Rows   int // embedding table rows (TableRows for a checkpoint-rounded model)
 	H      int // embedding width
 	Hidden int // hidden layer width
-	InW    int // hidden input width = 2H + OptionSlotWidth + OptionDenseWidth
+	InW    int // hidden input width = 2H + OptionSlotWidth + OptionDenseWidth + ExtraW
+	// ExtraW is the experimental per-option augmentation width (Option.Extra).
+	// Zero for every encoder-produced model, so InW keeps the pinned geometry;
+	// a feature-family experiment sets it through NewModelExtra. Not part of
+	// EncoderHash and not checkpointable.
+	ExtraW int
 
 	Table  []float32 // Rows*H, row-major: Table[r*H+j]
 	StateW []float32 // DenseWidth*H, row-major: StateW[d*H+j]
@@ -181,11 +186,22 @@ type StepStat struct {
 // limits per block: the table small (a sum-pool of ~200 rows must start near
 // zero), the projections at sqrt(6/(fan_in+fan_out)).
 func NewModel(rows, h, hidden int, rng *rand.Rand) *Model {
+	return NewModelExtra(rows, h, hidden, 0, rng)
+}
+
+// NewModelExtra builds a model whose option input carries extraW experimental
+// augmentation floats after the encoded Dense block (Option.Extra). extraW 0
+// is exactly NewModel. Used only by feature-family experiments; the encoder's
+// pinned geometry is unchanged and no such model can be checkpointed (the
+// format has no ExtraW field) — it is a measurement vehicle, not a deployable
+// scorer.
+func NewModelExtra(rows, h, hidden, extraW int, rng *rand.Rand) *Model {
 	m := &Model{
 		Rows:   rows,
 		H:      h,
 		Hidden: hidden,
-		InW:    2*h + OptionSlotWidth + OptionDenseWidth,
+		ExtraW: extraW,
+		InW:    2*h + OptionSlotWidth + OptionDenseWidth + extraW,
 	}
 	m.Table = make([]float32, rows*h)
 	m.StateW = make([]float32, DenseWidth*h)
@@ -259,6 +275,10 @@ func (m *Model) inputVector(s []float32, o Option) []float32 {
 	}
 	off += OptionSlotWidth
 	copy(x[off:], o.Dense)
+	off += OptionDenseWidth
+	for i := 0; i < m.ExtraW && i < len(o.Extra); i++ {
+		x[off+i] = o.Extra[i]
+	}
 	return x
 }
 
