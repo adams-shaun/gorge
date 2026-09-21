@@ -462,30 +462,16 @@ func (e *Engine) abilityPresentHolds(p state.PlayerID, id state.ObjID, ab *cards
 // checkSVarHolds delegate to: effects.CheckSVarHolds. Because the gate
 // applies to every non-mana activation, its reads are the census's generic
 // rules-side SA set, not any one api's.
-func (e *Engine) sVarGateOK(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+func (e *Engine) sVarGateOK(p state.PlayerID, id state.ObjID, ab *cards.SA, merged int) bool {
 	check, ok := ab.Params["CheckSVar"]
 	if !ok {
 		return true
 	}
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil {
+	if o == nil || o.PileFaceFor(merged) == nil {
 		return false
 	}
-	svars := o.Face().SVars
-	// A live AddSVar$ static grant (Sword of Fire and Ice) layers its granted
-	// variables UNDER the printed table: a printed SVar of the same name
-	// wins, the same precedence the roll-publication read documents. The
-	// merge allocates only when a grant actually applies.
-	if gr := e.grantedSVarsFor(id); gr != nil {
-		merged := make(map[string]string, len(gr)+len(o.Face().SVars))
-		for k, v := range gr {
-			merged[k] = v
-		}
-		for k, v := range o.Face().SVars {
-			merged[k] = v
-		}
-		svars = merged
-	}
+	svars := e.pileSVars(id, merged)
 	ctx := &effects.Ctx{Source: id, Controller: p, SVars: svars}
 	holds, evaluated := effects.CheckSVarHolds(e, ctx, check, ab.Params["SVarCompare"])
 	if !evaluated {
@@ -520,7 +506,7 @@ func (e *Engine) sVarGateOK(p state.PlayerID, id state.ObjID, ab *cards.SA) bool
 // at offer time, so a target-dependent reduction reads 0 there (full price,
 // fail closed) — and repriceForTargets re-runs the evaluation with the
 // answered targets at CR 601.2c, before CR 601.2h pays.
-func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA, targets []state.Target) int32 {
+func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA, targets []state.Target, merged int) int32 {
 	v := strings.TrimSpace(ab.Params["ReduceCost"])
 	if v == "" {
 		return 0
@@ -532,14 +518,15 @@ func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA, t
 		return int32(n)
 	}
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil {
+	if o == nil || o.PileFaceFor(merged) == nil {
 		return 0
 	}
+	svars := e.pileSVars(id, merged)
 	body := v
-	if b, ok := o.Face().SVars[v]; ok {
+	if b, ok := svars[v]; ok {
 		body = b
 	}
-	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars, Targets: targets}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: svars, Targets: targets}
 	if n, ok := effects.EvalCountOK(e, ctx, body); ok && n > 0 {
 		return n
 	}
@@ -706,7 +693,14 @@ func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
 // expression that genuinely cannot be resolved stays unenforced (today's
 // behaviour): resolveActivationLimit reports ok=false.
 func (e *Engine) activationLimitReached(id state.ObjID, p state.PlayerID, ability int, raw string) bool {
-	limit, ok := e.resolveActivationLimit(id, p, raw)
+	return e.activationLimitReachedAt(id, p, ability, raw, 0)
+}
+
+// activationLimitReachedAt is activationLimitReached with the ability's own
+// pile position: ability is the FLAT pile index events now record, and merged
+// selects the face whose SVar table a computed limit resolves against.
+func (e *Engine) activationLimitReachedAt(id state.ObjID, p state.PlayerID, ability int, raw string, merged int) bool {
+	limit, ok := e.resolveActivationLimitAt(id, p, raw, merged)
 	if !ok || limit < 0 {
 		return false
 	}
@@ -795,6 +789,9 @@ func (e *Engine) resolveActivationLimit(id state.ObjID, p state.PlayerID, raw st
 	if o == nil {
 		return 0, false
 	}
+	// A literal is resolved without a face; an SVar-named value resolves
+	// against the TOP face's table. An UNDER-card ability with a computed
+	// limit resolves through its own caller's face-aware variant below.
 	f := o.Face()
 	if f == nil {
 		return 0, false
@@ -804,6 +801,30 @@ func (e *Engine) resolveActivationLimit(id state.ObjID, p state.PlayerID, raw st
 		return int(effects.EvalCount(e, ctx, raw)), true
 	}
 	if body, ok := f.SVars[raw]; ok {
+		return int(effects.EvalCount(e, ctx, body)), true
+	}
+	return 0, false
+}
+
+// resolveActivationLimitAt is resolveActivationLimit with the ability's own
+// pile position: an under-card ability whose ActivationLimit$ names an SVar
+// resolves it against the under-card's table (CR 702.140d), not the pile's
+// top face -- the same face-ownership rule the mana path applies.
+func (e *Engine) resolveActivationLimitAt(id state.ObjID, p state.PlayerID, raw string, merged int) (int, bool) {
+	raw = strings.TrimSpace(raw)
+	if n, err := strconv.Atoi(raw); err == nil {
+		return n, true
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.PileFaceFor(merged) == nil {
+		return 0, false
+	}
+	svars := e.pileSVars(id, merged)
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: svars}
+	if strings.HasPrefix(raw, "Count$") {
+		return int(effects.EvalCount(e, ctx, raw)), true
+	}
+	if body, ok := svars[raw]; ok {
 		return int(effects.EvalCount(e, ctx, body)), true
 	}
 	return 0, false
@@ -962,7 +983,11 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 			continue
 		}
 		for _, nm := range ce.AddAbilities {
-			ab := cards.ResolveSVar(src.Face().SVars, nm)
+			svars := ce.SVars
+			if svars == nil {
+				svars = src.Face().SVars
+			}
+			ab := cards.ResolveSVar(svars, nm)
 			if ab == nil || ab.Kind != "AB" {
 				continue
 			}
@@ -1387,35 +1412,57 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
-		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
-			continue
-		}
-		base := e.rawBaseCost(p, id)
-		if free, ok := e.mayPlayGrant(p, id); ok && free {
-			// MayPlayWithoutManaCost$ True (the kw-mayplay predicate): the
-			// mana part is free, exactly as beginCast's "mayplay" case will
-			// charge it; non-mana additional costs still apply (CR 118.9).
-			base = Cost{}
-		}
-		// CR 118.3a: the granting static's RaiseCost$ surcharge is added on
-		// top of the printed cost (Kotis, Sibsig Champion's "by exiling
-		// three other cards ... in addition to paying its other costs").
-		// Composed before offerCostFor so static cost modifiers apply to the
-		// raised cost, the CR 601.2f order; the affordability gate below then
-		// prices the whole cost against real state (nonManaCastable). A raise
-		// mayPlayStatic could not price never reaches here -- mayPlayGrant
-		// withholds the card -- but the defensive continue keeps the two
-		// sites agreeing if that ever changes.
-		if raise, hasRaise, priced := e.mayPlayRaiseCost(p, id); hasRaise {
-			if !priced {
-				continue
+		// The permission's ValidSA$ decides which cast shapes it permits
+		// (Brokkos, Apex of Forever's `ValidSA$ Spell.Mutate` permits ONLY
+		// the mutate cast from the graveyard, CR 903.3d/702.140a). An empty
+		// ValidSA$ is the ordinary permission, so this splits the historical
+		// single offer into its plain and mutate halves without changing any
+		// unrestricted grant's behaviour.
+		plain, mutate := e.mayPlayKinds(p, id)
+		if plain && e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			base := e.rawBaseCost(p, id)
+			if free, ok := e.mayPlayGrant(p, id); ok && free {
+				// MayPlayWithoutManaCost$ True (the kw-mayplay predicate): the
+				// mana part is free, exactly as beginCast's "mayplay" case will
+				// charge it; non-mana additional costs still apply (CR 118.9).
+				base = Cost{}
 			}
-			base = base.Plus(raise)
+			// CR 118.3a: the granting static's RaiseCost$ surcharge is added on
+			// top of the printed cost (Kotis, Sibsig Champion's "by exiling
+			// three other cards ... in addition to paying its other costs").
+			// Composed before offerCostFor so static cost modifiers apply to the
+			// raised cost, the CR 601.2f order; the affordability gate below then
+			// prices the whole cost against real state (nonManaCastable). A raise
+			// mayPlayStatic could not price never reaches here -- mayPlayGrant
+			// withholds the card -- but the defensive continue keeps the two
+			// sites agreeing if that ever changes.
+			if raise, hasRaise, priced := e.mayPlayRaiseCost(p, id); hasRaise {
+				if !priced {
+					continue
+				}
+				base = base.Plus(raise)
+			}
+			cost := withSpellAbilityExtras(f, offerCostFor(p, id, base, spellScope("mayplay")))
+			if affordable(p, id, cost, false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + f.Name, Obj: id, Mode: "mayplay"})
+			}
 		}
-		cost := withSpellAbilityExtras(f, offerCostFor(p, id, base, spellScope("mayplay")))
-		if affordable(p, id, cost, false) {
-			out = append(out, decision.Option{Index: len(out), Kind: "cast",
-				Label: "Cast " + f.Name, Obj: id, Mode: "mayplay"})
+		// Mutate half: the permission names the mutate cast. The mutate cast
+		// pays the mutate cost in place of the mana cost and targets a
+		// non-Human creature its controller owns -- the same synthesized
+		// target SA and the same cost substitution the hand walk's mutate
+		// offer uses (legal.go's hand branch, beginCast's "mutated" case),
+		// which prices the mutate cost regardless of the zone the card is
+		// cast from. A may-play mutate carries no printed-mana "free"
+		// exemption: MayPlayWithoutManaCost$ is a property of the permission,
+		// but the mutate cost IS the mana cost this cast pays.
+		if mutate {
+			if mc, ok := mutateCost(f); ok && e.castTargetsAvailable(p, id, mutateTargetSA()) &&
+				offerCastable(p, id, mc, spellScope("mutated"), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + f.Name + " (mutated)", Obj: id, Mode: "mutated"})
+			}
 		}
 	}
 	// Command zone (CR 903.8, Commander format): a player may cast a
@@ -1755,7 +1802,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// face-down permanent is offered at all.
 				continue
 			}
-			for i, ab := range f.Abilities {
+			// CR 702.140d: a mutated permanent has the top card's abilities
+			// PLUS all abilities of the cards beneath it. Walk the FLAT pile
+			// list (top face first, then each under-card): the flat index is
+			// the identity AbilityPush records and the activation-limit
+			// census counts, and a top-face ability keeps exactly its old
+			// index. abFace is the face that carries the ability -- an
+			// under-card's label and SVar table must be its own, never the
+			// pile top's.
+			pabils := o.PileAbilities()
+			for i, pa := range pabils {
+				ab := pa.SA
+				abFace := o.PileFaceFor(pa.Merged)
+				if abFace == nil {
+					continue
+				}
 				if ab.Kind != "AB" {
 					continue
 				}
@@ -1846,7 +1907,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if e.castSuppressed(p, id) {
 					continue
 				}
-				if raw, ok := ab.Params["ActivationLimit"]; ok && e.activationLimitReached(id, p, i, raw) {
+				if raw, ok := ab.Params["ActivationLimit"]; ok && e.activationLimitReachedAt(id, p, i, raw, pa.Merged) {
 					continue
 				}
 				// kw:Boast (CR 702.142): a Boast ability (Forge's `Boast$ True`
@@ -1861,7 +1922,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// The ability's own ReduceCost$ (Otawara's Channel): the CR
 				// 601.2f composition the offer gate and beginActivation's
 				// charge share, so an offered cost and the paid one agree.
-				if n := e.ownReduceCost(p, id, ab, nil); n > 0 && cost.Generic >= n {
+				if n := e.ownReduceCost(p, id, ab, nil, pa.Merged); n > 0 && cost.Generic >= n {
 					cost.Generic -= n
 				} else if n > 0 {
 					cost.Generic = 0
@@ -1882,7 +1943,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// Condition* gate (conditionMet) where the SA carries one; an
 				// offered-but-gated activation that resolves into nothing would
 				// be a paid no-op the offer loop could have withheld.
-				if !e.sVarGateOK(p, id, ab) {
+				if !e.sVarGateOK(p, id, ab, pa.Merged) {
 					continue
 				}
 				// IsPresent$/PresentCompare$ (Mistveil Plains' "Activate only if
@@ -1892,7 +1953,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 					continue
 				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
-					Label: f.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
+					Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
 					Grant: e.abilityGrant(id, ab)})
 			}
 		}
@@ -1934,7 +1995,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			cost := e.parseCost(ab.Params["Cost"])
 			// The granted twin of the printed loop's own ReduceCost$ fold.
-			if n := e.ownReduceCost(p, id, ab, nil); n > 0 && cost.Generic >= n {
+			if n := e.ownReduceCost(p, id, ab, nil, 0); n > 0 && cost.Generic >= n {
 				cost.Generic -= n
 			} else if n > 0 {
 				cost.Generic = 0

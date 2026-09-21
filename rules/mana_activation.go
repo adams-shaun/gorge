@@ -89,21 +89,6 @@ type manaUnlessActivation struct {
 	next       int
 }
 
-// manaAbilityIndex maps a face's mana-ability pointer back to its index in
-// the face's Abilities slice -- the ordinal the AbilityPush event carries as
-// Amount for a non-mana activation, and the ordinal the ManaActivate marker
-// carries for a mana one. The gate and the emission must agree on it, so both
-// go through this one identity scan (-1 when ma is not in f.Abilities, which
-// every caller treats as "not this face's ability").
-func manaAbilityIndex(f *cards.Face, ma *cards.SA) int {
-	for i := range f.Abilities {
-		if f.Abilities[i] == ma {
-			return i
-		}
-	}
-	return -1
-}
-
 // isManaAbilityAPI reports the two supported activated mana ability APIs.
 func isManaAbilityAPI(api string) bool { return api == "Mana" || api == "ManaReflected" }
 
@@ -167,17 +152,31 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	// a plain CR 708.5 face-down 2/2 has no basic-land set type and
 	// contributes nothing.
 	faceDown := e.faceDownPrintedHides(o)
-	var manaAbilities []*cards.SA
+	type pileManaAbility struct {
+		ma   *cards.SA
+		face *cards.Face
+	}
+	var manaAbilities []pileManaAbility
 	if faceDown {
 		for _, w := range o.FaceDownTypeWords() {
 			if ab, ok := cards.IntrinsicManaAbility(w); ok {
-				manaAbilities = append(manaAbilities, ab)
+				manaAbilities = append(manaAbilities, pileManaAbility{ma: ab, face: f})
 			}
 		}
 	} else {
-		manaAbilities = f.ManaAbilities()
+		// CR 702.140d: a mutated pile's under-card mana abilities are live
+		// too; each resolves its own face's SVar table (the ctx below).
+		for i := 0; i < o.PileFaceCount(); i++ {
+			pf, ok := o.PileFaceAt(i)
+			if !ok {
+				continue
+			}
+			for _, ma := range pf.Face.ManaAbilities() {
+				manaAbilities = append(manaAbilities, pileManaAbility{ma: ma, face: pf.Face})
+			}
+		}
 	}
-	ctx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
+	recipientCtx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
 	abilityRestricted := func(ma *cards.SA) bool {
 		if statics == nil {
 			return e.abilityRestricted(p, id, ma)
@@ -185,7 +184,8 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		return e.abilityRestrictedUsing(statics.get().cantActivate, p, id, ma)
 	}
 	var out []*cards.SA
-	for _, ma := range manaAbilities {
+	for _, pma := range manaAbilities {
+		ma := pma.ma
 		// CR 605.1b: an activated ability is a mana ability only when it is
 		// NOT a loyalty ability. A planeswalker's mana-producing loyalty
 		// ability (Koth's [+1], Ugin, Eye of the Storms' [0]: Add {C}{C}{C},
@@ -214,7 +214,8 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			// use never advances any cast). The limit is scanned exactly like
 			// the non-mana gate's.
 			if raw, ok := ma.Params["ActivationLimit"]; ok {
-				if idx := manaAbilityIndex(f, ma); idx >= 0 && e.activationLimitReached(id, p, idx, raw) {
+				idx, merged, found := pileAbilityRefOf(o, ma)
+				if found && e.activationLimitReachedAt(id, p, idx, raw, merged) {
 					continue
 				}
 			}
@@ -233,7 +234,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	// closure must agree, or a reflected land in hand/graveyard is offered
 	// (and activatable) wherever an opponent's land exists -- Exotic Orchard
 	// reporting an "Activate ... for mana" action for the card IN HAND.
-	considerReflected := func(ma *cards.SA) {
+	considerReflected := func(ma *cards.SA, ctx *effects.Ctx) {
 		if ma.Kind != "AB" || ma.API != "ManaReflected" || !abilityZoneOK(ma, o.Zone) || abilityRestricted(ma) || !e.manaAbilityPayable(p, id, ma) || !e.manaReflectedPresentHolds(p, id, ma) {
 			return
 		}
@@ -241,8 +242,17 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			out = append(out, ma)
 		}
 	}
-	for _, ma := range o.Face().Abilities {
-		considerReflected(ma)
+	// A ManaReflected ability may sit on the top face or any under-card; each
+	// resolves its own face's table.
+	for i := 0; i < o.PileFaceCount(); i++ {
+		pf, ok := o.PileFaceAt(i)
+		if !ok {
+			continue
+		}
+		faceCtx := &effects.Ctx{Source: id, Controller: p, SVars: pf.Face.SVars}
+		for _, ma := range pf.Face.Abilities {
+			considerReflected(ma, faceCtx)
+		}
 	}
 	// A Continuous static may grant an activated ability through AddAbility$.
 	// Resolve its named SVar from the static's source but activate it from id:
@@ -278,7 +288,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		}
 		printed[ma.Line] = true
 		if ma.API == "ManaReflected" {
-			considerReflected(ma)
+			considerReflected(ma, recipientCtx)
 			continue
 		}
 		if ma.API == "Mana" && !e.isLoyaltyAbility(ma) && abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
@@ -300,7 +310,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			continue
 		}
 		if ga.sa.API == "ManaReflected" {
-			considerReflected(ga.sa)
+			considerReflected(ga.sa, recipientCtx)
 			continue
 		}
 		if ga.sa.API != "Mana" || e.isLoyaltyAbility(ga.sa) {
@@ -1061,7 +1071,11 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 	// activation here (events.ManaActivate's own comment). Emitted only for
 	// ActivationLimit$ abilities so no existing game's log shape changes.
 	if _, limited := ma.Params["ActivationLimit"]; limited {
-		if idx := manaAbilityIndex(e.G.Obj(source).Face(), ma); idx >= 0 {
+		// The flat pile index (top face first, then under-cards) is the SAME
+		// identity availableManaAbilitiesUsing's limit gate checks, so an
+		// under-card mana ability's census cannot be counted against a
+		// top-face ability.
+		if idx, _, found := pileAbilityRefOf(e.G.Obj(source), ma); found {
 			e.emit(events.Event{Kind: events.ManaActivate, Player: p, Obj: source, Amount: int32(idx)})
 		}
 	}

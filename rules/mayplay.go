@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -206,12 +207,30 @@ var mayPlayUnreadGates = [...]string{
 // the alt-cost path too -- measured 0 corpus statics carry both
 // MayPlayAltManaCost$ and RaiseCost$, so no alternative cost moves.
 func mayPlayGateRejected(params map[string]string) bool {
+	// ValidSA$ shapes the walk can classify stay live: the mutate-cast
+	// permission (Brokkos, Apex of Forever's `ValidSA$ Spell.Mutate` -- "You
+	// may cast CARDNAME from your graveyard using its mutate ability", CR
+	// 903.3d) is read by mayPlayKinds, which splits the permission into its
+	// plain and mutate cast halves. The exact `Spell.Mutate` token grants
+	// ONLY the mutate cast -- mayPlayKinds' plain half runs
+	// spellMatchesValidSA, which fails closed on the non-Self constraint --
+	// so admitting it here widens nothing. Every other ValidSA$ value
+	// (Spell.Blitz, Spell.Warp, Spell.Bestow, the bare Spell, ...) keeps the
+	// unread-gate fail-closed behaviour measured on the corpus.
+	if sa := strings.TrimSpace(params["ValidSA"]); sa != "" && !strings.EqualFold(sa, "Spell.Mutate") {
+		return true
+	}
+	return mayPlayGateRejectedOther(params)
+}
+
+// mayPlayGateRejectedOther is mayPlayGateRejected's remaining unread-gate
+// family, with ValidSA$ handled by the caller (the mutate-cast token is the
+// one shape the may-play walk classifies; see mayPlayKinds).
+func mayPlayGateRejectedOther(params map[string]string) bool {
 	if strings.TrimSpace(params["ValidAfterStack"]) != "" ||
-		strings.TrimSpace(params["CheckSecondSVar"]) != "" ||
 		strings.TrimSpace(params["CheckSecondSVar"]) != "" ||
 		strings.TrimSpace(params["CheckThirdSVar"]) != "" ||
 		strings.TrimSpace(params["PresentCompare"]) != "" ||
-		strings.TrimSpace(params["ValidSA"]) != "" ||
 		strings.TrimSpace(params["ActivationZone"]) != "" ||
 		strings.TrimSpace(params["CharacteristicDefining"]) != "" {
 		return true
@@ -533,4 +552,74 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []Cost {
 		out = append(out, alt)
 	}
 	return out
+}
+
+// mayPlayKinds classifies the active may-play permissions over card id into the
+// cast shapes a permission may name. `plain` is an ordinary cast permission
+// (ValidSA$ empty, or a ValidSA$ the ordinary spell matcher accepts); `mutate`
+// is Brokkos, Apex of Forever's shape -- `ValidSA$ Spell.Mutate`, "You may cast
+// CARDNAME from your graveyard using its mutate ability", which permits ONLY
+// the mutate cast. A permission whose ValidSA$ the ordinary matcher fails
+// closed on and that is not the mutate token grants NEITHER, so the may-play
+// walk offers nothing for it (fail closed, the module's standing direction).
+//
+// The scan is the same two sources mayPlayGrant reads (the card's own face
+// statics, then the battlefield Continuous statics its controller holds), so a
+// permission cannot be discovered by one walk and not the other. The plain
+// half keeps every existing may-play card's behaviour: an unrestricted
+// permission yields plain=true, mutate=false.
+func (e *Engine) mayPlayKinds(p state.PlayerID, id state.ObjID) (plain, mutate bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return false, false
+	}
+	// The scan is the same two sources mayPlayGrant reads (the card's own face
+	// statics, then the battlefield Continuous statics its controller holds),
+	// so a permission cannot be discovered by one walk and not the other. The
+	// plain half keeps every existing may-play card's behaviour: an
+	// unrestricted permission yields plain=true, mutate=false. The body is
+	// inlined per source (no shared closure over a params parameter) so the
+	// census sees each scan indexing the static's own Params map.
+	for _, st := range o.Face().Statics {
+		if st.Mode != "Continuous" {
+			continue
+		}
+		if applies, grants, _, _, _, _ := e.mayPlayStatic(st.Params, id, o.Controller, id); applies && grants {
+			pl, mu := mayPlayValidSAKinds(st.Params["ValidSA"], o.Face(), id, id)
+			plain = plain || pl
+			mutate = mutate || mu
+		}
+	}
+	for _, sv := range e.activeStatics("Continuous") {
+		if sv.Controller != p {
+			continue
+		}
+		if applies, grants, _, _, _, _ := e.mayPlayStatic(sv.Params, id, sv.Controller, sv.Source); applies && grants {
+			pl, mu := mayPlayValidSAKinds(sv.Params["ValidSA"], o.Face(), id, sv.Source)
+			plain = plain || pl
+			mutate = mutate || mu
+		}
+	}
+	return plain, mutate
+}
+
+// mayPlayValidSAKinds splits one may-play permission's ValidSA$ into its
+// ordinary-cast and mutate-cast halves. An absent/empty value is an ordinary
+// permission. The mutate token is matched case-insensitively as the whole
+// alternative, never as a substring, so a future `Spell.Mutates`-style token
+// cannot be misread as the cast permission.
+func mayPlayValidSAKinds(validSA string, f *cards.Face, id, source state.ObjID) (plain, mutate bool) {
+	raw := strings.TrimSpace(validSA)
+	if raw == "" {
+		return true, false
+	}
+	if spellMatchesValidSA(f, raw, id, source) {
+		plain = true
+	}
+	for _, alt := range strings.Split(raw, ",") {
+		if strings.EqualFold(strings.TrimSpace(alt), "Spell.Mutate") {
+			mutate = true
+		}
+	}
+	return plain, mutate
 }

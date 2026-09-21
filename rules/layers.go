@@ -90,6 +90,19 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 				if onBattlefield && o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
 					faces = append(faces, o.Card.Faces[1-int(o.FaceIdx)])
 				}
+				// CR 702.140d: a mutated pile's under-card statics are live too,
+				// exactly like the Rooms alternate face above. They are appended
+				// in pile order AFTER the top face (and after the unlocked room
+				// face, which is itself the top card's other half), so the
+				// emission order -- and therefore every timestamp tie-break -- is
+				// deterministic. A merged card exists only on the battlefield.
+				if onBattlefield {
+					for i := range o.MergedCards {
+						if mf := o.MergedFaceAt(i); mf != nil {
+							faces = append(faces, mf)
+						}
+					}
+				}
 				for _, fc := range faces {
 					// grantQueue is the AddStaticAbility$ work queue, REUSED across
 					// scans on the Engine's own buffer (staticQueueBuf): the face's
@@ -146,7 +159,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// (the shipped statics convention rules/statics.go's
 						// checkSVarHolds documents): the grant is withheld whole, never
 						// silently always-applied.
-						if !e.continuousGateHolds(staticView{Source: id, Controller: o.Controller, Params: st.Params}) {
+						if !e.continuousGateHolds(staticView{Source: id, Controller: o.Controller, Params: st.Params, SVars: fc.SVars}) {
 							continue
 						}
 						base := ContinuousEffect{
@@ -154,6 +167,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							Timestamp:  o.Timestamp,
 							Controller: o.Controller,
 							Affects:    affects,
+							SVars:      fc.SVars,
 						}
 						if hasStat(st, "AddPower") || hasStat(st, "AddToughness") {
 							pt := base
@@ -838,8 +852,12 @@ func (e *Engine) staticAmount(ce ContinuousEffect, expr string) int32 {
 	if o == nil || o.Face() == nil {
 		return 0
 	}
+	svars := ce.SVars
+	if svars == nil {
+		svars = o.Face().SVars
+	}
 	sa := &cards.SA{Params: map[string]string{"Amount": expr}}
-	return effects.Num(e, &effects.Ctx{Source: ce.Source, Controller: ce.Controller, SVars: o.Face().SVars}, sa, "Amount", 0)
+	return effects.Num(e, &effects.Ctx{Source: ce.Source, Controller: ce.Controller, SVars: svars}, sa, "Amount", 0)
 }
 
 // addPT saturates instead of allowing a large static expression to wrap a

@@ -777,6 +777,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		if src := e.G.Obj(o.Source); src != nil {
 			if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
 				svars = mf.SVars
+			} else if mf, ok := e.pileFaceForSA(o.Source, o.Ability); ok && mf != nil {
+				// An under-card ACTIVATED ability whose resolution SUSPENDED (an
+				// asking sub-ability): the resume reads the under-card's own SVar
+				// table, the same owning-face rule resolveTop's ability branch
+				// applies -- never the pile top's.
+				svars = mf.SVars
 			} else if sf := src.Face(); sf != nil {
 				svars = sf.SVars
 			}

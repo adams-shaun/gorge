@@ -58,6 +58,12 @@ type pendingCast struct {
 	from    state.Zone
 	mode    string // "", "kicked", "surged", "flashback", "miracle", and the alternative-cost modes this file offers
 	ability int    // -1 for a spell (Task 10 uses >= 0)
+	// abilityMerged is the pile position of the activated ability pc.ability
+	// names: 0 for the top face, i+1 for the i-th card merged beneath it
+	// (CR 702.140d). It selects the SVar table a computed cost/limit resolves
+	// against, so an under-card ability reads its OWN table, never the pile
+	// top's. Zero for a spell and for every top-face ability.
+	abilityMerged int
 
 	cost Cost
 
@@ -3662,10 +3668,11 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 	}
 	scope := spellScope(pc.mode)
 	if pc.ability >= 0 {
-		if pc.ability >= len(o.Face().Abilities) {
+		pa, ok := o.PileAbilityAt(pc.ability)
+		if !ok {
 			return
 		}
-		ab := o.Face().Abilities[pc.ability]
+		ab := pa.SA
 		scope = abilityScope(ab)
 		// The ability's own target-dependent ReduceCost$ (Raft Security
 		// Officer's AllTargeted$Valid Creature.powerLE3): beginActivation
@@ -3674,7 +3681,7 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 		// net-adjust the generic by the delta. The net form is idempotent --
 		// a second pass computes delta 0 -- which matters because
 		// repriceForTargets can run again on a mana-window resume.
-		if n := e.ownReduceCost(pc.player, pc.card, ab, pc.targets); n != pc.ownReduce {
+		if n := e.ownReduceCost(pc.player, pc.card, ab, pc.targets, pc.abilityMerged); n != pc.ownReduce {
 			pc.cost.Generic = addClampedGeneric(pc.cost.Generic, int64(pc.ownReduce-n))
 			pc.ownReduce = n
 		}
@@ -3714,10 +3721,11 @@ func (e *Engine) pendingCastScope(pc *pendingCast) (costScope, bool) {
 	if pc.ability < 0 {
 		return spellScope(pc.mode), true
 	}
-	if pc.ability >= len(o.Face().Abilities) {
+	pa, ok := o.PileAbilityAt(pc.ability)
+	if !ok {
 		return costScope{}, false
 	}
-	return abilityScope(o.Face().Abilities[pc.ability]), true
+	return abilityScope(pa.SA), true
 }
 
 // affordableTargetCandidates filters legal CR 115 targets to the choices
@@ -4865,10 +4873,11 @@ func (e *Engine) targetAsk() bool {
 	f := o.Face()
 	var sa *cards.SA
 	if pc.ability >= 0 {
-		if f == nil || pc.ability >= len(f.Abilities) {
+		pa, ok := o.PileAbilityAt(pc.ability)
+		if !ok {
 			return false
 		}
-		sa = f.Abilities[pc.ability]
+		sa = pa.SA
 	} else if f != nil {
 		sa = f.SpellAbility()
 		if sa == nil && pc.mode == "bestowed" {
@@ -5344,8 +5353,7 @@ func (e *Engine) payCast() {
 		// notes nothing — Forge's CostRememberSpentMana records only mana
 		// costs too.
 		remembered := false
-		if f := e.G.Obj(pc.card).Face(); f != nil && pc.ability >= 0 && pc.ability < len(f.Abilities) {
-			ab := f.Abilities[pc.ability]
+		if ab, _, ok := e.pendingAbilitySA(pc); ok {
 			remembered = strings.EqualFold(strings.TrimSpace(ab.Params["RememberCostMana"]), "True")
 		}
 		if remembered {
