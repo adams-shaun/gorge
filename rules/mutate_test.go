@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -38,6 +39,16 @@ func mutatedCastOption(t *testing.T, e *Engine, id state.ObjID) decision.Option 
 // the non-Human-creature target ask with bearer, and drains the stack.
 func mutateCastOnto(t *testing.T, e *Engine, opt decision.Option, bearer state.ObjID, onTop bool) {
 	t.Helper()
+	mutateCastOntoUndrained(t, e, opt, bearer, onTop)
+	passUntilStackEmpty(t, e, 40)
+}
+
+// mutateCastOntoUndrained is mutateCastOnto without the stack drain: the cast
+// is announced, placed and targeted, and the caller drives the decisions the
+// mutation's own triggers pose (an OptionalDecider$ trigger asks a
+// KTriggerOptional as it resolves, which passUntilStackEmpty cannot answer).
+func mutateCastOntoUndrained(t *testing.T, e *Engine, opt decision.Option, bearer state.ObjID, onTop bool) {
+	t.Helper()
 	submitChoices(t, e, opt.Index)
 	// CR 702.140b: the over/under placement is announced at cast time.
 	d := e.Pending()
@@ -69,7 +80,6 @@ func mutateCastOnto(t *testing.T, e *Engine, opt decision.Option, bearer state.O
 		t.Fatalf("mutate target ask does not offer %d: %+v", bearer, d.Options)
 	}
 	submitChoices(t, e, idx)
-	passUntilStackEmpty(t, e, 40)
 }
 
 // battlefieldNamedCount is a thin alias for the shared foretell_test helper
@@ -515,6 +525,155 @@ func TestMutateCostIsPaidInsteadOfTheManaCost(t *testing.T) {
 	}
 	if spent != 3 {
 		t.Fatalf("mutate cast spent %d mana, want the mutate cost {2}{W}'s 3 (a plain-cost charge would be 4)", spent)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// --- CR 702.140d: an under-card's ability is resolved AS the under-card's ---
+
+// drainUntilOptional passes priority until an optional-trigger ask is posed,
+// and returns it. The pile's own mutation must have resolved first, so this
+// is the mutateDrain loop with the KTriggerOptional stop: an empty stack with
+// no ask means the optional trigger never asked at all, which is exactly the
+// defect the callers pin.
+func drainUntilOptional(t *testing.T, e *Engine, limit int) *decision.Decision {
+	t.Helper()
+	for i := 0; i < limit && !e.G.Over; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatalf("no decision and no optional ask (stack depth %d)", len(e.G.Stack))
+		}
+		switch d.Kind {
+		case decision.KTriggerOptional:
+			return d
+		case decision.KPriority:
+			if len(e.G.Stack) == 0 {
+				t.Fatal("the stack emptied without the optional trigger ever asking")
+			}
+			passed := false
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}); err != nil {
+						t.Fatalf("submit pass: %v", err)
+					}
+					passed = true
+					break
+				}
+			}
+			if !passed {
+				t.Fatalf("priority decision with no pass option: %+v", d.Options)
+			}
+		default:
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+				t.Fatalf("submit %v: %v", d.Kind, err)
+			}
+		}
+	}
+	t.Fatal("drain never reached the optional ask")
+	return nil
+}
+
+// TestHuntmasterLigerUnderAForeignTopPumpsWithItsOwnSVar is the verdict-sol1
+// MAJOR-1 regression: a mutated pile's UNDER-CARD triggered ability used to
+// resolve its SVar-indirect parameters against the pile's TOP face.
+//
+// Huntmaster Liger's trigger body is "DB$ PumpAll | NumAtt$ +X | NumDef$ +X"
+// with "SVar:X:Count$TimesMutated" -- both names live on the Liger's own
+// face. Mutated UNDER a Grizzly Bears (a vanilla corpus card with no SVars at
+// all), the pile's Face() is the Bears, so resolveTop handed the resolution
+// the BEARS' SVar table, X degraded to 0 per Num's convention and the pump
+// was +0/+0: the other creature stayed 2/2 where CR 702.140d requires 3/3.
+// The engine-side cause was pointer identity, not the lookup: the ability was
+// minted from a fresh cards.ResolveSVar parse, so no consumer could recover
+// the merged face that owned it. It is now minted from the under-card face's
+// COMPILED trigger, exactly as an ordinary TriggerPush mints from the top
+// face's, and the owning face is what the SVar table is read from.
+//
+// The mirror case (Liger on TOP) already worked and is asserted alongside, so
+// a regression that simply broke the top-face table cannot pass this test.
+func TestHuntmasterLigerUnderAForeignTopPumpsWithItsOwnSVar(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	for _, tc := range []struct {
+		name  string
+		onTop bool
+		seed  uint64
+	}{
+		{"under a foreign top card", false, 311},
+		{"on top itself", true, 312},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			liger := mustCorpusCard(t, reg, "Huntmaster Liger")
+			bears := mustCorpusCard(t, reg, "Grizzly Bears")
+			e, cfg := tokenReplGame(t, tc.seed, liger, bears)
+			ligerID := moveSeededCard(t, e, 0, liger, state.ZHand)
+			target := moveSeededCard(t, e, 0, bears, state.ZBattlefield)
+			other := putToken(t, e, 0, mutateBearSrc, state.ZBattlefield)
+			addMana(t, e, 0, "WWW") // the mutate cost {2}{W}
+
+			mutateCastOnto(t, e, mutatedCastOption(t, e, ligerID), target, tc.onTop)
+			mutateDrain(t, e, 40)
+
+			pile := e.G.Obj(target)
+			if pile == nil || pile.TimesMutated != 1 {
+				t.Fatalf("pile = %+v, want TimesMutated 1", pile)
+			}
+			// The under-card's own X (Count$TimesMutated) is 1, so the OTHER
+			// creature you control is +1/+1: 3/3, whichever card is on top.
+			if p, tt := e.Power(other), e.Toughness(other); p != 3 || tt != 3 {
+				t.Fatalf("other creature = %d/%d, want 3/3 (the Liger's own SVar X = TimesMutated 1, "+
+					"not the top face's absent X)", p, tt)
+			}
+			replayCheck(t, e, cfg)
+		})
+	}
+}
+
+// TestPouncingShoresharkUnderAForeignTopAsksItsOptionalDecider is the
+// verdict-sol1 MAJOR-2 regression: an under-card trigger's OptionalDecider$
+// gate was skipped entirely, so "you may return target creature an opponent
+// controls" silently became "you must".
+//
+// resolveTop recovers a resolving ability's owning cards.Trigger by comparing
+// the ability against the compiled t.Effect POINTER; the merged half of that
+// scan was dead because the merged ability had been minted from a fresh
+// cards.ResolveSVar parse. With the mint taking the compiled pointer, the
+// gate fires: the decider is asked, a "No" leaves the opponent's creature
+// alone, and the label names the UNDER-CARD, not the pile's top card.
+func TestPouncingShoresharkUnderAForeignTopAsksItsOptionalDecider(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	shark := mustCorpusCard(t, reg, "Pouncing Shoreshark")
+	e, cfg := tokenReplGame(t, 313, shark)
+	sharkID := moveSeededCard(t, e, 0, shark, state.ZHand)
+	bear := putToken(t, e, 0, mutateBearSrc, state.ZBattlefield)
+	victim := putToken(t, e, 1, mutateBearSrc, state.ZBattlefield)
+	addMana(t, e, 0, "UUUU") // the mutate cost {3}{U}
+
+	mutateCastOntoUndrained(t, e, mutatedCastOption(t, e, sharkID), bear, false)
+	d := drainUntilOptional(t, e, 40)
+	if d.Player != 0 {
+		t.Fatalf("optional decider = player %d, want the controller (OptionalDecider$ You)", d.Player)
+	}
+	if !strings.Contains(d.Prompt, "Pouncing Shoreshark") {
+		t.Fatalf("optional ask prompt %q does not name the under-card", d.Prompt)
+	}
+	// Answer "No": CR 603.5's may-clause declined, so the opponent's creature
+	// must still be on the battlefield.
+	no := -1
+	for _, o := range d.Options {
+		if o.Kind == "no" {
+			no = o.Index
+		}
+	}
+	if no < 0 {
+		t.Fatalf("optional ask has no decline option: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{no}}); err != nil {
+		t.Fatalf("submit no: %v", err)
+	}
+	mutateDrain(t, e, 40)
+
+	if o := e.G.Obj(victim); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("the declined 'you may return' bounced the opponent's creature anyway: %+v", o)
 	}
 	replayCheck(t, e, cfg)
 }

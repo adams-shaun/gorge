@@ -3348,7 +3348,17 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 		if src == nil || src.Face() == nil {
 			return false
 		}
-		ctx := &effects.Ctx{Source: source, Controller: you, SVars: src.Face().SVars}
+		// A mutated pile's under-card trigger (CR 702.140d) is gated by the
+		// UNDER-CARD's own SVar table: Face() on a pile is always its top
+		// card, and the top card of a mutate pile can be any creature, so
+		// reading its table would evaluate the gate against a body it never
+		// defined (failing closed, i.e. silently never firing). An ordinary
+		// trigger's owning face IS the top face, so nothing else moves.
+		svars := src.Face().SVars
+		if mf := e.faceOwningTrigger(source, t); mf != nil {
+			svars = mf.SVars
+		}
+		ctx := &effects.Ctx{Source: source, Controller: you, SVars: svars}
 		holds, evaluated := effects.CheckSVarHolds(e, ctx, name, strings.TrimSpace(t.Params["SVarCompare"]))
 		if !evaluated || !holds {
 			return false

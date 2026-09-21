@@ -389,18 +389,27 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// DelayTriggerRememberedLKI), but a Room's UnlockDoor trigger reaches its
 	// alternate-face Execute$ SVar through this path and may target.
 	// A mutated pile's under-card trigger (CR 702.140d) shares the delayed
-	// shape -- the Ability is the Execute$ SVar-named body, minted from the
-	// pile's face stack -- but its event names the UNDER-CARD's pile index
-	// (MergedTriggerPush's Amount) so events.Apply resolves the Execute$
-	// name against that face's own SVar table. The top face's same-named
-	// SVar (Forge's canonical TrigToken) must never steal the body: the
-	// pile's top card can be any non-Human creature, and "TrigToken" is the
-	// name most token triggers give their body (Cubwarden under Everquill
-	// Phoenix is the real collision pair).
+	// shape -- the ability is minted inside events.Apply from data the log
+	// carries -- but its event names the UNDER-CARD's pile index AND that
+	// face's own Triggers index (packed into MergedTriggerPush's Amount), so
+	// Apply mints the face's COMPILED trigger effect, the same pointer
+	// f.Triggers[i].Effect an ordinary TriggerPush mints. A by-name SVar
+	// resolution would be wrong twice over: the top face's same-named SVar
+	// (Forge's canonical TrigToken) would steal the body -- the pile's top
+	// card can be any non-Human creature, and Cubwarden under Everquill
+	// Phoenix is the real collision pair -- and a freshly parsed SA has no
+	// pointer identity with the compiled trigger, which is how
+	// findTriggerForAbilityFace (and through it the OptionalDecider$ gate,
+	// the intervening-if recheck, the ResolvedLimit$ count, the label and
+	// the resolution-time SVar table) recovers the owning line.
 	if pt.Delayed || pt.Merged > 0 {
 		kind, amount, text := events.DelayedPush, int32(pt.DelayedID), "delayed trigger"
 		if pt.Merged > 0 {
-			kind, amount, text = events.MergedTriggerPush, int32(pt.Merged-1), "merged trigger"
+			kind, amount, text = events.MergedTriggerPush,
+				events.MergedTriggerAmount(pt.Merged-1, pt.Idx), "merged trigger"
+			if amount < 0 {
+				return
+			}
 		}
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
@@ -687,6 +696,25 @@ func (e *Engine) findTriggerForAbilityFace(source state.ObjID, sa *cards.SA) (ca
 		}
 	}
 	return cards.Trigger{}, nil, false
+}
+
+// faceOwningTrigger returns the face of source that carries t: its top face
+// when t is an ordinary printed trigger, or the merged face beneath it when t
+// belongs to a card stacked under a mutated pile's top card (CR 702.140d).
+// The compiled Effect pointer is the identity -- cards.Link parses one *SA per
+// T: line, so no two lines share it -- and a trigger with no compiled body has
+// nothing to run and no face to name. nil means "not found"; callers keep
+// whatever they read from the top face, which for every non-merged object is
+// the same face this would return.
+func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.Face {
+	if t.Effect == nil {
+		return nil
+	}
+	_, f, ok := e.findTriggerForAbilityFace(source, t.Effect)
+	if !ok {
+		return nil
+	}
+	return f
 }
 
 // optionalDecider reports whether pt is an optional trigger, which seat gets

@@ -105,6 +105,8 @@ func TestCompiledTriggerInterestParity(t *testing.T) {
 		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "Sacrificed",
 		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
+		"CounterRemoved", "DamagePreventedOnce", "TokenCreated", "TokenCreatedOnce",
+		"ChangesZoneAll", "SpellCastOrCopy", "SpellCopy", "Mutates",
 		"Drawn", "LifeLost", "Phase", "Attached", "Always", "LifeLostAll", "FutureMode", "",
 	}
 	card := &cards.Card{}
@@ -379,6 +381,51 @@ func TestTriggerEligibilityKeepsRoomAlternateFace(t *testing.T) {
 		e.checkFaceTriggers(e, ev, nil, 0, 0, false, false, false)
 		if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != id || !e.pendingTriggers[0].Delayed {
 			t.Fatalf("cast face %d: queue = %+v, want alternate-face trigger", face, e.pendingTriggers)
+		}
+	}
+}
+
+// TestTriggerEventMaskClassifiesKnownKindsPastTheMaskWidth pins the rule
+// triggerEventMask.allows documents at the uint64 boundary, which mutate was
+// the first feature to cross (events.Mutate and events.MergedTriggerPush are
+// ordinals 64 and 65). An enumerated mask must classify a KNOWN kind past the
+// width EXACTLY -- the old bare "kind >= 64 is allowed" catch-all would have
+// claimed a Mode$ Mutates face could fire on any future event, flowing events
+// into matchers that assume their own kind's fields -- while an UNKNOWN kind
+// (a newer log replayed by an older binary) must still fail open to the full
+// matcher, and the conservative catch-all mask must still retain everything.
+//
+// The compiled prefilter stays deliberately WIDER here (Mutates has no
+// cards.TriggerInterest of its own, so it compiles to TriggerInterestAny):
+// TestCompiledTriggerInterestParity, whose mode list now carries "Mutates",
+// holds that one direction -- compiled never rejects a textual candidate.
+func TestTriggerEventMaskClassifiesKnownKindsPastTheMaskWidth(t *testing.T) {
+	// events.Mutate is ordinal 63 -- the last kind INSIDE the mask -- and
+	// events.MergedTriggerPush is 64, the first one past it. Only the second
+	// exercises the branch below the shift, so it is the one to gate on.
+	if int(events.MergedTriggerPush) < 64 {
+		t.Skipf("events.MergedTriggerPush is ordinal %d, still inside the uint64 mask",
+			int(events.MergedTriggerPush))
+	}
+	mutates := triggerModeEvents("Mutates")
+	if !mutates.allows(events.Mutate) {
+		t.Fatal("Mode$ Mutates rejects its own event kind")
+	}
+	if mutates.allows(events.MergedTriggerPush) {
+		t.Fatal("Mode$ Mutates accepts an unrelated known kind past the mask width")
+	}
+	if !mutates.allows(events.Kind(events.NumKinds)) {
+		t.Fatal("an unknown (future) kind must fail open to the full matcher")
+	}
+	if !allTriggerEvents.allows(events.MergedTriggerPush) {
+		t.Fatal("the conservative catch-all mask dropped a kind past the mask width")
+	}
+	// The compiled prefilter is the wider side of the pair, for every kind.
+	e := &Engine{}
+	face := &cards.Face{Triggers: []cards.Trigger{{Mode: "Mutates"}}}
+	for kind := events.Kind(0); int(kind) < events.NumKinds; kind++ {
+		if mutates.allows(kind) && !e.faceMayTrigger(face, kind) {
+			t.Fatalf("kind %s: compiled prefilter rejected a textual candidate", kind)
 		}
 	}
 }

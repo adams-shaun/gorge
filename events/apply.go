@@ -1519,12 +1519,22 @@ func Apply(g *state.Game, e Event) {
 		// ability object is minted here, inside Apply, so a log-only replay
 		// creates the same object a live game did (the Ruling T20-a/DelayedPush
 		// precedent). Unlike DelayedPush no registration is consumed -- the
-		// grant-trigger shape -- and unlike both by-name siblings the Execute$
-		// name (e.Counter) is resolved against the UNDER-CARD's own face,
-		// named by e.Amount (its pile index in MergedCards): the pile's top
-		// face may define the same name with a different body, and the
-		// top-first resolveSVarAcrossFaces walk would steal it (Cubwarden's
-		// two Cats must not become Everquill Phoenix's Feather).
+		// grant-trigger shape -- and unlike both by-name siblings the ability
+		// is minted from the UNDER-CARD's own COMPILED trigger, named by
+		// e.Amount (the packed pair: its pile index in MergedCards, and that
+		// face's Triggers index), exactly as TriggerPush mints from the top
+		// face's. Not a by-name SVar walk, for two reasons: the pile's top
+		// face may define the same Execute$ name with a different body
+		// (Cubwarden's two Cats must not become Everquill Phoenix's Feather),
+		// and cards.ResolveSVar parses a fresh *SA whose pointer matches no
+		// compiled cards.Trigger -- which is how every consumer that recovers
+		// a resolving ability's owning trigger (findTriggerForAbilityFace:
+		// the OptionalDecider$ gate, the intervening-if recheck, the
+		// ResolvedLimit$ count, the label, the merged-face SVar table)
+		// identifies it. e.Counter carries the Execute$ name as the log's
+		// readable provenance and is checked against the trigger line here,
+		// so a truncated or tampered log mints nothing rather than the wrong
+		// ability.
 		if !validPlayer(g, e.Player) {
 			break
 		}
@@ -1532,14 +1542,19 @@ func Apply(g *state.Game, e Event) {
 		if src == nil {
 			break
 		}
-		f := src.MergedFaceAt(int(e.Amount))
-		if f == nil {
+		mergedIdx, trigIdx, ok := MergedTriggerIndexes(e.Amount)
+		if !ok {
 			break
 		}
-		sa := cards.ResolveSVar(f.SVars, e.Counter)
-		if sa == nil {
+		f := src.MergedFaceAt(mergedIdx)
+		if f == nil || trigIdx >= len(f.Triggers) {
 			break
 		}
+		tr := f.Triggers[trigIdx]
+		if tr.Effect == nil || tr.Params["Execute"] != e.Counter {
+			break
+		}
+		sa := tr.Effect
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa

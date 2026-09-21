@@ -453,18 +453,32 @@ const (
 	// (CR 702.140d: the permanent has all abilities of the cards beneath
 	// it, including their "whenever this creature mutates" triggers). Obj
 	// is the pile (the triggering source), Player the controller, Counter
-	// the Execute$ SVar name, Amount the under-card's pile index (its
-	// position in MergedCards, top-of-pile first), and IDs the Remembered
-	// capture the ordinary trigger push encodes. Apply resolves the name
-	// against THAT face's own SVar table -- never the whole face stack:
-	// the top face may define the same name with a different body (Cubwarden
-	// and Everquill Phoenix both name their token SVar TrigToken), and the
-	// DelayedPush by-name walk's top-first order would steal the under-card's
-	// body. It is a sibling of DelayedPush/GrantTriggerPush -- the minting
-	// shape is GrantTriggerPush's (no registration consumed) -- appended
-	// here, after Mutate, following every prior Kind's own append-only
-	// precedent, so no earlier ordinal, hash chain or golden replay is
-	// affected.
+	// the Execute$ SVar name (kept as the log's readable provenance and as
+	// a consistency check), Amount the PAIR (under-card pile index, that
+	// face's own Triggers index) packed by MergedTriggerAmount, and IDs the
+	// Remembered capture the ordinary trigger push encodes.
+	//
+	// Apply mints the ability from THAT face's own compiled trigger -- the
+	// TriggerPush shape, f.Triggers[idx].Effect -- never from a by-name
+	// SVar walk. Two reasons, both load-bearing:
+	//   - the top face may define the same SVar name with a different body
+	//     (Cubwarden and Everquill Phoenix both name their token SVar
+	//     TrigToken), so a top-first by-name walk steals the under-card's
+	//     body; and
+	//   - cards.ResolveSVar parses a FRESH *SA on every call, so an ability
+	//     minted that way has no pointer identity with the compiled
+	//     cards.Trigger.Effect. Every consumer that recovers a resolving
+	//     ability's owning trigger does so by that pointer
+	//     (findTriggerForAbilityFace), so a fresh parse silently disabled
+	//     the OptionalDecider$ gate, the intervening-if recheck, the
+	//     ResolvedLimit$ count, the ability's label and the merged-face
+	//     SVar table at resolution. Minting the compiled pointer is what
+	//     makes an under-card trigger an ordinary trigger everywhere else.
+	//
+	// It is a sibling of DelayedPush/GrantTriggerPush -- the minting shape
+	// is GrantTriggerPush's (no registration consumed) -- appended here,
+	// after Mutate, following every prior Kind's own append-only precedent,
+	// so no earlier ordinal, hash chain or golden replay is affected.
 	MergedTriggerPush
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
@@ -478,6 +492,36 @@ const (
 	// and corrupt the hash chain, so new kinds always go above it.
 	NumKinds = int(MergedTriggerPush) + 1
 )
+
+// mergedTriggerShift is the width MergedTriggerPush's Amount gives the
+// under-card's own Triggers index; the pile index sits above it. Both are
+// small non-negative card-script indices (a pile is a handful of cards, a
+// face a handful of T: lines), so 16 bits each is far beyond any real value
+// and the packing stays inside int32 with room to spare.
+const mergedTriggerShift = 16
+
+// MergedTriggerAmount packs a MergedTriggerPush's Amount: mergedIdx is the
+// under-card's position in the pile's MergedCards (top-of-pile first) and
+// trigIdx is that under-card face's own Triggers index. A negative or
+// oversized index yields -1, which MergedTriggerIndexes reports as invalid
+// so Apply degrades the push to a no-op rather than minting a wrong ability.
+func MergedTriggerAmount(mergedIdx, trigIdx int) int32 {
+	if mergedIdx < 0 || trigIdx < 0 ||
+		mergedIdx >= 1<<mergedTriggerShift || trigIdx >= 1<<mergedTriggerShift {
+		return -1
+	}
+	return int32(mergedIdx)<<mergedTriggerShift | int32(trigIdx)
+}
+
+// MergedTriggerIndexes unpacks MergedTriggerAmount. ok is false for a value
+// this build cannot read (a negative Amount -- a tampered or truncated log),
+// which every caller treats as "mint nothing".
+func MergedTriggerIndexes(amount int32) (mergedIdx, trigIdx int, ok bool) {
+	if amount < 0 {
+		return 0, 0, false
+	}
+	return int(amount >> mergedTriggerShift), int(amount & (1<<mergedTriggerShift - 1)), true
+}
 
 // CopyToken's Amount rider bitmask (DB$ CopyPermanent's entry-state
 // riders, folded in Apply so replay derives the identical object):
