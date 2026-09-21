@@ -111,6 +111,41 @@ func TestCantPutCounterBlightbeetleScopesOpponentsP1P1(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestMeliraLockExpiresAndTheReplacementRestarts pins the lock's LIFETIME:
+// Melira's oracle text is "you can't get additional poison counters THIS
+// TURN", so the Effect-registered CantPutCounter the rider installs must be
+// a this-turn lock (UntilEOT, dropped by EndOfTurnCleanup), never a
+// Permanent one. A Permanent registration would swallow a fresh poison
+// source on every LATER turn outright (total stuck at 1) and would disable
+// Melira's own R:Event$ AddCounter replacement (2 -> 1) forever, the
+// non-permissive direction for a restriction.
+func TestMeliraLockExpiresAndTheReplacementRestarts(t *testing.T) {
+	melira := tokenReplCorpusCard(t, "Melira, the Living Cure")
+	e, cfg := tokenReplGame(t, 105, melira)
+	moveSeededCard(t, e, 0, melira, state.ZBattlefield)
+	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 3})
+	if got := e.G.Players[0].Counter("POISON"); got != 1 {
+		t.Fatalf("Melira turn 1: 3 poison -> %d, want 1 (Amount$ 1)", got)
+	}
+	// The lock stops a second source the same turn (the cantputcounter1
+	// behaviour, restated here as this leaf's own setup).
+	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 2})
+	if got := e.G.Players[0].Counter("POISON"); got != 1 {
+		t.Fatalf("Melira turn 1, second source of 2: -> %d, want 1 (the lock)", got)
+	}
+	// The turn ends. The lock must die with it.
+	e.EndOfTurnCleanup()
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+	// On the later turn Melira's own replacement (R:Event$ AddCounter |
+	// ReplaceWith$ OnlyOnePoison) fires again: the fresh 2-poison source is
+	// REWRITTEN to 1, not swallowed, so the total becomes 2.
+	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 2})
+	if got := e.G.Players[0].Counter("POISON"); got != 2 {
+		t.Fatalf("Melira turn 2: a fresh 2-poison source -> %d, want 2 (the lock expired; the replacement rewrote 2 -> 1)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestCantPutCounterDoesNotBlockRemovalOrShield is the sign/marker guard: a
 // CantPutCounter static with an unscoped CounterType$ (Melira's Keepers) must
 // NOT block a counter REMOVAL (CR 122.1's "put" is a placement; the engine

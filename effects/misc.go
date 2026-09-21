@@ -331,11 +331,29 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
+			ceUntilEOT := effectUntilEOT(h, c.Source, dur)
+			if mode == "CantPutCounter" && sa.Params["Duration"] == "" {
+				// cantputcounter1-r2: a CantPutCounter lock with NO Duration$
+				// is the THIS-TURN lock the corpus's one Effect-delivered
+				// carrier writes (Melira, the Living Cure's "you can't get
+				// additional poison counters this turn", whose Description$
+				// states the lifetime the absent Duration$ leaves unstated).
+				// effEffect's plain absent-Duration default (Permanent, set at
+				// the top of this function) would never expire the lock and
+				// swallow every later turn's fresh poison outright -- the
+				// non-permissive direction for a restriction. An EXPLICIT
+				// Duration$ keeps the ordinary reading (Permanent stays
+				// permanent, this-turn spellings were already UntilEOT through
+				// effectUntilEOT). The DamageDone prevent precedent (this
+				// function) made the same absent-Duration read for the same
+				// reason.
+				ceUntilEOT = true
+			}
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
 				Name:           effectName,
-				UntilEOT:       effectUntilEOT(h, c.Source, dur),
+				UntilEOT:       ceUntilEOT,
 				Restriction:    mode,
 				RestrictParams: params,
 				Remembered:     remembered,
@@ -655,7 +673,10 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // what is readable. The readable parameters are the restriction's own mode and
 // scope (Mode$, the object spec ValidCard$/ValidObject$, the player spec
 // ValidPlayer$, the counter kind CounterType$), the AffectedZone$ rider the
-// Solemnity object line carries, and display text. A static carrying any other
+// Solemnity object line carries, and display text. Duration$ is readable: the
+// lock's own lifetime, consumed by effEffect's CantPutCounter arm (an absent
+// Duration$ there is the THIS-TURN lock the corpus's one Effect-delivered
+// carrier writes -- see that arm). A static carrying any other
 // parameter names a condition or scoping this build does not evaluate
 // (ActiveZones$, IsPresent$, CheckSVar$, ...) -- enforcing it blanket would
 // OVER-restrict, the permissive direction for a restriction -- so it is
@@ -664,7 +685,7 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 func CantPutCounterParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
-		case "Mode", "ValidCard", "ValidObject", "ValidPlayer", "CounterType", "AffectedZone", "Description", "Secondary":
+		case "Mode", "ValidCard", "ValidObject", "ValidPlayer", "CounterType", "AffectedZone", "Duration", "Description", "Secondary":
 		default:
 			return false
 		}
