@@ -59,6 +59,18 @@ type pendingCast struct {
 	mode    string // "", "kicked", "surged", "flashback", "miracle", and the alternative-cost modes this file offers
 	ability int    // -1 for a spell (Task 10 uses >= 0)
 
+	// grantSource / grantSVar (task grantcost1) anchor a GRANTED activation
+	// (rules/speed.go's beginGrantedActivation, reached from the max-speed
+	// "granted" option and beginActivation's SVar branch): the body is the
+	// SVar the AddAbility$ grant names, resolved off the GRANTOR's face, and
+	// grantSource is the resolved grantor object (== card for a self-grant,
+	// the offer's GrantSource fallback already applied). Empty SVar means a
+	// printed/spell proposal; pc.ability stays -1 for a granted one. Both are
+	// plain values, so Clone's shallow copy carries them like every scalar
+	// above.
+	grantSource state.ObjID
+	grantSVar   string
+
 	cost Cost
 
 	// mayPlayIgnore is the may-play grant's MayPlayIgnoreColor$ rider,
@@ -2101,7 +2113,7 @@ func (e *Engine) altAddAsk() bool {
 	pc.altAddDone = true
 	if len(pc.altAddParts) == 1 {
 		part := ParseCost(pc.altAddParts[0])
-		if !e.castable(pc.player, pc.card, pc.cost.Plus(part), pc.ability >= 0) {
+		if !e.castable(pc.player, pc.card, pc.cost.Plus(part), pc.isAbility()) {
 			e.abortCast(pc, "additional cost no longer payable; cast aborted", true)
 			return true
 		}
@@ -2111,7 +2123,7 @@ func (e *Engine) altAddAsk() bool {
 	payable := make([]int, 0, len(pc.altAddParts))
 	unpayable := make([]int, 0, len(pc.altAddParts))
 	for i, part := range pc.altAddParts {
-		if e.castable(pc.player, pc.card, pc.cost.Plus(ParseCost(part)), pc.ability >= 0) {
+		if e.castable(pc.player, pc.card, pc.cost.Plus(ParseCost(part)), pc.isAbility()) {
 			payable = append(payable, i)
 		} else {
 			unpayable = append(unpayable, i)
@@ -2398,7 +2410,7 @@ func (e *Engine) exAsk() bool {
 			// to the affordability walk. An ability activation (pc.ability >=
 			// 0) is untouched: encore's Cost$ ExileFromGrave<1/CARDNAME>
 			// really does exile its own source.
-			if pc.ability < 0 && oid == pc.card {
+			if !pc.isAbility() && oid == pc.card {
 				continue
 			}
 			match := effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card)
@@ -2489,7 +2501,7 @@ func (e *Engine) returnAsk() bool {
 			continue
 		}
 		verb := "cast " + e.targetName(pc.card)
-		if pc.ability >= 0 {
+		if pc.isAbility() {
 			verb = "activate"
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
@@ -2553,7 +2565,7 @@ func (e *Engine) putToLibAsk() bool {
 			continue
 		}
 		verb := "cast " + e.targetName(pc.card)
-		if pc.ability >= 0 {
+		if pc.isAbility() {
 			verb = "activate"
 		}
 		dest := "the top of their owner's library"
@@ -2638,7 +2650,7 @@ func (e *Engine) moveGraveAsk() bool {
 			return true
 		}
 		verb := "cast " + e.targetName(pc.card)
-		if pc.ability >= 0 {
+		if pc.isAbility() {
 			verb = "activate"
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
@@ -2664,7 +2676,7 @@ func (e *Engine) moveGraveAsk() bool {
 // askTriggerModes.
 func (e *Engine) castModeAsk() bool {
 	pc := e.cast
-	if pc == nil || pc.ability >= 0 || pc.modesDone {
+	if pc == nil || pc.isAbility() || pc.modesDone {
 		return false
 	}
 	pc.modesDone = true
@@ -3071,7 +3083,7 @@ func (e *Engine) xAsk() bool {
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, wx, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
+		if !e.costPayableGrant(pc.player, pc.card, pc.isAbility(), wx, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
 			break
 		}
 		maxOld = x
@@ -3291,7 +3303,7 @@ func (e *Engine) discardAsk() bool {
 		for _, id := range pc.discards {
 			reserved[id] = true
 		}
-		candidates := e.discardCandidates(pc.player, pc.card, part, pc.ability < 0, reserved)
+		candidates := e.discardCandidates(pc.player, pc.card, part, !pc.isAbility(), reserved)
 
 		if strings.EqualFold(part.Spec, "Hand") {
 			pc.discards = append(pc.discards, candidates...)
@@ -3637,6 +3649,47 @@ func (c Cost) announcePip(i int) []pipAlt {
 }
 
 // annPipCount is how many announcement pips a cost carries: the two-colour
+// isAbility reports whether this proposal activates an ABILITY (a printed
+// Face().Abilities index or a granted SVar anchor) rather than casting a
+// spell. Every "is this an ability" test in the flow reads this, never the
+// raw index, so a granted proposal -- whose ability field is -1 -- takes the
+// ability arms (no spell legality recheck, no cast trigger, the ability
+// payment/mint branch, no modes ask) instead of the spell ones.
+func (pc *pendingCast) isAbility() bool { return pc.ability >= 0 || pc.grantSVar != "" }
+
+// pcAbility resolves the proposal's ability body. A printed activation reads
+// its Face().Abilities index; a granted activation (task grantcost1) resolves
+// the SVar anchor off the GRANTOR's face -- the recipient's face has no such
+// SVar, which is the whole reason the anchor exists. The resolve is
+// deterministic (ParseSVar over a fixed table), so re-resolving at each
+// read-site cannot drift; a grantor that left the battlefield (or an SVar the
+// grantor's face no longer names -- a stale proposal) resolves to nil and the
+// caller degrades the way a stale option always has.
+func (e *Engine) pcAbility(pc *pendingCast) *cards.SA {
+	if pc.grantSVar == "" {
+		if pc.ability < 0 {
+			return nil
+		}
+		o := e.G.Obj(pc.card)
+		if o == nil || o.Face() == nil || pc.ability >= len(o.Face().Abilities) {
+			return nil
+		}
+		return o.Face().Abilities[pc.ability]
+	}
+	gf := e.G.Obj(pc.grantSource)
+	if gf == nil || gf.Face() == nil {
+		gf = e.G.Obj(pc.card)
+	}
+	if gf == nil || gf.Face() == nil {
+		return nil
+	}
+	ab := cards.ResolveSVar(gf.Face().SVars, pc.grantSVar)
+	if ab == nil || ab.Kind != "AB" {
+		return nil
+	}
+	return ab
+}
+
 // hybrids, the monocolour hybrids, the Phyrexian pips and the
 // hybrid-Phyrexian pips (snow pips have nothing to announce).
 func (c Cost) annPipCount() int {
@@ -3689,11 +3742,7 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 		return
 	}
 	scope := spellScope(pc.mode)
-	if pc.ability >= 0 {
-		if pc.ability >= len(o.Face().Abilities) {
-			return
-		}
-		ab := o.Face().Abilities[pc.ability]
+	if ab := e.pcAbility(pc); ab != nil {
 		scope = abilityScope(ab)
 		// The ability's own target-dependent ReduceCost$ (Raft Security
 		// Officer's AllTargeted$Valid Creature.powerLE3): beginActivation
@@ -3723,10 +3772,10 @@ func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
 	}
 	mods := e.costModifiersForPotentialTargets(pc.player, pc.card, scope, e.costPotentialTargets(pc.player, pc.card, scope))
 	delve := int32(0)
-	if pc.ability < 0 {
+	if !pc.isAbility() {
 		delve = int32(len(pc.delve))
 	}
-	return e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	return e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // pendingCastScope returns the exact spell or ability scope whose modifiers
@@ -3739,13 +3788,14 @@ func (e *Engine) pendingCastScope(pc *pendingCast) (costScope, bool) {
 	if o == nil || o.Face() == nil {
 		return costScope{}, false
 	}
-	if pc.ability < 0 {
+	if !pc.isAbility() {
 		return spellScope(pc.mode), true
 	}
-	if pc.ability >= len(o.Face().Abilities) {
+	ab := e.pcAbility(pc)
+	if ab == nil {
 		return costScope{}, false
 	}
-	return abilityScope(o.Face().Abilities[pc.ability]), true
+	return abilityScope(ab), true
 }
 
 // affordableTargetCandidates filters legal CR 115 targets to the choices
@@ -3759,7 +3809,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		return nil
 	}
 	delve := int32(0)
-	if pc.ability < 0 {
+	if !pc.isAbility() {
 		delve = int32(len(pc.delve))
 	}
 	pl := e.G.Players[pc.player]
@@ -3821,7 +3871,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 			break
 		}
 		cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
-		if pc.ability < 0 {
+		if !pc.isAbility() {
 			cost.Generic -= int32(len(pc.delve))
 			if cost.Generic < 0 {
 				cost.Generic = 0
@@ -3830,7 +3880,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// Mana abilities cannot make a non-mana payment or a life shortage
 		// disappear, so preserve a candidate for the mana window only after
 		// those independent requirements pass.
-		if !e.nonManaCastable(pc.player, pc.card, cost, pc.ability >= 0) {
+		if !e.nonManaCastable(pc.player, pc.card, cost, pc.isAbility()) {
 			continue
 		}
 		if cost.Life > pl.Life {
@@ -3839,7 +3889,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// resolvedMana carries no live pip, so manaFeasible (the shared
 		// primitive) here degenerates to the composed payable check — the same
 		// composition payCast will charge for this candidate's repricing.
-		if e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
+		if e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
 			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
 			out = append(out, candidate)
 		}
@@ -4222,7 +4272,7 @@ func (e *Engine) validateCastContributions(d *decision.Decision, in decision.Int
 // creature cannot first be used as a mana source.
 func (e *Engine) convokeAsk() bool {
 	pc := e.cast
-	if pc == nil || pc.convokeDone || pc.ability >= 0 {
+	if pc == nil || pc.convokeDone || pc.isAbility() {
 		return false
 	}
 	pc.convokeDone = true
@@ -4417,14 +4467,14 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 		c.Life = addClampedGeneric(c.Life, int64(alt.life))
 	}
 	delve := int32(0)
-	if pc.ability < 0 {
+	if !pc.isAbility() {
 		delve = int32(len(pc.delve))
 	}
 	// The pips 0..payIdx have been announced (their faces are folded in
 	// above), so their slots leave the cost; the pips after payIdx stay live
 	// for the shared primitive to enumerate.
 	c = c.dropAnnouncePrefix(pc.payIdx + 1)
-	return e.manaFeasibleGrant(pc.player, pc.card, pc.ability >= 0, c, pc.mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	return e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), c, pc.mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
@@ -4892,11 +4942,11 @@ func (e *Engine) targetAsk() bool {
 	}
 	f := o.Face()
 	var sa *cards.SA
-	if pc.ability >= 0 {
-		if f == nil || pc.ability >= len(f.Abilities) {
+	if pc.isAbility() {
+		sa = e.pcAbility(pc)
+		if sa == nil {
 			return false
 		}
-		sa = f.Abilities[pc.ability]
 	} else if f != nil {
 		sa = f.SpellAbility()
 		if sa == nil && pc.mode == "bestowed" {
@@ -4928,7 +4978,7 @@ func (e *Engine) targetAsk() bool {
 	// are applied and Delve credit is subtracted, all settled by the stages
 	// above.
 	mana := e.paymentMana(pc)
-	if pc.ability < 0 {
+	if !pc.isAbility() {
 		mana.Generic -= int32(len(pc.delve))
 		if mana.Generic < 0 {
 			mana.Generic = 0
@@ -4942,7 +4992,7 @@ func (e *Engine) targetAsk() bool {
 	// conversion-aware equivalent: the SAME resolveMana payManaConvFor will
 	// run, including RestrictValid$ provenance. The
 	// targetDependentCostMayPay arm keeps the ValidTarget$ reducer exception.
-	if !e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) &&
+	if !e.costPayableGrant(pc.player, pc.card, pc.isAbility(), mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) &&
 		!e.hasUntappedManaSource(pc.player) && !e.targetDependentCostMayPay(pc) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
@@ -4954,7 +5004,7 @@ func (e *Engine) targetAsk() bool {
 	// never offered (legalTargetCandidates drops Face()-less stack objects),
 	// so the source permanent is still a legal target of its own ability.
 	var excludeSelf state.ObjID
-	if pc.ability < 0 {
+	if !pc.isAbility() {
 		excludeSelf = pc.card
 	}
 	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
@@ -5021,7 +5071,7 @@ func (e *Engine) targetAsk() bool {
 	// (Mother of Runes) via excludeSelf == 0. The prompt keeps the source
 	// permanent's name for readability.
 	var src state.ObjID
-	if pc.ability < 0 {
+	if !pc.isAbility() {
 		src = pc.card
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
@@ -5058,7 +5108,7 @@ func (e *Engine) targetAsk() bool {
 // no reversal is owed.
 func (e *Engine) pushCast() bool {
 	pc := e.cast
-	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.ability >= 0 {
+	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.isAbility() {
 		return false
 	}
 	if pc.pushed {
@@ -5116,7 +5166,7 @@ func (e *Engine) pushCast() bool {
 // spell-mana-value rule. Returns true (and has reversed the proposal) when
 // the spell has become illegal.
 func (e *Engine) recheckIllegal(pc *pendingCast) bool {
-	if pc.ability >= 0 {
+	if pc.isAbility() {
 		return false
 	}
 	o := e.G.Obj(pc.card)
@@ -5172,7 +5222,7 @@ func (e *Engine) manaWindowAsk() bool {
 		return false
 	}
 	mana := e.paymentMana(pc)
-	if pc.ability < 0 {
+	if !pc.isAbility() {
 		mana.Generic -= int32(len(pc.delve))
 		if mana.Generic < 0 {
 			mana.Generic = 0
@@ -5183,7 +5233,7 @@ func (e *Engine) manaWindowAsk() bool {
 	}
 	// A pool that already pays the total cost needs no window (nothing to
 	// gain by activating more mana abilities here).
-	if e.costPayableGrant(pc.player, pc.card, pc.ability >= 0, mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
+	if e.costPayableGrant(pc.player, pc.card, pc.isAbility(), mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
 		return false
 	}
 	var sources []state.ObjID
@@ -5350,7 +5400,7 @@ func (e *Engine) payCast() {
 	if e.manaWindowAsk() {
 		return
 	}
-	if pc.ability >= 0 {
+	if pc.isAbility() {
 		// CR 608.2h: snapshot the source's derived lifelink before any cost can
 		// remove it from the battlefield. AbilityPush is deliberately emitted
 		// only after costs settle, so emit's generic departure capture cannot
@@ -5381,8 +5431,7 @@ func (e *Engine) payCast() {
 		// notes nothing — Forge's CostRememberSpentMana records only mana
 		// costs too.
 		remembered := false
-		if f := e.G.Obj(pc.card).Face(); f != nil && pc.ability >= 0 && pc.ability < len(f.Abilities) {
-			ab := f.Abilities[pc.ability]
+		if ab := e.pcAbility(pc); ab != nil {
 			remembered = strings.EqualFold(strings.TrimSpace(ab.Params["RememberCostMana"]), "True")
 		}
 		if remembered {
@@ -5516,8 +5565,27 @@ func (e *Engine) payCast() {
 		}
 		// AbilityPush mints the ability object onto the stack AFTER the cost
 		// settles, so an aborted activation leaves no stack object behind
-		// (CR 733.1). handleTarget records the chosen targets onto it.
-		e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
+		// (CR 733.1). handleTarget records the chosen targets onto it. A
+		// GRANTED activation (task grantcost1) mints through the SAME two
+		// events beginGrantedActivation always minted -- the delayed-shape
+		// DelayedPush for a self-grant (Counter carries the SVar name; the
+		// ^uint32(0) registration id matches nothing) and GrantAbilityPush for
+		// a cross-object grant (IDs[0] carries the grantor; the minted
+		// ability's Source is the recipient) -- so resolution reads the
+		// SVar-anchored body exactly as it always has, while every cost part
+		// above (sacrifice, discard, counter, energy, draw, ...) is now paid
+		// by the shared flow too.
+		if pc.grantSVar != "" {
+			if pc.grantSource == pc.card {
+				e.emit(events.Event{Kind: events.DelayedPush, Player: pc.player, Obj: pc.card,
+					Amount: -1, Counter: pc.grantSVar, Text: "granted ability"})
+			} else {
+				e.emit(events.Event{Kind: events.GrantAbilityPush, Player: pc.player, Obj: pc.card,
+					Counter: pc.grantSVar, IDs: []state.ObjID{pc.grantSource}})
+			}
+		} else {
+			e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
+		}
 		if len(e.G.Stack) > 0 {
 			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
 		}
@@ -5928,7 +5996,7 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 		}
 	}
 	if pc.pushed && pc.stackObj != 0 {
-		if pc.ability >= 0 {
+		if pc.isAbility() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.stackObj, From: state.ZStack, To: state.ZExile, Text: "reversed"})
 		} else {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.stackObj, From: state.ZStack, To: pc.from, Text: "reversed"})

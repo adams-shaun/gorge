@@ -1424,7 +1424,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		pc := e.cast
 		pc.targets = targetOptions(chosen)
 		e.repriceForTargets(pc)
-		if pc.ability < 0 {
+		if !pc.isAbility() {
 			if pc.stackObj != 0 {
 				e.recordChosenTargets(pc.stackObj, chosen)
 			}
@@ -2547,13 +2547,14 @@ func reverseIDs(in []state.ObjID) []state.ObjID {
 // ifcastmain1). The pending CR 601.2c announcement ask is a cast in progress:
 // pushCast runs AFTER targetAsk, so the log scan alone would misread Return
 // to Dust's own TargetMax$ X bound as uncast; the live pending cast closes
-// that window (Forge sets castFrom before setupTargets). e.cast.ability < 0
-// excludes an ACTIVATED-ABILITY activation, which Forge never treats as a
-// cast. A copy was never cast (IsCopy), and a card never put on the stack
-// (cheated into play) reads false. Derived from the event log plus the live
-// pending cast, so a replay derives the same answer.
+// that window (Forge sets castFrom before setupTargets). !e.cast.isAbility()
+// excludes an ACTIVATED-ABILITY activation (printed or granted, task
+// grantcost1), which Forge never treats as a cast. A copy was never cast
+// (IsCopy), and a card never put on the stack (cheated into play) reads
+// false. Derived from the event log plus the live pending cast, so a replay
+// derives the same answer.
 func (e *Engine) WasCast(obj state.ObjID) bool {
-	if e.cast != nil && e.cast.card == obj && e.cast.ability < 0 {
+	if e.cast != nil && e.cast.card == obj && !e.cast.isAbility() {
 		return true
 	}
 	if o := e.G.Obj(obj); o == nil || o.IsCopy {
