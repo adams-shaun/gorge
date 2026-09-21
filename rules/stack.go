@@ -600,6 +600,11 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	// trigger's owning face is the top face, so nothing else moves.
 	if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
 		effects.SetSVars(ctx, mf.SVars)
+	} else if mf, ok := e.pileFaceForSA(o.Source, o.Ability); ok && mf != nil {
+		// An activated ability of a MUTATED pile (CR 702.140d): the ask's SVar
+		// bounds (TargetMin$/TargetMax$ X) resolve against the under-card's own
+		// table, the same owning-face rule resolveTop's ability branch applies.
+		effects.SetSVars(ctx, mf.SVars)
 	} else {
 		effects.SetSVars(ctx, src.Face().SVars)
 	}
@@ -1813,6 +1818,12 @@ func (e *Engine) resolveTop() {
 		var svars map[string]string
 		if src := e.G.Obj(o.Source); src != nil {
 			if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
+				svars = mf.SVars
+			} else if mf, ok := e.pileFaceForSA(o.Source, o.Ability); ok && mf != nil {
+				// An activated ability of a MUTATED pile (CR 702.140d): o.Ability
+				// is the under-card's SA, so the table its body reads is the
+				// under-card's own -- Porcuparrot's `NumDmg$ X` resolves X from
+				// the pile's Count$TimesMutated on ITS face, not the top card's.
 				svars = mf.SVars
 			} else if sf := src.Face(); sf != nil {
 				svars = sf.SVars

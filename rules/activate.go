@@ -37,10 +37,19 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 		return
 	}
 	f := o.Face()
-	if f == nil || opt.Ability < 0 || opt.Ability >= len(f.Abilities) {
+	if f == nil {
 		return
 	}
-	ab := f.Abilities[opt.Ability]
+	// CR 702.140d: the flat pile index spans the top face's abilities and
+	// every under-card's. PileAbilityAt resolves it -- the same enumeration
+	// the offer loop built it from and events.Apply decodes it with -- so an
+	// under-card ability activates as its own SA against its own face's SVar
+	// table.
+	pa, ok := o.PileAbilityAt(opt.Ability)
+	if !ok {
+		return
+	}
+	ab := pa.SA
 	// CR 602.2b -> 601.2f: an activated ability's total cost composes its
 	// activation cost plus applicable cost increases/reductions. Heartstone's
 	// ReduceCost Type=Ability is applied here (raise/reduce), folded into the
@@ -59,7 +68,7 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	// Targets do not exist yet (CR 601.2c runs after this), so a
 	// target-dependent body reads 0 here; repriceForTargets re-runs the
 	// evaluation with the answered targets and net-adjusts pc.ownReduce.
-	own := e.ownReduceCost(p, opt.Obj, ab, nil)
+	own := e.ownReduceCost(p, opt.Obj, ab, nil, pa.Merged)
 	if own > 0 {
 		if cost.Generic >= own {
 			cost.Generic -= own
@@ -68,7 +77,7 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 		}
 	}
 	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: opt.Ability,
-		cost: cost, mods: mods, ownReduce: own}
+		abilityMerged: pa.Merged, cost: cost, mods: mods, ownReduce: own}
 	// TargetsWithSameController$ True (Lodestone Bauble): the pairwise
 	// same-owner constraint rides the transaction into handleTarget's
 	// Submit-time validator (the offered option list spans every player's

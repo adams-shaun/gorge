@@ -52,6 +52,13 @@ type ContinuousEffect struct {
 	Controller PlayerID
 	UntilEOT   bool
 
+	// SVars is the SVar table of the face that carries this static, so a
+	// deferred expression (AddPowerExpr$ naming an SVar) resolves against the
+	// face that wrote it. nil means the source object's top face -- every
+	// numeric-API construction keeps today's behaviour. A card merged beneath
+	// a mutated pile's top (CR 702.140d) sets it to the under-card's table.
+	SVars map[string]string
+
 	AddPower, AddToughness int32
 	SetPower, SetToughness int32
 	HasSet                 bool

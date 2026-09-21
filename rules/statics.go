@@ -25,6 +25,14 @@ type staticView struct {
 	Source     state.ObjID
 	Controller state.PlayerID
 	Params     map[string]string
+	// SVars is the SVar table of the face that carries this static. For a
+	// plain permanent it is the top face's table (unchanged); for a card
+	// merged beneath a mutated pile's top (CR 702.140d) it is the
+	// under-card's own table, so a static whose Amount$/CheckSVar$ names an
+	// SVar resolves against the face that wrote it rather than the pile top's.
+	// nil means "read the source object's top face" -- every construction that
+	// predates this field keeps today's behaviour exactly.
+	SVars map[string]string
 }
 
 // costStaticViews is one ordered snapshot of cost-modifier membership. The
@@ -101,7 +109,12 @@ func (e *Engine) collectActionStatics() actionStaticViews {
 				if o == nil || o.Face() == nil {
 					continue
 				}
-				for _, st := range o.Face().Statics {
+				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
+					pst, ok := o.PileStaticAt(si)
+					if !ok {
+						continue
+					}
+					st := pst.Static
 					var dst *[]staticView
 					switch st.Mode {
 					case "CantBeCast":
@@ -127,7 +140,7 @@ func (e *Engine) collectActionStatics() actionStaticViews {
 					default:
 						continue
 					}
-					*dst = append(*dst, staticView{Source: id, Controller: o.Controller, Params: st.Params})
+					*dst = append(*dst, staticView{Source: id, Controller: o.Controller, Params: st.Params, SVars: pst.Face.SVars})
 				}
 			}
 		}
@@ -159,7 +172,12 @@ func (e *Engine) activeStatics(mode string) []staticView {
 				// exist while it is face down (the shared gate in layers.go).
 				continue
 			}
-			for _, st := range f.Statics {
+			for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
+				pst, ok := o.PileStaticAt(si)
+				if !ok {
+					continue
+				}
+				st := pst.Static
 				if st.Mode == mode {
 					// The battlefield-only walk honours each static's own
 					// EffectZone$: a static whose EffectZone$ excludes the
@@ -173,7 +191,7 @@ func (e *Engine) activeStatics(mode string) []staticView {
 					if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
 						continue
 					}
-					out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params})
+					out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params, SVars: pst.Face.SVars})
 				}
 			}
 		}
@@ -203,6 +221,14 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 // restriction would be dead. The resolver closes over source/you -- both
 // plain scalars -- so it is deterministic and Clone-safe.
 func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecContext {
+	return e.specCtxSVars(source, you, nil)
+}
+
+// specCtxSVars is specCtx with an explicit SVar table: a static carried by a
+// card merged beneath a mutated pile's top resolves its Chosen*/SVar* terms
+// against that under-card's own table. A nil svars falls back to the source
+// object's top face, so every pre-existing caller is unchanged.
+func (e *Engine) specCtxSVars(source state.ObjID, you state.PlayerID, svars map[string]string) effects.SpecContext {
 	var predicates *effects.PredicatePrograms
 	if e.compiledText != nil {
 		predicates = e.compiledText.predicates
@@ -219,16 +245,27 @@ func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecCon
 			if name == "Chosen" {
 				return o.ChosenNumber, true
 			}
-			f := o.Face()
-			if f == nil {
-				return 0, false
+			table := svars
+			if table == nil {
+				f := o.Face()
+				if f == nil {
+					return 0, false
+				}
+				table = f.SVars
 			}
-			if body, ok := f.SVars[name]; ok {
-				return effects.EvalCount(e, &effects.Ctx{Source: source, Controller: you, SVars: f.SVars}, body), true
+			if body, ok := table[name]; ok {
+				return effects.EvalCount(e, &effects.Ctx{Source: source, Controller: you, SVars: table}, body), true
 			}
 			return 0, false
 		},
 	}
+}
+
+// staticSpecCtx is the SpecContext a staticView's spec match resolves against:
+// its own SVar table when the view carries one (an under-card static), else the
+// source object's top face.
+func (e *Engine) staticSpecCtx(sv staticView) effects.SpecContext {
+	return e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
 }
 
 // castRestricted reports whether p is forbidden from casting id (CantBeCast).
@@ -244,7 +281,7 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -327,7 +364,7 @@ func (e *Engine) abilityRestrictedUsing(statics []staticView, p state.PlayerID, 
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		if activatedMatchesValidSA(ab, sv.Params["ValidSA"]) {
@@ -463,7 +500,7 @@ func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 		if o == nil || o.Face() == nil || !spellMatchesValidSA(o.Face(), sv.Params["ValidSA"], id, sv.Source) {
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -497,12 +534,16 @@ func (e *Engine) staticTimingGate(sv staticView) bool {
 		if o == nil || o.Face() == nil {
 			return false
 		}
-		body, ok := o.Face().SVars[name]
+		svars := sv.SVars
+		if svars == nil {
+			svars = o.Face().SVars
+		}
+		body, ok := svars[name]
 		if !ok {
 			return false
 		}
 		cmp := sv.Params["SVarCompare"]
-		if cmp == "" || !comparePresent(int(effects.EvalCount(e, &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: o.Face().SVars}, body)), cmp) {
+		if cmp == "" || !comparePresent(int(effects.EvalCount(e, &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: svars}, body)), cmp) {
 			return false
 		}
 	}
@@ -556,7 +597,7 @@ func (e *Engine) countStaticPresent(sv staticView, spec string) int {
 	n := 0
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
-		if o != nil && o.Zone == want && effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+		if o != nil && o.Zone == want && effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
 			n++
 		}
 	})
@@ -645,7 +686,7 @@ type altCostView struct {
 func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostView {
 	var out []altCostView
 	for _, sv := range e.activeStatics("AlternativeCost") {
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
@@ -837,7 +878,7 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 			return true
 		}
 		if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil &&
-			effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(sv.Source, sv.Controller)) {
+			effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -863,7 +904,7 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		if !e.continuousConditionHolds(sv) {
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], blocker, e.specCtx(sv.Source, sv.Controller)) {
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], blocker, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -885,14 +926,14 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		if attackerSpec == "" {
 			attackerSpec = sv.Params["ValidCard"]
 		}
-		if !effects.MatchesSpecCtx(e.G, attackerSpec, attacker, e.specCtx(sv.Source, sv.Controller)) {
+		if !effects.MatchesSpecCtx(e.G, attackerSpec, attacker, e.staticSpecCtx(sv)) {
 			continue
 		}
 		spec, ok := sv.Params["ValidBlocker"]
 		if !ok {
 			return true
 		}
-		if effects.MatchesSpecCtx(e.G, spec, blocker, e.specCtx(sv.Source, sv.Controller)) {
+		if effects.MatchesSpecCtx(e.G, spec, blocker, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -1222,7 +1263,12 @@ func (e *Engine) collectCostStatics() costStaticViews {
 		if f == nil {
 			return
 		}
-		for _, st := range f.Statics {
+		for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
+			pst, ok := o.PileStaticAt(si)
+			if !ok {
+				continue
+			}
+			st := pst.Static
 			var dst *[]staticView
 			switch st.Mode {
 			case "RaiseCost":
@@ -1237,7 +1283,7 @@ func (e *Engine) collectCostStatics() costStaticViews {
 			if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
 				continue
 			}
-			*dst = append(*dst, staticView{Source: id, Controller: o.Controller, Params: st.Params})
+			*dst = append(*dst, staticView{Source: id, Controller: o.Controller, Params: st.Params, SVars: pst.Face.SVars})
 		}
 	}
 	for pi, p := range e.G.AliveFrom(0) {
@@ -1294,11 +1340,14 @@ func (e *Engine) modAmountX(sv staticView, x int32) int32 {
 	if o == nil || o.Face() == nil {
 		return 0
 	}
-	f := o.Face()
-	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: f.SVars, X: x}
+	svars := sv.SVars
+	if svars == nil {
+		svars = o.Face().SVars
+	}
+	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: svars, X: x}
 	// An SVar NAME resolves through its body on the source's face; anything
 	// else is an inline Count$-class expression evaluated as written.
-	if body, ok := f.SVars[raw]; ok {
+	if body, ok := svars[raw]; ok {
 		return effects.EvalCount(e, ctx, body)
 	}
 	return effects.EvalCount(e, ctx, raw)
@@ -1641,7 +1690,7 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 			e.costProvenanceSeen = true
 		}
 		spec, ok2 := e.castProvenanceAdmitsPending(spec, id, sv.Controller)
-		if !ok2 || !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+		if !ok2 || !effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
 			return false
 		}
 	}
@@ -1713,7 +1762,7 @@ func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Ta
 	if len(targets) == 0 {
 		return false
 	}
-	ctx := e.specCtx(sv.Source, sv.Controller)
+	ctx := e.staticSpecCtx(sv)
 	for _, target := range targets {
 		if target.IsPlayer {
 			if effects.MatchesPlayerSpec(e.G, spec, target.Player, sv.Controller) {
@@ -1799,8 +1848,11 @@ func (e *Engine) checkSVarHolds(sv staticView) bool {
 	if o == nil || o.Face() == nil {
 		return false
 	}
-	f := o.Face()
-	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: f.SVars}
+	svars := sv.SVars
+	if svars == nil {
+		svars = o.Face().SVars
+	}
+	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: svars}
 	holds, evaluated := effects.CheckSVarHolds(e, ctx, raw, sv.Params["SVarCompare"])
 	if !evaluated {
 		// The statics' shipped convention: an unreadable gate body (an
@@ -1819,7 +1871,7 @@ func (e *Engine) checkSVarHolds(sv staticView) bool {
 // the trinisphere itself while untapped). Resolved against the static's
 // source so Self-class predicates bind.
 func (e *Engine) isPresent(spec string, sv staticView) bool {
-	ctx := e.specCtx(sv.Source, sv.Controller)
+	ctx := e.staticSpecCtx(sv)
 	for _, p := range e.G.AliveFrom(0) {
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
 			if effects.MatchesSpecCtx(e.G, spec, oid, ctx) {
@@ -2081,7 +2133,7 @@ func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bo
 				continue
 			}
 		}
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		matched = true

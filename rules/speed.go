@@ -183,16 +183,16 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 	if grantor == 0 {
 		grantor = opt.Obj
 	}
-	gf := o.Face()
-	if grantor != opt.Obj {
-		g := e.G.Obj(grantor)
-		if g == nil || g.Face() == nil {
-			return
-		}
-		gf = g.Face()
-	}
-	ab := cards.ResolveSVar(gf.SVars, opt.SVar)
-	if ab == nil || ab.Kind != "AB" {
+	// The body is resolved through grantedSAFrom, which walks the grantor's
+	// whole pile top-first (CR 702.140d): a granting static may sit on a
+	// mutated pile's UNDER-CARD, and legal.go's grantedAbilities already
+	// offers such a grant off that face's own SVar table, so resolving only
+	// the grantor's active face here would no-op an option the offer loop
+	// legally produced. A non-mutated grantor resolves exactly as before.
+	// Note this is a NAME anchor, not the flat pile-ability index: a granted
+	// activation carries ability == -1 and decodes no index at all.
+	ab := e.grantedSAFrom(grantor, opt.Obj, opt.SVar)
+	if ab == nil {
 		return
 	}
 	cost, ok := e.fixLifeXCost(p, opt.Obj, e.parseCost(ab.Params["Cost"]))
@@ -203,7 +203,11 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 	// gate composed the same reduction): Targets do not exist yet (CR 601.2c
 	// runs later), so a target-dependent body reads 0 here and
 	// repriceForTargets re-runs the evaluation with the answered targets.
-	own := e.ownReduceCost(p, opt.Obj, ab, nil)
+	// merged 0: the ReduceCost$ SVar body is read off the RECIPIENT's table,
+	// and the granted offer gate (legal.go's granted arm) prices it against
+	// the recipient's top face too -- offer and activation must charge the
+	// same reduction.
+	own := e.ownReduceCost(p, opt.Obj, ab, nil, 0)
 	if own > 0 {
 		if cost.Generic >= own {
 			cost.Generic -= own

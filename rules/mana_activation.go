@@ -89,21 +89,6 @@ type manaUnlessActivation struct {
 	next       int
 }
 
-// manaAbilityIndex maps a face's mana-ability pointer back to its index in
-// the face's Abilities slice -- the ordinal the AbilityPush event carries as
-// Amount for a non-mana activation, and the ordinal the ManaActivate marker
-// carries for a mana one. The gate and the emission must agree on it, so both
-// go through this one identity scan (-1 when ma is not in f.Abilities, which
-// every caller treats as "not this face's ability").
-func manaAbilityIndex(f *cards.Face, ma *cards.SA) int {
-	for i := range f.Abilities {
-		if f.Abilities[i] == ma {
-			return i
-		}
-	}
-	return -1
-}
-
 // isManaAbilityAPI reports the two supported activated mana ability APIs.
 func isManaAbilityAPI(api string) bool { return api == "Mana" || api == "ManaReflected" }
 
@@ -168,16 +153,32 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	// contributes nothing.
 	faceDown := e.faceDownPrintedHides(o)
 	var manaAbilities []*cards.SA
-	if faceDown {
+	switch {
+	case faceDown:
 		for _, w := range o.FaceDownTypeWords() {
 			if ab, ok := cards.IntrinsicManaAbility(w); ok {
 				manaAbilities = append(manaAbilities, ab)
 			}
 		}
-	} else {
+	case len(o.MergedCards) == 0:
+		// The overwhelmingly common case: a permanent that is not a mutated
+		// pile has exactly one face, so its own ManaAbilities slice IS the
+		// walk -- no second collection, which is what keeps this walk at its
+		// pre-mutate allocation cost (internal/searchprobe's Capture budget
+		// runs legalActions over every object on every pass).
 		manaAbilities = f.ManaAbilities()
+	default:
+		// CR 702.140d: a mutated pile's under-card mana abilities are live
+		// too. Only the pile pays for the flattening.
+		for i := 0; i < o.PileFaceCount(); i++ {
+			pf, ok := o.PileFaceAt(i)
+			if !ok {
+				continue
+			}
+			manaAbilities = append(manaAbilities, pf.Face.ManaAbilities()...)
+		}
 	}
-	ctx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
+	recipientCtx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
 	abilityRestricted := func(ma *cards.SA) bool {
 		if statics == nil {
 			return e.abilityRestricted(p, id, ma)
@@ -214,7 +215,8 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			// use never advances any cast). The limit is scanned exactly like
 			// the non-mana gate's.
 			if raw, ok := ma.Params["ActivationLimit"]; ok {
-				if idx := manaAbilityIndex(f, ma); idx >= 0 && e.activationLimitReached(id, p, idx, raw) {
+				idx, merged, found := pileAbilityRefOf(o, ma)
+				if found && e.activationLimitReachedAt(id, p, idx, raw, merged) {
 					continue
 				}
 			}
@@ -233,7 +235,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	// closure must agree, or a reflected land in hand/graveyard is offered
 	// (and activatable) wherever an opponent's land exists -- Exotic Orchard
 	// reporting an "Activate ... for mana" action for the card IN HAND.
-	considerReflected := func(ma *cards.SA) {
+	considerReflected := func(ma *cards.SA, ctx *effects.Ctx) {
 		if ma.Kind != "AB" || ma.API != "ManaReflected" || !abilityZoneOK(ma, o.Zone) || abilityRestricted(ma) || !e.manaAbilityPayable(p, id, ma) || !e.manaReflectedPresentHolds(p, id, ma) {
 			return
 		}
@@ -241,8 +243,26 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			out = append(out, ma)
 		}
 	}
-	for _, ma := range o.Face().Abilities {
-		considerReflected(ma)
+	// A ManaReflected ability may sit on the top face or any under-card; each
+	// resolves its own face's table.
+	for i := 0; i < o.PileFaceCount(); i++ {
+		pf, ok := o.PileFaceAt(i)
+		if !ok {
+			continue
+		}
+		// The per-face Ctx is minted only when the face actually prints a
+		// ManaReflected ability (measured: no repo-deck card does), so an
+		// ordinary permanent's offer pass allocates nothing here.
+		var faceCtx *effects.Ctx
+		for _, ma := range pf.Face.Abilities {
+			if ma.API != "ManaReflected" {
+				continue
+			}
+			if faceCtx == nil {
+				faceCtx = &effects.Ctx{Source: id, Controller: p, SVars: pf.Face.SVars}
+			}
+			considerReflected(ma, faceCtx)
+		}
 	}
 	// A Continuous static may grant an activated ability through AddAbility$.
 	// Resolve its named SVar from the static's source but activate it from id:
@@ -278,7 +298,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		}
 		printed[ma.Line] = true
 		if ma.API == "ManaReflected" {
-			considerReflected(ma)
+			considerReflected(ma, recipientCtx)
 			continue
 		}
 		if ma.API == "Mana" && !e.isLoyaltyAbility(ma) && abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
@@ -300,7 +320,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			continue
 		}
 		if ga.sa.API == "ManaReflected" {
-			considerReflected(ga.sa)
+			considerReflected(ga.sa, recipientCtx)
 			continue
 		}
 		if ga.sa.API != "Mana" || e.isLoyaltyAbility(ga.sa) {
@@ -878,8 +898,25 @@ func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast b
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			continue
 		}
-		if src := e.G.Obj(pt.Source); src != nil && src.Face() != nil {
-			effects.SetSVars(&pt.Ctx, src.Face().SVars)
+		if src := e.G.Obj(pt.Source); src != nil {
+			// CR 702.140d: a triggered mana ability's SVar table is the
+			// table of the face that carries its SA, not the pile top. The
+			// SA here is a Trigger.Effect body minted from a face's Triggers
+			// list, which is NEVER in that face's Abilities, so the owning
+			// face is recovered by findTriggerForAbilityFace (the trigger
+			// scan) -- pileFaceForSA, which searches Abilities, can only ever
+			// report ok=false for a trigger body. pileFaceForSA stays as the
+			// second try for the rare SA that IS a printed activated ability
+			// arriving through this queue; the pile-top fallback is last, the
+			// same three-step order rules/stack.go's resolving-object SVar
+			// resolution uses.
+			if _, f, ok := e.findTriggerForAbilityFace(pt.Source, pt.SA); ok && f != nil {
+				effects.SetSVars(&pt.Ctx, f.SVars)
+			} else if f, ok := e.pileFaceForSA(pt.Source, pt.SA); ok {
+				effects.SetSVars(&pt.Ctx, f.SVars)
+			} else if src.Face() != nil {
+				effects.SetSVars(&pt.Ctx, src.Face().SVars)
+			}
 		}
 		pt = e.rewriteChosenMana(pt)
 		if e.askTriggeredManaColor(pt, triggers[i+1:], cast) {
@@ -1061,7 +1098,11 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 	// activation here (events.ManaActivate's own comment). Emitted only for
 	// ActivationLimit$ abilities so no existing game's log shape changes.
 	if _, limited := ma.Params["ActivationLimit"]; limited {
-		if idx := manaAbilityIndex(e.G.Obj(source).Face(), ma); idx >= 0 {
+		// The flat pile index (top face first, then under-cards) is the SAME
+		// identity availableManaAbilitiesUsing's limit gate checks, so an
+		// under-card mana ability's census cannot be counted against a
+		// top-face ability.
+		if idx, _, found := pileAbilityRefOf(e.G.Obj(source), ma); found {
 			e.emit(events.Event{Kind: events.ManaActivate, Player: p, Obj: source, Amount: int32(idx)})
 		}
 	}
@@ -1110,13 +1151,22 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		produced = substituteChosenProduced(produced, col)
 	}
 	if ma.API == "ManaReflected" {
-		ctx := &effects.Ctx{Source: source, Controller: p,
-			SVars: func() map[string]string {
-				if o := e.G.Obj(source); o != nil && o.Face() != nil {
+		// CR 702.140d: resolve against the face that CARRIES this ability,
+		// not the pile top -- an under-card mana ability's Reflected SVars
+		// live on its own face. A granted/non-printed ability keeps the
+		// top-face fallback (pileFaceForSA reports ok=false).
+		svars := func() map[string]string {
+			if o := e.G.Obj(source); o != nil {
+				if f, ok := e.pileFaceForSA(source, ma); ok {
+					return f.SVars
+				}
+				if o.Face() != nil {
 					return o.Face().SVars
 				}
-				return nil
-			}()}
+			}
+			return nil
+		}()
+		ctx := &effects.Ctx{Source: source, Controller: p, SVars: svars}
 		for _, id := range sacs {
 			ctx.Remembered = append(ctx.Remembered, state.Target{Obj: id})
 		}

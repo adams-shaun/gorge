@@ -58,6 +58,12 @@ type pendingCast struct {
 	from    state.Zone
 	mode    string // "", "kicked", "surged", "flashback", "miracle", and the alternative-cost modes this file offers
 	ability int    // -1 for a spell (Task 10 uses >= 0)
+	// abilityMerged is the pile position of the activated ability pc.ability
+	// names: 0 for the top face, i+1 for the i-th card merged beneath it
+	// (CR 702.140d). It selects the SVar table a computed cost/limit resolves
+	// against, so an under-card ability reads its OWN table, never the pile
+	// top's. Zero for a spell and for every top-face ability.
+	abilityMerged int
 
 	// grantSource / grantSVar (task grantcost1) anchor a GRANTED activation
 	// (rules/speed.go's beginGrantedActivation, reached from the max-speed
@@ -3671,23 +3677,21 @@ func (e *Engine) pcAbility(pc *pendingCast) *cards.SA {
 			return nil
 		}
 		o := e.G.Obj(pc.card)
-		if o == nil || o.Face() == nil || pc.ability >= len(o.Face().Abilities) {
+		if o == nil || o.Face() == nil {
 			return nil
 		}
-		return o.Face().Abilities[pc.ability]
+		// CR 702.140d: the index is a FLAT pile index (top face first, then
+		// each under-card), the one enumeration the offer loop, events.Apply
+		// and the activation-limit census share -- never a bare
+		// Face().Abilities index, which would name a different ability on a
+		// mutated pile. A plain permanent's index is unchanged.
+		pa, ok := o.PileAbilityAt(pc.ability)
+		if !ok {
+			return nil
+		}
+		return pa.SA
 	}
-	gf := e.G.Obj(pc.grantSource)
-	if gf == nil || gf.Face() == nil {
-		gf = e.G.Obj(pc.card)
-	}
-	if gf == nil || gf.Face() == nil {
-		return nil
-	}
-	ab := cards.ResolveSVar(gf.Face().SVars, pc.grantSVar)
-	if ab == nil || ab.Kind != "AB" {
-		return nil
-	}
-	return ab
+	return e.grantedSAFrom(pc.grantSource, pc.card, pc.grantSVar)
 }
 
 // hybrids, the monocolour hybrids, the Phyrexian pips and the
@@ -3751,7 +3755,7 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 		// net-adjust the generic by the delta. The net form is idempotent --
 		// a second pass computes delta 0 -- which matters because
 		// repriceForTargets can run again on a mana-window resume.
-		if n := e.ownReduceCost(pc.player, pc.card, ab, pc.targets); n != pc.ownReduce {
+		if n := e.ownReduceCost(pc.player, pc.card, ab, pc.targets, pc.abilityMerged); n != pc.ownReduce {
 			pc.cost.Generic = addClampedGeneric(pc.cost.Generic, int64(pc.ownReduce-n))
 			pc.ownReduce = n
 		}

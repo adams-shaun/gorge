@@ -1009,6 +1009,14 @@ var stringMapParams = map[string]string{
 	// gate reader must be whitelisted here too, or its recognition reads mask
 	// real gaps.
 	"rules:mayPlayGateRejected:params": "fail-closed MayPlay gate recognition (mayPlayUnreadGates + MayPlayPlayer$) -- a rejection, never a consumption",
+	// rules/mayplay.go mayPlayGateRejectedOther: the same fail-closed MayPlay
+	// gate recognition as mayPlayGateRejected above -- the helper only
+	// carries the family of keys the mutate-token carve-out left behind
+	// (ValidSA$ is indexed by the CALLER now, and only to admit the exact
+	// Spell.Mutate token mayPlayKinds classifies), so this whitelist keeps
+	// its residual recognitions out of the read sets like the parent entry
+	// does.
+	"rules:mayPlayGateRejectedOther:params": "fail-closed MayPlay gate recognition split out of mayPlayGateRejected (mayPlayUnreadGates + MayPlayPlayer$) -- a rejection, never a consumption",
 	// rules/mayplay.go mayPlayConditionGateHolds: params is a card Params map,
 	// but the helper only forwards it to Engine.checkSVarHolds, whose
 	// CheckSVar$/SVarCompare$ reads are already attributed through the generic
@@ -1369,6 +1377,13 @@ var apiSpecificRulesStat = map[string]string{
 	// so its read is family-attributed like the grant path's, never in the
 	// generic Continuous union.
 	"Engine.mayPlayAltCosts": "Continuous.MayPlay",
+	// The ValidSA$ classifier (rules/mayplay.go's mayPlayKinds, called from
+	// legal.go's may-play spell walk): it reads MayPlay statics' ValidSA$
+	// live -- Brokkos, Apex of Forever's `ValidSA$ Spell.Mutate` permits
+	// ONLY the mutate cast from the graveyard, which the split into the
+	// plain and mutate halves encodes -- so its read is family-attributed
+	// exactly like the grant path's, never in the generic Continuous union.
+	"Engine.mayPlayKinds": "Continuous.MayPlay",
 }
 
 // statFamilyInternal names the rules functions whose static reads are family

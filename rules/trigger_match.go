@@ -4219,11 +4219,20 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 			return false
 		}
 	}
+	// CR 702.140d: an AbilityPush's Amount is the FLAT pile-ability index
+	// events.Apply decoded the mint from, so an under-card activation sits
+	// past the top face's list. Resolve through the same pile view the
+	// emitter, the offer loop and events.Apply share -- reading
+	// obj.Face().Abilities here would make a ValidSA$ narrowing fail closed
+	// on every under-card activation and degrade a HasXManaCost$ gate to the
+	// pile TOP's printed cost (a wrong-wide pass whenever the top card's cost
+	// carried {X}). A plain permanent's flat index is unchanged.
+	pa, havePa := obj.PileAbilityAt(int(ev.Amount))
 	if v, ok := t.Params["ValidSA"]; ok {
-		if ev.Amount < 0 || int(ev.Amount) >= len(obj.Face().Abilities) {
+		if !havePa {
 			return false
 		}
-		if !abilityCastValidSA(obj.Face().Abilities[int(ev.Amount)], v) {
+		if !abilityCastValidSA(pa.SA, v) {
 			return false
 		}
 	}
@@ -4231,8 +4240,8 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 	// at the recorded index (the same bounds check ValidSA$ uses); a stale
 	// index fails closed through the nil ab below.
 	var ab *cards.SA
-	if ev.Amount >= 0 && int(ev.Amount) < len(obj.Face().Abilities) {
-		ab = obj.Face().Abilities[int(ev.Amount)]
+	if havePa {
+		ab = pa.SA
 	}
 	if !hasXManaCostGate(t.Params, "", ab) {
 		return false

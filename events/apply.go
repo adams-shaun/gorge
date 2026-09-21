@@ -1636,8 +1636,15 @@ func Apply(g *state.Game, e Event) {
 		if src == nil {
 			break
 		}
-		f := src.Face()
-		if f == nil || e.Amount < 0 || int(e.Amount) >= len(f.Abilities) {
+		// Amount is a FLAT pile-ability index: the top face's Abilities in
+		// order, then each card merged beneath it (CR 702.140d). A plain
+		// permanent's flat index is exactly its old top-face index, so no
+		// existing event changes meaning; a mutated pile's under-card ability
+		// decodes against the same folded MergedCards a replay rebuilt before
+		// this push. Resolving through the pile is what makes an under-card
+		// activation mint the under-card's SA rather than the top face's.
+		pa, ok := src.PileAbilityAt(int(e.Amount))
+		if !ok {
 			break
 		}
 		// The per-source activation census (state/object.go's
@@ -1658,7 +1665,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
-		o.Ability = f.Abilities[e.Amount]
+		o.Ability = pa.SA
 		o.Source = e.Obj
 		// Same PlayerRef decode as TriggerPush above (FL-41): an activated
 		// ability can remember a player the same way a trigger can, so the
