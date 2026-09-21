@@ -1,8 +1,15 @@
 # Agent seats available for gorge work
 
-*Verified 2026-09-07. Re-verify with `pi --list-models` and the `enabledModels`
+*Verified 2026-09-19. Re-verify with `pi --list-models` and the `enabledModels`
 key in `~/.pi/agent/settings.json` before relying on it — this file records what
 was dispatchable, not what exists.*
+
+**All `anthropic/*` seats currently fail at the first request (2026-09-19):**
+Anthropic third-party apps draw from the account's EXTRA USAGE, not plan limits,
+and the account carries none — `400 "Add more at claude.ai/settings/usage"`.
+The seats below are enabled and authenticated but undepatchable until credits
+are added; prove any anthropic dispatch with a one-turn `pi -p` smoke test
+first.
 
 Implementation work is offloaded to agent seats; the expensive model is the
 reviewer and the gate, not the implementer. This file records **which seats can
@@ -19,11 +26,13 @@ enabled. Dispatching a model outside that set fails at launch.
 | **Local (default)** | `bm-llms` / `DeepSeek-V4-Flash` | 262K / 32K | no | free | all ordinary task work |
 | **Local vision** | `bm-llms-vision` / `DeepSeek-V4-Flash-Vision-Exp` | 1M / 32K | **yes** | free | visual/UI work, screenshot review |
 | Codex | `openai-codex` / `gpt-6-astra` | 272K / 128K | yes | ChatGPT plan | escalation |
+| DeepSeek | `deepinfra` / `deepseek-ai/DeepSeek-V4.1-Flash` | 1M / 384K | no | pay-per-token $0.14/$0.42 per M | escalation — cheapest paid seat, measured 145–190 tok/s |
 | Codex | `openai-codex` / `gpt-5.6-sol` | 272K / 128K | yes | ChatGPT plan | escalation |
 | Codex | `openai-codex` / `gpt-5.6-terra` | 272K / 128K | yes | ChatGPT plan | escalation |
 | Codex | `openai-codex` / `gpt-5.6-luna` | 272K / 128K | yes | ChatGPT plan | escalation |
 | Codex | `openai-codex` / `gpt-5.5` | 272K / 128K | yes | ChatGPT plan | escalation |
 | Codex | `openai-codex` / `gpt-5.3-codex-spark` | 128K / 128K | yes | ChatGPT plan | escalation |
+| Claude | `anthropic` / `claude-opus-4-8` | 1M / 128K | yes | Anthropic extra usage | rescue (currently blocked: no extra-usage credits) |
 
 There are TWO local providers, on different hosts:
 
@@ -77,9 +86,13 @@ the dash: an invented heartbeat is worse than an honest gap.
 3. **Escalate on evidence, not on the task feeling important.** Two failed local
    fix rounds, or fabricated evidence (a report claiming a test passed that your
    own run fails), or the same failure signature twice.
-4. **Codex is the cheaper escalation** — offer it and name a model, then let the
-   user pick. It is an alternative to a Claude implementer, not a replacement
-   for the two local rounds.
+4. **Paid seat is the cheaper escalation** — offer it and name a model, then let the
+   user pick. `deepinfra/deepseek-ai/DeepSeek-V4.1-Flash` is the default offer
+   (per-token, cheapest); codex models when the task wants a plan model. Either is an
+   alternative to a Claude implementer, not a replacement for the two local rounds.
+   Note: pi's built-in `deepseek` provider (api.deepseek.com) is NOT this seat and
+   must not be dispatched — the `DEEPSEEK_API_KEY` env var holds the DeepInfra key,
+   so the built-in looks authed but every call fails.
 5. **Claude implementer last.**
 
 ## Concurrency — two pools, not one cap
@@ -90,7 +103,7 @@ the two ceilings exist for unrelated reasons:
 | pool | cap | claimed with | what the cap protects |
 |---|---|---|---|
 | **local** | 3 | `fleet.sh claim <id> --local` (the default) | THIS BOX **and the GPU**. Past the cap it saturates and load-sensitive tests fail for reasons unrelated to any diff. |
-| **paid** | 1 | `fleet.sh claim <id> --paid` | The PLAN. Codex seats run on someone else's hardware and load the box not at all, but share one ChatGPT plan's rate limit and throttle each other and the user's own sessions. |
+| **paid** | 1 | `fleet.sh claim <id> --paid` | The MONEY. Codex seats share one ChatGPT plan's rate limit and throttle each other and the user's own sessions; the deepinfra seat has no rate limit but is pure per-token burn ($0.14/$0.42 per M). Either way one paid seat runs at a time. |
 
 So **4 agents can run at once** — 3 local plus 1 paid (user ruling
 2026-09-07, lowered from 4+2; see "The local cap is about the GPU too" below). A full local pool does
@@ -142,6 +155,9 @@ The permanent fix is on the deployment, not here: lower
 - **Prefer the gpt seats for non-ds4 work** — `gpt-5.6-terra`, `gpt-5.6-luna`,
   `gpt-5.6-sol`. When a task is going to a paid seat rather than the local one,
   a codex model is the default choice, not Claude.
+- **`claude-opus-4-8` runs at `--thinking medium` (user, 2026-09-19)** —
+  `pi-agent --provider anthropic --model claude-opus-4-8 --thinking medium`
+  (the wrapper's own default). Do not raise it without a measurement.
 
 ## Stopping a pi-agent: kill the TREE, by explicit pid
 
