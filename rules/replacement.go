@@ -1336,6 +1336,31 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 	return last, true
 }
 
+// internalCounterMarker reports whether a counter name is one of the engine's
+// own status markers rather than a counter a card could name. Both ride an
+// ordinary CounterChange -- the engine has no per-object status field, so a
+// marker is recorded as a counter -- and both are SET with Amount 1, so the
+// AddCounter matcher's positive-amount guard does not exclude them:
+//
+//   - "Shield", the this-turn regeneration shield (effects/counters.go's
+//     effRegenerate sets it, effects/regeneration.go reads it back, and
+//     rules/combat.go consumes one per destruction);
+//   - "Deathtouched", the CR 702.2b lethal mark (rules/combat.go's combat
+//     assignment, this file's replacement-applied damage, effects/damage.go),
+//     read by rules/sba.go's destruction check.
+//
+// A counter doubler whose R: line names no ValidCounterType$ -- Doubling
+// Season, Winding Constrictor's object line, Loading Zone, Pir, Selesnya Loft
+// Gardens -- matches any counter kind, so without this gate one Regenerate
+// would grant TWO regeneration shields. Excluding the markers by name is safe:
+// every counter kind the corpus scripts is upper-case (P1P1, LORE, AGE, TIME,
+// STUN, CHARGE, ENERGY, POISON, LOYALTY, ...), so no real kind can collide
+// with either mixed-case marker name, and a removal of a marker was already
+// excluded by the sign guard.
+func internalCounterMarker(name string) bool {
+	return name == "Shield" || name == "Deathtouched"
+}
+
 // applyAddCounterReplacements rewrites a CounterChange/PlayerCounterChange
 // event's Amount through every applicable R:Event$ AddCounter replacement,
 // then returns the event UNHANDLED so emit's ordinary path logs and folds the
@@ -1377,14 +1402,12 @@ func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatc
 		// leaves Melira's lock absent (a second poison source the same turn
 		// places its counters), which is recorded as a known wrong result on
 		// exactly that one carrier in the AddCounter row of AGENTS.md.
-		// Placed after the counter-kind gate so a body that does not apply to
-		// this event never emits the Note.
+		// Emitted AFTER the priceability verdict below, not here: a body that
+		// passes the counter-kind gate but whose Amount$ this build cannot
+		// price does not apply at all, and must not announce a rider it never
+		// reached.
 		if ct := strings.TrimSpace(body.Params["ValidCounterType"]); ct != "" && ct != ev.Counter {
 			continue
-		}
-		if body.Sub != nil {
-			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
-				Text: "replacement body SubAbility$ not run (unsupported rider): " + body.API})
 		}
 		hold := ev
 		hold.Amount = amount
@@ -1393,7 +1416,18 @@ func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatc
 		// A negative result would be a counter REMOVAL, which this class
 		// does not express; leave the event verbatim. An unpriceable body
 		// (!ok) is likewise skipped, never read as zero.
-		if !ok || n < 0 || n == amount {
+		if !ok || n < 0 {
+			continue
+		}
+		// The body APPLIES from here on, so a dropped rider is announced now
+		// -- including when the rewrite is a no-op (n == amount, Melira's
+		// Amount$ 1 against a single poison counter): the lock is dropped
+		// there too, and the Note is the log's only witness of it.
+		if body.Sub != nil {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "replacement body SubAbility$ not run (unsupported rider): " + body.API})
+		}
+		if n == amount {
 			continue
 		}
 		amount = n
@@ -2067,7 +2101,9 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// effects/amass.go), so every token creation IS effect-created and the
 		// gate is vacuously satisfiable. No code reads the param yet -- a
 		// cost-created-token provenance marker, when one lands, must read it
-		// here.
+		// here. This "vacuously satisfiable" reading is the TOKEN class's
+		// alone: the AddCounter case below DOES read EffectOnly$, because
+		// CounterChange has non-effect emitters (turn-based actions, costs).
 		return e.replacementConditionHolds(r, source, you)
 	case "AddCounter":
 		// The counter-placement replacement class (Hardened Scales, Branching
@@ -2079,10 +2115,16 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// name via RegisterNonAPI).
 		//
 		// Only a POSITIVE placement is replaceable: a CounterChange that
-		// removes counters (a SubCounter cost, a -1/-1 wipe) or that carries
-		// a status marker (regeneration's Shield, Deathtouched) is a counter
-		// REMOVAL/flag, never an AddCounter event.
+		// removes counters (a SubCounter cost, a -1/-1 wipe) is never an
+		// AddCounter event.
 		if ev.Amount <= 0 {
+			return false
+		}
+		// ... and neither is one of the engine's own status markers, which
+		// ride a CounterChange for want of a status field and are emitted
+		// with a POSITIVE amount, so the sign guard above does not exclude
+		// them. See internalCounterMarker.
+		if internalCounterMarker(ev.Counter) {
 			return false
 		}
 		// ValidCounterType$ names the kind of counter being added and appears

@@ -289,3 +289,90 @@ func TestVizierOfRemediesReplacesToZero(t *testing.T) {
 		replayCheck(t, e, cfg)
 	}
 }
+
+// regenReplSource builds an authored artifact whose activated ability
+// regenerates target creature through effRegenerate's real emit path, so the
+// "Shield" marker is placed as the EFFECT of a resolving ability (which is
+// what makes Doubling Season's EffectOnly$ gate pass, and therefore what
+// makes this the load-bearing probe rather than a bare emit).
+func regenReplSource(t testing.TB) *cards.Card {
+	return card(t, "Name:Regen Source\nTypes:Artifact\n"+
+		"A:AB$ Regenerate | Cost$ T | ValidTgts$ Creature | "+
+		"SpellDescription$ Regenerate target creature.\n"+
+		"Oracle:x\n")
+}
+
+// TestCounterDoublerIgnoresRegenerationShield is the marker gate: the engine
+// records a regeneration shield as a positive-amount CounterChange named
+// "Shield" for want of a status field, and a counter replacement whose R:
+// line names no ValidCounterType$ (Doubling Season, Winding Constrictor's
+// object line) matches ANY counter kind. Without internalCounterMarker, one
+// Regenerate would grant TWO shields -- a real wrong result, since
+// rules/combat.go consumes one shield per destruction. The shield must stay
+// at exactly 1 under either card.
+func TestCounterDoublerIgnoresRegenerationShield(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		seed uint64
+	}{
+		{"Doubling Season", 103},
+		{"Winding Constrictor", 105},
+	} {
+		repl := tokenReplCorpusCard(t, tc.name)
+		src := regenReplSource(t)
+		target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+		e, cfg := tokenReplGame(t, tc.seed, repl, src, target)
+		moveSeededCard(t, e, 0, repl, state.ZBattlefield)
+		sourceID := moveSeededCard(t, e, 0, src, state.ZBattlefield)
+		targetID := moveSeededCard(t, e, 0, target, state.ZBattlefield)
+		activateCounterSource(t, e, sourceID, targetID)
+		if got := e.G.Obj(targetID).Counter("Shield"); got != 1 {
+			t.Fatalf("%s + one Regenerate = %d Shield markers, want 1 (a status marker is not a counter placement)", tc.name, got)
+		}
+		replayCheck(t, e, cfg)
+	}
+}
+
+// TestCounterReplacementIgnoresDeathtouchedMarker is the same gate on the
+// other marker: "Deathtouched" is set with Amount 1 by the combat and
+// replacement damage paths and read by rules/sba.go's destruction check.
+// Winding Constrictor's object line names no counter kind and carries no
+// EffectOnly$, so a bare emit is the exact shape combat produces.
+func TestCounterReplacementIgnoresDeathtouchedMarker(t *testing.T) {
+	wc := tokenReplCorpusCard(t, "Winding Constrictor")
+	target := card(t, "Name:Counter Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e, cfg := tokenReplGame(t, 107, wc, target)
+	moveSeededCard(t, e, 0, wc, state.ZBattlefield)
+	targetID := moveSeededCard(t, e, 0, target, state.ZBattlefield)
+	e.emit(events.Event{Kind: events.CounterChange, Obj: targetID, Counter: "Deathtouched", Amount: 1})
+	if got := e.G.Obj(targetID).Counter("Deathtouched"); got != 1 {
+		t.Fatalf("Winding Constrictor + one Deathtouched mark = %d, want 1 (a status marker is not a counter placement)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestCounterReplacementBodySubAbilityLoudOnNoOpRewrite pins the rider Note's
+// new placement: it is emitted when the body APPLIES, which includes the
+// no-op rewrite. Melira's Amount$ 1 against a SINGLE poison counter leaves
+// the count at 1, but the dropped CantPutCounter lock is just as absent as in
+// the 3 -> 1 case, so the log must still say so.
+func TestCounterReplacementBodySubAbilityLoudOnNoOpRewrite(t *testing.T) {
+	melira := tokenReplCorpusCard(t, "Melira, the Living Cure")
+	e, cfg := tokenReplGame(t, 109, melira)
+	moveSeededCard(t, e, 0, melira, state.ZBattlefield)
+	before := len(e.L.Events)
+	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 1})
+	if got := e.G.Players[0].Counter("POISON"); got != 1 {
+		t.Fatalf("Melira: 1 poison -> %d, want 1", got)
+	}
+	n := 0
+	for _, ev := range e.L.Events[before:] {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "replacement body SubAbility$") {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("Melira on a no-op rewrite: %d loud rider Notes, want exactly 1", n)
+	}
+	replayCheck(t, e, cfg)
+}
