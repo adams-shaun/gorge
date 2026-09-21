@@ -178,6 +178,96 @@ func TestSiegeEntryPosesProtectorChoice(t *testing.T) {
 	}
 }
 
+// TestBattleFaceDownEntryGrantsNothingAndDoesNotPark is the manifest/cloak
+// boundary at the rules level: a face-down Battle entry (CR 708.5) is a
+// vanilla 2/2 creature, so the CR 310.10 protector ask must not be posed for
+// it (applySiegeProtector reads the entry event's face-down marker, since
+// the FaceDown state is only folded by Apply's Move after the replacement
+// dispatch runs), and the CR 704.5h zero-defense SBA must not sweep it (it
+// has no defense counters by construction). Pins both face-down guards that
+// a manifested or cloaked Battle reaches in real play.
+func TestBattleFaceDownEntryGrantsNothingAndDoesNotPark(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	battle := mustCorpusCard(t, reg, "Invasion of Tolvada")
+	deck := append([]*cards.Card{battle}, mountainDeck(t, 39)...)
+	cfg := Config{Seed: 31, Names: []string{"a", "b", "c", "d"},
+		Decks: [][]*cards.Card{deck, mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}
+	cfg = seatZeroStart(cfg)
+	e := New(cfg)
+	var id state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner == 0 && o.Card == battle {
+			id = o.ID
+			break
+		}
+	}
+	if id == 0 {
+		t.Fatal("battle copy missing")
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
+		To: state.ZBattlefield, Counter: events.FaceDownEntryCounter})
+	if d := e.Pending(); d != nil {
+		t.Fatalf("face-down battle entry parked on a decision, want none: %+v", d)
+	}
+	o := e.G.Obj(id)
+	if !o.FaceDown {
+		t.Fatal("face-down entry did not fold FaceDown")
+	}
+	if got := o.Counter("DEFENSE"); got != 0 {
+		t.Fatalf("face-down battle entered with %d defense counters, want 0", got)
+	}
+	e.checkStateBased()
+	if o.Zone != state.ZBattlefield {
+		t.Fatalf("face-down battle was swept to %v by the zero-defense SBA", o.Zone)
+	}
+}
+
+// TestSiegeTwoPlayerRecordsSoleOpponentWithoutAsking pins the strict-supersets
+// convention on the CR 310.10 ask: in a two-player game exactly one opponent
+// is a legal protector, so no decision is posed and the sole opponent is
+// recorded through the same Choose "protector" event.
+func TestSiegeTwoPlayerRecordsSoleOpponentWithoutAsking(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	battle := mustCorpusCard(t, reg, "Invasion of Tolvada")
+	deck := append([]*cards.Card{battle}, mountainDeck(t, 39)...)
+	cfg := seatZeroStart(Config{Seed: 31, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{deck, mountainDeck(t, 40)}})
+	e := New(cfg)
+	var id state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner == 0 && o.Card == battle {
+			id = o.ID
+			break
+		}
+	}
+	if id == 0 {
+		t.Fatal("battle copy missing")
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	if d := e.Pending(); d != nil {
+		t.Fatalf("two-player Siege posed a decision, want none: %+v", d)
+	}
+	o := e.G.Obj(id)
+	if !o.ProtectorValid || o.Protector != 1 {
+		t.Fatalf("sole opponent not recorded: valid=%v protector=%d, want true/1",
+			o.ProtectorValid, o.Protector)
+	}
+	found := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Choose && ev.Obj == id && ev.Counter == "protector" {
+			found = true
+			if ev.Player != 1 {
+				t.Fatalf("Choose protector event names seat %d, want 1", ev.Player)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("no Choose \"protector\" event in the log")
+	}
+}
+
 // TestBattlePathReplaysExactly proves the entry grant, the protector choice
 // and the zero-defense SBA are all re-derived from the event stream alone:
 // folding the log's post-genesis events onto a genesis clone of the game

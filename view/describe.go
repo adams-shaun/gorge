@@ -376,11 +376,17 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.Choose:
 		// Records an "as this enters, choose ..." answer (etbAsk/etbAnswer):
 		// Counter discriminates the shape ("name", "type", "number"; the
-		// chosen name/type rides on Text, the number on Amount). Like
-		// CastInfo it carries no Player field, so the chooser is the card's
-		// controller. An unrecognized Counter (a fuzz event, a future
-		// shape) degrades to a generic "chooses a value" line rather than
-		// inventing a field.
+		// chosen name/type rides on Text, the number on Amount). The
+		// "protector" shape (CR 310.10) instead carries the chosen
+		// opponent's seat on Player, so it names that seat rather than the
+		// card's controller. Every other shape carries no Player field, so
+		// the chooser is the card's controller. An unrecognized Counter (a
+		// fuzz event, a future shape) degrades to a generic "chooses a
+		// value" line rather than inventing a field.
+		if ev.Counter == "protector" {
+			return player(g, ev.Player) + " protects " + obj(g, ev.Obj) +
+				" (chosen by " + player(g, objController(g, ev.Obj)) + ")"
+		}
 		what := "a value"
 		switch ev.Counter {
 		case "name":

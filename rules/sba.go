@@ -733,6 +733,15 @@ func (e *Engine) battleZeroDefense(tried *sbaAttempts) bool {
 			if o == nil {
 				continue
 			}
+			// A face-down card is a vanilla 2/2 creature (CR 708.5), never a
+			// Battle: Face() returns the printed front face regardless of
+			// FaceDown (and the entry grant above grants a face-down entry
+			// no defense counters), so without this guard a manifested or
+			// cloaked Battle would be swept into its owner's graveyard the
+			// instant it entered.
+			if o.FaceDown {
+				continue
+			}
 			f := o.Face()
 			if f == nil || !f.IsBattle() {
 				continue

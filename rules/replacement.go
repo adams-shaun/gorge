@@ -1725,6 +1725,14 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil {
 		return false
 	}
+	// A face-down entry is a vanilla 2/2 creature (CR 708.5), not a Battle;
+	// the entry grant grants it no defense counters, so it must not be parked
+	// on the CR 310.10 protector ask either. The FaceDown state is folded by
+	// Apply's Move AFTER this replacement dispatch runs, so the incoming
+	// event's counter -- not o.FaceDown -- is what names the face-down entry.
+	if _, _, _, _, fd := events.FaceDownEntryFields(ev.Counter); fd {
+		return false
+	}
 	if !o.Face().IsBattle() {
 		return false
 	}
@@ -1752,6 +1760,14 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 		idx++
 	}
 	if len(opts) == 0 {
+		return false
+	}
+	// Strict-supersets convention: a decision nobody could answer differently
+	// is never posed. In a two-player game exactly one opponent is legal, so
+	// record it through the same Choose "protector" event without an ask.
+	if len(opts) == 1 {
+		e.emit(events.Event{Kind: events.Choose, Obj: o.ID,
+			Counter: "protector", Player: opts[0].Player})
 		return false
 	}
 	move := ev
