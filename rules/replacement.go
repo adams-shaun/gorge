@@ -827,6 +827,42 @@ func replacementEvent(ev events.Event) (string, bool) {
 	}
 }
 
+// extraTurnSkipped reports whether a live R:Event$ BeginTurn replacement
+// would skip the extra turn `seat` is about to begin (Trouble in Pairs,
+// Stranglehold, Ugin's Nexus, Gerrard's Hourglass Pendant; CR 500.7's "that
+// player skips it instead" reading of R:Event$ BeginTurn | ExtraTurn$ True |
+// Skip$ True). There is no per-turn "would begin" log event to hang
+// replacement matching on, so the helper poses a SYNTHETIC
+// events.ExtraTurn{Amount: 0, Player: seat} event to the ordinary matcher --
+// the ActiveZones$ gate, the ValidPlayer$ read and replacementConditionHolds
+// are then the shared ones and cannot drift from the other replacement
+// families. The read is pure: it emits nothing, and the caller owns every
+// event (including the loud Note for a matched ExtraTurn$ line whose action
+// this build does not implement -- Skip$ absent, or a ReplaceWith$ body --
+// reported in the second return so the turn proceeds loudly rather than
+// being skipped silently).
+func (e *Engine) extraTurnSkipped(seat state.PlayerID) (skip, unsupported bool) {
+	ev := events.Event{Kind: events.ExtraTurn, Player: seat}
+	e.forEachReplacementSource(func(id state.ObjID) {
+		f := e.replacementFace(id, ev)
+		if f == nil {
+			return
+		}
+		for i := range f.Repls {
+			r := &f.Repls[i]
+			if r.Event != "BeginTurn" || !e.replacementMatches(*r, id, ev) {
+				continue
+			}
+			if r.Params["Skip"] == "True" && r.With == nil {
+				skip = true
+			} else {
+				unsupported = true
+			}
+		}
+	})
+	return skip, unsupported
+}
+
 // replacementFace returns the source face whose R: lines apply now. A
 // transform's "as this transforms into ..." replacement belongs to the
 // destination face, while every other replacement reads the source's current
@@ -2169,6 +2205,40 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		if r.Params["Hellbent"] == "True" && len(e.G.Zone(state.ZHand, you)) > 0 {
 			return false
 		}
+		return e.replacementConditionHolds(r, source, you)
+	case "BeginTurn":
+		// The skip-an-extra-turn class (Trouble in Pairs, Stranglehold,
+		// Ugin's Nexus, Gerrard's Hourglass Pendant). Reached ONLY through the
+		// synthetic events.ExtraTurn{Amount: 0} event extraTurnSkipped poses
+		// at consumption time: no per-turn "would begin" log event exists, so
+		// replacementEvent deliberately maps none and applyReplacements never
+		// routes a BeginTurn replacement. The synthetic event carries Amount 0,
+		// which no real ExtraTurn event ever carries (grants are positive,
+		// consumptions -1), so the synthetic shape cannot collide with a real
+		// one even if one were ever scanned.
+		if ev.Kind != events.ExtraTurn || ev.Amount != 0 {
+			return false
+		}
+		// Requiring ExtraTurn$ True is what keeps Time Vault out: its R:
+		// Event$ BeginTurn line skips a NORMAL turn (Optional$ True, a
+		// ReplaceWith$ body, IsPresent$ Card.Self+tapped, no ExtraTurn$), a
+		// different shape this task deliberately does not implement -- a
+		// matcher without the requirement would change that card's behaviour
+		// without implementing it.
+		if r.Params["ExtraTurn"] != "True" {
+			return false
+		}
+		// ValidPlayer$ Opponent scopes the skip to opponents of the
+		// replacement's controller (Trouble in Pairs, Stranglehold); a line
+		// with no ValidPlayer$ (Ugin's Nexus, Gerrard's Hourglass Pendant)
+		// applies to ANY player's extra turn, the controller's own included.
+		if vp, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+			return false
+		}
+		// Optional$-gated and ReplaceWith$-bearing shapes are not implemented:
+		// extraTurnSkipped reports a matched line whose action is not Skip$
+		// True loudly instead of silently skipping, and never silently skips.
 		return e.replacementConditionHolds(r, source, you)
 	case "Transform":
 		if ev.Kind != events.FlipFace {
