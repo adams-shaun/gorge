@@ -1064,10 +1064,12 @@ func dedupeKinds(kinds []string) []string {
 }
 
 // effMoveCounter implements Forge's MoveCounterEffect: counters of
-// CounterType$ move from an ORIGIN set to a DESTINATION set, each losing the
-// counter the other gains (CR 122.5 -- a counter moves, it is not copied and
-// not removed-and-put). `effects.Register("MoveCounter")` is what makes the
-// ability offered at all; before it every carrier fell to the generic
+// CounterType$ move from an ORIGIN set to a DESTINATION set -- a counter
+// leaves its origin once and lands ONCE (CR 122.5: a counter moves, it is
+// not copied and not removed-and-put; a multi-destination sweep DISTRIBUTES
+// the moved total across the destinations, round-robin in destination
+// order). `effects.Register("MoveCounter")` is what makes the ability offered
+// at all; before it every carrier fell to the generic
 // "unimplemented API MoveCounter" Note and moved nothing (Diamond City's
 // second ability, Weapon Rack, Aetherborn Marauder, Spike Cannibal, Bioshift,
 // ... -- 33 raw SA lines over 32 corpus files).
@@ -1261,9 +1263,10 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 
-	// The move walk. Each origin loses `moved` of each kind; each destination
-	// gains it. RememberPut$ appends the destinations that actually received a
-	// counter; RememberAmount$ appends the origin once per counter moved.
+	// The move walk. Each origin loses `moved` of each kind; the moved total
+	// is DISTRIBUTED across the destinations (CR 122.5 -- see the walk).
+	// RememberPut$ appends the destinations that actually received a counter;
+	// RememberAmount$ appends the origin once per counter moved.
 	rememberPut := strings.EqualFold(strings.TrimSpace(sa.Params["RememberPut"]), "True")
 	rememberAmount := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAmount"]), "True")
 	var rememberedDests []state.Target
@@ -1284,13 +1287,39 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 			if moved <= 0 {
 				continue
 			}
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: -moved})
+			// The live destinations for this origin: on the battlefield and
+			// not the origin itself (moving a counter from a permanent to
+			// itself is a no-op, never a -/+ pair on the same id). Built BEFORE
+			// the origin's loss is emitted: an origin whose every destination
+			// left the battlefield (or was never live) keeps its counters.
+			live := make([]*state.Object, 0, len(dests))
 			for _, t := range dests {
-				d := g.Obj(t.Obj)
-				if d == nil || d.Zone != state.ZBattlefield {
+				if d := g.Obj(t.Obj); d != nil && d.Zone == state.ZBattlefield && d.ID != o.ID {
+					live = append(live, d)
+				}
+			}
+			if len(live) == 0 {
+				continue
+			}
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: -moved})
+			// CR 122.5: a moved counter leaves the origin once and lands ONCE
+			// -- a multi-destination sweep (Forgotten Ancient's "move any number
+			// of +1/+1 counters ... onto other creatures") DISTRIBUTES moved
+			// across the destinations, it never gives each destination the
+			// whole moved set (that would mint (M-1)*moved counters out of
+			// nothing). Distribution is the deterministic round-robin in
+			// destination order (a stand-in for the per-destination election
+			// the card text implies -- M4): destination j receives
+			// floor((moved+M-1-j)/M), so 2 over 2 creatures is 1 and 1, and a
+			// single-destination shape -- every other measured carrier -- is
+			// byte-identical to the whole-set move it had before.
+			m := int32(len(live))
+			for j, d := range live {
+				share := (moved + m - 1 - int32(j)) / m
+				if share <= 0 {
 					continue
 				}
-				h.Emit(events.Event{Kind: events.CounterChange, Obj: d.ID, Counter: k, Amount: moved})
+				h.Emit(events.Event{Kind: events.CounterChange, Obj: d.ID, Counter: k, Amount: share})
 				rememberedDests = append(rememberedDests, state.Target{Obj: d.ID})
 			}
 			for i := int32(0); i < moved; i++ {
@@ -1304,6 +1333,23 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 	if rememberAmount && len(amountIDs) > 0 {
 		c.Remembered = append(c.Remembered, objTargets(amountIDs)...)
 	}
+}
+
+// moveCounterChosen is the chosen-target set a MoveCounter's origin/
+// destination defaults read: the generic ValidTgts$ pre-ask's ANSWER
+// (c.PickedTargets, mvts1) when one is outstanding, else the resolution's own
+// target list. Preferring PickedTargets is the established convention
+// (effects/context.go Defined, effects/damage.go, effects/zone.go): a sub the
+// pre-ask asked (Nesting Grounds' `Source$ ParentTarget | ValidTgts$
+// Permanent`, Rikku's, Black Panther's) must receive the sub's OWN chosen
+// targets, never the parent's (c.Targets), while a depth-0 shape the
+// placement/announcement ask covered (Bioshift's TargetMin$ 2, a Weapon Rack
+// activation) has PickedTargets nil and keeps c.Targets.
+func moveCounterChosen(c *Ctx) []state.Target {
+	if c.PickedTargets != nil {
+		return c.PickedTargets
+	}
+	return c.Targets
 }
 
 // moveCounterOrigin resolves the FROM set of a MoveCounter: Source$ (a
@@ -1325,12 +1371,13 @@ func moveCounterOrigin(h Host, c *Ctx, sa *cards.SA) (ts []state.Target, fromTar
 		return battlefieldValidTargets(h, c, filt), false, true
 	}
 	if moveCounterNamesDestination(sa) {
-		return copyTargets(c.Targets), false, true
+		return copyTargets(moveCounterChosen(c)), false, true
 	}
-	if len(c.Targets) == 0 {
+	chosen := moveCounterChosen(c)
+	if len(chosen) == 0 {
 		return nil, true, true
 	}
-	return copyTargets(c.Targets[:1]), true, true
+	return copyTargets(chosen[:1]), true, true
 }
 
 // moveCounterNamesDestination reports whether the SA names its TO set
@@ -1342,7 +1389,8 @@ func moveCounterNamesDestination(sa *cards.SA) bool {
 }
 
 // moveCounterDest resolves the TO set: Defined$, else ValidDefined$, else the
-// chosen targets -- the remaining targets after target 0 when the origin also
+// chosen targets (moveCounterChosen: the pre-ask's answer when one is
+// outstanding) -- the remaining targets after target 0 when the origin also
 // came from the chosen targets (the 2-target shapes), else all of them.
 func moveCounterDest(h Host, c *Ctx, sa *cards.SA, originFromTargets bool) []state.Target {
 	if strings.TrimSpace(sa.Params["Defined"]) != "" {
@@ -1351,7 +1399,7 @@ func moveCounterDest(h Host, c *Ctx, sa *cards.SA, originFromTargets bool) []sta
 	if filt := strings.TrimSpace(sa.Params["ValidDefined"]); filt != "" {
 		return battlefieldValidTargets(h, c, filt)
 	}
-	ts := c.Targets
+	ts := moveCounterChosen(c)
 	if originFromTargets {
 		if len(ts) <= 1 {
 			return nil

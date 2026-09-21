@@ -374,6 +374,96 @@ func TestMoveCounterExoticShapesStayLoud(t *testing.T) {
 	}
 }
 
+// The sub's own pre-ask answer beats the parent's target list: a MoveCounter
+// sub the generic ValidTgts$ pre-ask asked (Nesting Grounds' `Source$
+// ParentTarget | ValidTgts$ Permanent`, Rikku's, Black Panther's) receives
+// Ctx.PickedTargets as its destination, never c.Targets (the parent's
+// target) -- the established PickedTargets convention (effects/context.go
+// Defined, effects/damage.go, effects/zone.go). Without the preference the
+// -1 and +1 land on the same object and cancel.
+func TestMoveCounterSubTargetBeatsParentTargets(t *testing.T) {
+	h := &fakeHost{g: state.NewGame(names(2))}
+	parent := mcCreature(t, h.g, "Parent", 0)
+	sub := mcCreature(t, h.g, "Sub", 0)
+	h.g.Obj(parent).AddCounter("P1P1", 2)
+	Resolve(h, &Ctx{Controller: 0, Source: sub,
+		Targets: []state.Target{{Obj: parent}}, // the parent's chosen target (Source$ ParentTarget reads it)
+		// The sub's own pre-ask answer, in the transport the machinery
+		// delivers it in (Ctx.TargetsPick consumed by chosenTargetsFor into
+		// PickedTargets -- the exact shape of a re-entry after the ask).
+		TargetsPick: []state.Target{{Obj: sub}}, TargetsPickDone: true},
+		moveCounterSA(t, "Source$ ParentTarget | ValidTgts$ Creature | CounterType$ P1P1 | CounterNum$ 1"))
+	if got := h.g.Obj(parent).Counter("P1P1"); got != 1 {
+		t.Fatalf("parent P1P1 = %d, want 1 (the origin lost one)", got)
+	}
+	if got := h.g.Obj(sub).Counter("P1P1"); got != 1 {
+		t.Fatalf("sub target P1P1 = %d, want 1 (the sub's OWN chosen destination gained it)", got)
+	}
+	assertCounterPair(t, h.log, parent, sub, "P1P1", 1)
+}
+
+// A multi-destination sweep DISTRIBUTES the moved total across the
+// destinations (CR 122.5 conservation): 2 moved over 2 other creatures is 1
+// and 1 -- never 2 and 2, which would mint two counters out of nothing
+// (the Forgotten Ancient defect). A moved 1 lands wholly on the first
+// destination in order.
+func TestMoveCounterSweepDistributesMovedAcrossDestinations(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		moved        string
+		wantA, wantB int32
+		wantSrc      int32
+		srcStart     int32
+	}{{
+		name: "2 over 2", moved: "2", srcStart: 3, wantSrc: 1, wantA: 1, wantB: 1,
+	}, {
+		name: "1 over 2", moved: "1", srcStart: 1, wantSrc: 0, wantA: 1, wantB: 0,
+	}} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := &fakeHost{g: state.NewGame(names(2))}
+			src := mcCreature(t, h.g, "Src", 0)
+			otherA := mcCreature(t, h.g, "OtherA", 0)
+			otherB := mcCreature(t, h.g, "OtherB", 0)
+			h.g.Obj(src).AddCounter("P1P1", tc.srcStart)
+			Resolve(h, &Ctx{Controller: 0, Source: src},
+				moveCounterSA(t, "Source$ Self | ValidDefined$ Creature.Other | CounterType$ P1P1 | CounterNum$ "+tc.moved))
+			total := h.g.Obj(src).Counter("P1P1") + h.g.Obj(otherA).Counter("P1P1") + h.g.Obj(otherB).Counter("P1P1")
+			if total != tc.srcStart {
+				t.Fatalf("total counters = %d, want %d (CR 122.5: a move never mints)", total, tc.srcStart)
+			}
+			if got := h.g.Obj(src).Counter("P1P1"); got != tc.wantSrc {
+				t.Fatalf("source P1P1 = %d, want %d", got, tc.wantSrc)
+			}
+			if got := h.g.Obj(otherA).Counter("P1P1"); got != tc.wantA {
+				t.Fatalf("otherA P1P1 = %d, want %d", got, tc.wantA)
+			}
+			if got := h.g.Obj(otherB).Counter("P1P1"); got != tc.wantB {
+				t.Fatalf("otherB P1P1 = %d, want %d", got, tc.wantB)
+			}
+		})
+	}
+}
+
+// An origin whose every destination left the battlefield (or is the origin
+// itself -- a move from a permanent to itself is a null move) keeps its
+// counters: nothing is emitted, nothing is lost to the void.
+func TestMoveCounterDeadDestinationKeepsTheCounters(t *testing.T) {
+	h := &fakeHost{g: state.NewGame(names(2))}
+	src := mcCreature(t, h.g, "Src", 0)
+	gone := mcCreature(t, h.g, "Gone", 0)
+	h.g.Obj(src).AddCounter("P1P1", 2)
+	// gone is not on the battlefield (mcCreature put it there; move it off).
+	g := h.g
+	g.SetZone(state.ZBattlefield, 0, nil)
+	g.Obj(gone).Zone = state.ZGraveyard
+	g.SetZone(state.ZGraveyard, 0, []state.ObjID{gone})
+	Resolve(h, &Ctx{Controller: 0, Source: src},
+		moveCounterSA(t, "Source$ Self | ValidTgts$ Creature | CounterType$ P1P1 | CounterNum$ 1"))
+	if got := h.g.Obj(src).Counter("P1P1"); got != 2 {
+		t.Fatalf("source P1P1 = %d, want 2 (no live destination: nothing moved)", got)
+	}
+}
+
 // assertCounterPair finds the -n origin and +n destination CounterChange pair
 // the move emitted.
 func assertCounterPair(t *testing.T, log []events.Event, from, to state.ObjID, kind string, n int32) {

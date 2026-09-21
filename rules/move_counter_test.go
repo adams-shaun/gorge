@@ -7,6 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/state"
 )
 
 // Task movecounter1: api:MoveCounter end to end on the REAL corpus carriers.
@@ -20,10 +21,10 @@ import (
 
 // moveCounterEngine deals a corpus-only game whose seat 0 library holds the
 // named fixtures, drives to seat 0's Main1, and returns the engine.
-func moveCounterEngine(t *testing.T, reg *cards.Registry, fixtures ...string) *Engine {
+func moveCounterEngine(t *testing.T, reg *cards.Registry, fixtures ...string) (*Engine, Config) {
 	t.Helper()
-	e, _ := proliferateEngine(t, reg, fixtures...)
-	return e
+	e, cfg := proliferateEngine(t, reg, fixtures...)
+	return e, cfg
 }
 
 // TestSpikeCannibalMovesAllPlusOneCountersOntoItself drives the real Spike
@@ -33,7 +34,7 @@ func moveCounterEngine(t *testing.T, reg *cards.Registry, fixtures ...string) *E
 func TestSpikeCannibalMovesAllPlusOneCountersOntoItself(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	e := moveCounterEngine(t, reg, "Spike Cannibal", "Grizzly Bears")
+	e, _ := moveCounterEngine(t, reg, "Spike Cannibal", "Grizzly Bears")
 
 	bearA := putNamedOnBattlefield(t, e, "Grizzly Bears")
 	bearB := putNamedOnBattlefield(t, e, "Grizzly Bears")
@@ -53,16 +54,18 @@ func TestSpikeCannibalMovesAllPlusOneCountersOntoItself(t *testing.T) {
 	if got := e.G.Obj(bearB).Counter("P1P1"); got != 0 {
 		t.Fatalf("bear B P1P1 = %d, want 0 (swept)", got)
 	}
-	// Spike entered with 1 (K:etbCounter:P1P1:1). Every creature -- Spike
-	// included -- loses its counters and Spike gains their total 2 + 1 + 1 = 4,
-	// so it ends at 1 - 1 + 4 = 4: the whole board's counters are on Spike.
+	// Spike entered with 1 (K:etbCounter:P1P1:1). Every OTHER creature loses
+	// its counters and Spike gains their total 2 + 1 = 3, so it ends at
+	// 1 + 3 = 4: the whole board's counters are on Spike. (Spike's own
+	// counter is a move from Spike to Spike -- a null move, no event pair.)
 	if got := e.G.Obj(spike).Counter("P1P1"); got != 4 {
-		t.Fatalf("Spike Cannibal P1P1 = %d, want 4 (the whole board's counters, its own included)", got)
+		t.Fatalf("Spike Cannibal P1P1 = %d, want 4 (the whole board's counters)", got)
 	}
 
-	// The event stream carries the real CounterChange pair, not just the
-	// post-state: a -2 on bear A and a +4 onto Spike.
-	sawMinusTwo, sawPlusFour := false, false
+	// The event stream carries the real CounterChange events, not just the
+	// post-state: -2 on bear A, -1 on bear B, +2 and +1 onto Spike -- and no
+	// null self-move pair on Spike (no ±4 event on it at all).
+	sawMinusTwo, sawPlusTwo, sawMinusOne, sawPlusOne, sawSelfPair := false, false, false, false, false
 	for _, ev := range e.L.Events {
 		if ev.Kind != events.CounterChange || ev.Counter != "P1P1" {
 			continue
@@ -70,12 +73,26 @@ func TestSpikeCannibalMovesAllPlusOneCountersOntoItself(t *testing.T) {
 		if ev.Obj == bearA && ev.Amount == -2 {
 			sawMinusTwo = true
 		}
-		if ev.Obj == spike && ev.Amount == 4 {
-			sawPlusFour = true
+		if ev.Obj == bearB && ev.Amount == -1 {
+			sawMinusOne = true
+		}
+		if ev.Obj == spike {
+			switch ev.Amount {
+			case 2:
+				sawPlusTwo = true
+			case 1:
+				sawPlusOne = true
+			case 4, -4:
+				sawSelfPair = true // the old null self-move's signature
+			}
 		}
 	}
-	if !sawMinusTwo || !sawPlusFour {
-		t.Fatalf("CounterChange pair missing: -2 on bear A=%v, +4 on Spike=%v", sawMinusTwo, sawPlusFour)
+	if sawSelfPair {
+		t.Fatalf("null self-move pair emitted on Spike (a ±4 CounterChange)")
+	}
+	if !sawMinusTwo || !sawMinusOne || !sawPlusTwo || !sawPlusOne {
+		t.Fatalf("CounterChange events missing: -2 bearA=%v, -1 bearB=%v, +2 Spike=%v, +1 Spike=%v",
+			sawMinusTwo, sawMinusOne, sawPlusTwo, sawPlusOne)
 	}
 }
 
@@ -86,7 +103,7 @@ func TestSpikeCannibalMovesAllPlusOneCountersOntoItself(t *testing.T) {
 func TestAetherbornMarauderMovesAnyNumberOntoItself(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	e := moveCounterEngine(t, reg, "Aetherborn Marauder", "Grizzly Bears")
+	e, _ := moveCounterEngine(t, reg, "Aetherborn Marauder", "Grizzly Bears")
 
 	bear := putNamedOnBattlefield(t, e, "Grizzly Bears")
 	e.priorityRound()
@@ -148,7 +165,7 @@ func TestAetherbornMarauderMovesAnyNumberOntoItself(t *testing.T) {
 func TestWeaponRackAbilityIsOfferedAndMovesACounter(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	e := moveCounterEngine(t, reg, "Weapon Rack", "Grizzly Bears")
+	e, _ := moveCounterEngine(t, reg, "Weapon Rack", "Grizzly Bears")
 
 	rack := putNamedOnBattlefield(t, e, "Weapon Rack")
 	bear := putNamedOnBattlefield(t, e, "Grizzly Bears")
@@ -214,4 +231,229 @@ func TestWeaponRackAbilityIsOfferedAndMovesACounter(t *testing.T) {
 	if !sawMinus || !sawPlus {
 		t.Fatalf("CounterChange pair missing: -1 on Rack=%v, +1 on bear=%v", sawMinus, sawPlus)
 	}
+}
+
+// TestNestingGroundsSubTargetReceivesTheMove drives the real Nesting
+// Grounds: the {1},{T} root is a Pump whose target is the ORIGIN (Source$
+// ParentTarget) and whose DBMove sub carries its own ValidTgts$ -- the shape
+// the generic mvts1 pre-ask asks. The sub's OWN chosen target (the second
+// bear) must be the destination, never the root's target (the PickedTargets
+// convention): with the pre-fix code the -1 and +1 both landed on the root's
+// target and cancelled (land 1->1, bear 0->0).
+func TestNestingGroundsSubTargetReceivesTheMove(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := moveCounterEngine(t, reg, "Nesting Grounds", "Grizzly Bears")
+	grounds := putNamedOnBattlefield(t, e, "Nesting Grounds")
+	bearA := putNamedOnBattlefield(t, e, "Grizzly Bears")
+	bearB := putNamedOnBattlefield(t, e, "Grizzly Bears")
+	e.priorityRound()
+	putCountersOn(t, e, 0, "Grizzly Bears", "P1P1", 1) // the first bear is the root's target
+	e.priorityRound()
+
+	// Activate the {1},{T} Pump: fund the generic, pick the ability option.
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 1})
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no pending decision at Main1")
+	}
+	activate := -1
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == grounds {
+			activate = o.Index
+		}
+	}
+	if activate < 0 {
+		t.Fatalf("Nesting Grounds' Pump ability is not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, activate)
+
+	// The root Pump's target ask: the first bear.
+	td := passUntilNonPriority(t, e, 60)
+	if td == nil || td.Kind != decision.KTarget {
+		t.Fatalf("decision = %+v, want the root's target ask", td)
+	}
+	root := -1
+	for _, o := range td.Options {
+		if o.Obj == bearA {
+			root = o.Index
+		}
+	}
+	if root < 0 {
+		t.Fatalf("bear A not offered as the root's target: %+v", td.Options)
+	}
+	submitChoices(t, e, root)
+
+	// The sub DBMove's own ValidTgts$ pre-ask (ResumeKind "tgts"): the
+	// second bear.
+	kd := passUntilNonPriority(t, e, 60)
+	if kd == nil || kd.Kind != decision.KChoose || kd.ResumeKind != "tgts" {
+		t.Fatalf("decision = %+v, want the sub's tgts pre-ask", kd)
+	}
+	sub := -1
+	for _, o := range kd.Options {
+		if o.Obj == bearB {
+			sub = o.Index
+		}
+	}
+	if sub < 0 {
+		t.Fatalf("bear B not offered as the sub's target: %+v", kd.Options)
+	}
+	submitChoices(t, e, sub)
+	passUntilStackEmpty(t, e, 60)
+
+	if got := e.G.Obj(bearA).Counter("P1P1"); got != 0 {
+		t.Fatalf("root target (origin) P1P1 = %d, want 0", got)
+	}
+	if got := e.G.Obj(bearB).Counter("P1P1"); got != 1 {
+		t.Fatalf("sub's own target P1P1 = %d, want 1 (the destination)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestNestingGroundsAnyKindWithOwnTargetDrains pins the movecounter1
+// livelock fix end to end: a MoveCounter sub with its OWN ValidTgts$ AND a
+// CounterType$ Any kind pick (Nesting Grounds' DBMove, an origin holding two
+// kinds) must drain -- before the fix the answered kind was lost to the
+// re-entry's fresh Ctx, the tgts pre-ask re-fired, and the two asks
+// alternated forever (measured by the reviewer: move_counter_kind:38,
+// tgts:39 over 80 drive steps, the stack never drained).
+func TestNestingGroundsAnyKindWithOwnTargetDrains(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := moveCounterEngine(t, reg, "Nesting Grounds", "Grizzly Bears")
+	grounds := putNamedOnBattlefield(t, e, "Nesting Grounds")
+	bearA := putNamedOnBattlefield(t, e, "Grizzly Bears")
+	bearB := putNamedOnBattlefield(t, e, "Grizzly Bears")
+	e.priorityRound()
+	putCountersOn(t, e, 0, "Grizzly Bears", "P1P1", 1)
+	putCountersOn(t, e, 0, "Grizzly Bears", "CHARGE", 1) // a second kind on the same origin
+	e.priorityRound()
+
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 1})
+	e.priorityRound()
+	d := e.Pending()
+	activate := -1
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == grounds {
+			activate = o.Index
+		}
+	}
+	if activate < 0 {
+		t.Fatalf("Pump ability not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, activate)
+
+	td := passUntilNonPriority(t, e, 60)
+	if td == nil || td.Kind != decision.KTarget {
+		t.Fatalf("decision = %+v, want the root's target ask", td)
+	}
+	root := -1
+	for _, o := range td.Options {
+		if o.Obj == bearA {
+			root = o.Index
+		}
+	}
+	submitChoices(t, e, root)
+
+	kd := passUntilNonPriority(t, e, 60)
+	if kd == nil || kd.Kind != decision.KChoose || kd.ResumeKind != "tgts" {
+		t.Fatalf("decision = %+v, want the sub's tgts pre-ask", kd)
+	}
+	sub := -1
+	for _, o := range kd.Options {
+		if o.Obj == bearB {
+			sub = o.Index
+		}
+	}
+	submitChoices(t, e, sub)
+
+	// The CounterType$ Any kind pick, posed by the sub's body AFTER the
+	// target answer. Pick the SECOND offered kind (CHARGE) to prove the
+	// answer is honoured on the re-entry that follows it.
+	kk := passUntilNonPriority(t, e, 60)
+	if kk == nil || kk.Kind != decision.KChoose || kk.ResumeKind != "move_counter_kind" {
+		t.Fatalf("decision = %+v, want the move_counter_kind ask", kk)
+	}
+	charge := -1
+	for _, o := range kk.Options {
+		if o.Label == "CHARGE" {
+			charge = o.Index
+		}
+	}
+	if charge < 0 {
+		t.Fatalf("CHARGE not offered as a kind: %+v", kk.Options)
+	}
+	submitChoices(t, e, charge)
+	passUntilStackEmpty(t, e, 60)
+
+	if got := e.G.Obj(bearA).Counter("CHARGE"); got != 0 {
+		t.Fatalf("origin CHARGE = %d, want 0 (the answered kind moved)", got)
+	}
+	if got := e.G.Obj(bearB).Counter("CHARGE"); got != 1 {
+		t.Fatalf("destination CHARGE = %d, want 1", got)
+	}
+	if got := e.G.Obj(bearA).Counter("P1P1"); got != 1 {
+		t.Fatalf("origin P1P1 = %d, want 1 (a different kind was chosen: untouched)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestForgottenAncientSweepDistributesAndConserves drives the real
+// Forgotten Ancient: `Source$ Self | ValidDefined$ Creature.Other |
+// CounterType$ P1P1 | CounterNum$ Any` at an upkeep. The any-number answer
+// is DISTRIBUTED across the sweep's destinations (CR 122.5: a move never
+// mints) -- 2 over two other creatures is 1 and 1, the total on the board
+// is conserved. The pre-fix code gave EACH destination the whole moved set
+// (measured: FA 4 -> 2 but bearA 2 AND bearB 2 -- total 6 from 4).
+func TestForgottenAncientSweepDistributesAndConserves(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := moveCounterEngine(t, reg, "Forgotten Ancient", "Grizzly Bears")
+	fa := putNamedOnBattlefield(t, e, "Forgotten Ancient")
+	bearA := putNamedOnBattlefield(t, e, "Grizzly Bears")
+	bearB := putNamedOnBattlefield(t, e, "Grizzly Bears")
+	e.priorityRound()
+	putCountersOn(t, e, 0, "Forgotten Ancient", "P1P1", 4)
+	e.priorityRound()
+
+	// FA's upkeep trigger is OptionalDecider$ You; seat 0's next upkeep is
+	// two global turns away (two seats).
+	driveToStep(t, e, e.G.Turn+2, 0, state.StepUpkeep)
+	d := passUntilNonPriority(t, e, 60)
+	if d == nil || d.Kind != decision.KTriggerOptional {
+		t.Fatalf("decision = %+v, want Forgotten Ancient's optional upkeep trigger ask", d)
+	}
+	submitChoices(t, e, 0) // yes
+	d = passUntilNonPriority(t, e, 60)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "move_counter" {
+		t.Fatalf("decision = %+v, want the CounterNum$ Any amount ask", d)
+	}
+	two := -1
+	for _, o := range d.Options {
+		if o.Amount == 2 {
+			two = o.Index
+		}
+	}
+	if two < 0 {
+		t.Fatalf("no amount-2 option: %+v", d.Options)
+	}
+	submitChoices(t, e, two)
+	passUntilStackEmpty(t, e, 60)
+
+	if got := e.G.Obj(fa).Counter("P1P1"); got != 2 {
+		t.Fatalf("Forgotten Ancient P1P1 = %d, want 2 (4 minus the answered 2)", got)
+	}
+	if got := e.G.Obj(bearA).Counter("P1P1"); got != 1 {
+		t.Fatalf("bearA P1P1 = %d, want 1 (its share of the distribution)", got)
+	}
+	if got := e.G.Obj(bearB).Counter("P1P1"); got != 1 {
+		t.Fatalf("bearB P1P1 = %d, want 1 (its share of the distribution)", got)
+	}
+	total := e.G.Obj(fa).Counter("P1P1") + e.G.Obj(bearA).Counter("P1P1") + e.G.Obj(bearB).Counter("P1P1")
+	if total != 4 {
+		t.Fatalf("board total P1P1 = %d, want 4 (CR 122.5: conserved)", total)
+	}
+	replayCheck(t, e, cfg)
 }

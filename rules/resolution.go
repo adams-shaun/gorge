@@ -424,6 +424,64 @@ func (e *Engine) SuspendCharmRest(sa *cards.SA, rest []string) {
 	e.repeatReported = sa
 }
 
+// moveCounterPending is one MoveCounter resolution's answered asks, stored
+// under the resolving stack object's id (Engine.moveCounterAsk) so a later
+// resume round of the SAME SA can re-seed them into its fresh Ctx. A
+// MoveCounter sub the placement/announcement ask never covered asks twice --
+// its own ValidTgts$ target set (the mvts1 pre-ask, answered through the
+// "tgts" arm) and, for CounterType$/CounterNum$ Any, a kind and an amount
+// through its own arms -- and every resume re-enters the SA from its top
+// with a fresh Ctx, so the earlier round's answer is otherwise lost and the
+// asks alternate forever (the movecounter1 livelock: Nesting Grounds, Rikku,
+// Goldberry's second ability). The arms record here; seedMoveCounterAsk
+// fills the fresh Ctx's still-unanswered fields before effects.Resolve
+// re-enters; the entry is deleted when the resolution completes.
+type moveCounterPending struct {
+	targets []state.Target // the answered ValidTgts$ pre-ask set
+	kind    string         // the answered CounterType$ Any pick
+	kindSet bool
+	n       int32 // the answered CounterNum$ Any amount (0 = a decline)
+	nSet    bool
+}
+
+// moveCounterEntry returns (creating if needed) the pending state for a
+// resolving MoveCounter stack object.
+func (e *Engine) moveCounterEntry(obj state.ObjID) *moveCounterPending {
+	if e.moveCounterAsk == nil {
+		e.moveCounterAsk = make(map[state.ObjID]*moveCounterPending)
+	}
+	p := e.moveCounterAsk[obj]
+	if p == nil {
+		p = &moveCounterPending{}
+		e.moveCounterAsk[obj] = p
+	}
+	return p
+}
+
+// seedMoveCounterAsk fills a fresh resume Ctx with the answers earlier rounds
+// of this MoveCounter resolution already recorded, leaving anything the
+// current round's own arm already answered (its Done flag is authoritative)
+// alone. The targets ride the generic pre-ask transport (Ctx.TargetsPick),
+// which chosenTargetsFor consumes exactly like a just-answered ask, so the
+// re-entered SA does not re-pose its target ask; the kind and amount ride
+// their own pairs, which effMoveCounter consumes-and-clears (fx42).
+func (e *Engine) seedMoveCounterAsk(obj state.ObjID, ctx *effects.Ctx) {
+	p := e.moveCounterAsk[obj]
+	if p == nil {
+		return
+	}
+	if !ctx.TargetsPickDone && len(p.targets) > 0 {
+		ctx.TargetsPick = append([]state.Target(nil), p.targets...)
+		ctx.TargetsPickDone = true
+	}
+	if !ctx.MoveCounterKindDone && p.kindSet {
+		ctx.MoveCounterKind, ctx.MoveCounterKindDone = p.kind, true
+	}
+	if !ctx.MoveCounterNDone && p.nSet {
+		ctx.MoveCounterN, ctx.MoveCounterNDone = p.n, true
+	}
+}
+
 // handleModes applies an answered KModes decision. ResumeKind and the trigger
 // drain flag distinguish three lifetimes: a modal spell's CR 601.2b cast
 // proposal, a modal trigger's CR 603.3c placement, and an effect suspended in
@@ -1182,7 +1240,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// effects.Resolve's dispatch loop. Same KChoose answer shape as
 			// "choice", on its own resume kind and its own Ctx transport
 			// (Ctx.TargetsPick) so another KChoose primitive resolving under
-			// the same SA can never consume this answer.
+			// the same SA can never consume this answer. A MoveCounter SA
+			// additionally RECORDS the set: its own kind/amount asks will
+			// suspend it again later, and the re-entry after THOSE must
+			// re-seed this answer or the target ask re-fires forever (the
+			// movecounter1 livelock; seedMoveCounterAsk).
 			ctx.TargetsPick = make([]state.Target, 0, len(chosen))
 			for _, o := range chosen {
 				if o.Kind == "player" {
@@ -1192,6 +1254,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.TargetsPickDone = true
+			if rp.sa != nil && rp.sa.API == "MoveCounter" {
+				e.moveCounterEntry(rp.obj).targets = append([]state.Target(nil), ctx.TargetsPick...)
+			}
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate
@@ -1427,23 +1492,34 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// first-kind stand-in, the conservative read of an ambiguous one.
 			// effMoveCounter consumes and clears both fields at the top of its
 			// own walk (fx42 scoping), so a nested MoveCounter cannot inherit
-			// the answer.
+			// the answer. The answer is ALSO recorded on the pending state:
+			// this round's re-entry may suspend again on the amount ask, and
+			// that later re-entry must still see the kind (seedMoveCounterAsk).
 			ctx.MoveCounterKind = ""
 			if len(chosen) > 0 {
 				ctx.MoveCounterKind = chosen[0].Label
 			}
 			ctx.MoveCounterKindDone = true
+			if rp.sa != nil && rp.sa.API == "MoveCounter" {
+				p := e.moveCounterEntry(rp.obj)
+				p.kind, p.kindSet = ctx.MoveCounterKind, true
+			}
 		case "move_counter":
 			// A MoveCounter CounterNum$ Any amount pick was answered: how many
 			// counters of the chosen kind to move. The option's Amount carries
 			// the number (0 is a legitimate decline); a malformed answer moves
 			// nothing. effMoveCounter consumes and clears both fields at the top
-			// of its own walk (fx42 scoping).
+			// of its own walk (fx42 scoping). Recorded on the pending state for
+			// the same later-resume reason as the kind above.
 			ctx.MoveCounterN = 0
 			if len(chosen) > 0 {
 				ctx.MoveCounterN = int32(chosen[0].Amount)
 			}
 			ctx.MoveCounterNDone = true
+			if rp.sa != nil && rp.sa.API == "MoveCounter" {
+				p := e.moveCounterEntry(rp.obj)
+				p.n, p.nSet = ctx.MoveCounterN, true
+			}
 		case "blight":
 			// A Blight's per-player KChoose (CR 701.60: the blighting player
 			// chooses which of their own creatures takes the −1/−1 counters)
@@ -1866,10 +1942,24 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		if one := e.charmModeTarget(rp.obj, rp.sa); one != nil {
 			ctx.Targets = one
 		}
+		// A MoveCounter resolution whose EARLIER rounds already answered the
+		// target pre-ask, the kind pick or the amount pick re-seeds them here:
+		// without this the fresh Ctx re-poses the target pre-ask on the way
+		// back into the body, which re-poses the kind/amount ask, forever
+		// (the movecounter1 livelock).
+		if rp.sa.API == "MoveCounter" {
+			e.seedMoveCounterAsk(rp.obj, ctx)
+		}
 		effects.Resolve(e, ctx, rp.sa)
 		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
 		e.applyingReplacement = savedReplacement
 		e.damaging = 0
+		if rp.sa.API == "MoveCounter" && e.resume == nil {
+			// The MoveCounter resolution completed this round (nothing
+			// suspended): its pending state is spent -- delete it so a stale
+			// entry can never seed a later resolution of the same object.
+			delete(e.moveCounterAsk, rp.obj)
+		}
 		if e.resume != nil {
 			// The re-entry posed a nested mid-resolution ask. The new
 			// pending point (e.resume) has no outer yet: it must, once its

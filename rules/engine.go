@@ -364,6 +364,24 @@ type Engine struct {
 	// own-source maps above, every waiting resolution receives departures: the
 	// named source can be TriggeredCard, Targeted, or Remembered.
 	damageSourceLKI map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI
+	// moveCounterAsk carries a MoveCounter resolution's ANSWERED asks across
+	// the later suspensions of the same SA (the movecounter1 livelock fix).
+	// A MoveCounter sub the placement/announcement ask never covered poses
+	// its own ValidTgts$ target ask (the mvts1 pre-ask) AND, for
+	// CounterType$ Any / CounterNum$ Any, asks of its own; every resume
+	// builds a fresh Ctx and re-enters the SA from its top, so an earlier
+	// round's answer (the target set, the chosen kind, the chosen amount)
+	// must be re-seeded into that Ctx or the two asks alternate forever and
+	// the resolution never drains (Nesting Grounds, Rikku, Goldberry's
+	// second ability). rules/resolution.go's "tgts", "move_counter_kind"
+	// and "move_counter" arms store their answers here and the re-entry
+	// seeds them into the fresh Ctx before effects.Resolve; the entry is
+	// deleted when the resolution completes. Decision-derived engine
+	// scratch, in the triggerLKI discipline: replay re-submits the recorded
+	// Intents through the same arms, so the map re-derives identically and
+	// no event carries it. Never nil-checked on read outside recordAsk
+	// (which lazy-inits).
+	moveCounterAsk map[state.ObjID]*moveCounterPending
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
