@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/cmd/policytrain
 
-budget_s: 7
+budget_s: 14
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
