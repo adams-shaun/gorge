@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -114,6 +115,42 @@ func TestAdversarialKnightCountsAffectedObjectNotSource(t *testing.T) {
 	}
 	if got := e.Toughness(rafiq); got != 6 {
 		t.Fatalf("Rafiq toughness = %d, want 6", got)
+	}
+}
+
+// TestOrdinaryStaticPumpKeepsGrantorCountAnchor distinguishes AffectedX from
+// another static SVar expression. Mace's X must count its own charge counters,
+// rather than the equipped bear's counters.
+func TestOrdinaryStaticPumpKeepsGrantorCountAnchor(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg, []*cards.Card{
+		mustCorpusCard(t, reg, "Mace of the Valiant"),
+		mustCorpusCard(t, reg, "Grizzly Bears"),
+	}, nil)
+	bear := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	mace := moveByName(t, e, 0, "Mace of the Valiant", state.ZBattlefield)
+	if e.G.Obj(mace).Zone != state.ZBattlefield || e.G.Obj(bear).Zone != state.ZBattlefield {
+		t.Fatal("precondition: Mace and Grizzly Bears must be on the battlefield")
+	}
+	e.emit(events.Event{Kind: events.Attach, Obj: mace, IDs: []state.ObjID{bear}})
+	if got := e.G.Obj(mace).AttachedTo; got != bear {
+		t.Fatalf("precondition: Mace attached to %d, want %d", got, bear)
+	}
+	if got := e.Power(bear); got != 2 {
+		t.Fatalf("precondition: bare Grizzly Bears power = %d, want 2", got)
+	}
+	e.emit(events.Event{Kind: events.CounterChange, Obj: mace, Counter: "CHARGE", Amount: 2})
+	if got := e.G.Obj(mace).Counter("CHARGE"); got != 2 {
+		t.Fatalf("precondition: Mace charge counters = %d, want 2", got)
+	}
+	if got := e.G.Obj(bear).Counter("CHARGE"); got != 0 {
+		t.Fatalf("precondition: Grizzly Bears charge counters = %d, want 0", got)
+	}
+	if got := e.Power(bear); got != 4 {
+		t.Fatalf("Grizzly Bears power = %d, want 4 (base 2 + Mace's two counters)", got)
+	}
+	if got := e.Toughness(bear); got != 4 {
+		t.Fatalf("Grizzly Bears toughness = %d, want 4", got)
 	}
 }
 

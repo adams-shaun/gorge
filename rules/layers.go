@@ -220,6 +220,8 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							pt.Layer, pt.Sub = LPT, SubModify
 							pt.AddPowerExpr = st.Params["AddPower"]
 							pt.AddToughnessExpr = st.Params["AddToughness"]
+							pt.AddPowerAffected = affectedXStaticAmount(pt.AddPowerExpr)
+							pt.AddToughnessAffected = affectedXStaticAmount(pt.AddToughnessExpr)
 							out = append(out, pt)
 						}
 						if hasStat(st, "AddKeyword") {
@@ -1117,6 +1119,18 @@ func hasStat(st cards.Static, key string) bool {
 	return ok
 }
 
+// affectedXStaticAmount identifies Forge's per-affected-object static P/T
+// convention. A leading sign is the amount direction, not part of the SVar
+// name (the same grammar effects.Num resolves), so Toxrill's -AffectedX is
+// also per affected creature. Every other expression remains grantor-anchored.
+func affectedXStaticAmount(expr string) bool {
+	expr = strings.TrimSpace(expr)
+	if len(expr) > 1 && (expr[0] == '+' || expr[0] == '-') {
+		expr = expr[1:]
+	}
+	return expr == "AffectedX"
+}
+
 // staticAmount evaluates a static's P/T parameter at derivation time. It
 // deliberately goes through effects.Num: that is the shared Forge numeric
 // grammar for signed SVar names and Count$ bodies. The source and its SVar
@@ -1129,13 +1143,8 @@ func (e *Engine) staticAmount(ce ContinuousEffect, expr string) int32 {
 // staticAmountOn evaluates a static's numeric expression with Ctx.Source
 // anchored on `anchor` while the SVar table still comes from the grantor
 // (ce.SVars, falling back to the grantor's face). staticAmount delegates
-// with the grantor itself as the anchor; the layer-7c modify walk calls it
-// with the AFFECTED object, because that is the AffectedX pump contract
-// (Forge evaluates a continuous pump amount per affected card): Knight of
-// New Alara's SVar AffectedX:Count$CardNumColors counts the colours of each
-// creature it pumps, never its own two colours. Only object-anchored count
-// heads (CardNumColors, ChromaSource, ...) observe the difference; heads
-// that do not read the source resolve identically under either anchor.
+// with the grantor itself as the anchor. The layer-7c modify walk uses an
+// affected-object anchor only for the explicit AffectedX convention.
 func (e *Engine) staticAmountOn(ce ContinuousEffect, expr string, anchor state.ObjID) int32 {
 	if expr == "" {
 		return 0
@@ -2276,17 +2285,24 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 				}
 			}
 		case SubModify:
-			// The pump expression is anchored on the object BEING pumped (id),
-			// not on the static's grantor: an AffectedX-style amount counts the
-			// affected card's own characteristics (Knight of New Alara's
-			// "+1/+1 for each of ITS colors"). The grantor's SVar table is kept
-			// so the expression's named SVars still resolve.
+			// AffectedX names Forge's per-affected-object P/T convention: its
+			// count reads the recipient (Knight of New Alara). Ordinary named
+			// expressions retain the static's grantor as their source (Mace of
+			// the Valiant counts charge counters on the Mace, not its bearer).
 			addPower, addToughness := ce.AddPower, ce.AddToughness
 			if ce.AddPowerExpr != "" {
-				addPower = e.staticAmountOn(ce, ce.AddPowerExpr, id)
+				anchor := ce.Source
+				if ce.AddPowerAffected {
+					anchor = id
+				}
+				addPower = e.staticAmountOn(ce, ce.AddPowerExpr, anchor)
 			}
 			if ce.AddToughnessExpr != "" {
-				addToughness = e.staticAmountOn(ce, ce.AddToughnessExpr, id)
+				anchor := ce.Source
+				if ce.AddToughnessAffected {
+					anchor = id
+				}
+				addToughness = e.staticAmountOn(ce, ce.AddToughnessExpr, anchor)
 			}
 			power = addPT(power, addPower)
 			toughness = addPT(toughness, addToughness)
