@@ -612,9 +612,16 @@ func (e *Engine) checkAttackerUnblockedTriggers() {
 			if e.triggerFireCount[key] >= maxTriggerFires {
 				continue
 			}
+			if !e.triggerGameActivationLimitAllows(t, key) {
+				continue
+			}
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 				continue
 			}
+			// The read-only limit gate consumes a use only after the first
+			// matching attacker actually queues an instance. Multiple unblocked
+			// attackers still produce their required individual triggers.
+			reserved := false
 			for _, p := range e.G.AliveFrom(0) {
 				for _, aid := range e.G.Zone(state.ZBattlefield, p) {
 					a := e.G.Obj(aid)
@@ -626,6 +633,10 @@ func (e *Engine) checkAttackerUnblockedTriggers() {
 					}
 					if v := t.Params["ValidDefender"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, a.Attacking, o.Controller) {
 						continue
+					}
+					if !reserved {
+						reserved = true
+						e.reserveTriggerLimits(t, key)
 					}
 					e.triggerFireCount[key]++
 					e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{

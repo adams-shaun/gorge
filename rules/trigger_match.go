@@ -283,7 +283,7 @@ type combatFires struct {
 // modes, so no trigger of another mode that fired before stops firing or
 // fires less often.
 var actionTriggerModes = map[string]bool{
-	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "Sacrificed": true, "Discarded": true,
+	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "AttackerUnblocked": true, "Sacrificed": true, "Discarded": true,
 	"CommitCrime": true, "Taps": true, "TapsForMana": true,
 	// DamagePreventedOnce joins them for the same reason: it is an event mode
 	// registered from the start (rules/trigger_match.go's

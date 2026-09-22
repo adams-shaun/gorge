@@ -288,4 +288,30 @@ func TestAttackerUnblockedValidCardAndDefenderGates(t *testing.T) {
 	if len(e.pendingTriggers) != 0 {
 		t.Fatal("ValidDefender$ You accepted an attack at a different defender")
 	}
+
+	// ActivationLimit$ is an action-trigger gate even though this mode's
+	// matching happens at the dedicated round-complete hook. Two eligible
+	// scans in one turn must reserve the first firing and reject the second.
+	limited := combatEngine(t)
+	limitSource := onBoard(t, limited, 1, "Name:Limited Watcher\nTypes:Creature\nPT:1/1\n"+
+		"T:Mode$ AttackerUnblocked | ValidCard$ Rogue | TriggerZones$ Battlefield | ActivationLimit$ 1 | Execute$ X | TriggerDescription$ x.\n"+
+		"SVar:X:DB$ Draw | Defined$ TriggeredDefendingPlayer | NumCards$ 1\n"+
+		"Oracle:x\n")
+	limitRogue := onBoardReady(t, limited, 0, "Name:Limited Rogue\nTypes:Creature Rogue\nPT:1/1\nOracle:x\n")
+	for _, id := range []state.ObjID{limitSource, limitRogue} {
+		if o := limited.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+			t.Fatalf("ActivationLimit precondition: object %d not on the battlefield", id)
+		}
+	}
+	limited.G.Obj(limitRogue).IsAttacking = true
+	limited.G.Obj(limitRogue).Attacking = 1
+	limited.checkAttackerUnblockedTriggers()
+	if len(limited.pendingTriggers) != 1 {
+		t.Fatalf("first eligible scan queued %d triggers, want 1", len(limited.pendingTriggers))
+	}
+	limited.pendingTriggers = nil
+	limited.checkAttackerUnblockedTriggers()
+	if len(limited.pendingTriggers) != 0 {
+		t.Fatalf("ActivationLimit$ 1 queued %d triggers on the second eligible scan", len(limited.pendingTriggers))
+	}
 }
