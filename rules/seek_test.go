@@ -2,6 +2,7 @@ package rules
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -191,6 +192,14 @@ func TestVexyrRealSeekWithNoMatchEmitsNeitherMarkerNorTrigger(t *testing.T) {
 
 	if got := len(e.G.Zone(state.ZHand, 0)) - handBefore; got != 0 {
 		t.Fatalf("no-match seek moved %d cards, want 0", got)
+	}
+	// The handler MUST have run: without the registration the resolver emits
+	// "unimplemented API Seek" and the no-marker/no-trigger assertions below
+	// would pass vacuously.
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented API Seek") {
+			t.Fatalf("precondition/handler: Seek API not registered: %q", ev.Text)
+		}
 	}
 	if got := seekMarkerCount(e); got != 0 {
 		t.Fatalf("no-match seek emitted %d Seek markers, want 0", got)
