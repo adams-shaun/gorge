@@ -91,6 +91,17 @@ func TestEffectCantBlockBySuspiciousBookcaseUnblocksItsTarget(t *testing.T) {
 	if n := effectCantBlockByCount(e); n != 1 {
 		t.Fatalf("CantBlockBy effects registered after the ability resolved = %d, want 1", n)
 	}
+	// The readable body must have registered, NOT been refused: no
+	// unimplemented-CantBlockBy note may carry the resolution (fails pre-fix,
+	// where the stand-in Note is exactly what this ability emits).
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.Note && ev.Obj == bookcase &&
+			strings.Contains(ev.Text, "CantBlockBy") && strings.Contains(ev.Text, "unimplemented") {
+			t.Error("the readable ValidAttacker$ body was refused with an unimplemented CantBlockBy note")
+			break
+		}
+	}
 
 	// The targeted bear is unblockable; a bear the effect does not remember
 	// is not (ValidAttacker$ Card.IsRemembered scopes to the remembered set).
@@ -136,26 +147,62 @@ func TestEffectCantBlockBySuspiciousBookcaseUnblocksItsTarget(t *testing.T) {
 	}
 }
 
-// TestEffectCantBlockByRegistrationScopesRefuseUnreadableBodies pins the
-// registration gate: an Effect body whose CantBlockBy SVar carries a
-// parameter the consumption path cannot evaluate (space_beleren's
-// ValidBlockerRelative$ sector grammar) must NOT register blanket -- it
-// resolves as the loud unimplemented Note and the creature stays blockable,
-// the permissive direction for a restriction.
-func TestEffectCantBlockByRegistrationScopesRefuseUnreadableBodies(t *testing.T) {
+// TestEffectCantBlockByRegistrationScopesReadableAndUnreadableBodies pins the
+// registration gate in BOTH directions. Phase 1 is the FIX-SENSITIVE control
+// (the readable Suspicious Bookcase body MUST register: count 1, no
+// unimplemented note -- fails against reverting the fix, where the count is 0
+// and the note is exactly what stands in); phase 2 refuses the unreadable
+// shape: an Effect body whose CantBlockBy SVar carries a parameter the
+// consumption path cannot evaluate (space_beleren's ValidBlockerRelative$
+// sector grammar) must NOT register blanket -- it resolves as the loud
+// unimplemented Note and the creature stays blockable, the permissive
+// direction for a restriction.
+func TestEffectCantBlockByRegistrationScopesReadableAndUnreadableBodies(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	e, _ := searchEngine(t, reg, "Space Beleren")
+	e, _ := searchEngine(t, reg, "Suspicious Bookcase", "Space Beleren")
+	bookcase := searchMoveByName(t, e, "Suspicious Bookcase", state.ZBattlefield)
+	bear := searchMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)
 	walker := searchMoveByName(t, e, "Space Beleren", state.ZBattlefield)
 	if o := e.G.Obj(walker); o == nil || o.Face() == nil || o.Face().Name != "Space Beleren" {
 		t.Fatalf("walker fixture missing: %+v", o)
 	}
+	if o := e.G.Obj(bookcase); o == nil || o.Face() == nil || o.Face().Name != "Suspicious Bookcase" {
+		t.Fatalf("bookcase fixture missing: %+v", o)
+	}
+	if n := effectCantBlockByCount(e); n != 0 {
+		t.Fatalf("precondition failed: %d CantBlockBy effects registered before either ability resolved", n)
+	}
+
+	// Phase 1 (control, fix-sensitive): the readable ValidAttacker$
+	// Card.IsRemembered body registers exactly one effect and is not refused.
+	addMana(t, e, 0, "CCC")
+	e.G.Obj(bookcase).SummonSick = false
+	e.priorityRound()
+	opt := abilityOption(t, e, bookcase, 0)
+	submitChoices(t, e, opt.Index)
+	chooseTargetOption(t, e, bear)
+	passUntilStackEmpty(t, e, 40)
+	if n := effectCantBlockByCount(e); n != 1 {
+		t.Fatalf("the readable body did not register: CantBlockBy effects = %d, want 1", n)
+	}
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.Note && ev.Obj == bookcase &&
+			strings.Contains(ev.Text, "CantBlockBy") && strings.Contains(ev.Text, "unimplemented") {
+			t.Error("the readable ValidAttacker$ body was refused with an unimplemented CantBlockBy note")
+			break
+		}
+	}
+
+	// Phase 2 (refusal): the unreadable ValidBlockerRelative$ body registers
+	// nothing -- the count stays at 1 -- and the loud note is emitted.
 	e.G.Obj(walker).SummonSick = false
 	e.priorityRound()
 	// Space Beleren's sector ability is the +1 loyalty (index 0).
 	submitChoices(t, e, abilityOption(t, e, walker, 0).Index)
 	passUntilStackEmpty(t, e, 40)
-	if n := effectCantBlockByCount(e); n != 0 {
-		t.Fatalf("the ValidBlockerRelative$ body registered anyway (%d effects)", n)
+	if n := effectCantBlockByCount(e); n != 1 {
+		t.Fatalf("the ValidBlockerRelative$ body registered anyway (%d effects, want 1)", n)
 	}
 	noted := false
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
