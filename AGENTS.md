@@ -36,17 +36,15 @@ make compile-cards        # parse into the IR cache
 make report               # card coverage against implemented primitives
 make sim                  # build mtgsim and play 20 verified 4-seat games
 make test lint
-make conformance          # the KNOWN-RED CR conformance lane, opt-in
+make conformance          # the focused CR conformance audit
 ```
 
-`make conformance` is the one lane where **failure is the expected result**. It
-runs the `GORGE_CR_CONFORMANCE=1` tests, which document Comprehensive Rules
-behaviour this build gets wrong, so a red run is the status quo and a **PASS is a
-signal to act**: the defect got fixed, and that leaf's `requireCR601Audit` guard
-should come OFF so the ordinary suite defends it from then on. Fixing one leaf
-does not green the lane -- check which leaf turned before closing any issue. The
-rule is written out at `Makefile:145-149`; it is pointed at from here because it
-governs what a reviewer must do at a merge and used to live only in the Makefile.
+`make conformance` is the focused CR 601/733 audit. I-2 (mandatory-target
+feasibility), I-7 (targets before payment), and the CR 733.1 illegal-cast
+reversal are fixed and asserted in the ordinary suite; the historical
+`requireCR601Audit` guard and `GORGE_CR_CONFORMANCE=1` switch were removed. The
+Makefile target remains explicit so reviewers can run the focused audit without
+running the full suite.
 
 ## Reproduce a feedback report
 
