@@ -47,6 +47,11 @@ var addedAfterTheSplit = []string{
 	// appended for them, so neither mode could have been in the pre-split
 	// switch.
 	"Discover", "SeekAll",
+	// enlist1: "Whenever CARDNAME enlists a creature ..." (CR 702.160;
+	// Goblin Morale Sergeant, Guardian of New Benalia). It matches the
+	// events.Enlist marker Kind, appended for it (the Exerted shape), so it
+	// could not have been in the pre-split switch.
+	"Enlisted",
 }
 
 func allRegisteredModeNames() []string {

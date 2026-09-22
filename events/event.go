@@ -618,6 +618,18 @@ const (
 	// after every earlier Kind, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Seek
+	// Enlist records one CR 702.160 enlist action (the `K:Enlist` keyword,
+	// task enlist1): Obj is the ATTACKING creature that enlisted (the
+	// trigger's source for Mode$ Enlisted, so ValidCard$ Card.Self matches
+	// it) and IDs[0] the nonattacking creature it tapped, Player the
+	// attacker's controller. Apply folds the per-combat stamp the
+	// enlistedThisCombat filter predicate reads; the tap is its own Tap
+	// event and the +X/+0 is a rules-registered continuous pump, so this
+	// event is the enlist action's canonical record and the Mode$ Enlisted
+	// trigger's carrier. Appended here, after Seek, following every prior
+	// Kind's own append-only precedent, so no earlier ordinal, hash chain
+	// or golden replay is affected.
+	Enlist
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -628,7 +640,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Seek) + 1
+	NumKinds = int(Enlist) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -740,7 +752,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
-	"discover", "seek"}
+	"discover", "seek", "enlist"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

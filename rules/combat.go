@@ -295,6 +295,26 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
 		return
 	}
+	// CR 702.160a (task enlist1): enlist is an "as this creature attacks"
+	// action that happens DURING the declaration, before the attack triggers
+	// are put on the stack. Its election is therefore posed here, BEFORE the
+	// DeclareAttackers events below are emitted, so an attack trigger whose
+	// intervening-if reads enlistedThisCombat (Aradesh, the Founder) is
+	// matched with the answered stamp already in place -- the reverse order
+	// (exert's) would match that trigger false. An attacker with no eligible
+	// creature poses no ask and the declaration finishes inline.
+	if e.startEnlistAsks(chosen, d.Player) {
+		return
+	}
+	e.finishAttackers(chosen, d.Player)
+}
+
+// finishAttackers completes the declare-attackers declaration once every
+// enlist election is answered: emit one DeclareAttackers event per defending
+// player, tap the non-Vigilance attackers (CR 508.1f), then offer the exert
+// elections (CR 702.100a, task exert1). Split out of handleAttackers so the
+// enlist continuation (rules/enlist.go) can resume exactly here.
+func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID) {
 	var defenders []state.PlayerID
 	byDef := make(map[state.PlayerID][]state.ObjID, len(chosen))
 	for _, opt := range chosen {
@@ -310,7 +330,7 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	for _, opt := range chosen {
 		if !e.HasKeyword(opt.Obj, "Vigilance") {
 			// CR 508.1f: the player declaring attackers taps them.
-			e.emitTap(opt.Obj, d.Player, false)
+			e.emitTap(opt.Obj, player, false)
 		}
 	}
 	// CR 702.100a (task exert1): each attacking creature carrying an
@@ -1996,6 +2016,20 @@ const chooseAsUnblockedElection chooseFor = chooseEcho + 1
 // decline ("Don't exert"), the replicate/multikicker shape: botpolicy's
 // KChoose default arm takes the first offer, so a bot never exerts.
 const chooseExert chooseFor = chooseAsUnblockedElection + 1
+
+// chooseEnlist is the chooseFor for the declare-attackers step's enlist
+// election (CR 702.160a, task enlist1): one KChoose per attacking creature
+// carrying `K:Enlist` that has at least one eligible creature to tap, posed
+// by askNextEnlist (rules/enlist.go) BEFORE the declaration's DeclareAttackers
+// events are emitted so an intervening-if reading enlistedThisCombat sees the
+// answer. Option 0 is always the decline (the may), the replicate/exert shape:
+// botpolicy's KChoose default arm takes the first offer, so a bot never
+// enlists. chooseExert+1 was already taken (chooseTriggeredMandatory in
+// rules/cumulative.go extends the same enum), so the free value is
+// chooseSiege+1 (27), pairwise distinct from the shared package set
+// (cast=1 .. exert=23 / triggeredMandatory=24 / commanderColor=25 /
+// siege=26).
+const chooseEnlist chooseFor = chooseSiege + 1
 
 // exertAsk is the declare-attackers exert election's resumable state (the
 // blockerRound plain-value precedent): the deterministic offer list, in the
