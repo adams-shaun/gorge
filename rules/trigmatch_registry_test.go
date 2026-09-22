@@ -33,8 +33,31 @@ var registeredModes = []string{
 	"BecomesTarget", "LandPlayed", "Phase", "Mutates", "Always",
 }
 
+// addedAfterTheSplit names every mode registered into the table since the
+// split, each with the ticket that added it. The split did not invent these
+// dispatches -- they are deliberate new trigger modes whose events did not
+// exist before the split -- but a new mode must land here to be legal, which
+// keeps the addition explicit and reviewable instead of silent. A mode NOT on
+// either list is the merge accident the mirror test exists to catch.
+var addedAfterTheSplit = []string{
+	// trigdisc1: "Whenever you discover ..." (CR 701.57; Val, Marooned
+	// Surveyor; Curator of Sun's Creation) and "Whenever you seek one or more
+	// cards ..." (Vexyr, Ich-Tekik's Heir; Val; Lurker in the Deep). They
+	// match the events.Discover / events.Seek marker Kinds, which were
+	// appended for them, so neither mode could have been in the pre-split
+	// switch.
+	"Discover", "SeekAll",
+}
+
+func allRegisteredModeNames() []string {
+	all := make([]string, 0, len(registeredModes)+len(addedAfterTheSplit))
+	all = append(all, registeredModes...)
+	all = append(all, addedAfterTheSplit...)
+	return all
+}
+
 func TestEveryDispatchedTriggerModeHasAMatcher(t *testing.T) {
-	for _, mode := range registeredModes {
+	for _, mode := range allRegisteredModeNames() {
 		if trigMatchers[mode] == nil {
 			t.Errorf("Mode$ %s has no registered matcher: it can never fire", mode)
 		}
@@ -42,10 +65,13 @@ func TestEveryDispatchedTriggerModeHasAMatcher(t *testing.T) {
 }
 
 func TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched(t *testing.T) {
-	// The mirror of the test above: a mode in the table that was not in the
-	// switch means the split invented a dispatch, which is a behaviour change.
+	// The mirror of the test above: a mode in the table that is on neither
+	// the pre-split switch's list nor the documented post-split additions
+	// means a dispatch appeared without review -- which is a behaviour
+	// change. A legitimate new mode joins addedAfterTheSplit with its ticket
+	// rather than broadening this test.
 	known := map[string]bool{}
-	for _, m := range registeredModes {
+	for _, m := range allRegisteredModeNames() {
 		known[m] = true
 	}
 	var extra []string
@@ -56,7 +82,7 @@ func TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched(t *testing.T) {
 	}
 	sort.Strings(extra)
 	if len(extra) != 0 {
-		t.Errorf("modes registered but not dispatched before the split: %v", extra)
+		t.Errorf("modes registered that the split never dispatched and no ticket added: %v", extra)
 	}
 }
 
