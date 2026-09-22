@@ -235,7 +235,8 @@ type fnInfo struct {
 type scan struct {
 	fns     map[string]*fnInfo
 	apiImpl map[string]string // api -> effects function name (from Register)
-	// statRoots[mode] = functions whose code calls activeStatics("mode").
+	// statRoots[mode] = functions whose code calls activeStatics("mode") or
+	// assignmentStatics("mode") -- the two literal-mode stat collectors.
 	statRoots map[string]map[string]bool
 	// modeFns[trigMode] = the dispatch function triggerMatches calls for it;
 	// dispatchFns is the set of all dispatch callees (excluded from the
@@ -794,9 +795,9 @@ func trigMatcherCallee(arg ast.Expr) string {
 
 // scanCall records package-local calls (with literal args for key
 // propagation) and the attribution roots the code states: effects.Register
-// and rules' activeStatics. FuncLit bodies are attributed to the enclosing
-// function by the caller's Inspect, so closures like adjustedCost's apply
-// participate here.
+// and rules' activeStatics/assignmentStatics. FuncLit bodies are attributed
+// to the enclosing function by the caller's Inspect, so closures like
+// adjustedCost's apply participate here.
 func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname string, ce *ast.CallExpr, pkg string) {
 	var callee string
 	switch fun := ce.Fun.(type) {
@@ -818,7 +819,7 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 	default:
 		return
 	}
-	if callee == "Engine.activeStatics" && pkg == "rules" {
+	if (callee == "Engine.activeStatics" || callee == "Engine.assignmentStatics") && pkg == "rules" {
 		if len(ce.Args) > 0 {
 			if lit, ok := ce.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 				if mode, err := strconv.Unquote(lit.Value); err == nil {
@@ -826,6 +827,13 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 						s.statRoots[mode] = map[string]bool{}
 					}
 					s.statRoots[mode][fname] = true
+					// assignmentStatics is a collector LIKE activeStatics, so
+					// its own stat-param reads (the EffectZone$ gate) are
+					// attributed through this call edge into the caller's mode
+					// bucket (activeStatics is a handRoots.stat entry instead).
+					if callee == "Engine.assignmentStatics" {
+						fi.calls[callee] = true
+					}
 					return
 				}
 			}

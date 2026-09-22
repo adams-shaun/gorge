@@ -16,6 +16,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -206,6 +207,93 @@ func TestCombatDamageToughnessFeedsTheDivisionDecision(t *testing.T) {
 	}
 	if got := e.G.Obj(b2).Damage; got != 2 {
 		t.Fatalf("Wall2 damage = %d, want 2", got)
+	}
+}
+
+// onCommandCard places an already-compiled *cards.Card directly into a seat's
+// command zone (the Weight Advantage fixture). It mirrors onBoardCard's
+// eventless placement and stale-memo discipline, then records the object in
+// that seat's command-zone slice so the zone walk can find it.
+func onCommandCard(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card) state.ObjID {
+	t.Helper()
+	o := e.G.AddObject(c, p)
+	o.Zone = state.ZCommand
+	e.G.Clock++
+	o.Timestamp = e.G.Clock
+	e.G.SetZone(state.ZCommand, p, append(e.G.Zone(state.ZCommand, p), o.ID))
+	e.staticEpoch = -1
+	e.activeEpoch = -1
+	return o.ID
+}
+
+// TestWeightAdvantageAppliesFromTheCommandZone pins the command-zone source
+// path the previous round missed: Weight Advantage is a Conspiracy whose
+// `S:Mode$ CombatDamageToughness | EffectZone$ Command | ValidCard$
+// Creature.YouCtrl` static functions from the COMMAND ZONE (CR 113.6c, a
+// conspiracy is face up there). A battlefield-only collector can never see
+// it, so without assignmentStatics the attacker would deal its power 5
+// instead of its toughness 2.
+func TestWeightAdvantageAppliesFromTheCommandZone(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := combatEngine(t)
+	ca := mustCorpusCard(t, reg, "Weight Advantage")
+	// Precondition: the card really is a command-zone Conspiracy, so the
+	// EffectZone$ gate under test is genuinely exercised.
+	isConspiracy := false
+	for _, typ := range ca.Faces[0].Types {
+		if typ == "Conspiracy" {
+			isConspiracy = true
+		}
+	}
+	if !isConspiracy {
+		t.Fatalf("precondition: Weight Advantage types = %v, want a Conspiracy", ca.Faces[0].Types)
+	}
+	cmd := onCommandCard(t, e, 0, ca)
+	if z := e.G.Obj(cmd).Zone; z != state.ZCommand {
+		t.Fatalf("precondition: Weight Advantage zone = %v, want command", z)
+	}
+	atk := onBoardReady(t, e, 0, toughnessBeast)
+	blk := onBoard(t, e, 1, "Name:Wall\nManaCost:1 W\nTypes:Creature Wall\nPT:0/8\nOracle:x\n")
+
+	// Precondition: power and toughness differ sharply, so a power read (5)
+	// and a toughness read (2) cannot be confused.
+	if p, to := e.Power(atk), e.Toughness(atk); p == to || p != 5 || to != 2 {
+		t.Fatalf("precondition: attacker P/T = %d/%d, want 5/2 (distinct)", p, to)
+	}
+
+	e.askAttackers()
+	submitAttackers(t, e, atk)
+	submitBlockers(t, e, blk)
+
+	if e.G.Obj(atk).Zone != state.ZBattlefield {
+		t.Fatalf("precondition: the attacker must survive to be read (zone %v)", e.G.Obj(atk).Zone)
+	}
+	if got := e.G.Obj(blk).Damage; got != 2 {
+		t.Fatalf("blocker damage = %d, want 2 (Weight Advantage's toughness read from the command zone, not power 5)", got)
+	}
+}
+
+// TestWeightAdvantageNeedsItsEffectZoneCommand pins the gate itself: the SAME
+// static sitting on the BATTLEFIELD makes no claim, because its
+// EffectZone$ Command excludes the battlefield. Without this negative the
+// command-zone walk could over-reach to every zone.
+func TestWeightAdvantageNeedsItsEffectZoneCommand(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := combatEngine(t)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Weight Advantage"))
+	atk := onBoardReady(t, e, 0, toughnessBeast)
+	blk := onBoard(t, e, 1, "Name:Wall\nManaCost:1 W\nTypes:Creature Wall\nPT:0/8\nOracle:x\n")
+
+	if p, to := e.Power(atk), e.Toughness(atk); p == to {
+		t.Fatalf("precondition: attacker P/T = %d/%d, want distinct", p, to)
+	}
+
+	e.askAttackers()
+	submitAttackers(t, e, atk)
+	submitBlockers(t, e, blk)
+
+	if got := e.G.Obj(blk).Damage; got != 5 {
+		t.Fatalf("blocker damage = %d, want 5 (power: EffectZone$ Command excludes the battlefield)", got)
 	}
 }
 

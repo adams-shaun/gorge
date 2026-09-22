@@ -2413,7 +2413,7 @@ func init() {
 // predicates are known), the same clause shape the trigger-side
 // presentCondition reader evaluates.
 func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bool) {
-	for _, sv := range e.activeStatics("AssignCombatDamageAsUnblocked") {
+	for _, sv := range e.assignmentStatics("AssignCombatDamageAsUnblocked") {
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
@@ -2436,16 +2436,77 @@ func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bo
 	return matched, false
 }
 
-// combatDamageToughnessMatches reports whether any battlefield
+// assignmentStatics collects every S:Mode$ <mode> line from ANY zone a
+// static's EffectZone$ admits, for the combat damage-ASSIGNMENT static
+// family (CombatDamageToughness, AssignCombatDamageAsUnblocked). These two
+// modes are not battlefield-bound the way a lord's Continuous static is:
+// Weight Advantage is a Conspiracy that functions from the COMMAND ZONE
+// (EffectZone$ Command), so a battlefield-only walk can never see it and its
+// controller's creatures would keep assigning power. The walk mirrors
+// collectActionStatics/collectCostStatics exactly -- staticSourceZones in
+// one fixed order, each static gated by effectZoneOK, the shared stack
+// walked once under the first alive seat -- so the class of
+// assignment-source statements is covered by construction and the next
+// sibling mode added to this family cannot silently miss a non-battlefield
+// source the way CombatDamageToughness did.
+func (e *Engine) assignmentStatics(mode string) []staticView {
+	var out []staticView
+	for pi, p := range e.G.AliveFrom(0) {
+		for _, z := range staticSourceZones {
+			// The stack is a SHARED zone (state.Game.Zone returns g.Stack
+			// for every player), so walking it under every alive seat would
+			// collect each stack card's statics once per seat. Walk it once,
+			// under the first alive seat, keeping staticSourceZones' order.
+			if z == state.ZStack && pi > 0 {
+				continue
+			}
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				if e.faceDownPrintedHides(o) {
+					// CR 708.8: a face-down permanent's printed statics do not
+					// exist while it is face down.
+					continue
+				}
+				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
+					pst, ok := o.PileStaticAt(si)
+					if !ok {
+						continue
+					}
+					st := pst.Static
+					if st.Mode != mode {
+						continue
+					}
+					// The mode's own EffectZone$ gate. The default (Battlefield)
+					// keeps a plain printed static exactly where activeStatics put
+					// it; a static naming Command (Weight Advantage) is admitted
+					// only while its source really sits there, which is the same
+					// fail-closed direction effectZoneOK takes everywhere.
+					if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+						continue
+					}
+					out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params, SVars: pst.Face.SVars})
+				}
+			}
+		}
+	}
+	return out
+}
+
+// combatDamageToughnessMatches reports whether any
 // CombatDamageToughness static applies to candidate creature id (CR 510.1:
 // "assigns combat damage equal to its toughness rather than its power"). The
 // match follows asUnblockedStaticMatches' pattern exactly -- the shared
 // restriction/condition gates, the ClassLevel band, IsPresent$ through the
 // shared countPresent walk, and ValidCard$ resolved against the CANDIDATE
 // with the static's host as the spec SOURCE, so an Aura's
-// Creature.EnchantedBy and a lord's Creature.YouCtrl both resolve.
+// Creature.EnchantedBy and a lord's Creature.YouCtrl both resolve. The source
+// walk is assignmentStatics (every EffectZone$ the mode admits), so a
+// command-zone Conspiracy (Weight Advantage) applies too.
 func (e *Engine) combatDamageToughnessMatches(id state.ObjID) bool {
-	for _, sv := range e.activeStatics("CombatDamageToughness") {
+	for _, sv := range e.assignmentStatics("CombatDamageToughness") {
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
