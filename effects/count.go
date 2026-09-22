@@ -677,7 +677,15 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 					n += refToughness(h, o, lki)
 				}
 			}
-		case prop == "CardManaCost":
+		case prop == "CardManaCost" || prop == "CardManaCostLKI":
+			// CardManaCostLKI (56 raw corpus lines -- 51
+			// TriggeredSpellAbility$CardManaCostLKI, Sunbird's Invocation's
+			// PeekAmount X among them) is Forge's LKI spelling of the same
+			// property: the mana value the object HAD when the triggering
+			// event happened. A face's mana value never changes and the lki
+			// swap above already binds the zone-change snapshot when one is
+			// carried, so the LKI spelling reads the same number the plain
+			// spelling does -- one shared case, so the two cannot disagree.
 			if f != nil {
 				n += f.Cmc()
 			}

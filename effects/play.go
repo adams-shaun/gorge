@@ -30,7 +30,26 @@ func init() { Register("Play", effPlay) }
 // answered choice is carried back through Ctx.Play so rules' resumeResolution
 // can begin a zero-cost cast of the chosen card from its current zone. The
 // WithoutManaCost$ semantics (cast the card for free) are applied by the cast
-// flow, not here, because mana is paid in rules where the cost grammar lives.
+// flow, not here, because mana is paid in rules where the cost grammar lives
+// (rules/resolution.go's "play" arm; WithoutManaCost$ False and an absent
+// param both pay the printed cost, Only a literal True casts free).
+//
+// The remaining rider parameters:
+//
+//   - Controller$ names WHO the ask is posed to and whose cast the resume
+//     arm begins (Etali's Controller$ You -- the corpus's dominant shape --
+//     and an absent param keep the resolving controller; Word of Command's
+//     TargetedPlayer, Wild Evocation's TriggeredPlayer and Spell Queller's
+//     RememberedOwner route the play to the named seat). An unresolvable
+//     value is a fail-closed no-op under one loud Note, never a silent
+//     reroute to the resolving controller.
+//   - ShowCards$ (Sunbird's Invocation) is the play's public reveal rider,
+//     emitted by the resume arm before the cast moves the card out of its
+//     hidden zone (see there).
+//   - ForgetPlayed$ True (task param:api:Play.ForgetPlayed, read at the
+//     PlayDone re-entry below) drops each actually-begun card from the
+//     remembered set so a chained "if you don't play it" arm only sees the
+//     unplayed remainder.
 func effPlay(h Host, c *Ctx, sa *cards.SA) {
 	if c.PlayDone {
 		// Re-entry after the answer -- INCLUDING a decline (an Optional$
@@ -207,6 +226,48 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		candidates = kept
 	}
 
+	// Controller$ (task param:api:Play.Controller): WHO the play ask is
+	// posed to and whose cast the resume arm begins. The value resolves
+	// through the ONE shared defined-player machinery (knownDefinedTargets
+	// -> definedSpec), so every spelling the corpus writes on a Play --
+	// You (125 raw lines, the dominant shape), Targeted/
+	// TargetedController/TargetedPlayer (Word of Command), TriggeredPlayer
+	// (Wild Evocation), TriggeredCardController (Possibility Storm),
+	// RememberedController/RememberedOwner (Guff, Spell Queller),
+	// ChosenPlayer (Allure of the Unknown) -- binds exactly the way the
+	// rest of the engine binds it, and an unknown spelling is a fail-closed
+	// no-op under one loud Note rather than a silent reroute to the
+	// resolving controller: "who may play" has no safe default when the
+	// named seat cannot be bound. The answer's own Option.Player carries the
+	// resolved seat to the resume arm. An Amount$ Play offered to a player
+	// takes that seat's first listed candidate only (measured
+	// corpus-unreachable: no carrier combines Amount$ with a non-You
+	// Controller$).
+	playCtl := c.Controller
+	if ctl := strings.TrimSpace(sa.Params["Controller"]); ctl != "" {
+		ts, ok := knownDefinedTargets(h, c, ctl)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Play cannot resolve its Controller$ (" + ctl + "); the play does not happen"})
+			return
+		}
+		seenCtl := map[state.PlayerID]bool{}
+		var ps []state.PlayerID
+		for _, t := range ts {
+			p := PlayerOf(h, c, t)
+			if int(p) < len(g.Players) && !seenCtl[p] {
+				seenCtl[p] = true
+				ps = append(ps, p)
+			}
+		}
+		if len(ps) == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Play cannot resolve its Controller$ (" + ctl + "); the play does not happen"})
+			return
+		}
+		playCtl = ps[0]
+	}
+
 	// Optional$ True makes the whole ask declinable (Min 0: the empty answer
 	// is a decline). Amount$ sizes the ask: the default (and an unparseable
 	// value, which stays conservative) is one card; a literal N offers up to
@@ -238,7 +299,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 	if hasBudget {
 		maxSum = int(budget)
 	}
-	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
+	d := &decision.Decision{Player: playCtl, Kind: decision.KModes,
 		Min: min, Max: max, MaxSum: maxSum, Source: c.Source, ResumeKind: "play",
 		ResumeSA: sa, Prompt: "Play a card from this zone",
 		// The walk's remembered set rides the suspension (the targets_ask
@@ -261,7 +322,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 			optValue = manaValueOf(g, id)
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mode",
-			Label: label, Obj: id, Player: c.Controller, Value: optValue})
+			Label: label, Obj: id, Player: playCtl, Value: optValue})
 	}
 	if len(d.Options) == 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
