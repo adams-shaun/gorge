@@ -855,30 +855,7 @@ func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, ans []
 	g := h.Game()
 	spec := strings.TrimSpace(sa.Params["Choices"])
 	if done {
-		// A comma list is a second, real choice AFTER the recipient pick. The
-		// pick rides ResumeChoices while this kind ask is outstanding, so its
-		// re-entry never repeats the earlier selection.
-		if len(kinds) > 1 && !kindDone {
-			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
-				Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind",
-				ResumeSA: sa, ResumeChoices: objTargets(ans),
-				ResumeRemembered: copyTargets(c.Remembered), Prompt: "Choose a counter kind"}
-			for i, k := range kinds {
-				d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
-			}
-			if Ask(h, d) == AskAsked {
-				return
-			}
-			kindAns = kinds[0]
-			kindDone = true
-		}
-		if kindDone {
-			kind = kindAns
-		}
-		// Re-entry: the answered pick, in answer order. A chosen creature
-		// that left the battlefield while the decision was outstanding takes
-		// nothing (the same totality stance the divided sibling takes).
-		putCounterPickApply(h, c, sa, n, kind, ans)
+		putCounterChooseApply(h, c, sa, n, kind, ans, kinds, kindAns, kindDone)
 		return
 	}
 	chooser, ok := putCounterChooserFor(h, c, strings.TrimSpace(sa.Params["Chooser"]))
@@ -931,7 +908,10 @@ func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, ans []
 		if int32(len(picks)) > maxCh {
 			picks = picks[:maxCh]
 		}
-		putCounterPickApply(h, c, sa, n, kind, picks)
+		// A deterministic recipient is not a deterministic counter kind.
+		// Route it through the same continuation as an answered recipient
+		// selection so a comma list still gets its own real election.
+		putCounterChooseApply(h, c, sa, n, kind, picks, kinds, kindAns, kindDone)
 	}
 	if len(eligible) < 2 || maxCh < 1 || minCh >= int32(len(eligible)) {
 		fallback()
@@ -956,6 +936,33 @@ func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, ans []
 		return // resolution suspended; the answer re-enters with Ctx.CounterPick set.
 	}
 	fallback()
+}
+
+// putCounterChooseApply resolves the counter-kind half of a bare Choices$
+// PutCounter. It is shared by an answered recipient election and a forced
+// recipient set: only the recipient can be deterministic; a comma list is
+// always a real counter-kind choice.
+func putCounterChooseApply(h Host, c *Ctx, sa *cards.SA, n int32, kind string, picks []state.ObjID, kinds []string, kindAns string, kindDone bool) {
+	if len(kinds) > 1 && !kindDone {
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+			Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind",
+			ResumeSA: sa, ResumeChoices: objTargets(picks),
+			ResumeRemembered: copyTargets(c.Remembered), Prompt: "Choose a counter kind"}
+		for i, k := range kinds {
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
+		kindAns = kinds[0]
+		kindDone = true
+	}
+	if kindDone {
+		kind = kindAns
+	}
+	// A chosen creature that left while the decision was outstanding takes
+	// nothing (the same totality stance the divided sibling takes).
+	putCounterPickApply(h, c, sa, n, kind, picks)
 }
 
 // putCounterPickApply places CounterNum$ counters on each live chosen object
