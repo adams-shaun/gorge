@@ -114,6 +114,25 @@ func TestTokenOwnerPlayerControlQualifiers(t *testing.T) {
 			t.Fatalf("fewest-creature owners: seats have %d, %d, %d salamanders", tokenControlTokenCount(h, 0, "Salamander Warrior Token"), tokenControlTokenCount(h, 1, "Salamander Warrior Token"), tokenControlTokenCount(h, 2, "Salamander Warrior Token"))
 		}
 		assertNoTokenOwnerFallbackNote(t, h)
+
+		// The same recognised owner selector must fail closed when its X SVar
+		// cannot be evaluated. In particular, it must not inherit NumResolved's
+		// intentional zero-value degradation for unrelated numeric parameters.
+		hUnresolved := newHost(t, 3)
+		hUnresolved.g.Tokens = reg.Tokens
+		putTokenControlPermanent(t, hUnresolved, 0, "Creature Bear")
+		putTokenControlPermanent(t, hUnresolved, 1, "Creature Bear")
+		putTokenControlPermanent(t, hUnresolved, 2, "Creature Bear")
+		if got := tokenControlledCount(hUnresolved.g, nil, 0, "Creature"); got != 1 {
+			t.Fatalf("unresolved-X precondition: seat 0 creature count = %d, want 1", got)
+		}
+		Resolve(hUnresolved, &Ctx{Controller: 0, SVars: map[string]string{"X": "Count$Unmodelled"}}, sa)
+		for _, p := range []state.PlayerID{0, 1, 2} {
+			if got := tokenControlTokenCount(hUnresolved, p, "Salamander Warrior Token"); got != 0 {
+				t.Fatalf("unresolved X gave seat %d %d salamanders, want none", p, got)
+			}
+		}
+		assertNoTokenOwnerFallbackNote(t, hUnresolved)
 	})
 }
 

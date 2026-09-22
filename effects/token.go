@@ -101,12 +101,19 @@ func tokenOwnerPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 		return tokenOwnersControllingAny(h.Game(), []string{"Enchantment", "Artifact"}), true
 	}
 	if spec == "Player.controlsCreature_EQX" {
-		// Gor Muldrak's X is an SVar body, not a literal. NumResolved routes
-		// that body through the normal count evaluator (including
-		// PlayerCountPlayers$LowestValid Creature.YouCtrl). An unresolved X is
-		// recognised but matches nobody, rather than becoming a fake zero.
-		thresholdSA := &cards.SA{Params: map[string]string{"X": "X"}}
-		threshold, resolved := NumResolved(h, c, thresholdSA, "X", 0)
+		// Gor Muldrak's X is an SVar body, not a literal. Evaluate that one
+		// TokenOwner-specific read with the verdict-aware count resolver: an
+		// unmodelled X matches nobody rather than becoming a fake zero. Do not
+		// tighten NumResolved's SVar verdict globally; other explicit numeric
+		// parameters deliberately use its zero-value degradation.
+		if c == nil || c.SVars == nil {
+			return nil, true
+		}
+		body, ok := c.SVars["X"]
+		if !ok {
+			return nil, true
+		}
+		threshold, resolved := EvalCountOK(h, c, body)
 		if !resolved {
 			return nil, true
 		}
