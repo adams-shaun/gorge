@@ -35,6 +35,9 @@ func main() {
 	dir := fs.String("dir", ".cards", "working directory for the corpus and IR cache")
 	ref := fs.String("ref", "master", "Forge git ref to fetch")
 	top := fs.Int("top", 25, "how many missing primitives to list in report")
+	doc := fs.String("doc", "docs/coverage.md", "coverage: file to write the full breakdown to")
+	readme := fs.String("readme", "README.md", "coverage: file whose marked block carries the summary")
+	check := fs.Bool("check", false, "coverage: verify the committed tables are current instead of writing them")
 	fs.Parse(args)
 
 	var err error
@@ -45,6 +48,8 @@ func main() {
 		err = compile(*dir)
 	case "report":
 		err = report(*dir, *top)
+	case "coverage":
+		err = coverageCmd(*dir, *doc, *readme, *check)
 	default:
 		usage()
 	}
@@ -55,7 +60,8 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: forgec fetch|compile|report [-dir .cards] [-ref master] [-top 25]")
+	fmt.Fprintln(os.Stderr, "usage: forgec fetch|compile|report|coverage [-dir .cards] [-ref master] [-top 25]")
+	fmt.Fprintln(os.Stderr, "       forgec coverage [-doc docs/coverage.md] [-readme README.md] [-check]")
 	os.Exit(2)
 }
 
