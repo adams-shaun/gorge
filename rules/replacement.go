@@ -131,6 +131,12 @@ func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
 }
 
 func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool) {
+	if ev.Kind == events.Attach && e.attachedApplying {
+		return ev, false
+	}
+	if ev.Kind == events.Attach && e.applyAttachedReplacement(ev) {
+		return ev, true
+	}
 	event, ok := replacementEvent(ev)
 	if !ok {
 		return ev, false
@@ -872,6 +878,8 @@ func drawMatchAmount(ev events.Event) int32 {
 // both, while the logged event remains the ordinary final mana production.
 func replacementEvent(ev events.Event) (string, bool) {
 	switch ev.Kind {
+	case events.Attach:
+		return "Attached", true
 	case events.MoveZone:
 		return "Moved", true
 	case events.Untap:
@@ -2001,6 +2009,94 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 // offered; a controller with no living opponent (a battle entering after
 // everyone else lost -- unreachable in a real match) is recorded with no
 // protector rather than parking on an unanswerable ask.
+type attachedChoice struct {
+	move   events.Event
+	source state.ObjID
+	stage  int
+}
+
+// applyAttachedReplacement handles the ChooseName replacement on Psychic Paper.
+// It parks the Attach before events.Apply and records both answers on the source.
+func (e *Engine) applyAttachedReplacement(ev events.Event) bool {
+	if e.attachedChoice != nil || e.pending != nil || len(ev.IDs) == 0 {
+		return false
+	}
+	var source state.ObjID
+	var repl *cards.Repl
+	e.forEachReplacementSource(func(id state.ObjID) {
+		if source != 0 {
+			return
+		}
+		f := e.replacementFace(id, ev)
+		if f == nil {
+			return
+		}
+		for i := range f.Repls {
+			r := &f.Repls[i]
+			if r.Event == "Attached" && r.With != nil && r.With.API == "ChooseName" && e.replacementMatches(*r, id, ev) {
+				source, repl = id, r
+				return
+			}
+		}
+	})
+	if source == 0 || repl == nil {
+		return false
+	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return false
+	}
+	ch := &attachedChoice{move: ev, source: source}
+	e.attachedChoice = ch
+	opts := e.etbOptions(o.Controller, source, "name", repl.With.Params["ValidCards"], "", "")
+	if len(opts) <= 1 {
+		if len(opts) == 1 {
+			e.emit(events.Event{Kind: events.Choose, Obj: source, Counter: "name", Text: opts[0].Label})
+		}
+		return e.askAttachedType()
+	}
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: source, Prompt: "Choose a creature card name", Options: opts}
+	e.choosing = chooseAttached
+	e.ask(d)
+	return true
+}
+
+func (e *Engine) askAttachedType() bool {
+	ch := e.attachedChoice
+	if ch == nil {
+		return false
+	}
+	o := e.G.Obj(ch.source)
+	if o == nil {
+		e.attachedChoice = nil
+		return false
+	}
+	ch.stage = 1
+	opts := e.creatureTypeOptions(o.Controller)
+	if len(opts) <= 1 {
+		if len(opts) == 1 {
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "type", Text: opts[0].Label})
+		}
+		move := ch.move
+		e.attachedChoice = nil
+		e.choosing = chooseNone
+		e.emitAttachedMove(move)
+		return true
+	}
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: ch.source, Prompt: "Choose a creature type", Options: opts}
+	e.choosing = chooseAttached
+	e.ask(d)
+	return true
+}
+
+func (e *Engine) emitAttachedMove(move events.Event) {
+	e.attachedApplying = true
+	e.emit(events.Event{Kind: events.Attach, Obj: move.Obj, IDs: append([]state.ObjID(nil), move.IDs...)})
+	e.attachedApplying = false
+}
+
 func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	// Same overwrite guard applyRiotReplacement documents: never park on an ask
 	// while another decision is outstanding.
@@ -2160,6 +2256,17 @@ func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjI
 func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	you := e.controllerOf(source)
 	switch r.Event {
+	case "Attached":
+		if ev.Kind != events.Attach || len(ev.IDs) == 0 {
+			return false
+		}
+		if v := r.Params["ValidCard"]; v != "" && !effects.MatchesSpecFrom(e.G, v, source, you, source) {
+			return false
+		}
+		if v := r.Params["ValidTarget"]; v != "" && !effects.MatchesSpecFrom(e.G, v, ev.IDs[0], you, source) {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
 	case "Counter":
 		// The Effect-created bodyless CantHappen form (Mistrise Village's
 		// AntiMagic, reached only from counterReplacementMatchesAll's scan,

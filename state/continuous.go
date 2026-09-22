@@ -76,6 +76,9 @@ type ContinuousEffect struct {
 	AddKeywords            []string
 	AddTypes               []string
 
+	// SetName is a layer-3 name overwrite (SetName$), resolved by rules' layer walk.
+	SetName string
+
 	// AddPowerExpr preserves a static P/T parameter that must be evaluated
 	// against its source each time characteristics are derived (for example
 	// +X or -X). An empty expression retains the already-resolved numeric

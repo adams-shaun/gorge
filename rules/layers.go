@@ -296,6 +296,14 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 								out = append(out, gg)
 							}
 						}
+						if rawName, ok := st.Params["SetName"]; ok {
+							if name, ok := resolveChosenName(rawName, o); ok {
+								n := base
+								n.Layer = LText
+								n.SetName = name
+								out = append(out, n)
+							}
+						}
 						if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
 							ty := base
 							ty.Layer = LType
@@ -1168,6 +1176,20 @@ func statList(st cards.Static, key string) []string {
 // Choose event the cast/play-time ask emitted). Everything else passes
 // through unchanged. ok is false when a ChosenType entry names a host with no
 // recorded choice — the caller withholds the grant whole.
+func resolveChosenName(raw string, o *state.Object) (string, bool) {
+	if strings.EqualFold(strings.TrimSpace(raw), "ChosenName") {
+		if o == nil || o.ChosenName == "" {
+			return "", false
+		}
+		return o.ChosenName, true
+	}
+	name := strings.TrimSpace(raw)
+	if name == "" {
+		return "", false
+	}
+	return name, true
+}
+
 func resolveChosenTypes(list []string, o *state.Object) ([]string, bool) {
 	out := make([]string, 0, len(list))
 	for _, t := range list {
@@ -1254,6 +1276,8 @@ type Derived struct {
 	Power, Toughness int32
 	Keywords         []string
 	Types            []string
+	// Name is the current layer-3 name. SetName$ overwrites the printed name.
+	Name string
 	// Colors is the object's current colour set as WUBRG letters (CR 613.1e):
 	// its face's colours (effects.ColorsOf, which already applies Devoid)
 	// then every applicable layer-5 effect in timestamp order -- an
@@ -2369,6 +2393,7 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	// ColorMaskOf is ColorsOf's compact bitmask (230574a2); the match keeps
 	// 837910f4's type-aware wrapper — a bare SpecContext carries no
 	// ExtraTypes, so MatchesSpecCtx here would regress to printed types only.
+	name := f.Name
 	col := effects.ColorMaskOf(o)
 	if faceDown {
 		col = 0 // CR 708.5: a face-down permanent has no colours
@@ -2395,6 +2420,10 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 			}
 		}
 		switch ce.Layer {
+		case LText:
+			if ce.SetName != "" {
+				name = ce.SetName
+			}
 		case LAbilities:
 			// CR 613.1f / 613.4b: an ability-removing effect (Humility)
 			// clears the object's printed and earlier-granted keywords before
@@ -2453,7 +2482,7 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		e.derivedTypes = ty
 	}
 	e.derivedDepth--
-	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Colors: colors}
+	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Colors: colors}
 }
 
 func (e *Engine) Power(id state.ObjID) int32 {

@@ -1125,6 +1125,23 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.unleashMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
+	case chooseAttached:
+		if e.attachedChoice == nil || len(chosen) != 1 {
+			e.attachedChoice = nil
+			e.choosing = chooseNone
+			return
+		}
+		ch := e.attachedChoice
+		if ch.stage == 0 {
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "name", Text: chosen[0].Label})
+			e.askAttachedType()
+			return
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "type", Text: chosen[0].Label})
+		move := ch.move
+		e.attachedChoice = nil
+		e.choosing = chooseNone
+		e.emitAttachedMove(move)
 	case chooseSiege:
 		// CR 310.10: the Battle Siege protector choice was answered. Record
 		// the chosen opponent through a Choose "protector" event (so the

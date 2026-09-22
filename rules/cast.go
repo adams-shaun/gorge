@@ -46,6 +46,11 @@ const (
 	// chooseRiot+1.. family; the numbers matter only inside this package's
 	// switch table.
 	chooseSiege chooseFor = 26
+	// chooseAttached is the Attached-replacement name/type election
+	// (rules/replacement.go). 30 is the next free value: 27-29 are
+	// chooseEnlist / chooseAttackPay / chooseUnleash, each defined relative
+	// to a neighbour, and 40 is chooseUntap.
+	chooseAttached chooseFor = 30
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and

@@ -639,6 +639,10 @@ type Engine struct {
 	// answer, so every entry path records the protector beside the entry and a
 	// log-only replay re-derives it. Clone-copied (clone.go).
 	siegeMove *events.Event
+	// attachedChoice parks an Attach event while an Attached replacement asks
+	// for its name and creature type.
+	attachedChoice   *attachedChoice
+	attachedApplying bool
 	// suspendedCasts is the mandatory "cast it if able" trigger created when
 	// a real suspended card loses its final TIME counter. IDs are appended in
 	// exile order and consumed before priority; it is plain replayable engine
