@@ -679,6 +679,15 @@ func TestPlayerCountConditionFamily(t *testing.T) {
 	if got := EvalCount(h, c, "Count$PlayerCountPlayers$ConditionGE2 CardsDrawn"); got != 2 {
 		t.Errorf("players with GE2 CardsDrawn = %d, want 2", got)
 	}
+	// SpellsCastThisTurn backs 3 of the 9 corpus Condition carriers (Ertai's
+	// Scorn, Mindbreak Trap, the ConditionGE3 SpellsCastThisTurn shape) and
+	// counts per member: the opponent cast 2, the controller cast none.
+	if got := EvalCount(h, c, "Count$PlayerCountOpponents$ConditionGE2 SpellsCastThisTurn"); got != 1 {
+		t.Errorf("opponents with GE2 SpellsCastThisTurn = %d, want 1", got)
+	}
+	if got := EvalCount(h, c, "Count$PlayerCountPlayers$ConditionGE2 SpellsCastThisTurn"); got != 1 {
+		t.Errorf("players with GE2 SpellsCastThisTurn = %d, want 1 (only seat 1 cast)", got)
+	}
 	// The per-member ThisTurnEntered leg: one creature entered per seat; the
 	// spec's YouCtrl binds to the counted member.
 	g.Entered = append(g.Entered,
@@ -708,12 +717,32 @@ func TestPlayerCountConditionFamily(t *testing.T) {
 	if got := EvalCount(h, c, "Count$PlayerCountHasLost$Amount"); got != 1 {
 		t.Errorf("lost seats = %d, want 1", got)
 	}
-	// An unmodelled property fails UNRESOLVABLE, never a fake zero. (The
-	// HasLost assertion above left the only opponent lost, which empties
-	// the group — a condition count over an EMPTY group is legitimately
-	// evaluated zero — so unlose the seat first.)
+	// The /Op suffix applies (Rampant Frogantua's Amount/Times.10 — its
+	// +10/+10-per-lost-player SVar): 1 lost seat x 10.
+	if got := EvalCount(h, c, "Count$PlayerCountHasLost$Amount/Times.10"); got != 10 {
+		t.Errorf("lost seats /Times.10 = %d, want 10", got)
+	}
+	// An unmodelled property fails UNRESOLVABLE, never a fake zero — and
+	// the verdict must hold on an EMPTY group too (the HasLost assertions
+	// above left the only opponent lost): the per-member loop never runs
+	// there, so the property must be validated before it. An `...LE0`-shaped
+	// gate over an unmodelled property on an empty group would otherwise
+	// evaluate true (0 <= 0) — the wrong-wide class.
+	for _, body := range []string{
+		"Count$PlayerCountOpponents$ConditionGE2 BogusProp",
+		"Count$PlayerCountOpponents$ConditionLE0 BogusProp",
+		// A named RHS with no body anywhere is equally unresolvable on the
+		// empty group: the RHS body must be looked up before the range too.
+		"Count$PlayerCountOpponents$ConditionLENoSuchSVar LifeTotal",
+	} {
+		if got, ok := EvalCountOK(h, c, body); ok {
+			t.Errorf("%s reported EVALUATED as %d on an empty group — must fail unresolvable", body, got)
+		}
+	}
+	// Same verdict on a LIVE group (the per-member read the original pin
+	// covered).
 	g.Players[1].Lost = false
 	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$ConditionGE2 BogusProp"); ok {
-		t.Errorf("BogusProp reported EVALUATED as %d — must fail unresolvable", got)
+		t.Errorf("BogusProp reported EVALUATED as %d on a live group — must fail unresolvable", got)
 	}
 }

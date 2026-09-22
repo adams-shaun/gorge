@@ -1257,12 +1257,20 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// property fails closed: the head has no other corpus reader (measured:
 	// only hot_pursuit and rampant_frogantua carry it).
 	if rest, ok := strings.CutPrefix(head, "PlayerCountHasLost$"); ok {
-		if strings.TrimSpace(rest) == "Amount" {
+		// The /Op count suffix applies like every other property head's
+		// (Rampant Frogantua's `PlayerCountHasLost$Amount/Times.10` — its
+		// +10/+10-per-lost-player SVar). Split before the name check so the
+		// suffix does not make the exact-name compare miss.
+		name, op, hasOp := strings.Cut(rest, "/")
+		if strings.TrimSpace(name) == "Amount" {
 			var n int32
 			for i := range g.Players {
 				if g.Players[i].Lost {
 					n++
 				}
+			}
+			if hasOp {
+				n = applyCountOp(n, op)
 			}
 			return n, true
 		}
@@ -2215,9 +2223,35 @@ func playerCountCondition(h Host, g *state.Game, c *Ctx, group []state.PlayerID,
 	}
 	// The RHS is a literal when it parses as an integer; else it is an SVar
 	// name resolved PER MEMBER (Anya's Z, Game Over's Y). A name with no body
-	// anywhere is unreadable — (0, false), never a threshold of 0.
+	// anywhere is unreadable — (0, false), never a threshold of 0. Both the
+	// RHS body and the property are validated ONCE, BEFORE the group is
+	// ranged: an EMPTY group would otherwise never reach the per-member
+	// checks and the head would report a legitimate-looking (0, true) for a
+	// property or RHS this build cannot evaluate — the leak an `...LE0`-
+	// shaped gate evaluates as true over nothing. The per-member loop still
+	// re-validates (a member can make a modelled property unevaluable, e.g.
+	// LifeTotal of a gone seat).
 	lit, litErr := strconv.ParseInt(rhs, 10, 32)
 	literalOK := litErr == nil
+	var rhsBody string
+	if !literalOK {
+		body, found := "", false
+		if c.SVars != nil {
+			body, found = c.SVars[rhs]
+		}
+		if !found {
+			if o := g.Obj(c.Source); o != nil && o.Face() != nil {
+				body, found = o.Face().SVars[rhs]
+			}
+		}
+		if !found {
+			return 0, false
+		}
+		rhsBody = body
+	}
+	if !playerPropertyModelled(prop) {
+		return 0, false
+	}
 	var n int32
 	for _, m := range group {
 		v, okv := playerMemberProperty(h, g, c, m, prop)
@@ -2228,25 +2262,13 @@ func playerCountCondition(h Host, g *state.Game, c *Ctx, group []state.PlayerID,
 		if literalOK {
 			threshold = int32(lit)
 		} else {
-			body, found := "", false
-			if c.SVars != nil {
-				body, found = c.SVars[rhs]
-			}
-			if !found {
-				if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-					body, found = o.Face().SVars[rhs]
-				}
-			}
-			if !found {
-				return 0, false
-			}
 			// Evaluate the body with the MEMBER as the relative player: this
 			// is what makes `...RelativePlayerUID$StartingLife/HalfDown`
 			// answer the member's own threshold (and a per-member count body
 			// its own perspective).
 			sub := *c
 			sub.Controller = m
-			tv, tok := evalCountExprOK(h, &sub, body, 0)
+			tv, tok := evalCountExprOK(h, &sub, rhsBody, 0)
 			if !tok {
 				return 0, false
 			}
@@ -2286,6 +2308,22 @@ func playerMemberProperty(h Host, g *state.Game, c *Ctx, m state.PlayerID, prop 
 		return evalThisTurnEnteredAs(g, c, m, rest)
 	}
 	return 0, false
+}
+
+// playerPropertyModelled reports whether prop names a property the condition
+// family's evaluators model at all. playerCountCondition calls it BEFORE
+// ranging the group so an empty group cannot launder an unmodelled property
+// into a legitimate (0, true) — the per-member checks would never run. It
+// must stay in lock-step with playerMemberProperty's switch: a property
+// modelled there but missed here fails a non-empty group's count too (the
+// fail-closed direction, still wrong), and the reverse re-opens the
+// empty-group leak this guard closes.
+func playerPropertyModelled(prop string) bool {
+	switch strings.TrimSpace(prop) {
+	case "LifeTotal", "CardsDrawn", "CardsDiscardedThisTurn", "SpellsCastThisTurn":
+		return true
+	}
+	return strings.HasPrefix(strings.TrimSpace(prop), "ThisTurnEntered_")
 }
 
 // relativePlayerProperty answers the

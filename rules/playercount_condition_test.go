@@ -124,6 +124,44 @@ func TestSmugglersShareCountsOpponentsByDrawAndLandEntry(t *testing.T) {
 	}
 }
 
+// TestSmugglersShareOneOpponentMeetsCountsOnlyThatOne is the real
+// one-opponent scoping control (the earlier round's report claimed the
+// full-threshold test carried one; it did not — both opponents met both
+// thresholds there): seat 1 meets both thresholds, seat 2 meets neither,
+// so exactly ONE card is drawn and ONE Treasure minted. A group-wide read
+// of either threshold ("some opponent drew 2") would count both legs 1
+// the same way, so the discriminating check is that the BELOW-threshold
+// opponent contributes nothing while the above-threshold one is counted
+// per member — the pair of tests together pins both directions.
+func TestSmugglersShareOneOpponentMeetsCountsOnlyThatOne(t *testing.T) {
+	e := pcCondEngine(t, 3)
+	share := onBoardCard(t, e, 0, corpusCard(t, "Smuggler's Share"))
+	face := e.G.Obj(share).Face()
+
+	// Seat 1 meets both thresholds; seat 2 is below both (one draw, one
+	// land); a controller-owned land must not count either.
+	for i := 0; i < 2; i++ {
+		drawn := e.G.Zone(state.ZLibrary, 1)[0]
+		e.emit(events.Event{Kind: events.Draw, Player: 1, Obj: drawn, From: state.ZLibrary, To: state.ZHand, Secret: true})
+		pcMoveLand(t, e, 1, "Mountain")
+	}
+	drawn := e.G.Zone(state.ZLibrary, 2)[0]
+	e.emit(events.Event{Kind: events.Draw, Player: 2, Obj: drawn, From: state.ZLibrary, To: state.ZHand, Secret: true})
+	pcMoveLand(t, e, 2, "Mountain")
+	pcMoveLand(t, e, 0, "Mountain")
+
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	trig := cards.ResolveSVar(face.SVars, "TrigDraw")
+	e.resolveAbility(share, 0, nil, trig, face.SVars)
+
+	if got, want := len(e.G.Zone(state.ZHand, 0)), handBefore+1; got != want {
+		t.Fatalf("Smuggler's Share drew to %d cards, want %d (X = 1: only seat 1 drew >= 2)", got, want)
+	}
+	if tres := pcTreasureTokens(e, 0); len(tres) != 1 {
+		t.Fatalf("Smuggler's Share created %d Treasure(s), want 1 (Y = 1: only seat 1 had >= 2 lands enter)", len(tres))
+	}
+}
+
 // TestSmugglersShareNoOpponentMeetsEitherThreshold pins the other end: with
 // every opponent below both thresholds neither leg fires (X = Y = 0), so no
 // card is drawn and no Treasure is created.
@@ -147,6 +185,27 @@ func TestSmugglersShareNoOpponentMeetsEitherThreshold(t *testing.T) {
 	}
 	if tres := pcTreasureTokens(e, 0); len(tres) != 0 {
 		t.Fatalf("Smuggler's Share created %d Treasure(s), want 0 (Y should be 0)", len(tres))
+	}
+}
+
+// TestRampantFrogantuaHasLostTimesSuffix pins the /Op suffix on the head's
+// SECOND corpus carrier, driving the real card: its
+// `SVar:X:PlayerCountHasLost$Amount/Times.10` (+10/+10 per lost player)
+// failed closed before the suffix split, so the Frogantua stayed its
+// printed 3/3 however many seats had lost.
+func TestRampantFrogantuaHasLostTimesSuffix(t *testing.T) {
+	e := pcCondEngine(t, 2)
+	frog := onBoardCard(t, e, 0, corpusCard(t, "Rampant Frogantua"))
+	face := e.G.Obj(frog).Face()
+	if got := face.SVars["X"]; got != "PlayerCountHasLost$Amount/Times.10" {
+		t.Fatalf("Rampant Frogantua SVar X changed: %q", got)
+	}
+	if got := e.Derived(frog); got.Power != 3 || got.Toughness != 3 {
+		t.Fatalf("Frogantua with no losses = %d/%d, want 3/3", got.Power, got.Toughness)
+	}
+	e.emit(events.Event{Kind: events.PlayerLost, Player: 1})
+	if got := e.Derived(frog); got.Power != 13 || got.Toughness != 13 {
+		t.Fatalf("Frogantua with one loss = %d/%d, want 13/13 (1 lost x Times.10)", got.Power, got.Toughness)
 	}
 }
 
