@@ -160,21 +160,21 @@ func TestTokenOwnerDefaultsToYou(t *testing.T) {
 }
 
 // TestTokenOwnerUnrecognizedFormNotesAndDefaultsToController: a
-// TokenOwner$ this build does not model (e.g. "Defined$"-style forms
-// beyond You/Opponent) still creates the token under the controller --
-// the brief's own stated fallback -- but now says so with a Note, so the
-// fidelity gap is visible in the log rather than silently indistinguishable
-// from the ordinary "You" default.
+// TokenOwner$ value the shared Defined$ player-selector grammar does not
+// know at all still creates the token under the controller -- the brief's
+// own stated fallback -- but says so with a Note, so a genuine fidelity gap
+// is visible in the log rather than silently indistinguishable from the
+// ordinary "You" default.
 func TestTokenOwnerUnrecognizedFormNotesAndDefaultsToController(t *testing.T) {
 	h, c := fixtureHostWithTokens(t)
 	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
-		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenOwner": "Player"}})
+		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenOwner": "NoSuchSelector"}})
 
 	if bf := h.Game().Zone(state.ZBattlefield, c.Controller); len(bf) != 1 {
 		t.Fatalf("controller's battlefield = %v, want 1 token (unrecognised TokenOwner$ still "+
 			"defaults to the controller)", bf)
 	}
-	want := "unrecognized TokenOwner Player, defaulting to the controller"
+	want := "unrecognized TokenOwner NoSuchSelector, defaulting to the controller"
 	found := false
 	for _, ev := range h.log {
 		if ev.Kind == events.Note && ev.Text == want {
@@ -183,6 +183,91 @@ func TestTokenOwnerUnrecognizedFormNotesAndDefaultsToController(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("log = %+v, want a Note %q", h.log, want)
+	}
+}
+
+// TestTokenOwnerTargetedControllerStaysWithTheTargetsController is the leaf
+// for the deck carrier generous_gift (and the 38-file corpus family):
+// TokenOwner$ TargetedController resolves through the shared Defined$
+// grammar to the controller of the resolution's object target -- NOT the
+// resolving controller. The object has already left the battlefield by the
+// time the chained Token resolves (Destroy runs first), so this also pins
+// that the target's controller survives the zone change for an ordinary
+// (owner-controlled) permanent.
+func TestTokenOwnerTargetedControllerStaysWithTheTargetsController(t *testing.T) {
+	h := newHost(t, 2)
+	h.g.Tokens = tokenFixtures(t)
+	// Seat 1's artifact, on the battlefield.
+	victim := h.g.AddObject(mkCard(t, "Name:Fixture Relic\nTypes:Artifact\nOracle:x\n"), 1)
+	victim.Zone = state.ZBattlefield
+	h.g.SetZone(state.ZBattlefield, 1, append(h.g.Zone(state.ZBattlefield, 1), victim.ID))
+	if o := h.g.Obj(victim.ID); o == nil || o.Zone != state.ZBattlefield || o.Controller != 1 {
+		t.Fatalf("precondition: victim = %+v, want seat 1 battlefield", o)
+	}
+
+	// The real Generous Gift shape, authored inline (the Forge corpus script
+	// is GPL and is never copied into a test).
+	src := "Name:Generous Gift\nManaCost:2 W\nTypes:Instant\n" +
+		"A:SP$ Destroy | ValidTgts$ Permanent | SubAbility$ DBToken\n" +
+		"SVar:DBToken:DB$ Token | TokenScript$ r_1_1_goblin | TokenOwner$ TargetedController\n" +
+		"Oracle:x\n"
+	card := mkCard(t, src)
+	c := &Ctx{Source: victim.ID, Controller: 0,
+		Targets: []state.Target{{Obj: victim.ID}}}
+	Resolve(h, c, card.Faces[0].Abilities[0])
+
+	if o := h.g.Obj(victim.ID); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("victim = %+v, want graveyard after Destroy", o)
+	}
+	bf := h.g.Zone(state.ZBattlefield, 1)
+	if len(bf) != 1 {
+		t.Fatalf("target's controller battlefield = %v, want 1 Elephant", bf)
+	}
+	tok := h.g.Obj(bf[0])
+	if !tok.IsToken || tok.Face() == nil || tok.Face().Name != "Goblin Token" {
+		t.Fatalf("token = %+v, want a minted Goblin Token", tok)
+	}
+	if tok.Controller != 1 || tok.Owner != 1 {
+		t.Fatalf("token controller/owner = %d/%d, want both 1 (the destroyed permanent's controller)",
+			tok.Controller, tok.Owner)
+	}
+	if own := h.g.Zone(state.ZBattlefield, 0); len(own) != 0 {
+		t.Fatalf("caster's battlefield = %v, want empty (the caster must not keep the gift)", own)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unrecognized TokenOwner") {
+			t.Fatalf("TokenOwner$ TargetedController fell back with a Note: %q", ev.Text)
+		}
+	}
+}
+
+// TestTokenOwnerPlayerResolvesEveryAlivePlayer covers the adjacent corpus
+// value (29 files, "each player creates"): TokenOwner$ Player now resolves
+// through the shared grammar to every living seat, so each player gets the
+// token rather than only the resolving controller. This is the fan-out the
+// shared resolver gives for free -- it is why the fix is a class fix, not a
+// TargetedController special case.
+func TestTokenOwnerPlayerResolvesEveryAlivePlayer(t *testing.T) {
+	for _, seats := range []int{2, 4} {
+		h := newHost(t, seats)
+		h.g.Tokens = tokenFixtures(t)
+		c := &Ctx{Controller: 0}
+		Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
+			Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenOwner": "Player"}})
+		for p := state.PlayerID(0); p < state.PlayerID(seats); p++ {
+			bf := h.Game().Zone(state.ZBattlefield, p)
+			if len(bf) != 1 {
+				t.Fatalf("seats=%d: player %d battlefield = %v, want 1 token", seats, p, bf)
+			}
+			if o := h.Game().Obj(bf[0]); o.Controller != p {
+				t.Fatalf("seats=%d: token for player %d is controlled by %d", seats, p, o.Controller)
+			}
+		}
+		for _, ev := range h.log {
+			if ev.Kind == events.Note && strings.Contains(ev.Text, "unrecognized TokenOwner") {
+				t.Fatalf("seats=%d: TokenOwner$ Player fell back with a Note: %q", seats, ev.Text)
+			}
+		}
 	}
 }
 
