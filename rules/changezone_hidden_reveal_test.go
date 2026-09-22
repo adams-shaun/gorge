@@ -294,10 +294,15 @@ func TestChangeZoneWishFindsSideboard(t *testing.T) {
 	if d == nil || len(d.Options) != 1 || d.Options[0].Label != "Empty the Warrens" {
 		t.Fatalf("Burning Wish sideboard options = %+v, want the owner's Empty the Warrens", d)
 	}
-	submitChoices(t, e, d.Options[0].Index)
+	// Precondition for the self-exile chain below: the wish is still on the
+	// stack while the sideboard choice is pending. The choice's submission
+	// drives the resolution (including DBChange's stack->exile) to
+	// completion synchronously, so this is the pre-resolution boundary the
+	// moveResolvedOffStack guard reads.
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZStack {
 		t.Fatalf("Burning Wish before resolution completion = %+v, want on the stack", o)
 	}
+	submitChoices(t, e, d.Options[0].Index)
 	passUntilStackEmpty(t, e, 20)
 	// The wish's own SubAbility$ (DBChange: Origin$ Stack → Destination$
 	// Exile) runs while the spell is on the stack. Completion must not add a
