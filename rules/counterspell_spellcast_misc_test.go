@@ -429,12 +429,15 @@ func TestSpellCastActivatorThisTurnCastGatesTheTrigger(t *testing.T) {
 	}
 	submitChoices(t, e, tIdx)
 	passUntilStackEmpty(t, e, 30)
-	// The damage amount itself is the known TriggeredSpellAbility$
-	// CardManaCostLKI count-expression gap (a separate ledger entry): what
-	// this shape pins is the GATE -- the trigger asked on the first cast and
-	// seat 1's life is untouched by a 0-valued X.
-	if life := e.G.Players[1].Life; life != 20 {
-		t.Fatalf("seat 1's life = %d after the first cast's trigger, want an untouched 20", life)
+	// The damage amount is the cast spell's mana value (the castprov-era
+	// TriggeredSpellAbility$CardManaCostLKI count expression): the Bears'
+	// mana value 2 was previously UNREAD and degraded to 0 (the gap the
+	// comment below used to pin an untouched life total on); the alias read
+	// in effects/count.go's evalRefProperty made it real, so seat 1 now
+	// loses exactly 2. What the shape still pins is the GATE: the trigger
+	// asked on the first cast and not on the second.
+	if life := e.G.Players[1].Life; life != 18 {
+		t.Fatalf("seat 1's life = %d after the first cast's trigger, want 20 minus the Bears' mana value 2", life)
 	}
 
 	// Second cast of the turn: EQ1 is false (this is the activator's second
