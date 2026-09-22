@@ -1878,29 +1878,53 @@ func evalThisTurnEntered(g *state.Game, c *Ctx, rest string) (int32, bool) {
 // under THAT opponent's control") need exactly this — the counted member IS
 // the filter's You.
 func evalThisTurnEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, rest string) (int32, bool) {
+	dest, origin, valid, parsed := parseThisTurnEnteredSpec(rest)
+	if !parsed {
+		return 0, false
+	}
+	return countEnteredAs(g, c, you, dest, origin, valid)
+}
+
+// parseThisTurnEnteredSpec splits a ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid>
+// tail into its parts (Forge's own parser applies the same underscore split:
+// parts[0] is <Dest>; at most five underscore parts; a <Valid> tail of more
+// than one token is rejoined). ok is false when the shape is not a well-formed
+// spec at all -- too few or too many parts, an unknown destination or origin
+// zone word, or an EMPTY <Valid>. It is the ONE grammar both
+// evalThisTurnEnteredAs (which counts with it) and playerPropertyModelled
+// (which validates a PlayerCount$Condition property before ranging a possibly
+// empty group) share, so a shape one accepts cannot be rejected by the other
+// -- the drift hazard the previous prefix-only check carried, where
+// `ThisTurnEntered_` and `ThisTurnEntered_Nonsense` passed the pre-check and
+// an empty group laundered them into a legitimate-looking (0, true).
+func parseThisTurnEnteredSpec(rest string) (dest state.Zone, origin *state.Zone, valid string, ok bool) {
 	parts := strings.Split(strings.TrimSpace(rest), "_")
 	if len(parts) < 2 || len(parts) > 5 {
-		return 0, false
+		return 0, nil, "", false
 	}
-	dest, ok := zoneWords[parts[0]]
-	if !ok {
-		return 0, false
+	d, known := zoneWords[parts[0]]
+	if !known {
+		return 0, nil, "", false
 	}
-	hasFrom := len(parts) >= 3 && parts[1] == "from"
-	valid := ""
-	if hasFrom {
+	if len(parts) >= 3 && parts[1] == "from" {
 		if len(parts) < 4 {
-			return 0, false
+			return 0, nil, "", false
 		}
-		origin, known := zoneWords[parts[2]]
+		o, known := zoneWords[parts[2]]
 		if !known {
-			return 0, false
+			return 0, nil, "", false
 		}
-		valid = strings.Join(parts[3:], "_")
-		return countEnteredAs(g, c, you, dest, &origin, valid)
+		v := strings.Join(parts[3:], "_")
+		if strings.TrimSpace(v) == "" {
+			return 0, nil, "", false
+		}
+		return d, &o, v, true
 	}
-	valid = strings.Join(parts[1:], "_")
-	return countEnteredAs(g, c, you, dest, nil, valid)
+	v := strings.Join(parts[1:], "_")
+	if strings.TrimSpace(v) == "" {
+		return 0, nil, "", false
+	}
+	return d, nil, v, true
 }
 
 // countEntered folds the per-add entry list over one destination zone (and
@@ -2223,13 +2247,15 @@ func playerCountCondition(h Host, g *state.Game, c *Ctx, group []state.PlayerID,
 	}
 	// The RHS is a literal when it parses as an integer; else it is an SVar
 	// name resolved PER MEMBER (Anya's Z, Game Over's Y). A name with no body
-	// anywhere is unreadable — (0, false), never a threshold of 0. Both the
-	// RHS body and the property are validated ONCE, BEFORE the group is
-	// ranged: an EMPTY group would otherwise never reach the per-member
-	// checks and the head would report a legitimate-looking (0, true) for a
-	// property or RHS this build cannot evaluate — the leak an `...LE0`-
-	// shaped gate evaluates as true over nothing. The per-member loop still
-	// re-validates (a member can make a modelled property unevaluable, e.g.
+	// anywhere is unreadable — (0, false), never a threshold of 0. The
+	// property's GRAMMAR is validated ONCE, BEFORE the group is ranged, and
+	// when the group is EMPTY the RHS body is resolved once too, against the
+	// resolving context: an empty group would otherwise never reach the
+	// per-member checks and the head would report a legitimate-looking
+	// (0, true) for a property or RHS this build cannot evaluate — the leak an
+	// `...LE0`-shaped gate evaluates as true over nothing. The per-member loop
+	// still re-validates (a member can make a modelled property unevaluable,
+	// e.g.
 	// LifeTotal of a gone seat).
 	lit, litErr := strconv.ParseInt(rhs, 10, 32)
 	literalOK := litErr == nil
@@ -2251,6 +2277,21 @@ func playerCountCondition(h Host, g *state.Game, c *Ctx, group []state.PlayerID,
 	}
 	if !playerPropertyModelled(prop) {
 		return 0, false
+	}
+	// An SVar RHS is resolved PER MEMBER, so an EMPTY group would never
+	// evaluate its body at all and a body this build cannot evaluate would be
+	// laundered into the empty-group zero alongside a readable one. Resolve it
+	// ONCE against the resolving context when there is no member to resolve it
+	// with: a body whose head matches nothing is UNRESOLVABLE (0, false), the
+	// same verdict a live group's per-member read gives. (A body that resolves
+	// against the sentinel is a modelled threshold, so the empty group keeps
+	// its honest (0, true); a body that resolves for the sentinel but not for a
+	// member on a live group is still caught by the loop's per-member check.)
+	if !literalOK && len(group) == 0 {
+		sub := *c
+		if _, ok := evalCountExprOK(h, &sub, rhsBody, 0); !ok {
+			return 0, false
+		}
 	}
 	var n int32
 	for _, m := range group {
@@ -2313,17 +2354,25 @@ func playerMemberProperty(h Host, g *state.Game, c *Ctx, m state.PlayerID, prop 
 // playerPropertyModelled reports whether prop names a property the condition
 // family's evaluators model at all. playerCountCondition calls it BEFORE
 // ranging the group so an empty group cannot launder an unmodelled property
-// into a legitimate (0, true) — the per-member checks would never run. It
-// must stay in lock-step with playerMemberProperty's switch: a property
-// modelled there but missed here fails a non-empty group's count too (the
-// fail-closed direction, still wrong), and the reverse re-opens the
-// empty-group leak this guard closes.
+// into a legitimate (0, true) — the per-member checks would never run, and an
+// `...LE0`-shaped gate over an unmodelled property would evaluate TRUE over
+// nothing. It must stay in lock-step with playerMemberProperty's switch: a
+// property modelled there but missed here fails a non-empty group's count too
+// (the fail-closed direction, still wrong), and the reverse re-opens the
+// empty-group leak this guard closes. The ThisTurnEntered_ branch uses the
+// SAME parseThisTurnEnteredSpec the evaluator does, so a structural shape one
+// accepts cannot be rejected by the other (a bare `ThisTurnEntered_` prefix
+// or an unknown zone word is NOT modelled, however well it prefixes).
 func playerPropertyModelled(prop string) bool {
 	switch strings.TrimSpace(prop) {
 	case "LifeTotal", "CardsDrawn", "CardsDiscardedThisTurn", "SpellsCastThisTurn":
 		return true
 	}
-	return strings.HasPrefix(strings.TrimSpace(prop), "ThisTurnEntered_")
+	if rest, ok := strings.CutPrefix(strings.TrimSpace(prop), "ThisTurnEntered_"); ok {
+		_, _, _, parsed := parseThisTurnEnteredSpec(rest)
+		return parsed
+	}
+	return false
 }
 
 // relativePlayerProperty answers the

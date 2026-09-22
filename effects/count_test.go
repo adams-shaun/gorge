@@ -734,10 +734,29 @@ func TestPlayerCountConditionFamily(t *testing.T) {
 		// A named RHS with no body anywhere is equally unresolvable on the
 		// empty group: the RHS body must be looked up before the range too.
 		"Count$PlayerCountOpponents$ConditionLENoSuchSVar LifeTotal",
+		// A MALFORMED ThisTurnEntered_ spec must fail unresolvable too: the
+		// pre-check has to share the evaluator's own grammar (a bare prefix
+		// or an unknown zone word is not a spec), or an `...LE0`-shaped gate
+		// over one evaluates true (0 <= 0) over nothing.
+		"Count$PlayerCountOpponents$ConditionLE0 ThisTurnEntered_",
+		"Count$PlayerCountOpponents$ConditionLE0 ThisTurnEntered_Nonsense",
+		"Count$PlayerCountOpponents$ConditionLE0 ThisTurnEntered_Battlefield_",
 	} {
 		if got, ok := EvalCountOK(h, c, body); ok {
 			t.Errorf("%s reported EVALUATED as %d on an empty group — must fail unresolvable", body, got)
 		}
+	}
+	// A WELL-FORMED ThisTurnEntered_ spec over the SAME empty group is still
+	// the honest zero — a modelled property must not be caught by the
+	// malformed-spec guard.
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$ConditionLE0 ThisTurnEntered_Battlefield_Creature"); !ok || got != 0 {
+		t.Errorf("well-formed ThisTurnEntered over an empty group = (%d, %v), want (0, true)", got, ok)
+	}
+	// An SVar RHS whose body EXISTS but does not resolve is unresolvable on
+	// the empty group too (the body is only otherwise evaluated per member).
+	bad := &Ctx{Controller: 0, SVars: map[string]string{"Z": "Count$BogusHead"}}
+	if got, ok := EvalCountOK(h, bad, "Count$PlayerCountOpponents$ConditionLTZ LifeTotal"); ok {
+		t.Errorf("non-resolving SVar RHS reported EVALUATED as %d on an empty group — must fail unresolvable", got)
 	}
 	// Same verdict on a LIVE group (the per-member read the original pin
 	// covered).
