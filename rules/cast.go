@@ -399,6 +399,8 @@ type pendingCast struct {
 	// without the keyword; altAddDone marks the one ask already posed.
 	altAddParts []string
 	altAddDone  bool
+	// optionalCost is the selected self-spell OptionalCost additional part.
+	optionalCost Cost
 
 	// exiles / exilePart carry the Exile cost parts (ExileFromHand /
 	// ExileFromGrave tokens: the evoke alternative cast's Fury/Grief shape,
@@ -1706,6 +1708,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		return
 	}
 
+	var optionalCost Cost
 	// Which cost this pays is opt.AltCostIndex, not always adjustedCost
 	// (Ruling T19b-b): legalActions gates each "cast" option on that
 	// specific option's own cost being payable, so beginCast must charge
@@ -1946,8 +1949,22 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// replicated/multikicked modes keep the older no-fold divergence) reaches
 	// this (pc.ability < 0 and no alternative/flashback recast), and a spell
 	// with no SP Cost$ contributes nothing.
+	if opt.Mode == "optionalcost" {
+		// The offer stores the selected optional part in AltCostIndex's
+		// companion-independent mode; legalActions has already proved it payable.
+		// The actual non-mana payment is settled by the ordinary cost stages.
+		if opt.AltCostIndex <= 0 {
+			return
+		}
+		parts := e.optionalCostViews(e.collectCostStatics(), p, id)
+		if opt.AltCostIndex > len(parts) {
+			return
+		}
+		cost = cost.Plus(parts[opt.AltCostIndex-1])
+		optionalCost = parts[opt.AltCostIndex-1]
+	}
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart" || opt.Mode == "optionalcost") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -1984,10 +2001,10 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		pcAlt := altAddCostParts(f)
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, altAddParts: pcAlt}
+			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, altAddParts: pcAlt, optionalCost: optionalCost}
 	} else {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax}
+			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, optionalCost: optionalCost}
 	}
 	// Escalate (the modal additional cost "pay this for each mode chosen
 	// beyond the first"): the cost is carried as its raw keyword parameter
@@ -5711,6 +5728,8 @@ func modeFlags(mode string) string {
 	// reads it through Count$OffspringPaid to mint the 1/1 token copy.
 	case "offspring":
 		return events.FlagsString(state.FlagOffspringPaid)
+	case "optionalcost":
+		return events.FlagsString(state.FlagOptionalCostPaid)
 	case "mayplay":
 		return events.FlagsString(state.FlagMayPlay)
 	case "harmonize":

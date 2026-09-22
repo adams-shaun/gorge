@@ -1062,6 +1062,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	}
 	head, arg, _ := strings.Cut(body, " ")
 	arg = strings.TrimSpace(arg)
+	if arg == "" {
+		if h2, a2, ok := strings.Cut(head, "."); ok {
+			head, arg = h2, a2
+		}
+	}
 
 	switch head {
 	case "Compare":
@@ -1104,6 +1109,22 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.SquadPaid, true
 		}
 		return 0, true
+	case "OptionalGenericCostPaid":
+		// OptionalCost's paid/unpaid branches are a boolean cast provenance.
+		// The CastSA indirection has already bound c.Source to the cast object.
+		parts := strings.Split(strings.TrimSpace(arg), ".")
+		if len(parts) < 2 {
+			return 0, false
+		}
+		paid, ok1 := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 32)
+		unpaid, ok2 := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 32)
+		if ok1 != nil || ok2 != nil {
+			return 0, false
+		}
+		if o := g.Obj(c.Source); o != nil && o.OptionalCostPaid {
+			return int32(paid), true
+		}
+		return int32(unpaid), true
 	case "OffspringPaid":
 		// CR 702.175a: whether the resolving spell's cast paid the optional
 		// Offspring additional cost ("You may pay an additional [cost] as you

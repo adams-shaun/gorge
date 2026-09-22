@@ -1508,8 +1508,9 @@ var handRoots = struct {
 		// []string{"RaiseCost", "ReduceCost"} both call activeStatics with a
 		// variable; the literals sit at their callers. Declared instead of
 		// refactored so the scan stays read-only over production code.
-		"RaiseCost":  {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
-		"ReduceCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
+		"RaiseCost":    {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
+		"ReduceCost":   {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
+		"OptionalCost": {"Engine.optionalCostViews"},
 		// staticEffects filters on st.Mode != "Continuous" before reading.
 		// activeStatics (the battlefield-only restriction collector) and
 		// collectActionStatics (the AddAbility$ mana-grant membership walk)

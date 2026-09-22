@@ -1520,6 +1520,9 @@ func Apply(g *state.Game, e Event) {
 			if FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0 {
 				o.OffspringPaid = true
 			}
+			if FlagsFrom(e.Counter)&state.FlagOptionalCostPaid != 0 {
+				o.OptionalCostPaid = true
+			}
 			// Convoke (CR 702.66, task connive1) is an ID-LIST fold, not an
 			// amount: the convoked creatures ride the pay-time CastInfo's IDs
 			// whenever the flag is present, whatever other tags ride the same
@@ -1541,6 +1544,8 @@ func Apply(g *state.Game, e Event) {
 			case FlagsFrom(e.Counter)&state.FlagConspired != 0:
 				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0:
+				// bool folded above; the Amount is deliberately unused
+			case FlagsFrom(e.Counter)&state.FlagOptionalCostPaid != 0:
 				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagConvoked != 0:
 				// the convoked id list was folded above; the Amount is
@@ -2944,6 +2949,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.SquadPaid = 0
 			o.OffspringPaid = false
+			o.OptionalCostPaid = false
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
@@ -2988,6 +2994,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.SquadPaid = 0
 			o.OffspringPaid = false
+			o.OptionalCostPaid = false
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
