@@ -658,6 +658,10 @@ type Engine struct {
 	// untapResume is set only around one Untap emission from finishUntapStep.
 	// If that event parks an Untap replacement choice, it moves into the queue.
 	untapResume *untapStep
+	// untapChoiceObj is the permanent whose permanent-specific untap-step
+	// election is pending. The answer is folded onto the object before this
+	// cursor resumes, so clones and replay preserve the same choice.
+	untapChoiceObj state.ObjID
 	// madnessChoices parks discard moves while the card's owner decides whether
 	// to apply Madness's optional hand-to-exile replacement.
 	madnessChoices []events.Event

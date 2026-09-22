@@ -585,6 +585,10 @@ type Object struct {
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string
+	// UntapChoice records the permanent's answer to its untap-step election.
+	// It is folded by events.Choose so a replay makes the same turn-based
+	// decision; the turn boundary clears it before the next election.
+	UntapChoice string
 	// Protector is the CR 310.10 Siege protector: the opponent its
 	// controller chose to protect this Battle as it entered. It is a property
 	// of the battle (not a counter), recorded through a Choose "protector"

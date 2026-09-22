@@ -916,6 +916,9 @@ func Apply(g *state.Game, e Event) {
 				// deliberately NOT reset here -- its window spans the turn
 				// boundary and is consumed at the next untap step instead.
 				g.Objs[i].ExertedThisTurn = false
+				// An untap election belongs to one controller's untap
+				// step; the next turn gets a fresh election.
+				g.Objs[i].UntapChoice = ""
 				// CR 702.160: enlist is a per-combat fact; the stamp is cleared at
 				// the turn boundary (a same-turn second combat compares its own
 				// CombatsThisTurn against the stamp, so it needs no separate
@@ -1490,6 +1493,8 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenNumber = e.Amount
 			case "riot":
 				o.RiotChoice = e.Text
+			case "untap":
+				o.UntapChoice = e.Text
 			case "protector":
 				// CR 310.10: the Siege protector chosen as this Battle
 				// entered. Player carries the chosen opponent's seat.
@@ -2587,6 +2592,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.FaceDownHasPT = false
 		o.Cloaked = false
 		o.RiotChoice = ""
+		o.UntapChoice = ""
 		o.IsMyriad = false
 		// CR 400.7: leaving the battlefield makes the object a new object, so
 		// a layer-1 copy effect does not follow it. The ClonePermanent basis
