@@ -53,6 +53,73 @@ func TestTargetBudgetClampKeepsTheBotAnswerValid(t *testing.T) {
 	}
 }
 
+// A KTarget decision whose budget can be met only by an offset -- an
+// individually over-cap option beside a NEGATIVE-power one (Scourge of the
+// Skyclaves -1 beside Polar Kraken 11 under a cap of 10) -- must still be
+// answerable by the deterministic bot: the engine keeps the over-cap option
+// offered because the offset could save it, so the naive full-width answer
+// (both picks, 11 + (-1) = 10) is already valid and the bot produces the
+// compensated selection without needing a repair.
+func TestTargetBudgetNegativeOffsetProducesTheCompensatedSelection(t *testing.T) {
+	b := Board{Cards: map[state.ObjID]Card{}}
+	d := decision.Decision{
+		Player: 0,
+		Kind:   decision.KTarget,
+		Min:    0,
+		Max:    2,
+		MaxSum: 10,
+		Options: []decision.Option{
+			{Index: 0, Kind: "permanent", Obj: state.ObjID(1), Value: 11}, // over the cap alone
+			{Index: 1, Kind: "permanent", Obj: state.ObjID(2), Value: -1}, // the offset
+		},
+	}
+	in := Decide(b, &d, rng(1))
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("bot answer %v failed Validate: %v", in.Choices, err)
+	}
+	if len(in.Choices) != 2 {
+		t.Fatalf("choices = %v, want both options (the compensated selection)", in.Choices)
+	}
+	sum := 0
+	for _, c := range in.Choices {
+		sum += d.Options[c].Value
+	}
+	if sum != 10 {
+		t.Fatalf("choices %v sum to %d, want the cap 10 exactly", in.Choices, sum)
+	}
+}
+
+// When the naive full-width answer busts the budget (both positive picks
+// sum past the cap), the Clamp repair must still hand back a set Validate
+// accepts on a board carrying a negative option -- the repaired answer is
+// valid even if it drops picks, never re-submitted and re-rejected.
+func TestTargetBudgetNegativeOffsetRepairStaysValid(t *testing.T) {
+	b := Board{Cards: map[state.ObjID]Card{}}
+	d := decision.Decision{
+		Player: 0,
+		Kind:   decision.KTarget,
+		Min:    0,
+		Max:    3,
+		MaxSum: 10,
+		Options: []decision.Option{
+			{Index: 0, Kind: "permanent", Obj: state.ObjID(1), Value: 6},
+			{Index: 1, Kind: "permanent", Obj: state.ObjID(2), Value: 6},
+			{Index: 2, Kind: "permanent", Obj: state.ObjID(3), Value: -1},
+		},
+	}
+	in := Decide(b, &d, rng(1))
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("repaired bot answer %v failed Validate: %v", in.Choices, err)
+	}
+	sum := 0
+	for _, c := range in.Choices {
+		sum += d.Options[c].Value
+	}
+	if sum > d.MaxSum {
+		t.Fatalf("choices %v sum to %d, exceeding the cap 10", in.Choices, sum)
+	}
+}
+
 // A budget-less KTarget decision keeps the plain full-width answer
 // byte-for-byte -- Option.Value is unset on every existing target ask, so
 // no bot-answered game changes.

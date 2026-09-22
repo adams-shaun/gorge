@@ -269,6 +269,141 @@ func TestReunionNoLegalTargetWithinCapResolvesUntargeted(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestTotalPowerCapNegativePowerCompensates: the offset case the plain
+// per-candidate prune cannot express. Scourge of the Skyclaves's CDA is
+// "20 minus the highest life total among players"; with the opponent at 21
+// life its derived P/T in the graveyard is -1/-1 (CR 208.2: the CDA applies
+// in EVERY zone), so under Reunion's cap of 10 the 11-power Polar Kraken is
+// a LEGAL target beside it -- 11 + (-1) = 10 -- even though its power alone
+// exceeds the cap. The ask must offer BOTH (the maximal-offset prune keeps
+// Kraken because taking every negative candidate could still bring a
+// selection under the cap), carry the negative as the option's Value, and
+// the compensated pair must validate and resolve. A candidate no offset can
+// ever save (Kraken beside only positive creatures) is still pruned.
+func TestTotalPowerCapNegativePowerCompensates(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg, reunion, grave := reunionEngine(t, reg, 5506, nil,
+		"Reunion of the House", "Polar Kraken", "Scourge of the Skyclaves", "Grizzly Bears")
+	// The CDA read the assertion depends on: the opponent at 21 life makes
+	// Scourge -1/-1 in the graveyard (20 minus the highest life total).
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: 21 - e.G.Players[1].Life})
+	e.pending = nil
+	e.priorityRound()
+	scourge, kraken := grave["Scourge of the Skyclaves"], grave["Polar Kraken"]
+	if scourge == 0 || kraken == 0 {
+		t.Fatal("Scourge of the Skyclaves / Polar Kraken absent from seat 0's graveyard (precondition)")
+	}
+	if e.G.Players[1].Life != 21 {
+		t.Fatalf("opponent life = %d, want 21 (precondition: the CDA is negative only above 20)", e.G.Players[1].Life)
+	}
+	if p := e.Power(scourge); p != -1 {
+		t.Fatalf("Scourge of the Skyclaves derived power in the graveyard = %d, want -1 (precondition: the /NMinus.20 CDA)", p)
+	}
+	if p := e.Power(kraken); p != 11 {
+		t.Fatalf("Polar Kraken derived power = %d, want 11 (precondition)", p)
+	}
+
+	addMana(t, e, 0, "WWWWWWW")
+	submitChoices(t, e, reunionCastOption(t, e, reunion).Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("pending = %+v, want the cast-path KTarget ask", d)
+	}
+	if d.MaxSum != 10 {
+		t.Fatalf("MaxSum = %d, want 10 (MaxTotalTargetPower$ 10)", d.MaxSum)
+	}
+	offerSet := map[state.ObjID]decision.Option{}
+	for _, o := range d.Options {
+		offerSet[o.Obj] = o
+	}
+	kr, ok := offerSet[kraken]
+	if !ok {
+		t.Fatalf("the 11-power Polar Kraken was pruned though the -1-power Scourge could offset it under the cap 10: options=%+v", d.Options)
+	}
+	sc, ok := offerSet[scourge]
+	if !ok {
+		t.Fatalf("the -1-power Scourge of the Skyclaves was not offered: options=%+v", d.Options)
+	}
+	if kr.Value != 11 || sc.Value != -1 {
+		t.Fatalf("option Values = %d/%d, want the derived powers 11/-1 (the sum the budget reads)", kr.Value, sc.Value)
+	}
+	if bears, ok := offerSet[grave["Grizzly Bears"]]; !ok || bears.Value != 2 {
+		t.Fatalf("the 2-power Grizzly Bears was not offered with Value 2: options=%+v", d.Options)
+	}
+	if len(d.Options) != 3 {
+		t.Fatalf("options = %d, want all three (nothing is individually unaffordable once the offset exists)", len(d.Options))
+	}
+	// The compensated pair sums to exactly 10 and validates; Kraken alone
+	// still busts the wire budget.
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player,
+		Choices: []int{kr.Index, sc.Index}}); err != nil {
+		t.Fatalf("the compensated 11 + (-1) = 10 answer was rejected: %v", err)
+	}
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player,
+		Choices: []int{kr.Index}}); err == nil {
+		t.Fatal("Kraken alone validated under the cap 10")
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player,
+		Choices: []int{kr.Index, sc.Index}}); err != nil {
+		t.Fatalf("compensated answer rejected on submit: %v", err)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if id := findByName(e, "Polar Kraken", 0); id == 0 || e.G.Obj(id).Zone != state.ZBattlefield {
+		t.Fatal("Polar Kraken did not reach the battlefield")
+	}
+	// The reanimation DID move Scourge to the battlefield (the log carries
+	// the move); the -1/-1 toughness then meets the CR 704.5f toughness SBA,
+	// so its resting place afterwards is the graveyard.
+	reanimated := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.MoveZone && ev.Obj == scourge &&
+			ev.From == state.ZGraveyard && ev.To == state.ZBattlefield {
+			reanimated = true
+		}
+	}
+	if !reanimated {
+		t.Fatal("Scourge of the Skyclaves was never moved from the graveyard to the battlefield")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestTotalPowerCapNegativeOffsetCannotSaveAnOverCapCandidate: the maximal
+// offset is bounded by the negatives the census actually carries. Kraken
+// (11) beside a lone -1-power Scourge needs another -1 to reach 10... which
+// it HAS in that census; this pin removes it: with only positive creatures
+// beside Kraken (no negative in the offer at all), the 11-power Kraken is
+// pruned exactly as before -- the fix widens the offer only when an offset
+// genuinely exists.
+func TestTotalPowerCapNegativeOffsetCannotSaveAnOverCapCandidate(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg, reunion, grave := reunionEngine(t, reg, 5507, nil,
+		"Reunion of the House", "Polar Kraken", "Craw Wurm", "Serra Angel")
+	addMana(t, e, 0, "WWWWWWW")
+	submitChoices(t, e, reunionCastOption(t, e, reunion).Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("pending = %+v, want the cast-path KTarget ask", d)
+	}
+	offerSet := map[state.ObjID]decision.Option{}
+	for _, o := range d.Options {
+		offerSet[o.Obj] = o
+	}
+	if _, ok := offerSet[grave["Polar Kraken"]]; ok {
+		t.Fatalf("the 11-power Kraken was offered with no negative-power candidate to offset it: options=%+v", d.Options)
+	}
+	for _, name := range []string{"Craw Wurm", "Serra Angel"} {
+		if _, ok := offerSet[grave[name]]; !ok {
+			t.Fatalf("the under-cap %s was not offered: options=%+v", name, d.Options)
+		}
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player,
+		Choices: []int{offerSet[grave["Craw Wurm"]].Index}}); err != nil {
+		t.Fatalf("in-budget answer rejected: %v", err)
+	}
+	passUntilStackEmpty(t, e, 20)
+	replayCheck(t, e, cfg)
+}
+
 // TestTotalPowerCapOnAnAbilityTargetAsk: the askTarget (ability) path --
 // Nethroi, Apex of Death's trigger carries the same parameter -- is pinned
 // on an authored activated-ability fixture carrying the identical parameter

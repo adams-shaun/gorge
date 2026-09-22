@@ -3219,6 +3219,19 @@ func applyCountOp(n int32, op string) int32 {
 		if x, err := strconv.Atoi(strings.TrimPrefix(op[len("Minus"):], ".")); err == nil {
 			v -= int64(x)
 		}
+	case strings.HasPrefix(op, "NMinus"):
+		// Forge's operand-first subtraction: /NMinus.X reads X minus the
+		// base value -- Wheel of Torture's "X is 3 minus the number of cards
+		// in their hand" (TriggeredPlayer$CardsInHand/NMinus.3) and Scourge
+		// of the Skyclaves's "20 minus the highest life total among players"
+		// (SVar:X:SVar$Y/NMinus.20) are the carriers. The result may go
+		// negative -- that is the point (Scourge is -1/-1 at a 21-life
+		// opponent, and CR 208.2 keeps the CDA in every zone). 15 corpus
+		// files carry the op, every operand numeric; an SVar-named operand
+		// stays with the unimplemented /Plus.Y family below (left alone).
+		if x, err := strconv.Atoi(strings.TrimPrefix(op[len("NMinus"):], ".")); err == nil {
+			v = int64(x) - v
+		}
 	case strings.HasPrefix(op, "Times."):
 		if x, err := strconv.Atoi(op[len("Times."):]); err == nil {
 			v *= int64(x)

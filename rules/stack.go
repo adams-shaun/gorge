@@ -1510,21 +1510,31 @@ func (e *Engine) maxTotalTargetPower(p state.PlayerID, source state.ObjID, sa *c
 }
 
 // totalPowerCappedCandidates applies the MaxTotalTargetPower$ cap to a
-// target census. The per-option half is a real filter: a candidate whose
-// power ALONE exceeds the cap can never be part of any legal selection and
-// is pruned from the offer. The running half -- any combination whose
-// summed power stays within the bound -- is NOT expressible as a
-// per-candidate property, so it is not a filter here: the two ask sites
-// (askTarget below and cast.go's targetAsk) attach it to the decision as
-// the cumulative-budget wire contract -- Decision.MaxSum over each object
-// option's Value (the candidate's power) -- which Decision.Validate
-// enforces on every submitted answer and Clamp/decision.FitRequired mirror
-// for the deterministic bot. That is the same mechanism a Dig's
-// WithTotalCMC$ budget uses, so what a client may submit and what the
-// engine offered can never disagree. Player candidates carry Value 0 and
-// are never pruned (a MaxTotalTargetPower$ ask names cards; a player's
-// presence is free). Returns the pruned census, the cap and whether the
-// parameter is present at all.
+// target census. The per-option half is a real filter, but ONLY where a
+// candidate provably cannot join any legal selection: with every power
+// non-negative, a candidate whose power ALONE exceeds the cap busts every
+// set containing it and is pruned. A NEGATIVE-power candidate breaks that
+// argument -- a CDA can be negative in a zone (Scourge of the Skyclaves's
+// 20-minus-highest-life CDA is -1 at a 21-life opponent, and it applies in
+// EVERY zone per CR 208.2), and 11 + (-1) = 10 is a legal compensated
+// selection under a cap of 10 -- so when any candidate reads negative the
+// over-cap candidate is pruned only when even the maximal offset cannot
+// save it: no selection containing it can score under the cap unless it
+// takes EVERY negative candidate on offer, so the prune test is
+// p + negSum > cap (negSum = the sum of all negative candidate powers).
+// The running half -- any combination whose summed power stays within the
+// bound -- is NOT expressible as a per-candidate property, so it is not a
+// filter here: the two ask sites (askTarget below and cast.go's targetAsk)
+// attach it to the decision as the cumulative-budget wire contract --
+// Decision.MaxSum over each object option's Value (the candidate's power,
+// negatives included) -- which Decision.Validate enforces on every
+// submitted answer and Clamp/decision.FitRequired mirror for the
+// deterministic bot. That is the same mechanism a Dig's WithTotalCMC$
+// budget uses, so what a client may submit and what the engine offered can
+// never disagree. Player candidates carry Value 0 and are never pruned (a
+// MaxTotalTargetPower$ ask names cards; a player's presence is free).
+// Returns the pruned census, the cap and whether the parameter is present
+// at all.
 //
 // The power read is the DERIVED power (Engine.Power), not the printed
 // face: a characteristic-defining P/T applies in EVERY zone (CR 208.2 --
@@ -1537,8 +1547,28 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 	if !ok {
 		return candidates, 0, false
 	}
+	// First pass: every card candidate's DERIVED power, and the maximal
+	// negative offset the census carries (the sum of the negative powers --
+	// the most any selection containing an over-cap candidate can ever
+	// claw back). Player candidates carry no power.
+	power := make([]int32, len(candidates))
+	anyNegative, negSum := false, int32(0)
+	for i, c := range candidates {
+		if c.kind == "player" {
+			continue
+		}
+		o := e.G.Obj(c.obj)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		power[i] = e.Power(c.obj)
+		if power[i] < 0 {
+			anyNegative = true
+			negSum += power[i]
+		}
+	}
 	out := make([]targetCandidate, 0, len(candidates))
-	for _, c := range candidates {
+	for i, c := range candidates {
 		if c.kind == "player" {
 			out = append(out, c)
 			continue
@@ -1547,9 +1577,20 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 		if o == nil || o.Face() == nil {
 			continue
 		}
-		if e.Power(c.obj) <= int32(capPower) {
-			out = append(out, c)
+		p := power[i]
+		if p > int32(capPower) {
+			// Individually over the cap. With no negative candidate on offer
+			// nothing can offset it and every set containing it busts. With
+			// negatives present it survives when even taking ALL of them
+			// (the maximal offset) could bring a selection under the cap.
+			// A cap of zero or less keeps the plain prune regardless: every
+			// survivor then reads <= cap <= 0, so any subset of survivors
+			// sums to <= cap on its own and no budget is attached.
+			if capPower <= 0 || !anyNegative || p+negSum > int32(capPower) {
+				continue
+			}
 		}
+		out = append(out, c)
 	}
 	return out, capPower, true
 }
@@ -1561,9 +1602,10 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
 	candidates := e.legalTargetCandidates(p, source, source, sa)
 	min, max, _ = e.oneEachTargetBounds(sa, candidates, min, max)
-	// MaxTotalTargetPower$ (Reunion of the House): prune the individually
-	// unaffordable candidates and carry the running cap as the decision's
-	// cumulative budget.
+	// MaxTotalTargetPower$ (Reunion of the House): prune the candidates that
+	// can provably join no legal selection (individually over the cap unless
+	// a negative-power candidate could offset them) and carry the running
+	// cap as the decision's cumulative budget.
 	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, p, source, sa, 0)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),

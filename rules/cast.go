@@ -5813,7 +5813,10 @@ func (e *Engine) targetAsk() bool {
 	// withholding is safer than offering an illegal transaction.
 	candidates = e.affordableTargetCandidates(pc, candidates)
 	// MaxTotalTargetPower$ (Reunion of the House): the running total-power
-	// cap over the selection. Prune the individually unaffordable candidates
+	// cap over the selection. Prune the candidates that can provably join
+	// no legal selection (individually over the cap unless a negative-power
+	// candidate could offset them -- Scourge of the Skyclaves's CDA is -1 at
+	// a 21-life opponent and 11 + (-1) = 10 is legal under a cap of 10)
 	// BEFORE the mandatory-minimum census so a cast whose every candidate
 	// alone busts the cap aborts like a targetless one, and carry the
 	// running cap as the decision's cumulative budget (Decision.MaxSum over
