@@ -1384,6 +1384,22 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	}
 	ctx := &effects.Ctx{Source: source, Controller: p, TriggerContext: e.triggerContexts[obj]}
 	effects.SetSVars(ctx, svars)
+	if sa.API == "Charm" && effects.CharmRandomChosen(e, ctx, sa) {
+		// param:api:Charm.Random: a random Charm's mode is never asked at
+		// placement. The Charm gate keeps this site's other modal families
+		// (Vote, GenericChoice, VillainousChoice) untouched -- measured, no
+		// corpus carrier of those carries `Random$` (GenericChoice's own
+		// spelling is `AtRandom$`, a different unread parameter). Returning
+		// false is this function's own "not modal: the primitive asks at
+		// resolution" verdict -- resolution's effCharm then
+		// picks the mode with the engine's rng (Random$ True, or Random$
+		// Compare while the comparison holds) or poses the ordinary KModes
+		// ask (a failed or unresolvable comparison). The rng draw must happen
+		// at RESOLUTION, where a replay re-derives it byte-identically; a
+		// placement-time pick would consume the stream before the trigger is
+		// even on the stack.
+		return false
+	}
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(choices))
 	if min > len(choices) && !repeat {
 		return true
