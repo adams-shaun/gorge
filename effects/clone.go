@@ -64,7 +64,19 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	if c.CloneETB {
 		// The ETB election is answered before the move. A decline is a real
 		// answer, not the deterministic Choices$ fallback.
-		if !c.CloneChoiceValid || c.CloneChoice == 0 {
+		if !c.CloneChoiceValid {
+			// No recorded election: a non-cast entry (reanimation, blink,
+			// ChangeZone) of any carrier, or a cast whose body the ETB
+			// whitelist declined (an out-of-scope rider -- Vesuva's
+			// IntoPlayTapped$, Cursed Mirror's Duration$). Those paths keep
+			// the loud unimplemented-API fallback they had before the ETB
+			// route existed -- the copy is never silently dropped (the
+			// etbclone1 scope boundary).
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "unimplemented API " + sa.API})
+			return
+		}
+		if c.CloneChoice == 0 {
 			return
 		}
 	}

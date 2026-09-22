@@ -4324,28 +4324,30 @@ func etbChoicePrompt(kind string) string {
 	return " a number"
 }
 
+// etbCloneWhitelist reports whether a DB$ Clone ETB body's rider set is
+// entirely inside the supported scope: Choices$ (the copy-template selector),
+// AddTypes$ and AddKeywords$ (the CR 707.9e copy modifiers) and
+// SpellDescription$. This is a POSITIVE whitelist over the parsed parameter
+// keys -- the param census's case-whitelist range shape -- never a blacklist:
+// an explicit key list cannot keep up with the corpus. The round-1 blacklist
+// missed IntoPlayTapped$ (Vesuva), ChoiceTitle$ (Mirrorhall Mimic),
+// Embalm$-provenance riders (Vizier of Many Faces), AddColors$, RemoveCost$,
+// PumpKeywords$/PumpDuration$ and the AI-hint params, each of which offered a
+// copy that silently dropped the exception. A body carrying any other
+// parameter keeps today's loud unimplemented-API fallback (the etbclone1
+// scope boundary); rules/etb_clone_whitelist_census_test.go pins the
+// classified population bidirectionally.
 func etbCloneWhitelist(sa *cards.SA) bool {
-	// Keep this explicit rather than ranging over Params: the param census
-	// classifies every script parameter read, and an explicit rider list makes
-	// the supported boundary auditable.
-	return strings.TrimSpace(sa.Params["ChoiceZone"]) == "" &&
-		strings.TrimSpace(sa.Params["AddTriggers"]) == "" &&
-		strings.TrimSpace(sa.Params["AddSVars"]) == "" &&
-		strings.TrimSpace(sa.Params["Defined"]) == "" &&
-		strings.TrimSpace(sa.Params["SubAbility"]) == "" &&
-		strings.TrimSpace(sa.Params["AddAbilities"]) == "" &&
-		strings.TrimSpace(sa.Params["SetPower"]) == "" &&
-		strings.TrimSpace(sa.Params["SetToughness"]) == "" &&
-		strings.TrimSpace(sa.Params["RememberCloneOrigin"]) == "" &&
-		strings.TrimSpace(sa.Params["NonLegendary"]) == "" &&
-		strings.TrimSpace(sa.Params["NewName"]) == "" &&
-		strings.TrimSpace(sa.Params["AddStaticAbilities"]) == "" &&
-		strings.TrimSpace(sa.Params["RemoveCardTypes"]) == "" &&
-		strings.TrimSpace(sa.Params["RemoveCreatureTypes"]) == "" &&
-		strings.TrimSpace(sa.Params["CloneTarget"]) == "" &&
-		strings.TrimSpace(sa.Params["GainThisAbility"]) == "" &&
-		strings.TrimSpace(sa.Params["SetColor"]) == "" &&
-		strings.TrimSpace(sa.Params["Duration"]) == ""
+	for k := range sa.Params {
+		switch k {
+		case "Choices", "AddKeywords", "AddTypes", "SpellDescription":
+			// supported: the copy-template selector and the CR 707.9e
+			// copy modifiers, both applied by effClone's modifier walk.
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // announcePip resolves the i-th announcement pip of a cost's hybrid →
