@@ -713,6 +713,8 @@ type Engine struct {
 	// a CantAttackUnless prop. Same plain-data class as wardMana; Clone
 	// copies the pointer.
 	attackPay *attackPayWindow
+	// blockPay holds the declare-blockers CantBlockUnless payment window.
+	blockPay *blockPayWindow
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to
