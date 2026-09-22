@@ -1783,10 +1783,14 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		return
 	}
 
-	spec := sa.Params["ChangeType"]
-	if spec == "" {
-		spec = "Card"
+	rawSpec := sa.Params["ChangeType"]
+	if rawSpec == "" {
+		rawSpec = "Card"
 	}
+	// A hidden-library Permanent is a permanent card, not a battlefield
+	// permanent. Keep the raw Forge spelling for the CR 701.23 quality
+	// classification below; only candidate matching uses the contextual base.
+	spec := permanentCardSpec(rawSpec)
 	// Candidate order: the library first (in library order), then each public
 	// origin zone in the order given by the parsed origin set. Dedupe across
 	// zones so a card can never be offered twice. `eligible` is the ordered
@@ -1853,7 +1857,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	// holds (701.23d's "as many as possible"). This is a property of the
 	// filter, not of Forge's Mandatory$ parameter.
 	min := int32(0)
-	if !SearchStatesQuality(spec) {
+	if !SearchStatesQuality(rawSpec) {
 		min = max
 	}
 	// An empty choice is not a choice: asking it suspends a real engine host
@@ -1936,7 +1940,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	// eligible card simply contributes no options and no Group, and its
 	// pick is the one the player cannot make.
 	eachSubs, isEach := eachAlternatives(spec)
-	eachStructured := isEach && max <= 1 && SearchStatesQuality(spec)
+	eachStructured := isEach && max <= 1 && SearchStatesQuality(rawSpec)
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), MaxSum: int(budget), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
@@ -2040,7 +2044,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	// the same stand-in silently (no Note): skipping the ask is the correct
 	// resolution, not a degradation.
 	var picked []state.ObjID
-	if !SearchStatesQuality(spec) {
+	if !SearchStatesQuality(rawSpec) {
 		n := int(min)
 		if n > len(greedy) {
 			n = len(greedy)
@@ -2975,6 +2979,9 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	if spec == "" {
 		spec = "Card"
 	}
+	// Recheck the answer with the same hidden-zone meaning used to build the
+	// option list: a library Permanent is a permanent card.
+	spec = permanentCardSpec(spec)
 	// DifferentNames$ True (Realms Uncharted): the options carried one Group
 	// per card name, so a validated wire answer cannot repeat a name. A host
 	// that bypassed the wire (bot clamp top-up, a direct resume) is deduped
