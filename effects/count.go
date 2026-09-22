@@ -1562,9 +1562,6 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if n, ok2 := playerCountCondition(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
 			return n, true
 		}
-		if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
-			return n, true
-		}
 		// Forge's REGISTERED opponents — the opponents registered at game
 		// start (Bloodchief Ascension's "if an opponent lost 2 or more life
 		// this turn" gate). No registered-membership list survives a replay
@@ -2658,6 +2655,18 @@ func hasPropertyStateBacked(h Host, g *state.Game, c *Ctx, group []state.PlayerI
 		if !ok || (parsedOp != "GE" && parsedOp != "GT" && parsedOp != "LE") {
 			return 0, false
 		}
+		// An unread card spec fails CLOSED before any member is evaluated:
+		// the zone matcher reports only a match boolean, so an unrecognized
+		// predicate (Card.NoSuchPredicate) or base (NoSuchBase) would match
+		// nothing, read as a fabricated count of zero and return (0, true) --
+		// a condition gate would then enforce a zero that no rule stated.
+		// unreadZoneSpec validates through the same classifiers the matcher
+		// itself walks (UnknownPredicates, the census's shared base/predicate
+		// vocabulary), so a spec the matcher would silently zero out here
+		// reads unresolvable instead.
+		if unreadZoneSpec(spec) {
+			return 0, false
+		}
 		qualifies = func(p state.PlayerID) bool {
 			var cards int32
 			for _, id := range g.Zone(zone, p) {
@@ -2673,6 +2682,49 @@ func hasPropertyStateBacked(h Host, g *state.Game, c *Ctx, group []state.PlayerI
 		n = applyCountOp(n, op)
 	}
 	return n, true
+}
+
+// unreadZoneSpec reports whether a zone-count HasProperty's card spec is
+// unread — malformed, an unknown base word, or carrying a predicate no part
+// of the filter recognises. It is the object-free validation mirror of
+// matchesZoneSpecCtx: that matcher answers only a match boolean, so the sole
+// classifier shared with it is the UnknownPredicates census plus the base
+// vocabulary matchesBase dispatches on (its special bases, the CR 205.1
+// card-type words, and the creature-subtype words hasTypeCtx reads).
+// Anything outside that vocabulary fails closed here, so the count head can
+// never turn an unread spec into a fabricated zero.
+func unreadZoneSpec(spec string) bool {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return true
+	}
+	// Comma alternatives are validated per alternative — the base of the
+	// WHOLE spec is only the first alternative's (Mysterious Stranger's
+	// `Instant,Sorcery` is two valid bases, not one unknown one).
+	for alt := range filterAlternatives(spec) {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		base, _, _ := strings.Cut(alt, ".")
+		base = strings.TrimSpace(base)
+		if neg := strings.TrimPrefix(base, "non"); neg != base {
+			base = strings.TrimSpace(neg)
+		}
+		if base == "" {
+			return true
+		}
+		switch base {
+		case "Any", "Card", "Permanent", "PermanentCard", "Spell", "SpellAbility", "CARDNAME":
+			// matchesBase's own special bases (and the CARDNAME base
+			// matchesZoneSpecCtx binds to the resolving source).
+		default:
+			if !cardTypeWords[base] && !CreatureTypeWords(base) {
+				return true
+			}
+		}
+	}
+	return len(UnknownPredicates(spec)) != 0
 }
 
 // hasPropertyLostLifeCount answers PlayerCount*$HasPropertyLostLifeThisTurn
