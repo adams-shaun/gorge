@@ -643,3 +643,91 @@ func TestDamageAllBatchSourceControllersDrawOnRealCorpusScript(t *testing.T) {
 		})
 	}
 }
+
+// TestDamageAllTriggeredTargetsDrivesBreechesExileTop pins the third reader
+// on Breeches, Brazen Plunderer's real script: its body is
+// "DB$ Dig | DigNum$ 1 | ChangeNum$ All | Defined$ TriggeredTargets |
+// DestinationZone$ Exile" -- "exile the top card of each of those opponents'
+// libraries" -- so the batch's matching TARGET set is the dig's Defined$
+// list. A split attack at two opponents exiles one library-top card from
+// EACH of them (two library->exile moves) and nothing from the untouched
+// opponent; the control leg that sends both pirates at one opponent exiles
+// exactly one card, from that opponent only.
+func TestDamageAllTriggeredTargetsDrivesBreechesExileTop(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	for _, leg := range []struct {
+		name      string
+		pairs     []dmgAllPair
+		wantMoves map[state.PlayerID]int
+	}{
+		{
+			name:      "split across two opponents",
+			pairs:     []dmgAllPair{{"Breeches, Brazen Plunderer", 1}, {"Kitesail Corsair", 2}},
+			wantMoves: map[state.PlayerID]int{1: 1, 2: 1, 3: 0},
+		},
+		{
+			name:      "both at one opponent",
+			pairs:     []dmgAllPair{{"Breeches, Brazen Plunderer", 1}, {"Kitesail Corsair", 1}},
+			wantMoves: map[state.PlayerID]int{1: 1, 2: 0, 3: 0},
+		},
+	} {
+		t.Run(leg.name, func(t *testing.T) {
+			e, cfg := damageAllBoard4(t, reg,
+				[]string{"Breeches, Brazen Plunderer", "Kitesail Corsair"},
+				[]string{"Grizzly Bears"}, []string{"Grizzly Bears"}, []string{"Grizzly Bears"})
+			// Precondition: the carrier is out with its DamageAll line.
+			if !faceDamageAllTrigger(e.G.Obj(findBattlefield(t, e, 0, "Breeches, Brazen Plunderer", 0))) {
+				t.Fatalf("precondition: Breeches face has no DamageAll trigger")
+			}
+			e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+			e.emit(events.Event{Kind: events.StepChange, Step: state.StepDeclareAttackers})
+			e.askAttackers()
+			splitAttack(t, e, leg.pairs...)
+			// Breeches has no flying, so the defenders are asked to block;
+			// they decline, and the rest of combat drains on passes.
+			for i := 0; i < 60 && e.G.Step != state.StepMain2; i++ {
+				d := e.Pending()
+				if d == nil {
+					t.Fatalf("no decision mid-combat (step %v)", e.G.Step)
+				}
+				switch d.Kind {
+				case decision.KPriority:
+					passPriorityAll(t, e)
+				case decision.KBlockers:
+					if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{}}); err != nil {
+						t.Fatalf("submit empty blockers: %v", err)
+					}
+				default:
+					t.Fatalf("unexpected %v decision during the Breeches drain: %+v", d.Kind, d)
+				}
+			}
+			// Precondition: the declared damage landed (the mode needs a real
+			// matching batch, and a silent attack would make the exile count
+			// vacuous).
+			for _, pair := range leg.pairs {
+				if got := e.G.Players[pair.def].Life; got >= 20 {
+					t.Fatalf("precondition: seat %d life = %d, want the declared combat damage", pair.def, got)
+				}
+			}
+			for p, want := range leg.wantMoves {
+				if got := countLibraryExiles(e, p); got != want {
+					t.Fatalf("library->exile moves for seat %d = %d, want %d (Defined$ TriggeredTargets: one dig per matched opponent)", p, got, want)
+				}
+			}
+			replayCheck(t, e, cfg)
+		})
+	}
+}
+
+// countLibraryExiles counts the library->exile MoveZone events out of player
+// p's library -- the Dig with DestinationZone$ Exile moves.
+func countLibraryExiles(e *Engine, p state.PlayerID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.MoveZone && ev.From == state.ZLibrary && ev.To == state.ZExile &&
+			ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
