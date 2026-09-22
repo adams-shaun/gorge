@@ -1112,6 +1112,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// classic idiom is Count$ThisTurnCast/Minus1 (storm copies the spell
 		// once per spell cast before it, i.e. everyone's casts minus itself).
 		return int32(h.CastThisTurn()), true
+	case "TotalCommanderCastFromCommandZone":
+		// Forge's "for each time you've cast your commander from the command
+		// zone this game" head (Thunderclap Drake's copy Amount$ X,
+		// Commanders Insignia's P/T, Henzie's blitz discount, The Swarmlord's
+		// /Twice entry counters; 17 corpus carriers). The resolving
+		// controller's own command-zone commander casts over the WHOLE game
+		// — log-derived through the Host like CastThisTurn, so a replay
+		// derives the same number, and the same provenance read the
+		// CR 903.8 commander tax already counts.
+		return h.CommanderCastsFromCommandZone(c.Controller), true
 	case "RememberedNumber":
 		// Forge's Count$RememberedNumber is the executing ability's remembered
 		// count -- the same list evalRememberedOK's Amount head reads. In this

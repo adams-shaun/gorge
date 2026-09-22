@@ -69,6 +69,11 @@ type fakeHost struct {
 	// HasPropertyLostLifeThisTurn properties (the real log-scan read is
 	// pinned in rules).
 	lifeLost map[state.PlayerID]int32
+	// commanderCasts is the CommanderCastsFromCommandZone answer the double
+	// reports, keyed by player; a nil map (the default) reports zero. The
+	// effects-level Count$TotalCommanderCastFromCommandZone test sets it
+	// (the real log-walk read is pinned in rules).
+	commanderCasts map[state.PlayerID]int32
 	// dmgTaken is the DamageTakenThisTurn answer the double reports, keyed
 	// by player; a nil map (the default) reports zero for every player. The
 	// effects-level TargetedPlayer$DamageThisTurn tests set it; the real
@@ -196,6 +201,14 @@ func (h *fakeHost) EndDamageBatch()   {}
 // CastThisTurn has no real turn log to count here (Task 17); the effects
 // package tests set up their own boards, so the double reports zero.
 func (h *fakeHost) CastThisTurn() int { return 0 }
+
+// commanderCasts is the CommanderCastsFromCommandZone answer the double
+// reports (per player); the Count$TotalCommanderCastFromCommandZone
+// eval-level test flips it to pin the head through the Host seam (the real
+// log-walk read is pinned in rules).
+func (h *fakeHost) CommanderCastsFromCommandZone(p state.PlayerID) int32 {
+	return h.commanderCasts[p]
+}
 
 // LifeLostThisTurn reports the h.lifeLost entry the effects-level
 // PlayerCountDefinedRegistered tests configure; a nil map reports zero (the
