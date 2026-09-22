@@ -2459,6 +2459,37 @@ func (e *Engine) derivedKeywordParam(id state.ObjID, head string) (string, bool)
 	return "", false
 }
 
+// ToxicValue is the object's total toxic N (CR 702.164), SUMMED over every
+// `Toxic:<N>` entry on its CURRENT derived keyword list -- CR 702.164c makes
+// multiple toxic instances cumulative (a printed Toxic 2 Ixhel equipped by
+// Prosthetic Injector's AddKeyword$ Toxic:1 is toxic 3), so the read cannot
+// stop at the first entry the way the singleton derivedKeywordParam helper
+// does. A layer-6 grant (the Rat lord, an Aura, an Equipment) is readable
+// exactly where the printed K:Toxic line is, the same derived read
+// HasKeyword/derivedKeywordParam give every other keyword. Each entry whose
+// parameter is absent or not a positive integer contributes 0 (a non-numeric
+// N can only be a malformed script, so failing closed to no poison from that
+// entry is the conservative direction); the whole read reports 0 when the
+// object has no toxic at all.
+func (e *Engine) ToxicValue(id state.ObjID) int {
+	total := 0
+	for _, k := range e.Derived(id).Keywords {
+		if !strings.EqualFold(cardsKeywordHead(k), "Toxic") {
+			continue
+		}
+		raw := ""
+		if i := strings.IndexByte(k, ':'); i >= 0 {
+			raw = strings.TrimSpace(k[i+1:])
+		}
+		n, err := strconv.Atoi(raw)
+		if err != nil || n <= 0 {
+			continue
+		}
+		total += n
+	}
+	return total
+}
+
 // IsCreature reads the current layer-derived type list. In particular, a
 // planeswalker animated by a layer-4 effect is a creature for damage marking,
 // even though its printed face is not.

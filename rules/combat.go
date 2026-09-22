@@ -1966,6 +1966,21 @@ func (e *Engine) runCombatAssignments() {
 					// branch records (the object branch above is untouched): the
 					// property is only ever read about players.
 					e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(ev.Player, x.from, dealt))
+					// CR 702.164 (toxic): a player dealt combat damage by a source
+					// with toxic N ALSO gets N poison counters. Toxic modifies the
+					// damage only by adding a second instruction, so it must not
+					// change the damage itself (unlike infect, which replaces it) --
+					// this is why the read lives here, on the player branch, and
+					// not in the object branch above: toxic is player-only. The
+					// readable N comes off the source's DERIVED keywords
+					// (ToxicValue), so a granted toxic counts too. ev.Obj == 0 is
+					// the load-bearing guard: a redirect that rewrote this hit to
+					// a permanent means no player was dealt damage, so no poison
+					// is placed (CR 702.164b triggers on damage to a player).
+					if n := e.ToxicValue(x.from); n > 0 {
+						e.emit(events.Event{Kind: events.PlayerCounterChange,
+							Player: ev.Player, Counter: "POISON", Amount: int32(n)})
+					}
 				}
 			}
 		}
@@ -2237,6 +2252,12 @@ func init() {
 		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike", "kw:Double Strike",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
 		"kw:Fear", "kw:Shadow", "kw:Horsemanship", "kw:Skulk",
+		// kw:Toxic (CR 702.164) is a static ability rules reads directly, the
+		// way it reads Deathtouch/Lifelink: the poison instruction rides the
+		// player branch of runCombatAssignments, reading the N off the
+		// source's derived keywords (ToxicValue). Proof test:
+		// TestToxicIxhelAddsPoisonOnCombatDamage.
+		"kw:Toxic",
 		// kw:Boast (CR 702.142) has no K: keyword line: Forge marks a Boast
 		// ability with a `Boast$ True` parameter on the activated ability
 		// itself, so Face.Primitives never surfaces it and this explicit
