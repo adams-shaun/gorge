@@ -1960,11 +1960,19 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if opt.AltCostIndex > len(parts) {
 			return
 		}
+		// The offer priced withSpellAbilityExtras(f, convokeBase).Plus(extra)
+		// (legal.go), so fold the same SpellAbility Cost$ extras here before
+		// the optional part: the charge must match the gate, or a spell that
+		// carries BOTH an OptionalCost static and a spell-ability additional
+		// cost undercharges by that additional cost. Zero corpus carriers pair
+		// the two today, so this is the structural agreement, not a behaviour
+		// change (the fold is a no-op without a SpellAbility Cost$).
+		cost = withSpellAbilityExtras(f, cost)
 		cost = cost.Plus(parts[opt.AltCostIndex-1])
 		optionalCost = parts[opt.AltCostIndex-1]
 	}
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart" || opt.Mode == "optionalcost") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have

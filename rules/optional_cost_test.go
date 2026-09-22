@@ -297,3 +297,103 @@ func TestOptionalCostGravenArchfiendGateReadsTheCast(t *testing.T) {
 		}
 	})
 }
+
+// TestOptionalCostChargesTheSameCompositionTheOfferPriced pins the
+// offer/charge agreement when a carrier has BOTH an OptionalCost static and a
+// spell-ability additional cost (the SpellAbility `Cost$` that
+// withSpellAbilityExtras folds). The hand offer (legal.go) prices
+// withSpellAbilityExtras(f, convokeBase).Plus(optional); beginCast must fold
+// the same extras before the optional part, or the paid cast silently
+// undercharges by the mandatory additional cost. Zero corpus OptionalCost
+// carriers pair the two today, so this is a synthetic card -- but the
+// disagreement it guards is the exact livelock class (an offered option the
+// charge does not cover) the shared fold exists to prevent.
+func TestOptionalCostChargesTheSameCompositionTheOfferPriced(t *testing.T) {
+	envoy := "Name:Test Envoy\nManaCost:R\nTypes:Instant\n" +
+		"S:Mode$ OptionalCost | EffectZone$ All | ValidCard$ Card.Self | ValidSA$ Spell | Cost$ Blight<1> | Description$ x\n" +
+		"A:SP$ DealDamage | NumDmg$ 1 | ValidTgts$ Creature | Cost$ Sac<1/Artifact> | SpellDescription$ x\n" +
+		"Oracle:x\n"
+	e, cfg, _ := altCostEngine(t, 616, nil,
+		[]string{envoy, altArtifactSrc, altBearSrc}, []string{altBearSrc})
+	spell := findCardObj(t, e, 0, "Test Envoy", state.ZHand)
+	relic := findCardObj(t, e, 0, "Test Relic", state.ZBattlefield)
+	blighted := findCardObj(t, e, 0, "Bear", state.ZBattlefield)
+	victim := findCardObj(t, e, 1, "Bear", state.ZBattlefield)
+	// PRECONDITION: the card really carries the SpellAbility Cost$ the fold
+	// reads -- without it every assertion below is vacuous.
+	if sa := e.G.Obj(spell).Face().SpellAbility(); sa == nil || sa.Params["Cost"] == "" {
+		t.Fatalf("precondition: Test Envoy has no SpellAbility Cost$ to fold")
+	}
+	addMana(t, e, 0, "R")
+	submitChoices(t, e, castModeOption(t, e, spell, "optionalcost"))
+	// Drive the staged asks: the sac choice, the blight choice, the target.
+	// The spell sits in hand through the pre-push cost asks and on the stack
+	// from pushCast to resolution, so the loop ends once it has left both.
+	for i := 0; i < 40; i++ {
+		if e.G.Over {
+			break
+		}
+		if z := e.G.Obj(spell).Zone; z != state.ZHand && z != state.ZStack {
+			break
+		}
+		d := e.Pending()
+		if d == nil {
+			break
+		}
+		switch d.Kind {
+		case decision.KPriority:
+			pass := -1
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					pass = o.Index
+				}
+			}
+			if pass < 0 {
+				t.Fatalf("priority decision with no pass option: %+v", d.Options)
+			}
+			submitChoices(t, e, pass)
+		case decision.KChoose:
+			pick := -1
+			for _, o := range d.Options {
+				if o.Obj == relic || o.Obj == blighted {
+					pick = o.Index
+					break
+				}
+			}
+			if pick < 0 {
+				t.Fatalf("KChoose offered neither the artifact nor the blight candidate: %+v", d.Options)
+			}
+			submitChoices(t, e, pick)
+		case decision.KTarget:
+			pick := -1
+			for _, o := range d.Options {
+				if o.Obj == victim {
+					pick = o.Index
+				}
+			}
+			if pick < 0 {
+				t.Fatalf("target ask did not offer the victim: %+v", d.Options)
+			}
+			submitChoices(t, e, pick)
+		default:
+			t.Fatalf("unexpected decision kind %v", d.Kind)
+		}
+	}
+	passUntilStackEmpty(t, e, 40)
+
+	// The SpellAbility Sac<1/Artifact> is the extra the offer priced: if the
+	// paid cast did not fold it, the artifact is still on the battlefield.
+	if z := e.G.Obj(relic).Zone; z != state.ZGraveyard {
+		t.Fatalf("the spell-ability Sac<1/Artifact> extra was not charged (artifact in %s); the paid cast omitted the extras the offer priced", z)
+	}
+	if got := e.G.Obj(blighted).Counter("M1M1"); got != 1 {
+		t.Fatalf("optional Blight<1> counters = %d, want 1", got)
+	}
+	if got := e.G.Obj(victim).Damage; got != 1 {
+		t.Fatalf("victim took %d damage, want 1", got)
+	}
+	if !optionalCostCastInfo(e, spell) {
+		t.Fatal("no pay-time CastInfo carrying optionalcostpaid")
+	}
+	replayCheck(t, e, cfg)
+}

@@ -631,8 +631,19 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// stack->battlefield move preserves the id, and the pay-time CastInfo
 		// folded the paid provenance onto it), so binding the ctx source is
 		// exactly the binding the indirection needs; a copy of the spell is a
-		// distinct object and reads its own (unpaid) provenance. An absent
-		// source fails closed, the refTargets convention.
+		// distinct object and reads its own (unpaid) provenance.
+		//
+		// CastSA names THIS source's own cast. When the trigger context names
+		// a DIFFERENT cast spell (a SpellCast trigger firing on another card's
+		// cast), that referent is TriggeredSpellAbility, not CastSA -- this
+		// source was not the card being cast, so the ref is unbound. Every
+		// corpus CastSA carrier is self-referential (SpellCast ValidCard$
+		// Card.Self, a self ChangesZone ETB, or a bare CheckSVar$/replacement
+		// ctx with no trigger referent), so no real shape regresses; the
+		// alternative reading silently bound an unrelated cast spell's X.
+		if c.TriggerCard != 0 && c.TriggerCard != c.Source {
+			return nil, false
+		}
 		if c.Source != 0 {
 			return []state.Target{{Obj: c.Source}}, true
 		}
