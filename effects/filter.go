@@ -1023,7 +1023,9 @@ func wordPredicate(p string) (wordKind, string) {
 	// closed. wasCastFromYourHandByYou is checked before the bare
 	// wasCastFromYourHand because the bare token is a substring of the ByYou
 	// spelling -- the same ordering rule castProvenanceAdmits documents.
-	case "wasCastFromYourHandByYou", "wasCastByYou", "wasCastFromYourHand":
+	case "wasCastFromYourHandByYou", "wasCastByYou", "wasCastFromYourHand",
+		"wasCastFromExile", "wasCastFromYourGraveyard",
+		"wasCastFromYourGraveyardByYou", "wasCastFromTheirHand":
 		return wordCastProvenance, p
 	// The card-level CastSa property tokens (task castsa-provenance): the
 	// four mana-spend spellings the payment path's tagged ManaAdd encoding

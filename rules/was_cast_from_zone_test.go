@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -309,6 +310,32 @@ func TestArchfiendsVesselHandOriginEntryStaysPut(t *testing.T) {
 	passUntilStackEmpty(t, e, 20)
 	if o := e.G.Obj(vessel.ID); o.Zone != state.ZBattlefield {
 		t.Fatalf("a hand-origin entry was exiled to %s; the ByYou token must not hold", o.Zone)
+	}
+}
+
+// TestRoryWilliamsWasCastFromExilePredicate pins the real Rory Williams
+// carrier's negative exile-origin predicate and its census recognition.
+func TestRoryWilliamsWasCastFromExilePredicate(t *testing.T) {
+	if got := effects.UnknownPredicates("Card.Self+!wasCastFromExile"); len(got) != 0 {
+		t.Fatalf("Rory's real trigger predicate is still unknown: %v", got)
+	}
+	reg := searchTestRegistry(t)
+	rory := searchCorpusCard(t, reg, "Rory Williams")
+	e := handEngine(t, rory)
+	id := e.G.Zone(state.ZHand, 0)[0]
+	// Rory's real trigger carries Card.Self+!wasCastFromExile. Verify the
+	// provenance half on that real carrier's object after an actual exile-origin
+	// PutOnStack record; this is the state the SpellCast matcher consumes.
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: id, From: state.ZExile, To: state.ZStack,
+		Player: 0, Text: "Rory Williams"})
+	if e.G.Obj(id).Zone != state.ZStack {
+		t.Fatalf("Rory test object is in %s, want stack", e.G.Obj(id).Zone)
+	}
+	if _, ok := e.castProvenanceAdmits("Card.wasCastFromExile", id, 0); !ok {
+		t.Fatal("Rory's exile-origin cast was not recognised")
+	}
+	if _, ok := e.castProvenanceAdmits("Card.!wasCastFromExile", id, 0); ok {
+		t.Fatal("Rory's negated exile-origin predicate incorrectly held")
 	}
 }
 
