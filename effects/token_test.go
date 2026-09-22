@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -90,6 +91,109 @@ func TestTokenRememberedPersistsDefinedTargets(t *testing.T) {
 	}
 	if !containsEvent(h.log, events.Choose, token.ID) {
 		t.Fatalf("token memory was not event-backed: log = %+v", h.log)
+	}
+}
+
+func TestTimotharTokenRememberedUsesExiledCards(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card, ok := reg.Lookup("Timothar, Baron of Bats")
+	if !ok {
+		t.Fatal("Timothar missing from corpus")
+	}
+	var tokenSA *cards.SA
+	var walk func(*cards.SA)
+	walk = func(s *cards.SA) {
+		if s == nil || tokenSA != nil {
+			return
+		}
+		if s.API == "Token" {
+			tokenSA = s
+			return
+		}
+		walk(s.Sub)
+	}
+	for _, f := range card.Faces {
+		for _, a := range f.Abilities {
+			walk(a)
+		}
+		for _, tr := range f.Triggers {
+			walk(tr.Effect)
+		}
+	}
+	if tokenSA == nil {
+		t.Fatal("Timothar has no compiled Token effect")
+	}
+	h, c := fixtureHostWithTokens(t)
+	h.g.Tokens = reg.Tokens
+	c.Remembered = []state.Target{{Obj: c.Source}}
+	Resolve(h, c, tokenSA)
+	bf := h.Game().Zone(state.ZBattlefield, c.Controller)
+	if len(bf) != 1 || h.Game().Obj(bf[0]).Face().Name != "Bat Token" {
+		t.Fatalf("Timothar token setup = %v, want one Bat token", bf)
+	}
+	bat := h.Game().Obj(bf[0])
+	if len(bat.Remembered) != 1 || bat.Remembered[0].Obj != c.Source {
+		t.Logf("Timothar params=%v log=%+v", tokenSA.Params, h.log)
+		t.Fatalf("Bat remembered = %+v, want exiled object %d", bat.Remembered, c.Source)
+	}
+	if !containsEvent(h.log, events.Choose, bat.ID) {
+		t.Fatalf("Timothar memory was not persisted by Choose: %+v", h.log)
+	}
+}
+
+func TestHofriCopyPermanentTokenRemembered(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card, ok := reg.Lookup("Hofri Ghostforge")
+	if !ok {
+		t.Fatal("Hofri missing from corpus")
+	}
+	var copySA *cards.SA
+	var walk func(*cards.SA)
+	walk = func(s *cards.SA) {
+		if s == nil || copySA != nil {
+			return
+		}
+		if s.API == "CopyPermanent" {
+			copySA = s
+			return
+		}
+		walk(s.Sub)
+	}
+	for _, f := range card.Faces {
+		for _, tr := range f.Triggers {
+			walk(tr.Effect)
+		}
+	}
+	if copySA == nil {
+		t.Fatal("Hofri has no compiled CopyPermanent effect")
+	}
+	h, c := fixtureHostWithTokens(t)
+	h.g.Tokens = reg.Tokens
+	// The real effect's trigger referent is supplied by the rules engine; use
+	// its same Defined group explicitly in this effects-level regression.
+	params := make(map[string]string, len(copySA.Params)+1)
+	for k, v := range copySA.Params {
+		params[k] = v
+	}
+	params["Defined"] = "Remembered"
+	// The real trigger's ConditionDefined$ is evaluated by the rules trigger
+	// matcher; this effects-level test supplies that already-qualified context.
+	delete(params, "ConditionDefined")
+	delete(params, "ConditionPresent")
+	copySA = &cards.SA{Kind: "DB", API: copySA.API, Params: params}
+	c.Remembered = []state.Target{{Obj: c.Source}}
+	Resolve(h, c, copySA)
+	bf := h.Game().Zone(state.ZBattlefield, c.Controller)
+	if len(bf) != 1 {
+		t.Logf("Hofri params=%v log=%+v remembered=%+v", copySA.Params, h.log, c.Remembered)
+		t.Fatalf("Hofri copy battlefield = %v, want one Spirit token", bf)
+	}
+	spirit := h.Game().Obj(bf[0])
+	if !spirit.IsToken || len(spirit.Remembered) != 1 || spirit.Remembered[0].Obj != c.Source {
+		t.Fatalf("Hofri token = %+v, want token remembering source", spirit)
+	}
+	if !containsEvent(h.log, events.Choose, spirit.ID) {
+		t.Fatalf("Hofri token memory was not persisted: %+v", h.log)
 	}
 }
 

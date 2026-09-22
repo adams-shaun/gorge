@@ -127,6 +127,23 @@ func tokenOwnerPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 	return out, true
 }
 
+// tokenRememberedTargets resolves the set TokenRemembered$ attaches to each
+// minted token. It is shared by Token and CopyPermanent, whose two mint paths
+// must persist the same event-backed memory.
+func tokenRememberedTargets(h Host, c *Ctx, sa *cards.SA) []state.Target {
+	name := strings.TrimSpace(sa.Params["TokenRemembered"])
+	if name == "" {
+		return nil
+	}
+	if strings.EqualFold(name, "ExiledCards") {
+		return append([]state.Target(nil), c.Remembered...)
+	}
+	sub := *sa
+	sub.Params = map[string]string{"Defined": name}
+	return Defined(h, c, &sub)
+}
+
+// effToken creates the requested token scripts and applies their token riders.
 func effToken(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	n := Num(h, c, sa, "TokenAmount", 1)
@@ -349,17 +366,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	// already the resolution's Remembered set in this engine.  Other selector
 	// forms use the ordinary Defined resolver, so this remains extensible as
 	// Defined gains readers rather than special-casing individual cards.
-	tokenRemembered := strings.TrimSpace(sa.Params["TokenRemembered"])
-	var tokenMemory []state.Target
-	if tokenRemembered != "" {
-		if tokenRemembered == "ExiledCards" {
-			tokenMemory = append(tokenMemory, c.Remembered...)
-		} else {
-			sub := *sa
-			sub.Params = map[string]string{"Defined": tokenRemembered}
-			tokenMemory = Defined(h, c, &sub)
-		}
-	}
+	tokenMemory := tokenRememberedTargets(h, c, sa)
 
 	// TokenAttacking$ True (Mobilize, Kari Zev's "tapped and attacking"
 	// rider): every token this call creates enters attacking the combat's
