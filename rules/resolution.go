@@ -2671,7 +2671,11 @@ func (e *Engine) payUnlessDamageCost(ctx *effects.Ctx, payer state.PlayerID, n i
 		source = o.Source
 	}
 	prev := e.SetDamageSource(source)
-	ev := e.emit(events.Event{Kind: events.Damage, Player: payer, Amount: int32(n)})
+	dam := events.Event{Kind: events.Damage, Player: payer, Amount: int32(n)}
+	if e.HasKeyword(source, "Infect") {
+		dam.Counter = "infect"
+	}
+	ev := e.emit(dam)
 	e.SetDamageSource(prev)
 	if ev.Kind != events.Damage || !e.HasKeyword(source, "Lifelink") {
 		return

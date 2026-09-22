@@ -1431,7 +1431,13 @@ func (e *Engine) payDamageCost(payer state.PlayerID, n int32, source state.ObjID
 		return
 	}
 	prev := e.SetDamageSource(source)
-	ev := e.emit(events.Event{Kind: events.Damage, Player: payer, Amount: n})
+	dam := events.Event{Kind: events.Damage, Player: payer, Amount: n}
+	if e.HasKeyword(source, "Infect") {
+		// CR 702.90b: even a cost payment is damage dealt by its source, so
+		// an infect source's DamageYou cost pays in counter/poison form.
+		dam.Counter = "infect"
+	}
+	ev := e.emit(dam)
 	e.SetDamageSource(prev)
 	if ev.Kind != events.Damage || !e.HasKeyword(source, "Lifelink") {
 		return
@@ -6321,7 +6327,7 @@ func (e *Engine) payCast() {
 		// see a self-sacrificing ability on the stack yet. Resolution consults
 		// this only if the source is gone; a source that remains in play uses
 		// its live derived state instead.
-		sourceLifelinkLKI := e.HasKeyword(pc.card, "Lifelink")
+		sourceKeywordLKI := e.damageKeywordsOf(pc.card)
 		sourceControllerLKI := e.G.Obj(pc.card).Controller
 		// Task 10: an activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
@@ -6518,8 +6524,17 @@ func (e *Engine) payCast() {
 			if e.sourceControllerLKI == nil {
 				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
 			}
-			e.sourceLifelinkLKI[pc.stackObj] = sourceLifelinkLKI
+			e.sourceLifelinkLKI[pc.stackObj] = sourceKeywordLKI.lifelink
 			e.sourceControllerLKI[pc.stackObj] = sourceControllerLKI
+			// The own-source fields above carry only lifelink and controller.
+			// CR 113.7a's other damage-relevant characteristics -- infect
+			// (CR 702.90b) and deathtouch (CR 702.2b) -- live in the named
+			// map, which Engine.emit's departure walk cannot seed here
+			// either, because AbilityPush is minted only after the cost is
+			// paid. Seed it with the same pre-cost snapshot, keyed on this
+			// ability and its own source, so a bearer sacrificed to pay for
+			// its own ability still deals damage in the granted form.
+			e.captureNamedDamageSourceLKI(pc.stackObj, pc.card, sourceKeywordLKI, sourceControllerLKI)
 			break
 		}
 		e.cast, e.choosing = nil, chooseNone
