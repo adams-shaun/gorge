@@ -48,13 +48,19 @@ var predicates = map[string]predFn{
 	"OppCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
 		return o.Controller != you
 	},
-	"YouOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner == you },
-	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
-	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
-	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
-	"tapped":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Tapped },
-	"untapped":  func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.Tapped },
-	"attacking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsAttacking },
+	"YouOwn": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner == you },
+	// YouDontOwn mirrors YouOwn -- "a spell they don't own" (Gonti, Night
+	// Minister's ValidSAonCard$ Spell.YouDontOwn), "you don't own"
+	// (Vaan, Street Thief's ValidCard$ Card.YouDontOwn, Kothophed's
+	// graveyard watch, Laughing Jasper Flint's Affected$). The negation is
+	// the spelled token Forge writes, not a !YouOwn compound.
+	"YouDontOwn": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
+	"OppOwn":     func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
+	"Self":       func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
+	"Other":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
+	"tapped":     func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Tapped },
+	"untapped":   func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.Tapped },
+	"attacking":  func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsAttacking },
 	// attackingYou is the source-relative attacker predicate (Watchdog's and
 	// Boarded Window's continuous `Affected$ Creature.attackingYou`, Ice
 	// Floe's/Hunting Kavu's/Snow Fortress's `Creature.attackingYou` target
@@ -1771,6 +1777,14 @@ func sharesName(o *state.Object, name string) bool {
 		}
 	}
 	return false
+}
+
+// SharesNameWithObject is the exported sharesNameWithObject read, for the
+// rules-side ValidSAonCard$ "<base>+sharesNameWith YourGraveyard" clause
+// (Dragonlord Kolaghan) -- the rules tier evaluates the activator's
+// graveyard against the cast card and cannot reach the unexported helper.
+func SharesNameWithObject(o, src *state.Object) bool {
+	return sharesNameWithObject(o, src)
 }
 
 // sharesNameWithObject reports whether o and src have at least one name in

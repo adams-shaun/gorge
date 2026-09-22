@@ -128,6 +128,20 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		}
 		owners = make([]state.PlayerID, 0, len(ps))
 		owners = append(owners, ps...)
+	case "TriggeredActivator":
+		// The activator of the triggering cast/activation (Gonti, Night
+		// Minister's "that player creates a Treasure token" and 5 more
+		// corpus carriers): the ordinary Defined resolver owns the referent
+		// (effects/context.go's TriggeredActivator role), so a spell the
+		// seat does not own creates ITS caster's token, not the trigger
+		// source controller's. An unresolvable activator keeps the
+		// controller, the same degrade the other miss cases here take.
+		for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": v}}) {
+			if t.IsPlayer {
+				owners = []state.PlayerID{t.Player}
+				break
+			}
+		}
 	case "Imprinted", "ImprintedController":
 		// Forge's TokenOwner$ ImprintedController: the controller of the
 		// RepeatEach iteration's current imprinted subject, and only that

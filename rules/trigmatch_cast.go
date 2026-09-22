@@ -155,6 +155,17 @@ func (e *Engine) spellCastEval(t cards.Trigger, source state.ObjID, ev events.Ev
 			return false
 		}
 	}
+	// ValidSAonCard$ (the card-scoped sibling of ValidSA$, task
+	// validsaoncard1): the spec is evaluated against the CAST CARD with the
+	// ACTIVATING player as the reference "You" and every zone argument
+	// theirs (Dragonlord Kolaghan's "with the same name as a card in THEIR
+	// graveyard"; Gonti's "a spell they don't own"), never the trigger
+	// source. See validSAonCardMatches for the measured grammar.
+	if v, ok := t.Params["ValidSAonCard"]; ok {
+		if !e.validSAonCardMatches(ev, v) {
+			return false
+		}
+	}
 	// The target-shape params (targetsvalid1): TargetsValid$ narrows the cast
 	// to spells whose targets all match the spec, IsSingleTarget$ to spells
 	// with exactly one target. A SpellCast trigger "that targets CARDNAME"
@@ -423,6 +434,27 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 			return false
 		}
 	}
+	// ValidSAonCard$ (Forge TriggerSpellAbilityCastOrCopy's card-scoped
+	// sibling of ValidSA$): the same ability-validity grammar, but the
+	// reference "You" is the ability's OWN source card, not the trigger
+	// source -- "whenever an opponent activates an ability of an artifact
+	// THEY control" (Avalanche of Sector 7's ValidSAonCard$ Activated.YouCtrl
+	// beside ValidSA$ Activated.OppCtrl): the activator must be the
+	// controller of the card the ability is printed on. ValidSA$'s YouCtrl
+	// reads the trigger source's controller instead, so the two clauses are
+	// different checks and the pair is satisfiable. This build never lets a
+	// player activate another permanent's ability, so the card-relative
+	// YouCtrl arm holds on every activation; the clause's real narrowing
+	// here is every non-YouCtrl arm (a card-relative OppCtrl or ManaAbility)
+	// and a stale ability index, both of which fail closed.
+	if v, ok := t.Params["ValidSAonCard"]; ok {
+		if !havePa {
+			return false
+		}
+		if !abilityCastValidSA(pa.SA, v, ev.Player, obj.Controller) {
+			return false
+		}
+	}
 	// The target-shape params (targetsvalid1), the activation arm: ertha_jo's
 	// "Whenever you activate an ability that targets a creature or player".
 	//
@@ -502,6 +534,13 @@ func abilityCastValidSA(ab *cards.SA, validSA string, abCtrl, ctrl state.PlayerI
 				}
 			case "YouCtrl":
 				if abCtrl == ctrl {
+					return true
+				}
+			case "OppCtrl":
+				// The activator is an opponent of the reference controller
+				// (Avalanche of Sector 7's ValidSA$ Activated.OppCtrl, where
+				// the reference is the trigger source's controller).
+				if abCtrl != ctrl {
 					return true
 				}
 			}
@@ -584,6 +623,105 @@ func (e *Engine) validSAMatches(source state.ObjID, ev events.Event, ctrl state.
 			return compareIntCount(e.manaSpentForCast(ev.Player, ev.Obj), fields[1])
 		}
 		return false
+	}
+	return false
+}
+
+// validSAonCardMatches evaluates a SpellCast trigger's ValidSAonCard$
+// clause (task validsaoncard1, Forge TriggerSpellAbilityCastOrCopy's
+// card-scoped sibling of ValidSA$): the spec is evaluated against the CAST
+// CARD with the ACTIVATING player as the reference "You", so zone arguments
+// and You-relative predicates read the caster's own state (Dragonlord
+// Kolaghan's "with the same name as a card in their graveyard"; Gonti, Night
+// Minister's "a spell they don't own"), never the trigger source's. The
+// measured clause grammar over the corpus's 8 carriers (9 lines), a
+// comma-separated OR list:
+//
+//   - "Spell.ManaSpent <OP><N>" (blazing_bomb, ultros, prompto): the same
+//     mana comparison family ValidSA$ reads -- the mana the ACTIVATOR paid.
+//   - "Spell.ManaSpent LTX" (ancient_cellarspawn, tokka): spent strictly
+//     less than the cast card's own mana value (the "less than its mana
+//     value" clause -- a delve/convoke/reduced cast); GTX/EQX and other
+//     dynamic RHS spellings fail closed.
+//   - a single-field card spec ("Spell.YouDontOwn"): the ordinary object
+//     filter over the cast card, its You bound to the activator.
+//   - "<base>+sharesNameWith Your<Zone>" (Dragonlord Kolaghan's
+//     Spell.Creature+sharesNameWith YourGraveyard): the cast card matches
+//     the base spec and shares a name with a card in the activator's
+//     graveyard; only YourGraveyard is measured, any other zone argument
+//     fails closed.
+//
+// Any other shape fails closed (the trigger stays silent), the repo's
+// unreadable-condition convention.
+func (e *Engine) validSAonCardMatches(ev events.Event, clause string) bool {
+	for alt := range effects.FilterAlternatives(clause) {
+		fields := strings.Fields(strings.TrimSpace(alt))
+		if len(fields) == 1 {
+			if effects.MatchesSpecCtx(e.G, fields[0], ev.Obj, e.specCtx(ev.Obj, ev.Player)) {
+				return true
+			}
+			continue
+		}
+		if len(fields) != 2 {
+			continue
+		}
+		if fields[0] == "Spell.ManaSpent" {
+			if e.manaSpentOnCardClause(fields[1], ev) {
+				return true
+			}
+			continue
+		}
+		if base, ok := strings.CutSuffix(fields[0], "+sharesNameWith"); ok {
+			if e.castSharesNameWithZone(base, fields[1], ev) {
+				return true
+			}
+			continue
+		}
+	}
+	return false
+}
+
+// manaSpentOnCardClause evaluates one ValidSAonCard$ Spell.ManaSpent
+// comparison: a literal <OP><N> through compareIntCount (GE4 -- at least
+// four mana spent), else the cast-card-relative X spellings (LTX measured:
+// spent strictly less than the cast card's own mana value -- a delve,
+// convoke or reduced cast). An unrecognised spelling fails closed.
+func (e *Engine) manaSpentOnCardClause(cmp string, ev events.Event) bool {
+	spent := e.manaSpentForCast(ev.Player, ev.Obj)
+	if compareIntCount(spent, cmp) {
+		return true
+	}
+	if cmp == "LTX" {
+		o := e.G.Obj(ev.Obj)
+		if o == nil || o.Face() == nil {
+			return false
+		}
+		return spent < o.Face().Cmc()
+	}
+	return false
+}
+
+// castSharesNameWithZone is the "<base>+sharesNameWith <zone>" arm: the cast
+// card matches the base spec (empty base matches every card) and shares a
+// name with a card in the ACTIVATOR's graveyard (YourGraveyard -- the only
+// measured zone argument; anything else fails closed). The name comparison
+// is the shared effects.SharesNameWithObject read, so a split card in the
+// graveyard shares a name with either of its halves exactly as every other
+// sharesNameWith call site does.
+func (e *Engine) castSharesNameWithZone(base, zoneArg string, ev events.Event) bool {
+	if zoneArg != "YourGraveyard" {
+		return false
+	}
+	if o := e.G.Obj(ev.Obj); o == nil || o.Face() == nil {
+		return false
+	} else if base != "" && !effects.MatchesSpecCtx(e.G, base, ev.Obj, e.specCtx(ev.Obj, ev.Player)) {
+		return false
+	}
+	for _, gid := range e.G.Zone(state.ZGraveyard, ev.Player) {
+		c := e.G.Obj(gid)
+		if c != nil && effects.SharesNameWithObject(e.G.Obj(ev.Obj), c) {
+			return true
+		}
 	}
 	return false
 }
