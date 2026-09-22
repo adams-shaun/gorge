@@ -1156,7 +1156,16 @@ var acceptanceHeads = map[int]string{
 	// AddContinuous clock_tick at 11859; every earlier event is byte-
 	// identical, and Cabal Ritual appears in NEITHER stream, so the measured
 	// sole first-mover is Aspect of Hydra, as at 6 seats).
-	8: "275fb23897e22f6e",
+	// Mana-ability sacrifice choice (2026-09-22): 8 seats moved to
+	// c23a01d45ff77703 with task cli-20260922T150843Z-44188ca1 (a mana
+	// ability whose Sac cost has more eligible candidates than it needs is
+	// now offered and asks which permanent pays). Seat 6 resolves Skirk
+	// Prospector at event 4886 and activates it; the first divergence is the
+	// ask itself, a decision_ask "choose" at 4893 answered [0] at 4894, where
+	// main sacrificed obj 414 silently at 4893. The bot picks the same
+	// permanent, so every later event is main's stream shifted by that one
+	// ask/answer pair.
+	8: "c23a01d45ff77703",
 }
 
 func TestHeads(t *testing.T) {
