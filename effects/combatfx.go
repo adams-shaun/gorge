@@ -384,7 +384,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	zone := strings.TrimSpace(sa.Params["PumpZone"])
 	g := h.Game()
 	var ateotIDs []state.ObjID
-	for _, p := range g.AliveFrom(0) {
+	for si, p := range g.AliveFrom(0) {
 		if zone != "" {
 			zones, all, ok := ParseZones(zone)
 			if !ok {
@@ -402,6 +402,16 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 					state.ZGraveyard, state.ZExile, state.ZStack, state.ZCommand}
 			}
 			for _, z := range zones {
+				// g.Zone(ZStack, p) is the SHARED stack, identical for
+				// every seat (state/game.go Zone), so only the first alive
+				// seat scans it -- otherwise an N-seat table registers the
+				// same pump grant N times and schedules N end-of-turn
+				// expiries. The convention is rules/statics.go and
+				// effects/count.go's Count$ValidStack guard. Every other
+				// zone is per-player and keeps its ordered per-seat walk.
+				if z == state.ZStack && si > 0 {
+					continue
+				}
 				for _, id := range g.Zone(z, p) {
 					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 						registerPumpEffects(h, c, id, att, def, sa, zone, nil)
@@ -860,7 +870,7 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 		spec = "Creature"
 	}
 	g := h.Game()
-	for _, p := range g.AliveFrom(0) {
+	for si, p := range g.AliveFrom(0) {
 		if ag.zone != "" {
 			zones, all, ok := ParseZones(ag.zone)
 			if !ok {
@@ -877,6 +887,14 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 					state.ZGraveyard, state.ZExile, state.ZStack, state.ZCommand}
 			}
 			for _, z := range zones {
+				// The shared stack is scanned once, under the first alive
+				// seat (state/game.go Zone; the effects/count.go and
+				// rules/statics.go convention). Without the guard an N-seat
+				// table registers one Animate grant per seat for the same
+				// stack object.
+				if z == state.ZStack && si > 0 {
+					continue
+				}
 				for _, id := range g.Zone(z, p) {
 					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 						registerAnimateEffects(h, c, id, ag)

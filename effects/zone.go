@@ -3438,7 +3438,14 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		var owners []state.PlayerID
 		byOwner := make(map[state.PlayerID][]pendingMove)
 		for _, z := range from {
-			for _, p := range players {
+			for qi, p := range players {
+				// The shared stack (state/game.go Zone) is snapshotted once,
+				// under the first player in the resolved scope. Without this an
+				// N-player sweep enqueues the same stack object N times and
+				// emits N MoveZones for one card. Other origins stay per-player.
+				if z == state.ZStack && qi > 0 {
+					continue
+				}
 				// Snapshot the zone exactly like the emit loop does.
 				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 				for _, id := range ids {
@@ -3471,7 +3478,12 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		}
 	} else {
 		for _, z := range from {
-			for _, p := range players {
+			for qi, p := range players {
+				// Same shared-stack guard as the RandomOrder$ branch: one
+				// snapshot of the stack, taken under the first scoped player.
+				if z == state.ZStack && qi > 0 {
+					continue
+				}
 				// Snapshot the zone: emitting move events mutates it underneath us.
 				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 				for _, id := range ids {
