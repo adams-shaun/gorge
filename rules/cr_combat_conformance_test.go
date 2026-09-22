@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -258,5 +259,38 @@ func TestCR511UntilEndCombatPumpExpiresBeforeMain(t *testing.T) {
 	e.advanceStep()
 	if e.G.Step != state.StepMain2 || e.Power(a) != 2 {
 		t.Errorf("CR 511.2 Murk Dwellers seq %d: step=%s power=%d; want postcombat main with printed power 2", len(e.L.Events), e.G.Step, e.Power(a))
+	}
+}
+
+// TestCR509MinMaxBlockerCountRestriction is the CR-lane leaf for the CR
+// 509.1a block-count restriction family (the block restriction printed by
+// S:Mode$ MinMaxBlocker; CR 702.1/702.10's static-ability umbrella): "can't
+// be blocked except by N or more creatures" is a restriction on the WHOLE
+// announce-blockers declaration, not a per-pair one. Troll of Khazad-dûm's
+// Min$ 3 refuses a two-creature declaration and admits the three-creature
+// one. The engine's own option list is the source of the answer, and the
+// rejected intent leaves the pending decision intact.
+func TestCR509MinMaxBlockerCountRestriction(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	troll := searchCorpusCard(t, reg, "Troll of Khazad-dûm")
+	bear := card(t, staticBearFixture)
+	e, _ := restrictionGame(t, 7310,
+		[][]*cards.Card{nil, nil},
+		[][]*cards.Card{{troll}, {bear, bear, bear}})
+	attacker := corpusBoardID(t, e, 0, "Troll of Khazad-dûm")
+	d := minMaxBlockDecision(t, e, attacker)
+	if d == nil || d.Kind != decision.KBlockers || len(d.Options) != 3 {
+		t.Fatalf("CR 509.1a Troll of Khazad-dûm seq %d: want three block options, got %+v", len(e.L.Events), d)
+	}
+	two := []int{d.Options[0].Index, d.Options[1].Index}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: two}); err == nil {
+		t.Errorf("CR 509.1a Troll of Khazad-dûm seq %d: accepted a two-creature block under Min$ 3", len(e.L.Events))
+	}
+	if e.Pending() != d {
+		t.Errorf("CR 509.1a Troll of Khazad-dûm seq %d: the rejected declaration consumed the pending decision", len(e.L.Events))
+	}
+	three := []int{d.Options[0].Index, d.Options[1].Index, d.Options[2].Index}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: three}); err != nil {
+		t.Errorf("CR 509.1a Troll of Khazad-dûm seq %d: refused the legal three-creature block: %v", len(e.L.Events), err)
 	}
 }

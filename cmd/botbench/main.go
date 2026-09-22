@@ -122,6 +122,7 @@ import (
 	"github.com/adams-shaun/gorge/host"
 	gbench "github.com/adams-shaun/gorge/internal/bench"
 	"github.com/adams-shaun/gorge/internal/policynet"
+	"github.com/adams-shaun/gorge/internal/searchseat"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
@@ -191,6 +192,22 @@ var policies = map[string]func(seed uint64) seat.Seat{
 			panic("botbench: policy policynet needs -checkpoint <path>")
 		}
 		return seat.NewPolicyNetBot(seed, policynet.NewScorer(policynetModel))
+	},
+	// search is the PIMC search teacher as a playable seat
+	// (searchseat.SearchBot): the default bot wrapped with the teacher
+	// answering the covered kinds (attackers, priority cast with >=2 distinct
+	// castable objects) and delegating everything else -- Choose returns the
+	// bot's own intent on every failure path, so an unsearchable decision is
+	// the bot's decision, never a dropped one. The knobs are the -search-*
+	// flags over searchseat.Defaults() (the teacher's measured values); the
+	// observation feed the teacher's sampler needs is maintained by the
+	// driver (internal/bench.PlayGame's search-seat branch, the seat.
+	// BoardSeat idiom one level up) and the seat never reads hidden state
+	// beyond what the actor-scoped Collector exposes. Deliberately NOT a
+	// hosted policy, like policynet before it: a live table has no driver
+	// to feed the seat a history yet.
+	"search": func(seed uint64) seat.Seat {
+		return searchseat.NewSearchBot(seed, searchKnobs)
 	},
 }
 
@@ -1929,11 +1946,34 @@ func main() {
 	grind := flag.String("grind", "", "grind mode: pin one repo deck to one goroutine and play it against itself as many games as the budget allows; a deck name, or \"all\" for every deck in the format's pool (one goroutine each); mutually exclusive with -pairs; -workers is ignored (the one-goroutine-per-deck shape IS the mode)")
 	grindSeconds := flag.Float64("grind-seconds", 0, "grind wall-clock budget in seconds (checked between games, so at least one game always plays); 0 with -grind-iters 0 means the 30s default")
 	grindIters := flag.Int("grind-iters", 0, "grind iteration cap per deck; 0 = wall-clock only")
+	// The search seat's knobs: the teacher's own measured values are the flag
+	// defaults (searchseat.Defaults pins the pairing), so `-a search` with no
+	// -search-* flag plays exactly the teacher that was measured.
+	searchWorlds := flag.Int("search-worlds", 8, "search policy: sampled worlds per searched decision (teacher default 8)")
+	searchAttempts := flag.Int("search-attempts", 64, "search policy: sampler proposal attempts per searched decision (teacher default 64)")
+	searchMinESS := flag.Float64("search-min-ess", 0, "search policy: ESS gate for resampling (0 = the calibration contract, teacher default)")
+	searchMargin := flag.Float64("search-margin", 0, "search policy: mean-value margin a candidate must beat the bot by (teacher default 0)")
+	searchHorizon := flag.Int("search-horizon", 0, "search policy: rollout horizon in engine turns (0 = game end, teacher default)")
+	searchMaxSubmits := flag.Int("search-max-submits", 5000, "search policy: per-rollout and per-sample-attempt submit cap (teacher default 5000)")
+	searchCandidates := flag.Int("search-candidates", 6, "search policy: max candidates per decision, bot answer first (teacher default 6)")
+	searchParallelism := flag.Int("search-parallelism", 1, "search policy: goroutines WITHIN one searched decision; latency only, never changes an answer. Keep 1 when -workers already fills the cores; a live gorged seat may set 4")
 	cpuprofile := flag.String("cpuprofile", "", "write a CPU profile to this pprof file over the whole run (empty = off)")
 	memprofile := flag.String("memprofile", "", "write a heap profile to this pprof file after the last game finishes (pprof reads both alloc_space and inuse_space from it; empty = off)")
 	flag.Parse()
 	decisionStatsEnabled = *decisionStats
 	actionCoverageEnabled = *actionCoverage
+	searchKnobs = searchseat.Options{
+		Kinds:        map[string]bool{"attackers": true, "cast": true},
+		Worlds:       *searchWorlds,
+		Attempts:     *searchAttempts,
+		MinESS:       *searchMinESS,
+		Limit:        *searchCandidates,
+		Margin:       *searchMargin,
+		HorizonTurns: int32(*searchHorizon),
+		MaxSubmits:   *searchMaxSubmits,
+		SampleSeed:   54321,
+		Parallelism:  *searchParallelism,
+	}
 
 	os.Exit(mainExit(*a, *b, *games, *seed, *seats, *rotate, *pairs, *format, *out, *workers,
 		*maxTurns, *maxIntents, *dir, *profile, *decisionStats, *actionCoverage, *grind, *grindSeconds, *grindIters, *cpuprofile, *memprofile, *decisionTrace, *analyzeTrace, *checkpoint))
@@ -1992,6 +2032,16 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 	}
 	if !policynetSide && checkpoint != "" {
 		return fail(fmt.Errorf("-checkpoint was given but neither side is policynet"))
+	}
+
+	// The search seat's timing and diagnostic hooks are installed once, here,
+	// before any game starts -- the clock is this command's (internal/
+	// archtest allows it to cmd/botbench), the seat never reads one. A run
+	// without a search side leaves the hooks nil: no capture-time cost and
+	// no diagnostics.
+	searchSide := aName == "search" || bName == "search"
+	if searchSide {
+		installSearchCostStats()
 	}
 
 	prof := &profiler{cpuPath: cpuprofile, memPath: memprofile}
@@ -2082,6 +2132,9 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 		if err := runMatrixTraced(seed, games, seats, aName, bName, dir, out, ps, workers, maxTurns, maxIntents, commander, coverage, decisionTrace, os.Stdout, os.Stderr); err != nil {
 			return fail(err)
 		}
+		if searchSide {
+			fmt.Fprint(os.Stdout, searchCostReport(games*len(ps)))
+		}
 		return 0
 	}
 	if decisionTrace != "" {
@@ -2089,6 +2142,9 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 	}
 	if err := run(seed, games, seats, rotate, workers, aName, bName, dir, maxTurns, maxIntents, commander, os.Stdout); err != nil {
 		return fail(err)
+	}
+	if searchSide {
+		fmt.Fprint(os.Stdout, searchCostReport(games))
 	}
 	return 0
 }

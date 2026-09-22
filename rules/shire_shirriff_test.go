@@ -75,8 +75,11 @@ func shirePayThrough(t *testing.T, e *Engine, token, bear state.ObjID) {
 	if d.Options[0].Kind != "trigger_cost_pay" || d.Options[1].Kind != "trigger_cost_decline" {
 		t.Fatalf("cost window options = %+v", d.Options)
 	}
-	if !strings.Contains(d.Prompt, "Sac<1/Card.token/token>") {
-		t.Fatalf("cost window prompt %q, want it to name the Sac cost", d.Prompt)
+	if !strings.Contains(d.Prompt, "sacrifice token") {
+		t.Fatalf("cost window prompt %q, want it to name the sacrifice in prose", d.Prompt)
+	}
+	if strings.ContainsAny(d.Prompt, "<>") || strings.Contains(d.Prompt, "Sac<") {
+		t.Fatalf("cost window prompt %q leaks raw cost syntax", d.Prompt)
 	}
 	submitChoices(t, e, 0)
 

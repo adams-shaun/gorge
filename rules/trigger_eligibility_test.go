@@ -44,6 +44,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"Investigated", []events.Kind{events.Investigate}},
 		{"Discover", []events.Kind{events.Discover}},
 		{"SeekAll", []events.Kind{events.Seek}},
+		{"Exploited", []events.Kind{events.Exploit}},
 		{"Exerted", []events.Kind{events.Exert}},
 		{"LandPlayed", []events.Kind{events.MoveZone}},
 		{"Phase", []events.Kind{events.StepChange}},
@@ -99,11 +100,16 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// conservative catch-all, and compiledTriggerInterestAllows fails
 			// open for it before this mapping is even consulted.
 			want = cards.TriggerInterestAny
-		case events.Discover, events.Seek:
+		case events.Discover, events.Seek, events.Connive:
 			// The Investigate shape: trigger-relevant kinds past the 64-bit
 			// mask's reach, the conservative catch-all -- compiledTrigger-
 			// InterestAllows fails open for them before this mapping is even
 			// consulted.
+			want = cards.TriggerInterestAny
+		case events.Exploit:
+			// The same Investigate shape: the exploit marker is
+			// trigger-relevant (trig:Exploited) and past the mask's reach, so
+			// the conservative catch-all is the honest mapping.
 			want = cards.TriggerInterestAny
 		}
 		if got := eventTriggerInterest(kind); got != want {
@@ -123,7 +129,7 @@ func TestCompiledTriggerInterestParity(t *testing.T) {
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
 		"CounterRemoved", "DamagePreventedOnce", "TokenCreated", "TokenCreatedOnce",
 		"ChangesZoneAll", "SpellCastOrCopy", "SpellCopy", "Mutates",
-		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Discover", "SeekAll", "Always", "LifeLostAll", "FutureMode", "",
+		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Discover", "SeekAll", "Exploited", "Always", "LifeLostAll", "FutureMode", "",
 	}
 	card := &cards.Card{}
 	for _, mode := range modes {
@@ -298,8 +304,13 @@ func TestGrantedKeywordTriggerEventFilter(t *testing.T) {
 	}{
 		{events.TargetsChosen, true},
 		{events.DeclareAttackers, true},
+		// MoveZone is the granted-exploit gate: a layer-6 AddKeyword$ Exploit
+		// grant synthesizes its ETB election in checkGrantedExploitTriggers,
+		// which must run on the entering creature's MoveZone (the Afflict/
+		// Dethrone/Conspire precedent, each of which needs its own carrying
+		// event admitted here).
+		{events.MoveZone, true},
 		{events.Priority, false},
-		{events.MoveZone, false},
 		{events.StepChange, false},
 	} {
 		if got := grantedKeywordTriggerEvent(tc.kind); got != tc.want {

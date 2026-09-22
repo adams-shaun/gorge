@@ -50,6 +50,11 @@ func (e *Engine) Clone() *Engine {
 		// list and cursor, the same plain-value class as blockerRound -- the
 		// offers slice is never mutated, so sharing the reference is safe.
 		exertAskState: e.exertAskState,
+		// enlistAskState (enlist.go, task enlist1): the enlist election's
+		// declaration, offer list and cursor, the same plain-value class as
+		// exertAskState -- the slices are never mutated, so sharing the
+		// references is safe.
+		enlistAskState: e.enlistAskState,
 		// stationing (station.go): the plain-value spacecraft a pending
 		// Station tap pick belongs to; zero whenever none is outstanding.
 		stationing: e.stationing,
@@ -183,6 +188,12 @@ func (e *Engine) Clone() *Engine {
 		c.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo, len(e.sacrificedLKI))
 		for id, info := range e.sacrificedLKI {
 			c.sacrificedLKI[id] = append([]state.SacrificedInfo(nil), info...)
+		}
+	}
+	if e.exploitedLKI != nil {
+		c.exploitedLKI = make(map[state.ObjID]state.SacrificedInfo, len(e.exploitedLKI))
+		for id, info := range e.exploitedLKI {
+			c.exploitedLKI[id] = info
 		}
 	}
 	if e.sourceLifelinkLKI != nil {

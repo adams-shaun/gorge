@@ -287,6 +287,19 @@ func (e *Engine) askAttackers() {
 // Remembered reads, in trigger_match.go).
 func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
+	// Publish the whole declaration for the declaration-wide trigger matches
+	// (CR 702.70 Training's "attacks with another creature"): the events
+	// below are per defender, so ev.IDs alone cannot answer it. Rebuilt by
+	// replay, which re-executes this handler (see the field doc). The defer
+	// clears it again so a LATER direct DeclareAttackers emit (a synthetic
+	// test event, or a future emitter) can never read a stale declaration --
+	// triggers fire synchronously inside the emits above, so every reader has
+	// already run by the time this returns.
+	e.declaredAttackers = e.declaredAttackers[:0]
+	for _, opt := range chosen {
+		e.declaredAttackers = append(e.declaredAttackers, opt.Obj)
+	}
+	defer func() { e.declaredAttackers = e.declaredAttackers[:0] }()
 	if len(chosen) == 0 {
 		// An empty declaration is still an event: it is the replay-derived
 		// marker that the declaration turn-based action has completed. The
@@ -295,6 +308,26 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
 		return
 	}
+	// CR 702.160a (task enlist1): enlist is an "as this creature attacks"
+	// action that happens DURING the declaration, before the attack triggers
+	// are put on the stack. Its election is therefore posed here, BEFORE the
+	// DeclareAttackers events below are emitted, so an attack trigger whose
+	// intervening-if reads enlistedThisCombat (Aradesh, the Founder) is
+	// matched with the answered stamp already in place -- the reverse order
+	// (exert's) would match that trigger false. An attacker with no eligible
+	// creature poses no ask and the declaration finishes inline.
+	if e.startEnlistAsks(chosen, d.Player) {
+		return
+	}
+	e.finishAttackers(chosen, d.Player)
+}
+
+// finishAttackers completes the declare-attackers declaration once every
+// enlist election is answered: emit one DeclareAttackers event per defending
+// player, tap the non-Vigilance attackers (CR 508.1f), then offer the exert
+// elections (CR 702.100a, task exert1). Split out of handleAttackers so the
+// enlist continuation (rules/enlist.go) can resume exactly here.
+func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID) {
 	var defenders []state.PlayerID
 	byDef := make(map[state.PlayerID][]state.ObjID, len(chosen))
 	for _, opt := range chosen {
@@ -310,7 +343,7 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	for _, opt := range chosen {
 		if !e.HasKeyword(opt.Obj, "Vigilance") {
 			// CR 508.1f: the player declaring attackers taps them.
-			e.emitTap(opt.Obj, d.Player, false)
+			e.emitTap(opt.Obj, player, false)
 		}
 	}
 	// CR 702.100a (task exert1): each attacking creature carrying an
@@ -752,8 +785,82 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 		if byAttacker[o.Attacker] == 1 && e.HasKeyword(o.Attacker, "Menace") {
 			return fmt.Errorf("attacker %d with menace must be blocked by at least two creatures", o.Attacker)
 		}
+		if err := e.validateMinMaxBlockers(o.Attacker, byAttacker[o.Attacker], d.Player); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+// validateMinMaxBlockers enforces CR 509.1a's MinMaxBlocker bounds on ONE
+// attacker's declared blocker count n (already non-zero). A Min$ bound admits
+// only 0 or at least min blockers; a Max$ bound admits only at most max; Min$
+// All admits only a declaration every one of the defending player's legal
+// blockers takes part in. The count of legal blockers for the All case is
+// recomputed with canBlock, the same oracle askBlockers' options use, so the
+// solver and the option list can never disagree about which creatures could
+// have blocked.
+func (e *Engine) validateMinMaxBlockers(attacker state.ObjID, n int, defender state.PlayerID) error {
+	min, max, minOK, maxOK, all := e.minMaxBlockerBounds(attacker)
+	if !minOK && !maxOK && !all {
+		return nil
+	}
+	if all {
+		if n == 0 {
+			// An unblocked declaration is always legal: the restriction
+			// constrains WHO may block, never forces a block.
+			return nil
+		}
+		// Min$ All (Tromokratis: "can't be blocked unless all creatures
+		// defending player controls block it" -- the oracle's own
+		// parenthetical: if ANY creature that player controls doesn't
+		// block it, it can't be blocked). The declaration must therefore
+		// match the defender's WHOLE creature count, not merely the legal
+		// subset: a creature that cannot block does not block, so one such
+		// creature makes every blocking declaration illegal.
+		if n != e.defenderCreatureCount(defender) {
+			return fmt.Errorf("attacker %d can't be blocked unless all %d of the defender's creatures block it (declared %d)", attacker, e.defenderCreatureCount(defender), n)
+		}
+		return nil
+	}
+	if minOK && n < min {
+		return fmt.Errorf("attacker %d can't be blocked by fewer than %d creatures (declared %d)", attacker, min, n)
+	}
+	if maxOK && n > max {
+		return fmt.Errorf("attacker %d can't be blocked by more than %d creatures (declared %d)", attacker, max, n)
+	}
+	return nil
+}
+
+// legalBlockerCount counts the defending player's creatures that could block
+// attacker (canBlock's own oracle). askBlockers uses it to drop an attacker
+// whose Min$ bound cannot possibly be met -- a declaration nobody could make
+// legally is a decision worth not posing -- and it is the reachable half of a
+// Min$ All bound (see defenderCreatureCount).
+func (e *Engine) legalBlockerCount(attacker state.ObjID, defender state.PlayerID) int {
+	n := 0
+	for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
+		if e.canBlock(bid, attacker) {
+			n++
+		}
+	}
+	return n
+}
+
+// defenderCreatureCount counts every creature permanent the defending player
+// controls -- the denominator of a Min$ All bound, which the oracle defines
+// as "all creatures defending player controls" rather than the legal subset:
+// a creature that cannot block still does not block, so its presence makes a
+// Min$ All blocking declaration impossible (only the unblocked declaration is
+// legal). Creature-ness is the same derived test canBlock uses.
+func (e *Engine) defenderCreatureCount(defender state.PlayerID) int {
+	n := 0
+	for _, id := range e.G.Zone(state.ZBattlefield, defender) {
+		if o := e.G.Obj(id); o != nil && o.EffectiveIsCreature() && !o.BestowedAttached() {
+			n++
+		}
+	}
+	return n
 }
 
 // blockerRound is the declare-blockers step's plain-value cursor, the same
@@ -808,10 +915,49 @@ func (e *Engine) askBlockers() {
 	br := &e.blockerRound
 	for br.cursor < len(br.order) {
 		defender := br.order[br.cursor]
+		// The CR 509.1a block-count bounds each attacker is subject to, in
+		// one walk: minImpossible records a Min$ the defender cannot meet
+		// (every non-empty declaration is illegal, so only the forced empty
+		// declaration can include the attacker and its pairs are not
+		// offered); bounds carries the [min,max] hint every offered option
+		// publishes on the wire. Both maps are membership/read only, never
+		// ranged, so the option order below stays the pre-existing
+		// blocker/attacker order.
+		minImpossible := make(map[state.ObjID]bool)
+		bounds := make(map[state.ObjID][2]int)
+		for _, aid := range e.blockAttackers(defender) {
+			min, max, minOK, maxOK, all := e.minMaxBlockerBounds(aid)
+			var b [2]int
+			if minOK {
+				b[0] = min
+			}
+			if maxOK {
+				b[1] = max
+			}
+			if all {
+				// Min$ All: a blocking declaration must be EVERY creature
+				// the defender controls (an unblocked declaration stays
+				// legal). If any of them cannot block, no blocking
+				// declaration is possible at all, so the attacker's pairs
+				// are not offered; otherwise the bounds publish the required
+				// all-team and a client unable to field it drops the block.
+				required := e.defenderCreatureCount(defender)
+				if e.legalBlockerCount(aid, defender) < required {
+					minImpossible[aid] = true
+				} else {
+					b = [2]int{required, required}
+				}
+			} else if minOK && e.legalBlockerCount(aid, defender) < min {
+				minImpossible[aid] = true
+			}
+			if b[0] != 0 || b[1] != 0 {
+				bounds[aid] = b
+			}
+		}
 		var opts []decision.Option
 		for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
 			for _, aid := range e.blockAttackers(defender) {
-				if !e.canBlock(bid, aid) {
+				if minImpossible[aid] || !e.canBlock(bid, aid) {
 					continue
 				}
 				// Group is the exclusivity marker on the wire: every option
@@ -821,10 +967,14 @@ func (e *Engine) askBlockers() {
 				// (one creature blocks one attacker) without knowing what a
 				// blocker is. The value is internal only -- a blocker:<id>
 				// prefix plus the object id -- never a display string.
-				opts = append(opts, decision.Option{Index: len(opts), Kind: "block",
+				opt := decision.Option{Index: len(opts), Kind: "block",
 					Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
 					Obj:   bid, Attacker: aid, Player: defender,
-					Group: fmt.Sprintf("blocker:%d", bid)})
+					Group: fmt.Sprintf("blocker:%d", bid)}
+				if b, ok := bounds[aid]; ok {
+					opt.MinBlockers, opt.MaxBlockers = b[0], b[1]
+				}
+				opts = append(opts, opt)
 			}
 		}
 		if len(opts) == 0 {
@@ -1879,6 +2029,20 @@ const chooseAsUnblockedElection chooseFor = chooseEcho + 1
 // decline ("Don't exert"), the replicate/multikicker shape: botpolicy's
 // KChoose default arm takes the first offer, so a bot never exerts.
 const chooseExert chooseFor = chooseAsUnblockedElection + 1
+
+// chooseEnlist is the chooseFor for the declare-attackers step's enlist
+// election (CR 702.160a, task enlist1): one KChoose per attacking creature
+// carrying `K:Enlist` that has at least one eligible creature to tap, posed
+// by askNextEnlist (rules/enlist.go) BEFORE the declaration's DeclareAttackers
+// events are emitted so an intervening-if reading enlistedThisCombat sees the
+// answer. Option 0 is always the decline (the may), the replicate/exert shape:
+// botpolicy's KChoose default arm takes the first offer, so a bot never
+// enlists. chooseExert+1 was already taken (chooseTriggeredMandatory in
+// rules/cumulative.go extends the same enum), so the free value is
+// chooseSiege+1 (27), pairwise distinct from the shared package set
+// (cast=1 .. exert=23 / triggeredMandatory=24 / commanderColor=25 /
+// siege=26).
+const chooseEnlist chooseFor = chooseSiege + 1
 
 // exertAsk is the declare-attackers exert election's resumable state (the
 // blockerRound plain-value precedent): the deterministic offer list, in the

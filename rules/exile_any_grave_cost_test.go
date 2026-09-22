@@ -293,8 +293,11 @@ func TestCavalierOfThornsDiesPaysTheExileAndResumes(t *testing.T) {
 	if len(d.Options) < 2 || d.Options[0].Kind != "trigger_cost_pay" || d.Options[1].Kind != "trigger_cost_decline" {
 		t.Fatalf("Cavalier's dies trigger did not open a pay/decline window: %+v", d)
 	}
-	if !strings.Contains(d.Options[0].Label, "ExileAnyGrave<1/Card.TriggeredNewCard>") {
+	if !strings.Contains(d.Options[0].Label, "Exile 1 card") {
 		t.Fatalf("pay option label lost the cost: %q", d.Options[0].Label)
+	}
+	if strings.ContainsAny(d.Options[0].Label, "<>") {
+		t.Fatalf("pay option label leaks raw cost syntax: %q", d.Options[0].Label)
 	}
 	submitChoices(t, e, d.Options[0].Index)
 	// Exactly the triggering card pays: no graveyard pick ask may open -- the

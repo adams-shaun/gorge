@@ -133,6 +133,19 @@ type Host interface {
 	// emit path skips replacement application there, and the body's own
 	// explores are fresh events).
 	ExploreReplaced(explorer state.ObjID) bool
+	// RememberExploitedLKI publishes the last-known-information snapshot of
+	// one creature a resolving exploit ability just sacrificed (CR 702.58a).
+	// The events.Exploit marker names the exploited creature by id, but Move
+	// has by then cleared its counters and dropped its battlefield layers, so
+	// a later trig:Exploited body reading TriggeredExploited$CardPower/
+	// CardToughness would see the graveyard card's printed face instead of its
+	// as-sacrificed P/T. effects/exploit.go publishes the snapshot here, and
+	// the engine attaches it to the trig:Exploited pending trigger's Ctx.LKI
+	// (rules' attachExploitedLKI), where evalRefProperty already reads an
+	// object's LKI P/T for every other trigger. Rules-implemented and
+	// replay-derived exactly like the other LKI maps; the effects test double
+	// records it for its own assertions.
+	RememberExploitedLKI(state.SacrificedInfo)
 	// HasKeyword reports a DERIVED keyword — printed or granted by a
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.
@@ -1144,6 +1157,16 @@ type Ctx struct {
 	ExploreCard   state.ObjID
 	ExploreChoice string
 	ExploreDone   bool
+	// ConniveObj/ConniveDiscard/ConniveDone carry one pending connive
+	// discard (api:Connive, task connive1): ConniveDone marks an ANSWERED
+	// discard for the conniver parked in ConniveObj, ConniveDiscard the
+	// chosen card ids. rules' "connive" resume arm re-enters with
+	// ConniveDone set and both other fields restored from the resume
+	// point. Consumed and cleared at the point of application (fx42
+	// scoping), so a later conniving target poses its own fresh ask.
+	ConniveObj     state.ObjID
+	ConniveDiscard []state.ObjID
+	ConniveDone    bool
 	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
 	// resolution just made (effects/dice.go), under the SVar name its
 	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's

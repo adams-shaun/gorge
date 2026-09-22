@@ -672,18 +672,24 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	if m == nil {
 		t.Fatalf("summary block missing:\n%s", buf.String())
 	}
-	// Seat 0 wins: 7, seat 1 wins: 13 at this fixed seed, for the default
+	// Seat 0 wins: 6, seat 1 wins: 14 at this fixed seed, for the default
 	// pair avengers-assemble:death-n-taxes (the first two sorted repo decks
 	// at the 2026-09-17 avengers-assemble import; the prior 16/4 belonged to
 	// death-n-taxes:dimir-tempo). This is a command golden, not a claim about
 	// policy strength: it catches a change to the default constructed bench's
-	// deck order, seed use, or bot path. The 16/4 was itself re-measured by
+	// deck order, seed use, or bot path. The 16/4 was re-measured by
 	// inbox-botbench-stability-run's bot fix: the KChoose mana-payment arm now
 	// prefers a phyrexian pip's life payment over its pool colour while the
 	// seat has life to spare (measured by reverting the arm: the old 15/5
 	// returns), which changed dimir-tempo's Dismember ({1}{B/P}{B/P}) pip
-	// answers in that run.
-	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 7 || seat1 != 13 {
+	// answers in that run. The 7/13 was itself re-measured by the
+	// ETBReplacement zone-spec fix (ticket agent-20260918T200326Z-f4542478):
+	// Metallic Mimic — avengers-assemble's one ETBReplacement carrier — now
+	// pumps each OTHER creature you control of the chosen type entering from
+	// the battlefield (its oracle) instead of pumping only itself, which
+	// moved 1 game across the 20 (reverting cards/kw_etbreplacement.go
+	// returns 7/13; the fix reproduces 6/14 deterministically).
+	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 6 || seat1 != 14 {
 		t.Errorf("constructed default split = %d/%d, want 7/13 (%s vs %s at seed 0, games 20)", seat0, seat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
 	}
 	if strings.Contains(buf.String(), "STALLED") {

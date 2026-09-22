@@ -52,6 +52,22 @@ var addedAfterTheSplit = []string{
 	// its own result, and its sibling RolledDieOnce fires once per roll action
 	// however many dice it rolled. Neither name existed in the pre-split switch.
 	"RolledDie", "RolledDieOnce",
+	// connive1: "Whenever a creature you control connives ..." (CR 702.59;
+	// Iron Monger Sadistic Tycoon, Glorious Purpose, Ultron Unlimited). It
+	// matches the events.Connive marker Kind, which was appended for it, so
+	// it could not have been in the pre-split switch.
+	"Connives",
+	// enlist1: "Whenever CARDNAME enlists a creature ..." (CR 702.160;
+	// Goblin Morale Sergeant, Guardian of New Benalia). It matches the
+	// events.Enlist marker Kind, appended for it (the Exerted shape), so it
+	// could not have been in the pre-split switch.
+	"Enlisted",
+	// exploit1: "Whenever a creature exploits a creature ..." (CR 702.58c;
+	// Graf Reaver, Colonel Autumn, Silumgar Scavenger and the rest of the
+	// keyword's 24 trigger lines). It matches the events.Exploit marker Kind
+	// the K:Exploit expansion emits, which was appended for it, so the mode
+	// could not have been in the pre-split switch.
+	"Exploited",
 }
 
 func allRegisteredModeNames() []string {

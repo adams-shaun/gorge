@@ -175,6 +175,16 @@ func Describe(g *state.Game, ev events.Event) string {
 			return obj(g, ev.Obj) + " skips its untap step (exerted)"
 		}
 		return obj(g, ev.Obj) + " is exerted"
+	case events.Enlist:
+		// CR 702.160 (task enlist1): the enlist action record. Obj is the
+		// ATTACKING creature that enlisted; IDs[0] the nonattacking creature
+		// it tapped (its own Tap event is a separate line) and Player the
+		// attacker's controller. The +X/+0 pump is a continuous effect, not
+		// a line of its own.
+		if len(ev.IDs) == 0 {
+			return obj(g, ev.Obj) + " enlists a creature"
+		}
+		return obj(g, ev.Obj) + " enlists " + obj(g, ev.IDs[0])
 	case events.PlanarRoll:
 		// CR 901.3 (task rollplanar1): the roll record. The per-die faces ride
 		// the die-roll Notes rules emits beside this event; Amount > 1 names
@@ -248,6 +258,15 @@ func Describe(g *state.Game, ev events.Event) string {
 		if n != 1 {
 			s += "s"
 		}
+		// CR 122.1d: a stun counter is removed instead of untapping. The
+		// event carries no provenance (a direct RemoveCounter effect emits
+		// the identical CounterChange), so the suffix states the rule rather
+		// than asserting this event was an untap replacement -- but it is the
+		// line that connects "lost a STUN counter" to the untap the player
+		// was watching for (feedback 20260921T204701Z).
+		if ev.Counter == "STUN" && ev.Amount < 0 {
+			s += " (stun counters are removed instead of untapping)"
+		}
 		return s
 	case events.Explore:
 		// The explore record (task explore1): the revealed card is already
@@ -260,6 +279,16 @@ func Describe(g *state.Game, ev events.Event) string {
 		// line names only the investigating seat (Player; Obj is the source
 		// permanent, which may be 0 for a game-rule investigate).
 		return player(g, ev.Player) + " investigates"
+	case events.Exploit:
+		// The exploit record (CR 702.58a, task exploit1): Obj is the
+		// exploiting creature, IDs[0] the exploited (sacrificed) one. The
+		// sacrifice's own MoveZone line already named the creature, so this
+		// line names both halves of the action the way the oracle reads.
+		s := obj(g, ev.Obj) + " exploits"
+		if len(ev.IDs) > 0 {
+			s += " " + obj(g, ev.IDs[0])
+		}
+		return s
 	case events.Discover, events.Seek:
 		// The discover (CR 701.57) and seek records (task trigdisc1) are pure
 		// markers: the action's own state changes (the exiles/reveals and the
@@ -270,6 +299,11 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " seeks"
 		}
 		return player(g, ev.Player) + " discovers"
+	case events.Connive:
+		// The connive record (task connive1): the draws and discards are
+		// already their own lines (Draw/Discard events), so this line names
+		// only the conniving permanent.
+		return obj(g, ev.Obj) + " connives"
 	case events.CombatRetarget:
 		// api:ChangeCombatants's reselect: Obj the attacker, Player the new
 		// defender. The old defender needs no line (the re-pointed attack is

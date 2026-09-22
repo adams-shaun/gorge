@@ -84,7 +84,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CopyToken, events.Exert, events.PlanarRoll,
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
 		events.BlessingChange, events.ClonePermanent,
-		events.Mutate, events.MergedTriggerPush:
+		events.Mutate, events.MergedTriggerPush,
+		events.Enlist:
 		// ClonePermanent is a characteristic change (the api:Clone layer-1
 		// CopyFace basis), not a game event any trigger mode fires on -- the
 		// same reading FlipFace and CardToken get. Without it here the
@@ -95,8 +96,10 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// reason even though both currently sit PAST triggerMaskKindBits, so
 		// both classifiers fail open before this map is consulted: Mutate is
 		// matched by trig:Mutates through the full matcher (mutatesMatches),
-		// and MergedTriggerPush is a mint marker no mode fires on. Naming
-		// them keeps the audit complete if the bound ever widens.
+		// and MergedTriggerPush is a mint marker no mode fires on. Enlist is
+		// the same shape past the bound: trig:Enlisted matches the full
+		// events.Enlist carrier through enlistedMatches. Naming them keeps
+		// the audit complete if the bound ever widens.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -142,6 +145,15 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.MoveZone
 	case "Explores":
 		return 1 << events.Explore
+	case "Connives":
+		// The marker Kind's ordinal is past the 64-bit mask's reach, the
+		// Investigated/Discover shape: a mask bit is not encodable and
+		// allows() fails open for every kind at or past triggerMaskKindBits,
+		// so the mode is admitted through that fail-open path. Naming the
+		// mode here (rather than letting it fall to the allTriggerEvents
+		// default) keeps a Connives-only face's mask narrow for every other
+		// kind.
+		return 0
 	case "Investigated":
 		// The Kind's ordinal (67) is past the 64-bit mask's reach, the
 		// RingTemptsYou shape: a mask bit is not encodable and allows()
@@ -160,6 +172,15 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default) keeps a Discover/SeekAll-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "Exploited":
+		// The Exploit marker's ordinal is past the 64-bit mask's reach, the
+		// Investigated/Discover shape: a mask bit is not encodable and
+		// allows() fails open for every kind at or past triggerMaskKindBits,
+		// so the mode is admitted through that fail-open path and gated by
+		// the full matcher (exploitedMatches). Naming the mode here rather
+		// than letting it fall to the allTriggerEvents default keeps an
+		// Exploited-only face's mask narrow for every other kind.
+		return 0
 	case "RingTemptsYou":
 		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
 		// is not encodable, and allows() fails open for every kind at or past
@@ -177,6 +198,17 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// Amount >= 0); the Amount == -1 untap-step consume marker is the
 		// same Kind but rejected by exertedMatches, so the mask stays exact.
 		return 1 << events.Exert
+	case "Enlisted":
+		// enlist1: the mode fires on the CR 702.160 enlist action itself
+		// (events.Enlist, the Exerted shape). The Kind's ordinal (75) is past
+		// the 64-bit mask's reach, the RingTemptsYou/Investigated shape: a
+		// mask bit is not encodable and allows() fails open for every kind at
+		// or past triggerMaskKindBits, so the mode is admitted through that
+		// fail-open path and gated by the full matcher (enlistedMatches).
+		// Naming the mode here rather than letting it fall to the
+		// allTriggerEvents default keeps an Enlisted-only face's mask narrow
+		// for every other kind.
+		return 0
 	case "Taps", "TapsForMana":
 		return 1 << events.Tap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
@@ -240,7 +272,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 
 func grantedKeywordTriggerEvent(kind events.Kind) bool {
 	return kind == events.TargetsChosen || kind == events.DeclareAttackers || kind == events.DeclareBlockers ||
-		kind == events.PutOnStack
+		kind == events.PutOnStack || kind == events.MoveZone
 }
 
 func triggerMaskForFace(f *cards.Face) triggerEventMask {

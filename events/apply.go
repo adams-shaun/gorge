@@ -159,6 +159,41 @@ func Apply(g *state.Game, e Event) {
 		// trig:Discover / trig:SeekAll match. Player is the acting seat, Obj
 		// the resolving source permanent. One marker per completed action.
 
+	case Exploit:
+		// The exploit record (CR 702.58a, task exploit1) is a pure marker,
+		// exactly like Explore/Investigate: the sacrifice's own state change
+		// (the battlefield-to-graveyard MoveZone) is its own event that
+		// preceded this one, and the record is what trig:Exploited matches.
+		// Obj the exploiting creature, Player its controller, IDs[0] the
+		// exploited creature. A declined optional sacrifice records nothing.
+
+	case Enlist:
+		// CR 702.160's enlist action (the `K:Enlist` keyword, task enlist1):
+		// Obj is the ATTACKING creature that enlisted (the Mode$ Enlisted
+		// trigger's source) and IDs[0] the nonattacking creature it tapped
+		// (never a state change here -- the tap is its own Tap event). The
+		// fold stamps the attacker's per-combat marker: (Turn,
+		// CombatsThisTurn), so the enlistedThisCombat filter predicate can
+		// answer "enlisted THIS combat" and reset itself when a later combat
+		// begins without an enlist (state.Object.EnlistedTurn/EnlistedCombat,
+		// cleared at TurnChange). Totality: a missing object or an absent
+		// enlisted id is a no-op, never a panic.
+		o := g.Obj(e.Obj)
+		if o == nil || len(e.IDs) == 0 {
+			break
+		}
+		o.EnlistedTurn = g.Turn
+		o.EnlistedCombat = g.CombatsThisTurn
+
+	case Connive:
+		// The connive record (CR 702.59, task connive1) is a pure marker,
+		// exactly like Explore: the connive's own state changes (the draws,
+		// the discards, the +1/+1 counters) are their own events that
+		// preceded this one, and the record is what trig:Connives matches.
+		// Obj the conniving permanent, Player its controller, IDs the
+		// discarded cards in discard order, Amount the nonland count among
+		// them. One marker per completed connive action.
+
 	case Pair:
 		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
 		// IDs[0] its chosen partner; both fields are set reciprocally when
@@ -834,6 +869,12 @@ func Apply(g *state.Game, e Event) {
 				// deliberately NOT reset here -- its window spans the turn
 				// boundary and is consumed at the next untap step instead.
 				g.Objs[i].ExertedThisTurn = false
+				// CR 702.160: enlist is a per-combat fact; the stamp is cleared at
+				// the turn boundary (a same-turn second combat compares its own
+				// CombatsThisTurn against the stamp, so it needs no separate
+				// reset).
+				g.Objs[i].EnlistedTurn = 0
+				g.Objs[i].EnlistedCombat = 0
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
@@ -1232,6 +1273,15 @@ func Apply(g *state.Game, e Event) {
 			if FlagsFrom(e.Counter)&state.FlagConspired != 0 {
 				o.Conspired = true
 			}
+			// Convoke (CR 702.66, task connive1) is an ID-LIST fold, not an
+			// amount: the convoked creatures ride the pay-time CastInfo's IDs
+			// whenever the flag is present, whatever other tags ride the same
+			// event. Folded OUTSIDE the exclusive switch below (the Conspired
+			// pattern) so a later event carrying the flag cannot steal that
+			// event's Amount from its own routing case.
+			if FlagsFrom(e.Counter)&state.FlagConvoked != 0 {
+				o.Convoked = append([]state.ObjID(nil), e.IDs...)
+			}
 			switch {
 			// Conspire's Amount is a marker, never data: the bool was folded
 			// above, and the flag rides a LOCAL counter at the emission site
@@ -1243,10 +1293,15 @@ func Apply(g *state.Game, e Event) {
 			// conspired cast (and StackCopy propagated that onto its copies).
 			case FlagsFrom(e.Counter)&state.FlagConspired != 0:
 				// bool folded above; the Amount is deliberately unused
+			case FlagsFrom(e.Counter)&state.FlagConvoked != 0:
+				// the convoked id list was folded above; the Amount is
+				// deliberately unused (the Conspired arm's consume shape)
 			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
 				o.ConvergeColours = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
 				o.ReplicateTimes = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagSquadPaid != 0:
+				o.SquadPaid = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
 				o.TimesKicked = e.Amount
 			// One CastInfo per captured total, each LATER event carrying ALL
@@ -1553,30 +1608,57 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "TriggeredDefendingPlayer", "LifeAmount": rest,
 						"TriggerDescription": "Afflict"}}
 			}
-			// A granted Conspire (rules.pushTrigger's __kwConspire payload)
+			// A granted Conspire (rules.pushTrigger's __kwConspire: payload)
 			// has no SVar either: rebuilt structurally into the same
 			// DB$ CopySpellAbility body the printed K:Conspire expansion
 			// carries, so the live game and the replay mint identical
 			// objects from the event text alone. The triggering spell rides
 			// Remembered (IDs) -- Defined$ TriggeredSpellAbility reads it
 			// there, exactly as the printed expansion's own TriggerPush
-			// entries carry it.
-			if _, ok := strings.CutPrefix(e.Counter, "__kwConspire"); ok {
+			// entries carry it. The trailing colon (the Ward/Afflict shape)
+			// keeps the payload distinct from the "__kwConspire" SVar a
+			// printed bare K:Conspire line mints.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwConspire:"); ok {
 				sa = &cards.SA{Kind: "DB", API: "CopySpellAbility",
 					Params: map[string]string{"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired",
 						"MayChooseTarget": "True"}}
 				conspire = ok
 			}
-			// A cascade trigger (rules.pushTrigger's __kwCascade payload) has
+			// A cascade trigger (rules.pushTrigger's __kwCascade: payload) has
 			// no SVar either: rebuilt structurally into the DB$ Cascade body
 			// both a printed K:Cascade line and every layer-6 AddKeyword$
 			// Cascade grant share, so the live game and the replay mint
 			// identical objects from the event text alone. The trigger's
 			// Source (the cast spell) is what the effect reads its mana value
-			// off at resolution (CR 702.85a's "costs less" comparison).
-			if _, ok := strings.CutPrefix(e.Counter, "__kwCascade"); ok {
+			// off at resolution (CR 702.85a's "costs less" comparison). The
+			// trailing colon keeps the payload from aliasing a printed bare
+			// K:Cascade line's "__kwCascade" SVar.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwCascade:"); ok {
 				sa = &cards.SA{Kind: "DB", API: "Cascade",
 					Params: map[string]string{"TriggerDescription": "Cascade"}}
+			}
+			// A granted Exploit (rules.pushTrigger's __kwExploitGranted
+			// payload) has no SVar either: rebuilt structurally into the same
+			// DB$ Sacrifice | Optional$ True | SacValid$ Creature |
+			// RememberSacrificed$ True -> DB$ Exploit chain the printed
+			// K:Exploit expansion carries (cards/kw_exploit.go), so the live
+			// game and the replay mint identical objects from the event text
+			// alone. The Exploit body reads the sacrificed creature off
+			// Ctx.Sacrificed, exactly as the printed chain does. The payload
+			// is deliberately NOT the bare "__kwExploit": addKeywordTrigger
+			// mints a printed bare K:Exploit line's SVar as "__kw"+line =
+			// "__kwExploit", so the old spelling aliased a real printed-face
+			// SVar. The SVar lookup above wins today, but a future caller
+			// that pushed the bare payload for a face defining that SVar
+			// would silently take the SVar path; "Granted" cannot collide
+			// with any "__kw"+<keyword-line> mint.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwExploitGranted"); ok {
+				sac := &cards.SA{Kind: "DB", API: "Sacrifice",
+					Params: map[string]string{"Defined": "You", "Optional": "True", "SacValid": "Creature",
+						"RememberSacrificed": "True"}}
+				sac.Sub = &cards.SA{Kind: "DB", API: "Exploit",
+					Params: map[string]string{"TriggerDescription": "Exploit"}}
+				sa = sac
 			}
 		}
 		if sa == nil {
@@ -2350,9 +2432,11 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
+			o.SquadPaid = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
+			o.Convoked = nil
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0
@@ -2367,6 +2451,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			// (CR 400.7): a re-entering Combat Celebrant may exert again
 			// this turn and carries no untap-skip window.
 			o.ExertedThisTurn, o.ExertSkipUntap = false, false
+			// CR 702.160: enlist is the old permanent's fact, not the new
+			// object's -- a re-entering creature carries no enlist stamp.
+			o.EnlistedTurn, o.EnlistedCombat = 0, 0
 		}
 		// CR 107.3m: the paid X belongs to the spell on the stack and to the
 		// permanent the spell becomes, and to nothing else. An object leaving
@@ -2381,9 +2468,11 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasStack {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
+			o.SquadPaid = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
+			o.Convoked = nil
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0

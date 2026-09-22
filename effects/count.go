@@ -530,6 +530,22 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
 		"DelayTriggerRememberedLKI", "RememberedLKI":
 		return c.Remembered, true
+	case "TriggeredExploited":
+		// The exploited creature (CR 702.58c's "that creature"): the Exploit
+		// marker's triggerReferents case binds ev.IDs[0] to TriggerCard at
+		// fire time, so Henry Wu's TriggeredExploited$CardPower and Profaner
+		// of the Dead's TriggeredExploited$CardToughness read exactly the
+		// sacrificed creature. evalRefProperty then reads its LKI P/T from
+		// Ctx.LKIPower/LKIToughness, which rules' attachExploitedLKI sets from
+		// the as-sacrificed snapshot effects/exploit.go publishes (CR 608.2g):
+		// the bare graveyard card would carry only its printed face, losing a
+		// +1/+1 counter or a pump the creature had when it was sacrificed. The
+		// role-absent fallback keeps the old Remembered read for a hand-built
+		// context (the TriggeredBlocker precedent).
+		if c.TriggerCard != 0 {
+			return []state.Target{{Obj: c.TriggerCard}}, true
+		}
+		return c.Remembered, true
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
 		// The pair's BLOCKER (trig:Blocks): prefer the fire-time TriggerBlocker
 		// role when the Blocks capture set it (Remembered names the attacker
@@ -883,6 +899,19 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// reads 0.
 		if o := g.Obj(c.Source); o != nil {
 			return o.ReplicateTimes, true
+		}
+		return 0, true
+	case "SquadPaid":
+		// CR 702.66: the number of squad payments the resolving spell's cast
+		// made ("you may pay [cost] any number of times"), carried by the
+		// pay-time CastInfo's FlagSquadPaid Amount (rules/cast.go's squadAsk
+		// and payCast). The same provenance read ReplicatePaid makes: read off
+		// the SOURCE -- the cast spell on the stack, and in the keyword
+		// expansion's ETB trigger the permanent the spell became (the
+		// stack->battlefield move preserves the field) -- so a replay derives
+		// the same count; a copy of the spell was never cast and reads 0.
+		if o := g.Obj(c.Source); o != nil {
+			return o.SquadPaid, true
 		}
 		return 0, true
 	case "TimesKicked":
@@ -2337,17 +2366,34 @@ func applyCountOp(n int32, op string) int32 {
 		v = (v + 1) / 2
 	case op == "Negative":
 		v = -v
-	case strings.HasPrefix(op, "DivideEvenlyDown."):
-		// Forge's AmountOperators.divideEvenlyDown: division by the named
-		// divisor (Remembered$Amount/DivideEvenlyDown.2 -- the ImmediateTrigger
-		// "one instance per pair of remembered tokens" shape, diregraf_horde
-		// and faebloom_trick). A missing or non-positive divisor leaves the
-		// value unchanged rather than dividing by zero. NOTE this is Go's
-		// integer division, which TRUNCATES toward zero, not a true floor: the
-		// two differ only for negative operands (-3/2 = -1 here, floor -2),
-		// and every count this op reaches in the corpus is non-negative.
-		if x, err := strconv.Atoi(op[len("DivideEvenlyDown."):]); err == nil && x > 0 {
-			v /= int64(x)
+	case strings.HasPrefix(op, "Divide"):
+		// Forge's AmountOperators division family, one arm for every
+		// rounding direction the corpus spells:
+		//
+		//   DivideEvenlyUp.N   -- ceil(n/N)
+		//   DivideEvenlyDown.N -- floor(n/N) (the pre-existing arm; the
+		//                         ImmediateTrigger "one instance per pair of
+		//                         remembered tokens" shape, diregraf_horde
+		//                         and faebloom_trick)
+		//   DivideEvenly.N / Divide.N -- floor(n/N), Forge's default division
+		//
+		// Legate Lanius, Caesar's Ace is the DivideEvenlyUp carrier:
+		// `SVar:X:Count$Valid Creature.RememberedPlayerCtrl/DivideEvenlyUp.10`
+		// ("each opponent sacrifices a tenth of the creatures they control,
+		// rounded up"). Before this arm Every DivideEvenlyUp spelling fell
+		// through applyCountOp untouched, so the op returned the WHOLE
+		// creature count and the Decimate trigger over-sacrificed -- the
+		// wrong-value direction, not a no-op.
+		//
+		// A missing, non-numeric or non-positive divisor leaves the value
+		// unchanged rather than dividing by zero, the pre-existing guard. A
+		// non-numeric divisor (DivideEvenlyDown.NumOpps, .Y -- an SVar name)
+		// is a DIFFERENT class: this op has no Ctx to resolve it against and
+		// deliberately leaves the value alone, the same silent standing no-op
+		// every SVar-named operand gets (see the open ticket for the
+		// /Plus.Y / /Minus.X / /Times.Y family, 215 raw corpus lines).
+		if x, err := strconv.Atoi(divisionOperand(op)); err == nil && x > 0 {
+			v = divideCountOp(v, int64(x), strings.HasPrefix(op, "DivideEvenlyUp"))
 		}
 	}
 	if v > math.MaxInt32 {
@@ -2357,6 +2403,43 @@ func applyCountOp(n int32, op string) int32 {
 		return math.MinInt32
 	}
 	return int32(v)
+}
+
+// divisionOperand returns the divisor text of a Divide-family op suffix: the
+// part after the op name's trailing dot (DivideEvenlyUp.10 -> "10",
+// DivideEvenlyDown.NumOpps -> "NumOpps"). A suffix with no dot (a bare
+// "Divide") returns "", which Atoi rejects and the caller reads as "no
+// divisor named", leaving the value unchanged.
+func divisionOperand(op string) string {
+	i := strings.LastIndexByte(op, '.')
+	if i < 0 {
+		return ""
+	}
+	return strings.TrimSpace(op[i+1:])
+}
+
+// divideCountOp divides v by the positive divisor x under the division op's
+// rounding direction. The arithmetic is int64 and the caller clamps to the
+// int32 range, matching applyCountOp's hygiene. ceil is DivideEvenlyUp's
+// direction ("rounded up"); everything else floors, which for the
+// non-negative counts the corpus reaches is also Go's truncating integer
+// division -- the explicit correction below only matters for a negative
+// operand (-3/2 truncates to -1, floor is -2).
+func divideCountOp(v, x int64, ceil bool) int64 {
+	if ceil {
+		// Ceiling division that is correct for either sign: for a positive
+		// operand add x-1 before the truncating divide; for a negative one
+		// truncation toward zero IS the ceiling.
+		if v >= 0 {
+			return (v + x - 1) / x
+		}
+		return v / x
+	}
+	q := v / x
+	if v%x != 0 && v < 0 {
+		q--
+	}
+	return q
 }
 
 // ApplyCountOp is applyCountOp's exported form, for callers outside effects

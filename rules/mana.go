@@ -54,6 +54,15 @@ type CostPart struct {
 	// "0" default). It is unused by every other cost head, whose zero value
 	// is inert.
 	LibraryPos int32
+	// Desc is Forge's trailing human-readable description field
+	// (the ".../another creature" in Sac<1/Creature.Other/another creature>),
+	// captured verbatim so a player-facing prompt can render prose instead of
+	// the raw token (rules/mana.go's costPhrase). It is DISPLAY ONLY: no
+	// payment path reads it, so a part with an empty Desc behaves exactly as
+	// before. Every cost head that can carry a description captures it here;
+	// a head whose regex has no description group (PayLife<N>, Blight<N>)
+	// leaves it empty.
+	Desc string
 }
 
 // ManaPair is one two-face hybrid symbol: each face is a WUBRGC mana symbol,
@@ -186,10 +195,11 @@ type Cost struct {
 // alternatives with ";"; the description may itself contain spaces (e.g.
 // "Sac<1/Artifact;Creature/artifact or creature>"), which is why
 // splitCostTokens keeps the whole <...> group atomic before nonManaCost ever
-// sees it. The captured group only runs up to the first "/", so the trailing
-// description is dropped right here; the ";" alternation is folded to ","
-// (MatchesSpec's own separator) at the parse site. Ruling FL-54.
-var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard|Draw)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+// sees it. The spec group runs up to the first "/"; the trailing
+// "/description" is captured into CostPart.Desc (display only, read by
+// costPhrase); the ";" alternation is folded to "," (MatchesSpec's own
+// separator) at the parse site. Ruling FL-54.
+var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard|Draw)<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
 // drawDynCost matches Forge's non-literal Draw amount, Draw<X/Spec> -- the
 // Champion of Wits family's "you may draw cards equal to its power. If you
@@ -198,7 +208,7 @@ var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard|Draw)<(\d+)/([^/>
 // source's own SVar table; the second is the player spec ("You"). The
 // trailing ";" OR alternation folds to "," like every other non-mana head.
 // The literal form Draw<N/Spec> stays nonManaCost's.
-var drawDynCost = regexp.MustCompile(`^Draw<([A-Za-z][A-Za-z0-9]*)/([^/>]+)(?:/[^>]*)?>$`)
+var drawDynCost = regexp.MustCompile(`^Draw<([A-Za-z][A-Za-z0-9]*)/([^/>]+)(?:/([^>]*))?>$`)
 
 // sacXCost matches the announced-count sacrifice form Sac<X/Spec> (Dargo, the
 // Shipwrecker's "sacrifice any number of artifacts and/or creatures"): the
@@ -207,7 +217,7 @@ var drawDynCost = regexp.MustCompile(`^Draw<([A-Za-z][A-Za-z0-9]*)/([^/>]+)(?:/[
 // convention PayEnergy<X> uses -- and xAsk/sacAsk consume it; a ReduceCost
 // static that reads the paid X (Dargo's SVar X:Count$xPaid) resolves through
 // costModifiers' SVar-aware amount read.
-var sacXCost = regexp.MustCompile(`^Sac<X/([^/>]+)(?:/[^>]*)?>$`)
+var sacXCost = regexp.MustCompile(`^Sac<X/([^/>]+)(?:/([^>]*))?>$`)
 
 // exileCost matches Forge's ExileFromHand<N/Spec>, ExileFromGrave<N/Spec>
 // and ExileAnyGrave<N/Spec> tokens -- exiling a matching card from the named
@@ -218,12 +228,12 @@ var sacXCost = regexp.MustCompile(`^Sac<X/([^/>]+)(?:/[^>]*)?>$`)
 // predicates there is no zone provenance beyond "a graveyard" -- so it lands
 // on the identical Exile part with Zone ZGraveyard (exg1: the 18-carrier
 // Cavalier of Thorns / Thelon of Havenwood family). As with the other
-// non-mana tokens the trailing "/description" is dropped here and ";"
-// alternations fold to ",".
+// non-mana tokens the trailing "/description" is captured into CostPart.Desc
+// and ";" alternations fold to ",".
 // ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...), the
 // AlternateAdditionalCost ExileFromGrave line and the ExileAnyGrave
 // trigger-cost family are the corpus users.
-var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
 // addCounterCost matches Forge's AddCounter<N/LOYALTY> token -- the
 // planeswalker loyalty cost, and deliberately ONLY it (CR 107.4: the [+N]
@@ -236,14 +246,14 @@ var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(\d+)/([
 // today's one-generic fallback, per the brief's scope boundary -- their
 // counter semantics (M1M1/M0M1 kinds, mid-resolution UnlessCost payers) are
 // their own work.
-var addCounterCost = regexp.MustCompile(`^AddCounter<(\d+)/(LOYALTY)(?:/[^>]*)?>$`)
+var addCounterCost = regexp.MustCompile(`^AddCounter<(\d+)/(LOYALTY)(?:/([^>]*))?>$`)
 
 // lifeCost matches Forge's fixed life-payment token. Dynamic values such as
 // PayLife<X> retain the ordinary malformed-token fallback below: this engine
 // has no source from which to resolve their value.
 var lifeCost = regexp.MustCompile(`^PayLife<(\d+)>$`)
 
-var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
 // dynTapCost matches Forge's dynamic tap-any-number tapXType tokens -- the
 // heads the literal choiceCost regex above cannot read:
@@ -264,29 +274,29 @@ var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:
 //     withTotalPowerGE10 group predicate fails closed) leaves the ability
 //     unpayable rather than offering a zero-tap payment.
 //
-// The trailing "/description" is dropped and ";" alternations fold to ","
-// like every other non-mana head.
-var dynTapCost = regexp.MustCompile(`^tapXType<(X|Any)/([^/>]+)(?:/[^>]*)?>$`)
+// The trailing "/description" is captured into CostPart.Desc and ";" alternations
+// fold to "," like every other non-mana head.
+var dynTapCost = regexp.MustCompile(`^tapXType<(X|Any)/([^/>]+)(?:/([^>]*))?>$`)
 var blightCost = regexp.MustCompile(`^Blight<(\d+)>$`)
 
 // payEnergyCost matches Forge's PayEnergy<N> and PayEnergy<X> tokens --
 // removing N energy counters from the payer (CR 118.2d; Forge
 // CostPayEnergy.canPay reads the payer's ENERGY counter total, and its
 // getMaxAmountX bounds a dynamic PayEnergy<X> by that same total). The
-// trailing "/description" Forge may append is dropped like every other
-// head. The X form is recorded as a part with Spec "X": xAsk bounds the
+// trailing "/description" Forge may append is captured into CostPart.Desc
+// like every other head. The X form is recorded as a part with Spec "X": xAsk bounds the
 // announced value by the payer's energy count and the settle spends exactly
 // that many, so the announcement and the spend cannot disagree.
-var payEnergyCost = regexp.MustCompile(`^PayEnergy<([0-9]+|X)(?:/[^>]*)?>$`)
+var payEnergyCost = regexp.MustCompile(`^PayEnergy<([0-9]+|X)(?:/([^>]*))?>$`)
 
 // returnCost matches Forge's Return<N/Spec> tokens -- a permanent matching
 // Spec returned to its OWNER's hand as the payment (Forge CostReturn's
 // moveToHand; its payCostFromSource branch is a Spec of CARDNAME, the source
 // itself -- Chthonian Nightmare's "Return Chthonian Nightmare to its owner's
 // hand"). N is almost always 1 (94 corpus files carry the token; every
-// parsed one is 1). The trailing description is dropped, ";"
+// parsed one is 1). The trailing description is captured into CostPart.Desc, ";"
 // alternations fold to "," like every other non-mana head.
-var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
 // putCardToLibCost matches Forge's PutCardToLibFrom<Zone><N/Pos/Spec> cost
 // tokens -- moving N cards matching Spec from the payer's Hand, Graveyard or
@@ -296,14 +306,14 @@ var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 // Leashling/Penance/Tainted Specter place on TOP (Pos 0), the Born of the
 // Gods reflective-mage family (Ardent Dustspeaker) and Battlefield Scrounger
 // and Timestream Navigator put on the BOTTOM (Pos -1). The trailing
-// "/description" is dropped and ";" alternations fold to "," like every
-// other non-mana head. It is deliberately a POSITIVE zone list: a future
+// "/description" is captured into CostPart.Desc and ";" alternations fold to
+// "," like every other non-mana head. It is deliberately a POSITIVE zone list: a future
 // Forge zone name this regex does not name falls through to the
 // unrecognised-symbol fallback (the head is reported in Cost.Unknown, never
 // silently modelled as a different zone). The separate
 // PutCardToLibFromSameGrave cumulative-upkeep spelling is NOT matched here --
 // it is a keyword action, not a cost token.
-var putCardToLibCost = regexp.MustCompile(`^PutCardToLibFrom(Hand|Grave|Battlefield)<(\d+)/(-?\d+)/([^/>]+)(?:/[^>]*)?>$`)
+var putCardToLibCost = regexp.MustCompile(`^PutCardToLibFrom(Hand|Grave|Battlefield)<(\d+)/(-?\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
 // exileBattlefieldCost matches Forge's bare Exile<N/Spec> token -- exiling a
 // matching permanent from the BATTLEFIELD as the payment (Karn's Sylex's
@@ -311,20 +321,20 @@ var putCardToLibCost = regexp.MustCompile(`^PutCardToLibFrom(Hand|Grave|Battlefi
 // other artifact creatures", Zombie Assassin's "{T}, Exile two cards from
 // your graveyard and CARDNAME"). The zone-qualified forms are the separate
 // exileCost heads above (ExileFromHand/ExileFromGrave); the trailing
-// "/description" is dropped and ";" alternations fold to "," like every
-// other non-mana head.
-var exileBattlefieldCost = regexp.MustCompile(`^Exile<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+// "/description" is captured into CostPart.Desc and ";" alternations fold to
+// "," like every other non-mana head.
+var exileBattlefieldCost = regexp.MustCompile(`^Exile<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
 // exiledMoveToGraveCost matches Forge's ExiledMoveToGrave<N/Spec> token --
 // moving N cards matching Spec from EXILE into their OWNER's graveyard as
 // the payment (the Eldrazi processor activation/trigger costs and Shelob,
 // Dread Weaver's {2}{B} ability; 16 corpus files). The trailing
-// "/description" is dropped and ";" alternations fold to "," like every
-// other non-mana head. Before the head existed the token hit the final
+// "/description" is captured into CostPart.Desc and ";" alternations fold to
+// "," like every other non-mana head. Before the head existed the token hit the final
 // unrecognised-symbol fallback: a phantom {1} rode the price (a player with
 // exactly {2}{B} could not activate Shelob) and the cost's governing action
 // was silently dropped -- a fail-open defect.
-var exiledMoveToGraveCost = regexp.MustCompile(`^ExiledMoveToGrave<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+var exiledMoveToGraveCost = regexp.MustCompile(`^ExiledMoveToGrave<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
 // payLifeXCost matches Forge's announced life payment PayLife<X> (Toxic
 // Deluge's "pay X life", Necrodominance's end-step body): the cast announces
@@ -338,7 +348,7 @@ var payLifeXCost = regexp.MustCompile(`^PayLife<X>$`)
 // counters"): the kind is read and the count is the cast's announced X,
 // bounded by the counters the source actually has. The fixed form is the
 // nonManaCost head above.
-var subCounterXCost = regexp.MustCompile(`^SubCounter<X/([^/>]+)(?:/[^>]*)?>$`)
+var subCounterXCost = regexp.MustCompile(`^SubCounter<X/([^/>]+)(?:/([^>]*))?>$`)
 
 // damageYouCost matches Forge's DamageYou<N> token -- the payer takes N
 // damage from the source as the payment (Forge CostDamage). The corpus's
@@ -346,7 +356,7 @@ var subCounterXCost = regexp.MustCompile(`^SubCounter<X/([^/>]+)(?:/[^>]*)?>$`)
 // them"), which the unless-pay arm prices through
 // effects.ParseDamageUnlessCost; this head keeps a plain Cost$ spelling out
 // of Cost.Unknown.
-var damageYouCost = regexp.MustCompile(`^DamageYou<(\d+)(?:/[^>]*)?>$`)
+var damageYouCost = regexp.MustCompile(`^DamageYou<(\d+)(?:/([^>]*))?>$`)
 
 var costBraces = strings.NewReplacer("{", " ", "}", " ")
 
@@ -398,7 +408,7 @@ func ParseCost(s string) Cost {
 				// The dynamic tapXType heads (see the regex's doc): a TapPermanent
 				// part whose count the tap election resolves at payment -- "X"
 				// announcing the cast's {X}, "Any" free. N is unused.
-				c.TapPermanent = append(c.TapPermanent, CostPart{Dyn: m[1], Spec: strings.ReplaceAll(m[2], ";", ",")})
+				c.TapPermanent = append(c.TapPermanent, CostPart{Dyn: m[1], Spec: strings.ReplaceAll(m[2], ";", ","), Desc: m[3]})
 				continue
 			}
 			if m := choiceCost.FindStringSubmatch(sym); m != nil {
@@ -411,7 +421,7 @@ func ParseCost(s string) Cost {
 					c.reportUnknown(sym)
 					continue
 				}
-				part := CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ",")}
+				part := CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ","), Desc: m[4]}
 				switch m[1] {
 				case "Reveal":
 					c.Reveal = append(c.Reveal, part)
@@ -462,7 +472,7 @@ func ParseCost(s string) Cost {
 				// Fold Forge's ";" OR alternation into the "," MatchesSpec
 				// already uses, so "Artifact;Creature" matches either.
 				spec := strings.ReplaceAll(m[3], ";", ",")
-				part := CostPart{N: int32(n), Spec: spec}
+				part := CostPart{N: int32(n), Spec: spec, Desc: m[4]}
 				switch m[1] {
 				case "Sac":
 					c.Sac = append(c.Sac, part)
@@ -483,7 +493,7 @@ func ParseCost(s string) Cost {
 				// used to substitute one generic mana (and report the head via
 				// reportUnknown, the census's cost:Draw label) never runs.
 				spec := strings.ReplaceAll(m[2], ";", ",")
-				c.Draw = append(c.Draw, CostPart{Spec: spec, Dyn: m[1]})
+				c.Draw = append(c.Draw, CostPart{Spec: spec, Dyn: m[1], Desc: m[3]})
 				continue
 			}
 			if m := exileBattlefieldCost.FindStringSubmatch(sym); m != nil {
@@ -497,7 +507,7 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
-				c.Exile = append(c.Exile, CostPart{N: int32(n), Spec: spec, Zone: state.ZBattlefield})
+				c.Exile = append(c.Exile, CostPart{N: int32(n), Spec: spec, Zone: state.ZBattlefield, Desc: m[3]})
 				continue
 			}
 			if m := exiledMoveToGraveCost.FindStringSubmatch(sym); m != nil {
@@ -511,7 +521,7 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
-				c.MoveToGrave = append(c.MoveToGrave, CostPart{N: int32(n), Spec: spec})
+				c.MoveToGrave = append(c.MoveToGrave, CostPart{N: int32(n), Spec: spec, Desc: m[3]})
 				continue
 			}
 			if m := payLifeXCost.FindStringSubmatch(sym); m != nil {
@@ -525,7 +535,7 @@ func ParseCost(s string) Cost {
 				// The announced form: the kind is read; the count is the cast's
 				// announced X (bounded by the source's counters at the X ask).
 				spec := strings.ReplaceAll(m[1], ";", ",")
-				c.SubCounter = append(c.SubCounter, CostPart{Spec: spec, Announced: true})
+				c.SubCounter = append(c.SubCounter, CostPart{Spec: spec, Announced: true, Desc: m[2]})
 				continue
 			}
 			if m := damageYouCost.FindStringSubmatch(sym); m != nil {
@@ -538,7 +548,7 @@ func ParseCost(s string) Cost {
 					c.reportUnknown(sym)
 					continue
 				}
-				c.DamageYou = append(c.DamageYou, CostPart{N: int32(n)})
+				c.DamageYou = append(c.DamageYou, CostPart{N: int32(n), Desc: m[2]})
 				continue
 			}
 			if m := exileCost.FindStringSubmatch(sym); m != nil {
@@ -552,7 +562,7 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				spec := strings.ReplaceAll(m[3], ";", ",")
-				part := CostPart{N: int32(n), Spec: spec}
+				part := CostPart{N: int32(n), Spec: spec, Desc: m[4]}
 				if m[1] != "FromHand" {
 					part.Zone = state.ZGraveyard
 				}
@@ -569,18 +579,18 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
-				c.AddCounter = append(c.AddCounter, CostPart{N: int32(n), Spec: spec})
+				c.AddCounter = append(c.AddCounter, CostPart{N: int32(n), Spec: spec, Desc: m[3]})
 				continue
 			}
 			if m := sacXCost.FindStringSubmatch(sym); m != nil {
 				spec := strings.ReplaceAll(m[1], ";", ",")
-				c.Sac = append(c.Sac, CostPart{Spec: spec, Announced: true})
+				c.Sac = append(c.Sac, CostPart{Spec: spec, Announced: true, Desc: m[2]})
 				continue
 			}
 			if m := payEnergyCost.FindStringSubmatch(sym); m != nil {
 				if m[1] == "X" {
 					// The dynamic form: the SAME X the cast announces.
-					c.Energy = append(c.Energy, CostPart{Spec: "X"})
+					c.Energy = append(c.Energy, CostPart{Spec: "X", Desc: m[2]})
 					continue
 				}
 				n, err := strconv.ParseInt(m[1], 10, 64)
@@ -592,7 +602,7 @@ func ParseCost(s string) Cost {
 					c.reportUnknown(sym)
 					continue
 				}
-				c.Energy = append(c.Energy, CostPart{N: int32(n)})
+				c.Energy = append(c.Energy, CostPart{N: int32(n), Desc: m[2]})
 				continue
 			}
 			if m := returnCost.FindStringSubmatch(sym); m != nil {
@@ -606,7 +616,7 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
-				c.Return = append(c.Return, CostPart{N: int32(n), Spec: spec})
+				c.Return = append(c.Return, CostPart{N: int32(n), Spec: spec, Desc: m[3]})
 				continue
 			}
 			if m := putCardToLibCost.FindStringSubmatch(sym); m != nil {
@@ -630,7 +640,7 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				part := CostPart{N: int32(n), Spec: strings.ReplaceAll(m[4], ";", ","),
-					LibraryPos: int32(pos)}
+					LibraryPos: int32(pos), Desc: m[5]}
 				switch m[1] {
 				case "Hand":
 					part.Zone = state.ZHand
@@ -1054,6 +1064,22 @@ func (e *Engine) rawBaseCost(p state.PlayerID, id state.ObjID) Cost {
 	return e.parseCost(o.Face().ManaCost)
 }
 
+// castOfferBase is the composed RAW base every ordinary cast offer is gated on:
+// the printed mana cost with CR 702.51 Convoke's creatures and CR 702.66
+// Improvise's artifacts credited as generic, in that order (improviseCost
+// excludes convokeTaps so one permanent is never committed twice). It is ONE
+// helper so the plain cast offer (rules/legal.go's hand walk) and the
+// MayFlashCost alternate offer (rules/mayflash.go) cannot drift: the mayflash
+// offer charges the same base PLUS its extra cost, and both must price the
+// printed cost identically. Returns a value (not the committed taps) because
+// the offer gate only needs the credit; the actual commitment is re-derived
+// per cast by convokeAsk.
+func (e *Engine) castOfferBase(p state.PlayerID, id state.ObjID) Cost {
+	base, taps := e.convokeCost(p, id, e.rawBaseCost(p, id))
+	base, _ = e.improviseCost(p, id, base, taps)
+	return base
+}
+
 // offerCostFor is the CR 601.2f-composed cost an offer is gated on: the
 // selected base cost (a spell's printed mana cost, or an alternative/
 // flashback/surge/kicker cost) with RaiseCost then ReduceCost applied to
@@ -1412,6 +1438,251 @@ func formatCost(c Cost) string {
 			strconv.FormatInt(int64(part.LibraryPos), 10)+"/"+part.Spec+">")
 	}
 	return strings.Join(parts, " ")
+}
+
+// costPhrase renders a parsed cost for a PLAYER-FACING prompt or option
+// label: Forge's non-mana heads become English, and the mana half stays in
+// the card's own Forge notation ("2 B", "U") so it matches the card view's
+// mana_cost (view/view.go) and the web's mana.ts symbol renderer. It is the
+// deliberate sibling of formatCost: formatCost writes the raw whitespace-
+// delimited token back out ("Sac<1/Creature.Other>") and is retained for
+// the machine wire field decision.Option.Cost (manaActivationCostMarker).
+//
+// Forge embeds a human-readable "/description" on most non-mana tokens
+// (Sac<1/Creature.Other/another creature>); costPhrase uses it verbatim when
+// present (it is the card's own wording) and otherwise synthesizes a
+// reasonable noun phrase from the head and spec. The fallback is
+// deliberately not an oracle-text generator -- see CostPart.Desc.
+//
+// An empty Cost (or one whose only tokens were the payment-mode marker
+// "Mandatory") renders as the empty string, so a caller that would
+// otherwise emit "pay ?" can detect the no-cost case instead.
+func costPhrase(c Cost) string {
+	var clauses []string
+	if m := formatManaClause(c); m != "" {
+		clauses = append(clauses, m)
+	}
+	if c.Tap {
+		clauses = append(clauses, "tap this permanent")
+	}
+	if c.Life > 0 {
+		clauses = append(clauses, "pay "+strconv.FormatInt(int64(c.Life), 10)+" life")
+	}
+	for range c.LifeX {
+		clauses = append(clauses, "pay X life")
+	}
+	for _, part := range c.DamageYou {
+		clauses = append(clauses, "take "+countPhrase(part.N)+" damage")
+	}
+	for _, part := range c.Sac {
+		clauses = append(clauses, "sacrifice "+objectPhrase(part, "permanent"))
+	}
+	for _, part := range c.Discard {
+		clauses = append(clauses, "discard "+objectPhrase(part, "card"))
+	}
+	for _, part := range c.Draw {
+		if part.Dyn != "" {
+			clauses = append(clauses, "draw X cards")
+		} else {
+			clauses = append(clauses, "draw "+countPhrase(part.N)+" card"+pluralSuffix(part.N))
+		}
+	}
+	for _, part := range c.SubCounter {
+		n := countPhrase(part.N)
+		if part.Announced {
+			n = "X"
+		}
+		clauses = append(clauses, "remove "+n+" "+strings.ToUpper(part.Spec)+" counter"+pluralSuffix(part.N))
+	}
+	for _, part := range c.AddCounter {
+		clauses = append(clauses, "add "+countPhrase(part.N)+" loyalty counter"+pluralSuffix(part.N))
+	}
+	for _, part := range c.Exile {
+		clauses = append(clauses, "exile "+objectPhrase(part, "card"))
+	}
+	for _, part := range c.MoveToGrave {
+		clauses = append(clauses, "put "+objectPhrase(part, "card")+" from exile into its owner's graveyard")
+	}
+	for _, part := range c.Reveal {
+		clauses = append(clauses, "reveal "+objectPhrase(part, "card"))
+	}
+	for _, part := range c.Behold {
+		clauses = append(clauses, "behold "+objectPhrase(part, "card"))
+	}
+	for _, part := range c.TapPermanent {
+		clauses = append(clauses, "tap "+objectPhrase(part, "permanent"))
+	}
+	for _, part := range c.Blight {
+		clauses = append(clauses, "blight "+countPhrase(part.N))
+	}
+	for _, part := range c.Return {
+		clauses = append(clauses, "return "+objectPhrase(part, "permanent")+" to its owner's hand")
+	}
+	for _, part := range c.PutToLib {
+		clauses = append(clauses, "put "+objectPhrase(part, "card")+" from your "+zoneNoun(part.Zone)+" into your library")
+	}
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			clauses = append(clauses, "pay X energy")
+		} else {
+			clauses = append(clauses, "pay "+countPhrase(part.N)+" energy")
+		}
+	}
+	if c.Forage {
+		clauses = append(clauses, "forage")
+	}
+	return joinClauses(clauses)
+}
+
+// formatManaClause renders the mana half of a cost in Forge notation with a
+// "pay " prefix ("pay 2 B"). It is empty when the cost has no mana
+// component, so costPhrase can omit the clause entirely rather than emit a
+// bare "pay".
+func formatManaClause(c Cost) string {
+	var parts []string
+	if c.Generic > 0 {
+		parts = append(parts, strconv.FormatInt(int64(c.Generic), 10))
+	}
+	const faces = "WUBRGC"
+	for i, face := range []byte(faces) {
+		for n := int32(0); n < c.Colored[i]; n++ {
+			parts = append(parts, string(face))
+		}
+	}
+	for range c.X {
+		parts = append(parts, "X")
+	}
+	for _, h := range c.Hybrid {
+		parts = append(parts, string([]byte{h.A, '/', h.B}))
+	}
+	for _, t := range c.Twobrid {
+		parts = append(parts, strconv.FormatInt(int64(t.Generic), 10)+"/"+string(t.Col))
+	}
+	for _, p := range c.Phyrexian {
+		parts = append(parts, string([]byte{p, 'P'}))
+	}
+	for _, hp := range c.HybridPhyrexian {
+		parts = append(parts, string([]byte{hp.A, '/', hp.B, '/', 'P'}))
+	}
+	for n := c.Snow; n > 0; n-- {
+		parts = append(parts, "S")
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return "pay " + strings.Join(parts, " ")
+}
+
+// objectPhrase renders one non-mana cost part's noun: Forge's embedded
+// /description verbatim when the corpus supplies one (the card's own
+// wording), else the count as digits plus a noun derived from the spec's
+// leading type word or the head's default. An announced part (Sac<X>,
+// SubCounter<X>) renders its "X" count. On the description path a count of
+// one is dropped, so "another creature" is not prefixed with "1 ".
+func objectPhrase(part CostPart, defNoun string) string {
+	count := ""
+	if part.Announced {
+		count = "X "
+	} else if part.N != 1 || part.Desc == "" {
+		// The synthesized path keeps the count as digits (even 1), per the
+		// brief; only the embedded-description path drops a count of one,
+		// so "another creature" is not prefixed with "1 ".
+		count = strconv.FormatInt(int64(part.N), 10) + " "
+	}
+	if part.Desc != "" {
+		// The corpus description already names the object ("another
+		// creature", "this artifact"); only an explicit count > 1 needs the
+		// number in front of it.
+		if part.N != 1 && !part.Announced {
+			return count + part.Desc
+		}
+		return part.Desc
+	}
+	return count + specNoun(part.Spec, defNoun)
+}
+
+// specNoun derives a readable noun from a cost spec's leading type word
+// ("Creature.Other" -> "creature"). It is the fallback only: the corpus's
+// embedded /description wins wherever it exists (objectPhrase). An unknown
+// base word falls back to the head's own default noun rather than echoing
+// raw filter syntax at the player.
+func specNoun(spec, defNoun string) string {
+	base := spec
+	if i := strings.IndexAny(base, ".+, ;"); i >= 0 {
+		base = base[:i]
+	}
+	switch strings.ToLower(base) {
+	case "creature":
+		return "creature"
+	case "artifact":
+		return "artifact"
+	case "enchantment":
+		return "enchantment"
+	case "land":
+		return "land"
+	case "planeswalker":
+		return "planeswalker"
+	case "permanent":
+		return "permanent"
+	case "card":
+		return "card"
+	case "token":
+		return "token"
+	default:
+		return defNoun
+	}
+}
+
+// zoneNoun names the origin zone a PutCardToLib part pays from, for the
+// prose phrase.
+func zoneNoun(z state.Zone) string {
+	switch z {
+	case state.ZHand:
+		return "hand"
+	case state.ZGraveyard:
+		return "graveyard"
+	default:
+		return "battlefield"
+	}
+}
+
+// countPhrase renders a cost part's count as digits ("2"), or "X" for an
+// announced part. No number-to-word table: the brief pins digits.
+func countPhrase(n int32) string {
+	return strconv.FormatInt(int64(n), 10)
+}
+
+// pluralSuffix returns "s" for a count that is not exactly one.
+func pluralSuffix(n int32) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
+}
+
+// joinClauses joins prose cost clauses the way a sentence reads: "a", "a
+// and b", "a, b and c".
+func joinClauses(clauses []string) string {
+	switch len(clauses) {
+	case 0:
+		return ""
+	case 1:
+		return clauses[0]
+	case 2:
+		return clauses[0] + " and " + clauses[1]
+	default:
+		return strings.Join(clauses[:len(clauses)-1], ", ") + " and " + clauses[len(clauses)-1]
+	}
+}
+
+// capitaliseFirst upper-cases the first rune, for an option label built from
+// a costPhrase.
+func capitaliseFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	r, size := utf8.DecodeRuneInString(s)
+	return string(unicode.ToUpper(r)) + s[size:]
 }
 
 // manaCostBeyondTap reports whether paying this cost takes anything beyond
@@ -2012,7 +2283,7 @@ func ParseUnlessCost(s string) (Cost, bool) {
 				// Fold Forge's ";" OR alternation into the "," MatchesSpec
 				// already uses, so "Artifact;Creature" matches either.
 				spec := strings.ReplaceAll(m[3], ";", ",")
-				part := CostPart{N: int32(n), Spec: spec}
+				part := CostPart{N: int32(n), Spec: spec, Desc: m[4]}
 				switch m[1] {
 				case "Sac":
 					c.Sac = append(c.Sac, part)
@@ -2040,7 +2311,7 @@ func ParseUnlessCost(s string) (Cost, bool) {
 				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
 					return Cost{}, false
 				}
-				c.Reveal = append(c.Reveal, CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ",")})
+				c.Reveal = append(c.Reveal, CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ","), Desc: m[4]})
 				continue
 			}
 			// Every other token — a dynamic amount, an unmodelled cost verb,

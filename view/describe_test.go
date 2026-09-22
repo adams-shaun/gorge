@@ -93,6 +93,11 @@ func TestDescribeTemplates(t *testing.T) {
 		{"mana clear", events.Event{Kind: events.ManaClear, Player: 0}, "Ann's mana pool empties"},
 		{"counter add", events.Event{Kind: events.CounterChange, Obj: bear, Counter: "P1P1", Amount: 2}, "Bear #1 gets 2 P1P1 counters"},
 		{"counter remove", events.Event{Kind: events.CounterChange, Obj: bear, Counter: "M1M1", Amount: -1}, "Bear #1 loses 1 M1M1 counter"},
+		// CR 122.1d (feedback 20260921T204701Z): a stun counter is removed
+		// instead of untapping, so a STUN decrement names the rule that
+		// connects it to the untap the player was watching for. Other
+		// counter kinds keep the plain line.
+		{"stun counter remove", events.Event{Kind: events.CounterChange, Obj: bear, Counter: "STUN", Amount: -1}, "Bear #1 loses 1 STUN counter (stun counters are removed instead of untapping)"},
 		{"attackers", events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{bear}}, "Bear #1 attacks Bob"},
 		{"no attackers", events.Event{Kind: events.DeclareAttackers, Player: 1}, "No attackers"},
 		{"blockers", events.Event{Kind: events.DeclareBlockers, Pairs: [][2]state.ObjID{{bear, bolt}}}, "Bolt #2 blocks Bear #1"},

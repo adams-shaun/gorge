@@ -540,6 +540,20 @@ export interface Option {
    */
   required?: boolean;
   /**
+   * MinBlockers/MaxBlockers are the CR 509.1a MinMaxBlocker bounds on the
+   * ATTACKER this block option names (Min$ N: the attacker can be blocked
+   * only by 0 or at least N creatures; Max$ N: by at most N; both set)
+   * together for Min$ All, where the attacker must be blocked by every
+   * legal blocker). They exist for the same reason Required does: the
+   * engine REJECTS a whole-declaration count outside the bounds
+   * (validateMinMaxBlockers), so a rules-ignorant client -- the bot
+   * policy included -- needs the bound on the wire to answer legally.
+   * Both are omitted for an unbounded attacker, so every ordinary option
+   * list serialises byte-identically.
+   */
+  min_blockers?: number;
+  max_blockers?: number;
+  /**
    * Group is an exclusivity marker: two options carrying the SAME non-empty
    * Group are mutually exclusive, and at most one of them may be selected
    * in a single answer. The whole contract is that sentence -- it says

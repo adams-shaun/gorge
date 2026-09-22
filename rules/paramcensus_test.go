@@ -144,7 +144,11 @@ var baseBuckets = map[string]bucket{
 	"s":  bStat, "st": bStat, "sv": bStat,
 	"r": bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
-	"targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
+	// a is faceWantsConvoked's compiled-ability walk (the face's Abilities
+	// slice): each element is a *cards.SA whose Defined$ parameter the
+	// Convoked provenance gate reads -- the same cards.SA parameter map
+	// every bSA entry covers.
+	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
 	"head": bSA, "ma": bSA, "pt.SA": bSA,
 	// rsub is runPreventionShieldRider's rewritten copy of the
 	// PreventionSubAbility$ rider (a shallow copy of a fresh ResolveSVar
