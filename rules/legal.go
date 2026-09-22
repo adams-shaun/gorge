@@ -1439,6 +1439,19 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				}
 			}
 		}
+		// CR 714.3a: an Adventure spell face has its own timing and may be
+		// cast from hand even when the creature front is not currently castable.
+		// Keep the card-level restriction/suppression gates above shared, but
+		// evaluate this alternate face before the front-face timing gate.
+		if int(o.FaceIdx) == 0 {
+			if af := adventureSpellFace(o); af != nil && e.spellTimingOK(p, id, af, sorcery) &&
+				e.castTargetsAvailable(p, id, af.SpellAbility()) {
+				if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
+				}
+			}
+		}
 		if !e.spellTimingOK(p, id, f, sorcery) {
 			// MayFlashCost (Forge's K:MayFlashCost, CR 702.8): when the ordinary
 			// timing gate fails, a face printed with the keyword is NOT skipped
@@ -1512,24 +1525,6 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if offerCastable(p, id, withSpellAbilityExtras(rf, e.parseCost(rf.ManaCost)), spellScope(""), false) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
-				}
-			}
-		}
-		// CR 714.3a: the Adventure spell face of an Adventure card may be cast
-		// from hand. Mode adventure_alt is consumed by beginCast, which records
-		// a FlipFace to the spell face before the ordinary cast transaction;
-		// the resolution then exiles the card into the adventure zone
-		// (spellRestZone's FlagAdventure branch). Gated on the ADVENTURE face's
-		// own timing, targets and cost -- an Instant Adventure casts at instant
-		// speed, a Sorcery Adventure only at sorcery timing -- exactly like the
-		// Room offer above, including the withSpellAbilityExtras fold (the
-		// spell face's own SP Cost$ additional parts).
-		if int(o.FaceIdx) == 0 {
-			if af := adventureSpellFace(o); af != nil && e.spellTimingOK(p, id, af, sorcery) &&
-				e.castTargetsAvailable(p, id, af.SpellAbility()) {
-				if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
-					out = append(out, decision.Option{Index: len(out), Kind: "cast",
-						Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
 				}
 			}
 		}
