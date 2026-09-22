@@ -173,6 +173,56 @@ func TestIdrisDoesNotGainUnrelatedExiledCards(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// gainsManaArtifactSrc is an exiled artifact carrying only a mana ability:
+// "{T}: Add {B}."
+func gainsManaArtifactSrc(t testing.TB) *cards.Card {
+	t.Helper()
+	return card(t, "Name:Gains Mana Artifact\nTypes:Artifact\n"+
+		"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Add {B}.\n"+
+		"Oracle:x\n")
+}
+
+// TestIdrisGainsTheExiledArtifactManaAbility pins the class's mana-ability
+// route (a distinct activation path from beginActivation): the exiled
+// artifact's mana ability is offered on Idris as an "activate" option and
+// produces mana when activated.
+func TestIdrisGainsTheExiledArtifactManaAbility(t *testing.T) {
+	idris := tokenReplCorpusCard(t, "Idris, Soul of the TARDIS")
+	artifact := gainsManaArtifactSrc(t)
+	e, cfg := tokenReplGame(t, 9108, idris, artifact)
+	idrisID := moveSeededCard(t, e, 0, idris, state.ZBattlefield)
+	artifactID := moveSeededCard(t, e, 0, artifact, state.ZBattlefield)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: artifactID, From: state.ZBattlefield,
+		To: state.ZExile, IDs: []state.ObjID{idrisID}})
+	e.pending = nil
+	e.priorityRound()
+
+	driveToStep(t, e, 3, 0, state.StepMain1)
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no priority decision")
+	}
+	var opt decision.Option
+	found := false
+	for _, o := range d.Options {
+		if o.Kind == "activate" && o.Obj == idrisID {
+			opt, found = o, true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("Idris offers no gained mana ability: %+v", d.Options)
+	}
+	submitChoices(t, e, opt.Index)
+	if got := e.G.Players[0].Pool[state.MB]; got != 1 {
+		t.Fatalf("gained mana ability produced %d black, want 1", got)
+	}
+	if o := e.G.Obj(idrisID); o == nil || !o.Tapped {
+		t.Fatalf("Idris = %+v, want tapped by the gained mana ability", o)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // hasGainedAbility reports whether the pending priority decision offers a
 // gained ability on obj.
 func hasGainedAbility(e *Engine, obj state.ObjID) bool {
