@@ -1496,6 +1496,12 @@ func IsNextTurnDuration(dur string) bool {
 	return false
 }
 
+// IsUntilYourNextTurn distinguishes the start-of-next-turn boundary from
+// UntilTheEndOfYourNextTurn, which lasts through that turn's cleanup.
+func IsUntilYourNextTurn(dur string) bool {
+	return strings.EqualFold(strings.TrimSpace(dur), "UntilYourNextTurn")
+}
+
 // replacementLineWith reads ReplaceWith$ off a parseReplacementLine-built
 // static line -- the SVar name of the R: body's own ReplaceWith$ body, not a
 // card Params map. Factored into its own function so the paramcensus rot
