@@ -825,6 +825,25 @@ func oneTriggerPlayer(t state.Target) []state.Target {
 	return []state.Target{t}
 }
 
+// plainRememberedSelector reports whether a Defined$/ValidPlayers selector is
+// the plain Remembered family: it starts with "Remembered" and does NOT end
+// with Controller or Owner. Forge's AbilityUtils.addPlayer maps a remembered
+// CARD to its controller/owner only for those two suffixes; for every other
+// Remembered spelling a remembered card contributes no player at all. The
+// shared PlayerOf mapping would instead read a remembered card's controller
+// for EVERY spelling, which is the leak this guards: a RepeatEach iteration's
+// Remembered is the loop subject PLUS whatever the previous iteration
+// RememberChose$, so a chooser defined as `Remembered` would otherwise add
+// the previously chosen card's controller as a second chooser and re-ask that
+// player with the collective pool (Summon: Valefor re-asking the first
+// opponent on the second iteration).
+func plainRememberedSelector(sel string) bool {
+	if !strings.HasPrefix(sel, "Remembered") {
+		return false
+	}
+	return !strings.HasSuffix(sel, "Controller") && !strings.HasSuffix(sel, "Owner")
+}
+
 func playersOf(ts []state.Target) []state.Target {
 	var out []state.Target
 	for _, t := range ts {

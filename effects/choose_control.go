@@ -297,7 +297,18 @@ func choiceMatches(g *state.Game, c *Ctx, spec string, o *state.Object) bool {
 func choiceChoosers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	seen := map[state.PlayerID]bool{}
 	var out []state.PlayerID
+	plainRemembered := plainRememberedSelector(sa.Params["Defined"])
 	for _, t := range Defined(h, c, sa) {
+		// Forge's getDefinedPlayers("Remembered") adds only remembered
+		// PLAYERS; a remembered CARD contributes its controller/owner only
+		// for the RememberedController/RememberedOwner spellings. PlayerOf
+		// maps a remembered card to its controller for every spelling, so
+		// without this guard a RepeatEach iteration whose Remembered holds
+		// the previous iteration's RememberChosen$ card would re-ask that
+		// card's controller (Summon: Valefor).
+		if plainRemembered && !t.IsPlayer {
+			continue
+		}
 		p := PlayerOf(h, c, t)
 		if !seen[p] && int(p) < len(h.Game().Players) && !h.Game().Players[p].Lost {
 			seen[p] = true
