@@ -146,7 +146,6 @@ func effPoison(h Host, c *Ctx, sa *cards.SA) {
 			Counter: "POISON", Amount: n})
 	}
 }
-}
 
 func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	// fx42 scoping: consume and clear the answered Optional$ election at the
