@@ -554,8 +554,53 @@ func causeSpecQualifiersKnown(alt string) bool {
 	return true
 }
 
+// exploitedMatches implements Mode$ Exploited (CR 702.58c: "Whenever a
+// creature exploits a creature, ..." -- 24 corpus lines / 24 files at the
+// pin). The causing event is the events.Exploit marker the K:Exploit
+// expansion's marker SA emits (effects/exploit.go), the same pure-marker
+// shape trig:Explores/trig:Investigated fire on: Obj is the EXPLOITING
+// creature, IDs[0] the EXPLOITED one, Player the exploiting creature's
+// controller.
+//
+//   - ValidSource$ names the exploiting creature and is matched against
+//     ev.Obj through the ordinary spec grammar with the trigger's own source
+//     as Self -- so Graf Reaver's `ValidSource$ Card.Self` compares the
+//     exploiter to Graf Reaver, and Colonel Autumn's `ValidSource$
+//     Creature.YouCtrl` admits any creature its controller controls.
+//   - ValidCard$ names the exploited creature and is matched against
+//     ev.IDs[0] -- Henry Wu's `Creature.nonHuman`, Silent-Blade Oni's
+//     `Creature.!token` and the plain `Creature` of every other carrier.
+//   - ValidPlayer$ names the exploiting player (no corpus carrier carries
+//     one; the gate is read anyway so a future line is not silently inert).
+//
+// Every corpus line carries BOTH ValidSource$ and ValidCard$, so the two
+// reads are the whole matcher. A marker with no exploited id (a malformed
+// chain) never matches; the marker is emitted only after the sacrifice's own
+// MoveZone, so the exploited card is readable in its graveyard.
+func (e *Engine) exploitedMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	if ev.Kind != events.Exploit || len(ev.IDs) == 0 || ev.IDs[0] == 0 {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	sc := e.specCtx(source, ctrl)
+	if v := t.Params["ValidSource"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, sc) {
+		return false
+	}
+	if v := t.Params["ValidCard"]; v != "" &&
+		!effects.MatchesSpecCtx(e.G, v, ev.IDs[0], sc) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	return true
+}
+
 func init() {
 	registerTrigMatcher((*Engine).cycledMatches, "Cycled")
+	registerTrigMatcher((*Engine).exploitedMatches, "Exploited")
 	registerTrigMatcher((*Engine).exploresMatches, "Explores")
 	registerTrigMatcher((*Engine).investigatedMatches, "Investigated")
 	registerTrigMatcher((*Engine).discoverMatches, "Discover")

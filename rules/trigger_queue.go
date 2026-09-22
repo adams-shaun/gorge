@@ -395,6 +395,32 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A granted Exploit (CR 702.58a via a layer-6 AddKeyword$ Exploit --
+	// Colonel Autumn's "Other legendary creatures you control have
+	// exploit"): the Ward/Afflict shape. The trigger is optional in
+	// EFFECT (its body poses the may-sacrifice election when it resolves),
+	// not in the trigger itself, so it is pushed unconditionally; its
+	// Counter payload "__kwExploit" is what events.Apply rebuilds into the
+	// same DB$ Sacrifice -> DB$ Exploit chain the printed K:Exploit
+	// expansion carries. The trigger's Source is the granted creature that
+	// just entered, which the marker half names as the exploiter.
+	if pt.Exploit {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwExploit", Text: "exploit ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// One of the Ring emblem's four level abilities (CR 701.54c): the emblem
 	// has no object in any zone and no face, so its stack object is minted by
 	// a RingEmblemPush event whose "__ring:<level>" payload events.Apply

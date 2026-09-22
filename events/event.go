@@ -618,6 +618,20 @@ const (
 	// after every earlier Kind, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Seek
+	// Exploit records one completed exploit sacrifice (CR 702.58a, task
+	// exploit1): Obj is the EXPLOITING creature (the permanent whose exploit
+	// ability resolved), Player its controller, IDs[0] the exploited creature
+	// -- the one sacrificed to pay. It is an Apply no-op marker, exactly like
+	// Explore/Investigate: the sacrifice's own state change (the
+	// battlefield-to-graveyard MoveZone) is its own event that precedes this
+	// one, and the record is what trig:Exploited matches ("Whenever a
+	// creature you control exploits a creature", Colonel Autumn; "When
+	// CARDNAME exploits a creature", Graf Reaver). A declined exploit
+	// election records nothing at all -- CR 702.58a's "you may sacrifice a
+	// creature" means no sacrifice, no exploit. Appended after Seek, still
+	// after every earlier Kind, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	Exploit
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -628,7 +642,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Seek) + 1
+	NumKinds = int(Exploit) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -740,7 +754,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
-	"discover", "seek"}
+	"discover", "seek", "exploit"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

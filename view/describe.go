@@ -269,6 +269,16 @@ func Describe(g *state.Game, ev events.Event) string {
 		// line names only the investigating seat (Player; Obj is the source
 		// permanent, which may be 0 for a game-rule investigate).
 		return player(g, ev.Player) + " investigates"
+	case events.Exploit:
+		// The exploit record (CR 702.58a, task exploit1): Obj is the
+		// exploiting creature, IDs[0] the exploited (sacrificed) one. The
+		// sacrifice's own MoveZone line already named the creature, so this
+		// line names both halves of the action the way the oracle reads.
+		s := obj(g, ev.Obj) + " exploits"
+		if len(ev.IDs) > 0 {
+			s += " " + obj(g, ev.IDs[0])
+		}
+		return s
 	case events.Discover, events.Seek:
 		// The discover (CR 701.57) and seek records (task trigdisc1) are pure
 		// markers: the action's own state changes (the exiles/reveals and the

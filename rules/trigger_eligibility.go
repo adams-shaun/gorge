@@ -160,6 +160,15 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default) keeps a Discover/SeekAll-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "Exploited":
+		// The Exploit marker's ordinal is past the 64-bit mask's reach, the
+		// Investigated/Discover shape: a mask bit is not encodable and
+		// allows() fails open for every kind at or past triggerMaskKindBits,
+		// so the mode is admitted through that fail-open path and gated by
+		// the full matcher (exploitedMatches). Naming the mode here rather
+		// than letting it fall to the allTriggerEvents default keeps an
+		// Exploited-only face's mask narrow for every other kind.
+		return 0
 	case "RingTemptsYou":
 		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
 		// is not encodable, and allows() fails open for every kind at or past
@@ -233,7 +242,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 
 func grantedKeywordTriggerEvent(kind events.Kind) bool {
 	return kind == events.TargetsChosen || kind == events.DeclareAttackers || kind == events.DeclareBlockers ||
-		kind == events.PutOnStack
+		kind == events.PutOnStack || kind == events.MoveZone
 }
 
 func triggerMaskForFace(f *cards.Face) triggerEventMask {

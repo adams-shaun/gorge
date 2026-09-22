@@ -120,6 +120,16 @@ type pendingTrigger struct {
 	// Source is the CAST SPELL (the stack object), whose face's mana value
 	// the effect reads at resolution. Idx and SA are unset for it.
 	Cascade bool
+	// Exploit is a GRANTED exploit keyword (a layer-6 AddKeyword$ Exploit,
+	// e.g. Colonel Autumn's "Other legendary creatures you control have
+	// exploit"): the same shape as Ward/Afflict -- the queue carries no
+	// parameter (the trigger body is the same two-step Sacrifice -> Exploit
+	// chain the printed K:Exploit expansion carries) and the drain pushes a
+	// KeywordTriggerPush whose __kwExploit payload events.Apply rebuilds
+	// structurally. The trigger's Source is the GRANTED creature that just
+	// entered, so the marker names it as the exploiter. Idx and SA are unset
+	// for it.
+	Exploit bool
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
@@ -730,6 +740,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
 				case events.PutOnStack:
 					e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
+				case events.MoveZone:
+					e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
 			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
@@ -994,6 +1006,10 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// carrying a Conspire grant) -- the early-return path above reaches this
 		// object through checkGrantedConspireTriggers's own call.
 		e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
+		// A granted Exploit must fire when its creature enters even when the
+		// object's own printed triggers are live for this event -- the same
+		// both-paths rule Afflict and Conspire follow.
+		e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -1349,6 +1365,7 @@ func init() {
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
 		"trig:Vote",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
+		"trig:Exploited",
 		"trig:Discover", "trig:SeekAll",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
@@ -1392,6 +1409,14 @@ func init() {
 		// Afterlife's expansion (cards/keywords.go) is a ChangesZone death
 		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
 		"kw:Afterlife",
+		// Exploit's expansion (cards/kw_exploit.go) is a ChangesZone ETB
+		// trigger whose effect is the optional DB$ Sacrifice -> DB$ Exploit
+		// chain (CR 702.58a). The layer-6 AddKeyword$ Exploit grant (Colonel
+		// Autumn's "Other legendary creatures you control have exploit") is
+		// synthesized by checkGrantedExploitTriggers, the Afflict/Dethrone
+		// precedent; the marker half is the api:Exploit primitive registered
+		// by effects/exploit.go.
+		"kw:Exploit",
 		// Mass effects, extra turns and new-set mechanics (the
 		// inbox-engine-gap-mass-turn-new-mechanics ticket):
 		//   - trig:UnlockDoor: a Room's unlock trigger (rules/rooms.go),

@@ -159,6 +159,14 @@ func Apply(g *state.Game, e Event) {
 		// trig:Discover / trig:SeekAll match. Player is the acting seat, Obj
 		// the resolving source permanent. One marker per completed action.
 
+	case Exploit:
+		// The exploit record (CR 702.58a, task exploit1) is a pure marker,
+		// exactly like Explore/Investigate: the sacrifice's own state change
+		// (the battlefield-to-graveyard MoveZone) is its own event that
+		// preceded this one, and the record is what trig:Exploited matches.
+		// Obj the exploiting creature, Player its controller, IDs[0] the
+		// exploited creature. A declined optional sacrifice records nothing.
+
 	case Pair:
 		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
 		// IDs[0] its chosen partner; both fields are set reciprocally when
@@ -1577,6 +1585,22 @@ func Apply(g *state.Game, e Event) {
 			if _, ok := strings.CutPrefix(e.Counter, "__kwCascade"); ok {
 				sa = &cards.SA{Kind: "DB", API: "Cascade",
 					Params: map[string]string{"TriggerDescription": "Cascade"}}
+			}
+			// A granted Exploit (rules.pushTrigger's __kwExploit payload) has
+			// no SVar either: rebuilt structurally into the same
+			// DB$ Sacrifice | Optional$ True | SacValid$ Creature |
+			// RememberSacrificed$ True -> DB$ Exploit chain the printed
+			// K:Exploit expansion carries (cards/kw_exploit.go), so the live
+			// game and the replay mint identical objects from the event text
+			// alone. The Exploit body reads the sacrificed creature off
+			// Ctx.Sacrificed, exactly as the printed chain does.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwExploit"); ok {
+				sac := &cards.SA{Kind: "DB", API: "Sacrifice",
+					Params: map[string]string{"Defined": "You", "Optional": "True", "SacValid": "Creature",
+						"RememberSacrificed": "True"}}
+				sac.Sub = &cards.SA{Kind: "DB", API: "Exploit",
+					Params: map[string]string{"TriggerDescription": "Exploit"}}
+				sa = sac
 			}
 		}
 		if sa == nil {

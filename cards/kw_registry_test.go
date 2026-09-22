@@ -22,6 +22,9 @@ var expandedHeads = []string{
 	"Living Weapon", "For Mirrodin", "Cumulative upkeep", "Echo",
 	"Equip", "Transmute", "Cycling", "TypeCycling", "Level up", "Affinity",
 	"Enchant", "Mobilize", "Afterlife", "Encore", "Embalm", "Eternalize",
+	// Appended after the split (each is a keyword whose expansion the
+	// pre-split switch never had): Exploit (CR 702.58, task exploit1).
+	"Exploit",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

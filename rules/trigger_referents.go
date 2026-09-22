@@ -155,6 +155,18 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// reads the trigger's own source or asks its own targets, so no
 		// separate referent field is minted for it.
 		c.TriggerCard = ev.Obj
+	case "Exploited":
+		// The exploit record's roles (task exploit1): the EXPLOITING creature
+		// is ev.Obj and rides TriggerSource (Colonel Autumn's team watch has
+		// its own body, but a body reading TriggeredSource/TriggeredCard gets
+		// a defined referent); the EXPLOITED creature is ev.IDs[0] and rides
+		// TriggerCard, so TriggeredCard/TriggeredCardLKICopy resolve against
+		// what the exploiter sacrificed (a "that creature" body).
+		c.TriggerSource = ev.Obj
+		if len(ev.IDs) > 0 {
+			c.TriggerCard = ev.IDs[0]
+		}
+		c.TriggerPlayer = player(ev.Player)
 	case "Exerted":
 		// The Exert event names the exerted permanent (ev.Obj) and its
 		// controller at exert time (ev.Player). TriggerCard is the exerted
