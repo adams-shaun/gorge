@@ -516,7 +516,7 @@ func (e *Engine) unlessCandidatesFor(payer state.PlayerID, ctx effects.Ctx, zone
 			// permanent cannot pay a sacrifice component.
 			continue
 		}
-		if !seen[id] && effects.MatchesSpecCtx(e.G, part.Spec, id, sc) {
+		if !seen[id] && e.matchesSpec(part.Spec, id, sc) {
 			out = append(out, id)
 		}
 	}

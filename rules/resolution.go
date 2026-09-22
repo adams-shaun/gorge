@@ -2399,7 +2399,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					if t.IsPlayer || t.Obj == 0 || seenShow[t.Obj] {
 						continue
 					}
-					if o := e.G.Obj(t.Obj); o != nil && effects.MatchesObjectCtx(e.G, show, o, sc) {
+					if o := e.G.Obj(t.Obj); o != nil && e.matchesSpec(show, t.Obj, sc) {
 						seenShow[t.Obj] = true
 						ids = append(ids, t.Obj)
 					}

@@ -168,7 +168,7 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 		// bypassing ExtraTypes) -- so clear it for this match, exactly as
 		// layers.go's matchesWithTypes does.
 		sc.PredicatePrograms = nil
-		if effects.MatchesSpecCtx(e.G, spec, id, sc) && e.firstAttackOK(t, id) {
+		if e.matchesSpec(spec, id, sc) && e.firstAttackOK(t, id) {
 			return true
 		}
 	}
@@ -230,7 +230,7 @@ func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state
 	}
 	matches := 0
 	for _, id := range ev.IDs {
-		if v := t.Params["ValidAttackers"]; v == "" || effects.MatchesSpecCtx(e.G, v, id, e.specCtx(source, ctrl)) {
+		if v := t.Params["ValidAttackers"]; v == "" || e.matchesSpec(v, id, e.specCtx(source, ctrl)) {
 			matches++
 		}
 	}
@@ -265,7 +265,7 @@ func (e *Engine) attackerBlockedCandidates(t cards.Trigger, source state.ObjID, 
 			continue
 		}
 		seen[a] = true
-		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, a, e.specCtx(source, ctrl)) {
+		if v := t.Params["ValidCard"]; v != "" && !e.matchesSpec(v, a, e.specCtx(source, ctrl)) {
 			continue
 		}
 		out = append(out, a)
@@ -306,7 +306,7 @@ func (e *Engine) attackerBlockedByPairCandidates(t cards.Trigger, source state.O
 			asc := sc
 			asc.ExtraKeywords = e.Derived(pr[0]).Keywords
 			asc.PredicatePrograms = nil
-			if !effects.MatchesSpecCtx(e.G, v, pr[0], asc) {
+			if !e.matchesSpec(v, pr[0], asc) {
 				continue
 			}
 		}
@@ -319,7 +319,7 @@ func (e *Engine) attackerBlockedByPairCandidates(t cards.Trigger, source state.O
 			bsc := sc
 			bsc.ExtraKeywords = e.Derived(pr[1]).Keywords
 			bsc.PredicatePrograms = nil
-			if !effects.MatchesSpecCtx(e.G, v, pr[1], bsc) {
+			if !e.matchesSpec(v, pr[1], bsc) {
 				continue
 			}
 		}
@@ -742,10 +742,10 @@ func (e *Engine) blocksCandidates(t cards.Trigger, source state.ObjID, ev events
 	ctrl := e.controllerOf(source)
 	var out [][2]state.ObjID
 	for _, pr := range ev.Pairs {
-		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[1], e.specCtx(source, ctrl)) {
+		if v := t.Params["ValidCard"]; v != "" && !e.matchesSpec(v, pr[1], e.specCtx(source, ctrl)) {
 			continue
 		}
-		if v := t.Params["ValidBlocked"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[0], e.specCtx(source, ctrl)) {
+		if v := t.Params["ValidBlocked"]; v != "" && !e.matchesSpec(v, pr[0], e.specCtx(source, ctrl)) {
 			continue
 		}
 		out = append(out, pr)
@@ -874,7 +874,7 @@ func (e *Engine) exertedMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	ctrl := e.controllerOf(source)
 	if v := t.Params["ValidCard"]; v != "" &&
-		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 		return false
 	}
 	return true
@@ -927,13 +927,13 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 		// the published override, e.damaging during combat's assignment loop,
 		// else the resolving stack object).
 		src := e.damageEventSource()
-		if src == 0 || !effects.MatchesSpecCtx(e.G, v, src, e.specCtx(source, ctrl)) {
+		if src == 0 || !e.matchesSpec(v, src, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
 	if v, ok := t.Params["ValidTarget"]; ok {
 		if ev.Obj != 0 {
-			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+			if !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
@@ -966,7 +966,7 @@ func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev 
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidTarget"]; ok {
 		if ev.Obj != 0 {
-			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+			if !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {

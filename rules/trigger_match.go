@@ -837,7 +837,7 @@ func (e *Engine) checkExertTriggers(ev events.Event) {
 			continue
 		}
 		if vc := sv.Params["ValidCard"]; vc != "" &&
-			!effects.MatchesSpecFrom(e.G, vc, ev.Obj, o.Controller, sv.Source) {
+			!e.matchesSpecFrom(vc, ev.Obj, o.Controller, sv.Source) {
 			continue
 		}
 		exec := sv.Params["Trigger"]
@@ -1266,7 +1266,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// the copy again: the copy is not an event). Panharmonicon's own
 				// trigger is excluded by the spec's Other predicate, which is
 				// relative to the Panharmonicon permanent itself.
-				for k := 0; k < e.panharmoniconEchoes(observer.G, id, ev); k++ {
+				for k := 0; k < e.panharmoniconEchoes(observer, id, ev); k++ {
 					e.pendingTriggers = append(e.pendingTriggers, pt)
 				}
 			}
