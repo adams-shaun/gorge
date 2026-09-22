@@ -502,6 +502,7 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 	for _, of := range e.attackOffers() {
 		offered[attackOffer{id: of.id, def: of.def}] = of.price
 	}
+	budget := e.attackBudget(d.Player)
 	total := int32(0)
 	for _, o := range d.Chosen(in) {
 		if !e.canAttack(o.Obj) {
@@ -524,8 +525,8 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		// already bounds every subset's total, so this can only fire if the
 		// two walks ever diverge.
 		total += price
-		if total > e.attackBudget(d.Player) {
-			return fmt.Errorf("declaration's attack cost {%d} exceeds the affordable {%d}", total, e.attackBudget(d.Player))
+		if total > budget {
+			return fmt.Errorf("declaration's attack cost {%d} exceeds the affordable {%d}", total, budget)
 		}
 		seen[o.Obj] = true
 	}
