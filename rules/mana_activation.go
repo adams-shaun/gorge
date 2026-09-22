@@ -638,7 +638,15 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 		return false
 	}
 	_, ok := e.manaExiles(p, source, cost)
-	return ok
+	if !ok {
+		return false
+	}
+	for _, part := range cost.Mill {
+		if part.N < 0 || len(e.G.Zone(state.ZLibrary, p)) < int(part.N) {
+			return false
+		}
+	}
+	return true
 }
 
 // manaSacrifices finds enough candidates for each sacrifice cost part. The
@@ -1276,6 +1284,19 @@ func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma 
 	}
 	if !e.payManaConvFor(p, source, true, cost, e.paymentConv(p, source, true)) {
 		return
+	}
+	// Mill costs are paid before the mana ability resolves. The library slice
+	// is ordered top-first, so moving its prefix preserves deterministic mill
+	// order and records each card as a real zone-change event.
+	for _, part := range cost.Mill {
+		for i := 0; i < int(part.N); i++ {
+			lib := e.G.Zone(state.ZLibrary, p)
+			if len(lib) == 0 {
+				return
+			}
+			id := lib[0]
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p, From: state.ZLibrary, To: state.ZGraveyard, Text: "mill cost"})
+		}
 	}
 	var manaTriggers []pendingTrigger
 	if cost.Tap {
