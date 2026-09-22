@@ -46,6 +46,12 @@ type SacrificedInfo struct {
 	Power     int32
 	Toughness int32
 	ManaValue int32
+	// Counters is the object's counter kinds and counts at the instant of
+	// the sacrifice (the sacrificed-LKI ladder's third rung: a
+	// cost-sacrificed source whose EachFromSource$ copy reads it after Move
+	// cleared the live counters -- Zack Fair's self-sacrifice). Nil for the
+	// P/T-only readers the Sacrificed$<Property> heads are.
+	Counters []Counter
 }
 
 // LKIObject is the last-known-information snapshot of an object a
@@ -1009,5 +1015,11 @@ func SacrificedInfoOf(g *Game, id ObjID) SacrificedInfo {
 	}
 	p := int32(o.Face().Power()) + o.Counter("P1P1")
 	t := int32(o.Face().Toughness()) + o.Counter("P1P1")
-	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: o.Face().Cmc()}
+	var counters []Counter
+	for i := range o.Counters {
+		if o.Counters[i].N > 0 {
+			counters = append(counters, o.Counters[i])
+		}
+	}
+	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: o.Face().Cmc(), Counters: counters}
 }

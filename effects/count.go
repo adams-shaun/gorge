@@ -711,7 +711,14 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 				n += f.Cmc()
 			}
 		case strings.HasPrefix(prop, "CardCounters."):
-			n += o.Counter(strings.TrimPrefix(prop, "CardCounters."))
+			// ALL is the sum over every kind (the same wildcard the plain
+			// Count$CardCounters.ALL head reads -- Kinsbaile Borderguard's
+			// TriggeredCard$CardCounters.ALL), never a literal kind lookup.
+			if strings.EqualFold(strings.TrimPrefix(prop, "CardCounters."), "ALL") {
+				n += sumCounters(o.Counters)
+			} else {
+				n += o.Counter(strings.TrimPrefix(prop, "CardCounters."))
+			}
 		case prop == "Amount":
 			// The count of referenced objects themselves (SVar:X:ExiledWith$Amount,
 			// the same "how many" the Remembered$Amount head answers for the
@@ -1593,9 +1600,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return no, true
 	}
 
-	// CardCounters.<KIND> counts a counter kind on the source.
+	// CardCounters.<KIND> counts a counter kind on the source; ALL is the
+	// sum over every kind (Forge's CardCounters.ALL wildcard -- Denry Klin's
+	// intervening-if gate, Kyler's and Warden of the Inner Sky's X), which a
+	// literal Counter("ALL") lookup can never answer because no object ever
+	// carries a counter KIND named ALL.
 	if kind, ok := strings.CutPrefix(head, "CardCounters."); ok {
 		if o := g.Obj(c.Source); o != nil {
+			if strings.EqualFold(kind, "ALL") {
+				return sumCounters(o.Counters), true
+			}
 			return o.Counter(kind), true
 		}
 		return 0, true
@@ -3318,4 +3332,18 @@ func aggregateCastProperty(h Host, ids []state.ObjID, prop string) (int32, bool)
 		}
 	}
 	return n, true
+}
+
+// sumCounters totals a counter slice's POSITIVE counts (a drained slot sits
+// in the slice at N == 0 and adds nothing), in slice order -- the ALL
+// wildcard's one shared read for both the Count$CardCounters.ALL head and
+// the ref-property form.
+func sumCounters(cs []state.Counter) int32 {
+	var n int32
+	for i := range cs {
+		if cs[i].N > 0 {
+			n += cs[i].N
+		}
+	}
+	return n
 }

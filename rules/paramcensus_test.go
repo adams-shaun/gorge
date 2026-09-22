@@ -2467,10 +2467,18 @@ var knownUnsupportedParams = map[string][]string{
 	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
 	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
 	// unread.
-	"Gift of Immortality":        {"param:api:ChangeZone.ForgetOtherRemembered"},
-	"Hercules, Olympian Hero":    {"param:trig:DamageDoneOnce.FirstTime"},
-	"Heroic Return":              {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Gift of Immortality":     {"param:api:ChangeZone.ForgetOtherRemembered"},
+	"Hercules, Olympian Hero": {"param:trig:DamageDoneOnce.FirstTime"},
+	"Heroic Return":           {"param:api:ChangeZone.ValidTgtsDesc"},
+	// Heroic Sacrifice's param:api:PutCounter.EachFromSource entry was deleted
+	// when the CounterType$ EachFromSource copy-each-kind shape was read
+	// (task eachfromsource, effects/counters.go effPutCounter's dispatch) --
+	// the shape is pinned end to end on real corpus carriers in
+	// rules/eachfromsource_test.go (Resourceful Defense, The Ozolith, Denry
+	// Klin, Ambitious Augmenter, Zack Fair). Heroic Sacrifice's own carrier
+	// path (its delayed trigger, Mode$ ChangesZone) stays unimplemented and
+	// the card's OTHER labels above are untouched.
+	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
 	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
 	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
 	"Love on the Battlefield":    {"param:trig:AttackersDeclared.NoResolvingCheck"},
