@@ -715,32 +715,11 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidSource"]; ok {
-		// The damage's source, in priority order:
-		//  1. an explicit published override (rules.Engine.SetDamageSource --
-		//     DamageSource$ names the PERMANENT that dealt it, never the
-		//     ability wrapper resolving it) -- authoritative whenever an
-		//     emitter set one, combat included.
-		//  2. during combat's assignment loop, e.damaging (the actual
-		//     attacker/blocker dealing this hit). The stack is USUALLY empty
-		//     during combat, but not always -- the between-passes priority
-		//     round (CR 510.3/4) can leave a first-strike trigger on the
-		//     stack while the regular pass deals (measured:
-		//     TestUmezawasJitteGainsChargeCountersPerDamageStep's bearer
-		//     deals in both passes with the first pass's trigger unresolved
-		//     on the stack) -- so combat damage must prefer e.damaging over
-		//     the stack top, or every ValidSource$ CombatDamage$ trigger
-		//     (Umezawa's Jitte's ValidSource$ Creature.EquippedBy among them)
-		//     goes dead for the second pass.
-		//  3. otherwise, the resolving spell or ability while it is the
-		//     stack top (damageSource).
-		src := e.dmgSrcOverride
-		if src == 0 {
-			if e.combatDamaging {
-				src = e.damaging
-			} else {
-				src = e.damageSource()
-			}
-		}
+		// The damage's source, through the ONE shared dealer resolution
+		// (damageEventSource, whose doc carries the full priority rationale:
+		// the published override, e.damaging during combat's assignment loop,
+		// else the resolving stack object).
+		src := e.damageEventSource()
 		if src == 0 || !effects.MatchesSpecCtx(e.G, v, src, e.specCtx(source, ctrl)) {
 			return false
 		}
@@ -813,6 +792,28 @@ func (e *Engine) damageSource() state.ObjID {
 		return 0
 	}
 	return e.G.Stack[len(e.G.Stack)-1]
+}
+
+// damageEventSource is the ONE dealer resolution for a just-emitted Damage
+// event, shared by the ValidSource$ match (damageMatches), the DamageDealtOnce
+// latch and the DamageAll batch-set capture, so a captured batch set can never
+// name a source the matcher would not have matched. The priority is the
+// damageMatches comment's three: an explicit published override
+// (rules.Engine.SetDamageSource -- DamageSource$ names the PERMANENT that
+// dealt it, never the ability wrapper resolving it) wins over the dealing
+// creature during combat's assignment loop (e.damaging -- the stack is
+// USUALLY empty during combat but not always: the between-passes priority
+// round can leave a first-strike trigger on the stack while the regular pass
+// deals), and otherwise the resolving spell or ability while it is the stack
+// top (damageSource).
+func (e *Engine) damageEventSource() state.ObjID {
+	if e.dmgSrcOverride != 0 {
+		return e.dmgSrcOverride
+	}
+	if e.combatDamaging {
+		return e.damaging
+	}
+	return e.damageSource()
 }
 
 func init() {

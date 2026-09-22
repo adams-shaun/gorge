@@ -487,6 +487,37 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
 		}
 		return nil, true
+	case "TriggeredTargets":
+		// The batch's matching TARGET set (trig:DamageAll): Breeches, Brazen
+		// Plunderer's "exile the top card of each of those opponents'
+		// libraries" reads Defined$ TriggeredTargets -- every target the
+		// batch's matching Damage events named, players and objects both, in
+		// first-seen order. An absent set falls back to the singleton
+		// TriggeredTarget semantics (the same role-absent convention).
+		if len(c.TriggerDamageTargets) > 0 {
+			return copyTargets(c.TriggerDamageTargets), true
+		}
+		return definedSpec(h, c, "TriggeredTarget")
+	case "TriggeredSourcesController":
+		// The controllers of the batch's matching SOURCE set (trig:DamageAll):
+		// Nelly Borca's "you and the controller of those creatures each draw a
+		// card" reads Defined$ TriggeredSourcesController & You. Controllers
+		// are read live at resolution (the singular spelling's read) and
+		// deduplicated in first-seen source order; a controller whose source
+		// object is gone contributes nothing. An absent set falls back to the
+		// singular TriggeredSourceController semantics.
+		if len(c.TriggerDamageSources) > 0 {
+			var out []state.Target
+			seen := map[state.PlayerID]bool{}
+			for _, id := range c.TriggerDamageSources {
+				if o := g.Obj(id); o != nil && !seen[o.Controller] {
+					seen[o.Controller] = true
+					out = append(out, state.Target{Player: o.Controller, IsPlayer: true})
+				}
+			}
+			return out, true
+		}
+		return definedSpec(h, c, "TriggeredSourceController")
 	case "Convoked":
 		// CR 702.66's "each creature that convoked it" (task connive1): the
 		// creatures the caster tapped to help pay for the resolving spell's

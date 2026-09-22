@@ -176,8 +176,10 @@ type triggerKey struct {
 // took); DamageAll latches per TRIGGER LINE -- the "one or more" batch mode
 // (Forge GameAction.triggerDamageAll): the FIRST (source, target) pair in the
 // batch whose both halves match queues the single instance, and every later
-// matching pair accumulates into it. The embedded triggerKey keeps two T:
-// lines of one card -- and the same line on two cards -- independent.
+// matching pair accumulates into it -- the key carries NO referent for the
+// all mode, so damage landing on several targets in one batch is still ONE
+// instance. The embedded triggerKey keeps two T: lines of one card -- and the
+// same line on two cards -- independent.
 type damageBatchKey struct {
 	triggerKey
 	dealt  bool           // true: referent is the dealing source (DamageDealtOnce)
@@ -190,11 +192,19 @@ type damageBatchKey struct {
 // the open damage batch: the pendingTriggers index it queued at (the queue is
 // append-only while a batch is open, so the index is stable until batch close)
 // and the batch amount accumulated so far, which closeDamageBatch patches into
-// the queued trigger's TriggerAmount referent.
+// the queued trigger's TriggerAmount referent. A DamageAll entry (key.all)
+// additionally accumulates the batch's matching source and target SETS --
+// every (source, target) pair this line matched, deduplicated in first-seen
+// order -- which closeDamageBatch patches into the queued trigger's
+// TriggerDamageSources/TriggerDamageTargets capture, the referents the
+// TriggeredPlayersTargets$Amount count and the Defined$ TriggeredTargets /
+// TriggeredSourcesController plural selectors read at resolution.
 type damageBatchEntry struct {
-	key    damageBatchKey
-	idx    int
-	amount int32
+	key     damageBatchKey
+	idx     int
+	amount  int32
+	sources []state.ObjID
+	targets []state.Target
 }
 
 // turnFires is one T: line's trigger count within the turn it last
@@ -951,6 +961,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// trigger.
 					if ev.Amount > 0 {
 						bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce", all: t.Mode == "DamageAll"}
+						var allSrc state.ObjID
+						var allTgt state.Target
 						if bk.dealt {
 							// Combat identifies the actual attacker/blocker in damaging;
 							// an effect batch's shared source is its published override
@@ -959,32 +971,54 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 							// non-combat sources onto ObjID zero. Same priority order as
 							// the ValidSource$ match above: an explicit override always
 							// wins, e.damaging is combat-only, damageSource is the
-							// non-combat fallback.
-							bk.obj = e.dmgSrcOverride
-							if bk.obj == 0 {
-								if e.combatDamaging {
-									bk.obj = e.damaging
-								} else {
-									bk.obj = e.damageSource()
-								}
+							// non-combat fallback. Through the ONE shared resolution
+							// (damageEventSource) so the latch and the match agree.
+							bk.obj = e.damageEventSource()
+						} else if !bk.all {
+							// DamageDoneOnce: the per-damaged-referent latch key.
+							if ev.Obj != 0 {
+								bk.obj = ev.Obj
+							} else {
+								bk.player = ev.Player
 							}
-						} else if ev.Obj != 0 {
-							bk.obj = ev.Obj
 						} else {
-							bk.player = ev.Player
+							// DamageAll's line-only key carries no referent; instead
+							// the matching (source, target) pair of EVERY matching
+							// event accumulates into the entry's deduplicated batch
+							// sets, the capture the plural corpus readers resolve.
+							// The source read is the ONE shared dealer resolution, so
+							// a captured set can never contain a source the
+							// ValidSource$ match did not match (the match and the
+							// capture cannot drift).
+							allSrc = e.damageEventSource()
+							if ev.Obj != 0 {
+								allTgt = state.Target{Obj: ev.Obj}
+							} else {
+								allTgt = state.Target{Player: ev.Player, IsPlayer: true}
+							}
 						}
 						if e.damageBatchOpen {
 							if e.damageBatchIdx == nil {
 								e.damageBatchIdx = map[damageBatchKey]int{}
 							}
 							if entIdx, ok := e.damageBatchIdx[bk]; ok {
-								e.damageBatchLog[entIdx].amount += ev.Amount
+								ent := &e.damageBatchLog[entIdx]
+								ent.amount += ev.Amount
+								if bk.all {
+									ent.sources = batchAppendSource(ent.sources, allSrc)
+									ent.targets = batchAppendTarget(ent.targets, allTgt)
+								}
 								continue // already queued once for this batch and referent.
 							}
 							e.damageBatchIdx[bk] = len(e.damageBatchLog)
-							e.damageBatchLog = append(e.damageBatchLog, damageBatchEntry{
+							ent := damageBatchEntry{
 								key: bk, idx: len(e.pendingTriggers), amount: ev.Amount,
-							})
+							}
+							if bk.all {
+								ent.sources = batchAppendSource(ent.sources, allSrc)
+								ent.targets = batchAppendTarget(ent.targets, allTgt)
+							}
+							e.damageBatchLog = append(e.damageBatchLog, ent)
 							// Fall through: the trigger queues now, at the same point
 							// in the stream it queued at before this gate was
 							// batch-scoped; closeDamageBatch patches its referent
@@ -1207,14 +1241,55 @@ func (e *Engine) closeDamageBatch() {
 		if ent.idx >= len(e.pendingTriggers) {
 			continue
 		}
-		pt := &e.pendingTriggers[ent.idx]
-		if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
-			continue
+		// Every queued copy of this (trigger, referent) entry is patched: the
+		// Panharmonicon echo copies appended right after the original share
+		// the queue slot sequence and would otherwise resolve a partial
+		// amount and no batch sets.
+		for i := ent.idx; i < len(e.pendingTriggers); i++ {
+			pt := &e.pendingTriggers[i]
+			if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+				break
+			}
+			pt.Ctx.TriggerContext.TriggerAmount = ent.amount
+			if ent.key.all {
+				if len(ent.sources) > 0 {
+					pt.Ctx.TriggerContext.TriggerDamageSources = append([]state.ObjID(nil), ent.sources...)
+				}
+				if len(ent.targets) > 0 {
+					pt.Ctx.TriggerContext.TriggerDamageTargets = append([]state.Target(nil), ent.targets...)
+				}
+			}
 		}
-		pt.Ctx.TriggerContext.TriggerAmount = ent.amount
 	}
 	e.damageBatchIdx = nil
 	e.damageBatchLog = nil
+}
+
+// batchAppendSource appends id to a DamageAll entry's deduplicated source
+// set unless it is already present (or zero -- an unresolved dealer is
+// nothing to name). First-seen order is the set's order.
+func batchAppendSource(ts []state.ObjID, id state.ObjID) []state.ObjID {
+	if id == 0 {
+		return ts
+	}
+	for _, have := range ts {
+		if have == id {
+			return ts
+		}
+	}
+	return append(ts, id)
+}
+
+// batchAppendTarget appends t to a DamageAll entry's deduplicated target set
+// unless an equal target is already present. Equality compares kind and
+// identity together, so a player target and an object target never merge.
+func batchAppendTarget(ts []state.Target, t state.Target) []state.Target {
+	for _, have := range ts {
+		if have.IsPlayer == t.IsPlayer && have.Player == t.Player && have.Obj == t.Obj {
+			return ts
+		}
+	}
+	return append(ts, t)
 }
 
 // BeginDamageBatch/EndDamageBatch are effects.Host's damage-batch bracket

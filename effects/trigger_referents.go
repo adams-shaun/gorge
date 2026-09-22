@@ -147,6 +147,26 @@ type TriggerContext struct {
 	// empty outside a Vote capture.
 	TriggeredOpponentsVotedSame []state.PlayerID
 	TriggeredOpponentsVotedDiff []state.PlayerID
+	// TriggerDamageSources / TriggerDamageTargets are the deduplicated
+	// matching source and target sets of the whole damage batch a Mode$
+	// DamageAll trigger fired for (trig:DamageAll): every (source, target)
+	// pair the batch's Damage events carried that matched the trigger's
+	// ValidSource$/ValidTarget$, in first-seen event order, captured on the
+	// batch latch entry and patched onto the queued trigger at batch close.
+	// They are the referents the plural corpus readers resolve -- Malcolm
+	// Keen-Eyed Navigator's and Hordewing Skaab's
+	// "TriggeredPlayersTargets$Amount" (the count of matching target
+	// PLAYERS, the "for each opponent dealt damage" reading), Breeches'
+	// "Defined$ TriggeredTargets" ("each of those opponents' libraries") and
+	// Nelly Borca's "Defined$ TriggeredSourcesController" ("you and the
+	// controller of those creatures"). The singleton TriggerSource /
+	// TriggerTarget roles stay the FIRST matching pair's, exactly as before;
+	// an absent set (hand-built context, a batch-less capture) falls back to
+	// those singleton semantics. Not serialized into events.Event -- the
+	// capture is rebuilt by the same replay re-derivation as TriggerAmount's
+	// batch total.
+	TriggerDamageSources []state.ObjID
+	TriggerDamageTargets []state.Target
 }
 
 // TriggeredCardController is the one resolver for "that card's controller"
