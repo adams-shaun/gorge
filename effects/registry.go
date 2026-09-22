@@ -1367,6 +1367,44 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// RevealOptTarget is the Defined$ target index whose reveal_optional
+	// yes/no was answered (the decision's ResumeTarget), the same per-target
+	// cursor LookAckTarget and RevealPickTarget carry. Meaningful only while
+	// RevealOpt is non-empty: targets before the cursor were fully processed
+	// on the pass that suspended and are skipped, the cursor target consumes
+	// the answer, and every LATER optional reveal in the walk poses its own
+	// yes/no. Without it a reveal_optional resolving over several Defined$
+	// players answered for target 0 and then either silently applied that
+	// same yes/no to every later target (a non-pickable reveal) or left the
+	// later target's ask unposed (a pickable one), because neither a yes nor
+	// a no can be attributed to a target it was never asked of. Consumed and
+	// cleared with RevealOpt.
+	RevealOptTarget int
+	// RevealPick is the answered mid-resolution hand-reveal pick (task
+	// infernaltutor1): the ids of the hand cards the revealing player chose
+	// to reveal. A hand reveal whose eligible pool is strictly larger than
+	// the count it must show (Infernal Tutor's "Reveal a card from your
+	// hand", or an AnyNumber$/Optional$ miss) is a CHOICE Forge poses to the
+	// pool's owner; effReveal poses it as a KChoose with ResumeKind
+	// "reveal_pick" and this field carries the answer back. Non-nil means
+	// answered (a legitimate empty answer is a non-nil zero-length slice,
+	// exactly the Ctx.Discard convention), so an empty answer ("reveal
+	// none") is distinguishable from a first pass. effReveal consumes and
+	// clears it at the top of its own walk so a nested reveal poses its own
+	// ask (fx42 scoping).
+	RevealPick []state.ObjID
+	// RevealPickTarget is the Defined$ target index whose reveal_pick was
+	// answered (the decision's ResumeTarget), the same per-target cursor
+	// LookAckTarget carries. Meaningful only while RevealPick is non-nil:
+	// targets before the cursor were fully processed on the pass that
+	// suspended and are skipped, the cursor target consumes the answer, and
+	// every LATER pickable reveal in the walk poses its own ask. Without it,
+	// a pickable reveal resolving over several Defined$ players applied the
+	// first player's answer to every subsequent player's distinct hand —
+	// none of those ids can occur in another hand, so n became 0 and no
+	// later player was asked or revealed. Consumed and cleared with
+	// RevealPick.
+	RevealPickTarget int
 	// ChosenType is the answered mid-resolution ChooseType pick (task ct1):
 	// the creature type the chooser picked out of the TypeChoices list, set
 	// by rules' "choosetype" resume arm before the suspended sub-ability is
