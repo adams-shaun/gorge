@@ -374,6 +374,16 @@ type Object struct {
 	// default next-turn lifetime, be permanent, or depend on source/control.
 	Goads []GoadEffect
 
+	// Suspected is CR 702.157's suspected designation (the Blame Game precon's
+	// Nelly Borca / Hot Pursuit family): a suspected creature has menace and
+	// can't block. The designation ends when the permanent leaves the
+	// battlefield or another player gains control of it, so events.Apply
+	// clears it on both paths -- the same two folds that clear the Ring-bearer
+	// designation. It is a plain status field: a plain value copy in
+	// CloneDeep carries it, and only events.AlterAttribute (the primitive the
+	// api:AlterAttribute effect emits) may set it.
+	Suspected bool
+
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.
 	Timestamp uint32

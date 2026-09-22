@@ -42,6 +42,7 @@ func TestCompiledCodeMappings(t *testing.T) {
 			"Repeat", "RepeatEach", "ReplaceEffect", "ReplaceMana", "RestartGame", "Reveal",
 			"RevealHand", "RollDice", "Sacrifice", "SacrificeAll", "Scry", "SetState",
 			"Shuffle", "Surveil", "Tap", "TapAll", "Token", "Untap", "UntapAll", "Vote", "Ward",
+			"AlterAttribute",
 		}
 		assertUniqueKnownCodes(t, "API", names, APICodeForName, APIUnknown)
 		if len(names)+1 != APICodeCount {

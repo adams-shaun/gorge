@@ -94,6 +94,13 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	if b.Tapped || b.Controller != a.Attacking {
 		return false
 	}
+	// CR 702.157b: a suspected creature can't block. The designation is the
+	// declaration-legality rule itself, checked here where every other
+	// can't-block gate lives (Flying, Shadow, blockRestricted), so the ask's
+	// options and the validator's recompute share one oracle.
+	if b.Suspected {
+		return false
+	}
 	// CR 509.1a / 702.16j: a creature that the attacker is protected from
 	// cannot block it.
 	if e.protectedFrom(attacker, blocker) {

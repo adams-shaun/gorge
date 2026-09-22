@@ -118,9 +118,13 @@ const (
 	APIEcho                  APICode = 75
 	APIChangeX               APICode = 76
 	APIAnimateAll            APICode = 77
+	// Appended after AnimateAll (task alterattr1), following the enum's own
+	// append-only precedent: no assigned value moves, so an existing compiled
+	// cache stays valid.
+	APIAlterAttribute APICode = 78
 
 	// APICodeCount includes the zero/unknown slot and sizes dense dispatch.
-	APICodeCount = 78
+	APICodeCount = 79
 )
 
 // APICodeForName returns the stable opcode for an engine-owned effect API.
@@ -135,6 +139,8 @@ func APICodeForName(api string) APICode {
 		return APIAnimate
 	case "AnimateAll":
 		return APIAnimateAll
+	case "AlterAttribute":
+		return APIAlterAttribute
 	case "Attach":
 		return APIAttach
 	case "BecomeMonarch":
