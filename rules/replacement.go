@@ -1988,6 +1988,15 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 	}
 	move := ev
 	e.riotMove = &move
+	// A face-down entry (manifest or cloak, CR 708.5) is a vanilla 2/2
+	// creature: no riot choice is posed for it, and no public Choose "riot"
+	// event may leak the hidden card -- the FaceDown state is folded by
+	// Apply's Move AFTER this dispatch, so the incoming event's counter, not
+	// o.FaceDown, is what names the face-down entry (the Siege guard's exact
+	// shape; unleash carries the identical guard).
+	if events.IsFaceDownEntry(ev.Counter) {
+		return false
+	}
 	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: o.ID, Prompt: "Choose how this creature enters (counter or haste)",
 		Options: []decision.Option{

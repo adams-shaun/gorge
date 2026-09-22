@@ -50,12 +50,23 @@ func unleashOptions(id state.ObjID, p state.PlayerID) []decision.Option {
 // is outstanding, and never re-ask an object whose choice was already
 // recorded (a cast-path entry arrives with UnleashChoice set by the Choose
 // event etbAnswer emitted, so the guard is what keeps the two paths from
-// asking twice). Entries of face-down objects (a manifest) are vanilla 2/2
-// creatures (CR 708.5): the printed face does not exist while face down, so
-// the printed-keyword read below never matches -- and the Choose event is
-// not Secret, so it must not name the hidden card in the public transcript.
+// asking twice). Entries of face-down objects (a manifest or cloak) are
+// vanilla 2/2 creatures (CR 708.5): the FaceDown state is folded by Apply's
+// Move AFTER this replacement dispatch runs, so o.Face() still exposes the
+// hidden printed face here and the keyword read below would otherwise match
+// it -- the guard on the incoming event's counter is what keeps a face-down
+// entry from being parked on the ask at all (the Siege precedent's exact
+// shape, applySiegeProtector): the Choose event is not Secret, so emitting
+// one would name the hidden card in the public transcript.
 func (e *Engine) applyUnleashReplacement(ev events.Event) bool {
 	if ev.To != state.ZBattlefield || e.unleashMove != nil || e.pending != nil {
+		return false
+	}
+	// A face-down entry (manifest or cloak, CR 708.5) is a vanilla 2/2
+	// creature: no as-enters choice, no counter, no public Choose event that
+	// would leak the hidden card. See the Siege guard in
+	// applySiegeProtector (rules/replacement.go) for the shared reasoning.
+	if events.IsFaceDownEntry(ev.Counter) {
 		return false
 	}
 	o := e.G.Obj(ev.Obj)

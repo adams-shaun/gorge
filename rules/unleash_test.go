@@ -221,6 +221,88 @@ func TestUnleashCounteredCreatureCantBlock(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestUnleashFaceDownEntryPosesNothing is the face-down pin the Siege row's
+// own boundary holds (CR 708.5): a manifest or cloak entry of an Unleash
+// card is a vanilla 2/2 creature -- no as-enters ask is parked, no public
+// Choose "unleash" event names the hidden card, and no +1/+1 counter is
+// folded on. Both markers are driven, the way
+// TestBattleFaceDownEntryEmitsNoProtectorChoose does for Siege.
+func TestUnleashFaceDownEntryPosesNothing(t *testing.T) {
+	cackler := unleashCard(t, "Rakdos Cackler")
+	deck := make([]*cards.Card, 40)
+	for i := range deck {
+		deck[i] = cackler
+	}
+	cfg := seatZeroStart(Config{Seed: 406, Names: []string{"cackler", "other"}, Decks: [][]*cards.Card{deck, deck}})
+	e := New(cfg)
+	id := e.G.Objs[0].ID
+	for _, tc := range []struct{ name, counter string }{
+		{"manifest", events.FaceDownEntryCounter},
+		{"cloak", events.CloakEntryCounter},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary,
+				To: state.ZBattlefield, Counter: tc.counter})
+			if d := e.Pending(); d != nil {
+				t.Fatalf("face-down unleash entry posed a decision: %+v (%s)", d, d.Prompt)
+			}
+			for _, ev := range e.L.Events {
+				if ev.Kind == events.Choose && ev.Obj == id && ev.Counter == "unleash" {
+					t.Fatalf("face-down unleash entry emitted a public Choose %q", ev.Counter)
+				}
+			}
+			o := e.G.Obj(id)
+			if o == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
+				t.Fatalf("face-down precondition failed: %+v", o)
+			}
+			if o.Counter("P1P1") != 0 {
+				t.Fatalf("face-down unleash entry folded a +1/+1 counter: %d", o.Counter("P1P1"))
+			}
+		})
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestRiotFaceDownEntryPosesNothing is the same boundary for the Riot
+// precedent applyRiotReplacement (the same hole, closed in the same round):
+// a face-down entry of a Riot card poses no counter-or-haste ask and folds
+// no counter on the manifested 2/2.
+func TestRiotFaceDownEntryPosesNothing(t *testing.T) {
+	goblin := unleashCard(t, "Zhur-Taa Goblin")
+	deck := make([]*cards.Card, 40)
+	for i := range deck {
+		deck[i] = goblin
+	}
+	cfg := seatZeroStart(Config{Seed: 407, Names: []string{"vandal", "other"}, Decks: [][]*cards.Card{deck, deck}})
+	e := New(cfg)
+	id := e.G.Objs[0].ID
+	for _, tc := range []struct{ name, counter string }{
+		{"manifest", events.FaceDownEntryCounter},
+		{"cloak", events.CloakEntryCounter},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary,
+				To: state.ZBattlefield, Counter: tc.counter})
+			if d := e.Pending(); d != nil {
+				t.Fatalf("face-down riot entry posed a decision: %+v (%s)", d, d.Prompt)
+			}
+			for _, ev := range e.L.Events {
+				if ev.Kind == events.Choose && ev.Obj == id && ev.Counter == "riot" {
+					t.Fatalf("face-down riot entry emitted a public Choose %q", ev.Counter)
+				}
+			}
+			o := e.G.Obj(id)
+			if o == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
+				t.Fatalf("face-down precondition failed: %+v", o)
+			}
+			if o.Counter("P1P1") != 0 {
+				t.Fatalf("face-down riot entry folded a +1/+1 counter: %d", o.Counter("P1P1"))
+			}
+		})
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestGrantedUnleashCounteredDogCantBlock uses Tesak, Judith's Hellhound's
 // real static ("Other Dogs you control have unleash"): a Dog that carries a
 // +1/+1 counter cannot block, because canBlock reads the DERIVED keyword
