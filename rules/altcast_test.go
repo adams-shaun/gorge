@@ -21,6 +21,7 @@ package rules
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -1074,8 +1075,11 @@ func TestAlternateAdditionalCostRevealPaysWithARealCard(t *testing.T) {
 	}
 	reveal := -1
 	for _, opt := range d.Options {
-		if opt.Label == "Pay Reveal<1/Elf>" {
+		if opt.Kind == "altaddcost" && strings.Contains(opt.Label, "Reveal") {
 			reveal = opt.Index
+		}
+		if strings.ContainsAny(opt.Label, "<>") {
+			t.Fatalf("altaddcost option %q leaks raw cost syntax", opt.Label)
 		}
 	}
 	submitChoices(t, e, reveal)
@@ -1165,7 +1169,7 @@ func TestAlternateAdditionalCostAsksWhichAlternative(t *testing.T) {
 	// first), then the {2} alternative.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 ||
-		d.Options[0].Kind != "altaddcost" || d.Options[0].Label != "Pay PayLife<5>" ||
+		d.Options[0].Kind != "altaddcost" || d.Options[0].Label != "Pay 5 life" ||
 		d.Options[1].Label != "Pay 2" {
 		t.Fatalf("alternate-additional-cost ask: %+v", d)
 	}

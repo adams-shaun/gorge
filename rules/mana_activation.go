@@ -1276,11 +1276,18 @@ func (e *Engine) askManaUnlessDecision() {
 	if m == nil || m.next >= len(m.payers) {
 		return
 	}
-	cost := strings.TrimSpace(m.ability.Params["UnlessCost"])
+	raw := strings.TrimSpace(m.ability.Params["UnlessCost"])
+	cost := capitaliseFirst(costPhrase(ParseCost(raw)))
+	if cost == "" {
+		// A cost costPhrase cannot render (a malformed or entirely
+		// unmodelled token) keeps the raw text rather than emitting an
+		// empty prompt -- the fallback is still better than "pay ?".
+		cost = "Pay " + raw
+	}
 	d := &decision.Decision{Player: m.payers[m.next], Kind: decision.KModes, Min: 1, Max: 1,
-		Source: m.source, ResumeKind: "mana_unless", Prompt: "Pay " + cost + ", or decline",
+		Source: m.source, ResumeKind: "mana_unless", Prompt: cost + ", or decline",
 		Options: []decision.Option{
-			{Index: 0, Kind: "mode", Obj: m.source, Player: m.payers[m.next], Label: "Pay " + cost},
+			{Index: 0, Kind: "mode", Obj: m.source, Player: m.payers[m.next], Label: cost},
 			{Index: 1, Kind: "mode", Obj: m.source, Player: m.payers[m.next], Label: "Don't pay"},
 		}}
 	e.choosing = chooseManaUnless

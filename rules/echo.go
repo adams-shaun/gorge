@@ -117,7 +117,7 @@ func (e *Engine) startEcho(stackObj, source state.ObjID, sa *cards.SA) {
 			return
 		}
 	}
-	ef.costLabel = label
+	ef.costLabel = cumulativeCostLabel(label, ef.action, ef.amount)
 	e.echo = ef
 	e.echoElectionAsk()
 }
@@ -152,13 +152,13 @@ func (e *Engine) echoElectionAsk() {
 	var opts []decision.Option
 	if payable {
 		opts = append(opts, decision.Option{Index: 0, Kind: "echo_pay", Obj: ef.source,
-			Label: "Pay " + ef.costLabel})
+			Label: capitaliseFirst(ef.costLabel)})
 	}
 	opts = append(opts, decision.Option{Index: len(opts), Kind: "echo_sac", Obj: ef.source,
 		Label: "Sacrifice " + o.Face().Name})
 	e.choosing = chooseEcho
 	e.ask(&decision.Decision{Player: ef.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: o.Face().Name + " — echo: pay " + ef.costLabel + " or sacrifice",
+		Prompt: o.Face().Name + " — echo: " + ef.costLabel + " or sacrifice",
 		Source: ef.source, Options: opts})
 }
 

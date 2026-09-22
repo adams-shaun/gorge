@@ -45,7 +45,11 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 		mana := e.parseCost(manaRaw)
 		if mana.payable(e.G.Players[payer].Pool, e.G.Players[payer].Snow, e.G.Players[payer].TypedMana, e.G.Players[payer].Life) ||
 			(mana.hasManaPayment() && e.hasUntappedManaSource(payer)) {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "ward_mana", Amount: int(mana.Generic), Label: "Pay " + manaRaw})
+			label := capitaliseFirst(costPhrase(mana))
+			if label == "" {
+				label = "Pay " + manaRaw
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "ward_mana", Amount: int(mana.Generic), Label: label})
 		}
 		if len(d.Options) == 0 {
 			return false, false
