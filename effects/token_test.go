@@ -66,6 +66,42 @@ func TestTokenCreatesEachScriptTheGivenNumberOfTimes(t *testing.T) {
 	}
 }
 
+// TestTokenRememberedPersistsDefinedTargets pins the event-backed memory
+// attached to the newly created token, rather than only the resolution Ctx.
+func TestTokenRememberedPersistsDefinedTargets(t *testing.T) {
+	h, c := fixtureHostWithTokens(t)
+	// The source already has a real remembered object, matching the
+	// resolution-local set an exile cost leaves for TokenRemembered$ ExiledCards.
+	remembered := c.Source
+	c.Remembered = []state.Target{{Obj: remembered}}
+	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token", Params: map[string]string{
+		"TokenScript": "r_1_1_goblin", "TokenRemembered": "Remembered",
+	}})
+	bf := h.Game().Zone(state.ZBattlefield, c.Controller)
+	if len(bf) != 1 {
+		t.Fatalf("battlefield = %v, want one token", bf)
+	}
+	token := h.Game().Obj(bf[0])
+	if token == nil || !token.IsToken {
+		t.Fatalf("setup did not create a token: %+v", token)
+	}
+	if len(token.Remembered) != 1 || token.Remembered[0].Obj != remembered {
+		t.Fatalf("token Remembered = %+v, want remembered object %d", token.Remembered, remembered)
+	}
+	if !containsEvent(h.log, events.Choose, token.ID) {
+		t.Fatalf("token memory was not event-backed: log = %+v", h.log)
+	}
+}
+
+func containsEvent(log []events.Event, kind events.Kind, obj state.ObjID) bool {
+	for _, ev := range log {
+		if ev.Kind == kind && ev.Obj == obj && ev.Counter == "remembered" {
+			return true
+		}
+	}
+	return false
+}
+
 // TestTokenUnknownScriptNotesAndCreatesNothing pins down the exact totality
 // behaviour TestTokenCreatesEachScriptTheGivenNumberOfTimes only checks the
 // count for: an unrecognised TokenScript$ stem is a Note diagnostic naming

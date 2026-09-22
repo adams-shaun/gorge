@@ -343,6 +343,23 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["TokenTapped"]), "True")
+	// TokenRemembered$ binds the newly-created token's persistent memory to
+	// the named Defined$ group.  ExiledCards is Forge's name for the cards
+	// exiled by the payment immediately before this Token effect; that set is
+	// already the resolution's Remembered set in this engine.  Other selector
+	// forms use the ordinary Defined resolver, so this remains extensible as
+	// Defined gains readers rather than special-casing individual cards.
+	tokenRemembered := strings.TrimSpace(sa.Params["TokenRemembered"])
+	var tokenMemory []state.Target
+	if tokenRemembered != "" {
+		if tokenRemembered == "ExiledCards" {
+			tokenMemory = append(tokenMemory, c.Remembered...)
+		} else {
+			sub := *sa
+			sub.Params = map[string]string{"Defined": tokenRemembered}
+			tokenMemory = Defined(h, c, &sub)
+		}
+	}
 
 	// TokenAttacking$ True (Mobilize, Kari Zev's "tapped and attacking"
 	// rider): every token this call creates enters attacking the combat's
@@ -399,6 +416,19 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				// having grown by watching its length before and after.
 				want := g.NextID
 				h.Emit(events.Event{Kind: events.TokenCreate, Player: owner, Text: key})
+				if len(tokenMemory) > 0 && g.Obj(want) != nil {
+					ids := make([]state.ObjID, 0, len(tokenMemory))
+					for _, t := range tokenMemory {
+						if t.IsPlayer {
+							ids = append(ids, state.PlayerRef(t.Player))
+						} else if t.Obj != 0 {
+							ids = append(ids, t.Obj)
+						}
+					}
+					if len(ids) > 0 {
+						h.Emit(events.Event{Kind: events.Choose, Obj: want, Counter: "remembered", IDs: ids})
+					}
+				}
 				if remember && g.Obj(want) != nil {
 					c.Remembered = append(c.Remembered, state.Target{Obj: want})
 					eventRemember(h, c, want)
