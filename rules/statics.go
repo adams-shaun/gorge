@@ -2182,6 +2182,15 @@ func init() {
 		"stat:CantPutCounter",
 		// exert1: CR 702.100's attack-time election.
 		"stat:OptionalAttackCost",
+		// attackprop1: the CR 508.1g attack-prop static (rules/attack_cost.go
+		// attackPairCharge, priced per (attacker, defender) pair and paid
+		// during the declaration through the attackPay window). Only the
+		// whitelisted mana-cost shapes are enforced
+		// (cantAttackUnlessParamsReadable); the non-mana costs (Sac<...>,
+		// Return<...>, tapXType<...>, {W/P}) and the per-attacker-variable
+		// price (Nils' RememberingAttacker$) stay unregistered
+		// behaviour-wise and are ledgered in AGENTS.md.
+		"stat:CantAttackUnless",
 		// minmaxblocker1: the CR 509.1a block-count restriction static
 		// (rules/statics.go minMaxBlockerBounds, enforced whole-declaration by
 		// rules/combat.go validateBlockers and consulted by askBlockers' option

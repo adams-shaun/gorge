@@ -628,6 +628,13 @@ type Engine struct {
 	// is resolving. It is plain data so Clone preserves the suspended choice.
 	wardMana *wardManaPayment
 
+	// attackPay holds the declare-attackers attack-cost payment window
+	// (rules/attack_cost.go): the answered KAttackers declaration, its payer
+	// and the outstanding charge, while the payer taps mana sources to cover
+	// a CantAttackUnless prop. Same plain-data class as wardMana; Clone
+	// copies the pointer.
+	attackPay *attackPayWindow
+
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to
 	// undergo, deferred until its owner answers the KCommanderZone decision

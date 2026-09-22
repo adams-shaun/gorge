@@ -206,13 +206,8 @@ func (e *Engine) askAttackers() {
 	// The engine's order is not the defect -- it has to be deterministic and
 	// it has to match declare-blockers -- but it is what a positional
 	// tiebreak turns into a bias, so a defender preference belongs on a game
-	// fact (life, clock, board) rather than on seat index.
-	var defenders []state.PlayerID
-	for _, q := range e.G.AliveFrom(0) {
-		if q != p {
-			defenders = append(defenders, q)
-		}
-	}
+	// fact (life, clock, board) rather than on seat index. attackOffers
+	// (rules/attack_cost.go) preserves exactly this enumeration.
 	// The CR 508.1d requirements are told to the seat on the options: an
 	// attacker the declaration MUST include (a goaded creature, CR 701.38,
 	// or one under an unconditional MustAttack static) carries
@@ -226,26 +221,22 @@ func (e *Engine) askAttackers() {
 			mustAtt[id] = true
 		}
 	}
+	// The option list IS the attackOffers list (rules/attack_cost.go): the
+	// same enumeration and order the pre-prop list always had, plus the
+	// attack-prop serialization -- a chargeable (attacker, defender) pair is
+	// admitted only while the payer's attackBudget lasts, so every subset of
+	// the offered options is a payable declaration. mustAttackRequired and
+	// validateAttackDeclaration read the same list, so a requirement the
+	// budget ran out on is never demanded.
+	offers := e.attackOffers()
 	var opts []decision.Option
-	for _, d := range defenders {
-		for _, id := range attackers {
-			if required, ok := e.encoreAttackDefender(id); ok && d != required {
-				continue
-			}
-			if !e.goadMayAttack(id, d) {
-				continue
-			}
-			// CR 508.1a per-pair CantAttack scoping: a creature a
-			// CantAttack static/restriction forbids attacking THIS defender is
-			// never offered the pair (and validateAttackers rejects it
-			// independently, so a hand-built intent cannot slip one in).
-			if e.attackBlocked(id, d) {
-				continue
-			}
-			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
-				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + seatFacingName(e.G, d),
-				Obj:   id, Player: d, Required: mustAtt[id]})
+	for _, of := range offers {
+		label := "Attack with " + e.G.Obj(of.id).Face().Name + " at " + seatFacingName(e.G, of.def)
+		if of.price > 0 {
+			label += fmt.Sprintf(" (pay {%d} per creature)", of.price)
 		}
+		opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
+			Label: label, Obj: of.id, Player: of.def, Required: mustAtt[of.id]})
 	}
 	// A MaxAttackers$ ceiling (CR 508.1j, Silent Arbiter's shape) bounds the
 	// WHOLE declaration, so the decision's Max is the honest ceiling, not the
@@ -259,8 +250,9 @@ func (e *Engine) askAttackers() {
 	}
 	if len(opts) == 0 {
 		// Every (attacker, defender) pair is blocked — a CantAttack static or
-		// restriction covering the whole table. No declaration anyone could
-		// answer differently exists, so the step resolves silently with the
+		// restriction covering the whole table — or priced out — a
+		// CantAttackUnless prop whose charge the payer's attackBudget cannot
+		// cover. No declaration anyone could answer differently exists, so the step resolves silently with the
 		// empty declaration, the same no-decision path the no-attacker case
 		// above takes (asking KAttackers with only the empty answer legal is
 		// the forbidden wedge shape).
@@ -307,6 +299,26 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 		// completion skips blockers and damage under CR 508.8.
 		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
 		return
+	}
+	// CR 508.1: attack costs are paid as attackers are declared, BEFORE the
+	// declaration commits (the enlist election follows the same rule -- "as
+	// this creature attacks" also happens during the declaration). A
+	// chargeable declaration pays from the floating pool when it already
+	// covers the charge, otherwise through the tap-payment window
+	// (startAttackPay, rules/attack_cost.go), whose completion resumes right
+	// here with the enlist election. Both the charge and the offer list were
+	// re-derived by validateAttackers moments ago from the same pure reads,
+	// so the window's coverage guard cannot fail here; the Note path is the
+	// loud defensive fallback.
+	if charge := e.attackCharge(chosen); charge > 0 {
+		if int32(e.G.Players[d.Player].Pool.Total()) >= charge {
+			e.payMana(d.Player, Cost{Generic: charge})
+		} else if !e.startAttackPay(chosen, d.Player, charge) {
+			e.emit(events.Event{Kind: events.Note, Player: d.Player,
+				Text: fmt.Sprintf("could not pay the {%d} attack cost", charge)})
+		} else {
+			return
+		}
 	}
 	// CR 702.160a (task enlist1): enlist is an "as this creature attacks"
 	// action that happens DURING the declaration, before the attack triggers
@@ -481,6 +493,16 @@ func (e *Engine) exertAnswer(d *decision.Decision, in decision.Intent) {
 // attack restrictions (e.g. Silent Arbiter's MaxAttackers).
 func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) error {
 	seen := make(map[state.ObjID]bool, len(in.Choices))
+	// The offered-pair set (rules/attack_cost.go): every chosen option must
+	// be a pair the offer list admitted -- the CantAttack scoping and the
+	// attack-prop budget serialization are properties of the OFFER LIST, and
+	// re-deriving it here (the same pure read askAttackers ran) keeps a
+	// hand-built intent from naming a pair the budget ran out on.
+	offered := make(map[attackOffer]int32, 8)
+	for _, of := range e.attackOffers() {
+		offered[attackOffer{id: of.id, def: of.def}] = of.price
+	}
+	total := int32(0)
 	for _, o := range d.Chosen(in) {
 		if !e.canAttack(o.Obj) {
 			return fmt.Errorf("object %d cannot attack", o.Obj)
@@ -493,6 +515,17 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		}
 		if e.attackBlocked(o.Obj, o.Player) {
 			return fmt.Errorf("attacker %d cannot attack player %d", o.Obj, o.Player)
+		}
+		price, ok := offered[attackOffer{id: o.Obj, def: o.Player}]
+		if !ok {
+			return fmt.Errorf("attacker %d cannot attack player %d (attack cost not affordable or pair not offered)", o.Obj, o.Player)
+		}
+		// Belt against a future membership gap: the serialized offer list
+		// already bounds every subset's total, so this can only fire if the
+		// two walks ever diverge.
+		total += price
+		if total > e.attackBudget(d.Player) {
+			return fmt.Errorf("declaration's attack cost {%d} exceeds the affordable {%d}", total, e.attackBudget(d.Player))
 		}
 		seen[o.Obj] = true
 	}
@@ -567,31 +600,18 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 }
 
 // attackPairAvailable reports whether creature id has at least one legal
-// (attacker, defender) pair this combat under the requirements' own filters
-// (encore's fixed defender, goad's not-the-goaders rule) and the CantAttack
-// scoping (attackBlocked). The defender enumeration matches askAttackers'
-// (AliveFrom(0), controller excluded), so the solver and the option list can
-// never disagree about which pairs exist.
+// (attacker, defender) pair this combat. The pairs ARE the attackOffers list
+// (rules/attack_cost.go): the defender enumeration (AliveFrom(0), controller
+// excluded), the encore/goad/CantAttack scoping and the attack-prop budget
+// serialization are all the offer list's own rules, so the requirement solver
+// and the option list can never disagree about which pairs exist (a creature
+// whose every pair the attack budget ran out on is not required, and the
+// declaration that pays for the remaining required creatures stays legal).
 func (e *Engine) attackPairAvailable(id state.ObjID) bool {
-	o := e.G.Obj(id)
-	if o == nil {
-		return false
-	}
-	requiredDefender, required := e.encoreAttackDefender(id)
-	for _, d := range e.G.AliveFrom(0) {
-		if d == o.Controller {
-			continue
+	for _, of := range e.attackOffers() {
+		if of.id == id {
+			return true
 		}
-		if required && d != requiredDefender {
-			continue
-		}
-		if !e.goadMayAttack(id, d) {
-			continue
-		}
-		if e.attackBlocked(id, d) {
-			continue
-		}
-		return true
 	}
 	return false
 }
