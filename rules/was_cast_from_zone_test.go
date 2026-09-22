@@ -339,6 +339,31 @@ func TestRoryWilliamsWasCastFromExilePredicate(t *testing.T) {
 	}
 }
 
+// TestRoryExilesItselfWithTimeCountersOnCast pins the player-visible carrier:
+// a real hand cast fires Rory's SpellCast trigger, moves it to exile, and puts
+// the three TIME counters on the exiled card.
+func TestRoryExilesItselfWithTimeCountersOnCast(t *testing.T) {
+	reg := searchTestRegistry(t)
+	rory := searchCorpusCard(t, reg, "Rory Williams")
+	e := handEngine(t, rory)
+	id := e.G.Zone(state.ZHand, 0)[0]
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZHand {
+		t.Fatalf("Rory precondition failed: object is %+v, want hand", o)
+	}
+	addMana(t, e, 0, "WU")
+	castObj(t, e, id)
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZExile {
+		t.Fatalf("Rory hand cast ended in %v, want exile", o.Zone)
+	}
+	if got := o.Counter("TIME"); got != 3 {
+		t.Fatalf("Rory exile trigger put %d TIME counters, want 3", got)
+	}
+	if hasNote(e, "unimplemented API ChangeZone") {
+		t.Fatal("Rory's real exile trigger fell through the ChangeZone handler")
+	}
+}
+
 // TestCastOriginAdmitsChainUnit pins the chain's exact-token strip and the
 // ByYou scoping at the rules level: the log shapes each spelling reads, and
 // the copy guard.

@@ -367,10 +367,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// keeps events/apply.go's Move from knowing anything about counters.
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	// WithCounters* only takes effect when the object enters the battlefield.
-	// Parsing a dynamic/malformed amount emits a Note, so do not parse it for
-	// another destination where no CounterChange can ever be emitted.
-	if to == state.ZBattlefield && withKind != "" {
+	// WithCounters* applies to the destination object in any zone (including
+	// TIME counters on cards entering exile for suspend). Parsing a
+	// dynamic/malformed amount emits a Note.
+	if withKind != "" {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	targets := Defined(h, c, sa)
@@ -586,7 +586,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, o.ID)
 		}
 		eventForgetChanged(h, c, sa, o.ID)
-		if withKind != "" && to == state.ZBattlefield {
+		if withKind != "" {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
 		}
 		// GainControl$ hands the moved object to the named player (Reanimate:
@@ -903,7 +903,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 	}
-	if withKind != "" && to == state.ZBattlefield {
+	if withKind != "" {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: withKind, Amount: withAmt})
 	}
 	// GainControl$ hands the moved object to the named player. Only a
@@ -1256,9 +1256,9 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	c.HandMove, c.HandMoveDone, c.HandMoveTarget = nil, false, 0
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	// Match the object path: WithCounters* has no effect away from the
-	// battlefield, and parsing a dynamic amount there must not emit a Note.
-	if to == state.ZBattlefield && withKind != "" {
+	// WithCounters* applies to the destination object in any zone, including
+	// exile for suspend-style effects.
+	if withKind != "" {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// settleHandMove settles one chosen card: exactly the shared ChangeZone
@@ -2163,7 +2163,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	if to == state.ZBattlefield && withKind != "" {
+	if withKind != "" {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// The AtEOT$ rider's affected set, collected across every fetch and
@@ -2611,7 +2611,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	noLooking := strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True")
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	if to == state.ZBattlefield && withKind != "" {
+	if withKind != "" {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// WithTotalCMC$ is the cumulative mana-value budget over the picked cards
@@ -2990,7 +2990,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		if o.Zone != state.ZLibrary {
 			withKind := ""
 			var withAmt int32
-			if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
+			if sa.Params["WithCountersType"] != "" {
 				withKind = sa.Params["WithCountersType"]
 				withAmt = withCounterAmount(h, c, sa)
 			}
@@ -3032,7 +3032,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			}
 		}
 		moved = append(moved, id)
-		if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
+		if sa.Params["WithCountersType"] != "" {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
 				Counter: sa.Params["WithCountersType"], Amount: withCounterAmount(h, c, sa)})
 		}
